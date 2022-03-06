@@ -7,14 +7,14 @@
       id="slateCanvas"
     ></div>
     <script type="module">
-      import { Slatebox } from "./index.js";
-      import "./plugins/node/attempt.js";
-      import "./plugins/slate/second.js";
+      import { Slatebox } from './index.js'
+      import './plugins/node/attempt.js'
+      import './plugins/slate/second.js'
 
       const s = new Slatebox.slate({
-        name: "New Slate",
-        description: "",
-        defaultLineColor: "#333",
+        name: 'New Slate',
+        description: '',
+        defaultLineColor: '#333',
         viewPort: {
           width: 50000,
           height: 50000,
@@ -27,17 +27,17 @@
         isSharing: true,
         allowVideoChat: false,
         isInfographic: false,
-        imageFolder: "/images/",
+        imageFolder: '/images/',
         enabled: true,
-        container: "slateCanvas",
+        container: 'slateCanvas',
         containerStyle: {
-          width: "auto",
-          height: "auto",
-          backgroundColor: "#ccc",
+          width: 'auto',
+          height: 'auto',
+          backgroundColor: '#ccc',
           backgroundColorAsGradient: true,
-          backgroundGradientType: "radial",
-          backgroundGradientColors: ["#ccc"],
-          backgroundGradientStrategy: "shades",
+          backgroundGradientType: 'radial',
+          backgroundGradientColors: ['#ccc'],
+          backgroundGradientStrategy: 'shades',
         },
         events: {
           onConfirmRequested: async (title, msg, cb) => {
@@ -79,43 +79,43 @@
           localizedOnly: false,
           onCollaboration: async function (opts) {
             switch (opts.type) {
-              case "process":
+              case 'process':
                 // implement collab mechanism
-                break;
-              case "custom":
+                break
+              case 'custom':
                 switch (opts.pkg.type) {
-                  case "onSaveRequested":
+                  case 'onSaveRequested':
                     if (opts.pkg._id) {
                       // implement explicit saving
-                      break;
+                      break
                     }
-                    break;
+                    break
                 }
             }
           },
         },
-      }).init();
+      }).init()
 
       //this is a new slate
-      s.shareId = "test";
+      s.shareId = 'test'
       const defaultNodeOpts = {
-        name: "MASTER_NODE",
-        text: "Welcome to Slatebox!",
+        name: 'MASTER_NODE',
+        text: 'Welcome to Slatebox!',
         xPos: 5500,
         yPos: 5300,
         height: 100,
         width: 175,
-        vectorPath: "roundedrectangle",
-        backgroundColor: "90-#031634-#2D579A", //blue default
-        foregroundColor: "#fff",
-        lineColor: "#333",
+        vectorPath: 'roundedrectangle',
+        backgroundColor: '90-#031634-#2D579A', //blue default
+        foregroundColor: '#fff',
+        lineColor: '#333',
         lineWidth: 5,
         allowDrag: true,
-      };
+      }
 
-      const n = new Slatebox.node(defaultNodeOpts);
+      const n = new Slatebox.node(defaultNodeOpts)
 
-      s.nodes.add(n);
+      s.nodes.add(n)
 
       // console.log("node plugins ", n.plugins);
       //n.plugins.attempt.doAttempt();

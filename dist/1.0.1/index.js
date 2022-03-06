@@ -13100,11 +13100,13 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
     constructor(slate){
         const self = this;
         self.slate = slate;
-        self.selRect = null; // used during selection
+        self.selRect = null // used during selection
+        ;
         self.ox = null;
         self.oy = null;
         self._init = null;
-        self.marker = null; // stays after selection
+        self.marker = null // stays after selection
+        ;
         self.selectedNodes = [];
         self.relationshipsToTranslate = [];
         self.relationshipsToRefresh = [];
@@ -13117,16 +13119,16 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         self.moveY = 0;
         self.attrs = {
             create: {
-                fill: "#fff",
-                stroke: "#000"
+                fill: '#fff',
+                stroke: '#000'
             },
             mouseOut: {
-                fill: "#fff",
-                stroke: "#000"
+                fill: '#fff',
+                stroke: '#000'
             },
             mouseOver: {
-                fill: "#ccc",
-                cursor: "pointer"
+                fill: '#ccc',
+                cursor: 'pointer'
             }
         };
     }
@@ -13162,23 +13164,23 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         }
         const c = self.slate.options.container;
         if (c && self.slate.options.enabled && self.slate.options.showMultiSelect) {
-            self._init = document.createElement("div");
-            self._init.setAttribute("class", "slateMultiSelect");
-            self._init.style.position = "absolute";
-            self._init.style.height = "30px";
-            self._init.style.left = "10px";
-            self._init.style.color = "#081272";
-            self._init.style.fontSize = "11pt";
-            self._init.style.fontFamily = "trebuchet ms";
-            self._init.style.top = "5px";
-            self._init.style.display = "block";
-            self._init.style.padding = "5px";
-            self._init.style.margin = "5px;";
-            self._init.style.backgroundColor = "#fff";
-            self._init.style.cursor = "pointer";
-            self._init.style["user-select"] = "none";
-            self._init.innerHTML = "[multi-select]";
-            self._init.style.zIndex = "0";
+            self._init = document.createElement('div');
+            self._init.setAttribute('class', 'slateMultiSelect');
+            self._init.style.position = 'absolute';
+            self._init.style.height = '30px';
+            self._init.style.left = '10px';
+            self._init.style.color = '#081272';
+            self._init.style.fontSize = '11pt';
+            self._init.style.fontFamily = 'trebuchet ms';
+            self._init.style.top = '5px';
+            self._init.style.display = 'block';
+            self._init.style.padding = '5px';
+            self._init.style.margin = '5px;';
+            self._init.style.backgroundColor = '#fff';
+            self._init.style.cursor = 'pointer';
+            self._init.style['user-select'] = 'none';
+            self._init.innerHTML = '[multi-select]';
+            self._init.style.zIndex = '0';
             c.appendChild(self._init);
             self.markerEvents = {
                 init () {
@@ -13187,8 +13189,8 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     self.moveX = 0;
                     self.moveY = 0;
                     self.slate.options.allowDrag = false;
-                    self.marker.ox = self.marker.attr("x");
-                    self.marker.oy = self.marker.attr("y");
+                    self.marker.ox = self.marker.attr('x');
+                    self.marker.oy = self.marker.attr('y');
                     self.selectedNodes.forEach((node)=>{
                         const bb = node.vect.getBBox();
                         node.vect.ox = bb.x;
@@ -13218,12 +13220,12 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                         const _nx = self.origPos.x + self.origPos.width + dx - 5;
                         const _ny = self.origPos.y + self.origPos.height + dy - 5;
                         self.resizer.transform([
-                            "t",
+                            't',
                             _nx,
-                            ",",
+                            ',',
                             _ny,
-                            " r95 s1.5,1.5"
-                        ].join(""));
+                            ' r95 s1.5,1.5'
+                        ].join(''));
                     } catch (err) {
                         finalize();
                     }
@@ -13269,12 +13271,12 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                         rh = false;
                     }
                     self.resizer.transform([
-                        "t",
+                        't',
                         _nx,
-                        ",",
+                        ',',
                         _ny,
-                        " r95 s1.5,1.5"
-                    ].join(""));
+                        ' r95 s1.5,1.5'
+                    ].join(''));
                     const att = {
                         width: _width,
                         height: _height
@@ -13309,11 +13311,11 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     const _nx = self.origPos.x + self.origPos.width;
                     const _ny = self.origPos.y + self.origPos.height;
                     self.resizer.transform([
-                        "t",
+                        't',
                         _nx - 5,
-                        ",",
+                        ',',
                         _ny - 5
-                    ].join(""));
+                    ].join(''));
                     self.refreshMarker();
                     self.showIcons();
                     self.marker.toBack();
@@ -13322,12 +13324,12 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     self.slate.enable();
                 }
             };
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self._init, "click", (e)=>{
+            $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self._init, 'click', (e)=>{
                 switch(self._init.innerHTML){
-                    case "[multi-select]":
+                    case '[multi-select]':
                         self.start();
                         break;
-                    case "selecting [click to stop]...":
+                    case 'selecting [click to stop]...':
                         self.end(false);
                         self.endSelection();
                         break;
@@ -13339,28 +13341,29 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
     }
     hide() {
         const self = this;
-        if (self._init) self._init.style.display = "none";
+        if (self._init) self._init.style.display = 'none';
     }
     show() {
         const self = this;
-        if (self._init) self._init.style.display = "block";
+        if (self._init) self._init.style.display = 'block';
     }
     start() {
         const self = this;
-        self.slate.disable(); // options.allowDrag = false;
-        self._init.innerHTML = "selecting [click to stop]...";
-        document.head.insertAdjacentHTML("beforeend", `<style id='svg-no-select-text'>.slatebox-text { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }</style>`);
+        self.slate.disable() // options.allowDrag = false;
+        ;
+        self._init.innerHTML = 'selecting [click to stop]...';
+        document.head.insertAdjacentHTML('beforeend', `<style id='svg-no-select-text'>.slatebox-text { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }</style>`);
         // document.head.insertAdjacentHTML("beforeend", `<style id='svg-no-select-text'>svg text { pointer-events: none; }</style>`);
         self.slate.onSelectionStart = (e)=>{
             self.end();
             const p = self.xy(e);
             self.selRect = self.slate.paper.rect(p.x, p.y, 10, 10).attr({
-                "stroke-dasharray": "-"
+                'stroke-dasharray': '-'
             });
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), "mousemove", self._move.bind(self), null);
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), "mouseup", self._mouseUp.bind(self), null, true);
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), "mouseleave", self._select.bind(self), null, true);
-            window.addEventListener("beforeunload", self._enableOnRefresh);
+            $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self), null);
+            $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), 'mouseup', self._mouseUp.bind(self), null, true);
+            $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), 'mouseleave', self._select.bind(self), null, true);
+            window.addEventListener('beforeunload', self._enableOnRefresh);
             self.ox = p.x;
             self.oy = p.y;
         };
@@ -13371,7 +13374,8 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         self.relationshipsToRefresh = [];
         self.selectedNodes = [];
         self.slate.enable();
-        self.broadcastMove(); // broadcast an "empty" move to save the enabled state of the slate
+        self.broadcastMove() // broadcast an "empty" move to save the enabled state of the slate
+        ;
     }
     showIcons() {
         const self = this;
@@ -13391,17 +13395,17 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 opacity: 0.3
             }).toBack();
             const del = self.slate.paper.trash().attr({
-                fill: "#fff",
-                stroke: "#f00"
+                fill: '#fff',
+                stroke: '#f00'
             }).transform([
-                "t",
+                't',
                 multiX,
-                ",",
+                ',',
                 markerBB.y + heightSpacer * 3,
-                "s",
-                ",",
-                "1.25",
-                "1.25", 
+                's',
+                ',',
+                '1.25',
+                '1.25', 
             ].join());
             del.mouseover((e)=>{
                 del.attr(self.attrs.mouseOver);
@@ -13409,8 +13413,8 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             });
             del.mouseout((e)=>{
                 del.attr({
-                    fill: "#fff",
-                    stroke: "#f00"
+                    fill: '#fff',
+                    stroke: '#f00'
                 });
                 $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
             });
@@ -13419,14 +13423,14 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 self.del();
             });
             const copy = self.slate.paper.copy().attr(self.attrs.create).transform([
-                "t",
+                't',
                 multiX,
-                ",",
+                ',',
                 markerBB.y + heightSpacer * 2,
-                "s",
-                ",",
-                "1.25",
-                "1.25", 
+                's',
+                ',',
+                '1.25',
+                '1.25', 
             ].join());
             copy.mouseover((e)=>{
                 copy.attr(self.attrs.mouseOver);
@@ -13439,7 +13443,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             copy.mousedown((e)=>{
                 $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
                 const snap = self.slate.snapshot();
-                const nGroupId = self.selectedNodes[0].options.groupId ? $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, "").substring(0, 8).toUpperCase() : null;
+                const nGroupId = self.selectedNodes[0].options.groupId ? $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 8).toUpperCase() : null;
                 const orient = self.slate.getOrientation(self.selectedNodes);
                 const pad = 75;
                 const relationalMap = {
@@ -13448,7 +13452,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     const c = $5OpyM$lodashclonedeep(node.options);
                     c.xPos += orient.width + pad;
                     c.groupId = nGroupId;
-                    c.id = $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, "").substring(0, 12);
+                    c.id = $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 12);
                     relationalMap[node.options.id] = c.id;
                     c.vectorPath = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(c.vectorPath, `T${orient.width + pad},0`);
                     const nn = new $cf838c15c8b009ba$export$6cc593952597f80d.node(c);
@@ -13463,8 +13467,9 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     node.relationships.associations.filter((a)=>a.parent.options.id === node.options.id
                     ).forEach((a)=>{
                         const assocPkg = $5OpyM$lodashclonedeep(a);
-                        delete assocPkg.line; // ensure new line is created
-                        assocPkg.id = $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, "").substring(0, 12);
+                        delete assocPkg.line // ensure new line is created
+                        ;
+                        assocPkg.id = $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 12);
                         assocPkg.activeNode = relationalMap[assocPkg.activeNode];
                         let childNode = an.find((n)=>n.options.id === relationalMap[a.child.options.id]
                         );
@@ -13475,7 +13480,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 });
                 // send collaboration info
                 const pkg = {
-                    type: "onNodeAdded",
+                    type: 'onNodeAdded',
                     data: self.slate.exportDifference(snap)
                 };
                 self.slate.collab.send(pkg);
@@ -13483,14 +13488,14 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             self._icons.push(copy);
             if (!isGrouped) {
                 const group = self.slate.paper.plus().attr(self.attrs.create).transform([
-                    "t",
+                    't',
                     multiX,
-                    ",",
+                    ',',
                     markerBB.y + heightSpacer,
-                    "s",
-                    ",",
-                    "1.25",
-                    "1.25", 
+                    's',
+                    ',',
+                    '1.25',
+                    '1.25', 
                 ].join());
                 group.mouseover((e)=>{
                     group.attr(self.attrs.mouseOver);
@@ -13501,7 +13506,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
                 });
                 group.mousedown((e)=>{
-                    const groupId = $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, "").substring(0, 8).toUpperCase();
+                    const groupId = $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 8).toUpperCase();
                     self.selectedNodes.forEach((n)=>{
                         n.options.groupId = groupId;
                     });
@@ -13513,14 +13518,14 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 self._icons.push(group);
             } else {
                 const ungroup = self.slate.paper.minus().attr(self.attrs.create).transform([
-                    "t",
+                    't',
                     multiX,
-                    ",",
+                    ',',
                     markerBB.y + heightSpacer,
-                    "s",
-                    ",",
-                    "1.25",
-                    "1.25", 
+                    's',
+                    ',',
+                    '1.25',
+                    '1.25', 
                 ].join());
                 ungroup.mouseover((e)=>{
                     ungroup.attr(self.attrs.mouseOver);
@@ -13541,14 +13546,14 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 self._icons.push(ungroup);
                 if (showSettings) {
                     const settings = self.slate.paper.setting().attr(self.attrs.create).transform([
-                        "t",
+                        't',
                         multiX,
-                        ",",
+                        ',',
                         markerBB.y + heightSpacer * 4,
-                        "s",
-                        ",",
-                        "1.25",
-                        "1.25", 
+                        's',
+                        ',',
+                        '1.25',
+                        '1.25', 
                     ].join());
                     settings.mouseover((e)=>{
                         settings.attr(self.attrs.mouseOver);
@@ -13586,7 +13591,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     node.del();
                     self.slate.unglow();
                     const delPkg = {
-                        type: "onNodeDeleted",
+                        type: 'onNodeDeleted',
                         data: {
                             id: node.options.id
                         }
@@ -13607,9 +13612,9 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             self.slate.enable();
             // self.slate.keyboard && self.slate.keyboard.end();
             self.hideIcons();
-            window.removeEventListener("beforeunload", self._enableOnRefresh);
+            window.removeEventListener('beforeunload', self._enableOnRefresh);
         }
-        if (self._init) self._init.innerHTML = "[multi-select]";
+        if (self._init) self._init.innerHTML = '[multi-select]';
     }
     endSelection() {
         const self = this;
@@ -13617,7 +13622,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         self.showIcons();
         self.slate.options.allowDrag = true;
         self.slate.onSelectionStart = null;
-        $8ab43d25a2892bde$export$2e2bcd8739ae039.removeEvent(self.slate.canvas.get(), "mousemove", self._move.bind(self));
+        $8ab43d25a2892bde$export$2e2bcd8739ae039.removeEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self));
     }
     xy(e) {
         const self = this;
@@ -13672,8 +13677,8 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         if (w < self.minSize) w = self.minSize;
         if (h < self.minSize) h = self.minSize;
         self.marker = self.slate.paper.rect(orient.left / z, orient.top / z, w, h).attr({
-            "stroke-dasharray": "-",
-            fill: "#f8f8f8",
+            'stroke-dasharray': '-',
+            fill: '#f8f8f8',
             opacity: 0.3
         });
         self.marker.toBack();
@@ -13684,24 +13689,26 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         const _nx = self.origPos.x + self.origPos.width;
         const _ny = self.origPos.y + self.origPos.height;
         self.resizer = self.slate.paper.resize().transform([
-            "t",
+            't',
             _nx - 5,
-            ",",
+            ',',
             _ny - 5,
-            "r95 s1.5,1.5"
+            'r95 s1.5,1.5'
         ].join()).attr({
-            fill: "#fff",
-            stroke: "#000"
+            fill: '#fff',
+            stroke: '#000'
         });
         self.resizer.toFront();
         self.resizer.mouseover((e)=>{
             self.resizer.attr(self.attrs.mouseOver);
             $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
-        }); // self._resizeHover.bind(self));
+        }) // self._resizeHover.bind(self));
+        ;
         self.resizer.mouseout((e)=>{
             self.resizer.attr(self.attrs.mouseOut);
             $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
-        }); // self._resizeHover.bind(self));
+        }) // self._resizeHover.bind(self));
+        ;
         // self.resizer.unmouseover(self._resizeHover.bind(self));
         self.marker.drag(self.markerEvents.move, self.markerEvents.init, self.markerEvents.up);
         self.resizer.drag(self.resizeEvents.move, self.resizeEvents.init, self.resizeEvents.up);
@@ -13735,7 +13742,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
     }
     _mouseUp(e) {
         const self = this;
-        if (self._init) self._init.innerHTML = "[multi-select]";
+        if (self._init) self._init.innerHTML = '[multi-select]';
         this._select(e);
     }
     _select(e) {
@@ -13770,7 +13777,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
     broadcastMove() {
         const self = this;
         const pkg = {
-            type: "onNodesMove",
+            type: 'onNodesMove',
             data: self.slate.nodes.nodeMovePackage({
                 nodes: self.selectedNodes,
                 relationships: self.relationshipsToTranslate.concat(self.relationshipsToRefresh)

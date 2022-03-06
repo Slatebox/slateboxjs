@@ -1,0 +1,10 @@
+type = "webpack"
+workers_dev = false
+
+[site]
+bucket = "./dist"
+entry-point = "workers-site"
+
+[env.production]
+name = "slateboxjs-prod"
+route = "assets.slatebox.com/*"

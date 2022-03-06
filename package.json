@@ -1,7 +1,7 @@
 {
   "name": "slateboxjs",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "repository": {
     "url": "https://github.com/Slatebox/slateboxjs"
   },
@@ -10,7 +10,7 @@
   "main": "dist/index.js",
   "scripts": {
     "serve": "parcel serve index.html",
-    "build": "parcel build",
+    "build": "parcel build && mkdir -p ./dist/${npm_package_version} && mv ./dist/index.js ./dist/${npm_package_version}/index.js && mv ./dist/index.js.map ./dist/${npm_package_version}/index.js.map",
     "checkSize": "parcel build --reporter @parcel/reporter-bundle-analyzer"
   },
   "author": "",
@@ -31,6 +31,7 @@
     "wheel-gestures": "^2.2.3"
   },
   "devDependencies": {
+    "@cloudflare/wrangler": "^1.19.8",
     "@parcel/reporter-bundle-analyzer": "^2.0.0",
     "eslint": "^8.10.0",
     "eslint-config-airbnb-base": "^15.0.0",
