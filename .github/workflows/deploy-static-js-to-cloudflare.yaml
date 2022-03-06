@@ -9,15 +9,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # - name: Cache yarn dependencies
-      #   uses: c-hive/gha-yarn-cache@v1
-
       - name: Use Node.js
         uses: actions/setup-node@v1
         with:
           node-version: 14.x
-      - run: yarn install --frozen-lockfile
-      - run: yarn export
+      - run: npm install
+      - run: npm run build
 
       - name: Publish slateboxjs to cloudflare worker site
         run: |
