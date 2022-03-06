@@ -1,0 +1,37 @@
+{
+  "name": "slateboxjs",
+  "type": "module",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/Slatebox/slateboxjs"
+  },
+  "description": "Slatebox.js for mind mapping, concept drawing, brainstorming",
+  "source": "src/index.js",
+  "main": "dist/index.js",
+  "scripts": {
+    "serve": "parcel serve index.html",
+    "build": "parcel build",
+    "checkSize": "parcel build --reporter @parcel/reporter-bundle-analyzer"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "deepmerge": "^4.2.2",
+    "lodash.clone": "^4.5.0",
+    "lodash.clonedeep": "^4.5.0",
+    "lodash.debounce": "^4.0.8",
+    "lodash.indexof": "^4.0.5",
+    "lodash.invoke": "^4.5.2",
+    "lodash.merge": "^4.6.2",
+    "lodash.omit": "^4.5.0",
+    "lodash.throttle": "^4.1.1",
+    "lodash.uniq": "^4.5.0",
+    "static-kdtree": "^1.0.2",
+    "svg-pathdata": "^5.0.5",
+    "wheel-gestures": "^2.2.3"
+  },
+  "devDependencies": {
+    "@parcel/reporter-bundle-analyzer": "^2.0.0",
+    "parcel": "^2.3.2"
+  }
+}

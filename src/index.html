@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body>
+    <div
+      style="width: 100%; height: 800px; border: 1px solid red"
+      id="slateCanvas"
+    ></div>
+    <script type="module">
+      import { Slatebox } from "./index.js";
+      import "./plugins/node/attempt.js";
+      import "./plugins/slate/second.js";
+
+      const s = new Slatebox.slate({
+        name: "New Slate",
+        description: "",
+        defaultLineColor: "#333",
+        viewPort: {
+          width: 50000,
+          height: 50000,
+          allowDrag: true,
+          left: 5000,
+          top: 5000,
+        },
+        showbirdsEye: true,
+        showZoom: true,
+        isSharing: true,
+        allowVideoChat: false,
+        isInfographic: false,
+        imageFolder: "/images/",
+        enabled: true,
+        container: "slateCanvas",
+        containerStyle: {
+          width: "auto",
+          height: "auto",
+          backgroundColor: "#ccc",
+          backgroundColorAsGradient: true,
+          backgroundGradientType: "radial",
+          backgroundGradientColors: ["#ccc"],
+          backgroundGradientStrategy: "shades",
+        },
+        events: {
+          onConfirmRequested: async (title, msg, cb) => {
+            // implement confirmation dialog
+          },
+          onTakeSnapshot: async (opts) => {
+            // implement slate snapshot
+          },
+          onTextPaneRequested: (node, cb) => {
+            // implement text pane
+          },
+          onLineMenuRequested: (node, association, cb) => {
+            // implement line menu request
+          },
+          onMenuRequested: (node, cb) => {
+            // implement menu request
+          },
+          onBase64ImageRequested: (imgUrl, imageType, cb) => {
+            // implement base64 image request
+          },
+          onOptimizeSVG: (svg, cb) => {
+            // implement SVG optimization
+          },
+          isReadOnly: () => {
+            // is the slate read only for this user?
+          },
+          isCommentOnly: () => {
+            // does the user have comment only access to this slate?
+          },
+          canRemoveComments: () => {
+            // can the user remove comments?
+          },
+          onThemeRequired: (opts, cb) => {
+            // expirmental: provide a them in the cb
+          },
+        },
+        collaboration: {
+          allow: true,
+          localizedOnly: false,
+          onCollaboration: async function (opts) {
+            switch (opts.type) {
+              case "process":
+                // implement collab mechanism
+                break;
+              case "custom":
+                switch (opts.pkg.type) {
+                  case "onSaveRequested":
+                    if (opts.pkg._id) {
+                      // implement explicit saving
+                      break;
+                    }
+                    break;
+                }
+            }
+          },
+        },
+      }).init();
+
+      //this is a new slate
+      s.shareId = "test";
+      const defaultNodeOpts = {
+        name: "MASTER_NODE",
+        text: "Welcome to Slatebox!",
+        xPos: 5500,
+        yPos: 5300,
+        height: 100,
+        width: 175,
+        vectorPath: "roundedrectangle",
+        backgroundColor: "90-#031634-#2D579A", //blue default
+        foregroundColor: "#fff",
+        lineColor: "#333",
+        lineWidth: 5,
+        allowDrag: true,
+      };
+
+      const n = new Slatebox.node(defaultNodeOpts);
+
+      s.nodes.add(n);
+
+      // console.log("node plugins ", n.plugins);
+      //n.plugins.attempt.doAttempt();
+      //s.plugins.attempt.doSecond();
+    </script>
+  </body>
+</html>
