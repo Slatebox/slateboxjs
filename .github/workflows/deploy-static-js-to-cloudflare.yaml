@@ -15,7 +15,6 @@ jobs:
           node-version: 14.x
       - run: npm install
       - run: npm run build
-      - run: npm run buildDev
 
       - name: Publish slateboxjs to cloudflare worker site
         run: |
