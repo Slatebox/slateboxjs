@@ -8,12 +8,17 @@
   "description": "Slatebox.js for mind mapping, concept drawing, brainstorming",
   "source": "src/index.js",
   "main": "dist/index.js",
+  "targets": {
+    "main": {
+      "optimize": true
+    }
+  },
   "scripts": {
-    "serve": "parcel serve index.html",
-    "build": "parcel build && mkdir -p ./dist/${npm_package_version} && mv ./dist/index.js ./dist/${npm_package_version}/index.js && mv ./dist/index.js.map ./dist/${npm_package_version}/index.js.map",
+    "build": "parcel build && mv ./dist/index.js ./dist/sb-${npm_package_version}.min.js && mv ./dist/index.js.map ./dist/sb-${npm_package_version}.min.js.map",
+    "buildDev": "parcel build --no-optimize && mv ./dist/index.js ./dist/sb-${npm_package_version}.js && mv ./dist/index.js.map ./dist/sb-${npm_package_version}.js.map",
     "checkSize": "parcel build --reporter @parcel/reporter-bundle-analyzer"
   },
-  "author": "",
+  "author": "Tim Heckel <tim@slatebox.com>",
   "license": "MIT",
   "dependencies": {
     "deepmerge": "^4.2.2",
@@ -33,6 +38,7 @@
   "devDependencies": {
     "@cloudflare/wrangler": "^1.19.8",
     "@parcel/reporter-bundle-analyzer": "^2.0.0",
+    "buffer": "^6.0.3",
     "eslint": "^8.10.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-prettier": "^8.5.0",
