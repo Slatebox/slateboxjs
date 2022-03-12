@@ -75,6 +75,7 @@ export default class slate extends base {
       isFeatured: false,
       isCommunity: false,
       autoEnableDefaultFilters: true,
+      followMe: false,
     }
 
     this.options = merge(this.options, _options)

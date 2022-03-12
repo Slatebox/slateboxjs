@@ -502,7 +502,7 @@ export default class canvas {
             parseInt(self.internal.style.top.replace('px', ''), 10)
           )
           self.slate.birdsEye?.refresh(true)
-          opts.callbacks.after.apply(self.slate)
+          opts.callbacks.after?.apply(self.slate)
         },
         during(pc) {
           self.slate.birdsEye?.refresh(true)

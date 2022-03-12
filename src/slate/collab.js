@@ -250,21 +250,27 @@ export default class collab {
         })
       },
 
+      onFollowMeChanged(pkg) {
+        self.slate.options.followMe = pkg.data?.followMe
+      },
+
       onCanvasMove(pkg) {
         // will start ignoring this for collab sake
-        self.slate.toggleFilters(true, null, true)
-        const opts = {
-          x: pkg.data.left,
-          y: pkg.data.top,
-          dur: pkg.data.duration || 500,
-          callback: {
-            after() {
-              self.slate.birdsEye?.refresh(true)
+        if (self.slate.options.followMe) {
+          self.slate.toggleFilters(true, null, true)
+          const opts = {
+            x: pkg.data.left,
+            y: pkg.data.top,
+            dur: pkg.data.duration || 500,
+            callback: {
+              after() {
+                self.slate.birdsEye?.refresh(true)
+              },
             },
-          },
-          isAbsolute: !pkg.isRelative,
+            isAbsolute: !pkg.isRelative,
+          }
+          self.slate.canvas.move(opts)
         }
-        self.slate.canvas.move(opts)
       },
 
       onSlateThemeChanged(pkg) {
