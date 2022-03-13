@@ -1,13 +1,13 @@
 {
   "name": "slateboxjs",
   "type": "module",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "repository": {
     "url": "https://github.com/Slatebox/slateboxjs"
   },
   "description": "Slatebox.js for mind mapping, concept drawing, brainstorming",
   "source": "src/index.js",
-  "main": "dist/index.js",
+  "main": "src/index.js",
   "targets": {
     "main": {
       "optimize": true

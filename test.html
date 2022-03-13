@@ -7,7 +7,7 @@
       id="slateCanvas"
     ></div>
     <script type="module">
-      import { Slatebox } from './dist/sb-1.0.2.js'
+      import { Slatebox } from './dist/index.js'
 
       const s = new Slatebox.slate({
         name: 'New Slate',
@@ -22,9 +22,6 @@
         },
         showbirdsEye: true,
         showZoom: true,
-        isSharing: true,
-        allowVideoChat: false,
-        isInfographic: false,
         imageFolder: '/images/',
         enabled: true,
         container: 'slateCanvas',

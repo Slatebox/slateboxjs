@@ -102,6 +102,10 @@ export default class canvas {
         requestAnimationFrame(() => {
           // broadcast custom collab
           const mp = utils.mousePos(e)
+          const curPos = utils.positionedOffset(self.internal)
+          mp.currentZoom = slate.options.viewPort.zoom.r
+          mp.left = Math.abs(curPos.left)
+          mp.top = Math.abs(curPos.top)
           slate.collab?.send({ type: 'onMouseMoved', data: mp })
 
           if (self.isDragging && slate.options.allowDrag) {
@@ -150,7 +154,7 @@ export default class canvas {
     self.internal = document.createElement('div')
     self.internal.setAttribute(
       'class',
-      `slateboxInternal_${self.slate.options.id}`
+      `slateboxInternal_${self.slate.options.id} sb_canvas`
     )
     // console.log("setting slate canvas", `slateboxInternal_${self.slate.options.id}`);
     const _w = slate.options.viewPort.width
@@ -361,12 +365,19 @@ export default class canvas {
     setTimeout(() => {
       self.slate.birdsEye?.setBe()
       self.slate.birdsEye?.refresh()
+      // set init
+      // self.Canvas.objInitPos = utils.positionedOffset(self.internal)
+      // console.log('init mouse', self.Canvas.objInitPos)
     }, 500)
+
+    // self.cp()
+    // self.initDragDefaults()
+
     self.completeInit = true
   } // init
 
   cp(e) {
-    const m = utils.mousePos(e)
+    const m = e ? utils.mousePos(e) : { x: 0, y: 0 }
 
     let difX =
       this.Canvas.objInitPos.left + (m.x - this.Canvas.objInitialMousePos.x)

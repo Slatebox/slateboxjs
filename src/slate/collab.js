@@ -30,19 +30,22 @@ export default class collab {
 
     self.invoker = {
       onZoom(pkg) {
-        resetMultiSelect()
-        const zoomPercent =
-          (self.slate.options.viewPort.originalWidth / pkg.data.zoomLevel) * 100
-        self.slate.canvas.zoom({
-          dur: pkg.data.duration || 500,
-          zoomPercent,
-          callbacks: {
-            during() {
-              // additional calcs
+        if (self.slate.options.followMe) {
+          resetMultiSelect()
+          const zoomPercent =
+            (self.slate.options.viewPort.originalWidth / pkg.data.zoomLevel) *
+            100
+          self.slate.canvas.zoom({
+            dur: pkg.data.duration || 500,
+            zoomPercent,
+            callbacks: {
+              during() {
+                // additional calcs
+              },
+              after() {},
             },
-            after() {},
-          },
-        })
+          })
+        }
       },
 
       onNodePositioned(pkg) {
@@ -255,7 +258,6 @@ export default class collab {
       },
 
       onCanvasMove(pkg) {
-        // will start ignoring this for collab sake
         if (self.slate.options.followMe) {
           self.slate.toggleFilters(true, null, true)
           const opts = {
@@ -360,6 +362,10 @@ export default class collab {
 
       onSlateSnapToObjectsChanged(pkg) {
         self.slate.options.viewPort.snapToObjects = pkg.data.snapToObjects
+      },
+
+      onSlateFollowMeChanged(pkg) {
+        self.slate.options.followMe = pkg.data.followMe
       },
     } // this invoker
 
