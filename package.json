@@ -7,7 +7,7 @@
   },
   "description": "Slatebox.js for mind mapping, concept drawing, brainstorming",
   "source": "src/index.js",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "targets": {
     "main": {
       "optimize": true
