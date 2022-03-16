@@ -784,7 +784,8 @@ export default class slate extends base {
     this.canvas.move({ x: l, y: t, dur, isAbsolute: true })
   }
 
-  disable(exemptSlate, exemptNodes) {
+  disable(exemptSlate, exemptNodes, full) {
+    console.log('disabling')
     if (!exemptNodes) {
       this.nodes.allNodes.forEach((nd) => {
         nd.disable()
@@ -794,6 +795,13 @@ export default class slate extends base {
     if (!exemptSlate) {
       this.options.enabled = false
       this.options.allowDrag = false
+      if (full) {
+        console.log('disabling all the stuff')
+        this.multiSelection?.hideIcons()
+        this.undoRedo?.hide()
+        this.birdsEye?.disable()
+        this.zoomSlider?.hide()
+      }
     }
   }
 

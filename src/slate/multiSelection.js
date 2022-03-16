@@ -548,8 +548,8 @@ export default class multiSelection {
 
   hideIcons() {
     const self = this
-    self.iconBg.remove()
-    self._icons.forEach((i) => i.remove())
+    self.iconBg?.remove()
+    self._icons?.forEach((i) => i.remove())
   }
 
   isSelecting() {

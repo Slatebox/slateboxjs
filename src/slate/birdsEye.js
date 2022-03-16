@@ -132,11 +132,11 @@ export default class birdsEye {
 
   enable() {
     if (!this.corner) this.show()
-    utils.el(`slatebirdsEye_${this.slate.options.id}`).style.display = 'block'
+    this.be.style.display = 'block'
   }
 
   disable() {
-    utils.el(`slatebirdsEye_${this.slate.options.id}`).style.display = 'none'
+    this.be.style.display = 'none'
   }
 
   relationshipsChanged(pkg) {

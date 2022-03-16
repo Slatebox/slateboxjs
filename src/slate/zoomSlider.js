@@ -13,11 +13,7 @@ export default class zoomSlider {
   }
 
   hide() {
-    if (utils.el(`slateSlider_${this.slate.options.id}`) !== null) {
-      this.slate.options.container.removeChild(
-        utils.el(`slateSlider_${this.slate.options.id}`)
-      )
-    }
+    // this.slider.style.display = 'none'
   }
 
   show(_options) {
