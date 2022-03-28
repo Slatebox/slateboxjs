@@ -333,21 +333,8 @@ export default class connectors {
           if (nextChild > Object.keys(theme.styles).length) {
             nextChild = 1
           }
-          console.log(
-            'before options',
-            options.vectorPath,
-            options.xPos,
-            options.yPos
-          )
           const base = theme.styles[`child_${nextChild}`]
-          console.log('base is ', base)
           Object.assign(options, base)
-          console.log(
-            'after options',
-            options.vectorPath,
-            options.xPos,
-            options.yPos
-          )
         }
         return self.createNode(
           skipCenter,

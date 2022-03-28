@@ -5,6 +5,9 @@ export default class grid {
   constructor(slate) {
     this.slate = slate
     this._grid = null
+    if (this.slate.options.viewPort.showGrid) {
+      this.show()
+    }
 
     // produce the required grid patterns
     // <defs>

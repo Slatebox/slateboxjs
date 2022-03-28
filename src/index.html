@@ -11,35 +11,40 @@
       import './plugins/node/attempt.js'
       import './plugins/slate/second.js'
 
-      const s = new Slatebox.slate({
-        name: 'New Slate',
-        description: '',
-        defaultLineColor: '#333',
-        viewPort: {
-          width: 50000,
-          height: 50000,
-          allowDrag: true,
-          left: 5000,
-          top: 5000,
+      const s = new Slatebox.slate(
+        {
+          name: 'New Slate',
+          description: '',
+          defaultLineColor: '#333',
+          viewPort: {
+            useInertiaScrolling: true,
+            showGrid: true,
+            snapToObjects: true,
+            gridSize: 50,
+            width: 50000,
+            height: 50000,
+            left: 25000,
+            top: 25000,
+            zoom: { w: 50000, h: 50000, r: 1 },
+          },
+          showbirdsEye: true,
+          showZoom: true,
+          isSharing: true,
+          showMultiSelect: false,
+          imageFolder: '/images/',
+          enabled: true,
+          container: 'slateCanvas',
+          containerStyle: {
+            width: 'auto',
+            height: 'auto',
+            backgroundColor: '#ccc',
+            backgroundColorAsGradient: true,
+            backgroundGradientType: 'radial',
+            backgroundGradientColors: ['#ccc'],
+            backgroundGradientStrategy: 'shades',
+          },
         },
-        showbirdsEye: true,
-        showZoom: true,
-        isSharing: true,
-        allowVideoChat: false,
-        isInfographic: false,
-        imageFolder: '/images/',
-        enabled: true,
-        container: 'slateCanvas',
-        containerStyle: {
-          width: 'auto',
-          height: 'auto',
-          backgroundColor: '#ccc',
-          backgroundColorAsGradient: true,
-          backgroundGradientType: 'radial',
-          backgroundGradientColors: ['#ccc'],
-          backgroundGradientStrategy: 'shades',
-        },
-        events: {
+        {
           onConfirmRequested: async (title, msg, cb) => {
             // implement confirmation dialog
           },
@@ -63,9 +68,11 @@
           },
           isReadOnly: () => {
             // is the slate read only for this user?
+            return false
           },
           isCommentOnly: () => {
             // does the user have comment only access to this slate?
+            return false
           },
           canRemoveComments: () => {
             // can the user remove comments?
@@ -74,7 +81,7 @@
             // expirmental: provide a them in the cb
           },
         },
-        collaboration: {
+        {
           allow: true,
           localizedOnly: false,
           onCollaboration: async function (opts) {
@@ -93,33 +100,70 @@
                 }
             }
           },
-        },
-      }).init()
+        }
+      ).init()
 
       //this is a new slate
-      s.shareId = 'test'
-      const defaultNodeOpts = {
-        name: 'MASTER_NODE',
-        text: 'Welcome to Slatebox!',
-        xPos: 5500,
-        yPos: 5300,
-        height: 100,
-        width: 175,
-        vectorPath: 'roundedrectangle',
-        backgroundColor: '90-#031634-#2D579A', //blue default
-        foregroundColor: '#fff',
-        lineColor: '#333',
-        lineWidth: 5,
-        allowDrag: true,
-      }
+      // s.shareId = 'test'
+      // const defaultNodeOpts = {
+      //   name: 'MASTER_NODE',
+      //   text: 'Welcome to Slatebox!',
+      //   xPos: 5500,
+      //   yPos: 5300,
+      //   height: 100,
+      //   width: 175,
+      //   vectorPath: 'roundedrectangle',
+      //   backgroundColor: '90-#031634-#2D579A', //blue default
+      //   foregroundColor: '#fff',
+      //   lineColor: '#333',
+      //   lineWidth: 5,
+      //   allowDrag: true,
+      // }
 
-      const n = new Slatebox.node(defaultNodeOpts)
+      // const n = new Slatebox.node(defaultNodeOpts)
 
-      s.nodes.add(n)
+      // s.nodes.add(n)
 
-      // console.log("node plugins ", n.plugins);
-      //n.plugins.attempt.doAttempt();
-      //s.plugins.attempt.doSecond();
+      const nodes = [
+        new Slatebox.node({
+          id: 'first_node',
+          name: 'first_node',
+          text: 'drag me',
+          xPos: 25110,
+          yPos: 25120,
+          height: 60,
+          width: 120,
+          vectorPath: 'roundedrectangle',
+          backgroundColor: '#24A8E0',
+          lineColor: '#333',
+          lineWidth: 5,
+          allowMenu: false,
+        }),
+        new Slatebox.node({
+          id: 'second_node',
+          name: 'second_node',
+          text: 'drag me',
+          xPos: 25310,
+          yPos: 25220,
+          height: 60,
+          width: 120,
+          vectorPath: 'roundedrectangle',
+          backgroundColor: '#24A8E0',
+          lineColor: '#333',
+          lineWidth: 5,
+          allowMenu: false,
+        }),
+      ]
+
+      s.nodes.addRange(nodes)
+      nodes[0].relationships.addAssociation(nodes[1], {
+        showChildArrow: true,
+        showParentArrow: true,
+      })
+
+      // console.log('node plugins ', n.plugins)
+      // n.plugins.attempt.doAttempt()
+      // s.plugins.attempt.doSecond()
     </script>
   </body>
 </html>

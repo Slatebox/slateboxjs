@@ -256,7 +256,7 @@ export default class multiSelection {
   start() {
     const self = this
     self.slate.disable() // options.allowDrag = false;
-    self._init.innerHTML = 'selecting [click to stop]...'
+    if (self._init) self._init.innerHTML = 'selecting [click to stop]...'
     document.head.insertAdjacentHTML(
       'beforeend',
       `<style id='svg-no-select-text'>.slatebox-text { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }</style>`

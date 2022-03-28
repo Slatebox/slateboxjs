@@ -1,4 +1,9 @@
-// modules are defined as an array
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body>
+    <div style="width: 100%; height: 800px; border: 1px solid red" id="slateCanvas"></div>
+    <script>// modules are defined as an array
 // [ module function, map of requires ]
 //
 // map of requires is short require name -> numeric require
@@ -142,13 +147,13 @@
       this[globalName] = mainExports;
     }
   }
-})({"7nZVA":[function(require,module,exports) {
+})({"3czh9":[function(require,module,exports) {
 "use strict";
 var HMR_HOST = null;
 var HMR_PORT = null;
 var HMR_SECURE = false;
 var HMR_ENV_HASH = "d6ea1d42532a7575";
-module.bundle.HMR_BUNDLE_ID = "890e741a975ef6c8";
+module.bundle.HMR_BUNDLE_ID = "51221d3ac2cb24fb";
 function _toConsumableArray(arr) {
     return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread();
 }
@@ -518,7 +523,157 @@ function hmrAcceptRun(bundle, id) {
     acceptedAssets[id] = true;
 }
 
-},{}],"8lqZg":[function(require,module,exports) {
+},{}],"620jy":[function(require,module,exports) {
+var _indexJs = require("./index.js");
+var _attemptJs = require("./plugins/node/attempt.js");
+var _secondJs = require("./plugins/slate/second.js");
+const s = new _indexJs.Slatebox.slate({
+    name: 'New Slate',
+    description: '',
+    defaultLineColor: '#333',
+    viewPort: {
+        useInertiaScrolling: true,
+        showGrid: true,
+        snapToObjects: true,
+        gridSize: 50,
+        width: 50000,
+        height: 50000,
+        left: 25000,
+        top: 25000,
+        zoom: {
+            w: 50000,
+            h: 50000,
+            r: 1
+        }
+    },
+    showbirdsEye: true,
+    showZoom: true,
+    isSharing: true,
+    showMultiSelect: false,
+    imageFolder: '/images/',
+    enabled: true,
+    container: 'slateCanvas',
+    containerStyle: {
+        width: 'auto',
+        height: 'auto',
+        backgroundColor: '#ccc',
+        backgroundColorAsGradient: true,
+        backgroundGradientType: 'radial',
+        backgroundGradientColors: [
+            '#ccc'
+        ],
+        backgroundGradientStrategy: 'shades'
+    }
+}, {
+    onConfirmRequested: async (title, msg, cb)=>{
+    // implement confirmation dialog
+    },
+    onTakeSnapshot: async (opts)=>{
+    // implement slate snapshot
+    },
+    onTextPaneRequested: (node, cb)=>{
+    // implement text pane
+    },
+    onLineMenuRequested: (node, association, cb)=>{
+    // implement line menu request
+    },
+    onMenuRequested: (node, cb)=>{
+    // implement menu request
+    },
+    onBase64ImageRequested: (imgUrl, imageType, cb)=>{
+    // implement base64 image request
+    },
+    onOptimizeSVG: (svg, cb)=>{
+    // implement SVG optimization
+    },
+    isReadOnly: ()=>{
+        // is the slate read only for this user?
+        return false;
+    },
+    isCommentOnly: ()=>{
+        // does the user have comment only access to this slate?
+        return false;
+    },
+    canRemoveComments: ()=>{
+    // can the user remove comments?
+    },
+    onThemeRequired: (opts, cb)=>{
+    // expirmental: provide a them in the cb
+    }
+}, {
+    allow: true,
+    localizedOnly: false,
+    onCollaboration: async function(opts) {
+        switch(opts.type){
+            case 'process':
+                break;
+            case 'custom':
+                switch(opts.pkg.type){
+                    case 'onSaveRequested':
+                        if (opts.pkg._id) break;
+                        break;
+                }
+        }
+    }
+}).init();
+//this is a new slate
+// s.shareId = 'test'
+// const defaultNodeOpts = {
+//   name: 'MASTER_NODE',
+//   text: 'Welcome to Slatebox!',
+//   xPos: 5500,
+//   yPos: 5300,
+//   height: 100,
+//   width: 175,
+//   vectorPath: 'roundedrectangle',
+//   backgroundColor: '90-#031634-#2D579A', //blue default
+//   foregroundColor: '#fff',
+//   lineColor: '#333',
+//   lineWidth: 5,
+//   allowDrag: true,
+// }
+// const n = new Slatebox.node(defaultNodeOpts)
+// s.nodes.add(n)
+const nodes = [
+    new _indexJs.Slatebox.node({
+        id: 'first_node',
+        name: 'first_node',
+        text: 'drag me',
+        xPos: 25110,
+        yPos: 25120,
+        height: 60,
+        width: 120,
+        vectorPath: 'roundedrectangle',
+        backgroundColor: '#24A8E0',
+        lineColor: '#333',
+        lineWidth: 5,
+        allowMenu: false
+    }),
+    new _indexJs.Slatebox.node({
+        id: 'second_node',
+        name: 'second_node',
+        text: 'drag me',
+        xPos: 25310,
+        yPos: 25220,
+        height: 60,
+        width: 120,
+        vectorPath: 'roundedrectangle',
+        backgroundColor: '#24A8E0',
+        lineColor: '#333',
+        lineWidth: 5,
+        allowMenu: false
+    }), 
+];
+s.nodes.addRange(nodes);
+nodes[0].relationships.addAssociation(nodes[1], {
+    showChildArrow: true,
+    showParentArrow: true
+}) // console.log('node plugins ', n.plugins)
+ // n.plugins.attempt.doAttempt()
+ // s.plugins.attempt.doSecond()
+;
+
+},{"./index.js":"8lqZg","./plugins/node/attempt.js":"c8dkR","./plugins/slate/second.js":"evEf8"}],"8lqZg":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "Slatebox", ()=>Slatebox
@@ -591,13 +746,11 @@ class slate extends _baseDefault.default {
             basedOnThemeId: '',
             syncWithTheme: false,
             containerStyle: {
-                width: 'auto',
-                height: 'auto',
                 backgroundColor: 'transparent',
                 backgroundImage: '',
                 backgroundSize: '',
                 backgroundEffect: '',
-                backgroundColorAsGradient: false,
+                backgroundColorAsGradient: null,
                 backgroundGradientType: null,
                 backgroundGradientColors: [],
                 backgroundGradientStrategy: null
@@ -607,16 +760,10 @@ class slate extends _baseDefault.default {
                 showGrid: false,
                 snapToObjects: true,
                 gridSize: 50,
-                originalWidth: 50000,
                 width: 50000,
                 height: 50000,
                 left: 5000,
-                top: 5000,
-                zoom: {
-                    w: 50000,
-                    h: 50000,
-                    r: 1
-                }
+                top: 5000
             },
             enabled: true,
             allowDrag: true,
@@ -635,6 +782,7 @@ class slate extends _baseDefault.default {
             followMe: false
         };
         this.options = _deepmergeDefault.default(this.options, _options);
+        console.log('slate options', this.options, events);
         this.events = events || {
             onNodeDragged: null,
             onCanvasClicked: null,
@@ -982,10 +1130,7 @@ class slate extends _baseDefault.default {
         if (self.options.viewPort.showGrid) self.grid?.show();
         else self.grid?.destroy();
         // zoom
-        if (!blnSkipZoom) {
-            const val = Math.max(self.options.viewPort.zoom.w, self.options.viewPort.zoom.h);
-            self.zoomSlider?.set(val);
-        }
+        if (!blnSkipZoom) self.zoomSlider?.set(self.options.viewPort.zoom.w || 50000);
         // sort nodes by their last painted order to honor toBack/toFront
         loadedSlate.nodes.sort((n1, n2)=>{
             const i1 = loadedSlate.options.nodeOrder?.findIndex((n)=>n === n1.options.id
@@ -10705,14 +10850,6 @@ class canvas {
         };
         let difX = this.Canvas.objInitPos.left + (m.x - this.Canvas.objInitialMousePos.x);
         let difY = this.Canvas.objInitPos.top + (m.y - this.Canvas.objInitialMousePos.y);
-        const _width = this.slate.options.containerStyle.width;
-        const _height = this.slate.options.containerStyle.height;
-        const _vpWidth = this.slate.options.viewPort.width;
-        const _vpHeight = this.slate.options.viewPort.height;
-        if (difX > 0) difX = 0;
-        else if (Math.abs(difX) + _width > _vpWidth) difX = _width - _vpWidth;
-        if (difY > 0) difY = 0;
-        else if (Math.abs(difY) + _height > _vpHeight) difY = _height - _vpHeight;
         return {
             x: difX,
             y: difY
@@ -10755,7 +10892,7 @@ class canvas {
         };
         Object.assign(opts, _opts);
         self.slate.nodes.closeAllConnectors();
-        const _startZoom = self.slate.options.viewPort.zoom.w;
+        const _startZoom = self.slate.options.viewPort.zoom.w || 50000;
         const _targetZoom = self.slate.options.viewPort.originalWidth * (100 / parseInt(opts.zoomPercent, 10));
         const _zoomDif = Math.abs(_targetZoom - _startZoom);
         opts.dur = !opts.dur && opts.dur !== 0 ? 500 : opts.dur;
@@ -24893,7 +25030,7 @@ class multiSelection {
         const self = this;
         self.slate.disable() // options.allowDrag = false;
         ;
-        self._init.innerHTML = 'selecting [click to stop]...';
+        if (self._init) self._init.innerHTML = 'selecting [click to stop]...';
         document.head.insertAdjacentHTML('beforeend', `<style id='svg-no-select-text'>.slatebox-text { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }</style>`);
         // document.head.insertAdjacentHTML("beforeend", `<style id='svg-no-select-text'>svg text { pointer-events: none; }</style>`);
         self.slate.onSelectionStart = (e)=>{
@@ -27795,6 +27932,7 @@ class zoomSlider {
     }
     show(_options) {
         const self = this;
+        console.log('showing zoom', self.slate.isReadOnly(), self.slate.isCommentOnly());
         if (!self.slate.isReadOnly() && !self.slate.isCommentOnly()) {
             self.hide();
             const options = {
@@ -27830,7 +27968,7 @@ class zoomSlider {
             self.slider.setAttribute('min', '6000');
             self.slider.setAttribute('step', '50');
             self.slider.setAttribute('max', '200000');
-            self.slider.setAttribute('value', self.slate.options.viewPort.zoom.w);
+            self.slider.setAttribute('value', self.slate.options.viewPort.zoom.w || 50000);
             self.slider.setAttribute('id', self.sliderId);
             self.slider.style['writing-mode'] = 'bt-lr';
             self.slider.style['-webkit-appearance'] = 'slider-vertical';
@@ -28078,6 +28216,7 @@ class grid {
     constructor(slate){
         this.slate = slate;
         this._grid = null;
+        if (this.slate.options.viewPort.showGrid) this.show();
     // produce the required grid patterns
     // <defs>
     //   <pattern id="smallGrid" width="10" height="10" patternUnits="userSpaceOnUse">
@@ -28341,14 +28480,14 @@ class filters {
         ));
         return true;
     }
-    // <feGaussianBlur in="SourceAlpha" stdDeviation="3"/> <!-- stdDeviation is how much to blur -->
-    // <feOffset dx="2" dy="2" result="offsetblur"/> <!-- how much to offset -->
+    // <feGaussianBlur in="SourceAlpha" stdDeviation="3"/> <\!-- stdDeviation is how much to blur -->
+    // <feOffset dx="2" dy="2" result="offsetblur"/> <\!-- how much to offset -->
     // <feComponentTransfer>
-    //   <feFuncA type="linear" slope="0.5"/> <!-- slope is the opacity of the shadow -->
+    //   <feFuncA type="linear" slope="0.5"/> <\!-- slope is the opacity of the shadow -->
     // </feComponentTransfer>
     // <feMerge>
-    //   <feMergeNode/> <!-- this contains the offset blurred image -->
-    //   <feMergeNode in="SourceGraphic"/> <!-- this contains the element that the filter is applied to -->
+    //   <feMergeNode/> <\!-- this contains the offset blurred image -->
+    //   <feMergeNode in="SourceGraphic"/> <\!-- this contains the element that the filter is applied to -->
     // </feMerge>
     exposeDefaults() {
         const self = this;
@@ -28829,6 +28968,34 @@ class filters {
  // </filter>
 exports.default = filters;
 
-},{"../helpers/utils":"8QI6M","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["7nZVA","8lqZg"], "8lqZg", "parcelRequire561b")
+},{"../helpers/utils":"8QI6M","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"c8dkR":[function(require,module,exports) {
+var _indexJs = require("../../index.js");
+_indexJs.Slatebox.base.registerPlugin({
+    name: "attempt",
+    opts: {
+    },
+    plugin: class extends _indexJs.Slatebox.node {
+        doAttempt() {
+            console.log("HELLO NODE do I have inherited properties? ", this.disable);
+        }
+    }
+});
 
-//# sourceMappingURL=index.js.map
+},{"../../index.js":"8lqZg"}],"evEf8":[function(require,module,exports) {
+var _indexJs = require("../../index.js");
+_indexJs.Slatebox.base.registerPlugin({
+    name: "attempt",
+    opts: {
+    },
+    plugin: class extends _indexJs.Slatebox.slate {
+        doSecond() {
+            console.log("SLATE hello do I have inherited properties? ", this);
+        }
+    }
+});
+
+},{"../../index.js":"8lqZg"}]},["3czh9","620jy"], "620jy", "parcelRequire561b")
+
+</script>
+  </body>
+</html>

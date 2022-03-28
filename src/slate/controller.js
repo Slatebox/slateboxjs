@@ -171,7 +171,6 @@ export default class controller {
         cb: () => {
           setTimeout(() => {
             move()
-            console.log('all done!')
           }, 4000)
         },
       })

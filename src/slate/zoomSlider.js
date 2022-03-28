@@ -18,6 +18,11 @@ export default class zoomSlider {
 
   show(_options) {
     const self = this
+    console.log(
+      'showing zoom',
+      self.slate.isReadOnly(),
+      self.slate.isCommentOnly()
+    )
     if (!self.slate.isReadOnly() && !self.slate.isCommentOnly()) {
       self.hide()
 
@@ -49,7 +54,10 @@ export default class zoomSlider {
       self.slider.setAttribute('min', '6000')
       self.slider.setAttribute('step', '50')
       self.slider.setAttribute('max', '200000')
-      self.slider.setAttribute('value', self.slate.options.viewPort.zoom.w)
+      self.slider.setAttribute(
+        'value',
+        self.slate.options.viewPort.zoom.w || 50000
+      )
       self.slider.setAttribute('id', self.sliderId)
       self.slider.style['writing-mode'] = 'bt-lr'
       self.slider.style['-webkit-appearance'] = 'slider-vertical'

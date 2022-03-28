@@ -38,13 +38,11 @@ export default class slate extends base {
       basedOnThemeId: '',
       syncWithTheme: false,
       containerStyle: {
-        width: 'auto',
-        height: 'auto',
         backgroundColor: 'transparent',
         backgroundImage: '',
         backgroundSize: '',
         backgroundEffect: '',
-        backgroundColorAsGradient: false, // linear|radial
+        backgroundColorAsGradient: null, // linear|radial
         backgroundGradientType: null,
         backgroundGradientColors: [],
         backgroundGradientStrategy: null, // shades|palette
@@ -54,12 +52,10 @@ export default class slate extends base {
         showGrid: false,
         snapToObjects: true,
         gridSize: 50,
-        originalWidth: 50000,
         width: 50000,
         height: 50000,
         left: 5000,
         top: 5000,
-        zoom: { w: 50000, h: 50000, r: 1 },
       },
       enabled: true,
       allowDrag: true,
@@ -79,6 +75,7 @@ export default class slate extends base {
     }
 
     this.options = merge(this.options, _options)
+    console.log('slate options', this.options, events)
     this.events = events || {
       onNodeDragged: null,
       onCanvasClicked: null,
@@ -526,11 +523,7 @@ export default class slate extends base {
 
     // zoom
     if (!blnSkipZoom) {
-      const val = Math.max(
-        self.options.viewPort.zoom.w,
-        self.options.viewPort.zoom.h
-      )
-      self.zoomSlider?.set(val)
+      self.zoomSlider?.set(self.options.viewPort.zoom.w || 50000)
     }
 
     // sort nodes by their last painted order to honor toBack/toFront
@@ -785,7 +778,6 @@ export default class slate extends base {
   }
 
   disable(exemptSlate, exemptNodes, full) {
-    console.log('disabling')
     if (!exemptNodes) {
       this.nodes.allNodes.forEach((nd) => {
         nd.disable()
@@ -796,7 +788,6 @@ export default class slate extends base {
       this.options.enabled = false
       this.options.allowDrag = false
       if (full) {
-        console.log('disabling all the stuff')
         this.multiSelection?.hideIcons()
         this.undoRedo?.hide()
         this.birdsEye?.disable()

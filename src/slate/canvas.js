@@ -384,16 +384,6 @@ export default class canvas {
     let difY =
       this.Canvas.objInitPos.top + (m.y - this.Canvas.objInitialMousePos.y)
 
-    const _width = this.slate.options.containerStyle.width
-    const _height = this.slate.options.containerStyle.height
-    const _vpWidth = this.slate.options.viewPort.width
-    const _vpHeight = this.slate.options.viewPort.height
-
-    if (difX > 0) difX = 0
-    else if (Math.abs(difX) + _width > _vpWidth) difX = _width - _vpWidth
-    if (difY > 0) difY = 0
-    else if (Math.abs(difY) + _height > _vpHeight) difY = _height - _vpHeight
-
     return { x: difX, y: difY }
   }
 
@@ -442,7 +432,7 @@ export default class canvas {
 
     self.slate.nodes.closeAllConnectors()
 
-    const _startZoom = self.slate.options.viewPort.zoom.w
+    const _startZoom = self.slate.options.viewPort.zoom.w || 50000
     const _targetZoom =
       self.slate.options.viewPort.originalWidth *
       (100 / parseInt(opts.zoomPercent, 10))
