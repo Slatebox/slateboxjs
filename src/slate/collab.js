@@ -62,13 +62,13 @@ export default class collab {
 
       onNodeLinkRemoved(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.links?.unset()
+        cn.links?.unset(false)
         self.closeNodeSpecifics(pkg)
       },
 
       onNodeLinkAdded(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.links?.set(pkg.data.linkType, pkg.data.linkData)
+        cn.links?.set(pkg, false)
         self.closeNodeSpecifics(pkg)
       },
 
@@ -278,11 +278,7 @@ export default class collab {
       onSlateThemeChanged(pkg) {
         self.slate.options.themeId = pkg.data?.theme?._id
         if (pkg.data?.theme) {
-          self.slate.applyTheme(
-            pkg.data.theme,
-            pkg.data.syncWithTheme,
-            pkg.data.revertTheme
-          )
+          self.slate.applyTheme(pkg.data.theme, pkg.data.syncWithTheme)
         }
       },
 

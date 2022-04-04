@@ -531,36 +531,44 @@ const s = new _indexJs.Slatebox.slate({
     name: 'New Slate',
     description: '',
     defaultLineColor: '#333',
+    container: 'slateCanvas',
+    instance: '',
+    basedOnThemeId: '',
+    syncWithTheme: false,
     viewPort: {
         useInertiaScrolling: true,
-        showGrid: true,
+        showGrid: false,
         snapToObjects: true,
         gridSize: 50,
         width: 50000,
         height: 50000,
         left: 25000,
-        top: 25000,
-        zoom: {
-            w: 50000,
-            h: 50000,
-            r: 1
-        }
+        top: 25000
     },
-    showbirdsEye: true,
-    showZoom: true,
-    isSharing: true,
-    showMultiSelect: false,
-    imageFolder: '/images/',
     enabled: true,
-    container: 'slateCanvas',
+    allowDrag: true,
+    showbirdsEye: true,
+    sizeOfbirdsEye: 150,
+    showMultiSelect: false,
+    showZoom: true,
+    showUndoRedo: true,
+    showStatus: true,
+    showLocks: true,
+    mindMapMode: true,
+    isPublic: true,
+    isUnlisted: false,
+    autoEnableDefaultFilters: true,
+    followMe: false,
     containerStyle: {
-        width: 'auto',
-        height: 'auto',
-        backgroundColor: '#ccc',
+        backgroundColor: '',
+        backgroundImage: '',
+        backgroundSize: '',
+        backgroundEffect: '',
         backgroundColorAsGradient: true,
         backgroundGradientType: 'radial',
         backgroundGradientColors: [
-            '#ccc'
+            '#fff',
+            '#333'
         ],
         backgroundGradientStrategy: 'shades'
     }
@@ -583,9 +591,9 @@ const s = new _indexJs.Slatebox.slate({
     onBase64ImageRequested: (imgUrl, imageType, cb)=>{
     // implement base64 image request
     },
-    onOptimizeSVG: (svg, cb)=>{
-    // implement SVG optimization
-    },
+    // onOptimizeSVG: (svg, cb) => {
+    //   // implement SVG optimization
+    // },
     isReadOnly: ()=>{
         // is the slate read only for this user?
         return false;
@@ -647,7 +655,15 @@ const nodes = [
         backgroundColor: '#24A8E0',
         lineColor: '#333',
         lineWidth: 5,
-        allowMenu: false
+        allowMenu: false,
+        link: {
+            show: true,
+            type: 'currentSlate',
+            data: 'second_node'
+        },
+        filters: {
+            vect: 'dropShadow'
+        }
     }),
     new _indexJs.Slatebox.node({
         id: 'second_node',
@@ -661,14 +677,22 @@ const nodes = [
         backgroundColor: '#24A8E0',
         lineColor: '#333',
         lineWidth: 5,
-        allowMenu: false
+        allowMenu: false,
+        link: {
+            show: true,
+            type: 'url',
+            data: 'https://slatebox.com'
+        }
     }), 
 ];
 s.nodes.addRange(nodes);
 nodes[0].relationships.addAssociation(nodes[1], {
     showChildArrow: true,
     showParentArrow: true
-}) // console.log('node plugins ', n.plugins)
+}) // setTimeout(() => {
+ //   s.svg()
+ // }, 1000)
+ // console.log('node plugins ', n.plugins)
  // n.plugins.attempt.doAttempt()
  // s.plugins.attempt.doSecond()
 ;
@@ -776,13 +800,11 @@ class slate extends _baseDefault.default {
             showLocks: true,
             mindMapMode: true,
             isPublic: true,
-            isFeatured: false,
-            isCommunity: false,
+            isUnlisted: false,
             autoEnableDefaultFilters: true,
             followMe: false
         };
         this.options = _deepmergeDefault.default(this.options, _options);
-        console.log('slate options', this.options, events);
         this.events = events || {
             onNodeDragged: null,
             onCanvasClicked: null,
@@ -840,7 +862,6 @@ class slate extends _baseDefault.default {
         this.glows.push(obj.glow());
     }
     unglow() {
-        // console.log("removing glows ", this.glows);
         this.glows.forEach((glow)=>{
             glow.remove();
         });
@@ -988,13 +1009,13 @@ class slate extends _baseDefault.default {
     }
     svg(opts, cb) {
         const self = this;
-        const _nodesToOrient = opts.nodes ? self.nodes.allNodes.filter((n)=>opts.nodes.indexOf(n.options.id) > -1
+        const _nodesToOrient = opts?.nodes ? self.nodes.allNodes.filter((n)=>opts?.nodes.indexOf(n.options.id) > -1
         ) : null;
         const _orient = self.getOrientation(_nodesToOrient, true);
         const _r = 1 // this.options.viewPort.zoom.r || 1;
         ;
         const _resizedSlate = JSON.parse(self.exportJSON());
-        if (opts.backgroundOnly) _resizedSlate.nodes = [];
+        if (opts?.backgroundOnly) _resizedSlate.nodes = [];
         _resizedSlate.nodes.forEach((n)=>{
             const _ty = n.options.yPos * _r;
             const _tx = n.options.xPos * _r;
@@ -1096,7 +1117,20 @@ class slate extends _baseDefault.default {
         // and the url-fill images appear.
         setTimeout(async ()=>{
             _exportCanvas.canvas.rawSVG((svg)=>{
-                cb({
+                if (!opts) {
+                    // presume download if no opts are sent
+                    const svgBlob = new Blob([
+                        svg
+                    ], {
+                        type: 'image/svg+xml;charset=utf-8'
+                    });
+                    const svgUrl = URL.createObjectURL(svgBlob);
+                    const dl = document.createElement('a');
+                    dl.href = svgUrl;
+                    dl.download = `${(self.options.name || 'slate').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${self?.shareId}.svg`;
+                    dl.click();
+                    cb && cb();
+                } else cb && cb({
                     svg,
                     orient: _orient
                 });
@@ -1318,7 +1352,7 @@ class slate extends _baseDefault.default {
         const _r = Math.max(this.options.viewPort.width, this.options.viewPort.height) / sp;
         const l = orx.left * _r - _p;
         const t = orx.top * _r - _p;
-        zoom(0, 0, sp, sp, true);
+        this.zoom(0, 0, sp, sp, true);
         this.options.viewPort.zoom = {
             w: sp,
             h: sp,
@@ -11584,12 +11618,12 @@ class collab {
             },
             onNodeLinkRemoved (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.links?.unset();
+                cn.links?.unset(false);
                 self.closeNodeSpecifics(pkg);
             },
             onNodeLinkAdded (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.links?.set(pkg.data.linkType, pkg.data.linkData);
+                cn.links?.set(pkg, false);
                 self.closeNodeSpecifics(pkg);
             },
             onNodeUnlocked (pkg) {
@@ -11760,7 +11794,7 @@ class collab {
             },
             onSlateThemeChanged (pkg) {
                 self.slate.options.themeId = pkg.data?.theme?._id;
-                if (pkg.data?.theme) self.slate.applyTheme(pkg.data.theme, pkg.data.syncWithTheme, pkg.data.revertTheme);
+                if (pkg.data?.theme) self.slate.applyTheme(pkg.data.theme, pkg.data.syncWithTheme);
             },
             onSlateBackgroundEffectChanged (pkg) {
                 self.slate.options.containerStyle.backgroundEffect = pkg.data.effect;
@@ -13126,22 +13160,9 @@ class node extends _baseDefault.default {
             foregroundColor: '#fff',
             fontSize: 18,
             fontFamily: 'Roboto',
-            fontStyle: 'normal',
             vectorPath: '',
             rotate: {
                 rotationAngle: 0
-            },
-            textOffset: {
-                x: 0,
-                y: 0,
-                width: 10,
-                height: 10
-            },
-            textBounds: {
-                x: 0,
-                y: 0,
-                width: 10,
-                height: 10
             },
             textXAlign: 'middle',
             textYAlign: 'middle',
@@ -13154,12 +13175,9 @@ class node extends _baseDefault.default {
                     height: 175
                 }
             },
-            parentArrowForChildren: [],
-            noChildArrowForChildren: [],
             filters: {
                 vect: null,
-                text: null,
-                line: null
+                text: null
             }
         };
         Object.assign(this.options, options);
@@ -13859,6 +13877,8 @@ var _lineOptions = require("../node/lineOptions");
 var _lineOptionsDefault = parcelHelpers.interopDefault(_lineOptions);
 var _gridLines = require("../node/gridLines");
 var _gridLinesDefault = parcelHelpers.interopDefault(_gridLines);
+var _links = require("../node/links");
+var _linksDefault = parcelHelpers.interopDefault(_links);
 class nodeController {
     constructor(slate){
         this.slate = slate;
@@ -14282,13 +14302,15 @@ class nodeController {
             '.8',
             'r',
             '180'
-        ].join());
+        ].join()).attr({
+            cursor: 'pointer'
+        });
         // create and set editor
         _node.editor = new _editorDefault.default(this.slate, _node);
         _node.editor.set() // creates and sets the text
         ;
         _node.text.transform(_node.getTransformString());
-        // set links
+        // set link
         _node.link = link;
         _node.both = new _node.slate.paper.set();
         _node.both.push(_node.vect);
@@ -14296,7 +14318,6 @@ class nodeController {
         // relationships
         _node.relationships = new _relationshipsDefault.default(this.slate, _node);
         _node.relationships.wireDragEvents();
-        _node.links?.wireEvents();
         // rotate
         _node.rotate = new _rotateDefault.default(this.slate, _node);
         // connectors
@@ -14319,6 +14340,8 @@ class nodeController {
         _node.colorPicker = new _colorPickerDefault.default(this.slate, _node);
         // gridLines
         _node.gridLines = new _gridLinesDefault.default(this.slate, _node);
+        //links
+        _node.links = new _linksDefault.default(this.slate, _node);
         if (_node.options.image && !_node.options.imageOrigHeight) _node.options.imageOrigHeight = _node.options.height;
         if (_node.options.image && !_node.options.imageOrigWidth) _node.options.imageOrigWidth = _node.options.width;
         if (_node.options.image && _node.options.image !== '') _node.images.set(_node.options.image, _node.options.imageOrigWidth, _node.options.imageOrigHeight, useMainCanvas);
@@ -14331,7 +14354,7 @@ class nodeController {
 }
 exports.default = nodeController;
 
-},{"lodash.uniq":"iDalh","lodash.invoke":"6VYuy","../helpers/getTransformedPath":"6wubb","../helpers/getDepCoords":"hVTn1","../helpers/utils":"8QI6M","../node/editor":"klp05","../node/relationships":"8zQA0","../node/rotate":"6en3b","../node/menu":"91LgF","../node/connectors":"h710n","../node/resize":"4vYbQ","../node/images":"jLcMC","../node/shapes":"kA5hP","../node/customShapes":"edbtN","../node/colorPicker":"jJAST","../node/context":"185nI","../node/lineOptions":"c3gfk","../node/gridLines":"6cFRW","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"6VYuy":[function(require,module,exports) {
+},{"lodash.uniq":"iDalh","lodash.invoke":"6VYuy","../helpers/getTransformedPath":"6wubb","../helpers/getDepCoords":"hVTn1","../helpers/utils":"8QI6M","../node/editor":"klp05","../node/relationships":"8zQA0","../node/rotate":"6en3b","../node/menu":"91LgF","../node/connectors":"h710n","../node/resize":"4vYbQ","../node/images":"jLcMC","../node/shapes":"kA5hP","../node/customShapes":"edbtN","../node/colorPicker":"jJAST","../node/context":"185nI","../node/lineOptions":"c3gfk","../node/gridLines":"6cFRW","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../node/links":"4BxQS"}],"6VYuy":[function(require,module,exports) {
 var global = arguments[3];
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -15626,8 +15649,8 @@ class relationships {
                 lineOpacity: assocPkg.lineOpacity || this.node.options.lineOpacity,
                 lineEffect: assocPkg.lineEffect || this.node.options.lineEffect,
                 blnStraight: assocPkg.isStraightLine || false,
-                showParentArrow: assocPkg.showParentArrow || this.node.options.parentArrowForChildren.includes(_node2.options.id),
-                showChildArrow: assocPkg.showChildArrow || !this.node.options.noChildArrowForChildren.includes(_node2.options.id)
+                showParentArrow: assocPkg.showParentArrow,
+                showChildArrow: assocPkg.showChildArrow
             };
             _connection = this.createNewRelationship(_copts);
             _connection.line.toBack();
@@ -24763,7 +24786,65 @@ class gridLines {
 }
 exports.default = gridLines;
 
-},{"../helpers/utils":"8QI6M","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"kpcw7":[function(require,module,exports) {
+},{"../helpers/utils":"8QI6M","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"4BxQS":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+class links {
+    constructor(slate, node){
+        this.slate = slate;
+        this.node = node;
+        this.node.link.click((e)=>{
+            this.click();
+        });
+    }
+    set(pkg, sendCollab) {
+        // {
+        //   type: 'url|currentSlate|externalSlate',
+        //   data: 'https://xxx|id_of_node'
+        // }
+        this.node.options.link = pkg;
+        if (sendCollab) {
+            const cpkg = {
+                type: 'onNodeLinkAdded',
+                data: pkg
+            };
+            if (this.slate.collab) this.slate.collab.send(cpkg);
+        }
+    }
+    unset(sendCollab) {
+        this.node.options.link = null;
+        if (sendCollab) {
+            const cpkg = {
+                type: 'onNodeLinkRemoved',
+                data: pkg
+            };
+            if (this.slate.collab) this.slate.collab.send(cpkg);
+        }
+    }
+    click() {
+        //`url("https://api.miniature.io/?token=ozwPwKuD6CYUiE9K&url=miniature.io?url=${_self._.options.link.data}&size=200")`
+        const self = this;
+        switch(this.node.options.link.type){
+            case 'url':
+                window.open(self.node.options.link.data, 'sb_external');
+                break;
+            case 'externalSlate':
+                break;
+            case 'currentSlate':
+                {
+                    const n = self.slate.nodes.one(self.node.options.link.data);
+                    console.log('pos ', n);
+                    n.position('center', ()=>{
+                    // done
+                    }, 'swingTo', 500);
+                    break;
+                }
+        }
+    }
+}
+exports.default = links;
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"kpcw7":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 /* eslint-disable new-cap */ /* eslint-disable no-param-reassign */ /* eslint-disable no-underscore-dangle */ var _lodashUniq = require("lodash.uniq");
@@ -28491,17 +28572,6 @@ class filters {
     // </feMerge>
     exposeDefaults() {
         const self = this;
-        self.availableBackgrounds = [
-            {
-                name: 'Blackboard',
-                url: '/images/backgrounds/blackboard.jpg',
-                size: 'cover'
-            },
-            {
-                name: 'Wood',
-                url: '/images/backgrounds/wood.png'
-            }, 
-        ];
         self.availableFilters = {
             dropShadow: {
                 levers: {

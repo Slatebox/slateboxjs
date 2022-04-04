@@ -22,6 +22,7 @@ import colorPicker from '../node/colorPicker'
 import context from '../node/context'
 import lineOptions from '../node/lineOptions'
 import gridLines from '../node/gridLines'
+import links from '../node/links'
 
 export default class nodeController {
   constructor(slate) {
@@ -487,13 +488,14 @@ export default class nodeController {
       .transform(
         ['t', lc.x, ',', lc.y, 's', '.8', ',', '.8', 'r', '180'].join()
       )
+      .attr({ cursor: 'pointer' })
 
     // create and set editor
     _node.editor = new editor(this.slate, _node)
     _node.editor.set() // creates and sets the text
     _node.text.transform(_node.getTransformString())
 
-    // set links
+    // set link
     _node.link = link
 
     _node.both = new _node.slate.paper.set()
@@ -503,7 +505,6 @@ export default class nodeController {
     // relationships
     _node.relationships = new relationships(this.slate, _node)
     _node.relationships.wireDragEvents()
-    _node.links?.wireEvents()
 
     // rotate
     _node.rotate = new rotate(this.slate, _node)
@@ -537,6 +538,9 @@ export default class nodeController {
 
     // gridLines
     _node.gridLines = new gridLines(this.slate, _node)
+
+    //links
+    _node.links = new links(this.slate, _node)
 
     if (_node.options.image && !_node.options.imageOrigHeight) {
       _node.options.imageOrigHeight = _node.options.height

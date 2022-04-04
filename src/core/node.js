@@ -60,22 +60,9 @@ export default class node extends base {
       foregroundColor: '#fff',
       fontSize: 18,
       fontFamily: 'Roboto',
-      fontStyle: 'normal',
       vectorPath: '',
       rotate: {
         rotationAngle: 0,
-      },
-      textOffset: {
-        x: 0,
-        y: 0,
-        width: 10,
-        height: 10,
-      },
-      textBounds: {
-        x: 0,
-        y: 0,
-        width: 10,
-        height: 10,
       },
       textXAlign: 'middle',
       textYAlign: 'middle',
@@ -85,12 +72,9 @@ export default class node extends base {
         data: '',
         thumbnail: { width: 175, height: 175 },
       },
-      parentArrowForChildren: [], // parent arrows are not displayed by default
-      noChildArrowForChildren: [], // child arrows are displayed by default
       filters: {
         vect: null,
         text: null,
-        line: null,
       },
     }
 

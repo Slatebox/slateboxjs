@@ -77,17 +77,6 @@ export default class filters {
 
   exposeDefaults() {
     const self = this
-    self.availableBackgrounds = [
-      {
-        name: 'Blackboard',
-        url: '/images/backgrounds/blackboard.jpg',
-        size: 'cover',
-      },
-      {
-        name: 'Wood',
-        url: '/images/backgrounds/wood.png',
-      },
-    ]
     self.availableFilters = {
       dropShadow: {
         levers: {

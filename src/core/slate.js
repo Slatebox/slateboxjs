@@ -68,14 +68,12 @@ export default class slate extends base {
       showLocks: true,
       mindMapMode: true,
       isPublic: true,
-      isFeatured: false,
-      isCommunity: false,
+      isUnlisted: false,
       autoEnableDefaultFilters: true,
       followMe: false,
     }
 
     this.options = merge(this.options, _options)
-    console.log('slate options', this.options, events)
     this.events = events || {
       onNodeDragged: null,
       onCanvasClicked: null,
@@ -151,7 +149,6 @@ export default class slate extends base {
   }
 
   unglow() {
-    // console.log("removing glows ", this.glows);
     this.glows.forEach((glow) => {
       glow.remove()
     })
@@ -334,13 +331,15 @@ export default class slate extends base {
   svg(opts, cb) {
     const self = this
 
-    const _nodesToOrient = opts.nodes
-      ? self.nodes.allNodes.filter((n) => opts.nodes.indexOf(n.options.id) > -1)
+    const _nodesToOrient = opts?.nodes
+      ? self.nodes.allNodes.filter(
+          (n) => opts?.nodes.indexOf(n.options.id) > -1
+        )
       : null
     const _orient = self.getOrientation(_nodesToOrient, true)
     const _r = 1 // this.options.viewPort.zoom.r || 1;
     const _resizedSlate = JSON.parse(self.exportJSON())
-    if (opts.backgroundOnly) {
+    if (opts?.backgroundOnly) {
       _resizedSlate.nodes = []
     }
     _resizedSlate.nodes.forEach((n) => {
@@ -470,7 +469,22 @@ export default class slate extends base {
     // and the url-fill images appear.
     setTimeout(async () => {
       _exportCanvas.canvas.rawSVG((svg) => {
-        cb({ svg, orient: _orient })
+        if (!opts) {
+          // presume download if no opts are sent
+          const svgBlob = new Blob([svg], {
+            type: 'image/svg+xml;charset=utf-8',
+          })
+          const svgUrl = URL.createObjectURL(svgBlob)
+          const dl = document.createElement('a')
+          dl.href = svgUrl
+          dl.download = `${(self.options.name || 'slate')
+            .replace(/[^a-z0-9]/gi, '_')
+            .toLowerCase()}_${self?.shareId}.svg`
+          dl.click()
+          cb && cb()
+        } else {
+          cb && cb({ svg, orient: _orient })
+        }
         _div.remove()
       })
     }, 100)
@@ -766,7 +780,7 @@ export default class slate extends base {
     const l = orx.left * _r - _p
     const t = orx.top * _r - _p
 
-    zoom(0, 0, sp, sp, true)
+    this.zoom(0, 0, sp, sp, true)
     this.options.viewPort.zoom = {
       w: sp,
       h: sp,

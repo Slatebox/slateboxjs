@@ -16,31 +16,42 @@
           name: 'New Slate',
           description: '',
           defaultLineColor: '#333',
+          container: 'slateCanvas',
+          instance: '',
+          basedOnThemeId: '',
+          syncWithTheme: false,
           viewPort: {
             useInertiaScrolling: true,
-            showGrid: true,
+            showGrid: false,
             snapToObjects: true,
             gridSize: 50,
             width: 50000,
             height: 50000,
             left: 25000,
             top: 25000,
-            zoom: { w: 50000, h: 50000, r: 1 },
           },
-          showbirdsEye: true,
-          showZoom: true,
-          isSharing: true,
-          showMultiSelect: false,
-          imageFolder: '/images/',
           enabled: true,
-          container: 'slateCanvas',
+          allowDrag: true,
+          showbirdsEye: true,
+          sizeOfbirdsEye: 150,
+          showMultiSelect: false,
+          showZoom: true,
+          showUndoRedo: true,
+          showStatus: true,
+          showLocks: true,
+          mindMapMode: true,
+          isPublic: true,
+          isUnlisted: false,
+          autoEnableDefaultFilters: true,
+          followMe: false,
           containerStyle: {
-            width: 'auto',
-            height: 'auto',
-            backgroundColor: '#ccc',
+            backgroundColor: '',
+            backgroundImage: '',
+            backgroundSize: '',
+            backgroundEffect: '',
             backgroundColorAsGradient: true,
             backgroundGradientType: 'radial',
-            backgroundGradientColors: ['#ccc'],
+            backgroundGradientColors: ['#fff', '#333'],
             backgroundGradientStrategy: 'shades',
           },
         },
@@ -63,9 +74,9 @@
           onBase64ImageRequested: (imgUrl, imageType, cb) => {
             // implement base64 image request
           },
-          onOptimizeSVG: (svg, cb) => {
-            // implement SVG optimization
-          },
+          // onOptimizeSVG: (svg, cb) => {
+          //   // implement SVG optimization
+          // },
           isReadOnly: () => {
             // is the slate read only for this user?
             return false
@@ -138,6 +149,14 @@
           lineColor: '#333',
           lineWidth: 5,
           allowMenu: false,
+          link: {
+            show: true,
+            type: 'currentSlate',
+            data: 'second_node',
+          },
+          filters: {
+            vect: 'dropShadow',
+          },
         }),
         new Slatebox.node({
           id: 'second_node',
@@ -152,6 +171,11 @@
           lineColor: '#333',
           lineWidth: 5,
           allowMenu: false,
+          link: {
+            show: true,
+            type: 'url',
+            data: 'https://slatebox.com',
+          },
         }),
       ]
 
@@ -160,6 +184,10 @@
         showChildArrow: true,
         showParentArrow: true,
       })
+
+      // setTimeout(() => {
+      //   s.svg()
+      // }, 1000)
 
       // console.log('node plugins ', n.plugins)
       // n.plugins.attempt.doAttempt()

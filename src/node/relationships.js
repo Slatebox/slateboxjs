@@ -427,12 +427,8 @@ export default class relationships {
         lineOpacity: assocPkg.lineOpacity || this.node.options.lineOpacity,
         lineEffect: assocPkg.lineEffect || this.node.options.lineEffect,
         blnStraight: assocPkg.isStraightLine || false,
-        showParentArrow:
-          assocPkg.showParentArrow ||
-          this.node.options.parentArrowForChildren.includes(_node.options.id),
-        showChildArrow:
-          assocPkg.showChildArrow ||
-          !this.node.options.noChildArrowForChildren.includes(_node.options.id),
+        showParentArrow: assocPkg.showParentArrow,
+        showChildArrow: assocPkg.showChildArrow,
       }
 
       _connection = this.createNewRelationship(_copts)
