@@ -33,15 +33,16 @@ export default class rotate {
     return angleDegrees
   }
 
-  rta() {
+  set(rotateAngle) {
     const self = this
+    const useRotationAngle = rotateAngle || self.rotationAngle
     self.rotate.transform(
       `R${self.rotationAngle}, ${self.origCenter.x}, ${self.origCenter.y}`
     )
     const rotationContext = {
       rotate: {
         rotationAngle:
-          (self.node.options.rotate.rotationAngle + self.rotationAngle) % 360,
+          (self.node.options.rotate.rotationAngle + useRotationAngle) % 360,
         point: self.origCenter,
       },
     }
@@ -191,7 +192,7 @@ export default class rotate {
             // }
 
             if (!self.node.snappedAt) {
-              self.rta()
+              self.set()
             }
           }
         } catch (err) {

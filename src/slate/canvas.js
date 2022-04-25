@@ -520,7 +520,6 @@ export default class canvas {
         opts.callbacks?.after?.apply(self.slate)
       })
     }
-    // }
   }
 
   resize(val) {

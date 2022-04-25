@@ -98,16 +98,28 @@ export default class nodeController {
     return self
   }
 
-  add(_node, useMainCanvas) {
-    _node.slate = this.slate // parent
-    this.allNodes.push(_node)
-    this.addToCanvas(_node, useMainCanvas)
+  add(_nodes, useMainCanvas) {
+    const self = this
+    if (!Array.isArray(_nodes)) {
+      _nodes = [_nodes]
+    }
+    _nodes.forEach((_node) => {
+      _node.slate = self.slate // parent
+      self.allNodes.push(_node)
+      self.addToCanvas(_node, useMainCanvas)
+    })
   }
 
-  remove(_node) {
-    this.allNodes = nodeController.remove(this.allNodes, _node)
-    _node.slate = null
-    this.removeFromCanvas(_node)
+  remove(_nodes) {
+    const self = this
+    if (!Array.isArray(_nodes)) {
+      _nodes = [_nodes]
+    }
+    _nodes.forEach((_node) => {
+      self.allNodes = nodeController.remove(self.allNodes, _node)
+      _node.slate = null
+      self.removeFromCanvas(_node)
+    })
   }
 
   nodeMovePackage(opts = {}) {

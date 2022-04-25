@@ -31,9 +31,6 @@ export default class controller {
       nodes: null,
       dur: 0,
       cb: null,
-      offset: 0,
-      minWidth: 60,
-      minHeight: 30,
     }
     Object.assign(opts, _opts)
 

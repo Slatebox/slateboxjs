@@ -262,15 +262,17 @@ export default class slate extends base {
             type: 'image/svg+xml;charset=utf8',
           })
           const url = URL.createObjectURL(blb)
-          if (ropts?.base64) {
-            cb(`url('${url}')`)
-          } else {
-            const ctx = cnvs.getContext('2d')
-            const img = document.createElement('img')
-            img.src = url
-            img.onload = () => {
-              ctx.drawImage(img, 0, 0)
-              const imgsrc = cnvs.toDataURL('image/png')
+          const ctx = cnvs.getContext('2d')
+          const img = document.createElement('img')
+          img.src = url
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0)
+            const imgsrc = cnvs.toDataURL('image/png')
+            if (ropts?.base64) {
+              console.log('sending back dataurl', imgsrc)
+              cb(imgsrc)
+              URL.revokeObjectURL(img.src)
+            } else {
               const a = document.createElement('a')
               a.download = `${(self.options.name || 'slate')
                 .replace(/[^a-z0-9]/gi, '_')
@@ -280,9 +282,9 @@ export default class slate extends base {
               URL.revokeObjectURL(img.src)
               cb && cb()
             }
-            img.onerror = (err) => {
-              console.log('error loading image', err)
-            }
+          }
+          img.onerror = (err) => {
+            console.log('error loading image', err)
           }
         }
       }
@@ -331,12 +333,12 @@ export default class slate extends base {
   svg(opts, cb) {
     const self = this
 
-    const _nodesToOrient = opts?.nodes
+    const nodesToOrient = opts?.nodes
       ? self.nodes.allNodes.filter(
           (n) => opts?.nodes.indexOf(n.options.id) > -1
         )
       : null
-    const _orient = self.getOrientation(_nodesToOrient, true)
+    const _orient = self.getOrientation(nodesToOrient, true)
     const _r = 1 // this.options.viewPort.zoom.r || 1;
     const _resizedSlate = JSON.parse(self.exportJSON())
     if (opts?.backgroundOnly) {
@@ -722,7 +724,7 @@ export default class slate extends base {
     return _snap
   }
 
-  getOrientation(_nodesToOrient, _alwaysOne) {
+  getOrientation(nodesToOrient, alwaysOne) {
     let orient = 'landscape'
     let sWidth = this.options.viewPort.width
     let sHeight = this.options.viewPort.height
@@ -732,13 +734,13 @@ export default class slate extends base {
     bb.top = 99999
     bb.bottom = 0
 
-    const an = _nodesToOrient || this.nodes.allNodes
+    const an = nodesToOrient || this.nodes.allNodes
     if (an.length > 0) {
       for (let _px = 0; _px < an.length; _px += 1) {
         const sbw = 10
         const _bb = an[_px].vect.getBBox()
 
-        const _r = _alwaysOne ? 1 : this.options.viewPort.zoom.r || 1
+        const _r = alwaysOne ? 1 : this.options.viewPort.zoom.r || 1
         const x = _bb.x * _r
         const y = _bb.y * _r
         const w = _bb.width * _r
