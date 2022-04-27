@@ -301,7 +301,7 @@ export default class connectors {
     const options = JSON.parse(JSON.stringify(self.node.options))
     delete options.id
     delete options.link
-    delete options.showParentArrow
+    // delete options.showParentArrow
     const targetXPos =
       (self._lastUnpinned.xPos || self.node.options.xPos) +
         (self._lastUnpinned.width || self.node.options.width || 220) +

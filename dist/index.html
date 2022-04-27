@@ -954,25 +954,28 @@ class slate extends _baseDefault.default {
                     type: 'image/svg+xml;charset=utf8'
                 });
                 const url = URL.createObjectURL(blb);
-                if (ropts?.base64) cb(`url('${url}')`);
-                else {
-                    const ctx = cnvs.getContext('2d');
-                    const img = document.createElement('img');
-                    img.src = url;
-                    img.onload = ()=>{
-                        ctx.drawImage(img, 0, 0);
-                        const imgsrc = cnvs.toDataURL('image/png');
+                const ctx = cnvs.getContext('2d');
+                const img = document.createElement('img');
+                img.src = url;
+                img.onload = ()=>{
+                    ctx.drawImage(img, 0, 0);
+                    const imgsrc = cnvs.toDataURL('image/png');
+                    if (ropts?.base64) {
+                        console.log('sending back dataurl', imgsrc);
+                        cb(imgsrc);
+                        URL.revokeObjectURL(img.src);
+                    } else {
                         const a = document.createElement('a');
                         a.download = `${(self.options.name || 'slate').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${self.options.id}.png`;
                         a.href = imgsrc;
                         a.click();
                         URL.revokeObjectURL(img.src);
                         cb && cb();
-                    };
-                    img.onerror = (err)=>{
-                        console.log('error loading image', err);
-                    };
-                }
+                    }
+                };
+                img.onerror = (err)=>{
+                    console.log('error loading image', err);
+                };
             }
         });
     }
@@ -1009,9 +1012,9 @@ class slate extends _baseDefault.default {
     }
     svg(opts, cb) {
         const self = this;
-        const _nodesToOrient = opts?.nodes ? self.nodes.allNodes.filter((n)=>opts?.nodes.indexOf(n.options.id) > -1
+        const nodesToOrient = opts?.nodes ? self.nodes.allNodes.filter((n)=>opts?.nodes.indexOf(n.options.id) > -1
         ) : null;
-        const _orient = self.getOrientation(_nodesToOrient, true);
+        const _orient = self.getOrientation(nodesToOrient, true);
         const _r = 1 // this.options.viewPort.zoom.r || 1;
         ;
         const _resizedSlate = JSON.parse(self.exportJSON());
@@ -1305,7 +1308,7 @@ class slate extends _baseDefault.default {
         _snap.nodes.allNodes = _snap.nodes;
         return _snap;
     }
-    getOrientation(_nodesToOrient, _alwaysOne) {
+    getOrientation(nodesToOrient, alwaysOne) {
         let orient = 'landscape';
         let sWidth = this.options.viewPort.width;
         let sHeight = this.options.viewPort.height;
@@ -1314,12 +1317,12 @@ class slate extends _baseDefault.default {
         bb.right = 0;
         bb.top = 99999;
         bb.bottom = 0;
-        const an = _nodesToOrient || this.nodes.allNodes;
+        const an = nodesToOrient || this.nodes.allNodes;
         if (an.length > 0) {
             for(let _px = 0; _px < an.length; _px += 1){
                 const sbw = 10;
                 const _bb = an[_px].vect.getBBox();
-                const _r = _alwaysOne ? 1 : this.options.viewPort.zoom.r || 1;
+                const _r = alwaysOne ? 1 : this.options.viewPort.zoom.r || 1;
                 const x = _bb.x * _r;
                 const y = _bb.y * _r;
                 const w = _bb.width * _r;
@@ -11001,7 +11004,6 @@ class canvas {
             self.slate.options.viewPort.top = Math.abs(y);
             opts.callbacks?.after?.apply(self.slate);
         });
-    // }
     }
     resize(val) {
         const uval = parseInt(val, 10);
@@ -13951,16 +13953,28 @@ class nodeController {
         });
         return self;
     }
-    add(_node, useMainCanvas) {
-        _node.slate = this.slate // parent
-        ;
-        this.allNodes.push(_node);
-        this.addToCanvas(_node, useMainCanvas);
+    add(_nodes, useMainCanvas) {
+        const self = this;
+        if (!Array.isArray(_nodes)) _nodes = [
+            _nodes
+        ];
+        _nodes.forEach((_node)=>{
+            _node.slate = self.slate // parent
+            ;
+            self.allNodes.push(_node);
+            self.addToCanvas(_node, useMainCanvas);
+        });
     }
-    remove(_node) {
-        this.allNodes = nodeController.remove(this.allNodes, _node);
-        _node.slate = null;
-        this.removeFromCanvas(_node);
+    remove(_nodes) {
+        const self = this;
+        if (!Array.isArray(_nodes)) _nodes = [
+            _nodes
+        ];
+        _nodes.forEach((_node)=>{
+            self.allNodes = nodeController.remove(self.allNodes, _node);
+            _node.slate = null;
+            self.removeFromCanvas(_node);
+        });
     }
     nodeMovePackage(opts = {
     }) {
@@ -15654,8 +15668,8 @@ class relationships {
                 lineOpacity: assocPkg.lineOpacity || this.node.options.lineOpacity,
                 lineEffect: assocPkg.lineEffect || this.node.options.lineEffect,
                 blnStraight: assocPkg.isStraightLine || false,
-                showParentArrow: assocPkg.showParentArrow,
-                showChildArrow: assocPkg.showChildArrow
+                showParentArrow: assocPkg.showParentArrow || false,
+                showChildArrow: assocPkg.showChildArrow || true
             };
             _connection = this.createNewRelationship(_copts);
             _connection.line.toBack();
@@ -21489,12 +21503,13 @@ class rotate {
         }
         return angleDegrees;
     }
-    rta() {
+    set(rotateAngle) {
         const self = this;
+        const useRotationAngle = rotateAngle || self.rotationAngle;
         self.rotate.transform(`R${self.rotationAngle}, ${self.origCenter.x}, ${self.origCenter.y}`);
         const rotationContext = {
             rotate: {
-                rotationAngle: (self.node.options.rotate.rotationAngle + self.rotationAngle) % 360,
+                rotationAngle: (self.node.options.rotate.rotationAngle + useRotationAngle) % 360,
                 point: self.origCenter
             }
         };
@@ -21622,7 +21637,7 @@ class rotate {
                     //   delete self.node.snappedAt;
                     // }
                     {
-                        if (!self.node.snappedAt) self.rta();
+                        if (!self.node.snappedAt) self.set();
                     }
                 } catch (err) {
                     finalize();
@@ -22072,7 +22087,7 @@ class connectors {
         const options = JSON.parse(JSON.stringify(self.node.options));
         delete options.id;
         delete options.link;
-        delete options.showParentArrow;
+        // delete options.showParentArrow
         const targetXPos = (self._lastUnpinned.xPos || self.node.options.xPos) + (self._lastUnpinned.width || self.node.options.width || 220) + self.node.options.spaceBetweenNodesWhenAdding || 30;
         const targetYPos = self._lastUnpinned.yPos || self.node.options.yPos;
         // don't replace text if the shape is alpha, otherwise the intent here is to copy the text
@@ -27737,10 +27752,7 @@ class controller {
         const opts = {
             nodes: null,
             dur: 0,
-            cb: null,
-            offset: 0,
-            minWidth: 60,
-            minHeight: 30
+            cb: null
         };
         Object.assign(opts, _opts);
         const orient = this.slate.getOrientation(opts.nodes);
