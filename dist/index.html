@@ -549,7 +549,7 @@ const s = new _indexJs.Slatebox.slate({
     allowDrag: true,
     showbirdsEye: true,
     sizeOfbirdsEye: 150,
-    showMultiSelect: false,
+    showMultiSelect: true,
     showZoom: true,
     showUndoRedo: true,
     showStatus: true,
@@ -15337,6 +15337,7 @@ class relationships {
         self._dx = 0;
         self._dy = 0;
         self.collabSent = null;
+        self.slate.draggingNode = false;
         self.ft = null;
         self.kdTree = null;
         self.gracefulClear = null;
@@ -15377,6 +15378,8 @@ class relationships {
     }
     finishDrag(blnBroadcast) {
         const self = this;
+        console.log('done dragging node', self.draggingNode);
+        self.slate.draggingNode = false;
         self.selectedNodes.forEach((nd)=>{
             // the transformPath here converts the transient transforms that happened during the movement
             // to become permanent on the "attr" properties.
@@ -15502,6 +15505,8 @@ class relationships {
         self.relationshipsToRefresh = [];
         self.relationshipsToTranslate = [];
         self.collabSent = false;
+        self.slate.draggingNode = true;
+        console.log('set dragging node', self.slate.draggingNode);
         self._dx = 0;
         self._dy = 0;
         self.slate.multiSelection?.end();
@@ -24923,7 +24928,7 @@ class multiSelection {
             self.slate?.canvas.bgToBack();
         }
         const c = self.slate.options.container;
-        if (c && self.slate.options.enabled && self.slate.options.showMultiSelect) {
+        if (self.slate.options.showMultiSelect) {
             self._init = document.createElement('div');
             self._init.setAttribute('class', 'slateMultiSelect');
             self._init.style.position = 'absolute';
@@ -25114,18 +25119,21 @@ class multiSelection {
         if (self._init) self._init.innerHTML = 'selecting [click to stop]...';
         document.head.insertAdjacentHTML('beforeend', `<style id='svg-no-select-text'>.slatebox-text { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }</style>`);
         // document.head.insertAdjacentHTML("beforeend", `<style id='svg-no-select-text'>svg text { pointer-events: none; }</style>`);
+        const c = self.slate.options.container;
         self.slate.onSelectionStart = (e)=>{
-            self.end();
-            const p = self.xy(e);
-            self.selRect = self.slate.paper.rect(p.x, p.y, 10, 10).attr({
-                'stroke-dasharray': '-'
-            });
-            _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self), null);
-            _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mouseup', self._mouseUp.bind(self), null, true);
-            _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mouseleave', self._select.bind(self), null, true);
-            window.addEventListener('beforeunload', self._enableOnRefresh);
-            self.ox = p.x;
-            self.oy = p.y;
+            if (self.slate.options.showMultiSelect) {
+                self.end();
+                const p = self.xy(e);
+                self.selRect = self.slate.paper.rect(p.x, p.y, 10, 10).attr({
+                    'stroke-dasharray': '-'
+                });
+                _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self), null);
+                _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mouseup', self._mouseUp.bind(self), null, true);
+                _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mouseleave', self._select.bind(self), null, true);
+                window.addEventListener('beforeunload', self._enableOnRefresh);
+                self.ox = p.x;
+                self.oy = p.y;
+            }
         };
     }
     _enableOnRefresh() {
@@ -25398,23 +25406,25 @@ class multiSelection {
     }
     _move(e) {
         const self = this;
-        const p = self.xy(e);
-        const height = p.y - self.oy;
-        const width = p.x - self.ox;
-        if (height > 0) self.selRect.attr({
-            height
-        });
-        else self.selRect.attr({
-            y: p.y,
-            height: self.oy - p.y
-        });
-        if (width > 0) self.selRect.attr({
-            width
-        });
-        else self.selRect.attr({
-            x: p.x,
-            width: self.ox - p.x
-        });
+        if (!self.slate.draggingNode) {
+            const p = self.xy(e);
+            const height = p.y - self.oy;
+            const width = p.x - self.ox;
+            if (height > 0) self.selRect.attr({
+                height
+            });
+            else self.selRect.attr({
+                y: p.y,
+                height: self.oy - p.y
+            });
+            if (width > 0) self.selRect.attr({
+                width
+            });
+            else self.selRect.attr({
+                x: p.x,
+                width: self.ox - p.x
+            });
+        }
     }
     showGroup(groupId) {
         const self = this;

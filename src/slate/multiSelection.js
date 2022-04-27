@@ -71,7 +71,7 @@ export default class multiSelection {
     }
 
     const c = self.slate.options.container
-    if (c && self.slate.options.enabled && self.slate.options.showMultiSelect) {
+    if (self.slate.options.showMultiSelect) {
       self._init = document.createElement('div')
       self._init.setAttribute('class', 'slateMultiSelect')
       self._init.style.position = 'absolute'
@@ -262,35 +262,38 @@ export default class multiSelection {
       `<style id='svg-no-select-text'>.slatebox-text { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }</style>`
     )
     // document.head.insertAdjacentHTML("beforeend", `<style id='svg-no-select-text'>svg text { pointer-events: none; }</style>`);
+    const c = self.slate.options.container
     self.slate.onSelectionStart = (e) => {
-      self.end()
-      const p = self.xy(e)
-      self.selRect = self.slate.paper
-        .rect(p.x, p.y, 10, 10)
-        .attr({ 'stroke-dasharray': '-' })
-      utils.addEvent(
-        self.slate.canvas.get(),
-        'mousemove',
-        self._move.bind(self),
-        null
-      )
-      utils.addEvent(
-        self.slate.canvas.get(),
-        'mouseup',
-        self._mouseUp.bind(self),
-        null,
-        true
-      )
-      utils.addEvent(
-        self.slate.canvas.get(),
-        'mouseleave',
-        self._select.bind(self),
-        null,
-        true
-      )
-      window.addEventListener('beforeunload', self._enableOnRefresh)
-      self.ox = p.x
-      self.oy = p.y
+      if (self.slate.options.showMultiSelect) {
+        self.end()
+        const p = self.xy(e)
+        self.selRect = self.slate.paper
+          .rect(p.x, p.y, 10, 10)
+          .attr({ 'stroke-dasharray': '-' })
+        utils.addEvent(
+          self.slate.canvas.get(),
+          'mousemove',
+          self._move.bind(self),
+          null
+        )
+        utils.addEvent(
+          self.slate.canvas.get(),
+          'mouseup',
+          self._mouseUp.bind(self),
+          null,
+          true
+        )
+        utils.addEvent(
+          self.slate.canvas.get(),
+          'mouseleave',
+          self._select.bind(self),
+          null,
+          true
+        )
+        window.addEventListener('beforeunload', self._enableOnRefresh)
+        self.ox = p.x
+        self.oy = p.y
+      }
     }
   }
 
@@ -619,19 +622,21 @@ export default class multiSelection {
 
   _move(e) {
     const self = this
-    const p = self.xy(e)
-    const height = p.y - self.oy
-    const width = p.x - self.ox
+    if (!self.slate.draggingNode) {
+      const p = self.xy(e)
+      const height = p.y - self.oy
+      const width = p.x - self.ox
 
-    if (height > 0) {
-      self.selRect.attr({ height })
-    } else {
-      self.selRect.attr({ y: p.y, height: self.oy - p.y })
-    }
-    if (width > 0) {
-      self.selRect.attr({ width })
-    } else {
-      self.selRect.attr({ x: p.x, width: self.ox - p.x })
+      if (height > 0) {
+        self.selRect.attr({ height })
+      } else {
+        self.selRect.attr({ y: p.y, height: self.oy - p.y })
+      }
+      if (width > 0) {
+        self.selRect.attr({ width })
+      } else {
+        self.selRect.attr({ x: p.x, width: self.ox - p.x })
+      }
     }
   }
 

@@ -23,6 +23,7 @@ export default class relationships {
     self._dx = 0
     self._dy = 0
     self.collabSent = null
+    self.slate.draggingNode = false
     self.ft = null
     self.kdTree = null
     self.gracefulClear = null
@@ -71,6 +72,8 @@ export default class relationships {
 
   finishDrag(blnBroadcast) {
     const self = this
+    console.log('done dragging node', self.draggingNode)
+    self.slate.draggingNode = false
     self.selectedNodes.forEach((nd) => {
       // the transformPath here converts the transient transforms that happened during the movement
       // to become permanent on the "attr" properties.
@@ -235,6 +238,8 @@ export default class relationships {
     self.relationshipsToRefresh = []
     self.relationshipsToTranslate = []
     self.collabSent = false
+    self.slate.draggingNode = true
+    console.log('set dragging node', self.slate.draggingNode)
     self._dx = 0
     self._dy = 0
     self.slate.multiSelection?.end()
