@@ -122,10 +122,26 @@ export default class collab {
 
       onNodeAdded(pkg) {
         resetMultiSelect()
-        const blnPreserve = pkg.preserve !== undefined ? pkg.preserve : true
-        self.slate.loadJSON(pkg.data, blnPreserve, true)
+        if (pkg.data.id) {
+          const cn = self.slate.nodes.one(pkg.data.id)
+          cn.connectors.createNode(
+            pkg.data.skipCenter,
+            pkg.data.options,
+            pkg.data.targetXPos,
+            pkg.data.targetYPos
+          )
+        } else if (pkg.data.multiSelectCopy) {
+          // this is a multiSelection copy
+          self.slate.multiSelection.createCopiedNodes(
+            pkg.data.nodeOptions,
+            pkg.data.assocDetails
+          )
+        } else {
+          // straight up node addition
+          const n = new node(pkg.data.nodeOptions)
+          self.slate.nodes.add(n)
+        }
       },
-
       onNodeImageChanged(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
         cn.images.set(pkg.data.img, pkg.data.w, pkg.data.h)
@@ -421,7 +437,12 @@ export default class collab {
           nx.lineOptions?.hide(association.id)
         })
       } else {
-        console.error('Unable to find node with id', n.id)
+        console.error(
+          'Unable to find node with id',
+          n.id,
+          'currentIds',
+          self.slate.nodes.allNodes.map((nx) => nx.options.id)
+        )
       }
     })
 

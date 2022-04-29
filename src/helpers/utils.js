@@ -270,8 +270,12 @@ export default class utils {
     return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1)
   }
 
-  static guid() {
-    return this.S4() + this.S4() + this.S4()
+  static guid(len) {
+    let g = this.S4() + this.S4() + this.S4()
+    if (len) {
+      g = g.replace(/-/gi, '').substring(0, len).toUpperCase()
+    }
+    return g
   }
 
   static getJSON(url, callback) {

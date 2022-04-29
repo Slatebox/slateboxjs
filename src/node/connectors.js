@@ -12,10 +12,17 @@ export default class connectors {
     this._lastUnpinned = { options: { xPos: null, width: null, yPos: null } }
   }
 
-  _broadcast(_snap) {
+  _broadcast(skipCenter, options, targetXPos, targetYPos) {
+    const self = this
     const pkg = {
       type: 'onNodeAdded',
-      data: this.slate.exportDifference(_snap),
+      data: {
+        id: self.node.options.id,
+        skipCenter,
+        options,
+        targetXPos,
+        targetYPos,
+      },
     }
     this.slate.collab && this.slate.collab.send(pkg)
   }
@@ -234,9 +241,8 @@ export default class connectors {
     this._lastUnpinned = { options: { xPos: null, width: null, yPos: null } }
   }
 
-  createNode(skipCenter, options, targetXPos, targetYPos, snap) {
+  createNode(skipCenter, options, targetXPos, targetYPos, doBroadcast) {
     const self = this
-
     const newNode = new node(options)
     self.slate.nodes.add(newNode)
 
@@ -262,13 +268,15 @@ export default class connectors {
 
     self.slate.birdsEye?.refresh(false)
 
-    self._broadcast(snap)
+    if (doBroadcast) {
+      self._broadcast(skipCenter, options, targetXPos, targetYPos)
+    }
 
     // var _pkg = { type: "addRelationship", data: { type: 'association', parent: self.node.options.id, child: newNode.options.id} };
     // self.slate.collab && self.slate.collab.send(_pkg);
 
     // fire the editor if the menu can be shown
-    if (newNode.options.showMenu && skipCenter === undefined) {
+    if (doBroadcast && newNode.options.showMenu && skipCenter === undefined) {
       newNode.position('center', () => {
         // fire event
         self.slate.events?.onTextPaneRequested?.apply(this, [
@@ -287,7 +295,7 @@ export default class connectors {
   addNode(skipCenter) {
     const self = this
     // add new node to the right of this one.
-    const _snap = self.slate.snapshot()
+    // const _snap = self.slate.snapshot()
 
     const copies = self.slate.nodes.allNodes.filter(
       (n) =>
@@ -299,9 +307,21 @@ export default class connectors {
     }
 
     const options = JSON.parse(JSON.stringify(self.node.options))
-    delete options.id
-    delete options.link
-    // delete options.showParentArrow
+    // assign a new guid to this node and remove the old id from the snapshot
+    // otherwise the snapshot contains the previous id, and the node contains
+    // the new id -- and the broadcast of the snap for collaboration causes
+    // the old id to be assigned to the new node, created duplicate nodes with the same id
+    const newId = utils.guid()
+    // let snapNode = _snap.nodes.allNodes.find((n) => n.options.id === options.id)
+    // console.log(
+    //   'found snapNode',
+    //   newId,
+    //   options.id,
+    //   _snap.nodes.allNodes,
+    //   snapNode
+    // )
+    // snapNode.options.id = newId
+    options.id = newId
     const targetXPos =
       (self._lastUnpinned.xPos || self.node.options.xPos) +
         (self._lastUnpinned.width || self.node.options.width || 220) +
@@ -319,7 +339,7 @@ export default class connectors {
 
     // use the next theme shape if this slate is set to sync the theme
     if (!self.slate.options.basedOnThemeId) {
-      return self.createNode(skipCenter, options, targetXPos, targetYPos, _snap)
+      return self.createNode(skipCenter, options, targetXPos, targetYPos, true)
     }
     // adjust the node's shape and color prior to insertion
     self.slate.events.onThemeRequired(
@@ -341,7 +361,7 @@ export default class connectors {
           options,
           targetXPos,
           targetYPos,
-          _snap
+          true
         )
       }
     )

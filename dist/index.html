@@ -13114,6 +13114,12 @@ class node extends _baseDefault.default {
         this._lock = null;
         this._openLock = null;
         this.lm = null;
+        console.log('creating node', options.id);
+        if (options.id) {
+            // always delete
+            console.log('deleting sent in options id!', options.id);
+            delete options.id;
+        }
         this.options = {
             id: _utilsDefault.default.guid(),
             name: '',
@@ -22049,6 +22055,7 @@ class connectors {
     createNode(skipCenter, options, targetXPos, targetYPos, snap) {
         const self = this;
         const newNode = new _nodeDefault.default(options);
+        console.log('sending node through', options.id);
         self.slate.nodes.add(newNode);
         _utilsDefault.default.transformPath(newNode, `T${targetXPos - newNode.options.xPos}, ${targetYPos - newNode.options.yPos}`);
         newNode.options.xPos = targetXPos;

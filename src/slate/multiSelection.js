@@ -3,6 +3,7 @@
 /* eslint-disable no-underscore-dangle */
 import uniq from 'lodash.uniq'
 import cloneDeep from 'lodash.clonedeep'
+import omit from 'lodash.omit'
 import utils from '../helpers/utils'
 import refreshRelationships from '../helpers/refreshRelationships'
 import { Slatebox } from '../index'
@@ -306,6 +307,24 @@ export default class multiSelection {
     self.broadcastMove() // broadcast an "empty" move to save the enabled state of the slate
   }
 
+  createCopiedNodes(nodeOptions, assocDetails) {
+    const self = this
+    nodeOptions.forEach((n) => {
+      const nn = new Slatebox.node(n)
+      self.slate.nodes.add(nn)
+    })
+    assocDetails.forEach((a) => {
+      const parentNode = self.slate.nodes.one(a.parentNodeId)
+      const childNode = self.slate.nodes.one(a.childNodeId)
+      const assocPkg = a.assocPkg
+      assocPkg.child = self.slate.nodes.one(a.assocPkg.childId)
+      assocPkg.parent = self.slate.nodes.one(a.assocPkg.parentId)
+      delete assocPkg.childId
+      delete assocPkg.parentId
+      parentNode.relationships.addAssociation(childNode, assocPkg)
+    })
+  }
+
   showIcons() {
     const self = this
     if (self.marker !== null) {
@@ -391,6 +410,8 @@ export default class multiSelection {
         const orient = self.slate.getOrientation(self.selectedNodes)
         const pad = 75
         const relationalMap = {}
+        const nodeOptions = []
+        const assocDetails = []
         self.selectedNodes.forEach((node) => {
           const c = cloneDeep(node.options)
           c.xPos += orient.width + pad
@@ -401,6 +422,7 @@ export default class multiSelection {
             c.vectorPath,
             `T${orient.width + pad},0`
           )
+          nodeOptions.push(c)
           const nn = new Slatebox.node(c)
           self.slate.nodes.add(nn)
         })
@@ -425,14 +447,23 @@ export default class multiSelection {
               if (!childNode) {
                 childNode = an.find((n) => n.options.id === a.child.options.id)
               }
+              const sendAssocPkg = omit(assocPkg, ['child', 'parent'])
+              sendAssocPkg.childId = assocPkg.child.options.id
+              sendAssocPkg.parentId = assocPkg.parent.options.id
+              assocDetails.push({
+                parentNodeId: nn.options.id,
+                childNodeId: childNode.options.id,
+                assocPkg: sendAssocPkg,
+              })
               nn.relationships.addAssociation(childNode, assocPkg)
             })
         })
 
         // send collaboration info
+        console.log('sending multiSelect collab', nodeOptions, assocDetails)
         const pkg = {
           type: 'onNodeAdded',
-          data: self.slate.exportDifference(snap),
+          data: { multiSelectCopy: true, nodeOptions, assocDetails },
         }
         self.slate.collab.send(pkg)
       })
