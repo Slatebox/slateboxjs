@@ -379,6 +379,11 @@ export default class collab {
       onSlateFollowMeChanged(pkg) {
         self.slate.options.followMe = pkg.data.followMe
       },
+
+      onSlateVideoChatChanged(pkg) {
+        self.slate.options.allowVideoChat = pkg.data.allowVideoChat
+        self.slate.options.allowAudioChat = pkg.data.allowAudioChat
+      },
     } // this invoker
 
     if (self.pc.onCollaboration) {
