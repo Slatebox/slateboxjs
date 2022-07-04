@@ -383,6 +383,8 @@ export default class collab {
       onSlateVideoChatChanged(pkg) {
         self.slate.options.allowVideoChat = pkg.data.allowVideoChat
         self.slate.options.allowAudioChat = pkg.data.allowAudioChat
+        self.slate.options.videoChatEnabled = pkg.data.videoChatEnabled
+        self.slate.options.audioChatEnabled = pkg.data.audioChatEnabled
       },
     } // this invoker
 
