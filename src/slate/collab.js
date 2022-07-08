@@ -380,18 +380,12 @@ export default class collab {
         self.slate.options.followMe = pkg.data.followMe
       },
 
-      onSlateVideoChatChanged(pkg) {
-        if (pkg.data.allowVideoChat != null) {
-          self.slate.options.allowVideoChat = pkg.data.allowVideoChat
+      onSlateHuddleChanged(pkg) {
+        if (pkg.data.huddleType != null) {
+          self.slate.options.huddleType = pkg.data.huddleType
         }
-        if (pkg.data.allowAudioChat != null) {
-          self.slate.options.allowAudioChat = pkg.data.allowAudioChat
-        }
-        if (pkg.data.videoChatEnabled != null) {
-          self.slate.options.videoChatEnabled = pkg.data.videoChatEnabled
-        }
-        if (pkg.data.audioChatEnabled != null) {
-          self.slate.options.audioChatEnabled = pkg.data.audioChatEnabled
+        if (pkg.data.huddleEnabled != null) {
+          self.slate.options.huddleEnabled = pkg.data.huddleEnabled
         }
       },
     } // this invoker
