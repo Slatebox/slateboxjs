@@ -71,6 +71,7 @@ export default class slate extends base {
       isUnlisted: false,
       autoEnableDefaultFilters: true,
       followMe: false,
+      huddleType: 'disabled',
     }
 
     this.options = merge(this.options, _options)
