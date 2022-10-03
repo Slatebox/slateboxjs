@@ -154,7 +154,7 @@ export default class connectors {
           // self.remove();
           if (self.slate.multiSelection) self.slate.multiSelection.end()
           if (self.node.context) self.node.context.remove()
-          if (self.node.links) self.node.links.end()
+          if (self.node.links) self.node.links.unset()
         })
       }
 
