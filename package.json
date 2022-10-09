@@ -1,7 +1,7 @@
 {
   "name": "slateboxjs",
   "type": "module",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "repository": {
     "url": "https://github.com/Slatebox/slateboxjs"
   },
@@ -17,7 +17,7 @@
     "build": "parcel build",
     "start": "parcel src/index.html",
     "_buildComplete": "parcel build --no-optimize && mv ./dist/index.js ./dist/sb-${npm_package_version}.min.js && mv ./dist/index.js.map ./dist/sb-${npm_package_version}.min.js.map",
-    "_buildDev": "parcel build --no-optimize && mvc ./dist/index.js ./dist/sb-${npm_package_version}.js && mv ./dist/index.js.map ./dist/sb-${npm_package_version}.js.map",
+    "buildDev": "parcel build --no-optimize",
     "checkSize": "parcel build --reporter @parcel/reporter-bundle-analyzer"
   },
   "author": "Tim Heckel <tim@slatebox.com>",
