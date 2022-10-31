@@ -70,6 +70,7 @@ export default class slate extends base {
       isPublic: true,
       isUnlisted: false,
       autoEnableDefaultFilters: true,
+      autoResizeNodesBasedOnText: false,
       followMe: false,
       huddleType: 'disabled',
     }

@@ -1,5 +1,6 @@
 /* eslint-disable no-param-reassign */
 import utils from '../helpers/utils'
+import { Raphael } from '../deps/raphael/raphael.svg'
 
 export default class editor {
   constructor(slate, node) {
@@ -94,6 +95,40 @@ export default class editor {
       .map((sx) => `${sx}: none;`)
       .join(' ')
     this.node.text.attr({ style: noSelect })
+
+    if (this.slate.options.autoResizeNodesBasedOnText) {
+      const textDimens = utils.getTextWidth(
+        this.node.options.text,
+        `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`
+      )
+      // don't replace text if the shape is alpha, otherwise the intent here is to copy the text
+      console.log(
+        'textDimens',
+        this.node.options.text,
+        `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`,
+        textDimens.width,
+        textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent
+      )
+
+      let nodebb = this.node.vect.getBBox()
+      const widthScalar = (textDimens.width - 20) / nodebb.width
+      const heightScalar =
+        (textDimens.fontBoundingBoxAscent +
+          textDimens.fontBoundingBoxDescent -
+          20) /
+        nodebb.height
+      const scaledVectPath = Raphael.transformPath(
+        this.node.options.vectorPath,
+        `s${widthScalar}, ${heightScalar}`
+      ).toString()
+      this.node.options.vectorPath = scaledVectPath
+      nodebb = this.node.vect.getBBox()
+      this.node.options.width = nodebb.width
+      this.node.options.height = nodebb.height
+      this.node.vect.attr({ path: scaledVectPath })
+      this.node.relationships &&
+        this.node.relationships.refreshOwnRelationships()
+    }
 
     if (tempShim === t) {
       this.node.options.text = ''

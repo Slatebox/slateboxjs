@@ -98,27 +98,27 @@ export default class nodeController {
     return self
   }
 
-  add(_nodes, useMainCanvas) {
+  add(nodes, useMainCanvas) {
     const self = this
-    if (!Array.isArray(_nodes)) {
-      _nodes = [_nodes]
+    if (!Array.isArray(nodes)) {
+      nodes = [nodes]
     }
-    _nodes.forEach((_node) => {
-      _node.slate = self.slate // parent
-      self.allNodes.push(_node)
-      self.addToCanvas(_node, useMainCanvas)
+    nodes.forEach((node) => {
+      node.slate = self.slate // parent
+      self.allNodes.push(node)
+      self.addToCanvas(node, useMainCanvas)
     })
   }
 
-  remove(_nodes) {
+  remove(nodes) {
     const self = this
-    if (!Array.isArray(_nodes)) {
-      _nodes = [_nodes]
+    if (!Array.isArray(nodes)) {
+      nodes = [nodes]
     }
-    _nodes.forEach((_node) => {
-      self.allNodes = nodeController.remove(self.allNodes, _node)
-      _node.slate = null
-      self.removeFromCanvas(_node)
+    nodes.forEach((node) => {
+      self.allNodes = nodeController.remove(self.allNodes, node)
+      node.slate = null
+      self.removeFromCanvas(node)
     })
   }
 
@@ -465,6 +465,10 @@ export default class nodeController {
         )
         break
       default:
+        // _node.options.vectorPath = getTransformedPath(
+        //   _node.options.vectorPath,
+        //   _transforms
+        // )
         break
     }
 

@@ -368,6 +368,11 @@ export default class collab {
         self.slate.options.mindMapMode = pkg.data.mindMapMode
       },
 
+      onSlateAutoResizeNodesBasedOnTextChanged(pkg) {
+        self.slate.options.autoResizeNodesBasedOnText =
+          pkg.data.autoResizeNodesBasedOnText
+      },
+
       onSlateTemplateChanged(pkg) {
         self.slate.options.isTemplate = pkg.data.isTemplate
       },

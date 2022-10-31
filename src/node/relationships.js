@@ -239,7 +239,6 @@ export default class relationships {
     self.relationshipsToTranslate = []
     self.collabSent = false
     self.slate.draggingNode = true
-    console.log('set dragging node', self.slate.draggingNode)
     self._dx = 0
     self._dy = 0
     self.slate.multiSelection?.end()

@@ -2,6 +2,8 @@
 /* eslint-disable no-underscore-dangle */
 import utils from '../helpers/utils'
 import node from '../core/node'
+import omit from 'lodash.omit'
+import { Raphael } from '../deps/raphael/raphael.svg'
 
 export default class connectors {
   constructor(slate, node) {
@@ -254,12 +256,13 @@ export default class connectors {
     )
     newNode.options.xPos = targetXPos
     newNode.options.yPos = targetYPos
-
-    const coords = newNode.textCoords({
-      x: newNode.options.xPos,
-      y: newNode.options.yPos,
-    })
-    newNode.text.attr(coords)
+    newNode.editor.set()
+    // const coords = newNode.textCoords({
+    //   x: newNode.options.xPos,
+    //   y: newNode.options.yPos,
+    // })
+    // newNode.editor.setTextOffset()
+    // newNode.text.attr(coords)
     self._lastUnpinned = newNode.options
 
     if (self.slate.options.mindMapMode) {
@@ -321,18 +324,61 @@ export default class connectors {
     //   snapNode
     // )
     // snapNode.options.id = newId
+
+    if (!self.node.options.width) {
+      const bb = self.node.vect.getBBox()
+      self.node.options.width = bb.width
+      self.node.options.height = bb.height
+    }
+
     options.id = newId
     const targetXPos =
       (self._lastUnpinned.xPos || self.node.options.xPos) +
         (self._lastUnpinned.width || self.node.options.width || 220) +
         self.node.options.spaceBetweenNodesWhenAdding || 30
     const targetYPos = self._lastUnpinned.yPos || self.node.options.yPos
-    // don't replace text if the shape is alpha, otherwise the intent here is to copy the text
-    if (options.opacity > 10) {
+
+    // console.log(
+    //   'targetXPos',
+    //   targetXPos,
+    //   self._lastUnpinned.width,
+    //   self.node.options.width,
+    //   self.node.options.spaceBetweenNodesWhenAdding
+    // )
+
+    // const textDimens = utils.getTextWidth(
+    //   self.node.options.text,
+    //   `${self.node.options.fontSize}pt ${self.node.options.fontFamily}`
+    // )
+    // // don't replace text if the shape is alpha, otherwise the intent here is to copy the text
+    // console.log(
+    //   'textDimens',
+    //   self.node.options.text,
+    //   `${self.node.options.fontSize}pt ${self.node.options.fontFamily}`,
+    //   textDimens.width,
+    //   textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent
+    // )
+    if (options.opacity === 1) {
       options.text = ''
+      //   options.width = self.node.options.width + textDimens.width
+      //   options.height =
+      //     self.node.options.height +
+      //     textDimens.fontBoundingBoxAscent +
+      //     textDimens.fontBoundingBoxDescent
+      // } else {
+      //   options.width = textDimens.width
+      //   options.height =
+      //     textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent
+      //   const nodebb = self.node.vect.getBBox()
+      //   const widthScalar = (options.width - 20) / nodebb.width
+      //   const heightScalar = (options.height - 20) / nodebb.height
+      //   const scaledVectPath = Raphael.transformPath(
+      //     self.node.options.vectorPath,
+      //     `s${widthScalar}, ${heightScalar}`
+      //   ).toString()
+      //   options.vectorPath = scaledVectPath
     }
-    options.width = self.node.options.width
-    options.height = self.node.options.height
+
     options.copiedFromId =
       self.node.options.copiedFromId || self.node.options.id
     options.copiedAt = new Date().valueOf()
@@ -354,7 +400,25 @@ export default class connectors {
             nextChild = 1
           }
           const base = theme.styles[`child_${nextChild}`]
-          Object.assign(options, base)
+          // if (base && base.opacity === 0) {
+          //   // scope the size to just the text if this is opacity-less
+          //   base.width = textDimens.width
+          //   base.height =
+          //     textDimens.fontBoundingBoxAscent +
+          //     textDimens.fontBoundingBoxDescent
+          //   base.vectorPath = options.vectorPath
+          // }
+          // console.log(
+          //   'modifying options',
+          //   options.width,
+          //   options.height,
+          //   options.vectorPath,
+          //   base.width,
+          //   base.height
+          // )
+          if (base) {
+            Object.assign(options, omit(base, 'vectorPath'))
+          }
         }
         return self.createNode(
           skipCenter,

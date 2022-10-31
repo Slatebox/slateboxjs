@@ -441,6 +441,30 @@ export default class utils {
     return template.content.firstChild
   }
 
+  // https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript
+  static getTextWidth(text, font) {
+    const splitText = text.split('\n')
+    const textWidthCanvas = document.createElement('canvas')
+    const metrics = []
+    splitText.forEach((t) => {
+      // textWidthCanvas.setAttribute('id', `measuretext`)
+      const context = textWidthCanvas.getContext('2d')
+      context.font = font
+      metrics.push(context.measureText(t))
+    })
+    textWidthCanvas.remove()
+    let height = 0
+    metrics.forEach(
+      (m) => (height += m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)
+    )
+    const red = {
+      width: Math.max(...metrics.map((m) => m.width)),
+      height,
+    }
+    console.log('red is ', red)
+    return red
+  }
+
   static toDataUrl = (url) =>
     fetch(url, { mode: 'cors' })
       .then((response) => response.blob())
