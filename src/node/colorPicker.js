@@ -5,6 +5,7 @@ export default class colorPicker {
   }
 
   set(cast) {
+    this.node.options.image = ''
     this.node.options.backgroundColor = cast.color
     if (cast.opacity != null) this.node.options.opacity = cast.opacity
     this.node.vect.attr({
