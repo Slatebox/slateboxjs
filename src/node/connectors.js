@@ -49,16 +49,25 @@ export default class connectors {
     const r = self.slate.paper
     const bb = self.node.vect.getBBox()
 
+    console.log('bb is ', bb)
+
     const widthOffset = bb.width / 2
     const btnAttr = { fill: '#fff', stroke: '#000' }
 
-    function conditionallyShow(nodeType) {
+    function conditionallyShow(nodeType, deleteOverride) {
       switch (nodeType) {
         case 'delete': {
           if (self.node.options.showDelete) {
             self.buttons.trash = r
               .trash()
-              .transform(['t', x + widthOffset - 80, ',', y - 58].join())
+              .transform(
+                [
+                  't',
+                  x + widthOffset - (deleteOverride || 80),
+                  ',',
+                  y - 58,
+                ].join()
+              )
               .attr({ fill: '#fff', stroke: '#f00' })
           } else if (
             self.node.options.showAddAndDeleteConditionally &&
@@ -72,7 +81,14 @@ export default class connectors {
             if (self.node.options.copiedAt >= Math.max(...copiedTimestamps)) {
               self.buttons.trash = r
                 .trash()
-                .transform(['t', x + widthOffset - 80, ',', y - 58].join())
+                .transform(
+                  [
+                    't',
+                    x + widthOffset - (deleteOverride || 80),
+                    ',',
+                    y - 58,
+                  ].join()
+                )
                 .attr({ fill: '#fff', stroke: '#f00' })
             }
           }
@@ -128,7 +144,7 @@ export default class connectors {
           .attr(btnAttr)
       }
       if (self.node.options.isComment && self.slate.canRemoveComments()) {
-        conditionallyShow('delete')
+        conditionallyShow('delete', 40)
       }
     }
 
@@ -203,9 +219,11 @@ export default class connectors {
     })
 
     if (Object.keys(self.buttons).length > 1) {
+      const isComment = self.node.options.isComment
       const barWidth = Object.keys(self.buttons).length * 40
+      console.log('isComment barWidth', isComment, barWidth, widthOffset)
       self.iconBar = r
-        .rect(x + widthOffset - 85, y - 63, barWidth, 43, 3)
+        .rect(x + widthOffset - (isComment ? 45 : 85), y - 63, barWidth, 43, 3)
         .attr({ stroke: '#000', fill: '#fff' })
         .toFront()
     }
