@@ -6,6 +6,7 @@
 /* eslint-disable new-cap */
 /* eslint-disable import/no-cycle */
 import uniq from 'lodash.uniq'
+import cloneDeep from 'lodash.clonedeep'
 import merge from 'deepmerge'
 import utils from '../helpers/utils'
 import getTransformedPath from '../helpers/getTransformedPath'
@@ -221,6 +222,26 @@ export default class slate extends base {
     self.svg(
       { useDataImageUrls: true, backgroundOnly: ropts?.backgroundOnly },
       (opts) => {
+        function makeTransparent(ctx, alpha, cnvs) {
+          // get the image data object
+          const imageData = ctx.getImageData(0, 0, cnvs.width, cnvs.height)
+          const data = imageData.data
+          // if it is a background defined of #f3f3f3 then it can be transparent here
+          for (let ix = 3; ix < data.length; ix += 4) {
+            const isBg = [data[ix - 3], data[ix - 2], data[ix - 1]].every(
+              (v) => v === 243
+            )
+            // console.log('isBg', alpha, isBg, data[ix - 3])
+            if (
+              [data[ix - 3], data[ix - 2], data[ix - 1]].every((v) => v === 243)
+            ) {
+              data[ix] = alpha
+            }
+          }
+          // and put the imagedata back to the canvas
+          ctx.putImageData(imageData, 0, 0)
+        }
+
         if (self.events.onCreateImage) {
           self.events.onCreateImage(
             { svg: opts.svg, orient: opts.orient, type: 'png' },
@@ -239,6 +260,11 @@ export default class slate extends base {
                   const ctx = cnvs.getContext('2d')
                   ctx.imageSmoothingEnabled = false
                   ctx.drawImage(img, 0, 0)
+
+                  if (ropts.alpha != null) {
+                    makeTransparent(ctx, ropts.alpha, cnvs)
+                  }
+
                   const link = document.createElement('a')
                   link.setAttribute(
                     'download',
@@ -269,6 +295,11 @@ export default class slate extends base {
           img.src = url
           img.onload = () => {
             ctx.drawImage(img, 0, 0)
+
+            if (ropts.alpha != null) {
+              makeTransparent(ctx, ropts.alpha, cnvs)
+            }
+
             const imgsrc = cnvs.toDataURL('image/png')
             if (ropts?.base64) {
               console.log('sending back dataurl', imgsrc)
