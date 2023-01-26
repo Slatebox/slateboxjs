@@ -374,8 +374,8 @@ export default class collab {
       },
 
       onSlateTagsAndTemplateMarkdownChanged(pkg) {
-        self.slate.options.tags = pkg.tags
-        self.slate.options.templateMarkdown = pkg.templateMarkdown
+        self.slate.options.tags = pkg.data.tags
+        self.slate.options.templateMarkdown = pkg.data.templateMarkdown
       },
 
       onSlateTemplateChanged(pkg) {

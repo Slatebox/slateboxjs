@@ -38,6 +38,8 @@ export default class slate extends base {
       description: '',
       basedOnThemeId: '',
       syncWithTheme: false,
+      tags: [],
+      templateMarkdown: '',
       containerStyle: {
         backgroundColor: 'transparent',
         backgroundImage: '',
