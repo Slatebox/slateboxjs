@@ -373,6 +373,11 @@ export default class collab {
           pkg.data.autoResizeNodesBasedOnText
       },
 
+      onSlateTagsAndTemplateMarkdownChanged(pkg) {
+        self.slate.options.tags = pkg.tags
+        self.slate.options.templateMarkdown = pkg.templateMarkdown
+      },
+
       onSlateTemplateChanged(pkg) {
         self.slate.options.isTemplate = pkg.data.isTemplate
       },
