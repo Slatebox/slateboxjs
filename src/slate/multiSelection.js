@@ -254,6 +254,31 @@ export default class multiSelection {
     if (self._init) self._init.style.display = 'block'
   }
 
+  add(node) {
+    const self = this
+    if (!self.selectedNodes.find((n) => n.options.id === node.options.id)) {
+      self.selectedNodes.push(node)
+    }
+    self.hideIcons()
+    self.prepSelectedNodes()
+  }
+
+  clear() {
+    const self = this
+    self.selectedNodes = []
+    self.hideIcons()
+    self.prepSelectedNodes()
+  }
+
+  remove(node) {
+    const self = this
+    self.selectedNodes = self.selectedNodes.filter(
+      (n) => n.options.id !== node.options.id
+    )
+    self.hideIcons()
+    self.prepSelectedNodes()
+  }
+
   start() {
     const self = this
     self.slate.disable() // options.allowDrag = false;
@@ -334,9 +359,8 @@ export default class multiSelection {
       const multiX = markerBB.x + markerBB.width + 45
 
       // TODO: decide if you want to use a settings button here
-      const showSettings = false
-      const height = 200
-      const heightSpacer = height / 4
+      const showSettings = true
+      const heightSpacer = 50
 
       self.iconBg?.remove()
       self.iconBg = self.slate.paper
@@ -344,7 +368,7 @@ export default class multiSelection {
           multiX - 10,
           markerBB.y + heightSpacer - 10,
           50,
-          heightSpacer * 3,
+          heightSpacer * 4,
           5
         )
         .attr({ ...self.attrs.create, opacity: 0.3 })
@@ -358,7 +382,7 @@ export default class multiSelection {
             't',
             multiX,
             ',',
-            markerBB.y + heightSpacer * 3,
+            markerBB.y + heightSpacer * 4,
             's',
             ',',
             '1.25',
@@ -460,7 +484,6 @@ export default class multiSelection {
         })
 
         // send collaboration info
-        console.log('sending multiSelect collab', nodeOptions, assocDetails)
         const pkg = {
           type: 'onNodeAdded',
           data: { multiSelectCopy: true, nodeOptions, assocDetails },
@@ -544,38 +567,41 @@ export default class multiSelection {
           self.showIcons()
         })
         self._icons.push(ungroup)
-
-        if (showSettings) {
-          const settings = self.slate.paper
-            .setting()
-            .attr(self.attrs.create)
-            .transform(
-              [
-                't',
-                multiX,
-                ',',
-                markerBB.y + heightSpacer * 4,
-                's',
-                ',',
-                '1.25',
-                '1.25',
-              ].join()
-            )
-          settings.mouseover((e) => {
-            settings.attr(self.attrs.mouseOver)
-            utils.stopEvent(e)
-          })
-          settings.mouseout((e) => {
-            settings.attr(self.attrs.mouseOut)
-            utils.stopEvent(e)
-          })
-          settings.mousedown((e) => {
-            utils.stopEvent(e)
-            self.selectedNodes[0].menu.show()
-          })
-          self._icons.push(settings)
-        }
       }
+
+      if (showSettings) {
+        const settings = self.slate.paper
+          .setting()
+          .attr(self.attrs.create)
+          .transform(
+            [
+              't',
+              multiX,
+              ',',
+              markerBB.y + heightSpacer * 3,
+              's',
+              ',',
+              '1.25',
+              '1.25',
+            ].join()
+          )
+        settings.mouseover((e) => {
+          settings.attr(self.attrs.mouseOver)
+          utils.stopEvent(e)
+        })
+        settings.mouseout((e) => {
+          settings.attr(self.attrs.mouseOut)
+          utils.stopEvent(e)
+        })
+        settings.mousedown((e) => {
+          utils.stopEvent(e)
+          if (self.slate.events?.onMenuRequested) {
+            self.slate.events?.onMenuRequested(self.selectedNodes, () => {})
+          }
+        })
+        self._icons.push(settings)
+      }
+
       self._icons.push(del)
     }
   }
@@ -767,7 +793,7 @@ export default class multiSelection {
     this._select(e)
   }
 
-  _select(e) {
+  _select() {
     const self = this
     const sr = self.selRect.getBBox()
 

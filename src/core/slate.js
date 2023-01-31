@@ -134,6 +134,7 @@ export default class slate extends base {
     self.inertia = new inertia(self)
     self.grid = new grid(self)
     self.comments = new comments(self)
+    console.log('binding keyboard')
     self.keyboard = new keyboard(self)
 
     self.autoLoadFilters()
@@ -304,7 +305,6 @@ export default class slate extends base {
 
             const imgsrc = cnvs.toDataURL('image/png')
             if (ropts?.base64) {
-              console.log('sending back dataurl', imgsrc)
               cb(imgsrc)
               URL.revokeObjectURL(img.src)
             } else {

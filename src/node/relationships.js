@@ -20,6 +20,7 @@ export default class relationships {
     self.selectedNodes = []
     self.relationshipsToTranslate = []
     self.relationshipsToRefresh = []
+    self.candidatesForSelection = {}
     self._dx = 0
     self._dy = 0
     self.collabSent = null
@@ -30,23 +31,41 @@ export default class relationships {
 
     self.dragEvents = {
       move(dx, dy) {
-        self.enactMove(dx, dy)
+        if (!self.slate.isCtrl) {
+          self.enactMove(dx, dy)
+        }
       },
       async up() {
-        self.finishDrag(true)
+        if (!self.slate.isCtrl) {
+          self.finishDrag(true)
+        }
       },
       dragger(x, y, e) {
         if (!self.slate.canvas.isDragging) {
-          self.node.toggleImage({ active: true })
-          // self.slate.canvas._bg?.hide();
-          if (self.node.events?.onClick) {
-            self.node.events.onClick.apply(self, [
-              function () {
-                self._initDrag(self, e)
-              },
-            ])
+          self.slate.nodes.closeAllMenus()
+          if (self.slate.isCtrl) {
+            if (!self.candidatesForSelection[self.node.options.id]) {
+              self.candidatesForSelection[self.node.options.id] = true
+              self.slate.multiSelection.add(self.node)
+            } else {
+              delete self.candidatesForSelection[self.node.options.id]
+              self.slate.multiSelection.remove(self.node)
+            }
+            utils.stopEvent(e)
           } else {
-            self._initDrag(self, e)
+            self.slate.multiSelection.clear()
+            self.candidatesForSelection = {}
+            self.node.toggleImage({ active: true })
+            // self.slate.canvas._bg?.hide();
+            if (self.node.events?.onClick) {
+              self.node.events.onClick.apply(self, [
+                function () {
+                  self._initDrag(self, e)
+                },
+              ])
+            } else {
+              self._initDrag(self, e)
+            }
           }
         }
       },
