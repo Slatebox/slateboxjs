@@ -8,14 +8,12 @@ export default class keyboard {
       self.slate = slate
       self.bindGlobalUp = self.keyUp.bind(self)
       self.bindGlobalDown = self.keyDown.bind(self)
-      console.log('binding global 1')
       self.bindGlobal()
     }
   }
 
   bindGlobal() {
     const self = this
-    console.log('binding global 2')
     utils.addEvent(document, 'keydown', self.bindGlobalDown)
     utils.addEvent(document, 'keyup', self.bindGlobalUp)
   }
@@ -34,7 +32,6 @@ export default class keyboard {
       case 91:
       case 17: // ctrl or cmd
         self.slate.isCtrl = blnKeyDown
-        console.log('ctrl clicked', Date.now(), blnKeyDown)
         break
       case 16: // shift
         self.slate.isShift = blnKeyDown

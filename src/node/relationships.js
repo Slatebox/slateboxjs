@@ -20,7 +20,6 @@ export default class relationships {
     self.selectedNodes = []
     self.relationshipsToTranslate = []
     self.relationshipsToRefresh = []
-    self.candidatesForSelection = {}
     self._dx = 0
     self._dy = 0
     self.collabSent = null
@@ -43,18 +42,19 @@ export default class relationships {
       dragger(x, y, e) {
         if (!self.slate.canvas.isDragging) {
           self.slate.nodes.closeAllMenus()
+
           if (self.slate.isCtrl) {
-            if (!self.candidatesForSelection[self.node.options.id]) {
-              self.candidatesForSelection[self.node.options.id] = true
+            if (!self.slate.candidatesForSelection[self.node.options.id]) {
+              self.slate.candidatesForSelection[self.node.options.id] = true
               self.slate.multiSelection.add(self.node)
             } else {
-              delete self.candidatesForSelection[self.node.options.id]
+              delete self.slate.candidatesForSelection[self.node.options.id]
               self.slate.multiSelection.remove(self.node)
             }
             utils.stopEvent(e)
           } else {
             self.slate.multiSelection.clear()
-            self.candidatesForSelection = {}
+            self.slate.candidatesForSelection = {}
             self.node.toggleImage({ active: true })
             // self.slate.canvas._bg?.hide();
             if (self.node.events?.onClick) {

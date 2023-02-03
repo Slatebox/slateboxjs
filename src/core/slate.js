@@ -110,6 +110,7 @@ export default class slate extends base {
     this.tips = []
     this.tempNodeId = utils.guid()
     this.allLines = []
+    this.candidatesForSelection = {}
   }
 
   init() {

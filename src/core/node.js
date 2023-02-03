@@ -629,6 +629,35 @@ export default class node extends base {
     return self._lock
   }
 
+  mark() {
+    const self = this
+    if (!self.marker) {
+      const rect = self.vect.getBBox()
+      const z = self.slate.options.viewPort.zoom.r
+      const padding = 10
+      const clr = utils.whiteOrBlack(
+        self.slate.options.containerStyle.backgroundColor
+      )
+      self.marker = self.slate.paper
+        .rect(
+          rect.x - padding,
+          rect.y - padding,
+          rect.width + padding * 2,
+          rect.height + padding * 2
+        )
+        .attr({ 'stroke-dasharray': '-', fill: clr, opacity: 0.5 })
+      self.marker.toBack()
+      self.slate?.grid.toBack()
+      self.slate?.canvas.bgToBack()
+    }
+  }
+
+  unmark() {
+    const self = this
+    self.marker?.remove()
+    delete self.marker
+  }
+
   hideLock() {
     this.hideOpenLock()
     this._lock && this._lock.remove()

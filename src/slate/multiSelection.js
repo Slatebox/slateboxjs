@@ -104,6 +104,7 @@ export default class multiSelection {
           self.marker.ox = self.marker.attr('x')
           self.marker.oy = self.marker.attr('y')
           self.selectedNodes.forEach((node) => {
+            node.unmark()
             const bb = node.vect.getBBox()
             node.vect.ox = bb.x
             node.vect.oy = bb.y
@@ -136,6 +137,9 @@ export default class multiSelection {
           }
         },
         up(e) {
+          self.selectedNodes.forEach((node) => {
+            node.mark()
+          })
           finalize(e)
         },
       }
@@ -150,6 +154,7 @@ export default class multiSelection {
           self.moveY = 0
           self.slate.options.allowDrag = false
           self.selectedNodes.forEach((node) => {
+            node.unmark()
             const bb = node.vect.getBBox()
             node.vect.ox = bb.x
             node.vect.oy = bb.y
@@ -203,6 +208,7 @@ export default class multiSelection {
               getRotationPoint: node.options.rotate.rotationAngle,
             })
             node.images.imageSizeCorrection()
+            node.mark()
           })
 
           refreshRelationships({
@@ -260,11 +266,14 @@ export default class multiSelection {
       self.selectedNodes.push(node)
     }
     self.hideIcons()
-    self.prepSelectedNodes()
+    self.prepSelectedNodes(true)
   }
 
   clear() {
     const self = this
+    self.selectedNodes.forEach((node) => {
+      node.unmark()
+    })
     self.selectedNodes = []
     self.hideIcons()
     self.prepSelectedNodes()
@@ -272,11 +281,12 @@ export default class multiSelection {
 
   remove(node) {
     const self = this
+    node.unmark()
     self.selectedNodes = self.selectedNodes.filter(
       (n) => n.options.id !== node.options.id
     )
     self.hideIcons()
-    self.prepSelectedNodes()
+    self.prepSelectedNodes(true)
   }
 
   start() {
@@ -649,6 +659,9 @@ export default class multiSelection {
       self.slate.enable()
       // self.slate.keyboard && self.slate.keyboard.end();
       self.hideIcons()
+      self.selectedNodes.forEach((n) => {
+        n.unmark()
+      })
       window.removeEventListener('beforeunload', self._enableOnRefresh)
     }
     if (self._init) self._init.innerHTML = '[multi-select]'
@@ -708,11 +721,14 @@ export default class multiSelection {
     }
   }
 
-  refreshMarker() {
+  refreshMarker(blnIndiv) {
     const self = this
     self.marker?.remove()
     self.resizer?.remove()
     self.iconBg?.remove()
+    self.selectedNodes.forEach((n) => {
+      n.unmark()
+    })
     const z = self.slate.options.viewPort.zoom.r
     const orient = self.slate.getOrientation(self.selectedNodes)
     let w = orient.width / z
@@ -755,9 +771,15 @@ export default class multiSelection {
       self.resizeEvents.init,
       self.resizeEvents.up
     )
+
+    if (blnIndiv) {
+      self.selectedNodes.forEach((n) => {
+        n.mark()
+      })
+    }
   }
 
-  prepSelectedNodes() {
+  prepSelectedNodes(blnIndiv) {
     const self = this
     // select relevant connections
     if (self.selectedNodes.length > 1) {
@@ -766,7 +788,7 @@ export default class multiSelection {
       )
       self.relationshipsToTranslate = _associations.relationshipsToTranslate
       self.relationshipsToRefresh = _associations.relationshipsToRefresh
-      self.refreshMarker()
+      self.refreshMarker(blnIndiv)
       self.endSelection()
       // unmark all and remove connectors
       self.slate.nodes.closeAllMenus({ nodes: self.selectedNodes })
