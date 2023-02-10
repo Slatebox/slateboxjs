@@ -435,8 +435,14 @@ export default class collab {
 
   invoke(pkg) {
     const self = this
-    if (self.invoker[pkg.type]) {
-      self.invoker[pkg.type](pkg)
+    let packages = pkg
+    if (!Array.isArray(packages)) {
+      packages = [packages]
+    }
+    for (let pkg of packages) {
+      if (self.invoker[pkg.type]) {
+        self.invoker[pkg.type](pkg)
+      }
     }
   }
 
@@ -472,17 +478,25 @@ export default class collab {
 
   send(pkg) {
     const self = this
-    if (pkg.type !== 'onMouseMoved') {
+    let packages = pkg
+    if (!Array.isArray(packages)) {
+      packages = [packages]
+    }
+    if (packages[0].type !== 'onMouseMoved') {
       if (self.slate.undoRedo && self.slate.options.showUndoRedo) {
         self.slate.undoRedo.snap()
       }
     }
     if (self.pc.allow) {
       if (self.slate.options?.onSlateChanged) {
-        self.slate.options.onSlateChanged.apply(self, [pkg])
+        self.slate.options.onSlateChanged.apply(self, [packages])
       }
       if (self.pc.onCollaboration) {
-        self.pc.onCollaboration({ type: 'process', slate: self.slate, pkg })
+        self.pc.onCollaboration({
+          type: 'process',
+          slate: self.slate,
+          pkg: packages,
+        })
       }
     }
   }

@@ -49,8 +49,6 @@ export default class connectors {
     const r = self.slate.paper
     const bb = self.node.vect.getBBox()
 
-    console.log('bb is ', bb)
-
     const widthOffset = bb.width / 2
     const btnAttr = { fill: '#fff', stroke: '#000' }
 

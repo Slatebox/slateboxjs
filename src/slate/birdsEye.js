@@ -43,6 +43,7 @@ export default class birdsEye {
       self.handle.ox = this.attr('x')
       self.handle.oy = this.attr('y')
       start = utils.positionedOffset(self.slate.canvas.internal)
+      self.slate.toggleFilters(true)
     }
 
     const move = function mv(x, y) {
@@ -62,7 +63,6 @@ export default class birdsEye {
       self.options.onHandleMove?.apply(self, [_cx, _cy])
 
       self.slate.canvas.move({ x: _cx, y: _cy, dur: 0, isAbsolute: true })
-
       self.lastX = bb.x
       self.lastY = bb.y
     }
@@ -74,6 +74,7 @@ export default class birdsEye {
         x: start.left - end.left,
         y: start.top - end.top,
       })
+      self.slate.toggleFilters(false)
     }
 
     self.handle.drag(move, init, up)

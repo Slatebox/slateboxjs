@@ -56,6 +56,8 @@ export default class relationships {
             self.slate.multiSelection.clear()
             self.slate.candidatesForSelection = {}
             self.node.toggleImage({ active: true })
+            // hide filters
+            self.slate.toggleFilters(true) //, self.node.options.id
             // self.slate.canvas._bg?.hide();
             if (self.node.events?.onClick) {
               self.node.events.onClick.apply(self, [
@@ -91,7 +93,6 @@ export default class relationships {
 
   finishDrag(blnBroadcast) {
     const self = this
-    console.log('done dragging node', self.draggingNode)
     self.slate.draggingNode = false
     self.selectedNodes.forEach((nd) => {
       // the transformPath here converts the transient transforms that happened during the movement
@@ -136,6 +137,7 @@ export default class relationships {
 
     // console.log("here we go", self.selectedNodes);
     // self.slate.canvas._bg?.show();
+    // finish drag
     self.slate.toggleFilters(false)
     self.showMenu()
   }
