@@ -30,12 +30,12 @@ export default class relationships {
 
     self.dragEvents = {
       move(dx, dy) {
-        if (!self.slate.isCtrl) {
+        if (!self.slate.isShift) {
           self.enactMove(dx, dy)
         }
       },
       async up() {
-        if (!self.slate.isCtrl) {
+        if (!self.slate.isShift) {
           self.finishDrag(true)
         }
       },
@@ -43,7 +43,7 @@ export default class relationships {
         if (!self.slate.canvas.isDragging) {
           self.slate.nodes.closeAllMenus()
 
-          if (self.slate.isCtrl) {
+          if (self.slate.isShift) {
             if (!self.slate.candidatesForSelection[self.node.options.id]) {
               self.slate.candidatesForSelection[self.node.options.id] = true
               self.slate.multiSelection.add(self.node)

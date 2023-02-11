@@ -135,7 +135,6 @@ export default class slate extends base {
     self.inertia = new inertia(self)
     self.grid = new grid(self)
     self.comments = new comments(self)
-    console.log('binding keyboard')
     self.keyboard = new keyboard(self)
 
     self.autoLoadFilters()
@@ -265,7 +264,7 @@ export default class slate extends base {
                   ctx.imageSmoothingEnabled = false
                   ctx.drawImage(img, 0, 0)
 
-                  if (ropts.alpha != null) {
+                  if (ropts?.alpha != null) {
                     makeTransparent(ctx, ropts.alpha, cnvs)
                   }
 
@@ -300,7 +299,7 @@ export default class slate extends base {
           img.onload = () => {
             ctx.drawImage(img, 0, 0)
 
-            if (ropts.alpha != null) {
+            if (ropts?.alpha != null) {
               makeTransparent(ctx, ropts.alpha, cnvs)
             }
 
@@ -972,16 +971,18 @@ export default class slate extends base {
       }
 
       // text
-      self.collab.invoke({
-        type: 'onNodeTextChanged',
-        data: {
-          id,
-          fontSize: styleBase.fontSize,
-          fontFamily: styleBase.fontFamily,
-          fontColor: styleBase.foregroundColor,
-          textOpacity: styleBase.textOpacity,
-        },
-      })
+      if (syncWithTheme) {
+        self.collab.invoke({
+          type: 'onNodeTextChanged',
+          data: {
+            id,
+            fontSize: styleBase.fontSize,
+            fontFamily: styleBase.fontFamily,
+            fontColor: styleBase.foregroundColor,
+            textOpacity: styleBase.textOpacity,
+          },
+        })
+      }
 
       // effects
       self.collab.invoke({

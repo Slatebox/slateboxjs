@@ -27,6 +27,7 @@ export default class multiSelection {
     self.iconBg = null
     self.moveX = 0
     self.moveY = 0
+    self.asIndiv = false
     self.attrs = {
       create: { fill: '#fff', stroke: '#000' },
       mouseOut: { fill: '#fff', stroke: '#000' },
@@ -137,9 +138,11 @@ export default class multiSelection {
           }
         },
         up(e) {
-          self.selectedNodes.forEach((node) => {
-            node.mark()
-          })
+          if (self.asIndiv) {
+            self.selectedNodes.forEach((node) => {
+              node.mark()
+            })
+          }
           finalize(e)
         },
       }
@@ -208,7 +211,9 @@ export default class multiSelection {
               getRotationPoint: node.options.rotate.rotationAngle,
             })
             node.images.imageSizeCorrection()
-            node.mark()
+            if (self.asIndiv) {
+              node.mark()
+            }
           })
 
           refreshRelationships({
@@ -262,15 +267,17 @@ export default class multiSelection {
 
   add(node) {
     const self = this
+    self.asIndiv = true
     if (!self.selectedNodes.find((n) => n.options.id === node.options.id)) {
       self.selectedNodes.push(node)
     }
     self.hideIcons()
-    self.prepSelectedNodes(true)
+    self.prepSelectedNodes()
   }
 
   clear() {
     const self = this
+    self.asIndiv = false
     self.selectedNodes.forEach((node) => {
       node.unmark()
     })
@@ -285,8 +292,9 @@ export default class multiSelection {
     self.selectedNodes = self.selectedNodes.filter(
       (n) => n.options.id !== node.options.id
     )
+    self.asIndiv = self.selectedNodes.length > 0
     self.hideIcons()
-    self.prepSelectedNodes(true)
+    self.prepSelectedNodes()
   }
 
   start() {
@@ -721,7 +729,7 @@ export default class multiSelection {
     }
   }
 
-  refreshMarker(blnIndiv) {
+  refreshMarker() {
     const self = this
     self.marker?.remove()
     self.resizer?.remove()
@@ -772,14 +780,14 @@ export default class multiSelection {
       self.resizeEvents.up
     )
 
-    if (blnIndiv) {
+    if (self.asIndiv) {
       self.selectedNodes.forEach((n) => {
         n.mark()
       })
     }
   }
 
-  prepSelectedNodes(blnIndiv) {
+  prepSelectedNodes() {
     const self = this
     // select relevant connections
     if (self.selectedNodes.length > 1) {
@@ -788,7 +796,7 @@ export default class multiSelection {
       )
       self.relationshipsToTranslate = _associations.relationshipsToTranslate
       self.relationshipsToRefresh = _associations.relationshipsToRefresh
-      self.refreshMarker(blnIndiv)
+      self.refreshMarker()
       self.endSelection()
       // unmark all and remove connectors
       self.slate.nodes.closeAllMenus({ nodes: self.selectedNodes })
