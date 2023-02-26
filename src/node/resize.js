@@ -135,7 +135,7 @@ export default class resize {
           let transHeight = self._origHeight + dy * 2
 
           if (
-            self.slate.isCtrl &&
+            !self.slate.isCtrl &&
             self.node.options.origVectWidth &&
             self.node.options.origVectHeight
           ) {

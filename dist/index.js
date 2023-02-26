@@ -11956,7 +11956,7 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
                     });
                     let transWidth = self._origWidth + dx * 2;
                     let transHeight = self._origHeight + dy * 2;
-                    if (self.slate.isCtrl && self.node.options.origVectWidth && self.node.options.origVectHeight) {
+                    if (!self.slate.isCtrl && self.node.options.origVectWidth && self.node.options.origVectHeight) {
                         const max = Math.max(transWidth, transHeight);
                         // keep it proportional to the original dimensions unless ctrl is pressed while resizing
                         if (max === transWidth) // change width
