@@ -60,6 +60,7 @@ export default class node extends base {
       foregroundColor: '#fff',
       fontSize: 18,
       fontFamily: 'Roboto',
+      shapeHint: 'rectangle',
       vectorPath: '',
       rotate: {
         rotationAngle: 0,

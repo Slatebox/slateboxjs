@@ -479,8 +479,7 @@ export default class canvas {
 
     Object.assign(opts, _opts)
 
-    let { x } = opts
-    let { y } = opts
+    let { x, y } = opts
     if (opts.isAbsolute === false) {
       x = self.slate.options.viewPort.left + x
       y = self.slate.options.viewPort.top + y
@@ -519,6 +518,16 @@ export default class canvas {
         self.slate.options.viewPort.top = Math.abs(y)
         opts.callbacks?.after?.apply(self.slate)
       })
+    }
+  }
+
+  bbox() {
+    const dimen = utils.getDimensions(this.slate.options.container)
+    return {
+      x: Math.abs(this.slate.options.viewPort.top),
+      y: Math.abs(this.slate.options.viewPort.left),
+      width: dimen.width,
+      height: dimen.height,
     }
   }
 

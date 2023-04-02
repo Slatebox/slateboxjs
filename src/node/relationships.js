@@ -449,7 +449,10 @@ export default class relationships {
         child: _node,
         lineColor: assocPkg.lineColor || this.node.options.lineColor,
         lineWidth: assocPkg.lineWidth || this.node.options.lineWidth,
-        lineOpacity: assocPkg.lineOpacity || this.node.options.lineOpacity,
+        lineOpacity:
+          assocPkg.lineOpacity != null
+            ? assocPkg.lineOpacity
+            : this.node.options.lineOpacity,
         lineEffect: assocPkg.lineEffect || this.node.options.lineEffect,
         blnStraight: assocPkg.isStraightLine || false,
         showParentArrow: assocPkg.showParentArrow || false,

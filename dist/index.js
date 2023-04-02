@@ -1,17 +1,17 @@
-import $5OpyM$lodashuniq from "lodash.uniq";
-import $5OpyM$lodashclonedeep from "lodash.clonedeep";
-import $5OpyM$deepmerge from "deepmerge";
-import $5OpyM$lodashomit from "lodash.omit";
-import $5OpyM$lodashinvoke from "lodash.invoke";
-import $5OpyM$statickdtree from "static-kdtree";
-import $5OpyM$lodashthrottle from "lodash.throttle";
-import $5OpyM$lodashclone from "lodash.clone";
-import {WheelGestures as $5OpyM$WheelGestures} from "wheel-gestures";
+import $i9J9X$lodashuniq from "lodash.uniq";
+import $i9J9X$lodashclonedeep from "lodash.clonedeep";
+import $i9J9X$deepmerge from "deepmerge";
+import $i9J9X$lodashomit from "lodash.omit";
+import $i9J9X$lodashinvoke from "lodash.invoke";
+import $i9J9X$statickdtree from "static-kdtree";
+import $i9J9X$lodashthrottle from "lodash.throttle";
+import $i9J9X$lodashclone from "lodash.clone";
+import {WheelGestures as $i9J9X$WheelGestures} from "wheel-gestures";
 
 
 
 
-const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
+const $f74a27260bed6e25$export$6b962911844bfb1e = function() {
     var version = "0.5.4", has = "hasOwnProperty", separator = /[\.\/]/, comaseparator = /\s*,\s*/, wildcard = "*", numsort = function(a, b) {
         return a - b;
     }, current_event, stop, events = {
@@ -39,8 +39,8 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
    - varargs (...) the rest of arguments will be sent to event handlers
 
    = (object) array of returned values from the listeners. Array has two methods `.firstDefined()` and `.lastDefined()` to get first or last not `undefined` value.
-  \*/ $dacea6f50a09eb13$export$6b962911844bfb1e = function(name, scope) {
-        var oldstop = stop, args = Array.prototype.slice.call(arguments, 2), listeners = $dacea6f50a09eb13$export$6b962911844bfb1e.listeners(name), z = 0, l, indexed = [], queue = {
+  \*/ $f74a27260bed6e25$export$6b962911844bfb1e = function(name, scope) {
+        var oldstop = stop, args = Array.prototype.slice.call(arguments, 2), listeners = $f74a27260bed6e25$export$6b962911844bfb1e.listeners(name), z = 0, l, indexed = [], queue = {
         }, out = [], ce = current_event;
         out.firstDefined = firstDefined;
         out.lastDefined = lastDefined;
@@ -82,7 +82,7 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
         return out;
     };
     // Undocumented. Debug only.
-    $dacea6f50a09eb13$export$6b962911844bfb1e._events = events;
+    $f74a27260bed6e25$export$6b962911844bfb1e._events = events;
     /*\
    * eve.listeners
    [ method ]
@@ -92,7 +92,7 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
    - name (string) name of the event, dot (`.`) or slash (`/`) separated
 
    = (array) array of event handlers
-  \*/ $dacea6f50a09eb13$export$6b962911844bfb1e.listeners = function(name) {
+  \*/ $f74a27260bed6e25$export$6b962911844bfb1e.listeners = function(name) {
         var names = isArray(name) ? name : name.split(separator), e = events, item, items, k, i, ii, j, jj, nes, es = [
             e
         ], out = [];
@@ -126,7 +126,7 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
    * a list of characters.
 
    - separator (string) new separator. Empty string resets to default: `.` or `/`.
-  \*/ $dacea6f50a09eb13$export$6b962911844bfb1e.separator = function(sep) {
+  \*/ $f74a27260bed6e25$export$6b962911844bfb1e.separator = function(sep) {
         if (sep) {
             sep = Str(sep).replace(/(?=[\.\^\]\[\-])/g, "\\");
             sep = "[" + sep + "]";
@@ -157,7 +157,7 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
    *
    * If you want to put your handler before non-indexed handlers, specify a negative value.
    * Note: I assume most of the time you don’t need to worry about z-index, but it’s nice to have this feature “just in case”.
-  \*/ $dacea6f50a09eb13$export$6b962911844bfb1e.on = function(name1, f) {
+  \*/ $f74a27260bed6e25$export$6b962911844bfb1e.on = function(name1, f) {
         if (typeof f != "function") return function() {
         };
         var names1 = isArray(name1) ? isArray(name1[0]) ? name1 : [
@@ -197,10 +197,10 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
    - event (string) event name
    - varargs (…) and any other arguments
    = (function) possible event handler function
-  \*/ $dacea6f50a09eb13$export$6b962911844bfb1e.f = function(event) {
+  \*/ $f74a27260bed6e25$export$6b962911844bfb1e.f = function(event) {
         var attrs = [].slice.call(arguments, 1);
         return function() {
-            $dacea6f50a09eb13$export$6b962911844bfb1e.apply(null, [
+            $f74a27260bed6e25$export$6b962911844bfb1e.apply(null, [
                 event,
                 null
             ].concat(attrs).concat([].slice.call(arguments, 0)));
@@ -211,7 +211,7 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
    [ method ]
    **
    * Is used inside an event handler to stop the event, preventing any subsequent listeners from firing.
-  \*/ $dacea6f50a09eb13$export$6b962911844bfb1e.stop = function() {
+  \*/ $f74a27260bed6e25$export$6b962911844bfb1e.stop = function() {
         stop = 1;
     };
     /*\
@@ -225,7 +225,7 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
    = (string) name of the event, if `subname` is not specified
    * or
    = (boolean) `true`, if current event’s name contains `subname`
-  \*/ $dacea6f50a09eb13$export$6b962911844bfb1e.nt = function(subname) {
+  \*/ $f74a27260bed6e25$export$6b962911844bfb1e.nt = function(subname) {
         var cur = isArray(current_event) ? current_event.join(".") : current_event;
         if (subname) return new RegExp("(?:\\.|\\/|^)" + subname + "(?:\\.|\\/|$)").test(cur);
         return cur;
@@ -238,7 +238,7 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
    **
    **
    = (array) names of the event
-  \*/ $dacea6f50a09eb13$export$6b962911844bfb1e.nts = function() {
+  \*/ $f74a27260bed6e25$export$6b962911844bfb1e.nts = function() {
         return isArray(current_event) ? current_event : current_event.split(separator);
     };
     /*\
@@ -255,9 +255,9 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
    [ method ]
    **
    * See @eve.off
-  \*/ $dacea6f50a09eb13$export$6b962911844bfb1e.off = $dacea6f50a09eb13$export$6b962911844bfb1e.unbind = function(name, f) {
+  \*/ $f74a27260bed6e25$export$6b962911844bfb1e.off = $f74a27260bed6e25$export$6b962911844bfb1e.unbind = function(name, f) {
         if (!name) {
-            $dacea6f50a09eb13$export$6b962911844bfb1e._events = events = {
+            $f74a27260bed6e25$export$6b962911844bfb1e._events = events = {
                 n: {
                 }
             };
@@ -267,7 +267,7 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
             name
         ] : Str(name).split(comaseparator);
         if (names.length > 1) {
-            for(var i = 0, ii = names.length; i < ii; i++)$dacea6f50a09eb13$export$6b962911844bfb1e.off(names[i], f);
+            for(var i = 0, ii = names.length; i < ii; i++)$f74a27260bed6e25$export$6b962911844bfb1e.off(names[i], f);
             return;
         }
         names = isArray(name) ? name : Str(name).split(separator);
@@ -348,28 +348,28 @@ const $dacea6f50a09eb13$export$6b962911844bfb1e = function() {
    - f (function) event handler function
    **
    = (function) same return function as @eve.on
-  \*/ $dacea6f50a09eb13$export$6b962911844bfb1e.once = function(name, f) {
+  \*/ $f74a27260bed6e25$export$6b962911844bfb1e.once = function(name, f) {
         var f2 = function() {
-            $dacea6f50a09eb13$export$6b962911844bfb1e.off(name, f2);
+            $f74a27260bed6e25$export$6b962911844bfb1e.off(name, f2);
             return f.apply(this, arguments);
         };
-        return $dacea6f50a09eb13$export$6b962911844bfb1e.on(name, f2);
+        return $f74a27260bed6e25$export$6b962911844bfb1e.on(name, f2);
     };
     /*\
    * eve.version
    [ property (string) ]
    **
    * Current version of the library.
-  \*/ $dacea6f50a09eb13$export$6b962911844bfb1e.version = version;
-    $dacea6f50a09eb13$export$6b962911844bfb1e.toString = function() {
+  \*/ $f74a27260bed6e25$export$6b962911844bfb1e.version = version;
+    $f74a27260bed6e25$export$6b962911844bfb1e.toString = function() {
         return "You are running Eve " + version;
     };
-    return $dacea6f50a09eb13$export$6b962911844bfb1e;
+    return $f74a27260bed6e25$export$6b962911844bfb1e;
 }();
 
 
 
-const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
+const $b7c3e249c8a42d1b$export$db202ddc8be9136 = function() {
     /* \
    * Raphael
    [ method ]
@@ -419,20 +419,20 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    |     y: 40,
    |     text: "Dump"
    | }]);
-  \ */ function $c453c098b23bc46d$export$db202ddc8be9136(first) {
-        if ($c453c098b23bc46d$export$db202ddc8be9136.is(first, 'function')) return loaded1 ? first() : $dacea6f50a09eb13$export$6b962911844bfb1e.on('raphael.DOMload', first);
-        if ($c453c098b23bc46d$export$db202ddc8be9136.is(first, array1)) return $c453c098b23bc46d$export$db202ddc8be9136._engine.create[apply]($c453c098b23bc46d$export$db202ddc8be9136, first.splice(0, 3 + $c453c098b23bc46d$export$db202ddc8be9136.is(first[0], nu))).add(first);
+  \ */ function $b7c3e249c8a42d1b$export$db202ddc8be9136(first) {
+        if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(first, 'function')) return loaded1 ? first() : $f74a27260bed6e25$export$6b962911844bfb1e.on('raphael.DOMload', first);
+        if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(first, array1)) return $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.create[apply]($b7c3e249c8a42d1b$export$db202ddc8be9136, first.splice(0, 3 + $b7c3e249c8a42d1b$export$db202ddc8be9136.is(first[0], nu))).add(first);
         const args = Array.prototype.slice.call(arguments, 0);
-        if ($c453c098b23bc46d$export$db202ddc8be9136.is(args[args.length - 1], 'function')) {
+        if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(args[args.length - 1], 'function')) {
             const f = args.pop();
-            return loaded1 ? f.call($c453c098b23bc46d$export$db202ddc8be9136._engine.create[apply]($c453c098b23bc46d$export$db202ddc8be9136, args)) : $dacea6f50a09eb13$export$6b962911844bfb1e.on('raphael.DOMload', ()=>{
-                f.call($c453c098b23bc46d$export$db202ddc8be9136._engine.create[apply]($c453c098b23bc46d$export$db202ddc8be9136, args));
+            return loaded1 ? f.call($b7c3e249c8a42d1b$export$db202ddc8be9136._engine.create[apply]($b7c3e249c8a42d1b$export$db202ddc8be9136, args)) : $f74a27260bed6e25$export$6b962911844bfb1e.on('raphael.DOMload', ()=>{
+                f.call($b7c3e249c8a42d1b$export$db202ddc8be9136._engine.create[apply]($b7c3e249c8a42d1b$export$db202ddc8be9136, args));
             });
         }
-        return $c453c098b23bc46d$export$db202ddc8be9136._engine.create[apply]($c453c098b23bc46d$export$db202ddc8be9136, arguments);
+        return $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.create[apply]($b7c3e249c8a42d1b$export$db202ddc8be9136, arguments);
     }
-    $c453c098b23bc46d$export$db202ddc8be9136.version = '2.2.0';
-    $c453c098b23bc46d$export$db202ddc8be9136.eve = $dacea6f50a09eb13$export$6b962911844bfb1e;
+    $b7c3e249c8a42d1b$export$db202ddc8be9136.version = '2.2.0';
+    $b7c3e249c8a42d1b$export$db202ddc8be9136.eve = $f74a27260bed6e25$export$6b962911844bfb1e;
     let loaded1;
     const separator = /[, ]+/;
     const elements = {
@@ -520,7 +520,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     const paper1 = {
     };
     const push = 'push';
-    const ISURL = $c453c098b23bc46d$export$db202ddc8be9136._ISURL = /^url\(['"]?(.+?)['"]?\)$/i;
+    const ISURL = $b7c3e249c8a42d1b$export$db202ddc8be9136._ISURL = /^url\(['"]?(.+?)['"]?\)$/i;
     const colourRegExp = /^\s*((#[a-f\d]{6})|(#[a-f\d]{3})|rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+%?(?:\s*,\s*[\d\.]+%?)?)\s*\)|hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\))\s*$/i;
     const isnan = {
         NaN: 1,
@@ -533,7 +533,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     const toFloat = parseFloat;
     const toInt = parseInt;
     const upperCase = Str.prototype.toUpperCase;
-    const availableAttrs = $c453c098b23bc46d$export$db202ddc8be9136._availableAttrs = {
+    const availableAttrs = $b7c3e249c8a42d1b$export$db202ddc8be9136._availableAttrs = {
         'arrow-end': 'none',
         'arrow-start': 'none',
         blur: 0,
@@ -575,7 +575,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         class: '',
         filter: ''
     };
-    const availableAnimAttrs = $c453c098b23bc46d$export$db202ddc8be9136._availableAnimAttrs = {
+    const availableAnimAttrs = $b7c3e249c8a42d1b$export$db202ddc8be9136._availableAnimAttrs = {
         blur: nu,
         'clip-rect': 'csv',
         cx: nu,
@@ -607,7 +607,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     const pathCommand = /([achlmrqstvz])[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029,]*((-?\d*\.?\d*(?:e[\-+]?\d+)?[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*,?[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*)+)/gi;
     const tCommand = /([rstm])[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029,]*((-?\d*\.?\d*(?:e[\-+]?\d+)?[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*,?[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*)+)/gi;
     const pathValues = /(-?\d*\.?\d*(?:e[\-+]?\d+)?)[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*,?[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*/gi;
-    const radial_gradient = $c453c098b23bc46d$export$db202ddc8be9136._radial_gradient = /^r(?:\(([^,]+?)[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*,[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*([^\)]+?)\))?/;
+    const radial_gradient = $b7c3e249c8a42d1b$export$db202ddc8be9136._radial_gradient = /^r(?:\(([^,]+?)[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*,[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*([^\)]+?)\))?/;
     const eldata = {
     };
     const sortByKey = function(a, b) {
@@ -621,7 +621,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     const pipe = function(x) {
         return x;
     };
-    const rectPath = $c453c098b23bc46d$export$db202ddc8be9136._rectPath = function(x, y, w, h, r) {
+    const rectPath = $b7c3e249c8a42d1b$export$db202ddc8be9136._rectPath = function(x, y, w, h, r) {
         if (r) return [
             [
                 'M',
@@ -756,7 +756,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             ], 
         ];
     };
-    const getPath1 = $c453c098b23bc46d$export$db202ddc8be9136._getPath = {
+    const getPath1 = $b7c3e249c8a42d1b$export$db202ddc8be9136._getPath = {
         path (el) {
             return el.attr('path');
         },
@@ -798,7 +798,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
      - path (string) path string
      - matrix (object) see @Matrix
      = (string) transformed path string
-    \ */ const mapPath = $c453c098b23bc46d$export$db202ddc8be9136.mapPath = function(path, matrix) {
+    \ */ const mapPath = $b7c3e249c8a42d1b$export$db202ddc8be9136.mapPath = function(path, matrix) {
         if (!matrix) return path;
         let x;
         let y;
@@ -819,10 +819,10 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         }
         return path;
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._g = g1;
-    $c453c098b23bc46d$export$db202ddc8be9136.type = 'SVG';
-    $c453c098b23bc46d$export$db202ddc8be9136.svg = true;
-    $c453c098b23bc46d$export$db202ddc8be9136._Paper = Paper;
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._g = g1;
+    $b7c3e249c8a42d1b$export$db202ddc8be9136.type = 'SVG';
+    $b7c3e249c8a42d1b$export$db202ddc8be9136.svg = true;
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._Paper = Paper;
     /* \
    * Raphael.fn
    [ property (object) ]
@@ -848,8 +848,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    | paper.arrow(10, 10, 30, 30, 5).attr({fill: "#f00"});
    | paper.mystuff.arrow();
    | paper.mystuff.star();
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.fn = paperproto = Paper.prototype = $c453c098b23bc46d$export$db202ddc8be9136.prototype;
-    $c453c098b23bc46d$export$db202ddc8be9136._id = 0;
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.fn = paperproto = Paper.prototype = $b7c3e249c8a42d1b$export$db202ddc8be9136.prototype;
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._id = 0;
     /* \
    * Raphael.is
    [ method ]
@@ -859,7 +859,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - o (…) any object or primitive
    - type (string) name of the type, i.e. “string”, “function”, “number”, etc.
    = (boolean) is given value is of given type
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.is = function(o, type) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.is = function(o, type) {
         type = lowerCase.call(type);
         if (type == 'finite') return !isnan[has](+o);
         if (type == 'array') return o instanceof Array;
@@ -884,14 +884,14 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - x3 (number) #optional x coord of third point
    - y3 (number) #optional y coord of third point
    = (number) angle in degrees.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.angle = function(x1, y1, x2, y2, x3, y3) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.angle = function(x1, y1, x2, y2, x3, y3) {
         if (x3 == null) {
             const x = x1 - x2;
             const y = y1 - y2;
             if (!x && !y) return 0;
             return (180 + math.atan2(-y, -x) * 180 / PI + 360) % 360;
         }
-        return $c453c098b23bc46d$export$db202ddc8be9136.angle(x1, y1, x3, y3) - $c453c098b23bc46d$export$db202ddc8be9136.angle(x2, y2, x3, y3);
+        return $b7c3e249c8a42d1b$export$db202ddc8be9136.angle(x1, y1, x3, y3) - $b7c3e249c8a42d1b$export$db202ddc8be9136.angle(x2, y2, x3, y3);
     };
     /* \
    * Raphael.rad
@@ -901,7 +901,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Parameters
    - deg (number) angle in degrees
    = (number) angle in radians.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.rad = function(deg) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.rad = function(deg) {
         return deg % 360 * PI / 180;
     };
     /* \
@@ -912,7 +912,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Parameters
    - rad (number) angle in radians
    = (number) angle in degrees.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.deg = function(rad) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.deg = function(rad) {
         return Math.round(rad * 180 / PI % 360 * 1000) / 1000;
     };
     /* \
@@ -925,9 +925,9 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - value (number) value to adjust
    - tolerance (number) #optional tolerance for snapping. Default is `10`.
    = (number) adjusted value.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.snapTo = function(values, value, tolerance) {
-        tolerance = $c453c098b23bc46d$export$db202ddc8be9136.is(tolerance, 'finite') ? tolerance : 10;
-        if ($c453c098b23bc46d$export$db202ddc8be9136.is(values, array1)) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.snapTo = function(values, value, tolerance) {
+        tolerance = $b7c3e249c8a42d1b$export$db202ddc8be9136.is(tolerance, 'finite') ? tolerance : 10;
+        if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(values, array1)) {
             let i = values.length;
             while(i--)if (abs(values[i] - value) <= tolerance) return values[i];
         } else {
@@ -943,7 +943,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    [ method ]
    **
    * Returns RFC4122, version 4 ID
-  \ */ const createUUID = $c453c098b23bc46d$export$db202ddc8be9136.createUUID = function(uuidRegEx, uuidReplacer) {
+  \ */ const createUUID = $b7c3e249c8a42d1b$export$db202ddc8be9136.createUUID = function(uuidRegEx, uuidReplacer) {
         return function() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(uuidRegEx, uuidReplacer).toUpperCase();
         };
@@ -959,11 +959,11 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    * Used when you need to draw in `&lt;iframe>`. Switched window to the iframe one.
    > Parameters
    - newwin (window) new window object
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.setWindow = function(newwin) {
-        $dacea6f50a09eb13$export$6b962911844bfb1e('raphael.setWindow', $c453c098b23bc46d$export$db202ddc8be9136, g1.win, newwin);
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.setWindow = function(newwin) {
+        $f74a27260bed6e25$export$6b962911844bfb1e('raphael.setWindow', $b7c3e249c8a42d1b$export$db202ddc8be9136, g1.win, newwin);
         g1.win = newwin;
         g1.doc = g1.win.document;
-        if ($c453c098b23bc46d$export$db202ddc8be9136._engine.initWin) $c453c098b23bc46d$export$db202ddc8be9136._engine.initWin(g1.win);
+        if ($b7c3e249c8a42d1b$export$db202ddc8be9136._engine.initWin) $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.initWin(g1.win);
     };
     var toHex = function(color1) {
         const i = g1.doc.createElement('i');
@@ -994,13 +994,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         return this.hex;
     };
     const prepareRGB = function(r, g, b) {
-        if (g == null && $c453c098b23bc46d$export$db202ddc8be9136.is(r, 'object') && 'r' in r && 'g' in r && 'b' in r) {
+        if (g == null && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(r, 'object') && 'r' in r && 'g' in r && 'b' in r) {
             b = r.b;
             g = r.g;
             r = r.r;
         }
-        if (g == null && $c453c098b23bc46d$export$db202ddc8be9136.is(r, string1)) {
-            const clr = $c453c098b23bc46d$export$db202ddc8be9136.getRGB(r);
+        if (g == null && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(r, string1)) {
+            const clr = $b7c3e249c8a42d1b$export$db202ddc8be9136.getRGB(r);
             r = clr.r;
             g = clr.g;
             b = clr.b;
@@ -1024,10 +1024,10 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             r: r,
             g: g,
             b: b,
-            hex: $c453c098b23bc46d$export$db202ddc8be9136.rgb(r, g, b),
+            hex: $b7c3e249c8a42d1b$export$db202ddc8be9136.rgb(r, g, b),
             toString: rgbtoString
         };
-        $c453c098b23bc46d$export$db202ddc8be9136.is(o, 'finite') && (rgb.opacity = o);
+        $b7c3e249c8a42d1b$export$db202ddc8be9136.is(o, 'finite') && (rgb.opacity = o);
         return rgb;
     };
     /* \
@@ -1049,28 +1049,28 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     v (number) value (brightness),
    o     l (number) lightness
    o }
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.color = function(clr) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.color = function(clr) {
         let rgb;
-        if ($c453c098b23bc46d$export$db202ddc8be9136.is(clr, 'object') && 'h' in clr && 's' in clr && 'b' in clr) {
-            rgb = $c453c098b23bc46d$export$db202ddc8be9136.hsb2rgb(clr);
+        if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(clr, 'object') && 'h' in clr && 's' in clr && 'b' in clr) {
+            rgb = $b7c3e249c8a42d1b$export$db202ddc8be9136.hsb2rgb(clr);
             clr.r = rgb.r;
             clr.g = rgb.g;
             clr.b = rgb.b;
             clr.hex = rgb.hex;
-        } else if ($c453c098b23bc46d$export$db202ddc8be9136.is(clr, 'object') && 'h' in clr && 's' in clr && 'l' in clr) {
-            rgb = $c453c098b23bc46d$export$db202ddc8be9136.hsl2rgb(clr);
+        } else if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(clr, 'object') && 'h' in clr && 's' in clr && 'l' in clr) {
+            rgb = $b7c3e249c8a42d1b$export$db202ddc8be9136.hsl2rgb(clr);
             clr.r = rgb.r;
             clr.g = rgb.g;
             clr.b = rgb.b;
             clr.hex = rgb.hex;
         } else {
-            if ($c453c098b23bc46d$export$db202ddc8be9136.is(clr, 'string')) clr = $c453c098b23bc46d$export$db202ddc8be9136.getRGB(clr);
-            if ($c453c098b23bc46d$export$db202ddc8be9136.is(clr, 'object') && 'r' in clr && 'g' in clr && 'b' in clr) {
-                rgb = $c453c098b23bc46d$export$db202ddc8be9136.rgb2hsl(clr);
+            if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(clr, 'string')) clr = $b7c3e249c8a42d1b$export$db202ddc8be9136.getRGB(clr);
+            if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(clr, 'object') && 'r' in clr && 'g' in clr && 'b' in clr) {
+                rgb = $b7c3e249c8a42d1b$export$db202ddc8be9136.rgb2hsl(clr);
                 clr.h = rgb.h;
                 clr.s = rgb.s;
                 clr.l = rgb.l;
-                rgb = $c453c098b23bc46d$export$db202ddc8be9136.rgb2hsb(clr);
+                rgb = $b7c3e249c8a42d1b$export$db202ddc8be9136.rgb2hsb(clr);
                 clr.v = rgb.b;
             } else {
                 clr = {
@@ -1098,7 +1098,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     b (number) blue,
    o     hex (string) color in HTML/CSS format: #••••••
    o }
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.hsb2rgb = function(h, s, v, o) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.hsb2rgb = function(h, s, v, o) {
         if (this.is(h, 'object') && 'h' in h && 's' in h && 'b' in h) {
             v = h.b;
             s = h.s;
@@ -1106,7 +1106,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             h = h.h;
         }
         h *= 360;
-        let $c453c098b23bc46d$export$db202ddc8be9136;
+        let $b7c3e249c8a42d1b$export$db202ddc8be9136;
         let G;
         let B;
         let X;
@@ -1114,9 +1114,9 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         h = h % 360 / 60;
         C = v * s;
         X = C * (1 - abs(h % 2 - 1));
-        $c453c098b23bc46d$export$db202ddc8be9136 = G = B = v - C;
+        $b7c3e249c8a42d1b$export$db202ddc8be9136 = G = B = v - C;
         h = ~~h;
-        $c453c098b23bc46d$export$db202ddc8be9136 += [
+        $b7c3e249c8a42d1b$export$db202ddc8be9136 += [
             C,
             X,
             0,
@@ -1140,7 +1140,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             C,
             X
         ][h];
-        return packageRGB($c453c098b23bc46d$export$db202ddc8be9136, G, B, o);
+        return packageRGB($b7c3e249c8a42d1b$export$db202ddc8be9136, G, B, o);
     };
     /* \
    * Raphael.hsl2rgb
@@ -1158,7 +1158,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     b (number) blue,
    o     hex (string) color in HTML/CSS format: #••••••
    o }
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.hsl2rgb = function(h, s, l, o) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.hsl2rgb = function(h, s, l, o) {
         if (this.is(h, 'object') && 'h' in h && 's' in h && 'l' in h) {
             l = h.l;
             s = h.s;
@@ -1170,7 +1170,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             l /= 100;
         }
         h *= 360;
-        let $c453c098b23bc46d$export$db202ddc8be9136;
+        let $b7c3e249c8a42d1b$export$db202ddc8be9136;
         let G;
         let B;
         let X;
@@ -1178,9 +1178,9 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         h = h % 360 / 60;
         C = 2 * s * (l < 0.5 ? l : 1 - l);
         X = C * (1 - abs(h % 2 - 1));
-        $c453c098b23bc46d$export$db202ddc8be9136 = G = B = l - C / 2;
+        $b7c3e249c8a42d1b$export$db202ddc8be9136 = G = B = l - C / 2;
         h = ~~h;
-        $c453c098b23bc46d$export$db202ddc8be9136 += [
+        $b7c3e249c8a42d1b$export$db202ddc8be9136 += [
             C,
             X,
             0,
@@ -1204,7 +1204,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             C,
             X
         ][h];
-        return packageRGB($c453c098b23bc46d$export$db202ddc8be9136, G, B, o);
+        return packageRGB($b7c3e249c8a42d1b$export$db202ddc8be9136, G, B, o);
     };
     /* \
    * Raphael.rgb2hsb
@@ -1221,7 +1221,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     s (number) saturation
    o     b (number) brightness
    o }
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.rgb2hsb = function(r, g, b) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.rgb2hsb = function(r, g, b) {
         b = prepareRGB(r, g, b);
         r = b[0];
         g = b[1];
@@ -1235,6 +1235,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         H = C == 0 ? null : V == r ? (g - b) / C : V == g ? (b - r) / C + 2 : (r - g) / C + 4;
         H = (H + 360) % 6 * 60 / 360;
         S = C == 0 ? 0 : C / V;
+        console.log("checked color", r);
         return {
             h: H,
             s: S,
@@ -1257,7 +1258,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     s (number) saturation
    o     l (number) luminosity
    o }
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.rgb2hsl = function(r, g, b) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.rgb2hsl = function(r, g, b) {
         b = prepareRGB(r, g, b);
         r = b[0];
         g = b[1];
@@ -1282,7 +1283,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             toString: hsltoString
         };
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._path2string = function() {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._path2string = function() {
         // 2 decimal precision always...
         return this.map((t1)=>[
                 t1[0],
@@ -1294,7 +1295,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     function repush(array, item) {
         for(let i = 0, ii = array.length; i < ii; i++)if (array[i] === item) return array.push(array.splice(i, 1)[0]);
     }
-    const CACHE = $c453c098b23bc46d$export$db202ddc8be9136.CACHE = {
+    const CACHE = $b7c3e249c8a42d1b$export$db202ddc8be9136.CACHE = {
     };
     function cacher(name, f, scope, postprocessor) {
         function newf() {
@@ -1320,13 +1321,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         CACHE[name] = newf;
         return newf;
     }
-    $c453c098b23bc46d$export$db202ddc8be9136.clearCaches = function() {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136.clearCaches = function() {
         for(const key in CACHE){
             if (!CACHE.hasOwnProperty(key)) continue;
             CACHE[key].clear();
         }
     };
-    const preload = $c453c098b23bc46d$export$db202ddc8be9136._preload = function(src, f) {
+    const preload = $b7c3e249c8a42d1b$export$db202ddc8be9136._preload = function(src, f) {
         const img = g1.doc.createElement('img');
         img.style.cssText = 'position:absolute;left:-9999em;top:-9999em';
         img.onload = function() {
@@ -1369,7 +1370,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     hex (string) color in HTML/CSS format: #••••••,
    o     error (boolean) true if string can’t be parsed
    o }
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.getRGB = cacher('getRGB', (colour)=>{
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.getRGB = cacher('getRGB', (colour)=>{
         if (!colour || !!((colour = Str(colour)).indexOf('-') + 1)) return {
             r: -1,
             g: -1,
@@ -1427,7 +1428,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 (values[0].slice(-3) == 'deg' || values[0].slice(-1) == '\xb0') && (red /= 360);
                 rgb[1].toLowerCase().slice(0, 4) == 'hsba' && (opacity = toFloat(values[3]));
                 values[3] && values[3].slice(-1) == '%' && (opacity /= 100);
-                return $c453c098b23bc46d$export$db202ddc8be9136.hsb2rgb(red, green, blue, opacity);
+                return $b7c3e249c8a42d1b$export$db202ddc8be9136.hsb2rgb(red, green, blue, opacity);
             }
             if (rgb[6]) {
                 values = rgb[6][split](commaSpaces);
@@ -1440,7 +1441,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 (values[0].slice(-3) == 'deg' || values[0].slice(-1) == '\xb0') && (red /= 360);
                 rgb[1].toLowerCase().slice(0, 4) == 'hsla' && (opacity = toFloat(values[3]));
                 values[3] && values[3].slice(-1) == '%' && (opacity /= 100);
-                return $c453c098b23bc46d$export$db202ddc8be9136.hsl2rgb(red, green, blue, opacity);
+                return $b7c3e249c8a42d1b$export$db202ddc8be9136.hsl2rgb(red, green, blue, opacity);
             }
             rgb = {
                 r: red,
@@ -1449,7 +1450,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 toString: clrToString
             };
             rgb.hex = `#${(16777216 | blue | green << 8 | red << 16).toString(16).slice(1)}`;
-            $c453c098b23bc46d$export$db202ddc8be9136.is(opacity, 'finite') && (rgb.opacity = opacity);
+            $b7c3e249c8a42d1b$export$db202ddc8be9136.is(opacity, 'finite') && (rgb.opacity = opacity);
             return rgb;
         }
         return {
@@ -1460,7 +1461,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             error: 1,
             toString: clrToString
         };
-    }, $c453c098b23bc46d$export$db202ddc8be9136);
+    }, $b7c3e249c8a42d1b$export$db202ddc8be9136);
     /* \
    * Raphael.hsb
    [ method ]
@@ -1471,7 +1472,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - s (number) saturation
    - b (number) value or brightness
    = (string) hex representation of the colour.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.hsb = cacher('hsb', (h, s, b)=>$c453c098b23bc46d$export$db202ddc8be9136.hsb2rgb(h, s, b).hex
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.hsb = cacher('hsb', (h, s, b)=>$b7c3e249c8a42d1b$export$db202ddc8be9136.hsb2rgb(h, s, b).hex
     );
     /* \
    * Raphael.hsl
@@ -1483,7 +1484,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - s (number) saturation
    - l (number) luminosity
    = (string) hex representation of the colour.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.hsl = cacher('hsl', (h, s, l)=>$c453c098b23bc46d$export$db202ddc8be9136.hsl2rgb(h, s, l).hex
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.hsl = cacher('hsl', (h, s, l)=>$b7c3e249c8a42d1b$export$db202ddc8be9136.hsl2rgb(h, s, l).hex
     );
     /* \
    * Raphael.rgb
@@ -1495,7 +1496,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - g (number) green
    - b (number) blue
    = (string) hex representation of the colour.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.rgb = cacher('rgb', (r, g, b)=>{
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.rgb = cacher('rgb', (r, g, b)=>{
         function round(x) {
             return x + 0.5 | 0;
         }
@@ -1509,7 +1510,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Parameters
    - value (number) #optional brightness, default is `0.75`
    = (string) hex representation of the colour.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.getColor = function(value) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.getColor = function(value) {
         const start = this.getColor.start = this.getColor.start || {
             h: 0,
             s: 1,
@@ -1533,7 +1534,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    [ method ]
    **
    * Resets spectrum position for @Raphael.getColor back to red.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.getColor.reset = function() {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.getColor.reset = function() {
         delete this.start;
     };
     // http://schepers.cc/getting-to-the-point
@@ -1604,7 +1605,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Parameters
    - pathString (string|array) path string or array of segments (in the last case it will be returned straight away)
    = (array) array of segments.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.parsePathString = function(pathString) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.parsePathString = function(pathString) {
         if (!pathString) return null;
         const pth = paths(pathString);
         if (pth.arr) return pathClone(pth.arr);
@@ -1622,7 +1623,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             z: 0
         };
         let data = [];
-        if ($c453c098b23bc46d$export$db202ddc8be9136.is(pathString, array1) && $c453c098b23bc46d$export$db202ddc8be9136.is(pathString[0], array1)) // rough assumption
+        if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(pathString, array1) && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(pathString[0], array1)) // rough assumption
         data = pathClone(pathString);
         if (!data.length) Str(pathString).replace(pathCommand, (a, b1, c)=>{
             const params = [];
@@ -1647,7 +1648,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 if (!paramCounts[name]) break;
             }
         });
-        data.toString = $c453c098b23bc46d$export$db202ddc8be9136._path2string;
+        data.toString = $b7c3e249c8a42d1b$export$db202ddc8be9136._path2string;
         pth.arr = pathClone(data);
         return data;
     };
@@ -1661,7 +1662,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Parameters
    - TString (string|array) transform string or array of transformations (in the last case it will be returned straight away)
    = (array) array of transformations.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.parseTransformString = cacher('parseTransformString', (TString)=>{
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.parseTransformString = cacher('parseTransformString', (TString)=>{
         if (!TString) return null;
         const paramCounts = {
             r: 3,
@@ -1670,7 +1671,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             m: 6
         };
         let data = [];
-        if ($c453c098b23bc46d$export$db202ddc8be9136.is(TString, array1) && $c453c098b23bc46d$export$db202ddc8be9136.is(TString[0], array1)) // rough assumption
+        if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(TString, array1) && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(TString[0], array1)) // rough assumption
         data = pathClone(TString);
         if (!data.length) Str(TString).replace(tCommand, (a, b2, c)=>{
             const params = [];
@@ -1682,7 +1683,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 b2
             ][concat](params));
         });
-        data.toString = $c453c098b23bc46d$export$db202ddc8be9136._path2string;
+        data.toString = $b7c3e249c8a42d1b$export$db202ddc8be9136._path2string;
         return data;
     });
     // PATHS
@@ -1740,7 +1741,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     }
    o     alpha: (number) angle of the curve derivative at the point
    o }
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.findDotsAtSegment = function(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.findDotsAtSegment = function(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) {
         const t1 = 1 - t;
         const t13 = t1 ** 3;
         const t12 = t1 ** 2;
@@ -1809,8 +1810,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o         y: (number) y coordinate of the bottom point
    o     }
    o }
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.bezierBBox = function(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y) {
-        if (!$c453c098b23bc46d$export$db202ddc8be9136.is(p1x, 'array')) p1x = [
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.bezierBBox = function(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y) {
+        if (!$b7c3e249c8a42d1b$export$db202ddc8be9136.is(p1x, 'array')) p1x = [
             p1x,
             p1y,
             c1x,
@@ -1842,7 +1843,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - x (string) x coordinate of the point
    - y (string) y coordinate of the point
    = (boolean) `true` if point inside
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.isPointInsideBBox = function(bbox, x, y) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.isPointInsideBBox = function(bbox, x, y) {
         return x >= bbox.x && x <= bbox.x2 && y >= bbox.y && y <= bbox.y2;
     };
     /* \
@@ -1856,8 +1857,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - bbox1 (string) first bounding box
    - bbox2 (string) second bounding box
    = (boolean) `true` if they intersect
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.isBBoxIntersect = function(bbox1, bbox2) {
-        const i = $c453c098b23bc46d$export$db202ddc8be9136.isPointInsideBBox;
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.isBBoxIntersect = function(bbox1, bbox2) {
+        const i = $b7c3e249c8a42d1b$export$db202ddc8be9136.isPointInsideBBox;
         return i(bbox2, bbox1.x, bbox1.y) || i(bbox2, bbox1.x2, bbox1.y) || i(bbox2, bbox1.x, bbox1.y2) || i(bbox2, bbox1.x2, bbox1.y2) || i(bbox1, bbox2.x, bbox2.y) || i(bbox1, bbox2.x2, bbox2.y) || i(bbox1, bbox2.x, bbox2.y2) || i(bbox1, bbox2.x2, bbox2.y2) || (bbox1.x < bbox2.x2 && bbox1.x > bbox2.x || bbox2.x < bbox1.x2 && bbox2.x > bbox1.x) && (bbox1.y < bbox2.y2 && bbox1.y > bbox2.y || bbox2.y < bbox1.y2 && bbox2.y > bbox1.y);
     };
     function base3(t, p1, p2, p3, p4) {
@@ -1946,9 +1947,9 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         return interHelper(bez1, bez2, 1);
     }
     function interHelper(bez1, bez2, justCount) {
-        const bbox1 = $c453c098b23bc46d$export$db202ddc8be9136.bezierBBox(bez1);
-        const bbox2 = $c453c098b23bc46d$export$db202ddc8be9136.bezierBBox(bez2);
-        if (!$c453c098b23bc46d$export$db202ddc8be9136.isBBoxIntersect(bbox1, bbox2)) return justCount ? 0 : [];
+        const bbox1 = $b7c3e249c8a42d1b$export$db202ddc8be9136.bezierBBox(bez1);
+        const bbox2 = $b7c3e249c8a42d1b$export$db202ddc8be9136.bezierBBox(bez2);
+        if (!$b7c3e249c8a42d1b$export$db202ddc8be9136.isBBoxIntersect(bbox1, bbox2)) return justCount ? 0 : [];
         const l1 = bezlen.apply(0, bez1);
         const l2 = bezlen.apply(0, bez2);
         const n1 = mmax(~~(l1 / 5), 1);
@@ -1959,7 +1960,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         };
         let res = justCount ? 0 : [];
         for(var i = 0; i < n1 + 1; i++){
-            var p = $c453c098b23bc46d$export$db202ddc8be9136.findDotsAtSegment.apply($c453c098b23bc46d$export$db202ddc8be9136, bez1.concat(i / n1));
+            var p = $b7c3e249c8a42d1b$export$db202ddc8be9136.findDotsAtSegment.apply($b7c3e249c8a42d1b$export$db202ddc8be9136, bez1.concat(i / n1));
             dots1.push({
                 x: p.x,
                 y: p.y,
@@ -1967,7 +1968,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             });
         }
         for(i = 0; i < n2 + 1; i++){
-            p = $c453c098b23bc46d$export$db202ddc8be9136.findDotsAtSegment.apply($c453c098b23bc46d$export$db202ddc8be9136, bez2.concat(i / n2));
+            p = $b7c3e249c8a42d1b$export$db202ddc8be9136.findDotsAtSegment.apply($b7c3e249c8a42d1b$export$db202ddc8be9136, bez2.concat(i / n2));
             dots2.push({
                 x: p.x,
                 y: p.y,
@@ -2023,15 +2024,15 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o         bez2: (array) eight coordinates representing beziér curve for the segment of path2
    o     }
    o ]
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.pathIntersection = function(path1, path2) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.pathIntersection = function(path1, path2) {
         return interPathHelper(path1, path2);
     };
-    $c453c098b23bc46d$export$db202ddc8be9136.pathIntersectionNumber = function(path1, path2) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136.pathIntersectionNumber = function(path1, path2) {
         return interPathHelper(path1, path2, 1);
     };
     function interPathHelper(path1, path2, justCount) {
-        path1 = $c453c098b23bc46d$export$db202ddc8be9136._path2curve(path1);
-        path2 = $c453c098b23bc46d$export$db202ddc8be9136._path2curve(path2);
+        path1 = $b7c3e249c8a42d1b$export$db202ddc8be9136._path2curve(path1);
+        path2 = $b7c3e249c8a42d1b$export$db202ddc8be9136._path2curve(path2);
         let x1;
         let y1;
         let x2;
@@ -2126,9 +2127,9 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - x (number) x of the point
    - y (number) y of the point
    = (boolean) true, if point is inside the path
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.isPointInsidePath = function(path, x, y) {
-        const bbox = $c453c098b23bc46d$export$db202ddc8be9136.pathBBox(path);
-        return $c453c098b23bc46d$export$db202ddc8be9136.isPointInsideBBox(bbox, x, y) && interPathHelper(path, [
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.isPointInsidePath = function(path, x, y) {
+        const bbox = $b7c3e249c8a42d1b$export$db202ddc8be9136.pathBBox(path);
+        return $b7c3e249c8a42d1b$export$db202ddc8be9136.isPointInsideBBox(bbox, x, y) && interPathHelper(path, [
             [
                 'M',
                 x,
@@ -2140,9 +2141,9 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             ], 
         ], 1) % 2 == 1;
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._removedFactory = function(methodname) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._removedFactory = function(methodname) {
         return function() {
-            $dacea6f50a09eb13$export$6b962911844bfb1e('raphael.log', null, `Rapha\xebl: you are calling to method \u201c${methodname}\u201d of removed object`, methodname);
+            $f74a27260bed6e25$export$6b962911844bfb1e('raphael.log', null, `Rapha\xebl: you are calling to method \u201c${methodname}\u201d of removed object`, methodname);
         };
     };
     /* \
@@ -2165,7 +2166,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     cx: (number) x coordinate of the center of the box
    o     cy: (number) y coordinate of the center of the box
    o }
-  \ */ const pathDimensions = $c453c098b23bc46d$export$db202ddc8be9136.pathBBox = function(path) {
+  \ */ const pathDimensions = $b7c3e249c8a42d1b$export$db202ddc8be9136.pathBBox = function(path) {
         const pth = paths(path);
         if (pth.bbox) return clone(pth.bbox);
         if (!path) return {
@@ -2221,14 +2222,14 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         // Array.slice() is faster then clone(pathArray).
         const res = pathArray.slice(0);
         for(let i = 0, ii = pathArray.length; i < ii; ++i)res[i] = pathArray[i].slice(0);
-        res.toString = $c453c098b23bc46d$export$db202ddc8be9136._path2string;
+        res.toString = $b7c3e249c8a42d1b$export$db202ddc8be9136._path2string;
         return res;
     };
-    const pathToRelative = $c453c098b23bc46d$export$db202ddc8be9136._pathToRelative = function(pathArray) {
+    const pathToRelative = $b7c3e249c8a42d1b$export$db202ddc8be9136._pathToRelative = function(pathArray) {
         const pth = paths(pathArray);
         if (pth.rel) return pathClone(pth.rel);
-        if (!$c453c098b23bc46d$export$db202ddc8be9136.is(pathArray, array1) || !$c453c098b23bc46d$export$db202ddc8be9136.is(pathArray && pathArray[0], array1)) // rough assumption
-        pathArray = $c453c098b23bc46d$export$db202ddc8be9136.parsePathString(pathArray);
+        if (!$b7c3e249c8a42d1b$export$db202ddc8be9136.is(pathArray, array1) || !$b7c3e249c8a42d1b$export$db202ddc8be9136.is(pathArray && pathArray[0], array1)) // rough assumption
+        pathArray = $b7c3e249c8a42d1b$export$db202ddc8be9136.parsePathString(pathArray);
         const res = [];
         let x = 0;
         let y = 0;
@@ -2296,16 +2297,16 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                     y += +res[i][len - 1];
             }
         }
-        res.toString = $c453c098b23bc46d$export$db202ddc8be9136._path2string;
+        res.toString = $b7c3e249c8a42d1b$export$db202ddc8be9136._path2string;
         pth.rel = pathClone(res);
         return res;
     };
-    const pathToAbsolute = $c453c098b23bc46d$export$db202ddc8be9136._pathToAbsolute = function(pathArray) {
+    const pathToAbsolute = $b7c3e249c8a42d1b$export$db202ddc8be9136._pathToAbsolute = function(pathArray) {
         // return pathArray;
         const pth = paths(pathArray);
         if (pth.abs) return pathClone(pth.abs);
-        if (!$c453c098b23bc46d$export$db202ddc8be9136.is(pathArray, array1) || !$c453c098b23bc46d$export$db202ddc8be9136.is(pathArray && pathArray[0], array1)) // rough assumption
-        pathArray = $c453c098b23bc46d$export$db202ddc8be9136.parsePathString(pathArray);
+        if (!$b7c3e249c8a42d1b$export$db202ddc8be9136.is(pathArray, array1) || !$b7c3e249c8a42d1b$export$db202ddc8be9136.is(pathArray && pathArray[0], array1)) // rough assumption
+        pathArray = $b7c3e249c8a42d1b$export$db202ddc8be9136.parsePathString(pathArray);
         if (!pathArray || !pathArray.length) return [
             [
                 'M',
@@ -2401,7 +2402,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                     y = r[r.length - 1];
             }
         }
-        res.toString = $c453c098b23bc46d$export$db202ddc8be9136._path2string;
+        res.toString = $b7c3e249c8a42d1b$export$db202ddc8be9136._path2string;
         pth.abs = pathClone(res);
         return res;
     };
@@ -2595,7 +2596,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             }
         };
     });
-    var path2curve = $c453c098b23bc46d$export$db202ddc8be9136._path2curve = cacher('path2curve', (path1, path21)=>{
+    var path2curve = $b7c3e249c8a42d1b$export$db202ddc8be9136._path2curve = cacher('path2curve', (path1, path21)=>{
         const pth = !path21 && paths(path1);
         if (!path21 && pth.curve) return pathClone(pth.curve);
         const p = pathToAbsolute(path1);
@@ -2803,13 +2804,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             p2
         ] : p;
     }, null, pathClone);
-    const parseDots = $c453c098b23bc46d$export$db202ddc8be9136._parseDots = cacher('parseDots', (gradient)=>{
+    const parseDots = $b7c3e249c8a42d1b$export$db202ddc8be9136._parseDots = cacher('parseDots', (gradient)=>{
         const dots = [];
         for(var i = 0, ii = gradient.length; i < ii; i++){
             const dot = {
             };
             const par = gradient[i].match(/^([^:]*):?([\d\.]*)/);
-            dot.color = $c453c098b23bc46d$export$db202ddc8be9136.getRGB(par[1]);
+            dot.color = $b7c3e249c8a42d1b$export$db202ddc8be9136.getRGB(par[1]);
             if (dot.color.error) return null;
             dot.opacity = dot.color.opacity;
             dot.color = dot.color.hex;
@@ -2836,13 +2837,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         }
         return dots;
     });
-    const tear = $c453c098b23bc46d$export$db202ddc8be9136._tear = function(el, paper) {
+    const tear = $b7c3e249c8a42d1b$export$db202ddc8be9136._tear = function(el, paper) {
         el == paper.top && (paper.top = el.prev);
         el == paper.bottom && (paper.bottom = el.next);
         el.next && (el.next.prev = el.prev);
         el.prev && (el.prev.next = el.next);
     };
-    const tofront = $c453c098b23bc46d$export$db202ddc8be9136._tofront = function(el, paper) {
+    const tofront = $b7c3e249c8a42d1b$export$db202ddc8be9136._tofront = function(el, paper) {
         if (paper.top === el) return;
         tear(el, paper);
         el.next = null;
@@ -2850,7 +2851,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         paper.top.next = el;
         paper.top = el;
     };
-    const toback = $c453c098b23bc46d$export$db202ddc8be9136._toback = function(el, paper) {
+    const toback = $b7c3e249c8a42d1b$export$db202ddc8be9136._toback = function(el, paper) {
         if (paper.bottom === el) return;
         tear(el, paper);
         el.next = paper.bottom;
@@ -2858,7 +2859,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         paper.bottom.prev = el;
         paper.bottom = el;
     };
-    const insertafter = $c453c098b23bc46d$export$db202ddc8be9136._insertafter = function(el, el2, paper) {
+    const insertafter = $b7c3e249c8a42d1b$export$db202ddc8be9136._insertafter = function(el, el2, paper) {
         tear(el, paper);
         el2 == paper.top && (paper.top = el);
         el2.next && (el2.next.prev = el);
@@ -2866,7 +2867,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         el.prev = el2;
         el2.next = el;
     };
-    const insertbefore = $c453c098b23bc46d$export$db202ddc8be9136._insertbefore = function(el, el2, paper) {
+    const insertbefore = $b7c3e249c8a42d1b$export$db202ddc8be9136._insertbefore = function(el, el2, paper) {
         tear(el, paper);
         el2 == paper.bottom && (paper.bottom = el);
         el2.prev && (el2.prev.next = el);
@@ -2885,7 +2886,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
      - path (string) path string
      - transform (string|array) transformation string
      = (object) @Matrix
-    \ */ const toMatrix = $c453c098b23bc46d$export$db202ddc8be9136.toMatrix = function(path, transform) {
+    \ */ const toMatrix = $b7c3e249c8a42d1b$export$db202ddc8be9136.toMatrix = function(path, transform) {
         const bb = pathDimensions(path);
         const el = {
             _: {
@@ -2909,13 +2910,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
      - path (string) path string
      - transform (string|array) transformation string
      = (string) path
-    \ */ const transformPath = $c453c098b23bc46d$export$db202ddc8be9136.transformPath = function(path, transform) {
+    \ */ const transformPath = $b7c3e249c8a42d1b$export$db202ddc8be9136.transformPath = function(path, transform) {
         return mapPath(path, toMatrix(path, transform));
     };
-    var extractTransform = $c453c098b23bc46d$export$db202ddc8be9136._extractTransform = function(el, tstr) {
+    var extractTransform = $b7c3e249c8a42d1b$export$db202ddc8be9136._extractTransform = function(el, tstr) {
         if (tstr == null) return el._.transform;
         tstr = Str(tstr).replace(/\.{3}|\u2026/g, el._.transform || E);
-        const tdata = $c453c098b23bc46d$export$db202ddc8be9136.parseTransformString(tstr);
+        const tdata = $b7c3e249c8a42d1b$export$db202ddc8be9136.parseTransformString(tstr);
         let deg = 0;
         let dx = 0;
         let dy = 0;
@@ -3040,10 +3041,10 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 ];
         }
     };
-    const equaliseTransform = $c453c098b23bc46d$export$db202ddc8be9136._equaliseTransform = function(t1, t2) {
+    const equaliseTransform = $b7c3e249c8a42d1b$export$db202ddc8be9136._equaliseTransform = function(t1, t2) {
         t2 = Str(t2).replace(/\.{3}|\u2026/g, t1);
-        t1 = $c453c098b23bc46d$export$db202ddc8be9136.parseTransformString(t1) || [];
-        t2 = $c453c098b23bc46d$export$db202ddc8be9136.parseTransformString(t2) || [];
+        t1 = $b7c3e249c8a42d1b$export$db202ddc8be9136.parseTransformString(t1) || [];
+        t2 = $b7c3e249c8a42d1b$export$db202ddc8be9136.parseTransformString(t2) || [];
         const maxlength = mmax(t1.length, t2.length);
         const from = [];
         const to = [];
@@ -3068,9 +3069,9 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             to: to
         };
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._getContainer = function(x, y, w, h) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._getContainer = function(x, y, w, h) {
         let container;
-        container = h == null && !$c453c098b23bc46d$export$db202ddc8be9136.is(x, 'object') ? g1.doc.getElementById(x) : x;
+        container = h == null && !$b7c3e249c8a42d1b$export$db202ddc8be9136.is(x, 'object') ? g1.doc.getElementById(x) : x;
         if (container == null) return;
         if (container.tagName) {
             if (y == null) return {
@@ -3102,8 +3103,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Parameters
    - pathString (string|array) path string or array of segments
    = (array) array of segments.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.pathToRelative = pathToRelative;
-    $c453c098b23bc46d$export$db202ddc8be9136._engine = {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.pathToRelative = pathToRelative;
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine = {
     };
     /* \
    * Raphael.path2curve
@@ -3115,7 +3116,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Parameters
    - pathString (string|array) path string or array of segments
    = (array) array of segments.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.path2curve = path2curve;
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.path2curve = path2curve;
     /* \
    * Raphael.matrix
    [ method ]
@@ -3131,7 +3132,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - e (number)
    - f (number)
    = (object) @Matrix
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.matrix = function(a, b, c, d, e, f) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.matrix = function(a, b, c, d, e, f) {
         return new Matrix(a, b, c, d, e, f);
     };
     function Matrix(a, b, c, d, e, f) {
@@ -3296,7 +3297,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
      - x (number)
      - y (number)
     \ */ matrixproto.rotate = function(a, x, y) {
-            a = $c453c098b23bc46d$export$db202ddc8be9136.rad(a);
+            a = $b7c3e249c8a42d1b$export$db202ddc8be9136.rad(a);
             x = x || 0;
             y = y || 0;
             const cos = +math.cos(a).toFixed(9);
@@ -3332,7 +3333,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             return +this[Str.fromCharCode(97 + i)].toFixed(4);
         };
         matrixproto.toString = function() {
-            return $c453c098b23bc46d$export$db202ddc8be9136.svg ? `matrix(${[
+            return $b7c3e249c8a42d1b$export$db202ddc8be9136.svg ? `matrix(${[
                 this.get(0),
                 this.get(1),
                 this.get(2),
@@ -3409,9 +3410,9 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             const sin = -row[0][1];
             const cos = row[1][1];
             if (cos < 0) {
-                out.rotate = $c453c098b23bc46d$export$db202ddc8be9136.deg(math.acos(cos));
+                out.rotate = $b7c3e249c8a42d1b$export$db202ddc8be9136.deg(math.acos(cos));
                 if (sin < 0) out.rotate = 360 - out.rotate;
-            } else out.rotate = $c453c098b23bc46d$export$db202ddc8be9136.deg(math.asin(sin));
+            } else out.rotate = $b7c3e249c8a42d1b$export$db202ddc8be9136.deg(math.asin(sin));
             out.isSimple = !+out.shear.toFixed(9) && (out.scalex.toFixed(9) == out.scaley.toFixed(9) || !out.rotate);
             out.isSuperSimple = !+out.shear.toFixed(9) && out.scalex.toFixed(9) == out.scaley.toFixed(9) && !out.rotate;
             out.noRotation = !+out.shear.toFixed(9) && !out.rotate;
@@ -3553,21 +3554,21 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             o = dragi.el.paper.getElementByPoint(x, y);
             node.style.display = display;
             g1.win.opera && (next ? parent.insertBefore(node, next) : parent.appendChild(node));
-            o && $dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.drag.over.${dragi.el.id}`, dragi.el, o);
+            o && $f74a27260bed6e25$export$6b962911844bfb1e(`raphael.drag.over.${dragi.el.id}`, dragi.el, o);
             x += scrollX;
             y += scrollY;
-            $dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.drag.move.${dragi.el.id}`, dragi.move_scope || dragi.el, x - dragi.el._drag.x, y - dragi.el._drag.y, x, y, e);
+            $f74a27260bed6e25$export$6b962911844bfb1e(`raphael.drag.move.${dragi.el.id}`, dragi.move_scope || dragi.el, x - dragi.el._drag.x, y - dragi.el._drag.y, x, y, e);
         }
     };
     var dragUp = function(e) {
-        $c453c098b23bc46d$export$db202ddc8be9136.unmousemove(dragMove).unmouseup(dragUp);
+        $b7c3e249c8a42d1b$export$db202ddc8be9136.unmousemove(dragMove).unmouseup(dragUp);
         let i = drag.length;
         let dragi;
         while(i--){
             dragi = drag[i];
             dragi.el._drag = {
             };
-            $dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.drag.end.${dragi.el.id}`, dragi.end_scope || dragi.start_scope || dragi.move_scope || dragi.el, e);
+            $f74a27260bed6e25$export$6b962911844bfb1e(`raphael.drag.end.${dragi.el.id}`, dragi.end_scope || dragi.start_scope || dragi.move_scope || dragi.el, e);
         }
         drag = [];
     };
@@ -3584,7 +3585,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
      | };
      | // then use it
      | paper.circle(100, 100, 20).red();
-    \ */ const elproto = $c453c098b23bc46d$export$db202ddc8be9136.el = {
+    \ */ const elproto = $b7c3e249c8a42d1b$export$db202ddc8be9136.el = {
     };
     /* \
    * Element.click
@@ -3763,8 +3764,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - handler (function) #optional handler for the event
    = (object) @Element
   \ */ for(let i1 = events1.length; i1--;)(function(eventName) {
-        $c453c098b23bc46d$export$db202ddc8be9136[eventName] = elproto[eventName] = function(fn, scope) {
-            if ($c453c098b23bc46d$export$db202ddc8be9136.is(fn, 'function')) {
+        $b7c3e249c8a42d1b$export$db202ddc8be9136[eventName] = elproto[eventName] = function(fn, scope) {
+            if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(fn, 'function')) {
                 this.events = this.events || [];
                 this.events.push({
                     name: eventName,
@@ -3774,10 +3775,10 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             }
             return this;
         };
-        $c453c098b23bc46d$export$db202ddc8be9136[`un${eventName}`] = elproto[`un${eventName}`] = function(fn) {
+        $b7c3e249c8a42d1b$export$db202ddc8be9136[`un${eventName}`] = elproto[`un${eventName}`] = function(fn) {
             const events = this.events || [];
             let l = events.length;
-            while(l--)if (events[l].name == eventName && ($c453c098b23bc46d$export$db202ddc8be9136.is(fn, 'undefined') || events[l].f == fn)) {
+            while(l--)if (events[l].name == eventName && ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(fn, 'undefined') || events[l].f == fn)) {
                 events[l].unbind();
                 events.splice(l, 1);
                 !events.length && delete this.events;
@@ -3814,15 +3815,15 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         };
         if (arguments.length == 0) return data;
         if (arguments.length == 1) {
-            if ($c453c098b23bc46d$export$db202ddc8be9136.is(key, 'object')) {
+            if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(key, 'object')) {
                 for(const i in key)if (key[has](i)) this.data(i, key[i]);
                 return this;
             }
-            $dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.data.get.${this.id}`, this, data[key], key);
+            $f74a27260bed6e25$export$6b962911844bfb1e(`raphael.data.get.${this.id}`, this, data[key], key);
             return data[key];
         }
         data[key] = value;
-        $dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.data.set.${this.id}`, this, value, key);
+        $f74a27260bed6e25$export$6b962911844bfb1e(`raphael.data.set.${this.id}`, this, value, key);
         return this;
     };
     /* \
@@ -3929,17 +3930,17 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             }
             this._drag.x = x + scrollX;
             this._drag.y = y + scrollY;
-            !drag.length && $c453c098b23bc46d$export$db202ddc8be9136.mousemove(dragMove).mouseup(dragUp);
+            !drag.length && $b7c3e249c8a42d1b$export$db202ddc8be9136.mousemove(dragMove).mouseup(dragUp);
             drag.push({
                 el: this,
                 move_scope: move_scope,
                 start_scope: start_scope,
                 end_scope: end_scope
             });
-            onstart && $dacea6f50a09eb13$export$6b962911844bfb1e.on(`raphael.drag.start.${this.id}`, onstart);
-            onmove && $dacea6f50a09eb13$export$6b962911844bfb1e.on(`raphael.drag.move.${this.id}`, onmove);
-            onend && $dacea6f50a09eb13$export$6b962911844bfb1e.on(`raphael.drag.end.${this.id}`, onend);
-            $dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.drag.start.${this.id}`, start_scope || move_scope || this, e.clientX + scrollX, e.clientY + scrollY, e);
+            onstart && $f74a27260bed6e25$export$6b962911844bfb1e.on(`raphael.drag.start.${this.id}`, onstart);
+            onmove && $f74a27260bed6e25$export$6b962911844bfb1e.on(`raphael.drag.move.${this.id}`, onmove);
+            onend && $f74a27260bed6e25$export$6b962911844bfb1e.on(`raphael.drag.end.${this.id}`, onend);
+            $f74a27260bed6e25$export$6b962911844bfb1e(`raphael.drag.start.${this.id}`, start_scope || move_scope || this, e.clientX + scrollX, e.clientY + scrollY, e);
         }
         this.start = start // SLATEBOX - makes text draggable
         ;
@@ -3960,7 +3961,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Parameters
    - f (function) handler for event, first argument would be the element you are dragging over
   \ */ elproto.onDragOver = function(f) {
-        f ? $dacea6f50a09eb13$export$6b962911844bfb1e.on(`raphael.drag.over.${this.id}`, f) : $dacea6f50a09eb13$export$6b962911844bfb1e.unbind(`raphael.drag.over.${this.id}`);
+        f ? $f74a27260bed6e25$export$6b962911844bfb1e.on(`raphael.drag.over.${this.id}`, f) : $f74a27260bed6e25$export$6b962911844bfb1e.unbind(`raphael.drag.over.${this.id}`);
     };
     /* \
    * Element.undrag
@@ -3972,9 +3973,9 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         while(i--)if (draggable[i].el == this) {
             this.unmousedown(draggable[i].start);
             draggable.splice(i, 1);
-            $dacea6f50a09eb13$export$6b962911844bfb1e.unbind(`raphael.drag.*.${this.id}`);
+            $f74a27260bed6e25$export$6b962911844bfb1e.unbind(`raphael.drag.*.${this.id}`);
         }
-        !draggable.length && $c453c098b23bc46d$export$db202ddc8be9136.unmousemove(dragMove).unmouseup(dragUp);
+        !draggable.length && $b7c3e249c8a42d1b$export$db202ddc8be9136.unmousemove(dragMove).unmouseup(dragUp);
         drag = [];
     };
     /* \
@@ -3993,7 +3994,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Usage
    | var c = paper.circle(50, 50, 40);
   \ */ paperproto.circle = function(x, y, r) {
-        const out = $c453c098b23bc46d$export$db202ddc8be9136._engine.circle(this, x || 0, y || 0, r || 0);
+        const out = $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.circle(this, x || 0, y || 0, r || 0);
         this.__set__ && this.__set__.push(out);
         return out;
     };
@@ -4018,7 +4019,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    | // rectangle with rounded corners
    | var c = paper.rect(40, 40, 50, 50, 10);
   \ */ paperproto.rect = function(x, y, w, h, r) {
-        const out = $c453c098b23bc46d$export$db202ddc8be9136._engine.rect(this, x || 0, y || 0, w || 0, h || 0, r || 0);
+        const out = $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.rect(this, x || 0, y || 0, w || 0, h || 0, r || 0);
         this.__set__ && this.__set__.push(out);
         return out;
     };
@@ -4029,7 +4030,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
      * Draws a svg group (g) element.
      **
     \ */ paperproto.g = function() {
-        const out = $c453c098b23bc46d$export$db202ddc8be9136._engine.g(this);
+        const out = $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.g(this);
         this.__set__ && this.__set__.push(out);
         return out;
     };
@@ -4040,7 +4041,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
      * Adds a <def>
      **
     \ */ paperproto.def = function(def) {
-        $c453c098b23bc46d$export$db202ddc8be9136._engine.def.call(this, def);
+        $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.def.call(this, def);
     };
     /* \
    * Paper.ellipse
@@ -4059,7 +4060,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Usage
    | var c = paper.ellipse(50, 50, 40, 20);
   \ */ paperproto.ellipse = function(x, y, rx, ry) {
-        const out = $c453c098b23bc46d$export$db202ddc8be9136._engine.ellipse(this, x || 0, y || 0, rx || 0, ry || 0);
+        const out = $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.ellipse(this, x || 0, y || 0, rx || 0, ry || 0);
         this.__set__ && this.__set__.push(out);
         return out;
     };
@@ -4095,8 +4096,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    | // move to 10,10, line to 90,90
    * For example of path strings, check out these icons: http://raphaeljs.com/icons/
   \ */ paperproto.path = function(pathString) {
-        pathString && !$c453c098b23bc46d$export$db202ddc8be9136.is(pathString, string1) && !$c453c098b23bc46d$export$db202ddc8be9136.is(pathString[0], array1) && (pathString += E);
-        const out = $c453c098b23bc46d$export$db202ddc8be9136._engine.path($c453c098b23bc46d$export$db202ddc8be9136.format[apply]($c453c098b23bc46d$export$db202ddc8be9136, arguments), this);
+        pathString && !$b7c3e249c8a42d1b$export$db202ddc8be9136.is(pathString, string1) && !$b7c3e249c8a42d1b$export$db202ddc8be9136.is(pathString[0], array1) && (pathString += E);
+        const out = $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.path($b7c3e249c8a42d1b$export$db202ddc8be9136.format[apply]($b7c3e249c8a42d1b$export$db202ddc8be9136, arguments), this);
         this.__set__ && this.__set__.push(out);
         return out;
     };
@@ -4118,7 +4119,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Usage
    | var c = paper.image("apple.png", 10, 10, 80, 80);
   \ */ paperproto.image = function(src, x, y, w, h) {
-        const out = $c453c098b23bc46d$export$db202ddc8be9136._engine.image(this, src || 'about:blank', x || 0, y || 0, w || 0, h || 0);
+        const out = $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.image(this, src || 'about:blank', x || 0, y || 0, w || 0, h || 0);
         this.__set__ && this.__set__.push(out);
         return out;
     };
@@ -4138,7 +4139,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Usage
    | var t = paper.text(50, 50, "Raphaël\nkicks\nbutt!");
   \ */ paperproto.text = function(x, y, text) {
-        const out = $c453c098b23bc46d$export$db202ddc8be9136._engine.text(this, x || 0, y || 0, Str(text));
+        const out = $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.text(this, x || 0, y || 0, Str(text));
         this.__set__ && this.__set__.push(out);
         return out;
     };
@@ -4159,7 +4160,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    | );
    | st.attr({fill: "red"}); // changes the fill of both circles
   \ */ paperproto.set = function(itemsArray) {
-        !$c453c098b23bc46d$export$db202ddc8be9136.is(itemsArray, 'array') && (itemsArray = Array.prototype.splice.call(arguments, 0, arguments.length));
+        !$b7c3e249c8a42d1b$export$db202ddc8be9136.is(itemsArray, 'array') && (itemsArray = Array.prototype.splice.call(arguments, 0, arguments.length));
         const out = new Set(itemsArray);
         this.__set__ && this.__set__.push(out);
         out.paper = this;
@@ -4219,7 +4220,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - width (number) new width of the canvas
    - height (number) new height of the canvas
   \ */ paperproto.setSize = function(width, height) {
-        return $c453c098b23bc46d$export$db202ddc8be9136._engine.setSize.call(this, width, height);
+        return $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.setSize.call(this, width, height);
     };
     /* \
    * Paper.setViewBox
@@ -4236,7 +4237,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - h (number) new height of the canvas
    - fit (boolean) `true` if you want graphics to fit into new boundary box
   \ */ paperproto.setViewBox = function(x, y, w, h, fit) {
-        return $c453c098b23bc46d$export$db202ddc8be9136._engine.setViewBox.call(this, x, y, w, h, fit);
+        return $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.setViewBox.call(this, x, y, w, h, fit);
     };
     /* \
    * Paper.top
@@ -4254,7 +4255,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    [ property ]
    **
    * Points to the @Raphael object/function
-  \ */ paperproto.raphael = $c453c098b23bc46d$export$db202ddc8be9136;
+  \ */ paperproto.raphael = $b7c3e249c8a42d1b$export$db202ddc8be9136;
     const getOffset = function(elem) {
         const box = elem.getBoundingClientRect();
         const doc = elem.ownerDocument;
@@ -4314,7 +4315,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    \ */ paperproto.getElementsByBBox = function(bbox) {
         const set = this.set();
         this.forEach((el)=>{
-            if ($c453c098b23bc46d$export$db202ddc8be9136.isBBoxIntersect(el.getBBox(), bbox)) set.push(el);
+            if ($b7c3e249c8a42d1b$export$db202ddc8be9136.isBBoxIntersect(el.getBBox(), bbox)) set.push(el);
         });
         return set;
     };
@@ -4398,8 +4399,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    = (boolean) `true` if point inside the shape
   \ */ elproto.isPointInside = function(x, y) {
         let rp = this.realPath = getPath1[this.type](this);
-        if (this.attr('transform') && this.attr('transform').length) rp = $c453c098b23bc46d$export$db202ddc8be9136.transformPath(rp, this.attr('transform'));
-        return $c453c098b23bc46d$export$db202ddc8be9136.isPointInsidePath(rp, x, y);
+        if (this.attr('transform') && this.attr('transform').length) rp = $b7c3e249c8a42d1b$export$db202ddc8be9136.transformPath(rp, this.attr('transform'));
+        return $b7c3e249c8a42d1b$export$db202ddc8be9136.isPointInsidePath(rp, x, y);
     };
     /* \
    * Element.getBBox
@@ -4506,7 +4507,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     };
     const getPointAtSegmentLength = function(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, length) {
         if (length == null) return bezlen(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y);
-        return $c453c098b23bc46d$export$db202ddc8be9136.findDotsAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, getTatLen(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, length));
+        return $b7c3e249c8a42d1b$export$db202ddc8be9136.findDotsAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, getTatLen(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, length));
     };
     const getLengthFactory = function(istotal, subpath) {
         return function(path, length, onlystart) {
@@ -4570,7 +4571,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 sp += p.shift() + p;
             }
             subpaths.end = sp;
-            point = istotal ? len : subpath ? subpaths : $c453c098b23bc46d$export$db202ddc8be9136.findDotsAtSegment(x, y, p[0], p[1], p[2], p[3], p[4], p[5], 1);
+            point = istotal ? len : subpath ? subpaths : $b7c3e249c8a42d1b$export$db202ddc8be9136.findDotsAtSegment(x, y, p[0], p[1], p[2], p[3], p[4], p[5], 1);
             point.alpha && (point = {
                 x: point.x,
                 y: point.y,
@@ -4593,7 +4594,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - path (string) SVG path string.
    **
    = (number) length.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.getTotalLength = getTotalLength;
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.getTotalLength = getTotalLength;
     /* \
    * Raphael.getPointAtLength
    [ method ]
@@ -4611,7 +4612,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     y: (number) y coordinate
    o     alpha: (number) angle of derivative
    o }
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.getPointAtLength = getPointAtLength;
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.getPointAtLength = getPointAtLength;
     /* \
    * Raphael.getSubpath
    [ method ]
@@ -4625,7 +4626,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - to (number) position of the end of the segment
    **
    = (string) pathstring for the segment
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.getSubpath = function(path, from, to) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.getSubpath = function(path, from, to) {
         if (this.getTotalLength(path) - to < 0.000001) return getSubpathsAtLength(path, from).end;
         const a = getSubpathsAtLength(path, to, 1);
         return from ? getSubpathsAtLength(a, from).end : a;
@@ -4672,7 +4673,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    **
   \ */ elproto.getPath = function() {
         let path;
-        const getPath = $c453c098b23bc46d$export$db202ddc8be9136._getPath[this.type];
+        const getPath = $b7c3e249c8a42d1b$export$db202ddc8be9136._getPath[this.type];
         if (this.type == 'text' || this.type == 'set') return;
         if (getPath) path = getPath(this);
         return path;
@@ -4692,7 +4693,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
   \ */ elproto.getSubpath = function(from, to) {
         const path = this.getPath();
         if (!path) return;
-        return $c453c098b23bc46d$export$db202ddc8be9136.getSubpath(path, from, to);
+        return $b7c3e249c8a42d1b$export$db202ddc8be9136.getSubpath(path, from, to);
     };
     /* \
    * Raphael.easing_formulas
@@ -4710,7 +4711,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    #     <li>“bounce”</li>
    # </ul>
    # <p>See also <a href="http://raphaeljs.com/easing.html">Easing demo</a>.</p>
-  \ */ const ef = $c453c098b23bc46d$export$db202ddc8be9136.easing_formulas = {
+  \ */ const ef = $b7c3e249c8a42d1b$export$db202ddc8be9136.easing_formulas = {
         linear (n) {
             return n;
         },
@@ -4868,15 +4869,15 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 that1.attr(set);
                 (function(id, that, anim) {
                     setTimeout(()=>{
-                        $dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.anim.frame.${id}`, that, anim);
+                        $f74a27260bed6e25$export$6b962911844bfb1e(`raphael.anim.frame.${id}`, that, anim);
                     });
                 })(that1.id, that1, e.anim);
             } else {
                 (function(f, el, a) {
                     setTimeout(()=>{
-                        $dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.anim.frame.${el.id}`, el, a);
-                        $dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.anim.finish.${el.id}`, el, a);
-                        $c453c098b23bc46d$export$db202ddc8be9136.is(f, 'function') && f.call(el);
+                        $f74a27260bed6e25$export$6b962911844bfb1e(`raphael.anim.frame.${el.id}`, el, a);
+                        $f74a27260bed6e25$export$6b962911844bfb1e(`raphael.anim.finish.${el.id}`, el, a);
+                        $b7c3e249c8a42d1b$export$db202ddc8be9136.is(f, 'function') && f.call(el);
                     });
                 })(e.callback, that1, e.anim);
                 that1.attr(to);
@@ -4920,7 +4921,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             callback && callback.call(element);
             return element;
         }
-        const a = params instanceof Animation ? params : $c453c098b23bc46d$export$db202ddc8be9136.animation(params, ms, easing, callback);
+        const a = params instanceof Animation ? params : $b7c3e249c8a42d1b$export$db202ddc8be9136.animation(params, ms, easing, callback);
         let x;
         let y;
         runAnimation(a, element, a.percents[0], null, element.attr());
@@ -4980,7 +4981,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         return solve(t2, 1 / (200 * duration));
     }
     elproto.onAnimation = function(f) {
-        f ? $dacea6f50a09eb13$export$6b962911844bfb1e.on(`raphael.anim.frame.${this.id}`, f) : $dacea6f50a09eb13$export$6b962911844bfb1e.unbind(`raphael.anim.frame.${this.id}`);
+        f ? $f74a27260bed6e25$export$6b962911844bfb1e.on(`raphael.anim.frame.${this.id}`, f) : $f74a27260bed6e25$export$6b962911844bfb1e.unbind(`raphael.anim.frame.${this.id}`);
         return this;
     };
     function Animation(anim, ms) {
@@ -5088,8 +5089,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                             diff[attr] = (to[attr] - from[attr]) / ms;
                             break;
                         case 'colour':
-                            from[attr] = $c453c098b23bc46d$export$db202ddc8be9136.getRGB(from[attr]);
-                            var toColour = $c453c098b23bc46d$export$db202ddc8be9136.getRGB(to[attr]);
+                            from[attr] = $b7c3e249c8a42d1b$export$db202ddc8be9136.getRGB(from[attr]);
+                            var toColour = $b7c3e249c8a42d1b$export$db202ddc8be9136.getRGB(to[attr]);
                             diff[attr] = {
                                 r: (toColour.r - from[attr].r) / ms,
                                 g: (toColour.g - from[attr].g) / ms,
@@ -5184,7 +5185,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 }
             }
             const { easing: easing  } = params;
-            let easyeasy = $c453c098b23bc46d$export$db202ddc8be9136.easing_formulas[easing];
+            let easyeasy = $b7c3e249c8a42d1b$export$db202ddc8be9136.easing_formulas[easing];
             if (!easyeasy) {
                 easyeasy = Str(easing).match(bezierrg);
                 if (easyeasy && easyeasy.length == 5) {
@@ -5228,7 +5229,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             isInAnim.initstatus = status;
             isInAnim.start = new Date() - isInAnim.ms * status;
         }
-        $dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.anim.start.${element.id}`, element, anim);
+        $f74a27260bed6e25$export$6b962911844bfb1e(`raphael.anim.start.${element.id}`, element, anim);
     }
     /* \
    * Raphael.animation
@@ -5245,9 +5246,9 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - callback (function) #optional callback function. Will be called at the end of animation.
    **
    = (object) @Animation
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.animation = function(params, ms, easing, callback) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.animation = function(params, ms, easing, callback) {
         if (params instanceof Animation) return params;
-        if ($c453c098b23bc46d$export$db202ddc8be9136.is(easing, 'function') || !easing) {
+        if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(easing, 'function') || !easing) {
             callback = callback || easing || null;
             easing = null;
         }
@@ -5304,7 +5305,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             callback && callback.call(element);
             return element;
         }
-        const anim = params instanceof Animation ? params : $c453c098b23bc46d$export$db202ddc8be9136.animation(params, ms, easing, callback);
+        const anim = params instanceof Animation ? params : $b7c3e249c8a42d1b$export$db202ddc8be9136.animation(params, ms, easing, callback);
         runAnimation(anim, element, anim.percents[0], null, element.attr());
         return element;
     };
@@ -5383,7 +5384,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    = (object) original element
   \ */ elproto.pause = function(anim) {
         for(let i = 0; i < animationElements.length; i++)if (animationElements[i].el.id == this.id && (!anim || animationElements[i].anim == anim)) {
-            if ($dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.anim.pause.${this.id}`, this, animationElements[i].anim) !== false) animationElements[i].paused = true;
+            if ($f74a27260bed6e25$export$6b962911844bfb1e(`raphael.anim.pause.${this.id}`, this, animationElements[i].anim) !== false) animationElements[i].paused = true;
         }
         return this;
     };
@@ -5401,7 +5402,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
   \ */ elproto.resume = function(anim) {
         for(let i = 0; i < animationElements.length; i++)if (animationElements[i].el.id == this.id && (!anim || animationElements[i].anim == anim)) {
             const e = animationElements[i];
-            if ($dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.anim.resume.${this.id}`, this, e.anim) !== false) {
+            if ($f74a27260bed6e25$export$6b962911844bfb1e(`raphael.anim.resume.${this.id}`, this, e.anim) !== false) {
                 delete e.paused;
                 this.status(e.anim, e.status);
             }
@@ -5421,15 +5422,15 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    = (object) original element
   \ */ elproto.stop = function(anim) {
         for(let i = 0; i < animationElements.length; i++)if (animationElements[i].el.id == this.id && (!anim || animationElements[i].anim == anim)) {
-            if ($dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.anim.stop.${this.id}`, this, animationElements[i].anim) !== false) animationElements.splice(i--, 1);
+            if ($f74a27260bed6e25$export$6b962911844bfb1e(`raphael.anim.stop.${this.id}`, this, animationElements[i].anim) !== false) animationElements.splice(i--, 1);
         }
         return this;
     };
     function stopAnimation(paper) {
         for(let i = 0; i < animationElements.length; i++)if (animationElements[i].el.paper == paper) animationElements.splice(i--, 1);
     }
-    $dacea6f50a09eb13$export$6b962911844bfb1e.on('raphael.remove', stopAnimation);
-    $dacea6f50a09eb13$export$6b962911844bfb1e.on('raphael.clear', stopAnimation);
+    $f74a27260bed6e25$export$6b962911844bfb1e.on('raphael.remove', stopAnimation);
+    $f74a27260bed6e25$export$6b962911844bfb1e.on('raphael.clear', stopAnimation);
     elproto.toString = function() {
         return 'Rapha\xebl\u2019s object';
     };
@@ -5503,7 +5504,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         };
     })(method);
     setproto.attr = function(name, value) {
-        if (name && $c453c098b23bc46d$export$db202ddc8be9136.is(name, array1) && $c453c098b23bc46d$export$db202ddc8be9136.is(name[0], 'object')) for(let j = 0, jj = name.length; j < jj; j++)this.items[j].attr(name[j]);
+        if (name && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(name, array1) && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(name[0], 'object')) for(let j = 0, jj = name.length; j < jj; j++)this.items[j].attr(name[j]);
         else for(let i = 0, ii = this.items.length; i < ii; i++)this.items[i].attr(name, value);
         return this;
     };
@@ -5560,7 +5561,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         }
     };
     setproto.animate = function(params, ms, easing, callback) {
-        ($c453c098b23bc46d$export$db202ddc8be9136.is(easing, 'function') || !easing) && (callback = easing || null);
+        ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(easing, 'function') || !easing) && (callback = easing || null);
         let len = this.items.length;
         let i = len;
         let item;
@@ -5570,8 +5571,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         callback && (collector = function() {
             !--len && callback.call(set);
         });
-        easing = $c453c098b23bc46d$export$db202ddc8be9136.is(easing, string1) ? easing : collector;
-        const anim = $c453c098b23bc46d$export$db202ddc8be9136.animation(params, ms, easing, collector);
+        easing = $b7c3e249c8a42d1b$export$db202ddc8be9136.is(easing, string1) ? easing : collector;
+        const anim = $b7c3e249c8a42d1b$export$db202ddc8be9136.animation(params, ms, easing, collector);
         item = this.items[--i].animate(anim);
         while(i--){
             this.items[i] && !this.items[i].removed && this.items[i].animateWith(item, anim, anim);
@@ -5663,7 +5664,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    = (object) the font you passed in
    > Usage
    | Cufon.registerFont(Raphael.registerFont({…}));
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.registerFont = function(font) {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.registerFont = function(font) {
         if (!font.face) return font;
         this.fonts = this.fonts || {
         };
@@ -5729,13 +5730,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             lighter: 300,
             bolder: 800
         })[weight] || 400;
-        if (!$c453c098b23bc46d$export$db202ddc8be9136.fonts) return;
-        let font = $c453c098b23bc46d$export$db202ddc8be9136.fonts[family];
+        if (!$b7c3e249c8a42d1b$export$db202ddc8be9136.fonts) return;
+        let font = $b7c3e249c8a42d1b$export$db202ddc8be9136.fonts[family];
         if (!font) {
             const name = new RegExp(`(^|\\s)${family.replace(/[^\w\d\s+!~.:_-]/g, E)}(\\s|$)`, 'i');
-            for(const fontName in $c453c098b23bc46d$export$db202ddc8be9136.fonts)if ($c453c098b23bc46d$export$db202ddc8be9136.fonts[has](fontName)) {
+            for(const fontName in $b7c3e249c8a42d1b$export$db202ddc8be9136.fonts)if ($b7c3e249c8a42d1b$export$db202ddc8be9136.fonts[has](fontName)) {
                 if (name.test(fontName)) {
-                    font = $c453c098b23bc46d$export$db202ddc8be9136.fonts[fontName];
+                    font = $b7c3e249c8a42d1b$export$db202ddc8be9136.fonts[fontName];
                     break;
                 }
             }
@@ -5777,7 +5778,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         let notfirst = 0;
         let path = E;
         let scale;
-        $c453c098b23bc46d$export$db202ddc8be9136.is(font, 'string') && (font = this.getFont(font));
+        $b7c3e249c8a42d1b$export$db202ddc8be9136.is(font, 'string') && (font = this.getFont(font));
         if (font) {
             scale = (size || 16) / font.face['units-per-em'];
             const bb = font.face.bbox[split](separator);
@@ -5798,7 +5799,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                     shift += notfirst ? (prev.w || font.w) + (prev.k && prev.k[letters[i]] || 0) + font.w * letter_spacing : 0;
                     notfirst = 1;
                 }
-                if (curr && curr.d) path += $c453c098b23bc46d$export$db202ddc8be9136.transformPath(curr.d, [
+                if (curr && curr.d) path += $b7c3e249c8a42d1b$export$db202ddc8be9136.transformPath(curr.d, [
                     't',
                     shift * scale,
                     shifty * scale,
@@ -5846,7 +5847,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    |     }
    | ]);
   \ */ paperproto.add = function(json) {
-        if ($c453c098b23bc46d$export$db202ddc8be9136.is(json, 'array')) {
+        if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(json, 'array')) {
             var res = this.set();
             let i = 0;
             const ii = json.length;
@@ -5877,11 +5878,11 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    |     height = 50;
    | // this will draw a rectangular shape equivalent to "M10,20h40v50h-40z"
    | paper.path(Raphael.format("M{0},{1}h{2}v{3}h{4}z", x, y, width, height, -width));
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.format = function(token, params) {
-        const args = $c453c098b23bc46d$export$db202ddc8be9136.is(params, array1) ? [
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.format = function(token, params) {
+        const args = $b7c3e249c8a42d1b$export$db202ddc8be9136.is(params, array1) ? [
             0
         ][concat](params) : arguments;
-        token && $c453c098b23bc46d$export$db202ddc8be9136.is(token, string1) && args.length - 1 && (token = token.replace(formatrg, (str, i)=>args[++i] == null ? E : args[i]
+        token && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(token, string1) && args.length - 1 && (token = token.replace(formatrg, (str, i)=>args[++i] == null ? E : args[i]
         ));
         return token || E;
     };
@@ -5907,7 +5908,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    |         "negative width": -40
    |     }
    | }));
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.fullfill = (function() {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.fullfill = (function() {
         const tokenRegex = /\{([^\}]+)\}/g;
         const objNotationRegex = /(?:(?:^|\.)(.+?)(?=\[|\.|$|\()|\[('|")(.+?)\2\])(\(\))?/g // matches .xxxxx or ["xxxxx"] to run over object properties
         ;
@@ -5941,7 +5942,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    |     var paper = local_raphael(10, 10, 320, 200);
    |     …
    | })(Raphael.ninja());
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.ninja = function() {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.ninja = function() {
         if (oldRaphael.was) g1.win.Raphael = oldRaphael.is;
         else {
             // IE8 raises an error when deleting window property
@@ -5951,7 +5952,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             } catch (e) {
             }
         }
-        return $c453c098b23bc46d$export$db202ddc8be9136;
+        return $b7c3e249c8a42d1b$export$db202ddc8be9136;
     };
     /* \
    * Raphael.st
@@ -5972,8 +5973,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    | };
    | // then use it
    | paper.set(paper.circle(100, 100, 20), paper.circle(110, 100, 20)).red();
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.st = setproto;
-    $dacea6f50a09eb13$export$6b962911844bfb1e.on('raphael.DOMload', ()=>{
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.st = setproto;
+    $f74a27260bed6e25$export$6b962911844bfb1e.on('raphael.DOMload', ()=>{
         loaded1 = true;
     });
     (function(doc, loaded, f) {
@@ -5985,15 +5986,15 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             doc.readyState = 'loading';
         }
         function isLoaded() {
-            /in/.test(doc && doc.readyState) ? setTimeout(isLoaded, 9) : $c453c098b23bc46d$export$db202ddc8be9136.eve('raphael.DOMload');
+            /in/.test(doc && doc.readyState) ? setTimeout(isLoaded, 9) : $b7c3e249c8a42d1b$export$db202ddc8be9136.eve('raphael.DOMload');
         }
         isLoaded();
     })(document, 'DOMContentLoaded');
-    return $c453c098b23bc46d$export$db202ddc8be9136;
+    return $b7c3e249c8a42d1b$export$db202ddc8be9136;
 }();
 
 
-const $65a92514e25c9f85$export$508faed300ccdfb = function() {
+const $db87f2586597736c$export$508faed300ccdfb = function() {
     const has = 'hasOwnProperty';
     const Str = String;
     const toFloat = parseFloat;
@@ -6023,7 +6024,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 else el.setAttribute(key, Str(attr[key]));
             }
         } else {
-            el = $c453c098b23bc46d$export$db202ddc8be9136._g.doc.createElementNS('http://www.w3.org/2000/svg', el);
+            el = $b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.createElementNS('http://www.w3.org/2000/svg', el);
             el.style && (el.style.webkitTapHighlightColor = 'rgba(0,0,0,0)');
         }
         return el;
@@ -6036,9 +6037,9 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         const o = element.node;
         const SVG = element.paper;
         const s = o.style;
-        let el = $c453c098b23bc46d$export$db202ddc8be9136._g.doc.getElementById(id);
+        let el = $b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.getElementById(id);
         if (!el) {
-            gradient = Str(gradient).replace($c453c098b23bc46d$export$db202ddc8be9136._radial_gradient, (all, _fx, _fy)=>{
+            gradient = Str(gradient).replace($b7c3e249c8a42d1b$export$db202ddc8be9136._radial_gradient, (all, _fx, _fy)=>{
                 type = 'radial';
                 if (_fx && _fy) {
                     fx = toFloat(_fx);
@@ -6055,8 +6056,8 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 var vector = [
                     0,
                     0,
-                    math.cos($c453c098b23bc46d$export$db202ddc8be9136.rad(angle)),
-                    math.sin($c453c098b23bc46d$export$db202ddc8be9136.rad(angle))
+                    math.cos($b7c3e249c8a42d1b$export$db202ddc8be9136.rad(angle)),
+                    math.sin($b7c3e249c8a42d1b$export$db202ddc8be9136.rad(angle))
                 ];
                 const max = 1 / (mmax(abs(vector[2]), abs(vector[3])) || 1);
                 vector[2] *= max;
@@ -6070,7 +6071,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                     vector[3] = 0;
                 }
             }
-            const dots = $c453c098b23bc46d$export$db202ddc8be9136._parseDots(gradient);
+            const dots = $b7c3e249c8a42d1b$export$db202ddc8be9136._parseDots(gradient);
             if (!dots) return null;
             id = id.replace(/[\(\)\s,\xb0#]/g, '_');
             if (element.gradient && id != element.gradient.id) {
@@ -6209,7 +6210,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 const pathId = `raphael-marker-${type}`;
                 const markerId = `raphael-marker-${se}${type}${w}${h}-obj${o.id}`;
                 // SLATEBOX - addition to make sure arrows show in svg extract
-                if (!$c453c098b23bc46d$export$db202ddc8be9136._g.doc.getElementById(pathId) || $c453c098b23bc46d$export$db202ddc8be9136._g.doc.getElementById(pathId) && getComputedStyle($c453c098b23bc46d$export$db202ddc8be9136._g.doc.getElementById(pathId)).display === 'none') {
+                if (!$b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.getElementById(pathId) || $b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.getElementById(pathId) && getComputedStyle($b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.getElementById(pathId)).display === 'none') {
                     p.defs.appendChild($($('path'), {
                         'stroke-linecap': 'round',
                         d: markers[type],
@@ -6217,7 +6218,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                     }));
                     markerCounter[pathId] = 1;
                 } else markerCounter[pathId]++;
-                let marker = $c453c098b23bc46d$export$db202ddc8be9136._g.doc.getElementById(markerId);
+                let marker = $b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.getElementById(markerId);
                 let use;
                 if (!marker) {
                     marker = $($('marker'), {
@@ -6244,15 +6245,15 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 const delta = dx * (type != 'diamond' && type != 'oval');
                 if (isEnd) {
                     from = o._.arrows.startdx * stroke || 0;
-                    to = $c453c098b23bc46d$export$db202ddc8be9136.getTotalLength(attrs.path) - delta * stroke;
+                    to = $b7c3e249c8a42d1b$export$db202ddc8be9136.getTotalLength(attrs.path) - delta * stroke;
                 } else {
                     from = delta * stroke;
-                    to = $c453c098b23bc46d$export$db202ddc8be9136.getTotalLength(attrs.path) - (o._.arrows.enddx * stroke || 0);
+                    to = $b7c3e249c8a42d1b$export$db202ddc8be9136.getTotalLength(attrs.path) - (o._.arrows.enddx * stroke || 0);
                 }
                 attr = {
                 };
                 attr[`marker-${se}`] = `url(#${markerId})`;
-                if (to || from) attr.d = $c453c098b23bc46d$export$db202ddc8be9136.getSubpath(attrs.path, from, to);
+                if (to || from) attr.d = $b7c3e249c8a42d1b$export$db202ddc8be9136.getSubpath(attrs.path, from, to);
                 $(node, attr);
                 o._.arrows[`${se}Path`] = pathId;
                 o._.arrows[`${se}Marker`] = markerId;
@@ -6262,13 +6263,13 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             } else {
                 if (isEnd) {
                     from = o._.arrows.startdx * stroke || 0;
-                    to = $c453c098b23bc46d$export$db202ddc8be9136.getTotalLength(attrs.path) - from;
+                    to = $b7c3e249c8a42d1b$export$db202ddc8be9136.getTotalLength(attrs.path) - from;
                 } else {
                     from = 0;
-                    to = $c453c098b23bc46d$export$db202ddc8be9136.getTotalLength(attrs.path) - (o._.arrows.enddx * stroke || 0);
+                    to = $b7c3e249c8a42d1b$export$db202ddc8be9136.getTotalLength(attrs.path) - (o._.arrows.enddx * stroke || 0);
                 }
                 o._.arrows[`${se}Path`] && $(node, {
-                    d: $c453c098b23bc46d$export$db202ddc8be9136.getSubpath(attrs.path, from, to)
+                    d: $b7c3e249c8a42d1b$export$db202ddc8be9136.getSubpath(attrs.path, from, to)
                 });
                 delete o._.arrows[`${se}Path`];
                 delete o._.arrows[`${se}Marker`];
@@ -6277,7 +6278,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 delete o._.arrows[`${se}String`];
             }
             for(attr in markerCounter)if (markerCounter[has](attr) && !markerCounter[attr]) {
-                const item = $c453c098b23bc46d$export$db202ddc8be9136._g.doc.getElementById(attr);
+                const item = $b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.getElementById(attr);
                 item && item.parentNode.removeChild(item);
             }
         }
@@ -6363,7 +6364,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         const vis = node.style.visibility;
         node.style.visibility = 'hidden';
         for(let att in params)if (params[has](att)) {
-            if (!$c453c098b23bc46d$export$db202ddc8be9136._availableAttrs[has](att)) continue;
+            if (!$b7c3e249c8a42d1b$export$db202ddc8be9136._availableAttrs[has](att)) continue;
             let value = params[att];
             attrs[att] = value;
             switch(att){
@@ -6376,7 +6377,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                     if (title.length && (title = title[0])) title.firstChild.nodeValue = value;
                     else {
                         title = $('title');
-                        const val = $c453c098b23bc46d$export$db202ddc8be9136._g.doc.createTextNode(value);
+                        const val = $b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.createTextNode(value);
                         title.appendChild(val);
                         node.appendChild(title);
                     }
@@ -6411,7 +6412,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                         o.clip && o.clip.parentNode.parentNode.removeChild(o.clip.parentNode);
                         var el = $('clipPath');
                         const rc = $('rect');
-                        el.id = $c453c098b23bc46d$export$db202ddc8be9136.createUUID();
+                        el.id = $b7c3e249c8a42d1b$export$db202ddc8be9136.createUUID();
                         $(rc, {
                             x: rect[0],
                             y: rect[1],
@@ -6428,7 +6429,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                     if (!value) {
                         const path = node.getAttribute('clip-path');
                         if (path) {
-                            const clip = $c453c098b23bc46d$export$db202ddc8be9136._g.doc.getElementById(path.replace(/(^url\(#|\)$)/g, E));
+                            const clip = $b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.getElementById(path.replace(/(^url\(#|\)$)/g, E));
                             clip && clip.parentNode.removeChild(clip);
                             $(node, {
                                 'clip-path': E
@@ -6510,7 +6511,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 case 'fill':
                     // SLATEBOX a few edits for image filling (not tiling patterns) of path elements
                     var relativeFill = o.data('relativeFill');
-                    var isURL = Str(value).match($c453c098b23bc46d$export$db202ddc8be9136._ISURL);
+                    var isURL = Str(value).match($b7c3e249c8a42d1b$export$db202ddc8be9136._ISURL);
                     if (isURL) {
                         if (value.indexOf('(#') > -1) // internal reference
                         $(node, {
@@ -6520,7 +6521,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                             // image, external
                             el = $('pattern');
                             var ig = $('image');
-                            el.id = $c453c098b23bc46d$export$db202ddc8be9136.createUUID();
+                            el.id = $b7c3e249c8a42d1b$export$db202ddc8be9136.createUUID();
                             $(el, {
                                 x: 0,
                                 y: 0,
@@ -6535,7 +6536,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                             });
                             el.appendChild(ig);
                             (function(el) {
-                                $c453c098b23bc46d$export$db202ddc8be9136._preload(isURL[1], function() {
+                                $b7c3e249c8a42d1b$export$db202ddc8be9136._preload(isURL[1], function() {
                                     const w = this.offsetWidth;
                                     const h = this.offsetHeight;
                                     const tempPath = o.paper.path(o.attr('path'));
@@ -6564,19 +6565,19 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                         }
                         break;
                     }
-                    var clr = $c453c098b23bc46d$export$db202ddc8be9136.getRGB(value);
+                    var clr = $b7c3e249c8a42d1b$export$db202ddc8be9136.getRGB(value);
                     if (!clr.error) {
                         delete params.gradient;
                         delete attrs.gradient;
-                        !$c453c098b23bc46d$export$db202ddc8be9136.is(attrs.opacity, 'undefined') && $c453c098b23bc46d$export$db202ddc8be9136.is(params.opacity, 'undefined') && $(node, {
+                        !$b7c3e249c8a42d1b$export$db202ddc8be9136.is(attrs.opacity, 'undefined') && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(params.opacity, 'undefined') && $(node, {
                             opacity: attrs.opacity
                         });
-                        !$c453c098b23bc46d$export$db202ddc8be9136.is(attrs['fill-opacity'], 'undefined') && $c453c098b23bc46d$export$db202ddc8be9136.is(params['fill-opacity'], 'undefined') && $(node, {
+                        !$b7c3e249c8a42d1b$export$db202ddc8be9136.is(attrs['fill-opacity'], 'undefined') && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(params['fill-opacity'], 'undefined') && $(node, {
                             'fill-opacity': attrs['fill-opacity']
                         });
                     } else if ((o.type == 'circle' || o.type == 'ellipse' || Str(value).charAt() != 'r') && addGradientFill(o, value)) {
                         if ('opacity' in attrs || 'fill-opacity' in attrs) {
-                            var gradient = $c453c098b23bc46d$export$db202ddc8be9136._g.doc.getElementById(node.getAttribute('fill').replace(/^url\(#|\)$/g, E));
+                            var gradient = $b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.getElementById(node.getAttribute('fill').replace(/^url\(#|\)$/g, E));
                             if (gradient) {
                                 var stops = gradient.getElementsByTagName('stop');
                                 $(stops[stops.length - 1], {
@@ -6592,7 +6593,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                         'fill-opacity': clr.opacity > 1 ? clr.opacity / 100 : clr.opacity
                     });
                 case 'stroke':
-                    clr = $c453c098b23bc46d$export$db202ddc8be9136.getRGB(value);
+                    clr = $b7c3e249c8a42d1b$export$db202ddc8be9136.getRGB(value);
                     node.setAttribute(att, clr.hex);
                     att == 'stroke' && clr[has]('opacity') && $(node, {
                         'stroke-opacity': clr.opacity > 1 ? clr.opacity / 100 : clr.opacity
@@ -6612,7 +6613,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 // fall
                 case 'fill-opacity':
                     if (attrs.gradient) {
-                        gradient = $c453c098b23bc46d$export$db202ddc8be9136._g.doc.getElementById(node.getAttribute('fill').replace(/^url\(#|\)$/g, E));
+                        gradient = $b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.getElementById(node.getAttribute('fill').replace(/^url\(#|\)$/g, E));
                         if (gradient) {
                             stops = gradient.getElementsByTagName('stop');
                             $(stops[stops.length - 1], {
@@ -6639,7 +6640,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         if (el.type != 'text' || !(params[has]('text') || params[has]('font') || params[has]('font-size') || params[has]('x') || params[has]('y'))) return;
         const a = el.attrs;
         const { node: node  } = el;
-        const fontSize = node.firstChild ? toInt($c453c098b23bc46d$export$db202ddc8be9136._g.doc.defaultView.getComputedStyle(node.firstChild, E).getPropertyValue('font-size'), 10) : 10;
+        const fontSize = node.firstChild ? toInt($b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.defaultView.getComputedStyle(node.firstChild, E).getPropertyValue('font-size'), 10) : 10;
         if (params[has]('text')) {
             a.text = params.text;
             while(node.firstChild)node.removeChild(node.firstChild);
@@ -6652,7 +6653,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                     dy: fontSize * leading,
                     x: a.x
                 });
-                tspan.appendChild($c453c098b23bc46d$export$db202ddc8be9136._g.doc.createTextNode(texts[i]));
+                tspan.appendChild($b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.createTextNode(texts[i]));
                 node.appendChild(tspan);
                 tspans[i] = tspan;
             }
@@ -6673,7 +6674,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         el._.dirty = 1;
         const bb = el._getBBox();
         const dif = a.y - (bb.y + bb.height / 2);
-        dif && $c453c098b23bc46d$export$db202ddc8be9136.is(dif, 'finite') && $(tspans[0], {
+        dif && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(dif, 'finite') && $(tspans[0], {
             dy: dif
         });
     };
@@ -6724,7 +6725,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
      */ function guid() {
             return `0000${(Math.random() * 36 ** 5 << 0).toString(36)}`.slice(-5);
         }
-        this.matrix = $c453c098b23bc46d$export$db202ddc8be9136.matrix();
+        this.matrix = $b7c3e249c8a42d1b$export$db202ddc8be9136.matrix();
         this.realPath = null;
         /* \
        * Element.paper
@@ -6765,10 +6766,10 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
        * Reference to the next element in the hierarchy.
       \ */ this.next = null;
     };
-    const elproto = $c453c098b23bc46d$export$db202ddc8be9136.el;
+    const elproto = $b7c3e249c8a42d1b$export$db202ddc8be9136.el;
     Element.prototype = elproto;
     elproto.constructor = Element;
-    $c453c098b23bc46d$export$db202ddc8be9136._engine.path = function(pathString, SVG) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.path = function(pathString, SVG) {
         const el = $('path');
         SVG.canvas && SVG.canvas.appendChild(el);
         const p = new Element(el, SVG);
@@ -6920,7 +6921,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
   \ */ elproto.transform = function(tstr) {
         const { _: _  } = this;
         if (tstr == null) return _.transform;
-        $c453c098b23bc46d$export$db202ddc8be9136._extractTransform(this, tstr);
+        $b7c3e249c8a42d1b$export$db202ddc8be9136._extractTransform(this, tstr);
         this.clip && $(this.clip, {
             transform: this.matrix.invert()
         });
@@ -6966,13 +6967,13 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         if (this.removed || !node.parentNode) return;
         const { paper: paper  } = this;
         paper.__set__ && paper.__set__.exclude(this);
-        $dacea6f50a09eb13$export$6b962911844bfb1e.unbind(`raphael.*.*.${this.id}`);
+        $f74a27260bed6e25$export$6b962911844bfb1e.unbind(`raphael.*.*.${this.id}`);
         if (this.gradient) paper.defs.removeChild(this.gradient);
-        $c453c098b23bc46d$export$db202ddc8be9136._tear(this, paper);
+        $b7c3e249c8a42d1b$export$db202ddc8be9136._tear(this, paper);
         node.parentNode.removeChild(node);
         // Remove custom data for element
         this.removeData();
-        for(const i in this)this[i] = typeof this[i] === 'function' ? $c453c098b23bc46d$export$db202ddc8be9136._removedFactory(i) : null;
+        for(const i in this)this[i] = typeof this[i] === 'function' ? $b7c3e249c8a42d1b$export$db202ddc8be9136._removedFactory(i) : null;
         this.removed = true;
     };
     elproto._getBBox = function() {
@@ -7098,7 +7099,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             res.transform = this._.transform;
             return res;
         }
-        if (value == null && $c453c098b23bc46d$export$db202ddc8be9136.is(name, 'string')) {
+        if (value == null && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(name, 'string')) {
             if (name == 'fill' && this.attrs.fill == 'none' && this.attrs.gradient) return this.attrs.gradient;
             if (name == 'transform') return this._.transform;
             const names = name.split(separator);
@@ -7107,12 +7108,12 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             for(var i = 0, ii = names.length; i < ii; i++){
                 name = names[i];
                 if (name in this.attrs) out[name] = this.attrs[name];
-                else if ($c453c098b23bc46d$export$db202ddc8be9136.is(this.paper.customAttributes[name], 'function')) out[name] = this.paper.customAttributes[name].def;
-                else out[name] = $c453c098b23bc46d$export$db202ddc8be9136._availableAttrs[name];
+                else if ($b7c3e249c8a42d1b$export$db202ddc8be9136.is(this.paper.customAttributes[name], 'function')) out[name] = this.paper.customAttributes[name].def;
+                else out[name] = $b7c3e249c8a42d1b$export$db202ddc8be9136._availableAttrs[name];
             }
             return ii - 1 ? out : out[names[0]];
         }
-        if (value == null && $c453c098b23bc46d$export$db202ddc8be9136.is(name, 'array')) {
+        if (value == null && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(name, 'array')) {
             out = {
             };
             for(i = 0, ii = name.length; i < ii; i++)out[name[i]] = this.attr(name[i]);
@@ -7122,9 +7123,9 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             var params = {
             };
             params[name] = value;
-        } else if (name != null && $c453c098b23bc46d$export$db202ddc8be9136.is(name, 'object')) params = name;
-        for(var key in params)$dacea6f50a09eb13$export$6b962911844bfb1e(`raphael.attr.${key}.${this.id}`, this, params[key]);
-        for(key in this.paper.customAttributes)if (this.paper.customAttributes[has](key) && params[has](key) && $c453c098b23bc46d$export$db202ddc8be9136.is(this.paper.customAttributes[key], 'function')) {
+        } else if (name != null && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(name, 'object')) params = name;
+        for(var key in params)$f74a27260bed6e25$export$6b962911844bfb1e(`raphael.attr.${key}.${this.id}`, this, params[key]);
+        for(key in this.paper.customAttributes)if (this.paper.customAttributes[has](key) && params[has](key) && $b7c3e249c8a42d1b$export$db202ddc8be9136.is(this.paper.customAttributes[key], 'function')) {
             const par = this.paper.customAttributes[key].apply(this, [].concat(params[key]));
             this.attrs[key] = params[key];
             for(const subkey in par)if (par[has](subkey)) params[subkey] = par[subkey];
@@ -7143,7 +7144,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         const node = getRealNode(this.node);
         node.parentNode.appendChild(node);
         const svg = this.paper;
-        svg.top != this && $c453c098b23bc46d$export$db202ddc8be9136._tofront(this, svg);
+        svg.top != this && $b7c3e249c8a42d1b$export$db202ddc8be9136._tofront(this, svg);
         return this;
     };
     /* \
@@ -7157,7 +7158,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         const node = getRealNode(this.node);
         const { parentNode: parentNode  } = node;
         parentNode.insertBefore(node, parentNode.firstChild);
-        $c453c098b23bc46d$export$db202ddc8be9136._toback(this, this.paper);
+        $b7c3e249c8a42d1b$export$db202ddc8be9136._toback(this, this.paper);
         const svg = this.paper;
         return this;
     };
@@ -7173,7 +7174,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         const afterNode = getRealNode(element.node || element[element.length - 1].node);
         if (afterNode.nextSibling) afterNode.parentNode.insertBefore(node, afterNode.nextSibling);
         else afterNode.parentNode.appendChild(node);
-        $c453c098b23bc46d$export$db202ddc8be9136._insertafter(this, element, this.paper);
+        $b7c3e249c8a42d1b$export$db202ddc8be9136._insertafter(this, element, this.paper);
         return this;
     };
     /* \
@@ -7187,7 +7188,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         const node = getRealNode(this.node);
         const beforeNode = getRealNode(element.node || element[0].node);
         beforeNode.parentNode.insertBefore(node, beforeNode);
-        $c453c098b23bc46d$export$db202ddc8be9136._insertbefore(this, element, this.paper);
+        $b7c3e249c8a42d1b$export$db202ddc8be9136._insertbefore(this, element, this.paper);
         return this;
     };
     elproto.blur = function(size) {
@@ -7197,7 +7198,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             const fltr = $('filter');
             const blur = $('feGaussianBlur');
             t.attrs.blur = size;
-            fltr.id = $c453c098b23bc46d$export$db202ddc8be9136.createUUID();
+            fltr.id = $b7c3e249c8a42d1b$export$db202ddc8be9136.createUUID();
             $(blur, {
                 stdDeviation: +size || 1.5
             });
@@ -7217,7 +7218,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         }
         return t;
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._engine.circle = function(svg, x, y, r) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.circle = function(svg, x, y, r) {
         const el = $('circle');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
@@ -7232,7 +7233,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         $(el, res.attrs);
         return res;
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._engine.rect = function(svg, x, y, w, h, r) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.rect = function(svg, x, y, w, h, r) {
         const el = $('rect');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
@@ -7250,7 +7251,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         $(el, res.attrs);
         return res;
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._engine.g = function(svg) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.g = function(svg) {
         const el = $('g');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
@@ -7272,14 +7273,14 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                     res
                 ];
                 for(let i = 0; i < arguments.length; i++)args.push(arguments[i]);
-                const out = $c453c098b23bc46d$export$db202ddc8be9136._engine[element].apply(this, args);
+                const out = $b7c3e249c8a42d1b$export$db202ddc8be9136._engine[element].apply(this, args);
                 return out;
             };
         });
         $(el, res.attrs);
         return res;
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._engine.def = function(def) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.def = function(def) {
         // SLATEBOX - add ability to programattically add defs
         // {
         //   type: "pattern",
@@ -7301,7 +7302,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
       <pattern id="smallGrid" width="10" height="10" patternUnits="userSpaceOnUse">
         <path d="M 10 0 L 0 0 0 10" fill="none" stroke="gray" stroke-width="0.5"/>
       </pattern>
-    */ const id = def.id || `raphael-def-${$c453c098b23bc46d$export$db202ddc8be9136.createUUID()}`;
+    */ const id = def.id || `raphael-def-${$b7c3e249c8a42d1b$export$db202ddc8be9136.createUUID()}`;
         // if exists, remove and rebuild
         const exists = Array.prototype.slice.call(this.defs.children).find((c)=>c.getAttribute('id') === id
         );
@@ -7356,7 +7357,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         });
         this.defs.appendChild(rDef);
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._engine.ellipse = function(svg, x, y, rx, ry) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.ellipse = function(svg, x, y, rx, ry) {
         const el = $('ellipse');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
@@ -7372,7 +7373,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         $(el, res.attrs);
         return res;
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._engine.image = function(svg, src, x, y, w, h) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.image = function(svg, src, x, y, w, h) {
         const el = $('image');
         $(el, {
             x: x,
@@ -7394,7 +7395,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         res.type = 'image';
         return res;
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._engine.text = function(svg, x, y, text) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.text = function(svg, x, y, text) {
         const el = $('text');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
@@ -7403,8 +7404,8 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             y: y,
             'text-anchor': 'middle',
             text: text,
-            'font-family': $c453c098b23bc46d$export$db202ddc8be9136._availableAttrs['font-family'],
-            'font-size': $c453c098b23bc46d$export$db202ddc8be9136._availableAttrs['font-size'],
+            'font-family': $b7c3e249c8a42d1b$export$db202ddc8be9136._availableAttrs['font-family'],
+            'font-size': $b7c3e249c8a42d1b$export$db202ddc8be9136._availableAttrs['font-size'],
             stroke: 'none',
             fill: '#000'
         };
@@ -7412,7 +7413,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         setFillAndStroke(res, res.attrs);
         return res;
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._engine.setSize = function(width, height) {
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.setSize = function(width, height) {
         this.width = width || this.width;
         this.height = height || this.height;
         this.canvas.setAttribute('width', this.width);
@@ -7420,8 +7421,8 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         if (this._viewBox) this.setViewBox.apply(this, this._viewBox);
         return this;
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._engine.create = function() {
-        const con = $c453c098b23bc46d$export$db202ddc8be9136._getContainer.apply(0, arguments);
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.create = function() {
+        const con = $b7c3e249c8a42d1b$export$db202ddc8be9136._getContainer.apply(0, arguments);
         let container = con && con.container;
         let { x: x  } = con;
         let { y: y  } = con;
@@ -7442,14 +7443,14 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         });
         if (container == 1) {
             cnvs.style.cssText = `${css}position:absolute;left:${x}px;top:${y}px`;
-            $c453c098b23bc46d$export$db202ddc8be9136._g.doc.body.appendChild(cnvs);
+            $b7c3e249c8a42d1b$export$db202ddc8be9136._g.doc.body.appendChild(cnvs);
             isFloating = 1;
         } else {
             cnvs.style.cssText = `${css}position:relative`;
             if (container.firstChild) container.insertBefore(cnvs, container.firstChild);
             else container.appendChild(cnvs);
         }
-        container = new $c453c098b23bc46d$export$db202ddc8be9136._Paper();
+        container = new $b7c3e249c8a42d1b$export$db202ddc8be9136._Paper();
         container.width = width;
         container.height = height;
         container.canvas = cnvs;
@@ -7460,8 +7461,8 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         container.renderfix();
         return container;
     };
-    $c453c098b23bc46d$export$db202ddc8be9136._engine.setViewBox = function(x, y, w, h, fit) {
-        $dacea6f50a09eb13$export$6b962911844bfb1e('raphael.setViewBox', this, this._viewBox, [
+    $b7c3e249c8a42d1b$export$db202ddc8be9136._engine.setViewBox = function(x, y, w, h, fit) {
+        $f74a27260bed6e25$export$6b962911844bfb1e('raphael.setViewBox', this, this._viewBox, [
             x,
             y,
             w,
@@ -7513,7 +7514,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
    * This method fixes the issue.
    **
      Special thanks to Mariusz Nowak (http://www.medikoo.com/) for this method.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.prototype.renderfix = function() {
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.prototype.renderfix = function() {
         const cnvs = this.canvas;
         const s = cnvs.style;
         let pos;
@@ -7540,8 +7541,8 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
    [ method ]
    **
    * Clears the paper, i.e. removes all the elements.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.prototype.clear = function() {
-        $c453c098b23bc46d$export$db202ddc8be9136.eve('raphael.clear', this);
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.prototype.clear = function() {
+        $b7c3e249c8a42d1b$export$db202ddc8be9136.eve('raphael.clear', this);
         const c = this.canvas;
         while(c.firstChild)c.removeChild(c.firstChild);
         this.bottom = this.top = null;
@@ -7552,12 +7553,12 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
    [ method ]
    **
    * Removes the paper from the DOM.
-  \ */ $c453c098b23bc46d$export$db202ddc8be9136.prototype.remove = function() {
-        $dacea6f50a09eb13$export$6b962911844bfb1e('raphael.remove', this);
+  \ */ $b7c3e249c8a42d1b$export$db202ddc8be9136.prototype.remove = function() {
+        $f74a27260bed6e25$export$6b962911844bfb1e('raphael.remove', this);
         this.canvas.parentNode && this.canvas.parentNode.removeChild(this.canvas);
-        for(const i in this)this[i] = typeof this[i] === 'function' ? $c453c098b23bc46d$export$db202ddc8be9136._removedFactory(i) : null;
+        for(const i in this)this[i] = typeof this[i] === 'function' ? $b7c3e249c8a42d1b$export$db202ddc8be9136._removedFactory(i) : null;
     };
-    const setproto = $c453c098b23bc46d$export$db202ddc8be9136.st;
+    const setproto = $b7c3e249c8a42d1b$export$db202ddc8be9136.st;
     for(const method in elproto)if (elproto[has](method) && !setproto[has](method)) setproto[method] = (function(methodname) {
         return function() {
             const arg = arguments;
@@ -7566,11 +7567,11 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             });
         };
     })(method);
-    return $c453c098b23bc46d$export$db202ddc8be9136;
+    return $b7c3e249c8a42d1b$export$db202ddc8be9136;
 }();
 
 
-class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
+class $c09005a36c8880c7$export$2e2bcd8739ae039 {
     static easing = {
         elastic (pos) {
             return -1 * 4 ** (-8 * pos) * Math.sin((pos * 6 - 1) * (2 * Math.PI) / 2) + 1;
@@ -7839,7 +7840,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         to[evt].push(fn);
     }
     static imageExists(u, cb, id) {
-        const iid = `temp_${$8ab43d25a2892bde$export$2e2bcd8739ae039.guid()}`;
+        const iid = `temp_${$c09005a36c8880c7$export$2e2bcd8739ae039.guid()}`;
         const img = document.body.appendChild(document.createElement('img'));
         img.style.position = 'absolute';
         img.style.top = '-10000px';
@@ -7872,7 +7873,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         u = [
             u,
             u.indexOf('?') === -1 ? '?' : '&',
-            `guid=${$8ab43d25a2892bde$export$2e2bcd8739ae039.guid()}`
+            `guid=${$c09005a36c8880c7$export$2e2bcd8739ae039.guid()}`
         ].join('');
         x = new (x || XMLHttpRequest)('Microsoft.XMLHTTP');
         const vx = d ? v || 'POST' : v || 'GET';
@@ -7886,6 +7887,9 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             x.readyState > 3 && f && f(x.responseText, x);
         };
         x.send(d);
+    }
+    static randomInt(min, max) {
+        return Math.floor(min + Math.random() * (max - min + 1));
     }
     static hasClass(el, className) {
         if (el.classList) el.classList.contains(className);
@@ -7923,7 +7927,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         cont.setAttribute('id', 'hiddenPaper');
         cont.style.display = 'none';
         document.body.appendChild(cont);
-        const pp = new $65a92514e25c9f85$export$508faed300ccdfb(cont);
+        const pp = new $db87f2586597736c$export$508faed300ccdfb(cont);
         const bb = pp.path(opts.path).getBBox();
         document.body.removeChild(cont);
         return bb;
@@ -8026,15 +8030,41 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         });
         return _str;
     }
+    static getRGBComponents(bgColor) {
+        const r = bgColor.substring(1, 3);
+        const g = bgColor.substring(3, 5);
+        const b = bgColor.substring(5, 7);
+        return {
+            R: parseInt(r, 16),
+            G: parseInt(g, 16),
+            B: parseInt(b, 16)
+        };
+    }
     static whiteOrBlack(hex) {
-        return $65a92514e25c9f85$export$508faed300ccdfb.rgb2hsb(hex).b < 0.4 ? '#fff' : '#000';
+        function getRGB(c) {
+            return parseInt(c, 16) || c;
+        }
+        function getsRGB(c) {
+            return getRGB(c) / 255 <= 0.03928 ? getRGB(c) / 255 / 12.92 : Math.pow((getRGB(c) / 255 + 0.055) / 1.055, 2.4);
+        }
+        function getLuminance(hexColor) {
+            return 0.2126 * getsRGB(hexColor.substr(1, 2)) + 0.7152 * getsRGB(hexColor.substr(3, 2)) + 0.0722 * getsRGB(hexColor.substr(-2));
+        }
+        function getContrast(f, b) {
+            const L1 = getLuminance(f);
+            const L2 = getLuminance(b);
+            return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+        }
+        const whiteContrast = getContrast(hex || '#fff', '#ffffff');
+        const blackContrast = getContrast(hex || '#fff', '#000000');
+        return whiteContrast > blackContrast ? '#ffffff' : '#000000';
     }
     static _transformPath(original, transform) {
-        const rpath = $65a92514e25c9f85$export$508faed300ccdfb.transformPath(original, transform).toString();
+        const rpath = $db87f2586597736c$export$508faed300ccdfb.transformPath(original, transform).toString();
         return rpath;
     }
     static transformPath(_node, _transformation) {
-        const _path = $65a92514e25c9f85$export$508faed300ccdfb.transformPath(_node.vect.attr('path').toString(), _transformation).toString();
+        const _path = $db87f2586597736c$export$508faed300ccdfb.transformPath(_node.vect.attr('path').toString(), _transformation).toString();
         _node.options.vectorPath = _path;
         _node.vect.transform('');
         _node.vect.attr({
@@ -8084,8 +8114,54 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             )),
             height: height
         };
-        console.log('red is ', red);
         return red;
+    }
+    static chunk(arr, chunkSize = 1, cache = []) {
+        const tmp = [
+            ...arr
+        ];
+        if (chunkSize <= 0) return cache;
+        while(tmp.length)cache.push(tmp.splice(0, chunkSize));
+        return cache;
+    }
+    static createMultiLineText(text, lineCount) {
+        const words = text.split(/ /g);
+        const chars = text.split('');
+        const charsPerLine = chars.length / lineCount;
+        const lines = [];
+        let wordsOnLine = [];
+        let curCharCount = 0;
+        // console.log(
+        //   'words are 1',
+        //   words.length,
+        //   chars.length,
+        //   charsPerLine,
+        //   lines.length,
+        //   lineCount,
+        //   curCharCount
+        // )
+        words.forEach((w)=>{
+            curCharCount += w.length;
+            // console.log(
+            //   'words are 2',
+            //   words.length,
+            //   chars.length,
+            //   charsPerLine,
+            //   lines.length,
+            //   lineCount,
+            //   curCharCount
+            // )
+            if (curCharCount < charsPerLine || lines.length === lineCount - 1) wordsOnLine.push(w);
+            else {
+                lines.push(wordsOnLine.join(' '));
+                curCharCount = w.length;
+                wordsOnLine = [
+                    w
+                ];
+            }
+        });
+        if (wordsOnLine.length > 0) lines.push(wordsOnLine.join(' '));
+        return lines.join('\n');
     }
     static toDataUrl = (url)=>fetch(url, {
             mode: 'cors'
@@ -8103,7 +8179,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
 
 
 
-function $b3c679d5849c9a45$export$2e2bcd8739ae039(originalPath, transforms) {
+function $d2703cad5fa90838$export$2e2bcd8739ae039(originalPath, transforms) {
     let transformsArray = transforms;
     let transformedPath = originalPath;
     if (!transforms.find && typeof transforms === 'string') transformsArray = [
@@ -8112,7 +8188,7 @@ function $b3c679d5849c9a45$export$2e2bcd8739ae039(originalPath, transforms) {
     // NOTE: it's safer to apply transforms one by one because this transform string `T${_x * percent}, ${_y * percent}, s${_width/150 * percent}, ${_height/100 * percent}, ${_x}, ${_y}`
     //      would be applied incorrectly - element would be translated using the center of scaling ${_x}, ${_y} which seems to be a bug in raphael.js
     transformsArray.forEach((transform)=>{
-        transformedPath = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(transformedPath, transform).toString();
+        transformedPath = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath(transformedPath, transform).toString();
     });
     return transformedPath;
 }
@@ -8120,7 +8196,7 @@ function $b3c679d5849c9a45$export$2e2bcd8739ae039(originalPath, transforms) {
 
 
 
-class $699224fae48c351a$export$2e2bcd8739ae039 {
+class $2197852bc26081e6$export$2e2bcd8739ae039 {
     static icons = {
         handle: 'M26.33,15.836l-3.893-1.545l3.136-7.9c0.28-0.705-0.064-1.505-0.771-1.785c-0.707-0.28-1.506,0.065-1.785,0.771l-3.136,7.9l-4.88-1.937l3.135-7.9c0.281-0.706-0.064-1.506-0.77-1.786c-0.706-0.279-1.506,0.065-1.785,0.771l-3.136,7.9L8.554,8.781l-1.614,4.066l2.15,0.854l-2.537,6.391c-0.61,1.54,0.143,3.283,1.683,3.895l1.626,0.646L8.985,26.84c-0.407,1.025,0.095,2.188,1.122,2.596l0.93,0.369c1.026,0.408,2.188-0.095,2.596-1.121l0.877-2.207l1.858,0.737c1.54,0.611,3.284-0.142,3.896-1.682l2.535-6.391l1.918,0.761L26.33,15.836z',
         editor: 'M25.31,2.872l-3.384-2.127c-0.854-0.536-1.979-0.278-2.517,0.576l-1.334,2.123l6.474,4.066l1.335-2.122C26.42,4.533,26.164,3.407,25.31,2.872zM6.555,21.786l6.474,4.066L23.581,9.054l-6.477-4.067L6.555,21.786zM5.566,26.952l-0.143,3.819l3.379-1.787l3.14-1.658l-6.246-3.925L5.566,26.952z',
@@ -8149,9 +8225,9 @@ class $699224fae48c351a$export$2e2bcd8739ae039 {
 
 
 
-const $1b06af3f77ffbbd3$export$4ff7fc6f1af248b5 = function(R) {
+const $c77049a435fdbedd$export$4ff7fc6f1af248b5 = function(R) {
     const c = 'M16,1.466C7.973,1.466,1.466,7.973,1.466,16c0,8.027,6.507,14.534,14.534,14.534c8.027,0,14.534-6.507,14.534-14.534C30.534,7.973,24.027,1.466,16,1.466z';
-    const { icons: icons  } = $699224fae48c351a$export$2e2bcd8739ae039;
+    const { icons: icons  } = $2197852bc26081e6$export$2e2bcd8739ae039;
     R.fn.handle = function(x, y) {
         return this.path(icons.handle + c);
     };
@@ -8244,7 +8320,7 @@ const $1b06af3f77ffbbd3$export$4ff7fc6f1af248b5 = function(R) {
 };
 
 
-const $934e6ef878cbebc0$export$cc3e2d3244e01b7f = function(R) {
+const $594678bd339ae115$export$cc3e2d3244e01b7f = function(R) {
     R.el.loop = function(_options) {
         const _self = this;
         const options = {
@@ -8338,9 +8414,9 @@ const $934e6ef878cbebc0$export$cc3e2d3244e01b7f = function(R) {
 };
 
 
-const $bc0900c2e5cbc8ab$var$kCSSFontFacePattern = /(@font\-face {[\s\S]*?})/g;
-const $bc0900c2e5cbc8ab$var$kCSSUrlPattern = /url\((https.+?)\)/;
-function $bc0900c2e5cbc8ab$var$fontToDataURLViaBlob(fontUrl) {
+const $587cf398d068430e$var$kCSSFontFacePattern = /(@font\-face {[\s\S]*?})/g;
+const $587cf398d068430e$var$kCSSUrlPattern = /url\((https.+?)\)/;
+function $587cf398d068430e$var$fontToDataURLViaBlob(fontUrl) {
     return fetch(fontUrl).then((fontResponse)=>fontResponse.blob()
     ).then((fontBlob)=>new Promise((resolve)=>{
             const reader = new FileReader();
@@ -8351,7 +8427,7 @@ function $bc0900c2e5cbc8ab$var$fontToDataURLViaBlob(fontUrl) {
         })
     );
 }
-function $bc0900c2e5cbc8ab$var$fontToDataURLViaBuffer(fontUrl) {
+function $587cf398d068430e$var$fontToDataURLViaBuffer(fontUrl) {
     return fetch(fontUrl).then((fontResponse)=>Promise.all([
             Promise.resolve(fontResponse.headers.get("content-type")),
             fontResponse.buffer(), 
@@ -8361,25 +8437,25 @@ function $bc0900c2e5cbc8ab$var$fontToDataURLViaBuffer(fontUrl) {
         return `data:${fontBuffer[0]};base64,${b64}`;
     });
 }
-function $bc0900c2e5cbc8ab$var$embedFont(fontFace) {
-    const fontUrlMatch = $bc0900c2e5cbc8ab$var$kCSSUrlPattern.exec(fontFace);
+function $587cf398d068430e$var$embedFont(fontFace) {
+    const fontUrlMatch = $587cf398d068430e$var$kCSSUrlPattern.exec(fontFace);
     let promise;
-    if (typeof FileReader !== "undefined") promise = $bc0900c2e5cbc8ab$var$fontToDataURLViaBlob(fontUrlMatch[1]);
-    else promise = $bc0900c2e5cbc8ab$var$fontToDataURLViaBuffer(fontUrlMatch[1]);
+    if (typeof FileReader !== "undefined") promise = $587cf398d068430e$var$fontToDataURLViaBlob(fontUrlMatch[1]);
+    else promise = $587cf398d068430e$var$fontToDataURLViaBuffer(fontUrlMatch[1]);
     return promise.then((dataURL)=>fontFace.replace(fontUrlMatch[1], dataURL)
     );
 }
-function $bc0900c2e5cbc8ab$var$embedGoogleFonts({ fonts: fonts , text: text , styleNode: styleNode  }) {
+function $587cf398d068430e$var$embedGoogleFonts({ fonts: fonts , text: text , styleNode: styleNode  }) {
     const snode = styleNode;
     const fontQuery = fonts.join("|").replace(/ /g, "+");
     const googleFontUrl = `https://fonts.googleapis.com/css?family=${fontQuery}&text=${text}`;
     if (fonts.length > 0) return fetch(googleFontUrl).then((cssResponse)=>cssResponse.text()
     ).then((cssText)=>{
-        let fontFaces = $bc0900c2e5cbc8ab$var$kCSSFontFacePattern.exec(cssText);
+        let fontFaces = $587cf398d068430e$var$kCSSFontFacePattern.exec(cssText);
         const embedFontPromises = [];
         while(fontFaces != null){
-            embedFontPromises.push($bc0900c2e5cbc8ab$var$embedFont(fontFaces[1]));
-            fontFaces = $bc0900c2e5cbc8ab$var$kCSSFontFacePattern.exec(cssText);
+            embedFontPromises.push($587cf398d068430e$var$embedFont(fontFaces[1]));
+            fontFaces = $587cf398d068430e$var$kCSSFontFacePattern.exec(cssText);
         }
         return Promise.all(embedFontPromises);
     }).then((results)=>{
@@ -8388,7 +8464,7 @@ function $bc0900c2e5cbc8ab$var$embedGoogleFonts({ fonts: fonts , text: text , st
     });
     return Promise.resolve(true);
 }
-var $bc0900c2e5cbc8ab$export$2e2bcd8739ae039 = $bc0900c2e5cbc8ab$var$embedGoogleFonts;
+var $587cf398d068430e$export$2e2bcd8739ae039 = $587cf398d068430e$var$embedGoogleFonts;
 
 
 (function(emile, container) {
@@ -8481,16 +8557,16 @@ var $bc0900c2e5cbc8ab$export$2e2bcd8739ae039 = $bc0900c2e5cbc8ab$var$embedGoogle
 })('emile', window);
 
 
-class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
+class $aeb71f7ee3eb2c2e$export$2e2bcd8739ae039 {
     constructor(slate){
         const self = this;
         self.slate = slate;
         let c = slate.options.container;
-        if (typeof c === 'string') c = $8ab43d25a2892bde$export$2e2bcd8739ae039.el(c);
+        if (typeof c === 'string') c = $c09005a36c8880c7$export$2e2bcd8739ae039.el(c);
         if (c === undefined || c === null) throw new Error('You must provide a container to initiate the canvas!');
         // customize raphael -- modifies global Raphael for all other imports
-        $1b06af3f77ffbbd3$export$4ff7fc6f1af248b5($65a92514e25c9f85$export$508faed300ccdfb);
-        $934e6ef878cbebc0$export$cc3e2d3244e01b7f($65a92514e25c9f85$export$508faed300ccdfb);
+        $c77049a435fdbedd$export$4ff7fc6f1af248b5($db87f2586597736c$export$508faed300ccdfb);
+        $594678bd339ae115$export$cc3e2d3244e01b7f($db87f2586597736c$export$508faed300ccdfb);
         self.isDragging = false;
         self.slate.paper = null;
         self.internal = null;
@@ -8536,9 +8612,9 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                     self.isDragging = true;
                     slate.multiSelection?.end();
                     slate.nodes?.closeAllMenus();
-                    const m = $8ab43d25a2892bde$export$2e2bcd8739ae039.mousePos(e);
-                    self.Canvas.objInitPos = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(self.internal);
-                    const offsets = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(slate.options.container);
+                    const m = $c09005a36c8880c7$export$2e2bcd8739ae039.mousePos(e);
+                    self.Canvas.objInitPos = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(self.internal);
+                    const offsets = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(slate.options.container);
                     self.Canvas.objInitialMousePos = {
                         x: m.x + offsets.left,
                         y: m.y + offsets.top
@@ -8555,11 +8631,11 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                     slate.draggingZoom = self.slate.options.viewPort.zoom;
                     // hide filters during dragging
                     slate.toggleFilters(true);
-                    $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                    $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 } else if (slate.onSelectionStart) slate.onSelectionStart.apply(self, [
                     e
                 ]);
-                else $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                else $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
             },
             setCursor () {
                 if (self.isDragging) self.internal.style.cursor = `url(${imageFolder}closedhand.cur), default`;
@@ -8568,8 +8644,8 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             onDrag (e) {
                 requestAnimationFrame(()=>{
                     // broadcast custom collab
-                    const mp = $8ab43d25a2892bde$export$2e2bcd8739ae039.mousePos(e);
-                    const curPos = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(self.internal);
+                    const mp = $c09005a36c8880c7$export$2e2bcd8739ae039.mousePos(e);
+                    const curPos = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(self.internal);
                     mp.currentZoom = slate.options.viewPort.zoom.r;
                     mp.left = Math.abs(curPos.left);
                     mp.top = Math.abs(curPos.top);
@@ -8648,7 +8724,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         // style internal
         self.internal.style.borderTop = `${slate.borderTop}px`;
         self.internal.style.cursor = `url(${imageFolder}openhand.cur), default`;
-        self.slate.paper = $65a92514e25c9f85$export$508faed300ccdfb(self.internal, _w, _h);
+        self.slate.paper = $db87f2586597736c$export$508faed300ccdfb(self.internal, _w, _h);
         self.refreshBackground();
         if (slate.options.allowDrag) self.wire();
         slate.options.viewPort.originalHeight = _h;
@@ -8679,7 +8755,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             const _iframe = document.getElementById('snap_slate');
             const _parent = document.createElement('div');
             _parent.className = 'sb_parent_shareable';
-            const _styles = $8ab43d25a2892bde$export$2e2bcd8739ae039.buildStyle({
+            const _styles = $c09005a36c8880c7$export$2e2bcd8739ae039.buildStyle({
                 height: _iframe ? `${_scaleSize + 8}px` : `${_scaleSize}px`
             });
             _parent.setAttribute('style', _styles);
@@ -8699,19 +8775,19 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                     const _btn = document.createElement('div');
                     _btn.className = 'sb_share';
                     _btn.setAttribute('data-action', e);
-                    const _bstyles = $8ab43d25a2892bde$export$2e2bcd8739ae039.buildStyle({
+                    const _bstyles = $c09005a36c8880c7$export$2e2bcd8739ae039.buildStyle({
                         width: `${_btnSize}px`,
                         height: `${_btnSize}px`
                     });
                     _btn.setAttribute('style', _bstyles);
-                    const _new = $8ab43d25a2892bde$export$2e2bcd8739ae039.centerAndScalePathToFitContainer({
+                    const _new = $c09005a36c8880c7$export$2e2bcd8739ae039.centerAndScalePathToFitContainer({
                         containerSize: _btnSize,
                         scaleSize: _scaleSize,
-                        path: $699224fae48c351a$export$2e2bcd8739ae039.icons[e]
+                        path: $2197852bc26081e6$export$2e2bcd8739ae039.icons[e]
                     });
                     _btn.innerHTML = _svg.replace(/{path}/gi, _new.path);
                     _parent.appendChild(_btn);
-                    $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(_btn, 'click', ()=>{
+                    $c09005a36c8880c7$export$2e2bcd8739ae039.addEvent(_btn, 'click', ()=>{
                         const _act = this.getAttribute('data-action');
                         switch(_act){
                             case 'embed':
@@ -8733,7 +8809,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                                     document.body.removeChild(_et);
                                     const _note = document.createElement('div');
                                     _note.innerHTML = 'Copied!';
-                                    _note.setAttribute('style', $8ab43d25a2892bde$export$2e2bcd8739ae039.buildStyle({
+                                    _note.setAttribute('style', $c09005a36c8880c7$export$2e2bcd8739ae039.buildStyle({
                                         'font-size': '11pt',
                                         'text-align': 'center',
                                         padding: '4px',
@@ -8763,11 +8839,11 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             }
             if (slate.options.isEmbedding && _parent.innerHTML !== '') c.appendChild(_parent);
         }
-        self.windowSize = $8ab43d25a2892bde$export$2e2bcd8739ae039.windowSize();
-        self.containerOffset = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(self.slate.options.container);
-        $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(window, 'resize', ()=>{
-            self.windowSize = $8ab43d25a2892bde$export$2e2bcd8739ae039.windowSize();
-            self.containerOffset = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(self.slate.options.container);
+        self.windowSize = $c09005a36c8880c7$export$2e2bcd8739ae039.windowSize();
+        self.containerOffset = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(self.slate.options.container);
+        $c09005a36c8880c7$export$2e2bcd8739ae039.addEvent(window, 'resize', ()=>{
+            self.windowSize = $c09005a36c8880c7$export$2e2bcd8739ae039.windowSize();
+            self.containerOffset = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(self.slate.options.container);
             if (self.dken !== null) {
                 self.dken.style.width = `${self.ws.width}px`;
                 self.dken.style.height = `${self.ws.height}px`;
@@ -8785,7 +8861,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         self.completeInit = true;
     }
     cp(e) {
-        const m = e ? $8ab43d25a2892bde$export$2e2bcd8739ae039.mousePos(e) : {
+        const m = e ? $c09005a36c8880c7$export$2e2bcd8739ae039.mousePos(e) : {
             x: 0,
             y: 0
         };
@@ -8801,7 +8877,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         this.slate.options.viewPort.top = Math.abs(coords.y);
         this.internal.style.left = `${coords.x}px`;
         this.internal.style.top = `${coords.y}px`;
-        const curPos = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(this.internal);
+        const curPos = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(this.internal);
         const moved = {
             x: this.Canvas.objInitPos.left - curPos.left,
             y: this.Canvas.objInitPos.top - curPos.top
@@ -8858,7 +8934,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                 self.slate.birdsEye?.refresh(true);
                 opts.callbacks?.during?.apply(pc);
             },
-            easing: $8ab43d25a2892bde$export$2e2bcd8739ae039.easing[opts.easing]
+            easing: $c09005a36c8880c7$export$2e2bcd8739ae039.easing[opts.easing]
         });
     }
     move(_opts) {
@@ -8875,8 +8951,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             easing: 'easeFromTo'
         };
         Object.assign(opts, _opts);
-        let { x: x  } = opts;
-        let { y: y  } = opts;
+        let { x: x , y: y  } = opts;
         if (opts.isAbsolute === false) {
             x = self.slate.options.viewPort.left + x;
             y = self.slate.options.viewPort.top + y;
@@ -8899,7 +8974,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                 self.slate.birdsEye?.refresh(true);
                 opts.callbacks?.during?.apply(pc);
             },
-            easing: $8ab43d25a2892bde$export$2e2bcd8739ae039.easing[opts.easing]
+            easing: $c09005a36c8880c7$export$2e2bcd8739ae039.easing[opts.easing]
         });
         else window.requestAnimationFrame(()=>{
             self.internal.style.left = `${x * -1}px`;
@@ -8909,10 +8984,19 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             opts.callbacks?.after?.apply(self.slate);
         });
     }
+    bbox() {
+        const dimen = $c09005a36c8880c7$export$2e2bcd8739ae039.getDimensions(this.slate.options.container);
+        return {
+            x: Math.abs(this.slate.options.viewPort.top),
+            y: Math.abs(this.slate.options.viewPort.left),
+            width: dimen.width,
+            height: dimen.height
+        };
+    }
     resize(val) {
         const uval = parseInt(val, 10);
         const R = this.slate.options.viewPort.width / uval;
-        const dimen = $8ab43d25a2892bde$export$2e2bcd8739ae039.getDimensions(this.slate.options.container);
+        const dimen = $c09005a36c8880c7$export$2e2bcd8739ae039.getDimensions(this.slate.options.container);
         let _top = this.slate.options.viewPort.top * -1 * R;
         let _left = this.slate.options.viewPort.left * -1 * R;
         const _centerY = (dimen.height / 2 * R - dimen.height / 2) * -1;
@@ -8971,7 +9055,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         }
         function extractImages(__svg) {
             let ssvg = __svg;
-            const images = $5OpyM$lodashuniq(self.slate.nodes.allNodes.map((n)=>n.options.image
+            const images = $i9J9X$lodashuniq(self.slate.nodes.allNodes.map((n)=>n.options.image
             ).filter((f)=>!!f
             ));
             if (images.length > 0) images.forEach((i, ind)=>{
@@ -8989,7 +9073,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                         if (ind + 1 === images.length) finalize(ssvg);
                     });
                 } else // client side only -- good luck with CORS - this method should be avoided
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.toDataUrl(i).then((dataUrl)=>{
+                $c09005a36c8880c7$export$2e2bcd8739ae039.toDataUrl(i).then((dataUrl)=>{
                     ssvg = ssvg.replace(new RegExp(i, 'gi'), dataUrl);
                 }).catch((err)=>{
                     console.error('Unable to get image', err);
@@ -9000,10 +9084,10 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             else finalize(ssvg);
         }
         // always embed fonts and fix links -- a style node is always added in the init
-        $bc0900c2e5cbc8ab$export$2e2bcd8739ae039({
-            fonts: $5OpyM$lodashuniq(self.slate.nodes.allNodes.map((n)=>n.options.fontFamily
+        $587cf398d068430e$export$2e2bcd8739ae039({
+            fonts: $i9J9X$lodashuniq(self.slate.nodes.allNodes.map((n)=>n.options.fontFamily
             )),
-            text: $5OpyM$lodashuniq(self.slate.nodes.allNodes.flatMap((n)=>n.options.text.replace(/ /gi, '').split('')
+            text: $i9J9X$lodashuniq(self.slate.nodes.allNodes.flatMap((n)=>n.options.text.replace(/ /gi, '').split('')
             )).join('').trim(),
             styleNode: self.internal.querySelector('svg > defs > style')
         }).then(()=>{
@@ -9097,9 +9181,9 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
 
 
 
-/* eslint-disable new-cap */ const $d23f550fcae9c4c3$var$availablePlugins = {
+/* eslint-disable new-cap */ const $dc3db6ac99a59a76$var$availablePlugins = {
 };
-class $d23f550fcae9c4c3$export$2e2bcd8739ae039 {
+class $dc3db6ac99a59a76$export$2e2bcd8739ae039 {
     constructor(initPayload){
         // register any plugins
         if (this.constructor.name !== 'plugin') this.registerPlugins(initPayload);
@@ -9107,7 +9191,7 @@ class $d23f550fcae9c4c3$export$2e2bcd8739ae039 {
     registerPlugins(initPayload) {
         const root = this.constructor.name;
         // console.log("registering plugins ", root, base.plugins, base.plugins[root]);
-        if ($d23f550fcae9c4c3$var$availablePlugins[root]) $d23f550fcae9c4c3$var$availablePlugins[root].forEach((p)=>{
+        if ($dc3db6ac99a59a76$var$availablePlugins[root]) $dc3db6ac99a59a76$var$availablePlugins[root].forEach((p)=>{
             const { name: name , plugin: plugin  } = p;
             if (!this.plugins) this.plugins = {
             };
@@ -9118,9 +9202,9 @@ class $d23f550fcae9c4c3$export$2e2bcd8739ae039 {
         if (!details.name || !details.plugin) throw new Error('Plugins must provide a name and a plugin (class definition)');
         const root = Object.getPrototypeOf(details.plugin).name;
         // console.log("creating plugin root ", root);
-        if (!$d23f550fcae9c4c3$var$availablePlugins[root]) $d23f550fcae9c4c3$var$availablePlugins[root] = [];
-        $d23f550fcae9c4c3$var$availablePlugins[root] = [
-            ...$d23f550fcae9c4c3$var$availablePlugins[root],
+        if (!$dc3db6ac99a59a76$var$availablePlugins[root]) $dc3db6ac99a59a76$var$availablePlugins[root] = [];
+        $dc3db6ac99a59a76$var$availablePlugins[root] = [
+            ...$dc3db6ac99a59a76$var$availablePlugins[root],
             details
         ];
     }
@@ -9129,14 +9213,14 @@ class $d23f550fcae9c4c3$export$2e2bcd8739ae039 {
 
 
 
-class $f3f671e190122470$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$2e2bcd8739ae039 {
+class $d70659fe9854f6b3$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$2e2bcd8739ae039 {
     constructor(options){
         super();
         this._lock = null;
         this._openLock = null;
         this.lm = null;
         this.options = {
-            id: $8ab43d25a2892bde$export$2e2bcd8739ae039.guid(),
+            id: $c09005a36c8880c7$export$2e2bcd8739ae039.guid(),
             name: '',
             text: '',
             image: '',
@@ -9183,6 +9267,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
             foregroundColor: '#fff',
             fontSize: 18,
             fontFamily: 'Roboto',
+            shapeHint: 'rectangle',
             vectorPath: '',
             rotate: {
                 rotationAngle: 0
@@ -9376,8 +9461,8 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
             if (json.relationships && json.relationships.associations && json.relationships.associations.forEach) json.relationships.associations.forEach((association)=>{
                 const _pr = association;
                 let _pn = null;
-                self.slate.nodes.allNodes.forEach(($f3f671e190122470$export$2e2bcd8739ae039)=>{
-                    if ($f3f671e190122470$export$2e2bcd8739ae039.options.id === _pr.parentId && self.options.id !== $f3f671e190122470$export$2e2bcd8739ae039.options.id) _pn = $f3f671e190122470$export$2e2bcd8739ae039;
+                self.slate.nodes.allNodes.forEach(($d70659fe9854f6b3$export$2e2bcd8739ae039)=>{
+                    if ($d70659fe9854f6b3$export$2e2bcd8739ae039.options.id === _pr.parentId && self.options.id !== $d70659fe9854f6b3$export$2e2bcd8739ae039.options.id) _pn = $d70659fe9854f6b3$export$2e2bcd8739ae039;
                 });
                 if (_pn) {
                     const _conn = _pn.relationships.addAssociation(self, _pr);
@@ -9480,7 +9565,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
         if (rotationAngle != null) _transforms.push(`r${rotationAngle}, ${bb.cx}, ${bb.cy}`);
         else if (this.options.rotate.rotationAngle) _transforms.push(`r${this.options.rotate.rotationAngle}, ${this.options.rotate.point.x}, ${this.options.rotate.point.y}`);
         tempPath.transform('');
-        const transformPath = $b3c679d5849c9a45$export$2e2bcd8739ae039(tempPath.attr('path').toString(), _transforms);
+        const transformPath = $d2703cad5fa90838$export$2e2bcd8739ae039(tempPath.attr('path').toString(), _transforms);
         tempPath.attr({
             path: transformPath
         });
@@ -9564,7 +9649,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
         dur = dur || 500;
         const _vpt = self.vect.getBBox();
         const zr = self.slate.options.viewPort.zoom.r;
-        const d = $8ab43d25a2892bde$export$2e2bcd8739ae039.getDimensions(self.slate.options.container);
+        const d = $c09005a36c8880c7$export$2e2bcd8739ae039.getDimensions(self.slate.options.container);
         const cw = d.width;
         const ch = d.height;
         const nw = self.options.width * zr;
@@ -9687,7 +9772,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
             const rect = self.vect.getBBox();
             const z = self.slate.options.viewPort.zoom.r;
             const padding = 10;
-            const clr = $8ab43d25a2892bde$export$2e2bcd8739ae039.whiteOrBlack(self.slate.options.containerStyle.backgroundColor);
+            const clr = $c09005a36c8880c7$export$2e2bcd8739ae039.whiteOrBlack(self.slate.options.containerStyle.backgroundColor);
             self.marker = self.slate.paper.rect(rect.x - padding, rect.y - padding, rect.width + padding * 2, rect.height + padding * 2).attr({
                 'stroke-dasharray': '-',
                 fill: clr,
@@ -9850,13 +9935,13 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
 }
 
 
-class $670a391adca558e5$export$2e2bcd8739ae039 {
+class $0de94e735767a57c$export$2e2bcd8739ae039 {
     constructor(slate){
         this.slate = slate;
         this.invoker = null;
         this.pc = slate.collaboration || {
         };
-        if (!$8ab43d25a2892bde$export$2e2bcd8739ae039.localRecipients) $8ab43d25a2892bde$export$2e2bcd8739ae039.localRecipients = [];
+        if (!$c09005a36c8880c7$export$2e2bcd8739ae039.localRecipients) $c09005a36c8880c7$export$2e2bcd8739ae039.localRecipients = [];
         this.wire();
     }
     exe(pkg) {
@@ -9955,7 +10040,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 self.slate.multiSelection.createCopiedNodes(pkg.data.nodeOptions, pkg.data.assocDetails);
                 else {
                     // straight up node addition
-                    const n = new $f3f671e190122470$export$2e2bcd8739ae039(pkg.data.nodeOptions);
+                    const n = new $d70659fe9854f6b3$export$2e2bcd8739ae039(pkg.data.nodeOptions);
                     self.slate.nodes.add(n);
                 }
             },
@@ -9980,7 +10065,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                     associations: pkg.data.associations,
                     animate: true
                 };
-                Object.assign(cn.options, $5OpyM$lodashomit(pkg.data, [
+                Object.assign(cn.options, $i9J9X$lodashomit(pkg.data, [
                     'associations',
                     'textPosition'
                 ]));
@@ -10000,7 +10085,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                     associations: pkg.data.associations,
                     animate: true
                 };
-                Object.assign(cn.options, $5OpyM$lodashomit(pkg.data, 'associations'));
+                Object.assign(cn.options, $i9J9X$lodashomit(pkg.data, 'associations'));
                 cn.rotate.animateSet({
                     ...pkg.data,
                     rotationAngle: pkg.data.rotate.rotationAngle - previousRotationAngle
@@ -10033,7 +10118,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 resetMultiSelect();
                 self.slate.toggleFilters(true, null, true);
                 self.slate.nodes.moveNodes(pkg, {
-                    animate: true
+                    animate: pkg.data.dur > 0
                 });
                 self.slate.birdsEye?.nodeChanged(pkg);
                 self.closeNodeSpecifics(pkg);
@@ -10081,6 +10166,9 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             onSlateThemeChanged (pkg) {
                 self.slate.options.themeId = pkg.data?.theme?._id;
                 if (pkg.data?.theme) self.slate.applyTheme(pkg.data.theme, pkg.data.syncWithTheme);
+            },
+            onSlateLayoutStrategyChanged (pkg) {
+                self.slate.options.layoutStrategy = pkg.data.layoutStrategy;
             },
             onSlateBackgroundEffectChanged (pkg) {
                 self.slate.options.containerStyle.backgroundEffect = pkg.data.effect;
@@ -10165,19 +10253,19 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 self._process(pkg);
             }
         });
-        if (self.pc.localizedOnly) $8ab43d25a2892bde$export$2e2bcd8739ae039.localRecipients.push(self);
+        if (self.pc.localizedOnly) $c09005a36c8880c7$export$2e2bcd8739ae039.localRecipients.push(self);
     }
     _process(pkg) {
         const self = this;
-        if ($8ab43d25a2892bde$export$2e2bcd8739ae039.localRecipients.length > 1) {
+        if ($c09005a36c8880c7$export$2e2bcd8739ae039.localRecipients.length > 1) {
             let _time = 0;
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.localRecipients.forEach((s)=>{
+            $c09005a36c8880c7$export$2e2bcd8739ae039.localRecipients.forEach((s)=>{
                 _time += 10;
                 ((rec, t)=>{
                     setTimeout(()=>{
                         rec.collab.invoke(pkg);
                     }, t);
-                })($8ab43d25a2892bde$export$2e2bcd8739ae039.localRecipients[s], _time);
+                })($c09005a36c8880c7$export$2e2bcd8739ae039.localRecipients[s], _time);
             });
         } else if (self.invoker[pkg.type]) self.invoker[pkg.type](pkg);
         else if (self.pc.onCollaboration) self.pc.onCollaboration({
@@ -10243,7 +10331,8 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
 
 
 
-function $a26df7539d136ffa$export$2e2bcd8739ae039(p, options) {
+
+function $ac8758a7f1503a19$export$2e2bcd8739ae039(p, options) {
     let lx = p.x - 5;
     let tx = p.x + options.width / 2;
     let ty = p.y + options.height / 2;
@@ -10263,7 +10352,7 @@ function $a26df7539d136ffa$export$2e2bcd8739ae039(p, options) {
 
 
 
-class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
+class $eb3767c9e63a8879$export$2e2bcd8739ae039 {
     constructor(slate, node){
         this.slate = slate;
         this.node = node;
@@ -10290,7 +10379,7 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
         if (!ta) ta = this.node.options.textXAlign || 'middle';
         if (!tb) tb = this.node.options.textYAlign || 'middle';
         // ensure text is always legible if it is set to the same as background
-        if (c === this.node.options.backgroundColor) c = $8ab43d25a2892bde$export$2e2bcd8739ae039.whiteOrBlack(this.node.options.backgroundColor);
+        if (c === this.node.options.backgroundColor) c = $c09005a36c8880c7$export$2e2bcd8739ae039.whiteOrBlack(this.node.options.backgroundColor);
         this.node.options.text = t;
         this.node.options.fontSize = s;
         this.node.options.fontFamily = f;
@@ -10342,13 +10431,13 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
             style: noSelect
         });
         if (this.slate.options.autoResizeNodesBasedOnText) {
-            const textDimens = $8ab43d25a2892bde$export$2e2bcd8739ae039.getTextWidth(this.node.options.text, `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`);
+            const textDimens = $c09005a36c8880c7$export$2e2bcd8739ae039.getTextWidth(this.node.options.text, `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`);
             // don't replace text if the shape is alpha, otherwise the intent here is to copy the text
             console.log('textDimens', this.node.options.text, `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`, textDimens.width, textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent);
             let nodebb = this.node.vect.getBBox();
             const widthScalar = (textDimens.width - 20) / nodebb.width;
             const heightScalar = (textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent - 20) / nodebb.height;
-            const scaledVectPath = $65a92514e25c9f85$export$508faed300ccdfb.transformPath(this.node.options.vectorPath, `s${widthScalar}, ${heightScalar}`).toString();
+            const scaledVectPath = $db87f2586597736c$export$508faed300ccdfb.transformPath(this.node.options.vectorPath, `s${widthScalar}, ${heightScalar}`).toString();
             this.node.options.vectorPath = scaledVectPath;
             nodebb = this.node.vect.getBBox();
             this.node.options.width = nodebb.width;
@@ -10373,7 +10462,7 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
 
 
 
-function $3597cac994ae8502$export$2e2bcd8739ae039(pathNode, point) {
+function $c2b1507df4cf6560$export$2e2bcd8739ae039(pathNode, point) {
     const pathLength = pathNode.getTotalLength();
     let precision = 64 // increase this value for better performance at a risk of worse point approximation; in future this should be scaled according to number of path segments (there could be a better solution)
     ;
@@ -10408,7 +10497,7 @@ function $3597cac994ae8502$export$2e2bcd8739ae039(pathNode, point) {
 }
 
 
-function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint) {
+function $37c83d39eaec81ae$export$2e2bcd8739ae039(originPoint, endPoint) {
     const x1 = originPoint.x;
     const y1 = originPoint.y;
     const x2 = endPoint.x;
@@ -10429,7 +10518,7 @@ function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint) {
 }
 
 
-function $11c8f16cfca8adaf$export$2e2bcd8739ae039(opts = {
+function $74ab9006c48ae34d$export$2e2bcd8739ae039(opts = {
 }) {
     const originBB = opts.parent ? opts.parent.vect.getBBox() : opts.parent.vect.getBBox();
     const endBB = opts.child ? opts.child.vect.getBBox() : opts.child.vect.getBBox();
@@ -10533,9 +10622,9 @@ function $11c8f16cfca8adaf$export$2e2bcd8739ae039(opts = {
 }
 
 
-function $f7a6c59624db8286$export$2e2bcd8739ae039({ relationships: relationships , nodes: nodes , dx: dx = 0 , dy: dy = 0 ,  }) {
+function $16aae51a7872bfb0$export$2e2bcd8739ae039({ relationships: relationships , nodes: nodes , dx: dx = 0 , dy: dy = 0 ,  }) {
     relationships.forEach((r)=>{
-        const midPoints = $11c8f16cfca8adaf$export$2e2bcd8739ae039(r);
+        const midPoints = $74ab9006c48ae34d$export$2e2bcd8739ae039(r);
         let tempOriginNode;
         let tempEndNode;
         let linePath;
@@ -10552,11 +10641,11 @@ function $f7a6c59624db8286$export$2e2bcd8739ae039({ relationships: relationships
                 dx: 0,
                 dy: 0
             });
-            const childPathContext = $3597cac994ae8502$export$2e2bcd8739ae039(tempEndNode || r.child.vect, midPoints.parent);
+            const childPathContext = $c2b1507df4cf6560$export$2e2bcd8739ae039(tempEndNode || r.child.vect, midPoints.parent);
             const pointOnChildPath = childPathContext.bestPoint;
-            const parentPathContext = $3597cac994ae8502$export$2e2bcd8739ae039(tempOriginNode || r.parent.vect, pointOnChildPath);
+            const parentPathContext = $c2b1507df4cf6560$export$2e2bcd8739ae039(tempOriginNode || r.parent.vect, pointOnChildPath);
             const pointOnParentPath = parentPathContext.bestPoint;
-            linePath = $e992036a92f1686f$export$2e2bcd8739ae039(pointOnParentPath, pointOnChildPath);
+            linePath = $37c83d39eaec81ae$export$2e2bcd8739ae039(pointOnParentPath, pointOnChildPath);
         } else {
             tempEndNode = r.child.getTempPathWithCorrectPositionFor({
                 pathElement: r.child.vect,
@@ -10569,11 +10658,11 @@ function $f7a6c59624db8286$export$2e2bcd8739ae039({ relationships: relationships
                 dx: 0,
                 dy: 0
             });
-            const childPathContext = $3597cac994ae8502$export$2e2bcd8739ae039(tempEndNode || r.child.vect, midPoints.parent);
+            const childPathContext = $c2b1507df4cf6560$export$2e2bcd8739ae039(tempEndNode || r.child.vect, midPoints.parent);
             const pointOnChildPath = childPathContext.bestPoint;
-            const parentPathContext = $3597cac994ae8502$export$2e2bcd8739ae039(tempOriginNode || r.parent.vect, pointOnChildPath);
+            const parentPathContext = $c2b1507df4cf6560$export$2e2bcd8739ae039(tempOriginNode || r.parent.vect, pointOnChildPath);
             const pointOnParentPath = parentPathContext.bestPoint;
-            linePath = $e992036a92f1686f$export$2e2bcd8739ae039(pointOnParentPath, pointOnChildPath);
+            linePath = $37c83d39eaec81ae$export$2e2bcd8739ae039(pointOnParentPath, pointOnChildPath);
         }
         const _attr = {
             stroke: r.lineColor,
@@ -10613,7 +10702,7 @@ function $f7a6c59624db8286$export$2e2bcd8739ae039({ relationships: relationships
 
 
 
-class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
+class $83a856cccf23a598$export$2e2bcd8739ae039 {
     constructor(slate, node){
         const self = this;
         self.slate = slate;
@@ -10650,7 +10739,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
                             delete self.slate.candidatesForSelection[self.node.options.id];
                             self.slate.multiSelection.remove(self.node);
                         }
-                        $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                        $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                     } else {
                         self.slate.multiSelection.clear();
                         self.slate.candidatesForSelection = {
@@ -10683,7 +10772,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             if (self.node?.options.groupId) self.slate.multiSelection.showGroup(self.node?.options.groupId);
             self.node.menu.show();
         }
-        $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+        $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
     }
     finishDrag(blnBroadcast) {
         const self = this;
@@ -10691,12 +10780,12 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         self.selectedNodes.forEach((nd)=>{
             // the transformPath here converts the transient transforms that happened during the movement
             // to become permanent on the "attr" properties.
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.transformPath(nd, `T${self._dx},${self._dy}`);
+            $c09005a36c8880c7$export$2e2bcd8739ae039.transformPath(nd, `T${self._dx},${self._dy}`);
             nd.vect.currentDx = 0;
             nd.vect.currentDy = 0;
             nd.editor.setTextOffset();
         });
-        $f7a6c59624db8286$export$2e2bcd8739ae039({
+        $16aae51a7872bfb0$export$2e2bcd8739ae039({
             relationships: self.relationshipsToRefresh,
             nodes: self.selectedNodes,
             dx: 0,
@@ -10767,7 +10856,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             dx: dx,
             dy: dy
         });
-        $f7a6c59624db8286$export$2e2bcd8739ae039({
+        $16aae51a7872bfb0$export$2e2bcd8739ae039({
             relationships: self.relationshipsToRefresh,
             nodes: self.selectedNodes,
             dx: dx,
@@ -10783,7 +10872,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
     _hitTest(mp) {
         const self = this;
         let overNode = null;
-        const off = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(self.slate.options.container);
+        const off = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(self.slate.options.container);
         self.slate.nodes.allNodes.forEach((nd)=>{
             if (nd.options.id !== self.slate.tempNodeId && nd.options.id !== self.node.options.id && nd.options.allowContext && nd.options.allowResize) {
                 const _bb = nd.vect.getBBox();
@@ -10843,23 +10932,23 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
                     ]
                 })
             );
-            self.kdTree = $5OpyM$statickdtree(self.foreignPoints.map((fp)=>fp.point
+            self.kdTree = $i9J9X$statickdtree(self.foreignPoints.map((fp)=>fp.point
             ));
             self.conditionallyHideAll();
-        } else $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+        } else $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
     }
     async initiateTempNode(e, _parent, _assocPkg) {
         const self = this;
-        const mp = $8ab43d25a2892bde$export$2e2bcd8739ae039.mousePos(e);
+        const mp = $c09005a36c8880c7$export$2e2bcd8739ae039.mousePos(e);
         const _slate = _parent.slate;
-        const off = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(_slate.options.container);
+        const off = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(_slate.options.container);
         const _zr = self.slate.options.viewPort.zoom.r;
         const xp = _slate.options.viewPort.left + mp.x - off.left;
         const yp = _slate.options.viewPort.top + mp.y - off.top;
         const _xPos = xp + (xp / _zr - xp);
         const _yPos = yp + (yp / _zr - yp);
-        const _path = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath($699224fae48c351a$export$2e2bcd8739ae039.icons.handle, `T${_xPos - 15}, ${_yPos - 15}`);
-        const _tempNode = new $f3f671e190122470$export$2e2bcd8739ae039({
+        const _path = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath($2197852bc26081e6$export$2e2bcd8739ae039.icons.handle, `T${_xPos - 15}, ${_yPos - 15}`);
+        const _tempNode = new $d70659fe9854f6b3$export$2e2bcd8739ae039({
             id: self.slate.tempNodeId,
             xPos: _xPos,
             yPos: _yPos,
@@ -10880,7 +10969,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         _tempNode.vect.mousemove((ex)=>{
             // is there a current hit?
             if (_tempRelationship.hoveredOver === null) {
-                _tempRelationship.hoveredOver = self._hitTest($8ab43d25a2892bde$export$2e2bcd8739ae039.mousePos(ex));
+                _tempRelationship.hoveredOver = self._hitTest($c09005a36c8880c7$export$2e2bcd8739ae039.mousePos(ex));
                 if (_tempRelationship.hoveredOver !== null) // yes, currently over a node -- scale it
                 _tempRelationship.hoveredOver.vect.animate({
                     'stroke-width': 5
@@ -10896,7 +10985,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         _tempNode.vect.mouseup((ex)=>{
             _parent.relationships.removeAssociation(_tempNode);
             _tempNode.slate.nodes.remove(_tempNode);
-            const overNode = self._hitTest($8ab43d25a2892bde$export$2e2bcd8739ae039.mousePos(ex));
+            const overNode = self._hitTest($c09005a36c8880c7$export$2e2bcd8739ae039.mousePos(ex));
             if (overNode !== null) {
                 // overNode.vect.transform("s1,1,");
                 // check if overNode has any parents
@@ -10954,12 +11043,12 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         );
         if (!_connection) {
             const _copts = {
-                id: $8ab43d25a2892bde$export$2e2bcd8739ae039.guid(),
+                id: $c09005a36c8880c7$export$2e2bcd8739ae039.guid(),
                 parent: this.node,
                 child: _node,
                 lineColor: assocPkg.lineColor || this.node.options.lineColor,
                 lineWidth: assocPkg.lineWidth || this.node.options.lineWidth,
-                lineOpacity: assocPkg.lineOpacity || this.node.options.lineOpacity,
+                lineOpacity: assocPkg.lineOpacity != null ? assocPkg.lineOpacity : this.node.options.lineOpacity,
                 lineEffect: assocPkg.lineEffect || this.node.options.lineEffect,
                 blnStraight: assocPkg.isStraightLine || false,
                 showParentArrow: assocPkg.showParentArrow || false,
@@ -11008,9 +11097,9 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             y: 200
         };
         if (!association.line) Object.assign(association, {
-            line: paper.path($e992036a92f1686f$export$2e2bcd8739ae039(origPoint, endPoint)).attr(_attr)
+            line: paper.path($37c83d39eaec81ae$export$2e2bcd8739ae039(origPoint, endPoint)).attr(_attr)
         });
-        if (association.child && association.parent) $f7a6c59624db8286$export$2e2bcd8739ae039({
+        if (association.child && association.parent) $16aae51a7872bfb0$export$2e2bcd8739ae039({
             relationships: [
                 association
             ],
@@ -11031,7 +11120,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         if (self.node.options.allowMenu) {
             c.line.node.style.cursor = 'pointer';
             c.line.mousedown((e)=>{
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 self.node.lineOptions.show(e, c);
             });
             self.slate?.grid.toBack();
@@ -11123,7 +11212,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         if (this._isLastAlt && this._isLastShift || _blnOverride) this._visibility('show');
     }
     refreshOwnRelationships() {
-        $f7a6c59624db8286$export$2e2bcd8739ae039({
+        $16aae51a7872bfb0$export$2e2bcd8739ae039({
             relationships: this.associations,
             nodes: [
                 this.node
@@ -11157,7 +11246,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
 
 
 
-class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
+class $153ebcbc4f900f73$export$2e2bcd8739ae039 {
     static getRotationAngle(origPoint, newPoint, centerPoint) {
         const vx = origPoint.x - centerPoint.x;
         const vy = origPoint.y - centerPoint.y;
@@ -11254,7 +11343,7 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
                         ]
                     })
                 );
-                self.kdTree = $5OpyM$statickdtree(self.foreignPoints.map((fp)=>fp.point
+                self.kdTree = $i9J9X$statickdtree(self.foreignPoints.map((fp)=>fp.point
                 ));
                 self.node.setStartDrag();
                 self.node.connectors.remove();
@@ -11294,7 +11383,7 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
           and the function will return an undefined angle.
     
           The returned angle is converted to degrees and is between -180 and 180.
-          */ self.rotationAngle = $b7b1bd055547e2ce$export$2e2bcd8739ae039.getRotationAngle({
+          */ self.rotationAngle = $153ebcbc4f900f73$export$2e2bcd8739ae039.getRotationAngle({
                         x: s.ox,
                         y: s.oy
                     }, {
@@ -11370,7 +11459,7 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
                 y: y - 5
             });
             let rotatePathBB = self.rotate.getBBox();
-            const rotatePathString = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(self.rotate.attr('path'), `T${x - rotatePathBB.x - 15},${y - rotatePathBB.y - 15}`);
+            const rotatePathString = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath(self.rotate.attr('path'), `T${x - rotatePathBB.x - 15},${y - rotatePathBB.y - 15}`);
             self.rotate.attr({
                 path: rotatePathString
             });
@@ -11470,7 +11559,7 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
 
 
 
-class $4026fc4adb3b1376$export$2e2bcd8739ae039 {
+class $481ed38b48fbf8a1$export$2e2bcd8739ae039 {
     constructor(slate, node){
         this.slate = slate;
         this.node = node;
@@ -11484,7 +11573,7 @@ class $4026fc4adb3b1376$export$2e2bcd8739ae039 {
         const self = this;
         const r = self.slate.paper;
         if (self._m) {
-            $5OpyM$lodashinvoke(self._m, 'remove');
+            $i9J9X$lodashinvoke(self._m, 'remove');
             self._m = null;
         }
         const bb = self.node.vect.getBBox();
@@ -11517,7 +11606,7 @@ class $4026fc4adb3b1376$export$2e2bcd8739ae039 {
 
 
 
-class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
+class $d1ac19fab569a7ad$export$2e2bcd8739ae039 {
     constructor(slate, node){
         this.slate = slate;
         this.node = node;
@@ -11646,14 +11735,14 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
             if (self.buttons.setting) self.buttons.setting[eventType]((e)=>{
                 self.slate.unglow();
                 onSettingsClicked.apply(self);
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 // self.remove();
                 if (self.slate.multiSelection) self.slate.multiSelection.end();
                 if (self.node.context) self.node.context.remove();
                 if (self.node.links) self.node.links.unset();
             });
             if (self.buttons.unPinned) self.buttons.unPinned[eventType](function unp(e) {
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 this.loop();
                 self.slate.unglow();
                 self.node.connectors?.addNode();
@@ -11662,7 +11751,7 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
             });
             if (self.buttons.trash) self.buttons.trash[eventType]((e)=>{
                 const gid = self.node.options.groupId;
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 self.node.del();
                 self.slate.unglow();
                 const delPkg = {
@@ -11678,7 +11767,7 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
                 self.slate.multiSelection.showGroup(gid);
             });
             if (self.buttons.handle) self.buttons.handle[eventType]((e)=>{
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 self.slate.unglow();
                 self.node.relationships.initiateTempNode(e, self.node, true);
             });
@@ -11726,9 +11815,9 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
     }
     createNode(skipCenter, options, targetXPos, targetYPos, doBroadcast) {
         const self = this;
-        const newNode = new $f3f671e190122470$export$2e2bcd8739ae039(options);
+        const newNode = new $d70659fe9854f6b3$export$2e2bcd8739ae039(options);
         self.slate.nodes.add(newNode);
-        $8ab43d25a2892bde$export$2e2bcd8739ae039.transformPath(newNode, `T${targetXPos - newNode.options.xPos}, ${targetYPos - newNode.options.yPos}`);
+        $c09005a36c8880c7$export$2e2bcd8739ae039.transformPath(newNode, `T${targetXPos - newNode.options.xPos}, ${targetYPos - newNode.options.yPos}`);
         newNode.options.xPos = targetXPos;
         newNode.options.yPos = targetYPos;
         newNode.editor.set();
@@ -11769,7 +11858,7 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
         // otherwise the snapshot contains the previous id, and the node contains
         // the new id -- and the broadcast of the snap for collaboration causes
         // the old id to be assigned to the new node, created duplicate nodes with the same id
-        const newId = $8ab43d25a2892bde$export$2e2bcd8739ae039.guid();
+        const newId = $c09005a36c8880c7$export$2e2bcd8739ae039.guid();
         // let snapNode = _snap.nodes.allNodes.find((n) => n.options.id === options.id)
         // console.log(
         //   'found snapNode',
@@ -11839,7 +11928,7 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
                 //   base.width,
                 //   base.height
                 // )
-                if (base) Object.assign(options, $5OpyM$lodashomit(base, 'vectorPath'));
+                if (base) Object.assign(options, $i9J9X$lodashomit(base, 'vectorPath'));
             }
             return self.createNode(skipCenter, options, targetXPos, targetYPos, true);
         });
@@ -11853,7 +11942,7 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
 
 
 
-class $e4a210c2d8385465$export$2e2bcd8739ae039 {
+class $a7cd8c5030694da2$export$2e2bcd8739ae039 {
     constructor(slate, node){
         const self = this;
         self.slate = slate;
@@ -11930,7 +12019,7 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
                         ]
                     })
                 );
-                self.kdTree = $5OpyM$statickdtree(self.foreignPoints.map((fp)=>fp.point
+                self.kdTree = $i9J9X$statickdtree(self.foreignPoints.map((fp)=>fp.point
                 ));
                 self.node.relationships.conditionallyHideAll();
                 self.slate.toggleFilters(false);
@@ -12046,7 +12135,7 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
         if (self.node.options.allowResize) {
             self.resizeTemp?.remove();
             const r = self.slate.paper;
-            const resizePath = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath($699224fae48c351a$export$2e2bcd8739ae039.icons.resize, `t${x - 5},${y - 5} r95`);
+            const resizePath = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath($2197852bc26081e6$export$2e2bcd8739ae039.icons.resize, `t${x - 5},${y - 5} r95`);
             self.resize = r.path(resizePath).attr({
                 fill: '#fff',
                 stroke: '#000'
@@ -12093,13 +12182,13 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
                 )
             }
         };
-        const currentRotationPoint = $5OpyM$lodashclone(this.node.options.rotate.point);
+        const currentRotationPoint = $i9J9X$lodashclone(this.node.options.rotate.point);
         this.slate.birdsEye?.nodeChanged(pkg);
         this.node.options.rotate.point = currentRotationPoint;
         this.slate.collab?.send(pkg);
     }
     lazySend() {
-        $5OpyM$lodashthrottle(this.send, 700);
+        $i9J9X$lodashthrottle(this.send, 700);
     }
     animateSet(data, opts) {
         const self = this;
@@ -12133,7 +12222,7 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
         const self = this;
         let pathWithPotentialTransformations = self.node.vect.attr('path').toString();
         if (opts.getRotationPoint) self.origPoint = self.node.options.rotate.point;
-        if (self.origPoint && Object.entries(self.origPoint).length > 0 && self.node.options.rotate.rotationAngle > 0) pathWithPotentialTransformations = $65a92514e25c9f85$export$508faed300ccdfb.transformPath(pathWithPotentialTransformations, `R${self.node.options.rotate.rotationAngle}, ${self.origPoint.x}, ${self.origPoint.y}`);
+        if (self.origPoint && Object.entries(self.origPoint).length > 0 && self.node.options.rotate.rotationAngle > 0) pathWithPotentialTransformations = $db87f2586597736c$export$508faed300ccdfb.transformPath(pathWithPotentialTransformations, `R${self.node.options.rotate.rotationAngle}, ${self.origPoint.x}, ${self.origPoint.y}`);
         self.node.vect.transform('');
         self.node.text.transform('');
         self.node.vect.attr({
@@ -12160,12 +12249,12 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
             self.node.options.height = self._minHeight;
         }
         const scaleTransform = `s${widthScalar}, ${heightScalar}`;
-        const scaledVectPath = $65a92514e25c9f85$export$508faed300ccdfb.transformPath(self.node.vect.attr('path').toString(), scaleTransform).toString();
+        const scaledVectPath = $db87f2586597736c$export$508faed300ccdfb.transformPath(self.node.vect.attr('path').toString(), scaleTransform).toString();
         pathWithPotentialTransformations = scaledVectPath;
         self.node.vect.attr({
             path: scaledVectPath
         });
-        if (self.origPoint && Object.entries(self.origPoint).length > 0 && self.node.options.rotate.rotationAngle > 0) pathWithPotentialTransformations = $65a92514e25c9f85$export$508faed300ccdfb.transformPath(pathWithPotentialTransformations, `R${-self.node.options.rotate.rotationAngle}, ${self.origPoint.x}, ${self.origPoint.y}`).toString();
+        if (self.origPoint && Object.entries(self.origPoint).length > 0 && self.node.options.rotate.rotationAngle > 0) pathWithPotentialTransformations = $db87f2586597736c$export$508faed300ccdfb.transformPath(pathWithPotentialTransformations, `R${-self.node.options.rotate.rotationAngle}, ${self.origPoint.x}, ${self.origPoint.y}`).toString();
         self.node.vect.attr({
             path: pathWithPotentialTransformations
         });
@@ -12204,7 +12293,7 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
 
 
 
-class $5eeb98f61b0ae057$export$2e2bcd8739ae039 {
+class $fcb214a7591c9017$export$2e2bcd8739ae039 {
     constructor(slate, node){
         this.slate = slate;
         this.node = node;
@@ -12288,7 +12377,7 @@ class $5eeb98f61b0ae057$export$2e2bcd8739ae039 {
 
 
 
-class $5559a0452b57ea40$export$2e2bcd8739ae039 {
+class $ab50f45f60e457ee$export$2e2bcd8739ae039 {
     constructor(slate, node){
         this.slate = slate;
         this.node = node;
@@ -12300,16 +12389,16 @@ class $5559a0452b57ea40$export$2e2bcd8739ae039 {
         let _path = '';
         switch(pkg.shape){
             case 'ellipse':
-                _path = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(`M${this.node.options.xPos + 75},${this.node.options.yPos + 50} m -75,0 a75,50 0 1,0 150,0 a 75,50 0 1,0 -150,0Z`);
+                _path = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath(`M${this.node.options.xPos + 75},${this.node.options.yPos + 50} m -75,0 a75,50 0 1,0 150,0 a 75,50 0 1,0 -150,0Z`);
                 this.node.options.isEllipse = true;
                 break;
             case 'rect':
-                if (pkg.rx > 0) _path = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(`M${this.node.options.xPos},${this.node.options.yPos} h130 a10,10 0 0 1 10,10 v80 a10,10 0 0 1 -10,10 h-130 a10,10 0 0 1 -10,-10 v-80 a10,10 0 0 1 10,-10 z`);
-                else _path = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(`M${this.node.options.xPos},${this.node.options.yPos} h150 v100 h-150 v-100 z`);
+                if (pkg.rx > 0) _path = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath(`M${this.node.options.xPos},${this.node.options.yPos} h130 a10,10 0 0 1 10,10 v80 a10,10 0 0 1 -10,10 h-130 a10,10 0 0 1 -10,-10 v-80 a10,10 0 0 1 10,-10 z`);
+                else _path = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath(`M${this.node.options.xPos},${this.node.options.yPos} h150 v100 h-150 v-100 z`);
                 this.node.options.isEllipse = false;
                 break;
             default:
-                _path = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(pkg.shape, `T${this.node.options.xPos},${this.node.options.yPos}`);
+                _path = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath(pkg.shape, `T${this.node.options.xPos},${this.node.options.yPos}`);
                 this.node.options.isEllipse = false;
                 break;
         }
@@ -12363,7 +12452,7 @@ class $5559a0452b57ea40$export$2e2bcd8739ae039 {
 
 
 
-class $d85238a851587679$export$2e2bcd8739ae039 {
+class $60ff234bef37cf38$export$2e2bcd8739ae039 {
     constructor(slate, node){
         this.slate = slate;
         this.node = node;
@@ -12373,7 +12462,7 @@ class $d85238a851587679$export$2e2bcd8739ae039 {
         if (width && height) {
             // calculate the scale of the path
             const scale = Math.max(this.node.options.width, this.node.options.height) / Math.max(width, height);
-            upath = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(path, [
+            upath = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath(path, [
                 's',
                 scale,
                 ',',
@@ -12388,7 +12477,7 @@ class $d85238a851587679$export$2e2bcd8739ae039 {
 }
 
 
-class $237ec92496b6da7e$export$2e2bcd8739ae039 {
+class $4c688f6798a93fae$export$2e2bcd8739ae039 {
     constructor(slate, node){
         this.slate = slate;
         this.node = node;
@@ -12416,7 +12505,7 @@ class $237ec92496b6da7e$export$2e2bcd8739ae039 {
 
 
 
-class $fc4b2653e376d71c$export$2e2bcd8739ae039 {
+class $f3109bf87f06806c$export$2e2bcd8739ae039 {
     constructor(slate, node){
         this.slate = slate;
         this.node = node;
@@ -12431,7 +12520,7 @@ class $fc4b2653e376d71c$export$2e2bcd8739ae039 {
         setTimeout(()=>{
             this.node.options.allowDrag = this._priorAllowDrag;
         }, 2);
-        return $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+        return $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
     }
     create() {
         if (this.node.text && this.node.text.node && this.node.options.allowContext && !this.node.slate.isAlt && !this.node.slate.isShift) {
@@ -12458,7 +12547,7 @@ class $fc4b2653e376d71c$export$2e2bcd8739ae039 {
     setContext(e) {
         const self = this;
         this._contextMenu.innerHTML = this.menuItems();
-        const all = $8ab43d25a2892bde$export$2e2bcd8739ae039.select('div.contextMenuItem');
+        const all = $c09005a36c8880c7$export$2e2bcd8739ae039.select('div.contextMenuItem');
         for(let s = all.length; s < all.length; s += 1){
             const elem = all[s];
             elem.onclick = ()=>{
@@ -12517,7 +12606,7 @@ class $fc4b2653e376d71c$export$2e2bcd8739ae039 {
                 this.remove();
             };
         }
-        const mp = $8ab43d25a2892bde$export$2e2bcd8739ae039.mousePos(e);
+        const mp = $c09005a36c8880c7$export$2e2bcd8739ae039.mousePos(e);
         const _x = mp.x;
         const _y = mp.y;
         this._contextMenu.style.left = `${_x}px`;
@@ -12541,7 +12630,7 @@ class $fc4b2653e376d71c$export$2e2bcd8739ae039 {
 
 
 
-class $8315835c374f6be2$export$2e2bcd8739ae039 {
+class $91c49a65b5f923ca$export$2e2bcd8739ae039 {
     constructor(slate, node){
         this.slate = slate;
         this.node = node;
@@ -12558,7 +12647,7 @@ class $8315835c374f6be2$export$2e2bcd8739ae039 {
         else this.node.options[pkg.prop] = pkg.val;
         if (pkg.val === 'toggle') a[pkg.prop] = a[pkg.prop] ? (pkg.prop, false) : true;
         else a[pkg.prop] = pkg.val;
-        $f7a6c59624db8286$export$2e2bcd8739ae039({
+        $16aae51a7872bfb0$export$2e2bcd8739ae039({
             relationships: [
                 a
             ],
@@ -12574,8 +12663,8 @@ class $8315835c374f6be2$export$2e2bcd8739ae039 {
         const a = self.node.relationships.associations.find((ax)=>ax.id === c.id
         );
         const r = self.slate.paper;
-        const mp = $8ab43d25a2892bde$export$2e2bcd8739ae039.mousePos(e);
-        const off = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(self.slate.options.container);
+        const mp = $c09005a36c8880c7$export$2e2bcd8739ae039.mousePos(e);
+        const off = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(self.slate.options.container);
         const z = self.slate.options.viewPort.zoom.r;
         const opacity = '1.0';
         let x = (mp.x + self.slate.options.viewPort.left - off.left - 90) / z;
@@ -12612,17 +12701,17 @@ class $8315835c374f6be2$export$2e2bcd8739ae039 {
         toolbar.forEach((toolbarElem)=>{
             toolbarElem.mouseover(function g() {
                 toolbarGlows.push(this.glow());
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
             });
             toolbarElem.mouseout(()=>{
                 toolbarGlows.forEach((t)=>{
                     t.remove();
                 });
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
             });
         });
         if (props) props.mousedown((ex)=>{
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(ex);
+            $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(ex);
             toolbarGlows.forEach((t)=>{
                 t.remove();
             });
@@ -12639,7 +12728,7 @@ class $8315835c374f6be2$export$2e2bcd8739ae039 {
             toolbarGlows.forEach((t)=>{
                 t.remove();
             });
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(ex);
+            $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(ex);
             if (self.slate.options.enabled) {
                 const pkg = {
                     type: 'removeRelationship',
@@ -12673,7 +12762,7 @@ class $8315835c374f6be2$export$2e2bcd8739ae039 {
     }
     hide(id) {
         if (this.m[id]) {
-            $5OpyM$lodashinvoke(this.m[id], 'remove');
+            $i9J9X$lodashinvoke(this.m[id], 'remove');
             this.m[id] = null;
         }
     }
@@ -12689,7 +12778,7 @@ class $8315835c374f6be2$export$2e2bcd8739ae039 {
 
 
 
-class $9b98dd62c2bf15e9$export$2e2bcd8739ae039 {
+class $ad25bb61235aed3a$export$2e2bcd8739ae039 {
     constructor(slate, node){
         this.slate = slate;
         this.node = node;
@@ -12729,7 +12818,7 @@ class $9b98dd62c2bf15e9$export$2e2bcd8739ae039 {
         let pinnedY = false;
         let pinnedX = false;
         const nbb = self.node.vect.getBBox();
-        self.guideAttrs.stroke = $8ab43d25a2892bde$export$2e2bcd8739ae039.whiteOrBlack(self.slate.options.containerStyle.backgroundColor);
+        self.guideAttrs.stroke = $c09005a36c8880c7$export$2e2bcd8739ae039.whiteOrBlack(self.slate.options.containerStyle.backgroundColor);
         // RIGHT VERTICAL LINE boundary
         if (nbb.x - bb.x2 < guideVisibleAt && nbb.x - bb.x2 >= 0 || bb.x2 - nbb.x2 < guideVisibleAt && bb.x2 - nbb.x2 >= 0) {
             if (!self.guideLines.rightVerticals[id]) self.guideLines.rightVerticals[id] = self.slate.paper.path(`M ${bb.x2} ${bb.y - self.guideWings} L ${bb.x2} ${bb.y2 + self.guideWings}`).attr(self.guideAttrs);
@@ -12792,7 +12881,7 @@ class $9b98dd62c2bf15e9$export$2e2bcd8739ae039 {
 }
 
 
-class $c50ee1f3453cea79$export$2e2bcd8739ae039 {
+class $9b4fe9d080edff94$export$2e2bcd8739ae039 {
     constructor(slate, node){
         this.slate = slate;
         this.node = node;
@@ -12847,7 +12936,7 @@ class $c50ee1f3453cea79$export$2e2bcd8739ae039 {
 }
 
 
-class $20194a860b77746c$export$2e2bcd8739ae039 {
+class $078ffda75962dda9$export$2e2bcd8739ae039 {
     constructor(slate){
         this.slate = slate;
         this.ensureBe = null;
@@ -12902,8 +12991,135 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             cn.rotate.applyImageRotation(opts);
         // }
         });
-        $5OpyM$lodashinvoke(self.allNodes.map((n)=>n.relationships
+        $i9J9X$lodashinvoke(self.allNodes.map((n)=>n.relationships
         ), 'refresh');
+    }
+    packageLayout() {
+        const self = this;
+        // package up all the unique associations and the width/height of every node
+        let associations = self.allNodes.map((nx)=>nx.relationships.associations.map((a)=>{
+                return {
+                    parentId: a.parent.options.id,
+                    childId: a.child.options.id,
+                    lineWidth: a.lineWidth,
+                    lineOpacity: a.lineOpacity,
+                    showParentArrow: a.showParentArrow,
+                    showChildArrow: a.showChildArrow
+                };
+            })
+        ).flat();
+        const nodes = {
+        };
+        self.allNodes.forEach((nx)=>{
+            if (!nodes[nx.options.id]) nodes[nx.options.id] = {
+                width: nx.options.width,
+                height: nx.options.height,
+                shape: nx.options.shapeHint || 'rectangle',
+                color: nx.options.backgroundColor,
+                textColor: nx.options.foregroundColor,
+                text: nx.options.text,
+                groupId: nx.options.groupId
+            };
+        });
+        const subgraphs = {
+        };
+        self.allNodes.forEach((nx)=>{
+            if (!subgraphs[nx.options.groupId]) subgraphs[nx.options.groupId] = [];
+            subgraphs[nx.options.groupId].push(nx.options.id);
+        });
+        return {
+            associations: associations,
+            nodes: nodes,
+            uniqueIds: Object.keys(nodes),
+            subgraphs: subgraphs
+        };
+    }
+    applyLayout(layout, cb) {
+        const self = this;
+        console.log('received layout', layout);
+        /*
+    "exportNodes": {
+      "010C580B": {
+        "x": "279.5",
+        "y": "322"
+      },
+      "ad79211ead0a": {
+        "x": "183.5",
+        "y": "186"
+      },
+      "c2134651593b": {
+        "x": "376.5",
+        "y": "186"
+      },
+      "0bad6428b74a": {
+        "x": "87.5",
+        "y": "50"
+      },
+      "2aab8002c94c": {
+        "x": "280.5",
+        "y": "50"
+      }
+    }
+    */ const orient = self.slate.getOrientation(null, true) // - always pin to no zoom (1)
+        ;
+        const allMoves = [];
+        self.allNodes.forEach((n, i)=>{
+            if (layout.exportNodes[n.options.id]) {
+                let { x: x , y: y  } = layout.exportNodes[n.options.id];
+                x = parseFloat(x);
+                y = parseFloat(y);
+                // console.log(
+                //   'target aquired',
+                //   n.options.id,
+                //   x,
+                //   y,
+                //   x * -2 + x,
+                //   y * -2 + y,
+                //   n.options.xPos,
+                //   n.options.yPos
+                // )
+                allMoves.push({
+                    id: n.options.id,
+                    x: orient.left - x - n.options.xPos + orient.width,
+                    y: orient.top - y - n.options.yPos + orient.height
+                });
+            }
+        });
+        let batchSize = 6;
+        if (self.allNodes.length > 25) batchSize = 12;
+        if (layout.allAtOnce) batchSize = 1;
+        const batches = $c09005a36c8880c7$export$2e2bcd8739ae039.chunk($i9J9X$lodashclonedeep(allMoves), Math.ceil(allMoves.length / batchSize));
+        // console.log(
+        //   'received layout2',
+        //   batchSize,
+        //   allMoves.length,
+        //   self.allNodes.length,
+        //   batches.length
+        // )
+        const sendMove = (batch)=>{
+            let dur = 300;
+            if (self.allNodes.length > 25 || layout.allAtOnce) dur = 0;
+            const pkg = self.slate.nodes.nodeMovePackage({
+                dur: dur,
+                moves: batch
+            });
+            self.slate.collab?.exe({
+                type: 'onNodesMove',
+                data: pkg
+            });
+            if (batches.length > 0) setTimeout(()=>{
+                sendMove(batches.pop());
+            }, 250);
+            else {
+                if (layout.skipCenter) self.slate.controller.centerOnNodes({
+                    dur: 500
+                });
+                else self.slate.controller.scaleToFitAndCenter();
+                cb && cb();
+            }
+        };
+        // kick it off
+        sendMove(batches.pop());
     }
     addRange(_nodes) {
         const self = this;
@@ -12915,7 +13131,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
     removeRange(_nodes) {
         const self = this;
         _nodes.forEach((node)=>{
-            self.allNodes = $20194a860b77746c$export$2e2bcd8739ae039.remove(self.allNodes, node);
+            self.allNodes = $078ffda75962dda9$export$2e2bcd8739ae039.remove(self.allNodes, node);
         });
         return self;
     }
@@ -12937,7 +13153,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             nodes
         ];
         nodes.forEach((node)=>{
-            self.allNodes = $20194a860b77746c$export$2e2bcd8739ae039.remove(self.allNodes, node);
+            self.allNodes = $078ffda75962dda9$export$2e2bcd8739ae039.remove(self.allNodes, node);
             node.slate = null;
             self.removeFromCanvas(node);
         });
@@ -12951,13 +13167,13 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         // for the calculations below, and those calcs are mutable, so they
         // cannot be applied to the current slate.
         let _use = this.slate;
-        let _divCopy = null;
+        let divCopy = null;
         if (opts && opts.moves) {
-            _divCopy = document.createElement('div');
-            const _did = `copy_${$8ab43d25a2892bde$export$2e2bcd8739ae039.guid()}`;
-            _divCopy.setAttribute('id', _did);
-            _divCopy.setAttribute('style', `width:1px;height:1px;display:none;`);
-            document.body.appendChild(_divCopy);
+            divCopy = document.createElement('div');
+            const _did = `copy_${$c09005a36c8880c7$export$2e2bcd8739ae039.guid()}`;
+            divCopy.setAttribute('id', _did);
+            divCopy.setAttribute('style', `width:1px;height:1px;display:none;`);
+            document.body.appendChild(divCopy);
             _use = this.slate.copy({
                 container: _did,
                 moves: opts.moves
@@ -12999,11 +13215,11 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                         });
                     });
                 });
-                return $5OpyM$lodashuniq(assoc, (a)=>a.id
+                return $i9J9X$lodashuniq(assoc, (a)=>a.id
                 );
             })()
         };
-        if (_divCopy) document.removeChild(_divCopy);
+        if (divCopy) document.body.removeChild(divCopy);
         return _ret;
     }
     moveNodes(pkg, options = {
@@ -13017,7 +13233,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                 allAssoc.push(a);
             });
         });
-        const uniqAssoc = $5OpyM$lodashuniq(allAssoc, (a)=>a.id
+        const uniqAssoc = $i9J9X$lodashuniq(allAssoc, (a)=>a.id
         );
         const p = pkg.data || pkg;
         const d = p.dur || 300 // Meteor.collabAnimationDuration ||
@@ -13037,7 +13253,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             );
             if (nodeObject) {
                 Object.assign(nodeObject.options, opts);
-                const dps = $a26df7539d136ffa$export$2e2bcd8739ae039({
+                const dps = $ac8758a7f1503a19$export$2e2bcd8739ae039({
                     x: opts.xPos,
                     y: opts.yPos
                 }, nodeObject.options);
@@ -13140,7 +13356,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
     }
     saveRelationships(relationships, { dx: dx , dy: dy  }) {
         relationships.forEach((r)=>{
-            const newLinePath = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(r.line.attr('path').toString(), `T${dx},${dy}`).toString();
+            const newLinePath = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath(r.line.attr('path').toString(), `T${dx},${dy}`).toString();
             r.line.attr({
                 path: newLinePath
             });
@@ -13239,13 +13455,13 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         _node.options.isEllipse = _node.options.isEllipse || _node.options.vectorPath === 'ellipse';
         switch(_node.options.vectorPath){
             case 'ellipse':
-                _node.options.vectorPath = $b3c679d5849c9a45$export$2e2bcd8739ae039('M150,50 a75,50 0 1,1 0,-1 z', _transforms);
+                _node.options.vectorPath = $d2703cad5fa90838$export$2e2bcd8739ae039('M150,50 a75,50 0 1,1 0,-1 z', _transforms);
                 break;
             case 'rectangle':
-                _node.options.vectorPath = $b3c679d5849c9a45$export$2e2bcd8739ae039('M1,1 h150 v100 h-150 v-100 z', _transforms);
+                _node.options.vectorPath = $d2703cad5fa90838$export$2e2bcd8739ae039('M1,1 h150 v100 h-150 v-100 z', _transforms);
                 break;
             case 'roundedrectangle':
-                _node.options.vectorPath = $b3c679d5849c9a45$export$2e2bcd8739ae039('M1,1 h130 a10,10 0 0 1 10,10 v80 a10,10 0 0 1 -10,10 h-130 a10,10 0 0 1 -10,-10 v-80 a10,10 0 0 1 10,-10 z', _transforms);
+                _node.options.vectorPath = $d2703cad5fa90838$export$2e2bcd8739ae039('M1,1 h130 a10,10 0 0 1 10,10 v80 a10,10 0 0 1 -10,10 h-130 a10,10 0 0 1 -10,-10 v-80 a10,10 0 0 1 10,-10 z', _transforms);
                 break;
             default:
                 break;
@@ -13286,7 +13502,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             cursor: 'pointer'
         });
         // create and set editor
-        _node.editor = new $61e5ba2c77a639d8$export$2e2bcd8739ae039(this.slate, _node);
+        _node.editor = new $eb3767c9e63a8879$export$2e2bcd8739ae039(this.slate, _node);
         _node.editor.set() // creates and sets the text
         ;
         _node.text.transform(_node.getTransformString());
@@ -13296,32 +13512,32 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         _node.both.push(_node.vect);
         _node.both.push(_node.text);
         // relationships
-        _node.relationships = new $f9b2caafbe71c9e4$export$2e2bcd8739ae039(this.slate, _node);
+        _node.relationships = new $83a856cccf23a598$export$2e2bcd8739ae039(this.slate, _node);
         _node.relationships.wireDragEvents();
         // rotate
-        _node.rotate = new $b7b1bd055547e2ce$export$2e2bcd8739ae039(this.slate, _node);
+        _node.rotate = new $153ebcbc4f900f73$export$2e2bcd8739ae039(this.slate, _node);
         // connectors
-        _node.connectors = new $75d8b481b10b24dd$export$2e2bcd8739ae039(this.slate, _node);
+        _node.connectors = new $d1ac19fab569a7ad$export$2e2bcd8739ae039(this.slate, _node);
         // menu
-        _node.menu = new $4026fc4adb3b1376$export$2e2bcd8739ae039(this.slate, _node);
+        _node.menu = new $481ed38b48fbf8a1$export$2e2bcd8739ae039(this.slate, _node);
         // resizer
-        _node.resize = new $e4a210c2d8385465$export$2e2bcd8739ae039(this.slate, _node);
+        _node.resize = new $a7cd8c5030694da2$export$2e2bcd8739ae039(this.slate, _node);
         // images
-        _node.images = new $5eeb98f61b0ae057$export$2e2bcd8739ae039(this.slate, _node);
+        _node.images = new $fcb214a7591c9017$export$2e2bcd8739ae039(this.slate, _node);
         // context
-        _node.context = new $fc4b2653e376d71c$export$2e2bcd8739ae039(this.slate, _node);
+        _node.context = new $f3109bf87f06806c$export$2e2bcd8739ae039(this.slate, _node);
         // lineOptions
-        _node.lineOptions = new $8315835c374f6be2$export$2e2bcd8739ae039(this.slate, _node);
+        _node.lineOptions = new $91c49a65b5f923ca$export$2e2bcd8739ae039(this.slate, _node);
         // shapes
-        _node.shapes = new $5559a0452b57ea40$export$2e2bcd8739ae039(this.slate, _node);
+        _node.shapes = new $ab50f45f60e457ee$export$2e2bcd8739ae039(this.slate, _node);
         // customShapes
-        _node.customShapes = new $d85238a851587679$export$2e2bcd8739ae039(this.slate, _node);
+        _node.customShapes = new $60ff234bef37cf38$export$2e2bcd8739ae039(this.slate, _node);
         // colorPicker
-        _node.colorPicker = new $237ec92496b6da7e$export$2e2bcd8739ae039(this.slate, _node);
+        _node.colorPicker = new $4c688f6798a93fae$export$2e2bcd8739ae039(this.slate, _node);
         // gridLines
-        _node.gridLines = new $9b98dd62c2bf15e9$export$2e2bcd8739ae039(this.slate, _node);
+        _node.gridLines = new $ad25bb61235aed3a$export$2e2bcd8739ae039(this.slate, _node);
         //links
-        _node.links = new $c50ee1f3453cea79$export$2e2bcd8739ae039(this.slate, _node);
+        _node.links = new $9b4fe9d080edff94$export$2e2bcd8739ae039(this.slate, _node);
         if (_node.options.image && !_node.options.imageOrigHeight) _node.options.imageOrigHeight = _node.options.height;
         if (_node.options.image && !_node.options.imageOrigWidth) _node.options.imageOrigWidth = _node.options.width;
         if (_node.options.image && _node.options.image !== '') _node.images.set(_node.options.image, _node.options.imageOrigWidth, _node.options.imageOrigHeight, useMainCanvas);
@@ -13340,7 +13556,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
 
 
 
-class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
+class $25c48b1549ac282f$export$2e2bcd8739ae039 {
     constructor(slate){
         const self = this;
         self.slate = slate;
@@ -13385,11 +13601,11 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             self.slate.options.allowDrag = true;
             self.slate.birdsEye?.refresh(true);
             self.selectedNodes.forEach((node)=>{
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.transformPath(node, `T${self.moveX},${self.moveY}`);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.transformPath(node, `T${self.moveX},${self.moveY}`);
                 node.vect.currentDx = 0;
                 node.vect.currentDy = 0;
             });
-            $f7a6c59624db8286$export$2e2bcd8739ae039({
+            $16aae51a7872bfb0$export$2e2bcd8739ae039({
                 relationships: self.relationshipsToRefresh,
                 nodes: self.selectedNodes,
                 moveX: self.moveX,
@@ -13399,7 +13615,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 dx: self.moveX,
                 dy: self.moveY
             });
-            $2c56d294fa5e840e$export$2e2bcd8739ae039.showConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
+            $25c48b1549ac282f$export$2e2bcd8739ae039.showConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
             self.broadcastMove();
             self.showIcons();
             self.origPos = self.marker.getBBox();
@@ -13430,7 +13646,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             self.markerEvents = {
                 init () {
                     self.hideIcons();
-                    $2c56d294fa5e840e$export$2e2bcd8739ae039.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
+                    $25c48b1549ac282f$export$2e2bcd8739ae039.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
                     self.moveX = 0;
                     self.moveY = 0;
                     self.slate.options.allowDrag = false;
@@ -13486,7 +13702,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             self.resizeEvents = {
                 init () {
                     self.hideIcons();
-                    $2c56d294fa5e840e$export$2e2bcd8739ae039.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
+                    $25c48b1549ac282f$export$2e2bcd8739ae039.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
                     self.moveX = 0;
                     self.moveY = 0;
                     self.slate.options.allowDrag = false;
@@ -13540,7 +13756,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     self.marker.attr(att);
                 },
                 up () {
-                    $2c56d294fa5e840e$export$2e2bcd8739ae039.showConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
+                    $25c48b1549ac282f$export$2e2bcd8739ae039.showConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
                     self.selectedNodes.forEach((node)=>{
                         const transWidth = node.options.width + self.moveX;
                         const transHeight = node.options.height + self.moveY;
@@ -13551,7 +13767,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                         node.images.imageSizeCorrection();
                         if (self.asIndiv) node.mark();
                     });
-                    $f7a6c59624db8286$export$2e2bcd8739ae039({
+                    $16aae51a7872bfb0$export$2e2bcd8739ae039({
                         relationships: self.relationshipsToRefresh.concat(self.relationshipsToTranslate),
                         nodes: self.selectedNodes,
                         dx: 0,
@@ -13575,7 +13791,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     self.slate.enable();
                 }
             };
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self._init, 'click', (e)=>{
+            $c09005a36c8880c7$export$2e2bcd8739ae039.addEvent(self._init, 'click', (e)=>{
                 switch(self._init.innerHTML){
                     case '[multi-select]':
                         self.start();
@@ -13640,9 +13856,9 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 self.selRect = self.slate.paper.rect(p.x, p.y, 10, 10).attr({
                     'stroke-dasharray': '-'
                 });
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self), null);
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), 'mouseup', self._mouseUp.bind(self), null, true);
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), 'mouseleave', self._select.bind(self), null, true);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self), null);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), 'mouseup', self._mouseUp.bind(self), null, true);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.addEvent(self.slate.canvas.get(), 'mouseleave', self._select.bind(self), null, true);
                 window.addEventListener('beforeunload', self._enableOnRefresh);
                 self.ox = p.x;
                 self.oy = p.y;
@@ -13661,7 +13877,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
     createCopiedNodes(nodeOptions, assocDetails) {
         const self = this;
         nodeOptions.forEach((n)=>{
-            const nn = new $cf838c15c8b009ba$export$6cc593952597f80d.node(n);
+            const nn = new $0ce36565345e4082$export$6cc593952597f80d.node(n);
             self.slate.nodes.add(nn);
         });
         assocDetails.forEach((a)=>{
@@ -13678,7 +13894,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
     showIcons() {
         const self = this;
         if (self.marker !== null) {
-            const groupIds = $5OpyM$lodashuniq(self.selectedNodes.map((n)=>n.options.groupId
+            const groupIds = $i9J9X$lodashuniq(self.selectedNodes.map((n)=>n.options.groupId
             ));
             const isGrouped = groupIds.length === 1 && groupIds[0] !== null;
             const markerBB = self.marker.getBBox();
@@ -13706,17 +13922,17 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             ].join());
             del.mouseover((e)=>{
                 del.attr(self.attrs.mouseOver);
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
             });
             del.mouseout((e)=>{
                 del.attr({
                     fill: '#fff',
                     stroke: '#f00'
                 });
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
             });
             del.mousedown((e)=>{
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 self.del();
             });
             const copy = self.slate.paper.copy().attr(self.attrs.create).transform([
@@ -13731,16 +13947,16 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             ].join());
             copy.mouseover((e)=>{
                 copy.attr(self.attrs.mouseOver);
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
             });
             copy.mouseout((e)=>{
                 copy.attr(self.attrs.mouseOut);
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
             });
             copy.mousedown((e)=>{
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 const snap = self.slate.snapshot();
-                const nGroupId = self.selectedNodes[0].options.groupId ? $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 8).toUpperCase() : null;
+                const nGroupId = self.selectedNodes[0].options.groupId ? $c09005a36c8880c7$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 8).toUpperCase() : null;
                 const orient = self.slate.getOrientation(self.selectedNodes);
                 const pad = 75;
                 const relationalMap = {
@@ -13748,14 +13964,14 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 const nodeOptions = [];
                 const assocDetails = [];
                 self.selectedNodes.forEach((node)=>{
-                    const c = $5OpyM$lodashclonedeep(node.options);
+                    const c = $i9J9X$lodashclonedeep(node.options);
                     c.xPos += orient.width + pad;
                     c.groupId = nGroupId;
-                    c.id = $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 12);
+                    c.id = $c09005a36c8880c7$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 12);
                     relationalMap[node.options.id] = c.id;
-                    c.vectorPath = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(c.vectorPath, `T${orient.width + pad},0`);
+                    c.vectorPath = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath(c.vectorPath, `T${orient.width + pad},0`);
                     nodeOptions.push(c);
-                    const nn = new $cf838c15c8b009ba$export$6cc593952597f80d.node(c);
+                    const nn = new $0ce36565345e4082$export$6cc593952597f80d.node(c);
                     self.slate.nodes.add(nn);
                 });
                 // next add relationships
@@ -13766,16 +13982,16 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     // with nn as "parent", add all its children
                     node.relationships.associations.filter((a)=>a.parent.options.id === node.options.id
                     ).forEach((a)=>{
-                        const assocPkg = $5OpyM$lodashclonedeep(a);
+                        const assocPkg = $i9J9X$lodashclonedeep(a);
                         delete assocPkg.line // ensure new line is created
                         ;
-                        assocPkg.id = $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 12);
+                        assocPkg.id = $c09005a36c8880c7$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 12);
                         assocPkg.activeNode = relationalMap[assocPkg.activeNode];
                         let childNode = an.find((n)=>n.options.id === relationalMap[a.child.options.id]
                         );
                         if (!childNode) childNode = an.find((n)=>n.options.id === a.child.options.id
                         );
-                        const sendAssocPkg = $5OpyM$lodashomit(assocPkg, [
+                        const sendAssocPkg = $i9J9X$lodashomit(assocPkg, [
                             'child',
                             'parent'
                         ]);
@@ -13814,18 +14030,18 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 ].join());
                 group.mouseover((e)=>{
                     group.attr(self.attrs.mouseOver);
-                    $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                    $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 });
                 group.mouseout((e)=>{
                     group.attr(self.attrs.mouseOut);
-                    $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                    $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 });
                 group.mousedown((e)=>{
-                    const groupId = $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 8).toUpperCase();
+                    const groupId = $c09005a36c8880c7$export$2e2bcd8739ae039.guid().replace(/-/gi, '').substring(0, 8).toUpperCase();
                     self.selectedNodes.forEach((n)=>{
                         n.options.groupId = groupId;
                     });
-                    $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                    $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                     self.endSelection();
                     self.end();
                     self.showGroup(groupId);
@@ -13844,17 +14060,17 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 ].join());
                 ungroup.mouseover((e)=>{
                     ungroup.attr(self.attrs.mouseOver);
-                    $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                    $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 });
                 ungroup.mouseout((e)=>{
                     ungroup.attr(self.attrs.mouseOut);
-                    $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                    $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 });
                 ungroup.mousedown((e)=>{
                     self.selectedNodes.forEach((n)=>{
                         n.options.groupId = null;
                     });
-                    $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                    $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                     self.hideIcons();
                     self.showIcons();
                 });
@@ -13873,14 +14089,14 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 ].join());
                 settings.mouseover((e)=>{
                     settings.attr(self.attrs.mouseOver);
-                    $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                    $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 });
                 settings.mouseout((e)=>{
                     settings.attr(self.attrs.mouseOut);
-                    $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                    $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 });
                 settings.mousedown((e)=>{
-                    $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                    $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                     if (self.slate.events?.onMenuRequested) self.slate.events?.onMenuRequested(self.selectedNodes, ()=>{
                     });
                 });
@@ -13941,12 +14157,12 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         self.showIcons();
         self.slate.options.allowDrag = true;
         self.slate.onSelectionStart = null;
-        $8ab43d25a2892bde$export$2e2bcd8739ae039.removeEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self));
+        $c09005a36c8880c7$export$2e2bcd8739ae039.removeEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self));
     }
     xy(e) {
         const self = this;
-        const mp = $8ab43d25a2892bde$export$2e2bcd8739ae039.mousePos(e);
-        const off = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(self.slate.options.container);
+        const mp = $c09005a36c8880c7$export$2e2bcd8739ae039.mousePos(e);
+        const off = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(self.slate.options.container);
         const _x = mp.x + self.slate.options.viewPort.left - off.left;
         const _y = mp.y + self.slate.options.viewPort.top - off.top;
         const z = self.slate.options.viewPort.zoom.r;
@@ -14025,12 +14241,12 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         self.resizer.toFront();
         self.resizer.mouseover((e)=>{
             self.resizer.attr(self.attrs.mouseOver);
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+            $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
         }) // self._resizeHover.bind(self));
         ;
         self.resizer.mouseout((e)=>{
             self.resizer.attr(self.attrs.mouseOut);
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+            $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
         }) // self._resizeHover.bind(self));
         ;
         // self.resizer.unmouseover(self._resizeHover.bind(self));
@@ -14081,7 +14297,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 return inRange && !n.options.isLocked;
             });
             // add any groupIds
-            const groupIds = $5OpyM$lodashuniq(withinBox.map((n)=>n.options.groupId
+            const groupIds = $i9J9X$lodashuniq(withinBox.map((n)=>n.options.groupId
             )).filter((g)=>!!g
             );
             const alreadySelectedIds = withinBox.map((n)=>n.options.id
@@ -14119,7 +14335,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
 
 
 
-class $9fd058e97992db72$export$2e2bcd8739ae039 {
+class $3982ee4e59d88559$export$2e2bcd8739ae039 {
     constructor(slate){
         this.slate = slate;
         this.be = null;
@@ -14153,7 +14369,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
         const init = function hnd() {
             self.handle.ox = this.attr('x');
             self.handle.oy = this.attr('y');
-            start = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(self.slate.canvas.internal);
+            start = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(self.slate.canvas.internal);
             self.slate.toggleFilters(true);
         };
         const move = function mv(x, y) {
@@ -14184,7 +14400,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
         };
         const up = ()=>{
             self.refresh();
-            const end = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(self.slate.canvas.internal);
+            const end = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(self.slate.canvas.internal);
             self.slate.canvas.broadcast({
                 x: start.left - end.left,
                 y: start.top - end.top
@@ -14197,7 +14413,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
         const self = this;
         Object.assign(self.options, _options);
         const c = self.slate.options.container;
-        self.parentDimen = $8ab43d25a2892bde$export$2e2bcd8739ae039.getDimensions(c);
+        self.parentDimen = $c09005a36c8880c7$export$2e2bcd8739ae039.getDimensions(c);
         self.be = document.createElement('div');
         self.be.setAttribute('id', `slatebirdsEye_${self.slate.options.id}`);
         self.be.setAttribute('class', 'slatebirdsEye');
@@ -14208,7 +14424,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
         self.be.style.backgroundColor = '#fff';
         c.appendChild(self.be);
         self.setBe();
-        self.corner = new $52815ef246a0a8c3$export$2e2bcd8739ae039({
+        self.corner = new $54b0c4bd9bb665f5$export$2e2bcd8739ae039({
             container: `slatebirdsEye_${self.slate.options.id}`,
             viewPort: {
                 allowDrag: false
@@ -14229,9 +14445,9 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
             }
         }).init();
         self.refresh();
-        $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(window, 'resize', ()=>{
+        $c09005a36c8880c7$export$2e2bcd8739ae039.addEvent(window, 'resize', ()=>{
             const cx = self.slate.options.container;
-            self.parentDimen = $8ab43d25a2892bde$export$2e2bcd8739ae039.getDimensions(cx);
+            self.parentDimen = $c09005a36c8880c7$export$2e2bcd8739ae039.getDimensions(cx);
             self.setBe();
         });
     }
@@ -14304,7 +14520,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
                                         path: association.linePath
                                     });
                                 });
-                                Object.assign(_node.options, $5OpyM$lodashomit(pkg.data, 'associations'));
+                                Object.assign(_node.options, $i9J9X$lodashomit(pkg.data, 'associations'));
                                 const tempPath = this.slate.paper.path(_node.vect.attr('path'));
                                 tempPath.remove();
                                 _node.rotate.applyImageRotation();
@@ -14353,7 +14569,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
     refresh(blnNoAdditions) {
         if (this.corner) {
             const c = this.slate.options.container;
-            this.parentDimen = $8ab43d25a2892bde$export$2e2bcd8739ae039.getDimensions(c);
+            this.parentDimen = $c09005a36c8880c7$export$2e2bcd8739ae039.getDimensions(c);
             this.handle?.remove();
             if (blnNoAdditions === true) {
                 this.corner.canvas.move({
@@ -14410,7 +14626,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
 
 
 
-class $ae70ec667a6e4b7e$export$2e2bcd8739ae039 {
+class $c585ab56cf987362$export$2e2bcd8739ae039 {
     constructor(slate){
         this.slate = slate;
         this.scale = 1;
@@ -14423,7 +14639,7 @@ class $ae70ec667a6e4b7e$export$2e2bcd8739ae039 {
     }
     _init() {
         const self = this;
-        const wheelGestures = $5OpyM$WheelGestures({
+        const wheelGestures = $i9J9X$WheelGestures({
             momentum: true
         });
         // find and observe the element the user can interact with
@@ -14447,7 +14663,7 @@ class $ae70ec667a6e4b7e$export$2e2bcd8739ae039 {
                     ;
                     const deltaY = e.event.deltaY * 0.8;
                     if (e.isStart) {
-                        start = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(self.slate.canvas.internal);
+                        start = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(self.slate.canvas.internal);
                         // hide filters during dragging
                         self.slate.toggleFilters(true);
                     }
@@ -14458,7 +14674,7 @@ class $ae70ec667a6e4b7e$export$2e2bcd8739ae039 {
                         isAbsolute: false
                     });
                     if (e.isEnding) {
-                        const end = $8ab43d25a2892bde$export$2e2bcd8739ae039.positionedOffset(self.slate.canvas.internal);
+                        const end = $c09005a36c8880c7$export$2e2bcd8739ae039.positionedOffset(self.slate.canvas.internal);
                         self.slate.birdsEye?.refresh(true);
                         self.slate.canvas.broadcast({
                             x: start.left - end.left,
@@ -14475,7 +14691,7 @@ class $ae70ec667a6e4b7e$export$2e2bcd8739ae039 {
 
 
 
-class $a8686d78200754a9$export$2e2bcd8739ae039 {
+class $fb2518732a69f403$export$2e2bcd8739ae039 {
     constructor(slate){
         this.slate = slate;
     }
@@ -14507,7 +14723,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
         };
         Object.assign(opts, _opts);
         const orient = this.slate.getOrientation(opts.nodes);
-        const d = $8ab43d25a2892bde$export$2e2bcd8739ae039.getDimensions(this.slate.options.container);
+        const d = $c09005a36c8880c7$export$2e2bcd8739ae039.getDimensions(this.slate.options.container);
         const r = this.slate.options.viewPort.zoom.r || 1;
         const widthZoomPercent = parseInt(d.width / (orient.width / r) * 100, 10) // division by r converts it back from the scaled version
         ;
@@ -14534,7 +14750,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
         };
         Object.assign(opts, _opts);
         const orient = self.slate.getOrientation(opts.nodes);
-        const d = $8ab43d25a2892bde$export$2e2bcd8739ae039.getDimensions(self.slate.options.container);
+        const d = $c09005a36c8880c7$export$2e2bcd8739ae039.getDimensions(self.slate.options.container);
         const cw = d.width;
         const ch = d.height;
         const nw = orient.width;
@@ -14568,7 +14784,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
             cb: null
         };
         Object.assign(opts, _opts);
-        const ws = $8ab43d25a2892bde$export$2e2bcd8739ae039.windowSize();
+        const ws = $c09005a36c8880c7$export$2e2bcd8739ae039.windowSize();
         this.slate.canvas.move({
             x: (ws.width - opts.previousWindowSize.w) / 2 * -1,
             y: (ws.height - opts.previousWindowSize.h) / 2 * -1,
@@ -14732,7 +14948,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
             if (currentOperations.length > 0) {
                 const op = currentOperations.shift();
                 if (pkg.opChanged) pkg.opChanged(op);
-                $a8686d78200754a9$export$2e2bcd8739ae039.perform(pkg, n, op, (p)=>{
+                $fb2518732a69f403$export$2e2bcd8739ae039.perform(pkg, n, op, (p)=>{
                     const sync = pkg.sync !== undefined ? pkg.sync[p.operation] : false;
                     switch(p.operation){
                         case 'zoom':
@@ -14767,12 +14983,12 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
 
 
 
-class $19a04256932b9422$export$2e2bcd8739ae039 {
+class $02854dd3110a2ccc$export$2e2bcd8739ae039 {
     constructor(slate){
         const self = this;
         self.slate = slate;
         self.slider = null;
-        self.sliderId = `sb-zoom-slider-${$8ab43d25a2892bde$export$2e2bcd8739ae039.guid().substring(8)}`;
+        self.sliderId = `sb-zoom-slider-${$c09005a36c8880c7$export$2e2bcd8739ae039.guid().substring(8)}`;
     }
     setValue(val) {
         if (this.slider) this.slider.setValue(val);
@@ -14861,7 +15077,7 @@ class $19a04256932b9422$export$2e2bcd8739ae039 {
 
 
 
-class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
+class $7fa641e67751cfd7$export$2e2bcd8739ae039 {
     constructor(slate){
         this.slate = slate;
         this.stateSlate = null;
@@ -14926,8 +15142,8 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         } else this.setVisibility();
     }
     hide() {
-        if ($8ab43d25a2892bde$export$2e2bcd8739ae039.el('slateUndoRedo') !== null) try {
-            this.slate.options.container.removeChild($8ab43d25a2892bde$export$2e2bcd8739ae039.el('slateUndoRedo'));
+        if ($c09005a36c8880c7$export$2e2bcd8739ae039.el('slateUndoRedo') !== null) try {
+            this.slate.options.container.removeChild($c09005a36c8880c7$export$2e2bcd8739ae039.el('slateUndoRedo'));
         } catch (err) {
         }
     }
@@ -14954,7 +15170,7 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         c.appendChild(scx);
         const x = options.offset.left;
         const y = options.offset.top + 30;
-        options.paper = $65a92514e25c9f85$export$508faed300ccdfb('slateUndoRedo', options.width, options.height);
+        options.paper = $db87f2586597736c$export$508faed300ccdfb('slateUndoRedo', options.width, options.height);
         self.toolbar = [
             options.paper.undo().data({
                 msg: 'Undo',
@@ -14997,7 +15213,7 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         ];
         self.toolbar.forEach((toolbarElem)=>{
             toolbarElem.mouseover(function m(e) {
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 self.slate.multiSelection?.hide();
                 // $(e.target).style.cursor = "pointer";
                 if (!this.data('disabled')) {
@@ -15010,19 +15226,19 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
                 }
             });
             toolbarElem.mouseout(function m(e) {
-                $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+                $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
                 self.slate.multiSelection?.show();
                 self.slate.unglow();
                 this.untooltip();
             });
         });
         self.toolbar[0].mousedown(function m(e) {
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+            $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
             self.slate.unglow();
             if (!this.data('disabled')) self.undo();
         });
         self.toolbar[1].mousedown(function m(e) {
-            $8ab43d25a2892bde$export$2e2bcd8739ae039.stopEvent(e);
+            $c09005a36c8880c7$export$2e2bcd8739ae039.stopEvent(e);
             self.slate.unglow();
             if (!this.data('disabled')) self.redo();
         });
@@ -15054,7 +15270,7 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
 
 
 
-class $95f7fca09bb5481b$export$2e2bcd8739ae039 {
+class $a2c9c2653ba5c19d$export$2e2bcd8739ae039 {
     constructor(slate){
         this.slate = slate;
         this._grid = null;
@@ -15072,7 +15288,7 @@ class $95f7fca09bb5481b$export$2e2bcd8739ae039 {
     }
     setGrid() {
         const gbg = this.slate.options.containerStyle.backgroundColor;
-        const gridColor = $8ab43d25a2892bde$export$2e2bcd8739ae039.whiteOrBlack(gbg);
+        const gridColor = $c09005a36c8880c7$export$2e2bcd8739ae039.whiteOrBlack(gbg);
         if (!this.slate.options.viewPort.gridSize) this.slate.options.viewPort.gridSize = 50;
         const { gridSize: gridSize  } = this.slate.options.viewPort;
         this.slate.paper.def({
@@ -15139,7 +15355,7 @@ class $95f7fca09bb5481b$export$2e2bcd8739ae039 {
 
 
 
-class $5c6c971650b19ad4$export$2e2bcd8739ae039 {
+class $b07cb126db9b51fe$export$2e2bcd8739ae039 {
     constructor(slate){
         this.slate = slate;
         this.engaged = false;
@@ -15150,11 +15366,11 @@ class $5c6c971650b19ad4$export$2e2bcd8739ae039 {
             const comment = `M 14.4761 0 H 3.102 C 1.3888 0 0 1.3888 0 3.102 V 8.5307 c 0 1.7132 1.3888 3.102 3.102 3.102 H 9.8297 l 2.803 4.2412 l 0.9018 -4.2412 h 0.9418 c 1.7132 0 3.102 -1.3888 3.102 -3.102 V 3.102 C 17.5781 1.3888 16.1893 0 14.4761 0 z`;
             const svg = self.slate.canvas.internal.querySelector('svg');
             svg.addEventListener('mousedown', (e)=>{
-                const mp = $8ab43d25a2892bde$export$2e2bcd8739ae039.mousePos(e);
+                const mp = $c09005a36c8880c7$export$2e2bcd8739ae039.mousePos(e);
                 const x = mp.x + self.slate.options.viewPort.left;
                 const y = mp.y + self.slate.options.viewPort.top;
-                const tpath = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(comment, `T${x},${y}s2,2`);
-                const pbox = $8ab43d25a2892bde$export$2e2bcd8739ae039.getBBox({
+                const tpath = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath(comment, `T${x},${y}s2,2`);
+                const pbox = $c09005a36c8880c7$export$2e2bcd8739ae039.getBBox({
                     path: tpath
                 });
                 const commentNodeOpts = {
@@ -15170,7 +15386,7 @@ class $5c6c971650b19ad4$export$2e2bcd8739ae039 {
                     borderOpacity: 1,
                     textOpacity: 1
                 };
-                const commentNode = new $f3f671e190122470$export$2e2bcd8739ae039(commentNodeOpts);
+                const commentNode = new $d70659fe9854f6b3$export$2e2bcd8739ae039(commentNodeOpts);
                 self.slate.nodes.add(commentNode);
             });
             self.engaged = true;
@@ -15180,7 +15396,7 @@ class $5c6c971650b19ad4$export$2e2bcd8739ae039 {
 
 
 
-class $07361c58e711f582$export$2e2bcd8739ae039 {
+class $5e565b7ae57054c8$export$2e2bcd8739ae039 {
     constructor(slate){
         const self = this;
         if (!slate.options.isbirdsEye) {
@@ -15192,19 +15408,19 @@ class $07361c58e711f582$export$2e2bcd8739ae039 {
     }
     bindGlobal() {
         const self = this;
-        $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(document, 'keydown', self.bindGlobalDown);
-        $8ab43d25a2892bde$export$2e2bcd8739ae039.addEvent(document, 'keyup', self.bindGlobalUp);
+        $c09005a36c8880c7$export$2e2bcd8739ae039.addEvent(document, 'keydown', self.bindGlobalDown);
+        $c09005a36c8880c7$export$2e2bcd8739ae039.addEvent(document, 'keyup', self.bindGlobalUp);
     }
     unbindGlobal() {
         const self = this;
-        $8ab43d25a2892bde$export$2e2bcd8739ae039.removeEvent(document, 'keydown', self.bindGlobalDown);
-        $8ab43d25a2892bde$export$2e2bcd8739ae039.removeEvent(document, 'keyup', self.bindGlobalUp);
+        $c09005a36c8880c7$export$2e2bcd8739ae039.removeEvent(document, 'keydown', self.bindGlobalDown);
+        $c09005a36c8880c7$export$2e2bcd8739ae039.removeEvent(document, 'keyup', self.bindGlobalUp);
     }
     key(e, blnKeyDown) {
         const self = this;
         const node = self.slate.nodes.allNodes.find((n)=>n.menu.isOpen()
         );
-        const key = $8ab43d25a2892bde$export$2e2bcd8739ae039.getKey(e);
+        const key = $c09005a36c8880c7$export$2e2bcd8739ae039.getKey(e);
         switch(key){
             case 91:
             case 17:
@@ -15256,7 +15472,7 @@ class $07361c58e711f582$export$2e2bcd8739ae039 {
 
 
 
-class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
+class $c5e9b4e1c381e85f$export$2e2bcd8739ae039 {
     constructor(slate){
         this.slate = slate;
         this.exposeDefaults();
@@ -15265,7 +15481,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
         const self = this;
         deps.forEach((d)=>{
             const depDef = {
-                id: $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().substring(10),
+                id: $c09005a36c8880c7$export$2e2bcd8739ae039.guid().substring(10),
                 tag: d.type,
                 ...d.attrs,
                 inside: []
@@ -15282,7 +15498,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
     add(filter, isDefault) {
         const self = this;
         const filterDef = {
-            id: filter.id || $8ab43d25a2892bde$export$2e2bcd8739ae039.guid().substring(10),
+            id: filter.id || $c09005a36c8880c7$export$2e2bcd8739ae039.guid().substring(10),
             tag: 'filter',
             filterUnits: 'userSpaceOnUse',
             ...filter.attrs,
@@ -15790,11 +16006,11 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
 
 
 
-class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$2e2bcd8739ae039 {
+class $54b0c4bd9bb665f5$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$2e2bcd8739ae039 {
     constructor(_options, events, collaboration){
         super(_options);
         this.options = {
-            id: _options.id || $8ab43d25a2892bde$export$2e2bcd8739ae039.guid(),
+            id: _options.id || $c09005a36c8880c7$export$2e2bcd8739ae039.guid(),
             container: '',
             instance: '',
             name: '',
@@ -15840,7 +16056,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
             followMe: false,
             huddleType: 'disabled'
         };
-        this.options = $5OpyM$deepmerge(this.options, _options);
+        this.options = $i9J9X$deepmerge(this.options, _options);
         this.events = events || {
             onNodeDragged: null,
             onCanvasClicked: null,
@@ -15856,14 +16072,14 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
         };
         // console.log("SLATE - share details are", this.options.shareId, this.options.userId, this.options.orgId);
         // ensure container is always an object
-        if (!$8ab43d25a2892bde$export$2e2bcd8739ae039.isElement(this.options.container)) this.options.container = $8ab43d25a2892bde$export$2e2bcd8739ae039.el(this.options.container);
+        if (!$c09005a36c8880c7$export$2e2bcd8739ae039.isElement(this.options.container)) this.options.container = $c09005a36c8880c7$export$2e2bcd8739ae039.el(this.options.container);
         this.constants = {
             statusPanelAtRest: 33,
             statusPanelExpanded: 200
         };
         this.glows = [];
         this.tips = [];
-        this.tempNodeId = $8ab43d25a2892bde$export$2e2bcd8739ae039.guid();
+        this.tempNodeId = $c09005a36c8880c7$export$2e2bcd8739ae039.guid();
         this.allLines = [];
         this.candidatesForSelection = {
         };
@@ -15872,23 +16088,23 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
         const self = this;
         // instantiate all the dependencies for the slate -- order here is importantish
         // (birdsEye, undoRedo, zoomSlider are used in canvas, and inertia uses canvas)
-        self.nodes = new $20194a860b77746c$export$2e2bcd8739ae039(self);
-        self.collab = new $670a391adca558e5$export$2e2bcd8739ae039(self);
-        self.birdsEye = new $9fd058e97992db72$export$2e2bcd8739ae039(self);
-        self.zoomSlider = new $19a04256932b9422$export$2e2bcd8739ae039(self);
+        self.nodes = new $078ffda75962dda9$export$2e2bcd8739ae039(self);
+        self.collab = new $0de94e735767a57c$export$2e2bcd8739ae039(self);
+        self.birdsEye = new $3982ee4e59d88559$export$2e2bcd8739ae039(self);
+        self.zoomSlider = new $02854dd3110a2ccc$export$2e2bcd8739ae039(self);
         if (!self.isReadOnly() && !self.isCommentOnly()) {
-            self.undoRedo = new $7605cf3068a61b3e$export$2e2bcd8739ae039(self);
-            self.multiSelection = new $2c56d294fa5e840e$export$2e2bcd8739ae039(self);
+            self.undoRedo = new $7fa641e67751cfd7$export$2e2bcd8739ae039(self);
+            self.multiSelection = new $25c48b1549ac282f$export$2e2bcd8739ae039(self);
         }
-        self.controller = new $a8686d78200754a9$export$2e2bcd8739ae039(self);
-        self.filters = new $5e710bc15c419cd8$export$2e2bcd8739ae039(self);
-        self.canvas = new $4e57e1a492ad5f5b$export$2e2bcd8739ae039(self);
+        self.controller = new $fb2518732a69f403$export$2e2bcd8739ae039(self);
+        self.filters = new $c5e9b4e1c381e85f$export$2e2bcd8739ae039(self);
+        self.canvas = new $aeb71f7ee3eb2c2e$export$2e2bcd8739ae039(self);
         self.canvas.init();
         if (self.multiSelection) self.multiSelection.init();
-        self.inertia = new $ae70ec667a6e4b7e$export$2e2bcd8739ae039(self);
-        self.grid = new $95f7fca09bb5481b$export$2e2bcd8739ae039(self);
-        self.comments = new $5c6c971650b19ad4$export$2e2bcd8739ae039(self);
-        self.keyboard = new $07361c58e711f582$export$2e2bcd8739ae039(self);
+        self.inertia = new $c585ab56cf987362$export$2e2bcd8739ae039(self);
+        self.grid = new $a2c9c2653ba5c19d$export$2e2bcd8739ae039(self);
+        self.comments = new $b07cb126db9b51fe$export$2e2bcd8739ae039(self);
+        self.keyboard = new $5e565b7ae57054c8$export$2e2bcd8739ae039(self);
         self.autoLoadFilters();
         if (self.options.onInitCompleted) self.options.onInitCompleted.apply(self);
         return self;
@@ -15932,7 +16148,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
         }
     }
     removeContextMenus() {
-        const _cm = $8ab43d25a2892bde$export$2e2bcd8739ae039.select('div.sb_cm');
+        const _cm = $c09005a36c8880c7$export$2e2bcd8739ae039.select('div.sb_cm');
         _cm.forEach((elem)=>{
             document.body.removeChild(elem);
         });
@@ -16043,7 +16259,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
     }
     copy(opts) {
         const self = this;
-        if (!self.copySlate) self.copySlate = new $52815ef246a0a8c3$export$2e2bcd8739ae039({
+        if (!self.copySlate) self.copySlate = new $54b0c4bd9bb665f5$export$2e2bcd8739ae039({
             container: opts.container,
             containerStyle: this.options.containerStyle,
             defaultLineColor: this.options.defaultLineColor,
@@ -16065,7 +16281,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
                 const _transforms = [
                     `t${_mpkg.x}, ${_mpkg.y}`
                 ];
-                nde.options.vectorPath = $b3c679d5849c9a45$export$2e2bcd8739ae039($f3f671e190122470$export$2e2bcd8739ae039.options.vectorPath, _transforms);
+                nde.options.vectorPath = $d2703cad5fa90838$export$2e2bcd8739ae039(nde.options.vectorPath, _transforms);
             }
         });
         self.copySlate.loadJSON(JSON.stringify(_json));
@@ -16094,7 +16310,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
                 n.options.rotate.point.x = n.options.rotate.point.x * _r - _orient.left;
                 n.options.rotate.point.y = n.options.rotate.point.y * _r - _orient.top;
             }
-            const _updatedPath = $8ab43d25a2892bde$export$2e2bcd8739ae039._transformPath(n.options.vectorPath, [
+            const _updatedPath = $c09005a36c8880c7$export$2e2bcd8739ae039._transformPath(n.options.vectorPath, [
                 'T',
                 _orient.left / _r * -1,
                 ',',
@@ -16113,7 +16329,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
         _div.style.height = `${_orient.height}px`;
         _div.style.visibility = 'hidden';
         document.body.appendChild(_div);
-        const exportOptions = $5OpyM$deepmerge(_resizedSlate.options, {
+        const exportOptions = $i9J9X$deepmerge(_resizedSlate.options, {
             container: 'tempSvgSlate',
             containerStyle: {
                 backgroundColor: _resizedSlate.options.containerStyle.backgroundColor,
@@ -16146,7 +16362,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
             isEmbedding: true
         });
         // we don't yet load the nodes by default even though they're passed in on the options below...
-        const _exportCanvas = new $52815ef246a0a8c3$export$2e2bcd8739ae039(exportOptions).init();
+        const _exportCanvas = new $54b0c4bd9bb665f5$export$2e2bcd8739ae039(exportOptions).init();
         // ...that's done in the loadJSON...which seems weird
         _exportCanvas.loadJSON(JSON.stringify({
             options: exportOptions,
@@ -16243,7 +16459,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
             n.options.allowDrag = true // must default
             ;
             n.options.allowMenu = true;
-            const _boundTo = new $f3f671e190122470$export$2e2bcd8739ae039(n.options);
+            const _boundTo = new $d70659fe9854f6b3$export$2e2bcd8739ae039(n.options);
             self.nodes.add(_boundTo, useMainCanvas);
             deferredRelationships.push({
                 bt: _boundTo,
@@ -16286,7 +16502,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
     }
     loadAllFonts() {
         // load all fonts
-        const fonts = $5OpyM$lodashuniq(this.nodes.allNodes.map((n)=>n.options.fontFamily
+        const fonts = $i9J9X$lodashuniq(this.nodes.allNodes.map((n)=>n.options.fontFamily
         )).join('|');
         if (document.getElementById('googleFonts')) document.getElementById('googleFonts').setAttribute('href', `https://fonts.googleapis.com/css?family=${fonts}`);
         else {
@@ -16701,13 +16917,13 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends $d23f550fcae9c4c3$export$
 
 
 
-const $cf838c15c8b009ba$export$6cc593952597f80d = {
-    slate: $52815ef246a0a8c3$export$2e2bcd8739ae039,
-    node: $f3f671e190122470$export$2e2bcd8739ae039,
-    base: $d23f550fcae9c4c3$export$2e2bcd8739ae039,
-    utils: $8ab43d25a2892bde$export$2e2bcd8739ae039
+const $0ce36565345e4082$export$6cc593952597f80d = {
+    slate: $54b0c4bd9bb665f5$export$2e2bcd8739ae039,
+    node: $d70659fe9854f6b3$export$2e2bcd8739ae039,
+    base: $dc3db6ac99a59a76$export$2e2bcd8739ae039,
+    utils: $c09005a36c8880c7$export$2e2bcd8739ae039
 };
 
 
-export {$cf838c15c8b009ba$export$6cc593952597f80d as Slatebox};
+export {$0ce36565345e4082$export$6cc593952597f80d as Slatebox};
 //# sourceMappingURL=index.js.map

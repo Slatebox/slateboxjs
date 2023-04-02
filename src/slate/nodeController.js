@@ -4,6 +4,7 @@
 /* eslint-disable no-underscore-dangle */
 import uniq from 'lodash.uniq'
 import invoke from 'lodash.invoke'
+import cloneDeep from 'lodash.clonedeep'
 import getTransformedPath from '../helpers/getTransformedPath'
 import getDepCoords from '../helpers/getDepCoords'
 
@@ -82,6 +83,152 @@ export default class nodeController {
     )
   }
 
+  packageLayout() {
+    const self = this
+    // package up all the unique associations and the width/height of every node
+    let associations = self.allNodes
+      .map((nx) =>
+        nx.relationships.associations.map((a) => {
+          return {
+            parentId: a.parent.options.id,
+            childId: a.child.options.id,
+            lineWidth: a.lineWidth,
+            lineOpacity: a.lineOpacity,
+            showParentArrow: a.showParentArrow,
+            showChildArrow: a.showChildArrow,
+          }
+        })
+      )
+      .flat()
+
+    const nodes = {}
+    self.allNodes.forEach((nx) => {
+      if (!nodes[nx.options.id]) {
+        nodes[nx.options.id] = {
+          width: nx.options.width,
+          height: nx.options.height,
+          shape: nx.options.shapeHint || 'rectangle',
+          color: nx.options.backgroundColor,
+          textColor: nx.options.foregroundColor,
+          text: nx.options.text,
+          groupId: nx.options.groupId,
+        }
+      }
+    })
+
+    const subgraphs = {}
+    self.allNodes.forEach((nx) => {
+      if (!subgraphs[nx.options.groupId]) {
+        subgraphs[nx.options.groupId] = []
+      }
+      subgraphs[nx.options.groupId].push(nx.options.id)
+    })
+
+    return { associations, nodes, uniqueIds: Object.keys(nodes), subgraphs }
+  }
+
+  applyLayout(layout, cb) {
+    const self = this
+    console.log('received layout', layout)
+    /*
+    "exportNodes": {
+      "010C580B": {
+        "x": "279.5",
+        "y": "322"
+      },
+      "ad79211ead0a": {
+        "x": "183.5",
+        "y": "186"
+      },
+      "c2134651593b": {
+        "x": "376.5",
+        "y": "186"
+      },
+      "0bad6428b74a": {
+        "x": "87.5",
+        "y": "50"
+      },
+      "2aab8002c94c": {
+        "x": "280.5",
+        "y": "50"
+      }
+    }
+    */
+
+    const orient = self.slate.getOrientation(null, true) // - always pin to no zoom (1)
+    const allMoves = []
+    self.allNodes.forEach((n, i) => {
+      if (layout.exportNodes[n.options.id]) {
+        let { x, y } = layout.exportNodes[n.options.id]
+        x = parseFloat(x)
+        y = parseFloat(y)
+        // console.log(
+        //   'target aquired',
+        //   n.options.id,
+        //   x,
+        //   y,
+        //   x * -2 + x,
+        //   y * -2 + y,
+        //   n.options.xPos,
+        //   n.options.yPos
+        // )
+        allMoves.push({
+          id: n.options.id,
+          x: orient.left - x - n.options.xPos + orient.width,
+          y: orient.top - y - n.options.yPos + orient.height,
+        })
+      }
+    })
+    let batchSize = 6
+    if (self.allNodes.length > 25) {
+      batchSize = 12
+    }
+    if (layout.allAtOnce) {
+      batchSize = 1
+    }
+    const batches = utils.chunk(
+      cloneDeep(allMoves),
+      Math.ceil(allMoves.length / batchSize)
+    )
+
+    // console.log(
+    //   'received layout2',
+    //   batchSize,
+    //   allMoves.length,
+    //   self.allNodes.length,
+    //   batches.length
+    // )
+
+    const sendMove = (batch) => {
+      let dur = 300
+      if (self.allNodes.length > 25 || layout.allAtOnce) {
+        dur = 0
+      }
+      const pkg = self.slate.nodes.nodeMovePackage({
+        dur,
+        moves: batch,
+      })
+      self.slate.collab?.exe({
+        type: 'onNodesMove',
+        data: pkg,
+      })
+      if (batches.length > 0) {
+        setTimeout(() => {
+          sendMove(batches.pop())
+        }, 250)
+      } else {
+        if (layout.skipCenter) {
+          self.slate.controller.centerOnNodes({ dur: 500 })
+        } else {
+          self.slate.controller.scaleToFitAndCenter()
+        }
+        cb && cb()
+      }
+    }
+    // kick it off
+    sendMove(batches.pop())
+  }
+
   addRange(_nodes) {
     const self = this
     _nodes.forEach((node) => {
@@ -131,13 +278,13 @@ export default class nodeController {
     // cannot be applied to the current slate.
 
     let _use = this.slate
-    let _divCopy = null
+    let divCopy = null
     if (opts && opts.moves) {
-      _divCopy = document.createElement('div')
+      divCopy = document.createElement('div')
       const _did = `copy_${utils.guid()}`
-      _divCopy.setAttribute('id', _did)
-      _divCopy.setAttribute('style', `width:1px;height:1px;display:none;`)
-      document.body.appendChild(_divCopy)
+      divCopy.setAttribute('id', _did)
+      divCopy.setAttribute('style', `width:1px;height:1px;display:none;`)
+      document.body.appendChild(divCopy)
       _use = this.slate.copy({ container: _did, moves: opts.moves })
     }
 
@@ -182,8 +329,8 @@ export default class nodeController {
       })(),
     }
 
-    if (_divCopy) {
-      document.removeChild(_divCopy)
+    if (divCopy) {
+      document.body.removeChild(divCopy)
     }
 
     return _ret

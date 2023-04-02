@@ -255,6 +255,10 @@ export default class utils {
     x.send(d)
   }
 
+  static randomInt(min, max) {
+    return Math.floor(min + Math.random() * (max - min + 1))
+  }
+
   static hasClass(el, className) {
     if (el.classList) el.classList.contains(className)
     else new RegExp(`(^| )${className}( |$)`, 'gi').test(el.className)
@@ -398,8 +402,42 @@ export default class utils {
     return _str
   }
 
+  static getRGBComponents(bgColor) {
+    const r = bgColor.substring(1, 3)
+    const g = bgColor.substring(3, 5)
+    const b = bgColor.substring(5, 7)
+    return {
+      R: parseInt(r, 16),
+      G: parseInt(g, 16),
+      B: parseInt(b, 16),
+    }
+  }
+
   static whiteOrBlack(hex) {
-    return Raphael.rgb2hsb(hex).b < 0.4 ? '#fff' : '#000'
+    function getRGB(c) {
+      return parseInt(c, 16) || c
+    }
+    function getsRGB(c) {
+      return getRGB(c) / 255 <= 0.03928
+        ? getRGB(c) / 255 / 12.92
+        : Math.pow((getRGB(c) / 255 + 0.055) / 1.055, 2.4)
+    }
+    function getLuminance(hexColor) {
+      return (
+        0.2126 * getsRGB(hexColor.substr(1, 2)) +
+        0.7152 * getsRGB(hexColor.substr(3, 2)) +
+        0.0722 * getsRGB(hexColor.substr(-2))
+      )
+    }
+    function getContrast(f, b) {
+      const L1 = getLuminance(f)
+      const L2 = getLuminance(b)
+      return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05)
+    }
+    const whiteContrast = getContrast(hex || '#fff', '#ffffff')
+    const blackContrast = getContrast(hex || '#fff', '#000000')
+
+    return whiteContrast > blackContrast ? '#ffffff' : '#000000'
   }
 
   static _transformPath(original, transform) {
@@ -461,8 +499,55 @@ export default class utils {
       width: Math.max(...metrics.map((m) => m.width)),
       height,
     }
-    console.log('red is ', red)
     return red
+  }
+
+  static chunk(arr, chunkSize = 1, cache = []) {
+    const tmp = [...arr]
+    if (chunkSize <= 0) return cache
+    while (tmp.length) cache.push(tmp.splice(0, chunkSize))
+    return cache
+  }
+
+  static createMultiLineText(text, lineCount) {
+    const words = text.split(/ /g)
+    const chars = text.split('')
+    const charsPerLine = chars.length / lineCount
+    const lines = []
+    let wordsOnLine = []
+    let curCharCount = 0
+    // console.log(
+    //   'words are 1',
+    //   words.length,
+    //   chars.length,
+    //   charsPerLine,
+    //   lines.length,
+    //   lineCount,
+    //   curCharCount
+    // )
+    words.forEach((w) => {
+      curCharCount += w.length
+      // console.log(
+      //   'words are 2',
+      //   words.length,
+      //   chars.length,
+      //   charsPerLine,
+      //   lines.length,
+      //   lineCount,
+      //   curCharCount
+      // )
+      if (curCharCount < charsPerLine || lines.length === lineCount - 1) {
+        wordsOnLine.push(w)
+      } else {
+        lines.push(wordsOnLine.join(' '))
+        curCharCount = w.length
+        wordsOnLine = [w]
+      }
+    })
+    if (wordsOnLine.length > 0) {
+      lines.push(wordsOnLine.join(' '))
+    }
+    return lines.join('\n')
   }
 
   static toDataUrl = (url) =>

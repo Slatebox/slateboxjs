@@ -353,7 +353,7 @@ export default class slate extends base {
         nde.options.yPos += _mpkg.y
         const _transforms = [`t${_mpkg.x}, ${_mpkg.y}`]
         nde.options.vectorPath = getTransformedPath(
-          node.options.vectorPath,
+          nde.options.vectorPath,
           _transforms
         )
       }

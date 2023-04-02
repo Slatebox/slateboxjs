@@ -242,7 +242,7 @@ export default class collab {
       onNodesMove(pkg) {
         resetMultiSelect()
         self.slate.toggleFilters(true, null, true)
-        self.slate.nodes.moveNodes(pkg, { animate: true })
+        self.slate.nodes.moveNodes(pkg, { animate: pkg.data.dur > 0 })
         self.slate.birdsEye?.nodeChanged(pkg)
 
         self.closeNodeSpecifics(pkg)
@@ -296,6 +296,10 @@ export default class collab {
         if (pkg.data?.theme) {
           self.slate.applyTheme(pkg.data.theme, pkg.data.syncWithTheme)
         }
+      },
+
+      onSlateLayoutStrategyChanged(pkg) {
+        self.slate.options.layoutStrategy = pkg.data.layoutStrategy
       },
 
       onSlateBackgroundEffectChanged(pkg) {
