@@ -37,6 +37,7 @@ export default class connectors {
       })
     }
     self.iconBar?.remove()
+    self.iconBar = null
     self.node.menu._isOpen = false
   }
 
@@ -219,11 +220,19 @@ export default class connectors {
     if (Object.keys(self.buttons).length > 1) {
       const isComment = self.node.options.isComment
       const barWidth = Object.keys(self.buttons).length * 40
-      console.log('isComment barWidth', isComment, barWidth, widthOffset)
-      self.iconBar = r
-        .rect(x + widthOffset - (isComment ? 45 : 85), y - 63, barWidth, 43, 3)
-        .attr({ stroke: '#000', fill: '#fff' })
-        .toFront()
+      // console.log('isComment barWidth', isComment, barWidth, widthOffset)
+      if (!self.iconBar) {
+        self.iconBar = r
+          .rect(
+            x + widthOffset - (isComment ? 45 : 85),
+            y - 63,
+            barWidth,
+            43,
+            3
+          )
+          .attr({ stroke: '#000', fill: '#fff' })
+          .toFront()
+      }
     }
 
     Object.keys(self.buttons).forEach((btn) => {

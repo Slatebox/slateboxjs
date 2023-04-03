@@ -46,6 +46,9 @@ export default class menu {
         ? null
         : this._m.items.filter((item) => item.id !== exceptionElemId)
       this.node?.connectors?.iconBar?.remove()
+      if (this.node?.connectors?.iconBar) {
+        this.node.connectors.iconBar = null
+      }
     }
 
     this.node.rotate.hide()

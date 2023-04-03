@@ -11595,6 +11595,7 @@ class $481ed38b48fbf8a1$export$2e2bcd8739ae039 {
             this._m.items = exceptionElemId ? null : this._m.items.filter((item)=>item.id !== exceptionElemId
             );
             this.node?.connectors?.iconBar?.remove();
+            if (this.node?.connectors?.iconBar) this.node.connectors.iconBar = null;
         }
         this.node.rotate.hide();
         this._isOpen = false;
@@ -11640,6 +11641,7 @@ class $d1ac19fab569a7ad$export$2e2bcd8739ae039 {
             self.buttons[btn].remove();
         });
         self.iconBar?.remove();
+        self.iconBar = null;
         self.node.menu._isOpen = false;
     }
     removeSettingsButton() {
@@ -11775,8 +11777,8 @@ class $d1ac19fab569a7ad$export$2e2bcd8739ae039 {
         if (Object.keys(self.buttons).length > 1) {
             const isComment = self.node.options.isComment;
             const barWidth = Object.keys(self.buttons).length * 40;
-            console.log('isComment barWidth', isComment, barWidth, widthOffset);
-            self.iconBar = r.rect(x + widthOffset - (isComment ? 45 : 85), y - 63, barWidth, 43, 3).attr({
+            // console.log('isComment barWidth', isComment, barWidth, widthOffset)
+            if (!self.iconBar) self.iconBar = r.rect(x + widthOffset - (isComment ? 45 : 85), y - 63, barWidth, 43, 3).attr({
                 stroke: '#000',
                 fill: '#fff'
             }).toFront();
@@ -13086,8 +13088,8 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
             }
         });
         let batchSize = 6;
-        if (self.allNodes.length > 25) batchSize = 12;
-        if (layout.allAtOnce) batchSize = 1;
+        if (self.allNodes.length > 15) batchSize = 12;
+        if (layout.allAtOnce || self.slate.nodes.allNodes.length > 25) batchSize = 1;
         const batches = $c09005a36c8880c7$export$2e2bcd8739ae039.chunk($i9J9X$lodashclonedeep(allMoves), Math.ceil(allMoves.length / batchSize));
         // console.log(
         //   'received layout2',
@@ -13098,7 +13100,7 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
         // )
         const sendMove = (batch)=>{
             let dur = 300;
-            if (self.allNodes.length > 25 || layout.allAtOnce) dur = 0;
+            if (layout.allAtOnce) dur = 0;
             const pkg = self.slate.nodes.nodeMovePackage({
                 dur: dur,
                 moves: batch
@@ -13115,6 +13117,9 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
                     dur: 500
                 });
                 else self.slate.controller.scaleToFitAndCenter();
+                // finally invoke toFront for all nodes
+                self.slate.nodes.allNodes.forEach((n)=>n.toBack()
+                );
                 cb && cb();
             }
         };
@@ -16054,6 +16059,7 @@ class $54b0c4bd9bb665f5$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
             autoEnableDefaultFilters: true,
             autoResizeNodesBasedOnText: false,
             followMe: false,
+            useLayoutQuandrants: false,
             huddleType: 'disabled'
         };
         this.options = $i9J9X$deepmerge(this.options, _options);

@@ -75,6 +75,7 @@ export default class slate extends base {
       autoEnableDefaultFilters: true,
       autoResizeNodesBasedOnText: false,
       followMe: false,
+      useLayoutQuandrants: false,
       huddleType: 'disabled',
     }
 

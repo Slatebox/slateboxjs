@@ -180,10 +180,10 @@ export default class nodeController {
       }
     })
     let batchSize = 6
-    if (self.allNodes.length > 25) {
+    if (self.allNodes.length > 15) {
       batchSize = 12
     }
-    if (layout.allAtOnce) {
+    if (layout.allAtOnce || self.slate.nodes.allNodes.length > 25) {
       batchSize = 1
     }
     const batches = utils.chunk(
@@ -201,7 +201,7 @@ export default class nodeController {
 
     const sendMove = (batch) => {
       let dur = 300
-      if (self.allNodes.length > 25 || layout.allAtOnce) {
+      if (layout.allAtOnce) {
         dur = 0
       }
       const pkg = self.slate.nodes.nodeMovePackage({
@@ -222,6 +222,8 @@ export default class nodeController {
         } else {
           self.slate.controller.scaleToFitAndCenter()
         }
+        // finally invoke toFront for all nodes
+        self.slate.nodes.allNodes.forEach((n) => n.toBack())
         cb && cb()
       }
     }
