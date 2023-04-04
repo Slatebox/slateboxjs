@@ -13198,8 +13198,14 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
                     })
                 )
             )(),
-            nodeOptions: nds.map((node)=>node.options
-            ),
+            nodeOptions: nds.map((node)=>{
+                return {
+                    id: node.options.id,
+                    vectorPath: node.options.vectorPath,
+                    xPos: node.options.xPos,
+                    yPos: node.options.yPos
+                };
+            }),
             associations: (()=>{
                 const assoc = [];
                 if (opts.relationships && opts.nodes) opts.relationships.forEach((a)=>{

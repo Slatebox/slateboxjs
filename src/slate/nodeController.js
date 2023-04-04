@@ -303,7 +303,14 @@ export default class nodeController {
             transform: node.getTransformString(),
           },
         })))(),
-      nodeOptions: nds.map((node) => node.options),
+      nodeOptions: nds.map((node) => {
+        return {
+          id: node.options.id,
+          vectorPath: node.options.vectorPath,
+          xPos: node.options.xPos,
+          yPos: node.options.yPos,
+        }
+      }),
       associations: (() => {
         const assoc = []
         if (opts.relationships && opts.nodes) {
