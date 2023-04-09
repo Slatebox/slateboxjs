@@ -129,7 +129,7 @@ export default class nodeController {
 
   applyLayout(layout, cb) {
     const self = this
-    console.log('received layout', layout)
+    // console.log('received layout', layout)
     /*
     "exportNodes": {
       "010C580B": {
@@ -358,7 +358,7 @@ export default class nodeController {
     const uniqAssoc = uniq(allAssoc, (a) => a.id)
 
     const p = pkg.data || pkg
-    const d = p.dur || 300 // Meteor.collabAnimationDuration ||
+    const d = p.dur || 300
     const e = p.easing || '>'
 
     const { associations, nodeOptions, textPositions } = p

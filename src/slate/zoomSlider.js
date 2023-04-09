@@ -18,11 +18,11 @@ export default class zoomSlider {
 
   show(_options) {
     const self = this
-    console.log(
-      'showing zoom',
-      self.slate.isReadOnly(),
-      self.slate.isCommentOnly()
-    )
+    // console.log(
+    //   'showing zoom',
+    //   self.slate.isReadOnly(),
+    //   self.slate.isCommentOnly()
+    // )
     if (!self.slate.isReadOnly() && !self.slate.isCommentOnly()) {
       self.hide()
 

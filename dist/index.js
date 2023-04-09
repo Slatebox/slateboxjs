@@ -10230,6 +10230,7 @@ class $0de94e735767a57c$export$2e2bcd8739ae039 {
             onSlateTagsAndTemplateMarkdownChanged (pkg) {
                 self.slate.options.tags = pkg.data.tags;
                 self.slate.options.templateMarkdown = pkg.data.templateMarkdown;
+                self.slate.options.templatePrompt = pkg.data.templatePrompt;
             },
             onSlateTemplateChanged (pkg) {
                 self.slate.options.isTemplate = pkg.data.isTemplate;

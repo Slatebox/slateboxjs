@@ -102,13 +102,13 @@ export default class editor {
         `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`
       )
       // don't replace text if the shape is alpha, otherwise the intent here is to copy the text
-      console.log(
-        'textDimens',
-        this.node.options.text,
-        `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`,
-        textDimens.width,
-        textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent
-      )
+      // console.log(
+      //   'textDimens',
+      //   this.node.options.text,
+      //   `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`,
+      //   textDimens.width,
+      //   textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent
+      // )
 
       let nodebb = this.node.vect.getBBox()
       const widthScalar = (textDimens.width - 20) / nodebb.width
