@@ -9265,6 +9265,8 @@ class $d70659fe9854f6b3$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
             isComment: false,
             backgroundColor: '90-#031634-#2D579A',
             foregroundColor: '#fff',
+            isCategory: false,
+            categoryName: '',
             fontSize: 18,
             fontFamily: 'Roboto',
             shapeHint: 'rectangle',
@@ -10008,7 +10010,13 @@ class $0de94e735767a57c$export$2e2bcd8739ae039 {
             onNodeBehaviorChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
                 pkg.data.behaviorChanges.forEach((b)=>{
-                    cn.options[b.name] = b.value;
+                    if (typeof b.value === 'object') {
+                        console.log('setting beh vals', b.name, b.value);
+                        cn.options[b.name] = b.value.val;
+                        Object.keys(b.value).forEach((k)=>{
+                            if (k !== 'val') cn.options[k] = b.value[k];
+                        });
+                    } else cn.options[b.name] = b.value;
                 });
                 self.slate.birdsEye?.nodeChanged(pkg);
                 self.closeNodeSpecifics(pkg);
@@ -10100,7 +10108,7 @@ class $0de94e735767a57c$export$2e2bcd8739ae039 {
             },
             onNodeTextChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.editor.set(pkg.data.text, pkg.data.fontSize, pkg.data.fontFamily, pkg.data.fontColor, pkg.data.textOpacity, pkg.data.textXAlign, pkg.data.textYAlign, true);
+                cn.editor.set(pkg.data.text, pkg.data.fontSize, pkg.data.fontFamily, pkg.data.fontColor, pkg.data.textOpacity, pkg.data.textXAlign, pkg.data.textYAlign);
                 self.slate.birdsEye?.nodeChanged(pkg);
                 self.slate.loadAllFonts();
             },
@@ -10369,7 +10377,7 @@ class $eb3767c9e63a8879$export$2e2bcd8739ae039 {
             };
         }
     }
-    set(t, s, f, c, opacity, ta, tb) {
+    set(t, s, f, c, opacity, ta, tb, isCategory) {
         const tempShim = `§` // utils.guid().substring(3);
         ;
         if (!t && t !== '') t = this.node.options.text || tempShim;
@@ -10434,7 +10442,13 @@ class $eb3767c9e63a8879$export$2e2bcd8739ae039 {
         if (this.slate.options.autoResizeNodesBasedOnText) {
             const textDimens = $c09005a36c8880c7$export$2e2bcd8739ae039.getTextWidth(this.node.options.text, `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`);
             // don't replace text if the shape is alpha, otherwise the intent here is to copy the text
-            console.log('textDimens', this.node.options.text, `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`, textDimens.width, textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent);
+            // console.log(
+            //   'textDimens',
+            //   this.node.options.text,
+            //   `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`,
+            //   textDimens.width,
+            //   textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent
+            // )
             let nodebb = this.node.vect.getBBox();
             const widthScalar = (textDimens.width - 20) / nodebb.width;
             const heightScalar = (textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent - 20) / nodebb.height;
@@ -13039,7 +13053,7 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
     }
     applyLayout(layout, cb) {
         const self = this;
-        console.log('received layout', layout);
+        // console.log('received layout', layout)
         /*
     "exportNodes": {
       "010C580B": {
@@ -13126,6 +13140,50 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
         };
         // kick it off
         sendMove(batches.pop());
+    }
+    getStickies(blnEmpty) {
+        // stickies
+        const stickies = slate.nodes.allNodes.filter((n)=>n?.options?.filters?.vect === 'postItNote' && n?.options?.disableDrag === false && n?.options?.text?.length > blnEmpty ? 10000 : 0
+        ).map((n)=>({
+                xPos: n.options.xPos,
+                yPos: n.options.yPos,
+                width: n.options.width,
+                height: n.options.height,
+                id: n.options.id
+            })
+        );
+    }
+    getProjectNameNode() {
+        return this.slate.nodes.allNodes.find((n)=>n.options.text.match(/project name/gi)
+        );
+    }
+    parseTemplateIntoCategories() {
+        const categories = slate.nodes.allNodes.filter((n)=>n.options.isCategory
+        ).map((nx)=>({
+                xPos: nx.options.xPos,
+                yPos: nx.options.yPos,
+                width: nx.options.width,
+                height: nx.options.height,
+                categoryName: nx.options.categoryName
+            })
+        );
+        // console.log(
+        //   'rectnagles, categories',
+        //   slate?.nodes?.allNodes?.length,
+        //   rectangles,
+        //   categories
+        // )
+        const matched = {
+        };
+        categories.forEach((categ)=>{
+            if (!matched[categ.categoryName]) matched[categ.categoryName] = {
+                top: categ.yPos,
+                left: categ.xPos,
+                bottom: categ.yPos + categ.height,
+                right: categ.xPos + categ.width
+            };
+        });
+        return matched;
     }
     addRange(_nodes) {
         const self = this;
@@ -13248,8 +13306,7 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
         const uniqAssoc = $i9J9X$lodashuniq(allAssoc, (a)=>a.id
         );
         const p = pkg.data || pkg;
-        const d = p.dur || 300 // Meteor.collabAnimationDuration ||
-        ;
+        const d = p.dur || 300;
         const e = p.easing || '>';
         const { associations: associations , nodeOptions: nodeOptions , textPositions: textPositions  } = p;
         let cntr = 0;
@@ -15010,7 +15067,11 @@ class $02854dd3110a2ccc$export$2e2bcd8739ae039 {
     }
     show(_options) {
         const self = this;
-        console.log('showing zoom', self.slate.isReadOnly(), self.slate.isCommentOnly());
+        // console.log(
+        //   'showing zoom',
+        //   self.slate.isReadOnly(),
+        //   self.slate.isCommentOnly()
+        // )
         if (!self.slate.isReadOnly() && !self.slate.isCommentOnly()) {
             self.hide();
             const options = {

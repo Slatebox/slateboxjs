@@ -93,7 +93,17 @@ export default class collab {
       onNodeBehaviorChanged(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
         pkg.data.behaviorChanges.forEach((b) => {
-          cn.options[b.name] = b.value
+          if (typeof b.value === 'object') {
+            console.log('setting beh vals', b.name, b.value)
+            cn.options[b.name] = b.value.val
+            Object.keys(b.value).forEach((k) => {
+              if (k !== 'val') {
+                cn.options[k] = b.value[k]
+              }
+            })
+          } else {
+            cn.options[b.name] = b.value
+          }
         })
         self.slate.birdsEye?.nodeChanged(pkg)
         self.closeNodeSpecifics(pkg)
@@ -220,8 +230,7 @@ export default class collab {
           pkg.data.fontColor,
           pkg.data.textOpacity,
           pkg.data.textXAlign,
-          pkg.data.textYAlign,
-          true
+          pkg.data.textYAlign
         )
         self.slate.birdsEye?.nodeChanged(pkg)
         self.slate.loadAllFonts()

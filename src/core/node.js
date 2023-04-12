@@ -58,6 +58,8 @@ export default class node extends base {
       isComment: false,
       backgroundColor: '90-#031634-#2D579A',
       foregroundColor: '#fff',
+      isCategory: false,
+      categoryName: '',
       fontSize: 18,
       fontFamily: 'Roboto',
       shapeHint: 'rectangle',

@@ -231,6 +231,65 @@ export default class nodeController {
     sendMove(batches.pop())
   }
 
+  getStickies(blnEmpty) {
+    // stickies
+    const stickies = slate.nodes.allNodes
+      .filter((n) =>
+        n?.options?.filters?.vect === 'postItNote' &&
+        n?.options?.disableDrag === false &&
+        n?.options?.text?.length > blnEmpty
+          ? 10000
+          : 0
+      )
+      .map((n) => ({
+        xPos: n.options.xPos,
+        yPos: n.options.yPos,
+        width: n.options.width,
+        height: n.options.height,
+        id: n.options.id,
+      }))
+  }
+
+  getProjectNameNode() {
+    return this.slate.nodes.allNodes.find((n) =>
+      n.options.text.match(/project name/gi)
+    )
+  }
+
+  parseTemplateIntoCategories() {
+    const categories = slate.nodes.allNodes
+      .filter((n) => n.options.isCategory && n.options.categoryName?.length)
+      .map((nx) => ({
+        xPos: nx.options.xPos,
+        yPos: nx.options.yPos,
+        width: nx.options.width,
+        height: nx.options.height,
+        categoryName: nx.options.categoryName,
+      }))
+
+    // console.log(
+    //   'rectnagles, categories',
+    //   slate?.nodes?.allNodes?.length,
+    //   rectangles,
+    //   categories
+    // )
+
+    const matched = {}
+
+    categories.forEach((categ) => {
+      if (!matched[categ.categoryName]) {
+        matched[categ.categoryName] = {
+          top: categ.yPos,
+          left: categ.xPos,
+          bottom: categ.yPos + categ.height,
+          right: categ.xPos + categ.width,
+        }
+      }
+    })
+
+    return matched
+  }
+
   addRange(_nodes) {
     const self = this
     _nodes.forEach((node) => {

@@ -23,7 +23,7 @@ export default class editor {
     }
   }
 
-  set(t, s, f, c, opacity, ta, tb) {
+  set(t, s, f, c, opacity, ta, tb, isCategory) {
     const tempShim = `§` // utils.guid().substring(3);
 
     if (!t && t !== '') {
