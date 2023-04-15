@@ -13128,10 +13128,13 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
                 sendMove(batches.pop());
             }, 250);
             else {
-                if (layout.skipCenter) self.slate.controller.centerOnNodes({
+                //if (layout.skipCenter) {
+                self.slate.controller.centerOnNodes({
                     dur: 500
                 });
-                else self.slate.controller.scaleToFitAndCenter();
+                // } else {
+                //   self.slate.controller.scaleToFitAndCenter()
+                // }
                 // finally invoke toFront for all nodes
                 self.slate.nodes.allNodes.forEach((n)=>n.toBack()
                 );
@@ -13158,7 +13161,7 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
         );
     }
     parseTemplateIntoCategories() {
-        const categories = slate.nodes.allNodes.filter((n)=>n.options.isCategory
+        const categories = slate.nodes.allNodes.filter((n)=>n.options.isCategory && n.options.categoryName?.length
         ).map((nx)=>({
                 xPos: nx.options.xPos,
                 yPos: nx.options.yPos,
