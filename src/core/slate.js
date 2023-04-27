@@ -174,29 +174,31 @@ export default class slate extends base {
 
   toggleFilters(blnHide, nodeId, esc) {
     // hide filters during dragging
-    if (this.nodes.allNodes.length > 20) {
-      this.nodes.allNodes.forEach((n) => {
-        if (!nodeId || n.options.id === nodeId) {
-          n.toggleFilters(blnHide)
-        }
-      })
-      this.allLines
-        .filter((l) => l.lineEffect)
-        .forEach((c) => {
-          if (blnHide) {
-            c.line.attr('filter', '')
-          } else {
-            c.line.attr('filter', `url(#${c.lineEffect})`)
+    if (!utils.isSafari()) {
+      if (this.nodes.allNodes.length > 20) {
+        this.nodes.allNodes.forEach((n) => {
+          if (!nodeId || n.options.id === nodeId) {
+            n.toggleFilters(blnHide)
           }
         })
-      if (blnHide) {
-        this.canvas.hideBg()
-      }
-      if (esc) {
-        setTimeout(() => {
-          this.toggleFilters(!blnHide)
-          this.canvas.hideBg(1)
-        }, 500)
+        this.allLines
+          .filter((l) => l.lineEffect)
+          .forEach((c) => {
+            if (blnHide) {
+              c.line.attr('filter', '')
+            } else {
+              c.line.attr('filter', `url(#${c.lineEffect})`)
+            }
+          })
+        if (blnHide) {
+          this.canvas.hideBg()
+        }
+        if (esc) {
+          setTimeout(() => {
+            this.toggleFilters(!blnHide)
+            this.canvas.hideBg(1)
+          }, 500)
+        }
       }
     }
   }

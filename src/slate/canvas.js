@@ -718,19 +718,24 @@ export default class canvas {
       if (!self.slate.options.isbirdsEye) {
         clearTimeout(self.showBgTimeout)
         self.showBgTimeout = setTimeout(() => {
-          const attrs = { filter: `url(#${e})` }
-          if (self.slate.filters.availableFilters[e]?.fill) {
-            attrs.fill = `url(#${self.slate.filters.availableFilters[e]?.fill})`
+          if (!utils.isSafari()) {
+            const attrs = { filter: `url(#${e})` }
+            if (
+              !utils.isSafari() &&
+              self.slate.filters.availableFilters[e]?.fill
+            ) {
+              attrs.fill = `url(#${self.slate.filters.availableFilters[e]?.fill})`
+            }
+            self._bg = self.slate.paper
+              .rect(
+                0,
+                0,
+                self.slate.options.viewPort.width,
+                self.slate.options.viewPort.height
+              )
+              .attr(attrs)
+              .toBack()
           }
-          self._bg = self.slate.paper
-            .rect(
-              0,
-              0,
-              self.slate.options.viewPort.width,
-              self.slate.options.viewPort.height
-            )
-            .attr(attrs)
-            .toBack()
         }, t || 2500)
       }
     }

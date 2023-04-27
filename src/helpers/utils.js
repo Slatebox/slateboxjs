@@ -259,6 +259,16 @@ export default class utils {
     return Math.floor(min + Math.random() * (max - min + 1))
   }
 
+  static isSafari() {
+    const isSafari =
+      navigator.vendor.match(/apple/i) &&
+      !navigator.userAgent.match(/crios/i) &&
+      !navigator.userAgent.match(/fxios/i) &&
+      !navigator.userAgent.match(/Opera|OPT\//)
+    console.log('is safari', isSafari)
+    return isSafari
+  }
+
   static hasClass(el, className) {
     if (el.classList) el.classList.contains(className)
     else new RegExp(`(^| )${className}( |$)`, 'gi').test(el.className)

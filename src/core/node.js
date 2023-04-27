@@ -335,38 +335,42 @@ export default class node extends base {
 
   applyFilters(filter) {
     const self = this
-    if (filter) {
-      // presumes that the filter has been added to the slate
-      if (!self.options.filters[filter.apply]) {
-        self.options.filters[filter.apply] = {}
-      }
-      self.options.filters[filter.apply] = filter.id
-    }
-
-    Object.keys(self.options?.filters).forEach((key) => {
-      if (self[key]) {
-        if (self.options.filters[key]) {
-          self[key].attr('filter', `url(#${self.options.filters[key]})`)
-        } else {
-          self[key].attr('filter', '')
+    if (!utils.isSafari()) {
+      if (filter) {
+        // presumes that the filter has been added to the slate
+        if (!self.options.filters[filter.apply]) {
+          self.options.filters[filter.apply] = {}
         }
+        self.options.filters[filter.apply] = filter.id
       }
-    })
+
+      Object.keys(self.options?.filters).forEach((key) => {
+        if (self[key]) {
+          if (self.options.filters[key]) {
+            self[key].attr('filter', `url(#${self.options.filters[key]})`)
+          } else {
+            self[key].attr('filter', '')
+          }
+        }
+      })
+    }
   }
 
   toggleFilters(blnHide) {
     const self = this
-    Object.keys(self.options?.filters).forEach((key) => {
-      if (self[key]) {
-        if (self.options.filters[key]) {
-          if (blnHide) {
-            self[key].attr('filter', '')
-          } else {
-            self[key].attr('filter', `url(#${self.options.filters[key]})`)
+    if (!utils.isSafari()) {
+      Object.keys(self.options?.filters).forEach((key) => {
+        if (self[key]) {
+          if (self.options.filters[key]) {
+            if (blnHide) {
+              self[key].attr('filter', '')
+            } else {
+              self[key].attr('filter', `url(#${self.options.filters[key]})`)
+            }
           }
         }
-      }
-    })
+      })
+    }
   }
 
   applyBorder(pkg) {
