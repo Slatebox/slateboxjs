@@ -259,13 +259,16 @@ export default class utils {
     return Math.floor(min + Math.random() * (max - min + 1))
   }
 
+  static isMobile() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+  }
+
   static isSafari() {
     const isSafari =
       navigator.vendor.match(/apple/i) &&
       !navigator.userAgent.match(/crios/i) &&
       !navigator.userAgent.match(/fxios/i) &&
       !navigator.userAgent.match(/Opera|OPT\//)
-    console.log('is safari', isSafari)
     return isSafari
   }
 
