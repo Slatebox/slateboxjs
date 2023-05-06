@@ -7891,9 +7891,11 @@ class $c09005a36c8880c7$export$2e2bcd8739ae039 {
     static randomInt(min, max) {
         return Math.floor(min + Math.random() * (max - min + 1));
     }
+    static isMobile() {
+        return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    }
     static isSafari() {
         const isSafari = navigator.vendor.match(/apple/i) && !navigator.userAgent.match(/crios/i) && !navigator.userAgent.match(/fxios/i) && !navigator.userAgent.match(/Opera|OPT\//);
-        console.log('is safari', isSafari);
         return isSafari;
     }
     static hasClass(el, className) {
@@ -9128,7 +9130,7 @@ class $aeb71f7ee3eb2c2e$export$2e2bcd8739ae039 {
                         const attrs = {
                             filter: `url(#${e})`
                         };
-                        if (!$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari() && self.slate.filters.availableFilters[e]?.fill) attrs.fill = `url(#${self.slate.filters.availableFilters[e]?.fill})`;
+                        if (!$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari() && !$c09005a36c8880c7$export$2e2bcd8739ae039.isMobile() && self.slate.filters.availableFilters[e]?.fill) attrs.fill = `url(#${self.slate.filters.availableFilters[e]?.fill})`;
                         self._bg = self.slate.paper.rect(0, 0, self.slate.options.viewPort.width, self.slate.options.viewPort.height).attr(attrs).toBack();
                     }
                 }, t || 2500);
@@ -9517,7 +9519,7 @@ class $d70659fe9854f6b3$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
     }
     applyFilters(filter) {
         const self = this;
-        if (!$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari()) {
+        if (!$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari() && !$c09005a36c8880c7$export$2e2bcd8739ae039.isMobile()) {
             if (filter) {
                 // presumes that the filter has been added to the slate
                 if (!self.options.filters[filter.apply]) self.options.filters[filter.apply] = {
@@ -9534,7 +9536,7 @@ class $d70659fe9854f6b3$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
     }
     toggleFilters(blnHide) {
         const self = this;
-        if (!$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari()) Object.keys(self.options?.filters).forEach((key)=>{
+        if (!$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari() && !$c09005a36c8880c7$export$2e2bcd8739ae039.isMobile()) Object.keys(self.options?.filters).forEach((key)=>{
             if (self[key]) {
                 if (self.options.filters[key]) {
                     if (blnHide) self[key].attr('filter', '');
@@ -10695,7 +10697,7 @@ function $16aae51a7872bfb0$export$2e2bcd8739ae039({ relationships: relationships
             'stroke-width': r.lineWidth,
             'fill-opacity': r.lineOpacity,
             opacity: r.lineOpacity,
-            filter: !$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari() && r.lineEffect ? `url(#${r.lineEffect})` : ''
+            filter: !$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari() && !$c09005a36c8880c7$export$2e2bcd8739ae039.isMobile() && r.lineEffect ? `url(#${r.lineEffect})` : ''
         };
         // stop connection re-draws when shift+alt drag until the move is up because the lines are hidden anyways
         if (!(r.isAlt && r.isShift) || r.isAlt && r.isShift && r.isUp) _attr.path = linePath;
@@ -11109,7 +11111,7 @@ class $83a856cccf23a598$export$2e2bcd8739ae039 {
             fill: 'none',
             'stroke-width': association.lineWidth,
             'fill-opacity': association.lineOpacity,
-            filter: association.lineEffect && !$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari() ? `url(#${association.lineEffect})` : '',
+            filter: association.lineEffect && !$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari() && !$c09005a36c8880c7$export$2e2bcd8739ae039.isMobile() ? `url(#${association.lineEffect})` : '',
             opacity: association.lineOpacity
         };
         // these two generic points will be adjusted after the line is created
@@ -16215,7 +16217,7 @@ class $54b0c4bd9bb665f5$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
     }
     toggleFilters(blnHide, nodeId, esc) {
         // hide filters during dragging
-        if (!$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari()) {
+        if (!$c09005a36c8880c7$export$2e2bcd8739ae039.isSafari() && !$c09005a36c8880c7$export$2e2bcd8739ae039.isMobile()) {
             if (this.nodes.allNodes.length > 20) {
                 this.nodes.allNodes.forEach((n)=>{
                     if (!nodeId || n.options.id === nodeId) n.toggleFilters(blnHide);

@@ -335,7 +335,7 @@ export default class node extends base {
 
   applyFilters(filter) {
     const self = this
-    if (!utils.isSafari()) {
+    if (!utils.isSafari() && !utils.isMobile()) {
       if (filter) {
         // presumes that the filter has been added to the slate
         if (!self.options.filters[filter.apply]) {
@@ -358,7 +358,7 @@ export default class node extends base {
 
   toggleFilters(blnHide) {
     const self = this
-    if (!utils.isSafari()) {
+    if (!utils.isSafari() && !utils.isMobile()) {
       Object.keys(self.options?.filters).forEach((key) => {
         if (self[key]) {
           if (self.options.filters[key]) {

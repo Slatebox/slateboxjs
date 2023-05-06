@@ -174,7 +174,7 @@ export default class slate extends base {
 
   toggleFilters(blnHide, nodeId, esc) {
     // hide filters during dragging
-    if (!utils.isSafari()) {
+    if (!utils.isSafari() && !utils.isMobile()) {
       if (this.nodes.allNodes.length > 20) {
         this.nodes.allNodes.forEach((n) => {
           if (!nodeId || n.options.id === nodeId) {

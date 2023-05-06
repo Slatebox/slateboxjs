@@ -74,7 +74,10 @@ export default function refreshRelationships({
       'stroke-width': r.lineWidth,
       'fill-opacity': r.lineOpacity,
       opacity: r.lineOpacity,
-      filter: !utils.isSafari() && r.lineEffect ? `url(#${r.lineEffect})` : '',
+      filter:
+        !utils.isSafari() && !utils.isMobile() && r.lineEffect
+          ? `url(#${r.lineEffect})`
+          : '',
     }
     // stop connection re-draws when shift+alt drag until the move is up because the lines are hidden anyways
     if (!(r.isAlt && r.isShift) || (r.isAlt && r.isShift && r.isUp)) {

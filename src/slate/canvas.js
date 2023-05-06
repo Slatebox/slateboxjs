@@ -722,6 +722,7 @@ export default class canvas {
             const attrs = { filter: `url(#${e})` }
             if (
               !utils.isSafari() &&
+              !utils.isMobile() &&
               self.slate.filters.availableFilters[e]?.fill
             ) {
               attrs.fill = `url(#${self.slate.filters.availableFilters[e]?.fill})`

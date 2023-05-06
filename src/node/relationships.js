@@ -496,7 +496,7 @@ export default class relationships {
       'stroke-width': association.lineWidth,
       'fill-opacity': association.lineOpacity,
       filter:
-        association.lineEffect && !utils.isSafari()
+        association.lineEffect && !utils.isSafari() && !utils.isMobile()
           ? `url(#${association.lineEffect})`
           : '',
       opacity: association.lineOpacity,
