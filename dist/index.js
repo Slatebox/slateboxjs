@@ -10136,6 +10136,7 @@ class $0de94e735767a57c$export$2e2bcd8739ae039 {
             onNodesMove (pkg) {
                 resetMultiSelect();
                 self.slate.toggleFilters(true, null, true);
+                console.log('moving nodes', pkg);
                 self.slate.nodes.moveNodes(pkg, {
                     animate: pkg.data.dur > 0
                 });
@@ -11203,9 +11204,13 @@ class $83a856cccf23a598$export$2e2bcd8739ae039 {
             };
             if (opts.nodes && opts.relationships) pkg.data = this.slate.nodes.nodeMovePackage({
                 nodes: opts.nodes,
-                relationships: opts.relationships
+                relationships: opts.relationships,
+                dur: 300
             });
-            else pkg.data = this.slate.nodes.nodeMovePackage();
+            else pkg.data = this.slate.nodes.nodeMovePackage({
+                dur: 300
+            });
+            console.log('sending nmp', pkg);
             this.slate.collab?.send(pkg);
             this.slate.birdsEye?.nodeChanged(pkg);
             this.collabSent = true;

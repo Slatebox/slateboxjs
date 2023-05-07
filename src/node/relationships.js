@@ -614,9 +614,10 @@ export default class relationships {
         pkg.data = this.slate.nodes.nodeMovePackage({
           nodes: opts.nodes,
           relationships: opts.relationships,
+          dur: 300,
         })
       } else {
-        pkg.data = this.slate.nodes.nodeMovePackage()
+        pkg.data = this.slate.nodes.nodeMovePackage({ dur: 300 })
       }
       this.slate.collab?.send(pkg)
       this.slate.birdsEye?.nodeChanged(pkg)
