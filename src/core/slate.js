@@ -329,6 +329,15 @@ export default class slate extends base {
     )
   }
 
+  async pngSync(ropts) {
+    const self = this
+    return new Promise((resolve, reject) => {
+      self.png(ropts, (base64) => {
+        resolve(base64)
+      })
+    })
+  }
+
   copy(opts) {
     const self = this
     if (!self.copySlate) {

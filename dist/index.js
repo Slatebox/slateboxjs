@@ -10136,7 +10136,6 @@ class $0de94e735767a57c$export$2e2bcd8739ae039 {
             onNodesMove (pkg) {
                 resetMultiSelect();
                 self.slate.toggleFilters(true, null, true);
-                console.log('moving nodes', pkg);
                 self.slate.nodes.moveNodes(pkg, {
                     animate: pkg.data.dur > 0
                 });
@@ -11210,7 +11209,6 @@ class $83a856cccf23a598$export$2e2bcd8739ae039 {
             else pkg.data = this.slate.nodes.nodeMovePackage({
                 dur: 300
             });
-            console.log('sending nmp', pkg);
             this.slate.collab?.send(pkg);
             this.slate.birdsEye?.nodeChanged(pkg);
             this.collabSent = true;
@@ -16348,6 +16346,14 @@ class $54b0c4bd9bb665f5$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
                     console.log('error loading image', err);
                 };
             }
+        });
+    }
+    async pngSync(ropts) {
+        const self = this;
+        return new Promise((resolve, reject)=>{
+            self.png(ropts, (base64)=>{
+                resolve(base64);
+            });
         });
     }
     copy(opts) {

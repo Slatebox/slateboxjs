@@ -183,7 +183,7 @@ export default class nodeController {
     if (self.allNodes.length > 15) {
       batchSize = 12
     }
-    if (layout.allAtOnce || self.slate.nodes.allNodes.length > 25) {
+    if (layout.allAtOnce || self.slate.nodes.allNodes.length > 12) {
       batchSize = 1
     }
     const batches = utils.chunk(
