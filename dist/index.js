@@ -13119,7 +13119,7 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
         });
         let batchSize = 6;
         if (self.allNodes.length > 15) batchSize = 12;
-        if (layout.allAtOnce || self.slate.nodes.allNodes.length > 25) batchSize = 1;
+        if (layout.allAtOnce || self.slate.nodes.allNodes.length > 12) batchSize = 1;
         const batches = $c09005a36c8880c7$export$2e2bcd8739ae039.chunk($i9J9X$lodashclonedeep(allMoves), Math.ceil(allMoves.length / batchSize));
         // console.log(
         //   'received layout2',
@@ -16948,7 +16948,7 @@ class $54b0c4bd9bb665f5$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
                     data: {
                         id: id,
                         prop: 'lineOpacity',
-                        val: styleBase.lineOpacity,
+                        val: a.lineOpacity === 0 ? 0 : styleBase.lineOpacity,
                         associationId: a.id,
                         index: ind
                     }

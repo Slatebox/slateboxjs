@@ -1032,7 +1032,7 @@ export default class slate extends base {
           data: {
             id,
             prop: 'lineOpacity',
-            val: styleBase.lineOpacity,
+            val: a.lineOpacity === 0 ? 0 : styleBase.lineOpacity,
             associationId: a.id,
             index: ind,
           },
