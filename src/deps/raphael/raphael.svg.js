@@ -1516,10 +1516,7 @@ export const Raphael = (function () {
   R._engine.create = function () {
     const con = R._getContainer.apply(0, arguments)
     let container = con && con.container
-    let { x } = con
-    let { y } = con
-    let { width } = con
-    let { height } = con
+    let { x, y, width, height } = con
     if (!container) {
       throw new Error('SVG container not found.')
     }

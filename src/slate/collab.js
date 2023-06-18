@@ -94,7 +94,6 @@ export default class collab {
         const cn = self.slate.nodes.one(pkg.data.id)
         pkg.data.behaviorChanges.forEach((b) => {
           if (typeof b.value === 'object') {
-            console.log('setting beh vals', b.name, b.value)
             cn.options[b.name] = b.value.val
             Object.keys(b.value).forEach((k) => {
               if (k !== 'val') {

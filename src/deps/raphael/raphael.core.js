@@ -779,7 +779,6 @@ export const R = (function () {
         : (r - g) / C + 4
     H = (((H + 360) % 6) * 60) / 360
     S = C == 0 ? 0 : C / V
-    console.log("checked color", r,)
     return { h: H, s: S, b: V, toString: hsbtoString }
   }
   /* \

@@ -334,6 +334,29 @@ export default class filters {
           },
         ],
       },
+      sketchy: {
+        types: ['vect', 'line', 'text', 'image'],
+        filters: [
+          {
+            type: 'feTurbulence',
+            attrs: {
+              baseFrequency: '0.01',
+              numOctaves: 2,
+              result: 'turbulence',
+            },
+          },
+          {
+            type: 'feDisplacementMap',
+            attrs: {
+              in2: 'turbulence',
+              in: 'SourceGraphic',
+              scale: 15,
+              xChannelSelector: 'R',
+              yChannelSelector: 'G',
+            },
+          },
+        ],
+      },
       pencil: {
         // https://heredragonsabound.blogspot.com/2020/02/creating-pencil-effect-in-svg.html
         levers: {},
@@ -401,14 +424,6 @@ export default class filters {
               in2: 'f3',
               result: 'f6',
             },
-          },
-          {
-            type: 'feBlend',
-            attrs: { mode: 'multiply', in2: 'f4', in: 'f5', result: 'out1' },
-          },
-          {
-            type: 'feBlend',
-            attrs: { mode: 'multiply', in: 'out1', in2: 'f6', result: 'out2' },
           },
         ],
       },

@@ -77,6 +77,7 @@ export default class slate extends base {
       followMe: false,
       useLayoutQuandrants: false,
       huddleType: 'disabled',
+      applySketch: false,
     }
 
     this.options = merge(this.options, _options)
