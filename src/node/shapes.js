@@ -47,8 +47,8 @@ export default class shapes {
     this.node.options.origVectWidth = pkg.width
     this.node.options.origVectHeight = pkg.height
 
-    this.node.options.width = pkg.width
-    this.node.options.height = pkg.height
+    this.node.options.width = pkg.width || this.node.options.width
+    this.node.options.height = pkg.height || this.node.options.height
 
     this.node.vect.attr({ path: _path })
     this.node.editor.setTextOffset()
