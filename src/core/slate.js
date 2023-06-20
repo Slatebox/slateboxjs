@@ -907,7 +907,7 @@ export default class slate extends base {
   applyTheme(theme, syncWithTheme, revertTheme) {
     const self = this
     if (!revertTheme) {
-      self.options.basedOnThemeId = theme._id
+      self.options.basedOnThemeId = theme.themeId || theme._id
       self.options.syncWithTheme = syncWithTheme
     } else {
       self.options.basedOnThemeId = null
