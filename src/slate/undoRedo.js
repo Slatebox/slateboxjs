@@ -12,21 +12,23 @@ export default class undoRedo {
 
   setVisibility() {
     const self = this
-    self.toolbar[0].data({ disabled: false })
-    self.toolbar[1].data({ disabled: false })
+    if (self.toolbar.length) {
+      self.toolbar[0].data({ disabled: false })
+      self.toolbar[1].data({ disabled: false })
 
-    if (!this.actions[this.actionIndex - 1]) {
-      self.toolbar[0].attr({ 'fill-opacity': '0.3' })
-      self.toolbar[0].data({ disabled: true })
-    } else {
-      self.toolbar[0].attr({ 'fill-opacity': '1.0' })
-    }
+      if (!this.actions[this.actionIndex - 1]) {
+        self.toolbar[0].attr({ 'fill-opacity': '0.3' })
+        self.toolbar[0].data({ disabled: true })
+      } else {
+        self.toolbar[0].attr({ 'fill-opacity': '1.0' })
+      }
 
-    if (!this.actions[this.actionIndex + 1]) {
-      self.toolbar[1].attr({ 'fill-opacity': '0.3' })
-      self.toolbar[1].data({ disabled: true })
-    } else {
-      self.toolbar[1].attr({ 'fill-opacity': '1.0' })
+      if (!this.actions[this.actionIndex + 1]) {
+        self.toolbar[1].attr({ 'fill-opacity': '0.3' })
+        self.toolbar[1].data({ disabled: true })
+      } else {
+        self.toolbar[1].attr({ 'fill-opacity': '1.0' })
+      }
     }
   }
 
