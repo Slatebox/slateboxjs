@@ -215,17 +215,17 @@ export default class canvas {
     self.resize(_w)
 
     // show zoom slider
-    if (slate.options.showZoom) {
+    if (slate.options.showZoom && !slate.options.isEmbedded) {
       if (slate.zoomSlider) slate.zoomSlider.show(slate.options.viewPort.width)
     }
 
     // show undo redo
-    if (slate.options.showUndoRedo) {
+    if (slate.options.showUndoRedo && !slate.options.isEmbedded) {
       if (slate.undoRedo) slate.undoRedo.show()
     }
 
     // show birdsEye -- this is self referential on canvas in loadJSON inside slate, so this must be deferred until canvas constructor is done.
-    if (slate.options.showbirdsEye) {
+    if (slate.options.showbirdsEye && !slate.options.isEmbedded) {
       if (slate.birdsEye.enabled()) {
         slate.birdsEye.reload(slate.exportJSON())
       } else {

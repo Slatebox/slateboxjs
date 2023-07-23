@@ -46,7 +46,6 @@ export default class links {
       }
       case 'currentSlate': {
         const n = self.slate.nodes.one(self.node.options.link.data)
-        console.log('pos ', n)
         n.position(
           'center',
           () => {
