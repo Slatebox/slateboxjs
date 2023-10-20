@@ -17,8 +17,13 @@ export default class collab {
 
   exe(pkg) {
     const self = this
-    self.invoke(pkg)
-    self.send(pkg)
+    if (!Array.isArray(pkg)) {
+      pkg = [pkg]
+    }
+    pkg.forEach((p) => {
+      self.invoke(p)
+      self.send(p)
+    })
   }
 
   wire() {
@@ -307,7 +312,13 @@ export default class collab {
       },
 
       onSlateLayoutStrategyChanged(pkg) {
-        self.slate.options.layoutStrategy = pkg.data.layoutStrategy
+        if (pkg.data.layoutStrategy != null) {
+          self.slate.options.layoutStrategy = pkg.data.layoutStrategy
+        }
+        if (pkg.data.disableAutoLayoutOfManuallyPositionedNodes != null) {
+          self.slate.options.disableAutoLayoutOfManuallyPositionedNodes =
+            pkg.data.disableAutoLayoutOfManuallyPositionedNodes
+        }
       },
 
       onSlateBackgroundEffectChanged(pkg) {
@@ -357,6 +368,13 @@ export default class collab {
           })
           n.relationships.refreshOwnRelationships()
         })
+      },
+
+      onSlateAISet(pkg) {
+        self.slate.options.ai = {
+          ...(self.slate.options.ai || {}),
+          ...pkg.data,
+        }
       },
 
       onSlateNameChanged(pkg) {

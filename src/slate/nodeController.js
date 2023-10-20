@@ -85,8 +85,12 @@ export default class nodeController {
 
   packageLayout() {
     const self = this
+    const eligibleNodes = self.slate.options
+      .disableAutoLayoutOfManuallyPositionedNodes
+      ? self.allNodes.filter((nn) => !nn.options.humanTouch)
+      : self.allNodes
     // package up all the unique associations and the width/height of every node
-    let associations = self.allNodes
+    let associations = eligibleNodes
       .map((nx) =>
         nx.relationships.associations.map((a) => {
           return {
@@ -102,7 +106,7 @@ export default class nodeController {
       .flat()
 
     const nodes = {}
-    self.allNodes.forEach((nx) => {
+    eligibleNodes.forEach((nx) => {
       if (!nodes[nx.options.id]) {
         nodes[nx.options.id] = {
           width: nx.options.width,
@@ -116,8 +120,10 @@ export default class nodeController {
       }
     })
 
+    console.log('eligibleNodes', eligibleNodes)
+
     const subgraphs = {}
-    self.allNodes.forEach((nx) => {
+    eligibleNodes.forEach((nx) => {
       if (!subgraphs[nx.options.groupId]) {
         subgraphs[nx.options.groupId] = []
       }
@@ -290,11 +296,12 @@ export default class nodeController {
     return matched
   }
 
-  addRange(_nodes) {
+  addRange(_nodes, cb) {
     const self = this
     _nodes.forEach((node) => {
       self.add(node)
     })
+    cb?.()
     return self
   }
 
@@ -306,7 +313,7 @@ export default class nodeController {
     return self
   }
 
-  add(nodes, useMainCanvas) {
+  add(nodes, useMainCanvas, cb) {
     const self = this
     if (!Array.isArray(nodes)) {
       nodes = [nodes]
@@ -316,6 +323,7 @@ export default class nodeController {
       self.allNodes.push(node)
       self.addToCanvas(node, useMainCanvas)
     })
+    cb?.()
   }
 
   remove(nodes) {

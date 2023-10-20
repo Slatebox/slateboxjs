@@ -73,7 +73,8 @@ export default class slate extends base {
       isPublic: true,
       isUnlisted: false,
       autoEnableDefaultFilters: true,
-      autoResizeNodesBasedOnText: false,
+      autoResizeNodesBasedOnText: true,
+      disableAutoLayoutOfManuallyPositionedNodes: false,
       followMe: false,
       useLayoutQuandrants: false,
       huddleType: 'disabled',
@@ -788,16 +789,18 @@ export default class slate extends base {
         const sbw = 10
         const _bb = an[_px].vect.getBBox()
 
-        const _r = alwaysOne ? 1 : this.options.viewPort.zoom.r || 1
-        const x = _bb.x * _r
-        const y = _bb.y * _r
-        const w = _bb.width * _r
-        const h = _bb.height * _r
+        if (_bb) {
+          const _r = alwaysOne ? 1 : this.options.viewPort.zoom.r || 1
+          const x = _bb.x * _r
+          const y = _bb.y * _r
+          const w = _bb.width * _r
+          const h = _bb.height * _r
 
-        bb.left = Math.abs(Math.min(bb.left, x - sbw))
-        bb.right = Math.abs(Math.max(bb.right, x + w + sbw))
-        bb.top = Math.abs(Math.min(bb.top, y - sbw))
-        bb.bottom = Math.abs(Math.max(bb.bottom, y + h + sbw))
+          bb.left = Math.abs(Math.min(bb.left, x - sbw))
+          bb.right = Math.abs(Math.max(bb.right, x + w + sbw))
+          bb.top = Math.abs(Math.min(bb.top, y - sbw))
+          bb.bottom = Math.abs(Math.max(bb.bottom, y + h + sbw))
+        }
       }
 
       sWidth = bb.right - bb.left

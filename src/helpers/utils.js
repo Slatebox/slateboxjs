@@ -492,6 +492,47 @@ export default class utils {
     return template.content.firstChild
   }
 
+  static buildNodeStyleFromTheme({ theme, childNumber = 1 }) {
+    const allKeys = Object.keys(theme.styles)
+    const lastStyle = theme.styles[allKeys[allKeys.length - 1]]
+    const styleBase = theme.styles[`child_${childNumber}`] || lastStyle
+    const configurableProps = [
+      'borderWidth',
+      'borderColor',
+      'borderOpacity',
+      'borderStyle',
+      'fontSize',
+      'fontFamily',
+      'fontColor',
+      'textOpacity',
+      'filter.vect',
+      'filter.text',
+      'opacity',
+      'backgroundColor',
+      'lineOpacity',
+      'lineWidth',
+      'lineEffect',
+    ] // vectorPath
+
+    const nodeOptions = {}
+    configurableProps.forEach((p) => {
+      if (styleBase[p] != null) {
+        nodeOptions[p] = styleBase[p]
+      } else {
+        switch (p) {
+          case 'filter.vect':
+          case 'filter.text': {
+            nodeOptions.filter ??= {}
+            nodeOptions.filter[p.split('.')[1]] =
+              styleBase.filters[p.split('.')[1]]
+            break
+          }
+        }
+      }
+    })
+    return nodeOptions
+  }
+
   // https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript
   static getTextWidth(text, font) {
     const splitText = text.split('\n')

@@ -59,6 +59,7 @@ export default class node extends base {
       backgroundColor: '90-#031634-#2D579A',
       foregroundColor: '#fff',
       isCategory: false,
+      humanTouch: false,
       categoryName: '',
       fontSize: 18,
       fontFamily: 'Roboto',
@@ -669,7 +670,7 @@ export default class node extends base {
     this.hideOpenLock()
     this._lock && this._lock.remove()
     this._lock = null
-    this.slate.unglow()
+    this.slate && this.slate.unglow()
   }
 
   showOpenLock() {

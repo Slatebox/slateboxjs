@@ -8097,6 +8097,43 @@ class $c09005a36c8880c7$export$2e2bcd8739ae039 {
         template.innerHTML = html;
         return template.content.firstChild;
     }
+    static buildNodeStyleFromTheme({ theme: theme , childNumber: childNumber = 1  }) {
+        const allKeys = Object.keys(theme.styles);
+        const lastStyle = theme.styles[allKeys[allKeys.length - 1]];
+        const styleBase = theme.styles[`child_${childNumber}`] || lastStyle;
+        const configurableProps = [
+            'borderWidth',
+            'borderColor',
+            'borderOpacity',
+            'borderStyle',
+            'fontSize',
+            'fontFamily',
+            'fontColor',
+            'textOpacity',
+            'filter.vect',
+            'filter.text',
+            'opacity',
+            'backgroundColor',
+            'lineOpacity',
+            'lineWidth',
+            'lineEffect', 
+        ] // vectorPath
+        ;
+        const nodeOptions = {
+        };
+        configurableProps.forEach((p)=>{
+            if (styleBase[p] != null) nodeOptions[p] = styleBase[p];
+            else switch(p){
+                case 'filter.vect':
+                case 'filter.text':
+                    nodeOptions.filter ??= {
+                    };
+                    nodeOptions.filter[p.split('.')[1]] = styleBase.filters[p.split('.')[1]];
+                    break;
+            }
+        });
+        return nodeOptions;
+    }
     // https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript
     static getTextWidth(text, font) {
         const splitText = text.split('\n');
@@ -9271,6 +9308,7 @@ class $d70659fe9854f6b3$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
             backgroundColor: '90-#031634-#2D579A',
             foregroundColor: '#fff',
             isCategory: false,
+            humanTouch: false,
             categoryName: '',
             fontSize: 18,
             fontFamily: 'Roboto',
@@ -9801,7 +9839,7 @@ class $d70659fe9854f6b3$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
         this.hideOpenLock();
         this._lock && this._lock.remove();
         this._lock = null;
-        this.slate.unglow();
+        this.slate && this.slate.unglow();
     }
     showOpenLock() {
         const self = this;
@@ -9955,8 +9993,13 @@ class $0de94e735767a57c$export$2e2bcd8739ae039 {
     }
     exe(pkg) {
         const self = this;
-        self.invoke(pkg);
-        self.send(pkg);
+        if (!Array.isArray(pkg)) pkg = [
+            pkg
+        ];
+        pkg.forEach((p)=>{
+            self.invoke(p);
+            self.send(p);
+        });
     }
     wire() {
         const self = this;
@@ -10182,7 +10225,8 @@ class $0de94e735767a57c$export$2e2bcd8739ae039 {
                 if (pkg.data?.theme) self.slate.applyTheme(pkg.data.theme, pkg.data.syncWithTheme);
             },
             onSlateLayoutStrategyChanged (pkg) {
-                self.slate.options.layoutStrategy = pkg.data.layoutStrategy;
+                if (pkg.data.layoutStrategy != null) self.slate.options.layoutStrategy = pkg.data.layoutStrategy;
+                if (pkg.data.disableAutoLayoutOfManuallyPositionedNodes != null) self.slate.options.disableAutoLayoutOfManuallyPositionedNodes = pkg.data.disableAutoLayoutOfManuallyPositionedNodes;
             },
             onSlateBackgroundEffectChanged (pkg) {
                 self.slate.options.containerStyle.backgroundEffect = pkg.data.effect;
@@ -10223,6 +10267,13 @@ class $0de94e735767a57c$export$2e2bcd8739ae039 {
                     });
                     n.relationships.refreshOwnRelationships();
                 });
+            },
+            onSlateAISet (pkg) {
+                self.slate.options.ai = {
+                    ...self.slate.options.ai || {
+                    },
+                    ...pkg.data
+                };
             },
             onSlateNameChanged (pkg) {
                 self.slate.options.name = pkg.data.name;
@@ -10402,6 +10453,35 @@ class $eb3767c9e63a8879$export$2e2bcd8739ae039 {
         this.node.options.textOpacity = opacity;
         this.node.options.textXAlign = ta;
         this.node.options.textYAlign = tb;
+        if (this.slate.options.autoResizeNodesBasedOnText) {
+            let widthScalar = 1;
+            let heightScalar = 1;
+            let nodebb = this.node.vect.getBBox();
+            if (this.node.options.text !== tempShim) {
+                const textDimens = $c09005a36c8880c7$export$2e2bcd8739ae039.getTextWidth(this.node.options.text, `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`);
+                // don't replace text if the shape is alpha, otherwise the intent here is to copy the text
+                // console.log(
+                //   'textDimens',
+                //   this.node.options.text,
+                //   `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`,
+                //   textDimens.width,
+                //   textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent
+                // )
+                widthScalar = textDimens.width / nodebb.width;
+                heightScalar = textDimens.height / nodebb.height;
+            }
+            const scaledVectPath = $db87f2586597736c$export$508faed300ccdfb.transformPath(this.node.options.vectorPath, `s${widthScalar}, ${heightScalar}`).toString();
+            this.node.options.vectorPath = scaledVectPath;
+            this.node.vect.attr({
+                path: scaledVectPath
+            });
+            nodebb = this.node.vect.getBBox();
+            this.node.options.width = nodebb.width;
+            this.node.options.height = nodebb.height;
+            this.node.options.xPos = nodebb.x;
+            this.node.options.yPos = nodebb.y;
+            this.node.relationships && this.node.relationships.refreshOwnRelationships();
+        }
         let coords = null;
         this.setTextOffset();
         coords = this.node.textCoords();
@@ -10445,29 +10525,6 @@ class $eb3767c9e63a8879$export$2e2bcd8739ae039 {
         this.node.text.attr({
             style: noSelect
         });
-        if (this.slate.options.autoResizeNodesBasedOnText) {
-            const textDimens = $c09005a36c8880c7$export$2e2bcd8739ae039.getTextWidth(this.node.options.text, `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`);
-            // don't replace text if the shape is alpha, otherwise the intent here is to copy the text
-            // console.log(
-            //   'textDimens',
-            //   this.node.options.text,
-            //   `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`,
-            //   textDimens.width,
-            //   textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent
-            // )
-            let nodebb = this.node.vect.getBBox();
-            const widthScalar = (textDimens.width - 20) / nodebb.width;
-            const heightScalar = (textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent - 20) / nodebb.height;
-            const scaledVectPath = $db87f2586597736c$export$508faed300ccdfb.transformPath(this.node.options.vectorPath, `s${widthScalar}, ${heightScalar}`).toString();
-            this.node.options.vectorPath = scaledVectPath;
-            nodebb = this.node.vect.getBBox();
-            this.node.options.width = nodebb.width;
-            this.node.options.height = nodebb.height;
-            this.node.vect.attr({
-                path: scaledVectPath
-            });
-            this.node.relationships && this.node.relationships.refreshOwnRelationships();
-        }
         if (tempShim === t) {
             this.node.options.text = '';
             this.node.text.attr({
@@ -10928,6 +10985,7 @@ class $83a856cccf23a598$export$2e2bcd8739ae039 {
         self.slate.draggingNode = true;
         self._dx = 0;
         self._dy = 0;
+        self.node.options.humanTouch = true;
         self.slate.multiSelection?.end();
         if (self.slate.options.linking) self.slate.options.linking.onNode.apply(vect, [
             self
@@ -13022,8 +13080,10 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
     }
     packageLayout() {
         const self = this;
+        const eligibleNodes = self.slate.options.disableAutoLayoutOfManuallyPositionedNodes ? self.allNodes.filter((nn)=>!nn.options.humanTouch
+        ) : self.allNodes;
         // package up all the unique associations and the width/height of every node
-        let associations = self.allNodes.map((nx)=>nx.relationships.associations.map((a)=>{
+        let associations = eligibleNodes.map((nx)=>nx.relationships.associations.map((a)=>{
                 return {
                     parentId: a.parent.options.id,
                     childId: a.child.options.id,
@@ -13036,7 +13096,7 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
         ).flat();
         const nodes = {
         };
-        self.allNodes.forEach((nx)=>{
+        eligibleNodes.forEach((nx)=>{
             if (!nodes[nx.options.id]) nodes[nx.options.id] = {
                 width: nx.options.width,
                 height: nx.options.height,
@@ -13047,9 +13107,10 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
                 groupId: nx.options.groupId
             };
         });
+        console.log('eligibleNodes', eligibleNodes);
         const subgraphs = {
         };
-        self.allNodes.forEach((nx)=>{
+        eligibleNodes.forEach((nx)=>{
             if (!subgraphs[nx.options.groupId]) subgraphs[nx.options.groupId] = [];
             subgraphs[nx.options.groupId].push(nx.options.id);
         });
@@ -13194,11 +13255,12 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
         });
         return matched;
     }
-    addRange(_nodes) {
+    addRange(_nodes, cb) {
         const self = this;
         _nodes.forEach((node)=>{
             self.add(node);
         });
+        cb?.();
         return self;
     }
     removeRange(_nodes) {
@@ -13208,7 +13270,7 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
         });
         return self;
     }
-    add(nodes, useMainCanvas) {
+    add(nodes, useMainCanvas, cb) {
         const self = this;
         if (!Array.isArray(nodes)) nodes = [
             nodes
@@ -13219,6 +13281,7 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
             self.allNodes.push(node);
             self.addToCanvas(node, useMainCanvas);
         });
+        cb?.();
     }
     remove(nodes) {
         const self = this;
@@ -16146,7 +16209,8 @@ class $54b0c4bd9bb665f5$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
             isPublic: true,
             isUnlisted: false,
             autoEnableDefaultFilters: true,
-            autoResizeNodesBasedOnText: false,
+            autoResizeNodesBasedOnText: true,
+            disableAutoLayoutOfManuallyPositionedNodes: false,
             followMe: false,
             useLayoutQuandrants: false,
             huddleType: 'disabled',
@@ -16706,15 +16770,17 @@ class $54b0c4bd9bb665f5$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
             for(let _px = 0; _px < an.length; _px += 1){
                 const sbw = 10;
                 const _bb = an[_px].vect.getBBox();
-                const _r = alwaysOne ? 1 : this.options.viewPort.zoom.r || 1;
-                const x = _bb.x * _r;
-                const y = _bb.y * _r;
-                const w = _bb.width * _r;
-                const h = _bb.height * _r;
-                bb.left = Math.abs(Math.min(bb.left, x - sbw));
-                bb.right = Math.abs(Math.max(bb.right, x + w + sbw));
-                bb.top = Math.abs(Math.min(bb.top, y - sbw));
-                bb.bottom = Math.abs(Math.max(bb.bottom, y + h + sbw));
+                if (_bb) {
+                    const _r = alwaysOne ? 1 : this.options.viewPort.zoom.r || 1;
+                    const x = _bb.x * _r;
+                    const y = _bb.y * _r;
+                    const w = _bb.width * _r;
+                    const h = _bb.height * _r;
+                    bb.left = Math.abs(Math.min(bb.left, x - sbw));
+                    bb.right = Math.abs(Math.max(bb.right, x + w + sbw));
+                    bb.top = Math.abs(Math.min(bb.top, y - sbw));
+                    bb.bottom = Math.abs(Math.max(bb.bottom, y + h + sbw));
+                }
             }
             sWidth = bb.right - bb.left;
             sHeight = bb.bottom - bb.top;

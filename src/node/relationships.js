@@ -262,6 +262,7 @@ export default class relationships {
     self.slate.draggingNode = true
     self._dx = 0
     self._dy = 0
+    self.node.options.humanTouch = true
     self.slate.multiSelection?.end()
     if (self.slate.options.linking) {
       self.slate.options.linking.onNode.apply(vect, [self])

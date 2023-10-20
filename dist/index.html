@@ -722,6 +722,8 @@ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 /* eslint-disable no-template-curly-in-string */ /* eslint-disable class-methods-use-this */ /* eslint-disable no-param-reassign */ /* eslint-disable no-underscore-dangle */ /* eslint-disable no-unused-expressions */ /* eslint-disable new-cap */ /* eslint-disable import/no-cycle */ var _lodashUniq = require("lodash.uniq");
 var _lodashUniqDefault = parcelHelpers.interopDefault(_lodashUniq);
+var _lodashClonedeep = require("lodash.clonedeep");
+var _lodashClonedeepDefault = parcelHelpers.interopDefault(_lodashClonedeep);
 var _deepmerge = require("deepmerge");
 var _deepmergeDefault = parcelHelpers.interopDefault(_deepmerge);
 var _utils = require("../helpers/utils");
@@ -769,6 +771,8 @@ class slate extends _baseDefault.default {
             description: '',
             basedOnThemeId: '',
             syncWithTheme: false,
+            tags: [],
+            templateMarkdown: '',
             containerStyle: {
                 backgroundColor: 'transparent',
                 backgroundImage: '',
@@ -802,7 +806,12 @@ class slate extends _baseDefault.default {
             isPublic: true,
             isUnlisted: false,
             autoEnableDefaultFilters: true,
-            followMe: false
+            autoResizeNodesBasedOnText: false,
+            disableAutoLayoutOfManuallyPositionedNodes: false,
+            followMe: false,
+            useLayoutQuandrants: false,
+            huddleType: 'disabled',
+            applySketch: false
         };
         this.options = _deepmergeDefault.default(this.options, _options);
         this.events = events || {
@@ -829,6 +838,8 @@ class slate extends _baseDefault.default {
         this.tips = [];
         this.tempNodeId = _utilsDefault.default.guid();
         this.allLines = [];
+        this.candidatesForSelection = {
+        };
     }
     init() {
         const self = this;
@@ -877,20 +888,22 @@ class slate extends _baseDefault.default {
     }
     toggleFilters(blnHide, nodeId, esc) {
         // hide filters during dragging
-        if (this.nodes.allNodes.length > 20) {
-            this.nodes.allNodes.forEach((n)=>{
-                if (!nodeId || n.options.id === nodeId) n.toggleFilters(blnHide);
-            });
-            this.allLines.filter((l)=>l.lineEffect
-            ).forEach((c)=>{
-                if (blnHide) c.line.attr('filter', '');
-                else c.line.attr('filter', `url(#${c.lineEffect})`);
-            });
-            if (blnHide) this.canvas.hideBg();
-            if (esc) setTimeout(()=>{
-                this.toggleFilters(!blnHide);
-                this.canvas.hideBg(1);
-            }, 500);
+        if (!_utilsDefault.default.isSafari() && !_utilsDefault.default.isMobile()) {
+            if (this.nodes.allNodes.length > 20) {
+                this.nodes.allNodes.forEach((n)=>{
+                    if (!nodeId || n.options.id === nodeId) n.toggleFilters(blnHide);
+                });
+                this.allLines.filter((l)=>l.lineEffect
+                ).forEach((c)=>{
+                    if (blnHide) c.line.attr('filter', '');
+                    else c.line.attr('filter', `url(#${c.lineEffect})`);
+                });
+                if (blnHide) this.canvas.hideBg();
+                if (esc) setTimeout(()=>{
+                    this.toggleFilters(!blnHide);
+                    this.canvas.hideBg(1);
+                }, 500);
+            }
         }
     }
     removeContextMenus() {
@@ -916,6 +929,29 @@ class slate extends _baseDefault.default {
             useDataImageUrls: true,
             backgroundOnly: ropts?.backgroundOnly
         }, (opts)=>{
+            function makeTransparent(ctx, alpha, cnvs) {
+                // get the image data object
+                const imageData = ctx.getImageData(0, 0, cnvs.width, cnvs.height);
+                const data = imageData.data;
+                // if it is a background defined of #f3f3f3 then it can be transparent here
+                for(let ix = 3; ix < data.length; ix += 4){
+                    const isBg = [
+                        data[ix - 3],
+                        data[ix - 2],
+                        data[ix - 1]
+                    ].every((v)=>v === 243
+                    );
+                    // console.log('isBg', alpha, isBg, data[ix - 3])
+                    if ([
+                        data[ix - 3],
+                        data[ix - 2],
+                        data[ix - 1]
+                    ].every((v)=>v === 243
+                    )) data[ix] = alpha;
+                }
+                // and put the imagedata back to the canvas
+                ctx.putImageData(imageData, 0, 0);
+            }
             if (self.events.onCreateImage) self.events.onCreateImage({
                 svg: opts.svg,
                 orient: opts.orient,
@@ -933,6 +969,7 @@ class slate extends _baseDefault.default {
                         const ctx = cnvs.getContext('2d');
                         ctx.imageSmoothingEnabled = false;
                         ctx.drawImage(img, 0, 0);
+                        if (ropts?.alpha != null) makeTransparent(ctx, ropts.alpha, cnvs);
                         const link = document.createElement('a');
                         link.setAttribute('download', `${(self.options.name || 'slate').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${self.options.id}.png`);
                         cnvs.toBlob((blob)=>{
@@ -959,9 +996,9 @@ class slate extends _baseDefault.default {
                 img.src = url;
                 img.onload = ()=>{
                     ctx.drawImage(img, 0, 0);
+                    if (ropts?.alpha != null) makeTransparent(ctx, ropts.alpha, cnvs);
                     const imgsrc = cnvs.toDataURL('image/png');
                     if (ropts?.base64) {
-                        console.log('sending back dataurl', imgsrc);
                         cb(imgsrc);
                         URL.revokeObjectURL(img.src);
                     } else {
@@ -977,6 +1014,14 @@ class slate extends _baseDefault.default {
                     console.log('error loading image', err);
                 };
             }
+        });
+    }
+    async pngSync(ropts) {
+        const self = this;
+        return new Promise((resolve, reject)=>{
+            self.png(ropts, (base64)=>{
+                resolve(base64);
+            });
         });
     }
     copy(opts) {
@@ -1003,7 +1048,7 @@ class slate extends _baseDefault.default {
                 const _transforms = [
                     `t${_mpkg.x}, ${_mpkg.y}`
                 ];
-                nde.options.vectorPath = _getTransformedPathDefault.default(_nodeDefault.default.options.vectorPath, _transforms);
+                nde.options.vectorPath = _getTransformedPathDefault.default(nde.options.vectorPath, _transforms);
             }
         });
         self.copySlate.loadJSON(JSON.stringify(_json));
@@ -1423,7 +1468,7 @@ class slate extends _baseDefault.default {
     applyTheme(theme, syncWithTheme, revertTheme) {
         const self = this;
         if (!revertTheme) {
-            self.options.basedOnThemeId = theme._id;
+            self.options.basedOnThemeId = theme.themeId || theme._id;
             self.options.syncWithTheme = syncWithTheme;
         } else {
             self.options.basedOnThemeId = null;
@@ -1514,7 +1559,7 @@ class slate extends _baseDefault.default {
                 }
             });
             // text
-            self.collab.invoke({
+            if (syncWithTheme) self.collab.invoke({
                 type: 'onNodeTextChanged',
                 data: {
                     id,
@@ -1571,7 +1616,7 @@ class slate extends _baseDefault.default {
                     data: {
                         id,
                         prop: 'lineOpacity',
-                        val: styleBase.lineOpacity,
+                        val: a.lineOpacity === 0 ? 0 : styleBase.lineOpacity,
                         associationId: a.id,
                         index: ind
                     }
@@ -1636,7 +1681,7 @@ class slate extends _baseDefault.default {
 }
 exports.default = slate;
 
-},{"lodash.uniq":"iDalh","deepmerge":"ck1Q2","../helpers/utils":"8QI6M","../helpers/getTransformedPath":"6wubb","../slate/canvas":"kpLaV","../slate/collab":"eYgJm","../slate/nodeController":"6wl7A","../slate/multiSelection":"kpcw7","../slate/birdsEye":"bRqCq","../slate/inertia":"l9OwD","../slate/controller":"2xnBR","../slate/zoomSlider":"6TbYF","../slate/undoRedo":"78ZfO","../slate/grid":"ixIFt","../slate/comments":"g3tty","../slate/keyboard":"fRVV4","../slate/filters":"JAVXJ","./base":"cmkOb","./node":"bAVQb","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"iDalh":[function(require,module,exports) {
+},{"lodash.uniq":"iDalh","deepmerge":"ck1Q2","../helpers/utils":"8QI6M","../helpers/getTransformedPath":"6wubb","../slate/canvas":"kpLaV","../slate/collab":"eYgJm","../slate/nodeController":"6wl7A","../slate/multiSelection":"kpcw7","../slate/birdsEye":"bRqCq","../slate/inertia":"l9OwD","../slate/controller":"2xnBR","../slate/zoomSlider":"6TbYF","../slate/undoRedo":"78ZfO","../slate/grid":"ixIFt","../slate/comments":"g3tty","../slate/keyboard":"fRVV4","../slate/filters":"JAVXJ","./base":"cmkOb","./node":"bAVQb","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","lodash.clonedeep":"i3u1q"}],"iDalh":[function(require,module,exports) {
 var global = arguments[3];
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -11647,7 +11692,12 @@ class collab {
             onNodeBehaviorChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
                 pkg.data.behaviorChanges.forEach((b)=>{
-                    cn.options[b.name] = b.value;
+                    if (typeof b.value === 'object') {
+                        cn.options[b.name] = b.value.val;
+                        Object.keys(b.value).forEach((k)=>{
+                            if (k !== 'val') cn.options[k] = b.value[k];
+                        });
+                    } else cn.options[b.name] = b.value;
                 });
                 self.slate.birdsEye?.nodeChanged(pkg);
                 self.closeNodeSpecifics(pkg);
@@ -11672,8 +11722,16 @@ class collab {
             },
             onNodeAdded (pkg) {
                 resetMultiSelect();
-                const blnPreserve = pkg.preserve !== undefined ? pkg.preserve : true;
-                self.slate.loadJSON(pkg.data, blnPreserve, true);
+                if (pkg.data.id) {
+                    const cn = self.slate.nodes.one(pkg.data.id);
+                    cn.connectors.createNode(pkg.data.skipCenter, pkg.data.options, pkg.data.targetXPos, pkg.data.targetYPos);
+                } else if (pkg.data.multiSelectCopy) // this is a multiSelection copy
+                self.slate.multiSelection.createCopiedNodes(pkg.data.nodeOptions, pkg.data.assocDetails);
+                else {
+                    // straight up node addition
+                    const n = new _nodeDefault.default(pkg.data.nodeOptions);
+                    self.slate.nodes.add(n);
+                }
             },
             onNodeImageChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
@@ -11731,7 +11789,7 @@ class collab {
             },
             onNodeTextChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.editor.set(pkg.data.text, pkg.data.fontSize, pkg.data.fontFamily, pkg.data.fontColor, pkg.data.textOpacity, pkg.data.textXAlign, pkg.data.textYAlign, true);
+                cn.editor.set(pkg.data.text, pkg.data.fontSize, pkg.data.fontFamily, pkg.data.fontColor, pkg.data.textOpacity, pkg.data.textXAlign, pkg.data.textYAlign);
                 self.slate.birdsEye?.nodeChanged(pkg);
                 self.slate.loadAllFonts();
             },
@@ -11749,7 +11807,7 @@ class collab {
                 resetMultiSelect();
                 self.slate.toggleFilters(true, null, true);
                 self.slate.nodes.moveNodes(pkg, {
-                    animate: true
+                    animate: pkg.data.dur > 0
                 });
                 self.slate.birdsEye?.nodeChanged(pkg);
                 self.closeNodeSpecifics(pkg);
@@ -11798,6 +11856,10 @@ class collab {
                 self.slate.options.themeId = pkg.data?.theme?._id;
                 if (pkg.data?.theme) self.slate.applyTheme(pkg.data.theme, pkg.data.syncWithTheme);
             },
+            onSlateLayoutStrategyChanged (pkg) {
+                if (pkg.data.layoutStrategy != null) self.slate.options.layoutStrategy = pkg.data.layoutStrategy;
+                if (pkg.data.disableAutoLayoutOfManuallyPositionedNodes != null) self.slate.options.disableAutoLayoutOfManuallyPositionedNodes = pkg.data.disableAutoLayoutOfManuallyPositionedNodes;
+            },
             onSlateBackgroundEffectChanged (pkg) {
                 self.slate.options.containerStyle.backgroundEffect = pkg.data.effect;
                 self.slate.canvas.hideBg(1);
@@ -11838,6 +11900,13 @@ class collab {
                     n.relationships.refreshOwnRelationships();
                 });
             },
+            onSlateAISet (pkg) {
+                self.slate.options.ai = {
+                    ...self.slate.options.ai || {
+                    },
+                    ...pkg.data
+                };
+            },
             onSlateNameChanged (pkg) {
                 self.slate.options.name = pkg.data.name;
             },
@@ -11852,6 +11921,14 @@ class collab {
             onSlateMindMapModeChanged (pkg) {
                 self.slate.options.mindMapMode = pkg.data.mindMapMode;
             },
+            onSlateAutoResizeNodesBasedOnTextChanged (pkg) {
+                self.slate.options.autoResizeNodesBasedOnText = pkg.data.autoResizeNodesBasedOnText;
+            },
+            onSlateTagsAndTemplateMarkdownChanged (pkg) {
+                self.slate.options.tags = pkg.data.tags;
+                self.slate.options.templateMarkdown = pkg.data.templateMarkdown;
+                self.slate.options.templatePrompt = pkg.data.templatePrompt;
+            },
             onSlateTemplateChanged (pkg) {
                 self.slate.options.isTemplate = pkg.data.isTemplate;
             },
@@ -11860,6 +11937,10 @@ class collab {
             },
             onSlateFollowMeChanged (pkg) {
                 self.slate.options.followMe = pkg.data.followMe;
+            },
+            onSlateHuddleChanged (pkg) {
+                if (pkg.data.huddleType != null) self.slate.options.huddleType = pkg.data.huddleType;
+                if (pkg.data.huddleEnabled != null) self.slate.options.huddleEnabled = pkg.data.huddleEnabled;
             }
         } // this invoker
         ;
@@ -11893,7 +11974,11 @@ class collab {
     }
     invoke(pkg) {
         const self = this;
-        if (self.invoker[pkg.type]) self.invoker[pkg.type](pkg);
+        let packages = pkg;
+        if (!Array.isArray(packages)) packages = [
+            packages
+        ];
+        for (let pkg1 of packages)if (self.invoker[pkg1.type]) self.invoker[pkg1.type](pkg1);
     }
     closeNodeSpecifics(pkg) {
         const self = this;
@@ -11902,16 +11987,17 @@ class collab {
         ];
         all.forEach((n)=>{
             // close self node's marker if open
-            const nx = self.slate.nodes.one(n.id);
-            if (nx) {
-                nx.menu?.hide();
-                nx.connectors?.remove();
-                nx.resize?.hide();
-                nx.rotate?.hide();
-                nx.relationships.associations.forEach((association)=>{
-                    nx.lineOptions?.hide(association.id);
+            const nx1 = self.slate.nodes.one(n.id);
+            if (nx1) {
+                nx1.menu?.hide();
+                nx1.connectors?.remove();
+                nx1.resize?.hide();
+                nx1.rotate?.hide();
+                nx1.relationships.associations.forEach((association)=>{
+                    nx1.lineOptions?.hide(association.id);
                 });
-            } else console.error('Unable to find node with id', n.id);
+            } else console.error('Unable to find node with id', n.id, 'currentIds', self.slate.nodes.allNodes.map((nx)=>nx.options.id
+            ));
         });
         // remove any context menus
         self.slate.removeContextMenus();
@@ -11919,17 +12005,21 @@ class collab {
     }
     send(pkg) {
         const self = this;
-        if (pkg.type !== 'onMouseMoved') {
+        let packages = pkg;
+        if (!Array.isArray(packages)) packages = [
+            packages
+        ];
+        if (packages[0].type !== 'onMouseMoved') {
             if (self.slate.undoRedo && self.slate.options.showUndoRedo) self.slate.undoRedo.snap();
         }
         if (self.pc.allow) {
             if (self.slate.options?.onSlateChanged) self.slate.options.onSlateChanged.apply(self, [
-                pkg
+                packages
             ]);
             if (self.pc.onCollaboration) self.pc.onCollaboration({
                 type: 'process',
                 slate: self.slate,
-                pkg
+                pkg: packages
             });
         }
     }
@@ -13114,12 +13204,6 @@ class node extends _baseDefault.default {
         this._lock = null;
         this._openLock = null;
         this.lm = null;
-        console.log('creating node', options.id);
-        if (options.id) {
-            // always delete
-            console.log('deleting sent in options id!', options.id);
-            delete options.id;
-        }
         this.options = {
             id: _utilsDefault.default.guid(),
             name: '',
@@ -13166,8 +13250,12 @@ class node extends _baseDefault.default {
             isComment: false,
             backgroundColor: '90-#031634-#2D579A',
             foregroundColor: '#fff',
+            isCategory: false,
+            humanTouch: false,
+            categoryName: '',
             fontSize: 18,
             fontFamily: 'Roboto',
+            shapeHint: 'rectangle',
             vectorPath: '',
             rotate: {
                 rotationAngle: 0
@@ -13408,22 +13496,24 @@ class node extends _baseDefault.default {
     }
     applyFilters(filter) {
         const self = this;
-        if (filter) {
-            // presumes that the filter has been added to the slate
-            if (!self.options.filters[filter.apply]) self.options.filters[filter.apply] = {
-            };
-            self.options.filters[filter.apply] = filter.id;
-        }
-        Object.keys(self.options?.filters).forEach((key)=>{
-            if (self[key]) {
-                if (self.options.filters[key]) self[key].attr('filter', `url(#${self.options.filters[key]})`);
-                else self[key].attr('filter', '');
+        if (!_utilsDefault.default.isSafari() && !_utilsDefault.default.isMobile()) {
+            if (filter) {
+                // presumes that the filter has been added to the slate
+                if (!self.options.filters[filter.apply]) self.options.filters[filter.apply] = {
+                };
+                self.options.filters[filter.apply] = filter.id;
             }
-        });
+            Object.keys(self.options?.filters).forEach((key)=>{
+                if (self[key]) {
+                    if (self.options.filters[key]) self[key].attr('filter', `url(#${self.options.filters[key]})`);
+                    else self[key].attr('filter', '');
+                }
+            });
+        }
     }
     toggleFilters(blnHide) {
         const self = this;
-        Object.keys(self.options?.filters).forEach((key)=>{
+        if (!_utilsDefault.default.isSafari() && !_utilsDefault.default.isMobile()) Object.keys(self.options?.filters).forEach((key)=>{
             if (self[key]) {
                 if (self.options.filters[key]) {
                     if (blnHide) self[key].attr('filter', '');
@@ -13666,6 +13756,28 @@ class node extends _baseDefault.default {
         }
         return self._lock;
     }
+    mark() {
+        const self = this;
+        if (!self.marker) {
+            const rect = self.vect.getBBox();
+            const z = self.slate.options.viewPort.zoom.r;
+            const padding = 10;
+            const clr = _utilsDefault.default.whiteOrBlack(self.slate.options.containerStyle.backgroundColor);
+            self.marker = self.slate.paper.rect(rect.x - padding, rect.y - padding, rect.width + padding * 2, rect.height + padding * 2).attr({
+                'stroke-dasharray': '-',
+                fill: clr,
+                opacity: 0.5
+            });
+            self.marker.toBack();
+            self.slate?.grid.toBack();
+            self.slate?.canvas.bgToBack();
+        }
+    }
+    unmark() {
+        const self = this;
+        self.marker?.remove();
+        delete self.marker;
+    }
     hideLock() {
         this.hideOpenLock();
         this._lock && this._lock.remove();
@@ -13853,6 +13965,8 @@ parcelHelpers.defineInteropFlag(exports);
 var _lodashUniqDefault = parcelHelpers.interopDefault(_lodashUniq);
 var _lodashInvoke = require("lodash.invoke");
 var _lodashInvokeDefault = parcelHelpers.interopDefault(_lodashInvoke);
+var _lodashClonedeep = require("lodash.clonedeep");
+var _lodashClonedeepDefault = parcelHelpers.interopDefault(_lodashClonedeep);
 var _getTransformedPath = require("../helpers/getTransformedPath");
 var _getTransformedPathDefault = parcelHelpers.interopDefault(_getTransformedPath);
 var _getDepCoords = require("../helpers/getDepCoords");
@@ -13945,6 +14059,182 @@ class nodeController {
         _lodashInvokeDefault.default(self.allNodes.map((n)=>n.relationships
         ), 'refresh');
     }
+    packageLayout() {
+        const self = this;
+        const eligibleNodes = self.slate.options.disableAutoLayoutOfManuallyPositionedNodes ? self.allNodes.filter((nn)=>!nn.options.humanTouch
+        ) : self.allNodes;
+        // package up all the unique associations and the width/height of every node
+        let associations = eligibleNodes.map((nx)=>nx.relationships.associations.map((a)=>{
+                return {
+                    parentId: a.parent.options.id,
+                    childId: a.child.options.id,
+                    lineWidth: a.lineWidth,
+                    lineOpacity: a.lineOpacity,
+                    showParentArrow: a.showParentArrow,
+                    showChildArrow: a.showChildArrow
+                };
+            })
+        ).flat();
+        const nodes = {
+        };
+        eligibleNodes.forEach((nx)=>{
+            if (!nodes[nx.options.id]) nodes[nx.options.id] = {
+                width: nx.options.width,
+                height: nx.options.height,
+                shape: nx.options.shapeHint || 'rectangle',
+                color: nx.options.backgroundColor,
+                textColor: nx.options.foregroundColor,
+                text: nx.options.text,
+                groupId: nx.options.groupId
+            };
+        });
+        const subgraphs = {
+        };
+        eligibleNodes.forEach((nx)=>{
+            if (!subgraphs[nx.options.groupId]) subgraphs[nx.options.groupId] = [];
+            subgraphs[nx.options.groupId].push(nx.options.id);
+        });
+        return {
+            associations,
+            nodes,
+            uniqueIds: Object.keys(nodes),
+            subgraphs
+        };
+    }
+    applyLayout(layout, cb) {
+        const self = this;
+        // console.log('received layout', layout)
+        /*
+    "exportNodes": {
+      "010C580B": {
+        "x": "279.5",
+        "y": "322"
+      },
+      "ad79211ead0a": {
+        "x": "183.5",
+        "y": "186"
+      },
+      "c2134651593b": {
+        "x": "376.5",
+        "y": "186"
+      },
+      "0bad6428b74a": {
+        "x": "87.5",
+        "y": "50"
+      },
+      "2aab8002c94c": {
+        "x": "280.5",
+        "y": "50"
+      }
+    }
+    */ const orient = self.slate.getOrientation(null, true) // - always pin to no zoom (1)
+        ;
+        const allMoves = [];
+        self.allNodes.forEach((n, i)=>{
+            if (layout.exportNodes[n.options.id]) {
+                let { x , y  } = layout.exportNodes[n.options.id];
+                x = parseFloat(x);
+                y = parseFloat(y);
+                // console.log(
+                //   'target aquired',
+                //   n.options.id,
+                //   x,
+                //   y,
+                //   x * -2 + x,
+                //   y * -2 + y,
+                //   n.options.xPos,
+                //   n.options.yPos
+                // )
+                allMoves.push({
+                    id: n.options.id,
+                    x: orient.left - x - n.options.xPos + orient.width,
+                    y: orient.top - y - n.options.yPos + orient.height
+                });
+            }
+        });
+        let batchSize = 6;
+        if (self.allNodes.length > 15) batchSize = 12;
+        if (layout.allAtOnce || self.slate.nodes.allNodes.length > 12) batchSize = 1;
+        const batches = _utilsDefault.default.chunk(_lodashClonedeepDefault.default(allMoves), Math.ceil(allMoves.length / batchSize));
+        // console.log(
+        //   'received layout2',
+        //   batchSize,
+        //   allMoves.length,
+        //   self.allNodes.length,
+        //   batches.length
+        // )
+        const sendMove = (batch)=>{
+            let dur = 300;
+            if (layout.allAtOnce) dur = 0;
+            const pkg = self.slate.nodes.nodeMovePackage({
+                dur,
+                moves: batch
+            });
+            self.slate.collab?.exe({
+                type: 'onNodesMove',
+                data: pkg
+            });
+            if (batches.length > 0) setTimeout(()=>{
+                sendMove(batches.pop());
+            }, 250);
+            else {
+                if (layout.skipCenter) self.slate.controller.centerOnNodes({
+                    dur: 500
+                });
+                else self.slate.controller.scaleToFitAndCenter();
+                // finally invoke toFront for all nodes
+                self.slate.nodes.allNodes.forEach((n)=>n.toBack()
+                );
+                cb && cb();
+            }
+        };
+        // kick it off
+        sendMove(batches.pop());
+    }
+    getStickies(blnEmpty) {
+        // stickies
+        const stickies = slate.nodes.allNodes.filter((n)=>n?.options?.filters?.vect === 'postItNote' && n?.options?.disableDrag === false && n?.options?.text?.length > blnEmpty ? 10000 : 0
+        ).map((n)=>({
+                xPos: n.options.xPos,
+                yPos: n.options.yPos,
+                width: n.options.width,
+                height: n.options.height,
+                id: n.options.id
+            })
+        );
+    }
+    getProjectNameNode() {
+        return this.slate.nodes.allNodes.find((n)=>n.options.text.match(/project name/gi)
+        );
+    }
+    parseTemplateIntoCategories() {
+        const categories = slate.nodes.allNodes.filter((n)=>n.options.isCategory && n.options.categoryName?.length
+        ).map((nx)=>({
+                xPos: nx.options.xPos,
+                yPos: nx.options.yPos,
+                width: nx.options.width,
+                height: nx.options.height,
+                categoryName: nx.options.categoryName
+            })
+        );
+        // console.log(
+        //   'rectnagles, categories',
+        //   slate?.nodes?.allNodes?.length,
+        //   rectangles,
+        //   categories
+        // )
+        const matched = {
+        };
+        categories.forEach((categ)=>{
+            if (!matched[categ.categoryName]) matched[categ.categoryName] = {
+                top: categ.yPos,
+                left: categ.xPos,
+                bottom: categ.yPos + categ.height,
+                right: categ.xPos + categ.width
+            };
+        });
+        return matched;
+    }
     addRange(_nodes) {
         const self = this;
         _nodes.forEach((node)=>{
@@ -13959,27 +14249,27 @@ class nodeController {
         });
         return self;
     }
-    add(_nodes, useMainCanvas) {
+    add(nodes, useMainCanvas) {
         const self = this;
-        if (!Array.isArray(_nodes)) _nodes = [
-            _nodes
+        if (!Array.isArray(nodes)) nodes = [
+            nodes
         ];
-        _nodes.forEach((_node)=>{
-            _node.slate = self.slate // parent
+        nodes.forEach((node)=>{
+            node.slate = self.slate // parent
             ;
-            self.allNodes.push(_node);
-            self.addToCanvas(_node, useMainCanvas);
+            self.allNodes.push(node);
+            self.addToCanvas(node, useMainCanvas);
         });
     }
-    remove(_nodes) {
+    remove(nodes) {
         const self = this;
-        if (!Array.isArray(_nodes)) _nodes = [
-            _nodes
+        if (!Array.isArray(nodes)) nodes = [
+            nodes
         ];
-        _nodes.forEach((_node)=>{
-            self.allNodes = nodeController.remove(self.allNodes, _node);
-            _node.slate = null;
-            self.removeFromCanvas(_node);
+        nodes.forEach((node)=>{
+            self.allNodes = nodeController.remove(self.allNodes, node);
+            node.slate = null;
+            self.removeFromCanvas(node);
         });
     }
     nodeMovePackage(opts = {
@@ -13991,13 +14281,13 @@ class nodeController {
         // for the calculations below, and those calcs are mutable, so they
         // cannot be applied to the current slate.
         let _use = this.slate;
-        let _divCopy = null;
+        let divCopy = null;
         if (opts && opts.moves) {
-            _divCopy = document.createElement('div');
+            divCopy = document.createElement('div');
             const _did = `copy_${_utilsDefault.default.guid()}`;
-            _divCopy.setAttribute('id', _did);
-            _divCopy.setAttribute('style', `width:1px;height:1px;display:none;`);
-            document.body.appendChild(_divCopy);
+            divCopy.setAttribute('id', _did);
+            divCopy.setAttribute('style', `width:1px;height:1px;display:none;`);
+            document.body.appendChild(divCopy);
             _use = this.slate.copy({
                 container: _did,
                 moves: opts.moves
@@ -14017,8 +14307,14 @@ class nodeController {
                     })
                 )
             )(),
-            nodeOptions: nds.map((node)=>node.options
-            ),
+            nodeOptions: nds.map((node)=>{
+                return {
+                    id: node.options.id,
+                    vectorPath: node.options.vectorPath,
+                    xPos: node.options.xPos,
+                    yPos: node.options.yPos
+                };
+            }),
             associations: (()=>{
                 const assoc = [];
                 if (opts.relationships && opts.nodes) opts.relationships.forEach((a)=>{
@@ -14043,7 +14339,7 @@ class nodeController {
                 );
             })()
         };
-        if (_divCopy) document.removeChild(_divCopy);
+        if (divCopy) document.body.removeChild(divCopy);
         return _ret;
     }
     moveNodes(pkg, options = {
@@ -14060,8 +14356,7 @@ class nodeController {
         const uniqAssoc = _lodashUniqDefault.default(allAssoc, (a)=>a.id
         );
         const p = pkg.data || pkg;
-        const d = p.dur || 300 // Meteor.collabAnimationDuration ||
-        ;
+        const d = p.dur || 300;
         const e = p.easing || '>';
         const { associations , nodeOptions , textPositions  } = p;
         let cntr = 0;
@@ -14374,7 +14669,7 @@ class nodeController {
 }
 exports.default = nodeController;
 
-},{"lodash.uniq":"iDalh","lodash.invoke":"6VYuy","../helpers/getTransformedPath":"6wubb","../helpers/getDepCoords":"hVTn1","../helpers/utils":"8QI6M","../node/editor":"klp05","../node/relationships":"8zQA0","../node/rotate":"6en3b","../node/menu":"91LgF","../node/connectors":"h710n","../node/resize":"4vYbQ","../node/images":"jLcMC","../node/shapes":"kA5hP","../node/customShapes":"edbtN","../node/colorPicker":"jJAST","../node/context":"185nI","../node/lineOptions":"c3gfk","../node/gridLines":"6cFRW","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../node/links":"4BxQS"}],"6VYuy":[function(require,module,exports) {
+},{"lodash.uniq":"iDalh","lodash.invoke":"6VYuy","../helpers/getTransformedPath":"6wubb","../helpers/getDepCoords":"hVTn1","../helpers/utils":"8QI6M","../node/editor":"klp05","../node/relationships":"8zQA0","../node/rotate":"6en3b","../node/menu":"91LgF","../node/connectors":"h710n","../node/resize":"4vYbQ","../node/images":"jLcMC","../node/shapes":"kA5hP","../node/customShapes":"edbtN","../node/colorPicker":"jJAST","../node/context":"185nI","../node/lineOptions":"c3gfk","../node/gridLines":"6cFRW","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../node/links":"4BxQS","lodash.clonedeep":"i3u1q"}],"6VYuy":[function(require,module,exports) {
 var global = arguments[3];
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -15363,23 +15658,41 @@ class relationships {
         self.gracefulClear = null;
         self.dragEvents = {
             move (dx, dy) {
-                self.enactMove(dx, dy);
+                if (!self.slate.isShift) self.enactMove(dx, dy);
             },
             async up () {
-                self.finishDrag(true);
+                if (!self.slate.isShift) self.finishDrag(true);
             },
             dragger (x, y, e) {
                 if (!self.slate.canvas.isDragging) {
-                    self.node.toggleImage({
-                        active: true
-                    });
-                    // self.slate.canvas._bg?.hide();
-                    if (self.node.events?.onClick) self.node.events.onClick.apply(self, [
-                        function() {
-                            self._initDrag(self, e);
-                        }, 
-                    ]);
-                    else self._initDrag(self, e);
+                    self.slate.nodes.closeAllMenus();
+                    if (self.slate.isShift) {
+                        if (!self.slate.candidatesForSelection[self.node.options.id]) {
+                            self.slate.candidatesForSelection[self.node.options.id] = true;
+                            self.slate.multiSelection.add(self.node);
+                        } else {
+                            delete self.slate.candidatesForSelection[self.node.options.id];
+                            self.slate.multiSelection.remove(self.node);
+                        }
+                        _utilsDefault.default.stopEvent(e);
+                    } else {
+                        self.slate.multiSelection.clear();
+                        self.slate.candidatesForSelection = {
+                        };
+                        self.node.toggleImage({
+                            active: true
+                        });
+                        // hide filters
+                        self.slate.toggleFilters(true) //, self.node.options.id
+                        ;
+                        // self.slate.canvas._bg?.hide();
+                        if (self.node.events?.onClick) self.node.events.onClick.apply(self, [
+                            function() {
+                                self._initDrag(self, e);
+                            }, 
+                        ]);
+                        else self._initDrag(self, e);
+                    }
                 }
             }
         };
@@ -15398,7 +15711,6 @@ class relationships {
     }
     finishDrag(blnBroadcast) {
         const self = this;
-        console.log('done dragging node', self.draggingNode);
         self.slate.draggingNode = false;
         self.selectedNodes.forEach((nd)=>{
             // the transformPath here converts the transient transforms that happened during the movement
@@ -15437,6 +15749,7 @@ class relationships {
         }
         // console.log("here we go", self.selectedNodes);
         // self.slate.canvas._bg?.show();
+        // finish drag
         self.slate.toggleFilters(false);
         self.showMenu();
     }
@@ -15526,9 +15839,9 @@ class relationships {
         self.relationshipsToTranslate = [];
         self.collabSent = false;
         self.slate.draggingNode = true;
-        console.log('set dragging node', self.slate.draggingNode);
         self._dx = 0;
         self._dy = 0;
+        self.node.options.humanTouch = true;
         self.slate.multiSelection?.end();
         if (self.slate.options.linking) self.slate.options.linking.onNode.apply(vect, [
             self
@@ -15671,7 +15984,7 @@ class relationships {
                 child: _node2,
                 lineColor: assocPkg.lineColor || this.node.options.lineColor,
                 lineWidth: assocPkg.lineWidth || this.node.options.lineWidth,
-                lineOpacity: assocPkg.lineOpacity || this.node.options.lineOpacity,
+                lineOpacity: assocPkg.lineOpacity != null ? assocPkg.lineOpacity : this.node.options.lineOpacity,
                 lineEffect: assocPkg.lineEffect || this.node.options.lineEffect,
                 blnStraight: assocPkg.isStraightLine || false,
                 showParentArrow: assocPkg.showParentArrow || false,
@@ -15707,7 +16020,7 @@ class relationships {
             fill: 'none',
             'stroke-width': association.lineWidth,
             'fill-opacity': association.lineOpacity,
-            filter: association.lineEffect ? `url(#${association.lineEffect})` : '',
+            filter: association.lineEffect && !_utilsDefault.default.isSafari() && !_utilsDefault.default.isMobile() ? `url(#${association.lineEffect})` : '',
             opacity: association.lineOpacity
         };
         // these two generic points will be adjusted after the line is created
@@ -15799,9 +16112,12 @@ class relationships {
             };
             if (opts.nodes && opts.relationships) pkg.data = this.slate.nodes.nodeMovePackage({
                 nodes: opts.nodes,
-                relationships: opts.relationships
+                relationships: opts.relationships,
+                dur: 300
             });
-            else pkg.data = this.slate.nodes.nodeMovePackage();
+            else pkg.data = this.slate.nodes.nodeMovePackage({
+                dur: 300
+            });
             this.slate.collab?.send(pkg);
             this.slate.birdsEye?.nodeChanged(pkg);
             this.collabSent = true;
@@ -24871,717 +25187,7 @@ class links {
 }
 exports.default = links;
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"kpcw7":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-/* eslint-disable new-cap */ /* eslint-disable no-param-reassign */ /* eslint-disable no-underscore-dangle */ var _lodashUniq = require("lodash.uniq");
-var _lodashUniqDefault = parcelHelpers.interopDefault(_lodashUniq);
-var _lodashClonedeep = require("lodash.clonedeep");
-var _lodashClonedeepDefault = parcelHelpers.interopDefault(_lodashClonedeep);
-var _utils = require("../helpers/utils");
-var _utilsDefault = parcelHelpers.interopDefault(_utils);
-var _refreshRelationships = require("../helpers/refreshRelationships");
-var _refreshRelationshipsDefault = parcelHelpers.interopDefault(_refreshRelationships);
-var _index = require("../index");
-class multiSelection {
-    constructor(slate){
-        const self = this;
-        self.slate = slate;
-        self.selRect = null // used during selection
-        ;
-        self.ox = null;
-        self.oy = null;
-        self._init = null;
-        self.marker = null // stays after selection
-        ;
-        self.selectedNodes = [];
-        self.relationshipsToTranslate = [];
-        self.relationshipsToRefresh = [];
-        self.origPos = null;
-        self.resizer = null;
-        self.minSize = 100;
-        self._icons = [];
-        self.iconBg = null;
-        self.moveX = 0;
-        self.moveY = 0;
-        self.attrs = {
-            create: {
-                fill: '#fff',
-                stroke: '#000'
-            },
-            mouseOut: {
-                fill: '#fff',
-                stroke: '#000'
-            },
-            mouseOver: {
-                fill: '#ccc',
-                cursor: 'pointer'
-            }
-        };
-    }
-    init() {
-        const self = this;
-        if (self.slate.options.isbirdsEye) return;
-        function finalize() {
-            // self.showConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
-            self.slate.options.allowDrag = true;
-            self.slate.birdsEye?.refresh(true);
-            self.selectedNodes.forEach((node)=>{
-                _utilsDefault.default.transformPath(node, `T${self.moveX},${self.moveY}`);
-                node.vect.currentDx = 0;
-                node.vect.currentDy = 0;
-            });
-            _refreshRelationshipsDefault.default({
-                relationships: self.relationshipsToRefresh,
-                nodes: self.selectedNodes,
-                moveX: self.moveX,
-                moveY: self.moveY
-            });
-            self.slate.nodes.saveRelationships(self.relationshipsToTranslate, {
-                dx: self.moveX,
-                dy: self.moveY
-            });
-            multiSelection.showConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
-            self.broadcastMove();
-            self.showIcons();
-            self.origPos = self.marker.getBBox();
-            self.marker.toBack();
-            self.slate?.grid.toBack();
-            self.slate?.canvas.bgToBack();
-        }
-        const c = self.slate.options.container;
-        if (self.slate.options.showMultiSelect) {
-            self._init = document.createElement('div');
-            self._init.setAttribute('class', 'slateMultiSelect');
-            self._init.style.position = 'absolute';
-            self._init.style.height = '30px';
-            self._init.style.left = '10px';
-            self._init.style.color = '#081272';
-            self._init.style.fontSize = '11pt';
-            self._init.style.fontFamily = 'trebuchet ms';
-            self._init.style.top = '5px';
-            self._init.style.display = 'block';
-            self._init.style.padding = '5px';
-            self._init.style.margin = '5px;';
-            self._init.style.backgroundColor = '#fff';
-            self._init.style.cursor = 'pointer';
-            self._init.style['user-select'] = 'none';
-            self._init.innerHTML = '[multi-select]';
-            self._init.style.zIndex = '0';
-            c.appendChild(self._init);
-            self.markerEvents = {
-                init () {
-                    self.hideIcons();
-                    multiSelection.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
-                    self.moveX = 0;
-                    self.moveY = 0;
-                    self.slate.options.allowDrag = false;
-                    self.marker.ox = self.marker.attr('x');
-                    self.marker.oy = self.marker.attr('y');
-                    self.selectedNodes.forEach((node)=>{
-                        const bb = node.vect.getBBox();
-                        node.vect.ox = bb.x;
-                        node.vect.oy = bb.y;
-                    });
-                },
-                move (dx, dy) {
-                    try {
-                        const _zr = self.slate.options.viewPort.zoom.r;
-                        dx += dx / _zr - dx;
-                        dy += dy / _zr - dy;
-                        self.moveX = dx;
-                        self.moveY = dy;
-                        const att = {
-                            x: self.marker.ox + dx,
-                            y: self.marker.oy + dy
-                        };
-                        self.marker.attr(att);
-                        self.selectedNodes.forEach((node)=>{
-                            node.vect.currentDx = dx;
-                            node.vect.currentDy = dy;
-                            node.translateWith({
-                                dx,
-                                dy
-                            });
-                        });
-                        const _nx = self.origPos.x + self.origPos.width + dx - 5;
-                        const _ny = self.origPos.y + self.origPos.height + dy - 5;
-                        self.resizer.transform([
-                            't',
-                            _nx,
-                            ',',
-                            _ny,
-                            ' r95 s1.5,1.5'
-                        ].join(''));
-                    } catch (err) {
-                        finalize();
-                    }
-                },
-                up (e) {
-                    finalize(e);
-                }
-            };
-            self.resizeEvents = {
-                init () {
-                    self.hideIcons();
-                    multiSelection.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
-                    self.moveX = 0;
-                    self.moveY = 0;
-                    self.slate.options.allowDrag = false;
-                    self.selectedNodes.forEach((node)=>{
-                        const bb = node.vect.getBBox();
-                        node.vect.ox = bb.x;
-                        node.vect.oy = bb.y;
-                    });
-                    self.marker.toBack();
-                    self.slate?.grid.toBack();
-                    self.slate?.canvas.bgToBack();
-                },
-                move (dx, dy) {
-                    const _zr = self.slate.options.viewPort.zoom.r;
-                    dx += dx / _zr - dx;
-                    dy += dy / _zr - dy;
-                    self.moveX = dx;
-                    self.moveY = dy;
-                    let _width = self.origPos.width + dx * 2;
-                    let _height = self.origPos.height + dy * 2;
-                    const _nx = self.origPos.x + self.origPos.width + dx - 5;
-                    const _ny = self.origPos.y + self.origPos.height + dy - 5;
-                    let rw = true;
-                    let rh = true;
-                    if (_width < self.minSize) {
-                        _width = self.minSize;
-                        rw = false;
-                    }
-                    if (_height < self.minSize) {
-                        _height = self.minSize;
-                        rh = false;
-                    }
-                    self.resizer.transform([
-                        't',
-                        _nx,
-                        ',',
-                        _ny,
-                        ' r95 s1.5,1.5'
-                    ].join(''));
-                    const att = {
-                        width: _width,
-                        height: _height
-                    };
-                    if (rw) Object.assign(att, {
-                        x: self.origPos.x - dx
-                    });
-                    if (rh) Object.assign(att, {
-                        y: self.origPos.y - dy
-                    });
-                    self.marker.attr(att);
-                },
-                up () {
-                    multiSelection.showConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
-                    self.selectedNodes.forEach((node)=>{
-                        const transWidth = node.options.width + self.moveX;
-                        const transHeight = node.options.height + self.moveY;
-                        node.resize.set(transWidth, transHeight, {
-                            isMoving: true,
-                            getRotationPoint: node.options.rotate.rotationAngle
-                        });
-                        node.images.imageSizeCorrection();
-                    });
-                    _refreshRelationshipsDefault.default({
-                        relationships: self.relationshipsToRefresh.concat(self.relationshipsToTranslate),
-                        nodes: self.selectedNodes,
-                        dx: 0,
-                        dy: 0
-                    });
-                    self.broadcastMove();
-                    self.origPos = self.marker.getBBox();
-                    const _nx = self.origPos.x + self.origPos.width;
-                    const _ny = self.origPos.y + self.origPos.height;
-                    self.resizer.transform([
-                        't',
-                        _nx - 5,
-                        ',',
-                        _ny - 5
-                    ].join(''));
-                    self.refreshMarker();
-                    self.showIcons();
-                    self.marker.toBack();
-                    self.slate?.grid.toBack();
-                    self.slate?.canvas.bgToBack();
-                    self.slate.enable();
-                }
-            };
-            _utilsDefault.default.addEvent(self._init, 'click', (e)=>{
-                switch(self._init.innerHTML){
-                    case '[multi-select]':
-                        self.start();
-                        break;
-                    case 'selecting [click to stop]...':
-                        self.end(false);
-                        self.endSelection();
-                        break;
-                    default:
-                        break;
-                }
-            });
-        }
-    }
-    hide() {
-        const self = this;
-        if (self._init) self._init.style.display = 'none';
-    }
-    show() {
-        const self = this;
-        if (self._init) self._init.style.display = 'block';
-    }
-    start() {
-        const self = this;
-        self.slate.disable() // options.allowDrag = false;
-        ;
-        if (self._init) self._init.innerHTML = 'selecting [click to stop]...';
-        document.head.insertAdjacentHTML('beforeend', `<style id='svg-no-select-text'>.slatebox-text { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }</style>`);
-        // document.head.insertAdjacentHTML("beforeend", `<style id='svg-no-select-text'>svg text { pointer-events: none; }</style>`);
-        const c = self.slate.options.container;
-        self.slate.onSelectionStart = (e)=>{
-            if (self.slate.options.showMultiSelect) {
-                self.end();
-                const p = self.xy(e);
-                self.selRect = self.slate.paper.rect(p.x, p.y, 10, 10).attr({
-                    'stroke-dasharray': '-'
-                });
-                _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self), null);
-                _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mouseup', self._mouseUp.bind(self), null, true);
-                _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mouseleave', self._select.bind(self), null, true);
-                window.addEventListener('beforeunload', self._enableOnRefresh);
-                self.ox = p.x;
-                self.oy = p.y;
-            }
-        };
-    }
-    _enableOnRefresh() {
-        const self = this;
-        self.relationshipsToTranslate = [];
-        self.relationshipsToRefresh = [];
-        self.selectedNodes = [];
-        self.slate.enable();
-        self.broadcastMove() // broadcast an "empty" move to save the enabled state of the slate
-        ;
-    }
-    showIcons() {
-        const self = this;
-        if (self.marker !== null) {
-            const groupIds = _lodashUniqDefault.default(self.selectedNodes.map((n)=>n.options.groupId
-            ));
-            const isGrouped = groupIds.length === 1 && groupIds[0] !== null;
-            const markerBB = self.marker.getBBox();
-            const multiX = markerBB.x + markerBB.width + 45;
-            // TODO: decide if you want to use a settings button here
-            const showSettings = false;
-            const height = 200;
-            const heightSpacer = height / 4;
-            self.iconBg?.remove();
-            self.iconBg = self.slate.paper.rect(multiX - 10, markerBB.y + heightSpacer - 10, 50, heightSpacer * 3, 5).attr({
-                ...self.attrs.create,
-                opacity: 0.3
-            }).toBack();
-            const del = self.slate.paper.trash().attr({
-                fill: '#fff',
-                stroke: '#f00'
-            }).transform([
-                't',
-                multiX,
-                ',',
-                markerBB.y + heightSpacer * 3,
-                's',
-                ',',
-                '1.25',
-                '1.25', 
-            ].join());
-            del.mouseover((e)=>{
-                del.attr(self.attrs.mouseOver);
-                _utilsDefault.default.stopEvent(e);
-            });
-            del.mouseout((e)=>{
-                del.attr({
-                    fill: '#fff',
-                    stroke: '#f00'
-                });
-                _utilsDefault.default.stopEvent(e);
-            });
-            del.mousedown((e)=>{
-                _utilsDefault.default.stopEvent(e);
-                self.del();
-            });
-            const copy = self.slate.paper.copy().attr(self.attrs.create).transform([
-                't',
-                multiX,
-                ',',
-                markerBB.y + heightSpacer * 2,
-                's',
-                ',',
-                '1.25',
-                '1.25', 
-            ].join());
-            copy.mouseover((e)=>{
-                copy.attr(self.attrs.mouseOver);
-                _utilsDefault.default.stopEvent(e);
-            });
-            copy.mouseout((e)=>{
-                copy.attr(self.attrs.mouseOut);
-                _utilsDefault.default.stopEvent(e);
-            });
-            copy.mousedown((e)=>{
-                _utilsDefault.default.stopEvent(e);
-                const snap = self.slate.snapshot();
-                const nGroupId = self.selectedNodes[0].options.groupId ? _utilsDefault.default.guid().replace(/-/gi, '').substring(0, 8).toUpperCase() : null;
-                const orient = self.slate.getOrientation(self.selectedNodes);
-                const pad = 75;
-                const relationalMap = {
-                };
-                self.selectedNodes.forEach((node)=>{
-                    const c = _lodashClonedeepDefault.default(node.options);
-                    c.xPos += orient.width + pad;
-                    c.groupId = nGroupId;
-                    c.id = _utilsDefault.default.guid().replace(/-/gi, '').substring(0, 12);
-                    relationalMap[node.options.id] = c.id;
-                    c.vectorPath = _utilsDefault.default._transformPath(c.vectorPath, `T${orient.width + pad},0`);
-                    const nn = new _index.Slatebox.node(c);
-                    self.slate.nodes.add(nn);
-                });
-                // next add relationships
-                const an = self.slate.nodes.allNodes;
-                self.selectedNodes.forEach((node)=>{
-                    const nn = an.find((n)=>n.options.id === relationalMap[node.options.id]
-                    );
-                    // with nn as "parent", add all its children
-                    node.relationships.associations.filter((a)=>a.parent.options.id === node.options.id
-                    ).forEach((a)=>{
-                        const assocPkg = _lodashClonedeepDefault.default(a);
-                        delete assocPkg.line // ensure new line is created
-                        ;
-                        assocPkg.id = _utilsDefault.default.guid().replace(/-/gi, '').substring(0, 12);
-                        assocPkg.activeNode = relationalMap[assocPkg.activeNode];
-                        let childNode = an.find((n)=>n.options.id === relationalMap[a.child.options.id]
-                        );
-                        if (!childNode) childNode = an.find((n)=>n.options.id === a.child.options.id
-                        );
-                        nn.relationships.addAssociation(childNode, assocPkg);
-                    });
-                });
-                // send collaboration info
-                const pkg = {
-                    type: 'onNodeAdded',
-                    data: self.slate.exportDifference(snap)
-                };
-                self.slate.collab.send(pkg);
-            });
-            self._icons.push(copy);
-            if (!isGrouped) {
-                const group = self.slate.paper.plus().attr(self.attrs.create).transform([
-                    't',
-                    multiX,
-                    ',',
-                    markerBB.y + heightSpacer,
-                    's',
-                    ',',
-                    '1.25',
-                    '1.25', 
-                ].join());
-                group.mouseover((e)=>{
-                    group.attr(self.attrs.mouseOver);
-                    _utilsDefault.default.stopEvent(e);
-                });
-                group.mouseout((e)=>{
-                    group.attr(self.attrs.mouseOut);
-                    _utilsDefault.default.stopEvent(e);
-                });
-                group.mousedown((e)=>{
-                    const groupId = _utilsDefault.default.guid().replace(/-/gi, '').substring(0, 8).toUpperCase();
-                    self.selectedNodes.forEach((n)=>{
-                        n.options.groupId = groupId;
-                    });
-                    _utilsDefault.default.stopEvent(e);
-                    self.endSelection();
-                    self.end();
-                    self.showGroup(groupId);
-                });
-                self._icons.push(group);
-            } else {
-                const ungroup = self.slate.paper.minus().attr(self.attrs.create).transform([
-                    't',
-                    multiX,
-                    ',',
-                    markerBB.y + heightSpacer,
-                    's',
-                    ',',
-                    '1.25',
-                    '1.25', 
-                ].join());
-                ungroup.mouseover((e)=>{
-                    ungroup.attr(self.attrs.mouseOver);
-                    _utilsDefault.default.stopEvent(e);
-                });
-                ungroup.mouseout((e)=>{
-                    ungroup.attr(self.attrs.mouseOut);
-                    _utilsDefault.default.stopEvent(e);
-                });
-                ungroup.mousedown((e)=>{
-                    self.selectedNodes.forEach((n)=>{
-                        n.options.groupId = null;
-                    });
-                    _utilsDefault.default.stopEvent(e);
-                    self.hideIcons();
-                    self.showIcons();
-                });
-                self._icons.push(ungroup);
-                if (showSettings) {
-                    const settings = self.slate.paper.setting().attr(self.attrs.create).transform([
-                        't',
-                        multiX,
-                        ',',
-                        markerBB.y + heightSpacer * 4,
-                        's',
-                        ',',
-                        '1.25',
-                        '1.25', 
-                    ].join());
-                    settings.mouseover((e)=>{
-                        settings.attr(self.attrs.mouseOver);
-                        _utilsDefault.default.stopEvent(e);
-                    });
-                    settings.mouseout((e)=>{
-                        settings.attr(self.attrs.mouseOut);
-                        _utilsDefault.default.stopEvent(e);
-                    });
-                    settings.mousedown((e)=>{
-                        _utilsDefault.default.stopEvent(e);
-                        self.selectedNodes[0].menu.show();
-                    });
-                    self._icons.push(settings);
-                }
-            }
-            self._icons.push(del);
-        }
-    }
-    hideIcons() {
-        const self = this;
-        self.iconBg?.remove();
-        self._icons?.forEach((i)=>i.remove()
-        );
-    }
-    isSelecting() {
-        const self = this;
-        return self.marker !== null;
-    }
-    del() {
-        const self = this;
-        self.slate.events.onConfirmRequested(`Confirm Deletion`, `Are you sure you want to remove these ${self.selectedNodes.length} node(s)?`, (blnConfirm)=>{
-            if (blnConfirm) {
-                self.selectedNodes.forEach((node)=>{
-                    node.del();
-                    self.slate.unglow();
-                    const delPkg = {
-                        type: 'onNodeDeleted',
-                        data: {
-                            id: node.options.id
-                        }
-                    };
-                    self.slate.collab?.send(delPkg);
-                    self.slate.birdsEye?.nodeDeleted(delPkg);
-                });
-                self.end();
-            }
-        });
-    }
-    end(hasMarker = true) {
-        const self = this;
-        if (self.marker !== null || !hasMarker) {
-            self.marker?.remove();
-            self.resizer?.remove();
-            self.marker = null;
-            self.slate.enable();
-            // self.slate.keyboard && self.slate.keyboard.end();
-            self.hideIcons();
-            window.removeEventListener('beforeunload', self._enableOnRefresh);
-        }
-        if (self._init) self._init.innerHTML = '[multi-select]';
-    }
-    endSelection() {
-        const self = this;
-        self.selRect?.remove();
-        self.showIcons();
-        self.slate.options.allowDrag = true;
-        self.slate.onSelectionStart = null;
-        _utilsDefault.default.removeEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self));
-    }
-    xy(e) {
-        const self = this;
-        const mp = _utilsDefault.default.mousePos(e);
-        const off = _utilsDefault.default.positionedOffset(self.slate.options.container);
-        const _x = mp.x + self.slate.options.viewPort.left - off.left;
-        const _y = mp.y + self.slate.options.viewPort.top - off.top;
-        const z = self.slate.options.viewPort.zoom.r;
-        return {
-            x: _x / z,
-            y: _y / z
-        };
-    }
-    _move(e) {
-        const self = this;
-        if (!self.slate.draggingNode) {
-            const p = self.xy(e);
-            const height = p.y - self.oy;
-            const width = p.x - self.ox;
-            if (height > 0) self.selRect.attr({
-                height
-            });
-            else self.selRect.attr({
-                y: p.y,
-                height: self.oy - p.y
-            });
-            if (width > 0) self.selRect.attr({
-                width
-            });
-            else self.selRect.attr({
-                x: p.x,
-                width: self.ox - p.x
-            });
-        }
-    }
-    showGroup(groupId) {
-        const self = this;
-        self.selectedNodes = self.slate.nodes.allNodes.filter((n)=>n.options.groupId === groupId
-        );
-        if (self.prepSelectedNodes()) {
-            self.refreshMarker();
-            self.showIcons();
-        }
-    }
-    refreshMarker() {
-        const self = this;
-        self.marker?.remove();
-        self.resizer?.remove();
-        self.iconBg?.remove();
-        const z = self.slate.options.viewPort.zoom.r;
-        const orient = self.slate.getOrientation(self.selectedNodes);
-        let w = orient.width / z;
-        let h = orient.height / z;
-        if (w < self.minSize) w = self.minSize;
-        if (h < self.minSize) h = self.minSize;
-        self.marker = self.slate.paper.rect(orient.left / z, orient.top / z, w, h).attr({
-            'stroke-dasharray': '-',
-            fill: '#f8f8f8',
-            opacity: 0.3
-        });
-        self.marker.toBack();
-        self.slate?.grid.toBack();
-        self.slate?.canvas.bgToBack();
-        self.origPos = self.marker.getBBox();
-        // self.resizer
-        const _nx = self.origPos.x + self.origPos.width;
-        const _ny = self.origPos.y + self.origPos.height;
-        self.resizer = self.slate.paper.resize().transform([
-            't',
-            _nx - 5,
-            ',',
-            _ny - 5,
-            'r95 s1.5,1.5'
-        ].join()).attr({
-            fill: '#fff',
-            stroke: '#000'
-        });
-        self.resizer.toFront();
-        self.resizer.mouseover((e)=>{
-            self.resizer.attr(self.attrs.mouseOver);
-            _utilsDefault.default.stopEvent(e);
-        }) // self._resizeHover.bind(self));
-        ;
-        self.resizer.mouseout((e)=>{
-            self.resizer.attr(self.attrs.mouseOut);
-            _utilsDefault.default.stopEvent(e);
-        }) // self._resizeHover.bind(self));
-        ;
-        // self.resizer.unmouseover(self._resizeHover.bind(self));
-        self.marker.drag(self.markerEvents.move, self.markerEvents.init, self.markerEvents.up);
-        self.resizer.drag(self.resizeEvents.move, self.resizeEvents.init, self.resizeEvents.up);
-    }
-    prepSelectedNodes() {
-        const self = this;
-        // select relevant connections
-        if (self.selectedNodes.length > 1) {
-            const _associations = self.slate.nodes.getRelevantAssociationsWith(self.selectedNodes);
-            self.relationshipsToTranslate = _associations.relationshipsToTranslate;
-            self.relationshipsToRefresh = _associations.relationshipsToRefresh;
-            self.refreshMarker();
-            self.endSelection();
-            // unmark all and remove connectors
-            self.slate.nodes.closeAllMenus({
-                nodes: self.selectedNodes
-            });
-        } else if (self.selectedNodes.length === 1) {
-            self.selectedNodes[0].menu.show();
-            self.slate.enable();
-            self.endSelection();
-            self.end();
-            return false;
-        } else {
-            self.slate.enable();
-            self.endSelection();
-            self.end();
-            return true;
-        }
-        return false;
-    }
-    _mouseUp(e) {
-        const self = this;
-        if (self._init) self._init.innerHTML = '[multi-select]';
-        this._select(e);
-    }
-    _select(e) {
-        const self = this;
-        const sr = self.selRect.getBBox();
-        if (sr) {
-            const withinBox = self.slate.nodes.allNodes.filter((n)=>{
-                const inRange = n.options.xPos + n.options.width > sr.x && n.options.xPos < sr.x + sr.width && n.options.yPos + n.options.height > sr.y && n.options.yPos < sr.y + sr.height;
-                return inRange && !n.options.isLocked;
-            });
-            // add any groupIds
-            const groupIds = _lodashUniqDefault.default(withinBox.map((n)=>n.options.groupId
-            )).filter((g)=>!!g
-            );
-            const alreadySelectedIds = withinBox.map((n)=>n.options.id
-            );
-            self.selectedNodes = self.slate.nodes.allNodes.filter((n)=>alreadySelectedIds.includes(n.options.id) || groupIds.includes(n.options.groupId)
-            );
-            self.prepSelectedNodes();
-        }
-    }
-    static hideConnections(connections) {
-        connections.forEach((c)=>{
-            c.line.hide();
-        });
-    }
-    static showConnections(connections) {
-        connections.forEach((c)=>{
-            c.line.show();
-        });
-    }
-    broadcastMove() {
-        const self = this;
-        const pkg = {
-            type: 'onNodesMove',
-            data: self.slate.nodes.nodeMovePackage({
-                nodes: self.selectedNodes,
-                relationships: self.relationshipsToTranslate.concat(self.relationshipsToRefresh)
-            })
-        };
-        self.slate.collab?.send(pkg);
-        self.slate.birdsEye?.nodeChanged(pkg);
-    }
-}
-exports.default = multiSelection;
-
-},{"lodash.uniq":"iDalh","lodash.clonedeep":"i3u1q","../helpers/utils":"8QI6M","../helpers/refreshRelationships":"1UeYf","../index":"8lqZg","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"i3u1q":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"i3u1q":[function(require,module,exports) {
 var global = arguments[3];
 /**
  * lodash (Custom Build) <https://lodash.com/>
@@ -26940,7 +26546,717 @@ if (DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag || Map &
 }
 module.exports = cloneDeep;
 
-},{}],"bRqCq":[function(require,module,exports) {
+},{}],"kpcw7":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+/* eslint-disable new-cap */ /* eslint-disable no-param-reassign */ /* eslint-disable no-underscore-dangle */ var _lodashUniq = require("lodash.uniq");
+var _lodashUniqDefault = parcelHelpers.interopDefault(_lodashUniq);
+var _lodashClonedeep = require("lodash.clonedeep");
+var _lodashClonedeepDefault = parcelHelpers.interopDefault(_lodashClonedeep);
+var _utils = require("../helpers/utils");
+var _utilsDefault = parcelHelpers.interopDefault(_utils);
+var _refreshRelationships = require("../helpers/refreshRelationships");
+var _refreshRelationshipsDefault = parcelHelpers.interopDefault(_refreshRelationships);
+var _index = require("../index");
+class multiSelection {
+    constructor(slate){
+        const self = this;
+        self.slate = slate;
+        self.selRect = null // used during selection
+        ;
+        self.ox = null;
+        self.oy = null;
+        self._init = null;
+        self.marker = null // stays after selection
+        ;
+        self.selectedNodes = [];
+        self.relationshipsToTranslate = [];
+        self.relationshipsToRefresh = [];
+        self.origPos = null;
+        self.resizer = null;
+        self.minSize = 100;
+        self._icons = [];
+        self.iconBg = null;
+        self.moveX = 0;
+        self.moveY = 0;
+        self.attrs = {
+            create: {
+                fill: '#fff',
+                stroke: '#000'
+            },
+            mouseOut: {
+                fill: '#fff',
+                stroke: '#000'
+            },
+            mouseOver: {
+                fill: '#ccc',
+                cursor: 'pointer'
+            }
+        };
+    }
+    init() {
+        const self = this;
+        if (self.slate.options.isbirdsEye) return;
+        function finalize() {
+            // self.showConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
+            self.slate.options.allowDrag = true;
+            self.slate.birdsEye?.refresh(true);
+            self.selectedNodes.forEach((node)=>{
+                _utilsDefault.default.transformPath(node, `T${self.moveX},${self.moveY}`);
+                node.vect.currentDx = 0;
+                node.vect.currentDy = 0;
+            });
+            _refreshRelationshipsDefault.default({
+                relationships: self.relationshipsToRefresh,
+                nodes: self.selectedNodes,
+                moveX: self.moveX,
+                moveY: self.moveY
+            });
+            self.slate.nodes.saveRelationships(self.relationshipsToTranslate, {
+                dx: self.moveX,
+                dy: self.moveY
+            });
+            multiSelection.showConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
+            self.broadcastMove();
+            self.showIcons();
+            self.origPos = self.marker.getBBox();
+            self.marker.toBack();
+            self.slate?.grid.toBack();
+            self.slate?.canvas.bgToBack();
+        }
+        const c = self.slate.options.container;
+        if (self.slate.options.showMultiSelect) {
+            self._init = document.createElement('div');
+            self._init.setAttribute('class', 'slateMultiSelect');
+            self._init.style.position = 'absolute';
+            self._init.style.height = '30px';
+            self._init.style.left = '10px';
+            self._init.style.color = '#081272';
+            self._init.style.fontSize = '11pt';
+            self._init.style.fontFamily = 'trebuchet ms';
+            self._init.style.top = '5px';
+            self._init.style.display = 'block';
+            self._init.style.padding = '5px';
+            self._init.style.margin = '5px;';
+            self._init.style.backgroundColor = '#fff';
+            self._init.style.cursor = 'pointer';
+            self._init.style['user-select'] = 'none';
+            self._init.innerHTML = '[multi-select]';
+            self._init.style.zIndex = '0';
+            c.appendChild(self._init);
+            self.markerEvents = {
+                init () {
+                    self.hideIcons();
+                    multiSelection.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
+                    self.moveX = 0;
+                    self.moveY = 0;
+                    self.slate.options.allowDrag = false;
+                    self.marker.ox = self.marker.attr('x');
+                    self.marker.oy = self.marker.attr('y');
+                    self.selectedNodes.forEach((node)=>{
+                        const bb = node.vect.getBBox();
+                        node.vect.ox = bb.x;
+                        node.vect.oy = bb.y;
+                    });
+                },
+                move (dx, dy) {
+                    try {
+                        const _zr = self.slate.options.viewPort.zoom.r;
+                        dx += dx / _zr - dx;
+                        dy += dy / _zr - dy;
+                        self.moveX = dx;
+                        self.moveY = dy;
+                        const att = {
+                            x: self.marker.ox + dx,
+                            y: self.marker.oy + dy
+                        };
+                        self.marker.attr(att);
+                        self.selectedNodes.forEach((node)=>{
+                            node.vect.currentDx = dx;
+                            node.vect.currentDy = dy;
+                            node.translateWith({
+                                dx,
+                                dy
+                            });
+                        });
+                        const _nx = self.origPos.x + self.origPos.width + dx - 5;
+                        const _ny = self.origPos.y + self.origPos.height + dy - 5;
+                        self.resizer.transform([
+                            't',
+                            _nx,
+                            ',',
+                            _ny,
+                            ' r95 s1.5,1.5'
+                        ].join(''));
+                    } catch (err) {
+                        finalize();
+                    }
+                },
+                up (e) {
+                    finalize(e);
+                }
+            };
+            self.resizeEvents = {
+                init () {
+                    self.hideIcons();
+                    multiSelection.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
+                    self.moveX = 0;
+                    self.moveY = 0;
+                    self.slate.options.allowDrag = false;
+                    self.selectedNodes.forEach((node)=>{
+                        const bb = node.vect.getBBox();
+                        node.vect.ox = bb.x;
+                        node.vect.oy = bb.y;
+                    });
+                    self.marker.toBack();
+                    self.slate?.grid.toBack();
+                    self.slate?.canvas.bgToBack();
+                },
+                move (dx, dy) {
+                    const _zr = self.slate.options.viewPort.zoom.r;
+                    dx += dx / _zr - dx;
+                    dy += dy / _zr - dy;
+                    self.moveX = dx;
+                    self.moveY = dy;
+                    let _width = self.origPos.width + dx * 2;
+                    let _height = self.origPos.height + dy * 2;
+                    const _nx = self.origPos.x + self.origPos.width + dx - 5;
+                    const _ny = self.origPos.y + self.origPos.height + dy - 5;
+                    let rw = true;
+                    let rh = true;
+                    if (_width < self.minSize) {
+                        _width = self.minSize;
+                        rw = false;
+                    }
+                    if (_height < self.minSize) {
+                        _height = self.minSize;
+                        rh = false;
+                    }
+                    self.resizer.transform([
+                        't',
+                        _nx,
+                        ',',
+                        _ny,
+                        ' r95 s1.5,1.5'
+                    ].join(''));
+                    const att = {
+                        width: _width,
+                        height: _height
+                    };
+                    if (rw) Object.assign(att, {
+                        x: self.origPos.x - dx
+                    });
+                    if (rh) Object.assign(att, {
+                        y: self.origPos.y - dy
+                    });
+                    self.marker.attr(att);
+                },
+                up () {
+                    multiSelection.showConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
+                    self.selectedNodes.forEach((node)=>{
+                        const transWidth = node.options.width + self.moveX;
+                        const transHeight = node.options.height + self.moveY;
+                        node.resize.set(transWidth, transHeight, {
+                            isMoving: true,
+                            getRotationPoint: node.options.rotate.rotationAngle
+                        });
+                        node.images.imageSizeCorrection();
+                    });
+                    _refreshRelationshipsDefault.default({
+                        relationships: self.relationshipsToRefresh.concat(self.relationshipsToTranslate),
+                        nodes: self.selectedNodes,
+                        dx: 0,
+                        dy: 0
+                    });
+                    self.broadcastMove();
+                    self.origPos = self.marker.getBBox();
+                    const _nx = self.origPos.x + self.origPos.width;
+                    const _ny = self.origPos.y + self.origPos.height;
+                    self.resizer.transform([
+                        't',
+                        _nx - 5,
+                        ',',
+                        _ny - 5
+                    ].join(''));
+                    self.refreshMarker();
+                    self.showIcons();
+                    self.marker.toBack();
+                    self.slate?.grid.toBack();
+                    self.slate?.canvas.bgToBack();
+                    self.slate.enable();
+                }
+            };
+            _utilsDefault.default.addEvent(self._init, 'click', (e)=>{
+                switch(self._init.innerHTML){
+                    case '[multi-select]':
+                        self.start();
+                        break;
+                    case 'selecting [click to stop]...':
+                        self.end(false);
+                        self.endSelection();
+                        break;
+                    default:
+                        break;
+                }
+            });
+        }
+    }
+    hide() {
+        const self = this;
+        if (self._init) self._init.style.display = 'none';
+    }
+    show() {
+        const self = this;
+        if (self._init) self._init.style.display = 'block';
+    }
+    start() {
+        const self = this;
+        self.slate.disable() // options.allowDrag = false;
+        ;
+        if (self._init) self._init.innerHTML = 'selecting [click to stop]...';
+        document.head.insertAdjacentHTML('beforeend', `<style id='svg-no-select-text'>.slatebox-text { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }</style>`);
+        // document.head.insertAdjacentHTML("beforeend", `<style id='svg-no-select-text'>svg text { pointer-events: none; }</style>`);
+        const c = self.slate.options.container;
+        self.slate.onSelectionStart = (e)=>{
+            if (self.slate.options.showMultiSelect) {
+                self.end();
+                const p = self.xy(e);
+                self.selRect = self.slate.paper.rect(p.x, p.y, 10, 10).attr({
+                    'stroke-dasharray': '-'
+                });
+                _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self), null);
+                _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mouseup', self._mouseUp.bind(self), null, true);
+                _utilsDefault.default.addEvent(self.slate.canvas.get(), 'mouseleave', self._select.bind(self), null, true);
+                window.addEventListener('beforeunload', self._enableOnRefresh);
+                self.ox = p.x;
+                self.oy = p.y;
+            }
+        };
+    }
+    _enableOnRefresh() {
+        const self = this;
+        self.relationshipsToTranslate = [];
+        self.relationshipsToRefresh = [];
+        self.selectedNodes = [];
+        self.slate.enable();
+        self.broadcastMove() // broadcast an "empty" move to save the enabled state of the slate
+        ;
+    }
+    showIcons() {
+        const self = this;
+        if (self.marker !== null) {
+            const groupIds = _lodashUniqDefault.default(self.selectedNodes.map((n)=>n.options.groupId
+            ));
+            const isGrouped = groupIds.length === 1 && groupIds[0] !== null;
+            const markerBB = self.marker.getBBox();
+            const multiX = markerBB.x + markerBB.width + 45;
+            // TODO: decide if you want to use a settings button here
+            const showSettings = false;
+            const height = 200;
+            const heightSpacer = height / 4;
+            self.iconBg?.remove();
+            self.iconBg = self.slate.paper.rect(multiX - 10, markerBB.y + heightSpacer - 10, 50, heightSpacer * 3, 5).attr({
+                ...self.attrs.create,
+                opacity: 0.3
+            }).toBack();
+            const del = self.slate.paper.trash().attr({
+                fill: '#fff',
+                stroke: '#f00'
+            }).transform([
+                't',
+                multiX,
+                ',',
+                markerBB.y + heightSpacer * 3,
+                's',
+                ',',
+                '1.25',
+                '1.25', 
+            ].join());
+            del.mouseover((e)=>{
+                del.attr(self.attrs.mouseOver);
+                _utilsDefault.default.stopEvent(e);
+            });
+            del.mouseout((e)=>{
+                del.attr({
+                    fill: '#fff',
+                    stroke: '#f00'
+                });
+                _utilsDefault.default.stopEvent(e);
+            });
+            del.mousedown((e)=>{
+                _utilsDefault.default.stopEvent(e);
+                self.del();
+            });
+            const copy = self.slate.paper.copy().attr(self.attrs.create).transform([
+                't',
+                multiX,
+                ',',
+                markerBB.y + heightSpacer * 2,
+                's',
+                ',',
+                '1.25',
+                '1.25', 
+            ].join());
+            copy.mouseover((e)=>{
+                copy.attr(self.attrs.mouseOver);
+                _utilsDefault.default.stopEvent(e);
+            });
+            copy.mouseout((e)=>{
+                copy.attr(self.attrs.mouseOut);
+                _utilsDefault.default.stopEvent(e);
+            });
+            copy.mousedown((e)=>{
+                _utilsDefault.default.stopEvent(e);
+                const snap = self.slate.snapshot();
+                const nGroupId = self.selectedNodes[0].options.groupId ? _utilsDefault.default.guid().replace(/-/gi, '').substring(0, 8).toUpperCase() : null;
+                const orient = self.slate.getOrientation(self.selectedNodes);
+                const pad = 75;
+                const relationalMap = {
+                };
+                self.selectedNodes.forEach((node)=>{
+                    const c = _lodashClonedeepDefault.default(node.options);
+                    c.xPos += orient.width + pad;
+                    c.groupId = nGroupId;
+                    c.id = _utilsDefault.default.guid().replace(/-/gi, '').substring(0, 12);
+                    relationalMap[node.options.id] = c.id;
+                    c.vectorPath = _utilsDefault.default._transformPath(c.vectorPath, `T${orient.width + pad},0`);
+                    const nn = new _index.Slatebox.node(c);
+                    self.slate.nodes.add(nn);
+                });
+                // next add relationships
+                const an = self.slate.nodes.allNodes;
+                self.selectedNodes.forEach((node)=>{
+                    const nn = an.find((n)=>n.options.id === relationalMap[node.options.id]
+                    );
+                    // with nn as "parent", add all its children
+                    node.relationships.associations.filter((a)=>a.parent.options.id === node.options.id
+                    ).forEach((a)=>{
+                        const assocPkg = _lodashClonedeepDefault.default(a);
+                        delete assocPkg.line // ensure new line is created
+                        ;
+                        assocPkg.id = _utilsDefault.default.guid().replace(/-/gi, '').substring(0, 12);
+                        assocPkg.activeNode = relationalMap[assocPkg.activeNode];
+                        let childNode = an.find((n)=>n.options.id === relationalMap[a.child.options.id]
+                        );
+                        if (!childNode) childNode = an.find((n)=>n.options.id === a.child.options.id
+                        );
+                        nn.relationships.addAssociation(childNode, assocPkg);
+                    });
+                });
+                // send collaboration info
+                const pkg = {
+                    type: 'onNodeAdded',
+                    data: self.slate.exportDifference(snap)
+                };
+                self.slate.collab.send(pkg);
+            });
+            self._icons.push(copy);
+            if (!isGrouped) {
+                const group = self.slate.paper.plus().attr(self.attrs.create).transform([
+                    't',
+                    multiX,
+                    ',',
+                    markerBB.y + heightSpacer,
+                    's',
+                    ',',
+                    '1.25',
+                    '1.25', 
+                ].join());
+                group.mouseover((e)=>{
+                    group.attr(self.attrs.mouseOver);
+                    _utilsDefault.default.stopEvent(e);
+                });
+                group.mouseout((e)=>{
+                    group.attr(self.attrs.mouseOut);
+                    _utilsDefault.default.stopEvent(e);
+                });
+                group.mousedown((e)=>{
+                    const groupId = _utilsDefault.default.guid().replace(/-/gi, '').substring(0, 8).toUpperCase();
+                    self.selectedNodes.forEach((n)=>{
+                        n.options.groupId = groupId;
+                    });
+                    _utilsDefault.default.stopEvent(e);
+                    self.endSelection();
+                    self.end();
+                    self.showGroup(groupId);
+                });
+                self._icons.push(group);
+            } else {
+                const ungroup = self.slate.paper.minus().attr(self.attrs.create).transform([
+                    't',
+                    multiX,
+                    ',',
+                    markerBB.y + heightSpacer,
+                    's',
+                    ',',
+                    '1.25',
+                    '1.25', 
+                ].join());
+                ungroup.mouseover((e)=>{
+                    ungroup.attr(self.attrs.mouseOver);
+                    _utilsDefault.default.stopEvent(e);
+                });
+                ungroup.mouseout((e)=>{
+                    ungroup.attr(self.attrs.mouseOut);
+                    _utilsDefault.default.stopEvent(e);
+                });
+                ungroup.mousedown((e)=>{
+                    self.selectedNodes.forEach((n)=>{
+                        n.options.groupId = null;
+                    });
+                    _utilsDefault.default.stopEvent(e);
+                    self.hideIcons();
+                    self.showIcons();
+                });
+                self._icons.push(ungroup);
+                if (showSettings) {
+                    const settings = self.slate.paper.setting().attr(self.attrs.create).transform([
+                        't',
+                        multiX,
+                        ',',
+                        markerBB.y + heightSpacer * 4,
+                        's',
+                        ',',
+                        '1.25',
+                        '1.25', 
+                    ].join());
+                    settings.mouseover((e)=>{
+                        settings.attr(self.attrs.mouseOver);
+                        _utilsDefault.default.stopEvent(e);
+                    });
+                    settings.mouseout((e)=>{
+                        settings.attr(self.attrs.mouseOut);
+                        _utilsDefault.default.stopEvent(e);
+                    });
+                    settings.mousedown((e)=>{
+                        _utilsDefault.default.stopEvent(e);
+                        self.selectedNodes[0].menu.show();
+                    });
+                    self._icons.push(settings);
+                }
+            }
+            self._icons.push(del);
+        }
+    }
+    hideIcons() {
+        const self = this;
+        self.iconBg?.remove();
+        self._icons?.forEach((i)=>i.remove()
+        );
+    }
+    isSelecting() {
+        const self = this;
+        return self.marker !== null;
+    }
+    del() {
+        const self = this;
+        self.slate.events.onConfirmRequested(`Confirm Deletion`, `Are you sure you want to remove these ${self.selectedNodes.length} node(s)?`, (blnConfirm)=>{
+            if (blnConfirm) {
+                self.selectedNodes.forEach((node)=>{
+                    node.del();
+                    self.slate.unglow();
+                    const delPkg = {
+                        type: 'onNodeDeleted',
+                        data: {
+                            id: node.options.id
+                        }
+                    };
+                    self.slate.collab?.send(delPkg);
+                    self.slate.birdsEye?.nodeDeleted(delPkg);
+                });
+                self.end();
+            }
+        });
+    }
+    end(hasMarker = true) {
+        const self = this;
+        if (self.marker !== null || !hasMarker) {
+            self.marker?.remove();
+            self.resizer?.remove();
+            self.marker = null;
+            self.slate.enable();
+            // self.slate.keyboard && self.slate.keyboard.end();
+            self.hideIcons();
+            window.removeEventListener('beforeunload', self._enableOnRefresh);
+        }
+        if (self._init) self._init.innerHTML = '[multi-select]';
+    }
+    endSelection() {
+        const self = this;
+        self.selRect?.remove();
+        self.showIcons();
+        self.slate.options.allowDrag = true;
+        self.slate.onSelectionStart = null;
+        _utilsDefault.default.removeEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self));
+    }
+    xy(e) {
+        const self = this;
+        const mp = _utilsDefault.default.mousePos(e);
+        const off = _utilsDefault.default.positionedOffset(self.slate.options.container);
+        const _x = mp.x + self.slate.options.viewPort.left - off.left;
+        const _y = mp.y + self.slate.options.viewPort.top - off.top;
+        const z = self.slate.options.viewPort.zoom.r;
+        return {
+            x: _x / z,
+            y: _y / z
+        };
+    }
+    _move(e) {
+        const self = this;
+        if (!self.slate.draggingNode) {
+            const p = self.xy(e);
+            const height = p.y - self.oy;
+            const width = p.x - self.ox;
+            if (height > 0) self.selRect.attr({
+                height
+            });
+            else self.selRect.attr({
+                y: p.y,
+                height: self.oy - p.y
+            });
+            if (width > 0) self.selRect.attr({
+                width
+            });
+            else self.selRect.attr({
+                x: p.x,
+                width: self.ox - p.x
+            });
+        }
+    }
+    showGroup(groupId) {
+        const self = this;
+        self.selectedNodes = self.slate.nodes.allNodes.filter((n)=>n.options.groupId === groupId
+        );
+        if (self.prepSelectedNodes()) {
+            self.refreshMarker();
+            self.showIcons();
+        }
+    }
+    refreshMarker() {
+        const self = this;
+        self.marker?.remove();
+        self.resizer?.remove();
+        self.iconBg?.remove();
+        const z = self.slate.options.viewPort.zoom.r;
+        const orient = self.slate.getOrientation(self.selectedNodes);
+        let w = orient.width / z;
+        let h = orient.height / z;
+        if (w < self.minSize) w = self.minSize;
+        if (h < self.minSize) h = self.minSize;
+        self.marker = self.slate.paper.rect(orient.left / z, orient.top / z, w, h).attr({
+            'stroke-dasharray': '-',
+            fill: '#f8f8f8',
+            opacity: 0.3
+        });
+        self.marker.toBack();
+        self.slate?.grid.toBack();
+        self.slate?.canvas.bgToBack();
+        self.origPos = self.marker.getBBox();
+        // self.resizer
+        const _nx = self.origPos.x + self.origPos.width;
+        const _ny = self.origPos.y + self.origPos.height;
+        self.resizer = self.slate.paper.resize().transform([
+            't',
+            _nx - 5,
+            ',',
+            _ny - 5,
+            'r95 s1.5,1.5'
+        ].join()).attr({
+            fill: '#fff',
+            stroke: '#000'
+        });
+        self.resizer.toFront();
+        self.resizer.mouseover((e)=>{
+            self.resizer.attr(self.attrs.mouseOver);
+            _utilsDefault.default.stopEvent(e);
+        }) // self._resizeHover.bind(self));
+        ;
+        self.resizer.mouseout((e)=>{
+            self.resizer.attr(self.attrs.mouseOut);
+            _utilsDefault.default.stopEvent(e);
+        }) // self._resizeHover.bind(self));
+        ;
+        // self.resizer.unmouseover(self._resizeHover.bind(self));
+        self.marker.drag(self.markerEvents.move, self.markerEvents.init, self.markerEvents.up);
+        self.resizer.drag(self.resizeEvents.move, self.resizeEvents.init, self.resizeEvents.up);
+    }
+    prepSelectedNodes() {
+        const self = this;
+        // select relevant connections
+        if (self.selectedNodes.length > 1) {
+            const _associations = self.slate.nodes.getRelevantAssociationsWith(self.selectedNodes);
+            self.relationshipsToTranslate = _associations.relationshipsToTranslate;
+            self.relationshipsToRefresh = _associations.relationshipsToRefresh;
+            self.refreshMarker();
+            self.endSelection();
+            // unmark all and remove connectors
+            self.slate.nodes.closeAllMenus({
+                nodes: self.selectedNodes
+            });
+        } else if (self.selectedNodes.length === 1) {
+            self.selectedNodes[0].menu.show();
+            self.slate.enable();
+            self.endSelection();
+            self.end();
+            return false;
+        } else {
+            self.slate.enable();
+            self.endSelection();
+            self.end();
+            return true;
+        }
+        return false;
+    }
+    _mouseUp(e) {
+        const self = this;
+        if (self._init) self._init.innerHTML = '[multi-select]';
+        this._select(e);
+    }
+    _select(e) {
+        const self = this;
+        const sr = self.selRect.getBBox();
+        if (sr) {
+            const withinBox = self.slate.nodes.allNodes.filter((n)=>{
+                const inRange = n.options.xPos + n.options.width > sr.x && n.options.xPos < sr.x + sr.width && n.options.yPos + n.options.height > sr.y && n.options.yPos < sr.y + sr.height;
+                return inRange && !n.options.isLocked;
+            });
+            // add any groupIds
+            const groupIds = _lodashUniqDefault.default(withinBox.map((n)=>n.options.groupId
+            )).filter((g)=>!!g
+            );
+            const alreadySelectedIds = withinBox.map((n)=>n.options.id
+            );
+            self.selectedNodes = self.slate.nodes.allNodes.filter((n)=>alreadySelectedIds.includes(n.options.id) || groupIds.includes(n.options.groupId)
+            );
+            self.prepSelectedNodes();
+        }
+    }
+    static hideConnections(connections) {
+        connections.forEach((c)=>{
+            c.line.hide();
+        });
+    }
+    static showConnections(connections) {
+        connections.forEach((c)=>{
+            c.line.show();
+        });
+    }
+    broadcastMove() {
+        const self = this;
+        const pkg = {
+            type: 'onNodesMove',
+            data: self.slate.nodes.nodeMovePackage({
+                nodes: self.selectedNodes,
+                relationships: self.relationshipsToTranslate.concat(self.relationshipsToRefresh)
+            })
+        };
+        self.slate.collab?.send(pkg);
+        self.slate.birdsEye?.nodeChanged(pkg);
+    }
+}
+exports.default = multiSelection;
+
+},{"lodash.uniq":"iDalh","lodash.clonedeep":"i3u1q","../helpers/utils":"8QI6M","../helpers/refreshRelationships":"1UeYf","../index":"8lqZg","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"bRqCq":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 /* eslint-disable new-cap */ /* eslint-disable no-param-reassign */ /* eslint-disable no-underscore-dangle */ var _lodashOmit = require("lodash.omit");
