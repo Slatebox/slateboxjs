@@ -78,7 +78,6 @@ export default class slate extends base {
       followMe: false,
       useLayoutQuandrants: false,
       huddleType: 'disabled',
-      applySketch: false,
     }
 
     this.options = merge(this.options, _options)
@@ -982,7 +981,7 @@ export default class slate extends base {
         // const sendPath = utils._transformPath(styleBase.vectorPath, `T${node.options.xPos},${node.options.xPos}`);
         self.collab.invoke({
           type: 'onNodeShapeChanged',
-          data: { id, shape: styleBase.vectorPath },
+          data: { id, hint: styleBase.hint, shape: styleBase.vectorPath },
         })
       }
 

@@ -7935,6 +7935,29 @@ class $c09005a36c8880c7$export$2e2bcd8739ae039 {
         document.body.removeChild(cont);
         return bb;
     }
+    static obtainProportionateWidthAndHeightForResizing(dx, dy, currentVectWidth, currentVectHeight, origVectWidth, origVectHeight, isCtrl, isCustom) {
+        let transWidth = currentVectWidth + dx * 2;
+        let transHeight = currentVectHeight + dy * 2;
+        const useOrigVectorWidth = origVectWidth ?? currentVectWidth;
+        const useOrigVectorHeight = origVectHeight ?? currentVectHeight;
+        if (!isCtrl && isCustom && useOrigVectorWidth && useOrigVectorHeight) {
+            const max = Math.max(transWidth, transHeight);
+            // keep it proportional to the original dimensions unless ctrl is pressed while resizing
+            if (max === transWidth) {
+                // change width
+                transHeight = useOrigVectorHeight * transWidth / useOrigVectorWidth;
+                transWidth = useOrigVectorWidth * transHeight / useOrigVectorHeight;
+            } else {
+                // change height
+                transWidth = useOrigVectorWidth * transHeight / useOrigVectorHeight;
+                transHeight = useOrigVectorHeight * transWidth / useOrigVectorWidth;
+            }
+        }
+        return {
+            transWidth: transWidth,
+            transHeight: transHeight
+        };
+    }
     static positionedOffset(obj) {
         let curleft = 0;
         let curtop = 0;
@@ -10459,16 +10482,9 @@ class $eb3767c9e63a8879$export$2e2bcd8739ae039 {
             let nodebb = this.node.vect.getBBox();
             if (this.node.options.text !== tempShim) {
                 const textDimens = $c09005a36c8880c7$export$2e2bcd8739ae039.getTextWidth(this.node.options.text, `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`);
-                // don't replace text if the shape is alpha, otherwise the intent here is to copy the text
-                // console.log(
-                //   'textDimens',
-                //   this.node.options.text,
-                //   `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`,
-                //   textDimens.width,
-                //   textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent
-                // )
-                widthScalar = textDimens.width / nodebb.width;
-                heightScalar = textDimens.height / nodebb.height;
+                const { transWidth: transWidth , transHeight: transHeight  } = $c09005a36c8880c7$export$2e2bcd8739ae039.obtainProportionateWidthAndHeightForResizing(0, 0, textDimens.width, textDimens.height, this.node.options.origVectWidth, this.node.options.origVectHeight, this.slate.isCtrl, this.node.options.shapeHint === 'custom');
+                widthScalar = transWidth / nodebb.width;
+                heightScalar = transHeight / nodebb.height;
             }
             const scaledVectPath = $db87f2586597736c$export$508faed300ccdfb.transformPath(this.node.options.vectorPath, `s${widthScalar}, ${heightScalar}`).toString();
             this.node.options.vectorPath = scaledVectPath;
@@ -12112,15 +12128,15 @@ class $a7cd8c5030694da2$export$2e2bcd8739ae039 {
             move (dx, dy) {
                 const s = this;
                 try {
-                    const _zr = self.slate.options.viewPort.zoom.r;
+                    const zoomRatio = self.slate.options.viewPort.zoom.r;
                     // for snapping
                     if (self.slate.options.viewPort.showGrid && self.slate.options.viewPort.snapToGrid) {
                         const gridSize = self.slate.options.viewPort.gridSize || 10;
                         dx = Math.round(dx / gridSize) * gridSize;
                         dy = Math.round(dy / gridSize) * gridSize;
                     }
-                    dx += dx / _zr - dx;
-                    dy += dy / _zr - dy;
+                    dx += dx / zoomRatio - dx;
+                    dy += dy / zoomRatio - dy;
                     const nearest = self.kdTree.knn([
                         node.options.xPos,
                         node.options.yPos
@@ -12128,16 +12144,11 @@ class $a7cd8c5030694da2$export$2e2bcd8739ae039 {
                     nearest.forEach((n)=>{
                         self.node.gridLines.draw(self.foreignPoints[n].id, dx, dy, self.foreignPoints[n].bbox, false, 200);
                     });
-                    let transWidth = self._origWidth + dx * 2;
-                    let transHeight = self._origHeight + dy * 2;
-                    if (!self.slate.isCtrl && self.node.options.origVectWidth && self.node.options.origVectHeight) {
-                        const max = Math.max(transWidth, transHeight);
-                        // keep it proportional to the original dimensions unless ctrl is pressed while resizing
-                        if (max === transWidth) // change width
-                        transWidth = self.node.options.origVectWidth * transHeight / self.node.options.origVectHeight;
-                        else // change height
-                        transHeight = self.node.options.origVectHeight * transWidth / self.node.options.origVectWidth;
-                    }
+                    // let transWidth = self._origWidth
+                    // let transHeight = self._origHeight
+                    // if (self.node.options.shapeHint === 'custom') {
+                    const { transWidth: transWidth , transHeight: transHeight  } = $c09005a36c8880c7$export$2e2bcd8739ae039.obtainProportionateWidthAndHeightForResizing(dx, dy, self._origWidth, self._origHeight, self.node.options.shapeHint === 'custom' ? self.node.options.origVectWidth : null, self.node.options.shapeHint === 'custom' ? self.node.options.origVectHeight : null, self.slate.isCtrl, self.node.options.shapeHint === 'custom');
+                    // }
                     if (transWidth > self._minWidth) s.attr({
                         x: s.ox + dx
                     });
@@ -12301,6 +12312,30 @@ class $a7cd8c5030694da2$export$2e2bcd8739ae039 {
             });
         });
     }
+    // obtainProportionateWidthAndHeightForResizing(
+    //   dx,
+    //   dy,
+    //   origVectWidth,
+    //   origVectHeight
+    // ) {
+    //   let transWidth = (self._origWidth || self.node.options.width) + dx * 2
+    //   let transHeight = (self._origHeight || self.node.options.height) + dy * 2
+    //   const useOrigVectorWidth = self.node.options.origVectWidth ?? origVectWidth
+    //   const useOrigVectorHeight =
+    //     self.node.options.origVectHeight ?? origVectHeight
+    //   if (!self.slate.isCtrl && useOrigVectorWidth && useOrigVectorHeight) {
+    //     const max = Math.max(transWidth, transHeight)
+    //     // keep it proportional to the original dimensions unless ctrl is pressed while resizing
+    //     if (max === transWidth) {
+    //       // change height
+    //       transWidth = (useOrigVectorWidth * transHeight) / useOrigVectorHeight
+    //     } else {
+    //       // change width
+    //       transHeight = (useOrigVectorHeight * transWidth) / useOrigVectorWidth
+    //     }
+    //   }
+    //   return { transWidth, transHeight }
+    // }
     set(width, height, opts = {
     }) {
         // let latt, tatt;
@@ -12488,6 +12523,7 @@ class $ab50f45f60e457ee$export$2e2bcd8739ae039 {
                 break;
         }
         this.node.options.vectorPath = _path;
+        this.node.options.shapeHint = pkg.hint;
         this.node.options.origVectWidth = pkg.width;
         this.node.options.origVectHeight = pkg.height;
         this.node.options.width = pkg.width || this.node.options.width;
@@ -12523,6 +12559,7 @@ class $ab50f45f60e457ee$export$2e2bcd8739ae039 {
                 data: {
                     id: this.node.options.id,
                     shape: pkg.shape,
+                    hint: pkg.hint,
                     width: pkg.width,
                     height: pkg.height,
                     sendCollab: false,
@@ -13080,6 +13117,20 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
     }
     packageLayout() {
         const self = this;
+        const knownGraphVizShapes = [
+            'rect',
+            'rectangle',
+            'circle',
+            'star',
+            'trapezium',
+            'triangle',
+            'pentagon',
+            'parallelogram',
+            'octagon',
+            'hexagon',
+            'rarrow',
+            'larrow', 
+        ];
         const eligibleNodes = self.slate.options.disableAutoLayoutOfManuallyPositionedNodes ? self.allNodes.filter((nn)=>!nn.options.humanTouch
         ) : self.allNodes;
         // package up all the unique associations and the width/height of every node
@@ -13100,7 +13151,7 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
             if (!nodes[nx.options.id]) nodes[nx.options.id] = {
                 width: nx.options.width,
                 height: nx.options.height,
-                shape: nx.options.shapeHint || 'rectangle',
+                shape: knownGraphVizShapes.includes(nx.options.shapeHint) || 'polygon',
                 color: nx.options.backgroundColor,
                 textColor: nx.options.foregroundColor,
                 text: nx.options.text,
@@ -13625,6 +13676,8 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
         const bbox = vect.getBBox();
         _node.options.xPos = bbox.x;
         _node.options.yPos = bbox.y;
+        if (!_node.options.origVectWidth && _node.options.shapeHint === 'custom') _node.options.origVectWidth = bbox.width;
+        if (!_node.options.origVectHeight && _node.options.shapeHint === 'custom') _node.options.origVectHeight = bbox.height;
         const lc = _node.linkCoords();
         // apply the text coords prior to transform
         // text = paperToUse.text(tc.x, tc.y, (_node.options.text || '')).attr({ "font-size": _node.options.fontSize + "pt", fill: _node.options.foregroundColor || "#000" });
@@ -15686,6 +15739,59 @@ class $c5e9b4e1c381e85f$export$2e2bcd8739ae039 {
     exposeDefaults() {
         const self = this;
         self.availableFilters = {
+            embossed: {
+                types: [
+                    'vect',
+                    'line',
+                    'image',
+                    'text'
+                ],
+                filters: [
+                    {
+                        type: 'feGaussianBlur',
+                        attrs: {
+                            stdDeviation: '1.5',
+                            in: 'SourceAlpha'
+                        }
+                    },
+                    {
+                        type: 'feOffset',
+                        attrs: {
+                            dx: '1',
+                            dy: '1',
+                            result: 'offsetblur'
+                        }
+                    },
+                    {
+                        type: 'feComponentTransfer',
+                        nested: [
+                            {
+                                type: 'feFuncA',
+                                attrs: {
+                                    type: 'linear',
+                                    slope: '10'
+                                }
+                            }, 
+                        ]
+                    },
+                    {
+                        type: 'feMerge',
+                        nested: [
+                            {
+                                type: 'feMergeNode',
+                                attrs: {
+                                }
+                            },
+                            {
+                                type: 'feMergeNode',
+                                attrs: {
+                                    in: 'SourceGraphic'
+                                }
+                            }, 
+                        ]
+                    }, 
+                ]
+            },
             dropShadow: {
                 levers: {
                     feDropShadow: {
@@ -16960,6 +17066,7 @@ class $54b0c4bd9bb665f5$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
                 type: 'onNodeShapeChanged',
                 data: {
                     id: id,
+                    hint: styleBase.hint,
                     shape: styleBase.vectorPath
                 }
             });

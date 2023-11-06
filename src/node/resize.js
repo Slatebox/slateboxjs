@@ -101,7 +101,7 @@ export default class resize {
       move(dx, dy) {
         const s = this
         try {
-          const _zr = self.slate.options.viewPort.zoom.r
+          const zoomRatio = self.slate.options.viewPort.zoom.r
 
           // for snapping
           if (
@@ -113,8 +113,8 @@ export default class resize {
             dy = Math.round(dy / gridSize) * gridSize
           }
 
-          dx += dx / _zr - dx
-          dy += dy / _zr - dy
+          dx += dx / zoomRatio - dx
+          dy += dy / zoomRatio - dy
 
           const nearest = self.kdTree.knn(
             [node.options.xPos, node.options.yPos],
@@ -131,28 +131,26 @@ export default class resize {
             )
           })
 
-          let transWidth = self._origWidth + dx * 2
-          let transHeight = self._origHeight + dy * 2
+          // let transWidth = self._origWidth
+          // let transHeight = self._origHeight
 
-          if (
-            !self.slate.isCtrl &&
-            self.node.options.origVectWidth &&
-            self.node.options.origVectHeight
-          ) {
-            const max = Math.max(transWidth, transHeight)
-            // keep it proportional to the original dimensions unless ctrl is pressed while resizing
-            if (max === transWidth) {
-              // change width
-              transWidth =
-                (self.node.options.origVectWidth * transHeight) /
-                self.node.options.origVectHeight
-            } else {
-              // change height
-              transHeight =
-                (self.node.options.origVectHeight * transWidth) /
-                self.node.options.origVectWidth
-            }
-          }
+          // if (self.node.options.shapeHint === 'custom') {
+          const { transWidth, transHeight } =
+            utils.obtainProportionateWidthAndHeightForResizing(
+              dx,
+              dy,
+              self._origWidth,
+              self._origHeight,
+              self.node.options.shapeHint === 'custom'
+                ? self.node.options.origVectWidth
+                : null,
+              self.node.options.shapeHint === 'custom'
+                ? self.node.options.origVectHeight
+                : null,
+              self.slate.isCtrl,
+              self.node.options.shapeHint === 'custom'
+            )
+          // }
 
           if (transWidth > self._minWidth) {
             s.attr({ x: s.ox + dx })
@@ -349,6 +347,31 @@ export default class resize {
       } else if (a) a.line.attr({ path: assoc.linePath })
     })
   }
+
+  // obtainProportionateWidthAndHeightForResizing(
+  //   dx,
+  //   dy,
+  //   origVectWidth,
+  //   origVectHeight
+  // ) {
+  //   let transWidth = (self._origWidth || self.node.options.width) + dx * 2
+  //   let transHeight = (self._origHeight || self.node.options.height) + dy * 2
+  //   const useOrigVectorWidth = self.node.options.origVectWidth ?? origVectWidth
+  //   const useOrigVectorHeight =
+  //     self.node.options.origVectHeight ?? origVectHeight
+  //   if (!self.slate.isCtrl && useOrigVectorWidth && useOrigVectorHeight) {
+  //     const max = Math.max(transWidth, transHeight)
+  //     // keep it proportional to the original dimensions unless ctrl is pressed while resizing
+  //     if (max === transWidth) {
+  //       // change height
+  //       transWidth = (useOrigVectorWidth * transHeight) / useOrigVectorHeight
+  //     } else {
+  //       // change width
+  //       transHeight = (useOrigVectorHeight * transWidth) / useOrigVectorWidth
+  //     }
+  //   }
+  //   return { transWidth, transHeight }
+  // }
 
   set(width, height, opts = {}) {
     // let latt, tatt;

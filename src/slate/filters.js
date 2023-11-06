@@ -78,6 +78,53 @@ export default class filters {
   exposeDefaults() {
     const self = this
     self.availableFilters = {
+      embossed: {
+        types: ['vect', 'line', 'image', 'text'],
+        filters: [
+          {
+            type: 'feGaussianBlur',
+            attrs: {
+              stdDeviation: '1.5',
+              in: 'SourceAlpha',
+            },
+          },
+          {
+            type: 'feOffset',
+            attrs: {
+              dx: '1',
+              dy: '1',
+              result: 'offsetblur',
+            },
+          },
+          {
+            type: 'feComponentTransfer',
+            nested: [
+              {
+                type: 'feFuncA',
+                attrs: {
+                  type: 'linear',
+                  slope: '10',
+                },
+              },
+            ],
+          },
+          {
+            type: 'feMerge',
+            nested: [
+              {
+                type: 'feMergeNode',
+                attrs: {},
+              },
+              {
+                type: 'feMergeNode',
+                attrs: {
+                  in: 'SourceGraphic',
+                },
+              },
+            ],
+          },
+        ],
+      },
       dropShadow: {
         levers: {
           feDropShadow: {

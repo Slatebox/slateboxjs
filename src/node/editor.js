@@ -70,17 +70,21 @@ export default class editor {
           this.node.options.text,
           `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`
         )
-        // don't replace text if the shape is alpha, otherwise the intent here is to copy the text
-        // console.log(
-        //   'textDimens',
-        //   this.node.options.text,
-        //   `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`,
-        //   textDimens.width,
-        //   textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent
-        // )
 
-        widthScalar = textDimens.width / nodebb.width
-        heightScalar = textDimens.height / nodebb.height
+        const { transWidth, transHeight } =
+          utils.obtainProportionateWidthAndHeightForResizing(
+            0,
+            0,
+            textDimens.width,
+            textDimens.height,
+            this.node.options.origVectWidth,
+            this.node.options.origVectHeight,
+            this.slate.isCtrl,
+            this.node.options.shapeHint === 'custom'
+          )
+
+        widthScalar = transWidth / nodebb.width
+        heightScalar = transHeight / nodebb.height
       }
       const scaledVectPath = Raphael.transformPath(
         this.node.options.vectorPath,

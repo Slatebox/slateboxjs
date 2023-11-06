@@ -85,6 +85,20 @@ export default class nodeController {
 
   packageLayout() {
     const self = this
+    const knownGraphVizShapes = [
+      'rect',
+      'rectangle',
+      'circle',
+      'star',
+      'trapezium',
+      'triangle',
+      'pentagon',
+      'parallelogram',
+      'octagon',
+      'hexagon',
+      'rarrow',
+      'larrow',
+    ]
     const eligibleNodes = self.slate.options
       .disableAutoLayoutOfManuallyPositionedNodes
       ? self.allNodes.filter((nn) => !nn.options.humanTouch)
@@ -111,7 +125,8 @@ export default class nodeController {
         nodes[nx.options.id] = {
           width: nx.options.width,
           height: nx.options.height,
-          shape: nx.options.shapeHint || 'rectangle',
+          shape:
+            knownGraphVizShapes.includes(nx.options.shapeHint) || 'polygon',
           color: nx.options.backgroundColor,
           textColor: nx.options.foregroundColor,
           text: nx.options.text,
@@ -717,6 +732,14 @@ export default class nodeController {
     const bbox = vect.getBBox()
     _node.options.xPos = bbox.x
     _node.options.yPos = bbox.y
+
+    if (!_node.options.origVectWidth && _node.options.shapeHint === 'custom') {
+      _node.options.origVectWidth = bbox.width
+    }
+
+    if (!_node.options.origVectHeight && _node.options.shapeHint === 'custom') {
+      _node.options.origVectHeight = bbox.height
+    }
 
     const lc = _node.linkCoords()
 

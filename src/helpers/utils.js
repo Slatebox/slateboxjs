@@ -324,6 +324,37 @@ export default class utils {
     return bb
   }
 
+  static obtainProportionateWidthAndHeightForResizing(
+    dx,
+    dy,
+    currentVectWidth,
+    currentVectHeight,
+    origVectWidth,
+    origVectHeight,
+    isCtrl,
+    isCustom
+  ) {
+    let transWidth = currentVectWidth + dx * 2
+    let transHeight = currentVectHeight + dy * 2
+    const useOrigVectorWidth = origVectWidth ?? currentVectWidth
+    const useOrigVectorHeight = origVectHeight ?? currentVectHeight
+
+    if (!isCtrl && isCustom && useOrigVectorWidth && useOrigVectorHeight) {
+      const max = Math.max(transWidth, transHeight)
+      // keep it proportional to the original dimensions unless ctrl is pressed while resizing
+      if (max === transWidth) {
+        // change width
+        transHeight = (useOrigVectorHeight * transWidth) / useOrigVectorWidth
+        transWidth = (useOrigVectorWidth * transHeight) / useOrigVectorHeight
+      } else {
+        // change height
+        transWidth = (useOrigVectorWidth * transHeight) / useOrigVectorHeight
+        transHeight = (useOrigVectorHeight * transWidth) / useOrigVectorWidth
+      }
+    }
+    return { transWidth, transHeight }
+  }
+
   static positionedOffset(obj) {
     let curleft = 0
     let curtop = 0

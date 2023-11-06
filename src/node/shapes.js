@@ -44,6 +44,7 @@ export default class shapes {
     }
 
     this.node.options.vectorPath = _path
+    this.node.options.shapeHint = pkg.hint
     this.node.options.origVectWidth = pkg.width
     this.node.options.origVectHeight = pkg.height
 
@@ -84,6 +85,7 @@ export default class shapes {
         data: {
           id: this.node.options.id,
           shape: pkg.shape,
+          hint: pkg.hint,
           width: pkg.width,
           height: pkg.height,
           sendCollab: false,
