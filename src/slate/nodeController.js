@@ -135,8 +135,6 @@ export default class nodeController {
       }
     })
 
-    console.log('eligibleNodes', eligibleNodes)
-
     const subgraphs = {}
     eligibleNodes.forEach((nx) => {
       if (!subgraphs[nx.options.groupId]) {
@@ -145,7 +143,13 @@ export default class nodeController {
       subgraphs[nx.options.groupId].push(nx.options.id)
     })
 
-    return { associations, nodes, uniqueIds: Object.keys(nodes), subgraphs }
+    return {
+      layoutType: self.slate.options.layoutType,
+      associations,
+      nodes,
+      uniqueIds: Object.keys(nodes),
+      subgraphs,
+    }
   }
 
   applyLayout(layout, cb) {

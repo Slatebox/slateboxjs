@@ -10247,8 +10247,8 @@ class $0de94e735767a57c$export$2e2bcd8739ae039 {
                 self.slate.options.themeId = pkg.data?.theme?._id;
                 if (pkg.data?.theme) self.slate.applyTheme(pkg.data.theme, pkg.data.syncWithTheme);
             },
-            onSlateLayoutStrategyChanged (pkg) {
-                if (pkg.data.layoutStrategy != null) self.slate.options.layoutStrategy = pkg.data.layoutStrategy;
+            onSlateLayoutTypeChanged (pkg) {
+                if (pkg.data.layoutType != null) self.slate.options.layoutType = pkg.data.layoutType;
                 if (pkg.data.disableAutoLayoutOfManuallyPositionedNodes != null) self.slate.options.disableAutoLayoutOfManuallyPositionedNodes = pkg.data.disableAutoLayoutOfManuallyPositionedNodes;
             },
             onSlateBackgroundEffectChanged (pkg) {
@@ -13158,7 +13158,6 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
                 groupId: nx.options.groupId
             };
         });
-        console.log('eligibleNodes', eligibleNodes);
         const subgraphs = {
         };
         eligibleNodes.forEach((nx)=>{
@@ -13166,6 +13165,7 @@ class $078ffda75962dda9$export$2e2bcd8739ae039 {
             subgraphs[nx.options.groupId].push(nx.options.id);
         });
         return {
+            layoutType: self.slate.options.layoutType,
             associations: associations,
             nodes: nodes,
             uniqueIds: Object.keys(nodes),
@@ -16319,8 +16319,7 @@ class $54b0c4bd9bb665f5$export$2e2bcd8739ae039 extends $dc3db6ac99a59a76$export$
             disableAutoLayoutOfManuallyPositionedNodes: false,
             followMe: false,
             useLayoutQuandrants: false,
-            huddleType: 'disabled',
-            applySketch: false
+            huddleType: 'disabled'
         };
         this.options = $i9J9X$deepmerge(this.options, _options);
         this.events = events || {

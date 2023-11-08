@@ -311,9 +311,9 @@ export default class collab {
         }
       },
 
-      onSlateLayoutStrategyChanged(pkg) {
-        if (pkg.data.layoutStrategy != null) {
-          self.slate.options.layoutStrategy = pkg.data.layoutStrategy
+      onSlateLayoutTypeChanged(pkg) {
+        if (pkg.data.layoutType != null) {
+          self.slate.options.layoutType = pkg.data.layoutType
         }
         if (pkg.data.disableAutoLayoutOfManuallyPositionedNodes != null) {
           self.slate.options.disableAutoLayoutOfManuallyPositionedNodes =
