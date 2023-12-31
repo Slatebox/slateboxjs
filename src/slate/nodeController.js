@@ -123,8 +123,8 @@ export default class nodeController {
     eligibleNodes.forEach((nx) => {
       if (!nodes[nx.options.id]) {
         nodes[nx.options.id] = {
-          width: nx.options.width,
-          height: nx.options.height,
+          width: +nx.options.width,
+          height: +nx.options.height,
           shape:
             knownGraphVizShapes.includes(nx.options.shapeHint) || 'polygon',
           color: nx.options.backgroundColor,
