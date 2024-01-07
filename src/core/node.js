@@ -44,6 +44,7 @@ export default class node extends base {
       showMenu: true,
       showColorTab: true,
       showTextTab: true,
+      showAITab: true,
       showShapeTab: true,
       showImageTab: true,
       showEffectTab: true,
