@@ -264,7 +264,7 @@ export default class filters {
             stdDeviation: { label: 'displacement', default: 2, range: [1, 10] },
           },
         },
-        types: ['vect', 'line', 'image', 'text'],
+        types: ['vect', 'line', 'image'],
         filters: [
           {
             type: 'feGaussianBlur',

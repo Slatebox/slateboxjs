@@ -292,7 +292,7 @@ function(){window.console.error("FoamTree is not supported on this browser.")};w
 
               </script>
               <script id="bundle-data" type="application/json">
-                {"groups":[{"label":"/Users/timheckel/Projects/node/slatebox-library/dist/index.js","weight":628524,"groups":[{"label":"Code from unknown source files","weight":418249},{"label":"src","weight":210275,"groups":[{"label":"deps","weight":135166,"groups":[{"label":"raphael","weight":129799,"groups":[{"label":"raphael.core.potential.js","weight":88121},{"label":"raphael.svg.js","weight":33305},{"label":"raphael.fn.shapes.js","weight":6568},{"label":"raphael.el.extensions.js","weight":1805}]},{"label":"eve.js","weight":5367},{"label":"emile.js","weight":0}]},{"label":"slate","weight":31448,"groups":[{"label":"canvas.js","weight":23253},{"label":"undoRedo.js","weight":4718},{"label":"zoomSlider.js","weight":3477},{"label":"collab.js","weight":0},{"label":"nodeController.js","weight":0},{"label":"multiSelection.js","weight":0},{"label":"birdsEye.js","weight":0},{"label":"inertia.js","weight":0},{"label":"controller.js","weight":0},{"label":"grid.js","weight":0},{"label":"comments.js","weight":0},{"label":"filters.js","weight":0}]},{"label":"helpers","weight":29856,"groups":[{"label":"utils.js","weight":16264},{"label":"sbIcons.js","weight":10886},{"label":"embedGoogleFonts.js","weight":2000},{"label":"getTransformedPath.js","weight":706},{"label":"getDepCoords.js","weight":0},{"label":"refreshRelationships.js","weight":0},{"label":"closestPoint.js","weight":0},{"label":"getHorizontalCurve.js","weight":0},{"label":"getCorrectMidPoints.js","weight":0}]},{"label":"core","weight":13805,"groups":[{"label":"node.js","weight":12746},{"label":"base.js","weight":1059},{"label":"slate.js","weight":0}]},{"label":"index.js","weight":0},{"label":"node","weight":0,"groups":[{"label":"editor.js","weight":0},{"label":"relationships.js","weight":0},{"label":"rotate.js","weight":0},{"label":"menu.js","weight":0},{"label":"connectors.js","weight":0},{"label":"resize.js","weight":0},{"label":"images.js","weight":0},{"label":"shapes.js","weight":0},{"label":"customShapes.js","weight":0},{"label":"colorPicker.js","weight":0},{"label":"context.js","weight":0},{"label":"lineOptions.js","weight":0},{"label":"gridLines.js","weight":0}]}]}]}]}
+                {"groups":[{"label":"dist/index.js","weight":242709,"groups":[{"label":"src","weight":242383,"groups":[{"label":"deps","weight":80014,"groups":[{"label":"raphael","weight":75115,"groups":[{"label":"raphael.core.js","weight":52559},{"label":"raphael.svg.js","weight":19218},{"label":"raphael.fn.shapes.js","weight":2085},{"label":"raphael.el.extensions.js","weight":1253}]},{"label":"eve.js","weight":3104},{"label":"emile.js","weight":1795}]},{"label":"core","weight":27157,"groups":[{"label":"slate.js","weight":16060},{"label":"node.js","weight":10656},{"label":"base.js","weight":441}]},{"label":"slate","weight":68705,"groups":[{"label":"canvas.js","weight":14286},{"label":"multiSelection.js","weight":13142},{"label":"nodeController.js","weight":10052},{"label":"collab.js","weight":8746},{"label":"birdsEye.js","weight":5855},{"label":"filters.js","weight":5080},{"label":"controller.js","weight":3121},{"label":"undoRedo.js","weight":2866},{"label":"zoomSlider.js","weight":1920},{"label":"keyboard.js","weight":1180},{"label":"grid.js","weight":1049},{"label":"comments.js","weight":723},{"label":"inertia.js","weight":685}]},{"label":"helpers","weight":23416,"groups":[{"label":"sbIcons.js","weight":11245},{"label":"utils.js","weight":8769},{"label":"refreshRelationships.js","weight":1209},{"label":"embedGoogleFonts.js","weight":810},{"label":"getCorrectMidPoints.js","weight":572},{"label":"closestPoint.js","weight":375},{"label":"getHorizontalCurve.js","weight":184},{"label":"getDepCoords.js","weight":128},{"label":"getTransformedPath.js","weight":124}]},{"label":"node","weight":43044,"groups":[{"label":"relationships.js","weight":10237},{"label":"resize.js","weight":6579},{"label":"rotate.js","weight":5844},{"label":"connectors.js","weight":5291},{"label":"editor.js","weight":2744},{"label":"gridLines.js","weight":2494},{"label":"context.js","weight":2420},{"label":"lineOptions.js","weight":2248},{"label":"shapes.js","weight":1750},{"label":"images.js","weight":1386},{"label":"menu.js","weight":629},{"label":"links.js","weight":586},{"label":"colorPicker.js","weight":566},{"label":"customShapes.js","weight":270}]},{"label":"index.js","weight":47}]},{"label":"Code from unknown source files","weight":326},{"label":"<anon>","weight":0}]}]}
               </script>
             </head>
             <body>
@@ -352,7 +352,7 @@ let foamtree = new CarrotSearchFoamTree({
         <dl>
           <div>
             <dt>Size</dt>
-            <dd>${e.group.weight} bytes</dd>
+            <dd>${formatSize(e.group.weight)}</dd>
           </div>
         </dl>
       </div>
@@ -398,6 +398,15 @@ function debounce(fn, delay) {
 
 function translate3d(x, y, z) {
   return `translate3d(${x}px, ${y}px, ${z}px)`;
+}
+
+const UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+function formatSize(x) {
+  let l = 0, n = parseInt(x, 10) || 0;
+  while(n >= 1000 && ++l){
+      n /= 1000;
+  }
+  return(`${n.toFixed(l > 0 ? 2 : 0)} ${UNITS[l]}`);
 }
 
               </script>

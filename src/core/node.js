@@ -81,6 +81,10 @@ export default class node extends base {
         vect: null,
         text: null,
       },
+      ai: {
+        textToChildNodes: '',
+        textToImage: '',
+      },
     }
 
     Object.assign(this.options, options)
@@ -631,9 +635,9 @@ export default class node extends base {
         .lockClosed()
         .transform(['t', _vpt.x2 - 10, ',', _vpt.y2 - 10, 's', 0.9, 0.9].join())
         .attr({ fill: '#fff', stroke: '#000' })
-      self._lock.mouseover((e) => {
-        self.hideLock()
-      })
+      // self._lock.mousedown((e) => {
+      //   self.hideLock()
+      // })
     }
     return self._lock
   }

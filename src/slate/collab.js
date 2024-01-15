@@ -240,6 +240,11 @@ export default class collab {
         self.slate.loadAllFonts()
       },
 
+      onNodeAITextChanged(pkg) {
+        const cn = self.slate.nodes.one(pkg.data.id)
+        cn.options.ai = { ...pkg.data.ai, ...cn.options.ai }
+      },
+
       addRelationship(pkg) {
         resetMultiSelect()
         self.slate.nodes.addRelationship(pkg.data)
