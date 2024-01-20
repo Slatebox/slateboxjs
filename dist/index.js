@@ -10403,7 +10403,7 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
         this.node.options.textOpacity = opacity;
         this.node.options.textXAlign = ta;
         this.node.options.textYAlign = tb;
-        if (this.slate.options.autoResizeNodesBasedOnText) {
+        if (this.slate.options.autoResizeNodesBasedOnText && !this.node.options.ignoreTextFit) {
             let widthScalar = 1;
             let heightScalar = 1;
             let nodebb = this.node.vect.getBBox();
@@ -12103,6 +12103,8 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
             self.node.options.height = _bbox.height;
             self.node.options.xPos = _bbox.x;
             self.node.options.yPos = _bbox.y;
+            if (self.node.options.image) self.node.options.ignoreTextFit = true;
+            else self.node.options.ignoreTextFit = false;
             self.node.editor.setTextOffset();
             self.node.text.attr(self.node.textCoords({
                 x: self.node.options.xPos,

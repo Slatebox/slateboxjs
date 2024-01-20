@@ -62,7 +62,7 @@ export default class editor {
     this.node.options.textYAlign = tb
 
     if (
-      this.slate.options.autoResizeNodesBasedOnText ||
+      this.slate.options.autoResizeNodesBasedOnText &&
       !this.node.options.ignoreTextFit
     ) {
       let widthScalar = 1
