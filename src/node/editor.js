@@ -61,7 +61,10 @@ export default class editor {
     this.node.options.textXAlign = ta
     this.node.options.textYAlign = tb
 
-    if (this.slate.options.autoResizeNodesBasedOnText) {
+    if (
+      this.slate.options.autoResizeNodesBasedOnText ||
+      !this.node.options.ignoreTextFit
+    ) {
       let widthScalar = 1
       let heightScalar = 1
       let nodebb = this.node.vect.getBBox()

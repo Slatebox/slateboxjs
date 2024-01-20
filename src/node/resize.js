@@ -215,6 +215,11 @@ export default class resize {
       self.node.options.height = _bbox.height
       self.node.options.xPos = _bbox.x
       self.node.options.yPos = _bbox.y
+      if (self.node.options.image) {
+        self.node.options.ignoreTextFit = true
+      } else {
+        self.node.options.ignoreTextFit = false
+      }
 
       self.node.editor.setTextOffset()
       self.node.text.attr(
