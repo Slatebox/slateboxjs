@@ -37,11 +37,20 @@ export default class undoRedo {
     this.slate.loadJSON(state)
     this.slate.birdsEye?.reload(state)
     const pkg = { type: 'onSaveRequested' }
-    this.slate.collaboration?.onCollaboration({
-      type: 'custom',
-      slate: this.slate,
-      pkg,
-    })
+    if (self.slate.events?.onSlateChanged) {
+      self.slate.events.onSlateChanged.apply(self, [
+        {
+          type: 'custom',
+          slate: this.slate,
+          pkg,
+        },
+      ])
+    }
+    // this.slate.collaboration?.onCollaboration({
+    //   type: 'custom',
+    //   slate: this.slate,
+    //   pkg,
+    // })
   }
 
   undo() {

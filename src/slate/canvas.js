@@ -402,7 +402,7 @@ export default class canvas {
 
     this.slate.birdsEye?.refresh(true)
 
-    if (this.slate.collaboration.allow) {
+    if (this.slate.options.allowCollaboration) {
       this.broadcast(moved)
     }
   }
@@ -747,9 +747,11 @@ export default class canvas {
     const self = this
 
     self.internal.style.backgroundColor = ''
-    self.internal.parentElement.style.backgroundImage = ''
-    self.internal.parentElement.style.backgroundSize = ''
-    self.internal.parentElement.style.background = ''
+    if (self.internal.parentElement) {
+      self.internal.parentElement.style.backgroundImage = ''
+      self.internal.parentElement.style.backgroundSize = ''
+      self.internal.parentElement.style.background = ''
+    }
     self.internal.style.backgroundSize = ''
     self.internal.style.backgroundPosition = ''
 
@@ -764,10 +766,12 @@ export default class canvas {
       self.slate.options.containerStyle.prevBackgroundColor =
         self.slate.options.containerStyle.backgroundColor
       self.slate.options.containerStyle.backgroundColor = 'transparent'
-      self.internal.parentElement.style.backgroundImage = `url('${self.slate.options.containerStyle.backgroundImage}')`
-      if (self.slate.options.containerStyle.backgroundSize) {
-        self.internal.parentElement.style.backgroundSize =
-          self.slate.options.containerStyle.backgroundSize
+      if (self.internal.parentElement) {
+        self.internal.parentElement.style.backgroundImage = `url('${self.slate.options.containerStyle.backgroundImage}')`
+        if (self.slate.options.containerStyle.backgroundSize) {
+          self.internal.parentElement.style.backgroundSize =
+            self.slate.options.containerStyle.backgroundSize
+        }
       }
     }
 
@@ -794,12 +798,14 @@ export default class canvas {
       default: {
         if (self.slate.options.containerStyle.backgroundColorAsGradient) {
           self.internal.style.backgroundColor = ''
-          const bgStyle = `${
-            self.slate.options.containerStyle.backgroundGradientType
-          }-gradient(${self.slate.options.containerStyle.backgroundGradientColors.join(
-            ','
-          )})`
-          self.internal.parentElement.style.background = bgStyle
+          if (self.internal.parentElement) {
+            const bgStyle = `${
+              self.slate.options.containerStyle.backgroundGradientType
+            }-gradient(${self.slate.options.containerStyle.backgroundGradientColors.join(
+              ','
+            )})`
+            self.internal.parentElement.style.background = bgStyle
+          }
         } else {
           self.internal.style.backgroundColor =
             self.slate.options.containerStyle.backgroundColor || '#fff'

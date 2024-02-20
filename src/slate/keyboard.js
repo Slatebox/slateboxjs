@@ -93,9 +93,11 @@ export default class keyboard {
     this.key(e, true)
     // always have an escape hatch
     setTimeout(() => {
-      self.slate.isCtrl = false
-      self.slate.isShift = false
-      self.slate.isAlt = false
+      if (self.slate) {
+        self.slate.isCtrl = false
+        self.slate.isShift = false
+        self.slate.isAlt = false
+      }
     }, 5000)
   }
 }

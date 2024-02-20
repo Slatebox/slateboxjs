@@ -11,179 +11,186 @@
       import './plugins/node/attempt.js'
       import './plugins/slate/second.js'
 
-      const s = new Slatebox.slate(
-        {
-          name: 'New Slate',
-          description: '',
-          defaultLineColor: '#333',
-          container: 'slateCanvas',
-          instance: '',
-          basedOnThemeId: '',
-          syncWithTheme: false,
-          viewPort: {
-            useInertiaScrolling: true,
-            showGrid: false,
-            snapToObjects: true,
-            gridSize: 50,
-            width: 50000,
-            height: 50000,
-            left: 25000,
-            top: 25000,
+      async function load() {
+        const s = await new Slatebox.slate(
+          {
+            name: 'New Slate',
+            id: 'collab-demo',
+            description: '',
+            defaultLineColor: '#333',
+            container: 'slateCanvas',
+            basedOnThemeId: '',
+            syncWithTheme: false,
+            viewPort: {
+              useInertiaScrolling: true,
+              showGrid: false,
+              snapToObjects: true,
+              gridSize: 50,
+              width: 50000,
+              height: 50000,
+              left: 25000,
+              top: 25000,
+            },
+            enabled: true,
+            allowDrag: true,
+            showbirdsEye: true,
+            sizeOfbirdsEye: 150,
+            showMultiSelect: true,
+            showZoom: true,
+            showUndoRedo: true,
+            showStatus: true,
+            showLocks: true,
+            mindMapMode: true,
+            isPublic: true,
+            isUnlisted: false,
+            autoEnableDefaultFilters: true,
+            allowCollaboration: true,
+            followMe: false,
+            containerStyle: {
+              backgroundColor: '',
+              backgroundImage: '',
+              backgroundSize: '',
+              backgroundEffect: '',
+              backgroundColorAsGradient: true,
+              backgroundGradientType: 'radial',
+              backgroundGradientColors: ['#fff', '#333'],
+              backgroundGradientStrategy: 'shades',
+            },
           },
-          enabled: true,
-          allowDrag: true,
-          showbirdsEye: true,
-          sizeOfbirdsEye: 150,
-          showMultiSelect: true,
-          showZoom: true,
-          showUndoRedo: true,
-          showStatus: true,
-          showLocks: true,
-          mindMapMode: true,
-          isPublic: true,
-          isUnlisted: false,
-          autoEnableDefaultFilters: true,
-          followMe: false,
-          containerStyle: {
-            backgroundColor: '',
-            backgroundImage: '',
-            backgroundSize: '',
-            backgroundEffect: '',
-            backgroundColorAsGradient: true,
-            backgroundGradientType: 'radial',
-            backgroundGradientColors: ['#fff', '#333'],
-            backgroundGradientStrategy: 'shades',
-          },
-        },
-        {
-          onConfirmRequested: async (title, msg, cb) => {
-            // implement confirmation dialog
-          },
-          onTakeSnapshot: async (opts) => {
-            // implement slate snapshot
-          },
-          onTextPaneRequested: (node, cb) => {
-            // implement text pane
-          },
-          onLineMenuRequested: (node, association, cb) => {
-            // implement line menu request
-          },
-          onMenuRequested: (node, cb) => {
-            // implement menu request
-          },
-          onBase64ImageRequested: (imgUrl, imageType, cb) => {
-            // implement base64 image request
-          },
-          // onOptimizeSVG: (svg, cb) => {
-          //   // implement SVG optimization
-          // },
-          isReadOnly: () => {
-            // is the slate read only for this user?
-            return false
-          },
-          isCommentOnly: () => {
-            // does the user have comment only access to this slate?
-            return false
-          },
-          canRemoveComments: () => {
-            // can the user remove comments?
-          },
-          onThemeRequired: (opts, cb) => {
-            // expirmental: provide a them in the cb
-          },
-        },
-        {
-          allow: true,
-          localizedOnly: false,
-          onCollaboration: async function (opts) {
-            switch (opts.type) {
-              case 'process':
-                // implement collab mechanism
-                break
-              case 'custom':
-                switch (opts.pkg.type) {
-                  case 'onSaveRequested':
-                    if (opts.pkg._id) {
-                      // implement explicit saving
-                      break
-                    }
-                    break
-                }
-            }
-          },
-        }
-      ).init()
+          {
+            onInitCollaboration: async () => {
+              return {
+                websocketUrl: `ws://localhost:1122`, //`wss://collab.slatebox.com`, //
+                // DEMO (in mongo)
+                websocketParams: {
+                  bearer: 'xxx',
+                  timestamp: '2024-01-29T03:19:34.877Z',
+                },
+                userName: 'guest1',
+                color: '#000',
+                x: 0,
+                y: 0,
+              }
+            },
+            onCollaborationUsersRemoved: (users) => {
+              console.log('collab users removed', users)
+            },
+            onCollaborationUsersAdded: (users) => {
+              console.log('collab users added', users)
+            },
+            onConfirmRequested: async (title, msg, cb) => {
+              // implement confirmation dialog
+            },
+            onTakeSnapshot: async (opts) => {
+              // implement slate snapshot
+            },
+            onTextPaneRequested: (node, cb) => {
+              // implement text pane
+            },
+            onLineMenuRequested: (node, association, cb) => {
+              // implement line menu request
+            },
+            onMenuRequested: (node, cb) => {
+              // implement menu request
+            },
+            onBase64ImageRequested: (imgUrl, imageType, cb) => {
+              // implement base64 image request
+            },
+            // onOptimizeSVG: (svg, cb) => {
+            //   // implement SVG optimization
+            // },
+            isReadOnly: () => {
+              // is the slate read only for this user?
+              return false
+            },
+            isCommentOnly: () => {
+              // does the user have comment only access to this slate?
+              return false
+            },
+            canRemoveComments: () => {
+              // can the user remove comments?
+            },
+            onThemeRequired: (opts, cb) => {
+              // expirmental: provide a them in the cb
+            },
+          }
+        ).init()
 
-      //this is a new slate
-      // s.shareId = 'test'
-      // const defaultNodeOpts = {
-      //   name: 'MASTER_NODE',
-      //   text: 'Welcome to Slatebox!',
-      //   xPos: 5500,
-      //   yPos: 5300,
-      //   height: 100,
-      //   width: 175,
-      //   vectorPath: 'roundedrectangle',
-      //   backgroundColor: '90-#031634-#2D579A', //blue default
-      //   foregroundColor: '#fff',
-      //   lineColor: '#333',
-      //   lineWidth: 5,
-      //   allowDrag: true,
-      // }
+        // await s.collab.init()
 
-      // const n = new Slatebox.node(defaultNodeOpts)
+        //this is a new slate
+        // s.shareId = 'test'
+        // const defaultNodeOpts = {
+        //   name: 'MASTER_NODE',
+        //   text: 'Welcome to Slatebox!',
+        //   xPos: 5500,
+        //   yPos: 5300,
+        //   height: 100,
+        //   width: 175,
+        //   vectorPath: 'roundedrectangle',
+        //   backgroundColor: '90-#031634-#2D579A', //blue default
+        //   foregroundColor: '#fff',
+        //   lineColor: '#333',
+        //   lineWidth: 5,
+        //   allowDrag: true,
+        // }
 
-      // s.nodes.add(n)
+        // const n = new Slatebox.node(defaultNodeOpts)
 
-      const nodes = [
-        new Slatebox.node({
-          id: 'first_node',
-          name: 'first_node',
-          text: 'drag me',
-          xPos: 25110,
-          yPos: 25120,
-          height: 60,
-          width: 120,
-          vectorPath: 'roundedrectangle',
-          backgroundColor: '#24A8E0',
-          lineColor: '#333',
-          lineWidth: 5,
-          allowMenu: false,
-          link: {
-            show: true,
-            type: 'currentSlate',
-            data: 'second_node',
-          },
-          filters: {
-            vect: 'dropShadow',
-          },
-        }),
-        new Slatebox.node({
-          id: 'second_node',
-          name: 'second_node',
-          text: 'drag me',
-          xPos: 25310,
-          yPos: 25220,
-          height: 60,
-          width: 120,
-          vectorPath: 'roundedrectangle',
-          backgroundColor: '#24A8E0',
-          lineColor: '#333',
-          lineWidth: 5,
-          allowMenu: false,
-          link: {
-            show: true,
-            type: 'url',
-            data: 'https://slatebox.com',
-          },
-        }),
-      ]
+        // s.nodes.add(n)
 
-      s.nodes.addRange(nodes)
-      nodes[0].relationships.addAssociation(nodes[1], {
-        showChildArrow: true,
-        showParentArrow: true,
-      })
+        const nodes = [
+          new Slatebox.node({
+            id: 'first_node',
+            name: 'first_node',
+            text: 'drag me',
+            xPos: 25110,
+            yPos: 25120,
+            height: 60,
+            width: 120,
+            vectorPath: 'roundedrectangle',
+            backgroundColor: '#24A8E0',
+            lineColor: '#333',
+            lineWidth: 5,
+            allowMenu: false,
+            link: {
+              show: true,
+              type: 'currentSlate',
+              data: 'second_node',
+            },
+            filters: {
+              vect: 'dropShadow',
+            },
+          }),
+          new Slatebox.node({
+            id: 'second_node',
+            name: 'second_node',
+            text: 'drag me',
+            xPos: 25310,
+            yPos: 25220,
+            height: 60,
+            width: 120,
+            vectorPath: 'roundedrectangle',
+            backgroundColor: '#24A8E0',
+            lineColor: '#333',
+            lineWidth: 5,
+            allowMenu: false,
+            link: {
+              show: true,
+              type: 'url',
+              data: 'https://slatebox.com',
+            },
+          }),
+        ]
+
+        s.nodes.addRange(nodes)
+        nodes[0].relationships.addAssociation(nodes[1], {
+          showChildArrow: true,
+          showParentArrow: true,
+        })
+      }
+
+      load()
 
       // setTimeout(() => {
       //   s.svg()

@@ -1,6 +1,8 @@
 import $5OpyM$lodashuniq from "lodash.uniq";
 import $5OpyM$lodashclonedeep from "lodash.clonedeep";
 import $5OpyM$deepmerge from "deepmerge";
+import {Doc as $5OpyM$Doc} from "yjs";
+import {WebsocketProvider as $5OpyM$WebsocketProvider} from "y-websocket";
 import $5OpyM$lodashomit from "lodash.omit";
 import $5OpyM$lodashinvoke from "lodash.invoke";
 import $5OpyM$statickdtree from "static-kdtree";
@@ -8882,7 +8884,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             y: this.Canvas.objInitPos.top - curPos.top
         };
         this.slate.birdsEye?.refresh(true);
-        if (this.slate.collaboration.allow) this.broadcast(moved);
+        if (this.slate.options.allowCollaboration) this.broadcast(moved);
     }
     broadcast(moved) {
         this.slate.collab?.send({
@@ -9129,17 +9131,21 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
     refreshBackground() {
         const self = this;
         self.internal.style.backgroundColor = "";
-        self.internal.parentElement.style.backgroundImage = "";
-        self.internal.parentElement.style.backgroundSize = "";
-        self.internal.parentElement.style.background = "";
+        if (self.internal.parentElement) {
+            self.internal.parentElement.style.backgroundImage = "";
+            self.internal.parentElement.style.backgroundSize = "";
+            self.internal.parentElement.style.background = "";
+        }
         self.internal.style.backgroundSize = "";
         self.internal.style.backgroundPosition = "";
         if (self.slate.options.containerStyle.backgroundEffect) self.slate.options.containerStyle.backgroundColor = self.slate.filters.availableFilters[self.slate.options.containerStyle.backgroundEffect].backgroundColor;
         if (self.slate.options.containerStyle.backgroundImage) {
             self.slate.options.containerStyle.prevBackgroundColor = self.slate.options.containerStyle.backgroundColor;
             self.slate.options.containerStyle.backgroundColor = "transparent";
-            self.internal.parentElement.style.backgroundImage = `url('${self.slate.options.containerStyle.backgroundImage}')`;
-            if (self.slate.options.containerStyle.backgroundSize) self.internal.parentElement.style.backgroundSize = self.slate.options.containerStyle.backgroundSize;
+            if (self.internal.parentElement) {
+                self.internal.parentElement.style.backgroundImage = `url('${self.slate.options.containerStyle.backgroundImage}')`;
+                if (self.slate.options.containerStyle.backgroundSize) self.internal.parentElement.style.backgroundSize = self.slate.options.containerStyle.backgroundSize;
+            }
         }
         // show only on first load
         if (!self.initBg && self.slate.options.containerStyle.backgroundEffect) {
@@ -9160,8 +9166,10 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             default:
                 if (self.slate.options.containerStyle.backgroundColorAsGradient) {
                     self.internal.style.backgroundColor = "";
-                    const bgStyle = `${self.slate.options.containerStyle.backgroundGradientType}-gradient(${self.slate.options.containerStyle.backgroundGradientColors.join(",")})`;
-                    self.internal.parentElement.style.background = bgStyle;
+                    if (self.internal.parentElement) {
+                        const bgStyle = `${self.slate.options.containerStyle.backgroundGradientType}-gradient(${self.slate.options.containerStyle.backgroundGradientColors.join(",")})`;
+                        self.internal.parentElement.style.background = bgStyle;
+                    }
                 } else self.internal.style.backgroundColor = self.slate.options.containerStyle.backgroundColor || "#fff";
                 break;
         }
@@ -9177,6 +9185,9 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
 
 
 /* eslint-disable no-param-reassign */ /* eslint-disable no-underscore-dangle */ 
+
+
+
 
 /* eslint-disable no-param-reassign */ /* eslint-disable class-methods-use-this */ /* eslint-disable no-unused-expressions */ /* eslint-disable no-underscore-dangle */ /* eslint-disable new-cap */ const $d23f550fcae9c4c3$var$availablePlugins = {};
 class $d23f550fcae9c4c3$export$2e2bcd8739ae039 {
@@ -9934,8 +9945,17 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
     constructor(slate){
         this.slate = slate;
         this.invoker = null;
-        this.pc = slate.collaboration || {};
+        this.constants = {
+            mapName: "collabPackages",
+            lastMapDocName: "last",
+            ommittableUserData: [
+                "websocketUrl",
+                "websocketParams"
+            ],
+            onCollaborationUserCustomDataChanged: "onCollaborationUserCustomDataChanged"
+        };
         if (!(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).localRecipients) (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).localRecipients = [];
+        this.xyMap = {};
         this.wire();
     }
     exe(pkg) {
@@ -9973,63 +9993,69 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             onNodePositioned (pkg) {
                 resetMultiSelect();
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.position(pkg.data.location, ()=>{}, pkg.data.easing, pkg.data.duration || 500);
+                cn?.position(pkg.data.location, ()=>{}, pkg.data.easing, pkg.data.duration || 500);
                 self.closeNodeSpecifics(pkg);
             },
             onNodeLinkRemoved (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.links?.unset(false);
+                cn?.links?.unset(false);
                 self.closeNodeSpecifics(pkg);
             },
             onNodeLinkAdded (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.links?.set(pkg, false);
+                cn?.links?.set(pkg, false);
                 self.closeNodeSpecifics(pkg);
             },
             onNodeUnlocked (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.options.allowDrag = true;
-                cn.options.isLocked = false;
-                cn.hideLock();
-                self.slate.birdsEye?.nodeChanged(pkg);
-                self.closeNodeSpecifics(pkg);
+                if (cn) {
+                    cn.options.allowDrag = true;
+                    cn.options.isLocked = false;
+                    cn.hideLock();
+                    self.slate.birdsEye?.nodeChanged(pkg);
+                    self.closeNodeSpecifics(pkg);
+                }
             },
             onNodeLocked (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.options.allowDrag = false;
-                cn.options.isLocked = true;
-                cn.showLock();
-                self.slate.birdsEye?.nodeChanged(pkg);
-                self.closeNodeSpecifics(pkg);
+                if (cn) {
+                    cn.options.allowDrag = false;
+                    cn.options.isLocked = true;
+                    cn?.showLock();
+                    self.slate.birdsEye?.nodeChanged(pkg);
+                    self.closeNodeSpecifics(pkg);
+                }
             },
             onNodeBehaviorChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                pkg.data.behaviorChanges.forEach((b)=>{
-                    if (typeof b.value === "object") {
-                        cn.options[b.name] = b.value.val;
-                        Object.keys(b.value).forEach((k)=>{
-                            if (k !== "val") cn.options[k] = b.value[k];
-                        });
-                    } else cn.options[b.name] = b.value;
-                });
-                self.slate.birdsEye?.nodeChanged(pkg);
-                self.closeNodeSpecifics(pkg);
+                if (cn) {
+                    pkg.data.behaviorChanges.forEach((b)=>{
+                        if (typeof b.value === "object") {
+                            cn.options[b.name] = b.value.val;
+                            Object.keys(b.value).forEach((k)=>{
+                                if (k !== "val") cn.options[k] = b.value[k];
+                            });
+                        } else cn.options[b.name] = b.value;
+                    });
+                    self.slate.birdsEye?.nodeChanged(pkg);
+                    self.closeNodeSpecifics(pkg);
+                }
             },
             onNodeToBack (pkg) {
                 resetMultiSelect();
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.toBack();
+                cn?.toBack();
                 self.slate.birdsEye?.nodeChanged(pkg);
             },
             onNodeToFront (pkg) {
                 resetMultiSelect();
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.toFront();
+                cn?.toFront();
                 self.slate.birdsEye?.nodeChanged(pkg);
             },
             onNodeShapeChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.shapes.set(pkg.data);
+                cn?.shapes.set(pkg.data);
                 self.slate.birdsEye?.nodeChanged(pkg);
                 self.closeNodeSpecifics(pkg);
             },
@@ -10037,7 +10063,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 resetMultiSelect();
                 if (pkg.data.id) {
                     const cn = self.slate.nodes.one(pkg.data.id);
-                    cn.connectors.createNode(pkg.data.skipCenter, pkg.data.options, pkg.data.targetXPos, pkg.data.targetYPos);
+                    cn?.connectors.createNode(pkg.data.skipCenter, pkg.data.options, pkg.data.targetXPos, pkg.data.targetYPos);
                 } else if (pkg.data.multiSelectCopy) // this is a multiSelection copy
                 self.slate.multiSelection.createCopiedNodes(pkg.data.nodeOptions, pkg.data.assocDetails);
                 else {
@@ -10048,21 +10074,21 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             },
             onNodeImageChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.images.set(pkg.data.img, pkg.data.w, pkg.data.h);
+                cn?.images.set(pkg.data.img, pkg.data.w, pkg.data.h);
                 self.slate.birdsEye?.nodeChanged(pkg);
                 self.closeNodeSpecifics(pkg);
             },
             onNodeDeleted (pkg) {
                 resetMultiSelect();
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.del();
+                cn?.del();
                 self.slate.birdsEye?.nodeDeleted(pkg);
             },
             onNodeResized (pkg) {
                 resetMultiSelect();
                 self.slate.toggleFilters(true, null, true);
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.hideOwnMenus();
+                cn?.hideOwnMenus();
                 const opts = {
                     associations: pkg.data.associations,
                     animate: true
@@ -10071,7 +10097,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                     "associations",
                     "textPosition"
                 ]));
-                cn.resize.animateSet(pkg.data, opts);
+                cn?.resize.animateSet(pkg.data, opts);
                 self.slate.birdsEye?.nodeChanged(pkg);
                 self.closeNodeSpecifics(pkg);
             },
@@ -10079,36 +10105,38 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 resetMultiSelect();
                 self.slate.toggleFilters(true, null, true);
                 const cn = self.slate.nodes.one(pkg.data.id);
-                // needs to be updated
-                cn.options.textOffset = pkg.data.textOffset;
-                cn.hideOwnMenus();
-                const previousRotationAngle = cn.options.rotate.rotationAngle;
-                const opts = {
-                    associations: pkg.data.associations,
-                    animate: true
-                };
-                Object.assign(cn.options, (0, $5OpyM$lodashomit)(pkg.data, "associations"));
-                cn.rotate.animateSet({
-                    ...pkg.data,
-                    rotationAngle: pkg.data.rotate.rotationAngle - previousRotationAngle
-                }, opts);
-                self.slate.birdsEye?.nodeChanged(pkg);
-                self.closeNodeSpecifics(pkg);
+                if (cn) {
+                    // needs to be updated
+                    cn.options.textOffset = pkg.data.textOffset;
+                    cn?.hideOwnMenus();
+                    const previousRotationAngle = cn.options.rotate.rotationAngle;
+                    const opts = {
+                        associations: pkg.data.associations,
+                        animate: true
+                    };
+                    Object.assign(cn.options, (0, $5OpyM$lodashomit)(pkg.data, "associations"));
+                    cn?.rotate.animateSet({
+                        ...pkg.data,
+                        rotationAngle: pkg.data.rotate.rotationAngle - previousRotationAngle
+                    }, opts);
+                    self.slate.birdsEye?.nodeChanged(pkg);
+                    self.closeNodeSpecifics(pkg);
+                }
             },
             onNodeColorChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.colorPicker.set(pkg.data);
+                cn?.colorPicker.set(pkg.data);
                 self.slate.birdsEye?.nodeChanged(pkg);
             },
             onNodeTextChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.editor.set(pkg.data.text, pkg.data.fontSize, pkg.data.fontFamily, pkg.data.fontColor, pkg.data.textOpacity, pkg.data.textXAlign, pkg.data.textYAlign);
+                cn?.editor.set(pkg.data.text, pkg.data.fontSize, pkg.data.fontFamily, pkg.data.fontColor, pkg.data.textOpacity, pkg.data.textXAlign, pkg.data.textYAlign);
                 self.slate.birdsEye?.nodeChanged(pkg);
                 self.slate.loadAllFonts();
             },
             onNodeAITextChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.options.ai = {
+                if (cn) cn.options.ai = {
                     ...pkg.data.ai,
                     ...cn.options.ai
                 };
@@ -10134,11 +10162,11 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             },
             onNodeEffectChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.applyFilters(pkg.data.filter);
+                cn?.applyFilters(pkg.data.filter);
             },
             onNodeBorderPropertiesChanged (pkg) {
                 const cn = self.slate.nodes.one(pkg.data.id);
-                cn.applyBorder(pkg.data);
+                cn?.applyBorder(pkg.data);
             },
             onLinePropertiesChanged (pkg) {
                 const upkg = pkg;
@@ -10148,8 +10176,8 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 ];
                 upkg.data.forEach((p)=>{
                     const cn = self.slate.nodes.one(p.id);
-                    Object.assign(cn.options, p.options);
-                    cn.lineOptions.set(p);
+                    Object.assign(cn?.options, p.options);
+                    cn?.lineOptions.set(p);
                 });
             },
             onFollowMeChanged (pkg) {
@@ -10263,14 +10291,6 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             }
         } // this invoker
         ;
-        if (self.pc.onCollaboration) self.pc.onCollaboration({
-            type: "init",
-            slate: self.slate,
-            cb (pkg) {
-                self._process(pkg);
-            }
-        });
-        if (self.pc.localizedOnly) (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).localRecipients.push(self);
     }
     _process(pkg) {
         const self = this;
@@ -10285,11 +10305,9 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 })((0, $8ab43d25a2892bde$export$2e2bcd8739ae039).localRecipients[s], _time);
             });
         } else if (self.invoker[pkg.type]) self.invoker[pkg.type](pkg);
-        else if (self.pc.onCollaboration) self.pc.onCollaboration({
-            type: "custom",
-            slate: self.slate,
-            pkg: pkg
-        });
+    // else if (self.pc.onCollaboration) {
+    //   self.pc.onCollaboration({ type: 'custom', slate: self.slate, pkg })
+    // }
     }
     invoke(pkg) {
         const self = this;
@@ -10321,24 +10339,144 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         self.slate.removeContextMenus();
         self.slate.untooltip();
     }
+    async init() {
+        const self = this;
+        if (self.slate.options.isbirdsEye) // not allowed
+        return;
+        // go get the server url here
+        if (self.collabPackage) {
+            console.error("Unable to collaborate - collabPackage already created");
+            return;
+        }
+        // ALL yjs depenencies are nested under the collabPackage
+        const mainYDoc = new $5OpyM$Doc();
+        self.collabPackage = {
+            provider: null,
+            users: [],
+            /*
+      return {
+        websocketUrl: collaboratorDetails.wsUrl,
+        websocketParams: collaboratorDetails.wsParams,
+        color: collaboratorDetails.color,
+        userName: getUserName(Meteor.userId()),
+        x: 0,
+        y: 0,
+      }
+      */ userBaseData: await self.slate.events.onInitCollaboration(mainYDoc.clientID),
+            doc: mainYDoc,
+            map: null
+        };
+        if (!self.collabPackage.userBaseData) console.error("Unable to collaborate - no self.collabPackage retrieved from the onInitCollaboration event");
+        // attach clientID to the package for downstream reference
+        self.collabPackage.userBaseData.clientID = self.collabPackage.doc.clientID;
+        self.collabPackage.provider = new (0, $5OpyM$WebsocketProvider)(self.collabPackage.userBaseData.websocketUrl, self.slate.options.id, self.collabPackage.doc, {
+            connect: true,
+            params: self.collabPackage.userBaseData.websocketParams
+        });
+        self.collabPackage.map = self.collabPackage.doc.getMap(self.constants.mapName);
+        self.collabPackage.doc.on("updateV2", (update, origin, doc, tr)=>{
+            const pkgs = doc.getMap(self.constants.mapName).get(self.constants.lastMapDocName);
+            pkgs?.forEach((p)=>{
+                if (p.type === self.constants.onCollaborationUserCustomDataChanged) // for both local and remote - call this function so users are updated
+                self.slate.events.onCollaborationUsersChanged?.(self.collabPackage.users);
+                else {
+                    if (p.data.clientID !== self.collabPackage.doc.clientID) {
+                        self.slate.collab.invoke(p);
+                        // the onCollaboration event is fired for OTHERS
+                        self.slate.events?.onCollaboration?.apply(self, [
+                            p,
+                            self.collabPackage.users
+                        ]);
+                    } else if (p.data.clientID === self.collabPackage.doc.clientID) // the onSlateChanged is fired for the initiator only
+                    self.slate.events?.onSlateChanged?.apply(self, [
+                        p,
+                        self.collabPackage.users
+                    ]);
+                }
+            });
+        });
+        self.collabPackage.provider.awareness.on("update", ({ added: added, updated: updated, removed: removed })=>{
+            const awarenessStates = Array.from(self.collabPackage.provider.awareness.getStates().values());
+            self.collabPackage.users = awarenessStates.filter((ux)=>!!ux.user).map((u)=>u.user);
+            if (added.length > 0) {
+                const users = self.collabPackage.users.filter((u)=>{
+                    return added.includes(u.clientID);
+                });
+                self.slate.events.onCollaborationUsersAdded?.(users);
+            }
+            if (removed.length > 0) {
+                const users = self.collabPackage.users.filter((u)=>{
+                    return removed.includes(u.clientID);
+                });
+                self.slate.events.onCollaborationUsersRemoved?.(users);
+                self.collabPackage.users = self.collabPackage.users.filter((u)=>{
+                    return !removed.includes(u.clientID);
+                });
+            }
+            if (added.length > 0 || removed.length > 0) self.slate.events.onCollaborationUsersChanged?.(self.collabPackage.users);
+        });
+        // monitors for cursor locations - the change event runs when the mouse moves, but the upate event
+        // resolves when it settles (so no real-time view)
+        self.collabPackage.provider.awareness.on("change", ({ added: added, updated: updated, removed: removed })=>{
+            const awarenessStates = Array.from(self.collabPackage.provider.awareness.getStates().values());
+            awarenessStates.forEach((u)=>{
+                if (updated.includes(u.user?.clientID) && u.user?.clientID !== self.collabPackage?.doc?.clientID) self.slate.cursor(u.user);
+            });
+        });
+        // this sends the cursor locations to the other clients
+        if (!self.collabPackage.userBaseData.suppressCursor) self.collabPackage.provider.awareness.setLocalStateField("user", {
+            ...(0, $5OpyM$lodashomit)(self.collabPackage.userBaseData, self.constants.ommittableUserData)
+        });
+        // this auto destroys the connection so others immediately know the client is gone
+        window.addEventListener("beforeunload", ()=>{
+            self.destroy();
+        });
+    }
+    destroy() {
+        const self = this;
+        self.collabPackage?.provider?.awareness?.destroy();
+        self.collabPackage?.provider?.destroy();
+    }
+    updateUserData(pkg) {
+        const self = this;
+        if (self.collabPackage) {
+            // this will cause the onUsersChanged to fire
+            // and also change the baseData so that this is not overridden
+            // by any other setLocaLStateField calls
+            self.collabPackage.userBaseData = {
+                ...self.collabPackage.userBaseData,
+                ...pkg
+            };
+            self.collabPackage.provider.awareness?.setLocalStateField("user", {
+                ...(0, $5OpyM$lodashomit)(self.collabPackage.userBaseData, self.constants.ommittableUserData),
+                ...pkg
+            });
+            // will broadcast that the users have changed
+            self.send({
+                type: self.constants.onCollaborationUserCustomDataChanged,
+                data: {}
+            });
+        }
+    }
     send(pkg) {
         const self = this;
         let packages = pkg;
         if (!Array.isArray(packages)) packages = [
             packages
         ];
-        if (packages[0].type !== "onMouseMoved") {
-            if (self.slate.undoRedo && self.slate.options.showUndoRedo) self.slate.undoRedo.snap();
-        }
-        if (self.pc.allow) {
-            if (self.slate.options?.onSlateChanged) self.slate.options.onSlateChanged.apply(self, [
-                packages
-            ]);
-            if (self.pc.onCollaboration) self.pc.onCollaboration({
-                type: "process",
-                slate: self.slate,
-                pkg: packages
+        if (packages[0].type === "onMouseMoved") {
+            if (self.collabPackage?.userBaseData && !self.collabPackage.userBaseData.suppressCursor) // broadcast the mouse cursors
+            self.collabPackage?.provider.awareness?.setLocalStateField("user", {
+                ...(0, $5OpyM$lodashomit)(self.collabPackage.userBaseData, self.constants.ommittableUserData),
+                ...packages[0].data
             });
+        } else {
+            if (self.slate.undoRedo && self.slate.options.showUndoRedo) self.slate.undoRedo.snap();
+            // these will only exist if allowCollaboration: true on the slate
+            if (self.collabPackage?.doc && self.collabPackage?.map) {
+                packages.forEach((p)=>p.data.clientID = self.collabPackage.doc.clientID);
+                self.collabPackage.map.set(self.constants.lastMapDocName, packages);
+            }
         }
     }
 }
@@ -14446,32 +14584,33 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
         self.be.style.backgroundColor = "#fff";
         c.appendChild(self.be);
         self.setBe();
-        self.corner = new (0, $52815ef246a0a8c3$export$2e2bcd8739ae039)({
-            container: `slatebirdsEye_${self.slate.options.id}`,
-            viewPort: {
-                allowDrag: false
-            },
-            collaboration: {
-                allow: false
-            },
-            showZoom: false,
-            showUndoRedo: false,
-            showMultiSelect: false,
-            showbirdsEye: false,
-            showLocks: false,
-            imageFolder: "",
-            isbirdsEye: true
-        }, {
-            onNodeDragged () {
-                self.slate.nodes.copyNodePositions(self.corner.nodes.allNodes);
-            }
-        }).init();
-        self.refresh();
-        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(window, "resize", ()=>{
-            const cx = self.slate.options.container;
-            self.parentDimen = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).getDimensions(cx);
-            self.setBe();
-        });
+        async function load() {
+            self.corner = await new (0, $52815ef246a0a8c3$export$2e2bcd8739ae039)({
+                container: `slatebirdsEye_${self.slate.options.id}`,
+                viewPort: {
+                    allowDrag: false
+                },
+                allowCollaboration: false,
+                showZoom: false,
+                showUndoRedo: false,
+                showMultiSelect: false,
+                showbirdsEye: false,
+                showLocks: false,
+                imageFolder: "",
+                isbirdsEye: true
+            }, {
+                onNodeDragged () {
+                    self.slate.nodes.copyNodePositions(self.corner.nodes.allNodes);
+                }
+            }).init();
+            self.refresh();
+            (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(window, "resize", ()=>{
+                const cx = self.slate.options.container;
+                self.parentDimen = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).getDimensions(cx);
+                self.setBe();
+            });
+        }
+        load();
     }
     enabled() {
         return this.corner !== null;
@@ -15104,32 +15243,32 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         this.toolbar = [];
     }
     setVisibility() {
-        const self = this;
-        if (self.toolbar.length) {
-            self.toolbar[0].data({
+        const self1 = this;
+        if (self1.toolbar.length) {
+            self1.toolbar[0].data({
                 disabled: false
             });
-            self.toolbar[1].data({
+            self1.toolbar[1].data({
                 disabled: false
             });
             if (!this.actions[this.actionIndex - 1]) {
-                self.toolbar[0].attr({
+                self1.toolbar[0].attr({
                     "fill-opacity": "0.3"
                 });
-                self.toolbar[0].data({
+                self1.toolbar[0].data({
                     disabled: true
                 });
-            } else self.toolbar[0].attr({
+            } else self1.toolbar[0].attr({
                 "fill-opacity": "1.0"
             });
             if (!this.actions[this.actionIndex + 1]) {
-                self.toolbar[1].attr({
+                self1.toolbar[1].attr({
                     "fill-opacity": "0.3"
                 });
-                self.toolbar[1].data({
+                self1.toolbar[1].data({
                     disabled: true
                 });
-            } else self.toolbar[1].attr({
+            } else self1.toolbar[1].attr({
                 "fill-opacity": "1.0"
             });
         }
@@ -15141,11 +15280,18 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         const pkg = {
             type: "onSaveRequested"
         };
-        this.slate.collaboration?.onCollaboration({
-            type: "custom",
-            slate: this.slate,
-            pkg: pkg
-        });
+        if (self.slate.events?.onSlateChanged) self.slate.events.onSlateChanged.apply(self, [
+            {
+                type: "custom",
+                slate: this.slate,
+                pkg: pkg
+            }
+        ]);
+    // this.slate.collaboration?.onCollaboration({
+    //   type: 'custom',
+    //   slate: this.slate,
+    //   pkg,
+    // })
     }
     undo() {
         if (this.actions[this.actionIndex - 1]) {
@@ -15167,8 +15313,8 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         } catch (err) {}
     }
     show(_options) {
-        const self = this;
-        self.hide();
+        const self1 = this;
+        self1.hide();
         const options = {
             height: 80,
             width: 130,
@@ -15178,7 +15324,7 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
             }
         };
         Object.assign(options, _options);
-        const c = self.slate.options.container;
+        const c = self1.slate.options.container;
         const scx = document.createElement("div");
         scx.setAttribute("id", "slateUndoRedo");
         scx.style.position = "absolute";
@@ -15190,7 +15336,7 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         const x = options.offset.left;
         const y = options.offset.top + 30;
         options.paper = (0, $65a92514e25c9f85$export$508faed300ccdfb)("slateUndoRedo", options.width, options.height);
-        self.toolbar = [
+        self1.toolbar = [
             options.paper.undo().data({
                 msg: "Undo",
                 width: 50,
@@ -15230,15 +15376,15 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
                 "1.5"
             ].join())
         ];
-        self.toolbar.forEach((toolbarElem)=>{
+        self1.toolbar.forEach((toolbarElem)=>{
             toolbarElem.mouseover(function m(e) {
                 (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
-                self.slate.multiSelection?.hide();
+                self1.slate.multiSelection?.hide();
                 // $(e.target).style.cursor = "pointer";
                 if (!this.data("disabled")) {
-                    self.slate.glow(this);
+                    self1.slate.glow(this);
                     const text = this.data("msg");
-                    self.slate.addtip(this.tooltip({
+                    self1.slate.addtip(this.tooltip({
                         type: "text",
                         msg: text
                     }, this.data("width"), this.data("height")));
@@ -15246,44 +15392,44 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
             });
             toolbarElem.mouseout(function m(e) {
                 (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
-                self.slate.multiSelection?.show();
-                self.slate.unglow();
+                self1.slate.multiSelection?.show();
+                self1.slate.unglow();
                 this.untooltip();
             });
         });
-        self.toolbar[0].mousedown(function m(e) {
+        self1.toolbar[0].mousedown(function m(e) {
             (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
-            self.slate.unglow();
-            if (!this.data("disabled")) self.undo();
+            self1.slate.unglow();
+            if (!this.data("disabled")) self1.undo();
         });
-        self.toolbar[1].mousedown(function m(e) {
+        self1.toolbar[1].mousedown(function m(e) {
             (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
-            self.slate.unglow();
-            if (!this.data("disabled")) self.redo();
+            self1.slate.unglow();
+            if (!this.data("disabled")) self1.redo();
         });
         // set the buttons both to be disabled
-        self.setVisibility();
+        self1.setVisibility();
         // register the initial state
         setTimeout(()=>{
-            self.snap(true);
+            self1.snap(true);
         }, 500);
     }
     snap(init) {
-        const self = this;
-        self.actionIndex += 1;
-        if (self.actionIndex !== self.actions.length) // work has bene performed, so abandon the forked record
-        self.actions.splice(self.actionIndex);
-        const exp = self.slate.exportJSON();
-        self.actions.push(exp);
-        clearTimeout(self.saveSnapshot);
-        self.saveSnapshot = setTimeout(async ()=>{
-            if (self.slate.events.onTakeSnapshot) await self.slate.events.onTakeSnapshot({
-                slateId: self.slate.options.id,
+        const self1 = this;
+        self1.actionIndex += 1;
+        if (self1.actionIndex !== self1.actions.length) // work has bene performed, so abandon the forked record
+        self1.actions.splice(self1.actionIndex);
+        const exp = self1.slate.exportJSON();
+        self1.actions.push(exp);
+        clearTimeout(self1.saveSnapshot);
+        self1.saveSnapshot = setTimeout(async ()=>{
+            if (self1.slate.events.onTakeSnapshot) await self1.slate.events.onTakeSnapshot({
+                slateId: self1.slate.options.id,
                 snapshot: exp
             });
         }, 3000) // once the slate settles for 3 secs, take a snapshot
         ;
-        if (!init) self.setVisibility();
+        if (!init) self1.setVisibility();
     }
 }
 
@@ -15487,9 +15633,11 @@ class $07361c58e711f582$export$2e2bcd8739ae039 {
         this.key(e, true);
         // always have an escape hatch
         setTimeout(()=>{
-            self.slate.isCtrl = false;
-            self.slate.isShift = false;
-            self.slate.isAlt = false;
+            if (self.slate) {
+                self.slate.isCtrl = false;
+                self.slate.isShift = false;
+                self.slate.isAlt = false;
+            }
         }, 5000);
     }
 }
@@ -16087,12 +16235,11 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
 
 
 class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$export$2e2bcd8739ae039) {
-    constructor(_options, events, collaboration){
+    constructor(_options, events){
         super(_options);
         this.options = {
             id: _options.id || (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid(),
             container: "",
-            instance: "",
             name: "",
             description: "",
             basedOnThemeId: "",
@@ -16136,7 +16283,8 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             disableAutoLayoutOfManuallyPositionedNodes: false,
             followMe: false,
             useLayoutQuandrants: false,
-            huddleType: "disabled"
+            huddleType: "disabled",
+            allowCollaboration: true
         };
         this.options = (0, $5OpyM$deepmerge)(this.options, _options);
         this.events = events || {
@@ -16144,13 +16292,8 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             onCanvasClicked: null,
             onImagesRequested: null,
             onRequestSave: null,
+            onInitCollaboration: null,
             isReadOnly: null
-        };
-        this.collaboration = collaboration || {
-            allow: true,
-            localizedOnly: false,
-            userIdOverride: null,
-            onCollaboration: null
         };
         // console.log("SLATE - share details are", this.options.shareId, this.options.userId, this.options.orgId);
         // ensure container is always an object
@@ -16165,7 +16308,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         this.allLines = [];
         this.candidatesForSelection = {};
     }
-    init() {
+    prep() {
         const self = this;
         // instantiate all the dependencies for the slate -- order here is importantish
         // (birdsEye, undoRedo, zoomSlider are used in canvas, and inertia uses canvas)
@@ -16181,13 +16324,25 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         self.filters = new (0, $5e710bc15c419cd8$export$2e2bcd8739ae039)(self);
         self.canvas = new (0, $4e57e1a492ad5f5b$export$2e2bcd8739ae039)(self);
         self.canvas.init();
-        if (self.multiSelection) self.multiSelection.init();
         self.inertia = new (0, $ae70ec667a6e4b7e$export$2e2bcd8739ae039)(self);
         self.grid = new (0, $95f7fca09bb5481b$export$2e2bcd8739ae039)(self);
         self.comments = new (0, $5c6c971650b19ad4$export$2e2bcd8739ae039)(self);
         self.keyboard = new (0, $07361c58e711f582$export$2e2bcd8739ae039)(self);
         self.autoLoadFilters();
         if (self.options.onInitCompleted) self.options.onInitCompleted.apply(self);
+    }
+    initPlain() {
+        const self = this;
+        self.prep();
+        return self;
+    }
+    async init() {
+        const self = this;
+        self.prep();
+        if (self.multiSelection) await self.multiSelection.init();
+        if (self.options.allowCollaboration ?? true) setTimeout(async ()=>{
+            await self.collab.init();
+        }, 100);
         return self;
     }
     url(opt) {
@@ -16195,6 +16350,72 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     }
     glow(obj) {
         this.glows.push(obj.glow());
+    }
+    cursor(obj) {
+        const self = this;
+        const c = self.options.container;
+        const ele = self.canvas.internal;
+        if (!self.cursors) {
+            self.offsetsForCursor = {
+                container: (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).positionedOffset(c),
+                canvas: (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).positionedOffset(ele)
+            };
+            self.cursorTimeouts = {};
+            self.cursors = {};
+            // create observer
+            const observer = new MutationObserver(()=>{
+                self.offsetsForCursor.canvas = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).positionedOffset(ele);
+            });
+            observer.observe(ele, {
+                attributes: true,
+                childList: false,
+                subtree: false
+            });
+        }
+        if (!self.cursors[obj.clientID]) {
+            const pos = document.createElement("div");
+            pos.setAttribute("class", "slateCursor");
+            pos.style.position = "absolute";
+            pos.style.padding = "0px";
+            pos.style.margin = "0px;";
+            pos.style.display = "block";
+            pos.style["user-select"] = "none";
+            pos.style.zIndex = "0";
+            const flex = document.createElement("div");
+            flex.style.display = "flex";
+            flex.style.padding = 0;
+            flex.style.margin = 0;
+            const dot = document.createElement("div");
+            dot.innerHTML = `
+        <svg width="30px" height="30px" viewBox="-2.4 -2.4 28.80 28.80" role="img" xmlns="http://www.w3.org/2000/svg" stroke="${obj.color}" stroke-width="2.4" stroke-linecap="square" stroke-linejoin="miter" fill="${obj.color}" color="${obj.color}" transform="matrix(1, 0, 0, 1, 0, 0)"><g><polygon points="7 20 7 4 19 16 12 16 7 21"></polygon> </g></svg>`;
+            // dot.style.backgroundColor = obj.color || '#000'
+            flex.appendChild(dot);
+            const txt = document.createElement("div");
+            txt.style.fontSize = "11pt";
+            txt.style.height = "25px";
+            txt.style.whiteSpace = "nowrap";
+            txt.style.backgroundColor = "#fff";
+            txt.style.padding = "1px 7px 1px 7px";
+            txt.style.border = "1px solid #000";
+            txt.style.borderRadius = "5px";
+            txt.style.fontFamily = "trebuchet ms";
+            txt.innerHTML = `${obj.userName || "Guest"}`;
+            flex.appendChild(txt);
+            pos.appendChild(flex);
+            self.cursors[obj.clientID] = pos;
+            c.appendChild(pos);
+        }
+        const multiplier = self.options.viewPort.zoom.r / obj.currentZoom;
+        const top = obj.y * multiplier + obj.top * multiplier - Math.abs(self.offsetsForCursor.canvas?.top || 0) - self.offsetsForCursor.container?.top || 0;
+        const left = obj.x * multiplier + obj.left * multiplier - Math.abs(self.offsetsForCursor.canvas?.left || 0) - self.offsetsForCursor.container?.left || 0;
+        self.cursors[obj.clientID].style.top = `${top}px`;
+        self.cursors[obj.clientID].style.left = `${left}px`;
+        // expire after 10 of no activity
+        clearTimeout(self.cursorTimeouts[obj.clientID]);
+        self.cursorTimeouts[obj.clientID] = setTimeout(()=>{
+            c.removeChild(self.cursors[obj.clientID]);
+            delete self.cursors[obj.clientID];
+        }, 2000);
     }
     unglow() {
         this.glows.forEach((glow)=>{
@@ -16354,11 +16575,12 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             viewPort: this.options.viewPort,
             name: this.options.name,
             description: this.options.description,
+            allowCollaboration: false,
             showbirdsEye: false,
             showMultiSelect: false,
             showUndoRedo: false,
             showZoom: false
-        }).init();
+        }).initPlain();
         const _json = JSON.parse(this.exportJSON());
         _json.nodes.forEach((nde)=>{
             const _mpkg = opts.moves ? opts.moves.find((m)=>m.id === nde.options.id || m.id === "*") : null;
@@ -16445,65 +16667,69 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             showUndoRedo: false,
             showZoom: false,
             showLocks: false,
-            isEmbedding: true
+            isEmbedding: true,
+            allowCollaboration: false
         });
-        // we don't yet load the nodes by default even though they're passed in on the options below...
-        const _exportCanvas = new $52815ef246a0a8c3$export$2e2bcd8739ae039(exportOptions).init();
-        // ...that's done in the loadJSON...which seems weird
-        _exportCanvas.loadJSON(JSON.stringify({
-            options: exportOptions,
-            nodes: _resizedSlate.nodes
-        }), false, true);
-        // events don't serialize, so add them explicitly
-        _exportCanvas.events = self.events;
-        _exportCanvas.nodes.refreshAllRelationships();
-        // add the bgColor (this is done on html styling in slatebox proper view)
-        let bg = null;
-        if (_resizedSlate.options.containerStyle.backgroundImage) {
-            const img = document.createElement("img");
-            img.setAttribute("src", _resizedSlate.options.containerStyle.backgroundImage);
-            img.style.visibility = "hidden";
-            document.body.appendChild(img);
-            let bw = img.naturalWidth;
-            let bh = img.naturalHeight;
-            if (self.options.containerStyle.backgroundSize === "cover") {
-                const ratio = self.canvas.internal.parentElement.offsetWidth / bw;
-                bw *= ratio;
-                bh *= ratio;
-            }
-            img.remove();
-            const iw = Math.max(bw, _orient.width);
-            const ih = Math.max(bh, _orient.height);
-            bg = _exportCanvas.paper.image(_resizedSlate.options.containerStyle.backgroundImage, 0, 0, iw, ih);
-        } else bg = _exportCanvas.paper.rect(0, 0, _orient.width, _orient.height).attr({
-            fill: _resizedSlate.options.containerStyle.backgroundColor,
-            stroke: "none"
-        });
-        bg.toBack();
-        // the timeout is critical to ensure that the SVG canvas settles
-        // and the url-fill images appear.
-        setTimeout(async ()=>{
-            _exportCanvas.canvas.rawSVG((svg1)=>{
-                if (!opts) {
-                    // presume download if no opts are sent
-                    const svgBlob = new Blob([
-                        svg1
-                    ], {
-                        type: "image/svg+xml;charset=utf-8"
-                    });
-                    const svgUrl = URL.createObjectURL(svgBlob);
-                    const dl = document.createElement("a");
-                    dl.href = svgUrl;
-                    dl.download = `${(self.options.name || "slate").replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${self?.shareId}.svg`;
-                    dl.click();
-                    cb && cb();
-                } else cb && cb({
-                    svg: svg1,
-                    orient: _orient
-                });
-                _div.remove();
+        async function execute() {
+            // we don't yet load the nodes by default even though they're passed in on the options below...
+            const _exportCanvas = await new $52815ef246a0a8c3$export$2e2bcd8739ae039(exportOptions).init();
+            // ...that's done in the loadJSON...which seems weird
+            _exportCanvas.loadJSON(JSON.stringify({
+                options: exportOptions,
+                nodes: _resizedSlate.nodes
+            }), false, true);
+            // events don't serialize, so add them explicitly
+            _exportCanvas.events = self.events;
+            _exportCanvas.nodes.refreshAllRelationships();
+            // add the bgColor (this is done on html styling in slatebox proper view)
+            let bg = null;
+            if (_resizedSlate.options.containerStyle.backgroundImage) {
+                const img = document.createElement("img");
+                img.setAttribute("src", _resizedSlate.options.containerStyle.backgroundImage);
+                img.style.visibility = "hidden";
+                document.body.appendChild(img);
+                let bw = img.naturalWidth;
+                let bh = img.naturalHeight;
+                if (self.options.containerStyle.backgroundSize === "cover") {
+                    const ratio = self.canvas.internal.parentElement.offsetWidth / bw;
+                    bw *= ratio;
+                    bh *= ratio;
+                }
+                img.remove();
+                const iw = Math.max(bw, _orient.width);
+                const ih = Math.max(bh, _orient.height);
+                bg = _exportCanvas.paper.image(_resizedSlate.options.containerStyle.backgroundImage, 0, 0, iw, ih);
+            } else bg = _exportCanvas.paper.rect(0, 0, _orient.width, _orient.height).attr({
+                fill: _resizedSlate.options.containerStyle.backgroundColor,
+                stroke: "none"
             });
-        }, 100);
+            bg.toBack();
+            // the timeout is critical to ensure that the SVG canvas settles
+            // and the url-fill images appear.
+            setTimeout(async ()=>{
+                _exportCanvas.canvas.rawSVG((svg1)=>{
+                    if (!opts) {
+                        // presume download if no opts are sent
+                        const svgBlob = new Blob([
+                            svg1
+                        ], {
+                            type: "image/svg+xml;charset=utf-8"
+                        });
+                        const svgUrl = URL.createObjectURL(svgBlob);
+                        const dl = document.createElement("a");
+                        dl.href = svgUrl;
+                        dl.download = `${(self.options.name || "slate").replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${self?.shareId}.svg`;
+                        dl.click();
+                        cb && cb();
+                    } else cb && cb({
+                        svg: svg1,
+                        orient: _orient
+                    });
+                    _div.remove();
+                });
+            }, 100);
+        }
+        execute();
     }
     autoLoadFilters() {
         const self = this;
@@ -16643,8 +16869,6 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     }
     exportJSON() {
         const _cont = this.options.container;
-        const _pcont = this.collaboration.panelContainer || null;
-        const _callbacks = this.collaboration.callbacks || null;
         const _opts = this.options;
         delete _opts.container;
         const jsonSlate = {
@@ -16652,8 +16876,6 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             nodes: []
         };
         this.options.container = _cont;
-        this.collaboration.panelContainer = _pcont;
-        this.collaboration.callbacks = _callbacks;
         delete jsonSlate.options.ajax;
         delete jsonSlate.options.container;
         const tnid = this.tempNodeId;

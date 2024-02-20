@@ -98,33 +98,35 @@ export default class birdsEye {
 
     c.appendChild(self.be)
     self.setBe()
-    self.corner = new slate(
-      {
-        container: `slatebirdsEye_${self.slate.options.id}`,
-        viewPort: { allowDrag: false },
-        collaboration: { allow: false },
-        showZoom: false,
-        showUndoRedo: false,
-        showMultiSelect: false,
-        showbirdsEye: false, // no infinite recursion!
-        showLocks: false,
-        imageFolder: '',
-        isbirdsEye: true,
-      },
-      {
-        onNodeDragged() {
-          self.slate.nodes.copyNodePositions(self.corner.nodes.allNodes)
+
+    async function load() {
+      self.corner = await new slate(
+        {
+          container: `slatebirdsEye_${self.slate.options.id}`,
+          viewPort: { allowDrag: false },
+          allowCollaboration: false,
+          showZoom: false,
+          showUndoRedo: false,
+          showMultiSelect: false,
+          showbirdsEye: false, // no infinite recursion!
+          showLocks: false,
+          imageFolder: '',
+          isbirdsEye: true,
         },
-      }
-    ).init()
-
-    self.refresh()
-
-    utils.addEvent(window, 'resize', () => {
-      const cx = self.slate.options.container
-      self.parentDimen = utils.getDimensions(cx)
-      self.setBe()
-    })
+        {
+          onNodeDragged() {
+            self.slate.nodes.copyNodePositions(self.corner.nodes.allNodes)
+          },
+        }
+      ).init()
+      self.refresh()
+      utils.addEvent(window, 'resize', () => {
+        const cx = self.slate.options.container
+        self.parentDimen = utils.getDimensions(cx)
+        self.setBe()
+      })
+    }
+    load()
   }
 
   enabled() {
