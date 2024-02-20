@@ -10427,6 +10427,11 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         if (!self.collabPackage.userBaseData.suppressCursor) self.collabPackage.provider.awareness.setLocalStateField("user", {
             ...(0, $5OpyM$lodashomit)(self.collabPackage.userBaseData, self.constants.ommittableUserData)
         });
+        // for newly init clients, this will send the users immediately
+        self.send({
+            type: self.constants.onCollaborationUserCustomDataChanged,
+            data: {}
+        });
         // this auto destroys the connection so others immediately know the client is gone
         window.addEventListener("beforeunload", ()=>{
             self.destroy();

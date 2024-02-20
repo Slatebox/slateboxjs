@@ -673,6 +673,12 @@ export default class collab {
       })
     }
 
+    // for newly init clients, this will send the users immediately
+    self.send({
+      type: self.constants.onCollaborationUserCustomDataChanged,
+      data: {},
+    })
+
     // this auto destroys the connection so others immediately know the client is gone
     window.addEventListener('beforeunload', () => {
       self.destroy()
