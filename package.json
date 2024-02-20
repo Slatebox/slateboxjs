@@ -1,7 +1,7 @@
 {
   "name": "slateboxjs",
   "type": "module",
-  "version": "1.9.6",
+  "version": "2.0.0",
   "repository": {
     "url": "https://github.com/Slatebox/slateboxjs"
   },
@@ -15,7 +15,7 @@
   },
   "scripts": {
     "build": "parcel build",
-    "start": "parcel src/index.html",
+    "start": "parcel src/index.html && parcel watch src/index.html",
     "_buildComplete": "parcel build --no-optimize && mv ./dist/index.js ./dist/sb-${npm_package_version}.min.js && mv ./dist/index.js.map ./dist/sb-${npm_package_version}.min.js.map",
     "buildDev": "parcel build --no-optimize",
     "checkSize": "parcel build --reporter @parcel/reporter-bundle-analyzer"
@@ -35,7 +35,9 @@
     "lodash.uniq": "^4.5.0",
     "static-kdtree": "^1.0.2",
     "svg-pathdata": "^5.0.5",
-    "wheel-gestures": "^2.2.3"
+    "wheel-gestures": "^2.2.3",
+    "y-websocket": "^1.5.3",
+    "yjs": "^13.6.11"
   },
   "devDependencies": {
     "@cloudflare/wrangler": "^1.19.8",
@@ -47,6 +49,7 @@
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-prettier": "^4.0.0",
     "parcel": "^2.11.0",
-    "prettier": "^2.5.1"
+    "prettier": "^2.5.1",
+    "process": "^0.11.10"
   }
 }

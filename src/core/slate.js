@@ -28,12 +28,11 @@ import base from './base'
 import node from './node'
 
 export default class slate extends base {
-  constructor(_options, events, collaboration) {
+  constructor(_options, events) {
     super(_options)
     this.options = {
       id: _options.id || utils.guid(),
       container: '',
-      instance: '',
       name: '',
       description: '',
       basedOnThemeId: '',
@@ -78,6 +77,7 @@ export default class slate extends base {
       followMe: false,
       useLayoutQuandrants: false,
       huddleType: 'disabled',
+      allowCollaboration: true,
     }
 
     this.options = merge(this.options, _options)
@@ -86,14 +86,8 @@ export default class slate extends base {
       onCanvasClicked: null,
       onImagesRequested: null,
       onRequestSave: null,
+      onInitCollaboration: null,
       isReadOnly: null,
-    }
-
-    this.collaboration = collaboration || {
-      allow: true,
-      localizedOnly: false,
-      userIdOverride: null,
-      onCollaboration: null,
     }
 
     // console.log("SLATE - share details are", this.options.shareId, this.options.userId, this.options.orgId);
@@ -115,7 +109,7 @@ export default class slate extends base {
     this.candidatesForSelection = {}
   }
 
-  init() {
+  prep() {
     const self = this
     // instantiate all the dependencies for the slate -- order here is importantish
     // (birdsEye, undoRedo, zoomSlider are used in canvas, and inertia uses canvas)
@@ -131,9 +125,7 @@ export default class slate extends base {
     self.filters = new filters(self)
     self.canvas = new canvas(self)
     self.canvas.init()
-    if (self.multiSelection) {
-      self.multiSelection.init()
-    }
+
     self.inertia = new inertia(self)
     self.grid = new grid(self)
     self.comments = new comments(self)
@@ -144,7 +136,25 @@ export default class slate extends base {
     if (self.options.onInitCompleted) {
       self.options.onInitCompleted.apply(self)
     }
+  }
 
+  initPlain() {
+    const self = this
+    self.prep()
+    return self
+  }
+
+  async init() {
+    const self = this
+    self.prep()
+    if (self.multiSelection) {
+      await self.multiSelection.init()
+    }
+    if (self.options.allowCollaboration ?? true) {
+      setTimeout(async () => {
+        await self.collab.init()
+      }, 100)
+    }
     return self
   }
 
@@ -154,6 +164,92 @@ export default class slate extends base {
 
   glow(obj) {
     this.glows.push(obj.glow())
+  }
+
+  cursor(obj) {
+    const self = this
+    const c = self.options.container
+    const ele = self.canvas.internal
+    if (!self.cursors) {
+      self.offsetsForCursor = {
+        container: utils.positionedOffset(c),
+        canvas: utils.positionedOffset(ele),
+      }
+      self.cursorTimeouts = {}
+      self.cursors = {}
+      // create observer
+      const observer = new MutationObserver(() => {
+        self.offsetsForCursor.canvas = utils.positionedOffset(ele)
+      })
+      observer.observe(ele, {
+        attributes: true,
+        childList: false,
+        subtree: false,
+      })
+    }
+    if (!self.cursors[obj.clientID]) {
+      const pos = document.createElement('div')
+      pos.setAttribute('class', 'slateCursor')
+      pos.style.position = 'absolute'
+      pos.style.padding = '0px'
+      pos.style.margin = '0px;'
+      pos.style.display = 'block'
+      pos.style['user-select'] = 'none'
+      pos.style.zIndex = '0'
+
+      const flex = document.createElement('div')
+      flex.style.display = 'flex'
+      flex.style.padding = 0
+      flex.style.margin = 0
+
+      const dot = document.createElement('div')
+      dot.innerHTML = `
+        <svg width="30px" height="30px" viewBox="-2.4 -2.4 28.80 28.80" role="img" xmlns="http://www.w3.org/2000/svg" stroke="${obj.color}" stroke-width="2.4" stroke-linecap="square" stroke-linejoin="miter" fill="${obj.color}" color="${obj.color}" transform="matrix(1, 0, 0, 1, 0, 0)"><g><polygon points="7 20 7 4 19 16 12 16 7 21"></polygon> </g></svg>`
+      // dot.style.backgroundColor = obj.color || '#000'
+
+      flex.appendChild(dot)
+
+      const txt = document.createElement('div')
+      txt.style.fontSize = '11pt'
+      txt.style.height = '25px'
+      txt.style.whiteSpace = 'nowrap'
+      txt.style.backgroundColor = '#fff'
+      txt.style.padding = '1px 7px 1px 7px'
+      txt.style.border = '1px solid #000'
+      txt.style.borderRadius = '5px'
+      txt.style.fontFamily = 'trebuchet ms'
+      txt.innerHTML = `${obj.userName || 'Guest'}`
+
+      flex.appendChild(txt)
+
+      pos.appendChild(flex)
+
+      self.cursors[obj.clientID] = pos
+      c.appendChild(pos)
+    }
+
+    const multiplier = self.options.viewPort.zoom.r / obj.currentZoom
+
+    const top =
+      obj.y * multiplier +
+        obj.top * multiplier -
+        Math.abs(self.offsetsForCursor.canvas?.top || 0) -
+        self.offsetsForCursor.container?.top || 0
+    const left =
+      obj.x * multiplier +
+        obj.left * multiplier -
+        Math.abs(self.offsetsForCursor.canvas?.left || 0) -
+        self.offsetsForCursor.container?.left || 0
+
+    self.cursors[obj.clientID].style.top = `${top}px`
+    self.cursors[obj.clientID].style.left = `${left}px`
+
+    // expire after 10 of no activity
+    clearTimeout(self.cursorTimeouts[obj.clientID])
+    self.cursorTimeouts[obj.clientID] = setTimeout(() => {
+      c.removeChild(self.cursors[obj.clientID])
+      delete self.cursors[obj.clientID]
+    }, 2000 * 1)
   }
 
   unglow() {
@@ -349,11 +445,12 @@ export default class slate extends base {
         viewPort: this.options.viewPort,
         name: this.options.name,
         description: this.options.description,
+        allowCollaboration: false,
         showbirdsEye: false,
         showMultiSelect: false,
         showUndoRedo: false,
         showZoom: false,
-      }).init()
+      }).initPlain()
     }
 
     const _json = JSON.parse(this.exportJSON())
@@ -462,82 +559,88 @@ export default class slate extends base {
       showZoom: false,
       showLocks: false,
       isEmbedding: true,
+      allowCollaboration: false,
     })
 
-    // we don't yet load the nodes by default even though they're passed in on the options below...
-    const _exportCanvas = new slate(exportOptions).init()
+    async function execute() {
+      // we don't yet load the nodes by default even though they're passed in on the options below...
+      const _exportCanvas = await new slate(exportOptions).init()
 
-    // ...that's done in the loadJSON...which seems weird
-    _exportCanvas.loadJSON(
-      JSON.stringify({ options: exportOptions, nodes: _resizedSlate.nodes }),
-      false,
-      true
-    )
-    // events don't serialize, so add them explicitly
-    _exportCanvas.events = self.events
-    _exportCanvas.nodes.refreshAllRelationships()
-
-    // add the bgColor (this is done on html styling in slatebox proper view)
-    let bg = null
-    if (_resizedSlate.options.containerStyle.backgroundImage) {
-      const img = document.createElement('img')
-      img.setAttribute(
-        'src',
-        _resizedSlate.options.containerStyle.backgroundImage
+      // ...that's done in the loadJSON...which seems weird
+      _exportCanvas.loadJSON(
+        JSON.stringify({ options: exportOptions, nodes: _resizedSlate.nodes }),
+        false,
+        true
       )
-      img.style.visibility = 'hidden'
-      document.body.appendChild(img)
-      let bw = img.naturalWidth
-      let bh = img.naturalHeight
-      if (self.options.containerStyle.backgroundSize === 'cover') {
-        const ratio = self.canvas.internal.parentElement.offsetWidth / bw
-        bw *= ratio
-        bh *= ratio
-      } else {
-        // TODO: handle repeat by calcing how many paper.images should be added to an array of [bg] and then simulate the repeat effect
-        // need to see if _orient.width > bw and if so, add another horizontally, and if _orient.height > bh, then add another by the multiple vertically as well
-      }
-      img.remove()
-      const iw = Math.max(bw, _orient.width)
-      const ih = Math.max(bh, _orient.height)
-      bg = _exportCanvas.paper.image(
-        _resizedSlate.options.containerStyle.backgroundImage,
-        0,
-        0,
-        iw,
-        ih
-      )
-    } else {
-      bg = _exportCanvas.paper.rect(0, 0, _orient.width, _orient.height).attr({
-        fill: _resizedSlate.options.containerStyle.backgroundColor,
-        stroke: 'none',
-      })
-    }
-    bg.toBack()
+      // events don't serialize, so add them explicitly
+      _exportCanvas.events = self.events
+      _exportCanvas.nodes.refreshAllRelationships()
 
-    // the timeout is critical to ensure that the SVG canvas settles
-    // and the url-fill images appear.
-    setTimeout(async () => {
-      _exportCanvas.canvas.rawSVG((svg) => {
-        if (!opts) {
-          // presume download if no opts are sent
-          const svgBlob = new Blob([svg], {
-            type: 'image/svg+xml;charset=utf-8',
-          })
-          const svgUrl = URL.createObjectURL(svgBlob)
-          const dl = document.createElement('a')
-          dl.href = svgUrl
-          dl.download = `${(self.options.name || 'slate')
-            .replace(/[^a-z0-9]/gi, '_')
-            .toLowerCase()}_${self?.shareId}.svg`
-          dl.click()
-          cb && cb()
+      // add the bgColor (this is done on html styling in slatebox proper view)
+      let bg = null
+      if (_resizedSlate.options.containerStyle.backgroundImage) {
+        const img = document.createElement('img')
+        img.setAttribute(
+          'src',
+          _resizedSlate.options.containerStyle.backgroundImage
+        )
+        img.style.visibility = 'hidden'
+        document.body.appendChild(img)
+        let bw = img.naturalWidth
+        let bh = img.naturalHeight
+        if (self.options.containerStyle.backgroundSize === 'cover') {
+          const ratio = self.canvas.internal.parentElement.offsetWidth / bw
+          bw *= ratio
+          bh *= ratio
         } else {
-          cb && cb({ svg, orient: _orient })
+          // TODO: handle repeat by calcing how many paper.images should be added to an array of [bg] and then simulate the repeat effect
+          // need to see if _orient.width > bw and if so, add another horizontally, and if _orient.height > bh, then add another by the multiple vertically as well
         }
-        _div.remove()
-      })
-    }, 100)
+        img.remove()
+        const iw = Math.max(bw, _orient.width)
+        const ih = Math.max(bh, _orient.height)
+        bg = _exportCanvas.paper.image(
+          _resizedSlate.options.containerStyle.backgroundImage,
+          0,
+          0,
+          iw,
+          ih
+        )
+      } else {
+        bg = _exportCanvas.paper
+          .rect(0, 0, _orient.width, _orient.height)
+          .attr({
+            fill: _resizedSlate.options.containerStyle.backgroundColor,
+            stroke: 'none',
+          })
+      }
+      bg.toBack()
+
+      // the timeout is critical to ensure that the SVG canvas settles
+      // and the url-fill images appear.
+      setTimeout(async () => {
+        _exportCanvas.canvas.rawSVG((svg) => {
+          if (!opts) {
+            // presume download if no opts are sent
+            const svgBlob = new Blob([svg], {
+              type: 'image/svg+xml;charset=utf-8',
+            })
+            const svgUrl = URL.createObjectURL(svgBlob)
+            const dl = document.createElement('a')
+            dl.href = svgUrl
+            dl.download = `${(self.options.name || 'slate')
+              .replace(/[^a-z0-9]/gi, '_')
+              .toLowerCase()}_${self?.shareId}.svg`
+            dl.click()
+            cb && cb()
+          } else {
+            cb && cb({ svg, orient: _orient })
+          }
+          _div.remove()
+        })
+      }, 100)
+    }
+    execute()
   }
 
   autoLoadFilters() {
@@ -741,15 +844,11 @@ export default class slate extends base {
 
   exportJSON() {
     const _cont = this.options.container
-    const _pcont = this.collaboration.panelContainer || null
-    const _callbacks = this.collaboration.callbacks || null
     const _opts = this.options
     delete _opts.container
 
     const jsonSlate = { options: JSON.parse(JSON.stringify(_opts)), nodes: [] }
     this.options.container = _cont
-    this.collaboration.panelContainer = _pcont
-    this.collaboration.callbacks = _callbacks
 
     delete jsonSlate.options.ajax
     delete jsonSlate.options.container

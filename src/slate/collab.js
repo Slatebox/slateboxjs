@@ -1,6 +1,10 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-underscore-dangle */
+
+import * as Y from 'yjs'
+import { WebsocketProvider } from 'y-websocket'
 import omit from 'lodash.omit'
+import cloneDeep from 'lodash.clonedeep'
 import utils from '../helpers/utils'
 import node from '../core/node'
 
@@ -8,10 +12,17 @@ export default class collab {
   constructor(slate) {
     this.slate = slate
     this.invoker = null
-    this.pc = slate.collaboration || {}
+    this.constants = {
+      mapName: 'collabPackages',
+      lastMapDocName: 'last',
+      ommittableUserData: ['websocketUrl', 'websocketParams'],
+      onCollaborationUserCustomDataChanged:
+        'onCollaborationUserCustomDataChanged',
+    }
     if (!utils.localRecipients) {
       utils.localRecipients = []
     }
+    this.xyMap = {}
     this.wire()
   }
 
@@ -56,7 +67,7 @@ export default class collab {
       onNodePositioned(pkg) {
         resetMultiSelect()
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.position(
+        cn?.position(
           pkg.data.location,
           () => {},
           pkg.data.easing,
@@ -67,69 +78,75 @@ export default class collab {
 
       onNodeLinkRemoved(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.links?.unset(false)
+        cn?.links?.unset(false)
         self.closeNodeSpecifics(pkg)
       },
 
       onNodeLinkAdded(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.links?.set(pkg, false)
+        cn?.links?.set(pkg, false)
         self.closeNodeSpecifics(pkg)
       },
 
       onNodeUnlocked(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.options.allowDrag = true
-        cn.options.isLocked = false
-        cn.hideLock()
-        self.slate.birdsEye?.nodeChanged(pkg)
-        self.closeNodeSpecifics(pkg)
+        if (cn) {
+          cn.options.allowDrag = true
+          cn.options.isLocked = false
+          cn.hideLock()
+          self.slate.birdsEye?.nodeChanged(pkg)
+          self.closeNodeSpecifics(pkg)
+        }
       },
 
       onNodeLocked(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.options.allowDrag = false
-        cn.options.isLocked = true
-        cn.showLock()
-        self.slate.birdsEye?.nodeChanged(pkg)
-        self.closeNodeSpecifics(pkg)
+        if (cn) {
+          cn.options.allowDrag = false
+          cn.options.isLocked = true
+          cn?.showLock()
+          self.slate.birdsEye?.nodeChanged(pkg)
+          self.closeNodeSpecifics(pkg)
+        }
       },
 
       onNodeBehaviorChanged(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        pkg.data.behaviorChanges.forEach((b) => {
-          if (typeof b.value === 'object') {
-            cn.options[b.name] = b.value.val
-            Object.keys(b.value).forEach((k) => {
-              if (k !== 'val') {
-                cn.options[k] = b.value[k]
-              }
-            })
-          } else {
-            cn.options[b.name] = b.value
-          }
-        })
-        self.slate.birdsEye?.nodeChanged(pkg)
-        self.closeNodeSpecifics(pkg)
+        if (cn) {
+          pkg.data.behaviorChanges.forEach((b) => {
+            if (typeof b.value === 'object') {
+              cn.options[b.name] = b.value.val
+              Object.keys(b.value).forEach((k) => {
+                if (k !== 'val') {
+                  cn.options[k] = b.value[k]
+                }
+              })
+            } else {
+              cn.options[b.name] = b.value
+            }
+          })
+          self.slate.birdsEye?.nodeChanged(pkg)
+          self.closeNodeSpecifics(pkg)
+        }
       },
 
       onNodeToBack(pkg) {
         resetMultiSelect()
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.toBack()
+        cn?.toBack()
         self.slate.birdsEye?.nodeChanged(pkg)
       },
 
       onNodeToFront(pkg) {
         resetMultiSelect()
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.toFront()
+        cn?.toFront()
         self.slate.birdsEye?.nodeChanged(pkg)
       },
 
       onNodeShapeChanged(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.shapes.set(pkg.data)
+        cn?.shapes.set(pkg.data)
         self.slate.birdsEye?.nodeChanged(pkg)
         self.closeNodeSpecifics(pkg)
       },
@@ -138,7 +155,7 @@ export default class collab {
         resetMultiSelect()
         if (pkg.data.id) {
           const cn = self.slate.nodes.one(pkg.data.id)
-          cn.connectors.createNode(
+          cn?.connectors.createNode(
             pkg.data.skipCenter,
             pkg.data.options,
             pkg.data.targetXPos,
@@ -158,7 +175,7 @@ export default class collab {
       },
       onNodeImageChanged(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.images.set(pkg.data.img, pkg.data.w, pkg.data.h)
+        cn?.images.set(pkg.data.img, pkg.data.w, pkg.data.h)
         self.slate.birdsEye?.nodeChanged(pkg)
         self.closeNodeSpecifics(pkg)
       },
@@ -166,7 +183,7 @@ export default class collab {
       onNodeDeleted(pkg) {
         resetMultiSelect()
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.del()
+        cn?.del()
         self.slate.birdsEye?.nodeDeleted(pkg)
       },
 
@@ -174,7 +191,7 @@ export default class collab {
         resetMultiSelect()
         self.slate.toggleFilters(true, null, true)
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.hideOwnMenus()
+        cn?.hideOwnMenus()
         const opts = {
           associations: pkg.data.associations,
           animate: true,
@@ -184,7 +201,7 @@ export default class collab {
           cn.options,
           omit(pkg.data, ['associations', 'textPosition'])
         )
-        cn.resize.animateSet(pkg.data, opts)
+        cn?.resize.animateSet(pkg.data, opts)
         self.slate.birdsEye?.nodeChanged(pkg)
 
         self.closeNodeSpecifics(pkg)
@@ -194,40 +211,42 @@ export default class collab {
         resetMultiSelect()
         self.slate.toggleFilters(true, null, true)
         const cn = self.slate.nodes.one(pkg.data.id)
-        // needs to be updated
-        cn.options.textOffset = pkg.data.textOffset
+        if (cn) {
+          // needs to be updated
+          cn.options.textOffset = pkg.data.textOffset
 
-        cn.hideOwnMenus()
-        const previousRotationAngle = cn.options.rotate.rotationAngle
+          cn?.hideOwnMenus()
+          const previousRotationAngle = cn.options.rotate.rotationAngle
 
-        const opts = {
-          associations: pkg.data.associations,
-          animate: true,
+          const opts = {
+            associations: pkg.data.associations,
+            animate: true,
+          }
+
+          Object.assign(cn.options, omit(pkg.data, 'associations'))
+          cn?.rotate.animateSet(
+            {
+              ...pkg.data,
+              rotationAngle:
+                pkg.data.rotate.rotationAngle - previousRotationAngle,
+            },
+            opts
+          )
+          self.slate.birdsEye?.nodeChanged(pkg)
+
+          self.closeNodeSpecifics(pkg)
         }
-
-        Object.assign(cn.options, omit(pkg.data, 'associations'))
-        cn.rotate.animateSet(
-          {
-            ...pkg.data,
-            rotationAngle:
-              pkg.data.rotate.rotationAngle - previousRotationAngle,
-          },
-          opts
-        )
-        self.slate.birdsEye?.nodeChanged(pkg)
-
-        self.closeNodeSpecifics(pkg)
       },
 
       onNodeColorChanged(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.colorPicker.set(pkg.data)
+        cn?.colorPicker.set(pkg.data)
         self.slate.birdsEye?.nodeChanged(pkg)
       },
 
       onNodeTextChanged(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.editor.set(
+        cn?.editor.set(
           pkg.data.text,
           pkg.data.fontSize,
           pkg.data.fontFamily,
@@ -242,7 +261,9 @@ export default class collab {
 
       onNodeAITextChanged(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.options.ai = { ...pkg.data.ai, ...cn.options.ai }
+        if (cn) {
+          cn.options.ai = { ...pkg.data.ai, ...cn.options.ai }
+        }
       },
 
       addRelationship(pkg) {
@@ -268,12 +289,12 @@ export default class collab {
 
       onNodeEffectChanged(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.applyFilters(pkg.data.filter)
+        cn?.applyFilters(pkg.data.filter)
       },
 
       onNodeBorderPropertiesChanged(pkg) {
         const cn = self.slate.nodes.one(pkg.data.id)
-        cn.applyBorder(pkg.data)
+        cn?.applyBorder(pkg.data)
       },
 
       onLinePropertiesChanged(pkg) {
@@ -282,8 +303,8 @@ export default class collab {
         if (!upkg.data.forEach) upkg.data = [upkg.data]
         upkg.data.forEach((p) => {
           const cn = self.slate.nodes.one(p.id)
-          Object.assign(cn.options, p.options)
-          cn.lineOptions.set(p)
+          Object.assign(cn?.options, p.options)
+          cn?.lineOptions.set(p)
         })
       },
 
@@ -435,19 +456,6 @@ export default class collab {
         }
       },
     } // this invoker
-
-    if (self.pc.onCollaboration) {
-      self.pc.onCollaboration({
-        type: 'init',
-        slate: self.slate,
-        cb(pkg) {
-          self._process(pkg)
-        },
-      })
-    }
-    if (self.pc.localizedOnly) {
-      utils.localRecipients.push(self)
-    }
   }
 
   _process(pkg) {
@@ -464,9 +472,10 @@ export default class collab {
       })
     } else if (self.invoker[pkg.type]) {
       self.invoker[pkg.type](pkg)
-    } else if (self.pc.onCollaboration) {
-      self.pc.onCollaboration({ type: 'custom', slate: self.slate, pkg })
     }
+    // else if (self.pc.onCollaboration) {
+    //   self.pc.onCollaboration({ type: 'custom', slate: self.slate, pkg })
+    // }
   }
 
   invoke(pkg) {
@@ -512,27 +521,226 @@ export default class collab {
     self.slate.untooltip()
   }
 
+  async init() {
+    const self = this
+
+    if (self.slate.options.isbirdsEye) {
+      // not allowed
+      return
+    }
+
+    // go get the server url here
+    if (self.collabPackage) {
+      console.error('Unable to collaborate - collabPackage already created')
+      return
+    }
+
+    // ALL yjs depenencies are nested under the collabPackage
+    const mainYDoc = new Y.Doc()
+    self.collabPackage = {
+      provider: null,
+      users: [],
+      /*
+      return {
+        websocketUrl: collaboratorDetails.wsUrl,
+        websocketParams: collaboratorDetails.wsParams,
+        color: collaboratorDetails.color,
+        userName: getUserName(Meteor.userId()),
+        x: 0,
+        y: 0,
+      }
+      */
+      userBaseData: await self.slate.events.onInitCollaboration(
+        mainYDoc.clientID
+      ),
+      doc: mainYDoc,
+      map: null,
+    }
+
+    if (!self.collabPackage.userBaseData) {
+      console.error(
+        'Unable to collaborate - no self.collabPackage retrieved from the onInitCollaboration event'
+      )
+    }
+
+    // attach clientID to the package for downstream reference
+    self.collabPackage.userBaseData.clientID = self.collabPackage.doc.clientID
+
+    self.collabPackage.provider = new WebsocketProvider(
+      self.collabPackage.userBaseData.websocketUrl,
+      self.slate.options.id,
+      self.collabPackage.doc,
+      {
+        connect: true,
+        params: self.collabPackage.userBaseData.websocketParams,
+      }
+    )
+
+    self.collabPackage.map = self.collabPackage.doc.getMap(
+      self.constants.mapName
+    )
+
+    self.collabPackage.doc.on('updateV2', (update, origin, doc, tr) => {
+      const pkgs = doc
+        .getMap(self.constants.mapName)
+        .get(self.constants.lastMapDocName)
+      pkgs?.forEach((p) => {
+        if (p.type === self.constants.onCollaborationUserCustomDataChanged) {
+          // for both local and remote - call this function so users are updated
+          self.slate.events.onCollaborationUsersChanged?.(
+            self.collabPackage.users
+          )
+        } else {
+          if (p.data.clientID !== self.collabPackage.doc.clientID) {
+            self.slate.collab.invoke(p)
+            // the onCollaboration event is fired for OTHERS
+            self.slate.events?.onCollaboration?.apply(self, [
+              p,
+              self.collabPackage.users,
+            ])
+          } else if (p.data.clientID === self.collabPackage.doc.clientID) {
+            // the onSlateChanged is fired for the initiator only
+            self.slate.events?.onSlateChanged?.apply(self, [
+              p,
+              self.collabPackage.users,
+            ])
+          }
+        }
+      })
+    })
+
+    self.collabPackage.provider.awareness.on(
+      'update',
+      ({ added, updated, removed }) => {
+        const awarenessStates = Array.from(
+          self.collabPackage.provider.awareness.getStates().values()
+        )
+
+        self.collabPackage.users = awarenessStates
+          .filter((ux) => !!ux.user)
+          .map((u) => u.user)
+
+        if (added.length > 0) {
+          const users = self.collabPackage.users.filter((u) => {
+            return added.includes(u.clientID)
+          })
+          self.slate.events.onCollaborationUsersAdded?.(users)
+        }
+        if (removed.length > 0) {
+          const users = self.collabPackage.users.filter((u) => {
+            return removed.includes(u.clientID)
+          })
+          self.slate.events.onCollaborationUsersRemoved?.(users)
+
+          self.collabPackage.users = self.collabPackage.users.filter((u) => {
+            return !removed.includes(u.clientID)
+          })
+        }
+        if (added.length > 0 || removed.length > 0) {
+          self.slate.events.onCollaborationUsersChanged?.(
+            self.collabPackage.users
+          )
+        }
+      }
+    )
+
+    // monitors for cursor locations - the change event runs when the mouse moves, but the upate event
+    // resolves when it settles (so no real-time view)
+    self.collabPackage.provider.awareness.on(
+      'change',
+      ({ added, updated, removed }) => {
+        const awarenessStates = Array.from(
+          self.collabPackage.provider.awareness.getStates().values()
+        )
+        awarenessStates.forEach((u) => {
+          if (
+            updated.includes(u.user?.clientID) &&
+            u.user?.clientID !== self.collabPackage?.doc?.clientID
+          ) {
+            self.slate.cursor(u.user)
+          }
+        })
+      }
+    )
+
+    // this sends the cursor locations to the other clients
+    if (!self.collabPackage.userBaseData.suppressCursor) {
+      self.collabPackage.provider.awareness.setLocalStateField('user', {
+        ...omit(
+          self.collabPackage.userBaseData,
+          self.constants.ommittableUserData
+        ),
+      })
+    }
+
+    // this auto destroys the connection so others immediately know the client is gone
+    window.addEventListener('beforeunload', () => {
+      self.destroy()
+    })
+  }
+
+  destroy() {
+    const self = this
+    self.collabPackage?.provider?.awareness?.destroy()
+    self.collabPackage?.provider?.destroy()
+  }
+
+  updateUserData(pkg) {
+    const self = this
+    if (self.collabPackage) {
+      // this will cause the onUsersChanged to fire
+      // and also change the baseData so that this is not overridden
+      // by any other setLocaLStateField calls
+      self.collabPackage.userBaseData = {
+        ...self.collabPackage.userBaseData,
+        ...pkg,
+      }
+      self.collabPackage.provider.awareness?.setLocalStateField('user', {
+        ...omit(
+          self.collabPackage.userBaseData,
+          self.constants.ommittableUserData
+        ),
+        ...pkg,
+      })
+      // will broadcast that the users have changed
+      self.send({
+        type: self.constants.onCollaborationUserCustomDataChanged,
+        data: {},
+      })
+    }
+  }
+
   send(pkg) {
     const self = this
     let packages = pkg
     if (!Array.isArray(packages)) {
       packages = [packages]
     }
-    if (packages[0].type !== 'onMouseMoved') {
+    if (packages[0].type === 'onMouseMoved') {
+      if (
+        self.collabPackage?.userBaseData &&
+        !self.collabPackage.userBaseData.suppressCursor
+      ) {
+        // broadcast the mouse cursors
+        self.collabPackage?.provider.awareness?.setLocalStateField('user', {
+          ...omit(
+            self.collabPackage.userBaseData,
+            self.constants.ommittableUserData
+          ),
+          ...packages[0].data,
+        })
+      }
+    } else {
       if (self.slate.undoRedo && self.slate.options.showUndoRedo) {
         self.slate.undoRedo.snap()
       }
-    }
-    if (self.pc.allow) {
-      if (self.slate.options?.onSlateChanged) {
-        self.slate.options.onSlateChanged.apply(self, [packages])
-      }
-      if (self.pc.onCollaboration) {
-        self.pc.onCollaboration({
-          type: 'process',
-          slate: self.slate,
-          pkg: packages,
-        })
+
+      // these will only exist if allowCollaboration: true on the slate
+      if (self.collabPackage?.doc && self.collabPackage?.map) {
+        packages.forEach(
+          (p) => (p.data.clientID = self.collabPackage.doc.clientID)
+        )
+        self.collabPackage.map.set(self.constants.lastMapDocName, packages)
       }
     }
   }
