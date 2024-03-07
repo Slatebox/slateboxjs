@@ -9399,6 +9399,10 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             y: this.vect.oy + dy
         });
     }
+    debugPosition() {
+        const coords = `${this.options.id}\n x: ${this.options.xPos}, y: ${this.options.yPos}`;
+        this.editor.set(coords);
+    }
     setPosition(p, blnKeepMenusOpen, activeNode, opts = {}) {
         this.options.xPos = p.x;
         this.options.yPos = p.y;
@@ -10373,25 +10377,27 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             connect: true,
             params: self.collabPackage.userBaseData.websocketParams
         });
+        // a single map with a nodeId as the key and the last collab event as its value
         self.collabPackage.map = self.collabPackage.doc.getMap(self.constants.mapName);
-        self.collabPackage.doc.on("updateV2", (update, origin, doc, tr)=>{
-            const pkgs = doc.getMap(self.constants.mapName).get(self.constants.lastMapDocName);
-            pkgs?.forEach((p)=>{
-                if (p.type === self.constants.onCollaborationUserCustomDataChanged) // for both local and remote - call this function so users are updated
-                self.slate.events.onCollaborationUsersChanged?.(self.collabPackage.users);
-                else {
-                    if (p.data.clientID !== self.collabPackage.doc.clientID) {
-                        self.slate.collab.invoke(p);
-                        // the onCollaboration event is fired for OTHERS
-                        self.slate.events?.onCollaboration?.apply(self, [
+        self.collabPackage.map.observe((e)=>{
+            e.changes.keys.forEach((change, key)=>{
+                if (change.action === "add" || change.action === "update") {
+                    const p = self.collabPackage.map.get(key);
+                    if (p.type === self.constants.onCollaborationnUserCustomDataChanged) // for both local and remote - call this function so users are updated
+                    self.slate.events.onCollaborationUsersChanged?.(self.collabPackage.users);
+                    else {
+                        // conflicts here are already resolved...
+                        // but collab only have to fire if there
+                        // is more than one user on the slate
+                        console.log("checking clientID", p);
+                        if (self.collabPackage.users.length > 1 && self.collabPackage.init && p.data.clientID !== self.collabPackage?.doc?.clientID) self.slate.collab.invoke(p);
+                        // broadcast change so slate is saved
+                        self.slate.events?.onSlateChanged?.apply(self, [
                             p,
                             self.collabPackage.users
                         ]);
-                    } else if (p.data.clientID === self.collabPackage.doc.clientID) // the onSlateChanged is fired for the initiator only
-                    self.slate.events?.onSlateChanged?.apply(self, [
-                        p,
-                        self.collabPackage.users
-                    ]);
+                        self.collabPackage.init = true;
+                    }
                 }
             });
         });
@@ -10442,6 +10448,10 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         self.collabPackage?.provider?.awareness?.destroy();
         self.collabPackage?.provider?.destroy();
     }
+    currentCollaborators() {
+        const self = this;
+        return self.collabPackage?.users || [];
+    }
     updateUserData(pkg) {
         const self = this;
         if (self.collabPackage) {
@@ -10478,10 +10488,26 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         } else {
             if (self.slate.undoRedo && self.slate.options.showUndoRedo) self.slate.undoRedo.snap();
             // these will only exist if allowCollaboration: true on the slate
-            if (self.collabPackage?.doc && self.collabPackage?.map) {
-                packages.forEach((p)=>p.data.clientID = self.collabPackage.doc.clientID);
-                self.collabPackage.map.set(self.constants.lastMapDocName, packages);
-            }
+            if (self.collabPackage?.doc && self.collabPackage?.map) packages.forEach((p)=>{
+                p.data.clientID = self.collabPackage.doc.clientID;
+                if (p.data?.nodeOptions) // to ensure each node is correctly CRDT-resolved
+                // with yJS independently, the moveNodes must be broken up so
+                // each node id is set directly on the YMap.
+                p.data.nodeOptions?.forEach((nx, ind)=>{
+                    const indivCollab = (0, $5OpyM$lodashclonedeep)(p);
+                    indivCollab.data.nodeOptions = [
+                        nx
+                    ];
+                    if (p.data?.textPositions) indivCollab.data.textPositions = [
+                        p.data?.textPositions[ind]
+                    ];
+                    const indivAssocs = p.data?.associations.filter((a)=>a.childId === nx.id || a.parentId === nx.id);
+                    indivCollab.data.associations = indivAssocs;
+                    self.collabPackage.map.set(nx.id, indivCollab);
+                });
+                else // none nodeOptions based collaborations
+                self.collabPackage.map.set(p.data.id || "slate", p);
+            });
         }
     }
 }
@@ -10491,140 +10517,6 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
 
 
 
-function $a26df7539d136ffa$export$2e2bcd8739ae039(p, options) {
-    let lx = p.x - 5;
-    let tx = p.x + options.width / 2;
-    let ty = p.y + options.height / 2;
-    if (options.vectorPath === "ellipse") {
-        lx = p.cx - 5;
-        tx = p.cx;
-        ty = p.cy;
-    }
-    return {
-        lx: lx,
-        tx: tx,
-        ty: ty
-    };
-}
-
-
-
-/* eslint-disable no-param-reassign */ 
-
-class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
-    constructor(slate, node){
-        this.slate = slate;
-        this.node = node;
-    }
-    setTextOffset() {
-        if (this.node.options.allowDrag) {
-            this.node.options.textBounds = this.node.vect.getBBox();
-            this.node.options.textOffset = {
-                x: this.node.options.textBounds.cx - this.node.options.textBounds.width / 2 - this.node.options.xPos,
-                y: this.node.options.textBounds.cy - this.node.options.yPos,
-                width: this.node.options.textBounds.width,
-                height: this.node.options.textBounds.height
-            };
-        }
-    }
-    set(t, s, f, c, opacity, ta, tb, isCategory) {
-        const tempShim = `\xa7` // utils.guid().substring(3);
-        ;
-        if (!t && t !== "") t = this.node.options.text || tempShim;
-        if (!s) s = this.node.options.fontSize || 12;
-        if (opacity == null) opacity = this.node.options.textOpacity || 1;
-        if (!f) f = this.node.options.fontFamily || "Roboto";
-        if (!c) c = this.node.options.foregroundColor || "#000";
-        if (!ta) ta = this.node.options.textXAlign || "middle";
-        if (!tb) tb = this.node.options.textYAlign || "middle";
-        // ensure text is always legible if it is set to the same as background
-        if (c === this.node.options.backgroundColor) c = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).whiteOrBlack(this.node.options.backgroundColor);
-        this.node.options.text = t;
-        this.node.options.fontSize = s;
-        this.node.options.fontFamily = f;
-        this.node.options.foregroundColor = c;
-        this.node.options.textOpacity = opacity;
-        this.node.options.textXAlign = ta;
-        this.node.options.textYAlign = tb;
-        if (this.slate.options.autoResizeNodesBasedOnText && !this.node.options.ignoreTextFit) {
-            let widthScalar = 1;
-            let heightScalar = 1;
-            let nodebb = this.node.vect.getBBox();
-            if (this.node.options.text !== tempShim) {
-                const textDimens = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).getTextWidth(this.node.options.text, `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`);
-                const { transWidth: transWidth, transHeight: transHeight } = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).obtainProportionateWidthAndHeightForResizing(0, 0, textDimens.width, textDimens.height, this.node.options.origVectWidth, this.node.options.origVectHeight, this.slate.isCtrl, this.node.options.shapeHint === "custom");
-                widthScalar = transWidth / nodebb.width;
-                heightScalar = transHeight / nodebb.height;
-            }
-            const scaledVectPath = (0, $65a92514e25c9f85$export$508faed300ccdfb).transformPath(this.node.options.vectorPath, `s${widthScalar}, ${heightScalar}`).toString();
-            this.node.options.vectorPath = scaledVectPath;
-            this.node.vect.attr({
-                path: scaledVectPath
-            });
-            nodebb = this.node.vect.getBBox();
-            this.node.options.width = nodebb.width;
-            this.node.options.height = nodebb.height;
-            this.node.options.xPos = nodebb.x;
-            this.node.options.yPos = nodebb.y;
-            this.node.relationships && this.node.relationships.refreshOwnRelationships();
-        }
-        let coords = null;
-        this.setTextOffset();
-        coords = this.node.textCoords();
-        if (!this.node.text) this.node.text = this.slate.paper.text(this.node.options.xPos + coords.x, this.node.options.yPos + coords.y, t);
-        coords = this.node.textCoords({
-            x: this.node.options.xPos,
-            y: this.node.options.yPos
-        });
-        this.node.text.attr(coords);
-        this.node.text.attr({
-            text: t
-        });
-        this.node.text.attr({
-            "font-size": `${s}pt`
-        });
-        this.node.text.attr({
-            "font-family": f
-        });
-        this.node.text.attr({
-            fill: c
-        });
-        this.node.text.attr({
-            "text-anchor": ta
-        });
-        this.node.text.attr({
-            "text-baseline": tb
-        });
-        this.node.text.attr({
-            "fill-opacity": opacity
-        });
-        this.node.text.attr({
-            class: "slatebox-text"
-        });
-        const noSelect = [
-            "-webkit-user-select",
-            "-moz-user-select",
-            "-ms-user-select",
-            "user-select"
-        ].map((sx)=>`${sx}: none;`).join(" ");
-        this.node.text.attr({
-            style: noSelect
-        });
-        if (tempShim === t) {
-            this.node.options.text = "";
-            this.node.text.attr({
-                text: ""
-            });
-        } else setTimeout(()=>{
-            this.node.text.attr({
-                text: t
-            });
-        }, 10);
-    }
-}
-
-
-/* eslint-disable new-cap */ /* eslint-disable no-param-reassign */ /* eslint-disable no-underscore-dangle */ 
 /* eslint-disable no-underscore-dangle */ /* eslint-disable no-sequences */ /* eslint-disable no-unused-expressions */ /* eslint-disable no-cond-assign */ function $3597cac994ae8502$export$2e2bcd8739ae039(pathNode, point) {
     const pathLength = pathNode.getTotalLength();
     let precision = 64 // increase this value for better performance at a risk of worse point approximation; in future this should be scaled according to number of path segments (there could be a better solution)
@@ -10861,6 +10753,141 @@ function $f7a6c59624db8286$export$2e2bcd8739ae039({ relationships: relationships
 }
 
 
+function $a26df7539d136ffa$export$2e2bcd8739ae039(p, options) {
+    let lx = p.x - 5;
+    let tx = p.x + options.width / 2;
+    let ty = p.y + options.height / 2;
+    if (options.vectorPath === "ellipse") {
+        lx = p.cx - 5;
+        tx = p.cx;
+        ty = p.cy;
+    }
+    return {
+        lx: lx,
+        tx: tx,
+        ty: ty
+    };
+}
+
+
+
+/* eslint-disable no-param-reassign */ 
+
+class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
+    constructor(slate, node){
+        this.slate = slate;
+        this.node = node;
+    }
+    setTextOffset() {
+        if (this.node.options.allowDrag) {
+            this.node.options.textBounds = this.node.vect.getBBox();
+            this.node.options.textOffset = {
+                x: this.node.options.textBounds.cx - this.node.options.textBounds.width / 2 - this.node.options.xPos,
+                y: this.node.options.textBounds.cy - this.node.options.yPos,
+                width: this.node.options.textBounds.width,
+                height: this.node.options.textBounds.height
+            };
+        }
+    }
+    set(t, s, f, c, opacity, ta, tb, isCategory) {
+        const tempShim = `\xa7` // utils.guid().substring(3);
+        ;
+        if (!t && t !== "") t = this.node.options.text || tempShim;
+        if (!s) s = this.node.options.fontSize || 12;
+        if (opacity == null) opacity = this.node.options.textOpacity || 1;
+        if (!f) f = this.node.options.fontFamily || "Roboto";
+        if (!c) c = this.node.options.foregroundColor || "#000";
+        if (!ta) ta = this.node.options.textXAlign || "middle";
+        if (!tb) tb = this.node.options.textYAlign || "middle";
+        // ensure text is always legible if it is set to the same as background
+        if (c === this.node.options.backgroundColor) c = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).whiteOrBlack(this.node.options.backgroundColor);
+        this.node.options.text = t;
+        this.node.options.fontSize = s;
+        this.node.options.fontFamily = f;
+        this.node.options.foregroundColor = c;
+        this.node.options.textOpacity = opacity;
+        this.node.options.textXAlign = ta;
+        this.node.options.textYAlign = tb;
+        if (this.slate.options.autoResizeNodesBasedOnText && !this.node.options.ignoreTextFit) {
+            let widthScalar = 1;
+            let heightScalar = 1;
+            let nodebb = this.node.vect.getBBox();
+            if (this.node.options.text !== tempShim) {
+                const textDimens = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).getTextWidth(this.node.options.text, `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`);
+                const { transWidth: transWidth, transHeight: transHeight } = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).obtainProportionateWidthAndHeightForResizing(0, 0, textDimens.width, textDimens.height, this.node.options.origVectWidth, this.node.options.origVectHeight, this.slate.isCtrl, this.node.options.shapeHint === "custom");
+                widthScalar = transWidth / nodebb.width;
+                heightScalar = transHeight / nodebb.height;
+            }
+            const scaledVectPath = (0, $65a92514e25c9f85$export$508faed300ccdfb).transformPath(this.node.options.vectorPath, `s${widthScalar}, ${heightScalar}`).toString();
+            this.node.options.vectorPath = scaledVectPath;
+            this.node.vect.attr({
+                path: scaledVectPath
+            });
+            nodebb = this.node.vect.getBBox();
+            this.node.options.width = nodebb.width;
+            this.node.options.height = nodebb.height;
+            this.node.options.xPos = nodebb.x;
+            this.node.options.yPos = nodebb.y;
+            this.node.relationships && this.node.relationships.refreshOwnRelationships();
+        }
+        let coords = null;
+        this.setTextOffset();
+        coords = this.node.textCoords();
+        if (!this.node.text) this.node.text = this.slate.paper.text(this.node.options.xPos + coords.x, this.node.options.yPos + coords.y, t);
+        coords = this.node.textCoords({
+            x: this.node.options.xPos,
+            y: this.node.options.yPos
+        });
+        this.node.text.attr(coords);
+        this.node.text.attr({
+            text: t
+        });
+        this.node.text.attr({
+            "font-size": `${s}pt`
+        });
+        this.node.text.attr({
+            "font-family": f
+        });
+        this.node.text.attr({
+            fill: c
+        });
+        this.node.text.attr({
+            "text-anchor": ta
+        });
+        this.node.text.attr({
+            "text-baseline": tb
+        });
+        this.node.text.attr({
+            "fill-opacity": opacity
+        });
+        this.node.text.attr({
+            class: "slatebox-text"
+        });
+        const noSelect = [
+            "-webkit-user-select",
+            "-moz-user-select",
+            "-ms-user-select",
+            "user-select"
+        ].map((sx)=>`${sx}: none;`).join(" ");
+        this.node.text.attr({
+            style: noSelect
+        });
+        if (tempShim === t) {
+            this.node.options.text = "";
+            this.node.text.attr({
+                text: ""
+            });
+        } else setTimeout(()=>{
+            this.node.text.attr({
+                text: t
+            });
+        }, 10);
+    }
+}
+
+
+/* eslint-disable new-cap */ /* eslint-disable no-param-reassign */ /* eslint-disable no-underscore-dangle */ 
+
 
 
 
@@ -10945,6 +10972,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).transformPath(nd, `T${self._dx},${self._dy}`);
             nd.vect.currentDx = 0;
             nd.vect.currentDy = 0;
+            if (self.slate.options.debugMode) nd.debugPosition();
             nd.editor.setTextOffset();
         });
         (0, $f7a6c59624db8286$export$2e2bcd8739ae039)({
@@ -10980,7 +11008,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         self.slate.toggleFilters(false);
         self.showMenu();
     }
-    enactMove(dx, dy, blnFinish) {
+    enactMove(dx, dy) {
         const self = this;
         dx = Math.ceil(dx);
         dy = Math.ceil(dy);
@@ -11026,7 +11054,6 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         });
         self._dx = dx;
         self._dy = dy;
-        if (blnFinish) self.finishDrag(false);
     }
     _broadcast(pkg) {
         this.slate.collab?.send(pkg);
@@ -13431,9 +13458,9 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         const e = p.easing || ">";
         const { associations: associations, nodeOptions: nodeOptions, textPositions: textPositions } = p;
         let cntr = 0;
-        function _potentiallyFinalize() {
+        function _potentiallyFinalize(isAssoc) {
             cntr += 1;
-            if (cntr === nodeOptions.length && options.cb) {
+            if (associations.length === nodeOptions.length && cntr === nodeOptions.length && options.cb) {
                 options.cb();
                 delete options.cb;
             }
@@ -13461,6 +13488,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                         y: ty
                     });
                 }
+                if (this.slate.options.debugMode && !this.slate.options.isbirdsEye) nodeObject.debugPosition();
                 if (options.animate) {
                     if (nodeObject) nodeObject.vect.animate({
                         path: opts.vectorPath,
@@ -13491,22 +13519,31 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                 }
             }
         });
-        associations.forEach((assoc)=>{
+        // this is important only when collaboration is active
+        const ensureRefreshed = ()=>{
+            const currentCollaborators = this.slate.collab.currentCollaborators();
+            if (currentCollaborators.length > 1) nodeOptions.forEach((opts)=>{
+                const nodeObject = this.allNodes.find((node)=>node.options.id === opts.id);
+                nodeObject.relationships.refreshOwnRelationships();
+            });
+        };
+        associations.forEach((assoc, aCnt)=>{
             const a = uniqAssoc.find((ax)=>ax.parent.options.id === assoc.parentId && ax.child.options.id === assoc.childId);
-            if (options.animate) {
-                if (a) a.line.animate({
+            if (a) {
+                if (options.animate) a.line.animate({
                     path: assoc.linePath
                 }, d, e, ()=>{
                     a.line.attr({
                         path: assoc.linePath
                     });
-                    _potentiallyFinalize();
+                    if (aCnt + 1 === associations.length) ensureRefreshed();
                 });
-            } else {
-                if (a) a.line.attr({
-                    path: assoc.linePath
-                });
-                _potentiallyFinalize();
+                else {
+                    a.line.attr({
+                        path: assoc.linePath
+                    });
+                    if (aCnt + 1 === associations.length) ensureRefreshed();
+                }
             }
         });
         this.slate.birdsEye?.refresh(true);

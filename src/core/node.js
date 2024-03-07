@@ -207,6 +207,11 @@ export default class node extends base {
     this.setPosition({ x: this.vect.ox + dx, y: this.vect.oy + dy })
   }
 
+  debugPosition() {
+    const coords = `${this.options.id}\n x: ${this.options.xPos}, y: ${this.options.yPos}`
+    this.editor.set(coords)
+  }
+
   setPosition(p, blnKeepMenusOpen, activeNode, opts = {}) {
     this.options.xPos = p.x
     this.options.yPos = p.y

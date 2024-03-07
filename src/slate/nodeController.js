@@ -6,6 +6,7 @@ import uniq from 'lodash.uniq'
 import invoke from 'lodash.invoke'
 import cloneDeep from 'lodash.clonedeep'
 import getTransformedPath from '../helpers/getTransformedPath'
+import refreshRelationships from '../helpers/refreshRelationships'
 import getDepCoords from '../helpers/getDepCoords'
 
 import utils from '../helpers/utils'
@@ -450,9 +451,13 @@ export default class nodeController {
     const { associations, nodeOptions, textPositions } = p
 
     let cntr = 0
-    function _potentiallyFinalize() {
+    function _potentiallyFinalize(isAssoc) {
       cntr += 1
-      if (cntr === nodeOptions.length && options.cb) {
+      if (
+        associations.length === nodeOptions.length &&
+        cntr === nodeOptions.length &&
+        options.cb
+      ) {
         options.cb()
         delete options.cb
       }
@@ -480,6 +485,10 @@ export default class nodeController {
         } else {
           nodeObject.text.attr(currentTextPosition.textPosition)
           nodeObject.link.attr({ x: lx, y: ty })
+        }
+
+        if (this.slate.options.debugMode && !this.slate.options.isbirdsEye) {
+          nodeObject.debugPosition()
         }
 
         if (options.animate) {
@@ -515,24 +524,39 @@ export default class nodeController {
       }
     })
 
-    associations.forEach((assoc) => {
+    // this is important only when collaboration is active
+    const ensureRefreshed = () => {
+      const currentCollaborators = this.slate.collab.currentCollaborators()
+      if (currentCollaborators.length > 1) {
+        nodeOptions.forEach((opts) => {
+          const nodeObject = this.allNodes.find(
+            (node) => node.options.id === opts.id
+          )
+          nodeObject.relationships.refreshOwnRelationships()
+        })
+      }
+    }
+
+    associations.forEach((assoc, aCnt) => {
       const a = uniqAssoc.find(
         (ax) =>
           ax.parent.options.id === assoc.parentId &&
           ax.child.options.id === assoc.childId
       )
-      if (options.animate) {
-        if (a) {
+      if (a) {
+        if (options.animate) {
           a.line.animate({ path: assoc.linePath }, d, e, () => {
             a.line.attr({ path: assoc.linePath })
-            _potentiallyFinalize()
+            if (aCnt + 1 === associations.length) {
+              ensureRefreshed()
+            }
           })
-        }
-      } else {
-        if (a) {
+        } else {
           a.line.attr({ path: assoc.linePath })
+          if (aCnt + 1 === associations.length) {
+            ensureRefreshed()
+          }
         }
-        _potentiallyFinalize()
       }
     })
     this.slate.birdsEye?.refresh(true)

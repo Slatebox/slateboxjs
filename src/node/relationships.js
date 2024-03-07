@@ -100,6 +100,9 @@ export default class relationships {
       utils.transformPath(nd, `T${self._dx},${self._dy}`)
       nd.vect.currentDx = 0
       nd.vect.currentDy = 0
+      if (self.slate.options.debugMode) {
+        nd.debugPosition()
+      }
       nd.editor.setTextOffset()
     })
 
@@ -142,7 +145,7 @@ export default class relationships {
     self.showMenu()
   }
 
-  enactMove(dx, dy, blnFinish) {
+  enactMove(dx, dy) {
     const self = this
 
     dx = Math.ceil(dx)
@@ -165,7 +168,6 @@ export default class relationships {
       nd.translateWith({ dx, dy })
 
       // console.log("yPos ", i, node.options.yPos);
-
       // only snap and show guidelines for primary moving node, none of its children
       if (i === 0 && nd.options.id !== self.slate.tempNodeId) {
         // const nbb = node.vect.getBBox();
@@ -195,10 +197,6 @@ export default class relationships {
 
     self._dx = dx
     self._dy = dy
-
-    if (blnFinish) {
-      self.finishDrag(false)
-    }
   }
 
   _broadcast(pkg) {

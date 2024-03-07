@@ -283,7 +283,6 @@ export default class collab {
         self.slate.toggleFilters(true, null, true)
         self.slate.nodes.moveNodes(pkg, { animate: pkg.data.dur > 0 })
         self.slate.birdsEye?.nodeChanged(pkg)
-
         self.closeNodeSpecifics(pkg)
       },
 
@@ -576,34 +575,38 @@ export default class collab {
       }
     )
 
+    // a single map with a nodeId as the key and the last collab event as its value
     self.collabPackage.map = self.collabPackage.doc.getMap(
       self.constants.mapName
     )
 
-    self.collabPackage.doc.on('updateV2', (update, origin, doc, tr) => {
-      const pkgs = doc
-        .getMap(self.constants.mapName)
-        .get(self.constants.lastMapDocName)
-      pkgs?.forEach((p) => {
-        if (p.type === self.constants.onCollaborationUserCustomDataChanged) {
-          // for both local and remote - call this function so users are updated
-          self.slate.events.onCollaborationUsersChanged?.(
-            self.collabPackage.users
-          )
-        } else {
-          if (p.data.clientID !== self.collabPackage.doc.clientID) {
-            self.slate.collab.invoke(p)
-            // the onCollaboration event is fired for OTHERS
-            self.slate.events?.onCollaboration?.apply(self, [
-              p,
-              self.collabPackage.users,
-            ])
-          } else if (p.data.clientID === self.collabPackage.doc.clientID) {
-            // the onSlateChanged is fired for the initiator only
+    self.collabPackage.map.observe((e) => {
+      e.changes.keys.forEach((change, key) => {
+        if (change.action === 'add' || change.action === 'update') {
+          const p = self.collabPackage.map.get(key)
+          if (p.type === self.constants.onCollaborationnUserCustomDataChanged) {
+            // for both local and remote - call this function so users are updated
+            self.slate.events.onCollaborationUsersChanged?.(
+              self.collabPackage.users
+            )
+          } else {
+            // conflicts here are already resolved...
+            // but collab only have to fire if there
+            // is more than one user on the slate
+            if (
+              self.collabPackage.users.length > 1 &&
+              self.collabPackage.init &&
+              p.data.clientID !== self.collabPackage?.doc?.clientID
+            ) {
+              self.slate.collab.invoke(p)
+            }
+            // broadcast change so slate is saved
             self.slate.events?.onSlateChanged?.apply(self, [
               p,
               self.collabPackage.users,
             ])
+
+            self.collabPackage.init = true
           }
         }
       })
@@ -691,6 +694,11 @@ export default class collab {
     self.collabPackage?.provider?.destroy()
   }
 
+  currentCollaborators() {
+    const self = this
+    return self.collabPackage?.users || []
+  }
+
   updateUserData(pkg) {
     const self = this
     if (self.collabPackage) {
@@ -743,10 +751,29 @@ export default class collab {
 
       // these will only exist if allowCollaboration: true on the slate
       if (self.collabPackage?.doc && self.collabPackage?.map) {
-        packages.forEach(
-          (p) => (p.data.clientID = self.collabPackage.doc.clientID)
-        )
-        self.collabPackage.map.set(self.constants.lastMapDocName, packages)
+        packages.forEach((p) => {
+          p.data.clientID = self.collabPackage.doc.clientID
+          if (p.data?.nodeOptions) {
+            // to ensure each node is correctly CRDT-resolved
+            // with yJS independently, the moveNodes must be broken up so
+            // each node id is set directly on the YMap.
+            p.data.nodeOptions?.forEach((nx, ind) => {
+              const indivCollab = cloneDeep(p)
+              indivCollab.data.nodeOptions = [nx]
+              if (p.data?.textPositions) {
+                indivCollab.data.textPositions = [p.data?.textPositions[ind]]
+              }
+              const indivAssocs = p.data?.associations.filter(
+                (a) => a.childId === nx.id || a.parentId === nx.id
+              )
+              indivCollab.data.associations = indivAssocs
+              self.collabPackage.map.set(nx.id, indivCollab)
+            })
+          } else {
+            // none nodeOptions based collaborations
+            self.collabPackage.map.set(p.data.id || 'slate', p)
+          }
+        })
       }
     }
   }
