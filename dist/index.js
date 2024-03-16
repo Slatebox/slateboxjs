@@ -9957,7 +9957,8 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 "websocketParams"
             ],
             onCollaborationUserCustomDataChanged: "onCollaborationUserCustomDataChanged",
-            onNodeAITextChanged: "onNodeAITextChanged"
+            onNodeAITextChanged: "onNodeAITextChanged",
+            onSlateAISet: "onSlateAISet"
         };
         if (!(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).localRecipients) (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).localRecipients = [];
         this.xyMap = {};
@@ -10067,7 +10068,6 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 self.closeNodeSpecifics(pkg);
             },
             onNodeAdded (pkg) {
-                console.log("onNodeAdded", pkg);
                 resetMultiSelect();
                 if (pkg.data.id) {
                     const cn = self.slate.nodes.one(pkg.data.id);
@@ -10402,17 +10402,17 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                         if (// self.collabPackage.users.length > 1 &&
                         self.collabPackage.init && p.data.clientID !== self.collabPackage?.doc?.clientID) self.slate.collab.invoke(p);
                         // broadcast change so slate is saved
-                        console.log("checking type for save", p.type, p.data.clientID, self.collabPackage?.doc?.clientID);
-                        // not needed for onNodeAITextChanged events because only one can be the "host"
+                        // not needed for ai events because only one can be the "host"
                         // and propogate the changes to the other slates -- so do not invoke the save command
                         // for other slates
-                        if (p.type !== self.constants.onNodeAITextChanged || p.type === self.constants.onNodeAITextChanged && p.data.clientID === self.collabPackage?.doc?.clientID) {
-                            console.log("invoking slate change", p.type);
-                            self.slate.events?.onSlateChanged?.apply(self, [
-                                p,
-                                self.collabPackage.users
-                            ]);
-                        }
+                        const isNodeAIType = [
+                            self.constants.onNodeAITextChanged
+                        ].includes(p.type);
+                        // const isSlateAIType = [self.constants.onSlateAISet].includes(p.type)
+                        if (!isNodeAIType || isNodeAIType && p.data.clientID === self.collabPackage?.doc?.clientID) self.slate.events?.onSlateChanged?.apply(self, [
+                            p,
+                            self.collabPackage.users
+                        ]);
                         self.collabPackage.init = true;
                     }
                 }

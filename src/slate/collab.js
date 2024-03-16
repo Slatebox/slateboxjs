@@ -610,12 +610,15 @@ export default class collab {
               self.slate.collab.invoke(p)
             }
             // broadcast change so slate is saved
-            // not needed for onNodeAITextChanged events because only one can be the "host"
+            // not needed for ai events because only one can be the "host"
             // and propogate the changes to the other slates -- so do not invoke the save command
             // for other slates
+            const isNodeAIType = [self.constants.onNodeAITextChanged].includes(
+              p.type
+            )
             if (
-              p.type !== self.constants.onNodeAITextChanged ||
-              (p.type === self.constants.onNodeAITextChanged &&
+              !isNodeAIType ||
+              (isNodeAIType &&
                 p.data.clientID === self.collabPackage?.doc?.clientID)
             ) {
               self.slate.events?.onSlateChanged?.apply(self, [
@@ -623,7 +626,6 @@ export default class collab {
                 self.collabPackage.users,
               ])
             }
-
             self.collabPackage.init = true
           }
         }
