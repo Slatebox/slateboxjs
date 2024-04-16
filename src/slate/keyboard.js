@@ -8,6 +8,7 @@ export default class keyboard {
       self.slate = slate
       self.bindGlobalUp = self.keyUp.bind(self)
       self.bindGlobalDown = self.keyDown.bind(self)
+      self.span = 0
       self.bindGlobal()
     }
   }
@@ -49,32 +50,34 @@ export default class keyboard {
         case 39:
         case 40: {
           if (blnKeyDown) {
-            let span = 2
             if (self.slate.options.viewPort.zoom.r >= 1) {
-              span = 1
+              self.span += 1
             } else if (self.slate.options.viewPort.zoom.r <= 0.5) {
-              span = 5
+              self.span += 5
+            } else {
+              self.span += 2
             }
             node.relationships._initDrag(self, e)
             if (key === 37) {
               // left
-              node.relationships.enactMove(-span, 0, true)
+              node.relationships.enactMove(-self.span, 0, true)
             } else if (key === 38) {
               // up
-              node.relationships.enactMove(0, -span, true)
+              node.relationships.enactMove(0, -self.span, true)
             } else if (key === 39) {
               // right
               if (self.slate.isCtrl) {
                 node.connectors.addNode(true)
               } else {
-                node.relationships.enactMove(span, 0, true)
+                node.relationships.enactMove(self.span, 0, true)
               }
             } else if (key === 40) {
               // down
-              node.relationships.enactMove(0, span, true)
+              node.relationships.enactMove(0, self.span, true)
             }
             node.relationships.showMenu()
           } else {
+            self.span = 0
             node.relationships.finishDrag(true)
           }
           break
@@ -87,10 +90,12 @@ export default class keyboard {
 
   keyUp(e) {
     this.key(e, false)
+    this.keyboardActive = false
   }
 
   keyDown(e) {
     this.key(e, true)
+    this.keyboardActive = true
     // always have an escape hatch
     setTimeout(() => {
       if (self.slate) {

@@ -103,7 +103,9 @@ export default class relationships {
       if (self.slate.options.debugMode) {
         nd.debugPosition()
       }
-      nd.editor.setTextOffset()
+      if (!self.slate.keyboardActive) {
+        nd.editor.setTextOffset()
+      }
     })
 
     refreshRelationships({
@@ -169,7 +171,11 @@ export default class relationships {
 
       // console.log("yPos ", i, node.options.yPos);
       // only snap and show guidelines for primary moving node, none of its children
-      if (i === 0 && nd.options.id !== self.slate.tempNodeId) {
+      if (
+        i === 0 &&
+        nd.options.id !== self.slate.tempNodeId &&
+        !self.slate.keyboardActive
+      ) {
         // const nbb = node.vect.getBBox();
         const nearest = self.kdTree.knn([nd.options.xPos, nd.options.yPos], 2) // , 1);
 

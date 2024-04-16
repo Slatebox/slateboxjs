@@ -156,20 +156,29 @@ export default class collab {
 
       onNodeAdded(pkg) {
         resetMultiSelect()
-        if (pkg.data.id) {
-          const cn = self.slate.nodes.one(pkg.data.id)
-          cn?.connectors.createNode(
-            pkg.data.skipCenter,
-            pkg.data.options,
-            pkg.data.targetXPos,
-            pkg.data.targetYPos
-          )
-        } else if (pkg.data.multiSelectCopy) {
+        if (pkg.data?.multiSelectCopy) {
           // this is a multiSelection copy
           self.slate.multiSelection.createCopiedNodes(
             pkg.data.nodeOptions,
             pkg.data.assocDetails
           )
+        } else if (pkg.data.id) {
+          const exists = self.slate.nodes.one(pkg.data.options.id)
+          if (!exists) {
+            // by design: the id is the parent of the node being created
+            const cn = self.slate.nodes.one(pkg.data.id)
+            cn?.connectors.createNode(
+              pkg.data.skipCenter,
+              pkg.data.options,
+              pkg.data.targetXPos,
+              pkg.data.targetYPos
+            )
+          } else {
+            console.log(
+              'node id already existed, caught dup',
+              pkg.data.options.id
+            )
+          }
         } else {
           // straight up node addition
           let nodesToCreate = pkg.data.nodeOptions
@@ -177,8 +186,12 @@ export default class collab {
             nodesToCreate = [nodesToCreate]
           }
           nodesToCreate.forEach((nOpts) => {
-            const n = new node(nOpts)
-            self.slate.nodes.add(n)
+            // sanity check
+            const exists = self.slate.nodes.one(nOpts.id)
+            if (!exists) {
+              const n = new node(nOpts)
+              self.slate.nodes.add(n)
+            }
           })
         }
       },
@@ -613,18 +626,20 @@ export default class collab {
             // not needed for ai events because only one can be the "host"
             // and propogate the changes to the other slates -- so do not invoke the save command
             // for other slates
-            const isNodeAIType = [self.constants.onNodeAITextChanged].includes(
-              p.type
-            )
-            if (
-              !isNodeAIType ||
-              (isNodeAIType &&
-                p.data.clientID === self.collabPackage?.doc?.clientID)
-            ) {
-              self.slate.events?.onSlateChanged?.apply(self, [
-                p,
-                self.collabPackage.users,
-              ])
+            if (p.data.clientID === self.collabPackage?.doc?.clientID) {
+              const isNodeAIType = [
+                self.constants.onNodeAITextChanged,
+              ].includes(p.type)
+              if (
+                !isNodeAIType ||
+                (isNodeAIType &&
+                  p.data.clientID === self.collabPackage?.doc?.clientID)
+              ) {
+                self.slate.events?.onSlateChanged?.apply(self, [
+                  p,
+                  self.collabPackage.users,
+                ])
+              }
             }
             self.collabPackage.init = true
           }
@@ -784,6 +799,8 @@ export default class collab {
             }
             p.data.nodeOptions.forEach((nx, ind) => {
               const indivCollab = cloneDeep(p)
+              // in the onNodeAdded, the data.id !== nx.options.id (737... vs 22C...)
+              indivCollab.data.id = nx.id
               indivCollab.data.nodeOptions = asSingle ? nx : [nx] // repackage it back the way it originally came in
               if (p.data?.textPositions) {
                 indivCollab.data.textPositions = [p.data?.textPositions[ind]]

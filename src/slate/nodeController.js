@@ -184,7 +184,7 @@ export default class nodeController {
     const orient = self.slate.getOrientation(null, true) // - always pin to no zoom (1)
     const allMoves = []
     self.allNodes.forEach((n, i) => {
-      if (layout.exportNodes[n.options.id]) {
+      if (layout.exportNodes?.[n.options.id]) {
         let { x, y } = layout.exportNodes[n.options.id]
         x = parseFloat(x)
         y = parseFloat(y)

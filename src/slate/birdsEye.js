@@ -248,14 +248,14 @@ export default class birdsEye {
   nodeDeleted(pkg) {
     if (this.corner) {
       const _node = this.corner.nodes.one(pkg.data.id)
-      _node.del()
+      _node?.del()
     }
   }
 
   nodeDetatched(pkg) {
     if (this.corner) {
       const _node = this.corner.nodes.one(pkg.data.id)
-      _node.relationships.detatch()
+      _node?.relationships.detatch()
     }
   }
 

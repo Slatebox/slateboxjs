@@ -9957,8 +9957,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 "websocketParams"
             ],
             onCollaborationUserCustomDataChanged: "onCollaborationUserCustomDataChanged",
-            onNodeAITextChanged: "onNodeAITextChanged",
-            onSlateAISet: "onSlateAISet"
+            onNodeAITextChanged: "onNodeAITextChanged"
         };
         if (!(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).localRecipients) (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).localRecipients = [];
         this.xyMap = {};
@@ -10069,20 +10068,32 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             },
             onNodeAdded (pkg) {
                 resetMultiSelect();
-                if (pkg.data.id) {
-                    const cn = self.slate.nodes.one(pkg.data.id);
-                    cn?.connectors.createNode(pkg.data.skipCenter, pkg.data.options, pkg.data.targetXPos, pkg.data.targetYPos);
-                } else if (pkg.data.multiSelectCopy) // this is a multiSelection copy
-                self.slate.multiSelection.createCopiedNodes(pkg.data.nodeOptions, pkg.data.assocDetails);
-                else {
+                console.log("adding node", pkg);
+                if (pkg.data?.multiSelectCopy) {
+                    // this is a multiSelection copy
+                    console.log("created copied nodes", pkg);
+                    self.slate.multiSelection.createCopiedNodes(pkg.data.nodeOptions, pkg.data.assocDetails);
+                } else if (pkg.data.id) {
+                    const exists = self.slate.nodes.one(pkg.data.options.id);
+                    if (!exists) {
+                        // by design: the id is the parent of the node being created
+                        const cn = self.slate.nodes.one(pkg.data.id);
+                        cn?.connectors.createNode(pkg.data.skipCenter, pkg.data.options, pkg.data.targetXPos, pkg.data.targetYPos);
+                    } else console.log("node id already existed, caught dup", pkg.data.options.id);
+                } else {
                     // straight up node addition
                     let nodesToCreate = pkg.data.nodeOptions;
                     if (!Array.isArray(nodesToCreate)) nodesToCreate = [
                         nodesToCreate
                     ];
                     nodesToCreate.forEach((nOpts)=>{
-                        const n = new (0, $f3f671e190122470$export$2e2bcd8739ae039)(nOpts);
-                        self.slate.nodes.add(n);
+                        // sanity check
+                        const exists = self.slate.nodes.one(nOpts.id);
+                        console.log("did node exist", !!exists, nOpts.id);
+                        if (!exists) {
+                            const n = new (0, $f3f671e190122470$export$2e2bcd8739ae039)(nOpts);
+                            self.slate.nodes.add(n);
+                        }
                     });
                 }
             },
@@ -10405,14 +10416,15 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                         // not needed for ai events because only one can be the "host"
                         // and propogate the changes to the other slates -- so do not invoke the save command
                         // for other slates
-                        const isNodeAIType = [
-                            self.constants.onNodeAITextChanged
-                        ].includes(p.type);
-                        // const isSlateAIType = [self.constants.onSlateAISet].includes(p.type)
-                        if (!isNodeAIType || isNodeAIType && p.data.clientID === self.collabPackage?.doc?.clientID) self.slate.events?.onSlateChanged?.apply(self, [
-                            p,
-                            self.collabPackage.users
-                        ]);
+                        if (p.data.clientID === self.collabPackage?.doc?.clientID) {
+                            const isNodeAIType = [
+                                self.constants.onNodeAITextChanged
+                            ].includes(p.type);
+                            if (!isNodeAIType || isNodeAIType && p.data.clientID === self.collabPackage?.doc?.clientID) self.slate.events?.onSlateChanged?.apply(self, [
+                                p,
+                                self.collabPackage.users
+                            ]);
+                        }
                         self.collabPackage.init = true;
                     }
                 }
@@ -10507,6 +10519,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             // these will only exist if allowCollaboration: true on the slate
             if (self.collabPackage?.doc && self.collabPackage?.map) packages.forEach((p)=>{
                 p.data.clientID = self.collabPackage.doc.clientID;
+                console.log("checking collab package", p.type, p);
                 if (p.data?.nodeOptions) {
                     // to ensure each node is correctly CRDT-resolved
                     // with yJS independently, the moveNodes must be broken up so
@@ -10520,6 +10533,8 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                     }
                     p.data.nodeOptions.forEach((nx, ind)=>{
                         const indivCollab = (0, $5OpyM$lodashclonedeep)(p);
+                        // in the onNodeAdded, the data.id !== nx.options.id (737... vs 22C...)
+                        indivCollab.data.id = nx.id;
                         indivCollab.data.nodeOptions = asSingle ? nx : [
                             nx
                         ] // repackage it back the way it originally came in
@@ -11001,7 +11016,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             nd.vect.currentDx = 0;
             nd.vect.currentDy = 0;
             if (self.slate.options.debugMode) nd.debugPosition();
-            nd.editor.setTextOffset();
+            if (!self.slate.keyboardActive) nd.editor.setTextOffset();
         });
         (0, $f7a6c59624db8286$export$2e2bcd8739ae039)({
             relationships: self.relationshipsToRefresh,
@@ -11058,7 +11073,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             });
             // console.log("yPos ", i, node.options.yPos);
             // only snap and show guidelines for primary moving node, none of its children
-            if (i === 0 && nd.options.id !== self.slate.tempNodeId) {
+            if (i === 0 && nd.options.id !== self.slate.tempNodeId && !self.slate.keyboardActive) {
                 // const nbb = node.vect.getBBox();
                 const nearest = self.kdTree.knn([
                     nd.options.xPos,
@@ -13268,7 +13283,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         ;
         const allMoves = [];
         self.allNodes.forEach((n, i)=>{
-            if (layout.exportNodes[n.options.id]) {
+            if (layout.exportNodes?.[n.options.id]) {
                 let { x: x, y: y } = layout.exportNodes[n.options.id];
                 x = parseFloat(x);
                 y = parseFloat(y);
@@ -14782,13 +14797,13 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
     nodeDeleted(pkg) {
         if (this.corner) {
             const _node = this.corner.nodes.one(pkg.data.id);
-            _node.del();
+            _node?.del();
         }
     }
     nodeDetatched(pkg) {
         if (this.corner) {
             const _node = this.corner.nodes.one(pkg.data.id);
-            _node.relationships.detatch();
+            _node?.relationships.detatch();
         }
     }
     reload(json) {
@@ -15638,6 +15653,7 @@ class $07361c58e711f582$export$2e2bcd8739ae039 {
             self1.slate = slate;
             self1.bindGlobalUp = self1.keyUp.bind(self1);
             self1.bindGlobalDown = self1.keyDown.bind(self1);
+            self1.span = 0;
             self1.bindGlobal();
         }
     }
@@ -15675,22 +15691,25 @@ class $07361c58e711f582$export$2e2bcd8739ae039 {
             case 39:
             case 40:
                 if (blnKeyDown) {
-                    let span = 2;
-                    if (self1.slate.options.viewPort.zoom.r >= 1) span = 1;
-                    else if (self1.slate.options.viewPort.zoom.r <= 0.5) span = 5;
+                    if (self1.slate.options.viewPort.zoom.r >= 1) self1.span += 1;
+                    else if (self1.slate.options.viewPort.zoom.r <= 0.5) self1.span += 5;
+                    else self1.span += 2;
                     node.relationships._initDrag(self1, e);
                     if (key === 37) // left
-                    node.relationships.enactMove(-span, 0, true);
+                    node.relationships.enactMove(-self1.span, 0, true);
                     else if (key === 38) // up
-                    node.relationships.enactMove(0, -span, true);
+                    node.relationships.enactMove(0, -self1.span, true);
                     else if (key === 39) {
                         // right
                         if (self1.slate.isCtrl) node.connectors.addNode(true);
-                        else node.relationships.enactMove(span, 0, true);
+                        else node.relationships.enactMove(self1.span, 0, true);
                     } else if (key === 40) // down
-                    node.relationships.enactMove(0, span, true);
+                    node.relationships.enactMove(0, self1.span, true);
                     node.relationships.showMenu();
-                } else node.relationships.finishDrag(true);
+                } else {
+                    self1.span = 0;
+                    node.relationships.finishDrag(true);
+                }
                 break;
             default:
                 break;
@@ -15698,9 +15717,11 @@ class $07361c58e711f582$export$2e2bcd8739ae039 {
     }
     keyUp(e) {
         this.key(e, false);
+        this.keyboardActive = false;
     }
     keyDown(e) {
         this.key(e, true);
+        this.keyboardActive = true;
         // always have an escape hatch
         setTimeout(()=>{
             if (self.slate) {

@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [2.3.0] - 2024-04-15
+
+- YJS collab improvements
+
 ## [1.1.0] - 2022-10-30
 
 - Bug fixes, theme improvements
