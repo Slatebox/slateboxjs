@@ -3080,27 +3080,29 @@ export const R = (function () {
       }
       const { node } = dragi.el
       var o
-      const next = node.nextSibling
-      const parent = node.parentNode
-      const { display } = node.style
-      g.win.opera && parent.removeChild(node)
-      node.style.display = 'none'
-      o = dragi.el.paper.getElementByPoint(x, y)
-      node.style.display = display
-      g.win.opera &&
-        (next ? parent.insertBefore(node, next) : parent.appendChild(node))
-      o && eve(`raphael.drag.over.${dragi.el.id}`, dragi.el, o)
-      x += scrollX
-      y += scrollY
-      eve(
-        `raphael.drag.move.${dragi.el.id}`,
-        dragi.move_scope || dragi.el,
-        x - dragi.el._drag.x,
-        y - dragi.el._drag.y,
-        x,
-        y,
-        e
-      )
+      if (node) {
+        const next = node.nextSibling
+        const parent = node.parentNode
+        const { display } = node.style
+        g.win.opera && parent.removeChild(node)
+        node.style.display = 'none'
+        o = dragi.el.paper.getElementByPoint(x, y)
+        node.style.display = display
+        g.win.opera &&
+          (next ? parent.insertBefore(node, next) : parent.appendChild(node))
+        o && eve(`raphael.drag.over.${dragi.el.id}`, dragi.el, o)
+        x += scrollX
+        y += scrollY
+        eve(
+          `raphael.drag.move.${dragi.el.id}`,
+          dragi.move_scope || dragi.el,
+          x - dragi.el._drag.x,
+          y - dragi.el._drag.y,
+          x,
+          y,
+          e
+        )
+      }
     }
   }
   var dragUp = function (e) {

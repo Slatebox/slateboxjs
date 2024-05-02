@@ -29,6 +29,9 @@ export default class node extends base {
       lineColor: '#000000',
       lineOpacity: 1,
       lineEffect: '',
+      lineType: 'bezier',
+      lineCurveType: 'cubic',
+      lineCurviness: 0.5,
       lineWidth: 5,
       opacity: 1,
       textOpacity: 1,
@@ -269,6 +272,9 @@ export default class node extends base {
       lineColor: obj.lineColor,
       lineEffect: obj.lineEffect,
       lineOpacity: obj.lineOpacity,
+      lineType: obj.lineType,
+      lineCurviness: obj.lineCurviness,
+      lineCurveType: obj.lineCurveType,
       lineWidth: lineWidthOverride || obj.lineWidth,
     }
   }

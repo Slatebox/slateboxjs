@@ -454,11 +454,18 @@ export default class relationships {
         child: _node,
         lineColor: assocPkg.lineColor || this.node.options.lineColor,
         lineWidth: assocPkg.lineWidth || this.node.options.lineWidth,
+        lineType: assocPkg.lineType || this.node.options.lineType,
+        lineCurveType:
+          assocPkg.lineCurveType || this.node.options.lineCurveType,
+        lineCurviness:
+          assocPkg.lineCurviness || this.node.options.lineCurviness,
         lineOpacity:
           assocPkg.lineOpacity != null
             ? assocPkg.lineOpacity
             : this.node.options.lineOpacity,
         lineEffect: assocPkg.lineEffect || this.node.options.lineEffect,
+        lockedEndpoint:
+          assocPkg.lockedEndpoint || this.node.options.lockedEndpoint,
         blnStraight: assocPkg.isStraightLine || false,
         showParentArrow: assocPkg.showParentArrow || false,
         showChildArrow: assocPkg.showChildArrow || true,
@@ -488,6 +495,9 @@ export default class relationships {
       lineOpacity: 1,
       lineEffect: '',
       lineWidth: 20,
+      lineType: 'bezier',
+      lineCurveType: 'cubic',
+      lineCurviness: 0.5,
       blnStraight: false,
       showParentArrow: false,
       showChildArrow: true,
@@ -512,7 +522,17 @@ export default class relationships {
     const endPoint = { x: 200, y: 200 }
     if (!association.line) {
       Object.assign(association, {
-        line: paper.path(getHorizontalCurve(origPoint, endPoint)).attr(_attr),
+        line: paper
+          .path(
+            getHorizontalCurve(
+              origPoint,
+              endPoint,
+              association.lineCurviness,
+              association.lineType,
+              association.lineCurveType
+            )
+          )
+          .attr(_attr),
       })
     }
     if (association.child && association.parent) {

@@ -1141,23 +1141,43 @@ export default class slate extends base {
         })
         self.collab.invoke({
           type: 'onLinePropertiesChanged',
-          data: {
-            id,
-            prop: 'lineEffect',
-            val: styleBase.lineEffect,
-            associationId: a.id,
-            index: ind,
-          },
-        })
-        self.collab.invoke({
-          type: 'onLinePropertiesChanged',
-          data: {
-            id,
-            prop: 'lineWidth',
-            val: styleBase.lineWidth,
-            associationId: a.id,
-            index: ind,
-          },
+          data: [
+            {
+              id,
+              prop: 'lineEffect',
+              val: styleBase.lineEffect,
+              associationId: a.id,
+              index: ind,
+            },
+            {
+              id,
+              prop: 'lineWidth',
+              val: styleBase.lineWidth,
+              associationId: a.id,
+              index: ind,
+            },
+            {
+              id,
+              prop: 'lineType',
+              val: styleBase.lineType,
+              associationId: a.id,
+              index: ind,
+            },
+            {
+              id,
+              prop: 'lineCurveType',
+              val: styleBase.lineCurveType,
+              associationId: a.id,
+              index: ind,
+            },
+            {
+              id,
+              prop: 'lineCurviness',
+              val: styleBase.lineCurviness,
+              associationId: a.id,
+              index: ind,
+            },
+          ],
         })
       })
     }

@@ -112,6 +112,9 @@ export default class nodeController {
             parentId: a.parent.options.id,
             childId: a.child.options.id,
             lineWidth: a.lineWidth,
+            lineType: a.lineType,
+            lineCurveType: a.lineCurveType,
+            lineCurviness: a.lineCurviness,
             lineOpacity: a.lineOpacity,
             showParentArrow: a.showParentArrow,
             showChildArrow: a.showChildArrow,
@@ -711,6 +714,7 @@ export default class nodeController {
     ]
     _node.options.isEllipse =
       _node.options.isEllipse || _node.options.vectorPath === 'ellipse'
+    let potentiallyResize = false
     switch (_node.options.vectorPath) {
       case 'ellipse':
         _node.options.vectorPath = getTransformedPath(
@@ -731,6 +735,7 @@ export default class nodeController {
         )
         break
       default:
+        potentiallyResize = true
         // _node.options.vectorPath = getTransformedPath(
         //   _node.options.vectorPath,
         //   _transforms
@@ -851,6 +856,11 @@ export default class nodeController {
 
     if (!_node.options.link || !_node.options.link.show) {
       _node.link.hide()
+    }
+
+    //
+    if (potentiallyResize) {
+      _node.resize.set(_width, _height)
     }
 
     // apply any node filters to vect and/or text

@@ -97,7 +97,8 @@ export default class multiSelection {
         init() {
           self.hideIcons()
           multiSelection.hideConnections(
-            self.relationshipsToTranslate.concat(self.relationshipsToRefresh)
+            self.relationshipsToTranslate.concat(self.relationshipsToRefresh),
+            self.slate.isCtrl
           )
           self.moveX = 0
           self.moveY = 0
@@ -151,7 +152,8 @@ export default class multiSelection {
         init() {
           self.hideIcons()
           multiSelection.hideConnections(
-            self.relationshipsToTranslate.concat(self.relationshipsToRefresh)
+            self.relationshipsToTranslate.concat(self.relationshipsToRefresh),
+            self.slate.isCtrl
           )
           self.moveX = 0
           self.moveY = 0
@@ -445,7 +447,6 @@ export default class multiSelection {
       })
       copy.mousedown((e) => {
         utils.stopEvent(e)
-        const snap = self.slate.snapshot()
         const nGroupId = self.selectedNodes[0].options.groupId
           ? utils.guid().replace(/-/gi, '').substring(0, 8).toUpperCase()
           : null
@@ -851,10 +852,12 @@ export default class multiSelection {
     }
   }
 
-  static hideConnections(connections) {
-    connections.forEach((c) => {
-      c.line.hide()
-    })
+  static hideConnections(connections, isCtrl) {
+    if (!isCtrl) {
+      connections.forEach((c) => {
+        c.line.hide()
+      })
+    }
   }
 
   static showConnections(connections) {

@@ -340,17 +340,17 @@ export default class utils {
     const useOrigVectorHeight = origVectHeight ?? currentVectHeight
 
     if (!isCtrl && isCustom && useOrigVectorWidth && useOrigVectorHeight) {
-      const max = Math.max(transWidth, transHeight)
-      // keep it proportional to the original dimensions unless ctrl is pressed while resizing
-      if (max === transWidth) {
-        // change width
-        transHeight = (useOrigVectorHeight * transWidth) / useOrigVectorWidth
-        transWidth = (useOrigVectorWidth * transHeight) / useOrigVectorHeight
-      } else {
-        // change height
-        transWidth = (useOrigVectorWidth * transHeight) / useOrigVectorHeight
-        transHeight = (useOrigVectorHeight * transWidth) / useOrigVectorWidth
-      }
+      // const max = Math.max(transWidth, transHeight)
+      // // keep it proportional to the original dimensions unless ctrl is pressed while resizing
+      // if (max === transWidth) {
+      // change width
+      transHeight = (useOrigVectorHeight * transWidth) / useOrigVectorWidth
+      transWidth = (useOrigVectorWidth * transHeight) / useOrigVectorHeight
+      // } else {
+      //   // change height
+      //   transWidth = (useOrigVectorWidth * transHeight) / useOrigVectorHeight
+      //   transHeight = (useOrigVectorHeight * transWidth) / useOrigVectorWidth
+      // }
     }
     return { transWidth, transHeight }
   }
@@ -484,6 +484,94 @@ export default class utils {
     return whiteContrast > blackContrast ? '#ffffff' : '#000000'
   }
 
+  // https://gist.github.com/iconifyit/958e7abba71806d663de6c2c273dc0da
+  static splitPath(pathData) {
+    function pathToAbsoluteSubPaths(path_string) {
+      var path_commands = Raphael.parsePathString(path_string),
+        end_point = [0, 0],
+        sub_paths = [],
+        command = [],
+        i = 0
+
+      while (i < path_commands.length) {
+        command = path_commands[i]
+        end_point = getNextEndPoint(end_point, command)
+        if (command[0] === 'm') {
+          command = ['M', end_point[0], end_point[1]]
+        }
+        var sub_path = [command.join(' ')]
+
+        i++
+
+        while (!endSubPath(path_commands, i)) {
+          command = path_commands[i]
+          sub_path.push(command.join(' '))
+          end_point = getNextEndPoint(end_point, command)
+          i++
+        }
+
+        sub_paths.push(sub_path.join(' '))
+      }
+
+      return sub_paths
+    }
+
+    function getNextEndPoint(end_point, command) {
+      var x = end_point[0],
+        y = end_point[1]
+      if (isRelative(command)) {
+        switch (command[0]) {
+          case 'h':
+            x += command[1]
+            break
+          case 'v':
+            y += command[1]
+            break
+          case 'z':
+            // back to [0,0]?
+            x = 0
+            y = 0
+            break
+          default:
+            x += command[command.length - 2]
+            y += command[command.length - 1]
+        }
+      } else {
+        switch (command[0]) {
+          case 'H':
+            x = command[1]
+            break
+          case 'V':
+            y = command[1]
+            break
+          case 'Z':
+            // back to [0,0]?
+            x = 0
+            y = 0
+            break
+          default:
+            x = command[command.length - 2]
+            y = command[command.length - 1]
+        }
+      }
+      return [x, y]
+    }
+
+    function isRelative(command) {
+      return command[0] === command[0].toLowerCase()
+    }
+
+    function endSubPath(commands, index) {
+      if (index >= commands.length) {
+        return true
+      } else {
+        return commands[index][0].toLowerCase() === 'm'
+      }
+    }
+
+    return pathToAbsoluteSubPaths(pathData)
+  }
+
   static _transformPath(original, transform) {
     const rpath = Raphael.transformPath(original, transform).toString()
     return rpath
@@ -542,6 +630,9 @@ export default class utils {
       'backgroundColor',
       'lineOpacity',
       'lineWidth',
+      'lineType',
+      'lineCurveType',
+      'lineCurviness',
       'lineEffect',
     ] // vectorPath
 
@@ -564,6 +655,34 @@ export default class utils {
     return nodeOptions
   }
 
+  // static getTextWidthByFontSize(str, fontSize) {
+  //   const widths = [
+  //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  //     0, 0, 0, 0, 0, 0, 0, 0.2796875, 0.2765625, 0.3546875, 0.5546875,
+  //     0.5546875, 0.8890625, 0.665625, 0.190625, 0.3328125, 0.3328125, 0.3890625,
+  //     0.5828125, 0.2765625, 0.3328125, 0.2765625, 0.3015625, 0.5546875,
+  //     0.5546875, 0.5546875, 0.5546875, 0.5546875, 0.5546875, 0.5546875,
+  //     0.5546875, 0.5546875, 0.5546875, 0.2765625, 0.2765625, 0.584375,
+  //     0.5828125, 0.584375, 0.5546875, 1.0140625, 0.665625, 0.665625, 0.721875,
+  //     0.721875, 0.665625, 0.609375, 0.7765625, 0.721875, 0.2765625, 0.5,
+  //     0.665625, 0.5546875, 0.8328125, 0.721875, 0.7765625, 0.665625, 0.7765625,
+  //     0.721875, 0.665625, 0.609375, 0.721875, 0.665625, 0.94375, 0.665625,
+  //     0.665625, 0.609375, 0.2765625, 0.3546875, 0.2765625, 0.4765625, 0.5546875,
+  //     0.3328125, 0.5546875, 0.5546875, 0.5, 0.5546875, 0.5546875, 0.2765625,
+  //     0.5546875, 0.5546875, 0.221875, 0.240625, 0.5, 0.221875, 0.8328125,
+  //     0.5546875, 0.5546875, 0.5546875, 0.5546875, 0.3328125, 0.5, 0.2765625,
+  //     0.5546875, 0.5, 0.721875, 0.5, 0.5, 0.5, 0.3546875, 0.259375, 0.353125,
+  //     0.5890625,
+  //   ]
+  //   const avg = 0.5279276315789471
+  //   return (
+  //     Array.from(str).reduce(
+  //       (acc, cur) => acc + (widths[cur.charCodeAt(0)] ?? avg),
+  //       0
+  //     ) * fontSize
+  //   )
+  // }
+
   // https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript
   static getTextWidth(text, font) {
     const splitText = text.split('\n')
@@ -572,6 +691,12 @@ export default class utils {
     splitText.forEach((t) => {
       // textWidthCanvas.setAttribute('id', `measuretext`)
       const context = textWidthCanvas.getContext('2d')
+      // I'm finding that the font should be reduced by ~22% in order to be accurate
+      const multiplier = 1 // 0.78
+      const fontSplit = font.split(' ')
+      font = `${fontSplit?.[0]} ${
+        parseFloat(fontSplit?.[1]?.replace(/pt/gi, '') ?? 1) * multiplier
+      }pt ${fontSplit?.[2]}`
       context.font = font
       metrics.push(context.measureText(t))
     })
@@ -581,8 +706,8 @@ export default class utils {
       (m) => (height += m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)
     )
     const red = {
-      width: Math.max(...metrics.map((m) => m.width)),
-      height,
+      width: Math.max(...metrics.map((m) => m.width)) + 10, // 10 for padding
+      height: height + 10, // add 10 for padding
     }
     return red
   }

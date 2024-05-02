@@ -3544,18 +3544,20 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             } else e.preventDefault();
             const { node: node } = dragi.el;
             var o;
-            const next = node.nextSibling;
-            const parent = node.parentNode;
-            const { display: display } = node.style;
-            g.win.opera && parent.removeChild(node);
-            node.style.display = "none";
-            o = dragi.el.paper.getElementByPoint(x, y);
-            node.style.display = display;
-            g.win.opera && (next ? parent.insertBefore(node, next) : parent.appendChild(node));
-            o && (0, $dacea6f50a09eb13$export$6b962911844bfb1e)(`raphael.drag.over.${dragi.el.id}`, dragi.el, o);
-            x += scrollX;
-            y += scrollY;
-            (0, $dacea6f50a09eb13$export$6b962911844bfb1e)(`raphael.drag.move.${dragi.el.id}`, dragi.move_scope || dragi.el, x - dragi.el._drag.x, y - dragi.el._drag.y, x, y, e);
+            if (node) {
+                const next = node.nextSibling;
+                const parent = node.parentNode;
+                const { display: display } = node.style;
+                g.win.opera && parent.removeChild(node);
+                node.style.display = "none";
+                o = dragi.el.paper.getElementByPoint(x, y);
+                node.style.display = display;
+                g.win.opera && (next ? parent.insertBefore(node, next) : parent.appendChild(node));
+                o && (0, $dacea6f50a09eb13$export$6b962911844bfb1e)(`raphael.drag.over.${dragi.el.id}`, dragi.el, o);
+                x += scrollX;
+                y += scrollY;
+                (0, $dacea6f50a09eb13$export$6b962911844bfb1e)(`raphael.drag.move.${dragi.el.id}`, dragi.move_scope || dragi.el, x - dragi.el._drag.x, y - dragi.el._drag.y, x, y, e);
+            }
         }
     };
     var dragUp = function(e) {
@@ -7895,17 +7897,17 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         const useOrigVectorWidth = origVectWidth ?? currentVectWidth;
         const useOrigVectorHeight = origVectHeight ?? currentVectHeight;
         if (!isCtrl && isCustom && useOrigVectorWidth && useOrigVectorHeight) {
-            const max = Math.max(transWidth, transHeight);
-            // keep it proportional to the original dimensions unless ctrl is pressed while resizing
-            if (max === transWidth) {
-                // change width
-                transHeight = useOrigVectorHeight * transWidth / useOrigVectorWidth;
-                transWidth = useOrigVectorWidth * transHeight / useOrigVectorHeight;
-            } else {
-                // change height
-                transWidth = useOrigVectorWidth * transHeight / useOrigVectorHeight;
-                transHeight = useOrigVectorHeight * transWidth / useOrigVectorWidth;
-            }
+            // const max = Math.max(transWidth, transHeight)
+            // // keep it proportional to the original dimensions unless ctrl is pressed while resizing
+            // if (max === transWidth) {
+            // change width
+            transHeight = useOrigVectorHeight * transWidth / useOrigVectorWidth;
+            transWidth = useOrigVectorWidth * transHeight / useOrigVectorHeight;
+        // } else {
+        //   // change height
+        //   transWidth = (useOrigVectorWidth * transHeight) / useOrigVectorHeight
+        //   transHeight = (useOrigVectorHeight * transWidth) / useOrigVectorWidth
+        // }
         }
         return {
             transWidth: transWidth,
@@ -8039,6 +8041,83 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         const blackContrast = getContrast(hex || "#fff", "#000000");
         return whiteContrast > blackContrast ? "#ffffff" : "#000000";
     }
+    // https://gist.github.com/iconifyit/958e7abba71806d663de6c2c273dc0da
+    static splitPath(pathData) {
+        function pathToAbsoluteSubPaths(path_string) {
+            var path_commands = (0, $65a92514e25c9f85$export$508faed300ccdfb).parsePathString(path_string), end_point = [
+                0,
+                0
+            ], sub_paths = [], command = [], i = 0;
+            while(i < path_commands.length){
+                command = path_commands[i];
+                end_point = getNextEndPoint(end_point, command);
+                if (command[0] === "m") command = [
+                    "M",
+                    end_point[0],
+                    end_point[1]
+                ];
+                var sub_path = [
+                    command.join(" ")
+                ];
+                i++;
+                while(!endSubPath(path_commands, i)){
+                    command = path_commands[i];
+                    sub_path.push(command.join(" "));
+                    end_point = getNextEndPoint(end_point, command);
+                    i++;
+                }
+                sub_paths.push(sub_path.join(" "));
+            }
+            return sub_paths;
+        }
+        function getNextEndPoint(end_point, command) {
+            var x = end_point[0], y = end_point[1];
+            if (isRelative(command)) switch(command[0]){
+                case "h":
+                    x += command[1];
+                    break;
+                case "v":
+                    y += command[1];
+                    break;
+                case "z":
+                    // back to [0,0]?
+                    x = 0;
+                    y = 0;
+                    break;
+                default:
+                    x += command[command.length - 2];
+                    y += command[command.length - 1];
+            }
+            else switch(command[0]){
+                case "H":
+                    x = command[1];
+                    break;
+                case "V":
+                    y = command[1];
+                    break;
+                case "Z":
+                    // back to [0,0]?
+                    x = 0;
+                    y = 0;
+                    break;
+                default:
+                    x = command[command.length - 2];
+                    y = command[command.length - 1];
+            }
+            return [
+                x,
+                y
+            ];
+        }
+        function isRelative(command) {
+            return command[0] === command[0].toLowerCase();
+        }
+        function endSubPath(commands, index) {
+            if (index >= commands.length) return true;
+            else return commands[index][0].toLowerCase() === "m";
+        }
+        return pathToAbsoluteSubPaths(pathData);
+    }
     static _transformPath(original, transform) {
         const rpath = (0, $65a92514e25c9f85$export$508faed300ccdfb).transformPath(original, transform).toString();
         return rpath;
@@ -8093,6 +8172,9 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             "backgroundColor",
             "lineOpacity",
             "lineWidth",
+            "lineType",
+            "lineCurveType",
+            "lineCurviness",
             "lineEffect"
         ] // vectorPath
         ;
@@ -8109,6 +8191,33 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         });
         return nodeOptions;
     }
+    // static getTextWidthByFontSize(str, fontSize) {
+    //   const widths = [
+    //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    //     0, 0, 0, 0, 0, 0, 0, 0.2796875, 0.2765625, 0.3546875, 0.5546875,
+    //     0.5546875, 0.8890625, 0.665625, 0.190625, 0.3328125, 0.3328125, 0.3890625,
+    //     0.5828125, 0.2765625, 0.3328125, 0.2765625, 0.3015625, 0.5546875,
+    //     0.5546875, 0.5546875, 0.5546875, 0.5546875, 0.5546875, 0.5546875,
+    //     0.5546875, 0.5546875, 0.5546875, 0.2765625, 0.2765625, 0.584375,
+    //     0.5828125, 0.584375, 0.5546875, 1.0140625, 0.665625, 0.665625, 0.721875,
+    //     0.721875, 0.665625, 0.609375, 0.7765625, 0.721875, 0.2765625, 0.5,
+    //     0.665625, 0.5546875, 0.8328125, 0.721875, 0.7765625, 0.665625, 0.7765625,
+    //     0.721875, 0.665625, 0.609375, 0.721875, 0.665625, 0.94375, 0.665625,
+    //     0.665625, 0.609375, 0.2765625, 0.3546875, 0.2765625, 0.4765625, 0.5546875,
+    //     0.3328125, 0.5546875, 0.5546875, 0.5, 0.5546875, 0.5546875, 0.2765625,
+    //     0.5546875, 0.5546875, 0.221875, 0.240625, 0.5, 0.221875, 0.8328125,
+    //     0.5546875, 0.5546875, 0.5546875, 0.5546875, 0.3328125, 0.5, 0.2765625,
+    //     0.5546875, 0.5, 0.721875, 0.5, 0.5, 0.5, 0.3546875, 0.259375, 0.353125,
+    //     0.5890625,
+    //   ]
+    //   const avg = 0.5279276315789471
+    //   return (
+    //     Array.from(str).reduce(
+    //       (acc, cur) => acc + (widths[cur.charCodeAt(0)] ?? avg),
+    //       0
+    //     ) * fontSize
+    //   )
+    // }
     // https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript
     static getTextWidth(text, font) {
         const splitText = text.split("\n");
@@ -8117,6 +8226,11 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         splitText.forEach((t)=>{
             // textWidthCanvas.setAttribute('id', `measuretext`)
             const context = textWidthCanvas.getContext("2d");
+            // I'm finding that the font should be reduced by ~22% in order to be accurate
+            const multiplier = 1 // 0.78
+            ;
+            const fontSplit = font.split(" ");
+            font = `${fontSplit?.[0]} ${parseFloat(fontSplit?.[1]?.replace(/pt/gi, "") ?? 1) * multiplier}pt ${fontSplit?.[2]}`;
             context.font = font;
             metrics.push(context.measureText(t));
         });
@@ -8124,8 +8238,8 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         let height = 0;
         metrics.forEach((m)=>height += m.fontBoundingBoxAscent + m.fontBoundingBoxDescent);
         const red = {
-            width: Math.max(...metrics.map((m)=>m.width)),
-            height: height
+            width: Math.max(...metrics.map((m)=>m.width)) + 10,
+            height: height + 10
         };
         return red;
     }
@@ -9242,6 +9356,9 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             lineColor: "#000000",
             lineOpacity: 1,
             lineEffect: "",
+            lineType: "bezier",
+            lineCurveType: "cubic",
+            lineCurviness: 0.5,
             lineWidth: 5,
             opacity: 1,
             textOpacity: 1,
@@ -9464,6 +9581,9 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             lineColor: obj.lineColor,
             lineEffect: obj.lineEffect,
             lineOpacity: obj.lineOpacity,
+            lineType: obj.lineType,
+            lineCurviness: obj.lineCurviness,
+            lineCurveType: obj.lineCurveType,
             lineWidth: lineWidthOverride || obj.lineWidth
         };
     }
@@ -10068,12 +10188,9 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             },
             onNodeAdded (pkg) {
                 resetMultiSelect();
-                console.log("adding node", pkg);
-                if (pkg.data?.multiSelectCopy) {
-                    // this is a multiSelection copy
-                    console.log("created copied nodes", pkg);
-                    self.slate.multiSelection.createCopiedNodes(pkg.data.nodeOptions, pkg.data.assocDetails);
-                } else if (pkg.data.id) {
+                if (pkg.data?.multiSelectCopy) // this is a multiSelection copy
+                self.slate.multiSelection.createCopiedNodes(pkg.data.nodeOptions, pkg.data.assocDetails);
+                else if (pkg.data.id) {
                     const exists = self.slate.nodes.one(pkg.data.options.id);
                     if (!exists) {
                         // by design: the id is the parent of the node being created
@@ -10089,7 +10206,6 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                     nodesToCreate.forEach((nOpts)=>{
                         // sanity check
                         const exists = self.slate.nodes.one(nOpts.id);
-                        console.log("did node exist", !!exists, nOpts.id);
                         if (!exists) {
                             const n = new (0, $f3f671e190122470$export$2e2bcd8739ae039)(nOpts);
                             self.slate.nodes.add(n);
@@ -10519,7 +10635,6 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             // these will only exist if allowCollaboration: true on the slate
             if (self.collabPackage?.doc && self.collabPackage?.map) packages.forEach((p)=>{
                 p.data.clientID = self.collabPackage.doc.clientID;
-                console.log("checking collab package", p.type, p);
                 if (p.data?.nodeOptions) {
                     // to ensure each node is correctly CRDT-resolved
                     // with yJS independently, the moveNodes must be broken up so
@@ -10562,7 +10677,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
 
 /* eslint-disable no-underscore-dangle */ /* eslint-disable no-sequences */ /* eslint-disable no-unused-expressions */ /* eslint-disable no-cond-assign */ function $3597cac994ae8502$export$2e2bcd8739ae039(pathNode, point) {
     const pathLength = pathNode.getTotalLength();
-    let precision = 64 // increase this value for better performance at a risk of worse point approximation; in future this should be scaled according to number of path segments (there could be a better solution)
+    let precision = 32 // increase this value for better performance at a risk of worse point approximation; in future this should be scaled according to number of path segments (there could be a better solution)
     ;
     let best;
     let bestLength;
@@ -10573,8 +10688,12 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         const dy = p.y - point.y;
         return dx * dx + dy * dy;
     }
+    function pointAtLength(val, mode) {
+        const getPAL = pathNode.getPointAtLength(val);
+        return getPAL;
+    }
     // linear scan for coarse approximation
-    for(let scan, scanLength = 0, scanDistance; scanLength <= pathLength; scanLength += precision)if ((scanDistance = distance2(scan = pathNode.getPointAtLength(scanLength))) < bestDistance) best = scan, bestLength = scanLength, bestDistance = scanDistance;
+    for(let scan, scanLength = 0, scanDistance; scanLength <= pathLength; scanLength += precision)if ((scanDistance = distance2(scan = pointAtLength(scanLength, "course"))) < bestDistance) best = scan, bestLength = scanLength, bestDistance = scanDistance;
     // binary search for precise estimate
     precision /= 2;
     while(precision > 0.5){
@@ -10584,8 +10703,8 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         let afterLength;
         let beforeDistance;
         let afterDistance;
-        if ((beforeLength = bestLength - precision) >= 0 && (beforeDistance = distance2(before = pathNode.getPointAtLength(beforeLength))) < bestDistance) best = before, bestLength = beforeLength, bestDistance = beforeDistance;
-        else if ((afterLength = bestLength + precision) <= pathLength && (afterDistance = distance2(after = pathNode.getPointAtLength(afterLength))) < bestDistance) best = after, bestLength = afterLength, bestDistance = afterDistance;
+        if ((beforeLength = bestLength - precision) >= 0 && (beforeDistance = distance2(before = pointAtLength(beforeLength, "before"))) < bestDistance) best = before, bestLength = beforeLength, bestDistance = beforeDistance;
+        else if ((afterLength = bestLength + precision) <= pathLength && (afterDistance = distance2(after = pointAtLength(afterLength, "after"))) < bestDistance) best = after, bestLength = afterLength, bestDistance = afterDistance;
         else precision /= 2;
     }
     return {
@@ -10596,21 +10715,90 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
 
 
 // returns a horizontally curved line
-function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint) {
+// export default function getHorizontalCurve(originPoint, endPoint) {
+//   const x1 = originPoint.x
+//   const y1 = originPoint.y
+//   const x2 = endPoint.x
+//   const y2 = endPoint.y
+//   const middlePointX = (x1 + x2) / 2
+//   return [
+//     'M',
+//     x1.toFixed(2),
+//     y1.toFixed(2),
+//     'C',
+//     middlePointX.toFixed(2),
+//     y1.toFixed(2),
+//     middlePointX.toFixed(2),
+//     y2.toFixed(2),
+//     x2.toFixed(2),
+//     y2.toFixed(2),
+//   ].join(' ')
+// }
+// Function to generate a horizontally curved line or a right-angle connection
+// Function to generate a dynamically curved line with the last segment straight towards the end point
+// Function to generate a dynamically curved line with the last segment straight towards the end point
+function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint, curveSwoop = 0.5, lineType = "bezier", curveType = "quadratic") {
     const x1 = originPoint.x;
     const y1 = originPoint.y;
-    const x2 = endPoint.x;
-    const y2 = endPoint.y;
-    const middlePointX = (x1 + x2) / 2;
+    let x2 = endPoint.x;
+    let y2 = endPoint.y;
+    // Determine the predominant direction of the connection
+    const dx = Math.abs(x2 - x1);
+    const dy = Math.abs(y2 - y1);
+    const approachAxis = dx > dy ? "vertical" : "horizontal";
+    if (lineType === "bezier") {
+        // Standard swoop for a natural cubic Bezier curve
+        const swoop = Math.min(dx, dy) * curveSwoop // This factor can be adjusted for more or less curvature
+        ;
+        if (curveType === "quadratic") {
+            // Calculate control point for a quadratic Bezier curve
+            const controlX = approachAxis === "horizontal" ? (x1 + x2) / 2 : x1 + swoop * (y2 - y1) / dy;
+            const controlY = approachAxis === "horizontal" ? y1 + swoop * (x2 - x1) / dx : (y1 + y2) / 2;
+            return [
+                "M",
+                x1.toFixed(2),
+                y1.toFixed(2),
+                "Q",
+                controlX.toFixed(2),
+                controlY.toFixed(2),
+                x2.toFixed(2),
+                y2.toFixed(2)
+            ].join(" ");
+        } else {
+            let controlX1, controlY1, controlX2, controlY2;
+            if (approachAxis === "horizontal") {
+                controlX1 = x1 + swoop;
+                controlY1 = y1;
+                controlX2 = x2 - swoop;
+                controlY2 = y2;
+            } else {
+                controlX1 = x1;
+                controlY1 = y1 + swoop;
+                controlX2 = x2;
+                controlY2 = y2 - swoop;
+            }
+            return [
+                "M",
+                x1.toFixed(2),
+                y1.toFixed(2),
+                "C",
+                controlX1.toFixed(2),
+                controlY1.toFixed(2),
+                controlX2.toFixed(2),
+                controlY2.toFixed(2),
+                x2.toFixed(2),
+                y2.toFixed(2)
+            ].join(" ");
+        }
+    } else if (lineType === "orthogonal") // Generate orthogonal line (right-angle)
     return [
         "M",
         x1.toFixed(2),
         y1.toFixed(2),
-        "C",
-        middlePointX.toFixed(2),
-        y1.toFixed(2),
-        middlePointX.toFixed(2),
+        "L",
+        x1.toFixed(2),
         y2.toFixed(2),
+        "L",
         x2.toFixed(2),
         y2.toFixed(2)
     ].join(" ");
@@ -10743,7 +10931,7 @@ function $f7a6c59624db8286$export$2e2bcd8739ae039({ relationships: relationships
             const pointOnChildPath = childPathContext.bestPoint;
             const parentPathContext = (0, $3597cac994ae8502$export$2e2bcd8739ae039)(tempOriginNode || r.parent.vect, pointOnChildPath);
             const pointOnParentPath = parentPathContext.bestPoint;
-            linePath = (0, $e992036a92f1686f$export$2e2bcd8739ae039)(pointOnParentPath, pointOnChildPath);
+            linePath = (0, $e992036a92f1686f$export$2e2bcd8739ae039)(pointOnParentPath, pointOnChildPath, r.lineCurviness, r.lineType, r.lineCurveType);
         } else {
             tempEndNode = r.child.getTempPathWithCorrectPositionFor({
                 pathElement: r.child.vect,
@@ -10760,7 +10948,7 @@ function $f7a6c59624db8286$export$2e2bcd8739ae039({ relationships: relationships
             const pointOnChildPath = childPathContext.bestPoint;
             const parentPathContext = (0, $3597cac994ae8502$export$2e2bcd8739ae039)(tempOriginNode || r.parent.vect, pointOnChildPath);
             const pointOnParentPath = parentPathContext.bestPoint;
-            linePath = (0, $e992036a92f1686f$export$2e2bcd8739ae039)(pointOnParentPath, pointOnChildPath);
+            linePath = (0, $e992036a92f1686f$export$2e2bcd8739ae039)(pointOnParentPath, pointOnChildPath, r.lineCurviness, r.lineType, r.lineCurveType);
         }
         const _attr = {
             stroke: r.lineColor,
@@ -11272,8 +11460,12 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
                 child: _node,
                 lineColor: assocPkg.lineColor || this.node.options.lineColor,
                 lineWidth: assocPkg.lineWidth || this.node.options.lineWidth,
+                lineType: assocPkg.lineType || this.node.options.lineType,
+                lineCurveType: assocPkg.lineCurveType || this.node.options.lineCurveType,
+                lineCurviness: assocPkg.lineCurviness || this.node.options.lineCurviness,
                 lineOpacity: assocPkg.lineOpacity != null ? assocPkg.lineOpacity : this.node.options.lineOpacity,
                 lineEffect: assocPkg.lineEffect || this.node.options.lineEffect,
+                lockedEndpoint: assocPkg.lockedEndpoint || this.node.options.lockedEndpoint,
                 blnStraight: assocPkg.isStraightLine || false,
                 showParentArrow: assocPkg.showParentArrow || false,
                 showChildArrow: assocPkg.showChildArrow || true
@@ -11297,6 +11489,9 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             lineOpacity: 1,
             lineEffect: "",
             lineWidth: 20,
+            lineType: "bezier",
+            lineCurveType: "cubic",
+            lineCurviness: 0.5,
             blnStraight: false,
             showParentArrow: false,
             showChildArrow: true
@@ -11321,7 +11516,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             y: 200
         };
         if (!association.line) Object.assign(association, {
-            line: paper.path((0, $e992036a92f1686f$export$2e2bcd8739ae039)(origPoint, endPoint)).attr(_attr)
+            line: paper.path((0, $e992036a92f1686f$export$2e2bcd8739ae039)(origPoint, endPoint, association.lineCurviness, association.lineType, association.lineCurveType)).attr(_attr)
         });
         if (association.child && association.parent) (0, $f7a6c59624db8286$export$2e2bcd8739ae039)({
             relationships: [
@@ -13223,6 +13418,9 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                     parentId: a.parent.options.id,
                     childId: a.child.options.id,
                     lineWidth: a.lineWidth,
+                    lineType: a.lineType,
+                    lineCurveType: a.lineCurveType,
+                    lineCurviness: a.lineCurviness,
                     lineOpacity: a.lineOpacity,
                     showParentArrow: a.showParentArrow,
                     showChildArrow: a.showChildArrow
@@ -13712,6 +13910,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             `s${_width / 150 * percent}, ${_height / 100 * percent}, ${_x}, ${_y}`
         ];
         _node.options.isEllipse = _node.options.isEllipse || _node.options.vectorPath === "ellipse";
+        let potentiallyResize = false;
         switch(_node.options.vectorPath){
             case "ellipse":
                 _node.options.vectorPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)("M150,50 a75,50 0 1,1 0,-1 z", _transforms);
@@ -13723,6 +13922,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                 _node.options.vectorPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)("M1,1 h130 a10,10 0 0 1 10,10 v80 a10,10 0 0 1 -10,10 h-130 a10,10 0 0 1 -10,-10 v-80 a10,10 0 0 1 10,-10 z", _transforms);
                 break;
             default:
+                potentiallyResize = true;
                 break;
         }
         if (_node.options.vectorPath === "M2,12 L22,12") vectOpt["stroke-dasharray"] = "2px";
@@ -13803,6 +14003,8 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         if (_node.options.image && !_node.options.imageOrigWidth) _node.options.imageOrigWidth = _node.options.width;
         if (_node.options.image && _node.options.image !== "") _node.images.set(_node.options.image, _node.options.imageOrigWidth, _node.options.imageOrigHeight, useMainCanvas);
         if (!_node.options.link || !_node.options.link.show) _node.link.hide();
+        //
+        if (potentiallyResize) _node.resize.set(_width, _height);
         // apply any node filters to vect and/or text
         _node.applyFilters();
         this._refreshBe();
@@ -13907,7 +14109,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             self.markerEvents = {
                 init () {
                     self.hideIcons();
-                    $2c56d294fa5e840e$export$2e2bcd8739ae039.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
+                    $2c56d294fa5e840e$export$2e2bcd8739ae039.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh), self.slate.isCtrl);
                     self.moveX = 0;
                     self.moveY = 0;
                     self.slate.options.allowDrag = false;
@@ -13963,7 +14165,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             self.resizeEvents = {
                 init () {
                     self.hideIcons();
-                    $2c56d294fa5e840e$export$2e2bcd8739ae039.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh));
+                    $2c56d294fa5e840e$export$2e2bcd8739ae039.hideConnections(self.relationshipsToTranslate.concat(self.relationshipsToRefresh), self.slate.isCtrl);
                     self.moveX = 0;
                     self.moveY = 0;
                     self.slate.options.allowDrag = false;
@@ -14213,7 +14415,6 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             });
             copy.mousedown((e)=>{
                 (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
-                const snap = self.slate.snapshot();
                 const nGroupId = self.selectedNodes[0].options.groupId ? (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid().replace(/-/gi, "").substring(0, 8).toUpperCase() : null;
                 const orient = self.slate.getOrientation(self.selectedNodes);
                 const pad = 75;
@@ -14553,8 +14754,8 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             self.prepSelectedNodes();
         }
     }
-    static hideConnections(connections) {
-        connections.forEach((c)=>{
+    static hideConnections(connections, isCtrl) {
+        if (!isCtrl) connections.forEach((c)=>{
             c.line.hide();
         });
     }
@@ -17246,23 +17447,43 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 });
                 self.collab.invoke({
                     type: "onLinePropertiesChanged",
-                    data: {
-                        id: id,
-                        prop: "lineEffect",
-                        val: styleBase.lineEffect,
-                        associationId: a.id,
-                        index: ind
-                    }
-                });
-                self.collab.invoke({
-                    type: "onLinePropertiesChanged",
-                    data: {
-                        id: id,
-                        prop: "lineWidth",
-                        val: styleBase.lineWidth,
-                        associationId: a.id,
-                        index: ind
-                    }
+                    data: [
+                        {
+                            id: id,
+                            prop: "lineEffect",
+                            val: styleBase.lineEffect,
+                            associationId: a.id,
+                            index: ind
+                        },
+                        {
+                            id: id,
+                            prop: "lineWidth",
+                            val: styleBase.lineWidth,
+                            associationId: a.id,
+                            index: ind
+                        },
+                        {
+                            id: id,
+                            prop: "lineType",
+                            val: styleBase.lineType,
+                            associationId: a.id,
+                            index: ind
+                        },
+                        {
+                            id: id,
+                            prop: "lineCurveType",
+                            val: styleBase.lineCurveType,
+                            associationId: a.id,
+                            index: ind
+                        },
+                        {
+                            id: id,
+                            prop: "lineCurviness",
+                            val: styleBase.lineCurviness,
+                            associationId: a.id,
+                            index: ind
+                        }
+                    ]
                 });
             });
         }

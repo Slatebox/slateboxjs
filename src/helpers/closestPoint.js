@@ -3,7 +3,7 @@
 /* eslint-disable no-cond-assign */
 export default function closestPoint(pathNode, point) {
   const pathLength = pathNode.getTotalLength()
-  let precision = 64 // increase this value for better performance at a risk of worse point approximation; in future this should be scaled according to number of path segments (there could be a better solution)
+  let precision = 32 // increase this value for better performance at a risk of worse point approximation; in future this should be scaled according to number of path segments (there could be a better solution)
   let best
   let bestLength
   let bestDistance = Infinity
@@ -15,6 +15,11 @@ export default function closestPoint(pathNode, point) {
     return dx * dx + dy * dy
   }
 
+  function pointAtLength(val, mode) {
+    const getPAL = pathNode.getPointAtLength(val)
+    return getPAL
+  }
+
   // linear scan for coarse approximation
   for (
     let scan, scanLength = 0, scanDistance;
@@ -22,9 +27,8 @@ export default function closestPoint(pathNode, point) {
     scanLength += precision
   ) {
     if (
-      (scanDistance = distance2(
-        (scan = pathNode.getPointAtLength(scanLength))
-      )) < bestDistance
+      (scanDistance = distance2((scan = pointAtLength(scanLength, 'course')))) <
+      bestDistance
     ) {
       ;(best = scan), (bestLength = scanLength), (bestDistance = scanDistance)
     }
@@ -42,7 +46,7 @@ export default function closestPoint(pathNode, point) {
     if (
       (beforeLength = bestLength - precision) >= 0 &&
       (beforeDistance = distance2(
-        (before = pathNode.getPointAtLength(beforeLength))
+        (before = pointAtLength(beforeLength, 'before'))
       )) < bestDistance
     ) {
       ;(best = before),
@@ -51,7 +55,7 @@ export default function closestPoint(pathNode, point) {
     } else if (
       (afterLength = bestLength + precision) <= pathLength &&
       (afterDistance = distance2(
-        (after = pathNode.getPointAtLength(afterLength))
+        (after = pointAtLength(afterLength, 'after'))
       )) < bestDistance
     ) {
       ;(best = after),

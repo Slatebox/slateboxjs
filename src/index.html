@@ -10,6 +10,7 @@
       import { Slatebox } from './index.js'
       import './plugins/node/attempt.js'
       import './plugins/slate/second.js'
+      import utils from './helpers/utils.js'
 
       async function load() {
         const s = await new Slatebox.slate(
@@ -199,6 +200,9 @@
       // console.log('node plugins ', n.plugins)
       // n.plugins.attempt.doAttempt()
       // s.plugins.attempt.doSecond()
+
+      // const largePath = 'M 100 100 L 300 100 L 200 300 z'
+      // console.log('subpaths are', utils.splitPath(largePath))
     </script>
   </body>
 </html>
