@@ -673,6 +673,9 @@ export default class multiSelection {
       })
       window.removeEventListener('beforeunload', self._enableOnRefresh)
     }
+    if (self.slate.events?.onGroupSelection) {
+      self.slate.events?.onGroupSelection([])
+    }
     if (self._init) self._init.innerHTML = '[multi-select]'
   }
 
@@ -801,16 +804,27 @@ export default class multiSelection {
       self.endSelection()
       // unmark all and remove connectors
       self.slate.nodes.closeAllMenus({ nodes: self.selectedNodes })
+      if (self.slate.events?.onGroupSelection) {
+        self.slate.events?.onGroupSelection(
+          self.selectedNodes.map((s) => s.options.id)
+        )
+      }
     } else if (self.selectedNodes.length === 1) {
       self.selectedNodes[0].menu.show()
       self.slate.enable()
       self.endSelection()
       self.end()
+      if (self.slate.events?.onGroupSelection) {
+        self.slate.events?.onGroupSelection([])
+      }
       return false
     } else {
       self.slate.enable()
       self.endSelection()
       self.end()
+      if (self.slate.events?.onGroupSelection) {
+        self.slate.events?.onGroupSelection([])
+      }
       return true
     }
     return false

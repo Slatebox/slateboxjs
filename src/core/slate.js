@@ -323,7 +323,12 @@ export default class slate extends base {
   png(ropts, cb) {
     const self = this
     self.svg(
-      { useDataImageUrls: true, backgroundOnly: ropts?.backgroundOnly },
+      {
+        ...ropts,
+        isPNG: true,
+        useDataImageUrls: true,
+        backgroundOnly: ropts?.backgroundOnly,
+      },
       (opts) => {
         function makeTransparent(ctx, alpha, cnvs) {
           // get the image data object
@@ -367,19 +372,22 @@ export default class slate extends base {
                   if (ropts?.alpha != null) {
                     makeTransparent(ctx, ropts.alpha, cnvs)
                   }
-
-                  const link = document.createElement('a')
-                  link.setAttribute(
-                    'download',
-                    `${(self.options.name || 'slate')
-                      .replace(/[^a-z0-9]/gi, '_')
-                      .toLowerCase()}_${self.options.id}.png`
-                  )
                   cnvs.toBlob((blob) => {
-                    link.href = URL.createObjectURL(blob)
-                    const event = new MouseEvent('click')
-                    link.dispatchEvent(event)
-                    cb && cb()
+                    if (cb && opts?.asBinary) {
+                      cb(blob)
+                    } else {
+                      const link = document.createElement('a')
+                      link.setAttribute(
+                        'download',
+                        `${(self.options.name || 'slate')
+                          .replace(/[^a-z0-9]/gi, '_')
+                          .toLowerCase()}_${self.options.id}.png`
+                      )
+                      link.href = URL.createObjectURL(blob)
+                      const event = new MouseEvent('click')
+                      link.dispatchEvent(event)
+                      cb && cb()
+                    }
                   })
                 }
               }
@@ -398,24 +406,28 @@ export default class slate extends base {
           img.src = url
           img.onload = () => {
             ctx.drawImage(img, 0, 0)
-
             if (ropts?.alpha != null) {
               makeTransparent(ctx, ropts.alpha, cnvs)
             }
-
-            const imgsrc = cnvs.toDataURL('image/png')
-            if (ropts?.base64) {
-              cb(imgsrc)
-              URL.revokeObjectURL(img.src)
+            if (ropts?.asBinary) {
+              cnvs.toBlob((blob) => {
+                cb(blob)
+              })
             } else {
-              const a = document.createElement('a')
-              a.download = `${(self.options.name || 'slate')
-                .replace(/[^a-z0-9]/gi, '_')
-                .toLowerCase()}_${self.options.id}.png`
-              a.href = imgsrc
-              a.click()
-              URL.revokeObjectURL(img.src)
-              cb && cb()
+              const imgsrc = cnvs.toDataURL('image/png')
+              if (ropts?.base64) {
+                cb(imgsrc)
+                URL.revokeObjectURL(img.src)
+              } else {
+                const a = document.createElement('a')
+                a.download = `${(self.options.name || 'slate')
+                  .replace(/[^a-z0-9]/gi, '_')
+                  .toLowerCase()}_${self.options.id}.png`
+                a.href = imgsrc
+                a.click()
+                URL.revokeObjectURL(img.src)
+                cb && cb()
+              }
             }
           }
           img.onerror = (err) => {
@@ -485,10 +497,11 @@ export default class slate extends base {
       : null
     const _orient = self.getOrientation(nodesToOrient, true)
     const _r = 1 // this.options.viewPort.zoom.r || 1;
-    const _resizedSlate = JSON.parse(self.exportJSON())
-    if (opts?.backgroundOnly) {
-      _resizedSlate.nodes = []
-    }
+    const _resizedSlate = JSON.parse(
+      self.exportJSON(
+        opts?.backgroundOnly ? [] : opts?.nodes ? opts.nodes : null
+      )
+    )
     _resizedSlate.nodes.forEach((n) => {
       const _ty = n.options.yPos * _r
       const _tx = n.options.xPos * _r
@@ -530,15 +543,21 @@ export default class slate extends base {
     const exportOptions = merge(_resizedSlate.options, {
       container: 'tempSvgSlate',
       containerStyle: {
-        backgroundColor: _resizedSlate.options.containerStyle.backgroundColor,
-        backgroundColorAsGradient:
-          _resizedSlate.options.containerStyle.backgroundColorAsGradient,
-        backgroundGradientType:
-          _resizedSlate.options.containerStyle.backgroundGradientType,
-        backgroundGradientColors:
-          _resizedSlate.options.containerStyle.backgroundGradientColors,
-        backgroundGradientStrategy:
-          _resizedSlate.options.containerStyle.backgroundGradientStrategy,
+        backgroundColor: opts.noBackground
+          ? 'transparent'
+          : _resizedSlate.options.containerStyle.backgroundColor,
+        backgroundColorAsGradient: opts.noBackground
+          ? null
+          : _resizedSlate.options.containerStyle.backgroundColorAsGradient,
+        backgroundGradientType: opts.noBackground
+          ? null
+          : _resizedSlate.options.containerStyle.backgroundGradientType,
+        backgroundGradientColors: opts.noBackground
+          ? null
+          : _resizedSlate.options.containerStyle.backgroundGradientColors,
+        backgroundGradientStrategy: opts.noBackground
+          ? null
+          : _resizedSlate.options.containerStyle.backgroundGradientStrategy,
       },
       defaultLineColor: _resizedSlate.options.defaultLineColor,
       viewPort: {
@@ -620,11 +639,11 @@ export default class slate extends base {
       // and the url-fill images appear.
       setTimeout(async () => {
         _exportCanvas.canvas.rawSVG((svg) => {
-          if (!opts) {
-            // presume download if no opts are sent
-            const svgBlob = new Blob([svg], {
-              type: 'image/svg+xml;charset=utf-8',
-            })
+          // presume download if no cb is sent
+          const svgBlob = new Blob([svg], {
+            type: 'image/svg+xml;charset=utf-8',
+          })
+          if (!cb) {
             const svgUrl = URL.createObjectURL(svgBlob)
             const dl = document.createElement('a')
             dl.href = svgUrl
@@ -632,9 +651,10 @@ export default class slate extends base {
               .replace(/[^a-z0-9]/gi, '_')
               .toLowerCase()}_${self?.shareId}.svg`
             dl.click()
-            cb && cb()
+          } else if (opts?.asBinary && !opts.isPNG) {
+            cb(svgBlob)
           } else {
-            cb && cb({ svg, orient: _orient })
+            cb({ svg, orient: _orient })
           }
           _div.remove()
         })
@@ -842,7 +862,7 @@ export default class slate extends base {
     return JSON.stringify(jsonSlate)
   }
 
-  exportJSON() {
+  exportJSON(nodes) {
     const _cont = this.options.container
     const _opts = this.options
     delete _opts.container
@@ -855,7 +875,7 @@ export default class slate extends base {
 
     const tnid = this.tempNodeId
     this.nodes.allNodes.forEach((nd) => {
-      if (nd.options.id !== tnid) {
+      if (nd.options.id !== tnid && (!nodes || nodes.includes(nd.options.id))) {
         jsonSlate.nodes.push(nd.serialize())
       }
     })

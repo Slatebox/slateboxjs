@@ -249,6 +249,22 @@ export default class node extends base {
     this.slate.displayLocks()
   }
 
+  png(withNodes, cb) {
+    const self = this
+    const nodes = withNodes?.length > 0 ? withNodes : [self.options.id]
+    self.slate.png({ nodes, noBackground: true, asBinary: true }, (blob) => {
+      cb(blob)
+    })
+  }
+
+  svg(withNodes, cb) {
+    const self = this
+    const nodes = withNodes?.length > 0 ? withNodes : [self.options.id]
+    self.slate.svg({ nodes, noBackground: true }, (svg) => {
+      cb(svg)
+    })
+  }
+
   serialize(lineWidthOverride) {
     const self = this
     const jsonNode = {}

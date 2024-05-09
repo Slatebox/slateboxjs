@@ -8568,7 +8568,10 @@ function $bc0900c2e5cbc8ab$var$embedGoogleFonts({ fonts: fonts, text: text, styl
     const snode = styleNode;
     const fontQuery = fonts.join("|").replace(/ /g, "+");
     const googleFontUrl = `https://fonts.googleapis.com/css?family=${fontQuery}&text=${text}`;
-    if (fonts.length > 0) return fetch(googleFontUrl).then((cssResponse)=>cssResponse.text()).then((cssText)=>{
+    if (fonts.length > 0) return fetch(googleFontUrl).then((cssResponse)=>cssResponse.text()).catch((error)=>{
+        console.error("Failed to load Google font CSS:", error);
+        return false;
+    }).then((cssText)=>{
         let fontFaces = $bc0900c2e5cbc8ab$var$kCSSFontFacePattern.exec(cssText);
         const embedFontPromises = [];
         while(fontFaces != null){
@@ -8576,6 +8579,9 @@ function $bc0900c2e5cbc8ab$var$embedGoogleFonts({ fonts: fonts, text: text, styl
             fontFaces = $bc0900c2e5cbc8ab$var$kCSSFontFacePattern.exec(cssText);
         }
         return Promise.all(embedFontPromises);
+    }).catch((error)=>{
+        console.error("Failed to load Google font CSS:", error);
+        return false;
     }).then((results)=>{
         snode.innerHTML += results.join("\n");
         return true;
@@ -9557,6 +9563,31 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         if (this.slate && this.slate.options.enabled) // could be null in case of the tempNode
         this.slate.options.allowDrag = true;
         this.slate.displayLocks();
+    }
+    png(withNodes, cb) {
+        const self = this;
+        const nodes = withNodes?.length > 0 ? withNodes : [
+            self.options.id
+        ];
+        self.slate.png({
+            nodes: nodes,
+            noBackground: true,
+            asBinary: true
+        }, (blob)=>{
+            cb(blob);
+        });
+    }
+    svg(withNodes, cb) {
+        const self = this;
+        const nodes = withNodes?.length > 0 ? withNodes : [
+            self.options.id
+        ];
+        self.slate.svg({
+            nodes: nodes,
+            noBackground: true
+        }, (svg)=>{
+            cb(svg);
+        });
     }
     serialize(lineWidthOverride) {
         const self = this;
@@ -14601,6 +14632,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             });
             window.removeEventListener("beforeunload", self._enableOnRefresh);
         }
+        if (self.slate.events?.onGroupSelection) self.slate.events?.onGroupSelection([]);
         if (self._init) self._init.innerHTML = "[multi-select]";
     }
     endSelection() {
@@ -14720,16 +14752,19 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             self.slate.nodes.closeAllMenus({
                 nodes: self.selectedNodes
             });
+            if (self.slate.events?.onGroupSelection) self.slate.events?.onGroupSelection(self.selectedNodes.map((s)=>s.options.id));
         } else if (self.selectedNodes.length === 1) {
             self.selectedNodes[0].menu.show();
             self.slate.enable();
             self.endSelection();
             self.end();
+            if (self.slate.events?.onGroupSelection) self.slate.events?.onGroupSelection([]);
             return false;
         } else {
             self.slate.enable();
             self.endSelection();
             self.end();
+            if (self.slate.events?.onGroupSelection) self.slate.events?.onGroupSelection([]);
             return true;
         }
         return false;
@@ -16762,6 +16797,8 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     png(ropts, cb) {
         const self = this;
         self.svg({
+            ...ropts,
+            isPNG: true,
             useDataImageUrls: true,
             backgroundOnly: ropts?.backgroundOnly
         }, (opts)=>{
@@ -16804,13 +16841,16 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                         ctx.imageSmoothingEnabled = false;
                         ctx.drawImage(img, 0, 0);
                         if (ropts?.alpha != null) makeTransparent(ctx, ropts.alpha, cnvs);
-                        const link = document.createElement("a");
-                        link.setAttribute("download", `${(self.options.name || "slate").replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${self.options.id}.png`);
                         cnvs.toBlob((blob)=>{
-                            link.href = URL.createObjectURL(blob);
-                            const event = new MouseEvent("click");
-                            link.dispatchEvent(event);
-                            cb && cb();
+                            if (cb && opts?.asBinary) cb(blob);
+                            else {
+                                const link = document.createElement("a");
+                                link.setAttribute("download", `${(self.options.name || "slate").replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${self.options.id}.png`);
+                                link.href = URL.createObjectURL(blob);
+                                const event = new MouseEvent("click");
+                                link.dispatchEvent(event);
+                                cb && cb();
+                            }
                         });
                     };
                 }
@@ -16831,17 +16871,22 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 img.onload = ()=>{
                     ctx.drawImage(img, 0, 0);
                     if (ropts?.alpha != null) makeTransparent(ctx, ropts.alpha, cnvs);
-                    const imgsrc = cnvs.toDataURL("image/png");
-                    if (ropts?.base64) {
-                        cb(imgsrc);
-                        URL.revokeObjectURL(img.src);
-                    } else {
-                        const a = document.createElement("a");
-                        a.download = `${(self.options.name || "slate").replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${self.options.id}.png`;
-                        a.href = imgsrc;
-                        a.click();
-                        URL.revokeObjectURL(img.src);
-                        cb && cb();
+                    if (ropts?.asBinary) cnvs.toBlob((blob)=>{
+                        cb(blob);
+                    });
+                    else {
+                        const imgsrc = cnvs.toDataURL("image/png");
+                        if (ropts?.base64) {
+                            cb(imgsrc);
+                            URL.revokeObjectURL(img.src);
+                        } else {
+                            const a = document.createElement("a");
+                            a.download = `${(self.options.name || "slate").replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${self.options.id}.png`;
+                            a.href = imgsrc;
+                            a.click();
+                            URL.revokeObjectURL(img.src);
+                            cb && cb();
+                        }
                     }
                 };
                 img.onerror = (err)=>{
@@ -16895,8 +16940,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         const _orient = self.getOrientation(nodesToOrient, true);
         const _r = 1 // this.options.viewPort.zoom.r || 1;
         ;
-        const _resizedSlate = JSON.parse(self.exportJSON());
-        if (opts?.backgroundOnly) _resizedSlate.nodes = [];
+        const _resizedSlate = JSON.parse(self.exportJSON(opts?.backgroundOnly ? [] : opts?.nodes ? opts.nodes : null));
         _resizedSlate.nodes.forEach((n)=>{
             const _ty = n.options.yPos * _r;
             const _tx = n.options.xPos * _r;
@@ -16932,11 +16976,11 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         const exportOptions = (0, $5OpyM$deepmerge)(_resizedSlate.options, {
             container: "tempSvgSlate",
             containerStyle: {
-                backgroundColor: _resizedSlate.options.containerStyle.backgroundColor,
-                backgroundColorAsGradient: _resizedSlate.options.containerStyle.backgroundColorAsGradient,
-                backgroundGradientType: _resizedSlate.options.containerStyle.backgroundGradientType,
-                backgroundGradientColors: _resizedSlate.options.containerStyle.backgroundGradientColors,
-                backgroundGradientStrategy: _resizedSlate.options.containerStyle.backgroundGradientStrategy
+                backgroundColor: opts.noBackground ? "transparent" : _resizedSlate.options.containerStyle.backgroundColor,
+                backgroundColorAsGradient: opts.noBackground ? null : _resizedSlate.options.containerStyle.backgroundColorAsGradient,
+                backgroundGradientType: opts.noBackground ? null : _resizedSlate.options.containerStyle.backgroundGradientType,
+                backgroundGradientColors: opts.noBackground ? null : _resizedSlate.options.containerStyle.backgroundGradientColors,
+                backgroundGradientStrategy: opts.noBackground ? null : _resizedSlate.options.containerStyle.backgroundGradientStrategy
             },
             defaultLineColor: _resizedSlate.options.defaultLineColor,
             viewPort: {
@@ -17000,20 +17044,20 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             // and the url-fill images appear.
             setTimeout(async ()=>{
                 _exportCanvas.canvas.rawSVG((svg1)=>{
-                    if (!opts) {
-                        // presume download if no opts are sent
-                        const svgBlob = new Blob([
-                            svg1
-                        ], {
-                            type: "image/svg+xml;charset=utf-8"
-                        });
+                    // presume download if no cb is sent
+                    const svgBlob = new Blob([
+                        svg1
+                    ], {
+                        type: "image/svg+xml;charset=utf-8"
+                    });
+                    if (!cb) {
                         const svgUrl = URL.createObjectURL(svgBlob);
                         const dl = document.createElement("a");
                         dl.href = svgUrl;
                         dl.download = `${(self.options.name || "slate").replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${self?.shareId}.svg`;
                         dl.click();
-                        cb && cb();
-                    } else cb && cb({
+                    } else if (opts?.asBinary && !opts.isPNG) cb(svgBlob);
+                    else cb({
                         svg: svg1,
                         orient: _orient
                     });
@@ -17159,7 +17203,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         });
         return JSON.stringify(jsonSlate);
     }
-    exportJSON() {
+    exportJSON(nodes) {
         const _cont = this.options.container;
         const _opts = this.options;
         delete _opts.container;
@@ -17172,7 +17216,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         delete jsonSlate.options.container;
         const tnid = this.tempNodeId;
         this.nodes.allNodes.forEach((nd)=>{
-            if (nd.options.id !== tnid) jsonSlate.nodes.push(nd.serialize());
+            if (nd.options.id !== tnid && (!nodes || nodes.includes(nd.options.id))) jsonSlate.nodes.push(nd.serialize());
         });
         jsonSlate.shareId = this.shareId;
         return JSON.stringify(jsonSlate);
