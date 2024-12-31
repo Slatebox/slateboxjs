@@ -73,7 +73,7 @@ export default class slate extends base {
       isUnlisted: false,
       autoEnableDefaultFilters: true,
       autoResizeNodesBasedOnText: true,
-      disableAutoLayoutOfManuallyPositionedNodes: false,
+      disableAutoLayoutOfManuallyPositionedNodes: true,
       followMe: false,
       useLayoutQuandrants: false,
       huddleType: 'disabled',
@@ -214,8 +214,9 @@ export default class slate extends base {
       txt.style.height = '25px'
       txt.style.whiteSpace = 'nowrap'
       txt.style.backgroundColor = '#fff'
+      txt.style.color = '#000'
       txt.style.padding = '1px 7px 1px 7px'
-      txt.style.border = '1px solid #000'
+      txt.style.border = `1px solid black`
       txt.style.borderRadius = '5px'
       txt.style.fontFamily = 'trebuchet ms'
       txt.innerHTML = `${obj.userName || 'Guest'}`
@@ -638,26 +639,30 @@ export default class slate extends base {
       // the timeout is critical to ensure that the SVG canvas settles
       // and the url-fill images appear.
       setTimeout(async () => {
-        _exportCanvas.canvas.rawSVG((svg) => {
-          // presume download if no cb is sent
-          const svgBlob = new Blob([svg], {
-            type: 'image/svg+xml;charset=utf-8',
-          })
-          if (!cb) {
-            const svgUrl = URL.createObjectURL(svgBlob)
-            const dl = document.createElement('a')
-            dl.href = svgUrl
-            dl.download = `${(self.options.name || 'slate')
-              .replace(/[^a-z0-9]/gi, '_')
-              .toLowerCase()}_${self?.shareId}.svg`
-            dl.click()
-          } else if (opts?.asBinary && !opts.isPNG) {
-            cb(svgBlob)
-          } else {
-            cb({ svg, orient: _orient })
+        // pass skipOptimize to rawSVG to avoid double optimization
+        _exportCanvas.canvas.rawSVG(
+          { skipOptimize: opts.skipOptimize },
+          (svg) => {
+            // presume download if no cb is sent
+            const svgBlob = new Blob([svg], {
+              type: 'image/svg+xml;charset=utf-8',
+            })
+            if (!cb) {
+              const svgUrl = URL.createObjectURL(svgBlob)
+              const dl = document.createElement('a')
+              dl.href = svgUrl
+              dl.download = `${(self.options.name || 'slate')
+                .replace(/[^a-z0-9]/gi, '_')
+                .toLowerCase()}_${self?.shareId}.svg`
+              dl.click()
+            } else if (opts?.asBinary && !opts.isPNG) {
+              cb(svgBlob)
+            } else {
+              cb({ svg, orient: _orient })
+            }
+            _div.remove()
           }
-          _div.remove()
-        })
+        )
       }, 100)
     }
     execute()
@@ -1000,7 +1005,7 @@ export default class slate extends base {
     const ids = Array.from(
       this.canvas.internal.querySelector('svg').querySelectorAll('path')
     )
-      .map((a) => a.getAttribute('rel'))
+      .map((a) => a.getAttribute('rel').replace(/^nodrag_|^nodrag_text-/, '')) // ensure the nodrag convention prefixes are removed
       .filter((r) => !!r)
     // console.log("order of nodes", ids);
     this.options.nodeOrder = ids

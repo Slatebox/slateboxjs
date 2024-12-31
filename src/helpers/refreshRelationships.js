@@ -40,12 +40,15 @@ export default function refreshRelationships({
         pointOnChildPath
       )
       const pointOnParentPath = parentPathContext.bestPoint
+      // console.log('getHorizontalCurve1', r.parent.options.width)
       linePath = getHorizontalCurve(
         pointOnParentPath,
         pointOnChildPath,
         r.lineCurviness,
         r.lineType,
-        r.lineCurveType
+        r.lineCurveType,
+        r.parent.options.width,
+        { x: r.parent.options.xPos, y: r.parent.options.yPos }
       )
     } else {
       tempEndNode = r.child.getTempPathWithCorrectPositionFor({
@@ -65,18 +68,20 @@ export default function refreshRelationships({
         midPoints.parent
       )
       const pointOnChildPath = childPathContext.bestPoint
-
       const parentPathContext = closestPoint(
         tempOriginNode || r.parent.vect,
         pointOnChildPath
       )
       const pointOnParentPath = parentPathContext.bestPoint
+      // console.log('getHorizontalCurve2', r.parent.options.width)
       linePath = getHorizontalCurve(
         pointOnParentPath,
         pointOnChildPath,
         r.lineCurviness,
         r.lineType,
-        r.lineCurveType
+        r.lineCurveType,
+        r.parent.options.width,
+        { x: r.parent.options.xPos, y: r.parent.options.yPos }
       )
     }
 

@@ -15,10 +15,14 @@
   },
   "scripts": {
     "build": "parcel build",
-    "start": "parcel src/index.html && parcel watch src/index.html",
+    "start": "parcel serve src/index.html",
+    "start2": "parcel serve tests/playwright/fixtures/slate-test.html",
     "_buildComplete": "parcel build --no-optimize && mv ./dist/index.js ./dist/sb-${npm_package_version}.min.js && mv ./dist/index.js.map ./dist/sb-${npm_package_version}.min.js.map",
     "buildDev": "parcel build --no-optimize",
-    "checkSize": "parcel build --reporter @parcel/reporter-bundle-analyzer"
+    "checkSize": "parcel build --reporter @parcel/reporter-bundle-analyzer",
+    "test:e2e": "playwright test",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:ui": "playwright test --ui"
   },
   "author": "Tim Heckel <tim@slatebox.com>",
   "license": "MIT",
@@ -42,12 +46,14 @@
   "devDependencies": {
     "@cloudflare/wrangler": "^1.19.8",
     "@parcel/reporter-bundle-analyzer": "^2.11.0",
+    "@playwright/test": "^1.48.2",
     "buffer": "^6.0.3",
     "eslint": "^8.10.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-prettier": "^4.0.0",
+    "jsdom": "^25.0.1",
     "parcel": "^2.11.0",
     "prettier": "^2.5.1",
     "process": "^0.11.10"

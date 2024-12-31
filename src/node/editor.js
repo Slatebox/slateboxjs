@@ -113,6 +113,11 @@ export default class editor {
         this.node.options.yPos + coords.y,
         t
       )
+      const dragRider = this.node.options.disableDrag ? 'nodrag_' : ''
+      this.node.text.node.setAttribute(
+        'rel',
+        `${dragRider}text-${this.node.options.id}`
+      )
     }
     coords = this.node.textCoords({
       x: this.node.options.xPos,

@@ -747,11 +747,12 @@ export default class nodeController {
       vectOpt['stroke-dasharray'] = '2px'
     }
 
-    vect = paperToUse.path(_node.options.vectorPath).attr(vectOpt)
+    vect = vect ? vect : paperToUse.path(_node.options.vectorPath).attr(vectOpt)
     vect.node.style.cursor = 'pointer'
 
     // need to set in case toback or tofront is called and the load order changes in the context plugin
-    vect.node.setAttribute('rel', _node.options.id)
+    const allowDragRider = _node.options.disableDrag ? 'nodrag_' : ''
+    vect.node.setAttribute('rel', `${allowDragRider}${_node.options.id}`)
     vect.data({ id: _node.options.id })
     _node.vect = vect
     // _node.vect.ox = _x;

@@ -31,7 +31,7 @@ export default class node extends base {
       lineEffect: '',
       lineType: 'bezier',
       lineCurveType: 'cubic',
-      lineCurviness: 0.5,
+      lineCurviness: 0.2,
       lineWidth: 5,
       opacity: 1,
       textOpacity: 1,

@@ -497,7 +497,7 @@ export default class relationships {
       lineWidth: 20,
       lineType: 'bezier',
       lineCurveType: 'cubic',
-      lineCurviness: 0.5,
+      lineCurviness: 0.2,
       blnStraight: false,
       showParentArrow: false,
       showChildArrow: true,
@@ -534,6 +534,10 @@ export default class relationships {
           )
           .attr(_attr),
       })
+      association.line.node.setAttribute(
+        'rel',
+        `association-${association.parent.options.id}-${association.child.options.id}`
+      )
     }
     if (association.child && association.parent) {
       refreshRelationships({

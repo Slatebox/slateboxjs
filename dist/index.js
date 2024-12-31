@@ -9165,10 +9165,13 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             self.internal[ee] = null;
         });
     }
-    rawSVG(cb) {
+    rawSVG({ skipOptimize: skipOptimize = false }, cb) {
         const self = this;
         function finalize(svg) {
-            if (self.slate.events.onOptimizeSVG) self.slate.events.onOptimizeSVG(svg, (err, optimized)=>{
+            // always reposition <image> elements in the svg to be in the top left
+            const regImg = /<image\s+x="[^"]+"\s+y="[^"]+"\s+href="data/gi;
+            svg = svg.replace(regImg, '<image x="0" y="0" href="data');
+            if (self.slate.events.onOptimizeSVG && !skipOptimize) self.slate.events.onOptimizeSVG(svg, (err, optimized)=>{
                 if (err) console.error("Unable to optimize slate svg export", err);
                 else cb(optimized);
             });
@@ -9286,14 +9289,16 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             default:
                 if (self.slate.options.containerStyle.backgroundColorAsGradient) {
                     self.internal.style.backgroundColor = "";
-                    if (self.internal.parentElement) {
-                        const bgStyle = `${self.slate.options.containerStyle.backgroundGradientType}-gradient(${self.slate.options.containerStyle.backgroundGradientColors.join(",")})`;
-                        self.internal.parentElement.style.background = bgStyle;
-                    }
-                } else self.internal.style.backgroundColor = self.slate.options.containerStyle.backgroundColor || "#fff";
+                    if (self.internal.parentElement) self.internal.parentElement.style.background = self.exportBgStyle();
+                } else self.internal.style.backgroundColor = self.exportBgStyle();
                 break;
         }
         self.slate.grid?.setGrid();
+    }
+    exportBgStyle() {
+        const self = this;
+        if (self.slate.options.containerStyle.backgroundColorAsGradient) return `${self.slate.options.containerStyle.backgroundGradientType}-gradient(${self.slate.options.containerStyle.backgroundGradientColors.join(",")})`;
+        else return self.slate.options.containerStyle.backgroundColor || "#fff";
     }
     get() {
         return this.internal;
@@ -9364,7 +9369,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             lineEffect: "",
             lineType: "bezier",
             lineCurveType: "cubic",
-            lineCurviness: 0.5,
+            lineCurviness: 0.2,
             lineWidth: 5,
             opacity: 1,
             textOpacity: 1,
@@ -10768,23 +10773,42 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
 // Function to generate a horizontally curved line or a right-angle connection
 // Function to generate a dynamically curved line with the last segment straight towards the end point
 // Function to generate a dynamically curved line with the last segment straight towards the end point
-function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint, curveSwoop = 0.5, lineType = "bezier", curveType = "quadratic") {
+function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint, curveSwoop = 0.5, lineType = "bezier", curveType = "quadratic", parentWidth = 0, parentXY = {
+    x: 0,
+    y: 0
+}) {
     const x1 = originPoint.x;
     const y1 = originPoint.y;
     let x2 = endPoint.x;
     let y2 = endPoint.y;
-    // Determine the predominant direction of the connection
     const dx = Math.abs(x2 - x1);
     const dy = Math.abs(y2 - y1);
-    const approachAxis = dx > dy ? "vertical" : "horizontal";
     if (lineType === "bezier") {
-        // Standard swoop for a natural cubic Bezier curve
-        const swoop = Math.min(dx, dy) * curveSwoop // This factor can be adjusted for more or less curvature
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const swoop = distance * curveSwoop;
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        // Calculate the parent's true center point
+        const roundedParentCenterX = Math.ceil((parentXY?.x || x1) + parentWidth / 2) // Since x1 is the connection point, subtract half width to get center
         ;
+        // Round values for stability
+        const roundedChildX = Math.ceil(x2);
+        // Determine curve direction based on child position relative to parent center
+        const curveDirection = roundedChildX >= roundedParentCenterX + 2 ? 1 : -1;
+        // console.log('Values:', {
+        //   childX: roundedChildX,
+        //   parentCenterX: roundedParentCenterX,
+        //   curveDirection,
+        //   parentWidth,
+        //   parentXY,
+        // })
         if (curveType === "quadratic") {
-            // Calculate control point for a quadratic Bezier curve
-            const controlX = approachAxis === "horizontal" ? (x1 + x2) / 2 : x1 + swoop * (y2 - y1) / dy;
-            const controlY = approachAxis === "horizontal" ? y1 + swoop * (x2 - x1) / dx : (y1 + y2) / 2;
+            const controlDistance = distance * 0.6;
+            const midX = x1 + (x2 - x1) * (controlDistance / distance);
+            const midY = y1 + (y2 - y1) * (controlDistance / distance);
+            const perpAngle = angle + Math.PI / 2 * curveDirection;
+            const adjustedSwoop = swoop;
+            const controlX = midX + Math.cos(perpAngle) * adjustedSwoop;
+            const controlY = midY + Math.sin(perpAngle) * adjustedSwoop;
             return [
                 "M",
                 x1.toFixed(2),
@@ -10796,18 +10820,20 @@ function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint, curveSw
                 y2.toFixed(2)
             ].join(" ");
         } else {
-            let controlX1, controlY1, controlX2, controlY2;
-            if (approachAxis === "horizontal") {
-                controlX1 = x1 + swoop;
-                controlY1 = y1;
-                controlX2 = x2 - swoop;
-                controlY2 = y2;
-            } else {
-                controlX1 = x1;
-                controlY1 = y1 + swoop;
-                controlX2 = x2;
-                controlY2 = y2 - swoop;
-            }
+            // Enhanced S-curve for cubic
+            const firstThird = 0.25;
+            const secondThird = 0.75;
+            const firstX = x1 + (x2 - x1) * firstThird;
+            const firstY = y1 + (y2 - y1) * firstThird;
+            const secondX = x1 + (x2 - x1) * secondThird;
+            const secondY = y1 + (y2 - y1) * secondThird;
+            const perpAngle = angle + Math.PI / 2 * curveDirection;
+            const firstSwoop = swoop * 1.2;
+            const secondSwoop = swoop * 0.8;
+            const controlX1 = firstX + Math.cos(perpAngle) * firstSwoop;
+            const controlY1 = firstY + Math.sin(perpAngle) * firstSwoop;
+            const controlX2 = secondX - Math.cos(perpAngle) * secondSwoop;
+            const controlY2 = secondY - Math.sin(perpAngle) * secondSwoop;
             return [
                 "M",
                 x1.toFixed(2),
@@ -10821,18 +10847,33 @@ function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint, curveSw
                 y2.toFixed(2)
             ].join(" ");
         }
-    } else if (lineType === "orthogonal") // Generate orthogonal line (right-angle)
-    return [
-        "M",
-        x1.toFixed(2),
-        y1.toFixed(2),
-        "L",
-        x1.toFixed(2),
-        y2.toFixed(2),
-        "L",
-        x2.toFixed(2),
-        y2.toFixed(2)
-    ].join(" ");
+    } else if (lineType === "orthogonal") {
+        // For orthogonal lines, use the same direction logic
+        const angleDegrees = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+        // Determine if we should go vertical first or horizontal first
+        const verticalFirst = Math.abs(angleDegrees) > 45;
+        return verticalFirst ? [
+            "M",
+            x1.toFixed(2),
+            y1.toFixed(2),
+            "L",
+            x1.toFixed(2),
+            y2.toFixed(2),
+            "L",
+            x2.toFixed(2),
+            y2.toFixed(2)
+        ].join(" ") : [
+            "M",
+            x1.toFixed(2),
+            y1.toFixed(2),
+            "L",
+            x2.toFixed(2),
+            y1.toFixed(2),
+            "L",
+            x2.toFixed(2),
+            y2.toFixed(2)
+        ].join(" ");
+    }
 }
 
 
@@ -10962,7 +11003,11 @@ function $f7a6c59624db8286$export$2e2bcd8739ae039({ relationships: relationships
             const pointOnChildPath = childPathContext.bestPoint;
             const parentPathContext = (0, $3597cac994ae8502$export$2e2bcd8739ae039)(tempOriginNode || r.parent.vect, pointOnChildPath);
             const pointOnParentPath = parentPathContext.bestPoint;
-            linePath = (0, $e992036a92f1686f$export$2e2bcd8739ae039)(pointOnParentPath, pointOnChildPath, r.lineCurviness, r.lineType, r.lineCurveType);
+            // console.log('getHorizontalCurve1', r.parent.options.width)
+            linePath = (0, $e992036a92f1686f$export$2e2bcd8739ae039)(pointOnParentPath, pointOnChildPath, r.lineCurviness, r.lineType, r.lineCurveType, r.parent.options.width, {
+                x: r.parent.options.xPos,
+                y: r.parent.options.yPos
+            });
         } else {
             tempEndNode = r.child.getTempPathWithCorrectPositionFor({
                 pathElement: r.child.vect,
@@ -10979,7 +11024,11 @@ function $f7a6c59624db8286$export$2e2bcd8739ae039({ relationships: relationships
             const pointOnChildPath = childPathContext.bestPoint;
             const parentPathContext = (0, $3597cac994ae8502$export$2e2bcd8739ae039)(tempOriginNode || r.parent.vect, pointOnChildPath);
             const pointOnParentPath = parentPathContext.bestPoint;
-            linePath = (0, $e992036a92f1686f$export$2e2bcd8739ae039)(pointOnParentPath, pointOnChildPath, r.lineCurviness, r.lineType, r.lineCurveType);
+            // console.log('getHorizontalCurve2', r.parent.options.width)
+            linePath = (0, $e992036a92f1686f$export$2e2bcd8739ae039)(pointOnParentPath, pointOnChildPath, r.lineCurviness, r.lineType, r.lineCurveType, r.parent.options.width, {
+                x: r.parent.options.xPos,
+                y: r.parent.options.yPos
+            });
         }
         const _attr = {
             stroke: r.lineColor,
@@ -11095,7 +11144,11 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
         let coords = null;
         this.setTextOffset();
         coords = this.node.textCoords();
-        if (!this.node.text) this.node.text = this.slate.paper.text(this.node.options.xPos + coords.x, this.node.options.yPos + coords.y, t);
+        if (!this.node.text) {
+            this.node.text = this.slate.paper.text(this.node.options.xPos + coords.x, this.node.options.yPos + coords.y, t);
+            const dragRider = this.node.options.disableDrag ? "nodrag_" : "";
+            this.node.text.node.setAttribute("rel", `${dragRider}text-${this.node.options.id}`);
+        }
         coords = this.node.textCoords({
             x: this.node.options.xPos,
             y: this.node.options.yPos
@@ -11522,7 +11575,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             lineWidth: 20,
             lineType: "bezier",
             lineCurveType: "cubic",
-            lineCurviness: 0.5,
+            lineCurviness: 0.2,
             blnStraight: false,
             showParentArrow: false,
             showChildArrow: true
@@ -11546,9 +11599,12 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             x: 200,
             y: 200
         };
-        if (!association.line) Object.assign(association, {
-            line: paper.path((0, $e992036a92f1686f$export$2e2bcd8739ae039)(origPoint, endPoint, association.lineCurviness, association.lineType, association.lineCurveType)).attr(_attr)
-        });
+        if (!association.line) {
+            Object.assign(association, {
+                line: paper.path((0, $e992036a92f1686f$export$2e2bcd8739ae039)(origPoint, endPoint, association.lineCurviness, association.lineType, association.lineCurveType)).attr(_attr)
+            });
+            association.line.node.setAttribute("rel", `association-${association.parent.options.id}-${association.child.options.id}`);
+        }
         if (association.child && association.parent) (0, $f7a6c59624db8286$export$2e2bcd8739ae039)({
             relationships: [
                 association
@@ -13957,10 +14013,11 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                 break;
         }
         if (_node.options.vectorPath === "M2,12 L22,12") vectOpt["stroke-dasharray"] = "2px";
-        vect = paperToUse.path(_node.options.vectorPath).attr(vectOpt);
+        vect = vect ? vect : paperToUse.path(_node.options.vectorPath).attr(vectOpt);
         vect.node.style.cursor = "pointer";
         // need to set in case toback or tofront is called and the load order changes in the context plugin
-        vect.node.setAttribute("rel", _node.options.id);
+        const allowDragRider = _node.options.disableDrag ? "nodrag_" : "";
+        vect.node.setAttribute("rel", `${allowDragRider}${_node.options.id}`);
         vect.data({
             id: _node.options.id
         });
@@ -16607,7 +16664,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             isUnlisted: false,
             autoEnableDefaultFilters: true,
             autoResizeNodesBasedOnText: true,
-            disableAutoLayoutOfManuallyPositionedNodes: false,
+            disableAutoLayoutOfManuallyPositionedNodes: true,
             followMe: false,
             useLayoutQuandrants: false,
             huddleType: "disabled",
@@ -16722,11 +16779,13 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             txt.style.height = "25px";
             txt.style.whiteSpace = "nowrap";
             txt.style.backgroundColor = "#fff";
+            txt.style.color = "#000";
             txt.style.padding = "1px 7px 1px 7px";
-            txt.style.border = "1px solid #000";
+            txt.style.border = `1px solid black`;
             txt.style.borderRadius = "5px";
             txt.style.fontFamily = "trebuchet ms";
             txt.innerHTML = `${obj.userName || "Guest"}`;
+            console.log("innerHTML", txt.innerHTML, obj);
             flex.appendChild(txt);
             pos.appendChild(flex);
             self.cursors[obj.clientID] = pos;
@@ -17043,7 +17102,10 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             // the timeout is critical to ensure that the SVG canvas settles
             // and the url-fill images appear.
             setTimeout(async ()=>{
-                _exportCanvas.canvas.rawSVG((svg1)=>{
+                // pass skipOptimize to rawSVG to avoid double optimization
+                _exportCanvas.canvas.rawSVG({
+                    skipOptimize: opts.skipOptimize
+                }, (svg1)=>{
                     // presume download if no cb is sent
                     const svgBlob = new Blob([
                         svg1

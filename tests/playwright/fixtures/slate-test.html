@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body>
+    <div
+      style="width: 100%; height: 800px; border: 1px solid red"
+      id="slateCanvas"
+    ></div>
+    <script type="module">
+      import { Slatebox } from '../../../src/index.js'
+      import '../../../src/plugins/node/attempt.js'
+      import '../../../src/plugins/slate/second.js'
+      import '../../../src/helpers/utils.js'
+
+      window.Slatebox = Slatebox
+
+      async function load() {
+        window.slate = await new window.Slatebox.slate(
+          {
+            name: 'New Slate',
+            id: 'slateContainer',
+            description: '',
+            defaultLineColor: '#333',
+            container: 'slateCanvas',
+            basedOnThemeId: '',
+            syncWithTheme: false,
+            viewPort: {
+              useInertiaScrolling: true,
+              showGrid: false,
+              snapToObjects: true,
+              gridSize: 50,
+              width: 50000,
+              height: 50000,
+              left: 25000,
+              top: 25000,
+            },
+            enabled: true,
+            allowDrag: true,
+            showbirdsEye: true,
+            sizeOfbirdsEye: 150,
+            showMultiSelect: true,
+            showZoom: true,
+            showUndoRedo: true,
+            showStatus: true,
+            showLocks: true,
+            mindMapMode: true,
+            isPublic: true,
+            isUnlisted: false,
+            autoEnableDefaultFilters: true,
+            allowCollaboration: true,
+            followMe: false,
+            containerStyle: {
+              backgroundColor: '',
+              backgroundImage: '',
+              backgroundSize: '',
+              backgroundEffect: '',
+              backgroundColorAsGradient: true,
+              backgroundGradientType: 'radial',
+              backgroundGradientColors: ['#fff', '#333'],
+              backgroundGradientStrategy: 'shades',
+            },
+          },
+          {
+            onInitCollaboration: async () => {
+              return {
+                websocketUrl: `ws://localhost:1122`, //`wss://collab.slatebox.com`, //
+                // DEMO (in mongo)
+                websocketParams: {
+                  bearer: 'xxx',
+                  timestamp: '2024-01-29T03:19:34.877Z',
+                },
+                userName: 'guest1',
+                color: '#000',
+                x: 0,
+                y: 0,
+              }
+            },
+            onCollaborationUsersRemoved: (users) => {
+              console.log('collab users removed', users)
+            },
+            onCollaborationUsersAdded: (users) => {
+              console.log('collab users added', users)
+            },
+            onConfirmRequested: async (title, msg, cb) => {
+              // implement confirmation dialog
+            },
+            onTakeSnapshot: async (opts) => {
+              // implement slate snapshot
+            },
+            onTextPaneRequested: (node, cb) => {
+              // implement text pane
+            },
+            onLineMenuRequested: (node, association, cb) => {
+              // implement line menu request
+            },
+            onMenuRequested: (node, cb) => {
+              // implement menu request
+            },
+            onBase64ImageRequested: (imgUrl, imageType, cb) => {
+              // implement base64 image request
+            },
+            // onOptimizeSVG: (svg, cb) => {
+            //   // implement SVG optimization
+            // },
+            isReadOnly: () => {
+              // is the slate read only for this user?
+              return false
+            },
+            isCommentOnly: () => {
+              // does the user have comment only access to this slate?
+              return false
+            },
+            canRemoveComments: () => {
+              // can the user remove comments?
+            },
+            onThemeRequired: (opts, cb) => {
+              // expirmental: provide a them in the cb
+            },
+          }
+        ).init()
+
+        await window.slate.collab.init()
+
+        //this is a new slate
+        // s.shareId = 'test'
+        // const defaultNodeOpts = {
+        //   name: 'MASTER_NODE',
+        //   text: 'Welcome to Slatebox!',
+        //   xPos: 5500,
+        //   yPos: 5300,
+        //   height: 100,
+        //   width: 175,
+        //   vectorPath: 'roundedrectangle',
+        //   backgroundColor: '90-#031634-#2D579A', //blue default
+        //   foregroundColor: '#fff',
+        //   lineColor: '#333',
+        //   lineWidth: 5,
+        //   allowDrag: true,
+        // }
+
+        // const n = new Slatebox.node(defaultNodeOpts)
+
+        // s.nodes.add(n)
+
+        // const nodes = [
+        //   new Slatebox.node({
+        //     id: 'first_node',
+        //     name: 'first_node',
+        //     text: 'drag me',
+        //     xPos: 25110,
+        //     yPos: 25120,
+        //     height: 60,
+        //     width: 120,
+        //     vectorPath: 'roundedrectangle',
+        //     backgroundColor: '#24A8E0',
+        //     lineColor: '#333',
+        //     lineWidth: 5,
+        //     allowMenu: false,
+        //     link: {
+        //       show: true,
+        //       type: 'currentSlate',
+        //       data: 'second_node',
+        //     },
+        //     filters: {
+        //       vect: 'dropShadow',
+        //     },
+        //   }),
+        //   new Slatebox.node({
+        //     id: 'second_node',
+        //     name: 'second_node',
+        //     text: 'drag me',
+        //     xPos: 25310,
+        //     yPos: 25220,
+        //     height: 60,
+        //     width: 120,
+        //     vectorPath: 'roundedrectangle',
+        //     backgroundColor: '#24A8E0',
+        //     lineColor: '#333',
+        //     lineWidth: 5,
+        //     allowMenu: false,
+        //     link: {
+        //       show: true,
+        //       type: 'url',
+        //       data: 'https://slatebox.com',
+        //     },
+        //   }),
+        // ]
+
+        // s.nodes.addRange(nodes)
+        // nodes[0].relationships.addAssociation(nodes[1], {
+        //   showChildArrow: true,
+        //   showParentArrow: true,
+        // })
+      }
+      load()
+    </script>
+    <div id="slateContainer" style="width: 100%; height: 100vh"></div>
+  </body>
+</html>

@@ -593,11 +593,14 @@ export default class canvas {
     })
   }
 
-  rawSVG(cb) {
+  rawSVG({ skipOptimize = false }, cb) {
     const self = this
-
     function finalize(svg) {
-      if (self.slate.events.onOptimizeSVG) {
+      // always reposition <image> elements in the svg to be in the top left
+      const regImg = /<image\s+x="[^"]+"\s+y="[^"]+"\s+href="data/gi
+      svg = svg.replace(regImg, '<image x="0" y="0" href="data')
+
+      if (self.slate.events.onOptimizeSVG && !skipOptimize) {
         self.slate.events.onOptimizeSVG(svg, (err, optimized) => {
           if (err) {
             console.error('Unable to optimize slate svg export', err)
@@ -799,21 +802,28 @@ export default class canvas {
         if (self.slate.options.containerStyle.backgroundColorAsGradient) {
           self.internal.style.backgroundColor = ''
           if (self.internal.parentElement) {
-            const bgStyle = `${
-              self.slate.options.containerStyle.backgroundGradientType
-            }-gradient(${self.slate.options.containerStyle.backgroundGradientColors.join(
-              ','
-            )})`
-            self.internal.parentElement.style.background = bgStyle
+            self.internal.parentElement.style.background = self.exportBgStyle()
           }
         } else {
-          self.internal.style.backgroundColor =
-            self.slate.options.containerStyle.backgroundColor || '#fff'
+          self.internal.style.backgroundColor = self.exportBgStyle()
         }
         break
       }
     }
     self.slate.grid?.setGrid()
+  }
+
+  exportBgStyle() {
+    const self = this
+    if (self.slate.options.containerStyle.backgroundColorAsGradient) {
+      return `${
+        self.slate.options.containerStyle.backgroundGradientType
+      }-gradient(${self.slate.options.containerStyle.backgroundGradientColors.join(
+        ','
+      )})`
+    } else {
+      return self.slate.options.containerStyle.backgroundColor || '#fff'
+    }
   }
 
   get() {
