@@ -21,7 +21,7 @@ jobs:
       # Install production dependencies only
       - run: |
           export NODE_ENV=production
-          npm ci
+          npm ci --legacy-peer-deps
         name: Install production dependencies
 
       # Build the project

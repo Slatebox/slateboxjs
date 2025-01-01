@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           export NODE_ENV=production
-          npm ci
+          npm ci --legacy-peer-deps
 
       # Install Playwright browsers
       - name: Install Playwright Browsers
