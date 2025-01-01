@@ -19,8 +19,10 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - run: npm ci
-        name: Install dependencies
+      - run: |
+          export NODE_ENV=production
+          npm ci
+        name: Install production dependencies
 
       - run: npm run build
         name: Build project

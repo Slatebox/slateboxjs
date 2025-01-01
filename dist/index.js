@@ -435,18 +435,18 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    |     text: "Dump"
    | }]);
   \ */ function R(first) {
-        if (R.is(first, "function")) return loaded ? first() : (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on("raphael.DOMload", first);
+        if (R.is(first, 'function')) return loaded ? first() : (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on('raphael.DOMload', first);
         if (R.is(first, array)) return R._engine.create[apply](R, first.splice(0, 3 + R.is(first[0], nu))).add(first);
         const args = Array.prototype.slice.call(arguments, 0);
-        if (R.is(args[args.length - 1], "function")) {
+        if (R.is(args[args.length - 1], 'function')) {
             const f = args.pop();
-            return loaded ? f.call(R._engine.create[apply](R, args)) : (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on("raphael.DOMload", ()=>{
+            return loaded ? f.call(R._engine.create[apply](R, args)) : (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on('raphael.DOMload', ()=>{
                 f.call(R._engine.create[apply](R, args));
             });
         }
         return R._engine.create[apply](R, arguments);
     }
-    R.version = "2.2.0";
+    R.version = '2.2.0';
     R.eve = (0, $dacea6f50a09eb13$export$6b962911844bfb1e);
     let loaded;
     const separator = /[, ]+/;
@@ -459,14 +459,14 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         image: 1
     };
     const formatrg = /\{(\d+)\}/g;
-    const proto = "prototype";
-    const has = "hasOwnProperty";
+    const proto = 'prototype';
+    const has = 'hasOwnProperty';
     const g = {
         doc: document,
         win: window
     };
     const oldRaphael = {
-        was: Object.prototype[has].call(g.win, "Raphael"),
+        was: Object.prototype[has].call(g.win, 'Raphael'),
         is: g.win.Raphael
     };
     const Paper = function() {
@@ -503,20 +503,20 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
       \ */ this.ca = this.customAttributes = {};
     };
     let paperproto;
-    const appendChild = "appendChild";
-    var apply = "apply";
-    const concat = "concat";
-    const supportsTouch = "ontouchstart" in g.win || g.win.DocumentTouch && g.doc instanceof DocumentTouch // taken from Modernizr touch test
+    const appendChild = 'appendChild';
+    var apply = 'apply';
+    const concat = 'concat';
+    const supportsTouch = 'ontouchstart' in g.win || g.win.DocumentTouch && g.doc instanceof DocumentTouch // taken from Modernizr touch test
     ;
-    const E = "";
-    const S = " ";
+    const E = '';
+    const S = ' ';
     const Str = String;
-    const split = "split";
-    const events = "click dblclick mousedown mousemove mouseout mouseover mouseup touchstart touchmove touchend touchcancel"[split](S);
+    const split = 'split';
+    const events = 'click dblclick mousedown mousemove mouseout mouseover mouseup touchstart touchmove touchend touchcancel'[split](S);
     const touchMap = {
-        mousedown: "touchstart",
-        mousemove: "touchmove",
-        mouseup: "touchend"
+        mousedown: 'touchstart',
+        mousemove: 'touchmove',
+        mouseup: 'touchend'
     };
     const lowerCase = Str.prototype.toLowerCase;
     const math = Math;
@@ -525,87 +525,87 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     const { abs: abs } = math;
     const { pow: pow } = math;
     const { PI: PI } = math;
-    var nu = "number";
-    const string = "string";
-    var array = "array";
-    const toString = "toString";
-    const fillString = "fill";
+    var nu = 'number';
+    const string = 'string';
+    var array = 'array';
+    const toString = 'toString';
+    const fillString = 'fill';
     const objectToString = Object.prototype.toString;
     const paper = {};
-    const push = "push";
+    const push = 'push';
     const ISURL = R._ISURL = /^url\(['"]?(.+?)['"]?\)$/i;
     const colourRegExp = /^\s*((#[a-f\d]{6})|(#[a-f\d]{3})|rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+%?(?:\s*,\s*[\d\.]+%?)?)\s*\)|hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\))\s*$/i;
     const isnan = {
         NaN: 1,
         Infinity: 1,
-        "-Infinity": 1
+        '-Infinity': 1
     };
     const bezierrg = /^(?:cubic-)?bezier\(([^,]+),([^,]+),([^,]+),([^\)]+)\)/;
     const { round: round } = math;
-    const setAttribute = "setAttribute";
+    const setAttribute = 'setAttribute';
     const toFloat = parseFloat;
     const toInt = parseInt;
     const upperCase = Str.prototype.toUpperCase;
     const availableAttrs = R._availableAttrs = {
-        "arrow-end": "none",
-        "arrow-start": "none",
+        'arrow-end': 'none',
+        'arrow-start': 'none',
         blur: 0,
-        "clip-rect": "0 0 1e9 1e9",
-        cursor: "default",
+        'clip-rect': '0 0 1e9 1e9',
+        cursor: 'default',
         cx: 0,
         cy: 0,
-        fill: "#fff",
-        "fill-opacity": 1,
+        fill: '#fff',
+        'fill-opacity': 1,
         font: '10px "Arial"',
-        "font-family": '"Arial"',
-        "font-size": "10",
-        "font-style": "normal",
-        "font-weight": 400,
+        'font-family': '"Arial"',
+        'font-size': '10',
+        'font-style': 'normal',
+        'font-weight': 400,
         gradient: 0,
         height: 0,
-        href: "http://raphaeljs.com/",
-        "letter-spacing": 0,
+        href: 'http://raphaeljs.com/',
+        'letter-spacing': 0,
         opacity: 1,
-        path: "M0,0",
+        path: 'M0,0',
         r: 0,
         rx: 0,
         ry: 0,
-        src: "",
-        stroke: "#000",
-        "stroke-dasharray": "",
-        "stroke-linecap": "butt",
-        "stroke-linejoin": "butt",
-        "stroke-miterlimit": 0,
-        "stroke-opacity": 1,
-        "stroke-width": 1,
-        target: "_blank",
-        "text-anchor": "middle",
-        title: "Raphael",
-        transform: "",
+        src: '',
+        stroke: '#000',
+        'stroke-dasharray': '',
+        'stroke-linecap': 'butt',
+        'stroke-linejoin': 'butt',
+        'stroke-miterlimit': 0,
+        'stroke-opacity': 1,
+        'stroke-width': 1,
+        target: '_blank',
+        'text-anchor': 'middle',
+        title: 'Raphael',
+        transform: '',
         width: 0,
         x: 0,
         y: 0,
-        class: "",
-        filter: ""
+        class: '',
+        filter: ''
     };
     const availableAnimAttrs = R._availableAnimAttrs = {
         blur: nu,
-        "clip-rect": "csv",
+        'clip-rect': 'csv',
         cx: nu,
         cy: nu,
-        fill: "colour",
-        "fill-opacity": nu,
-        "font-size": nu,
+        fill: 'colour',
+        'fill-opacity': nu,
+        'font-size': nu,
         height: nu,
         opacity: nu,
-        path: "path",
+        path: 'path',
         r: nu,
         rx: nu,
         ry: nu,
-        stroke: "colour",
-        "stroke-opacity": nu,
-        "stroke-width": nu,
-        transform: "transform",
+        stroke: 'colour',
+        'stroke-opacity': nu,
+        'stroke-width': nu,
+        transform: 'transform',
         width: nu,
         x: nu,
         y: nu
@@ -635,17 +635,17 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     const rectPath = R._rectPath = function(x, y, w, h, r) {
         if (r) return [
             [
-                "M",
+                'M',
                 x + r,
                 y
             ],
             [
-                "l",
+                'l',
                 w - r * 2,
                 0
             ],
             [
-                "a",
+                'a',
                 r,
                 r,
                 0,
@@ -655,12 +655,12 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 r
             ],
             [
-                "l",
+                'l',
                 0,
                 h - r * 2
             ],
             [
-                "a",
+                'a',
                 r,
                 r,
                 0,
@@ -670,12 +670,12 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 r
             ],
             [
-                "l",
+                'l',
                 r * 2 - w,
                 0
             ],
             [
-                "a",
+                'a',
                 r,
                 r,
                 0,
@@ -685,12 +685,12 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 -r
             ],
             [
-                "l",
+                'l',
                 0,
                 r * 2 - h
             ],
             [
-                "a",
+                'a',
                 r,
                 r,
                 0,
@@ -700,32 +700,32 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 -r
             ],
             [
-                "z"
+                'z'
             ]
         ];
         return [
             [
-                "M",
+                'M',
                 x,
                 y
             ],
             [
-                "l",
+                'l',
                 w,
                 0
             ],
             [
-                "l",
+                'l',
                 0,
                 h
             ],
             [
-                "l",
+                'l',
                 -w,
                 0
             ],
             [
-                "z"
+                'z'
             ]
         ];
     };
@@ -733,17 +733,17 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         if (ry == null) ry = rx;
         return [
             [
-                "M",
+                'M',
                 x,
                 y
             ],
             [
-                "m",
+                'm',
                 0,
                 -ry
             ],
             [
-                "a",
+                'a',
                 rx,
                 ry,
                 0,
@@ -753,7 +753,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 2 * ry
             ],
             [
-                "a",
+                'a',
                 rx,
                 ry,
                 0,
@@ -763,13 +763,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 -2 * ry
             ],
             [
-                "z"
+                'z'
             ]
         ];
     };
     const getPath = R._getPath = {
         path (el) {
-            return el.attr("path");
+            return el.attr('path');
         },
         circle (el) {
             const a = el.attrs;
@@ -831,7 +831,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         return path;
     };
     R._g = g;
-    R.type = "SVG";
+    R.type = 'SVG';
     R.svg = true;
     R._Paper = Paper;
     /* \
@@ -872,12 +872,12 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    = (boolean) is given value is of given type
   \ */ R.is = function(o, type) {
         type = lowerCase.call(type);
-        if (type == "finite") return !isnan[has](+o);
-        if (type == "array") return o instanceof Array;
-        return type == "null" && o === null || type === typeof o && o !== null || type == "object" && o === Object(o) || type == "array" && Array.isArray && Array.isArray(o) || objectToString.call(o).slice(8, -1).toLowerCase() == type;
+        if (type == 'finite') return !isnan[has](+o);
+        if (type == 'array') return o instanceof Array;
+        return type == 'null' && o === null || type === typeof o && o !== null || type == 'object' && o === Object(o) || type == 'array' && Array.isArray && Array.isArray(o) || objectToString.call(o).slice(8, -1).toLowerCase() == type;
     };
     function clone(obj) {
-        if (typeof obj === "function" || Object(obj) !== obj) return obj;
+        if (typeof obj === 'function' || Object(obj) !== obj) return obj;
         const res = new obj.constructor();
         for(const key in obj)if (obj[has](key)) res[key] = clone(obj[key]);
         return res;
@@ -937,7 +937,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - tolerance (number) #optional tolerance for snapping. Default is `10`.
    = (number) adjusted value.
   \ */ R.snapTo = function(values, value, tolerance) {
-        tolerance = R.is(tolerance, "finite") ? tolerance : 10;
+        tolerance = R.is(tolerance, 'finite') ? tolerance : 10;
         if (R.is(values, array)) {
             let i = values.length;
             while(i--)if (abs(values[i] - value) <= tolerance) return values[i];
@@ -956,11 +956,11 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    * Returns RFC4122, version 4 ID
   \ */ const createUUID = R.createUUID = function(uuidRegEx, uuidReplacer) {
         return function() {
-            return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(uuidRegEx, uuidReplacer).toUpperCase();
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(uuidRegEx, uuidReplacer).toUpperCase();
         };
     }(/[xy]/g, (c)=>{
         const r = math.random() * 16 | 0;
-        const v = c == "x" ? r : r & 3 | 8;
+        const v = c == 'x' ? r : r & 3 | 8;
         return v.toString(16);
     });
     /* \
@@ -971,19 +971,19 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Parameters
    - newwin (window) new window object
   \ */ R.setWindow = function(newwin) {
-        (0, $dacea6f50a09eb13$export$6b962911844bfb1e)("raphael.setWindow", R, g.win, newwin);
+        (0, $dacea6f50a09eb13$export$6b962911844bfb1e)('raphael.setWindow', R, g.win, newwin);
         g.win = newwin;
         g.doc = g.win.document;
         if (R._engine.initWin) R._engine.initWin(g.win);
     };
     var toHex = function(color) {
-        const i = g.doc.createElement("i");
-        i.title = "Rapha\xebl Colour Picker";
-        i.style.display = "none";
+        const i = g.doc.createElement('i');
+        i.title = 'Rapha\xebl Colour Picker';
+        i.style.display = 'none';
         g.doc.body.appendChild(i);
-        toHex = cacher("toHex", (color)=>{
+        toHex = cacher('toHex', (color)=>{
             i.style.color = color;
-            return g.doc.defaultView.getComputedStyle(i, E).getPropertyValue("color");
+            return g.doc.defaultView.getComputedStyle(i, E).getPropertyValue('color');
         });
         return toHex(color);
     };
@@ -1005,7 +1005,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         return this.hex;
     };
     const prepareRGB = function(r, g, b) {
-        if (g == null && R.is(r, "object") && "r" in r && "g" in r && "b" in r) {
+        if (g == null && R.is(r, 'object') && 'r' in r && 'g' in r && 'b' in r) {
             b = r.b;
             g = r.g;
             r = r.r;
@@ -1038,7 +1038,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             hex: R.rgb(r, g, b),
             toString: rgbtoString
         };
-        R.is(o, "finite") && (rgb.opacity = o);
+        R.is(o, 'finite') && (rgb.opacity = o);
         return rgb;
     };
     /* \
@@ -1062,21 +1062,21 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o }
   \ */ R.color = function(clr) {
         let rgb;
-        if (R.is(clr, "object") && "h" in clr && "s" in clr && "b" in clr) {
+        if (R.is(clr, 'object') && 'h' in clr && 's' in clr && 'b' in clr) {
             rgb = R.hsb2rgb(clr);
             clr.r = rgb.r;
             clr.g = rgb.g;
             clr.b = rgb.b;
             clr.hex = rgb.hex;
-        } else if (R.is(clr, "object") && "h" in clr && "s" in clr && "l" in clr) {
+        } else if (R.is(clr, 'object') && 'h' in clr && 's' in clr && 'l' in clr) {
             rgb = R.hsl2rgb(clr);
             clr.r = rgb.r;
             clr.g = rgb.g;
             clr.b = rgb.b;
             clr.hex = rgb.hex;
         } else {
-            if (R.is(clr, "string")) clr = R.getRGB(clr);
-            if (R.is(clr, "object") && "r" in clr && "g" in clr && "b" in clr) {
+            if (R.is(clr, 'string')) clr = R.getRGB(clr);
+            if (R.is(clr, 'object') && 'r' in clr && 'g' in clr && 'b' in clr) {
                 rgb = R.rgb2hsl(clr);
                 clr.h = rgb.h;
                 clr.s = rgb.s;
@@ -1085,7 +1085,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 clr.v = rgb.b;
             } else {
                 clr = {
-                    hex: "none"
+                    hex: 'none'
                 };
                 clr.r = clr.g = clr.b = clr.h = clr.s = clr.v = clr.l = -1;
             }
@@ -1110,7 +1110,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     hex (string) color in HTML/CSS format: #••••••
    o }
   \ */ R.hsb2rgb = function(h, s, v, o) {
-        if (this.is(h, "object") && "h" in h && "s" in h && "b" in h) {
+        if (this.is(h, 'object') && 'h' in h && 's' in h && 'b' in h) {
             v = h.b;
             s = h.s;
             o = h.o;
@@ -1170,7 +1170,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     hex (string) color in HTML/CSS format: #••••••
    o }
   \ */ R.hsl2rgb = function(h, s, l, o) {
-        if (this.is(h, "object") && "h" in h && "s" in h && "l" in h) {
+        if (this.is(h, 'object') && 'h' in h && 's' in h && 'l' in h) {
             l = h.l;
             s = h.s;
             h = h.h;
@@ -1298,7 +1298,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         return this.map((t)=>[
                 t[0],
                 ...t.slice(1).map((t)=>Math.round(t * 1e2) / 1e2)
-            ]).join(",").replace(p2s, "$1");
+            ]).join(',').replace(p2s, '$1');
     };
     function repush(array, item) {
         for(let i = 0, ii = array.length; i < ii; i++)if (array[i] === item) return array.push(array.splice(i, 1)[0]);
@@ -1307,7 +1307,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     function cacher(name, f, scope, postprocessor) {
         function newf() {
             const arg = Array.prototype.slice.call(arguments, 0);
-            const args = arg.join("\u2400");
+            const args = arg.join('\u2400');
             if (cache[has](args)) {
                 repush(count, args);
                 return postprocessor ? postprocessor(cache[args]) : cache[args];
@@ -1333,8 +1333,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         }
     };
     const preload = R._preload = function(src, f) {
-        const img = g.doc.createElement("img");
-        img.style.cssText = "position:absolute;left:-9999em;top:-9999em";
+        const img = g.doc.createElement('img');
+        img.style.cssText = 'position:absolute;left:-9999em;top:-9999em';
         img.onload = function() {
             f.call(this);
             this.onload = null;
@@ -1375,23 +1375,23 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     hex (string) color in HTML/CSS format: #••••••,
    o     error (boolean) true if string can’t be parsed
    o }
-  \ */ R.getRGB = cacher("getRGB", (colour)=>{
-        if (!colour || !!((colour = Str(colour)).indexOf("-") + 1)) return {
+  \ */ R.getRGB = cacher('getRGB', (colour)=>{
+        if (!colour || !!((colour = Str(colour)).indexOf('-') + 1)) return {
             r: -1,
             g: -1,
             b: -1,
-            hex: "none",
+            hex: 'none',
             error: 1,
             toString: clrToString
         };
-        if (colour == "none") return {
+        if (colour == 'none') return {
             r: -1,
             g: -1,
             b: -1,
-            hex: "none",
+            hex: 'none',
             toString: clrToString
         };
-        !(hsrg[has](colour.toLowerCase().substring(0, 2)) || colour.charAt() == "#") && (colour = toHex(colour));
+        !(hsrg[has](colour.toLowerCase().substring(0, 2)) || colour.charAt() == '#') && (colour = toHex(colour));
         let res;
         let red;
         let green;
@@ -1414,38 +1414,38 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             if (rgb[4]) {
                 values = rgb[4][split](commaSpaces);
                 red = toFloat(values[0]);
-                values[0].slice(-1) == "%" && (red *= 2.55);
+                values[0].slice(-1) == '%' && (red *= 2.55);
                 green = toFloat(values[1]);
-                values[1].slice(-1) == "%" && (green *= 2.55);
+                values[1].slice(-1) == '%' && (green *= 2.55);
                 blue = toFloat(values[2]);
-                values[2].slice(-1) == "%" && (blue *= 2.55);
-                rgb[1].toLowerCase().slice(0, 4) == "rgba" && (opacity = toFloat(values[3]));
-                values[3] && values[3].slice(-1) == "%" && (opacity /= 100);
+                values[2].slice(-1) == '%' && (blue *= 2.55);
+                rgb[1].toLowerCase().slice(0, 4) == 'rgba' && (opacity = toFloat(values[3]));
+                values[3] && values[3].slice(-1) == '%' && (opacity /= 100);
             }
             if (rgb[5]) {
                 values = rgb[5][split](commaSpaces);
                 red = toFloat(values[0]);
-                values[0].slice(-1) == "%" && (red *= 2.55);
+                values[0].slice(-1) == '%' && (red *= 2.55);
                 green = toFloat(values[1]);
-                values[1].slice(-1) == "%" && (green *= 2.55);
+                values[1].slice(-1) == '%' && (green *= 2.55);
                 blue = toFloat(values[2]);
-                values[2].slice(-1) == "%" && (blue *= 2.55);
-                (values[0].slice(-3) == "deg" || values[0].slice(-1) == "\xb0") && (red /= 360);
-                rgb[1].toLowerCase().slice(0, 4) == "hsba" && (opacity = toFloat(values[3]));
-                values[3] && values[3].slice(-1) == "%" && (opacity /= 100);
+                values[2].slice(-1) == '%' && (blue *= 2.55);
+                (values[0].slice(-3) == 'deg' || values[0].slice(-1) == '\xb0') && (red /= 360);
+                rgb[1].toLowerCase().slice(0, 4) == 'hsba' && (opacity = toFloat(values[3]));
+                values[3] && values[3].slice(-1) == '%' && (opacity /= 100);
                 return R.hsb2rgb(red, green, blue, opacity);
             }
             if (rgb[6]) {
                 values = rgb[6][split](commaSpaces);
                 red = toFloat(values[0]);
-                values[0].slice(-1) == "%" && (red *= 2.55);
+                values[0].slice(-1) == '%' && (red *= 2.55);
                 green = toFloat(values[1]);
-                values[1].slice(-1) == "%" && (green *= 2.55);
+                values[1].slice(-1) == '%' && (green *= 2.55);
                 blue = toFloat(values[2]);
-                values[2].slice(-1) == "%" && (blue *= 2.55);
-                (values[0].slice(-3) == "deg" || values[0].slice(-1) == "\xb0") && (red /= 360);
-                rgb[1].toLowerCase().slice(0, 4) == "hsla" && (opacity = toFloat(values[3]));
-                values[3] && values[3].slice(-1) == "%" && (opacity /= 100);
+                values[2].slice(-1) == '%' && (blue *= 2.55);
+                (values[0].slice(-3) == 'deg' || values[0].slice(-1) == '\xb0') && (red /= 360);
+                rgb[1].toLowerCase().slice(0, 4) == 'hsla' && (opacity = toFloat(values[3]));
+                values[3] && values[3].slice(-1) == '%' && (opacity /= 100);
                 return R.hsl2rgb(red, green, blue, opacity);
             }
             rgb = {
@@ -1455,14 +1455,14 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 toString: clrToString
             };
             rgb.hex = `#${(16777216 | blue | green << 8 | red << 16).toString(16).slice(1)}`;
-            R.is(opacity, "finite") && (rgb.opacity = opacity);
+            R.is(opacity, 'finite') && (rgb.opacity = opacity);
             return rgb;
         }
         return {
             r: -1,
             g: -1,
             b: -1,
-            hex: "none",
+            hex: 'none',
             error: 1,
             toString: clrToString
         };
@@ -1477,7 +1477,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - s (number) saturation
    - b (number) value or brightness
    = (string) hex representation of the colour.
-  \ */ R.hsb = cacher("hsb", (h, s, b)=>R.hsb2rgb(h, s, b).hex);
+  \ */ R.hsb = cacher('hsb', (h, s, b)=>R.hsb2rgb(h, s, b).hex);
     /* \
    * Raphael.hsl
    [ method ]
@@ -1488,7 +1488,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - s (number) saturation
    - l (number) luminosity
    = (string) hex representation of the colour.
-  \ */ R.hsl = cacher("hsl", (h, s, l)=>R.hsl2rgb(h, s, l).hex);
+  \ */ R.hsl = cacher('hsl', (h, s, l)=>R.hsl2rgb(h, s, l).hex);
     /* \
    * Raphael.rgb
    [ method ]
@@ -1499,7 +1499,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    - g (number) green
    - b (number) blue
    = (string) hex representation of the colour.
-  \ */ R.rgb = cacher("rgb", (r, g, b)=>{
+  \ */ R.rgb = cacher('rgb', (r, g, b)=>{
         function round(x) {
             return x + 0.5 | 0;
         }
@@ -1587,7 +1587,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 y: +crp[i + 1]
             };
             d.push([
-                "C",
+                'C',
                 (-p[0].x + 6 * p[1].x + p[2].x) / 6,
                 (-p[0].y + 6 * p[1].y + p[2].y) / 6,
                 (p[1].x + 6 * p[2].x - p[3].x) / 6,
@@ -1634,14 +1634,14 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             c.replace(pathValues, (a, b)=>{
                 b && params.push(+b);
             });
-            if (name == "m" && params.length > 2) {
+            if (name == 'm' && params.length > 2) {
                 data.push([
                     b
                 ][concat](params.splice(0, 2)));
-                name = "l";
-                b = b == "m" ? "l" : "L";
+                name = 'l';
+                b = b == 'm' ? 'l' : 'L';
             }
-            if (name == "r") data.push([
+            if (name == 'r') data.push([
                 b
             ][concat](params));
             else while(params.length >= paramCounts[name]){
@@ -1665,7 +1665,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Parameters
    - TString (string|array) transform string or array of transformations (in the last case it will be returned straight away)
    = (array) array of transformations.
-  \ */ R.parseTransformString = cacher("parseTransformString", (TString)=>{
+  \ */ R.parseTransformString = cacher('parseTransformString', (TString)=>{
         if (!TString) return null;
         const paramCounts = {
             r: 3,
@@ -1813,7 +1813,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o     }
    o }
   \ */ R.bezierBBox = function(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y) {
-        if (!R.is(p1x, "array")) p1x = [
+        if (!R.is(p1x, 'array')) p1x = [
             p1x,
             p1y,
             c1x,
@@ -1981,8 +1981,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             const di1 = dots1[i + 1];
             const dj = dots2[j];
             const dj1 = dots2[j + 1];
-            const ci = abs(di1.x - di.x) < 0.001 ? "y" : "x";
-            const cj = abs(dj1.x - dj.x) < 0.001 ? "y" : "x";
+            const ci = abs(di1.x - di.x) < 0.001 ? 'y' : 'x';
+            const cj = abs(dj1.x - dj.x) < 0.001 ? 'y' : 'x';
             const is = intersect(di.x, di.y, di1.x, di1.y, dj.x, dj.y, dj1.x, dj1.y);
             if (is) {
                 if (xy[is.x.toFixed(4)] == is.y.toFixed(4)) continue;
@@ -2047,11 +2047,11 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         let res = justCount ? 0 : [];
         for(let i = 0, ii = path1.length; i < ii; i++){
             const pi = path1[i];
-            if (pi[0] == "M") {
+            if (pi[0] == 'M') {
                 x1 = x1m = pi[1];
                 y1 = y1m = pi[2];
             } else {
-                if (pi[0] == "C") {
+                if (pi[0] == 'C') {
                     bez1 = [
                         x1,
                         y1
@@ -2074,11 +2074,11 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 }
                 for(let j = 0, jj = path2.length; j < jj; j++){
                     const pj = path2[j];
-                    if (pj[0] == "M") {
+                    if (pj[0] == 'M') {
                         x2 = x2m = pj[1];
                         y2 = y2m = pj[2];
                     } else {
-                        if (pj[0] == "C") {
+                        if (pj[0] == 'C') {
                             bez2 = [
                                 x2,
                                 y2
@@ -2132,19 +2132,19 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         const bbox = R.pathBBox(path);
         return R.isPointInsideBBox(bbox, x, y) && interPathHelper(path, [
             [
-                "M",
+                'M',
                 x,
                 y
             ],
             [
-                "H",
+                'H',
                 bbox.x2 + 10
             ]
         ], 1) % 2 == 1;
     };
     R._removedFactory = function(methodname) {
         return function() {
-            (0, $dacea6f50a09eb13$export$6b962911844bfb1e)("raphael.log", null, `Rapha\xebl: you are calling to method \u201c${methodname}\u201d of removed object`, methodname);
+            (0, $dacea6f50a09eb13$export$6b962911844bfb1e)('raphael.log', null, `Rapha\xebl: you are calling to method \u201c${methodname}\u201d of removed object`, methodname);
         };
     };
     /* \
@@ -2186,7 +2186,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         let p;
         for(let i = 0, ii = path.length; i < ii; i++){
             p = path[i];
-            if (p[0] == "M") {
+            if (p[0] == 'M') {
                 x = p[1];
                 y = p[2];
                 X.push(x);
@@ -2237,14 +2237,14 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         let mx = 0;
         let my = 0;
         let start = 0;
-        if (pathArray[0][0] == "M") {
+        if (pathArray[0][0] == 'M') {
             x = pathArray[0][1];
             y = pathArray[0][2];
             mx = x;
             my = y;
             start++;
             res.push([
-                "M",
+                'M',
                 x,
                 y
             ]);
@@ -2255,7 +2255,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             if (pa[0] != lowerCase.call(pa[0])) {
                 r[0] = lowerCase.call(pa[0]);
                 switch(r[0]){
-                    case "a":
+                    case 'a':
                         r[1] = pa[1];
                         r[2] = pa[2];
                         r[3] = pa[3];
@@ -2264,10 +2264,10 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                         r[6] = +(pa[6] - x).toFixed(3);
                         r[7] = +(pa[7] - y).toFixed(3);
                         break;
-                    case "v":
+                    case 'v':
                         r[1] = +(pa[1] - y).toFixed(3);
                         break;
-                    case "m":
+                    case 'm':
                         mx = pa[1];
                         my = pa[2];
                     default:
@@ -2275,7 +2275,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 }
             } else {
                 r = res[i] = [];
-                if (pa[0] == "m") {
+                if (pa[0] == 'm') {
                     mx = pa[1] + x;
                     my = pa[2] + y;
                 }
@@ -2283,14 +2283,14 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             }
             const len = res[i].length;
             switch(res[i][0]){
-                case "z":
+                case 'z':
                     x = mx;
                     y = my;
                     break;
-                case "h":
+                case 'h':
                     x += +res[i][len - 1];
                     break;
-                case "v":
+                case 'v':
                     y += +res[i][len - 1];
                     break;
                 default:
@@ -2310,7 +2310,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         pathArray = R.parsePathString(pathArray);
         if (!pathArray || !pathArray.length) return [
             [
-                "M",
+                'M',
                 0,
                 0
             ]
@@ -2321,26 +2321,26 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         let mx = 0;
         let my = 0;
         let start = 0;
-        if (pathArray[0][0] == "M") {
+        if (pathArray[0][0] == 'M') {
             x = +pathArray[0][1];
             y = +pathArray[0][2];
             mx = x;
             my = y;
             start++;
             res[0] = [
-                "M",
+                'M',
                 x,
                 y
             ];
         }
-        const crz = pathArray.length == 3 && pathArray[0][0] == "M" && pathArray[1][0].toUpperCase() == "R" && pathArray[2][0].toUpperCase() == "Z";
+        const crz = pathArray.length == 3 && pathArray[0][0] == 'M' && pathArray[1][0].toUpperCase() == 'R' && pathArray[2][0].toUpperCase() == 'Z';
         for(var r, pa, i = start, ii = pathArray.length; i < ii; i++){
             res.push(r = []);
             pa = pathArray[i];
             if (pa[0] != upperCase.call(pa[0])) {
                 r[0] = upperCase.call(pa[0]);
                 switch(r[0]){
-                    case "A":
+                    case 'A':
                         r[1] = pa[1];
                         r[2] = pa[2];
                         r[3] = pa[3];
@@ -2349,13 +2349,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                         r[6] = +(pa[6] + x);
                         r[7] = +(pa[7] + y);
                         break;
-                    case "V":
+                    case 'V':
                         r[1] = +pa[1] + y;
                         break;
-                    case "H":
+                    case 'H':
                         r[1] = +pa[1] + x;
                         break;
-                    case "R":
+                    case 'R':
                         var dots = [
                             x,
                             y
@@ -2367,13 +2367,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                         res.pop();
                         res = res[concat](catmullRom2bezier(dots, crz));
                         break;
-                    case "M":
+                    case 'M':
                         mx = +pa[1] + x;
                         my = +pa[2] + y;
                     default:
                         for(j = 1, jj = pa.length; j < jj; j++)r[j] = +pa[j] + (j % 2 ? x : y);
                 }
-            } else if (pa[0] == "R") {
+            } else if (pa[0] == 'R') {
                 dots = [
                     x,
                     y
@@ -2381,21 +2381,21 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 res.pop();
                 res = res[concat](catmullRom2bezier(dots, crz));
                 r = [
-                    "R"
+                    'R'
                 ][concat](pa.slice(-2));
             } else for(let k = 0, kk = pa.length; k < kk; k++)r[k] = pa[k];
             switch(r[0]){
-                case "Z":
+                case 'Z':
                     x = mx;
                     y = my;
                     break;
-                case "H":
+                case 'H':
                     x = r[1];
                     break;
-                case "V":
+                case 'V':
                     y = r[1];
                     break;
-                case "M":
+                case 'M':
                     mx = r[r.length - 2];
                     my = r[r.length - 1];
                 default:
@@ -2436,7 +2436,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         const rad = PI / 180 * (+angle || 0);
         let res = [];
         let xy;
-        const rotate = cacher("a2c.rotate", (x, y, rad)=>{
+        const rotate = cacher('a2c.rotate', (x, y, rad)=>{
             const X = x * math.cos(rad) - y * math.sin(rad);
             const Y = x * math.sin(rad) + y * math.cos(rad);
             return {
@@ -2530,7 +2530,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             m2,
             m3,
             m4
-        ][concat](res).join()[split](",");
+        ][concat](res).join()[split](',');
         const newres = [];
         for(let i = 0, ii = res.length; i < ii; i++)newres[i] = i % 2 ? rotate(res[i - 1], res[i], rad).y : rotate(res[i], res[i + 1], rad).x;
         return newres;
@@ -2542,7 +2542,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             y: t1 ** 3 * p1y + t1 ** 2 * 3 * t * c1y + t1 * 3 * t * t * c2y + t ** 3 * p2y
         };
     };
-    var curveDim = cacher("curveDim", (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y)=>{
+    var curveDim = cacher('curveDim', (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y)=>{
         let a = c2x - 2 * c1x + p1x - (p2x - 2 * c2x + c1x);
         let b = 2 * (c1x - p1x) - 2 * (c2x - c1x);
         let c = p1x - c1x;
@@ -2557,8 +2557,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             p2x
         ];
         let dot;
-        abs(t1) > "1e12" && (t1 = 0.5);
-        abs(t2) > "1e12" && (t2 = 0.5);
+        abs(t1) > '1e12' && (t1 = 0.5);
+        abs(t2) > '1e12' && (t2 = 0.5);
         if (t1 > 0 && t1 < 1) {
             dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1);
             x.push(dot.x);
@@ -2574,8 +2574,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         c = p1y - c1y;
         t1 = (-b + math.sqrt(b * b - 4 * a * c)) / 2 / a;
         t2 = (-b - math.sqrt(b * b - 4 * a * c)) / 2 / a;
-        abs(t1) > "1e12" && (t1 = 0.5);
-        abs(t2) > "1e12" && (t2 = 0.5);
+        abs(t1) > '1e12' && (t1 = 0.5);
+        abs(t2) > '1e12' && (t2 = 0.5);
         if (t1 > 0 && t1 < 1) {
             dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1);
             x.push(dot.x);
@@ -2597,7 +2597,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             }
         };
     });
-    var path2curve = R._path2curve = cacher("path2curve", (path, path2)=>{
+    var path2curve = R._path2curve = cacher('path2curve', (path, path2)=>{
         const pth = !path2 && paths(path);
         if (!path2 && pth.curve) return pathClone(pth.curve);
         const p = pathToAbsolute(path);
@@ -2630,7 +2630,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 Q: 1
             };
             if (!path) return [
-                "C",
+                'C',
                 d.x,
                 d.y,
                 d.x,
@@ -2640,20 +2640,20 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             ];
             !(path[0] in tq) && (d.qx = d.qy = null);
             switch(path[0]){
-                case "M":
+                case 'M':
                     d.X = path[1];
                     d.Y = path[2];
                     break;
-                case "A":
+                case 'A':
                     path = [
-                        "C"
+                        'C'
                     ][concat](a2c[apply](0, [
                         d.x,
                         d.y
                     ][concat](path.slice(1))));
                     break;
-                case "S":
-                    if (pcom == "C" || pcom == "S") {
+                case 'S':
+                    if (pcom == 'C' || pcom == 'S') {
                         // In "S" case we have to take into account, if the previous command is C/S.
                         nx = d.x * 2 - d.bx // And reflect the previous
                         ;
@@ -2665,13 +2665,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                         ny = d.y;
                     }
                     path = [
-                        "C",
+                        'C',
                         nx,
                         ny
                     ][concat](path.slice(1));
                     break;
-                case "T":
-                    if (pcom == "Q" || pcom == "T") {
+                case 'T':
+                    if (pcom == 'Q' || pcom == 'T') {
                         // In "T" case we have to take into account, if the previous command is Q/T.
                         d.qx = d.x * 2 - d.qx // And make a reflection similar
                         ;
@@ -2683,34 +2683,34 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                         d.qy = d.y;
                     }
                     path = [
-                        "C"
+                        'C'
                     ][concat](q2c(d.x, d.y, d.qx, d.qy, path[1], path[2]));
                     break;
-                case "Q":
+                case 'Q':
                     d.qx = path[1];
                     d.qy = path[2];
                     path = [
-                        "C"
+                        'C'
                     ][concat](q2c(d.x, d.y, path[1], path[2], path[3], path[4]));
                     break;
-                case "L":
+                case 'L':
                     path = [
-                        "C"
+                        'C'
                     ][concat](l2c(d.x, d.y, path[1], path[2]));
                     break;
-                case "H":
+                case 'H':
                     path = [
-                        "C"
+                        'C'
                     ][concat](l2c(d.x, d.y, path[1], d.y));
                     break;
-                case "V":
+                case 'V':
                     path = [
-                        "C"
+                        'C'
                     ][concat](l2c(d.x, d.y, d.x, path[1]));
                     break;
-                case "Z":
+                case 'Z':
                     path = [
-                        "C"
+                        'C'
                     ][concat](l2c(d.x, d.y, d.X, d.Y));
                     break;
             }
@@ -2721,12 +2721,12 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 pp[i].shift();
                 const pi = pp[i];
                 while(pi.length){
-                    pcoms1[i] = "A" // if created multiple C:s, their original seg is saved
+                    pcoms1[i] = 'A' // if created multiple C:s, their original seg is saved
                     ;
-                    p2 && (pcoms2[i] = "A" // the same as above
+                    p2 && (pcoms2[i] = 'A' // the same as above
                     );
                     pp.splice(i++, 0, [
-                        "C"
+                        'C'
                     ][concat](pi.splice(0, 6)));
                 }
                 pp.splice(i, 1);
@@ -2734,9 +2734,9 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             }
         };
         const fixM = function(path1, path2, a1, a2, i) {
-            if (path1 && path2 && path1[i][0] == "M" && path2[i][0] != "M") {
+            if (path1 && path2 && path1[i][0] == 'M' && path2[i][0] != 'M') {
                 path2.splice(i, 0, [
-                    "M",
+                    'M',
                     a2.x,
                     a2.y
                 ]);
@@ -2751,14 +2751,14 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         ;
         var pcoms2 = [] // path commands of original path p2
         ;
-        let pfirst = "" // temporary holder for original path command
+        let pfirst = '' // temporary holder for original path command
         ;
-        let pcom = "" // holder for previous path command of original path
+        let pcom = '' // holder for previous path command of original path
         ;
         for(var i = 0, ii = mmax(p.length, p2 && p2.length || 0); i < ii; i++){
             p[i] && (pfirst = p[i][0] // save current path command
             );
-            if (pfirst != "C") {
+            if (pfirst != 'C') {
                 // C is not saved yet, because it may be result of conversion
                 pcoms1[i] = pfirst // Save current path command
                 ;
@@ -2767,7 +2767,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             }
             p[i] = processPath(p[i], attrs, pcom) // Previous path command is inputted to processPath
             ;
-            if (pcoms1[i] != "A" && pfirst == "C") pcoms1[i] = "C" // A is the only command
+            if (pcoms1[i] != 'A' && pfirst == 'C') pcoms1[i] = 'C' // A is the only command
             ;
             // which may produce multiple C:s
             // so we have to make sure that C is also C in original path
@@ -2776,12 +2776,12 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             if (p2) {
                 // the same procedures is done to p2
                 p2[i] && (pfirst = p2[i][0]);
-                if (pfirst != "C") {
+                if (pfirst != 'C') {
                     pcoms2[i] = pfirst;
                     i && (pcom = pcoms2[i - 1]);
                 }
                 p2[i] = processPath(p2[i], attrs2, pcom);
-                if (pcoms2[i] != "A" && pfirst == "C") pcoms2[i] = "C";
+                if (pcoms2[i] != 'A' && pfirst == 'C') pcoms2[i] = 'C';
                 fixArc(p2, i);
             }
             fixM(p, p2, attrs, attrs2, i);
@@ -2805,7 +2805,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             p2
         ] : p;
     }, null, pathClone);
-    const parseDots = R._parseDots = cacher("parseDots", (gradient)=>{
+    const parseDots = R._parseDots = cacher('parseDots', (gradient)=>{
         const dots = [];
         for(var i = 0, ii = gradient.length; i < ii; i++){
             const dot = {};
@@ -2936,7 +2936,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             var x2;
             var y2;
             var bb;
-            if (command == "t" && tlen == 3) {
+            if (command == 't' && tlen == 3) {
                 if (absolute) {
                     x1 = inver.x(0, 0);
                     y1 = inver.y(0, 0);
@@ -2944,7 +2944,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                     y2 = inver.y(t[1], t[2]);
                     m.translate(x2 - x1, y2 - y1);
                 } else m.translate(t[1], t[2]);
-            } else if (command == "r") {
+            } else if (command == 'r') {
                 if (tlen == 2) {
                     bb = bb || el.getBBox(1);
                     m.rotate(t[1], bb.x + bb.width / 2, bb.y + bb.height / 2);
@@ -2957,7 +2957,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                     } else m.rotate(t[1], t[2], t[3]);
                     deg += t[1];
                 }
-            } else if (command == "s") {
+            } else if (command == 's') {
                 if (tlen == 2 || tlen == 3) {
                     bb = bb || el.getBBox(1);
                     m.scale(t[1], t[tlen - 1], bb.x + bb.width / 2, bb.y + bb.height / 2);
@@ -2972,7 +2972,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                     sx *= t[1];
                     sy *= t[2];
                 }
-            } else if (command == "m" && tlen == 7) m.add(t[1], t[2], t[3], t[4], t[5], t[6]);
+            } else if (command == 'm' && tlen == 7) m.add(t[1], t[2], t[3], t[4], t[5], t[6]);
             _.dirtyT = 1;
             el.matrix = m;
         }
@@ -2995,13 +2995,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     const getEmpty = function(item) {
         const l = item[0];
         switch(l.toLowerCase()){
-            case "t":
+            case 't':
                 return [
                     l,
                     0,
                     0
                 ];
-            case "m":
+            case 'm':
                 return [
                     l,
                     1,
@@ -3011,7 +3011,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                     0,
                     0
                 ];
-            case "r":
+            case 'r':
                 if (item.length == 4) return [
                     l,
                     0,
@@ -3022,7 +3022,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                     l,
                     0
                 ];
-            case "s":
+            case 's':
                 if (item.length == 5) return [
                     l,
                     1,
@@ -3056,7 +3056,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         for(; i < maxlength; i++){
             tt1 = t1[i] || getEmpty(t2[i]);
             tt2 = t2[i] || getEmpty(tt1);
-            if (tt1[0] != tt2[0] || tt1[0].toLowerCase() == "r" && (tt1[2] != tt2[2] || tt1[3] != tt2[3]) || tt1[0].toLowerCase() == "s" && (tt1[3] != tt2[3] || tt1[4] != tt2[4])) return;
+            if (tt1[0] != tt2[0] || tt1[0].toLowerCase() == 'r' && (tt1[2] != tt2[2] || tt1[3] != tt2[3]) || tt1[0].toLowerCase() == 's' && (tt1[3] != tt2[3] || tt1[4] != tt2[4])) return;
             from[i] = [];
             to[i] = [];
             for(j = 0, jj = mmax(tt1.length, tt2.length); j < jj; j++){
@@ -3071,7 +3071,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     };
     R._getContainer = function(x, y, w, h) {
         let container;
-        container = h == null && !R.is(x, "object") ? g.doc.getElementById(x) : x;
+        container = h == null && !R.is(x, 'object') ? g.doc.getElementById(x) : x;
         if (container == null) return;
         if (container.tagName) {
             if (y == null) return {
@@ -3549,7 +3549,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 const parent = node.parentNode;
                 const { display: display } = node.style;
                 g.win.opera && parent.removeChild(node);
-                node.style.display = "none";
+                node.style.display = 'none';
                 o = dragi.el.paper.getElementByPoint(x, y);
                 node.style.display = display;
                 g.win.opera && (next ? parent.insertBefore(node, next) : parent.appendChild(node));
@@ -3763,7 +3763,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    = (object) @Element
   \ */ for(let i = events.length; i--;)(function(eventName) {
         R[eventName] = elproto[eventName] = function(fn, scope) {
-            if (R.is(fn, "function")) {
+            if (R.is(fn, 'function')) {
                 this.events = this.events || [];
                 this.events.push({
                     name: eventName,
@@ -3776,7 +3776,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         R[`un${eventName}`] = elproto[`un${eventName}`] = function(fn) {
             const events = this.events || [];
             let l = events.length;
-            while(l--)if (events[l].name == eventName && (R.is(fn, "undefined") || events[l].f == fn)) {
+            while(l--)if (events[l].name == eventName && (R.is(fn, 'undefined') || events[l].f == fn)) {
                 events[l].unbind();
                 events.splice(l, 1);
                 !events.length && delete this.events;
@@ -3812,7 +3812,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         const data = eldata[this.id] = eldata[this.id] || {};
         if (arguments.length == 0) return data;
         if (arguments.length == 1) {
-            if (R.is(key, "object")) {
+            if (R.is(key, 'object')) {
                 for(const i in key)if (key[has](i)) this.data(i, key[i]);
                 return this;
             }
@@ -4113,7 +4113,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Usage
    | var c = paper.image("apple.png", 10, 10, 80, 80);
   \ */ paperproto.image = function(src, x, y, w, h) {
-        const out = R._engine.image(this, src || "about:blank", x || 0, y || 0, w || 0, h || 0);
+        const out = R._engine.image(this, src || 'about:blank', x || 0, y || 0, w || 0, h || 0);
         this.__set__ && this.__set__.push(out);
         return out;
     };
@@ -4154,11 +4154,11 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    | );
    | st.attr({fill: "red"}); // changes the fill of both circles
   \ */ paperproto.set = function(itemsArray) {
-        !R.is(itemsArray, "array") && (itemsArray = Array.prototype.splice.call(arguments, 0, arguments.length));
+        !R.is(itemsArray, 'array') && (itemsArray = Array.prototype.splice.call(arguments, 0, arguments.length));
         const out = new Set(itemsArray);
         this.__set__ && this.__set__.push(out);
         out.paper = this;
-        out.type = "set";
+        out.type = 'set';
         return out;
     };
     /* \
@@ -4281,7 +4281,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         const paper = this;
         const svg = paper.canvas;
         let target = g.doc.elementFromPoint(x, y);
-        if (g.win.opera && target.tagName == "svg") {
+        if (g.win.opera && target.tagName == 'svg') {
             const so = getOffset(svg);
             const sr = svg.createSVGRect();
             sr.x = x - so.x;
@@ -4393,7 +4393,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    = (boolean) `true` if point inside the shape
   \ */ elproto.isPointInside = function(x, y) {
         let rp = this.realPath = getPath[this.type](this);
-        if (this.attr("transform") && this.attr("transform").length) rp = R.transformPath(rp, this.attr("transform"));
+        if (this.attr('transform') && this.attr('transform').length) rp = R.transformPath(rp, this.attr('transform'));
         return R.isPointInsidePath(rp, x, y);
     };
     /* \
@@ -4470,15 +4470,15 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    o }
    = (object) @Paper.set of elements that represents glow
   \ */ elproto.glow = function(glow) {
-        if (this.type == "text") return null;
+        if (this.type == 'text') return null;
         glow = glow || {};
         const s = {
-            width: (glow.width || 10) + (+this.attr("stroke-width") || 1),
+            width: (glow.width || 10) + (+this.attr('stroke-width') || 1),
             fill: glow.fill || false,
             opacity: glow.opacity == null ? 0.5 : glow.opacity,
             offsetx: glow.offsetx || 0,
             offsety: glow.offsety || 0,
-            color: glow.color || "#000"
+            color: glow.color || '#000'
         };
         const c = s.width / 2;
         const r = this.paper;
@@ -4487,10 +4487,10 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         path = this.matrix ? mapPath(path, this.matrix) : path;
         for(let i = 1; i < c + 1; i++)out.push(r.path(path).attr({
             stroke: s.color,
-            fill: s.fill ? s.color : "none",
-            "stroke-linejoin": "round",
-            "stroke-linecap": "round",
-            "stroke-width": +(s.width / c * i).toFixed(3),
+            fill: s.fill ? s.color : 'none',
+            'stroke-linejoin': 'round',
+            'stroke-linecap': 'round',
+            'stroke-width': +(s.width / c * i).toFixed(3),
             opacity: +(s.opacity / c).toFixed(3)
         }));
         return out.insertBefore(this).translate(s.offsetx, s.offsety);
@@ -4507,13 +4507,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             let y;
             let p;
             let l;
-            let sp = "";
+            let sp = '';
             const subpaths = {};
             let point;
             let len = 0;
             for(let i = 0, ii = path.length; i < ii; i++){
                 p = path[i];
-                if (p[0] == "M") {
+                if (p[0] == 'M') {
                     x = +p[1];
                     y = +p[2];
                 } else {
@@ -4664,7 +4664,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
   \ */ elproto.getPath = function() {
         let path;
         const getPath = R._getPath[this.type];
-        if (this.type == "text" || this.type == "set") return;
+        if (this.type == 'text' || this.type == 'set') return;
         if (getPath) path = getPath(this);
         return path;
     };
@@ -4705,13 +4705,13 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         linear (n) {
             return n;
         },
-        "<": function(n) {
+        '<': function(n) {
             return n ** 1.7;
         },
-        ">": function(n) {
+        '>': function(n) {
             return n ** 0.48;
         },
-        "<>": function(n) {
+        '<>': function(n) {
             const q = 0.48 - n / 1.04;
             const Q = math.sqrt(0.1734 + q * q);
             const x = Q - q;
@@ -4752,11 +4752,11 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             return l;
         }
     };
-    ef.easeIn = ef["ease-in"] = ef["<"];
-    ef.easeOut = ef["ease-out"] = ef[">"];
-    ef.easeInOut = ef["ease-in-out"] = ef["<>"];
-    ef["back-in"] = ef.backIn;
-    ef["back-out"] = ef.backOut;
+    ef.easeIn = ef['ease-in'] = ef['<'];
+    ef.easeOut = ef['ease-out'] = ef['>'];
+    ef.easeInOut = ef['ease-in-out'] = ef['<>'];
+    ef['back-in'] = ef.backIn;
+    ef['back-out'] = ef.backOut;
     const animationElements = [];
     const requestAnimFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(callback) {
         setTimeout(callback, 16);
@@ -4793,14 +4793,14 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                         case nu:
                             now = +from[attr] + pos * ms * diff[attr];
                             break;
-                        case "colour":
+                        case 'colour':
                             now = `rgb(${[
                                 upto255(round(from[attr].r + pos * ms * diff[attr].r)),
                                 upto255(round(from[attr].g + pos * ms * diff[attr].g)),
                                 upto255(round(from[attr].b + pos * ms * diff[attr].b))
-                            ].join(",")})`;
+                            ].join(',')})`;
                             break;
-                        case "path":
+                        case 'path':
                             now = [];
                             for(var i = 0, ii = from[attr].length; i < ii; i++){
                                 now[i] = [
@@ -4811,7 +4811,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                             }
                             now = now.join(S);
                             break;
-                        case "transform":
+                        case 'transform':
                             if (diff[attr].real) {
                                 now = [];
                                 for(i = 0, ii = from[attr].length; i < ii; i++){
@@ -4827,7 +4827,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                                 // now = [["r", get(2), 0, 0], ["t", get(3), get(4)], ["s", get(0), get(1), 0, 0]];
                                 now = [
                                     [
-                                        "m",
+                                        'm',
                                         get(0),
                                         get(1),
                                         get(2),
@@ -4838,8 +4838,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                                 ];
                             }
                             break;
-                        case "csv":
-                            if (attr == "clip-rect") {
+                        case 'csv':
+                            if (attr == 'clip-rect') {
                                 now = [];
                                 i = 4;
                                 while(i--)now[i] = +from[attr][i] + pos * ms * diff[attr][i];
@@ -4865,7 +4865,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                     setTimeout(()=>{
                         (0, $dacea6f50a09eb13$export$6b962911844bfb1e)(`raphael.anim.frame.${el.id}`, el, a);
                         (0, $dacea6f50a09eb13$export$6b962911844bfb1e)(`raphael.anim.finish.${el.id}`, el, a);
-                        R.is(f, "function") && f.call(el);
+                        R.is(f, 'function') && f.call(el);
                     });
                 })(e.callback, that, e.anim);
                 that.attr(to);
@@ -5072,7 +5072,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                         case nu:
                             diff[attr] = (to[attr] - from[attr]) / ms;
                             break;
-                        case "colour":
+                        case 'colour':
                             from[attr] = R.getRGB(from[attr]);
                             var toColour = R.getRGB(to[attr]);
                             diff[attr] = {
@@ -5081,7 +5081,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                                 b: (toColour.b - from[attr].b) / ms
                             };
                             break;
-                        case "path":
+                        case 'path':
                             var pathes = path2curve(from[attr], to[attr]);
                             var toPath = pathes[1];
                             from[attr] = pathes[0];
@@ -5093,7 +5093,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                                 for(var j = 1, jj = from[attr][i].length; j < jj; j++)diff[attr][i][j] = (toPath[i][j] - from[attr][i][j]) / ms;
                             }
                             break;
-                        case "transform":
+                        case 'transform':
                             var { _: _ } = element;
                             var eq = equaliseTransform(_[attr], to[attr]);
                             if (eq) {
@@ -5147,10 +5147,10 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                             // ];
                             }
                             break;
-                        case "csv":
+                        case 'csv':
                             var values = Str(params[attr])[split](separator);
                             var from2 = Str(from[attr])[split](separator);
-                            if (attr == "clip-rect") {
+                            if (attr == 'clip-rect') {
                                 from[attr] = from2;
                                 diff[attr] = [];
                                 i = from2.length;
@@ -5232,7 +5232,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    = (object) @Animation
   \ */ R.animation = function(params, ms, easing, callback) {
         if (params instanceof Animation) return params;
-        if (R.is(easing, "function") || !easing) {
+        if (R.is(easing, 'function') || !easing) {
             callback = callback || easing || null;
             easing = null;
         }
@@ -5254,7 +5254,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                     const percent = toInt(i);
                     if (params[has](i) && percent > lastKey) lastKey = percent;
                 }
-                lastKey += "%";
+                lastKey += '%';
                 // if already defined callback in the last keyframe, skip
                 !params[lastKey].callback && (params[lastKey].callback = callback);
             }
@@ -5412,16 +5412,16 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     function stopAnimation(paper) {
         for(let i = 0; i < animationElements.length; i++)if (animationElements[i].el.paper == paper) animationElements.splice(i--, 1);
     }
-    (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on("raphael.remove", stopAnimation);
-    (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on("raphael.clear", stopAnimation);
+    (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on('raphael.remove', stopAnimation);
+    (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on('raphael.clear', stopAnimation);
     elproto.toString = function() {
-        return "Rapha\xebl\u2019s object";
+        return 'Rapha\xebl\u2019s object';
     };
     // Set
     var Set = function(items) {
         this.items = [];
         this.length = 0;
-        this.type = "set";
+        this.type = 'set';
         if (items) {
             for(let i = 0, ii = items.length; i < ii; i++)if (items[i] && (items[i].constructor == elproto.constructor || items[i].constructor == Set)) {
                 this[this.items.length] = this.items[this.items.length] = items[i];
@@ -5487,7 +5487,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         };
     }(method);
     setproto.attr = function(name, value) {
-        if (name && R.is(name, array) && R.is(name[0], "object")) for(let j = 0, jj = name.length; j < jj; j++)this.items[j].attr(name[j]);
+        if (name && R.is(name, array) && R.is(name[0], 'object')) for(let j = 0, jj = name.length; j < jj; j++)this.items[j].attr(name[j]);
         else for(let i = 0, ii = this.items.length; i < ii; i++)this.items[i].attr(name, value);
         return this;
     };
@@ -5544,7 +5544,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         }
     };
     setproto.animate = function(params, ms, easing, callback) {
-        (R.is(easing, "function") || !easing) && (callback = easing || null);
+        (R.is(easing, 'function') || !easing) && (callback = easing || null);
         let len = this.items.length;
         let i = len;
         let item;
@@ -5599,7 +5599,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         return s;
     };
     setproto.toString = function() {
-        return "Rapha\xebl\u2018s set";
+        return 'Rapha\xebl\u2018s set';
     };
     setproto.glow = function(glowConfig) {
         const ret = this.paper.set();
@@ -5655,27 +5655,27 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             face: {},
             glyphs: {}
         };
-        const family = font.face["font-family"];
+        const family = font.face['font-family'];
         for(const prop in font.face)if (font.face[has](prop)) fontcopy.face[prop] = font.face[prop];
         if (this.fonts[family]) this.fonts[family].push(fontcopy);
         else this.fonts[family] = [
             fontcopy
         ];
         if (!font.svg) {
-            fontcopy.face["units-per-em"] = toInt(font.face["units-per-em"], 10);
+            fontcopy.face['units-per-em'] = toInt(font.face['units-per-em'], 10);
             for(const glyph in font.glyphs)if (font.glyphs[has](glyph)) {
                 const path = font.glyphs[glyph];
                 fontcopy.glyphs[glyph] = {
                     w: path.w,
                     k: {},
                     d: path.d && `M${path.d.replace(/[mlcxtrv]/g, (command)=>({
-                            l: "L",
-                            c: "C",
-                            x: "z",
-                            t: "m",
-                            r: "l",
-                            v: "c"
-                        })[command] || "M")}z`
+                            l: 'L',
+                            c: 'C',
+                            x: 'z',
+                            t: 'm',
+                            r: 'l',
+                            v: 'c'
+                        })[command] || 'M')}z`
                 };
                 if (path.k) {
                     for(const k in path.k)if (path[has](k)) fontcopy.glyphs[glyph].k[k] = path.k[k];
@@ -5700,8 +5700,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Usage
    | paper.print(100, 100, "Test string", paper.getFont("Times", 800), 30);
   \ */ paperproto.getFont = function(family, weight, style, stretch) {
-        stretch = stretch || "normal";
-        style = style || "normal";
+        stretch = stretch || 'normal';
+        style = style || 'normal';
         weight = +weight || ({
             normal: 400,
             bold: 700,
@@ -5711,7 +5711,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         if (!R.fonts) return;
         let font = R.fonts[family];
         if (!font) {
-            const name = new RegExp(`(^|\\s)${family.replace(/[^\w\d\s+!~.:_-]/g, E)}(\\s|$)`, "i");
+            const name = new RegExp(`(^|\\s)${family.replace(/[^\w\d\s+!~.:_-]/g, E)}(\\s|$)`, 'i');
             for(const fontName in R.fonts)if (R.fonts[has](fontName)) {
                 if (name.test(fontName)) {
                     font = R.fonts[fontName];
@@ -5722,7 +5722,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         let thefont;
         if (font) for(let i = 0, ii = font.length; i < ii; i++){
             thefont = font[i];
-            if (thefont.face["font-weight"] == weight && (thefont.face["font-style"] == style || !thefont.face["font-style"]) && thefont.face["font-stretch"] == stretch) break;
+            if (thefont.face['font-weight'] == weight && (thefont.face['font-style'] == style || !thefont.face['font-style']) && thefont.face['font-stretch'] == stretch) break;
         }
         return thefont;
     };
@@ -5747,7 +5747,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Usage
    | var txt = r.print(10, 50, "print", r.getFont("Museo"), 30).attr({fill: "#fff"});
   \ */ paperproto.print = function(x, y, string, font, size, origin, letter_spacing, line_spacing) {
-        origin = origin || "middle" // baseline|middle
+        origin = origin || 'middle' // baseline|middle
         ;
         letter_spacing = mmax(mmin(letter_spacing || 0, 1), -1);
         line_spacing = mmax(mmin(line_spacing || 1, 3), 1);
@@ -5756,16 +5756,16 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         let notfirst = 0;
         let path = E;
         let scale;
-        R.is(font, "string") && (font = this.getFont(font));
+        R.is(font, 'string') && (font = this.getFont(font));
         if (font) {
-            scale = (size || 16) / font.face["units-per-em"];
+            scale = (size || 16) / font.face['units-per-em'];
             const bb = font.face.bbox[split](separator);
             const top = +bb[0];
             const lineHeight = bb[3] - bb[1];
             let shifty = 0;
-            const height = +bb[1] + (origin == "baseline" ? lineHeight + +font.face.descent : lineHeight / 2);
+            const height = +bb[1] + (origin == 'baseline' ? lineHeight + +font.face.descent : lineHeight / 2);
             for(let i = 0, ii = letters.length; i < ii; i++){
-                if (letters[i] == "\n") {
+                if (letters[i] == '\n') {
                     shift = 0;
                     curr = 0;
                     notfirst = 0;
@@ -5777,23 +5777,23 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                     notfirst = 1;
                 }
                 if (curr && curr.d) path += R.transformPath(curr.d, [
-                    "t",
+                    't',
                     shift * scale,
                     shifty * scale,
-                    "s",
+                    's',
                     scale,
                     scale,
                     top,
                     height,
-                    "t",
+                    't',
                     (x - top) / scale,
                     (y - height) / scale
                 ]);
             }
         }
         return this.path(path).attr({
-            fill: "#000",
-            stroke: "none"
+            fill: '#000',
+            stroke: 'none'
         });
     };
     /* \
@@ -5824,7 +5824,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    |     }
    | ]);
   \ */ paperproto.add = function(json) {
-        if (R.is(json, "array")) {
+        if (R.is(json, 'array')) {
             var res = this.set();
             let i = 0;
             const ii = json.length;
@@ -5893,7 +5893,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 name = name || quotedName;
                 if (res) {
                     if (name in res) res = res[name];
-                    typeof res === "function" && isFunc && (res = res());
+                    typeof res === 'function' && isFunc && (res = res());
                 }
             });
             res = `${res == null || res == obj ? all : res}`;
@@ -5947,28 +5947,28 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    | // then use it
    | paper.set(paper.circle(100, 100, 20), paper.circle(110, 100, 20)).red();
   \ */ R.st = setproto;
-    (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on("raphael.DOMload", ()=>{
+    (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on('raphael.DOMload', ()=>{
         loaded = true;
     });
     (function(doc, loaded, f) {
         if (doc.readyState == null && doc.addEventListener) {
             doc.addEventListener(loaded, f = function() {
                 doc.removeEventListener(loaded, f, false);
-                doc.readyState = "complete";
+                doc.readyState = 'complete';
             }, false);
-            doc.readyState = "loading";
+            doc.readyState = 'loading';
         }
         function isLoaded() {
-            /in/.test(doc && doc.readyState) ? setTimeout(isLoaded, 9) : R.eve("raphael.DOMload");
+            /in/.test(doc && doc.readyState) ? setTimeout(isLoaded, 9) : R.eve('raphael.DOMload');
         }
         isLoaded();
-    })(document, "DOMContentLoaded");
+    })(document, 'DOMContentLoaded');
     return R;
 }();
 
 
 const $65a92514e25c9f85$export$508faed300ccdfb = function() {
-    const has = "hasOwnProperty";
+    const has = 'hasOwnProperty';
     const Str = String;
     const toFloat = parseFloat;
     const toInt = parseInt;
@@ -5977,32 +5977,32 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
     const { abs: abs } = math;
     const { pow: pow } = math;
     const separator = /[, ]+/;
-    const E = "";
-    const S = " ";
-    const xlink = "http://www.w3.org/1999/xlink";
+    const E = '';
+    const S = ' ';
+    const xlink = 'http://www.w3.org/1999/xlink';
     const markers = {
-        block: "M5,0 0,2.5 5,5z",
-        classic: "M5,0 0,2.5 5,5 3.5,3 3.5,2z",
-        diamond: "M2.5,0 5,2.5 2.5,5 0,2.5z",
-        open: "M6,1 1,3.5 6,6",
-        oval: "M2.5,0A2.5,2.5,0,0,1,2.5,5 2.5,2.5,0,0,1,2.5,0z"
+        block: 'M5,0 0,2.5 5,5z',
+        classic: 'M5,0 0,2.5 5,5 3.5,3 3.5,2z',
+        diamond: 'M2.5,0 5,2.5 2.5,5 0,2.5z',
+        open: 'M6,1 1,3.5 6,6',
+        oval: 'M2.5,0A2.5,2.5,0,0,1,2.5,5 2.5,2.5,0,0,1,2.5,0z'
     };
     const markerCounter = {};
     var $ = function(el, attr) {
         if (attr) {
-            if (typeof el === "string") el = $(el);
+            if (typeof el === 'string') el = $(el);
             for(const key in attr)if (attr[has](key)) {
-                if (key.substring(0, 6) == "xlink:") el.setAttributeNS(xlink, key.substring(6), Str(attr[key]));
+                if (key.substring(0, 6) == 'xlink:') el.setAttributeNS(xlink, key.substring(6), Str(attr[key]));
                 else el.setAttribute(key, Str(attr[key]));
             }
         } else {
-            el = (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.createElementNS("http://www.w3.org/2000/svg", el);
-            el.style && (el.style.webkitTapHighlightColor = "rgba(0,0,0,0)");
+            el = (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.createElementNS('http://www.w3.org/2000/svg', el);
+            el.style && (el.style.webkitTapHighlightColor = 'rgba(0,0,0,0)');
         }
         return el;
     };
     const addGradientFill = function(element, gradient) {
-        let type = "linear";
+        let type = 'linear';
         let id = element.id + gradient;
         let fx = 0.5;
         let fy = 0.5;
@@ -6012,7 +6012,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         let el = (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(id);
         if (!el) {
             gradient = Str(gradient).replace((0, $c453c098b23bc46d$export$db202ddc8be9136)._radial_gradient, (all, _fx, _fy)=>{
-                type = "radial";
+                type = 'radial';
                 if (_fx && _fy) {
                     fx = toFloat(_fx);
                     fy = toFloat(_fy);
@@ -6021,7 +6021,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 return E;
             });
             gradient = gradient.split(/\s*\-\s*/);
-            if (type == "linear") {
+            if (type == 'linear') {
                 let angle = gradient.shift();
                 angle = -toFloat(angle);
                 if (isNaN(angle)) return null;
@@ -6045,7 +6045,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             }
             const dots = (0, $c453c098b23bc46d$export$db202ddc8be9136)._parseDots(gradient);
             if (!dots) return null;
-            id = id.replace(/[\(\)\s,\xb0#]/g, "_");
+            id = id.replace(/[\(\)\s,\xb0#]/g, '_');
             if (element.gradient && id != element.gradient.id) {
                 SVG.defs.removeChild(element.gradient);
                 delete element.gradient;
@@ -6055,7 +6055,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                     id: id
                 });
                 element.gradient = el;
-                $(el, type == "radial" ? {
+                $(el, type == 'radial' ? {
                     fx: fx,
                     fy: fy
                 } : {
@@ -6066,17 +6066,17 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                     gradientTransform: element.matrix.invert()
                 });
                 SVG.defs.appendChild(el);
-                for(let i = 0, ii = dots.length; i < ii; i++)el.appendChild($("stop", {
-                    offset: dots[i].offset ? dots[i].offset : i ? "100%" : "0%",
-                    "stop-color": dots[i].color || "#fff",
-                    "stop-opacity": isFinite(dots[i].opacity) ? dots[i].opacity : 1
+                for(let i = 0, ii = dots.length; i < ii; i++)el.appendChild($('stop', {
+                    offset: dots[i].offset ? dots[i].offset : i ? '100%' : '0%',
+                    'stop-color': dots[i].color || '#fff',
+                    'stop-opacity': isFinite(dots[i].opacity) ? dots[i].opacity : 1
                 }));
             }
         }
         $(o, {
             fill: fillurl(id),
             opacity: 1,
-            "fill-opacity": 1
+            'fill-opacity': 1
         });
         s.fill = E;
         s.opacity = 1;
@@ -6104,7 +6104,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
     };
     // SLATEBOX - edit for image filling (not tiling patterns) of path elements
     const updatePosition = function(o) {
-        if (!o.data("relativeFill")) {
+        if (!o.data('relativeFill')) {
             const bbox = o.getBBox(1);
             $(o.pattern, {
                 patternTransform: `${o.matrix.invert()} translate(${bbox.x},${bbox.y})`
@@ -6112,15 +6112,15 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         }
     };
     const addArrow = function(o, value, isEnd) {
-        if (o.type == "path") {
-            const values = Str(value).toLowerCase().split("-");
+        if (o.type == 'path') {
+            const values = Str(value).toLowerCase().split('-');
             const p = o.paper;
-            const se = isEnd ? "end" : "start";
+            const se = isEnd ? 'end' : 'start';
             const { node: node } = o;
             const { attrs: attrs } = o;
-            const stroke = attrs["stroke-width"];
+            const stroke = attrs['stroke-width'];
             let i = values.length;
-            let type = "classic";
+            let type = 'classic';
             let from;
             let to;
             let dx;
@@ -6130,42 +6130,42 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             let h = 3;
             let t = 5;
             while(i--)switch(values[i]){
-                case "block":
-                case "classic":
-                case "oval":
-                case "diamond":
-                case "open":
-                case "none":
+                case 'block':
+                case 'classic':
+                case 'oval':
+                case 'diamond':
+                case 'open':
+                case 'none':
                     type = values[i];
                     break;
-                case "wide":
+                case 'wide':
                     h = 5;
                     break;
-                case "narrow":
+                case 'narrow':
                     h = 2;
                     break;
-                case "long":
+                case 'long':
                     w = 5;
                     break;
-                case "short":
+                case 'short':
                     w = 2;
                     break;
             }
-            if (type == "open") {
+            if (type == 'open') {
                 w += 2;
                 h += 2;
                 t += 2;
                 dx = 1;
                 refX = isEnd ? 4 : 1;
                 attr = {
-                    fill: "none",
+                    fill: 'none',
                     stroke: attrs.stroke
                 };
             } else {
                 refX = dx = w / 2;
                 attr = {
                     fill: attrs.stroke,
-                    stroke: "none"
+                    stroke: 'none'
                 };
             }
             if (o._.arrows) {
@@ -6177,13 +6177,13 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                     o._.arrows.startMarker && markerCounter[o._.arrows.startMarker]--;
                 }
             } else o._.arrows = {};
-            if (type != "none") {
+            if (type != 'none') {
                 const pathId = `raphael-marker-${type}`;
                 const markerId = `raphael-marker-${se}${type}${w}${h}-obj${o.id}`;
                 // SLATEBOX - addition to make sure arrows show in svg extract
-                if (!(0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(pathId) || (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(pathId) && getComputedStyle((0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(pathId)).display === "none") {
-                    p.defs.appendChild($($("path"), {
-                        "stroke-linecap": "round",
+                if (!(0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(pathId) || (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(pathId) && getComputedStyle((0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(pathId)).display === 'none') {
+                    p.defs.appendChild($($('path'), {
+                        'stroke-linecap': 'round',
                         d: markers[type],
                         id: pathId
                     }));
@@ -6192,28 +6192,28 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 let marker = (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(markerId);
                 let use;
                 if (!marker) {
-                    marker = $($("marker"), {
+                    marker = $($('marker'), {
                         id: markerId,
                         markerHeight: h,
                         markerWidth: w,
-                        orient: "auto",
+                        orient: 'auto',
                         refX: refX,
                         refY: h / 2
                     });
-                    use = $($("use"), {
-                        "xlink:href": `#${pathId}`,
+                    use = $($('use'), {
+                        'xlink:href': `#${pathId}`,
                         transform: `${isEnd ? `rotate(180 ${w / 2} ${h / 2}) ` : E}scale(${w / t},${h / t})`,
-                        "stroke-width": (1 / ((w / t + h / t) / 2)).toFixed(4)
+                        'stroke-width': (1 / ((w / t + h / t) / 2)).toFixed(4)
                     });
                     marker.appendChild(use);
                     p.defs.appendChild(marker);
                     markerCounter[markerId] = 1;
                 } else {
                     markerCounter[markerId]++;
-                    use = marker.getElementsByTagName("use")[0];
+                    use = marker.getElementsByTagName('use')[0];
                 }
                 $(use, attr);
-                const delta = dx * (type != "diamond" && type != "oval");
+                const delta = dx * (type != 'diamond' && type != 'oval');
                 if (isEnd) {
                     from = o._.arrows.startdx * stroke || 0;
                     to = (0, $c453c098b23bc46d$export$db202ddc8be9136).getTotalLength(attrs.path) - delta * stroke;
@@ -6254,21 +6254,21 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         }
     };
     const dasharray = {
-        "-": [
+        '-': [
             3,
             1
         ],
-        ".": [
+        '.': [
             1,
             1
         ],
-        "-.": [
+        '-.': [
             3,
             1,
             1,
             1
         ],
-        "-..": [
+        '-..': [
             3,
             1,
             1,
@@ -6276,31 +6276,31 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             1,
             1
         ],
-        ". ": [
+        '. ': [
             1,
             3
         ],
-        "- ": [
+        '- ': [
             4,
             3
         ],
-        "--": [
+        '--': [
             8,
             3
         ],
-        "- .": [
+        '- .': [
             4,
             3,
             1,
             3
         ],
-        "--.": [
+        '--.': [
             8,
             3,
             1,
             3
         ],
-        "--..": [
+        '--..': [
             8,
             3,
             1,
@@ -6312,76 +6312,76 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
     const addDashes = function(o, value, params) {
         value = dasharray[Str(value).toLowerCase()];
         if (value) {
-            const width = o.attrs["stroke-width"] || "1";
+            const width = o.attrs['stroke-width'] || '1';
             const butt = {
                 round: width,
                 square: width,
                 butt: 0
-            }[o.attrs["stroke-linecap"] || params["stroke-linecap"]] || 0;
+            }[o.attrs['stroke-linecap'] || params['stroke-linecap']] || 0;
             const dashes = [];
             let i = value.length;
             while(i--)dashes[i] = value[i] * width + (i % 2 ? 1 : -1) * butt;
             $(o.node, {
-                "stroke-dasharray": dashes.join(",")
+                'stroke-dasharray': dashes.join(',')
             });
         } else $(o.node, {
-            "stroke-dasharray": "none"
+            'stroke-dasharray': 'none'
         });
     };
     const setFillAndStroke = function(o, params) {
         const { node: node } = o;
         const { attrs: attrs } = o;
         const vis = node.style.visibility;
-        node.style.visibility = "hidden";
+        node.style.visibility = 'hidden';
         for(let att in params)if (params[has](att)) {
             if (!(0, $c453c098b23bc46d$export$db202ddc8be9136)._availableAttrs[has](att)) continue;
             let value = params[att];
             attrs[att] = value;
             switch(att){
-                case "blur":
+                case 'blur':
                     o.blur(value);
                     break;
-                case "title":
-                    var title = node.getElementsByTagName("title");
+                case 'title':
+                    var title = node.getElementsByTagName('title');
                     // Use the existing <title>.
                     if (title.length && (title = title[0])) title.firstChild.nodeValue = value;
                     else {
-                        title = $("title");
+                        title = $('title');
                         const val = (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.createTextNode(value);
                         title.appendChild(val);
                         node.appendChild(title);
                     }
                     break;
-                case "href":
-                case "target":
+                case 'href':
+                case 'target':
                     var pn = node.parentNode;
-                    if (pn.tagName.toLowerCase() != "a") {
-                        const hl = $("a");
+                    if (pn.tagName.toLowerCase() != 'a') {
+                        const hl = $('a');
                         pn.insertBefore(hl, node);
                         hl.appendChild(node);
                         pn = hl;
                     }
-                    if (att == "target") pn.setAttributeNS(xlink, "show", value == "blank" ? "new" : value);
+                    if (att == 'target') pn.setAttributeNS(xlink, 'show', value == 'blank' ? 'new' : value);
                     else pn.setAttributeNS(xlink, att, value);
                     break;
-                case "cursor":
+                case 'cursor':
                     node.style.cursor = value;
                     break;
-                case "transform":
+                case 'transform':
                     o.transform(value);
                     break;
-                case "arrow-start":
+                case 'arrow-start':
                     addArrow(o, value);
                     break;
-                case "arrow-end":
+                case 'arrow-end':
                     addArrow(o, value, 1);
                     break;
-                case "clip-rect":
+                case 'clip-rect':
                     var rect = Str(value).split(separator);
                     if (rect.length == 4) {
                         o.clip && o.clip.parentNode.parentNode.removeChild(o.clip.parentNode);
-                        var el = $("clipPath");
-                        const rc = $("rect");
+                        var el = $('clipPath');
+                        const rc = $('rect');
                         el.id = (0, $c453c098b23bc46d$export$db202ddc8be9136).createUUID();
                         $(rc, {
                             x: rect[0],
@@ -6392,124 +6392,124 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                         el.appendChild(rc);
                         o.paper.defs.appendChild(el);
                         $(node, {
-                            "clip-path": `url(#${el.id})`
+                            'clip-path': `url(#${el.id})`
                         });
                         o.clip = rc;
                     }
                     if (!value) {
-                        const path = node.getAttribute("clip-path");
+                        const path = node.getAttribute('clip-path');
                         if (path) {
                             const clip = (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(path.replace(/(^url\(#|\)$)/g, E));
                             clip && clip.parentNode.removeChild(clip);
                             $(node, {
-                                "clip-path": E
+                                'clip-path': E
                             });
                             delete o.clip;
                         }
                     }
                     break;
-                case "path":
+                case 'path':
                     // SLATEBOX - changed "$(node, {d: value ? attrs.path = R._pathToAbsolute(value) : "M0,0"});"
                     // to $(node, {d: value ? attrs.path = value : "M0,0"}); in the line below -->
-                    if (o.type == "path") {
+                    if (o.type == 'path') {
                         $(node, {
-                            d: value ? attrs.path = value : "M0,0"
+                            d: value ? attrs.path = value : 'M0,0'
                         }) // <--
                         ;
                         o._.dirty = 1;
                         if (o._.arrows) {
-                            "startString" in o._.arrows && addArrow(o, o._.arrows.startString);
-                            "endString" in o._.arrows && addArrow(o, o._.arrows.endString, 1);
+                            'startString' in o._.arrows && addArrow(o, o._.arrows.startString);
+                            'endString' in o._.arrows && addArrow(o, o._.arrows.endString, 1);
                         }
                     }
                     break;
-                case "width":
+                case 'width':
                     node.setAttribute(att, value);
                     o._.dirty = 1;
                     if (attrs.fx) {
-                        att = "x";
+                        att = 'x';
                         value = attrs.x;
                     } else break;
-                case "x":
+                case 'x':
                     if (attrs.fx) value = -attrs.x - (attrs.width || 0);
-                case "rx":
-                    if (att == "rx" && o.type == "rect") break;
-                case "cx":
+                case 'rx':
+                    if (att == 'rx' && o.type == 'rect') break;
+                case 'cx':
                     node.setAttribute(att, value);
                     o.pattern && updatePosition(o);
                     o._.dirty = 1;
                     break;
-                case "height":
+                case 'height':
                     node.setAttribute(att, value);
                     o._.dirty = 1;
                     if (attrs.fy) {
-                        att = "y";
+                        att = 'y';
                         value = attrs.y;
                     } else break;
-                case "y":
+                case 'y':
                     if (attrs.fy) value = -attrs.y - (attrs.height || 0);
-                case "ry":
-                    if (att == "ry" && o.type == "rect") break;
-                case "cy":
+                case 'ry':
+                    if (att == 'ry' && o.type == 'rect') break;
+                case 'cy':
                     node.setAttribute(att, value);
                     o.pattern && updatePosition(o);
                     o._.dirty = 1;
                     break;
-                case "r":
-                    if (o.type == "rect") $(node, {
+                case 'r':
+                    if (o.type == 'rect') $(node, {
                         rx: value,
                         ry: value
                     });
                     else node.setAttribute(att, value);
                     o._.dirty = 1;
                     break;
-                case "src":
-                    if (o.type == "image") node.setAttributeNS(xlink, "href", value);
+                case 'src':
+                    if (o.type == 'image') node.setAttributeNS(xlink, 'href', value);
                     break;
-                case "stroke-width":
+                case 'stroke-width':
                     if (o._.sx != 1 || o._.sy != 1) value /= mmax(abs(o._.sx), abs(o._.sy)) || 1;
                     node.setAttribute(att, value);
-                    if (attrs["stroke-dasharray"]) addDashes(o, attrs["stroke-dasharray"], params);
+                    if (attrs['stroke-dasharray']) addDashes(o, attrs['stroke-dasharray'], params);
                     if (o._.arrows) {
-                        "startString" in o._.arrows && addArrow(o, o._.arrows.startString);
-                        "endString" in o._.arrows && addArrow(o, o._.arrows.endString, 1);
+                        'startString' in o._.arrows && addArrow(o, o._.arrows.startString);
+                        'endString' in o._.arrows && addArrow(o, o._.arrows.endString, 1);
                     }
                     break;
-                case "stroke-dasharray":
+                case 'stroke-dasharray':
                     addDashes(o, value, params);
                     break;
-                case "fill":
+                case 'fill':
                     // SLATEBOX a few edits for image filling (not tiling patterns) of path elements
-                    var relativeFill = o.data("relativeFill");
+                    var relativeFill = o.data('relativeFill');
                     var isURL = Str(value).match((0, $c453c098b23bc46d$export$db202ddc8be9136)._ISURL);
                     if (isURL) {
-                        if (value.indexOf("(#") > -1) // internal reference
+                        if (value.indexOf('(#') > -1) // internal reference
                         $(node, {
                             fill: value
                         });
                         else {
                             // image, external
-                            el = $("pattern");
-                            var ig = $("image");
+                            el = $('pattern');
+                            var ig = $('image');
                             el.id = (0, $c453c098b23bc46d$export$db202ddc8be9136).createUUID();
                             $(el, {
                                 x: 0,
                                 y: 0,
-                                patternUnits: relativeFill ? "objectBoundingBox" : "userSpaceOnUse",
+                                patternUnits: relativeFill ? 'objectBoundingBox' : 'userSpaceOnUse',
                                 height: 1,
                                 width: 1
                             });
                             $(ig, {
                                 x: 0,
                                 y: 0,
-                                "xlink:href": isURL[1]
+                                'xlink:href': isURL[1]
                             });
                             el.appendChild(ig);
                             (function(el) {
                                 (0, $c453c098b23bc46d$export$db202ddc8be9136)._preload(isURL[1], function() {
                                     const w = this.offsetWidth;
                                     const h = this.offsetHeight;
-                                    const tempPath = o.paper.path(o.attr("path"));
+                                    const tempPath = o.paper.path(o.attr('path'));
                                     const bbox = tempPath.getBBox();
                                     $(el, {
                                         width: relativeFill ? 1 : w,
@@ -6539,61 +6539,61 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                     if (!clr.error) {
                         delete params.gradient;
                         delete attrs.gradient;
-                        !(0, $c453c098b23bc46d$export$db202ddc8be9136).is(attrs.opacity, "undefined") && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(params.opacity, "undefined") && $(node, {
+                        !(0, $c453c098b23bc46d$export$db202ddc8be9136).is(attrs.opacity, 'undefined') && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(params.opacity, 'undefined') && $(node, {
                             opacity: attrs.opacity
                         });
-                        !(0, $c453c098b23bc46d$export$db202ddc8be9136).is(attrs["fill-opacity"], "undefined") && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(params["fill-opacity"], "undefined") && $(node, {
-                            "fill-opacity": attrs["fill-opacity"]
+                        !(0, $c453c098b23bc46d$export$db202ddc8be9136).is(attrs['fill-opacity'], 'undefined') && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(params['fill-opacity'], 'undefined') && $(node, {
+                            'fill-opacity': attrs['fill-opacity']
                         });
-                    } else if ((o.type == "circle" || o.type == "ellipse" || Str(value).charAt() != "r") && addGradientFill(o, value)) {
-                        if ("opacity" in attrs || "fill-opacity" in attrs) {
-                            var gradient = (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, E));
+                    } else if ((o.type == 'circle' || o.type == 'ellipse' || Str(value).charAt() != 'r') && addGradientFill(o, value)) {
+                        if ('opacity' in attrs || 'fill-opacity' in attrs) {
+                            var gradient = (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(node.getAttribute('fill').replace(/^url\(#|\)$/g, E));
                             if (gradient) {
-                                var stops = gradient.getElementsByTagName("stop");
+                                var stops = gradient.getElementsByTagName('stop');
                                 $(stops[stops.length - 1], {
-                                    "stop-opacity": ("opacity" in attrs ? attrs.opacity : 1) * ("fill-opacity" in attrs ? attrs["fill-opacity"] : 1)
+                                    'stop-opacity': ('opacity' in attrs ? attrs.opacity : 1) * ('fill-opacity' in attrs ? attrs['fill-opacity'] : 1)
                                 });
                             }
                         }
                         attrs.gradient = value;
-                        attrs.fill = "none";
+                        attrs.fill = 'none';
                         break;
                     }
-                    clr[has]("opacity") && $(node, {
-                        "fill-opacity": clr.opacity > 1 ? clr.opacity / 100 : clr.opacity
+                    clr[has]('opacity') && $(node, {
+                        'fill-opacity': clr.opacity > 1 ? clr.opacity / 100 : clr.opacity
                     });
-                case "stroke":
+                case 'stroke':
                     clr = (0, $c453c098b23bc46d$export$db202ddc8be9136).getRGB(value);
                     node.setAttribute(att, clr.hex);
-                    att == "stroke" && clr[has]("opacity") && $(node, {
-                        "stroke-opacity": clr.opacity > 1 ? clr.opacity / 100 : clr.opacity
+                    att == 'stroke' && clr[has]('opacity') && $(node, {
+                        'stroke-opacity': clr.opacity > 1 ? clr.opacity / 100 : clr.opacity
                     });
-                    if (att == "stroke" && o._.arrows) {
-                        "startString" in o._.arrows && addArrow(o, o._.arrows.startString);
-                        "endString" in o._.arrows && addArrow(o, o._.arrows.endString, 1);
+                    if (att == 'stroke' && o._.arrows) {
+                        'startString' in o._.arrows && addArrow(o, o._.arrows.startString);
+                        'endString' in o._.arrows && addArrow(o, o._.arrows.endString, 1);
                     }
                     break;
-                case "gradient":
-                    (o.type == "circle" || o.type == "ellipse" || Str(value).charAt() != "r") && addGradientFill(o, value);
+                case 'gradient':
+                    (o.type == 'circle' || o.type == 'ellipse' || Str(value).charAt() != 'r') && addGradientFill(o, value);
                     break;
-                case "opacity":
-                    if (attrs.gradient && !attrs[has]("stroke-opacity")) $(node, {
-                        "stroke-opacity": value > 1 ? value / 100 : value
+                case 'opacity':
+                    if (attrs.gradient && !attrs[has]('stroke-opacity')) $(node, {
+                        'stroke-opacity': value > 1 ? value / 100 : value
                     });
                 // fall
-                case "fill-opacity":
+                case 'fill-opacity':
                     if (attrs.gradient) {
-                        gradient = (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, E));
+                        gradient = (0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.getElementById(node.getAttribute('fill').replace(/^url\(#|\)$/g, E));
                         if (gradient) {
-                            stops = gradient.getElementsByTagName("stop");
+                            stops = gradient.getElementsByTagName('stop');
                             $(stops[stops.length - 1], {
-                                "stop-opacity": value
+                                'stop-opacity': value
                             });
                         }
                         break;
                     }
                 default:
-                    att == "font-size" && (value = `${toInt(value, 10)}px`);
+                    att == 'font-size' && (value = `${toInt(value, 10)}px`);
                     var cssrule = att.replace(/(\-.)/g, (w)=>w.substring(1).toUpperCase());
                     node.style[cssrule] = value;
                     o._.dirty = 1;
@@ -6606,18 +6606,18 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
     };
     const leading = 1.2;
     var tuneText = function(el, params) {
-        if (el.type != "text" || !(params[has]("text") || params[has]("font") || params[has]("font-size") || params[has]("x") || params[has]("y"))) return;
+        if (el.type != 'text' || !(params[has]('text') || params[has]('font') || params[has]('font-size') || params[has]('x') || params[has]('y'))) return;
         const a = el.attrs;
         const { node: node } = el;
-        const fontSize = node.firstChild ? toInt((0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.defaultView.getComputedStyle(node.firstChild, E).getPropertyValue("font-size"), 10) : 10;
-        if (params[has]("text")) {
+        const fontSize = node.firstChild ? toInt((0, $c453c098b23bc46d$export$db202ddc8be9136)._g.doc.defaultView.getComputedStyle(node.firstChild, E).getPropertyValue('font-size'), 10) : 10;
+        if (params[has]('text')) {
             a.text = params.text;
             while(node.firstChild)node.removeChild(node.firstChild);
-            const texts = Str(params.text).split("\n");
+            const texts = Str(params.text).split('\n');
             var tspans = [];
             let tspan;
             for(var i = 0, ii = texts.length; i < ii; i++){
-                tspan = $("tspan");
+                tspan = $('tspan');
                 i && $(tspan, {
                     dy: fontSize * leading,
                     x: a.x
@@ -6627,7 +6627,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 tspans[i] = tspan;
             }
         } else {
-            tspans = node.getElementsByTagName("tspan");
+            tspans = node.getElementsByTagName('tspan');
             for(i = 0, ii = tspans.length; i < ii; i++)if (i) $(tspans[i], {
                 dy: fontSize * leading,
                 x: a.x
@@ -6643,12 +6643,12 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         el._.dirty = 1;
         const bb = el._getBBox();
         const dif = a.y - (bb.y + bb.height / 2);
-        dif && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(dif, "finite") && $(tspans[0], {
+        dif && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(dif, 'finite') && $(tspans[0], {
             dy: dif
         });
     };
     const getRealNode = function(node) {
-        if (node.parentNode && node.parentNode.tagName.toLowerCase() === "a") return node.parentNode;
+        if (node.parentNode && node.parentNode.tagName.toLowerCase() === 'a') return node.parentNode;
         return node;
     };
     const Element = function(node, svg) {
@@ -6738,13 +6738,13 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
     Element.prototype = elproto;
     elproto.constructor = Element;
     (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.path = function(pathString, SVG) {
-        const el = $("path");
+        const el = $('path');
         SVG.canvas && SVG.canvas.appendChild(el);
         const p = new Element(el, SVG);
-        p.type = "path";
+        p.type = 'path';
         setFillAndStroke(p, {
-            fill: "none",
-            stroke: "#000",
+            fill: 'none',
+            stroke: '#000',
             path: pathString
         });
         return p;
@@ -6778,7 +6778,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         }
         this.transform(this._.transform.concat([
             [
-                "r",
+                'r',
                 deg,
                 cx,
                 cy
@@ -6816,7 +6816,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         cy = cy == null ? bbox.y + bbox.height / 2 : cy;
         this.transform(this._.transform.concat([
             [
-                "s",
+                's',
                 sx,
                 sy,
                 cx,
@@ -6843,7 +6843,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         dy = +dy || 0;
         this.transform(this._.transform.concat([
             [
-                "t",
+                't',
                 dx,
                 dy
             ]
@@ -6898,9 +6898,9 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             transform: this.matrix
         });
         if (_.sx != 1 || _.sy != 1) {
-            const sw = this.attrs[has]("stroke-width") ? this.attrs["stroke-width"] : 1;
+            const sw = this.attrs[has]('stroke-width') ? this.attrs['stroke-width'] : 1;
             this.attr({
-                "stroke-width": sw
+                'stroke-width': sw
             });
         }
         return this;
@@ -6912,7 +6912,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
    * Makes element invisible. See @Element.show.
    = (object) @Element
   \ */ elproto.hide = function() {
-        if (!this.removed) this.node.style.display = "none";
+        if (!this.removed) this.node.style.display = 'none';
         return this;
     };
     /* \
@@ -6922,7 +6922,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
    * Makes element visible. See @Element.hide.
    = (object) @Element
   \ */ elproto.show = function() {
-        if (!this.removed) this.node.style.display = "";
+        if (!this.removed) this.node.style.display = '';
         return this;
     };
     /* \
@@ -6941,11 +6941,11 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         node.parentNode.removeChild(node);
         // Remove custom data for element
         this.removeData();
-        for(const i in this)this[i] = typeof this[i] === "function" ? (0, $c453c098b23bc46d$export$db202ddc8be9136)._removedFactory(i) : null;
+        for(const i in this)this[i] = typeof this[i] === 'function' ? (0, $c453c098b23bc46d$export$db202ddc8be9136)._removedFactory(i) : null;
         this.removed = true;
     };
     elproto._getBBox = function() {
-        if (this.node.style.display == "none") {
+        if (this.node.style.display == 'none') {
             this.show();
             var hide = true;
         }
@@ -6953,9 +6953,9 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         let containerStyle;
         if (this.paper.canvas.parentElement) containerStyle = this.paper.canvas.parentElement.style;
         else if (this.paper.canvas.parentNode) containerStyle = this.paper.canvas.parentNode.style;
-        if (containerStyle && containerStyle.display == "none") {
+        if (containerStyle && containerStyle.display == 'none') {
             canvasHidden = true;
-            containerStyle.display = "";
+            containerStyle.display = '';
         }
         let bbox = {};
         try {
@@ -6970,7 +6970,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             };
         } finally{
             bbox = bbox || {};
-            if (canvasHidden) containerStyle.display = "none";
+            if (canvasHidden) containerStyle.display = 'none';
         }
         hide && this.hide();
         return bbox;
@@ -7060,24 +7060,24 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         if (name == null) {
             const res = {};
             for(const a in this.attrs)if (this.attrs[has](a)) res[a] = this.attrs[a];
-            res.gradient && res.fill == "none" && (res.fill = res.gradient) && delete res.gradient;
+            res.gradient && res.fill == 'none' && (res.fill = res.gradient) && delete res.gradient;
             res.transform = this._.transform;
             return res;
         }
-        if (value == null && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(name, "string")) {
-            if (name == "fill" && this.attrs.fill == "none" && this.attrs.gradient) return this.attrs.gradient;
-            if (name == "transform") return this._.transform;
+        if (value == null && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(name, 'string')) {
+            if (name == 'fill' && this.attrs.fill == 'none' && this.attrs.gradient) return this.attrs.gradient;
+            if (name == 'transform') return this._.transform;
             const names = name.split(separator);
             var out = {};
             for(var i = 0, ii = names.length; i < ii; i++){
                 name = names[i];
                 if (name in this.attrs) out[name] = this.attrs[name];
-                else if ((0, $c453c098b23bc46d$export$db202ddc8be9136).is(this.paper.customAttributes[name], "function")) out[name] = this.paper.customAttributes[name].def;
+                else if ((0, $c453c098b23bc46d$export$db202ddc8be9136).is(this.paper.customAttributes[name], 'function')) out[name] = this.paper.customAttributes[name].def;
                 else out[name] = (0, $c453c098b23bc46d$export$db202ddc8be9136)._availableAttrs[name];
             }
             return ii - 1 ? out : out[names[0]];
         }
-        if (value == null && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(name, "array")) {
+        if (value == null && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(name, 'array')) {
             out = {};
             for(i = 0, ii = name.length; i < ii; i++)out[name[i]] = this.attr(name[i]);
             return out;
@@ -7085,9 +7085,9 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         if (value != null) {
             var params = {};
             params[name] = value;
-        } else if (name != null && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(name, "object")) params = name;
+        } else if (name != null && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(name, 'object')) params = name;
         for(var key in params)(0, $dacea6f50a09eb13$export$6b962911844bfb1e)(`raphael.attr.${key}.${this.id}`, this, params[key]);
-        for(key in this.paper.customAttributes)if (this.paper.customAttributes[has](key) && params[has](key) && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(this.paper.customAttributes[key], "function")) {
+        for(key in this.paper.customAttributes)if (this.paper.customAttributes[has](key) && params[has](key) && (0, $c453c098b23bc46d$export$db202ddc8be9136).is(this.paper.customAttributes[key], 'function')) {
             const par = this.paper.customAttributes[key].apply(this, [].concat(params[key]));
             this.attrs[key] = params[key];
             for(const subkey in par)if (par[has](subkey)) params[subkey] = par[subkey];
@@ -7157,8 +7157,8 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         // Experimental. No Safari support. Use it on your own risk.
         const t = this;
         if (+size !== 0) {
-            const fltr = $("filter");
-            const blur = $("feGaussianBlur");
+            const fltr = $('filter');
+            const blur = $('feGaussianBlur');
             t.attrs.blur = size;
             fltr.id = (0, $c453c098b23bc46d$export$db202ddc8be9136).createUUID();
             $(blur, {
@@ -7176,27 +7176,27 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 delete t._blur;
                 delete t.attrs.blur;
             }
-            t.node.removeAttribute("filter");
+            t.node.removeAttribute('filter');
         }
         return t;
     };
     (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.circle = function(svg, x, y, r) {
-        const el = $("circle");
+        const el = $('circle');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
         res.attrs = {
             cx: x,
             cy: y,
             r: r,
-            fill: "none",
-            stroke: "#000"
+            fill: 'none',
+            stroke: '#000'
         };
-        res.type = "circle";
+        res.type = 'circle';
         $(el, res.attrs);
         return res;
     };
     (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.rect = function(svg, x, y, w, h, r) {
-        const el = $("rect");
+        const el = $('rect');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
         res.attrs = {
@@ -7206,28 +7206,28 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             height: h,
             rx: r || 0,
             ry: r || 0,
-            fill: "none",
-            stroke: "#000"
+            fill: 'none',
+            stroke: '#000'
         };
-        res.type = "rect";
+        res.type = 'rect';
         $(el, res.attrs);
         return res;
     };
     (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.g = function(svg) {
-        const el = $("g");
+        const el = $('g');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
-        res.type = "g";
+        res.type = 'g';
         res.canvas = res.node;
         // adding support for adding elements inside <g>
         const elements = [
-            "circle",
-            "rect",
-            "ellipse",
-            "image",
-            "text",
-            "g",
-            "path"
+            'circle',
+            'rect',
+            'ellipse',
+            'image',
+            'text',
+            'g',
+            'path'
         ];
         elements.forEach((element)=>{
             res[element] = function() {
@@ -7266,7 +7266,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
       </pattern>
     */ const id = def.id || `raphael-def-${(0, $c453c098b23bc46d$export$db202ddc8be9136).createUUID()}`;
         // if exists, remove and rebuild
-        const exists = Array.prototype.slice.call(this.defs.children).find((c)=>c.getAttribute("id") === id);
+        const exists = Array.prototype.slice.call(this.defs.children).find((c)=>c.getAttribute('id') === id);
         exists && this.defs.removeChild(exists);
         const defOpts = {
             id: id
@@ -7298,7 +7298,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         //   }
         // }
         // always rebuild
-        const rDef = $($(def.tag || "pattern"), defOpts);
+        const rDef = $($(def.tag || 'pattern'), defOpts);
         if (def.inside) def.inside.forEach((i)=>{
             const ins = $($(i.type), i.attrs || {});
             rDef.appendChild(ins);
@@ -7316,7 +7316,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         this.defs.appendChild(rDef);
     };
     (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.ellipse = function(svg, x, y, rx, ry) {
-        const el = $("ellipse");
+        const el = $('ellipse');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
         res.attrs = {
@@ -7324,23 +7324,23 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             cy: y,
             rx: rx,
             ry: ry,
-            fill: "none",
-            stroke: "#000"
+            fill: 'none',
+            stroke: '#000'
         };
-        res.type = "ellipse";
+        res.type = 'ellipse';
         $(el, res.attrs);
         return res;
     };
     (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.image = function(svg, src, x, y, w, h) {
-        const el = $("image");
+        const el = $('image');
         $(el, {
             x: x,
             y: y,
             width: w,
             height: h,
-            preserveAspectRatio: "none"
+            preserveAspectRatio: 'none'
         });
-        el.setAttributeNS(xlink, "href", src);
+        el.setAttributeNS(xlink, 'href', src);
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
         res.attrs = {
@@ -7350,32 +7350,32 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             height: h,
             src: src
         };
-        res.type = "image";
+        res.type = 'image';
         return res;
     };
     (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.text = function(svg, x, y, text) {
-        const el = $("text");
+        const el = $('text');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
         res.attrs = {
             x: x,
             y: y,
-            "text-anchor": "middle",
+            'text-anchor': 'middle',
             text: text,
-            "font-family": (0, $c453c098b23bc46d$export$db202ddc8be9136)._availableAttrs["font-family"],
-            "font-size": (0, $c453c098b23bc46d$export$db202ddc8be9136)._availableAttrs["font-size"],
-            stroke: "none",
-            fill: "#000"
+            'font-family': (0, $c453c098b23bc46d$export$db202ddc8be9136)._availableAttrs['font-family'],
+            'font-size': (0, $c453c098b23bc46d$export$db202ddc8be9136)._availableAttrs['font-size'],
+            stroke: 'none',
+            fill: '#000'
         };
-        res.type = "text";
+        res.type = 'text';
         setFillAndStroke(res, res.attrs);
         return res;
     };
     (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.setSize = function(width, height) {
         this.width = width || this.width;
         this.height = height || this.height;
-        this.canvas.setAttribute("width", this.width);
-        this.canvas.setAttribute("height", this.height);
+        this.canvas.setAttribute('width', this.width);
+        this.canvas.setAttribute('height', this.height);
         if (this._viewBox) this.setViewBox.apply(this, this._viewBox);
         return this;
     };
@@ -7383,9 +7383,9 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         const con = (0, $c453c098b23bc46d$export$db202ddc8be9136)._getContainer.apply(0, arguments);
         let container = con && con.container;
         let { x: x, y: y, width: width, height: height } = con;
-        if (!container) throw new Error("SVG container not found.");
-        const cnvs = $("svg");
-        const css = "overflow:hidden;";
+        if (!container) throw new Error('SVG container not found.');
+        const cnvs = $('svg');
+        const css = 'overflow:hidden;';
         let isFloating;
         x = x || 0;
         y = y || 0;
@@ -7394,7 +7394,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         $(cnvs, {
             height: height,
             width: width,
-            xmlns: "http://www.w3.org/2000/svg"
+            xmlns: 'http://www.w3.org/2000/svg'
         });
         if (container == 1) {
             cnvs.style.cssText = `${css}position:absolute;left:${x}px;top:${y}px`;
@@ -7416,7 +7416,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         return container;
     };
     (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.setViewBox = function(x, y, w, h, fit) {
-        (0, $dacea6f50a09eb13$export$6b962911844bfb1e)("raphael.setViewBox", this, this._viewBox, [
+        (0, $dacea6f50a09eb13$export$6b962911844bfb1e)('raphael.setViewBox', this, this._viewBox, [
             x,
             y,
             w,
@@ -7426,7 +7426,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         const paperSize = this.getSize();
         let size = mmax(w / paperSize.width, h / paperSize.height);
         let { top: top } = this;
-        const aspectRatio = fit ? "xMidYMid meet" : "xMinYMin";
+        const aspectRatio = fit ? 'xMidYMid meet' : 'xMinYMin';
         let vb;
         let sw;
         if (x == null) {
@@ -7442,9 +7442,9 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             preserveAspectRatio: aspectRatio
         });
         while(size && top){
-            sw = "stroke-width" in top.attrs ? top.attrs["stroke-width"] : 1;
+            sw = 'stroke-width' in top.attrs ? top.attrs['stroke-width'] : 1;
             top.attr({
-                "stroke-width": sw
+                'stroke-width': sw
             });
             top._.dirty = 1;
             top._.dirtyT = 1;
@@ -7496,11 +7496,11 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
    **
    * Clears the paper, i.e. removes all the elements.
   \ */ (0, $c453c098b23bc46d$export$db202ddc8be9136).prototype.clear = function() {
-        (0, $c453c098b23bc46d$export$db202ddc8be9136).eve("raphael.clear", this);
+        (0, $c453c098b23bc46d$export$db202ddc8be9136).eve('raphael.clear', this);
         const c = this.canvas;
         while(c.firstChild)c.removeChild(c.firstChild);
         this.bottom = this.top = null;
-        c.appendChild(this.defs = $("defs"));
+        c.appendChild(this.defs = $('defs'));
     };
     /* \
    * Paper.remove
@@ -7508,9 +7508,9 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
    **
    * Removes the paper from the DOM.
   \ */ (0, $c453c098b23bc46d$export$db202ddc8be9136).prototype.remove = function() {
-        (0, $dacea6f50a09eb13$export$6b962911844bfb1e)("raphael.remove", this);
+        (0, $dacea6f50a09eb13$export$6b962911844bfb1e)('raphael.remove', this);
         this.canvas.parentNode && this.canvas.parentNode.removeChild(this.canvas);
-        for(const i in this)this[i] = typeof this[i] === "function" ? (0, $c453c098b23bc46d$export$db202ddc8be9136)._removedFactory(i) : null;
+        for(const i in this)this[i] = typeof this[i] === 'function' ? (0, $c453c098b23bc46d$export$db202ddc8be9136)._removedFactory(i) : null;
     };
     const setproto = (0, $c453c098b23bc46d$export$db202ddc8be9136).st;
     for(const method in elproto)if (elproto[has](method) && !setproto[has](method)) setproto[method] = function(methodname) {
@@ -7570,126 +7570,126 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
     };
     static availColors = [
         {
-            hex: "000000",
-            to: "575757",
-            fore: "fff"
+            hex: '000000',
+            to: '575757',
+            fore: 'fff'
         },
         {
-            hex: "FFFFFF",
-            to: "d9d9d9",
-            fore: "000"
+            hex: 'FFFFFF',
+            to: 'd9d9d9',
+            fore: '000'
         },
         {
-            hex: "FF0000",
-            to: "a31616",
-            fore: "000"
+            hex: 'FF0000',
+            to: 'a31616',
+            fore: '000'
         },
         {
-            hex: "C3FF68",
-            to: "afff68",
-            fore: "000"
+            hex: 'C3FF68',
+            to: 'afff68',
+            fore: '000'
         },
         {
-            hex: "0B486B",
-            to: "3B88B5",
-            fore: "fff"
+            hex: '0B486B',
+            to: '3B88B5',
+            fore: 'fff'
         },
         {
-            hex: "FBB829",
-            to: "cd900e",
-            fore: "000"
+            hex: 'FBB829',
+            to: 'cd900e',
+            fore: '000'
         },
         {
-            hex: "BFF202",
-            to: "D1F940",
-            fore: "000"
+            hex: 'BFF202',
+            to: 'D1F940',
+            fore: '000'
         },
         {
-            hex: "FF0066",
-            to: "aa1d55",
-            fore: "000"
+            hex: 'FF0066',
+            to: 'aa1d55',
+            fore: '000'
         },
         {
-            hex: "800F25",
-            to: "3d0812",
-            fore: "fff"
+            hex: '800F25',
+            to: '3d0812',
+            fore: 'fff'
         },
         {
-            hex: "A40802",
-            to: "d70b03",
-            fore: "fff"
+            hex: 'A40802',
+            to: 'd70b03',
+            fore: 'fff'
         },
         {
-            hex: "FF5EAA",
-            to: "cf5d93",
-            fore: "000"
+            hex: 'FF5EAA',
+            to: 'cf5d93',
+            fore: '000'
         },
         {
-            hex: "740062",
-            to: "D962C6",
-            fore: "fff"
+            hex: '740062',
+            to: 'D962C6',
+            fore: 'fff'
         },
         {
-            hex: "FF4242",
-            to: "A61515",
-            fore: "fff"
+            hex: 'FF4242',
+            to: 'A61515',
+            fore: 'fff'
         },
         {
-            hex: "D15C57",
-            to: "9D5C58",
-            fore: "000"
+            hex: 'D15C57',
+            to: '9D5C58',
+            fore: '000'
         },
         {
-            hex: "FCFBE3",
-            to: "c9c56f",
-            fore: "000"
+            hex: 'FCFBE3',
+            to: 'c9c56f',
+            fore: '000'
         },
         {
-            hex: "FF9900",
-            to: "c98826",
-            fore: "000"
+            hex: 'FF9900',
+            to: 'c98826',
+            fore: '000'
         },
         {
-            hex: "369001",
-            to: "9CEE6C",
-            fore: "000"
+            hex: '369001',
+            to: '9CEE6C',
+            fore: '000'
         },
         {
-            hex: "9E906E",
-            to: "675324",
-            fore: "fff"
+            hex: '9E906E',
+            to: '675324',
+            fore: 'fff'
         },
         {
-            hex: "F3D915",
-            to: "F9EA7C",
-            fore: "000"
+            hex: 'F3D915',
+            to: 'F9EA7C',
+            fore: '000'
         },
         {
-            hex: "031634",
-            to: "2D579A",
-            fore: "fff"
+            hex: '031634',
+            to: '2D579A',
+            fore: 'fff'
         },
         {
-            hex: "556270",
-            to: "7b92ab",
-            fore: "fff"
+            hex: '556270',
+            to: '7b92ab',
+            fore: 'fff'
         },
         {
-            hex: "1693A5",
-            to: "23aad6",
-            fore: "fff"
+            hex: '1693A5',
+            to: '23aad6',
+            fore: 'fff'
         },
         {
-            hex: "ADD8C7",
-            to: "59a989",
-            fore: "000"
+            hex: 'ADD8C7',
+            to: '59a989',
+            fore: '000'
         },
         {
             special: {
                 // line options display only colors; node menu displays colors and transparent button
                 color: {
-                    hex: "8D5800",
-                    to: "EB9605"
+                    hex: '8D5800',
+                    to: 'EB9605'
                 },
                 other: {
                     transparent: true
@@ -7728,20 +7728,20 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         };
     }
     static isElement(o) {
-        return typeof HTMLElement === "object" ? o instanceof HTMLElement // DOM2
-         : typeof o === "object" && o.nodeType === 1 && typeof o.nodeName === "string";
+        return typeof HTMLElement === 'object' ? o instanceof HTMLElement // DOM2
+         : typeof o === 'object' && o.nodeType === 1 && typeof o.nodeName === 'string';
     }
     // convenience
     static el(id) {
-        if (id.indexOf("#") > -1 || id.indexOf(".") > -1) return document.querySelector(id);
+        if (id.indexOf('#') > -1 || id.indexOf('.') > -1) return document.querySelector(id);
         return document.getElementById(id);
     }
     // let arr = select("elem.className");
     static select(query) {
         const els = [];
-        const index = query.indexOf(".");
+        const index = query.indexOf('.');
         if (index !== -1) {
-            const tag = query.slice(0, index) || "*";
+            const tag = query.slice(0, index) || '*';
             const klass = query.slice(index + 1, query.length);
             const all = document.getElementsByTagName(tag);
             for(let d = 0; d < all.length; d += 1){
@@ -7793,13 +7793,13 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
     }
     static imageExists(u, cb, id) {
         const iid = `temp_${$8ab43d25a2892bde$export$2e2bcd8739ae039.guid()}`;
-        const img = document.body.appendChild(document.createElement("img"));
-        img.style.position = "absolute";
-        img.style.top = "-10000px";
-        img.style.left = "-10000px";
-        img.setAttribute("src", u);
-        img.setAttribute("id", iid);
-        this.addEvent(img, "load", function(e) {
+        const img = document.body.appendChild(document.createElement('img'));
+        img.style.position = 'absolute';
+        img.style.top = '-10000px';
+        img.style.left = '-10000px';
+        img.setAttribute('src', u);
+        img.setAttribute('id', iid);
+        this.addEvent(img, 'load', function(e) {
             const d = getDimensions(img);
             document.body.removeChild(img);
             cb.apply(this, [
@@ -7809,7 +7809,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
                 id
             ]);
         });
-        this.addEvent(img, "error", function(e) {
+        this.addEvent(img, 'error', function(e) {
             document.body.removeChild(img);
             cb.apply(this, [
                 false,
@@ -7824,13 +7824,13 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         // the guid is essential to break the cache because ie8< seems to want to cache this. argh.
         u = [
             u,
-            u.indexOf("?") === -1 ? "?" : "&",
+            u.indexOf('?') === -1 ? '?' : '&',
             `guid=${$8ab43d25a2892bde$export$2e2bcd8739ae039.guid()}`
-        ].join("");
-        x = new (x || XMLHttpRequest)("Microsoft.XMLHTTP");
-        const vx = d ? v || "POST" : v || "GET";
+        ].join('');
+        x = new (x || XMLHttpRequest)('Microsoft.XMLHTTP');
+        const vx = d ? v || 'POST' : v || 'GET';
         x.open(vx, u, 1);
-        x.setRequestHeader("Content-type", "application/json; charset=utf-8");
+        x.setRequestHeader('Content-type', 'application/json; charset=utf-8');
         h.forEach((hElem)=>{
             x.setRequestHeader(hElem.n, hElem.v);
         });
@@ -7852,7 +7852,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
     }
     static hasClass(el, className) {
         if (el.classList) el.classList.contains(className);
-        else new RegExp(`(^| )${className}( |$)`, "gi").test(el.className);
+        else new RegExp(`(^| )${className}( |$)`, 'gi').test(el.className);
     }
     static addClass(el, className) {
         if (el.classList) el.classList.add(className);
@@ -7864,12 +7864,12 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
     }
     static guid(len) {
         let g = this.S4() + this.S4() + this.S4();
-        if (len) g = g.replace(/-/gi, "").substring(0, len).toUpperCase();
+        if (len) g = g.replace(/-/gi, '').substring(0, len).toUpperCase();
         return g;
     }
     static getJSON(url, callback) {
         const id = this.S4() + this.S4();
-        let script = document.createElement("script");
+        let script = document.createElement('script');
         const token = `__jsonp${id}`;
         // callback should be a global function
         window[token] = callback;
@@ -7879,12 +7879,12 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         script.onload = ()=>{
             script = null;
         };
-        document.getElementsByTagName("head")[0].appendChild(script);
+        document.getElementsByTagName('head')[0].appendChild(script);
     }
     static getBBox(opts) {
-        const cont = document.createElement("div");
-        cont.setAttribute("id", "hiddenPaper");
-        cont.style.display = "none";
+        const cont = document.createElement('div');
+        cont.setAttribute('id', 'hiddenPaper');
+        cont.style.display = 'none';
         document.body.appendChild(cont);
         const pp = new (0, $65a92514e25c9f85$export$508faed300ccdfb)(cont);
         const bb = pp.path(opts.path).getBBox();
@@ -7930,7 +7930,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
     static getDimensions(ele) {
         let width = 0;
         let height = 0;
-        if (typeof ele.clip !== "undefined") {
+        if (typeof ele.clip !== 'undefined') {
             width = ele.clip.width;
             height = ele.clip.height;
         } else if (ele.style?.pixelWidth) {
@@ -7981,11 +7981,11 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         const scale = opts.scaleSize / Math.max(bb.width, bb.height);
         // scale the untouched path
         let newPath = this._transformPath(opts.path, [
-            "s",
+            's',
             scale,
-            ",",
+            ',',
             scale
-        ].join(""));
+        ].join(''));
         // go get the bbox of the scaled path
         bb = this.getBBox({
             path: newPath
@@ -7993,11 +7993,11 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         // finally, move the scaled vector to the centered x,y coords
         // of the enclosed box
         const tp = [
-            "T",
+            'T',
             bb.x * -1 + (opts.containerSize - bb.width) / 2,
-            ",",
+            ',',
             bb.y * -1 + (opts.containerSize - bb.height) / 2
-        ].join("");
+        ].join('');
         newPath = this._transformPath(newPath, tp);
         return {
             path: newPath,
@@ -8006,7 +8006,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         };
     }
     static buildStyle(_styles) {
-        let _str = "";
+        let _str = '';
         Object.keys(_styles).forEach((k)=>{
             _str += `${k}:${_styles[k]};`;
         });
@@ -8037,9 +8037,9 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             const L2 = getLuminance(b);
             return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
         }
-        const whiteContrast = getContrast(hex || "#fff", "#ffffff");
-        const blackContrast = getContrast(hex || "#fff", "#000000");
-        return whiteContrast > blackContrast ? "#ffffff" : "#000000";
+        const whiteContrast = getContrast(hex || '#fff', '#ffffff');
+        const blackContrast = getContrast(hex || '#fff', '#000000');
+        return whiteContrast > blackContrast ? '#ffffff' : '#000000';
     }
     // https://gist.github.com/iconifyit/958e7abba71806d663de6c2c273dc0da
     static splitPath(pathData) {
@@ -8051,35 +8051,35 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             while(i < path_commands.length){
                 command = path_commands[i];
                 end_point = getNextEndPoint(end_point, command);
-                if (command[0] === "m") command = [
-                    "M",
+                if (command[0] === 'm') command = [
+                    'M',
                     end_point[0],
                     end_point[1]
                 ];
                 var sub_path = [
-                    command.join(" ")
+                    command.join(' ')
                 ];
                 i++;
                 while(!endSubPath(path_commands, i)){
                     command = path_commands[i];
-                    sub_path.push(command.join(" "));
+                    sub_path.push(command.join(' '));
                     end_point = getNextEndPoint(end_point, command);
                     i++;
                 }
-                sub_paths.push(sub_path.join(" "));
+                sub_paths.push(sub_path.join(' '));
             }
             return sub_paths;
         }
         function getNextEndPoint(end_point, command) {
             var x = end_point[0], y = end_point[1];
             if (isRelative(command)) switch(command[0]){
-                case "h":
+                case 'h':
                     x += command[1];
                     break;
-                case "v":
+                case 'v':
                     y += command[1];
                     break;
-                case "z":
+                case 'z':
                     // back to [0,0]?
                     x = 0;
                     y = 0;
@@ -8089,13 +8089,13 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
                     y += command[command.length - 1];
             }
             else switch(command[0]){
-                case "H":
+                case 'H':
                     x = command[1];
                     break;
-                case "V":
+                case 'V':
                     y = command[1];
                     break;
-                case "Z":
+                case 'Z':
                     // back to [0,0]?
                     x = 0;
                     y = 0;
@@ -8114,7 +8114,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         }
         function endSubPath(commands, index) {
             if (index >= commands.length) return true;
-            else return commands[index][0].toLowerCase() === "m";
+            else return commands[index][0].toLowerCase() === 'm';
         }
         return pathToAbsoluteSubPaths(pathData);
     }
@@ -8123,9 +8123,9 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         return rpath;
     }
     static transformPath(_node, _transformation) {
-        const _path = (0, $65a92514e25c9f85$export$508faed300ccdfb).transformPath(_node.vect.attr("path").toString(), _transformation).toString();
+        const _path = (0, $65a92514e25c9f85$export$508faed300ccdfb).transformPath(_node.vect.attr('path').toString(), _transformation).toString();
         _node.options.vectorPath = _path;
-        _node.vect.transform("");
+        _node.vect.transform('');
         _node.vect.attr({
             path: _node.options.vectorPath
         });
@@ -8139,7 +8139,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         Object.assign(_node.options.rotate, rotationContext);
         const transformString = _node.getTransformString();
         _node.vect.transform(transformString);
-        _node.text.transform("");
+        _node.text.transform('');
         // xPos and yPos are updated in the setPosition in Slatebox.node.js
         _node.text.attr(_node.textCoords({
             x: _node.options.xPos,
@@ -8148,7 +8148,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         _node.text.transform(transformString);
     }
     static htmlToElement(html) {
-        const template = document.createElement("template");
+        const template = document.createElement('template');
         html = html.trim();
         template.innerHTML = html;
         return template.content.firstChild;
@@ -8158,34 +8158,34 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
         const lastStyle = theme.styles[allKeys[allKeys.length - 1]];
         const styleBase = theme.styles[`child_${childNumber}`] || lastStyle;
         const configurableProps = [
-            "borderWidth",
-            "borderColor",
-            "borderOpacity",
-            "borderStyle",
-            "fontSize",
-            "fontFamily",
-            "fontColor",
-            "textOpacity",
-            "filter.vect",
-            "filter.text",
-            "opacity",
-            "backgroundColor",
-            "lineOpacity",
-            "lineWidth",
-            "lineType",
-            "lineCurveType",
-            "lineCurviness",
-            "lineEffect"
+            'borderWidth',
+            'borderColor',
+            'borderOpacity',
+            'borderStyle',
+            'fontSize',
+            'fontFamily',
+            'fontColor',
+            'textOpacity',
+            'filter.vect',
+            'filter.text',
+            'opacity',
+            'backgroundColor',
+            'lineOpacity',
+            'lineWidth',
+            'lineType',
+            'lineCurveType',
+            'lineCurviness',
+            'lineEffect'
         ] // vectorPath
         ;
         const nodeOptions = {};
         configurableProps.forEach((p)=>{
             if (styleBase[p] != null) nodeOptions[p] = styleBase[p];
             else switch(p){
-                case "filter.vect":
-                case "filter.text":
+                case 'filter.vect':
+                case 'filter.text':
                     nodeOptions.filter ??= {};
-                    nodeOptions.filter[p.split(".")[1]] = styleBase.filters[p.split(".")[1]];
+                    nodeOptions.filter[p.split('.')[1]] = styleBase.filters[p.split('.')[1]];
                     break;
             }
         });
@@ -8220,17 +8220,17 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
     // }
     // https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript
     static getTextWidth(text, font) {
-        const splitText = text.split("\n");
-        const textWidthCanvas = document.createElement("canvas");
+        const splitText = text.split('\n');
+        const textWidthCanvas = document.createElement('canvas');
         const metrics = [];
         splitText.forEach((t)=>{
             // textWidthCanvas.setAttribute('id', `measuretext`)
-            const context = textWidthCanvas.getContext("2d");
+            const context = textWidthCanvas.getContext('2d');
             // I'm finding that the font should be reduced by ~22% in order to be accurate
             const multiplier = 1 // 0.78
             ;
-            const fontSplit = font.split(" ");
-            font = `${fontSplit?.[0]} ${parseFloat(fontSplit?.[1]?.replace(/pt/gi, "") ?? 1) * multiplier}pt ${fontSplit?.[2]}`;
+            const fontSplit = font.split(' ');
+            font = `${fontSplit?.[0]} ${parseFloat(fontSplit?.[1]?.replace(/pt/gi, '') ?? 1) * multiplier}pt ${fontSplit?.[2]}`;
             context.font = font;
             metrics.push(context.measureText(t));
         });
@@ -8253,7 +8253,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
     }
     static createMultiLineText(text, lineCount) {
         const words = text.split(/ /g);
-        const chars = text.split("");
+        const chars = text.split('');
         const charsPerLine = chars.length / lineCount;
         const lines = [];
         let wordsOnLine = [];
@@ -8280,18 +8280,18 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             // )
             if (curCharCount < charsPerLine || lines.length === lineCount - 1) wordsOnLine.push(w);
             else {
-                lines.push(wordsOnLine.join(" "));
+                lines.push(wordsOnLine.join(' '));
                 curCharCount = w.length;
                 wordsOnLine = [
                     w
                 ];
             }
         });
-        if (wordsOnLine.length > 0) lines.push(wordsOnLine.join(" "));
-        return lines.join("\n");
+        if (wordsOnLine.length > 0) lines.push(wordsOnLine.join(' '));
+        return lines.join('\n');
     }
     static toDataUrl = (url)=>fetch(url, {
-            mode: "cors"
+            mode: 'cors'
         }).then((response)=>response.blob()).then((blob)=>new Promise((resolve, reject)=>{
                 const reader = new FileReader();
                 reader.onloadend = ()=>resolve(reader.result);
@@ -8305,7 +8305,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
 function $b3c679d5849c9a45$export$2e2bcd8739ae039(originalPath, transforms) {
     let transformsArray = transforms;
     let transformedPath = originalPath;
-    if (!transforms.find && typeof transforms === "string") transformsArray = [
+    if (!transforms.find && typeof transforms === 'string') transformsArray = [
         transforms
     ];
     // NOTE: it's safer to apply transforms one by one because this transform string `T${_x * percent}, ${_y * percent}, s${_width/150 * percent}, ${_height/100 * percent}, ${_x}, ${_y}`
@@ -8321,27 +8321,27 @@ function $b3c679d5849c9a45$export$2e2bcd8739ae039(originalPath, transforms) {
 
 class $699224fae48c351a$export$2e2bcd8739ae039 {
     static icons = {
-        handle: "M26.33,15.836l-3.893-1.545l3.136-7.9c0.28-0.705-0.064-1.505-0.771-1.785c-0.707-0.28-1.506,0.065-1.785,0.771l-3.136,7.9l-4.88-1.937l3.135-7.9c0.281-0.706-0.064-1.506-0.77-1.786c-0.706-0.279-1.506,0.065-1.785,0.771l-3.136,7.9L8.554,8.781l-1.614,4.066l2.15,0.854l-2.537,6.391c-0.61,1.54,0.143,3.283,1.683,3.895l1.626,0.646L8.985,26.84c-0.407,1.025,0.095,2.188,1.122,2.596l0.93,0.369c1.026,0.408,2.188-0.095,2.596-1.121l0.877-2.207l1.858,0.737c1.54,0.611,3.284-0.142,3.896-1.682l2.535-6.391l1.918,0.761L26.33,15.836z",
-        editor: "M25.31,2.872l-3.384-2.127c-0.854-0.536-1.979-0.278-2.517,0.576l-1.334,2.123l6.474,4.066l1.335-2.122C26.42,4.533,26.164,3.407,25.31,2.872zM6.555,21.786l6.474,4.066L23.581,9.054l-6.477-4.067L6.555,21.786zM5.566,26.952l-0.143,3.819l3.379-1.787l3.14-1.658l-6.246-3.925L5.566,26.952z",
-        deleter: "M24.778,21.419 19.276,15.917 24.777,10.415 21.949,7.585 16.447,13.087 10.945,7.585 8.117,10.415 13.618,15.917 8.116,21.419 10.946,24.248 16.447,18.746 21.948,24.248z",
-        searcher: "M29.772,26.433l-7.126-7.126c0.96-1.583,1.523-3.435,1.524-5.421C24.169,8.093,19.478,3.401,13.688,3.399C7.897,3.401,3.204,8.093,3.204,13.885c0,5.789,4.693,10.481,10.484,10.481c1.987,0,3.839-0.563,5.422-1.523l7.128,7.127L29.772,26.433zM7.203,13.885c0.006-3.582,2.903-6.478,6.484-6.486c3.579,0.008,6.478,2.904,6.484,6.486c-0.007,3.58-2.905,6.476-6.484,6.484C10.106,20.361,7.209,17.465,7.203,13.885z",
-        up: "M1.67892,15.48059l23.55337,0l-11.37616,-13.92457l-12.17721,13.92457z",
-        arrow: "M16,1.466C7.973,1.466,1.466,7.973,1.466,16c0,8.027,6.507,14.534,14.534,14.534c8.027,0,14.534-6.507,14.534-14.534C30.534,7.973,24.027,1.466,16,1.466zM13.665,25.725l-3.536-3.539l6.187-6.187l-6.187-6.187l3.536-3.536l9.724,9.723L13.665,25.725z",
-        settings: "M16.015,12.03c-2.156,0-3.903,1.747-3.903,3.903c0,2.155,1.747,3.903,3.903,3.903c0.494,0,0.962-0.102,1.397-0.27l0.836,1.285l1.359-0.885l-0.831-1.276c0.705-0.706,1.142-1.681,1.142-2.757C19.918,13.777,18.171,12.03,16.015,12.03zM16,1.466C7.973,1.466,1.466,7.973,1.466,16c0,8.027,6.507,14.534,14.534,14.534c8.027,0,14.534-6.507,14.534-14.534C30.534,7.973,24.027,1.466,16,1.466zM26.174,20.809c-0.241,0.504-0.513,0.99-0.826,1.45L22.19,21.58c-0.481,0.526-1.029,0.994-1.634,1.385l0.119,3.202c-0.507,0.23-1.028,0.421-1.569,0.57l-1.955-2.514c-0.372,0.051-0.75,0.086-1.136,0.086c-0.356,0-0.706-0.029-1.051-0.074l-1.945,2.5c-0.541-0.151-1.065-0.342-1.57-0.569l0.117-3.146c-0.634-0.398-1.208-0.88-1.712-1.427L6.78,22.251c-0.313-0.456-0.583-0.944-0.826-1.448l2.088-2.309c-0.226-0.703-0.354-1.451-0.385-2.223l-2.768-1.464c0.055-0.563,0.165-1.107,0.301-1.643l3.084-0.427c0.29-0.702,0.675-1.352,1.135-1.942L8.227,7.894c0.399-0.389,0.83-0.744,1.283-1.07l2.663,1.672c0.65-0.337,1.349-0.593,2.085-0.75l0.968-3.001c0.278-0.021,0.555-0.042,0.837-0.042c0.282,0,0.56,0.022,0.837,0.042l0.976,3.028c0.72,0.163,1.401,0.416,2.036,0.75l2.704-1.697c0.455,0.326,0.887,0.681,1.285,1.07l-1.216,2.986c0.428,0.564,0.793,1.181,1.068,1.845l3.185,0.441c0.135,0.535,0.247,1.081,0.302,1.643l-2.867,1.516c-0.034,0.726-0.15,1.43-0.355,2.1L26.174,20.809z",
-        sliderHandle: "M16,3.5c-4.142,0-7.5,3.358-7.5,7.5c0,4.143,7.5,18.121,7.5,18.121S23.5,15.143,23.5,11C23.5,6.858,20.143,3.5,16,3.5z M16,14.584z",
-        speechbubble: "M16,5.333c-7.732,0-14,4.701-14,10.5c0,1.982,0.741,3.833,2.016,5.414L2,25.667l5.613-1.441c2.339,1.317,5.237,2.107,8.387,2.107c7.732,0,14-4.701,14-10.5C30,10.034,23.732,5.333,16,5.333z",
-        link: "M15.667,4.601c-1.684,1.685-2.34,3.985-2.025,6.173l3.122-3.122c0.004-0.005,0.014-0.008,0.016-0.012c0.21-0.403,0.464-0.789,0.802-1.126c1.774-1.776,4.651-1.775,6.428,0c1.775,1.773,1.777,4.652,0.002,6.429c-0.34,0.34-0.727,0.593-1.131,0.804c-0.004,0.002-0.006,0.006-0.01,0.01l-3.123,3.123c2.188,0.316,4.492-0.34,6.176-2.023c2.832-2.832,2.83-7.423,0-10.255C23.09,1.77,18.499,1.77,15.667,4.601zM14.557,22.067c-0.209,0.405-0.462,0.791-0.801,1.131c-1.775,1.774-4.656,1.774-6.431,0c-1.775-1.774-1.775-4.653,0-6.43c0.339-0.338,0.725-0.591,1.128-0.8c0.004-0.006,0.005-0.012,0.011-0.016l3.121-3.123c-2.187-0.316-4.489,0.342-6.172,2.024c-2.831,2.831-2.83,7.423,0,10.255c2.833,2.831,7.424,2.831,10.257,0c1.684-1.684,2.342-3.986,2.023-6.175l-3.125,3.123C14.565,22.063,14.561,22.065,14.557,22.067zM9.441,18.885l2.197,2.197c0.537,0.537,1.417,0.537,1.953,0l8.302-8.302c0.539-0.536,0.539-1.417,0.002-1.952l-2.199-2.197c-0.536-0.539-1.416-0.539-1.952-0.002l-8.302,8.303C8.904,17.469,8.904,18.349,9.441,18.885z",
-        copy: "M 20.48 7.28 H 9.92 c -0.968 0 -1.76 0.792 -1.76 1.76 v 12.32 h 1.76 V 9.04 h 10.56 V 7.28 z m 2.64 3.52 H 13.44 c -0.968 0 -1.76 0.792 -1.76 1.76 v 12.32 c 0 0.968 0.792 1.76 1.76 1.76 h 9.68 c 0.968 0 1.76 -0.792 1.76 -1.76 V 12.56 c 0 -0.968 -0.792 -1.76 -1.76 -1.76 z m 0 14.08 H 13.44 V 12.56 h 9.68 v 12.32 z",
-        plus: "M25.979,12.896 19.312,12.896 19.312,6.229 12.647,6.229 12.647,12.896 5.979,12.896 5.979,19.562 12.647,19.562 12.647,26.229 19.312,26.229 19.312,19.562 25.979,19.562z",
-        minus: "M25.979,12.896,5.979,12.896,5.979,19.562,25.979,19.562z",
-        arrowHead: "M15.834,29.084 15.834,16.166 2.917,16.166 29.083,2.917z",
-        undo: "M12.981,9.073V6.817l-12.106,6.99l12.106,6.99v-2.422c3.285-0.002,9.052,0.28,9.052,2.269c0,2.78-6.023,4.263-6.023,4.263v2.132c0,0,13.53,0.463,13.53-9.823C29.54,9.134,17.952,8.831,12.981,9.073z",
-        lockClosed: "M24.875,15.334v-4.876c0-4.894-3.981-8.875-8.875-8.875s-8.875,3.981-8.875,8.875v4.876H5.042v15.083h21.916V15.334H24.875zM10.625,10.458c0-2.964,2.411-5.375,5.375-5.375s5.375,2.411,5.375,5.375v4.876h-10.75V10.458zM18.272,26.956h-4.545l1.222-3.667c-0.782-0.389-1.324-1.188-1.324-2.119c0-1.312,1.063-2.375,2.375-2.375s2.375,1.062,2.375,2.375c0,0.932-0.542,1.73-1.324,2.119L18.272,26.956z",
-        lockOpen: "M24.875,15.334v-4.876c0-4.894-3.981-8.875-8.875-8.875s-8.875,3.981-8.875,8.875v0.375h3.5v-0.375c0-2.964,2.411-5.375,5.375-5.375s5.375,2.411,5.375,5.375v4.876H5.042v15.083h21.916V15.334H24.875zM18.272,26.956h-4.545l1.222-3.667c-0.782-0.389-1.324-1.188-1.324-2.119c0-1.312,1.063-2.375,2.375-2.375s2.375,1.062,2.375,2.375c0,0.932-0.542,1.73-1.324,2.119L18.272,26.956z",
-        download: "M62.498910964222794,5C30.742627701282224,5,5,30.744805772836607,5,62.498910964222794C5,94.25519422716337,30.744805772836607,120,62.498910964222794,120C94.25519422716337,120,120,94.2551942271634,120,62.49891096422281C120,30.742627701282238,94.2551942271634,5.000000000000014,62.49891096422281,5.000000000000014C62.49891096422281,5.000000000000014,62.498910964222794,5,62.498910964222794,5M62.50108903577718,90.76374552548342C62.50108903577718,90.76374552548342,43.81105702759522,62.498910964222794,43.81105702759522,62.498910964222794C43.81105702759522,62.498910964222794,51.6085531922953,62.498910964222794,51.6085531922953,62.498910964222794C51.6085531922953,62.498910964222794,51.6085531922953,36.362052311596806,51.6085531922953,36.362052311596806C51.6085531922953,36.362052311596806,71.21119718176479,36.362052311596806,71.21119718176479,36.362052311596806C71.21119718176479,36.362052311596806,71.21119718176479,62.498910964222794,71.21119718176479,62.498910964222794C71.21119718176479,62.498910964222794,81.18676490085039,62.498910964222794,81.18676490085039,62.498910964222794C81.18676490085039,62.498910964222794,62.50108903577718,90.76374552548342,62.50108903577718,90.76374552548342C62.50108903577718,90.76374552548342,62.50108903577718,90.76374552548342,62.50108903577718,90.76374552548342",
-        embed: "M62.49999999999999,5C30.759999999999998,5,5,30.759999999999998,5,62.49999999999999C5,94.23999999999998,30.759999999999998,120,62.49999999999999,120C94.23999999999998,120,120,94.23999999999998,120,62.49999999999999C120,30.760000000000005,94.23999999999998,5,62.49999999999999,5C62.49999999999999,5,62.49999999999999,5,62.49999999999999,5M46.285,74.57499999999999C47.894999999999996,76.41499999999999,47.665,79.28999999999999,45.824999999999996,80.9C43.98499999999999,82.51000000000002,41.10999999999999,82.28,39.5,80.44C39.5,80.44,26.505,65.375,26.505,65.375C25.009999999999998,63.65,25.009999999999998,61.23499999999999,26.505,59.50999999999999C26.505,59.50999999999999,39.385,44.44499999999999,39.385,44.44499999999999C40.19,43.41,41.455,42.834999999999994,42.834999999999994,42.834999999999994C43.86999999999999,42.834999999999994,44.904999999999994,43.17999999999999,45.709999999999994,43.86999999999999C46.62999999999999,44.675,47.20499999999999,45.709999999999994,47.20499999999999,46.974999999999994C47.31999999999999,48.125,46.85999999999999,49.275,46.169999999999995,50.19499999999999C46.169999999999995,50.19499999999999,35.81999999999999,62.49999999999999,35.81999999999999,62.49999999999999C35.81999999999999,62.49999999999999,46.285,74.57499999999999,46.285,74.57499999999999C46.285,74.57499999999999,46.285,74.57499999999999,46.285,74.57499999999999M73.08,49.275C73.08,49.275,60.199999999999996,79.28999999999999,60.199999999999996,79.28999999999999C59.28,81.475,56.519999999999996,82.625,54.334999999999994,81.59C53.184999999999995,81.13,52.37999999999999,80.20999999999998,51.919999999999995,79.17500000000001C51.459999999999994,78.025,51.459999999999994,76.875,51.919999999999995,75.725C51.919999999999995,75.725,64.8,45.709999999999994,64.8,45.709999999999994C65.49,44.099999999999994,67.1,42.949999999999996,68.94,42.949999999999996C69.515,42.949999999999996,70.09,43.065,70.66499999999999,43.294999999999995C71.815,43.754999999999995,72.62,44.675,73.08,45.709999999999994C73.53999999999999,46.974999999999994,73.53999999999999,48.125,73.08,49.275C73.08,49.275,73.08,49.275,73.08,49.275M98.495,65.375C98.495,65.375,85.61499999999998,80.44,85.61499999999998,80.44C84.005,82.28,81.13,82.50999999999999,79.28999999999999,80.9C77.44999999999999,79.29000000000002,77.22,76.41499999999999,78.82999999999998,74.57499999999999C78.82999999999998,74.57499999999999,89.17999999999998,62.49999999999999,89.17999999999998,62.49999999999999C89.17999999999998,62.49999999999999,78.715,50.425,78.715,50.425C77.91,49.505,77.565,48.355,77.68,47.205C77.79499999999999,46.055,78.37,44.905,79.17500000000001,44.099999999999994C79.98000000000002,43.41,81.01499999999999,43.065,82.05000000000001,43.065C83.315,43.065,84.58000000000001,43.64,85.5,44.675C85.5,44.675,98.495,59.739999999999995,98.495,59.739999999999995C99.98999999999998,61.23499999999999,99.98999999999998,63.765,98.495,65.375C98.495,65.375,98.495,65.375,98.495,65.375",
-        trash: "M 13.56 8.28 h 5.28 v -1.54 c 0 -0.0581 -0.0229 -0.1144 -0.0642 -0.1558 c -0.0414 -0.0414 -0.0977 -0.0642 -0.1558 -0.0642 h -4.84 c -0.0581 0 -0.1144 0.0229 -0.1558 0.0642 c -0.0414 0.0414 -0.0642 0.0977 -0.0642 0.1558 v 1.54 z m 9.68 0.88 h -14.08 v 15.84 c 0 0.4858 0.3942 0.88 0.88 0.88 h 12.32 c 0.4858 0 0.88 -0.3942 0.88 -0.88 v -15.84 z m -8.8 3.08 c 0 -0.2429 -0.1971 -0.44 -0.44 -0.44 s -0.44 0.1971 -0.44 0.44 v 10.56 c 0 0.2429 0.1971 0.44 0.44 0.44 s 0.44 -0.1971 0.44 -0.44 v -10.56 z m 4.4 0 c 0 -0.2429 -0.1971 -0.44 -0.44 -0.44 s -0.44 0.1971 -0.44 0.44 v 10.56 c 0 0.2429 0.1971 0.44 0.44 0.44 s 0.44 -0.1971 0.44 -0.44 v -10.56 z m 7.04 -3.96 v 0.88 h -1.76 v 15.84 c 0 0.9724 -0.7876 1.76 -1.76 1.76 h -12.32 c -0.9724 0 -1.76 -0.7876 -1.76 -1.76 v -15.84 h -1.76 v -0.88 h 6.16 v -1.76 c 0 -0.4858 0.3942 -0.88 0.88 -0.88 h 5.28 c 0.4858 0 0.88 0.3942 0.88 0.88 v 1.76 h 6.16 z",
-        resize: "M24 10.999v-10.999h-11l3.379 3.379-13.001 13-3.378-3.378v10.999h11l-3.379-3.379 13.001-13z"
+        handle: 'M26.33,15.836l-3.893-1.545l3.136-7.9c0.28-0.705-0.064-1.505-0.771-1.785c-0.707-0.28-1.506,0.065-1.785,0.771l-3.136,7.9l-4.88-1.937l3.135-7.9c0.281-0.706-0.064-1.506-0.77-1.786c-0.706-0.279-1.506,0.065-1.785,0.771l-3.136,7.9L8.554,8.781l-1.614,4.066l2.15,0.854l-2.537,6.391c-0.61,1.54,0.143,3.283,1.683,3.895l1.626,0.646L8.985,26.84c-0.407,1.025,0.095,2.188,1.122,2.596l0.93,0.369c1.026,0.408,2.188-0.095,2.596-1.121l0.877-2.207l1.858,0.737c1.54,0.611,3.284-0.142,3.896-1.682l2.535-6.391l1.918,0.761L26.33,15.836z',
+        editor: 'M25.31,2.872l-3.384-2.127c-0.854-0.536-1.979-0.278-2.517,0.576l-1.334,2.123l6.474,4.066l1.335-2.122C26.42,4.533,26.164,3.407,25.31,2.872zM6.555,21.786l6.474,4.066L23.581,9.054l-6.477-4.067L6.555,21.786zM5.566,26.952l-0.143,3.819l3.379-1.787l3.14-1.658l-6.246-3.925L5.566,26.952z',
+        deleter: 'M24.778,21.419 19.276,15.917 24.777,10.415 21.949,7.585 16.447,13.087 10.945,7.585 8.117,10.415 13.618,15.917 8.116,21.419 10.946,24.248 16.447,18.746 21.948,24.248z',
+        searcher: 'M29.772,26.433l-7.126-7.126c0.96-1.583,1.523-3.435,1.524-5.421C24.169,8.093,19.478,3.401,13.688,3.399C7.897,3.401,3.204,8.093,3.204,13.885c0,5.789,4.693,10.481,10.484,10.481c1.987,0,3.839-0.563,5.422-1.523l7.128,7.127L29.772,26.433zM7.203,13.885c0.006-3.582,2.903-6.478,6.484-6.486c3.579,0.008,6.478,2.904,6.484,6.486c-0.007,3.58-2.905,6.476-6.484,6.484C10.106,20.361,7.209,17.465,7.203,13.885z',
+        up: 'M1.67892,15.48059l23.55337,0l-11.37616,-13.92457l-12.17721,13.92457z',
+        arrow: 'M16,1.466C7.973,1.466,1.466,7.973,1.466,16c0,8.027,6.507,14.534,14.534,14.534c8.027,0,14.534-6.507,14.534-14.534C30.534,7.973,24.027,1.466,16,1.466zM13.665,25.725l-3.536-3.539l6.187-6.187l-6.187-6.187l3.536-3.536l9.724,9.723L13.665,25.725z',
+        settings: 'M16.015,12.03c-2.156,0-3.903,1.747-3.903,3.903c0,2.155,1.747,3.903,3.903,3.903c0.494,0,0.962-0.102,1.397-0.27l0.836,1.285l1.359-0.885l-0.831-1.276c0.705-0.706,1.142-1.681,1.142-2.757C19.918,13.777,18.171,12.03,16.015,12.03zM16,1.466C7.973,1.466,1.466,7.973,1.466,16c0,8.027,6.507,14.534,14.534,14.534c8.027,0,14.534-6.507,14.534-14.534C30.534,7.973,24.027,1.466,16,1.466zM26.174,20.809c-0.241,0.504-0.513,0.99-0.826,1.45L22.19,21.58c-0.481,0.526-1.029,0.994-1.634,1.385l0.119,3.202c-0.507,0.23-1.028,0.421-1.569,0.57l-1.955-2.514c-0.372,0.051-0.75,0.086-1.136,0.086c-0.356,0-0.706-0.029-1.051-0.074l-1.945,2.5c-0.541-0.151-1.065-0.342-1.57-0.569l0.117-3.146c-0.634-0.398-1.208-0.88-1.712-1.427L6.78,22.251c-0.313-0.456-0.583-0.944-0.826-1.448l2.088-2.309c-0.226-0.703-0.354-1.451-0.385-2.223l-2.768-1.464c0.055-0.563,0.165-1.107,0.301-1.643l3.084-0.427c0.29-0.702,0.675-1.352,1.135-1.942L8.227,7.894c0.399-0.389,0.83-0.744,1.283-1.07l2.663,1.672c0.65-0.337,1.349-0.593,2.085-0.75l0.968-3.001c0.278-0.021,0.555-0.042,0.837-0.042c0.282,0,0.56,0.022,0.837,0.042l0.976,3.028c0.72,0.163,1.401,0.416,2.036,0.75l2.704-1.697c0.455,0.326,0.887,0.681,1.285,1.07l-1.216,2.986c0.428,0.564,0.793,1.181,1.068,1.845l3.185,0.441c0.135,0.535,0.247,1.081,0.302,1.643l-2.867,1.516c-0.034,0.726-0.15,1.43-0.355,2.1L26.174,20.809z',
+        sliderHandle: 'M16,3.5c-4.142,0-7.5,3.358-7.5,7.5c0,4.143,7.5,18.121,7.5,18.121S23.5,15.143,23.5,11C23.5,6.858,20.143,3.5,16,3.5z M16,14.584z',
+        speechbubble: 'M16,5.333c-7.732,0-14,4.701-14,10.5c0,1.982,0.741,3.833,2.016,5.414L2,25.667l5.613-1.441c2.339,1.317,5.237,2.107,8.387,2.107c7.732,0,14-4.701,14-10.5C30,10.034,23.732,5.333,16,5.333z',
+        link: 'M15.667,4.601c-1.684,1.685-2.34,3.985-2.025,6.173l3.122-3.122c0.004-0.005,0.014-0.008,0.016-0.012c0.21-0.403,0.464-0.789,0.802-1.126c1.774-1.776,4.651-1.775,6.428,0c1.775,1.773,1.777,4.652,0.002,6.429c-0.34,0.34-0.727,0.593-1.131,0.804c-0.004,0.002-0.006,0.006-0.01,0.01l-3.123,3.123c2.188,0.316,4.492-0.34,6.176-2.023c2.832-2.832,2.83-7.423,0-10.255C23.09,1.77,18.499,1.77,15.667,4.601zM14.557,22.067c-0.209,0.405-0.462,0.791-0.801,1.131c-1.775,1.774-4.656,1.774-6.431,0c-1.775-1.774-1.775-4.653,0-6.43c0.339-0.338,0.725-0.591,1.128-0.8c0.004-0.006,0.005-0.012,0.011-0.016l3.121-3.123c-2.187-0.316-4.489,0.342-6.172,2.024c-2.831,2.831-2.83,7.423,0,10.255c2.833,2.831,7.424,2.831,10.257,0c1.684-1.684,2.342-3.986,2.023-6.175l-3.125,3.123C14.565,22.063,14.561,22.065,14.557,22.067zM9.441,18.885l2.197,2.197c0.537,0.537,1.417,0.537,1.953,0l8.302-8.302c0.539-0.536,0.539-1.417,0.002-1.952l-2.199-2.197c-0.536-0.539-1.416-0.539-1.952-0.002l-8.302,8.303C8.904,17.469,8.904,18.349,9.441,18.885z',
+        copy: 'M 20.48 7.28 H 9.92 c -0.968 0 -1.76 0.792 -1.76 1.76 v 12.32 h 1.76 V 9.04 h 10.56 V 7.28 z m 2.64 3.52 H 13.44 c -0.968 0 -1.76 0.792 -1.76 1.76 v 12.32 c 0 0.968 0.792 1.76 1.76 1.76 h 9.68 c 0.968 0 1.76 -0.792 1.76 -1.76 V 12.56 c 0 -0.968 -0.792 -1.76 -1.76 -1.76 z m 0 14.08 H 13.44 V 12.56 h 9.68 v 12.32 z',
+        plus: 'M25.979,12.896 19.312,12.896 19.312,6.229 12.647,6.229 12.647,12.896 5.979,12.896 5.979,19.562 12.647,19.562 12.647,26.229 19.312,26.229 19.312,19.562 25.979,19.562z',
+        minus: 'M25.979,12.896,5.979,12.896,5.979,19.562,25.979,19.562z',
+        arrowHead: 'M15.834,29.084 15.834,16.166 2.917,16.166 29.083,2.917z',
+        undo: 'M12.981,9.073V6.817l-12.106,6.99l12.106,6.99v-2.422c3.285-0.002,9.052,0.28,9.052,2.269c0,2.78-6.023,4.263-6.023,4.263v2.132c0,0,13.53,0.463,13.53-9.823C29.54,9.134,17.952,8.831,12.981,9.073z',
+        lockClosed: 'M24.875,15.334v-4.876c0-4.894-3.981-8.875-8.875-8.875s-8.875,3.981-8.875,8.875v4.876H5.042v15.083h21.916V15.334H24.875zM10.625,10.458c0-2.964,2.411-5.375,5.375-5.375s5.375,2.411,5.375,5.375v4.876h-10.75V10.458zM18.272,26.956h-4.545l1.222-3.667c-0.782-0.389-1.324-1.188-1.324-2.119c0-1.312,1.063-2.375,2.375-2.375s2.375,1.062,2.375,2.375c0,0.932-0.542,1.73-1.324,2.119L18.272,26.956z',
+        lockOpen: 'M24.875,15.334v-4.876c0-4.894-3.981-8.875-8.875-8.875s-8.875,3.981-8.875,8.875v0.375h3.5v-0.375c0-2.964,2.411-5.375,5.375-5.375s5.375,2.411,5.375,5.375v4.876H5.042v15.083h21.916V15.334H24.875zM18.272,26.956h-4.545l1.222-3.667c-0.782-0.389-1.324-1.188-1.324-2.119c0-1.312,1.063-2.375,2.375-2.375s2.375,1.062,2.375,2.375c0,0.932-0.542,1.73-1.324,2.119L18.272,26.956z',
+        download: 'M62.498910964222794,5C30.742627701282224,5,5,30.744805772836607,5,62.498910964222794C5,94.25519422716337,30.744805772836607,120,62.498910964222794,120C94.25519422716337,120,120,94.2551942271634,120,62.49891096422281C120,30.742627701282238,94.2551942271634,5.000000000000014,62.49891096422281,5.000000000000014C62.49891096422281,5.000000000000014,62.498910964222794,5,62.498910964222794,5M62.50108903577718,90.76374552548342C62.50108903577718,90.76374552548342,43.81105702759522,62.498910964222794,43.81105702759522,62.498910964222794C43.81105702759522,62.498910964222794,51.6085531922953,62.498910964222794,51.6085531922953,62.498910964222794C51.6085531922953,62.498910964222794,51.6085531922953,36.362052311596806,51.6085531922953,36.362052311596806C51.6085531922953,36.362052311596806,71.21119718176479,36.362052311596806,71.21119718176479,36.362052311596806C71.21119718176479,36.362052311596806,71.21119718176479,62.498910964222794,71.21119718176479,62.498910964222794C71.21119718176479,62.498910964222794,81.18676490085039,62.498910964222794,81.18676490085039,62.498910964222794C81.18676490085039,62.498910964222794,62.50108903577718,90.76374552548342,62.50108903577718,90.76374552548342C62.50108903577718,90.76374552548342,62.50108903577718,90.76374552548342,62.50108903577718,90.76374552548342',
+        embed: 'M62.49999999999999,5C30.759999999999998,5,5,30.759999999999998,5,62.49999999999999C5,94.23999999999998,30.759999999999998,120,62.49999999999999,120C94.23999999999998,120,120,94.23999999999998,120,62.49999999999999C120,30.760000000000005,94.23999999999998,5,62.49999999999999,5C62.49999999999999,5,62.49999999999999,5,62.49999999999999,5M46.285,74.57499999999999C47.894999999999996,76.41499999999999,47.665,79.28999999999999,45.824999999999996,80.9C43.98499999999999,82.51000000000002,41.10999999999999,82.28,39.5,80.44C39.5,80.44,26.505,65.375,26.505,65.375C25.009999999999998,63.65,25.009999999999998,61.23499999999999,26.505,59.50999999999999C26.505,59.50999999999999,39.385,44.44499999999999,39.385,44.44499999999999C40.19,43.41,41.455,42.834999999999994,42.834999999999994,42.834999999999994C43.86999999999999,42.834999999999994,44.904999999999994,43.17999999999999,45.709999999999994,43.86999999999999C46.62999999999999,44.675,47.20499999999999,45.709999999999994,47.20499999999999,46.974999999999994C47.31999999999999,48.125,46.85999999999999,49.275,46.169999999999995,50.19499999999999C46.169999999999995,50.19499999999999,35.81999999999999,62.49999999999999,35.81999999999999,62.49999999999999C35.81999999999999,62.49999999999999,46.285,74.57499999999999,46.285,74.57499999999999C46.285,74.57499999999999,46.285,74.57499999999999,46.285,74.57499999999999M73.08,49.275C73.08,49.275,60.199999999999996,79.28999999999999,60.199999999999996,79.28999999999999C59.28,81.475,56.519999999999996,82.625,54.334999999999994,81.59C53.184999999999995,81.13,52.37999999999999,80.20999999999998,51.919999999999995,79.17500000000001C51.459999999999994,78.025,51.459999999999994,76.875,51.919999999999995,75.725C51.919999999999995,75.725,64.8,45.709999999999994,64.8,45.709999999999994C65.49,44.099999999999994,67.1,42.949999999999996,68.94,42.949999999999996C69.515,42.949999999999996,70.09,43.065,70.66499999999999,43.294999999999995C71.815,43.754999999999995,72.62,44.675,73.08,45.709999999999994C73.53999999999999,46.974999999999994,73.53999999999999,48.125,73.08,49.275C73.08,49.275,73.08,49.275,73.08,49.275M98.495,65.375C98.495,65.375,85.61499999999998,80.44,85.61499999999998,80.44C84.005,82.28,81.13,82.50999999999999,79.28999999999999,80.9C77.44999999999999,79.29000000000002,77.22,76.41499999999999,78.82999999999998,74.57499999999999C78.82999999999998,74.57499999999999,89.17999999999998,62.49999999999999,89.17999999999998,62.49999999999999C89.17999999999998,62.49999999999999,78.715,50.425,78.715,50.425C77.91,49.505,77.565,48.355,77.68,47.205C77.79499999999999,46.055,78.37,44.905,79.17500000000001,44.099999999999994C79.98000000000002,43.41,81.01499999999999,43.065,82.05000000000001,43.065C83.315,43.065,84.58000000000001,43.64,85.5,44.675C85.5,44.675,98.495,59.739999999999995,98.495,59.739999999999995C99.98999999999998,61.23499999999999,99.98999999999998,63.765,98.495,65.375C98.495,65.375,98.495,65.375,98.495,65.375',
+        trash: 'M 13.56 8.28 h 5.28 v -1.54 c 0 -0.0581 -0.0229 -0.1144 -0.0642 -0.1558 c -0.0414 -0.0414 -0.0977 -0.0642 -0.1558 -0.0642 h -4.84 c -0.0581 0 -0.1144 0.0229 -0.1558 0.0642 c -0.0414 0.0414 -0.0642 0.0977 -0.0642 0.1558 v 1.54 z m 9.68 0.88 h -14.08 v 15.84 c 0 0.4858 0.3942 0.88 0.88 0.88 h 12.32 c 0.4858 0 0.88 -0.3942 0.88 -0.88 v -15.84 z m -8.8 3.08 c 0 -0.2429 -0.1971 -0.44 -0.44 -0.44 s -0.44 0.1971 -0.44 0.44 v 10.56 c 0 0.2429 0.1971 0.44 0.44 0.44 s 0.44 -0.1971 0.44 -0.44 v -10.56 z m 4.4 0 c 0 -0.2429 -0.1971 -0.44 -0.44 -0.44 s -0.44 0.1971 -0.44 0.44 v 10.56 c 0 0.2429 0.1971 0.44 0.44 0.44 s 0.44 -0.1971 0.44 -0.44 v -10.56 z m 7.04 -3.96 v 0.88 h -1.76 v 15.84 c 0 0.9724 -0.7876 1.76 -1.76 1.76 h -12.32 c -0.9724 0 -1.76 -0.7876 -1.76 -1.76 v -15.84 h -1.76 v -0.88 h 6.16 v -1.76 c 0 -0.4858 0.3942 -0.88 0.88 -0.88 h 5.28 c 0.4858 0 0.88 0.3942 0.88 0.88 v 1.76 h 6.16 z',
+        resize: 'M24 10.999v-10.999h-11l3.379 3.379-13.001 13-3.378-3.378v10.999h11l-3.379-3.379 13.001-13z'
     };
 }
 
@@ -8349,7 +8349,7 @@ class $699224fae48c351a$export$2e2bcd8739ae039 {
 
 /* eslint-disable */ 
 const $1b06af3f77ffbbd3$export$4ff7fc6f1af248b5 = function(R) {
-    const c = "M16,1.466C7.973,1.466,1.466,7.973,1.466,16c0,8.027,6.507,14.534,14.534,14.534c8.027,0,14.534-6.507,14.534-14.534C30.534,7.973,24.027,1.466,16,1.466z";
+    const c = 'M16,1.466C7.973,1.466,1.466,7.973,1.466,16c0,8.027,6.507,14.534,14.534,14.534c8.027,0,14.534-6.507,14.534-14.534C30.534,7.973,24.027,1.466,16,1.466z';
     const { icons: icons } = (0, $699224fae48c351a$export$2e2bcd8739ae039);
     R.fn.handle = function(x, y) {
         return this.path(icons.handle + c);
@@ -8362,7 +8362,7 @@ const $1b06af3f77ffbbd3$export$4ff7fc6f1af248b5 = function(R) {
     };
     R.fn.trash = function() {
         return this.path(icons.trash + c).attr({
-            fill: "#000"
+            fill: '#000'
         });
     };
     R.fn.searcher = function(x, y) {
@@ -8387,22 +8387,22 @@ const $1b06af3f77ffbbd3$export$4ff7fc6f1af248b5 = function(R) {
         return this.path(icons.up);
     };
     R.fn.down = function(x, y) {
-        return this.path(icons.up).transform("r180");
+        return this.path(icons.up).transform('r180');
     };
     R.fn.setting = function(x, y) {
-        return this.path(icons.settings + c).transform("s,.9,.9");
+        return this.path(icons.settings + c).transform('s,.9,.9');
     };
     R.fn.arrow = function() {
         return this.path(icons.arrow + c);
     };
     R.fn.arrowHead = function() {
         return this.path(icons.arrowHead).attr({
-            fill: "#648CB2"
-        }).transform("s0.7");
+            fill: '#648CB2'
+        }).transform('s0.7');
     };
     R.fn.linkArrow = function() {
         return this.path(icons.arrow + c).attr({
-            fill: "#648CB2"
+            fill: '#648CB2'
         });
     };
     R.fn.lockClosed = function() {
@@ -8414,17 +8414,17 @@ const $1b06af3f77ffbbd3$export$4ff7fc6f1af248b5 = function(R) {
     R.fn.speechbubble = function(x, y, txt) {
         const _bubble = this.set();
         _bubble.push(this.path(icons.speechbubble).transform([
-            "t",
+            't',
             x,
-            ",",
+            ',',
             y
         ].join()).scale(6, 4).scale(-1, 1)).attr({
-            fill: "#fff",
-            stroke: "#000",
-            "stroke-width": 3
+            fill: '#fff',
+            stroke: '#000',
+            'stroke-width': 3
         });
         _bubble.push(this.text(x + 10, y + 10, txt).attr({
-            "font-size": 12
+            'font-size': 12
         }));
         return _bubble;
     };
@@ -8432,13 +8432,13 @@ const $1b06af3f77ffbbd3$export$4ff7fc6f1af248b5 = function(R) {
         return this.path(icons.undo);
     };
     R.fn.redo = function(path) {
-        return this.path(icons.undo).transform("s-1,1");
+        return this.path(icons.undo).transform('s-1,1');
     };
     R.fn.resize = function() {
         return this.path(`M24 10.999v-10.999h-11l3.379 3.379-13.001 13-3.378-3.378v10.999h11l-3.379-3.379 13.001-13z`);
     };
     R.fn.resizeLines = function() {
-        return this.image("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAXCAYAAAAP6L+eAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAEBJREFUeNpiYKAuYAPijUD8n1aGVowaOmoo/QyNpYWh+UB8g1aGSowaOmroqKEEAE0MZaCVoQxEFH3e5BgKEGAAnnVBs4ro6nUAAAAASUVORK5CYII=", 0, 0, 22, 23);
+        return this.image('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAXCAYAAAAP6L+eAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAEBJREFUeNpiYKAuYAPijUD8n1aGVowaOmoo/QyNpYWh+UB8g1aGSowaOmroqKEEAE0MZaCVoQxEFH3e5BgKEGAAnnVBs4ro6nUAAAAASUVORK5CYII=', 0, 0, 22, 23);
     };
 };
 
@@ -8449,10 +8449,10 @@ const $1b06af3f77ffbbd3$export$4ff7fc6f1af248b5 = function(R) {
         const options = {
             pkg: [
                 {
-                    "stroke-width": 3
+                    'stroke-width': 3
                 },
                 {
-                    "stroke-width": 1
+                    'stroke-width': 1
                 }
             ],
             duration: 200,
@@ -8474,53 +8474,53 @@ const $1b06af3f77ffbbd3$export$4ff7fc6f1af248b5 = function(R) {
         if (h === undefined) h = 20;
         const _tt = this.paper.set();
         const pos = this.getBBox();
-        if (obj.type === "text") {
+        if (obj.type === 'text') {
             // text tooltip
             _tt.push(this.paper.rect(pos.x, pos.y + h * -1 - 10, w, h, 5).attr({
-                fill: "#fff"
+                fill: '#fff'
             }));
-            _tt.push(this.paper.text(pos.x + 5, pos.y - 20, "").attr({
-                "text-anchor": "start",
-                stroke: "#fff",
-                "font-size": 13,
-                fill: "#fff"
+            _tt.push(this.paper.text(pos.x + 5, pos.y - 20, '').attr({
+                'text-anchor': 'start',
+                stroke: '#fff',
+                'font-size': 13,
+                fill: '#fff'
             }));
         } else {
             // image tooltip
             const xpad = w * -1 - 5;
             _tt.push(this.paper.rect(pos.x + xpad, pos.y + h / 2 * -1, w, h, 15).attr({
-                "stroke-width": 2,
-                stroke: "#fff",
-                "z-index": 9999
+                'stroke-width': 2,
+                stroke: '#fff',
+                'z-index': 9999
             }));
             _tt.push(this.paper.rect(pos.x + xpad, pos.y + (h / 2 - 45), w, 47, 15)).attr({
-                "stroke-width": 2,
-                fill: "90-#333-#000",
-                "z-index": 9999
+                'stroke-width': 2,
+                fill: '90-#333-#000',
+                'z-index': 9999
             });
-            _tt.push(this.paper.text(pos.x + xpad + w / 2, pos.y + (h / 2 - 20), "").attr({
-                "text-anchor": "middle",
-                stroke: "#fff",
-                "font-weight": "normal",
-                "font-family": "Verdana",
-                "font-size": 11,
-                "z-index": 999
+            _tt.push(this.paper.text(pos.x + xpad + w / 2, pos.y + (h / 2 - 20), '').attr({
+                'text-anchor': 'middle',
+                stroke: '#fff',
+                'font-weight': 'normal',
+                'font-family': 'Verdana',
+                'font-size': 11,
+                'z-index': 999
             }));
         }
         const s = this;
         if (!s.removed) {
             s.tt = _tt;
-            if (obj.type === "text") s.tt[0].animate({
-                stroke: "#000",
-                fill: "#333"
+            if (obj.type === 'text') s.tt[0].animate({
+                stroke: '#000',
+                fill: '#333'
             }, 200, ()=>{
                 s.tt[1].attr({
                     text: obj.msg
                 });
             });
             else s.tt[0].animate({
-                stroke: "#000",
-                fill: "#333"
+                stroke: '#000',
+                fill: '#333'
             }, 200, ()=>{
                 // s.tt[1].attr({  });
                 s.tt[2].attr({
@@ -8550,26 +8550,26 @@ function $bc0900c2e5cbc8ab$var$fontToDataURLViaBlob(fontUrl) {
 }
 function $bc0900c2e5cbc8ab$var$fontToDataURLViaBuffer(fontUrl) {
     return fetch(fontUrl).then((fontResponse)=>Promise.all([
-            Promise.resolve(fontResponse.headers.get("content-type")),
+            Promise.resolve(fontResponse.headers.get('content-type')),
             fontResponse.buffer()
         ])).then((fontBuffer)=>{
-        const b64 = fontBuffer[1].toString("base64");
+        const b64 = fontBuffer[1].toString('base64');
         return `data:${fontBuffer[0]};base64,${b64}`;
     });
 }
 function $bc0900c2e5cbc8ab$var$embedFont(fontFace) {
     const fontUrlMatch = $bc0900c2e5cbc8ab$var$kCSSUrlPattern.exec(fontFace);
     let promise;
-    if (typeof FileReader !== "undefined") promise = $bc0900c2e5cbc8ab$var$fontToDataURLViaBlob(fontUrlMatch[1]);
+    if (typeof FileReader !== 'undefined') promise = $bc0900c2e5cbc8ab$var$fontToDataURLViaBlob(fontUrlMatch[1]);
     else promise = $bc0900c2e5cbc8ab$var$fontToDataURLViaBuffer(fontUrlMatch[1]);
     return promise.then((dataURL)=>fontFace.replace(fontUrlMatch[1], dataURL));
 }
 function $bc0900c2e5cbc8ab$var$embedGoogleFonts({ fonts: fonts, text: text, styleNode: styleNode }) {
     const snode = styleNode;
-    const fontQuery = fonts.join("|").replace(/ /g, "+");
+    const fontQuery = fonts.join('|').replace(/ /g, '+');
     const googleFontUrl = `https://fonts.googleapis.com/css?family=${fontQuery}&text=${text}`;
     if (fonts.length > 0) return fetch(googleFontUrl).then((cssResponse)=>cssResponse.text()).catch((error)=>{
-        console.error("Failed to load Google font CSS:", error);
+        console.error('Failed to load Google font CSS:', error);
         return false;
     }).then((cssText)=>{
         let fontFaces = $bc0900c2e5cbc8ab$var$kCSSFontFacePattern.exec(cssText);
@@ -8580,10 +8580,10 @@ function $bc0900c2e5cbc8ab$var$embedGoogleFonts({ fonts: fonts, text: text, styl
         }
         return Promise.all(embedFontPromises);
     }).catch((error)=>{
-        console.error("Failed to load Google font CSS:", error);
+        console.error('Failed to load Google font CSS:', error);
         return false;
     }).then((results)=>{
-        snode.innerHTML += results.join("\n");
+        snode.innerHTML += results.join('\n');
         return true;
     });
     return Promise.resolve(true);
@@ -8594,8 +8594,8 @@ var $bc0900c2e5cbc8ab$export$2e2bcd8739ae039 = $bc0900c2e5cbc8ab$var$embedGoogle
 /* eslint-disable */ // emile.js (c) 2009 Thomas Fuchs
 // Licensed under the terms of the MIT license.
 (function(emile, container) {
-    const parseEl = document.createElement("div");
-    const props = "backgroundColor borderBottomColor borderBottomWidth borderLeftColor borderLeftWidth borderRightColor borderRightWidth borderSpacing borderTopColor borderTopWidth bottom color fontSize fontWeight height left letterSpacing lineHeight marginBottom marginLeft marginRight marginTop maxHeight maxWidth minHeight minWidth opacity outlineColor outlineOffset outlineWidth paddingBottom paddingLeft paddingRight paddingTop right textIndent top width wordSpacing zIndex".split(" ");
+    const parseEl = document.createElement('div');
+    const props = "backgroundColor borderBottomColor borderBottomWidth borderLeftColor borderLeftWidth borderRightColor borderRightWidth borderSpacing borderTopColor borderTopWidth bottom color fontSize fontWeight height left letterSpacing lineHeight marginBottom marginLeft marginRight marginTop maxHeight maxWidth minHeight minWidth opacity outlineColor outlineOffset outlineWidth paddingBottom paddingLeft paddingRight paddingTop right textIndent top width wordSpacing zIndex".split(' ');
     function interpolate(source, target, pos) {
         return parseFloat(source + (target - source) * pos).toFixed(3);
     }
@@ -8609,7 +8609,7 @@ var $bc0900c2e5cbc8ab$export$2e2bcd8739ae039 = $bc0900c2e5cbc8ab$var$embedGoogle
         let tmp;
         const v = [];
         const r = [];
-        while(j = 3, c = arguments[i - 1], i--)if (s(c, 0) == "r") {
+        while(j = 3, c = arguments[i - 1], i--)if (s(c, 0) == 'r') {
             c = c.match(/\d+/g);
             while(j--)v.push(~~c[j]);
         } else {
@@ -8620,15 +8620,15 @@ var $bc0900c2e5cbc8ab$export$2e2bcd8739ae039 = $bc0900c2e5cbc8ab$var$embedGoogle
             tmp = ~~(v[j + 3] + (v[j] - v[j + 3]) * pos);
             r.push(tmp < 0 ? 0 : tmp > 255 ? 255 : tmp);
         }
-        return `rgb(${r.join(",")})`;
+        return `rgb(${r.join(',')})`;
     }
     function parse(prop) {
         const p = parseFloat(prop);
-        const q = prop.replace(/^[\-\d\.]+/, "");
+        const q = prop.replace(/^[\-\d\.]+/, '');
         return Number.isNaN(p) ? {
             v: q,
             f: color,
-            u: ""
+            u: ''
         } : {
             v: p,
             f: interpolate,
@@ -8646,7 +8646,7 @@ var $bc0900c2e5cbc8ab$export$2e2bcd8739ae039 = $bc0900c2e5cbc8ab$var$embedGoogle
         return rules;
     }
     container[emile] = function(el, style, opts) {
-        el = typeof el === "string" ? document.getElementById(el) : el;
+        el = typeof el === 'string' ? document.getElementById(el) : el;
         opts = opts || {};
         const target = normalize(style);
         const comp = el.currentStyle ? el.currentStyle : getComputedStyle(el, null);
@@ -8677,7 +8677,7 @@ var $bc0900c2e5cbc8ab$export$2e2bcd8739ae039 = $bc0900c2e5cbc8ab$var$embedGoogle
             });
         }, 10);
     };
-})("emile", window);
+})('emile', window);
 
 
 class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
@@ -8685,8 +8685,8 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         const self = this;
         self.slate = slate;
         let c = slate.options.container;
-        if (typeof c === "string") c = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).el(c);
-        if (c === undefined || c === null) throw new Error("You must provide a container to initiate the canvas!");
+        if (typeof c === 'string') c = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).el(c);
+        if (c === undefined || c === null) throw new Error('You must provide a container to initiate the canvas!');
         // customize raphael -- modifies global Raphael for all other imports
         (0, $1b06af3f77ffbbd3$export$4ff7fc6f1af248b5)((0, $65a92514e25c9f85$export$508faed300ccdfb));
         (0, $934e6ef878cbebc0$export$cc3e2d3244e01b7f)((0, $65a92514e25c9f85$export$508faed300ccdfb));
@@ -8698,28 +8698,28 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         self.dken = null;
         self.eve = {
             init: [
-                "onmousedown",
-                "ontouchstart"
+                'onmousedown',
+                'ontouchstart'
             ],
             drag: [
-                "onmousemove",
-                "ontouchmove"
+                'onmousemove',
+                'ontouchmove'
             ],
             up: [
-                "onmouseup",
-                "ontouchend",
-                "onmouseout"
+                'onmouseup',
+                'ontouchend',
+                'onmouseout'
             ],
             gest: [
-                "ongesturestart",
-                "ongesturechange",
-                "ongestureend"
+                'ongesturestart',
+                'ongesturechange',
+                'ongestureend'
             ]
         };
     }
     init() {
         const self = this;
-        const imageFolder = self.slate.options.imageFolder || "/images/";
+        const imageFolder = self.slate.options.imageFolder || '/images/';
         const c = self.slate.options.container;
         const { slate: slate } = self;
         self.Canvas = {
@@ -8744,7 +8744,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                     const xy = self.cp(e);
                     if (self.status) self.status.innerHTML = `${Math.abs(xy.x)}, ${Math.abs(xy.y)}`;
                     if (slate.options.showStatus) {
-                        if (self.status) self.status.style.display = "block";
+                        if (self.status) self.status.style.display = 'block';
                         slate.multiSelection?.hide();
                     }
                     self.internal.style.cursor = `url(${imageFolder}closedhand.cur), default`;
@@ -8772,7 +8772,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                     mp.left = Math.abs(curPos.left);
                     mp.top = Math.abs(curPos.top);
                     slate.collab?.send({
-                        type: "onMouseMoved",
+                        type: 'onMouseMoved',
                         data: mp
                     });
                     if (self.isDragging && slate.options.allowDrag) {
@@ -8788,7 +8788,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                 if (self.isDragging && slate.options.allowDrag) {
                     self.isDragging = false;
                     self.internal.style.cursor = `url(${imageFolder}openhand.cur), default`;
-                    if (self.status) self.status.style.display = "none";
+                    if (self.status) self.status.style.display = 'none';
                     slate.multiSelection?.show();
                     const xy = self.cp(e);
                     slate.draggingZoom = null;
@@ -8799,12 +8799,12 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             }
         };
         // wipe it clean
-        if (!slate.options.preserve) c.innerHTML = "";
+        if (!slate.options.preserve) c.innerHTML = '';
         if (self.slate.paper) self.slate.paper.clear();
         if (self.internal) c.removeChild(self.internal);
         // internal
-        self.internal = document.createElement("div");
-        self.internal.setAttribute("class", `slateboxInternal_${self.slate.options.id} sb_canvas`);
+        self.internal = document.createElement('div');
+        self.internal.setAttribute('class', `slateboxInternal_${self.slate.options.id} sb_canvas`);
         // console.log("setting slate canvas", `slateboxInternal_${self.slate.options.id}`);
         const _w = slate.options.viewPort.width;
         const _h = slate.options.viewPort.height;
@@ -8814,35 +8814,35 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         self.internal.style.height = `${_h + 100000}px`;
         self.internal.style.left = `${_l * -1}px`;
         self.internal.style.top = `${_t * -1}px`;
-        self.internal.style.position = "absolute";
-        self.internal.style["-webkit-transform"] = `translateZ(0)`;
+        self.internal.style.position = 'absolute';
+        self.internal.style['-webkit-transform'] = `translateZ(0)`;
         self.internal.style.transform = `translateZ(0)` // `translate3d(0,0,0)`; //helps with GPU based rendering
         ;
         c.appendChild(self.internal);
-        self.internal.addEventListener("mousedown", ()=>{
+        self.internal.addEventListener('mousedown', ()=>{
             self.slate?.events?.onCanvasClicked?.apply();
         });
         // status
         if (self.slate.options.showStatus) {
-            self.status = document.createElement("div");
-            self.status.style.position = "absolute";
-            self.status.style.height = "20px";
-            self.status.style.left = "5px";
-            self.status.style.color = "#000";
-            self.status.style.fontSize = "10pt";
-            self.status.style.fontFamily = "trebuchet ms";
-            self.status.style.top = "0px";
-            self.status.style.display = "none";
-            self.status.style.padding = "5px";
-            self.status.style.filter = "alpha(opacity=80)";
-            self.status.style.opacity = ".80";
-            self.status.style.backgroundColor = "#ffff99";
-            self.status.style.fontWeight = "bold";
+            self.status = document.createElement('div');
+            self.status.style.position = 'absolute';
+            self.status.style.height = '20px';
+            self.status.style.left = '5px';
+            self.status.style.color = '#000';
+            self.status.style.fontSize = '10pt';
+            self.status.style.fontFamily = 'trebuchet ms';
+            self.status.style.top = '0px';
+            self.status.style.display = 'none';
+            self.status.style.padding = '5px';
+            self.status.style.filter = 'alpha(opacity=80)';
+            self.status.style.opacity = '.80';
+            self.status.style.backgroundColor = '#ffff99';
+            self.status.style.fontWeight = 'bold';
             c.appendChild(self.status);
         }
         // style container
-        c.style.position = "relative";
-        c.style.overflow = "hidden";
+        c.style.position = 'relative';
+        c.style.overflow = 'hidden';
         // style internal
         self.internal.style.borderTop = `${slate.borderTop}px`;
         self.internal.style.cursor = `url(${imageFolder}openhand.cur), default`;
@@ -8873,34 +8873,34 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         if (!slate.options.isbirdsEye && (slate.options.isSharing || slate.options.isEmbedding)) {
             const _btnSize = 25;
             const _scaleSize = _btnSize - 3;
-            const _iframe = document.getElementById("snap_slate");
-            const _parent = document.createElement("div");
-            _parent.className = "sb_parent_shareable";
+            const _iframe = document.getElementById('snap_slate');
+            const _parent = document.createElement('div');
+            _parent.className = 'sb_parent_shareable';
             const _styles = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).buildStyle({
                 height: _iframe ? `${_scaleSize + 8}px` : `${_scaleSize}px`
             });
-            _parent.setAttribute("style", _styles);
+            _parent.setAttribute('style', _styles);
             if (slate.options.isEmbedding && !slate.options.nobrand) {
-                const _brand = document.createElement("a");
-                _brand.className = "sb_brand";
-                _brand.setAttribute("href", "https://slatebox.com");
-                _brand.innerHTML = "built with slatebox";
+                const _brand = document.createElement('a');
+                _brand.className = 'sb_brand';
+                _brand.setAttribute('href', 'https://slatebox.com');
+                _brand.innerHTML = 'built with slatebox';
                 _parent.appendChild(_brand);
             }
             if (!slate.options.isbirdsEye && slate.options.isSharing) {
                 const _svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${_btnSize}" height="${_btnSize}"><path fill="#333" stroke="#000" d="{path}" stroke-dasharray="none" stroke-width="1" opacity="1" fill-opacity="1"></path></svg>`;
                 [
-                    "download",
-                    "embed"
+                    'download',
+                    'embed'
                 ].forEach((e)=>{
-                    const _btn = document.createElement("div");
-                    _btn.className = "sb_share";
-                    _btn.setAttribute("data-action", e);
+                    const _btn = document.createElement('div');
+                    _btn.className = 'sb_share';
+                    _btn.setAttribute('data-action', e);
                     const _bstyles = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).buildStyle({
                         width: `${_btnSize}px`,
                         height: `${_btnSize}px`
                     });
-                    _btn.setAttribute("style", _bstyles);
+                    _btn.setAttribute('style', _bstyles);
                     const _new = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).centerAndScalePathToFitContainer({
                         containerSize: _btnSize,
                         scaleSize: _scaleSize,
@@ -8908,40 +8908,40 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                     });
                     _btn.innerHTML = _svg.replace(/{path}/gi, _new.path);
                     _parent.appendChild(_btn);
-                    (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(_btn, "click", ()=>{
-                        const _act = this.getAttribute("data-action");
+                    (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(_btn, 'click', ()=>{
+                        const _act = this.getAttribute('data-action');
                         switch(_act){
-                            case "embed":
+                            case 'embed':
                                 {
-                                    const _et = document.createElement("textarea");
+                                    const _et = document.createElement('textarea');
                                     document.body.appendChild(_et);
-                                    let _val = "";
+                                    let _val = '';
                                     if (_iframe) _val = `<iframe id='sb_embed_${slate.options.id}' src='${window.location.href}' width='${_iframe.clientWidth}' height='${_iframe.clientHeight}' frameborder='0' scrolling='no'></iframe>`;
                                     else {
                                         const _ele = slate.options.container.parentElement;
                                         const _raw = _ele.innerHTML;
                                         const _split = _raw.split('<div class="slateboxInternal"');
-                                        const _orig = `${_split[0]}<script>${_split[1].split("<script>")[1]}`;
+                                        const _orig = `${_split[0]}<script>${_split[1].split('<script>')[1]}`;
                                         _val = `<div id="sb_embed_${slate.options.id}">${_orig}</div>`;
                                     }
                                     _et.value = _val;
                                     _et.select();
-                                    document.execCommand("copy");
+                                    document.execCommand('copy');
                                     document.body.removeChild(_et);
-                                    const _note = document.createElement("div");
-                                    _note.innerHTML = "Copied!";
-                                    _note.setAttribute("style", (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).buildStyle({
-                                        "font-size": "11pt",
-                                        "text-align": "center",
-                                        padding: "4px",
-                                        "margin-right": "-1px",
-                                        width: "125px",
-                                        height: "22px",
-                                        position: "absolute",
+                                    const _note = document.createElement('div');
+                                    _note.innerHTML = 'Copied!';
+                                    _note.setAttribute('style', (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).buildStyle({
+                                        'font-size': '11pt',
+                                        'text-align': 'center',
+                                        padding: '4px',
+                                        'margin-right': '-1px',
+                                        width: '125px',
+                                        height: '22px',
+                                        position: 'absolute',
                                         right: 0,
                                         bottom: 0,
-                                        "background-color": "#333",
-                                        color: "#fff"
+                                        'background-color': '#333',
+                                        color: '#fff'
                                     }));
                                     _parent.appendChild(_note);
                                     window.setTimeout(()=>{
@@ -8949,7 +8949,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                                     }, 1500);
                                     break;
                                 }
-                            case "download":
+                            case 'download':
                                 slate.png();
                                 break;
                             default:
@@ -8958,11 +8958,11 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                     });
                 });
             }
-            if (slate.options.isEmbedding && _parent.innerHTML !== "") c.appendChild(_parent);
+            if (slate.options.isEmbedding && _parent.innerHTML !== '') c.appendChild(_parent);
         }
         self.windowSize = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).windowSize();
         self.containerOffset = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).positionedOffset(self.slate.options.container);
-        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(window, "resize", ()=>{
+        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(window, 'resize', ()=>{
             self.windowSize = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).windowSize();
             self.containerOffset = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).positionedOffset(self.slate.options.container);
             if (self.dken !== null) {
@@ -9008,7 +9008,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
     }
     broadcast(moved) {
         this.slate.collab?.send({
-            type: "onCanvasMove",
+            type: 'onCanvasMove',
             data: {
                 left: this.slate.options.viewPort.left,
                 top: this.slate.options.viewPort.top,
@@ -9025,7 +9025,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                 after: null,
                 during: null
             },
-            easing: "easeFromTo",
+            easing: 'easeFromTo',
             zoomPercent: 100
         };
         Object.assign(opts, _opts);
@@ -9035,7 +9035,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         const _zoomDif = Math.abs(_targetZoom - _startZoom);
         opts.dur = !opts.dur && opts.dur !== 0 ? 500 : opts.dur;
         // eslint-disable-next-line no-undef
-        emile(self.internal, "padding:1px", {
+        emile(self.internal, 'padding:1px', {
             duration: opts.dur,
             before () {
                 self.slate.options.allowDrag = false;
@@ -9069,7 +9069,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                 during: null
             },
             isAbsolute: true,
-            easing: "easeFromTo"
+            easing: 'easeFromTo'
         };
         Object.assign(opts, _opts);
         let { x: x, y: y } = opts;
@@ -9086,8 +9086,8 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             },
             after () {
                 self.slate.options.allowDrag = true;
-                self.slate.options.viewPort.left = Math.abs(parseInt(self.internal.style.left.replace("px", ""), 10));
-                self.slate.options.viewPort.top = Math.abs(parseInt(self.internal.style.top.replace("px", ""), 10));
+                self.slate.options.viewPort.left = Math.abs(parseInt(self.internal.style.left.replace('px', ''), 10));
+                self.slate.options.viewPort.top = Math.abs(parseInt(self.internal.style.top.replace('px', ''), 10));
                 self.slate.birdsEye?.refresh(true);
                 opts.callbacks.after?.apply(self.slate);
             },
@@ -9138,7 +9138,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         return true;
     }
     clear() {
-        this.slate.options.container.innerHTML = "";
+        this.slate.options.container.innerHTML = '';
         return this.slate._;
     }
     wire() {
@@ -9172,7 +9172,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             const regImg = /<image\s+x="[^"]+"\s+y="[^"]+"\s+href="data/gi;
             svg = svg.replace(regImg, '<image x="0" y="0" href="data');
             if (self.slate.events.onOptimizeSVG && !skipOptimize) self.slate.events.onOptimizeSVG(svg, (err, optimized)=>{
-                if (err) console.error("Unable to optimize slate svg export", err);
+                if (err) console.error('Unable to optimize slate svg export', err);
                 else cb(optimized);
             });
             else cb(svg);
@@ -9183,22 +9183,22 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             if (images.length > 0) images.forEach((i, ind)=>{
                 if (self.slate.events.onBase64ImageRequested) {
                     // server side gen
-                    let imageType = "png";
-                    if (i.indexOf("jpg")) imageType = "jpeg";
-                    else if (i.indexOf("gif")) imageType = "gif";
+                    let imageType = 'png';
+                    if (i.indexOf('jpg')) imageType = 'jpeg';
+                    else if (i.indexOf('gif')) imageType = 'gif';
                     self.slate.events.onBase64ImageRequested(i, imageType, (err, res)=>{
-                        if (err) console.error("Unable to retrieve base64 from image", err);
+                        if (err) console.error('Unable to retrieve base64 from image', err);
                         else {
-                            const ix = i.replace(/&/gi, "&amp;");
+                            const ix = i.replace(/&/gi, '&amp;');
                             while(ssvg.indexOf(ix) > -1)ssvg = ssvg.replace(ix, res);
                         }
                         if (ind + 1 === images.length) finalize(ssvg);
                     });
                 } else // client side only -- good luck with CORS - this method should be avoided
                 (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).toDataUrl(i).then((dataUrl)=>{
-                    ssvg = ssvg.replace(new RegExp(i, "gi"), dataUrl);
+                    ssvg = ssvg.replace(new RegExp(i, 'gi'), dataUrl);
                 }).catch((err)=>{
-                    console.error("Unable to get image", err);
+                    console.error('Unable to get image', err);
                 }).finally(()=>{
                     if (ind + 1 === images.length) finalize(ssvg);
                 });
@@ -9208,19 +9208,19 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         // always embed fonts and fix links -- a style node is always added in the init
         (0, $bc0900c2e5cbc8ab$export$2e2bcd8739ae039)({
             fonts: (0, $5OpyM$lodashuniq)(self.slate.nodes.allNodes.map((n)=>n.options.fontFamily)),
-            text: (0, $5OpyM$lodashuniq)(self.slate.nodes.allNodes.flatMap((n)=>n.options.text.replace(/ /gi, "").split(""))).join("").trim(),
-            styleNode: self.internal.querySelector("svg > defs > style")
+            text: (0, $5OpyM$lodashuniq)(self.slate.nodes.allNodes.flatMap((n)=>n.options.text.replace(/ /gi, '').split(''))).join('').trim(),
+            styleNode: self.internal.querySelector('svg > defs > style')
         }).then(()=>{
             // need to swap out xlink:href with href for the blob to work w/ the pixelate (or other) filter
-            let __svg = self.internal.innerHTML.replace(/xlink:href/gi, "href");
+            let __svg = self.internal.innerHTML.replace(/xlink:href/gi, 'href');
             const slateBg = self.slate.options.containerStyle.backgroundImage;
             if (slateBg) {
                 // server side gen
-                let bgImageType = "png";
-                if (slateBg.indexOf("jpg")) bgImageType = "jpeg";
-                else if (slateBg.indexOf("gif")) bgImageType = "gif";
+                let bgImageType = 'png';
+                if (slateBg.indexOf('jpg')) bgImageType = 'jpeg';
+                else if (slateBg.indexOf('gif')) bgImageType = 'gif';
                 self.slate.events.onBase64ImageRequested(slateBg, bgImageType, (err, res)=>{
-                    if (err) console.error("Unable to retrieve base64 from image", err);
+                    if (err) console.error('Unable to retrieve base64 from image', err);
                     else __svg = __svg.replace(slateBg, res);
                     extractImages(__svg);
                 });
@@ -9253,18 +9253,18 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
     }
     refreshBackground() {
         const self = this;
-        self.internal.style.backgroundColor = "";
+        self.internal.style.backgroundColor = '';
         if (self.internal.parentElement) {
-            self.internal.parentElement.style.backgroundImage = "";
-            self.internal.parentElement.style.backgroundSize = "";
-            self.internal.parentElement.style.background = "";
+            self.internal.parentElement.style.backgroundImage = '';
+            self.internal.parentElement.style.backgroundSize = '';
+            self.internal.parentElement.style.background = '';
         }
-        self.internal.style.backgroundSize = "";
-        self.internal.style.backgroundPosition = "";
+        self.internal.style.backgroundSize = '';
+        self.internal.style.backgroundPosition = '';
         if (self.slate.options.containerStyle.backgroundEffect) self.slate.options.containerStyle.backgroundColor = self.slate.filters.availableFilters[self.slate.options.containerStyle.backgroundEffect].backgroundColor;
         if (self.slate.options.containerStyle.backgroundImage) {
             self.slate.options.containerStyle.prevBackgroundColor = self.slate.options.containerStyle.backgroundColor;
-            self.slate.options.containerStyle.backgroundColor = "transparent";
+            self.slate.options.containerStyle.backgroundColor = 'transparent';
             if (self.internal.parentElement) {
                 self.internal.parentElement.style.backgroundImage = `url('${self.slate.options.containerStyle.backgroundImage}')`;
                 if (self.slate.options.containerStyle.backgroundSize) self.internal.parentElement.style.backgroundSize = self.slate.options.containerStyle.backgroundSize;
@@ -9276,19 +9276,19 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             self.hideBg(1);
         }
         switch(self.slate.options.containerStyle.backgroundColor){
-            case "transparent":
+            case 'transparent':
                 if (!self.slate.options.isbirdsEye) {
-                    if (self.slate.options.isEmbedding) self.internal.style.backgroundColor = "";
+                    if (self.slate.options.isEmbedding) self.internal.style.backgroundColor = '';
                     else if (!self.slate.options.containerStyle.backgroundImage) {
-                        self.internal.style.backgroundImage = "linear-gradient(45deg,rgba(13,26,43,0.1) 25%,transparent 25%,transparent 75%,rgba(13,26,43,0.1) 75%),linear-gradient(45deg,rgba(13,26,43,0.1) 25%,transparent 25%,transparent 75%,rgba(13,26,43,0.1) 75%)";
-                        self.internal.style.backgroundSize = "12px 12px";
-                        self.internal.style.backgroundPosition = "0 0,6px 6px";
+                        self.internal.style.backgroundImage = 'linear-gradient(45deg,rgba(13,26,43,0.1) 25%,transparent 25%,transparent 75%,rgba(13,26,43,0.1) 75%),linear-gradient(45deg,rgba(13,26,43,0.1) 25%,transparent 25%,transparent 75%,rgba(13,26,43,0.1) 75%)';
+                        self.internal.style.backgroundSize = '12px 12px';
+                        self.internal.style.backgroundPosition = '0 0,6px 6px';
                     }
                 }
                 break;
             default:
                 if (self.slate.options.containerStyle.backgroundColorAsGradient) {
-                    self.internal.style.backgroundColor = "";
+                    self.internal.style.backgroundColor = '';
                     if (self.internal.parentElement) self.internal.parentElement.style.background = self.exportBgStyle();
                 } else self.internal.style.backgroundColor = self.exportBgStyle();
                 break;
@@ -9297,8 +9297,8 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
     }
     exportBgStyle() {
         const self = this;
-        if (self.slate.options.containerStyle.backgroundColorAsGradient) return `${self.slate.options.containerStyle.backgroundGradientType}-gradient(${self.slate.options.containerStyle.backgroundGradientColors.join(",")})`;
-        else return self.slate.options.containerStyle.backgroundColor || "#fff";
+        if (self.slate.options.containerStyle.backgroundColorAsGradient) return `${self.slate.options.containerStyle.backgroundGradientType}-gradient(${self.slate.options.containerStyle.backgroundGradientColors.join(',')})`;
+        else return self.slate.options.containerStyle.backgroundColor || '#fff';
     }
     get() {
         return this.internal;
@@ -9318,7 +9318,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
 class $d23f550fcae9c4c3$export$2e2bcd8739ae039 {
     constructor(initPayload){
         // register any plugins
-        if (this.constructor.name !== "plugin") this.registerPlugins(initPayload);
+        if (this.constructor.name !== 'plugin') this.registerPlugins(initPayload);
     }
     registerPlugins(initPayload) {
         const root = this.constructor.name;
@@ -9330,7 +9330,7 @@ class $d23f550fcae9c4c3$export$2e2bcd8739ae039 {
         });
     }
     static registerPlugin(details) {
-        if (!details.name || !details.plugin) throw new Error("Plugins must provide a name and a plugin (class definition)");
+        if (!details.name || !details.plugin) throw new Error('Plugins must provide a name and a plugin (class definition)');
         const root = Object.getPrototypeOf(details.plugin).name;
         // console.log("creating plugin root ", root);
         if (!$d23f550fcae9c4c3$var$availablePlugins[root]) $d23f550fcae9c4c3$var$availablePlugins[root] = [];
@@ -9352,23 +9352,23 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         this.lm = null;
         this.options = {
             id: (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid(),
-            name: "",
-            text: "",
-            image: "",
+            name: '',
+            text: '',
+            image: '',
             groupId: null,
             xPos: 0,
             yPos: 0,
             height: 10,
             width: 10,
-            borderStyle: "solid",
+            borderStyle: 'solid',
             borderWidth: 1,
-            borderColor: "#000",
+            borderColor: '#000',
             borderOpacity: 1,
-            lineColor: "#000000",
+            lineColor: '#000000',
             lineOpacity: 1,
-            lineEffect: "",
-            lineType: "bezier",
-            lineCurveType: "cubic",
+            lineEffect: '',
+            lineType: 'bezier',
+            lineCurveType: 'cubic',
             lineCurviness: 0.2,
             lineWidth: 5,
             opacity: 1,
@@ -9398,24 +9398,24 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             allowResize: true,
             isLocked: false,
             isComment: false,
-            backgroundColor: "90-#031634-#2D579A",
-            foregroundColor: "#fff",
+            backgroundColor: '90-#031634-#2D579A',
+            foregroundColor: '#fff',
             isCategory: false,
             humanTouch: false,
-            categoryName: "",
+            categoryName: '',
             fontSize: 18,
-            fontFamily: "Roboto",
-            shapeHint: "rectangle",
-            vectorPath: "",
+            fontFamily: 'Roboto',
+            shapeHint: 'rectangle',
+            vectorPath: '',
             rotate: {
                 rotationAngle: 0
             },
-            textXAlign: "middle",
-            textYAlign: "middle",
+            textXAlign: 'middle',
+            textYAlign: 'middle',
             link: {
                 show: false,
-                type: "",
-                data: "",
+                type: '',
+                data: '',
                 thumbnail: {
                     width: 175,
                     height: 175
@@ -9426,12 +9426,12 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 text: null
             },
             ai: {
-                textToChildNodes: "",
-                textToImage: ""
+                textToChildNodes: '',
+                textToImage: ''
             }
         };
         Object.assign(this.options, options);
-        if (this.options.name === "") this.options.name = this.options.id;
+        if (this.options.name === '') this.options.name = this.options.id;
         this.constants = {
             statusPanelAtRest: 33,
             statusPanelExpanded: 200
@@ -9469,8 +9469,8 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             if (nd.options.link && nd.options.link.show && nd.options.link.data === _unlinkId) {
                 Object.assign(nd.options.link, {
                     show: false,
-                    type: "",
-                    data: ""
+                    type: '',
+                    data: ''
                 });
                 nd.link.hide();
             }
@@ -9480,19 +9480,19 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     getTransformString(opts = {}) {
         const _transforms = [];
         let rotationTransform;
-        if (opts.action === "resize") {
+        if (opts.action === 'resize') {
             const resizeTransform = `s${opts.sx},${opts.sy}`;
             _transforms.push(resizeTransform);
         }
         if (opts.rotate) rotationTransform = `R${opts.rotate.rotationAngle}, ${opts.rotate.point.x}, ${opts.rotate.point.y}`;
         else if (this.options.rotate.rotationAngle) rotationTransform = `R${this.options.rotate.rotationAngle}, ${this.options.rotate.point.x - (opts.dx || 0)}, ${this.options.rotate.point.y - (opts.dy || 0)}`;
         if (rotationTransform) _transforms.push(rotationTransform);
-        if (opts.action === "translate") {
+        if (opts.action === 'translate') {
             const translationTransform = `T${opts.dx}, ${opts.dy}`;
             // console.log("node transform string ", translationTransform);
             _transforms.push(translationTransform);
         }
-        return _transforms.join(" ");
+        return _transforms.join(' ');
     }
     rotateMoveVector({ dx: dx, dy: dy }) {
         const _rotationAngle = -this.options.rotate.rotationAngle * Math.PI / 180 // conversion to radians
@@ -9509,7 +9509,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             dy: dy
         });
         const translateContext = {
-            action: "translate",
+            action: 'translate',
             dx: newMoveVector.dx,
             dy: newMoveVector.dy
         };
@@ -9539,16 +9539,16 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         // this.text.attr(this.textCoords(p));
         // this.text.attr(this.textCoords({x: this.options.xPos, y: this.options.yPos = p.y });
         this.link.transform([
-            "t",
+            't',
             lc.x,
-            ",",
+            ',',
             lc.y,
-            "s",
-            ".8",
-            ",",
-            ".8",
-            "r",
-            "180"
+            's',
+            '.8',
+            ',',
+            '.8',
+            'r',
+            '180'
         ].join());
         // close all open menus
         if (blnKeepMenusOpen !== true) {
@@ -9687,8 +9687,8 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             }
             Object.keys(self.options?.filters).forEach((key)=>{
                 if (self[key]) {
-                    if (self.options.filters[key]) self[key].attr("filter", `url(#${self.options.filters[key]})`);
-                    else self[key].attr("filter", "");
+                    if (self.options.filters[key]) self[key].attr('filter', `url(#${self.options.filters[key]})`);
+                    else self[key].attr('filter', '');
                 }
             });
         }
@@ -9698,8 +9698,8 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         if (!(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isSafari() && !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isMobile()) Object.keys(self.options?.filters).forEach((key)=>{
             if (self[key]) {
                 if (self.options.filters[key]) {
-                    if (blnHide) self[key].attr("filter", "");
-                    else self[key].attr("filter", `url(#${self.options.filters[key]})`);
+                    if (blnHide) self[key].attr('filter', '');
+                    else self[key].attr('filter', `url(#${self.options.filters[key]})`);
                 }
             }
         });
@@ -9710,17 +9710,17 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         // next define the full suite
         const vectOpts = {
             stroke: this.options.borderColor,
-            "stroke-dasharray": this.options.borderStyle || null,
-            "stroke-width": this.options.borderWidth != null ? this.options.borderWidth : 1,
-            "stroke-opacity": this.options.borderOpacity != null ? this.options.borderOpacity : 1,
-            "stroke-linecap": "round"
+            'stroke-dasharray': this.options.borderStyle || null,
+            'stroke-width': this.options.borderWidth != null ? this.options.borderWidth : 1,
+            'stroke-opacity': this.options.borderOpacity != null ? this.options.borderOpacity : 1,
+            'stroke-linecap': 'round'
         };
         if (this.vect) this.vect.attr(vectOpts);
         return vectOpts;
     }
     // returns an invisible path with the correct position of a path being dragged. MAKE SURE TO REMOVE IT AFTER YOU ARE DONE WITH IT or there will be a growing number of invisible paths rendering the slate unusable
     getTempPathWithCorrectPositionFor({ pathElement: pathElement, dx: dx, dy: dy, rotationAngle: rotationAngle }) {
-        const tempPath = this.slate.paper.path(pathElement.attr("path").toString()).attr({
+        const tempPath = this.slate.paper.path(pathElement.attr('path').toString()).attr({
             opacity: 0
         });
         const _transforms = [];
@@ -9736,8 +9736,8 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         }
         if (rotationAngle != null) _transforms.push(`r${rotationAngle}, ${bb.cx}, ${bb.cy}`);
         else if (this.options.rotate.rotationAngle) _transforms.push(`r${this.options.rotate.rotationAngle}, ${this.options.rotate.point.x}, ${this.options.rotate.point.y}`);
-        tempPath.transform("");
-        const transformPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)(tempPath.attr("path").toString(), _transforms);
+        tempPath.transform('');
+        const transformPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)(tempPath.attr('path').toString(), _transforms);
         tempPath.attr({
             path: transformPath
         });
@@ -9806,7 +9806,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                     cb && cb.apply(this, [
                         {
                             id: this.options.id,
-                            operation: "zoom",
+                            operation: 'zoom',
                             zoomLevel: zoomVal
                         }
                     ]);
@@ -9816,7 +9816,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     }
     position(location, cb, easing, dur) {
         const self = this;
-        easing = easing || "easeTo" // 'swingFromTo'
+        easing = easing || 'easeTo' // 'swingFromTo'
         ;
         dur = dur || 500;
         const _vpt = self.vect.getBBox();
@@ -9831,19 +9831,19 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         let _x = _vpt.x * zr;
         let _y = _vpt.y * zr;
         switch(location){
-            case "lowerright":
+            case 'lowerright':
                 _x = _x - (cw - nw) - pad;
                 _y = _y - (ch - nh) - pad;
                 break;
-            case "lowerleft":
+            case 'lowerleft':
                 _x -= pad;
                 _y = _y - (ch - nh) - pad;
                 break;
-            case "upperright":
+            case 'upperright':
                 _x = _x - (cw - nw) - pad;
                 _y -= pad;
                 break;
-            case "upperleft":
+            case 'upperleft':
                 _x -= pad;
                 _y -= pad;
                 break;
@@ -9863,7 +9863,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                     cb?.apply(self, [
                         {
                             id: self.options.id,
-                            operation: "position",
+                            operation: 'position',
                             location: location,
                             easing: easing
                         }
@@ -9882,13 +9882,13 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                     vectorPath: this.options.vectorPath
                 };
                 this.shapes.set({
-                    shape: "rect",
+                    shape: 'rect',
                     keepResizerOpen: opts.keepResizerOpen
                 });
                 this.images.set(_svgAsImage, this.options.width, this.options.height, opts.keepResizerOpen);
                 this.text && this.text.hide();
             } else if (this.hidden) {
-                this.images.set("", this.options.width, this.options.height);
+                this.images.set('', this.options.width, this.options.height);
                 this.customShapes.set(this.hidden.vectorPath);
                 if (opts.width && opts.height) this.resize.set(opts.width, opts.height);
                 this.text && this.text.show();
@@ -9920,16 +9920,16 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         const _vpt = self.vect.getBBox();
         const r = self.slate.paper;
         if (!self._lock && self.slate.options.showLocks) self._lock = r.lockClosed().transform([
-            "t",
+            't',
             _vpt.x2 - 10,
-            ",",
+            ',',
             _vpt.y2 - 10,
-            "s",
+            's',
             0.9,
             0.9
         ].join()).attr({
-            fill: "#fff",
-            stroke: "#000"
+            fill: '#fff',
+            stroke: '#000'
         });
         return self._lock;
     }
@@ -9941,7 +9941,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             const padding = 10;
             const clr = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).whiteOrBlack(self.slate.options.containerStyle.backgroundColor);
             self.marker = self.slate.paper.rect(rect.x - padding, rect.y - padding, rect.width + padding * 2, rect.height + padding * 2).attr({
-                "stroke-dasharray": "-",
+                'stroke-dasharray': '-',
                 fill: clr,
                 opacity: 0.5
             });
@@ -9966,23 +9966,23 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         const _vpt = this.vect.getBBox();
         const r = this.slate.paper;
         self._openLock = r.lockOpen().transform([
-            "t",
+            't',
             _vpt.x2 - 10,
-            ",",
+            ',',
             _vpt.y2 - 10,
-            "s",
+            's',
             0.9,
             0.9
         ].join()).attr({
-            fill: "#fff",
-            stroke: "#000"
+            fill: '#fff',
+            stroke: '#000'
         });
         self._openLock.mouseover((e)=>{
             self._openLock.attr({
-                "stroke-width": "2px",
-                "stroke-color": "#000"
+                'stroke-width': '2px',
+                'stroke-color': '#000'
             });
-            self._openLock.style.cursor = "pointer";
+            self._openLock.style.cursor = 'pointer';
         });
         self._openLock.mouseout(()=>{
             self.hideOpenLock();
@@ -9992,7 +9992,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             self.enable();
             self.options.isLocked = false;
             const pkg = {
-                type: "onNodeUnlocked",
+                type: 'onNodeUnlocked',
                 data: {
                     id: self.options.id
                 }
@@ -10011,7 +10011,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     offset() {
         let _x = this.options.xPos - this.slate.options.viewPort.left;
         let _y = this.options.yPos - this.slate.options.viewPort.top;
-        if (this.options.vectorPath === "ellipse") {
+        if (this.options.vectorPath === 'ellipse') {
             _x -= this.options.width / 2;
             _y -= this.options.height / 2;
         }
@@ -10031,20 +10031,20 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         const bbox = this.vect.getBBox();
         const _scale = 1;
         switch(this.options.textXAlign){
-            case "end":
+            case 'end':
                 _offsetX = _offsetX * _scale + this.options.textOffset.width;
                 break;
-            case "middle":
+            case 'middle':
                 _offsetX = _offsetX * _scale + this.options.textOffset.width / 2;
                 break;
             default:
                 break;
         }
         switch(this.options.textYAlign){
-            case "hanging":
+            case 'hanging':
                 _offsetY = _offsetY * _scale - bbox.height / 2;
                 break;
-            case "baseline":
+            case 'baseline':
                 _offsetY = _offsetY * _scale + bbox.height / 2;
                 break;
             default:
@@ -10061,7 +10061,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     linkCoords() {
         let x = this.options.xPos - 20;
         let y = this.options.yPos + this.options.height / 2 - 22;
-        if (this.vect.type !== "rect") {
+        if (this.vect.type !== 'rect') {
             y = this.options.yPos + this.options.height / 2 - 22;
             x = this.options.xPos - 20;
         }
@@ -10078,9 +10078,9 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         };
         Object.assign(opts, _opts);
         const ta = [
-            "r",
+            'r',
             opts.angle
-        ].join("");
+        ].join('');
         if (opts.dur === 0) {
             this.vect.transform(ta);
             this.text.transform(ta);
@@ -10093,7 +10093,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             if (this.options.link.show) lm.push(this.link);
             lm.animate({
                 transform: ta
-            }, opts.dur, ">", ()=>{
+            }, opts.dur, '>', ()=>{
                 opts.cb && opts.cb();
             });
         }
@@ -10106,14 +10106,14 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         this.slate = slate;
         this.invoker = null;
         this.constants = {
-            mapName: "collabPackages",
-            lastMapDocName: "last",
+            mapName: 'collabPackages',
+            lastMapDocName: 'last',
             ommittableUserData: [
-                "websocketUrl",
-                "websocketParams"
+                'websocketUrl',
+                'websocketParams'
             ],
-            onCollaborationUserCustomDataChanged: "onCollaborationUserCustomDataChanged",
-            onNodeAITextChanged: "onNodeAITextChanged"
+            onCollaborationUserCustomDataChanged: 'onCollaborationUserCustomDataChanged',
+            onNodeAITextChanged: 'onNodeAITextChanged'
         };
         if (!(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).localRecipients) (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).localRecipients = [];
         this.xyMap = {};
@@ -10193,10 +10193,10 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 const cn = self.slate.nodes.one(pkg.data.id);
                 if (cn) {
                     pkg.data.behaviorChanges.forEach((b)=>{
-                        if (typeof b.value === "object") {
+                        if (typeof b.value === 'object') {
                             cn.options[b.name] = b.value.val;
                             Object.keys(b.value).forEach((k)=>{
-                                if (k !== "val") cn.options[k] = b.value[k];
+                                if (k !== 'val') cn.options[k] = b.value[k];
                             });
                         } else cn.options[b.name] = b.value;
                     });
@@ -10232,7 +10232,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                         // by design: the id is the parent of the node being created
                         const cn = self.slate.nodes.one(pkg.data.id);
                         cn?.connectors.createNode(pkg.data.skipCenter, pkg.data.options, pkg.data.targetXPos, pkg.data.targetYPos);
-                    } else console.log("node id already existed, caught dup", pkg.data.options.id);
+                    } else console.log('node id already existed, caught dup', pkg.data.options.id);
                 } else {
                     // straight up node addition
                     let nodesToCreate = pkg.data.nodeOptions;
@@ -10271,8 +10271,8 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                     animate: true
                 };
                 Object.assign(cn.options, (0, $5OpyM$lodashomit)(pkg.data, [
-                    "associations",
-                    "textPosition"
+                    'associations',
+                    'textPosition'
                 ]));
                 cn?.resize.animateSet(pkg.data, opts);
                 self.slate.birdsEye?.nodeChanged(pkg);
@@ -10291,7 +10291,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                         associations: pkg.data.associations,
                         animate: true
                     };
-                    Object.assign(cn.options, (0, $5OpyM$lodashomit)(pkg.data, "associations"));
+                    Object.assign(cn.options, (0, $5OpyM$lodashomit)(pkg.data, 'associations'));
                     cn?.rotate.animateSet({
                         ...pkg.data,
                         rotationAngle: pkg.data.rotate.rotationAngle - previousRotationAngle
@@ -10398,7 +10398,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                     self.slate.options.containerStyle.backgroundImage = pkg.data.bg.url;
                     self.slate.options.containerStyle.backgroundSize = pkg.data.bg.size;
                 } else {
-                    const c = self.slate.options.containerStyle.prevBackgroundColor || "#fff";
+                    const c = self.slate.options.containerStyle.prevBackgroundColor || '#fff';
                     self.slate.options.containerStyle.backgroundColor = c;
                     self.slate.options.containerStyle.backgroundImage = null;
                     self.slate.options.containerStyle.backgroundEffect = null;
@@ -10510,7 +10510,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 nx.relationships.associations.forEach((association)=>{
                     nx.lineOptions?.hide(association.id);
                 });
-            } else console.error("Unable to find node with id", n.id, "currentIds", self.slate.nodes.allNodes.map((nx)=>nx.options.id));
+            } else console.error('Unable to find node with id', n.id, 'currentIds', self.slate.nodes.allNodes.map((nx)=>nx.options.id));
         });
         // remove any context menus
         self.slate.removeContextMenus();
@@ -10522,7 +10522,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         return;
         // go get the server url here
         if (self.collabPackage) {
-            console.error("Unable to collaborate - collabPackage already created");
+            console.error('Unable to collaborate - collabPackage already created');
             return;
         }
         // ALL yjs depenencies are nested under the collabPackage
@@ -10543,7 +10543,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             doc: mainYDoc,
             map: null
         };
-        if (!self.collabPackage.userBaseData) console.error("Unable to collaborate - no self.collabPackage retrieved from the onInitCollaboration event");
+        if (!self.collabPackage.userBaseData) console.error('Unable to collaborate - no self.collabPackage retrieved from the onInitCollaboration event');
         // attach clientID to the package for downstream reference
         self.collabPackage.userBaseData.clientID = self.collabPackage.doc.clientID;
         self.collabPackage.provider = new (0, $5OpyM$WebsocketProvider)(self.collabPackage.userBaseData.websocketUrl, self.slate.options.id, self.collabPackage.doc, {
@@ -10554,7 +10554,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         self.collabPackage.map = self.collabPackage.doc.getMap(self.constants.mapName);
         self.collabPackage.map.observe((e)=>{
             e.changes.keys.forEach((change, key)=>{
-                if (change.action === "add" || change.action === "update") {
+                if (change.action === 'add' || change.action === 'update') {
                     const p = self.collabPackage.map.get(key);
                     if (p.type === self.constants.onCollaborationUserCustomDataChanged) // for both local and remote - call this function so users are updated
                     self.slate.events.onCollaborationUsersChanged?.(self.collabPackage.users);
@@ -10582,7 +10582,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 }
             });
         });
-        self.collabPackage.provider.awareness.on("update", ({ added: added, updated: updated, removed: removed })=>{
+        self.collabPackage.provider.awareness.on('update', ({ added: added, updated: updated, removed: removed })=>{
             const awarenessStates = Array.from(self.collabPackage.provider.awareness.getStates().values());
             self.collabPackage.users = awarenessStates.filter((ux)=>!!ux.user).map((u)=>u.user);
             if (added.length > 0) {
@@ -10604,14 +10604,14 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         });
         // monitors for cursor locations - the change event runs when the mouse moves, but the upate event
         // resolves when it settles (so no real-time view)
-        self.collabPackage.provider.awareness.on("change", ({ added: added, updated: updated, removed: removed })=>{
+        self.collabPackage.provider.awareness.on('change', ({ added: added, updated: updated, removed: removed })=>{
             const awarenessStates = Array.from(self.collabPackage.provider.awareness.getStates().values());
             awarenessStates.forEach((u)=>{
                 if (updated.includes(u.user?.clientID) && u.user?.clientID !== self.collabPackage?.doc?.clientID) self.slate.cursor(u.user);
             });
         });
         // this sends the cursor locations to the other clients
-        if (!self.collabPackage.userBaseData.suppressCursor) self.collabPackage.provider.awareness.setLocalStateField("user", {
+        if (!self.collabPackage.userBaseData.suppressCursor) self.collabPackage.provider.awareness.setLocalStateField('user', {
             ...(0, $5OpyM$lodashomit)(self.collabPackage.userBaseData, self.constants.ommittableUserData)
         });
         // for newly init clients, this will send the users immediately
@@ -10620,7 +10620,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
             data: {}
         });
         // this auto destroys the connection so others immediately know the client is gone
-        window.addEventListener("beforeunload", ()=>{
+        window.addEventListener('beforeunload', ()=>{
             self.destroy();
         });
     }
@@ -10643,7 +10643,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 ...self.collabPackage.userBaseData,
                 ...pkg
             };
-            self.collabPackage.provider.awareness?.setLocalStateField("user", {
+            self.collabPackage.provider.awareness?.setLocalStateField('user', {
                 ...(0, $5OpyM$lodashomit)(self.collabPackage.userBaseData, self.constants.ommittableUserData),
                 ...pkg
             });
@@ -10660,9 +10660,9 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         if (!Array.isArray(packages)) packages = [
             packages
         ];
-        if (packages[0].type === "onMouseMoved") {
+        if (packages[0].type === 'onMouseMoved') {
             if (self.collabPackage?.userBaseData && !self.collabPackage.userBaseData.suppressCursor) // broadcast the mouse cursors
-            self.collabPackage?.provider.awareness?.setLocalStateField("user", {
+            self.collabPackage?.provider.awareness?.setLocalStateField('user', {
                 ...(0, $5OpyM$lodashomit)(self.collabPackage.userBaseData, self.constants.ommittableUserData),
                 ...packages[0].data
             });
@@ -10700,7 +10700,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                         self.collabPackage.map.set(nx.id, indivCollab);
                     });
                 } else // none nodeOptions based collaborations
-                self.collabPackage.map.set(p.data.id || "slate", p);
+                self.collabPackage.map.set(p.data.id || 'slate', p);
             });
         }
     }
@@ -10729,7 +10729,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         return getPAL;
     }
     // linear scan for coarse approximation
-    for(let scan, scanLength = 0, scanDistance; scanLength <= pathLength; scanLength += precision)if ((scanDistance = distance2(scan = pointAtLength(scanLength, "course"))) < bestDistance) best = scan, bestLength = scanLength, bestDistance = scanDistance;
+    for(let scan, scanLength = 0, scanDistance; scanLength <= pathLength; scanLength += precision)if ((scanDistance = distance2(scan = pointAtLength(scanLength, 'course'))) < bestDistance) best = scan, bestLength = scanLength, bestDistance = scanDistance;
     // binary search for precise estimate
     precision /= 2;
     while(precision > 0.5){
@@ -10739,8 +10739,8 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         let afterLength;
         let beforeDistance;
         let afterDistance;
-        if ((beforeLength = bestLength - precision) >= 0 && (beforeDistance = distance2(before = pointAtLength(beforeLength, "before"))) < bestDistance) best = before, bestLength = beforeLength, bestDistance = beforeDistance;
-        else if ((afterLength = bestLength + precision) <= pathLength && (afterDistance = distance2(after = pointAtLength(afterLength, "after"))) < bestDistance) best = after, bestLength = afterLength, bestDistance = afterDistance;
+        if ((beforeLength = bestLength - precision) >= 0 && (beforeDistance = distance2(before = pointAtLength(beforeLength, 'before'))) < bestDistance) best = before, bestLength = beforeLength, bestDistance = beforeDistance;
+        else if ((afterLength = bestLength + precision) <= pathLength && (afterDistance = distance2(after = pointAtLength(afterLength, 'after'))) < bestDistance) best = after, bestLength = afterLength, bestDistance = afterDistance;
         else precision /= 2;
     }
     return {
@@ -10773,7 +10773,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
 // Function to generate a horizontally curved line or a right-angle connection
 // Function to generate a dynamically curved line with the last segment straight towards the end point
 // Function to generate a dynamically curved line with the last segment straight towards the end point
-function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint, curveSwoop = 0.5, lineType = "bezier", curveType = "quadratic", parentWidth = 0, parentXY = {
+function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint, curveSwoop = 0.5, lineType = 'bezier', curveType = 'quadratic', parentWidth = 0, parentXY = {
     x: 0,
     y: 0
 }) {
@@ -10783,7 +10783,7 @@ function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint, curveSw
     let y2 = endPoint.y;
     const dx = Math.abs(x2 - x1);
     const dy = Math.abs(y2 - y1);
-    if (lineType === "bezier") {
+    if (lineType === 'bezier') {
         const distance = Math.sqrt(dx * dx + dy * dy);
         const swoop = distance * curveSwoop;
         const angle = Math.atan2(y2 - y1, x2 - x1);
@@ -10801,7 +10801,7 @@ function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint, curveSw
         //   parentWidth,
         //   parentXY,
         // })
-        if (curveType === "quadratic") {
+        if (curveType === 'quadratic') {
             const controlDistance = distance * 0.6;
             const midX = x1 + (x2 - x1) * (controlDistance / distance);
             const midY = y1 + (y2 - y1) * (controlDistance / distance);
@@ -10810,15 +10810,15 @@ function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint, curveSw
             const controlX = midX + Math.cos(perpAngle) * adjustedSwoop;
             const controlY = midY + Math.sin(perpAngle) * adjustedSwoop;
             return [
-                "M",
+                'M',
                 x1.toFixed(2),
                 y1.toFixed(2),
-                "Q",
+                'Q',
                 controlX.toFixed(2),
                 controlY.toFixed(2),
                 x2.toFixed(2),
                 y2.toFixed(2)
-            ].join(" ");
+            ].join(' ');
         } else {
             // Enhanced S-curve for cubic
             const firstThird = 0.25;
@@ -10835,44 +10835,44 @@ function $e992036a92f1686f$export$2e2bcd8739ae039(originPoint, endPoint, curveSw
             const controlX2 = secondX - Math.cos(perpAngle) * secondSwoop;
             const controlY2 = secondY - Math.sin(perpAngle) * secondSwoop;
             return [
-                "M",
+                'M',
                 x1.toFixed(2),
                 y1.toFixed(2),
-                "C",
+                'C',
                 controlX1.toFixed(2),
                 controlY1.toFixed(2),
                 controlX2.toFixed(2),
                 controlY2.toFixed(2),
                 x2.toFixed(2),
                 y2.toFixed(2)
-            ].join(" ");
+            ].join(' ');
         }
-    } else if (lineType === "orthogonal") {
+    } else if (lineType === 'orthogonal') {
         // For orthogonal lines, use the same direction logic
         const angleDegrees = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
         // Determine if we should go vertical first or horizontal first
         const verticalFirst = Math.abs(angleDegrees) > 45;
         return verticalFirst ? [
-            "M",
+            'M',
             x1.toFixed(2),
             y1.toFixed(2),
-            "L",
+            'L',
             x1.toFixed(2),
             y2.toFixed(2),
-            "L",
+            'L',
             x2.toFixed(2),
             y2.toFixed(2)
-        ].join(" ") : [
-            "M",
+        ].join(' ') : [
+            'M',
             x1.toFixed(2),
             y1.toFixed(2),
-            "L",
+            'L',
             x2.toFixed(2),
             y1.toFixed(2),
-            "L",
+            'L',
             x2.toFixed(2),
             y2.toFixed(2)
-        ].join(" ");
+        ].join(' ');
     }
 }
 
@@ -11032,25 +11032,25 @@ function $f7a6c59624db8286$export$2e2bcd8739ae039({ relationships: relationships
         }
         const _attr = {
             stroke: r.lineColor,
-            fill: "none",
-            "stroke-width": r.lineWidth,
-            "fill-opacity": r.lineOpacity,
+            fill: 'none',
+            'stroke-width': r.lineWidth,
+            'fill-opacity': r.lineOpacity,
             opacity: r.lineOpacity,
-            filter: !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isSafari() && !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isMobile() && r.lineEffect ? `url(#${r.lineEffect})` : ""
+            filter: !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isSafari() && !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isMobile() && r.lineEffect ? `url(#${r.lineEffect})` : ''
         };
         // stop connection re-draws when shift+alt drag until the move is up because the lines are hidden anyways
         if (!(r.isAlt && r.isShift) || r.isAlt && r.isShift && r.isUp) _attr.path = linePath;
         if (r.showChildArrow) Object.assign(_attr, {
-            "arrow-end": "classic"
+            'arrow-end': 'classic'
         });
         else Object.assign(_attr, {
-            "arrow-end": "none"
+            'arrow-end': 'none'
         });
         if (r.showParentArrow) Object.assign(_attr, {
-            "arrow-start": "classic"
+            'arrow-start': 'classic'
         });
         else Object.assign(_attr, {
-            "arrow-start": "none"
+            'arrow-start': 'none'
         });
         r.line.attr(_attr);
         if (tempOriginNode) tempOriginNode.remove();
@@ -11068,7 +11068,7 @@ function $a26df7539d136ffa$export$2e2bcd8739ae039(p, options) {
     let lx = p.x - 5;
     let tx = p.x + options.width / 2;
     let ty = p.y + options.height / 2;
-    if (options.vectorPath === "ellipse") {
+    if (options.vectorPath === 'ellipse') {
         lx = p.cx - 5;
         tx = p.cx;
         ty = p.cy;
@@ -11103,13 +11103,13 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
     set(t, s, f, c, opacity, ta, tb, isCategory) {
         const tempShim = `\xa7` // utils.guid().substring(3);
         ;
-        if (!t && t !== "") t = this.node.options.text || tempShim;
+        if (!t && t !== '') t = this.node.options.text || tempShim;
         if (!s) s = this.node.options.fontSize || 12;
         if (opacity == null) opacity = this.node.options.textOpacity || 1;
-        if (!f) f = this.node.options.fontFamily || "Roboto";
-        if (!c) c = this.node.options.foregroundColor || "#000";
-        if (!ta) ta = this.node.options.textXAlign || "middle";
-        if (!tb) tb = this.node.options.textYAlign || "middle";
+        if (!f) f = this.node.options.fontFamily || 'Roboto';
+        if (!c) c = this.node.options.foregroundColor || '#000';
+        if (!ta) ta = this.node.options.textXAlign || 'middle';
+        if (!tb) tb = this.node.options.textYAlign || 'middle';
         // ensure text is always legible if it is set to the same as background
         if (c === this.node.options.backgroundColor) c = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).whiteOrBlack(this.node.options.backgroundColor);
         this.node.options.text = t;
@@ -11125,7 +11125,7 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
             let nodebb = this.node.vect.getBBox();
             if (this.node.options.text !== tempShim) {
                 const textDimens = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).getTextWidth(this.node.options.text, `${this.node.options.fontSize}pt ${this.node.options.fontFamily}`);
-                const { transWidth: transWidth, transHeight: transHeight } = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).obtainProportionateWidthAndHeightForResizing(0, 0, textDimens.width, textDimens.height, this.node.options.origVectWidth, this.node.options.origVectHeight, this.slate.isCtrl, this.node.options.shapeHint === "custom");
+                const { transWidth: transWidth, transHeight: transHeight } = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).obtainProportionateWidthAndHeightForResizing(0, 0, textDimens.width, textDimens.height, this.node.options.origVectWidth, this.node.options.origVectHeight, this.slate.isCtrl, this.node.options.shapeHint === 'custom');
                 widthScalar = transWidth / nodebb.width;
                 heightScalar = transHeight / nodebb.height;
             }
@@ -11146,8 +11146,8 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
         coords = this.node.textCoords();
         if (!this.node.text) {
             this.node.text = this.slate.paper.text(this.node.options.xPos + coords.x, this.node.options.yPos + coords.y, t);
-            const dragRider = this.node.options.disableDrag ? "nodrag_" : "";
-            this.node.text.node.setAttribute("rel", `${dragRider}text-${this.node.options.id}`);
+            const dragRider = this.node.options.disableDrag ? 'nodrag_' : '';
+            this.node.text.node.setAttribute('rel', `${dragRider}text-${this.node.options.id}`);
         }
         coords = this.node.textCoords({
             x: this.node.options.xPos,
@@ -11158,39 +11158,39 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
             text: t
         });
         this.node.text.attr({
-            "font-size": `${s}pt`
+            'font-size': `${s}pt`
         });
         this.node.text.attr({
-            "font-family": f
+            'font-family': f
         });
         this.node.text.attr({
             fill: c
         });
         this.node.text.attr({
-            "text-anchor": ta
+            'text-anchor': ta
         });
         this.node.text.attr({
-            "text-baseline": tb
+            'text-baseline': tb
         });
         this.node.text.attr({
-            "fill-opacity": opacity
+            'fill-opacity': opacity
         });
         this.node.text.attr({
-            class: "slatebox-text"
+            class: 'slatebox-text'
         });
         const noSelect = [
-            "-webkit-user-select",
-            "-moz-user-select",
-            "-ms-user-select",
-            "user-select"
-        ].map((sx)=>`${sx}: none;`).join(" ");
+            '-webkit-user-select',
+            '-moz-user-select',
+            '-ms-user-select',
+            'user-select'
+        ].map((sx)=>`${sx}: none;`).join(' ');
         this.node.text.attr({
             style: noSelect
         });
         if (tempShim === t) {
-            this.node.options.text = "";
+            this.node.options.text = '';
             this.node.text.attr({
-                text: ""
+                text: ''
             });
         } else setTimeout(()=>{
             this.node.text.attr({
@@ -11453,8 +11453,8 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             id: self.slate.tempNodeId,
             xPos: _xPos,
             yPos: _yPos,
-            lineColor: "#990000",
-            backgroundColor: "#ffffff",
+            lineColor: '#990000',
+            backgroundColor: '#ffffff',
             vectorPath: _path,
             width: 30,
             height: 30
@@ -11473,10 +11473,10 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
                 _tempRelationship.hoveredOver = self._hitTest((0, $8ab43d25a2892bde$export$2e2bcd8739ae039).mousePos(ex));
                 if (_tempRelationship.hoveredOver !== null) // yes, currently over a node -- scale it
                 _tempRelationship.hoveredOver.vect.animate({
-                    "stroke-width": 5
+                    'stroke-width': 5
                 }, 500, ()=>{
                     _tempRelationship.hoveredOver.vect.animate({
-                        "stroke-width": self.node.options.borderWidth
+                        'stroke-width': self.node.options.borderWidth
                     }, 500, ()=>{
                         _tempRelationship.hoveredOver = null;
                     });
@@ -11497,9 +11497,9 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
                 if (!relevantAssociation) {
                     _parent.relationships.addAssociation(overNode, _assocPkg);
                     const _pkgx = {
-                        type: "addRelationship",
+                        type: 'addRelationship',
                         data: {
-                            type: "association",
+                            type: 'association',
                             parent: _parent.options.id,
                             child: overNode.options.id
                         }
@@ -11525,8 +11525,8 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         self.associations = [];
     }
     removeAssociation(_node) {
-        this.associations = this._remove(this.associations, "child", _node);
-        this.associations = this._remove(this.associations, "parent", _node);
+        this.associations = this._remove(this.associations, 'child', _node);
+        this.associations = this._remove(this.associations, 'parent', _node);
         return this;
     }
     setKeys({ isShift: isShift, isAlt: isAlt }) {
@@ -11569,12 +11569,12 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         const association = {
             parent: null,
             child: null,
-            lineColor: "#fff",
+            lineColor: '#fff',
             lineOpacity: 1,
-            lineEffect: "",
+            lineEffect: '',
             lineWidth: 20,
-            lineType: "bezier",
-            lineCurveType: "cubic",
+            lineType: 'bezier',
+            lineCurveType: 'cubic',
             lineCurviness: 0.2,
             blnStraight: false,
             showParentArrow: false,
@@ -11583,11 +11583,11 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         Object.assign(association, opts);
         const _attr = {
             stroke: association.lineColor,
-            class: "association",
-            fill: "none",
-            "stroke-width": association.lineWidth,
-            "fill-opacity": association.lineOpacity,
-            filter: association.lineEffect && !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isSafari() && !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isMobile() ? `url(#${association.lineEffect})` : "",
+            class: 'association',
+            fill: 'none',
+            'stroke-width': association.lineWidth,
+            'fill-opacity': association.lineOpacity,
+            filter: association.lineEffect && !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isSafari() && !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isMobile() ? `url(#${association.lineEffect})` : '',
             opacity: association.lineOpacity
         };
         // these two generic points will be adjusted after the line is created
@@ -11603,7 +11603,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             Object.assign(association, {
                 line: paper.path((0, $e992036a92f1686f$export$2e2bcd8739ae039)(origPoint, endPoint, association.lineCurviness, association.lineType, association.lineCurveType)).attr(_attr)
             });
-            association.line.node.setAttribute("rel", `association-${association.parent.options.id}-${association.child.options.id}`);
+            association.line.node.setAttribute('rel', `association-${association.parent.options.id}-${association.child.options.id}`);
         }
         if (association.child && association.parent) (0, $f7a6c59624db8286$export$2e2bcd8739ae039)({
             relationships: [
@@ -11623,7 +11623,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
     wireLineEvents(c) {
         const self = this;
         if (self.node.options.allowMenu) {
-            c.line.node.style.cursor = "pointer";
+            c.line.node.style.cursor = 'pointer';
             c.line.mousedown((e)=>{
                 (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
                 self.node.lineOptions.show(e, c);
@@ -11675,7 +11675,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
     send(opts) {
         if (this.node.context && !this.node.context.isVisible() && this.node.options.allowDrag && !this.node.options.disableDrag) {
             const pkg = {
-                type: "onNodesMove"
+                type: 'onNodesMove'
             };
             if (opts.nodes && opts.relationships) pkg.data = this.slate.nodes.nodeMovePackage({
                 nodes: opts.nodes,
@@ -11702,7 +11702,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         }
     }
     hideAll(_blnOverride) {
-        if (this.slate.isAlt && this.slate.isShift || _blnOverride) this._visibility("hide");
+        if (this.slate.isAlt && this.slate.isShift || _blnOverride) this._visibility('hide');
     }
     hideOwn() {
         this.associations.forEach((association)=>{
@@ -11715,7 +11715,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         });
     }
     showAll(_blnOverride) {
-        if (this._isLastAlt && this._isLastShift || _blnOverride) this._visibility("show");
+        if (this._isLastAlt && this._isLastShift || _blnOverride) this._visibility('show');
     }
     refreshOwnRelationships() {
         (0, $f7a6c59624db8286$export$2e2bcd8739ae039)({
@@ -11812,21 +11812,21 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
                 self.slate.isBeingResized = true;
                 self._initPosFix = false;
                 self.rotateTemp.attr({
-                    x: self.rotateTemp.attr("x") - 1000,
-                    y: self.rotateTemp.attr("y") - 1000,
+                    x: self.rotateTemp.attr('x') - 1000,
+                    y: self.rotateTemp.attr('y') - 1000,
                     width: 10000,
                     height: 10000
                 });
-                self.rotate.ox = self.rotate.attr("x");
-                self.rotate.oy = self.rotate.attr("y");
+                self.rotate.ox = self.rotate.attr('x');
+                self.rotate.oy = self.rotate.attr('y');
                 self.node.relationships.updateAssociationsWith({
                     activeNode: self.node.options.id,
                     currentDx: 0,
                     currentDy: 0,
-                    action: "rotate"
+                    action: 'rotate'
                 });
                 self._isResizing = true;
-                const tempPath = self.slate.paper.path(self.node.vect.attr("path"));
+                const tempPath = self.slate.paper.path(self.node.vect.attr('path'));
                 const noRotationBB = tempPath.getBBox();
                 if (!self.node.options.rotate?.point || Object.entries(self.node.options.rotate.point).length === 0) self.node.options.rotate.point = {
                     x: noRotationBB.cx,
@@ -11953,30 +11953,30 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
         if (self.node.options.allowResize) {
             self.rotateTemp?.remove();
             const r = self.slate.paper;
-            self.rotate = r.path("M16.659,24c-5.078,0-9.213-3.987-9.475-9h2.975l-4.5-5l-4.5,5h3.025 c0.264,6.671,5.74,12,12.475,12c3.197,0,6.104-1.21,8.315-3.185l-2.122-2.122C21.188,23.127,19.027,24,16.659,24z M29.133,14c-0.265-6.669-5.74-12-12.475-12c-3.197,0-6.104,1.21-8.315,3.185   l2.122,2.122C12.129,5.873,14.29,5,16.659,5c5.077,0,9.213,3.987,9.475,9h-2.975l4.5,5l4.5-5H29.133z").attr({
-                fill: "#fff",
-                stroke: "#000",
+            self.rotate = r.path('M16.659,24c-5.078,0-9.213-3.987-9.475-9h2.975l-4.5-5l-4.5,5h3.025 c0.264,6.671,5.74,12,12.475,12c3.197,0,6.104-1.21,8.315-3.185l-2.122-2.122C21.188,23.127,19.027,24,16.659,24z M29.133,14c-0.265-6.669-5.74-12-12.475-12c-3.197,0-6.104,1.21-8.315,3.185   l2.122,2.122C12.129,5.873,14.29,5,16.659,5c5.077,0,9.213,3.987,9.475,9h-2.975l4.5,5l4.5-5H29.133z').attr({
+                fill: '#fff',
+                stroke: '#000',
                 x: x - 5,
                 y: y - 5
             });
             let rotatePathBB = self.rotate.getBBox();
-            const rotatePathString = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(self.rotate.attr("path"), `T${x - rotatePathBB.x - 15},${y - rotatePathBB.y - 15}`);
+            const rotatePathString = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(self.rotate.attr('path'), `T${x - rotatePathBB.x - 15},${y - rotatePathBB.y - 15}`);
             self.rotate.attr({
                 path: rotatePathString
             });
             rotatePathBB = self.rotate.getBBox();
             self.rotateTemp = r.rect(rotatePathBB.x, rotatePathBB.y, rotatePathBB.width, rotatePathBB.height).attr({
-                fill: "#f00",
+                fill: '#f00',
                 opacity: 0.00000001
             }).toFront();
             self.rotate.mouseover((e)=>{
                 self.rotate.attr({
-                    cursor: "alias"
+                    cursor: 'alias'
                 });
             });
             self.rotateTemp.mouseover((e)=>{
                 self.rotateTemp.attr({
-                    cursor: "alias"
+                    cursor: 'alias'
                 });
             });
             self.rotateTemp.drag(self.rotateEvents.move, self.rotateEvents.start, self.rotateEvents.up);
@@ -11990,7 +11990,7 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
     send() {
         // broadcast change to birdsEye and collaborators
         const pkg = {
-            type: "onNodeRotated",
+            type: 'onNodeRotated',
             data: {
                 id: this.node.options.id,
                 rotate: this.node.options.rotate,
@@ -12000,7 +12000,7 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
                 associations: this.node.relationships.associations.map((a)=>({
                         parentId: a.parent.options.id,
                         childId: a.child.options.id,
-                        linePath: a.line.attr("path").toString()
+                        linePath: a.line.attr('path').toString()
                     }))
             }
         };
@@ -12009,19 +12009,19 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
     }
     applyImageRotation(opts = {}) {
         const { r: r } = this.slate.options.viewPort.zoom;
-        this.node.vect.transform("");
-        this.node.text.transform("");
+        this.node.vect.transform('');
+        this.node.text.transform('');
         const boundingClientRect = opts.boundingClientRect || this.node.vect[0].getBoundingClientRect();
         // clone current node to get actual dimensions with no hidden transforms (transform("") doesn't affect bbox -- it still has dimensions as if transforms were still there)
-        const tempPath = this.slate.paper.path(this.node.vect.attr("path"));
+        const tempPath = this.slate.paper.path(this.node.vect.attr('path'));
         const bb = tempPath.getBBox();
         const transformString = this.node.getTransformString(opts);
         this.node.vect.transform(transformString);
         this.node.text.transform(transformString);
         if (this.node.vect.pattern) {
-            const img = this.node.vect.pattern.getElementsByTagName("image")[0];
-            img.setAttribute("y", (boundingClientRect.height / r - bb.height) / 2 - 4);
-            img.setAttribute("x", (boundingClientRect.width / r - bb.width) / 2 - 4);
+            const img = this.node.vect.pattern.getElementsByTagName('image')[0];
+            img.setAttribute('y', (boundingClientRect.height / r - bb.height) / 2 - 4);
+            img.setAttribute('x', (boundingClientRect.width / r - bb.width) / 2 - 4);
         }
         tempPath.remove();
     }
@@ -12030,7 +12030,7 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
         const transformString = `...R${data.rotationAngle},${data.rotate.point.x}, ${data.rotate.point.y}`;
         self.node.vect.animate({
             transform: transformString
-        }, opts.duration || 500, opts.easing || ">", ()=>{
+        }, opts.duration || 500, opts.easing || '>', ()=>{
             const tstr = self.node.getTransformString();
             self.node.vect.transform(tstr);
             // self.node.text.transform(tstr);
@@ -12038,7 +12038,7 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
         });
         self.node.text.animate({
             transform: transformString
-        }, opts.duration || 500, opts.easing || ">", ()=>{
+        }, opts.duration || 500, opts.easing || '>', ()=>{
             const tstr = self.node.getTransformString();
             self.node.text.transform(tstr);
         });
@@ -12046,7 +12046,7 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
             const a = self.node.relationships.associations.find((ax)=>ax.parent.options.id === assoc.parentId && ax.child.options.id === assoc.childId);
             if (a) a.line.animate({
                 path: assoc.linePath
-            }, opts.duration || 500, opts.easing || ">", ()=>{
+            }, opts.duration || 500, opts.easing || '>', ()=>{
                 a.line.attr({
                     path: assoc.linePath
                 });
@@ -12071,7 +12071,7 @@ class $4026fc4adb3b1376$export$2e2bcd8739ae039 {
         const self = this;
         const r = self.slate.paper;
         if (self._m) {
-            (0, $5OpyM$lodashinvoke)(self._m, "remove");
+            (0, $5OpyM$lodashinvoke)(self._m, 'remove');
             self._m = null;
         }
         const bb = self.node.vect.getBBox();
@@ -12120,7 +12120,7 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
     _broadcast(skipCenter, options, targetXPos, targetYPos) {
         const self = this;
         const pkg = {
-            type: "onNodeAdded",
+            type: 'onNodeAdded',
             data: {
                 id: self.node.options.id,
                 skipCenter: skipCenter,
@@ -12149,49 +12149,49 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
         const bb = self.node.vect.getBBox();
         const widthOffset = bb.width / 2;
         const btnAttr = {
-            fill: "#fff",
-            stroke: "#000"
+            fill: '#fff',
+            stroke: '#000'
         };
         function conditionallyShow(nodeType, deleteOverride) {
             switch(nodeType){
-                case "delete":
+                case 'delete':
                     if (self.node.options.showDelete) self.buttons.trash = r.trash().transform([
-                        "t",
+                        't',
                         x + widthOffset - (deleteOverride || 80),
-                        ",",
+                        ',',
                         y - 58
                     ].join()).attr({
-                        fill: "#fff",
-                        stroke: "#f00"
+                        fill: '#fff',
+                        stroke: '#f00'
                     });
                     else if (self.node.options.showAddAndDeleteConditionally && self.node.options.copiedFromId) {
                         const copiedTimestamps = self.slate.nodes.allNodes.filter((n)=>n.options.copiedFromId === self.node.options.copiedFromId).map((nx)=>nx.options.copiedAt);
                         if (self.node.options.copiedAt >= Math.max(...copiedTimestamps)) self.buttons.trash = r.trash().transform([
-                            "t",
+                            't',
                             x + widthOffset - (deleteOverride || 80),
-                            ",",
+                            ',',
                             y - 58
                         ].join()).attr({
-                            fill: "#fff",
-                            stroke: "#f00"
+                            fill: '#fff',
+                            stroke: '#f00'
                         });
                     }
                     break;
-                case "add":
+                case 'add':
                     {
                         const copies = self.slate.nodes.allNodes.filter((n)=>n.options.copiedFromId === self.node.options.id).length;
                         if (self.node.options.showAdd || copies === 0 && self.node.options.showAddAndDeleteConditionally && !self.node.options.copiedFromId) self.buttons.unPinned = r.plus().transform([
-                            "t",
+                            't',
                             x + widthOffset + 40,
-                            ",",
+                            ',',
                             y - 58
                         ].join()).attr(btnAttr);
                         else if (self.node.options.showAddAndDeleteConditionally && self.node.options.copiedFromId) {
                             const copiedTimestamps = self.slate.nodes.allNodes.filter((n)=>n.options.copiedFromId === self.node.options.copiedFromId).map((nx)=>nx.options.copiedAt);
                             if (self.node.options.copiedAt >= Math.max(...copiedTimestamps)) self.buttons.unPinned = r.plus().transform([
-                                "t",
+                                't',
                                 x + widthOffset + 40,
-                                ",",
+                                ',',
                                 y - 58
                             ].join()).attr(btnAttr);
                         }
@@ -12204,25 +12204,25 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
         self.buttons = {};
         if (self.slate.isCommentOnly() && self.node.options.isComment || !self.slate.isCommentOnly()) {
             if (self.node.options.showMenu) self.buttons.setting = r.setting().transform([
-                "t",
+                't',
                 x + widthOffset,
-                ",",
+                ',',
                 y - 58
             ].join()).attr(btnAttr);
-            if (self.node.options.isComment && self.slate.canRemoveComments()) conditionallyShow("delete", 40);
+            if (self.node.options.isComment && self.slate.canRemoveComments()) conditionallyShow('delete', 40);
         }
         if (!self.node.options.isLocked && !self.node.options.isComment && !self.slate.isCommentOnly()) {
-            conditionallyShow("add");
-            conditionallyShow("delete");
+            conditionallyShow('add');
+            conditionallyShow('delete');
             if (self.node.options.showRelationshipConnector) self.buttons.handle = r.handle().transform([
-                "t",
+                't',
                 x + widthOffset - 40,
-                ",",
+                ',',
                 y - 58
             ].join()).attr(btnAttr);
         }
         [
-            "mousedown"
+            'mousedown'
         ].forEach((eventType)=>{
             if (self.buttons.setting) self.buttons.setting[eventType]((e)=>{
                 self.slate.unglow();
@@ -12247,7 +12247,7 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
                 self.node.del();
                 self.slate.unglow();
                 const delPkg = {
-                    type: "onNodeDeleted",
+                    type: 'onNodeDeleted',
                     data: {
                         id: self.node.options.id,
                         isComment: self.node.options.isComment
@@ -12269,8 +12269,8 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
             const barWidth = Object.keys(self.buttons).length * 40;
             // console.log('isComment barWidth', isComment, barWidth, widthOffset)
             if (!self.iconBar) self.iconBar = r.rect(x + widthOffset - (isComment ? 45 : 85), y - 63, barWidth, 43, 3).attr({
-                stroke: "#000",
-                fill: "#fff"
+                stroke: '#000',
+                fill: '#fff'
             }).toFront();
         }
         Object.keys(self.buttons).forEach((btn)=>{
@@ -12326,7 +12326,7 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
         // var _pkg = { type: "addRelationship", data: { type: 'association', parent: self.node.options.id, child: newNode.options.id} };
         // self.slate.collab && self.slate.collab.send(_pkg);
         // fire the editor if the menu can be shown
-        if (doBroadcast && newNode.options.showMenu && skipCenter === undefined) newNode.position("center", ()=>{
+        if (doBroadcast && newNode.options.showMenu && skipCenter === undefined) newNode.position('center', ()=>{
             // fire event
             self.slate.events?.onTextPaneRequested?.apply(this, [
                 newNode,
@@ -12386,7 +12386,7 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
         //   textDimens.width,
         //   textDimens.fontBoundingBoxAscent + textDimens.fontBoundingBoxDescent
         // )
-        if (options.opacity === 1) options.text = "";
+        if (options.opacity === 1) options.text = '';
         options.copiedFromId = self.node.options.copiedFromId || self.node.options.id;
         options.copiedAt = new Date().valueOf();
         // use the next theme shape if this slate is set to sync the theme
@@ -12395,7 +12395,7 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
         self.slate.events.onThemeRequired({
             themeId: self.slate.options.basedOnThemeId
         }, (err, theme)=>{
-            if (err) console.error("Unable to apply theme", err);
+            if (err) console.error('Unable to apply theme', err);
             else {
                 const children = self.slate.findChildren([
                     options.id
@@ -12419,7 +12419,7 @@ class $75d8b481b10b24dd$export$2e2bcd8739ae039 {
                 //   base.width,
                 //   base.height
                 // )
-                if (base) Object.assign(options, (0, $5OpyM$lodashomit)(base, "vectorPath"));
+                if (base) Object.assign(options, (0, $5OpyM$lodashomit)(base, 'vectorPath'));
             }
             return self.createNode(skipCenter, options, targetXPos, targetYPos, true);
         });
@@ -12461,13 +12461,13 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
                 });
                 self.origPath = self.node.options.vectorPath;
                 self.origPoint = self.node.options.rotate.point;
-                self.origX = self.resizeTemp.attr("x");
-                self.origY = self.resizeTemp.attr("y");
+                self.origX = self.resizeTemp.attr('x');
+                self.origY = self.resizeTemp.attr('y');
                 self.node.options.hasResized = true;
                 // create a huge dragging area in order to prevent mouse from losing focus on the correct element
                 self.resizeTemp.attr({
-                    x: self.resizeTemp.attr("x") - 1000,
-                    y: self.resizeTemp.attr("y") - 1000,
+                    x: self.resizeTemp.attr('x') - 1000,
+                    y: self.resizeTemp.attr('y') - 1000,
                     width: 10000,
                     height: 10000
                 });
@@ -12476,7 +12476,7 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
                     activeNode: self.node.options.id,
                     currentDx: 0,
                     currentDy: 0,
-                    action: "resize"
+                    action: 'resize'
                 });
                 self.lastDx = 0;
                 self.lastDy = 0;
@@ -12486,14 +12486,14 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
                 self._isResizing = true;
                 self.slate.multiSelection?.end();
                 // the resize coords at the start
-                s.ox = s.attr("x");
-                s.oy = s.attr("y");
+                s.ox = s.attr('x');
+                s.oy = s.attr('y');
                 self.node.setStartDrag();
                 self.node.connectors.remove();
                 self.node.rotate.hide();
                 self._dragAllowed = self.slate.options.allowDrag;
                 self.slate.disable(false, true);
-                if (self.node.options.text !== " ") {
+                if (self.node.options.text !== ' ') {
                     self._minWidth = 10;
                     self._minHeight = 10;
                 }
@@ -12533,7 +12533,7 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
                     // let transWidth = self._origWidth
                     // let transHeight = self._origHeight
                     // if (self.node.options.shapeHint === 'custom') {
-                    const { transWidth: transWidth, transHeight: transHeight } = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).obtainProportionateWidthAndHeightForResizing(dx, dy, self._origWidth, self._origHeight, self.node.options.shapeHint === "custom" ? self.node.options.origVectWidth : null, self.node.options.shapeHint === "custom" ? self.node.options.origVectHeight : null, self.slate.isCtrl, self.node.options.shapeHint === "custom");
+                    const { transWidth: transWidth, transHeight: transHeight } = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).obtainProportionateWidthAndHeightForResizing(dx, dy, self._origWidth, self._origHeight, self.node.options.shapeHint === 'custom' ? self.node.options.origVectWidth : null, self.node.options.shapeHint === 'custom' ? self.node.options.origVectHeight : null, self.slate.isCtrl, self.node.options.shapeHint === 'custom');
                     // }
                     if (transWidth > self._minWidth) s.attr({
                         x: s.ox + dx
@@ -12621,17 +12621,17 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
             const r = self.slate.paper;
             const resizePath = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath((0, $699224fae48c351a$export$2e2bcd8739ae039).icons.resize, `t${x - 5},${y - 5} r95`);
             self.resize = r.path(resizePath).attr({
-                fill: "#fff",
-                stroke: "#000"
+                fill: '#fff',
+                stroke: '#000'
             });
             self.resizeTemp = r.rect(x - 6, y - 6, 20, 20).attr({
-                fill: "#f00",
+                fill: '#f00',
                 opacity: 0.00000001
             }).toFront();
             self.resizeTemp.mouseover((e)=>{
                 self.node.overMenuButton = true;
                 self.resizeTemp.attr({
-                    cursor: "pointer"
+                    cursor: 'pointer'
                 });
             });
             self.resizeTemp.mouseout((e)=>{
@@ -12649,7 +12649,7 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
         // broadcast change to birdsEye and collaborators
         const textAttrs = this.node.text.attrs;
         const pkg = {
-            type: "onNodeResized",
+            type: 'onNodeResized',
             data: {
                 id: this.node.options.id,
                 textPosition: {
@@ -12661,7 +12661,7 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
                 associations: this.node.relationships.associations.map((a)=>({
                         parentId: a.parent.options.id,
                         childId: a.child.options.id,
-                        linePath: a.line.attr("path").toString()
+                        linePath: a.line.attr('path').toString()
                     }))
             }
         };
@@ -12675,11 +12675,11 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
     }
     animateSet(data, opts) {
         const self = this;
-        self.node.text.animate(data.textPosition, opts.duration || 500, opts.easing || ">");
+        self.node.text.animate(data.textPosition, opts.duration || 500, opts.easing || '>');
         self.node.vect.animate({
             path: data.vectorPath,
             transform: `R${data.rotate.rotationAngle}, ${data.rotate.point.x}, ${data.rotate.point.y}`
-        }, opts.duration || 500, opts.easing || ">", ()=>{
+        }, opts.duration || 500, opts.easing || '>', ()=>{
             const { image: image, imageOrigHeight: imageOrigHeight, imageOrigWidth: imageOrigWidth } = self.node.options;
             if (image && !!imageOrigHeight && !!imageOrigWidth) self.node.images.imageSizeCorrection();
         });
@@ -12688,7 +12688,7 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
             if (opts.animate) {
                 if (a) a.line.animate({
                     path: assoc.linePath
-                }, opts.duration || 500, opts.easing || ">", ()=>{
+                }, opts.duration || 500, opts.easing || '>', ()=>{
                     a.line.attr({
                         path: assoc.linePath
                     });
@@ -12725,11 +12725,11 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
     set(width, height, opts = {}) {
         // let latt, tatt;
         const self = this;
-        let pathWithPotentialTransformations = self.node.vect.attr("path").toString();
+        let pathWithPotentialTransformations = self.node.vect.attr('path').toString();
         if (opts.getRotationPoint) self.origPoint = self.node.options.rotate.point;
         if (self.origPoint && Object.entries(self.origPoint).length > 0 && self.node.options.rotate.rotationAngle > 0) pathWithPotentialTransformations = (0, $65a92514e25c9f85$export$508faed300ccdfb).transformPath(pathWithPotentialTransformations, `R${self.node.options.rotate.rotationAngle}, ${self.origPoint.x}, ${self.origPoint.y}`);
-        self.node.vect.transform("");
-        self.node.text.transform("");
+        self.node.vect.transform('');
+        self.node.text.transform('');
         self.node.vect.attr({
             path: pathWithPotentialTransformations
         });
@@ -12754,7 +12754,7 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
             self.node.options.height = self._minHeight;
         }
         const scaleTransform = `s${widthScalar}, ${heightScalar}`;
-        const scaledVectPath = (0, $65a92514e25c9f85$export$508faed300ccdfb).transformPath(self.node.vect.attr("path").toString(), scaleTransform).toString();
+        const scaledVectPath = (0, $65a92514e25c9f85$export$508faed300ccdfb).transformPath(self.node.vect.attr('path').toString(), scaleTransform).toString();
         pathWithPotentialTransformations = scaledVectPath;
         self.node.vect.attr({
             path: scaledVectPath
@@ -12776,16 +12776,16 @@ class $e4a210c2d8385465$export$2e2bcd8739ae039 {
         self.node.rotate.applyImageRotation();
         const lc = self.node.linkCoords();
         self.node.link.transform([
-            "t",
+            't',
             lc.x,
-            ",",
+            ',',
             lc.y,
-            "s",
-            ".8",
-            ",",
-            ".8",
-            "r",
-            "180"
+            's',
+            '.8',
+            ',',
+            '.8',
+            'r',
+            '180'
         ].join());
         self.node.relationships.refreshOwnRelationships();
         self.node.editor.setTextOffset();
@@ -12807,7 +12807,7 @@ class $5eeb98f61b0ae057$export$2e2bcd8739ae039 {
         let transImageHeight;
         let transImageWidth;
         const origImageRatio = this.node.options.imageOrigWidth / this.node.options.imageOrigHeight;
-        const noRotationPath = this.slate.paper.path(this.node.vect.attr("path"));
+        const noRotationPath = this.slate.paper.path(this.node.vect.attr('path'));
         const noRotationBB = noRotationPath.getBBox();
         const nodeRatio = noRotationBB.width / noRotationBB.height;
         if (origImageRatio < nodeRatio) {
@@ -12829,9 +12829,9 @@ class $5eeb98f61b0ae057$export$2e2bcd8739ae039 {
     imageSizeCorrection() {
         if (this.node.vect.pattern) {
             const targetImageDimensions = this.getTargetImageDimensions();
-            const img = this.node.vect.pattern.getElementsByTagName("image")[0];
-            img.setAttribute("height", targetImageDimensions.height);
-            img.setAttribute("width", targetImageDimensions.width);
+            const img = this.node.vect.pattern.getElementsByTagName('image')[0];
+            img.setAttribute('height', targetImageDimensions.height);
+            img.setAttribute('width', targetImageDimensions.width);
         }
     }
     set(img, w, h, blnKeepResizerOpen) {
@@ -12847,17 +12847,17 @@ class $5eeb98f61b0ae057$export$2e2bcd8739ae039 {
         this.node.options.imageOrigHeight = h // for scaling node to image size purposes; this value should never be changed
         ;
         this.node.options.imageOrigWidth = w;
-        this.node.options["fill-opacity"] = 1;
+        this.node.options['fill-opacity'] = 1;
         const sz = {
             fill: `url(${this.node.options.image})`,
-            "stroke-width": this.node.options.borderWidth,
-            stroke: "#000"
+            'stroke-width': this.node.options.borderWidth,
+            stroke: '#000'
         };
         const targetImageDimensions = this.getTargetImageDimensions();
         this.node.vect.imageOrigHeight = targetImageDimensions.height;
         this.node.vect.imageOrigWidth = targetImageDimensions.width;
         this.node.vect.attr({
-            "fill-opacity": 1
+            'fill-opacity': 1
         }) // IMPORTANT: for some reason Raphael breaks when setting 'sz' object and this at the same time
         ;
         this.node.vect.attr(sz);
@@ -12891,13 +12891,13 @@ class $5559a0452b57ea40$export$2e2bcd8739ae039 {
         sendCollab: false
     }) {
         this.slate.unglow();
-        let _path = "";
+        let _path = '';
         switch(pkg.shape){
-            case "ellipse":
+            case 'ellipse':
                 _path = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(`M${this.node.options.xPos + 75},${this.node.options.yPos + 50} m -75,0 a75,50 0 1,0 150,0 a 75,50 0 1,0 -150,0Z`);
                 this.node.options.isEllipse = true;
                 break;
-            case "rect":
+            case 'rect':
                 if (pkg.rx > 0) _path = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(`M${this.node.options.xPos},${this.node.options.yPos} h130 a10,10 0 0 1 10,10 v80 a10,10 0 0 1 -10,10 h-130 a10,10 0 0 1 -10,-10 v-80 a10,10 0 0 1 10,-10 z`);
                 else _path = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(`M${this.node.options.xPos},${this.node.options.yPos} h150 v100 h-150 v-100 z`);
                 this.node.options.isEllipse = false;
@@ -12940,7 +12940,7 @@ class $5559a0452b57ea40$export$2e2bcd8739ae039 {
         this.node.context.create();
         if (pkg.sendCollab) {
             const _pkg = {
-                type: "onNodeShapeChanged",
+                type: 'onNodeShapeChanged',
                 data: {
                     id: this.node.options.id,
                     shape: pkg.shape,
@@ -12970,11 +12970,11 @@ class $d85238a851587679$export$2e2bcd8739ae039 {
             // calculate the scale of the path
             const scale = Math.max(this.node.options.width, this.node.options.height) / Math.max(width, height);
             upath = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(path, [
-                "s",
+                's',
                 scale,
-                ",",
+                ',',
                 scale
-            ].join(""));
+            ].join(''));
         }
         this.node.shapes.set({
             shape: upath.toString(),
@@ -12990,21 +12990,21 @@ class $237ec92496b6da7e$export$2e2bcd8739ae039 {
         this.node = node;
     }
     set(cast) {
-        this.node.options.image = "";
+        this.node.options.image = '';
         this.node.options.backgroundColor = cast.color;
         if (cast.opacity != null) this.node.options.opacity = cast.opacity;
         this.node.vect.attr({
             fill: cast.color,
-            "fill-opacity": this.node.options.opacity
+            'fill-opacity': this.node.options.opacity
         });
-        if (cast.color === "" && this.node.options.text !== "") {
+        if (cast.color === '' && this.node.options.text !== '') {
             this.node.vect.attr({
-                stroke: this.node.options.borderColor || "#000"
+                stroke: this.node.options.borderColor || '#000'
             });
             this.node.options.borderWidth = 0;
         } else this.node.vect.attr({
-            stroke: this.node.options.borderColor || "#000",
-            "stroke-width": this.node.options.borderWidth
+            stroke: this.node.options.borderColor || '#000',
+            'stroke-width': this.node.options.borderWidth
         });
         this.node.relationships.refreshOwnRelationships();
     }
@@ -13036,68 +13036,68 @@ class $fc4b2653e376d71c$export$2e2bcd8739ae039 {
         }
     }
     buildContext(e) {
-        this._contextMenu = document.createElement("div");
-        this._contextMenu.setAttribute("id", `contextMenu_${this.node.options.id}`);
-        this._contextMenu.setAttribute("class", "sb_cm");
+        this._contextMenu = document.createElement('div');
+        this._contextMenu.setAttribute('id', `contextMenu_${this.node.options.id}`);
+        this._contextMenu.setAttribute('class', 'sb_cm');
         document.body.appendChild(this._contextMenu);
         this.setContext(e);
     }
     menuItems() {
         const tmp = "<div style='padding:5px;' class='sbthis._contextMenuItem' rel='{func}'>{text}</div>";
-        let inside = tmp.replace(/{func}/g, "tofront").replace(/{text}/g, "to front");
-        inside += tmp.replace(/{func}/g, "toback").replace(/{text}/g, "to back");
-        if (this._priorAllowDrag) inside += tmp.replace(/{func}/g, "lock").replace(/{text}/g, "lock");
-        else inside += tmp.replace(/{func}/g, "unlock").replace(/{text}/g, "unlock");
-        inside += tmp.replace(/{func}/g, "close").replace(/{text}/g, "close");
+        let inside = tmp.replace(/{func}/g, 'tofront').replace(/{text}/g, 'to front');
+        inside += tmp.replace(/{func}/g, 'toback').replace(/{text}/g, 'to back');
+        if (this._priorAllowDrag) inside += tmp.replace(/{func}/g, 'lock').replace(/{text}/g, 'lock');
+        else inside += tmp.replace(/{func}/g, 'unlock').replace(/{text}/g, 'unlock');
+        inside += tmp.replace(/{func}/g, 'close').replace(/{text}/g, 'close');
         return inside;
     }
     setContext(e) {
         const self = this;
         this._contextMenu.innerHTML = this.menuItems();
-        const all = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).select("div.contextMenuItem");
+        const all = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).select('div.contextMenuItem');
         for(let s = all.length; s < all.length; s += 1){
             const elem = all[s];
             elem.onclick = ()=>{
-                const act = this.getAttribute("rel");
+                const act = this.getAttribute('rel');
                 let _reorder = false;
                 const pkg = {
-                    type: "",
+                    type: '',
                     data: {
                         id: self.node.options.id
                     }
                 };
                 switch(act){
-                    case "tofront":
+                    case 'tofront':
                         self.node.toFront();
                         _reorder = true;
-                        pkg.type = "onNodeToFront";
+                        pkg.type = 'onNodeToFront';
                         break;
-                    case "toback":
+                    case 'toback':
                         self.node.toBack();
                         _reorder = true;
-                        pkg.type = "onNodeToBack";
+                        pkg.type = 'onNodeToBack';
                         break;
-                    case "lock":
+                    case 'lock':
                         self.node.options.isLocked = true // self is not a part of the self.node.disable function on purpose
                         ;
                         self.node.disable();
-                        pkg.type = "onNodeLocked";
+                        pkg.type = 'onNodeLocked';
                         break;
-                    case "unlock":
+                    case 'unlock':
                         self.node.options.isLocked = false // self is not a part of the self.node.enable function on purpose
                         ;
                         self.node.enable();
-                        pkg.type = "onNodeUnlocked";
+                        pkg.type = 'onNodeUnlocked';
                         break;
-                    case "close":
+                    case 'close':
                     default:
                         break;
                 }
                 if (_reorder) {
                     let zIndex = 0;
-                    for(let node = self.node.slate.paper.bottom; node != null; node = node.next)if (node.type === "ellipse" || node.type === "rect") {
+                    for(let node = self.node.slate.paper.bottom; node != null; node = node.next)if (node.type === 'ellipse' || node.type === 'rect') {
                         zIndex += 1;
-                        const _id = node.data("id");
+                        const _id = node.data('id');
                         // not all rects have an id (the menu box is a rect, but it has no options.id because it is not a node
                         // so you cannot always show self...
                         if (_id) {
@@ -13107,7 +13107,7 @@ class $fc4b2653e376d71c$export$2e2bcd8739ae039 {
                     }
                     self.node.slate.nodes.allNodes.sort((a, b)=>a.sortorder < b.sortorder ? -1 : 1);
                 }
-                if (pkg.type !== "") self.broadcast(pkg);
+                if (pkg.type !== '') self.broadcast(pkg);
                 this.remove();
             };
         }
@@ -13149,7 +13149,7 @@ class $8315835c374f6be2$export$2e2bcd8739ae039 {
         const a = this.node.relationships.associations[pkg.index];
         if (pkg.updateChild) a.child.options[pkg.prop] = pkg.val;
         else this.node.options[pkg.prop] = pkg.val;
-        if (pkg.val === "toggle") a[pkg.prop] = a[pkg.prop] ? (pkg.prop, false) : true;
+        if (pkg.val === 'toggle') a[pkg.prop] = a[pkg.prop] ? (pkg.prop, false) : true;
         else a[pkg.prop] = pkg.val;
         (0, $f7a6c59624db8286$export$2e2bcd8739ae039)({
             relationships: [
@@ -13169,7 +13169,7 @@ class $8315835c374f6be2$export$2e2bcd8739ae039 {
         const mp = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).mousePos(e);
         const off = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).positionedOffset(self.slate.options.container);
         const z = self.slate.options.viewPort.zoom.r;
-        const opacity = "1.0";
+        const opacity = '1.0';
         let x = (mp.x + self.slate.options.viewPort.left - off.left - 90) / z;
         let y = (mp.y + self.slate.options.viewPort.top - off.top - 30) / z;
         const bb = a.line.getBBox();
@@ -13177,24 +13177,24 @@ class $8315835c374f6be2$export$2e2bcd8739ae039 {
         y = bb.cy;
         self.m[c.id] = r.set();
         const transformToolbar = (xx, yy)=>[
-                "t",
+                't',
                 x + xx,
-                ",",
+                ',',
                 y + yy
             ].join();
         const toolbarAttr = {
-            fill: "#fff",
-            "fill-opacity": opacity,
-            stroke: "#333",
-            "stroke-width": 1,
-            cursor: "pointer"
+            fill: '#fff',
+            'fill-opacity': opacity,
+            stroke: '#333',
+            'stroke-width': 1,
+            cursor: 'pointer'
         };
         const toolbar = [];
         const reassign = self.node.options.showRelationshipReassign ? r.handle().attr(toolbarAttr).transform(transformToolbar(15, 0)) : null;
         const props = self.node.options.showRelationshipProperties ? r.setting().attr(toolbarAttr).transform(transformToolbar(-15, 0)) : null;
         const del = self.node.options.showRelationshipDelete ? r.trash().transform(transformToolbar(-45, 0)).attr({
-            fill: "#fff",
-            stroke: "#f00"
+            fill: '#fff',
+            stroke: '#f00'
         }) : null;
         if (reassign) toolbar.push(reassign);
         if (toolbar) toolbar.push(props);
@@ -13232,7 +13232,7 @@ class $8315835c374f6be2$export$2e2bcd8739ae039 {
             (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(ex);
             if (self.slate.options.enabled) {
                 const pkg = {
-                    type: "removeRelationship",
+                    type: 'removeRelationship',
                     data: {
                         parent: c.parent.options.id,
                         child: c.child.options.id
@@ -13263,7 +13263,7 @@ class $8315835c374f6be2$export$2e2bcd8739ae039 {
     }
     hide(id) {
         if (this.m[id]) {
-            (0, $5OpyM$lodashinvoke)(this.m[id], "remove");
+            (0, $5OpyM$lodashinvoke)(this.m[id], 'remove');
             this.m[id] = null;
         }
     }
@@ -13284,8 +13284,8 @@ class $9b98dd62c2bf15e9$export$2e2bcd8739ae039 {
         this.node = node;
         this.guideWings = 20000;
         this.guideAttrs = {
-            "stroke-dasharray": "--",
-            stroke: "#000"
+            'stroke-dasharray': '--',
+            stroke: '#000'
         };
         this.guideLines = {
             rightVerticals: {},
@@ -13297,10 +13297,10 @@ class $9b98dd62c2bf15e9$export$2e2bcd8739ae039 {
     clear() {
         const self = this;
         [
-            "rightVerticals",
-            "leftVerticals",
-            "topHorizontals",
-            "bottomHorizontals"
+            'rightVerticals',
+            'leftVerticals',
+            'topHorizontals',
+            'bottomHorizontals'
         ].forEach((p)=>{
             if (self.guideLines[p]) Object.keys(self.guideLines[p]).forEach((k)=>self.guideLines[p][k].remove());
             self.guideLines[p] = {};
@@ -13391,7 +13391,7 @@ class $c50ee1f3453cea79$export$2e2bcd8739ae039 {
         this.node.options.link = pkg1;
         if (sendCollab) {
             const cpkg = {
-                type: "onNodeLinkAdded",
+                type: 'onNodeLinkAdded',
                 data: pkg1
             };
             if (this.slate.collab) this.slate.collab.send(cpkg);
@@ -13401,7 +13401,7 @@ class $c50ee1f3453cea79$export$2e2bcd8739ae039 {
         this.node.options.link = null;
         if (sendCollab) {
             const cpkg = {
-                type: "onNodeLinkRemoved",
+                type: 'onNodeLinkRemoved',
                 data: pkg
             };
             if (this.slate.collab) this.slate.collab.send(cpkg);
@@ -13411,17 +13411,17 @@ class $c50ee1f3453cea79$export$2e2bcd8739ae039 {
         //`url("https://api.miniature.io/?token=ozwPwKuD6CYUiE9K&url=miniature.io?url=${_self._.options.link.data}&size=200")`
         const self = this;
         switch(this.node.options.link.type){
-            case "url":
-                window.open(self.node.options.link.data, "sb_external");
+            case 'url':
+                window.open(self.node.options.link.data, 'sb_external');
                 break;
-            case "externalSlate":
+            case 'externalSlate':
                 break;
-            case "currentSlate":
+            case 'currentSlate':
                 {
                     const n = self.slate.nodes.one(self.node.options.link.data);
-                    n.position("center", ()=>{
+                    n.position('center', ()=>{
                     // done
-                    }, "swingTo", 500);
+                    }, 'swingTo', 500);
                     break;
                 }
         }
@@ -13472,7 +13472,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             });
             const opts = {};
             if (useMainCanvas) {
-                const tempPath = self.slate.paper.path(cn.vect.attr("path")) // Meteor.currentSlate.paper
+                const tempPath = self.slate.paper.path(cn.vect.attr('path')) // Meteor.currentSlate.paper
                 ;
                 opts.boundingClientRect = tempPath[0].getBoundingClientRect();
                 tempPath.remove();
@@ -13480,23 +13480,23 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             cn.rotate.applyImageRotation(opts);
         // }
         });
-        (0, $5OpyM$lodashinvoke)(self.allNodes.map((n)=>n.relationships), "refresh");
+        (0, $5OpyM$lodashinvoke)(self.allNodes.map((n)=>n.relationships), 'refresh');
     }
     packageLayout() {
         const self = this;
         const knownGraphVizShapes = [
-            "rect",
-            "rectangle",
-            "circle",
-            "star",
-            "trapezium",
-            "triangle",
-            "pentagon",
-            "parallelogram",
-            "octagon",
-            "hexagon",
-            "rarrow",
-            "larrow"
+            'rect',
+            'rectangle',
+            'circle',
+            'star',
+            'trapezium',
+            'triangle',
+            'pentagon',
+            'parallelogram',
+            'octagon',
+            'hexagon',
+            'rarrow',
+            'larrow'
         ];
         const eligibleNodes = self.slate.options.disableAutoLayoutOfManuallyPositionedNodes ? self.allNodes.filter((nn)=>!nn.options.humanTouch) : self.allNodes;
         // package up all the unique associations and the width/height of every node
@@ -13518,7 +13518,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             if (!nodes[nx.options.id]) nodes[nx.options.id] = {
                 width: +nx.options.width,
                 height: +nx.options.height,
-                shape: knownGraphVizShapes.includes(nx.options.shapeHint) || "polygon",
+                shape: knownGraphVizShapes.includes(nx.options.shapeHint) || 'polygon',
                 color: nx.options.backgroundColor,
                 textColor: nx.options.foregroundColor,
                 text: nx.options.text,
@@ -13608,7 +13608,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                 moves: batch
             });
             self.slate.collab?.exe({
-                type: "onNodesMove",
+                type: 'onNodesMove',
                 data: pkg
             });
             if (batches.length > 0) setTimeout(()=>{
@@ -13629,7 +13629,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
     }
     getStickies(blnEmpty) {
         // stickies
-        const stickies = slate.nodes.allNodes.filter((n)=>n?.options?.filters?.vect === "postItNote" && n?.options?.disableDrag === false && n?.options?.text?.length > blnEmpty ? 10000 : 0).map((n)=>({
+        const stickies = slate.nodes.allNodes.filter((n)=>n?.options?.filters?.vect === 'postItNote' && n?.options?.disableDrag === false && n?.options?.text?.length > blnEmpty ? 10000 : 0).map((n)=>({
                 xPos: n.options.xPos,
                 yPos: n.options.yPos,
                 width: n.options.width,
@@ -13714,10 +13714,10 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         let _use = this.slate;
         let divCopy = null;
         if (opts && opts.moves) {
-            divCopy = document.createElement("div");
+            divCopy = document.createElement('div');
             const _did = `copy_${(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid()}`;
-            divCopy.setAttribute("id", _did);
-            divCopy.setAttribute("style", `width:1px;height:1px;display:none;`);
+            divCopy.setAttribute('id', _did);
+            divCopy.setAttribute('style', `width:1px;height:1px;display:none;`);
             document.body.appendChild(divCopy);
             _use = this.slate.copy({
                 container: _did,
@@ -13727,7 +13727,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         const nds = opts?.nodes || _use.nodes.allNodes;
         const _ret = {
             dur: opts ? opts.dur : 300,
-            easing: opts ? opts.easing : ">",
+            easing: opts ? opts.easing : '>',
             textPositions: (()=>nds.map((node)=>({
                         id: node.options.id,
                         textPosition: {
@@ -13750,7 +13750,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                     assoc.push({
                         parentId: a.parent.options.id,
                         childId: a.child.options.id,
-                        linePath: a.line.attr("path").toString(),
+                        linePath: a.line.attr('path').toString(),
                         id: a.line.id
                     });
                 });
@@ -13759,7 +13759,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                         assoc.push({
                             parentId: a.parent.options.id,
                             childId: a.child.options.id,
-                            linePath: a.line.attr("path").toString(),
+                            linePath: a.line.attr('path').toString(),
                             id: a.line.id
                         });
                     });
@@ -13783,7 +13783,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         const uniqAssoc = (0, $5OpyM$lodashuniq)(allAssoc, (a)=>a.id);
         const p = pkg.data || pkg;
         const d = p.dur || 300;
-        const e = p.easing || ">";
+        const e = p.easing || '>';
         const { associations: associations, nodeOptions: nodeOptions, textPositions: textPositions } = p;
         let cntr = 0;
         function _potentiallyFinalize(isAssoc) {
@@ -13834,7 +13834,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                     });
                     let rotationOptions = {};
                     if (options.useMainCanvas) {
-                        const tempPath = this.slate.paper.path(nodeObject.vect.attr("path")) // Meteor.currentSlate.paper.
+                        const tempPath = this.slate.paper.path(nodeObject.vect.attr('path')) // Meteor.currentSlate.paper.
                         ;
                         rotationOptions = {
                             boundingClientRect: tempPath[0].getBoundingClientRect()
@@ -13901,11 +13901,11 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
     }
     saveRelationships(relationships, { dx: dx, dy: dy }) {
         relationships.forEach((r)=>{
-            const newLinePath = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(r.line.attr("path").toString(), `T${dx},${dy}`).toString();
+            const newLinePath = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(r.line.attr('path').toString(), `T${dx},${dy}`).toString();
             r.line.attr({
                 path: newLinePath
             });
-            r.line.transform("");
+            r.line.transform('');
         });
     }
     removeRelationship(rm) {
@@ -13929,7 +13929,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         const _parent = pc.p;
         const _child = pc.c;
         if (_parent && _child) switch(add.type){
-            case "association":
+            case 'association':
                 _parent.relationships.addAssociation(_child, add.options);
                 break;
             default:
@@ -13969,9 +13969,9 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
     }
     removeFromCanvas(_node) {
         [
-            "vect",
-            "text",
-            "link"
+            'vect',
+            'text',
+            'link'
         ].forEach((tt)=>{
             _node[tt].remove();
         });
@@ -13982,8 +13982,8 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         let vect = null;
         let link = null;
         const vectOpt = {
-            fill: _node.options.backgroundColor || "#fff",
-            "fill-opacity": _node.options.opacity != null ? _node.options.opacity : 1
+            fill: _node.options.backgroundColor || '#fff',
+            'fill-opacity': _node.options.opacity != null ? _node.options.opacity : 1
         };
         Object.assign(vectOpt, _node.applyBorder());
         const _x = _node.options.xPos;
@@ -13996,28 +13996,28 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             `T${_x * percent}, ${_y * percent}`,
             `s${_width / 150 * percent}, ${_height / 100 * percent}, ${_x}, ${_y}`
         ];
-        _node.options.isEllipse = _node.options.isEllipse || _node.options.vectorPath === "ellipse";
+        _node.options.isEllipse = _node.options.isEllipse || _node.options.vectorPath === 'ellipse';
         let potentiallyResize = false;
         switch(_node.options.vectorPath){
-            case "ellipse":
-                _node.options.vectorPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)("M150,50 a75,50 0 1,1 0,-1 z", _transforms);
+            case 'ellipse':
+                _node.options.vectorPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)('M150,50 a75,50 0 1,1 0,-1 z', _transforms);
                 break;
-            case "rectangle":
-                _node.options.vectorPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)("M1,1 h150 v100 h-150 v-100 z", _transforms);
+            case 'rectangle':
+                _node.options.vectorPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)('M1,1 h150 v100 h-150 v-100 z', _transforms);
                 break;
-            case "roundedrectangle":
-                _node.options.vectorPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)("M1,1 h130 a10,10 0 0 1 10,10 v80 a10,10 0 0 1 -10,10 h-130 a10,10 0 0 1 -10,-10 v-80 a10,10 0 0 1 10,-10 z", _transforms);
+            case 'roundedrectangle':
+                _node.options.vectorPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)('M1,1 h130 a10,10 0 0 1 10,10 v80 a10,10 0 0 1 -10,10 h-130 a10,10 0 0 1 -10,-10 v-80 a10,10 0 0 1 10,-10 z', _transforms);
                 break;
             default:
                 potentiallyResize = true;
                 break;
         }
-        if (_node.options.vectorPath === "M2,12 L22,12") vectOpt["stroke-dasharray"] = "2px";
+        if (_node.options.vectorPath === 'M2,12 L22,12') vectOpt['stroke-dasharray'] = '2px';
         vect = vect ? vect : paperToUse.path(_node.options.vectorPath).attr(vectOpt);
-        vect.node.style.cursor = "pointer";
+        vect.node.style.cursor = 'pointer';
         // need to set in case toback or tofront is called and the load order changes in the context plugin
-        const allowDragRider = _node.options.disableDrag ? "nodrag_" : "";
-        vect.node.setAttribute("rel", `${allowDragRider}${_node.options.id}`);
+        const allowDragRider = _node.options.disableDrag ? 'nodrag_' : '';
+        vect.node.setAttribute('rel', `${allowDragRider}${_node.options.id}`);
         vect.data({
             id: _node.options.id
         });
@@ -14031,24 +14031,24 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         const bbox = vect.getBBox();
         _node.options.xPos = bbox.x;
         _node.options.yPos = bbox.y;
-        if (!_node.options.origVectWidth && _node.options.shapeHint === "custom") _node.options.origVectWidth = bbox.width;
-        if (!_node.options.origVectHeight && _node.options.shapeHint === "custom") _node.options.origVectHeight = bbox.height;
+        if (!_node.options.origVectWidth && _node.options.shapeHint === 'custom') _node.options.origVectWidth = bbox.width;
+        if (!_node.options.origVectHeight && _node.options.shapeHint === 'custom') _node.options.origVectHeight = bbox.height;
         const lc = _node.linkCoords();
         // apply the text coords prior to transform
         // text = paperToUse.text(tc.x, tc.y, (_node.options.text || '')).attr({ "font-size": _node.options.fontSize + "pt", fill: _node.options.foregroundColor || "#000" });
         link = paperToUse.linkArrow().transform([
-            "t",
+            't',
             lc.x,
-            ",",
+            ',',
             lc.y,
-            "s",
-            ".8",
-            ",",
-            ".8",
-            "r",
-            "180"
+            's',
+            '.8',
+            ',',
+            '.8',
+            'r',
+            '180'
         ].join()).attr({
-            cursor: "pointer"
+            cursor: 'pointer'
         });
         // create and set editor
         _node.editor = new (0, $61e5ba2c77a639d8$export$2e2bcd8739ae039)(this.slate, _node);
@@ -14089,7 +14089,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         _node.links = new (0, $c50ee1f3453cea79$export$2e2bcd8739ae039)(this.slate, _node);
         if (_node.options.image && !_node.options.imageOrigHeight) _node.options.imageOrigHeight = _node.options.height;
         if (_node.options.image && !_node.options.imageOrigWidth) _node.options.imageOrigWidth = _node.options.width;
-        if (_node.options.image && _node.options.image !== "") _node.images.set(_node.options.image, _node.options.imageOrigWidth, _node.options.imageOrigHeight, useMainCanvas);
+        if (_node.options.image && _node.options.image !== '') _node.images.set(_node.options.image, _node.options.imageOrigWidth, _node.options.imageOrigHeight, useMainCanvas);
         if (!_node.options.link || !_node.options.link.show) _node.link.hide();
         //
         if (potentiallyResize) _node.resize.set(_width, _height);
@@ -14131,16 +14131,16 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         self.asIndiv = false;
         self.attrs = {
             create: {
-                fill: "#fff",
-                stroke: "#000"
+                fill: '#fff',
+                stroke: '#000'
             },
             mouseOut: {
-                fill: "#fff",
-                stroke: "#000"
+                fill: '#fff',
+                stroke: '#000'
             },
             mouseOver: {
-                fill: "#ccc",
-                cursor: "pointer"
+                fill: '#ccc',
+                cursor: 'pointer'
             }
         };
     }
@@ -14176,23 +14176,23 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         }
         const c = self.slate.options.container;
         if (self.slate.options.showMultiSelect) {
-            self._init = document.createElement("div");
-            self._init.setAttribute("class", "slateMultiSelect");
-            self._init.style.position = "absolute";
-            self._init.style.height = "30px";
-            self._init.style.left = "10px";
-            self._init.style.color = "#081272";
-            self._init.style.fontSize = "11pt";
-            self._init.style.fontFamily = "trebuchet ms";
-            self._init.style.top = "5px";
-            self._init.style.display = "block";
-            self._init.style.padding = "5px";
-            self._init.style.margin = "5px;";
-            self._init.style.backgroundColor = "#fff";
-            self._init.style.cursor = "pointer";
-            self._init.style["user-select"] = "none";
-            self._init.innerHTML = "[multi-select]";
-            self._init.style.zIndex = "0";
+            self._init = document.createElement('div');
+            self._init.setAttribute('class', 'slateMultiSelect');
+            self._init.style.position = 'absolute';
+            self._init.style.height = '30px';
+            self._init.style.left = '10px';
+            self._init.style.color = '#081272';
+            self._init.style.fontSize = '11pt';
+            self._init.style.fontFamily = 'trebuchet ms';
+            self._init.style.top = '5px';
+            self._init.style.display = 'block';
+            self._init.style.padding = '5px';
+            self._init.style.margin = '5px;';
+            self._init.style.backgroundColor = '#fff';
+            self._init.style.cursor = 'pointer';
+            self._init.style['user-select'] = 'none';
+            self._init.innerHTML = '[multi-select]';
+            self._init.style.zIndex = '0';
             c.appendChild(self._init);
             self.markerEvents = {
                 init () {
@@ -14201,8 +14201,8 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     self.moveX = 0;
                     self.moveY = 0;
                     self.slate.options.allowDrag = false;
-                    self.marker.ox = self.marker.attr("x");
-                    self.marker.oy = self.marker.attr("y");
+                    self.marker.ox = self.marker.attr('x');
+                    self.marker.oy = self.marker.attr('y');
                     self.selectedNodes.forEach((node)=>{
                         node.unmark();
                         const bb = node.vect.getBBox();
@@ -14233,12 +14233,12 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                         const _nx = self.origPos.x + self.origPos.width + dx - 5;
                         const _ny = self.origPos.y + self.origPos.height + dy - 5;
                         self.resizer.transform([
-                            "t",
+                            't',
                             _nx,
-                            ",",
+                            ',',
                             _ny,
-                            " r95 s1.5,1.5"
-                        ].join(""));
+                            ' r95 s1.5,1.5'
+                        ].join(''));
                     } catch (err) {
                         finalize();
                     }
@@ -14288,12 +14288,12 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                         rh = false;
                     }
                     self.resizer.transform([
-                        "t",
+                        't',
                         _nx,
-                        ",",
+                        ',',
                         _ny,
-                        " r95 s1.5,1.5"
-                    ].join(""));
+                        ' r95 s1.5,1.5'
+                    ].join(''));
                     const att = {
                         width: _width,
                         height: _height
@@ -14329,11 +14329,11 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     const _nx = self.origPos.x + self.origPos.width;
                     const _ny = self.origPos.y + self.origPos.height;
                     self.resizer.transform([
-                        "t",
+                        't',
                         _nx - 5,
-                        ",",
+                        ',',
                         _ny - 5
-                    ].join(""));
+                    ].join(''));
                     self.refreshMarker();
                     self.showIcons();
                     self.marker.toBack();
@@ -14342,12 +14342,12 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     self.slate.enable();
                 }
             };
-            (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(self._init, "click", (e)=>{
+            (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(self._init, 'click', (e)=>{
                 switch(self._init.innerHTML){
-                    case "[multi-select]":
+                    case '[multi-select]':
                         self.start();
                         break;
-                    case "selecting [click to stop]...":
+                    case 'selecting [click to stop]...':
                         self.end(false);
                         self.endSelection();
                         break;
@@ -14359,11 +14359,11 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
     }
     hide() {
         const self = this;
-        if (self._init) self._init.style.display = "none";
+        if (self._init) self._init.style.display = 'none';
     }
     show() {
         const self = this;
-        if (self._init) self._init.style.display = "block";
+        if (self._init) self._init.style.display = 'block';
     }
     add(node) {
         const self = this;
@@ -14394,8 +14394,8 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         const self = this;
         self.slate.disable() // options.allowDrag = false;
         ;
-        if (self._init) self._init.innerHTML = "selecting [click to stop]...";
-        document.head.insertAdjacentHTML("beforeend", `<style id='svg-no-select-text'>.slatebox-text { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }</style>`);
+        if (self._init) self._init.innerHTML = 'selecting [click to stop]...';
+        document.head.insertAdjacentHTML('beforeend', `<style id='svg-no-select-text'>.slatebox-text { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }</style>`);
         // document.head.insertAdjacentHTML("beforeend", `<style id='svg-no-select-text'>svg text { pointer-events: none; }</style>`);
         const c = self.slate.options.container;
         self.slate.onSelectionStart = (e)=>{
@@ -14403,12 +14403,12 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 self.end();
                 const p = self.xy(e);
                 self.selRect = self.slate.paper.rect(p.x, p.y, 10, 10).attr({
-                    "stroke-dasharray": "-"
+                    'stroke-dasharray': '-'
                 });
-                (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(self.slate.canvas.get(), "mousemove", self._move.bind(self), null);
-                (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(self.slate.canvas.get(), "mouseup", self._mouseUp.bind(self), null, true);
-                (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(self.slate.canvas.get(), "mouseleave", self._select.bind(self), null, true);
-                window.addEventListener("beforeunload", self._enableOnRefresh);
+                (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self), null);
+                (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(self.slate.canvas.get(), 'mouseup', self._mouseUp.bind(self), null, true);
+                (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(self.slate.canvas.get(), 'mouseleave', self._select.bind(self), null, true);
+                window.addEventListener('beforeunload', self._enableOnRefresh);
                 self.ox = p.x;
                 self.oy = p.y;
             }
@@ -14456,17 +14456,17 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 opacity: 0.3
             }).toBack();
             const del = self.slate.paper.trash().attr({
-                fill: "#fff",
-                stroke: "#f00"
+                fill: '#fff',
+                stroke: '#f00'
             }).transform([
-                "t",
+                't',
                 multiX,
-                ",",
+                ',',
                 markerBB.y + heightSpacer * 4,
-                "s",
-                ",",
-                "1.25",
-                "1.25"
+                's',
+                ',',
+                '1.25',
+                '1.25'
             ].join());
             del.mouseover((e)=>{
                 del.attr(self.attrs.mouseOver);
@@ -14474,8 +14474,8 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             });
             del.mouseout((e)=>{
                 del.attr({
-                    fill: "#fff",
-                    stroke: "#f00"
+                    fill: '#fff',
+                    stroke: '#f00'
                 });
                 (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
             });
@@ -14484,14 +14484,14 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 self.del();
             });
             const copy = self.slate.paper.copy().attr(self.attrs.create).transform([
-                "t",
+                't',
                 multiX,
-                ",",
+                ',',
                 markerBB.y + heightSpacer * 2,
-                "s",
-                ",",
-                "1.25",
-                "1.25"
+                's',
+                ',',
+                '1.25',
+                '1.25'
             ].join());
             copy.mouseover((e)=>{
                 copy.attr(self.attrs.mouseOver);
@@ -14503,7 +14503,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             });
             copy.mousedown((e)=>{
                 (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
-                const nGroupId = self.selectedNodes[0].options.groupId ? (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid().replace(/-/gi, "").substring(0, 8).toUpperCase() : null;
+                const nGroupId = self.selectedNodes[0].options.groupId ? (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid().replace(/-/gi, '').substring(0, 8).toUpperCase() : null;
                 const orient = self.slate.getOrientation(self.selectedNodes);
                 const pad = 75;
                 const relationalMap = {};
@@ -14513,7 +14513,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     const c = (0, $5OpyM$lodashclonedeep)(node.options);
                     c.xPos += orient.width + pad;
                     c.groupId = nGroupId;
-                    c.id = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid().replace(/-/gi, "").substring(0, 12);
+                    c.id = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid().replace(/-/gi, '').substring(0, 12);
                     relationalMap[node.options.id] = c.id;
                     c.vectorPath = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(c.vectorPath, `T${orient.width + pad},0`);
                     nodeOptions.push(c);
@@ -14529,13 +14529,13 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                         const assocPkg = (0, $5OpyM$lodashclonedeep)(a);
                         delete assocPkg.line // ensure new line is created
                         ;
-                        assocPkg.id = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid().replace(/-/gi, "").substring(0, 12);
+                        assocPkg.id = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid().replace(/-/gi, '').substring(0, 12);
                         assocPkg.activeNode = relationalMap[assocPkg.activeNode];
                         let childNode = an.find((n)=>n.options.id === relationalMap[a.child.options.id]);
                         if (!childNode) childNode = an.find((n)=>n.options.id === a.child.options.id);
                         const sendAssocPkg = (0, $5OpyM$lodashomit)(assocPkg, [
-                            "child",
-                            "parent"
+                            'child',
+                            'parent'
                         ]);
                         sendAssocPkg.childId = assocPkg.child.options.id;
                         sendAssocPkg.parentId = assocPkg.parent.options.id;
@@ -14549,7 +14549,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 });
                 // send collaboration info
                 const pkg = {
-                    type: "onNodeAdded",
+                    type: 'onNodeAdded',
                     data: {
                         multiSelectCopy: true,
                         nodeOptions: nodeOptions,
@@ -14561,14 +14561,14 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             self._icons.push(copy);
             if (!isGrouped) {
                 const group = self.slate.paper.plus().attr(self.attrs.create).transform([
-                    "t",
+                    't',
                     multiX,
-                    ",",
+                    ',',
                     markerBB.y + heightSpacer,
-                    "s",
-                    ",",
-                    "1.25",
-                    "1.25"
+                    's',
+                    ',',
+                    '1.25',
+                    '1.25'
                 ].join());
                 group.mouseover((e)=>{
                     group.attr(self.attrs.mouseOver);
@@ -14579,7 +14579,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
                 });
                 group.mousedown((e)=>{
-                    const groupId = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid().replace(/-/gi, "").substring(0, 8).toUpperCase();
+                    const groupId = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid().replace(/-/gi, '').substring(0, 8).toUpperCase();
                     self.selectedNodes.forEach((n)=>{
                         n.options.groupId = groupId;
                     });
@@ -14591,14 +14591,14 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                 self._icons.push(group);
             } else {
                 const ungroup = self.slate.paper.minus().attr(self.attrs.create).transform([
-                    "t",
+                    't',
                     multiX,
-                    ",",
+                    ',',
                     markerBB.y + heightSpacer,
-                    "s",
-                    ",",
-                    "1.25",
-                    "1.25"
+                    's',
+                    ',',
+                    '1.25',
+                    '1.25'
                 ].join());
                 ungroup.mouseover((e)=>{
                     ungroup.attr(self.attrs.mouseOver);
@@ -14620,14 +14620,14 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             }
             if (showSettings) {
                 const settings = self.slate.paper.setting().attr(self.attrs.create).transform([
-                    "t",
+                    't',
                     multiX,
-                    ",",
+                    ',',
                     markerBB.y + heightSpacer * 3,
-                    "s",
-                    ",",
-                    "1.25",
-                    "1.25"
+                    's',
+                    ',',
+                    '1.25',
+                    '1.25'
                 ].join());
                 settings.mouseover((e)=>{
                     settings.attr(self.attrs.mouseOver);
@@ -14663,7 +14663,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
                     node.del();
                     self.slate.unglow();
                     const delPkg = {
-                        type: "onNodeDeleted",
+                        type: 'onNodeDeleted',
                         data: {
                             id: node.options.id
                         }
@@ -14687,10 +14687,10 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
             self.selectedNodes.forEach((n)=>{
                 n.unmark();
             });
-            window.removeEventListener("beforeunload", self._enableOnRefresh);
+            window.removeEventListener('beforeunload', self._enableOnRefresh);
         }
         if (self.slate.events?.onGroupSelection) self.slate.events?.onGroupSelection([]);
-        if (self._init) self._init.innerHTML = "[multi-select]";
+        if (self._init) self._init.innerHTML = '[multi-select]';
     }
     endSelection() {
         const self = this;
@@ -14698,7 +14698,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         self.showIcons();
         self.slate.options.allowDrag = true;
         self.slate.onSelectionStart = null;
-        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).removeEvent(self.slate.canvas.get(), "mousemove", self._move.bind(self));
+        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).removeEvent(self.slate.canvas.get(), 'mousemove', self._move.bind(self));
     }
     xy(e) {
         const self = this;
@@ -14757,8 +14757,8 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         if (w < self.minSize) w = self.minSize;
         if (h < self.minSize) h = self.minSize;
         self.marker = self.slate.paper.rect(orient.left / z, orient.top / z, w, h).attr({
-            "stroke-dasharray": "-",
-            fill: "#f8f8f8",
+            'stroke-dasharray': '-',
+            fill: '#f8f8f8',
             opacity: 0.3
         });
         self.marker.toBack();
@@ -14769,14 +14769,14 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
         const _nx = self.origPos.x + self.origPos.width;
         const _ny = self.origPos.y + self.origPos.height;
         self.resizer = self.slate.paper.resize().transform([
-            "t",
+            't',
             _nx - 5,
-            ",",
+            ',',
             _ny - 5,
-            "r95 s1.5,1.5"
+            'r95 s1.5,1.5'
         ].join()).attr({
-            fill: "#fff",
-            stroke: "#000"
+            fill: '#fff',
+            stroke: '#000'
         });
         self.resizer.toFront();
         self.resizer.mouseover((e)=>{
@@ -14828,7 +14828,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
     }
     _mouseUp(e) {
         const self = this;
-        if (self._init) self._init.innerHTML = "[multi-select]";
+        if (self._init) self._init.innerHTML = '[multi-select]';
         this._select(e);
     }
     _select() {
@@ -14859,7 +14859,7 @@ class $2c56d294fa5e840e$export$2e2bcd8739ae039 {
     broadcastMove() {
         const self = this;
         const pkg = {
-            type: "onNodesMove",
+            type: 'onNodesMove',
             data: self.slate.nodes.nodeMovePackage({
                 nodes: self.selectedNodes,
                 relationships: self.relationshipsToTranslate.concat(self.relationshipsToRefresh)
@@ -14894,7 +14894,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
     }
     setBe() {
         if (this.be) this.be.style.left = `${this.parentDimen.width - this.options.size}px`;
-        if (this.be) this.be.style.top = "-2px";
+        if (this.be) this.be.style.top = '-2px';
     }
     _hideText() {
         this.corner.nodes.allNodes.forEach((node)=>{
@@ -14905,8 +14905,8 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
         const self = this;
         let start = {};
         const init = function hnd() {
-            self.handle.ox = this.attr("x");
-            self.handle.oy = this.attr("y");
+            self.handle.ox = this.attr('x');
+            self.handle.oy = this.attr('y');
             start = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).positionedOffset(self.slate.canvas.internal);
             self.slate.toggleFilters(true);
         };
@@ -14952,14 +14952,14 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
         Object.assign(self.options, _options);
         const c = self.slate.options.container;
         self.parentDimen = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).getDimensions(c);
-        self.be = document.createElement("div");
-        self.be.setAttribute("id", `slatebirdsEye_${self.slate.options.id}`);
-        self.be.setAttribute("class", "slatebirdsEye");
-        self.be.style.position = "absolute";
+        self.be = document.createElement('div');
+        self.be.setAttribute('id', `slatebirdsEye_${self.slate.options.id}`);
+        self.be.setAttribute('class', 'slatebirdsEye');
+        self.be.style.position = 'absolute';
         self.be.style.height = `${self.options.size}px`;
         self.be.style.width = `${self.options.size}px`;
-        self.be.style.border = "2px inset #333";
-        self.be.style.backgroundColor = "#fff";
+        self.be.style.border = '2px inset #333';
+        self.be.style.backgroundColor = '#fff';
         c.appendChild(self.be);
         self.setBe();
         async function load() {
@@ -14974,7 +14974,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
                 showMultiSelect: false,
                 showbirdsEye: false,
                 showLocks: false,
-                imageFolder: "",
+                imageFolder: '',
                 isbirdsEye: true
             }, {
                 onNodeDragged () {
@@ -14982,7 +14982,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
                 }
             }).init();
             self.refresh();
-            (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(window, "resize", ()=>{
+            (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(window, 'resize', ()=>{
                 const cx = self.slate.options.container;
                 self.parentDimen = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).getDimensions(cx);
                 self.setBe();
@@ -14995,17 +14995,17 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
     }
     enable() {
         if (!this.corner) this.show();
-        this.be.style.display = "block";
+        this.be.style.display = 'block';
     }
     disable() {
-        this.be.style.display = "none";
+        this.be.style.display = 'none';
     }
     relationshipsChanged(pkg) {
         if (this.corner) switch(pkg.type){
-            case "removeRelationship":
+            case 'removeRelationship':
                 this.corner.nodes.removeRelationship(pkg.data);
                 break;
-            case "addRelationship":
+            case 'addRelationship':
                 var __pkg = JSON.parse(JSON.stringify(pkg));
                 Object.assign(__pkg.data, {
                     options: {
@@ -15021,7 +15021,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
     }
     nodeChanged(pkg) {
         if (this.corner) {
-            if (pkg.type === "onNodesMove") this.corner.nodes.moveNodes(pkg, {
+            if (pkg.type === 'onNodesMove') this.corner.nodes.moveNodes(pkg, {
                 useMainCanvas: true
             });
             else {
@@ -15029,20 +15029,20 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
                 if (_node) {
                     const useMainCanvas = true;
                     switch(pkg.type){
-                        case "onNodeShapeChanged":
+                        case 'onNodeShapeChanged':
                             _node.shapes.set(pkg.data);
                             break;
-                        case "onNodeTextChanged":
+                        case 'onNodeTextChanged':
                             _node.editor.set(pkg.data.text, pkg.data.fontSize, pkg.data.fontFamily, pkg.data.fontColor, pkg.data.textXAlign, pkg.data.textYAlign);
                             break;
-                        case "onNodeColorChanged":
+                        case 'onNodeColorChanged':
                             _node.colorPicker.set(pkg.data);
                             break;
-                        case "onNodeImageChanged":
+                        case 'onNodeImageChanged':
                             _node.images.set(pkg.data.img, pkg.data.w, pkg.data.h, useMainCanvas);
                             this.refresh();
                             break;
-                        case "onNodeResized":
+                        case 'onNodeResized':
                             Object.assign(_node.options, pkg.data);
                             _node.vect.attr({
                                 path: pkg.data.vectorPath
@@ -15050,7 +15050,7 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
                             if (_node.vect.pattern) _node.images.imageSizeCorrection();
                             this.refresh();
                             break;
-                        case "onNodeRotated":
+                        case 'onNodeRotated':
                             {
                                 pkg.data.associations.forEach((association)=>{
                                     const currentAssociation = _node.relationships.associations.find((ass)=>ass.child.options.id === association.childId && ass.parent.options.id === association.parentId);
@@ -15058,26 +15058,26 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
                                         path: association.linePath
                                     });
                                 });
-                                Object.assign(_node.options, (0, $5OpyM$lodashomit)(pkg.data, "associations"));
-                                const tempPath = this.slate.paper.path(_node.vect.attr("path"));
+                                Object.assign(_node.options, (0, $5OpyM$lodashomit)(pkg.data, 'associations'));
+                                const tempPath = this.slate.paper.path(_node.vect.attr('path'));
                                 tempPath.remove();
                                 _node.rotate.applyImageRotation();
                                 this.refresh();
                                 break;
                             }
-                        case "onNodeToFront":
+                        case 'onNodeToFront':
                             _node.vect.toFront();
                             break;
-                        case "onNodeToBack":
+                        case 'onNodeToBack':
                             _node.vect.toBack();
                             break;
-                        case "onNodeLocked":
+                        case 'onNodeLocked':
                             _node.options.allowDrag = false;
                             break;
-                        case "onNodeUnlocked":
+                        case 'onNodeUnlocked':
                             _node.options.allowDrag = true;
                             break;
-                        case "changeLineColor":
+                        case 'changeLineColor':
                             _node.lineOptions.set(pkg.data);
                             break;
                         default:
@@ -15150,10 +15150,10 @@ class $9fd058e97992db72$export$2e2bcd8739ae039 {
             const _w = this.parentDimen.width / this.slate.options.viewPort.zoom.r;
             const _h = this.parentDimen.height / this.slate.options.viewPort.zoom.r;
             this.handle = this.corner.paper.rect(_ix, _iy, _w, _h).attr({
-                stroke: "#000",
-                "stroke-width": 2,
-                fill: "#FFEB3A",
-                "fill-opacity": ".5"
+                stroke: '#000',
+                'stroke-width': 2,
+                fill: '#FFEB3A',
+                'fill-opacity': '.5'
             });
             this._hideText();
             this._wireHandle();
@@ -15192,7 +15192,7 @@ class $ae70ec667a6e4b7e$export$2e2bcd8739ae039 {
         // }
         // add your event callback
         let start = {};
-        wheelGestures.on("wheel", (e)=>{
+        wheelGestures.on('wheel', (e)=>{
             if (self.slate.options.allowDrag) {
                 if (e.event.ctrlKey) ;
                 else {
@@ -15233,15 +15233,15 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
         this.slate = slate;
     }
     static perform(pkg, node, op, cb) {
-        const det = op.split("@");
+        const det = op.split('@');
         let dur = pkg.defaultDuration || 300;
         const param = det[1];
         switch(det[0]){
-            case "zoom":
+            case 'zoom':
                 dur = det.length > 2 ? parseFloat(det[2], 10) : pkg.defaultDuration;
                 node.zoom(param, dur, cb);
                 break;
-            case "position":
+            case 'position':
                 {
                     const ease = det.length > 2 ? det[2] : pkg.defaultEasing;
                     dur = det.length > 3 ? parseFloat(det[3], 10) : pkg.defaultDuration;
@@ -15273,7 +15273,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
                     if (opts.cb) opts.cb();
                 }
             },
-            easing: "easeFromTo",
+            easing: 'easeFromTo',
             zoomPercent: Math.min(widthZoomPercent, heightZoomPercent)
         });
     }
@@ -15300,7 +15300,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
             y: y,
             isAbsolute: true,
             dur: opts.dur,
-            easing: "swingFromTo",
+            easing: 'swingFromTo',
             callbacks: {
                 after () {
                     setTimeout(()=>{
@@ -15326,7 +15326,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
             y: (ws.height - opts.previousWindowSize.h) / 2 * -1,
             duration: opts.dur,
             isAbsolute: false,
-            easing: "swingFromTo",
+            easing: 'swingFromTo',
             callbacks: {
                 after: ()=>{
                     self.slate.birdseye?.refresh(true);
@@ -15339,8 +15339,8 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
     // experimental
     bop(opts) {
         const dur = opts && opts.dur && opts.dur !== 0 ? opts.dur : 300;
-        const locale = "center";
-        const ease = "easeTo";
+        const locale = 'center';
+        const ease = 'easeTo';
         const presentNodes = _.map(this.slate.nodes.allNodes, (a)=>({
                 name: a.options.name,
                 operations: [
@@ -15370,7 +15370,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
                 dur: 500,
                 moves: [
                     {
-                        id: "*",
+                        id: '*',
                         x: s % 2 === 0 ? 20 : -20,
                         y: s % 2 === 0 ? -20 : -20
                     }
@@ -15403,14 +15403,14 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
             ;
             if (opts) {
                 switch(opts.speed){
-                    case "fast":
+                    case 'fast':
                         dur = 3000;
                         break;
                     default:
                         break;
                 }
                 switch(opts.subtlety){
-                    case "trump":
+                    case 'trump':
                         zp = {
                             in: czp + 60,
                             out: czp - 60
@@ -15429,7 +15429,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
                         if (cb) cb();
                     }
                 },
-                easing: "easeFromTo",
+                easing: 'easeFromTo',
                 zoomPercent: zpp
             });
         }
@@ -15482,18 +15482,18 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
                 $a8686d78200754a9$export$2e2bcd8739ae039.perform(pkg, n, op, (p)=>{
                     const sync = pkg.sync !== undefined ? pkg.sync[p.operation] : false;
                     switch(p.operation){
-                        case "zoom":
+                        case 'zoom':
                             if (sync) this.slate.collab?.send({
-                                type: "onZoom",
+                                type: 'onZoom',
                                 data: {
                                     id: p.id,
                                     zoomLevel: p.zoomLevel
                                 }
                             });
                             break;
-                        case "position":
+                        case 'position':
                             if (sync) this.slate.collab?.send({
-                                type: "onNodePositioned",
+                                type: 'onNodePositioned',
                                 data: {
                                     id: p.id,
                                     location: p.location,
@@ -15552,41 +15552,41 @@ class $19a04256932b9422$export$2e2bcd8739ae039 {
             };
             Object.assign(options, _options);
             const c = self.slate.options.container;
-            const scx = document.createElement("div");
-            scx.setAttribute("id", `slateSlider_${self.slate.options.id}`);
-            scx.style.position = "absolute";
+            const scx = document.createElement('div');
+            scx.setAttribute('id', `slateSlider_${self.slate.options.id}`);
+            scx.style.position = 'absolute';
             scx.style.height = `${options.height}px`;
             scx.style.width = `${options.width}px`;
             scx.style.left = `${options.offset.left}px`;
             scx.style.top = `${options.offset.top}px`;
-            scx.style.borderRadius = "7px";
-            scx.style.border = "1px solid #ccc";
-            scx.style.backgroundColor = "#fff";
+            scx.style.borderRadius = '7px';
+            scx.style.border = '1px solid #ccc';
+            scx.style.backgroundColor = '#fff';
             c.appendChild(scx);
-            self.slider = document.createElement("input");
-            self.slider.setAttribute("orient", "vertical");
-            self.slider.setAttribute("type", "range");
-            self.slider.setAttribute("min", "6000");
-            self.slider.setAttribute("step", "50");
-            self.slider.setAttribute("max", "200000");
-            self.slider.setAttribute("value", self.slate.options.viewPort.zoom.w || 50000);
-            self.slider.setAttribute("id", self.sliderId);
-            self.slider.style["writing-mode"] = "bt-lr";
-            self.slider.style["-webkit-appearance"] = "slider-vertical";
+            self.slider = document.createElement('input');
+            self.slider.setAttribute('orient', 'vertical');
+            self.slider.setAttribute('type', 'range');
+            self.slider.setAttribute('min', '6000');
+            self.slider.setAttribute('step', '50');
+            self.slider.setAttribute('max', '200000');
+            self.slider.setAttribute('value', self.slate.options.viewPort.zoom.w || 50000);
+            self.slider.setAttribute('id', self.sliderId);
+            self.slider.style['writing-mode'] = 'bt-lr';
+            self.slider.style['-webkit-appearance'] = 'slider-vertical';
             self.slider.style.width = `20px`;
             self.slider.style.height = `${options.height - 5}px`;
             self.slider.style.padding = `0 5px`;
             self.slider.style.transform = `rotate(180deg)`;
-            self.slider.addEventListener("input", (e)=>{
+            self.slider.addEventListener('input', (e)=>{
                 const val = parseFloat(e.target.value);
                 self.set(val);
                 self.slate.birdsEye?.refresh(true);
             });
-            self.slider.addEventListener("change", (e)=>{
+            self.slider.addEventListener('change', (e)=>{
                 const val = parseFloat(e.target.value);
                 self.set(val);
                 self.slate.collab?.send({
-                    type: "onZoom",
+                    type: 'onZoom',
                     data: {
                         zoomLevel: val
                     }
@@ -15631,23 +15631,23 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
             });
             if (!this.actions[this.actionIndex - 1]) {
                 self1.toolbar[0].attr({
-                    "fill-opacity": "0.3"
+                    'fill-opacity': '0.3'
                 });
                 self1.toolbar[0].data({
                     disabled: true
                 });
             } else self1.toolbar[0].attr({
-                "fill-opacity": "1.0"
+                'fill-opacity': '1.0'
             });
             if (!this.actions[this.actionIndex + 1]) {
                 self1.toolbar[1].attr({
-                    "fill-opacity": "0.3"
+                    'fill-opacity': '0.3'
                 });
                 self1.toolbar[1].data({
                     disabled: true
                 });
             } else self1.toolbar[1].attr({
-                "fill-opacity": "1.0"
+                'fill-opacity': '1.0'
             });
         }
     }
@@ -15656,11 +15656,11 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         this.slate.loadJSON(state);
         this.slate.birdsEye?.reload(state);
         const pkg = {
-            type: "onSaveRequested"
+            type: 'onSaveRequested'
         };
         if (self.slate.events?.onSlateChanged) self.slate.events.onSlateChanged.apply(self, [
             {
-                type: "custom",
+                type: 'custom',
                 slate: this.slate,
                 pkg: pkg
             }
@@ -15686,8 +15686,8 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         } else this.setVisibility();
     }
     hide() {
-        if ((0, $8ab43d25a2892bde$export$2e2bcd8739ae039).el("slateUndoRedo") !== null) try {
-            this.slate.options.container.removeChild((0, $8ab43d25a2892bde$export$2e2bcd8739ae039).el("slateUndoRedo"));
+        if ((0, $8ab43d25a2892bde$export$2e2bcd8739ae039).el('slateUndoRedo') !== null) try {
+            this.slate.options.container.removeChild((0, $8ab43d25a2892bde$export$2e2bcd8739ae039).el('slateUndoRedo'));
         } catch (err) {}
     }
     show(_options) {
@@ -15703,9 +15703,9 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         };
         Object.assign(options, _options);
         const c = self1.slate.options.container;
-        const scx = document.createElement("div");
-        scx.setAttribute("id", "slateUndoRedo");
-        scx.style.position = "absolute";
+        const scx = document.createElement('div');
+        scx.setAttribute('id', 'slateUndoRedo');
+        scx.style.position = 'absolute';
         scx.style.height = `${options.height}px`;
         scx.style.width = `${options.width}px`;
         scx.style.left = `${options.offset.left}px`;
@@ -15713,45 +15713,45 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         c.appendChild(scx);
         const x = options.offset.left;
         const y = options.offset.top + 30;
-        options.paper = (0, $65a92514e25c9f85$export$508faed300ccdfb)("slateUndoRedo", options.width, options.height);
+        options.paper = (0, $65a92514e25c9f85$export$508faed300ccdfb)('slateUndoRedo', options.width, options.height);
         self1.toolbar = [
             options.paper.undo().data({
-                msg: "Undo",
+                msg: 'Undo',
                 width: 50,
                 height: 22
             }).attr({
-                fill: "#fff",
-                cursor: "pointer"
+                fill: '#fff',
+                cursor: 'pointer'
             }).attr({
-                fill: "#333",
-                stroke: "#fff"
+                fill: '#333',
+                stroke: '#fff'
             }).transform([
-                "t",
+                't',
                 x,
-                ",",
+                ',',
                 y,
-                "s",
-                "1.5",
-                "1.5"
+                's',
+                '1.5',
+                '1.5'
             ].join()),
             options.paper.redo().data({
-                msg: "Redo",
+                msg: 'Redo',
                 width: 50,
                 height: 22
             }).attr({
-                fill: "#fff",
-                cursor: "pointer"
+                fill: '#fff',
+                cursor: 'pointer'
             }).attr({
-                fill: "#333",
-                stroke: "#fff"
+                fill: '#333',
+                stroke: '#fff'
             }).transform([
-                "t",
+                't',
                 x + 50,
-                ",",
+                ',',
                 y,
-                "s",
-                "-1.5",
-                "1.5"
+                's',
+                '-1.5',
+                '1.5'
             ].join())
         ];
         self1.toolbar.forEach((toolbarElem)=>{
@@ -15759,13 +15759,13 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
                 (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
                 self1.slate.multiSelection?.hide();
                 // $(e.target).style.cursor = "pointer";
-                if (!this.data("disabled")) {
+                if (!this.data('disabled')) {
                     self1.slate.glow(this);
-                    const text = this.data("msg");
+                    const text = this.data('msg');
                     self1.slate.addtip(this.tooltip({
-                        type: "text",
+                        type: 'text',
                         msg: text
-                    }, this.data("width"), this.data("height")));
+                    }, this.data('width'), this.data('height')));
                 }
             });
             toolbarElem.mouseout(function m(e) {
@@ -15778,12 +15778,12 @@ class $7605cf3068a61b3e$export$2e2bcd8739ae039 {
         self1.toolbar[0].mousedown(function m(e) {
             (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
             self1.slate.unglow();
-            if (!this.data("disabled")) self1.undo();
+            if (!this.data('disabled')) self1.undo();
         });
         self1.toolbar[1].mousedown(function m(e) {
             (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).stopEvent(e);
             self1.slate.unglow();
-            if (!this.data("disabled")) self1.redo();
+            if (!this.data('disabled')) self1.redo();
         });
         // set the buttons both to be disabled
         self1.setVisibility();
@@ -15835,45 +15835,45 @@ class $95f7fca09bb5481b$export$2e2bcd8739ae039 {
         if (!this.slate.options.viewPort.gridSize) this.slate.options.viewPort.gridSize = 50;
         const { gridSize: gridSize } = this.slate.options.viewPort;
         this.slate.paper.def({
-            tag: "pattern",
-            id: "sbSmallGrid",
+            tag: 'pattern',
+            id: 'sbSmallGrid',
             height: gridSize,
             width: gridSize,
-            patternUnits: "userSpaceOnUse",
+            patternUnits: 'userSpaceOnUse',
             inside: [
                 {
-                    type: "path",
+                    type: 'path',
                     attrs: {
                         d: `M ${gridSize} 0 L 0 0 0 ${gridSize}`,
-                        fill: "none",
+                        fill: 'none',
                         stroke: gridColor,
-                        "stroke-width": "0.5"
+                        'stroke-width': '0.5'
                     }
                 }
             ]
         });
         this.slate.paper.def({
-            tag: "pattern",
-            id: "sbGrid",
+            tag: 'pattern',
+            id: 'sbGrid',
             height: gridSize * 10,
             width: gridSize * 10,
-            patternUnits: "userSpaceOnUse",
+            patternUnits: 'userSpaceOnUse',
             inside: [
                 {
-                    type: "rect",
+                    type: 'rect',
                     attrs: {
                         width: gridSize * 10,
                         height: gridSize * 10,
-                        fill: "url(#sbSmallGrid)"
+                        fill: 'url(#sbSmallGrid)'
                     }
                 },
                 {
-                    type: "path",
+                    type: 'path',
                     attrs: {
                         d: `M ${gridSize * 10} 0 L 0 0 0 ${gridSize * 10}`,
-                        fill: "none",
+                        fill: 'none',
                         stroke: gridColor,
-                        "stroke-width": "0.5"
+                        'stroke-width': '0.5'
                     }
                 }
             ]
@@ -15883,7 +15883,7 @@ class $95f7fca09bb5481b$export$2e2bcd8739ae039 {
         const self = this;
         this.setGrid();
         self._grid = self.slate.paper.rect(0, 0, self.slate.options.viewPort.width, self.slate.options.viewPort.height).attr({
-            fill: "url(#sbGrid)"
+            fill: 'url(#sbGrid)'
         }).toBack();
         self.slate.canvas.bgToBack();
     }
@@ -15907,8 +15907,8 @@ class $5c6c971650b19ad4$export$2e2bcd8739ae039 {
         const self = this;
         if (!self.engaged) {
             const comment = `M 14.4761 0 H 3.102 C 1.3888 0 0 1.3888 0 3.102 V 8.5307 c 0 1.7132 1.3888 3.102 3.102 3.102 H 9.8297 l 2.803 4.2412 l 0.9018 -4.2412 h 0.9418 c 1.7132 0 3.102 -1.3888 3.102 -3.102 V 3.102 C 17.5781 1.3888 16.1893 0 14.4761 0 z`;
-            const svg = self.slate.canvas.internal.querySelector("svg");
-            svg.addEventListener("mousedown", (e)=>{
+            const svg = self.slate.canvas.internal.querySelector('svg');
+            svg.addEventListener('mousedown', (e)=>{
                 const mp = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).mousePos(e);
                 const x = mp.x + self.slate.options.viewPort.left;
                 const y = mp.y + self.slate.options.viewPort.top;
@@ -15917,7 +15917,7 @@ class $5c6c971650b19ad4$export$2e2bcd8739ae039 {
                     path: tpath
                 });
                 const commentNodeOpts = {
-                    text: "",
+                    text: '',
                     xPos: x,
                     yPos: y,
                     height: pbox.height,
@@ -15952,13 +15952,13 @@ class $07361c58e711f582$export$2e2bcd8739ae039 {
     }
     bindGlobal() {
         const self1 = this;
-        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(document, "keydown", self1.bindGlobalDown);
-        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(document, "keyup", self1.bindGlobalUp);
+        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(document, 'keydown', self1.bindGlobalDown);
+        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).addEvent(document, 'keyup', self1.bindGlobalUp);
     }
     unbindGlobal() {
         const self1 = this;
-        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).removeEvent(document, "keydown", self1.bindGlobalDown);
-        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).removeEvent(document, "keyup", self1.bindGlobalUp);
+        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).removeEvent(document, 'keydown', self1.bindGlobalDown);
+        (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).removeEvent(document, 'keyup', self1.bindGlobalUp);
     }
     key(e, blnKeyDown) {
         const self1 = this;
@@ -16055,8 +16055,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
         const self = this;
         const filterDef = {
             id: filter.id || (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid().substring(10),
-            tag: "filter",
-            filterUnits: "userSpaceOnUse",
+            tag: 'filter',
+            filterUnits: 'userSpaceOnUse',
             ...filter.attrs,
             inside: []
         };
@@ -16096,50 +16096,50 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
         self.availableFilters = {
             embossed: {
                 types: [
-                    "vect",
-                    "line",
-                    "image",
-                    "text"
+                    'vect',
+                    'line',
+                    'image',
+                    'text'
                 ],
                 filters: [
                     {
-                        type: "feGaussianBlur",
+                        type: 'feGaussianBlur',
                         attrs: {
-                            stdDeviation: "1.5",
-                            in: "SourceAlpha"
+                            stdDeviation: '1.5',
+                            in: 'SourceAlpha'
                         }
                     },
                     {
-                        type: "feOffset",
+                        type: 'feOffset',
                         attrs: {
-                            dx: "1",
-                            dy: "1",
-                            result: "offsetblur"
+                            dx: '1',
+                            dy: '1',
+                            result: 'offsetblur'
                         }
                     },
                     {
-                        type: "feComponentTransfer",
+                        type: 'feComponentTransfer',
                         nested: [
                             {
-                                type: "feFuncA",
+                                type: 'feFuncA',
                                 attrs: {
-                                    type: "linear",
-                                    slope: "10"
+                                    type: 'linear',
+                                    slope: '10'
                                 }
                             }
                         ]
                     },
                     {
-                        type: "feMerge",
+                        type: 'feMerge',
                         nested: [
                             {
-                                type: "feMergeNode",
+                                type: 'feMergeNode',
                                 attrs: {}
                             },
                             {
-                                type: "feMergeNode",
+                                type: 'feMergeNode',
                                 attrs: {
-                                    in: "SourceGraphic"
+                                    in: 'SourceGraphic'
                                 }
                             }
                         ]
@@ -16150,7 +16150,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                 levers: {
                     feDropShadow: {
                         stdDeviation: {
-                            label: "distance",
+                            label: 'distance',
                             default: 1.5,
                             range: [
                                 1,
@@ -16158,7 +16158,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                             ]
                         },
                         dx: {
-                            label: "x-displacement",
+                            label: 'x-displacement',
                             default: 5,
                             range: [
                                 1,
@@ -16166,7 +16166,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                             ]
                         },
                         dy: {
-                            label: "y-displacement",
+                            label: 'y-displacement',
                             default: 5,
                             range: [
                                 1,
@@ -16176,50 +16176,50 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                     }
                 },
                 types: [
-                    "vect",
-                    "line",
-                    "image",
-                    "text"
+                    'vect',
+                    'line',
+                    'image',
+                    'text'
                 ],
                 filters: [
                     {
-                        type: "feGaussianBlur",
+                        type: 'feGaussianBlur',
                         attrs: {
-                            stdDeviation: "3",
-                            in: "SourceAlpha"
+                            stdDeviation: '3',
+                            in: 'SourceAlpha'
                         }
                     },
                     {
-                        type: "feOffset",
+                        type: 'feOffset',
                         attrs: {
-                            dx: "5",
-                            dy: "5",
-                            result: "offsetblur"
+                            dx: '5',
+                            dy: '5',
+                            result: 'offsetblur'
                         }
                     },
                     {
-                        type: "feComponentTransfer",
+                        type: 'feComponentTransfer',
                         nested: [
                             {
-                                type: "feFuncA",
+                                type: 'feFuncA',
                                 attrs: {
-                                    type: "linear",
-                                    slope: "0.8"
+                                    type: 'linear',
+                                    slope: '0.8'
                                 }
                             }
                         ]
                     },
                     {
-                        type: "feMerge",
+                        type: 'feMerge',
                         nested: [
                             {
-                                type: "feMergeNode",
+                                type: 'feMergeNode',
                                 attrs: {}
                             },
                             {
-                                type: "feMergeNode",
+                                type: 'feMergeNode',
                                 attrs: {
-                                    in: "SourceGraphic"
+                                    in: 'SourceGraphic'
                                 }
                             }
                         ]
@@ -16228,50 +16228,50 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             },
             postItNote: {
                 types: [
-                    "vect",
-                    "line",
-                    "image",
-                    "text"
+                    'vect',
+                    'line',
+                    'image',
+                    'text'
                 ],
                 filters: [
                     {
-                        type: "feGaussianBlur",
+                        type: 'feGaussianBlur',
                         attrs: {
-                            stdDeviation: "2",
-                            in: "SourceAlpha"
+                            stdDeviation: '2',
+                            in: 'SourceAlpha'
                         }
                     },
                     {
-                        type: "feOffset",
+                        type: 'feOffset',
                         attrs: {
-                            dx: "0",
-                            dy: "4",
-                            result: "offsetblur"
+                            dx: '0',
+                            dy: '4',
+                            result: 'offsetblur'
                         }
                     },
                     {
-                        type: "feComponentTransfer",
+                        type: 'feComponentTransfer',
                         nested: [
                             {
-                                type: "feFuncA",
+                                type: 'feFuncA',
                                 attrs: {
-                                    type: "linear",
-                                    slope: "0.5"
+                                    type: 'linear',
+                                    slope: '0.5'
                                 }
                             }
                         ]
                     },
                     {
-                        type: "feMerge",
+                        type: 'feMerge',
                         nested: [
                             {
-                                type: "feMergeNode",
+                                type: 'feMergeNode',
                                 attrs: {}
                             },
                             {
-                                type: "feMergeNode",
+                                type: 'feMergeNode',
                                 attrs: {
-                                    in: "SourceGraphic"
+                                    in: 'SourceGraphic'
                                 }
                             }
                         ]
@@ -16282,8 +16282,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                 levers: {
                     feDisplacementMap: {
                         scale: {
-                            label: "torn",
-                            default: "10",
+                            label: 'torn',
+                            default: '10',
                             range: [
                                 2,
                                 50
@@ -16292,32 +16292,32 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                     }
                 },
                 types: [
-                    "vect",
-                    "line",
-                    "image",
-                    "text"
+                    'vect',
+                    'line',
+                    'image',
+                    'text'
                 ],
                 filters: [
                     {
-                        type: "feTurbulence",
+                        type: 'feTurbulence',
                         attrs: {
-                            type: "turbulence",
-                            baseFrequency: ".05 .05",
-                            numOctaves: "05",
-                            seed: "2",
-                            stitchTiles: "noStitch",
-                            result: "turbulence"
+                            type: 'turbulence',
+                            baseFrequency: '.05 .05',
+                            numOctaves: '05',
+                            seed: '2',
+                            stitchTiles: 'noStitch',
+                            result: 'turbulence'
                         }
                     },
                     {
-                        type: "feDisplacementMap",
+                        type: 'feDisplacementMap',
                         attrs: {
-                            in: "SourceGraphic",
-                            in2: "turbulence",
-                            scale: "10",
-                            xChannelSelector: "R",
-                            yChannelSelector: "B",
-                            result: "displacementMap"
+                            in: 'SourceGraphic',
+                            in2: 'turbulence',
+                            scale: '10',
+                            xChannelSelector: 'R',
+                            yChannelSelector: 'B',
+                            result: 'displacementMap'
                         }
                     }
                 ]
@@ -16326,7 +16326,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                 levers: {
                     feGaussianBlur: {
                         stdDeviation: {
-                            label: "displacement",
+                            label: 'displacement',
                             default: 2,
                             range: [
                                 1,
@@ -16336,17 +16336,17 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                     }
                 },
                 types: [
-                    "vect",
-                    "line",
-                    "image"
+                    'vect',
+                    'line',
+                    'image'
                 ],
                 filters: [
                     {
-                        type: "feGaussianBlur",
+                        type: 'feGaussianBlur',
                         attrs: {
-                            stdDeviation: "2",
-                            in: "SourceGraphic",
-                            edgeMode: "none"
+                            stdDeviation: '2',
+                            in: 'SourceGraphic',
+                            edgeMode: 'none'
                         }
                     }
                 ]
@@ -16355,8 +16355,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                 levers: {
                     feMorphology: {
                         radius: {
-                            label: "cutout",
-                            default: "1",
+                            label: 'cutout',
+                            default: '1',
                             range: [
                                 1,
                                 10
@@ -16365,25 +16365,25 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                     }
                 },
                 types: [
-                    "text",
-                    "line"
+                    'text',
+                    'line'
                 ],
                 filters: [
                     {
-                        type: "feMorphology",
+                        type: 'feMorphology',
                         attrs: {
-                            operator: "dilate",
-                            radius: "1",
-                            in: "SourceGraphic",
-                            result: "thickness"
+                            operator: 'dilate',
+                            radius: '1',
+                            in: 'SourceGraphic',
+                            result: 'thickness'
                         }
                     },
                     {
-                        type: "feComposite",
+                        type: 'feComposite',
                         attrs: {
-                            operator: "out",
-                            in: "thickness",
-                            in2: "SourceGraphic"
+                            operator: 'out',
+                            in: 'thickness',
+                            in2: 'SourceGraphic'
                         }
                     }
                 ]
@@ -16392,16 +16392,16 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                 levers: {
                     feImage: {
                         width: {
-                            label: "width",
-                            default: "8",
+                            label: 'width',
+                            default: '8',
                             range: [
                                 1,
                                 30
                             ]
                         },
                         height: {
-                            label: "height",
-                            default: "8",
+                            label: 'height',
+                            default: '8',
                             range: [
                                 1,
                                 30
@@ -16410,50 +16410,50 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                     }
                 },
                 types: [
-                    "image"
+                    'image'
                 ],
                 filters: [
                     // https://stackoverflow.com/questions/37451189/can-one-pixelate-images-with-an-svg-filter
                     {
-                        type: "feGaussianBlur",
+                        type: 'feGaussianBlur',
                         attrs: {
-                            stdDeviation: "2",
-                            in: "SourceGraphic",
-                            result: "smoothed"
+                            stdDeviation: '2',
+                            in: 'SourceGraphic',
+                            result: 'smoothed'
                         }
                     },
                     {
-                        type: "feImage",
+                        type: 'feImage',
                         attrs: {
-                            width: "8",
-                            height: "8",
-                            "xlink:href": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAIAAAACDbGyAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAWSURBVAgdY1ywgOEDAwKxgJhIgFQ+AP/vCNK2s+8LAAAAAElFTkSuQmCC",
-                            result: "displacement-map"
+                            width: '8',
+                            height: '8',
+                            'xlink:href': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAIAAAACDbGyAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAWSURBVAgdY1ywgOEDAwKxgJhIgFQ+AP/vCNK2s+8LAAAAAElFTkSuQmCC',
+                            result: 'displacement-map'
                         }
                     },
                     {
-                        type: "feTile",
+                        type: 'feTile',
                         attrs: {
-                            in: "displacement-map",
-                            result: "pixelate-map"
+                            in: 'displacement-map',
+                            result: 'pixelate-map'
                         }
                     },
                     {
-                        type: "feDisplacementMap",
+                        type: 'feDisplacementMap',
                         attrs: {
-                            in: "smoothed",
-                            in2: "pixelate-map",
-                            xChannelSelector: "R",
-                            yChannelSelector: "G",
-                            scale: "30",
-                            result: "pre-final"
+                            in: 'smoothed',
+                            in2: 'pixelate-map',
+                            xChannelSelector: 'R',
+                            yChannelSelector: 'G',
+                            scale: '30',
+                            result: 'pre-final'
                         }
                     },
                     {
-                        type: "feComposite",
+                        type: 'feComposite',
                         attrs: {
-                            operator: "in",
-                            in2: "SourceGraphic"
+                            operator: 'in',
+                            in2: 'SourceGraphic'
                         }
                     }
                 ]
@@ -16461,23 +16461,23 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             posterize: {
                 levers: {},
                 types: [
-                    "image"
+                    'image'
                 ],
                 filters: [
                     {
-                        type: "feComponentTransfer",
+                        type: 'feComponentTransfer',
                         nested: {
                             feFuncR: {
-                                type: "discrete",
-                                tableValues: ".25 .4 .5 .75 1"
+                                type: 'discrete',
+                                tableValues: '.25 .4 .5 .75 1'
                             },
                             feFuncG: {
-                                type: "discrete",
-                                tableValues: ".25 .4 .5 .75 1"
+                                type: 'discrete',
+                                tableValues: '.25 .4 .5 .75 1'
                             },
                             feFuncB: {
-                                type: "discrete",
-                                tableValues: ".25 .4 .5 .75 1"
+                                type: 'discrete',
+                                tableValues: '.25 .4 .5 .75 1'
                             }
                         }
                     }
@@ -16485,28 +16485,28 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             },
             sketchy: {
                 types: [
-                    "vect",
-                    "line",
-                    "text",
-                    "image"
+                    'vect',
+                    'line',
+                    'text',
+                    'image'
                 ],
                 filters: [
                     {
-                        type: "feTurbulence",
+                        type: 'feTurbulence',
                         attrs: {
-                            baseFrequency: "0.01",
+                            baseFrequency: '0.01',
                             numOctaves: 2,
-                            result: "turbulence"
+                            result: 'turbulence'
                         }
                     },
                     {
-                        type: "feDisplacementMap",
+                        type: 'feDisplacementMap',
                         attrs: {
-                            in2: "turbulence",
-                            in: "SourceGraphic",
+                            in2: 'turbulence',
+                            in: 'SourceGraphic',
                             scale: 15,
-                            xChannelSelector: "R",
-                            yChannelSelector: "G"
+                            xChannelSelector: 'R',
+                            yChannelSelector: 'G'
                         }
                     }
                 ]
@@ -16515,73 +16515,73 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                 // https://heredragonsabound.blogspot.com/2020/02/creating-pencil-effect-in-svg.html
                 levers: {},
                 types: [
-                    "vect",
-                    "line",
-                    "text",
-                    "image"
+                    'vect',
+                    'line',
+                    'text',
+                    'image'
                 ],
                 filters: [
                     {
-                        type: "feTurbulence",
+                        type: 'feTurbulence',
                         attrs: {
-                            type: "fractalNoise",
-                            baseFrequency: "0.03",
-                            numOctaves: "3",
-                            seed: "1",
-                            result: "f1"
+                            type: 'fractalNoise',
+                            baseFrequency: '0.03',
+                            numOctaves: '3',
+                            seed: '1',
+                            result: 'f1'
                         }
                     },
                     {
-                        type: "feDisplacementMap",
+                        type: 'feDisplacementMap',
                         attrs: {
-                            xChannelSelector: "R",
-                            yChannelSelector: "G",
-                            scale: "5",
-                            in: "SourceGraphic",
-                            in2: "f1",
-                            result: "f4"
+                            xChannelSelector: 'R',
+                            yChannelSelector: 'G',
+                            scale: '5',
+                            in: 'SourceGraphic',
+                            in2: 'f1',
+                            result: 'f4'
                         }
                     },
                     {
-                        type: "feTurbulence",
+                        type: 'feTurbulence',
                         attrs: {
-                            type: "fractalNoise",
-                            baseFrequency: "0.03",
-                            numOctaves: "3",
-                            seed: "10",
-                            result: "f2"
+                            type: 'fractalNoise',
+                            baseFrequency: '0.03',
+                            numOctaves: '3',
+                            seed: '10',
+                            result: 'f2'
                         }
                     },
                     {
-                        type: "feDisplacementMap",
+                        type: 'feDisplacementMap',
                         attrs: {
-                            xChannelSelector: "R",
-                            yChannelSelector: "G",
-                            scale: "5",
-                            in: "SourceGraphic",
-                            in2: "f2",
-                            result: "f5"
+                            xChannelSelector: 'R',
+                            yChannelSelector: 'G',
+                            scale: '5',
+                            in: 'SourceGraphic',
+                            in2: 'f2',
+                            result: 'f5'
                         }
                     },
                     {
-                        type: "feTurbulence",
+                        type: 'feTurbulence',
                         attrs: {
-                            type: "fractalNoise",
-                            baseFrequency: "1.2",
-                            numOctaves: "2",
-                            seed: "100",
-                            result: "f3"
+                            type: 'fractalNoise',
+                            baseFrequency: '1.2',
+                            numOctaves: '2',
+                            seed: '100',
+                            result: 'f3'
                         }
                     },
                     {
-                        type: "feDisplacementMap",
+                        type: 'feDisplacementMap',
                         attrs: {
-                            xChannelSelector: "R",
-                            yChannelSelector: "G",
-                            scale: "3",
-                            in: "SourceGraphic",
-                            in2: "f3",
-                            result: "f6"
+                            xChannelSelector: 'R',
+                            yChannelSelector: 'G',
+                            scale: '3',
+                            in: 'SourceGraphic',
+                            in2: 'f3',
+                            result: 'f6'
                         }
                     }
                 ]
@@ -16623,18 +16623,18 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         super(_options);
         this.options = {
             id: _options.id || (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).guid(),
-            container: "",
-            name: "",
-            description: "",
-            basedOnThemeId: "",
+            container: '',
+            name: '',
+            description: '',
+            basedOnThemeId: '',
             syncWithTheme: false,
             tags: [],
-            templateMarkdown: "",
+            templateMarkdown: '',
             containerStyle: {
-                backgroundColor: "transparent",
-                backgroundImage: "",
-                backgroundSize: "",
-                backgroundEffect: "",
+                backgroundColor: 'transparent',
+                backgroundImage: '',
+                backgroundSize: '',
+                backgroundEffect: '',
                 backgroundColorAsGradient: null,
                 backgroundGradientType: null,
                 backgroundGradientColors: [],
@@ -16667,7 +16667,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             disableAutoLayoutOfManuallyPositionedNodes: true,
             followMe: false,
             useLayoutQuandrants: false,
-            huddleType: "disabled",
+            huddleType: 'disabled',
             allowCollaboration: true
         };
         this.options = (0, $5OpyM$deepmerge)(this.options, _options);
@@ -16757,35 +16757,34 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             });
         }
         if (!self.cursors[obj.clientID]) {
-            const pos = document.createElement("div");
-            pos.setAttribute("class", "slateCursor");
-            pos.style.position = "absolute";
-            pos.style.padding = "0px";
-            pos.style.margin = "0px;";
-            pos.style.display = "block";
-            pos.style["user-select"] = "none";
-            pos.style.zIndex = "0";
-            const flex = document.createElement("div");
-            flex.style.display = "flex";
+            const pos = document.createElement('div');
+            pos.setAttribute('class', 'slateCursor');
+            pos.style.position = 'absolute';
+            pos.style.padding = '0px';
+            pos.style.margin = '0px;';
+            pos.style.display = 'block';
+            pos.style['user-select'] = 'none';
+            pos.style.zIndex = '0';
+            const flex = document.createElement('div');
+            flex.style.display = 'flex';
             flex.style.padding = 0;
             flex.style.margin = 0;
-            const dot = document.createElement("div");
+            const dot = document.createElement('div');
             dot.innerHTML = `
         <svg width="30px" height="30px" viewBox="-2.4 -2.4 28.80 28.80" role="img" xmlns="http://www.w3.org/2000/svg" stroke="${obj.color}" stroke-width="2.4" stroke-linecap="square" stroke-linejoin="miter" fill="${obj.color}" color="${obj.color}" transform="matrix(1, 0, 0, 1, 0, 0)"><g><polygon points="7 20 7 4 19 16 12 16 7 21"></polygon> </g></svg>`;
             // dot.style.backgroundColor = obj.color || '#000'
             flex.appendChild(dot);
-            const txt = document.createElement("div");
-            txt.style.fontSize = "11pt";
-            txt.style.height = "25px";
-            txt.style.whiteSpace = "nowrap";
-            txt.style.backgroundColor = "#fff";
-            txt.style.color = "#000";
-            txt.style.padding = "1px 7px 1px 7px";
+            const txt = document.createElement('div');
+            txt.style.fontSize = '11pt';
+            txt.style.height = '25px';
+            txt.style.whiteSpace = 'nowrap';
+            txt.style.backgroundColor = '#fff';
+            txt.style.color = '#000';
+            txt.style.padding = '1px 7px 1px 7px';
             txt.style.border = `1px solid black`;
-            txt.style.borderRadius = "5px";
-            txt.style.fontFamily = "trebuchet ms";
-            txt.innerHTML = `${obj.userName || "Guest"}`;
-            console.log("innerHTML", txt.innerHTML, obj);
+            txt.style.borderRadius = '5px';
+            txt.style.fontFamily = 'trebuchet ms';
+            txt.innerHTML = `${obj.userName || 'Guest'}`;
             flex.appendChild(txt);
             pos.appendChild(flex);
             self.cursors[obj.clientID] = pos;
@@ -16825,8 +16824,8 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                     if (!nodeId || n.options.id === nodeId) n.toggleFilters(blnHide);
                 });
                 this.allLines.filter((l)=>l.lineEffect).forEach((c)=>{
-                    if (blnHide) c.line.attr("filter", "");
-                    else c.line.attr("filter", `url(#${c.lineEffect})`);
+                    if (blnHide) c.line.attr('filter', '');
+                    else c.line.attr('filter', `url(#${c.lineEffect})`);
                 });
                 if (blnHide) this.canvas.hideBg();
                 if (esc) setTimeout(()=>{
@@ -16837,7 +16836,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         }
     }
     removeContextMenus() {
-        const _cm = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).select("div.sb_cm");
+        const _cm = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).select('div.sb_cm');
         _cm.forEach((elem)=>{
             document.body.removeChild(elem);
         });
@@ -16885,28 +16884,28 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             if (self.events.onCreateImage) self.events.onCreateImage({
                 svg: opts.svg,
                 orient: opts.orient,
-                type: "png"
+                type: 'png'
             }, (err, base64)=>{
-                if (err) console.error("Unable to create png server side", svg, err);
+                if (err) console.error('Unable to create png server side', svg, err);
                 else if (ropts?.base64) cb(base64);
                 else {
                     const img = new Image();
                     img.src = base64;
                     img.onload = ()=>{
-                        const cnvs = document.createElement("canvas");
+                        const cnvs = document.createElement('canvas');
                         cnvs.width = img.naturalWidth;
                         cnvs.height = img.naturalHeight;
-                        const ctx = cnvs.getContext("2d");
+                        const ctx = cnvs.getContext('2d');
                         ctx.imageSmoothingEnabled = false;
                         ctx.drawImage(img, 0, 0);
                         if (ropts?.alpha != null) makeTransparent(ctx, ropts.alpha, cnvs);
                         cnvs.toBlob((blob)=>{
                             if (cb && opts?.asBinary) cb(blob);
                             else {
-                                const link = document.createElement("a");
-                                link.setAttribute("download", `${(self.options.name || "slate").replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${self.options.id}.png`);
+                                const link = document.createElement('a');
+                                link.setAttribute('download', `${(self.options.name || 'slate').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${self.options.id}.png`);
                                 link.href = URL.createObjectURL(blob);
-                                const event = new MouseEvent("click");
+                                const event = new MouseEvent('click');
                                 link.dispatchEvent(event);
                                 cb && cb();
                             }
@@ -16915,17 +16914,17 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 }
             });
             else {
-                const cnvs = document.createElement("canvas");
+                const cnvs = document.createElement('canvas');
                 cnvs.width = opts.orient.width;
                 cnvs.height = opts.orient.height;
                 const blb = new Blob([
                     opts.svg
                 ], {
-                    type: "image/svg+xml;charset=utf8"
+                    type: 'image/svg+xml;charset=utf8'
                 });
                 const url = URL.createObjectURL(blb);
-                const ctx = cnvs.getContext("2d");
-                const img = document.createElement("img");
+                const ctx = cnvs.getContext('2d');
+                const img = document.createElement('img');
                 img.src = url;
                 img.onload = ()=>{
                     ctx.drawImage(img, 0, 0);
@@ -16934,13 +16933,13 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                         cb(blob);
                     });
                     else {
-                        const imgsrc = cnvs.toDataURL("image/png");
+                        const imgsrc = cnvs.toDataURL('image/png');
                         if (ropts?.base64) {
                             cb(imgsrc);
                             URL.revokeObjectURL(img.src);
                         } else {
-                            const a = document.createElement("a");
-                            a.download = `${(self.options.name || "slate").replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${self.options.id}.png`;
+                            const a = document.createElement('a');
+                            a.download = `${(self.options.name || 'slate').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${self.options.id}.png`;
                             a.href = imgsrc;
                             a.click();
                             URL.revokeObjectURL(img.src);
@@ -16949,7 +16948,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                     }
                 };
                 img.onerror = (err)=>{
-                    console.log("error loading image", err);
+                    console.log('error loading image', err);
                 };
             }
         });
@@ -16979,7 +16978,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         }).initPlain();
         const _json = JSON.parse(this.exportJSON());
         _json.nodes.forEach((nde)=>{
-            const _mpkg = opts.moves ? opts.moves.find((m)=>m.id === nde.options.id || m.id === "*") : null;
+            const _mpkg = opts.moves ? opts.moves.find((m)=>m.id === nde.options.id || m.id === '*') : null;
             if (_mpkg) {
                 nde.options.xPos += _mpkg.x;
                 nde.options.yPos += _mpkg.y;
@@ -17014,28 +17013,28 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 n.options.rotate.point.y = n.options.rotate.point.y * _r - _orient.top;
             }
             const _updatedPath = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(n.options.vectorPath, [
-                "T",
+                'T',
                 _orient.left / _r * -1,
-                ",",
+                ',',
                 _orient.top / _r * -1,
-                "s",
-                ",",
+                's',
+                ',',
                 _r,
-                ",",
+                ',',
                 _r
-            ].join(""));
+            ].join(''));
             n.options.vectorPath = _updatedPath;
         });
-        const _div = document.createElement("div");
-        _div.setAttribute("id", "tempSvgSlate");
+        const _div = document.createElement('div');
+        _div.setAttribute('id', 'tempSvgSlate');
         _div.style.width = `${_orient.width}px`;
         _div.style.height = `${_orient.height}px`;
-        _div.style.visibility = "hidden";
+        _div.style.visibility = 'hidden';
         document.body.appendChild(_div);
         const exportOptions = (0, $5OpyM$deepmerge)(_resizedSlate.options, {
-            container: "tempSvgSlate",
+            container: 'tempSvgSlate',
             containerStyle: {
-                backgroundColor: opts.noBackground ? "transparent" : _resizedSlate.options.containerStyle.backgroundColor,
+                backgroundColor: opts.noBackground ? 'transparent' : _resizedSlate.options.containerStyle.backgroundColor,
                 backgroundColorAsGradient: opts.noBackground ? null : _resizedSlate.options.containerStyle.backgroundColorAsGradient,
                 backgroundGradientType: opts.noBackground ? null : _resizedSlate.options.containerStyle.backgroundGradientType,
                 backgroundGradientColors: opts.noBackground ? null : _resizedSlate.options.containerStyle.backgroundGradientColors,
@@ -17079,13 +17078,13 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             // add the bgColor (this is done on html styling in slatebox proper view)
             let bg = null;
             if (_resizedSlate.options.containerStyle.backgroundImage) {
-                const img = document.createElement("img");
-                img.setAttribute("src", _resizedSlate.options.containerStyle.backgroundImage);
-                img.style.visibility = "hidden";
+                const img = document.createElement('img');
+                img.setAttribute('src', _resizedSlate.options.containerStyle.backgroundImage);
+                img.style.visibility = 'hidden';
                 document.body.appendChild(img);
                 let bw = img.naturalWidth;
                 let bh = img.naturalHeight;
-                if (self.options.containerStyle.backgroundSize === "cover") {
+                if (self.options.containerStyle.backgroundSize === 'cover') {
                     const ratio = self.canvas.internal.parentElement.offsetWidth / bw;
                     bw *= ratio;
                     bh *= ratio;
@@ -17096,7 +17095,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 bg = _exportCanvas.paper.image(_resizedSlate.options.containerStyle.backgroundImage, 0, 0, iw, ih);
             } else bg = _exportCanvas.paper.rect(0, 0, _orient.width, _orient.height).attr({
                 fill: _resizedSlate.options.containerStyle.backgroundColor,
-                stroke: "none"
+                stroke: 'none'
             });
             bg.toBack();
             // the timeout is critical to ensure that the SVG canvas settles
@@ -17110,13 +17109,13 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                     const svgBlob = new Blob([
                         svg1
                     ], {
-                        type: "image/svg+xml;charset=utf-8"
+                        type: 'image/svg+xml;charset=utf-8'
                     });
                     if (!cb) {
                         const svgUrl = URL.createObjectURL(svgBlob);
-                        const dl = document.createElement("a");
+                        const dl = document.createElement('a');
                         dl.href = svgUrl;
-                        dl.download = `${(self.options.name || "slate").replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${self?.shareId}.svg`;
+                        dl.download = `${(self.options.name || 'slate').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${self?.shareId}.svg`;
                         dl.click();
                     } else if (opts?.asBinary && !opts.isPNG) cb(svgBlob);
                     else cb({
@@ -17192,15 +17191,15 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         self.nodes.allNodes.forEach((n)=>n.toFront());
         // always add style tag to the <defs> for font embedding
         self.paper.def({
-            tag: "style",
-            type: "text/css",
+            tag: 'style',
+            type: 'text/css',
             id: `embeddedSBStyles_${self.options.id}`
         });
         self.paper.def({
-            tag: "path",
+            tag: 'path',
             id: `raphael-marker-classic`,
-            "stroke-linecap": "round",
-            d: "M5,0 0,2.5 5,5 3.5,3 3.5,2z"
+            'stroke-linecap': 'round',
+            d: 'M5,0 0,2.5 5,5 3.5,3 3.5,2z'
         });
         self.loadAllFonts();
         if (!blnSkipZoom) self.controller.centerOnNodes({
@@ -17209,14 +17208,14 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     }
     loadAllFonts() {
         // load all fonts
-        const fonts = (0, $5OpyM$lodashuniq)(this.nodes.allNodes.map((n)=>n.options.fontFamily)).join("|");
-        if (document.getElementById("googleFonts")) document.getElementById("googleFonts").setAttribute("href", `https://fonts.googleapis.com/css?family=${fonts}`);
+        const fonts = (0, $5OpyM$lodashuniq)(this.nodes.allNodes.map((n)=>n.options.fontFamily)).join('|');
+        if (document.getElementById('googleFonts')) document.getElementById('googleFonts').setAttribute('href', `https://fonts.googleapis.com/css?family=${fonts}`);
         else {
-            const sc = document.createElement("link");
-            sc.setAttribute("src", "https://fonts.googleapis.com/css?family=${fonts}");
-            sc.setAttribute("id", "googleFonts");
-            sc.setAttribute("rel", "stylesheet");
-            sc.setAttribute("type", "text/css");
+            const sc = document.createElement('link');
+            sc.setAttribute('src', 'https://fonts.googleapis.com/css?family=${fonts}');
+            sc.setAttribute('id', 'googleFonts');
+            sc.setAttribute('rel', 'stylesheet');
+            sc.setAttribute('type', 'text/css');
             document.head.appendChild(sc);
         }
     }
@@ -17289,7 +17288,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         return _snap;
     }
     getOrientation(nodesToOrient, alwaysOne) {
-        let orient = "landscape";
+        let orient = 'landscape';
         let sWidth = this.options.viewPort.width;
         let sHeight = this.options.viewPort.height;
         const bb = [];
@@ -17316,7 +17315,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             }
             sWidth = bb.right - bb.left;
             sHeight = bb.bottom - bb.top;
-            if (sHeight > sWidth) orient = "portrait";
+            if (sHeight > sWidth) orient = 'portrait';
         }
         return {
             orientation: orient,
@@ -17380,7 +17379,8 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         // these ids will come out in the order that they are painted on the screen - toFront and toBack adjusts this, so we need
         // to always keep this hand so that when the slate is reloaded, it can order the nodes by these ids (which are going to be dif
         // from the saved JSON order of arrays)
-        const ids = Array.from(this.canvas.internal.querySelector("svg").querySelectorAll("path")).map((a)=>a.getAttribute("rel")).filter((r)=>!!r);
+        const ids = Array.from(this.canvas.internal.querySelector('svg').querySelectorAll('path')).map((a)=>a.getAttribute('rel')?.replace(/^nodrag_|^nodrag_text-/, '')) // ensure the nodrag convention prefixes are removed
+        .filter((r)=>!!r);
         // console.log("order of nodes", ids);
         this.options.nodeOrder = ids;
     }
@@ -17410,7 +17410,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         const totChildren = [];
         // first apply slate
         if (theme.containerStyle.backgroundImage) self.collab.invoke({
-            type: "onSlateBackgroundImageChanged",
+            type: 'onSlateBackgroundImageChanged',
             data: {
                 bg: {
                     size: theme.containerStyle.backgroundSize,
@@ -17419,13 +17419,13 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             }
         });
         else if (theme.containerStyle.backgroundEffect) self.collab.invoke({
-            type: "onSlateBackgroundEffectChanged",
+            type: 'onSlateBackgroundEffectChanged',
             data: {
                 effect: theme.containerStyle.backgroundEffect
             }
         });
         else self.collab.invoke({
-            type: "onSlateBackgroundColorChanged",
+            type: 'onSlateBackgroundColorChanged',
             data: {
                 color: theme.containerStyle.backgroundColor,
                 asGradient: theme.containerStyle.backgroundColorAsGradient,
@@ -17435,7 +17435,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             }
         });
         self.collab.invoke({
-            type: "onLineColorChanged",
+            type: 'onLineColorChanged',
             data: {
                 color: theme.defaultLineColor
             }
@@ -17446,34 +17446,34 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             const styleBase = theme.styles[nodeStyle[id]] || lastStyle;
             // borders
             self.collab.invoke({
-                type: "onNodeBorderPropertiesChanged",
+                type: 'onNodeBorderPropertiesChanged',
                 data: {
                     id: id,
-                    prop: "borderWidth",
+                    prop: 'borderWidth',
                     val: styleBase.borderWidth
                 }
             });
             self.collab.invoke({
-                type: "onNodeBorderPropertiesChanged",
+                type: 'onNodeBorderPropertiesChanged',
                 data: {
                     id: id,
-                    prop: "borderColor",
+                    prop: 'borderColor',
                     val: styleBase.borderColor
                 }
             });
             self.collab.invoke({
-                type: "onNodeBorderPropertiesChanged",
+                type: 'onNodeBorderPropertiesChanged',
                 data: {
                     id: id,
-                    prop: "borderOpacity",
+                    prop: 'borderOpacity',
                     val: styleBase.borderOpacity
                 }
             });
             self.collab.invoke({
-                type: "onNodeBorderPropertiesChanged",
+                type: 'onNodeBorderPropertiesChanged',
                 data: {
                     id: id,
-                    prop: "borderStyle",
+                    prop: 'borderStyle',
                     val: styleBase.borderStyle
                 }
             });
@@ -17481,7 +17481,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             if (styleBase.vectorPath && syncWithTheme) // const node = self.nodes.one(id);
             // const sendPath = utils._transformPath(styleBase.vectorPath, `T${node.options.xPos},${node.options.xPos}`);
             self.collab.invoke({
-                type: "onNodeShapeChanged",
+                type: 'onNodeShapeChanged',
                 data: {
                     id: id,
                     hint: styleBase.hint,
@@ -17490,7 +17490,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             });
             // text
             if (syncWithTheme) self.collab.invoke({
-                type: "onNodeTextChanged",
+                type: 'onNodeTextChanged',
                 data: {
                     id: id,
                     fontSize: styleBase.fontSize,
@@ -17501,18 +17501,18 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             });
             // effects
             self.collab.invoke({
-                type: "onNodeEffectChanged",
+                type: 'onNodeEffectChanged',
                 data: {
                     id: id,
                     filter: {
-                        apply: "text",
+                        apply: 'text',
                         id: styleBase.filters.text
                     }
                 }
             });
             // background color
             self.collab.invoke({
-                type: "onNodeColorChanged",
+                type: 'onNodeColorChanged',
                 data: {
                     id: id,
                     opacity: styleBase.opacity,
@@ -17521,11 +17521,11 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             });
             // effects
             self.collab.invoke({
-                type: "onNodeEffectChanged",
+                type: 'onNodeEffectChanged',
                 data: {
                     id: id,
                     filter: {
-                        apply: "vect",
+                        apply: 'vect',
                         id: styleBase.filters.vect
                     }
                 }
@@ -17535,56 +17535,56 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             // console.log("node is ", id, node);
             styleNode.relationships.associations.forEach((a, ind)=>{
                 self.collab.invoke({
-                    type: "onLineColorChanged",
+                    type: 'onLineColorChanged',
                     data: {
                         id: id,
                         color: styleBase.lineColor
                     }
                 });
                 self.collab.invoke({
-                    type: "onLinePropertiesChanged",
+                    type: 'onLinePropertiesChanged',
                     data: {
                         id: id,
-                        prop: "lineOpacity",
+                        prop: 'lineOpacity',
                         val: a.lineOpacity === 0 ? 0 : styleBase.lineOpacity,
                         associationId: a.id,
                         index: ind
                     }
                 });
                 self.collab.invoke({
-                    type: "onLinePropertiesChanged",
+                    type: 'onLinePropertiesChanged',
                     data: [
                         {
                             id: id,
-                            prop: "lineEffect",
+                            prop: 'lineEffect',
                             val: styleBase.lineEffect,
                             associationId: a.id,
                             index: ind
                         },
                         {
                             id: id,
-                            prop: "lineWidth",
+                            prop: 'lineWidth',
                             val: styleBase.lineWidth,
                             associationId: a.id,
                             index: ind
                         },
                         {
                             id: id,
-                            prop: "lineType",
+                            prop: 'lineType',
                             val: styleBase.lineType,
                             associationId: a.id,
                             index: ind
                         },
                         {
                             id: id,
-                            prop: "lineCurveType",
+                            prop: 'lineCurveType',
                             val: styleBase.lineCurveType,
                             associationId: a.id,
                             index: ind
                         },
                         {
                             id: id,
-                            prop: "lineCurviness",
+                            prop: 'lineCurviness',
                             val: styleBase.lineCurviness,
                             associationId: a.id,
                             index: ind

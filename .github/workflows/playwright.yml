@@ -23,7 +23,9 @@ jobs:
 
       # Install dependencies
       - name: Install dependencies
-        run: npm ci
+        run: |
+          export NODE_ENV=production
+          npm ci
 
       # Install Playwright browsers
       - name: Install Playwright Browsers
