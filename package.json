@@ -1,7 +1,7 @@
 {
   "name": "slateboxjs",
   "type": "module",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "repository": {
     "url": "https://github.com/Slatebox/slateboxjs"
   },
@@ -27,7 +27,7 @@
   "author": "Tim Heckel <tim@slatebox.com>",
   "license": "MIT",
   "dependencies": {
-    "deepmerge": "^4.2.2",
+    "deepmerge": "^4.3.1",
     "lodash.clone": "^4.5.0",
     "lodash.clonedeep": "^4.5.0",
     "lodash.debounce": "^4.0.8",
@@ -38,24 +38,25 @@
     "lodash.throttle": "^4.1.1",
     "lodash.uniq": "^4.5.0",
     "static-kdtree": "^1.0.2",
-    "svg-pathdata": "^5.0.5",
-    "wheel-gestures": "^2.2.3",
-    "y-websocket": "^1.5.3",
-    "yjs": "^13.6.11"
+    "svg-pathdata": "^7.1.0",
+    "wheel-gestures": "^2.2.48",
+    "wrangler": "^3.99.0",
+    "y-websocket": "^2.1.0",
+    "yjs": "^13.6.21"
   },
   "devDependencies": {
     "@cloudflare/wrangler": "^1.19.8",
-    "@parcel/reporter-bundle-analyzer": "^2.11.0",
-    "@playwright/test": "^1.48.2",
+    "@parcel/reporter-bundle-analyzer": "^2.13.3",
+    "@playwright/test": "^1.49.1",
     "buffer": "^6.0.3",
-    "eslint": "^8.10.0",
+    "eslint": "^9.17.0",
     "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.2.1",
     "jsdom": "^25.0.1",
-    "parcel": "^2.11.0",
-    "prettier": "^2.5.1",
+    "parcel": "^2.13.3",
+    "prettier": "^3.4.2",
     "process": "^0.11.10"
   }
 }

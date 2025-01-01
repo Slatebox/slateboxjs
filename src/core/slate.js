@@ -1005,7 +1005,7 @@ export default class slate extends base {
     const ids = Array.from(
       this.canvas.internal.querySelector('svg').querySelectorAll('path')
     )
-      .map((a) => a.getAttribute('rel').replace(/^nodrag_|^nodrag_text-/, '')) // ensure the nodrag convention prefixes are removed
+      .map((a) => a.getAttribute('rel')?.replace(/^nodrag_|^nodrag_text-/, '')) // ensure the nodrag convention prefixes are removed
       .filter((r) => !!r)
     // console.log("order of nodes", ids);
     this.options.nodeOrder = ids
