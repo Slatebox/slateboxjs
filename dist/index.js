@@ -9495,8 +9495,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         return _transforms.join(' ');
     }
     rotateMoveVector({ dx: dx, dy: dy }) {
-        const _rotationAngle = -this.options.rotate.rotationAngle * Math.PI / 180 // conversion to radians
-        ;
+        const _rotationAngle = -this.options.rotate.rotationAngle * Math.PI / 180; // conversion to radians
         return {
             dx: dx * Math.cos(_rotationAngle) - dy * Math.sin(_rotationAngle),
             dy: dx * Math.sin(_rotationAngle) + dy * Math.cos(_rotationAngle)
@@ -9602,8 +9601,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         });
         jsonNode.relationships = {
             associations: []
-        } // , children: []
-        ;
+        }; // , children: []
         self.relationships.associations.forEach((association)=>{
             jsonNode.relationships.associations.push(self._bindRel(association, lineWidthOverride));
         });
@@ -9646,15 +9644,17 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         ]);
     }
     toFront() {
-        this.relationships?.associations?.forEach((assoc)=>{
-            assoc.line.toFront();
+        const node = this;
+        node.slate.nodes.allNodes.forEach((otherNode)=>{
+            const childAssocs = otherNode.relationships.associations.filter((assoc)=>assoc.child.options.id === node.options.id);
+            childAssocs.forEach((assoc)=>assoc.line.toFront());
         });
-        this.vect.toFront();
-        this.text.toFront();
-        this.link.toFront();
-        this.slate?.grid.toBack();
-        this.slate?.canvas.bgToBack();
-        this.slate.reorderNodes();
+        node.vect.toFront();
+        node.text.toFront();
+        node.link.toFront();
+        node.slate?.grid.toBack();
+        node.slate?.canvas.bgToBack();
+        node.slate.reorderNodes();
     }
     toBack() {
         this.link.toBack();
@@ -9816,8 +9816,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     }
     position(location, cb, easing, dur) {
         const self = this;
-        easing = easing || 'easeTo' // 'swingFromTo'
-        ;
+        easing = easing || 'easeTo'; // 'swingFromTo'
         dur = dur || 500;
         const _vpt = self.vect.getBBox();
         const zr = self.slate.options.viewPort.zoom.r;
@@ -9908,10 +9907,8 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     // this.relationships.unwireHoverEvents();
     }
     enable() {
-        this.options.allowMenu = true // _prevAllowMenu || true;
-        ;
-        this.options.allowDrag = true // _prevAllowDrag || true;
-        ;
+        this.options.allowMenu = true; // _prevAllowMenu || true;
+        this.options.allowDrag = true; // _prevAllowDrag || true;
         this.hideLock();
     // this.relationships.wireHoverEvents();
     }
@@ -13472,8 +13469,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             });
             const opts = {};
             if (useMainCanvas) {
-                const tempPath = self.slate.paper.path(cn.vect.attr('path')) // Meteor.currentSlate.paper
-                ;
+                const tempPath = self.slate.paper.path(cn.vect.attr('path')); // Meteor.currentSlate.paper
                 opts.boundingClientRect = tempPath[0].getBoundingClientRect();
                 tempPath.remove();
             }
@@ -13564,8 +13560,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         "y": "50"
       }
     }
-    */ const orient = self.slate.getOrientation(null, true) // - always pin to no zoom (1)
-        ;
+    */ const orient = self.slate.getOrientation(null, true); // - always pin to no zoom (1)
         const allMoves = [];
         self.allNodes.forEach((n, i)=>{
             if (layout.exportNodes?.[n.options.id]) {
@@ -13686,8 +13681,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             nodes
         ];
         nodes.forEach((node)=>{
-            node.slate = self.slate // parent
-            ;
+            node.slate = self.slate; // parent
             self.allNodes.push(node);
             self.addToCanvas(node, useMainCanvas);
         });
@@ -13834,8 +13828,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                     });
                     let rotationOptions = {};
                     if (options.useMainCanvas) {
-                        const tempPath = this.slate.paper.path(nodeObject.vect.attr('path')) // Meteor.currentSlate.paper.
-                        ;
+                        const tempPath = this.slate.paper.path(nodeObject.vect.attr('path')); // Meteor.currentSlate.paper.
                         rotationOptions = {
                             boundingClientRect: tempPath[0].getBoundingClientRect()
                         };
@@ -13883,10 +13876,8 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             const otherSelectedNodes = nodes.filter((n)=>n.options.id !== node.options.id);
             node.relationships.associations.forEach((assoc)=>{
                 if (otherSelectedNodes.map((n)=>n.relationships.associations).some((associations)=>associations.find((a)=>a.id === assoc.id))) {
-                    if (!_relationshipsToTranslate.some((r)=>r.id === assoc.id)) _relationshipsToTranslate.push(assoc) // connections which move with both nodes
-                    ;
-                } else if (!_relationshipsToRefresh.some((r)=>r.id === assoc.id)) _relationshipsToRefresh.push(assoc) // connections which move on one end only
-                ;
+                    if (!_relationshipsToTranslate.some((r)=>r.id === assoc.id)) _relationshipsToTranslate.push(assoc); // connections which move with both nodes
+                } else if (!_relationshipsToRefresh.some((r)=>r.id === assoc.id)) _relationshipsToRefresh.push(assoc); // connections which move on one end only
             });
         });
         return {
@@ -14052,8 +14043,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         });
         // create and set editor
         _node.editor = new (0, $61e5ba2c77a639d8$export$2e2bcd8739ae039)(this.slate, _node);
-        _node.editor.set() // creates and sets the text
-        ;
+        _node.editor.set(); // creates and sets the text
         _node.text.transform(_node.getTransformString());
         // set link
         _node.link = link;
@@ -14095,6 +14085,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         if (potentiallyResize) _node.resize.set(_width, _height);
         // apply any node filters to vect and/or text
         _node.applyFilters();
+        _node.toFront();
         this._refreshBe();
         return vect;
     }
@@ -16662,6 +16653,8 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             mindMapMode: true,
             isPublic: true,
             isUnlisted: false,
+            basedOnTemplate: false,
+            isTemplate: false,
             autoEnableDefaultFilters: true,
             autoResizeNodesBasedOnText: true,
             disableAutoLayoutOfManuallyPositionedNodes: true,

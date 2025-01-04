@@ -1,7 +1,7 @@
 {
   "name": "slateboxjs",
   "type": "module",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "repository": {
     "url": "https://github.com/Slatebox/slateboxjs"
   },
@@ -45,6 +45,7 @@
     "yjs": "^13.6.21"
   },
   "devDependencies": {
+    "@babel/parser": "^7.26.3",
     "@cloudflare/wrangler": "^1.19.8",
     "@parcel/reporter-bundle-analyzer": "^2.13.3",
     "@playwright/test": "^1.49.1",

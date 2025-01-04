@@ -71,6 +71,8 @@ export default class slate extends base {
       mindMapMode: true,
       isPublic: true,
       isUnlisted: false,
+      basedOnTemplate: false,
+      isTemplate: false,
       autoEnableDefaultFilters: true,
       autoResizeNodesBasedOnText: true,
       disableAutoLayoutOfManuallyPositionedNodes: true,
