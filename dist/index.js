@@ -8145,6 +8145,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             x: _node.options.xPos,
             y: _node.options.yPos
         }));
+        console.log('set transform text', transformString);
         _node.text.transform(transformString);
     }
     static htmlToElement(html) {
@@ -8176,8 +8177,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             'lineCurveType',
             'lineCurviness',
             'lineEffect'
-        ] // vectorPath
-        ;
+        ]; // vectorPath
         const nodeOptions = {};
         configurableProps.forEach((p)=>{
             if (styleBase[p] != null) nodeOptions[p] = styleBase[p];
@@ -8227,8 +8227,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             // textWidthCanvas.setAttribute('id', `measuretext`)
             const context = textWidthCanvas.getContext('2d');
             // I'm finding that the font should be reduced by ~22% in order to be accurate
-            const multiplier = 1 // 0.78
-            ;
+            const multiplier = 1; // 0.78
             const fontSplit = font.split(' ');
             font = `${fontSplit?.[0]} ${parseFloat(fontSplit?.[1]?.replace(/pt/gi, '') ?? 1) * multiplier}pt ${fontSplit?.[2]}`;
             context.font = font;
@@ -8816,8 +8815,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         self.internal.style.top = `${_t * -1}px`;
         self.internal.style.position = 'absolute';
         self.internal.style['-webkit-transform'] = `translateZ(0)`;
-        self.internal.style.transform = `translateZ(0)` // `translate3d(0,0,0)`; //helps with GPU based rendering
-        ;
+        self.internal.style.transform = `translateZ(0)`; // `translate3d(0,0,0)`; //helps with GPU based rendering
         c.appendChild(self.internal);
         self.internal.addEventListener('mousedown', ()=>{
             self.slate?.events?.onCanvasClicked?.apply();
@@ -8889,6 +8887,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
             }
             if (!slate.options.isbirdsEye && slate.options.isSharing) {
                 const _svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${_btnSize}" height="${_btnSize}"><path fill="#333" stroke="#000" d="{path}" stroke-dasharray="none" stroke-width="1" opacity="1" fill-opacity="1"></path></svg>`;
+                // stick sharing buttons (one-click png export and one-click copy embed)
                 [
                     'download',
                     'embed'
@@ -9167,13 +9166,22 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
     }
     rawSVG({ skipOptimize: skipOptimize = false }, cb) {
         const self = this;
+        console.log('called rawSVG', {
+            skipOptimize: skipOptimize
+        });
         function finalize(svg) {
             // always reposition <image> elements in the svg to be in the top left
             const regImg = /<image\s+x="[^"]+"\s+y="[^"]+"\s+href="data/gi;
             svg = svg.replace(regImg, '<image x="0" y="0" href="data');
             if (self.slate.events.onOptimizeSVG && !skipOptimize) self.slate.events.onOptimizeSVG(svg, (err, optimized)=>{
                 if (err) console.error('Unable to optimize slate svg export', err);
-                else cb(optimized);
+                else {
+                    console.log('Optimizing SVG', {
+                        svg: svg,
+                        optimized: optimized
+                    });
+                    cb(optimized);
+                }
             });
             else cb(svg);
         }
@@ -9224,7 +9232,12 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                     else __svg = __svg.replace(slateBg, res);
                     extractImages(__svg);
                 });
-            } else extractImages(__svg);
+            } else {
+                console.log('called rawSVG - no bg', {
+                    __svg: __svg
+                });
+                extractImages(__svg);
+            }
         });
     }
     bgToBack() {
@@ -9410,6 +9423,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             rotate: {
                 rotationAngle: 0
             },
+            iconFor: null,
             textXAlign: 'middle',
             textYAlign: 'middle',
             link: {
@@ -9484,7 +9498,11 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             const resizeTransform = `s${opts.sx},${opts.sy}`;
             _transforms.push(resizeTransform);
         }
-        if (opts.rotate) rotationTransform = `R${opts.rotate.rotationAngle}, ${opts.rotate.point.x}, ${opts.rotate.point.y}`;
+        // Get the node's bounding box center for rotation
+        // const bbox = this.vect.getBBox();
+        // const centerX = bbox.cx;
+        // const centerY = bbox.cy;
+        if (opts.rotate) rotationTransform = `R${opts.rotate.rotationAngle},${opts.rotate.point.x},${opts.rotate.point.y}`;
         else if (this.options.rotate.rotationAngle) rotationTransform = `R${this.options.rotate.rotationAngle}, ${this.options.rotate.point.x - (opts.dx || 0)}, ${this.options.rotate.point.y - (opts.dy || 0)}`;
         if (rotationTransform) _transforms.push(rotationTransform);
         if (opts.action === 'translate') {
@@ -9679,16 +9697,21 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     }
     applyFilters(filter) {
         const self = this;
-        if (!(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isSafari() && !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isMobile()) {
+        if (!(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isSafari() && !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isMobile() && !self.slate.options.isbirdsEye) {
             if (filter) {
                 // presumes that the filter has been added to the slate
+                // this is likely not needed because autoLoadFilters is called in slate init
                 if (!self.options.filters[filter.apply]) self.options.filters[filter.apply] = {};
                 self.options.filters[filter.apply] = filter.id;
             }
             Object.keys(self.options?.filters).forEach((key)=>{
                 if (self[key]) {
-                    if (self.options.filters[key]) self[key].attr('filter', `url(#${self.options.filters[key]})`);
-                    else self[key].attr('filter', '');
+                    if (self.options.filters[key]) {
+                        const furl = self.options.filters[key];
+                        const filterUrl = self.slate.options.isEmbedding ? `embedded_${furl}` : furl;
+                        console.log('furl', furl, filterUrl, self.slate.options);
+                        self[key].attr('filter', `url(#${filterUrl})`);
+                    } else self[key].attr('filter', '');
                 }
             });
         }
@@ -10463,8 +10486,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                 if (pkg.data.huddleType != null) self.slate.options.huddleType = pkg.data.huddleType;
                 if (pkg.data.huddleEnabled != null) self.slate.options.huddleEnabled = pkg.data.huddleEnabled;
             }
-        } // this invoker
-        ;
+        }; // this invoker
     }
     _process(pkg) {
         const self = this;
@@ -10559,6 +10581,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                         // conflicts here are already resolved...
                         // but collab only have to fire if there
                         // is more than one user on the slate
+                        console.log('crdt event', p);
                         if (// self.collabPackage.users.length > 1 &&
                         self.collabPackage.init && p.data.clientID !== self.collabPackage?.doc?.clientID) self.slate.collab.invoke(p);
                         // broadcast change so slate is saved
@@ -10685,8 +10708,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                         indivCollab.data.id = nx.id;
                         indivCollab.data.nodeOptions = asSingle ? nx : [
                             nx
-                        ] // repackage it back the way it originally came in
-                        ;
+                        ]; // repackage it back the way it originally came in
                         if (p.data?.textPositions) indivCollab.data.textPositions = [
                             p.data?.textPositions[ind]
                         ];
@@ -11249,8 +11271,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
                             active: true
                         });
                         // hide filters
-                        self.slate.toggleFilters(true) //, self.node.options.id
-                        ;
+                        self.slate.toggleFilters(true); //, self.node.options.id
                         // self.slate.canvas._bg?.hide();
                         if (self.node.events?.onClick) self.node.events.onClick.apply(self, [
                             function() {
@@ -11347,8 +11368,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
                 const nearest = self.kdTree.knn([
                     nd.options.xPos,
                     nd.options.yPos
-                ], 2) // , 1);
-                ;
+                ], 2); // , 1);
                 nearest.forEach((n)=>{
                     ({ dx: dx, dy: dy } = self.node.gridLines.draw(self.foreignPoints[n].id, dx, dy, self.foreignPoints[n].bbox));
                 });
@@ -11461,8 +11481,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         _tempRelationship.hoveredOver = null;
         _tempRelationship.lastHoveredOver = null;
         // initiates the drag
-        _tempNode.vect.start(e) // , off.x, off.y);
-        ;
+        _tempNode.vect.start(e); // , off.x, off.y);
         _slate.options.allowDrag = false;
         _tempNode.vect.mousemove((ex)=>{
             // is there a current hit?
@@ -11514,8 +11533,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
     removeAll() {
         const self = this;
         self.associations.forEach((association)=>{
-            association.child.relationships.removeAssociation(self.node) // .parent);
-            ;
+            association.child.relationships.removeAssociation(self.node); // .parent);
             association.parent.relationships.removeAssociation(self.node);
             self.removeRelationship(association);
         });
@@ -11557,8 +11575,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             _node.relationships.associations.push(_connection);
             this.wireLineEvents(_connection);
         }
-        _node.slate.allLines.push(_connection) // helper for managing raw line attrs
-        ;
+        _node.slate.allLines.push(_connection); // helper for managing raw line attrs
         return _connection;
     }
     createNewRelationship(opts) {
@@ -11634,8 +11651,24 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         self.selectedNodes = [];
         if (self.node.options.isLocked === false) {
             self.selectedNodes.push(self.node);
+            // Get all nodes that share the same groupId as the initial node
+            const ctrlNotClicked = !(self.slate.isCtrl ?? false) || self.slate.isCtrl && self.slate.isShift;
+            if (self.node.options.groupId) {
+                const groupNodes = self.slate.nodes.allNodes.filter((n, i)=>{
+                    console.log('ctrlNotClicked', ctrlNotClicked, i);
+                    n.options.groupId === self.node.options.groupId && n.options.id !== self.node.options.id && n.options.isLocked;
+                });
+                self.selectedNodes.push(...groupNodes);
+            }
             this.syncAssociations(self.node, (c, a1)=>{
-                if (!self.selectedNodes.some((n)=>n.options.id === c.options.id) && c.options.isLocked === false) self.selectedNodes.push(c);
+                if (!self.selectedNodes.some((n)=>n.options.id === c.options.id) && c.options.isLocked === false) {
+                    self.selectedNodes.push(c);
+                    // Get all nodes that share the same groupId as each child node
+                    if (c.options.groupId) {
+                        const groupNodes = self.slate.nodes.allNodes.filter((n, i)=>n.options.groupId === c.options.groupId && n.options.id !== c.options.id && !self.selectedNodes.some((sn)=>sn.options.id === n.options.id) && n.options.isLocked === false);
+                        self.selectedNodes.push(...groupNodes);
+                    }
+                }
             });
         }
         return self.selectedNodes;
@@ -11761,26 +11794,28 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
         else {
             const cosine = (vx * ux + vy * uy) / (magnitudeV * magnitudeU);
             const angleRadians = Math.acos(cosine);
-            angleDegrees = angleRadians * 180 / Math.PI // unsigned angle
-            ;
-            const detVxU = vx * uy - vy * ux // cross product of V and U (VxU)
-            ;
-            if (detVxU < 0) angleDegrees = -angleDegrees // add negative sign
-            ;
+            angleDegrees = angleRadians * 180 / Math.PI; // unsigned angle
+            const detVxU = vx * uy - vy * ux; // cross product of V and U (VxU)
+            if (detVxU < 0) angleDegrees = -angleDegrees; // add negative sign
         }
         return angleDegrees;
     }
     set(rotateAngle) {
         const self = this;
+        const centerPoint = self.origCenter?.x || {
+            x: self.node.options.rotate.point.x,
+            y: self.node.options.rotate.point.y
+        };
         const useRotationAngle = rotateAngle || self.rotationAngle;
-        self.rotate.transform(`R${self.rotationAngle}, ${self.origCenter.x}, ${self.origCenter.y}`);
+        self.rotate?.transform(`R${useRotationAngle}, ${centerPoint.x}, ${centerPoint.y}`);
         const rotationContext = {
             rotate: {
                 rotationAngle: (self.node.options.rotate.rotationAngle + useRotationAngle) % 360,
-                point: self.origCenter
+                point: centerPoint
             }
         };
         const transformString = self.node.getTransformString(rotationContext);
+        console.log('rotationAngle', rotationContext, transformString);
         self.node.vect.transform(transformString);
         self.node.text.transform(transformString);
     }
@@ -11793,8 +11828,7 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
         self._dragAllowed = false;
         self._isResizing = false;
         self._initPosFix = false;
-        self.origCenter = {} // during rotation raphael changes the center point of bbox for some reason
-        ;
+        self.origCenter = {}; // during rotation raphael changes the center point of bbox for some reason
         self.rotationAngle = null;
         self.relationshipsToTranslate = [];
         self.relationshipsToRefresh = [];
@@ -13796,19 +13830,40 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                     y: opts.yPos
                 }, nodeObject.options);
                 const { lx: lx, ty: ty } = dps;
-                const currentTextPosition = textPositions.find((tp)=>tp.id === opts.id);
-                if (options.animate) {
-                    nodeObject.text.animate(currentTextPosition.textPosition, d, e);
-                    nodeObject.link.animate({
-                        x: lx,
-                        y: ty
-                    }, d, e);
+                console.log('checking rotationAngle', nodeObject.options.rotate);
+                if (nodeObject.options.rotate.rotationAngle) {
+                    // special handling for rotated nodes
+                    nodeObject.text.hide();
+                    if (nodeObject.options.link?.show) nodeObject.link.hide();
+                    setTimeout(()=>{
+                        nodeObject.text.attr(nodeObject.textCoords({
+                            x: nodeObject.options.xPos,
+                            y: nodeObject.options.yPos
+                        }));
+                        const transformString = nodeObject.getTransformString();
+                        nodeObject.text.transform(transformString);
+                        nodeObject.text.show();
+                        nodeObject.link.attr({
+                            x: lx,
+                            y: ty
+                        });
+                        if (nodeObject.options.link?.show) nodeObject.link.show();
+                    }, options.animate ? d : 0);
                 } else {
-                    nodeObject.text.attr(currentTextPosition.textPosition);
-                    nodeObject.link.attr({
-                        x: lx,
-                        y: ty
-                    });
+                    const currentTextPosition = textPositions.find((tp)=>tp.id === opts.id);
+                    if (options.animate) {
+                        nodeObject.text.animate(currentTextPosition.textPosition, d, e);
+                        nodeObject.link.animate({
+                            x: lx,
+                            y: ty
+                        }, d, e);
+                    } else {
+                        nodeObject.text.attr(currentTextPosition.textPosition);
+                        nodeObject.link.attr({
+                            x: lx,
+                            y: ty
+                        });
+                    }
                 }
                 if (this.slate.options.debugMode && !this.slate.options.isbirdsEye) nodeObject.debugPosition();
                 if (options.animate) {
@@ -13987,6 +14042,7 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             `T${_x * percent}, ${_y * percent}`,
             `s${_width / 150 * percent}, ${_height / 100 * percent}, ${_x}, ${_y}`
         ];
+        console.log('transforms for adding to canvas', _node.options.vectorPath, _transforms);
         _node.options.isEllipse = _node.options.isEllipse || _node.options.vectorPath === 'ellipse';
         let potentiallyResize = false;
         switch(_node.options.vectorPath){
@@ -13998,9 +14054,6 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                 break;
             case 'roundedrectangle':
                 _node.options.vectorPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)('M1,1 h130 a10,10 0 0 1 10,10 v80 a10,10 0 0 1 -10,10 h-130 a10,10 0 0 1 -10,-10 v-80 a10,10 0 0 1 10,-10 z', _transforms);
-                break;
-            default:
-                potentiallyResize = true;
                 break;
         }
         if (_node.options.vectorPath === 'M2,12 L22,12') vectOpt['stroke-dasharray'] = '2px';
@@ -14015,9 +14068,19 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         _node.vect = vect;
         // _node.vect.ox = _x;
         // _node.vect.oy = _y;
+        // let rotationContext = {};
+        // console.log('will rotate?', _node.options.rotate);
+        // if (_node.options.rotate && _node.options.rotate.point) {
+        //   rotationContext = {
+        //     rotate: {
+        //       rotationAngle: _node.options.rotate.rotationAngle % 360,
+        //       point: _node.options.rotate.point,
+        //     },
+        //   };
+        // }
         // get the text coords before the transform is applied
         // var tc = _node.textCoords();
-        _node.vect.transform(_node.getTransformString());
+        // _node.vect.transform(_node.options.vectorPath);
         // update xPos, yPos in case it is different than actual
         const bbox = vect.getBBox();
         _node.options.xPos = bbox.x;
@@ -14081,8 +14144,10 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         if (_node.options.image && !_node.options.imageOrigWidth) _node.options.imageOrigWidth = _node.options.width;
         if (_node.options.image && _node.options.image !== '') _node.images.set(_node.options.image, _node.options.imageOrigWidth, _node.options.imageOrigHeight, useMainCanvas);
         if (!_node.options.link || !_node.options.link.show) _node.link.hide();
-        //
-        if (potentiallyResize) _node.resize.set(_width, _height);
+        if (_node.options.rotate.rotationAngle) _node.rotate.set();
+        // if (potentiallyResize) {
+        //   _node.resize.set(_width, _height);
+        // }
         // apply any node filters to vect and/or text
         _node.applyFilters();
         _node.toFront();
@@ -16034,7 +16099,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                 inside: []
             };
             d.nested.forEach((n)=>{
-                depDef.inside.push({
+                if (n.type !== 'animate' || n.type === 'animate' && !self.slate.options.isbirdsEye) depDef.inside.push({
                     type: n.type,
                     attrs: n.attrs
                 });
@@ -16052,14 +16117,16 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             inside: []
         };
         filter.filters.forEach((ff)=>{
-            if (ff.nested) filterDef.inside.push({
-                type: ff.type,
-                nested: ff.nested
-            });
-            else filterDef.inside.push({
-                type: ff.type,
-                attrs: ff.attrs
-            });
+            if (ff.type !== 'animate' || ff.type === 'animate' && !self.slate.options.isbirdsEye) {
+                if (ff.nested) filterDef.inside.push({
+                    type: ff.type,
+                    nested: ff.nested
+                });
+                else filterDef.inside.push({
+                    type: ff.type,
+                    attrs: ff.attrs
+                });
+            }
         });
         self.slate.paper.def(filterDef);
         if (!isDefault) {
@@ -16282,6 +16349,10 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                         }
                     }
                 },
+                attrs: {
+                    filterUnits: 'userSpaceOnUse',
+                    primitiveUnits: 'objectBoundingBox'
+                },
                 types: [
                     'vect',
                     'line',
@@ -16298,6 +16369,26 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                             seed: '2',
                             stitchTiles: 'noStitch',
                             result: 'turbulence'
+                        },
+                        nested: [
+                            {
+                                type: 'animate',
+                                attrs: {
+                                    attributeName: 'baseFrequency',
+                                    values: '0.01;0.008;0.005;0.01',
+                                    dur: self.slate.options.isEmbedding ? '10s' : '200s',
+                                    keyTimes: '0;0.33;0.66;1',
+                                    repeatCount: 'indefinite',
+                                    calcMode: 'spline',
+                                    keySplines: '0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1'
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        type: 'feGaussianBlur',
+                        attrs: {
+                            stdDeviation: '0.01'
                         }
                     },
                     {
@@ -16305,7 +16396,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                         attrs: {
                             in: 'SourceGraphic',
                             in2: 'turbulence',
-                            scale: '10',
+                            scale: '0.05',
                             xChannelSelector: 'R',
                             yChannelSelector: 'B',
                             result: 'displacementMap'
@@ -16989,23 +17080,21 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         const self = this;
         const nodesToOrient = opts?.nodes ? self.nodes.allNodes.filter((n)=>opts?.nodes.indexOf(n.options.id) > -1) : null;
         const _orient = self.getOrientation(nodesToOrient, true);
-        const _r = 1 // this.options.viewPort.zoom.r || 1;
-        ;
+        const _r = 1; // this.options.viewPort.zoom.r || 1;
         const _resizedSlate = JSON.parse(self.exportJSON(opts?.backgroundOnly ? [] : opts?.nodes ? opts.nodes : null));
         _resizedSlate.nodes.forEach((n)=>{
-            const _ty = n.options.yPos * _r;
-            const _tx = n.options.xPos * _r;
-            const _width = n.options.width;
-            const _height = n.options.height;
+            const origNode = self.nodes.allNodes.find((node)=>node.options.id === n.options.id);
+            const bbox = origNode.vect.getBBox();
+            const _ty = bbox.top * _r;
+            const _tx = bbox.left * _r;
+            const _width = bbox.width;
+            const _height = bbox.height;
             n.options.yPos = _ty - _orient.top;
             n.options.xPos = _tx - _orient.left;
             n.options.width = _width * _r;
             n.options.height = _height * _r;
-            if (n.options.rotate && n.options.rotate.point) {
-                n.options.rotate.point.x = n.options.rotate.point.x * _r - _orient.left;
-                n.options.rotate.point.y = n.options.rotate.point.y * _r - _orient.top;
-            }
-            const _updatedPath = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(n.options.vectorPath, [
+            let vp = n.options.vectorPath;
+            const _updatedPath = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(vp, [
                 'T',
                 _orient.left / _r * -1,
                 ',',
@@ -17017,6 +17106,11 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 _r
             ].join(''));
             n.options.vectorPath = _updatedPath;
+            // recenter the rotation point to the center of the node
+            if (n.options.rotate?.rotationAngle) n.options.rotate.point = {
+                x: n.options.xPos + n.options.width / 2,
+                y: n.options.yPos + n.options.height / 2
+            };
         });
         const _div = document.createElement('div');
         _div.setAttribute('id', 'tempSvgSlate');
@@ -17126,8 +17220,9 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         // if auto filter is on, then these filters become immediately availalbe in their default form
         if (self.options.autoEnableDefaultFilters && self.filters?.availableFilters) Object.keys(self.filters.availableFilters).forEach((type)=>{
             self.filters.add({
-                id: type,
-                filters: self.filters.availableFilters[type].filters
+                id: self.options.isEmbedding ? `embedded_${type}` : type,
+                filters: self.filters.availableFilters[type].filters,
+                attrs: self.filters.availableFilters[type].attrs
             }, true);
             if (self.filters.availableFilters[type].deps) self.filters.addDeps(self.filters.availableFilters[type].deps);
         });
@@ -17156,8 +17251,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         });
         const deferredRelationships = [];
         loadedSlate.nodes.forEach((n)=>{
-            n.options.allowDrag = true // must default
-            ;
+            n.options.allowDrag = true; // must default
             n.options.allowMenu = true;
             const _boundTo = new (0, $f3f671e190122470$export$2e2bcd8739ae039)(n.options);
             self.nodes.add(_boundTo, useMainCanvas);

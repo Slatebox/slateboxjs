@@ -1,68 +1,78 @@
-import utils from '../helpers/utils'
+import utils from '../helpers/utils';
 
 export default class filters {
   constructor(slate) {
-    this.slate = slate
-    this.exposeDefaults()
+    this.slate = slate;
+    this.exposeDefaults();
   }
 
   addDeps(deps) {
-    const self = this
+    const self = this;
     deps.forEach((d) => {
       const depDef = {
         id: utils.guid().substring(10),
         tag: d.type,
         ...d.attrs,
         inside: [],
-      }
+      };
       d.nested.forEach((n) => {
-        depDef.inside.push({
-          type: n.type,
-          attrs: n.attrs,
-        })
-      })
-      self.slate.paper.def(depDef)
-    })
+        if (
+          n.type !== 'animate' ||
+          (n.type === 'animate' && !self.slate.options.isbirdsEye)
+        ) {
+          depDef.inside.push({
+            type: n.type,
+            attrs: n.attrs,
+          });
+        }
+      });
+      self.slate.paper.def(depDef);
+    });
   }
 
   add(filter, isDefault) {
-    const self = this
+    const self = this;
     const filterDef = {
       id: filter.id || utils.guid().substring(10),
       tag: 'filter',
       filterUnits: 'userSpaceOnUse',
       ...filter.attrs,
       inside: [],
-    }
+    };
     filter.filters.forEach((ff) => {
-      if (ff.nested) {
-        filterDef.inside.push({
-          type: ff.type,
-          nested: ff.nested,
-        })
-      } else {
-        filterDef.inside.push({
-          type: ff.type,
-          attrs: ff.attrs,
-        })
+      if (
+        ff.type !== 'animate' ||
+        (ff.type === 'animate' && !self.slate.options.isbirdsEye)
+      ) {
+        if (ff.nested) {
+          filterDef.inside.push({
+            type: ff.type,
+            nested: ff.nested,
+          });
+        } else {
+          filterDef.inside.push({
+            type: ff.type,
+            attrs: ff.attrs,
+          });
+        }
       }
-    })
-    self.slate.paper.def(filterDef)
+    });
+    self.slate.paper.def(filterDef);
     if (!isDefault) {
       if (!self.slate.customFilters) {
-        self.slate.customFilters = []
+        self.slate.customFilters = [];
       }
-      self.slate.customFilters.push(filterDef)
+      self.slate.customFilters.push(filterDef);
     }
-    return filter.id
+    return filter.id;
   }
 
   remove(id) {
-    const self = this
+    const self = this;
     self.slate?.filters.splice(
       self.slate?.filters.findIndex((f) => f.id === id)
-    )
-    return true
+    );
+    return true;
   }
 
   // <feGaussianBlur in="SourceAlpha" stdDeviation="3"/> <!-- stdDeviation is how much to blur -->
@@ -76,7 +86,7 @@ export default class filters {
   // </feMerge>
 
   exposeDefaults() {
-    const self = this
+    const self = this;
     self.availableFilters = {
       embossed: {
         types: ['vect', 'line', 'image', 'text'],
@@ -232,6 +242,10 @@ export default class filters {
             scale: { label: 'torn', default: '10', range: [2, 50] },
           },
         },
+        attrs: {
+          filterUnits: 'userSpaceOnUse',
+          primitiveUnits: 'objectBoundingBox',
+        },
         types: ['vect', 'line', 'image', 'text'],
         filters: [
           {
@@ -244,13 +258,33 @@ export default class filters {
               stitchTiles: 'noStitch',
               result: 'turbulence',
             },
+            nested: [
+              {
+                type: 'animate',
+                attrs: {
+                  attributeName: 'baseFrequency',
+                  values: '0.01;0.008;0.005;0.01',
+                  dur: self.slate.options.isEmbedding ? '10s' : '200s',
+                  keyTimes: '0;0.33;0.66;1',
+                  repeatCount: 'indefinite',
+                  calcMode: 'spline',
+                  keySplines: '0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1',
+                },
+              },
+            ],
+          },
+          {
+            type: 'feGaussianBlur',
+            attrs: {
+              stdDeviation: '0.01',
+            },
           },
           {
             type: 'feDisplacementMap',
             attrs: {
               in: 'SourceGraphic',
               in2: 'turbulence',
-              scale: '10',
+              scale: '0.05',
               xChannelSelector: 'R',
               yChannelSelector: 'B',
               result: 'displacementMap',
@@ -474,7 +508,7 @@ export default class filters {
           },
         ],
       },
-    }
+    };
   }
 }
 

@@ -479,15 +479,41 @@ export default class nodeController {
         );
         const { lx, ty } = dps;
 
-        const currentTextPosition = textPositions.find(
-          (tp) => tp.id === opts.id
-        );
-        if (options.animate) {
-          nodeObject.text.animate(currentTextPosition.textPosition, d, e);
-          nodeObject.link.animate({ x: lx, y: ty }, d, e);
+        if (nodeObject.options.rotate.rotationAngle) {
+          // special handling for rotated nodes
+          nodeObject.text.hide();
+          if (nodeObject.options.link?.show) {
+            nodeObject.link.hide();
+          }
+          setTimeout(
+            () => {
+              nodeObject.text.attr(
+                nodeObject.textCoords({
+                  x: nodeObject.options.xPos,
+                  y: nodeObject.options.yPos,
+                })
+              );
+              const transformString = nodeObject.getTransformString();
+              nodeObject.text.transform(transformString);
+              nodeObject.text.show();
+              nodeObject.link.attr({ x: lx, y: ty });
+              if (nodeObject.options.link?.show) {
+                nodeObject.link.show();
+              }
+            },
+            options.animate ? d : 0
+          );
         } else {
-          nodeObject.text.attr(currentTextPosition.textPosition);
-          nodeObject.link.attr({ x: lx, y: ty });
+          const currentTextPosition = textPositions.find(
+            (tp) => tp.id === opts.id
+          );
+          if (options.animate) {
+            nodeObject.text.animate(currentTextPosition.textPosition, d, e);
+            nodeObject.link.animate({ x: lx, y: ty }, d, e);
+          } else {
+            nodeObject.text.attr(currentTextPosition.textPosition);
+            nodeObject.link.attr({ x: lx, y: ty });
+          }
         }
 
         if (this.slate.options.debugMode && !this.slate.options.isbirdsEye) {
@@ -714,6 +740,7 @@ export default class nodeController {
         (_height / 100) * percent
       }, ${_x}, ${_y}`,
     ];
+
     _node.options.isEllipse =
       _node.options.isEllipse || _node.options.vectorPath === 'ellipse';
     let potentiallyResize = false;
@@ -736,13 +763,13 @@ export default class nodeController {
           _transforms
         );
         break;
-      default:
-        potentiallyResize = true;
-        // _node.options.vectorPath = getTransformedPath(
-        //   _node.options.vectorPath,
-        //   _transforms
-        // )
-        break;
+      // default:
+      //   potentiallyResize = true;
+      //   // _node.options.vectorPath = getTransformedPath(
+      //   //   _node.options.vectorPath,
+      //   //   _transforms
+      //   // )
+      //   break;
     }
 
     if (_node.options.vectorPath === 'M2,12 L22,12') {
@@ -762,9 +789,20 @@ export default class nodeController {
     // _node.vect.ox = _x;
     // _node.vect.oy = _y;
 
+    // let rotationContext = {};
+    // console.log('will rotate?', _node.options.rotate);
+    // if (_node.options.rotate && _node.options.rotate.point) {
+    //   rotationContext = {
+    //     rotate: {
+    //       rotationAngle: _node.options.rotate.rotationAngle % 360,
+    //       point: _node.options.rotate.point,
+    //     },
+    //   };
+    // }
+
     // get the text coords before the transform is applied
     // var tc = _node.textCoords();
-    _node.vect.transform(_node.getTransformString());
+    // _node.vect.transform(_node.options.vectorPath);
 
     // update xPos, yPos in case it is different than actual
     const bbox = vect.getBBox();
@@ -863,10 +901,12 @@ export default class nodeController {
       _node.link.hide();
     }
 
-    //
-    if (potentiallyResize) {
-      _node.resize.set(_width, _height);
+    if (_node.options.rotate.rotationAngle) {
+      _node.rotate.set();
     }
+    // if (potentiallyResize) {
+    //   _node.resize.set(_width, _height);
+    // }
 
     // apply any node filters to vect and/or text
     _node.applyFilters();

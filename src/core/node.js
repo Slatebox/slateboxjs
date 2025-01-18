@@ -72,6 +72,7 @@ export default class node extends base {
       rotate: {
         rotationAngle: 0,
       },
+      iconFor: null,
       textXAlign: 'middle',
       textYAlign: 'middle',
       link: {
@@ -160,8 +161,13 @@ export default class node extends base {
       _transforms.push(resizeTransform);
     }
 
+    // Get the node's bounding box center for rotation
+    // const bbox = this.vect.getBBox();
+    // const centerX = bbox.cx;
+    // const centerY = bbox.cy;
+
     if (opts.rotate) {
-      rotationTransform = `R${opts.rotate.rotationAngle}, ${opts.rotate.point.x}, ${opts.rotate.point.y}`;
+      rotationTransform = `R${opts.rotate.rotationAngle},${opts.rotate.point.x},${opts.rotate.point.y}`;
     } else if (this.options.rotate.rotationAngle) {
       rotationTransform = `R${this.options.rotate.rotationAngle}, ${
         this.options.rotate.point.x - (opts.dx || 0)
@@ -372,9 +378,14 @@ export default class node extends base {
 
   applyFilters(filter) {
     const self = this;
-    if (!utils.isSafari() && !utils.isMobile()) {
+    if (
+      !utils.isSafari() &&
+      !utils.isMobile() &&
+      !self.slate.options.isbirdsEye
+    ) {
       if (filter) {
         // presumes that the filter has been added to the slate
+        // this is likely not needed because autoLoadFilters is called in slate init
         if (!self.options.filters[filter.apply]) {
           self.options.filters[filter.apply] = {};
         }
@@ -384,7 +395,11 @@ export default class node extends base {
       Object.keys(self.options?.filters).forEach((key) => {
         if (self[key]) {
           if (self.options.filters[key]) {
-            self[key].attr('filter', `url(#${self.options.filters[key]})`);
+            const furl = self.options.filters[key];
+            const filterUrl = self.slate.options.isEmbedding
+              ? `embedded_${furl}`
+              : furl;
+            self[key].attr('filter', `url(#${filterUrl})`);
           } else {
             self[key].attr('filter', '');
           }
