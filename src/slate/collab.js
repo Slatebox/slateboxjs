@@ -602,7 +602,18 @@ export default class collab {
       self.constants.mapName
     );
 
+    let changesCleared = false;
     self.collabPackage.map.observe((e) => {
+      // Only process changes after slate is fully loaded
+      if (!self.slate.canvas?.completeInit) {
+        return;
+      } else if (!changesCleared) {
+        self.collabPackage.doc.transact(() => {
+          self.collabPackage.map.clear();
+          changesCleared = true;
+        });
+        return;
+      }
       e.changes.keys.forEach((change, key) => {
         if (change.action === 'add' || change.action === 'update') {
           const p = self.collabPackage.map.get(key);

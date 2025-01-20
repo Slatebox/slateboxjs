@@ -782,8 +782,8 @@ export default class nodeController {
     vect.node.style.cursor = 'pointer';
 
     // need to set in case toback or tofront is called and the load order changes in the context plugin
-    const allowDragRider = _node.options.disableDrag ? 'nodrag_' : '';
-    vect.node.setAttribute('rel', `${allowDragRider}${_node.options.id}`);
+    const relRider = _node.options.disableDrag ? 'nodrag_' : '';
+    vect.node.setAttribute('rel', `${relRider}${_node.options.id}`);
     vect.data({ id: _node.options.id });
     _node.vect = vect;
     // _node.vect.ox = _x;

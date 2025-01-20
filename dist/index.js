@@ -8145,7 +8145,6 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             x: _node.options.xPos,
             y: _node.options.yPos
         }));
-        console.log('set transform text', transformString);
         _node.text.transform(transformString);
     }
     static htmlToElement(html) {
@@ -8231,6 +8230,7 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             const fontSplit = font.split(' ');
             font = `${fontSplit?.[0]} ${parseFloat(fontSplit?.[1]?.replace(/pt/gi, '') ?? 1) * multiplier}pt ${fontSplit?.[2]}`;
             context.font = font;
+            console.log('measuring text', t, font);
             metrics.push(context.measureText(t));
         });
         textWidthCanvas.remove();
@@ -8972,13 +8972,13 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         setTimeout(()=>{
             self.slate.birdsEye?.setBe();
             self.slate.birdsEye?.refresh();
-        // set init
+            // set init
+            self.completeInit = true;
         // self.Canvas.objInitPos = utils.positionedOffset(self.internal)
         // console.log('init mouse', self.Canvas.objInitPos)
         }, 500);
-        // self.cp()
-        // self.initDragDefaults()
-        self.completeInit = true;
+    // self.cp()
+    // self.initDragDefaults()
     }
     cp(e) {
         const m = e ? (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).mousePos(e) : {
@@ -9166,22 +9166,13 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
     }
     rawSVG({ skipOptimize: skipOptimize = false }, cb) {
         const self = this;
-        console.log('called rawSVG', {
-            skipOptimize: skipOptimize
-        });
         function finalize(svg) {
             // always reposition <image> elements in the svg to be in the top left
             const regImg = /<image\s+x="[^"]+"\s+y="[^"]+"\s+href="data/gi;
             svg = svg.replace(regImg, '<image x="0" y="0" href="data');
             if (self.slate.events.onOptimizeSVG && !skipOptimize) self.slate.events.onOptimizeSVG(svg, (err, optimized)=>{
                 if (err) console.error('Unable to optimize slate svg export', err);
-                else {
-                    console.log('Optimizing SVG', {
-                        svg: svg,
-                        optimized: optimized
-                    });
-                    cb(optimized);
-                }
+                else cb(optimized);
             });
             else cb(svg);
         }
@@ -9232,12 +9223,7 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                     else __svg = __svg.replace(slateBg, res);
                     extractImages(__svg);
                 });
-            } else {
-                console.log('called rawSVG - no bg', {
-                    __svg: __svg
-                });
-                extractImages(__svg);
-            }
+            } else extractImages(__svg);
         });
     }
     bgToBack() {
@@ -9377,6 +9363,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             borderWidth: 1,
             borderColor: '#000',
             borderOpacity: 1,
+            borderDisplayOnly: false,
             lineColor: '#000000',
             lineOpacity: 1,
             lineEffect: '',
@@ -9617,12 +9604,14 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         Object.assign(jsonNode, {
             options: self.options
         });
+        if (jsonNode.options.borderDisplayOnly) jsonNode.options.borderOpacity = 0;
         jsonNode.relationships = {
             associations: []
         }; // , children: []
         self.relationships.associations.forEach((association)=>{
             jsonNode.relationships.associations.push(self._bindRel(association, lineWidthOverride));
         });
+        console.log('serialized node', jsonNode.options.id, jsonNode.options.width, jsonNode.options.height);
         return jsonNode;
     }
     _bindRel(obj, lineWidthOverride) {
@@ -9709,7 +9698,6 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                     if (self.options.filters[key]) {
                         const furl = self.options.filters[key];
                         const filterUrl = self.slate.options.isEmbedding ? `embedded_${furl}` : furl;
-                        console.log('furl', furl, filterUrl, self.slate.options);
                         self[key].attr('filter', `url(#${filterUrl})`);
                     } else self[key].attr('filter', '');
                 }
@@ -10571,7 +10559,17 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
         });
         // a single map with a nodeId as the key and the last collab event as its value
         self.collabPackage.map = self.collabPackage.doc.getMap(self.constants.mapName);
+        let changesCleared = false;
         self.collabPackage.map.observe((e)=>{
+            // Only process changes after slate is fully loaded
+            if (!self.slate.canvas?.completeInit) return;
+            else if (!changesCleared) {
+                self.collabPackage.doc.transact(()=>{
+                    self.collabPackage.map.clear();
+                    changesCleared = true;
+                });
+                return;
+            }
             e.changes.keys.forEach((change, key)=>{
                 if (change.action === 'add' || change.action === 'update') {
                     const p = self.collabPackage.map.get(key);
@@ -10581,7 +10579,6 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
                         // conflicts here are already resolved...
                         // but collab only have to fire if there
                         // is more than one user on the slate
-                        console.log('crdt event', p);
                         if (// self.collabPackage.users.length > 1 &&
                         self.collabPackage.init && p.data.clientID !== self.collabPackage?.doc?.clientID) self.slate.collab.invoke(p);
                         // broadcast change so slate is saved
@@ -11120,8 +11117,7 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
         }
     }
     set(t, s, f, c, opacity, ta, tb, isCategory) {
-        const tempShim = `\xa7` // utils.guid().substring(3);
-        ;
+        const tempShim = `\xa7`; // utils.guid().substring(3);
         if (!t && t !== '') t = this.node.options.text || tempShim;
         if (!s) s = this.node.options.fontSize || 12;
         if (opacity == null) opacity = this.node.options.textOpacity || 1;
@@ -11130,7 +11126,14 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
         if (!ta) ta = this.node.options.textXAlign || 'middle';
         if (!tb) tb = this.node.options.textYAlign || 'middle';
         // ensure text is always legible if it is set to the same as background
-        if (c === this.node.options.backgroundColor) c = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).whiteOrBlack(this.node.options.backgroundColor);
+        let nodeOpacity = 1;
+        try {
+            nodeOpacity = parseFloat(this.node.options.opacity) ?? 0;
+        } catch (e) {
+            console.error('Error parsing node opacity', e);
+        }
+        console.log('checking nodeOpacity pot changing color', nodeOpacity, c, this.node.options.backgroundColor);
+        if (c === this.node.options.backgroundColor && nodeOpacity > 0.5) c = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).whiteOrBlack(this.node.options.backgroundColor);
         this.node.options.text = t;
         this.node.options.fontSize = s;
         this.node.options.fontFamily = f;
@@ -11651,11 +11654,8 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         self.selectedNodes = [];
         if (self.node.options.isLocked === false) {
             self.selectedNodes.push(self.node);
-            // Get all nodes that share the same groupId as the initial node
-            const ctrlNotClicked = !(self.slate.isCtrl ?? false) || self.slate.isCtrl && self.slate.isShift;
             if (self.node.options.groupId) {
                 const groupNodes = self.slate.nodes.allNodes.filter((n, i)=>{
-                    console.log('ctrlNotClicked', ctrlNotClicked, i);
                     n.options.groupId === self.node.options.groupId && n.options.id !== self.node.options.id && n.options.isLocked;
                 });
                 self.selectedNodes.push(...groupNodes);
@@ -11815,7 +11815,6 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
             }
         };
         const transformString = self.node.getTransformString(rotationContext);
-        console.log('rotationAngle', rotationContext, transformString);
         self.node.vect.transform(transformString);
         self.node.text.transform(transformString);
     }
@@ -13830,7 +13829,6 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
                     y: opts.yPos
                 }, nodeObject.options);
                 const { lx: lx, ty: ty } = dps;
-                console.log('checking rotationAngle', nodeObject.options.rotate);
                 if (nodeObject.options.rotate.rotationAngle) {
                     // special handling for rotated nodes
                     nodeObject.text.hide();
@@ -14042,7 +14040,6 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             `T${_x * percent}, ${_y * percent}`,
             `s${_width / 150 * percent}, ${_height / 100 * percent}, ${_x}, ${_y}`
         ];
-        console.log('transforms for adding to canvas', _node.options.vectorPath, _transforms);
         _node.options.isEllipse = _node.options.isEllipse || _node.options.vectorPath === 'ellipse';
         let potentiallyResize = false;
         switch(_node.options.vectorPath){
@@ -14060,8 +14057,8 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         vect = vect ? vect : paperToUse.path(_node.options.vectorPath).attr(vectOpt);
         vect.node.style.cursor = 'pointer';
         // need to set in case toback or tofront is called and the load order changes in the context plugin
-        const allowDragRider = _node.options.disableDrag ? 'nodrag_' : '';
-        vect.node.setAttribute('rel', `${allowDragRider}${_node.options.id}`);
+        const relRider = _node.options.disableDrag ? 'nodrag_' : _node.options.borderDisplayOnly ? 'hideborder_' : '';
+        vect.node.setAttribute('rel', `${relRider}${_node.options.id}`);
         vect.data({
             id: _node.options.id
         });
@@ -16205,6 +16202,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                 ]
             },
             dropShadow: {
+                display: 'drop shadow',
                 levers: {
                     feDropShadow: {
                         stdDeviation: {
@@ -16285,6 +16283,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                 ]
             },
             postItNote: {
+                display: 'post-it note',
                 types: [
                     'vect',
                     'line',
@@ -16336,7 +16335,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                     }
                 ]
             },
-            tattered: {
+            tatteredWaves: {
+                display: 'tattered - waves',
                 levers: {
                     feDisplacementMap: {
                         scale: {
@@ -16349,6 +16349,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                         }
                     }
                 },
+                animated: true,
                 attrs: {
                     filterUnits: 'userSpaceOnUse',
                     primitiveUnits: 'objectBoundingBox'
@@ -16446,6 +16447,10 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                         }
                     }
                 },
+                attrs: {
+                    filterUnits: 'userSpaceOnUse',
+                    primitiveUnits: 'objectBoundingBox'
+                },
                 types: [
                     'text',
                     'line'
@@ -16455,7 +16460,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                         type: 'feMorphology',
                         attrs: {
                             operator: 'dilate',
-                            radius: '1',
+                            radius: '0.003 0.015',
                             in: 'SourceGraphic',
                             result: 'thickness'
                         }
@@ -16465,6 +16470,80 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                         attrs: {
                             operator: 'out',
                             in: 'thickness',
+                            in2: 'SourceGraphic'
+                        }
+                    }
+                ]
+            },
+            outlineWaves: {
+                display: 'outline - waves',
+                levers: {
+                    feMorphology: {
+                        radius: {
+                            label: 'cutout',
+                            default: '1',
+                            range: [
+                                1,
+                                10
+                            ]
+                        }
+                    }
+                },
+                animated: true,
+                attrs: {
+                    filterUnits: 'userSpaceOnUse',
+                    primitiveUnits: 'objectBoundingBox'
+                },
+                types: [
+                    'text',
+                    'line'
+                ],
+                filters: [
+                    {
+                        type: 'feMorphology',
+                        attrs: {
+                            operator: 'dilate',
+                            radius: '0.003 0.015',
+                            in: 'SourceGraphic',
+                            result: 'thickness'
+                        }
+                    },
+                    {
+                        type: 'feTurbulence',
+                        attrs: {
+                            type: 'fractalNoise',
+                            baseFrequency: '0.05 0.01',
+                            numOctaves: '1',
+                            result: 'turbulence'
+                        },
+                        nested: [
+                            {
+                                type: 'animate',
+                                attrs: {
+                                    attributeName: 'baseFrequency',
+                                    values: '0.05 0.01;0.05 0.02;0.05 0.01',
+                                    dur: self.slate.options.isEmbedding ? '10s' : '200s',
+                                    repeatCount: 'indefinite',
+                                    calcMode: 'spline',
+                                    keySplines: '0.4 0 0.6 1; 0.4 0 0.6 1'
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        type: 'feDisplacementMap',
+                        attrs: {
+                            in: 'thickness',
+                            in2: 'turbulence',
+                            scale: '0.01',
+                            xChannelSelector: 'R',
+                            yChannelSelector: 'G'
+                        }
+                    },
+                    {
+                        type: 'feComposite',
+                        attrs: {
+                            operator: 'out',
                             in2: 'SourceGraphic'
                         }
                     }
@@ -16572,11 +16651,15 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                     'text',
                     'image'
                 ],
+                attrs: {
+                    filterUnits: 'userSpaceOnUse',
+                    primitiveUnits: 'objectBoundingBox'
+                },
                 filters: [
                     {
                         type: 'feTurbulence',
                         attrs: {
-                            baseFrequency: '0.01',
+                            baseFrequency: '0.005 0.005',
                             numOctaves: 2,
                             result: 'turbulence'
                         }
@@ -16586,7 +16669,55 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                         attrs: {
                             in2: 'turbulence',
                             in: 'SourceGraphic',
-                            scale: 15,
+                            scale: 0.02,
+                            xChannelSelector: 'R',
+                            yChannelSelector: 'G'
+                        }
+                    }
+                ]
+            },
+            sketchyWaves: {
+                display: 'sketchy - waves',
+                types: [
+                    'vect',
+                    'line',
+                    'text',
+                    'image'
+                ],
+                attrs: {
+                    filterUnits: 'userSpaceOnUse',
+                    primitiveUnits: 'objectBoundingBox'
+                },
+                animated: true,
+                filters: [
+                    {
+                        type: 'feTurbulence',
+                        attrs: {
+                            baseFrequency: '0.005 0.005',
+                            numOctaves: 2,
+                            result: 'turbulence'
+                        },
+                        nested: [
+                            {
+                                type: 'animate',
+                                attrs: {
+                                    attributeName: 'baseFrequency',
+                                    values: '0.01;0.008;0.005;0.01',
+                                    dur: self.slate.options.isEmbedding ? '10s' : '200s',
+                                    keyTimes: '0;0.33;0.66;1',
+                                    repeatCount: 'indefinite',
+                                    calcMode: 'spline',
+                                    keySplines: '0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1'
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        type: 'feDisplacementMap',
+                        attrs: {
+                            in2: 'turbulence',
+                            in: 'SourceGraphic',
+                            scale: 0.02,
                             xChannelSelector: 'R',
                             yChannelSelector: 'G'
                         }
@@ -17466,7 +17597,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         // these ids will come out in the order that they are painted on the screen - toFront and toBack adjusts this, so we need
         // to always keep this hand so that when the slate is reloaded, it can order the nodes by these ids (which are going to be dif
         // from the saved JSON order of arrays)
-        const ids = Array.from(this.canvas.internal.querySelector('svg').querySelectorAll('path')).map((a)=>a.getAttribute('rel')?.replace(/^nodrag_|^nodrag_text-/, '')) // ensure the nodrag convention prefixes are removed
+        const ids = Array.from(this.canvas.internal.querySelector('svg').querySelectorAll('path')).map((a)=>a.getAttribute('rel')?.replace(/^nodrag_|^nodrag_text-|^hideborder_/, '')) // ensure the nodrag or hideborder convention prefixes are removed
         .filter((r)=>!!r);
         // console.log("order of nodes", ids);
         this.options.nodeOrder = ids;

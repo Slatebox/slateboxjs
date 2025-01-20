@@ -26,6 +26,7 @@ export default class node extends base {
       borderWidth: 1,
       borderColor: '#000',
       borderOpacity: 1,
+      borderDisplayOnly: false,
       lineColor: '#000000',
       lineOpacity: 1,
       lineEffect: '',
@@ -277,6 +278,9 @@ export default class node extends base {
     Object.assign(jsonNode, {
       options: self.options,
     });
+    if (jsonNode.options.borderDisplayOnly) {
+      jsonNode.options.borderOpacity = 0;
+    }
     jsonNode.relationships = { associations: [] }; // , children: []
     self.relationships.associations.forEach((association) => {
       jsonNode.relationships.associations.push(

@@ -366,14 +366,13 @@ export default class canvas {
       self.slate.birdsEye?.setBe();
       self.slate.birdsEye?.refresh();
       // set init
+      self.completeInit = true;
       // self.Canvas.objInitPos = utils.positionedOffset(self.internal)
       // console.log('init mouse', self.Canvas.objInitPos)
     }, 500);
 
     // self.cp()
     // self.initDragDefaults()
-
-    self.completeInit = true;
   } // init
 
   cp(e) {

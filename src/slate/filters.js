@@ -136,6 +136,7 @@ export default class filters {
         ],
       },
       dropShadow: {
+        display: 'drop shadow',
         levers: {
           feDropShadow: {
             stdDeviation: { label: 'distance', default: 1.5, range: [1, 10] },
@@ -190,6 +191,7 @@ export default class filters {
         ],
       },
       postItNote: {
+        display: 'post-it note',
         types: ['vect', 'line', 'image', 'text'],
         filters: [
           {
@@ -236,12 +238,14 @@ export default class filters {
           },
         ],
       },
-      tattered: {
+      tatteredWaves: {
+        display: 'tattered - waves',
         levers: {
           feDisplacementMap: {
             scale: { label: 'torn', default: '10', range: [2, 50] },
           },
         },
+        animated: true,
         attrs: {
           filterUnits: 'userSpaceOnUse',
           primitiveUnits: 'objectBoundingBox',
@@ -316,13 +320,17 @@ export default class filters {
             radius: { label: 'cutout', default: '1', range: [1, 10] },
           },
         },
+        attrs: {
+          filterUnits: 'userSpaceOnUse',
+          primitiveUnits: 'objectBoundingBox',
+        },
         types: ['text', 'line'],
         filters: [
           {
             type: 'feMorphology',
             attrs: {
               operator: 'dilate',
-              radius: '1',
+              radius: '0.003 0.015', // x y values - making vertical (y) thicker
               in: 'SourceGraphic',
               result: 'thickness',
             },
@@ -332,6 +340,70 @@ export default class filters {
             attrs: {
               operator: 'out',
               in: 'thickness',
+              in2: 'SourceGraphic',
+            },
+          },
+        ],
+      },
+      outlineWaves: {
+        display: 'outline - waves',
+        levers: {
+          feMorphology: {
+            radius: { label: 'cutout', default: '1', range: [1, 10] },
+          },
+        },
+        animated: true,
+        attrs: {
+          filterUnits: 'userSpaceOnUse',
+          primitiveUnits: 'objectBoundingBox',
+        },
+        types: ['text', 'line'],
+        filters: [
+          {
+            type: 'feMorphology',
+            attrs: {
+              operator: 'dilate',
+              radius: '0.003 0.015', // x y values - making vertical (y) thicker
+              in: 'SourceGraphic',
+              result: 'thickness',
+            },
+          },
+          {
+            type: 'feTurbulence',
+            attrs: {
+              type: 'fractalNoise',
+              baseFrequency: '0.05 0.01', // Different x/y frequencies for horizontal wave motion
+              numOctaves: '1',
+              result: 'turbulence',
+            },
+            nested: [
+              {
+                type: 'animate',
+                attrs: {
+                  attributeName: 'baseFrequency',
+                  values: '0.05 0.01;0.05 0.02;0.05 0.01',
+                  dur: self.slate.options.isEmbedding ? '10s' : '200s',
+                  repeatCount: 'indefinite',
+                  calcMode: 'spline',
+                  keySplines: '0.4 0 0.6 1; 0.4 0 0.6 1',
+                },
+              },
+            ],
+          },
+          {
+            type: 'feDisplacementMap',
+            attrs: {
+              in: 'thickness',
+              in2: 'turbulence',
+              scale: '0.01', // Small scale due to objectBoundingBox
+              xChannelSelector: 'R',
+              yChannelSelector: 'G',
+            },
+          },
+          {
+            type: 'feComposite',
+            attrs: {
+              operator: 'out',
               in2: 'SourceGraphic',
             },
           },
@@ -417,11 +489,15 @@ export default class filters {
       },
       sketchy: {
         types: ['vect', 'line', 'text', 'image'],
+        attrs: {
+          filterUnits: 'userSpaceOnUse',
+          primitiveUnits: 'objectBoundingBox',
+        },
         filters: [
           {
             type: 'feTurbulence',
             attrs: {
-              baseFrequency: '0.01',
+              baseFrequency: '0.005 0.005',
               numOctaves: 2,
               result: 'turbulence',
             },
@@ -431,7 +507,50 @@ export default class filters {
             attrs: {
               in2: 'turbulence',
               in: 'SourceGraphic',
-              scale: 15,
+              scale: 0.02,
+              xChannelSelector: 'R',
+              yChannelSelector: 'G',
+            },
+          },
+        ],
+      },
+      sketchyWaves: {
+        display: 'sketchy - waves',
+        types: ['vect', 'line', 'text', 'image'],
+        attrs: {
+          filterUnits: 'userSpaceOnUse',
+          primitiveUnits: 'objectBoundingBox',
+        },
+        animated: true,
+        filters: [
+          {
+            type: 'feTurbulence',
+            attrs: {
+              baseFrequency: '0.005 0.005',
+              numOctaves: 2,
+              result: 'turbulence',
+            },
+            nested: [
+              {
+                type: 'animate',
+                attrs: {
+                  attributeName: 'baseFrequency',
+                  values: '0.01;0.008;0.005;0.01',
+                  dur: self.slate.options.isEmbedding ? '10s' : '200s',
+                  keyTimes: '0;0.33;0.66;1',
+                  repeatCount: 'indefinite',
+                  calcMode: 'spline',
+                  keySplines: '0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1',
+                },
+              },
+            ],
+          },
+          {
+            type: 'feDisplacementMap',
+            attrs: {
+              in2: 'turbulence',
+              in: 'SourceGraphic',
+              scale: 0.02,
               xChannelSelector: 'R',
               yChannelSelector: 'G',
             },
