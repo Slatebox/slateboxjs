@@ -763,13 +763,13 @@ export default class nodeController {
           _transforms
         );
         break;
-      // default:
-      //   potentiallyResize = true;
-      //   // _node.options.vectorPath = getTransformedPath(
-      //   //   _node.options.vectorPath,
-      //   //   _transforms
-      //   // )
-      //   break;
+      default:
+        potentiallyResize = !!_node.options.defaultShaped;
+        // _node.options.vectorPath = getTransformedPath(
+        //   _node.options.vectorPath,
+        //   _transforms
+        // )
+        break;
     }
 
     if (_node.options.vectorPath === 'M2,12 L22,12') {
@@ -902,14 +902,63 @@ export default class nodeController {
     }
 
     if (_node.options.rotate.rotationAngle) {
-      _node.rotate.set();
-    }
-    // if (potentiallyResize) {
-    //   _node.resize.set(_width, _height);
-    // }
+      requestAnimationFrame(() => {
+        _node.rotate.set();
+        // requestAnimationFrame(() => {
+        //   const qpkg = {
+        //     dur: 0,
+        //     moves: [
+        //       {
+        //         id: _node.options.id,
+        //         x: 1,
+        //         y: 1,
+        //       },
+        //     ],
+        //   };
+        //   const pkg = self.slate.nodes.nodeMovePackage(qpkg);
+        //   _node.slate.nodes.moveNodes(pkg, {
+        //     animate: false,
+        //     cb: () => {
+        //       console.log('moved to adjust');
+        //     },
+        //   });
+        // });
 
+        // console.log('rotating again', _node.options.rotate.rotationAngle);
+        requestAnimationFrame(() => {
+          utils.transformPath(_node, `T1,1`);
+        });
+        // requestAnimationFrame(() => {
+        //   // ensures set is correct
+        //   console.log('rotating again', _node.options.rotate.rotationAngle);
+        //   _node.rotate.set();
+        // });
+      });
+    } else if (potentiallyResize) {
+      _node.resize.set(_width, _height);
+    }
+
+    let filtersApplied = false;
     // apply any node filters to vect and/or text
-    _node.applyFilters();
+    if (_node.options.animations.vect) {
+      _node.applyFilters({
+        apply: 'vect',
+        id: _node.options.animations.vect,
+        isAnimation: true,
+      });
+      filtersApplied = true;
+    }
+    if (_node.options.animations.text) {
+      _node.applyFilters({
+        apply: 'text',
+        id: _node.options.animations.text,
+        isAnimation: true,
+      });
+      filtersApplied = true;
+    }
+    if (!filtersApplied) {
+      _node.applyFilters();
+    }
     _node.toFront();
 
     this._refreshBe();

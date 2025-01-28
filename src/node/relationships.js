@@ -106,6 +106,10 @@ export default class relationships {
       if (!self.slate.keyboardActive) {
         nd.editor.setTextOffset();
       }
+      requestAnimationFrame(() => {
+        nd.text.node.setAttribute('class', nd.existingTextClasses);
+        nd.vect.node.setAttribute('class', nd.existingVectClasses);
+      });
     });
 
     refreshRelationships({
@@ -281,6 +285,10 @@ export default class relationships {
         n.setStartDrag();
         n.vect.ox = n.options.xPos;
         n.vect.oy = n.options.yPos;
+        n.existingTextClasses = n.text.node.getAttribute('class');
+        n.existingVectClasses = n.vect.node.getAttribute('class');
+        n.text.node.setAttribute('class', 'slatebox-text');
+        n.vect.node.setAttribute('class', '');
       });
       const selectedIds = self.selectedNodes.map((n) => n.options.id);
       self.foreignPoints = self.slate.nodes.allNodes
@@ -575,14 +583,14 @@ export default class relationships {
     self.selectedNodes = [];
     if (self.node.options.isLocked === false) {
       self.selectedNodes.push(self.node);
-      if (self.node.options.groupId) {
-        const groupNodes = self.slate.nodes.allNodes.filter((n, i) => {
-          n.options.groupId === self.node.options.groupId &&
-            n.options.id !== self.node.options.id &&
-            n.options.isLocked === false;
-        });
-        self.selectedNodes.push(...groupNodes);
-      }
+      // if (self.node.options.groupId) {
+      //   const groupNodes = self.slate.nodes.allNodes.filter((n, i) => {
+      //     n.options.groupId === self.node.options.groupId &&
+      //       n.options.id !== self.node.options.id &&
+      //       n.options.isLocked === false;
+      //   });
+      //   self.selectedNodes.push(...groupNodes);
+      // }
 
       this.syncAssociations(self.node, (c, a) => {
         if (
@@ -591,18 +599,18 @@ export default class relationships {
         ) {
           self.selectedNodes.push(c);
           // Get all nodes that share the same groupId as each child node
-          if (c.options.groupId) {
-            const groupNodes = self.slate.nodes.allNodes.filter(
-              (n, i) =>
-                n.options.groupId === c.options.groupId &&
-                n.options.id !== c.options.id &&
-                !self.selectedNodes.some(
-                  (sn) => sn.options.id === n.options.id
-                ) &&
-                n.options.isLocked === false
-            );
-            self.selectedNodes.push(...groupNodes);
-          }
+          // if (c.options.groupId) {
+          //   const groupNodes = self.slate.nodes.allNodes.filter(
+          //     (n, i) =>
+          //       n.options.groupId === c.options.groupId &&
+          //       n.options.id !== c.options.id &&
+          //       !self.selectedNodes.some(
+          //         (sn) => sn.options.id === n.options.id
+          //       ) &&
+          //       n.options.isLocked === false
+          //   );
+          //   self.selectedNodes.push(...groupNodes);
+          // }
         }
       });
     }

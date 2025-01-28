@@ -506,8 +506,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     const appendChild = 'appendChild';
     var apply = 'apply';
     const concat = 'concat';
-    const supportsTouch = 'ontouchstart' in g.win || g.win.DocumentTouch && g.doc instanceof DocumentTouch // taken from Modernizr touch test
-    ;
+    const supportsTouch = 'ontouchstart' in g.win || g.win.DocumentTouch && g.doc instanceof DocumentTouch; // taken from Modernizr touch test
     const E = '';
     const S = ' ';
     const Str = String;
@@ -2655,10 +2654,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 case 'S':
                     if (pcom == 'C' || pcom == 'S') {
                         // In "S" case we have to take into account, if the previous command is C/S.
-                        nx = d.x * 2 - d.bx // And reflect the previous
-                        ;
-                        ny = d.y * 2 - d.by // command's control point relative to the current point.
-                        ;
+                        nx = d.x * 2 - d.bx; // And reflect the previous
+                        ny = d.y * 2 - d.by; // command's control point relative to the current point.
                     } else {
                         // or some else or nothing
                         nx = d.x;
@@ -2673,10 +2670,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 case 'T':
                     if (pcom == 'Q' || pcom == 'T') {
                         // In "T" case we have to take into account, if the previous command is Q/T.
-                        d.qx = d.x * 2 - d.qx // And make a reflection similar
-                        ;
-                        d.qy = d.y * 2 - d.qy // to case "S".
-                        ;
+                        d.qx = d.x * 2 - d.qx; // And make a reflection similar
+                        d.qy = d.y * 2 - d.qy; // to case "S".
                     } else {
                         // or something else or nothing
                         d.qx = d.x;
@@ -2721,10 +2716,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 pp[i].shift();
                 const pi = pp[i];
                 while(pi.length){
-                    pcoms1[i] = 'A' // if created multiple C:s, their original seg is saved
-                    ;
-                    p2 && (pcoms2[i] = 'A' // the same as above
-                    );
+                    pcoms1[i] = 'A'; // if created multiple C:s, their original seg is saved
+                    p2 && (pcoms2[i] = 'A'); // the same as above
                     pp.splice(i++, 0, [
                         'C'
                     ][concat](pi.splice(0, 6)));
@@ -2747,32 +2740,22 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 ii = mmax(p.length, p2 && p2.length || 0);
             }
         };
-        var pcoms1 = [] // path commands of original path p
-        ;
-        var pcoms2 = [] // path commands of original path p2
-        ;
-        let pfirst = '' // temporary holder for original path command
-        ;
-        let pcom = '' // holder for previous path command of original path
-        ;
+        var pcoms1 = []; // path commands of original path p
+        var pcoms2 = []; // path commands of original path p2
+        let pfirst = ''; // temporary holder for original path command
+        let pcom = ''; // holder for previous path command of original path
         for(var i = 0, ii = mmax(p.length, p2 && p2.length || 0); i < ii; i++){
-            p[i] && (pfirst = p[i][0] // save current path command
-            );
+            p[i] && (pfirst = p[i][0]); // save current path command
             if (pfirst != 'C') {
                 // C is not saved yet, because it may be result of conversion
-                pcoms1[i] = pfirst // Save current path command
-                ;
-                i && (pcom = pcoms1[i - 1] // Get previous path command pcom
-                );
+                pcoms1[i] = pfirst; // Save current path command
+                i && (pcom = pcoms1[i - 1]); // Get previous path command pcom
             }
-            p[i] = processPath(p[i], attrs, pcom) // Previous path command is inputted to processPath
-            ;
-            if (pcoms1[i] != 'A' && pfirst == 'C') pcoms1[i] = 'C' // A is the only command
-            ;
+            p[i] = processPath(p[i], attrs, pcom); // Previous path command is inputted to processPath
+            if (pcoms1[i] != 'A' && pfirst == 'C') pcoms1[i] = 'C'; // A is the only command
             // which may produce multiple C:s
             // so we have to make sure that C is also C in original path
-            fixArc(p, i) // fixArc adds also the right amount of A:s to pcoms1
-            ;
+            fixArc(p, i); // fixArc adds also the right amount of A:s to pcoms1
             if (p2) {
                 // the same procedures is done to p2
                 p2[i] && (pfirst = p2[i][0]);
@@ -3937,8 +3920,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
             onend && (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on(`raphael.drag.end.${this.id}`, onend);
             (0, $dacea6f50a09eb13$export$6b962911844bfb1e)(`raphael.drag.start.${this.id}`, start_scope || move_scope || this, e.clientX + scrollX, e.clientY + scrollY, e);
         }
-        this.start = start // SLATEBOX - makes text draggable
-        ;
+        this.start = start; // SLATEBOX - makes text draggable
         this._drag = {};
         draggable.push({
             el: this,
@@ -4023,8 +4005,8 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
      *
      * Draws a svg group (g) element.
      **
-    \ */ paperproto.g = function() {
-        const out = R._engine.g(this);
+    \ */ paperproto.g = function(attrs) {
+        const out = R._engine.g(this, attrs);
         this.__set__ && this.__set__.push(out);
         return out;
     };
@@ -5049,8 +5031,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
                 break;
             }
         }
-        else status = +to // NaN
-        ;
+        else status = +to; // NaN
         for(var i = 0, ii = anim.percents.length; i < ii; i++){
             if (anim.percents[i] == percent || anim.percents[i] > status * anim.top) {
                 percent = anim.percents[i];
@@ -5627,8 +5608,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
         this.forEach((el)=>{
             if (el.isPointInside(x, y)) {
                 isPointInside = true;
-                return false // stop loop
-                ;
+                return false; // stop loop
             }
         });
         return isPointInside;
@@ -5747,8 +5727,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    > Usage
    | var txt = r.print(10, 50, "print", r.getFont("Museo"), 30).attr({fill: "#fff"});
   \ */ paperproto.print = function(x, y, string, font, size, origin, letter_spacing, line_spacing) {
-        origin = origin || 'middle' // baseline|middle
-        ;
+        origin = origin || 'middle'; // baseline|middle
         letter_spacing = mmax(mmin(letter_spacing || 0, 1), -1);
         line_spacing = mmax(mmin(line_spacing || 1, 3), 1);
         const letters = Str(string)[split](E);
@@ -5885,8 +5864,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
    | }));
   \ */ R.fullfill = function() {
         const tokenRegex = /\{([^\}]+)\}/g;
-        const objNotationRegex = /(?:(?:^|\.)(.+?)(?=\[|\.|$|\()|\[('|")(.+?)\2\])(\(\))?/g // matches .xxxxx or ["xxxxx"] to run over object properties
-        ;
+        const objNotationRegex = /(?:(?:^|\.)(.+?)(?=\[|\.|$|\()|\[('|")(.+?)\2\])(\(\))?/g; // matches .xxxxx or ["xxxxx"] to run over object properties
         const replacer = function(all, key, obj) {
             let res = obj;
             key.replace(objNotationRegex, (all, name, quote, quotedName, isFunc)=>{
@@ -5950,6 +5928,7 @@ const $c453c098b23bc46d$export$db202ddc8be9136 = function() {
     (0, $dacea6f50a09eb13$export$6b962911844bfb1e).on('raphael.DOMload', ()=>{
         loaded = true;
     });
+    // Firefox <3.6 fix: http://webreflection.blogspot.com/2009/11/195-chars-to-help-lazy-loading.html
     (function(doc, loaded, f) {
         if (doc.readyState == null && doc.addEventListener) {
             doc.addEventListener(loaded, f = function() {
@@ -6414,8 +6393,7 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                     if (o.type == 'path') {
                         $(node, {
                             d: value ? attrs.path = value : 'M0,0'
-                        }) // <--
-                        ;
+                        }); // <--
                         o._.dirty = 1;
                         if (o._.arrows) {
                             'startString' in o._.arrows && addArrow(o, o._.arrows.startString);
@@ -7057,6 +7035,12 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
    # </ul>
   \ */ elproto.attr = function(name, value) {
         if (this.removed) return this;
+        // SLATEBOX - add ability to add data- attributes to elements
+        if (name?.startsWith?.('data-')) {
+            console.log('data-', name, value);
+            this.node.setAttribute(name, value);
+            return this;
+        }
         if (name == null) {
             const res = {};
             for(const a in this.attrs)if (this.attrs[has](a)) res[a] = this.attrs[a];
@@ -7213,7 +7197,8 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         $(el, res.attrs);
         return res;
     };
-    (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.g = function(svg) {
+    (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.g = function(svg, gAttrs) {
+        console.log('svg gAttrs', svg, gAttrs);
         const el = $('g');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
@@ -7239,7 +7224,13 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
                 return out;
             };
         });
-        $(el, res.attrs);
+        // SLATEBOX - add class to the g element
+        const attrs = {
+            ...res.attrs,
+            ...gAttrs
+        };
+        console.log('attrs to add to g', gAttrs, attrs);
+        $(el, attrs);
         return res;
     };
     (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.def = function(def) {
@@ -7265,6 +7256,20 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         <path d="M 10 0 L 0 0 0 10" fill="none" stroke="gray" stroke-width="0.5"/>
       </pattern>
     */ const id = def.id || `raphael-def-${(0, $c453c098b23bc46d$export$db202ddc8be9136).createUUID()}`;
+        // SLATEBOX - add ability to programattically add style tags
+        if (def.css) {
+            // lookup or create the style tag in the defs
+            // and either append the def.css as a string inside,
+            // or create a new style tag with the css
+            const style = this.defs.querySelector(`style[id="${id}"]`);
+            if (!style) {
+                style = $('style');
+                style.id = id;
+                this.defs.appendChild(style);
+            }
+            style.textContent = `${style.textContent} ${def.css}`;
+            return;
+        }
         // if exists, remove and rebuild
         const exists = Array.prototype.slice.call(this.defs.children).find((c)=>c.getAttribute('id') === id);
         exists && this.defs.removeChild(exists);
@@ -7300,17 +7305,22 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         // always rebuild
         const rDef = $($(def.tag || 'pattern'), defOpts);
         if (def.inside) def.inside.forEach((i)=>{
-            const ins = $($(i.type), i.attrs || {});
-            rDef.appendChild(ins);
-            if (i.nested) {
-                if (i.nested.forEach) i.nested.forEach((nx)=>{
-                    const nest = $($(nx.type), nx.attrs || {});
-                    ins.appendChild(nest);
-                });
-                else Object.keys(i.nested).forEach((n)=>{
-                    const nest = $($(n), i.nested[n] || {});
-                    ins.appendChild(nest);
-                });
+            if (typeof i === 'string') {
+                const existingText = rDef.textContent;
+                rDef.textContent = `${existingText} ${i}`;
+            } else {
+                const ins = $($(i.type), i.attrs || {});
+                rDef.appendChild(ins);
+                if (i.nested) {
+                    if (i.nested.forEach) i.nested.forEach((nx)=>{
+                        const nest = $($(nx.type), nx.attrs || {});
+                        ins.appendChild(nest);
+                    });
+                    else Object.keys(i.nested).forEach((n)=>{
+                        const nest = $($(n), i.nested[n] || {});
+                        ins.appendChild(nest);
+                    });
+                }
             }
         });
         this.defs.appendChild(rDef);
@@ -8230,7 +8240,6 @@ class $8ab43d25a2892bde$export$2e2bcd8739ae039 {
             const fontSplit = font.split(' ');
             font = `${fontSplit?.[0]} ${parseFloat(fontSplit?.[1]?.replace(/pt/gi, '') ?? 1) * multiplier}pt ${fontSplit?.[2]}`;
             context.font = font;
-            console.log('measuring text', t, font);
             metrics.push(context.measureText(t));
         });
         textWidthCanvas.remove();
@@ -9411,6 +9420,7 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 rotationAngle: 0
             },
             iconFor: null,
+            defaultShaped: true,
             textXAlign: 'middle',
             textYAlign: 'middle',
             link: {
@@ -9423,6 +9433,10 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 }
             },
             filters: {
+                vect: null,
+                text: null
+            },
+            animations: {
                 vect: null,
                 text: null
             },
@@ -9611,7 +9625,6 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         self.relationships.associations.forEach((association)=>{
             jsonNode.relationships.associations.push(self._bindRel(association, lineWidthOverride));
         });
-        console.log('serialized node', jsonNode.options.id, jsonNode.options.width, jsonNode.options.height);
         return jsonNode;
     }
     _bindRel(obj, lineWidthOverride) {
@@ -9684,24 +9697,140 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         this.text.show();
         this.options.link.show && this.link.show();
     }
+    buildRotatedAnimationClass(type, baseAnimation) {
+        const self = this;
+        // Create new class name with angle
+        const cssClassName = `${type}-${self.options.id}`;
+        // remove all existing cssClassNames from the <defs> element
+        const defs = self.slate.paper.defs;
+        const existingStyles = defs.getElementsByClassName(`${cssClassName}-style`);
+        Array.from(existingStyles).forEach((style)=>style.remove());
+        // with .vect-${self.options.id} as the class
+        // so the below would become .vect-${self.options.id} { ... }
+        // instead of .mysteryReveal { ... }
+        // and then the rotationAngle stitched into every keyFrame wherever
+        // there is a xx%: {, so the 0% below would become:
+        // 0% {
+        //   rotation: `${rotationAngle}deg`
+        //   opacity: 0;
+        //   transform: scale(1.2);
+        // }
+        /*
+    `
+        .mysteryReveal {
+          opacity: 0;
+          transform-box: fill-box;
+          transform-origin: center;
+          animation: mysteryReveal 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes mysteryReveal {
+          0% {
+            opacity: 0;
+            transform: scale(1.2);
+          }
+          50% {
+            opacity: 0.5;
+            transform: scale(1.1);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }`*/ // Make a copy of the original CSS
+        let customCSS = baseAnimation.css;
+        // Get the base animation name (e.g. "mysteryReveal")
+        const baseAnimationName = customCSS.match(/\.([^{\s]+)\s*{/)?.[1];
+        // Replace the original class name
+        customCSS = customCSS.replace(new RegExp(`\\.${baseAnimationName}\\s*{`), `.${cssClassName} {`);
+        // Replace the keyframes name
+        customCSS = customCSS.replace(new RegExp(`@keyframes\\s+${baseAnimationName}\\s*{`), `@keyframes ${cssClassName} {`);
+        // Replace animation name in the animation property
+        customCSS = customCSS.replace(new RegExp(`animation:\\s*${baseAnimationName}\\s`), `animation: ${cssClassName} `);
+        // Add rotation to each keyframe percentage
+        const keyframeRegex = /(\d+%|\bfrom\b|\bto\b)\s*{([^}]*)}/g;
+        customCSS = customCSS.replace(keyframeRegex, (match, percentage, rules)=>{
+            rules = rules.trim();
+            // Parse existing transform if it exists
+            let transformRule = rules.match(/transform:\s*([^;]+)/);
+            let newTransform;
+            if (transformRule) {
+                // Add rotation to existing transform while preserving other transforms
+                let existingTransforms = transformRule[1];
+                newTransform = `transform: rotate(${self.options.rotate.rotationAngle}deg) ${existingTransforms}`;
+                rules = rules.replace(/(transform:\s*[^;]+)/, newTransform);
+            } else // Add new transform with rotation if none exists
+            rules += `\n    transform: rotate(${self.options.rotate.rotationAngle}deg);`;
+            return `${percentage} {${rules}}`;
+        });
+        return {
+            css: customCSS,
+            class: cssClassName
+        };
+    }
     applyFilters(filter) {
         const self = this;
-        if (!(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isSafari() && !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isMobile() && !self.slate.options.isbirdsEye) {
-            if (filter) {
-                // presumes that the filter has been added to the slate
-                // this is likely not needed because autoLoadFilters is called in slate init
-                if (!self.options.filters[filter.apply]) self.options.filters[filter.apply] = {};
-                self.options.filters[filter.apply] = filter.id;
+        function applyFiltersOrAnimation(applyAnimationElement, overrideClass) {
+            if (applyAnimationElement && self[applyAnimationElement]) {
+                if (self.options.animations[applyAnimationElement]) self[applyAnimationElement].attr('class', `${overrideClass || self.options.animations[applyAnimationElement]}`);
+                else self[applyAnimationElement].attr('class', '');
             }
+            // apply all existing filters
+            // this does not affect the rotationAngle
             Object.keys(self.options?.filters).forEach((key)=>{
                 if (self[key]) {
                     if (self.options.filters[key]) {
+                        // is this a style filter? If so, add the class to the node
+                        // otherwise, add the filter to the node
                         const furl = self.options.filters[key];
                         const filterUrl = self.slate.options.isEmbedding ? `embedded_${furl}` : furl;
                         self[key].attr('filter', `url(#${filterUrl})`);
                     } else self[key].attr('filter', '');
                 }
             });
+        }
+        if (!(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isSafari() && !(0, $8ab43d25a2892bde$export$2e2bcd8739ae039).isMobile() && !self.slate.options.isbirdsEye) {
+            if (filter) {
+                if (filter.isAnimation) {
+                    const baseAnimation = self.slate.filters.availableAnimations[filter.id];
+                    if (!self.options.animations[filter.apply]) self.options.animations[filter.apply] = {};
+                    self.options.animations[filter.apply] = filter.id;
+                    if (baseAnimation) {
+                        if (self.options.rotate.rotationAngle) {
+                            // need to install a custom filter animation that matches the rotation angle
+                            const rotatedAnimation = self.buildRotatedAnimationClass(filter.apply, baseAnimation);
+                            requestAnimationFrame(()=>{
+                                self.slate.paper.def({
+                                    tag: 'style',
+                                    type: 'text/css',
+                                    id: rotatedAnimation.class,
+                                    class: `${filter.apply}-${self.options.id}-style`,
+                                    inside: [
+                                        rotatedAnimation.css
+                                    ]
+                                });
+                                if (filter.deferAnimations) {
+                                    // id-animationName-deferred
+                                    self[filter.apply].attr(`data-defer-animation`, rotatedAnimation.class);
+                                    console.log('removing class from node', self.options.id, self[filter.apply].attr('class'));
+                                    self[filter.apply].attr('class', '');
+                                } else requestAnimationFrame(()=>{
+                                    applyFiltersOrAnimation(filter.apply, rotatedAnimation.class);
+                                });
+                            });
+                        } else // if no rotation, then just apply the base animation
+                        if (filter.deferAnimations) {
+                            self[filter.apply].attr(`data-defer-animation`, self.options.animations[filter.apply]);
+                            self[filter.apply].attr('class', '');
+                        } else applyFiltersOrAnimation(filter.apply);
+                    } else self[filter.apply].attr('class', filter.apply === 'text' ? 'slatebox-text' : '');
+                } else {
+                    // presumes that the filter has been added to the slate
+                    // this is likely not needed because autoLoadFilters is called in slate init
+                    if (!self.options.filters[filter.apply]) self.options.filters[filter.apply] = {};
+                    self.options.filters[filter.apply] = filter.id;
+                    applyFiltersOrAnimation(filter.isAnimation ? filter.apply : null);
+                }
+            } else applyFiltersOrAnimation();
         }
     }
     toggleFilters(blnHide) {
@@ -11132,7 +11261,6 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
         } catch (e) {
             console.error('Error parsing node opacity', e);
         }
-        console.log('checking nodeOpacity pot changing color', nodeOpacity, c, this.node.options.backgroundColor);
         if (c === this.node.options.backgroundColor && nodeOpacity > 0.5) c = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).whiteOrBlack(this.node.options.backgroundColor);
         this.node.options.text = t;
         this.node.options.fontSize = s;
@@ -11167,7 +11295,14 @@ class $61e5ba2c77a639d8$export$2e2bcd8739ae039 {
         this.setTextOffset();
         coords = this.node.textCoords();
         if (!this.node.text) {
-            this.node.text = this.slate.paper.text(this.node.options.xPos + coords.x, this.node.options.yPos + coords.y, t);
+            // const txtAttrs = {
+            //   class: 'sb-txt-wrap',
+            //   x: this.node.options.xPos + coords.x,
+            //   y: this.node.options.yPos + coords.y,
+            // };
+            // console.log('creating text element', txtAttrs);
+            // this.node.textWrapper = this.slate.paper.g(txtAttrs);
+            this.node.text = this.slate.paper.text(this.node.options.xPos + coords.x, this.node.options.yPos + coords.y);
             const dragRider = this.node.options.disableDrag ? 'nodrag_' : '';
             this.node.text.node.setAttribute('rel', `${dragRider}text-${this.node.options.id}`);
         }
@@ -11310,6 +11445,11 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             nd.vect.currentDy = 0;
             if (self.slate.options.debugMode) nd.debugPosition();
             if (!self.slate.keyboardActive) nd.editor.setTextOffset();
+            requestAnimationFrame(()=>{
+                console.log('reapplying classes', self.existingTextClasses, self.existingVectClasses);
+                nd.text.node.setAttribute('class', nd.existingTextClasses);
+                nd.vect.node.setAttribute('class', nd.existingVectClasses);
+            });
         });
         (0, $f7a6c59624db8286$export$2e2bcd8739ae039)({
             relationships: self.relationshipsToRefresh,
@@ -11444,6 +11584,10 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
                 n.setStartDrag();
                 n.vect.ox = n.options.xPos;
                 n.vect.oy = n.options.yPos;
+                n.existingTextClasses = n.text.node.getAttribute('class');
+                n.existingVectClasses = n.vect.node.getAttribute('class');
+                n.text.node.setAttribute('class', 'slatebox-text');
+                n.vect.node.setAttribute('class', '');
             });
             const selectedIds = self.selectedNodes.map((n)=>n.options.id);
             self.foreignPoints = self.slate.nodes.allNodes.filter((n)=>selectedIds.indexOf(n.options.id) === -1).map((n)=>({
@@ -11654,21 +11798,16 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
         self.selectedNodes = [];
         if (self.node.options.isLocked === false) {
             self.selectedNodes.push(self.node);
-            if (self.node.options.groupId) {
-                const groupNodes = self.slate.nodes.allNodes.filter((n, i)=>{
-                    n.options.groupId === self.node.options.groupId && n.options.id !== self.node.options.id && n.options.isLocked;
-                });
-                self.selectedNodes.push(...groupNodes);
-            }
+            // if (self.node.options.groupId) {
+            //   const groupNodes = self.slate.nodes.allNodes.filter((n, i) => {
+            //     n.options.groupId === self.node.options.groupId &&
+            //       n.options.id !== self.node.options.id &&
+            //       n.options.isLocked === false;
+            //   });
+            //   self.selectedNodes.push(...groupNodes);
+            // }
             this.syncAssociations(self.node, (c, a1)=>{
-                if (!self.selectedNodes.some((n)=>n.options.id === c.options.id) && c.options.isLocked === false) {
-                    self.selectedNodes.push(c);
-                    // Get all nodes that share the same groupId as each child node
-                    if (c.options.groupId) {
-                        const groupNodes = self.slate.nodes.allNodes.filter((n, i)=>n.options.groupId === c.options.groupId && n.options.id !== c.options.id && !self.selectedNodes.some((sn)=>sn.options.id === n.options.id) && n.options.isLocked === false);
-                        self.selectedNodes.push(...groupNodes);
-                    }
-                }
+                if (!self.selectedNodes.some((n)=>n.options.id === c.options.id) && c.options.isLocked === false) self.selectedNodes.push(c);
             });
         }
         return self.selectedNodes;
@@ -11806,7 +11945,7 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
             x: self.node.options.rotate.point.x,
             y: self.node.options.rotate.point.y
         };
-        const useRotationAngle = rotateAngle || self.rotationAngle;
+        const useRotationAngle = rotateAngle || self.rotationAngle || 0;
         self.rotate?.transform(`R${useRotationAngle}, ${centerPoint.x}, ${centerPoint.y}`);
         const rotationContext = {
             rotate: {
@@ -11816,7 +11955,22 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
         };
         const transformString = self.node.getTransformString(rotationContext);
         self.node.vect.transform(transformString);
+        // requestAnimationFrame(() => {
+        console.log('setting text offset');
         self.node.text.transform(transformString);
+        // self.node.editor.setTextOffset();
+        self.node.editor.setTextOffset();
+    // });
+    // self.node.editor.setTextOffset();
+    // self.node.text.transform(transformString);
+    // requestAnimationFrame(() => {
+    //   const coords = self.node.textCoords({
+    //     x: self.node.options.xPos,
+    //     y: self.node.options.yPos,
+    //   });
+    //   console.log('setting text coords', self.node.options.text, coords);
+    //   self.node.text.attr(coords);
+    // });
     }
     constructor(slate, node){
         const self = this;
@@ -14052,12 +14206,15 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
             case 'roundedrectangle':
                 _node.options.vectorPath = (0, $b3c679d5849c9a45$export$2e2bcd8739ae039)('M1,1 h130 a10,10 0 0 1 10,10 v80 a10,10 0 0 1 -10,10 h-130 a10,10 0 0 1 -10,-10 v-80 a10,10 0 0 1 10,-10 z', _transforms);
                 break;
+            default:
+                potentiallyResize = !!_node.options.defaultShaped;
+                break;
         }
         if (_node.options.vectorPath === 'M2,12 L22,12') vectOpt['stroke-dasharray'] = '2px';
         vect = vect ? vect : paperToUse.path(_node.options.vectorPath).attr(vectOpt);
         vect.node.style.cursor = 'pointer';
         // need to set in case toback or tofront is called and the load order changes in the context plugin
-        const relRider = _node.options.disableDrag ? 'nodrag_' : _node.options.borderDisplayOnly ? 'hideborder_' : '';
+        const relRider = _node.options.disableDrag ? 'nodrag_' : '';
         vect.node.setAttribute('rel', `${relRider}${_node.options.id}`);
         vect.data({
             id: _node.options.id
@@ -14141,12 +14298,57 @@ class $20194a860b77746c$export$2e2bcd8739ae039 {
         if (_node.options.image && !_node.options.imageOrigWidth) _node.options.imageOrigWidth = _node.options.width;
         if (_node.options.image && _node.options.image !== '') _node.images.set(_node.options.image, _node.options.imageOrigWidth, _node.options.imageOrigHeight, useMainCanvas);
         if (!_node.options.link || !_node.options.link.show) _node.link.hide();
-        if (_node.options.rotate.rotationAngle) _node.rotate.set();
-        // if (potentiallyResize) {
-        //   _node.resize.set(_width, _height);
-        // }
+        if (_node.options.rotate.rotationAngle) requestAnimationFrame(()=>{
+            _node.rotate.set();
+            // requestAnimationFrame(() => {
+            //   const qpkg = {
+            //     dur: 0,
+            //     moves: [
+            //       {
+            //         id: _node.options.id,
+            //         x: 1,
+            //         y: 1,
+            //       },
+            //     ],
+            //   };
+            //   const pkg = self.slate.nodes.nodeMovePackage(qpkg);
+            //   _node.slate.nodes.moveNodes(pkg, {
+            //     animate: false,
+            //     cb: () => {
+            //       console.log('moved to adjust');
+            //     },
+            //   });
+            // });
+            // console.log('rotating again', _node.options.rotate.rotationAngle);
+            requestAnimationFrame(()=>{
+                (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).transformPath(_node, `T1,1`);
+            });
+        // requestAnimationFrame(() => {
+        //   // ensures set is correct
+        //   console.log('rotating again', _node.options.rotate.rotationAngle);
+        //   _node.rotate.set();
+        // });
+        });
+        else if (potentiallyResize) _node.resize.set(_width, _height);
+        let filtersApplied = false;
         // apply any node filters to vect and/or text
-        _node.applyFilters();
+        if (_node.options.animations.vect) {
+            _node.applyFilters({
+                apply: 'vect',
+                id: _node.options.animations.vect,
+                isAnimation: true
+            });
+            filtersApplied = true;
+        }
+        if (_node.options.animations.text) {
+            _node.applyFilters({
+                apply: 'text',
+                id: _node.options.animations.text,
+                isAnimation: true
+            });
+            filtersApplied = true;
+        }
+        if (!filtersApplied) _node.applyFilters();
         _node.toFront();
         this._refreshBe();
         return vect;
@@ -16113,7 +16315,7 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             ...filter.attrs,
             inside: []
         };
-        filter.filters.forEach((ff)=>{
+        filter.filters?.forEach((ff)=>{
             if (ff.type !== 'animate' || ff.type === 'animate' && !self.slate.options.isbirdsEye) {
                 if (ff.nested) filterDef.inside.push({
                     type: ff.type,
@@ -16148,6 +16350,551 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
     // </feMerge>
     exposeDefaults() {
         const self = this;
+        const defaultTextDuration = 0.6;
+        self.availableAnimations = {
+            mystery: {
+                id: 'sb-mystery',
+                types: [
+                    'text'
+                ],
+                display: 'Mystery',
+                css: `
+          .mystery {
+            opacity: 0;
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: mystery ${defaultTextDuration}s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          }
+          @keyframes mystery {
+            0% {
+              opacity: 0;
+              transform: scale(1.2);
+            }
+            50% {
+              opacity: 0.5;
+              transform: scale(1.1);
+            }
+            100% {
+              opacity: 1;
+              transform: scale(1);
+            }
+          }`,
+                description: 'Gentle fade in with subtle zoom out'
+            },
+            fadeSlideUp: {
+                id: 'sb-fade-slide-up',
+                types: [
+                    'text'
+                ],
+                display: 'Fade up',
+                css: `
+          .fadeSlideUp {
+            opacity: 0;
+            transform-box: fill-box;
+            transform-origin: bottom;
+            animation: fadeSlideUp ${defaultTextDuration}s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          }
+          @keyframes fadeSlideUp {
+            0% {
+              opacity: 0;
+              transform: translateY(100%) rotateX(40deg);
+            }
+            100% {
+              opacity: 1;
+              transform: translateY(0) rotateX(0);
+            }
+          }`,
+                description: 'Smooth upward rise with 3D perspective tilt'
+            },
+            fadeSlideDown: {
+                id: 'sb-fade-slide-down',
+                types: [
+                    'text'
+                ],
+                display: 'Fade down',
+                css: `
+          .fadeSlideDown {
+            opacity: 0;
+            transform-box: fill-box;
+            transform-origin: top;
+            animation: fadeSlideDown ${defaultTextDuration}s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          }
+          @keyframes fadeSlideDown {
+            0% {
+              opacity: 0;
+              transform: translateY(-100%) rotateX(-40deg);
+            }
+            100% {
+              opacity: 1;
+              transform: translateY(0) rotateX(0);
+            }
+          }`,
+                description: 'Graceful downward descent with 3D perspective tilt'
+            },
+            bumpUpIn: {
+                id: 'sb-bump-up-in',
+                types: [
+                    'text'
+                ],
+                display: 'Bump Up',
+                css: `
+          .bumpUpIn {
+            opacity: 0;
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: bumpUpIn ${defaultTextDuration}s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          }
+          @keyframes bumpUpIn {
+            0% {
+              opacity: 0;
+              transform: scale(0.8) rotate(-3deg) translateY(100%);
+            }
+            50% {
+              opacity: 0.7;
+              transform: scale(1.1) rotate(2deg) translateY(-50%);
+            }
+            75% {
+              opacity: 0.9;
+              transform: scale(0.95) rotate(-1deg) translateY(25%);
+            }
+            100% {
+              opacity: 1;
+              transform: scale(1) rotate(0) translateY(0);
+            }
+          }`,
+                description: 'Playful bounce up with slight rotation'
+            },
+            bumpDownIn: {
+                id: 'sb-bump-down-in',
+                types: [
+                    'text'
+                ],
+                display: 'Bump Down',
+                css: `
+          .bumpDownIn {
+            opacity: 0;
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: bumpDownIn ${defaultTextDuration}s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          }
+          @keyframes bumpDownIn {
+            0% {
+              opacity: 0;
+              transform: scale(0.8) rotate(3deg) translateY(-100%);
+            }
+            50% {
+              opacity: 0.7;
+              transform: scale(1.1) rotate(-2deg) translateY(50%);
+            }
+            75% {
+              opacity: 0.9;
+              transform: scale(0.95) rotate(1deg) translateY(-25%);
+            }
+            100% {
+              opacity: 1;
+              transform: scale(1) rotate(0) translateY(0);
+            }
+          }`,
+                description: 'Playful bounce down with slight rotation'
+            },
+            impactSlide: {
+                id: 'sb-impact-slide',
+                types: [
+                    'text'
+                ],
+                display: 'Impact Slide',
+                css: `
+          .impactSlide {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: impactSlide ${defaultTextDuration}s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+            opacity: 0;
+          }
+          @keyframes impactSlide {
+            0% {
+              opacity: 0;
+              transform: translateX(-200%) scale(3) skew(-30deg);
+            }
+            30% {
+              opacity: 1;
+              transform: translateX(10%) scale(1.4) skew(15deg);
+            }
+            45% {
+              transform: translateX(-5%) scale(0.9) skew(-5deg);
+            }
+            65% {
+              transform: translateX(2%) scale(1.1) skew(2deg);
+            }
+            100% {
+              opacity: 1;
+              transform: translateX(0) scale(1) skew(0deg);
+            }
+          }`,
+                description: 'Aggressive slide from left with dynamic scaling'
+            },
+            powerSmash: {
+                id: 'sb-power-smash',
+                types: [
+                    'text'
+                ],
+                display: 'Power Smash',
+                css: `
+          .powerSmash {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: powerSmash ${defaultTextDuration}s cubic-bezier(0.68, -0.6, 0.32, 1.6) forwards;
+            opacity: 0;
+          }
+          @keyframes powerSmash {
+            0% {
+              opacity: 0;
+              transform: translateY(-150%) scale(0.2);
+            }
+            15% {
+              opacity: 1;
+              transform: translateY(0) scale(2);
+            }
+            30% {
+              transform: scale(0.7) rotate(-5deg);
+            }
+            45% {
+              transform: scale(1.3) rotate(3deg);
+            }
+            65% {
+              transform: scale(0.95) rotate(-1deg);
+            }
+            100% {
+              opacity: 1;
+              transform: scale(1) rotate(0);
+            }
+          }`,
+                description: 'Dramatic smash down with explosive scaling'
+            },
+            torqueWarp: {
+                id: 'sb-torque-warp',
+                types: [
+                    'text'
+                ],
+                display: 'Torque Warp',
+                css: `
+          .torqueWarp {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: torqueWarp ${defaultTextDuration}s cubic-bezier(0.7, -0.3, 0.1, 1.3) forwards;
+            opacity: 0;
+          }
+          @keyframes torqueWarp {
+            0% {
+              opacity: 0;
+              transform: translateX(-100%) scaleX(0.1) skew(45deg);
+            }
+            20% {
+              opacity: 1;
+              transform: translateX(20%) scaleX(1.5) skew(-20deg);
+            }
+            40% {
+              transform: translateX(-10%) scaleX(0.8) skew(10deg);
+            }
+            60% {
+              transform: translateX(5%) scaleX(1.2) skew(-5deg);
+            }
+            80% {
+              transform: translateX(-2%) scaleX(0.9) skew(2deg);
+            }
+            100% {
+              opacity: 1;
+              transform: translateX(0) scaleX(1) skew(0);
+            }
+          }`,
+                description: 'Energetic horizontal twist with stretching effect'
+            },
+            unroll: {
+                id: 'sb-unroll',
+                types: [
+                    'text'
+                ],
+                display: 'Unroll',
+                css: `
+          .unroll {
+            transform-box: fill-box;
+            transform-origin: top;
+            animation: unroll ${defaultTextDuration}s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+            opacity: 0;
+          }
+          @keyframes unroll {
+            0% {
+              opacity: 0;
+              transform: perspective(1000px) rotateX(-180deg) scaleY(0.1);
+            }
+            30% {
+              opacity: 1;
+              transform: perspective(1000px) rotateX(-120deg) scaleY(0.3);
+            }
+            50% {
+              transform: perspective(1000px) rotateX(-90deg) scaleY(0.5);
+            }
+            70% {
+              transform: perspective(1000px) rotateX(-45deg) scaleY(0.8);
+            }
+            85% {
+              transform: perspective(1000px) rotateX(-20deg) scaleY(0.9);
+            }
+            100% {
+              opacity: 1;
+              transform: perspective(1000px) rotateX(0) scaleY(1);
+            }
+          }`,
+                description: 'Elegant unfurling motion from top like paper'
+            },
+            smoke: {
+                id: 'sb-smoke',
+                types: [
+                    'text'
+                ],
+                display: 'Smoke',
+                disablesFilter: true,
+                css: `
+          .smoke {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: smoke ${defaultTextDuration}s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+            opacity: 0
+          }
+          @keyframes smoke {
+            0% {
+              opacity: 0;
+              transform: scale(1.5) rotate(5deg);
+              filter: blur(10px) brightness(1.2);
+            }
+            30% {
+              opacity: 0.7;
+              transform: scale(1.2) rotate(-2deg);
+              filter: blur(5px) brightness(1.1);
+            }
+            60% {
+              opacity: 0.85;
+              transform: scale(1.1) rotate(1deg);
+              filter: blur(3px) brightness(1.05);
+            }
+            80% {
+              opacity: 0.95;
+              transform: scale(1.05);
+              filter: blur(1px) brightness(1.02);
+            }
+            100% {
+              opacity: 1;
+              transform: scale(1) rotate(0);
+              filter: blur(0) brightness(1);
+            }
+          }
+
+          @keyframes smokeParticles {
+            0% {
+              opacity: 0;
+              transform: translateY(0) scale(1);
+            }
+            50% {
+              opacity: 0.5;
+              transform: translateY(-50%) scale(1.5);
+            }
+            100% {
+              opacity: 0;
+              transform: translateY(-100%) scale(2);
+            }
+          }`,
+                description: 'Fiery emergence with smoke and heat distortion'
+            },
+            fractured: {
+                id: 'sb-fractured',
+                types: [
+                    'text'
+                ],
+                display: 'Fractured',
+                css: `
+          .fractured {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: fractured ${defaultTextDuration}s cubic-bezier(0.17, 0.84, 0.44, 1) forwards;
+            opacity: 0;
+            transform-style: preserve-3d;
+          }
+          @keyframes fractured {
+            0% {
+              opacity: 0;
+              clip-path: polygon(50% 50%, 50% 50%, 50% 50%);
+              transform: rotate3d(1, 1, 0, 90deg) scale(0.3);
+            }
+            30% {
+              opacity: 0.6;
+              clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%);
+              transform: rotate3d(1, -1, 0.5, 45deg) scale(1.2);
+            }
+            60% {
+              clip-path: polygon(0% 15%, 100% 15%, 100% 85%, 0% 85%);
+              transform: rotate3d(-1, 1, -0.5, 20deg) scale(0.9);
+            }
+            100% {
+              opacity: 1;
+              clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+              transform: rotate3d(0, 0, 0, 0) scale(1);
+            }
+          }`,
+                description: 'Sharp geometric reveal with 3D shattered effect'
+            },
+            flux: {
+                id: 'sb-flux',
+                types: [
+                    'text'
+                ],
+                display: 'Flux',
+                css: `
+          .flux {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: flux ${defaultTextDuration}s cubic-bezier(0.68, -0.6, 0.32, 1.6) forwards;
+            opacity: 0;
+          }
+          @keyframes flux {
+            0% {
+              opacity: 0;
+              transform: scale(0.1) rotate(180deg);
+              letter-spacing: 50px;
+            }
+            30% {
+              opacity: 0.3;
+              transform: scale(1.5) rotate(-90deg);
+              letter-spacing: -10px;
+            }
+            60% {
+              opacity: 0.6;
+              transform: scale(0.8) rotate(45deg);
+              letter-spacing: 20px;
+            }
+            100% {
+              opacity: 1;
+              transform: scale(1) rotate(0);
+              letter-spacing: normal;
+            }
+          }`,
+                description: 'Dynamic spinning letters with elastic spacing'
+            },
+            springy: {
+                id: 'sb-springy',
+                types: [
+                    'text'
+                ],
+                display: 'Springy',
+                css: `
+          .springy {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: springy ${defaultTextDuration}s cubic-bezier(0.37, 0, 0.63, 1) forwards;
+            opacity: 0;
+          }
+          @keyframes springy {
+            0% {
+              opacity: 0;
+              transform: scale(2) translate(100px, -100px);
+              letter-spacing: 100px;
+            }
+            20% {
+              opacity: 0.2;
+              transform: scale(1.5) translate(-50px, 50px);
+              letter-spacing: -20px;
+            }
+            40% {
+              opacity: 0.4;
+              transform: scale(0.8) translate(25px, -25px);
+              letter-spacing: 30px;
+            }
+            60% {
+              opacity: 0.6;
+              transform: scale(1.2) translate(-10px, 10px);
+              letter-spacing: -10px;
+            }
+            80% {
+              opacity: 0.8;
+              transform: scale(0.9) translate(5px, -5px);
+              letter-spacing: 5px;
+            }
+            100% {
+              opacity: 1;
+              transform: scale(1) translate(0, 0);
+              letter-spacing: normal;
+            }
+          }`,
+                description: 'Bouncy diagonal entrance with letter stretching'
+            },
+            breathe: {
+                id: 'sb-breathe-slow',
+                types: [
+                    'vect'
+                ],
+                isInfinite: true,
+                display: 'Breathe',
+                css: `
+          .breathe {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: breathe 4s ease-in-out infinite;
+          }
+          @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            20% { transform: scale(1.03); }
+            35% { transform: scale(1.02); }
+            50% { transform: scale(1.05); }
+            65% { transform: scale(1.02); }
+            80% { transform: scale(1.03); }
+          }`,
+                description: 'Subtle breathing effect with micro-movements'
+            },
+            pulse: {
+                id: 'pulse',
+                isInfinite: true,
+                types: [
+                    'vect'
+                ],
+                display: 'Pulse',
+                css: `
+          .pulse {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: pulse ${defaultTextDuration}s ease-in-out infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            20% { transform: scale(1.09); }
+            35% { transform: scale(1.04); }
+            50% { transform: scale(1.02); }
+            65% { transform: scale(1.08); }
+            80% { transform: scale(1.04); }
+          }`,
+                description: 'Intense breathing effect with micro-movements'
+            },
+            rotate: {
+                id: 'rotate',
+                isInfinite: true,
+                types: [
+                    'vect'
+                ],
+                display: 'Rotate',
+                css: `
+          .rotate {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: rotate 8s linear infinite;
+          }
+          @keyframes rotate {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }`,
+                description: 'Smooth continuous rotation'
+            }
+        };
         self.availableFilters = {
             embossed: {
                 types: [
@@ -16335,76 +17082,6 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                     }
                 ]
             },
-            tatteredWaves: {
-                display: 'tattered - waves',
-                levers: {
-                    feDisplacementMap: {
-                        scale: {
-                            label: 'torn',
-                            default: '10',
-                            range: [
-                                2,
-                                50
-                            ]
-                        }
-                    }
-                },
-                animated: true,
-                attrs: {
-                    filterUnits: 'userSpaceOnUse',
-                    primitiveUnits: 'objectBoundingBox'
-                },
-                types: [
-                    'vect',
-                    'line',
-                    'image',
-                    'text'
-                ],
-                filters: [
-                    {
-                        type: 'feTurbulence',
-                        attrs: {
-                            type: 'turbulence',
-                            baseFrequency: '.05 .05',
-                            numOctaves: '05',
-                            seed: '2',
-                            stitchTiles: 'noStitch',
-                            result: 'turbulence'
-                        },
-                        nested: [
-                            {
-                                type: 'animate',
-                                attrs: {
-                                    attributeName: 'baseFrequency',
-                                    values: '0.01;0.008;0.005;0.01',
-                                    dur: self.slate.options.isEmbedding ? '10s' : '200s',
-                                    keyTimes: '0;0.33;0.66;1',
-                                    repeatCount: 'indefinite',
-                                    calcMode: 'spline',
-                                    keySplines: '0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1'
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        type: 'feGaussianBlur',
-                        attrs: {
-                            stdDeviation: '0.01'
-                        }
-                    },
-                    {
-                        type: 'feDisplacementMap',
-                        attrs: {
-                            in: 'SourceGraphic',
-                            in2: 'turbulence',
-                            scale: '0.05',
-                            xChannelSelector: 'R',
-                            yChannelSelector: 'B',
-                            result: 'displacementMap'
-                        }
-                    }
-                ]
-            },
             blur: {
                 levers: {
                     feGaussianBlur: {
@@ -16470,80 +17147,6 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                         attrs: {
                             operator: 'out',
                             in: 'thickness',
-                            in2: 'SourceGraphic'
-                        }
-                    }
-                ]
-            },
-            outlineWaves: {
-                display: 'outline - waves',
-                levers: {
-                    feMorphology: {
-                        radius: {
-                            label: 'cutout',
-                            default: '1',
-                            range: [
-                                1,
-                                10
-                            ]
-                        }
-                    }
-                },
-                animated: true,
-                attrs: {
-                    filterUnits: 'userSpaceOnUse',
-                    primitiveUnits: 'objectBoundingBox'
-                },
-                types: [
-                    'text',
-                    'line'
-                ],
-                filters: [
-                    {
-                        type: 'feMorphology',
-                        attrs: {
-                            operator: 'dilate',
-                            radius: '0.003 0.015',
-                            in: 'SourceGraphic',
-                            result: 'thickness'
-                        }
-                    },
-                    {
-                        type: 'feTurbulence',
-                        attrs: {
-                            type: 'fractalNoise',
-                            baseFrequency: '0.05 0.01',
-                            numOctaves: '1',
-                            result: 'turbulence'
-                        },
-                        nested: [
-                            {
-                                type: 'animate',
-                                attrs: {
-                                    attributeName: 'baseFrequency',
-                                    values: '0.05 0.01;0.05 0.02;0.05 0.01',
-                                    dur: self.slate.options.isEmbedding ? '10s' : '200s',
-                                    repeatCount: 'indefinite',
-                                    calcMode: 'spline',
-                                    keySplines: '0.4 0 0.6 1; 0.4 0 0.6 1'
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        type: 'feDisplacementMap',
-                        attrs: {
-                            in: 'thickness',
-                            in2: 'turbulence',
-                            scale: '0.01',
-                            xChannelSelector: 'R',
-                            yChannelSelector: 'G'
-                        }
-                    },
-                    {
-                        type: 'feComposite',
-                        attrs: {
-                            operator: 'out',
                             in2: 'SourceGraphic'
                         }
                     }
@@ -16676,54 +17279,6 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                     }
                 ]
             },
-            sketchyWaves: {
-                display: 'sketchy - waves',
-                types: [
-                    'vect',
-                    'line',
-                    'text',
-                    'image'
-                ],
-                attrs: {
-                    filterUnits: 'userSpaceOnUse',
-                    primitiveUnits: 'objectBoundingBox'
-                },
-                animated: true,
-                filters: [
-                    {
-                        type: 'feTurbulence',
-                        attrs: {
-                            baseFrequency: '0.005 0.005',
-                            numOctaves: 2,
-                            result: 'turbulence'
-                        },
-                        nested: [
-                            {
-                                type: 'animate',
-                                attrs: {
-                                    attributeName: 'baseFrequency',
-                                    values: '0.01;0.008;0.005;0.01',
-                                    dur: self.slate.options.isEmbedding ? '10s' : '200s',
-                                    keyTimes: '0;0.33;0.66;1',
-                                    repeatCount: 'indefinite',
-                                    calcMode: 'spline',
-                                    keySplines: '0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1'
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        type: 'feDisplacementMap',
-                        attrs: {
-                            in2: 'turbulence',
-                            in: 'SourceGraphic',
-                            scale: 0.02,
-                            xChannelSelector: 'R',
-                            yChannelSelector: 'G'
-                        }
-                    }
-                ]
-            },
             pencil: {
                 // https://heredragonsabound.blogspot.com/2020/02/creating-pencil-effect-in-svg.html
                 levers: {},
@@ -16796,6 +17351,68 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                             in2: 'f3',
                             result: 'f6'
                         }
+                    }
+                ]
+            },
+            rollWaves: {
+                display: 'roll waves',
+                types: [
+                    'text'
+                ],
+                attrs: {
+                    filterUnits: 'objectBoundingBox',
+                    primitiveUnits: 'objectBoundingBox',
+                    x: '0',
+                    y: '0',
+                    width: '1',
+                    height: '1'
+                },
+                animated: true,
+                filters: [
+                    {
+                        type: 'feTurbulence',
+                        attrs: {
+                            type: 'fractalNoise',
+                            baseFrequency: '0.005 0.2',
+                            numOctaves: '3',
+                            result: 'noise'
+                        },
+                        nested: [
+                            {
+                                type: 'animate',
+                                attrs: {
+                                    attributeName: 'baseFrequency',
+                                    values: '0.005 0.2;0.005 0.4;0.005 0.2',
+                                    dur: '3s',
+                                    repeatCount: 'indefinite',
+                                    calcMode: 'spline',
+                                    keySplines: '0.4 0 0.2 1'
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        type: 'feDisplacementMap',
+                        attrs: {
+                            in: 'SourceGraphic',
+                            in2: 'noise',
+                            scale: '120',
+                            xChannelSelector: 'G',
+                            yChannelSelector: 'G'
+                        },
+                        nested: [
+                            {
+                                type: 'animate',
+                                attrs: {
+                                    attributeName: 'scale',
+                                    values: '120;80;120',
+                                    dur: '1s',
+                                    repeatCount: 'indefinite',
+                                    calcMode: 'spline',
+                                    keySplines: '0.4 0 0.6 1'
+                                }
+                            }
+                        ]
                     }
                 ]
             }
@@ -17215,6 +17832,11 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         const _resizedSlate = JSON.parse(self.exportJSON(opts?.backgroundOnly ? [] : opts?.nodes ? opts.nodes : null));
         _resizedSlate.nodes.forEach((n)=>{
             const origNode = self.nodes.allNodes.find((node)=>node.options.id === n.options.id);
+            if (opts.isPNG) // no animations in PNG
+            n.options.animations = {
+                text: null,
+                vect: null
+            };
             const bbox = origNode.vect.getBBox();
             const _ty = bbox.top * _r;
             const _tx = bbox.left * _r;
@@ -17316,39 +17938,78 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 stroke: 'none'
             });
             bg.toBack();
-            // the timeout is critical to ensure that the SVG canvas settles
-            // and the url-fill images appear.
-            setTimeout(async ()=>{
-                // pass skipOptimize to rawSVG to avoid double optimization
-                _exportCanvas.canvas.rawSVG({
-                    skipOptimize: opts.skipOptimize
-                }, (svg1)=>{
-                    // presume download if no cb is sent
-                    const svgBlob = new Blob([
-                        svg1
-                    ], {
-                        type: 'image/svg+xml;charset=utf-8'
+            // finally go through and apply animations
+            requestAnimationFrame(()=>{
+                console.log('applying animations', _exportCanvas.nodes.allNodes);
+                _exportCanvas.nodes.allNodes.forEach((n)=>{
+                    if (n.options.animations.text) n.applyFilters({
+                        id: n.options.animations.text,
+                        apply: 'text',
+                        isAnimation: true,
+                        deferAnimations: opts.deferAnimations
                     });
-                    if (!cb) {
-                        const svgUrl = URL.createObjectURL(svgBlob);
-                        const dl = document.createElement('a');
-                        dl.href = svgUrl;
-                        dl.download = `${(self.options.name || 'slate').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${self?.shareId}.svg`;
-                        dl.click();
-                    } else if (opts?.asBinary && !opts.isPNG) cb(svgBlob);
-                    else cb({
-                        svg: svg1,
-                        orient: _orient
-                    });
-                    _div.remove();
+                    if (n.options.animations.vect) {
+                        const isInfinite = self.filters.availableAnimations[n.options.animations.vect].isInfinite;
+                        n.applyFilters({
+                            id: n.options.animations.vect,
+                            apply: 'vect',
+                            isAnimation: true,
+                            deferAnimations: isInfinite ? false : opts.deferAnimations
+                        });
+                    }
                 });
-            }, 100);
+                // the timeout is critical to ensure that the SVG canvas settles
+                // and the url-fill images appear.
+                setTimeout(async ()=>{
+                    // pass skipOptimize to rawSVG to avoid double optimization
+                    _exportCanvas.canvas.rawSVG({
+                        skipOptimize: opts.skipOptimize ?? true
+                    }, (svg1)=>{
+                        // presume download if no cb is sent
+                        const svgBlob = new Blob([
+                            svg1
+                        ], {
+                            type: 'image/svg+xml;charset=utf-8'
+                        });
+                        if (!cb) {
+                            const svgUrl = URL.createObjectURL(svgBlob);
+                            const dl = document.createElement('a');
+                            dl.href = svgUrl;
+                            dl.download = `${(self.options.name || 'slate').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${self?.shareId}.svg`;
+                            dl.click();
+                        } else if (opts?.asBinary && !opts.isPNG) cb(svgBlob);
+                        else cb({
+                            svg: svg1,
+                            orient: _orient
+                        });
+                        _div.remove();
+                    });
+                }, 100);
+            });
         }
         execute();
     }
     autoLoadFilters() {
         const self = this;
         // if auto filter is on, then these filters become immediately availalbe in their default form
+        if (self.filters.availableAnimations) Object.keys(self.filters.availableAnimations).forEach((a)=>{
+            self.paper.def({
+                tag: 'style',
+                type: 'text/css',
+                id: `animation_${self.options.id}_${a}`,
+                inside: [
+                    self.filters.availableAnimations[a].css
+                ]
+            });
+        });
+        self.paper.def({
+            tag: 'style',
+            type: 'text/css',
+            id: `sb-txt-wrap`,
+            inside: [
+                `.sb-txt-wrap { transform-box: fill-box; transform-origin: top; }`
+            ]
+        });
         if (self.options.autoEnableDefaultFilters && self.filters?.availableFilters) Object.keys(self.filters.availableFilters).forEach((type)=>{
             self.filters.add({
                 id: self.options.isEmbedding ? `embedded_${type}` : type,
@@ -17597,7 +18258,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         // these ids will come out in the order that they are painted on the screen - toFront and toBack adjusts this, so we need
         // to always keep this hand so that when the slate is reloaded, it can order the nodes by these ids (which are going to be dif
         // from the saved JSON order of arrays)
-        const ids = Array.from(this.canvas.internal.querySelector('svg').querySelectorAll('path')).map((a)=>a.getAttribute('rel')?.replace(/^nodrag_|^nodrag_text-|^hideborder_/, '')) // ensure the nodrag or hideborder convention prefixes are removed
+        const ids = Array.from(this.canvas.internal.querySelector('svg').querySelectorAll('path')).map((a)=>a.getAttribute('rel')?.replace(/^nodrag_|^nodrag_text-/, '')) // ensure the nodrag convention prefixes are removed
         .filter((r)=>!!r);
         // console.log("order of nodes", ids);
         this.options.nodeOrder = ids;

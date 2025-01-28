@@ -114,10 +114,16 @@ export default class editor {
     this.setTextOffset();
     coords = this.node.textCoords();
     if (!this.node.text) {
+      // const txtAttrs = {
+      //   class: 'sb-txt-wrap',
+      //   x: this.node.options.xPos + coords.x,
+      //   y: this.node.options.yPos + coords.y,
+      // };
+      // console.log('creating text element', txtAttrs);
+      // this.node.textWrapper = this.slate.paper.g(txtAttrs);
       this.node.text = this.slate.paper.text(
         this.node.options.xPos + coords.x,
-        this.node.options.yPos + coords.y,
-        t
+        this.node.options.yPos + coords.y
       );
       const dragRider = this.node.options.disableDrag ? 'nodrag_' : '';
       this.node.text.node.setAttribute(

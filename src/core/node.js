@@ -74,6 +74,7 @@ export default class node extends base {
         rotationAngle: 0,
       },
       iconFor: null,
+      defaultShaped: true,
       textXAlign: 'middle',
       textYAlign: 'middle',
       link: {
@@ -83,6 +84,10 @@ export default class node extends base {
         thumbnail: { width: 175, height: 175 },
       },
       filters: {
+        vect: null,
+        text: null,
+      },
+      animations: {
         vect: null,
         text: null,
       },
@@ -380,25 +385,120 @@ export default class node extends base {
     this.options.link.show && this.link.show();
   }
 
-  applyFilters(filter) {
+  buildRotatedAnimationClass(type, baseAnimation) {
     const self = this;
-    if (
-      !utils.isSafari() &&
-      !utils.isMobile() &&
-      !self.slate.options.isbirdsEye
-    ) {
-      if (filter) {
-        // presumes that the filter has been added to the slate
-        // this is likely not needed because autoLoadFilters is called in slate init
-        if (!self.options.filters[filter.apply]) {
-          self.options.filters[filter.apply] = {};
+    // Create new class name with angle
+    const cssClassName = `${type}-${self.options.id}`;
+
+    // remove all existing cssClassNames from the <defs> element
+    const defs = self.slate.paper.defs;
+    const existingStyles = defs.getElementsByClassName(`${cssClassName}-style`);
+    Array.from(existingStyles).forEach((style) => style.remove());
+
+    // with .vect-${self.options.id} as the class
+    // so the below would become .vect-${self.options.id} { ... }
+    // instead of .mysteryReveal { ... }
+    // and then the rotationAngle stitched into every keyFrame wherever
+    // there is a xx%: {, so the 0% below would become:
+    // 0% {
+    //   rotation: `${rotationAngle}deg`
+    //   opacity: 0;
+    //   transform: scale(1.2);
+    // }
+    /*
+    `
+        .mysteryReveal {
+          opacity: 0;
+          transform-box: fill-box;
+          transform-origin: center;
+          animation: mysteryReveal 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
-        self.options.filters[filter.apply] = filter.id;
+        @keyframes mysteryReveal {
+          0% {
+            opacity: 0;
+            transform: scale(1.2);
+          }
+          50% {
+            opacity: 0.5;
+            transform: scale(1.1);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }`*/
+
+    // Make a copy of the original CSS
+    let customCSS = baseAnimation.css;
+
+    // Get the base animation name (e.g. "mysteryReveal")
+    const baseAnimationName = customCSS.match(/\.([^{\s]+)\s*{/)?.[1];
+
+    // Replace the original class name
+    customCSS = customCSS.replace(
+      new RegExp(`\\.${baseAnimationName}\\s*{`),
+      `.${cssClassName} {`
+    );
+
+    // Replace the keyframes name
+    customCSS = customCSS.replace(
+      new RegExp(`@keyframes\\s+${baseAnimationName}\\s*{`),
+      `@keyframes ${cssClassName} {`
+    );
+
+    // Replace animation name in the animation property
+    customCSS = customCSS.replace(
+      new RegExp(`animation:\\s*${baseAnimationName}\\s`),
+      `animation: ${cssClassName} `
+    );
+
+    // Add rotation to each keyframe percentage
+    const keyframeRegex = /(\d+%|\bfrom\b|\bto\b)\s*{([^}]*)}/g;
+    customCSS = customCSS.replace(keyframeRegex, (match, percentage, rules) => {
+      rules = rules.trim();
+
+      // Parse existing transform if it exists
+      let transformRule = rules.match(/transform:\s*([^;]+)/);
+      let newTransform;
+
+      if (transformRule) {
+        // Add rotation to existing transform while preserving other transforms
+        let existingTransforms = transformRule[1];
+        newTransform = `transform: rotate(${self.options.rotate.rotationAngle}deg) ${existingTransforms}`;
+        rules = rules.replace(/(transform:\s*[^;]+)/, newTransform);
+      } else {
+        // Add new transform with rotation if none exists
+        rules += `\n    transform: rotate(${self.options.rotate.rotationAngle}deg);`;
       }
 
+      return `${percentage} {${rules}}`;
+    });
+
+    return { css: customCSS, class: cssClassName };
+  }
+
+  applyFilters(filter) {
+    const self = this;
+
+    function applyFiltersOrAnimation(applyAnimationElement, overrideClass) {
+      if (applyAnimationElement && self[applyAnimationElement]) {
+        if (self.options.animations[applyAnimationElement]) {
+          self[applyAnimationElement].attr(
+            'class',
+            `${overrideClass || self.options.animations[applyAnimationElement]}`
+          );
+        } else {
+          self[applyAnimationElement].attr('class', '');
+        }
+      }
+
+      // apply all existing filters
+      // this does not affect the rotationAngle
       Object.keys(self.options?.filters).forEach((key) => {
         if (self[key]) {
           if (self.options.filters[key]) {
+            // is this a style filter? If so, add the class to the node
+            // otherwise, add the filter to the node
             const furl = self.options.filters[key];
             const filterUrl = self.slate.options.isEmbedding
               ? `embedded_${furl}`
@@ -409,6 +509,82 @@ export default class node extends base {
           }
         }
       });
+    }
+
+    if (
+      !utils.isSafari() &&
+      !utils.isMobile() &&
+      !self.slate.options.isbirdsEye
+    ) {
+      if (filter) {
+        if (filter.isAnimation) {
+          const baseAnimation =
+            self.slate.filters.availableAnimations[filter.id];
+          if (!self.options.animations[filter.apply]) {
+            self.options.animations[filter.apply] = {};
+          }
+          self.options.animations[filter.apply] = filter.id;
+          if (baseAnimation) {
+            if (self.options.rotate.rotationAngle) {
+              // need to install a custom filter animation that matches the rotation angle
+              const rotatedAnimation = self.buildRotatedAnimationClass(
+                filter.apply,
+                baseAnimation
+              );
+              requestAnimationFrame(() => {
+                self.slate.paper.def({
+                  tag: 'style',
+                  type: 'text/css',
+                  id: rotatedAnimation.class,
+                  class: `${filter.apply}-${self.options.id}-style`,
+                  inside: [rotatedAnimation.css],
+                });
+                if (filter.deferAnimations) {
+                  // id-animationName-deferred
+                  self[filter.apply].attr(
+                    `data-defer-animation`,
+                    rotatedAnimation.class
+                  );
+                  self[filter.apply].attr('class', '');
+                } else {
+                  requestAnimationFrame(() => {
+                    applyFiltersOrAnimation(
+                      filter.apply,
+                      rotatedAnimation.class
+                    );
+                  });
+                }
+              });
+            } else {
+              // if no rotation, then just apply the base animation
+              if (filter.deferAnimations) {
+                self[filter.apply].attr(
+                  `data-defer-animation`,
+                  self.options.animations[filter.apply]
+                );
+                self[filter.apply].attr('class', '');
+              } else {
+                applyFiltersOrAnimation(filter.apply);
+              }
+            }
+          } else {
+            self[filter.apply].attr(
+              'class',
+              filter.apply === 'text' ? 'slatebox-text' : ''
+            );
+          }
+        } else {
+          // presumes that the filter has been added to the slate
+          // this is likely not needed because autoLoadFilters is called in slate init
+          if (!self.options.filters[filter.apply]) {
+            self.options.filters[filter.apply] = {};
+          }
+          self.options.filters[filter.apply] = filter.id;
+          applyFiltersOrAnimation(filter.isAnimation ? filter.apply : null);
+        }
+      } else {
+        applyFiltersOrAnimation();
+      }
     }
   }
 

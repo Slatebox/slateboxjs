@@ -39,7 +39,7 @@ export default class rotate {
       x: self.node.options.rotate.point.x,
       y: self.node.options.rotate.point.y,
     };
-    const useRotationAngle = rotateAngle || self.rotationAngle;
+    const useRotationAngle = rotateAngle || self.rotationAngle || 0;
     self.rotate?.transform(
       `R${useRotationAngle}, ${centerPoint.x}, ${centerPoint.y}`
     );
@@ -52,7 +52,23 @@ export default class rotate {
     };
     const transformString = self.node.getTransformString(rotationContext);
     self.node.vect.transform(transformString);
+    // requestAnimationFrame(() => {
     self.node.text.transform(transformString);
+    // self.node.editor.setTextOffset();
+
+    self.node.editor.setTextOffset();
+
+    // });
+    // self.node.editor.setTextOffset();
+    // self.node.text.transform(transformString);
+    // requestAnimationFrame(() => {
+    //   const coords = self.node.textCoords({
+    //     x: self.node.options.xPos,
+    //     y: self.node.options.yPos,
+    //   });
+    //   console.log('setting text coords', self.node.options.text, coords);
+    //   self.node.text.attr(coords);
+    // });
   }
 
   constructor(slate, node) {

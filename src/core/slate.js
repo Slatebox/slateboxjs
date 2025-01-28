@@ -509,6 +509,10 @@ export default class slate extends base {
       const origNode = self.nodes.allNodes.find(
         (node) => node.options.id === n.options.id
       );
+      if (opts.isPNG) {
+        // no animations in PNG
+        n.options.animations = { text: null, vect: null };
+      }
       const bbox = origNode.vect.getBBox();
       const _ty = bbox.top * _r;
       const _tx = bbox.left * _r;
@@ -595,7 +599,6 @@ export default class slate extends base {
     async function execute() {
       // we don't yet load the nodes by default even though they're passed in on the options below...
       const _exportCanvas = await new slate(exportOptions).init();
-
       // ...that's done in the loadJSON...which seems weird
       _exportCanvas.loadJSON(
         JSON.stringify({ options: exportOptions, nodes: _resizedSlate.nodes }),
@@ -646,34 +649,58 @@ export default class slate extends base {
       }
       bg.toBack();
 
-      // the timeout is critical to ensure that the SVG canvas settles
-      // and the url-fill images appear.
-      setTimeout(async () => {
-        // pass skipOptimize to rawSVG to avoid double optimization
-        _exportCanvas.canvas.rawSVG(
-          { skipOptimize: opts.skipOptimize },
-          (svg) => {
-            // presume download if no cb is sent
-            const svgBlob = new Blob([svg], {
-              type: 'image/svg+xml;charset=utf-8',
+      // finally go through and apply animations
+      requestAnimationFrame(() => {
+        _exportCanvas.nodes.allNodes.forEach((n) => {
+          if (n.options.animations.text) {
+            n.applyFilters({
+              id: n.options.animations.text,
+              apply: 'text',
+              isAnimation: true,
+              deferAnimations: opts.deferAnimations,
             });
-            if (!cb) {
-              const svgUrl = URL.createObjectURL(svgBlob);
-              const dl = document.createElement('a');
-              dl.href = svgUrl;
-              dl.download = `${(self.options.name || 'slate')
-                .replace(/[^a-z0-9]/gi, '_')
-                .toLowerCase()}_${self?.shareId}.svg`;
-              dl.click();
-            } else if (opts?.asBinary && !opts.isPNG) {
-              cb(svgBlob);
-            } else {
-              cb({ svg, orient: _orient });
-            }
-            _div.remove();
           }
-        );
-      }, 100);
+          if (n.options.animations.vect) {
+            const isInfinite =
+              self.filters.availableAnimations[n.options.animations.vect]
+                .isInfinite;
+            n.applyFilters({
+              id: n.options.animations.vect,
+              apply: 'vect',
+              isAnimation: true,
+              deferAnimations: isInfinite ? false : opts.deferAnimations,
+            });
+          }
+        });
+        // the timeout is critical to ensure that the SVG canvas settles
+        // and the url-fill images appear.
+        setTimeout(async () => {
+          // pass skipOptimize to rawSVG to avoid double optimization
+          _exportCanvas.canvas.rawSVG(
+            { skipOptimize: opts.skipOptimize ?? true }, // default to skipOptimize unless explicitly set to false
+            (svg) => {
+              // presume download if no cb is sent
+              const svgBlob = new Blob([svg], {
+                type: 'image/svg+xml;charset=utf-8',
+              });
+              if (!cb) {
+                const svgUrl = URL.createObjectURL(svgBlob);
+                const dl = document.createElement('a');
+                dl.href = svgUrl;
+                dl.download = `${(self.options.name || 'slate')
+                  .replace(/[^a-z0-9]/gi, '_')
+                  .toLowerCase()}_${self?.shareId}.svg`;
+                dl.click();
+              } else if (opts?.asBinary && !opts.isPNG) {
+                cb(svgBlob);
+              } else {
+                cb({ svg, orient: _orient });
+              }
+              _div.remove();
+            }
+          );
+        }, 100);
+      });
     }
     execute();
   }
@@ -681,6 +708,34 @@ export default class slate extends base {
   autoLoadFilters() {
     const self = this;
     // if auto filter is on, then these filters become immediately availalbe in their default form
+    if (self.filters.availableAnimations) {
+      Object.keys(self.filters.availableAnimations).forEach((a) => {
+        self.paper.def({
+          tag: 'style',
+          type: 'text/css',
+          id: `animation_${self.options.id}_${a}`,
+          inside: [self.filters.availableAnimations[a].css],
+        });
+      });
+      // const allCss = Object.values(self.filters.availableAnimations)
+      //   .map((a) => a.css)
+      //   .join(' ');
+      // // always add style tag to the <defs> for font embedding
+      // self.paper.def({
+      //   tag: 'style',
+      //   type: 'text/css',
+      //   id: `${self.options.isEmbedding ? 'embedded_' : ''}animationStyles_${self.options.id}`,
+      //   inside: [allCss],
+      // });
+    }
+    self.paper.def({
+      tag: 'style',
+      type: 'text/css',
+      id: `sb-txt-wrap`,
+      inside: [
+        `.sb-txt-wrap { transform-box: fill-box; transform-origin: top; }`,
+      ],
+    });
     if (
       self.options.autoEnableDefaultFilters &&
       self.filters?.availableFilters
