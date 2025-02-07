@@ -9378,8 +9378,8 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             lineEffect: '',
             lineType: 'bezier',
             lineCurveType: 'cubic',
-            lineCurviness: 0.2,
-            lineWidth: 5,
+            lineCurviness: 0.1,
+            lineWidth: 6,
             opacity: 1,
             textOpacity: 1,
             showDelete: true,
@@ -9811,7 +9811,6 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                                 if (filter.deferAnimations) {
                                     // id-animationName-deferred
                                     self[filter.apply].attr(`data-defer-animation`, rotatedAnimation.class);
-                                    console.log('removing class from node', self.options.id, self[filter.apply].attr('class'));
                                     self[filter.apply].attr('class', '');
                                 } else requestAnimationFrame(()=>{
                                     applyFiltersOrAnimation(filter.apply, rotatedAnimation.class);
@@ -11446,7 +11445,6 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
             if (self.slate.options.debugMode) nd.debugPosition();
             if (!self.slate.keyboardActive) nd.editor.setTextOffset();
             requestAnimationFrame(()=>{
-                console.log('reapplying classes', self.existingTextClasses, self.existingVectClasses);
                 nd.text.node.setAttribute('class', nd.existingTextClasses);
                 nd.vect.node.setAttribute('class', nd.existingVectClasses);
             });
@@ -11697,6 +11695,7 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
     }
     addAssociation(_node, assocPkg) {
         assocPkg = assocPkg || {};
+        console.log('addAssociation', _node, assocPkg);
         // make sure this doesn't already exist
         let _connection = this.associations.find((a1)=>a1.child.options.id === _node.options.id);
         if (!_connection) {
