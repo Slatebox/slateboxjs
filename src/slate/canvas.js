@@ -622,9 +622,9 @@ export default class canvas {
           if (self.slate.events.onBase64ImageRequested) {
             // server side gen
             let imageType = 'png';
-            if (i.indexOf('jpg')) {
+            if (i.endsWith('jpg')) {
               imageType = 'jpeg';
-            } else if (i.indexOf('gif')) {
+            } else if (i.endsWith('gif')) {
               imageType = 'gif';
             }
             self.slate.events.onBase64ImageRequested(

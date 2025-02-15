@@ -91,7 +91,7 @@ export default class filters {
     self.availableAnimations = {
       mystery: {
         id: 'sb-mystery',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Mystery',
         css: `
           .mystery {
@@ -118,7 +118,7 @@ export default class filters {
       },
       fadeSlideUp: {
         id: 'sb-fade-slide-up',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Fade up',
         css: `
           .fadeSlideUp {
@@ -141,7 +141,7 @@ export default class filters {
       },
       fadeSlideDown: {
         id: 'sb-fade-slide-down',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Fade down',
         css: `
           .fadeSlideDown {
@@ -164,7 +164,7 @@ export default class filters {
       },
       bumpUpIn: {
         id: 'sb-bump-up-in',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Bump Up',
         css: `
           .bumpUpIn {
@@ -195,7 +195,7 @@ export default class filters {
       },
       bumpDownIn: {
         id: 'sb-bump-down-in',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Bump Down',
         css: `
           .bumpDownIn {
@@ -226,7 +226,7 @@ export default class filters {
       },
       impactSlide: {
         id: 'sb-impact-slide',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Impact Slide',
         css: `
           .impactSlide {
@@ -259,7 +259,7 @@ export default class filters {
       },
       powerSmash: {
         id: 'sb-power-smash',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Power Smash',
         css: `
           .powerSmash {
@@ -295,7 +295,7 @@ export default class filters {
       },
       torqueWarp: {
         id: 'sb-torque-warp',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Torque Warp',
         css: `
           .torqueWarp {
@@ -331,7 +331,7 @@ export default class filters {
       },
       unroll: {
         id: 'sb-unroll',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Unroll',
         css: `
           .unroll {
@@ -367,7 +367,7 @@ export default class filters {
       },
       smoke: {
         id: 'sb-smoke',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Smoke',
         disablesFilter: true,
         css: `
@@ -423,7 +423,7 @@ export default class filters {
       },
       fractured: {
         id: 'sb-fractured',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Fractured',
         css: `
           .fractured {
@@ -458,7 +458,7 @@ export default class filters {
       },
       flux: {
         id: 'sb-flux',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Flux',
         css: `
           .flux {
@@ -493,7 +493,7 @@ export default class filters {
       },
       springy: {
         id: 'sb-springy',
-        types: ['text'],
+        types: ['text', 'vect'],
         display: 'Springy',
         css: `
           .springy {
@@ -972,66 +972,6 @@ export default class filters {
               in2: 'f3',
               result: 'f6',
             },
-          },
-        ],
-      },
-      rollWaves: {
-        display: 'roll waves',
-        types: ['text'],
-        attrs: {
-          filterUnits: 'objectBoundingBox',
-          primitiveUnits: 'objectBoundingBox',
-          x: '0',
-          y: '0',
-          width: '1',
-          height: '1',
-        },
-        animated: true,
-        filters: [
-          {
-            type: 'feTurbulence',
-            attrs: {
-              type: 'fractalNoise',
-              baseFrequency: '0.005 0.2', // Wider horizontal waves
-              numOctaves: '3', // More complex pattern
-              result: 'noise',
-            },
-            nested: [
-              {
-                type: 'animate',
-                attrs: {
-                  attributeName: 'baseFrequency',
-                  values: '0.005 0.2;0.005 0.4;0.005 0.2', // Vertical wave motion
-                  dur: '3s',
-                  repeatCount: 'indefinite',
-                  calcMode: 'spline',
-                  keySplines: '0.4 0 0.2 1',
-                },
-              },
-            ],
-          },
-          {
-            type: 'feDisplacementMap',
-            attrs: {
-              in: 'SourceGraphic',
-              in2: 'noise',
-              scale: '120', // Dramatically increased displacement
-              xChannelSelector: 'G', // Use green channel for vertical displacement
-              yChannelSelector: 'G',
-            },
-            nested: [
-              {
-                type: 'animate',
-                attrs: {
-                  attributeName: 'scale',
-                  values: '120;80;120', // Pulse effect
-                  dur: '1s',
-                  repeatCount: 'indefinite',
-                  calcMode: 'spline',
-                  keySplines: '0.4 0 0.6 1',
-                },
-              },
-            ],
           },
         ],
       },

@@ -333,23 +333,104 @@ export default class slate extends base {
         backgroundOnly: ropts?.backgroundOnly,
       },
       (opts) => {
-        function makeTransparent(ctx, alpha, cnvs) {
-          // get the image data object
+        function guessBackgroundColor(ctx, cnvs, tolerance = 10) {
+          const width = cnvs.width;
+          const height = cnvs.height;
+          const samples = [];
+          // Determine a sampling step; adjust the density as needed.
+          const step = Math.max(
+            1,
+            Math.floor(width / 50),
+            Math.floor(height / 50)
+          );
+
+          // Sample pixels along the top and bottom edges.
+          for (let x = 0; x < width; x += step) {
+            const topPixel = ctx.getImageData(x, 0, 1, 1).data;
+            const bottomPixel = ctx.getImageData(x, height - 1, 1, 1).data;
+            samples.push([topPixel[0], topPixel[1], topPixel[2]]);
+            samples.push([bottomPixel[0], bottomPixel[1], bottomPixel[2]]);
+          }
+
+          // Sample pixels along the left and right edges (excluding the already-sampled corners).
+          for (let y = step; y < height - step; y += step) {
+            const leftPixel = ctx.getImageData(0, y, 1, 1).data;
+            const rightPixel = ctx.getImageData(width - 1, y, 1, 1).data;
+            samples.push([leftPixel[0], leftPixel[1], leftPixel[2]]);
+            samples.push([rightPixel[0], rightPixel[1], rightPixel[2]]);
+          }
+
+          // Group similar colors based on the given tolerance.
+          const groups = [];
+          samples.forEach((color) => {
+            let foundGroup = false;
+            for (const group of groups) {
+              const [r, g, b] = group.color;
+              if (
+                Math.abs(color[0] - r) <= tolerance &&
+                Math.abs(color[1] - g) <= tolerance &&
+                Math.abs(color[2] - b) <= tolerance
+              ) {
+                group.sum[0] += color[0];
+                group.sum[1] += color[1];
+                group.sum[2] += color[2];
+                group.count++;
+                foundGroup = true;
+                break;
+              }
+            }
+            if (!foundGroup) {
+              groups.push({
+                color: color.slice(),
+                sum: color.slice(),
+                count: 1,
+              });
+            }
+          });
+
+          // Find the group with the highest count (common background candidate).
+          let bestGroup = groups[0];
+          groups.forEach((group) => {
+            if (group.count > bestGroup.count) {
+              bestGroup = group;
+            }
+          });
+
+          // Average the colors in the best group.
+          const avgR = Math.floor(bestGroup.sum[0] / bestGroup.count);
+          const avgG = Math.floor(bestGroup.sum[1] / bestGroup.count);
+          const avgB = Math.floor(bestGroup.sum[2] / bestGroup.count);
+
+          return [avgR, avgG, avgB];
+        }
+
+        function makeTransparent(ctx, targetAlpha, cnvs) {
+          // Instead of assuming (0,0) is representative of the background color,
+          // sample multiple pixels along the canvas border.
+          const tolerance = 10; // Adjust tolerance as needed.
+          const [bgR, bgG, bgB] = guessBackgroundColor(ctx, cnvs, tolerance);
+
+          // Get the full image data.
           const imageData = ctx.getImageData(0, 0, cnvs.width, cnvs.height);
           const data = imageData.data;
-          // if it is a background defined of #f3f3f3 then it can be transparent here
-          for (let ix = 3; ix < data.length; ix += 4) {
-            const isBg = [data[ix - 3], data[ix - 2], data[ix - 1]].every(
-              (v) => v === 243
-            );
-            // console.log('isBg', alpha, isBg, data[ix - 3])
+
+          // Loop through every pixel (each pixel has 4 values: r, g, b, a)
+          for (let i = 0; i < data.length; i += 4) {
+            const pixelR = data[i],
+              pixelG = data[i + 1],
+              pixelB = data[i + 2];
+
+            // If this pixel is close to the estimated background color, update its alpha.
             if (
-              [data[ix - 3], data[ix - 2], data[ix - 1]].every((v) => v === 243)
+              Math.abs(pixelR - bgR) <= tolerance &&
+              Math.abs(pixelG - bgG) <= tolerance &&
+              Math.abs(pixelB - bgB) <= tolerance
             ) {
-              data[ix] = alpha;
+              data[i + 3] = targetAlpha;
             }
           }
-          // and put the imagedata back to the canvas
+
+          // Write back the modified image data to the canvas.
           ctx.putImageData(imageData, 0, 0);
         }
 

@@ -43,9 +43,6 @@ export default class controller {
       10
     );
 
-    console.log('widthZoomPercent', widthZoomPercent);
-    console.log('heightZoomPercent', heightZoomPercent);
-
     // zoom canvas
     this.slate.canvas.zoom({
       dur: opts.dur,

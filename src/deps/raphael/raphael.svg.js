@@ -573,6 +573,7 @@ export const Raphael = (function () {
                         ? o.imageOrigHeight || bbox.height
                         : h,
                     });
+
                     delete o.imageOrigHeight;
                     delete o.imageOrigWidth;
                     tempPath.remove();

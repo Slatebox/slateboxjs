@@ -7037,7 +7037,6 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         if (this.removed) return this;
         // SLATEBOX - add ability to add data- attributes to elements
         if (name?.startsWith?.('data-')) {
-            console.log('data-', name, value);
             this.node.setAttribute(name, value);
             return this;
         }
@@ -7198,7 +7197,6 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
         return res;
     };
     (0, $c453c098b23bc46d$export$db202ddc8be9136)._engine.g = function(svg, gAttrs) {
-        console.log('svg gAttrs', svg, gAttrs);
         const el = $('g');
         svg.canvas && svg.canvas.appendChild(el);
         const res = new Element(el, svg);
@@ -7229,7 +7227,6 @@ const $65a92514e25c9f85$export$508faed300ccdfb = function() {
             ...res.attrs,
             ...gAttrs
         };
-        console.log('attrs to add to g', gAttrs, attrs);
         $(el, attrs);
         return res;
     };
@@ -9192,8 +9189,8 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
                 if (self.slate.events.onBase64ImageRequested) {
                     // server side gen
                     let imageType = 'png';
-                    if (i.indexOf('jpg')) imageType = 'jpeg';
-                    else if (i.indexOf('gif')) imageType = 'gif';
+                    if (i.endsWith('jpg')) imageType = 'jpeg';
+                    else if (i.endsWith('gif')) imageType = 'gif';
                     self.slate.events.onBase64ImageRequested(i, imageType, (err, res)=>{
                         if (err) console.error('Unable to retrieve base64 from image', err);
                         else {
@@ -11695,7 +11692,6 @@ class $f9b2caafbe71c9e4$export$2e2bcd8739ae039 {
     }
     addAssociation(_node, assocPkg) {
         assocPkg = assocPkg || {};
-        console.log('addAssociation', _node, assocPkg);
         // make sure this doesn't already exist
         let _connection = this.associations.find((a1)=>a1.child.options.id === _node.options.id);
         if (!_connection) {
@@ -11955,7 +11951,6 @@ class $b7b1bd055547e2ce$export$2e2bcd8739ae039 {
         const transformString = self.node.getTransformString(rotationContext);
         self.node.vect.transform(transformString);
         // requestAnimationFrame(() => {
-        console.log('setting text offset');
         self.node.text.transform(transformString);
         // self.node.editor.setTextOffset();
         self.node.editor.setTextOffset();
@@ -12991,7 +12986,12 @@ class $5eeb98f61b0ae057$export$2e2bcd8739ae039 {
         let transImageWidth;
         const origImageRatio = this.node.options.imageOrigWidth / this.node.options.imageOrigHeight;
         const noRotationPath = this.slate.paper.path(this.node.vect.attr('path'));
-        const noRotationBB = noRotationPath.getBBox();
+        let noRotationBB = noRotationPath.getBBox();
+        if (noRotationBB.width <= 25) {
+            console.log('vect is very small - using node dimensions', noRotationBB, this.node.options.width, this.node.options.height);
+            noRotationBB.width = this.node.options.width;
+            noRotationBB.height = this.node.options.height;
+        }
         const nodeRatio = noRotationBB.width / noRotationBB.height;
         if (origImageRatio < nodeRatio) {
             transImageWidth = noRotationBB.width;
@@ -13025,10 +13025,8 @@ class $5eeb98f61b0ae057$export$2e2bcd8739ae039 {
         this.node.options.origImage = {
             w: w,
             h: h
-        } // needed for image copying if done later
-        ;
-        this.node.options.imageOrigHeight = h // for scaling node to image size purposes; this value should never be changed
-        ;
+        }; // needed for image copying if done later
+        this.node.options.imageOrigHeight = h; // for scaling node to image size purposes; this value should never be changed
         this.node.options.imageOrigWidth = w;
         this.node.options['fill-opacity'] = 1;
         const sz = {
@@ -13041,8 +13039,7 @@ class $5eeb98f61b0ae057$export$2e2bcd8739ae039 {
         this.node.vect.imageOrigWidth = targetImageDimensions.width;
         this.node.vect.attr({
             'fill-opacity': 1
-        }) // IMPORTANT: for some reason Raphael breaks when setting 'sz' object and this at the same time
-        ;
+        }); // IMPORTANT: for some reason Raphael breaks when setting 'sz' object and this at the same time
         this.node.vect.attr(sz);
         const rotatedBB = this.node.vect.getBBox();
         this.node.options.width = rotatedBB.width;
@@ -15516,8 +15513,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
         const orient = this.slate.getOrientation(opts.nodes);
         const d = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).getDimensions(this.slate.options.container);
         const r = this.slate.options.viewPort.zoom.r || 1;
-        const widthZoomPercent = parseInt(d.width / (orient.width / r) * 100, 10) // division by r converts it back from the scaled version
-        ;
+        const widthZoomPercent = parseInt(d.width / (orient.width / r) * 100, 10); // division by r converts it back from the scaled version
         const heightZoomPercent = parseInt(d.height / (orient.height / r) * 100, 10);
         // zoom canvas
         this.slate.canvas.zoom({
@@ -15644,8 +15640,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
     }
     pulse(opts) {
         let cycles = 0;
-        let dur = 10000 // slow
-        ;
+        let dur = 10000; // slow
         let czp;
         let zp;
         function calc() {
@@ -15653,8 +15648,7 @@ class $a8686d78200754a9$export$2e2bcd8739ae039 {
             zp = {
                 in: czp + 5,
                 out: czp - 5
-            } // nuance;
-            ;
+            }; // nuance;
             if (opts) {
                 switch(opts.speed){
                     case 'fast':
@@ -16354,7 +16348,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             mystery: {
                 id: 'sb-mystery',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Mystery',
                 css: `
@@ -16383,7 +16378,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             fadeSlideUp: {
                 id: 'sb-fade-slide-up',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Fade up',
                 css: `
@@ -16408,7 +16404,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             fadeSlideDown: {
                 id: 'sb-fade-slide-down',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Fade down',
                 css: `
@@ -16433,7 +16430,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             bumpUpIn: {
                 id: 'sb-bump-up-in',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Bump Up',
                 css: `
@@ -16466,7 +16464,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             bumpDownIn: {
                 id: 'sb-bump-down-in',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Bump Down',
                 css: `
@@ -16499,7 +16498,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             impactSlide: {
                 id: 'sb-impact-slide',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Impact Slide',
                 css: `
@@ -16534,7 +16534,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             powerSmash: {
                 id: 'sb-power-smash',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Power Smash',
                 css: `
@@ -16572,7 +16573,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             torqueWarp: {
                 id: 'sb-torque-warp',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Torque Warp',
                 css: `
@@ -16610,7 +16612,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             unroll: {
                 id: 'sb-unroll',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Unroll',
                 css: `
@@ -16648,7 +16651,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             smoke: {
                 id: 'sb-smoke',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Smoke',
                 disablesFilter: true,
@@ -16706,7 +16710,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             fractured: {
                 id: 'sb-fractured',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Fractured',
                 css: `
@@ -16743,7 +16748,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             flux: {
                 id: 'sb-flux',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Flux',
                 css: `
@@ -16780,7 +16786,8 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
             springy: {
                 id: 'sb-springy',
                 types: [
-                    'text'
+                    'text',
+                    'vect'
                 ],
                 display: 'Springy',
                 css: `
@@ -17352,68 +17359,6 @@ class $5e710bc15c419cd8$export$2e2bcd8739ae039 {
                         }
                     }
                 ]
-            },
-            rollWaves: {
-                display: 'roll waves',
-                types: [
-                    'text'
-                ],
-                attrs: {
-                    filterUnits: 'objectBoundingBox',
-                    primitiveUnits: 'objectBoundingBox',
-                    x: '0',
-                    y: '0',
-                    width: '1',
-                    height: '1'
-                },
-                animated: true,
-                filters: [
-                    {
-                        type: 'feTurbulence',
-                        attrs: {
-                            type: 'fractalNoise',
-                            baseFrequency: '0.005 0.2',
-                            numOctaves: '3',
-                            result: 'noise'
-                        },
-                        nested: [
-                            {
-                                type: 'animate',
-                                attrs: {
-                                    attributeName: 'baseFrequency',
-                                    values: '0.005 0.2;0.005 0.4;0.005 0.2',
-                                    dur: '3s',
-                                    repeatCount: 'indefinite',
-                                    calcMode: 'spline',
-                                    keySplines: '0.4 0 0.2 1'
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        type: 'feDisplacementMap',
-                        attrs: {
-                            in: 'SourceGraphic',
-                            in2: 'noise',
-                            scale: '120',
-                            xChannelSelector: 'G',
-                            yChannelSelector: 'G'
-                        },
-                        nested: [
-                            {
-                                type: 'animate',
-                                attrs: {
-                                    attributeName: 'scale',
-                                    values: '120;80;120',
-                                    dur: '1s',
-                                    repeatCount: 'indefinite',
-                                    calcMode: 'spline',
-                                    keySplines: '0.4 0 0.6 1'
-                                }
-                            }
-                        ]
-                    }
-                ]
             }
         };
     }
@@ -17691,25 +17636,93 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             useDataImageUrls: true,
             backgroundOnly: ropts?.backgroundOnly
         }, (opts)=>{
-            function makeTransparent(ctx, alpha, cnvs) {
-                // get the image data object
+            function guessBackgroundColor(ctx, cnvs, tolerance = 10) {
+                const width = cnvs.width;
+                const height = cnvs.height;
+                const samples = [];
+                // Determine a sampling step; adjust the density as needed.
+                const step = Math.max(1, Math.floor(width / 50), Math.floor(height / 50));
+                // Sample pixels along the top and bottom edges.
+                for(let x = 0; x < width; x += step){
+                    const topPixel = ctx.getImageData(x, 0, 1, 1).data;
+                    const bottomPixel = ctx.getImageData(x, height - 1, 1, 1).data;
+                    samples.push([
+                        topPixel[0],
+                        topPixel[1],
+                        topPixel[2]
+                    ]);
+                    samples.push([
+                        bottomPixel[0],
+                        bottomPixel[1],
+                        bottomPixel[2]
+                    ]);
+                }
+                // Sample pixels along the left and right edges (excluding the already-sampled corners).
+                for(let y = step; y < height - step; y += step){
+                    const leftPixel = ctx.getImageData(0, y, 1, 1).data;
+                    const rightPixel = ctx.getImageData(width - 1, y, 1, 1).data;
+                    samples.push([
+                        leftPixel[0],
+                        leftPixel[1],
+                        leftPixel[2]
+                    ]);
+                    samples.push([
+                        rightPixel[0],
+                        rightPixel[1],
+                        rightPixel[2]
+                    ]);
+                }
+                // Group similar colors based on the given tolerance.
+                const groups = [];
+                samples.forEach((color)=>{
+                    let foundGroup = false;
+                    for (const group of groups){
+                        const [r, g, b] = group.color;
+                        if (Math.abs(color[0] - r) <= tolerance && Math.abs(color[1] - g) <= tolerance && Math.abs(color[2] - b) <= tolerance) {
+                            group.sum[0] += color[0];
+                            group.sum[1] += color[1];
+                            group.sum[2] += color[2];
+                            group.count++;
+                            foundGroup = true;
+                            break;
+                        }
+                    }
+                    if (!foundGroup) groups.push({
+                        color: color.slice(),
+                        sum: color.slice(),
+                        count: 1
+                    });
+                });
+                // Find the group with the highest count (common background candidate).
+                let bestGroup = groups[0];
+                groups.forEach((group)=>{
+                    if (group.count > bestGroup.count) bestGroup = group;
+                });
+                // Average the colors in the best group.
+                const avgR = Math.floor(bestGroup.sum[0] / bestGroup.count);
+                const avgG = Math.floor(bestGroup.sum[1] / bestGroup.count);
+                const avgB = Math.floor(bestGroup.sum[2] / bestGroup.count);
+                return [
+                    avgR,
+                    avgG,
+                    avgB
+                ];
+            }
+            function makeTransparent(ctx, targetAlpha, cnvs) {
+                // Instead of assuming (0,0) is representative of the background color,
+                // sample multiple pixels along the canvas border.
+                const tolerance = 10; // Adjust tolerance as needed.
+                const [bgR, bgG, bgB] = guessBackgroundColor(ctx, cnvs, tolerance);
+                // Get the full image data.
                 const imageData = ctx.getImageData(0, 0, cnvs.width, cnvs.height);
                 const data = imageData.data;
-                // if it is a background defined of #f3f3f3 then it can be transparent here
-                for(let ix = 3; ix < data.length; ix += 4){
-                    const isBg = [
-                        data[ix - 3],
-                        data[ix - 2],
-                        data[ix - 1]
-                    ].every((v)=>v === 243);
-                    // console.log('isBg', alpha, isBg, data[ix - 3])
-                    if ([
-                        data[ix - 3],
-                        data[ix - 2],
-                        data[ix - 1]
-                    ].every((v)=>v === 243)) data[ix] = alpha;
+                // Loop through every pixel (each pixel has 4 values: r, g, b, a)
+                for(let i = 0; i < data.length; i += 4){
+                    const pixelR = data[i], pixelG = data[i + 1], pixelB = data[i + 2];
+                    // If this pixel is close to the estimated background color, update its alpha.
+                    if (Math.abs(pixelR - bgR) <= tolerance && Math.abs(pixelG - bgG) <= tolerance && Math.abs(pixelB - bgB) <= tolerance) data[i + 3] = targetAlpha;
                 }
-                // and put the imagedata back to the canvas
+                // Write back the modified image data to the canvas.
                 ctx.putImageData(imageData, 0, 0);
             }
             if (self.events.onCreateImage) self.events.onCreateImage({
@@ -17939,7 +17952,6 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             bg.toBack();
             // finally go through and apply animations
             requestAnimationFrame(()=>{
-                console.log('applying animations', _exportCanvas.nodes.allNodes);
                 _exportCanvas.nodes.allNodes.forEach((n)=>{
                     if (n.options.animations.text) n.applyFilters({
                         id: n.options.animations.text,
