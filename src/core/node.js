@@ -361,13 +361,19 @@ export default class node extends base {
   }
 
   toBack() {
+    const node = this;
+    node.slate.nodes.allNodes.forEach((otherNode) => {
+      const childAssocs = otherNode.relationships.associations.filter(
+        (assoc) => assoc.child.options.id === node.options.id
+      );
+      childAssocs.forEach((assoc) => assoc.line.toFront());
+    });
     this.link.toBack();
     this.text.toBack();
     this.vect.toBack();
     this.relationships?.associations?.forEach((assoc) => {
       assoc.line.toBack();
     });
-
     this.slate?.grid.toBack();
     this.slate?.canvas.bgToBack();
     this.slate.reorderNodes();

@@ -725,10 +725,9 @@ export default class slate extends base {
           .rect(0, 0, _orient.width, _orient.height)
           .attr({
             fill: _resizedSlate.options.containerStyle.backgroundColor,
-            stroke: 'none',
           });
       }
-      bg.toBack();
+      bg?.toBack();
 
       // finally go through and apply animations
       requestAnimationFrame(() => {
@@ -753,6 +752,27 @@ export default class slate extends base {
             });
           }
         });
+
+        // if (opts.drawBorder) {
+        //   const orient = _exportCanvas.getOrientation();
+        //   // Create inner fill rectangle first
+        //   const innerRect = _exportCanvas.paper.rect(
+        //     0,
+        //     0,
+        //     orient.width,
+        //     orient.height
+        //   );
+        //   setTimeout(() => {
+        //     innerRect
+        //       .attr({
+        //         fill: '#fff',
+        //         'fill-opacity': opts.internalWhiteOpacity || 0.1,
+        //         stroke: '#000',
+        //         'stroke-width': 10,
+        //       })
+        //       .toBack();
+        //   }, 100);
+        // }
         // the timeout is critical to ensure that the SVG canvas settles
         // and the url-fill images appear.
         setTimeout(async () => {
@@ -780,7 +800,7 @@ export default class slate extends base {
               _div.remove();
             }
           );
-        }, 100);
+        }, 200);
       });
     }
     execute();

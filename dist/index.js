@@ -9674,6 +9674,11 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         node.slate.reorderNodes();
     }
     toBack() {
+        const node = this;
+        node.slate.nodes.allNodes.forEach((otherNode)=>{
+            const childAssocs = otherNode.relationships.associations.filter((assoc)=>assoc.child.options.id === node.options.id);
+            childAssocs.forEach((assoc)=>assoc.line.toFront());
+        });
         this.link.toBack();
         this.text.toBack();
         this.vect.toBack();
@@ -17946,10 +17951,9 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 const ih = Math.max(bh, _orient.height);
                 bg = _exportCanvas.paper.image(_resizedSlate.options.containerStyle.backgroundImage, 0, 0, iw, ih);
             } else bg = _exportCanvas.paper.rect(0, 0, _orient.width, _orient.height).attr({
-                fill: _resizedSlate.options.containerStyle.backgroundColor,
-                stroke: 'none'
+                fill: _resizedSlate.options.containerStyle.backgroundColor
             });
-            bg.toBack();
+            bg?.toBack();
             // finally go through and apply animations
             requestAnimationFrame(()=>{
                 _exportCanvas.nodes.allNodes.forEach((n)=>{
@@ -17969,6 +17973,26 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                         });
                     }
                 });
+                // if (opts.drawBorder) {
+                //   const orient = _exportCanvas.getOrientation();
+                //   // Create inner fill rectangle first
+                //   const innerRect = _exportCanvas.paper.rect(
+                //     0,
+                //     0,
+                //     orient.width,
+                //     orient.height
+                //   );
+                //   setTimeout(() => {
+                //     innerRect
+                //       .attr({
+                //         fill: '#fff',
+                //         'fill-opacity': opts.internalWhiteOpacity || 0.1,
+                //         stroke: '#000',
+                //         'stroke-width': 10,
+                //       })
+                //       .toBack();
+                //   }, 100);
+                // }
                 // the timeout is critical to ensure that the SVG canvas settles
                 // and the url-fill images appear.
                 setTimeout(async ()=>{
@@ -17995,7 +18019,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                         });
                         _div.remove();
                     });
-                }, 100);
+                }, 200);
             });
         }
         execute();
