@@ -29,10 +29,9 @@ export default class canvas {
     self.imageFolder = null;
     self.dken = null;
     self.eve = {
-      init: ['onmousedown', 'ontouchstart'],
-      drag: ['onmousemove', 'ontouchmove'],
-      up: ['onmouseup', 'ontouchend', 'onmouseout'],
-      gest: ['ongesturestart', 'ongesturechange', 'ongestureend'],
+      init: ['onmousedown'],
+      drag: ['onmousemove'],
+      up: ['onmouseup', 'onmouseout'],
     };
   }
 
@@ -113,9 +112,9 @@ export default class canvas {
             if (xy.allTouches && xy.allTouches.length > 1) {
               slate.options.lastTouches = xy.allTouches;
             }
-
-            if (self.status)
+            if (self.status) {
               self.status.innerHTML = `${Math.abs(xy.x)}, ${Math.abs(xy.y)}`;
+            }
             self.internal.style.left = `${xy.x}px`;
             self.internal.style.top = `${xy.y}px`;
           }

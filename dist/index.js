@@ -8703,22 +8703,14 @@ class $4e57e1a492ad5f5b$export$2e2bcd8739ae039 {
         self.dken = null;
         self.eve = {
             init: [
-                'onmousedown',
-                'ontouchstart'
+                'onmousedown'
             ],
             drag: [
-                'onmousemove',
-                'ontouchmove'
+                'onmousemove'
             ],
             up: [
                 'onmouseup',
-                'ontouchend',
                 'onmouseout'
-            ],
-            gest: [
-                'ongesturestart',
-                'ongesturechange',
-                'ongestureend'
             ]
         };
     }
@@ -15436,6 +15428,23 @@ class $ae70ec667a6e4b7e$export$2e2bcd8739ae039 {
         const wheelGestures = (0, $5OpyM$WheelGestures)({
             momentum: true
         });
+        // Add touch event listeners for pinch zoom
+        let initialDistance = 0;
+        console.log('setting up touchstart', self.slate.canvas.internal);
+        self.slate.canvas.internal.addEventListener('touchstart', (e)=>{
+            console.log('touchstart', e);
+            if (e.touches.length === 2) initialDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        });
+        self.slate.canvas.internal.addEventListener('touchmove', (e)=>{
+            console.log('touchmove', e);
+            if (e.touches.length === 2) {
+                const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                const scale = currentDistance / initialDistance;
+                // Adjust zoom based on your needs
+                self.slate.zoomSlider.set(self.slate.options.viewPort.zoom.w * scale);
+                e.preventDefault(); // Prevent default browser pinch zoom
+            }
+        });
         // find and observe the element the user can interact with
         wheelGestures.observe(self.slate.canvas.internal);
         // function scale() {
@@ -15450,10 +15459,15 @@ class $ae70ec667a6e4b7e$export$2e2bcd8739ae039 {
         let start = {};
         wheelGestures.on('wheel', (e)=>{
             if (self.slate.options.allowDrag) {
-                if (e.event.ctrlKey) ;
-                else {
-                    const deltaX = e.event.deltaX * 0.8 // .5 is the modifier to slow self down a bit
-                    ;
+                if (e.event.ctrlKey) {
+                    // Simple zoom calculation
+                    const delta = -e.event.deltaY * 0.01;
+                    const currentZoom = self.slate.options.viewPort.zoom.w;
+                    const newZoom = currentZoom * (1 + delta);
+                    if (newZoom > 100 && newZoom < 200000) self.slate.zoomSlider.set(newZoom);
+                    if (e.isEnding) self.slate.birdsEye?.refresh(true);
+                } else {
+                    const deltaX = e.event.deltaX * 0.8; // .5 is the modifier to slow self down a bit
                     const deltaY = e.event.deltaY * 0.8;
                     if (e.isStart) {
                         start = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).positionedOffset(self.slate.canvas.internal);
