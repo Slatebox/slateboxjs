@@ -23,9 +23,7 @@ export default class inertia {
 
     // Add touch event listeners for pinch zoom
     let initialDistance = 0;
-    console.log('setting up touchstart', self.slate.canvas.internal);
     self.slate.canvas.internal.addEventListener('touchstart', (e) => {
-      console.log('touchstart', e);
       if (e.touches.length === 2) {
         initialDistance = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
@@ -35,7 +33,6 @@ export default class inertia {
     });
 
     self.slate.canvas.internal.addEventListener('touchmove', (e) => {
-      console.log('touchmove', e);
       if (e.touches.length === 2) {
         const currentDistance = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,

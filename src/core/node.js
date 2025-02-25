@@ -95,6 +95,7 @@ export default class node extends base {
         textToChildNodes: '',
         textToImage: '',
       },
+      pinUnderneath: false,
     };
 
     Object.assign(this.options, options);

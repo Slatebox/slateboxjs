@@ -9432,7 +9432,8 @@ class $f3f671e190122470$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             ai: {
                 textToChildNodes: '',
                 textToImage: ''
-            }
+            },
+            pinUnderneath: false
         };
         Object.assign(this.options, options);
         if (this.options.name === '') this.options.name = this.options.id;
@@ -15430,13 +15431,10 @@ class $ae70ec667a6e4b7e$export$2e2bcd8739ae039 {
         });
         // Add touch event listeners for pinch zoom
         let initialDistance = 0;
-        console.log('setting up touchstart', self.slate.canvas.internal);
         self.slate.canvas.internal.addEventListener('touchstart', (e)=>{
-            console.log('touchstart', e);
             if (e.touches.length === 2) initialDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         });
         self.slate.canvas.internal.addEventListener('touchmove', (e)=>{
-            console.log('touchmove', e);
             if (e.touches.length === 2) {
                 const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                 const scale = currentDistance / initialDistance;
@@ -17823,6 +17821,604 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 resolve(base64);
             });
         });
+    }
+    scaleProportionateToSlateFit({ node: node, path: path, orientData: orientData }) {
+        const self = this;
+        const orient = orientData || self.getOrientation();
+        const pathBBox = path ? (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).getBBox({
+            path: path
+        }) : {
+            width: node.options.width,
+            height: node.options.height,
+            cx: node.options.xPos + node.options.width / 2,
+            cy: node.options.yPos + node.options.height / 2
+        };
+        // console.log('pathBBox', pathBBox, path);
+        const pathToUse = path || node.options.vectorPath;
+        // Calculate aspect ratios
+        const nounRatio = pathBBox.width / pathBBox.height;
+        const orientRatio = orient.width / orient.height;
+        // console.log('nounRatio', nounRatio);
+        // console.log('orientRatio', orientRatio);
+        // Determine uniform scale: use the limiting dimension so that the scaled node fits nicely.
+        let uniformScale;
+        if (orientRatio > nounRatio) // If the orient area is wider than the node, base scale on height.
+        uniformScale = orient.height / pathBBox.height;
+        else // Otherwise, use the width as the limiter.
+        uniformScale = orient.width / pathBBox.width;
+        // console.log('uniformScale', uniformScale);
+        // console.log('orient', orient);
+        // console.log('pathBBox', pathBBox);
+        // Calculate the translation such that the uniformly scaled node center aligns with the target center.
+        const targetCenterX = orient.left + orient.width / 2;
+        const targetCenterY = orient.top + orient.height / 2;
+        const moveX = targetCenterX - pathBBox.cx;
+        const moveY = targetCenterY - pathBBox.cy;
+        const transformString = `t${moveX},${moveY} s${uniformScale},${uniformScale}`;
+        const newPath = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039)._transformPath(pathToUse, transformString);
+        const ret = {
+            // Return the target center coordinates directly
+            cx: targetCenterX,
+            cy: targetCenterY,
+            adjustedVectorPath: newPath,
+            width: pathBBox.width * uniformScale,
+            height: pathBBox.height * uniformScale
+        };
+        // console.log('calculated scale proportions', ret);
+        return ret;
+    }
+    ensureBGNodesMatchSlateProportions(nodeIds = []) {
+        const self = this;
+        const orient = self.getOrientation();
+        const backgroundNodes = self.nodes.allNodes.filter((n)=>n.options.pinUnderneath && (nodeIds.length === 0 || nodeIds.includes(n.options.id)));
+        for (const node of backgroundNodes){
+            const { cx: cx, cy: cy, adjustedVectorPath: adjustedVectorPath, width: width, height: height } = self.scaleProportionateToSlateFit({
+                node: node,
+                orientData: orient
+            });
+            node.options.xPos = cx;
+            node.options.yPos = cy;
+            node.options.width = width;
+            node.options.height = height;
+            node.options.vectorPath = adjustedVectorPath;
+            requestAnimationFrame(()=>{
+                node.vect.attr({
+                    path: adjustedVectorPath
+                });
+            });
+        }
+    }
+    applyLayout(allMoves, cb) {
+        const self = this;
+        // console.log('received layout', layout)
+        /*
+    [
+      {
+        id: "010C580B",
+        x: "279.5",
+        y: "322"
+      },
+      {
+        id: "ad79211ead0a",
+        x: "183.5",
+        y: "186"
+      }
+    ]
+    */ let batchSize = 6;
+        if (self.nodes.allNodes.length > 16) batchSize = 1;
+        const batches = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).chunk((0, $5OpyM$lodashclonedeep)(allMoves), Math.ceil(allMoves.length / batchSize));
+        // console.log(
+        //   'received layout2',
+        //   batchSize,
+        //   allMoves.length,
+        //   self.allNodes.length,
+        //   batches.length
+        // )
+        const sendMove = (batch)=>{
+            let dur = 300;
+            if (batchSize === 1) dur = 0;
+            const pkg = self.nodes.nodeMovePackage({
+                dur: dur,
+                moves: batch
+            });
+            self.collab?.exe({
+                type: 'onNodesMove',
+                data: pkg
+            });
+            if (batches.length > 0) setTimeout(()=>{
+                sendMove(batches.pop());
+            }, 250);
+            else {
+                // if (layout.skipCenter) {
+                // self.controller.centerOnNodes({ dur: 500 });
+                // } else {
+                //   self.slate.controller.scaleToFitAndCenter();
+                // }
+                // finally invoke toFront for all nodes
+                self.nodes.allNodes.forEach((n)=>n.toBack());
+                // and move all pinUnderneath nodes to the back again
+                self.nodes.allNodes.filter((n)=>n.options.pinUnderneath).forEach((n)=>n.toBack());
+                // put all relationships in the back
+                self.nodes.allNodes.filter((n)=>n.relationships?.associations).forEach((n)=>n.relationships?.associations?.forEach((assoc)=>{
+                        assoc.line.toBack();
+                    }));
+                self.ensureBGNodesMatchSlateProportions();
+                self.reorderNodes();
+                cb && cb();
+            }
+        };
+        // kick it off
+        if (batches.length > 0) sendMove(batches.pop());
+    }
+    extractPresentationLayout({ orientData: orientData }) {
+        const self = this;
+        orientData = orientData || self.getOrientation();
+        const processedNodes = new Set();
+        function getNodeChildren(nodeId, allNodes) {
+            return allNodes.filter((node)=>node.relationships?.associations?.some((assoc)=>assoc.parent?.options?.id === nodeId));
+        }
+        function processNode(node, allNodes) {
+            if (processedNodes.has(node.options.id)) return null;
+            processedNodes.add(node.options.id);
+            const children = getNodeChildren(node.options.id, allNodes);
+            const bbox = node.vect.getBBox();
+            let nodeWidth = bbox.width > 0 ? bbox.width : node.options.width;
+            let nodeHeight = bbox.height > 0 ? bbox.height : node.options.height;
+            return {
+                nodeId: node.options.id,
+                metrics: {
+                    rotation: Math.ceil(node.options.rotate?.rotationAngle || 0),
+                    bbox: {
+                        x: Number((bbox.x - orientData.left).toFixed(2)),
+                        y: Number((bbox.y - orientData.top).toFixed(2)),
+                        width: Number(nodeWidth.toFixed(2)),
+                        height: Number(nodeHeight.toFixed(2))
+                    }
+                },
+                groupId: node.options.groupId,
+                description: node.meta?.description || node.options.text || node.options.description || '',
+                image: node.options.image,
+                iconFor: node.options.iconFor,
+                hasFilter: node.options.filters.vect || node.options.filters.text,
+                hasAnimation: node.options.animations.vect || node.options.animations.text,
+                numberOfChildrenNodes: children.length,
+                childrenNodes: children.map((child)=>processNode(child, allNodes)).filter(Boolean)
+            };
+        }
+        try {
+            // Get all nodes
+            const nodes = self.options.basedOnTemplate || self.options.isTemplate ? self.nodes?.allNodes.filter((n)=>!n.options.isCategory) : self.nodes?.allNodes || [];
+            // Find root nodes (nodes that aren't children of any other node)
+            // unless dimensionsOnly is true, in which case we return all nodes
+            const rootNodes = nodes.filter((node)=>!nodes.some((potentialParent)=>potentialParent.relationships?.associations?.some((assoc)=>assoc.child?.options?.id === node.options.id)));
+            // Process each root node and its children and include presentation dimensions.
+            const preziData = {
+                presentationHeight: Math.ceil(orientData.height),
+                presentationWidth: Math.ceil(orientData.width),
+                nodes: rootNodes.map((node)=>processNode(node, nodes))
+            };
+            return preziData;
+        } catch (error) {
+            console.error('Error running extractPresentationLayout:', error);
+            return {
+                presentationHeight: 0,
+                presentationWidth: 0,
+                nodes: []
+            };
+        }
+    }
+    removeLayoutOverlaps(enableAttraction = false, attractionThreshold = 100) {
+        const self = this;
+        const orientData = self.getOrientation();
+        const processedNodes = new Set();
+        function getRotatedAxisAlignedBBox(x, y, width, height, angleDeg) {
+            if (!angleDeg) return {
+                x: x,
+                y: y,
+                width: width,
+                height: height
+            };
+            const angle = Math.PI / 180 * angleDeg;
+            const cx = x + width / 2;
+            const cy = y + height / 2;
+            const corners = [
+                {
+                    x: x,
+                    y: y
+                },
+                {
+                    x: x + width,
+                    y: y
+                },
+                {
+                    x: x + width,
+                    y: y + height
+                },
+                {
+                    x: x,
+                    y: y + height
+                }
+            ];
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+            const cosA = Math.cos(angle);
+            const sinA = Math.sin(angle);
+            for (const corner of corners){
+                const dx = corner.x - cx;
+                const dy = corner.y - cy;
+                const rx = dx * cosA - dy * sinA;
+                const ry = dx * sinA + dy * cosA;
+                const finalX = rx + cx;
+                const finalY = ry + cy;
+                minX = Math.min(minX, finalX);
+                maxX = Math.max(maxX, finalX);
+                minY = Math.min(minY, finalY);
+                maxY = Math.max(maxY, finalY);
+            }
+            return {
+                x: minX,
+                y: minY,
+                width: maxX - minX,
+                height: maxY - minY
+            };
+        }
+        function processNode(node) {
+            if (processedNodes.has(node.options.id)) return null;
+            processedNodes.add(node.options.id);
+            const bbox = node.vect.getBBox();
+            let nodeWidth = bbox.width > 0 ? bbox.width : node.options.width;
+            let nodeHeight = bbox.height > 0 ? bbox.height : node.options.height;
+            // Possibly adjust for text size
+            const textDimens = (0, $8ab43d25a2892bde$export$2e2bcd8739ae039).getTextWidth(node.options.text || node.options.description || '', `${node.options.fontSize}pt ${node.options.fontFamily}`);
+            nodeWidth = Math.max(nodeWidth, textDimens.width);
+            nodeHeight = Math.max(nodeHeight, textDimens.height);
+            const rotationAngle = node.options.rotate?.rotationAngle || 0;
+            const rotatedBBox = getRotatedAxisAlignedBBox(bbox.x, bbox.y, nodeWidth, nodeHeight, rotationAngle);
+            const shiftedX = rotatedBBox.x - orientData.left;
+            const shiftedY = rotatedBBox.y - orientData.top;
+            return {
+                nodeId: node.options.id,
+                groupId: node.options.groupId,
+                rotationAngle: rotationAngle,
+                x: shiftedX,
+                y: shiftedY,
+                width: rotatedBBox.width,
+                height: rotatedBBox.height
+            };
+        }
+        function rectanglesOverlap(a, b, padding = 0) {
+            const halfPad = padding / 2;
+            const aLeft = a.x - halfPad;
+            const aRight = a.x + a.width + halfPad;
+            const aTop = a.y - halfPad;
+            const aBottom = a.y + a.height + halfPad;
+            const bLeft = b.x - halfPad;
+            const bRight = b.x + b.width + halfPad;
+            const bTop = b.y - halfPad;
+            const bBottom = b.y + b.height + halfPad;
+            return aLeft < bRight && aRight > bLeft && aTop < bBottom && aBottom > bTop;
+        }
+        function computeMTV(a, b, padding = 0) {
+            const halfPad = padding / 2;
+            const aLeft = a.x - halfPad;
+            const aRight = a.x + a.width + halfPad;
+            const aTop = a.y - halfPad;
+            const aBottom = a.y + a.height + halfPad;
+            const bLeft = b.x - halfPad;
+            const bRight = b.x + b.width + halfPad;
+            const bTop = b.y - halfPad;
+            const bBottom = b.y + b.height + halfPad;
+            const overlapX = Math.min(aRight, bRight) - Math.max(aLeft, bLeft);
+            const overlapY = Math.min(aBottom, bBottom) - Math.max(aTop, bTop);
+            if (overlapX <= 0 || overlapY <= 0) return {
+                x: 0,
+                y: 0
+            };
+            if (overlapX < overlapY) {
+                if (a.x < b.x) return {
+                    x: overlapX,
+                    y: 0
+                };
+                else return {
+                    x: -overlapX,
+                    y: 0
+                };
+            } else {
+                if (a.y < b.y) return {
+                    x: 0,
+                    y: overlapY
+                };
+                else return {
+                    x: 0,
+                    y: -overlapY
+                };
+            }
+        }
+        // ============= SPATIAL GRID HELPERS (same as before) =============
+        function buildGrid(nodes, cellSize) {
+            const grid = new Map();
+            function getCellKey(cx, cy) {
+                return `${cx},${cy}`;
+            }
+            for(let i = 0; i < nodes.length; i++){
+                const n = nodes[i];
+                const leftCell = Math.floor(n.curX / cellSize);
+                const rightCell = Math.floor((n.curX + n.width) / cellSize);
+                const topCell = Math.floor(n.curY / cellSize);
+                const bottomCell = Math.floor((n.curY + n.height) / cellSize);
+                for(let cx = leftCell; cx <= rightCell; cx++)for(let cy = topCell; cy <= bottomCell; cy++){
+                    const key = getCellKey(cx, cy);
+                    if (!grid.has(key)) grid.set(key, []);
+                    grid.get(key).push(i);
+                }
+            }
+            return grid;
+        }
+        function getPotentialColliders(i, nodes, grid, cellSize) {
+            // returns array of indices near node i
+            const n = nodes[i];
+            const candidates = [];
+            const visitedIndices = new Set();
+            function getCellKey(cx, cy) {
+                return `${cx},${cy}`;
+            }
+            const leftCell = Math.floor(n.curX / cellSize);
+            const rightCell = Math.floor((n.curX + n.width) / cellSize);
+            const topCell = Math.floor(n.curY / cellSize);
+            const bottomCell = Math.floor((n.curY + n.height) / cellSize);
+            for(let cx = leftCell - 1; cx <= rightCell + 1; cx++)for(let cy = topCell - 1; cy <= bottomCell + 1; cy++){
+                const key = getCellKey(cx, cy);
+                if (grid.has(key)) {
+                    for (const idx of grid.get(key))if (idx !== i && !visitedIndices.has(idx)) {
+                        visitedIndices.add(idx);
+                        candidates.push(idx);
+                    }
+                }
+            }
+            return candidates;
+        }
+        function resolveOverlaps(dims, padding = 10) {
+            const nodes = dims.map((d)=>({
+                    ...d,
+                    curX: d.x,
+                    curY: d.y
+                }));
+            const displacementMap = {};
+            for (const n of nodes)displacementMap[n.nodeId] = {
+                x: 0,
+                y: 0
+            };
+            const maxIterations = 1000;
+            for(let iter = 0; iter < maxIterations; iter++){
+                let anyOverlap = false;
+                let iterationAdjustment = 0;
+                const cellSize = 100;
+                const grid = buildGrid(nodes, cellSize);
+                for(let i = 0; i < nodes.length; i++){
+                    const a = nodes[i];
+                    const candidates = getPotentialColliders(i, nodes, grid, cellSize);
+                    for (const j of candidates){
+                        if (j <= i) continue;
+                        const b = nodes[j];
+                        // Check overlap
+                        if (rectanglesOverlap({
+                            x: a.curX,
+                            y: a.curY,
+                            width: a.width,
+                            height: a.height
+                        }, {
+                            x: b.curX,
+                            y: b.curY,
+                            width: b.width,
+                            height: b.height
+                        }, padding)) {
+                            anyOverlap = true;
+                            const mtv = computeMTV({
+                                x: a.curX,
+                                y: a.curY,
+                                width: a.width,
+                                height: a.height
+                            }, {
+                                x: b.curX,
+                                y: b.curY,
+                                width: b.width,
+                                height: b.height
+                            }, padding);
+                            let repulsionFactor = 1.0;
+                            if (a.groupId && b.groupId && a.groupId === b.groupId) repulsionFactor = 0.3;
+                            const adjX = mtv.x / 2 * repulsionFactor;
+                            const adjY = mtv.y / 2 * repulsionFactor;
+                            a.curX -= adjX;
+                            a.curY -= adjY;
+                            b.curX += adjX;
+                            b.curY += adjY;
+                            displacementMap[a.nodeId].x -= adjX;
+                            displacementMap[a.nodeId].y -= adjY;
+                            displacementMap[b.nodeId].x += adjX;
+                            displacementMap[b.nodeId].y += adjY;
+                            iterationAdjustment += Math.abs(adjX) + Math.abs(adjY);
+                        }
+                    }
+                }
+                if (!anyOverlap || iterationAdjustment < 0.1) {
+                    console.log('[Repulsion] ended at iteration', iter);
+                    break;
+                }
+            }
+            const overlapsCorrection = Object.keys(displacementMap).filter((id)=>{
+                const dx = displacementMap[id].x;
+                const dy = displacementMap[id].y;
+                return Math.floor(Math.abs(dx)) !== 0 || Math.floor(Math.abs(dy)) !== 0;
+            }).map((id)=>({
+                    id: id,
+                    x: displacementMap[id].x,
+                    y: displacementMap[id].y
+                }));
+            return overlapsCorrection;
+        }
+        /**
+     * resolveAttraction(dims, threshold)
+     *
+     * - Checks every pair of nodes.
+     * - Pulls them closer if distance > threshold, unless that would cause overlap.
+     * - Uses halving to avoid overlaps.
+     * - Detects "stable" layout if total displacement is very small,
+     *   so repeated calls don't keep "squeezing."
+     */ function resolveAttraction(dims) {
+            // If we previously marked the layout stable and the user made no changes,
+            // we can skip re-running:
+            if (self._layoutStable) {
+                console.log('[Attraction] Skipped because layout is marked stable.');
+                return [];
+            }
+            // Convert dims to node state
+            const nodes = dims.map((d)=>({
+                    ...d,
+                    curX: d.x,
+                    curY: d.y,
+                    centerX: d.x + d.width / 2,
+                    centerY: d.y + d.height / 2
+                }));
+            // Track total displacement
+            const displacementMap = {};
+            for (const n of nodes)displacementMap[n.nodeId] = {
+                x: 0,
+                y: 0
+            };
+            // Overlap check helper (simple version).
+            function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+                return !(ax + aw < bx || // A is left of B
+                ax > bx + bw || // A is right of B
+                ay + ah < by || // A is above B
+                ay > by + bh // A is below B
+                );
+            }
+            // Check if shifting node i by (dx, dy) would overlap any other node
+            function causesOverlap(i, dx, dy, all) {
+                const n = all[i];
+                const testX = n.curX + dx;
+                const testY = n.curY + dy;
+                for(let k = 0; k < all.length; k++){
+                    if (k === i) continue;
+                    const o = all[k];
+                    if (rectsOverlap(testX, testY, n.width, n.height, o.curX, o.curY, o.width, o.height)) return true;
+                }
+                return false;
+            }
+            // maxIterations, plus an "attractionDamp" factor
+            // to reduce the attraction force each iteration, preventing repeated big shifts
+            const maxIterations = 1000;
+            let attractionDamp = 1.0; // start at 100% force
+            let layoutStable = false;
+            for(let iter = 0; iter < maxIterations; iter++){
+                let anyAttraction = false;
+                let iterationAdjustment = 0;
+                // Nested loop over all pairs
+                for(let i = 0; i < nodes.length; i++){
+                    const a = nodes[i];
+                    for(let j = i + 1; j < nodes.length; j++){
+                        const b = nodes[j];
+                        const dx = b.centerX - a.centerX;
+                        const dy = b.centerY - a.centerY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        // If distance > threshold, pull them closer
+                        if (dist > attractionThreshold) {
+                            anyAttraction = true;
+                            // Attraction factor can be group-dependent
+                            let baseFactor = a.groupId && b.groupId && a.groupId === b.groupId ? 0.2 : 0.1;
+                            // Apply damp
+                            const attractionFactor = baseFactor * attractionDamp;
+                            // Desired shift
+                            const desiredShift = attractionFactor * (dist - attractionThreshold);
+                            // Direction
+                            const ux = dx / dist;
+                            const uy = dy / dist;
+                            // half on each node
+                            let shiftX_A = desiredShift * ux / 2;
+                            let shiftY_A = desiredShift * uy / 2;
+                            let shiftX_B = -shiftX_A;
+                            let shiftY_B = -shiftY_A;
+                            // halving approach if overlap
+                            const maxHalveTries = 5;
+                            let factor = 1.0;
+                            for(let attempt = 0; attempt < maxHalveTries; attempt++){
+                                const trialX_A = shiftX_A * factor;
+                                const trialY_A = shiftY_A * factor;
+                                const trialX_B = shiftX_B * factor;
+                                const trialY_B = shiftY_B * factor;
+                                const noOverlapA = !causesOverlap(i, trialX_A, trialY_A, nodes);
+                                const noOverlapB = !causesOverlap(j, trialX_B, trialY_B, nodes);
+                                if (noOverlapA && noOverlapB) {
+                                    // Apply
+                                    a.curX += trialX_A;
+                                    a.curY += trialY_A;
+                                    b.curX += trialX_B;
+                                    b.curY += trialY_B;
+                                    displacementMap[a.nodeId].x += trialX_A;
+                                    displacementMap[a.nodeId].y += trialY_A;
+                                    displacementMap[b.nodeId].x += trialX_B;
+                                    displacementMap[b.nodeId].y += trialY_B;
+                                    iterationAdjustment += Math.abs(trialX_A) + Math.abs(trialY_A) + Math.abs(trialX_B) + Math.abs(trialY_B);
+                                    // update centers
+                                    a.centerX = a.curX + a.width / 2;
+                                    a.centerY = a.curY + a.height / 2;
+                                    b.centerX = b.curX + b.width / 2;
+                                    b.centerY = b.curY + b.height / 2;
+                                    break;
+                                } else // reduce factor
+                                factor /= 2;
+                            }
+                        }
+                    }
+                }
+                // If no attraction needed, or minimal iteration movement, stop
+                if (!anyAttraction || iterationAdjustment < 0.1) {
+                    console.log('[Attraction] ended at iteration:', iter, 'with iterationAdjustment:', iterationAdjustment);
+                    if (!anyAttraction || iterationAdjustment < 0.01) // Mark layout stable
+                    layoutStable = true;
+                    break;
+                }
+                // Each iteration, slightly reduce the attractionDamp so we don't keep
+                // shifting them large amounts across repeated calls
+                attractionDamp *= 0.95;
+            }
+            // Build final corrections
+            const attractionCorrections = Object.keys(displacementMap).filter((id)=>{
+                const dx = displacementMap[id].x;
+                const dy = displacementMap[id].y;
+                return Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01;
+            }).map((id)=>({
+                    id: id,
+                    x: displacementMap[id].x,
+                    y: displacementMap[id].y
+                }));
+            // Optionally store the stable flag so next call can skip
+            self._layoutStable = layoutStable;
+            return attractionCorrections;
+        }
+        // --------------------
+        // Main removeLayoutOverlaps
+        // --------------------
+        try {
+            const nodes = self.options.basedOnTemplate || self.options.isTemplate ? self.nodes?.allNodes.filter((n)=>!n.options.isCategory) : self.nodes?.allNodes || [];
+            const rootNodes = nodes.filter((n)=>!n.options.pinUnderneath);
+            processedNodes.clear();
+            const dims = rootNodes.map((n)=>processNode(n)).filter(Boolean);
+            // 1) Repulsion
+            const overlapsCorrection = resolveOverlaps(dims, 10);
+            self.applyLayout(overlapsCorrection);
+            // 2) Attraction (only if enabled)
+            if (enableAttraction) {
+                processedNodes.clear();
+                const dimsForAttraction = rootNodes.map((n)=>processNode(n)).filter(Boolean);
+                const attractionCorrections = resolveAttraction(dimsForAttraction, 50);
+                self.applyLayout(attractionCorrections);
+            }
+            return true;
+        } catch (error) {
+            console.error('Error in removeLayoutOverlaps:', error);
+            return [];
+        }
     }
     copy(opts) {
         const self = this;
