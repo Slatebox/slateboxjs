@@ -792,10 +792,10 @@ export default class slate extends base {
     }
   }
 
-  removeLayoutOverlaps(enableAttraction = false, attractionThreshold = 100) {
+  extractBasicDimensions(asInts = false) {
     const self = this;
-    const orientData = self.getOrientation();
     const processedNodes = new Set();
+    const orientData = self.getOrientation();
 
     function getRotatedAxisAlignedBBox(x, y, width, height, angleDeg) {
       if (!angleDeg) {
@@ -870,12 +870,28 @@ export default class slate extends base {
         nodeId: node.options.id,
         groupId: node.options.groupId,
         rotationAngle,
-        x: shiftedX,
-        y: shiftedY,
-        width: rotatedBBox.width,
-        height: rotatedBBox.height,
+        x: asInts ? Math.round(shiftedX) : shiftedX,
+        y: asInts ? Math.round(shiftedY) : shiftedY,
+        width: asInts ? Math.round(rotatedBBox.width) : rotatedBBox.width,
+        height: asInts ? Math.round(rotatedBBox.height) : rotatedBBox.height,
       };
     }
+
+    const nodes =
+      self.options.basedOnTemplate || self.options.isTemplate
+        ? self.nodes?.allNodes.filter((n) => !n.options.isCategory)
+        : self.nodes?.allNodes || [];
+
+    const rootNodes = nodes.filter((n) => !n.options.pinUnderneath);
+    processedNodes.clear();
+
+    const dims = rootNodes.map((n) => processNode(n)).filter(Boolean);
+
+    return dims;
+  }
+
+  removeLayoutOverlaps(enableAttraction = false, attractionThreshold = 100) {
+    const self = this;
 
     function rectanglesOverlap(a, b, padding = 0) {
       const halfPad = padding / 2;
@@ -1263,15 +1279,7 @@ export default class slate extends base {
     // Main removeLayoutOverlaps
     // --------------------
     try {
-      const nodes =
-        self.options.basedOnTemplate || self.options.isTemplate
-          ? self.nodes?.allNodes.filter((n) => !n.options.isCategory)
-          : self.nodes?.allNodes || [];
-
-      const rootNodes = nodes.filter((n) => !n.options.pinUnderneath);
-      processedNodes.clear();
-
-      const dims = rootNodes.map((n) => processNode(n)).filter(Boolean);
+      const dims = self.extractBasicDimensions();
 
       // 1) Repulsion
       const overlapsCorrection = resolveOverlaps(dims, 10);
@@ -1279,10 +1287,7 @@ export default class slate extends base {
 
       // 2) Attraction (only if enabled)
       if (enableAttraction) {
-        processedNodes.clear();
-        const dimsForAttraction = rootNodes
-          .map((n) => processNode(n))
-          .filter(Boolean);
+        const dimsForAttraction = self.extractBasicDimensions();
         const attractionCorrections = resolveAttraction(dimsForAttraction, 50);
         self.applyLayout(attractionCorrections);
       }

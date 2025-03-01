@@ -18007,10 +18007,10 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             };
         }
     }
-    removeLayoutOverlaps(enableAttraction = false, attractionThreshold = 100) {
+    extractBasicDimensions(asInts = false) {
         const self = this;
-        const orientData = self.getOrientation();
         const processedNodes = new Set();
+        const orientData = self.getOrientation();
         function getRotatedAxisAlignedBBox(x, y, width, height, angleDeg) {
             if (!angleDeg) return {
                 x: x,
@@ -18080,12 +18080,20 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 nodeId: node.options.id,
                 groupId: node.options.groupId,
                 rotationAngle: rotationAngle,
-                x: shiftedX,
-                y: shiftedY,
-                width: rotatedBBox.width,
-                height: rotatedBBox.height
+                x: asInts ? Math.round(shiftedX) : shiftedX,
+                y: asInts ? Math.round(shiftedY) : shiftedY,
+                width: asInts ? Math.round(rotatedBBox.width) : rotatedBBox.width,
+                height: asInts ? Math.round(rotatedBBox.height) : rotatedBBox.height
             };
         }
+        const nodes = self.options.basedOnTemplate || self.options.isTemplate ? self.nodes?.allNodes.filter((n)=>!n.options.isCategory) : self.nodes?.allNodes || [];
+        const rootNodes = nodes.filter((n)=>!n.options.pinUnderneath);
+        processedNodes.clear();
+        const dims = rootNodes.map((n)=>processNode(n)).filter(Boolean);
+        return dims;
+    }
+    removeLayoutOverlaps(enableAttraction = false, attractionThreshold = 100) {
+        const self = this;
         function rectanglesOverlap(a, b, padding = 0) {
             const halfPad = padding / 2;
             const aLeft = a.x - halfPad;
@@ -18400,17 +18408,13 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         // Main removeLayoutOverlaps
         // --------------------
         try {
-            const nodes = self.options.basedOnTemplate || self.options.isTemplate ? self.nodes?.allNodes.filter((n)=>!n.options.isCategory) : self.nodes?.allNodes || [];
-            const rootNodes = nodes.filter((n)=>!n.options.pinUnderneath);
-            processedNodes.clear();
-            const dims = rootNodes.map((n)=>processNode(n)).filter(Boolean);
+            const dims = self.extractBasicDimensions();
             // 1) Repulsion
             const overlapsCorrection = resolveOverlaps(dims, 10);
             self.applyLayout(overlapsCorrection);
             // 2) Attraction (only if enabled)
             if (enableAttraction) {
-                processedNodes.clear();
-                const dimsForAttraction = rootNodes.map((n)=>processNode(n)).filter(Boolean);
+                const dimsForAttraction = self.extractBasicDimensions();
                 const attractionCorrections = resolveAttraction(dimsForAttraction, 50);
                 self.applyLayout(attractionCorrections);
             }

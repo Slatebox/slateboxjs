@@ -1,7 +1,7 @@
 {
   "name": "slateboxjs",
   "type": "module",
-  "version": "2.5.11",
+  "version": "2.5.12",
   "repository": {
     "url": "https://github.com/Slatebox/slateboxjs"
   },
