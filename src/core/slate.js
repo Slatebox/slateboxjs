@@ -592,6 +592,19 @@ export default class slate extends base {
     return ret;
   }
 
+  putAllAssociationsInBack() {
+    const self = this;
+    console.log(
+      'applying putallassociationsinback',
+      self.nodes.allNodes.length
+    );
+    self.nodes.allNodes
+      .filter((n) => n.relationships?.associations)
+      .forEach((n) =>
+        n.relationships?.associations?.forEach((assoc) => assoc.line.toBack())
+      );
+  }
+
   ensureBGNodesMatchSlateProportions(nodeIds = []) {
     const self = this;
     const orient = self.getOrientation();
@@ -682,13 +695,7 @@ export default class slate extends base {
           .forEach((n) => n.toBack());
 
         // put all relationships in the back
-        self.nodes.allNodes
-          .filter((n) => n.relationships?.associations)
-          .forEach((n) =>
-            n.relationships?.associations?.forEach((assoc) => {
-              assoc.line.toBack();
-            })
-          );
+        self.putAllAssociationsInBack();
 
         self.ensureBGNodesMatchSlateProportions();
 
@@ -1520,6 +1527,9 @@ export default class slate extends base {
             });
           }
         });
+
+        console.log('putting all associations in back');
+        _exportCanvas.putAllAssociationsInBack();
 
         // if (opts.drawBorder) {
         //   const orient = _exportCanvas.getOrientation();

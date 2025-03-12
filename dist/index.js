@@ -17867,6 +17867,11 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
         // console.log('calculated scale proportions', ret);
         return ret;
     }
+    putAllAssociationsInBack() {
+        const self = this;
+        console.log('applying putallassociationsinback', self.nodes.allNodes.length);
+        self.nodes.allNodes.filter((n)=>n.relationships?.associations).forEach((n)=>n.relationships?.associations?.forEach((assoc)=>assoc.line.toBack()));
+    }
     ensureBGNodesMatchSlateProportions(nodeIds = []) {
         const self = this;
         const orient = self.getOrientation();
@@ -17939,9 +17944,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 // and move all pinUnderneath nodes to the back again
                 self.nodes.allNodes.filter((n)=>n.options.pinUnderneath).forEach((n)=>n.toBack());
                 // put all relationships in the back
-                self.nodes.allNodes.filter((n)=>n.relationships?.associations).forEach((n)=>n.relationships?.associations?.forEach((assoc)=>{
-                        assoc.line.toBack();
-                    }));
+                self.putAllAssociationsInBack();
                 self.ensureBGNodesMatchSlateProportions();
                 self.reorderNodes();
                 cb && cb();
@@ -18587,6 +18590,8 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                         });
                     }
                 });
+                console.log('putting all associations in back');
+                _exportCanvas.putAllAssociationsInBack();
                 // if (opts.drawBorder) {
                 //   const orient = _exportCanvas.getOrientation();
                 //   // Create inner fill rectangle first
