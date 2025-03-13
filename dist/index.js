@@ -17938,7 +17938,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 // } else {
                 //   self.slate.controller.scaleToFitAndCenter();
                 // }
-                // finally invoke toFront for all nodes
+                // finally invoke toBack for all nodes
                 self.nodes.allNodes.forEach((n)=>n.toBack());
                 // and move all pinUnderneath nodes to the back again
                 self.nodes.allNodes.filter((n)=>n.options.pinUnderneath).forEach((n)=>n.toBack());
@@ -18589,8 +18589,8 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                         });
                     }
                 });
-                console.log('putting all associations in back');
                 _exportCanvas.putAllAssociationsInBack();
+                bg?.toBack();
                 // if (opts.drawBorder) {
                 //   const orient = _exportCanvas.getOrientation();
                 //   // Create inner fill rectangle first

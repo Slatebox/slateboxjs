@@ -682,7 +682,7 @@ export default class slate extends base {
         // } else {
         //   self.slate.controller.scaleToFitAndCenter();
         // }
-        // finally invoke toFront for all nodes
+        // finally invoke toBack for all nodes
         self.nodes.allNodes.forEach((n) => n.toBack());
 
         // and move all pinUnderneath nodes to the back again
@@ -1528,6 +1528,7 @@ export default class slate extends base {
         });
 
         _exportCanvas.putAllAssociationsInBack();
+        bg?.toBack();
 
         // if (opts.drawBorder) {
         //   const orient = _exportCanvas.getOrientation();
