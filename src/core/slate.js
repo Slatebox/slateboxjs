@@ -594,10 +594,6 @@ export default class slate extends base {
 
   putAllAssociationsInBack() {
     const self = this;
-    console.log(
-      'applying putallassociationsinback',
-      self.nodes.allNodes.length
-    );
     self.nodes.allNodes
       .filter((n) => n.relationships?.associations)
       .forEach((n) =>
@@ -1467,7 +1463,10 @@ export default class slate extends base {
 
       // add the bgColor (this is done on html styling in slatebox proper view)
       let bg = null;
-      if (_resizedSlate.options.containerStyle.backgroundImage) {
+      if (
+        !opts.noBackground &&
+        _resizedSlate.options.containerStyle.backgroundImage
+      ) {
         const img = document.createElement('img');
         img.setAttribute(
           'src',
@@ -1495,7 +1494,7 @@ export default class slate extends base {
           iw,
           ih
         );
-      } else {
+      } else if (!opts.noBackground) {
         bg = _exportCanvas.paper
           .rect(0, 0, _orient.width, _orient.height)
           .attr({
@@ -1528,7 +1527,6 @@ export default class slate extends base {
           }
         });
 
-        console.log('putting all associations in back');
         _exportCanvas.putAllAssociationsInBack();
 
         // if (opts.drawBorder) {

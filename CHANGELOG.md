@@ -4,7 +4,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-## [2.5.12] - 2025-03-01
+## [2.5.13] - 2025-03-01
 
 - Extracting layout code to a basic function, callable as a quick view into the coordinates for the slate and subsequent AI convos
 

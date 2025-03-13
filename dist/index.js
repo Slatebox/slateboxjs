@@ -17869,7 +17869,6 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
     }
     putAllAssociationsInBack() {
         const self = this;
-        console.log('applying putallassociationsinback', self.nodes.allNodes.length);
         self.nodes.allNodes.filter((n)=>n.relationships?.associations).forEach((n)=>n.relationships?.associations?.forEach((assoc)=>assoc.line.toBack()));
     }
     ensureBGNodesMatchSlateProportions(nodeIds = []) {
@@ -18551,7 +18550,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
             _exportCanvas.nodes.refreshAllRelationships();
             // add the bgColor (this is done on html styling in slatebox proper view)
             let bg = null;
-            if (_resizedSlate.options.containerStyle.backgroundImage) {
+            if (!opts.noBackground && _resizedSlate.options.containerStyle.backgroundImage) {
                 const img = document.createElement('img');
                 img.setAttribute('src', _resizedSlate.options.containerStyle.backgroundImage);
                 img.style.visibility = 'hidden';
@@ -18567,7 +18566,7 @@ class $52815ef246a0a8c3$export$2e2bcd8739ae039 extends (0, $d23f550fcae9c4c3$exp
                 const iw = Math.max(bw, _orient.width);
                 const ih = Math.max(bh, _orient.height);
                 bg = _exportCanvas.paper.image(_resizedSlate.options.containerStyle.backgroundImage, 0, 0, iw, ih);
-            } else bg = _exportCanvas.paper.rect(0, 0, _orient.width, _orient.height).attr({
+            } else if (!opts.noBackground) bg = _exportCanvas.paper.rect(0, 0, _orient.width, _orient.height).attr({
                 fill: _resizedSlate.options.containerStyle.backgroundColor
             });
             bg?.toBack();
