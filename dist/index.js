@@ -10648,7 +10648,7 @@ class $670a391adca558e5$export$2e2bcd8739ae039 {
     }
     async init() {
         const self = this;
-        if (self.slate.options.isbirdsEye) // not allowed
+        if (self.slate.options.isbirdsEye || !self.slate.options.allowCollaboration) // not allowed
         return;
         // go get the server url here
         if (self.collabPackage) {

@@ -61,7 +61,7 @@ export default class node extends base {
       allowResize: true,
       isLocked: false,
       isComment: false,
-      backgroundColor: '90-#031634-#2D579A',
+      backgroundColor: '#031634',
       foregroundColor: '#fff',
       isCategory: false,
       humanTouch: false,

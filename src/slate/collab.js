@@ -545,7 +545,10 @@ export default class collab {
   async init() {
     const self = this;
 
-    if (self.slate.options.isbirdsEye) {
+    if (
+      self.slate.options.isbirdsEye ||
+      !self.slate.options.allowCollaboration
+    ) {
       // not allowed
       return;
     }
