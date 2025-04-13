@@ -655,60 +655,41 @@ export default class utils {
     return nodeOptions;
   }
 
-  // static getTextWidthByFontSize(str, fontSize) {
-  //   const widths = [
-  //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  //     0, 0, 0, 0, 0, 0, 0, 0.2796875, 0.2765625, 0.3546875, 0.5546875,
-  //     0.5546875, 0.8890625, 0.665625, 0.190625, 0.3328125, 0.3328125, 0.3890625,
-  //     0.5828125, 0.2765625, 0.3328125, 0.2765625, 0.3015625, 0.5546875,
-  //     0.5546875, 0.5546875, 0.5546875, 0.5546875, 0.5546875, 0.5546875,
-  //     0.5546875, 0.5546875, 0.5546875, 0.2765625, 0.2765625, 0.584375,
-  //     0.5828125, 0.584375, 0.5546875, 1.0140625, 0.665625, 0.665625, 0.721875,
-  //     0.721875, 0.665625, 0.609375, 0.7765625, 0.721875, 0.2765625, 0.5,
-  //     0.665625, 0.5546875, 0.8328125, 0.721875, 0.7765625, 0.665625, 0.7765625,
-  //     0.721875, 0.665625, 0.609375, 0.721875, 0.665625, 0.94375, 0.665625,
-  //     0.665625, 0.609375, 0.2765625, 0.3546875, 0.2765625, 0.4765625, 0.5546875,
-  //     0.3328125, 0.5546875, 0.5546875, 0.5, 0.5546875, 0.5546875, 0.2765625,
-  //     0.5546875, 0.5546875, 0.221875, 0.240625, 0.5, 0.221875, 0.8328125,
-  //     0.5546875, 0.5546875, 0.5546875, 0.5546875, 0.3328125, 0.5, 0.2765625,
-  //     0.5546875, 0.5, 0.721875, 0.5, 0.5, 0.5, 0.3546875, 0.259375, 0.353125,
-  //     0.5890625,
-  //   ]
-  //   const avg = 0.5279276315789471
-  //   return (
-  //     Array.from(str).reduce(
-  //       (acc, cur) => acc + (widths[cur.charCodeAt(0)] ?? avg),
-  //       0
-  //     ) * fontSize
-  //   )
-  // }
-
   // https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript
   static getTextWidth(text, font) {
     const splitText = text.split('\n');
+    const fontSplit = font.split(' ');
+    const fontWeight = 'normal';
+    const fontSize = fontSplit?.[0]?.includes('pt')
+      ? parseFloat(fontSplit?.[0]?.replace(/pt/gi, ''))
+      : 10;
+    const fontFamily = fontSplit?.slice(1).join(' ').trim();
     const textWidthCanvas = document.createElement('canvas');
     const metrics = [];
+    // Define multiplier before the loop
+    const multiplier = 0.98;
     splitText.forEach((t) => {
-      // textWidthCanvas.setAttribute('id', `measuretext`)
       const context = textWidthCanvas.getContext('2d');
-      // I'm finding that the font should be reduced by ~22% in order to be accurate
-      const multiplier = 1; // 0.78
-      const fontSplit = font.split(' ');
-      font = `${fontSplit?.[0]} ${
-        parseFloat(fontSplit?.[1]?.replace(/pt/gi, '') ?? 1) * multiplier
-      }pt ${fontSplit?.[2]}`;
-      context.font = font;
-      metrics.push(context.measureText(t));
+      // Use multiplier in font size calculation
+      const calculatedFontSize = fontSize * multiplier;
+      const currentFont = `${fontWeight} ${calculatedFontSize}pt ${fontFamily}`;
+      context.font = currentFont;
+      const res = context.measureText(t);
+      metrics.push(res);
     });
     textWidthCanvas.remove();
     let height = 0;
     metrics.forEach(
-      (m) => (height += m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)
+      (m) =>
+        (height += m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) + 5
     );
     const red = {
-      width: Math.max(...metrics.map((m) => m.width)) + 10, // 10 for padding
-      height: height + 10, // add 10 for padding
+      // Calculate width without padding, using metrics from scaled font
+      width: Math.max(...metrics.map((m) => m.width)),
+      // Calculate height without multiplier, adding small padding
+      height: height + 10,
     };
+
     return red;
   }
 
@@ -726,26 +707,8 @@ export default class utils {
     const lines = [];
     let wordsOnLine = [];
     let curCharCount = 0;
-    // console.log(
-    //   'words are 1',
-    //   words.length,
-    //   chars.length,
-    //   charsPerLine,
-    //   lines.length,
-    //   lineCount,
-    //   curCharCount
-    // )
     words.forEach((w) => {
       curCharCount += w.length;
-      // console.log(
-      //   'words are 2',
-      //   words.length,
-      //   chars.length,
-      //   charsPerLine,
-      //   lines.length,
-      //   lineCount,
-      //   curCharCount
-      // )
       if (curCharCount < charsPerLine || lines.length === lineCount - 1) {
         wordsOnLine.push(w);
       } else {

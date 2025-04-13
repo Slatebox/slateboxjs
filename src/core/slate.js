@@ -624,7 +624,7 @@ export default class slate extends base {
     }
   }
 
-  applyLayout(allMoves, cb) {
+  applyLayout(allMoves, cb, noAnimation = false) {
     const self = this;
     // console.log('received layout', layout)
     /*
@@ -643,21 +643,14 @@ export default class slate extends base {
     */
 
     let batchSize = 6;
-    if (self.nodes.allNodes.length > 16) {
+    console.log('allMoves', self.nodes.allNodes.length, noAnimation);
+    if (self.nodes.allNodes.length > 16 || noAnimation) {
       batchSize = 1;
     }
     const batches = utils.chunk(
       cloneDeep(allMoves),
       Math.ceil(allMoves.length / batchSize)
     );
-
-    // console.log(
-    //   'received layout2',
-    //   batchSize,
-    //   allMoves.length,
-    //   self.allNodes.length,
-    //   batches.length
-    // )
 
     const sendMove = (batch) => {
       let dur = 300;
@@ -1286,13 +1279,13 @@ export default class slate extends base {
 
       // 1) Repulsion
       const overlapsCorrection = resolveOverlaps(dims, 10);
-      self.applyLayout(overlapsCorrection);
+      self.applyLayout(overlapsCorrection, null, true);
 
       // 2) Attraction (only if enabled)
       if (enableAttraction) {
         const dimsForAttraction = self.extractBasicDimensions();
         const attractionCorrections = resolveAttraction(dimsForAttraction, 50);
-        self.applyLayout(attractionCorrections);
+        self.applyLayout(attractionCorrections, null, true);
       }
 
       return true;
@@ -1762,24 +1755,15 @@ export default class slate extends base {
   }
 
   isReadOnly() {
-    return (
-      !this.events.isReadOnly ||
-      (this.events.isReadOnly && this.events.isReadOnly())
-    );
+    return this.events?.isReadOnly?.();
   }
 
   isCommentOnly() {
-    return (
-      !this.events.isCommentOnly ||
-      (this.events.isCommentOnly && this.events.isCommentOnly())
-    );
+    return this.events?.isCommentOnly?.();
   }
 
   canRemoveComments() {
-    return (
-      !this.events.canRemoveComments ||
-      (this.events.canRemoveComments && this.events.canRemoveComments())
-    );
+    return this.events?.canRemoveComments?.();
   }
 
   // the granularity is at the level of the node...
