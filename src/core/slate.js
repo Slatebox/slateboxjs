@@ -8,24 +8,24 @@
 import uniq from 'lodash.uniq';
 import cloneDeep from 'lodash.clonedeep';
 import merge from 'deepmerge';
-import utils from '../helpers/utils.js';
-import getTransformedPath from '../helpers/getTransformedPath.js';
-import canvas from '../slate/canvas.js';
-import collab from '../slate/collab.js';
-import nodeController from '../slate/nodeController.js';
-import multiSelection from '../slate/multiSelection.js';
-import birdsEye from '../slate/birdsEye.js';
-import inertia from '../slate/inertia.js';
-import controller from '../slate/controller.js';
-import zoomSlider from '../slate/zoomSlider.js';
-import undoRedo from '../slate/undoRedo.js';
-import grid from '../slate/grid.js';
-import comments from '../slate/comments.js';
-import keyboard from '../slate/keyboard.js';
-import filters from '../slate/filters.js';
+import utils from '../helpers/utils';
+import getTransformedPath from '../helpers/getTransformedPath';
+import canvas from '../slate/canvas';
+import collab from '../slate/collab';
+import nodeController from '../slate/nodeController';
+import multiSelection from '../slate/multiSelection';
+import birdsEye from '../slate/birdsEye';
+import inertia from '../slate/inertia';
+import controller from '../slate/controller';
+import zoomSlider from '../slate/zoomSlider';
+import undoRedo from '../slate/undoRedo';
+import grid from '../slate/grid';
+import comments from '../slate/comments';
+import keyboard from '../slate/keyboard';
+import filters from '../slate/filters';
 
-import base from './base.js';
-import node from './node.js';
+import base from './base';
+import node from './node';
 
 export default class slate extends base {
   constructor(_options, events) {
@@ -1701,7 +1701,7 @@ export default class slate extends base {
 
     deferredRelationships.forEach((relationship) => {
       const _bounded = relationship;
-      _bounded.bt.addRelationships(_bounded.json);
+      _bounded.bt.addRelationships(_boundedon);
     });
 
     if (self.options.showLocks) {

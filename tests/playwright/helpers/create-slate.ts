@@ -1,8 +1,8 @@
 import { Page } from '@playwright/test'
-// import { Slatebox } from '../../../src/index.js'
-// import '../../../src/plugins/node/attempt.js'
-// import '../../../src/plugins/slate/second.js'
-// import '../../../src/helpers/utils.js'
+// import { Slatebox } from '.../.././src/index.js'
+// import '.../.././src/plugins/node/attempt.js'
+// import '.../.././src/plugins/slate/second.js'
+// import '.../.././src/helpers/utils.js'
 
 // export interface SlateOptions {
 //   name?: string
@@ -34,10 +34,10 @@ import { Page } from '@playwright/test'
 
 //   // // Dynamic imports within the evaluate callback
 //   // await page.evaluate(async () => {
-//   //   await import('../../../src/index.js')
-//   //   await import('../../../src/plugins/node/attempt.js')
-//   //   await import('../../../src/plugins/slate/second.js')
-//   //   await import('../../../src/helpers/utils.js')
+//   //   await import('.../.././src/index.js')
+//   //   await import('.../.././src/plugins/node/attempt.js')
+//   //   await import('.../.././src/plugins/slate/second.js')
+//   //   await import('.../.././src/helpers/utils.js')
 //   // })
 
 //   const defaultOptions = {

@@ -3,7 +3,7 @@
 /* eslint-disable no-underscore-dangle */
 import omit from 'lodash.omit';
 import utils from '../helpers/utils';
-import slate from '././core/slate.js';
+import slate from '../core/slate';
 
 export default class birdsEye {
   constructor(slate) {

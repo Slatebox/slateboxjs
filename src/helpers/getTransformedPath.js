@@ -1,5 +1,5 @@
 /* eslint-disable no-underscore-dangle */
-import utils from './utils.js';
+import utils from './utils';
 
 export default function getTransformedPath(originalPath, transforms) {
   let transformsArray = transforms;

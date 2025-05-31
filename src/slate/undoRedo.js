@@ -1,5 +1,5 @@
 import utils from '../helpers/utils';
-import { Raphael } from '././deps/raphael/raphael.svg.js';
+import { Raphael } from '../deps/raphael/raphael.svg';
 
 export default class undoRedo {
   constructor(slate) {

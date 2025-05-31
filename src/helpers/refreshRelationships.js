@@ -1,7 +1,7 @@
 /* eslint-disable no-underscore-dangle */
-import closestPoint from './/closestPoint.js';
-import getHorizontalCurve from './/getHorizontalCurve.js';
-import getCorrectMidPoints from './getCorrectMidPoints.js';
+import closestPoint from './closestPoint';
+import getHorizontalCurve from './getHorizontalCurve';
+import getCorrectMidPoints from './getCorrectMidPoints';
 import utils from '../helpers/utils';
 
 export default function refreshRelationships({

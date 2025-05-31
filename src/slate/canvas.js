@@ -1,10 +1,10 @@
 /* eslint-disable no-underscore-dangle */
 import uniq from 'lodash.uniq';
-import utils from '../helpers/utils.js';
-import sbIcons from '../helpers/sbIcons.js';
+import utils from '../helpers/utils';
+import sbIcons from '../helpers/sbIcons';
 import { fabric } from 'fabric';
-import embedGoogleFonts from '../helpers/embedGoogleFonts.js';
-import '../deps/emile.js';
+import embedGoogleFonts from '../helpers/embedGoogleFonts';
+import '../deps/emile';
 
 export default class canvas {
   constructor(slate) {

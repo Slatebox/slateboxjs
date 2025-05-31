@@ -5,24 +5,24 @@
 import uniq from 'lodash.uniq';
 import invoke from 'lodash.invoke';
 import cloneDeep from 'lodash.clonedeep';
-import getTransformedPath from '././helpers/getTransformedPath.js';
+import getTransformedPath from '../helpers/getTransformedPath';
 import refreshRelationships from '../helpers/refreshRelationships';
 import getDepCoords from '../helpers/getDepCoords';
 import { fabric } from 'fabric';
 
 import utils from '../helpers/utils';
-import editor from '././node/editor.js';
+import editor from '../node/editor';
 import relationships from '../node/relationships';
-import rotate from '././node/rotate.js';
-import menu from '././node/menu.js';
+import rotate from '../node/rotate';
+import menu from '../node/menu';
 import connectors from '../node/connectors';
 
-import resize from '././node/resize.js';
+import resize from '../node/resize';
 import images from '../node/images';
 import shapes from '../node/shapes';
 import customShapes from '../node/customShapes';
-import colorPicker from '././node/colorPicker.js';
-import context from '././node/context.js';
+import colorPicker from '../node/colorPicker';
+import context from '../node/context';
 import lineOptions from '../node/lineOptions';
 import gridLines from '../node/gridLines';
 import links from '../node/links';

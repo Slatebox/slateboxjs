@@ -1,4 +1,4 @@
-import { Slatebox } from '../../index.js';
+import { Slatebox } from '..././index
 
 Slatebox.base.registerPlugin({
     name: "attempt"
