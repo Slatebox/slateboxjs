@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 import utils from '../helpers/utils';
-import { Raphael } from '../deps/raphael/raphael.svg';
+import { fabric } from 'fabric';
 
 export default class editor {
   constructor(slate, node) {
@@ -95,7 +95,10 @@ export default class editor {
         widthScalar = transWidth / nodebb.width;
         heightScalar = transHeight / nodebb.height;
       }
-      const scaledVectPath = Raphael.transformPath(
+      
+      // TODO: Replace Raphael.transformPath with FabricJS equivalent
+      // For now, we'll update the path directly
+      const scaledVectPath = utils._transformPath(
         this.node.options.vectorPath,
         `s${widthScalar}, ${heightScalar}`
       ).toString();
@@ -113,30 +116,156 @@ export default class editor {
     let coords = null;
     this.setTextOffset();
     coords = this.node.textCoords();
+    
     if (!this.node.text) {
-      // const txtAttrs = {
-      //   class: 'sb-txt-wrap',
-      //   x: this.node.options.xPos + coords.x,
-      //   y: this.node.options.yPos + coords.y,
-      // };
-      // console.log('creating text element', txtAttrs);
-      // this.node.textWrapper = this.slate.paper.g(txtAttrs);
-      this.node.text = this.slate.paper.text(
-        this.node.options.xPos + coords.x,
-        this.node.options.yPos + coords.y
-      );
+      // Create FabricJS text object
+      this.node.text = new fabric.Text(t || '', {
+        left: this.node.options.xPos + coords.x,
+        top: this.node.options.yPos + coords.y,
+        fontSize: s,
+        fontFamily: f,
+        fill: c,
+        opacity: opacity,
+        textAlign: ta === 'middle' ? 'center' : ta,
+        originX: ta === 'middle' ? 'center' : 'left',
+        originY: tb === 'middle' ? 'center' : 'top',
+        selectable: false,
+        hoverCursor: 'default',
+        moveCursor: 'default'
+      });
+      
+      // Add Raphael-like methods for compatibility
+      this.node.text.attr = function(attrs) {
+        if (attrs) {
+          Object.keys(attrs).forEach(key => {
+            switch(key) {
+              case 'text':
+                this.set('text', attrs[key]);
+                break;
+              case 'font-size':
+                this.set('fontSize', parseInt(attrs[key].replace('pt', '')));
+                break;
+              case 'font-family':
+                this.set('fontFamily', attrs[key]);
+                break;
+              case 'fill':
+                this.set('fill', attrs[key]);
+                break;
+              case 'text-anchor':
+                this.set('textAlign', attrs[key] === 'middle' ? 'center' : attrs[key]);
+                this.set('originX', attrs[key] === 'middle' ? 'center' : 'left');
+                break;
+              case 'text-baseline':
+                this.set('originY', attrs[key] === 'middle' ? 'center' : 'top');
+                break;
+              case 'fill-opacity':
+                this.set('opacity', attrs[key]);
+                break;
+              case 'x':
+                this.set('left', attrs[key]);
+                break;
+              case 'y':
+                this.set('top', attrs[key]);
+                break;
+              case 'class':
+              case 'style':
+                // Ignore style attributes for now
+                break;
+              default:
+                // Try to set directly
+                try {
+                  this.set(key, attrs[key]);
+                } catch (e) {
+                  // Ignore unsupported attributes
+                }
+                break;
+            }
+          });
+          this.canvas?.requestRenderAll();
+          return this;
+        } else {
+          // Return current attributes in Raphael format
+          return {
+            text: this.text,
+            'font-size': this.fontSize + 'pt',
+            'font-family': this.fontFamily,
+            fill: this.fill,
+            'text-anchor': this.textAlign === 'center' ? 'middle' : this.textAlign,
+            'fill-opacity': this.opacity,
+            x: this.left,
+            y: this.top
+          };
+        }
+      };
+      
+      // Add other Raphael-like methods
+      this.node.text.hide = function() {
+        this.set('visible', false);
+        this.canvas?.requestRenderAll();
+      };
+      
+      this.node.text.show = function() {
+        this.set('visible', true);
+        this.canvas?.requestRenderAll();
+      };
+      
+      this.node.text.toFront = function() {
+        if (this.canvas) {
+          this.canvas.bringToFront(this);
+        }
+      };
+      
+      this.node.text.toBack = function() {
+        if (this.canvas) {
+          this.canvas.sendToBack(this);
+        }
+      };
+      
+      this.node.text.remove = function() {
+        if (this.canvas) {
+          this.canvas.remove(this);
+        }
+      };
+      
+      this.node.text.animate = function(attrs, duration, easing, callback) {
+        Object.keys(attrs).forEach(key => {
+          let targetKey = key;
+          let targetValue = attrs[key];
+          
+          if (key === 'x') targetKey = 'left';
+          if (key === 'y') targetKey = 'top';
+          
+          this.animate(targetKey, targetValue, {
+            duration: duration,
+            onChange: () => this.canvas?.requestRenderAll(),
+            onComplete: callback,
+            easing: fabric.util.ease.easeOutQuad
+          });
+        });
+      };
+      
+      this.node.text.transform = function(transformString) {
+        // Store transform for later application
+        this._pendingTransform = transformString;
+        return this;
+      };
+      
+      // Set node attribute for reference
       const dragRider = this.node.options.disableDrag ? 'nodrag_' : '';
-      this.node.text.node.setAttribute(
-        'rel',
-        `${dragRider}text-${this.node.options.id}`
-      );
+      this.node.text.set('rel', `${dragRider}text-${this.node.options.id}`);
+      
+      // Add to canvas
+      this.slate.paper.add(this.node.text);
     }
+    
+    // Update coordinates
     coords = this.node.textCoords({
       x: this.node.options.xPos,
       y: this.node.options.yPos,
     });
     this.node.text.attr(coords);
 
+    // Update text properties
     this.node.text.attr({ text: t });
     this.node.text.attr({ 'font-size': `${s}pt` });
     this.node.text.attr({ 'font-family': f });
@@ -145,15 +274,6 @@ export default class editor {
     this.node.text.attr({ 'text-baseline': tb });
     this.node.text.attr({ 'fill-opacity': opacity });
     this.node.text.attr({ class: 'slatebox-text' });
-    const noSelect = [
-      '-webkit-user-select',
-      '-moz-user-select',
-      '-ms-user-select',
-      'user-select',
-    ]
-      .map((sx) => `${sx}: none;`)
-      .join(' ');
-    this.node.text.attr({ style: noSelect });
 
     if (tempShim === t) {
       this.node.options.text = '';

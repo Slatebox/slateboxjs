@@ -2,9 +2,7 @@
 import uniq from 'lodash.uniq';
 import utils from '../helpers/utils';
 import sbIcons from '../helpers/sbIcons';
-import { Raphael } from '../deps/raphael/raphael.svg';
-import { shapes } from '../deps/raphael/raphael.fn.shapes';
-import { extensions } from '../deps/raphael/raphael.el.extensions';
+import { fabric } from 'fabric';
 import embedGoogleFonts from '../helpers/embedGoogleFonts';
 import '../deps/emile';
 
@@ -18,12 +16,8 @@ export default class canvas {
       throw new Error('You must provide a container to initiate the canvas!');
     }
 
-    // customize raphael -- modifies global Raphael for all other imports
-    shapes(Raphael);
-    extensions(Raphael);
-
     self.isDragging = false;
-    self.slate.paper = null;
+    self.slate.paper = null; // Will be FabricJS canvas
     self.internal = null;
     self.status = null;
     self.imageFolder = null;
@@ -169,6 +163,13 @@ export default class canvas {
     self.internal.style.transform = `translateZ(0)`; // `translate3d(0,0,0)`; //helps with GPU based rendering
     c.appendChild(self.internal);
 
+    // Create canvas element for FabricJS
+    const canvasElement = document.createElement('canvas');
+    canvasElement.id = `slateboxCanvas_${self.slate.options.id}`;
+    canvasElement.width = _w;
+    canvasElement.height = _h;
+    self.internal.appendChild(canvasElement);
+
     self.internal.addEventListener('mousedown', () => {
       self.slate?.events?.onCanvasClicked?.apply();
     });
@@ -199,7 +200,18 @@ export default class canvas {
     // style internal
     self.internal.style.borderTop = `${slate.borderTop}px`;
     self.internal.style.cursor = `url(${imageFolder}openhand.cur), default`;
-    self.slate.paper = Raphael(self.internal, _w, _h);
+    
+    // Initialize FabricJS canvas
+    self.slate.paper = new fabric.Canvas(canvasElement, {
+      width: _w,
+      height: _h,
+      selection: false, // Disable default multi-selection
+      renderOnAddRemove: true,
+      preserveObjectStacking: true
+    });
+
+    // Set up FabricJS canvas background
+    self.slate.paper.setBackgroundColor('transparent', self.slate.paper.renderAll.bind(self.slate.paper));
 
     self.refreshBackground();
 
@@ -561,7 +573,10 @@ export default class canvas {
   }
 
   clear() {
-    this.slate.options.container.innerHTML = '';
+    // Clear FabricJS canvas instead of DOM manipulation
+    if (this.slate.paper) {
+      this.slate.paper.clear();
+    }
     return this.slate._;
   }
 

@@ -314,13 +314,43 @@ export default class slate extends base {
     this.nodes.allNodes.forEach((nn) => {
       nn.del();
     });
-    this.paper.remove();
+    
+    // Dispose FabricJS canvas properly
+    if (this.paper) {
+      this.paper.dispose();
+      this.paper = null;
+    }
     // delete self;
   }
 
   zoom(x, y, w, h, fit) {
     this.nodes.closeAllLineOptions();
-    this.paper.setViewBox(x, y, w, h, fit);
+    
+    // FabricJS zoom implementation
+    if (this.paper) {
+      // Calculate zoom level based on viewport dimensions
+      const originalWidth = this.options.viewPort.originalWidth || w;
+      const zoomLevel = originalWidth / w;
+      
+      // Apply zoom
+      this.paper.setZoom(zoomLevel);
+      
+      // Calculate pan to center the view
+      const panX = -x * zoomLevel;
+      const panY = -y * zoomLevel;
+      
+      // Apply viewport transform
+      this.paper.setViewportTransform([zoomLevel, 0, 0, zoomLevel, panX, panY]);
+      
+      // Store zoom info for compatibility
+      this.options.viewPort.zoom = {
+        w: w,
+        h: h,
+        l: x,
+        t: y,
+        r: zoomLevel
+      };
+    }
   }
 
   png(ropts, cb) {

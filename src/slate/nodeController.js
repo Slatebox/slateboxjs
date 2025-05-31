@@ -8,6 +8,7 @@ import cloneDeep from 'lodash.clonedeep';
 import getTransformedPath from '../helpers/getTransformedPath';
 import refreshRelationships from '../helpers/refreshRelationships';
 import getDepCoords from '../helpers/getDepCoords';
+import { fabric } from 'fabric';
 
 import utils from '../helpers/utils';
 import editor from '../node/editor';
@@ -776,33 +777,23 @@ export default class nodeController {
       vectOpt['stroke-dasharray'] = '2px';
     }
 
-    vect = vect
-      ? vect
-      : paperToUse.path(_node.options.vectorPath).attr(vectOpt);
-    vect.node.style.cursor = 'pointer';
+    // Create FabricJS object instead of Raphael path
+    vect = this.createFabricObjectFromNode(_node, vectOpt);
+    
+    if (vect) {
+      // Add to canvas
+      this.slate.paper.add(vect);
+      
+      // Set cursor style through FabricJS
+      vect.set('hoverCursor', 'pointer');
+      vect.set('moveCursor', 'pointer');
 
-    // need to set in case toback or tofront is called and the load order changes in the context plugin
-    const relRider = _node.options.disableDrag ? 'nodrag_' : '';
-    vect.node.setAttribute('rel', `${relRider}${_node.options.id}`);
-    vect.data({ id: _node.options.id });
-    _node.vect = vect;
-    // _node.vect.ox = _x;
-    // _node.vect.oy = _y;
-
-    // let rotationContext = {};
-    // console.log('will rotate?', _node.options.rotate);
-    // if (_node.options.rotate && _node.options.rotate.point) {
-    //   rotationContext = {
-    //     rotate: {
-    //       rotationAngle: _node.options.rotate.rotationAngle % 360,
-    //       point: _node.options.rotate.point,
-    //     },
-    //   };
-    // }
-
-    // get the text coords before the transform is applied
-    // var tc = _node.textCoords();
-    // _node.vect.transform(_node.options.vectorPath);
+      // Store node ID and disable flag for reference
+      const relRider = _node.options.disableDrag ? 'nodrag_' : '';
+      vect.set('rel', `${relRider}${_node.options.id}`);
+      vect.data({ id: _node.options.id });
+      _node.vect = vect;
+    }
 
     // update xPos, yPos in case it is different than actual
     const bbox = vect.getBBox();
@@ -819,26 +810,123 @@ export default class nodeController {
 
     const lc = _node.linkCoords();
 
-    // apply the text coords prior to transform
-    // text = paperToUse.text(tc.x, tc.y, (_node.options.text || '')).attr({ "font-size": _node.options.fontSize + "pt", fill: _node.options.foregroundColor || "#000" });
-    link = paperToUse
-      .linkArrow()
-      .transform(
-        ['t', lc.x, ',', lc.y, 's', '.8', ',', '.8', 'r', '180'].join()
-      )
-      .attr({ cursor: 'pointer' });
+    // Create link using FabricJS - simplified link arrow for now
+    // TODO: Implement proper linkArrow shape in FabricJS
+    link = new fabric.Triangle({
+      left: lc.x,
+      top: lc.y,
+      width: 10,
+      height: 10,
+      fill: '#666',
+      scaleX: 0.8,
+      scaleY: 0.8,
+      angle: 180,
+      selectable: false,
+      hoverCursor: 'pointer',
+      moveCursor: 'pointer'
+    });
+    
+    // Add link to canvas
+    this.slate.paper.add(link);
+    
+    // Add Raphael-like methods to link
+    link.attr = function(attrs) {
+      if (attrs) {
+        Object.keys(attrs).forEach(key => {
+          switch(key) {
+            case 'cursor':
+              this.set('hoverCursor', attrs[key]);
+              this.set('moveCursor', attrs[key]);
+              break;
+            case 'x':
+              this.set('left', attrs[key]);
+              break;
+            case 'y':
+              this.set('top', attrs[key]);
+              break;
+            default:
+              this.set(key, attrs[key]);
+              break;
+          }
+        });
+        this.canvas?.requestRenderAll();
+        return this;
+      } else {
+        return {
+          x: this.left,
+          y: this.top,
+          cursor: this.hoverCursor
+        };
+      }
+    };
+    
+    link.animate = function(attrs, duration, easing, callback) {
+      Object.keys(attrs).forEach(key => {
+        let targetKey = key;
+        if (key === 'x') targetKey = 'left';
+        if (key === 'y') targetKey = 'top';
+        
+        this.animate(targetKey, attrs[key], {
+          duration: duration,
+          onChange: () => this.canvas?.requestRenderAll(),
+          onComplete: callback,
+          easing: fabric.util.ease.easeOutQuad
+        });
+      });
+    };
+    
+    link.transform = function(transformString) {
+      // Basic transform parsing for compatibility
+      // TODO: Implement full Raphael transform string parsing
+      return this;
+    };
+    
+    link.hide = function() {
+      this.set('visible', false);
+      this.canvas?.requestRenderAll();
+    };
+    
+    link.show = function() {
+      this.set('visible', true);
+      this.canvas?.requestRenderAll();
+    };
+    
+    link.toFront = function() {
+      if (this.canvas) {
+        this.canvas.bringToFront(this);
+      }
+    };
+    
+    link.toBack = function() {
+      if (this.canvas) {
+        this.canvas.sendToBack(this);
+      }
+    };
+    
+    link.remove = function() {
+      if (this.canvas) {
+        this.canvas.remove(this);
+      }
+    };
 
     // create and set editor
     _node.editor = new editor(this.slate, _node);
     _node.editor.set(); // creates and sets the text
-    _node.text.transform(_node.getTransformString());
+    
+    // Apply transform to text if needed
+    if (_node.text) {
+      _node.text.transform(_node.getTransformString());
+    }
 
     // set link
     _node.link = link;
 
-    _node.both = new _node.slate.paper.set();
-    _node.both.push(_node.vect);
-    _node.both.push(_node.text);
+    // FabricJS doesn't use sets like Raphael, so we'll skip the 'both' set
+    // _node.both is used in some places, so we'll create a simple array for compatibility
+    _node.both = [_node.vect, _node.text];
+    _node.both.push = function(obj) {
+      Array.prototype.push.call(this, obj);
+    };
 
     // relationships
     _node.relationships = new relationships(this.slate, _node);
@@ -964,5 +1052,229 @@ export default class nodeController {
     this._refreshBe();
 
     return vect;
+  }
+
+  /**
+   * Helper method to create FabricJS objects from node options
+   */
+  createFabricObjectFromNode(_node, vectOpt) {
+    const _x = _node.options.xPos;
+    const _y = _node.options.yPos;
+    const _width = _node.options.width;
+    const _height = _node.options.height;
+    
+    let fabricObject = null;
+    
+    // Handle basic shapes first
+    switch (_node.options.vectorPath) {
+      case 'ellipse': {
+        fabricObject = new fabric.Ellipse({
+          left: _x,
+          top: _y,
+          rx: _width / 2,
+          ry: _height / 2,
+          fill: vectOpt.fill,
+          opacity: vectOpt['fill-opacity'],
+          stroke: vectOpt.stroke,
+          strokeWidth: vectOpt['stroke-width'] || 0,
+          originX: 'left',
+          originY: 'top'
+        });
+        break;
+      }
+      case 'rectangle': {
+        fabricObject = new fabric.Rect({
+          left: _x,
+          top: _y,
+          width: _width,
+          height: _height,
+          fill: vectOpt.fill,
+          opacity: vectOpt['fill-opacity'],
+          stroke: vectOpt.stroke,
+          strokeWidth: vectOpt['stroke-width'] || 0,
+          originX: 'left',
+          originY: 'top'
+        });
+        break;
+      }
+      case 'roundedrectangle': {
+        fabricObject = new fabric.Rect({
+          left: _x,
+          top: _y,
+          width: _width,
+          height: _height,
+          rx: 10,
+          ry: 10,
+          fill: vectOpt.fill,
+          opacity: vectOpt['fill-opacity'],
+          stroke: vectOpt.stroke,
+          strokeWidth: vectOpt['stroke-width'] || 0,
+          originX: 'left',
+          originY: 'top'
+        });
+        break;
+      }
+      default: {
+        // Handle custom paths
+        if (_node.options.vectorPath && _node.options.vectorPath.includes('M')) {
+          fabricObject = new fabric.Path(_node.options.vectorPath, {
+            left: _x,
+            top: _y,
+            fill: vectOpt.fill,
+            opacity: vectOpt['fill-opacity'],
+            stroke: vectOpt.stroke,
+            strokeWidth: vectOpt['stroke-width'] || 0,
+            originX: 'left',
+            originY: 'top'
+          });
+        } else {
+          // Fallback to rectangle for unknown shapes
+          fabricObject = new fabric.Rect({
+            left: _x,
+            top: _y,
+            width: _width,
+            height: _height,
+            fill: vectOpt.fill,
+            opacity: vectOpt['fill-opacity'],
+            stroke: vectOpt.stroke,
+            strokeWidth: vectOpt['stroke-width'] || 0,
+            originX: 'left',
+            originY: 'top'
+          });
+        }
+        break;
+      }
+    }
+    
+    if (fabricObject) {
+      // Store node ID for reference
+      fabricObject.set('nodeId', _node.options.id);
+      fabricObject.set('selectable', false);
+      fabricObject.set('hoverCursor', 'pointer');
+      fabricObject.set('moveCursor', 'pointer');
+      
+      // Add Raphael-like methods for compatibility
+      fabricObject.attr = function(attrs) {
+        if (attrs) {
+          Object.keys(attrs).forEach(key => {
+            switch(key) {
+              case 'fill':
+                this.set('fill', attrs[key]);
+                break;
+              case 'stroke':
+                this.set('stroke', attrs[key]);
+                break;
+              case 'stroke-width':
+                this.set('strokeWidth', attrs[key]);
+                break;
+              case 'path':
+                if (this.type === 'path') {
+                  this.set('path', attrs[key]);
+                }
+                break;
+              default:
+                this.set(key, attrs[key]);
+                break;
+            }
+          });
+          this.canvas?.requestRenderAll();
+          return this;
+        } else {
+          // Return current attributes in Raphael format
+          return {
+            fill: this.fill,
+            stroke: this.stroke,
+            'stroke-width': this.strokeWidth,
+            x: this.left,
+            y: this.top,
+            path: this.path || this.getPath?.()
+          };
+        }
+      };
+      
+      fabricObject.getBBox = function() {
+        const bounds = this.getBoundingRect();
+        return {
+          x: bounds.left,
+          y: bounds.top,
+          x2: bounds.left + bounds.width,
+          y2: bounds.top + bounds.height,
+          width: bounds.width,
+          height: bounds.height,
+          cx: bounds.left + bounds.width / 2,
+          cy: bounds.top + bounds.height / 2
+        };
+      };
+      
+      fabricObject.remove = function() {
+        if (this.canvas) {
+          this.canvas.remove(this);
+        }
+      };
+      
+      fabricObject.hide = function() {
+        this.set('visible', false);
+        this.canvas?.requestRenderAll();
+      };
+      
+      fabricObject.show = function() {
+        this.set('visible', true);
+        this.canvas?.requestRenderAll();
+      };
+      
+      fabricObject.toFront = function() {
+        if (this.canvas) {
+          this.canvas.bringToFront(this);
+        }
+      };
+      
+      fabricObject.toBack = function() {
+        if (this.canvas) {
+          this.canvas.sendToBack(this);
+        }
+      };
+      
+      fabricObject.animate = function(attrs, duration, easing, callback) {
+        // Basic animation implementation
+        Object.keys(attrs).forEach(key => {
+          switch(key) {
+            case 'path':
+              // Path animation is complex, skip for now
+              break;
+            default:
+              this.animate(key, attrs[key], {
+                duration: duration,
+                onChange: () => this.canvas?.requestRenderAll(),
+                onComplete: callback,
+                easing: fabric.util.ease.easeOutQuad
+              });
+              break;
+          }
+        });
+      };
+      
+      fabricObject.transform = function(transformString) {
+        // Store transform for later application
+        this._pendingTransform = transformString;
+        return this;
+      };
+      
+      // Add data method for storing arbitrary data
+      fabricObject.data = function(key, value) {
+        if (arguments.length === 0) {
+          return this._nodeData || {};
+        } else if (arguments.length === 1 && typeof key === 'object') {
+          this._nodeData = { ...this._nodeData, ...key };
+        } else if (arguments.length === 1) {
+          return this._nodeData?.[key];
+        } else {
+          this._nodeData = this._nodeData || {};
+          this._nodeData[key] = value;
+        }
+        return this;
+      };
+    }
+    
+    return fabricObject;
   }
 }
