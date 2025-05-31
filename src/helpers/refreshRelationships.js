@@ -1,8 +1,8 @@
 /* eslint-disable no-underscore-dangle */
-import closestPoint from './/closestPoint.js.js'
-import getHorizontalCurve from './/getHorizontalCurve.js.js'
-import getCorrectMidPoints from './getCorrectMidPoints.js'
-import utils from '../helpers/utils'
+import closestPoint from './/closestPoint.js';
+import getHorizontalCurve from './/getHorizontalCurve.js';
+import getCorrectMidPoints from './getCorrectMidPoints.js';
+import utils from '../helpers/utils';
 
 export default function refreshRelationships({
   relationships,
@@ -11,35 +11,35 @@ export default function refreshRelationships({
   dy = 0,
 }) {
   relationships.forEach((r) => {
-    const midPoints = getCorrectMidPoints(r)
+    const midPoints = getCorrectMidPoints(r);
 
-    let tempOriginNode
-    let tempEndNode
-    let linePath
+    let tempOriginNode;
+    let tempEndNode;
+    let linePath;
     if (nodes.some((n) => n.options.id === r.parent.options.id)) {
       tempOriginNode = r.parent.getTempPathWithCorrectPositionFor({
         pathElement: r.parent.vect,
         dx,
         dy,
-      })
+      });
 
       tempEndNode = r.child.getTempPathWithCorrectPositionFor({
         // this one is all about rotation
         pathElement: r.child.vect,
         dx: 0,
         dy: 0,
-      })
+      });
       const childPathContext = closestPoint(
         tempEndNode || r.child.vect,
         midPoints.parent
-      )
-      const pointOnChildPath = childPathContext.bestPoint
+      );
+      const pointOnChildPath = childPathContext.bestPoint;
 
       const parentPathContext = closestPoint(
         tempOriginNode || r.parent.vect,
         pointOnChildPath
-      )
-      const pointOnParentPath = parentPathContext.bestPoint
+      );
+      const pointOnParentPath = parentPathContext.bestPoint;
       // console.log('getHorizontalCurve1', r.parent.options.width)
       linePath = getHorizontalCurve(
         pointOnParentPath,
@@ -49,30 +49,30 @@ export default function refreshRelationships({
         r.lineCurveType,
         r.parent.options.width,
         { x: r.parent.options.xPos, y: r.parent.options.yPos }
-      )
+      );
     } else {
       tempEndNode = r.child.getTempPathWithCorrectPositionFor({
         pathElement: r.child.vect,
         dx,
         dy,
-      })
+      });
 
       tempOriginNode = r.parent.getTempPathWithCorrectPositionFor({
         // this one is all about rotation
         pathElement: r.parent.vect,
         dx: 0,
         dy: 0,
-      })
+      });
       const childPathContext = closestPoint(
         tempEndNode || r.child.vect,
         midPoints.parent
-      )
-      const pointOnChildPath = childPathContext.bestPoint
+      );
+      const pointOnChildPath = childPathContext.bestPoint;
       const parentPathContext = closestPoint(
         tempOriginNode || r.parent.vect,
         pointOnChildPath
-      )
-      const pointOnParentPath = parentPathContext.bestPoint
+      );
+      const pointOnParentPath = parentPathContext.bestPoint;
       // console.log('getHorizontalCurve2', r.parent.options.width)
       linePath = getHorizontalCurve(
         pointOnParentPath,
@@ -82,7 +82,7 @@ export default function refreshRelationships({
         r.lineCurveType,
         r.parent.options.width,
         { x: r.parent.options.xPos, y: r.parent.options.yPos }
-      )
+      );
     }
 
     const _attr = {
@@ -95,33 +95,33 @@ export default function refreshRelationships({
         !utils.isSafari() && !utils.isMobile() && r.lineEffect
           ? `url(#${r.lineEffect})`
           : '',
-    }
+    };
     // stop connection re-draws when shift+alt drag until the move is up because the lines are hidden anyways
     if (!(r.isAlt && r.isShift) || (r.isAlt && r.isShift && r.isUp)) {
-      _attr.path = linePath
+      _attr.path = linePath;
     }
 
     if (r.showChildArrow) {
-      Object.assign(_attr, { 'arrow-end': 'classic' })
+      Object.assign(_attr, { 'arrow-end': 'classic' });
     } else {
-      Object.assign(_attr, { 'arrow-end': 'none' })
+      Object.assign(_attr, { 'arrow-end': 'none' });
     }
 
     if (r.showParentArrow) {
-      Object.assign(_attr, { 'arrow-start': 'classic' })
+      Object.assign(_attr, { 'arrow-start': 'classic' });
     } else {
-      Object.assign(_attr, { 'arrow-start': 'none' })
+      Object.assign(_attr, { 'arrow-start': 'none' });
     }
 
-    r.line.attr(_attr)
+    r.line.attr(_attr);
 
-    if (tempOriginNode) tempOriginNode.remove()
-    if (tempEndNode) tempEndNode.remove()
-  })
+    if (tempOriginNode) tempOriginNode.remove();
+    if (tempEndNode) tempEndNode.remove();
+  });
 
   // always push the grid back
   if (nodes.length > 0) {
-    nodes[0].slate?.grid?.toBack()
-    nodes[0].slate?.canvas?.bgToBack()
+    nodes[0].slate?.grid?.toBack();
+    nodes[0].slate?.canvas?.bgToBack();
   }
 }

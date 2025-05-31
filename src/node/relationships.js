@@ -3,10 +3,10 @@
 /* eslint-disable no-underscore-dangle */
 import kdTree from 'static-kdtree';
 import refreshRelationships from '../helpers/refreshRelationships';
-import getHorizontalCurve from '././helpers/getHorizontalCurve.js.js';
+import getHorizontalCurve from '././helpers/getHorizontalCurve.js';
 import utils from '../helpers/utils';
 import sbIcons from '../helpers/sbIcons';
-import node from '././core/node.js.js';
+import node from '././core/node.js';
 import { fabric } from 'fabric';
 
 export default class relationships {

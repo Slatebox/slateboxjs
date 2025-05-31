@@ -24,8 +24,8 @@ import comments from '../slate/comments.js';
 import keyboard from '../slate/keyboard.js';
 import filters from '../slate/filters.js';
 
-import base from './base.js.js';
-import node from './node.js.js';
+import base from './base.js';
+import node from './node.js';
 
 export default class slate extends base {
   constructor(_options, events) {
@@ -1610,33 +1610,27 @@ export default class slate extends base {
     const self = this;
     // if auto filter is on, then these filters become immediately availalbe in their default form
     if (self.filters.availableAnimations) {
+      // Instead of creating SVG <defs>, we'll inject CSS directly into the document
       Object.keys(self.filters.availableAnimations).forEach((a) => {
-        self.paper.def({
-          tag: 'style',
-          type: 'text/css',
-          id: `animation_${self.options.id}_${a}`,
-          inside: [self.filters.availableAnimations[a].css],
-        });
+        const styleId = `animation_${self.options.id}_${a}`;
+        if (!document.getElementById(styleId)) {
+          const style = document.createElement('style');
+          style.id = styleId;
+          style.textContent = self.filters.availableAnimations[a].css;
+          document.head.appendChild(style);
+        }
       });
-      // const allCss = Object.values(self.filters.availableAnimations)
-      //   .map((a) => a.css)
-      //   .join(' ');
-      // // always add style tag to the <defs> for font embedding
-      // self.paper.def({
-      //   tag: 'style',
-      //   type: 'text/css',
-      //   id: `${self.options.isEmbedding ? 'embedded_' : ''}animationStyles_${self.options.id}`,
-      //   inside: [allCss],
-      // });
     }
-    self.paper.def({
-      tag: 'style',
-      type: 'text/css',
-      id: `sb-txt-wrap`,
-      inside: [
-        `.sb-txt-wrap { transform-box: fill-box; transform-origin: top; }`,
-      ],
-    });
+
+    // Add CSS for text wrapping directly to document
+    const txtWrapStyleId = 'sb-txt-wrap';
+    if (!document.getElementById(txtWrapStyleId)) {
+      const style = document.createElement('style');
+      style.id = txtWrapStyleId;
+      style.textContent = `.sb-txt-wrap { transform-box: fill-box; transform-origin: top; }`;
+      document.head.appendChild(style);
+    }
+
     if (
       self.options.autoEnableDefaultFilters &&
       self.filters?.availableFilters
@@ -1727,19 +1721,26 @@ export default class slate extends base {
     // finally invoke toFront in order
     self.nodes.allNodes.forEach((n) => n.toFront());
 
-    // always add style tag to the <defs> for font embedding
-    self.paper.def({
-      tag: 'style',
-      type: 'text/css',
-      id: `embeddedSBStyles_${self.options.id}`,
-    });
+    // Add CSS for embedded styles directly to document instead of SVG defs
+    const embeddedStyleId = `embeddedSBStyles_${self.options.id}`;
+    if (!document.getElementById(embeddedStyleId)) {
+      const style = document.createElement('style');
+      style.id = embeddedStyleId;
+      style.textContent = '/* Embedded Slatebox styles */';
+      document.head.appendChild(style);
+    }
 
-    self.paper.def({
-      tag: 'path',
-      id: `raphael-marker-classic`,
-      'stroke-linecap': 'round',
-      d: 'M5,0 0,2.5 5,5 3.5,3 3.5,2z',
-    });
+    // For FabricJS, we don't need SVG marker definitions as they're handled differently
+    // Store marker configuration for relationship lines instead
+    if (!self.markerConfig) {
+      self.markerConfig = {
+        'raphael-marker-classic': {
+          type: 'arrow',
+          d: 'M5,0 0,2.5 5,5 3.5,3 3.5,2z',
+          strokeLinecap: 'round',
+        },
+      };
+    }
 
     self.loadAllFonts();
     if (!blnSkipZoom) {
@@ -1960,16 +1961,24 @@ export default class slate extends base {
   }
 
   reorderNodes() {
-    // these ids will come out in the order that they are painted on the screen - toFront and toBack adjusts this, so we need
-    // to always keep this hand so that when the slate is reloaded, it can order the nodes by these ids (which are going to be dif
-    // from the saved JSON order of arrays)
-    const ids = Array.from(
-      this.canvas.internal.querySelector('svg').querySelectorAll('path')
-    )
-      .map((a) => a.getAttribute('rel')?.replace(/^nodrag_|^nodrag_text-/, '')) // ensure the nodrag convention prefixes are removed
-      .filter((r) => !!r);
-    // console.log("order of nodes", ids);
-    this.options.nodeOrder = ids;
+    // For FabricJS, we need to get the order from the canvas objects instead of SVG elements
+    // FabricJS maintains object order in the _objects array
+    try {
+      const canvasObjects = this.paper?.getObjects() || [];
+      const ids = canvasObjects
+        .map((obj) => {
+          // Look for the node ID in various places it might be stored
+          return obj.nodeId || obj.data?.nodeId || obj.id || obj.rel;
+        })
+        .filter((id) => !!id)
+        .map((id) => id.toString().replace(/^nodrag_|^nodrag_text-/, '')); // ensure the nodrag convention prefixes are removed
+
+      this.options.nodeOrder = ids;
+    } catch (error) {
+      // Fallback: use the current order of nodes in memory
+      this.options.nodeOrder =
+        this.nodes?.allNodes?.map((n) => n.options.id) || [];
+    }
   }
 
   findChildren(nodeIds, allChildren = []) {

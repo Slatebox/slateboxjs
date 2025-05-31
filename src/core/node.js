@@ -2,7 +2,7 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable no-unused-expressions */
 /* eslint-disable no-underscore-dangle */
-import base from './base.js.js';
+import base from './base.js';
 import getTransformedPath from '../helpers/getTransformedPath.js';
 import utils from '../helpers/utils.js';
 
@@ -539,13 +539,16 @@ export default class node extends base {
                 baseAnimation
               );
               requestAnimationFrame(() => {
-                self.slate.paper.def({
-                  tag: 'style',
-                  type: 'text/css',
-                  id: rotatedAnimation.class,
-                  class: `${filter.apply}-${self.options.id}-style`,
-                  inside: [rotatedAnimation.css],
-                });
+                // Instead of creating SVG defs, inject CSS directly into document
+                const styleId = rotatedAnimation.class;
+                if (!document.getElementById(styleId)) {
+                  const style = document.createElement('style');
+                  style.id = styleId;
+                  style.className = `${filter.apply}-${self.options.id}-style`;
+                  style.textContent = rotatedAnimation.css;
+                  document.head.appendChild(style);
+                }
+
                 if (filter.deferAnimations) {
                   // id-animationName-deferred
                   self[filter.apply].attr(

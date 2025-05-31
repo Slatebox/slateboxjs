@@ -1,101 +1,87 @@
 /* eslint-disable no-underscore-dangle */
-import utils from '../helpers/utils'
+import utils from '../helpers/utils';
 
 export default class grid {
   constructor(slate) {
-    this.slate = slate
-    this._grid = null
+    this.slate = slate;
+    this._grid = null;
     if (this.slate.options.viewPort.showGrid) {
-      this.show()
+      this.show();
     }
-
-    // produce the required grid patterns
-    // <defs>
-    //   <pattern id="smallGrid" width="10" height="10" patternUnits="userSpaceOnUse">
-    //     <path d="M 10 0 L 0 0 0 10" fill="none" stroke="gray" stroke-width="0.5"/>
-    //   </pattern>
-    //   <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
-    //     <rect width="100" height="100" fill="url(#smallGrid)"/>
-    //     <path d="M 100 0 L 0 0 0 100" fill="none" stroke="gray" stroke-width="1"/>
-    //   </pattern>
-    // </defs>`;
   }
 
   setGrid() {
-    const gbg = this.slate.options.containerStyle.backgroundColor
-    const gridColor = utils.whiteOrBlack(gbg)
+    // Grid is now handled by FabricJS canvas rendering instead of SVG patterns
+    const gbg = this.slate.options.containerStyle.backgroundColor;
+    const gridColor = utils.whiteOrBlack(gbg);
 
     if (!this.slate.options.viewPort.gridSize) {
-      this.slate.options.viewPort.gridSize = 50
+      this.slate.options.viewPort.gridSize = 50;
     }
-    const { gridSize } = this.slate.options.viewPort
 
-    this.slate.paper.def({
-      tag: 'pattern',
-      id: 'sbSmallGrid',
-      height: gridSize,
-      width: gridSize,
-      patternUnits: 'userSpaceOnUse',
-      inside: [
-        {
-          type: 'path',
-          attrs: {
-            d: `M ${gridSize} 0 L 0 0 0 ${gridSize}`,
-            fill: 'none',
-            stroke: gridColor,
-            'stroke-width': '0.5',
-          },
-        },
-      ],
-    })
-    this.slate.paper.def({
-      tag: 'pattern',
-      id: 'sbGrid',
-      height: gridSize * 10,
-      width: gridSize * 10,
-      patternUnits: 'userSpaceOnUse',
-      inside: [
-        {
-          type: 'rect',
-          attrs: {
-            width: gridSize * 10,
-            height: gridSize * 10,
-            fill: 'url(#sbSmallGrid)',
-          },
-        },
-        {
-          type: 'path',
-          attrs: {
-            d: `M ${gridSize * 10} 0 L 0 0 0 ${gridSize * 10}`,
-            fill: 'none',
-            stroke: gridColor,
-            'stroke-width': '0.5',
-          },
-        },
-      ],
-    })
+    this.gridColor = gridColor;
   }
 
   show() {
-    const self = this
-    this.setGrid()
-    self._grid = self.slate.paper
-      .rect(
-        0,
-        0,
-        self.slate.options.viewPort.width,
-        self.slate.options.viewPort.height
-      )
-      .attr({ fill: 'url(#sbGrid)' })
-      .toBack()
-    self.slate.canvas.bgToBack()
+    const self = this;
+    this.setGrid();
+
+    // Create FabricJS-based grid instead of SVG patterns
+    const { gridSize } = self.slate.options.viewPort;
+    const canvas = self.slate.paper;
+    const width = self.slate.options.viewPort.width;
+    const height = self.slate.options.viewPort.height;
+
+    // Create a group to hold all grid lines
+    const gridLines = [];
+
+    // Vertical lines
+    for (let x = 0; x <= width; x += gridSize) {
+      const line = new fabric.Line([x, 0, x, height], {
+        stroke: self.gridColor,
+        strokeWidth: x % (gridSize * 10) === 0 ? 1 : 0.5,
+        selectable: false,
+        evented: false,
+        excludeFromExport: true,
+      });
+      gridLines.push(line);
+    }
+
+    // Horizontal lines
+    for (let y = 0; y <= height; y += gridSize) {
+      const line = new fabric.Line([0, y, width, y], {
+        stroke: self.gridColor,
+        strokeWidth: y % (gridSize * 10) === 0 ? 1 : 0.5,
+        selectable: false,
+        evented: false,
+        excludeFromExport: true,
+      });
+      gridLines.push(line);
+    }
+
+    // Create group and add to canvas
+    self._grid = new fabric.Group(gridLines, {
+      selectable: false,
+      evented: false,
+      excludeFromExport: true,
+    });
+
+    canvas.add(self._grid);
+    self._grid.sendToBack();
+    canvas.renderAll();
   }
 
   toBack() {
-    this._grid?.toBack()
+    if (this._grid) {
+      this._grid.sendToBack();
+      this.slate.paper.renderAll();
+    }
   }
 
   destroy() {
-    this._grid?.remove()
+    if (this._grid) {
+      this.slate.paper.remove(this._grid);
+      this._grid = null;
+    }
   }
 }

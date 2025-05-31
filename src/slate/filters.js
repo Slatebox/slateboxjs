@@ -1,78 +1,110 @@
+/* eslint-disable no-underscore-dangle */
 import utils from '../helpers/utils';
 
 export default class filters {
   constructor(slate) {
     this.slate = slate;
+    this.customFilters = [];
+    this.fabricFilters = new Map(); // Store FabricJS-compatible filters
     this.exposeDefaults();
   }
 
   addDeps(deps) {
+    // Instead of creating SVG definitions, we'll store filter configurations
+    // for use with FabricJS filter system
     const self = this;
-    deps.forEach((d) => {
-      const depDef = {
-        id: utils.guid().substring(10),
-        tag: d.type,
-        ...d.attrs,
-        inside: [],
-      };
-      d.nested.forEach((n) => {
-        if (
-          n.type !== 'animate' ||
-          (n.type === 'animate' && !self.slate.options.isbirdsEye)
-        ) {
-          depDef.inside.push({
-            type: n.type,
-            attrs: n.attrs,
-          });
-        }
-      });
-      self.slate.paper.def(depDef);
+    deps?.forEach((dep) => {
+      if (dep.tag === 'linearGradient' || dep.tag === 'radialGradient') {
+        // Handle gradients differently in FabricJS
+        self.fabricFilters.set(dep.id, {
+          type: 'gradient',
+          tag: dep.tag,
+          attrs: dep.attrs,
+          stops: dep.inside,
+        });
+      } else {
+        // Store other definitions for potential future use
+        self.fabricFilters.set(dep.id, dep);
+      }
     });
   }
 
   add(filter, isDefault) {
     const self = this;
-    const filterDef = {
-      id: filter.id || utils.guid().substring(10),
-      tag: 'filter',
-      filterUnits: 'userSpaceOnUse',
-      ...filter.attrs,
-      inside: [],
+    const filterId = filter.id || utils.guid().substring(10);
+
+    // Convert SVG filter definition to FabricJS-compatible format
+    const fabricFilter = {
+      id: filterId,
+      type: 'fabricFilter',
+      filters: filter.filters || [],
+      attrs: filter.attrs || {},
     };
-    filter.filters?.forEach((ff) => {
-      if (
-        ff.type !== 'animate' ||
-        (ff.type === 'animate' && !self.slate.options.isbirdsEye)
-      ) {
-        if (ff.nested) {
-          filterDef.inside.push({
-            type: ff.type,
-            nested: ff.nested,
-          });
-        } else {
-          filterDef.inside.push({
-            type: ff.type,
-            attrs: ff.attrs,
-          });
-        }
-      }
-    });
-    self.slate.paper.def(filterDef);
+
+    // Store the filter configuration
+    self.fabricFilters.set(filterId, fabricFilter);
+
     if (!isDefault) {
       if (!self.slate.customFilters) {
         self.slate.customFilters = [];
       }
-      self.slate.customFilters.push(filterDef);
+      self.slate.customFilters.push(fabricFilter);
     }
-    return filter.id;
+
+    return filterId;
   }
 
   remove(id) {
     const self = this;
-    self.slate?.filters.splice(
-      self.slate?.filters.findIndex((f) => f.id === id)
-    );
+    self.fabricFilters.delete(id);
+    if (self.slate?.customFilters) {
+      self.slate.customFilters = self.slate.customFilters.filter(
+        (f) => f.id !== id
+      );
+    }
     return true;
+  }
+
+  // Method to apply filter to a FabricJS object
+  applyFilterToObject(object, filterId) {
+    const filterConfig = this.fabricFilters.get(filterId);
+    if (!filterConfig) return;
+
+    // Convert common SVG filters to FabricJS filters
+    const fabricFilters = [];
+
+    filterConfig.filters?.forEach((f) => {
+      switch (f.type) {
+        case 'feGaussianBlur':
+          fabricFilters.push(
+            new fabric.Image.filters.Blur({
+              blur: parseFloat(f.attrs?.stdDeviation || 0) / 100,
+            })
+          );
+          break;
+        case 'feOffset':
+          // FabricJS doesn't have a direct offset filter, handle differently
+          break;
+        case 'feColorMatrix':
+          if (f.attrs?.values) {
+            const values = f.attrs.values.split(' ').map(Number);
+            fabricFilters.push(
+              new fabric.Image.filters.ColorMatrix({
+                matrix: values,
+              })
+            );
+          }
+          break;
+        case 'feDropShadow':
+          // Handle shadow effects
+          break;
+      }
+    });
+
+    if (fabricFilters.length > 0) {
+      object.filters = fabricFilters;
+      object.applyFilters();
+    }
   }
 
   // <feGaussianBlur in="SourceAlpha" stdDeviation="3"/> <!-- stdDeviation is how much to blur -->

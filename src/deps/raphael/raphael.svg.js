@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { eve } from '../eve.js';
-import { R } from './raphael.core.js.js';
+import { R } from './raphael.core.js';
 
 export const Raphael = (function () {
   const has = 'hasOwnProperty';
