@@ -1,10 +1,10 @@
 /* eslint-disable no-underscore-dangle */
 import uniq from 'lodash.uniq';
-import utils from '../helpers/utils';
-import sbIcons from '../helpers/sbIcons';
+import utils from '../helpers/utils.js';
+import sbIcons from '../helpers/sbIcons.js';
 import { fabric } from 'fabric';
-import embedGoogleFonts from '../helpers/embedGoogleFonts';
-import '../deps/emile';
+import embedGoogleFonts from '../helpers/embedGoogleFonts.js';
+import '../deps/emile.js';
 
 export default class canvas {
   constructor(slate) {
@@ -200,18 +200,21 @@ export default class canvas {
     // style internal
     self.internal.style.borderTop = `${slate.borderTop}px`;
     self.internal.style.cursor = `url(${imageFolder}openhand.cur), default`;
-    
+
     // Initialize FabricJS canvas
     self.slate.paper = new fabric.Canvas(canvasElement, {
       width: _w,
       height: _h,
       selection: false, // Disable default multi-selection
       renderOnAddRemove: true,
-      preserveObjectStacking: true
+      preserveObjectStacking: true,
     });
 
     // Set up FabricJS canvas background
-    self.slate.paper.setBackgroundColor('transparent', self.slate.paper.renderAll.bind(self.slate.paper));
+    self.slate.paper.setBackgroundColor(
+      'transparent',
+      self.slate.paper.renderAll.bind(self.slate.paper)
+    );
 
     self.refreshBackground();
 

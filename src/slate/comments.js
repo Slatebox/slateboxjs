@@ -1,7 +1,7 @@
 /* eslint-disable new-cap */
 /* eslint-disable no-underscore-dangle */
 import utils from '../helpers/utils'
-import node from '../core/node'
+import node from '././core/node.js.js'
 
 export default class comments {
   constructor(slate) {

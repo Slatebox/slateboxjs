@@ -6,7 +6,7 @@ import cloneDeep from 'lodash.clonedeep'
 import omit from 'lodash.omit'
 import utils from '../helpers/utils'
 import refreshRelationships from '../helpers/refreshRelationships'
-import { Slatebox } from '../index'
+import { Slatebox } from '././index.js.js'
 
 export default class multiSelection {
   constructor(slate) {

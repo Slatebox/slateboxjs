@@ -5,8 +5,8 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import omit from 'lodash.omit';
 import cloneDeep from 'lodash.clonedeep';
-import utils from '../helpers/utils';
-import node from '../core/node';
+import utils from '../helpers/utils.js';
+import node from '../core/node.js';
 
 export default class collab {
   constructor(slate) {

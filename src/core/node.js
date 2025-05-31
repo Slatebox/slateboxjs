@@ -2,9 +2,9 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable no-unused-expressions */
 /* eslint-disable no-underscore-dangle */
-import base from './base';
-import getTransformedPath from '../helpers/getTransformedPath';
-import utils from '../helpers/utils';
+import base from './base.js.js';
+import getTransformedPath from '../helpers/getTransformedPath.js';
+import utils from '../helpers/utils.js';
 
 export default class node extends base {
   constructor(options) {

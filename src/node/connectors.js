@@ -1,9 +1,9 @@
 /* eslint-disable new-cap */
 /* eslint-disable no-underscore-dangle */
 import utils from '../helpers/utils';
-import node from '../core/node';
+import node from '././core/node.js.js';
 import omit from 'lodash.omit';
-import { Raphael } from '../deps/raphael/raphael.svg';
+import { Raphael } from '././deps/raphael/raphael.svg.js.js';
 
 export default class connectors {
   constructor(slate, node) {

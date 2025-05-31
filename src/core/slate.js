@@ -8,24 +8,24 @@
 import uniq from 'lodash.uniq';
 import cloneDeep from 'lodash.clonedeep';
 import merge from 'deepmerge';
-import utils from '../helpers/utils';
-import getTransformedPath from '../helpers/getTransformedPath';
-import canvas from '../slate/canvas';
-import collab from '../slate/collab';
-import nodeController from '../slate/nodeController';
-import multiSelection from '../slate/multiSelection';
-import birdsEye from '../slate/birdsEye';
-import inertia from '../slate/inertia';
-import controller from '../slate/controller';
-import zoomSlider from '../slate/zoomSlider';
-import undoRedo from '../slate/undoRedo';
-import grid from '../slate/grid';
-import comments from '../slate/comments';
-import keyboard from '../slate/keyboard';
-import filters from '../slate/filters';
+import utils from '../helpers/utils.js';
+import getTransformedPath from '../helpers/getTransformedPath.js';
+import canvas from '../slate/canvas.js';
+import collab from '../slate/collab.js';
+import nodeController from '../slate/nodeController.js';
+import multiSelection from '../slate/multiSelection.js';
+import birdsEye from '../slate/birdsEye.js';
+import inertia from '../slate/inertia.js';
+import controller from '../slate/controller.js';
+import zoomSlider from '../slate/zoomSlider.js';
+import undoRedo from '../slate/undoRedo.js';
+import grid from '../slate/grid.js';
+import comments from '../slate/comments.js';
+import keyboard from '../slate/keyboard.js';
+import filters from '../slate/filters.js';
 
-import base from './base';
-import node from './node';
+import base from './base.js.js';
+import node from './node.js.js';
 
 export default class slate extends base {
   constructor(_options, events) {
@@ -314,7 +314,7 @@ export default class slate extends base {
     this.nodes.allNodes.forEach((nn) => {
       nn.del();
     });
-    
+
     // Dispose FabricJS canvas properly
     if (this.paper) {
       this.paper.dispose();
@@ -325,30 +325,30 @@ export default class slate extends base {
 
   zoom(x, y, w, h, fit) {
     this.nodes.closeAllLineOptions();
-    
+
     // FabricJS zoom implementation
     if (this.paper) {
       // Calculate zoom level based on viewport dimensions
       const originalWidth = this.options.viewPort.originalWidth || w;
       const zoomLevel = originalWidth / w;
-      
+
       // Apply zoom
       this.paper.setZoom(zoomLevel);
-      
+
       // Calculate pan to center the view
       const panX = -x * zoomLevel;
       const panY = -y * zoomLevel;
-      
+
       // Apply viewport transform
       this.paper.setViewportTransform([zoomLevel, 0, 0, zoomLevel, panX, panY]);
-      
+
       // Store zoom info for compatibility
       this.options.viewPort.zoom = {
         w: w,
         h: h,
         l: x,
         t: y,
-        r: zoomLevel
+        r: zoomLevel,
       };
     }
   }
