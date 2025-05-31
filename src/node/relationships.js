@@ -7,6 +7,7 @@ import getHorizontalCurve from '../helpers/getHorizontalCurve';
 import utils from '../helpers/utils';
 import sbIcons from '../helpers/sbIcons';
 import node from '../core/node';
+import { fabric } from 'fabric';
 
 export default class relationships {
   constructor(slate, node) {
@@ -106,9 +107,17 @@ export default class relationships {
       if (!self.slate.keyboardActive) {
         nd.editor.setTextOffset();
       }
+
+      // Update classes for FabricJS objects
       requestAnimationFrame(() => {
-        nd.text.node.setAttribute('class', nd.existingTextClasses);
-        nd.vect.node.setAttribute('class', nd.existingVectClasses);
+        // For FabricJS objects, we store classes differently
+        if (nd.text && nd.existingTextClasses) {
+          nd.text.set('className', nd.existingTextClasses);
+        }
+        if (nd.vect && nd.existingVectClasses) {
+          nd.vect.set('className', nd.existingVectClasses);
+        }
+        self.slate.paper.requestRenderAll();
       });
     });
 
@@ -285,10 +294,12 @@ export default class relationships {
         n.setStartDrag();
         n.vect.ox = n.options.xPos;
         n.vect.oy = n.options.yPos;
-        n.existingTextClasses = n.text.node.getAttribute('class');
-        n.existingVectClasses = n.vect.node.getAttribute('class');
-        n.text.node.setAttribute('class', 'slatebox-text');
-        n.vect.node.setAttribute('class', '');
+        // Store classes for FabricJS objects
+        n.existingTextClasses = n.text.className || 'slatebox-text';
+        n.existingVectClasses = n.vect.className || '';
+        // Set temporary classes
+        n.text.set('className', 'slatebox-text');
+        n.vect.set('className', '');
       });
       const selectedIds = self.selectedNodes.map((n) => n.options.id);
       self.foreignPoints = self.slate.nodes.allNodes
@@ -512,41 +523,126 @@ export default class relationships {
     };
     Object.assign(association, opts);
 
-    const _attr = {
-      stroke: association.lineColor,
-      class: 'association',
-      fill: 'none',
-      'stroke-width': association.lineWidth,
-      'fill-opacity': association.lineOpacity,
-      filter:
-        association.lineEffect && !utils.isSafari() && !utils.isMobile()
-          ? `url(#${association.lineEffect})`
-          : '',
-      opacity: association.lineOpacity,
-    };
-
     // these two generic points will be adjusted after the line is created
     const origPoint = { x: 1, y: 1 };
     const endPoint = { x: 200, y: 200 };
+
     if (!association.line) {
-      Object.assign(association, {
-        line: paper
-          .path(
-            getHorizontalCurve(
-              origPoint,
-              endPoint,
-              association.lineCurviness,
-              association.lineType,
-              association.lineCurveType
-            )
-          )
-          .attr(_attr),
+      // Create FabricJS path for the relationship line
+      const pathString = getHorizontalCurve(
+        origPoint,
+        endPoint,
+        association.lineCurviness,
+        association.lineType,
+        association.lineCurveType
+      );
+
+      const fabricLine = new fabric.Path(pathString, {
+        fill: 'none',
+        stroke: association.lineColor,
+        strokeWidth: association.lineWidth,
+        opacity: association.lineOpacity,
+        selectable: false,
+        evented: true,
+        hoverCursor: 'pointer',
+        moveCursor: 'pointer',
       });
-      association.line.node.setAttribute(
+
+      // Add Raphael-like methods for compatibility
+      fabricLine.attr = function (attrs) {
+        if (attrs) {
+          Object.keys(attrs).forEach((key) => {
+            switch (key) {
+              case 'stroke':
+                this.set('stroke', attrs[key]);
+                break;
+              case 'stroke-width':
+                this.set('strokeWidth', attrs[key]);
+                break;
+              case 'fill':
+                this.set('fill', attrs[key]);
+                break;
+              case 'opacity':
+                this.set('opacity', attrs[key]);
+                break;
+              case 'path':
+                this.set('path', attrs[key]);
+                break;
+              case 'filter':
+                // FabricJS doesn't support SVG filters directly, store for future implementation
+                this._filter = attrs[key];
+                break;
+              default:
+                this.set(key, attrs[key]);
+                break;
+            }
+          });
+          this.canvas?.requestRenderAll();
+          return this;
+        } else {
+          // Return current attributes in Raphael format
+          return {
+            stroke: this.stroke,
+            'stroke-width': this.strokeWidth,
+            fill: this.fill,
+            opacity: this.opacity,
+            path: this.path,
+          };
+        }
+      };
+
+      fabricLine.remove = function () {
+        if (this.canvas) {
+          this.canvas.remove(this);
+        }
+      };
+
+      fabricLine.hide = function () {
+        this.set('visible', false);
+        this.canvas?.requestRenderAll();
+      };
+
+      fabricLine.show = function () {
+        this.set('visible', true);
+        this.canvas?.requestRenderAll();
+      };
+
+      fabricLine.toFront = function () {
+        if (this.canvas) {
+          this.canvas.bringToFront(this);
+        }
+      };
+
+      fabricLine.toBack = function () {
+        if (this.canvas) {
+          this.canvas.sendToBack(this);
+        }
+      };
+
+      fabricLine.animate = function (attrs, duration, easing, callback) {
+        Object.keys(attrs).forEach((key) => {
+          this.animate(key, attrs[key], {
+            duration: duration,
+            onChange: () => this.canvas?.requestRenderAll(),
+            onComplete: callback,
+            easing: fabric.util.ease.easeOutQuad,
+          });
+        });
+      };
+
+      // Store relationship metadata
+      fabricLine.set(
         'rel',
         `association-${association.parent.options.id}-${association.child.options.id}`
       );
+      fabricLine.associationId = association.id;
+
+      // Add to canvas
+      paper.add(fabricLine);
+
+      association.line = fabricLine;
     }
+
     if (association.child && association.parent) {
       refreshRelationships({
         relationships: [association],
@@ -568,11 +664,15 @@ export default class relationships {
   wireLineEvents(c) {
     const self = this;
     if (self.node.options.allowMenu) {
-      c.line.node.style.cursor = 'pointer';
-      c.line.mousedown((e) => {
-        utils.stopEvent(e);
-        self.node.lineOptions.show(e, c);
+      // Set cursor and event handling for FabricJS
+      c.line.set('hoverCursor', 'pointer');
+      c.line.set('moveCursor', 'pointer');
+
+      c.line.on('mousedown', (options) => {
+        utils.stopEvent(options.e);
+        self.node.lineOptions.show(options.e, c);
       });
+
       self.slate?.grid.toBack();
       self.slate?.canvas.bgToBack();
     }
@@ -745,21 +845,101 @@ export default class relationships {
       (!self.slate.isCommentOnly() ||
         (self.slate.isCommentOnly() && self.node.options.isComment))
     ) {
-      self.node.vect.drag(
-        self.dragEvents.move,
-        self.dragEvents.dragger,
-        self.dragEvents.up
-      );
-      self.node.text.mousedown((e) => {
-        self.node.vect.start(e);
+      // Set up FabricJS drag events
+      self.setupFabricJSDragEvents();
+
+      // Set up double-click events for text editing
+      self.node.vect.on('mousedblclick', () => {
+        showText();
       });
 
-      self.node.vect.dblclick(() => {
+      self.node.text.on('mousedblclick', () => {
         showText();
       });
-      self.node.text.dblclick(() => {
-        showText();
-      });
+
+      // Set up single click for text editing with fabric.IText
+      if (self.node.text.type === 'i-text') {
+        self.node.text.on('mousedown', (options) => {
+          // Allow text editing on single click for IText
+          if (options.e.detail === 1) {
+            // Single click
+            setTimeout(() => {
+              if (!self.slate.draggingNode) {
+                self.node.editor.startEditing();
+              }
+            }, 200);
+          }
+        });
+      } else {
+        // For regular text, wire mousedown to start dragging
+        self.node.text.on('mousedown', (options) => {
+          self.startDragFromEvent(options);
+        });
+      }
     }
+  }
+
+  /**
+   * Set up FabricJS drag events to replace Raphael's drag system
+   */
+  setupFabricJSDragEvents() {
+    const self = this;
+    let isDragging = false;
+    let dragStarted = false;
+    let startX, startY;
+
+    // Mouse down - initiate potential drag
+    self.node.vect.on('mousedown', (options) => {
+      self.startDragFromEvent(options);
+    });
+
+    // Start drag from event
+    self.startDragFromEvent = (options) => {
+      if (self.slate.canvas.isDragging) return;
+
+      const pointer = self.slate.paper.getPointer(options.e);
+      startX = pointer.x;
+      startY = pointer.y;
+      dragStarted = false;
+      isDragging = true;
+
+      // Call the dragger event
+      self.dragEvents.dragger(startX, startY, options.e);
+
+      // Set up temporary canvas-level events for dragging
+      const onMouseMove = (e) => {
+        if (!isDragging) return;
+
+        const currentPointer = self.slate.paper.getPointer(e.e);
+        const dx = currentPointer.x - startX;
+        const dy = currentPointer.y - startY;
+
+        if (!dragStarted && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+          dragStarted = true;
+        }
+
+        if (dragStarted) {
+          self.dragEvents.move(dx, dy);
+        }
+      };
+
+      const onMouseUp = (e) => {
+        if (isDragging) {
+          isDragging = false;
+
+          // Remove temporary canvas events
+          self.slate.paper.off('mouse:move', onMouseMove);
+          self.slate.paper.off('mouse:up', onMouseUp);
+
+          if (dragStarted) {
+            self.dragEvents.up();
+          }
+        }
+      };
+
+      // Add temporary canvas-level events
+      self.slate.paper.on('mouse:move', onMouseMove);
+      self.slate.paper.on('mouse:up', onMouseUp);
+    };
   }
 }

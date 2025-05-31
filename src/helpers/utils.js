@@ -1,7 +1,7 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-return-assign */
-import { Raphael } from '../deps/raphael/raphael.svg';
+import { fabric } from 'fabric';
 
 export default class utils {
   static easing = {
@@ -314,14 +314,22 @@ export default class utils {
   }
 
   static getBBox(opts) {
-    const cont = document.createElement('div');
-    cont.setAttribute('id', 'hiddenPaper');
-    cont.style.display = 'none';
-    document.body.appendChild(cont);
-    const pp = new Raphael(cont);
-    const bb = pp.path(opts.path).getBBox();
-    document.body.removeChild(cont);
-    return bb;
+    // Create temporary FabricJS canvas to measure path
+    const tempCanvas = new fabric.Canvas(null, { width: 100, height: 100 });
+    const pathObj = new fabric.Path(opts.path);
+    const bounds = pathObj.getBoundingRect();
+    tempCanvas.dispose();
+
+    return {
+      x: bounds.left,
+      y: bounds.top,
+      x2: bounds.left + bounds.width,
+      y2: bounds.top + bounds.height,
+      width: bounds.width,
+      height: bounds.height,
+      cx: bounds.left + bounds.width / 2,
+      cy: bounds.top + bounds.height / 2,
+    };
   }
 
   static obtainProportionateWidthAndHeightForResizing(
@@ -486,122 +494,143 @@ export default class utils {
 
   // https://gist.github.com/iconifyit/958e7abba71806d663de6c2c273dc0da
   static splitPath(pathData) {
+    // For FabricJS, we'll use a simplified path splitting approach
+    // This is a basic implementation - for complex path operations,
+    // you might want to use a dedicated SVG path parsing library
+
     function pathToAbsoluteSubPaths(path_string) {
-      var path_commands = Raphael.parsePathString(path_string),
-        end_point = [0, 0],
-        sub_paths = [],
-        command = [],
-        i = 0;
+      // Basic path parsing - this is a simplified version
+      // For production, consider using a more robust SVG path parser
+      const commands =
+        path_string.match(/[MmLlHhVvCcSsQqTtAaZz][^MmLlHhVvCcSsQqTtAaZz]*/g) ||
+        [];
+      const sub_paths = [];
+      let current_path = [];
 
-      while (i < path_commands.length) {
-        command = path_commands[i];
-        end_point = getNextEndPoint(end_point, command);
-        if (command[0] === 'm') {
-          command = ['M', end_point[0], end_point[1]];
+      commands.forEach((command) => {
+        const type = command[0];
+        if (type.toLowerCase() === 'm') {
+          if (current_path.length > 0) {
+            sub_paths.push(current_path);
+          }
+          current_path = [command];
+        } else {
+          current_path.push(command);
         }
-        var sub_path = [command.join(' ')];
+      });
 
-        i++;
-
-        while (!endSubPath(path_commands, i)) {
-          command = path_commands[i];
-          sub_path.push(command.join(' '));
-          end_point = getNextEndPoint(end_point, command);
-          i++;
-        }
-
-        sub_paths.push(sub_path.join(' '));
+      if (current_path.length > 0) {
+        sub_paths.push(current_path);
       }
 
-      return sub_paths;
-    }
-
-    function getNextEndPoint(end_point, command) {
-      var x = end_point[0],
-        y = end_point[1];
-      if (isRelative(command)) {
-        switch (command[0]) {
-          case 'h':
-            x += command[1];
-            break;
-          case 'v':
-            y += command[1];
-            break;
-          case 'z':
-            // back to [0,0]?
-            x = 0;
-            y = 0;
-            break;
-          default:
-            x += command[command.length - 2];
-            y += command[command.length - 1];
-        }
-      } else {
-        switch (command[0]) {
-          case 'H':
-            x = command[1];
-            break;
-          case 'V':
-            y = command[1];
-            break;
-          case 'Z':
-            // back to [0,0]?
-            x = 0;
-            y = 0;
-            break;
-          default:
-            x = command[command.length - 2];
-            y = command[command.length - 1];
-        }
-      }
-      return [x, y];
-    }
-
-    function isRelative(command) {
-      return command[0] === command[0].toLowerCase();
-    }
-
-    function endSubPath(commands, index) {
-      if (index >= commands.length) {
-        return true;
-      } else {
-        return commands[index][0].toLowerCase() === 'm';
-      }
+      return sub_paths.map((path) => path.join(' '));
     }
 
     return pathToAbsoluteSubPaths(pathData);
   }
 
   static _transformPath(original, transform) {
-    const rpath = Raphael.transformPath(original, transform).toString();
-    return rpath;
+    // For FabricJS, we'll create a temporary path object and apply transforms
+    try {
+      const pathObj = new fabric.Path(original);
+
+      // Parse transform string (simplified - handles basic transforms)
+      if (transform.startsWith('T') || transform.startsWith('t')) {
+        // Translation: T10,20 or t10,20
+        const coords = transform.slice(1).split(',');
+        const dx = parseFloat(coords[0]) || 0;
+        const dy = parseFloat(coords[1]) || 0;
+
+        pathObj.set({
+          left: pathObj.left + dx,
+          top: pathObj.top + dy,
+        });
+      } else if (transform.startsWith('S') || transform.startsWith('s')) {
+        // Scale: S2,2 or s2,2
+        const scales = transform.slice(1).split(',');
+        const sx = parseFloat(scales[0]) || 1;
+        const sy = parseFloat(scales[1]) || sx;
+
+        pathObj.set({
+          scaleX: pathObj.scaleX * sx,
+          scaleY: pathObj.scaleY * sy,
+        });
+      } else if (transform.startsWith('R') || transform.startsWith('r')) {
+        // Rotation: R45 or r45
+        const angle = parseFloat(transform.slice(1)) || 0;
+        pathObj.set({
+          angle: pathObj.angle + angle,
+        });
+      }
+
+      // Return the modified path - this is a simplified approach
+      // For complex transformations, you might need a more sophisticated solution
+      return pathObj.path ? pathObj.path.join(' ') : original;
+    } catch (e) {
+      console.warn('Path transformation failed, returning original:', e);
+      return original;
+    }
   }
 
   static transformPath(_node, _transformation) {
-    const _path = Raphael.transformPath(
-      _node.vect.attr('path').toString(),
-      _transformation
-    ).toString();
-    _node.options.vectorPath = _path;
-    _node.vect.transform('');
-    _node.vect.attr({ path: _node.options.vectorPath });
-    const bb = _node.vect.getBBox();
-    const rotationContext = {
-      point: {
-        x: bb.cx,
-        y: bb.cy,
-      },
-    };
-    Object.assign(_node.options.rotate, rotationContext);
-    const transformString = _node.getTransformString();
-    _node.vect.transform(transformString);
+    // Apply transformation to FabricJS node
+    if (!_node || !_node.vect) return;
 
-    _node.text.transform('');
-    // xPos and yPos are updated in the setPosition in Slatebox.node.js
-    _node.text.attr(
-      _node.textCoords({ x: _node.options.xPos, y: _node.options.yPos })
-    );
-    _node.text.transform(transformString);
+    try {
+      // Parse the transformation string
+      if (_transformation.startsWith('T')) {
+        // Translation
+        const coords = _transformation.slice(1).split(',');
+        const dx = parseFloat(coords[0]) || 0;
+        const dy = parseFloat(coords[1]) || 0;
+
+        // Apply translation to the node's vector object
+        const currentLeft = _node.vect.left || 0;
+        const currentTop = _node.vect.top || 0;
+
+        _node.vect.set({
+          left: currentLeft + dx,
+          top: currentTop + dy,
+        });
+
+        // Update node position options
+        _node.options.xPos += dx;
+        _node.options.yPos += dy;
+
+        // Also transform text if present
+        if (_node.text) {
+          const textLeft = _node.text.left || 0;
+          const textTop = _node.text.top || 0;
+          _node.text.set({
+            left: textLeft + dx,
+            top: textTop + dy,
+          });
+        }
+
+        // Request canvas re-render
+        if (_node.vect.canvas) {
+          _node.vect.canvas.requestRenderAll();
+        }
+      }
+      // Add support for other transformations as needed (Scale, Rotate)
+      else if (_transformation.startsWith('S')) {
+        // Scale transformation
+        const scales = _transformation.slice(1).split(',');
+        const sx = parseFloat(scales[0]) || 1;
+        const sy = parseFloat(scales[1]) || sx;
+
+        _node.vect.set({
+          scaleX: (_node.vect.scaleX || 1) * sx,
+          scaleY: (_node.vect.scaleY || 1) * sy,
+        });
+
+        if (_node.vect.canvas) {
+          _node.vect.canvas.requestRenderAll();
+        }
+      }
+    } catch (e) {
+      console.warn('Node transformation failed:', e);
+    }
   }
 
   static htmlToElement(html) {
