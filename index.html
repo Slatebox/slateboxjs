@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlateboxJS v2 Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .controls button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .controls button:hover {
+            background-color: #0056b3;
+        }
+        .slate-container {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        #slate {
+            width: 100%;
+            height: 600px;
+        }
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .info li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SlateboxJS v2 Demo</h1>
+            <p>A modern diagramming library built with svg.js and Vite</p>
+        </div>
+
+        <div class="controls">
+            <button onclick="addRectangleNode()">Add Rectangle</button>
+            <button onclick="addCircleNode()">Add Circle</button>
+            <button onclick="addEllipseNode()">Add Ellipse</button>
+            <button onclick="addTextNode()">Add Text Node</button>
+            <button onclick="clearSlate()">Clear All</button>
+            <button onclick="lockAllNodes()">Lock All</button>
+            <button onclick="unlockAllNodes()">Unlock All</button>
+            <button onclick="changeTheme()">Change Colors</button>
+        </div>
+
+        <div class="slate-container">
+            <div id="slate"></div>
+        </div>
+
+        <div class="info">
+            <h3>How to Use:</h3>
+            <ul>
+                <li><strong>Add Nodes:</strong> Click the buttons above to add different types of nodes</li>
+                <li><strong>Drag Nodes:</strong> Click and drag any node to move it around</li>
+                <li><strong>Lock/Unlock:</strong> Use the lock buttons to prevent or allow dragging</li>
+                <li><strong>Clear:</strong> Remove all nodes from the slate</li>
+            </ul>
+
+            <h3>Features Demonstrated:</h3>
+            <ul>
+                <li>✅ SVG-based drawing canvas</li>
+                <li>✅ Draggable nodes with svg.draggable.js</li>
+                <li>✅ Multiple node shapes (rectangle, circle, ellipse)</li>
+                <li>✅ Node text rendering and positioning</li>
+                <li>✅ Node locking/unlocking</li>
+                <li>✅ Programmatic node creation and management</li>
+                <li>✅ Invoker contract for external tool integration</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module">
+        import SlateboxJS from './dist/slateboxjs.es.js'
+
+        // Initialize the slate
+        const slate = SlateboxJS('#slate', {
+            viewPort: {
+                originalWidth: 1000,
+                originalHeight: 600
+            },
+            containerStyle: {
+                backgroundColor: '#ffffff'
+            }
+        })
+
+        // Make slate globally accessible for demo functions
+        window.demoSlate = slate
+
+        // Demo functions
+        window.addRectangleNode = function() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57']
+            const color = colors[Math.floor(Math.random() * colors.length)]
+            
+            slate.addNode({
+                id: 'rect_' + Date.now(),
+                x: Math.random() * 400 + 50,
+                y: Math.random() * 300 + 50,
+                width: 120,
+                height: 80,
+                text: 'Rectangle',
+                backgroundColor: color,
+                borderColor: '#333',
+                shape: 'rectangle'
+            })
+        }
+
+        window.addCircleNode = function() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57']
+            const color = colors[Math.floor(Math.random() * colors.length)]
+            
+            slate.addNode({
+                id: 'circle_' + Date.now(),
+                x: Math.random() * 400 + 50,
+                y: Math.random() * 300 + 50,
+                width: 100,
+                height: 100,
+                text: 'Circle',
+                backgroundColor: color,
+                borderColor: '#333',
+                shape: 'circle'
+            })
+        }
+
+        window.addEllipseNode = function() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57']
+            const color = colors[Math.floor(Math.random() * colors.length)]
+            
+            slate.addNode({
+                id: 'ellipse_' + Date.now(),
+                x: Math.random() * 400 + 50,
+                y: Math.random() * 300 + 50,
+                width: 140,
+                height: 70,
+                text: 'Ellipse',
+                backgroundColor: color,
+                borderColor: '#333',
+                shape: 'ellipse'
+            })
+        }
+
+        window.addTextNode = function() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57']
+            const color = colors[Math.floor(Math.random() * colors.length)]
+            
+            slate.addNode({
+                id: 'text_' + Date.now(),
+                x: Math.random() * 400 + 50,
+                y: Math.random() * 300 + 50,
+                width: 150,
+                height: 60,
+                text: 'Custom Text',
+                backgroundColor: color,
+                borderColor: '#333',
+                fontSize: 16,
+                fontColor: '#333'
+            })
+        }
+
+        window.clearSlate = function() {
+            slate.nodes.clear()
+        }
+
+        window.lockAllNodes = function() {
+            slate.getAllNodes().forEach(node => {
+                slate.invoker.onNodeLocked({ data: { id: node.id } })
+            })
+        }
+
+        window.unlockAllNodes = function() {
+            slate.getAllNodes().forEach(node => {
+                slate.invoker.onNodeUnlocked({ data: { id: node.id } })
+            })
+        }
+
+        window.changeTheme = function() {
+            const themes = [
+                { bg: '#f8f9fa', border: '#dee2e6' },
+                { bg: '#e3f2fd', border: '#1976d2' },
+                { bg: '#fff3e0', border: '#f57c00' },
+                { bg: '#f3e5f5', border: '#7b1fa2' },
+                { bg: '#e8f5e8', border: '#388e3c' }
+            ]
+            const theme = themes[Math.floor(Math.random() * themes.length)]
+            
+            slate.getAllNodes().forEach(node => {
+                node.setColors(theme.bg, theme.border)
+            })
+        }
+
+        // Add some initial nodes for demonstration
+        setTimeout(() => {
+            addRectangleNode()
+            addCircleNode()
+            addEllipseNode()
+        }, 100)
+
+        console.log('SlateboxJS v2 Demo loaded!')
+        console.log('Slate instance:', slate)
+    </script>
+</body>
+</html>
