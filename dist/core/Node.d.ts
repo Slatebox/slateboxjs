@@ -1,5 +1,6 @@
 import { G, Rect, Text, Circle, Ellipse } from '@svgdotjs/svg.js';
 import '@svgdotjs/svg.draggable.js';
+import { ResizeRotate, ResizeRotateOptions } from './ResizeRotate';
 export interface NodeOptions {
     id: string;
     x?: number;
@@ -26,6 +27,7 @@ export interface NodeOptions {
         x?: number;
         y?: number;
     };
+    resizeRotate?: ResizeRotateOptions;
 }
 export declare class Node {
     id: string;
@@ -33,6 +35,7 @@ export declare class Node {
     svgGroup: G;
     backgroundRect: Rect | Circle | Ellipse;
     textElement: Text;
+    resizeRotate: ResizeRotate;
     private slate;
     constructor(options: NodeOptions, slate: any);
     private generateId;
@@ -52,4 +55,13 @@ export declare class Node {
     setColors(backgroundColor?: string, borderColor?: string): void;
     lock(): void;
     unlock(): void;
+    enableResizeRotate(): void;
+    disableResizeRotate(): void;
+    enableResize(): void;
+    disableResize(): void;
+    enableRotate(): void;
+    disableRotate(): void;
+    isResizeRotateEnabled(): boolean;
+    setRotation(angle: number): void;
+    getRotation(): number;
 }

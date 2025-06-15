@@ -2,6 +2,7 @@ import { SVG, Svg } from '@svgdotjs/svg.js'
 import { Node } from './Node'
 import { NodesManager } from './NodesManager'
 import { Invoker } from './Invoker'
+import { PanZoom, PanZoomOptions } from './PanZoom'
 
 export interface SlateOptions {
   name?: string
@@ -37,6 +38,7 @@ export interface SlateOptions {
   templatePrompt?: string
   isTemplate?: boolean
   ai?: any
+  panZoom?: PanZoomOptions
 }
 
 export class Slate {
@@ -44,6 +46,7 @@ export class Slate {
   public canvas!: Svg
   public nodes!: NodesManager
   public invoker!: Invoker
+  public panZoom!: PanZoom
   public options: SlateOptions
 
   constructor(element: string | HTMLElement, options: SlateOptions = {}) {
@@ -93,6 +96,19 @@ export class Slate {
       templatePrompt: '',
       isTemplate: false,
       ai: {},
+      panZoom: {
+        enabled: true,
+        panEnabled: true,
+        zoomEnabled: true,
+        controlIconsEnabled: true,
+        dblClickZoomEnabled: true,
+        mouseWheelZoomEnabled: true,
+        zoomScaleSensitivity: 0.2,
+        minZoom: 0.1,
+        maxZoom: 10,
+        fit: false,
+        center: false
+      },
       ...options
     }
 
@@ -120,6 +136,9 @@ export class Slate {
     // Initialize invoker with the contract methods
     this.invoker = new Invoker(this)
 
+    // Initialize pan/zoom functionality
+    this.panZoom = new PanZoom(this, this.options.panZoom)
+
     // Make canvas responsive
     this.makeResponsive()
   }
@@ -145,5 +164,90 @@ export class Slate {
 
   public getAllNodes() {
     return this.nodes.allNodes
+  }
+
+  // Pan/Zoom API methods
+  public enablePanZoom() {
+    this.panZoom.enable()
+  }
+
+  public disablePanZoom() {
+    this.panZoom.disable()
+  }
+
+  public enablePan() {
+    this.panZoom.enablePan()
+  }
+
+  public disablePan() {
+    this.panZoom.disablePan()
+  }
+
+  public enableZoom() {
+    this.panZoom.enableZoom()
+  }
+
+  public disableZoom() {
+    this.panZoom.disableZoom()
+  }
+
+  public pan(point: { x: number; y: number }) {
+    this.panZoom.pan(point)
+  }
+
+  public panBy(delta: { x: number; y: number }) {
+    this.panZoom.panBy(delta)
+  }
+
+  public zoom(level: number) {
+    this.panZoom.zoom(level)
+  }
+
+  public zoomBy(factor: number) {
+    this.panZoom.zoomBy(factor)
+  }
+
+  public zoomIn() {
+    this.panZoom.zoomIn()
+  }
+
+  public zoomOut() {
+    this.panZoom.zoomOut()
+  }
+
+  public zoomAtPoint(level: number, point: { x: number; y: number }) {
+    this.panZoom.zoomAtPoint(level, point)
+  }
+
+  public resetPanZoom() {
+    this.panZoom.reset()
+  }
+
+  public resetZoom() {
+    this.panZoom.resetZoom()
+  }
+
+  public resetPan() {
+    this.panZoom.resetPan()
+  }
+
+  public fitToContent() {
+    this.panZoom.fit()
+  }
+
+  public centerContent() {
+    this.panZoom.center()
+  }
+
+  public getZoom(): number {
+    return this.panZoom.getZoom()
+  }
+
+  public getPan(): { x: number; y: number } {
+    return this.panZoom.getPan()
+  }
+
+  public resizePanZoom() {
+    this.panZoom.resize()
   }
 }

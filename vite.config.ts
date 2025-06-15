@@ -12,11 +12,20 @@ export default defineConfig({
       // Make sure to externalize deps that shouldn't be bundled
       external: [],
       output: {
-        globals: {}
+        globals: {},
+        // Copy CSS to dist folder
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name?.endsWith('.css')) {
+            return 'slateboxjs.css'
+          }
+          return assetInfo.name!
+        }
       }
     },
     sourcemap: true,
-    target: 'es2020'
+    target: 'es2020',
+    // Include CSS in the build
+    cssCodeSplit: false
   },
   server: {
     port: 3000,

@@ -1,5 +1,6 @@
 import { G, Rect, Text, Element as SVGElement, Circle, Ellipse } from '@svgdotjs/svg.js'
 import '@svgdotjs/svg.draggable.js'
+import { ResizeRotate, ResizeRotateOptions } from './ResizeRotate'
 
 export interface NodeOptions {
   id: string
@@ -27,6 +28,7 @@ export interface NodeOptions {
     x?: number
     y?: number
   }
+  resizeRotate?: ResizeRotateOptions
 }
 
 export class Node {
@@ -35,6 +37,7 @@ export class Node {
   public svgGroup!: G
   public backgroundRect!: Rect | Circle | Ellipse
   public textElement!: Text
+  public resizeRotate!: ResizeRotate
   private slate: any // Will be properly typed when Slate is available
 
   constructor(options: NodeOptions, slate: any) {
@@ -67,6 +70,14 @@ export class Node {
         x: 0,
         y: 0
       },
+      resizeRotate: {
+        resizeEnabled: false,
+        rotateEnabled: false,
+        preserveAspectRatio: false,
+        aroundCenter: false,
+        grid: 0,
+        degree: 0
+      },
       ...options
     }
 
@@ -89,6 +100,9 @@ export class Node {
     
     // Position the node
     this.position(this.options.x!, this.options.y!)
+    
+    // Initialize resize/rotate functionality
+    this.resizeRotate = new ResizeRotate(this, this.options.resizeRotate)
     
     // Make draggable if allowed
     if (this.options.allowDrag && !this.options.isLocked) {
@@ -266,11 +280,57 @@ export class Node {
     if ((this.svgGroup as any).draggable) {
       (this.svgGroup as any).draggable(false)
     }
+    // Disable resize/rotate when locked
+    this.disableResizeRotate()
   }
 
   public unlock() {
     this.options.isLocked = false
     this.options.allowDrag = true
     this.makeDraggable()
+  }
+
+  // Resize/Rotate functionality
+  public enableResizeRotate() {
+    this.resizeRotate.enable()
+  }
+
+  public disableResizeRotate() {
+    this.resizeRotate.disable()
+  }
+
+  public enableResize() {
+    this.resizeRotate.updateOptions({ resizeEnabled: true })
+    if (!this.resizeRotate.isEnabled()) {
+      this.resizeRotate.enable()
+    }
+  }
+
+  public disableResize() {
+    this.resizeRotate.updateOptions({ resizeEnabled: false })
+  }
+
+  public enableRotate() {
+    this.resizeRotate.updateOptions({ rotateEnabled: true })
+    if (!this.resizeRotate.isEnabled()) {
+      this.resizeRotate.enable()
+    }
+  }
+
+  public disableRotate() {
+    this.resizeRotate.updateOptions({ rotateEnabled: false })
+  }
+
+  public isResizeRotateEnabled(): boolean {
+    return this.resizeRotate.isEnabled()
+  }
+
+  public setRotation(angle: number) {
+    this.options.rotate!.rotationAngle = angle
+    this.svgGroup.rotate(angle)
+  }
+
+  public getRotation(): number {
+    return this.options.rotate?.rotationAngle || 0
   }
 }
