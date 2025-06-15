@@ -1,0 +1,12 @@
+import '@svgdotjs/svg.draggable.js';
+import '@svgdotjs/svg.select.js';
+import '@svgdotjs/svg.resize.js';
+import './styles/slateboxjs.css';
+import { Slate } from './core/Slate';
+import { Node } from './core/Node';
+import { Invoker } from './core/Invoker';
+import { PanZoom } from './core/PanZoom';
+import { ResizeRotate } from './core/ResizeRotate';
+export { Slate, Node, Invoker, PanZoom, ResizeRotate };
+export declare function SlateboxJS(element: string | HTMLElement, options?: any): Slate;
+export default SlateboxJS;

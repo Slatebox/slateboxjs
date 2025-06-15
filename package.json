@@ -1,0 +1,51 @@
+{
+  "name": "slateboxjs-v2",
+  "version": "2.0.0",
+  "description": "A modern, ground-up rewrite of a diagramming library using svg.js and Vite",
+  "main": "dist/slateboxjs.js",
+  "module": "dist/slateboxjs.es.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/slateboxjs.es.js",
+      "require": "./dist/slateboxjs.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && npm run build:types",
+    "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "preview": "vite preview",
+    "serve": "vite preview",
+    "test": "vitest"
+  },
+  "keywords": [
+    "diagramming",
+    "svg",
+    "canvas",
+    "nodes",
+    "visualization"
+  ],
+  "author": "SlateboxJS Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10",
+    "vitest": "^1.1.0"
+  },
+  "dependencies": {
+    "@svgdotjs/svg.js": "^3.2.4",
+    "@svgdotjs/svg.draggable.js": "^3.0.6",
+    "@svgdotjs/svg.select.js": "^4.0.2",
+    "@svgdotjs/svg.resize.js": "^2.0.5",
+    "svg-pan-zoom": "^3.6.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
