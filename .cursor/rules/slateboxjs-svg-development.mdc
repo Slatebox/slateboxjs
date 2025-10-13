@@ -1,0 +1,271 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# SlateboxJS v2 Development Guidelines
+
+## Core Principles
+
+### 1. Always Use SVG.js Native Methods
+- **Never implement custom SVG manipulations** - SVG.js provides comprehensive native methods
+- **Use built-in transforms** like `size()`, `move()`, `rotate()`, `scale()` instead of manual calculations
+- **Leverage SVG standards** like `viewBox` and `preserveAspectRatio` for scaling rather than custom transform logic
+- **Store proper element references** for later manipulation instead of DOM searching
+
+Example:
+```typescript
+// ❌ Don't: Custom transform calculations
+content.transform({ scale: scale, translate: [offsetX, offsetY] });
+
+// ✅ Do: Use native SVG standards
+nested.viewbox(bb.x, bb.y, bb.width, bb.height);
+nested.node.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+```
+
+### 2. Consistent Debug Logging
+- **Use filterable debug strings** with consistent prefixes for easy console filtering
+- **Format**: `COMPONENT_ACTION_DEBUG: description`
+- **Examples**: `SVG_RESIZE_DEBUG`, `NODE_CREATION_DEBUG`, `TRANSFORM_DEBUG`, `CONNECTOR_DEBUG`
+
+```typescript
+// ✅ Good debug logging
+console.log("SVG_RESIZE_DEBUG: setSize called", { width, height });
+console.log("NODE_CREATION_DEBUG: Created nestedSvg", { element });
+console.log("CONNECTOR_DEBUG: Successfully connected", connectionId);
+
+// ❌ Poor debug logging  
+console.log("resizing", width, height);
+console.log("made svg");
+```
+
+### 3. Defensive Programming for Optional Elements
+- **Always guard against undefined elements** - text vs SVG content nodes have different properties
+- **Check element existence** before calling methods
+- **Fail gracefully** with early returns rather than throwing errors
+
+```typescript
+// ✅ Proper guards
+private centerText() {
+  if (!this.textElement) return; // Skip for SVG content nodes
+  // ... rest of method
+}
+
+// ✅ Handle both content types
+if (this.node.textElement?.rotate) {
+  this.node.textElement.rotate(angle, bbox.cx, bbox.cy);
+} else if (this.node.nestedSvg?.rotate) {
+  this.node.nestedSvg.rotate(angle, bbox.cx, bbox.cy);
+}
+```
+
+## Plugin Ecosystem Management
+
+### 1. Official SVG.js 3+ Plugins (PREFERRED)
+These are the **officially supported** plugins for SVG.js 3+ that should be used:
+
+- ✅ `@svgdotjs/svg.draggable.js` - Modern drag functionality
+- ✅ `@svgdotjs/svg.panzoom.js` - Official pan/zoom for SVG.js
+- ✅ `@svgdotjs/svg.select.js` - Selection and manipulation handles
+
+### 2. Working Unofficial Plugins (ACCEPTABLE)
+These work well but are not in the official list:
+
+- ✅ `@svgdotjs/svg.resize.js` - Resize functionality (working well, keep using)
+
+### 3. Legacy Plugins (AVOID OR UPDATE)
+These plugins may have compatibility issues with SVG.js 3+:
+
+- ⚠️ `svg.connectable.js` - **Needs SVG.js 3+ compatibility update**
+- ❌ `svg.draggy.js` - **Legacy**, replaced by `@svgdotjs/svg.draggable.js`
+- ❌ `svg-pan-zoom` - **Standalone library**, replaced by `@svgdotjs/svg.panzoom.js`
+
+### 4. Plugin Loading Order and Compatibility
+```typescript
+// ✅ Correct loading order in src/index.ts
+import { SVG } from '@svgdotjs/svg.js'
+import '@svgdotjs/svg.draggable.js'
+import '@svgdotjs/svg.select.js'
+import '@svgdotjs/svg.resize.js'
+import '@svgdotjs/svg.panzoom.js'
+
+// Expose SVG globally for legacy plugin compatibility
+if (typeof window !== 'undefined') {
+  (window as any).SVG = SVG;
+}
+
+// Legacy plugins (may need compatibility fixes)
+import 'svg.connectable.js'
+```
+
+### 5. Plugin Compatibility Patterns
+When integrating plugins that may have compatibility issues:
+
+```typescript
+// ✅ Always check plugin availability before use
+if (!(this.element as any).pluginMethod) {
+  console.warn('PLUGIN_DEBUG: Plugin not available - may need SVG.js 3+ compatibility update');
+  return null;
+}
+
+// ✅ Graceful degradation with error handling
+try {
+  const result = (this.element as any).pluginMethod(options);
+  if (!result) {
+    console.error('PLUGIN_DEBUG: Plugin method failed');
+    return null;
+  }
+  return result;
+} catch (error) {
+  console.error('PLUGIN_DEBUG: Plugin compatibility issue:', error);
+  return null;
+}
+```
+
+## Architectural Patterns
+
+### 1. Functionality Isolation Pattern
+For new features, create isolated classes following the **ResizeRotate pattern**:
+
+```typescript
+// ✅ Example: Connector class following ResizeRotate pattern
+export class Connector {
+  private node: any;
+  private slate: any;
+  private options: ConnectorOptions;
+  private isActive: boolean = false;
+
+  constructor(node: any, options: ConnectorOptions = {}) {
+    this.node = node;
+    this.slate = node.slate;
+    this.options = { /* defaults */ ...options };
+  }
+
+  public enable() { /* enable functionality */ }
+  public disable() { /* disable functionality */ }
+  public isEnabled(): boolean { return this.isActive; }
+  public updateOptions(options: Partial<ConnectorOptions>) { /* update */ }
+}
+```
+
+### 2. Node Integration Pattern
+Integrate new functionality into [Node.ts](mdc:src/core/Node.ts):
+
+```typescript
+// ✅ Add to Node class
+public connector!: Connector;
+
+// ✅ Initialize in finishCreate()
+this.connector = new Connector(this, this.options.connector);
+
+// ✅ Add public API methods
+public enableConnector() { this.connector.enable(); }
+public disableConnector() { this.connector.disable(); }
+public isConnectorEnabled(): boolean { return this.connector.isEnabled(); }
+```
+
+### 3. Export and Global Access Pattern
+In [src/index.ts](mdc:src/index.ts):
+
+```typescript
+// ✅ Export for ES modules
+export { Connector } from './core/Connector'
+
+// ✅ Add to window globals for browser usage
+if (typeof window !== 'undefined') {
+  (window as any).Connector = Connector;
+}
+```
+
+## Pan/Zoom Integration
+
+### 1. Always Use SVG.js Panzoom Plugin
+- **Use `@svgdotjs/svg.panzoom.js`** for official SVG.js integration
+- **Never use standalone `svg-pan-zoom`** - it creates complex viewport nesting
+- **Add nodes directly to root canvas** - SVG.js panzoom handles child elements automatically
+
+```typescript
+// ✅ Simple pan/zoom initialization
+(this.slate.canvas as any).panZoom(this.options);
+
+// ✅ Direct viewport access (no complex nesting)
+public getViewport(): any {
+  return this.canvas; // SVG.js panzoom works with root canvas
+}
+```
+
+### 2. Coordinate Display Integration
+```typescript
+// ✅ Real-time coordinate tracking
+private updateCoordinateDisplay() {
+  const pan = this.getPan();
+  const zoom = this.getZoom();
+  coordDisplay.textContent = `x: ${Math.round(pan.x)}, y: ${Math.round(pan.y)}, zoom: ${zoom.toFixed(2)}`;
+}
+```
+
+## File-Specific Guidelines
+
+### Node.ts - [src/core/Node.ts](mdc:src/core/Node.ts)
+- **Store element references** as class properties for later access (`nestedSvg`, `textElement`, `connector`)
+- **Use conditional content creation** - SVG content nodes skip text element creation
+- **Implement setSize() properly** to handle both background and content resizing
+- **Guard all text-related methods** with `if (!this.textElement) return;`
+- **Follow isolation pattern** for new functionality (ResizeRotate, Connector examples)
+
+### Slate.ts - [src/core/Slate.ts](mdc:src/core/Slate.ts)
+- **Use simplified viewport methods** that return root canvas for SVG.js panzoom
+- **Initialize coordinate display** with proper callback setup
+- **Create global containers** for shared functionality (lines, markers)
+
+### PanZoom.ts - [src/core/PanZoom.ts](mdc:src/core/PanZoom.ts)
+- **Use SVG.js panzoom plugin** instead of standalone libraries
+- **Direct viewBox manipulation** for pan/zoom operations
+- **Event integration** with SVG.js event system
+
+## Development Workflow
+
+### 1. Plugin Evaluation Checklist
+Before adding any new SVG plugin:
+- ✅ Is it officially supported for SVG.js 3+?
+- ✅ Does it follow modern SVG.js patterns?
+- ✅ Is there an official alternative?
+- ✅ What are the compatibility requirements?
+
+### 2. Feature Development Pattern
+1. **Create isolated class** following ResizeRotate/Connector pattern
+2. **Add comprehensive debug logging** with consistent prefixes
+3. **Integrate into Node class** with proper initialization
+4. **Add to exports** in index.ts
+5. **Test with demo** including error scenarios
+
+### 3. Testing Approach
+- **Test both text and SVG content nodes** for any new functionality
+- **Verify pan/zoom integration** works with new features
+- **Check console for clean debug output** using consistent filter strings
+- **Test plugin compatibility** with graceful degradation
+- **Ensure no errors** when elements are undefined (defensive programming works)
+
+## Performance Considerations
+- **Store element references** rather than searching DOM repeatedly
+- **Use native SVG scaling** (viewBox) instead of manual coordinate calculations
+- **Minimize setTimeout delays** - use only when necessary for SVG parsing/rendering
+- **Clean up event listeners** properly in disable methods
+- **Use efficient polling** for coordinate updates (200ms intervals, not 100ms)
+
+## Error Handling Patterns
+```typescript
+// ✅ Comprehensive error handling for plugin integration
+try {
+  const result = this.performPluginOperation();
+  if (!result) {
+    console.warn('PLUGIN_DEBUG: Operation failed - plugin may need compatibility update');
+    return this.gracefulFallback();
+  }
+  return result;
+} catch (error) {
+  console.error('PLUGIN_DEBUG: Plugin error:', error);
+  console.error('PLUGIN_DEBUG: This might be due to SVG.js 3+ compatibility issues');
+  return this.gracefulFallback();
+}
+```

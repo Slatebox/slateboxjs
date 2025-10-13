@@ -1,6 +1,7 @@
-import { G, Rect, Text, Circle, Ellipse } from '@svgdotjs/svg.js';
-import '@svgdotjs/svg.draggable.js';
-import { ResizeRotate, ResizeRotateOptions } from './ResizeRotate';
+import { G, Rect, Text, Circle, Ellipse } from "@svgdotjs/svg.js";
+import "@svgdotjs/svg.draggable.js";
+import { ResizeRotate, ResizeRotateOptions } from "./ResizeRotate";
+import { Connector, ConnectorOptions } from "./Connector";
 export interface NodeOptions {
     id: string;
     x?: number;
@@ -12,14 +13,14 @@ export interface NodeOptions {
     fontFamily?: string;
     fontColor?: string;
     textOpacity?: number;
-    textXAlign?: 'left' | 'center' | 'right';
-    textYAlign?: 'top' | 'middle' | 'bottom';
+    textXAlign?: "left" | "center" | "right";
+    textYAlign?: "top" | "middle" | "bottom";
     backgroundColor?: string;
     borderColor?: string;
     borderWidth?: number;
     allowDrag?: boolean;
     isLocked?: boolean;
-    shape?: 'rectangle' | 'circle' | 'ellipse';
+    shape?: "rectangle" | "circle" | "ellipse";
     rotate?: {
         rotationAngle?: number;
     };
@@ -28,6 +29,9 @@ export interface NodeOptions {
         y?: number;
     };
     resizeRotate?: ResizeRotateOptions;
+    connector?: ConnectorOptions;
+    svgContent?: string;
+    customRender?: (group: G, options: NodeOptions) => void;
 }
 export declare class Node {
     id: string;
@@ -35,11 +39,19 @@ export declare class Node {
     svgGroup: G;
     backgroundRect: Rect | Circle | Ellipse;
     textElement: Text;
+    nestedSvg?: any;
     resizeRotate: ResizeRotate;
+    connector: Connector;
+    private connectionHandles;
+    private connectionHandlesVisible;
+    private connectionPreview?;
     private slate;
+    private isDragging;
+    private wasSelectedBeforeDrag;
     constructor(options: NodeOptions, slate: any);
     private generateId;
-    private create;
+    private createAsync;
+    private finishCreate;
     private createBackground;
     private createText;
     private centerText;
@@ -64,4 +76,34 @@ export declare class Node {
     isResizeRotateEnabled(): boolean;
     setRotation(angle: number): void;
     getRotation(): number;
+    enableConnector(): void;
+    enableConnectorWithInteractive(makeInteractiveCallback?: boolean): void;
+    disableConnector(): void;
+    connectTo(targetNode: any, connectionOptions?: any): import("./Connector").Connection | null;
+    disconnectFrom(targetNode: any): boolean;
+    disconnectAll(): void;
+    getConnections(): import("./Connector").Connection[];
+    getConnection(targetNodeId: string): import("./Connector").Connection | null;
+    isConnectorEnabled(): boolean;
+    private centerTextInitial;
+    private calculatePathBounds;
+    private setupSelectionBehavior;
+    private isResizeRotateHandle;
+    onSelected(): void;
+    onDeselected(): void;
+    private createConnectionHandles;
+    private updateConnectionHandlePositions;
+    private showConnectionHandles;
+    private hideConnectionHandles;
+    private showConnectionPreview;
+    private createPreviewShape;
+    private addArrowheadToConnector;
+    private hideConnectionPreview;
+    enableConnectionHandles(): void;
+    disableConnectionHandles(): void;
+    isConnectionHandlesEnabled(): boolean;
+    private getNodeEdgePoint;
+    private createConnectedNode;
+    private cloneNodeOptions;
+    private connectToNode;
 }

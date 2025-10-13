@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SlateboxJS E2E Test Page</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+      }
+
+      #app {
+        width: 800px;
+        height: 600px;
+        border: 2px solid #ddd;
+        background: white;
+        margin: 20px auto;
+        position: relative;
+      }
+
+      .controls {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .controls button {
+        margin: 0 10px;
+        padding: 8px 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .controls button:hover {
+        background: #0056b3;
+      }
+
+      .debug-info {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 12px;
+        max-width: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>SlateboxJS E2E Test Environment</h1>
+
+    <div class="controls">
+      <button onclick="addTestNode()">Add Node</button>
+      <button onclick="clearAll()">Clear All</button>
+      <button onclick="toggleConnectors()">Toggle Connectors</button>
+      <button onclick="showDebugInfo()">Debug Info</button>
+    </div>
+
+    <div id="app"></div>
+
+    <div id="debug" class="debug-info" style="display: none">
+      <div id="debug-content"></div>
+    </div>
+
+    <!-- Include the built SlateboxJS library -->
+    <script src="/dist/slateboxjs.js"></script>
+
+    <script>
+      // Initialize SlateboxJS
+      let slate;
+      let nodeCounter = 0;
+
+      function initSlate() {
+        slate = SlateboxJS("#app", {
+          viewPort: {
+            originalWidth: 800,
+            originalHeight: 600,
+            showCoordinates: true,
+            showGrid: false,
+          },
+          panZoom: {
+            enabled: true,
+            panning: true,
+            pinchZoom: true,
+            wheelZoom: true,
+            wheelZoomRequiresCtrl: true,
+          },
+        });
+
+        // Store slate globally for tests
+        window.testSlate = slate;
+        window.currentSlate = slate;
+
+        console.log("SlateboxJS initialized", slate);
+        updateDebugInfo();
+      }
+
+      function addTestNode() {
+        nodeCounter++;
+        const node = slate.addNode({
+          id: `test-node-${nodeCounter}`,
+          x: 100 + nodeCounter * 50,
+          y: 100 + nodeCounter * 30,
+          width: 120,
+          height: 80,
+          text: `Node ${nodeCounter}`,
+          backgroundColor: `hsl(${nodeCounter * 60}, 70%, 90%)`,
+          borderColor: `hsl(${nodeCounter * 60}, 70%, 60%)`,
+        });
+
+        console.log("Added node:", node.id);
+        updateDebugInfo();
+      }
+
+      function clearAll() {
+        slate.nodes.clear();
+        nodeCounter = 0;
+        updateDebugInfo();
+      }
+
+      function toggleConnectors() {
+        const nodes = slate.getAllNodes();
+        nodes.forEach((node) => {
+          if (node.isConnectorEnabled()) {
+            node.disableConnector();
+          } else {
+            node.enableConnector();
+          }
+        });
+        updateDebugInfo();
+      }
+
+      function showDebugInfo() {
+        const debugEl = document.getElementById("debug");
+        debugEl.style.display =
+          debugEl.style.display === "none" ? "block" : "none";
+        updateDebugInfo();
+      }
+
+      function updateDebugInfo() {
+        const debugContent = document.getElementById("debug-content");
+        const nodes = slate.getAllNodes();
+        const selectedNodes = slate.getSelectedNodes();
+        const pan = slate.getPan();
+        const zoom = slate.getZoom();
+
+        debugContent.innerHTML = `
+                <strong>Debug Info:</strong><br>
+                Nodes: ${nodes.length}<br>
+                Selected: ${selectedNodes.length}<br>
+                Pan: x=${Math.round(pan.x)}, y=${Math.round(pan.y)}<br>
+                Zoom: ${zoom.toFixed(2)}<br>
+                <br>
+                <strong>Nodes:</strong><br>
+                ${nodes
+                  .map((n) => `${n.id}: (${n.options.x}, ${n.options.y})`)
+                  .join("<br>")}
+                <br>
+                <strong>Selected:</strong><br>
+                ${selectedNodes.map((n) => n.id).join(", ")}
+            `;
+      }
+
+      // Auto-update debug info periodically
+      setInterval(updateDebugInfo, 1000);
+
+      // Initialize when page loads
+      document.addEventListener("DOMContentLoaded", () => {
+        initSlate();
+
+        // Add some initial test nodes
+        addTestNode();
+        addTestNode();
+        addTestNode();
+      });
+
+      // Global helpers for tests
+      window.testHelpers = {
+        addNode: addTestNode,
+        clear: clearAll,
+        getNodes: () => slate.getAllNodes(),
+        getSelected: () => slate.getSelectedNodes(),
+        getPan: () => slate.getPan(),
+        getZoom: () => slate.getZoom(),
+      };
+    </script>
+  </body>
+</html>

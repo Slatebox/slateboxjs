@@ -53,4 +53,5 @@ export declare class PanZoom {
     };
     resize(): void;
     destroy(): void;
+    isInitialized(): boolean;
 }

@@ -1,5 +1,5 @@
-import '@svgdotjs/svg.select.js';
-import '@svgdotjs/svg.resize.js';
+import "@svgdotjs/svg.select.js";
+import "@svgdotjs/svg.resize.js";
 export interface ResizeRotateOptions {
     resizeEnabled?: boolean;
     rotateEnabled?: boolean;
@@ -12,16 +12,17 @@ export interface ResizeRotateOptions {
 }
 export declare class ResizeRotate {
     private node;
+    private target;
     private options;
     private isActive;
     constructor(node: any, options?: ResizeRotateOptions);
     enable(): void;
     disable(): void;
     private addEventListeners;
+    private isResizeRotateHandle;
     private removeEventListeners;
     private handleResize;
-    private handleRotate;
-    private updateBackground;
     isEnabled(): boolean;
     updateOptions(options: Partial<ResizeRotateOptions>): void;
+    refresh(): void;
 }

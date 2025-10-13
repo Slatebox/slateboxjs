@@ -1,0 +1,112 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# SlateboxJS v2 Development Workflow
+
+## Build System
+This project uses **Vite** as the build system, not traditional bundlers. Key commands:
+
+```bash
+# Build the project (always run after code changes)
+npm run build
+
+# Build and generate type definitions
+npm run build:types
+
+# Development server (for testing)
+npm run dev
+
+# Preview production build
+npm run preview
+```
+
+## Testing and Development
+
+### Local Testing
+- **Use Vite's built-in dev server**: `npm run dev` instead of Python web servers
+- **Preview builds**: `npm run preview` to test production builds locally
+- **Live reload**: Vite provides hot module replacement for faster development
+
+### Example Testing
+- Examples are in the `examples/` directory
+- Test with: `npm run dev` then navigate to `http://localhost:5173/examples/basic.html`
+- Or use: `npm run preview` for production build testing
+
+## Trackpad and Gesture Handling
+
+### New Trackpad-Friendly Behavior
+**Updated pan/zoom gestures** for better trackpad experience:
+
+- **Two-finger scroll (trackpad)**: Now triggers **natural direction panning** instead of zooming
+- **Pinch zoom gesture**: Triggers **fine-grained zooming** with reduced sensitivity
+- **Ctrl+scroll**: Triggers **zooming** for desktop users
+- **Single click and drag**: Triggers **panning** (unchanged)
+
+### Configuration Options in PanZoom
+```typescript
+const panzoom = new PanZoom(slate, {
+  wheelZoom: false, // Disabled by default to prevent trackpad scroll zoom
+  pinchZoom: true, // Keep pinch zoom enabled
+  wheelZoomRequiresCtrl: true, // Require Ctrl+scroll for wheel zoom
+  wheelPanning: true, // Enable wheel events for panning
+  panSensitivity: 1.0, // Control pan speed (adjustable)
+  pinchSpeed: 0.3, // Ultra-fine zoom control (30% of default for precision)
+});
+```
+
+### Gesture Behavior Details
+- **Natural scrolling**: Two-finger trackpad movement now matches expected direction
+- **Ultra-fine pinch zoom**: Reduced sensitivity (30% of default) for precise control
+- **Configurable sensitivity**: Both pan and zoom speeds are easily adjustable
+
+## Known Plugin Compatibility Issues
+
+### svg.connectable.js Plugin Status
+**✅ NOW ENABLED** with upgraded local version:
+
+- **Status**: Successfully using upgraded local svg.connectable.js with SVG.js 3+ compatibility
+- **Location**: Local dependency from `file:../svg.connectable.js`
+- **Resolution**: Compatibility issues resolved in upgraded version
+- **Imports**: Re-enabled in [src/index.ts](mdc:src/index.ts) and [src/core/Connector.ts](mdc:src/core/Connector.ts)
+
+```typescript
+// Current state in src/index.ts and src/core/Connector.ts:
+// RE-ENABLED: Using upgraded local svg.connectable.js with SVG.js 3+ compatibility
+import "svg.connectable.js";
+```
+
+```json
+// package.json dependency:
+"svg.connectable.js": "file:../svg.connectable.js"
+```
+
+### Connector Functionality
+- Connector class exists but has limited functionality without svg.connectable.js
+- Graceful degradation implemented with proper error handling
+- Console warnings indicate when functionality is limited
+
+## Debugging Workflow
+
+### Plugin Issues
+1. Check console for `PLUGIN_DEBUG:` messages
+2. Look for "SVG.js is not loaded" errors
+3. Verify plugin compatibility with SVG.js 3+
+4. Test with plugin disabled if compatibility issues found
+
+### Build Issues
+1. Run `npm run build` to check for compilation errors
+2. Check TypeScript declarations with `npm run build:types`
+3. Test with `npm run preview` for production environment issues
+
+## File Structure for Plugin Management
+- **Main exports**: [src/index.ts](mdc:src/index.ts) - controls global plugin loading
+- **Individual components**: Each class (like [src/core/Connector.ts](mdc:src/core/Connector.ts)) may have its own plugin imports
+- **Disable pattern**: Comment out imports in both locations when plugin compatibility issues arise
+
+## Development Best Practices
+- Always rebuild (`npm run build`) after plugin changes
+- Test both basic and advanced examples after changes
+- Use consistent debug logging with prefixes like `PLUGIN_DEBUG:`, `CONNECTOR_DEBUG:`
+- Implement graceful degradation for plugin compatibility issues

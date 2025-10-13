@@ -1,24 +1,26 @@
-import '@svgdotjs/svg.select.js'
-import '@svgdotjs/svg.resize.js'
+import "@svgdotjs/svg.select.js";
+import "@svgdotjs/svg.resize.js";
 
 export interface ResizeRotateOptions {
-  resizeEnabled?: boolean
-  rotateEnabled?: boolean
-  preserveAspectRatio?: boolean
-  aroundCenter?: boolean
-  grid?: number
-  degree?: number
-  onResize?: (event: any) => void
-  onRotate?: (event: any) => void
+  resizeEnabled?: boolean;
+  rotateEnabled?: boolean;
+  preserveAspectRatio?: boolean;
+  aroundCenter?: boolean;
+  grid?: number;
+  degree?: number;
+  onResize?: (event: any) => void;
+  onRotate?: (event: any) => void;
 }
 
 export class ResizeRotate {
-  private node: any
-  private options: ResizeRotateOptions
-  private isActive: boolean = false
+  private node: any;
+  private target: any;
+  private options: ResizeRotateOptions;
+  private isActive: boolean = false;
 
   constructor(node: any, options: ResizeRotateOptions = {}) {
-    this.node = node
+    this.node = node;
+    this.target = node.backgroundRect;
     this.options = {
       resizeEnabled: true,
       rotateEnabled: true,
@@ -26,154 +28,184 @@ export class ResizeRotate {
       aroundCenter: false,
       grid: 0,
       degree: 0,
-      ...options
-    }
+      ...options,
+    };
   }
 
   public enable() {
-    if (this.isActive) return
+    if (this.isActive) return;
 
     try {
-      // Use svg.select.js to make the node selectable
-      (this.node.svgGroup as any).selectize({
-        // points: this.options.rotateEnabled ? ['tl', 'tr', 'bl', 'br', 'lt', 'rt', 'lb', 'rb', 'r'] : ['tl', 'tr', 'bl', 'br'],
-        // rotationPoint: this.options.rotateEnabled,
-        // classRect: 'select-border',
-        // classPoints: 'select-point',
-        // classLine: 'select-line',
-        // classRotationPoint: 'select-rotation-point'
-      })
+      // Use the correct svg.select.js API for generic shapes (rect, circle, ellipse)
+      const element: any = this.target;
 
-      // Add resize functionality if enabled
-      if (this.options.resizeEnabled) {
-        (this.node.svgGroup as any).resize({
+      // Make the whole group selectable / rotatable
+      if (typeof element.select === "function") {
+        element.select({ rotationPoint: this.options.rotateEnabled });
+      }
+
+      // Attach resize capability (applies a transform on the group)
+      if (this.options.resizeEnabled && typeof element.resize === "function") {
+        element.resize({
           preserveAspectRatio: this.options.preserveAspectRatio,
           aroundCenter: this.options.aroundCenter,
-          grid: this.options.grid,
-          degree: this.options.degree
-        })
+          grid: this.options.grid ?? 1,
+          degree: this.options.degree ?? 0.1,
+        });
       }
 
       // Add event listeners
-      this.addEventListeners()
-      
-      this.isActive = true
+      this.addEventListeners();
+
+      this.isActive = true;
     } catch (error) {
-      console.warn('Failed to enable resize/rotate:', error)
+      console.warn("Failed to enable resize/rotate:", error);
     }
   }
 
   public disable() {
-    if (!this.isActive) return
+    if (!this.isActive) return;
 
     try {
-      // Remove selectize
-      if ((this.node.svgGroup as any).selectize) {
-        (this.node.svgGroup as any).selectize(false)
+      const element: any = this.target;
+
+      // Disable selection and resize if APIs are available
+      if (typeof element.select === "function") {
+        element.select(false);
+      }
+      if (typeof element.resize === "function") {
+        element.resize(false);
       }
 
-      // Remove resize
-      if ((this.node.svgGroup as any).resize) {
-        (this.node.svgGroup as any).resize(false)
-      }
-
-      this.removeEventListeners()
-      this.isActive = false
+      this.removeEventListeners();
+      this.isActive = false;
     } catch (error) {
-      console.warn('Failed to disable resize/rotate:', error)
+      console.warn("Failed to disable resize/rotate:", error);
     }
   }
 
   private addEventListeners() {
-    // Listen for resize events
-    this.node.svgGroup.on('resize', (event: any) => {
-      this.handleResize(event)
-      if (this.options.onResize) {
-        this.options.onResize(event)
+    // Hide connection handles when resize/rotate starts
+    this.target.on("mousedown.resizerotate touchstart.resizerotate", (event: any) => {
+      // Check if the event is on a resize/rotate handle
+      if (this.isResizeRotateHandle(event.target)) {
+        console.log("RESIZE_ROTATE_DEBUG: Handle interaction started, hiding connection handles");
+        if (this.node.isConnectionHandlesEnabled()) {
+          this.node.disableConnectionHandles();
+        }
       }
-    })
+    });
 
-    // Listen for rotation events (handled through resize plugin)
-    this.node.svgGroup.on('rotate', (event: any) => {
-      this.handleRotate(event)
-      if (this.options.onRotate) {
-        this.options.onRotate(event)
+    // Re-show connection handles when resize/rotate ends
+    this.target.on("resize", (event: any) => {
+      this.handleResize(event);
+      this.options.onResize?.(event);
+
+      // Re-enable connection handles after resize completes
+      console.log("RESIZE_ROTATE_DEBUG: Resize complete, re-enabling connection handles");
+      if (this.node.slate && this.node.slate.getSelectedNodes().includes(this.node)) {
+        // Only re-enable if this node is still selected
+        setTimeout(() => {
+          this.node.enableConnectionHandles();
+        }, 50);
       }
-    })
+    });
+  }
+
+  private isResizeRotateHandle(target: any): boolean {
+    if (!target || !target.classList) return false;
+
+    const handleClasses = [
+      "svg_select_handle",
+      "svg_select_handle_rot",
+      "svg_select_handle_lt",
+      "svg_select_handle_rt",
+      "svg_select_handle_rb",
+      "svg_select_handle_lb",
+      "svg_select_handle_t",
+      "svg_select_handle_r",
+      "svg_select_handle_b",
+      "svg_select_handle_l",
+    ];
+
+    for (const className of handleClasses) {
+      if (target.classList.contains(className)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private removeEventListeners() {
-    this.node.svgGroup.off('resize')
-    this.node.svgGroup.off('rotate')
+    this.target.off("resize");
   }
 
   private handleResize(event: any) {
+    // The resize plugin emits the final box in event.detail.box
     if (event.detail && event.detail.box) {
-      const box = event.detail.box
-      
-      // Update node options with new dimensions
-      this.node.options.width = box.width
-      this.node.options.height = box.height
-      this.node.options.x = box.x
-      this.node.options.y = box.y
+      const box = event.detail.box as any;
 
-      // Update the background shape
-      this.updateBackground()
-      
-      // Re-center text
-      this.node.centerText()
+      // Persist and recentre text since we change actual width/height of shape
+      this.node.options.width = box.width;
+      this.node.options.height = box.height;
+      this.node.options.x = box.x;
+      this.node.options.y = box.y;
+
+      // Call setSize to update nested SVG and other elements
+      this.node.setSize(box.width, box.height);
+
+      this.node.centerText();
+
+      // If a rotation happened, the resize event carries angle
+      if (event.detail && typeof event.detail.angle === "number") {
+        const angle = event.detail.angle as number;
+
+        if (this.node.options.rotate) {
+          this.node.options.rotate.rotationAngle = angle;
+        }
+
+        // Rotate content elements to match background rotation
+        if (
+          this.node.textElement &&
+          typeof this.node.textElement.rotate === "function"
+        ) {
+          // For regular nodes: rotate text element
+          const bbox = this.target.bbox();
+          this.node.textElement.rotate(angle, bbox.cx, bbox.cy);
+        } else if (
+          this.node.nestedSvg &&
+          typeof this.node.nestedSvg.rotate === "function"
+        ) {
+          // For SVG content nodes: rotate nested SVG
+          const bbox = this.target.bbox();
+          this.node.nestedSvg.rotate(angle, bbox.cx, bbox.cy);
+        }
+      }
     }
-  }
-
-  private handleRotate(event: any) {
-    if (event.detail && event.detail.angle !== undefined) {
-      // Update rotation angle
-      this.node.options.rotate.rotationAngle = event.detail.angle
-    }
-  }
-
-  private updateBackground() {
-    const { width, height, shape, backgroundColor, borderColor, borderWidth } = this.node.options
-
-    // Remove old background
-    this.node.backgroundRect.remove()
-
-    // Create new background with updated dimensions
-    switch (shape) {
-      case 'circle':
-        const radius = Math.min(width!, height!) / 2
-        this.node.backgroundRect = this.node.svgGroup.circle(radius * 2)
-          .fill(backgroundColor!)
-          .stroke({ color: borderColor!, width: borderWidth! })
-        break
-      case 'ellipse':
-        this.node.backgroundRect = this.node.svgGroup.ellipse(width!, height!)
-          .fill(backgroundColor!)
-          .stroke({ color: borderColor!, width: borderWidth! })
-        break
-      default: // rectangle
-        this.node.backgroundRect = this.node.svgGroup.rect(width!, height!)
-          .fill(backgroundColor!)
-          .stroke({ color: borderColor!, width: borderWidth! })
-          .radius(4)
-        break
-    }
-
-    // Move background to back
-    this.node.backgroundRect.back()
   }
 
   public isEnabled(): boolean {
-    return this.isActive
+    return this.isActive;
   }
 
   public updateOptions(options: Partial<ResizeRotateOptions>) {
-    this.options = { ...this.options, ...options }
-    
+    this.options = { ...this.options, ...options };
+
     if (this.isActive) {
       // Reapply with new options
-      this.disable()
-      this.enable()
+      this.disable();
+      this.enable();
+    }
+  }
+
+  public refresh() {
+    // Force a refresh of resize/rotate handles by disabling and re-enabling
+    // This is necessary after operations like drag that change position
+    if (this.isActive) {
+      console.log("RESIZE_ROTATE_DEBUG: Refreshing handles for", this.node.id);
+      this.disable();
+      this.enable();
     }
   }
 }

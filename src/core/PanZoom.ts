@@ -211,4 +211,8 @@ export class PanZoom {
       this.panZoomInstance = null
     }
   }
+
+  public isInitialized(): boolean {
+    return this.panZoomInstance != null
+  }
 }
