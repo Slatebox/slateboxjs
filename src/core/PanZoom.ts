@@ -32,7 +32,7 @@ export class PanZoom {
       enabled: true,
       panning: true,
       pinchZoom: true,
-      wheelZoom: true,
+      wheelZoom: false, // Disable wheel zoom so trackpad scroll only pans
       panButton: 0,
       oneFingerPan: false,
       margins: false,

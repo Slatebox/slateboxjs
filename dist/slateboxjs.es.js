@@ -5608,7 +5608,8 @@ class Zn {
       enabled: !0,
       panning: !0,
       pinchZoom: !0,
-      wheelZoom: !0,
+      wheelZoom: !1,
+      // Disable wheel zoom so trackpad scroll only pans
       panButton: 0,
       oneFingerPan: !1,
       margins: !1,
@@ -5815,7 +5816,8 @@ class Un {
         enabled: !0,
         panning: !0,
         pinchZoom: !0,
-        wheelZoom: !0,
+        wheelZoom: !1,
+        // Disable wheel zoom - use pinch to zoom, scroll to pan
         zoomFactor: 0.3,
         zoomMin: 0.1,
         zoomMax: 10

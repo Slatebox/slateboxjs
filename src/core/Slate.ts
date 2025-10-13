@@ -104,7 +104,7 @@ export class Slate {
         enabled: true,
         panning: true,
         pinchZoom: true,
-        wheelZoom: true,
+        wheelZoom: false, // Disable wheel zoom - use pinch to zoom, scroll to pan
         zoomFactor: 0.3,
         zoomMin: 0.1,
         zoomMax: 10,
