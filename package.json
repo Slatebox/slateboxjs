@@ -43,7 +43,8 @@
     "@svgdotjs/svg.js": "^3.2.4",
     "@svgdotjs/svg.panzoom.js": "^2.1.2",
     "@svgdotjs/svg.resize.js": "^2.0.5",
-    "@svgdotjs/svg.select.js": "^4.0.2"
+    "@svgdotjs/svg.select.js": "^4.0.2",
+    "svg.connectable.js": "github:Slatebox/svg.connectable.js"
   },
   "engines": {
     "node": ">=18.0.0"

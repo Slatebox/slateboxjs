@@ -1,6 +1,7 @@
 import '@svgdotjs/svg.draggable.js';
 import '@svgdotjs/svg.select.js';
 import '@svgdotjs/svg.resize.js';
+import 'svg.connectable.js';
 import './styles/slateboxjs.css';
 import { Slate } from './core/Slate';
 import { Node } from './core/Node';
