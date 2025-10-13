@@ -246,14 +246,12 @@
             },
             panZoom: {
                 enabled: true,
-                panEnabled: true,
-                zoomEnabled: true,
-                controlIconsEnabled: true,
-                dblClickZoomEnabled: true,
-                mouseWheelZoomEnabled: true,
-                zoomScaleSensitivity: 0.1,
-                minZoom: 0.1,
-                maxZoom: 5,
+                panning: true,
+                pinchZoom: true,
+                wheelZoom: true,
+                zoomFactor: 0.3,
+                zoomMin: 0.1,
+                zoomMax: 5,
                 onPan: (pan) => console.log('Pan:', pan),
                 onZoom: (zoom) => console.log('Zoom:', zoom)
             }

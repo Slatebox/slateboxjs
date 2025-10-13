@@ -39,11 +39,11 @@
     "vitest": "^1.1.0"
   },
   "dependencies": {
-    "@svgdotjs/svg.js": "^3.2.4",
     "@svgdotjs/svg.draggable.js": "^3.0.6",
-    "@svgdotjs/svg.select.js": "^4.0.2",
+    "@svgdotjs/svg.js": "^3.2.4",
+    "@svgdotjs/svg.panzoom.js": "^2.1.2",
     "@svgdotjs/svg.resize.js": "^2.0.5",
-    "svg-pan-zoom": "^3.6.2"
+    "@svgdotjs/svg.select.js": "^4.0.2"
   },
   "engines": {
     "node": ">=18.0.0"

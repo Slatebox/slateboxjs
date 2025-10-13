@@ -1,22 +1,32 @@
+import '@svgdotjs/svg.panzoom.js';
 export interface PanZoomOptions {
     enabled?: boolean;
-    panEnabled?: boolean;
-    zoomEnabled?: boolean;
-    controlIconsEnabled?: boolean;
-    dblClickZoomEnabled?: boolean;
-    mouseWheelZoomEnabled?: boolean;
-    zoomScaleSensitivity?: number;
-    minZoom?: number;
-    maxZoom?: number;
-    fit?: boolean;
-    center?: boolean;
+    panning?: boolean;
+    pinchZoom?: boolean;
+    wheelZoom?: boolean;
+    panButton?: number;
+    oneFingerPan?: boolean;
+    margins?: {
+        top?: number;
+        left?: number;
+        right?: number;
+        bottom?: number;
+    } | false;
+    zoomFactor?: number;
+    zoomMin?: number;
+    zoomMax?: number;
+    wheelZoomDeltaModeLinePixels?: number;
+    wheelZoomDeltaModeScreenPixels?: number;
     onPan?: (event: any) => void;
     onZoom?: (event: any) => void;
+    onPanStart?: (event: any) => void;
+    onPanEnd?: (event: any) => void;
 }
 export declare class PanZoom {
-    private panZoomInstance;
+    private canvas;
     private slate;
     private options;
+    private isEnabled;
     constructor(slate: any, options?: PanZoomOptions);
     private init;
     enable(): void;
@@ -33,7 +43,10 @@ export declare class PanZoom {
         x: number;
         y: number;
     }): void;
-    zoom(level: number): void;
+    zoom(level: number, point?: {
+        x: number;
+        y: number;
+    }): void;
     zoomBy(factor: number): void;
     zoomIn(): void;
     zoomOut(): void;
@@ -54,4 +67,5 @@ export declare class PanZoom {
     resize(): void;
     destroy(): void;
     isInitialized(): boolean;
+    private getAllOptions;
 }

@@ -122,6 +122,11 @@
   filter: drop-shadow(0 0 8px rgba(74, 144, 226, 0.5));
 }
 
+/* Combine filters when both selected and hovered */
+.slateboxjs-node.selected:hover {
+  filter: brightness(1.05) drop-shadow(0 0 8px rgba(74, 144, 226, 0.5));
+}
+
 /* Transition animations */
 .slateboxjs-node,
 .svg-select-point,
