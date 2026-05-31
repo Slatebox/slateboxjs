@@ -1,0 +1,152 @@
+/**
+ * Theme.ts - Theme system for applying visual styles to slates
+ *
+ * A theme contains a parent style and up to N child styles.
+ * When applied, nodes cycle through child styles based on their index.
+ */
+
+export interface ThemeStyle {
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  fontColor?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  lineColor?: string;
+  lineWidth?: number;
+  opacity?: number;
+  vectorPath?: string;
+  shape?: string;
+}
+
+export interface ThemeDefinition {
+  _id?: string;
+  name?: string;
+  description?: string;
+  containerStyle?: {
+    backgroundColor?: string;
+  };
+  defaultLineColor?: string;
+  styles?: {
+    parent?: ThemeStyle;
+    [key: string]: ThemeStyle | undefined; // child_1, child_2, etc.
+  };
+}
+
+/**
+ * Apply a theme to a slate. Updates node styles based on theme definitions.
+ *
+ * @param slate - The Slate instance
+ * @param theme - Theme definition
+ * @param syncWithTheme - If true, persist theme sync setting
+ * @param revertTheme - If true, revert to pre-theme styles (not implemented yet)
+ */
+export function applyTheme(
+  slate: any,
+  theme: ThemeDefinition,
+  syncWithTheme: boolean = false,
+  revertTheme: boolean = false
+): void {
+  if (!theme) return;
+
+  // Update slate options
+  if (theme._id) {
+    slate.options.themeId = theme._id;
+  }
+  if (syncWithTheme) {
+    slate.options.syncWithTheme = true;
+  }
+
+  // Apply container style
+  if (theme.containerStyle?.backgroundColor) {
+    slate.options.containerStyle = slate.options.containerStyle || {};
+    slate.options.containerStyle.backgroundColor =
+      theme.containerStyle.backgroundColor;
+  }
+
+  // Apply default line color
+  if (theme.defaultLineColor) {
+    slate.options.defaultLineColor = theme.defaultLineColor;
+  }
+
+  // Apply styles to nodes
+  const nodes = slate.nodes.allNodes;
+  if (!nodes || nodes.length === 0 || !theme.styles) return;
+
+  nodes.forEach((node: any, index: number) => {
+    const style = buildNodeStyleFromTheme(theme, index);
+    if (style) {
+      applyStyleToNode(node, style);
+    }
+  });
+
+  console.log("THEME_DEBUG: Applied theme", theme.name || theme._id);
+}
+
+/**
+ * Build node style from theme based on child number.
+ * The first node uses parent style, subsequent nodes cycle through child_1, child_2, etc.
+ */
+export function buildNodeStyleFromTheme(
+  theme: ThemeDefinition,
+  childNumber: number
+): ThemeStyle | null {
+  if (!theme.styles) return null;
+
+  // First node gets parent style
+  if (childNumber === 0 && theme.styles.parent) {
+    return theme.styles.parent;
+  }
+
+  // Subsequent nodes cycle through child styles
+  const childKeys = Object.keys(theme.styles).filter((k) =>
+    k.startsWith("child_")
+  );
+
+  if (childKeys.length === 0) {
+    return theme.styles.parent || null;
+  }
+
+  const childIndex = (childNumber - 1) % childKeys.length;
+  const key = `child_${childIndex + 1}`;
+  return theme.styles[key] || theme.styles.parent || null;
+}
+
+function applyStyleToNode(node: any, style: ThemeStyle): void {
+  if (style.backgroundColor) {
+    node.options.backgroundColor = style.backgroundColor;
+  }
+  if (style.borderColor) {
+    node.options.borderColor = style.borderColor;
+  }
+  if (style.borderWidth !== undefined) {
+    node.options.borderWidth = style.borderWidth;
+  }
+  if (style.fontColor) {
+    node.options.fontColor = style.fontColor;
+  }
+  if (style.fontFamily) {
+    node.options.fontFamily = style.fontFamily;
+  }
+  if (style.fontSize !== undefined) {
+    node.options.fontSize = style.fontSize;
+  }
+  if (style.lineColor) {
+    node.options.lineColor = style.lineColor;
+  }
+  if (style.opacity !== undefined) {
+    node.options.opacity = style.opacity;
+  }
+
+  // Apply colors visually
+  node.setColors?.(style.backgroundColor, style.borderColor);
+
+  // Apply text properties
+  if (node.textElement && (style.fontColor || style.fontSize || style.fontFamily)) {
+    node.textElement.font({
+      fill: style.fontColor || node.options.fontColor,
+      size: style.fontSize || node.options.fontSize,
+      family: style.fontFamily || node.options.fontFamily,
+    });
+  }
+}
