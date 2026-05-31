@@ -6,9 +6,10 @@
  * - Has set(), get() methods
  * - Manages text content, font, alignment, and auto text offset
  */
+import type { Node } from "./Node";
 export declare class Editor {
     private node;
-    constructor(node: any);
+    constructor(node: Node);
     /** Destroy the editor, clearing all references */
     destroy(): void;
     /**

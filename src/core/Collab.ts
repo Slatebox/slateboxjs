@@ -32,15 +32,13 @@ export interface CollabUser {
   cursor?: { x: number; y: number };
 }
 
-export interface CollabPackage {
-  type: string;
-  data: any;
-  clientID?: number;
-  timestamp?: number;
-}
+export type CollabPackage = SlatePackage; // Backward-compat alias
+
+import type { Slate } from "./Slate";
+import type { SlatePackage } from "./SlatePackage";
 
 export class Collab {
-  private slate: any;
+  private slate: Slate;
   private options: CollabOptions;
   private doc: any = null; // Y.Doc
   private provider: any = null; // WebsocketProvider
@@ -50,7 +48,7 @@ export class Collab {
   private clientID: number = 0;
   private cursorElements: Map<number, any> = new Map();
 
-  constructor(slate: any, options: CollabOptions = {}) {
+  constructor(slate: Slate, options: CollabOptions = {}) {
     this.slate = slate;
     this.options = {
       wsUrl: "ws://localhost:1234",
@@ -139,17 +137,18 @@ export class Collab {
         "clientID:",
         this.clientID
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const e = error as any;
       if (
-        error.code === "MODULE_NOT_FOUND" ||
-        error.message?.includes("Cannot find module")
+        e.code === "MODULE_NOT_FOUND" ||
+        e.message?.includes("Cannot find module")
       ) {
         console.warn(
           "COLLAB_DEBUG: yjs/y-websocket not installed. Collaboration disabled.",
           "Install with: npm install yjs y-websocket"
         );
       } else {
-        console.error("COLLAB_DEBUG: Failed to initialize collaboration:", error);
+        console.error("COLLAB_DEBUG: Failed to initialize collaboration:", e);
       }
     }
   }
@@ -157,7 +156,7 @@ export class Collab {
   /**
    * Execute collab packages locally (from Invoker).
    */
-  public invoke(packages: CollabPackage | CollabPackage[]): void {
+  public invoke(packages: SlatePackage | SlatePackage[]): void {
     const pkgs = Array.isArray(packages) ? packages : [packages];
 
     for (const pkg of pkgs) {
@@ -168,7 +167,7 @@ export class Collab {
   /**
    * Send collab packages to remote peers.
    */
-  public send(packages: CollabPackage | CollabPackage[]): void {
+  public send(packages: SlatePackage | SlatePackage[]): void {
     if (!this.collabMap) {
       console.warn("COLLAB_DEBUG: Collaboration not initialized");
       return;
@@ -192,7 +191,7 @@ export class Collab {
   /**
    * Execute a single collab package using the Invoker.
    */
-  public exe(pkg: CollabPackage): void {
+  public exe(pkg: SlatePackage): void {
     const invoker = this.slate.invoker;
     if (!invoker) {
       console.warn("COLLAB_DEBUG: No invoker available");
@@ -314,7 +313,7 @@ export class Collab {
   /** Destroy the collab instance, disconnecting and cleaning up all resources */
   public destroy(): void {
     this.disconnect();
-    this.slate = null;
+    (this as any).slate = null;
     this.options = {} as CollabOptions;
   }
 
@@ -325,7 +324,7 @@ export class Collab {
 
   // ─── Private ─────────────────────────────────────────────────────
 
-  private handleRemotePackage(pkg: CollabPackage): void {
+  private handleRemotePackage(pkg: SlatePackage): void {
     console.log("COLLAB_DEBUG: Received remote package:", pkg.type);
 
     // Execute the package locally

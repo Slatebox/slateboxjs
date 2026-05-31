@@ -1,4 +1,6 @@
 import { SVG } from "@svgdotjs/svg.js";
+import type { Node } from "./Node";
+import type { Slate } from "./Slate";
 // NOTE: svg.connectable.js is imported in src/index.ts - do not import here to avoid conflicts
 
 // Ensure SVG is available globally for svg.connectable.js
@@ -13,8 +15,8 @@ export interface ConnectorOptions {
   padEllipse?: boolean;
   defaultLineColor?: string;
   defaultLineWidth?: number;
-  onConnect?: (connection: any) => void;
-  onDisconnect?: (connection: any) => void;
+  onConnect?: (connection: Connection) => void;
+  onDisconnect?: (connection: Connection) => void;
 
   // svg.connectable.js specific options with defaults
   type?: "straight" | "curved" | "orthogonal";
@@ -30,21 +32,21 @@ export interface ConnectorOptions {
 
 export interface Connection {
   id: string;
-  source: any; // Source node
-  target: any; // Target node
+  source: Node; // Source node
+  target: Node; // Target node
   connectable: any; // The svg.connectable.js object
   lineColor?: string;
   lineWidth?: number;
 }
 
 export class Connector {
-  private node: any;
-  private slate: any;
+  private node: Node;
+  private slate: Slate;
   private options: ConnectorOptions;
   private connections: Map<string, Connection> = new Map();
   private isActive: boolean = false;
 
-  constructor(node: any, options: ConnectorOptions = {}) {
+  constructor(node: Node, options: ConnectorOptions = {}) {
     this.node = node;
     this.slate = node.slate;
     this.options = {

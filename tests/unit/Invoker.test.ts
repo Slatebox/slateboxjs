@@ -45,11 +45,11 @@ describe("Invoker", () => {
     mockSlate = {
       options: {
         followMe: false,
-        themeId: null,
+        themeId: undefined,
         name: "Test Slate",
         description: "",
-        layoutType: null,
-        disableAutoLayoutOfManuallyPositionedNodes: null,
+        layoutType: undefined,
+        disableAutoLayoutOfManuallyPositionedNodes: undefined,
         defaultLineColor: "#000",
         ai: {},
         viewPort: {
@@ -59,13 +59,13 @@ describe("Invoker", () => {
         },
         containerStyle: {
           backgroundColor: "#ffffff",
-          backgroundImage: null,
-          backgroundEffect: null,
+          backgroundImage: undefined,
+          backgroundEffect: undefined,
           prevBackgroundColor: "#f5f5f5",
           backgroundColorAsGradient: false,
-          backgroundGradientType: null,
-          backgroundGradientColors: null,
-          backgroundGradientStrategy: null,
+          backgroundGradientType: undefined,
+          backgroundGradientColors: undefined,
+          backgroundGradientStrategy: undefined,
         },
       },
       nodes: {
@@ -755,8 +755,8 @@ describe("Invoker", () => {
 
       expect(mockSlate.options.containerStyle.backgroundColor).toBe("#f0f0f0");
       expect(mockSlate.options.containerStyle.backgroundColorAsGradient).toBe(false);
-      expect(mockSlate.options.containerStyle.backgroundImage).toBeNull();
-      expect(mockSlate.options.containerStyle.backgroundEffect).toBeNull();
+      expect(mockSlate.options.containerStyle.backgroundImage).toBeUndefined();
+      expect(mockSlate.options.containerStyle.backgroundEffect).toBeUndefined();
     });
   });
 
@@ -785,8 +785,8 @@ describe("Invoker", () => {
       invoker.onSlateBackgroundImageChanged({ data: {} });
 
       expect(mockSlate.options.containerStyle.backgroundColor).toBe("#e0e0e0");
-      expect(mockSlate.options.containerStyle.backgroundImage).toBeNull();
-      expect(mockSlate.options.containerStyle.backgroundEffect).toBeNull();
+      expect(mockSlate.options.containerStyle.backgroundImage).toBeUndefined();
+      expect(mockSlate.options.containerStyle.backgroundEffect).toBeUndefined();
     });
   });
 
@@ -824,8 +824,8 @@ describe("Invoker", () => {
         data: { layoutType: null, disableAutoLayoutOfManuallyPositionedNodes: null },
       });
 
-      expect(mockSlate.options.layoutType).toBeNull();
-      expect(mockSlate.options.disableAutoLayoutOfManuallyPositionedNodes).toBeNull();
+      expect(mockSlate.options.layoutType).toBeUndefined();
+      expect(mockSlate.options.disableAutoLayoutOfManuallyPositionedNodes).toBeUndefined();
     });
   });
 
@@ -1166,13 +1166,13 @@ describe("Invoker", () => {
     });
 
     it("should ignore null fields", () => {
-      mockSlate.options.huddleType = null;
-      mockSlate.options.huddleEnabled = null;
+      mockSlate.options.huddleType = undefined;
+      mockSlate.options.huddleEnabled = undefined;
 
       invoker.onSlateHuddleChanged({ data: {} });
 
-      expect(mockSlate.options.huddleType).toBeNull();
-      expect(mockSlate.options.huddleEnabled).toBeNull();
+      expect(mockSlate.options.huddleType).toBeUndefined();
+      expect(mockSlate.options.huddleEnabled).toBeUndefined();
     });
   });
 });

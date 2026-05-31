@@ -1,6 +1,7 @@
 import { G, Rect, Text, Circle, Ellipse } from "@svgdotjs/svg.js";
 import "@svgdotjs/svg.draggable.js";
 import { ResizeRotate, ResizeRotateOptions } from "./ResizeRotate";
+import type { Slate } from "./Slate";
 import { Connector, ConnectorOptions } from "./Connector";
 import { Relationships } from "./Relationships";
 import { Images } from "./Images";
@@ -127,7 +128,7 @@ export declare class Node {
     private connectionHandles;
     private connectionHandlesVisible;
     private connectionPreview?;
-    private slate;
+    slate: Slate;
     private isDragging;
     private wasSelectedBeforeDrag;
     private preDragTransform;
@@ -142,7 +143,7 @@ export declare class Node {
     private _dragEndTimeoutId;
     private _previewViewboxTimeoutId;
     private _connectTimeoutId;
-    constructor(options: NodeOptions, slate: any);
+    constructor(options: NodeOptions, slate: Slate);
     private generateId;
     private createAsync;
     private finishCreate;

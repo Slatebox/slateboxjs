@@ -1,3 +1,4 @@
+import type { Node } from "./Node";
 export interface ConnectorOptions {
     enabled?: boolean;
     lineContainer?: any;
@@ -5,8 +6,8 @@ export interface ConnectorOptions {
     padEllipse?: boolean;
     defaultLineColor?: string;
     defaultLineWidth?: number;
-    onConnect?: (connection: any) => void;
-    onDisconnect?: (connection: any) => void;
+    onConnect?: (connection: Connection) => void;
+    onDisconnect?: (connection: Connection) => void;
     type?: "straight" | "curved" | "orthogonal";
     color?: string;
     strokeWidth?: number;
@@ -19,8 +20,8 @@ export interface ConnectorOptions {
 }
 export interface Connection {
     id: string;
-    source: any;
-    target: any;
+    source: Node;
+    target: Node;
     connectable: any;
     lineColor?: string;
     lineWidth?: number;
@@ -31,7 +32,7 @@ export declare class Connector {
     private options;
     private connections;
     private isActive;
-    constructor(node: any, options?: ConnectorOptions);
+    constructor(node: Node, options?: ConnectorOptions);
     enable(): void;
     disable(): void;
     destroy(): void;

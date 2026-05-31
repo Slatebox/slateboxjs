@@ -1,8 +1,9 @@
 import { Node, NodeOptions } from './Node';
+import type { Slate } from './Slate';
 export declare class NodesManager {
     private slate;
     private nodes;
-    constructor(slate: any);
+    constructor(slate: Slate);
     add(options?: Partial<NodeOptions>): Node;
     remove(id: string): boolean;
     one(id: string): Node | undefined;

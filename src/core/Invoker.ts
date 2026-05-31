@@ -1,24 +1,28 @@
-export class Invoker {
-  private slate: any
+import type { Slate } from "./Slate";
+import type { SlatePackage } from "./SlatePackage";
 
-  constructor(slate: any) {
+export class Invoker {
+  private slate: Slate
+
+  constructor(slate: Slate) {
     this.slate = slate
   }
 
   /** Destroy the invoker, clearing all callback references */
   public destroy(): void {
-    this.slate = null;
+    (this as any).slate = null;
   }
 
-  onZoom(pkg: any) {
+  onZoom(pkg: SlatePackage) {
     if (this.slate.options.followMe) {
-      const zoomPercent = (this.slate.options.viewPort.originalWidth / pkg.data.zoomLevel) * 100
+      const viewPort = this.slate.options.viewPort;
+      const zoomPercent = ((viewPort?.originalWidth ?? 800) / pkg.data.zoomLevel) * 100
       // Implementation for zoom functionality
       console.log('Zoom to:', zoomPercent + '%')
     }
   }
 
-  onNodePositioned(pkg: any) {
+  onNodePositioned(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.position(
@@ -31,67 +35,67 @@ export class Invoker {
     }
   }
 
-  onNodeLinkRemoved(pkg: any) {
+  onNodeLinkRemoved(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node?.links) {
       node.links.unset(false)
     }
   }
 
-  onNodeLinkAdded(pkg: any) {
+  onNodeLinkAdded(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node?.links) {
-      node.links.set(pkg, false)
+      node.links.set(pkg as any, false)
     }
   }
 
-  onNodeUnlocked(pkg: any) {
+  onNodeUnlocked(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.unlock()
     }
   }
 
-  onNodeLocked(pkg: any) {
+  onNodeLocked(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.lock()
     }
   }
 
-  onNodeBehaviorChanged(pkg: any) {
+  onNodeBehaviorChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       pkg.data.behaviorChanges.forEach((b: any) => {
         if (typeof b.value === 'object') {
-          node.options[b.name] = b.value.val
+          (node.options as any)[b.name] = b.value.val
           Object.keys(b.value).forEach((k) => {
             if (k !== 'val') {
-              node.options[k] = b.value[k]
+              (node.options as any)[k] = b.value[k]
             }
           })
         } else {
-          node.options[b.name] = b.value
+          (node.options as any)[b.name] = b.value
         }
       })
     }
   }
 
-  onNodeToBack(pkg: any) {
+  onNodeToBack(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.toBack()
     }
   }
 
-  onNodeToFront(pkg: any) {
+  onNodeToFront(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.toFront()
     }
   }
 
-  onNodeShapeChanged(pkg: any) {
+  onNodeShapeChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       // Update shape properties
@@ -102,7 +106,7 @@ export class Invoker {
     }
   }
 
-  onNodeAdded(pkg: any) {
+  onNodeAdded(pkg: SlatePackage) {
     if (pkg.data?.multiSelectCopy) {
       // Handle multi-selection copy
       console.log('Multi-select copy:', pkg.data)
@@ -132,7 +136,7 @@ export class Invoker {
     }
   }
 
-  onNodeImageChanged(pkg: any) {
+  onNodeImageChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       // Implementation for image change
@@ -140,11 +144,11 @@ export class Invoker {
     }
   }
 
-  onNodeDeleted(pkg: any) {
+  onNodeDeleted(pkg: SlatePackage) {
     this.slate.nodes.remove(pkg.data.id)
   }
 
-  onNodeResized(pkg: any) {
+  onNodeResized(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       Object.assign(node.options, pkg.data)
@@ -152,7 +156,7 @@ export class Invoker {
     }
   }
 
-  onNodeRotated(pkg: any) {
+  onNodeRotated(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       // Update rotation
@@ -163,14 +167,14 @@ export class Invoker {
     }
   }
 
-  onNodeColorChanged(pkg: any) {
+  onNodeColorChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.setColors(pkg.data.backgroundColor, pkg.data.borderColor)
     }
   }
 
-  onNodeTextChanged(pkg: any) {
+  onNodeTextChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.setText(pkg.data.text)
@@ -184,26 +188,26 @@ export class Invoker {
     }
   }
 
-  onNodeAITextChanged(pkg: any) {
+  onNodeAITextChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.options.ai = { ...pkg.data.ai, ...node.options.ai }
     }
   }
 
-  addRelationship(pkg: any) {
+  addRelationship(pkg: SlatePackage) {
     this.slate.nodes.addRelationship(pkg.data)
   }
 
-  removeRelationship(pkg: any) {
+  removeRelationship(pkg: SlatePackage) {
     this.slate.nodes.removeRelationship(pkg.data)
   }
 
-  onNodesMove(pkg: any) {
+  onNodesMove(pkg: SlatePackage) {
     this.slate.nodes.moveNodes(pkg, { animate: pkg.data.dur > 0 })
   }
 
-  onNodeEffectChanged(pkg: any) {
+  onNodeEffectChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       // Apply filters/effects
@@ -211,7 +215,7 @@ export class Invoker {
     }
   }
 
-  onNodeBorderPropertiesChanged(pkg: any) {
+  onNodeBorderPropertiesChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       // Apply border properties
@@ -221,7 +225,7 @@ export class Invoker {
     }
   }
 
-  onLinePropertiesChanged(pkg: any) {
+  onLinePropertiesChanged(pkg: SlatePackage) {
     const data = Array.isArray(pkg.data) ? pkg.data : [pkg.data]
     data.forEach((p: any) => {
       const node = this.slate.nodes.one(p.id)
@@ -231,18 +235,18 @@ export class Invoker {
     })
   }
 
-  onFollowMeChanged(pkg: any) {
+  onFollowMeChanged(pkg: SlatePackage) {
     this.slate.options.followMe = pkg.data?.followMe
   }
 
-  onCanvasMove(pkg: any) {
+  onCanvasMove(pkg: SlatePackage) {
     if (this.slate.options.followMe) {
       // Implement canvas movement
       console.log('Canvas move:', pkg.data)
     }
   }
 
-  onSlateThemeChanged(pkg: any) {
+  onSlateThemeChanged(pkg: SlatePackage) {
     this.slate.options.themeId = pkg.data?.theme?._id
     if (pkg.data?.theme) {
       // Apply theme
@@ -250,7 +254,7 @@ export class Invoker {
     }
   }
 
-  onSlateLayoutTypeChanged(pkg: any) {
+  onSlateLayoutTypeChanged(pkg: SlatePackage) {
     if (pkg.data.layoutType != null) {
       this.slate.options.layoutType = pkg.data.layoutType
     }
@@ -260,35 +264,36 @@ export class Invoker {
     }
   }
 
-  onSlateBackgroundEffectChanged(pkg: any) {
-    this.slate.options.containerStyle.backgroundEffect = pkg.data.effect
+  onSlateBackgroundEffectChanged(pkg: SlatePackage) {
+    this.slate.options.containerStyle!.backgroundEffect = pkg.data.effect
     // Apply background effect
     console.log('Background effect changed:', pkg.data.effect)
   }
 
-  onSlateBackgroundImageChanged(pkg: any) {
+  onSlateBackgroundImageChanged(pkg: SlatePackage) {
     if (pkg.data.bg) {
-      this.slate.options.containerStyle.backgroundImage = pkg.data.bg.url
-      this.slate.options.containerStyle.backgroundSize = pkg.data.bg.size
+      this.slate.options.containerStyle!.backgroundImage = pkg.data.bg.url
+      this.slate.options.containerStyle!.backgroundSize = pkg.data.bg.size
     } else {
-      const c = this.slate.options.containerStyle.prevBackgroundColor || '#fff'
-      this.slate.options.containerStyle.backgroundColor = c
-      this.slate.options.containerStyle.backgroundImage = null
-      this.slate.options.containerStyle.backgroundEffect = null
+      const c = this.slate.options.containerStyle?.prevBackgroundColor || '#fff'
+      this.slate.options.containerStyle!.backgroundColor = c
+      this.slate.options.containerStyle!.backgroundImage = undefined
+      this.slate.options.containerStyle!.backgroundEffect = undefined
     }
   }
 
-  onSlateBackgroundColorChanged(pkg: any) {
-    this.slate.options.containerStyle.backgroundColor = pkg.data.color
-    this.slate.options.containerStyle.backgroundColorAsGradient = pkg.data.asGradient
-    this.slate.options.containerStyle.backgroundGradientType = pkg.data.gradientType
-    this.slate.options.containerStyle.backgroundGradientColors = pkg.data.gradientColors
-    this.slate.options.containerStyle.backgroundGradientStrategy = pkg.data.gradientStrategy
-    this.slate.options.containerStyle.backgroundImage = null
-    this.slate.options.containerStyle.backgroundEffect = null
+  onSlateBackgroundColorChanged(pkg: SlatePackage) {
+    const cs = this.slate.options.containerStyle!;
+    cs.backgroundColor = pkg.data.color
+    cs.backgroundColorAsGradient = pkg.data.asGradient
+    cs.backgroundGradientType = pkg.data.gradientType
+    cs.backgroundGradientColors = pkg.data.gradientColors
+    cs.backgroundGradientStrategy = pkg.data.gradientStrategy
+    cs.backgroundImage = undefined
+    cs.backgroundEffect = undefined
   }
 
-  onLineColorChanged(pkg: any) {
+  onLineColorChanged(pkg: SlatePackage) {
     this.slate.options.defaultLineColor = pkg.data.color
     this.slate.nodes.allNodes.forEach((node: any) => {
       node.options.lineColor = pkg.data.color
@@ -301,23 +306,23 @@ export class Invoker {
     })
   }
 
-  onSlateAISet(pkg: any) {
+  onSlateAISet(pkg: SlatePackage) {
     this.slate.options.ai = {
       ...(this.slate.options.ai || {}),
       ...pkg.data,
     }
   }
 
-  onSlateNameChanged(pkg: any) {
+  onSlateNameChanged(pkg: SlatePackage) {
     this.slate.options.name = pkg.data.name
   }
 
-  onSlateDescriptionChanged(pkg: any) {
+  onSlateDescriptionChanged(pkg: SlatePackage) {
     this.slate.options.description = pkg.data.description
   }
 
-  onSlateShowGridChanged(pkg: any) {
-    this.slate.options.viewPort.showGrid = pkg.data.showGrid
+  onSlateShowGridChanged(pkg: SlatePackage) {
+    this.slate.options.viewPort!.showGrid = pkg.data.showGrid
     if (pkg.data.showGrid) {
       // Show grid
       console.log('Show grid')
@@ -327,33 +332,33 @@ export class Invoker {
     }
   }
 
-  onSlateMindMapModeChanged(pkg: any) {
+  onSlateMindMapModeChanged(pkg: SlatePackage) {
     this.slate.options.mindMapMode = pkg.data.mindMapMode
   }
 
-  onSlateAutoResizeNodesBasedOnTextChanged(pkg: any) {
+  onSlateAutoResizeNodesBasedOnTextChanged(pkg: SlatePackage) {
     this.slate.options.autoResizeNodesBasedOnText = pkg.data.autoResizeNodesBasedOnText
   }
 
-  onSlateTagsAndTemplateMarkdownChanged(pkg: any) {
+  onSlateTagsAndTemplateMarkdownChanged(pkg: SlatePackage) {
     this.slate.options.tags = pkg.data.tags
     this.slate.options.templateMarkdown = pkg.data.templateMarkdown
     this.slate.options.templatePrompt = pkg.data.templatePrompt
   }
 
-  onSlateTemplateChanged(pkg: any) {
+  onSlateTemplateChanged(pkg: SlatePackage) {
     this.slate.options.isTemplate = pkg.data.isTemplate
   }
 
-  onSlateSnapToObjectsChanged(pkg: any) {
-    this.slate.options.viewPort.snapToObjects = pkg.data.snapToObjects
+  onSlateSnapToObjectsChanged(pkg: SlatePackage) {
+    this.slate.options.viewPort!.snapToObjects = pkg.data.snapToObjects
   }
 
-  onSlateFollowMeChanged(pkg: any) {
+  onSlateFollowMeChanged(pkg: SlatePackage) {
     this.slate.options.followMe = pkg.data.followMe
   }
 
-  onSlateHuddleChanged(pkg: any) {
+  onSlateHuddleChanged(pkg: SlatePackage) {
     if (pkg.data.huddleType != null) {
       this.slate.options.huddleType = pkg.data.huddleType
     }

@@ -12,6 +12,8 @@ export interface FilterDef {
   remove: (element: any) => void;
 }
 
+import type { Node } from "./Node";
+
 // ─── Built-in filter definitions ─────────────────────────────────────
 
 const filterDefs: Map<string, FilterDef> = new Map();
@@ -75,11 +77,11 @@ filterDefs.set("outline", {
 // ─── Filters class (isolated class pattern) ─────────────────────────
 
 export class Filters {
-  private node: any;
+  private node: Node;
   private activeFilters: Set<string> = new Set();
   private hidden: boolean = false;
 
-  constructor(node: any) {
+  constructor(node: Node) {
     this.node = node;
   }
 
@@ -202,7 +204,7 @@ export class Filters {
     this.removeAll();
     this.activeFilters.clear();
     this.hidden = false;
-    this.node = null;
+    (this as any).node = null;
   }
 }
 

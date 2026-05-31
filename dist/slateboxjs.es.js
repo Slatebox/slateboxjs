@@ -7120,8 +7120,8 @@ class Jr {
   }
   onZoom(t) {
     if (this.slate.options.followMe) {
-      const e = this.slate.options.viewPort.originalWidth / t.data.zoomLevel * 100;
-      console.log("Zoom to:", e + "%");
+      const i = (this.slate.options.viewPort?.originalWidth ?? 800) / t.data.zoomLevel * 100;
+      console.log("Zoom to:", i + "%");
     }
   }
   onNodePositioned(t) {
@@ -7254,12 +7254,13 @@ class Jr {
     if (t.data.bg)
       this.slate.options.containerStyle.backgroundImage = t.data.bg.url, this.slate.options.containerStyle.backgroundSize = t.data.bg.size;
     else {
-      const e = this.slate.options.containerStyle.prevBackgroundColor || "#fff";
-      this.slate.options.containerStyle.backgroundColor = e, this.slate.options.containerStyle.backgroundImage = null, this.slate.options.containerStyle.backgroundEffect = null;
+      const e = this.slate.options.containerStyle?.prevBackgroundColor || "#fff";
+      this.slate.options.containerStyle.backgroundColor = e, this.slate.options.containerStyle.backgroundImage = void 0, this.slate.options.containerStyle.backgroundEffect = void 0;
     }
   }
   onSlateBackgroundColorChanged(t) {
-    this.slate.options.containerStyle.backgroundColor = t.data.color, this.slate.options.containerStyle.backgroundColorAsGradient = t.data.asGradient, this.slate.options.containerStyle.backgroundGradientType = t.data.gradientType, this.slate.options.containerStyle.backgroundGradientColors = t.data.gradientColors, this.slate.options.containerStyle.backgroundGradientStrategy = t.data.gradientStrategy, this.slate.options.containerStyle.backgroundImage = null, this.slate.options.containerStyle.backgroundEffect = null;
+    const e = this.slate.options.containerStyle;
+    e.backgroundColor = t.data.color, e.backgroundColorAsGradient = t.data.asGradient, e.backgroundGradientType = t.data.gradientType, e.backgroundGradientColors = t.data.gradientColors, e.backgroundGradientStrategy = t.data.gradientStrategy, e.backgroundImage = void 0, e.backgroundEffect = void 0;
   }
   onLineColorChanged(t) {
     this.slate.options.defaultLineColor = t.data.color, this.slate.nodes.allNodes.forEach((e) => {
@@ -8501,10 +8502,11 @@ class ji {
         this.clientID
       );
     } catch (e) {
-      e.code === "MODULE_NOT_FOUND" || e.message?.includes("Cannot find module") ? console.warn(
+      const i = e;
+      i.code === "MODULE_NOT_FOUND" || i.message?.includes("Cannot find module") ? console.warn(
         "COLLAB_DEBUG: yjs/y-websocket not installed. Collaboration disabled.",
         "Install with: npm install yjs y-websocket"
-      ) : console.error("COLLAB_DEBUG: Failed to initialize collaboration:", e);
+      ) : console.error("COLLAB_DEBUG: Failed to initialize collaboration:", i);
     }
   }
   /**

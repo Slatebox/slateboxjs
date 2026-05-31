@@ -10,6 +10,7 @@ import {
 
 import "@svgdotjs/svg.draggable.js";
 import { ResizeRotate, ResizeRotateOptions } from "./ResizeRotate";
+import type { Slate } from "./Slate";
 import { Connector, ConnectorOptions } from "./Connector";
 import { Relationships } from "./Relationships";
 import { Images } from "./Images";
@@ -198,7 +199,7 @@ export class Node {
     container?: G;
   };
 
-  private slate: any; // Will be properly typed when Slate is available
+  public slate: Slate; // type-only import — accessed by sub-modules (Connector, Editor, etc.)
   private isDragging: boolean = false;
   private wasSelectedBeforeDrag: boolean = false;
   private preDragTransform: { translateX: number; translateY: number } | null = null;
@@ -207,7 +208,7 @@ export class Node {
   /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
   public ready: Promise<void>;
   private _resolveReady!: () => void;
-  private _rejectReady!: (reason?: any) => void;
+  private _rejectReady!: (reason?: unknown) => void;
   private _initFailed: boolean = false;
   private _destroyed: boolean = false;
   private _svgViewboxTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -215,7 +216,7 @@ export class Node {
   private _previewViewboxTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _connectTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(options: NodeOptions, slate: any) {
+  constructor(options: NodeOptions, slate: Slate) {
     this.id = options.id || this.generateId();
     this.slate = slate;
 
@@ -489,7 +490,7 @@ export class Node {
     } = this.options;
 
     // Build stroke options
-    const strokeOpts: any = { color: borderColor!, width: borderWidth! };
+    const strokeOpts: { color: string; width: number; dasharray?: string; opacity?: number } = { color: borderColor!, width: borderWidth! };
     if (borderStyle === "dashed") {
       strokeOpts.dasharray = "8,4";
     } else if (borderStyle === "dotted") {

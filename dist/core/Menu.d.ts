@@ -9,12 +9,13 @@
 export interface MenuOptions {
     enabled?: boolean;
 }
+import type { Node } from "./Node";
 export declare class Menu {
     private node;
     private slate;
     private options;
     private isOpen;
-    constructor(node: any, options?: MenuOptions);
+    constructor(node: Node, options?: MenuOptions);
     /**
      * Open the menu for this node.
      * Delegates to the slate's onMenuRequested event for actual UI rendering.

@@ -32,12 +32,9 @@ export interface CollabUser {
         y: number;
     };
 }
-export interface CollabPackage {
-    type: string;
-    data: any;
-    clientID?: number;
-    timestamp?: number;
-}
+export type CollabPackage = SlatePackage;
+import type { Slate } from "./Slate";
+import type { SlatePackage } from "./SlatePackage";
 export declare class Collab {
     private slate;
     private options;
@@ -48,7 +45,7 @@ export declare class Collab {
     private isConnected;
     private clientID;
     private cursorElements;
-    constructor(slate: any, options?: CollabOptions);
+    constructor(slate: Slate, options?: CollabOptions);
     /**
      * Initialize collaboration.
      * Requires yjs and y-websocket to be installed.
@@ -57,15 +54,15 @@ export declare class Collab {
     /**
      * Execute collab packages locally (from Invoker).
      */
-    invoke(packages: CollabPackage | CollabPackage[]): void;
+    invoke(packages: SlatePackage | SlatePackage[]): void;
     /**
      * Send collab packages to remote peers.
      */
-    send(packages: CollabPackage | CollabPackage[]): void;
+    send(packages: SlatePackage | SlatePackage[]): void;
     /**
      * Execute a single collab package using the Invoker.
      */
-    exe(pkg: CollabPackage): void;
+    exe(pkg: SlatePackage): void;
     /**
      * Update local cursor position and broadcast to peers.
      */

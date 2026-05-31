@@ -4,10 +4,11 @@
  * Following the isolated class pattern.
  */
 import type { NodeLinkOptions } from "./Node";
+import type { Node } from "./Node";
 export declare class Links {
     private node;
     private linkData;
-    constructor(node: any);
+    constructor(node: Node);
     /**
      * Set a link on this node.
      *

@@ -1,5 +1,6 @@
 import "@svgdotjs/svg.select.js";
 import "@svgdotjs/svg.resize.js";
+import type { Node } from "./Node";
 export interface ResizeRotateOptions {
     resizeEnabled?: boolean;
     rotateEnabled?: boolean;
@@ -15,7 +16,7 @@ export declare class ResizeRotate {
     private target;
     private options;
     private isActive;
-    constructor(node: any, options?: ResizeRotateOptions);
+    constructor(node: Node, options?: ResizeRotateOptions);
     enable(): void;
     /**
      * Make the L-shaped polyline handles easier to grab by setting a wider

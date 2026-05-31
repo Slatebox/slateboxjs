@@ -8,18 +8,20 @@
  */
 
 import { Association, createDefaultAssociation } from "./Relationship";
+import type { Node } from "./Node";
+import type { Slate } from "./Slate";
 
 export interface RelationshipsOptions {
   enabled?: boolean;
 }
 
 export class Relationships {
-  private node: any;
-  private slate: any;
+  private node: Node;
+  private slate: Slate;
   private associations: Map<string, Association> = new Map();
   private isActive: boolean = false;
 
-  constructor(node: any, options: RelationshipsOptions = {}) {
+  constructor(node: Node, options: RelationshipsOptions = {}) {
     this.node = node;
     this.slate = node.slate;
     this.isActive = options.enabled ?? true;
@@ -192,8 +194,8 @@ export class Relationships {
     this.removeAll();
     this.disable();
     this.associations.clear();
-    this.node = null;
-    this.slate = null;
+    (this as any).node = null;
+    (this as any).slate = null;
   }
 
   // ─── Private helpers ─────────────────────────────────────────────

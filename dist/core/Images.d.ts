@@ -6,6 +6,7 @@
  * - Has set(), clear() methods
  * - Manages image fills via SVG patterns
  */
+import type { Node } from "./Node";
 export declare class Images {
     private node;
     private patternElement;
@@ -13,7 +14,7 @@ export declare class Images {
     private origWidth;
     private origHeight;
     private preserveAspectRatio;
-    constructor(node: any);
+    constructor(node: Node);
     /**
      * Set an image fill on the node's background.
      *

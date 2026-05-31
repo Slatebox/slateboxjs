@@ -8,17 +8,18 @@
  */
 
 import { loadFont } from "./FontLoader";
+import type { Node } from "./Node";
 
 export class Editor {
-  private node: any;
+  private node: Node;
 
-  constructor(node: any) {
+  constructor(node: Node) {
     this.node = node;
   }
 
   /** Destroy the editor, clearing all references */
   public destroy(): void {
-    this.node = null;
+    (this as any).node = null;
   }
 
   /**

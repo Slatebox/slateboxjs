@@ -11,13 +11,16 @@ export interface MenuOptions {
   enabled?: boolean;
 }
 
+import type { Node } from "./Node";
+import type { Slate } from "./Slate";
+
 export class Menu {
-  private node: any;
-  private slate: any;
+  private node: Node;
+  private slate: Slate;
   private options: MenuOptions;
   private isOpen: boolean = false;
 
-  constructor(node: any, options: MenuOptions = {}) {
+  constructor(node: Node, options: MenuOptions = {}) {
     this.node = node;
     this.slate = node.slate;
     this.options = {
@@ -100,7 +103,7 @@ export class Menu {
   public destroy(): void {
     this.close();
     this.options.enabled = false;
-    this.node = null;
-    this.slate = null;
+    (this as any).node = null;
+    (this as any).slate = null;
   }
 }

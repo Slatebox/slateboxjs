@@ -7,15 +7,17 @@
  * - Manages image fills via SVG patterns
  */
 
+import type { Node } from "./Node";
+
 export class Images {
-  private node: any;
+  private node: Node;
   private patternElement: any = null;
   private imageUrl: string = "";
   private origWidth: number = 0;
   private origHeight: number = 0;
   private preserveAspectRatio: boolean = true;
 
-  constructor(node: any) {
+  constructor(node: Node) {
     this.node = node;
   }
 
@@ -66,7 +68,7 @@ export class Images {
   /** Destroy the images instance, clearing all image data */
   public destroy(): void {
     this.clear();
-    this.node = null;
+    (this as any).node = null;
   }
 
   /**

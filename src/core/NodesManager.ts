@@ -1,10 +1,11 @@
 import { Node, NodeOptions } from './Node'
+import type { Slate } from './Slate'
 
 export class NodesManager {
-  private slate: any
+  private slate: Slate
   private nodes: Map<string, Node> = new Map()
 
-  constructor(slate: any) {
+  constructor(slate: Slate) {
     this.slate = slate
   }
 
@@ -55,7 +56,7 @@ export class NodesManager {
   /** Destroy the nodes manager, clearing all nodes */
   public destroy(): void {
     this.clear();
-    this.slate = null;
+    (this as any).slate = null;
   }
 
   public moveNodes(packageData: any, options: { animate?: boolean } = {}) {

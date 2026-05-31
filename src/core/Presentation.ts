@@ -131,6 +131,6 @@ export class Presentation {
     this.stop();
     this.steps = [];
     this.currentStep = -1;
-    this.slate = null;
+    (this as any).slate = null;
   }
 }

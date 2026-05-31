@@ -5,12 +5,13 @@
  */
 
 import type { NodeLinkOptions } from "./Node";
+import type { Node } from "./Node";
 
 export class Links {
-  private node: any;
+  private node: Node;
   private linkData: NodeLinkOptions | null = null;
 
-  constructor(node: any) {
+  constructor(node: Node) {
     this.node = node;
 
     // Initialize from options if present
@@ -110,6 +111,6 @@ export class Links {
       this.unset(false);
     }
     this.linkData = null;
-    this.node = null;
+    (this as any).node = null;
   }
 }

@@ -10,11 +10,12 @@ export interface FilterDef {
     apply: (element: any) => void;
     remove: (element: any) => void;
 }
+import type { Node } from "./Node";
 export declare class Filters {
     private node;
     private activeFilters;
     private hidden;
-    constructor(node: any);
+    constructor(node: Node);
     /**
      * Apply a named filter to the node.
      *

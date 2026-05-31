@@ -1,5 +1,6 @@
 import "@svgdotjs/svg.select.js";
 import "@svgdotjs/svg.resize.js";
+import type { Node } from "./Node";
 
 export interface ResizeRotateOptions {
   resizeEnabled?: boolean;
@@ -13,12 +14,12 @@ export interface ResizeRotateOptions {
 }
 
 export class ResizeRotate {
-  private node: any;
+  private node: Node;
   private target: any;
   private options: ResizeRotateOptions;
   private isActive: boolean = false;
 
-  constructor(node: any, options: ResizeRotateOptions = {}) {
+  constructor(node: Node, options: ResizeRotateOptions = {}) {
     this.node = node;
     this.target = node.backgroundRect;
     this.options = {
@@ -251,7 +252,7 @@ export class ResizeRotate {
   /** Destroy the resize/rotate instance, disabling all plugins and clearing references */
   public destroy(): void {
     this.disable();
-    this.node = null;
+    (this as any).node = null;
     this.target = null;
   }
 

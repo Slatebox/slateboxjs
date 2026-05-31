@@ -1,5 +1,5 @@
 import { Svg } from "@svgdotjs/svg.js";
-import { Node } from "./Node";
+import { Node, NodeOptions } from "./Node";
 import { NodesManager } from "./NodesManager";
 import { Invoker } from "./Invoker";
 import { PanZoom, PanZoomOptions } from "./PanZoom";
@@ -10,27 +10,29 @@ import { MultiSelection } from "./MultiSelection";
 import { Grid } from "./Grid";
 import { Keyboard } from "./Keyboard";
 import { type ExportOptions } from "./Export";
-import { Collab } from "./Collab";
+import { Collab, CollabUser } from "./Collab";
+import type { SlatePackage } from "./SlatePackage";
 import { type ThemeDefinition } from "./Theme";
 import { type LayoutMove } from "./Layout";
+import { Association } from "./Relationship";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
 export interface SlateEvents {
-    onSlateChanged?: (pkg: any, collabUsers?: any[]) => void;
+    onSlateChanged?: (pkg: SlatePackage, collabUsers?: CollabUser[]) => void;
     onInitCollaboration?: (clientID: string) => void;
-    onTextPaneRequested?: (node: any, cb: Function) => void;
-    onLineMenuRequested?: (node: any, association: any, cb: Function) => void;
-    onTakeSnapshot?: (opts?: any) => void;
+    onTextPaneRequested?: (node: Node, cb: Function) => void;
+    onLineMenuRequested?: (node: Node, association: Association, cb: Function) => void;
+    onTakeSnapshot?: (opts?: Record<string, any>) => void;
     onConfirmRequested?: (title: string, msg: string, cb: Function) => void;
-    onCollaborationUsersChanged?: (users: any[]) => void;
-    onCollaborationUsersRemoved?: (users: any[]) => void;
-    onCollaboration?: (pkg: any) => void;
-    onNodeDragged?: (node: any, evt: any) => void;
-    onCanvasClicked?: (evt: any) => void;
-    onImagesRequested?: (opts: any) => void;
-    onRequestSave?: (opts?: any) => void;
-    onCreateImage?: (opts: any, cb: Function) => void;
-    onMenuRequested?: (node: any, cb: Function) => void;
+    onCollaborationUsersChanged?: (users: CollabUser[]) => void;
+    onCollaborationUsersRemoved?: (users: CollabUser[]) => void;
+    onCollaboration?: (pkg: SlatePackage) => void;
+    onNodeDragged?: (node: Node, evt: MouseEvent) => void;
+    onCanvasClicked?: (evt: MouseEvent) => void;
+    onImagesRequested?: (opts: Record<string, any>) => void;
+    onRequestSave?: (opts?: Record<string, any>) => void;
+    onCreateImage?: (opts: Record<string, any>, cb: Function) => void;
+    onMenuRequested?: (node: Node, cb: Function) => void;
     isReadOnly?: () => boolean;
     isCommentOnly?: () => boolean;
     canRemoveComments?: () => boolean;
@@ -124,6 +126,8 @@ export declare class Slate {
     zoomSlider: ZoomSlider;
     presentation: Presentation;
     options: SlateOptions;
+    linesContainer?: any;
+    markersContainer?: any;
     private selectedNodes;
     private groupResizeRotate;
     private _coordinateIntervalId;
@@ -160,7 +164,7 @@ export declare class Slate {
      * @param options - Node options including position, size, text, shape, colors, etc.
      * @returns The newly created Node instance
      */
-    addNode(options?: any): Node;
+    addNode(options?: Partial<NodeOptions>): Node;
     removeNode(id: string): boolean;
     /**
      * Notify that a node has changed (position, rotation, added, removed)
@@ -169,8 +173,8 @@ export declare class Slate {
     notifyNodeChanged(node?: Node): void;
     getNode(id: string): Node | undefined;
     getAllNodes(): Node[];
-    getViewport(): any;
-    getViewportAsync(): Promise<any>;
+    getViewport(): Svg;
+    getViewportAsync(): Promise<Svg>;
     enablePanZoom(): void;
     disablePanZoom(): void;
     enablePan(): void;

@@ -7,6 +7,7 @@
  * - Owned by Node, coordinates with Connector for rendering
  */
 import { Association } from "./Relationship";
+import type { Node } from "./Node";
 export interface RelationshipsOptions {
     enabled?: boolean;
 }
@@ -15,7 +16,7 @@ export declare class Relationships {
     private slate;
     private associations;
     private isActive;
-    constructor(node: any, options?: RelationshipsOptions);
+    constructor(node: Node, options?: RelationshipsOptions);
     /**
      * Add an association from this node (parent) to a child node.
      * Creates the visual connection via the Connector system.

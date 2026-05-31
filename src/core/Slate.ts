@@ -1,5 +1,5 @@
 import { SVG, Svg } from "@svgdotjs/svg.js";
-import { Node } from "./Node";
+import { Node, NodeOptions } from "./Node";
 import { NodesManager } from "./NodesManager";
 import { Invoker } from "./Invoker";
 import { PanZoom, PanZoomOptions } from "./PanZoom";
@@ -15,7 +15,8 @@ import { MultiSelection } from "./MultiSelection";
 import { Grid } from "./Grid";
 import { Keyboard } from "./Keyboard";
 import { exportSVG, exportPNG, type ExportOptions } from "./Export";
-import { Collab } from "./Collab";
+import { Collab, CollabUser } from "./Collab";
+import type { SlatePackage } from "./SlatePackage";
 import { applyTheme, type ThemeDefinition } from "./Theme";
 import {
   removeLayoutOverlaps,
@@ -23,26 +24,27 @@ import {
   packageLayout,
   type LayoutMove,
 } from "./Layout";
+import { Association } from "./Relationship";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
 import { loadAllFonts as loadAllFontsForSlate } from "./FontLoader";
 
 export interface SlateEvents {
-  onSlateChanged?: (pkg: any, collabUsers?: any[]) => void;
+  onSlateChanged?: (pkg: SlatePackage, collabUsers?: CollabUser[]) => void;
   onInitCollaboration?: (clientID: string) => void;
-  onTextPaneRequested?: (node: any, cb: Function) => void;
-  onLineMenuRequested?: (node: any, association: any, cb: Function) => void;
-  onTakeSnapshot?: (opts?: any) => void;
+  onTextPaneRequested?: (node: Node, cb: Function) => void;
+  onLineMenuRequested?: (node: Node, association: Association, cb: Function) => void;
+  onTakeSnapshot?: (opts?: Record<string, any>) => void;
   onConfirmRequested?: (title: string, msg: string, cb: Function) => void;
-  onCollaborationUsersChanged?: (users: any[]) => void;
-  onCollaborationUsersRemoved?: (users: any[]) => void;
-  onCollaboration?: (pkg: any) => void;
-  onNodeDragged?: (node: any, evt: any) => void;
-  onCanvasClicked?: (evt: any) => void;
-  onImagesRequested?: (opts: any) => void;
-  onRequestSave?: (opts?: any) => void;
-  onCreateImage?: (opts: any, cb: Function) => void;
-  onMenuRequested?: (node: any, cb: Function) => void;
+  onCollaborationUsersChanged?: (users: CollabUser[]) => void;
+  onCollaborationUsersRemoved?: (users: CollabUser[]) => void;
+  onCollaboration?: (pkg: SlatePackage) => void;
+  onNodeDragged?: (node: Node, evt: MouseEvent) => void;
+  onCanvasClicked?: (evt: MouseEvent) => void;
+  onImagesRequested?: (opts: Record<string, any>) => void;
+  onRequestSave?: (opts?: Record<string, any>) => void;
+  onCreateImage?: (opts: Record<string, any>, cb: Function) => void;
+  onMenuRequested?: (node: Node, cb: Function) => void;
   isReadOnly?: () => boolean;
   isCommentOnly?: () => boolean;
   canRemoveComments?: () => boolean;
@@ -163,6 +165,9 @@ export class Slate {
   public zoomSlider!: ZoomSlider;
   public presentation!: Presentation;
   public options: SlateOptions;
+  // Runtime-injected by Connector for global line/marker containers
+  public linesContainer?: any;
+  public markersContainer?: any;
   private selectedNodes: Node[] = [];
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
   private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -544,7 +549,7 @@ export class Slate {
    * @param options - Node options including position, size, text, shape, colors, etc.
    * @returns The newly created Node instance
    */
-  public addNode(options: any = {}) {
+  public addNode(options: Partial<NodeOptions> = {}) {
     const node = this.nodes.add(options);
     // Notify BirdsEye of the new node after a short delay for rendering
     this._nodeNotifyTimeoutId = setTimeout(() => {
@@ -579,14 +584,14 @@ export class Slate {
   }
 
   // Get the pan/zoom viewport for adding content that should pan/zoom
-  public getViewport(): any {
+  public getViewport(): Svg {
     // SVG.js panzoom works directly with root canvas - no viewport nesting needed!
     console.log("VIEWPORT_DEBUG: Using root canvas (SVG.js panzoom)");
     return this.canvas;
   }
 
   // Get viewport with retry logic for proper initialization
-  public getViewportAsync(): Promise<any> {
+  public getViewportAsync(): Promise<Svg> {
     // SVG.js panzoom works directly with root canvas - immediate return
     console.log(
       "VIEWPORT_DEBUG: Returning root canvas immediately (SVG.js panzoom)"

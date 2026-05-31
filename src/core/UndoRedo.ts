@@ -139,7 +139,7 @@ export class UndoRedo {
   public destroy(): void {
     this.clear();
     this.isRestoring = false;
-    this.slate = null;
+    (this as any).slate = null;
   }
 
   // ─── Private ─────────────────────────────────────────────────────
