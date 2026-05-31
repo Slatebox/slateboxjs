@@ -8061,6 +8061,14 @@ class Zi {
     }
   }
   /**
+   * Take an immediate snapshot, bypassing the debounce timer.
+   * Useful for programmatic undo/redo sequences where you need
+   * guaranteed snapshot state right now (e.g., tests, scripts).
+   */
+  forceSnapshot() {
+    !this.options.enabled || this.isRestoring || (this.debounceTimer && (clearTimeout(this.debounceTimer), this.debounceTimer = null), this.takeSnapshot());
+  }
+  /**
    * Undo the last change. Restores the previous snapshot.
    */
   undo() {

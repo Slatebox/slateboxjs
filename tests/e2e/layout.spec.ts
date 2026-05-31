@@ -12,6 +12,8 @@ test.describe("Layout", () => {
         showMultiSelect: true,
       });
       (window as any).slate = s;
+      s.addNode({ x: 100, y: 100, width: 120, height: 80, text: "L1", id: "la1" });
+      s.addNode({ x: 300, y: 100, width: 120, height: 80, text: "L2", id: "la2" });
       return s;
     });
     await page.waitForTimeout(1000);

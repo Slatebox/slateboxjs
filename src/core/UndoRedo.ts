@@ -56,6 +56,23 @@ export class UndoRedo {
   }
 
   /**
+   * Take an immediate snapshot, bypassing the debounce timer.
+   * Useful for programmatic undo/redo sequences where you need
+   * guaranteed snapshot state right now (e.g., tests, scripts).
+   */
+  public forceSnapshot(): void {
+    if (!this.options.enabled || this.isRestoring) return;
+
+    // Clear any pending debounced snapshot
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+
+    this.takeSnapshot();
+  }
+
+  /**
    * Undo the last change. Restores the previous snapshot.
    */
   public undo(): boolean {

@@ -11,8 +11,10 @@ test.describe("Keyboard shortcuts", () => {
         showUndoRedo: true,
       });
       (window as any).slate = s;
+      s.undoRedo.forceSnapshot(); // baseline
       s.addNode({ x: 100, y: 100, width: 120, height: 80, text: "Node1", id: "kn1" });
       s.addNode({ x: 300, y: 100, width: 120, height: 80, text: "Node2", id: "kn2" });
+      s.undoRedo.forceSnapshot(); // snapshot: 2 nodes
     });
     await page.waitForTimeout(1000);
   });
@@ -33,8 +35,12 @@ test.describe("Keyboard shortcuts", () => {
 
   test("should undo with Ctrl+Z", async ({ page }) => {
     const before = await page.evaluate(() => (window as any).slate.getAllNodes().length);
-    await page.evaluate(() => (window as any).slate.addNode({ x: 500, y: 500, width: 100, height: 60, text: "X" }));
-    await page.waitForTimeout(300);
+    await page.evaluate(() => {
+      const s = (window as any).slate;
+      s.addNode({ x: 500, y: 500, width: 100, height: 60, text: "X" });
+      s.undoRedo.forceSnapshot();
+    });
+    await page.waitForTimeout(200);
 
     await page.keyboard.press("Control+KeyZ");
     await page.waitForTimeout(300);

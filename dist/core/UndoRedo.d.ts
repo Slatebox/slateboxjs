@@ -25,6 +25,12 @@ export declare class UndoRedo {
      */
     snap(init?: boolean): void;
     /**
+     * Take an immediate snapshot, bypassing the debounce timer.
+     * Useful for programmatic undo/redo sequences where you need
+     * guaranteed snapshot state right now (e.g., tests, scripts).
+     */
+    forceSnapshot(): void;
+    /**
      * Undo the last change. Restores the previous snapshot.
      */
     undo(): boolean;

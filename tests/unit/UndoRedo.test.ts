@@ -146,6 +146,33 @@ describe("UndoRedo", () => {
     });
   });
 
+  describe("forceSnapshot", () => {
+    it("should take immediate snapshot bypassing debounce", () => {
+      const ur = new UndoRedo(mockSlate, { debounceMs: 3000 });
+      ur.snap(true); // initial snapshot
+      expect(ur.canUndo()).toBe(false);
+
+      ur.forceSnapshot(); // immediate second snapshot
+      expect(ur.canUndo()).toBe(true);
+    });
+
+    it("should clear pending debounce timer", () => {
+      const ur = new UndoRedo(mockSlate, { debounceMs: 3000 });
+      ur.snap(true); // initial snapshot
+      ur.snap(); // starts debounce
+      expect((ur as any).debounceTimer).not.toBeNull();
+
+      ur.forceSnapshot(); // should clear the timer
+      expect((ur as any).debounceTimer).toBeNull();
+    });
+
+    it("should not snapshot when disabled", () => {
+      const ur = new UndoRedo(mockSlate, { enabled: false });
+      ur.forceSnapshot();
+      expect(ur.canUndo()).toBe(false);
+    });
+  });
+
   describe("maxHistory", () => {
     it("should trim undo stack when exceeding maxHistory", () => {
       const ur = new UndoRedo(mockSlate, { maxHistory: 3 });

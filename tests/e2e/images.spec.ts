@@ -16,11 +16,12 @@ test.describe("Images", () => {
 
   test("should add image node", async ({ page }) => {
     const before = await page.evaluate(() => (window as any).slate.getAllNodes().length);
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       const node = (window as any).slate.addNode({
         x: 100, y: 100, width: 160, height: 120,
         text: "Image", id: "img-" + Date.now(),
       });
+      await node.ready;
       if (node?.images) node.images.set("https://picsum.photos/320/240", 320, 240, true);
     });
     await page.waitForTimeout(300);
@@ -29,11 +30,12 @@ test.describe("Images", () => {
   });
 
   test("should have image after set", async ({ page }) => {
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       const node = (window as any).slate.addNode({
         x: 100, y: 100, width: 160, height: 120,
         text: "Image", id: "img-2-" + Date.now(),
       });
+      await node.ready;
       if (node?.images) node.images.set("https://picsum.photos/320/240", 320, 240, true);
     });
     await page.waitForTimeout(500);
@@ -46,11 +48,12 @@ test.describe("Images", () => {
   });
 
   test("should clear image", async ({ page }) => {
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       const node = (window as any).slate.addNode({
         x: 100, y: 100, width: 160, height: 120,
         text: "Image", id: "img-3-" + Date.now(),
       });
+      await node.ready;
       if (node?.images) node.images.set("https://picsum.photos/320/240", 320, 240, true);
     });
     await page.waitForTimeout(500);

@@ -19,7 +19,7 @@ test.describe("Export", () => {
     const svgXml = await page.evaluate(async () => {
       const slate = (window as any).slate;
       return new Promise<string>((resolve) => {
-        slate.exportSVG((xml: string) => resolve(xml));
+        slate.svg(undefined, (xml: string) => resolve(xml));
       });
     });
     expect(svgXml).toContain("<svg");
@@ -31,7 +31,7 @@ test.describe("Export", () => {
     const dataUrl = await page.evaluate(async () => {
       const slate = (window as any).slate;
       return new Promise<string>((resolve) => {
-        slate.exportPNG((result: string) => resolve(result));
+        slate.png(undefined, (result: string) => resolve(result));
       });
     });
     expect(dataUrl).toContain("data:image/png;base64,");
