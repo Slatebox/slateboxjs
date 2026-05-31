@@ -536,6 +536,58 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Inspired by the original SlateboxJS library
 - Uses [Vite](https://vitejs.dev/) for modern build tooling
 
+## 🔗 Collaboration Setup (Collab.ts)
+
+SlateboxJS v2 supports real-time collaboration via [Yjs](https://yjs.dev/) and [y-websocket](https://github.com/yjs/y-websocket). The `Collab` module requires these peer dependencies:
+
+```bash
+npm install yjs y-websocket
+```
+
+### Starting a local collab server
+
+The production collab server (`collab.slatebox.com`) uses HMAC/MongoDB authentication. For local development and testing, enable dev mode:
+
+1. **Edit `../collab.slatebox.com/bin/server.js`** — add the following check:
+   ```js
+   const devMode = process.env.COLLAB_DEV_MODE === "1";
+   // In the upgrade handler, before authenticate:
+   if (devMode) {
+     wss.handleUpgrade(request, socket, head, (ws) => {
+       wss.emit("connection", ws, request);
+     });
+     return;
+   }
+   ```
+
+2. **Start the dev server:**
+   ```bash
+   cd ../collab.slatebox.com
+   COLLAB_DEV_MODE=1 PORT=1234 npm start
+   ```
+
+3. **Connect from your application:**
+   ```ts
+   import { SlateboxJS } from 'slateboxjs-v2';
+   const slate = SlateboxJS('#container');
+   await slate.collab.init({
+     wsUrl: 'ws://localhost:1234',
+     roomName: 'my-room',
+     userName: 'Alice'
+   });
+   // isConnected will update via WebSocket status event
+   ```
+
+### Running collab e2e tests
+
+```bash
+# Terminal 1: start the test server
+COLLAB_DEV_MODE=1 PORT=1234 node ../collab.slatebox.com/bin/server.js
+
+# Terminal 2: run collab tests
+npx playwright test tests/e2e/collab.spec.ts --project=chromium
+```
+
 ## 📞 Support
 
 For questions, issues, or contributions, please visit our [GitHub repository](https://github.com/your-username/slateboxjs-v2).
