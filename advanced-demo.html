@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SlateboxJS v2 - Advanced Demo</title>
+    <title>SlateboxJS v2 - Demo</title>
     <link rel="stylesheet" href="./dist/slateboxjs.css">
     <style>
         body {
@@ -13,7 +13,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -22,224 +22,90 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
         }
-        
+
         .header {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
-            padding: 20px;
-            text-align: center;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        
+
         .header h1 {
             margin: 0;
-            font-size: 2.2em;
+            font-size: 1.5em;
             font-weight: 300;
         }
-        
-        .header p {
-            margin: 10px 0 0 0;
-            opacity: 0.9;
-            font-size: 1.1em;
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
         }
-        
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .control-group {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        
-        .control-group h3 {
-            margin: 0 0 10px 0;
-            color: #495057;
-            font-size: 1em;
-            font-weight: 600;
-        }
-        
-        .control-group button {
-            width: 100%;
-            padding: 8px 12px;
-            margin: 3px 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        .header-controls button {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
             color: white;
-            border: none;
+            border: 1px solid rgba(255,255,255,0.3);
             border-radius: 6px;
             cursor: pointer;
             font-size: 13px;
             font-weight: 500;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            transition: all 0.2s ease;
         }
-        
-        .control-group button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+
+        .header-controls button:hover {
+            background: rgba(255,255,255,0.3);
         }
-        
-        .control-group button:active {
-            transform: translateY(0);
+
+        .header-controls button.danger {
+            background: rgba(255,100,100,0.3);
+            border-color: rgba(255,100,100,0.5);
         }
-        
-        .control-group button.secondary {
-            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-        }
-        
-        .control-group button.danger {
-            background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
-        }
-        
+
         #slate {
             width: 100%;
-            height: 600px;
-            background: #ffffff;
+            height: 700px;
+            background: #fafafa;
             position: relative;
         }
-        
-        .info {
-            padding: 20px;
-            background: #e8f5e9;
-            color: #2e7d32;
-            font-weight: 500;
-            border-top: 1px solid #c8e6c9;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        
-        .feature-list {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
-        
-        .feature-list li {
-            margin: 8px 0;
-            padding-left: 20px;
-            position: relative;
-        }
-        
-        .feature-list li::before {
-            content: '✓';
-            position: absolute;
-            left: 0;
-            color: #4caf50;
-            font-weight: bold;
-        }
-        
-        .instructions {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        
-        .instructions h4 {
-            margin: 0 0 10px 0;
-            color: #1976d2;
-        }
-        
-        .instructions ol {
-            margin: 0;
-            padding-left: 20px;
-        }
-        
-        .instructions li {
-            margin: 5px 0;
+
+        .info-bar {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            color: #666;
+            font-size: 13px;
+            border-top: 1px solid #ddd;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>SlateboxJS v2 - Advanced Demo</h1>
-            <p>Pan/Zoom Canvas + Resize/Rotate Nodes</p>
-        </div>
-        
-        <div class="controls">
-            <div class="control-group">
-                <h3>📄 Create Nodes</h3>
-                <button onclick="addNode()">Add Rectangle</button>
-                <button onclick="addCircle()">Add Circle</button>
-                <button onclick="addEllipse()">Add Ellipse</button>
-                <button onclick="addMultiple()">Add 3 Random</button>
-            </div>
-            
-            <div class="control-group">
-                <h3>🔧 Node Controls</h3>
-                <button onclick="enableResize()" class="secondary">Enable Resize</button>
-                <button onclick="enableRotate()" class="secondary">Enable Rotate</button>
-                <button onclick="enableBoth()" class="secondary">Enable Both</button>
-                <button onclick="disableAll()">Disable All</button>
-            </div>
-            
-            <div class="control-group">
-                <h3>🔒 Node States</h3>
-                <button onclick="lockAllNodes()">Lock All</button>
-                <button onclick="unlockAllNodes()">Unlock All</button>
-                <button onclick="bringToFront()">Bring to Front</button>
-                <button onclick="sendToBack()">Send to Back</button>
-            </div>
-            
-            <div class="control-group">
-                <h3>📐 Canvas Controls</h3>
-                <button onclick="zoomIn()" class="secondary">Zoom In (+)</button>
-                <button onclick="zoomOut()" class="secondary">Zoom Out (-)</button>
-                <button onclick="resetZoom()">Reset Zoom</button>
-                <button onclick="fitToContent()">Fit Content</button>
-            </div>
-            
-            <div class="control-group">
-                <h3>🎨 Visual Effects</h3>
-                <button onclick="randomColors()">Random Colors</button>
-                <button onclick="arrangeGrid()">Arrange Grid</button>
-                <button onclick="animateNodes()">Animate Nodes</button>
-                <button onclick="clearAll()" class="danger">Clear All</button>
+            <h1>SlateboxJS v2</h1>
+            <div class="header-controls">
+                <button onclick="addNode()">+ Rectangle</button>
+                <button onclick="addCircle()">+ Circle</button>
+                <button onclick="clearAll()" class="danger">Clear</button>
             </div>
         </div>
-        
+
         <div id="slate"></div>
-        
-        <div class="info">
-            <div>
-                <ul class="feature-list">
-                    <li><strong>Pan/Zoom Canvas:</strong> Mouse wheel to zoom, drag to pan</li>
-                    <li><strong>Resize Nodes:</strong> Click "Enable Resize" then click a node</li>
-                    <li><strong>Rotate Nodes:</strong> Click "Enable Rotate" then use rotation handle</li>
-                    <li><strong>Drag Nodes:</strong> Click and drag any node to move it</li>
-                    <li><strong>Multi-Select:</strong> Hold Ctrl and click multiple nodes</li>
-                    <li><strong>Zoom Controls:</strong> Use the controls in top-right corner</li>
-                </ul>
-            </div>
-            <div class="instructions">
-                <h4>🚀 Quick Start:</h4>
-                <ol>
-                    <li>Add some nodes using the buttons</li>
-                    <li>Try panning and zooming the canvas</li>
-                    <li>Enable resize/rotate and click on a node</li>
-                    <li>Drag the handles to resize or rotate</li>
-                    <li>Use zoom controls to navigate large diagrams</li>
-                </ol>
-            </div>
+
+        <div class="info-bar">
+            Two-finger scroll to pan (with momentum) • Cmd/Ctrl+scroll or pinch to zoom • Click node to select • Drag to move
         </div>
     </div>
 
     <script type="module">
         import SlateboxJS from './dist/slateboxjs.es.js'
 
-        // Initialize the slate with pan/zoom enabled
+        // Initialize the slate with pan/zoom and momentum scrolling
         const slate = SlateboxJS('#slate', {
             viewPort: {
                 originalWidth: 1200,
-                originalHeight: 600
+                originalHeight: 700
             },
             containerStyle: {
                 backgroundColor: '#fafafa'
@@ -248,12 +114,17 @@
                 enabled: true,
                 panning: true,
                 pinchZoom: true,
-                wheelZoom: false, // Disable wheel zoom - use pinch to zoom, scroll to pan
+                wheelZoom: true,
+                momentum: true,
+                momentumSlowdown: 0.8,
                 zoomFactor: 0.3,
                 zoomMin: 0.1,
-                zoomMax: 5,
-                onPan: (pan) => console.log('Pan:', pan),
-                onZoom: (zoom) => console.log('Zoom:', zoom)
+                zoomMax: 5
+            },
+            birdsEye: {
+                enabled: true,
+                width: 200,
+                height: 150
             }
         })
 
@@ -261,11 +132,10 @@
         window.slate = slate
         let nodeCounter = 1
 
-        // Demo functions
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff']
+
         window.addNode = function() {
-            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff']
             const color = colors[Math.floor(Math.random() * colors.length)]
-            
             slate.addNode({
                 id: 'rect_' + nodeCounter++,
                 x: Math.random() * 800 + 100,
@@ -282,154 +152,19 @@
         }
 
         window.addCircle = function() {
-            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff']
             const color = colors[Math.floor(Math.random() * colors.length)]
-            
             slate.addNode({
                 id: 'circle_' + nodeCounter++,
                 x: Math.random() * 800 + 100,
                 y: Math.random() * 400 + 100,
                 width: 80 + Math.random() * 40,
                 height: 80 + Math.random() * 40,
-                text: `○ ${nodeCounter - 1}`,
+                text: `Circle ${nodeCounter - 1}`,
                 backgroundColor: color,
                 borderColor: '#333',
                 borderWidth: 2,
                 shape: 'circle',
-                fontSize: 16
-            })
-        }
-
-        window.addEllipse = function() {
-            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff']
-            const color = colors[Math.floor(Math.random() * colors.length)]
-            
-            slate.addNode({
-                id: 'ellipse_' + nodeCounter++,
-                x: Math.random() * 800 + 100,
-                y: Math.random() * 400 + 100,
-                width: 140 + Math.random() * 60,
-                height: 70 + Math.random() * 30,
-                text: `◯ ${nodeCounter - 1}`,
-                backgroundColor: color,
-                borderColor: '#333',
-                borderWidth: 2,
-                shape: 'ellipse',
                 fontSize: 14
-            })
-        }
-
-        window.addMultiple = function() {
-            for (let i = 0; i < 3; i++) {
-                setTimeout(() => {
-                    const rand = Math.random()
-                    if (rand < 0.33) addNode()
-                    else if (rand < 0.66) addCircle()
-                    else addEllipse()
-                }, i * 150)
-            }
-        }
-
-        window.enableResize = function() {
-            slate.getAllNodes().forEach(node => {
-                node.enableResize()
-            })
-            console.log('Resize enabled for all nodes')
-        }
-
-        window.enableRotate = function() {
-            slate.getAllNodes().forEach(node => {
-                node.enableRotate()
-            })
-            console.log('Rotate enabled for all nodes')
-        }
-
-        window.enableBoth = function() {
-            slate.getAllNodes().forEach(node => {
-                node.enableResizeRotate()
-            })
-            console.log('Resize and rotate enabled for all nodes')
-        }
-
-        window.disableAll = function() {
-            slate.getAllNodes().forEach(node => {
-                node.disableResizeRotate()
-            })
-            console.log('Resize and rotate disabled for all nodes')
-        }
-
-        window.lockAllNodes = function() {
-            slate.getAllNodes().forEach(node => {
-                node.lock()
-            })
-        }
-
-        window.unlockAllNodes = function() {
-            slate.getAllNodes().forEach(node => {
-                node.unlock()
-            })
-        }
-
-        window.bringToFront = function() {
-            slate.getAllNodes().forEach(node => {
-                node.toFront()
-            })
-        }
-
-        window.sendToBack = function() {
-            slate.getAllNodes().forEach(node => {
-                node.toBack()
-            })
-        }
-
-        // Canvas controls
-        window.zoomIn = function() {
-            slate.zoomIn()
-        }
-
-        window.zoomOut = function() {
-            slate.zoomOut()
-        }
-
-        window.resetZoom = function() {
-            slate.resetZoom()
-        }
-
-        window.fitToContent = function() {
-            slate.fitToContent()
-        }
-
-        // Visual effects
-        window.randomColors = function() {
-            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff', '#a29bfe', '#fd79a8', '#fdcb6e']
-            slate.getAllNodes().forEach(node => {
-                const color = colors[Math.floor(Math.random() * colors.length)]
-                node.setColors(color)
-            })
-        }
-
-        window.arrangeGrid = function() {
-            const nodes = slate.getAllNodes()
-            const cols = Math.ceil(Math.sqrt(nodes.length))
-            nodes.forEach((node, index) => {
-                const row = Math.floor(index / cols)
-                const col = index % cols
-                node.position(100 + col * 150, 100 + row * 120, undefined, undefined, 500)
-            })
-        }
-
-        window.animateNodes = function() {
-            slate.getAllNodes().forEach((node, index) => {
-                const angle = (index / slate.getAllNodes().length) * Math.PI * 2
-                const radius = 200
-                const centerX = 400
-                const centerY = 300
-                const x = centerX + Math.cos(angle) * radius
-                const y = centerY + Math.sin(angle) * radius
-                
-                setTimeout(() => {
-                    node.position(x, y, undefined, undefined, 1000)
-                }, index * 100)
             })
         }
 
@@ -438,36 +173,12 @@
             nodeCounter = 1
         }
 
-        // Add initial demo content
+        // Add initial demo nodes
         setTimeout(() => {
             addNode()
             addCircle()
-            addEllipse()
-            console.log('SlateboxJS v2 Advanced Demo loaded!')
-            console.log('Canvas zoom level:', slate.getZoom())
-            console.log('Canvas pan position:', slate.getPan())
+            console.log('SlateboxJS v2 Demo loaded with momentum scrolling!')
         }, 100)
-
-        // Add keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                switch(e.key) {
-                    case '=':
-                    case '+':
-                        e.preventDefault()
-                        zoomIn()
-                        break
-                    case '-':
-                        e.preventDefault()
-                        zoomOut()
-                        break
-                    case '0':
-                        e.preventDefault()
-                        resetZoom()
-                        break
-                }
-            }
-        })
     </script>
 </body>
 </html>
