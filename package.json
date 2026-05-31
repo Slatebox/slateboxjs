@@ -21,7 +21,12 @@
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
     "preview": "vite preview",
     "serve": "vite preview",
-    "test": "vitest"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "npx playwright test --project=chromium",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:all": "npx playwright test",
+    "test:all": "vitest run && npx playwright test --project=chromium"
   },
   "keywords": [
     "diagramming",
@@ -33,7 +38,9 @@
   "author": "SlateboxJS Team",
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/node": "^20.10.5",
+    "jsdom": "^28.1.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.10",
     "vitest": "^1.1.0"
@@ -44,7 +51,7 @@
     "@svgdotjs/svg.panzoom.js": "^2.1.2",
     "@svgdotjs/svg.resize.js": "^2.0.5",
     "@svgdotjs/svg.select.js": "^4.0.2",
-    "svg.connectable.js": "github:Slatebox/svg.connectable.js"
+    "svg.connectable.js": "file:../svg.connectable.js"
   },
   "engines": {
     "node": ">=18.0.0"

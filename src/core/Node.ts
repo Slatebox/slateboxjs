@@ -5,40 +5,165 @@ import {
   Element as SVGElement,
   Circle,
   Ellipse,
+  Path,
 } from "@svgdotjs/svg.js";
+
 import "@svgdotjs/svg.draggable.js";
 import { ResizeRotate, ResizeRotateOptions } from "./ResizeRotate";
 import { Connector, ConnectorOptions } from "./Connector";
+import { Relationships } from "./Relationships";
+import { Images } from "./Images";
+import { Editor } from "./Editor";
+import { Links } from "./Links";
+import { Filters } from "./Filters";
+import { Menu } from "./Menu";
+import { resolveShapePath, isNativeShape } from "./ShapeRegistry";
+
+export interface NodeLinkOptions {
+  show?: boolean;
+  type?: "url" | "currentSlate" | "externalSlate";
+  data?: string;
+  thumbnail?: string;
+}
+
+export interface NodeFilterOptions {
+  vect?: string;
+  text?: string;
+}
+
+export interface NodeAnimationOptions {
+  vect?: string;
+  text?: string;
+}
+
+export interface NodeAIOptions {
+  textToChildNodes?: any;
+  textToImage?: any;
+}
 
 export interface NodeOptions {
   id: string;
+
+  // Position (v1 compat: xPos/yPos mapped via compat layer)
   x?: number;
   y?: number;
+
+  // Dimensions
   width?: number;
   height?: number;
+
+  // Identity
+  name?: string;
+  groupId?: string;
+
+  // Text content
   text?: string;
   fontSize?: number;
   fontFamily?: string;
-  fontColor?: string;
+  fontColor?: string; // v1 compat: foregroundColor mapped via compat layer
   textOpacity?: number;
   textXAlign?: "left" | "center" | "right";
   textYAlign?: "top" | "middle" | "bottom";
-  backgroundColor?: string;
-  borderColor?: string;
-  borderWidth?: number;
-  allowDrag?: boolean;
-  isLocked?: boolean;
-  shape?: "rectangle" | "circle" | "ellipse";
-  rotate?: {
-    rotationAngle?: number;
-  };
   textOffset?: {
     x?: number;
     y?: number;
   };
+
+  // Appearance
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  borderStyle?: "solid" | "dashed" | "dotted";
+  borderOpacity?: number;
+  borderDisplayOnly?: boolean;
+  opacity?: number;
+
+  // Shape (v1 compat: shapeHint mapped via compat layer)
+  shape?: string; // "rectangle" | "circle" | "ellipse" | named shapes from ShapeRegistry
+  vectorPath?: string; // SVG path string or named shape key
+  shapeHint?: string; // v1 compat: maps to shape via adapter
+
+  // SVG content
+  svgContent?: string;
+  svgString?: string; // v1 compat alias for svgContent
+
+  // Image
+  image?: string;
+  imageOrigWidth?: number;
+  imageOrigHeight?: number;
+
+  // Line properties (for connections originating from this node)
+  lineColor?: string;
+  lineOpacity?: number;
+  lineEffect?: string;
+  lineType?: "bezier" | "linear" | "straight";
+  lineCurveType?: "cubic" | "quadratic";
+  lineCurviness?: number;
+  lineWidth?: number;
+
+  // Behavior flags
+  allowDrag?: boolean;
+  isLocked?: boolean;
+  disableDrag?: boolean;
+  allowMenu?: boolean;
+  allowContext?: boolean;
+  allowResize?: boolean;
+
+  // Menu tab visibility
+  showDelete?: boolean;
+  showAdd?: boolean;
+  showResize?: boolean;
+  showRotate?: boolean;
+  showMenu?: boolean;
+  showColorTab?: boolean;
+  showTextTab?: boolean;
+  showAITab?: boolean;
+  showShapeTab?: boolean;
+  showImageTab?: boolean;
+  showEffectTab?: boolean;
+
+  // Relationship UI flags
+  showRelationshipConnector?: boolean;
+  showRelationshipDelete?: boolean;
+  showRelationshipProperties?: boolean;
+  showRelationshipReassign?: boolean;
+  showAddAndDeleteConditionally?: boolean;
+  spaceBetweenNodesWhenAdding?: number;
+  disableMenuAsTemplate?: boolean;
+
+  // Special node types
+  isComment?: boolean;
+  isCategory?: boolean;
+  categoryName?: string;
+  humanTouch?: boolean;
+
+  // Display helpers
+  iconFor?: string;
+  defaultShaped?: boolean;
+  pinUnderneath?: boolean;
+
+  // Rotation
+  rotate?: {
+    rotationAngle?: number;
+  };
+
+  // Sub-systems
   resizeRotate?: ResizeRotateOptions;
   connector?: ConnectorOptions;
-  svgContent?: string;
+
+  // Link
+  link?: NodeLinkOptions;
+
+  // Filters & Effects
+  filters?: NodeFilterOptions;
+
+  // Animations
+  animations?: NodeAnimationOptions;
+
+  // AI
+  ai?: NodeAIOptions;
+
+  // Custom render hook
   customRender?: (group: G, options: NodeOptions) => void;
 }
 
@@ -46,11 +171,17 @@ export class Node {
   public id: string;
   public options: NodeOptions;
   public svgGroup!: G;
-  public backgroundRect!: Rect | Circle | Ellipse;
+  public backgroundRect!: Rect | Circle | Ellipse | G;
   public textElement!: Text;
   public nestedSvg?: any; // Store reference to nested SVG for SVG content
   public resizeRotate!: ResizeRotate;
   public connector!: Connector;
+  public relationships!: Relationships;
+  public images!: Images;
+  public editor!: Editor;
+  public links!: Links;
+  public filters!: Filters;
+  public menu!: Menu;
 
   // Connection handles for adding new nodes with automatic connections
   private connectionHandles: {
@@ -70,6 +201,12 @@ export class Node {
   private slate: any; // Will be properly typed when Slate is available
   private isDragging: boolean = false;
   private wasSelectedBeforeDrag: boolean = false;
+  private preDragTransform: { translateX: number; translateY: number } | null = null;
+  private preDragPosition: { x: number; y: number } | null = null;
+
+  /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
+  public ready: Promise<void>;
+  private _resolveReady!: () => void;
 
   constructor(options: NodeOptions, slate: any) {
     this.id = options.id || this.generateId();
@@ -114,6 +251,10 @@ export class Node {
       ...options,
     };
 
+    this.ready = new Promise<void>((resolve) => {
+      this._resolveReady = resolve;
+    });
+
     console.log("NODE_DEBUG: Calling createAsync for", this.id);
     this.createAsync();
   }
@@ -131,6 +272,8 @@ export class Node {
       console.log("NODE_DEBUG: Got viewport for", this.id, viewport);
 
       this.svgGroup = viewport.group();
+      // Add data-node-id attribute for test selectors
+      this.svgGroup.attr('data-node-id', this.id);
       console.log("NODE_DEBUG: Created svgGroup for", this.id, this.svgGroup);
 
       // Continue with the rest of the creation process
@@ -230,10 +373,50 @@ export class Node {
     }
 
     // Initialize resize/rotate functionality
-    this.resizeRotate = new ResizeRotate(this, this.options.resizeRotate);
+    // Circles must preserve aspect ratio to stay circular
+    const resizeRotateOpts = { ...this.options.resizeRotate };
+    if (this.options.shape === "circle") {
+      resizeRotateOpts.preserveAspectRatio = true;
+    }
+    this.resizeRotate = new ResizeRotate(this, resizeRotateOpts);
 
     // Initialize connector functionality
     this.connector = new Connector(this, this.options.connector);
+
+    // Initialize relationships (parent-child association management)
+    this.relationships = new Relationships(this);
+
+    // Initialize images (image fill support)
+    this.images = new Images(this);
+
+    // Initialize editor (text editing integration)
+    this.editor = new Editor(this);
+
+    // Initialize links (URL, slate links)
+    this.links = new Links(this);
+
+    // Initialize filters (visual effects)
+    this.filters = new Filters(this);
+
+    // Initialize menu (context menu system)
+    this.menu = new Menu(this);
+
+    // Apply image if specified in options
+    if (this.options.image) {
+      this.images.set(
+        this.options.image,
+        this.options.imageOrigWidth,
+        this.options.imageOrigHeight
+      );
+    }
+
+    // Apply filters if specified in options
+    if (this.options.filters?.vect) {
+      this.filters.apply(this.options.filters.vect, "vect");
+    }
+    if (this.options.filters?.text) {
+      this.filters.apply(this.options.filters.text, "text");
+    }
 
     // Make draggable if allowed
     if (this.options.allowDrag && !this.options.isLocked) {
@@ -252,7 +435,25 @@ export class Node {
       this.centerTextInitial();
     }
 
+    // Apply initial rotation if specified in options
+    if (this.options.rotate?.rotationAngle) {
+      const angle = this.options.rotate.rotationAngle;
+      // Use transform with origin:'center' to rotate without adding translation offset
+      // This tells SVG.js to rotate around the element's center
+      console.log(
+        "NODE_DEBUG: Applying initial rotation",
+        angle,
+        "to",
+        this.id,
+        "using transform with origin:center"
+      );
+      this.svgGroup.transform({ rotate: angle, origin: 'center' });
+    }
+
     console.log("NODE_DEBUG: finishCreate continuing for", this.id);
+
+    // Signal that the node is fully created
+    this._resolveReady();
   }
 
   private createBackground() {
@@ -263,30 +464,92 @@ export class Node {
       this.options.shape
     );
 
-    const { width, height, backgroundColor, borderColor, borderWidth, shape } =
-      this.options;
+    const {
+      width,
+      height,
+      backgroundColor,
+      borderColor,
+      borderWidth,
+      borderStyle,
+      borderOpacity,
+      shape,
+      vectorPath,
+      opacity,
+    } = this.options;
 
-    switch (shape) {
-      case "circle":
-        const radius = Math.min(width!, height!) / 2;
-        this.backgroundRect = this.svgGroup
-          .circle(radius * 2)
-          .fill(backgroundColor!)
-          .stroke({ color: borderColor!, width: borderWidth! });
-        break;
-      case "ellipse":
-        this.backgroundRect = this.svgGroup
-          .ellipse(width!, height!)
-          .fill(backgroundColor!)
-          .stroke({ color: borderColor!, width: borderWidth! });
-        break;
-      default: // rectangle
-        this.backgroundRect = this.svgGroup
-          .rect(width!, height!)
-          .fill(backgroundColor!)
-          .stroke({ color: borderColor!, width: borderWidth! })
-          .radius(4); // Slight border radius for better appearance
-        break;
+    // Build stroke options
+    const strokeOpts: any = { color: borderColor!, width: borderWidth! };
+    if (borderStyle === "dashed") {
+      strokeOpts.dasharray = "8,4";
+    } else if (borderStyle === "dotted") {
+      strokeOpts.dasharray = "2,4";
+    }
+    if (borderOpacity !== undefined) {
+      strokeOpts.opacity = borderOpacity;
+    }
+
+    // Try to resolve a named shape or vector path
+    const shapeDef = resolveShapePath(shape, vectorPath);
+
+    if (shapeDef && !isNativeShape(shape || "")) {
+      // Render as SVG path — use a nested SVG with viewBox for proper scaling
+      const nested = this.svgGroup
+        .nested()
+        .size(width!, height!);
+
+      const pathEl = nested
+        .path(shapeDef.path)
+        .fill(backgroundColor!)
+        .stroke(strokeOpts);
+
+      // Compute viewBox from the actual path bounds (handles absolute-coordinate paths from v1)
+      try {
+        const bb = pathEl.bbox();
+        if (bb.width > 0 && bb.height > 0) {
+          nested.viewbox(bb.x, bb.y, bb.width, bb.height);
+        } else {
+          nested.viewbox(shapeDef.viewBox);
+        }
+      } catch {
+        nested.viewbox(shapeDef.viewBox);
+      }
+
+      if (opacity !== undefined) {
+        pathEl.opacity(opacity);
+      }
+
+      // Store the nested SVG as backgroundRect for compatibility
+      // The nested element is used for bbox calculations and selection handles
+      this.backgroundRect = nested as any;
+    } else {
+      // Native shapes — fast path
+      switch (shape) {
+        case "circle": {
+          const radius = Math.min(width!, height!) / 2;
+          this.backgroundRect = this.svgGroup
+            .circle(radius * 2)
+            .fill(backgroundColor!)
+            .stroke(strokeOpts);
+          break;
+        }
+        case "ellipse":
+          this.backgroundRect = this.svgGroup
+            .ellipse(width!, height!)
+            .fill(backgroundColor!)
+            .stroke(strokeOpts);
+          break;
+        default: // rectangle
+          this.backgroundRect = this.svgGroup
+            .rect(width!, height!)
+            .fill(backgroundColor!)
+            .stroke(strokeOpts)
+            .radius(4);
+          break;
+      }
+
+      if (opacity !== undefined) {
+        this.backgroundRect.opacity(opacity);
+      }
     }
 
     console.log(
@@ -309,6 +572,12 @@ export class Node {
       opacity: textOpacity!,
     });
 
+    // Use SVG native text anchoring for reliable centering
+    this.textElement.attr({
+      'text-anchor': 'middle',
+      'dominant-baseline': 'central',
+    });
+
     console.log(
       "NODE_DEBUG: createText completed for",
       this.id,
@@ -318,48 +587,53 @@ export class Node {
     this.centerText();
   }
 
-  private centerText() {
+  public centerText() {
     // Skip if no text element (e.g., when using SVG content)
     if (!this.textElement) return;
 
     const { width, height, textXAlign, textYAlign, textOffset } = this.options;
 
-    const bbox = this.textElement.bbox();
-
-    // Use current shape position inside group when centering
+    // Get the background shape's position within the group
     const shapeX = (this.backgroundRect as any).x?.() ?? 0;
     const shapeY = (this.backgroundRect as any).y?.() ?? 0;
 
-    let x = shapeX + (textOffset!.x || 0);
-    let y = shapeY + (textOffset!.y || 0);
+    // Since text-anchor="middle" and dominant-baseline="central",
+    // we position the text at the CENTER of the shape and SVG handles the rest
+    let x = shapeX + width! / 2 + (textOffset?.x || 0);
+    let y = shapeY + height! / 2 + (textOffset?.y || 0);
 
-    // Horizontal alignment
+    // Horizontal alignment adjustments
     switch (textXAlign) {
       case "left":
-        x += 5;
+        x = shapeX + 5 + (textOffset?.x || 0);
+        this.textElement.attr('text-anchor', 'start');
         break;
       case "right":
-        x += width! - bbox.width - 5;
+        x = shapeX + width! - 5 + (textOffset?.x || 0);
+        this.textElement.attr('text-anchor', 'end');
         break;
       default: // center
-        x += (width! - bbox.width) / 2;
+        this.textElement.attr('text-anchor', 'middle');
         break;
     }
 
-    // Vertical alignment
+    // Vertical alignment adjustments
     switch (textYAlign) {
       case "top":
-        y += 5;
+        y = shapeY + 5 + (textOffset?.y || 0);
+        this.textElement.attr('dominant-baseline', 'hanging');
         break;
       case "bottom":
-        y += height! - bbox.height - 5;
+        y = shapeY + height! - 5 + (textOffset?.y || 0);
+        this.textElement.attr('dominant-baseline', 'auto');
         break;
       default: // middle
-        y += (height! - bbox.height) / 2;
+        this.textElement.attr('dominant-baseline', 'central');
         break;
     }
 
-    this.textElement.move(x, y);
+    // Use x/y attributes directly for proper text-anchor behavior
+    this.textElement.attr({ x, y });
   }
 
   private makeDraggable() {
@@ -376,14 +650,19 @@ export class Node {
       // Selection behavior - ensure this node is selected when drag starts
       const isCurrentlySelected = this.slate.getSelectedNodes().includes(this);
 
+      // Check for multi-select modifier keys from the original pointer/mouse event
+      const origEvt = event.detail?.event || event;
+      const isMultiSelect = origEvt?.ctrlKey || origEvt?.metaKey;
+
       if (!isCurrentlySelected) {
         console.log(
           "SELECTION_DEBUG: Drag started on unselected node",
           this.id,
-          "- selecting it"
+          "- selecting it, addToSelection:",
+          isMultiSelect
         );
-        // Select this node (which will deselect others)
-        this.slate.selectNodes([this], false);
+        // Select this node (respect Ctrl/Meta for multi-select)
+        this.slate.selectNodes([this], isMultiSelect);
       } else {
         console.log(
           "SELECTION_DEBUG: Drag started on already selected node",
@@ -394,6 +673,22 @@ export class Node {
       this.isDragging = true;
       this.wasSelectedBeforeDrag = true; // Always true now since we ensure selection
 
+      // Store the transform at drag start so we can calculate drag delta later
+      const transform = this.svgGroup.transform();
+      this.preDragTransform = {
+        translateX: transform.translateX || 0,
+        translateY: transform.translateY || 0
+      };
+
+      // CRITICAL: Store the actual position using this.options which is the stored logical position
+      // Don't use svgGroup.x() which returns transformed bbox for rotated groups
+      // Don't use backgroundRect.bbox() which returns local coords (0,0) relative to group
+      this.preDragPosition = {
+        x: this.options.x ?? 0,
+        y: this.options.y ?? 0
+      };
+      console.log("DRAG_DEBUG: Stored pre-drag transform:", this.preDragTransform, "position:", this.preDragPosition);
+
       // Temporarily disable resize/rotate during drag for clean dragging
       // The selection system will handle this through updateSelectionResizeRotate
       this.slate.disableNodeResizeRotate(this);
@@ -402,10 +697,27 @@ export class Node {
     this.svgGroup.on("dragend.node", (event: any) => {
       console.log("DRAG_DEBUG: Drag ended on", this.id);
 
-      // Update position options
-      const bbox = this.svgGroup.bbox();
-      this.options.x = bbox.x;
-      this.options.y = bbox.y;
+      // svg.draggable.js uses move() NOT transforms, so the element is already at its new position
+      // The new position is in event.detail.box
+      const box = event.detail?.box;
+      const newX = box?.x ?? this.svgGroup.bbox().x;
+      const newY = box?.y ?? this.svgGroup.bbox().y;
+
+      // Get current rotation to preserve it
+      const transform = this.svgGroup.transform();
+      const currentRotation = transform.rotate || 0;
+
+      console.log("DRAG_DEBUG: Drag completed - new position from box:", newX, newY,
+                  "rotation:", currentRotation,
+                  "preDragPos:", this.preDragPosition);
+
+      // Clear pre-drag state
+      this.preDragTransform = null;
+      this.preDragPosition = null;
+
+      // Update stored position to the new position after drag
+      this.options.x = newX;
+      this.options.y = newY;
 
       // Small delay to distinguish drag from click - reduced for better responsiveness
       setTimeout(() => {
@@ -432,6 +744,9 @@ export class Node {
           // Re-enable resize/rotate since drag is complete
           this.slate.updateSelectionResizeRotate();
         }
+
+        // Notify slate of node position change (for BirdsEye refresh)
+        this.slate.notifyNodeChanged(this);
       }, 10); // Reduced from 50ms to 10ms
     });
 
@@ -493,6 +808,17 @@ export class Node {
   }
 
   public remove() {
+    // Clean up connection handles container (created on slate.canvas, not in svgGroup)
+    if (this.connectionHandles.container) {
+      this.connectionHandles.container.remove();
+      this.connectionHandles.container = undefined;
+    }
+    // Clean up connection preview container
+    if (this.connectionPreview?.container) {
+      this.connectionPreview.container.remove();
+      this.connectionPreview.container = undefined;
+    }
+    // Remove the main SVG group (cleans up all child elements and sub-system references)
     this.svgGroup.remove();
   }
 
@@ -521,10 +847,21 @@ export class Node {
     if (this.backgroundRect instanceof Rect) {
       this.backgroundRect.size(width, height);
     } else if (this.backgroundRect instanceof Circle) {
-      const radius = Math.min(width, height) / 2;
-      this.backgroundRect.radius(radius);
+      // For circles, use the smaller dimension to keep it circular
+      const diameter = Math.min(width, height);
+      this.backgroundRect.size(diameter, diameter);
+      // Also update stored dimensions to match the circle
+      this.options.width = diameter;
+      this.options.height = diameter;
     } else if (this.backgroundRect instanceof Ellipse) {
       this.backgroundRect.size(width, height);
+    } else {
+      // Custom shapes (nested SVG with path): resize via SVG native size()
+      try {
+        (this.backgroundRect as any).size?.(width, height);
+      } catch (_) {
+        // Non-critical - shape may not support size method
+      }
     }
 
     // Update nested SVG size using stored reference and SVG.js native methods
@@ -614,15 +951,44 @@ export class Node {
   }
 
   public setRotation(angle: number) {
-    this.options.rotate!.rotationAngle = angle;
-    this.svgGroup.rotate(angle);
+    if (!this.options.rotate) {
+      this.options.rotate = { rotationAngle: 0 };
+    }
+    this.options.rotate.rotationAngle = angle;
+    // First clear any existing rotation transform
+    const currentTransform = this.svgGroup.transform();
+    // Apply rotation using transform with origin:center to avoid translation offset
+    this.svgGroup.transform({
+      rotate: angle,
+      origin: 'center',
+      // Preserve any existing translation
+      translateX: currentTransform.translateX || 0,
+      translateY: currentTransform.translateY || 0
+    });
   }
 
   public getRotation(): number {
-    // svg.select.js applies rotation to backgroundRect (not svgGroup), so read from there
+    // PRIORITY: options.rotate.rotationAngle is always kept up-to-date by both:
+    // - setRotation() (programmatic rotation)
+    // - handleResize() in ResizeRotate.ts (manual UI rotation)
+    // This is the single source of truth for rotation
+    if (this.options.rotate?.rotationAngle !== undefined && this.options.rotate.rotationAngle !== 0) {
+      return this.options.rotate.rotationAngle;
+    }
+
+    // Fallback: Check svgGroup transform (set by setRotation or initial options)
+    try {
+      const groupTransform = (this.svgGroup as any).transform();
+      if (groupTransform && typeof groupTransform.rotate !== 'undefined' && groupTransform.rotate !== 0) {
+        return groupTransform.rotate;
+      }
+    } catch (e) {
+      // Continue to fallbacks
+    }
+
+    // Fallback: Check backgroundRect (svg.select.js applies rotation here during manual rotate)
     try {
       const transform = (this.backgroundRect as any).transform();
-
       if (transform && typeof transform.rotation !== 'undefined') {
         return transform.rotation;
       }
@@ -630,10 +996,10 @@ export class Node {
         return transform.rotate;
       }
     } catch (e) {
-      // Fallback to options if transform reading fails
+      // Fallback if transform reading fails
     }
 
-    return this.options.rotate?.rotationAngle || 0;
+    return 0;
   }
 
   // Connector functionality
@@ -730,47 +1096,7 @@ export class Node {
   }
 
   private centerTextInitial() {
-    // Skip if no text element (e.g., when using SVG content)
-    if (!this.textElement) return;
-
-    const { width, height, textXAlign, textYAlign, textOffset } = this.options;
-
-    const bbox = this.textElement.bbox();
-
-    // Use current shape position inside group when centering
-    const shapeX = (this.backgroundRect as any).x?.() ?? 0;
-    const shapeY = (this.backgroundRect as any).y?.() ?? 0;
-
-    let x = shapeX + (textOffset!.x || 0);
-    let y = shapeY + (textOffset!.y || 0);
-
-    // Horizontal alignment
-    switch (textXAlign) {
-      case "left":
-        x += 5;
-        break;
-      case "right":
-        x += width! - bbox.width - 5;
-        break;
-      default: // center
-        x += (width! - bbox.width) / 2;
-        break;
-    }
-
-    // Vertical alignment
-    switch (textYAlign) {
-      case "top":
-        y += 5;
-        break;
-      case "bottom":
-        y += height! - bbox.height - 5;
-        break;
-      default: // middle
-        y += (height! - bbox.height) / 2;
-        break;
-    }
-
-    this.textElement.move(x, y);
+    this.centerText();
   }
 
   private calculatePathBounds(
@@ -936,8 +1262,9 @@ export class Node {
       this.id
     );
 
-    // Create container for all connection handles
-    this.connectionHandles.container = this.svgGroup.group();
+    // Create container for all connection handles at canvas level
+    // IMPORTANT: Must be outside svgGroup to avoid affecting group's bbox during drag
+    this.connectionHandles.container = this.slate.canvas.group();
 
     const handleRadius = 8;
     const handleColor = "#007cff";

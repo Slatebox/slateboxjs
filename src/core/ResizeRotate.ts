@@ -54,6 +54,9 @@ export class ResizeRotate {
         });
       }
 
+      // Widen handle hit areas for easier grabbing
+      this.widenHandleHitAreas();
+
       // Add event listeners
       this.addEventListeners();
 
@@ -61,6 +64,28 @@ export class ResizeRotate {
     } catch (error) {
       console.warn("Failed to enable resize/rotate:", error);
     }
+  }
+
+  /**
+   * Make the L-shaped polyline handles easier to grab by setting a wider
+   * stroke directly on the SVG elements (overrides CSS from svg.select.js).
+   */
+  private widenHandleHitAreas() {
+    // Defer to next frame — svg.select.js may not have appended handles yet
+    requestAnimationFrame(() => {
+      try {
+        const svgNode = this.target.node;
+        const root = svgNode.ownerSVGElement || svgNode;
+        const handles = root.querySelectorAll(".svg_select_handle");
+        handles.forEach((h: SVGElement) => {
+          h.setAttribute("stroke-width", "8");
+          h.setAttribute("stroke", "#333");
+          h.style.pointerEvents = "all";
+        });
+      } catch (_) {
+        // Non-critical — handles still work, just harder to click
+      }
+    });
   }
 
   public disable() {
@@ -89,7 +114,6 @@ export class ResizeRotate {
     this.target.on("mousedown.resizerotate touchstart.resizerotate", (event: any) => {
       // Check if the event is on a resize/rotate handle
       if (this.isResizeRotateHandle(event.target)) {
-        console.log("RESIZE_ROTATE_DEBUG: Handle interaction started, hiding connection handles");
         if (this.node.isConnectionHandlesEnabled()) {
           this.node.disableConnectionHandles();
         }
@@ -102,13 +126,15 @@ export class ResizeRotate {
       this.options.onResize?.(event);
 
       // Re-enable connection handles after resize completes
-      console.log("RESIZE_ROTATE_DEBUG: Resize complete, re-enabling connection handles");
       if (this.node.slate && this.node.slate.getSelectedNodes().includes(this.node)) {
         // Only re-enable if this node is still selected
         setTimeout(() => {
           this.node.enableConnectionHandles();
         }, 50);
       }
+
+      // Notify slate of node change (for BirdsEye refresh)
+      this.node.slate?.notifyNodeChanged(this.node);
     });
   }
 
@@ -139,6 +165,7 @@ export class ResizeRotate {
 
   private removeEventListeners() {
     this.target.off("resize");
+    this.target.off("mousedown.resizerotate touchstart.resizerotate");
   }
 
   private handleResize(event: any) {
@@ -157,29 +184,56 @@ export class ResizeRotate {
 
       this.node.centerText();
 
-      // If a rotation happened, the resize event carries angle
+      // If a rotation happened, the resize event carries angle (delta)
+      // svg.resize.js applies rotation incrementally to backgroundRect
+      // We need to read the ACTUAL cumulative rotation from backgroundRect.transform()
       if (event.detail && typeof event.detail.angle === "number") {
-        const angle = event.detail.angle as number;
+        const deltaAngle = event.detail.angle as number;
 
-        if (this.node.options.rotate) {
-          this.node.options.rotate.rotationAngle = angle;
+        // Read the cumulative rotation from backgroundRect (where svg.resize.js applies it)
+        let backgroundRectRotation = 0;
+        try {
+          const targetTransform = this.target.transform();
+          backgroundRectRotation = targetTransform?.rotate || 0;
+        } catch (e) {
+          // Fallback to 0 if we can't read the transform
         }
 
+        // Also get any existing rotation on svgGroup (from setRotation, e.g., duplicated nodes)
+        let existingSvgGroupRotation = 0;
+        try {
+          const groupTransform = this.node.svgGroup.transform();
+          existingSvgGroupRotation = groupTransform?.rotate || 0;
+        } catch (e) {
+          // Fallback to 0 if we can't read the transform
+        }
+
+        // Total rotation = svgGroup rotation + backgroundRect rotation
+        const totalRotation = existingSvgGroupRotation + backgroundRectRotation;
+
+        // Store the rotation angle - create the rotate object if it doesn't exist
+        if (!this.node.options.rotate) {
+          this.node.options.rotate = { rotationAngle: 0 };
+        }
+        this.node.options.rotate.rotationAngle = totalRotation;
+
         // Rotate content elements to match background rotation
+        // Use deltaAngle because content elements are children of svgGroup
+        // and we're applying incremental rotation to match backgroundRect
         if (
           this.node.textElement &&
           typeof this.node.textElement.rotate === "function"
         ) {
           // For regular nodes: rotate text element
           const bbox = this.target.bbox();
-          this.node.textElement.rotate(angle, bbox.cx, bbox.cy);
+          this.node.textElement.rotate(deltaAngle, bbox.cx, bbox.cy);
         } else if (
           this.node.nestedSvg &&
           typeof this.node.nestedSvg.rotate === "function"
         ) {
           // For SVG content nodes: rotate nested SVG
           const bbox = this.target.bbox();
-          this.node.nestedSvg.rotate(angle, bbox.cx, bbox.cy);
+          this.node.nestedSvg.rotate(deltaAngle, bbox.cx, bbox.cy);
         }
       }
     }
@@ -203,7 +257,6 @@ export class ResizeRotate {
     // Force a refresh of resize/rotate handles by disabling and re-enabling
     // This is necessary after operations like drag that change position
     if (this.isActive) {
-      console.log("RESIZE_ROTATE_DEBUG: Refreshing handles for", this.node.id);
       this.disable();
       this.enable();
     }

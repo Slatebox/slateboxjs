@@ -3,20 +3,112 @@ import { Node } from "./Node";
 import { NodesManager } from "./NodesManager";
 import { Invoker } from "./Invoker";
 import { PanZoom, PanZoomOptions } from "./PanZoom";
+import { BirdsEye, BirdsEyeOptions } from "./BirdsEye";
+import {
+  serialize,
+  deserialize,
+  snapshot as takeSnapshot,
+  type SlateJSON,
+} from "./Serialization";
+import { UndoRedo } from "./UndoRedo";
+import { MultiSelection } from "./MultiSelection";
+import { Grid } from "./Grid";
+import { Keyboard } from "./Keyboard";
+import { exportSVG, exportPNG, type ExportOptions } from "./Export";
+import { Collab } from "./Collab";
+import { applyTheme, type ThemeDefinition } from "./Theme";
+import {
+  removeLayoutOverlaps,
+  applyLayout as applyLayoutMoves,
+  packageLayout,
+  type LayoutMove,
+} from "./Layout";
+import { ZoomSlider } from "./ZoomSlider";
+import { Presentation } from "./Presentation";
+import { loadAllFonts as loadAllFontsForSlate } from "./FontLoader";
+
+export interface SlateEvents {
+  onSlateChanged?: (pkg: any, collabUsers?: any[]) => void;
+  onInitCollaboration?: (clientID: string) => void;
+  onTextPaneRequested?: (node: any, cb: Function) => void;
+  onLineMenuRequested?: (node: any, association: any, cb: Function) => void;
+  onTakeSnapshot?: (opts?: any) => void;
+  onConfirmRequested?: (title: string, msg: string, cb: Function) => void;
+  onCollaborationUsersChanged?: (users: any[]) => void;
+  onCollaborationUsersRemoved?: (users: any[]) => void;
+  onCollaboration?: (pkg: any) => void;
+  onNodeDragged?: (node: any, evt: any) => void;
+  onCanvasClicked?: (evt: any) => void;
+  onImagesRequested?: (opts: any) => void;
+  onRequestSave?: (opts?: any) => void;
+  onCreateImage?: (opts: any, cb: Function) => void;
+  onMenuRequested?: (node: any, cb: Function) => void;
+  isReadOnly?: () => boolean;
+  isCommentOnly?: () => boolean;
+  canRemoveComments?: () => boolean;
+}
 
 export interface SlateOptions {
+  // Identity
+  id?: string;
   name?: string;
   description?: string;
+  container?: string;
+  instance?: string;
+  shareId?: string;
+
+  // Behavior
+  enabled?: boolean;
+  allowDrag?: boolean;
   followMe?: boolean;
   mindMapMode?: boolean;
   autoResizeNodesBasedOnText?: boolean;
+  useLayoutQuadrants?: boolean;
+  autoEnableDefaultFilters?: boolean;
+
+  // UI visibility
+  showbirdsEye?: boolean;
+  sizeOfbirdsEye?: number;
+  showMultiSelect?: boolean;
+  showZoom?: boolean;
+  showUndoRedo?: boolean;
+  showStatus?: boolean;
+  showLocks?: boolean;
+
+  // Access control
+  isPublic?: boolean;
+  isUnlisted?: boolean;
+  isPrivate?: boolean;
+  isTemplate?: boolean;
+  basedOnTemplate?: string;
+  basedOnThemeId?: string;
+  syncWithTheme?: boolean;
+
+  // Collaboration
+  allowCollaboration?: boolean;
+  eligibleForThemeCompilation?: boolean;
+
+  // Viewport
   viewPort?: {
     originalWidth?: number;
     originalHeight?: number;
+    width?: number;
+    height?: number;
+    left?: number;
+    top?: number;
     showGrid?: boolean;
+    gridSize?: number;
     snapToObjects?: boolean;
     showCoordinates?: boolean;
+    useInertiaScrolling?: boolean;
+    zoom?: {
+      r?: number;
+      w?: number;
+      h?: number;
+    };
   };
+
+  // Appearance
   containerStyle?: {
     backgroundColor?: string;
     backgroundColorAsGradient?: boolean;
@@ -28,18 +120,32 @@ export interface SlateOptions {
     backgroundEffect?: string;
     prevBackgroundColor?: string;
   };
+
+  // Defaults
   defaultLineColor?: string;
   themeId?: string;
+
+  // Layout
   layoutType?: "manual" | "auto";
   disableAutoLayoutOfManuallyPositionedNodes?: boolean;
+  nodeOrder?: string[]; // Array of node IDs for z-ordering
+
+  // Huddle
   huddleType?: "none" | "basic" | "advanced";
   huddleEnabled?: boolean;
+
+  // Metadata
   tags?: string[];
   templateMarkdown?: string;
   templatePrompt?: string;
-  isTemplate?: boolean;
   ai?: any;
+
+  // Sub-systems
   panZoom?: PanZoomOptions;
+  birdsEye?: BirdsEyeOptions;
+
+  // Events
+  events?: SlateEvents;
 }
 
 export class Slate {
@@ -48,6 +154,14 @@ export class Slate {
   public nodes!: NodesManager;
   public invoker!: Invoker;
   public panZoom!: PanZoom;
+  public birdsEye!: BirdsEye;
+  public undoRedo!: UndoRedo;
+  public multiSelection!: MultiSelection;
+  public grid!: Grid;
+  public keyboard!: Keyboard;
+  public collab!: Collab;
+  public zoomSlider!: ZoomSlider;
+  public presentation!: Presentation;
   public options: SlateOptions;
   private selectedNodes: Node[] = [];
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
@@ -140,6 +254,49 @@ export class Slate {
 
     // Initialize pan/zoom functionality
     this.panZoom = new PanZoom(this, this.options.panZoom);
+
+    // Initialize birds eye / minimap
+    this.birdsEye = new BirdsEye(this, this.options.birdsEye);
+    if (this.options.birdsEye?.enabled) {
+      // Delay enable to ensure canvas is ready
+      setTimeout(() => this.birdsEye.enable(), 200);
+    }
+
+    // Initialize undo/redo
+    this.undoRedo = new UndoRedo(this, {
+      enabled: this.options.showUndoRedo !== false,
+    });
+
+    // Initialize multi-selection
+    this.multiSelection = new MultiSelection(this, {
+      enabled: this.options.showMultiSelect !== false,
+    });
+
+    // Initialize grid
+    this.grid = new Grid(this, {
+      enabled: this.options.viewPort?.showGrid || false,
+      gridSize: this.options.viewPort?.gridSize || 20,
+    });
+    if (this.options.viewPort?.showGrid) {
+      this.grid.show();
+    }
+
+    // Initialize keyboard bindings
+    this.keyboard = new Keyboard(this);
+    if (this.options.enabled !== false) {
+      this.keyboard.bindGlobal();
+    }
+
+    // Initialize collaboration (lazy — call collab.init() to connect)
+    this.collab = new Collab(this);
+
+    // Initialize zoom slider
+    this.zoomSlider = new ZoomSlider(this, {
+      enabled: this.options.showZoom || false,
+    });
+
+    // Initialize presentation mode
+    this.presentation = new Presentation(this);
 
     // Make canvas responsive
     this.makeResponsive();
@@ -285,11 +442,27 @@ export class Slate {
   }
 
   public addNode(options: any = {}) {
-    return this.nodes.add(options);
+    const node = this.nodes.add(options);
+    // Notify BirdsEye of the new node after a short delay for rendering
+    setTimeout(() => this.notifyNodeChanged(), 100);
+    return node;
   }
 
   public removeNode(id: string) {
-    return this.nodes.remove(id);
+    const result = this.nodes.remove(id);
+    // Notify BirdsEye of the removed node
+    this.notifyNodeChanged();
+    return result;
+  }
+
+  /**
+   * Notify that a node has changed (position, rotation, added, removed)
+   * This triggers BirdsEye refresh if enabled
+   */
+  public notifyNodeChanged(node?: Node): void {
+    if (this.birdsEye?.isEnabled()) {
+      this.birdsEye.scheduleRefresh();
+    }
   }
 
   public getNode(id: string) {
@@ -735,5 +908,135 @@ export class Slate {
   // Backward compatibility
   public getSelectedNode(): Node | null {
     return this.selectedNodes.length > 0 ? this.selectedNodes[0] : null;
+  }
+
+  // ─── Serialization API ──────────────────────────────────────────────
+
+  /**
+   * Export the slate to a JSON string in v1-compatible format.
+   *
+   * @param nodes - Optional subset of nodes to include
+   * @param asPresentation - If true, includes presentation ordering
+   * @returns JSON string
+   */
+  public exportJSON(nodes?: Node[], asPresentation?: boolean): string {
+    const json = serialize(this, nodes, asPresentation);
+    return JSON.stringify(json);
+  }
+
+  /**
+   * Load a v1-compatible JSON string or object into this slate.
+   *
+   * @param json - JSON string or SlateJSON object
+   * @param preserve - If true, merge with existing nodes instead of replacing
+   * @param skipZoom - If true, don't adjust zoom/pan after load
+   * @param useMainCanvas - Reserved for future use
+   */
+  public async loadJSON(
+    json: string | SlateJSON,
+    preserve: boolean = false,
+    skipZoom: boolean = false,
+    useMainCanvas?: boolean
+  ): Promise<void> {
+    await deserialize(json, this, preserve, skipZoom);
+  }
+
+  /**
+   * Take a snapshot of the current slate state.
+   * Used by undo/redo system.
+   *
+   * @returns SlateJSON object (not stringified)
+   */
+  public snapshot(): SlateJSON {
+    return takeSnapshot(this);
+  }
+
+  // ─── Export API ─────────────────────────────────────────────────
+
+  /**
+   * Export the slate as an SVG string.
+   */
+  public svg(
+    opts?: ExportOptions,
+    callback?: (svg: string) => void
+  ): string {
+    return exportSVG(this, opts, callback);
+  }
+
+  /**
+   * Export the slate as a PNG (async).
+   */
+  public async png(
+    opts?: ExportOptions,
+    callback?: (result: string | Blob) => void
+  ): Promise<string | Blob> {
+    return exportPNG(this, opts, callback);
+  }
+
+  /**
+   * Synchronous-style PNG export (returns a Promise).
+   * Alias for png() for v1 compatibility.
+   */
+  public pngSync(opts?: ExportOptions): Promise<string | Blob> {
+    return this.png(opts);
+  }
+
+  // ─── Theme API ──────────────────────────────────────────────────
+
+  /** Apply a theme to this slate */
+  public applyTheme(
+    theme: ThemeDefinition,
+    syncWithTheme?: boolean,
+    revertTheme?: boolean
+  ): void {
+    applyTheme(this, theme, syncWithTheme, revertTheme);
+  }
+
+  // ─── Layout API ─────────────────────────────────────────────────
+
+  /** Remove overlapping nodes by pushing them apart */
+  public removeLayoutOverlaps(
+    enableAttraction?: boolean,
+    threshold?: number
+  ): void {
+    removeLayoutOverlaps(this, enableAttraction, threshold);
+  }
+
+  /** Apply pre-computed layout moves */
+  public applyLayout(
+    moves: LayoutMove[],
+    cb?: () => void,
+    noAnimation?: boolean
+  ): void {
+    applyLayoutMoves(this, moves, cb, noAnimation);
+  }
+
+  /** Package current node positions for layout transfer */
+  public packageLayout(): LayoutMove[] {
+    return packageLayout(this);
+  }
+
+  // ─── Lock display API ───────────────────────────────────────────
+
+  /** Show lock icons on all locked nodes */
+  public displayLocks(): void {
+    this.nodes.allNodes.forEach((node: Node) => {
+      if (node.options.isLocked) {
+        // Visual lock indicator could be added here
+        console.log("LOCK_DEBUG: Displaying lock for", node.id);
+      }
+    });
+  }
+
+  /** Hide all lock icons */
+  public hideLocks(): void {
+    console.log("LOCK_DEBUG: Hiding all locks");
+  }
+
+  // ─── Font loading ───────────────────────────────────────────────
+
+  /** Load all fonts used by nodes in this slate */
+  public async loadAllFonts(): Promise<void> {
+    await loadAllFontsForSlate(this);
   }
 }

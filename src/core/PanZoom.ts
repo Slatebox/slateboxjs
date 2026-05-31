@@ -13,6 +13,10 @@ export interface PanZoomOptions {
   zoomMax?: number
   wheelZoomDeltaModeLinePixels?: number
   wheelZoomDeltaModeScreenPixels?: number
+  momentum?: boolean
+  momentumSlowdown?: number
+  showControls?: boolean  // Show +/- zoom buttons
+  controlsPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
   onPan?: (event: any) => void
   onZoom?: (event: any) => void
   onPanStart?: (event: any) => void
@@ -24,6 +28,7 @@ export class PanZoom {
   private slate: any
   private options: PanZoomOptions
   private isEnabled: boolean = false
+  private controlsContainer: HTMLDivElement | null = null
 
   constructor(slate: any, options: PanZoomOptions = {}) {
     this.slate = slate
@@ -32,7 +37,7 @@ export class PanZoom {
       enabled: true,
       panning: true,
       pinchZoom: true,
-      wheelZoom: false, // Disable wheel zoom so trackpad scroll only pans
+      wheelZoom: true, // Enable wheel zoom for Ctrl+scroll
       panButton: 0,
       oneFingerPan: false,
       margins: false,
@@ -41,6 +46,10 @@ export class PanZoom {
       zoomMax: 10,
       wheelZoomDeltaModeLinePixels: 17,
       wheelZoomDeltaModeScreenPixels: 53,
+      momentum: true, // Enable kinetic scrolling with inertia
+      momentumSlowdown: 0.8, // Slowdown factor for momentum panning
+      showControls: false, // BirdsEye has integrated zoom controls now
+      controlsPosition: 'bottom-right',
       ...options
     }
 
@@ -63,7 +72,9 @@ export class PanZoom {
         zoomMin: this.options.zoomMin,
         zoomMax: this.options.zoomMax,
         wheelZoomDeltaModeLinePixels: this.options.wheelZoomDeltaModeLinePixels,
-        wheelZoomDeltaModeScreenPixels: this.options.wheelZoomDeltaModeScreenPixels
+        wheelZoomDeltaModeScreenPixels: this.options.wheelZoomDeltaModeScreenPixels,
+        momentum: this.options.momentum,
+        momentumSlowdown: this.options.momentumSlowdown
       })
 
       this.isEnabled = true
@@ -82,9 +93,75 @@ export class PanZoom {
         this.canvas.on('zoom', this.options.onZoom)
       }
 
+      // Create zoom controls if enabled
+      if (this.options.showControls) {
+        this.createZoomControls()
+      }
+
       console.log('PanZoom initialized successfully with svg.panzoom.js')
     } catch (error) {
       console.warn('Failed to initialize pan/zoom:', error)
+    }
+  }
+
+  private createZoomControls(): void {
+    // Create controls container
+    this.controlsContainer = document.createElement('div')
+    this.controlsContainer.className = 'svg-pan-zoom-controls'
+
+    // Position the container
+    const position = this.options.controlsPosition || 'top-left'
+    this.controlsContainer.style.position = 'absolute'
+    this.controlsContainer.style.zIndex = '100'
+
+    switch (position) {
+      case 'top-left':
+        this.controlsContainer.style.top = '10px'
+        this.controlsContainer.style.left = '10px'
+        break
+      case 'top-right':
+        this.controlsContainer.style.top = '10px'
+        this.controlsContainer.style.right = '10px'
+        break
+      case 'bottom-left':
+        this.controlsContainer.style.bottom = '10px'
+        this.controlsContainer.style.left = '10px'
+        break
+      case 'bottom-right':
+        this.controlsContainer.style.bottom = '10px'
+        this.controlsContainer.style.right = '10px'
+        break
+    }
+
+    // Create zoom in button
+    const zoomInBtn = document.createElement('button')
+    zoomInBtn.textContent = '+'
+    zoomInBtn.title = 'Zoom In'
+    zoomInBtn.addEventListener('click', () => this.zoomIn())
+    this.controlsContainer.appendChild(zoomInBtn)
+
+    // Create zoom out button
+    const zoomOutBtn = document.createElement('button')
+    zoomOutBtn.textContent = '−'  // Using minus sign character
+    zoomOutBtn.title = 'Zoom Out'
+    zoomOutBtn.addEventListener('click', () => this.zoomOut())
+    this.controlsContainer.appendChild(zoomOutBtn)
+
+    // Create reset button
+    const resetBtn = document.createElement('button')
+    resetBtn.textContent = '⟲'  // Reset icon
+    resetBtn.title = 'Reset View'
+    resetBtn.addEventListener('click', () => this.reset())
+    this.controlsContainer.appendChild(resetBtn)
+
+    // Add to slate element
+    this.slate.element.appendChild(this.controlsContainer)
+  }
+
+  private removeZoomControls(): void {
+    if (this.controlsContainer && this.controlsContainer.parentNode) {
+      this.controlsContainer.parentNode.removeChild(this.controlsContainer)
+      this.controlsContainer = null
     }
   }
 
@@ -207,22 +284,54 @@ export class PanZoom {
   }
 
   public fit() {
-    // Fit all content in view
-    if (this.isEnabled) {
-      const bbox = this.canvas.bbox()
-      const padding = 50
-      const scale = Math.min(
-        (this.canvas.width() - padding * 2) / bbox.width,
-        (this.canvas.height() - padding * 2) / bbox.height
-      )
-      this.canvas.zoom(scale)
-      this.canvas.viewbox(
-        bbox.x - padding / scale,
-        bbox.y - padding / scale,
-        (this.canvas.width()) / scale,
-        (this.canvas.height()) / scale
-      )
+    // Fit all node content in view
+    if (!this.isEnabled) return
+
+    // Compute bounds from the slate's actual nodes, not SVG bbox (which includes markers/defs at origin)
+    const nodes = this.slate?.nodes?.allNodes
+    if (!nodes || nodes.length === 0) return
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const node of nodes) {
+      const x = node.options.x ?? 0
+      const y = node.options.y ?? 0
+      const w = node.options.width ?? 100
+      const h = node.options.height ?? 60
+      minX = Math.min(minX, x)
+      minY = Math.min(minY, y)
+      maxX = Math.max(maxX, x + w)
+      maxY = Math.max(maxY, y + h)
     }
+
+    if (!isFinite(minX)) return
+
+    const contentWidth = maxX - minX
+    const contentHeight = maxY - minY
+    const padding = 50
+
+    // Compute viewbox that centers content with padding
+    const vbWidth = contentWidth + padding * 2
+    const vbHeight = contentHeight + padding * 2
+    const containerW = this.canvas.node.clientWidth || this.canvas.width()
+    const containerH = this.canvas.node.clientHeight || this.canvas.height()
+    const containerAspect = containerW / containerH
+    const contentAspect = vbWidth / vbHeight
+
+    let finalW = vbWidth, finalH = vbHeight
+    if (contentAspect > containerAspect) {
+      finalH = finalW / containerAspect
+    } else {
+      finalW = finalH * containerAspect
+    }
+
+    const cx = minX + contentWidth / 2
+    const cy = minY + contentHeight / 2
+    this.canvas.viewbox(
+      cx - finalW / 2,
+      cy - finalH / 2,
+      finalW,
+      finalH
+    )
   }
 
   public center() {
@@ -270,6 +379,9 @@ export class PanZoom {
       this.canvas.off('panEnd')
       this.canvas.off('zoom')
 
+      // Remove zoom controls
+      this.removeZoomControls()
+
       this.isEnabled = false
     }
   }
@@ -290,7 +402,9 @@ export class PanZoom {
       zoomMin: this.options.zoomMin,
       zoomMax: this.options.zoomMax,
       wheelZoomDeltaModeLinePixels: this.options.wheelZoomDeltaModeLinePixels,
-      wheelZoomDeltaModeScreenPixels: this.options.wheelZoomDeltaModeScreenPixels
+      wheelZoomDeltaModeScreenPixels: this.options.wheelZoomDeltaModeScreenPixels,
+      momentum: this.options.momentum,
+      momentumSlowdown: this.options.momentumSlowdown
     }
   }
 }

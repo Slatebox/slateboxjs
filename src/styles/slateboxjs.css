@@ -37,73 +37,37 @@
   transform: scale(0.95);
 }
 
-/* Select/Resize Styles */
-.svg-select-boundingRect {
+/* svg.select.js handle overrides — make handles easy to grab */
+.svg_select_handle {
+  stroke-width: 7;
+  stroke: #333;
   fill: none;
+  pointer-events: stroke;
+}
+
+.svg_select_handle:hover {
   stroke: #4A90E2;
+}
+
+.svg_select_shape {
   stroke-width: 1;
-  stroke-dasharray: 3,3;
+  stroke-dasharray: 5 5;
+  stroke: #333;
+  stroke-opacity: 0.4;
   pointer-events: none;
-}
-
-.svg-select-point {
-  fill: #4A90E2;
-  stroke: #ffffff;
-  stroke-width: 1;
-  cursor: pointer;
-}
-
-.svg-select-point:hover {
-  fill: #357ABD;
-  transform: scale(1.2);
-}
-
-.svg-select-line {
   fill: none;
+}
+
+.svg_select_handle_rot {
+  fill: white;
+  stroke: #333;
+  stroke-width: 1;
+  cursor: move;
+}
+
+.svg_select_handle_rot:hover {
   stroke: #4A90E2;
-  stroke-width: 1;
-  stroke-dasharray: 3,3;
-  pointer-events: none;
 }
-
-.svg-select-rotationPoint {
-  fill: #50C878;
-  stroke: #ffffff;
-  stroke-width: 1;
-  cursor: grab;
-}
-
-.svg-select-rotationPoint:hover {
-  fill: #45B069;
-  transform: scale(1.2);
-}
-
-.svg-select-rotationPoint:active {
-  cursor: grabbing;
-}
-
-/* Resize handles */
-.svg-resize-handle {
-  fill: #4A90E2;
-  stroke: #ffffff;
-  stroke-width: 1;
-  cursor: nw-resize;
-  opacity: 0.8;
-}
-
-.svg-resize-handle:hover {
-  opacity: 1;
-  transform: scale(1.2);
-}
-
-.svg-resize-handle.svg-resize-nw { cursor: nw-resize; }
-.svg-resize-handle.svg-resize-ne { cursor: ne-resize; }
-.svg-resize-handle.svg-resize-sw { cursor: sw-resize; }
-.svg-resize-handle.svg-resize-se { cursor: se-resize; }
-.svg-resize-handle.svg-resize-n  { cursor: n-resize; }
-.svg-resize-handle.svg-resize-s  { cursor: s-resize; }
-.svg-resize-handle.svg-resize-e  { cursor: e-resize; }
-.svg-resize-handle.svg-resize-w  { cursor: w-resize; }
 
 /* Node specific styles */
 .slateboxjs-node {
@@ -141,16 +105,44 @@
     right: 5px;
     padding: 3px;
   }
-  
+
   .svg-pan-zoom-controls button {
     width: 25px;
     height: 25px;
     font-size: 12px;
   }
-  
+
   .svg-select-point,
   .svg-resize-handle {
     width: 8px;
     height: 8px;
+  }
+}
+
+/* BirdsEye / Minimap Styles */
+.slateboxjs-birdseye {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 100;
+  transition: opacity 0.2s ease;
+}
+
+.slateboxjs-birdseye:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.slateboxjs-birdseye svg {
+  display: block;
+}
+
+/* Responsive minimap */
+@media (max-width: 768px) {
+  .slateboxjs-birdseye {
+    width: 150px !important;
+    height: 100px !important;
   }
 }

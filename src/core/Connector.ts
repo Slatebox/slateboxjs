@@ -57,7 +57,7 @@ export class Connector {
       type: "curved",
       color: "#007cff",
       strokeWidth: 3,
-      sourceAttach: "center",
+      sourceAttach: "perifery",
       targetAttach: "perifery",
       markerSource: "null",
       markerTarget: "default",
