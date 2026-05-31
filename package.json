@@ -47,7 +47,9 @@
     "jsdom": "^28.1.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.10",
-    "vitest": "^1.1.0"
+    "vitest": "^1.1.0",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.31"
   },
   "dependencies": {
     "@svgdotjs/svg.draggable.js": "^3.0.6",

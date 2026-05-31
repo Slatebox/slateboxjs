@@ -91,4 +91,34 @@ describe("Collab", () => {
       expect(collab.isCollabConnected()).toBe(false);
     });
   });
+
+  describe("destroy", () => {
+    it("should disconnect and clean up", () => {
+      const collab = new Collab(mockSlate);
+      collab.destroy();
+      expect(collab.isCollabConnected()).toBe(false);
+    });
+
+    it("should not throw on double destroy", () => {
+      const collab = new Collab(mockSlate);
+      collab.destroy();
+      expect(() => collab.destroy()).not.toThrow();
+    });
+  });
+
+  describe("getClientID", () => {
+    it("should return 0 before init", () => {
+      const collab = new Collab(mockSlate);
+      expect(collab.getClientID()).toBe(0);
+    });
+  });
+
+  describe("isConnected flag", () => {
+    it("should remain false until WebSocket status confirms connection", () => {
+      const collab = new Collab(mockSlate);
+      // Even after init failure, isConnected should stay false
+      // (removed the optimistic isConnected = true from init)
+      expect(collab.isCollabConnected()).toBe(false);
+    });
+  });
 });
