@@ -5,6 +5,7 @@ A modern, ground-up rewrite of a diagramming library built with svg.js and Vite.
 ## ✨ Features
 
 - **Modern Architecture**: Built with TypeScript, svg.js, and Vite
+- **Self-Contained**: All plugins bundled (svg.connectable.js vendored in-tree — no external dependencies beyond npm) 
 - **Draggable Nodes**: Full drag-and-drop support using svg.draggable.js
 - **Pan & Zoom Canvas**: Mouse wheel zoom, drag to pan, with zoom controls
 - **Resize & Rotate Nodes**: Interactive resize handles and rotation controls

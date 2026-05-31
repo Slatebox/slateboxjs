@@ -4,7 +4,7 @@ import '@svgdotjs/svg.panzoom.js'
 import '@svgdotjs/svg.select.js'
 import '@svgdotjs/svg.select.js/src/svg.select.css'
 import '@svgdotjs/svg.resize.js'
-import 'svg.connectable.js'
+import './vendor/svg-connectable/svg.connectable.js'
 import './styles/slateboxjs.css'
 
 // Core classes

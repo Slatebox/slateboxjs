@@ -7,7 +7,7 @@
 - Draggable nodes with multiple shapes (rectangle, circle, ellipse)
 - Pan/zoom canvas with trackpad support (`@svgdotjs/svg.panzoom.js`)
 - Resize/rotate handles (`@svgdotjs/svg.select.js`, `@svgdotjs/svg.resize.js`)
-- Node connections/lines with arrows (svg.connectable.js)
+- Node connections/lines with arrows (svg.connectable.js, vendored in-tree)
 - Multi-selection (Shift+click, drag-select)
 - Keyboard shortcuts (Ctrl+Z undo, Ctrl+Y redo, Delete, etc.)
 - Grid overlay with snap-to-grid
@@ -18,6 +18,19 @@
 - BirdsEye minimap overview
 - Theming system
 - Presentation mode
+
+### Changed (v2.0.0 post-release updates)
+- **Vendored svg.connectable.js**: The `file:../svg.connectable.js` dependency has been replaced
+  with an in-tree vendor copy under `src/vendor/svg-connectable/`. This fixes `npm install`
+  for all consumers — the package is now fully self-contained. MIT license preserved.
+- **Bug bash**: Fixed 4 critical memory leaks (Slate coordinate polling interval,
+  ZoomSlider update interval, BirdsEye document listeners, Node orphaned timeouts).
+  Added proper `destroy()` lifecycle methods to all 15 classes that lacked them.
+- **Residual fixes**: Filters outline now saves/restores original stroke, Images
+  `preserveAspectRatio` parameter is now used, Menu `isOpen` no longer gets stuck,
+  Collab `isConnected` flag fixed (removed optimistic set).
+- 844 unit tests (up from 840), all 56 e2e tests pass
+- yjs and y-websocket added as optional devDependencies for Collab testing
 - Real-time collaboration (yjs/y-websocket)
 - Context menu, comments, filtering, images, links
 - Font loader for custom fonts
