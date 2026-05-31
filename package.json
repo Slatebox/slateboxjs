@@ -2,6 +2,10 @@
   "name": "slateboxjs-v2",
   "version": "2.0.0",
   "description": "A modern, ground-up rewrite of a diagramming library using svg.js and Vite",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/slatebox/slateboxjs-v2.git"
+  },
   "main": "dist/slateboxjs.js",
   "module": "dist/slateboxjs.es.js",
   "types": "dist/index.d.ts",
