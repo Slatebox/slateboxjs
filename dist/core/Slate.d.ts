@@ -135,6 +135,7 @@ export declare class Slate {
     private _birdsEyeTimeoutId;
     private _coordDisplayTimeoutId;
     private _nodeNotifyTimeoutId;
+    private _liveRegion;
     /**
      * Creates a new Slate — the main orchestrator for a diagramming canvas.
      *
@@ -162,6 +163,11 @@ export declare class Slate {
      * Follows the PanZoom.ts pattern: clear timers → remove listeners → chain to owned objects.
      */
     destroy(): void;
+    /**
+     * Announce a message to screen readers via the hidden aria-live region.
+     * Used for state changes: node add/remove, selection changes, zoom changes.
+     */
+    announce(msg: string): void;
     private setupCoordinateCallbacks;
     private addCoordinateDisplay;
     private startCoordinatePolling;

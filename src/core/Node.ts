@@ -303,6 +303,9 @@ export class Node {
       this.svgGroup = viewport.group();
       // Add data-node-id attribute for test selectors
       this.svgGroup.attr('data-node-id', this.id);
+      // Accessibility: make nodes focusable and readable by screen readers
+      this.svgGroup.node.setAttribute("tabindex", "0");
+      this.svgGroup.node.setAttribute("role", "button");
       console.log("NODE_DEBUG: Created svgGroup for", this.id, this.svgGroup);
 
       // Continue with the rest of the creation process
@@ -483,6 +486,9 @@ export class Node {
     }
 
     console.log("NODE_DEBUG: finishCreate continuing for", this.id);
+
+    // Set initial accessibility label from node text
+    this.svgGroup.node.setAttribute("aria-label", this.options.text || "Unnamed node");
 
     // Signal that the node is fully created
     this._resolveReady();
@@ -937,6 +943,8 @@ export class Node {
     this.options.text = text;
     this.textElement.text(text);
     this.centerText();
+    // Update accessibility label
+    this.svgGroup.node.setAttribute("aria-label", text || "Unnamed node");
   }
 
   /**

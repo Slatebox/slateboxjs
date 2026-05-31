@@ -175,6 +175,7 @@ export class Slate {
   private _birdsEyeTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _coordDisplayTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _nodeNotifyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private _liveRegion: HTMLElement | null = null; // Hidden aria-live region for screen readers
 
   /**
    * Creates a new Slate — the main orchestrator for a diagramming canvas.
@@ -262,6 +263,19 @@ export class Slate {
   private init() {
     // Initialize SVG canvas
     this.canvas = SVG().addTo(this.element);
+
+    // Accessibility: label the canvas for screen readers
+    this.canvas.node.setAttribute("role", "img");
+    this.canvas.node.setAttribute("aria-label", this.options.name || "Diagram canvas");
+    this.canvas.node.setAttribute("tabindex", "0");
+
+    // Accessibility: create hidden live region for screen-reader announcements
+    this._liveRegion = document.createElement("div");
+    this._liveRegion.setAttribute("aria-live", "polite");
+    this._liveRegion.setAttribute("aria-atomic", "true");
+    this._liveRegion.style.cssText =
+      "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;";
+    this.element.appendChild(this._liveRegion);
 
     // Use normal viewport dimensions - svg-pan-zoom will handle infinite panning
     const width = this.options.viewPort?.originalWidth || 800;
@@ -414,6 +428,25 @@ export class Slate {
     // Remove the SVG canvas
     if (this.canvas) {
       this.canvas.remove();
+    }
+
+    // Remove live region
+    if (this._liveRegion) {
+      this._liveRegion.remove();
+      this._liveRegion = null;
+    }
+  }
+
+  /**
+   * Announce a message to screen readers via the hidden aria-live region.
+   * Used for state changes: node add/remove, selection changes, zoom changes.
+   */
+  public announce(msg: string): void {
+    if (this._liveRegion) {
+      // Clear and set to force re-announcement
+      this._liveRegion.textContent = "";
+      // Use setTimeout to ensure the clear is processed before the new text
+      setTimeout(() => { if (this._liveRegion) this._liveRegion.textContent = msg; }, 50);
     }
   }
 
@@ -572,15 +605,19 @@ export class Slate {
     // Notify BirdsEye of the new node after a short delay for rendering
     this._nodeNotifyTimeoutId = setTimeout(() => {
       if (!this._destroyed) this.notifyNodeChanged();
+      this.announce(`Node added: ${node.options.text || "(unnamed)"}`);
     }, 100);
     return node;
   }
 
   /** Remove a node by ID. */
   public removeNode(id: string) {
+    const node = this.nodes.one(id);
+    const text = node?.options?.text || "(unnamed)";
     const result = this.nodes.remove(id);
     // Notify BirdsEye of the removed node
     this.notifyNodeChanged();
+    this.announce(`Node removed: ${text}`);
     return result;
   }
 
@@ -675,6 +712,7 @@ export class Slate {
    */
   public zoom(level: number) {
     this.panZoom.zoom(level);
+    this.announce(`Zoom: ${Math.round(level * 100)}%`);
   }
 
   /**
@@ -814,6 +852,16 @@ export class Slate {
 
     // Enable resize/rotate for the selection - CENTRALIZED CONTROL
     this.updateSelectionResizeRotate();
+
+    // Announce selection change
+    const count = this.selectedNodes.length;
+    if (count === 0) {
+      this.announce("No nodes selected");
+    } else if (count === 1) {
+      this.announce(`Node selected: ${this.selectedNodes[0].options.text || "(unnamed)"}`);
+    } else {
+      this.announce(`${count} nodes selected`);
+    }
   }
 
   // SINGLE ORCHESTRATOR for resize/rotate management

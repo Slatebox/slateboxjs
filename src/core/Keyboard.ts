@@ -104,17 +104,39 @@ export class Keyboard {
         this.deselect(e);
         break;
 
+      case "?":
+        // Show keyboard shortcuts reference
+        console.log(
+          "SlateboxJS Keyboard Shortcuts:\n" +
+          "  Delete/Backspace — remove selected\n" +
+          "  Ctrl+Z — undo\n" +
+          "  Ctrl+Y — redo\n" +
+          "  Ctrl+A — select all\n" +
+          "  Escape — deselect\n" +
+          "  Arrow keys — nudge selected (1px)\n" +
+          "  Tab — focus next node\n" +
+          "  Enter/Space — select focused node\n" +
+          "  ? — show this help"
+        );
+        this.slate.announce?.("Keyboard shortcuts reference logged to console");
+        break;
+
+      case "Enter":
+      case " ":
+        // Select the currently focused node (if a node SVG group has focus)
+        this.selectFocused(e);
+        break;
+
+      case "Tab":
+        // Let native Tab navigation work for node focusing
+        // When Shift+Tab is pressed, let browser handle reverse order
+        break;
+
       case "ArrowUp":
-        this.nudge(0, -this.options.nudgeDistance!, e);
-        break;
       case "ArrowDown":
-        this.nudge(0, this.options.nudgeDistance!, e);
-        break;
       case "ArrowLeft":
-        this.nudge(-this.options.nudgeDistance!, 0, e);
-        break;
       case "ArrowRight":
-        this.nudge(this.options.nudgeDistance!, 0, e);
+        this.handleArrowKey(e);
         break;
     }
   }
@@ -166,6 +188,49 @@ export class Keyboard {
       const x = (node.options.x || 0) + dx;
       const y = (node.options.y || 0) + dy;
       node.position(x, y);
+    }
+  }
+
+  private handleArrowKey(e: KeyboardEvent): void {
+    const selected = this.slate.getSelectedNodes();
+    if (selected.length > 0) {
+      // Nodes selected — nudge them
+      const d = this.options.nudgeDistance!;
+      switch (e.key) {
+        case "ArrowUp":    this.nudge(0, -d, e); break;
+        case "ArrowDown":  this.nudge(0, d, e); break;
+        case "ArrowLeft":  this.nudge(-d, 0, e); break;
+        case "ArrowRight": this.nudge(d, 0, e); break;
+      }
+    } else {
+      // No selection — navigate focus between nodes
+      const nodes = this.slate.getAllNodes();
+      if (nodes.length === 0) return;
+
+      const focused = document.activeElement;
+      const currentIdx = nodes.findIndex((n: any) => n.svgGroup?.node === focused);
+
+      let nextIdx = currentIdx;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        nextIdx = currentIdx < 0 ? 0 : Math.min(currentIdx + 1, nodes.length - 1);
+      } else {
+        nextIdx = currentIdx < 0 ? nodes.length - 1 : Math.max(currentIdx - 1, 0);
+      }
+
+      if (nextIdx >= 0 && nextIdx < nodes.length) {
+        e.preventDefault();
+        nodes[nextIdx].svgGroup?.node?.focus();
+      }
+    }
+  }
+
+  private selectFocused(e: KeyboardEvent): void {
+    const focused = document.activeElement;
+    const nodes = this.slate.getAllNodes();
+    const node = nodes.find((n: any) => n.svgGroup?.node === focused);
+    if (node) {
+      e.preventDefault();
+      this.slate.selectNodes([node], false);
     }
   }
 }

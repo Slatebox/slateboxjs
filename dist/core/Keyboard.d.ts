@@ -33,4 +33,6 @@ export declare class Keyboard {
     private selectAll;
     private deselect;
     private nudge;
+    private handleArrowKey;
+    private selectFocused;
 }
