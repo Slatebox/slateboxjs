@@ -167,6 +167,17 @@ export class Slate {
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
   private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
 
+  /**
+   * Creates a new Slate — the main orchestrator for a diagramming canvas.
+   *
+   * Initializes the SVG canvas, sets up all sub-modules (nodes manager,
+   * pan/zoom, selection, grid, keyboard shortcuts, undo/redo, etc.),
+   * and attaches event handlers.
+   *
+   * @param element - CSS selector string or HTMLElement to mount the canvas on
+   * @param options - Full slate configuration (see SlateOptions interface)
+   * @throws If element is a selector string and no matching element is found
+   */
   constructor(element: string | HTMLElement, options: SlateOptions = {}) {
     // Get or create the target element
     if (typeof element === "string") {
@@ -442,6 +453,12 @@ export class Slate {
     this.canvas.viewbox(0, 0, width, height);
   }
 
+  /**
+   * Add a new node to the slate.
+   *
+   * @param options - Node options including position, size, text, shape, colors, etc.
+   * @returns The newly created Node instance
+   */
   public addNode(options: any = {}) {
     const node = this.nodes.add(options);
     // Notify BirdsEye of the new node after a short delay for rendering
@@ -602,7 +619,18 @@ export class Slate {
     });
   }
 
-  // New multi-node selection method - SINGLE ORCHESTRATOR
+  /**
+   * Select one or more nodes on the slate.
+   *
+   * This is the SINGLE ORCHESTRATOR for selection. It:
+   * 1. Clears current selection unless addToSelection is true
+   * 2. Adds the specified nodes to the selection set
+   * 3. Calls updateSelectionResizeRotate() to enable handles on selected nodes
+   * 4. Fires onSelectionChanged event
+   *
+   * @param nodes - Array of nodes to select
+   * @param addToSelection - If true, adds to existing selection instead of replacing it
+   */
   public selectNodes(nodes: Node[], addToSelection: boolean = false) {
     console.log(
       "SELECTION_DEBUG: Selecting nodes",

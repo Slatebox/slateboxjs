@@ -114,7 +114,32 @@ export type { CommentOptions } from './core/Comments'
 export type { PresentationStep } from './core/Presentation'
 export type { FilterDef } from './core/Filters'
 
-// Main SlateboxJS factory function
+/**
+ * SlateboxJS — Modern diagramming library built with SVG.js.
+ *
+ * Create interactive diagrams with draggable nodes, pan/zoom,
+ * resize/rotate, connections, and more.
+ *
+ * @example
+ * ```ts
+ * import SlateboxJS from 'slateboxjs-v2'
+ *
+ * const slate = SlateboxJS('#container', {
+ *   viewPort: { originalWidth: 800, originalHeight: 600 },
+ *   panZoom: { enabled: true }
+ * })
+ *
+ * slate.addNode({
+ *   id: 'node1', x: 100, y: 100,
+ *   width: 120, height: 80, text: 'Hello',
+ *   backgroundColor: '#4ecdc4'
+ * })
+ * ```
+ *
+ * @param element - CSS selector string or HTMLElement to mount the canvas on
+ * @param options - Configuration options for the slate
+ * @returns A new Slate instance
+ */
 export function SlateboxJS(element: string | HTMLElement, options: any = {}) {
   return new Slate(element, options)
 }
