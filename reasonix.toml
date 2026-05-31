@@ -67,6 +67,7 @@ mode  = "ask"
 # bash = "enforce" (default) jails each command in an OS sandbox (macOS now;
 # graceful fallback elsewhere); "off" disables it. network allows egress.
 # workspace_root = ""            # default: current working directory
+allow_write = ["/Users/timheckel/Projects/node/collab.slatebox.com"]
 # allow_write = ["/tmp"]          # extra dirs writers may also modify
 bash    = "enforce"
 network = true

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "status": "running",
-  "current_milestone": "Phase 2: E2E Coverage Expansion",
-  "updated_at": "2026-06-01T16:33:00Z",
-  "last_note": "Phase 1 complete: TS strict hardening + 140 Node tests. 980 unit, 56 e2e. Committed. Phase 2 starting."
+  "current_milestone": "Phase 3: Collab Integration Testing (resumed)",
+  "updated_at": "2026-06-01T16:58:00Z",
+  "last_note": "Sandbox expanded to include collab.slatebox.com. Resuming remaining Phase 3 milestones."
 }
