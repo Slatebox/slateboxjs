@@ -58,5 +58,7 @@ export declare class Relationships {
     enable(): void;
     disable(): void;
     isEnabled(): boolean;
+    /** Destroy the relationships, removing all associations and clearing references */
+    destroy(): void;
     private renderAssociation;
 }

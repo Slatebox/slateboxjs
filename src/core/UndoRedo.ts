@@ -135,6 +135,13 @@ export class UndoRedo {
     }
   }
 
+  /** Destroy the undo/redo system, clearing all history and references */
+  public destroy(): void {
+    this.clear();
+    this.isRestoring = false;
+    this.slate = null;
+  }
+
   // ─── Private ─────────────────────────────────────────────────────
 
   private takeSnapshot(): void {

@@ -1,0 +1,88 @@
+# Reasonix configuration.
+# Resolution order: flag > ./reasonix.toml > ~/.config/reasonix/config.toml > built-in defaults.
+# Secrets come from the environment via api_key_env; never put keys here.
+
+default_model = "deepseek-pro"
+language      = "en"   # ui language; empty = auto-detect from $LANG / $REASONIX_LANG
+
+[agent]
+system_prompt = """
+You are Reasonix, a coding agent focused on executing code tasks.
+Use the provided tools to read and write files and run shell commands.
+Principles: understand the request before acting; verify with tools instead of
+guessing; keep changes minimal and correct; briefly summarize what you did.
+When the request leaves a real choice to the user — which approach or library,
+the scope, or a consequential or ambiguous decision — call the ask tool to offer
+2-4 concrete options rather than guessing or burying the question in prose. Skip
+it when there's an obvious default; don't ask just to confirm.
+For multi-step work, track progress with the todo_write tool: lay out the steps,
+keep exactly one in_progress, and flip each to completed as you finish it — update
+the list as you go, not just at the end.
+In plan mode the harness blocks writer tools: do read-only research, then write a
+concise plan as your reply and stop. The user is asked to approve before anything
+is changed; once approved, work through the steps, updating the task list as you go."""
+# system_prompt_file = "prompts/system.md"   # overrides system_prompt when set
+max_steps   = 0
+temperature = 0.0
+# planner_model = "mimo"   # optional: enable two-model collaboration
+# subagent_model = "deepseek-pro"   # optional default for runAs=subagent skills
+# subagent_models = { review = "deepseek-pro", security_review = "deepseek-pro" }   # per-skill overrides
+# output_style = "explanatory"   # explanatory | learning | concise | custom; empty = default
+
+[[providers]]
+name        = "deepseek-flash"
+kind        = "openai"
+base_url    = "https://api.deepseek.com"
+model       = "deepseek-v4-flash"
+api_key_env = "DEEPSEEK_API_KEY"
+balance_url = "https://api.deepseek.com/user/balance"   # optional; wallet-balance endpoint shown in the status bar
+context_window = 1000000   # tokens; compaction triggers near this limit
+price       = { cache_hit = 0.02, input = 1, output = 2, currency = "¥" }   # per 1M tokens
+
+[[providers]]
+name        = "deepseek-pro"
+kind        = "openai"
+base_url    = "https://api.deepseek.com"
+model       = "deepseek-v4-pro"
+api_key_env = "DEEPSEEK_API_KEY"
+balance_url = "https://api.deepseek.com/user/balance"   # optional; wallet-balance endpoint shown in the status bar
+context_window = 1000000   # tokens; compaction triggers near this limit
+price       = { cache_hit = 0.025, input = 3, output = 6, currency = "¥" }   # per 1M tokens
+
+[tools]
+enabled = []   # empty = all built-in tools
+
+[permissions]
+# Per-call gating. mode = writer fallback when no rule matches: ask|allow|deny.
+# Readers always default to allow. Precedence: deny > ask > allow > fallback.
+# Rules are "ToolName" or "ToolName(glob)"; '*' matches any run, '?' one char.
+mode  = "ask"
+# deny = ["bash(rm -rf*)", "bash(git push*)"]   # hard-blocked in every mode
+# allow = ["bash(go test*)", "bash(git status*)"]   # never prompted
+# ask = ["write_file"]   # force a prompt even if otherwise allowed
+
+[sandbox]
+# Confine tool blast radius. File-writers (write_file/edit_file/multi_edit)
+# may only write under workspace_root (empty = current dir) + allow_write.
+# bash = "enforce" (default) jails each command in an OS sandbox (macOS now;
+# graceful fallback elsewhere); "off" disables it. network allows egress.
+# workspace_root = ""            # default: current working directory
+# allow_write = ["/tmp"]          # extra dirs writers may also modify
+bash    = "enforce"
+network = true
+
+[statusline]
+# A custom status line: a command whose first stdout line replaces the built-in
+# data row. It receives {"model","contextUsed","contextWindow"} as JSON on stdin.
+# command = "my-statusline.sh"
+
+# External MCP servers. type: "stdio" (default, a subprocess) | "http" | "sse".
+# ${VAR} / ${VAR:-default} are expanded from the environment in command/args/env/url/headers.
+# [[plugins]]
+# name    = "example"
+# command = "reasonix-plugin-example"
+# [[plugins]]                                  # a remote server over Streamable HTTP
+# name    = "stripe"
+# type    = "http"
+# url     = "https://mcp.stripe.com"
+# headers = { Authorization = "Bearer ${STRIPE_KEY}" }

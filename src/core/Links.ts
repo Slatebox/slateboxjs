@@ -103,4 +103,13 @@ export class Links {
         break;
     }
   }
+
+  /** Destroy the links instance, unsetting any active link */
+  public destroy(): void {
+    if (this.linkData) {
+      this.unset(false);
+    }
+    this.linkData = null;
+    this.node = null;
+  }
 }

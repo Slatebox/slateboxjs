@@ -96,11 +96,9 @@ test.describe("Drag Hop Bug", () => {
     const initial = await getNodePosition();
     console.log("Initial state:", initial);
 
-    // Find the node visually
-    const nodeGroup = page.locator("svg g").filter({ has: page.locator("rect") }).first();
+    // Find the node visually using data-node-id to avoid overlap issues
+    const nodeGroup = page.locator('[data-node-id="rect_1"]').first();
     const visualBox = await nodeGroup.boundingBox();
-
-    // First drag
     await nodeGroup.hover();
     await page.mouse.down();
     await page.mouse.move(visualBox!.x + visualBox!.width / 2 + 80, visualBox!.y + visualBox!.height / 2 + 40, { steps: 10 });
@@ -164,8 +162,8 @@ test.describe("Drag Hop Bug", () => {
 
     console.log("Initial position before rotation:", initialPosition);
 
-    // Find the node visually
-    const nodeGroup = page.locator("svg g").filter({ has: page.locator("rect") }).first();
+    // Find the node visually using data-node-id to avoid overlap issues
+    const nodeGroup = page.locator('[data-node-id="rect_1"]').first();
     await expect(nodeGroup).toBeVisible();
 
     // Get the visual bounding box after rotation

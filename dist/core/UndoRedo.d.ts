@@ -38,6 +38,8 @@ export declare class UndoRedo {
     canRedo(): boolean;
     /** Clear all history */
     clear(): void;
+    /** Destroy the undo/redo system, clearing all history and references */
+    destroy(): void;
     private takeSnapshot;
     private restore;
 }

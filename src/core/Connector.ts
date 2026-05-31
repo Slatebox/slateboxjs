@@ -116,6 +116,11 @@ export class Connector {
     }
   }
 
+  public destroy(): void {
+    this.disable();
+    this.connections.clear();
+  }
+
   private ensureContainers() {
     // Use existing containers or create new ones
     if (!this.options.lineContainer) {

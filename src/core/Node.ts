@@ -209,6 +209,11 @@ export class Node {
   private _resolveReady!: () => void;
   private _rejectReady!: (reason?: any) => void;
   private _initFailed: boolean = false;
+  private _destroyed: boolean = false;
+  private _svgViewboxTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private _dragEndTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private _previewViewboxTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private _connectTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: NodeOptions, slate: any) {
     this.id = options.id || this.generateId();
@@ -338,7 +343,8 @@ export class Node {
       this.nestedSvg.svg(this.options.svgContent);
 
       // Use SVG.js native viewbox method for proper scaling
-      setTimeout(() => {
+      this._svgViewboxTimeoutId = setTimeout(() => {
+        if (this._destroyed || !this.nestedSvg) return;
         const content = this.nestedSvg.children()[0] as any;
         if (content) {
           // Try to get bbox first
@@ -725,7 +731,8 @@ export class Node {
       this.options.y = newY;
 
       // Small delay to distinguish drag from click - reduced for better responsiveness
-      setTimeout(() => {
+      this._dragEndTimeoutId = setTimeout(() => {
+        if (this._destroyed) return;
         this.isDragging = false;
 
         // Ensure the dragged node remains selected after drag
@@ -825,6 +832,59 @@ export class Node {
     }
     // Remove the main SVG group (cleans up all child elements and sub-system references)
     this.svgGroup.remove();
+  }
+
+  /**
+   * Destroy the node completely, cleaning up all timers, event handlers,
+   * and owned sub-modules. Pattern matches PanZoom.ts.
+   */
+  public destroy(): void {
+    this._destroyed = true;
+
+    // Clear all pending timeouts
+    if (this._svgViewboxTimeoutId !== null) {
+      clearTimeout(this._svgViewboxTimeoutId);
+      this._svgViewboxTimeoutId = null;
+    }
+    if (this._dragEndTimeoutId !== null) {
+      clearTimeout(this._dragEndTimeoutId);
+      this._dragEndTimeoutId = null;
+    }
+    if (this._previewViewboxTimeoutId !== null) {
+      clearTimeout(this._previewViewboxTimeoutId);
+      this._previewViewboxTimeoutId = null;
+    }
+    if (this._connectTimeoutId !== null) {
+      clearTimeout(this._connectTimeoutId);
+      this._connectTimeoutId = null;
+    }
+
+    // Disable owned sub-modules (each handles its own cleanup)
+    if (this.resizeRotate && this.resizeRotate.isEnabled()) {
+      this.resizeRotate.disable();
+    }
+    if (this.connector && (this.connector as any).isActive) {
+      this.connector.disable();
+    }
+    if (this.relationships) {
+      this.relationships.disable();
+      this.relationships.removeAll();
+    }
+
+    // Clean up connection handles container
+    if (this.connectionHandles.container) {
+      this.connectionHandles.container.remove();
+      this.connectionHandles.container = undefined;
+    }
+    // Clean up connection preview container
+    if (this.connectionPreview?.container) {
+      this.connectionPreview.container.remove();
+      this.connectionPreview.container = undefined;
+    }
+
+    // Remove the main SVG group (cleans up all child elements)
+    this.svgGroup.remove();
+    this.isDragging = false;
   }
 
   public hide() {
@@ -1636,7 +1696,8 @@ export class Node {
           previewSvg.svg(this.options.svgContent);
 
           // Apply the preview styling to the nested content
-          setTimeout(() => {
+          this._previewViewboxTimeoutId = setTimeout(() => {
+            if (this._destroyed) return;
             const content = previewSvg.children()[0] as any;
             if (content) {
               let bb = content.bbox();
@@ -1912,8 +1973,8 @@ export class Node {
       this.hideConnectionPreview();
 
       // Wait a moment for the new node to be fully created, then connect
-      setTimeout(() => {
-        this.connectToNode(newNode);
+      this._connectTimeoutId = setTimeout(() => {
+        if (!this._destroyed) this.connectToNode(newNode);
       }, 100);
     } catch (error) {
       console.error(

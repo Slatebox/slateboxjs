@@ -125,7 +125,8 @@ export class Collab {
         this.options.onStatusChange?.(event.status);
       });
 
-      this.isConnected = true;
+      // isConnected will be set by the status event handler above
+      // when the WebSocket actually connects
 
       // Trigger init event
       this.slate.options.events?.onInitCollaboration?.(
@@ -308,6 +309,13 @@ export class Collab {
   /** Check if collaboration is connected */
   public isCollabConnected(): boolean {
     return this.isConnected;
+  }
+
+  /** Destroy the collab instance, disconnecting and cleaning up all resources */
+  public destroy(): void {
+    this.disconnect();
+    this.slate = null;
+    this.options = {} as CollabOptions;
   }
 
   /** Get client ID */

@@ -29,4 +29,6 @@ export declare class Links {
     getType(): string | undefined;
     /** Navigate to the link (opens URL or fires slate event) */
     navigate(): void;
+    /** Destroy the links instance, unsetting any active link */
+    destroy(): void;
 }

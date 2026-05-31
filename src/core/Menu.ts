@@ -34,17 +34,19 @@ export class Menu {
     if (!this.options.enabled) return;
     if (this.node.options.allowMenu === false) return;
 
-    this.isOpen = true;
-
     // Collect which tabs should be visible based on node options
     const tabs = this.getVisibleTabs();
 
     // Delegate to app via slate events
     if (this.slate.options.events?.onMenuRequested) {
+      this.isOpen = true;
       this.slate.options.events.onMenuRequested(this.node, (result: any) => {
         this.isOpen = false;
         console.log("MENU_DEBUG: Menu closed for", this.node.id);
       });
+    } else {
+      // No handler registered — don't leave isOpen stuck
+      this.isOpen = false;
     }
 
     console.log(
@@ -92,5 +94,13 @@ export class Menu {
 
   public isEnabled(): boolean {
     return this.options.enabled!;
+  }
+
+  /** Destroy the menu, closing it and clearing references */
+  public destroy(): void {
+    this.close();
+    this.options.enabled = false;
+    this.node = null;
+    this.slate = null;
   }
 }

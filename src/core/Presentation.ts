@@ -125,4 +125,12 @@ export class Presentation {
   public isPresenting(): boolean {
     return this.isActive;
   }
+
+  /** Destroy the presentation, stopping if active */
+  public destroy(): void {
+    this.stop();
+    this.steps = [];
+    this.currentStep = -1;
+    this.slate = null;
+  }
 }

@@ -12,6 +12,7 @@ export declare class Images {
     private imageUrl;
     private origWidth;
     private origHeight;
+    private preserveAspectRatio;
     constructor(node: any);
     /**
      * Set an image fill on the node's background.
@@ -23,6 +24,8 @@ export declare class Images {
      * Clear the image fill and restore the background color.
      */
     clear(): void;
+    /** Destroy the images instance, clearing all image data */
+    destroy(): void;
     /**
      * Update the image (e.g., after resize).
      */

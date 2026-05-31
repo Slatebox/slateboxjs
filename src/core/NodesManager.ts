@@ -52,6 +52,12 @@ export class NodesManager {
     this.nodes.clear()
   }
 
+  /** Destroy the nodes manager, clearing all nodes */
+  public destroy(): void {
+    this.clear();
+    this.slate = null;
+  }
+
   public moveNodes(packageData: any, options: { animate?: boolean } = {}) {
     // Implementation for moving multiple nodes
     if (packageData.data && Array.isArray(packageData.data.nodes)) {

@@ -34,6 +34,7 @@ export declare class Connector {
     constructor(node: any, options?: ConnectorOptions);
     enable(): void;
     disable(): void;
+    destroy(): void;
     private ensureContainers;
     connectTo(targetNode: any, connectionOptions?: Partial<Connection>): Connection | null;
     disconnectFrom(targetNode: any): boolean;

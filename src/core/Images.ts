@@ -13,6 +13,7 @@ export class Images {
   private imageUrl: string = "";
   private origWidth: number = 0;
   private origHeight: number = 0;
+  private preserveAspectRatio: boolean = true;
 
   constructor(node: any) {
     this.node = node;
@@ -32,6 +33,7 @@ export class Images {
     this.imageUrl = url;
     this.origWidth = width || this.node.options.width || 100;
     this.origHeight = height || this.node.options.height || 60;
+    this.preserveAspectRatio = preserveAspectRatio;
 
     // Store on node options
     this.node.options.image = url;
@@ -59,6 +61,12 @@ export class Images {
         this.node.options.backgroundColor || "#f0f0f0"
       );
     }
+  }
+
+  /** Destroy the images instance, clearing all image data */
+  public destroy(): void {
+    this.clear();
+    this.node = null;
   }
 
   /**
@@ -102,7 +110,7 @@ export class Images {
           add
             .image(this.imageUrl)
             .size(w, h)
-            .attr("preserveAspectRatio", "xMidYMid slice");
+            .attr("preserveAspectRatio", this.preserveAspectRatio ? "xMidYMid meet" : "xMidYMid slice");
         })
         .attr("patternUnits", "objectBoundingBox")
         .attr("width", "100%")

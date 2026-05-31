@@ -28,6 +28,8 @@ export declare class ResizeRotate {
     private removeEventListeners;
     private handleResize;
     isEnabled(): boolean;
+    /** Destroy the resize/rotate instance, disabling all plugins and clearing references */
+    destroy(): void;
     updateOptions(options: Partial<ResizeRotateOptions>): void;
     refresh(): void;
 }

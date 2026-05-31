@@ -17,6 +17,7 @@ export class ZoomSlider {
   private container: HTMLElement | null = null;
   private slider: HTMLInputElement | null = null;
   private label: HTMLElement | null = null;
+  private _intervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor(slate: any, options: ZoomSliderOptions = {}) {
     this.slate = slate;
@@ -52,6 +53,11 @@ export class ZoomSlider {
 
   /** Destroy the zoom slider */
   public destroy(): void {
+    // Clear the refresh interval
+    if (this._intervalId !== null) {
+      clearInterval(this._intervalId);
+      this._intervalId = null;
+    }
     if (this.container) {
       this.container.remove();
       this.container = null;
@@ -143,6 +149,6 @@ export class ZoomSlider {
     this.slate.element.appendChild(this.container);
 
     // Update periodically
-    setInterval(() => this.update(), 500);
+    this._intervalId = setInterval(() => this.update(), 500);
   }
 }

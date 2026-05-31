@@ -187,6 +187,15 @@ export class Relationships {
     return this.isActive;
   }
 
+  /** Destroy the relationships, removing all associations and clearing references */
+  public destroy(): void {
+    this.removeAll();
+    this.disable();
+    this.associations.clear();
+    this.node = null;
+    this.slate = null;
+  }
+
   // ─── Private helpers ─────────────────────────────────────────────
 
   private renderAssociation(assoc: Association, childNode: any): void {

@@ -127,6 +127,10 @@ export declare class Slate {
     private selectedNodes;
     private groupResizeRotate;
     private _coordinateIntervalId;
+    private _destroyed;
+    private _birdsEyeTimeoutId;
+    private _coordDisplayTimeoutId;
+    private _nodeNotifyTimeoutId;
     /**
      * Creates a new Slate — the main orchestrator for a diagramming canvas.
      *
@@ -140,6 +144,11 @@ export declare class Slate {
      */
     constructor(element: string | HTMLElement, options?: SlateOptions);
     private init;
+    /**
+     * Destroy the Slate, cleaning up all sub-modules, timers, and event listeners.
+     * Follows the PanZoom.ts pattern: clear timers → remove listeners → chain to owned objects.
+     */
+    destroy(): void;
     private setupCoordinateCallbacks;
     private addCoordinateDisplay;
     private startCoordinatePolling;

@@ -166,6 +166,10 @@ export class Slate {
   private selectedNodes: Node[] = [];
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
   private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
+  private _destroyed: boolean = false;
+  private _birdsEyeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private _coordDisplayTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private _nodeNotifyTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * Creates a new Slate — the main orchestrator for a diagramming canvas.
@@ -271,7 +275,9 @@ export class Slate {
     this.birdsEye = new BirdsEye(this, this.options.birdsEye);
     if (this.options.birdsEye?.enabled) {
       // Delay enable to ensure canvas is ready
-      setTimeout(() => this.birdsEye.enable(), 200);
+      this._birdsEyeTimeoutId = setTimeout(() => {
+        if (!this._destroyed) this.birdsEye.enable();
+      }, 200);
     }
 
     // Initialize undo/redo
@@ -315,7 +321,85 @@ export class Slate {
 
     // Add coordinate display element after pan/zoom is ready
     if (this.options.viewPort?.showCoordinates) {
-      setTimeout(() => this.addCoordinateDisplay(), 150);
+      this._coordDisplayTimeoutId = setTimeout(() => {
+        if (!this._destroyed) this.addCoordinateDisplay();
+      }, 150);
+    }
+  }
+
+  /**
+   * Destroy the Slate, cleaning up all sub-modules, timers, and event listeners.
+   * Follows the PanZoom.ts pattern: clear timers → remove listeners → chain to owned objects.
+   */
+  public destroy(): void {
+    this._destroyed = true;
+
+    // Clear all pending timeouts
+    if (this._birdsEyeTimeoutId !== null) {
+      clearTimeout(this._birdsEyeTimeoutId);
+      this._birdsEyeTimeoutId = null;
+    }
+    if (this._coordDisplayTimeoutId !== null) {
+      clearTimeout(this._coordDisplayTimeoutId);
+      this._coordDisplayTimeoutId = null;
+    }
+    if (this._nodeNotifyTimeoutId !== null) {
+      clearTimeout(this._nodeNotifyTimeoutId);
+      this._nodeNotifyTimeoutId = null;
+    }
+
+    // Clear coordinate polling interval
+    if (this._coordinateIntervalId !== null) {
+      clearInterval(this._coordinateIntervalId);
+      this._coordinateIntervalId = null;
+    }
+
+    // Remove coordinate display element
+    const coordDisplay = this.element.querySelector("#slate-coordinates") as HTMLElement;
+    if (coordDisplay) {
+      coordDisplay.remove();
+    }
+
+    // Remove canvas click handler
+    this.canvas.off("click");
+
+    // Chain destroy to sub-modules
+    if (this.panZoom) {
+      this.panZoom.destroy();
+    }
+    if (this.birdsEye) {
+      this.birdsEye.disable();
+    }
+    if (this.zoomSlider) {
+      this.zoomSlider.destroy();
+    }
+    if (this.keyboard) {
+      this.keyboard.unbindGlobal();
+    }
+    if (this.multiSelection) {
+      this.multiSelection.disable();
+    }
+    if (this.undoRedo) {
+      this.undoRedo.clear();
+    }
+    if (this.collab) {
+      this.collab.disconnect();
+    }
+    if (this.presentation) {
+      this.presentation.stop();
+    }
+    if (this.grid) {
+      this.grid.hide();
+    }
+
+    // Clear all nodes
+    if (this.nodes) {
+      this.nodes.clear();
+    }
+
+    // Remove the SVG canvas
+    if (this.canvas) {
+      this.canvas.remove();
     }
   }
 
@@ -386,11 +470,12 @@ export class Slate {
   }
 
   private startCoordinatePolling() {
+    if (this._destroyed) return;
     console.log("COORD_DEBUG: Starting coordinate polling");
 
     // Poll every 200ms to update coordinates (reduced frequency)
     this._coordinateIntervalId = setInterval(() => {
-      this.updateCoordinateDisplay();
+      if (!this._destroyed) this.updateCoordinateDisplay();
     }, 200);
   }
 
@@ -462,7 +547,9 @@ export class Slate {
   public addNode(options: any = {}) {
     const node = this.nodes.add(options);
     // Notify BirdsEye of the new node after a short delay for rendering
-    setTimeout(() => this.notifyNodeChanged(), 100);
+    this._nodeNotifyTimeoutId = setTimeout(() => {
+      if (!this._destroyed) this.notifyNodeChanged();
+    }, 100);
     return node;
   }
 

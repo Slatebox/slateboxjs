@@ -248,6 +248,13 @@ export class ResizeRotate {
     return this.isActive;
   }
 
+  /** Destroy the resize/rotate instance, disabling all plugins and clearing references */
+  public destroy(): void {
+    this.disable();
+    this.node = null;
+    this.target = null;
+  }
+
   public updateOptions(options: Partial<ResizeRotateOptions>) {
     this.options = { ...this.options, ...options };
 

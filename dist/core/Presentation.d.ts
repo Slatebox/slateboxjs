@@ -36,4 +36,6 @@ export declare class Presentation {
     getTotalSteps(): number;
     /** Check if presentation is active */
     isPresenting(): boolean;
+    /** Destroy the presentation, stopping if active */
+    destroy(): void;
 }

@@ -38,6 +38,8 @@ export declare class Filters {
     getActive(): string[];
     /** Check if a specific filter is active */
     isActive(filterName: string): boolean;
+    /** Destroy the filters instance, removing all active filters */
+    destroy(): void;
 }
 /** Register a custom filter definition */
 export declare function registerFilter(def: FilterDef): void;

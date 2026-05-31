@@ -21,7 +21,7 @@ function ls() {
 function In(n) {
   An.push(...n);
 }
-function We(n, t) {
+function je(n, t) {
   let e;
   const i = n.length, s = [];
   for (e = 0; e < i; e++)
@@ -89,7 +89,7 @@ const St = {}, Ke = "___SYMBOL___ROOT___";
 function Kt(n, t = Ve) {
   return M.document.createElementNS(t, n);
 }
-function W(n, t = !1) {
+function j(n, t = !1) {
   if (n instanceof qe) return n;
   if (typeof n == "object")
     return Te(n);
@@ -166,20 +166,20 @@ function _s() {
   return this.parent().add(this.remove(), 0), this;
 }
 function Es(n) {
-  n = W(n), n.remove();
+  n = j(n), n.remove();
   const t = this.position();
   return this.parent().add(n, t), this;
 }
 function Cs(n) {
-  n = W(n), n.remove();
+  n = j(n), n.remove();
   const t = this.position();
   return this.parent().add(n, t + 1), this;
 }
 function Ss(n) {
-  return n = W(n), n.before(this), this;
+  return n = j(n), n.before(this), this;
 }
 function Ts(n) {
-  return n = W(n), n.after(this), this;
+  return n = j(n), n.after(this), this;
 }
 k("Dom", {
   siblings: gs,
@@ -277,7 +277,7 @@ k("Dom", {
 function Zs(n, t, e) {
   if (n == null)
     return this.data(
-      We(
+      je(
         cs(
           this.node.attributes,
           (i) => i.nodeName.indexOf("data-") === 0
@@ -330,7 +330,7 @@ function Xs() {
   return this._memory = this._memory || {};
 }
 k("Dom", { remember: Fs, forget: Ys, memory: Xs });
-function js(n) {
+function Ws(n) {
   return n.length === 4 ? [
     "#",
     n.substring(1, 2),
@@ -341,7 +341,7 @@ function js(n) {
     n.substring(3, 4)
   ].join("") : n;
 }
-function Ws(n) {
+function js(n) {
   const t = Math.round(n), i = Math.max(0, Math.min(255, t)).toString(16);
   return i.length === 1 ? "0" + i : i;
 }
@@ -434,7 +434,7 @@ class z {
         const d = t.replace(Rs, ""), [u, f, g] = Ms.exec(d).slice(1, 4).map((p) => parseInt(p));
         Object.assign(this, { _a: u, _b: f, _c: g, _d: 0, space: "rgb" });
       } else if (wn.test(t)) {
-        const d = (p) => parseInt(p, 16), [, u, f, g] = ks.exec(js(t)).map(d);
+        const d = (p) => parseInt(p, 16), [, u, f, g] = ks.exec(Ws(t)).map(d);
         Object.assign(this, { _a: u, _b: f, _c: g, _d: 0, space: "rgb" });
       } else throw Error("Unsupported string format, can't construct Color");
     const { _a: a, _b: r, _c: l, _d: c } = this, h = this.space === "rgb" ? { r: a, g: r, b: l } : this.space === "xyz" ? { x: a, y: r, z: l } : this.space === "hsl" ? { h: a, s: r, l } : this.space === "lab" ? { l: a, a: r, b: l } : this.space === "lch" ? { l: a, c: r, h: l } : this.space === "cmyk" ? { c: a, m: r, y: l, k: c } : {};
@@ -485,7 +485,7 @@ class z {
     return [t, e, i, s, o];
   }
   toHex() {
-    const [t, e, i] = this._clamped().map(Ws);
+    const [t, e, i] = this._clamped().map(js);
     return `#${t}${e}${i}`;
   }
   toRgb() {
@@ -764,7 +764,7 @@ function Qs() {
 D(v, "Matrix");
 function yt() {
   if (!yt.nodes) {
-    const n = W().size(2, 0);
+    const n = j().size(2, 0);
     n.node.style.cssText = [
       "opacity: 0",
       "position: absolute",
@@ -915,7 +915,7 @@ Tt.extend = function(n) {
 };
 function Gt(n, t) {
   return new Tt(
-    We((t || M.document).querySelectorAll(n), function(e) {
+    je((t || M.document).querySelectorAll(n), function(e) {
       return ot(e);
     })
   );
@@ -940,14 +940,14 @@ function ao(n) {
   t === M.window && (t = Fn), t.events && (t.events = {});
 }
 function Q(n, t, e, i, s) {
-  const o = e.bind(i || n), a = W(n), r = Yn(a), l = Je(a);
+  const o = e.bind(i || n), a = j(n), r = Yn(a), l = Je(a);
   t = Array.isArray(t) ? t : t.split(gt), e._svgjsListenerId || (e._svgjsListenerId = ++ro), t.forEach(function(c) {
     const h = c.split(".")[0], d = c.split(".")[1] || "*";
     r[h] = r[h] || {}, r[h][d] = r[h][d] || {}, r[h][d][e._svgjsListenerId] = o, l.addEventListener(h, o, s || !1);
   });
 }
 function Y(n, t, e, i) {
-  const s = W(n), o = Yn(s), a = Je(s);
+  const s = j(n), o = Yn(s), a = Je(s);
   typeof e == "function" && (e = e._svgjsListenerId, !e) || (t = Array.isArray(t) ? t : (t || "").split(gt), t.forEach(function(r) {
     const l = r && r.split(".")[0], c = r && r.split(".")[1];
     let h, d;
@@ -1168,16 +1168,16 @@ class bt extends ee {
   }
   // Add given element at a position
   add(t, e) {
-    return t = W(t), t.removeNamespace && this.node instanceof M.window.SVGElement && t.removeNamespace(), e == null ? this.node.appendChild(t.node) : t.node !== this.node.childNodes[e] && this.node.insertBefore(t.node, this.node.childNodes[e]), this;
+    return t = j(t), t.removeNamespace && this.node instanceof M.window.SVGElement && t.removeNamespace(), e == null ? this.node.appendChild(t.node) : t.node !== this.node.childNodes[e] && this.node.insertBefore(t.node, this.node.childNodes[e]), this;
   }
   // Add element to given container and return self
   addTo(t, e) {
-    return W(t).put(this, e);
+    return j(t).put(this, e);
   }
   // Returns all child elements
   children() {
     return new Tt(
-      We(this.node.children, function(t) {
+      je(this.node.children, function(t) {
         return ot(t);
       })
     );
@@ -1256,11 +1256,11 @@ class bt extends ee {
   }
   // Basically does the same as `add()` but returns the added element instead
   put(t, e) {
-    return t = W(t), this.add(t, e), t;
+    return t = j(t), this.add(t, e), t;
   }
   // Add element to given container and return container
   putIn(t, e) {
-    return W(t).add(this, e);
+    return j(t).add(this, e);
   }
   // Remove element
   remove() {
@@ -1272,7 +1272,7 @@ class bt extends ee {
   }
   // Replace this with element
   replace(t) {
-    return t = W(t), this.node.parentNode && this.node.parentNode.replaceChild(t.node, this.node), t;
+    return t = j(t), this.node.parentNode && this.node.parentNode.replaceChild(t.node, this.node), t;
   }
   round(t = 2, e = null) {
     const i = 10 ** t, s = this.attr(e);
@@ -1381,7 +1381,7 @@ class $ extends bt {
   // return array of all ancestors of given type up to the root svg
   parents(t = this.root()) {
     const e = typeof t == "string";
-    e || (t = W(t));
+    e || (t = j(t));
     const i = new Tt();
     let s = this;
     for (; (s = s.parent()) && s.node !== M.document && s.nodeName !== "#document-fragment" && (i.push(s), !(!e && s.node === t.node || e && s.matches(t))); )
@@ -1393,7 +1393,7 @@ class $ extends bt {
   reference(t) {
     if (t = this.attr(t), !t) return null;
     const e = (t + "").match(Ds);
-    return e ? W(e[1]) : null;
+    return e ? j(e[1]) : null;
   }
   // Get parent document
   root() {
@@ -1633,10 +1633,10 @@ function en(n) {
 function nn(n) {
   return this.attr("ry", n);
 }
-function jn(n) {
+function Wn(n) {
   return n == null ? this.cx() - this.rx() : this.cx(n + this.rx());
 }
-function Wn(n) {
+function jn(n) {
   return n == null ? this.cy() - this.ry() : this.cy(n + this.ry());
 }
 function Vn(n) {
@@ -1659,8 +1659,8 @@ const vo = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   rx: en,
   ry: nn,
   width: qn,
-  x: jn,
-  y: Wn
+  x: Wn,
+  y: jn
 }, Symbol.toStringTag, { value: "Module" }));
 class ne extends tt {
   constructor(t, e = t) {
@@ -2670,7 +2670,7 @@ const R = {
       o();
     R.nextDraw = R.timeouts.first() || R.frames.first() ? M.window.requestAnimationFrame(R._draw) : null;
   }
-}, jo = function(n) {
+}, Wo = function(n) {
   const t = n.start, e = n.runner.duration(), i = t + e;
   return {
     start: t,
@@ -2678,13 +2678,13 @@ const R = {
     end: i,
     runner: n.runner
   };
-}, Wo = function() {
+}, jo = function() {
   const n = M.window;
   return (n.performance || n.Date).now();
 };
 class ii extends ee {
   // Construct a new timeline on the given element
-  constructor(t = Wo) {
+  constructor(t = jo) {
     super(), this._timeSource = t, this.terminate();
   }
   active() {
@@ -2726,7 +2726,7 @@ class ii extends ee {
   // schedules a runner on the timeline
   schedule(t, e, i) {
     if (t == null)
-      return this._runners.map(jo);
+      return this._runners.map(Wo);
     let s = 0;
     const o = this.getEndTime();
     if (e = e || 0, i == null || i === "last" || i === "after")
@@ -3549,7 +3549,7 @@ class be extends tt {
     return this.radius(new S(t).divide(2));
   }
 }
-T(be, { x: jn, y: Wn, cx: Vn, cy: $n, width: qn, height: Kn });
+T(be, { x: Wn, y: jn, cx: Vn, cy: $n, width: qn, height: Kn });
 k({
   Container: {
     // Create circle element
@@ -3886,7 +3886,7 @@ k({
   }
 });
 D(hi, "Use");
-const we = W;
+const we = j;
 T([me, an, ge, Qt, he], V("viewbox"));
 T([Pt, Ut, Ht, Lt], V("marker"));
 T(lt, V("Text"));
@@ -3956,7 +3956,7 @@ T($, {
     return (this.remember("_draggable") || new wr(this)).init(n), this;
   }
 });
-var jt = function(t) {
+var Wt = function(t) {
   return t.touches || [{
     clientX: t.clientX,
     clientY: t.clientY
@@ -3969,7 +3969,7 @@ T(me, {
     t = (e = t) != null ? e : {};
     var p = (i = t.zoomFactor) != null ? i : 2, m = (s = t.zoomMin) != null ? s : Number.MIN_VALUE, y = (o = t.zoomMax) != null ? o : Number.MAX_VALUE, b = (a = t.wheelZoom) != null ? a : !0, _ = (r = t.pinchZoom) != null ? r : !0, w = (l = t.panning) != null ? l : !0, x = (c = t.panButton) != null ? c : 0, L = (h = t.oneFingerPan) != null ? h : !1, G = (d = t.margins) != null ? d : !1, Z = (u = t.wheelZoomDeltaModeLinePixels) != null ? u : 17, et = (f = t.wheelZoomDeltaModeScreenPixels) != null ? f : 53, ct, O, at = !1, nt = this.viewbox(), vt = function(E) {
       if (!G) return E;
-      var N = G.top, H = G.left, it = G.bottom, st = G.right, j = g.attr(["width", "height"]), K = j.width, Rt = j.height, C = g.node.preserveAspectRatio.baseVal, ut = 0, ft = 0, Ft = 0, Yt = 0;
+      var N = G.top, H = G.left, it = G.bottom, st = G.right, W = g.attr(["width", "height"]), K = W.width, Rt = W.height, C = g.node.preserveAspectRatio.baseVal, ut = 0, ft = 0, Ft = 0, Yt = 0;
       if (C.align !== C.SVG_PRESERVEASPECTRATIO_NONE) {
         var re = K / Rt, ae = nt.width / nt.height;
         if (ae !== re) {
@@ -4004,7 +4004,7 @@ T(me, {
         this.viewbox(st);
       }
     }, Dt = function X(E) {
-      if (O = jt(E), O.length < 2) {
+      if (O = Wt(E), O.length < 2) {
         w && L && dt.call(this, E);
         return;
       }
@@ -4017,28 +4017,28 @@ T(me, {
       }));
     }, xt = function X(E) {
       E.preventDefault();
-      var N = jt(E);
+      var N = Wt(E);
       N.length > 1 || (at = !1, this.dispatch("pinchZoomEnd", {
         event: E
       }), Y(document, "touchmove.panZoom", ht), Y(document, "touchend.panZoom", X), this.on("touchstart.panZoom", Dt), N.length && w && L && dt.call(this, E));
     }, ht = function(E) {
       E.preventDefault();
-      var N = jt(E), H = this.zoom(), it = Math.sqrt(Math.pow(O[0].clientX - O[1].clientX, 2) + Math.pow(O[0].clientY - O[1].clientY, 2)), st = Math.sqrt(Math.pow(N[0].clientX - N[1].clientX, 2) + Math.pow(N[0].clientY - N[1].clientY, 2)), j = it / st;
-      (H < m && j > 1 || H > y && j < 1) && (j = 1);
+      var N = Wt(E), H = this.zoom(), it = Math.sqrt(Math.pow(O[0].clientX - O[1].clientX, 2) + Math.pow(O[0].clientY - O[1].clientY, 2)), st = Math.sqrt(Math.pow(N[0].clientX - N[1].clientX, 2) + Math.pow(N[0].clientY - N[1].clientY, 2)), W = it / st;
+      (H < m && W > 1 || H > y && W < 1) && (W = 1);
       var K = {
         x: N[0].clientX + 0.5 * (N[1].clientX - N[0].clientX),
         y: N[0].clientY + 0.5 * (N[1].clientY - N[0].clientY)
       }, Rt = {
         x: O[0].clientX + 0.5 * (O[1].clientX - O[0].clientX),
         y: O[0].clientY + 0.5 * (O[1].clientY - O[0].clientY)
-      }, C = this.point(K.x, K.y), ut = this.point(2 * K.x - Rt.x, 2 * K.y - Rt.y), ft = new P(this.viewbox()).transform(new v().translate(-ut.x, -ut.y).scale(j, 0, 0).translate(C.x, C.y));
+      }, C = this.point(K.x, K.y), ut = this.point(2 * K.x - Rt.x, 2 * K.y - Rt.y), ft = new P(this.viewbox()).transform(new v().translate(-ut.x, -ut.y).scale(W, 0, 0).translate(C.x, C.y));
       vt(ft), this.viewbox(ft), O = N, this.dispatch("zoom", {
         box: ft,
         focus: ut
       });
     }, dt = function X(E) {
       var N = E.type.indexOf("mouse") > -1;
-      N && E.button !== x && E.which !== x + 1 || (E.preventDefault(), this.off("mousedown.panZoom", X), O = jt(E), !at && (this.dispatch("panStart", {
+      N && E.button !== x && E.which !== x + 1 || (E.preventDefault(), this.off("mousedown.panZoom", X), O = Wt(E), !at && (this.dispatch("panStart", {
         event: E
       }), ct = {
         x: O[0].clientX,
@@ -4054,12 +4054,12 @@ T(me, {
       });
     }, Nt = function(E) {
       E.preventDefault();
-      var N = jt(E), H = {
+      var N = Wt(E), H = {
         x: N[0].clientX,
         y: N[0].clientY
-      }, it = this.point(H.x, H.y), st = this.point(ct.x, ct.y), j = [st.x - it.x, st.y - it.y];
-      if (!(!j[0] && !j[1])) {
-        var K = new P(this.viewbox()).transform(new v().translate(j[0], j[1]));
+      }, it = this.point(H.x, H.y), st = this.point(ct.x, ct.y), W = [st.x - it.x, st.y - it.y];
+      if (!(!W[0] && !W[1])) {
+        var K = new P(this.viewbox()).transform(new v().translate(W[0], W[1]));
         ct = H, vt(K), !this.dispatch("panning", {
           box: K,
           event: E
@@ -5118,13 +5118,13 @@ function Zr(n, t, e, i, s) {
  * Copyright (c) 2025 - Updated for SVG.js 3.x compatibility with optional interactive features
  *
  * */
-let Wt = null, Re = null;
+let jt = null, Re = null;
 const Vt = { current: null };
 function Fr(n, t) {
   const e = {};
-  t === void 0 && (t = n, n = {}), Wt = n.container || this.parent() || Wt;
+  t === void 0 && (t = n, n = {}), jt = n.container || this.parent() || jt;
   const i = this;
-  if (Re = n.markers || this.parent() || Re, e.container = Wt, e.source = i, e.target = t, e.type = n.type || "straight", e.strokeWidth = n.strokeWidth || 2, e.color = n.color || "#000000", e.clickAreaWidth = n.clickAreaWidth || Math.max(12, e.strokeWidth * 3), e.debugMode = n.debugMode || !1, n.connector) {
+  if (Re = n.markers || this.parent() || Re, e.container = jt, e.source = i, e.target = t, e.type = n.type || "straight", e.strokeWidth = n.strokeWidth || 2, e.color = n.color || "#000000", e.clickAreaWidth = n.clickAreaWidth || Math.max(12, e.strokeWidth * 3), e.debugMode = n.debugMode || !1, n.connector) {
     const r = we.find(
       "#" + n.connector.node.getAttribute("href").slice(1)
     )[0];
@@ -5143,7 +5143,7 @@ function Fr(n, t) {
       e.connector.target = r;
     }
   }
-  e.connector || (e.connector = Wt.path().attr("connectortype", "default").fill("none").stroke(e.color).attr("stroke-width", e.strokeWidth)), e.hitArea = Wt.path().attr({
+  e.connector || (e.connector = jt.path().attr("connectortype", "default").fill("none").stroke(e.color).attr("stroke-width", e.strokeWidth)), e.hitArea = jt.path().attr({
     connectortype: "hitarea",
     fill: "none",
     stroke: e.debugMode ? "#ff0000" : "#000000",
@@ -5360,6 +5360,10 @@ class _i {
   isEnabled() {
     return this.isActive;
   }
+  /** Destroy the resize/rotate instance, disabling all plugins and clearing references */
+  destroy() {
+    this.disable(), this.node = null, this.target = null;
+  }
   updateOptions(t) {
     this.options = { ...this.options, ...t }, this.isActive && (this.disable(), this.enable());
   }
@@ -5410,6 +5414,9 @@ class Ei {
       } catch (t) {
         console.warn("CONNECTOR_DEBUG: Failed to disable connector:", t);
       }
+  }
+  destroy() {
+    this.disable(), this.connections.clear();
   }
   ensureContainers() {
     this.options.lineContainer || (this.slate.linesContainer || (this.slate.linesContainer = this.slate.canvas.group(), console.log("CONNECTOR_DEBUG: Created global lines container")), this.options.lineContainer = this.slate.linesContainer), this.options.markerContainer || (this.slate.markersContainer || (this.slate.markersContainer = this.slate.canvas.group(), console.log("CONNECTOR_DEBUG: Created global markers container")), this.options.markerContainer = this.slate.markersContainer);
@@ -5663,6 +5670,10 @@ class Si {
   isEnabled() {
     return this.isActive;
   }
+  /** Destroy the relationships, removing all associations and clearing references */
+  destroy() {
+    this.removeAll(), this.disable(), this.associations.clear(), this.node = null, this.slate = null;
+  }
   // ─── Private helpers ─────────────────────────────────────────────
   renderAssociation(t, e) {
     this.node.connector && (this.node.connector.isEnabled() || this.node.connector.enable(), this.node.connector.connectTo(e, {
@@ -5673,7 +5684,7 @@ class Si {
 }
 class Ti {
   constructor(t) {
-    this.patternElement = null, this.imageUrl = "", this.origWidth = 0, this.origHeight = 0, this.node = t;
+    this.patternElement = null, this.imageUrl = "", this.origWidth = 0, this.origHeight = 0, this.preserveAspectRatio = !0, this.node = t;
   }
   /**
    * Set an image fill on the node's background.
@@ -5681,7 +5692,7 @@ class Ti {
    * Uses SVG pattern fills for proper scaling within the shape.
    */
   set(t, e, i, s = !0) {
-    this.imageUrl = t, this.origWidth = e || this.node.options.width || 100, this.origHeight = i || this.node.options.height || 60, this.node.options.image = t, this.node.options.imageOrigWidth = this.origWidth, this.node.options.imageOrigHeight = this.origHeight, this.render();
+    this.imageUrl = t, this.origWidth = e || this.node.options.width || 100, this.origHeight = i || this.node.options.height || 60, this.preserveAspectRatio = s, this.node.options.image = t, this.node.options.imageOrigWidth = this.origWidth, this.node.options.imageOrigHeight = this.origHeight, this.render();
   }
   /**
    * Clear the image fill and restore the background color.
@@ -5690,6 +5701,10 @@ class Ti {
     this.patternElement && (this.patternElement.remove(), this.patternElement = null), this.imageUrl = "", this.node.options.image = void 0, this.node.backgroundRect && this.node.backgroundRect.fill(
       this.node.options.backgroundColor || "#f0f0f0"
     );
+  }
+  /** Destroy the images instance, clearing all image data */
+  destroy() {
+    this.clear(), this.node = null;
   }
   /**
    * Update the image (e.g., after resize).
@@ -5710,7 +5725,7 @@ class Ti {
         if (!i) return;
         let s = i.defs();
         this.patternElement = s.pattern(t, e, (o) => {
-          o.image(this.imageUrl).size(t, e).attr("preserveAspectRatio", "xMidYMid slice");
+          o.image(this.imageUrl).size(t, e).attr("preserveAspectRatio", this.preserveAspectRatio ? "xMidYMid meet" : "xMidYMid slice");
         }).attr("patternUnits", "objectBoundingBox").attr("width", "100%").attr("height", "100%"), this.node.backgroundRect.fill(this.patternElement), console.log(
           "IMAGES_DEBUG: Set image fill for",
           this.node.id,
@@ -5770,18 +5785,22 @@ async function ki(n) {
   const i = Array.from(t).map((s) => hn(s));
   await Promise.all(i), console.log("FONT_DEBUG: All fonts loaded:", Array.from(t));
 }
-function jr(n) {
+function Wr(n) {
   return Xe.has(n.toLowerCase().trim());
 }
-const Wr = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const jr = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  isFontLoaded: jr,
+  isFontLoaded: Wr,
   loadAllFonts: ki,
   loadFont: hn
 }, Symbol.toStringTag, { value: "Module" }));
 class Mi {
   constructor(t) {
     this.node = t;
+  }
+  /** Destroy the editor, clearing all references */
+  destroy() {
+    this.node = null;
   }
   /**
    * Set text content and properties on the node.
@@ -5905,6 +5924,10 @@ class Di {
           break;
       }
   }
+  /** Destroy the links instance, unsetting any active link */
+  destroy() {
+    this.linkData && this.unset(!1), this.linkData = null, this.node = null;
+  }
 }
 const pt = /* @__PURE__ */ new Map();
 pt.set("dropShadow", {
@@ -5944,13 +5967,17 @@ pt.set("outline", {
   name: "outline",
   apply: (n) => {
     try {
-      n.stroke({ color: "#ff0000", width: 3 });
+      const t = n.attr("stroke"), e = n.attr("stroke-width");
+      n.data("original-stroke", t || "#333"), n.data("original-stroke-width", e || 2), n.stroke({ color: "#ff0000", width: 3 });
     } catch {
     }
   },
   remove: (n) => {
     try {
-      n.stroke({ color: n.data("original-stroke") || "#ccc", width: 1 });
+      n.stroke({
+        color: n.data("original-stroke") || "#333",
+        width: n.data("original-stroke-width") || 2
+      });
     } catch {
     }
   }
@@ -6018,6 +6045,10 @@ class Ni {
   isActive(t) {
     return this.activeFilters.has(t);
   }
+  /** Destroy the filters instance, removing all active filters */
+  destroy() {
+    this.removeAll(), this.activeFilters.clear(), this.hidden = !1, this.node = null;
+  }
 }
 function za(n) {
   pt.set(n.name, n);
@@ -6038,11 +6069,10 @@ class Ri {
    */
   open() {
     if (!this.options.enabled || this.node.options.allowMenu === !1) return;
-    this.isOpen = !0;
     const t = this.getVisibleTabs();
-    this.slate.options.events?.onMenuRequested && this.slate.options.events.onMenuRequested(this.node, (e) => {
+    this.slate.options.events?.onMenuRequested ? (this.isOpen = !0, this.slate.options.events.onMenuRequested(this.node, (e) => {
       this.isOpen = !1, console.log("MENU_DEBUG: Menu closed for", this.node.id);
-    }), console.log(
+    })) : this.isOpen = !1, console.log(
       "MENU_DEBUG: Menu opened for",
       this.node.id,
       "tabs:",
@@ -6071,6 +6101,10 @@ class Ri {
   }
   isEnabled() {
     return this.options.enabled;
+  }
+  /** Destroy the menu, closing it and clearing references */
+  destroy() {
+    this.close(), this.options.enabled = !1, this.node = null, this.slate = null;
   }
 }
 const U = /* @__PURE__ */ new Map();
@@ -6159,7 +6193,7 @@ U.set("diamond", {
   defaultHeight: 100,
   viewBox: "0 0 100 100"
 });
-function je(n) {
+function We(n) {
   return U.get(n.toLowerCase());
 }
 function Vr(n) {
@@ -6176,7 +6210,7 @@ function zi(n) {
 }
 function Oi(n, t) {
   if (t) {
-    const e = je(t);
+    const e = We(t);
     if (e) return e;
     if (t.trim().startsWith("M") || t.trim().startsWith("m"))
       return {
@@ -6188,13 +6222,13 @@ function Oi(n, t) {
       };
   }
   if (n) {
-    const e = je(n);
+    const e = We(n);
     if (e) return e;
   }
 }
 const Kr = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  getShape: je,
+  getShape: We,
   getShapeNames: qr,
   hasShape: Vr,
   isNativeShape: zi,
@@ -6203,7 +6237,7 @@ const Kr = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
 }, Symbol.toStringTag, { value: "Module" }));
 class Ai {
   constructor(t, e) {
-    this.connectionHandles = {}, this.connectionHandlesVisible = !1, this.isDragging = !1, this.wasSelectedBeforeDrag = !1, this.preDragTransform = null, this.preDragPosition = null, this._initFailed = !1, this.id = t.id || this.generateId(), this.slate = e, console.log("NODE_DEBUG: Constructor called", { id: this.id, options: t }), this.options = {
+    this.connectionHandles = {}, this.connectionHandlesVisible = !1, this.isDragging = !1, this.wasSelectedBeforeDrag = !1, this.preDragTransform = null, this.preDragPosition = null, this._initFailed = !1, this._destroyed = !1, this._svgViewboxTimeoutId = null, this._dragEndTimeoutId = null, this._previewViewboxTimeoutId = null, this._connectTimeoutId = null, this.id = t.id || this.generateId(), this.slate = e, console.log("NODE_DEBUG: Constructor called", { id: this.id, options: t }), this.options = {
       x: 50,
       y: 50,
       width: 100,
@@ -6264,7 +6298,8 @@ class Ai {
       this.options.y
     ), this.position(this.options.x, this.options.y), this.options.svgContent) {
       const i = this.options.width, s = this.options.height, o = this.backgroundRect.x?.() ?? 0, a = this.backgroundRect.y?.() ?? 0;
-      this.nestedSvg = this.svgGroup.nested().size(i, s).move(o, a), this.nestedSvg.svg(this.options.svgContent), setTimeout(() => {
+      this.nestedSvg = this.svgGroup.nested().size(i, s).move(o, a), this.nestedSvg.svg(this.options.svgContent), this._svgViewboxTimeoutId = setTimeout(() => {
+        if (this._destroyed || !this.nestedSvg) return;
         const r = this.nestedSvg.children()[0];
         if (r) {
           let l = r.bbox();
@@ -6428,7 +6463,8 @@ class Ai {
         a,
         "preDragPos:",
         this.preDragPosition
-      ), this.preDragTransform = null, this.preDragPosition = null, this.options.x = i, this.options.y = s, setTimeout(() => {
+      ), this.preDragTransform = null, this.preDragPosition = null, this.options.x = i, this.options.y = s, this._dragEndTimeoutId = setTimeout(() => {
+        if (this._destroyed) return;
         this.isDragging = !1, this.slate.getSelectedNodes().includes(this) ? (console.log(
           "SELECTION_DEBUG: Drag ended on selected node",
           this.id,
@@ -6469,6 +6505,13 @@ class Ai {
   }
   remove() {
     this.connectionHandles.container && (this.connectionHandles.container.remove(), this.connectionHandles.container = void 0), this.connectionPreview?.container && (this.connectionPreview.container.remove(), this.connectionPreview.container = void 0), this.svgGroup.remove();
+  }
+  /**
+   * Destroy the node completely, cleaning up all timers, event handlers,
+   * and owned sub-modules. Pattern matches PanZoom.ts.
+   */
+  destroy() {
+    this._destroyed = !0, this._svgViewboxTimeoutId !== null && (clearTimeout(this._svgViewboxTimeoutId), this._svgViewboxTimeoutId = null), this._dragEndTimeoutId !== null && (clearTimeout(this._dragEndTimeoutId), this._dragEndTimeoutId = null), this._previewViewboxTimeoutId !== null && (clearTimeout(this._previewViewboxTimeoutId), this._previewViewboxTimeoutId = null), this._connectTimeoutId !== null && (clearTimeout(this._connectTimeoutId), this._connectTimeoutId = null), this.resizeRotate && this.resizeRotate.isEnabled() && this.resizeRotate.disable(), this.connector && this.connector.isActive && this.connector.disable(), this.relationships && (this.relationships.disable(), this.relationships.removeAll()), this.connectionHandles.container && (this.connectionHandles.container.remove(), this.connectionHandles.container = void 0), this.connectionPreview?.container && (this.connectionPreview.container.remove(), this.connectionPreview.container = void 0), this.svgGroup.remove(), this.isDragging = !1;
   }
   hide() {
     this.svgGroup.hide();
@@ -6809,7 +6852,7 @@ class Ai {
     let O, at;
     const nt = Math.abs(et);
     Math.abs(ct) > nt ? ct < 0 ? (O = _, at = b.y) : (O = _, at = b.y + b.height) : et < 0 ? (O = b.x, at = w) : (O = b.x + b.width, at = w);
-    const Mt = ([j, K], { a: Rt, b: C, c: ut, d: ft, e: Ft, f: Yt }) => [j * Rt + K * ut + Ft, j * C + K * ft + Yt], [Dt, xt] = Mt([O, at], G), ht = Math.sqrt(
+    const Mt = ([W, K], { a: Rt, b: C, c: ut, d: ft, e: Ft, f: Yt }) => [W * Rt + K * ut + Ft, W * C + K * ft + Yt], [Dt, xt] = Mt([O, at], G), ht = Math.sqrt(
       Math.pow(Dt - l, 2) + Math.pow(xt - c, 2)
     ), dt = ht, _t = ht + o + dt, Nt = l + m * _t, X = c + y * _t, E = Nt - i / 2, N = X - s / 2;
     if (!this.connectionPreview.container) {
@@ -6850,7 +6893,8 @@ class Ai {
         if (this.options.svgContent) {
           r = t.rect(s, o).move(e, i).fill("none").stroke({ color: c, width: h }).opacity(d).radius(4);
           const p = t.nested().size(s, o).move(e, i);
-          p.svg(this.options.svgContent), setTimeout(() => {
+          p.svg(this.options.svgContent), this._previewViewboxTimeoutId = setTimeout(() => {
+            if (this._destroyed) return;
             const m = p.children()[0];
             if (m) {
               let y = m.bbox();
@@ -6965,8 +7009,8 @@ class Ai {
         "at",
         vt,
         Mt
-      ), this.hideConnectionPreview(), setTimeout(() => {
-        this.connectToNode(xt);
+      ), this.hideConnectionPreview(), this._connectTimeoutId = setTimeout(() => {
+        this._destroyed || this.connectToNode(xt);
       }, 100);
     } catch (e) {
       console.error(
@@ -7031,6 +7075,10 @@ class Qr {
   clear() {
     this.allNodes.forEach((t) => t.remove()), this.nodes.clear();
   }
+  /** Destroy the nodes manager, clearing all nodes */
+  destroy() {
+    this.clear(), this.slate = null;
+  }
   moveNodes(t, e = {}) {
     t.data && Array.isArray(t.data.nodes) && t.data.nodes.forEach((i) => {
       const s = this.one(i.id);
@@ -7065,6 +7113,10 @@ class Qr {
 class Jr {
   constructor(t) {
     this.slate = t;
+  }
+  /** Destroy the invoker, clearing all callback references */
+  destroy() {
+    this.slate = null;
   }
   onZoom(t) {
     if (this.slate.options.followMe) {
@@ -7614,7 +7666,7 @@ class Pi {
     }, 300);
   }
   removeEventListeners() {
-    this.slate.canvas && this.slate.canvas.off?.(".birdseye"), this.refreshTimeoutId !== null && (window.clearTimeout(this.refreshTimeoutId), this.refreshTimeoutId = null), this.stopPolling();
+    this.boundMouseMove && (document.removeEventListener("mousemove", this.boundMouseMove), this.boundMouseMove = null), this.boundMouseUp && (document.removeEventListener("mouseup", this.boundMouseUp), this.boundMouseUp = null), this.isDragging = !1, this.slate.canvas && this.slate.canvas.off?.(".birdseye"), this.refreshTimeoutId !== null && (window.clearTimeout(this.refreshTimeoutId), this.refreshTimeoutId = null), this.stopPolling();
   }
   startPolling() {
     this.pollIntervalId = window.setInterval(() => {
@@ -8049,6 +8101,10 @@ class Zi {
   clear() {
     this.undoStack = [], this.redoStack = [], this.debounceTimer && clearTimeout(this.debounceTimer);
   }
+  /** Destroy the undo/redo system, clearing all history and references */
+  destroy() {
+    this.clear(), this.isRestoring = !1, this.slate = null;
+  }
   // ─── Private ─────────────────────────────────────────────────────
   takeSnapshot() {
     const t = _e(this.slate);
@@ -8353,7 +8409,7 @@ function gn(n, t = {}, e) {
     return e?.(o), o;
   }
 }
-async function ji(n, t = {}, e) {
+async function Wi(n, t = {}, e) {
   const i = gn(n, t);
   if (!i) {
     const o = t.asBinary ? new Blob() : "";
@@ -8396,10 +8452,10 @@ async function ji(n, t = {}, e) {
 }
 const ra = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  exportPNG: ji,
+  exportPNG: Wi,
   exportSVG: gn
 }, Symbol.toStringTag, { value: "Module" }));
-class Wi {
+class ji {
   constructor(t, e = {}) {
     this.doc = null, this.provider = null, this.collabMap = null, this.awareness = null, this.isConnected = !1, this.clientID = 0, this.cursorElements = /* @__PURE__ */ new Map(), this.slate = t, this.options = {
       wsUrl: "ws://localhost:1234",
@@ -8436,7 +8492,7 @@ class Wi {
         this.options.onAwarenessChange?.(s), this.slate.options.events?.onCollaborationUsersChanged?.(s);
       }), this.provider.on("status", (s) => {
         this.isConnected = s.status === "connected", this.options.onStatusChange?.(s.status);
-      }), this.isConnected = !0, this.slate.options.events?.onInitCollaboration?.(
+      }), this.slate.options.events?.onInitCollaboration?.(
         this.clientID.toString()
       ), console.log(
         "COLLAB_DEBUG: Initialized collaboration for room",
@@ -8536,6 +8592,10 @@ class Wi {
   isCollabConnected() {
     return this.isConnected;
   }
+  /** Destroy the collab instance, disconnecting and cleaning up all resources */
+  destroy() {
+    this.disconnect(), this.slate = null, this.options = {};
+  }
   /** Get client ID */
   getClientID() {
     return this.clientID;
@@ -8634,7 +8694,7 @@ const ca = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
 }, Symbol.toStringTag, { value: "Module" }));
 class Ji {
   constructor(t, e = {}) {
-    this.container = null, this.slider = null, this.label = null, this.slate = t, this.options = {
+    this.container = null, this.slider = null, this.label = null, this._intervalId = null, this.slate = t, this.options = {
       enabled: !1,
       position: "bottom-right",
       minZoom: 0.1,
@@ -8652,7 +8712,7 @@ class Ji {
   }
   /** Destroy the zoom slider */
   destroy() {
-    this.container && (this.container.remove(), this.container = null, this.slider = null, this.label = null);
+    this._intervalId !== null && (clearInterval(this._intervalId), this._intervalId = null), this.container && (this.container.remove(), this.container = null, this.slider = null, this.label = null);
   }
   /** Update the slider to reflect current zoom level */
   update() {
@@ -8690,7 +8750,7 @@ class Ji {
       this.slate.zoom?.(s), this.update();
     }, this.container.appendChild(this.slider);
     const i = document.createElement("button");
-    i.textContent = "+", i.style.cssText = "background:none;border:none;color:white;cursor:pointer;font-size:16px;padding:0 4px;", i.onclick = () => this.slate.zoomIn?.(), this.container.appendChild(i), this.label = document.createElement("span"), this.label.textContent = "100%", this.label.style.cssText = "min-width: 40px; text-align: right;", this.container.appendChild(this.label), this.slate.element.appendChild(this.container), setInterval(() => this.update(), 500);
+    i.textContent = "+", i.style.cssText = "background:none;border:none;color:white;cursor:pointer;font-size:16px;padding:0 4px;", i.onclick = () => this.slate.zoomIn?.(), this.container.appendChild(i), this.label = document.createElement("span"), this.label.textContent = "100%", this.label.style.cssText = "min-width: 40px; text-align: right;", this.container.appendChild(this.label), this.slate.element.appendChild(this.container), this._intervalId = setInterval(() => this.update(), 500);
   }
 }
 class ts {
@@ -8759,6 +8819,10 @@ class ts {
   isPresenting() {
     return this.isActive;
   }
+  /** Destroy the presentation, stopping if active */
+  destroy() {
+    this.stop(), this.steps = [], this.currentStep = -1, this.slate = null;
+  }
 }
 class es {
   /**
@@ -8773,7 +8837,7 @@ class es {
    * @throws If element is a selector string and no matching element is found
    */
   constructor(t, e = {}) {
-    if (this.selectedNodes = [], this.groupResizeRotate = null, this._coordinateIntervalId = null, typeof t == "string") {
+    if (this.selectedNodes = [], this.groupResizeRotate = null, this._coordinateIntervalId = null, this._destroyed = !1, this._birdsEyeTimeoutId = null, this._coordDisplayTimeoutId = null, this._nodeNotifyTimeoutId = null, typeof t == "string") {
       const i = document.querySelector(t);
       if (!i)
         throw new Error(`Element with selector "${t}" not found`);
@@ -8831,16 +8895,29 @@ class es {
   init() {
     this.canvas = we().addTo(this.element);
     const t = this.options.viewPort?.originalWidth || 800, e = this.options.viewPort?.originalHeight || 600;
-    this.canvas.size(t, e), this.nodes = new Qr(this), this.invoker = new Jr(this), this.setupSelectionHandling(), this.options.viewPort?.showCoordinates && this.setupCoordinateCallbacks(), this.panZoom = new Ii(this, this.options.panZoom), this.birdsEye = new Pi(this, this.options.birdsEye), this.options.birdsEye?.enabled && setTimeout(() => this.birdsEye.enable(), 200), this.undoRedo = new Zi(this, {
+    this.canvas.size(t, e), this.nodes = new Qr(this), this.invoker = new Jr(this), this.setupSelectionHandling(), this.options.viewPort?.showCoordinates && this.setupCoordinateCallbacks(), this.panZoom = new Ii(this, this.options.panZoom), this.birdsEye = new Pi(this, this.options.birdsEye), this.options.birdsEye?.enabled && (this._birdsEyeTimeoutId = setTimeout(() => {
+      this._destroyed || this.birdsEye.enable();
+    }, 200)), this.undoRedo = new Zi(this, {
       enabled: this.options.showUndoRedo !== !1
     }), this.multiSelection = new Fi(this, {
       enabled: this.options.showMultiSelect !== !1
     }), this.grid = new Yi(this, {
       enabled: this.options.viewPort?.showGrid || !1,
       gridSize: this.options.viewPort?.gridSize || 20
-    }), this.options.viewPort?.showGrid && this.grid.show(), this.keyboard = new Xi(this), this.options.enabled !== !1 && this.keyboard.bindGlobal(), this.collab = new Wi(this), this.zoomSlider = new Ji(this, {
+    }), this.options.viewPort?.showGrid && this.grid.show(), this.keyboard = new Xi(this), this.options.enabled !== !1 && this.keyboard.bindGlobal(), this.collab = new ji(this), this.zoomSlider = new Ji(this, {
       enabled: this.options.showZoom || !1
-    }), this.presentation = new ts(this), this.makeResponsive(), this.options.viewPort?.showCoordinates && setTimeout(() => this.addCoordinateDisplay(), 150);
+    }), this.presentation = new ts(this), this.makeResponsive(), this.options.viewPort?.showCoordinates && (this._coordDisplayTimeoutId = setTimeout(() => {
+      this._destroyed || this.addCoordinateDisplay();
+    }, 150));
+  }
+  /**
+   * Destroy the Slate, cleaning up all sub-modules, timers, and event listeners.
+   * Follows the PanZoom.ts pattern: clear timers → remove listeners → chain to owned objects.
+   */
+  destroy() {
+    this._destroyed = !0, this._birdsEyeTimeoutId !== null && (clearTimeout(this._birdsEyeTimeoutId), this._birdsEyeTimeoutId = null), this._coordDisplayTimeoutId !== null && (clearTimeout(this._coordDisplayTimeoutId), this._coordDisplayTimeoutId = null), this._nodeNotifyTimeoutId !== null && (clearTimeout(this._nodeNotifyTimeoutId), this._nodeNotifyTimeoutId = null), this._coordinateIntervalId !== null && (clearInterval(this._coordinateIntervalId), this._coordinateIntervalId = null);
+    const t = this.element.querySelector("#slate-coordinates");
+    t && t.remove(), this.canvas.off("click"), this.panZoom && this.panZoom.destroy(), this.birdsEye && this.birdsEye.disable(), this.zoomSlider && this.zoomSlider.destroy(), this.keyboard && this.keyboard.unbindGlobal(), this.multiSelection && this.multiSelection.disable(), this.undoRedo && this.undoRedo.clear(), this.collab && this.collab.disconnect(), this.presentation && this.presentation.stop(), this.grid && this.grid.hide(), this.nodes && this.nodes.clear(), this.canvas && this.canvas.remove();
   }
   setupCoordinateCallbacks() {
     const t = this.options.panZoom?.onPan, e = this.options.panZoom?.onZoom;
@@ -8871,9 +8948,9 @@ class es {
     ), console.log("COORD_DEBUG: Element style:", t.style.cssText), console.log("COORD_DEBUG: Parent element:", this.element), t.textContent = "x: 0, y: 0, zoom: 1.00", this.updateCoordinateDisplay(), this.startCoordinatePolling();
   }
   startCoordinatePolling() {
-    console.log("COORD_DEBUG: Starting coordinate polling"), this._coordinateIntervalId = setInterval(() => {
-      this.updateCoordinateDisplay();
-    }, 200);
+    this._destroyed || (console.log("COORD_DEBUG: Starting coordinate polling"), this._coordinateIntervalId = setInterval(() => {
+      this._destroyed || this.updateCoordinateDisplay();
+    }, 200));
   }
   updateCoordinateDisplay() {
     const t = this.element.querySelector(
@@ -8921,7 +8998,9 @@ class es {
    */
   addNode(t = {}) {
     const e = this.nodes.add(t);
-    return setTimeout(() => this.notifyNodeChanged(), 100), e;
+    return this._nodeNotifyTimeoutId = setTimeout(() => {
+      this._destroyed || this.notifyNodeChanged();
+    }, 100), e;
   }
   removeNode(t) {
     const e = this.nodes.remove(t);
@@ -9207,7 +9286,7 @@ class es {
    * Export the slate as a PNG (async).
    */
   async png(t, e) {
-    return ji(this, t, e);
+    return Wi(this, t, e);
   }
   /**
    * Synchronous-style PNG export (returns a Promise).
@@ -9394,16 +9473,16 @@ const Ma = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
 function Da(n, t = {}) {
   return new es(n, t);
 }
-typeof window < "u" && (window.SlateboxJS = Da, window.Slate = es, window.Node = Ai, window.PanZoom = Ii, window.ResizeRotate = _i, window.BirdsEye = Pi, window.Connector = Ei, window.Serialization = oa, window.ShapeRegistry = Kr, window.Relationship = Yr, window.Relationships = Si, window.FontLoader = Wr, window.Images = Ti, window.Editor = Mi, window.UndoRedo = Zi, window.MultiSelection = Fi, window.Grid = Yi, window.Menu = Ri, window.Keyboard = Xi, window.Filters = Ni, window.Links = Di, window.Export = ra, window.Collab = Wi, window.Theme = la, window.Layout = ca, window.ZoomSlider = Ji, window.Comments = fa, window.Presentation = ts, window.Slatebox = { utils: Ma, compat: ia });
+typeof window < "u" && (window.SlateboxJS = Da, window.Slate = es, window.Node = Ai, window.PanZoom = Ii, window.ResizeRotate = _i, window.BirdsEye = Pi, window.Connector = Ei, window.Serialization = oa, window.ShapeRegistry = Kr, window.Relationship = Yr, window.Relationships = Si, window.FontLoader = jr, window.Images = Ti, window.Editor = Mi, window.UndoRedo = Zi, window.MultiSelection = Fi, window.Grid = Yi, window.Menu = Ri, window.Keyboard = Xi, window.Filters = Ni, window.Links = Di, window.Export = ra, window.Collab = ji, window.Theme = la, window.Layout = ca, window.ZoomSlider = Ji, window.Comments = fa, window.Presentation = ts, window.Slatebox = { utils: Ma, compat: ia });
 export {
   Pi as BirdsEye,
-  Wi as Collab,
+  ji as Collab,
   fa as Comments,
   Ei as Connector,
   Mi as Editor,
   ra as ExportModule,
   Ni as Filters,
-  Wr as FontLoader,
+  jr as FontLoader,
   Yi as Grid,
   Ti as Images,
   Jr as Invoker,

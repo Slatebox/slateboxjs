@@ -84,6 +84,8 @@ export declare class Collab {
     disconnect(): void;
     /** Check if collaboration is connected */
     isCollabConnected(): boolean;
+    /** Destroy the collab instance, disconnecting and cleaning up all resources */
+    destroy(): void;
     /** Get client ID */
     getClientID(): number;
     private handleRemotePackage;

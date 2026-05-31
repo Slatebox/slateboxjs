@@ -1,6 +1,8 @@
 export declare class Invoker {
     private slate;
     constructor(slate: any);
+    /** Destroy the invoker, clearing all callback references */
+    destroy(): void;
     onZoom(pkg: any): void;
     onNodePositioned(pkg: any): void;
     onNodeLinkRemoved(pkg: any): void;

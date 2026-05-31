@@ -16,6 +16,11 @@ export class Editor {
     this.node = node;
   }
 
+  /** Destroy the editor, clearing all references */
+  public destroy(): void {
+    this.node = null;
+  }
+
   /**
    * Set text content and properties on the node.
    * This is the primary method used by collaboration events

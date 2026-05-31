@@ -9,6 +9,8 @@
 export declare class Editor {
     private node;
     constructor(node: any);
+    /** Destroy the editor, clearing all references */
+    destroy(): void;
     /**
      * Set text content and properties on the node.
      * This is the primary method used by collaboration events

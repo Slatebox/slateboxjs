@@ -137,6 +137,11 @@ export declare class Node {
     private _resolveReady;
     private _rejectReady;
     private _initFailed;
+    private _destroyed;
+    private _svgViewboxTimeoutId;
+    private _dragEndTimeoutId;
+    private _previewViewboxTimeoutId;
+    private _connectTimeoutId;
     constructor(options: NodeOptions, slate: any);
     private generateId;
     private createAsync;
@@ -149,6 +154,11 @@ export declare class Node {
     toFront(): void;
     toBack(): void;
     remove(): void;
+    /**
+     * Destroy the node completely, cleaning up all timers, event handlers,
+     * and owned sub-modules. Pattern matches PanZoom.ts.
+     */
+    destroy(): void;
     hide(): void;
     show(): void;
     setText(text: string): void;

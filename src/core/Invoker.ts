@@ -5,6 +5,11 @@ export class Invoker {
     this.slate = slate
   }
 
+  /** Destroy the invoker, clearing all callback references */
+  public destroy(): void {
+    this.slate = null;
+  }
+
   onZoom(pkg: any) {
     if (this.slate.options.followMe) {
       const zoomPercent = (this.slate.options.viewPort.originalWidth / pkg.data.zoomLevel) * 100

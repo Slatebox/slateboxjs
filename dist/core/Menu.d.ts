@@ -30,4 +30,6 @@ export declare class Menu {
     enable(): void;
     disable(): void;
     isEnabled(): boolean;
+    /** Destroy the menu, closing it and clearing references */
+    destroy(): void;
 }

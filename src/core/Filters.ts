@@ -53,13 +53,21 @@ filterDefs.set("outline", {
   name: "outline",
   apply: (element: any) => {
     try {
+      // Save original stroke before changing
+      const origStroke = element.attr("stroke");
+      const origStrokeWidth = element.attr("stroke-width");
+      element.data("original-stroke", origStroke || "#333");
+      element.data("original-stroke-width", origStrokeWidth || 2);
       element.stroke({ color: "#ff0000", width: 3 });
     } catch {}
   },
   remove: (element: any) => {
     try {
       // Restore original stroke
-      element.stroke({ color: element.data("original-stroke") || "#ccc", width: 1 });
+      element.stroke({
+        color: element.data("original-stroke") || "#333",
+        width: element.data("original-stroke-width") || 2,
+      });
     } catch {}
   },
 });
@@ -187,6 +195,14 @@ export class Filters {
   /** Check if a specific filter is active */
   public isActive(filterName: string): boolean {
     return this.activeFilters.has(filterName);
+  }
+
+  /** Destroy the filters instance, removing all active filters */
+  public destroy(): void {
+    this.removeAll();
+    this.activeFilters.clear();
+    this.hidden = false;
+    this.node = null;
   }
 }
 

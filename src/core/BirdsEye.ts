@@ -434,6 +434,18 @@ export class BirdsEye {
   }
 
   private removeEventListeners(): void {
+    // Remove temporary document-level drag listeners (may still be attached
+    // if mousedown fired without a matching mouseup, e.g. focus loss)
+    if (this.boundMouseMove) {
+      document.removeEventListener("mousemove", this.boundMouseMove);
+      this.boundMouseMove = null;
+    }
+    if (this.boundMouseUp) {
+      document.removeEventListener("mouseup", this.boundMouseUp);
+      this.boundMouseUp = null;
+    }
+    this.isDragging = false;
+
     // Remove canvas event listeners (using namespaced events)
     if (this.slate.canvas) {
       (this.slate.canvas as any).off?.(".birdseye");

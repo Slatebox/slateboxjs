@@ -8,6 +8,8 @@ export declare class NodesManager {
     one(id: string): Node | undefined;
     get allNodes(): Node[];
     clear(): void;
+    /** Destroy the nodes manager, clearing all nodes */
+    destroy(): void;
     moveNodes(packageData: any, options?: {
         animate?: boolean;
     }): void;
