@@ -19,6 +19,12 @@ export class ResizeRotate {
   private options: ResizeRotateOptions;
   private isActive: boolean = false;
 
+  /**
+   * Creates resize/rotate handle management for a node.
+   *
+   * @param node    - The parent Node instance
+   * @param options - Resize/rotate configuration
+   */
   constructor(node: Node, options: ResizeRotateOptions = {}) {
     this.node = node;
     this.target = node.backgroundRect;
@@ -33,6 +39,7 @@ export class ResizeRotate {
     };
   }
 
+  /** Enable resize and rotate handles on the node. */
   public enable() {
     if (this.isActive) return;
     // Guard: backgroundRect may not be initialized if node creation failed
@@ -94,6 +101,7 @@ export class ResizeRotate {
     });
   }
 
+  /** Disable resize and rotate handles on the node. */
   public disable() {
     if (!this.isActive) return;
 

@@ -46,6 +46,12 @@ export class Connector {
   private connections: Map<string, Connection> = new Map();
   private isActive: boolean = false;
 
+  /**
+   * Creates a connector for a node. Manages connection lines to other nodes.
+   *
+   * @param node    - The parent Node instance
+   * @param options - Connector configuration (line color, width, type, etc.)
+   */
   constructor(node: Node, options: ConnectorOptions = {}) {
     this.node = node;
     this.slate = node.slate;
@@ -72,6 +78,7 @@ export class Connector {
     console.log("CONNECTOR_DEBUG: Created connector for node", this.node.id);
   }
 
+  /** Enable the connector, making connection handles available. */
   public enable() {
     if (this.isActive) return;
 
@@ -99,6 +106,7 @@ export class Connector {
     }
   }
 
+  /** Disable the connector and remove all connections. */
   public disable() {
     if (!this.isActive) return;
 

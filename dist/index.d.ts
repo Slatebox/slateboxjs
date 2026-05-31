@@ -41,6 +41,7 @@ export type { SlateJSON, NodeJSON } from './core/Serialization';
 export type { ShapeDefinition } from './core/ShapeRegistry';
 export type { Association } from './core/Relationship';
 export type { CollabOptions, CollabUser, CollabPackage } from './core/Collab';
+export type { SlatePackage } from './core/SlatePackage';
 export type { ExportOptions } from './core/Export';
 export type { ThemeStyle, ThemeDefinition } from './core/Theme';
 export type { LayoutMove } from './core/Layout';

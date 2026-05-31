@@ -5243,6 +5243,12 @@ T($, {
   }
 });
 class _i {
+  /**
+   * Creates resize/rotate handle management for a node.
+   *
+   * @param node    - The parent Node instance
+   * @param options - Resize/rotate configuration
+   */
   constructor(t, e = {}) {
     this.isActive = !1, this.node = t, this.target = t.backgroundRect, this.options = {
       resizeEnabled: !0,
@@ -5254,6 +5260,7 @@ class _i {
       ...e
     };
   }
+  /** Enable resize and rotate handles on the node. */
   enable() {
     if (!this.isActive) {
       if (!this.target) {
@@ -5289,6 +5296,7 @@ class _i {
       }
     });
   }
+  /** Disable resize and rotate handles on the node. */
   disable() {
     if (this.isActive)
       try {
@@ -5373,6 +5381,12 @@ class _i {
 }
 typeof window < "u" && (window.SVG = we);
 class Ei {
+  /**
+   * Creates a connector for a node. Manages connection lines to other nodes.
+   *
+   * @param node    - The parent Node instance
+   * @param options - Connector configuration (line color, width, type, etc.)
+   */
   constructor(t, e = {}) {
     this.connections = /* @__PURE__ */ new Map(), this.isActive = !1, this.node = t, this.slate = t.slate, this.options = {
       enabled: !1,
@@ -5392,6 +5406,7 @@ class Ei {
       ...e
     }, console.log("CONNECTOR_DEBUG: Created connector for node", this.node.id);
   }
+  /** Enable the connector, making connection handles available. */
   enable() {
     if (!this.isActive)
       try {
@@ -5404,6 +5419,7 @@ class Ei {
         console.warn("CONNECTOR_DEBUG: Failed to enable connector:", t);
       }
   }
+  /** Disable the connector and remove all connections. */
   disable() {
     if (this.isActive)
       try {
@@ -6236,6 +6252,26 @@ const Kr = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   resolveShapePath: Oi
 }, Symbol.toStringTag, { value: "Module" }));
 class Ai {
+  /**
+   * Creates a new diagram node.
+   *
+   * Nodes support two mutually exclusive content types: text content (default)
+   * and SVG content (when `options.svgContent` is set). The node is created
+   * asynchronously — await `node.ready` before using sub-modules.
+   *
+   * @param options - Node configuration (position, size, shape, text, colors, etc.)
+   * @param slate  - The parent Slate instance
+   *
+   * @example
+   * ```ts
+   * const node = slate.addNode({
+   *   x: 100, y: 100, width: 120, height: 80,
+   *   text: 'Hello', shape: 'rectangle', backgroundColor: '#4ecdc4'
+   * });
+   * await node.ready;
+   * node.setRotation(45);
+   * ```
+   */
   constructor(t, e) {
     this.connectionHandles = {}, this.connectionHandlesVisible = !1, this.isDragging = !1, this.wasSelectedBeforeDrag = !1, this.preDragTransform = null, this.preDragPosition = null, this._initFailed = !1, this._destroyed = !1, this._svgViewboxTimeoutId = null, this._dragEndTimeoutId = null, this._previewViewboxTimeoutId = null, this._connectTimeoutId = null, this.id = t.id || this.generateId(), this.slate = e, console.log("NODE_DEBUG: Constructor called", { id: this.id, options: t }), this.options = {
       x: 50,
@@ -6403,6 +6439,7 @@ class Ai {
       this.textElement
     ), this.centerText();
   }
+  /** Position the text element within the background shape based on alignment settings. */
   centerText() {
     if (!this.textElement) return;
     const { width: t, height: e, textXAlign: i, textYAlign: s, textOffset: o } = this.options, a = this.backgroundRect.x?.() ?? 0, r = this.backgroundRect.y?.() ?? 0;
@@ -6497,12 +6534,18 @@ class Ai {
       this.svgGroup ? this.svgGroup.bbox() : "no group"
     ), i && i();
   }
+  /** Bring the node to the front of the SVG z-order. */
   toFront() {
     this.svgGroup.front();
   }
+  /** Send the node to the back of the SVG z-order. */
   toBack() {
     this.svgGroup.back();
   }
+  /**
+   * Remove the node from the canvas (light teardown).
+   * Cleans up DOM elements but does NOT disable sub-modules. Use `destroy()` for full teardown.
+   */
   remove() {
     this.connectionHandles.container && (this.connectionHandles.container.remove(), this.connectionHandles.container = void 0), this.connectionPreview?.container && (this.connectionPreview.container.remove(), this.connectionPreview.container = void 0), this.svgGroup.remove();
   }
@@ -6513,15 +6556,28 @@ class Ai {
   destroy() {
     this._destroyed = !0, this._svgViewboxTimeoutId !== null && (clearTimeout(this._svgViewboxTimeoutId), this._svgViewboxTimeoutId = null), this._dragEndTimeoutId !== null && (clearTimeout(this._dragEndTimeoutId), this._dragEndTimeoutId = null), this._previewViewboxTimeoutId !== null && (clearTimeout(this._previewViewboxTimeoutId), this._previewViewboxTimeoutId = null), this._connectTimeoutId !== null && (clearTimeout(this._connectTimeoutId), this._connectTimeoutId = null), this.resizeRotate && this.resizeRotate.isEnabled() && this.resizeRotate.disable(), this.connector && this.connector.isActive && this.connector.disable(), this.relationships && (this.relationships.disable(), this.relationships.removeAll()), this.connectionHandles.container && (this.connectionHandles.container.remove(), this.connectionHandles.container = void 0), this.connectionPreview?.container && (this.connectionPreview.container.remove(), this.connectionPreview.container = void 0), this.svgGroup.remove(), this.isDragging = !1;
   }
+  /** Hide the node visually (sets display:none). */
   hide() {
     this.svgGroup.hide();
   }
+  /** Show the node after hide(). */
   show() {
     this.svgGroup.show();
   }
+  /**
+   * Set the node[s text content. No-op on SVG content nodes.
+   *
+   * @param text - New text string
+   */
   setText(t) {
     this.textElement && (this.options.text = t, this.textElement.text(t), this.centerText());
   }
+  /**
+   * Resize the node to new dimensions. For circles, forces width === height.
+   *
+   * @param width  - New width
+   * @param height - New height
+   */
   setSize(t, e) {
     if (this.options.width = t, this.options.height = e, this.backgroundRect instanceof oe)
       this.backgroundRect.size(t, e);
@@ -6542,16 +6598,25 @@ class Ai {
     }
     this.centerText();
   }
+  /**
+   * Change the node[s background and/or border colors.
+   *
+   * @param backgroundColor - New fill color (or undefined to keep current)
+   * @param borderColor     - New stroke color (or undefined to keep current)
+   */
   setColors(t, e) {
     t && (this.options.backgroundColor = t, this.backgroundRect.fill(t)), e && (this.options.borderColor = e, this.backgroundRect.stroke({ color: e }));
   }
+  /** Lock the node, disabling drag and resize/rotate. */
   lock() {
     this.options.isLocked = !0, this.options.allowDrag = !1, this.svgGroup.draggable && this.svgGroup.draggable(!1), this.disableResizeRotate();
   }
+  /** Unlock the node, re-enabling drag and resize/rotate. */
   unlock() {
     this.options.isLocked = !1, this.options.allowDrag = !0, this.makeDraggable(), this.enableResizeRotate();
   }
   // Resize/Rotate functionality - managed by Slate
+  /** Enable resize and rotate handles. Delegates to the Slate for centralized selection management. */
   enableResizeRotate() {
     console.log(
       "NODE_DEBUG: enableResizeRotate called on",
@@ -6559,6 +6624,7 @@ class Ai {
       "- delegating to Slate"
     ), this.slate.enableNodeResizeRotate(this);
   }
+  /** Disable resize and rotate handles. Delegates to the Slate. */
   disableResizeRotate() {
     console.log(
       "NODE_DEBUG: disableResizeRotate called on",
@@ -6566,21 +6632,30 @@ class Ai {
       "- delegating to Slate"
     ), this.slate.disableNodeResizeRotate(this);
   }
+  /** Enable resize handles only. */
   enableResize() {
     this.resizeRotate.updateOptions({ resizeEnabled: !0 });
   }
+  /** Disable resize handles only. */
   disableResize() {
     this.resizeRotate.updateOptions({ resizeEnabled: !1 });
   }
+  /** Enable rotate handle only. */
   enableRotate() {
     this.resizeRotate.updateOptions({ rotateEnabled: !0 });
   }
+  /** Disable rotate handle only. */
   disableRotate() {
     this.resizeRotate.updateOptions({ rotateEnabled: !1 });
   }
   isResizeRotateEnabled() {
     return this.resizeRotate.isEnabled();
   }
+  /**
+   * Set the node[s rotation angle.
+   *
+   * @param angle - Rotation in degrees (positive = clockwise)
+   */
   setRotation(t) {
     this.options.rotate || (this.options.rotate = { rotationAngle: 0 }), this.options.rotate.rotationAngle = t;
     const e = this.svgGroup.transform();
@@ -6592,6 +6667,12 @@ class Ai {
       translateY: e.translateY || 0
     });
   }
+  /**
+   * Get the current rotation angle. Reads from options.rotate first,
+   * then falls back to svgGroup transform and backgroundRect transform.
+   *
+   * @returns Rotation angle in degrees
+   */
   getRotation() {
     if (this.options.rotate?.rotationAngle !== void 0 && this.options.rotate.rotationAngle !== 0)
       return this.options.rotate.rotationAngle;
@@ -6614,9 +6695,15 @@ class Ai {
     return 0;
   }
   // Connector functionality
+  /** Enable the node[s connector so it can form connections to other nodes. */
   enableConnector() {
     this.connector.enable();
   }
+  /**
+   * Enable connector with interactive features (selectable, draggable lines).
+   *
+   * @param makeInteractiveCallback - Optional callback after interactive features are set up
+   */
   enableConnectorWithInteractive(t) {
     console.log(
       "NODE_DEBUG: enableConnectorWithInteractive called for",
@@ -6646,9 +6733,22 @@ class Ai {
     } else
       console.log("NODE_DEBUG: svg.connectable.js not available for", this.id);
   }
+  /** Disable the node[s connector and remove all connections. */
   disableConnector() {
     this.connector.disable();
   }
+  /**
+   * Create a connection line from this node to a target node.
+   *
+   * @param targetNode - The node to connect to
+   * @param connectionOptions - Line color, width, type, etc.
+   * @returns The connection object
+   *
+   * @example
+   * ```ts
+   * node1.connectTo(node2, { lineColor: '#e94560', lineWidth: 3, type: 'curved' });
+   * ```
+   */
   connectTo(t, e) {
     return this.connector.connectTo(t, e);
   }
@@ -6658,9 +6758,16 @@ class Ai {
   disconnectAll() {
     this.connector.disconnectAll();
   }
+  /** @returns All connection objects for this node. */
   getConnections() {
     return this.connector.getConnections();
   }
+  /**
+   * Get a specific connection by target node ID.
+   *
+   * @param targetNodeId - The target node[s ID
+   * @returns The connection object or null if not found
+   */
   getConnection(t) {
     return this.connector.getConnection(t);
   }
@@ -6755,9 +6862,11 @@ class Ai {
     return !!(t.getAttribute && (t.getAttribute("data-handle") || t.getAttribute("data-resize") || t.getAttribute("data-rotate")));
   }
   // Selection state management (handled by Slate)
+  /** Called by the Slate when this node is selected. */
   onSelected() {
     console.log("SELECTION_DEBUG: Node selected", this.id);
   }
+  /** Called by the Slate when this node is deselected. */
   onDeselected() {
     console.log("SELECTION_DEBUG: Node deselected", this.id);
   }
@@ -6928,12 +7037,14 @@ class Ai {
   hideConnectionPreview() {
     this.connectionPreview?.container && (this.connectionPreview.container.remove(), this.connectionPreview = void 0);
   }
+  /** Show connection handles (4 blue dots) on this node for creating connected siblings. */
   enableConnectionHandles() {
     console.log(
       "CONNECTION_HANDLES_DEBUG: enableConnectionHandles called for",
       this.id
     ), this.showConnectionHandles();
   }
+  /** Hide connection handles on this node. */
   disableConnectionHandles() {
     console.log(
       "CONNECTION_HANDLES_DEBUG: disableConnectionHandles called for",
@@ -7307,6 +7418,12 @@ class Jr {
   }
 }
 class Ii {
+  /**
+   * Creates the pan/zoom handler. Enables panning and zooming on the canvas.
+   *
+   * @param slate   - The parent Slate instance
+   * @param options - Pan/zoom configuration (zoom factor, min/max, controls, etc.)
+   */
   constructor(t, e = {}) {
     this.isEnabled = !1, this.controlsContainer = null, this.slate = t, this.canvas = t.canvas, this.options = {
       enabled: !0,
@@ -7419,12 +7536,14 @@ class Ii {
       this.canvas.zoom(e * t);
     }
   }
+  /** Zoom in one step. */
   zoomIn() {
     if (this.isEnabled) {
       const t = this.getZoom();
       this.canvas.zoom(t * 1.25);
     }
   }
+  /** Zoom out one step. */
   zoomOut() {
     if (this.isEnabled) {
       const t = this.getZoom();
@@ -7473,6 +7592,7 @@ class Ii {
       this.canvas.viewbox(i, s, e.width, e.height);
     }
   }
+  /** @returns Current zoom level (1 = 100%). */
   getZoom() {
     if (!this.isEnabled) return 1;
     try {
@@ -7481,6 +7601,7 @@ class Ii {
       return 1;
     }
   }
+  /** @returns Current pan position as { x, y }. */
   getPan() {
     if (!this.isEnabled) return { x: 0, y: 0 };
     try {
@@ -7495,6 +7616,7 @@ class Ii {
   destroy() {
     this.isEnabled && (this.canvas.panZoom(!1), this.canvas.off("panStart"), this.canvas.off("panning"), this.canvas.off("panEnd"), this.canvas.off("zoom"), this.removeZoomControls(), this.isEnabled = !1);
   }
+  /** @returns Whether pan/zoom is initialized and enabled. */
   isInitialized() {
     return this.isEnabled;
   }
@@ -8845,6 +8967,15 @@ class es {
    * @param element - CSS selector string or HTMLElement to mount the canvas on
    * @param options - Full slate configuration (see SlateOptions interface)
    * @throws If element is a selector string and no matching element is found
+   *
+   * @example
+   * ```ts
+   * import { Slate } from 'slateboxjs-v2';
+   * const slate = new Slate('#canvas', {
+   *   viewPort: { originalWidth: 1200, originalHeight: 800 },
+   *   panZoom: { enabled: true }
+   * });
+   * ```
    */
   constructor(t, e = {}) {
     if (this.selectedNodes = [], this.groupResizeRotate = null, this._coordinateIntervalId = null, this._destroyed = !1, this._birdsEyeTimeoutId = null, this._coordDisplayTimeoutId = null, this._nodeNotifyTimeoutId = null, typeof t == "string") {
@@ -9005,6 +9136,15 @@ class es {
    *
    * @param options - Node options including position, size, text, shape, colors, etc.
    * @returns The newly created Node instance
+   *
+   * @example
+   * ```ts
+   * slate.addNode({
+   *   id: 'my-node', x: 200, y: 150,
+   *   width: 120, height: 80, text: 'Hello',
+   *   shape: 'rectangle', backgroundColor: '#4ecdc4'
+   * });
+   * ```
    */
   addNode(t = {}) {
     const e = this.nodes.add(t);
@@ -9012,6 +9152,7 @@ class es {
       this._destroyed || this.notifyNodeChanged();
     }, 100), e;
   }
+  /** Remove a node by ID. */
   removeNode(t) {
     const e = this.nodes.remove(t);
     return this.notifyNodeChanged(), e;
@@ -9023,83 +9164,124 @@ class es {
   notifyNodeChanged(t) {
     this.birdsEye?.isEnabled() && this.birdsEye.scheduleRefresh();
   }
+  /** @returns The node with the given ID, or undefined if not found. */
   getNode(t) {
     return this.nodes.one(t);
   }
+  /** @returns All nodes currently on the slate. */
   getAllNodes() {
     return this.nodes.allNodes;
   }
   // Get the pan/zoom viewport for adding content that should pan/zoom
+  /** @returns The SVG root canvas (used as the viewport for pan/zoom). */
   getViewport() {
     return console.log("VIEWPORT_DEBUG: Using root canvas (SVG.js panzoom)"), this.canvas;
   }
   // Get viewport with retry logic for proper initialization
+  /** @returns Promise resolving to the SVG root canvas. */
   getViewportAsync() {
     return console.log(
       "VIEWPORT_DEBUG: Returning root canvas immediately (SVG.js panzoom)"
     ), Promise.resolve(this.canvas);
   }
   // Pan/Zoom API methods
+  /** Enable pan and zoom interactions. */
   enablePanZoom() {
     this.panZoom.enable();
   }
+  /** Disable pan and zoom interactions. */
   disablePanZoom() {
     this.panZoom.disable();
   }
+  /** Enable canvas panning. */
   enablePan() {
     this.panZoom.enablePan();
   }
+  /** Disable canvas panning. */
   disablePan() {
     this.panZoom.disablePan();
   }
+  /** Enable canvas zoom. */
   enableZoom() {
     this.panZoom.enableZoom();
   }
+  /** Disable canvas zoom. */
   disableZoom() {
     this.panZoom.disableZoom();
   }
+  /**
+   * Pan to a specific position.
+   * @param point - { x, y } target position
+   */
   pan(t) {
     this.panZoom.pan(t);
   }
+  /**
+   * Pan by a relative delta.
+   * @param delta - { dx, dy } distance to pan
+   */
   panBy(t) {
     this.panZoom.panBy(t);
   }
+  /**
+   * Set the zoom level.
+   * @param level - Zoom factor (1 = 100%)
+   */
   zoom(t) {
     this.panZoom.zoom(t);
   }
+  /**
+   * Zoom by a relative factor.
+   * @param factor - Multiplier applied to current zoom
+   */
   zoomBy(t) {
     this.panZoom.zoomBy(t);
   }
+  /** Zoom in one step. */
   zoomIn() {
     this.panZoom.zoomIn();
   }
+  /** Zoom out one step. */
   zoomOut() {
     this.panZoom.zoomOut();
   }
+  /**
+   * Zoom centered on a point.
+   * @param level - Target zoom level
+   * @param point - { x, y } focus point
+   */
   zoomAtPoint(t, e) {
     this.panZoom.zoomAtPoint(t, e);
   }
+  /** Reset both pan and zoom to defaults. */
   resetPanZoom() {
     this.panZoom.reset();
   }
+  /** Reset zoom to 100%. */
   resetZoom() {
     this.panZoom.resetZoom();
   }
+  /** Reset pan position to origin. */
   resetPan() {
     this.panZoom.resetPan();
   }
+  /** Zoom/pan to fit all nodes in the viewport. */
   fitToContent() {
     this.panZoom.fit();
   }
+  /** Pan to center all nodes in the viewport. */
   centerContent() {
     this.panZoom.center();
   }
+  /** @returns Current zoom level (1 = 100%). */
   getZoom() {
     return this.panZoom.getZoom();
   }
+  /** @returns Current pan position as { x, y }. */
   getPan() {
     return this.panZoom.getPan();
   }
+  /** Notify pan/zoom that the viewport was resized. */
   resizePanZoom() {
     this.panZoom.resize();
   }
@@ -9127,6 +9309,14 @@ class es {
    *
    * @param nodes - Array of nodes to select
    * @param addToSelection - If true, adds to existing selection instead of replacing it
+   *
+   * @example
+   * ```ts
+   * // Select a single node
+   * slate.selectNodes([node]);
+   * // Add to existing selection
+   * slate.selectNodes([node2, node3], true);
+   * ```
    */
   selectNodes(t, e = !1) {
     console.log(
@@ -9139,6 +9329,7 @@ class es {
     }), this.updateSelectionResizeRotate();
   }
   // SINGLE ORCHESTRATOR for resize/rotate management
+  /** Re-evaluate which nodes should have resize/rotate handles based on current selection. */
   updateSelectionResizeRotate() {
     if (console.log(
       "SELECTION_DEBUG: Updating resize/rotate for",
@@ -9166,6 +9357,7 @@ class es {
       ), this.createGroupResizeRotate();
   }
   // Node-level resize/rotate control (called by Node methods)
+  /** Request resize/rotate enable for a specific node (checked against selection). */
   enableNodeResizeRotate(t) {
     this.selectedNodes.includes(t) ? console.log(
       "SELECTION_DEBUG: Node",
@@ -9177,6 +9369,7 @@ class es {
       "requested resize/rotate enable - selecting it"
     ), this.selectNodes([t], !1));
   }
+  /** Disable resize/rotate for a specific node. */
   disableNodeResizeRotate(t) {
     console.log(
       "SELECTION_DEBUG: Node",
@@ -9235,21 +9428,26 @@ class es {
       s.setRotation(o + e);
     });
   }
+  /** Select a single node (convenience wrapper for selectNodes). */
   selectNode(t) {
     this.selectNodes([t], !1);
   }
+  /** Deselect a single node. */
   deselectNode(t) {
     this.selectedNodes.includes(t) && (console.log("SELECTION_DEBUG: Deselecting node", t.id), this.selectedNodes = this.selectedNodes.filter((e) => e !== t), t.onDeselected(), this.selectedNodes.length === 0 ? this.disableGroupResizeRotate() : this.updateSelectionResizeRotate());
   }
+  /** Deselect all currently selected nodes. */
   clearSelection() {
     console.log("SELECTION_DEBUG: Clearing selection"), this.selectedNodes.forEach((t) => {
       t.onDeselected();
     }), this.selectedNodes = [], this.updateSelectionResizeRotate();
   }
+  /** @returns Array of currently selected nodes. */
   getSelectedNodes() {
     return this.selectedNodes;
   }
   // Backward compatibility
+  /** @returns The first selected node, or null if none selected. */
   getSelectedNode() {
     return this.selectedNodes.length > 0 ? this.selectedNodes[0] : null;
   }

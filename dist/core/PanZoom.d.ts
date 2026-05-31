@@ -32,6 +32,12 @@ export declare class PanZoom {
     private options;
     private isEnabled;
     private controlsContainer;
+    /**
+     * Creates the pan/zoom handler. Enables panning and zooming on the canvas.
+     *
+     * @param slate   - The parent Slate instance
+     * @param options - Pan/zoom configuration (zoom factor, min/max, controls, etc.)
+     */
     constructor(slate: any, options?: PanZoomOptions);
     private init;
     private createZoomControls;
@@ -55,7 +61,9 @@ export declare class PanZoom {
         y: number;
     }): void;
     zoomBy(factor: number): void;
+    /** Zoom in one step. */
     zoomIn(): void;
+    /** Zoom out one step. */
     zoomOut(): void;
     zoomAtPoint(level: number, point: {
         x: number;
@@ -66,13 +74,16 @@ export declare class PanZoom {
     resetPan(): void;
     fit(): void;
     center(): void;
+    /** @returns Current zoom level (1 = 100%). */
     getZoom(): number;
+    /** @returns Current pan position as { x, y }. */
     getPan(): {
         x: number;
         y: number;
     };
     resize(): void;
     destroy(): void;
+    /** @returns Whether pan/zoom is initialized and enabled. */
     isInitialized(): boolean;
     private getAllOptions;
 }

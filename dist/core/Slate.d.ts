@@ -145,6 +145,15 @@ export declare class Slate {
      * @param element - CSS selector string or HTMLElement to mount the canvas on
      * @param options - Full slate configuration (see SlateOptions interface)
      * @throws If element is a selector string and no matching element is found
+     *
+     * @example
+     * ```ts
+     * import { Slate } from 'slateboxjs-v2';
+     * const slate = new Slate('#canvas', {
+     *   viewPort: { originalWidth: 1200, originalHeight: 800 },
+     *   panZoom: { enabled: true }
+     * });
+     * ```
      */
     constructor(element: string | HTMLElement, options?: SlateOptions);
     private init;
@@ -163,50 +172,101 @@ export declare class Slate {
      *
      * @param options - Node options including position, size, text, shape, colors, etc.
      * @returns The newly created Node instance
+     *
+     * @example
+     * ```ts
+     * slate.addNode({
+     *   id: 'my-node', x: 200, y: 150,
+     *   width: 120, height: 80, text: 'Hello',
+     *   shape: 'rectangle', backgroundColor: '#4ecdc4'
+     * });
+     * ```
      */
     addNode(options?: Partial<NodeOptions>): Node;
+    /** Remove a node by ID. */
     removeNode(id: string): boolean;
     /**
      * Notify that a node has changed (position, rotation, added, removed)
      * This triggers BirdsEye refresh if enabled
      */
     notifyNodeChanged(node?: Node): void;
+    /** @returns The node with the given ID, or undefined if not found. */
     getNode(id: string): Node | undefined;
+    /** @returns All nodes currently on the slate. */
     getAllNodes(): Node[];
+    /** @returns The SVG root canvas (used as the viewport for pan/zoom). */
     getViewport(): Svg;
+    /** @returns Promise resolving to the SVG root canvas. */
     getViewportAsync(): Promise<Svg>;
+    /** Enable pan and zoom interactions. */
     enablePanZoom(): void;
+    /** Disable pan and zoom interactions. */
     disablePanZoom(): void;
+    /** Enable canvas panning. */
     enablePan(): void;
+    /** Disable canvas panning. */
     disablePan(): void;
+    /** Enable canvas zoom. */
     enableZoom(): void;
+    /** Disable canvas zoom. */
     disableZoom(): void;
+    /**
+     * Pan to a specific position.
+     * @param point - { x, y } target position
+     */
     pan(point: {
         x: number;
         y: number;
     }): void;
+    /**
+     * Pan by a relative delta.
+     * @param delta - { dx, dy } distance to pan
+     */
     panBy(delta: {
         x: number;
         y: number;
     }): void;
+    /**
+     * Set the zoom level.
+     * @param level - Zoom factor (1 = 100%)
+     */
     zoom(level: number): void;
+    /**
+     * Zoom by a relative factor.
+     * @param factor - Multiplier applied to current zoom
+     */
     zoomBy(factor: number): void;
+    /** Zoom in one step. */
     zoomIn(): void;
+    /** Zoom out one step. */
     zoomOut(): void;
+    /**
+     * Zoom centered on a point.
+     * @param level - Target zoom level
+     * @param point - { x, y } focus point
+     */
     zoomAtPoint(level: number, point: {
         x: number;
         y: number;
     }): void;
+    /** Reset both pan and zoom to defaults. */
     resetPanZoom(): void;
+    /** Reset zoom to 100%. */
     resetZoom(): void;
+    /** Reset pan position to origin. */
     resetPan(): void;
+    /** Zoom/pan to fit all nodes in the viewport. */
     fitToContent(): void;
+    /** Pan to center all nodes in the viewport. */
     centerContent(): void;
+    /** @returns Current zoom level (1 = 100%). */
     getZoom(): number;
+    /** @returns Current pan position as { x, y }. */
     getPan(): {
         x: number;
         y: number;
     };
+    /** Notify pan/zoom that the viewport was resized. */
     resizePanZoom(): void;
     private setupSelectionHandling;
     /**
@@ -220,10 +280,21 @@ export declare class Slate {
      *
      * @param nodes - Array of nodes to select
      * @param addToSelection - If true, adds to existing selection instead of replacing it
+     *
+     * @example
+     * ```ts
+     * // Select a single node
+     * slate.selectNodes([node]);
+     * // Add to existing selection
+     * slate.selectNodes([node2, node3], true);
+     * ```
      */
     selectNodes(nodes: Node[], addToSelection?: boolean): void;
+    /** Re-evaluate which nodes should have resize/rotate handles based on current selection. */
     updateSelectionResizeRotate(): void;
+    /** Request resize/rotate enable for a specific node (checked against selection). */
     enableNodeResizeRotate(node: Node): void;
+    /** Disable resize/rotate for a specific node. */
     disableNodeResizeRotate(node: Node): void;
     private disableGroupResizeRotate;
     private createGroupResizeRotate;
@@ -232,10 +303,15 @@ export declare class Slate {
     private updateGroupHandle;
     private handleGroupResize;
     private handleGroupRotate;
+    /** Select a single node (convenience wrapper for selectNodes). */
     selectNode(node: Node): void;
+    /** Deselect a single node. */
     deselectNode(node: Node): void;
+    /** Deselect all currently selected nodes. */
     clearSelection(): void;
+    /** @returns Array of currently selected nodes. */
     getSelectedNodes(): Node[];
+    /** @returns The first selected node, or null if none selected. */
     getSelectedNode(): Node | null;
     /**
      * Export the slate to a JSON string in v1-compatible format.

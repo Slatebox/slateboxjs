@@ -30,6 +30,12 @@ export class PanZoom {
   private isEnabled: boolean = false
   private controlsContainer: HTMLDivElement | null = null
 
+  /**
+   * Creates the pan/zoom handler. Enables panning and zooming on the canvas.
+   *
+   * @param slate   - The parent Slate instance
+   * @param options - Pan/zoom configuration (zoom factor, min/max, controls, etc.)
+   */
   constructor(slate: any, options: PanZoomOptions = {}) {
     this.slate = slate
     this.canvas = slate.canvas
@@ -243,6 +249,7 @@ export class PanZoom {
     }
   }
 
+  /** Zoom in one step. */
   public zoomIn() {
     if (this.isEnabled) {
       const currentZoom = this.getZoom()
@@ -250,6 +257,7 @@ export class PanZoom {
     }
   }
 
+  /** Zoom out one step. */
   public zoomOut() {
     if (this.isEnabled) {
       const currentZoom = this.getZoom()
@@ -344,6 +352,7 @@ export class PanZoom {
     }
   }
 
+  /** @returns Current zoom level (1 = 100%). */
   public getZoom(): number {
     if (!this.isEnabled) return 1
     try {
@@ -354,6 +363,7 @@ export class PanZoom {
     }
   }
 
+  /** @returns Current pan position as { x, y }. */
   public getPan(): { x: number; y: number } {
     if (!this.isEnabled) return { x: 0, y: 0 }
     try {
@@ -386,6 +396,7 @@ export class PanZoom {
     }
   }
 
+  /** @returns Whether pan/zoom is initialized and enabled. */
   public isInitialized(): boolean {
     return this.isEnabled
   }

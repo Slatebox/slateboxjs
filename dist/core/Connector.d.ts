@@ -32,8 +32,16 @@ export declare class Connector {
     private options;
     private connections;
     private isActive;
+    /**
+     * Creates a connector for a node. Manages connection lines to other nodes.
+     *
+     * @param node    - The parent Node instance
+     * @param options - Connector configuration (line color, width, type, etc.)
+     */
     constructor(node: Node, options?: ConnectorOptions);
+    /** Enable the connector, making connection handles available. */
     enable(): void;
+    /** Disable the connector and remove all connections. */
     disable(): void;
     destroy(): void;
     private ensureContainers;

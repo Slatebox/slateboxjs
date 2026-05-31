@@ -16,13 +16,21 @@ export declare class ResizeRotate {
     private target;
     private options;
     private isActive;
+    /**
+     * Creates resize/rotate handle management for a node.
+     *
+     * @param node    - The parent Node instance
+     * @param options - Resize/rotate configuration
+     */
     constructor(node: Node, options?: ResizeRotateOptions);
+    /** Enable resize and rotate handles on the node. */
     enable(): void;
     /**
      * Make the L-shaped polyline handles easier to grab by setting a wider
      * stroke directly on the SVG elements (overrides CSS from svg.select.js).
      */
     private widenHandleHitAreas;
+    /** Disable resize and rotate handles on the node. */
     disable(): void;
     private addEventListeners;
     private isResizeRotateHandle;

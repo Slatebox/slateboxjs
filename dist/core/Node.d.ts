@@ -143,53 +143,146 @@ export declare class Node {
     private _dragEndTimeoutId;
     private _previewViewboxTimeoutId;
     private _connectTimeoutId;
+    /**
+     * Creates a new diagram node.
+     *
+     * Nodes support two mutually exclusive content types: text content (default)
+     * and SVG content (when `options.svgContent` is set). The node is created
+     * asynchronously — await `node.ready` before using sub-modules.
+     *
+     * @param options - Node configuration (position, size, shape, text, colors, etc.)
+     * @param slate  - The parent Slate instance
+     *
+     * @example
+     * ```ts
+     * const node = slate.addNode({
+     *   x: 100, y: 100, width: 120, height: 80,
+     *   text: 'Hello', shape: 'rectangle', backgroundColor: '#4ecdc4'
+     * });
+     * await node.ready;
+     * node.setRotation(45);
+     * ```
+     */
     constructor(options: NodeOptions, slate: Slate);
     private generateId;
     private createAsync;
     private finishCreate;
     private createBackground;
     private createText;
+    /** Position the text element within the background shape based on alignment settings. */
     centerText(): void;
     private makeDraggable;
     position(x: number, y: number, callback?: () => void, easing?: any, duration?: number): void;
+    /** Bring the node to the front of the SVG z-order. */
     toFront(): void;
+    /** Send the node to the back of the SVG z-order. */
     toBack(): void;
+    /**
+     * Remove the node from the canvas (light teardown).
+     * Cleans up DOM elements but does NOT disable sub-modules. Use `destroy()` for full teardown.
+     */
     remove(): void;
     /**
      * Destroy the node completely, cleaning up all timers, event handlers,
      * and owned sub-modules. Pattern matches PanZoom.ts.
      */
     destroy(): void;
+    /** Hide the node visually (sets display:none). */
     hide(): void;
+    /** Show the node after hide(). */
     show(): void;
+    /**
+     * Set the node[s text content. No-op on SVG content nodes.
+     *
+     * @param text - New text string
+     */
     setText(text: string): void;
+    /**
+     * Resize the node to new dimensions. For circles, forces width === height.
+     *
+     * @param width  - New width
+     * @param height - New height
+     */
     setSize(width: number, height: number): void;
+    /**
+     * Change the node[s background and/or border colors.
+     *
+     * @param backgroundColor - New fill color (or undefined to keep current)
+     * @param borderColor     - New stroke color (or undefined to keep current)
+     */
     setColors(backgroundColor?: string, borderColor?: string): void;
+    /** Lock the node, disabling drag and resize/rotate. */
     lock(): void;
+    /** Unlock the node, re-enabling drag and resize/rotate. */
     unlock(): void;
+    /** Enable resize and rotate handles. Delegates to the Slate for centralized selection management. */
     enableResizeRotate(): void;
+    /** Disable resize and rotate handles. Delegates to the Slate. */
     disableResizeRotate(): void;
+    /** Enable resize handles only. */
     enableResize(): void;
+    /** Disable resize handles only. */
     disableResize(): void;
+    /** Enable rotate handle only. */
     enableRotate(): void;
+    /** Disable rotate handle only. */
     disableRotate(): void;
     isResizeRotateEnabled(): boolean;
+    /**
+     * Set the node[s rotation angle.
+     *
+     * @param angle - Rotation in degrees (positive = clockwise)
+     */
     setRotation(angle: number): void;
+    /**
+     * Get the current rotation angle. Reads from options.rotate first,
+     * then falls back to svgGroup transform and backgroundRect transform.
+     *
+     * @returns Rotation angle in degrees
+     */
     getRotation(): number;
+    /** Enable the node[s connector so it can form connections to other nodes. */
     enableConnector(): void;
+    /**
+     * Enable connector with interactive features (selectable, draggable lines).
+     *
+     * @param makeInteractiveCallback - Optional callback after interactive features are set up
+     */
     enableConnectorWithInteractive(makeInteractiveCallback?: boolean): void;
+    /** Disable the node[s connector and remove all connections. */
     disableConnector(): void;
+    /**
+     * Create a connection line from this node to a target node.
+     *
+     * @param targetNode - The node to connect to
+     * @param connectionOptions - Line color, width, type, etc.
+     * @returns The connection object
+     *
+     * @example
+     * ```ts
+     * node1.connectTo(node2, { lineColor: '#e94560', lineWidth: 3, type: 'curved' });
+     * ```
+     */
     connectTo(targetNode: any, connectionOptions?: any): import("./Connector").Connection | null;
     disconnectFrom(targetNode: any): boolean;
     disconnectAll(): void;
+    /** @returns All connection objects for this node. */
     getConnections(): import("./Connector").Connection[];
+    /**
+     * Get a specific connection by target node ID.
+     *
+     * @param targetNodeId - The target node[s ID
+     * @returns The connection object or null if not found
+     */
     getConnection(targetNodeId: string): import("./Connector").Connection | null;
     isConnectorEnabled(): boolean;
     private centerTextInitial;
     private calculatePathBounds;
     private setupSelectionBehavior;
     private isResizeRotateHandle;
+    /** Called by the Slate when this node is selected. */
     onSelected(): void;
+    /** Called by the Slate when this node is deselected. */
     onDeselected(): void;
     private createConnectionHandles;
     private updateConnectionHandlePositions;
@@ -199,7 +292,9 @@ export declare class Node {
     private createPreviewShape;
     private addArrowheadToConnector;
     private hideConnectionPreview;
+    /** Show connection handles (4 blue dots) on this node for creating connected siblings. */
     enableConnectionHandles(): void;
+    /** Hide connection handles on this node. */
     disableConnectionHandles(): void;
     isConnectionHandlesEnabled(): boolean;
     private getNodeEdgePoint;

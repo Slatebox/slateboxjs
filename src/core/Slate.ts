@@ -186,6 +186,15 @@ export class Slate {
    * @param element - CSS selector string or HTMLElement to mount the canvas on
    * @param options - Full slate configuration (see SlateOptions interface)
    * @throws If element is a selector string and no matching element is found
+   *
+   * @example
+   * ```ts
+   * import { Slate } from 'slateboxjs-v2';
+   * const slate = new Slate('#canvas', {
+   *   viewPort: { originalWidth: 1200, originalHeight: 800 },
+   *   panZoom: { enabled: true }
+   * });
+   * ```
    */
   constructor(element: string | HTMLElement, options: SlateOptions = {}) {
     // Get or create the target element
@@ -548,6 +557,15 @@ export class Slate {
    *
    * @param options - Node options including position, size, text, shape, colors, etc.
    * @returns The newly created Node instance
+   *
+   * @example
+   * ```ts
+   * slate.addNode({
+   *   id: 'my-node', x: 200, y: 150,
+   *   width: 120, height: 80, text: 'Hello',
+   *   shape: 'rectangle', backgroundColor: '#4ecdc4'
+   * });
+   * ```
    */
   public addNode(options: Partial<NodeOptions> = {}) {
     const node = this.nodes.add(options);
@@ -558,6 +576,7 @@ export class Slate {
     return node;
   }
 
+  /** Remove a node by ID. */
   public removeNode(id: string) {
     const result = this.nodes.remove(id);
     // Notify BirdsEye of the removed node
@@ -575,15 +594,18 @@ export class Slate {
     }
   }
 
+  /** @returns The node with the given ID, or undefined if not found. */
   public getNode(id: string) {
     return this.nodes.one(id);
   }
 
+  /** @returns All nodes currently on the slate. */
   public getAllNodes(): Node[] {
     return this.nodes.allNodes;
   }
 
   // Get the pan/zoom viewport for adding content that should pan/zoom
+  /** @returns The SVG root canvas (used as the viewport for pan/zoom). */
   public getViewport(): Svg {
     // SVG.js panzoom works directly with root canvas - no viewport nesting needed!
     console.log("VIEWPORT_DEBUG: Using root canvas (SVG.js panzoom)");
@@ -591,6 +613,7 @@ export class Slate {
   }
 
   // Get viewport with retry logic for proper initialization
+  /** @returns Promise resolving to the SVG root canvas. */
   public getViewportAsync(): Promise<Svg> {
     // SVG.js panzoom works directly with root canvas - immediate return
     console.log(
@@ -600,86 +623,123 @@ export class Slate {
   }
 
   // Pan/Zoom API methods
+  /** Enable pan and zoom interactions. */
   public enablePanZoom() {
     this.panZoom.enable();
   }
 
+  /** Disable pan and zoom interactions. */
   public disablePanZoom() {
     this.panZoom.disable();
   }
 
+  /** Enable canvas panning. */
   public enablePan() {
     this.panZoom.enablePan();
   }
 
+  /** Disable canvas panning. */
   public disablePan() {
     this.panZoom.disablePan();
   }
 
+  /** Enable canvas zoom. */
   public enableZoom() {
     this.panZoom.enableZoom();
   }
 
+  /** Disable canvas zoom. */
   public disableZoom() {
     this.panZoom.disableZoom();
   }
 
+  /**
+   * Pan to a specific position.
+   * @param point - { x, y } target position
+   */
   public pan(point: { x: number; y: number }) {
     this.panZoom.pan(point);
   }
 
+  /**
+   * Pan by a relative delta.
+   * @param delta - { dx, dy } distance to pan
+   */
   public panBy(delta: { x: number; y: number }) {
     this.panZoom.panBy(delta);
   }
 
+  /**
+   * Set the zoom level.
+   * @param level - Zoom factor (1 = 100%)
+   */
   public zoom(level: number) {
     this.panZoom.zoom(level);
   }
 
+  /**
+   * Zoom by a relative factor.
+   * @param factor - Multiplier applied to current zoom
+   */
   public zoomBy(factor: number) {
     this.panZoom.zoomBy(factor);
   }
 
+  /** Zoom in one step. */
   public zoomIn() {
     this.panZoom.zoomIn();
   }
 
+  /** Zoom out one step. */
   public zoomOut() {
     this.panZoom.zoomOut();
   }
 
+  /**
+   * Zoom centered on a point.
+   * @param level - Target zoom level
+   * @param point - { x, y } focus point
+   */
   public zoomAtPoint(level: number, point: { x: number; y: number }) {
     this.panZoom.zoomAtPoint(level, point);
   }
 
+  /** Reset both pan and zoom to defaults. */
   public resetPanZoom() {
     this.panZoom.reset();
   }
 
+  /** Reset zoom to 100%. */
   public resetZoom() {
     this.panZoom.resetZoom();
   }
 
+  /** Reset pan position to origin. */
   public resetPan() {
     this.panZoom.resetPan();
   }
 
+  /** Zoom/pan to fit all nodes in the viewport. */
   public fitToContent() {
     this.panZoom.fit();
   }
 
+  /** Pan to center all nodes in the viewport. */
   public centerContent() {
     this.panZoom.center();
   }
 
+  /** @returns Current zoom level (1 = 100%). */
   public getZoom(): number {
     return this.panZoom.getZoom();
   }
 
+  /** @returns Current pan position as { x, y }. */
   public getPan(): { x: number; y: number } {
     return this.panZoom.getPan();
   }
 
+  /** Notify pan/zoom that the viewport was resized. */
   public resizePanZoom() {
     this.panZoom.resize();
   }
@@ -722,6 +782,14 @@ export class Slate {
    *
    * @param nodes - Array of nodes to select
    * @param addToSelection - If true, adds to existing selection instead of replacing it
+   *
+   * @example
+   * ```ts
+   * // Select a single node
+   * slate.selectNodes([node]);
+   * // Add to existing selection
+   * slate.selectNodes([node2, node3], true);
+   * ```
    */
   public selectNodes(nodes: Node[], addToSelection: boolean = false) {
     console.log(
@@ -749,6 +817,7 @@ export class Slate {
   }
 
   // SINGLE ORCHESTRATOR for resize/rotate management
+  /** Re-evaluate which nodes should have resize/rotate handles based on current selection. */
   public updateSelectionResizeRotate() {
     console.log(
       "SELECTION_DEBUG: Updating resize/rotate for",
@@ -804,6 +873,7 @@ export class Slate {
   }
 
   // Node-level resize/rotate control (called by Node methods)
+  /** Request resize/rotate enable for a specific node (checked against selection). */
   public enableNodeResizeRotate(node: Node) {
     // Only enable if this node is currently selected
     if (this.selectedNodes.includes(node)) {
@@ -824,6 +894,7 @@ export class Slate {
     }
   }
 
+  /** Disable resize/rotate for a specific node. */
   public disableNodeResizeRotate(node: Node) {
     console.log(
       "SELECTION_DEBUG: Node",
@@ -987,11 +1058,13 @@ export class Slate {
     });
   }
 
+  /** Select a single node (convenience wrapper for selectNodes). */
   public selectNode(node: Node) {
     // Maintain backward compatibility - convert to new selectNodes method
     this.selectNodes([node], false);
   }
 
+  /** Deselect a single node. */
   public deselectNode(node: Node) {
     if (this.selectedNodes.includes(node)) {
       console.log("SELECTION_DEBUG: Deselecting node", node.id);
@@ -1007,6 +1080,7 @@ export class Slate {
     }
   }
 
+  /** Deselect all currently selected nodes. */
   public clearSelection() {
     console.log("SELECTION_DEBUG: Clearing selection");
 
@@ -1022,11 +1096,13 @@ export class Slate {
     this.updateSelectionResizeRotate();
   }
 
+  /** @returns Array of currently selected nodes. */
   public getSelectedNodes(): Node[] {
     return this.selectedNodes;
   }
 
   // Backward compatibility
+  /** @returns The first selected node, or null if none selected. */
   public getSelectedNode(): Node | null {
     return this.selectedNodes.length > 0 ? this.selectedNodes[0] : null;
   }

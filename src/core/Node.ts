@@ -216,6 +216,26 @@ export class Node {
   private _previewViewboxTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _connectTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
+  /**
+   * Creates a new diagram node.
+   *
+   * Nodes support two mutually exclusive content types: text content (default)
+   * and SVG content (when `options.svgContent` is set). The node is created
+   * asynchronously — await `node.ready` before using sub-modules.
+   *
+   * @param options - Node configuration (position, size, shape, text, colors, etc.)
+   * @param slate  - The parent Slate instance
+   *
+   * @example
+   * ```ts
+   * const node = slate.addNode({
+   *   x: 100, y: 100, width: 120, height: 80,
+   *   text: 'Hello', shape: 'rectangle', backgroundColor: '#4ecdc4'
+   * });
+   * await node.ready;
+   * node.setRotation(45);
+   * ```
+   */
   constructor(options: NodeOptions, slate: Slate) {
     this.id = options.id || this.generateId();
     this.slate = slate;
@@ -599,6 +619,7 @@ export class Node {
     this.centerText();
   }
 
+  /** Position the text element within the background shape based on alignment settings. */
   public centerText() {
     // Skip if no text element (e.g., when using SVG content)
     if (!this.textElement) return;
@@ -812,14 +833,20 @@ export class Node {
     if (callback) callback();
   }
 
+  /** Bring the node to the front of the SVG z-order. */
   public toFront() {
     this.svgGroup.front();
   }
 
+  /** Send the node to the back of the SVG z-order. */
   public toBack() {
     this.svgGroup.back();
   }
 
+  /**
+   * Remove the node from the canvas (light teardown).
+   * Cleans up DOM elements but does NOT disable sub-modules. Use `destroy()` for full teardown.
+   */
   public remove() {
     // Clean up connection handles container (created on slate.canvas, not in svgGroup)
     if (this.connectionHandles.container) {
@@ -888,14 +915,21 @@ export class Node {
     this.isDragging = false;
   }
 
+  /** Hide the node visually (sets display:none). */
   public hide() {
     this.svgGroup.hide();
   }
 
+  /** Show the node after hide(). */
   public show() {
     this.svgGroup.show();
   }
 
+  /**
+   * Set the node[s text content. No-op on SVG content nodes.
+   *
+   * @param text - New text string
+   */
   public setText(text: string) {
     // Skip if no text element (e.g., when using SVG content)
     if (!this.textElement) return;
@@ -905,6 +939,12 @@ export class Node {
     this.centerText();
   }
 
+  /**
+   * Resize the node to new dimensions. For circles, forces width === height.
+   *
+   * @param width  - New width
+   * @param height - New height
+   */
   public setSize(width: number, height: number) {
     this.options.width = width;
     this.options.height = height;
@@ -943,6 +983,12 @@ export class Node {
     this.centerText();
   }
 
+  /**
+   * Change the node[s background and/or border colors.
+   *
+   * @param backgroundColor - New fill color (or undefined to keep current)
+   * @param borderColor     - New stroke color (or undefined to keep current)
+   */
   public setColors(backgroundColor?: string, borderColor?: string) {
     if (backgroundColor) {
       this.options.backgroundColor = backgroundColor;
@@ -955,6 +1001,7 @@ export class Node {
     }
   }
 
+  /** Lock the node, disabling drag and resize/rotate. */
   public lock() {
     this.options.isLocked = true;
     this.options.allowDrag = false;
@@ -965,6 +1012,7 @@ export class Node {
     this.disableResizeRotate();
   }
 
+  /** Unlock the node, re-enabling drag and resize/rotate. */
   public unlock() {
     this.options.isLocked = false;
     this.options.allowDrag = true;
@@ -974,6 +1022,7 @@ export class Node {
   }
 
   // Resize/Rotate functionality - managed by Slate
+  /** Enable resize and rotate handles. Delegates to the Slate for centralized selection management. */
   public enableResizeRotate() {
     // Delegate to Slate - don't manage directly
     console.log(
@@ -984,6 +1033,7 @@ export class Node {
     this.slate.enableNodeResizeRotate(this);
   }
 
+  /** Disable resize and rotate handles. Delegates to the Slate. */
   public disableResizeRotate() {
     // Delegate to Slate - don't manage directly
     console.log(
@@ -994,21 +1044,25 @@ export class Node {
     this.slate.disableNodeResizeRotate(this);
   }
 
+  /** Enable resize handles only. */
   public enableResize() {
     this.resizeRotate.updateOptions({ resizeEnabled: true });
     // Note: Slate manages when to actually enable/disable
   }
 
+  /** Disable resize handles only. */
   public disableResize() {
     this.resizeRotate.updateOptions({ resizeEnabled: false });
     // Note: Slate manages when to actually enable/disable
   }
 
+  /** Enable rotate handle only. */
   public enableRotate() {
     this.resizeRotate.updateOptions({ rotateEnabled: true });
     // Note: Slate manages when to actually enable/disable
   }
 
+  /** Disable rotate handle only. */
   public disableRotate() {
     this.resizeRotate.updateOptions({ rotateEnabled: false });
     // Note: Slate manages when to actually enable/disable
@@ -1018,6 +1072,11 @@ export class Node {
     return this.resizeRotate.isEnabled();
   }
 
+  /**
+   * Set the node[s rotation angle.
+   *
+   * @param angle - Rotation in degrees (positive = clockwise)
+   */
   public setRotation(angle: number) {
     if (!this.options.rotate) {
       this.options.rotate = { rotationAngle: 0 };
@@ -1035,6 +1094,12 @@ export class Node {
     });
   }
 
+  /**
+   * Get the current rotation angle. Reads from options.rotate first,
+   * then falls back to svgGroup transform and backgroundRect transform.
+   *
+   * @returns Rotation angle in degrees
+   */
   public getRotation(): number {
     // PRIORITY: options.rotate.rotationAngle is always kept up-to-date by both:
     // - setRotation() (programmatic rotation)
@@ -1071,10 +1136,16 @@ export class Node {
   }
 
   // Connector functionality
+  /** Enable the node[s connector so it can form connections to other nodes. */
   public enableConnector() {
     this.connector.enable();
   }
 
+  /**
+   * Enable connector with interactive features (selectable, draggable lines).
+   *
+   * @param makeInteractiveCallback - Optional callback after interactive features are set up
+   */
   public enableConnectorWithInteractive(makeInteractiveCallback?: boolean) {
     console.log(
       "NODE_DEBUG: enableConnectorWithInteractive called for",
@@ -1135,10 +1206,23 @@ export class Node {
     }
   }
 
+  /** Disable the node[s connector and remove all connections. */
   public disableConnector() {
     this.connector.disable();
   }
 
+  /**
+   * Create a connection line from this node to a target node.
+   *
+   * @param targetNode - The node to connect to
+   * @param connectionOptions - Line color, width, type, etc.
+   * @returns The connection object
+   *
+   * @example
+   * ```ts
+   * node1.connectTo(node2, { lineColor: '#e94560', lineWidth: 3, type: 'curved' });
+   * ```
+   */
   public connectTo(targetNode: any, connectionOptions?: any) {
     return this.connector.connectTo(targetNode, connectionOptions);
   }
@@ -1151,10 +1235,17 @@ export class Node {
     this.connector.disconnectAll();
   }
 
+  /** @returns All connection objects for this node. */
   public getConnections() {
     return this.connector.getConnections();
   }
 
+  /**
+   * Get a specific connection by target node ID.
+   *
+   * @param targetNodeId - The target node[s ID
+   * @returns The connection object or null if not found
+   */
   public getConnection(targetNodeId: string) {
     return this.connector.getConnection(targetNodeId);
   }
@@ -1305,11 +1396,13 @@ export class Node {
   }
 
   // Selection state management (handled by Slate)
+  /** Called by the Slate when this node is selected. */
   public onSelected() {
     console.log("SELECTION_DEBUG: Node selected", this.id);
     // Note: Slate now handles resize/rotate enabling
   }
 
+  /** Called by the Slate when this node is deselected. */
   public onDeselected() {
     console.log("SELECTION_DEBUG: Node deselected", this.id);
     // Note: Slate now handles resize/rotate disabling
@@ -1806,6 +1899,7 @@ export class Node {
     }
   }
 
+  /** Show connection handles (4 blue dots) on this node for creating connected siblings. */
   public enableConnectionHandles() {
     console.log(
       "CONNECTION_HANDLES_DEBUG: enableConnectionHandles called for",
@@ -1814,6 +1908,7 @@ export class Node {
     this.showConnectionHandles();
   }
 
+  /** Hide connection handles on this node. */
   public disableConnectionHandles() {
     console.log(
       "CONNECTION_HANDLES_DEBUG: disableConnectionHandles called for",
