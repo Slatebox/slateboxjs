@@ -127,6 +127,17 @@ export declare class Slate {
     private selectedNodes;
     private groupResizeRotate;
     private _coordinateIntervalId;
+    /**
+     * Creates a new Slate — the main orchestrator for a diagramming canvas.
+     *
+     * Initializes the SVG canvas, sets up all sub-modules (nodes manager,
+     * pan/zoom, selection, grid, keyboard shortcuts, undo/redo, etc.),
+     * and attaches event handlers.
+     *
+     * @param element - CSS selector string or HTMLElement to mount the canvas on
+     * @param options - Full slate configuration (see SlateOptions interface)
+     * @throws If element is a selector string and no matching element is found
+     */
     constructor(element: string | HTMLElement, options?: SlateOptions);
     private init;
     private setupCoordinateCallbacks;
@@ -134,6 +145,12 @@ export declare class Slate {
     private startCoordinatePolling;
     private updateCoordinateDisplay;
     private makeResponsive;
+    /**
+     * Add a new node to the slate.
+     *
+     * @param options - Node options including position, size, text, shape, colors, etc.
+     * @returns The newly created Node instance
+     */
     addNode(options?: any): Node;
     removeNode(id: string): boolean;
     /**
@@ -179,6 +196,18 @@ export declare class Slate {
     };
     resizePanZoom(): void;
     private setupSelectionHandling;
+    /**
+     * Select one or more nodes on the slate.
+     *
+     * This is the SINGLE ORCHESTRATOR for selection. It:
+     * 1. Clears current selection unless addToSelection is true
+     * 2. Adds the specified nodes to the selection set
+     * 3. Calls updateSelectionResizeRotate() to enable handles on selected nodes
+     * 4. Fires onSelectionChanged event
+     *
+     * @param nodes - Array of nodes to select
+     * @param addToSelection - If true, adds to existing selection instead of replacing it
+     */
     selectNodes(nodes: Node[], addToSelection?: boolean): void;
     updateSelectionResizeRotate(): void;
     enableNodeResizeRotate(node: Node): void;

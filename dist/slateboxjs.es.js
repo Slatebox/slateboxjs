@@ -8761,6 +8761,17 @@ class ts {
   }
 }
 class es {
+  /**
+   * Creates a new Slate — the main orchestrator for a diagramming canvas.
+   *
+   * Initializes the SVG canvas, sets up all sub-modules (nodes manager,
+   * pan/zoom, selection, grid, keyboard shortcuts, undo/redo, etc.),
+   * and attaches event handlers.
+   *
+   * @param element - CSS selector string or HTMLElement to mount the canvas on
+   * @param options - Full slate configuration (see SlateOptions interface)
+   * @throws If element is a selector string and no matching element is found
+   */
   constructor(t, e = {}) {
     if (this.selectedNodes = [], this.groupResizeRotate = null, this._coordinateIntervalId = null, typeof t == "string") {
       const i = document.querySelector(t);
@@ -8902,6 +8913,12 @@ class es {
     const t = this.options.viewPort?.originalWidth || 800, e = this.options.viewPort?.originalHeight || 600;
     this.canvas.viewbox(0, 0, t, e);
   }
+  /**
+   * Add a new node to the slate.
+   *
+   * @param options - Node options including position, size, text, shape, colors, etc.
+   * @returns The newly created Node instance
+   */
   addNode(t = {}) {
     const e = this.nodes.add(t);
     return setTimeout(() => this.notifyNodeChanged(), 100), e;
@@ -9010,7 +9027,18 @@ class es {
       );
     });
   }
-  // New multi-node selection method - SINGLE ORCHESTRATOR
+  /**
+   * Select one or more nodes on the slate.
+   *
+   * This is the SINGLE ORCHESTRATOR for selection. It:
+   * 1. Clears current selection unless addToSelection is true
+   * 2. Adds the specified nodes to the selection set
+   * 3. Calls updateSelectionResizeRotate() to enable handles on selected nodes
+   * 4. Fires onSelectionChanged event
+   *
+   * @param nodes - Array of nodes to select
+   * @param addToSelection - If true, adds to existing selection instead of replacing it
+   */
   selectNodes(t, e = !1) {
     console.log(
       "SELECTION_DEBUG: Selecting nodes",
