@@ -1,6 +1,7 @@
 {
   "version": 1,
   "status": "running",
-  "updated_at": "2026-05-31T21:12:28Z",
-  "last_note": "autonomous directive resumed"
+  "current_milestone": "Phase 2: E2E Coverage Expansion",
+  "updated_at": "2026-06-01T16:33:00Z",
+  "last_note": "Phase 1 complete: TS strict hardening + 140 Node tests. 980 unit, 56 e2e. Committed. Phase 2 starting."
 }
