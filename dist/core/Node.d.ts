@@ -2,12 +2,38 @@ import { G, Rect, Text, Circle, Ellipse } from "@svgdotjs/svg.js";
 import "@svgdotjs/svg.draggable.js";
 import { ResizeRotate, ResizeRotateOptions } from "./ResizeRotate";
 import { Connector, ConnectorOptions } from "./Connector";
+import { Relationships } from "./Relationships";
+import { Images } from "./Images";
+import { Editor } from "./Editor";
+import { Links } from "./Links";
+import { Filters } from "./Filters";
+import { Menu } from "./Menu";
+export interface NodeLinkOptions {
+    show?: boolean;
+    type?: "url" | "currentSlate" | "externalSlate";
+    data?: string;
+    thumbnail?: string;
+}
+export interface NodeFilterOptions {
+    vect?: string;
+    text?: string;
+}
+export interface NodeAnimationOptions {
+    vect?: string;
+    text?: string;
+}
+export interface NodeAIOptions {
+    textToChildNodes?: any;
+    textToImage?: any;
+}
 export interface NodeOptions {
     id: string;
     x?: number;
     y?: number;
     width?: number;
     height?: number;
+    name?: string;
+    groupId?: string;
     text?: string;
     fontSize?: number;
     fontFamily?: string;
@@ -15,46 +41,109 @@ export interface NodeOptions {
     textOpacity?: number;
     textXAlign?: "left" | "center" | "right";
     textYAlign?: "top" | "middle" | "bottom";
-    backgroundColor?: string;
-    borderColor?: string;
-    borderWidth?: number;
-    allowDrag?: boolean;
-    isLocked?: boolean;
-    shape?: "rectangle" | "circle" | "ellipse";
-    rotate?: {
-        rotationAngle?: number;
-    };
     textOffset?: {
         x?: number;
         y?: number;
     };
+    backgroundColor?: string;
+    borderColor?: string;
+    borderWidth?: number;
+    borderStyle?: "solid" | "dashed" | "dotted";
+    borderOpacity?: number;
+    borderDisplayOnly?: boolean;
+    opacity?: number;
+    shape?: string;
+    vectorPath?: string;
+    shapeHint?: string;
+    svgContent?: string;
+    svgString?: string;
+    image?: string;
+    imageOrigWidth?: number;
+    imageOrigHeight?: number;
+    lineColor?: string;
+    lineOpacity?: number;
+    lineEffect?: string;
+    lineType?: "bezier" | "linear" | "straight";
+    lineCurveType?: "cubic" | "quadratic";
+    lineCurviness?: number;
+    lineWidth?: number;
+    allowDrag?: boolean;
+    isLocked?: boolean;
+    disableDrag?: boolean;
+    allowMenu?: boolean;
+    allowContext?: boolean;
+    allowResize?: boolean;
+    showDelete?: boolean;
+    showAdd?: boolean;
+    showResize?: boolean;
+    showRotate?: boolean;
+    showMenu?: boolean;
+    showColorTab?: boolean;
+    showTextTab?: boolean;
+    showAITab?: boolean;
+    showShapeTab?: boolean;
+    showImageTab?: boolean;
+    showEffectTab?: boolean;
+    showRelationshipConnector?: boolean;
+    showRelationshipDelete?: boolean;
+    showRelationshipProperties?: boolean;
+    showRelationshipReassign?: boolean;
+    showAddAndDeleteConditionally?: boolean;
+    spaceBetweenNodesWhenAdding?: number;
+    disableMenuAsTemplate?: boolean;
+    isComment?: boolean;
+    isCategory?: boolean;
+    categoryName?: string;
+    humanTouch?: boolean;
+    iconFor?: string;
+    defaultShaped?: boolean;
+    pinUnderneath?: boolean;
+    rotate?: {
+        rotationAngle?: number;
+    };
     resizeRotate?: ResizeRotateOptions;
     connector?: ConnectorOptions;
-    svgContent?: string;
+    link?: NodeLinkOptions;
+    filters?: NodeFilterOptions;
+    animations?: NodeAnimationOptions;
+    ai?: NodeAIOptions;
     customRender?: (group: G, options: NodeOptions) => void;
 }
 export declare class Node {
     id: string;
     options: NodeOptions;
     svgGroup: G;
-    backgroundRect: Rect | Circle | Ellipse;
+    backgroundRect: Rect | Circle | Ellipse | G;
     textElement: Text;
     nestedSvg?: any;
     resizeRotate: ResizeRotate;
     connector: Connector;
+    relationships: Relationships;
+    images: Images;
+    editor: Editor;
+    links: Links;
+    filters: Filters;
+    menu: Menu;
     private connectionHandles;
     private connectionHandlesVisible;
     private connectionPreview?;
     private slate;
     private isDragging;
     private wasSelectedBeforeDrag;
+    private preDragTransform;
+    private preDragPosition;
+    /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
+    ready: Promise<void>;
+    private _resolveReady;
+    private _rejectReady;
+    private _initFailed;
     constructor(options: NodeOptions, slate: any);
     private generateId;
     private createAsync;
     private finishCreate;
     private createBackground;
     private createText;
-    private centerText;
+    centerText(): void;
     private makeDraggable;
     position(x: number, y: number, callback?: () => void, easing?: any, duration?: number): void;
     toFront(): void;

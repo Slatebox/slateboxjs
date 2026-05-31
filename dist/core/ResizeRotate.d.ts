@@ -17,6 +17,11 @@ export declare class ResizeRotate {
     private isActive;
     constructor(node: any, options?: ResizeRotateOptions);
     enable(): void;
+    /**
+     * Make the L-shaped polyline handles easier to grab by setting a wider
+     * stroke directly on the SVG elements (overrides CSS from svg.select.js).
+     */
+    private widenHandleHitAreas;
     disable(): void;
     private addEventListeners;
     private isResizeRotateHandle;

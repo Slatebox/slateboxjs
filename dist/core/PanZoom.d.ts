@@ -17,6 +17,10 @@ export interface PanZoomOptions {
     zoomMax?: number;
     wheelZoomDeltaModeLinePixels?: number;
     wheelZoomDeltaModeScreenPixels?: number;
+    momentum?: boolean;
+    momentumSlowdown?: number;
+    showControls?: boolean;
+    controlsPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
     onPan?: (event: any) => void;
     onZoom?: (event: any) => void;
     onPanStart?: (event: any) => void;
@@ -27,8 +31,11 @@ export declare class PanZoom {
     private slate;
     private options;
     private isEnabled;
+    private controlsContainer;
     constructor(slate: any, options?: PanZoomOptions);
     private init;
+    private createZoomControls;
+    private removeZoomControls;
     enable(): void;
     disable(): void;
     enablePan(): void;
