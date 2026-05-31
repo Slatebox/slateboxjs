@@ -165,6 +165,7 @@ export class Slate {
   public options: SlateOptions;
   private selectedNodes: Node[] = [];
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
+  private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor(element: string | HTMLElement, options: SlateOptions = {}) {
     // Get or create the target element
@@ -377,7 +378,7 @@ export class Slate {
     console.log("COORD_DEBUG: Starting coordinate polling");
 
     // Poll every 200ms to update coordinates (reduced frequency)
-    setInterval(() => {
+    this._coordinateIntervalId = setInterval(() => {
       this.updateCoordinateDisplay();
     }, 200);
   }

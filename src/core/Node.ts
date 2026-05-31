@@ -207,6 +207,8 @@ export class Node {
   /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
   public ready: Promise<void>;
   private _resolveReady!: () => void;
+  private _rejectReady!: (reason?: any) => void;
+  private _initFailed: boolean = false;
 
   constructor(options: NodeOptions, slate: any) {
     this.id = options.id || this.generateId();
@@ -251,8 +253,9 @@ export class Node {
       ...options,
     };
 
-    this.ready = new Promise<void>((resolve) => {
+    this.ready = new Promise<void>((resolve, reject) => {
       this._resolveReady = resolve;
+      this._rejectReady = reject;
     });
 
     console.log("NODE_DEBUG: Calling createAsync for", this.id);
@@ -280,6 +283,8 @@ export class Node {
       this.finishCreate();
     } catch (error) {
       console.error("NODE_DEBUG: Error in createAsync for", this.id, error);
+      this._initFailed = true;
+      this._rejectReady(error);
     }
   }
 
@@ -338,12 +343,12 @@ export class Node {
         if (content) {
           // Try to get bbox first
           let bb = content.bbox();
-          console.log("Delayed bbox:", bb, "Node size:", w, h);
+          console.log("NODE_DEBUG: Delayed bbox:", bb, "Node size:", w, h);
 
           // If bbox is invalid, try getting path bounds from the SVG content string
           if (bb.width <= 0 || bb.height <= 0) {
             bb = this.calculatePathBounds(this.options.svgContent!, w, h);
-            console.log("Calculated bounds:", bb);
+            console.log("NODE_DEBUG: Calculated bounds:", bb);
           }
 
           if (bb.width > 0 && bb.height > 0) {
@@ -357,10 +362,10 @@ export class Node {
             );
 
             console.log(
-              `Set viewbox(${bb.x}, ${bb.y}, ${bb.width}, ${bb.height}) with preserveAspectRatio="xMidYMid meet"`
+              `NODE_DEBUG: Set viewbox(${bb.x}, ${bb.y}, ${bb.width}, ${bb.height}) with preserveAspectRatio="xMidYMid meet"`
             );
           } else {
-            console.log("Invalid bounds, trying default viewbox approach");
+            console.log("NODE_DEBUG: Invalid bounds, trying default viewbox approach");
             // Fallback: set a reasonable viewbox for typical icon content
             this.nestedSvg.viewbox(0, 0, 24, 24);
             this.nestedSvg.node.setAttribute(
@@ -860,7 +865,7 @@ export class Node {
       try {
         (this.backgroundRect as any).size?.(width, height);
       } catch (_) {
-        // Non-critical - shape may not support size method
+        console.warn("NODE_DEBUG: Failed to resize custom shape backgroundRect:", _);
       }
     }
 
@@ -903,6 +908,8 @@ export class Node {
     this.options.isLocked = false;
     this.options.allowDrag = true;
     this.makeDraggable();
+    // Re-enable resize/rotate if this node is currently selected
+    this.enableResizeRotate();
   }
 
   // Resize/Rotate functionality - managed by Slate
@@ -983,7 +990,7 @@ export class Node {
         return groupTransform.rotate;
       }
     } catch (e) {
-      // Continue to fallbacks
+      console.warn("NODE_DEBUG: Failed to read svgGroup transform for rotation:", e);
     }
 
     // Fallback: Check backgroundRect (svg.select.js applies rotation here during manual rotate)
@@ -996,7 +1003,7 @@ export class Node {
         return transform.rotate;
       }
     } catch (e) {
-      // Fallback if transform reading fails
+      console.warn("NODE_DEBUG: Failed to read backgroundRect transform for rotation:", e);
     }
 
     return 0;
@@ -1942,6 +1949,10 @@ export class Node {
   }
 
   private connectToNode(targetNode: any): void {
+    if (!this.connector) {
+      console.warn("CONNECTION_HANDLES_DEBUG: Connector not initialized for", this.id);
+      return;
+    }
     if (!this.connector.isEnabled()) {
       console.log("CONNECTION_HANDLES_DEBUG: Enabling connector for", this.id);
       this.connector.enable();

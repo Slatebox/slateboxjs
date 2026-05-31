@@ -34,6 +34,11 @@ export class ResizeRotate {
 
   public enable() {
     if (this.isActive) return;
+    // Guard: backgroundRect may not be initialized if node creation failed
+    if (!this.target) {
+      console.warn("RESIZE_ROTATE_DEBUG: Cannot enable — target (backgroundRect) not available on", this.node?.id);
+      return;
+    }
 
     try {
       // Use the correct svg.select.js API for generic shapes (rect, circle, ellipse)
@@ -82,8 +87,8 @@ export class ResizeRotate {
           h.setAttribute("stroke", "#333");
           h.style.pointerEvents = "all";
         });
-      } catch (_) {
-        // Non-critical — handles still work, just harder to click
+      } catch (e) {
+        console.warn("RESIZE_ROTATE_DEBUG: Failed to widen handle hit areas:", e);
       }
     });
   }
@@ -196,7 +201,7 @@ export class ResizeRotate {
           const targetTransform = this.target.transform();
           backgroundRectRotation = targetTransform?.rotate || 0;
         } catch (e) {
-          // Fallback to 0 if we can't read the transform
+          console.warn("RESIZE_ROTATE_DEBUG: Failed to read backgroundRect rotation:", e);
         }
 
         // Also get any existing rotation on svgGroup (from setRotation, e.g., duplicated nodes)
@@ -205,7 +210,7 @@ export class ResizeRotate {
           const groupTransform = this.node.svgGroup.transform();
           existingSvgGroupRotation = groupTransform?.rotate || 0;
         } catch (e) {
-          // Fallback to 0 if we can't read the transform
+          console.warn("RESIZE_ROTATE_DEBUG: Failed to read svgGroup rotation:", e);
         }
 
         // Total rotation = svgGroup rotation + backgroundRect rotation
