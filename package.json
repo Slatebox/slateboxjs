@@ -39,8 +39,20 @@
     "nodes",
     "visualization"
   ],
-  "author": "SlateboxJS Team",
+  "author": "Tim Heckel <tim@slatebox.com>",
   "license": "MIT",
+  "peerDependencies": {
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.0"
+  },
+  "peerDependenciesMeta": {
+    "y-websocket": {
+      "optional": true
+    },
+    "yjs": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@types/node": "^20.10.5",
