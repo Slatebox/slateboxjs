@@ -34,6 +34,8 @@ export interface SlateEvents {
     onCollaboration?: (pkg: SlatePackage) => void;
     onNodeDragged?: (node: Node, evt: MouseEvent) => void;
     onCanvasClicked?: (evt: MouseEvent) => void;
+    /** Fired when a multi-node selection forms (nodes) or ends ([]) */
+    onGroupSelection?: (selectedNodes: Node[]) => void;
     onImagesRequested?: (opts: Record<string, any>) => void;
     onRequestSave?: (opts?: Record<string, any>) => void;
     onCreateImage?: (opts: Record<string, any>, cb: Function) => void;
@@ -138,6 +140,7 @@ export declare class Slate {
     private _coordinateIntervalId;
     private _destroyed;
     private _applyingRemote;
+    private _hadGroupSelection;
     private _birdsEyeTimeoutId;
     private _coordDisplayTimeoutId;
     private _nodeNotifyTimeoutId;
@@ -192,6 +195,12 @@ export declare class Slate {
      * during init and again after loadJSON replaces the options.
      */
     applyContainerStyle(): void;
+    /** v1: host-supplied permission check — true when the viewer cannot edit. */
+    isReadOnly(): boolean;
+    /** v1: host-supplied permission check — true when only comments are allowed. */
+    isCommentOnly(): boolean;
+    /** v1: host-supplied permission check for removing comment nodes. */
+    canRemoveComments(): boolean;
     /** Suppress emitSlateChange while applying a remote package (v1 echo semantics). */
     beginRemoteApply(): void;
     /** Re-enable emitSlateChange after a remote package has been applied. */

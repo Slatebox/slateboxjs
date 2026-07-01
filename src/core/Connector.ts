@@ -242,6 +242,36 @@ export class Connector {
 
       console.log("CONNECTOR_DEBUG: Successfully connected", connectionId);
 
+      // v1 contract: clicking a connection line asks the HOST to render its
+      // line-properties menu; the cb applies updates to the association
+      const lineEl = (connectableObj as any).line;
+      if (lineEl?.on) {
+        lineEl.on("click", (evt: any) => {
+          const events = this.node.slate?.options?.events;
+          if (!events?.onLineMenuRequested) return;
+          if (this.node.slate?.isReadOnly?.()) return;
+          evt.stopPropagation?.();
+          const association =
+            (this.node as any).relationships?.getAssociation?.(
+              targetNode.id
+            ) ?? connection;
+          events.onLineMenuRequested(this.node, association, (opts: any = {}) => {
+            if (opts.lineColor && connectableObj.setLineColor) {
+              connectableObj.setLineColor(opts.lineColor);
+              connection.lineColor = opts.lineColor;
+            }
+            if (opts.lineWidth && lineEl.attr) {
+              lineEl.attr({ "stroke-width": opts.lineWidth });
+              connection.lineWidth = opts.lineWidth;
+            }
+            // Persist onto the association record so exportJSON carries it
+            if (association && association.id) {
+              Object.assign(association, opts);
+            }
+          });
+        });
+      }
+
       // Trigger callback
       this.options.onConnect?.(connection);
 

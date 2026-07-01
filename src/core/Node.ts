@@ -208,6 +208,7 @@ export class Node {
 
   /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
   public ready: Promise<void>;
+  private _lastClickTime = 0;
   private _resolveReady!: () => void;
   private _rejectReady!: (reason?: unknown) => void;
   private _initFailed: boolean = false;
@@ -1324,6 +1325,14 @@ export class Node {
 
   // Selection Management
   private setupSelectionBehavior() {
+    // v1 contract: double-click asks the HOST to render its text pane
+    // (native dblclick as a fallback for programmatic dispatch; interactive
+    // double-clicks are detected in the pointerup path below)
+    this.svgGroup.on("dblclick", (event: any) => {
+      if (this.isResizeRotateHandle(event.target)) return;
+      this.requestTextPane();
+    });
+
     // SOLUTION: Use pointerdown/pointerup with position-based click detection
     let clickStartPosition: { x: number; y: number } | null = null;
     const CLICK_THRESHOLD = 5; // pixels - if movement is less than this, it's a click
@@ -1376,10 +1385,45 @@ export class Node {
 
           // Let Slate handle the selection logic and resize/rotate enabling
           this.slate.selectNodes([this], isMultiSelect);
+
+          // Double-click detection: svg.draggable's pointer handling
+          // suppresses native dblclick synthesis, so detect two quick
+          // clicks ourselves and request the host's text pane
+          const now = Date.now();
+          if (now - this._lastClickTime < 400) {
+            this._lastClickTime = 0;
+            this.requestTextPane();
+          } else {
+            this._lastClickTime = now;
+          }
         }
 
         clickStartPosition = null;
       }
+    });
+  }
+
+  /**
+   * Ask the host application to render its text-editing pane (v1's
+   * onTextPaneRequested contract). The callback the host invokes applies
+   * the edits via the Editor. No-op for read-only viewers, locked nodes,
+   * or when the host registered no handler.
+   */
+  public requestTextPane(): void {
+    const events = this.slate.options.events;
+    if (!events?.onTextPaneRequested) return;
+    if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;
+    if (this.options.isLocked) return;
+    events.onTextPaneRequested(this, (opts: any = {}) => {
+      this.editor?.set(
+        opts.text ?? this.options.text ?? "",
+        opts.fontSize,
+        opts.fontFamily,
+        opts.fontColor ?? opts.foregroundColor,
+        opts.textOpacity ?? opts.opacity,
+        opts.textXAlign,
+        opts.textYAlign
+      );
     });
   }
 

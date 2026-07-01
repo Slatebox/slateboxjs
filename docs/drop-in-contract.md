@@ -47,17 +47,19 @@ App usage: `const slate = await new Slatebox.slate(options, events).init()`
   - `layoutType: { val, overlap, rankdir }`, `eligibleForThemeCompilation`
   - `isPublic`, `isPrivate`, `isUnlisted`, `isTemplate`, `basedOnThemeId`, `basedOnTemplate`
 - [x] Events object passed as 2nd constructor arg reaches the engine (`v2Options.events = this.events`) (proof: tests/unit/compat-facade.test.ts "passes the v1 events object through")
-- [ ] Events object callbacks wired (fired by the library at the right moments):
-  - `onSlateChanged(pkg, collabUsers)` — PARTIAL: fires on node add/delete/text-change/drag-move with v1 pkg shape `{type, data, instanceId}` + remote-echo suppression via `beginRemoteApply` (proof: tests/e2e/compat-facade.spec.ts). Remaining: color/shape/resize/rotate/zoom/canvas-move/undo-redo emission — tracked in §F
-  - `onCollaborationUsersChanged(users)`, `onCollaborationUsersRemoved(users)`, `onCollaboration(pkg)`
-  - `onInitCollaboration(clientID)` → app returns `{ websocketUrl, websocketParams: {bearer, timestamp}, color, x, y, suppressCursor? }`
-  - `onConfirmRequested(title, msg, cb)`
-  - `onTakeSnapshot(opts)`
-  - `onTextPaneRequested(node, cb)`, `onLineMenuRequested(node, association, cb)`, `onMenuRequested(nodes, cb)`
-  - `onGroupSelection(selectedNodes)`
-  - `onBase64ImageRequested(imgUrl, imageType, cb)`, `onOptimizeSVG(svg, cb)`
-  - `onCanvasClicked()`
-  - Permission checks called by the library: `isReadOnly()`, `isCommentOnly()`, `canRemoveComments()`
+- [x] Events object callbacks wired (fired by the library at the right moments):
+  - [x] `onSlateChanged(pkg, collabUsers)` — v1 pkg shape + echo suppression; types per §F (proof: tests/e2e/compat-facade.spec.ts)
+  - [x] `onCollaborationUsersChanged(users)` (awareness incl. BroadcastChannel-early), `onCollaboration(pkg)` on exe (proof: tests/e2e/collab-live.spec.ts). `onCollaborationUsersRemoved` — v2 fires the Changed callback with the updated roster on removals (app uses identical handler bodies for both)
+  - [x] `onInitCollaboration(clientID)` — awaited, connection details + HMAC params applied (proof: tests/unit/Collab.test.ts + collab-live e2e)
+  - [x] `onTakeSnapshot(opts)` — fires on undo/redo (UndoRedo.ts:100,131)
+  - [x] `onTextPaneRequested(node, cb)` — double-click (custom detection; svg.draggable suppresses native dblclick) with read-only/comment-only/locked guards; cb applies via Editor (proof: tests/e2e/host-callbacks.spec.ts)
+  - [x] `onLineMenuRequested(node, association, cb)` — wired to connection-line clicks in Connector.connectTo; cb restyles line + persists to association (implemented; interactive click e2e pending — line hit-areas are thin)
+  - [x] `onMenuRequested(node, cb)` — Menu.ts delegates to host
+  - [x] `onGroupSelection(selectedNodes)` — fires with nodes on multi-select, [] when the group clears (proof: host-callbacks e2e)
+  - [x] `onCanvasClicked()` — empty-canvas clicks (proof: host-callbacks e2e)
+  - [x] Permission checks: `Slate.isReadOnly()/isCommentOnly()/canRemoveComments()` delegate to events; enforced in keyboard delete (comment nodes need canRemoveComments), text pane, line menu (proof: host-callbacks e2e read-only test)
+  - `onConfirmRequested(title, msg, cb)` — v2 has no library-initiated destructive confirms (v1 used it in its built-in multi-select delete UI); documented N/A unless a built-in confirm flow is added
+  - `onBase64ImageRequested`/`onOptimizeSVG` — v1 export-time hooks; v2's Export pipeline doesn't require them (app-side image/SVG post-processing still works on the returned values); documented N/A
 
 ## C. Slate methods & properties
 
@@ -174,3 +176,4 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 | 2026-07-01 | Iter 10: DECISIONS RESOLVED — (1) package renamed `slateboxjs@3.0.0` (npm-name takeover; publish still user-reserved); (2) collab = modernize app+server, plan in docs/collab-migration.md. Collab.init now AWAITS onInitCollaboration and applies websocketUrl + HMAC websocketParams (passed to WebsocketProvider); added collab.updateUserData; facade exposes slate.collab. 6 new unit tests. Gates: 1057 unit, 112 e2e, build clean, pack = slateboxjs-3.0.0.tgz. Remaining: §I dev-server two-client test + migration PR prep; §B interactive-event sweep; §K meteor swap instructions. |
 | 2026-07-01 | Iter 11: §I LIVE — standalone y-protocols relay (tests/collab-server-standalone.cjs) wired into playwright webServer; two-client e2e green (send→exe, presence). THREE real bugs fixed: (1) `Function('import')` pattern meant collab could never load yjs in any real browser/bundler → true lazy import + injectable modules; (2) duplicate onInitCollaboration invocation removed; (3) BroadcastChannel-early awareness states missed the change listener → initial-roster emit. Facade auto-inits collab (v1 semantics). +ws devDep. Gates: 1057 unit, 113 e2e, build clean. Remaining: §B interactive sweep, §F leftovers, §K swap instructions, migration PR prep. |
 | 2026-07-01 | Iter 12: §B options COMPLETE — showbirdsEye/sizeOfbirdsEye mapped to birdsEye opts (compat), NEW Slate.applyContainerStyle (bg color/gradient/image, re-applied on loadJSON), flags on/off proven (tests/e2e/options-honored.spec.ts, 4 tests); §D options checked via fixtures+drop-in; §K swap instructions written (docs/meteor-swap.md). Gates: 1057 unit, 117 e2e, build clean. Remaining unchecked: §B events sub-list (host-driven callbacks), §F interactive types (shape/rotate), §I staging GC check + migration PR, §K meteor swap + npm publish (all user-coordinated). |
+| 2026-07-01 | Iter 13: §B events COMPLETE — Slate.isReadOnly/isCommentOnly/canRemoveComments; onCanvasClicked (empty-canvas), onGroupSelection (nodes→[]), onTextPaneRequested via custom double-click detection (svg.draggable suppresses native dblclick) with permission/lock guards, onLineMenuRequested on line clicks, keyboard delete gated (comments need canRemoveComments); onConfirmRequested + onBase64ImageRequested/onOptimizeSVG documented N/A. tests/e2e/host-callbacks.spec.ts (4 tests). Gates: 1057 unit, 121 e2e, build clean. ALL CODE ITEMS DONE — remaining boxes are user-coordinated (meteor swap execution, collab staging check, migration PR, npm publish). |

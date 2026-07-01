@@ -135,6 +135,7 @@ export declare class Node {
     private preDragPosition;
     /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
     ready: Promise<void>;
+    private _lastClickTime;
     private _resolveReady;
     private _rejectReady;
     private _initFailed;
@@ -279,6 +280,13 @@ export declare class Node {
     private centerTextInitial;
     private calculatePathBounds;
     private setupSelectionBehavior;
+    /**
+     * Ask the host application to render its text-editing pane (v1's
+     * onTextPaneRequested contract). The callback the host invokes applies
+     * the edits via the Editor. No-op for read-only viewers, locked nodes,
+     * or when the host registered no handler.
+     */
+    requestTextPane(): void;
     private isResizeRotateHandle;
     /** Called by the Slate when this node is selected. */
     onSelected(): void;

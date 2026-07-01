@@ -145,8 +145,15 @@ export class Keyboard {
     const selected = this.slate.getSelectedNodes();
     if (selected.length === 0) return;
 
+    // Host permission checks (v1 contract): read-only/comment-only viewers
+    // cannot delete; comment nodes additionally need canRemoveComments
+    if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;
+
     e.preventDefault();
     for (const node of [...selected]) {
+      if (node.options?.isComment && !this.slate.canRemoveComments?.()) {
+        continue;
+      }
       this.slate.removeNode(node.id);
     }
     this.slate.clearSelection();

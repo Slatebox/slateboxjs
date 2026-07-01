@@ -5493,10 +5493,22 @@ class Ii {
         ...e
       };
       if (o.lineColor && s.setLineColor && s.setLineColor(o.lineColor), this.connections.set(i, o), t.connector) {
-        const a = `${t.id}<-${this.node.id}`;
-        t.connector.connections.set(a, o);
+        const r = `${t.id}<-${this.node.id}`;
+        t.connector.connections.set(r, o);
       }
-      return console.log("CONNECTOR_DEBUG: Successfully connected", i), this.options.onConnect?.(o), o;
+      console.log("CONNECTOR_DEBUG: Successfully connected", i);
+      const a = s.line;
+      return a?.on && a.on("click", (r) => {
+        const l = this.node.slate?.options?.events;
+        if (!l?.onLineMenuRequested || this.node.slate?.isReadOnly?.()) return;
+        r.stopPropagation?.();
+        const c = this.node.relationships?.getAssociation?.(
+          t.id
+        ) ?? o;
+        l.onLineMenuRequested(this.node, c, (h = {}) => {
+          h.lineColor && s.setLineColor && (s.setLineColor(h.lineColor), o.lineColor = h.lineColor), h.lineWidth && a.attr && (a.attr({ "stroke-width": h.lineWidth }), o.lineWidth = h.lineWidth), c && c.id && Object.assign(c, h);
+        });
+      }), this.options.onConnect?.(o), o;
     } catch (i) {
       return console.error("CONNECTOR_DEBUG: Failed to create connection:", i), console.error(
         "CONNECTOR_DEBUG: This might be due to SVG.js 3+ compatibility issues with svg.connectable.js"
@@ -6399,7 +6411,7 @@ class Wi {
    * ```
    */
   constructor(t, e) {
-    this.connectionHandles = {}, this.connectionHandlesVisible = !1, this.isDragging = !1, this.wasSelectedBeforeDrag = !1, this.preDragTransform = null, this.preDragPosition = null, this._initFailed = !1, this._destroyed = !1, this._svgViewboxTimeoutId = null, this._dragEndTimeoutId = null, this._previewViewboxTimeoutId = null, this._connectTimeoutId = null, this.id = t.id || this.generateId(), this.slate = e, console.log("NODE_DEBUG: Constructor called", { id: this.id, options: t }), this.options = {
+    this.connectionHandles = {}, this.connectionHandlesVisible = !1, this.isDragging = !1, this.wasSelectedBeforeDrag = !1, this.preDragTransform = null, this.preDragPosition = null, this._lastClickTime = 0, this._initFailed = !1, this._destroyed = !1, this._svgViewboxTimeoutId = null, this._dragEndTimeoutId = null, this._previewViewboxTimeoutId = null, this._connectTimeoutId = null, this.id = t.id || this.generateId(), this.slate = e, console.log("NODE_DEBUG: Constructor called", { id: this.id, options: t }), this.options = {
       x: 50,
       y: 50,
       width: 100,
@@ -6933,6 +6945,9 @@ class Wi {
   }
   // Selection Management
   setupSelectionBehavior() {
+    this.svgGroup.on("dblclick", (i) => {
+      this.isResizeRotateHandle(i.target) || this.requestTextPane();
+    });
     let t = null;
     const e = 5;
     this.svgGroup.on("pointerdown", (i) => {
@@ -6967,10 +6982,32 @@ class Wi {
           );
           const a = i.ctrlKey || i.metaKey;
           this.slate.selectNodes([this], a);
+          const r = Date.now();
+          r - this._lastClickTime < 400 ? (this._lastClickTime = 0, this.requestTextPane()) : this._lastClickTime = r;
         }
         t = null;
       }
     });
+  }
+  /**
+   * Ask the host application to render its text-editing pane (v1's
+   * onTextPaneRequested contract). The callback the host invokes applies
+   * the edits via the Editor. No-op for read-only viewers, locked nodes,
+   * or when the host registered no handler.
+   */
+  requestTextPane() {
+    const t = this.slate.options.events;
+    t?.onTextPaneRequested && (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.() || this.options.isLocked || t.onTextPaneRequested(this, (e = {}) => {
+      this.editor?.set(
+        e.text ?? this.options.text ?? "",
+        e.fontSize,
+        e.fontFamily,
+        e.fontColor ?? e.foregroundColor,
+        e.textOpacity ?? e.opacity,
+        e.textXAlign,
+        e.textYAlign
+      );
+    }));
   }
   // Helper method to identify resize/rotate handles
   isResizeRotateHandle(t) {
@@ -8518,10 +8555,10 @@ class ns {
   }
   deleteSelected(t) {
     const e = this.slate.getSelectedNodes();
-    if (e.length !== 0) {
+    if (e.length !== 0 && !(this.slate.isReadOnly?.() || this.slate.isCommentOnly?.())) {
       t.preventDefault();
       for (const i of [...e])
-        this.slate.removeNode(i.id);
+        i.options?.isComment && !this.slate.canRemoveComments?.() || this.slate.removeNode(i.id);
       this.slate.clearSelection();
     }
   }
@@ -9099,7 +9136,7 @@ class Sn {
    * ```
    */
   constructor(t, e = {}) {
-    if (this.selectedNodes = [], this.groupResizeRotate = null, this._coordinateIntervalId = null, this._destroyed = !1, this._applyingRemote = !1, this._birdsEyeTimeoutId = null, this._coordDisplayTimeoutId = null, this._nodeNotifyTimeoutId = null, this._liveRegion = null, typeof t == "string") {
+    if (this.selectedNodes = [], this.groupResizeRotate = null, this._coordinateIntervalId = null, this._destroyed = !1, this._applyingRemote = !1, this._hadGroupSelection = !1, this._birdsEyeTimeoutId = null, this._coordDisplayTimeoutId = null, this._nodeNotifyTimeoutId = null, this._liveRegion = null, typeof t == "string") {
       const i = document.querySelector(t);
       if (!i)
         throw new Error(`Element with selector "${t}" not found`);
@@ -9232,6 +9269,18 @@ class Sn {
       e.style.backgroundImage = t.backgroundGradientType === "radial" ? `radial-gradient(circle, ${i})` : `linear-gradient(${i})`;
     } else t.backgroundImage ? (e.style.backgroundImage = `url(${t.backgroundImage})`, t.backgroundSize && (e.style.backgroundSize = t.backgroundSize)) : e.style.backgroundImage = "";
     t.backgroundColor && (e.style.backgroundColor = t.backgroundColor);
+  }
+  /** v1: host-supplied permission check — true when the viewer cannot edit. */
+  isReadOnly() {
+    return !!this.options.events?.isReadOnly?.();
+  }
+  /** v1: host-supplied permission check — true when only comments are allowed. */
+  isCommentOnly() {
+    return !!this.options.events?.isCommentOnly?.();
+  }
+  /** v1: host-supplied permission check for removing comment nodes. */
+  canRemoveComments() {
+    return !!this.options.events?.canRemoveComments?.();
   }
   /** Suppress emitSlateChange while applying a remote package (v1 echo semantics). */
   beginRemoteApply() {
@@ -9508,7 +9557,7 @@ class Sn {
         t.target,
         "vs",
         this.canvas.node
-      ), t.target === this.canvas.node || t.target && t.target.tagName === "svg" ? (console.log("SELECTION_DEBUG: Canvas clicked - deselecting all"), this.clearSelection()) : console.log(
+      ), t.target === this.canvas.node || t.target && t.target.tagName === "svg" ? (console.log("SELECTION_DEBUG: Canvas clicked - deselecting all"), this.clearSelection(), this.options.events?.onCanvasClicked?.(t)) : console.log(
         "SELECTION_DEBUG: Click on non-canvas element, not deselecting"
       );
     });
@@ -9543,7 +9592,7 @@ class Sn {
       this.selectedNodes.includes(s) || (this.selectedNodes.push(s), s.onSelected());
     }), this.updateSelectionResizeRotate();
     const i = this.selectedNodes.length;
-    i === 0 ? this.announce("No nodes selected") : i === 1 ? this.announce(`Node selected: ${this.selectedNodes[0].options.text || "(unnamed)"}`) : this.announce(`${i} nodes selected`);
+    i === 0 ? this.announce("No nodes selected") : i === 1 ? this.announce(`Node selected: ${this.selectedNodes[0].options.text || "(unnamed)"}`) : this.announce(`${i} nodes selected`), i > 1 && (this._hadGroupSelection = !0, this.options.events?.onGroupSelection?.(this.selectedNodes.slice()));
   }
   // SINGLE ORCHESTRATOR for resize/rotate management
   /** Re-evaluate which nodes should have resize/rotate handles based on current selection. */
@@ -9657,7 +9706,7 @@ class Sn {
   clearSelection() {
     console.log("SELECTION_DEBUG: Clearing selection"), this.selectedNodes.forEach((t) => {
       t.onDeselected();
-    }), this.selectedNodes = [], this.updateSelectionResizeRotate();
+    }), this.selectedNodes = [], this.updateSelectionResizeRotate(), this._hadGroupSelection && (this._hadGroupSelection = !1, this.options.events?.onGroupSelection?.([]));
   }
   /** @returns Array of currently selected nodes. */
   getSelectedNodes() {

@@ -49,6 +49,8 @@ export interface SlateEvents {
   onCollaboration?: (pkg: SlatePackage) => void;
   onNodeDragged?: (node: Node, evt: MouseEvent) => void;
   onCanvasClicked?: (evt: MouseEvent) => void;
+  /** Fired when a multi-node selection forms (nodes) or ends ([]) */
+  onGroupSelection?: (selectedNodes: Node[]) => void;
   onImagesRequested?: (opts: Record<string, any>) => void;
   onRequestSave?: (opts?: Record<string, any>) => void;
   onCreateImage?: (opts: Record<string, any>, cb: Function) => void;
@@ -181,6 +183,7 @@ export class Slate {
   private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
   private _destroyed: boolean = false;
   private _applyingRemote: boolean = false;
+  private _hadGroupSelection: boolean = false;
   private _birdsEyeTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _coordDisplayTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _nodeNotifyTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -523,6 +526,21 @@ export class Slate {
     if (cs.backgroundColor) {
       el.style.backgroundColor = cs.backgroundColor;
     }
+  }
+
+  /** v1: host-supplied permission check — true when the viewer cannot edit. */
+  public isReadOnly(): boolean {
+    return !!this.options.events?.isReadOnly?.();
+  }
+
+  /** v1: host-supplied permission check — true when only comments are allowed. */
+  public isCommentOnly(): boolean {
+    return !!this.options.events?.isCommentOnly?.();
+  }
+
+  /** v1: host-supplied permission check for removing comment nodes. */
+  public canRemoveComments(): boolean {
+    return !!this.options.events?.canRemoveComments?.();
   }
 
   /** Suppress emitSlateChange while applying a remote package (v1 echo semantics). */
@@ -960,6 +978,8 @@ export class Slate {
       if (isCanvasClick) {
         console.log("SELECTION_DEBUG: Canvas clicked - deselecting all");
         this.clearSelection();
+        // v1 contract: notify the host (used to close app-side panes)
+        this.options.events?.onCanvasClicked?.(event);
       } else {
         console.log(
           "SELECTION_DEBUG: Click on non-canvas element, not deselecting"
@@ -1020,6 +1040,12 @@ export class Slate {
       this.announce(`Node selected: ${this.selectedNodes[0].options.text || "(unnamed)"}`);
     } else {
       this.announce(`${count} nodes selected`);
+    }
+
+    // v1 contract: multi-node selections notify the host (group toolbar etc.)
+    if (count > 1) {
+      this._hadGroupSelection = true;
+      this.options.events?.onGroupSelection?.(this.selectedNodes.slice());
     }
   }
 
@@ -1301,6 +1327,12 @@ export class Slate {
 
     // Disable all resize/rotate controls and connection handles - CENTRALIZED CONTROL
     this.updateSelectionResizeRotate();
+
+    // v1 contract: a group selection ending notifies the host with []
+    if (this._hadGroupSelection) {
+      this._hadGroupSelection = false;
+      this.options.events?.onGroupSelection?.([]);
+    }
   }
 
   /** @returns Array of currently selected nodes. */
