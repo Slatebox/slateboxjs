@@ -21,7 +21,7 @@
 import { Slate } from "./core/Slate";
 import type { Node as V2Node, NodeOptions } from "./core/Node";
 import * as utilsModule from "./utils";
-import { v1NodeToV2, v1SlateToV2 } from "./core/compat";
+import { v1NodeToV2, v1SlateToV2, v2NodeToV1 } from "./core/compat";
 
 /** v1-style events object passed as the 2nd constructor argument. */
 export type V1Events = Record<string, ((...args: any[]) => any) | undefined>;
@@ -41,8 +41,87 @@ class node {
   /** Back-reference to the owning facade slate (set on add, like v1). */
   public slate?: slate;
 
+  /** v1: `node.resize.set(w, h)` then `node.resize.send()` */
+  public resize: NodeResizeFacade;
+
+  /** v1: `node.relationships.addAssociation(otherNode)` / `.associations` */
+  public relationships: NodeRelationshipsFacade;
+
   constructor(options: Record<string, any> = {}) {
     this.options = { id: utilsModule.guid(), ...options };
+    this.resize = new NodeResizeFacade(this);
+    this.relationships = new NodeRelationshipsFacade(this);
+  }
+}
+
+/**
+ * v1 resize sub-object: `set()` stages new dimensions, `send()` applies them
+ * (v1 additionally broadcast to collab; broadcasting is the host app's job
+ * via the packages it already sends).
+ */
+class NodeResizeFacade {
+  private owner: node;
+  private pending?: { width: number; height: number };
+
+  constructor(owner: node) {
+    this.owner = owner;
+  }
+
+  public set(width: number, height: number): void {
+    this.pending = { width, height };
+    this.owner.options.width = width;
+    this.owner.options.height = height;
+    // v1 applied the size immediately on set(); send() finalized/broadcast
+    this.owner.v2?.setSize(width, height);
+  }
+
+  public send(): void {
+    if (!this.pending || !this.owner.v2) return;
+    this.owner.v2.setSize(this.pending.width, this.pending.height);
+    this.pending = undefined;
+  }
+}
+
+/**
+ * v1 relationships sub-object. v1 exposed `.associations` as an array whose
+ * entries carry live `parent`/`child` node references (the Meteor app reads
+ * `a.parent.options.id`); v2 stores plain id-based Association records.
+ */
+class NodeRelationshipsFacade {
+  private owner: node;
+
+  constructor(owner: node) {
+    this.owner = owner;
+  }
+
+  /** v1: `node.relationships.addAssociation(childNode, data?)` */
+  public addAssociation(child: node | V2Node, data?: Record<string, any>) {
+    if (!this.owner.v2) {
+      throw new Error(
+        "SLATEBOX_COMPAT: add the node to a slate before creating associations"
+      );
+    }
+    const childV2 = child instanceof node ? child.v2 : child;
+    if (!childV2) {
+      throw new Error(
+        "SLATEBOX_COMPAT: child node must be added to the slate first"
+      );
+    }
+    return (this.owner.v2 as any).relationships?.addAssociation(childV2, data);
+  }
+
+  /** v1: `.associations` — array with live parent/child wrapper references */
+  public get associations(): Array<Record<string, any>> {
+    const v2Node = this.owner.v2;
+    const slateFacade = this.owner.slate;
+    if (!v2Node || !slateFacade) return [];
+    const list =
+      (v2Node as any).relationships?.getAssociations?.() ?? ([] as any[]);
+    return list.map((a: any) => ({
+      ...a,
+      parent: slateFacade.nodes.one(a.parentId),
+      child: slateFacade.nodes.one(a.childId),
+    }));
   }
 }
 
@@ -99,6 +178,137 @@ class NodesFacade {
   }
 
   /**
+   * v1: `slate.nodes.packageLayout()` — payload sent to the server-side
+   * layout calculator: `{layoutType, associations, nodes, uniqueIds, subgraphs}`.
+   */
+  public packageLayout(): Record<string, any> {
+    const v2 = this.v2Slate;
+    const all = v2.nodes.allNodes;
+    const associations: Array<Record<string, any>> = [];
+    const nodes: Record<string, any> = {};
+    const subgraphs: Record<string, string[]> = {};
+
+    all.forEach((nx: any) => {
+      const opts = nx.options || {};
+      const v1Opts = v2NodeToV1(opts);
+      (nx.relationships?.getAssociations?.() ?? []).forEach((a: any) => {
+        associations.push({
+          parentId: a.parentId,
+          childId: a.childId,
+          lineWidth: a.lineWidth,
+          lineType: a.lineType,
+          lineCurveType: a.lineCurveType,
+          lineCurviness: a.lineCurviness,
+          lineOpacity: a.lineOpacity,
+          showParentArrow: a.showParentArrow,
+          showChildArrow: a.showChildArrow,
+        });
+      });
+      if (!nodes[nx.id]) {
+        nodes[nx.id] = {
+          width: +(opts.width || 0),
+          height: +(opts.height || 0),
+          shape: v1Opts.shapeHint || opts.shape || "rect",
+          color: opts.backgroundColor,
+          textColor: v1Opts.foregroundColor ?? opts.fontColor,
+          text: opts.text,
+          groupId: opts.groupId ?? null,
+        };
+      }
+      const gid = String(opts.groupId ?? "null");
+      if (!subgraphs[gid]) subgraphs[gid] = [];
+      subgraphs[gid].push(nx.id);
+    });
+
+    return {
+      layoutType: this.owner.options.layoutType,
+      associations,
+      nodes,
+      uniqueIds: Object.keys(nodes),
+      subgraphs,
+    };
+  }
+
+  /**
+   * v1: `slate.nodes.applyLayout(layout, cbOrOpts?)` — layout is the server
+   * response `{exportNodes: {id: {x, y}}}` with stringly coordinates.
+   */
+  public applyLayout(
+    layout: Record<string, any>,
+    cbOrOpts?: (() => void) | { skipCenter?: boolean }
+  ): void {
+    const v2 = this.v2Slate;
+    const exportNodes = layout?.exportNodes || {};
+    const cb = typeof cbOrOpts === "function" ? cbOrOpts : undefined;
+    const opts = typeof cbOrOpts === "object" ? cbOrOpts : {};
+
+    const moves = Object.keys(exportNodes)
+      .filter((id) => v2.nodes.one(id))
+      .map((id) => ({
+        id,
+        x: parseFloat(exportNodes[id].x),
+        y: parseFloat(exportNodes[id].y),
+      }));
+    v2.applyLayout(moves, cb);
+    if (!opts.skipCenter) {
+      v2.centerContent();
+    }
+  }
+
+  /**
+   * v1: `slate.nodes.nodeMovePackage({dur, moves: [{id, x: dx, y: dy}]})` —
+   * moves are RELATIVE deltas; the returned package carries the resulting
+   * ABSOLUTE positions in v1 shape, ready for `collab.exe({type:'onNodesMove'})`.
+   */
+  public nodeMovePackage(
+    opts: {
+      dur?: number;
+      easing?: string;
+      moves?: Array<{ id: string; x: number; y: number }>;
+      nodes?: Array<node | V2Node>;
+    } = {}
+  ): Record<string, any> {
+    const v2 = this.v2Slate;
+    const deltas = new Map(
+      (opts.moves || []).map((m) => [m.id, m] as const)
+    );
+    const targets: any[] = opts.nodes
+      ? opts.nodes.map((n) => (n instanceof node ? n.v2 : n)).filter(Boolean)
+      : opts.moves
+        ? (opts.moves
+            .map((m) => v2.nodes.one(m.id))
+            .filter(Boolean) as any[])
+        : v2.nodes.allNodes;
+
+    return {
+      dur: opts.dur ?? 300,
+      easing: opts.easing ?? ">",
+      textPositions: targets.map((nx: any) => ({
+        id: nx.id,
+        textPosition: { x: 0, y: 0, transform: "" },
+      })),
+      nodeOptions: targets.map((nx: any) => {
+        const delta = deltas.get(nx.id);
+        const v1Opts = v2NodeToV1(nx.options || {});
+        return {
+          id: nx.id,
+          vectorPath: v1Opts.vectorPath,
+          xPos: (v1Opts.xPos ?? 0) + (delta?.x ?? 0),
+          yPos: (v1Opts.yPos ?? 0) + (delta?.y ?? 0),
+        };
+      }),
+      associations: targets.flatMap((nx: any) =>
+        (nx.relationships?.getAssociations?.() ?? []).map((a: any) => ({
+          parentId: a.parentId,
+          childId: a.childId,
+          linePath: "",
+          id: a.id,
+        }))
+      ),
+    };
+  }
+
+  /**
    * Return the stable wrapper for a v2 node, creating one lazily for nodes
    * that came into existence outside this facade (e.g. loadJSON).
    */
@@ -136,6 +346,17 @@ class slate {
   public userId?: string;
   public orgId?: string;
 
+  /** v1: `slate.savingTemplateImage` — host-managed re-entrancy flag */
+  public savingTemplateImage = false;
+
+  /** v1: `slate.controller.scaleToFitAndCenter(cb?, dur?)` */
+  public controller: {
+    scaleToFitAndCenter: (cb?: () => void, dur?: number) => void;
+  };
+
+  /** v1: `slate.canvas.hideBg(opacity?)` — clear background for snapshots */
+  public canvas: { hideBg: (opacity?: number) => void };
+
   constructor(options: Record<string, any> = {}, events: V1Events = {}) {
     this.options = {
       id: options.id || utilsModule.guid(),
@@ -144,6 +365,26 @@ class slate {
     this.events = events || {};
     this.shareId = this.options.shareId || utilsModule.guid();
     this.nodes = new NodesFacade(this);
+
+    this.controller = {
+      scaleToFitAndCenter: (cb?: () => void) => {
+        this.assertReady();
+        this.v2!.fitToContent();
+        this.v2!.centerContent();
+        cb?.();
+      },
+    };
+
+    this.canvas = {
+      hideBg: () => {
+        this.assertReady();
+        const el = (this.v2 as any).element as HTMLElement | undefined;
+        if (el) {
+          el.style.backgroundColor = "transparent";
+          el.style.backgroundImage = "none";
+        }
+      },
+    };
   }
 
   /** Resolve v1 `options.container` (id string or element) to an HTMLElement. */
@@ -193,6 +434,62 @@ class slate {
   public async loadJSON(json: string): Promise<void> {
     this.assertReady();
     await this.v2!.loadJSON(json);
+  }
+
+  /**
+   * v1: `slate.getOrientation()` → `{orientation, width, height, left, top}`
+   * computed over the bounding box of all nodes (10px padding, like v1),
+   * falling back to the viewport dimensions when the slate is empty.
+   */
+  public getOrientation(): {
+    orientation: "landscape" | "portrait";
+    width: number;
+    height: number;
+    left: number;
+    top: number;
+  } {
+    this.assertReady();
+    const all = this.v2!.nodes.allNodes;
+    const vp: any = this.options.viewPort || {};
+    let width = vp.width ?? 50000;
+    let height = vp.height ?? 50000;
+    let left = 0;
+    let top = 0;
+    let orientation: "landscape" | "portrait" = "landscape";
+
+    if (all.length > 0) {
+      const pad = 10;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      all.forEach((n: any) => {
+        const x = n.options.x ?? 0;
+        const y = n.options.y ?? 0;
+        const w = n.options.width ?? 0;
+        const h = n.options.height ?? 0;
+        minX = Math.min(minX, x - pad);
+        minY = Math.min(minY, y - pad);
+        maxX = Math.max(maxX, x + w + pad);
+        maxY = Math.max(maxY, y + h + pad);
+      });
+      left = Math.abs(minX);
+      top = Math.abs(minY);
+      width = maxX - minX;
+      height = maxY - minY;
+      if (height > width) orientation = "portrait";
+    }
+
+    return { orientation, width, height, left, top };
+  }
+
+  /** v1: `slate.png({base64: true}, cb)` — thumbnail export */
+  public png(
+    opts?: Record<string, any>,
+    callback?: (result: string | Blob) => void
+  ): Promise<string | Blob> {
+    this.assertReady();
+    return this.v2!.png(opts as any, callback);
   }
 
   private assertReady(): void {

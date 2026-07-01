@@ -34,7 +34,36 @@ declare class node {
     v2?: V2Node;
     /** Back-reference to the owning facade slate (set on add, like v1). */
     slate?: slate;
+    /** v1: `node.resize.set(w, h)` then `node.resize.send()` */
+    resize: NodeResizeFacade;
+    /** v1: `node.relationships.addAssociation(otherNode)` / `.associations` */
+    relationships: NodeRelationshipsFacade;
     constructor(options?: Record<string, any>);
+}
+/**
+ * v1 resize sub-object: `set()` stages new dimensions, `send()` applies them
+ * (v1 additionally broadcast to collab; broadcasting is the host app's job
+ * via the packages it already sends).
+ */
+declare class NodeResizeFacade {
+    private owner;
+    private pending?;
+    constructor(owner: node);
+    set(width: number, height: number): void;
+    send(): void;
+}
+/**
+ * v1 relationships sub-object. v1 exposed `.associations` as an array whose
+ * entries carry live `parent`/`child` node references (the Meteor app reads
+ * `a.parent.options.id`); v2 stores plain id-based Association records.
+ */
+declare class NodeRelationshipsFacade {
+    private owner;
+    constructor(owner: node);
+    /** v1: `node.relationships.addAssociation(childNode, data?)` */
+    addAssociation(child: node | V2Node, data?: Record<string, any>): any;
+    /** v1: `.associations` — array with live parent/child wrapper references */
+    get associations(): Array<Record<string, any>>;
 }
 /**
  * Facade over the v2 NodesManager exposing the v1 `slate.nodes` surface.
@@ -54,6 +83,33 @@ declare class NodesFacade {
     one(id: string): node | undefined;
     /** v1: `slate.nodes.allNodes` → array property */
     get allNodes(): node[];
+    /**
+     * v1: `slate.nodes.packageLayout()` — payload sent to the server-side
+     * layout calculator: `{layoutType, associations, nodes, uniqueIds, subgraphs}`.
+     */
+    packageLayout(): Record<string, any>;
+    /**
+     * v1: `slate.nodes.applyLayout(layout, cbOrOpts?)` — layout is the server
+     * response `{exportNodes: {id: {x, y}}}` with stringly coordinates.
+     */
+    applyLayout(layout: Record<string, any>, cbOrOpts?: (() => void) | {
+        skipCenter?: boolean;
+    }): void;
+    /**
+     * v1: `slate.nodes.nodeMovePackage({dur, moves: [{id, x: dx, y: dy}]})` —
+     * moves are RELATIVE deltas; the returned package carries the resulting
+     * ABSOLUTE positions in v1 shape, ready for `collab.exe({type:'onNodesMove'})`.
+     */
+    nodeMovePackage(opts?: {
+        dur?: number;
+        easing?: string;
+        moves?: Array<{
+            id: string;
+            x: number;
+            y: number;
+        }>;
+        nodes?: Array<node | V2Node>;
+    }): Record<string, any>;
     /**
      * Return the stable wrapper for a v2 node, creating one lazily for nodes
      * that came into existence outside this facade (e.g. loadJSON).
@@ -78,6 +134,16 @@ declare class slate {
     shareId: string;
     userId?: string;
     orgId?: string;
+    /** v1: `slate.savingTemplateImage` — host-managed re-entrancy flag */
+    savingTemplateImage: boolean;
+    /** v1: `slate.controller.scaleToFitAndCenter(cb?, dur?)` */
+    controller: {
+        scaleToFitAndCenter: (cb?: () => void, dur?: number) => void;
+    };
+    /** v1: `slate.canvas.hideBg(opacity?)` — clear background for snapshots */
+    canvas: {
+        hideBg: (opacity?: number) => void;
+    };
     constructor(options?: Record<string, any>, events?: V1Events);
     /** Resolve v1 `options.container` (id string or element) to an HTMLElement. */
     private resolveContainer;
@@ -87,6 +153,20 @@ declare class slate {
     exportJSON(): string;
     /** v1: `slate.loadJSON(jsonString)` */
     loadJSON(json: string): Promise<void>;
+    /**
+     * v1: `slate.getOrientation()` → `{orientation, width, height, left, top}`
+     * computed over the bounding box of all nodes (10px padding, like v1),
+     * falling back to the viewport dimensions when the slate is empty.
+     */
+    getOrientation(): {
+        orientation: "landscape" | "portrait";
+        width: number;
+        height: number;
+        left: number;
+        top: number;
+    };
+    /** v1: `slate.png({base64: true}, cb)` — thumbnail export */
+    png(opts?: Record<string, any>, callback?: (result: string | Blob) => void): Promise<string | Blob>;
     private assertReady;
 }
 /**

@@ -20,7 +20,29 @@ const mockV2NodesManager = () => {
   return {
     store,
     add: vi.fn((options: any) => {
-      const v2node = { id: options.id, options };
+      const associations: any[] = [];
+      const v2node = {
+        id: options.id,
+        options,
+        setSize: vi.fn((w: number, h: number) => {
+          options.width = w;
+          options.height = h;
+        }),
+        relationships: {
+          addAssociation: vi.fn((childV2: any, data?: any) => {
+            const assoc = {
+              id: `${options.id}-${childV2.id}`,
+              parentId: options.id,
+              childId: childV2.id,
+              lineWidth: data?.lineWidth ?? 6,
+              ...data,
+            };
+            associations.push(assoc);
+            return assoc;
+          }),
+          getAssociations: vi.fn(() => associations),
+        },
+      };
       store.set(options.id, v2node);
       return v2node;
     }),
@@ -42,6 +64,13 @@ vi.mock("../../src/core/Slate", () => {
     loadJSON = vi.fn(async () => undefined);
     getViewportAsync = vi.fn(async () => ({ mockViewport: true }));
     addNode = vi.fn((options: any) => this.nodes.add(options));
+    fitToContent = vi.fn();
+    centerContent = vi.fn();
+    applyLayout = vi.fn((_moves: any[], cb?: () => void) => cb?.());
+    png = vi.fn(async (_opts?: any, cb?: (r: any) => void) => {
+      cb?.("png-blob");
+      return "png-blob";
+    });
     constructor(element: any, options: any) {
       this.element = element;
       this.options = options;
@@ -251,6 +280,227 @@ describe("slate.nodes facade (§C partial)", () => {
     expect((s.v2 as any).loadJSON).toHaveBeenCalledWith(
       '{"options":{},"nodes":[]}'
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §C — slate-level methods: getOrientation, controller, canvas, png
+// ---------------------------------------------------------------------------
+describe("slate methods (§C)", () => {
+  const initSlate = async (options: Record<string, any> = {}) => {
+    makeContainer();
+    return new Slatebox.slate({ container: "slateCanvas", ...options }).init();
+  };
+
+  it("getOrientation() computes the padded node bounding box", async () => {
+    const s = await initSlate();
+    s.nodes.add({ id: "o1", xPos: 100, yPos: 100, width: 100, height: 50 });
+    s.nodes.add({ id: "o2", xPos: 400, yPos: 200, width: 100, height: 50 });
+    const orient = s.getOrientation();
+    // minX=90, maxX=510, minY=90, maxY=260 (10px pad)
+    expect(orient.width).toBe(420);
+    expect(orient.height).toBe(170);
+    expect(orient.left).toBe(90);
+    expect(orient.top).toBe(90);
+    expect(orient.orientation).toBe("landscape");
+  });
+
+  it("getOrientation() reports portrait and falls back to viewport when empty", async () => {
+    const s = await initSlate({ viewPort: { width: 1000, height: 2000 } });
+    const empty = s.getOrientation();
+    expect(empty.width).toBe(1000);
+    expect(empty.height).toBe(2000);
+    expect(empty.orientation).toBe("landscape");
+
+    s.nodes.add({ id: "p1", xPos: 0, yPos: 0, width: 50, height: 500 });
+    expect(s.getOrientation().orientation).toBe("portrait");
+  });
+
+  it("controller.scaleToFitAndCenter() fits, centers, and calls back", async () => {
+    const s = await initSlate();
+    const cb = vi.fn();
+    s.controller.scaleToFitAndCenter(cb);
+    expect((s.v2 as any).fitToContent).toHaveBeenCalled();
+    expect((s.v2 as any).centerContent).toHaveBeenCalled();
+    expect(cb).toHaveBeenCalled();
+  });
+
+  it("canvas.hideBg() clears the container background", async () => {
+    const s = await initSlate();
+    const el = (s.v2 as any).element as HTMLElement;
+    el.style.backgroundColor = "red";
+    s.canvas.hideBg(1);
+    expect(el.style.backgroundColor).toBe("transparent");
+    expect(el.style.backgroundImage).toBe("none");
+  });
+
+  it("png() delegates to the v2 engine with the callback", async () => {
+    const s = await initSlate();
+    const cb = vi.fn();
+    const result = await s.png({ base64: true }, cb);
+    expect((s.v2 as any).png).toHaveBeenCalled();
+    expect(cb).toHaveBeenCalledWith("png-blob");
+    expect(result).toBe("png-blob");
+  });
+
+  it("exposes savingTemplateImage as a mutable flag", async () => {
+    const s = await initSlate();
+    expect(s.savingTemplateImage).toBe(false);
+    s.savingTemplateImage = true;
+    expect(s.savingTemplateImage).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §C — layout: packageLayout / applyLayout / nodeMovePackage
+// ---------------------------------------------------------------------------
+describe("nodes layout facade (§C)", () => {
+  const initSlate = async (options: Record<string, any> = {}) => {
+    makeContainer();
+    return new Slatebox.slate({ container: "slateCanvas", ...options }).init();
+  };
+
+  it("packageLayout() returns the v1 layout-calculation payload", async () => {
+    const s = await initSlate({ layoutType: { val: "tree", rankdir: "TB" } });
+    const a = s.nodes.add({
+      id: "la",
+      xPos: 0,
+      yPos: 0,
+      width: 100,
+      height: 50,
+      text: "A",
+      backgroundColor: "#fff",
+    });
+    const b = s.nodes.add({ id: "lb", xPos: 200, yPos: 0, width: 100, height: 50 });
+    a.relationships.addAssociation(b, { lineWidth: 3 });
+
+    const pkg = s.nodes.packageLayout();
+    expect(pkg.layoutType).toEqual({ val: "tree", rankdir: "TB" });
+    expect(pkg.uniqueIds.sort()).toEqual(["la", "lb"]);
+    expect(pkg.nodes.la).toMatchObject({ width: 100, height: 50, text: "A" });
+    expect(pkg.associations).toHaveLength(1);
+    expect(pkg.associations[0]).toMatchObject({
+      parentId: "la",
+      childId: "lb",
+      lineWidth: 3,
+    });
+    expect(pkg.subgraphs).toBeDefined();
+  });
+
+  it("applyLayout() converts exportNodes (stringly x/y) into v2 moves", async () => {
+    const s = await initSlate();
+    s.nodes.add({ id: "m1", xPos: 0, yPos: 0 });
+    s.nodes.add({ id: "m2", xPos: 10, yPos: 10 });
+
+    s.nodes.applyLayout({
+      exportNodes: {
+        m1: { x: "279.5", y: "322" },
+        m2: { x: "183.5", y: "186" },
+        ghost: { x: "1", y: "1" }, // unknown ids are skipped
+      },
+    });
+
+    const moves = (s.v2 as any).applyLayout.mock.calls[0][0];
+    expect(moves).toEqual([
+      { id: "m1", x: 279.5, y: 322 },
+      { id: "m2", x: 183.5, y: 186 },
+    ]);
+    expect((s.v2 as any).centerContent).toHaveBeenCalled();
+  });
+
+  it("applyLayout({skipCenter: true}) skips centering", async () => {
+    const s = await initSlate();
+    s.nodes.add({ id: "m1", xPos: 0, yPos: 0 });
+    s.nodes.applyLayout(
+      { exportNodes: { m1: { x: "5", y: "5" } } },
+      { skipCenter: true }
+    );
+    expect((s.v2 as any).centerContent).not.toHaveBeenCalled();
+  });
+
+  it("nodeMovePackage() applies relative moves to produce absolute v1 positions", async () => {
+    const s = await initSlate();
+    s.nodes.add({ id: "mv1", xPos: 100, yPos: 100, width: 50, height: 50 });
+    s.nodes.add({ id: "mv2", xPos: 300, yPos: 300, width: 50, height: 50 });
+
+    const pkg = s.nodes.nodeMovePackage({
+      dur: 500,
+      moves: [{ id: "mv1", x: 25, y: -10 }],
+    });
+
+    expect(pkg.dur).toBe(500);
+    expect(pkg.nodeOptions).toHaveLength(1);
+    expect(pkg.nodeOptions[0]).toMatchObject({
+      id: "mv1",
+      xPos: 125,
+      yPos: 90,
+    });
+    expect(Array.isArray(pkg.textPositions)).toBe(true);
+    expect(Array.isArray(pkg.associations)).toBe(true);
+  });
+
+  it("nodeMovePackage() without moves packages all nodes at current positions", async () => {
+    const s = await initSlate();
+    s.nodes.add({ id: "all1", xPos: 1, yPos: 2 });
+    s.nodes.add({ id: "all2", xPos: 3, yPos: 4 });
+    const pkg = s.nodes.nodeMovePackage();
+    expect(pkg.dur).toBe(300);
+    expect(pkg.nodeOptions.map((n: any) => n.id).sort()).toEqual([
+      "all1",
+      "all2",
+    ]);
+    expect(pkg.nodeOptions.find((n: any) => n.id === "all1")).toMatchObject({
+      xPos: 1,
+      yPos: 2,
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// §D — node.resize and node.relationships facades
+// ---------------------------------------------------------------------------
+describe("node sub-facades (§D)", () => {
+  const initSlate = async () => {
+    makeContainer();
+    return new Slatebox.slate({ container: "slateCanvas" }).init();
+  };
+
+  it("resize.set() applies dimensions to the live v2 node; send() re-applies", async () => {
+    const s = await initSlate();
+    const n = s.nodes.add({ id: "rz", xPos: 0, yPos: 0, width: 10, height: 10 });
+    n.resize.set(200, 150);
+    expect(n.options.width).toBe(200);
+    expect(n.options.height).toBe(150);
+    expect((n.v2 as any).setSize).toHaveBeenCalledWith(200, 150);
+    n.resize.send();
+    expect((n.v2 as any).setSize).toHaveBeenCalledTimes(2);
+  });
+
+  it("resize.set() before add() stages options without throwing", () => {
+    const n = new Slatebox.node({ id: "unattached" });
+    n.resize.set(80, 40);
+    expect(n.options.width).toBe(80);
+    expect(n.options.height).toBe(40);
+  });
+
+  it("relationships.addAssociation() links two facade nodes via v2", async () => {
+    const s = await initSlate();
+    const parent = s.nodes.add({ id: "pa", xPos: 0, yPos: 0 });
+    const child = s.nodes.add({ id: "ch", xPos: 100, yPos: 0 });
+    const assoc = parent.relationships.addAssociation(child);
+    expect(assoc).toMatchObject({ parentId: "pa", childId: "ch" });
+
+    const list = parent.relationships.associations;
+    expect(list).toHaveLength(1);
+    // v1 contract: entries carry live node references
+    expect(list[0].parent.options.id).toBe("pa");
+    expect(list[0].child.options.id).toBe("ch");
+  });
+
+  it("relationships.addAssociation() throws for unattached nodes", () => {
+    const a = new Slatebox.node({ id: "x1" });
+    const b = new Slatebox.node({ id: "x2" });
+    expect(() => a.relationships.addAssociation(b)).toThrow(/add the node/);
   });
 });
 

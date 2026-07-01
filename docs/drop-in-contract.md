@@ -67,24 +67,24 @@ App usage: `const slate = await new Slatebox.slate(options, events).init()`
 - [x] `.nodes.addRange(nodes)` (proof: tests/unit/compat-facade.test.ts)
 - [x] `.nodes.one(id)` → node — returns the stable wrapper instance (proof: unit + e2e)
 - [x] `.nodes.allNodes` → array property; lazily wraps engine-created nodes (proof: unit)
-- [ ] `.nodes.packageLayout()` — exists in v2 but on `Slate`, not `slate.nodes`
-- [ ] `.nodes.applyLayout(layoutData, {skipCenter?})`
-- [ ] `.nodes.nodeMovePackage({dur, moves: [{id, x, y}]})` — missing in v2
-- [ ] `.canvas.hideBg(opacity)` — missing in v2
-- [ ] `.controller.scaleToFitAndCenter(callback?)` — missing in v2
-- [ ] `.getOrientation()` → `{width, height, left, top, orientation}` — missing in v2
+- [x] `.nodes.packageLayout()` — facade builds the v1 server-layout payload `{layoutType, associations, nodes, uniqueIds, subgraphs}` (proof: tests/unit/compat-facade.test.ts "nodes layout facade")
+- [x] `.nodes.applyLayout(layoutData, {skipCenter?})` — accepts `{exportNodes:{id:{x,y}}}` with stringly coords, also cb form (proof: unit)
+- [x] `.nodes.nodeMovePackage({dur, moves: [{id, x, y}]})` — relative deltas → absolute v1 nodeOptions package (proof: unit)
+- [x] `.canvas.hideBg(opacity)` — clears container background for snapshot capture (proof: unit)
+- [x] `.controller.scaleToFitAndCenter(callback?)` — v2 fitToContent + centerContent + cb (proof: unit)
+- [x] `.getOrientation()` → `{width, height, left, top, orientation}` — padded node bbox, viewport fallback (proof: unit)
 - [ ] `.collab.exe(pkg)`, `.collab.invoke(packages)`, `.collab.send(packages)`, `.collab.updateUserData(data)` (see §I)
-- [ ] `.png({base64: true}, callback(blob))` — used for thumbnails
-- [ ] Properties: `.options`, `.shareId`, `.userId`, `.orgId`, `.savingTemplateImage`
+- [x] `.png({base64: true}, callback(blob))` — facade delegates to v2 exportPNG (proof: unit; real-render quality check belongs to §K)
+- [x] Properties: `.options`, `.shareId`, `.userId`, `.orgId`, `.savingTemplateImage` (proof: unit)
 
 ## D. Node constructor, methods & properties
 
 App usage: `const node = new Slatebox.node(options)`
 
 - [ ] Options honored: `id`, `name`, `text`, `xPos`, `yPos` (and stray `yPo` typo tolerated), `width`, `height`, `vectorPath`, `shapeHint`, `image`, `backgroundColor`, `foregroundColor`, `fontFamily`, `fontSize`, `fontStyle`, `lineColor`, `lineWidth`, `opacity`, `borderOpacity`, `allowResize`, `allowDrag`, `allowContext`, `allowMenu`, `isComment`, `disableDrag`, `textXAlign`, `textYAlign`, `filters: {vect}`
-- [ ] `.resize.set(w, h)` and `.resize.send()`
-- [ ] `.relationships.addAssociation(otherNode)`
-- [ ] `.relationships.associations` → array of `{parent, lineWidth, ...}` where `parent.options.id` resolves
+- [x] `.resize.set(w, h)` and `.resize.send()` — facade applies via v2 setSize (proof: tests/unit/compat-facade.test.ts "node sub-facades")
+- [x] `.relationships.addAssociation(otherNode)` — unwraps facade nodes to v2, delegates to Relationships (proof: unit)
+- [x] `.relationships.associations` → array of `{parent, child, lineWidth, ...}` with live wrapper refs, `parent.options.id` resolves (proof: unit)
 - [ ] `.png(groupNodes?, callback)`
 - [ ] Properties: `.options` (with `.id/.text/.xPos/.yPos/.width/.height/.vectorPath/.backgroundColor/.foregroundColor`), `.slate` backref
 
@@ -164,3 +164,4 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 | 2026-07-01 | Iter 1: committed ResizeRotate selection-UI fix; §J hygiene — LICENSE (MIT), CONTRIBUTING.md, yjs/y-websocket → optional peerDependencies, author field. Gates: 998 unit, build clean, pack 42 files incl. LICENSE. Next: §A `Slatebox` namespace facade. |
 | 2026-07-01 | Iter 2: §A namespace facade — src/compat-facade.ts (`Slatebox.slate/node/base/utils`, container-by-id init, nodes.add/addRange/one/allNodes, exportJSON/loadJSON delegation), exported + window.Slatebox. 17 new unit tests, 2 new e2e. Gates: 1015 unit, 103 e2e, build clean. Next: §B options/events wiring (`onSlateChanged` emission is the core of it). |
 | 2026-07-01 | Iter 3: §B/§F events — facade passes v1 events into engine; new `Slate.emitSlateChange()` (v1 pkg shape + instanceId + collabUsers) fires onNodeAdded/onNodeDeleted/onNodeTextChanged/onNodesMove; remote echoes suppressed via beginRemoteApply in Collab.exe; facade add() routes through Slate.addNode. Gates: 1016 unit, 104 e2e, build clean. Next: remaining §F types or §C/§D methods. |
+| 2026-07-01 | Iter 4: §C/§D methods — facade adds getOrientation (padded bbox), controller.scaleToFitAndCenter, canvas.hideBg, slate.png, savingTemplateImage; nodes.packageLayout (v1 payload) / applyLayout (exportNodes) / nodeMovePackage (relative→absolute); node.resize.set/send + relationships.addAssociation/.associations with live refs. 16 new unit tests. Gates: 1031 unit, 104 e2e, build clean. Remaining §D: node.png, options coverage. Next: §E utils gaps or node.png. |
