@@ -65,6 +65,11 @@ export declare class Collab {
     invoke(packages: SlatePackage | SlatePackage[]): void;
     /**
      * Send collab packages to remote peers.
+     *
+     * v1 contract: every send() surfaced back to the host through
+     * `onSlateChanged` (the yjs local-echo drove the app's save flow), so
+     * emit for each package after transmitting — the host's persistence
+     * depends on it even when no collab server is connected.
      */
     send(packages: SlatePackage | SlatePackage[]): void;
     /**

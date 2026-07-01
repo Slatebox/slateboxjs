@@ -93,6 +93,20 @@ describe("Collab", () => {
       ]);
       expect(console.warn).toHaveBeenCalled();
     });
+
+    it("emits onSlateChanged per package (v1 echo semantics drive saves)", () => {
+      mockSlate.emitSlateChange = vi.fn();
+      const collab = new Collab(mockSlate);
+      collab.send([
+        { type: "onNodeTextChanged", data: { id: "n1", text: "t" } },
+        { type: "onNodeColorChanged", data: { id: "n1", color: "#fff" } },
+      ]);
+      expect(mockSlate.emitSlateChange).toHaveBeenCalledTimes(2);
+      expect(mockSlate.emitSlateChange).toHaveBeenCalledWith(
+        "onNodeTextChanged",
+        { id: "n1", text: "t" }
+      );
+    });
   });
 
   describe("invoke", () => {

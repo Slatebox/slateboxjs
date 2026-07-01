@@ -222,25 +222,35 @@ export class Collab {
 
   /**
    * Send collab packages to remote peers.
+   *
+   * v1 contract: every send() surfaced back to the host through
+   * `onSlateChanged` (the yjs local-echo drove the app's save flow), so
+   * emit for each package after transmitting — the host's persistence
+   * depends on it even when no collab server is connected.
    */
   public send(packages: SlatePackage | SlatePackage[]): void {
-    if (!this.collabMap) {
-      console.warn("COLLAB_DEBUG: Collaboration not initialized");
-      return;
-    }
-
     const pkgs = Array.isArray(packages) ? packages : [packages];
 
-    for (const pkg of pkgs) {
-      const key = `${pkg.type}_${Date.now()}_${Math.random()
-        .toString(36)
-        .substr(2, 5)}`;
+    if (this.collabMap) {
+      for (const pkg of pkgs) {
+        const key = `${pkg.type}_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 5)}`;
 
-      this.collabMap.set(key, {
-        ...pkg,
-        clientID: this.clientID,
-        timestamp: Date.now(),
-      });
+        this.collabMap.set(key, {
+          ...pkg,
+          clientID: this.clientID,
+          timestamp: Date.now(),
+        });
+      }
+    } else {
+      console.warn(
+        "COLLAB_DEBUG: Collaboration not initialized — send() emitting locally only"
+      );
+    }
+
+    for (const pkg of pkgs) {
+      (this.slate as any).emitSlateChange?.(pkg.type, pkg.data);
     }
   }
 

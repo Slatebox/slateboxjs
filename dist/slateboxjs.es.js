@@ -8835,21 +8835,29 @@ class ss {
   }
   /**
    * Send collab packages to remote peers.
+   *
+   * v1 contract: every send() surfaced back to the host through
+   * `onSlateChanged` (the yjs local-echo drove the app's save flow), so
+   * emit for each package after transmitting — the host's persistence
+   * depends on it even when no collab server is connected.
    */
   send(t) {
-    if (!this.collabMap) {
-      console.warn("COLLAB_DEBUG: Collaboration not initialized");
-      return;
-    }
     const e = Array.isArray(t) ? t : [t];
-    for (const i of e) {
-      const s = `${i.type}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-      this.collabMap.set(s, {
-        ...i,
-        clientID: this.clientID,
-        timestamp: Date.now()
-      });
-    }
+    if (this.collabMap)
+      for (const i of e) {
+        const s = `${i.type}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        this.collabMap.set(s, {
+          ...i,
+          clientID: this.clientID,
+          timestamp: Date.now()
+        });
+      }
+    else
+      console.warn(
+        "COLLAB_DEBUG: Collaboration not initialized — send() emitting locally only"
+      );
+    for (const i of e)
+      this.slate.emitSlateChange?.(i.type, i.data);
   }
   /**
    * Execute a single collab package using the Invoker.
