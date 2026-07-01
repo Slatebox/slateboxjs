@@ -6273,7 +6273,12 @@ function Ot(n) {
   return t.xPos = n.x, t.yPos = n.y, t.foregroundColor = n.fontColor, n.shape && (t.shapeHint = n.shape), n.svgContent && (t.svgString = n.svgContent), t;
 }
 function vn(n) {
-  return { ...n };
+  const t = { ...n };
+  return n.showbirdsEye !== void 0 && (t.birdsEye = {
+    enabled: !!n.showbirdsEye,
+    ...n.sizeOfbirdsEye ? { width: n.sizeOfbirdsEye, height: n.sizeOfbirdsEye } : {},
+    ...n.birdsEye || {}
+  }), t;
 }
 function ji(n) {
   return { ...n };
@@ -8027,7 +8032,7 @@ async function Cn(n, t, e = !1, i = !1) {
 async function ya(n, t, e, i) {
   if (n.options) {
     const o = n.options;
-    Object.assign(t.options, o), n.shareId && (t.options.shareId = n.shareId);
+    Object.assign(t.options, o), n.shareId && (t.options.shareId = n.shareId), t.applyContainerStyle?.();
   }
   e || t.nodes.clear();
   const s = /* @__PURE__ */ new Map();
@@ -9152,7 +9157,7 @@ class Sn {
   init() {
     this.canvas = Re().addTo(this.element), this.canvas.node.setAttribute("role", "img"), this.canvas.node.setAttribute("aria-label", this.options.name || "Diagram canvas"), this.canvas.node.setAttribute("tabindex", "0"), this._liveRegion = document.createElement("div"), this._liveRegion.setAttribute("aria-live", "polite"), this._liveRegion.setAttribute("aria-atomic", "true"), this._liveRegion.style.cssText = "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;", this.element.appendChild(this._liveRegion);
     const t = this.options.viewPort?.originalWidth || 800, e = this.options.viewPort?.originalHeight || 600;
-    this.canvas.size(t, e), this.nodes = new ga(this), this.invoker = new ma(this), this.setupSelectionHandling(), this.options.viewPort?.showCoordinates && this.setupCoordinateCallbacks(), this.panZoom = new Vi(this, this.options.panZoom), this.birdsEye = new $i(this, this.options.birdsEye), this.options.birdsEye?.enabled && (this._birdsEyeTimeoutId = setTimeout(() => {
+    this.canvas.size(t, e), this.nodes = new ga(this), this.invoker = new ma(this), this.applyContainerStyle(), this.setupSelectionHandling(), this.options.viewPort?.showCoordinates && this.setupCoordinateCallbacks(), this.panZoom = new Vi(this, this.options.panZoom), this.birdsEye = new $i(this, this.options.birdsEye), this.options.birdsEye?.enabled && (this._birdsEyeTimeoutId = setTimeout(() => {
       this._destroyed || this.birdsEye.enable();
     }, 200)), this.undoRedo = new Ji(this, {
       enabled: this.options.showUndoRedo !== !1
@@ -9212,6 +9217,21 @@ class Sn {
     } catch (a) {
       console.warn("SLATE_EVENTS_DEBUG: onSlateChanged handler threw", a);
     }
+  }
+  /**
+   * Apply `options.containerStyle` (background color / gradient / image) to
+   * the container element. v1's canvas.refreshBackground equivalent — called
+   * during init and again after loadJSON replaces the options.
+   */
+  applyContainerStyle() {
+    const t = this.options.containerStyle;
+    if (!t || !this.element) return;
+    const e = this.element;
+    if (t.backgroundColorAsGradient && Array.isArray(t.backgroundGradientColors) && t.backgroundGradientColors.length > 1) {
+      const i = t.backgroundGradientColors.join(", ");
+      e.style.backgroundImage = t.backgroundGradientType === "radial" ? `radial-gradient(circle, ${i})` : `linear-gradient(${i})`;
+    } else t.backgroundImage ? (e.style.backgroundImage = `url(${t.backgroundImage})`, t.backgroundSize && (e.style.backgroundSize = t.backgroundSize)) : e.style.backgroundImage = "";
+    t.backgroundColor && (e.style.backgroundColor = t.backgroundColor);
   }
   /** Suppress emitSlateChange while applying a remote package (v1 echo semantics). */
   beginRemoteApply() {

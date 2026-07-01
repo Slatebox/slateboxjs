@@ -186,6 +186,12 @@ export declare class Slate {
      * @param data - v1-shaped package data
      */
     emitSlateChange(type: string, data?: Record<string, any>): void;
+    /**
+     * Apply `options.containerStyle` (background color / gradient / image) to
+     * the container element. v1's canvas.refreshBackground equivalent — called
+     * during init and again after loadJSON replaces the options.
+     */
+    applyContainerStyle(): void;
     /** Suppress emitSlateChange while applying a remote package (v1 echo semantics). */
     beginRemoteApply(): void;
     /** Re-enable emitSlateChange after a remote package has been applied. */

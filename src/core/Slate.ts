@@ -297,6 +297,9 @@ export class Slate {
     // Initialize invoker with the contract methods
     this.invoker = new Invoker(this);
 
+    // Apply background color/gradient/image from options
+    this.applyContainerStyle();
+
     // Set up selection management
     this.setupSelectionHandling();
 
@@ -486,6 +489,39 @@ export class Slate {
       cb(pkg, users);
     } catch (error) {
       console.warn("SLATE_EVENTS_DEBUG: onSlateChanged handler threw", error);
+    }
+  }
+
+  /**
+   * Apply `options.containerStyle` (background color / gradient / image) to
+   * the container element. v1's canvas.refreshBackground equivalent — called
+   * during init and again after loadJSON replaces the options.
+   */
+  public applyContainerStyle(): void {
+    const cs = this.options.containerStyle;
+    if (!cs || !this.element) return;
+
+    const el = this.element;
+
+    if (
+      cs.backgroundColorAsGradient &&
+      Array.isArray(cs.backgroundGradientColors) &&
+      cs.backgroundGradientColors.length > 1
+    ) {
+      const colors = cs.backgroundGradientColors.join(", ");
+      el.style.backgroundImage =
+        cs.backgroundGradientType === "radial"
+          ? `radial-gradient(circle, ${colors})`
+          : `linear-gradient(${colors})`;
+    } else if (cs.backgroundImage) {
+      el.style.backgroundImage = `url(${cs.backgroundImage})`;
+      if (cs.backgroundSize) el.style.backgroundSize = cs.backgroundSize;
+    } else {
+      el.style.backgroundImage = "";
+    }
+
+    if (cs.backgroundColor) {
+      el.style.backgroundColor = cs.backgroundColor;
     }
   }
 

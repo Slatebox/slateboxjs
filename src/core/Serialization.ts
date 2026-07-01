@@ -118,6 +118,9 @@ async function deserializeInner(
     if (data.shareId) {
       slate.options.shareId = data.shareId;
     }
+
+    // Re-apply background now that containerStyle may have changed
+    slate.applyContainerStyle?.();
   }
 
   // Clear existing nodes unless preserving

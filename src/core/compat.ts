@@ -84,6 +84,18 @@ export function v1SlateToV2(v1: Record<string, any>): Partial<SlateOptions> {
   // v1 uses "container" as string selector, v2 uses element parameter
   // Just preserve it as-is for downstream handling
 
+  // v1's flat `showbirdsEye` / `sizeOfbirdsEye` flags drive v2's structured
+  // birdsEye options (explicit v2 birdsEye settings win)
+  if (v1.showbirdsEye !== undefined) {
+    v2.birdsEye = {
+      enabled: !!v1.showbirdsEye,
+      ...(v1.sizeOfbirdsEye
+        ? { width: v1.sizeOfbirdsEye, height: v1.sizeOfbirdsEye }
+        : {}),
+      ...(v1.birdsEye || {}),
+    };
+  }
+
   return v2 as Partial<SlateOptions>;
 }
 
