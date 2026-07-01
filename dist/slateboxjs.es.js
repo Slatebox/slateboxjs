@@ -10546,7 +10546,7 @@ class nl {
     this.savingTemplateImage = !1, this.options = {
       ...t,
       id: t.id || Ee()
-    }, this.events = e || {}, this.shareId = this.options.shareId || Ee(), this.nodes = new el(this), this.controller = {
+    }, this.events = e || {}, this._shareId = this.options.shareId || Ee(), this.nodes = new el(this), this.controller = {
       scaleToFitAndCenter: (i) => {
         this.assertReady(), this.v2.fitToContent(), this.v2.centerContent(), i?.();
       }
@@ -10557,6 +10557,17 @@ class nl {
         i && (i.style.backgroundColor = "transparent", i.style.backgroundImage = "none");
       }
     };
+  }
+  /**
+   * v1: hosts assign `slate.shareId = X` AFTER init (createSlate.js does) and
+   * expect it to persist through exportJSON. Route writes into the live v2
+   * options (which serialization reads) once available.
+   */
+  get shareId() {
+    return this.v2?.options?.shareId ?? this._shareId;
+  }
+  set shareId(t) {
+    this._shareId = t, this.v2 && (this.v2.options.shareId = t);
   }
   /** Resolve v1 `options.container` (id string or element) to an HTMLElement. */
   resolveContainer() {
@@ -10577,7 +10588,7 @@ class nl {
   /** v1: async init resolving to the slate itself. */
   async init() {
     const t = this.resolveContainer(), e = vn(this.options);
-    delete e.container, this.options.shareId === void 0 && (e.shareId = this.shareId), e.events = this.events, this.v2 = new Sn(t, e), await this.v2.getViewportAsync(), this.options.viewPort || (this.options.viewPort = {});
+    delete e.container, this.options.shareId === void 0 && (e.shareId = this._shareId), e.events = this.events, this.v2 = new Sn(t, e), await this.v2.getViewportAsync(), this.options.viewPort || (this.options.viewPort = {});
     const i = {
       ...this.options.viewPort.zoom || {}
     };

@@ -138,9 +138,16 @@ declare class slate {
     nodes: NodesFacade;
     /** The live v2 Slate once init() has run. */
     v2?: Slate;
-    shareId: string;
+    private _shareId;
     userId?: string;
     orgId?: string;
+    /**
+     * v1: hosts assign `slate.shareId = X` AFTER init (createSlate.js does) and
+     * expect it to persist through exportJSON. Route writes into the live v2
+     * options (which serialization reads) once available.
+     */
+    get shareId(): string;
+    set shareId(value: string);
     /** v1: `slate.savingTemplateImage` — host-managed re-entrancy flag */
     savingTemplateImage: boolean;
     /** v1: `slate.controller.scaleToFitAndCenter(cb?, dur?)` */

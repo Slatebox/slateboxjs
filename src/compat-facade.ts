@@ -393,9 +393,28 @@ class slate {
   /** The live v2 Slate once init() has run. */
   public v2?: Slate;
 
-  public shareId: string;
+  private _shareId: string;
   public userId?: string;
   public orgId?: string;
+
+  /**
+   * v1: hosts assign `slate.shareId = X` AFTER init (createSlate.js does) and
+   * expect it to persist through exportJSON. Route writes into the live v2
+   * options (which serialization reads) once available.
+   */
+  public get shareId(): string {
+    return (
+      ((this.v2 as any)?.options?.shareId as string | undefined) ??
+      this._shareId
+    );
+  }
+
+  public set shareId(value: string) {
+    this._shareId = value;
+    if (this.v2) {
+      (this.v2 as any).options.shareId = value;
+    }
+  }
 
   /** v1: `slate.savingTemplateImage` — host-managed re-entrancy flag */
   public savingTemplateImage = false;
@@ -417,7 +436,7 @@ class slate {
       id: options.id || utilsModule.guid(),
     };
     this.events = events || {};
-    this.shareId = this.options.shareId || utilsModule.guid();
+    this._shareId = this.options.shareId || utilsModule.guid();
     this.nodes = new NodesFacade(this);
 
     this.controller = {
@@ -467,7 +486,7 @@ class slate {
     const v2Options = v1SlateToV2(this.options) as Record<string, any>;
     delete v2Options.container;
     if (this.options.shareId === undefined) {
-      v2Options.shareId = this.shareId;
+      v2Options.shareId = this._shareId;
     }
     // v1 takes events as the 2nd constructor arg; v2 nests them in options.
     // The callback names are shared between both generations.

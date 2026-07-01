@@ -206,6 +206,15 @@ describe("new Slatebox.slate(options, events).init() (§B)", () => {
     // `id: newSlate.options?.id`) — the generated guid must survive
     const sUndef = new Slatebox.slate({ container: "x", id: undefined });
     expect(sUndef.options.id).toBeTruthy();
+  });
+
+  it("shareId assigned AFTER init reaches v2 options (persistence path)", async () => {
+    makeContainer();
+    const s = await new Slatebox.slate({ container: "slateCanvas" }).init();
+    // createSlate.js: `slate.shareId = newSlate.shareId` post-init
+    s.shareId = "route-share-id";
+    expect((s.v2 as any).options.shareId).toBe("route-share-id");
+    expect(s.shareId).toBe("route-share-id");
 
     const s2 = new Slatebox.slate({
       container: "x",
