@@ -848,11 +848,13 @@ export class Node {
   /** Bring the node to the front of the SVG z-order. */
   public toFront() {
     this.svgGroup.front();
+    this.slate.emitSlateChange?.("onNodeToFront", { id: this.id });
   }
 
   /** Send the node to the back of the SVG z-order. */
   public toBack() {
     this.svgGroup.back();
+    this.slate.emitSlateChange?.("onNodeToBack", { id: this.id });
   }
 
   /**
@@ -1016,6 +1018,15 @@ export class Node {
     if (borderColor) {
       this.options.borderColor = borderColor;
       this.backgroundRect.stroke({ color: borderColor });
+    }
+
+    if (backgroundColor || borderColor) {
+      // v1 package shape: data.color carries the background color
+      this.slate.emitSlateChange?.("onNodeColorChanged", {
+        id: this.id,
+        color: this.options.backgroundColor,
+        borderColor: this.options.borderColor,
+      });
     }
   }
 

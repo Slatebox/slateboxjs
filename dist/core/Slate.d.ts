@@ -291,6 +291,18 @@ export declare class Slate {
     };
     /** Notify pan/zoom that the viewport was resized. */
     resizePanZoom(): void;
+    /**
+     * Bounding-box orientation of the current content (v1 contract):
+     * `{orientation, width, height, left, top}` computed over all nodes with
+     * 10px padding, falling back to the viewport dimensions when empty.
+     */
+    getOrientation(): {
+        orientation: "landscape" | "portrait";
+        width: number;
+        height: number;
+        left: number;
+        top: number;
+    };
     private setupSelectionHandling;
     /**
      * Select one or more nodes on the slate.

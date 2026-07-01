@@ -15,7 +15,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock the v2 Slate module. The facade should hand it (element, options) and
 // await getViewportAsync().
 // ---------------------------------------------------------------------------
-const mockV2NodesManager = () => {
+const mockV2NodesManager = (slateRef?: any) => {
   const store = new Map<string, any>();
   return {
     store,
@@ -24,6 +24,7 @@ const mockV2NodesManager = () => {
       const v2node = {
         id: options.id,
         options,
+        slate: slateRef,
         setSize: vi.fn((w: number, h: number) => {
           options.width = w;
           options.height = h;
@@ -66,6 +67,14 @@ vi.mock("../../src/core/Slate", () => {
     addNode = vi.fn((options: any) => this.nodes.add(options));
     fitToContent = vi.fn();
     centerContent = vi.fn();
+    emitSlateChange = vi.fn();
+    getOrientation = vi.fn(() => ({
+      orientation: "landscape",
+      width: 420,
+      height: 170,
+      left: 90,
+      top: 90,
+    }));
     applyLayout = vi.fn((_moves: any[], cb?: () => void) => cb?.());
     png = vi.fn(async (_opts?: any, cb?: (r: any) => void) => {
       cb?.("png-blob");
@@ -74,7 +83,7 @@ vi.mock("../../src/core/Slate", () => {
     constructor(element: any, options: any) {
       this.element = element;
       this.options = options;
-      this.nodes = mockV2NodesManager();
+      this.nodes = mockV2NodesManager(this);
       slateInstances.push(this);
     }
   }
@@ -292,28 +301,18 @@ describe("slate methods (§C)", () => {
     return new Slatebox.slate({ container: "slateCanvas", ...options }).init();
   };
 
-  it("getOrientation() computes the padded node bounding box", async () => {
+  it("getOrientation() delegates to the engine's v1-shaped implementation", async () => {
     const s = await initSlate();
-    s.nodes.add({ id: "o1", xPos: 100, yPos: 100, width: 100, height: 50 });
-    s.nodes.add({ id: "o2", xPos: 400, yPos: 200, width: 100, height: 50 });
     const orient = s.getOrientation();
-    // minX=90, maxX=510, minY=90, maxY=260 (10px pad)
-    expect(orient.width).toBe(420);
-    expect(orient.height).toBe(170);
-    expect(orient.left).toBe(90);
-    expect(orient.top).toBe(90);
-    expect(orient.orientation).toBe("landscape");
-  });
-
-  it("getOrientation() reports portrait and falls back to viewport when empty", async () => {
-    const s = await initSlate({ viewPort: { width: 1000, height: 2000 } });
-    const empty = s.getOrientation();
-    expect(empty.width).toBe(1000);
-    expect(empty.height).toBe(2000);
-    expect(empty.orientation).toBe("landscape");
-
-    s.nodes.add({ id: "p1", xPos: 0, yPos: 0, width: 50, height: 500 });
-    expect(s.getOrientation().orientation).toBe("portrait");
+    expect((s.v2 as any).getOrientation).toHaveBeenCalled();
+    expect(orient).toMatchObject({
+      orientation: "landscape",
+      width: 420,
+      height: 170,
+      left: 90,
+      top: 90,
+    });
+    // The bbox math itself is proven engine-side in Slate.test.ts
   });
 
   it("controller.scaleToFitAndCenter() fits, centers, and calls back", async () => {
@@ -474,6 +473,21 @@ describe("node sub-facades (§D)", () => {
     expect((n.v2 as any).setSize).toHaveBeenCalledWith(200, 150);
     n.resize.send();
     expect((n.v2 as any).setSize).toHaveBeenCalledTimes(2);
+  });
+
+  it("resize.send() broadcasts an onNodeResized package (v1 semantics)", async () => {
+    const s = await initSlate();
+    const n = s.nodes.add({ id: "rzb", xPos: 0, yPos: 0, width: 10, height: 10 });
+    n.resize.set(300, 200);
+    n.resize.send();
+    expect((s.v2 as any).emitSlateChange).toHaveBeenCalledWith(
+      "onNodeResized",
+      expect.objectContaining({ id: "rzb", width: 300, height: 200 })
+    );
+    // send() consumes the pending resize — a second send is a no-op
+    (s.v2 as any).emitSlateChange.mockClear();
+    n.resize.send();
+    expect((s.v2 as any).emitSlateChange).not.toHaveBeenCalled();
   });
 
   it("resize.set() before add() stages options without throwing", () => {

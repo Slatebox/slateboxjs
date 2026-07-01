@@ -845,6 +845,99 @@ describe("Slate", () => {
   });
 
   // -----------------------------------------------------------------------
+  // v1 compat: getOrientation + emitSlateChange (drop-in contract §C/§F)
+  // -----------------------------------------------------------------------
+  describe("getOrientation", () => {
+    it("computes the padded bounding box over all nodes", () => {
+      const slate = new Slate(container);
+      slate.nodes.allNodes = [
+        { options: { x: 100, y: 100, width: 100, height: 50 } },
+        { options: { x: 400, y: 200, width: 100, height: 50 } },
+      ] as any;
+      const orient = slate.getOrientation();
+      expect(orient.width).toBe(420); // 90..510
+      expect(orient.height).toBe(170); // 90..260
+      expect(orient.left).toBe(90);
+      expect(orient.top).toBe(90);
+      expect(orient.orientation).toBe("landscape");
+    });
+
+    it("reports portrait when height exceeds width", () => {
+      const slate = new Slate(container);
+      slate.nodes.allNodes = [
+        { options: { x: 0, y: 0, width: 50, height: 500 } },
+      ] as any;
+      expect(slate.getOrientation().orientation).toBe("portrait");
+    });
+
+    it("falls back to viewport dimensions when empty", () => {
+      const slate = new Slate(container, {
+        viewPort: { originalWidth: 800, originalHeight: 600 },
+      });
+      slate.nodes.allNodes = [] as any;
+      const orient = slate.getOrientation();
+      expect(orient.width).toBe(800);
+      expect(orient.height).toBe(600);
+    });
+  });
+
+  describe("emitSlateChange (v1 onSlateChanged contract)", () => {
+    it("fires events.onSlateChanged with {type, data, instanceId} and a users array", () => {
+      const onSlateChanged = vi.fn();
+      const slate = new Slate(container, {
+        instance: "inst-9",
+        events: { onSlateChanged },
+      });
+      slate.emitSlateChange("onNodeToFront", { id: "n1" });
+
+      expect(onSlateChanged).toHaveBeenCalledTimes(1);
+      const [pkg, users] = onSlateChanged.mock.calls[0];
+      expect(pkg).toMatchObject({
+        type: "onNodeToFront",
+        data: { id: "n1" },
+        instanceId: "inst-9",
+      });
+      expect(Array.isArray(users)).toBe(true);
+    });
+
+    it("is suppressed between beginRemoteApply and endRemoteApply", () => {
+      const onSlateChanged = vi.fn();
+      const slate = new Slate(container, { events: { onSlateChanged } });
+      slate.beginRemoteApply();
+      slate.emitSlateChange("onNodeTextChanged", { id: "n1", text: "x" });
+      slate.endRemoteApply();
+      expect(onSlateChanged).not.toHaveBeenCalled();
+
+      slate.emitSlateChange("onNodeTextChanged", { id: "n1", text: "y" });
+      expect(onSlateChanged).toHaveBeenCalledTimes(1);
+    });
+
+    it("survives a throwing host handler", () => {
+      const slate = new Slate(container, {
+        events: {
+          onSlateChanged: () => {
+            throw new Error("host bug");
+          },
+        },
+      });
+      expect(() =>
+        slate.emitSlateChange("onNodeToFront", { id: "n1" })
+      ).not.toThrow();
+    });
+
+    it("zoom() emits an onZoom package with zoomLevel", () => {
+      const onSlateChanged = vi.fn();
+      const slate = new Slate(container, { events: { onSlateChanged } });
+      slate.zoom(2);
+      const zoomPkg = onSlateChanged.mock.calls.find(
+        (c: any[]) => c[0].type === "onZoom"
+      );
+      expect(zoomPkg).toBeDefined();
+      expect(zoomPkg![0].data).toEqual({ zoomLevel: 2 });
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // 11. Display locks
   // -----------------------------------------------------------------------
   describe("displayLocks / hideLocks", () => {

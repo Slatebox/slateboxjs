@@ -6651,11 +6651,11 @@ class Vi {
   }
   /** Bring the node to the front of the SVG z-order. */
   toFront() {
-    this.svgGroup.front();
+    this.svgGroup.front(), this.slate.emitSlateChange?.("onNodeToFront", { id: this.id });
   }
   /** Send the node to the back of the SVG z-order. */
   toBack() {
-    this.svgGroup.back();
+    this.svgGroup.back(), this.slate.emitSlateChange?.("onNodeToBack", { id: this.id });
   }
   /**
    * Remove the node from the canvas (light teardown).
@@ -6722,7 +6722,11 @@ class Vi {
    * @param borderColor     - New stroke color (or undefined to keep current)
    */
   setColors(t, e) {
-    t && (this.options.backgroundColor = t, this.backgroundRect.fill(t)), e && (this.options.borderColor = e, this.backgroundRect.stroke({ color: e }));
+    t && (this.options.backgroundColor = t, this.backgroundRect.fill(t)), e && (this.options.borderColor = e, this.backgroundRect.stroke({ color: e })), (t || e) && this.slate.emitSlateChange?.("onNodeColorChanged", {
+      id: this.id,
+      color: this.options.backgroundColor,
+      borderColor: this.options.borderColor
+    });
   }
   /** Lock the node, disabling drag and resize/rotate. */
   lock() {
@@ -9169,10 +9173,24 @@ class Sn {
   }
   setupCoordinateCallbacks() {
     const t = this.options.panZoom?.onPan, e = this.options.panZoom?.onZoom;
-    this.options.panZoom || (this.options.panZoom = {}), this.options.panZoom.onPan = (i) => {
-      this.updateCoordinateDisplay(), t && t(i);
-    }, this.options.panZoom.onZoom = (i) => {
-      this.updateCoordinateDisplay(), e && e(i);
+    this.options.panZoom || (this.options.panZoom = {}), this.options.panZoom.onPan = (s) => {
+      this.updateCoordinateDisplay(), t && t(s);
+    }, this.options.panZoom.onZoom = (s) => {
+      this.updateCoordinateDisplay(), e && e(s);
+    };
+    const i = this.options.panZoom.onPanEnd;
+    this.options.panZoom.onPanEnd = (s) => {
+      i && i(s);
+      try {
+        const o = this.getPan();
+        this.emitSlateChange("onCanvasMove", {
+          left: o.x,
+          top: o.y,
+          relative: { x: o.x, y: o.y },
+          orient: this.getOrientation()
+        });
+      } catch {
+      }
     };
   }
   addCoordinateDisplay() {
@@ -9338,7 +9356,7 @@ class Sn {
    * @param level - Zoom factor (1 = 100%)
    */
   zoom(t) {
-    this.panZoom.zoom(t), this.announce(`Zoom: ${Math.round(t * 100)}%`);
+    this.panZoom.zoom(t), this.announce(`Zoom: ${Math.round(t * 100)}%`), this.emitSlateChange("onZoom", { zoomLevel: t });
   }
   /**
    * Zoom by a relative factor.
@@ -9394,6 +9412,23 @@ class Sn {
   /** Notify pan/zoom that the viewport was resized. */
   resizePanZoom() {
     this.panZoom.resize();
+  }
+  /**
+   * Bounding-box orientation of the current content (v1 contract):
+   * `{orientation, width, height, left, top}` computed over all nodes with
+   * 10px padding, falling back to the viewport dimensions when empty.
+   */
+  getOrientation() {
+    const t = this.nodes?.allNodes ?? [], e = this.options.viewPort || {};
+    let i = e.width ?? e.originalWidth ?? 800, s = e.height ?? e.originalHeight ?? 600, o = 0, a = 0, r = "landscape";
+    if (t.length > 0) {
+      let c = 1 / 0, h = 1 / 0, d = -1 / 0, u = -1 / 0;
+      t.forEach((f) => {
+        const g = f.options.x ?? 0, p = f.options.y ?? 0, m = f.options.width ?? 0, y = f.options.height ?? 0;
+        c = Math.min(c, g - 10), h = Math.min(h, p - 10), d = Math.max(d, g + m + 10), u = Math.max(u, p + y + 10);
+      }), o = Math.abs(c), a = Math.abs(h), i = d - c, s = u - h, s > i && (r = "portrait");
+    }
+    return { orientation: r, width: i, height: s, left: o, top: a };
   }
   // Selection Management
   setupSelectionHandling() {
@@ -10164,7 +10199,20 @@ class Qa {
     this.pending = { width: t, height: e }, this.owner.options.width = t, this.owner.options.height = e, this.owner.v2?.setSize(t, e);
   }
   send() {
-    !this.pending || !this.owner.v2 || (this.owner.v2.setSize(this.pending.width, this.pending.height), this.pending = void 0);
+    if (!this.pending || !this.owner.v2) return;
+    const t = this.owner.v2;
+    t.setSize(this.pending.width, this.pending.height), t.slate?.emitSlateChange?.("onNodeResized", {
+      id: t.id,
+      width: this.pending.width,
+      height: this.pending.height,
+      rotate: t.options.rotate,
+      vectorPath: t.options.vectorPath,
+      associations: (t.relationships?.getAssociations?.() ?? []).map((e) => ({
+        parentId: e.parentId,
+        childId: e.childId,
+        linePath: ""
+      }))
+    }), this.pending = void 0;
   }
 }
 class Ja {
@@ -10371,17 +10419,7 @@ class el {
    * falling back to the viewport dimensions when the slate is empty.
    */
   getOrientation() {
-    this.assertReady();
-    const t = this.v2.nodes.allNodes, e = this.options.viewPort || {};
-    let i = e.width ?? 5e4, s = e.height ?? 5e4, o = 0, a = 0, r = "landscape";
-    if (t.length > 0) {
-      let c = 1 / 0, h = 1 / 0, d = -1 / 0, u = -1 / 0;
-      t.forEach((f) => {
-        const g = f.options.x ?? 0, p = f.options.y ?? 0, m = f.options.width ?? 0, y = f.options.height ?? 0;
-        c = Math.min(c, g - 10), h = Math.min(h, p - 10), d = Math.max(d, g + m + 10), u = Math.max(u, p + y + 10);
-      }), o = Math.abs(c), a = Math.abs(h), i = d - c, s = u - h, s > i && (r = "portrait");
-    }
-    return { orientation: r, width: i, height: s, left: o, top: a };
+    return this.assertReady(), this.v2.getOrientation();
   }
   /** v1: `slate.png({base64: true}, cb)` — thumbnail export */
   png(t, e) {

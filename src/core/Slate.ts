@@ -515,6 +515,25 @@ export class Slate {
         originalOnZoom(zoom);
       }
     };
+
+    // v1 contract: a completed pan broadcasts onCanvasMove
+    const originalOnPanEnd = this.options.panZoom.onPanEnd;
+    this.options.panZoom.onPanEnd = (evt: any) => {
+      if (originalOnPanEnd) {
+        originalOnPanEnd(evt);
+      }
+      try {
+        const pan = this.getPan();
+        this.emitSlateChange("onCanvasMove", {
+          left: pan.x,
+          top: pan.y,
+          relative: { x: pan.x, y: pan.y },
+          orient: this.getOrientation(),
+        });
+      } catch {
+        // pan/zoom may not be initialized yet
+      }
+    };
   }
 
   private addCoordinateDisplay() {
@@ -763,6 +782,7 @@ export class Slate {
   public zoom(level: number) {
     this.panZoom.zoom(level);
     this.announce(`Zoom: ${Math.round(level * 100)}%`);
+    this.emitSlateChange("onZoom", { zoomLevel: level });
   }
 
   /**
@@ -830,6 +850,52 @@ export class Slate {
   /** Notify pan/zoom that the viewport was resized. */
   public resizePanZoom() {
     this.panZoom.resize();
+  }
+
+  /**
+   * Bounding-box orientation of the current content (v1 contract):
+   * `{orientation, width, height, left, top}` computed over all nodes with
+   * 10px padding, falling back to the viewport dimensions when empty.
+   */
+  public getOrientation(): {
+    orientation: "landscape" | "portrait";
+    width: number;
+    height: number;
+    left: number;
+    top: number;
+  } {
+    const all = this.nodes?.allNodes ?? [];
+    const vp: any = this.options.viewPort || {};
+    let width = vp.width ?? vp.originalWidth ?? 800;
+    let height = vp.height ?? vp.originalHeight ?? 600;
+    let left = 0;
+    let top = 0;
+    let orientation: "landscape" | "portrait" = "landscape";
+
+    if (all.length > 0) {
+      const pad = 10;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      all.forEach((n: any) => {
+        const x = n.options.x ?? 0;
+        const y = n.options.y ?? 0;
+        const w = n.options.width ?? 0;
+        const h = n.options.height ?? 0;
+        minX = Math.min(minX, x - pad);
+        minY = Math.min(minY, y - pad);
+        maxX = Math.max(maxX, x + w + pad);
+        maxY = Math.max(maxY, y + h + pad);
+      });
+      left = Math.abs(minX);
+      top = Math.abs(minY);
+      width = maxX - minX;
+      height = maxY - minY;
+      if (height > width) orientation = "portrait";
+    }
+
+    return { orientation, width, height, left, top };
   }
 
   // Selection Management

@@ -148,4 +148,53 @@ test.describe("v1 compat facade (window.Slatebox)", () => {
     // The remote-applied text change must not have been echoed back
     expect(result.remoteEmitted).toBe(false);
   });
+
+  test("color, z-order, and zoom changes emit v1 packages", async ({
+    page,
+  }) => {
+    const result = await page.evaluate(async () => {
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.width = "800px";
+      div.style.height = "600px";
+      document.body.appendChild(div);
+
+      const received: any[] = [];
+      const sb = (window as any).Slatebox;
+      const s = await new sb.slate(
+        { container: "slateCanvas" },
+        { onSlateChanged: (pkg: any) => received.push(pkg) }
+      ).init();
+
+      const n = s.nodes.add(
+        new sb.node({ id: "fx1", xPos: 50, yPos: 50, text: "fx" })
+      );
+      await new Promise((r) => setTimeout(r, 400));
+
+      n.v2.setColors("#ff0000");
+      n.v2.toFront();
+      n.v2.toBack();
+      s.v2.zoom(1.5);
+      n.resize.set(222, 111);
+      n.resize.send();
+
+      return {
+        color: received.find((p) => p.type === "onNodeColorChanged"),
+        front: received.find((p) => p.type === "onNodeToFront"),
+        back: received.find((p) => p.type === "onNodeToBack"),
+        zoom: received.find((p) => p.type === "onZoom"),
+        resized: received.find((p) => p.type === "onNodeResized"),
+      };
+    });
+
+    expect(result.color?.data).toMatchObject({ id: "fx1", color: "#ff0000" });
+    expect(result.front?.data).toEqual({ id: "fx1" });
+    expect(result.back?.data).toEqual({ id: "fx1" });
+    expect(result.zoom?.data).toEqual({ zoomLevel: 1.5 });
+    expect(result.resized?.data).toMatchObject({
+      id: "fx1",
+      width: 222,
+      height: 111,
+    });
+  });
 });

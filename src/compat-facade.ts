@@ -77,7 +77,23 @@ class NodeResizeFacade {
 
   public send(): void {
     if (!this.pending || !this.owner.v2) return;
-    this.owner.v2.setSize(this.pending.width, this.pending.height);
+    const v2Node = this.owner.v2;
+    v2Node.setSize(this.pending.width, this.pending.height);
+    // v1: send() broadcasts the resize as an onNodeResized package
+    (v2Node.slate as any)?.emitSlateChange?.("onNodeResized", {
+      id: v2Node.id,
+      width: this.pending.width,
+      height: this.pending.height,
+      rotate: (v2Node.options as any).rotate,
+      vectorPath: (v2Node.options as any).vectorPath,
+      associations: (
+        (v2Node as any).relationships?.getAssociations?.() ?? []
+      ).map((a: any) => ({
+        parentId: a.parentId,
+        childId: a.childId,
+        linePath: "",
+      })),
+    });
     this.pending = undefined;
   }
 }
@@ -449,38 +465,7 @@ class slate {
     top: number;
   } {
     this.assertReady();
-    const all = this.v2!.nodes.allNodes;
-    const vp: any = this.options.viewPort || {};
-    let width = vp.width ?? 50000;
-    let height = vp.height ?? 50000;
-    let left = 0;
-    let top = 0;
-    let orientation: "landscape" | "portrait" = "landscape";
-
-    if (all.length > 0) {
-      const pad = 10;
-      let minX = Infinity;
-      let minY = Infinity;
-      let maxX = -Infinity;
-      let maxY = -Infinity;
-      all.forEach((n: any) => {
-        const x = n.options.x ?? 0;
-        const y = n.options.y ?? 0;
-        const w = n.options.width ?? 0;
-        const h = n.options.height ?? 0;
-        minX = Math.min(minX, x - pad);
-        minY = Math.min(minY, y - pad);
-        maxX = Math.max(maxX, x + w + pad);
-        maxY = Math.max(maxY, y + h + pad);
-      });
-      left = Math.abs(minX);
-      top = Math.abs(minY);
-      width = maxX - minX;
-      height = maxY - minY;
-      if (height > width) orientation = "portrait";
-    }
-
-    return { orientation, width, height, left, top };
+    return this.v2!.getOrientation();
   }
 
   /** v1: `slate.png({base64: true}, cb)` — thumbnail export */
