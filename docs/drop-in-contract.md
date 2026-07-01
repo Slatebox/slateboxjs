@@ -20,12 +20,12 @@ or noted inline.
 
 ## A. Entry point & namespace
 
-- [ ] `import { Slatebox } from 'slateboxjs'` — named export `Slatebox` object
-- [ ] `Slatebox.slate` — lowercase slate constructor: `new Slatebox.slate(options, events)`
-- [ ] `Slatebox.node` — lowercase node constructor: `new Slatebox.node(options)`
-- [ ] `Slatebox.base` — v1 exported this; check whether the Meteor app actually uses it (audit found no direct use — confirm, then either stub or document exclusion)
-- [ ] `Slatebox.utils` — utils namespace (see §E)
-- [ ] `window.Slatebox` global set when loaded in browser
+- [x] `import { Slatebox } from 'slateboxjs'` — named export `Slatebox` object (src/compat-facade.ts, exported from index.ts; proof: tests/unit/compat-facade.test.ts)
+- [x] `Slatebox.slate` — lowercase slate constructor: `new Slatebox.slate(options, events)` (proof: unit + tests/e2e/compat-facade.spec.ts)
+- [x] `Slatebox.node` — lowercase node constructor: `new Slatebox.node(options)` (standalone wrapper, binds to v2 node on `nodes.add`)
+- [x] `Slatebox.base` — confirmed UNUSED by the Meteor app (grepped all imports); minimal plugin-registry port provided anyway (proof: unit test)
+- [x] `Slatebox.utils` — utils namespace wired (gaps like `_transformPath` tracked in §E)
+- [x] `window.Slatebox` global set when loaded in browser (proof: tests/e2e/compat-facade.spec.ts against built bundle)
 - [ ] **DECISION**: publish name — take over `slateboxjs` (as v3.x? major bump), publish as `slateboxjs-v2`, or scoped `@slatebox/js`. The Meteor app's import specifier depends on this.
 
 Current v2 reality: exports `SlateboxJS(element, options)` factory + PascalCase classes
@@ -36,8 +36,8 @@ A compat facade module (e.g. `src/compat-facade.ts` exporting `Slatebox`) is the
 
 App usage: `const slate = await new Slatebox.slate(options, events).init()`
 
-- [ ] Constructor signature `(options, events)` — v2 is `new Slate(element, options)`; facade must accept v1 shape, resolve `options.container` (an element id string, e.g. `"slateCanvas"`) to the element
-- [ ] `.init()` returns a Promise resolving to the slate
+- [x] Constructor signature `(options, events)` — facade accepts v1 shape, resolves `options.container` element-id string (selector and direct-element fallbacks) (proof: tests/unit/compat-facade.test.ts)
+- [x] `.init()` returns a Promise resolving to the slate (awaits v2 viewport readiness) (proof: unit + e2e)
 - [ ] Options honored (pass-through or mapped):
   - `id`, `name`, `description`, `shareId`, `container`
   - `containerStyle: { width, height, backgroundColor, backgroundImage, backgroundSize, backgroundEffect, backgroundColorAsGradient, backgroundGradientType, backgroundGradientColors, backgroundGradientStrategy }`
@@ -60,12 +60,12 @@ App usage: `const slate = await new Slatebox.slate(options, events).init()`
 
 ## C. Slate methods & properties
 
-- [ ] `.exportJSON()` → JSON string (Mongo persists this shape — see §G)
-- [ ] `.loadJSON(jsonString)`
-- [ ] `.nodes.add(node)` · `(?)` exists in v2 as `Slate.addNode` — facade needed
-- [ ] `.nodes.addRange(nodes)` — missing in v2
-- [ ] `.nodes.one(id)` → node
-- [ ] `.nodes.allNodes` → array (property, not method)
+- [x] `.exportJSON()` → JSON string — facade delegates to v2 (v1-format fidelity of the payload itself is §G) (proof: unit + e2e)
+- [x] `.loadJSON(jsonString)` — facade delegates to v2 async loadJSON (proof: unit)
+- [x] `.nodes.add(node)` — facade accepts v1 node instances AND plain options, maps via compat (proof: unit + e2e)
+- [x] `.nodes.addRange(nodes)` (proof: tests/unit/compat-facade.test.ts)
+- [x] `.nodes.one(id)` → node — returns the stable wrapper instance (proof: unit + e2e)
+- [x] `.nodes.allNodes` → array property; lazily wraps engine-created nodes (proof: unit)
 - [ ] `.nodes.packageLayout()` — exists in v2 but on `Slate`, not `slate.nodes`
 - [ ] `.nodes.applyLayout(layoutData, {skipCenter?})`
 - [ ] `.nodes.nodeMovePackage({dur, moves: [{id, x, y}]})` — missing in v2
@@ -161,3 +161,4 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 |------|-----------------|
 | 2026-07-01 | Contract established from Meteor-app audit. v2 at 998 unit / 101 e2e green. Facade layer not started. Uncommitted ResizeRotate selection-UI fix in tree. |
 | 2026-07-01 | Iter 1: committed ResizeRotate selection-UI fix; §J hygiene — LICENSE (MIT), CONTRIBUTING.md, yjs/y-websocket → optional peerDependencies, author field. Gates: 998 unit, build clean, pack 42 files incl. LICENSE. Next: §A `Slatebox` namespace facade. |
+| 2026-07-01 | Iter 2: §A namespace facade — src/compat-facade.ts (`Slatebox.slate/node/base/utils`, container-by-id init, nodes.add/addRange/one/allNodes, exportJSON/loadJSON delegation), exported + window.Slatebox. 17 new unit tests, 2 new e2e. Gates: 1015 unit, 103 e2e, build clean. Next: §B options/events wiring (`onSlateChanged` emission is the core of it). |

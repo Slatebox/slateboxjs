@@ -1,0 +1,118 @@
+/**
+ * compat-facade.ts — v1 runtime API facade
+ *
+ * Lets code written against the Raphael-era `slateboxjs` package
+ * (`import { Slatebox } from 'slateboxjs'` → `new Slatebox.slate(options, events).init()`)
+ * run on the v2 engine without changes. This module is the migration layer:
+ * it wraps the modern v2 classes (`Slate`, `Node`, …) rather than modifying
+ * their public APIs.
+ *
+ * Scope covered here (see docs/drop-in-contract.md):
+ *  §A — namespace shape: `Slatebox.slate`, `Slatebox.node`, `Slatebox.base`,
+ *        `Slatebox.utils`, plus the `window.Slatebox` global (wired in index.ts)
+ *  §B (partial) — `(options, events)` constructor signature, `container`
+ *        resolution by element id, async `.init()` resolving to the slate
+ *  §C (partial) — `nodes.add/addRange/one/allNodes`, `exportJSON/loadJSON`
+ *
+ * Deeper option/event wiring, layout/canvas/controller methods and collab
+ * bridging are tracked as separate contract items.
+ */
+import { Slate } from "./core/Slate";
+import type { Node as V2Node } from "./core/Node";
+import * as utilsModule from "./utils";
+/** v1-style events object passed as the 2nd constructor argument. */
+export type V1Events = Record<string, ((...args: any[]) => any) | undefined>;
+/**
+ * v1-style node: constructed standalone (no slate required) and later
+ * attached via `slate.nodes.add(node)`. Keeps its v1-shaped `options`
+ * object; once added, `v2` points at the live v2 Node.
+ */
+declare class node {
+    /** v1-shaped options (xPos/yPos/foregroundColor/…) */
+    options: Record<string, any>;
+    /** The live v2 node once this wrapper has been added to a slate. */
+    v2?: V2Node;
+    /** Back-reference to the owning facade slate (set on add, like v1). */
+    slate?: slate;
+    constructor(options?: Record<string, any>);
+}
+/**
+ * Facade over the v2 NodesManager exposing the v1 `slate.nodes` surface.
+ * v1 takes node INSTANCES (`nodes.add(new Slatebox.node({...}))`) while v2's
+ * manager takes plain options — this adapter accepts both.
+ */
+declare class NodesFacade {
+    private owner;
+    private wrappers;
+    constructor(owner: slate);
+    private get v2Slate();
+    /** v1: `slate.nodes.add(nodeInstance)` — also accepts a plain options object. */
+    add(n: node | Record<string, any>): node;
+    /** v1: `slate.nodes.addRange([...])` */
+    addRange(list: Array<node | Record<string, any>>): node[];
+    /** v1: `slate.nodes.one(id)` → node (or undefined) */
+    one(id: string): node | undefined;
+    /** v1: `slate.nodes.allNodes` → array property */
+    get allNodes(): node[];
+    /**
+     * Return the stable wrapper for a v2 node, creating one lazily for nodes
+     * that came into existence outside this facade (e.g. loadJSON).
+     */
+    private wrap;
+}
+/**
+ * v1-style slate: `const s = await new Slatebox.slate(options, events).init()`.
+ *
+ * v1 differences bridged here:
+ *  - constructor takes `(options, events)`; v2 takes `(element, options)`
+ *  - `options.container` is an element ID string (e.g. "slateCanvas"); v2
+ *    wants the element (or a CSS selector)
+ *  - `.init()` is async and resolves to the slate itself
+ */
+declare class slate {
+    options: Record<string, any>;
+    events: V1Events;
+    nodes: NodesFacade;
+    /** The live v2 Slate once init() has run. */
+    v2?: Slate;
+    shareId: string;
+    userId?: string;
+    orgId?: string;
+    constructor(options?: Record<string, any>, events?: V1Events);
+    /** Resolve v1 `options.container` (id string or element) to an HTMLElement. */
+    private resolveContainer;
+    /** v1: async init resolving to the slate itself. */
+    init(): Promise<this>;
+    /** v1: `slate.exportJSON()` → JSON string */
+    exportJSON(): string;
+    /** v1: `slate.loadJSON(jsonString)` */
+    loadJSON(json: string): Promise<void>;
+    private assertReady;
+}
+/**
+ * v1 exported a `base` class carrying a static plugin registry. The Meteor
+ * app does not use it directly (verified against all 13 importing files);
+ * this minimal port exists so `Slatebox.base` is present for any external
+ * v1 consumers that subclass it.
+ */
+declare class base {
+    private static availablePlugins;
+    plugins?: Record<string, any>;
+    constructor(initPayload?: any);
+    registerPlugins(initPayload?: any): void;
+    static registerPlugin(details: {
+        name: string;
+        plugin: new (payload?: any) => any;
+    }): void;
+}
+/**
+ * The v1 namespace object: `import { Slatebox } from 'slateboxjs'`.
+ * Also assigned to `window.Slatebox` in index.ts.
+ */
+export declare const Slatebox: {
+    slate: typeof slate;
+    node: typeof node;
+    base: typeof base;
+    utils: typeof utilsModule;
+};
+export { slate as CompatSlate, node as CompatNode, base as CompatBase };

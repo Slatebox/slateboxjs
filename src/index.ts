@@ -56,6 +56,9 @@ import { Presentation } from './core/Presentation'
 // Utilities
 import * as utils from './utils'
 
+// v1 runtime API facade (`Slatebox.slate/node/base/utils`)
+import { Slatebox } from './compat-facade'
+
 // Export all classes and utilities
 export {
   // Core
@@ -100,6 +103,8 @@ export {
   Presentation,
   // Utilities
   utils,
+  // v1 runtime API facade
+  Slatebox,
 }
 
 // Re-export types for convenience
@@ -175,7 +180,7 @@ if (typeof window !== 'undefined') {
   ;(window as any).ZoomSlider = ZoomSlider
   ;(window as any).Comments = Comments
   ;(window as any).Presentation = Presentation
-  ;(window as any).Slatebox = { utils, compat }
+  ;(window as any).Slatebox = Object.assign({}, Slatebox, { compat })
 }
 
 // Default export
