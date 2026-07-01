@@ -8,6 +8,7 @@ import {
   randomInt,
   obtainProportionateWidthAndHeightForResizing,
   safeForUrls,
+  _transformPath,
   isElement,
   isSafari,
   isMobile,
@@ -61,15 +62,25 @@ describe("utils", () => {
   });
 
   describe("getTextWidth", () => {
-    it("should return a positive number", () => {
-      const width = getTextWidth("Hello World");
-      expect(width).toBeGreaterThan(0);
+    it("returns the v1 {width, height} shape", () => {
+      const dimens = getTextWidth("Hello World", "normal 12pt Arial");
+      expect(dimens.width).toBeGreaterThan(0);
+      expect(dimens.height).toBeGreaterThan(0);
     });
 
-    it("should return wider for longer text", () => {
-      const short = getTextWidth("Hi");
-      const long = getTextWidth("Hello World, this is a long sentence");
-      expect(long).toBeGreaterThan(short);
+    it("returns wider for longer text", () => {
+      const short = getTextWidth("Hi", "normal 12pt Arial");
+      const long = getTextWidth(
+        "Hello World, this is a long sentence",
+        "normal 12pt Arial"
+      );
+      expect(long.width).toBeGreaterThan(short.width);
+    });
+
+    it("accumulates height across newlines", () => {
+      const one = getTextWidth("line", "normal 12pt Arial");
+      const three = getTextWidth("line\nline\nline", "normal 12pt Arial");
+      expect(three.height).toBeGreaterThan(one.height);
     });
   });
 
@@ -82,9 +93,25 @@ describe("utils", () => {
       expect(bbox.height).toBe(130); // 150 - 20
     });
 
+    it("returns the Raphael-style bbox with x2/y2/cx/cy", () => {
+      const bbox = getBBox({ path: "M0,0 L100,50" });
+      expect(bbox.x2).toBe(100);
+      expect(bbox.y2).toBe(50);
+      expect(bbox.cx).toBe(50);
+      expect(bbox.cy).toBe(25);
+    });
+
     it("should return default for invalid path", () => {
       const bbox = getBBox({ path: "" });
-      expect(bbox).toEqual({ x: 0, y: 0, width: 100, height: 100 });
+      expect(bbox).toMatchObject({ x: 0, y: 0, width: 100, height: 100 });
+    });
+
+    it("computes curve extrema analytically (not just anchor points)", () => {
+      // Half circle via cubic approx bulging to y=-40ish; bbox must
+      // extend beyond the anchor points' y=0 line
+      const bbox = getBBox({ path: "M0,0 C0,-53.3 100,-53.3 100,0" });
+      expect(bbox.y).toBeLessThan(-30);
+      expect(bbox.height).toBeGreaterThan(30);
     });
 
     it("should handle negative coordinates", () => {
@@ -96,23 +123,29 @@ describe("utils", () => {
     });
   });
 
-  describe("createMultiLineText", () => {
-    it("should split text into multiple lines", () => {
-      const lines = createMultiLineText(
-        "This is a really long sentence that should wrap",
-        100
+  describe("createMultiLineText (v1 contract: lineCount → \\n-joined string)", () => {
+    it("splits text into the requested number of lines", () => {
+      const out = createMultiLineText(
+        "one two three four five six seven eight",
+        2
       );
-      expect(lines.length).toBeGreaterThanOrEqual(1);
+      expect(typeof out).toBe("string");
+      expect(out.split("\n").length).toBeLessThanOrEqual(2);
+      expect(out.split("\n").length).toBeGreaterThan(1);
     });
 
-    it("should return single line for short text", () => {
-      const lines = createMultiLineText("Hi", 500);
-      expect(lines).toEqual(["Hi"]);
+    it("returns the original text for a single line", () => {
+      expect(createMultiLineText("Hi there", 1)).toBe("Hi there");
     });
 
-    it("should handle empty text", () => {
-      const lines = createMultiLineText("", 100);
-      expect(lines).toEqual([]);
+    it("matches v1 byte-for-byte, including the leading newline the app trims", () => {
+      // v1's algorithm pushes an empty first line when the first word
+      // already exceeds charsPerLine — the Meteor app compensates with
+      // .trim(); preserving this exactly is intentional.
+      expect(createMultiLineText("hello world", 3)).toBe("\nhello\nworld");
+      expect(createMultiLineText("hello world", 3).trim()).toBe(
+        "hello\nworld"
+      );
     });
   });
 
@@ -214,6 +247,69 @@ describe("utils", () => {
 
     it("should handle empty array", () => {
       expect(chunk([], 3)).toEqual([]);
+    });
+  });
+
+  describe("_transformPath (v1 Raphael.transformPath parity)", () => {
+    it("translates a path with T dx,dy", () => {
+      const out = _transformPath("M0,0 L100,0 L100,50 L0,50 Z", "T10,20");
+      const bbox = getBBox({ path: out });
+      expect(bbox.x).toBeCloseTo(10, 5);
+      expect(bbox.y).toBeCloseTo(20, 5);
+      expect(bbox.width).toBeCloseTo(100, 5);
+      expect(bbox.height).toBeCloseTo(50, 5);
+    });
+
+    it("returns a curve-ified path string (M + C commands)", () => {
+      const out = _transformPath("M0,0 L10,10", "T0,0");
+      expect(out.startsWith("M")).toBe(true);
+      expect(out).toContain("C");
+      // No residual L/H/V commands — Raphael curve-ifies everything
+      expect(out).not.toMatch(/[LHV]/);
+    });
+
+    it("scales around the bbox center by default (s2,2)", () => {
+      const out = _transformPath("M0,0 L100,0 L100,50 L0,50 Z", "s2,2");
+      const bbox = getBBox({ path: out });
+      // center stays (50,25); size doubles
+      expect(bbox.width).toBeCloseTo(200, 4);
+      expect(bbox.height).toBeCloseTo(100, 4);
+      expect(bbox.cx).toBeCloseTo(50, 4);
+      expect(bbox.cy).toBeCloseTo(25, 4);
+    });
+
+    it("scales around an explicit center (s2,2,0,0)", () => {
+      const out = _transformPath("M10,10 L20,10 L20,20 L10,20 Z", "s2,2,0,0");
+      const bbox = getBBox({ path: out });
+      expect(bbox.x).toBeCloseTo(20, 4);
+      expect(bbox.y).toBeCloseTo(20, 4);
+      expect(bbox.width).toBeCloseTo(20, 4);
+    });
+
+    it("supports compound transforms (T then s) like the app's theme code", () => {
+      const out = _transformPath("M0,0 L100,0 L100,100 L0,100 Z", "T50,50 s0.5,0.5");
+      const bbox = getBBox({ path: out });
+      // translate to (50..150), then scale 0.5 about center (100,100)
+      expect(bbox.cx).toBeCloseTo(100, 4);
+      expect(bbox.cy).toBeCloseTo(100, 4);
+      expect(bbox.width).toBeCloseTo(50, 4);
+    });
+
+    it("rotates around the bbox center with r90", () => {
+      const out = _transformPath("M0,0 L100,0 L100,50 L0,50 Z", "r90");
+      const bbox = getBBox({ path: out });
+      // 100x50 rect rotated 90° → 50x100, same center
+      expect(bbox.width).toBeCloseTo(50, 4);
+      expect(bbox.height).toBeCloseTo(100, 4);
+      expect(bbox.cx).toBeCloseTo(50, 4);
+      expect(bbox.cy).toBeCloseTo(25, 4);
+    });
+
+    it("handles arcs by converting to cubics", () => {
+      const out = _transformPath("M0,0 A50,50 0 0 1 100,0", "T0,0");
+      expect(out).toContain("C");
+      const bbox = getBBox({ path: out });
+      expect(bbox.width).toBeCloseTo(100, 1);
     });
   });
 

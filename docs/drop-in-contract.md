@@ -92,11 +92,11 @@ App usage: `const node = new Slatebox.node(options)`
 
 - [x] `guid(length?)` — exists (`src/utils.ts`)
 - [x] `randomInt(min, max)` — exists
-- [ ] `whiteOrBlack(hexColor)` — exists but verify return values match what the app expects (v2 returns `#ffffff`/`#000000`; check app comparisons don't expect `#fff`/`#000`)
-- [x] `createMultiLineText(text, charsPerLine)` — exists
-- [x] `getTextWidth(text, fontStyleString)` → `{width, height}` — exists
-- [ ] `_transformPath(path, transform)` — MISSING in v2 (v1 helper for vectorPath transforms, e.g. `"T100,200 s1,1"`)
-- [x] `getBBox({path})` — exists
+- [x] `whiteOrBlack(hexColor)` — replaced YIQ with v1's WCAG contrast algorithm; returns `#ffffff`/`#000000` (proof: tests/unit/utils.test.ts)
+- [x] `createMultiLineText(text, lineCount)` — was wrong signature (maxWidth→string[]); now exact v1 port returning `\n`-joined string incl. leading-newline quirk the app `.trim()`s (proof: unit)
+- [x] `getTextWidth(text, fontStyleString)` → `{width, height}` — was returning a bare number (would break `textDimens.width` in ai.js); now v1 multi-line algorithm (proof: unit)
+- [x] `_transformPath(path, transform)` — implemented via vendored Raphael path port (`src/vendor/raphael-path.ts`: parsePathString/path2curve/a2c/transform2matrix/mapPath); bbox-centered scale/rotate, compound transforms, arcs (proof: unit "_transformPath parity" suite)
+- [x] `getBBox({path})` — was a regex approximation; now analytic Raphael-style bbox `{x,y,x2,y2,width,height,cx,cy}` with true curve extrema (proof: unit)
 
 ## F. Change-package event types
 
@@ -165,3 +165,4 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 | 2026-07-01 | Iter 2: §A namespace facade — src/compat-facade.ts (`Slatebox.slate/node/base/utils`, container-by-id init, nodes.add/addRange/one/allNodes, exportJSON/loadJSON delegation), exported + window.Slatebox. 17 new unit tests, 2 new e2e. Gates: 1015 unit, 103 e2e, build clean. Next: §B options/events wiring (`onSlateChanged` emission is the core of it). |
 | 2026-07-01 | Iter 3: §B/§F events — facade passes v1 events into engine; new `Slate.emitSlateChange()` (v1 pkg shape + instanceId + collabUsers) fires onNodeAdded/onNodeDeleted/onNodeTextChanged/onNodesMove; remote echoes suppressed via beginRemoteApply in Collab.exe; facade add() routes through Slate.addNode. Gates: 1016 unit, 104 e2e, build clean. Next: remaining §F types or §C/§D methods. |
 | 2026-07-01 | Iter 4: §C/§D methods — facade adds getOrientation (padded bbox), controller.scaleToFitAndCenter, canvas.hideBg, slate.png, savingTemplateImage; nodes.packageLayout (v1 payload) / applyLayout (exportNodes) / nodeMovePackage (relative→absolute); node.resize.set/send + relationships.addAssociation/.associations with live refs. 16 new unit tests. Gates: 1031 unit, 104 e2e, build clean. Remaining §D: node.png, options coverage. Next: §E utils gaps or node.png. |
+| 2026-07-01 | Iter 5: §E COMPLETE — vendored Raphael path engine (src/vendor/raphael-path.ts) powering `_transformPath` (curve-ify + bbox-centered transforms + arcs) and analytic `getBBox`; fixed THREE latent breakers: getTextWidth returned number (app needs {width,height}), createMultiLineText had wrong signature (needs lineCount→string), whiteOrBlack used YIQ (v1 uses WCAG contrast). 10 new tests. Gates: 1041 unit, 104 e2e, build clean. Next: §F remaining package types or §D node.png. |

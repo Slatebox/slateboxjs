@@ -6,31 +6,48 @@
 /** Generate a unique ID string */
 export declare function guid(length?: number): string;
 /**
- * Determine whether white or black text has better contrast
- * against the given background color.
+ * Determine whether white or black text has better contrast against the
+ * given background color. Uses the v1 WCAG relative-luminance contrast
+ * algorithm so drop-in results match the original library exactly.
  */
 export declare function whiteOrBlack(hexColor: string): "#ffffff" | "#000000";
 /**
- * Measure the width of text in pixels.
- * Creates a temporary span to measure.
+ * Measure text dimensions — v1 contract: font string is
+ * `"<style> <size>pt <family>"` and the result is `{width, height}`
+ * (multi-line aware; height accumulates per line).
  */
-export declare function getTextWidth(text: string, fontStr?: string): number;
+export declare function getTextWidth(text: string, font?: string): {
+    width: number;
+    height: number;
+};
 /**
- * Get bounding box from an SVG path string.
- * Simple approximation based on path commands.
+ * Get the bounding box of an SVG path string — v1 contract: Raphael-style
+ * bbox `{x, y, x2, y2, width, height, cx, cy}` computed analytically
+ * (curves included), no DOM required.
  */
 export declare function getBBox(opts: {
     path: string;
 }): {
     x: number;
     y: number;
+    x2: number;
+    y2: number;
     width: number;
     height: number;
+    cx: number;
+    cy: number;
 };
+/**
+ * v1: `Slatebox.utils._transformPath(path, transform)` — apply a Raphael
+ * transform string (`t/T`, `s/S`, `r/R`, `m/M`) to a path, returning the
+ * curve-ified transformed path string. Scale/rotate without explicit
+ * centers pivot on the path's bounding-box center, exactly like Raphael.
+ */
+export declare function _transformPath(path: string, transform: string): string;
 /**
  * Create multi-line text by wrapping at a given number of lines.
  */
-export declare function createMultiLineText(text: string, maxWidth: number, fontStr?: string): string[];
+export declare function createMultiLineText(text: string, lineCount: number): string;
 /** Generate random integer between min and max (inclusive) */
 export declare function randomInt(min: number, max: number): number;
 /**
