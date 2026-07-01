@@ -472,6 +472,26 @@ class slate {
     this.v2 = new Slate(element, v2Options);
     // v2 Slate self-initializes; readiness is signaled by the viewport promise
     await this.v2.getViewportAsync();
+
+    // v1 maintained `options.viewPort.zoom = {w, h, l, t, r}` at runtime and
+    // the Meteor app reads `zoom.r` directly (QuickNodeActions). Expose `r`
+    // as a live getter over the v2 zoom level.
+    if (!this.options.viewPort) this.options.viewPort = {};
+    const zoomState: Record<string, any> = {
+      ...(this.options.viewPort.zoom || {}),
+    };
+    Object.defineProperty(zoomState, "r", {
+      enumerable: true,
+      get: () => {
+        try {
+          return this.v2?.getZoom() || 1;
+        } catch {
+          return 1;
+        }
+      },
+    });
+    this.options.viewPort.zoom = zoomState;
+
     return this;
   }
 

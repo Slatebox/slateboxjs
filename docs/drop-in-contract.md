@@ -150,10 +150,10 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 
 ## K. Integration proof (definition of done)
 
-- [ ] `tests/e2e/drop-in.spec.ts`: an e2e page that replicates `createSlate.js` usage verbatim — `new Slatebox.slate(opts, events).init()` with the app's exact options/events shape, node creation via `new Slatebox.node`, associations, exportJSON/loadJSON, png export — all green
-- [ ] Fixture-based: real slate JSON from the Meteor app loads and renders (node count, positions, connector count asserted)
+- [x] `tests/e2e/drop-in.spec.ts`: replicates `createSlate.js` verbatim (exact opts/events shapes, "Welcome!" node, foregroundColor/xPos mapping), QuickNodeActions flow (`_transformPath` + `getBBox` + `getOrientation` + live `viewPort.zoom.r` read), SnapSlate reload + `scaleToFitAndCenter`, Mongo-shape persistence (xPos field names) — all green
+- [x] Fixture-based: real slate JSON from the Meteor app loads and renders (node count, positions, connector count asserted) — tests/e2e/real-fixtures.spec.ts (§G)
 - [ ] `npm link` (or `file:` dep) swap inside `~/Projects/node/slatebox`: app builds and the Canvas page loads a slate. (Requires user coordination to run Meteor; the loop should prepare everything and ask before touching the slatebox repo.)
-- [ ] All existing v2 tests still green: `npm test` (998) + `npm run test:e2e` (101 chromium)
+- [x] All existing v2 tests still green: `npm test` + `npm run test:e2e` (1051 unit / 112 e2e as of iter 9; started at 998/101)
 
 ---
 
@@ -170,3 +170,4 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 | 2026-07-01 | Iter 6: §F expansion — engine emits onNodeColorChanged (setColors), onNodeToFront/onNodeToBack, onZoom (Slate.zoom), onCanvasMove w/ orient (panEnd); Slate.getOrientation() moved into engine (facade delegates); facade resize.send() broadcasts onNodeResized. 7 new unit + 1 e2e test. Gates: 1048 unit, 105 e2e, build clean. Note: birdseye-rotation e2e is timing-flaky (passes standalone + full rerun). Next: §G real-fixture round-trip or §D node.png. |
 | 2026-07-01 | Iter 7: §G COMPLETE — 4 real production templates (from slatebox repo internal/jose_templates.json) as fixtures; e2e proves load fidelity (positions/text/colors/assocs), export→reload round-trip with v1 xPos field names, silent loading (fixed onNodeAdded spam during deserialize via beginRemoteApply), and 384-node stress load (~3s). Gates: 1048 unit, 110 e2e, build clean. Next: §D node.png / §H DOM assumptions / prepare §I collab analysis for user. |
 | 2026-07-01 | Iter 8: §D node.png/svg (group export via id strings — Export.ts now accepts ids) + §H COMPLETE (bare-div mount proven, CSS-less e2e with selection UI inline attrs, FontLoader respects app-bundled fonts via document.fonts.check). Gates: 1051 unit, 111 e2e, build clean. Next: §I collab analysis (user decision needed) + §K drop-in spec. |
+| 2026-07-01 | Iter 9: §K drop-in spec — tests/e2e/drop-in.spec.ts replicates createSlate.js verbatim (opts+events shapes, Welcome node, option mapping) + QuickNodeActions flow; DISCOVERED + FIXED: app reads `slate.options.viewPort.zoom.r` directly → facade now exposes live getter over v2 getZoom(). Gates: 1051 unit, 112 e2e, build clean. Remaining: §A name DECISION, §B interactive-event verification, §I collab (DECISION), §K meteor swap (user-coordinated). |

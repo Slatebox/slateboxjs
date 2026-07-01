@@ -10444,7 +10444,20 @@ class nl {
   /** v1: async init resolving to the slate itself. */
   async init() {
     const t = this.resolveContainer(), e = vn(this.options);
-    return delete e.container, this.options.shareId === void 0 && (e.shareId = this.shareId), e.events = this.events, this.v2 = new Sn(t, e), await this.v2.getViewportAsync(), this;
+    delete e.container, this.options.shareId === void 0 && (e.shareId = this.shareId), e.events = this.events, this.v2 = new Sn(t, e), await this.v2.getViewportAsync(), this.options.viewPort || (this.options.viewPort = {});
+    const i = {
+      ...this.options.viewPort.zoom || {}
+    };
+    return Object.defineProperty(i, "r", {
+      enumerable: !0,
+      get: () => {
+        try {
+          return this.v2?.getZoom() || 1;
+        } catch {
+          return 1;
+        }
+      }
+    }), this.options.viewPort.zoom = i, this;
   }
   /** v1: `slate.exportJSON()` → JSON string */
   exportJSON() {
