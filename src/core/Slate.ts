@@ -17,6 +17,7 @@ import { Keyboard } from "./Keyboard";
 import { exportSVG, exportPNG, type ExportOptions } from "./Export";
 import { Collab, CollabUser } from "./Collab";
 import type { SlatePackage } from "./SlatePackage";
+import { v2NodeToV1 } from "./compat";
 import { applyTheme, type ThemeDefinition } from "./Theme";
 import {
   removeLayoutOverlaps,
@@ -172,6 +173,7 @@ export class Slate {
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
   private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
   private _destroyed: boolean = false;
+  private _applyingRemote: boolean = false;
   private _birdsEyeTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _coordDisplayTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _nodeNotifyTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -450,6 +452,46 @@ export class Slate {
     }
   }
 
+  /**
+   * Emit a v1-compatible change package to the host application via
+   * `options.events.onSlateChanged(pkg, collabUsers)`.
+   *
+   * Suppressed while a remote package is being applied (see
+   * {@link beginRemoteApply}) so remote changes are never echoed back to the
+   * host as local ones — mirroring v1's clientID filtering.
+   *
+   * @param type - v1 package type (e.g. "onNodeAdded", "onNodesMove")
+   * @param data - v1-shaped package data
+   */
+  public emitSlateChange(type: string, data: Record<string, any> = {}): void {
+    if (this._applyingRemote || this._destroyed) return;
+    const cb = this.options.events?.onSlateChanged;
+    if (!cb) return;
+    const pkg: SlatePackage = { type, data };
+    if (this.options.instance) pkg.instanceId = this.options.instance;
+    let users: CollabUser[] = [];
+    try {
+      users = this.collab?.getCollabUsers?.() ?? [];
+    } catch {
+      // collab is optional — no users available
+    }
+    try {
+      cb(pkg, users);
+    } catch (error) {
+      console.warn("SLATE_EVENTS_DEBUG: onSlateChanged handler threw", error);
+    }
+  }
+
+  /** Suppress emitSlateChange while applying a remote package (v1 echo semantics). */
+  public beginRemoteApply(): void {
+    this._applyingRemote = true;
+  }
+
+  /** Re-enable emitSlateChange after a remote package has been applied. */
+  public endRemoteApply(): void {
+    this._applyingRemote = false;
+  }
+
   private setupCoordinateCallbacks() {
     // Store original callbacks
     const originalOnPan = this.options.panZoom?.onPan;
@@ -607,6 +649,10 @@ export class Slate {
       if (!this._destroyed) this.notifyNodeChanged();
       this.announce(`Node added: ${node.options.text || "(unnamed)"}`);
     }, 100);
+    this.emitSlateChange("onNodeAdded", {
+      id: node.id,
+      nodeOptions: v2NodeToV1(node.options),
+    });
     return node;
   }
 
@@ -614,10 +660,14 @@ export class Slate {
   public removeNode(id: string) {
     const node = this.nodes.one(id);
     const text = node?.options?.text || "(unnamed)";
+    const isComment = !!node?.options?.isComment;
     const result = this.nodes.remove(id);
     // Notify BirdsEye of the removed node
     this.notifyNodeChanged();
     this.announce(`Node removed: ${text}`);
+    if (result) {
+      this.emitSlateChange("onNodeDeleted", { id, isComment });
+    }
     return result;
   }
 

@@ -7,4 +7,6 @@ export interface SlatePackage {
   data: Record<string, any>;
   clientID?: number;
   timestamp?: number;
+  /** v1 compat: identifies the emitting slate instance so hosts can ignore their own echoes */
+  instanceId?: string;
 }

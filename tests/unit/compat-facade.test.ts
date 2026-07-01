@@ -41,6 +41,7 @@ vi.mock("../../src/core/Slate", () => {
     exportJSON = vi.fn(() => '{"options":{},"nodes":[]}');
     loadJSON = vi.fn(async () => undefined);
     getViewportAsync = vi.fn(async () => ({ mockViewport: true }));
+    addNode = vi.fn((options: any) => this.nodes.add(options));
     constructor(element: any, options: any) {
       this.element = element;
       this.options = options;
@@ -133,6 +134,16 @@ describe("new Slatebox.slate(options, events).init() (§B)", () => {
       new Slatebox.slate({ container: "nope" }).init()
     ).rejects.toThrow(/not found/);
     await expect(new Slatebox.slate({}).init()).rejects.toThrow(/required/);
+  });
+
+  it("passes the v1 events object through to the v2 engine options", async () => {
+    makeContainer();
+    const events = { onSlateChanged: vi.fn(), isReadOnly: () => false };
+    const s = await new Slatebox.slate(
+      { container: "slateCanvas" },
+      events
+    ).init();
+    expect((s.v2 as any).options.events).toBe(events);
   });
 
   it("stores the events object and generates ids/shareId like v1", () => {

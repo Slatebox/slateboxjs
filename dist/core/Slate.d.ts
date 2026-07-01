@@ -132,6 +132,7 @@ export declare class Slate {
     private groupResizeRotate;
     private _coordinateIntervalId;
     private _destroyed;
+    private _applyingRemote;
     private _birdsEyeTimeoutId;
     private _coordDisplayTimeoutId;
     private _nodeNotifyTimeoutId;
@@ -168,6 +169,22 @@ export declare class Slate {
      * Used for state changes: node add/remove, selection changes, zoom changes.
      */
     announce(msg: string): void;
+    /**
+     * Emit a v1-compatible change package to the host application via
+     * `options.events.onSlateChanged(pkg, collabUsers)`.
+     *
+     * Suppressed while a remote package is being applied (see
+     * {@link beginRemoteApply}) so remote changes are never echoed back to the
+     * host as local ones — mirroring v1's clientID filtering.
+     *
+     * @param type - v1 package type (e.g. "onNodeAdded", "onNodesMove")
+     * @param data - v1-shaped package data
+     */
+    emitSlateChange(type: string, data?: Record<string, any>): void;
+    /** Suppress emitSlateChange while applying a remote package (v1 echo semantics). */
+    beginRemoteApply(): void;
+    /** Re-enable emitSlateChange after a remote package has been applied. */
+    endRemoteApply(): void;
     private setupCoordinateCallbacks;
     private addCoordinateDisplay;
     private startCoordinatePolling;

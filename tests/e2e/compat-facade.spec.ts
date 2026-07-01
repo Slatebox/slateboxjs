@@ -73,4 +73,79 @@ test.describe("v1 compat facade (window.Slatebox)", () => {
     expect(result.svgRendered).toBe(true);
     expect(result.exportParses).toBe(true);
   });
+
+  test("onSlateChanged fires with v1-shaped packages; remote applies are suppressed", async ({
+    page,
+  }) => {
+    const result = await page.evaluate(async () => {
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.width = "800px";
+      div.style.height = "600px";
+      document.body.appendChild(div);
+
+      const received: any[] = [];
+      const sb = (window as any).Slatebox;
+      const s = await new sb.slate(
+        { container: "slateCanvas", instance: "inst-1" },
+        {
+          onSlateChanged: (pkg: any, users: any[]) => {
+            received.push({ pkg, usersIsArray: Array.isArray(users) });
+          },
+        }
+      ).init();
+
+      // Local add → onNodeAdded with v1-shaped nodeOptions
+      const n = s.nodes.add(
+        new sb.node({ id: "ev1", xPos: 120, yPos: 90, text: "before" })
+      );
+      await new Promise((r) => setTimeout(r, 400));
+
+      // Local text change → onNodeTextChanged
+      n.v2.setText("after");
+
+      // Remote apply via collab.exe must NOT emit (echo suppression)
+      const countBeforeRemote = received.length;
+      s.v2.collab.exe({
+        type: "onNodeTextChanged",
+        data: { id: "ev1", text: "from-remote" },
+      });
+
+      // Local delete → onNodeDeleted with id + isComment
+      s.v2.removeNode("ev1");
+
+      return {
+        types: received.map((r: any) => r.pkg.type),
+        addedPkg: received.find((r: any) => r.pkg.type === "onNodeAdded")?.pkg,
+        textPkg: received.find((r: any) => r.pkg.type === "onNodeTextChanged")
+          ?.pkg,
+        deletedPkg: received.find((r: any) => r.pkg.type === "onNodeDeleted")
+          ?.pkg,
+        usersAlwaysArray: received.every((r: any) => r.usersIsArray),
+        remoteEmitted: received
+          .slice(countBeforeRemote)
+          .some(
+            (r: any) =>
+              r.pkg.type === "onNodeTextChanged" &&
+              r.pkg.data.text === "from-remote"
+          ),
+      };
+    });
+
+    expect(result.types).toContain("onNodeAdded");
+    expect(result.types).toContain("onNodeTextChanged");
+    expect(result.types).toContain("onNodeDeleted");
+    // v1 package shape: {type, data, instanceId}
+    expect(result.addedPkg.instanceId).toBe("inst-1");
+    expect(result.addedPkg.data.nodeOptions.xPos).toBe(120);
+    expect(result.addedPkg.data.nodeOptions.yPos).toBe(90);
+    expect(result.textPkg.data).toMatchObject({ id: "ev1", text: "after" });
+    expect(result.deletedPkg.data).toMatchObject({
+      id: "ev1",
+      isComment: false,
+    });
+    expect(result.usersAlwaysArray).toBe(true);
+    // The remote-applied text change must not have been echoed back
+    expect(result.remoteEmitted).toBe(false);
+  });
 });

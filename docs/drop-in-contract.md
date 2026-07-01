@@ -46,8 +46,9 @@ App usage: `const slate = await new Slatebox.slate(options, events).init()`
   - `isSharing`, `isEmbedded`, `enabled`, `imageFolder`, `allowCollaboration`, `huddleType`, `mindMapMode`, `autoResizeNodesBasedOnText`, `createdViaAI`
   - `layoutType: { val, overlap, rankdir }`, `eligibleForThemeCompilation`
   - `isPublic`, `isPrivate`, `isUnlisted`, `isTemplate`, `basedOnThemeId`, `basedOnTemplate`
+- [x] Events object passed as 2nd constructor arg reaches the engine (`v2Options.events = this.events`) (proof: tests/unit/compat-facade.test.ts "passes the v1 events object through")
 - [ ] Events object callbacks wired (fired by the library at the right moments):
-  - `onSlateChanged(pkg, collabUsers)` — fires on ANY change; pkg shape `{type, data, instanceId, id?}`
+  - `onSlateChanged(pkg, collabUsers)` — PARTIAL: fires on node add/delete/text-change/drag-move with v1 pkg shape `{type, data, instanceId}` + remote-echo suppression via `beginRemoteApply` (proof: tests/e2e/compat-facade.spec.ts). Remaining: color/shape/resize/rotate/zoom/canvas-move/undo-redo emission — tracked in §F
   - `onCollaborationUsersChanged(users)`, `onCollaborationUsersRemoved(users)`, `onCollaboration(pkg)`
   - `onInitCollaboration(clientID)` → app returns `{ websocketUrl, websocketParams: {bearer, timestamp}, color, x, y, suppressCursor? }`
   - `onConfirmRequested(title, msg, cb)`
@@ -105,8 +106,8 @@ App usage: `const node = new Slatebox.node(options)`
 `onNodesMove`, `onNodeToFront`, `onCanvasMove`, `onZoom`, `onMouseMoved`,
 `onCollaborationUserCustomDataChanged`, `onSlateHuddleChanged`
 
-- [ ] Each type emitted at the right moment with `{type, data, instanceId, id?}`
-- [ ] `instanceId` semantics preserved (used to ignore own echoes)
+- [ ] Each type emitted at the right moment with `{type, data, instanceId, id?}` — DONE so far: `onNodeAdded` (data.id + v1-shaped data.nodeOptions), `onNodeDeleted` (data.id + isComment), `onNodeTextChanged` (data.id + text), `onNodesMove` (data.nodeOptions array) via `Slate.emitSlateChange()` (proof: tests/e2e/compat-facade.spec.ts)
+- [x] `instanceId` semantics preserved — pkg.instanceId = options.instance; remote applies via `collab.exe` suppressed with beginRemoteApply/endRemoteApply (proof: e2e echo-suppression test)
 
 ## G. Persistence round-trip (Mongo `Slates` collection)
 
@@ -162,3 +163,4 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 | 2026-07-01 | Contract established from Meteor-app audit. v2 at 998 unit / 101 e2e green. Facade layer not started. Uncommitted ResizeRotate selection-UI fix in tree. |
 | 2026-07-01 | Iter 1: committed ResizeRotate selection-UI fix; §J hygiene — LICENSE (MIT), CONTRIBUTING.md, yjs/y-websocket → optional peerDependencies, author field. Gates: 998 unit, build clean, pack 42 files incl. LICENSE. Next: §A `Slatebox` namespace facade. |
 | 2026-07-01 | Iter 2: §A namespace facade — src/compat-facade.ts (`Slatebox.slate/node/base/utils`, container-by-id init, nodes.add/addRange/one/allNodes, exportJSON/loadJSON delegation), exported + window.Slatebox. 17 new unit tests, 2 new e2e. Gates: 1015 unit, 103 e2e, build clean. Next: §B options/events wiring (`onSlateChanged` emission is the core of it). |
+| 2026-07-01 | Iter 3: §B/§F events — facade passes v1 events into engine; new `Slate.emitSlateChange()` (v1 pkg shape + instanceId + collabUsers) fires onNodeAdded/onNodeDeleted/onNodeTextChanged/onNodesMove; remote echoes suppressed via beginRemoteApply in Collab.exe; facade add() routes through Slate.addNode. Gates: 1016 unit, 104 e2e, build clean. Next: remaining §F types or §C/§D methods. |

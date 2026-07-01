@@ -201,7 +201,13 @@ export class Collab {
     const methodName = pkg.type;
 
     if (typeof (invoker as any)[methodName] === "function") {
-      (invoker as any)[methodName](pkg);
+      // Applying a remote package must not re-emit onSlateChanged (echo)
+      this.slate.beginRemoteApply?.();
+      try {
+        (invoker as any)[methodName](pkg);
+      } finally {
+        this.slate.endRemoteApply?.();
+      }
     } else {
       console.warn("COLLAB_DEBUG: Unknown collab type:", methodName);
     }

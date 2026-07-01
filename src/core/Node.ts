@@ -19,6 +19,7 @@ import { Links } from "./Links";
 import { Filters } from "./Filters";
 import { Menu } from "./Menu";
 import { resolveShapePath, isNativeShape } from "./ShapeRegistry";
+import { v2NodeToV1 } from "./compat";
 
 export interface NodeLinkOptions {
   show?: boolean;
@@ -758,6 +759,11 @@ export class Node {
       this.options.x = newX;
       this.options.y = newY;
 
+      // Notify the host app of the completed move (v1 package shape)
+      this.slate.emitSlateChange?.("onNodesMove", {
+        nodeOptions: [v2NodeToV1(this.options)],
+      });
+
       // Small delay to distinguish drag from click - reduced for better responsiveness
       this._dragEndTimeoutId = setTimeout(() => {
         if (this._destroyed) return;
@@ -940,11 +946,15 @@ export class Node {
     // Skip if no text element (e.g., when using SVG content)
     if (!this.textElement) return;
 
+    const changed = this.options.text !== text;
     this.options.text = text;
     this.textElement.text(text);
     this.centerText();
     // Update accessibility label
     this.svgGroup.node.setAttribute("aria-label", text || "Unnamed node");
+    if (changed) {
+      this.slate.emitSlateChange?.("onNodeTextChanged", { id: this.id, text });
+    }
   }
 
   /**

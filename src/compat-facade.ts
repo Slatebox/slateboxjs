@@ -72,7 +72,9 @@ class NodesFacade {
   public add(n: node | Record<string, any>): node {
     const wrapper = n instanceof node ? n : new node(n);
     const v2Options = v1NodeToV2(wrapper.options) as Partial<NodeOptions>;
-    const v2Node = this.v2Slate.nodes.add(v2Options);
+    // Route through Slate.addNode (not NodesManager directly) so host-facing
+    // side effects fire: onSlateChanged emission, BirdsEye refresh, a11y announce
+    const v2Node = this.v2Slate.addNode(v2Options);
     wrapper.v2 = v2Node;
     wrapper.slate = this.owner;
     this.wrappers.set(v2Node.id, wrapper);
@@ -172,6 +174,9 @@ class slate {
     if (this.options.shareId === undefined) {
       v2Options.shareId = this.shareId;
     }
+    // v1 takes events as the 2nd constructor arg; v2 nests them in options.
+    // The callback names are shared between both generations.
+    v2Options.events = this.events;
     this.v2 = new Slate(element, v2Options);
     // v2 Slate self-initializes; readiness is signaled by the viewport promise
     await this.v2.getViewportAsync();
