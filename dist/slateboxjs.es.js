@@ -6071,10 +6071,10 @@ class Zi {
     this.removeAll(), this.activeFilters.clear(), this.hidden = !1, this.node = null;
   }
 }
-function rl(n) {
+function al(n) {
   vt.set(n.name, n);
 }
-function al() {
+function ll() {
   return Array.from(vt.keys());
 }
 class Fi {
@@ -8002,58 +8002,66 @@ function Ne(n, t, e) {
   return e && s.forEach((o, a) => {
     o.options._presentationIndex = a;
   }), {
-    options: ya(n.options),
+    options: ba(n.options),
     nodes: s,
     shareId: n.options.shareId || ""
   };
 }
 async function Cn(n, t, e = !1, i = !1) {
   const s = typeof n == "string" ? JSON.parse(n) : n;
-  if (s.options) {
-    const a = s.options;
-    Object.assign(t.options, a), s.shareId && (t.options.shareId = s.shareId);
+  t.beginRemoteApply?.();
+  try {
+    await ya(s, t, e, i);
+  } finally {
+    t.endRemoteApply?.();
+  }
+}
+async function ya(n, t, e, i) {
+  if (n.options) {
+    const o = n.options;
+    Object.assign(t.options, o), n.shareId && (t.options.shareId = n.shareId);
   }
   e || t.nodes.clear();
-  const o = /* @__PURE__ */ new Map();
-  if (Array.isArray(s.nodes)) {
-    for (const r of s.nodes) {
-      const l = Ki(r.options), c = t.nodes.one(l.id);
-      if (c)
-        Object.assign(c.options, l), l.x !== void 0 && l.y !== void 0 && c.position(l.x, l.y), o.set(l.id, c);
+  const s = /* @__PURE__ */ new Map();
+  if (Array.isArray(n.nodes)) {
+    for (const a of n.nodes) {
+      const r = Ki(a.options), l = t.nodes.one(r.id);
+      if (l)
+        Object.assign(l.options, r), r.x !== void 0 && r.y !== void 0 && l.position(r.x, r.y), s.set(r.id, l);
       else {
-        const h = t.addNode(l);
-        h && o.set(h.id, h);
+        const c = t.addNode(r);
+        c && s.set(c.id, c);
       }
     }
-    const a = [];
-    for (const r of o.values())
-      r.ready && a.push(r.ready);
-    a.length > 0 && await Promise.all(a);
-    for (const r of s.nodes) {
-      const l = r.options.id || r.options.xPos !== void 0 ? de(r.options).id : r.options.id;
+    const o = [];
+    for (const a of s.values())
+      a.ready && o.push(a.ready);
+    o.length > 0 && await Promise.all(o);
+    for (const a of n.nodes) {
+      const r = a.options.id || a.options.xPos !== void 0 ? de(a.options).id : a.options.id;
+      if (!r) continue;
+      const l = s.get(r) || t.nodes.one(r);
       if (!l) continue;
-      const c = o.get(l) || t.nodes.one(l);
-      if (!c) continue;
-      const h = r.relationships?.associations;
-      if (!(!Array.isArray(h) || h.length === 0))
-        for (const d of h) {
-          const u = xn(d), f = o.get(u.childId) || t.nodes.one(u.childId);
-          if (f && c)
-            if (c.relationships)
-              c.relationships.addAssociation(f, u);
+      const c = a.relationships?.associations;
+      if (!(!Array.isArray(c) || c.length === 0))
+        for (const h of c) {
+          const d = xn(h), u = s.get(d.childId) || t.nodes.one(d.childId);
+          if (u && l)
+            if (l.relationships)
+              l.relationships.addAssociation(u, d);
             else
               try {
-                c.connector.isEnabled() || c.connector.enable(), c.connector.connectTo(f, {
-                  lineColor: u.lineColor,
-                  lineWidth: u.lineWidth
+                l.connector.isEnabled() || l.connector.enable(), l.connector.connectTo(u, {
+                  lineColor: d.lineColor,
+                  lineWidth: d.lineWidth
                 });
-              } catch (g) {
+              } catch (f) {
                 console.warn(
                   "SERIALIZATION_DEBUG: Failed to create connection",
-                  u.parentId,
+                  d.parentId,
                   "->",
-                  u.childId,
-                  g
+                  d.childId,
+                  f
                 );
               }
         }
@@ -8111,7 +8119,7 @@ function qi(n) {
 function Ki(n) {
   return de(n);
 }
-function ya(n) {
+function ba(n) {
   const t = {}, e = [
     "id",
     "name",
@@ -8161,7 +8169,7 @@ function ya(n) {
 function Qi(n) {
   return Ne(n);
 }
-const ba = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const wa = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   deserialize: Cn,
   deserializeNodeOptions: Ki,
@@ -8637,7 +8645,7 @@ async function is(n, t = {}, e) {
     return e?.(a), a;
   }
 }
-const wa = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const va = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   exportPNG: is,
   exportSVG: En
@@ -8808,7 +8816,7 @@ function os(n, t, e = !1, i = !1) {
   const s = n.nodes.allNodes;
   !s || s.length === 0 || !t.styles || (s.forEach((o, a) => {
     const r = rs(t, a);
-    r && va(o, r);
+    r && xa(o, r);
   }), console.log("THEME_DEBUG: Applied theme", t.name || t._id));
 }
 function rs(n, t) {
@@ -8823,14 +8831,14 @@ function rs(n, t) {
   const s = `child_${(t - 1) % e.length + 1}`;
   return n.styles[s] || n.styles.parent || null;
 }
-function va(n, t) {
+function xa(n, t) {
   t.backgroundColor && (n.options.backgroundColor = t.backgroundColor), t.borderColor && (n.options.borderColor = t.borderColor), t.borderWidth !== void 0 && (n.options.borderWidth = t.borderWidth), t.fontColor && (n.options.fontColor = t.fontColor), t.fontFamily && (n.options.fontFamily = t.fontFamily), t.fontSize !== void 0 && (n.options.fontSize = t.fontSize), t.lineColor && (n.options.lineColor = t.lineColor), t.opacity !== void 0 && (n.options.opacity = t.opacity), n.setColors?.(t.backgroundColor, t.borderColor), n.textElement && (t.fontColor || t.fontSize || t.fontFamily) && n.textElement.font({
     fill: t.fontColor || n.options.fontColor,
     size: t.fontSize || n.options.fontSize,
     family: t.fontFamily || n.options.fontFamily
   });
 }
-const xa = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const _a = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   applyTheme: os,
   buildNodeStyleFromTheme: rs
@@ -8883,7 +8891,7 @@ function cs(n) {
     y: t.options.y || 0
   }));
 }
-const _a = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const Ca = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   applyLayout: ls,
   packageLayout: cs,
@@ -9685,7 +9693,7 @@ class Sn {
     await Li(this);
   }
 }
-function Ca(n, t) {
+function Ea(n, t) {
   const e = n.addNode({
     text: t.text,
     x: t.x || 100,
@@ -9707,32 +9715,32 @@ function Ca(n, t) {
   });
   return e && (e.options.commentAuthor = t.author, e.options.commentTimestamp = t.timestamp || Date.now()), e;
 }
-function Ea(n, t) {
+function Sa(n, t) {
   const e = n.nodes.one(t);
   return !e || !e.options.isComment ? !1 : n.removeNode(t);
 }
-function Sa(n) {
+function Ta(n) {
   return n.nodes.allNodes.filter(
     (t) => t.options.isComment === !0
   );
 }
-const Ta = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const Ma = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  createComment: Ca,
-  getComments: Sa,
-  removeComment: Ea
+  createComment: Ea,
+  getComments: Ta,
+  removeComment: Sa
 }, Symbol.toStringTag, { value: "Module" })), St = `	
-\v\f\r   ᠎             　\u2028\u2029`, Ma = new RegExp(
+\v\f\r   ᠎             　\u2028\u2029`, ka = new RegExp(
   `([a-z])[${St},]*((-?\\d*\\.?\\d*(?:e[\\-+]?\\d+)?[${St}]*,?[${St}]*)+)`,
   "ig"
 ), us = new RegExp(
   `(-?\\d*\\.?\\d*(?:e[\\-+]?\\d+)?)[${St}]*,?[${St}]*`,
   "ig"
-), ka = new RegExp(
+), Ra = new RegExp(
   `([rstm])[${St},]*((-?\\d*\\.?\\d*(?:e[\\-+]?\\d+)?[${St}]*,?[${St}]*)+)`,
   "ig"
 );
-function Ra(n) {
+function Na(n) {
   if (!n) return [];
   if (Array.isArray(n)) return n;
   const t = {
@@ -9749,7 +9757,7 @@ function Ra(n) {
     z: 0
   }, e = [];
   return String(n).replace(
-    Ma,
+    ka,
     (i, s, o) => {
       const a = [];
       let r = s.toLowerCase();
@@ -9762,8 +9770,8 @@ function Ra(n) {
     }
   ), e;
 }
-function Na(n) {
-  const t = Ra(n);
+function Da(n) {
+  const t = Na(n);
   if (!t.length) return [["M", 0, 0]];
   const e = [];
   let i = 0, s = 0, o = 0, a = 0, r = 0;
@@ -9855,7 +9863,7 @@ function fs(n, t, e, i, s, o, a, r, l, c) {
   return mt;
 }
 function ps(n) {
-  const t = Na(n), e = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }, i = (l, c, h) => {
+  const t = Da(n), e = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }, i = (l, c, h) => {
     if (!l) return ["C", c.x, c.y, c.x, c.y, c.x, c.y];
     switch (l[0] !== "T" && l[0] !== "Q" && (c.qx = null, c.qy = null), l[0]) {
       case "M":
@@ -9898,7 +9906,7 @@ function ps(n) {
   }
   return t;
 }
-function Da(n, t, e, i, s, o, a, r) {
+function Aa(n, t, e, i, s, o, a, r) {
   const l = (f, g, p, m, y) => {
     const b = 1 - f;
     return b * b * b * g + 3 * b * b * f * p + 3 * b * f * f * m + f * f * f * y;
@@ -9936,7 +9944,7 @@ function gs(n) {
     if (u[0] === "M")
       e = u[1], i = u[2], s.push(e), o.push(i);
     else {
-      const f = Da(e, i, ...u.slice(1));
+      const f = Aa(e, i, ...u.slice(1));
       s.push(f.min.x, f.max.x), o.push(f.min.y, f.max.y), e = u[5], i = u[6];
     }
   const a = Math.min(...s), r = Math.min(...o), l = Math.max(...s), c = Math.max(...o), h = l - a, d = c - r;
@@ -9992,17 +10000,17 @@ class Xn {
     return t * this.b + e * this.d + this.f;
   }
 }
-function Aa(n) {
+function Oa(n) {
   if (!n) return [];
   if (Array.isArray(n)) return n;
   const t = [];
-  return String(n).replace(ka, (e, i, s) => {
+  return String(n).replace(Ra, (e, i, s) => {
     const o = [];
     return s.replace(us, (a, r) => (r && o.push(+r), "")), t.push([i, ...o]), "";
   }), t;
 }
-function Oa(n, t) {
-  const e = Aa(n), i = new Xn();
+function za(n, t) {
+  const e = Oa(n), i = new Xn();
   for (const s of e) {
     const o = s.length, a = String(s[0]).toLowerCase(), r = s[0] !== a, l = r ? new Xn() : null;
     if (a === "t" && o === 3)
@@ -10039,7 +10047,7 @@ function Oa(n, t) {
   }
   return i;
 }
-function za(n, t) {
+function Ia(n, t) {
   if (!t || !n) return n;
   const e = [];
   for (let i = 0; i < n.length; i++) {
@@ -10052,9 +10060,9 @@ function za(n, t) {
   }
   return e;
 }
-function Ia(n, t) {
-  const e = ps(n), i = gs(e), s = Oa(t, i);
-  return za(e, s).map((o) => o[0] + o.slice(1).join(",")).join("");
+function Pa(n, t) {
+  const e = ps(n), i = gs(e), s = za(t, i);
+  return Ia(e, s).map((o) => o[0] + o.slice(1).join(",")).join("");
 }
 function Ce(n = 10) {
   const t = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -10063,7 +10071,7 @@ function Ce(n = 10) {
     e += t.charAt(Math.floor(Math.random() * t.length));
   return e;
 }
-function Pa(n) {
+function Ba(n) {
   function t(r) {
     return parseInt(r, 16) || 0;
   }
@@ -10081,7 +10089,7 @@ function Pa(n) {
   const o = s(n || "#fff", "#ffffff"), a = s(n || "#fff", "#000000");
   return o > a ? "#ffffff" : "#000000";
 }
-function Ba(n, t = "normal 10pt Arial") {
+function Ga(n, t = "normal 10pt Arial") {
   const e = String(n).split(`
 `), i = t.split(" "), s = "normal", o = i?.[0]?.includes("pt") ? parseFloat(i?.[0]?.replace(/pt/gi, "")) : 10, a = i?.slice(1).join(" ").trim();
   if (typeof document > "u")
@@ -10108,13 +10116,13 @@ function Ba(n, t = "normal 10pt Arial") {
     height: h + 10
   };
 }
-function Ga(n) {
+function La(n) {
   return n?.path ? gs(n.path) : { x: 0, y: 0, x2: 100, y2: 100, width: 100, height: 100, cx: 50, cy: 50 };
 }
-function La(n, t) {
-  return Ia(n, t);
-}
 function Ha(n, t) {
+  return Pa(n, t);
+}
+function Ua(n, t) {
   const e = String(n).split(/ /g), s = String(n).split("").length / t, o = [];
   let a = [], r = 0;
   return e.forEach((l) => {
@@ -10122,10 +10130,10 @@ function Ha(n, t) {
   }), a.length > 0 && o.push(a.join(" ")), o.join(`
 `);
 }
-function Ua(n, t) {
+function Za(n, t) {
   return Math.floor(Math.random() * (t - n + 1)) + n;
 }
-function Za(n, t, e, i, s = !0) {
+function Fa(n, t, e, i, s = !0) {
   if (!s)
     return { width: e, height: i };
   const o = Math.min(
@@ -10137,61 +10145,61 @@ function Za(n, t, e, i, s = !0) {
     height: t * o
   };
 }
-function Fa(n) {
+function Ya(n) {
   const { buildNodeStyleFromTheme: t } = require("./core/Theme");
   return t(n.theme, n.childNumber);
 }
-function Ya(n) {
+function Xa(n) {
   return n.replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, "-").toLowerCase();
 }
-function Xa(n) {
+function ja(n) {
   return n instanceof HTMLElement || n instanceof SVGElement;
 }
-function ja(n) {
+function Va(n) {
   return typeof document > "u" ? null : document.getElementById(n);
 }
-function Va() {
+function Wa() {
   return typeof navigator > "u" ? !1 : /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 }
-function Wa() {
+function $a() {
   return typeof navigator > "u" ? !1 : /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent
   );
 }
-function $a(n) {
+function qa(n) {
   n && (n.preventDefault(), n.stopPropagation());
 }
-function qa(n, t) {
+function Ka(n, t) {
   const e = [];
   for (let i = 0; i < n.length; i += t)
     e.push(n.slice(i, i + t));
   return e;
 }
-const Ka = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const Qa = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  _transformPath: La,
-  buildNodeStyleFromTheme: Fa,
-  chunk: qa,
-  createMultiLineText: Ha,
-  el: ja,
-  getBBox: Ga,
-  getTextWidth: Ba,
+  _transformPath: Ha,
+  buildNodeStyleFromTheme: Ya,
+  chunk: Ka,
+  createMultiLineText: Ua,
+  el: Va,
+  getBBox: La,
+  getTextWidth: Ga,
   guid: Ce,
-  isElement: Xa,
-  isMobile: Wa,
-  isSafari: Va,
-  obtainProportionateWidthAndHeightForResizing: Za,
-  randomInt: Ua,
-  safeForUrls: Ya,
-  stopEvent: $a,
-  whiteOrBlack: Pa
+  isElement: ja,
+  isMobile: $a,
+  isSafari: Wa,
+  obtainProportionateWidthAndHeightForResizing: Fa,
+  randomInt: Za,
+  safeForUrls: Xa,
+  stopEvent: qa,
+  whiteOrBlack: Ba
 }, Symbol.toStringTag, { value: "Module" }));
 class Lt {
   constructor(t = {}) {
-    this.options = { id: Ce(), ...t }, this.resize = new Qa(this), this.relationships = new Ja(this);
+    this.options = { id: Ce(), ...t }, this.resize = new Ja(this), this.relationships = new tl(this);
   }
 }
-class Qa {
+class Ja {
   constructor(t) {
     this.owner = t;
   }
@@ -10215,7 +10223,7 @@ class Qa {
     }), this.pending = void 0;
   }
 }
-class Ja {
+class tl {
   constructor(t) {
     this.owner = t;
   }
@@ -10242,7 +10250,7 @@ class Ja {
     }));
   }
 }
-class tl {
+class el {
   constructor(t) {
     this.wrappers = /* @__PURE__ */ new Map(), this.owner = t;
   }
@@ -10367,12 +10375,12 @@ class tl {
     return e || (e = new Lt({ ...t.options }), e.options.id = t.id, e.v2 = t, e.slate = this.owner, this.wrappers.set(t.id, e)), e;
   }
 }
-class el {
+class nl {
   constructor(t = {}, e = {}) {
     this.savingTemplateImage = !1, this.options = {
       id: t.id || Ce(),
       ...t
-    }, this.events = e || {}, this.shareId = this.options.shareId || Ce(), this.nodes = new tl(this), this.controller = {
+    }, this.events = e || {}, this.shareId = this.options.shareId || Ce(), this.nodes = new el(this), this.controller = {
       scaleToFitAndCenter: (i) => {
         this.assertReady(), this.v2.fitToContent(), this.v2.centerContent(), i?.();
       }
@@ -10453,30 +10461,30 @@ const Ct = class Ct {
 };
 Ct.availablePlugins = {};
 let en = Ct;
-const nl = {
-  slate: el,
+const il = {
+  slate: nl,
   node: Lt,
   base: en,
-  utils: Ka
+  utils: Qa
 };
-function il(n, t = {}) {
+function sl(n, t = {}) {
   return new Sn(n, t);
 }
-typeof window < "u" && (window.SlateboxJS = il, window.Slate = Sn, window.Node = Vi, window.PanZoom = Wi, window.ResizeRotate = zi, window.BirdsEye = $i, window.Connector = Ii, window.Serialization = ba, window.ShapeRegistry = ha, window.Relationship = ia, window.Relationships = Bi, window.FontLoader = ra, window.Images = Gi, window.Editor = Hi, window.UndoRedo = Ji, window.MultiSelection = ts, window.Grid = es, window.Menu = Fi, window.Keyboard = ns, window.Filters = Zi, window.Links = Ui, window.Export = wa, window.Collab = ss, window.Theme = xa, window.Layout = _a, window.ZoomSlider = hs, window.Comments = Ta, window.Presentation = ds, window.Slatebox = Object.assign({}, nl, { compat: pa }));
+typeof window < "u" && (window.SlateboxJS = sl, window.Slate = Sn, window.Node = Vi, window.PanZoom = Wi, window.ResizeRotate = zi, window.BirdsEye = $i, window.Connector = Ii, window.Serialization = wa, window.ShapeRegistry = ha, window.Relationship = ia, window.Relationships = Bi, window.FontLoader = ra, window.Images = Gi, window.Editor = Hi, window.UndoRedo = Ji, window.MultiSelection = ts, window.Grid = es, window.Menu = Fi, window.Keyboard = ns, window.Filters = Zi, window.Links = Ui, window.Export = va, window.Collab = ss, window.Theme = _a, window.Layout = Ca, window.ZoomSlider = hs, window.Comments = Ma, window.Presentation = ds, window.Slatebox = Object.assign({}, il, { compat: pa }));
 export {
   $i as BirdsEye,
   ss as Collab,
-  Ta as Comments,
+  Ma as Comments,
   Ii as Connector,
   Hi as Editor,
-  wa as ExportModule,
+  va as ExportModule,
   Zi as Filters,
   ra as FontLoader,
   es as Grid,
   Gi as Images,
   ma as Invoker,
   ns as Keyboard,
-  _a as Layout,
+  Ca as Layout,
   Ui as Links,
   Fi as Menu,
   ts as MultiSelection,
@@ -10487,18 +10495,18 @@ export {
   ia as Relationship,
   Bi as Relationships,
   zi as ResizeRotate,
-  ba as Serialization,
+  wa as Serialization,
   ha as ShapeRegistry,
   Sn as Slate,
-  nl as Slatebox,
-  il as SlateboxJS,
-  xa as Theme,
+  il as Slatebox,
+  sl as SlateboxJS,
+  _a as Theme,
   Ji as UndoRedo,
   hs as ZoomSlider,
   pa as compat,
-  il as default,
-  al as getFilterNames,
-  rl as registerFilter,
-  Ka as utils
+  sl as default,
+  ll as getFilterNames,
+  al as registerFilter,
+  Qa as utils
 };
 //# sourceMappingURL=slateboxjs.es.js.map

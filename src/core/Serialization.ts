@@ -93,6 +93,22 @@ export async function deserialize(
   const data: SlateJSON =
     typeof json === "string" ? JSON.parse(json) : json;
 
+  // Loading is not a user action: suppress onSlateChanged emission for the
+  // duration (v1's loadJSON never fired change packages per node)
+  slate.beginRemoteApply?.();
+  try {
+    await deserializeInner(data, slate, preserve, skipZoom);
+  } finally {
+    slate.endRemoteApply?.();
+  }
+}
+
+async function deserializeInner(
+  data: SlateJSON,
+  slate: any,
+  preserve: boolean,
+  skipZoom: boolean
+): Promise<void> {
   // Apply slate options (merge with existing)
   if (data.options) {
     const slateOpts = deserializeSlateOptions(data.options);

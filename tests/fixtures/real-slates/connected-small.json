@@ -1,0 +1,414 @@
+{
+ "_id": "3xi2KKt7EevaaBtij",
+ "created": 1651519557187,
+ "lastSaved": 1651519557187,
+ "nodes": [
+  {
+   "options": {
+    "id": "c7aad62333cf",
+    "name": "mn",
+    "text": "",
+    "image": "",
+    "groupId": null,
+    "xPos": 10088.5,
+    "yPos": 9849.99801368978,
+    "height": 112.96397262044047,
+    "width": 112.79999999999927,
+    "borderStyle": "solid",
+    "borderWidth": 1,
+    "borderColor": "#000",
+    "borderOpacity": 1,
+    "lineColor": "#333",
+    "lineOpacity": 1,
+    "lineEffect": "",
+    "lineWidth": 5,
+    "opacity": 1,
+    "textOpacity": 1,
+    "showDelete": true,
+    "showAddAndDeleteConditionally": false,
+    "showResize": true,
+    "showAdd": true,
+    "showRelationshipConnector": true,
+    "showRelationshipDelete": true,
+    "showRelationshipProperties": true,
+    "showRelationshipReassign": true,
+    "showRotate": true,
+    "showMenu": true,
+    "showColorTab": true,
+    "showTextTab": true,
+    "showShapeTab": true,
+    "showImageTab": true,
+    "showEffectTab": true,
+    "spaceBetweenNodesWhenAdding": 30,
+    "disableMenuAsTemplate": false,
+    "disableDrag": false,
+    "allowDrag": true,
+    "allowMenu": true,
+    "allowContext": true,
+    "allowResize": true,
+    "isLocked": false,
+    "isComment": false,
+    "backgroundColor": "#4051B5",
+    "foregroundColor": "#fff",
+    "fontSize": 18,
+    "fontFamily": "Roboto",
+    "vectorPath": "M10088.5,9906.48C10088.5,9863.06,10135.5,9835.93,10173.1,9857.64C10190.55,9867.71,10201.3,9886.33,10201.3,9906.48C10201.3,9949.9,10154.3,9977.03,10116.7,9955.32C10099.25,9945.25,10088.5,9926.63,10088.5,9906.48",
+    "rotate": {
+     "rotationAngle": 0,
+     "point": {
+      "x": 10144.9,
+      "y": 9906.48
+     }
+    },
+    "textXAlign": "middle",
+    "textYAlign": "middle",
+    "link": {
+     "show": false,
+     "type": "",
+     "data": "",
+     "thumbnail": {
+      "width": 175,
+      "height": 175
+     }
+    },
+    "filters": {
+     "vect": null,
+     "text": null
+    },
+    "isEllipse": false,
+    "textBounds": {
+     "x": 10088.5,
+     "y": 9849.99801368978,
+     "x2": 10201.3,
+     "y2": 9962.96198631022,
+     "width": 112.79999999999927,
+     "height": 112.96397262044047,
+     "cx": 10144.9,
+     "cy": 9906.48
+    },
+    "textOffset": {
+     "x": 0,
+     "y": 56.481986310220236,
+     "width": 112.79999999999927,
+     "height": 112.96397262044047
+    }
+   },
+   "relationships": {
+    "associations": [
+     {
+      "childId": "0209d0298ce6",
+      "parentId": "c7aad62333cf",
+      "isStraightLine": false,
+      "lineColor": "#333",
+      "lineEffect": "",
+      "lineOpacity": 1,
+      "lineWidth": 5
+     }
+    ]
+   }
+  },
+  {
+   "options": {
+    "id": "d8a383ae6087",
+    "name": "mn",
+    "text": "",
+    "image": "",
+    "groupId": null,
+    "xPos": 10028.03,
+    "yPos": 9669.798013689779,
+    "height": 95.2400000000016,
+    "width": 105.46999999999935,
+    "borderStyle": "solid",
+    "borderWidth": 1,
+    "borderColor": "#000",
+    "borderOpacity": 1,
+    "lineColor": "#333",
+    "lineOpacity": 1,
+    "lineEffect": "",
+    "lineWidth": 5,
+    "opacity": 1,
+    "textOpacity": 1,
+    "showDelete": true,
+    "showAddAndDeleteConditionally": false,
+    "showResize": true,
+    "showAdd": true,
+    "showRelationshipConnector": true,
+    "showRelationshipDelete": true,
+    "showRelationshipProperties": true,
+    "showRelationshipReassign": true,
+    "showRotate": true,
+    "showMenu": true,
+    "showColorTab": true,
+    "showTextTab": true,
+    "showShapeTab": true,
+    "showImageTab": true,
+    "showEffectTab": true,
+    "spaceBetweenNodesWhenAdding": 30,
+    "disableMenuAsTemplate": false,
+    "disableDrag": false,
+    "allowDrag": true,
+    "allowMenu": true,
+    "allowContext": true,
+    "allowResize": true,
+    "isLocked": false,
+    "isComment": false,
+    "backgroundColor": "#4051B5",
+    "foregroundColor": "#fff",
+    "fontSize": 18,
+    "fontFamily": "Roboto",
+    "vectorPath": "M10114.89,9669.8C10114.89,9669.8,10046.65,9669.8,10046.65,9669.8C10036.37,9669.8,10028.03,9678.13,10028.03,9688.41C10028.03,9688.41,10028.03,9720.98,10028.03,9720.98C10028.03,9731.26,10036.37,9739.59,10046.65,9739.59C10046.65,9739.59,10087.01,9739.59,10087.01,9739.59C10087.01,9739.59,10103.83,9765.04,10103.83,9765.04C10103.83,9765.04,10109.24,9739.59,10109.24,9739.59C10109.24,9739.59,10114.89,9739.59,10114.89,9739.59C10125.17,9739.59,10133.5,9731.26,10133.5,9720.98C10133.5,9720.98,10133.5,9688.41,10133.5,9688.41C10133.5,9678.13,10125.17,9669.8,10114.89,9669.8C10114.89,9669.8,10114.89,9669.8,10114.89,9669.8",
+    "rotate": {
+     "rotationAngle": 0,
+     "point": {
+      "x": 10080.765,
+      "y": 9717.42
+     }
+    },
+    "textXAlign": "middle",
+    "textYAlign": "middle",
+    "link": {
+     "show": false,
+     "type": "",
+     "data": "",
+     "thumbnail": {
+      "width": 175,
+      "height": 175
+     }
+    },
+    "filters": {
+     "vect": null,
+     "text": null
+    },
+    "isEllipse": false,
+    "textBounds": {
+     "x": 10028.03,
+     "y": 9669.8,
+     "x2": 10133.5,
+     "y2": 9765.04,
+     "width": 105.46999999999935,
+     "height": 95.2400000000016,
+     "cx": 10080.765,
+     "cy": 9717.42
+    },
+    "textOffset": {
+     "x": -1.8189894035458565e-12,
+     "y": 47.62198631022147,
+     "width": 105.46999999999935,
+     "height": 95.2400000000016
+    },
+    "parents": [],
+    "showParentArrow": false
+   },
+   "relationships": {
+    "associations": [
+     {
+      "childId": "d8a383ae6087",
+      "parentId": "0209d0298ce6",
+      "isStraightLine": false,
+      "lineColor": "#f44336",
+      "lineEffect": "postItNote",
+      "lineOpacity": 1,
+      "lineWidth": 5
+     }
+    ]
+   }
+  },
+  {
+   "options": {
+    "id": "0209d0298ce6",
+    "name": "mn",
+    "text": "",
+    "image": "",
+    "groupId": null,
+    "xPos": 9749.5,
+    "yPos": 9849.99801368978,
+    "height": 100,
+    "width": 175,
+    "borderStyle": "solid",
+    "borderWidth": 1,
+    "borderColor": "#000",
+    "borderOpacity": 1,
+    "lineColor": "#f44336",
+    "lineOpacity": 1,
+    "lineEffect": "postItNote",
+    "lineWidth": 5,
+    "opacity": 1,
+    "textOpacity": 1,
+    "showDelete": true,
+    "showAddAndDeleteConditionally": false,
+    "showResize": true,
+    "showAdd": true,
+    "showRelationshipConnector": true,
+    "showRelationshipDelete": true,
+    "showRelationshipProperties": true,
+    "showRelationshipReassign": true,
+    "showRotate": true,
+    "showMenu": true,
+    "showColorTab": true,
+    "showTextTab": true,
+    "showShapeTab": true,
+    "showImageTab": true,
+    "showEffectTab": true,
+    "spaceBetweenNodesWhenAdding": 30,
+    "disableMenuAsTemplate": false,
+    "disableDrag": false,
+    "allowDrag": true,
+    "allowMenu": true,
+    "allowContext": true,
+    "allowResize": true,
+    "isLocked": false,
+    "isComment": false,
+    "backgroundColor": "#4051B5",
+    "foregroundColor": "#fff",
+    "fontSize": 18,
+    "fontFamily": "Roboto",
+    "vectorPath": "M9761.17,9850C9761.17,9850,9912.83,9850,9912.83,9850C9919.27,9850,9924.5,9854.48,9924.5,9860C9924.5,9860,9924.5,9940,9924.5,9940C9924.5,9945.52,9919.27,9950,9912.83,9950C9912.83,9950,9761.17,9950,9761.17,9950C9754.73,9950,9749.5,9945.52,9749.5,9940C9749.5,9940,9749.5,9860,9749.5,9860C9749.5,9854.48,9754.73,9850,9761.17,9850C9761.17,9850,9761.17,9850,9761.17,9850",
+    "rotate": {
+     "rotationAngle": 0,
+     "point": {
+      "x": 9837,
+      "y": 9899.99801368978
+     }
+    },
+    "textXAlign": "middle",
+    "textYAlign": "middle",
+    "link": {
+     "show": false,
+     "type": "",
+     "data": "",
+     "thumbnail": {
+      "width": 175,
+      "height": 175
+     }
+    },
+    "filters": {
+     "vect": null,
+     "text": null
+    },
+    "isEllipse": false,
+    "textBounds": {
+     "x": 9749.5,
+     "y": 9849.99801368978,
+     "x2": 9924.5,
+     "y2": 9949.99801368978,
+     "width": 175,
+     "height": 100,
+     "cx": 9837,
+     "cy": 9899.99801368978
+    },
+    "textOffset": {
+     "x": 0,
+     "y": 50,
+     "width": 175,
+     "height": 100
+    },
+    "parents": [],
+    "parentArrowForChildren": [],
+    "noChildArrowForChildren": [],
+    "showChildArrow": true
+   },
+   "relationships": {
+    "associations": [
+     {
+      "childId": "0209d0298ce6",
+      "parentId": "c7aad62333cf",
+      "isStraightLine": false,
+      "lineColor": "#333",
+      "lineEffect": "",
+      "lineOpacity": 1,
+      "lineWidth": 5
+     },
+     {
+      "childId": "d8a383ae6087",
+      "parentId": "0209d0298ce6",
+      "isStraightLine": false,
+      "lineColor": "#f44336",
+      "lineEffect": "postItNote",
+      "lineOpacity": 1,
+      "lineWidth": 5
+     }
+    ]
+   }
+  }
+ ],
+ "options": {
+  "id": "3xi2KKt7EevaaBtij",
+  "instance": "",
+  "name": "New Slate",
+  "description": "",
+  "basedOnThemeId": "",
+  "syncWithTheme": false,
+  "containerStyle": {
+   "backgroundColor": "#ffffff",
+   "backgroundImage": null,
+   "backgroundSize": "cover",
+   "backgroundEffect": null,
+   "backgroundColorAsGradient": true,
+   "backgroundGradientType": "radial",
+   "backgroundGradientColors": [
+    "#ffffff",
+    "#f0f0f0",
+    "#e1e1e1",
+    "#d2d2d2",
+    "#c3c3c3"
+   ],
+   "backgroundGradientStrategy": "shades",
+   "width": "auto",
+   "height": "auto",
+   "prevBackgroundColor": "transparent"
+  },
+  "viewPort": {
+   "useInertiaScrolling": true,
+   "showGrid": false,
+   "snapToObjects": true,
+   "gridSize": 50,
+   "width": 50000,
+   "height": 50000,
+   "left": 9411,
+   "top": 9586,
+   "allowDrag": true,
+   "originalHeight": 50000,
+   "originalWidth": 50000,
+   "zoom": {
+    "w": 50000,
+    "h": 50000,
+    "l": 9698.599999999997,
+    "t": 9361.600000000002,
+    "r": 1
+   }
+  },
+  "enabled": true,
+  "allowDrag": false,
+  "showbirdsEye": true,
+  "sizeOfbirdsEye": 200,
+  "showMultiSelect": true,
+  "showZoom": true,
+  "showUndoRedo": true,
+  "showStatus": true,
+  "showLocks": true,
+  "mindMapMode": true,
+  "isPublic": true,
+  "isUnlisted": false,
+  "autoEnableDefaultFilters": true,
+  "followMe": false,
+  "defaultLineColor": "#333",
+  "isSharing": true,
+  "imageFolder": "/images/",
+  "collaboration": {
+   "allow": true
+  },
+  "isPrivate": false,
+  "nodeOrder": [
+   "c7aad62333cf",
+   "d8a383ae6087",
+   "0209d0298ce6"
+  ],
+  "lastTouches": [],
+  "searchText": "  ",
+  "isCommunity": false,
+  "isFeatured": false
+ },
+ "shareId": "6bfd9966",
+ "userId": "rycB6Hmanw83uHd7H",
+ "orgId": "zfdxMr5bmGbqPzT3Q"
+}

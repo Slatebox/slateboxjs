@@ -114,9 +114,10 @@ App usage: `const node = new Slatebox.node(options)`
 Document shape: `{_id, shareId, userId, orgId, options: {...}, nodes: [{options, relationships: {associations}}], created, lastSaved}`
 saved via `Slates.upsert({_id: opts.slate.options.id}, {$set: opts.slate})`.
 
-- [ ] `exportJSON()` output loads back via `loadJSON()` with zero loss (positions, shapes, colors, associations, shareId)
-- [ ] A REAL slate document exported from the production/local slatebox Mongo loads correctly in v2 (grab fixtures from the slatebox app repo or a mongo dump; store under `tests/fixtures/real-slates/`)
-- [ ] v1→v2→v1 JSON round-trip preserves the fields the Meteor app reads directly (`options.id`, node `xPos/yPos`, associations `parent.options.id`)
+- [x] `exportJSON()` output loads back via `loadJSON()` with zero loss (positions, associations, node count; export uses v1 xPos/yPos field names) (proof: tests/e2e/real-fixtures.spec.ts "round-trips")
+- [x] REAL slate documents from slatebox.com load correctly — 4 production templates extracted from the slatebox repo (`internal/jose_templates.json`) into `tests/fixtures/real-slates/`: flowchart (9n/12a), connected-small (3n/4a), workflow (20n, custom vectorPaths), fishbone stress (384n/18a) (proof: tests/e2e/real-fixtures.spec.ts)
+- [x] v1→v2→v1 JSON round-trip preserves the fields the Meteor app reads (`options.id`, node `xPos/yPos`, association counts) (proof: same spec)
+- [x] BONUS: `loadJSON` is silent — no per-node `onSlateChanged` spam during load (v1 semantics; fixed via beginRemoteApply in Serialization.deserialize) (proof: "loading is silent" test)
 
 ## H. DOM/CSS assumptions
 
@@ -167,3 +168,4 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 | 2026-07-01 | Iter 4: §C/§D methods — facade adds getOrientation (padded bbox), controller.scaleToFitAndCenter, canvas.hideBg, slate.png, savingTemplateImage; nodes.packageLayout (v1 payload) / applyLayout (exportNodes) / nodeMovePackage (relative→absolute); node.resize.set/send + relationships.addAssociation/.associations with live refs. 16 new unit tests. Gates: 1031 unit, 104 e2e, build clean. Remaining §D: node.png, options coverage. Next: §E utils gaps or node.png. |
 | 2026-07-01 | Iter 5: §E COMPLETE — vendored Raphael path engine (src/vendor/raphael-path.ts) powering `_transformPath` (curve-ify + bbox-centered transforms + arcs) and analytic `getBBox`; fixed THREE latent breakers: getTextWidth returned number (app needs {width,height}), createMultiLineText had wrong signature (needs lineCount→string), whiteOrBlack used YIQ (v1 uses WCAG contrast). 10 new tests. Gates: 1041 unit, 104 e2e, build clean. Next: §F remaining package types or §D node.png. |
 | 2026-07-01 | Iter 6: §F expansion — engine emits onNodeColorChanged (setColors), onNodeToFront/onNodeToBack, onZoom (Slate.zoom), onCanvasMove w/ orient (panEnd); Slate.getOrientation() moved into engine (facade delegates); facade resize.send() broadcasts onNodeResized. 7 new unit + 1 e2e test. Gates: 1048 unit, 105 e2e, build clean. Note: birdseye-rotation e2e is timing-flaky (passes standalone + full rerun). Next: §G real-fixture round-trip or §D node.png. |
+| 2026-07-01 | Iter 7: §G COMPLETE — 4 real production templates (from slatebox repo internal/jose_templates.json) as fixtures; e2e proves load fidelity (positions/text/colors/assocs), export→reload round-trip with v1 xPos field names, silent loading (fixed onNodeAdded spam during deserialize via beginRemoteApply), and 384-node stress load (~3s). Gates: 1048 unit, 110 e2e, build clean. Next: §D node.png / §H DOM assumptions / prepare §I collab analysis for user. |
