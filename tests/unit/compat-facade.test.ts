@@ -202,6 +202,11 @@ describe("new Slatebox.slate(options, events).init() (§B)", () => {
     expect(s.options.id).toBeTruthy();
     expect(s.shareId).toBeTruthy();
 
+    // Regression: hosts pass `id: undefined` explicitly (createSlate.js does
+    // `id: newSlate.options?.id`) — the generated guid must survive
+    const sUndef = new Slatebox.slate({ container: "x", id: undefined });
+    expect(sUndef.options.id).toBeTruthy();
+
     const s2 = new Slatebox.slate({
       container: "x",
       id: "myid",

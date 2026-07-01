@@ -925,6 +925,42 @@ describe("Slate", () => {
       ).not.toThrow();
     });
 
+    it("deferEmits() queues packages; flushEmits() delivers them in order", () => {
+      const onSlateChanged = vi.fn();
+      const slate = new Slate(container, { events: { onSlateChanged } });
+      slate.deferEmits();
+      slate.emitSlateChange("onNodeAdded", { id: "q1" });
+      slate.emitSlateChange("onNodeTextChanged", { id: "q1", text: "t" });
+      expect(onSlateChanged).not.toHaveBeenCalled();
+
+      slate.flushEmits();
+      expect(onSlateChanged).toHaveBeenCalledTimes(2);
+      expect(onSlateChanged.mock.calls[0][0].type).toBe("onNodeAdded");
+      expect(onSlateChanged.mock.calls[1][0].type).toBe("onNodeTextChanged");
+
+      // Emission is synchronous again after flush
+      slate.emitSlateChange("onZoom", { zoomLevel: 1 });
+      expect(onSlateChanged).toHaveBeenCalledTimes(3);
+    });
+
+    it("survives a rejecting async host handler", async () => {
+      const slate = new Slate(container, {
+        events: {
+          onSlateChanged: async () => {
+            throw new Error("collaborator.current is undefined");
+          },
+        },
+      });
+      expect(() =>
+        slate.emitSlateChange("onNodeAdded", { id: "n1" })
+      ).not.toThrow();
+      // Allow the rejection to be handled (would fail the test as an
+      // unhandled rejection otherwise). Microtasks only — the suite uses
+      // fake timers.
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
     it("zoom() emits an onZoom package with zoomLevel", () => {
       const onSlateChanged = vi.fn();
       const slate = new Slate(container, { events: { onSlateChanged } });

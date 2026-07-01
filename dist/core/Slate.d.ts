@@ -141,6 +141,8 @@ export declare class Slate {
     private _destroyed;
     private _applyingRemote;
     private _hadGroupSelection;
+    private _emitDeferred;
+    private _emitQueue;
     private _birdsEyeTimeoutId;
     private _coordDisplayTimeoutId;
     private _nodeNotifyTimeoutId;
@@ -189,6 +191,10 @@ export declare class Slate {
      * @param data - v1-shaped package data
      */
     emitSlateChange(type: string, data?: Record<string, any>): void;
+    /** Queue onSlateChanged packages until flushEmits() (v1 collab-init timing). */
+    deferEmits(): void;
+    /** Deliver queued packages and resume synchronous emission. */
+    flushEmits(): void;
     /**
      * Apply `options.containerStyle` (background color / gradient / image) to
      * the container element. v1's canvas.refreshBackground equivalent — called

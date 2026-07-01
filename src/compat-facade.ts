@@ -409,9 +409,12 @@ class slate {
   public canvas: { hideBg: (opacity?: number) => void };
 
   constructor(options: Record<string, any> = {}, events: V1Events = {}) {
+    // Spread FIRST: hosts pass `id: undefined` for new slates, and spreading
+    // after the default would clobber the generated guid with undefined —
+    // losing the id the URL/persistence layer expects.
     this.options = {
-      id: options.id || utilsModule.guid(),
       ...options,
+      id: options.id || utilsModule.guid(),
     };
     this.events = events || {};
     this.shareId = this.options.shareId || utilsModule.guid();
@@ -495,16 +498,24 @@ class slate {
     // v1: slate.init() auto-connects collaboration (after a short delay)
     // when allowCollaboration is on. Only meaningful when the host has
     // registered onInitCollaboration to supply the URL + auth params.
+    // v1 TIMING: onSlateChanged never fired before collab init completed
+    // (packages traveled through the yjs echo), and host apps rely on that —
+    // defer emissions until the handshake settles, then flush.
     if (
       (this.options.allowCollaboration ?? true) &&
       this.events.onInitCollaboration
     ) {
+      const v2 = this.v2 as any;
+      v2.deferEmits?.();
       setTimeout(() => {
-        (this.v2 as any)?.collab
-          ?.init({ roomName: this.options.id })
+        const initPromise: Promise<void> =
+          v2?.collab?.init({ roomName: this.options.id }) ??
+          Promise.resolve();
+        initPromise
           .catch((error: unknown) =>
             console.warn("SLATEBOX_COMPAT: collab init failed", error)
-          );
+          )
+          .finally(() => v2?.flushEmits?.());
       }, 100);
     }
 

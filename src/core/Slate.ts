@@ -184,6 +184,8 @@ export class Slate {
   private _destroyed: boolean = false;
   private _applyingRemote: boolean = false;
   private _hadGroupSelection: boolean = false;
+  private _emitDeferred: boolean = false;
+  private _emitQueue: SlatePackage[] = [];
   private _birdsEyeTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _coordDisplayTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _nodeNotifyTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -482,6 +484,15 @@ export class Slate {
     if (!cb) return;
     const pkg: SlatePackage = { type, data };
     if (this.options.instance) pkg.instanceId = this.options.instance;
+
+    // v1 timing: onSlateChanged arrived via the async collab echo, so host
+    // apps assume collab init already ran (e.g. slatebox.com reads its
+    // collaborator ref). While deferred, queue packages for later flush.
+    if (this._emitDeferred) {
+      this._emitQueue.push(pkg);
+      return;
+    }
+
     let users: CollabUser[] = [];
     try {
       users = this.collab?.getCollabUsers?.() ?? [];
@@ -489,9 +500,28 @@ export class Slate {
       // collab is optional — no users available
     }
     try {
-      cb(pkg, users);
+      const result: any = cb(pkg, users);
+      // Host handlers are often async — surface rejections as warnings
+      // instead of unhandled promise rejections
+      result?.catch?.((error: unknown) =>
+        console.warn("SLATE_EVENTS_DEBUG: onSlateChanged handler rejected", error)
+      );
     } catch (error) {
       console.warn("SLATE_EVENTS_DEBUG: onSlateChanged handler threw", error);
+    }
+  }
+
+  /** Queue onSlateChanged packages until flushEmits() (v1 collab-init timing). */
+  public deferEmits(): void {
+    this._emitDeferred = true;
+  }
+
+  /** Deliver queued packages and resume synchronous emission. */
+  public flushEmits(): void {
+    this._emitDeferred = false;
+    const queued = this._emitQueue.splice(0);
+    for (const pkg of queued) {
+      this.emitSlateChange(pkg.type, pkg.data);
     }
   }
 

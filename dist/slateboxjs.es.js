@@ -9152,7 +9152,7 @@ class Sn {
    * ```
    */
   constructor(t, e = {}) {
-    if (this.selectedNodes = [], this.groupResizeRotate = null, this._coordinateIntervalId = null, this._destroyed = !1, this._applyingRemote = !1, this._hadGroupSelection = !1, this._birdsEyeTimeoutId = null, this._coordDisplayTimeoutId = null, this._nodeNotifyTimeoutId = null, this._liveRegion = null, typeof t == "string") {
+    if (this.selectedNodes = [], this.groupResizeRotate = null, this._coordinateIntervalId = null, this._destroyed = !1, this._applyingRemote = !1, this._hadGroupSelection = !1, this._emitDeferred = !1, this._emitQueue = [], this._birdsEyeTimeoutId = null, this._coordDisplayTimeoutId = null, this._nodeNotifyTimeoutId = null, this._liveRegion = null, typeof t == "string") {
       const i = document.querySelector(t);
       if (!i)
         throw new Error(`Element with selector "${t}" not found`);
@@ -9259,17 +9259,33 @@ class Sn {
     const i = this.options.events?.onSlateChanged;
     if (!i) return;
     const s = { type: t, data: e };
-    this.options.instance && (s.instanceId = this.options.instance);
+    if (this.options.instance && (s.instanceId = this.options.instance), this._emitDeferred) {
+      this._emitQueue.push(s);
+      return;
+    }
     let o = [];
     try {
       o = this.collab?.getCollabUsers?.() ?? [];
     } catch {
     }
     try {
-      i(s, o);
+      i(s, o)?.catch?.(
+        (r) => console.warn("SLATE_EVENTS_DEBUG: onSlateChanged handler rejected", r)
+      );
     } catch (a) {
       console.warn("SLATE_EVENTS_DEBUG: onSlateChanged handler threw", a);
     }
+  }
+  /** Queue onSlateChanged packages until flushEmits() (v1 collab-init timing). */
+  deferEmits() {
+    this._emitDeferred = !0;
+  }
+  /** Deliver queued packages and resume synchronous emission. */
+  flushEmits() {
+    this._emitDeferred = !1;
+    const t = this._emitQueue.splice(0);
+    for (const e of t)
+      this.emitSlateChange(e.type, e.data);
   }
   /**
    * Apply `options.containerStyle` (background color / gradient / image) to
@@ -10528,8 +10544,8 @@ class el {
 class nl {
   constructor(t = {}, e = {}) {
     this.savingTemplateImage = !1, this.options = {
-      id: t.id || Ee(),
-      ...t
+      ...t,
+      id: t.id || Ee()
     }, this.events = e || {}, this.shareId = this.options.shareId || Ee(), this.nodes = new el(this), this.controller = {
       scaleToFitAndCenter: (i) => {
         this.assertReady(), this.v2.fitToContent(), this.v2.centerContent(), i?.();
@@ -10565,7 +10581,7 @@ class nl {
     const i = {
       ...this.options.viewPort.zoom || {}
     };
-    return Object.defineProperty(i, "r", {
+    if (Object.defineProperty(i, "r", {
       enumerable: !0,
       get: () => {
         try {
@@ -10574,11 +10590,15 @@ class nl {
           return 1;
         }
       }
-    }), this.options.viewPort.zoom = i, (this.options.allowCollaboration ?? !0) && this.events.onInitCollaboration && setTimeout(() => {
-      this.v2?.collab?.init({ roomName: this.options.id }).catch(
-        (s) => console.warn("SLATEBOX_COMPAT: collab init failed", s)
-      );
-    }, 100), this;
+    }), this.options.viewPort.zoom = i, (this.options.allowCollaboration ?? !0) && this.events.onInitCollaboration) {
+      const s = this.v2;
+      s.deferEmits?.(), setTimeout(() => {
+        (s?.collab?.init({ roomName: this.options.id }) ?? Promise.resolve()).catch(
+          (a) => console.warn("SLATEBOX_COMPAT: collab init failed", a)
+        ).finally(() => s?.flushEmits?.());
+      }, 100);
+    }
+    return this;
   }
   /** v1: `slate.exportJSON()` → JSON string */
   exportJSON() {
