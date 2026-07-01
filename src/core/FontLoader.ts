@@ -62,6 +62,19 @@ export function loadFont(fontFamily: string): Promise<void> {
     // Extract just the font name (remove fallbacks like ", sans-serif")
     const primaryFont = normalized.split(",")[0].trim().replace(/['"]/g, "");
 
+    // Host apps (e.g. slatebox.com via @fontsource) often bundle fonts
+    // themselves — if the face is already available, don't inject a
+    // competing Google Fonts stylesheet
+    try {
+      if (document.fonts?.check?.(`12px "${primaryFont}"`)) {
+        loadedFonts.add(lower);
+        resolve();
+        return;
+      }
+    } catch {
+      // document.fonts unavailable (older browsers/jsdom) — proceed to load
+    }
+
     // Create link element for Google Fonts
     const link = document.createElement("link");
     link.rel = "stylesheet";

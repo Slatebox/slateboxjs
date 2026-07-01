@@ -52,6 +52,41 @@ class node {
     this.resize = new NodeResizeFacade(this);
     this.relationships = new NodeRelationshipsFacade(this);
   }
+
+  /**
+   * v1: `node.png(withNodes?, cb)` — export this node (or the given group of
+   * node ids) as a transparent-background PNG blob.
+   */
+  public png(
+    withNodes: string[] | ((blob: Blob) => void) | undefined,
+    cb?: (blob: Blob) => void
+  ): void {
+    // v1 allows node.png(cb) with the group omitted
+    const callback = typeof withNodes === "function" ? withNodes : cb;
+    const group = Array.isArray(withNodes) ? withNodes : undefined;
+    const v2Node = this.v2;
+    if (!v2Node || !callback) return;
+    const nodes = group && group.length > 0 ? group : [v2Node.id];
+    (v2Node.slate as any).png(
+      { nodes, noBackground: true, asBinary: true },
+      (blob: any) => callback(blob)
+    );
+  }
+
+  /** v1: `node.svg(withNodes?, cb)` — same as png but returns the SVG string. */
+  public svg(
+    withNodes: string[] | ((svg: string) => void) | undefined,
+    cb?: (svg: string) => void
+  ): void {
+    const callback = typeof withNodes === "function" ? withNodes : cb;
+    const group = Array.isArray(withNodes) ? withNodes : undefined;
+    const v2Node = this.v2;
+    if (!v2Node || !callback) return;
+    const nodes = group && group.length > 0 ? group : [v2Node.id];
+    (v2Node.slate as any).svg({ nodes, noBackground: true }, (svg: string) =>
+      callback(svg)
+    );
+  }
 }
 
 /**

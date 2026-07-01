@@ -80,6 +80,10 @@ vi.mock("../../src/core/Slate", () => {
       cb?.("png-blob");
       return "png-blob";
     });
+    svg = vi.fn((_opts?: any, cb?: (r: string) => void) => {
+      cb?.("<svg/>");
+      return "<svg/>";
+    });
     constructor(element: any, options: any) {
       this.element = element;
       this.options = options;
@@ -515,6 +519,42 @@ describe("node sub-facades (§D)", () => {
     const a = new Slatebox.node({ id: "x1" });
     const b = new Slatebox.node({ id: "x2" });
     expect(() => a.relationships.addAssociation(b)).toThrow(/add the node/);
+  });
+
+  it("node.png(cb) exports just this node with v1 options", async () => {
+    const s = await initSlate();
+    const n = s.nodes.add({ id: "png1", xPos: 0, yPos: 0 });
+    const cb = vi.fn();
+    n.png(cb);
+    expect((s.v2 as any).png).toHaveBeenCalledWith(
+      { nodes: ["png1"], noBackground: true, asBinary: true },
+      expect.any(Function)
+    );
+    expect(cb).toHaveBeenCalledWith("png-blob");
+  });
+
+  it("node.png(groupIds, cb) exports the given group", async () => {
+    const s = await initSlate();
+    const n = s.nodes.add({ id: "png2", xPos: 0, yPos: 0 });
+    s.nodes.add({ id: "png3", xPos: 10, yPos: 0 });
+    const cb = vi.fn();
+    n.png(["png2", "png3"], cb);
+    expect((s.v2 as any).png).toHaveBeenCalledWith(
+      { nodes: ["png2", "png3"], noBackground: true, asBinary: true },
+      expect.any(Function)
+    );
+  });
+
+  it("node.svg(cb) exports the SVG string", async () => {
+    const s = await initSlate();
+    const n = s.nodes.add({ id: "svg1", xPos: 0, yPos: 0 });
+    const cb = vi.fn();
+    n.svg(cb);
+    expect((s.v2 as any).svg).toHaveBeenCalledWith(
+      { nodes: ["svg1"], noBackground: true },
+      expect.any(Function)
+    );
+    expect(cb).toHaveBeenCalledWith("<svg/>");
   });
 });
 

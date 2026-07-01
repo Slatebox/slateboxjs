@@ -69,8 +69,11 @@ export function exportSVG(
       const groups = svgNode.querySelectorAll("[data-node-id]");
       groups.forEach((g) => g.remove());
     } else if (opts.nodes) {
-      // Keep only specified nodes
-      const keepIds = new Set(opts.nodes.map((n: any) => n.id));
+      // Keep only specified nodes — accepts node objects OR id strings
+      // (v1's node.png passes ids: slate.png({nodes: [id], ...}))
+      const keepIds = new Set(
+        opts.nodes.map((n: any) => (typeof n === "string" ? n : n.id))
+      );
       const allGroups = svgNode.querySelectorAll("[data-node-id]");
       allGroups.forEach((g) => {
         const nodeId = g.getAttribute("data-node-id");

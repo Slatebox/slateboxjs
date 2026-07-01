@@ -85,7 +85,7 @@ App usage: `const node = new Slatebox.node(options)`
 - [x] `.resize.set(w, h)` and `.resize.send()` — facade applies via v2 setSize (proof: tests/unit/compat-facade.test.ts "node sub-facades")
 - [x] `.relationships.addAssociation(otherNode)` — unwraps facade nodes to v2, delegates to Relationships (proof: unit)
 - [x] `.relationships.associations` → array of `{parent, child, lineWidth, ...}` with live wrapper refs, `parent.options.id` resolves (proof: unit)
-- [ ] `.png(groupNodes?, callback)`
+- [x] `.png(groupNodes?, callback)` — facade delegates to slate.png({nodes, noBackground, asBinary}); Export accepts id strings; `.svg` variant too (proof: tests/unit/compat-facade.test.ts "node.png")
 - [ ] Properties: `.options` (with `.id/.text/.xPos/.yPos/.width/.height/.vectorPath/.backgroundColor/.foregroundColor`), `.slate` backref
 
 ## E. Slatebox.utils
@@ -121,9 +121,9 @@ saved via `Slates.upsert({_id: opts.slate.options.id}, {$set: opts.slate})`.
 
 ## H. DOM/CSS assumptions
 
-- [ ] Renders into a bare `<div id="slateCanvas">` (the app hardcodes this id) with `height: inherit`
-- [ ] No required CSS beyond the shipped stylesheet; verify the library works when the app does NOT import `slateboxjs.css` (v1 required no stylesheet — decide + document)
-- [ ] Fonts: app loads `@fontsource/*`; FontLoader must not fight app-provided fonts
+- [x] Renders into a bare `<div id="slateCanvas">` (the app hardcodes this id) (proof: every facade e2e mounts exactly that)
+- [x] Library works with ZERO stylesheets loaded — selection UI hit areas + non-obscuring overlays are inline SVG attributes (proof: tests/e2e/css-less.spec.ts)
+- [x] Fonts: FontLoader now checks `document.fonts.check()` before injecting Google Fonts links — app-bundled `@fontsource` faces are respected (src/core/FontLoader.ts)
 
 ## I. Collaboration bridge (hardest part)
 
@@ -169,3 +169,4 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 | 2026-07-01 | Iter 5: §E COMPLETE — vendored Raphael path engine (src/vendor/raphael-path.ts) powering `_transformPath` (curve-ify + bbox-centered transforms + arcs) and analytic `getBBox`; fixed THREE latent breakers: getTextWidth returned number (app needs {width,height}), createMultiLineText had wrong signature (needs lineCount→string), whiteOrBlack used YIQ (v1 uses WCAG contrast). 10 new tests. Gates: 1041 unit, 104 e2e, build clean. Next: §F remaining package types or §D node.png. |
 | 2026-07-01 | Iter 6: §F expansion — engine emits onNodeColorChanged (setColors), onNodeToFront/onNodeToBack, onZoom (Slate.zoom), onCanvasMove w/ orient (panEnd); Slate.getOrientation() moved into engine (facade delegates); facade resize.send() broadcasts onNodeResized. 7 new unit + 1 e2e test. Gates: 1048 unit, 105 e2e, build clean. Note: birdseye-rotation e2e is timing-flaky (passes standalone + full rerun). Next: §G real-fixture round-trip or §D node.png. |
 | 2026-07-01 | Iter 7: §G COMPLETE — 4 real production templates (from slatebox repo internal/jose_templates.json) as fixtures; e2e proves load fidelity (positions/text/colors/assocs), export→reload round-trip with v1 xPos field names, silent loading (fixed onNodeAdded spam during deserialize via beginRemoteApply), and 384-node stress load (~3s). Gates: 1048 unit, 110 e2e, build clean. Next: §D node.png / §H DOM assumptions / prepare §I collab analysis for user. |
+| 2026-07-01 | Iter 8: §D node.png/svg (group export via id strings — Export.ts now accepts ids) + §H COMPLETE (bare-div mount proven, CSS-less e2e with selection UI inline attrs, FontLoader respects app-bundled fonts via document.fonts.check). Gates: 1051 unit, 111 e2e, build clean. Next: §I collab analysis (user decision needed) + §K drop-in spec. |

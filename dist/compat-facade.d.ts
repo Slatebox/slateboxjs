@@ -39,6 +39,13 @@ declare class node {
     /** v1: `node.relationships.addAssociation(otherNode)` / `.associations` */
     relationships: NodeRelationshipsFacade;
     constructor(options?: Record<string, any>);
+    /**
+     * v1: `node.png(withNodes?, cb)` — export this node (or the given group of
+     * node ids) as a transparent-background PNG blob.
+     */
+    png(withNodes: string[] | ((blob: Blob) => void) | undefined, cb?: (blob: Blob) => void): void;
+    /** v1: `node.svg(withNodes?, cb)` — same as png but returns the SVG string. */
+    svg(withNodes: string[] | ((svg: string) => void) | undefined, cb?: (svg: string) => void): void;
 }
 /**
  * v1 resize sub-object: `set()` stages new dimensions, `send()` applies them
