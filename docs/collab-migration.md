@@ -36,17 +36,28 @@ package flow inside the client and the app-side glue.
 
 ## collab.slatebox.com changes
 
-Likely **none**: it authenticates the websocket upgrade via HMAC query params
-and relays yjs sync messages without inspecting map contents. Verify with
-`tests/collab-server-dev.js` first, then a staging run with
-`COLLAB_DEV_MODE=1`.
+### STAGING CHECK RESULTS (2026-07-01, verified against the real bin/server.js)
 
-One caveat to verify: if the server prunes/compacts the doc assuming
-per-node map keys (v1 wrote one entry per nodeId), v3's unique-key appends
-will grow the doc. Check the server's persistence/GC settings
-(`y-websocket` `gcEnabled`) and enable GC or periodic map clearing. v3
-clears the map on first observe after load (same as v1's `changesCleared`
-transaction) — verify this against the deployed server version.
+Ran the actual production server code locally (`API_KEYS` synthetic org,
+port 1122) with two slateboxjs v3 clients — `tests/e2e/collab-staging.spec.ts`:
+
+- ✅ **HMAC auth path works end-to-end**: v3's awaited `onInitCollaboration`
+  → `websocketParams: {bearer, timestamp}` → query params → the server's
+  `isAuthenticated` accepts and relays. 20-package burst synced A→B,
+  presence propagated. **No server changes required for v3 compatibility.**
+- ✅ **Auth blocks data**: an invalid bearer receives zero document state
+  and zero awareness (verified across isolated browser contexts).
+- ⚠️ **Pre-existing server quirk** (not v3-related): on failed auth,
+  `bin/server.js` sends the text frame `"Unauthenticated"` but never calls
+  `ws.close()` — the socket stays open, so clients report a "connected"
+  status while nothing flows. Recommended one-line fix in `handleAuth`'s
+  catch: `ws.send("Unauthenticated"); ws.close(4401, "Unauthenticated");`
+- ⚠️ **Map growth**: v3 appends unique keys per package (v1 overwrote one
+  key per node). In-memory doc for an active room grows with edit count;
+  the doc is discarded when the room empties (no `YPERSISTENCE` set in
+  production ⇒ no long-term accumulation). If `YPERSISTENCE` is ever
+  enabled, add periodic map clearing (v1-style `changesCleared` transaction
+  on load) or key packages by `data.id`.
 
 ## Canvas.jsx wiring sketch (for the migration PR in the slatebox repo)
 
