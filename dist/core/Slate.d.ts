@@ -19,7 +19,12 @@ import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
 export interface SlateEvents {
     onSlateChanged?: (pkg: SlatePackage, collabUsers?: CollabUser[]) => void;
-    onInitCollaboration?: (clientID: string) => void;
+    /**
+     * Called before the collab websocket connects. May return (or resolve to)
+     * connection details: `{websocketUrl, websocketParams: {bearer, timestamp},
+     * userName, color, ...}` — websocketParams carries server auth.
+     */
+    onInitCollaboration?: (clientID: string) => void | Record<string, any> | Promise<void | Record<string, any>>;
     onTextPaneRequested?: (node: Node, cb: Function) => void;
     onLineMenuRequested?: (node: Node, association: Association, cb: Function) => void;
     onTakeSnapshot?: (opts?: Record<string, any>) => void;

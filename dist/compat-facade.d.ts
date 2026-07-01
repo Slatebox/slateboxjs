@@ -172,6 +172,11 @@ declare class slate {
         left: number;
         top: number;
     };
+    /**
+     * v1: `slate.collab.exe/invoke/send/updateUserData` — the live v2 Collab
+     * instance exposes the same four methods.
+     */
+    get collab(): any;
     /** v1: `slate.png({base64: true}, cb)` — thumbnail export */
     png(opts?: Record<string, any>, callback?: (result: string | Blob) => void): Promise<string | Blob>;
     private assertReady;

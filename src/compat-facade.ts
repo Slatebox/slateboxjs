@@ -523,6 +523,15 @@ class slate {
     return this.v2!.getOrientation();
   }
 
+  /**
+   * v1: `slate.collab.exe/invoke/send/updateUserData` — the live v2 Collab
+   * instance exposes the same four methods.
+   */
+  public get collab() {
+    this.assertReady();
+    return (this.v2 as any).collab;
+  }
+
   /** v1: `slate.png({base64: true}, cb)` — thumbnail export */
   public png(
     opts?: Record<string, any>,

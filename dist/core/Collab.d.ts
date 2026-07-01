@@ -10,6 +10,8 @@
 export interface CollabOptions {
     /** WebSocket URL for y-websocket server */
     wsUrl?: string;
+    /** Query-string params sent on connect (e.g. HMAC bearer + timestamp) */
+    wsParams?: Record<string, string>;
     /** Room/document name (usually the slate ID) */
     roomName?: string;
     /** Client display name */
@@ -45,6 +47,8 @@ export declare class Collab {
     private isConnected;
     private clientID;
     private cursorElements;
+    /** Connection/user payload returned by the host's onInitCollaboration */
+    userBaseData?: Record<string, any>;
     constructor(slate: Slate, options?: CollabOptions);
     /**
      * Initialize collaboration.
@@ -66,6 +70,12 @@ export declare class Collab {
     /**
      * Update local cursor position and broadcast to peers.
      */
+    /**
+     * Merge additional data into this client's awareness "user" state
+     * (v1 parity: `collab.updateUserData(data)`), e.g. custom status the
+     * host app broadcasts to other collaborators.
+     */
+    updateUserData(data: Record<string, any>): void;
     updateCursor(x: number, y: number): void;
     /**
      * Render a remote cursor on the canvas.

@@ -84,6 +84,13 @@ vi.mock("../../src/core/Slate", () => {
       cb?.("<svg/>");
       return "<svg/>";
     });
+    collab = {
+      exe: vi.fn(),
+      invoke: vi.fn(),
+      send: vi.fn(),
+      updateUserData: vi.fn(),
+    };
+    getZoom = vi.fn(() => 1);
     constructor(element: any, options: any) {
       this.element = element;
       this.options = options;
@@ -344,6 +351,23 @@ describe("slate methods (§C)", () => {
     expect((s.v2 as any).png).toHaveBeenCalled();
     expect(cb).toHaveBeenCalledWith("png-blob");
     expect(result).toBe("png-blob");
+  });
+
+  it("exposes the v2 collab instance with exe/invoke/send/updateUserData", async () => {
+    const s = await initSlate();
+    expect(typeof s.collab.exe).toBe("function");
+    expect(typeof s.collab.invoke).toBe("function");
+    expect(typeof s.collab.send).toBe("function");
+    expect(typeof s.collab.updateUserData).toBe("function");
+    s.collab.send({ type: "onZoom", data: { zoomLevel: 2 } });
+    expect((s.v2 as any).collab.send).toHaveBeenCalled();
+  });
+
+  it("maintains a live viewPort.zoom.r over the engine zoom", async () => {
+    const s = await initSlate();
+    expect(s.options.viewPort.zoom.r).toBe(1);
+    ((s.v2 as any).getZoom as any).mockReturnValue(2.5);
+    expect(s.options.viewPort.zoom.r).toBe(2.5);
   });
 
   it("exposes savingTemplateImage as a mutable flag", async () => {

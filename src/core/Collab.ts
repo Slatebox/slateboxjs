@@ -11,6 +11,8 @@
 export interface CollabOptions {
   /** WebSocket URL for y-websocket server */
   wsUrl?: string;
+  /** Query-string params sent on connect (e.g. HMAC bearer + timestamp) */
+  wsParams?: Record<string, string>;
   /** Room/document name (usually the slate ID) */
   roomName?: string;
   /** Client display name */
@@ -47,6 +49,8 @@ export class Collab {
   private isConnected: boolean = false;
   private clientID: number = 0;
   private cursorElements: Map<number, any> = new Map();
+  /** Connection/user payload returned by the host's onInitCollaboration */
+  public userBaseData?: Record<string, any>;
 
   constructor(slate: Slate, options: CollabOptions = {}) {
     this.slate = slate;
@@ -79,6 +83,39 @@ export class Collab {
       this.doc = new Y.Doc();
       this.clientID = this.doc.clientID;
 
+      // Ask the host app for connection details BEFORE connecting.
+      // The app returns `{websocketUrl, websocketParams: {bearer, timestamp},
+      // color, userName, ...}` — websocketParams carries the HMAC auth the
+      // production collab server requires. (v1 semantics: awaited.)
+      let userBaseData: Record<string, any> | undefined;
+      const initCb = this.slate.options.events?.onInitCollaboration;
+      if (initCb) {
+        try {
+          userBaseData =
+            (await initCb(this.clientID.toString())) || undefined;
+        } catch (error) {
+          console.warn(
+            "COLLAB_DEBUG: onInitCollaboration threw; using static options",
+            error
+          );
+        }
+      }
+      if (userBaseData) {
+        this.userBaseData = userBaseData;
+        if (userBaseData.websocketUrl) {
+          this.options.wsUrl = userBaseData.websocketUrl;
+        }
+        if (userBaseData.websocketParams) {
+          this.options.wsParams = userBaseData.websocketParams;
+        }
+        if (userBaseData.userName) {
+          this.options.userName = userBaseData.userName;
+        }
+        if (userBaseData.color) {
+          this.options.userColor = userBaseData.color;
+        }
+      }
+
       // Create shared map for collab packages
       this.collabMap = this.doc.getMap("collabPackages");
 
@@ -96,11 +133,16 @@ export class Collab {
         });
       });
 
-      // Create WebSocket provider
+      // Create WebSocket provider — params carry auth (e.g. HMAC bearer +
+      // timestamp) as query string values, matching y-websocket's API
       this.provider = new WebsocketProvider(
         this.options.wsUrl!,
         this.options.roomName!,
-        this.doc
+        this.doc,
+        {
+          connect: true,
+          params: this.options.wsParams || {},
+        }
       );
 
       // Set up awareness (user presence)
@@ -219,6 +261,17 @@ export class Collab {
   /**
    * Update local cursor position and broadcast to peers.
    */
+  /**
+   * Merge additional data into this client's awareness "user" state
+   * (v1 parity: `collab.updateUserData(data)`), e.g. custom status the
+   * host app broadcasts to other collaborators.
+   */
+  public updateUserData(data: Record<string, any>): void {
+    if (!this.awareness) return;
+    const current = this.awareness.getLocalState()?.user || {};
+    this.awareness.setLocalStateField("user", { ...current, ...data });
+  }
+
   public updateCursor(x: number, y: number): void {
     if (!this.awareness) return;
 

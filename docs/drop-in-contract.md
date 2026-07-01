@@ -26,7 +26,7 @@ or noted inline.
 - [x] `Slatebox.base` — confirmed UNUSED by the Meteor app (grepped all imports); minimal plugin-registry port provided anyway (proof: unit test)
 - [x] `Slatebox.utils` — utils namespace wired (gaps like `_transformPath` tracked in §E)
 - [x] `window.Slatebox` global set when loaded in browser (proof: tests/e2e/compat-facade.spec.ts against built bundle)
-- [ ] **DECISION**: publish name — take over `slateboxjs` (as v3.x? major bump), publish as `slateboxjs-v2`, or scoped `@slatebox/js`. The Meteor app's import specifier depends on this.
+- [x] **DECISION (user, 2026-07-01)**: take over `slateboxjs` as v3.0.0 — package.json renamed; `import { Slatebox } from 'slateboxjs'` stays literally unchanged in the Meteor app. (Actual `npm publish` still user-reserved.)
 
 Current v2 reality: exports `SlateboxJS(element, options)` factory + PascalCase classes
 (`Slate`, `Node`, …) and `utils`; no `Slatebox` namespace, no lowercase aliases.
@@ -73,7 +73,7 @@ App usage: `const slate = await new Slatebox.slate(options, events).init()`
 - [x] `.canvas.hideBg(opacity)` — clears container background for snapshot capture (proof: unit)
 - [x] `.controller.scaleToFitAndCenter(callback?)` — v2 fitToContent + centerContent + cb (proof: unit)
 - [x] `.getOrientation()` → `{width, height, left, top, orientation}` — padded node bbox, viewport fallback (proof: unit)
-- [ ] `.collab.exe(pkg)`, `.collab.invoke(packages)`, `.collab.send(packages)`, `.collab.updateUserData(data)` (see §I)
+- [x] `.collab.exe(pkg)`, `.collab.invoke(packages)`, `.collab.send(packages)`, `.collab.updateUserData(data)` — facade `slate.collab` getter over the live v2 Collab (proof: tests/unit/compat-facade.test.ts; details §I)
 - [x] `.png({base64: true}, callback(blob))` — facade delegates to v2 exportPNG (proof: unit; real-render quality check belongs to §K)
 - [x] Properties: `.options`, `.shareId`, `.userId`, `.orgId`, `.savingTemplateImage` (proof: unit)
 
@@ -130,13 +130,13 @@ saved via `Slates.upsert({_id: opts.slate.options.id}, {$set: opts.slate})`.
 v1 protocol: app calls `onInitCollaboration(clientID)` → returns `{websocketUrl, websocketParams: {bearer (HMAC-SHA256), timestamp}, color, x, y}`; library connects; local changes go out via `slate.collab.send(packages)`; inbound messages applied via `slate.collab.exe(pkg)`; app relays through Meteor `Collaboration` collection observers. Server: `~/Projects/node/collab.slatebox.com`.
 v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursors).
 
-- [ ] **DECISION**: bridge strategy — (a) v1-wire-compatible collab adapter in v2 (speak the old websocket protocol), (b) keep yjs and update the Meteor app + collab server, or (c) facade `.collab.exe/invoke/send/updateUserData` over yjs transport with app-side URL/auth passthrough
-- [ ] `.collab.exe(pkg)` applies a remote package without re-broadcast
-- [ ] `.collab.invoke(packages)` applies locally + notifies `onSlateChanged`
-- [ ] `.collab.send(packages)` transmits to the wire
-- [ ] `.collab.updateUserData(data)` presence update
-- [ ] Auth: bearer/timestamp params from `onInitCollaboration` used when connecting
-- [ ] Verified against a locally-run collab server (`tests/collab-server-dev.js` exists; production-shape test against `~/Projects/node/collab.slatebox.com` in dev mode)
+- [x] **DECISION (user, 2026-07-01)**: (b) modernize — keep v3's collab protocol, update the Meteor app + collab server. Migration plan: `docs/collab-migration.md`. (Note: both generations already share yjs/y-websocket + the `collabPackages` map, so server changes are likely nil.)
+- [x] `.collab.exe(pkg)` applies a remote package without re-broadcast (echo-suppressed via beginRemoteApply; proof: tests/e2e/compat-facade.spec.ts)
+- [x] `.collab.invoke(packages)` applies locally; `.collab.send(packages)` writes to the shared map — exposed on facade as `slate.collab` (proof: tests/unit/compat-facade.test.ts)
+- [x] `.collab.updateUserData(data)` presence update — added to v2 Collab (proof: tests/unit/Collab.test.ts)
+- [x] Auth: `onInitCollaboration(clientID)` is now AWAITED; returned `{websocketUrl, websocketParams: {bearer, timestamp}, userName, color}` applied and params passed to WebsocketProvider (proof: tests/unit/Collab.test.ts "connection handshake")
+- [ ] Verified against a locally-run collab server (`tests/collab-server-dev.js`) — two clients exchanging send()→exe(); then staging check vs `~/Projects/node/collab.slatebox.com` (map GC semantics — see collab-migration.md)
+- [ ] Migration PR prepared for the slatebox repo per docs/collab-migration.md (user-coordinated)
 
 ## J. Open-source / publication hygiene
 
@@ -171,3 +171,4 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 | 2026-07-01 | Iter 7: §G COMPLETE — 4 real production templates (from slatebox repo internal/jose_templates.json) as fixtures; e2e proves load fidelity (positions/text/colors/assocs), export→reload round-trip with v1 xPos field names, silent loading (fixed onNodeAdded spam during deserialize via beginRemoteApply), and 384-node stress load (~3s). Gates: 1048 unit, 110 e2e, build clean. Next: §D node.png / §H DOM assumptions / prepare §I collab analysis for user. |
 | 2026-07-01 | Iter 8: §D node.png/svg (group export via id strings — Export.ts now accepts ids) + §H COMPLETE (bare-div mount proven, CSS-less e2e with selection UI inline attrs, FontLoader respects app-bundled fonts via document.fonts.check). Gates: 1051 unit, 111 e2e, build clean. Next: §I collab analysis (user decision needed) + §K drop-in spec. |
 | 2026-07-01 | Iter 9: §K drop-in spec — tests/e2e/drop-in.spec.ts replicates createSlate.js verbatim (opts+events shapes, Welcome node, option mapping) + QuickNodeActions flow; DISCOVERED + FIXED: app reads `slate.options.viewPort.zoom.r` directly → facade now exposes live getter over v2 getZoom(). Gates: 1051 unit, 112 e2e, build clean. Remaining: §A name DECISION, §B interactive-event verification, §I collab (DECISION), §K meteor swap (user-coordinated). |
+| 2026-07-01 | Iter 10: DECISIONS RESOLVED — (1) package renamed `slateboxjs@3.0.0` (npm-name takeover; publish still user-reserved); (2) collab = modernize app+server, plan in docs/collab-migration.md. Collab.init now AWAITS onInitCollaboration and applies websocketUrl + HMAC websocketParams (passed to WebsocketProvider); added collab.updateUserData; facade exposes slate.collab. 6 new unit tests. Gates: 1057 unit, 112 e2e, build clean, pack = slateboxjs-3.0.0.tgz. Remaining: §I dev-server two-client test + migration PR prep; §B interactive-event sweep; §K meteor swap instructions. |

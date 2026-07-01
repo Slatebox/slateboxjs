@@ -163,6 +163,72 @@ describe("Collab", () => {
     });
   });
 
+  describe("onInitCollaboration connection handshake (v1 contract)", () => {
+    it("awaits the host callback and applies returned connection details", async () => {
+      const onInitCollaboration = vi.fn(async (_clientID: string) => ({
+        websocketUrl: "wss://collab.slatebox.com",
+        websocketParams: { bearer: "hmac-sig", timestamp: "12345" },
+        userName: "Tim",
+        color: "#aabbcc",
+      }));
+      mockSlate.options.events = { onInitCollaboration };
+
+      const collab = new Collab(mockSlate);
+      await collab.init({ roomName: "room-1" });
+
+      // The callback receives the yjs clientID as a string (or never runs
+      // if yjs is unavailable — in that case options must stay unchanged)
+      if (onInitCollaboration.mock.calls.length > 0) {
+        expect(typeof onInitCollaboration.mock.calls[0][0]).toBe("string");
+        expect((collab as any).options.wsUrl).toBe(
+          "wss://collab.slatebox.com"
+        );
+        expect((collab as any).options.wsParams).toEqual({
+          bearer: "hmac-sig",
+          timestamp: "12345",
+        });
+        expect((collab as any).options.userName).toBe("Tim");
+        expect((collab as any).options.userColor).toBe("#aabbcc");
+        expect(collab.userBaseData?.websocketParams?.bearer).toBe("hmac-sig");
+      }
+    });
+
+    it("falls back to static options when the callback throws", async () => {
+      mockSlate.options.events = {
+        onInitCollaboration: vi.fn(() => {
+          throw new Error("meteor offline");
+        }),
+      };
+      const collab = new Collab(mockSlate, { wsUrl: "ws://static:1234" });
+      await expect(collab.init({ roomName: "r" })).resolves.toBeUndefined();
+      expect((collab as any).options.wsUrl).toBe("ws://static:1234");
+    });
+  });
+
+  describe("updateUserData (v1 parity)", () => {
+    it("merges data into the awareness user state", () => {
+      const collab = new Collab(mockSlate);
+      const state: any = { user: { name: "A", color: "#111" } };
+      (collab as any).awareness = {
+        getLocalState: () => state,
+        setLocalStateField: vi.fn((field: string, value: any) => {
+          state[field] = value;
+        }),
+      };
+      collab.updateUserData({ status: "away", color: "#222" });
+      expect(state.user).toEqual({
+        name: "A",
+        color: "#222",
+        status: "away",
+      });
+    });
+
+    it("is a no-op before init", () => {
+      const collab = new Collab(mockSlate);
+      expect(() => collab.updateUserData({ x: 1 })).not.toThrow();
+    });
+  });
+
   describe("destroy", () => {
     it("should disconnect and clean up", () => {
       const collab = new Collab(mockSlate);

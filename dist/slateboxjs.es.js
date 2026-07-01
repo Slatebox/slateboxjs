@@ -8678,25 +8678,41 @@ class ss {
     t && Object.assign(this.options, t);
     try {
       const e = await Function('return import("yjs")')(), { WebsocketProvider: i } = await Function('return import("y-websocket")')();
-      this.doc = new e.Doc(), this.clientID = this.doc.clientID, this.collabMap = this.doc.getMap("collabPackages"), this.collabMap.observe((s) => {
-        s.transaction.local || s.changes.keys.forEach((o, a) => {
-          if (o.action === "add" || o.action === "update") {
-            const r = this.collabMap.get(a);
-            r && this.handleRemotePackage(r);
+      this.doc = new e.Doc(), this.clientID = this.doc.clientID;
+      let s;
+      const o = this.slate.options.events?.onInitCollaboration;
+      if (o)
+        try {
+          s = await o(this.clientID.toString()) || void 0;
+        } catch (a) {
+          console.warn(
+            "COLLAB_DEBUG: onInitCollaboration threw; using static options",
+            a
+          );
+        }
+      s && (this.userBaseData = s, s.websocketUrl && (this.options.wsUrl = s.websocketUrl), s.websocketParams && (this.options.wsParams = s.websocketParams), s.userName && (this.options.userName = s.userName), s.color && (this.options.userColor = s.color)), this.collabMap = this.doc.getMap("collabPackages"), this.collabMap.observe((a) => {
+        a.transaction.local || a.changes.keys.forEach((r, l) => {
+          if (r.action === "add" || r.action === "update") {
+            const c = this.collabMap.get(l);
+            c && this.handleRemotePackage(c);
           }
         });
       }), this.provider = new i(
         this.options.wsUrl,
         this.options.roomName,
-        this.doc
+        this.doc,
+        {
+          connect: !0,
+          params: this.options.wsParams || {}
+        }
       ), this.awareness = this.provider.awareness, this.awareness.setLocalStateField("user", {
         name: this.options.userName,
         color: this.options.userColor
       }), this.awareness.on("change", () => {
-        const s = this.getCollabUsers();
-        this.options.onAwarenessChange?.(s), this.slate.options.events?.onCollaborationUsersChanged?.(s);
-      }), this.provider.on("status", (s) => {
-        this.isConnected = s.status === "connected", this.options.onStatusChange?.(s.status);
+        const a = this.getCollabUsers();
+        this.options.onAwarenessChange?.(a), this.slate.options.events?.onCollaborationUsersChanged?.(a);
+      }), this.provider.on("status", (a) => {
+        this.isConnected = a.status === "connected", this.options.onStatusChange?.(a.status);
       }), this.slate.options.events?.onInitCollaboration?.(
         this.clientID.toString()
       ), console.log(
@@ -8763,6 +8779,16 @@ class ss {
   /**
    * Update local cursor position and broadcast to peers.
    */
+  /**
+   * Merge additional data into this client's awareness "user" state
+   * (v1 parity: `collab.updateUserData(data)`), e.g. custom status the
+   * host app broadcasts to other collaborators.
+   */
+  updateUserData(t) {
+    if (!this.awareness) return;
+    const e = this.awareness.getLocalState()?.user || {};
+    this.awareness.setLocalStateField("user", { ...e, ...t });
+  }
   updateCursor(t, e) {
     this.awareness && this.awareness.setLocalStateField("cursor", {
       x: t,
@@ -10474,6 +10500,13 @@ class nl {
    */
   getOrientation() {
     return this.assertReady(), this.v2.getOrientation();
+  }
+  /**
+   * v1: `slate.collab.exe/invoke/send/updateUserData` — the live v2 Collab
+   * instance exposes the same four methods.
+   */
+  get collab() {
+    return this.assertReady(), this.v2.collab;
   }
   /** v1: `slate.png({base64: true}, cb)` — thumbnail export */
   png(t, e) {
