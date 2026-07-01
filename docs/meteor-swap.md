@@ -1,8 +1,40 @@
 # Swapping slateboxjs v3 into the Meteor app (slatebox.com)
 
 Step-by-step for the real drop-in test at `~/Projects/node/slatebox`.
-Nothing here has been executed — the slatebox repo is untouched; run these
-together when ready.
+**Executed 2026-07-01** — the swap is live and verified (create/drag/text-
+edit/reload persist; all 13 collab surfaces sync two-window). The slatebox
+repo has uncommitted changes (package.json dep, +yjs/y-websocket, CSS import
+in client/main.jsx) — commit them when ready.
+
+## Verifying collab after any library change
+
+The collab surface matrix runs in TWO environments from the same source
+(`tests/e2e/collab-surfaces.shared.ts`):
+
+```bash
+# Standalone (spins up its own relay via playwright.config.ts) — no app needed
+npx playwright test tests/e2e/collab-surfaces.spec.ts --project=chromium
+
+# Against the running Meteor app on :3000 (auto-skips if the app is down)
+npx playwright test tests/e2e/app-collab-surfaces.spec.ts --project=chromium
+```
+
+Both must print 13/13 ✓ (presence, add, move, text, color, resize, rotate,
+toBack/toFront, association add+remove, followMe zoom, delete). Rerun after
+every reinstall — remember to clear Meteor's bundler cache first (below).
+
+## Reinstall loop gotcha
+
+Meteor's bundler-cache keys on package VERSION, so reinstalling the same
+`slateboxjs-3.0.0.tgz` serves the STALE bundle. After each rebuild:
+
+```bash
+cd ~/Projects/node/slateboxjs-v2 && npm run build && npm pack
+cd ~/Projects/node/slatebox/web/app
+meteor npm install ~/Projects/node/slateboxjs-v2/slateboxjs-3.0.0.tgz
+rm -rf .meteor/local/bundler-cache      # <-- REQUIRED or you run the old code
+# restart meteor
+```
 
 ## 1. Link the local build
 
