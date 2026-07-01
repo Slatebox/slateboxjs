@@ -62,7 +62,13 @@
   stroke: #333;
   stroke-opacity: 0.4;
   pointer-events: none;
-  fill: none;
+  fill: none !important;
+  fill-opacity: 0;
+}
+
+.svg_select_shape_pointSelect {
+  fill: none !important;
+  fill-opacity: 0;
 }
 
 .svg_select_handle_rot {

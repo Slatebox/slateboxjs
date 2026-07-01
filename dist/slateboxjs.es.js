@@ -5274,22 +5274,27 @@ class _i {
           aroundCenter: this.options.aroundCenter,
           grid: this.options.grid ?? 1,
           degree: this.options.degree ?? 0.1
-        }), this.widenHandleHitAreas(), this.addEventListeners(), this.isActive = !0;
+        }), this.styleSelectionUi(), this.addEventListeners(), this.isActive = !0;
       } catch (t) {
         console.warn("Failed to enable resize/rotate:", t);
       }
     }
   }
   /**
-   * Make the L-shaped polyline handles easier to grab by setting a wider
-   * stroke directly on the SVG elements (overrides CSS from svg.select.js).
+   * Keep svg.select.js' generated control layer non-obscuring and make the
+   * L-shaped polyline handles easier to grab. These inline attributes are
+   * intentional because consumers can use the built JS without loading CSS.
    */
-  widenHandleHitAreas() {
+  styleSelectionUi() {
     requestAnimationFrame(() => {
       try {
-        const t = this.target.node;
-        (t.ownerSVGElement || t).querySelectorAll(".svg_select_handle").forEach((s) => {
-          s.setAttribute("stroke-width", "8"), s.setAttribute("stroke", "#333"), s.style.pointerEvents = "all";
+        const t = this.target.node, e = t.ownerSVGElement || t;
+        e.querySelectorAll(
+          ".svg_select_shape, .svg_select_shape_pointSelect"
+        ).forEach((o) => {
+          o.setAttribute("fill", "none"), o.setAttribute("fill-opacity", "0"), o.setAttribute("pointer-events", "none"), o.style.fill = "none", o.style.fillOpacity = "0", o.style.pointerEvents = "none";
+        }), e.querySelectorAll(".svg_select_handle").forEach((o) => {
+          o.setAttribute("stroke-width", "8"), o.setAttribute("stroke", "#333"), o.style.pointerEvents = "all";
         });
       } catch (t) {
         console.warn("RESIZE_ROTATE_DEBUG: Failed to widen handle hit areas:", t);

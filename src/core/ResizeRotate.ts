@@ -67,8 +67,8 @@ export class ResizeRotate {
         });
       }
 
-      // Widen handle hit areas for easier grabbing
-      this.widenHandleHitAreas();
+      // Normalize plugin-generated selection UI after svg.select.js appends it.
+      this.styleSelectionUi();
 
       // Add event listeners
       this.addEventListeners();
@@ -80,15 +80,29 @@ export class ResizeRotate {
   }
 
   /**
-   * Make the L-shaped polyline handles easier to grab by setting a wider
-   * stroke directly on the SVG elements (overrides CSS from svg.select.js).
+   * Keep svg.select.js' generated control layer non-obscuring and make the
+   * L-shaped polyline handles easier to grab. These inline attributes are
+   * intentional because consumers can use the built JS without loading CSS.
    */
-  private widenHandleHitAreas() {
+  private styleSelectionUi() {
     // Defer to next frame — svg.select.js may not have appended handles yet
     requestAnimationFrame(() => {
       try {
         const svgNode = this.target.node;
         const root = svgNode.ownerSVGElement || svgNode;
+
+        const selectionShapes = root.querySelectorAll(
+          ".svg_select_shape, .svg_select_shape_pointSelect"
+        );
+        selectionShapes.forEach((shape: SVGElement) => {
+          shape.setAttribute("fill", "none");
+          shape.setAttribute("fill-opacity", "0");
+          shape.setAttribute("pointer-events", "none");
+          (shape.style as any).fill = "none";
+          (shape.style as any).fillOpacity = "0";
+          shape.style.pointerEvents = "none";
+        });
+
         const handles = root.querySelectorAll(".svg_select_handle");
         handles.forEach((h: SVGElement) => {
           h.setAttribute("stroke-width", "8");

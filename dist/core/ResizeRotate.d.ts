@@ -26,10 +26,11 @@ export declare class ResizeRotate {
     /** Enable resize and rotate handles on the node. */
     enable(): void;
     /**
-     * Make the L-shaped polyline handles easier to grab by setting a wider
-     * stroke directly on the SVG elements (overrides CSS from svg.select.js).
+     * Keep svg.select.js' generated control layer non-obscuring and make the
+     * L-shaped polyline handles easier to grab. These inline attributes are
+     * intentional because consumers can use the built JS without loading CSS.
      */
-    private widenHandleHitAreas;
+    private styleSelectionUi;
     /** Disable resize and rotate handles on the node. */
     disable(): void;
     private addEventListeners;

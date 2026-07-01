@@ -45,7 +45,7 @@ vi.mock("@svgdotjs/svg.js", () => {
     rect: vi.fn(() => makeElement()),
     circle: vi.fn(() => makeElement()),
     line: vi.fn(() => makeElement()),
-    node: { tagName: "svg" },
+    node: { tagName: "svg", setAttribute: vi.fn(), getAttribute: vi.fn(), focus: vi.fn() },
   });
 
   // Single canvas shared across SVG() calls — the Slate class stores

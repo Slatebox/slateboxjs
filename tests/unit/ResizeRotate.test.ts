@@ -653,9 +653,46 @@ describe("ResizeRotate", () => {
   });
 
   // -----------------------------------------------------------------------
-  // 8. handle hit-area widening
+  // 8. selection UI styling / handle hit-area widening
   // -----------------------------------------------------------------------
-  describe("widenHandleHitAreas", () => {
+  describe("styleSelectionUi", () => {
+    it("makes svg.select.js selection overlays transparent after a rAF", () => {
+      const selectionEls = [
+        { setAttribute: vi.fn(), style: {} },
+        { setAttribute: vi.fn(), style: {} },
+      ] as any;
+
+      const ownerSVG = {
+        querySelectorAll: vi.fn((selector: string) =>
+          selector === ".svg_select_shape, .svg_select_shape_pointSelect"
+            ? selectionEls
+            : []
+        ),
+      };
+      const nodeWithDom = createMockNode({
+        backgroundRect: makeMockSvgElement({
+          node: { ownerSVGElement: ownerSVG },
+        }),
+      });
+
+      const rr = new ResizeRotate(nodeWithDom);
+      rr.enable();
+
+      vi.advanceTimersByTime(16);
+
+      expect(ownerSVG.querySelectorAll).toHaveBeenCalledWith(
+        ".svg_select_shape, .svg_select_shape_pointSelect"
+      );
+      for (const el of selectionEls) {
+        expect(el.setAttribute).toHaveBeenCalledWith("fill", "none");
+        expect(el.setAttribute).toHaveBeenCalledWith("fill-opacity", "0");
+        expect(el.setAttribute).toHaveBeenCalledWith("pointer-events", "none");
+        expect(el.style.fill).toBe("none");
+        expect(el.style.fillOpacity).toBe("0");
+        expect(el.style.pointerEvents).toBe("none");
+      }
+    });
+
     it("widens .svg_select_handle elements after a rAF", () => {
       // Simulate a DOM with handles
       const handleEls = [
@@ -664,7 +701,9 @@ describe("ResizeRotate", () => {
       ] as any;
 
       const ownerSVG = {
-        querySelectorAll: vi.fn().mockReturnValue(handleEls),
+        querySelectorAll: vi.fn((selector: string) =>
+          selector === ".svg_select_handle" ? handleEls : []
+        ),
       };
       const nodeWithDom = createMockNode({
         backgroundRect: makeMockSvgElement({
