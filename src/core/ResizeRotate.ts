@@ -161,14 +161,14 @@ export class ResizeRotate {
       this._interacting = false;
       const slate = this.node.slate as any;
       if (this._didRotate) {
-        slate?.emitSlateChange?.("onNodeRotated", {
+        slate?.broadcast?.("onNodeRotated", {
           id: this.node.id,
           rotate: this.node.options.rotate,
           width: this.node.options.width,
           height: this.node.options.height,
         });
       } else if (this._didResize) {
-        slate?.emitSlateChange?.("onNodeResized", {
+        slate?.broadcast?.("onNodeResized", {
           id: this.node.id,
           width: this.node.options.width,
           height: this.node.options.height,

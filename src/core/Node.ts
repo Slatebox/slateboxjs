@@ -780,7 +780,7 @@ export class Node {
       this.options.y = newY;
 
       // Notify the host app of the completed move (v1 package shape)
-      this.slate.emitSlateChange?.("onNodesMove", {
+      this.slate.broadcast?.("onNodesMove", {
         nodeOptions: [v2NodeToV1(this.options)],
       });
 
@@ -868,13 +868,13 @@ export class Node {
   /** Bring the node to the front of the SVG z-order. */
   public toFront() {
     this.svgGroup.front();
-    this.slate.emitSlateChange?.("onNodeToFront", { id: this.id });
+    this.slate.broadcast?.("onNodeToFront", { id: this.id });
   }
 
   /** Send the node to the back of the SVG z-order. */
   public toBack() {
     this.svgGroup.back();
-    this.slate.emitSlateChange?.("onNodeToBack", { id: this.id });
+    this.slate.broadcast?.("onNodeToBack", { id: this.id });
   }
 
   /**
@@ -975,7 +975,7 @@ export class Node {
     // Update accessibility label
     this.svgGroup.node.setAttribute("aria-label", text || "Unnamed node");
     if (changed) {
-      this.slate.emitSlateChange?.("onNodeTextChanged", { id: this.id, text });
+      this.slate.broadcast?.("onNodeTextChanged", { id: this.id, text });
     }
   }
 
@@ -1042,7 +1042,7 @@ export class Node {
 
     if (backgroundColor || borderColor) {
       // v1 package shape: data.color carries the background color
-      this.slate.emitSlateChange?.("onNodeColorChanged", {
+      this.slate.broadcast?.("onNodeColorChanged", {
         id: this.id,
         color: this.options.backgroundColor,
         borderColor: this.options.borderColor,

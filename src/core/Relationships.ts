@@ -63,6 +63,9 @@ export class Relationships {
     // Create visual connection through Connector
     this.renderAssociation(assoc, childNode);
 
+    // Broadcast to collaborators (suppressed during remote apply/load)
+    (this.node as any).slate?.broadcast?.("addRelationship", { ...assoc });
+
     console.log(
       "RELATIONSHIP_DEBUG: Added association",
       assoc.id,
@@ -98,6 +101,12 @@ export class Relationships {
 
     this.assocMap.delete(assocId);
     console.log("RELATIONSHIP_DEBUG: Removed association", assocId);
+
+    // Broadcast to collaborators (suppressed during remote apply/teardown)
+    (this.node as any).slate?.broadcast?.("removeRelationship", {
+      parentId: this.node.id,
+      childId,
+    });
     return true;
   }
 

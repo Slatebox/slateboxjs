@@ -191,6 +191,14 @@ export declare class Slate {
      * @param data - v1-shaped package data
      */
     emitSlateChange(type: string, data?: Record<string, any>): void;
+    /**
+     * Broadcast a library-originated change to collaborators AND surface it to
+     * the host (collab.send emits onSlateChanged — v1 echo semantics). This is
+     * what interactive mutations (drag, resize, rotate, z-order, delete…) call:
+     * in v1 every one of them went out through collab.send. Suppressed while a
+     * remote package is being applied so remote changes never re-broadcast.
+     */
+    broadcast(type: string, data?: Record<string, any>): void;
     /** Queue onSlateChanged packages until flushEmits() (v1 collab-init timing). */
     deferEmits(): void;
     /** Deliver queued packages and resume synchronous emission. */

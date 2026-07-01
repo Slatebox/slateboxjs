@@ -464,18 +464,32 @@ describe("NodesManager", () => {
   // addRelationship() / removeRelationship()
   // -----------------------------------------------------------------------
   describe("addRelationship()", () => {
-    it("logs the relationship data", () => {
-      const data = { from: "a", to: "b", label: "connects" };
-      manager.addRelationship(data);
-      expect(console.log).toHaveBeenCalledWith("Adding relationship:", data);
+    it("creates an association between existing parent and child", () => {
+      const parent = manager.add({ id: "relP" });
+      const child = manager.add({ id: "relC" });
+      (parent as any).relationships = { addAssociation: vi.fn() };
+      manager.addRelationship({ parentId: "relP", childId: "relC", lineWidth: 3 });
+      expect((parent as any).relationships.addAssociation).toHaveBeenCalledWith(
+        child,
+        expect.objectContaining({ parentId: "relP", childId: "relC" })
+      );
+    });
+
+    it("warns when either node is missing", () => {
+      manager.addRelationship({ parentId: "ghost", childId: "ghost2" });
+      expect(console.warn).toHaveBeenCalled();
     });
   });
 
   describe("removeRelationship()", () => {
-    it("logs the relationship data", () => {
-      const data = { id: "rel-1" };
-      manager.removeRelationship(data);
-      expect(console.log).toHaveBeenCalledWith("Removing relationship:", data);
+    it("removes the association from the parent", () => {
+      const parent = manager.add({ id: "relP2" });
+      manager.add({ id: "relC2" });
+      (parent as any).relationships = { removeAssociation: vi.fn() };
+      manager.removeRelationship({ parentId: "relP2", childId: "relC2" });
+      expect(
+        (parent as any).relationships.removeAssociation
+      ).toHaveBeenCalledWith("relC2");
     });
   });
 

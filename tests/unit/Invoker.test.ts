@@ -29,6 +29,7 @@ describe("Invoker", () => {
         text: "Hello",
       },
       position: vi.fn(),
+      setRotation: vi.fn(),
       lock: vi.fn(),
       unlock: vi.fn(),
       setSize: vi.fn(),
@@ -43,6 +44,8 @@ describe("Invoker", () => {
     };
 
     mockSlate = {
+      pan: vi.fn(),
+      panZoom: { zoom: vi.fn() },
       options: {
         followMe: false,
         themeId: undefined,
@@ -168,19 +171,19 @@ describe("Invoker", () => {
   });
 
   describe("onNodeRotated", () => {
-    it("should update textOffset and assign remaining data to options", () => {
+    it("applies the rotation angle via setRotation and updates textOffset", () => {
       const pkg = {
         data: {
           id: "node1",
           textOffset: 90,
-          rotation: 45,
+          rotate: { rotationAngle: 45 },
         },
       };
 
       invoker.onNodeRotated(pkg);
 
       expect(mockNode.options.textOffset).toBe(90);
-      expect(mockNode.options.rotation).toBe(45);
+      expect(mockNode.setRotation).toHaveBeenCalledWith(45);
     });
 
     it("should do nothing when node is not found", () => {
@@ -951,12 +954,12 @@ describe("Invoker", () => {
   // ---------------------------------------------------------------------------
 
   describe("onCanvasMove", () => {
-    it("should log when followMe is true", () => {
+    it("pans the canvas when followMe is true", () => {
       mockSlate.options.followMe = true;
 
-      invoker.onCanvasMove({ data: { dx: 10, dy: 20 } });
+      invoker.onCanvasMove({ data: { left: 10, top: 20 } });
 
-      expect(console.log).toHaveBeenCalledWith("Canvas move:", { dx: 10, dy: 20 });
+      expect(mockSlate.pan).toHaveBeenCalledWith({ x: 10, y: 20 });
     });
 
     it("should do nothing when followMe is false", () => {
@@ -967,18 +970,18 @@ describe("Invoker", () => {
   });
 
   describe("onZoom", () => {
-    it("should log zoom percentage when followMe is true", () => {
+    it("applies the zoom via panZoom when followMe is true", () => {
       mockSlate.options.followMe = true;
 
-      invoker.onZoom({ data: { zoomLevel: 960 } });
+      invoker.onZoom({ data: { zoomLevel: 2 } });
 
-      expect(console.log).toHaveBeenCalledWith("Zoom to:", "200%");
+      expect(mockSlate.panZoom.zoom).toHaveBeenCalledWith(2);
     });
 
     it("should do nothing when followMe is false", () => {
-      invoker.onZoom({ data: { zoomLevel: 100 } });
+      invoker.onZoom({ data: { zoomLevel: 2 } });
 
-      expect(console.log).not.toHaveBeenCalled();
+      expect(mockSlate.panZoom.zoom).not.toHaveBeenCalled();
     });
   });
 

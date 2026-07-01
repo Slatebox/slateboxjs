@@ -59,28 +59,55 @@ export class NodesManager {
     (this as any).slate = null;
   }
 
+  /**
+   * Move nodes from a collab package. Accepts BOTH shapes:
+   *  - v2: `data.nodes: [{id, x, y}]`
+   *  - v1: `data.nodeOptions: [{id, xPos, yPos}]` (what drag-end broadcasts)
+   */
   public moveNodes(packageData: any, options: { animate?: boolean } = {}) {
-    // Implementation for moving multiple nodes
-    if (packageData.data && Array.isArray(packageData.data.nodes)) {
-      packageData.data.nodes.forEach((nodeData: any) => {
-        const node = this.one(nodeData.id)
-        if (node) {
-          const duration = options.animate ? (packageData.data.dur || 500) : 0
-          node.position(nodeData.x, nodeData.y, undefined, undefined, duration)
-        }
-      })
+    const data = packageData?.data ?? packageData ?? {};
+    const duration = options.animate ? (data.dur || 500) : 0;
+
+    const moves: Array<{ id: string; x: number; y: number }> = [];
+    if (Array.isArray(data.nodes)) {
+      data.nodes.forEach((n: any) => moves.push({ id: n.id, x: n.x, y: n.y }));
     }
+    if (Array.isArray(data.nodeOptions)) {
+      data.nodeOptions.forEach((n: any) =>
+        moves.push({ id: n.id, x: n.xPos ?? n.x, y: n.yPos ?? n.y })
+      );
+    }
+
+    moves.forEach((m) => {
+      const node = this.one(m.id);
+      if (node && typeof m.x === "number" && typeof m.y === "number") {
+        node.position(m.x, m.y, undefined, undefined, duration);
+      }
+    });
   }
 
+  /** Create an association from a collab package: `{parentId, childId, ...opts}` */
   public addRelationship(relationshipData: any) {
-    // Placeholder for relationship functionality
-    // This would connect nodes with lines/arrows
-    console.log('Adding relationship:', relationshipData)
+    const { parentId, childId } = relationshipData || {};
+    const parent = parentId ? this.one(parentId) : undefined;
+    const child = childId ? this.one(childId) : undefined;
+    if (!parent || !child) {
+      console.warn(
+        "NODESMANAGER_DEBUG: addRelationship missing nodes",
+        parentId,
+        childId
+      );
+      return;
+    }
+    (parent as any).relationships?.addAssociation(child, relationshipData);
   }
 
+  /** Remove an association from a collab package: `{parentId, childId}` */
   public removeRelationship(relationshipData: any) {
-    // Placeholder for relationship functionality
-    console.log('Removing relationship:', relationshipData)
+    const { parentId, childId } = relationshipData || {};
+    const parent = parentId ? this.one(parentId) : undefined;
+    if (!parent || !childId) return;
+    (parent as any).relationships?.removeAssociation(childId);
   }
 
   private generateId(): string {

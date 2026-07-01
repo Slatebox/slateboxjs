@@ -1,5 +1,6 @@
 import type { Slate } from "./Slate";
 import type { SlatePackage } from "./SlatePackage";
+import { v1NodeToV2 } from "./compat";
 
 export class Invoker {
   private slate: Slate
@@ -15,10 +16,11 @@ export class Invoker {
 
   onZoom(pkg: SlatePackage) {
     if (this.slate.options.followMe) {
-      const viewPort = this.slate.options.viewPort;
-      const zoomPercent = ((viewPort?.originalWidth ?? 800) / pkg.data.zoomLevel) * 100
-      // Implementation for zoom functionality
-      console.log('Zoom to:', zoomPercent + '%')
+      const level = pkg.data.zoomLevel
+      if (typeof level === 'number' && level > 0) {
+        // Apply directly through panZoom — Slate.zoom would re-broadcast
+        this.slate.panZoom?.zoom(level)
+      }
     }
   }
 
@@ -110,8 +112,8 @@ export class Invoker {
     if (pkg.data?.multiSelectCopy) {
       // Handle multi-selection copy
       console.log('Multi-select copy:', pkg.data)
-    } else if (pkg.data.id) {
-      // Add node with specific parent
+    } else if (pkg.data.id && pkg.data.options && !pkg.data.nodeOptions) {
+      // Add node connected to a specific parent (data.id = PARENT id)
       const parentNode = this.slate.nodes.one(pkg.data.id)
       if (parentNode) {
         // Create connected node
@@ -122,15 +124,16 @@ export class Invoker {
         })
       }
     } else {
-      // Straight up node addition
+      // Straight up node addition — packages carry v1-shaped options
+      // (xPos/yPos/foregroundColor/…); convert before creating
       let nodesToCreate = pkg.data.nodeOptions
       if (!Array.isArray(nodesToCreate)) {
         nodesToCreate = [nodesToCreate]
       }
-      nodesToCreate.forEach((nOpts: any) => {
+      nodesToCreate.filter(Boolean).forEach((nOpts: any) => {
         const exists = this.slate.nodes.one(nOpts.id)
         if (!exists) {
-          this.slate.nodes.add(nOpts)
+          this.slate.nodes.add(v1NodeToV2(nOpts) as any)
         }
       })
     }
@@ -159,18 +162,31 @@ export class Invoker {
   onNodeRotated(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
-      // Update rotation
-      node.options.textOffset = pkg.data.textOffset
-      Object.assign(node.options, pkg.data)
-      // Apply rotation - this would need SVG transformation
-      console.log('Node rotated:', pkg.data.id)
+      if (pkg.data.textOffset !== undefined) {
+        node.options.textOffset = pkg.data.textOffset
+      }
+      const angle =
+        pkg.data.rotate?.rotationAngle ?? pkg.data.rotationAngle
+      if (typeof angle === 'number') {
+        node.setRotation(angle)
+      }
+      if (pkg.data.width && pkg.data.height) {
+        node.setSize(pkg.data.width, pkg.data.height)
+      }
     }
   }
 
   onNodeColorChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
-      node.setColors(pkg.data.backgroundColor, pkg.data.borderColor)
+      // v1 packages carry the background as `color`; accept both
+      node.setColors(
+        pkg.data.color ?? pkg.data.backgroundColor,
+        pkg.data.borderColor
+      )
+      if (pkg.data.opacity !== undefined) {
+        node.options.opacity = pkg.data.opacity
+      }
     }
   }
 
@@ -178,13 +194,14 @@ export class Invoker {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.setText(pkg.data.text)
-      // Update text properties
-      node.options.fontSize = pkg.data.fontSize
-      node.options.fontFamily = pkg.data.fontFamily
-      node.options.fontColor = pkg.data.fontColor
-      node.options.textOpacity = pkg.data.textOpacity
-      node.options.textXAlign = pkg.data.textXAlign
-      node.options.textYAlign = pkg.data.textYAlign
+      // Update text properties — only when present (a text-only package
+      // must not wipe font settings with undefined)
+      if (pkg.data.fontSize !== undefined) node.options.fontSize = pkg.data.fontSize
+      if (pkg.data.fontFamily !== undefined) node.options.fontFamily = pkg.data.fontFamily
+      if (pkg.data.fontColor !== undefined) node.options.fontColor = pkg.data.fontColor
+      if (pkg.data.textOpacity !== undefined) node.options.textOpacity = pkg.data.textOpacity
+      if (pkg.data.textXAlign !== undefined) node.options.textXAlign = pkg.data.textXAlign
+      if (pkg.data.textYAlign !== undefined) node.options.textYAlign = pkg.data.textYAlign
     }
   }
 
@@ -241,8 +258,10 @@ export class Invoker {
 
   onCanvasMove(pkg: SlatePackage) {
     if (this.slate.options.followMe) {
-      // Implement canvas movement
-      console.log('Canvas move:', pkg.data)
+      const { left, top } = pkg.data || {}
+      if (typeof left === 'number' && typeof top === 'number') {
+        this.slate.pan({ x: left, y: top })
+      }
     }
   }
 

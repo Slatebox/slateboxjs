@@ -73,25 +73,28 @@ describe("Collab", () => {
   });
 
   describe("send", () => {
-    it("should warn when not connected", () => {
+    it("emits locally (no throw) when not connected", () => {
+      mockSlate.emitSlateChange = vi.fn();
       const collab = new Collab(mockSlate);
-      collab.send({ type: "test", data: {} });
-      expect(console.warn).toHaveBeenCalled();
+      expect(() => collab.send({ type: "test", data: {} })).not.toThrow();
+      expect(mockSlate.emitSlateChange).toHaveBeenCalledWith("test", {});
     });
 
-    it("should warn for single package without connection", () => {
+    it("emits locally for a single package without connection", () => {
+      mockSlate.emitSlateChange = vi.fn();
       const collab = new Collab(mockSlate);
       collab.send({ type: "onNodePositioned", data: { id: "n1", x: 0, y: 0 } });
-      expect(console.warn).toHaveBeenCalled();
+      expect(mockSlate.emitSlateChange).toHaveBeenCalledTimes(1);
     });
 
-    it("should warn for array of packages without connection", () => {
+    it("emits locally for an array of packages without connection", () => {
+      mockSlate.emitSlateChange = vi.fn();
       const collab = new Collab(mockSlate);
       collab.send([
         { type: "p1", data: {} },
         { type: "p2", data: {} },
       ]);
-      expect(console.warn).toHaveBeenCalled();
+      expect(mockSlate.emitSlateChange).toHaveBeenCalledTimes(2);
     });
 
     it("emits onSlateChanged per package (v1 echo semantics drive saves)", () => {

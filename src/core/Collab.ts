@@ -244,8 +244,9 @@ export class Collab {
         });
       }
     } else {
-      console.warn(
-        "COLLAB_DEBUG: Collaboration not initialized — send() emitting locally only"
+      // Normal pre-init / no-server path: still surface to the host below
+      console.log(
+        "COLLAB_DEBUG: send() before collab init — emitting locally only"
       );
     }
 

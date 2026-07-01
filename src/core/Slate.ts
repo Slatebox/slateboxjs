@@ -223,6 +223,13 @@ export class Slate {
       this.element = element;
     }
 
+    // Register on window for host-app debugging and e2e tooling
+    if (typeof window !== "undefined") {
+      const w = window as any;
+      w.__slateboxInstances = w.__slateboxInstances || [];
+      w.__slateboxInstances.push(this);
+    }
+
     // Default options
     this.options = {
       name: "Untitled Slate",
@@ -379,6 +386,16 @@ export class Slate {
   public destroy(): void {
     this._destroyed = true;
 
+    // Deregister from the window instance list
+    if (typeof window !== "undefined") {
+      const w = window as any;
+      if (Array.isArray(w.__slateboxInstances)) {
+        w.__slateboxInstances = w.__slateboxInstances.filter(
+          (s: any) => s !== this
+        );
+      }
+    }
+
     // Clear all pending timeouts
     if (this._birdsEyeTimeoutId !== null) {
       clearTimeout(this._birdsEyeTimeoutId);
@@ -511,6 +528,22 @@ export class Slate {
     }
   }
 
+  /**
+   * Broadcast a library-originated change to collaborators AND surface it to
+   * the host (collab.send emits onSlateChanged — v1 echo semantics). This is
+   * what interactive mutations (drag, resize, rotate, z-order, delete…) call:
+   * in v1 every one of them went out through collab.send. Suppressed while a
+   * remote package is being applied so remote changes never re-broadcast.
+   */
+  public broadcast(type: string, data: Record<string, any> = {}): void {
+    if (this._applyingRemote || this._destroyed) return;
+    if (typeof this.collab?.send === "function") {
+      this.collab.send({ type, data });
+    } else {
+      this.emitSlateChange(type, data);
+    }
+  }
+
   /** Queue onSlateChanged packages until flushEmits() (v1 collab-init timing). */
   public deferEmits(): void {
     this._emitDeferred = true;
@@ -615,7 +648,7 @@ export class Slate {
       }
       try {
         const pan = this.getPan();
-        this.emitSlateChange("onCanvasMove", {
+        this.broadcast("onCanvasMove", {
           left: pan.x,
           top: pan.y,
           relative: { x: pan.x, y: pan.y },
@@ -759,7 +792,7 @@ export class Slate {
       if (!this._destroyed) this.notifyNodeChanged();
       this.announce(`Node added: ${node.options.text || "(unnamed)"}`);
     }, 100);
-    this.emitSlateChange("onNodeAdded", {
+    this.broadcast("onNodeAdded", {
       id: node.id,
       nodeOptions: v2NodeToV1(node.options),
     });
@@ -776,7 +809,7 @@ export class Slate {
     this.notifyNodeChanged();
     this.announce(`Node removed: ${text}`);
     if (result) {
-      this.emitSlateChange("onNodeDeleted", { id, isComment });
+      this.broadcast("onNodeDeleted", { id, isComment });
     }
     return result;
   }
@@ -873,7 +906,7 @@ export class Slate {
   public zoom(level: number) {
     this.panZoom.zoom(level);
     this.announce(`Zoom: ${Math.round(level * 100)}%`);
-    this.emitSlateChange("onZoom", { zoomLevel: level });
+    this.broadcast("onZoom", { zoomLevel: level });
   }
 
   /**
