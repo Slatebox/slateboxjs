@@ -14,7 +14,16 @@ export interface RelationshipsOptions {
 export declare class Relationships {
     private node;
     private slate;
-    private associations;
+    private assocMap;
+    /**
+     * v1 contract: `.associations` is a plain ARRAY whose entries carry live
+     * `parent`/`child` node references (host apps read `a.parent.options.id`
+     * and PropType it as an array). The Map stays internal.
+     */
+    get associations(): Array<Association & {
+        parent: any;
+        child: any;
+    }>;
     private isActive;
     constructor(node: Node, options?: RelationshipsOptions);
     /**

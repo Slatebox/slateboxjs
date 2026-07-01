@@ -18,7 +18,25 @@ export interface RelationshipsOptions {
 export class Relationships {
   private node: Node;
   private slate: Slate;
-  private associations: Map<string, Association> = new Map();
+  private assocMap: Map<string, Association> = new Map();
+
+  /**
+   * v1 contract: `.associations` is a plain ARRAY whose entries carry live
+   * `parent`/`child` node references (host apps read `a.parent.options.id`
+   * and PropType it as an array). The Map stays internal.
+   */
+  public get associations(): Array<Association & { parent: any; child: any }> {
+    const slate = (this.node as any)?.slate;
+    return Array.from(this.assocMap.values()).map((a) => ({
+      ...a,
+      parent:
+        slate?.nodes?.one?.(a.parentId) ??
+        (a.parentId === this.node.id ? this.node : undefined),
+      child:
+        slate?.nodes?.one?.(a.childId) ??
+        (a.childId === this.node.id ? this.node : undefined),
+    }));
+  }
   private isActive: boolean = false;
 
   constructor(node: Node, options: RelationshipsOptions = {}) {
@@ -40,7 +58,7 @@ export class Relationships {
     const assoc = createDefaultAssociation(this.node.id, childNode.id, data);
 
     // Store the association
-    this.associations.set(assoc.id, assoc);
+    this.assocMap.set(assoc.id, assoc);
 
     // Create visual connection through Connector
     this.renderAssociation(assoc, childNode);
@@ -62,7 +80,7 @@ export class Relationships {
    */
   public removeAssociation(childId: string): boolean {
     const assocId = `${this.node.id}->${childId}`;
-    const assoc = this.associations.get(assocId);
+    const assoc = this.assocMap.get(assocId);
 
     if (!assoc) {
       console.warn(
@@ -78,7 +96,7 @@ export class Relationships {
       this.node.connector.disconnectFrom(childNode);
     }
 
-    this.associations.delete(assocId);
+    this.assocMap.delete(assocId);
     console.log("RELATIONSHIP_DEBUG: Removed association", assocId);
     return true;
   }
@@ -87,9 +105,9 @@ export class Relationships {
    * Remove all associations from this node.
    */
   public removeAll(): void {
-    const ids = Array.from(this.associations.keys());
+    const ids = Array.from(this.assocMap.keys());
     for (const id of ids) {
-      const assoc = this.associations.get(id)!;
+      const assoc = this.assocMap.get(id)!;
       this.removeAssociation(assoc.childId);
     }
   }
@@ -98,7 +116,7 @@ export class Relationships {
    * Update all associations with new options (e.g., line color change).
    */
   public updateAssociationsWith(opts: Partial<Association>): void {
-    for (const [id, assoc] of this.associations) {
+    for (const [id, assoc] of this.assocMap) {
       Object.assign(assoc, opts);
 
       // Update visual if connector supports it
@@ -131,7 +149,7 @@ export class Relationships {
    * Used by Invoker when line color changes.
    */
   public refreshOwnRelationships(): void {
-    for (const [id, assoc] of this.associations) {
+    for (const [id, assoc] of this.assocMap) {
       const childNode = this.slate.nodes.one(assoc.childId);
       if (childNode && this.node.connector) {
         // Re-render the connection with current association data
@@ -148,22 +166,22 @@ export class Relationships {
 
   /** Get all associations where this node is the parent */
   public getAssociations(): Association[] {
-    return Array.from(this.associations.values());
+    return Array.from(this.assocMap.values());
   }
 
   /** Get a specific association by child ID */
   public getAssociation(childId: string): Association | undefined {
-    return this.associations.get(`${this.node.id}->${childId}`);
+    return this.assocMap.get(`${this.node.id}->${childId}`);
   }
 
   /** Check if this node has any associations */
   public hasAssociations(): boolean {
-    return this.associations.size > 0;
+    return this.assocMap.size > 0;
   }
 
   /** Get count of associations */
   public count(): number {
-    return this.associations.size;
+    return this.assocMap.size;
   }
 
   // ─── Serialization ───────────────────────────────────────────────
@@ -171,7 +189,7 @@ export class Relationships {
   /** Serialize all associations to JSON-compatible format */
   public serialize(): { associations: Association[] } {
     return {
-      associations: Array.from(this.associations.values()),
+      associations: Array.from(this.assocMap.values()),
     };
   }
 
@@ -193,7 +211,7 @@ export class Relationships {
   public destroy(): void {
     this.removeAll();
     this.disable();
-    this.associations.clear();
+    this.assocMap.clear();
     (this as any).node = null;
     (this as any).slate = null;
   }

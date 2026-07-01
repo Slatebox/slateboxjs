@@ -5607,7 +5607,20 @@ const ia = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
 }, Symbol.toStringTag, { value: "Module" }));
 class Li {
   constructor(t, e = {}) {
-    this.associations = /* @__PURE__ */ new Map(), this.isActive = !1, this.node = t, this.slate = t.slate, this.isActive = e.enabled ?? !0;
+    this.assocMap = /* @__PURE__ */ new Map(), this.isActive = !1, this.node = t, this.slate = t.slate, this.isActive = e.enabled ?? !0;
+  }
+  /**
+   * v1 contract: `.associations` is a plain ARRAY whose entries carry live
+   * `parent`/`child` node references (host apps read `a.parent.options.id`
+   * and PropType it as an array). The Map stays internal.
+   */
+  get associations() {
+    const t = this.node?.slate;
+    return Array.from(this.assocMap.values()).map((e) => ({
+      ...e,
+      parent: t?.nodes?.one?.(e.parentId) ?? (e.parentId === this.node.id ? this.node : void 0),
+      child: t?.nodes?.one?.(e.childId) ?? (e.childId === this.node.id ? this.node : void 0)
+    }));
   }
   // ─── Association management ──────────────────────────────────────
   /**
@@ -5616,7 +5629,7 @@ class Li {
    */
   addAssociation(t, e) {
     const i = Pi(this.node.id, t.id, e);
-    return this.associations.set(i.id, i), this.renderAssociation(i, t), console.log(
+    return this.assocMap.set(i.id, i), this.renderAssociation(i, t), console.log(
       "RELATIONSHIP_DEBUG: Added association",
       i.id,
       "from",
@@ -5630,21 +5643,21 @@ class Li {
    */
   removeAssociation(t) {
     const e = `${this.node.id}->${t}`;
-    if (!this.associations.get(e))
+    if (!this.assocMap.get(e))
       return console.warn(
         "RELATIONSHIP_DEBUG: Association not found:",
         e
       ), !1;
     const s = this.slate.nodes.one(t);
-    return s && this.node.connector && this.node.connector.disconnectFrom(s), this.associations.delete(e), console.log("RELATIONSHIP_DEBUG: Removed association", e), !0;
+    return s && this.node.connector && this.node.connector.disconnectFrom(s), this.assocMap.delete(e), console.log("RELATIONSHIP_DEBUG: Removed association", e), !0;
   }
   /**
    * Remove all associations from this node.
    */
   removeAll() {
-    const t = Array.from(this.associations.keys());
+    const t = Array.from(this.assocMap.keys());
     for (const e of t) {
-      const i = this.associations.get(e);
+      const i = this.assocMap.get(e);
       this.removeAssociation(i.childId);
     }
   }
@@ -5652,7 +5665,7 @@ class Li {
    * Update all associations with new options (e.g., line color change).
    */
   updateAssociationsWith(t) {
-    for (const [e, i] of this.associations)
+    for (const [e, i] of this.assocMap)
       if (Object.assign(i, t), this.node.connector) {
         const s = `${this.node.id}->${i.childId}`;
         this.node.connector.updateConnection(s, {
@@ -5676,7 +5689,7 @@ class Li {
    * Used by Invoker when line color changes.
    */
   refreshOwnRelationships() {
-    for (const [t, e] of this.associations)
+    for (const [t, e] of this.assocMap)
       if (this.slate.nodes.one(e.childId) && this.node.connector) {
         const s = `${this.node.id}->${e.childId}`;
         this.node.connector.updateConnection(s, {
@@ -5688,25 +5701,25 @@ class Li {
   // ─── Query methods ───────────────────────────────────────────────
   /** Get all associations where this node is the parent */
   getAssociations() {
-    return Array.from(this.associations.values());
+    return Array.from(this.assocMap.values());
   }
   /** Get a specific association by child ID */
   getAssociation(t) {
-    return this.associations.get(`${this.node.id}->${t}`);
+    return this.assocMap.get(`${this.node.id}->${t}`);
   }
   /** Check if this node has any associations */
   hasAssociations() {
-    return this.associations.size > 0;
+    return this.assocMap.size > 0;
   }
   /** Get count of associations */
   count() {
-    return this.associations.size;
+    return this.assocMap.size;
   }
   // ─── Serialization ───────────────────────────────────────────────
   /** Serialize all associations to JSON-compatible format */
   serialize() {
     return {
-      associations: Array.from(this.associations.values())
+      associations: Array.from(this.assocMap.values())
     };
   }
   // ─── Lifecycle ───────────────────────────────────────────────────
@@ -5721,7 +5734,7 @@ class Li {
   }
   /** Destroy the relationships, removing all associations and clearing references */
   destroy() {
-    this.removeAll(), this.disable(), this.associations.clear(), this.node = null, this.slate = null;
+    this.removeAll(), this.disable(), this.assocMap.clear(), this.node = null, this.slate = null;
   }
   // ─── Private helpers ─────────────────────────────────────────────
   renderAssociation(t, e) {
