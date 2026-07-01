@@ -13,6 +13,10 @@ export interface CollabOptions {
   wsUrl?: string;
   /** Query-string params sent on connect (e.g. HMAC bearer + timestamp) */
   wsParams?: Record<string, string>;
+  /** Optionally inject the yjs module (skips the dynamic import) */
+  Y?: any;
+  /** Optionally inject the y-websocket WebsocketProvider class */
+  WebsocketProvider?: any;
   /** Room/document name (usually the slate ID) */
   roomName?: string;
   /** Client display name */
@@ -73,11 +77,17 @@ export class Collab {
     }
 
     try {
-      // Dynamic import to keep yjs optional
-      // @ts-ignore - yjs is an optional peer dependency
-      const Y = await (Function('return import("yjs")')()) as any;
-      // @ts-ignore - y-websocket is an optional peer dependency
-      const { WebsocketProvider } = await (Function('return import("y-websocket")')()) as any;
+      // Lazy dynamic imports keep yjs optional at install time while letting
+      // the CONSUMER's bundler resolve the specifiers (a Function()-wrapped
+      // import is invisible to bundlers and can never resolve in a browser).
+      // Hosts may also inject the modules directly via options.
+      const Y =
+        this.options.Y ||
+        ((await import(/* @vite-ignore */ "yjs" as any)) as any);
+      const WebsocketProvider =
+        this.options.WebsocketProvider ||
+        ((await import(/* @vite-ignore */ "y-websocket" as any)) as any)
+          .WebsocketProvider;
 
       // Create Y.Doc
       this.doc = new Y.Doc();
@@ -153,11 +163,19 @@ export class Collab {
       });
 
       // Listen for awareness changes
-      this.awareness.on("change", () => {
+      const notifyUsersChanged = () => {
         const users = this.getCollabUsers();
         this.options.onAwarenessChange?.(users);
         this.slate.options.events?.onCollaborationUsersChanged?.(users);
-      });
+      };
+      this.awareness.on("change", notifyUsersChanged);
+
+      // Same-origin peers sync over y-websocket's BroadcastChannel INSIDE the
+      // provider constructor — their states can land before the listener
+      // above attaches. Emit the initial roster if remote states already exist.
+      if (this.getCollabUsers().length > 0) {
+        notifyUsersChanged();
+      }
 
       // Connection status
       this.provider.on("status", (event: any) => {
@@ -165,13 +183,9 @@ export class Collab {
         this.options.onStatusChange?.(event.status);
       });
 
-      // isConnected will be set by the status event handler above
-      // when the WebSocket actually connects
-
-      // Trigger init event
-      this.slate.options.events?.onInitCollaboration?.(
-        this.clientID.toString()
-      );
+      // isConnected will be set by the status event handler above when the
+      // WebSocket actually connects. (onInitCollaboration already ran —
+      // awaited before the provider was created.)
 
       console.log(
         "COLLAB_DEBUG: Initialized collaboration for room",

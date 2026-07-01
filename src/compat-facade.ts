@@ -492,6 +492,22 @@ class slate {
     });
     this.options.viewPort.zoom = zoomState;
 
+    // v1: slate.init() auto-connects collaboration (after a short delay)
+    // when allowCollaboration is on. Only meaningful when the host has
+    // registered onInitCollaboration to supply the URL + auth params.
+    if (
+      (this.options.allowCollaboration ?? true) &&
+      this.events.onInitCollaboration
+    ) {
+      setTimeout(() => {
+        (this.v2 as any)?.collab
+          ?.init({ roomName: this.options.id })
+          .catch((error: unknown) =>
+            console.warn("SLATEBOX_COMPAT: collab init failed", error)
+          );
+      }, 100);
+    }
+
     return this;
   }
 

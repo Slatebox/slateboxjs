@@ -55,11 +55,19 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:5173",
-    reuseExistingServer: true,
-    timeout: 120 * 1000,
-  },
+  /* Run the dev server + the collab relay before starting the tests */
+  webServer: [
+    {
+      command: "npm run dev",
+      url: "http://localhost:5173",
+      reuseExistingServer: true,
+      timeout: 120 * 1000,
+    },
+    {
+      command: "node tests/collab-server-standalone.cjs",
+      url: "http://localhost:1234",
+      reuseExistingServer: true,
+      timeout: 30 * 1000,
+    },
+  ],
 });

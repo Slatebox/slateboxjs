@@ -12,6 +12,10 @@ export interface CollabOptions {
     wsUrl?: string;
     /** Query-string params sent on connect (e.g. HMAC bearer + timestamp) */
     wsParams?: Record<string, string>;
+    /** Optionally inject the yjs module (skips the dynamic import) */
+    Y?: any;
+    /** Optionally inject the y-websocket WebsocketProvider class */
+    WebsocketProvider?: any;
     /** Room/document name (usually the slate ID) */
     roomName?: string;
     /** Client display name */
