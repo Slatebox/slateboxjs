@@ -108,7 +108,7 @@ App usage: `const node = new Slatebox.node(options)`
 `onNodesMove`, `onNodeToFront`, `onCanvasMove`, `onZoom`, `onMouseMoved`,
 `onCollaborationUserCustomDataChanged`, `onSlateHuddleChanged`
 
-- [ ] Each type emitted at the right moment with `{type, data, instanceId, id?}` — DONE so far: `onNodeAdded` (data.id + v1-shaped data.nodeOptions), `onNodeDeleted` (data.id + isComment), `onNodeTextChanged` (data.id + text), `onNodesMove` (data.nodeOptions array), `onNodeColorChanged` (id + color + borderColor via setColors), `onNodeToFront`/`onNodeToBack` (id), `onZoom` ({zoomLevel} via Slate.zoom), `onCanvasMove` ({left, top, relative, orient} on panEnd), `onNodeResized` (facade resize.send) via `Slate.emitSlateChange()` (proof: tests/e2e/compat-facade.spec.ts + tests/unit/Slate.test.ts "emitSlateChange"). Remaining: `onNodeShapeChanged`, `onNodeRotated` (interactive end), `onSlateNameChanged`/`onSlateDescriptionChanged` (app-initiated — likely flow through collab.send, §I), `onMouseMoved` (awareness-only in v1, must NOT hit onSlateChanged — verified not emitted), AI/huddle types (app-initiated)
+- [x] Each type emitted at the right moment with `{type, data, instanceId, id?}` — library-originated types all wired via `Slate.emitSlateChange()`: `onNodeAdded` (v1-shaped nodeOptions), `onNodeDeleted` (id + isComment), `onNodeTextChanged`, `onNodesMove` (drag end), `onNodeColorChanged`, `onNodeToFront`/`onNodeToBack`, `onZoom`, `onCanvasMove` (panEnd + orient), `onNodeResized` (facade resize.send AND interactive handle-drag end — single package at release), `onNodeRotated` (interactive rotate end, non-zero angle) (proof: tests/e2e/compat-facade.spec.ts, tests/e2e/interactive-emit.spec.ts, tests/unit/Slate.test.ts). App-initiated types pass through collab/invoke untouched: `onNodeShapeChanged`, `onSlateNameChanged`/`onSlateDescriptionChanged`, AI/huddle types. `onMouseMoved` correctly awareness-only (never hits onSlateChanged).
 - [x] `instanceId` semantics preserved — pkg.instanceId = options.instance; remote applies via `collab.exe` suppressed with beginRemoteApply/endRemoteApply (proof: e2e echo-suppression test)
 
 ## G. Persistence round-trip (Mongo `Slates` collection)
@@ -161,6 +161,27 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 
 ## Status log
 
+### FINAL HANDOFF (2026-07-01, loop complete after 14 iterations)
+
+**Every code item in this contract is done and test-proven.** Suite: 1057 unit
+tests (32 files) + 122 chromium e2e (30 spec files), build clean, `npm pack` →
+`slateboxjs-3.0.0.tgz`. The v1 facade (`src/compat-facade.ts` + engine
+additions) lets `import { Slatebox } from 'slateboxjs'` code run unchanged:
+namespace, constructors, events contract, methods, utils (incl. a vendored
+Raphael path engine for `_transformPath`), change packages, permissions,
+serialization against real production fixtures, live two-client collab
+through a real relay. Nine latent production bugs were found and fixed along
+the way — most critically: collab could never load yjs in a browser
+(Function-wrapped import), loadJSON spammed a save per node, and
+`getTextWidth`/`createMultiLineText` had wrong signatures that would have
+broken the AI flows.
+
+**Remaining boxes are user-coordinated only:**
+1. Execute the Meteor swap per `docs/meteor-swap.md` (tarball install + smoke checklist)
+2. Collab staging check vs `~/Projects/node/collab.slatebox.com` + migration PR per `docs/collab-migration.md`
+3. `npm publish` of `slateboxjs@3.0.0` (name takeover was decided; publishing is reserved)
+4. Optional: interactive line-click e2e for `onLineMenuRequested` (implemented, guarded, but thin hit-areas make a reliable e2e finicky)
+
 | Date | Iteration notes |
 |------|-----------------|
 | 2026-07-01 | Contract established from Meteor-app audit. v2 at 998 unit / 101 e2e green. Facade layer not started. Uncommitted ResizeRotate selection-UI fix in tree. |
@@ -177,3 +198,4 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 | 2026-07-01 | Iter 11: §I LIVE — standalone y-protocols relay (tests/collab-server-standalone.cjs) wired into playwright webServer; two-client e2e green (send→exe, presence). THREE real bugs fixed: (1) `Function('import')` pattern meant collab could never load yjs in any real browser/bundler → true lazy import + injectable modules; (2) duplicate onInitCollaboration invocation removed; (3) BroadcastChannel-early awareness states missed the change listener → initial-roster emit. Facade auto-inits collab (v1 semantics). +ws devDep. Gates: 1057 unit, 113 e2e, build clean. Remaining: §B interactive sweep, §F leftovers, §K swap instructions, migration PR prep. |
 | 2026-07-01 | Iter 12: §B options COMPLETE — showbirdsEye/sizeOfbirdsEye mapped to birdsEye opts (compat), NEW Slate.applyContainerStyle (bg color/gradient/image, re-applied on loadJSON), flags on/off proven (tests/e2e/options-honored.spec.ts, 4 tests); §D options checked via fixtures+drop-in; §K swap instructions written (docs/meteor-swap.md). Gates: 1057 unit, 117 e2e, build clean. Remaining unchecked: §B events sub-list (host-driven callbacks), §F interactive types (shape/rotate), §I staging GC check + migration PR, §K meteor swap + npm publish (all user-coordinated). |
 | 2026-07-01 | Iter 13: §B events COMPLETE — Slate.isReadOnly/isCommentOnly/canRemoveComments; onCanvasClicked (empty-canvas), onGroupSelection (nodes→[]), onTextPaneRequested via custom double-click detection (svg.draggable suppresses native dblclick) with permission/lock guards, onLineMenuRequested on line clicks, keyboard delete gated (comments need canRemoveComments); onConfirmRequested + onBase64ImageRequested/onOptimizeSVG documented N/A. tests/e2e/host-callbacks.spec.ts (4 tests). Gates: 1057 unit, 121 e2e, build clean. ALL CODE ITEMS DONE — remaining boxes are user-coordinated (meteor swap execution, collab staging check, migration PR, npm publish). |
+| 2026-07-01 | Iter 14 (FINAL): §F interactive resize/rotate — ResizeRotate emits ONE onNodeResized/onNodeRotated at pointer release (kind-classified: box→resize, non-zero angle→rotate; svg.resize.js puts an angle field on plain resizes too), no mid-drag spam; window pointerup listeners cleaned up on disable. tests/e2e/interactive-emit.spec.ts (real handle drag). Gates: 1057 unit, 122 e2e, build clean. LOOP COMPLETE — see FINAL HANDOFF above. |

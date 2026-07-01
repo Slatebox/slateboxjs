@@ -18,6 +18,10 @@ export class ResizeRotate {
   private target: any;
   private options: ResizeRotateOptions;
   private isActive: boolean = false;
+  private _interacting = false;
+  private _didRotate = false;
+  private _didResize = false;
+  private _endListener: (() => void) | null = null;
 
   /**
    * Creates resize/rotate handle management for a node.
@@ -145,11 +149,58 @@ export class ResizeRotate {
         if (this.node.isConnectionHandlesEnabled()) {
           this.node.disableConnectionHandles();
         }
+        this._interacting = true;
+        this._didRotate = false;
+        this._didResize = false;
       }
     });
 
+    // Emit the v1 end-of-interaction package once, on pointer release
+    this._endListener = () => {
+      if (!this._interacting) return;
+      this._interacting = false;
+      const slate = this.node.slate as any;
+      if (this._didRotate) {
+        slate?.emitSlateChange?.("onNodeRotated", {
+          id: this.node.id,
+          rotate: this.node.options.rotate,
+          width: this.node.options.width,
+          height: this.node.options.height,
+        });
+      } else if (this._didResize) {
+        slate?.emitSlateChange?.("onNodeResized", {
+          id: this.node.id,
+          width: this.node.options.width,
+          height: this.node.options.height,
+          rotate: this.node.options.rotate,
+          vectorPath: this.node.options.vectorPath,
+        });
+      }
+      this._didRotate = false;
+      this._didResize = false;
+    };
+    window.addEventListener("pointerup", this._endListener);
+    window.addEventListener("touchend", this._endListener);
+
     // Re-show connection handles when resize/rotate ends
     this.target.on("resize", (event: any) => {
+      // A resize event means an interaction is in progress (the handle's own
+      // mousedown does not reliably bubble through the target); track its
+      // kind for the end-of-drag package
+      this._interacting = true;
+      // svg.resize.js includes an angle field on plain resize events too —
+      // only a non-zero angle indicates actual rotation; a box indicates
+      // a size change
+      if (event.detail?.box) {
+        this._didResize = true;
+      }
+      if (
+        typeof event.detail?.angle === "number" &&
+        event.detail.angle !== 0
+      ) {
+        this._didRotate = true;
+      }
+
       this.handleResize(event);
       this.options.onResize?.(event);
 
@@ -194,6 +245,11 @@ export class ResizeRotate {
   private removeEventListeners() {
     this.target.off("resize");
     this.target.off("mousedown.resizerotate touchstart.resizerotate");
+    if (this._endListener) {
+      window.removeEventListener("pointerup", this._endListener);
+      window.removeEventListener("touchend", this._endListener);
+      this._endListener = null;
+    }
   }
 
   private handleResize(event: any) {
