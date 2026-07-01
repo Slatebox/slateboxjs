@@ -184,6 +184,24 @@ declare class slate {
      * instance exposes the same four methods.
      */
     get collab(): any;
+    /** v1: `slate.keyboard.bindGlobal()/unbindGlobal()` (NodeDrawer uses it) */
+    get keyboard(): any;
+    /** v1: `slate.filters.availableFilters` — list of registered filter defs */
+    get filters(): {
+        availableFilters: Array<{
+            id: string;
+        }>;
+    };
+    /** v1: `slate.undoRedo` / `slate.birdsEye` passthroughs */
+    get undoRedo(): any;
+    get birdsEye(): any;
+    /**
+     * v1: `slate.disable(exemptSlate?, exemptNodes?, full?)` — freeze
+     * interactions (used when the app opens read-only/embedded views).
+     */
+    disable(exemptSlate?: unknown, exemptNodes?: unknown, full?: boolean): void;
+    /** v1: `slate.enable(exemptSlate?, exemptNodes?)` — reverse of disable() */
+    enable(exemptSlate?: unknown, exemptNodes?: unknown): void;
     /** v1: `slate.png({base64: true}, cb)` — thumbnail export */
     png(opts?: Record<string, any>, callback?: (result: string | Blob) => void): Promise<string | Blob>;
     private assertReady;

@@ -22,6 +22,7 @@ import { Slate } from "./core/Slate";
 import type { Node as V2Node, NodeOptions } from "./core/Node";
 import * as utilsModule from "./utils";
 import { v1NodeToV2, v1SlateToV2, v2NodeToV1 } from "./core/compat";
+import { getFilterNames } from "./core/Filters";
 
 /** v1-style events object passed as the 2nd constructor argument. */
 export type V1Events = Record<string, ((...args: any[]) => any) | undefined>;
@@ -576,6 +577,71 @@ class slate {
   public get collab() {
     this.assertReady();
     return (this.v2 as any).collab;
+  }
+
+  /** v1: `slate.keyboard.bindGlobal()/unbindGlobal()` (NodeDrawer uses it) */
+  public get keyboard() {
+    this.assertReady();
+    return (this.v2 as any).keyboard;
+  }
+
+  /** v1: `slate.filters.availableFilters` — list of registered filter defs */
+  public get filters(): { availableFilters: Array<{ id: string }> } {
+    return {
+      availableFilters: getFilterNames().map((id) => ({ id })),
+    };
+  }
+
+  /** v1: `slate.undoRedo` / `slate.birdsEye` passthroughs */
+  public get undoRedo() {
+    this.assertReady();
+    return (this.v2 as any).undoRedo;
+  }
+
+  public get birdsEye() {
+    this.assertReady();
+    return (this.v2 as any).birdsEye;
+  }
+
+  /**
+   * v1: `slate.disable(exemptSlate?, exemptNodes?, full?)` — freeze
+   * interactions (used when the app opens read-only/embedded views).
+   */
+  public disable(
+    exemptSlate?: unknown,
+    exemptNodes?: unknown,
+    full?: boolean
+  ): void {
+    this.assertReady();
+    const v2 = this.v2 as any;
+    if (!exemptNodes) {
+      v2.nodes.allNodes.forEach((n: any) => n.lock?.());
+    }
+    if (!exemptSlate) {
+      this.options.enabled = false;
+      this.options.allowDrag = false;
+      v2.disablePanZoom?.();
+      if (full) {
+        v2.birdsEye?.disable?.();
+        v2.zoomSlider?.disable?.();
+      }
+    }
+  }
+
+  /** v1: `slate.enable(exemptSlate?, exemptNodes?)` — reverse of disable() */
+  public enable(exemptSlate?: unknown, exemptNodes?: unknown): void {
+    this.assertReady();
+    const v2 = this.v2 as any;
+    if (!exemptNodes) {
+      v2.nodes.allNodes.forEach((n: any) => {
+        if (!n.options?.isLocked) n.unlock?.();
+      });
+    }
+    if (!exemptSlate) {
+      this.options.enabled = true;
+      this.options.allowDrag = true;
+      v2.enablePanZoom?.();
+    }
   }
 
   /** v1: `slate.png({base64: true}, cb)` — thumbnail export */

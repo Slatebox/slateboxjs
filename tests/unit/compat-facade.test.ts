@@ -90,6 +90,11 @@ vi.mock("../../src/core/Slate", () => {
       send: vi.fn(),
       updateUserData: vi.fn(),
     };
+    keyboard = { bindGlobal: vi.fn(), unbindGlobal: vi.fn() };
+    undoRedo = { undo: vi.fn(), redo: vi.fn() };
+    birdsEye = { enable: vi.fn(), disable: vi.fn() };
+    enablePanZoom = vi.fn();
+    disablePanZoom = vi.fn();
     getZoom = vi.fn(() => 1);
     constructor(element: any, options: any) {
       this.element = element;
@@ -382,6 +387,24 @@ describe("slate methods (§C)", () => {
     expect(s.options.viewPort.zoom.r).toBe(1);
     ((s.v2 as any).getZoom as any).mockReturnValue(2.5);
     expect(s.options.viewPort.zoom.r).toBe(2.5);
+  });
+
+  it("exposes keyboard/undoRedo/birdsEye passthroughs + filters list (§C)", async () => {
+    const s = await initSlate();
+    expect(s.keyboard).toBe((s.v2 as any).keyboard);
+    expect(s.undoRedo).toBe((s.v2 as any).undoRedo);
+    expect(s.birdsEye).toBe((s.v2 as any).birdsEye);
+    expect(Array.isArray(s.filters.availableFilters)).toBe(true);
+  });
+
+  it("disable()/enable() toggle interactivity flags and pan/zoom", async () => {
+    const s = await initSlate();
+    s.disable(null, null, true);
+    expect(s.options.enabled).toBe(false);
+    expect(s.options.allowDrag).toBe(false);
+    s.enable();
+    expect(s.options.enabled).toBe(true);
+    expect(s.options.allowDrag).toBe(true);
   });
 
   it("exposes savingTemplateImage as a mutable flag", async () => {
