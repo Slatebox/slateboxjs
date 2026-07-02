@@ -1140,14 +1140,19 @@ export class Node {
     if (!this.svgGroup) return;
     const x = this.options.x || 0;
     const y = this.options.y || 0;
+    const w = this.options.width || 0;
+    const h = this.options.height || 0;
     const angle = this.options.rotate?.rotationAngle || 0;
-    // Pure position first (absolute) …
-    this.svgGroup.transform({ translateX: x, translateY: y });
-    // … then rotate around the current visual center, composing (relative)
-    // so the translate is preserved.
-    if (angle) {
-      this.svgGroup.transform({ rotate: angle, origin: "center" }, true);
-    }
+    // Set the group transform EXPLICITLY as an SVG transform string —
+    // deterministic, no SVG.js object-form / relative-compose ambiguity.
+    // SVG applies right-to-left: a local point is first rotated about the
+    // node's own center (w/2,h/2), then translated to (x,y). The shape/text
+    // are drawn at the group's local origin, so the node renders at (x,y)
+    // rotated about its visual center — stable across reloads.
+    const t = angle
+      ? `translate(${x} ${y}) rotate(${angle} ${w / 2} ${h / 2})`
+      : `translate(${x} ${y})`;
+    this.svgGroup.node.setAttribute("transform", t);
   }
 
   /**

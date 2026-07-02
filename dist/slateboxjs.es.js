@@ -6860,8 +6860,8 @@ class ji {
    */
   applyPositionAndRotation() {
     if (!this.svgGroup) return;
-    const t = this.options.x || 0, e = this.options.y || 0, i = this.options.rotate?.rotationAngle || 0;
-    this.svgGroup.transform({ translateX: t, translateY: e }), i && this.svgGroup.transform({ rotate: i, origin: "center" }, !0);
+    const t = this.options.x || 0, e = this.options.y || 0, i = this.options.width || 0, s = this.options.height || 0, o = this.options.rotate?.rotationAngle || 0, a = o ? `translate(${t} ${e}) rotate(${o} ${i / 2} ${s / 2})` : `translate(${t} ${e})`;
+    this.svgGroup.node.setAttribute("transform", a);
   }
   /**
    * Get the current rotation angle. Reads from options.rotate first,

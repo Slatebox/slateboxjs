@@ -456,10 +456,12 @@ describe("Position", () => {
 
   it("should translate the group to the new position (immediate)", async () => {
     const node = await createNode({ x: 100, y: 100 });
-    const spy = vi.spyOn(node.svgGroup, "transform");
+    const spy = vi.spyOn(node.svgGroup.node, "setAttribute");
     node.position(300, 400);
-    // Immediate position composes translate (+ rotation) via transform()
-    expect(spy).toHaveBeenCalledWith({ translateX: 300, translateY: 400 });
+    // Immediate position sets an explicit transform string translate(300 400)
+    const call = spy.mock.calls.find((c) => c[0] === "transform");
+    expect(call).toBeTruthy();
+    expect(call![1]).toContain("translate(300 400)");
   });
 
   it("should update options.x/y after position()", async () => {
