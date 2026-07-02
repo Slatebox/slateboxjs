@@ -6907,6 +6907,10 @@ class Wi {
       }
     const a = o ? `translate(${t} ${e}) rotate(${o} ${i / 2} ${s / 2})` : `translate(${t} ${e})`;
     this.svgGroup.node.setAttribute("transform", a);
+    try {
+      this.svgGroup.fire?.("transform");
+    } catch {
+    }
   }
   /**
    * Re-assert the canonical model after a resize/rotate interaction. During the

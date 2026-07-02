@@ -1261,6 +1261,18 @@ export class Node {
       ? `translate(${x} ${y}) rotate(${angle} ${w / 2} ${h / 2})`
       : `translate(${x} ${y})`;
     this.svgGroup.node.setAttribute("transform", t);
+
+    // Notify connectors so they re-solve their anchors and stay attached
+    // through position AND rotation changes. svg.connectable listens for a
+    // "transform" event on the connected groups (con.update()); we set the
+    // transform via setAttribute, which fires nothing on its own, so a rotated
+    // node's connectors never followed (collab bug #4). Firing it here covers
+    // every path (drag, rotate, tween, load) since they all funnel through here.
+    try {
+      this.svgGroup.fire?.("transform");
+    } catch (e) {
+      /* noop */
+    }
   }
 
   /**
