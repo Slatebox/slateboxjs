@@ -205,6 +205,9 @@ export class Node {
   private wasSelectedBeforeDrag: boolean = false;
   private preDragTransform: { translateX: number; translateY: number } | null = null;
   private preDragPosition: { x: number; y: number } | null = null;
+  // Pointer position (client coords) at drag start — drag is positioned from the
+  // pointer delta in world units so rotation never distorts the movement.
+  private _dragStartPointer: { x: number; y: number } | null = null;
 
   /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
   public ready: Promise<void>;
@@ -737,6 +740,10 @@ export class Node {
         x: this.options.x ?? 0,
         y: this.options.y ?? 0
       };
+      // Capture the pointer position so dragmove can position the node from the
+      // pointer delta (world units) rather than svg.draggable's child-move,
+      // which distorts under a group rotation.
+      this._dragStartPointer = this.pointerFromDragEvent(event);
       console.log("DRAG_DEBUG: Stored pre-drag transform:", this.preDragTransform, "position:", this.preDragPosition);
 
       // Temporarily disable resize/rotate during drag for clean dragging
@@ -747,32 +754,26 @@ export class Node {
     this.svgGroup.on("dragend.node", (event: any) => {
       console.log("DRAG_DEBUG: Drag ended on", this.id);
 
-      // svg.draggable.js displaces the group's CHILDREN into local coords
-      // (it does not touch the group transform); event.detail.box holds their
-      // new LOCAL top-left, i.e. the delta from the canonical local origin (0,0)
-      // at which children always start. The true world position is therefore
-      // preDragPosition (canonical world at drag start) + that local delta.
-      const box = event.detail?.box;
-      const dx = box?.x ?? 0;
-      const dy = box?.y ?? 0;
-      const worldX = (this.preDragPosition?.x ?? 0) + dx;
-      const worldY = (this.preDragPosition?.y ?? 0) + dy;
-
-      console.log("DRAG_DEBUG: Drag completed - localBox:", dx, dy,
-                  "→ world:", worldX, worldY,
-                  "preDragPos:", this.preDragPosition);
+      // options.x/y were kept current by the controlled dragmove handler
+      // (pointer delta in world units), so no box math is needed here. As a
+      // fallback for environments that fire dragend without any dragmove, apply
+      // the final pointer delta if we have one.
+      const ptr = this.pointerFromDragEvent(event);
+      if (ptr && this._dragStartPointer && this.preDragPosition) {
+        const zoom = this.slate.getZoom?.() || 1;
+        this.options.x =
+          this.preDragPosition.x + (ptr.x - this._dragStartPointer.x) / zoom;
+        this.options.y =
+          this.preDragPosition.y + (ptr.y - this._dragStartPointer.y) / zoom;
+      }
 
       // Clear pre-drag state
       this.preDragTransform = null;
       this.preDragPosition = null;
-
-      // Update stored position to the new WORLD position after drag
-      this.options.x = worldX;
-      this.options.y = worldY;
+      this._dragStartPointer = null;
 
       // Re-assert the canonical model: children at local origin, group transform
-      // carrying position (+ rotation). applyPositionAndRotation() self-normalizes
-      // the children that svg.draggable displaced during the drag.
+      // carrying position (+ rotation).
       this.applyPositionAndRotation();
 
       // Notify the host app of the completed move (v1 package shape)
@@ -812,11 +813,40 @@ export class Node {
       }, 10); // Reduced from 50ms to 10ms
     });
 
-    // IMPORTANT: Add dragmove event to track dragging state more accurately
+    // Controlled drag: position the node from the POINTER delta in world units,
+    // preserving rotation, instead of svg.draggable's default child-move (which
+    // is computed in the group's rotated local frame → the node flies wildly
+    // when a rotated node is dragged). We preventDefault to suppress the default
+    // move and drive the transform ourselves via applyPositionAndRotation.
     this.svgGroup.on("dragmove.node", (event: any) => {
-      // Make sure isDragging is true during drag movements
       this.isDragging = true;
+      const ptr = this.pointerFromDragEvent(event);
+      if (ptr && this._dragStartPointer && this.preDragPosition) {
+        event.preventDefault?.();
+        const zoom = this.slate.getZoom?.() || 1;
+        const dx = (ptr.x - this._dragStartPointer.x) / zoom;
+        const dy = (ptr.y - this._dragStartPointer.y) / zoom;
+        this.options.x = this.preDragPosition.x + dx;
+        this.options.y = this.preDragPosition.y + dy;
+        this.applyPositionAndRotation();
+      }
     });
+  }
+
+  /**
+   * Extract the pointer position in client coordinates from an svg.draggable
+   * event (or a raw DOM event). svg.draggable exposes the source event at
+   * event.detail.event; touch events carry it under touches/changedTouches.
+   */
+  private pointerFromDragEvent(event: any): { x: number; y: number } | null {
+    const src = event?.detail?.event ?? event;
+    if (!src) return null;
+    const pt =
+      src.touches?.[0] ?? src.changedTouches?.[0] ?? src;
+    if (typeof pt.clientX === "number" && typeof pt.clientY === "number") {
+      return { x: pt.clientX, y: pt.clientY };
+    }
+    return null;
   }
 
   public position(
@@ -837,32 +867,49 @@ export class Node {
       duration
     );
 
+    const startX = this.options.x ?? x;
+    const startY = this.options.y ?? y;
     this.options.x = x;
     this.options.y = y;
 
-    if (duration && duration > 0) {
-      // Animate to position, then settle the transform so rotation (if any)
-      // is preserved rather than dropped by the move.
-      this.svgGroup
-        .animate(duration, easing || "-")
-        .move(x, y)
-        .after(() => {
+    const canAnimate =
+      !!duration &&
+      duration > 0 &&
+      typeof requestAnimationFrame !== "undefined" &&
+      typeof performance !== "undefined" &&
+      (startX !== x || startY !== y);
+
+    if (canAnimate) {
+      // Tween options.x/y and re-apply the group transform each frame. We do NOT
+      // use svg.js animate().move(): that animates the shape's CHILDREN in the
+      // group's local frame, so on a ROTATED node the movement is computed
+      // through the rotation and the node flies wildly before landing (seen on
+      // the mirrored/collab canvas). Driving applyPositionAndRotation() keeps
+      // rotation intact and moves the node in a straight world-space line.
+      const t0 = performance.now();
+      const step = () => {
+        if (this._destroyed || !this.svgGroup) return;
+        const p = Math.min(1, (performance.now() - t0) / (duration as number));
+        // easeInOutQuad
+        const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        this.options.x = startX + (x - startX) * e;
+        this.options.y = startY + (y - startY) * e;
+        this.applyPositionAndRotation();
+        if (p < 1) {
+          requestAnimationFrame(step);
+        } else {
+          this.options.x = x;
+          this.options.y = y;
           this.applyPositionAndRotation();
           if (callback) callback();
-        });
+        }
+      };
+      requestAnimationFrame(step);
     } else {
       // Move immediately (translate + rotate composed)
       this.applyPositionAndRotation();
+      if (callback) callback();
     }
-
-    console.log(
-      "NODE_DEBUG: position completed for",
-      this.id,
-      "svgGroup bbox:",
-      this.svgGroup ? this.svgGroup.bbox() : "no group"
-    );
-
-    if (callback) callback();
   }
 
   /** Bring the node to the front of the SVG z-order. */

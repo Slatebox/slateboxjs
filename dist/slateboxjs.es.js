@@ -6454,7 +6454,7 @@ class ji {
    * ```
    */
   constructor(t, e) {
-    this.connectionHandles = {}, this.connectionHandlesVisible = !1, this.isDragging = !1, this.wasSelectedBeforeDrag = !1, this.preDragTransform = null, this.preDragPosition = null, this._lastClickTime = 0, this._initFailed = !1, this._destroyed = !1, this._svgViewboxTimeoutId = null, this._dragEndTimeoutId = null, this._previewViewboxTimeoutId = null, this._connectTimeoutId = null, this.id = t.id || this.generateId(), this.slate = e, console.log("NODE_DEBUG: Constructor called", { id: this.id, options: t }), this.options = {
+    this.connectionHandles = {}, this.connectionHandlesVisible = !1, this.isDragging = !1, this.wasSelectedBeforeDrag = !1, this.preDragTransform = null, this.preDragPosition = null, this._dragStartPointer = null, this._lastClickTime = 0, this._initFailed = !1, this._destroyed = !1, this._svgViewboxTimeoutId = null, this._dragEndTimeoutId = null, this._previewViewboxTimeoutId = null, this._connectTimeoutId = null, this.id = t.id || this.generateId(), this.slate = e, console.log("NODE_DEBUG: Constructor called", { id: this.id, options: t }), this.options = {
       x: 50,
       y: 50,
       width: 100,
@@ -6678,20 +6678,15 @@ class ji {
       }, this.preDragPosition = {
         x: this.options.x ?? 0,
         y: this.options.y ?? 0
-      }, console.log("DRAG_DEBUG: Stored pre-drag transform:", this.preDragTransform, "position:", this.preDragPosition), this.slate.disableNodeResizeRotate(this);
+      }, this._dragStartPointer = this.pointerFromDragEvent(t), console.log("DRAG_DEBUG: Stored pre-drag transform:", this.preDragTransform, "position:", this.preDragPosition), this.slate.disableNodeResizeRotate(this);
     }), this.svgGroup.on("dragend.node", (t) => {
       console.log("DRAG_DEBUG: Drag ended on", this.id);
-      const e = t.detail?.box, i = e?.x ?? 0, s = e?.y ?? 0, o = (this.preDragPosition?.x ?? 0) + i, a = (this.preDragPosition?.y ?? 0) + s;
-      console.log(
-        "DRAG_DEBUG: Drag completed - localBox:",
-        i,
-        s,
-        "→ world:",
-        o,
-        a,
-        "preDragPos:",
-        this.preDragPosition
-      ), this.preDragTransform = null, this.preDragPosition = null, this.options.x = o, this.options.y = a, this.applyPositionAndRotation(), this.slate.broadcast?.("onNodesMove", {
+      const e = this.pointerFromDragEvent(t);
+      if (e && this._dragStartPointer && this.preDragPosition) {
+        const i = this.slate.getZoom?.() || 1;
+        this.options.x = this.preDragPosition.x + (e.x - this._dragStartPointer.x) / i, this.options.y = this.preDragPosition.y + (e.y - this._dragStartPointer.y) / i;
+      }
+      this.preDragTransform = null, this.preDragPosition = null, this._dragStartPointer = null, this.applyPositionAndRotation(), this.slate.broadcast?.("onNodesMove", {
         nodeOptions: [zt(this.options)]
       }), this._dragEndTimeoutId = setTimeout(() => {
         if (this._destroyed) return;
@@ -6707,7 +6702,24 @@ class ji {
       }, 10);
     }), this.svgGroup.on("dragmove.node", (t) => {
       this.isDragging = !0;
+      const e = this.pointerFromDragEvent(t);
+      if (e && this._dragStartPointer && this.preDragPosition) {
+        t.preventDefault?.();
+        const i = this.slate.getZoom?.() || 1, s = (e.x - this._dragStartPointer.x) / i, o = (e.y - this._dragStartPointer.y) / i;
+        this.options.x = this.preDragPosition.x + s, this.options.y = this.preDragPosition.y + o, this.applyPositionAndRotation();
+      }
     });
+  }
+  /**
+   * Extract the pointer position in client coordinates from an svg.draggable
+   * event (or a raw DOM event). svg.draggable exposes the source event at
+   * event.detail.event; touch events carry it under touches/changedTouches.
+   */
+  pointerFromDragEvent(t) {
+    const e = t?.detail?.event ?? t;
+    if (!e) return null;
+    const i = e.touches?.[0] ?? e.changedTouches?.[0] ?? e;
+    return typeof i.clientX == "number" && typeof i.clientY == "number" ? { x: i.clientX, y: i.clientY } : null;
   }
   position(t, e, i, s, o) {
     console.log(
@@ -6719,14 +6731,17 @@ class ji {
       e,
       "duration:",
       o
-    ), this.options.x = t, this.options.y = e, o && o > 0 ? this.svgGroup.animate(o, s || "-").move(t, e).after(() => {
+    );
+    const a = this.options.x ?? t, r = this.options.y ?? e;
+    if (this.options.x = t, this.options.y = e, !!o && o > 0 && typeof requestAnimationFrame < "u" && typeof performance < "u" && (a !== t || r !== e)) {
+      const h = performance.now(), c = () => {
+        if (this._destroyed || !this.svgGroup) return;
+        const d = Math.min(1, (performance.now() - h) / o), u = d < 0.5 ? 2 * d * d : 1 - Math.pow(-2 * d + 2, 2) / 2;
+        this.options.x = a + (t - a) * u, this.options.y = r + (e - r) * u, this.applyPositionAndRotation(), d < 1 ? requestAnimationFrame(c) : (this.options.x = t, this.options.y = e, this.applyPositionAndRotation(), i && i());
+      };
+      requestAnimationFrame(c);
+    } else
       this.applyPositionAndRotation(), i && i();
-    }) : this.applyPositionAndRotation(), console.log(
-      "NODE_DEBUG: position completed for",
-      this.id,
-      "svgGroup bbox:",
-      this.svgGroup ? this.svgGroup.bbox() : "no group"
-    ), i && i();
   }
   /** Bring the node to the front of the SVG z-order. */
   toFront() {

@@ -133,6 +133,7 @@ export declare class Node {
     private wasSelectedBeforeDrag;
     private preDragTransform;
     private preDragPosition;
+    private _dragStartPointer;
     /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
     ready: Promise<void>;
     private _lastClickTime;
@@ -173,6 +174,12 @@ export declare class Node {
     /** Position the text element within the background shape based on alignment settings. */
     centerText(): void;
     private makeDraggable;
+    /**
+     * Extract the pointer position in client coordinates from an svg.draggable
+     * event (or a raw DOM event). svg.draggable exposes the source event at
+     * event.detail.event; touch events carry it under touches/changedTouches.
+     */
+    private pointerFromDragEvent;
     position(x: number, y: number, callback?: () => void, easing?: any, duration?: number): void;
     /** Bring the node to the front of the SVG z-order. */
     toFront(): void;
