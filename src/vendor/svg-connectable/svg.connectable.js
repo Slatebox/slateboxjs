@@ -203,6 +203,11 @@ function connectable(options, elmTarget) {
 
   con.sourceAttach = options.sourceAttach || "perifery";
   con.targetAttach = options.targetAttach || "perifery";
+  // Edge-pin mode: normalized local anchor {x,y} in 0..1 on the source/target
+  // node. When set, the endpoint is pinned to that point and rotates with the
+  // node (instead of auto-flow to the nearest edge). null = auto-flow.
+  con.sourceAnchor = options.sourceAnchor || null;
+  con.targetAnchor = options.targetAnchor || null;
   con.curveRadius = options.curveRadius || 20;
 
   // Support for separate source and target markers
@@ -289,6 +294,15 @@ function connectable(options, elmTarget) {
 
   con.setConnectorColor = function (color) {
     setConnectorColor(con, color);
+    return con;
+  };
+
+  // Edge-pin API: pin (or unpin with null) an endpoint to a normalized local
+  // anchor {x,y} in 0..1 on the source/target node; re-solves immediately.
+  con.setAttachmentAnchor = function (which, anchor) {
+    if (which === "source") con.sourceAnchor = anchor || null;
+    else if (which === "target") con.targetAnchor = anchor || null;
+    con.update();
     return con;
   };
 

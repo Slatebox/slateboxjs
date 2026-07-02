@@ -37,6 +37,10 @@ export interface Connection {
   connectable: any; // The svg.connectable.js object
   lineColor?: string;
   lineWidth?: number;
+  // Edge-pin mode: normalized local anchor {x,y} in 0..1 on source/target.
+  // Omitted/undefined = auto-flow (endpoint re-solves to the nearest edge).
+  sourceAnchor?: { x: number; y: number } | null;
+  targetAnchor?: { x: number; y: number } | null;
 }
 
 export class Connector {
@@ -205,6 +209,9 @@ export class Connector {
           markerTarget: this.options.markerTarget,
           showHandles: this.options.showHandles,
           curveRadius: this.options.curveRadius,
+          // Edge-pin mode (optional): normalized local anchors {x,y} 0..1
+          sourceAnchor: connectionOptions.sourceAnchor,
+          targetAnchor: connectionOptions.targetAnchor,
         },
         targetNode.svgGroup
       );
@@ -378,6 +385,25 @@ export class Connector {
       console.error("CONNECTOR_DEBUG: Failed to update connection:", error);
       return false;
     }
+  }
+
+  /**
+   * Edge-pin mode: pin (or unpin with null) a connection's endpoint to a
+   * normalized local anchor {x,y} in 0..1 on the source or target node.
+   * A pinned endpoint stays on that point and rotates with the node; null
+   * restores auto-flow (nearest-edge). Re-solves immediately.
+   */
+  public setConnectionAnchor(
+    targetNodeId: string,
+    which: "source" | "target",
+    anchor: { x: number; y: number } | null
+  ): boolean {
+    const connection = this.connections.get(`${this.node.id}->${targetNodeId}`);
+    if (!connection) return false;
+    if (which === "source") connection.sourceAnchor = anchor;
+    else connection.targetAnchor = anchor;
+    connection.connectable?.setAttachmentAnchor?.(which, anchor);
+    return true;
   }
 
   public isEnabled(): boolean {

@@ -258,6 +258,24 @@ function getClosestPointOnEdge(shape, targetPoint) {
  * Computes the connector path between source and target elements.
  * All coordinates are in SVG user coordinate space.
  */
+/**
+ * Compute a fixed anchor point on a shape from a normalized local anchor
+ * {x,y} in 0..1 (0,0 = top-left, 0.5,0.5 = center, 1,1 = bottom-right of the
+ * shape's local bbox), transformed to SVG user coords through the shape's
+ * matrix. Because the transform includes rotation, an edge-pinned endpoint
+ * rotates WITH the node (edge-pin mode).
+ */
+function anchorPointOnShape(shape, anchor) {
+  const bbox = shape.bbox();
+  const lx = bbox.x + (anchor.x != null ? anchor.x : 0.5) * bbox.width;
+  const ly = bbox.y + (anchor.y != null ? anchor.y : 0.5) * bbox.height;
+  const [wx, wy] = localToSvgCoords(shape, lx, ly);
+  if (isNaN(wx) || isNaN(wy) || !isFinite(wx) || !isFinite(wy)) {
+    return getElementCenter(shape);
+  }
+  return [wx, wy];
+}
+
 function computeConnectorCoordinates(con) {
   const temp = {};
 
@@ -273,7 +291,10 @@ function computeConnectorCoordinates(con) {
   const targetCenter = getElementCenter(con.target);
 
   // Calculate attachment points
-  if (con.sourceAttach === "center") {
+  // Edge-pin mode: a fixed normalized local anchor that rotates with the node.
+  if (con.sourceAnchor) {
+    temp.point1 = anchorPointOnShape(con.source, con.sourceAnchor);
+  } else if (con.sourceAttach === "center") {
     temp.point1 = sourceCenter;
   } else {
     temp.point1 = getClosestPointOnEdge(con.source, targetCenter);
@@ -294,7 +315,9 @@ function computeConnectorCoordinates(con) {
     }
   }
 
-  if (con.targetAttach === "center") {
+  if (con.targetAnchor) {
+    temp.point2 = anchorPointOnShape(con.target, con.targetAnchor);
+  } else if (con.targetAttach === "center") {
     temp.point2 = targetCenter;
   } else {
     temp.point2 = getClosestPointOnEdge(con.target, sourceCenter);

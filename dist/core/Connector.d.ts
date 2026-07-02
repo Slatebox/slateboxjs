@@ -25,6 +25,14 @@ export interface Connection {
     connectable: any;
     lineColor?: string;
     lineWidth?: number;
+    sourceAnchor?: {
+        x: number;
+        y: number;
+    } | null;
+    targetAnchor?: {
+        x: number;
+        y: number;
+    } | null;
 }
 export declare class Connector {
     private node;
@@ -52,6 +60,16 @@ export declare class Connector {
     getConnections(): Connection[];
     getConnection(targetNodeId: string): Connection | null;
     updateConnection(connectionId: string, updates: Partial<Connection>): boolean;
+    /**
+     * Edge-pin mode: pin (or unpin with null) a connection's endpoint to a
+     * normalized local anchor {x,y} in 0..1 on the source or target node.
+     * A pinned endpoint stays on that point and rotates with the node; null
+     * restores auto-flow (nearest-edge). Re-solves immediately.
+     */
+    setConnectionAnchor(targetNodeId: string, which: "source" | "target", anchor: {
+        x: number;
+        y: number;
+    } | null): boolean;
     isEnabled(): boolean;
     updateOptions(options: Partial<ConnectorOptions>): void;
 }
