@@ -428,13 +428,26 @@ export class PanZoom {
   }
 
   public center() {
-    if (this.isEnabled) {
-      const bbox = this.canvas.bbox()
-      const vb = this.canvas.viewbox()
-      const centerX = bbox.cx - vb.width / 2
-      const centerY = bbox.cy - vb.height / 2
-      this.canvas.viewbox(centerX, centerY, vb.width, vb.height)
+    if (!this.isEnabled) return
+    // Center on the NODES' bounding box, not canvas.bbox() — the latter
+    // includes marker/def elements near origin and would pull the view off
+    // the actual content.
+    const nodes = this.slate?.nodes?.allNodes
+    const vb = this.canvas.viewbox()
+    if (!nodes || nodes.length === 0) return
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const node of nodes) {
+      const x = node.options.x ?? 0
+      const y = node.options.y ?? 0
+      const w = node.options.width ?? 100
+      const h = node.options.height ?? 60
+      minX = Math.min(minX, x); minY = Math.min(minY, y)
+      maxX = Math.max(maxX, x + w); maxY = Math.max(maxY, y + h)
     }
+    if (!isFinite(minX)) return
+    const cx = (minX + maxX) / 2
+    const cy = (minY + maxY) / 2
+    this.canvas.viewbox(cx - vb.width / 2, cy - vb.height / 2, vb.width, vb.height)
   }
 
   /** @returns Current zoom level (1 = 100%). */

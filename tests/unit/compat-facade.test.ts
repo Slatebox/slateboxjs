@@ -345,12 +345,15 @@ describe("slate methods (§C)", () => {
     // The bbox math itself is proven engine-side in Slate.test.ts
   });
 
-  it("controller.scaleToFitAndCenter() fits, centers, and calls back", async () => {
+  it("controller.scaleToFitAndCenter() fits (which also centers) and calls back", async () => {
     const s = await initSlate();
     const cb = vi.fn();
     s.controller.scaleToFitAndCenter(cb);
     expect((s.v2 as any).fitToContent).toHaveBeenCalled();
-    expect((s.v2 as any).centerContent).toHaveBeenCalled();
+    // centerContent() is intentionally NOT called — fitToContent already
+    // centers on node bounds; centerContent centers on the origin-
+    // contaminated SVG bbox and would yank the view off content.
+    expect((s.v2 as any).centerContent).not.toHaveBeenCalled();
     expect(cb).toHaveBeenCalled();
   });
 

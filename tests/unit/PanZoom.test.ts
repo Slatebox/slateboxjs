@@ -660,15 +660,18 @@ describe("PanZoom", () => {
       expect(mockSlate.canvas.viewbox).not.toHaveBeenCalled();
     });
 
-    it("center should set viewbox centered on canvas bbox", () => {
-      mockSlate.canvas.bbox.mockReturnValue({ cx: 600, cy: 400, x: 0, y: 0, width: 1200, height: 800 });
+    it("center should set viewbox centered on the NODES' bbox", () => {
+      // Node bounds: (100,50)..(550,400) → center (325, 225)
+      mockSlate.nodes.allNodes = [
+        { options: { x: 100, y: 50, width: 200, height: 150 } },
+        { options: { x: 400, y: 300, width: 150, height: 100 } },
+      ];
       mockSlate.canvas.viewbox.mockReturnValue({ x: 100, y: 50, width: 800, height: 600 });
       const pz = new PanZoom(mockSlate);
       pz.center();
 
-      // centerX = bbox.cx - vb.width/2 = 600 - 400 = 200
-      // centerY = bbox.cy - vb.height/2 = 400 - 300 = 100
-      expect(mockSlate.canvas.viewbox).toHaveBeenCalledWith(200, 100, 800, 600);
+      // centerX = 325 - 800/2 = -75 ; centerY = 225 - 600/2 = -75
+      expect(mockSlate.canvas.viewbox).toHaveBeenCalledWith(-75, -75, 800, 600);
     });
 
     it("center should be a no-op when not enabled", () => {

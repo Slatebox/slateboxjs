@@ -330,9 +330,14 @@ export class Slate {
       this.options.viewPort.originalHeight || Math.round(rect.height) || 600;
     this.options.viewPort.originalWidth = vw;
     this.options.viewPort.originalHeight = vh;
-    const originX = this.options.viewPort.left ?? 5000;
-    const originY = this.options.viewPort.top ?? 5000;
-    this.canvas.viewbox(originX - vw / 2, originY - vh / 2, vw, vh);
+    // Default framing: origin at top-left (matches v1's initial viewBox), so
+    // content near (0,0) is visible immediately. Content placed far away
+    // (e.g. the app seeds nodes near 10000,10000) is framed by the host's
+    // scaleToFitAndCenter/fitToContent after load. Honors an explicit
+    // viewPort.left/top when provided.
+    const originX = this.options.viewPort.left ?? 0;
+    const originY = this.options.viewPort.top ?? 0;
+    this.canvas.viewbox(originX, originY, vw, vh);
 
     // Keep the viewBox 1:1 with the container as it resizes (preserve zoom
     // and center point) so the canvas always fills and never distorts.

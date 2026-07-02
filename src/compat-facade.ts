@@ -443,8 +443,11 @@ class slate {
     this.controller = {
       scaleToFitAndCenter: (cb?: () => void) => {
         this.assertReady();
+        // fitToContent() already frames AND centers on the node bounds.
+        // Do NOT also call centerContent() — it centers on the whole-SVG
+        // bbox (contaminated by marker/def elements near origin) and would
+        // yank the view off the content.
         this.v2!.fitToContent();
-        this.v2!.centerContent();
         cb?.();
       },
     };
