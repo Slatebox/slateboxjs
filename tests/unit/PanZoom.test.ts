@@ -119,7 +119,9 @@ describe("PanZoom", () => {
         expect.objectContaining({
           panning: true,
           pinchZoom: true,
-          wheelZoom: true,
+          // wheel is handled by our own Miro-style handler, so the plugin's
+          // wheelZoom is always disabled regardless of the option
+          wheelZoom: false,
           panButton: 0,
           zoomFactor: 0.3,
           zoomMin: 0.1,

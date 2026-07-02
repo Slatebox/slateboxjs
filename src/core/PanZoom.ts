@@ -66,11 +66,13 @@ export class PanZoom {
 
   private init() {
     try {
-      // svg.panzoom.js extends the svg.js canvas element
+      // svg.panzoom.js handles drag-to-pan (background) and pinch-zoom.
+      // We handle the WHEEL ourselves (below) for Miro-style behavior, so
+      // the plugin's wheelZoom stays off.
       this.canvas.panZoom({
         panning: this.options.panning,
         pinchZoom: this.options.pinchZoom,
-        wheelZoom: this.options.wheelZoom,
+        wheelZoom: false,
         panButton: this.options.panButton,
         oneFingerPan: this.options.oneFingerPan,
         margins: this.options.margins,
@@ -82,6 +84,8 @@ export class PanZoom {
         momentum: this.options.momentum,
         momentumSlowdown: this.options.momentumSlowdown
       })
+
+      this.attachWheelHandler()
 
       this.isEnabled = true
 
@@ -108,6 +112,63 @@ export class PanZoom {
     } catch (error) {
       console.warn('Failed to initialize pan/zoom:', error)
     }
+  }
+
+  private _wheelHandler: ((e: WheelEvent) => void) | null = null
+
+  /**
+   * Miro-style wheel behavior on the canvas:
+   *  - two-finger trackpad scroll (plain wheel) → PAN
+   *  - ctrl/⌘ + wheel (pinch on trackpads, or modifier + wheel) → ZOOM at
+   *    the cursor
+   * Works directly on the viewBox so it's consistent with the infinite
+   * canvas and independent of the plugin's wheel logic.
+   */
+  private attachWheelHandler(): void {
+    const node = this.canvas.node as SVGSVGElement
+    if (!node || typeof node.addEventListener !== "function") return
+    this._wheelHandler = (e: WheelEvent) => {
+      if (!this.isEnabled) return
+      e.preventDefault()
+
+      const vb = this.canvas.viewbox()
+      const rect = node.getBoundingClientRect()
+      const px = rect.width || vb.width
+      const unitsPerPx = vb.width / px
+
+      if (e.ctrlKey || e.metaKey) {
+        // Zoom toward the cursor. deltaY<0 (pinch out / scroll up) zooms in.
+        const factor = Math.exp(-e.deltaY * 0.01)
+        const min = this.options.zoomMin ?? 0.1
+        const max = this.options.zoomMax ?? 10
+        const curZoom = px / vb.width
+        let newZoom = curZoom * factor
+        newZoom = Math.max(min, Math.min(max, newZoom))
+        const newW = px / newZoom
+        const newH = (vb.height / vb.width) * newW
+        // Keep the world point under the cursor fixed
+        const px0 = e.clientX - rect.left
+        const py0 = e.clientY - rect.top
+        const wx = vb.x + px0 * unitsPerPx
+        const wy = vb.y + py0 * (vb.height / rect.height || unitsPerPx)
+        const nx = wx - (px0 / px) * newW
+        const ny = wy - (py0 / (rect.height || px)) * newH
+        this.canvas.viewbox(nx, ny, newW, newH)
+      } else {
+        // Pan by the scroll delta (screen px → world units)
+        this.canvas.viewbox(
+          vb.x + e.deltaX * unitsPerPx,
+          vb.y + e.deltaY * unitsPerPx,
+          vb.width,
+          vb.height
+        )
+      }
+
+      // Notify listeners (coordinate display, followMe broadcast on panEnd)
+      this.options.onPan?.(e)
+      this.options.onZoom?.(e)
+    }
+    node.addEventListener("wheel", this._wheelHandler, { passive: false })
   }
 
   private createZoomControls(): void {
@@ -402,6 +463,10 @@ export class PanZoom {
   }
 
   public destroy() {
+    if (this._wheelHandler && this.canvas.node?.removeEventListener) {
+      this.canvas.node.removeEventListener("wheel", this._wheelHandler)
+      this._wheelHandler = null
+    }
     if (this.isEnabled) {
       this.canvas.panZoom(false)
 

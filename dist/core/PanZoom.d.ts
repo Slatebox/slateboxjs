@@ -40,6 +40,16 @@ export declare class PanZoom {
      */
     constructor(slate: any, options?: PanZoomOptions);
     private init;
+    private _wheelHandler;
+    /**
+     * Miro-style wheel behavior on the canvas:
+     *  - two-finger trackpad scroll (plain wheel) → PAN
+     *  - ctrl/⌘ + wheel (pinch on trackpads, or modifier + wheel) → ZOOM at
+     *    the cursor
+     * Works directly on the viewBox so it's consistent with the infinite
+     * canvas and independent of the plugin's wheel logic.
+     */
+    private attachWheelHandler;
     private createZoomControls;
     private removeZoomControls;
     enable(): void;
