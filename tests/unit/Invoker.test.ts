@@ -183,7 +183,8 @@ describe("Invoker", () => {
       invoker.onNodeRotated(pkg);
 
       expect(mockNode.options.textOffset).toBe(90);
-      expect(mockNode.setRotation).toHaveBeenCalledWith(45);
+      // Remote-applied rotation is animated (bug #5): setRotation(angle, duration)
+    expect(mockNode.setRotation).toHaveBeenCalledWith(45, 400);
     });
 
     it("should do nothing when node is not found", () => {

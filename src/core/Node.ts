@@ -1173,12 +1173,41 @@ export class Node {
    *
    * @param angle - Rotation in degrees (positive = clockwise)
    */
-  public setRotation(angle: number) {
+  public setRotation(angle: number, duration?: number) {
     if (!this.options.rotate) {
       this.options.rotate = { rotationAngle: 0 };
     }
-    this.options.rotate.rotationAngle = angle;
-    this.applyPositionAndRotation();
+    const start = this.options.rotate.rotationAngle || 0;
+    const canAnimate =
+      !!duration &&
+      duration > 0 &&
+      typeof requestAnimationFrame !== "undefined" &&
+      typeof performance !== "undefined" &&
+      start !== angle;
+
+    if (canAnimate) {
+      // Tween the angle so a remotely-applied rotation animates in this window
+      // instead of snapping (collab bug #5) — same easing as the move tween.
+      const delta = angle - start;
+      const t0 = performance.now();
+      const step = () => {
+        if (this._destroyed || !this.svgGroup || !this.options.rotate) return;
+        const p = Math.min(1, (performance.now() - t0) / (duration as number));
+        const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        this.options.rotate.rotationAngle = start + delta * e;
+        this.applyPositionAndRotation();
+        if (p < 1) {
+          requestAnimationFrame(step);
+        } else {
+          this.options.rotate.rotationAngle = angle;
+          this.applyPositionAndRotation();
+        }
+      };
+      requestAnimationFrame(step);
+    } else {
+      this.options.rotate.rotationAngle = angle;
+      this.applyPositionAndRotation();
+    }
   }
 
   /**

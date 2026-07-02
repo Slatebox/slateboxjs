@@ -241,7 +241,7 @@ export declare class Node {
      *
      * @param angle - Rotation in degrees (positive = clockwise)
      */
-    setRotation(angle: number): void;
+    setRotation(angle: number, duration?: number): void;
     /**
      * Set the group's transform to translate(options.x, options.y) followed by a
      * rotation around the node's visual center. The shape/text are drawn at the

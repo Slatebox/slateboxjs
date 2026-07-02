@@ -168,7 +168,9 @@ export class Invoker {
       const angle =
         pkg.data.rotate?.rotationAngle ?? pkg.data.rotationAngle
       if (typeof angle === 'number') {
-        node.setRotation(angle)
+        // Animate remotely-applied rotation (collab bug #5) so it glides in
+        // this window like drag does, instead of snapping.
+        node.setRotation(angle, 400)
       }
       if (pkg.data.width && pkg.data.height) {
         node.setSize(pkg.data.width, pkg.data.height)
