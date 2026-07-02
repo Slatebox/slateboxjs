@@ -51,6 +51,8 @@ export declare class Collab {
     private isConnected;
     private clientID;
     private cursorElements;
+    private _cursorMoveHandler;
+    private _cursorTrackingNode;
     /** Connection/user payload returned by the host's onInitCollaboration */
     userBaseData?: Record<string, any>;
     constructor(slate: Slate, options?: CollabOptions);
@@ -87,7 +89,19 @@ export declare class Collab {
     updateUserData(data: Record<string, any>): void;
     updateCursor(x: number, y: number): void;
     /**
-     * Render a remote cursor on the canvas.
+     * Track this client's pointer over the canvas and broadcast its WORLD
+     * position (via the SVG CTM, so it's pan/zoom-independent) to peers. Remote
+     * clients render it through renderCursor(). Throttled to ~25fps.
+     */
+    private setupCursorTracking;
+    /**
+     * Render (or update) remote collaborators' cursors and remove cursors for
+     * clients that have left. Called on every awareness change.
+     */
+    private renderRemoteCursors;
+    /**
+     * Render a remote cursor on the canvas, reusing its group across updates so
+     * frequent cursor moves don't thrash the DOM.
      */
     renderCursor(user: CollabUser): void;
     /**

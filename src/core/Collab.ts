@@ -53,6 +53,8 @@ export class Collab {
   private isConnected: boolean = false;
   private clientID: number = 0;
   private cursorElements: Map<number, any> = new Map();
+  private _cursorMoveHandler: ((e: any) => void) | null = null;
+  private _cursorTrackingNode: any = null;
   /** Connection/user payload returned by the host's onInitCollaboration */
   public userBaseData?: Record<string, any>;
 
@@ -162,13 +164,17 @@ export class Collab {
         color: this.options.userColor,
       });
 
-      // Listen for awareness changes
+      // Listen for awareness changes (presence + remote cursor movement)
       const notifyUsersChanged = () => {
         const users = this.getCollabUsers();
         this.options.onAwarenessChange?.(users);
         this.slate.options.events?.onCollaborationUsersChanged?.(users);
+        this.renderRemoteCursors(users);
       };
       this.awareness.on("change", notifyUsersChanged);
+
+      // Broadcast this client's pointer position so peers can show its cursor
+      this.setupCursorTracking();
 
       // Same-origin peers sync over y-websocket's BroadcastChannel INSIDE the
       // provider constructor — their states can land before the listener
@@ -308,38 +314,79 @@ export class Collab {
   }
 
   /**
-   * Render a remote cursor on the canvas.
+   * Track this client's pointer over the canvas and broadcast its WORLD
+   * position (via the SVG CTM, so it's pan/zoom-independent) to peers. Remote
+   * clients render it through renderCursor(). Throttled to ~25fps.
+   */
+  private setupCursorTracking(): void {
+    const node = this.slate.canvas?.node;
+    if (!node || typeof node.addEventListener !== "function") return;
+    if (this._cursorMoveHandler) return; // already tracking
+    let last = 0;
+    this._cursorMoveHandler = (e: any) => {
+      const now =
+        typeof performance !== "undefined" ? performance.now() : +new Date();
+      if (now - last < 40) return;
+      last = now;
+      try {
+        // canvas.point() maps client coords → SVG user (world) coords
+        const p = this.slate.canvas.point(e.clientX, e.clientY);
+        this.updateCursor(p.x, p.y);
+      } catch (_) {
+        /* noop */
+      }
+    };
+    node.addEventListener("pointermove", this._cursorMoveHandler);
+    this._cursorTrackingNode = node;
+  }
+
+  /**
+   * Render (or update) remote collaborators' cursors and remove cursors for
+   * clients that have left. Called on every awareness change.
+   */
+  private renderRemoteCursors(users: CollabUser[]): void {
+    if (!this.slate.canvas) return;
+    const present = new Set(users.map((u) => u.clientID));
+    for (const [id, el] of this.cursorElements) {
+      if (!present.has(id)) {
+        try {
+          el.remove();
+        } catch (_) {
+          /* noop */
+        }
+        this.cursorElements.delete(id);
+      }
+    }
+    for (const u of users) {
+      if (u.cursor) this.renderCursor(u);
+    }
+  }
+
+  /**
+   * Render a remote cursor on the canvas, reusing its group across updates so
+   * frequent cursor moves don't thrash the DOM.
    */
   public renderCursor(user: CollabUser): void {
     if (!user.cursor || !this.slate.canvas) return;
 
-    // Remove old cursor
-    const existing = this.cursorElements.get(user.clientID);
-    if (existing) {
-      existing.remove();
+    let g = this.cursorElements.get(user.clientID);
+    if (!g || !g.node || !g.node.parentNode) {
+      g = this.slate.canvas.group();
+      g.polygon("0,0 0,15 10,12")
+        .fill(user.color)
+        .stroke({ color: "#fff", width: 1 });
+      g.text(user.userName)
+        .font({ size: 10, fill: "#fff" })
+        .move(12, 8)
+        .attr("paint-order", "stroke")
+        .attr("stroke", user.color)
+        .attr("stroke-width", 3);
+      g.attr("pointer-events", "none");
+      this.cursorElements.set(user.clientID, g);
     }
-
-    // Create cursor group
-    const g = this.slate.canvas.group();
-
-    // Cursor triangle
-    g.polygon("0,0 0,15 10,12")
-      .fill(user.color)
-      .stroke({ color: "#fff", width: 1 });
-
-    // Username label
-    g.text(user.userName)
-      .font({ size: 10, fill: "#fff" })
-      .move(12, 8)
-      .attr("paint-order", "stroke")
-      .attr("stroke", user.color)
-      .attr("stroke-width", 3);
-
-    // Position at cursor location
-    g.move(user.cursor.x, user.cursor.y);
-    g.attr("pointer-events", "none");
-
-    this.cursorElements.set(user.clientID, g);
+    // Position in world space (the group lives in the canvas viewBox), so it
+    // lands at the right spot regardless of each viewer's pan/zoom.
+    g.transform({ translateX: user.cursor.x, translateY: user.cursor.y });
   }
 
   /**
@@ -369,7 +416,19 @@ export class Collab {
    * Disconnect from collaboration.
    */
   public disconnect(): void {
-    // Remove all cursor elements
+    // Stop broadcasting local pointer + remove all rendered cursors
+    if (this._cursorMoveHandler && this._cursorTrackingNode) {
+      try {
+        this._cursorTrackingNode.removeEventListener(
+          "pointermove",
+          this._cursorMoveHandler
+        );
+      } catch (_) {
+        /* noop */
+      }
+    }
+    this._cursorMoveHandler = null;
+    this._cursorTrackingNode = null;
     for (const [, element] of this.cursorElements) {
       element.remove();
     }
