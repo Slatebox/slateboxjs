@@ -25,6 +25,11 @@ export interface Association {
   // is a synthetic __free_* id); sourcePoint set ⇒ the source end floats.
   sourcePoint?: { x: number; y: number } | null;
   targetPoint?: { x: number; y: number } | null;
+  // Per-endpoint locking (L5): a normalized local anchor {x,y} 0..1 pins the
+  // endpoint to a fixed spot on the node (ABSOLUTE, rotates/moves with it);
+  // null = RELATIVE (auto-flow, re-solves to the nearest edge).
+  sourceAnchor?: { x: number; y: number } | null;
+  targetAnchor?: { x: number; y: number } | null;
 }
 
 /** Create a default association between two node IDs */

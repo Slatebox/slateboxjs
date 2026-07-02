@@ -147,9 +147,31 @@ export class Relationships {
       }
     }
     if (!assoc) return false;
-    (assoc as any)[prop] = val;
     const connId = `${this.node.id}->${assoc.childId}`;
-    this.node.connector?.updateConnection(connId, { [prop]: val } as any);
+
+    // L5 locking: prop 'sourceLock'/'targetLock' with val 'absolute'|'relative'
+    // toggles the endpoint's anchor. Persist the resolved anchor on the record.
+    if (prop === "sourceLock" || prop === "targetLock") {
+      const which = prop === "sourceLock" ? "source" : "target";
+      const anchor = this.node.connector?.setEndpointLock(
+        connId,
+        which,
+        val === "absolute" ? "absolute" : "relative"
+      );
+      (assoc as any)[which + "Anchor"] = anchor ?? null;
+      return true;
+    }
+
+    (assoc as any)[prop] = val;
+    // Anchor props set directly re-solve the connector; others restyle it.
+    if (prop === "sourceAnchor" || prop === "targetAnchor") {
+      const which = prop === "sourceAnchor" ? "source" : "target";
+      const connection = this.node.connector?.getConnections?.()
+        .find((c: any) => c.id === connId);
+      (connection as any)?.connectable?.setAttachmentAnchor?.(which, val);
+    } else {
+      this.node.connector?.updateConnection(connId, { [prop]: val } as any);
+    }
     return true;
   }
 

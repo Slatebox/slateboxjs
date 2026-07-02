@@ -16,7 +16,12 @@
 import { Element, SVG, extend } from "@svgdotjs/svg.js";
 
 // Import utility modules
-import { computeConnectorCoordinates } from "./utils/geometry.js";
+import {
+  computeConnectorCoordinates,
+  getElementCenter,
+  getClosestPointOnEdge,
+  svgCoordsToLocal,
+} from "./utils/geometry.js";
 import {
   setMarker,
   setMarkerSettings,
@@ -295,6 +300,51 @@ function connectable(options, elmTarget) {
   con.setConnectorColor = function (color) {
     setConnectorColor(con, color);
     return con;
+  };
+
+  // Fully remove this connector's DOM (line, hit area, handles, markers, and
+  // any free-floating phantom rects). Without this, removing a connection left
+  // the SVG elements behind as "rogue lines" (the caller only knew con.line/
+  // con.marker, which don't exist — the real elements are con.connector etc.).
+  con.remove = function () {
+    const rm = (el) => {
+      try {
+        el && el.remove && el.remove();
+      } catch (e) {
+        /* noop */
+      }
+    };
+    rm(con.connector);
+    rm(con.hitArea);
+    rm(con.sourceHandle && con.sourceHandle.element);
+    rm(con.targetHandle && con.targetHandle.element);
+    rm(con.markerSource);
+    rm(con.markerTarget);
+    rm(con._sourcePhantomRect);
+    rm(con._targetPhantomRect);
+    return con;
+  };
+
+  // Compute the endpoint's CURRENT attachment as a normalized local anchor
+  // {x,y} in 0..1 on the node — used to switch an endpoint to ABSOLUTE lock
+  // (freeze it where it is now) for L5.
+  con.getCurrentAnchor = function (which) {
+    const shape = which === "source" ? con.source : con.target;
+    const other = which === "source" ? con.target : con.source;
+    if (!shape || !shape.bbox || !other) return { x: 0.5, y: 0.5 };
+    try {
+      const otherCenter = getElementCenter(other);
+      const edge = getClosestPointOnEdge(shape, otherCenter); // world coords
+      const local = svgCoordsToLocal(shape, edge[0], edge[1]);
+      const bb = shape.bbox();
+      if (!bb.width || !bb.height) return { x: 0.5, y: 0.5 };
+      return {
+        x: (local[0] - bb.x) / bb.width,
+        y: (local[1] - bb.y) / bb.height,
+      };
+    } catch (e) {
+      return { x: 0.5, y: 0.5 };
+    }
   };
 
   // Edge-pin API: pin (or unpin with null) an endpoint to a normalized local

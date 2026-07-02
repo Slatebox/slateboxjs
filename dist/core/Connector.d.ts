@@ -92,6 +92,16 @@ export declare class Connector {
      * view-only endpoint for now (no rogue model state).
      */
     private handleEndpointChange;
+    /**
+     * L5 per-endpoint locking. mode "absolute" freezes the endpoint at its
+     * current spot on the node (a normalized local anchor that then moves/rotates
+     * with the node); "relative" clears it back to auto-flow (nearest-edge).
+     * Returns the anchor that was set (or null) so callers can persist it.
+     */
+    setEndpointLock(connectionId: string, which: "source" | "target", mode: "absolute" | "relative"): {
+        x: number;
+        y: number;
+    } | null;
     isEnabled(): boolean;
     updateOptions(options: Partial<ConnectorOptions>): void;
 }

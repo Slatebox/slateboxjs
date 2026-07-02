@@ -574,6 +574,31 @@ export class Connector {
     }, 0);
   }
 
+  /**
+   * L5 per-endpoint locking. mode "absolute" freezes the endpoint at its
+   * current spot on the node (a normalized local anchor that then moves/rotates
+   * with the node); "relative" clears it back to auto-flow (nearest-edge).
+   * Returns the anchor that was set (or null) so callers can persist it.
+   */
+  public setEndpointLock(
+    connectionId: string,
+    which: "source" | "target",
+    mode: "absolute" | "relative"
+  ): { x: number; y: number } | null {
+    const connection = this.connections.get(connectionId);
+    if (!connection) return null;
+    const c: any = connection.connectable;
+    if (mode === "absolute") {
+      const anchor = c?.getCurrentAnchor?.(which) || { x: 0.5, y: 0.5 };
+      (connection as any)[which + "Anchor"] = anchor;
+      c?.setAttachmentAnchor?.(which, anchor);
+      return anchor;
+    }
+    (connection as any)[which + "Anchor"] = null;
+    c?.setAttachmentAnchor?.(which, null);
+    return null;
+  }
+
   public isEnabled(): boolean {
     return this.isActive;
   }

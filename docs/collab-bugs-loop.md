@@ -17,10 +17,14 @@ L1a DONE [5097839]: endpoint-drag reattach to a node syncs+persists. The handle 
 "beforedrag never fires" was the chat panel overlapping that spot). Real bug was data-node-id read null
 (findDropTarget returns the SHAPE child; group carries the id) → now walk up to the group. Reattach rebuilds
 the association (remove+add) → broadcasts + persists. Verified live 2-window + reload.
-REMAINING: L1b free-float bare-point endpoint (drop on empty canvas → phantom persists as {x,y}; needs
-endpoint = node-ref OR point in Association + serialize + collab + handleEndpointChange phantom branch), L5
-(relative/absolute locking toggle in pane; builds on setConnectionAnchor), L4 (no rogue lines). Also app-side:
-chat panel (MuiPaper) overlaps canvas + intercepts handle grabs over its region (z-order).
+L1b DONE [db0ea35]: free-floating endpoints — Association.sourcePoint/targetPoint; Connector.connectToPoint
+(phantom-backed); addFloatingAssociation; handleEndpointChange phantom branch rebuilds as floating; deserialize
++ NodesManager + compat carry it. Verified live: drag endpoint to empty canvas → floating, syncs + persists.
+L4 DONE [db0ea35]: disconnect removed con.line/con.marker which NEVER existed (real: con.connector/hitArea/
+handles/markers) → added con.remove() + call from disconnectById. Rebuild leaves exactly 1 line, no orphans.
+REMAINING: L5 (per-endpoint locking mode in the line pane — RELATIVE=auto-flow vs ABSOLUTE=pinned anchor;
+builds on setConnectionAnchor; needs Association.sourceAnchor/targetAnchor persisted + pane toggle + collab).
+Also app-side: chat panel (MuiPaper) overlaps canvas + intercepts handle grabs over its region (z-order).
 - L1. Snap-anywhere endpoints: source AND target endpoints draggable. Drop on a node → connect/snap;
   drop on empty canvas → free-floating (disconnected). Connect + disconnect by dragging the line end.
 - L2. Line properties pane (v1 parity): line TYPE selectable — orthogonal, bezier, straight/linear, etc.

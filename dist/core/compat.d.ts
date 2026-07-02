@@ -51,6 +51,14 @@ export interface V2Association {
         x: number;
         y: number;
     } | null;
+    sourceAnchor?: {
+        x: number;
+        y: number;
+    } | null;
+    targetAnchor?: {
+        x: number;
+        y: number;
+    } | null;
 }
 /** Convert v1 association to v2 format */
 export declare function v1AssociationToV2(v1: Record<string, any>): V2Association;

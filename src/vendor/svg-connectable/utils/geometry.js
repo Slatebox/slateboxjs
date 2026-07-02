@@ -465,4 +465,5 @@ export {
   getElementCenter,
   getClosestPointOnEdge,
   computeConnectorCoordinates,
+  svgCoordsToLocal,
 };

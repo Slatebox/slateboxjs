@@ -143,6 +143,8 @@ export interface V2Association {
   // Free-floating endpoints (L1b)
   sourcePoint?: { x: number; y: number } | null;
   targetPoint?: { x: number; y: number } | null;
+  sourceAnchor?: { x: number; y: number } | null;
+  targetAnchor?: { x: number; y: number } | null;
 }
 
 /** Convert v1 association to v2 format */
@@ -163,6 +165,8 @@ export function v1AssociationToV2(v1: Record<string, any>): V2Association {
     showChildArrow: v1.showChildArrow ?? true,
     sourcePoint: v1.sourcePoint ?? null,
     targetPoint: v1.targetPoint ?? null,
+    sourceAnchor: v1.sourceAnchor ?? null,
+    targetAnchor: v1.targetAnchor ?? null,
   };
 }
 
@@ -183,6 +187,8 @@ export function v2AssociationToV1(v2: V2Association): Record<string, any> {
     showChildArrow: v2.showChildArrow,
     sourcePoint: v2.sourcePoint ?? null,
     targetPoint: v2.targetPoint ?? null,
+    sourceAnchor: v2.sourceAnchor ?? null,
+    targetAnchor: v2.targetAnchor ?? null,
   };
 }
 
