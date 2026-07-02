@@ -7836,7 +7836,7 @@ class Vi {
     if (!isFinite(e)) return;
     const a = s - e, r = o - i, l = 50, h = a + l * 2, c = r + l * 2, d = this.containerPx(), u = d.w / d.h, f = h / c;
     let g = h, p = c;
-    f > u ? p = g / u : g = p * u;
+    f > u ? p = g / u : g = p * u, g < d.w && (g = d.w, p = d.h);
     const y = e + a / 2, m = i + r / 2;
     this.canvas.viewbox(
       y - g / 2,

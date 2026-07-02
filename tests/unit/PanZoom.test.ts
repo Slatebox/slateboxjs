@@ -620,22 +620,19 @@ describe("PanZoom", () => {
       mockSlate.canvas.viewbox.mockReturnValue({});
       pz.fit();
 
-      // Content bounds: minX=100, minY=50, maxX=550, maxY=400
-      // contentWidth=450, contentHeight=350
-      // vbWidth=550, vbHeight=450
-      // containerAspect=800/600=1.333, contentAspect=550/450=1.222
-      // contentAspect < containerAspect => finalW = finalH * containerAspect
-      // finalH = vbHeight = 450, finalW = 450 * 1.333 = 600
-      // cx=100+225=325, cy=50+175=225
-      // viewbox(325-300=25, 225-225=0, 600, 450)
+      // Content bounds: minX=100, minY=50, maxX=550, maxY=400 → 450x350.
+      // Aspect-corrected finalW would be 600 (< container 800), so the
+      // no-zoom-in cap enlarges the viewBox to the container px size
+      // (800x600) centered on the content center (325, 225):
+      // viewbox(325-400=-75, 225-300=-75, 800, 600)
       expect(mockSlate.canvas.viewbox).toHaveBeenCalled();
       const args = mockSlate.canvas.viewbox.mock.calls[
         mockSlate.canvas.viewbox.mock.calls.length - 1
       ];
-      expect(Math.round(args[0])).toBe(25); // cx - finalW/2
-      expect(Math.round(args[1])).toBe(0); // cy - finalH/2
-      expect(Math.round(args[2])).toBe(600); // finalW
-      expect(Math.round(args[3])).toBe(450); // finalH
+      expect(Math.round(args[0])).toBe(-75); // cx - finalW/2
+      expect(Math.round(args[1])).toBe(-75); // cy - finalH/2
+      expect(Math.round(args[2])).toBe(800); // finalW (capped to container)
+      expect(Math.round(args[3])).toBe(600); // finalH (capped to container)
     });
 
     it("fit should return early when there are no nodes", () => {

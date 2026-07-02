@@ -346,6 +346,14 @@ export class PanZoom {
       finalW = finalH * containerAspect
     }
 
+    // Never zoom IN past 1:1 just to fill (Miro/v1 behavior): the viewBox is
+    // at least the container's pixel size, so small content sits at 100%
+    // centered rather than blown up to 400%+. Larger content still zooms out.
+    if (finalW < px.w) {
+      finalW = px.w
+      finalH = px.h
+    }
+
     const cx = minX + contentWidth / 2
     const cy = minY + contentHeight / 2
     this.canvas.viewbox(
