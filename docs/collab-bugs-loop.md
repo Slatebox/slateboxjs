@@ -6,9 +6,15 @@ pane {prop,val,associationId,id} → relationships.applyLineProperty (updates as
 real connectable setters setConnectorColor/setStrokeWidth/setType/setMarker; type map bezier→curved/
 orthogonal/straight); connectTo+renderAssociation honor per-connection type/curviness/arrows so saved type
 renders on create AND reload. Verified live 2-window (bezier→orthogonal syncs A→B + persists reload of both).
-REMAINING: L1 (draggable endpoints / snap-anywhere / free-floating — biggest, needs endpoint = node-ref OR
-bare point in model+serialize+collab), L5 (relative/absolute locking mode toggle in pane; builds on
-setConnectionAnchor), L4 (no rogue lines — cross-cutting discipline).
+L1 IN PROGRESS [4845d95 foundation]: model hook wired — attachHandleToTarget fires con.onEndpointChange →
+Connector.handleEndpointChange rebuilds the association (remove+add) on node reattach (broadcasts+persists);
+phantom/free-float = L1b pending (needs bare-point endpoint in model+serialize). BLOCKERS found live: (a) the
+connector handle's svg.draggable does NOT fire (beforedrag never triggers) in the SVG.js3/panzoom setup — the
+handle has a draggable instance but pointer-drag doesn't start it; likely panzoom pointer interception or
+handle event wiring. FIX THIS FIRST — nothing downstream works until the handle drag fires. (b) app chat panel
+(MuiPaper 200px) overlaps the canvas and intercepts pointer events over part of it (z-order; app-side).
+REMAINING: L1a drag-firing repair, L1b free-float bare-point model, L5 (relative/absolute locking toggle in
+pane; builds on setConnectionAnchor), L4 (no rogue lines).
 - L1. Snap-anywhere endpoints: source AND target endpoints draggable. Drop on a node → connect/snap;
   drop on empty canvas → free-floating (disconnected). Connect + disconnect by dragging the line end.
 - L2. Line properties pane (v1 parity): line TYPE selectable — orthogonal, bezier, straight/linear, etc.
