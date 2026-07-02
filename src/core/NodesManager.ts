@@ -104,6 +104,10 @@ export class NodesManager {
       );
       return;
     }
+    // Idempotent: skip if the association already exists. Guards against a
+    // duplicate line / broadcast echo loop when the same package arrives via
+    // more than one collab path (yjs observer + host relay).
+    if ((parent as any).relationships?.getAssociation?.(childId)) return;
     (parent as any).relationships?.addAssociation(child, relationshipData);
   }
 

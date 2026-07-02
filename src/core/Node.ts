@@ -2313,32 +2313,30 @@ export class Node {
   }
 
   private connectToNode(targetNode: any): void {
-    if (!this.connector) {
-      console.warn("CONNECTION_HANDLES_DEBUG: Connector not initialized for", this.id);
+    // Route through the RELATIONSHIPS model, not connector.connectTo() directly.
+    // addAssociation() (a) records the association in assocMap so it serializes
+    // and survives a reload, (b) renders the connector line, and (c) broadcasts
+    // "addRelationship" so peers get it too. Calling connector.connectTo()
+    // directly was visual-only — the line neither synced to collaborators nor
+    // survived a refresh (collab bugs #3 + #6).
+    if (this.relationships) {
+      // Don't duplicate an existing association
+      if (this.relationships.getAssociation?.(targetNode.id)) {
+        return;
+      }
+      this.relationships.addAssociation(targetNode);
       return;
     }
-    if (!this.connector.isEnabled()) {
-      console.log("CONNECTION_HANDLES_DEBUG: Enabling connector for", this.id);
-      this.connector.enable();
-    }
 
-    console.log(
-      "CONNECTION_HANDLES_DEBUG: Connecting",
-      this.id,
-      "to",
-      targetNode.id
-    );
-
-    // Create connection using the Connector class which will use svg.connectable.js
-    const connection = this.connector.connectTo(targetNode);
-
-    if (connection) {
-      console.log(
-        "CONNECTION_HANDLES_DEBUG: Successfully created connection",
-        connection.id
+    // Fallback (relationships unavailable): visual-only connector
+    if (!this.connector) {
+      console.warn(
+        "CONNECTION_HANDLES_DEBUG: Connector not initialized for",
+        this.id
       );
-    } else {
-      console.error("CONNECTION_HANDLES_DEBUG: Failed to create connection");
+      return;
     }
+    if (!this.connector.isEnabled()) this.connector.enable();
+    this.connector.connectTo(targetNode);
   }
 }
