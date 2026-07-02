@@ -60,20 +60,41 @@ test.describe("presence cursors (§I)", () => {
       const rendered = await waitFor(() => {
         const users = b.v2.collab.getCollabUsers();
         const hasCursor = users.some((u: any) => u.cursor);
+        // The styled cursor renders an arrow pointer polygon in #curB
         const dom = document
           .querySelector("#curB")
           ?.querySelectorAll("polygon");
-        const triangle = dom
+        const pointer = dom
           ? Array.from(dom).some((p) =>
-              (p.getAttribute("points") || "").includes("0,15")
+              (p.getAttribute("points") || "").includes("17")
             )
           : false;
-        return hasCursor && triangle;
+        return hasCursor && pointer;
       }, 8000);
 
       const bUsers = b.v2.collab.getCollabUsers();
       const aFromB = bUsers.find((u: any) => u.cursor);
       const bCursorEls = b.v2.collab.cursorElements?.size ?? -1;
+
+      // Styled label: white rounded-rect background + name in the user's color
+      const curB = document.querySelector("#curB");
+      const labelRect = curB
+        ? Array.from(curB.querySelectorAll("rect")).find(
+            (r) =>
+              r.getAttribute("rx") === "6" &&
+              (r.getAttribute("fill") || "").toLowerCase().includes("fff")
+          )
+        : null;
+      const nameText = curB
+        ? Array.from(curB.querySelectorAll("text")).find(
+            (t) => t.textContent === "Alice"
+          )
+        : null;
+      const styled = {
+        hasWhiteRoundedLabel: !!labelRect,
+        nameInUserColor:
+          (nameText?.getAttribute("fill") || "").toLowerCase() === "#12ab34",
+      };
 
       // A should NOT render its own cursor (self is skipped)
       const aRendersSelf = a.v2.collab
@@ -89,6 +110,7 @@ test.describe("presence cursors (§I)", () => {
           : null,
         bCursorEls,
         aRendersSelf,
+        styled,
       };
     });
 
@@ -98,5 +120,8 @@ test.describe("presence cursors (§I)", () => {
     expect(result.remoteCursor).toEqual({ x: 220, y: 140 });
     expect(result.bCursorEls).toBe(1);
     expect(result.aRendersSelf).toBe(false);
+    // Styled presence cursor (not a bare triangle + plain text)
+    expect(result.styled.hasWhiteRoundedLabel).toBe(true);
+    expect(result.styled.nameInUserColor).toBe(true);
   });
 });

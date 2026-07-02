@@ -372,15 +372,44 @@ export class Collab {
     let g = this.cursorElements.get(user.clientID);
     if (!g || !g.node || !g.node.parentNode) {
       g = this.slate.canvas.group();
-      g.polygon("0,0 0,15 10,12")
+
+      // Arrow pointer in the collaborator's color with a white outline.
+      g.polygon("0,0 0,17 4.5,13 7.5,19.5 10.5,18 7.5,11.5 13,11.5")
         .fill(user.color)
-        .stroke({ color: "#fff", width: 1 });
-      g.text(user.userName)
-        .font({ size: 10, fill: "#fff" })
-        .move(12, 8)
-        .attr("paint-order", "stroke")
-        .attr("stroke", user.color)
-        .attr("stroke-width", 3);
+        .stroke({ color: "#fff", width: 1.2 })
+        .attr("stroke-linejoin", "round");
+
+      // Name label: white rounded-rect background with the name in the user's
+      // color on top (matches the pre-regression presence style).
+      const label = g.group();
+      const name = user.userName || "Anonymous";
+      const txt = label
+        .text(name)
+        .font({ size: 12, family: "Roboto, Helvetica, Arial, sans-serif" })
+        .fill(user.color);
+      let tw = 60;
+      let th = 16;
+      try {
+        const bb = txt.bbox();
+        if (bb && bb.width) {
+          tw = bb.width;
+          th = bb.height;
+        }
+      } catch (_) {
+        /* bbox unavailable — use fallback size */
+      }
+      const padX = 8;
+      const padY = 4;
+      const rect = label
+        .rect(tw + padX * 2, th + padY * 2)
+        .radius(6)
+        .fill("#fff")
+        .stroke({ color: user.color, width: 1 });
+      rect.back(); // behind the text
+      txt.move(padX, padY);
+      // Offset the label from the pointer tip
+      label.transform({ translateX: 16, translateY: 6 });
+
       g.attr("pointer-events", "none");
       this.cursorElements.set(user.clientID, g);
     }
