@@ -7734,7 +7734,7 @@ class Vi {
       e.preventDefault();
       const i = this.canvas.viewbox(), s = t.getBoundingClientRect(), o = s.width || i.width, a = i.width / o;
       if (e.ctrlKey || e.metaKey) {
-        const r = Math.exp(-e.deltaY * 0.01), l = this.options.zoomMin ?? 0.1, h = this.options.zoomMax ?? 10;
+        const r = Math.exp(-e.deltaY * 25e-4), l = this.options.zoomMin ?? 0.1, h = this.options.zoomMax ?? 10;
         let d = o / i.width * r;
         d = Math.max(l, Math.min(h, d));
         const u = o / d, f = i.height / i.width * u, g = e.clientX - s.left, p = e.clientY - s.top, y = i.x + g * a, m = i.y + p * (i.height / s.height || a), b = y - g / o * u, v = m - p / (s.height || o) * f;

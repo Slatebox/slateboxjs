@@ -138,7 +138,9 @@ export class PanZoom {
 
       if (e.ctrlKey || e.metaKey) {
         // Zoom toward the cursor. deltaY<0 (pinch out / scroll up) zooms in.
-        const factor = Math.exp(-e.deltaY * 0.01)
+        // Gentle coefficient so a single wheel notch is a smooth ~1.1-1.2x,
+        // and trackpad pinch (many small deltas) accumulates naturally.
+        const factor = Math.exp(-e.deltaY * 0.0025)
         const min = this.options.zoomMin ?? 0.1
         const max = this.options.zoomMax ?? 10
         const curZoom = px / vb.width
