@@ -70,6 +70,18 @@ export declare class Connector {
         x: number;
         y: number;
     } | null): boolean;
+    /**
+     * Endpoint-drag → model (L1). The vendored lib has already reattached the
+     * VIEW when this fires; we reconcile the association MODEL so the change
+     * broadcasts to peers and persists. Reattaching to a node rebuilds the
+     * association (remove old + add new) through the already-synced/persisted
+     * addAssociation/removeAssociation. Deferred a tick so the lib's dragend
+     * finishes before we tear down/recreate the connection.
+     *
+     * Free-floating (phantom) drops are L1b — not yet persisted; left as a
+     * view-only endpoint for now (no rogue model state).
+     */
+    private handleEndpointChange;
     isEnabled(): boolean;
     updateOptions(options: Partial<ConnectorOptions>): void;
 }

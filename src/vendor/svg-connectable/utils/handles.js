@@ -990,6 +990,38 @@ function attachHandleToTarget(con, handleObj, target) {
       handleObj.element.center(newPosition[0], newPosition[1]);
     }
   }
+
+  // Notify the host model that an endpoint changed (reattached to a node, or a
+  // free-floating phantom drop) so it can update the association, broadcast to
+  // peers, and persist. The vendored lib is view-only; Connector wires this.
+  if (typeof con.onEndpointChange === "function") {
+    const isPhantom = !!target._isPhantomRect;
+    let targetNodeId = null;
+    if (!isPhantom) {
+      try {
+        targetNodeId =
+          (target.node &&
+            target.node.getAttribute &&
+            target.node.getAttribute("data-node-id")) ||
+          (target.attr && target.attr("data-node-id")) ||
+          null;
+      } catch (e) {
+        /* noop */
+      }
+    }
+    let point = null;
+    try {
+      point = { x: target.cx(), y: target.cy() };
+    } catch (e) {
+      /* noop */
+    }
+    con.onEndpointChange({
+      which: handleObj.isSource ? "source" : "target",
+      targetNodeId,
+      isPhantom,
+      point,
+    });
+  }
 }
 
 // Keep track of currently highlighted target to avoid re-applying

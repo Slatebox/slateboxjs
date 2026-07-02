@@ -267,6 +267,12 @@ export class Connector {
       // Store the connection
       this.connections.set(connectionId, connection);
 
+      // Wire endpoint-drag → model. When the user drags a source/target handle
+      // and drops it, the vendored lib reattaches the VIEW; this callback
+      // updates the association model, broadcasts to peers, and persists (L1).
+      connectableObj.onEndpointChange = (info: any) =>
+        this.handleEndpointChange(connection, info);
+
       // Also store on target node (for bidirectional lookup)
       if (targetNode.connector) {
         const reverseId = `${targetNode.id}<-${this.node.id}`;
@@ -471,6 +477,57 @@ export class Connector {
     else connection.targetAnchor = anchor;
     connection.connectable?.setAttachmentAnchor?.(which, anchor);
     return true;
+  }
+
+  /**
+   * Endpoint-drag → model (L1). The vendored lib has already reattached the
+   * VIEW when this fires; we reconcile the association MODEL so the change
+   * broadcasts to peers and persists. Reattaching to a node rebuilds the
+   * association (remove old + add new) through the already-synced/persisted
+   * addAssociation/removeAssociation. Deferred a tick so the lib's dragend
+   * finishes before we tear down/recreate the connection.
+   *
+   * Free-floating (phantom) drops are L1b — not yet persisted; left as a
+   * view-only endpoint for now (no rogue model state).
+   */
+  private handleEndpointChange(
+    connection: Connection,
+    info: { which: "source" | "target"; targetNodeId: string | null; isPhantom: boolean; point: any }
+  ): void {
+    const { which, targetNodeId, isPhantom } = info;
+    if (isPhantom || !targetNodeId) return; // L1b pending
+    const newNode = this.slate.nodes.one(targetNodeId);
+    if (!newNode) return;
+
+    const props = {
+      lineColor: connection.lineColor,
+      lineWidth: connection.lineWidth,
+      lineType: (connection as any).lineType,
+      lineCurviness: (connection as any).lineCurviness,
+      showParentArrow: (connection as any).showParentArrow,
+      showChildArrow: (connection as any).showChildArrow,
+    };
+
+    setTimeout(() => {
+      try {
+        if (which === "target") {
+          const parent: any = connection.source;
+          const oldChildId = (connection.target as any)?.id;
+          if (!parent?.relationships || newNode.id === oldChildId) return;
+          if (oldChildId) parent.relationships.removeAssociation(oldChildId);
+          parent.relationships.addAssociation(newNode, props);
+        } else {
+          const oldParent: any = connection.source;
+          const child: any = connection.target;
+          if (!child || !oldParent?.relationships || newNode.id === oldParent.id)
+            return;
+          oldParent.relationships.removeAssociation(child.id);
+          newNode.relationships?.addAssociation(child, props);
+        }
+      } catch (e) {
+        console.warn("CONNECTOR_DEBUG: endpoint change → model failed:", e);
+      }
+    }, 0);
   }
 
   public isEnabled(): boolean {
