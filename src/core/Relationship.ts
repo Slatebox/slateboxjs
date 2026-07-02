@@ -12,13 +12,19 @@ export interface Association {
   lineColor: string;
   lineOpacity: number;
   lineEffect: string;
-  lineType: "bezier" | "linear" | "straight";
+  // bezier | orthogonal | straight | linear | curved (pane + connectable)
+  lineType: string;
   lineCurveType: "cubic" | "quadratic";
   lineCurviness: number;
   lineWidth: number;
   isStraightLine: boolean;
   showParentArrow: boolean;
   showChildArrow: boolean;
+  // Free-floating endpoints (L1b): when an endpoint isn't attached to a node it
+  // holds a bare world point. targetPoint set ⇒ the target end floats (childId
+  // is a synthetic __free_* id); sourcePoint set ⇒ the source end floats.
+  sourcePoint?: { x: number; y: number } | null;
+  targetPoint?: { x: number; y: number } | null;
 }
 
 /** Create a default association between two node IDs */

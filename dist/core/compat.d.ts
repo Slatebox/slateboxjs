@@ -37,12 +37,20 @@ export interface V2Association {
     lineColor: string;
     lineEffect: string;
     lineOpacity: number;
-    lineType: "bezier" | "linear" | "straight";
+    lineType: string;
     lineCurveType: "cubic" | "quadratic";
     lineCurviness: number;
     lineWidth: number;
     showParentArrow: boolean;
     showChildArrow: boolean;
+    sourcePoint?: {
+        x: number;
+        y: number;
+    } | null;
+    targetPoint?: {
+        x: number;
+        y: number;
+    } | null;
 }
 /** Convert v1 association to v2 format */
 export declare function v1AssociationToV2(v1: Record<string, any>): V2Association;

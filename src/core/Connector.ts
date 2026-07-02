@@ -324,6 +324,32 @@ export class Connector {
     }
   }
 
+  /**
+   * Connect this node to a bare WORLD point (free-floating endpoint, L1b).
+   * Backed by an invisible 1px "phantom" rect at the point so the existing
+   * svg.connectable geometry (edge-solve on the target's bbox) works unchanged.
+   * The synthetic id keys the connection like a normal one.
+   */
+  public connectToPoint(
+    point: { x: number; y: number },
+    synthId: string,
+    connectionOptions: Partial<Connection> = {}
+  ): Connection | null {
+    if (!this.isActive) this.enable();
+    const container: any = this.options.lineContainer || this.slate.canvas;
+    if (!container) return null;
+    const phantom = container
+      .rect(1, 1)
+      .move(point.x - 0.5, point.y - 0.5)
+      .fill("none")
+      .opacity(0);
+    (phantom as any)._isPhantomRect = true;
+    const fakeTarget: any = { id: synthId, svgGroup: phantom, _isFloating: true };
+    const conn = this.connectTo(fakeTarget, connectionOptions);
+    if (conn) (conn as any)._phantom = phantom;
+    return conn;
+  }
+
   public disconnectFrom(targetNode: any): boolean {
     const connectionId = `${this.node.id}->${targetNode.id}`;
     return this.disconnectById(connectionId);
@@ -339,12 +365,19 @@ export class Connector {
 
       console.log("CONNECTOR_DEBUG: Disconnecting", connectionId);
 
-      // Remove the connectable object (this should remove the line/marker)
-      if (connection.connectable && connection.connectable.line) {
-        connection.connectable.line.remove();
-      }
-      if (connection.connectable && connection.connectable.marker) {
-        connection.connectable.marker.remove();
+      // Fully remove the connectable's DOM (line + hit area + handles + markers
+      // + phantoms). The connectable exposes con.remove(); the old code removed
+      // con.line/con.marker which don't exist, leaving rogue lines behind (L4).
+      try {
+        if (connection.connectable?.remove) {
+          connection.connectable.remove();
+        } else {
+          connection.connectable?.connector?.remove?.();
+          connection.connectable?.hitArea?.remove?.();
+        }
+        (connection as any)._phantom?.remove?.();
+      } catch (e) {
+        /* noop */
       }
 
       // Remove from both nodes' connection maps
@@ -494,11 +527,7 @@ export class Connector {
     connection: Connection,
     info: { which: "source" | "target"; targetNodeId: string | null; isPhantom: boolean; point: any }
   ): void {
-    const { which, targetNodeId, isPhantom } = info;
-    if (isPhantom || !targetNodeId) return; // L1b pending
-    const newNode = this.slate.nodes.one(targetNodeId);
-    if (!newNode) return;
-
+    const { which, targetNodeId, isPhantom, point } = info;
     const props = {
       lineColor: connection.lineColor,
       lineWidth: connection.lineWidth,
@@ -507,19 +536,34 @@ export class Connector {
       showParentArrow: (connection as any).showParentArrow,
       showChildArrow: (connection as any).showChildArrow,
     };
+    // The connection's ORIGINAL child id (stable in the id `parent->child`),
+    // used to remove the outgoing association before we rebuild it.
+    const origChildId = (connection.id.split("->")[1] || "").trim();
 
     setTimeout(() => {
       try {
         if (which === "target") {
           const parent: any = connection.source;
-          const oldChildId = (connection.target as any)?.id;
-          if (!parent?.relationships || newNode.id === oldChildId) return;
-          if (oldChildId) parent.relationships.removeAssociation(oldChildId);
-          parent.relationships.addAssociation(newNode, props);
+          if (!parent?.relationships) return;
+          if (isPhantom || !targetNodeId) {
+            // Dropped on empty canvas → free-floating target endpoint (L1b)
+            if (!point) return;
+            if (origChildId) parent.relationships.removeAssociation(origChildId);
+            parent.relationships.addFloatingAssociation(point, props);
+          } else {
+            // Reattach to a node (L1a)
+            const newNode = this.slate.nodes.one(targetNodeId);
+            if (!newNode || newNode.id === origChildId) return;
+            if (origChildId) parent.relationships.removeAssociation(origChildId);
+            parent.relationships.addAssociation(newNode, props);
+          }
         } else {
+          // Source-end reattach to a node (source floating not yet modeled)
+          if (isPhantom || !targetNodeId) return;
           const oldParent: any = connection.source;
           const child: any = connection.target;
-          if (!child || !oldParent?.relationships || newNode.id === oldParent.id)
+          const newNode = this.slate.nodes.one(targetNodeId);
+          if (!newNode || !child || !oldParent?.relationships || newNode.id === oldParent.id)
             return;
           oldParent.relationships.removeAssociation(child.id);
           newNode.relationships?.addAssociation(child, props);

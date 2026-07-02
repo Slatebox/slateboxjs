@@ -529,20 +529,20 @@ describe("Connector", () => {
       );
     });
 
-    it("should clean up the connectable line and marker", () => {
+    it("should fully remove the connectable via con.remove()", () => {
       const connector = new Connector(mockNodeA);
       enableConnector(connector);
       const connection = connector.connectTo(mockNodeB);
 
-      const lineRemoveSpy = vi.fn();
-      const markerRemoveSpy = vi.fn();
-      (connection as any).connectable.line = { remove: lineRemoveSpy };
-      (connection as any).connectable.marker = { remove: markerRemoveSpy };
+      // The real connectable exposes remove() (removes connector/hitArea/handles/
+      // markers/phantoms) — the old line/marker props never existed, which is why
+      // disconnect left rogue lines behind.
+      const removeSpy = vi.fn();
+      (connection as any).connectable.remove = removeSpy;
 
       connector.disconnectFrom(mockNodeB);
 
-      expect(lineRemoveSpy).toHaveBeenCalled();
-      expect(markerRemoveSpy).toHaveBeenCalled();
+      expect(removeSpy).toHaveBeenCalled();
     });
 
     it("should clean up the reverse reference on target node", () => {

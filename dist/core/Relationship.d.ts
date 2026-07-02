@@ -11,13 +11,21 @@ export interface Association {
     lineColor: string;
     lineOpacity: number;
     lineEffect: string;
-    lineType: "bezier" | "linear" | "straight";
+    lineType: string;
     lineCurveType: "cubic" | "quadratic";
     lineCurviness: number;
     lineWidth: number;
     isStraightLine: boolean;
     showParentArrow: boolean;
     showChildArrow: boolean;
+    sourcePoint?: {
+        x: number;
+        y: number;
+    } | null;
+    targetPoint?: {
+        x: number;
+        y: number;
+    } | null;
 }
 /** Create a default association between two node IDs */
 export declare function createDefaultAssociation(parentId: string, childId: string, overrides?: Partial<Association>): Association;

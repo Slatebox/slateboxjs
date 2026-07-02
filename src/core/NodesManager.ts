@@ -93,21 +93,34 @@ export class NodesManager {
 
   /** Create an association from a collab package: `{parentId, childId, ...opts}` */
   public addRelationship(relationshipData: any) {
-    const { parentId, childId } = relationshipData || {};
+    const { parentId, childId, targetPoint } = relationshipData || {};
     const parent = parentId ? this.one(parentId) : undefined;
+    if (!parent) {
+      console.warn("NODESMANAGER_DEBUG: addRelationship missing parent", parentId);
+      return;
+    }
+    // Idempotent: skip if the association already exists (guards duplicate line
+    // / echo loop when the same package arrives via multiple collab paths).
+    if ((parent as any).relationships?.getAssociation?.(childId)) return;
+
+    // Free-floating endpoint (L1b): target is a bare point, no child node.
+    if (targetPoint) {
+      (parent as any).relationships?.addFloatingAssociation(
+        targetPoint,
+        relationshipData
+      );
+      return;
+    }
+
     const child = childId ? this.one(childId) : undefined;
-    if (!parent || !child) {
+    if (!child) {
       console.warn(
-        "NODESMANAGER_DEBUG: addRelationship missing nodes",
+        "NODESMANAGER_DEBUG: addRelationship missing child",
         parentId,
         childId
       );
       return;
     }
-    // Idempotent: skip if the association already exists. Guards against a
-    // duplicate line / broadcast echo loop when the same package arrives via
-    // more than one collab path (yjs observer + host relay).
-    if ((parent as any).relationships?.getAssociation?.(childId)) return;
     (parent as any).relationships?.addAssociation(child, relationshipData);
   }
 

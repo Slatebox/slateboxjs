@@ -134,12 +134,15 @@ export interface V2Association {
   lineColor: string;
   lineEffect: string;
   lineOpacity: number;
-  lineType: "bezier" | "linear" | "straight";
+  lineType: string;
   lineCurveType: "cubic" | "quadratic";
   lineCurviness: number;
   lineWidth: number;
   showParentArrow: boolean;
   showChildArrow: boolean;
+  // Free-floating endpoints (L1b)
+  sourcePoint?: { x: number; y: number } | null;
+  targetPoint?: { x: number; y: number } | null;
 }
 
 /** Convert v1 association to v2 format */
@@ -158,6 +161,8 @@ export function v1AssociationToV2(v1: Record<string, any>): V2Association {
     lineWidth: v1.lineWidth ?? 6,
     showParentArrow: v1.showParentArrow ?? false,
     showChildArrow: v1.showChildArrow ?? true,
+    sourcePoint: v1.sourcePoint ?? null,
+    targetPoint: v1.targetPoint ?? null,
   };
 }
 
@@ -176,6 +181,8 @@ export function v2AssociationToV1(v2: V2Association): Record<string, any> {
     lineWidth: v2.lineWidth,
     showParentArrow: v2.showParentArrow,
     showChildArrow: v2.showChildArrow,
+    sourcePoint: v2.sourcePoint ?? null,
+    targetPoint: v2.targetPoint ?? null,
   };
 }
 

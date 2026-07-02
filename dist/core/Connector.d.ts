@@ -54,6 +54,16 @@ export declare class Connector {
     destroy(): void;
     private ensureContainers;
     connectTo(targetNode: any, connectionOptions?: Partial<Connection>): Connection | null;
+    /**
+     * Connect this node to a bare WORLD point (free-floating endpoint, L1b).
+     * Backed by an invisible 1px "phantom" rect at the point so the existing
+     * svg.connectable geometry (edge-solve on the target's bbox) works unchanged.
+     * The synthetic id keys the connection like a normal one.
+     */
+    connectToPoint(point: {
+        x: number;
+        y: number;
+    }, synthId: string, connectionOptions?: Partial<Connection>): Connection | null;
     disconnectFrom(targetNode: any): boolean;
     disconnectById(connectionId: string): boolean;
     disconnectAll(): void;

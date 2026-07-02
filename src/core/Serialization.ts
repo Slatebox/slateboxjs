@@ -179,6 +179,16 @@ async function deserializeInner(
 
       for (const assocData of associations) {
         const assoc = v1AssociationToV2(assocData);
+
+        // Free-floating endpoint (L1b): no child node — render at the point.
+        if ((assoc as any).targetPoint && parentNode?.relationships) {
+          parentNode.relationships.addFloatingAssociation(
+            (assoc as any).targetPoint,
+            assoc
+          );
+          continue;
+        }
+
         const childNode =
           nodeMap.get(assoc.childId) || slate.nodes.one(assoc.childId);
 

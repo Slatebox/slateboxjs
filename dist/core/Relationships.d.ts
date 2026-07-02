@@ -78,4 +78,13 @@ export declare class Relationships {
     /** Destroy the relationships, removing all associations and clearing references */
     destroy(): void;
     private renderAssociation;
+    /**
+     * Add a free-floating association whose target is a bare world point rather
+     * than a node (L1b). Backed by a phantom endpoint; broadcasts + persists like
+     * a normal association (targetPoint travels in the record).
+     */
+    addFloatingAssociation(point: {
+        x: number;
+        y: number;
+    }, data?: Partial<Association>): Association;
 }

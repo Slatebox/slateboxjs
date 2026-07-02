@@ -93,10 +93,15 @@ export class Relationships {
       return false;
     }
 
-    // Remove visual connection
-    const childNode = this.slate.nodes.one(childId);
-    if (childNode && this.node.connector) {
-      this.node.connector.disconnectFrom(childNode);
+    // Remove visual connection (floating endpoints have no child node → remove
+    // by connection id; node-backed ones disconnect from the child node).
+    if ((assoc as any).targetPoint && this.node.connector) {
+      this.node.connector.disconnectById(assocId);
+    } else {
+      const childNode = this.slate.nodes.one(childId);
+      if (childNode && this.node.connector) {
+        this.node.connector.disconnectFrom(childNode);
+      }
     }
 
     this.assocMap.delete(assocId);
@@ -262,9 +267,7 @@ export class Relationships {
       this.node.connector.enable();
     }
 
-    // Create connection with the association's full visual properties so a
-    // saved line type / curviness / arrows render correctly (incl. on reload).
-    this.node.connector.connectTo(childNode, {
+    const props: any = {
       lineColor: assoc.lineColor,
       lineWidth: assoc.lineWidth,
       lineType: (assoc as any).lineType,
@@ -273,6 +276,44 @@ export class Relationships {
       showChildArrow: (assoc as any).showChildArrow,
       sourceAnchor: (assoc as any).sourceAnchor,
       targetAnchor: (assoc as any).targetAnchor,
-    } as any);
+    };
+
+    // Free-floating target endpoint (L1b): connect to a bare point, not a node.
+    if ((assoc as any).targetPoint) {
+      this.node.connector.connectToPoint(
+        (assoc as any).targetPoint,
+        assoc.childId,
+        props
+      );
+      return;
+    }
+
+    if (!childNode) return;
+    // Create connection with the association's full visual properties so a
+    // saved line type / curviness / arrows render correctly (incl. on reload).
+    this.node.connector.connectTo(childNode, props);
+  }
+
+  /**
+   * Add a free-floating association whose target is a bare world point rather
+   * than a node (L1b). Backed by a phantom endpoint; broadcasts + persists like
+   * a normal association (targetPoint travels in the record).
+   */
+  public addFloatingAssociation(
+    point: { x: number; y: number },
+    data?: Partial<Association>
+  ): Association {
+    const childId =
+      (data as any)?.childId ||
+      `__free_${Math.random().toString(36).slice(2, 10)}`;
+    const assoc = createDefaultAssociation(this.node.id, childId, {
+      ...data,
+      childId,
+      targetPoint: point,
+    });
+    this.assocMap.set(assoc.id, assoc);
+    this.renderAssociation(assoc, null);
+    (this.node as any).slate?.broadcast?.("addRelationship", { ...assoc });
+    return assoc;
   }
 }
