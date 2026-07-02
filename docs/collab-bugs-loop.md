@@ -13,8 +13,14 @@ connector handle's svg.draggable does NOT fire (beforedrag never triggers) in th
 handle has a draggable instance but pointer-drag doesn't start it; likely panzoom pointer interception or
 handle event wiring. FIX THIS FIRST — nothing downstream works until the handle drag fires. (b) app chat panel
 (MuiPaper 200px) overlaps the canvas and intercepts pointer events over part of it (z-order; app-side).
-REMAINING: L1a drag-firing repair, L1b free-float bare-point model, L5 (relative/absolute locking toggle in
-pane; builds on setConnectionAnchor), L4 (no rogue lines).
+L1a DONE [5097839]: endpoint-drag reattach to a node syncs+persists. The handle drag fires fine (earlier
+"beforedrag never fires" was the chat panel overlapping that spot). Real bug was data-node-id read null
+(findDropTarget returns the SHAPE child; group carries the id) → now walk up to the group. Reattach rebuilds
+the association (remove+add) → broadcasts + persists. Verified live 2-window + reload.
+REMAINING: L1b free-float bare-point endpoint (drop on empty canvas → phantom persists as {x,y}; needs
+endpoint = node-ref OR point in Association + serialize + collab + handleEndpointChange phantom branch), L5
+(relative/absolute locking toggle in pane; builds on setConnectionAnchor), L4 (no rogue lines). Also app-side:
+chat panel (MuiPaper) overlaps canvas + intercepts handle grabs over its region (z-order).
 - L1. Snap-anywhere endpoints: source AND target endpoints draggable. Drop on a node → connect/snap;
   drop on empty canvas → free-floating (disconnected). Connect + disconnect by dragging the line end.
 - L2. Line properties pane (v1 parity): line TYPE selectable — orthogonal, bezier, straight/linear, etc.
