@@ -236,6 +236,15 @@ export declare class Node {
      */
     setRotation(angle: number): void;
     /**
+     * Set the group's transform to translate(options.x, options.y) followed by a
+     * rotation around the node's visual center. The shape/text are drawn at the
+     * group's local origin, so position is a pure translate and rotation must be
+     * COMPOSED on top of it — replacing the matrix (as an origin:'center' rotate
+     * alone does) would drop the translate and fling the node far off-screen on
+     * reload. Single source of truth for the group transform.
+     */
+    private applyPositionAndRotation;
+    /**
      * Get the current rotation angle. Reads from options.rotate first,
      * then falls back to svgGroup transform and backgroundRect transform.
      *

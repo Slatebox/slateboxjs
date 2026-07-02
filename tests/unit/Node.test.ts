@@ -454,11 +454,12 @@ describe("Position", () => {
     expect(node.options.y ?? 0).toBe(0);
   });
 
-  it("should call svgGroup.move() for immediate position change", async () => {
+  it("should translate the group to the new position (immediate)", async () => {
     const node = await createNode({ x: 100, y: 100 });
-    const spy = vi.spyOn(node.svgGroup, "move");
+    const spy = vi.spyOn(node.svgGroup, "transform");
     node.position(300, 400);
-    expect(spy).toHaveBeenCalledWith(300, 400);
+    // Immediate position composes translate (+ rotation) via transform()
+    expect(spy).toHaveBeenCalledWith({ translateX: 300, translateY: 400 });
   });
 
   it("should update options.x/y after position()", async () => {

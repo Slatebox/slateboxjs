@@ -89,6 +89,9 @@ export function v1SlateToV2(v1: Record<string, any>): Partial<SlateOptions> {
   if (v1.showbirdsEye !== undefined) {
     v2.birdsEye = {
       enabled: !!v1.showbirdsEye,
+      // Top-right by default so it doesn't collide with the host's bottom
+      // chat/huddle panel (slatebox docks those bottom-right).
+      position: "top-right",
       ...(v1.sizeOfbirdsEye
         ? { width: v1.sizeOfbirdsEye, height: v1.sizeOfbirdsEye }
         : {}),

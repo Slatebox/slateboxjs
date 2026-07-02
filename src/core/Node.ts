@@ -493,17 +493,7 @@ export class Node {
 
     // Apply initial rotation if specified in options
     if (this.options.rotate?.rotationAngle) {
-      const angle = this.options.rotate.rotationAngle;
-      // Use transform with origin:'center' to rotate without adding translation offset
-      // This tells SVG.js to rotate around the element's center
-      console.log(
-        "NODE_DEBUG: Applying initial rotation",
-        angle,
-        "to",
-        this.id,
-        "using transform with origin:center"
-      );
-      this.svgGroup.transform({ rotate: angle, origin: 'center' });
+      this.applyPositionAndRotation();
     }
 
     console.log("NODE_DEBUG: finishCreate continuing for", this.id);
@@ -845,14 +835,18 @@ export class Node {
     this.options.y = y;
 
     if (duration && duration > 0) {
-      // Animate to position
+      // Animate to position, then settle the transform so rotation (if any)
+      // is preserved rather than dropped by the move.
       this.svgGroup
         .animate(duration, easing || "-")
         .move(x, y)
-        .after(callback || (() => {}));
+        .after(() => {
+          this.applyPositionAndRotation();
+          if (callback) callback();
+        });
     } else {
-      // Move immediately
-      this.svgGroup.move(x, y);
+      // Move immediately (translate + rotate composed)
+      this.applyPositionAndRotation();
     }
 
     console.log(
@@ -1131,16 +1125,29 @@ export class Node {
       this.options.rotate = { rotationAngle: 0 };
     }
     this.options.rotate.rotationAngle = angle;
-    // First clear any existing rotation transform
-    const currentTransform = this.svgGroup.transform();
-    // Apply rotation using transform with origin:center to avoid translation offset
-    this.svgGroup.transform({
-      rotate: angle,
-      origin: 'center',
-      // Preserve any existing translation
-      translateX: currentTransform.translateX || 0,
-      translateY: currentTransform.translateY || 0
-    });
+    this.applyPositionAndRotation();
+  }
+
+  /**
+   * Set the group's transform to translate(options.x, options.y) followed by a
+   * rotation around the node's visual center. The shape/text are drawn at the
+   * group's local origin, so position is a pure translate and rotation must be
+   * COMPOSED on top of it — replacing the matrix (as an origin:'center' rotate
+   * alone does) would drop the translate and fling the node far off-screen on
+   * reload. Single source of truth for the group transform.
+   */
+  private applyPositionAndRotation() {
+    if (!this.svgGroup) return;
+    const x = this.options.x || 0;
+    const y = this.options.y || 0;
+    const angle = this.options.rotate?.rotationAngle || 0;
+    // Pure position first (absolute) …
+    this.svgGroup.transform({ translateX: x, translateY: y });
+    // … then rotate around the current visual center, composing (relative)
+    // so the translate is preserved.
+    if (angle) {
+      this.svgGroup.transform({ rotate: angle, origin: "center" }, true);
+    }
   }
 
   /**
