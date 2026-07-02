@@ -1,6 +1,14 @@
 # Collab bug loop — canvas drag / presence / connector / rotation parity
 
-## Line editing backlog (2026-07-02, IN PROGRESS)
+## Line editing backlog (2026-07-02, ALL L1-L5 DONE)
+> L1a reattach-to-node [5097839]; L1b free-float endpoints [db0ea35]; L2/L3 line-prop apply+sync+persist
+> [9fa0cef]; L4 no-rogue-lines via con.remove() [db0ea35]; L5 relative/absolute endpoint locking + pane
+> toggle [3da98ef]. e2e: connector-endpoint-drag, connector-floating-endpoint, line-properties,
+> connector-edge-pin, line-endpoint-lock, connector-sync-persist, connector-follows-rotation. 1063 unit.
+> REMAINING (app-side, separate): chat panel (MuiPaper) overlaps canvas + intercepts connector-handle grabs
+> over its region — z-order/pointer-events fix so endpoints under it are grabbable.
+
+## Line editing backlog (superseded above)
 Go-ahead given; app-side pane edits approved. L2+L3 DONE [9fa0cef]: onLinePropertiesChanged now routes
 pane {prop,val,associationId,id} → relationships.applyLineProperty (updates assoc record + re-renders via
 real connectable setters setConnectorColor/setStrokeWidth/setType/setMarker; type map bezier→curved/
