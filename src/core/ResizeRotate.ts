@@ -22,6 +22,10 @@ export class ResizeRotate {
   private _didRotate = false;
   private _didResize = false;
   private _endListener: (() => void) | null = null;
+  // Canonical world position captured at the START of a resize/rotate, before
+  // svg.resize.js displaces children in local space. Used to convert the
+  // plugin's local box back to world coords in handleResize.
+  private _preInteractionPos: { x: number; y: number } | null = null;
 
   /**
    * Creates resize/rotate handle management for a node.
@@ -159,6 +163,14 @@ export class ResizeRotate {
     this._endListener = () => {
       if (!this._interacting) return;
       this._interacting = false;
+      // Re-assert the canonical model: strip rotation baked into the shape/text
+      // during the interaction and move it to the group transform, with children
+      // normalized back to the local origin. This is what makes resize/rotate
+      // survive a reload without the node flying off-screen.
+      if ((this._didRotate || this._didResize) && this.node.finalizeInteraction) {
+        this.node.finalizeInteraction();
+      }
+      this._preInteractionPos = null;
       const slate = this.node.slate as any;
       if (this._didRotate) {
         slate?.broadcast?.("onNodeRotated", {
@@ -184,6 +196,15 @@ export class ResizeRotate {
 
     // Re-show connection handles when resize/rotate ends
     this.target.on("resize", (event: any) => {
+      // Capture the canonical world position ONCE, before svg.resize.js has
+      // displaced any children this interaction (handleResize converts the
+      // plugin's local box against this).
+      if (this._preInteractionPos === null) {
+        this._preInteractionPos = {
+          x: this.node.options.x ?? 0,
+          y: this.node.options.y ?? 0,
+        };
+      }
       // A resize event means an interaction is in progress (the handle's own
       // mousedown does not reliably bubble through the target); track its
       // kind for the end-of-drag package
@@ -260,8 +281,17 @@ export class ResizeRotate {
       // Persist and recentre text since we change actual width/height of shape
       this.node.options.width = box.width;
       this.node.options.height = box.height;
-      this.node.options.x = box.x;
-      this.node.options.y = box.y;
+      // svg.resize.js reports box.x/y in the group's LOCAL space (children are
+      // normalized to the local origin at interaction start). Convert to a WORLD
+      // position: pre-interaction world + local delta. Storing box.x directly
+      // would write a local coord into options.x and get double-counted against
+      // the group translate on reload (node flies off-screen).
+      const base = this._preInteractionPos ?? {
+        x: this.node.options.x ?? 0,
+        y: this.node.options.y ?? 0,
+      };
+      this.node.options.x = base.x + box.x;
+      this.node.options.y = base.y + box.y;
 
       // Call setSize to update nested SVG and other elements
       this.node.setSize(box.width, box.height);

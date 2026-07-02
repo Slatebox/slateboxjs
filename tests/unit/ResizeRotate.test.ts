@@ -355,8 +355,11 @@ describe("ResizeRotate", () => {
 
       expect(node.options.width).toBe(300);
       expect(node.options.height).toBe(150);
-      expect(node.options.x).toBe(40);
-      expect(node.options.y).toBe(30);
+      // options.x/y are WORLD coords: pre-interaction position (50,40) + the
+      // plugin's local box (40,30) → (90,70). (Storing the raw local box would
+      // double-count against the group translate on reload.)
+      expect(node.options.x).toBe(90);
+      expect(node.options.y).toBe(70);
 
       expect(node.setSize).toHaveBeenCalledWith(300, 150);
       expect(node.centerText).toHaveBeenCalled();

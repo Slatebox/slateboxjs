@@ -20,6 +20,7 @@ export declare class ResizeRotate {
     private _didRotate;
     private _didResize;
     private _endListener;
+    private _preInteractionPos;
     /**
      * Creates resize/rotate handle management for a node.
      *

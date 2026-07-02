@@ -211,15 +211,63 @@ async function deserializeInner(
     }
   }
 
-  // Adjust zoom/pan to fit content unless skipped
+  // Adjust zoom/pan to fit content unless skipped.
+  //
+  // A single fixed-delay fit is unreliable: on a full page load the host may
+  // call loadJSON before #slateCanvas has been laid out, so the container is
+  // 0-sized and fit() computes a garbage viewBox that never self-corrects
+  // (the "node loads but the view never frames it" bug). Instead, poll until
+  // the container has real pixel dimensions AND nodes exist, then fit — and
+  // fit once more on the next frame to settle after any final container
+  // resize. This runs only during initial load, so it won't fight later user
+  // panning.
   if (!skipZoom && slate.panZoom) {
-    setTimeout(() => {
-      try {
-        slate.fitToContent();
-      } catch (e) {
-        // fitToContent may not be available in all states
+    const contentCenterX = () => {
+      const ns = slate.nodes?.allNodes ?? [];
+      if (!ns.length) return null;
+      let minX = Infinity,
+        maxX = -Infinity;
+      for (const n of ns) {
+        const x = n.options.x ?? 0;
+        const w = n.options.width ?? 100;
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x + w);
       }
-    }, 200);
+      return (minX + maxX) / 2;
+    };
+    const attemptFit = (tries: number) => {
+      if ((slate as any)._destroyed) return;
+      const rect = slate.element?.getBoundingClientRect?.();
+      const sized = !!rect && rect.width > 1 && rect.height > 1;
+      const ccx = contentCenterX();
+      if (sized && ccx !== null) {
+        try {
+          slate.fitToContent();
+        } catch (e) {
+          /* noop */
+        }
+        // Verify the fit actually framed the content — fit() no-ops if pan/zoom
+        // isn't enabled yet or ran on a transient state, so confirm the viewBox
+        // now centers on the content before we stop retrying.
+        const vb = slate.canvas?.viewbox?.();
+        const framed =
+          vb && Math.abs(vb.x + vb.width / 2 - ccx) < vb.width / 2;
+        if (framed) {
+          if (typeof requestAnimationFrame !== "undefined") {
+            requestAnimationFrame(() => {
+              try {
+                slate.fitToContent();
+              } catch (e) {
+                /* noop */
+              }
+            });
+          }
+          return;
+        }
+      }
+      if (tries < 60) setTimeout(() => attemptFit(tries + 1), 50);
+    };
+    attemptFit(0);
   }
 }
 

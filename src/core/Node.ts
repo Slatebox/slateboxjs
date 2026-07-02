@@ -747,27 +747,33 @@ export class Node {
     this.svgGroup.on("dragend.node", (event: any) => {
       console.log("DRAG_DEBUG: Drag ended on", this.id);
 
-      // svg.draggable.js uses move() NOT transforms, so the element is already at its new position
-      // The new position is in event.detail.box
+      // svg.draggable.js displaces the group's CHILDREN into local coords
+      // (it does not touch the group transform); event.detail.box holds their
+      // new LOCAL top-left, i.e. the delta from the canonical local origin (0,0)
+      // at which children always start. The true world position is therefore
+      // preDragPosition (canonical world at drag start) + that local delta.
       const box = event.detail?.box;
-      const newX = box?.x ?? this.svgGroup.bbox().x;
-      const newY = box?.y ?? this.svgGroup.bbox().y;
+      const dx = box?.x ?? 0;
+      const dy = box?.y ?? 0;
+      const worldX = (this.preDragPosition?.x ?? 0) + dx;
+      const worldY = (this.preDragPosition?.y ?? 0) + dy;
 
-      // Get current rotation to preserve it
-      const transform = this.svgGroup.transform();
-      const currentRotation = transform.rotate || 0;
-
-      console.log("DRAG_DEBUG: Drag completed - new position from box:", newX, newY,
-                  "rotation:", currentRotation,
+      console.log("DRAG_DEBUG: Drag completed - localBox:", dx, dy,
+                  "→ world:", worldX, worldY,
                   "preDragPos:", this.preDragPosition);
 
       // Clear pre-drag state
       this.preDragTransform = null;
       this.preDragPosition = null;
 
-      // Update stored position to the new position after drag
-      this.options.x = newX;
-      this.options.y = newY;
+      // Update stored position to the new WORLD position after drag
+      this.options.x = worldX;
+      this.options.y = worldY;
+
+      // Re-assert the canonical model: children at local origin, group transform
+      // carrying position (+ rotation). applyPositionAndRotation() self-normalizes
+      // the children that svg.draggable displaced during the drag.
+      this.applyPositionAndRotation();
 
       // Notify the host app of the completed move (v1 package shape)
       this.slate.broadcast?.("onNodesMove", {
@@ -1143,6 +1149,32 @@ export class Node {
     const w = this.options.width || 0;
     const h = this.options.height || 0;
     const angle = this.options.rotate?.rotationAngle || 0;
+
+    // Canonical model: the shape/text live at the group's LOCAL origin and the
+    // group transform carries position + rotation. But svg.js move()/animate().
+    // move() — used by drag and by animated/collab/host-replay moves — displaces
+    // the group's CHILDREN in local space instead of touching the group
+    // transform. If left displaced, that local offset is double-counted against
+    // the translate we set below and the node renders far off-screen (the
+    // "flies away on reload" bug). So first pull the children back to the local
+    // origin, reading their true local bbox with the group transform cleared.
+    if (
+      typeof this.svgGroup.node?.removeAttribute === "function" &&
+      typeof this.svgGroup.bbox === "function"
+    ) {
+      try {
+        this.svgGroup.node.removeAttribute("transform");
+        const bb = this.svgGroup.bbox();
+        if (bb && (Math.abs(bb.x) > 0.01 || Math.abs(bb.y) > 0.01)) {
+          this.svgGroup.children().forEach((child: any) => {
+            if (typeof child?.dmove === "function") child.dmove(-bb.x, -bb.y);
+          });
+        }
+      } catch (e) {
+        console.warn("NODE_DEBUG: child normalization failed:", e);
+      }
+    }
+
     // Set the group transform EXPLICITLY as an SVG transform string —
     // deterministic, no SVG.js object-form / relative-compose ambiguity.
     // SVG applies right-to-left: a local point is first rotated about the
@@ -1153,6 +1185,30 @@ export class Node {
       ? `translate(${x} ${y}) rotate(${angle} ${w / 2} ${h / 2})`
       : `translate(${x} ${y})`;
     this.svgGroup.node.setAttribute("transform", t);
+  }
+
+  /**
+   * Re-assert the canonical model after a resize/rotate interaction. During the
+   * interaction svg.resize.js transforms the backgroundRect (and we rotate the
+   * text/nested separately) — rotation is baked into those CHILDREN. Here we
+   * strip those child transforms so rotation lives only on the group, then
+   * apply the canonical group transform (which also normalizes child position
+   * back to the local origin). Without this the shape carries a baked rotation
+   * AND the group re-applies rotation on reload → double rotation / fly-off.
+   */
+  public finalizeInteraction() {
+    const clear = (el: any) => {
+      try {
+        if (el?.node?.removeAttribute) el.node.removeAttribute("transform");
+      } catch (e) {
+        /* noop */
+      }
+    };
+    clear(this.backgroundRect);
+    clear(this.textElement);
+    clear(this.nestedSvg);
+    this.applyPositionAndRotation();
+    if (this.textElement) this.centerText();
   }
 
   /**
