@@ -57,10 +57,23 @@ test.describe("Drag Hop Bug", () => {
     const afterSecond = await getNodePosition();
     console.log("After second move:", afterSecond);
 
-    // The key check: transform should remain near zero after moves
-    // If there's transform accumulation, this will fail
-    expect(Math.abs(afterSecond!.transformX)).toBeLessThan(5);
-    expect(Math.abs(afterSecond!.transformY)).toBeLessThan(5);
+    // Canonical model: position lives in the group transform, set ABSOLUTELY
+    // each move (not accumulated). The modern "no hop" invariant is that the
+    // transform translate always equals the logical position — never a doubled
+    // or drifting value. (The old model kept the transform ~0 with position in
+    // the children; that is intentionally reversed now.)
+    const opts = await page.evaluate(() => {
+      const n = (window as any).slate.getAllNodes()[0];
+      const t = n.svgGroup.transform();
+      return {
+        x: n.options.x,
+        y: n.options.y,
+        tx: t.translateX || 0,
+        ty: t.translateY || 0,
+      };
+    });
+    expect(Math.abs(opts.tx - opts.x)).toBeLessThan(1);
+    expect(Math.abs(opts.ty - opts.y)).toBeLessThan(1);
   });
 
   test("detailed drag position tracking", async ({ page }) => {
@@ -108,10 +121,10 @@ test.describe("Drag Hop Bug", () => {
     const afterFirst = await getNodePosition();
     console.log("After first drag:", afterFirst);
 
-    // The transform should be cleared after drag (our fix)
-    // If transform is NOT cleared, this will be non-zero and cause hop
-    expect(Math.abs(afterFirst!.transformX)).toBeLessThan(5);
-    expect(Math.abs(afterFirst!.transformY)).toBeLessThan(5);
+    // Canonical model: the group transform translate equals the logical
+    // position (no double-count / no hop-inducing accumulation).
+    expect(Math.abs(afterFirst!.transformX - afterFirst!.optionsX)).toBeLessThan(1);
+    expect(Math.abs(afterFirst!.transformY - afterFirst!.optionsY)).toBeLessThan(1);
 
     // Second drag
     const box2 = await nodeGroup.boundingBox();
@@ -129,9 +142,9 @@ test.describe("Drag Hop Bug", () => {
     const afterSecond = await getNodePosition();
     console.log("After second drag:", afterSecond);
 
-    // Transform should still be cleared
-    expect(Math.abs(afterSecond!.transformX)).toBeLessThan(5);
-    expect(Math.abs(afterSecond!.transformY)).toBeLessThan(5);
+    // Transform still equals the logical position after the second drag
+    expect(Math.abs(afterSecond!.transformX - afterSecond!.optionsX)).toBeLessThan(1);
+    expect(Math.abs(afterSecond!.transformY - afterSecond!.optionsY)).toBeLessThan(1);
   });
 
   test("rotated node should not jump on first drag", async ({ page }) => {
