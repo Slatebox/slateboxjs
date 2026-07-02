@@ -999,12 +999,14 @@ function attachHandleToTarget(con, handleObj, target) {
     let targetNodeId = null;
     if (!isPhantom) {
       try {
+        // findDropTarget returns the SHAPE (rect/circle/…), a child of the
+        // node group; data-node-id lives on the group, so walk up to find it.
+        let el = target.node || null;
+        while (el && el.getAttribute && !el.getAttribute("data-node-id")) {
+          el = el.parentNode;
+        }
         targetNodeId =
-          (target.node &&
-            target.node.getAttribute &&
-            target.node.getAttribute("data-node-id")) ||
-          (target.attr && target.attr("data-node-id")) ||
-          null;
+          (el && el.getAttribute && el.getAttribute("data-node-id")) || null;
       } catch (e) {
         /* noop */
       }
