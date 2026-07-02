@@ -195,20 +195,46 @@ export class Connector {
         return null;
       }
 
+      // Per-connection overrides (from the association record) so a saved line
+      // type / curviness / arrows render correctly on create AND after reload.
+      const co = connectionOptions as any;
+      const typeMap: Record<string, string> = {
+        bezier: "curved",
+        curved: "curved",
+        orthogonal: "orthogonal",
+        straight: "straight",
+        linear: "straight",
+      };
+      const connType = co.lineType
+        ? typeMap[co.lineType] || "curved"
+        : this.options.type;
+      const markerSource =
+        co.showParentArrow != null
+          ? co.showParentArrow
+            ? this.options.markerSource || "arrow"
+            : "null"
+          : this.options.markerSource;
+      const markerTarget =
+        co.showChildArrow != null
+          ? co.showChildArrow
+            ? this.options.markerTarget || "arrow"
+            : "null"
+          : this.options.markerTarget;
+
       // Use svg.connectable.js to create the connection with full options
       const connectableObj = (this.node.svgGroup as any).connectable(
         {
           container: this.options.lineContainer,
           markers: this.options.markerContainer,
-          type: this.options.type,
-          color: this.options.color,
-          strokeWidth: this.options.strokeWidth,
+          type: connType,
+          color: co.lineColor || this.options.color,
+          strokeWidth: co.lineWidth || this.options.strokeWidth,
           sourceAttach: this.options.sourceAttach,
           targetAttach: this.options.targetAttach,
-          markerSource: this.options.markerSource,
-          markerTarget: this.options.markerTarget,
+          markerSource,
+          markerTarget,
           showHandles: this.options.showHandles,
-          curveRadius: this.options.curveRadius,
+          curveRadius: co.lineCurviness ?? this.options.curveRadius,
           // Edge-pin mode (optional): normalized local anchors {x,y} 0..1
           sourceAnchor: connectionOptions.sourceAnchor,
           targetAnchor: connectionOptions.targetAnchor,
@@ -374,9 +400,50 @@ export class Connector {
       // Update connection properties
       Object.assign(connection, updates);
 
-      // Apply visual updates
-      if (updates.lineColor && connection.connectable) {
-        connection.connectable.setLineColor(updates.lineColor);
+      const c = connection.connectable;
+      if (c) {
+        // Color (the connectable exposes setConnectorColor, not setLineColor)
+        if (updates.lineColor != null && c.setConnectorColor) {
+          c.setConnectorColor(updates.lineColor);
+        }
+        if (updates.lineWidth != null && c.setStrokeWidth) {
+          c.setStrokeWidth(updates.lineWidth);
+        }
+        // Line type: pane uses bezier/orthogonal; connectable uses
+        // straight/curved/orthogonal.
+        if ((updates as any).lineType != null && c.setType) {
+          const map: Record<string, string> = {
+            bezier: "curved",
+            curved: "curved",
+            orthogonal: "orthogonal",
+            straight: "straight",
+            linear: "straight",
+          };
+          c.setType(map[(updates as any).lineType] || "curved");
+        }
+        if ((updates as any).lineCurviness != null) {
+          c.curveRadius = (updates as any).lineCurviness;
+        }
+        // Arrow markers: source = parent arrow, target = child arrow
+        if (
+          (updates as any).showParentArrow != null ||
+          (updates as any).showChildArrow != null
+        ) {
+          const src =
+            ((updates as any).showParentArrow ??
+            (connection as any).showParentArrow)
+              ? "arrow"
+              : "null";
+          const tgt =
+            ((updates as any).showChildArrow ??
+            (connection as any).showChildArrow ??
+            true)
+              ? "arrow"
+              : "null";
+          c.setMarker?.(src, tgt);
+        }
+        // Re-solve the path so any geometry-affecting change takes effect
+        c.update?.();
       }
 
       console.log("CONNECTOR_DEBUG: Updated connection", connectionId);

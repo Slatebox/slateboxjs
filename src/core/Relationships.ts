@@ -122,6 +122,33 @@ export class Relationships {
   }
 
   /**
+   * Apply a single line property (from the line-properties pane) to one
+   * association: update the stored record (so it serializes/persists) AND
+   * re-render the connector. Used by the onLinePropertiesChanged apply path
+   * (local invoke + remote collab), which is why line edits now sync + persist.
+   */
+  public applyLineProperty(
+    associationId: string,
+    prop: string,
+    val: any
+  ): boolean {
+    let assoc = this.assocMap.get(associationId);
+    if (!assoc) {
+      for (const a of this.assocMap.values()) {
+        if (a.id === associationId) {
+          assoc = a;
+          break;
+        }
+      }
+    }
+    if (!assoc) return false;
+    (assoc as any)[prop] = val;
+    const connId = `${this.node.id}->${assoc.childId}`;
+    this.node.connector?.updateConnection(connId, { [prop]: val } as any);
+    return true;
+  }
+
+  /**
    * Update all associations with new options (e.g., line color change).
    */
   public updateAssociationsWith(opts: Partial<Association>): void {
@@ -235,10 +262,17 @@ export class Relationships {
       this.node.connector.enable();
     }
 
-    // Create connection with association's visual properties
+    // Create connection with the association's full visual properties so a
+    // saved line type / curviness / arrows render correctly (incl. on reload).
     this.node.connector.connectTo(childNode, {
       lineColor: assoc.lineColor,
       lineWidth: assoc.lineWidth,
-    });
+      lineType: (assoc as any).lineType,
+      lineCurviness: (assoc as any).lineCurviness,
+      showParentArrow: (assoc as any).showParentArrow,
+      showChildArrow: (assoc as any).showChildArrow,
+      sourceAnchor: (assoc as any).sourceAnchor,
+      targetAnchor: (assoc as any).targetAnchor,
+    } as any);
   }
 }

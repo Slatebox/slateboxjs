@@ -250,7 +250,14 @@ export class Invoker {
     const data = Array.isArray(pkg.data) ? pkg.data : [pkg.data]
     data.forEach((p: any) => {
       const node = this.slate.nodes.one(p.id)
-      if (node) {
+      if (!node) return
+      // Pane packages: { prop, val, associationId } — update the specific
+      // association's line property AND re-render its connector. Applied for
+      // both local edits and remote (collab) so line changes sync + persist.
+      if (p.associationId && p.prop !== undefined && node.relationships) {
+        node.relationships.applyLineProperty(p.associationId, p.prop, p.val)
+      } else if (p.options) {
+        // Fallback: bulk options merge (legacy shape)
         Object.assign(node.options, p.options)
       }
     })

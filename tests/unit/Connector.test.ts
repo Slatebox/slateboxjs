@@ -731,14 +731,15 @@ describe("Connector", () => {
       expect(connection!.lineWidth).toBe(4);
     });
 
-    it("should call setLineColor when updating lineColor", () => {
+    it("should call setConnectorColor when updating lineColor", () => {
       const connector = new Connector(mockNodeA);
       enableConnector(connector);
       const connection = connector.connectTo(mockNodeB);
 
       connector.updateConnection("nodeA->nodeB", { lineColor: "#ff0000" });
 
-      expect(connection!.connectable.setLineColor).toHaveBeenCalledWith("#ff0000");
+      // The real connectable exposes setConnectorColor (there is no setLineColor)
+      expect(connection!.connectable.setConnectorColor).toHaveBeenCalledWith("#ff0000");
     });
 
     it("should return false for non-existent connection", () => {

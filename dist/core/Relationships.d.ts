@@ -40,6 +40,13 @@ export declare class Relationships {
      */
     removeAll(): void;
     /**
+     * Apply a single line property (from the line-properties pane) to one
+     * association: update the stored record (so it serializes/persists) AND
+     * re-render the connector. Used by the onLinePropertiesChanged apply path
+     * (local invoke + remote collab), which is why line edits now sync + persist.
+     */
+    applyLineProperty(associationId: string, prop: string, val: any): boolean;
+    /**
      * Update all associations with new options (e.g., line color change).
      */
     updateAssociationsWith(opts: Partial<Association>): void;
