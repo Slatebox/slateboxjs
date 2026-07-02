@@ -1,5 +1,28 @@
 # Collab bug loop — canvas drag / presence / connector / rotation parity
 
+## Line editing backlog (2026-07-02, IN PROGRESS)
+Go-ahead given; app-side pane edits approved. L2+L3 DONE [9fa0cef]: onLinePropertiesChanged now routes
+pane {prop,val,associationId,id} → relationships.applyLineProperty (updates assoc record + re-renders via
+real connectable setters setConnectorColor/setStrokeWidth/setType/setMarker; type map bezier→curved/
+orthogonal/straight); connectTo+renderAssociation honor per-connection type/curviness/arrows so saved type
+renders on create AND reload. Verified live 2-window (bezier→orthogonal syncs A→B + persists reload of both).
+REMAINING: L1 (draggable endpoints / snap-anywhere / free-floating — biggest, needs endpoint = node-ref OR
+bare point in model+serialize+collab), L5 (relative/absolute locking mode toggle in pane; builds on
+setConnectionAnchor), L4 (no rogue lines — cross-cutting discipline).
+- L1. Snap-anywhere endpoints: source AND target endpoints draggable. Drop on a node → connect/snap;
+  drop on empty canvas → free-floating (disconnected). Connect + disconnect by dragging the line end.
+- L2. Line properties pane (v1 parity): line TYPE selectable — orthogonal, bezier, straight/linear, etc.
+  (alongside existing color/width/arrow props).
+- L3. Collab parity for editing EXISTING lines: changing a line's type/endpoints/props on existing nodes
+  does not sync today — must broadcast + apply (create/delete/update/re-endpoint) like nodes.
+- L4. No rogue lines: same discipline as the node fly-away fix — no stranded/orphaned lines, no endpoints
+  flying off during endpoint-drag, re-layout, or collab apply.
+- L5. Per-endpoint locking mode chosen in the pane: RELATIVE (proportional/auto-flow, follows move+rotate)
+  vs ABSOLUTE (fixed point). Builds on edge-pin (setConnectionAnchor) + adds mode toggle, pane UI,
+  persistence, collab sync.
+
+
+
 > STATUS 2026-07-02: ALL 6 FIXED (core-library only, e2e-guarded).
 > #1 harness — already resolved by the controlled-drag rework (verified not reproducible).
 > #2 presence cursor — restyled (arrow + white rounded label, name in user color) [7c39445].
