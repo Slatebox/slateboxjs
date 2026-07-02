@@ -986,20 +986,12 @@ describe("Invoker", () => {
   });
 
   describe("onNodesMove", () => {
-    it("should call moveNodes with animate=true when duration > 0", () => {
+    it("delegates to moveNodes (which glides by default, honoring dur)", () => {
       const pkg = { data: { dur: 300, nodes: [{ id: "node1" }] } };
 
       invoker.onNodesMove(pkg);
 
-      expect(mockSlate.nodes.moveNodes).toHaveBeenCalledWith(pkg, { animate: true });
-    });
-
-    it("should call moveNodes with animate=false when duration is 0", () => {
-      const pkg = { data: { dur: 0, nodes: [{ id: "node1" }] } };
-
-      invoker.onNodesMove(pkg);
-
-      expect(mockSlate.nodes.moveNodes).toHaveBeenCalledWith(pkg, { animate: false });
+      expect(mockSlate.nodes.moveNodes).toHaveBeenCalledWith(pkg);
     });
   });
 

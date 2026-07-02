@@ -221,7 +221,9 @@ export class Invoker {
   }
 
   onNodesMove(pkg: SlatePackage) {
-    this.slate.nodes.moveNodes(pkg, { animate: pkg.data.dur > 0 })
+    // Remote moves glide by default (v1 semantics); moveNodes honors an
+    // explicit dur:0 for instant placement
+    this.slate.nodes.moveNodes(pkg)
   }
 
   onNodeEffectChanged(pkg: SlatePackage) {

@@ -345,9 +345,9 @@ describe("Slate", () => {
     it("initialises the SVG canvas and all sub-modules", () => {
       const slate = new Slate(container);
 
-      // Canvas
+      // Canvas — infinite canvas fills its container and is driven by the
+      // viewBox (no fixed size() call)
       expect(slate.canvas).toBeDefined();
-      expect(slate.canvas.size).toHaveBeenCalledWith(800, 600);
       expect(slate.canvas.viewbox).toHaveBeenCalled();
 
       // Core sub-modules

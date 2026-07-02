@@ -147,6 +147,7 @@ export declare class Slate {
     private _coordDisplayTimeoutId;
     private _nodeNotifyTimeoutId;
     private _liveRegion;
+    private _resizeObserver;
     /**
      * Creates a new Slate — the main orchestrator for a diagramming canvas.
      *
@@ -325,6 +326,12 @@ export declare class Slate {
     };
     /** Notify pan/zoom that the viewport was resized. */
     resizePanZoom(): void;
+    /**
+     * Keep the viewBox 1:1 with the container pixel size across resizes so the
+     * infinite canvas always fills its element and never distorts. Preserves
+     * the current zoom level and the world-point at the viewBox center.
+     */
+    private _setupResizeObserver;
     /**
      * Bounding-box orientation of the current content (v1 contract):
      * `{orientation, width, height, left, top}` computed over all nodes with

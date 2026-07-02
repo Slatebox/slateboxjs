@@ -190,6 +190,7 @@ export class Slate {
   private _coordDisplayTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _nodeNotifyTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _liveRegion: HTMLElement | null = null; // Hidden aria-live region for screen readers
+  private _resizeObserver: ResizeObserver | null = null;
 
   /**
    * Creates a new Slate — the main orchestrator for a diagramming canvas.
@@ -298,10 +299,44 @@ export class Slate {
       "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;";
     this.element.appendChild(this._liveRegion);
 
-    // Use normal viewport dimensions - svg-pan-zoom will handle infinite panning
-    const width = this.options.viewPort?.originalWidth || 800;
-    const height = this.options.viewPort?.originalHeight || 600;
-    this.canvas.size(width, height);
+    // ── Infinite canvas ──
+    // The SVG root FILLS its container; the visible region is driven entirely
+    // by the viewBox (Miro-style). Nothing is clipped to a fixed box — pan/
+    // zoom just move the viewBox across an unbounded plane.
+    this.element.style.overflow = this.element.style.overflow || "hidden";
+    if (getComputedStyle(this.element).position === "static") {
+      this.element.style.position = "relative";
+    }
+    const svgNode = this.canvas.node as SVGSVGElement;
+    if (svgNode?.style) {
+      svgNode.style.width = "100%";
+      svgNode.style.height = "100%";
+      svgNode.style.display = "block";
+    }
+    svgNode?.removeAttribute?.("width");
+    svgNode?.removeAttribute?.("height");
+    svgNode?.setAttribute?.("preserveAspectRatio", "xMidYMid slice");
+
+    // Initial viewBox = container pixel size at zoom 1 (1 unit = 1px),
+    // centered on the world origin so content near it is in view. Falls back
+    // to sensible defaults before the element has been laid out.
+    const rect = this.element.getBoundingClientRect();
+    this.options.viewPort = this.options.viewPort || {};
+    // Honor an explicit originalWidth/Height for the initial viewBox; else
+    // measure the container. The ResizeObserver keeps it synced to real px.
+    const vw =
+      this.options.viewPort.originalWidth || Math.round(rect.width) || 800;
+    const vh =
+      this.options.viewPort.originalHeight || Math.round(rect.height) || 600;
+    this.options.viewPort.originalWidth = vw;
+    this.options.viewPort.originalHeight = vh;
+    const originX = this.options.viewPort.left ?? 5000;
+    const originY = this.options.viewPort.top ?? 5000;
+    this.canvas.viewbox(originX - vw / 2, originY - vh / 2, vw, vh);
+
+    // Keep the viewBox 1:1 with the container as it resizes (preserve zoom
+    // and center point) so the canvas always fills and never distorts.
+    this._setupResizeObserver();
 
     // Initialize nodes manager
     this.nodes = new NodesManager(this);
@@ -385,6 +420,11 @@ export class Slate {
    */
   public destroy(): void {
     this._destroyed = true;
+
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
 
     // Deregister from the window instance list
     if (typeof window !== "undefined") {
@@ -738,7 +778,8 @@ export class Slate {
         // Fallback: get directly from viewBox
         const viewBox = this.canvas.viewbox();
         pan = { x: viewBox.x, y: viewBox.y };
-        zoom = this.canvas.attr("width") / viewBox.width || 1;
+        const px = this.element.getBoundingClientRect().width || viewBox.width;
+        zoom = px / viewBox.width || 1;
         console.log(
           "COORD_DEBUG: Got fallback values from viewBox - pan:",
           pan,
@@ -764,10 +805,9 @@ export class Slate {
   }
 
   private makeResponsive() {
-    // Add viewbox for responsive behavior
-    const width = this.options.viewPort?.originalWidth || 800;
-    const height = this.options.viewPort?.originalHeight || 600;
-    this.canvas.viewbox(0, 0, width, height);
+    // No-op: the infinite-canvas setup in init() already established a
+    // container-filling SVG (width/height 100%) with a viewBox centered on
+    // the world origin. Overwriting the viewBox here would undo that.
   }
 
   /**
@@ -974,6 +1014,41 @@ export class Slate {
   /** Notify pan/zoom that the viewport was resized. */
   public resizePanZoom() {
     this.panZoom.resize();
+  }
+
+  /**
+   * Keep the viewBox 1:1 with the container pixel size across resizes so the
+   * infinite canvas always fills its element and never distorts. Preserves
+   * the current zoom level and the world-point at the viewBox center.
+   */
+  private _setupResizeObserver(): void {
+    if (typeof ResizeObserver === "undefined") return;
+    let lastW = 0;
+    let lastH = 0;
+    this._resizeObserver = new ResizeObserver(() => {
+      if (this._destroyed) return;
+      const rect = this.element.getBoundingClientRect();
+      const pw = Math.max(1, Math.round(rect.width));
+      const ph = Math.max(1, Math.round(rect.height));
+      if (pw === lastW && ph === lastH) return;
+
+      const vb = this.canvas.viewbox();
+      // Current on-screen scale (viewBox units per pixel). Use the previous
+      // container width to recover it; fall back to viewBox/px on first run.
+      const unitsPerPx = vb.width / (lastW || pw);
+      lastW = pw;
+      lastH = ph;
+
+      const cx = vb.x + vb.width / 2;
+      const cy = vb.y + vb.height / 2;
+      const newW = pw * unitsPerPx;
+      const newH = ph * unitsPerPx;
+      this.canvas.viewbox(cx - newW / 2, cy - newH / 2, newW, newH);
+      this.options.viewPort = this.options.viewPort || {};
+      this.options.viewPort.originalWidth = pw;
+      this.options.viewPort.originalHeight = ph;
+    });
+    this._resizeObserver.observe(this.element);
   }
 
   /**

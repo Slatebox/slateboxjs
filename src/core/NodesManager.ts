@@ -66,7 +66,12 @@ export class NodesManager {
    */
   public moveNodes(packageData: any, options: { animate?: boolean } = {}) {
     const data = packageData?.data ?? packageData ?? {};
-    const duration = options.animate ? (data.dur || 500) : 0;
+    // Programmatic/collab moves GLIDE (v1 animated); a drag-end broadcast
+    // carries no dur, so default to a smooth ~400ms unless explicitly 0.
+    const duration =
+      options.animate === false || data.dur === 0
+        ? 0
+        : data.dur ?? 400;
 
     const moves: Array<{ id: string; x: number; y: number }> = [];
     if (Array.isArray(data.nodes)) {

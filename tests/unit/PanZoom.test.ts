@@ -516,17 +516,23 @@ describe("PanZoom", () => {
     });
 
     describe("reset", () => {
-      it("should reset both zoom and pan", () => {
+      it("recenters a container-sized viewBox (infinite-canvas reset)", () => {
         const pz = new PanZoom(mockSlate);
-        mockSlate.canvas.width.mockReturnValue(1200);
-        mockSlate.canvas.height.mockReturnValue(800);
+        // Current view centered at (100, 60) with a 200x120 viewBox
+        mockSlate.canvas.viewbox.mockReturnValue({
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 120,
+        });
 
         pz.reset();
 
-        expect(mockSlate.canvas.zoom).toHaveBeenCalledWith(1);
+        // Resets to a px-sized (1200x800 from the mock container) viewBox
+        // centered on the prior center (100, 60) → (100-600, 60-400, ...)
         expect(mockSlate.canvas.viewbox).toHaveBeenCalledWith(
-          0,
-          0,
+          -500,
+          -340,
           1200,
           800
         );

@@ -393,7 +393,7 @@ describe("NodesManager", () => {
       manager.add({ id: "n2", x: 100, y: 100 });
     });
 
-    it("repositions nodes from a package data structure", () => {
+    it("repositions nodes and glides by default (~400ms)", () => {
       const pkg = {
         data: {
           nodes: [
@@ -407,31 +407,31 @@ describe("NodesManager", () => {
       const n1 = manager.one("n1")!;
       const n2 = manager.one("n2")!;
       expect(n1._positionCalls).toHaveLength(1);
-      expect(n1._positionCalls[0]).toMatchObject({ x: 200, y: 300, dur: 0 });
-      expect(n2._positionCalls[0]).toMatchObject({ x: 400, y: 500, dur: 0 });
+      expect(n1._positionCalls[0]).toMatchObject({ x: 200, y: 300, dur: 400 });
+      expect(n2._positionCalls[0]).toMatchObject({ x: 400, y: 500, dur: 400 });
     });
 
-    it("uses an animate duration when options.animate is true", () => {
+    it("honors an explicit dur from the package", () => {
       const pkg = {
         data: {
           dur: 350,
           nodes: [{ id: "n1", x: 99, y: 99 }],
         },
       };
-      manager.moveNodes(pkg, { animate: true });
+      manager.moveNodes(pkg);
       const n1 = manager.one("n1")!;
       expect(n1._positionCalls[0].dur).toBe(350);
     });
 
-    it("defaults to 500ms animate duration when dur is not supplied", () => {
+    it("places instantly when options.animate is false", () => {
       const pkg = {
         data: {
           nodes: [{ id: "n1", x: 1, y: 2 }],
         },
       };
-      manager.moveNodes(pkg, { animate: true });
+      manager.moveNodes(pkg, { animate: false });
       const n1 = manager.one("n1")!;
-      expect(n1._positionCalls[0].dur).toBe(500);
+      expect(n1._positionCalls[0].dur).toBe(0);
     });
 
     it("silently skips unknown node ids", () => {
@@ -564,7 +564,7 @@ describe("NodesManager", () => {
         data: { nodes: [{ id: "movable", x: 50, y: 60 }] },
       });
       const node = manager.one("movable")!;
-      expect(node.position).toHaveBeenCalledWith(50, 60, undefined, undefined, 0);
+      expect(node.position).toHaveBeenCalledWith(50, 60, undefined, undefined, 400);
     });
   });
 });
