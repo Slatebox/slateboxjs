@@ -53,6 +53,14 @@ Our local app top bar has NO PRESENT button; the library Presentation class exis
   reading order for a typical top-down mindmap; revisit if a specific slate needs custom ordering.
 
 ## Batch 2026-07-02 (user) — iterate until PRESENTATION works end-to-end
+- PRES DONE [lib pending commit; app Main.jsx uncommitted]: presentation is now a FULLSCREEN MODAL
+  ("<Name> - Presentation" header + X) rendering an ISOLATED read-only slate (exportJSON → fresh
+  Slatebox instance in #presentCanvas), stepping through EVERY node in order with smooth zoom/pan.
+  Fixed the "one node" issue (real stepping through all). Library cleanups so the view is clean:
+  goToStep no longer selects the node (no edit toolbar/handles/anchors in presentation), and the
+  dev coordinate readout is gated behind options.showCoordinates (hidden by default). Verified live:
+  header + 3/3 nodes render, Next/ArrowRight center Welcome→Two→Three, Esc/X destroys the slate;
+  no toolbar/handles/debug-coords. NEXT: Q1-Q4.
 - PRES (priority): presentation must work END TO END. Legacy = a FULLSCREEN MODAL ("<Name> -
   Presentation" header + X close, image #12) that steps through ALL nodes with smooth zoom/pan.
   Ours currently "just goes to one node." Make it a fullscreen presentation experience that steps

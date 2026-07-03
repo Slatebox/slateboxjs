@@ -1126,10 +1126,20 @@ describe("Slate", () => {
       expect(slate.keyboard.bindGlobal).not.toHaveBeenCalled();
     });
 
-    it("creates coordinate display when showCoordinates is true (default)", () => {
-      const slate = new Slate(container);
+    it("creates coordinate display only when showCoordinates is opted in", () => {
+      // Hidden by default (production / presentation must not show the debug readout)
+      const slateDefault = new Slate(container);
       vi.advanceTimersByTime(150);
-      const coordEl = container.querySelector("#slate-coordinates");
+      expect(container.querySelector("#slate-coordinates")).toBeNull();
+
+      // Opt-in shows it
+      const container2 = document.createElement("div");
+      container2.style.width = "800px";
+      container2.style.height = "600px";
+      document.body.appendChild(container2);
+      const slate = new Slate(container2, { showCoordinates: true } as any);
+      vi.advanceTimersByTime(150);
+      const coordEl = container2.querySelector("#slate-coordinates");
       expect(coordEl).not.toBeNull();
       expect(coordEl?.textContent).toContain("zoom:");
     });

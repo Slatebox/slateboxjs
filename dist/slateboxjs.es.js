@@ -9857,7 +9857,7 @@ class us {
     if (t < 0 || t >= this.steps.length) return;
     this.currentStep = t;
     const i = this.steps[t], s = this.slate.nodes.one(i.nodeId);
-    if (s) {
+    if (s)
       try {
         const o = s.options || {}, a = (o.x || 0) + (o.width || 0) / 2, r = (o.y || 0) + (o.height || 0) / 2, c = this.slate.canvas.viewbox(), h = this.slate.panZoom?.getZoom?.() ?? 1, d = c.width * h / this.zoomLevel, u = c.height * h / this.zoomLevel, f = { x: a - d / 2, y: r - u / 2, width: d, height: u };
         this.animateViewbox(
@@ -9867,8 +9867,6 @@ class us {
         );
       } catch {
       }
-      this.slate.selectNodes([s], !1);
-    }
   }
   /** Tween the canvas viewbox from → to over `duration` ms (easeInOutQuad). */
   animateViewbox(t, e, i) {
@@ -10161,6 +10159,7 @@ class An {
     };
   }
   addCoordinateDisplay() {
+    if (!this.options.showCoordinates) return;
     console.log("COORD_DEBUG: Starting coordinate display creation");
     const t = document.createElement("div");
     t.id = "slate-coordinates", t.style.cssText = `

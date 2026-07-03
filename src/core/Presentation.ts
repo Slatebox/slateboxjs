@@ -123,9 +123,8 @@ export class Presentation {
     } catch {
       // Best-effort pan/zoom
     }
-
-    // Select the node
-    this.slate.selectNodes([node], false);
+    // Note: intentionally do NOT select the node — presentation is a clean,
+    // read-only view (no edit toolbar / handles / connection anchors).
   }
 
   private _animRaf: number | null = null;

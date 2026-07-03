@@ -125,10 +125,12 @@ describe("Presentation", () => {
     it("should jump to a specific step", () => {
       const pres = new Presentation(mockSlate);
       pres.extractLayout();
-      pres.goToStep(2);
+      pres.goToStep(2, 0); // instant (no rAF) for the test
 
       expect(pres.getCurrentStep()).toBe(2);
-      expect(mockSlate.selectNodes).toHaveBeenCalled();
+      // Presentation is a clean read-only view — it centers the viewport but
+      // does NOT select the node (no edit toolbar/handles).
+      expect(mockSlate.selectNodes).not.toHaveBeenCalled();
     });
 
     it("should ignore out-of-range index", () => {

@@ -710,6 +710,9 @@ export class Slate {
   }
 
   private addCoordinateDisplay() {
+    // Dev-only debug readout — hidden unless explicitly opted in. It must never
+    // show in production (or in the presentation view).
+    if (!(this.options as any).showCoordinates) return;
     console.log("COORD_DEBUG: Starting coordinate display creation");
 
     // Create coordinate display in upper left
