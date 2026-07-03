@@ -1799,6 +1799,9 @@ export class Node {
     const slate: any = this.slate;
     const canvas: any = slate.canvas;
     if (!canvas) return;
+    // Guard against re-entry (a single press can emit both pointerdown+mousedown).
+    if ((this as any)._connectDragging) return;
+    (this as any)._connectDragging = true;
     const container: any = slate.markersContainer || canvas;
 
     // Start point = this node's center in world (canvas user) coordinates.
@@ -1822,9 +1825,10 @@ export class Node {
     let previewArrow: any = null;
     try {
       previewArrow = container.marker(7, 7, (add: any) => {
-        add.path("M0,0 L7,3.5 L0,7 z").fill("#007cff");
+        add.path("M0,0 L7,3.5 L0,7 z").fill("#007cff").attr("pointer-events", "none");
       });
       previewArrow.ref(6, 3.5);
+      previewArrow.attr("pointer-events", "none");
       (temp as any).marker("end", previewArrow);
     } catch (e) {
       /* noop */
@@ -1881,8 +1885,21 @@ export class Node {
     };
 
     const nodeUnder = (clientX: number, clientY: number): Node | null => {
-      // Hide the temp line so it doesn't intercept the hit-test.
+      // Hide the preview (path + its arrow marker) so it doesn't intercept the
+      // hit-test for the node underneath the pointer.
+      let prevDisplay: string | undefined;
+      try {
+        prevDisplay = temp.node.style.display;
+        temp.node.style.display = "none";
+      } catch (e) {
+        /* noop */
+      }
       const el = document.elementFromPoint(clientX, clientY) as Element | null;
+      try {
+        if (prevDisplay !== undefined) temp.node.style.display = prevDisplay;
+      } catch (e) {
+        /* noop */
+      }
       const g = (el as any)?.closest?.("[data-node-id]");
       const id = g?.getAttribute?.("data-node-id");
       if (!id || id === this.id) return null;
@@ -1936,9 +1953,15 @@ export class Node {
     const onUp = (ev: any) => {
       window.removeEventListener("pointermove", onMove, true);
       window.removeEventListener("pointerup", onUp, true);
+      (this as any)._connectDragging = false;
       try {
         temp.remove();
         previewArrow?.remove?.();
+        // Bulletproof: clear any stray preview paths too.
+        const strays = (canvas.node as SVGElement).querySelectorAll(
+          ".connect-drag-line"
+        );
+        strays.forEach((el: Element) => el.remove());
       } catch (e) {
         /* noop */
       }
