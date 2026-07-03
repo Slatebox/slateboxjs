@@ -757,6 +757,8 @@ export class Node {
       // Temporarily disable resize/rotate during drag for clean dragging
       // The selection system will handle this through updateSelectionResizeRotate
       this.slate.disableNodeResizeRotate(this);
+      // Hide the cog during drag; it re-shows at the new spot on drag end.
+      this.hideNodeCog();
     });
 
     this.svgGroup.on("dragend.node", (event: any) => {
@@ -1655,7 +1657,71 @@ export class Node {
   /** Called by the Slate when this node is selected. */
   public onSelected() {
     console.log("SELECTION_DEBUG: Node selected", this.id);
-    // Note: Slate now handles resize/rotate enabling
+    // Note: Slate now handles resize/rotate enabling + the node cog (M1)
+  }
+
+  private _nodeCog?: any;
+
+  /**
+   * Show a cog affordance at the node's top-right corner (M1). Clicking it opens
+   * the node properties pane via the host (Menu → onMenuRequested). Only shown
+   * on single selection (Slate.updateSelectionResizeRotate drives it).
+   */
+  public showNodeCog(): void {
+    if (this.options.allowMenu === false) return;
+    this.hideNodeCog();
+    const slate: any = this.slate;
+    const container: any = slate.markersContainer || slate.canvas;
+    if (!container || !this.svgGroup) return;
+    let bx: number, by: number;
+    try {
+      const rb = this.svgGroup.rbox(slate.canvas); // world AABB (follows rotation)
+      bx = rb.x + rb.width;
+      by = rb.y;
+    } catch (e) {
+      bx = (this.options.x || 0) + (this.options.width || 0);
+      by = this.options.y || 0;
+    }
+    // Offset clearly beyond the top-right resize handle so the cog is easy to
+    // click without hitting a selection handle.
+    const px = bx + 22;
+    const py = by - 22;
+    const cog = container.group().addClass("node-cog");
+    cog.circle(28).center(px, py).fill("#fff").stroke({ color: "#4051B5", width: 2 });
+    cog
+      .text("⚙")
+      .font({ size: 20, anchor: "middle", family: "sans-serif" })
+      .fill("#4051B5")
+      .center(px, py)
+      .attr("dy", "0.03em");
+    cog.attr("pointer-events", "all");
+    try {
+      cog.node.style.cursor = "pointer";
+    } catch (e) {
+      /* noop */
+    }
+    cog.on("mousedown", (e: any) => e.stopPropagation?.());
+    cog.on("click", (e: any) => {
+      e.stopPropagation?.();
+      this.menu?.open?.();
+    });
+    this._nodeCog = cog;
+    try {
+      slate.markersContainer?.front?.();
+    } catch (e) {
+      /* noop */
+    }
+  }
+
+  public hideNodeCog(): void {
+    if (this._nodeCog) {
+      try {
+        this._nodeCog.remove();
+      } catch (e) {
+        /* noop */
+      }
+      this._nodeCog = undefined;
+    }
   }
 
   /** Called by the Slate when this node is deselected. */

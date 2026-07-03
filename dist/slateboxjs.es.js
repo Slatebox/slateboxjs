@@ -6971,7 +6971,7 @@ class Vi {
       }, this.preDragPosition = {
         x: this.options.x ?? 0,
         y: this.options.y ?? 0
-      }, this._dragStartPointer = this.pointerFromDragEvent(t), console.log("DRAG_DEBUG: Stored pre-drag transform:", this.preDragTransform, "position:", this.preDragPosition), this.slate.disableNodeResizeRotate(this);
+      }, this._dragStartPointer = this.pointerFromDragEvent(t), console.log("DRAG_DEBUG: Stored pre-drag transform:", this.preDragTransform, "position:", this.preDragPosition), this.slate.disableNodeResizeRotate(this), this.hideNodeCog();
     }), this.svgGroup.on("dragend.node", (t) => {
       console.log("DRAG_DEBUG: Drag ended on", this.id);
       const e = this.pointerFromDragEvent(t);
@@ -7446,6 +7446,46 @@ class Vi {
   /** Called by the Slate when this node is selected. */
   onSelected() {
     console.log("SELECTION_DEBUG: Node selected", this.id);
+  }
+  /**
+   * Show a cog affordance at the node's top-right corner (M1). Clicking it opens
+   * the node properties pane via the host (Menu → onMenuRequested). Only shown
+   * on single selection (Slate.updateSelectionResizeRotate drives it).
+   */
+  showNodeCog() {
+    if (this.options.allowMenu === !1) return;
+    this.hideNodeCog();
+    const t = this.slate, e = t.markersContainer || t.canvas;
+    if (!e || !this.svgGroup) return;
+    let i, s;
+    try {
+      const l = this.svgGroup.rbox(t.canvas);
+      i = l.x + l.width, s = l.y;
+    } catch {
+      i = (this.options.x || 0) + (this.options.width || 0), s = this.options.y || 0;
+    }
+    const o = i + 22, a = s - 22, r = e.group().addClass("node-cog");
+    r.circle(28).center(o, a).fill("#fff").stroke({ color: "#4051B5", width: 2 }), r.text("⚙").font({ size: 20, anchor: "middle", family: "sans-serif" }).fill("#4051B5").center(o, a).attr("dy", "0.03em"), r.attr("pointer-events", "all");
+    try {
+      r.node.style.cursor = "pointer";
+    } catch {
+    }
+    r.on("mousedown", (l) => l.stopPropagation?.()), r.on("click", (l) => {
+      l.stopPropagation?.(), this.menu?.open?.();
+    }), this._nodeCog = r;
+    try {
+      t.markersContainer?.front?.();
+    } catch {
+    }
+  }
+  hideNodeCog() {
+    if (this._nodeCog) {
+      try {
+        this._nodeCog.remove();
+      } catch {
+      }
+      this._nodeCog = void 0;
+    }
   }
   /** Called by the Slate when this node is deselected. */
   onDeselected() {
@@ -10257,7 +10297,7 @@ class An {
       this.selectedNodes.length,
       "selected nodes"
     ), this.nodes.allNodes.forEach((t) => {
-      t.resizeRotate.isEnabled() && (t.resizeRotate.disable(), console.log("SELECTION_DEBUG: Disabled resize/rotate on", t.id)), t.isConnectionHandlesEnabled() && (t.disableConnectionHandles(), console.log("SELECTION_DEBUG: Disabled connection handles on", t.id));
+      t.resizeRotate.isEnabled() && (t.resizeRotate.disable(), console.log("SELECTION_DEBUG: Disabled resize/rotate on", t.id)), t.isConnectionHandlesEnabled() && (t.disableConnectionHandles(), console.log("SELECTION_DEBUG: Disabled connection handles on", t.id)), t.hideNodeCog?.();
     }), this.disableGroupResizeRotate(), this.selectedNodes.length === 0) {
       console.log(
         "SELECTION_DEBUG: No nodes selected - all resize/rotate disabled"
@@ -10266,7 +10306,7 @@ class An {
     }
     if (this.selectedNodes.length === 1) {
       const t = this.selectedNodes[0];
-      t.resizeRotate.enable(), t.enableConnectionHandles(), console.log(
+      t.resizeRotate.enable(), t.enableConnectionHandles(), t.showNodeCog?.(), console.log(
         "SELECTION_DEBUG: Enabled individual resize/rotate and connection handles on",
         t.id
       );

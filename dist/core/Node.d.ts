@@ -316,6 +316,14 @@ export declare class Node {
     private isResizeRotateHandle;
     /** Called by the Slate when this node is selected. */
     onSelected(): void;
+    private _nodeCog?;
+    /**
+     * Show a cog affordance at the node's top-right corner (M1). Clicking it opens
+     * the node properties pane via the host (Menu → onMenuRequested). Only shown
+     * on single selection (Slate.updateSelectionResizeRotate drives it).
+     */
+    showNodeCog(): void;
+    hideNodeCog(): void;
     /** Called by the Slate when this node is deselected. */
     onDeselected(): void;
     private createConnectionHandles;

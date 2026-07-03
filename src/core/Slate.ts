@@ -1219,6 +1219,9 @@ export class Slate {
         node.disableConnectionHandles();
         console.log("SELECTION_DEBUG: Disabled connection handles on", node.id);
       }
+
+      // Remove any node-properties cog affordance (M1)
+      (node as any).hideNodeCog?.();
     });
 
     // Remove any existing group controller
@@ -1238,6 +1241,8 @@ export class Slate {
       selectedNode.resizeRotate.enable();
 
       selectedNode.enableConnectionHandles();
+      // Show the node-properties cog affordance (M1)
+      (selectedNode as any).showNodeCog?.();
       console.log(
         "SELECTION_DEBUG: Enabled individual resize/rotate and connection handles on",
         selectedNode.id
