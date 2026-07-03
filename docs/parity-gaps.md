@@ -26,8 +26,13 @@ Playwright, add a durable e2e, commit.
   drag onto another node to connect. Ours uses connection ANCHORS (blue dots) for drag-to-
   connect. TODO: verify our anchors do press-drag-connect; wire the plug icon to start the same
   connector drag (so both affordances work).
-- (ongoing) Keep mining: rotate/resize handle styling, node/line delete parity + collab, theme
-  palette, presentation mode, etc. — add rows as found.
+- (ongoing) Keep mining: node/line delete parity + collab, theme palette, presentation mode,
+  etc. — add rows as found.
+
+## User direction (2026-07-02)
+- Do NOT copy legacy for **rotate/resize** — ours stays as-is.
+- Panels/toolbars can be **modern (Miro-style)**, not legacy replicas. G1/G2 use a flat white
+  rounded pill with crisp monochrome line-icons (delete red, plug/cog neutral).
 
 ## Status
 - 2026-07-02: established comparison pattern; captured legacy node toolbar (delete/plug/cog/+)

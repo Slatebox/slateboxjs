@@ -1663,9 +1663,9 @@ export class Node {
   private _nodeCog?: any;
 
   /**
-   * Show a cog affordance at the node's top-right corner (M1). Clicking it opens
-   * the node properties pane via the host (Menu → onMenuRequested). Only shown
-   * on single selection (Slate.updateSelectionResizeRotate drives it).
+   * Show the node context toolbar (G1) — a compact strip CENTERED ABOVE the
+   * node (legacy parity) with: delete, plug (drag-to-connect), cog (settings).
+   * Only shown on single selection (Slate.updateSelectionResizeRotate drives it).
    */
   public showNodeCog(): void {
     if (this.options.allowMenu === false) return;
@@ -1673,43 +1673,93 @@ export class Node {
     const slate: any = this.slate;
     const container: any = slate.markersContainer || slate.canvas;
     if (!container || !this.svgGroup) return;
-    let bx: number, by: number;
+    let cx: number, topY: number;
     try {
       const rb = this.svgGroup.rbox(slate.canvas); // world AABB (follows rotation)
-      bx = rb.x + rb.width;
-      by = rb.y;
+      cx = rb.x + rb.width / 2;
+      topY = rb.y;
     } catch (e) {
-      bx = (this.options.x || 0) + (this.options.width || 0);
-      by = this.options.y || 0;
+      cx = (this.options.x || 0) + (this.options.width || 0) / 2;
+      topY = this.options.y || 0;
     }
-    // Offset clearly beyond the top-right resize handle so the cog is easy to
-    // click without hitting a selection handle.
-    const px = bx + 22;
-    const py = by - 22;
-    const cog = container.group().addClass("node-cog");
-    cog.circle(28).center(px, py).fill("#fff").stroke({ color: "#4051B5", width: 2 });
-    cog
-      .text("⚙")
-      .font({ size: 20, anchor: "middle", family: "sans-serif" })
-      .fill("#4051B5")
-      .center(px, py)
-      .attr("dy", "0.03em");
-    cog.attr("pointer-events", "all");
-    try {
-      cog.node.style.cursor = "pointer";
-    } catch (e) {
-      /* noop */
-    }
-    cog.on("mousedown", (e: any) => e.stopPropagation?.());
-    cog.on("click", (e: any) => {
-      e.stopPropagation?.();
-      this.menu?.open?.();
+
+    const R = 15; // button hit radius
+    const GAP = 6; // gap between buttons
+    const NEUTRAL = "#5b6472";
+    const tools: Array<{ key: string; color: string; onClick: () => void }> = [
+      { key: "delete", color: "#e5484d", onClick: () => this.slate.removeNode(this.id) },
+      { key: "plug", color: NEUTRAL, onClick: () => this.startPlugConnect() },
+      { key: "cog", color: NEUTRAL, onClick: () => this.menu?.open?.() },
+    ];
+    const n = tools.length;
+    const stepX = R * 2 + GAP;
+    const totalW = n * (R * 2) + (n - 1) * GAP;
+    const startX = cx - totalW / 2 + R;
+    const barY = topY - (R + 18); // sit clearly above the node + rotate handle
+
+    const bar = container.group().addClass("node-cog").addClass("node-toolbar");
+    // Modern (Miro-style) flat white pill.
+    bar
+      .rect(totalW + 14, R * 2 + 10)
+      .radius((R * 2 + 10) / 2)
+      .center(cx, barY)
+      .fill("#ffffff")
+      .stroke({ color: "#e3e5ea", width: 1 });
+
+    tools.forEach((t, i) => {
+      const bx = startX + i * stepX;
+      const btn = bar.group().addClass(`node-tool-${t.key}`);
+      // transparent hit circle
+      btn.circle(R * 2).center(bx, barY).fill("#ffffff").attr("fill-opacity", 0.001);
+      Node.drawToolIcon(btn, t.key, bx, barY, t.color);
+      btn.attr("pointer-events", "all");
+      try {
+        btn.node.style.cursor = "pointer";
+      } catch (e) {
+        /* noop */
+      }
+      btn.on("mousedown", (e: any) => e.stopPropagation?.());
+      btn.on("click", (e: any) => {
+        e.stopPropagation?.();
+        t.onClick();
+      });
     });
-    this._nodeCog = cog;
+
+    bar.attr("pointer-events", "all");
+    this._nodeCog = bar;
     try {
       slate.markersContainer?.front?.();
     } catch (e) {
       /* noop */
+    }
+  }
+
+  /** Draw a crisp monochrome line-icon (delete/plug/cog) centered at (cx,cy). */
+  public static drawToolIcon(g: any, kind: string, cx: number, cy: number, color: string): void {
+    const s = { color, width: 1.6, linecap: "round", linejoin: "round" };
+    if (kind === "delete") {
+      // trash can
+      g.line(cx - 6, cy - 5, cx + 6, cy - 5).stroke(s); // lid
+      g.line(cx - 2.5, cy - 5, cx - 2, cy - 7.5).stroke(s);
+      g.line(cx + 2.5, cy - 5, cx + 2, cy - 7.5).stroke(s);
+      g.line(cx - 2, cy - 7.5, cx + 2, cy - 7.5).stroke(s); // handle
+      g.path(`M ${cx - 4.5} ${cy - 4} L ${cx - 3.8} ${cy + 6.5} L ${cx + 3.8} ${cy + 6.5} L ${cx + 4.5} ${cy - 4}`)
+        .fill("none")
+        .stroke(s);
+      g.line(cx - 1.3, cy - 2, cx - 1.3, cy + 4).stroke({ color, width: 1.1, linecap: "round" });
+      g.line(cx + 1.3, cy - 2, cx + 1.3, cy + 4).stroke({ color, width: 1.1, linecap: "round" });
+    } else if (kind === "plug") {
+      // connection: two endpoints joined by a line ("draw a connector")
+      g.line(cx - 4, cy + 4, cx + 4, cy - 4).stroke(s);
+      g.circle(4.4).center(cx - 4.5, cy + 4.5).fill(color);
+      g.circle(4.4).center(cx + 4.5, cy - 4.5).fill("#ffffff").stroke(s);
+    } else {
+      // cog (settings) — glyph is crisp + monochrome
+      g.text("⚙")
+        .font({ size: 17, anchor: "middle", family: "sans-serif" })
+        .fill(color)
+        .center(cx, cy)
+        .attr("dy", "0.05em");
     }
   }
 
@@ -1721,6 +1771,19 @@ export class Node {
         /* noop */
       }
       this._nodeCog = undefined;
+    }
+  }
+
+  /**
+   * Plug affordance (G3): start dragging a connector out of this node. Placeholder
+   * until the full press-drag-to-connect is wired — for now it selects the node so
+   * the connection anchors (which already support drag-to-connect) are available.
+   */
+  private startPlugConnect(): void {
+    try {
+      this.enableConnectionHandles();
+    } catch (e) {
+      /* noop */
     }
   }
 

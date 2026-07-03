@@ -318,12 +318,20 @@ export declare class Node {
     onSelected(): void;
     private _nodeCog?;
     /**
-     * Show a cog affordance at the node's top-right corner (M1). Clicking it opens
-     * the node properties pane via the host (Menu → onMenuRequested). Only shown
-     * on single selection (Slate.updateSelectionResizeRotate drives it).
+     * Show the node context toolbar (G1) — a compact strip CENTERED ABOVE the
+     * node (legacy parity) with: delete, plug (drag-to-connect), cog (settings).
+     * Only shown on single selection (Slate.updateSelectionResizeRotate drives it).
      */
     showNodeCog(): void;
+    /** Draw a crisp monochrome line-icon (delete/plug/cog) centered at (cx,cy). */
+    static drawToolIcon(g: any, kind: string, cx: number, cy: number, color: string): void;
     hideNodeCog(): void;
+    /**
+     * Plug affordance (G3): start dragging a connector out of this node. Placeholder
+     * until the full press-drag-to-connect is wired — for now it selects the node so
+     * the connection anchors (which already support drag-to-connect) are available.
+     */
+    private startPlugConnect;
     /** Called by the Slate when this node is deselected. */
     onDeselected(): void;
     private createConnectionHandles;
