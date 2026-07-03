@@ -1,5 +1,29 @@
 # Collab bug loop — canvas drag / presence / connector / rotation parity
 
+## HELD — line/UX backlog M1-M9 (2026-07-02, from user; work ONE AT A TIME)
+Core fixes in slateboxjs-v2; app-side pane/layout edits approved (LineDrawer/NodeDrawer/Chat/Canvas).
+- M1. COG affordances: clicking a NODE shows a cog → opens the node properties pane (pop up from bottom);
+  clicking a LINE shows a cog → opens the line properties pane. Today there's no cog on either.
+- M2. LINE-CLICK BREAKS THE APP: clicking a connector leaves you stuck — can only pan the canvas, must
+  refresh. Must be able to click a line, open its pane, and click away. (Blocking.)
+- M3. CHAT = OVERLAY, not width-taking: REVERT the canvas inset (last change docked it + shrank canvas).
+  Chat must float as an overlay that does NOT reduce canvas width, and must NOT block canvas interaction on
+  its non-UI areas (pointer-events pass-through except the actual chat controls).
+- M4. Arrowhead z-order: the connector arrowhead must render OVER the node, not behind it.
+- M5. Birds-eye Miro-style: focus/frame content in the CENTER of the minimap; right now content sits weirdly
+  at the bottom. Match Miro's overview behavior.
+- M6. Remove the lower cookie banner.
+- M7. Connectors follow LIVE during node RESIZE (dynamic re-layout each resize frame, not only at the end).
+- M8. Drop-target feedback: dragging a line endpoint over an existing node must clearly show it will attach
+  (highlight the target) and how; respect locked vs dynamic positioning.
+- M9. Line properties pane fully configurable via the cog: arrow heads, line width, line type, locked/not-
+  locked. (Pane logic largely exists from L-series; the missing piece is the cog to open it + completeness.)
+Acceptance: click node/line → cog → pane from bottom; chat is a non-blocking overlay; arrowheads over nodes;
+birds-eye centered; no cookie banner; connectors track during resize; clear attach feedback dragging a line
+onto a node; all line props (arrows/width/type/lock) editable.
+
+
+
 ## Line editing backlog (2026-07-02, ALL L1-L5 DONE)
 > L1a reattach-to-node [5097839]; L1b free-float endpoints [db0ea35]; L2/L3 line-prop apply+sync+persist
 > [9fa0cef]; L4 no-rogue-lines via con.remove() [db0ea35]; L5 relative/absolute endpoint locking + pane
