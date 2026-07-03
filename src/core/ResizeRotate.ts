@@ -298,6 +298,16 @@ export class ResizeRotate {
 
       this.node.centerText();
 
+      // Connectors follow LIVE during resize (M7): svg.connectable re-solves on
+      // a "transform" event on the connected group. handleResize runs each
+      // resize frame, so fire it here to re-layout attached lines in real time
+      // (previously they only updated at the end of the interaction).
+      try {
+        this.node.svgGroup?.fire?.("transform");
+      } catch (e) {
+        /* noop */
+      }
+
       // If a rotation happened, the resize event carries angle (delta)
       // svg.resize.js applies rotation incrementally to backgroundRect
       // We need to read the ACTUAL cumulative rotation from backgroundRect.transform()

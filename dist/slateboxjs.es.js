@@ -5420,7 +5420,12 @@ class Oi {
         x: this.node.options.x ?? 0,
         y: this.node.options.y ?? 0
       };
-      if (this.node.options.x = i.x + e.x, this.node.options.y = i.y + e.y, this.node.setSize(e.width, e.height), this.node.centerText(), t.detail && typeof t.detail.angle == "number") {
+      this.node.options.x = i.x + e.x, this.node.options.y = i.y + e.y, this.node.setSize(e.width, e.height), this.node.centerText();
+      try {
+        this.node.svgGroup?.fire?.("transform");
+      } catch {
+      }
+      if (t.detail && typeof t.detail.angle == "number") {
         const s = t.detail.angle;
         let o = 0;
         try {
