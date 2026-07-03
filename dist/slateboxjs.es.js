@@ -5578,7 +5578,12 @@ class Bi {
         lineWidth: e.lineWidth || this.options.defaultLineWidth,
         ...e
       };
-      if (c.lineColor && h.setLineColor && h.setLineColor(c.lineColor), this.connections.set(i, c), h.onEndpointChange = (u) => this.handleEndpointChange(c, u), t.connector) {
+      c.lineColor && h.setLineColor && h.setLineColor(c.lineColor), this.connections.set(i, c);
+      try {
+        this.slate.markersContainer?.front?.();
+      } catch {
+      }
+      if (h.onEndpointChange = (u) => this.handleEndpointChange(c, u), t.connector) {
         const u = `${t.id}<-${this.node.id}`;
         t.connector.connections.set(u, c);
       }
@@ -6805,7 +6810,12 @@ class $i {
       this.options.image,
       this.options.imageOrigWidth,
       this.options.imageOrigHeight
-    ), this.options.filters?.vect && this.filters.apply(this.options.filters.vect, "vect"), this.options.filters?.text && this.filters.apply(this.options.filters.text, "text"), this.options.allowDrag && !this.options.isLocked && this.makeDraggable(), this.setupSelectionBehavior(), typeof this.options.customRender == "function" && this.options.customRender(this.svgGroup, this.options), t || this.centerTextInitial(), this.options.rotate?.rotationAngle && this.applyPositionAndRotation(), console.log("NODE_DEBUG: finishCreate continuing for", this.id), this.svgGroup.node.setAttribute("aria-label", this.options.text || "Unnamed node"), this._resolveReady();
+    ), this.options.filters?.vect && this.filters.apply(this.options.filters.vect, "vect"), this.options.filters?.text && this.filters.apply(this.options.filters.text, "text"), this.options.allowDrag && !this.options.isLocked && this.makeDraggable(), this.setupSelectionBehavior(), typeof this.options.customRender == "function" && this.options.customRender(this.svgGroup, this.options), t || this.centerTextInitial(), this.options.rotate?.rotationAngle && this.applyPositionAndRotation(), console.log("NODE_DEBUG: finishCreate continuing for", this.id), this.svgGroup.node.setAttribute("aria-label", this.options.text || "Unnamed node");
+    try {
+      this.slate.markersContainer?.front?.();
+    } catch {
+    }
+    this._resolveReady();
   }
   createBackground() {
     console.log(

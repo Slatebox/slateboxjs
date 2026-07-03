@@ -267,6 +267,15 @@ export class Connector {
       // Store the connection
       this.connections.set(connectionId, connection);
 
+      // Keep arrowheads above the nodes (M4): the markers container is a lazy
+      // canvas group whose z-order otherwise depends on creation order, so a
+      // node created later would cover the arrowhead pointing into it.
+      try {
+        this.slate.markersContainer?.front?.();
+      } catch (e) {
+        /* noop */
+      }
+
       // Wire endpoint-drag → model. When the user drags a source/target handle
       // and drops it, the vendored lib reattaches the VIEW; this callback
       // updates the association model, broadcasts to peers, and persists (L1).

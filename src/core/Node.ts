@@ -504,6 +504,14 @@ export class Node {
     // Set initial accessibility label from node text
     this.svgGroup.node.setAttribute("aria-label", this.options.text || "Unnamed node");
 
+    // Keep connector arrowheads above nodes (M4): a node added after existing
+    // connections must not cover their arrowheads.
+    try {
+      (this.slate as any).markersContainer?.front?.();
+    } catch (e) {
+      /* noop */
+    }
+
     // Signal that the node is fully created
     this._resolveReady();
   }
