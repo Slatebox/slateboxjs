@@ -52,6 +52,11 @@ Our local app top bar has NO PRESENT button; the library Presentation class exis
   Step ORDER = _presentationIndex else position (top-to-bottom, left-to-right) — matches legacy's
   reading order for a typical top-down mindmap; revisit if a specific slate needs custom ordering.
 
+## Batch 2026-07-02 (user) — COMPLETE (PRES + Q1-Q4)
+PRES [568f5e3] fullscreen modal + isolated read-only slate, steps all nodes, clean view.
+Q1 [d2a6efa] arrowheads over nodes during drag. Q2+Q3 [6874923] line plug dropped + endpoint lock
+toggles baked in. Q4 [f9c2900] birds-eye animates. 13 new-feature e2e green; 1063 unit.
+
 ## Batch 2026-07-02 (user) — iterate until PRESENTATION works end-to-end
 - PRES DONE [lib pending commit; app Main.jsx uncommitted]: presentation is now a FULLSCREEN MODAL
   ("<Name> - Presentation" header + X) rendering an ISOLATED read-only slate (exportJSON → fresh
