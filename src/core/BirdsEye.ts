@@ -618,15 +618,11 @@ export class BirdsEye {
       maxY = Math.max(maxY, y + h);
     });
 
-    // Also consider the viewport area
-    const viewWidth = this.slate.options.viewPort?.originalWidth || 800;
-    const viewHeight = this.slate.options.viewPort?.originalHeight || 600;
-
-    minX = Math.min(minX, 0);
-    minY = Math.min(minY, 0);
-    maxX = Math.max(maxX, viewWidth);
-    maxY = Math.max(maxY, viewHeight);
-
+    // Frame the ACTUAL node content (M5). Do NOT expand to include the origin
+    // (0,0) or the viewport size — nodes live far out in world space (~10000),
+    // so forcing origin into the bounds spanned 0→10000 and shoved the content
+    // into the far bottom-right corner / off the minimap. The per-node padding
+    // in the placement math centers the content Miro-style.
     return { minX, minY, maxX, maxY };
   }
 }

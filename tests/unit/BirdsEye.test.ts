@@ -816,15 +816,19 @@ describe("BirdsEye", () => {
       });
     });
 
-    it("calculateContentBounds includes viewport area even when nodes are outside", () => {
+    it("calculateContentBounds frames the node content, not the origin/viewport (M5)", () => {
+      // Nodes live far out in world space; the minimap must frame the ACTUAL
+      // node content (so it centers), NOT expand to include origin (0,0) or the
+      // viewport size — that shoved content into the far corner / off the map.
       const node = createMockNode("n1", { x: -500, y: -500 });
       mockSlate = createMockSlate([node]);
       const be = new BirdsEye(mockSlate);
       const bounds = (be as any).calculateContentBounds();
       expect(bounds.minX).toBe(-500);
       expect(bounds.minY).toBe(-500);
-      expect(bounds.maxX).toBeGreaterThanOrEqual(800);
-      expect(bounds.maxY).toBeGreaterThanOrEqual(600);
+      // Bounds hug the node box (default 100x60) — no origin/viewport expansion.
+      expect(bounds.maxX).toBe(-400);
+      expect(bounds.maxY).toBe(-440);
     });
 
     it("handleMouseUp cleans up even if called without prior mousedown", () => {
