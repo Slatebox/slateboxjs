@@ -1813,15 +1813,46 @@ export class Node {
     }
 
     const temp = container
-      .line(sx, sy, sx, sy)
+      .path(`M ${sx} ${sy} L ${sx} ${sy}`)
+      .fill("none")
       .stroke({ color: "#007cff", width: 2, dasharray: "6,4", linecap: "round" })
       .addClass("connect-drag-line");
     temp.attr("pointer-events", "none");
+    // Arrowhead so the preview shows the tip meeting the node.
+    let previewArrow: any = null;
+    try {
+      previewArrow = container.marker(7, 7, (add: any) => {
+        add.path("M0,0 L7,3.5 L0,7 z").fill("#007cff");
+      });
+      previewArrow.ref(6, 3.5);
+      (temp as any).marker("end", previewArrow);
+    } catch (e) {
+      /* noop */
+    }
     try {
       slate.markersContainer?.front?.();
     } catch (e) {
       /* noop */
     }
+
+    const norm = (vx: number, vy: number, fx: number, fy: number) => {
+      const m = Math.hypot(vx, vy);
+      if (m > 0.0001) return [vx / m, vy / m];
+      const fm = Math.hypot(fx, fy) || 1;
+      return [fx / fm, fy / fm];
+    };
+    // Point on an axis-aligned rect's edge along the direction center→(px,py).
+    const edgePoint = (o: any, px: number, py: number) => {
+      const cx = (o.x || 0) + (o.width || 0) / 2;
+      const cy = (o.y || 0) + (o.height || 0) / 2;
+      const dx = px - cx;
+      const dy = py - cy;
+      if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) return { x: cx, y: cy };
+      const sxr = dx !== 0 ? (o.width || 0) / 2 / Math.abs(dx) : Infinity;
+      const syr = dy !== 0 ? (o.height || 0) / 2 / Math.abs(dy) : Infinity;
+      const sc = Math.min(sxr, syr);
+      return { x: cx + dx * sc, y: cy + dy * sc };
+    };
 
     let hovered: any = null;
     const clearHover = () => {
@@ -1860,8 +1891,34 @@ export class Node {
 
     const onMove = (ev: any) => {
       const w = toWorld(ev.clientX, ev.clientY);
-      temp.plot(sx, sy, w.x, w.y);
       const target = nodeUnder(ev.clientX, ev.clientY);
+
+      if (target && (target as any).options) {
+        // Curve to a perpendicular approach on the hovered node so the arrow
+        // tip meets its edge at ~90°, pointing at the node center.
+        const to = (target as any).options;
+        const tcx = (to.x || 0) + (to.width || 0) / 2;
+        const tcy = (to.y || 0) + (to.height || 0) / 2;
+        const tp = edgePoint(to, sx, sy); // target edge toward source center
+        const sp = edgePoint(this.options, tcx, tcy); // source edge toward target center
+        const dx = tp.x - sp.x;
+        const dy = tp.y - sp.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const sDir = norm(sp.x - sx, sp.y - sy, dx, dy);
+        const tDir = norm(tp.x - tcx, tp.y - tcy, -dx, -dy);
+        const handle = Math.max(30, Math.min(dist * 0.45, 90));
+        const cp1x = sp.x + sDir[0] * handle;
+        const cp1y = sp.y + sDir[1] * handle;
+        const cp2x = tp.x + tDir[0] * handle;
+        const cp2y = tp.y + tDir[1] * handle;
+        temp.plot(
+          `M ${sp.x} ${sp.y} C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${tp.x} ${tp.y}`
+        );
+      } else {
+        // Free drag: straight line from the source center to the pointer.
+        temp.plot(`M ${sx} ${sy} L ${w.x} ${w.y}`);
+      }
+
       if (target !== (hovered?.node || null)) {
         clearHover();
         if (target && (target as any).backgroundRect) {
@@ -1881,6 +1938,7 @@ export class Node {
       window.removeEventListener("pointerup", onUp, true);
       try {
         temp.remove();
+        previewArrow?.remove?.();
       } catch (e) {
         /* noop */
       }
