@@ -5,8 +5,12 @@
 > [9fa0cef]; L4 no-rogue-lines via con.remove() [db0ea35]; L5 relative/absolute endpoint locking + pane
 > toggle [3da98ef]. e2e: connector-endpoint-drag, connector-floating-endpoint, line-properties,
 > connector-edge-pin, line-endpoint-lock, connector-sync-persist, connector-follows-rotation. 1063 unit.
-> REMAINING (app-side, separate): chat panel (MuiPaper) overlaps canvas + intercepts connector-handle grabs
-> over its region — z-order/pointer-events fix so endpoints under it are grabbable.
+> CHAT OVERLAP FIXED (app-side, user chose "dock it"): Chat.jsx panel is now a full-height right dock
+> (top:0/right:0/height:100%/width:260); Canvas.jsx insets #slateCanvas width to calc(100% - 260px) when
+> chat is open. Canvas ends exactly at the dock edge (no overlap); previously-covered region is interactive
+> again → endpoints anywhere are grabbable. App files changed (uncommitted in slatebox repo, user-gated):
+> Chat.jsx, pages/Canvas.jsx, components/line/LineProperties.jsx (L5 toggle), recoil/atoms.js, client/main.jsx.
+> BACKLOG FULLY COMPLETE.
 
 ## Line editing backlog (superseded above)
 Go-ahead given; app-side pane edits approved. L2+L3 DONE [9fa0cef]: onLinePropertiesChanged now routes
