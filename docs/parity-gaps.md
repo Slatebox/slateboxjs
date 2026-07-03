@@ -52,6 +52,20 @@ Our local app top bar has NO PRESENT button; the library Presentation class exis
   Step ORDER = _presentationIndex else position (top-to-bottom, left-to-right) — matches legacy's
   reading order for a typical top-down mindmap; revisit if a specific slate needs custom ordering.
 
+## Batch 2026-07-02 (user) — iterate until PRESENTATION works end-to-end
+- PRES (priority): presentation must work END TO END. Legacy = a FULLSCREEN MODAL ("<Name> -
+  Presentation" header + X close, image #12) that steps through ALL nodes with smooth zoom/pan.
+  Ours currently "just goes to one node." Make it a fullscreen presentation experience that steps
+  through every node in order; fix the one-node bug. OG v1: controller.present() runs per-node
+  operation sequences (zoom/position); extractPresentationLayout orders nodes.
+- Q1: connector arrowhead gets pushed BEHIND the node while DRAGGING — keep markers container on top
+  during dragmove (M4 held on connect/create but not during drag).
+- Q2: LINE toolbar plug button "doesn't do anything" — make it meaningful or drop it.
+- Q3: bake endpoint locking into the LIBRARY — when the line cog is clicked, show a small
+  lock/relative ICON next to EACH endpoint (start + end); clicking toggles absolute/relative
+  (setEndpointLock). Visual L5 on-canvas (in addition to / instead of the pane toggle).
+- Q4: birds-eye should ANIMATE when nodes change (move/add/remove) instead of snapping.
+
 ## User direction (2026-07-02)
 - Do NOT copy legacy for **rotate/resize** — ours stays as-is.
 - Panels/toolbars can be **modern (Miro-style)**, not legacy replicas. G1/G2 use a flat white
