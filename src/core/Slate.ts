@@ -182,6 +182,8 @@ export class Slate {
   public _activeLineCog?: any;
   /** The connectable whose endpoint handles are currently shown (L1/M8). */
   public _activeLineConnectable?: any;
+  /** The active per-endpoint lock/relative toggle affordances (Q3). */
+  public _activeEndpointToggles?: any[];
   private selectedNodes: Node[] = [];
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
   private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -1490,6 +1492,16 @@ export class Slate {
         /* noop */
       }
       this._activeLineConnectable = undefined;
+    }
+    if (this._activeEndpointToggles) {
+      this._activeEndpointToggles.forEach((g) => {
+        try {
+          g.remove();
+        } catch (e) {
+          /* noop */
+        }
+      });
+      this._activeEndpointToggles = undefined;
     }
   }
 

@@ -54,7 +54,7 @@ test.describe("line cog → open properties pane (§M1/M2)", () => {
     expect(counts.bar).toBe(1);
     expect(counts.del).toBe(1);
     expect(counts.cog).toBe(1);
-    expect(counts.plug).toBe(1);
+    expect(counts.plug).toBe(0); // plug removed (Q2)
 
     // Click the cog button → host line-menu requested
     const cogPt = await page.evaluate(() => {

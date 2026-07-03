@@ -139,6 +139,8 @@ export declare class Slate {
     _activeLineCog?: any;
     /** The connectable whose endpoint handles are currently shown (L1/M8). */
     _activeLineConnectable?: any;
+    /** The active per-endpoint lock/relative toggle affordances (Q3). */
+    _activeEndpointToggles?: any[];
     private selectedNodes;
     private groupResizeRotate;
     private _coordinateIntervalId;

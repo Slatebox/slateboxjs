@@ -74,6 +74,15 @@ Our local app top bar has NO PRESENT button; the library Presentation class exis
   (setEndpointLock). Visual L5 on-canvas (in addition to / instead of the pane toggle).
 - Q4: birds-eye should ANIMATE when nodes change (move/add/remove) instead of snapping.
 
+- Q1 DONE [d2a6efa]: arrowheads stay over nodes during drag (markers.front() each dragmove frame).
+- Q2 DONE [pending commit]: removed the no-op plug from the LINE toolbar (now delete + cog).
+- Q3 DONE [pending commit]: baked endpoint locking into the library — clicking the line cog shows a
+  padlock toggle at EACH endpoint (inset from the ends, clear of drag-handles; transparent hit-circle
+  on top so clicks register over the fill:none padlock). Click flips absolute (pinned anchor) ↔
+  relative (auto-flow) via applyLineProperty + broadcasts onLinePropertiesChanged for collab. Classes
+  endpoint-lock / -source / -target / -absolute / -relative. Verified live: relative→absolute→relative.
+  e2e endpoint-lock-toggle. NEXT: Q4 birds-eye animate on node changes.
+
 ## User direction (2026-07-02)
 - Do NOT copy legacy for **rotate/resize** — ours stays as-is.
 - Panels/toolbars can be **modern (Miro-style)**, not legacy replicas. G1/G2 use a flat white

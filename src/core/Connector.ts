@@ -606,8 +606,9 @@ export class Connector {
     const container: any = slate.markersContainer || slate.canvas;
     if (!container) return;
 
-    // Line context toolbar (G2) — modern Miro-style pill at the line midpoint:
-    // delete + cog + plug (parity with legacy line toolbar).
+    // Line context toolbar (G2/Q2) — modern Miro-style pill at the line midpoint:
+    // delete + cog. (The old "plug" did nothing and was dropped; the cog opens
+    // the line pane AND shows per-endpoint lock/relative toggles — Q3.)
     const R = 15;
     const GAP = 6;
     const NEUTRAL = "#5b6472";
@@ -620,16 +621,12 @@ export class Connector {
           slate.clearLineCog?.();
         },
       },
-      { key: "cog", color: NEUTRAL, onClick: () => this.openLinePane(connection, con, targetId) },
       {
-        key: "plug",
+        key: "cog",
         color: NEUTRAL,
         onClick: () => {
-          try {
-            con.selectConnector?.();
-          } catch (e) {
-            /* noop */
-          }
+          this.openLinePane(connection, con, targetId);
+          this.showEndpointLockToggles(connection, con, targetId);
         },
       },
     ];
@@ -705,6 +702,149 @@ export class Connector {
         }
       }
     });
+  }
+
+  /**
+   * Q3: show a lock/relative toggle at EACH endpoint (source + target) when the
+   * line cog is clicked. Clicking a toggle flips absolute (pinned anchor) ↔
+   * relative (auto-flow) via applyLineProperty, and broadcasts for collab parity.
+   */
+  private showEndpointLockToggles(
+    connection: Connection,
+    con: any,
+    targetId: string
+  ): void {
+    const slate: any = this.slate;
+    // clear any previous toggle set
+    if (slate._activeEndpointToggles) {
+      slate._activeEndpointToggles.forEach((g: any) => {
+        try {
+          g.remove();
+        } catch (e) {
+          /* noop */
+        }
+      });
+    }
+    slate._activeEndpointToggles = [];
+
+    const lineNode: any = con?.connector?.node;
+    if (!lineNode || !lineNode.getPointAtLength) return;
+    let total = 0;
+    try {
+      total = lineNode.getTotalLength();
+    } catch (e) {
+      return;
+    }
+    const p0 = lineNode.getPointAtLength(0);
+    const p1 = lineNode.getPointAtLength(total);
+
+    const rels: any = (this.node as any).relationships;
+    const assoc = rels?.associations?.find((a: any) => a.childId === targetId);
+    if (!assoc) return;
+
+    // Match path ends to nodes: p0/p1 → source(this.node) / target(targetId),
+    // then INSET the toggle inward from each end so it sits clear of the node
+    // edge + the endpoint drag-handle (and is reliably clickable).
+    const centerOf = (n: any) => {
+      const o = n?.options || {};
+      return { x: (o.x || 0) + (o.width || 0) / 2, y: (o.y || 0) + (o.height || 0) / 2 };
+    };
+    const dist = (p: any, c: any) => Math.hypot(p.x - c.x, p.y - c.y);
+    const srcC = centerOf(this.node);
+    const srcAtStart = dist(p0, srcC) <= dist(p1, srcC);
+    const inset = Math.min(34, total * 0.28);
+    const srcPt = lineNode.getPointAtLength(srcAtStart ? inset : total - inset);
+    const tgtPt = lineNode.getPointAtLength(srcAtStart ? total - inset : inset);
+
+    const container: any = slate.markersContainer || slate.canvas;
+    const NEUTRAL = "#5b6472";
+    const ABS = "#4051B5";
+
+    const makeToggle = (pt: any, which: "source" | "target") => {
+      const absolute =
+        which === "source" ? !!assoc.sourceAnchor : !!assoc.targetAnchor;
+      const color = absolute ? ABS : NEUTRAL;
+      const g = container
+        .group()
+        .addClass("endpoint-lock")
+        .addClass(`endpoint-lock-${which}`)
+        .addClass(absolute ? "endpoint-lock-absolute" : "endpoint-lock-relative");
+      g.circle(24).center(pt.x, pt.y).fill("#ffffff").stroke({ color, width: 1.5 });
+      Connector.drawLockIcon(g, pt.x, pt.y, color, absolute);
+      // Transparent hit circle ON TOP so a click anywhere on the toggle registers
+      // (the padlock's fill:none paths are not hit-testable at their centers).
+      g.circle(24).center(pt.x, pt.y).fill("#ffffff").attr("fill-opacity", 0.001);
+      g.attr("pointer-events", "all");
+      try {
+        g.node.style.cursor = "pointer";
+      } catch (e) {
+        /* noop */
+      }
+      g.on("mousedown", (e: any) => e.stopPropagation?.());
+      g.on("click", (e: any) => {
+        e.stopPropagation?.();
+        const prop = which === "source" ? "sourceLock" : "targetLock";
+        const val = absolute ? "relative" : "absolute";
+        try {
+          rels.applyLineProperty(assoc.id, prop, val);
+        } catch (err) {
+          /* noop */
+        }
+        // Collab parity: mirror the on-canvas toggle to peers.
+        try {
+          slate.broadcast?.("onLinePropertiesChanged", {
+            id: this.node.id,
+            associationId: assoc.id,
+            prop,
+            val,
+          });
+        } catch (err) {
+          /* noop */
+        }
+        // Re-render toggles to reflect the new state.
+        this.showEndpointLockToggles(connection, con, targetId);
+      });
+      slate._activeEndpointToggles.push(g);
+    };
+
+    makeToggle(srcPt, "source");
+    makeToggle(tgtPt, "target");
+    try {
+      slate.markersContainer?.front?.();
+    } catch (e) {
+      /* noop */
+    }
+  }
+
+  /** Draw a small padlock (closed = absolute/locked, open = relative). */
+  private static drawLockIcon(
+    g: any,
+    cx: number,
+    cy: number,
+    color: string,
+    locked: boolean
+  ): void {
+    const s = { color, width: 1.4, linecap: "round", linejoin: "round" };
+    // body
+    g.rect(11, 8)
+      .radius(1.5)
+      .move(cx - 5.5, cy - 0.5)
+      .fill("none")
+      .stroke(s);
+    // shackle: closed arc when locked, open (raised/partial) when relative
+    if (locked) {
+      g.path(
+        `M ${cx - 3.4} ${cy - 0.5} v -2.2 a 3.4 3.4 0 0 1 6.8 0 v 2.2`
+      )
+        .fill("none")
+        .stroke(s);
+    } else {
+      g.path(`M ${cx - 3.4} ${cy - 0.5} v -2.2 a 3.4 3.4 0 0 1 6.8 -0.6`)
+        .fill("none")
+        .stroke(s);
+    }
+    // keyhole dot
+    g.circle(1.6).center(cx, cy + 3).fill(color);
   }
 
   public isEnabled(): boolean {

@@ -109,6 +109,14 @@ export declare class Connector {
      */
     private showLineCog;
     private openLinePane;
+    /**
+     * Q3: show a lock/relative toggle at EACH endpoint (source + target) when the
+     * line cog is clicked. Clicking a toggle flips absolute (pinned anchor) ↔
+     * relative (auto-flow) via applyLineProperty, and broadcasts for collab parity.
+     */
+    private showEndpointLockToggles;
+    /** Draw a small padlock (closed = absolute/locked, open = relative). */
+    private static drawLockIcon;
     isEnabled(): boolean;
     updateOptions(options: Partial<ConnectorOptions>): void;
 }
