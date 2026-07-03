@@ -54,4 +54,13 @@ Playwright, add a durable e2e, commit.
   not associations referencing the node). Fixed NodesManager.remove to clean up ALL associations
   involving the node (outgoing via removeAll + incoming via other nodes' removeAssociation), which
   disconnects the connectors. Verified live two-window: node+assoc+lines all gone in both, synced.
-- NEXT: keep mining gaps (themes, presentation, comments, export, multi-select ops, etc.).
+- COMPARISON round (2026-07-02, no code change — all PARITY):
+  * node drag → connector follows live (samplesDistinct 6) — parity.
+  * empty-canvas drag → PANS in BOTH legacy and ours (node pans off, stays in birds-eye);
+    multi-select is via shift-click in both, NOT a marquee. Parity — not a gap.
+  * double-click node → both open the bottom pane's TEXT editor; no inline-on-canvas edit. Parity.
+  Core interaction parity is now solid. Remaining candidates are larger FEATURES that need product
+  direction, not clear regressions: themes palette, presentation mode, comments, export. Recommend
+  getting user direction before building those (they aren't obvious "legacy does X, we don't").
+- NEXT: await user direction on which larger feature-areas to pursue (themes/presentation/comments/
+  export), or treat the parity pass as complete.
