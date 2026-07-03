@@ -41,4 +41,9 @@ Playwright, add a durable e2e, commit.
   the node; delete→removeNode (syncs), cog→node pane, plug→placeholder (G3). drawToolIcon helper.
 - G2 DONE [pending commit]: line context toolbar (delete+cog+plug) pill at the line midpoint;
   delete→removeAssociation (broadcasts removeRelationship → verified syncs to peer), cog→line pane.
-- NEXT: G3 plug press-drag-to-connect (verify anchors do it; wire the plug to start the drag).
+- G3 DONE [pending commit]: plug PRESS-DRAG-TO-CONNECT. Discovery: our connection anchors only
+  CLICK→create-new-node; they did NOT drag-to-existing. Implemented Node.startConnectDrag — press
+  the plug → dashed rubber-band line follows the pointer, target node highlights, drop → addAssociation
+  (connector + broadcast). Verified live two-window (connected + syncedToPeer). e2e plug-connect.
+  NOTE: anchors keep click→new-node (the legacy "+" role); plug = connect-to-existing.
+- NEXT: keep mining gaps (themes, presentation, comments, export, multi-select ops, etc.).

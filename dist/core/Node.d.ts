@@ -327,11 +327,11 @@ export declare class Node {
     static drawToolIcon(g: any, kind: string, cx: number, cy: number, color: string): void;
     hideNodeCog(): void;
     /**
-     * Plug affordance (G3): start dragging a connector out of this node. Placeholder
-     * until the full press-drag-to-connect is wired — for now it selects the node so
-     * the connection anchors (which already support drag-to-connect) are available.
+     * Plug drag-to-connect (G3): press the plug and drag — a dashed rubber-band
+     * line follows the pointer from this node; dropping on another node creates an
+     * association (connector) to it. Dropping on empty canvas does nothing.
      */
-    private startPlugConnect;
+    startConnectDrag(startEvent: any): void;
     /** Called by the Slate when this node is deselected. */
     onDeselected(): void;
     private createConnectionHandles;

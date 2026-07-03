@@ -1686,9 +1686,15 @@ export class Node {
     const R = 15; // button hit radius
     const GAP = 6; // gap between buttons
     const NEUTRAL = "#5b6472";
-    const tools: Array<{ key: string; color: string; onClick: () => void }> = [
+    const tools: Array<{
+      key: string;
+      color: string;
+      onClick?: () => void;
+      onPress?: (e: any) => void;
+    }> = [
       { key: "delete", color: "#e5484d", onClick: () => this.slate.removeNode(this.id) },
-      { key: "plug", color: NEUTRAL, onClick: () => this.startPlugConnect() },
+      // plug: press-drag-to-connect (G3) — starts on pointerdown, not click.
+      { key: "plug", color: NEUTRAL, onPress: (e: any) => this.startConnectDrag(e) },
       { key: "cog", color: NEUTRAL, onClick: () => this.menu?.open?.() },
     ];
     const n = tools.length;
@@ -1718,10 +1724,13 @@ export class Node {
       } catch (e) {
         /* noop */
       }
-      btn.on("mousedown", (e: any) => e.stopPropagation?.());
+      btn.on("mousedown", (e: any) => {
+        e.stopPropagation?.();
+        if (t.onPress) t.onPress(e);
+      });
       btn.on("click", (e: any) => {
         e.stopPropagation?.();
-        t.onClick();
+        t.onClick?.();
       });
     });
 
@@ -1775,16 +1784,112 @@ export class Node {
   }
 
   /**
-   * Plug affordance (G3): start dragging a connector out of this node. Placeholder
-   * until the full press-drag-to-connect is wired — for now it selects the node so
-   * the connection anchors (which already support drag-to-connect) are available.
+   * Plug drag-to-connect (G3): press the plug and drag — a dashed rubber-band
+   * line follows the pointer from this node; dropping on another node creates an
+   * association (connector) to it. Dropping on empty canvas does nothing.
    */
-  private startPlugConnect(): void {
+  public startConnectDrag(startEvent: any): void {
+    const slate: any = this.slate;
+    const canvas: any = slate.canvas;
+    if (!canvas) return;
+    const container: any = slate.markersContainer || canvas;
+
+    // Start point = this node's center in world (canvas user) coordinates.
+    let sx: number, sy: number;
     try {
-      this.enableConnectionHandles();
+      const rb = this.svgGroup.rbox(canvas);
+      sx = rb.cx;
+      sy = rb.cy;
+    } catch (e) {
+      sx = (this.options.x || 0) + (this.options.width || 0) / 2;
+      sy = (this.options.y || 0) + (this.options.height || 0) / 2;
+    }
+
+    const temp = container
+      .line(sx, sy, sx, sy)
+      .stroke({ color: "#007cff", width: 2, dasharray: "6,4", linecap: "round" })
+      .addClass("connect-drag-line");
+    temp.attr("pointer-events", "none");
+    try {
+      slate.markersContainer?.front?.();
     } catch (e) {
       /* noop */
     }
+
+    let hovered: any = null;
+    const clearHover = () => {
+      if (hovered) {
+        try {
+          if (hovered._preHiStroke !== undefined) {
+            hovered.node.backgroundRect?.attr?.("stroke", hovered._preHiStroke);
+          }
+          hovered.node.backgroundRect?.attr?.({
+            "stroke-dasharray": null,
+            "stroke-opacity": null,
+          });
+        } catch (e) {
+          /* noop */
+        }
+        hovered = null;
+      }
+    };
+
+    const toWorld = (clientX: number, clientY: number) => {
+      try {
+        return canvas.point(clientX, clientY);
+      } catch (e) {
+        return { x: sx, y: sy };
+      }
+    };
+
+    const nodeUnder = (clientX: number, clientY: number): Node | null => {
+      // Hide the temp line so it doesn't intercept the hit-test.
+      const el = document.elementFromPoint(clientX, clientY) as Element | null;
+      const g = (el as any)?.closest?.("[data-node-id]");
+      const id = g?.getAttribute?.("data-node-id");
+      if (!id || id === this.id) return null;
+      return slate.nodes?.one?.(id) || null;
+    };
+
+    const onMove = (ev: any) => {
+      const w = toWorld(ev.clientX, ev.clientY);
+      temp.plot(sx, sy, w.x, w.y);
+      const target = nodeUnder(ev.clientX, ev.clientY);
+      if (target !== (hovered?.node || null)) {
+        clearHover();
+        if (target && (target as any).backgroundRect) {
+          const br = (target as any).backgroundRect;
+          hovered = { node: target, _preHiStroke: br.attr("stroke") };
+          try {
+            br.attr({ stroke: "#007cff", "stroke-dasharray": "8,4", "stroke-opacity": 0.9 });
+          } catch (e) {
+            /* noop */
+          }
+        }
+      }
+    };
+
+    const onUp = (ev: any) => {
+      window.removeEventListener("pointermove", onMove, true);
+      window.removeEventListener("pointerup", onUp, true);
+      try {
+        temp.remove();
+      } catch (e) {
+        /* noop */
+      }
+      const target = nodeUnder(ev.clientX, ev.clientY);
+      clearHover();
+      if (target && target.id !== this.id) {
+        try {
+          this.relationships.addAssociation(target);
+        } catch (e) {
+          /* noop */
+        }
+      }
+    };
+
+    window.addEventListener("pointermove", onMove, true);
+    window.addEventListener("pointerup", onUp, true);
   }
 
   /** Called by the Slate when this node is deselected. */

@@ -7499,7 +7499,8 @@ class Ne {
     }
     const o = 15, a = 6, r = "#5b6472", l = [
       { key: "delete", color: "#e5484d", onClick: () => this.slate.removeNode(this.id) },
-      { key: "plug", color: r, onClick: () => this.startPlugConnect() },
+      // plug: press-drag-to-connect (G3) — starts on pointerdown, not click.
+      { key: "plug", color: r, onPress: (p) => this.startConnectDrag(p) },
       { key: "cog", color: r, onClick: () => this.menu?.open?.() }
     ], c = l.length, h = o * 2 + a, d = c * (o * 2) + (c - 1) * a, u = i - d / 2 + o, f = s - (o + 18), g = e.group().addClass("node-cog").addClass("node-toolbar");
     g.rect(d + 14, o * 2 + 10).radius((o * 2 + 10) / 2).center(i, f).fill("#ffffff").stroke({ color: "#e3e5ea", width: 1 }), l.forEach((p, y) => {
@@ -7509,8 +7510,10 @@ class Ne {
         b.node.style.cursor = "pointer";
       } catch {
       }
-      b.on("mousedown", (w) => w.stopPropagation?.()), b.on("click", (w) => {
-        w.stopPropagation?.(), p.onClick();
+      b.on("mousedown", (w) => {
+        w.stopPropagation?.(), p.onPress && p.onPress(w);
+      }), b.on("click", (w) => {
+        w.stopPropagation?.(), p.onClick?.();
       });
     }), g.attr("pointer-events", "all"), this._nodeCog = g;
     try {
@@ -7533,15 +7536,74 @@ class Ne {
     }
   }
   /**
-   * Plug affordance (G3): start dragging a connector out of this node. Placeholder
-   * until the full press-drag-to-connect is wired — for now it selects the node so
-   * the connection anchors (which already support drag-to-connect) are available.
+   * Plug drag-to-connect (G3): press the plug and drag — a dashed rubber-band
+   * line follows the pointer from this node; dropping on another node creates an
+   * association (connector) to it. Dropping on empty canvas does nothing.
    */
-  startPlugConnect() {
+  startConnectDrag(t) {
+    const e = this.slate, i = e.canvas;
+    if (!i) return;
+    const s = e.markersContainer || i;
+    let o, a;
     try {
-      this.enableConnectionHandles();
+      const g = this.svgGroup.rbox(i);
+      o = g.cx, a = g.cy;
+    } catch {
+      o = (this.options.x || 0) + (this.options.width || 0) / 2, a = (this.options.y || 0) + (this.options.height || 0) / 2;
+    }
+    const r = s.line(o, a, o, a).stroke({ color: "#007cff", width: 2, dasharray: "6,4", linecap: "round" }).addClass("connect-drag-line");
+    r.attr("pointer-events", "none");
+    try {
+      e.markersContainer?.front?.();
     } catch {
     }
+    let l = null;
+    const c = () => {
+      if (l) {
+        try {
+          l._preHiStroke !== void 0 && l.node.backgroundRect?.attr?.("stroke", l._preHiStroke), l.node.backgroundRect?.attr?.({
+            "stroke-dasharray": null,
+            "stroke-opacity": null
+          });
+        } catch {
+        }
+        l = null;
+      }
+    }, h = (g, p) => {
+      try {
+        return i.point(g, p);
+      } catch {
+        return { x: o, y: a };
+      }
+    }, d = (g, p) => {
+      const b = document.elementFromPoint(g, p)?.closest?.("[data-node-id]")?.getAttribute?.("data-node-id");
+      return !b || b === this.id ? null : e.nodes?.one?.(b) || null;
+    }, u = (g) => {
+      const p = h(g.clientX, g.clientY);
+      r.plot(o, a, p.x, p.y);
+      const y = d(g.clientX, g.clientY);
+      if (y !== (l?.node || null) && (c(), y && y.backgroundRect)) {
+        const m = y.backgroundRect;
+        l = { node: y, _preHiStroke: m.attr("stroke") };
+        try {
+          m.attr({ stroke: "#007cff", "stroke-dasharray": "8,4", "stroke-opacity": 0.9 });
+        } catch {
+        }
+      }
+    }, f = (g) => {
+      window.removeEventListener("pointermove", u, !0), window.removeEventListener("pointerup", f, !0);
+      try {
+        r.remove();
+      } catch {
+      }
+      const p = d(g.clientX, g.clientY);
+      if (c(), p && p.id !== this.id)
+        try {
+          this.relationships.addAssociation(p);
+        } catch {
+        }
+    };
+    window.addEventListener("pointermove", u, !0), window.addEventListener("pointerup", f, !0);
   }
   /** Called by the Slate when this node is deselected. */
   onDeselected() {
