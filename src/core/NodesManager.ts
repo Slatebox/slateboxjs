@@ -33,6 +33,25 @@ export class NodesManager {
   public remove(id: string): boolean {
     const node = this.nodes.get(id)
     if (node) {
+      // Clean up EVERY association involving this node so no rogue connector
+      // lines or stale associations survive the delete (parity + no-rogue-lines):
+      //  (a) this node's own outgoing associations (it is the parent)
+      try {
+        (node as any).relationships?.removeAll?.()
+      } catch (e) {
+        /* noop */
+      }
+      //  (b) incoming associations from other nodes (this node is the child)
+      this.allNodes.forEach((other) => {
+        if (other.id === id) return
+        try {
+          if ((other as any).relationships?.getAssociation?.(id)) {
+            (other as any).relationships.removeAssociation(id)
+          }
+        } catch (e) {
+          /* noop */
+        }
+      })
       node.remove()
       this.nodes.delete(id)
       return true

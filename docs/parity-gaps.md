@@ -46,4 +46,12 @@ Playwright, add a durable e2e, commit.
   the plug → dashed rubber-band line follows the pointer, target node highlights, drop → addAssociation
   (connector + broadcast). Verified live two-window (connected + syncedToPeer). e2e plug-connect.
   NOTE: anchors keep click→new-node (the legacy "+" role); plug = connect-to-existing.
+- COMPARISON (double-click text edit): PARITY — legacy AND ours both open the bottom pane's TEXT
+  editor (TEXTAREA), neither does inline-on-canvas editing. No gap. (Panes are shared app-side
+  React; real deltas are canvas/library behaviors.)
+- G4 DONE [pending commit]: DELETE PARITY / no-rogue-lines. Bug found via comparison: deleting a
+  connected node left a rogue connector line + a stale association (removeNode dropped the SVG but
+  not associations referencing the node). Fixed NodesManager.remove to clean up ALL associations
+  involving the node (outgoing via removeAll + incoming via other nodes' removeAssociation), which
+  disconnects the connectors. Verified live two-window: node+assoc+lines all gone in both, synced.
 - NEXT: keep mining gaps (themes, presentation, comments, export, multi-select ops, etc.).

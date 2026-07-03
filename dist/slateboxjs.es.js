@@ -7913,7 +7913,20 @@ class ya {
   }
   remove(t) {
     const e = this.nodes.get(t);
-    return e ? (e.remove(), this.nodes.delete(t), !0) : !1;
+    if (e) {
+      try {
+        e.relationships?.removeAll?.();
+      } catch {
+      }
+      return this.allNodes.forEach((i) => {
+        if (i.id !== t)
+          try {
+            i.relationships?.getAssociation?.(t) && i.relationships.removeAssociation(t);
+          } catch {
+          }
+      }), e.remove(), this.nodes.delete(t), !0;
+    }
+    return !1;
   }
   one(t) {
     return this.nodes.get(t);
