@@ -7033,6 +7033,10 @@ class Ne {
         t.preventDefault?.();
         const i = this.slate.getZoom?.() || 1, s = (e.x - this._dragStartPointer.x) / i, o = (e.y - this._dragStartPointer.y) / i;
         this.options.x = this.preDragPosition.x + s, this.options.y = this.preDragPosition.y + o, this.applyPositionAndRotation();
+        try {
+          this.slate.markersContainer?.front?.();
+        } catch {
+        }
       }
     });
   }

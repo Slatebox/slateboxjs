@@ -839,6 +839,13 @@ export class Node {
         this.options.x = this.preDragPosition.x + dx;
         this.options.y = this.preDragPosition.y + dy;
         this.applyPositionAndRotation();
+        // svg.draggable raises the dragged node to front, which would push
+        // connector arrowheads behind it (Q1). Keep markers on top each frame.
+        try {
+          (this.slate as any).markersContainer?.front?.();
+        } catch (e) {
+          /* noop */
+        }
       }
     });
   }
