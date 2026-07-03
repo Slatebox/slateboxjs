@@ -769,6 +769,8 @@ describe("BirdsEye", () => {
       mockSlate.getAllNodes.mockReturnValue([node]);
 
       be.updateNodePosition(node);
+      // Position is now animated (Q4) via requestAnimationFrame — drive it.
+      vi.advanceTimersByTime(300);
       expect(shape.move).toHaveBeenCalled();
     });
 

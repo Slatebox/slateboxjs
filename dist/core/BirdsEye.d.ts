@@ -37,6 +37,11 @@ export declare class BirdsEye {
     refresh(): void;
     updateViewport(): void;
     updateNodePosition(node: Node): void;
+    /**
+     * Q4: tween a minimap shape to (x,y) with a short easeInOutQuad rAF animation,
+     * cancelling any in-flight tween so it retargets smoothly (e.g. during a drag).
+     */
+    private animateShapeMove;
     addNodeShape(node: Node): void;
     removeNodeShape(nodeId: string): void;
     private createContainer;

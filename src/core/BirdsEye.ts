@@ -166,11 +166,57 @@ export class BirdsEye {
     const bounds = this.calculateContentBounds();
     const padding = 100;
 
-    // Update shape position
+    // Update shape position (Q4: animate so the minimap glides when nodes change)
     const x = (node.options.x! - bounds.minX + padding) * this.scale;
     const y = (node.options.y! - bounds.minY + padding) * this.scale;
 
-    shape.move(x, y);
+    this.animateShapeMove(shape as any, x, y);
+  }
+
+  /**
+   * Q4: tween a minimap shape to (x,y) with a short easeInOutQuad rAF animation,
+   * cancelling any in-flight tween so it retargets smoothly (e.g. during a drag).
+   */
+  private animateShapeMove(shape: any, x: number, y: number, duration = 220): void {
+    if (typeof requestAnimationFrame === "undefined") {
+      try {
+        shape.move(x, y);
+      } catch (e) {
+        /* noop */
+      }
+      return;
+    }
+    let fromX = x;
+    let fromY = y;
+    try {
+      fromX = shape.x();
+      fromY = shape.y();
+    } catch (e) {
+      /* noop */
+    }
+    if (shape._beRaf) {
+      try {
+        cancelAnimationFrame(shape._beRaf);
+      } catch (e) {
+        /* noop */
+      }
+    }
+    const ease = (t: number) =>
+      t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    let startTs: number | null = null;
+    const tick = (now: number) => {
+      if (startTs === null) startTs = now;
+      const p = Math.min(1, (now - startTs) / duration);
+      const e = ease(p);
+      try {
+        shape.move(fromX + (x - fromX) * e, fromY + (y - fromY) * e);
+      } catch (err) {
+        /* noop */
+      }
+      if (p < 1) shape._beRaf = requestAnimationFrame(tick);
+      else shape._beRaf = null;
+    };
+    shape._beRaf = requestAnimationFrame(tick);
   }
 
   public addNodeShape(node: Node): void {
@@ -197,6 +243,14 @@ export class BirdsEye {
 
     this.nodeShapes.set(node.id, shape);
 
+    // Q4: fade the new shape in.
+    try {
+      shape.opacity(0);
+      (shape as any).animate(220).opacity(1);
+    } catch (e) {
+      /* noop */
+    }
+
     // Ensure viewport indicator stays on top
     if (this.viewportIndicator) {
       this.viewportIndicator.front();
@@ -206,7 +260,26 @@ export class BirdsEye {
   public removeNodeShape(nodeId: string): void {
     const shape = this.nodeShapes.get(nodeId);
     if (shape) {
-      shape.remove();
+      // Q4: fade out, then remove.
+      try {
+        if ((shape as any)._beRaf) cancelAnimationFrame((shape as any)._beRaf);
+        (shape as any)
+          .animate(180)
+          .opacity(0)
+          .after(() => {
+            try {
+              shape.remove();
+            } catch (e) {
+              /* noop */
+            }
+          });
+      } catch (e) {
+        try {
+          shape.remove();
+        } catch (err) {
+          /* noop */
+        }
+      }
       this.nodeShapes.delete(nodeId);
     }
   }
