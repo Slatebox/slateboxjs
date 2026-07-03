@@ -43,13 +43,13 @@ test.describe("presentation step centers each node (§presentation)", () => {
       };
 
       pres.start();
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 700));
       const off0 = offsetFor(steps[0].nodeId);
       pres.next();
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 700));
       const off1 = offsetFor(steps[1].nodeId);
       pres.next();
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 700));
       const off2 = offsetFor(steps[2].nodeId);
 
       return { stepCount: steps.length, off0, off1, off2 };
@@ -60,5 +60,51 @@ test.describe("presentation step centers each node (§presentation)", () => {
       expect(Math.abs(off.dx)).toBeLessThan(3); // viewbox center == node center
       expect(Math.abs(off.dy)).toBeLessThan(3);
     }
+  });
+
+  test("step transition is animated (P3) — viewbox tweens, not an instant jump", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+
+    const res = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText =
+        "width:1000px;height:700px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate({ container: "slateCanvas", allowCollaboration: false }, {}).init();
+      s.nodes.add(new sb.node({ id: "one", xPos: 200, yPos: 200, width: 150, height: 90, text: "one" }));
+      s.nodes.add(new sb.node({ id: "two", xPos: 1800, yPos: 1200, width: 150, height: 90, text: "two" }));
+      await new Promise((r) => setTimeout(r, 400));
+      const pres = s.v2.presentation;
+      pres.extractLayout();
+      const canvas = s.v2.canvas;
+
+      pres.goToStep(0, 0); // instant to node one
+      await new Promise((r) => setTimeout(r, 50));
+      const start = canvas.viewbox();
+
+      // Animate to node two; sample mid-flight (~120ms into a 450ms tween).
+      pres.goToStep(1, 450);
+      await new Promise((r) => setTimeout(r, 120));
+      const mid = canvas.viewbox();
+      await new Promise((r) => setTimeout(r, 600));
+      const end = canvas.viewbox();
+
+      return {
+        startX: start.x,
+        midX: mid.x,
+        endX: end.x,
+      };
+    });
+
+    // Mid-flight viewbox is strictly between start and end (i.e. it tweened).
+    const lo = Math.min(res.startX, res.endX);
+    const hi = Math.max(res.startX, res.endX);
+    expect(res.midX).toBeGreaterThan(lo + 1);
+    expect(res.midX).toBeLessThan(hi - 1);
   });
 });

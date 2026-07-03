@@ -9811,7 +9811,7 @@ class ds {
 }
 class us {
   constructor(t) {
-    this.steps = [], this.currentStep = -1, this.isActive = !1, this.zoomLevel = 1.5, this.slate = t;
+    this.steps = [], this.currentStep = -1, this.isActive = !1, this.zoomLevel = 1.5, this._animRaf = null, this.slate = t;
   }
   /**
    * Extract presentation layout from current nodes.
@@ -9849,21 +9849,59 @@ class us {
   previous() {
     return this.currentStep <= 0 ? !1 : (this.currentStep--, this.goToStep(this.currentStep), !0);
   }
-  /** Go to a specific step */
-  goToStep(t) {
+  /**
+   * Go to a specific step, smoothly panning+zooming the viewport so the step's
+   * node is centered (P3). Pass duration 0 for an instant jump.
+   */
+  goToStep(t, e = 450) {
     if (t < 0 || t >= this.steps.length) return;
     this.currentStep = t;
-    const e = this.steps[t], i = this.slate.nodes.one(e.nodeId);
-    if (i) {
+    const i = this.steps[t], s = this.slate.nodes.one(i.nodeId);
+    if (s) {
       try {
-        const s = i.options || {}, o = (s.x || 0) + (s.width || 0) / 2, a = (s.y || 0) + (s.height || 0) / 2;
-        this.slate.zoom(this.zoomLevel);
-        const r = this.slate.canvas.viewbox();
-        this.slate.pan({ x: o - r.width / 2, y: a - r.height / 2 });
+        const o = s.options || {}, a = (o.x || 0) + (o.width || 0) / 2, r = (o.y || 0) + (o.height || 0) / 2, c = this.slate.canvas.viewbox(), h = this.slate.panZoom?.getZoom?.() ?? 1, d = c.width * h / this.zoomLevel, u = c.height * h / this.zoomLevel, f = { x: a - d / 2, y: r - u / 2, width: d, height: u };
+        this.animateViewbox(
+          { x: c.x, y: c.y, width: c.width, height: c.height },
+          f,
+          e
+        );
       } catch {
       }
-      this.slate.selectNodes([i], !1);
+      this.slate.selectNodes([s], !1);
     }
+  }
+  /** Tween the canvas viewbox from → to over `duration` ms (easeInOutQuad). */
+  animateViewbox(t, e, i) {
+    const s = this.slate.canvas, o = (c, h, d, u) => {
+      try {
+        s.viewbox(c, h, d, u);
+      } catch {
+      }
+    };
+    if (this._animRaf != null) {
+      try {
+        cancelAnimationFrame(this._animRaf);
+      } catch {
+      }
+      this._animRaf = null;
+    }
+    if (!i || i <= 0 || typeof requestAnimationFrame > "u") {
+      o(e.x, e.y, e.width, e.height);
+      return;
+    }
+    const a = (c) => c < 0.5 ? 2 * c * c : 1 - Math.pow(-2 * c + 2, 2) / 2;
+    let r = null;
+    const l = (c) => {
+      r === null && (r = c);
+      const h = Math.min(1, (c - r) / i), d = a(h);
+      o(
+        t.x + (e.x - t.x) * d,
+        t.y + (e.y - t.y) * d,
+        t.width + (e.width - t.width) * d,
+        t.height + (e.height - t.height) * d
+      ), h < 1 ? this._animRaf = requestAnimationFrame(l) : this._animRaf = null;
+    };
+    this._animRaf = requestAnimationFrame(l);
   }
   /** Get current step index */
   getCurrentStep() {

@@ -30,8 +30,14 @@ export declare class Presentation {
     next(): boolean;
     /** Go to previous step */
     previous(): boolean;
-    /** Go to a specific step */
-    goToStep(index: number): void;
+    /**
+     * Go to a specific step, smoothly panning+zooming the viewport so the step's
+     * node is centered (P3). Pass duration 0 for an instant jump.
+     */
+    goToStep(index: number, duration?: number): void;
+    private _animRaf;
+    /** Tween the canvas viewbox from → to over `duration` ms (easeInOutQuad). */
+    private animateViewbox;
     /** Get current step index */
     getCurrentStep(): number;
     /** Get total steps */

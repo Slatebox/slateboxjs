@@ -43,9 +43,14 @@ Our local app top bar has NO PRESENT button; the library Presentation class exis
   window.__slateboxInstances (last instance) for .presentation and .fit(). Verified live: PRESENT →
   control bar 1/3, Next + ArrowRight center Welcome→Two→Three, Esc exits + fits back.
   App files (uncommitted/user-gated): Main.jsx.
-- NEXT (P3): match legacy raw-SVG step transitions/animation (smooth pan/zoom tween between steps),
-  and confirm presentation step ORDER matches legacy (currently position top-to-bottom / by
-  _presentationIndex).
+- P3 DONE [pending commit]: smooth step transitions. goToStep now TWEENS the canvas viewbox
+  (easeInOutQuad, ~450ms) from current → target (node-centered at zoomLevel) via rAF instead of an
+  instant jump; cancels any in-flight tween on a new step. Pass duration 0 for instant (tests).
+  Verified live: viewbox X moves gradually 9693→10001→11080 during a Next (animated), lands centered.
+  e2e presentation-step covers centering + the animation (mid-flight viewbox strictly between).
+  PRESENTATION MODE COMPLETE: P1 engine centering + P2 app UI (button/controls/keyboard) + P3 tween.
+  Step ORDER = _presentationIndex else position (top-to-bottom, left-to-right) — matches legacy's
+  reading order for a typical top-down mindmap; revisit if a specific slate needs custom ordering.
 
 ## User direction (2026-07-02)
 - Do NOT copy legacy for **rotate/resize** — ours stays as-is.
