@@ -36,4 +36,9 @@ Playwright, add a durable e2e, commit.
 
 ## Status
 - 2026-07-02: established comparison pattern; captured legacy node toolbar (delete/plug/cog/+)
-  and line toolbar (delete/cog/plug from user image). Starting G1.
+  and line toolbar (delete/cog/plug from user image).
+- G1 DONE [9811c04]: node context toolbar (delete+plug+cog) as a modern Miro pill centered above
+  the node; delete→removeNode (syncs), cog→node pane, plug→placeholder (G3). drawToolIcon helper.
+- G2 DONE [pending commit]: line context toolbar (delete+cog+plug) pill at the line midpoint;
+  delete→removeAssociation (broadcasts removeRelationship → verified syncs to peer), cog→line pane.
+- NEXT: G3 plug press-drag-to-connect (verify anchors do it; wire the plug to start the drag).

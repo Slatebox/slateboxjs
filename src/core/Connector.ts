@@ -605,26 +605,66 @@ export class Connector {
     }
     const container: any = slate.markersContainer || slate.canvas;
     if (!container) return;
-    const cog = container.group().addClass("line-cog");
-    cog.circle(28).center(cx, cy).fill("#fff").stroke({ color: "#4051B5", width: 2 });
-    cog
-      .text("⚙")
-      .font({ size: 20, anchor: "middle", family: "sans-serif" })
-      .fill("#4051B5")
+
+    // Line context toolbar (G2) — modern Miro-style pill at the line midpoint:
+    // delete + cog + plug (parity with legacy line toolbar).
+    const R = 15;
+    const GAP = 6;
+    const NEUTRAL = "#5b6472";
+    const tools: Array<{ key: string; color: string; onClick: () => void }> = [
+      {
+        key: "delete",
+        color: "#e5484d",
+        onClick: () => {
+          (this.node as any).relationships?.removeAssociation?.(targetId);
+          slate.clearLineCog?.();
+        },
+      },
+      { key: "cog", color: NEUTRAL, onClick: () => this.openLinePane(connection, con, targetId) },
+      {
+        key: "plug",
+        color: NEUTRAL,
+        onClick: () => {
+          try {
+            con.selectConnector?.();
+          } catch (e) {
+            /* noop */
+          }
+        },
+      },
+    ];
+    const n = tools.length;
+    const stepX = R * 2 + GAP;
+    const totalW = n * (R * 2) + (n - 1) * GAP;
+    const startX = cx - totalW / 2 + R;
+
+    const bar = container.group().addClass("line-cog").addClass("line-toolbar");
+    bar
+      .rect(totalW + 14, R * 2 + 10)
+      .radius((R * 2 + 10) / 2)
       .center(cx, cy)
-      .attr("dy", "0.03em");
-    cog.attr("pointer-events", "all");
-    try {
-      cog.node.style.cursor = "pointer";
-    } catch (e) {
-      /* noop */
-    }
-    cog.on("mousedown", (e: any) => e.stopPropagation?.());
-    cog.on("click", (e: any) => {
-      e.stopPropagation?.();
-      this.openLinePane(connection, con, targetId);
+      .fill("#ffffff")
+      .stroke({ color: "#e3e5ea", width: 1 });
+    const NodeCls: any = (this.node as any).constructor;
+    tools.forEach((t, i) => {
+      const bx = startX + i * stepX;
+      const btn = bar.group().addClass(`line-tool-${t.key}`);
+      btn.circle(R * 2).center(bx, cy).fill("#ffffff").attr("fill-opacity", 0.001);
+      NodeCls.drawToolIcon?.(btn, t.key, bx, cy, t.color);
+      btn.attr("pointer-events", "all");
+      try {
+        btn.node.style.cursor = "pointer";
+      } catch (e) {
+        /* noop */
+      }
+      btn.on("mousedown", (e: any) => e.stopPropagation?.());
+      btn.on("click", (e: any) => {
+        e.stopPropagation?.();
+        t.onClick();
+      });
     });
-    slate._activeLineCog = cog;
+    bar.attr("pointer-events", "all");
+    slate._activeLineCog = bar;
     // Also select the connector so its endpoint handles show — this is what
     // makes the endpoints draggable (L1 snap-anywhere). Tracked on the slate so
     // clearLineCog() (canvas click / node select) deselects it — no stuck state.
