@@ -1,11 +1,16 @@
 # Collab bug loop — canvas drag / presence / connector / rotation parity
 
-## line/UX backlog M1-M9 (IN PROGRESS)
-DONE: M2 line-click stall FIXED + M1 LINE cog→pane [bc09134]; M4 arrowhead over node [44d3c00]; M3 chat
-overlay + M6 cookie removed (app-side, uncommitted). M9 line props (color/type/curve/arrows/width/lock) all
-present in the pane, reachable via the line cog. REMAINING: M1 NODE cog (click node → cog → node pane from
-bottom); M5 birds-eye center (Miro-style, content currently at bottom); M7 connectors follow LIVE during node
-resize; M8 drop-target feedback dragging a line endpoint over a node.
+## line/UX backlog M1-M9 (ALL DONE)
+- M1 line cog→pane [bc09134] + node cog→pane [e1416b7] (both pop from bottom)
+- M2 line-click stall FIXED [bc09134] (onLineClick hook; clearLineCog on canvas/node click)
+- M3 chat overlay + M6 cookie removed (app-side: Chat.jsx/Canvas.jsx/Main.jsx, uncommitted/user-gated)
+- M4 arrowhead over node [44d3c00] (markers container kept front)
+- M5 birds-eye centered [34fbe31] (dropped origin/viewport expansion in calculateContentBounds)
+- M7 connectors follow live during resize [fda85da] (handleResize fires "transform")
+- M8 drop-target highlight + attach [a47cdb4] (also restored endpoint handles on line click — L1 regression)
+- M9 line props (color/type/curve/arrows/width/lock) all reachable via the line cog
+e2e: line-cog, node-cog, connector-resize-follow, connector-drop-highlight (+ prior L-series). 1063 unit.
+BACKLOG COMPLETE.
 
 ## HELD — line/UX backlog M1-M9 (2026-07-02, from user; work ONE AT A TIME)
 Core fixes in slateboxjs-v2; app-side pane/layout edits approved (LineDrawer/NodeDrawer/Chat/Canvas).
