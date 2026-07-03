@@ -352,47 +352,26 @@ function computeConnectorCoordinates(con) {
       return [["M", pp1[0], pp1[1]], ["L", pp2[0], pp2[1]]];
     }
 
-    const curvature = Math.min(distance / 3, con.curveRadius * 1.5);
+    // Perpendicular-port curve: leave the source and ENTER the target along the
+    // line through each node's CENTER, so each endpoint meets the edge at ~90°
+    // and the arrowhead points at the node's center. Adapts as nodes move and
+    // works for both fixed (absolute anchor) and auto-flow (relative) endpoints.
+    const norm = (vx, vy, fx, fy) => {
+      const m = Math.sqrt(vx * vx + vy * vy);
+      if (m > 0.0001) return [vx / m, vy / m];
+      const fm = Math.sqrt(fx * fx + fy * fy) || 1;
+      return [fx / fm, fy / fm];
+    };
+    // Outward (edge-normal) direction at each port = center → port.
+    const sDir = norm(pp1[0] - sourceCenter[0], pp1[1] - sourceCenter[1], dx, dy);
+    const tDir = norm(pp2[0] - targetCenter[0], pp2[1] - targetCenter[1], -dx, -dy);
+    // Handle length: responds to the curve slider (curveRadius) but keeps a
+    // minimum so the perpendicular approach is always visible, and is capped at
+    // half the span so short links don't loop back on themselves.
+    const handle = Math.max(30, Math.min(con.curveRadius * 2.5, distance * 0.5));
 
-    const normalX = -dy / distance;
-    const normalY = dx / distance;
-
-    // Use SVG-coordinate centers for curve direction
-    const sourceToCenter = [
-      sourceCenter[0] - pp1[0],
-      sourceCenter[1] - pp1[1],
-    ];
-    const targetToCenter = [
-      targetCenter[0] - pp2[0],
-      targetCenter[1] - pp2[1],
-    ];
-
-    let curveDirection = 1;
-    const sourceCross =
-      sourceToCenter[0] * normalY - sourceToCenter[1] * normalX;
-    const targetCross =
-      targetToCenter[0] * normalY - targetToCenter[1] * normalX;
-
-    if (sourceCross * targetCross < 0) {
-      curveDirection = targetCross > 0 ? 1 : -1;
-    } else {
-      curveDirection = sourceCross > 0 ? -1 : 1;
-    }
-
-    const curveOffset = [
-      normalX * curvature * curveDirection,
-      normalY * curvature * curveDirection,
-    ];
-
-    const cp1 = [
-      pp1[0] + dx * 0.3 + curveOffset[0] * 0.7,
-      pp1[1] + dy * 0.3 + curveOffset[1] * 0.7,
-    ];
-
-    const cp2 = [
-      pp1[0] + dx * 0.7 + curveOffset[0] * 0.7,
-      pp1[1] + dy * 0.7 + curveOffset[1] * 0.7,
-    ];
+    const cp1 = [pp1[0] + sDir[0] * handle, pp1[1] + sDir[1] * handle];
+    const cp2 = [pp2[0] + tDir[0] * handle, pp2[1] + tDir[1] * handle];
 
     points = [
       ["M", pp1[0], pp1[1]],
