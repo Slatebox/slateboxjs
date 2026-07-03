@@ -36,8 +36,16 @@ Our local app top bar has NO PRESENT button; the library Presentation class exis
   center + wrong pan/zoom order, leaving the focused node ~13-15k px off-screen. Now uses the node's
   WORLD center (options.x/y + w/2,h/2), zooms first, then sets the viewbox origin to center it.
   Verified live: start/next center each node exactly (dx=dy=0). e2e presentation-step.
-- NEXT (P2): app-side — add the PRESENT button + fullscreen step controls (next/prev/esc) wired to
-  slate.presentation.{start,next,previous,stop}. (P3) match legacy raw-SVG step transitions/animation.
+- P2 DONE [lib getter pending commit; app edits uncommitted]: added the app PRESENT button (top bar)
+  + a modern control pill (‹ step/total › ✕) + keyboard (→/space next, ← prev, Esc exit). Library:
+  facade now exposes a public `presentation` getter. KEY GOTCHA: the app's `currentSlate` recoil atom
+  holds a SERIALIZED slate (exportJSON), NOT the live facade — so the app reaches the live v2 slate via
+  window.__slateboxInstances (last instance) for .presentation and .fit(). Verified live: PRESENT →
+  control bar 1/3, Next + ArrowRight center Welcome→Two→Three, Esc exits + fits back.
+  App files (uncommitted/user-gated): Main.jsx.
+- NEXT (P3): match legacy raw-SVG step transitions/animation (smooth pan/zoom tween between steps),
+  and confirm presentation step ORDER matches legacy (currently position top-to-bottom / by
+  _presentationIndex).
 
 ## User direction (2026-07-02)
 - Do NOT copy legacy for **rotate/resize** — ours stays as-is.

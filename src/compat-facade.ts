@@ -428,6 +428,11 @@ class slate {
   /** v1: `slate.canvas.hideBg(opacity?)` — clear background for snapshots */
   public canvas: { hideBg: (opacity?: number) => void };
 
+  /** The step-through presentation controller (start/next/previous/stop). */
+  public get presentation(): any {
+    return this.v2?.presentation;
+  }
+
   constructor(options: Record<string, any> = {}, events: V1Events = {}) {
     // Spread FIRST: hosts pass `id: undefined` for new slates, and spreading
     // after the default would clobber the generated guid with undefined —

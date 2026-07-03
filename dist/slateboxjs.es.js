@@ -11380,6 +11380,10 @@ class sl {
   set shareId(t) {
     this._shareId = t, this.v2 && (this.v2.options.shareId = t);
   }
+  /** The step-through presentation controller (start/next/previous/stop). */
+  get presentation() {
+    return this.v2?.presentation;
+  }
   /** Resolve v1 `options.container` (id string or element) to an HTMLElement. */
   resolveContainer() {
     const t = this.options.container;

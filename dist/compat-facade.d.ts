@@ -158,6 +158,8 @@ declare class slate {
     canvas: {
         hideBg: (opacity?: number) => void;
     };
+    /** The step-through presentation controller (start/next/previous/stop). */
+    get presentation(): any;
     constructor(options?: Record<string, any>, events?: V1Events);
     /** Resolve v1 `options.container` (id string or element) to an HTMLElement. */
     private resolveContainer;
