@@ -22,6 +22,19 @@ export declare class Presentation {
     extractLayout(opts?: {
         nodeIds?: string[];
     }): PresentationStep[];
+    /**
+     * Build the hierarchical presentation layout (preziData) — a tree of root
+     * nodes → children with per-node metrics + descriptions. This is the structure
+     * the AI consumes to decide the presentation ORDER (ported from v1
+     * slate.extractPresentationLayout). Bbox is relative to the content top-left.
+     */
+    extractPresentationLayout(): any;
+    /**
+     * Set the step order explicitly (e.g. from the AI's returned ordering). IDs
+     * that don't exist are skipped; any nodes the AI omitted are appended in the
+     * default layout order so nothing is lost.
+     */
+    setStepOrder(nodeIds: string[]): PresentationStep[];
     /** Start presentation mode */
     start(): void;
     /** Stop presentation mode */

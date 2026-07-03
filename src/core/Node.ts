@@ -1958,7 +1958,7 @@ export class Node {
         temp.remove();
         previewArrow?.remove?.();
         // Bulletproof: clear any stray preview paths too.
-        const strays = (canvas.node as SVGElement).querySelectorAll(
+        const strays = (canvas.node as any).querySelectorAll(
           ".connect-drag-line"
         );
         strays.forEach((el: Element) => el.remove());

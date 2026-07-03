@@ -56,6 +56,108 @@ export class Presentation {
     return this.steps;
   }
 
+  /**
+   * Build the hierarchical presentation layout (preziData) — a tree of root
+   * nodes → children with per-node metrics + descriptions. This is the structure
+   * the AI consumes to decide the presentation ORDER (ported from v1
+   * slate.extractPresentationLayout). Bbox is relative to the content top-left.
+   */
+  public extractPresentationLayout(): any {
+    const all: any[] = this.slate.nodes?.allNodes || [];
+    const nodes = all.filter((n) => !n.options?.isCategory);
+
+    // Content bounds (orientation) for relative bbox coordinates.
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    nodes.forEach((n) => {
+      const o = n.options || {};
+      minX = Math.min(minX, o.x || 0);
+      minY = Math.min(minY, o.y || 0);
+      maxX = Math.max(maxX, (o.x || 0) + (o.width || 0));
+      maxY = Math.max(maxY, (o.y || 0) + (o.height || 0));
+    });
+    if (!isFinite(minX)) {
+      minX = 0;
+      minY = 0;
+      maxX = 0;
+      maxY = 0;
+    }
+    const orient = { left: minX, top: minY, width: maxX - minX, height: maxY - minY };
+
+    const byId = new Map<string, any>(nodes.map((n) => [n.id, n]));
+    const childIdsOf = (node: any): string[] =>
+      (node.relationships?.associations || [])
+        .map((a: any) => a.childId)
+        .filter((id: string) => byId.has(id));
+    const isChildOfAny = (node: any): boolean =>
+      nodes.some((p) =>
+        (p.relationships?.associations || []).some((a: any) => a.childId === node.id)
+      );
+
+    const processed = new Set<string>();
+    const processNode = (node: any): any => {
+      if (processed.has(node.id)) return null;
+      processed.add(node.id);
+      const o = node.options || {};
+      const children = childIdsOf(node)
+        .map((id) => byId.get(id))
+        .filter(Boolean);
+      return {
+        nodeId: node.id,
+        metrics: {
+          rotation: Math.ceil(o.rotate?.rotationAngle || 0),
+          bbox: {
+            x: Number(((o.x || 0) - orient.left).toFixed(2)),
+            y: Number(((o.y || 0) - orient.top).toFixed(2)),
+            width: Number((o.width || 0).toFixed(2)),
+            height: Number((o.height || 0).toFixed(2)),
+          },
+        },
+        description: o.text || o.description || "",
+        image: o.image,
+        numberOfChildrenNodes: children.length,
+        childrenNodes: children.map(processNode).filter(Boolean),
+      };
+    };
+
+    const rootNodes = nodes.filter((n) => !isChildOfAny(n));
+    return {
+      presentationHeight: Math.ceil(orient.height),
+      presentationWidth: Math.ceil(orient.width),
+      nodes: rootNodes.map(processNode).filter(Boolean),
+    };
+  }
+
+  /**
+   * Set the step order explicitly (e.g. from the AI's returned ordering). IDs
+   * that don't exist are skipped; any nodes the AI omitted are appended in the
+   * default layout order so nothing is lost.
+   */
+  public setStepOrder(nodeIds: string[]): PresentationStep[] {
+    const all: any[] = this.slate.nodes?.allNodes || [];
+    const exists = new Set(all.map((n) => n.id));
+    const seen = new Set<string>();
+    const ordered: string[] = [];
+    (nodeIds || []).forEach((id) => {
+      if (exists.has(id) && !seen.has(id)) {
+        seen.add(id);
+        ordered.push(id);
+      }
+    });
+    // Append any missing nodes in default order.
+    this.extractLayout().forEach((s) => {
+      if (!seen.has(s.nodeId)) {
+        seen.add(s.nodeId);
+        ordered.push(s.nodeId);
+      }
+    });
+    this.steps = ordered.map((nodeId, index) => ({ nodeId, index }));
+    this.currentStep = -1;
+    return this.steps;
+  }
+
   /** Start presentation mode */
   public start(): void {
     if (this.steps.length === 0) {
