@@ -102,6 +102,13 @@ export declare class Connector {
         x: number;
         y: number;
     } | null;
+    /**
+     * Show a cog affordance at the midpoint of a clicked line (M1/M2). Clicking
+     * the cog opens the host's line-properties pane. Only one cog is shown at a
+     * time (tracked on the slate) and it clears on canvas/node interaction.
+     */
+    private showLineCog;
+    private openLinePane;
     isEnabled(): boolean;
     updateOptions(options: Partial<ConnectorOptions>): void;
 }

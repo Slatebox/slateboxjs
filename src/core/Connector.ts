@@ -290,35 +290,13 @@ export class Connector {
 
       console.log("CONNECTOR_DEBUG: Successfully connected", connectionId);
 
-      // v1 contract: clicking a connection line asks the HOST to render its
-      // line-properties menu; the cb applies updates to the association
-      const lineEl = (connectableObj as any).line;
-      if (lineEl?.on) {
-        lineEl.on("click", (evt: any) => {
-          const events = this.node.slate?.options?.events;
-          if (!events?.onLineMenuRequested) return;
-          if (this.node.slate?.isReadOnly?.()) return;
-          evt.stopPropagation?.();
-          const association =
-            (this.node as any).relationships?.getAssociation?.(
-              targetNode.id
-            ) ?? connection;
-          events.onLineMenuRequested(this.node, association, (opts: any = {}) => {
-            if (opts.lineColor && connectableObj.setLineColor) {
-              connectableObj.setLineColor(opts.lineColor);
-              connection.lineColor = opts.lineColor;
-            }
-            if (opts.lineWidth && lineEl.attr) {
-              lineEl.attr({ "stroke-width": opts.lineWidth });
-              connection.lineWidth = opts.lineWidth;
-            }
-            // Persist onto the association record so exportJSON carries it
-            if (association && association.id) {
-              Object.assign(association, opts);
-            }
-          });
-        });
-      }
+      // Clicking a connection line shows a cog affordance; clicking the cog
+      // asks the HOST to open its line-properties pane (M1/M2). Wired via the
+      // vendored onLineClick hook (fires on a clean click of the line/hit area).
+      connectableObj.onLineClick = () => {
+        if (this.node.slate?.isReadOnly?.()) return;
+        this.showLineCog(connection, connectableObj, targetNode.id);
+      };
 
       // Trigger callback
       this.options.onConnect?.(connection);
@@ -606,6 +584,79 @@ export class Connector {
     (connection as any)[which + "Anchor"] = null;
     c?.setAttachmentAnchor?.(which, null);
     return null;
+  }
+
+  /**
+   * Show a cog affordance at the midpoint of a clicked line (M1/M2). Clicking
+   * the cog opens the host's line-properties pane. Only one cog is shown at a
+   * time (tracked on the slate) and it clears on canvas/node interaction.
+   */
+  private showLineCog(connection: Connection, con: any, targetId: string): void {
+    const slate: any = this.slate;
+    slate.clearLineCog?.();
+    const line = con?.connector;
+    let cx: number, cy: number;
+    try {
+      const bb = line.bbox();
+      cx = bb.cx;
+      cy = bb.cy;
+    } catch (e) {
+      return;
+    }
+    const container: any = slate.markersContainer || slate.canvas;
+    if (!container) return;
+    const cog = container.group().addClass("line-cog");
+    cog.circle(28).center(cx, cy).fill("#fff").stroke({ color: "#4051B5", width: 2 });
+    cog
+      .text("⚙")
+      .font({ size: 20, anchor: "middle", family: "sans-serif" })
+      .fill("#4051B5")
+      .center(cx, cy)
+      .attr("dy", "0.03em");
+    cog.attr("pointer-events", "all");
+    try {
+      cog.node.style.cursor = "pointer";
+    } catch (e) {
+      /* noop */
+    }
+    cog.on("mousedown", (e: any) => e.stopPropagation?.());
+    cog.on("click", (e: any) => {
+      e.stopPropagation?.();
+      this.openLinePane(connection, con, targetId);
+      slate.clearLineCog?.();
+    });
+    slate._activeLineCog = cog;
+    // markers/cog stay on top
+    try {
+      slate.markersContainer?.front?.();
+    } catch (e) {
+      /* noop */
+    }
+  }
+
+  private openLinePane(connection: Connection, con: any, targetId: string): void {
+    const events = this.node.slate?.options?.events;
+    if (!events?.onLineMenuRequested) return;
+    // The host pane (LineProperties) reads association.child.options.id, so pass
+    // the ENRICHED association (live parent/child refs) from the .associations
+    // getter, not the raw assocMap record (which lacks .child → pane crash).
+    const rels: any = (this.node as any).relationships;
+    const association =
+      rels?.associations?.find((a: any) => a.childId === targetId) ??
+      rels?.getAssociation?.(targetId) ??
+      connection;
+    events.onLineMenuRequested(this.node, association, (opts: any = {}) => {
+      // Apply pane edits through the association model (syncs + persists)
+      if (association?.id && (this.node as any).relationships) {
+        for (const [prop, val] of Object.entries(opts)) {
+          (this.node as any).relationships.applyLineProperty(
+            association.id,
+            prop,
+            val
+          );
+        }
+      }
+    });
   }
 
   public isEnabled(): boolean {

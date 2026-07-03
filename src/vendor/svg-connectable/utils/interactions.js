@@ -98,8 +98,15 @@ function setupClickHandlers(con, activeConnectorRef) {
 
     // Only trigger click if mouse didn't move significantly (not a pan/drag)
     if (distance < DRAG_THRESHOLD) {
-      event.stopPropagation();
-      toggleSelection(con, activeConnectorRef);
+      // Let the click reach the canvas too (so the host can clear other
+      // selection), but notify the host that THIS line was clicked. The host
+      // (Connector) decides what to do — show a cog / open the line pane. We do
+      // NOT call the old toggleSelection here: it left the connector "selected"
+      // with a deselect that only fired on a bare-container click, which made
+      // the canvas feel stuck (only pannable) until a refresh.
+      if (typeof con.onLineClick === "function") {
+        con.onLineClick(event);
+      }
     }
 
     mouseDownPos = null;
@@ -110,20 +117,6 @@ function setupClickHandlers(con, activeConnectorRef) {
   con.hitArea.on("mouseup", handleMouseUp);
   con.connector.on("mousedown", handleMouseDown);
   con.connector.on("mouseup", handleMouseUp);
-
-  // Add global click handler to deselect when clicking elsewhere (only once per container)
-  if (!con.container.data("connector-click-handler")) {
-    con.container.data("connector-click-handler", true);
-    con.container.click(function (event) {
-      // Only deselect if clicking on the container itself, not child elements
-      if (event.target === con.container.node) {
-        if (activeConnectorRef.current) {
-          deselectConnector(activeConnectorRef.current);
-          activeConnectorRef.current = null;
-        }
-      }
-    });
-  }
 }
 
 /**

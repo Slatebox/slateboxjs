@@ -135,6 +135,8 @@ export declare class Slate {
     options: SlateOptions;
     linesContainer?: any;
     markersContainer?: any;
+    /** The single active line-properties cog affordance (M1), if shown. */
+    _activeLineCog?: any;
     private selectedNodes;
     private groupResizeRotate;
     private _coordinateIntervalId;
@@ -384,6 +386,8 @@ export declare class Slate {
     /** Deselect a single node. */
     deselectNode(node: Node): void;
     /** Deselect all currently selected nodes. */
+    /** Remove the active line-properties cog affordance (M1), if any. */
+    clearLineCog(): void;
     clearSelection(): void;
     /** @returns Array of currently selected nodes. */
     getSelectedNodes(): Node[];

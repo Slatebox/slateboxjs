@@ -178,6 +178,8 @@ export class Slate {
   // Runtime-injected by Connector for global line/marker containers
   public linesContainer?: any;
   public markersContainer?: any;
+  /** The single active line-properties cog affordance (M1), if shown. */
+  public _activeLineCog?: any;
   private selectedNodes: Node[] = [];
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
   private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -1121,6 +1123,7 @@ export class Slate {
       if (isCanvasClick) {
         console.log("SELECTION_DEBUG: Canvas clicked - deselecting all");
         this.clearSelection();
+        this.clearLineCog();
         // v1 contract: notify the host (used to close app-side panes)
         this.options.events?.onCanvasClicked?.(event);
       } else {
@@ -1158,6 +1161,9 @@ export class Slate {
       "addToSelection:",
       addToSelection
     );
+
+    // Selecting a node clears any line cog affordance.
+    this.clearLineCog();
 
     // If not adding to selection, clear current selection first
     if (!addToSelection) {
@@ -1457,6 +1463,18 @@ export class Slate {
   }
 
   /** Deselect all currently selected nodes. */
+  /** Remove the active line-properties cog affordance (M1), if any. */
+  public clearLineCog(): void {
+    if (this._activeLineCog) {
+      try {
+        this._activeLineCog.remove();
+      } catch (e) {
+        /* noop */
+      }
+      this._activeLineCog = undefined;
+    }
+  }
+
   public clearSelection() {
     console.log("SELECTION_DEBUG: Clearing selection");
 
