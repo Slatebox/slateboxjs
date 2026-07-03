@@ -29,6 +29,16 @@ Playwright, add a durable e2e, commit.
 - (ongoing) Keep mining: node/line delete parity + collab, theme palette, presentation mode,
   etc. — add rows as found.
 
+## Presentation mode (user-selected focus, 2026-07-02)
+Legacy has a top-bar PRESENT button that steps through the slate (uses the underlying raw SVG).
+Our local app top bar has NO PRESENT button; the library Presentation class existed but was BROKEN.
+- P1 DONE [pending commit]: fixed Presentation.goToStep — it used a LOCAL bbox + hardcoded 400/300
+  center + wrong pan/zoom order, leaving the focused node ~13-15k px off-screen. Now uses the node's
+  WORLD center (options.x/y + w/2,h/2), zooms first, then sets the viewbox origin to center it.
+  Verified live: start/next center each node exactly (dx=dy=0). e2e presentation-step.
+- NEXT (P2): app-side — add the PRESENT button + fullscreen step controls (next/prev/esc) wired to
+  slate.presentation.{start,next,previous,stop}. (P3) match legacy raw-SVG step transitions/animation.
+
 ## User direction (2026-07-02)
 - Do NOT copy legacy for **rotate/resize** — ours stays as-is.
 - Panels/toolbars can be **modern (Miro-style)**, not legacy replicas. G1/G2 use a flat white

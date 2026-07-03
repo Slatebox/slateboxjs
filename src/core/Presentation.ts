@@ -14,6 +14,8 @@ export class Presentation {
   private steps: PresentationStep[] = [];
   private currentStep: number = -1;
   private isActive: boolean = false;
+  /** Zoom level applied when focusing a step's node. */
+  public zoomLevel: number = 1.5;
 
   constructor(slate: any) {
     this.slate = slate;
@@ -92,17 +94,21 @@ export class Presentation {
 
     this.currentStep = index;
     const step = this.steps[index];
-    const node = this.slate.nodes.one(step.nodeId);
+    const node: any = this.slate.nodes.one(step.nodeId);
     if (!node) return;
 
-    // Zoom and pan to the node
+    // Center the viewport on the node using WORLD coordinates. pan({x,y}) sets
+    // the viewbox ORIGIN (top-left) in world space and zoom() changes the
+    // viewbox dimensions, so zoom first, then offset the origin by half the
+    // (post-zoom) viewbox so the node's center lands at the viewport center.
     try {
-      const bbox = node.svgGroup.bbox();
-      const cx = bbox.x + bbox.width / 2;
-      const cy = bbox.y + bbox.height / 2;
+      const o = node.options || {};
+      const nx = (o.x || 0) + (o.width || 0) / 2;
+      const ny = (o.y || 0) + (o.height || 0) / 2;
 
-      this.slate.pan({ x: -cx + 400, y: -cy + 300 });
-      this.slate.zoom(1.5);
+      this.slate.zoom(this.zoomLevel);
+      const vb = (this.slate as any).canvas.viewbox();
+      this.slate.pan({ x: nx - vb.width / 2, y: ny - vb.height / 2 });
     } catch {
       // Best-effort pan/zoom
     }

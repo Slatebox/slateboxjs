@@ -12,6 +12,8 @@ export declare class Presentation {
     private steps;
     private currentStep;
     private isActive;
+    /** Zoom level applied when focusing a step's node. */
+    zoomLevel: number;
     constructor(slate: any);
     /**
      * Extract presentation layout from current nodes.

@@ -9811,7 +9811,7 @@ class ds {
 }
 class us {
   constructor(t) {
-    this.steps = [], this.currentStep = -1, this.isActive = !1, this.slate = t;
+    this.steps = [], this.currentStep = -1, this.isActive = !1, this.zoomLevel = 1.5, this.slate = t;
   }
   /**
    * Extract presentation layout from current nodes.
@@ -9856,8 +9856,10 @@ class us {
     const e = this.steps[t], i = this.slate.nodes.one(e.nodeId);
     if (i) {
       try {
-        const s = i.svgGroup.bbox(), o = s.x + s.width / 2, a = s.y + s.height / 2;
-        this.slate.pan({ x: -o + 400, y: -a + 300 }), this.slate.zoom(1.5);
+        const s = i.options || {}, o = (s.x || 0) + (s.width || 0) / 2, a = (s.y || 0) + (s.height || 0) / 2;
+        this.slate.zoom(this.zoomLevel);
+        const r = this.slate.canvas.viewbox();
+        this.slate.pan({ x: o - r.width / 2, y: a - r.height / 2 });
       } catch {
       }
       this.slate.selectNodes([i], !1);
