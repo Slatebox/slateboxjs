@@ -1,5 +1,12 @@
 # Collab bug loop — canvas drag / presence / connector / rotation parity
 
+## line/UX backlog M1-M9 (IN PROGRESS)
+DONE: M2 line-click stall FIXED + M1 LINE cog→pane [bc09134]; M4 arrowhead over node [44d3c00]; M3 chat
+overlay + M6 cookie removed (app-side, uncommitted). M9 line props (color/type/curve/arrows/width/lock) all
+present in the pane, reachable via the line cog. REMAINING: M1 NODE cog (click node → cog → node pane from
+bottom); M5 birds-eye center (Miro-style, content currently at bottom); M7 connectors follow LIVE during node
+resize; M8 drop-target feedback dragging a line endpoint over a node.
+
 ## HELD — line/UX backlog M1-M9 (2026-07-02, from user; work ONE AT A TIME)
 Core fixes in slateboxjs-v2; app-side pane/layout edits approved (LineDrawer/NodeDrawer/Chat/Canvas).
 - M1. COG affordances: clicking a NODE shows a cog → opens the node properties pane (pop up from bottom);
