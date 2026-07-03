@@ -623,9 +623,17 @@ export class Connector {
     cog.on("click", (e: any) => {
       e.stopPropagation?.();
       this.openLinePane(connection, con, targetId);
-      slate.clearLineCog?.();
     });
     slate._activeLineCog = cog;
+    // Also select the connector so its endpoint handles show — this is what
+    // makes the endpoints draggable (L1 snap-anywhere). Tracked on the slate so
+    // clearLineCog() (canvas click / node select) deselects it — no stuck state.
+    try {
+      con.selectConnector?.();
+      slate._activeLineConnectable = con;
+    } catch (e) {
+      /* noop */
+    }
     // markers/cog stay on top
     try {
       slate.markersContainer?.front?.();

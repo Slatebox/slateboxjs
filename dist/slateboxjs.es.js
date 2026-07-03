@@ -5781,8 +5781,12 @@ class Li {
     } catch {
     }
     c.on("mousedown", (h) => h.stopPropagation?.()), c.on("click", (h) => {
-      h.stopPropagation?.(), this.openLinePane(t, e, i), s.clearLineCog?.();
+      h.stopPropagation?.(), this.openLinePane(t, e, i);
     }), s._activeLineCog = c;
+    try {
+      e.selectConnector?.(), s._activeLineConnectable = e;
+    } catch {
+    }
     try {
       s.markersContainer?.front?.();
     } catch {
@@ -10401,7 +10405,7 @@ class An {
     this.selectedNodes.includes(t) && (console.log("SELECTION_DEBUG: Deselecting node", t.id), this.selectedNodes = this.selectedNodes.filter((e) => e !== t), t.onDeselected(), this.selectedNodes.length === 0 ? this.disableGroupResizeRotate() : this.updateSelectionResizeRotate());
   }
   /** Deselect all currently selected nodes. */
-  /** Remove the active line-properties cog affordance (M1), if any. */
+  /** Remove the active line cog + endpoint handles (M1/L1), if any. */
   clearLineCog() {
     if (this._activeLineCog) {
       try {
@@ -10409,6 +10413,13 @@ class An {
       } catch {
       }
       this._activeLineCog = void 0;
+    }
+    if (this._activeLineConnectable) {
+      try {
+        this._activeLineConnectable.deselectConnector?.();
+      } catch {
+      }
+      this._activeLineConnectable = void 0;
     }
   }
   clearSelection() {

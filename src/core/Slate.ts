@@ -180,6 +180,8 @@ export class Slate {
   public markersContainer?: any;
   /** The single active line-properties cog affordance (M1), if shown. */
   public _activeLineCog?: any;
+  /** The connectable whose endpoint handles are currently shown (L1/M8). */
+  public _activeLineConnectable?: any;
   private selectedNodes: Node[] = [];
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
   private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -1468,7 +1470,7 @@ export class Slate {
   }
 
   /** Deselect all currently selected nodes. */
-  /** Remove the active line-properties cog affordance (M1), if any. */
+  /** Remove the active line cog + endpoint handles (M1/L1), if any. */
   public clearLineCog(): void {
     if (this._activeLineCog) {
       try {
@@ -1477,6 +1479,14 @@ export class Slate {
         /* noop */
       }
       this._activeLineCog = undefined;
+    }
+    if (this._activeLineConnectable) {
+      try {
+        this._activeLineConnectable.deselectConnector?.();
+      } catch (e) {
+        /* noop */
+      }
+      this._activeLineConnectable = undefined;
     }
   }
 
