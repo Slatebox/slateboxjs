@@ -52,6 +52,21 @@ Our local app top bar has NO PRESENT button; the library Presentation class exis
   Step ORDER = _presentationIndex else position (top-to-bottom, left-to-right) — matches legacy's
   reading order for a typical top-down mindmap; revisit if a specific slate needs custom ordering.
 
+## AI-driven presentation ordering (2026-07-03) — WORKING end-to-end
+Reuses the ORIGINAL pipeline (not the made-up position sort):
+1. lib [6eb2ee1]: Presentation.extractPresentationLayout() → hierarchical preziData (root→children
+   + rotation/content-relative bbox/description); setStepOrder(nodeIds) applies an explicit order.
+2. app (uncommitted/user-gated): Main.jsx presentation build effect calls the EXISTING openai.chat
+   Meteor method (processImmediately) with the preziData, asking for {"order":[nodeId,...]}; parses
+   req()'s {json:{order}} and setStepOrder()s it (falls back to default layout order on any failure).
+   server/methods/openai.js: threads opts.engine through the processImmediately req() call so a
+   CURRENT model can be used (the historical default gpt-3.5-turbo-16k-0613 is deprecated → was
+   erroring). App call uses engine:'gpt-4o-mini' (reuses the same req/provider plumbing + keys).
+Verified live: server log shows gpt-4o-mini returned {"order":[Overview,Marketing,Engineering,
+Conclusion]} for a hierarchical slate; the fullscreen modal stepped in that AI order (≠ position
+default). Engine reused (isolated read-only slate, zoom/pan-to-node, smooth tween).
+App files changed: imports/ui/Main.jsx, server/methods/openai.js.
+
 ## Batch 2026-07-02 (user) — COMPLETE (PRES + Q1-Q4)
 PRES [568f5e3] fullscreen modal + isolated read-only slate, steps all nodes, clean view.
 Q1 [d2a6efa] arrowheads over nodes during drag. Q2+Q3 [6874923] line plug dropped + endpoint lock
