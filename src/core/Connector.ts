@@ -606,7 +606,18 @@ export class Connector {
       const anchor = { x: ax, y: ay };
       const rels = ownerNode?.relationships;
       const assoc = rels?.associations?.find((a: any) => a.childId === childId);
-      if (assoc?.id) rels.applyLineProperty(assoc.id, which, anchor);
+      if (assoc?.id) {
+        rels.applyLineProperty(assoc.id, which, anchor);
+        // Broadcast the pinned anchor so it PERSISTS and syncs. The reconnect's
+        // addAssociation save fires before this anchor is set, so without a
+        // broadcast the drop-side anchor is lost on reload (reverts to auto-edge).
+        (ownerNode.slate as any)?.broadcast?.("onLinePropertiesChanged", {
+          id: ownerNode.id,
+          prop: which,
+          val: anchor,
+          associationId: assoc.id,
+        });
+      }
     } catch (e) {
       /* noop */
     }

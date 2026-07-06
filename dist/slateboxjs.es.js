@@ -5769,7 +5769,12 @@ class Pe {
       const h = l, d = 1 - l, u = c, f = 1 - c, g = Math.min(h, d, u, f);
       g === h ? l = 0 : g === d ? l = 1 : g === u ? c = 0 : c = 1;
       const p = { x: l, y: c }, y = t?.relationships, m = y?.associations?.find((b) => b.childId === e);
-      m?.id && y.applyLineProperty(m.id, s, p);
+      m?.id && (y.applyLineProperty(m.id, s, p), t.slate?.broadcast?.("onLinePropertiesChanged", {
+        id: t.id,
+        prop: s,
+        val: p,
+        associationId: m.id
+      }));
     } catch {
     }
   }

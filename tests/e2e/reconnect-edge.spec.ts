@@ -31,6 +31,15 @@ test.describe("connector reconnect edge-pin (§connector)", () => {
 
       const conn = A.v2.connector.getConnections()[0];
 
+      // Spy on broadcasts — the pinned anchor must be broadcast so it persists +
+      // syncs (the reconnect's addAssociation save fires before the anchor).
+      const anchorCasts: any[] = [];
+      const orig = s.v2.broadcast.bind(s.v2);
+      s.v2.broadcast = (t: string, d: any) => {
+        if (t === "onLinePropertiesChanged" && (d?.prop === "targetAnchor" || d?.prop === "sourceAnchor")) anchorCasts.push(d);
+        return orig(t, d);
+      };
+
       const reconnectTo = async (node: any, fx: number, fy: number) => {
         const o = node.v2.options;
         // Drop point in the node INTERIOR at normalized (fx, fy).
@@ -46,7 +55,7 @@ test.describe("connector reconnect edge-pin (§connector)", () => {
       // Drop near the LEFT interior of D → projects to the left edge (x=0).
       const left = await reconnectTo(D, 0.15, 0.5);
 
-      return { bottom, left };
+      return { bottom, left, broadcastCount: anchorCasts.length, lastCast: anchorCasts[anchorCasts.length - 1] };
     });
 
     // Bottom drop → bottom edge; not an interior anchor.
@@ -55,5 +64,9 @@ test.describe("connector reconnect edge-pin (§connector)", () => {
     // Left drop → left edge.
     expect(res.left).toBeTruthy();
     expect(res.left.x).toBe(0);
+    // The pinned anchor was broadcast (so it persists + syncs, not lost on reload).
+    expect(res.broadcastCount).toBeGreaterThanOrEqual(2);
+    expect(res.lastCast?.prop).toBe("targetAnchor");
+    expect(res.lastCast?.val).toEqual({ x: 0, y: 0.5 });
   });
 });
