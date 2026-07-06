@@ -7314,6 +7314,10 @@ class De {
       this.svgGroup.fire?.("transform");
     } catch {
     }
+    try {
+      (this.slate._activeLineCog || this.slate._activeEndpointToggles) && this.slate.clearLineCog?.();
+    } catch {
+    }
   }
   /**
    * Re-assert the canonical model after a resize/rotate interaction. During the

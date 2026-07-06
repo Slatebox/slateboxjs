@@ -23,8 +23,17 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   the target endpoint on C's top-center → targetAnchor {0.50,0.06}, arrow endpoint at C's top edge.
   e2e connector-drop-point.
 
+- U2 DONE [lib 9b2da5d+]: line cog + endpoint-lock toggles DRIFTED when a connected node moved
+  (they're positioned at the connector geometry once; a move re-solves the line but the affordances
+  stayed). Fix: applyPositionAndRotation clears the active line affordances on any node move (Miro
+  hides connector UI during moves; re-click for fresh placement). Verified live: locks 2/cog 1 →
+  0/0 after a move. e2e line-affordances-nodrift.
+- U4 CHECKED: reload persistence WORKS via the real pane path (onChange→save); library
+  serialize/deserialize round-trips lineType + sourceAnchor + arrows perfectly (loadJSON restores
+  connectableType='orthogonal'). Earlier "revert" was a test artifact (direct applyLineProperty
+  bypasses the save/broadcast). Not a bug.
+
 ## Backlog (from user, this loop)
-- U2: endpoint locks DRIFT (on-canvas padlock position / stale state as nodes move).
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the
   nearest edge midpoint).

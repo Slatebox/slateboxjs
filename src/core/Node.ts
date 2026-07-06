@@ -1290,6 +1290,18 @@ export class Node {
     } catch (e) {
       /* noop */
     }
+
+    // A node move re-solves any attached connector, so the line's cog +
+    // endpoint-lock toggles (positioned at the old geometry) would DRIFT (U2).
+    // Clear them — Miro likewise hides connector UI during moves; the user
+    // re-clicks the line for fresh, correctly-placed affordances.
+    try {
+      if ((this.slate as any)._activeLineCog || (this.slate as any)._activeEndpointToggles) {
+        (this.slate as any).clearLineCog?.();
+      }
+    } catch (e) {
+      /* noop */
+    }
   }
 
   /**
