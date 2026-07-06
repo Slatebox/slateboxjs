@@ -48,4 +48,19 @@ test.describe("Presentation", () => {
     const result = await page.evaluate(() => (window as any).slate.presentation.next());
     expect(result).toBe(true);
   });
+
+  test("should navigate back to the previous step", async ({ page }) => {
+    const res = await page.evaluate(() => {
+      const s = (window as any).slate;
+      s.presentation.start(s.getAllNodes().map((n: any, i: number) => ({ nodeId: n.id, index: i })));
+      s.presentation.next(); // advance to step 1
+      const stepAfterNext = s.presentation.getCurrentStep();
+      const prevOk = s.presentation.previous(); // back to step 0
+      const stepAfterPrev = s.presentation.getCurrentStep();
+      return { stepAfterNext, prevOk, stepAfterPrev };
+    });
+    expect(res.stepAfterNext).toBe(1);
+    expect(res.prevOk).toBe(true);
+    expect(res.stepAfterPrev).toBe(0);
+  });
 });
