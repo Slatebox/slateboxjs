@@ -1820,21 +1820,28 @@ export class Node {
             this.id
           );
 
-          // Check for multi-select modifier keys
-          const isMultiSelect = event.ctrlKey || event.metaKey;
-
-          // Let Slate handle the selection logic and resize/rotate enabling
-          this.slate.selectNodes([this], isMultiSelect);
-
-          // Double-click detection: svg.draggable's pointer handling
-          // suppresses native dblclick synthesis, so detect two quick
-          // clicks ourselves and request the host's text pane
-          const now = Date.now();
-          if (now - this._lastClickTime < 400) {
-            this._lastClickTime = 0;
-            this.requestTextPane();
+          // In read-only / view mode, clicking a linked node follows its link
+          // (Miro-style — in edit mode the "↗" badge is the follow affordance so
+          // a normal click can still select/edit).
+          if (this.links?.hasLink?.() && this.slate.isReadOnly?.()) {
+            this.links.navigate();
           } else {
-            this._lastClickTime = now;
+            // Check for multi-select modifier keys
+            const isMultiSelect = event.ctrlKey || event.metaKey;
+
+            // Let Slate handle the selection logic and resize/rotate enabling
+            this.slate.selectNodes([this], isMultiSelect);
+
+            // Double-click detection: svg.draggable's pointer handling
+            // suppresses native dblclick synthesis, so detect two quick
+            // clicks ourselves and request the host's text pane
+            const now = Date.now();
+            if (now - this._lastClickTime < 400) {
+              this._lastClickTime = 0;
+              this.requestTextPane();
+            } else {
+              this._lastClickTime = now;
+            }
           }
         }
 

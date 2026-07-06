@@ -52,4 +52,52 @@ test.describe("node link badge (§links)", () => {
     expect(res.opened).toBe("https://example.com/x"); // click navigates
     expect(res.afterUnset).toBe(false); // badge removed on unset
   });
+
+  test("whole-node click follows the link in read-only/view mode only", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+
+    const res = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText = "width:600px;height:400px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate({ container: "slateCanvas", allowCollaboration: false }, {}).init();
+      const n = s.nodes.add(new sb.node({ id: "VL", xPos: 150, yPos: 120, width: 160, height: 100, text: "V" }));
+      await new Promise((r) => setTimeout(r, 200));
+      n.v2.links.set({ show: true, type: "url", data: "https://example.com/view" });
+
+      const bodyClick = () => {
+        const g = document.querySelector('#slateCanvas [data-node-id="VL"]') as SVGGraphicsElement;
+        const r = g.getBoundingClientRect();
+        // click the node's LEFT side (away from the top-right badge)
+        const x = r.x + 20, y = r.y + r.height / 2;
+        g.dispatchEvent(new PointerEvent("pointerdown", { clientX: x, clientY: y, bubbles: true }));
+        g.dispatchEvent(new PointerEvent("pointerup", { clientX: x, clientY: y, bubbles: true }));
+      };
+
+      // Edit mode (isReadOnly false): body click selects, does NOT navigate.
+      let openedEdit: string | null = null;
+      const orig = window.open;
+      (window as any).open = (u: string) => { openedEdit = u; return null; };
+      bodyClick();
+      await new Promise((r) => setTimeout(r, 50));
+
+      // View mode (isReadOnly true): body click follows the link.
+      s.v2.options.events = { isReadOnly: () => true };
+      let openedView: string | null = null;
+      (window as any).open = (u: string) => { openedView = u; return null; };
+      bodyClick();
+      await new Promise((r) => setTimeout(r, 50));
+      window.open = orig;
+
+      return { openedEdit, openedView };
+    });
+
+    expect(res.openedEdit).toBe(null); // edit-mode click selects, not navigate
+    expect(res.openedView).toBe("https://example.com/view"); // view-mode click follows
+  });
 });

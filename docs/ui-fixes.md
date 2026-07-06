@@ -204,7 +204,12 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   badge. Canonical link target field is NodeLinkOptions.data (NOT .url). Raw <text> for the glyph (SVG.js
   text() wraps a tspan that ignores x/y). Verified live: badge renders centered, click opens the URL, persists
   through reload; unset removes it. e2e node-link-badge.spec.ts. 1075 unit / 190 e2e.
-- REMAINING pieces: app UI to create a link (NodeDrawer), view-mode click-to-follow, slate-to-slate nav events.
+- Piece 2 (app @fd36c5a): NodeDrawer Link tab (index 13, gated on basedOnTemplate) + URL dialog →
+  onNodeLinkAdded {link:{show,type:'url',data}} / onNodeLinkRemoved. Verified live: link tab → dialog →
+  Save → badge → survives reload.
+- Piece 3 (library): whole-node click-to-follow in READ-ONLY/view mode (slate.isReadOnly) — in edit mode
+  the badge is the follow affordance so a normal click still selects/edits. e2e covers both modes.
+- REMAINING (optional): slate-to-slate nav events (currentSlate/externalSlate types only console.log).
 
 ## NODE LINK corruption on reload / collab fixed
 - Found by driving the library node-link API (app has no link UI yet). Setting a URL link persisted
