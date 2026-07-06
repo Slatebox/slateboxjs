@@ -7969,6 +7969,23 @@ class Ie {
         ), this.createConnectedNode(
           r
         );
+      }), l.on("pointerdown", (c) => {
+        if (this.slate?.isReadOnly?.()) return;
+        c.stopPropagation();
+        const h = c.clientX, d = c.clientY;
+        let u = !1;
+        const f = () => {
+          window.removeEventListener("pointermove", g, !0), window.removeEventListener("pointerup", p, !0);
+        }, g = (y) => {
+          if (!u && Math.hypot(y.clientX - h, y.clientY - d) > 5) {
+            u = !0, f();
+            const m = (b) => {
+              b.stopPropagation(), l.node.removeEventListener("click", m, !0);
+            };
+            l.node.addEventListener("click", m, !0), this.startConnectDrag(c);
+          }
+        }, p = () => f();
+        window.addEventListener("pointermove", g, !0), window.addEventListener("pointerup", p, !0);
       });
     }), this.connectionHandles.container && this.connectionHandles.container.hide(), this.updateConnectionHandlePositions();
   }

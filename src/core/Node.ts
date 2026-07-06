@@ -2323,6 +2323,40 @@ export class Node {
           direction as "top" | "right" | "bottom" | "left"
         );
       });
+
+      // Miro-style: DRAG from a plug-circle to connect to another node (or create
+      // one at the drop). A plain click still creates a node in that direction
+      // (above). We distinguish drag from click with a small movement threshold —
+      // once the pointer moves past it, we hand off to startConnectDrag (same path
+      // as the plug tool) and suppress the ensuing click.
+      handle.on("pointerdown", (event: any) => {
+        if (this.slate?.isReadOnly?.()) return;
+        event.stopPropagation();
+        const startX = event.clientX;
+        const startY = event.clientY;
+        let handedOff = false;
+        const cleanup = () => {
+          window.removeEventListener("pointermove", onMove, true);
+          window.removeEventListener("pointerup", onUp, true);
+        };
+        const onMove = (e: PointerEvent) => {
+          if (handedOff) return;
+          if (Math.hypot(e.clientX - startX, e.clientY - startY) > 5) {
+            handedOff = true;
+            cleanup();
+            // Swallow the click that would otherwise fire createConnectedNode.
+            const swallow = (ce: Event) => {
+              ce.stopPropagation();
+              (handle.node as any).removeEventListener("click", swallow, true);
+            };
+            (handle.node as any).addEventListener("click", swallow, true);
+            this.startConnectDrag(event);
+          }
+        };
+        const onUp = () => cleanup();
+        window.addEventListener("pointermove", onMove, true);
+        window.addEventListener("pointerup", onUp, true);
+      });
     });
 
     // Initially hidden
