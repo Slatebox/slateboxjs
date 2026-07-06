@@ -57,6 +57,11 @@ describe("Comments", () => {
 
       expect(comment.options.commentAuthor).toBe("Alice");
       expect(comment.options.commentTimestamp).toBe(ts);
+      // Metadata must be passed INTO addNode (not set afterward), so it's carried
+      // by the onNodeAdded broadcast + the save — else it's lost on reload.
+      expect(mockSlate.addNode).toHaveBeenCalledWith(
+        expect.objectContaining({ commentAuthor: "Alice", commentTimestamp: ts })
+      );
     });
 
     it("should default timestamp to now", () => {

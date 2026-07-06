@@ -11947,7 +11947,7 @@ ke.NON_UNDOABLE = /* @__PURE__ */ new Set([
 ]);
 let le = ke;
 function tl(n, t) {
-  const e = n.addNode({
+  return n.addNode({
     text: t.text,
     x: t.x || 100,
     y: t.y || 100,
@@ -11964,9 +11964,13 @@ function tl(n, t) {
     showResize: !0,
     showRotate: !1,
     showMenu: !1,
-    allowResize: !0
+    allowResize: !0,
+    // Author/timestamp must be part of the node at creation so they're carried
+    // by the onNodeAdded broadcast + the save. Setting them AFTER addNode left
+    // them out of the persisted state, so they were lost on reload.
+    commentAuthor: t.author,
+    commentTimestamp: t.timestamp || Date.now()
   });
-  return e && (e.options.commentAuthor = t.author, e.options.commentTimestamp = t.timestamp || Date.now()), e;
 }
 function el(n, t) {
   const e = n.nodes.one(t);

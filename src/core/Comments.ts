@@ -38,13 +38,12 @@ export function createComment(
     showRotate: false,
     showMenu: false,
     allowResize: true,
+    // Author/timestamp must be part of the node at creation so they're carried
+    // by the onNodeAdded broadcast + the save. Setting them AFTER addNode left
+    // them out of the persisted state, so they were lost on reload.
+    commentAuthor: options.author,
+    commentTimestamp: options.timestamp || Date.now(),
   });
-
-  if (node) {
-    // Store metadata
-    node.options.commentAuthor = options.author;
-    node.options.commentTimestamp = options.timestamp || Date.now();
-  }
 
   return node;
 }
