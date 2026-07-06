@@ -7192,7 +7192,7 @@ class Ie {
       size: t,
       fill: i,
       opacity: s
-    }), this.centerText();
+    }), this.options.text && this.textElement.text(this.wrapTextToWidth(this.options.text)), this.centerText();
   }
   /**
    * Word-wrap `text` to the node's inner width, returning it with newlines

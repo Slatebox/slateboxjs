@@ -86,6 +86,36 @@ test.describe("node text wrapping (§node)", () => {
     expect(res.lines).toBeGreaterThan(1);
   });
 
+  test("text re-wraps when the font size changes", async ({ page }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    const res = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText = "width:600px;height:500px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate({ container: "slateCanvas", allowCollaboration: false }, {}).init();
+      const A = s.nodes.add(new sb.node({ id: "A", xPos: 150, yPos: 150, width: 175, height: 100, text: "x" }));
+      await new Promise((r) => setTimeout(r, 300));
+      A.v2.setText("This is a longer piece of text that wraps to several lines inside the node");
+      await new Promise((r) => setTimeout(r, 150));
+      const stat = () => {
+        const tb = A.v2.textElement.node.getBBox();
+        return { lines: A.v2.textElement.node.querySelectorAll("tspan").length, overflow: tb.width / A.v2.options.width };
+      };
+      const small = stat();
+      A.v2.options.fontSize = 32;
+      A.v2.applyTextStyle();
+      await new Promise((r) => setTimeout(r, 150));
+      const big = stat();
+      return { small, big };
+    });
+    // Bigger font → more lines, and it still fits (didn't overflow).
+    expect(res.big.lines).toBeGreaterThan(res.small.lines);
+    expect(res.big.overflow).toBeLessThanOrEqual(1.15);
+  });
+
   test("short text stays a single line (no regression)", async ({ page }) => {
     await page.goto("/test.html");
     await page.waitForFunction(() => (window as any).Slatebox);

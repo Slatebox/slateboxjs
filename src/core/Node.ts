@@ -806,6 +806,11 @@ export class Node {
       fill: fontColor!,
       opacity: textOpacity!,
     });
+    // Re-wrap with the new font metrics — a larger font fits fewer words per line,
+    // so without this the text would overflow the node after a size change.
+    if (this.options.text) {
+      this.textElement.text(this.wrapTextToWidth(this.options.text));
+    }
     this.centerText();
   }
 
