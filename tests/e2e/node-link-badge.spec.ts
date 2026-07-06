@@ -38,18 +38,26 @@ test.describe("node link badge (§links)", () => {
       await new Promise((r) => setTimeout(r, 50));
       window.open = orig;
 
+      // Badge follows a resize (it's anchored to the node width).
+      const circleX = () => ((document.querySelector(badgeSel + " circle") as any)?.getBBox?.().x ?? 0);
+      const badgeXBefore = circleX();
+      n.v2.setSize(320, 100);
+      await new Promise((r) => setTimeout(r, 50));
+      const badgeXAfter = circleX();
+
       // Unset removes the badge.
       n.v2.links.unset();
       await new Promise((r) => setTimeout(r, 100));
       const afterUnset = !!document.querySelector(badgeSel);
 
-      return { before, hasBadge: !!badge, glyph, opened, afterUnset };
+      return { before, hasBadge: !!badge, glyph, opened, afterUnset, badgeXBefore, badgeXAfter };
     });
 
     expect(res.before).toBe(false); // no badge before a link
     expect(res.hasBadge).toBe(true); // badge appears when linked
     expect(res.glyph).toBe("↗");
     expect(res.opened).toBe("https://example.com/x"); // click navigates
+    expect(res.badgeXAfter).toBeGreaterThan(res.badgeXBefore + 100); // badge tracks the wider node
     expect(res.afterUnset).toBe(false); // badge removed on unset
   });
 

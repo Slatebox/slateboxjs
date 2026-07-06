@@ -1272,6 +1272,10 @@ export class Node {
 
     // Re-center text (only if text element exists)
     this.centerText();
+
+    // Reposition the link badge to the new top-right corner (it's anchored to
+    // the node width, which just changed).
+    if (this._linkBadge) this.updateLinkIndicator();
   }
 
   /**
