@@ -188,6 +188,15 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## NODE PANE mined — VERIFIED CLEAN (shape + color persist through reload)
+- Drove the node pane live (select node → cog → SHAPE/COLOR tabs). Picking a path shape and a preset
+  color both apply, persist, and survive a full page RELOAD (DB round-trip). The node pane reads the
+  LIVE node.options (passes the real Node by reference), so it does NOT have the stale-snapshot revert
+  bug that hit the line pane — confirms that bug was isolated to the line pane's captured association.
+- Durable guard: tests/e2e/serialization.spec.ts "node shape (path) + color survive a serialize→load
+  round-trip" — reloads exported JSON into a fresh slate and asserts the star path + #f44336 come back
+  and render as a <path data-shape-path>.
+
 ## NAMED BUGS 1/2/3 FIXED: line-pane toggles stick + save + survive reload
 - (1) Line Type BEZIER↔ORTHOGONAL didn't stick; (2) Start/End ABSOLUTE↔RELATIVE didn't save; (3)
   lock toggles drifted — ALL one root cause, app-side. Canvas.jsx captured the `association` snapshot

@@ -37,4 +37,48 @@ test.describe("Serialization", () => {
     });
     expect(positions.length).toBe(2);
   });
+
+  // Node-pane persistence contract: a node's shape (rendered as a <path>) and
+  // background color must survive a serialize→load round-trip — this is the
+  // library behaviour behind the app's "change shape/color → survives reload"
+  // (verified live in-app). Guards against a serialization regression that would
+  // silently drop these fields.
+  test("node shape (path) + color survive a serialize→load round-trip", async ({
+    page,
+  }) => {
+    const res = await page.evaluate(async () => {
+      const slate = (window as any).slate;
+      const a = slate.nodes.one("sa");
+      const star =
+        "M 50 0 L 61.8 38.2 L 100 38.2 L 69.1 61.8 L 80.9 100 L 50 76.4 L 19.1 100 L 30.9 61.8 L 0 38.2 L 38.2 38.2 Z";
+      a.setShape(star);
+      a.setColors("#f44336");
+      await new Promise((r) => setTimeout(r, 200));
+
+      const json = slate.exportJSON ? slate.exportJSON() : JSON.stringify(slate.toJSON?.());
+
+      // Load into a FRESH slate and read the node back.
+      const div = document.createElement("div");
+      div.id = "app2";
+      document.body.appendChild(div);
+      const s2 = (window as any).SlateboxJS("#app2", {
+        viewPort: { originalWidth: 1200, originalHeight: 800 },
+        panZoom: { enabled: false },
+      });
+      if (s2.loadJSON) s2.loadJSON(json);
+      else if (s2.importJSON) s2.importJSON(json);
+      await new Promise((r) => setTimeout(r, 600));
+
+      const a2 = s2.nodes.one("sa");
+      return {
+        shape: (a2?.options?.shape || "").slice(0, 12),
+        color: a2?.options?.backgroundColor,
+        renderedAsPath: !!document.querySelector('#app2 [data-node-id="sa"] path[data-shape-path]'),
+      };
+    });
+
+    expect(res.shape).toContain("M 50 0"); // the star path round-tripped
+    expect(String(res.color).toLowerCase()).toBe("#f44336");
+    expect(res.renderedAsPath).toBe(true);
+  });
 });
