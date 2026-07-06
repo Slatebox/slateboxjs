@@ -188,6 +188,20 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## NODE PANE (TEXT+EFFECTS) + COLLAB PARITY — VERIFIED CLEAN
+- Node TEXT tab: changing font family (Roboto→Bangers) applies, the active-font highlight moves, the
+  <text> renders in the new font, and it survives RELOAD. Node EFFECTS: DropShadow toggle applies a
+  filter, selects the button, and persists through reload. Node pane reads live node.options → no
+  stale bug.
+- COLLAB PARITY (two Playwright tabs on the same canvas, collab active): node ADD + node COLOR sync
+  live to the 2nd window; LINE TYPE (orthogonal) syncs too — via the real pane path
+  onUpdateNode→collab.invoke+send, peer applies through Invoker.onLinePropertiesChanged. KEY: the
+  package MUST carry data.id (packageUp adds node.options.id); a package without it is dropped by the
+  peer (nodes.one(undefined)→null). Earlier "not syncing" reads were malformed test packages (no id),
+  not a bug.
+- Durable guard: Invoker.test.ts "onLinePropertiesChanged (collab apply)" — a remote {id, associationId,
+  prop, val} routes to applyLineProperty; a package missing id is a no-op. 1072 unit.
+
 ## LINE PANE — 2 more bugs fixed: controls reachable + Arrow Heads reflect
 - CLIPPING (app slatebox 996ed7e): the bottom LineDrawer paper was a fixed height:250px, so the Width
   slider + Arrow Heads toggles overflowed BELOW the viewport (y~1021 on a 943px screen) — unreachable.

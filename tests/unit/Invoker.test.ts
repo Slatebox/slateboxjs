@@ -52,6 +52,9 @@ describe("Invoker", () => {
       },
       applyBorder: vi.fn(),
       applyTextStyle: vi.fn(),
+      relationships: {
+        applyLineProperty: vi.fn(),
+      },
     };
 
     mockSlate = {
@@ -273,6 +276,38 @@ describe("Invoker", () => {
       });
 
       expect(mockNode.setColors).not.toHaveBeenCalled();
+    });
+  });
+
+  // The collab receive path applies remote packages via invoker[pkg.type](pkg).
+  // A line-property change reaches a peer as { id, associationId, prop, val } and
+  // must be routed to the association — this is what makes line-pane edits (type,
+  // locks, arrows, width, color) sync across a two-window collab session. The
+  // package MUST carry the node id (packageUp adds it) for the peer to resolve it.
+  describe("onLinePropertiesChanged (collab apply)", () => {
+    it("routes a remote line-property package to applyLineProperty", () => {
+      invoker.onLinePropertiesChanged({
+        data: {
+          id: "node1",
+          associationId: "node1->child1",
+          prop: "lineType",
+          val: "orthogonal",
+        },
+      } as any);
+
+      expect(mockNode.relationships.applyLineProperty).toHaveBeenCalledWith(
+        "node1->child1",
+        "lineType",
+        "orthogonal"
+      );
+    });
+
+    it("does nothing when the target node is not found (missing id)", () => {
+      mockSlate.nodes.one.mockReturnValue(null);
+      invoker.onLinePropertiesChanged({
+        data: { associationId: "x->y", prop: "lineType", val: "orthogonal" },
+      } as any);
+      expect(mockNode.relationships.applyLineProperty).not.toHaveBeenCalled();
     });
   });
 
