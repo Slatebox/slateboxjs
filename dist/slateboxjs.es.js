@@ -7435,7 +7435,7 @@ class Ie {
       const i = this.backgroundRect.x?.() ?? 0, s = this.backgroundRect.y?.() ?? 0;
       this.nestedSvg.size(t, e).move(i, s);
     }
-    this.centerText(), this._linkBadge && this.updateLinkIndicator();
+    this.textElement && this.options.text && this.textElement.text(this.wrapTextToWidth(this.options.text)), this.centerText(), this._linkBadge && this.updateLinkIndicator();
   }
   /**
    * Change the node[s background and/or border colors.

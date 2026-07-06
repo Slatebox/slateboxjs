@@ -1340,7 +1340,12 @@ export class Node {
       this.nestedSvg.size(width, height).move(bgX, bgY);
     }
 
-    // Re-center text (only if text element exists)
+    // Re-wrap the text to the NEW width so it reflows on resize (Miro-style) —
+    // the wrap points are baked into the tspans, so a resize alone wouldn't
+    // change them. Then re-center (only if a text element exists).
+    if (this.textElement && this.options.text) {
+      this.textElement.text(this.wrapTextToWidth(this.options.text));
+    }
     this.centerText();
 
     // Reposition the link badge to the new top-right corner (it's anchored to

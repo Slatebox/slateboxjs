@@ -37,6 +37,31 @@ test.describe("node text wrapping (§node)", () => {
     expect(res.textWidth).toBeLessThanOrEqual(res.nodeWidth);
   });
 
+  test("wrapped text reflows when the node is resized", async ({ page }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    const res = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText = "width:800px;height:500px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate({ container: "slateCanvas", allowCollaboration: false }, {}).init();
+      const A = s.nodes.add(new sb.node({ id: "A", xPos: 150, yPos: 150, width: 175, height: 100, text: "x" }));
+      await new Promise((r) => setTimeout(r, 300));
+      A.v2.setText("This is a much longer piece of text that should wrap and reflow when the node is resized wider or narrower");
+      await new Promise((r) => setTimeout(r, 150));
+      const lines = () => A.v2.textElement.node.querySelectorAll("tspan").length;
+      const narrow = lines();
+      A.v2.setSize(420, A.v2.options.height);
+      await new Promise((r) => setTimeout(r, 150));
+      const wide = lines();
+      return { narrow, wide };
+    });
+    // Wider node → fewer lines.
+    expect(res.wide).toBeLessThan(res.narrow);
+  });
+
   test("short text stays a single line (no regression)", async ({ page }) => {
     await page.goto("/test.html");
     await page.waitForFunction(() => (window as any).Slatebox);
