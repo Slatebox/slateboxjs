@@ -538,11 +538,13 @@ export class Connector {
             if (origChildId) parent.relationships.removeAssociation(origChildId);
             parent.relationships.addFloatingAssociation(point, props);
           } else {
-            // Reattach to a node (L1a)
+            // Reattach to a node (L1a) — pin the TARGET endpoint at the DROP
+            // POINT so the arrow connects exactly where the user dropped (U3).
             const newNode = this.slate.nodes.one(targetNodeId);
             if (!newNode || newNode.id === origChildId) return;
             if (origChildId) parent.relationships.removeAssociation(origChildId);
             parent.relationships.addAssociation(newNode, props);
+            this.pinDropAnchor(parent, newNode.id, newNode, "targetAnchor", point);
           }
         } else {
           // Source-end reattach to a node (source floating not yet modeled)
@@ -554,11 +556,45 @@ export class Connector {
             return;
           oldParent.relationships.removeAssociation(child.id);
           newNode.relationships?.addAssociation(child, props);
+          // Pin the SOURCE endpoint at the drop point on the new source node.
+          this.pinDropAnchor(newNode, child.id, newNode, "sourceAnchor", point);
         }
       } catch (e) {
         console.warn("CONNECTOR_DEBUG: endpoint change → model failed:", e);
       }
     }, 0);
+  }
+
+  /**
+   * U3: pin an endpoint at the exact drop point on a node. Converts the world
+   * drop point into a normalized [0,1] anchor on the node's box and stores it as
+   * the source/target anchor (persists + renders there). Skipped for rotated
+   * nodes (world→local normalization would be wrong) — those fall back to
+   * auto-flow. relationships owner is `ownerNode`; the association is childId.
+   */
+  private pinDropAnchor(
+    ownerNode: any,
+    childId: string,
+    anchorNode: any,
+    which: "sourceAnchor" | "targetAnchor",
+    point: { x: number; y: number } | null
+  ): void {
+    try {
+      if (!point) return;
+      const o = anchorNode?.options || {};
+      if (!o.width || !o.height) return;
+      if (o.rotate?.rotationAngle) return; // non-rotated only for now
+      const clamp = (v: number) => Math.max(0, Math.min(1, v));
+      const anchor = {
+        x: clamp((point.x - (o.x || 0)) / o.width),
+        y: clamp((point.y - (o.y || 0)) / o.height),
+      };
+      const rels = ownerNode?.relationships;
+      const assoc = rels?.associations?.find((a: any) => a.childId === childId);
+      if (assoc?.id) rels.applyLineProperty(assoc.id, which, anchor);
+    } catch (e) {
+      /* noop */
+    }
   }
 
   /**

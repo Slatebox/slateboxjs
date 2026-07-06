@@ -15,9 +15,17 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   change. Verified live: ORTHOGONAL and ABSOLUTE now highlight immediately AND
   persist on reopen.
 
+- U3 DONE [lib, pending commit]: the arrow now connects AT THE DROP POINT. The vendored
+  onEndpointChange passed the target's CENTER as the drop point; now it captures the handle's
+  release position (world coords) in attachHandleToTarget and passes THAT. Connector.pinDropAnchor
+  converts the world drop point → a normalized [0,1] anchor on the node and stores it as source/
+  targetAnchor (persists + renders there) on reattach (non-rotated nodes). Verified live: dropping
+  the target endpoint on C's top-center → targetAnchor {0.50,0.06}, arrow endpoint at C's top edge.
+  e2e connector-drop-point.
+
 ## Backlog (from user, this loop)
 - U2: endpoint locks DRIFT (on-canvas padlock position / stale state as nodes move).
-- U3: the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
+- U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the
   nearest edge midpoint).
 - U4: RELOAD persistence — confirm lineType + anchors survive a page reload (and

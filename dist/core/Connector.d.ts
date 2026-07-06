@@ -93,6 +93,14 @@ export declare class Connector {
      */
     private handleEndpointChange;
     /**
+     * U3: pin an endpoint at the exact drop point on a node. Converts the world
+     * drop point into a normalized [0,1] anchor on the node's box and stores it as
+     * the source/target anchor (persists + renders there). Skipped for rotated
+     * nodes (world→local normalization would be wrong) — those fall back to
+     * auto-flow. relationships owner is `ownerNode`; the association is childId.
+     */
+    private pinDropAnchor;
+    /**
      * L5 per-endpoint locking. mode "absolute" freezes the endpoint at its
      * current spot on the node (a normalized local anchor that then moves/rotates
      * with the node); "relative" clears it back to auto-flow (nearest-edge).

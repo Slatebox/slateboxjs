@@ -866,6 +866,16 @@ function isValidDropTarget(con, element, handleObj) {
  * @param {SVGElement} target The target element to attach to
  */
 function attachHandleToTarget(con, handleObj, target) {
+  // Capture the actual DROP POINT (the handle's position at release, in world
+  // coords) BEFORE any snap/reposition, so the model can attach the connection
+  // exactly where the user dropped rather than at the target's center.
+  let dropPoint = null;
+  try {
+    dropPoint = { x: handleObj.element.cx(), y: handleObj.element.cy() };
+  } catch (e) {
+    /* noop */
+  }
+
   // Store old target for event cleanup
   const oldTarget = handleObj.isSource ? con.source : con.target;
 
@@ -1011,11 +1021,15 @@ function attachHandleToTarget(con, handleObj, target) {
         /* noop */
       }
     }
-    let point = null;
-    try {
-      point = { x: target.cx(), y: target.cy() };
-    } catch (e) {
-      /* noop */
+    // Prefer the actual drop point (handle release position); fall back to the
+    // target center only if unavailable.
+    let point = dropPoint;
+    if (!point) {
+      try {
+        point = { x: target.cx(), y: target.cy() };
+      } catch (e) {
+        /* noop */
+      }
     }
     con.onEndpointChange({
       which: handleObj.isSource ? "source" : "target",
