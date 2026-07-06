@@ -696,6 +696,12 @@ export class Node {
       }
     }
 
+    // Re-apply the fill gradient-aware — the chained .fill() above set the raw
+    // string, so a v1 "colorA-colorB" gradient would have rendered black.
+    if (backgroundColor && String(backgroundColor).includes("-")) {
+      this.applyShapeFill(this.contentPath ?? this.backgroundRect, backgroundColor);
+    }
+
     console.log(
       "NODE_DEBUG: createBackground completed for",
       this.id,
@@ -1408,12 +1414,35 @@ export class Node {
    * @param backgroundColor - New fill color (or undefined to keep current)
    * @param borderColor     - New stroke color (or undefined to keep current)
    */
+  /**
+   * Apply a fill to `el` that may be a solid hex OR a v1-style "colorA-colorB"
+   * gradient (slatebox.com stores gradient fills dash-separated). Without this a
+   * gradient string was passed straight to SVG fill and rendered black.
+   */
+  private applyShapeFill(el: any, color?: string): void {
+    if (!el?.fill || !color) return;
+    const parts = String(color).split("-").filter(Boolean);
+    if (parts.length >= 2) {
+      try {
+        const grad = (this.svgGroup as any).gradient("linear", (add: any) => {
+          add.stop(0, parts[0]);
+          add.stop(1, parts[parts.length - 1]);
+        });
+        el.fill(grad);
+        return;
+      } catch (e) {
+        /* fall through to solid */
+      }
+    }
+    el.fill(parts[0] || color);
+  }
+
   public setColors(backgroundColor?: string, borderColor?: string) {
     // Path shapes carry fill/stroke on the inner <path>, not the nested wrapper.
     const styleEl: any = this.contentPath ?? this.backgroundRect;
     if (backgroundColor) {
       this.options.backgroundColor = backgroundColor;
-      styleEl.fill(backgroundColor);
+      this.applyShapeFill(styleEl, backgroundColor);
       // Keep text readable on the new fill: if the font color is an AUTO value
       // (black/white/unset), flip it to whichever contrasts — otherwise white
       // default text goes invisible on a light background. Custom colors are

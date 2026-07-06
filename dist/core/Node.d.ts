@@ -267,6 +267,12 @@ export declare class Node {
      * @param backgroundColor - New fill color (or undefined to keep current)
      * @param borderColor     - New stroke color (or undefined to keep current)
      */
+    /**
+     * Apply a fill to `el` that may be a solid hex OR a v1-style "colorA-colorB"
+     * gradient (slatebox.com stores gradient fills dash-separated). Without this a
+     * gradient string was passed straight to SVG fill and rendered black.
+     */
+    private applyShapeFill;
     setColors(backgroundColor?: string, borderColor?: string): void;
     /**
      * Re-apply the border stroke (color / width / style / opacity) from options.

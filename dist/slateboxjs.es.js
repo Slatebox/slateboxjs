@@ -7590,7 +7590,7 @@ class Ie {
       }
       h !== void 0 && this.backgroundRect.opacity(h);
     }
-    console.log(
+    i && String(i).includes("-") && this.applyShapeFill(this.contentPath ?? this.backgroundRect, i), console.log(
       "NODE_DEBUG: createBackground completed for",
       this.id,
       "backgroundRect:",
@@ -7947,10 +7947,29 @@ class Ie {
    * @param backgroundColor - New fill color (or undefined to keep current)
    * @param borderColor     - New stroke color (or undefined to keep current)
    */
+  /**
+   * Apply a fill to `el` that may be a solid hex OR a v1-style "colorA-colorB"
+   * gradient (slatebox.com stores gradient fills dash-separated). Without this a
+   * gradient string was passed straight to SVG fill and rendered black.
+   */
+  applyShapeFill(t, e) {
+    if (!t?.fill || !e) return;
+    const i = String(e).split("-").filter(Boolean);
+    if (i.length >= 2)
+      try {
+        const s = this.svgGroup.gradient("linear", (o) => {
+          o.stop(0, i[0]), o.stop(1, i[i.length - 1]);
+        });
+        t.fill(s);
+        return;
+      } catch {
+      }
+    t.fill(i[0] || e);
+  }
   setColors(t, e) {
     const i = this.contentPath ?? this.backgroundRect;
     if (t) {
-      this.options.backgroundColor = t, i.fill(t);
+      this.options.backgroundColor = t, this.applyShapeFill(i, t);
       const s = String(this.options.fontColor || "").toLowerCase(), o = [
         "",
         "#fff",
