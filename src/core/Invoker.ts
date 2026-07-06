@@ -292,10 +292,11 @@ export class Invoker {
   }
 
   onSlateThemeChanged(pkg: SlatePackage) {
-    this.slate.options.themeId = pkg.data?.theme?._id
-    if (pkg.data?.theme) {
-      // Apply theme
-      console.log('Theme changed:', pkg.data.theme)
+    const theme = pkg.data?.theme
+    if (theme?._id) this.slate.options.themeId = theme._id
+    if (theme) {
+      // Apply the theme (container bg, line color, per-node parent/child styles).
+      this.slate.applyTheme(theme, (pkg.data as any)?.syncWithTheme)
     }
   }
 

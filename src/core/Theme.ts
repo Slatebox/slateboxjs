@@ -62,6 +62,8 @@ export function applyTheme(
     slate.options.containerStyle = slate.options.containerStyle || {};
     slate.options.containerStyle.backgroundColor =
       theme.containerStyle.backgroundColor;
+    // Paint it onto the container (setting the option alone is a no-op).
+    slate.applyContainerStyle?.();
   }
 
   // Apply default line color
@@ -113,8 +115,14 @@ export function buildNodeStyleFromTheme(
 }
 
 function applyStyleToNode(node: any, style: ThemeStyle): void {
-  if (style.backgroundColor) {
-    node.options.backgroundColor = style.backgroundColor;
+  // The app's saved theme styles use v1 field names (nodeColor for fill,
+  // foregroundColor for text). Accept both so DB themes apply correctly.
+  const s = style as any;
+  const backgroundColor = style.backgroundColor ?? s.nodeColor;
+  const fontColor = style.fontColor ?? s.foregroundColor;
+
+  if (backgroundColor) {
+    node.options.backgroundColor = backgroundColor;
   }
   if (style.borderColor) {
     node.options.borderColor = style.borderColor;
@@ -122,8 +130,8 @@ function applyStyleToNode(node: any, style: ThemeStyle): void {
   if (style.borderWidth !== undefined) {
     node.options.borderWidth = style.borderWidth;
   }
-  if (style.fontColor) {
-    node.options.fontColor = style.fontColor;
+  if (fontColor) {
+    node.options.fontColor = fontColor;
   }
   if (style.fontFamily) {
     node.options.fontFamily = style.fontFamily;
@@ -139,12 +147,12 @@ function applyStyleToNode(node: any, style: ThemeStyle): void {
   }
 
   // Apply colors visually
-  node.setColors?.(style.backgroundColor, style.borderColor);
+  node.setColors?.(backgroundColor, style.borderColor);
 
   // Apply text properties
-  if (node.textElement && (style.fontColor || style.fontSize || style.fontFamily)) {
+  if (node.textElement && (fontColor || style.fontSize || style.fontFamily)) {
     node.textElement.font({
-      fill: style.fontColor || node.options.fontColor,
+      fill: fontColor || node.options.fontColor,
       size: style.fontSize || node.options.fontSize,
       family: style.fontFamily || node.options.fontFamily,
     });

@@ -55,6 +55,7 @@ describe("Invoker", () => {
     mockSlate = {
       pan: vi.fn(),
       applyContainerStyle: vi.fn(),
+      applyTheme: vi.fn(),
       panZoom: { zoom: vi.fn() },
       options: {
         followMe: false,
@@ -754,7 +755,8 @@ describe("Invoker", () => {
       invoker.onSlateThemeChanged(pkg);
 
       expect(mockSlate.options.themeId).toBe("theme-123");
-      expect(console.log).toHaveBeenCalledWith("Theme changed:", pkg.data.theme);
+      // The theme is actually applied now (no longer a stub).
+      expect(mockSlate.applyTheme).toHaveBeenCalledWith(pkg.data.theme, undefined);
     });
 
     it("should handle theme set to null (no theme data)", () => {

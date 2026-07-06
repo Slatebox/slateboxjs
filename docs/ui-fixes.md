@@ -64,6 +64,16 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   onSlateBackgroundEffectChanged apply — SlateEffects list is empty until then. onSlateThemeChanged
   still a stub (theme apply to nodes) — larger, separate.
 
+- U9 DONE [lib + app SlateThemes.jsx]: SLATE THEME didn't apply. Three bugs: (a) app sent
+  data.theme=`mtheme` (undefined var — ReferenceError/undefined) → fixed to `theme`; (b)
+  onSlateThemeChanged was a stub → now calls slate.applyTheme(theme, syncWithTheme); (c) the app's
+  saved theme styles use v1 field names (nodeColor/foregroundColor) but the engine read
+  backgroundColor/fontColor → applyStyleToNode now accepts both, and applyTheme paints the container
+  bg via applyContainerStyle. Verified live: applying a theme recolors nodes (parent→child cycle),
+  updates fills, sets fontColor from foregroundColor, paints container bg, sets themeId. e2e
+  slate-theme. Remaining: slate background EFFECT (texture, needs types:['slate']) + theme vectorPath
+  (app stores it as an SVGPathData object) — shape not applied via theme yet.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the
