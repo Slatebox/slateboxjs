@@ -81,4 +81,54 @@ test.describe("Serialization", () => {
     expect(String(res.color).toLowerCase()).toBe("#f44336");
     expect(res.renderedAsPath).toBe(true);
   });
+
+  // A whole small diagram (styled nodes + a connection + an orthogonal line type)
+  // must survive exportJSON→loadJSON intact — this is the serialization behind a
+  // page reload (server saves exportJSON, reloads it). Integration guard.
+  test("a full diagram (nodes + colors + connection + line type) round-trips", async ({
+    page,
+  }) => {
+    const res = await page.evaluate(async () => {
+      const slate = (window as any).slate;
+      const a = slate.nodes.one("sa");
+      const b = slate.nodes.one("sb");
+      a.setColors("#4caf50");
+      b.setColors("#2196f3");
+      a.relationships.addAssociation(b);
+      await new Promise((r) => setTimeout(r, 300));
+      const assoc = a.relationships.associations.find((x: any) => x.childId === "sb");
+      a.relationships.applyLineProperty(assoc.id, "lineType", "orthogonal");
+      await new Promise((r) => setTimeout(r, 200));
+
+      const json = slate.exportJSON();
+
+      const div = document.createElement("div");
+      div.id = "app3";
+      document.body.appendChild(div);
+      const s2 = (window as any).SlateboxJS("#app3", {
+        viewPort: { originalWidth: 1200, originalHeight: 800 },
+        panZoom: { enabled: false },
+      });
+      if (s2.loadJSON) s2.loadJSON(json);
+      else if (s2.importJSON) s2.importJSON(json);
+      await new Promise((r) => setTimeout(r, 700));
+
+      const a2 = s2.nodes.one("sa");
+      const b2 = s2.nodes.one("sb");
+      const assoc2 = a2?.relationships?.associations?.find((x: any) => x.childId === "sb");
+      return {
+        nodeCount: s2.nodes.allNodes.length,
+        aColor: a2?.options?.backgroundColor,
+        bColor: b2?.options?.backgroundColor,
+        hasConnection: !!assoc2,
+        lineType: assoc2?.lineType,
+      };
+    });
+
+    expect(res.nodeCount).toBe(2);
+    expect(String(res.aColor).toLowerCase()).toBe("#4caf50");
+    expect(String(res.bColor).toLowerCase()).toBe("#2196f3");
+    expect(res.hasConnection).toBe(true);
+    expect(res.lineType).toBe("orthogonal"); // the ortho line type survived the round-trip
+  });
 });
