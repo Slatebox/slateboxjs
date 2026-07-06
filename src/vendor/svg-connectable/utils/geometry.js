@@ -297,22 +297,10 @@ function computeConnectorCoordinates(con) {
   } else if (con.sourceAttach === "center") {
     temp.point1 = sourceCenter;
   } else {
+    // Endpoint sits exactly on the node edge. The arrow marker is anchored at
+    // its TIP (refX), so the point touches the edge — no outward offset needed
+    // (an offset here would leave a gap between the arrow tip and the node).
     temp.point1 = getClosestPointOnEdge(con.source, targetCenter);
-
-    // Offset for source arrow marker
-    if (con.markerSourceType && con.markerSourceType !== "null") {
-      const sourceArrowSize = Math.max(12, con.strokeWidth * 3 + 6);
-      const arrowLength = sourceArrowSize * 0.8;
-
-      const dx = temp.point1[0] - sourceCenter[0];
-      const dy = temp.point1[1] - sourceCenter[1];
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (distance > 0) {
-        temp.point1[0] += (dx / distance) * arrowLength;
-        temp.point1[1] += (dy / distance) * arrowLength;
-      }
-    }
   }
 
   if (con.targetAnchor) {
@@ -320,22 +308,8 @@ function computeConnectorCoordinates(con) {
   } else if (con.targetAttach === "center") {
     temp.point2 = targetCenter;
   } else {
+    // Endpoint sits exactly on the node edge (arrow is tip-anchored — see above).
     temp.point2 = getClosestPointOnEdge(con.target, sourceCenter);
-
-    // Offset for target arrow marker
-    if (con.markerTargetType && con.markerTargetType !== "null") {
-      const targetArrowSize = Math.max(12, con.strokeWidth * 3 + 6);
-      const arrowLength = targetArrowSize * 0.8;
-
-      const dx = temp.point2[0] - targetCenter[0];
-      const dy = temp.point2[1] - targetCenter[1];
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (distance > 0) {
-        temp.point2[0] += (dx / distance) * arrowLength;
-        temp.point2[1] += (dy / distance) * arrowLength;
-      }
-    }
   }
 
   const pp1 = temp.point1;

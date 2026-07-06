@@ -29,6 +29,11 @@ test.describe("arrowhead tip sits on the node edge (§U18)", () => {
       await new Promise((r) => setTimeout(r, 200));
 
       const p = document.querySelector('#slateCanvas path[connectortype="default"]') as SVGPathElement;
+      // Endpoint should sit ON the target node's edge (no outward gap): B is below
+      // A, so the target end lands on B's TOP edge.
+      const end = p.getPointAtLength(p.getTotalLength());
+      const bTop = b.v2.options.y;
+      const gapToEdge = Math.abs(end.y - bTop);
       const readMarker = (attr: string) => {
         const url = p.getAttribute(attr);
         if (!url) return null;
@@ -37,7 +42,7 @@ test.describe("arrowhead tip sits on the node edge (§U18)", () => {
         const vb = (m.getAttribute("viewBox") || "0 0 0 0").split(/\s+/).map(Number);
         return { refX: Number(m.getAttribute("refX")), vbWidth: vb[2] };
       };
-      return { target: readMarker("marker-end"), source: readMarker("marker-start") };
+      return { target: readMarker("marker-end"), source: readMarker("marker-start"), gapToEdge };
     });
 
     // Target arrow tip is at x = viewBox width → refX must equal it.
@@ -46,5 +51,7 @@ test.describe("arrowhead tip sits on the node edge (§U18)", () => {
     // Source arrow tip is at x = 0 → refX must be 0.
     expect(res.source).not.toBeNull();
     expect(res.source!.refX).toBe(0);
+    // And the endpoint sits ON the node edge (no outward gap) so the tip touches.
+    expect(res.gapToEdge).toBeLessThan(4);
   });
 });
