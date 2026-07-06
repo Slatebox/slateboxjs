@@ -151,6 +151,13 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   HIDDEN handles — the handle container is .hide()'d (perf), not removed. No fly-aways. The capstone
   screenshot's dots were a timing artifact (deselect hadn't settled before the shot).
 
+- U18 DONE [lib, pending commit] (USER-REPORTED): arrowhead TIP buried inside the target node. The
+  marker was anchored at its BASE (refX=0 for target, refX=arrowWidth for source — reversed), so with
+  markerUnits=strokeWidth the tip overshot ~arrowWidth*strokeWidth PAST the endpoint into the node.
+  Fix: anchor at the TIP — refX = isSource ? 0 : arrowWidth (target tip at x=arrowWidth, source tip at
+  x=0). Verified live: arrow point now sits exactly on the node's edge ("just touching"). e2e
+  connector-arrowhead-tip; perpendicular + drop-point regressions green.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

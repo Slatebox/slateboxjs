@@ -4531,8 +4531,10 @@ function Zn(n, t, e, i, s, o) {
   d.attr({
     id: h,
     viewBox: "0 0 " + l + " " + c,
-    refX: e ? l : "0",
-    // Source arrow tip at right, target arrow tip at left
+    // Anchor the marker at its TIP so the arrow point sits exactly on the line's
+    // endpoint (the node edge) instead of overshooting into the node. The target
+    // arrow's tip is at x=arrowWidth; the source arrow's tip is at x=0.
+    refX: e ? "0" : l,
     refY: c / 2,
     // Center vertically
     markerUnits: "strokeWidth",
