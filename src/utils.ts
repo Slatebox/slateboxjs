@@ -104,6 +104,28 @@ export function getTextWidth(
 }
 
 /**
+ * WCAG contrast ratio between two hex colors (1 = identical, 21 = black/white).
+ * Used to decide whether text is readable on a fill before auto-flipping it.
+ */
+export function contrastRatio(hex1: string, hex2: string): number {
+  const lum = (hex: string): number => {
+    const h = (hex || "").replace("#", "");
+    if (h.length < 6) return 0;
+    const srgb = (c: number) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    const r = srgb(parseInt(h.substr(0, 2), 16) || 0);
+    const g = srgb(parseInt(h.substr(2, 2), 16) || 0);
+    const b = srgb(parseInt(h.substr(4, 2), 16) || 0);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const l1 = lum(hex1);
+  const l2 = lum(hex2);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+
+/**
  * Get the bounding box of an SVG path string — v1 contract: Raphael-style
  * bbox `{x, y, x2, y2, width, height, cx, cy}` computed analytically
  * (curves included), no DOM required.

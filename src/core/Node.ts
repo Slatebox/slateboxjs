@@ -20,7 +20,7 @@ import { Filters } from "./Filters";
 import { Menu } from "./Menu";
 import { resolveShapePath, isNativeShape } from "./ShapeRegistry";
 import { v2NodeToV1 } from "./compat";
-import { whiteOrBlack } from "../utils";
+import { whiteOrBlack, contrastRatio } from "../utils";
 
 export interface NodeLinkOptions {
   show?: boolean;
@@ -1428,7 +1428,16 @@ export class Node {
         "white",
         "black",
       ].includes(fc);
-      if (isAutoFont && this.textElement && backgroundColor.startsWith("#")) {
+      // Only flip when the current text would be HARD TO READ on the new fill
+      // (contrast < 3:1) — so white-on-#fafafa (~1:1) flips, but a deliberate
+      // white-on-red (~4:1, e.g. from a theme) is left alone.
+      const currentFont = this.options.fontColor || "#000000";
+      if (
+        isAutoFont &&
+        this.textElement &&
+        backgroundColor.startsWith("#") &&
+        contrastRatio(currentFont, backgroundColor) < 3
+      ) {
         const ideal = whiteOrBlack(backgroundColor);
         this.options.fontColor = ideal;
         try {

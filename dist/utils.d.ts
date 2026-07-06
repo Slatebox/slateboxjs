@@ -21,6 +21,11 @@ export declare function getTextWidth(text: string, font?: string): {
     height: number;
 };
 /**
+ * WCAG contrast ratio between two hex colors (1 = identical, 21 = black/white).
+ * Used to decide whether text is readable on a fill before auto-flipping it.
+ */
+export declare function contrastRatio(hex1: string, hex2: string): number;
+/**
  * Get the bounding box of an SVG path string — v1 contract: Raphael-style
  * bbox `{x, y, x2, y2, width, height, cx, cy}` computed analytically
  * (curves included), no DOM required.
