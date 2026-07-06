@@ -188,6 +188,15 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## RIGHT-CLICK CONTEXT MENU added (Miro parity)
+- Right-clicking a node had no useful menu. Added ContextMenu.ts (isolated class, wired in Slate,
+  exported + window global): a positioned HTML overlay with Bring to front / Send to back / Duplicate /
+  Delete. Right-click selects the node (keeps an existing multi-selection) + opens the menu at the
+  cursor; each item calls a node op that broadcasts (toFront/toBack, addNode for duplicate, removeNode
+  for delete) so it persists + syncs. Dismiss on outside pointerdown / Escape / item-click; repositions
+  if off-screen. Verified live: menu shows 4 items; Duplicate 1→2, Delete removes + persists,
+  bring-to-front reorders. e2e context-menu.spec.ts. 1073 unit / 182 e2e.
+
 ## Z-ORDER keyboard shortcuts added (Miro parity)
 - Z-order (bring-to-front/send-to-back) worked at the model level (node.toFront/toBack broadcast
   onNodeToFront/onNodeToBack; Invoker applies them on the collab-receive side; persists via serialize

@@ -9,6 +9,7 @@ import { UndoRedo } from "./UndoRedo";
 import { MultiSelection } from "./MultiSelection";
 import { Grid } from "./Grid";
 import { Keyboard } from "./Keyboard";
+import { ContextMenu } from "./ContextMenu";
 import { type ExportOptions } from "./Export";
 import { Collab, CollabUser } from "./Collab";
 import type { SlatePackage } from "./SlatePackage";
@@ -129,6 +130,7 @@ export declare class Slate {
     multiSelection: MultiSelection;
     grid: Grid;
     keyboard: Keyboard;
+    contextMenu: ContextMenu;
     collab: Collab;
     zoomSlider: ZoomSlider;
     presentation: Presentation;

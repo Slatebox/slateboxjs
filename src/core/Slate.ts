@@ -14,6 +14,7 @@ import { UndoRedo } from "./UndoRedo";
 import { MultiSelection } from "./MultiSelection";
 import { Grid } from "./Grid";
 import { Keyboard } from "./Keyboard";
+import { ContextMenu } from "./ContextMenu";
 import { exportSVG, exportPNG, type ExportOptions } from "./Export";
 import { Collab, CollabUser } from "./Collab";
 import type { SlatePackage } from "./SlatePackage";
@@ -172,6 +173,7 @@ export class Slate {
   public multiSelection!: MultiSelection;
   public grid!: Grid;
   public keyboard!: Keyboard;
+  public contextMenu!: ContextMenu;
   public collab!: Collab;
   public zoomSlider!: ZoomSlider;
   public presentation!: Presentation;
@@ -417,6 +419,12 @@ export class Slate {
       this.keyboard.bindGlobal();
     }
 
+    // Right-click context menu (bring-to-front / back / duplicate / delete)
+    this.contextMenu = new ContextMenu(this);
+    if (this.options.enabled !== false) {
+      this.contextMenu.enable();
+    }
+
     // Initialize collaboration (lazy — call collab.init() to connect)
     this.collab = new Collab(this);
 
@@ -502,6 +510,9 @@ export class Slate {
     }
     if (this.keyboard) {
       this.keyboard.unbindGlobal();
+    }
+    if (this.contextMenu) {
+      this.contextMenu.disable();
     }
     if (this.multiSelection) {
       this.multiSelection.disable();

@@ -37,6 +37,7 @@ import { MultiSelection } from './core/MultiSelection'
 import { Grid } from './core/Grid'
 import { Menu } from './core/Menu'
 import { Keyboard } from './core/Keyboard'
+import { ContextMenu } from './core/ContextMenu'
 import { Filters, registerFilter, getFilterNames } from './core/Filters'
 import { Links } from './core/Links'
 
@@ -87,6 +88,7 @@ export {
   Grid,
   Menu,
   Keyboard,
+  ContextMenu,
   Filters,
   registerFilter,
   getFilterNames,
@@ -171,6 +173,7 @@ if (typeof window !== 'undefined') {
   ;(window as any).Grid = Grid
   ;(window as any).Menu = Menu
   ;(window as any).Keyboard = Keyboard
+  ;(window as any).ContextMenu = ContextMenu
   ;(window as any).Filters = Filters
   ;(window as any).Links = Links
   ;(window as any).Export = ExportModule
