@@ -726,7 +726,11 @@ export class Node {
     this.backgroundRect = undefined as any;
 
     this.options.shape = shape;
-    if (vectorPath !== undefined) this.options.vectorPath = vectorPath;
+    // Always sync vectorPath to this shape change — DON'T leave a stale value.
+    // resolveShapePath() prioritizes vectorPath, so a leftover vectorPath (e.g.
+    // the default node's "rectangle") would override the new shape and render the
+    // OLD one — the root cause of "I changed the shape but it stayed a rectangle".
+    this.options.vectorPath = vectorPath;
 
     this.createBackground();
     // Keep the shape behind the text and any other content.

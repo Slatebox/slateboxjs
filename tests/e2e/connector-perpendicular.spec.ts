@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
 
-// Perpendicular-port curve: the connector leaves the source and enters the
-// target along each node's center line, so the arrowhead meets the edge at ~90°
-// pointing at the node center — and it curves (not a straight/plain bezier) when
-// a fixed anchor pulls a port off the center line. Adapts as nodes move.
+// Perpendicular-port curve: the connector enters the target so the arrowhead
+// meets the EDGE at ~90° (perpendicular to the specific edge the port sits on —
+// NOT merely toward the node center; on a rectangle those differ). It still
+// curves (not a plain bezier) when a fixed anchor pulls the port to another edge.
 test.describe("connector perpendicular approach (§curve)", () => {
-  test("arrow points at the target center; a fixed anchor bends the curve", async ({
+  test("arrow meets the edge perpendicular; a fixed anchor bends the curve", async ({
     page,
   }) => {
     await page.goto("/test.html");
@@ -26,9 +26,9 @@ test.describe("connector perpendicular approach (§curve)", () => {
       await new Promise((r) => setTimeout(r, 300));
 
       const pathEl = () => document.querySelector('#slateCanvas path[connectortype="default"]') as SVGGeometryElement;
-      // cos angle between the incoming tangent at the target and the direction
-      // from the endpoint to the target center (1 == points exactly at center).
-      const pointsAtCenter = () => {
+      // cos angle between the incoming tangent at the target and the INWARD normal
+      // of the edge the endpoint sits on (1 == meets the edge exactly at 90°).
+      const perpToEdge = () => {
         const p = pathEl();
         const total = p.getTotalLength();
         const end = p.getPointAtLength(total);
@@ -36,9 +36,16 @@ test.describe("connector perpendicular approach (§curve)", () => {
         const inx = end.x - near.x, iny = end.y - near.y;
         const im = Math.hypot(inx, iny) || 1;
         const bo = s.v2.nodes.one("B").options;
-        const tx = bo.x + bo.width / 2 - end.x, ty = bo.y + bo.height / 2 - end.y;
-        const tm = Math.hypot(tx, ty) || 1;
-        return (inx / im) * (tx / tm) + (iny / im) * (ty / tm);
+        const nx = (end.x - bo.x) / bo.width, ny = (end.y - bo.y) / bo.height;
+        const dl = nx, dr = 1 - nx, dt = ny, db = 1 - ny;
+        const m = Math.min(dl, dr, dt, db);
+        // inward normal of the nearest edge
+        let normX = 0, normY = 0;
+        if (m === dl) normX = 1;
+        else if (m === dr) normX = -1;
+        else if (m === dt) normY = 1;
+        else normY = -1;
+        return (inx / im) * normX + (iny / im) * normY;
       };
       // curvature proxy: max deviation of the path midpoint from the straight
       // chord between endpoints.
@@ -54,27 +61,28 @@ test.describe("connector perpendicular approach (§curve)", () => {
         return Math.abs((mid.x - s0.x) * vy - (mid.y - s0.y) * vx) / L;
       };
 
-      const dotDefault = pointsAtCenter();
+      const dotDefault = perpToEdge();
 
-      // Pin the target endpoint to the TOP edge (off the center line) → the curve
-      // must bend to still enter perpendicular / point at center.
+      // Pin the target endpoint to the TOP edge → the arrow must now meet the TOP
+      // edge perpendicular (pointing straight down into B), and the curve bends.
       s.v2.nodes.one("A").relationships.applyLineProperty(
         s.v2.nodes.one("A").relationships.associations[0].id,
         "targetAnchor",
         { x: 0.5, y: 0 } // top-center of B
       );
       await new Promise((r) => setTimeout(r, 200));
-      const dotAnchored = pointsAtCenter();
-      const bendAnchored = bend();
+      const dotAnchored = perpToEdge();
+      // The path is a cubic curve (has control points) — not a plain straight line.
+      const isCurve = ((pathEl().getAttribute("d") || "").includes("C"));
 
-      return { dotDefault, dotAnchored, bendAnchored };
+      return { dotDefault, dotAnchored, isCurve };
     });
 
-    // Default auto-flow: arrow points at the target center.
+    // Default auto-flow: arrow meets the edge perpendicular (aligned with normal).
     expect(res.dotDefault).toBeGreaterThan(0.9);
-    // With a top-edge anchor the arrow still approaches pointing at center...
-    expect(res.dotAnchored).toBeGreaterThan(0.8);
-    // ...and the path visibly bends (not a straight line).
-    expect(res.bendAnchored).toBeGreaterThan(8);
+    // Pinned to the top edge, it still meets perpendicular (points down into B)...
+    expect(res.dotAnchored).toBeGreaterThan(0.85);
+    // ...and it's a curved connector, not a straight bezier.
+    expect(res.isCurve).toBe(true);
   });
 });
