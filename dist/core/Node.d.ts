@@ -140,6 +140,7 @@ export declare class Node {
     private preDragTransform;
     private preDragPosition;
     private _dragStartPointer;
+    private _groupDragSiblings;
     /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
     ready: Promise<void>;
     private _lastClickTime;

@@ -214,6 +214,9 @@ export class Node {
   // Pointer position (client coords) at drag start — drag is positioned from the
   // pointer delta in world units so rotation never distorts the movement.
   private _dragStartPointer: { x: number; y: number } | null = null;
+  // Other selected nodes to move together when this node is dragged as part of a
+  // multi-selection (each with its own pre-drag position).
+  private _groupDragSiblings: Array<{ node: Node; x: number; y: number }> = [];
 
   /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
   public ready: Promise<void>;
@@ -837,6 +840,25 @@ export class Node {
       // pointer delta (world units) rather than svg.draggable's child-move,
       // which distorts under a group rotation.
       this._dragStartPointer = this.pointerFromDragEvent(event);
+
+      // Group move: if this node is part of a multi-selection, remember the other
+      // selected nodes + their positions so dragmove can move them in lockstep.
+      this._groupDragSiblings = [];
+      try {
+        const selected: Node[] = this.slate.getSelectedNodes?.() || [];
+        if (selected.length > 1 && selected.includes(this)) {
+          for (const other of selected) {
+            if (other === this) continue;
+            this._groupDragSiblings.push({
+              node: other,
+              x: other.options.x ?? 0,
+              y: other.options.y ?? 0,
+            });
+          }
+        }
+      } catch (e) {
+        /* noop */
+      }
       console.log("DRAG_DEBUG: Stored pre-drag transform:", this.preDragTransform, "position:", this.preDragPosition);
 
       // Temporarily disable resize/rotate during drag for clean dragging
@@ -856,11 +878,21 @@ export class Node {
       const ptr = this.pointerFromDragEvent(event);
       if (ptr && this._dragStartPointer && this.preDragPosition) {
         const zoom = this.slate.getZoom?.() || 1;
-        this.options.x =
-          this.preDragPosition.x + (ptr.x - this._dragStartPointer.x) / zoom;
-        this.options.y =
-          this.preDragPosition.y + (ptr.y - this._dragStartPointer.y) / zoom;
+        const fdx = (ptr.x - this._dragStartPointer.x) / zoom;
+        const fdy = (ptr.y - this._dragStartPointer.y) / zoom;
+        this.options.x = this.preDragPosition.x + fdx;
+        this.options.y = this.preDragPosition.y + fdy;
+        // Finalize group siblings with the same delta (fallback for dragend-only).
+        for (const sib of this._groupDragSiblings) {
+          sib.node.options.x = sib.x + fdx;
+          sib.node.options.y = sib.y + fdy;
+          sib.node.applyPositionAndRotation();
+        }
       }
+
+      // Capture the moved group before clearing pre-drag state.
+      const movedSiblings = this._groupDragSiblings;
+      this._groupDragSiblings = [];
 
       // Clear pre-drag state
       this.preDragTransform = null;
@@ -871,9 +903,13 @@ export class Node {
       // carrying position (+ rotation).
       this.applyPositionAndRotation();
 
-      // Notify the host app of the completed move (v1 package shape)
+      // Notify the host app of the completed move (v1 package shape) — include
+      // every node that moved as part of a group drag so they sync + persist.
       this.slate.broadcast?.("onNodesMove", {
-        nodeOptions: [v2NodeToV1(this.options)],
+        nodeOptions: [
+          v2NodeToV1(this.options),
+          ...movedSiblings.map((s) => v2NodeToV1(s.node.options)),
+        ],
       });
 
       // Small delay to distinguish drag from click - reduced for better responsiveness
@@ -924,6 +960,12 @@ export class Node {
         this.options.x = this.preDragPosition.x + dx;
         this.options.y = this.preDragPosition.y + dy;
         this.applyPositionAndRotation();
+        // Group move: shift every other selected node by the same delta.
+        for (const sib of this._groupDragSiblings) {
+          sib.node.options.x = sib.x + dx;
+          sib.node.options.y = sib.y + dy;
+          sib.node.applyPositionAndRotation();
+        }
         // svg.draggable raises the dragged node to front, which would push
         // connector arrowheads behind it (Q1). Keep markers on top each frame.
         try {

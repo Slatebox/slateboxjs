@@ -179,6 +179,12 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   rect grows + selects the boxed nodes. e2e multi-select; MultiSelection unit tests reworked for the
   window-listener model (1065 unit).
 
+- U21 DONE [lib, pending commit]: GROUP MOVE — dragging one node in a multi-selection only moved that
+  node. Node drag now captures the other selected nodes' positions on dragstart (_groupDragSiblings)
+  and shifts them by the same delta on dragmove + dragend; dragend broadcasts onNodesMove with ALL
+  moved nodes (sync/persist/undo). Verified live: select 2 → drag one → both move by the same delta.
+  e2e node-group-move.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the
