@@ -22,6 +22,13 @@ describe("Relationships", () => {
         connectTo: vi.fn(),
         disconnectFrom: vi.fn(),
         updateConnection: vi.fn(),
+        getConnections: vi.fn().mockReturnValue([]),
+        // Mirrors the real setEndpointLock: absolute → a resolved anchor, relative → null.
+        setEndpointLock: vi
+          .fn()
+          .mockImplementation((_connId: string, _which: string, mode: string) =>
+            mode === "absolute" ? { x: 0.5, y: 0.5 } : null
+          ),
       },
     };
 
@@ -124,6 +131,41 @@ describe("Relationships", () => {
     it("should return undefined for unknown child ID", () => {
       const rels = new Relationships(mockNode);
       expect(rels.getAssociation("unknown")).toBeUndefined();
+    });
+  });
+
+  // Line-pane data contract: the host's LineProperties pane reads these values off
+  // the association to render its toggles (Line Type, Start/End Absolute/Relative).
+  // If applyLineProperty stops persisting them on the record, the pane reverts to
+  // stale defaults — the "doesn't stick / doesn't save / drifts" class of bugs.
+  describe("applyLineProperty (line-pane state contract)", () => {
+    it("persists lineType on the association so the pane reflects BEZIER↔ORTHOGONAL", () => {
+      const rels = new Relationships(mockNode);
+      const a = rels.addAssociation(mockChildNode);
+      expect(rels.applyLineProperty(a.id, "lineType", "orthogonal")).toBe(true);
+      expect(rels.getAssociation("child1")!.lineType).toBe("orthogonal");
+    });
+
+    it("persists a directly-set targetAnchor (drop-pin) on the association", () => {
+      const rels = new Relationships(mockNode);
+      const a = rels.addAssociation(mockChildNode);
+      rels.applyLineProperty(a.id, "targetAnchor", { x: 0.2, y: 0.9 });
+      expect(rels.getAssociation("child1")!.targetAnchor).toEqual({ x: 0.2, y: 0.9 });
+    });
+
+    it("targetLock=absolute stores the resolved anchor (RELATIVE→ABSOLUTE saves)", () => {
+      const rels = new Relationships(mockNode);
+      const a = rels.addAssociation(mockChildNode);
+      rels.applyLineProperty(a.id, "targetLock", "absolute");
+      expect(rels.getAssociation("child1")!.targetAnchor).toEqual({ x: 0.5, y: 0.5 });
+    });
+
+    it("targetLock=relative clears the anchor back to auto-flow", () => {
+      const rels = new Relationships(mockNode);
+      const a = rels.addAssociation(mockChildNode);
+      rels.applyLineProperty(a.id, "targetLock", "absolute");
+      rels.applyLineProperty(a.id, "targetLock", "relative");
+      expect(rels.getAssociation("child1")!.targetAnchor).toBeNull();
     });
   });
 

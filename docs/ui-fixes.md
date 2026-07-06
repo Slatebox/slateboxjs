@@ -188,6 +188,20 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## NAMED BUGS 1/2/3 FIXED: line-pane toggles stick + save + survive reload
+- (1) Line Type BEZIER↔ORTHOGONAL didn't stick; (2) Start/End ABSOLUTE↔RELATIVE didn't save; (3)
+  lock toggles drifted — ALL one root cause, app-side. Canvas.jsx captured the `association` snapshot
+  ONCE at cog-click (onLineMenuRequested) and never refreshed it; after a toggle the model updated but
+  LineProperties' re-seed effect REVERTED the button to the stale snapshot value.
+- FIX (app repo slatebox, committed 417bec1): Canvas.updateLine re-fetches the updated association and
+  setLineDrawer({...prev, association: fresh}); LineProperties syncs toggles from the association's live
+  VALUES (lineType/sourceAnchor/targetAnchor). Verified live: click updates button+model instantly;
+  Start/End locks save; fresh reopen AND full page RELOAD both show the exact set state (orthogonal +
+  End=absolute, targetAnchor persisted). No drift.
+- Library guard (slateboxjs-v2): tests/unit/Relationships.test.ts "applyLineProperty (line-pane state
+  contract)" — asserts lineType / targetAnchor / targetLock persist on the association record (the data
+  the pane reads). 1069 unit.
+
 ## BIG ITEM (user-requested 2026-07-XX): render ALL shapes as PATHS
 - Legacy rendered everything (rects, circles, etc.) as <path> — more adaptive/customizable than native
   <rect>/<circle>, and connectors compute against real path geometry. svg.js has full path support.
