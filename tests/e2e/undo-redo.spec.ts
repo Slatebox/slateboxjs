@@ -32,6 +32,38 @@ test.describe("Undo/Redo", () => {
     expect(undone).toBe(before);
   });
 
+  // Regression: a DEBOUNCED snapshot (engine broadcast path, not forceSnapshot)
+  // left this.debounceTimer set even after it fired, so undo()'s "flush pending"
+  // check ran forceSnapshot() and pushed a DUPLICATE of the current state —
+  // undo() then popped one dup and "restored" the still-current state (a no-op
+  // undo). The debounce callback now nulls its handle before snapshotting.
+  test("undo restores a debounced move (no duplicate-snapshot no-op)", async ({
+    page,
+  }) => {
+    const res = await page.evaluate(async () => {
+      const s = (window as any).slate;
+      const a = s.addNode({ id: "MV", x: 100, y: 100, width: 120, height: 80, text: "MV" });
+      if (a.ready) await a.ready;
+      s.undoRedo.forceSnapshot(); // baseline @ x=100
+      await new Promise((r) => setTimeout(r, 50));
+
+      // Move + trigger a DEBOUNCED snapshot via the engine broadcast (NOT
+      // forceSnapshot), then wait past the debounce so it fires + nulls its timer.
+      a.position(400, 300);
+      s.broadcast("onNodesMove", { data: [{ id: "MV" }] });
+      await new Promise((r) => setTimeout(r, 800));
+      const moved = Math.round(s.nodes.one("MV").options.x);
+
+      s.undoRedo.undo();
+      await new Promise((r) => setTimeout(r, 400));
+      const undone = Math.round(s.nodes.one("MV").options.x);
+      return { moved, undone };
+    });
+
+    expect(res.moved).toBe(400);
+    expect(res.undone).toBe(100); // undo actually restored — not a no-op
+  });
+
   test("should redo after undo", async ({ page }) => {
     const initial = await page.evaluate(() => (window as any).slate.getAllNodes().length);
     await page.evaluate(() => {

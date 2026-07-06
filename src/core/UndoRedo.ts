@@ -53,6 +53,10 @@ export class UndoRedo {
     }
 
     this.debounceTimer = setTimeout(() => {
+      // Null the handle BEFORE snapshotting so undo()'s "flush pending" check
+      // (if (this.debounceTimer) forceSnapshot()) doesn't then push a duplicate
+      // of a state we just captured — which made undo() a no-op.
+      this.debounceTimer = null;
       this.takeSnapshot();
     }, this.options.debounceMs);
   }

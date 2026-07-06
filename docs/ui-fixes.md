@@ -188,6 +188,20 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## UNDO/REDO FIXED (undo was a no-op after a debounced change)
+- BUG: after a debounced change (move/resize etc. via the engine broadcast path), Ctrl+Z / undo() did
+  NOTHING (node stayed moved; delete not restored). Root cause: the debounce callback in
+  UndoRedo.snap() never nulled this.debounceTimer after firing, so undo()'s first line
+  `if (this.debounceTimer) this.forceSnapshot()` ran and pushed a DUPLICATE snapshot of the current
+  state; undo() then popped one dup and "restored" the still-current state — a no-op. (Isolated it:
+  loadJSON/deserialize restore works fine; the snapshots were correct [10000,10300]; the stack
+  management was wrong — debouncePending stayed true after the auto-snap fired.) FIX (lib
+  UndoRedo.ts): the debounced setTimeout nulls this.debounceTimer BEFORE takeSnapshot. Verified live:
+  move→Ctrl+Z restores (10150→10000), Ctrl+Y redoes, delete→Ctrl+Z restores the node. e2e
+  undo-redo.spec.ts "undo restores a debounced move (no duplicate-snapshot no-op)". 1073 unit.
+  (Also tried a takeSnapshot dedupe but it broke 8 unit tests that rely on identical snaps growing the
+  stack; the timer-null is the true root-cause fix, kept it minimal.)
+
 ## DELETE-PERSISTENCE FIXED (deleted nodes came back on reload)
 - BUG: deleting a node (Delete key) removed it locally + cleaned up its connector (no rogue line), and
   the Slates DB was correctly saved without it (exportJSON excludes it; slates.update $sets the full

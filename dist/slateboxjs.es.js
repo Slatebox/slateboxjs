@@ -9303,7 +9303,7 @@ class ns {
         return;
       }
       this.debounceTimer && clearTimeout(this.debounceTimer), this.debounceTimer = setTimeout(() => {
-        this.takeSnapshot();
+        this.debounceTimer = null, this.takeSnapshot();
       }, this.options.debounceMs);
     }
   }
