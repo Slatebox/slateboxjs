@@ -196,6 +196,15 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   (new wins, untouched fields preserved). Unit test added (update-same-field). AI needs the backend to
   live-drive, so the unit test is the guard. Rest of the ~40 handlers audited clean. 1075 unit / 186 e2e.
 
+## Connector arrowhead OVERSIZED (Miro parity) — fixed
+- Screenshotting the reconnect fix surfaced that arrowheads render as giant triangles (~10× the line
+  width). Root cause in vendored markers.js: marker used markerUnits="strokeWidth" (rendered =
+  markerWidth × strokeWidth) while markerSize ALSO scaled with strokeWidth (strokeWidth*3+6) — a
+  double-scale. For a 6px line the head was ~50px+. Fix: markerUnits="userSpaceOnUse" + markerWidth=
+  arrowWidth (absolute px = markerSize), so the head is a sensible size (~24px on a 6px line = 4×,
+  Miro-like) that still grows modestly with thicker lines via markerSize. Verified live (screenshot):
+  slim proportional head on the edge, pointing in. e2e arrowhead-size.spec.ts. 1076 unit / 195 e2e.
+
 ## RECONNECT arrowhead detached/inverted + not following — fixed (user repro)
 - User: disconnected + reconnected an association endpoint; the arrowhead ended up detached/inverted
   (floating outside the child) and the line didn't track the child on drag. Root cause: on reconnect,

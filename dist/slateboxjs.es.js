@@ -4554,10 +4554,16 @@ function Yn(n, t, e, i, s, o) {
     refX: e ? "0" : l,
     refY: c / 2,
     // Center vertically
-    markerUnits: "strokeWidth",
-    markerWidth: l / 2,
-    // Scale down the rendered size
-    markerHeight: c / 2,
+    // userSpaceOnUse (was "strokeWidth"): with strokeWidth units the rendered
+    // marker is markerWidth × strokeWidth, but markerSize ALREADY scales with
+    // strokeWidth (strokeWidth*3+6) — so the arrowhead was double-scaled and grew
+    // ~10× the line width (a huge triangle). In user space the arrowhead is a
+    // sensible absolute size that still grows with thicker lines via markerSize,
+    // matching Miro's slim proportional heads.
+    markerUnits: "userSpaceOnUse",
+    markerWidth: l,
+    // absolute px (viewBox already 0..arrowWidth)
+    markerHeight: c,
     orient: "auto"
   });
   const u = d.path(), f = c / 2;

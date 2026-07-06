@@ -32,9 +32,15 @@ function createMarker(type, angle, isSource, strokeWidth, markers, color) {
     // arrow's tip is at x=arrowWidth; the source arrow's tip is at x=0.
     refX: isSource ? "0" : arrowWidth,
     refY: arrowHeight / 2, // Center vertically
-    markerUnits: "strokeWidth",
-    markerWidth: arrowWidth / 2, // Scale down the rendered size
-    markerHeight: arrowHeight / 2,
+    // userSpaceOnUse (was "strokeWidth"): with strokeWidth units the rendered
+    // marker is markerWidth × strokeWidth, but markerSize ALREADY scales with
+    // strokeWidth (strokeWidth*3+6) — so the arrowhead was double-scaled and grew
+    // ~10× the line width (a huge triangle). In user space the arrowhead is a
+    // sensible absolute size that still grows with thicker lines via markerSize,
+    // matching Miro's slim proportional heads.
+    markerUnits: "userSpaceOnUse",
+    markerWidth: arrowWidth, // absolute px (viewBox already 0..arrowWidth)
+    markerHeight: arrowHeight,
     orient: "auto",
   });
 
