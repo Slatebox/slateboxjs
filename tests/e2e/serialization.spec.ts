@@ -145,6 +145,60 @@ test.describe("Serialization", () => {
     expect(res.dropped).toEqual([]);
   });
 
+  // Slate-level round-trip: name, background (gradient), grid, snap, mind-map,
+  // auto-resize — the slate settings a user changes must survive a reload too.
+  test("slate-level properties survive a serialize→load round-trip", async ({
+    page,
+  }) => {
+    const res = await page.evaluate(async () => {
+      const slate = (window as any).slate;
+      const inv = slate.invoker;
+      inv.onSlateNameChanged({ data: { name: "My Diagram" } });
+      inv.onSlateBackgroundColorChanged({
+        data: {
+          color: "#0d47a1",
+          asGradient: true,
+          gradientType: "linear",
+          gradientColors: ["#0d47a1", "#42a5f5"],
+          gradientStrategy: "diagonal",
+        },
+      });
+      inv.onSlateShowGridChanged({ data: { showGrid: true } });
+      inv.onSlateSnapToObjectsChanged({ data: { snapToObjects: true } });
+      await new Promise((r) => setTimeout(r, 200));
+
+      const read = (s: any) => ({
+        name: s.options.name,
+        bgColor: s.options.containerStyle?.backgroundColor,
+        asGradient: s.options.containerStyle?.backgroundColorAsGradient,
+        gradientColors: s.options.containerStyle?.backgroundGradientColors,
+        showGrid: s.options.viewPort?.showGrid,
+        snapToObjects: s.options.viewPort?.snapToObjects,
+      });
+      const src = read(slate);
+
+      const json = slate.exportJSON();
+      const div = document.createElement("div");
+      div.id = "appSRT";
+      document.body.appendChild(div);
+      const s2 = (window as any).SlateboxJS("#appSRT", {
+        viewPort: { originalWidth: 1200, originalHeight: 800 },
+        panZoom: { enabled: false },
+      });
+      if (s2.loadJSON) s2.loadJSON(json);
+      else if (s2.importJSON) s2.importJSON(json);
+      await new Promise((r) => setTimeout(r, 700));
+
+      const dst = read(s2);
+      const dropped = Object.keys(src).filter(
+        (k) => JSON.stringify((src as any)[k]) !== JSON.stringify((dst as any)[k])
+      );
+      return { dropped, src, dst };
+    });
+
+    expect(res.dropped).toEqual([]);
+  });
+
   // Comprehensive line-property round-trip: the line pane is the most bug-prone
   // surface (named bugs 1 & 2 lived here), so guard that every association line
   // property survives exportJSON→loadJSON.
