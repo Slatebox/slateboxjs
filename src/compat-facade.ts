@@ -88,6 +88,55 @@ class node {
       callback(svg)
     );
   }
+
+  /**
+   * v1 API: position the node. `position('center')` centers it in the current
+   * viewport (used right after adding a node from the shape palette);
+   * `position({x, y})` / `position(x, y)` sets an explicit position. Before the
+   * node is added (no v2 yet) this just stashes coordinates on options.
+   */
+  public position(coords?: any, maybeY?: number): this {
+    const v2: any = this.v2;
+    // Explicit coordinates (object or x,y pair).
+    const explicit =
+      coords && typeof coords === "object"
+        ? { x: coords.x, y: coords.y }
+        : typeof coords === "number"
+        ? { x: coords, y: maybeY }
+        : null;
+
+    if (!v2) {
+      if (explicit) {
+        this.options.x = explicit.x;
+        this.options.y = explicit.y;
+      }
+      return this;
+    }
+
+    if (explicit && explicit.x != null && explicit.y != null) {
+      v2.position(explicit.x, explicit.y);
+      return this;
+    }
+
+    // 'center' (or no args): center the node in the current viewport.
+    try {
+      const svgEl: any = (v2.slate as any)?.canvas?.node;
+      const vb = svgEl?.getAttribute?.("viewBox");
+      if (vb) {
+        const p = String(vb).split(/[\s,]+/).map(Number);
+        if (p.length === 4 && p.every((n) => !isNaN(n))) {
+          const cx = p[0] + p[2] / 2;
+          const cy = p[1] + p[3] / 2;
+          const w = v2.options.width || 0;
+          const h = v2.options.height || 0;
+          v2.position(cx - w / 2, cy - h / 2);
+        }
+      }
+    } catch (e) {
+      /* noop — centering is a nicety, never fatal */
+    }
+    return this;
+  }
 }
 
 /**

@@ -12014,6 +12014,31 @@ class Ht {
       (a) => i(a)
     );
   }
+  /**
+   * v1 API: position the node. `position('center')` centers it in the current
+   * viewport (used right after adding a node from the shape palette);
+   * `position({x, y})` / `position(x, y)` sets an explicit position. Before the
+   * node is added (no v2 yet) this just stashes coordinates on options.
+   */
+  position(t, e) {
+    const i = this.v2, s = t && typeof t == "object" ? { x: t.x, y: t.y } : typeof t == "number" ? { x: t, y: e } : null;
+    if (!i)
+      return s && (this.options.x = s.x, this.options.y = s.y), this;
+    if (s && s.x != null && s.y != null)
+      return i.position(s.x, s.y), this;
+    try {
+      const r = i.slate?.canvas?.node?.getAttribute?.("viewBox");
+      if (r) {
+        const a = String(r).split(/[\s,]+/).map(Number);
+        if (a.length === 4 && a.every((l) => !isNaN(l))) {
+          const l = a[0] + a[2] / 2, c = a[1] + a[3] / 2, h = i.options.width || 0, d = i.options.height || 0;
+          i.position(l - h / 2, c - d / 2);
+        }
+      }
+    } catch {
+    }
+    return this;
+  }
 }
 class sl {
   constructor(t) {

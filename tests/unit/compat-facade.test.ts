@@ -278,6 +278,21 @@ describe("slate.nodes facade (§C partial)", () => {
     expect(anon.options.id).toBeTruthy();
   });
 
+  it("node.position() exists and never throws (shape-palette add called node.position('center'))", async () => {
+    // Standalone (before add): stashes coordinates on options, no throw.
+    const standalone = new Slatebox.node({ id: "p1" });
+    expect(typeof standalone.position).toBe("function");
+    standalone.position({ x: 10, y: 20 });
+    expect(standalone.options.x).toBe(10);
+    expect(standalone.options.y).toBe(20);
+
+    // After add: 'center' must not throw (the app calls it right after adding a
+    // shape; previously node.position wasn't a function and threw).
+    const s = await initSlate();
+    const n = s.nodes.add(new Slatebox.node({ id: "p2" }));
+    expect(() => n.position("center")).not.toThrow();
+  });
+
   it("addRange() adds every node and returns the wrappers", async () => {
     const s = await initSlate();
     const out = s.nodes.addRange([

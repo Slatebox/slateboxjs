@@ -46,6 +46,13 @@ declare class node {
     png(withNodes: string[] | ((blob: Blob) => void) | undefined, cb?: (blob: Blob) => void): void;
     /** v1: `node.svg(withNodes?, cb)` — same as png but returns the SVG string. */
     svg(withNodes: string[] | ((svg: string) => void) | undefined, cb?: (svg: string) => void): void;
+    /**
+     * v1 API: position the node. `position('center')` centers it in the current
+     * viewport (used right after adding a node from the shape palette);
+     * `position({x, y})` / `position(x, y)` sets an explicit position. Before the
+     * node is added (no v2 yet) this just stashes coordinates on options.
+     */
+    position(coords?: any, maybeY?: number): this;
 }
 /**
  * v1 resize sub-object: `set()` stages new dimensions, `send()` applies them

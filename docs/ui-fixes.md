@@ -196,6 +196,17 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   (new wins, untouched fields preserved). Unit test added (update-same-field). AI needs the backend to
   live-drive, so the unit test is the guard. Rest of the ~40 handlers audited clean. 1075 unit / 186 e2e.
 
+## SHAPE PALETTE add threw "node.position is not a function" (v1-compat gap)
+- Found by noticing elevated console errors when adding a shape from the palette. The app
+  (QuickNodeActions.jsx) does `new Slatebox.node(opts)` → `slate.nodes.add(node)` → `node.position('center')`
+  to center a newly-added node in the viewport. The v1-style facade node (compat-facade.ts) had png/svg/
+  resize/relationships but NO position() → uncaught TypeError on every shape add, and the intended
+  centering never happened (nodes appeared at a default spot). Fix: added node.position() to the facade —
+  `position({x,y})`/`position(x,y)` sets position (stashes on options before add), `position('center')`
+  centers the node in the current viewport (computed from the SVG viewBox). Verified live: no error +
+  new shapes land at the viewport center (distFromCenter 0). Unit test in compat-facade.test.ts.
+  1075 unit / 192 e2e.
+
 ## NODE LINKS — piece 1: badge indicator + navigate wiring (feature completion)
 - Node links were an INCOMPLETE feature: set/persist worked but navigate() was never called (clicking a
   linked node did nothing) and there was no visual indicator. Piece 1 (library-only): Node.updateLinkIndicator()
