@@ -34,6 +34,7 @@ describe("Invoker", () => {
       unlock: vi.fn(),
       setSize: vi.fn(),
       setText: vi.fn(),
+      setShape: vi.fn(),
       setColors: vi.fn(),
       toFront: vi.fn(),
       toBack: vi.fn(),
@@ -548,20 +549,21 @@ describe("Invoker", () => {
   });
 
   describe("onNodeShapeChanged", () => {
-    it("should assign shape data to node options and log", () => {
+    it("should assign shape data and re-render the shape", () => {
       const pkg = {
         data: {
           id: "node1",
-          shape: "rectangle",
+          shape: "circle",
           borderRadius: 8,
         },
       };
 
       invoker.onNodeShapeChanged(pkg);
 
-      expect(mockNode.options.shape).toBe("rectangle");
+      expect(mockNode.options.shape).toBe("circle");
       expect(mockNode.options.borderRadius).toBe(8);
-      expect(console.log).toHaveBeenCalledWith("Shape changed for node:", "node1");
+      // The node is re-rendered with the new shape (no longer a stub).
+      expect(mockNode.setShape).toHaveBeenCalledWith("circle", undefined);
     });
 
     it("should do nothing when node is not found", () => {

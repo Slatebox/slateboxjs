@@ -33,6 +33,14 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   connectableType='orthogonal'). Earlier "revert" was a test artifact (direct applyLineProperty
   bypasses the save/broadcast). Not a bug.
 
+- U5 DONE [lib, pending commit]: NODE SHAPE change didn't re-render. onNodeShapeChanged was a stub
+  ("simplified implementation") that set options.shape (to the picker's raw path) but never re-drew
+  → node stayed a rect. Fixes: (a) resolveShapePath now treats a raw path in `shape` as a path (was
+  vectorPath-only); (b) new Node.setShape(shape, vectorPath?) removes the old shape, re-renders (named
+  or raw path) behind the text, re-centers, re-binds resize/rotate; (c) Invoker.onNodeShapeChanged
+  calls setShape. Verified live: picking a shape re-renders (rect → path in nested SVG); node COLOR
+  swatch also verified working (blue→red). e2e node-setshape.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

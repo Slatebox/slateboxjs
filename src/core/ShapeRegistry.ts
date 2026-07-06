@@ -200,6 +200,17 @@ export function resolveShapePath(
   if (shape) {
     const named = getShape(shape);
     if (named) return named;
+
+    // A raw SVG path passed as the shape value (the app's shape picker sends
+    // the path string as `shape`). Treat it like a vector path.
+    if (shape.trim().startsWith("M") || shape.trim().startsWith("m")) {
+      return {
+        path: shape,
+        defaultWidth: 100,
+        defaultHeight: 60,
+        viewBox: "0 0 100 60", // caller recalculates from path bounds
+      };
+    }
   }
 
   return undefined;

@@ -620,6 +620,52 @@ export class Node {
     );
   }
 
+  /**
+   * Change the node's shape at runtime (U5). `shape` may be a named shape or a
+   * raw SVG path string. Removes the old shape element, re-renders the new one
+   * behind the text/content, and re-binds selection so resize/rotate follow the
+   * new shape. No-op for SVG-content nodes.
+   */
+  public setShape(shape: string, vectorPath?: string): void {
+    if (!this.svgGroup || this.nestedSvg) return; // SVG-content nodes have no shape
+    const wasSelected =
+      !!this.resizeRotate && this.resizeRotate.isEnabled();
+    try {
+      if (wasSelected) this.resizeRotate.disable();
+    } catch (e) {
+      /* noop */
+    }
+    try {
+      (this.backgroundRect as any)?.remove?.();
+    } catch (e) {
+      /* noop */
+    }
+    this.backgroundRect = undefined as any;
+
+    this.options.shape = shape;
+    if (vectorPath !== undefined) this.options.vectorPath = vectorPath;
+
+    this.createBackground();
+    // Keep the shape behind the text and any other content.
+    try {
+      (this.backgroundRect as any)?.back?.();
+    } catch (e) {
+      /* noop */
+    }
+    try {
+      this.centerText();
+    } catch (e) {
+      /* noop */
+    }
+    this.applyPositionAndRotation();
+    // Re-bind resize/rotate + handles to the new shape via the orchestrator.
+    try {
+      if (wasSelected) this.slate?.updateSelectionResizeRotate?.();
+    } catch (e) {
+      /* noop */
+    }
+  }
+
   private createText() {
     console.log("NODE_DEBUG: createText called for", this.id);
 

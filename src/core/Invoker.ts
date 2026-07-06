@@ -99,12 +99,12 @@ export class Invoker {
 
   onNodeShapeChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      // Update shape properties
-      Object.assign(node.options, pkg.data)
-      // Recreate the node with new shape if needed
-      // This is a simplified implementation
-      console.log('Shape changed for node:', pkg.data.id)
+    if (!node) return
+    const shape = (pkg.data as any).shape ?? (pkg.data as any).vectorPath
+    // Carry any co-sent props (border, etc.), then re-render the shape.
+    Object.assign(node.options, pkg.data)
+    if (shape) {
+      node.setShape(shape, (pkg.data as any).vectorPath)
     }
   }
 

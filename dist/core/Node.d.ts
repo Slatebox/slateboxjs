@@ -170,6 +170,13 @@ export declare class Node {
     private createAsync;
     private finishCreate;
     private createBackground;
+    /**
+     * Change the node's shape at runtime (U5). `shape` may be a named shape or a
+     * raw SVG path string. Removes the old shape element, re-renders the new one
+     * behind the text/content, and re-binds selection so resize/rotate follow the
+     * new shape. No-op for SVG-content nodes.
+     */
+    setShape(shape: string, vectorPath?: string): void;
     private createText;
     /** Position the text element within the background shape based on alignment settings. */
     centerText(): void;
