@@ -593,6 +593,13 @@ export class Node {
       this.backgroundRect = nested as any;
       // The inner path carries fill/stroke — style it (not the nested wrapper).
       this.contentPath = pathEl;
+      // Tag it so the connector geometry can attach to the ACTUAL outline (not
+      // the bounding box) for vector shapes.
+      try {
+        pathEl.node.setAttribute("data-shape-path", "1");
+      } catch (e) {
+        /* noop */
+      }
     } else {
       // Native shapes — fast path
       this.contentPath = undefined;

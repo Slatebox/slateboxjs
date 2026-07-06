@@ -200,6 +200,21 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   reload, collab. Use svg.js conventions; keep the isolated-class pattern. Risk: wide surface — do it
   behind careful e2e coverage, one shape family at a time.
 
+## PATHS — step 1 DONE: connectors attach to the real path outline
+- First concrete step of the "everything as paths" vision: connectors now target the ACTUAL vector-
+  path outline (star arms, diamond edges, etc.) instead of the bounding box. createBackground tags the
+  shape <path> data-shape-path; geometry.closestPointOnPathOutline samples it (path screenCTM → root
+  user space) and picks the outline point aligned with the ray toward the other node. Native rect/
+  circle/ellipse keep their exact math. SAFE: guarded + falls back to the bbox intersection, so the
+  connector never breaks. Verified live in-app: connector into a star lands ON the outline (dist 0) at
+  a point 47px OFF the bbox corner (diagonal target). e2e connector-path-outline (wiring + no-fly-away;
+  precise outline attach is CTM-dependent so verified live, not in headless). NEXT for paths: convert
+  default rect (bbox==outline, safe) then circle/ellipse to <path>, keeping connectors accurate.
+- ABSOLUTE-ANCHOR + DRAG: re-verified with a REAL mouse drag on a clean single connection — the pinned
+  endpoint STAYS at the same relative point (relX 0.39 before/after) with the anchor preserved. Works.
+  Could not reproduce the user's detach; awaiting exact repro (likely multi-connection or a specific
+  pin method).
+
 ## OPEN (user-reported): absolute-anchor endpoint + node drag
 - User: pinning the arrow at a point (absolute anchor) works initially, but dragging the node after
   "doesn't update the association correctly" (endpoint detaches). Investigated: on a CLEAN single-

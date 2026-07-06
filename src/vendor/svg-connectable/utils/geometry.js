@@ -156,7 +156,83 @@ function getElementCenter(element) {
  * Calculates the closest point on the edge of a shape to another point.
  * All coordinates are in SVG user coordinate space (viewBox coords).
  */
+/**
+ * For vector (path) shapes, attach the connector to the ACTUAL path outline
+ * rather than the bounding box, so arrows touch the real shape (star arms, etc.).
+ * Samples the tagged shape <path> and picks the outline point best aligned with
+ * the ray from the shape centre toward `targetPoint`. Returns null for shapes
+ * without a tagged path (native rect/circle/ellipse keep their exact math).
+ */
+function closestPointOnPathOutline(shape, targetPoint) {
+  try {
+    const node = shape && shape.node;
+    const pathEl = node && node.querySelector && node.querySelector("path[data-shape-path]");
+    if (!pathEl || typeof pathEl.getTotalLength !== "function") return null;
+    const total = pathEl.getTotalLength();
+    if (!total || !isFinite(total)) return null;
+
+    // The path lives in a nested <svg> with its own viewBox. Convert its local
+    // points to the connector's coordinate space via screen CTMs: path-local →
+    // screen → root SVG user space (the space getElementCenter/points use).
+    const rootSvg = pathEl.ownerSVGElement;
+    const pathCTM = pathEl.getScreenCTM && pathEl.getScreenCTM();
+    const rootScreenCTM = rootSvg && rootSvg.getScreenCTM && rootSvg.getScreenCTM();
+    if (!rootSvg || !pathCTM || !rootScreenCTM) return null;
+    const rootInv = rootScreenCTM.inverse();
+    const sp = rootSvg.createSVGPoint();
+    const toUser = (lx, ly) => {
+      sp.x = lx;
+      sp.y = ly;
+      const u = sp.matrixTransform(pathCTM).matrixTransform(rootInv);
+      return [u.x, u.y];
+    };
+
+    const [cx, cy] = getElementCenter(shape);
+    const dirX = targetPoint[0] - cx;
+    const dirY = targetPoint[1] - cy;
+    const dm = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
+    const ux = dirX / dm;
+    const uy = dirY / dm;
+
+    let best = null;
+    let bestScore = -Infinity;
+    const N = 240;
+    for (let i = 0; i < N; i++) {
+      const lp = pathEl.getPointAtLength((i / N) * total);
+      const [wx, wy] = toUser(lp.x, lp.y);
+      if (!isFinite(wx) || !isFinite(wy)) continue;
+      const px = wx - cx;
+      const py = wy - cy;
+      const proj = px * ux + py * uy; // toward the target direction
+      const perp = Math.abs(px * uy - py * ux); // offset from the ray
+      const score = proj - perp * 1.5; // outermost point on the ray
+      if (score > bestScore) {
+        bestScore = score;
+        best = [wx, wy];
+      }
+    }
+    return best;
+  } catch (e) {
+    return null;
+  }
+}
+
 function getClosestPointOnEdge(shape, targetPoint) {
+  // Vector shapes: attach to the real outline when we can transform it reliably.
+  // (Guarded — nested-SVG viewBox paths need the correct coordinate transform;
+  // falls back to the bbox intersection otherwise so the connector never breaks.)
+  const outline = closestPointOnPathOutline(shape, targetPoint);
+  if (outline && isFinite(outline[0]) && isFinite(outline[1])) {
+    // Sanity: the outline point must be within a reasonable distance of the
+    // shape's bbox (guards against a bad coordinate transform sending it away).
+    const bb = shape.bbox();
+    const [ccx, ccy] = localToSvgCoords(shape, bb.cx, bb.cy);
+    const span = Math.max(bb.width, bb.height, 1) * 3;
+    if (Math.hypot(outline[0] - ccx, outline[1] - ccy) <= span) {
+      return outline;
+    }
+  }
+
   const bbox = shape.bbox();
 
   // Convert target point from SVG coords to shape's local coords
