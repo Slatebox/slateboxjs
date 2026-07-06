@@ -587,10 +587,23 @@ export class Connector {
       if (!o.width || !o.height) return;
       if (o.rotate?.rotationAngle) return; // non-rotated only for now
       const clamp = (v: number) => Math.max(0, Math.min(1, v));
-      const anchor = {
-        x: clamp((point.x - (o.x || 0)) / o.width),
-        y: clamp((point.y - (o.y || 0)) / o.height),
-      };
+      let ax = clamp((point.x - (o.x || 0)) / o.width);
+      let ay = clamp((point.y - (o.y || 0)) / o.height);
+      // Snap to the nearest EDGE so the arrowhead sits ON the node's boundary
+      // (touching it, on the side the user dropped) instead of at an interior
+      // point — an interior anchor put the arrowhead inside/covered by the node
+      // and made the line's edge-solve disagree with the pinned arrowhead,
+      // rendering a detached/inverted arrow that didn't track the node cleanly.
+      const dl = ax;
+      const dr = 1 - ax;
+      const dt = ay;
+      const db = 1 - ay;
+      const nearest = Math.min(dl, dr, dt, db);
+      if (nearest === dl) ax = 0;
+      else if (nearest === dr) ax = 1;
+      else if (nearest === dt) ay = 0;
+      else ay = 1;
+      const anchor = { x: ax, y: ay };
       const rels = ownerNode?.relationships;
       const assoc = rels?.associations?.find((a: any) => a.childId === childId);
       if (assoc?.id) rels.applyLineProperty(assoc.id, which, anchor);

@@ -5764,11 +5764,12 @@ class Pe {
       if (!o) return;
       const r = i?.options || {};
       if (!r.width || !r.height || r.rotate?.rotationAngle) return;
-      const a = (d) => Math.max(0, Math.min(1, d)), l = {
-        x: a((o.x - (r.x || 0)) / r.width),
-        y: a((o.y - (r.y || 0)) / r.height)
-      }, c = t?.relationships, h = c?.associations?.find((d) => d.childId === e);
-      h?.id && c.applyLineProperty(h.id, s, l);
+      const a = (b) => Math.max(0, Math.min(1, b));
+      let l = a((o.x - (r.x || 0)) / r.width), c = a((o.y - (r.y || 0)) / r.height);
+      const h = l, d = 1 - l, u = c, f = 1 - c, g = Math.min(h, d, u, f);
+      g === h ? l = 0 : g === d ? l = 1 : g === u ? c = 0 : c = 1;
+      const p = { x: l, y: c }, y = t?.relationships, m = y?.associations?.find((b) => b.childId === e);
+      m?.id && y.applyLineProperty(m.id, s, p);
     } catch {
     }
   }

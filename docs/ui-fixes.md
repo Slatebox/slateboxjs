@@ -196,6 +196,18 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   (new wins, untouched fields preserved). Unit test added (update-same-field). AI needs the backend to
   live-drive, so the unit test is the guard. Rest of the ~40 handlers audited clean. 1075 unit / 186 e2e.
 
+## RECONNECT arrowhead detached/inverted + not following — fixed (user repro)
+- User: disconnected + reconnected an association endpoint; the arrowhead ended up detached/inverted
+  (floating outside the child) and the line didn't track the child on drag. Root cause: on reconnect,
+  handleEndpointChange→pinDropAnchor pinned the TARGET endpoint at the exact interior drop point
+  (normalized [0,1], clamped). An interior anchor (e.g. drop near center → {0.5,0.5}) put the arrowhead
+  INSIDE the node and made the connectable's edge-solve disagree with the pinned arrowhead → a
+  detached/inverted arrow that didn't sit cleanly on the edge. Fix: snap the drop-point anchor to the
+  NEAREST EDGE (project x or y to 0/1 by smallest distance) so the arrowhead sits ON the boundary
+  (touching, on the side the user dropped) and the line + arrowhead agree; it's a relative anchor so it
+  follows the node. Verified live: reconnect → arrowhead on edge (nx/ny at boundary, on drop side) +
+  follows on drag. e2e reconnect-edge.spec.ts. 1076 unit / 194 e2e.
+
 ## getRotation warning noise on shape-add eliminated
 - Adding a shape logged two "NODE_DEBUG: Failed to read svgGroup/backgroundRect transform for rotation"
   warnings each time. Cause: the save (serializeNode → getRotation) can run while the node is still
