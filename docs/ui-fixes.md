@@ -140,6 +140,17 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   intentionally-invisible hitarea → toBeAttached); birdseye-rotation x2 (rewrote fragile handle-drag
   → engine-API rotation + assert minimap reflects it). Full suite now 170/170 green.
 
+- CAPSTONE (real-UI, integrated): built a styled flowchart on :3000 — Start(rect,blue) →ortho→
+  Process(STAR, green, dashed dark-green border), Start →bezier(curviness .85)→ Decision(circle,
+  orange, dropShadow). All fixes compose correctly; birds-eye reflects all 3 nodes; 2 connectors,
+  no rogue paths. Real font-size DROPDOWN verified end-to-end (14→20 via the actual MUI Select →
+  onNodeTextChanged → applyTextStyle). Confirms the app pane→package→handler chain, not just the
+  invoker.
+- U17 INVESTIGATED — NOT A BUG: deselect appeared to leave connection handles, but the clean repro
+  shows 0 VISIBLE handles after deselect (stable across repeated cycles). The DOM count includes
+  HIDDEN handles — the handle container is .hide()'d (perf), not removed. No fly-aways. The capstone
+  screenshot's dots were a timing artifact (deselect hadn't settled before the shot).
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

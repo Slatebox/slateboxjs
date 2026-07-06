@@ -1,24 +1,26 @@
-node_modules/
-.vite/
 
+.DS_Store
+.env
+.idea/
+.vite/
+*.log
+*.png
+*.swo
+*.swp
+# Debug screenshots (root level PNGs from testing)
+# Environment
+# IDE
+# Logs
+# OS files
 # Test artifacts
+capstone-diagram.png
+node_modules/
+node-color-tab.png
+node-effects-tab.png
+node-shape-tab.png
+node-text-tab.png
 playwright-report/
 test-results/
-
-# Environment
-.env
-
-# OS files
-.DS_Store
 Thumbs.db
-
-# Debug screenshots (root level PNGs from testing)
-*.png
-
-# Logs
-*.log
-
-# IDE
-.idea/
-*.swp
-*.swo
+u3-drop-point.png
+u5-shape-change.png
