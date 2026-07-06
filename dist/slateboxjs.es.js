@@ -5610,7 +5610,7 @@ class Pe {
       }
       return console.log("CONNECTOR_DEBUG: Successfully connected", i), c.onLineClick = () => {
         this.node.slate?.isReadOnly?.() || this.showLineCog(h, c, t.id);
-      }, this.options.onConnect?.(h), h;
+      }, this.wireHandleReveal(c), this.options.onConnect?.(h), h;
     } catch (i) {
       return console.error("CONNECTOR_DEBUG: Failed to create connection:", i), console.error(
         "CONNECTOR_DEBUG: This might be due to SVG.js 3+ compatibility issues with svg.connectable.js"
@@ -5805,6 +5805,36 @@ class Pe {
    * the cog opens the host's line-properties pane. Only one cog is shown at a
    * time (tracked on the slate) and it clears on canvas/node interaction.
    */
+  /**
+   * Miro-style hover reveal for a connection's endpoint handles. Handles are
+   * hidden by default (CSS) and shown while the pointer is over the line, its
+   * hit area, or a handle — then hidden again on leave, UNLESS the connection is
+   * selected (`_handlesPinned`, set by showLineCog / cleared by clearLineCog).
+   * Handles are created lazily by the vendored lib, so we resolve them at event
+   * time rather than capturing them now.
+   */
+  wireHandleReveal(t) {
+    const e = () => [t.sourceHandle?.element, t.targetHandle?.element].filter(
+      (o) => o && o.node
+    ), i = (o) => {
+      e().forEach((r) => {
+        o ? r.node.classList.add("connector-handle--revealed") : !t._handlesPinned && !t._handlesDragging && r.node.classList.remove("connector-handle--revealed");
+      });
+    };
+    t._revealHandles = i;
+    const s = () => e().forEach((o) => {
+      o._revealArmed || (o._revealArmed = !0, o.on?.("mouseenter", () => i(!0)), o.on?.("mouseleave", () => i(!1)), o.on?.("dragstart", () => {
+        t._handlesDragging = !0, i(!0);
+      }), o.on?.("dragend", () => {
+        t._handlesDragging = !1, t._handlesPinned || i(!1);
+      }));
+    });
+    [t.hitArea, t.connector].forEach((o) => {
+      o?.on?.("mouseenter", () => {
+        i(!0), s();
+      }), o?.on?.("mouseleave", () => i(!1));
+    });
+  }
   showLineCog(t, e, i) {
     const s = this.slate;
     s.clearLineCog?.();
@@ -5848,7 +5878,7 @@ class Pe {
       });
     }), m.attr("pointer-events", "all"), s._activeLineCog = m;
     try {
-      e.selectConnector?.(), s._activeLineConnectable = e;
+      e.selectConnector?.(), s._activeLineConnectable = e, e._handlesPinned = !0, e._revealHandles?.(!0);
     } catch {
     }
     try {
@@ -11758,7 +11788,7 @@ const ke = class ke {
     }
     if (this._activeLineConnectable) {
       try {
-        this._activeLineConnectable.deselectConnector?.();
+        this._activeLineConnectable._handlesPinned = !1, this._activeLineConnectable._revealHandles?.(!1), this._activeLineConnectable.deselectConnector?.();
       } catch {
       }
       this._activeLineConnectable = void 0;

@@ -1539,6 +1539,9 @@ export class Slate {
     }
     if (this._activeLineConnectable) {
       try {
+        // Release the pinned endpoint handles so they hide again (Miro-style).
+        (this._activeLineConnectable as any)._handlesPinned = false;
+        (this._activeLineConnectable as any)._revealHandles?.(false);
         this._activeLineConnectable.deselectConnector?.();
       } catch (e) {
         /* noop */

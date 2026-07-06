@@ -115,6 +115,15 @@ export declare class Connector {
      * the cog opens the host's line-properties pane. Only one cog is shown at a
      * time (tracked on the slate) and it clears on canvas/node interaction.
      */
+    /**
+     * Miro-style hover reveal for a connection's endpoint handles. Handles are
+     * hidden by default (CSS) and shown while the pointer is over the line, its
+     * hit area, or a handle — then hidden again on leave, UNLESS the connection is
+     * selected (`_handlesPinned`, set by showLineCog / cleared by clearLineCog).
+     * Handles are created lazily by the vendored lib, so we resolve them at event
+     * time rather than capturing them now.
+     */
+    private wireHandleReveal;
     private showLineCog;
     private openLinePane;
     /**

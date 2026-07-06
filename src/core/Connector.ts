@@ -299,6 +299,11 @@ export class Connector {
         this.showLineCog(connection, connectableObj, targetNode.id);
       };
 
+      // Miro-style: endpoint handles are hidden (CSS) until the connection is
+      // hovered or selected. Wire the hover reveal here (handles are created
+      // lazily, so we read them at hover time, not now).
+      this.wireHandleReveal(connectableObj);
+
       // Trigger callback
       this.options.onConnect?.(connection);
 
@@ -653,6 +658,56 @@ export class Connector {
    * the cog opens the host's line-properties pane. Only one cog is shown at a
    * time (tracked on the slate) and it clears on canvas/node interaction.
    */
+  /**
+   * Miro-style hover reveal for a connection's endpoint handles. Handles are
+   * hidden by default (CSS) and shown while the pointer is over the line, its
+   * hit area, or a handle — then hidden again on leave, UNLESS the connection is
+   * selected (`_handlesPinned`, set by showLineCog / cleared by clearLineCog).
+   * Handles are created lazily by the vendored lib, so we resolve them at event
+   * time rather than capturing them now.
+   */
+  private wireHandleReveal(con: any): void {
+    const handleEls = (): any[] =>
+      [con.sourceHandle?.element, con.targetHandle?.element].filter(
+        (h: any) => h && h.node
+      );
+    const reveal = (visible: boolean): void => {
+      handleEls().forEach((h: any) => {
+        if (visible) h.node.classList.add("connector-handle--revealed");
+        // Keep shown while selected (pinned) OR while a handle is mid-drag —
+        // otherwise dragging an endpoint off the line hides it and breaks the
+        // reconnect.
+        else if (!con._handlesPinned && !con._handlesDragging)
+          h.node.classList.remove("connector-handle--revealed");
+      });
+    };
+    // Exposed so selection (showLineCog) can pin and clearLineCog can release.
+    con._revealHandles = reveal;
+    const armHandleHover = (): void =>
+      handleEls().forEach((h: any) => {
+        if (h._revealArmed) return;
+        h._revealArmed = true;
+        h.on?.("mouseenter", () => reveal(true));
+        h.on?.("mouseleave", () => reveal(false));
+        // Keep the endpoint visible + draggable for the whole drag gesture.
+        h.on?.("dragstart", () => {
+          con._handlesDragging = true;
+          reveal(true);
+        });
+        h.on?.("dragend", () => {
+          con._handlesDragging = false;
+          if (!con._handlesPinned) reveal(false);
+        });
+      });
+    [con.hitArea, con.connector].forEach((el: any) => {
+      el?.on?.("mouseenter", () => {
+        reveal(true);
+        armHandleHover();
+      });
+      el?.on?.("mouseleave", () => reveal(false));
+    });
+  }
+
   private showLineCog(connection: Connection, con: any, targetId: string): void {
     const slate: any = this.slate;
     slate.clearLineCog?.();
@@ -730,6 +785,9 @@ export class Connector {
     try {
       con.selectConnector?.();
       slate._activeLineConnectable = con;
+      // Pin the endpoint handles visible while this connection is selected.
+      con._handlesPinned = true;
+      con._revealHandles?.(true);
     } catch (e) {
       /* noop */
     }

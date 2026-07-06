@@ -159,3 +159,16 @@
     height: 100px !important;
   }
 }
+
+/* Connector endpoint handles — Miro-style reveal on hover/select. Hidden by
+   default (persistent dots on every line are clutter); shown when the connection
+   is hovered or selected, at which point they become draggable for reconnection. */
+.connector-handle {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+.connector-handle.connector-handle--revealed {
+  opacity: 1;
+  pointer-events: all;
+}
