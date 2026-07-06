@@ -115,6 +115,12 @@ export declare class Node {
     options: NodeOptions;
     svgGroup: G;
     backgroundRect: Rect | Circle | Ellipse | G;
+    /**
+     * For path (vector) shapes, backgroundRect is the nested <svg> wrapper used for
+     * sizing/handles; the actual fill/stroke live on this inner <path>. Undefined
+     * for native rect/circle/ellipse (where backgroundRect carries fill/stroke).
+     */
+    contentPath?: any;
     textElement: Text;
     nestedSvg?: any;
     resizeRotate: ResizeRotate;

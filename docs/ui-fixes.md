@@ -103,6 +103,13 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   remote(collab) apply, so collab parity is covered by the same code path; late-joining peers/reload
   read the serialized JSON — now correct for these props.
 
+- U13 DONE [lib, pending commit]: PATH-SHAPED nodes (star/diamond/etc.) couldn't be recolored or
+  bordered. For vector shapes backgroundRect is the nested <svg> wrapper, but fill/stroke live on the
+  inner <path>; setColors/applyBorder styled the wrapper → no-op. Fix: createBackground stores the
+  inner path as node.contentPath; setColors + applyBorder target (contentPath ?? backgroundRect).
+  Verified live: star node fill #ff0000, stroke #00aa00 w8 dash 24,8. e2e node-pathshape-styling.
+  (Effects already worked on path shapes — filter sits on the nested SVG.)
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

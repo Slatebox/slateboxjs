@@ -174,6 +174,12 @@ export class Node {
   public options: NodeOptions;
   public svgGroup!: G;
   public backgroundRect!: Rect | Circle | Ellipse | G;
+  /**
+   * For path (vector) shapes, backgroundRect is the nested <svg> wrapper used for
+   * sizing/handles; the actual fill/stroke live on this inner <path>. Undefined
+   * for native rect/circle/ellipse (where backgroundRect carries fill/stroke).
+   */
+  public contentPath?: any;
   public textElement!: Text;
   public nestedSvg?: any; // Store reference to nested SVG for SVG content
   public resizeRotate!: ResizeRotate;
@@ -582,8 +588,11 @@ export class Node {
       // Store the nested SVG as backgroundRect for compatibility
       // The nested element is used for bbox calculations and selection handles
       this.backgroundRect = nested as any;
+      // The inner path carries fill/stroke — style it (not the nested wrapper).
+      this.contentPath = pathEl;
     } else {
       // Native shapes — fast path
+      this.contentPath = undefined;
       switch (shape) {
         case "circle": {
           const radius = Math.min(width!, height!) / 2;
@@ -1141,14 +1150,16 @@ export class Node {
    * @param borderColor     - New stroke color (or undefined to keep current)
    */
   public setColors(backgroundColor?: string, borderColor?: string) {
+    // Path shapes carry fill/stroke on the inner <path>, not the nested wrapper.
+    const styleEl: any = this.contentPath ?? this.backgroundRect;
     if (backgroundColor) {
       this.options.backgroundColor = backgroundColor;
-      this.backgroundRect.fill(backgroundColor);
+      styleEl.fill(backgroundColor);
     }
 
     if (borderColor) {
       this.options.borderColor = borderColor;
-      this.backgroundRect.stroke({ color: borderColor });
+      styleEl.stroke({ color: borderColor });
     }
 
     if (backgroundColor || borderColor) {
@@ -1170,7 +1181,8 @@ export class Node {
    * content / nested path shapes).
    */
   public applyBorder(): void {
-    const rect: any = this.backgroundRect;
+    // Path shapes carry the stroke on the inner <path>, not the nested wrapper.
+    const rect: any = this.contentPath ?? this.backgroundRect;
     if (!rect || typeof rect.stroke !== "function") return;
     const { borderColor, borderWidth, borderOpacity } = this.options;
     const strokeOpts: {
