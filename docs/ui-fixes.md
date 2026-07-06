@@ -188,6 +188,25 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## NODE BORDER + PLUG-DRAG-CONNECT verified; CHAT-OVERLAY bug found
+- NODE BORDER (COLOR tab): border style (solid/dashed/dotted/combo) + width work + persist through
+  reload. NOTE: border controls are DISABLED until you toggle the Background→Border mode button (by
+  design). Once in Border mode: dashed applies (stroke-dasharray "3,1"), label updates to
+  "BORDER: DASHED", survives reload. Guarded already by node-border.spec.ts. Not a bug.
+- PLUG-DRAG-CONNECT (Node.startConnectDrag, G3): pressing a selected node's plug tool and dragging to
+  another node DOES create the association — VERIFIED live when the target is in the clear canvas area
+  (rubber-band preview follows, drop → addAssociation, connCount=1). The interaction relies on
+  document.elementFromPoint(...).closest('[data-node-id]') to find the drop target.
+- CHAT-OVERLAY BUG (app, OPEN): the AI chat is a floating 320x420 bottom-right <Paper> (Chat.jsx,
+  zIndex 6, pointer-events auto) rendered whenever isChatOpen. It is OPEN by default, so it covers the
+  bottom-right canvas corner — nodes there fail elementFromPoint (hit the MuiGrid, not the SVG), so you
+  CANNOT drop-connect to (or likely select) nodes under it. Setting isChatOpen atom default:false alone
+  did NOT close it (still open after a clean restart) — it's force-opened elsewhere (recoil
+  persistence? another setChatOpen(true)? Canvas initAIConversation only forces it when
+  getAutoInvokeConversation is set). FOLLOW-UP: find what forces chat open on a plain new slate; either
+  keep it closed by default (toolbar Chat icon reopens it) or give the empty/idle chat pointer-events:
+  none so it never blocks the canvas.
+
 ## NODE PANE (TEXT+EFFECTS) + COLLAB PARITY — VERIFIED CLEAN
 - Node TEXT tab: changing font family (Roboto→Bangers) applies, the active-font highlight moves, the
   <text> renders in the new font, and it survives RELOAD. Node EFFECTS: DropShadow toggle applies a
