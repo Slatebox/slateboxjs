@@ -49,7 +49,11 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   path); facade getter uses the same; Invoker.onNodeEffectChanged applies/removes via node.filters
   (exclusive toggle: removes prev, clears id on deselect). Verified live: EFFECTS shows dropShadow/
   blur/outline; clicking dropShadow sets DOM filter drop-shadow(...) + options.filters.vect. e2e
-  node-effects. NOTE: onNodeImageChanged is still a stub (IMAGE tab) — next.
+  node-effects.
+- U7 DONE [lib, pending commit]: NODE IMAGE tab was a stub (onNodeImageChanged console.log only).
+  Now applies via node.images.set(url,w,h) from the app's { img, w, h } pkg (clears on falsy img).
+  Verified live: setting a data-URI image → node fill becomes url(#SvgjsPattern...) + options.image
+  set; clearing restores the solid color. e2e node-image.
 
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a

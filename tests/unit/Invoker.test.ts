@@ -46,6 +46,10 @@ describe("Invoker", () => {
         apply: vi.fn(),
         remove: vi.fn(),
       },
+      images: {
+        set: vi.fn(),
+        clear: vi.fn(),
+      },
     };
 
     mockSlate = {
@@ -582,17 +586,28 @@ describe("Invoker", () => {
   });
 
   describe("onNodeImageChanged", () => {
-    it("should log when image changes", () => {
+    it("should set the image on the node", () => {
       const pkg = {
         data: {
           id: "node1",
-          imageUrl: "https://example.com/pic.png",
+          img: "https://example.com/pic.png",
+          w: 200,
+          h: 120,
         },
       };
 
       invoker.onNodeImageChanged(pkg);
 
-      expect(console.log).toHaveBeenCalledWith("Image changed for node:", "node1");
+      expect(mockNode.images.set).toHaveBeenCalledWith(
+        "https://example.com/pic.png",
+        200,
+        120
+      );
+    });
+
+    it("should clear the image when img is falsy", () => {
+      invoker.onNodeImageChanged({ data: { id: "node1", img: null } });
+      expect(mockNode.images.clear).toHaveBeenCalled();
     });
 
     it("should do nothing when node is not found", () => {

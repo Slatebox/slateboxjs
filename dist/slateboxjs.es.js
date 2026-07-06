@@ -8248,7 +8248,10 @@ class ba {
     }
   }
   onNodeImageChanged(t) {
-    this.slate.nodes.one(t.data.id) && console.log("Image changed for node:", t.data.id);
+    const e = this.slate.nodes.one(t.data.id);
+    if (!e?.images) return;
+    const i = t.data.img ?? t.data.image;
+    i ? e.images.set(i, t.data.w, t.data.h) : e.images.clear();
   }
   onNodeDeleted(t) {
     this.slate.nodes.remove(t.data.id);

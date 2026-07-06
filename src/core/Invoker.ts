@@ -141,9 +141,13 @@ export class Invoker {
 
   onNodeImageChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      // Implementation for image change
-      console.log('Image changed for node:', pkg.data.id)
+    if (!node?.images) return
+    // App sends { img: <url>, w, h } (or clears with a falsy img).
+    const url = (pkg.data as any).img ?? (pkg.data as any).image
+    if (url) {
+      node.images.set(url, (pkg.data as any).w, (pkg.data as any).h)
+    } else {
+      node.images.clear()
     }
   }
 
