@@ -26,7 +26,9 @@ export class UndoRedo {
     this.options = {
       enabled: true,
       maxHistory: 50,
-      debounceMs: 3000,
+      // Coalesce a burst of edits into one undo step, but land the snapshot soon
+      // after activity stops so undo is responsive.
+      debounceMs: 500,
       ...options,
     };
   }
@@ -76,6 +78,9 @@ export class UndoRedo {
    * Undo the last change. Restores the previous snapshot.
    */
   public undo(): boolean {
+    // Capture any pending (debounced) change first, so an edit made moments ago
+    // is on the stack and can be undone immediately.
+    if (this.debounceTimer) this.forceSnapshot();
     if (this.undoStack.length <= 1) {
       console.log("UNDOREDO_DEBUG: Nothing to undo");
       return false;
@@ -162,7 +167,13 @@ export class UndoRedo {
   // ─── Private ─────────────────────────────────────────────────────
 
   private takeSnapshot(): void {
-    const snapshot = serialize(this.slate);
+    let snapshot: SlateJSON;
+    try {
+      snapshot = serialize(this.slate);
+    } catch (e) {
+      // Slate not fully constructed / serializable yet — skip this snapshot.
+      return;
+    }
 
     // Clear redo stack on new change
     this.redoStack = [];

@@ -390,10 +390,12 @@ export class Slate {
       }, 200);
     }
 
-    // Initialize undo/redo
+    // Initialize undo/redo + take an empty baseline so the very first edit on a
+    // fresh slate is undoable (loadJSON re-baselines for loaded documents).
     this.undoRedo = new UndoRedo(this, {
       enabled: this.options.showUndoRedo !== false,
     });
+    this.undoRedo.snap?.(true);
 
     // Initialize multi-selection
     this.multiSelection = new MultiSelection(this, {
@@ -605,7 +607,25 @@ export class Slate {
     } else {
       this.emitSlateChange(type, data);
     }
+    // Record an undo snapshot for state-mutating changes (debounced so a drag or
+    // a burst of edits collapses into one undo step). View/presence events don't
+    // change document state, so they're excluded.
+    if (this.undoRedo && !Slate.NON_UNDOABLE.has(type)) {
+      this.undoRedo.snap?.();
+    }
   }
+
+  /** Broadcast types that change the viewport/presence, not document state. */
+  private static readonly NON_UNDOABLE = new Set<string>([
+    "onZoom",
+    "onCanvasMove",
+    "onFollowMeChanged",
+    "onSlateFollowMeChanged",
+    "onSlateHuddleChanged",
+    "onCursorMoved",
+    "onPresenceChanged",
+    "onSlateChanged",
+  ]);
 
   /** Queue onSlateChanged packages until flushEmits() (v1 collab-init timing). */
   public deferEmits(): void {
@@ -1578,6 +1598,9 @@ export class Slate {
     useMainCanvas?: boolean
   ): Promise<void> {
     await deserialize(json, this, preserve, skipZoom);
+    // Baseline snapshot of the loaded document so the first edit is undoable.
+    this.undoRedo?.clear?.();
+    this.undoRedo?.snap?.(true);
   }
 
   /**

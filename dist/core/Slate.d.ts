@@ -216,6 +216,8 @@ export declare class Slate {
      * remote package is being applied so remote changes never re-broadcast.
      */
     broadcast(type: string, data?: Record<string, any>): void;
+    /** Broadcast types that change the viewport/presence, not document state. */
+    private static readonly NON_UNDOABLE;
     /** Queue onSlateChanged packages until flushEmits() (v1 collab-init timing). */
     deferEmits(): void;
     /** Deliver queued packages and resume synchronous emission. */

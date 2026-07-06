@@ -158,6 +158,16 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   x=0). Verified live: arrow point now sits exactly on the node's edge ("just touching"). e2e
   connector-arrowhead-tip; perpendicular + drop-point regressions green.
 
+- INTERACTION SWEEP (real mouse): drag (from anywhere incl. text) ✅, resize handle (node + rect +
+  text re-center) ✅, double-click inline text edit (textarea) ✅, connectors follow, no fly-aways.
+- U19 DONE [lib, pending commit]: UNDO/REDO was entirely dead — UndoRedo.snap() was called NOWHERE in
+  the codebase, so the stack stayed empty (Ctrl+Z bound but nothing to undo). Fix: Slate.broadcast()
+  auto-records a snapshot on state-mutating changes (view/presence types excluded via NON_UNDOABLE);
+  initial baseline on init + after loadJSON; debounce 3000→500ms; undo() flushes any pending snap
+  first; takeSnapshot guarded against pre-construction serialize. Verified live: drag→Ctrl+Z reverts,
+  Ctrl+Shift+Z redoes (restore is a full async deserialize, ~1s). e2e undo-redo-autosnap (auto-record
+  + zoom excluded); existing undo-redo.spec green.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the
