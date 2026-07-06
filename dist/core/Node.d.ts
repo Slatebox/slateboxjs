@@ -184,6 +184,12 @@ export declare class Node {
      */
     setShape(shape: string, vectorPath?: string): void;
     private createText;
+    /**
+     * Re-apply font (size / family / color / opacity) from options to the text
+     * element and re-center for alignment. The text pane sends font changes via
+     * onNodeTextChanged; without this they only updated options, never the render.
+     */
+    applyTextStyle(): void;
     /** Position the text element within the background shape based on alignment settings. */
     centerText(): void;
     private makeDraggable;

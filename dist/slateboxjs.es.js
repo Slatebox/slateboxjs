@@ -7078,6 +7078,21 @@ class Pe {
       this.textElement
     ), this.centerText();
   }
+  /**
+   * Re-apply font (size / family / color / opacity) from options to the text
+   * element and re-center for alignment. The text pane sends font changes via
+   * onNodeTextChanged; without this they only updated options, never the render.
+   */
+  applyTextStyle() {
+    if (!this.textElement) return;
+    const { fontSize: t, fontFamily: e, fontColor: i, textOpacity: s } = this.options;
+    this.textElement.font({
+      family: e,
+      size: t,
+      fill: i,
+      opacity: s
+    }), this.centerText();
+  }
   /** Position the text element within the background shape based on alignment settings. */
   centerText() {
     if (!this.textElement) return;
@@ -8310,7 +8325,7 @@ class ba {
   }
   onNodeTextChanged(t) {
     const e = this.slate.nodes.one(t.data.id);
-    e && (e.setText(t.data.text), t.data.fontSize !== void 0 && (e.options.fontSize = t.data.fontSize), t.data.fontFamily !== void 0 && (e.options.fontFamily = t.data.fontFamily), t.data.fontColor !== void 0 && (e.options.fontColor = t.data.fontColor), t.data.textOpacity !== void 0 && (e.options.textOpacity = t.data.textOpacity), t.data.textXAlign !== void 0 && (e.options.textXAlign = t.data.textXAlign), t.data.textYAlign !== void 0 && (e.options.textYAlign = t.data.textYAlign));
+    e && (t.data.fontSize !== void 0 && (e.options.fontSize = t.data.fontSize), t.data.fontFamily !== void 0 && (e.options.fontFamily = t.data.fontFamily), t.data.fontColor !== void 0 && (e.options.fontColor = t.data.fontColor), t.data.textOpacity !== void 0 && (e.options.textOpacity = t.data.textOpacity), t.data.textXAlign !== void 0 && (e.options.textXAlign = t.data.textXAlign), t.data.textYAlign !== void 0 && (e.options.textYAlign = t.data.textYAlign), t.data.text !== void 0 && e.setText(t.data.text), e.applyTextStyle());
   }
   onNodeAITextChanged(t) {
     const e = this.slate.nodes.one(t.data.id);

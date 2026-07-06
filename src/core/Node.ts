@@ -703,6 +703,23 @@ export class Node {
     this.centerText();
   }
 
+  /**
+   * Re-apply font (size / family / color / opacity) from options to the text
+   * element and re-center for alignment. The text pane sends font changes via
+   * onNodeTextChanged; without this they only updated options, never the render.
+   */
+  public applyTextStyle(): void {
+    if (!this.textElement) return;
+    const { fontSize, fontFamily, fontColor, textOpacity } = this.options;
+    this.textElement.font({
+      family: fontFamily!,
+      size: fontSize!,
+      fill: fontColor!,
+      opacity: textOpacity!,
+    });
+    this.centerText();
+  }
+
   /** Position the text element within the background shape based on alignment settings. */
   public centerText() {
     // Skip if no text element (e.g., when using SVG content)

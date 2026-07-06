@@ -198,17 +198,18 @@ export class Invoker {
 
   onNodeTextChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      node.setText(pkg.data.text)
-      // Update text properties — only when present (a text-only package
-      // must not wipe font settings with undefined)
-      if (pkg.data.fontSize !== undefined) node.options.fontSize = pkg.data.fontSize
-      if (pkg.data.fontFamily !== undefined) node.options.fontFamily = pkg.data.fontFamily
-      if (pkg.data.fontColor !== undefined) node.options.fontColor = pkg.data.fontColor
-      if (pkg.data.textOpacity !== undefined) node.options.textOpacity = pkg.data.textOpacity
-      if (pkg.data.textXAlign !== undefined) node.options.textXAlign = pkg.data.textXAlign
-      if (pkg.data.textYAlign !== undefined) node.options.textYAlign = pkg.data.textYAlign
-    }
+    if (!node) return
+    // Update font/alignment options FIRST — only when present (a text-only
+    // package must not wipe font settings with undefined).
+    if (pkg.data.fontSize !== undefined) node.options.fontSize = pkg.data.fontSize
+    if (pkg.data.fontFamily !== undefined) node.options.fontFamily = pkg.data.fontFamily
+    if (pkg.data.fontColor !== undefined) node.options.fontColor = pkg.data.fontColor
+    if (pkg.data.textOpacity !== undefined) node.options.textOpacity = pkg.data.textOpacity
+    if (pkg.data.textXAlign !== undefined) node.options.textXAlign = pkg.data.textXAlign
+    if (pkg.data.textYAlign !== undefined) node.options.textYAlign = pkg.data.textYAlign
+    // Apply the text string (if any), then re-render font + alignment.
+    if (pkg.data.text !== undefined) node.setText(pkg.data.text)
+    node.applyTextStyle()
   }
 
   onNodeAITextChanged(pkg: SlatePackage) {

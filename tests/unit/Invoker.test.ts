@@ -51,6 +51,7 @@ describe("Invoker", () => {
         clear: vi.fn(),
       },
       applyBorder: vi.fn(),
+      applyTextStyle: vi.fn(),
     };
 
     mockSlate = {
@@ -234,6 +235,8 @@ describe("Invoker", () => {
       expect(mockNode.options.textOpacity).toBe(0.8);
       expect(mockNode.options.textXAlign).toBe("left");
       expect(mockNode.options.textYAlign).toBe("top");
+      // Font/alignment changes must be re-rendered, not just stored.
+      expect(mockNode.applyTextStyle).toHaveBeenCalled();
     });
 
     it("should do nothing when node is not found", () => {

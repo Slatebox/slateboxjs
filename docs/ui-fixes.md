@@ -116,6 +116,14 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   re-render, border stroke, effect filter). The Invoker handlers are the shared local+remote apply
   path, so every fix (U5/U6/U11/U13...) rides the same proven pipeline. No lib change this iteration.
 
+- SLATE BG EFFECT (texture): NOT A BUG — no v1 filter is tagged types:['slate'], so the pane is
+  empty in v1 too (vestigial). Nothing to port.
+- U14 DONE [lib, pending commit]: NODE TEXT font controls (size/color/family/alignment) were inert.
+  onNodeTextChanged set font options AFTER setText and never re-rendered the <text>. Fix: set options
+  FIRST, then setText (only if text present), then new Node.applyTextStyle() re-applies
+  font({family,size,fill,opacity}) + centerText (alignment). Verified live: size 30, color #ff0000,
+  family Georgia, left-align shifts x 110→5. e2e node-text-style.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the
