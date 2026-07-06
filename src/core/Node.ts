@@ -778,6 +778,7 @@ export class Node {
       this.textElement
     );
     this.centerText();
+    this.fitHeightToText();
   }
 
   /**
@@ -877,6 +878,28 @@ export class Node {
       if (line) out.push(line);
     }
     return out.join("\n");
+  }
+
+  /**
+   * Grow the node's height so wrapped text fits inside it (Miro-style: nodes
+   * grow to fit typed content). Only ever grows — never shrinks — to avoid
+   * jumpiness when text is removed. Derived from the text, so it's re-applied on
+   * load without needing to be persisted separately. No-op in headless tests
+   * where getBBox is unavailable.
+   */
+  private fitHeightToText(): void {
+    if (!this.textElement || this.nestedSvg) return;
+    let textHeight = 0;
+    try {
+      textHeight = (this.textElement.node as any).getBBox?.()?.height || 0;
+    } catch (e) {
+      return;
+    }
+    if (!textHeight) return;
+    const needed = Math.ceil(textHeight) + 14; // vertical padding
+    if (needed > (this.options.height || 0) + 1) {
+      this.setSize(this.options.width || 100, needed);
+    }
   }
 
   /** Position the text element within the background shape based on alignment settings. */
@@ -1317,6 +1340,7 @@ export class Node {
     this.options.text = text;
     this.textElement.text(this.wrapTextToWidth(text));
     this.centerText();
+    this.fitHeightToText();
     // Update accessibility label
     this.svgGroup.node.setAttribute("aria-label", text || "Unnamed node");
     if (changed) {

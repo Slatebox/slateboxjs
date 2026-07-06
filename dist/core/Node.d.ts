@@ -212,6 +212,14 @@ export declare class Node {
      * when canvas measurement isn't available.
      */
     private wrapTextToWidth;
+    /**
+     * Grow the node's height so wrapped text fits inside it (Miro-style: nodes
+     * grow to fit typed content). Only ever grows — never shrinks — to avoid
+     * jumpiness when text is removed. Derived from the text, so it's re-applied on
+     * load without needing to be persisted separately. No-op in headless tests
+     * where getBBox is unavailable.
+     */
+    private fitHeightToText;
     /** Position the text element within the background shape based on alignment settings. */
     centerText(): void;
     private makeDraggable;
