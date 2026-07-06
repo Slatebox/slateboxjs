@@ -20,6 +20,7 @@ import { Filters } from "./Filters";
 import { Menu } from "./Menu";
 import { resolveShapePath, isNativeShape } from "./ShapeRegistry";
 import { v2NodeToV1 } from "./compat";
+import { whiteOrBlack } from "../utils";
 
 export interface NodeLinkOptions {
   show?: boolean;
@@ -1413,6 +1414,29 @@ export class Node {
     if (backgroundColor) {
       this.options.backgroundColor = backgroundColor;
       styleEl.fill(backgroundColor);
+      // Keep text readable on the new fill: if the font color is an AUTO value
+      // (black/white/unset), flip it to whichever contrasts — otherwise white
+      // default text goes invisible on a light background. Custom colors are
+      // preserved. Both windows compute the same value, so it stays in sync.
+      const fc = String(this.options.fontColor || "").toLowerCase();
+      const isAutoFont = [
+        "",
+        "#fff",
+        "#ffffff",
+        "#000",
+        "#000000",
+        "white",
+        "black",
+      ].includes(fc);
+      if (isAutoFont && this.textElement && backgroundColor.startsWith("#")) {
+        const ideal = whiteOrBlack(backgroundColor);
+        this.options.fontColor = ideal;
+        try {
+          this.textElement.font({ fill: ideal });
+        } catch (e) {
+          /* noop */
+        }
+      }
     }
 
     if (borderColor) {
