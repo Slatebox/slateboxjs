@@ -7155,7 +7155,7 @@ class Ie {
   createText() {
     console.log("NODE_DEBUG: createText called for", this.id);
     const { text: t, fontSize: e, fontFamily: i, fontColor: s, textOpacity: o } = this.options;
-    this.textElement = this.svgGroup.text(t).font({
+    this.textElement = this.svgGroup.text(this.wrapTextToWidth(t)).font({
       family: i,
       size: e,
       fill: s,
@@ -7194,6 +7194,40 @@ class Ie {
       opacity: s
     }), this.centerText();
   }
+  /**
+   * Word-wrap `text` to the node's inner width, returning it with newlines
+   * inserted at break points (SVG.js renders one tspan per line). Explicit
+   * newlines are preserved; a single word longer than the width stays on its own
+   * line rather than being split mid-word. Falls back to a character estimate
+   * when canvas measurement isn't available.
+   */
+  wrapTextToWidth(t) {
+    if (!t) return t;
+    const e = Math.max(24, (this.options.width || 100) - 14), i = this.options.fontSize || 14, s = this.options.fontFamily || "sans-serif";
+    let o = null;
+    try {
+      o = (this._measureCanvas || (this._measureCanvas = document.createElement("canvas"))).getContext("2d"), o && (o.font = `${i}px ${s}`);
+    } catch {
+      o = null;
+    }
+    const r = (l) => o ? o.measureText(l).width : l.length * i * 0.55, a = [];
+    for (const l of String(t).split(`
+`)) {
+      const c = l.split(/\s+/).filter(Boolean);
+      if (!c.length) {
+        a.push("");
+        continue;
+      }
+      let h = "";
+      for (const d of c) {
+        const u = h ? `${h} ${d}` : d;
+        h && r(u) > e ? (a.push(h), h = d) : h = u;
+      }
+      h && a.push(h);
+    }
+    return a.join(`
+`);
+  }
   /** Position the text element within the background shape based on alignment settings. */
   centerText() {
     if (!this.textElement) return;
@@ -7220,6 +7254,11 @@ class Ie {
       default:
         this.textElement.attr("dominant-baseline", "central");
         break;
+    }
+    const h = this.textElement.node.querySelectorAll?.("tspan")?.length || 1;
+    if (h > 1 && s !== "top" && s !== "bottom") {
+      const d = (this.options.fontSize || 14) * 1.3;
+      c -= (h - 1) * d / 2;
     }
     this.textElement.attr({ x: l, y: c });
   }
@@ -7370,7 +7409,7 @@ class Ie {
   setText(t) {
     if (!this.textElement) return;
     const e = this.options.text !== t;
-    this.options.text = t, this.textElement.text(t), this.centerText(), this.svgGroup.node.setAttribute("aria-label", t || "Unnamed node"), e && this.slate.broadcast?.("onNodeTextChanged", { id: this.id, text: t });
+    this.options.text = t, this.textElement.text(this.wrapTextToWidth(t)), this.centerText(), this.svgGroup.node.setAttribute("aria-label", t || "Unnamed node"), e && this.slate.broadcast?.("onNodeTextChanged", { id: this.id, text: t });
   }
   /**
    * Resize the node to new dimensions. For circles, forces width === height.

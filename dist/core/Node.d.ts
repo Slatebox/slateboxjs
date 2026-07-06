@@ -204,6 +204,14 @@ export declare class Node {
      * onNodeTextChanged; without this they only updated options, never the render.
      */
     applyTextStyle(): void;
+    /**
+     * Word-wrap `text` to the node's inner width, returning it with newlines
+     * inserted at break points (SVG.js renders one tspan per line). Explicit
+     * newlines are preserved; a single word longer than the width stays on its own
+     * line rather than being split mid-word. Falls back to a character estimate
+     * when canvas measurement isn't available.
+     */
+    private wrapTextToWidth;
     /** Position the text element within the background shape based on alignment settings. */
     centerText(): void;
     private makeDraggable;

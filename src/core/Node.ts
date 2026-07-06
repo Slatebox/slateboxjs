@@ -758,7 +758,7 @@ export class Node {
 
     const { text, fontSize, fontFamily, fontColor, textOpacity } = this.options;
 
-    this.textElement = this.svgGroup.text(text!).font({
+    this.textElement = this.svgGroup.text(this.wrapTextToWidth(text!)).font({
       family: fontFamily!,
       size: fontSize!,
       fill: fontColor!,
@@ -809,6 +809,52 @@ export class Node {
     this.centerText();
   }
 
+  /**
+   * Word-wrap `text` to the node's inner width, returning it with newlines
+   * inserted at break points (SVG.js renders one tspan per line). Explicit
+   * newlines are preserved; a single word longer than the width stays on its own
+   * line rather than being split mid-word. Falls back to a character estimate
+   * when canvas measurement isn't available.
+   */
+  private wrapTextToWidth(text: string): string {
+    if (!text) return text;
+    const maxWidth = Math.max(24, (this.options.width || 100) - 14);
+    const fontSize = this.options.fontSize || 14;
+    const fontFamily = this.options.fontFamily || "sans-serif";
+    let ctx: any = null;
+    try {
+      const canvas =
+        (this as any)._measureCanvas ||
+        ((this as any)._measureCanvas = document.createElement("canvas"));
+      ctx = canvas.getContext("2d");
+      if (ctx) ctx.font = `${fontSize}px ${fontFamily}`;
+    } catch (e) {
+      ctx = null;
+    }
+    const measure = (s: string) =>
+      ctx ? ctx.measureText(s).width : s.length * fontSize * 0.55;
+    const out: string[] = [];
+    for (const para of String(text).split("\n")) {
+      const words = para.split(/\s+/).filter(Boolean);
+      if (!words.length) {
+        out.push("");
+        continue;
+      }
+      let line = "";
+      for (const word of words) {
+        const test = line ? `${line} ${word}` : word;
+        if (line && measure(test) > maxWidth) {
+          out.push(line);
+          line = word;
+        } else {
+          line = test;
+        }
+      }
+      if (line) out.push(line);
+    }
+    return out.join("\n");
+  }
+
   /** Position the text element within the background shape based on alignment settings. */
   public centerText() {
     // Skip if no text element (e.g., when using SVG content)
@@ -853,6 +899,16 @@ export class Node {
       default: // middle
         this.textElement.attr('dominant-baseline', 'central');
         break;
+    }
+
+    // Multi-line text: SVG.js stacks tspans downward from the first line, so for
+    // middle/default vertical alignment shift the block up by half its extra
+    // height to keep it centered in the shape.
+    const lineCount =
+      this.textElement.node.querySelectorAll?.("tspan")?.length || 1;
+    if (lineCount > 1 && textYAlign !== "top" && textYAlign !== "bottom") {
+      const lineHeight = (this.options.fontSize || 14) * 1.3;
+      y -= ((lineCount - 1) * lineHeight) / 2;
     }
 
     // Use x/y attributes directly for proper text-anchor behavior
@@ -1235,7 +1291,7 @@ export class Node {
 
     const changed = this.options.text !== text;
     this.options.text = text;
-    this.textElement.text(text);
+    this.textElement.text(this.wrapTextToWidth(text));
     this.centerText();
     // Update accessibility label
     this.svgGroup.node.setAttribute("aria-label", text || "Unnamed node");
