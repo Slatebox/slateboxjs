@@ -188,6 +188,15 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## ARROW-KEY NUDGE persistence FIXED
+- BUG: selecting a node + pressing arrow keys moved it (Keyboard.nudge, 5px), but it did NOT persist —
+  on reload the node snapped back. Root cause: nudge() called node.position() but never broadcast, so
+  the host never saved it (a drag persists because dragend broadcasts onNodesMove). FIX (lib
+  Keyboard.ts): after nudging, broadcast onNodesMove (same package as drag-end,
+  {nodeOptions:[v2NodeToV1(...)]}), DEBOUNCED 250ms so holding an arrow key batches into one save.
+  Verified live: nudge 4 right/3 down (20,15) → reload → position kept. e2e keyboard-nudge.spec.ts.
+  1073 unit.
+
 ## UNDO/REDO FIXED (undo was a no-op after a debounced change)
 - BUG: after a debounced change (move/resize etc. via the engine broadcast path), Ctrl+Z / undo() did
   NOTHING (node stayed moved; delete not restored). Root cause: the debounce callback in

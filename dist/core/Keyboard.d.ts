@@ -20,6 +20,7 @@ export declare class Keyboard {
     private options;
     private boundHandler;
     private clipboard;
+    private nudgeTimer;
     constructor(slate: any, options?: KeyboardOptions);
     /** Bind global keyboard shortcuts */
     bindGlobal(): void;

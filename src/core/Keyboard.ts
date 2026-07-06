@@ -13,6 +13,7 @@
  */
 
 import { guid } from "../utils";
+import { v2NodeToV1 } from "./compat";
 
 export interface KeyboardOptions {
   enabled?: boolean;
@@ -25,6 +26,8 @@ export class Keyboard {
   private boundHandler: ((e: KeyboardEvent) => void) | null = null;
   // Internal clipboard of copied node options (deep-cloned snapshots).
   private clipboard: any[] = [];
+  // Debounce handle for persisting arrow-key nudges.
+  private nudgeTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(slate: any, options: KeyboardOptions = {}) {
     this.slate = slate;
@@ -298,6 +301,21 @@ export class Keyboard {
       const y = (node.options.y || 0) + dy;
       node.position(x, y);
     }
+
+    // node.position() alone doesn't broadcast, so a nudge never persisted / synced
+    // (the node snapped back on reload). Broadcast onNodesMove — same package the
+    // drag-end emits — so the host saves it. Debounced so holding an arrow key
+    // batches into one save instead of hammering the server per keypress.
+    if (this.nudgeTimer) clearTimeout(this.nudgeTimer);
+    this.nudgeTimer = setTimeout(() => {
+      this.nudgeTimer = null;
+      const sel = this.slate.getSelectedNodes?.() || [];
+      if (sel.length > 0) {
+        this.slate.broadcast?.("onNodesMove", {
+          nodeOptions: sel.map((n: any) => v2NodeToV1(n.options)),
+        });
+      }
+    }, 250);
   }
 
   private handleArrowKey(e: KeyboardEvent): void {
