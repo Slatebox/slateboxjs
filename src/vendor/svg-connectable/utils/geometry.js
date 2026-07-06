@@ -352,6 +352,46 @@ function anchorPointOnShape(shape, anchor) {
   return [wx, wy];
 }
 
+/**
+ * edgeNormalAt
+ * Outward unit normal of the node EDGE that `portSvg` sits on, in SVG coords.
+ * For a rectangle this is axis-aligned (perpendicular to the specific edge), which
+ * is what makes an arrow tip meet the edge at 90° — unlike the radial center→port
+ * direction, which only equals the normal at edge midpoints. Rotation is honored
+ * by mapping the local normal through two points. Returns null on failure so the
+ * caller can fall back to the radial direction (correct for circles).
+ */
+function edgeNormalAt(shape, portSvg) {
+  try {
+    const bb = shape.bbox();
+    if (!bb || !bb.width || !bb.height) return null;
+    const [lx, ly] = svgCoordsToLocal(shape, portSvg[0], portSvg[1]);
+    const nx = (lx - bb.x) / bb.width;
+    const ny = (ly - bb.y) / bb.height;
+    const dl = nx;
+    const dr = 1 - nx;
+    const dt = ny;
+    const db = 1 - ny;
+    const m = Math.min(dl, dr, dt, db);
+    let lnx = 0;
+    let lny = 0;
+    if (m === dl) lnx = -1;
+    else if (m === dr) lnx = 1;
+    else if (m === dt) lny = -1;
+    else lny = 1;
+    // Map the local normal DIRECTION to SVG coords via center and center+normal.
+    const p0 = localToSvgCoords(shape, bb.cx, bb.cy);
+    const p1 = localToSvgCoords(shape, bb.cx + lnx, bb.cy + lny);
+    const vx = p1[0] - p0[0];
+    const vy = p1[1] - p0[1];
+    const mag = Math.hypot(vx, vy);
+    if (!(mag > 0.0001)) return null;
+    return [vx / mag, vy / mag];
+  } catch (e) {
+    return null;
+  }
+}
+
 function computeConnectorCoordinates(con) {
   const temp = {};
 
@@ -412,9 +452,16 @@ function computeConnectorCoordinates(con) {
       const fm = Math.sqrt(fx * fx + fy * fy) || 1;
       return [fx / fm, fy / fm];
     };
-    // Outward (edge-normal) direction at each port = center → port.
-    const sDir = norm(pp1[0] - sourceCenter[0], pp1[1] - sourceCenter[1], dx, dy);
-    const tDir = norm(pp2[0] - targetCenter[0], pp2[1] - targetCenter[1], -dx, -dy);
+    // Outward direction at each port. Prefer the true axis-aligned EDGE normal
+    // (so a rectangle's arrow tip meets the edge at 90°, honoring the drop spot);
+    // fall back to the radial center→port direction (correct for circles) when
+    // the edge normal can't be resolved.
+    const sDir =
+      edgeNormalAt(con.source, pp1) ||
+      norm(pp1[0] - sourceCenter[0], pp1[1] - sourceCenter[1], dx, dy);
+    const tDir =
+      edgeNormalAt(con.target, pp2) ||
+      norm(pp2[0] - targetCenter[0], pp2[1] - targetCenter[1], -dx, -dy);
     // Handle length: the "Line Curve" slider (lineCurviness, 0..1) scales how far
     // the control points bow out, as a fraction of the span — so the slider is
     // always responsive. A small floor keeps the perpendicular approach visible.
