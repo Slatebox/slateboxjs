@@ -8381,7 +8381,7 @@ class xa {
   }
   onNodeAITextChanged(t) {
     const e = this.slate.nodes.one(t.data.id);
-    e && (e.options.ai = { ...t.data.ai, ...e.options.ai });
+    e && (e.options.ai = { ...e.options.ai, ...t.data.ai });
   }
   addRelationship(t) {
     this.slate.nodes.addRelationship(t.data);

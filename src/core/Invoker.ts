@@ -220,7 +220,11 @@ export class Invoker {
   onNodeAITextChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
-      node.options.ai = { ...pkg.data.ai, ...node.options.ai }
+      // Merge with NEW winning (existing fields not in the package are kept).
+      // The order was reversed, so a re-set of the same field was ignored and a
+      // remote peer never picked up another client's AI change. Matches the
+      // update semantics of onSlateAISet.
+      node.options.ai = { ...node.options.ai, ...pkg.data.ai }
     }
   }
 

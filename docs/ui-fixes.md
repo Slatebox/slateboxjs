@@ -188,6 +188,14 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## NODE AI-TEXT merge order fixed (collab replay audit)
+- Found by auditing every Invoker handler for the link-bug class (whole-pkg / wrong-field). Only real
+  hit besides links: onNodeAITextChanged merged { ...pkg.data.ai, ...node.options.ai } — EXISTING won
+  over NEW, so re-setting an AI field was ignored and a remote peer never picked up another client's AI
+  change (backwards vs onSlateAISet, which lets new win). Fixed to { ...node.options.ai, ...pkg.data.ai }
+  (new wins, untouched fields preserved). Unit test added (update-same-field). AI needs the backend to
+  live-drive, so the unit test is the guard. Rest of the ~40 handlers audited clean. 1075 unit / 186 e2e.
+
 ## NODE LINK corruption on reload / collab fixed
 - Found by driving the library node-link API (app has no link UI yet). Setting a URL link persisted
   locally, but after reload options.link held the ENTIRE collab envelope

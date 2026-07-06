@@ -751,6 +751,21 @@ describe("Invoker", () => {
       });
     });
 
+    it("lets a new value win when it re-sets an existing field", () => {
+      // The merge order was reversed, so re-setting the same AI field (or a
+      // remote peer's change) was silently dropped.
+      mockNode.options.ai = { textToChildNodes: 5, isDetailedChild: false };
+
+      invoker.onNodeAITextChanged({
+        data: { id: "node1", ai: { textToChildNodes: 10 } },
+      });
+
+      expect(mockNode.options.ai).toEqual({
+        textToChildNodes: 10, // new value applied
+        isDetailedChild: false, // untouched field preserved
+      });
+    });
+
     it("should do nothing when node is not found", () => {
       mockSlate.nodes.one.mockReturnValue(null);
 
