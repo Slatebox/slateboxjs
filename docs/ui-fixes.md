@@ -197,15 +197,15 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   another node DOES create the association — VERIFIED live when the target is in the clear canvas area
   (rubber-band preview follows, drop → addAssociation, connCount=1). The interaction relies on
   document.elementFromPoint(...).closest('[data-node-id]') to find the drop target.
-- CHAT-OVERLAY BUG (app, OPEN): the AI chat is a floating 320x420 bottom-right <Paper> (Chat.jsx,
-  zIndex 6, pointer-events auto) rendered whenever isChatOpen. It is OPEN by default, so it covers the
-  bottom-right canvas corner — nodes there fail elementFromPoint (hit the MuiGrid, not the SVG), so you
-  CANNOT drop-connect to (or likely select) nodes under it. Setting isChatOpen atom default:false alone
-  did NOT close it (still open after a clean restart) — it's force-opened elsewhere (recoil
-  persistence? another setChatOpen(true)? Canvas initAIConversation only forces it when
-  getAutoInvokeConversation is set). FOLLOW-UP: find what forces chat open on a plain new slate; either
-  keep it closed by default (toolbar Chat icon reopens it) or give the empty/idle chat pointer-events:
-  none so it never blocks the canvas.
+- CHAT-OVERLAY BUG (app) — FIXED (slatebox 5b354a8): the AI chat is a floating 320x420 bottom-right
+  <Paper> (Chat.jsx, zIndex 6, pointer-events auto), and Canvas had a "hook to always open chat" that
+  force-opened it on every slate load — covering the bottom-right canvas so nodes there failed
+  elementFromPoint (hit the MuiGrid, not the SVG) and couldn't be selected / drop-connected. Removed
+  the force-open effect; isChatOpen default:false. Chat now opens on demand (toolbar Chat icon, or real
+  AI activity via AdHocAINodes / CanvasAIIntentionsDialog / initAIConversation). Verified live: chat
+  closed on load, a bottom-right node hit-tests to SVG, plug-drag-connect to it succeeds (connCount 1),
+  and the toolbar Chat icon opens+closes the chat. Library plug-connect guarded by
+  tests/e2e/plug-connect.spec.ts (green).
 
 ## NODE PANE (TEXT+EFFECTS) + COLLAB PARITY — VERIFIED CLEAN
 - Node TEXT tab: changing font family (Roboto→Bangers) applies, the active-font highlight moves, the
