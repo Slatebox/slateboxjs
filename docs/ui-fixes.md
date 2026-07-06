@@ -168,6 +168,17 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   Ctrl+Shift+Z redoes (restore is a full async deserialize, ~1s). e2e undo-redo-autosnap (auto-record
   + zoom excluded); existing undo-redo.spec green.
 
+- INTERACTION SWEEP cont.: delete key ✅ (+ toolbar delete ✅), double-click edit ✅. Multi-select
+  was broken →
+- U20 DONE [lib, pending commit]: rubber-band MULTI-SELECT was broken by THREE issues. (1) panButton
+  was 0 (left mouse) so left-drag PANNED while also rubber-banding — changed default to 1 (middle
+  mouse); left-drag now selects, pan via middle/trackpad/wheel (custom wheel handler unaffected). (2)
+  selectNodesInRect compared the world-space rect against node.svgGroup.bbox() (LOCAL ~0,0,w,h) →
+  never overlapped; now uses node.options world coords. (3) pointermove/up were on the canvas → pointer
+  capture stole them; moved to window listeners bound during the drag. Verified live (real mouse):
+  rect grows + selects the boxed nodes. e2e multi-select; MultiSelection unit tests reworked for the
+  window-listener model (1065 unit).
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

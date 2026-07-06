@@ -18,11 +18,16 @@ export declare class MultiSelection {
     private selectionRect;
     private startPoint;
     private isSelecting;
+    private _winMove;
+    private _winUp;
     constructor(slate: any, options?: MultiSelectionOptions);
     enable(): void;
     disable(): void;
     isEnabled(): boolean;
     private bindEvents;
+    private onSelectMove;
+    private onSelectUp;
+    private detachWindowHandlers;
     private unbindEvents;
     private cancelSelection;
     private selectNodesInRect;

@@ -8461,7 +8461,10 @@ class Ki {
       pinchZoom: !0,
       wheelZoom: !0,
       // Enable wheel zoom for Ctrl+scroll
-      panButton: 0,
+      // Middle-mouse drag pans (Miro/Figma convention). This frees LEFT-drag on
+      // empty canvas for rubber-band multi-select (MultiSelection) instead of
+      // both firing at once. Trackpad/wheel pan is a separate custom handler.
+      panButton: 1,
       oneFingerPan: !1,
       margins: !1,
       zoomFactor: 0.3,
@@ -9338,7 +9341,7 @@ class ns {
 }
 class is {
   constructor(t, e = {}) {
-    this.selectionRect = null, this.startPoint = null, this.isSelecting = !1, this.slate = t, this.options = {
+    this.selectionRect = null, this.startPoint = null, this.isSelecting = !1, this._winMove = null, this._winUp = null, this.slate = t, this.options = {
       enabled: !0,
       selectionColor: "#4a90e2",
       selectionOpacity: 0.15,
@@ -9357,7 +9360,7 @@ class is {
   // ─── Event binding ───────────────────────────────────────────────
   bindEvents() {
     const t = this.slate.canvas;
-    t && (t.on("pointerdown.multiselect", (e) => {
+    t && t.on("pointerdown.multiselect", (e) => {
       if (!this.options.enabled) return;
       const i = e.target;
       if (!(i === t.node || i?.tagName === "svg")) return;
@@ -9369,24 +9372,34 @@ class is {
         color: this.options.selectionColor,
         width: 1,
         dasharray: "4,4"
-      }).attr("pointer-events", "none"));
-    }), t.on("pointermove.multiselect", (e) => {
-      if (!this.isSelecting || !this.startPoint || !this.selectionRect) return;
-      const i = this.getSvgPoint(e);
-      if (!i) return;
-      const s = Math.min(this.startPoint.x, i.x), o = Math.min(this.startPoint.y, i.y), r = Math.abs(i.x - this.startPoint.x), a = Math.abs(i.y - this.startPoint.y);
-      this.selectionRect.move(s, o).size(r, a);
-    }), t.on("pointerup.multiselect", (e) => {
-      if (!this.isSelecting || !this.startPoint) return;
-      const i = this.getSvgPoint(e);
-      if (!i) return;
-      const s = Math.min(this.startPoint.x, i.x), o = Math.min(this.startPoint.y, i.y), r = Math.abs(i.x - this.startPoint.x), a = Math.abs(i.y - this.startPoint.y);
-      r > 5 && a > 5 && this.selectNodesInRect(s, o, r, a, e.shiftKey), this.cancelSelection();
-    }));
+      }).attr("pointer-events", "none"), this._winMove = (r) => this.onSelectMove(r), this._winUp = (r) => this.onSelectUp(r), window.addEventListener("pointermove", this._winMove, !0), window.addEventListener("pointerup", this._winUp, !0));
+    });
+  }
+  onSelectMove(t) {
+    if (!this.isSelecting || !this.startPoint || !this.selectionRect) return;
+    const e = this.getSvgPoint(t);
+    if (!e) return;
+    const i = Math.min(this.startPoint.x, e.x), s = Math.min(this.startPoint.y, e.y), o = Math.abs(e.x - this.startPoint.x), r = Math.abs(e.y - this.startPoint.y);
+    this.selectionRect.move(i, s).size(o, r);
+  }
+  onSelectUp(t) {
+    if (this.detachWindowHandlers(), !this.isSelecting || !this.startPoint) {
+      this.cancelSelection();
+      return;
+    }
+    const e = this.getSvgPoint(t);
+    if (e) {
+      const i = Math.min(this.startPoint.x, e.x), s = Math.min(this.startPoint.y, e.y), o = Math.abs(e.x - this.startPoint.x), r = Math.abs(e.y - this.startPoint.y);
+      o > 5 && r > 5 && this.selectNodesInRect(i, s, o, r, t.shiftKey);
+    }
+    this.cancelSelection();
+  }
+  detachWindowHandlers() {
+    this._winMove && (window.removeEventListener("pointermove", this._winMove, !0), this._winMove = null), this._winUp && (window.removeEventListener("pointerup", this._winUp, !0), this._winUp = null);
   }
   unbindEvents() {
     const t = this.slate.canvas;
-    t && (t.off("pointerdown.multiselect"), t.off("pointermove.multiselect"), t.off("pointerup.multiselect"));
+    t && (t.off("pointerdown.multiselect"), this.detachWindowHandlers());
   }
   cancelSelection() {
     this.isSelecting = !1, this.startPoint = null, this.selectionRect && (this.selectionRect.remove(), this.selectionRect = null);
@@ -9396,8 +9409,8 @@ class is {
     const r = [], a = this.slate.nodes.allNodes;
     for (const l of a)
       try {
-        const c = l.svgGroup.bbox();
-        c.x < t + i && c.x + c.width > t && c.y < e + s && c.y + c.height > e && r.push(l);
+        const c = l.options, h = c.x ?? 0, d = c.y ?? 0, u = c.width ?? 0, p = c.height ?? 0;
+        h < t + i && h + u > t && d < e + s && d + p > e && r.push(l);
       } catch {
       }
     r.length > 0 && (this.slate.selectNodes(r, o), console.log(

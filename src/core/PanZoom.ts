@@ -44,7 +44,10 @@ export class PanZoom {
       panning: true,
       pinchZoom: true,
       wheelZoom: true, // Enable wheel zoom for Ctrl+scroll
-      panButton: 0,
+      // Middle-mouse drag pans (Miro/Figma convention). This frees LEFT-drag on
+      // empty canvas for rubber-band multi-select (MultiSelection) instead of
+      // both firing at once. Trackpad/wheel pan is a separate custom handler.
+      panButton: 1,
       oneFingerPan: false,
       margins: false,
       zoomFactor: 0.3,

@@ -68,7 +68,8 @@ function createMockSlate() {
     svgGroup: {
       bbox: vi.fn().mockReturnValue(bbox),
     },
-    options: { x: 0, y: 0 },
+    // Rubber-band selection tests against world coords in node.options.
+    options: { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height },
     position: vi.fn(),
   });
 
@@ -93,11 +94,26 @@ function createMockSlate() {
 
 describe("MultiSelection", () => {
   let mockSlate: ReturnType<typeof createMockSlate>;
+  // Move/up are bound on window during a rubber-band drag (survives pointer
+  // capture); capture those handlers so tests can drive them.
+  let winListeners: Record<string, (e: any) => void>;
+
+  const getWin = (type: string) => winListeners[type];
 
   beforeEach(() => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
+
+    winListeners = {};
+    vi.spyOn(window, "addEventListener").mockImplementation(
+      (type: string, handler: any) => {
+        winListeners[type] = handler;
+      }
+    );
+    vi.spyOn(window, "removeEventListener").mockImplementation((type: string) => {
+      delete winListeners[type];
+    });
 
     mockSlate = createMockSlate();
   });
@@ -121,20 +137,25 @@ describe("MultiSelection", () => {
       expect(mockSlate.canvas.on).not.toHaveBeenCalled();
     });
 
-    it("should bind pointerdown/pointermove/pointerup events on construction when enabled", () => {
+    it("should bind pointerdown on construction; move/up are added on drag start", () => {
       new MultiSelection(mockSlate);
       expect(mockSlate.canvas.on).toHaveBeenCalledWith(
         "pointerdown.multiselect",
         expect.any(Function)
       );
-      expect(mockSlate.canvas.on).toHaveBeenCalledWith(
-        "pointermove.multiselect",
-        expect.any(Function)
-      );
-      expect(mockSlate.canvas.on).toHaveBeenCalledWith(
-        "pointerup.multiselect",
-        expect.any(Function)
-      );
+      // move/up are NOT bound until a drag starts (they live on window).
+      expect(getWin("pointermove")).toBeUndefined();
+      expect(getWin("pointerup")).toBeUndefined();
+
+      // Start a drag → window move/up get bound.
+      getHandler(mockSlate.canvas.on, "pointerdown.multiselect")({
+        target: mockSlate.canvas.node,
+        clientX: 10,
+        clientY: 10,
+        shiftKey: false,
+      });
+      expect(getWin("pointermove")).toBeInstanceOf(Function);
+      expect(getWin("pointerup")).toBeInstanceOf(Function);
     });
 
     it("should accept custom selection color and opacity", () => {
@@ -215,8 +236,6 @@ describe("MultiSelection", () => {
       ms.disable();
       expect(ms.isEnabled()).toBe(false);
       expect(mockSlate.canvas.off).toHaveBeenCalledWith("pointerdown.multiselect");
-      expect(mockSlate.canvas.off).toHaveBeenCalledWith("pointermove.multiselect");
-      expect(mockSlate.canvas.off).toHaveBeenCalledWith("pointerup.multiselect");
     });
 
     it("should remove the selection rectangle when disabled mid-drag", () => {
@@ -271,7 +290,7 @@ describe("MultiSelection", () => {
       const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
       pointerDown({ target: mockSlate.canvas.node, clientX: 100, clientY: 200, shiftKey: false });
 
-      const pointerMove = getHandler(mockSlate.canvas.on, "pointermove.multiselect");
+      const pointerMove = getWin("pointermove");
       pointerMove({ clientX: 300, clientY: 500 });
 
       // Rect should be moved to min(x1,x2), min(y1,y2) and sized to abs differences
@@ -285,7 +304,7 @@ describe("MultiSelection", () => {
       const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
       pointerDown({ target: mockSlate.canvas.node, clientX: 300, clientY: 500, shiftKey: false });
 
-      const pointerMove = getHandler(mockSlate.canvas.on, "pointermove.multiselect");
+      const pointerMove = getWin("pointermove");
       pointerMove({ clientX: 100, clientY: 200 });
 
       // min of start/end for position, abs for width/height
@@ -293,15 +312,12 @@ describe("MultiSelection", () => {
       expect(mockSlate.canvas._lastRect.size).toHaveBeenCalledWith(200, 300);
     });
 
-    it("should ignore pointermove when not selecting", () => {
+    it("should not bind window move/up until a drag starts", () => {
       new MultiSelection(mockSlate);
-
-      const pointerMove = getHandler(mockSlate.canvas.on, "pointermove.multiselect");
-      // No pointerdown happened, so isSelecting is false
-      pointerMove({ clientX: 300, clientY: 500 });
-
+      // No pointerdown happened, so the move/up handlers are not on window yet.
+      expect(getWin("pointermove")).toBeUndefined();
+      expect(getWin("pointerup")).toBeUndefined();
       expect(mockSlate.canvas._lastRect.move).not.toHaveBeenCalled();
-      expect(mockSlate.canvas._lastRect.size).not.toHaveBeenCalled();
     });
 
     it("should select nodes on pointerup when rectangle is large enough", () => {
@@ -315,10 +331,10 @@ describe("MultiSelection", () => {
       const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
       pointerDown({ target: mockSlate.canvas.node, clientX: 10, clientY: 10, shiftKey: false });
 
-      const pointerMove = getHandler(mockSlate.canvas.on, "pointermove.multiselect");
+      const pointerMove = getWin("pointermove");
       pointerMove({ clientX: 200, clientY: 200 });
 
-      const pointerUp = getHandler(mockSlate.canvas.on, "pointerup.multiselect");
+      const pointerUp = getWin("pointerup");
       pointerUp({ clientX: 200, clientY: 200, shiftKey: false });
 
       // nodeA is inside (10-200 x 10-200), nodeB is at x=300 so outside
@@ -334,10 +350,10 @@ describe("MultiSelection", () => {
       const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
       pointerDown({ target: mockSlate.canvas.node, clientX: 10, clientY: 10, shiftKey: false });
 
-      const pointerMove = getHandler(mockSlate.canvas.on, "pointermove.multiselect");
+      const pointerMove = getWin("pointermove");
       pointerMove({ clientX: 200, clientY: 200 });
 
-      const pointerUp = getHandler(mockSlate.canvas.on, "pointerup.multiselect");
+      const pointerUp = getWin("pointerup");
       pointerUp({ clientX: 200, clientY: 200, shiftKey: true });
 
       expect(mockSlate.selectNodes).toHaveBeenCalledWith([nodeA], true);
@@ -352,7 +368,7 @@ describe("MultiSelection", () => {
       const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
       pointerDown({ target: mockSlate.canvas.node, clientX: 100, clientY: 100, shiftKey: false });
 
-      const pointerUp = getHandler(mockSlate.canvas.on, "pointerup.multiselect");
+      const pointerUp = getWin("pointerup");
       pointerUp({ clientX: 102, clientY: 103, shiftKey: false });
 
       // Width is 2, height is 3 — both under 5
@@ -369,7 +385,7 @@ describe("MultiSelection", () => {
       const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
       pointerDown({ target: mockSlate.canvas.node, clientX: 0, clientY: 0, shiftKey: false });
 
-      const pointerUp = getHandler(mockSlate.canvas.on, "pointerup.multiselect");
+      const pointerUp = getWin("pointerup");
       // w=6, h=6 — both strictly > 5, so selection proceeds
       pointerUp({ clientX: 6, clientY: 6, shiftKey: false });
 
@@ -385,7 +401,7 @@ describe("MultiSelection", () => {
 
       const rect = mockSlate.canvas._lastRect;
 
-      const pointerUp = getHandler(mockSlate.canvas.on, "pointerup.multiselect");
+      const pointerUp = getWin("pointerup");
       pointerUp({ clientX: 100, clientY: 100, shiftKey: false });
 
       expect(rect.remove).toHaveBeenCalled();
@@ -408,7 +424,7 @@ describe("MultiSelection", () => {
       const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
       pointerDown({ target: mockSlate.canvas.node, clientX: 0, clientY: 0, shiftKey: false });
 
-      const pointerUp = getHandler(mockSlate.canvas.on, "pointerup.multiselect");
+      const pointerUp = getWin("pointerup");
       pointerUp({ clientX: 200, clientY: 200, shiftKey: false });
 
       // Only goodNode should be selected
@@ -424,7 +440,7 @@ describe("MultiSelection", () => {
       const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
       pointerDown({ target: mockSlate.canvas.node, clientX: 0, clientY: 0, shiftKey: false });
 
-      const pointerUp = getHandler(mockSlate.canvas.on, "pointerup.multiselect");
+      const pointerUp = getWin("pointerup");
       pointerUp({ clientX: 100, clientY: 100, shiftKey: false });
 
       expect(console.log).toHaveBeenCalledWith(
@@ -462,7 +478,7 @@ describe("MultiSelection", () => {
       const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
       pointerDown({ target: mockSlate.canvas.node, clientX: 20, clientY: 20, shiftKey: false });
 
-      const pointerUp = getHandler(mockSlate.canvas.on, "pointerup.multiselect");
+      const pointerUp = getWin("pointerup");
       // Rect from (20,20) to (120,100) → w=100, h=80
       pointerUp({ clientX: 120, clientY: 100, shiftKey: false });
 
@@ -479,7 +495,7 @@ describe("MultiSelection", () => {
       const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
       pointerDown({ target: mockSlate.canvas.node, clientX: 0, clientY: 0, shiftKey: false });
 
-      const pointerUp = getHandler(mockSlate.canvas.on, "pointerup.multiselect");
+      const pointerUp = getWin("pointerup");
       expect(() => {
         pointerUp({ clientX: 100, clientY: 100, shiftKey: false });
       }).not.toThrow();
@@ -580,7 +596,7 @@ describe("MultiSelection", () => {
         throw new Error("SVG error");
       });
 
-      const pointerMove = getHandler(mockSlate.canvas.on, "pointermove.multiselect");
+      const pointerMove = getWin("pointermove");
       expect(() => {
         pointerMove({ clientX: 100, clientY: 100 });
       }).not.toThrow();
@@ -599,7 +615,7 @@ describe("MultiSelection", () => {
         throw new Error("SVG error");
       });
 
-      const pointerUp = getHandler(mockSlate.canvas.on, "pointerup.multiselect");
+      const pointerUp = getWin("pointerup");
       expect(() => {
         pointerUp({ clientX: 100, clientY: 100, shiftKey: false });
       }).not.toThrow();
@@ -636,8 +652,8 @@ describe("MultiSelection", () => {
 
       // Disable unbinds events and cancels selection
       expect(mockSlate.canvas.off).toHaveBeenCalledWith("pointerdown.multiselect");
-      expect(mockSlate.canvas.off).toHaveBeenCalledWith("pointermove.multiselect");
-      expect(mockSlate.canvas.off).toHaveBeenCalledWith("pointerup.multiselect");
+      expect(window.removeEventListener).toHaveBeenCalledWith("pointermove", expect.any(Function), true);
+      expect(window.removeEventListener).toHaveBeenCalledWith("pointerup", expect.any(Function), true);
     });
 
     it("should handle multiple subsequent drag selections cleanly", () => {
@@ -647,19 +663,17 @@ describe("MultiSelection", () => {
       mockSlate._allNodes.push(nodeA);
 
       const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
-      const pointerMove = getHandler(mockSlate.canvas.on, "pointermove.multiselect");
-      const pointerUp = getHandler(mockSlate.canvas.on, "pointerup.multiselect");
 
-      // First selection
+      // First selection — window move/up are (re)bound on each pointerdown.
       pointerDown({ target: mockSlate.canvas.node, clientX: 0, clientY: 0, shiftKey: false });
-      pointerMove({ clientX: 100, clientY: 100 });
-      pointerUp({ clientX: 100, clientY: 100, shiftKey: false });
+      getWin("pointermove")({ clientX: 100, clientY: 100 });
+      getWin("pointerup")({ clientX: 100, clientY: 100, shiftKey: false });
       expect(mockSlate.selectNodes).toHaveBeenCalledTimes(1);
 
       // Second selection
       pointerDown({ target: mockSlate.canvas.node, clientX: 5, clientY: 5, shiftKey: false });
-      pointerMove({ clientX: 80, clientY: 80 });
-      pointerUp({ clientX: 80, clientY: 80, shiftKey: false });
+      getWin("pointermove")({ clientX: 80, clientY: 80 });
+      getWin("pointerup")({ clientX: 80, clientY: 80, shiftKey: false });
       expect(mockSlate.selectNodes).toHaveBeenCalledTimes(2);
 
       // The rect should have been created twice
@@ -686,8 +700,8 @@ describe("MultiSelection", () => {
 
       const offCalls = mockSlate.canvas.off.mock.calls.map(([name]: [string]) => name);
       expect(offCalls).toContain("pointerdown.multiselect");
-      expect(offCalls).toContain("pointermove.multiselect");
-      expect(offCalls).toContain("pointerup.multiselect");
+      expect(window.removeEventListener).toHaveBeenCalledWith("pointermove", expect.any(Function), true);
+      expect(window.removeEventListener).toHaveBeenCalledWith("pointerup", expect.any(Function), true);
 
       // The other namespace event should NOT have been unbound
       expect(offCalls).not.toContain("pointerdown.other");
@@ -712,9 +726,9 @@ describe("MultiSelection", () => {
       ms.disable();
 
       // Disable should cancel selection and unbind
-      expect(mockSlate.canvas.off).toHaveBeenCalledWith("pointermove.multiselect");
+      expect(window.removeEventListener).toHaveBeenCalledWith("pointermove", expect.any(Function), true);
       expect(mockSlate.canvas.off).toHaveBeenCalledWith("pointerdown.multiselect");
-      expect(mockSlate.canvas.off).toHaveBeenCalledWith("pointerup.multiselect");
+      expect(window.removeEventListener).toHaveBeenCalledWith("pointerup", expect.any(Function), true);
     });
   });
 });

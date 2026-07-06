@@ -20,6 +20,10 @@ export class MultiSelection {
   private selectionRect: any = null;
   private startPoint: { x: number; y: number } | null = null;
   private isSelecting: boolean = false;
+  // Window-level drag handlers (bound only while a rubber-band is in progress) so
+  // the drag survives pointer capture and the cursor leaving the SVG.
+  private _winMove: ((e: PointerEvent) => void) | null = null;
+  private _winUp: ((e: PointerEvent) => void) | null = null;
 
   constructor(slate: any, options: MultiSelectionOptions = {}) {
     this.slate = slate;
@@ -87,42 +91,55 @@ export class MultiSelection {
           dasharray: "4,4",
         })
         .attr("pointer-events", "none");
+
+      // Track the rest of the drag on window (survives pointer capture / the
+      // cursor moving over nodes or off the SVG).
+      this._winMove = (e: PointerEvent) => this.onSelectMove(e);
+      this._winUp = (e: PointerEvent) => this.onSelectUp(e);
+      window.addEventListener("pointermove", this._winMove, true);
+      window.addEventListener("pointerup", this._winUp, true);
     });
+  }
 
-    canvas.on("pointermove.multiselect", (event: any) => {
-      if (!this.isSelecting || !this.startPoint || !this.selectionRect) return;
+  private onSelectMove(event: PointerEvent): void {
+    if (!this.isSelecting || !this.startPoint || !this.selectionRect) return;
+    const pt = this.getSvgPoint(event);
+    if (!pt) return;
+    const x = Math.min(this.startPoint.x, pt.x);
+    const y = Math.min(this.startPoint.y, pt.y);
+    const w = Math.abs(pt.x - this.startPoint.x);
+    const h = Math.abs(pt.y - this.startPoint.y);
+    this.selectionRect.move(x, y).size(w, h);
+  }
 
-      const pt = this.getSvgPoint(event);
-      if (!pt) return;
-
-      // Calculate rectangle dimensions
+  private onSelectUp(event: PointerEvent): void {
+    this.detachWindowHandlers();
+    if (!this.isSelecting || !this.startPoint) {
+      this.cancelSelection();
+      return;
+    }
+    const pt = this.getSvgPoint(event);
+    if (pt) {
       const x = Math.min(this.startPoint.x, pt.x);
       const y = Math.min(this.startPoint.y, pt.y);
       const w = Math.abs(pt.x - this.startPoint.x);
       const h = Math.abs(pt.y - this.startPoint.y);
-
-      this.selectionRect.move(x, y).size(w, h);
-    });
-
-    canvas.on("pointerup.multiselect", (event: any) => {
-      if (!this.isSelecting || !this.startPoint) return;
-
-      const pt = this.getSvgPoint(event);
-      if (!pt) return;
-
-      // Calculate selection rectangle
-      const x = Math.min(this.startPoint.x, pt.x);
-      const y = Math.min(this.startPoint.y, pt.y);
-      const w = Math.abs(pt.x - this.startPoint.x);
-      const h = Math.abs(pt.y - this.startPoint.y);
-
-      // Only select if rectangle is meaningful size
       if (w > 5 && h > 5) {
         this.selectNodesInRect(x, y, w, h, event.shiftKey);
       }
+    }
+    this.cancelSelection();
+  }
 
-      this.cancelSelection();
-    });
+  private detachWindowHandlers(): void {
+    if (this._winMove) {
+      window.removeEventListener("pointermove", this._winMove, true);
+      this._winMove = null;
+    }
+    if (this._winUp) {
+      window.removeEventListener("pointerup", this._winUp, true);
+      this._winUp = null;
+    }
   }
 
   private unbindEvents(): void {
@@ -130,8 +147,7 @@ export class MultiSelection {
     if (!canvas) return;
 
     canvas.off("pointerdown.multiselect");
-    canvas.off("pointermove.multiselect");
-    canvas.off("pointerup.multiselect");
+    this.detachWindowHandlers();
   }
 
   private cancelSelection(): void {
@@ -157,18 +173,19 @@ export class MultiSelection {
     const allNodes = this.slate.nodes.allNodes;
     for (const node of allNodes) {
       try {
-        const bbox = node.svgGroup.bbox();
-        // Check if node overlaps with selection rectangle
-        if (
-          bbox.x < x + w &&
-          bbox.x + bbox.width > x &&
-          bbox.y < y + h &&
-          bbox.y + bbox.height > y
-        ) {
+        // The selection rect (x,y,w,h) is in SVG world coords (viewBox space).
+        // node.svgGroup.bbox() is the group's LOCAL bbox (~0,0,w,h) — the wrong
+        // space. Use the node's world position/size (options) instead.
+        const o = node.options;
+        const nx = o.x ?? 0;
+        const ny = o.y ?? 0;
+        const nw = o.width ?? 0;
+        const nh = o.height ?? 0;
+        if (nx < x + w && nx + nw > x && ny < y + h && ny + nh > y) {
           nodesInRect.push(node);
         }
       } catch {
-        // Skip nodes without valid bbox
+        // Skip nodes without valid geometry
       }
     }
 
