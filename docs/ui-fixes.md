@@ -185,6 +185,30 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   moved nodes (sync/persist/undo). Verified live: select 2 → drag one → both move by the same delta.
   e2e node-group-move.
 
+- U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
+  double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
+
+## BIG ITEM (user-requested 2026-07-XX): render ALL shapes as PATHS
+- Legacy rendered everything (rects, circles, etc.) as <path> — more adaptive/customizable than native
+  <rect>/<circle>, and connectors compute against real path geometry. svg.js has full path support.
+- Current v2: named/vector shapes already render as <path> in a nested svg (U5/U13 handle contentPath
+  fill/stroke/border). But the DEFAULT rect/circle/ellipse still use native SVG elements
+  (createBackground "native shapes fast path").
+- PLAN (multi-iteration): route rect/circle/ellipse through the path branch too (equivalent path data),
+  unify styling on contentPath, verify: fill/border/opacity/effect, resize/rotate handles, connector
+  edge geometry (getClosestPointOnEdge should use the path), selection bbox, serialize round-trip,
+  reload, collab. Use svg.js conventions; keep the isolated-class pattern. Risk: wide surface — do it
+  behind careful e2e coverage, one shape family at a time.
+
+## OPEN (user-reported): absolute-anchor endpoint + node drag
+- User: pinning the arrow at a point (absolute anchor) works initially, but dragging the node after
+  "doesn't update the association correctly" (endpoint detaches). Investigated: on a CLEAN single-
+  connection slate, the pinned endpoint follows the node exactly (programmatic move → endpoint moves
+  by the same delta; con.targetAnchor set correctly via setEndpointLock). Could NOT reproduce the
+  detach in isolation — my multi-run slate had 3 overlapping connections which confounded it. NEXT:
+  reproduce with the exact user flow (drop-pin via U3, or the on-canvas padlock, then a REAL mouse
+  drag) and check whether the drag rewrites/loses the anchor on the association (persist/collab path).
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the
