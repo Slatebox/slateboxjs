@@ -196,6 +196,14 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   (new wins, untouched fields preserved). Unit test added (update-same-field). AI needs the backend to
   live-drive, so the unit test is the guard. Rest of the ~40 handlers audited clean. 1075 unit / 186 e2e.
 
+## getRotation warning noise on shape-add eliminated
+- Adding a shape logged two "NODE_DEBUG: Failed to read svgGroup/backgroundRect transform for rotation"
+  warnings each time. Cause: the save (serializeNode → getRotation) can run while the node is still
+  mid-async-creation, so svgGroup/backgroundRect are undefined → transform() throws → warn. Non-fatal
+  (getRotation returns 0, and options.rotate is the real source) but noisy. Guarded existence
+  (`if (this.svgGroup)` / `if (this.backgroundRect)`) before calling transform(), so the expected
+  "not ready → rotation 0" case doesn't warn. Verified live: shape-add now logs 0 warnings. 1076 unit.
+
 ## SHAPE PALETTE add threw "node.position is not a function" (v1-compat gap)
 - Found by noticing elevated console errors when adding a shape from the palette. The app
   (QuickNodeActions.jsx) does `new Slatebox.node(opts)` → `slate.nodes.add(node)` → `node.position('center')`

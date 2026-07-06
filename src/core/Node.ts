@@ -1583,27 +1583,34 @@ export class Node {
       return this.options.rotate.rotationAngle;
     }
 
-    // Fallback: Check svgGroup transform (set by setRotation or initial options)
-    try {
-      const groupTransform = (this.svgGroup as any).transform();
-      if (groupTransform && typeof groupTransform.rotate !== 'undefined' && groupTransform.rotate !== 0) {
-        return groupTransform.rotate;
+    // Fallback: Check svgGroup transform (set by setRotation or initial options).
+    // Guard existence first — this runs during a save that can serialize a node
+    // still mid-async-creation (svgGroup/backgroundRect undefined); that's the
+    // expected "not ready, rotation is 0" case, not an error to warn about.
+    if (this.svgGroup) {
+      try {
+        const groupTransform = (this.svgGroup as any).transform();
+        if (groupTransform && typeof groupTransform.rotate !== 'undefined' && groupTransform.rotate !== 0) {
+          return groupTransform.rotate;
+        }
+      } catch (e) {
+        console.warn("NODE_DEBUG: Failed to read svgGroup transform for rotation:", e);
       }
-    } catch (e) {
-      console.warn("NODE_DEBUG: Failed to read svgGroup transform for rotation:", e);
     }
 
     // Fallback: Check backgroundRect (svg.select.js applies rotation here during manual rotate)
-    try {
-      const transform = (this.backgroundRect as any).transform();
-      if (transform && typeof transform.rotation !== 'undefined') {
-        return transform.rotation;
+    if (this.backgroundRect) {
+      try {
+        const transform = (this.backgroundRect as any).transform();
+        if (transform && typeof transform.rotation !== 'undefined') {
+          return transform.rotation;
+        }
+        if (transform && typeof transform.rotate !== 'undefined') {
+          return transform.rotate;
+        }
+      } catch (e) {
+        console.warn("NODE_DEBUG: Failed to read backgroundRect transform for rotation:", e);
       }
-      if (transform && typeof transform.rotate !== 'undefined') {
-        return transform.rotate;
-      }
-    } catch (e) {
-      console.warn("NODE_DEBUG: Failed to read backgroundRect transform for rotation:", e);
     }
 
     return 0;

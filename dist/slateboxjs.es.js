@@ -7509,22 +7509,24 @@ class Ie {
   getRotation() {
     if (this.options.rotate?.rotationAngle !== void 0 && this.options.rotate.rotationAngle !== 0)
       return this.options.rotate.rotationAngle;
-    try {
-      const t = this.svgGroup.transform();
-      if (t && typeof t.rotate < "u" && t.rotate !== 0)
-        return t.rotate;
-    } catch (t) {
-      console.warn("NODE_DEBUG: Failed to read svgGroup transform for rotation:", t);
-    }
-    try {
-      const t = this.backgroundRect.transform();
-      if (t && typeof t.rotation < "u")
-        return t.rotation;
-      if (t && typeof t.rotate < "u")
-        return t.rotate;
-    } catch (t) {
-      console.warn("NODE_DEBUG: Failed to read backgroundRect transform for rotation:", t);
-    }
+    if (this.svgGroup)
+      try {
+        const t = this.svgGroup.transform();
+        if (t && typeof t.rotate < "u" && t.rotate !== 0)
+          return t.rotate;
+      } catch (t) {
+        console.warn("NODE_DEBUG: Failed to read svgGroup transform for rotation:", t);
+      }
+    if (this.backgroundRect)
+      try {
+        const t = this.backgroundRect.transform();
+        if (t && typeof t.rotation < "u")
+          return t.rotation;
+        if (t && typeof t.rotate < "u")
+          return t.rotate;
+      } catch (t) {
+        console.warn("NODE_DEBUG: Failed to read backgroundRect transform for rotation:", t);
+      }
     return 0;
   }
   // Connector functionality
