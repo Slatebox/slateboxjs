@@ -631,12 +631,15 @@ function findDropTarget(con, e, handleObj) {
       return false;
     }
 
-    // Exclude elements with cursor styles that indicate UI elements
+    // Exclude elements with cursor styles that indicate UI elements. NOTE: do
+    // NOT exclude cursor:"move" — node shapes are draggable and legitimately use
+    // it (Miro-style affordance); excluding it made nodes invisible to endpoint
+    // drop detection so reconnecting onto a node failed. Only the resize/crosshair
+    // cursors mark true plugin handles.
     try {
       const computedStyle = window.getComputedStyle(element.node);
       const cursor = computedStyle.cursor;
       if (
-        cursor === "move" ||
         cursor === "nw-resize" ||
         cursor === "ne-resize" ||
         cursor === "sw-resize" ||

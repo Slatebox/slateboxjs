@@ -339,6 +339,9 @@ export class Node {
       // Accessibility: make nodes focusable and readable by screen readers
       this.svgGroup.node.setAttribute("tabindex", "0");
       this.svgGroup.node.setAttribute("role", "button");
+      // Miro-style: a move cursor on hover signals the node is draggable (was the
+      // default arrow, which gave no affordance).
+      if (this.svgGroup.node.style) this.svgGroup.node.style.cursor = "move";
       console.log("NODE_DEBUG: Created svgGroup for", this.id, this.svgGroup);
 
       // Continue with the rest of the creation process

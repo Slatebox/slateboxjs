@@ -160,6 +160,16 @@
   }
 }
 
+/* Node hover affordance (Miro-style): a subtle lift on hover of an unselected
+   node signals it's interactive. Uses a soft drop-shadow so it composes with the
+   node's own fill/border without touching the theme's stroke. */
+#slateCanvas [data-node-id] {
+  transition: filter 120ms ease;
+}
+#slateCanvas [data-node-id]:hover {
+  filter: drop-shadow(0 2px 5px rgba(38, 50, 56, 0.22));
+}
+
 /* Connector endpoint handles — Miro-style reveal on hover/select. Hidden by
    default (persistent dots on every line are clutter); shown when the connection
    is hovered or selected, at which point they become draggable for reconnection. */
