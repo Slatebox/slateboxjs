@@ -145,6 +145,64 @@ test.describe("Serialization", () => {
     expect(res.dropped).toEqual([]);
   });
 
+  // Comprehensive line-property round-trip: the line pane is the most bug-prone
+  // surface (named bugs 1 & 2 lived here), so guard that every association line
+  // property survives exportJSON→loadJSON.
+  test("a broad set of line properties all survive a serialize→load round-trip", async ({
+    page,
+  }) => {
+    const res = await page.evaluate(async () => {
+      const slate = (window as any).slate;
+      const a = slate.nodes.one("sa");
+      a.relationships.addAssociation(slate.nodes.one("sb"));
+      await new Promise((r) => setTimeout(r, 300));
+      const assoc = a.relationships.associations.find((x: any) => x.childId === "sb");
+      const aid = assoc.id;
+      const set = (prop: string, val: any) => a.relationships.applyLineProperty(aid, prop, val);
+      set("lineType", "orthogonal");
+      set("lineColor", "#e91e63");
+      set("lineWidth", 5);
+      set("lineOpacity", 0.6);
+      set("lineCurveType", "cubic");
+      set("lineCurviness", 40);
+      set("showParentArrow", true);
+      set("showChildArrow", false);
+      set("sourceLock", "absolute"); // stores a sourceAnchor
+      await new Promise((r) => setTimeout(r, 200));
+
+      const keys = [
+        "lineType", "lineColor", "lineWidth", "lineOpacity", "lineCurveType",
+        "lineCurviness", "showParentArrow", "showChildArrow", "sourceAnchor",
+      ];
+      const fresh = slate.nodes.one("sa").relationships.associations.find((x: any) => x.childId === "sb");
+      const src: any = {};
+      keys.forEach((k) => (src[k] = fresh[k]));
+
+      const json = slate.exportJSON();
+      const div = document.createElement("div");
+      div.id = "appLRT";
+      document.body.appendChild(div);
+      const s2 = (window as any).SlateboxJS("#appLRT", {
+        viewPort: { originalWidth: 1200, originalHeight: 800 },
+        panZoom: { enabled: false },
+      });
+      if (s2.loadJSON) s2.loadJSON(json);
+      else if (s2.importJSON) s2.importJSON(json);
+      await new Promise((r) => setTimeout(r, 800));
+
+      const a2 = s2.nodes.one("sa");
+      const assoc2 = a2?.relationships?.associations?.find((x: any) => x.childId === "sb");
+      const dst: any = {};
+      keys.forEach((k) => (dst[k] = assoc2?.[k]));
+
+      const dropped = keys.filter((k) => JSON.stringify(src[k]) !== JSON.stringify(dst[k]));
+      return { dropped, src, dst, loaded: !!assoc2 };
+    });
+
+    expect(res.loaded).toBe(true);
+    expect(res.dropped).toEqual([]);
+  });
+
   // A whole small diagram (styled nodes + a connection + an orthogonal line type)
   // must survive exportJSON→loadJSON intact — this is the serialization behind a
   // page reload (server saves exportJSON, reloads it). Integration guard.
