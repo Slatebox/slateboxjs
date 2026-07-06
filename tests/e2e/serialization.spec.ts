@@ -145,6 +145,60 @@ test.describe("Serialization", () => {
     expect(res.dropped).toEqual([]);
   });
 
+  // Deserialize robustness: loading edge-case / legacy data (orphan associations,
+  // null fields, malformed records, missing options) must NOT throw — the drop-in
+  // loads real historical slatebox.com slates with varied data.
+  test("loadJSON tolerates edge-case / legacy data without crashing", async ({
+    page,
+  }) => {
+    const res = await page.evaluate(async () => {
+      const mk = (id: string) => {
+        const div = document.createElement("div");
+        div.id = id;
+        document.body.appendChild(div);
+        return (window as any).SlateboxJS("#" + id, {
+          viewPort: { originalWidth: 1200, originalHeight: 800 },
+          panZoom: { enabled: false },
+        });
+      };
+      const tryLoad = async (name: string, json: any) => {
+        try {
+          const s = mk("edge_" + name);
+          if (s.loadJSON) s.loadJSON(json);
+          else if (s.importJSON) s.importJSON(json);
+          await new Promise((r) => setTimeout(r, 300));
+          return { ok: true, nodes: s.nodes.allNodes.length };
+        } catch (e: any) {
+          return { ok: false, err: String(e?.message).slice(0, 80) };
+        }
+      };
+      const out: any = {};
+      // Orphan association (child node doesn't exist) — skipped, node still loads.
+      out.orphan = await tryLoad("o", {
+        options: { id: "s1" },
+        nodes: [{ options: { id: "n1", x: 100, y: 100, width: 120, height: 80, text: "A" }, relationships: { associations: [{ id: "r1", parentId: "n1", childId: "MISSING" }] } }],
+      });
+      // Node with null fields.
+      out.nulls = await tryLoad("n", {
+        options: { id: "s2" },
+        nodes: [{ options: { id: "n2", x: null, y: null, width: null, height: null, text: null, shape: null } }],
+      });
+      // Malformed association + missing options node + empty slate.
+      out.malformed = await tryLoad("m", { options: { id: "s3" }, nodes: [{ options: { id: "n3", x: 50, y: 50, width: 100, height: 60 }, relationships: { associations: [{ childId: "n3", sourceAnchor: null }] } }] });
+      out.empty = await tryLoad("e", { nodes: [] });
+      out.noOpts = await tryLoad("p", { options: { id: "s5" }, nodes: [{ id: "n5" }] });
+      return out;
+    });
+
+    // Every edge case loaded without throwing.
+    expect(res.orphan.ok).toBe(true);
+    expect(res.orphan.nodes).toBe(1); // node loads, orphan association skipped
+    expect(res.nulls.ok).toBe(true);
+    expect(res.malformed.ok).toBe(true);
+    expect(res.empty.ok).toBe(true);
+    expect(res.noOpts.ok).toBe(true);
+  });
+
   // Slate-level round-trip: name, background (gradient), grid, snap, mind-map,
   // auto-resize — the slate settings a user changes must survive a reload too.
   test("slate-level properties survive a serialize→load round-trip", async ({
