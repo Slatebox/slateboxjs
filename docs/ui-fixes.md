@@ -188,6 +188,20 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## MULTI-SELECT group-move FIXED (real-mouse trailing click wiped selection)
+- Node RESIZE (interactive handle drag): verified — resizes to the dragged size, no fly-away (x/y
+  anchored), persists through reload.
+- BUG (fixed, lib): rubber-band multi-select worked, but dragging a selected node did NOT group-move
+  the others — only the dragged node moved. Root cause: a REAL-mouse rubber-band ends with a `click`
+  on the canvas (down+up on the same element); Slate's canvas-click handler deselects on empty-space
+  clicks, so it cleared the selection the instant it was made. The node-drag then re-selected only the
+  pressed node (Node dragstart: if not currently selected → selectNodes([this])). The synthetic-event
+  multi-select e2e never fired that click, so it was invisible. FIX: MultiSelection stamps
+  slate._rubberBandSelectedAt on selection; the canvas-click handler skips the deselect for 400ms after
+  a rubber-band. Verified live: rubber-band selects A+M2 (persist), dragging A moves A+M2 by the same
+  delta, M3 stays. e2e multi-select.spec.ts gained a "trailing canvas click does not wipe the
+  rubber-band selection" test. 1072 unit.
+
 ## NODE BORDER + PLUG-DRAG-CONNECT verified; CHAT-OVERLAY bug found
 - NODE BORDER (COLOR tab): border style (solid/dashed/dotted/combo) + width work + persist through
   reload. NOTE: border controls are DISABLED until you toggle the Background→Border mode button (by

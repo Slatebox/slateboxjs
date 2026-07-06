@@ -1159,6 +1159,15 @@ export class Slate {
         event.target === this.canvas.node ||
         (event.target && event.target.tagName === "svg");
 
+      // Skip the deselect if this click is the tail end of a rubber-band drag
+      // that just selected nodes — otherwise the drag-selection is wiped the
+      // instant it's made (breaking group-move on the selection).
+      const sinceRubberBand = Date.now() - ((this as any)._rubberBandSelectedAt || 0);
+      if (sinceRubberBand < 400) {
+        (this as any)._rubberBandSelectedAt = 0;
+        return;
+      }
+
       if (isCanvasClick) {
         console.log("SELECTION_DEBUG: Canvas clicked - deselecting all");
         this.clearSelection();

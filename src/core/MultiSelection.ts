@@ -191,6 +191,13 @@ export class MultiSelection {
 
     if (nodesInRect.length > 0) {
       this.slate.selectNodes(nodesInRect, addToSelection);
+      // A real-mouse rubber-band ends with a `click` on the canvas, which the
+      // Slate canvas-click handler treats as an empty-space click and would
+      // clearSelection() — wiping the selection we just made (so a following
+      // drag can't group-move it). Stamp the moment so that handler skips the
+      // very next canvas click. (Synthetic-event tests don't fire the click, so
+      // this path was invisible to the e2e.)
+      (this.slate as any)._rubberBandSelectedAt = Date.now();
       console.log(
         "MULTISELECT_DEBUG: Selected",
         nodesInRect.length,
