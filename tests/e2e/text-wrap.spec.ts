@@ -62,6 +62,30 @@ test.describe("node text wrapping (§node)", () => {
     expect(res.wide).toBeLessThan(res.narrow);
   });
 
+  test("an over-long word / URL hard-breaks so it doesn't overflow", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    const res = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText = "width:600px;height:400px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate({ container: "slateCanvas", allowCollaboration: false }, {}).init();
+      const A = s.nodes.add(new sb.node({ id: "A", xPos: 150, yPos: 150, width: 175, height: 100, text: "x" }));
+      await new Promise((r) => setTimeout(r, 300));
+      A.v2.setText("https://www.example.com/some/really/long/path/that/never/breaks");
+      await new Promise((r) => setTimeout(r, 150));
+      const tb = A.v2.textElement.node.getBBox();
+      return { overflowRatio: tb.width / A.v2.options.width, lines: A.v2.textElement.node.querySelectorAll("tspan").length };
+    });
+    // The URL is broken across lines and no longer overflows the node.
+    expect(res.overflowRatio).toBeLessThanOrEqual(1.15);
+    expect(res.lines).toBeGreaterThan(1);
+  });
+
   test("short text stays a single line (no regression)", async ({ page }) => {
     await page.goto("/test.html");
     await page.waitForFunction(() => (window as any).Slatebox);

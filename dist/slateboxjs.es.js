@@ -7220,6 +7220,14 @@ class Ie {
       }
       let h = "";
       for (const d of c) {
+        if (r(d) > e) {
+          h && (a.push(h), h = "");
+          let f = "";
+          for (const g of d)
+            f && r(f + g) > e ? (a.push(f), f = g) : f += g;
+          h = f;
+          continue;
+        }
         const u = h ? `${h} ${d}` : d;
         h && r(u) > e ? (a.push(h), h = d) : h = u;
       }

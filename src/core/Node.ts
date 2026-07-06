@@ -842,6 +842,25 @@ export class Node {
       }
       let line = "";
       for (const word of words) {
+        // A single word wider than the line (e.g. a long URL) → hard-break it into
+        // character chunks so it can't overflow the node.
+        if (measure(word) > maxWidth) {
+          if (line) {
+            out.push(line);
+            line = "";
+          }
+          let chunk = "";
+          for (const ch of word) {
+            if (chunk && measure(chunk + ch) > maxWidth) {
+              out.push(chunk);
+              chunk = ch;
+            } else {
+              chunk += ch;
+            }
+          }
+          line = chunk;
+          continue;
+        }
         const test = line ? `${line} ${word}` : word;
         if (line && measure(test) > maxWidth) {
           out.push(line);
