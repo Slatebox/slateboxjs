@@ -188,6 +188,19 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## LINE PANE — 2 more bugs fixed: controls reachable + Arrow Heads reflect
+- CLIPPING (app slatebox 996ed7e): the bottom LineDrawer paper was a fixed height:250px, so the Width
+  slider + Arrow Heads toggles overflowed BELOW the viewport (y~1021 on a 943px screen) — unreachable.
+  Sized the paper to content (minHeight 250 / maxHeight 55vh / overflowY auto). Verified: both controls
+  now render on-screen + clickable.
+- ARROW-HEADS REFLECTION (app slatebox 04c527b): the parent/child toggles derived state from
+  node.options.parentArrowForChildren (a v1 concept the v2 lib never maintains), so toggling rendered
+  the arrow but the button never showed selected + reopen showed wrong state. Now derives from the
+  association's showParentArrow/showChildArrow (what the lib renders+persists) + re-syncs in the assoc
+  effect. Verified live: click Parent → arrow renders AND button selects; reopen reflects.
+- Library guard: Relationships.test.ts asserts applyLineProperty persists showParentArrow/showChildArrow
+  on the record. 1070 unit.
+
 ## NODE PANE mined — VERIFIED CLEAN (shape + color persist through reload)
 - Drove the node pane live (select node → cog → SHAPE/COLOR tabs). Picking a path shape and a preset
   color both apply, persist, and survive a full page RELOAD (DB round-trip). The node pane reads the

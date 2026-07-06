@@ -167,6 +167,16 @@ describe("Relationships", () => {
       rels.applyLineProperty(a.id, "targetLock", "relative");
       expect(rels.getAssociation("child1")!.targetAnchor).toBeNull();
     });
+
+    it("persists showParentArrow / showChildArrow so the Arrow Heads toggle reflects", () => {
+      const rels = new Relationships(mockNode);
+      const a = rels.addAssociation(mockChildNode);
+      rels.applyLineProperty(a.id, "showParentArrow", true);
+      rels.applyLineProperty(a.id, "showChildArrow", false);
+      const assoc = rels.getAssociation("child1")!;
+      expect((assoc as any).showParentArrow).toBe(true);
+      expect((assoc as any).showChildArrow).toBe(false);
+    });
   });
 
   describe("serialize", () => {
