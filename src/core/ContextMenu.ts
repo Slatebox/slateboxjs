@@ -12,14 +12,19 @@
 import { guid } from "../utils";
 
 interface MenuItem {
-  label: string;
-  act: () => void;
+  label?: string;
+  act?: () => void;
   danger?: boolean;
+  divider?: boolean;
 }
 
 export class ContextMenu {
   private slate: any;
   private el: HTMLElement | null = null;
+  // Nodes the menu acts on — snapshotted at open() so a selection change between
+  // opening the menu and clicking an item (e.g. the right-click's own pointerup
+  // collapsing a multi-selection) can't make the action a no-op.
+  private targetNodes: any[] = [];
   private boundContext: ((e: MouseEvent) => void) | null = null;
   private boundDismiss: ((e: Event) => void) | null = null;
   private boundEsc: ((e: KeyboardEvent) => void) | null = null;
@@ -81,16 +86,43 @@ export class ContextMenu {
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
 
+    // Snapshot the selection now (see field comment).
+    this.targetNodes = [...(this.slate.getSelectedNodes?.() || [])];
+    const selCount = this.targetNodes.length;
     const items: MenuItem[] = [
-      { label: "Bring to front", act: () => this.forEachSelected((n) => n.toFront?.()) },
-      { label: "Send to back", act: () => this.forEachSelected((n) => n.toBack?.()) },
-      { label: "Duplicate", act: () => this.duplicateSelected() },
-      { label: "Delete", act: () => this.deleteSelected(), danger: true },
+      { label: "Bring to front", act: () => this.forEachTarget((n) => n.toFront?.()) },
+      { label: "Send to back", act: () => this.forEachTarget((n) => n.toBack?.()) },
+      { label: "Duplicate", act: () => this.duplicateTargets() },
+      { label: "Delete", act: () => this.deleteTargets(), danger: true },
     ];
+    // Alignment tools only make sense for a multi-selection (Miro-style).
+    if (selCount >= 2) {
+      items.push(
+        { divider: true },
+        { label: "Align left", act: () => this.slate.alignNodes?.("left", this.targetNodes) },
+        { label: "Align center", act: () => this.slate.alignNodes?.("centerH", this.targetNodes) },
+        { label: "Align right", act: () => this.slate.alignNodes?.("right", this.targetNodes) },
+        { label: "Align top", act: () => this.slate.alignNodes?.("top", this.targetNodes) },
+        { label: "Align middle", act: () => this.slate.alignNodes?.("middle", this.targetNodes) },
+        { label: "Align bottom", act: () => this.slate.alignNodes?.("bottom", this.targetNodes) }
+      );
+    }
+    if (selCount >= 3) {
+      items.push(
+        { label: "Distribute horizontally", act: () => this.slate.distributeNodes?.("horizontal", this.targetNodes) },
+        { label: "Distribute vertically", act: () => this.slate.distributeNodes?.("vertical", this.targetNodes) }
+      );
+    }
 
     for (const it of items) {
+      if (it.divider) {
+        const hr = document.createElement("div");
+        hr.style.cssText = "height:1px;background:#e3e5ea;margin:4px 0;";
+        menu.appendChild(hr);
+        continue;
+      }
       const row = document.createElement("div");
-      row.textContent = it.label;
+      row.textContent = it.label || "";
       row.style.cssText =
         "padding:7px 16px;cursor:pointer;white-space:nowrap;" +
         (it.danger ? "color:#d32f2f;" : "");
@@ -103,7 +135,7 @@ export class ContextMenu {
       row.addEventListener("click", (ev) => {
         ev.stopPropagation();
         try {
-          it.act();
+          it.act?.();
         } catch (err) {
           /* noop */
         }
@@ -157,25 +189,22 @@ export class ContextMenu {
     }
   }
 
-  private forEachSelected(fn: (n: any) => void): void {
-    const sel: any[] = this.slate.getSelectedNodes?.() || [];
-    for (const n of sel) fn(n);
+  private forEachTarget(fn: (n: any) => void): void {
+    for (const n of this.targetNodes) fn(n);
   }
 
-  /** Delete the selected nodes (removeNode broadcasts onNodeDeleted → persists). */
-  private deleteSelected(): void {
+  /** Delete the target nodes (removeNode broadcasts onNodeDeleted → persists). */
+  private deleteTargets(): void {
     if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;
-    const sel: any[] = [...(this.slate.getSelectedNodes?.() || [])];
-    for (const n of sel) this.slate.removeNode?.(n.id);
+    for (const n of [...this.targetNodes]) this.slate.removeNode?.(n.id);
     this.slate.clearSelection?.();
   }
 
-  /** Duplicate the selected nodes offset (+20,+20); addNode broadcasts → persists. */
-  private duplicateSelected(): void {
+  /** Duplicate the target nodes offset (+20,+20); addNode broadcasts → persists. */
+  private duplicateTargets(): void {
     if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;
-    const sel: any[] = this.slate.getSelectedNodes?.() || [];
     const created: any[] = [];
-    for (const n of sel) {
+    for (const n of this.targetNodes) {
       let opts: any;
       try {
         opts = JSON.parse(JSON.stringify(n.options || {}));

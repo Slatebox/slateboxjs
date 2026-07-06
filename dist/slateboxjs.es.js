@@ -3969,15 +3969,15 @@ k(Ae, {
     t = (e = t) != null ? e : {};
     var p = (i = t.zoomFactor) != null ? i : 2, y = (s = t.zoomMin) != null ? s : Number.MIN_VALUE, m = (o = t.zoomMax) != null ? o : Number.MAX_VALUE, b = (r = t.wheelZoom) != null ? r : !0, w = (a = t.pinchZoom) != null ? a : !0, v = (l = t.panning) != null ? l : !0, _ = (c = t.panButton) != null ? c : 0, x = (h = t.oneFingerPan) != null ? h : !1, C = (d = t.margins) != null ? d : !1, R = (u = t.wheelZoomDeltaModeLinePixels) != null ? u : 17, B = (f = t.wheelZoomDeltaModeScreenPixels) != null ? f : 53, I, T, Z = !1, H = this.viewbox(), q = function(E) {
       if (!C) return E;
-      var O = C.top, j = C.left, ut = C.bottom, ft = C.right, nt = g.attr(["width", "height"]), lt = nt.width, Ot = nt.height, S = g.node.preserveAspectRatio.baseVal, wt = 0, vt = 0, Kt = 0, Qt = 0;
+      var O = C.top, j = C.left, ut = C.bottom, ft = C.right, nt = g.attr(["width", "height"]), lt = nt.width, Ot = nt.height, S = g.node.preserveAspectRatio.baseVal, vt = 0, xt = 0, Kt = 0, Qt = 0;
       if (S.align !== S.SVG_PRESERVEASPECTRATIO_NONE) {
         var ge = lt / Ot, me = H.width / H.height;
         if (me !== ge) {
           var Dn = S.meetOrSlice !== S.SVG_MEETORSLICE_SLICE, ze = ge > me ? "width" : "height", Pn = ze === "width", In = Dn && Pn || !Dn && !Pn, vs = In ? ge / me : me / ge, Ct = E[ze] - E[ze] * vs;
-          In ? S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMIN || S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMID || S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMAX ? (wt = Ct / 2, vt = -Ct / 2) : S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMIN || S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMID || S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMAX ? vt = -Ct : (S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMIN || S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMID || S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMAX) && (wt = Ct) : S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMID || S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMID || S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMID ? (Kt = Ct / 2, Qt = -Ct / 2) : S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMIN || S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMIN || S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMIN ? Qt = -Ct : (S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMAX || S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMAX || S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMAX) && (Kt = Ct);
+          In ? S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMIN || S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMID || S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMAX ? (vt = Ct / 2, xt = -Ct / 2) : S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMIN || S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMID || S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMAX ? xt = -Ct : (S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMIN || S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMID || S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMAX) && (vt = Ct) : S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMID || S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMID || S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMID ? (Kt = Ct / 2, Qt = -Ct / 2) : S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMIN || S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMIN || S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMIN ? Qt = -Ct : (S.align === S.SVG_PRESERVEASPECTRATIO_XMINYMAX || S.align === S.SVG_PRESERVEASPECTRATIO_XMIDYMAX || S.align === S.SVG_PRESERVEASPECTRATIO_XMAXYMAX) && (Kt = Ct);
         }
       }
-      var xs = H.width + H.x - j - wt, _s = H.x + ft - E.width - vt, Cs = H.height + H.y - O - Kt, Es = H.y + ut - E.height - Qt;
+      var xs = H.width + H.x - j - vt, _s = H.x + ft - E.width - xt, Cs = H.height + H.y - O - Kt, Es = H.y + ut - E.height - Qt;
       return E.x = Math.min(xs, Math.max(_s, E.x)), E.y = Math.min(Cs, Math.max(Es, E.y)), E;
     }, G = function(E) {
       E.preventDefault();
@@ -4008,7 +4008,7 @@ k(Ae, {
         v && x && at.call(this, E);
         return;
       }
-      v && x && yt.call(this, E), E.preventDefault(), !this.dispatch("pinchZoomStart", {
+      v && x && bt.call(this, E), E.preventDefault(), !this.dispatch("pinchZoomStart", {
         event: E
       }).defaultPrevented && (this.off("touchstart.panZoom", et), Z = !0, ct(document, "touchmove.panZoom", tt, this, {
         passive: !1
@@ -4031,10 +4031,10 @@ k(Ae, {
       }, Ot = {
         x: T[0].clientX + 0.5 * (T[1].clientX - T[0].clientX),
         y: T[0].clientY + 0.5 * (T[1].clientY - T[0].clientY)
-      }, S = this.point(lt.x, lt.y), wt = this.point(2 * lt.x - Ot.x, 2 * lt.y - Ot.y), vt = new Y(this.viewbox()).transform(new N().translate(-wt.x, -wt.y).scale(nt, 0, 0).translate(S.x, S.y));
-      q(vt), this.viewbox(vt), T = O, this.dispatch("zoom", {
-        box: vt,
-        focus: wt
+      }, S = this.point(lt.x, lt.y), vt = this.point(2 * lt.x - Ot.x, 2 * lt.y - Ot.y), xt = new Y(this.viewbox()).transform(new N().translate(-vt.x, -vt.y).scale(nt, 0, 0).translate(S.x, S.y));
+      q(xt), this.viewbox(xt), T = O, this.dispatch("zoom", {
+        box: xt,
+        focus: vt
       });
     }, at = function et(E) {
       var O = E.type.indexOf("mouse") > -1;
@@ -4045,10 +4045,10 @@ k(Ae, {
         y: T[0].clientY
       }, ct(document, "touchmove.panZoom mousemove.panZoom", It, this, {
         passive: !1
-      }), ct(document, "touchend.panZoom mouseup.panZoom", yt, this, {
+      }), ct(document, "touchend.panZoom mouseup.panZoom", bt, this, {
         passive: !1
       })));
-    }, yt = function et(E) {
+    }, bt = function et(E) {
       E.preventDefault(), J(document, "touchmove.panZoom mousemove.panZoom", It), J(document, "touchend.panZoom mouseup.panZoom", et), this.on("mousedown.panZoom", at), this.dispatch("panEnd", {
         event: E
       });
@@ -6416,8 +6416,8 @@ class Yi {
     this.linkData && this.unset(!1), this.linkData = null, this.node = null;
   }
 }
-const bt = /* @__PURE__ */ new Map();
-bt.set("dropShadow", {
+const wt = /* @__PURE__ */ new Map();
+wt.set("dropShadow", {
   name: "dropShadow",
   types: ["text", "vect", "image"],
   apply: (n) => {
@@ -6436,7 +6436,7 @@ bt.set("dropShadow", {
     }
   }
 });
-bt.set("blur", {
+wt.set("blur", {
   name: "blur",
   types: ["text", "vect", "image"],
   apply: (n) => {
@@ -6452,7 +6452,7 @@ bt.set("blur", {
     }
   }
 });
-bt.set("outline", {
+wt.set("outline", {
   name: "outline",
   types: ["text", "vect"],
   apply: (n) => {
@@ -6483,7 +6483,7 @@ class Xi {
    * @param target - "vect" for shape, "text" for text, or both
    */
   apply(t, e = "both") {
-    const i = bt.get(t);
+    const i = wt.get(t);
     if (!i) {
       console.warn("FILTERS_DEBUG: Unknown filter:", t);
       return;
@@ -6501,7 +6501,7 @@ class Xi {
    * Remove a specific filter from the node.
    */
   remove(t) {
-    const e = bt.get(t);
+    const e = wt.get(t);
     e && (this.node.backgroundRect && e.remove(this.node.backgroundRect), this.node.textElement && e.remove(this.node.textElement), this.activeFilters.delete(t));
   }
   /**
@@ -6518,12 +6518,12 @@ class Xi {
   toggleVisibility(t) {
     if (this.hidden = t, t)
       for (const e of this.activeFilters) {
-        const i = bt.get(e);
+        const i = wt.get(e);
         i && (this.node.backgroundRect && i.remove(this.node.backgroundRect), this.node.textElement && i.remove(this.node.textElement));
       }
     else
       for (const e of this.activeFilters) {
-        const i = bt.get(e);
+        const i = wt.get(e);
         i && (this.node.backgroundRect && i.apply(this.node.backgroundRect), this.node.textElement && i.apply(this.node.textElement));
       }
   }
@@ -6541,14 +6541,14 @@ class Xi {
   }
 }
 function ul(n) {
-  bt.set(n.name, n);
+  wt.set(n.name, n);
 }
 function fl() {
-  return Array.from(bt.keys());
+  return Array.from(wt.keys());
 }
 function $i() {
   const n = {};
-  for (const [t, e] of bt)
+  for (const [t, e] of wt)
     n[t] = { types: e.types || ["text", "vect"] };
   return n;
 }
@@ -6743,7 +6743,7 @@ function qt(n) {
   const t = { ...n };
   return n.xPos !== void 0 && t.x === void 0 && (t.x = n.xPos, delete t.xPos), n.yPos !== void 0 && t.y === void 0 && (t.y = n.yPos, delete t.yPos), n.foregroundColor !== void 0 && t.fontColor === void 0 && (t.fontColor = n.foregroundColor, delete t.foregroundColor), n.shapeHint !== void 0 && t.shape === void 0 && (t.shape = ma(n.shapeHint), delete t.shapeHint), n.svgString !== void 0 && t.svgContent === void 0 && (t.svgContent = n.svgString, delete t.svgString), n.blnStraight !== void 0 && (t.isStraightLine = n.blnStraight, delete t.blnStraight), t;
 }
-function xt(n) {
+function yt(n) {
   const t = { ...n };
   return t.xPos = n.x, t.yPos = n.y, t.foregroundColor = n.fontColor, n.shape && (t.shapeHint = n.shape), n.svgContent && (t.svgString = n.svgContent), t;
 }
@@ -6843,7 +6843,7 @@ function ba(n) {
     shareId: n.shareId || ""
   };
   return Array.isArray(n.nodes) && (t.nodes = n.nodes.map((e) => {
-    const i = xt(e.options || {}), s = { associations: [] };
+    const i = yt(e.options || {}), s = { associations: [] };
     return e.relationships?.associations && (s.associations = e.relationships.associations.map(
       (o) => An(o)
     )), {
@@ -6860,7 +6860,7 @@ const wa = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   v1NodeToV2: qt,
   v1SlateToV2: Tn,
   v2AssociationToV1: An,
-  v2NodeToV1: xt,
+  v2NodeToV1: yt,
   v2SlateToV1: qi
 }, Symbol.toStringTag, { value: "Module" }));
 class Ie {
@@ -7199,8 +7199,8 @@ class Ie {
       const i = this._groupDragSiblings;
       this._groupDragSiblings = [], this.preDragTransform = null, this.preDragPosition = null, this._dragStartPointer = null, this.applyPositionAndRotation(), this.slate.broadcast?.("onNodesMove", {
         nodeOptions: [
-          xt(this.options),
-          ...i.map((s) => xt(s.node.options))
+          yt(this.options),
+          ...i.map((s) => yt(s.node.options))
         ]
       }), this._dragEndTimeoutId = setTimeout(() => {
         if (this._destroyed) return;
@@ -7966,9 +7966,9 @@ class Ie {
     let T, Z;
     const H = Math.abs(B);
     Math.abs(I) > H ? I < 0 ? (T = w, Z = b.y) : (T = w, Z = b.y + b.height) : B < 0 ? (T = b.x, Z = v) : (T = b.x + b.width, Z = v);
-    const G = ([nt, lt], { a: Ot, b: S, c: wt, d: vt, e: Kt, f: Qt }) => [nt * Ot + lt * wt + Kt, nt * S + lt * vt + Qt], [W, K] = G([T, Z], C), tt = Math.sqrt(
+    const G = ([nt, lt], { a: Ot, b: S, c: vt, d: xt, e: Kt, f: Qt }) => [nt * Ot + lt * vt + Kt, nt * S + lt * xt + Qt], [W, K] = G([T, Z], C), tt = Math.sqrt(
       Math.pow(W - l, 2) + Math.pow(K - c, 2)
-    ), at = tt, yt = tt + o + at, It = l + y * yt, et = c + m * yt, E = It - i / 2, O = et - s / 2;
+    ), at = tt, bt = tt + o + at, It = l + y * bt, et = c + m * bt, E = It - i / 2, O = et - s / 2;
     if (!this.connectionPreview.container) {
       console.warn("CONNECTION_HANDLES_DEBUG: Preview container not found");
       return;
@@ -8112,7 +8112,7 @@ class Ie {
           m = g.x, b = y;
           break;
       }
-      const w = this.backgroundRect.screenCTM(), _ = this.backgroundRect.root().screenCTM().inverseO().multiplyO(w), x = ([tt, at], { a: yt, b: It, c: et, d: E, e: O, f: j }) => [tt * yt + at * et + O, tt * It + at * E + j], [C, R] = x([m, b], _), B = Math.sqrt(
+      const w = this.backgroundRect.screenCTM(), _ = this.backgroundRect.root().screenCTM().inverseO().multiplyO(w), x = ([tt, at], { a: bt, b: It, c: et, d: E, e: O, f: j }) => [tt * bt + at * et + O, tt * It + at * E + j], [C, R] = x([m, b], _), B = Math.sqrt(
         Math.pow(C - u, 2) + Math.pow(R - f, 2)
       ), I = B, T = B + s + I, Z = u + c * T, H = f + h * T, q = Z - e / 2, G = H - i / 2, W = this.cloneNodeOptions(q, G, o), K = this.slate.addNode(W);
       if (!K) {
@@ -9177,7 +9177,7 @@ async function _a(n, t, e, i) {
   }
 }
 function Ji(n) {
-  const t = xt(n.options);
+  const t = yt(n.options);
   if (n.svgGroup)
     try {
       const i = n.svgGroup.bbox();
@@ -9661,8 +9661,8 @@ function rs(n, t, e, i, s, o, r, a, l, c) {
     const G = (n - a) / 2, W = (t - l) / 2;
     let K = G * G / (e * e) + W * W / (i * i);
     K > 1 && (K = Math.sqrt(K), e = K * e, i = K * i);
-    const tt = e * e, at = i * i, yt = (o === r ? -1 : 1) * Math.sqrt(Math.abs((tt * at - tt * W * W - at * G * G) / (tt * W * W + at * G * G)));
-    y = yt * e * W / i + (n + a) / 2, m = yt * -i * G / e + (t + l) / 2, g = Math.asin(Number(((t - m) / i).toFixed(9))), p = Math.asin(Number(((l - m) / i).toFixed(9))), g = n < y ? Math.PI - g : g, p = a < y ? Math.PI - p : p, g < 0 && (g = Math.PI * 2 + g), p < 0 && (p = Math.PI * 2 + p), r && g > p && (g -= Math.PI * 2), !r && p > g && (p -= Math.PI * 2);
+    const tt = e * e, at = i * i, bt = (o === r ? -1 : 1) * Math.sqrt(Math.abs((tt * at - tt * W * W - at * G * G) / (tt * W * W + at * G * G)));
+    y = bt * e * W / i + (n + a) / 2, m = bt * -i * G / e + (t + l) / 2, g = Math.asin(Number(((t - m) / i).toFixed(9))), p = Math.asin(Number(((l - m) / i).toFixed(9))), g = n < y ? Math.PI - g : g, p = a < y ? Math.PI - p : p, g < 0 && (g = Math.PI * 2 + g), p < 0 && (p = Math.PI * 2 + p), r && g > p && (g -= Math.PI * 2), !r && p > g && (p -= Math.PI * 2);
   }
   let b = p - g;
   if (Math.abs(b) > h) {
@@ -10209,7 +10209,7 @@ class cs {
         this.nudgeTimer = null;
         const o = this.slate.getSelectedNodes?.() || [];
         o.length > 0 && this.slate.broadcast?.("onNodesMove", {
-          nodeOptions: o.map((r) => xt(r.options))
+          nodeOptions: o.map((r) => yt(r.options))
         });
       }, 250);
     }
@@ -10246,7 +10246,7 @@ class cs {
 }
 class hs {
   constructor(t) {
-    this.el = null, this.boundContext = null, this.boundDismiss = null, this.boundEsc = null, this.slate = t;
+    this.el = null, this.targetNodes = [], this.boundContext = null, this.boundDismiss = null, this.boundEsc = null, this.slate = t;
   }
   /** Bind the global contextmenu handler. */
   enable() {
@@ -10270,34 +10270,51 @@ class hs {
   open(t, e) {
     this.close();
     const i = document.createElement("div");
-    i.className = "sb-context-menu", i.style.cssText = "position:fixed;z-index:100000;background:#fff;border:1px solid #e3e5ea;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,0.18);padding:4px 0;min-width:180px;font:13px/1.4 system-ui,-apple-system,sans-serif;color:#222;user-select:none;", i.style.left = `${t}px`, i.style.top = `${e}px`;
-    const s = [
-      { label: "Bring to front", act: () => this.forEachSelected((r) => r.toFront?.()) },
-      { label: "Send to back", act: () => this.forEachSelected((r) => r.toBack?.()) },
-      { label: "Duplicate", act: () => this.duplicateSelected() },
-      { label: "Delete", act: () => this.deleteSelected(), danger: !0 }
+    i.className = "sb-context-menu", i.style.cssText = "position:fixed;z-index:100000;background:#fff;border:1px solid #e3e5ea;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,0.18);padding:4px 0;min-width:180px;font:13px/1.4 system-ui,-apple-system,sans-serif;color:#222;user-select:none;", i.style.left = `${t}px`, i.style.top = `${e}px`, this.targetNodes = [...this.slate.getSelectedNodes?.() || []];
+    const s = this.targetNodes.length, o = [
+      { label: "Bring to front", act: () => this.forEachTarget((a) => a.toFront?.()) },
+      { label: "Send to back", act: () => this.forEachTarget((a) => a.toBack?.()) },
+      { label: "Duplicate", act: () => this.duplicateTargets() },
+      { label: "Delete", act: () => this.deleteTargets(), danger: !0 }
     ];
-    for (const r of s) {
-      const a = document.createElement("div");
-      a.textContent = r.label, a.style.cssText = "padding:7px 16px;cursor:pointer;white-space:nowrap;" + (r.danger ? "color:#d32f2f;" : ""), a.addEventListener("mouseenter", () => {
-        a.style.background = r.danger ? "#fdecea" : "#f2f4f7";
-      }), a.addEventListener("mouseleave", () => {
-        a.style.background = "";
-      }), a.addEventListener("click", (l) => {
-        l.stopPropagation();
+    s >= 2 && o.push(
+      { divider: !0 },
+      { label: "Align left", act: () => this.slate.alignNodes?.("left", this.targetNodes) },
+      { label: "Align center", act: () => this.slate.alignNodes?.("centerH", this.targetNodes) },
+      { label: "Align right", act: () => this.slate.alignNodes?.("right", this.targetNodes) },
+      { label: "Align top", act: () => this.slate.alignNodes?.("top", this.targetNodes) },
+      { label: "Align middle", act: () => this.slate.alignNodes?.("middle", this.targetNodes) },
+      { label: "Align bottom", act: () => this.slate.alignNodes?.("bottom", this.targetNodes) }
+    ), s >= 3 && o.push(
+      { label: "Distribute horizontally", act: () => this.slate.distributeNodes?.("horizontal", this.targetNodes) },
+      { label: "Distribute vertically", act: () => this.slate.distributeNodes?.("vertical", this.targetNodes) }
+    );
+    for (const a of o) {
+      if (a.divider) {
+        const c = document.createElement("div");
+        c.style.cssText = "height:1px;background:#e3e5ea;margin:4px 0;", i.appendChild(c);
+        continue;
+      }
+      const l = document.createElement("div");
+      l.textContent = a.label || "", l.style.cssText = "padding:7px 16px;cursor:pointer;white-space:nowrap;" + (a.danger ? "color:#d32f2f;" : ""), l.addEventListener("mouseenter", () => {
+        l.style.background = a.danger ? "#fdecea" : "#f2f4f7";
+      }), l.addEventListener("mouseleave", () => {
+        l.style.background = "";
+      }), l.addEventListener("click", (c) => {
+        c.stopPropagation();
         try {
-          r.act();
+          a.act?.();
         } catch {
         }
         this.close();
-      }), i.appendChild(a);
+      }), i.appendChild(l);
     }
     document.body.appendChild(i), this.el = i;
-    const o = i.getBoundingClientRect();
-    o.right > window.innerWidth && (i.style.left = `${Math.max(4, window.innerWidth - o.width - 8)}px`), o.bottom > window.innerHeight && (i.style.top = `${Math.max(4, window.innerHeight - o.height - 8)}px`), this.boundDismiss = (r) => {
-      this.el && !this.el.contains(r.target) && this.close();
-    }, this.boundEsc = (r) => {
-      r.key === "Escape" && this.close();
+    const r = i.getBoundingClientRect();
+    r.right > window.innerWidth && (i.style.left = `${Math.max(4, window.innerWidth - r.width - 8)}px`), r.bottom > window.innerHeight && (i.style.top = `${Math.max(4, window.innerHeight - r.height - 8)}px`), this.boundDismiss = (a) => {
+      this.el && !this.el.contains(a.target) && this.close();
+    }, this.boundEsc = (a) => {
+      a.key === "Escape" && this.close();
     }, setTimeout(() => {
       this.boundDismiss && document.addEventListener("pointerdown", this.boundDismiss, !0), this.boundEsc && document.addEventListener("keydown", this.boundEsc, !0);
     }, 0);
@@ -10305,36 +10322,35 @@ class hs {
   close() {
     this.el && (this.el.remove(), this.el = null), this.boundDismiss && (document.removeEventListener("pointerdown", this.boundDismiss, !0), this.boundDismiss = null), this.boundEsc && (document.removeEventListener("keydown", this.boundEsc, !0), this.boundEsc = null);
   }
-  forEachSelected(t) {
-    const e = this.slate.getSelectedNodes?.() || [];
-    for (const i of e) t(i);
+  forEachTarget(t) {
+    for (const e of this.targetNodes) t(e);
   }
-  /** Delete the selected nodes (removeNode broadcasts onNodeDeleted → persists). */
-  deleteSelected() {
-    if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;
-    const t = [...this.slate.getSelectedNodes?.() || []];
-    for (const e of t) this.slate.removeNode?.(e.id);
-    this.slate.clearSelection?.();
+  /** Delete the target nodes (removeNode broadcasts onNodeDeleted → persists). */
+  deleteTargets() {
+    if (!(this.slate.isReadOnly?.() || this.slate.isCommentOnly?.())) {
+      for (const t of [...this.targetNodes]) this.slate.removeNode?.(t.id);
+      this.slate.clearSelection?.();
+    }
   }
-  /** Duplicate the selected nodes offset (+20,+20); addNode broadcasts → persists. */
-  duplicateSelected() {
+  /** Duplicate the target nodes offset (+20,+20); addNode broadcasts → persists. */
+  duplicateTargets() {
     if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;
-    const t = this.slate.getSelectedNodes?.() || [], e = [];
-    for (const i of t) {
-      let s;
+    const t = [];
+    for (const e of this.targetNodes) {
+      let i;
       try {
-        s = JSON.parse(JSON.stringify(i.options || {}));
+        i = JSON.parse(JSON.stringify(e.options || {}));
       } catch {
-        s = { ...i.options || {} };
+        i = { ...e.options || {} };
       }
-      s.id = Zt(), s.x = (s.x || 0) + 20, s.y = (s.y || 0) + 20, delete s.parentArrowForChildren, delete s.noChildArrowForChildren, delete s.associations;
+      i.id = Zt(), i.x = (i.x || 0) + 20, i.y = (i.y || 0) + 20, delete i.parentArrowForChildren, delete i.noChildArrowForChildren, delete i.associations;
       try {
-        const o = this.slate.addNode?.(s);
-        o && e.push(o);
+        const s = this.slate.addNode?.(i);
+        s && t.push(s);
       } catch {
       }
     }
-    e.length > 0 && setTimeout(() => this.slate.selectNodes?.(e, !1), 100);
+    t.length > 0 && setTimeout(() => this.slate.selectNodes?.(t, !1), 100);
   }
 }
 function Nn(n, t = {}, e) {
@@ -11347,7 +11363,7 @@ const Te = class Te {
       this._destroyed || this.notifyNodeChanged(), this.announce(`Node added: ${e.options.text || "(unnamed)"}`);
     }, 100), this.broadcast("onNodeAdded", {
       id: e.id,
-      nodeOptions: xt(e.options)
+      nodeOptions: yt(e.options)
     }), e;
   }
   /** Remove a node by ID. */
@@ -11715,6 +11731,84 @@ const Te = class Te {
   getSelectedNode() {
     return this.selectedNodes.length > 0 ? this.selectedNodes[0] : null;
   }
+  /**
+   * Align the selected (or given) nodes to their shared bounding box (Miro-style).
+   * mode: left | centerH | right | top | middle | bottom. Broadcasts onNodesMove
+   * so the change persists + syncs to collab. No-op for < 2 nodes.
+   */
+  alignNodes(t, e) {
+    const i = e || this.getSelectedNodes();
+    if (!i || i.length < 2) return;
+    const s = i.map((d) => ({
+      n: d,
+      x: d.options.x || 0,
+      y: d.options.y || 0,
+      w: d.options.width || 0,
+      h: d.options.height || 0
+    })), o = Math.min(...s.map((d) => d.x)), r = Math.max(...s.map((d) => d.x + d.w)), a = Math.min(...s.map((d) => d.y)), l = Math.max(...s.map((d) => d.y + d.h)), c = (o + r) / 2, h = (a + l) / 2;
+    for (const d of s) {
+      let u = d.x, f = d.y;
+      switch (t) {
+        case "left":
+          u = o;
+          break;
+        case "right":
+          u = r - d.w;
+          break;
+        case "centerH":
+          u = c - d.w / 2;
+          break;
+        case "top":
+          f = a;
+          break;
+        case "bottom":
+          f = l - d.h;
+          break;
+        case "middle":
+          f = h - d.h / 2;
+          break;
+        default:
+          return;
+      }
+      d.n.position(u, f);
+    }
+    this.broadcast("onNodesMove", {
+      nodeOptions: i.map((d) => yt(d.options))
+    });
+  }
+  /**
+   * Evenly distribute the selected (or given) nodes along an axis so the gaps
+   * between them are equal; the outermost two stay put. axis: horizontal |
+   * vertical. Broadcasts onNodesMove. No-op for < 3 nodes.
+   */
+  distributeNodes(t, e) {
+    const i = e || this.getSelectedNodes();
+    if (!i || i.length < 3) return;
+    const s = i.map((o) => ({
+      n: o,
+      x: o.options.x || 0,
+      y: o.options.y || 0,
+      w: o.options.width || 0,
+      h: o.options.height || 0
+    }));
+    if (t === "horizontal") {
+      s.sort((h, d) => h.x - d.x);
+      const o = s[0].x, r = s[s.length - 1].x + s[s.length - 1].w, a = s.reduce((h, d) => h + d.w, 0), l = (r - o - a) / (s.length - 1);
+      let c = o;
+      for (const h of s)
+        h.n.position(c, h.y), c += h.w + l;
+    } else if (t === "vertical") {
+      s.sort((h, d) => h.y - d.y);
+      const o = s[0].y, r = s[s.length - 1].y + s[s.length - 1].h, a = s.reduce((h, d) => h + d.h, 0), l = (r - o - a) / (s.length - 1);
+      let c = o;
+      for (const h of s)
+        h.n.position(h.x, c), c += h.h + l;
+    } else
+      return;
+    this.broadcast("onNodesMove", {
+      nodeOptions: i.map((o) => yt(o.options))
+    });
+  }
   // ─── Serialization API ──────────────────────────────────────────────
   /**
    * Export the slate to a JSON string in v1-compatible format.
@@ -11966,7 +12060,7 @@ class rl {
   packageLayout() {
     const e = this.v2Slate.nodes.allNodes, i = [], s = {}, o = {};
     return e.forEach((r) => {
-      const a = r.options || {}, l = xt(a);
+      const a = r.options || {}, l = yt(a);
       (r.relationships?.getAssociations?.() ?? []).forEach((h) => {
         i.push({
           parentId: h.parentId,
@@ -12027,7 +12121,7 @@ class rl {
         textPosition: { x: 0, y: 0, transform: "" }
       })),
       nodeOptions: s.map((o) => {
-        const r = i.get(o.id), a = xt(o.options || {});
+        const r = i.get(o.id), a = yt(o.options || {});
         return {
           id: o.id,
           vectorPath: a.vectorPath,

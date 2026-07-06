@@ -1589,6 +1589,91 @@ export class Slate {
     return this.selectedNodes.length > 0 ? this.selectedNodes[0] : null;
   }
 
+  /**
+   * Align the selected (or given) nodes to their shared bounding box (Miro-style).
+   * mode: left | centerH | right | top | middle | bottom. Broadcasts onNodesMove
+   * so the change persists + syncs to collab. No-op for < 2 nodes.
+   */
+  public alignNodes(mode: string, nodes?: Node[]): void {
+    const sel = nodes || this.getSelectedNodes();
+    if (!sel || sel.length < 2) return;
+    const b = sel.map((n) => ({
+      n,
+      x: n.options.x || 0,
+      y: n.options.y || 0,
+      w: n.options.width || 0,
+      h: n.options.height || 0,
+    }));
+    const minX = Math.min(...b.map((o) => o.x));
+    const maxRight = Math.max(...b.map((o) => o.x + o.w));
+    const minY = Math.min(...b.map((o) => o.y));
+    const maxBottom = Math.max(...b.map((o) => o.y + o.h));
+    const cx = (minX + maxRight) / 2;
+    const cy = (minY + maxBottom) / 2;
+    for (const o of b) {
+      let x = o.x;
+      let y = o.y;
+      switch (mode) {
+        case "left": x = minX; break;
+        case "right": x = maxRight - o.w; break;
+        case "centerH": x = cx - o.w / 2; break;
+        case "top": y = minY; break;
+        case "bottom": y = maxBottom - o.h; break;
+        case "middle": y = cy - o.h / 2; break;
+        default: return;
+      }
+      o.n.position(x, y);
+    }
+    this.broadcast("onNodesMove", {
+      nodeOptions: sel.map((n) => v2NodeToV1(n.options)),
+    });
+  }
+
+  /**
+   * Evenly distribute the selected (or given) nodes along an axis so the gaps
+   * between them are equal; the outermost two stay put. axis: horizontal |
+   * vertical. Broadcasts onNodesMove. No-op for < 3 nodes.
+   */
+  public distributeNodes(axis: string, nodes?: Node[]): void {
+    const sel = nodes || this.getSelectedNodes();
+    if (!sel || sel.length < 3) return;
+    const b = sel.map((n) => ({
+      n,
+      x: n.options.x || 0,
+      y: n.options.y || 0,
+      w: n.options.width || 0,
+      h: n.options.height || 0,
+    }));
+    if (axis === "horizontal") {
+      b.sort((p, q) => p.x - q.x);
+      const left = b[0].x;
+      const right = b[b.length - 1].x + b[b.length - 1].w;
+      const totalW = b.reduce((s, o) => s + o.w, 0);
+      const gap = (right - left - totalW) / (b.length - 1);
+      let cursor = left;
+      for (const o of b) {
+        o.n.position(cursor, o.y);
+        cursor += o.w + gap;
+      }
+    } else if (axis === "vertical") {
+      b.sort((p, q) => p.y - q.y);
+      const top = b[0].y;
+      const bottom = b[b.length - 1].y + b[b.length - 1].h;
+      const totalH = b.reduce((s, o) => s + o.h, 0);
+      const gap = (bottom - top - totalH) / (b.length - 1);
+      let cursor = top;
+      for (const o of b) {
+        o.n.position(o.x, cursor);
+        cursor += o.h + gap;
+      }
+    } else {
+      return;
+    }
+    this.broadcast("onNodesMove", {
+      nodeOptions: sel.map((n) => v2NodeToV1(n.options)),
+    });
+  }
+
   // ─── Serialization API ──────────────────────────────────────────────
 
   /**

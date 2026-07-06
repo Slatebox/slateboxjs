@@ -412,6 +412,18 @@ export declare class Slate {
     /** @returns The first selected node, or null if none selected. */
     getSelectedNode(): Node | null;
     /**
+     * Align the selected (or given) nodes to their shared bounding box (Miro-style).
+     * mode: left | centerH | right | top | middle | bottom. Broadcasts onNodesMove
+     * so the change persists + syncs to collab. No-op for < 2 nodes.
+     */
+    alignNodes(mode: string, nodes?: Node[]): void;
+    /**
+     * Evenly distribute the selected (or given) nodes along an axis so the gaps
+     * between them are equal; the outermost two stay put. axis: horizontal |
+     * vertical. Broadcasts onNodesMove. No-op for < 3 nodes.
+     */
+    distributeNodes(axis: string, nodes?: Node[]): void;
+    /**
      * Export the slate to a JSON string in v1-compatible format.
      *
      * @param nodes - Optional subset of nodes to include

@@ -11,6 +11,7 @@
 export declare class ContextMenu {
     private slate;
     private el;
+    private targetNodes;
     private boundContext;
     private boundDismiss;
     private boundEsc;
@@ -22,9 +23,9 @@ export declare class ContextMenu {
     private onContextMenu;
     private open;
     private close;
-    private forEachSelected;
-    /** Delete the selected nodes (removeNode broadcasts onNodeDeleted → persists). */
-    private deleteSelected;
-    /** Duplicate the selected nodes offset (+20,+20); addNode broadcasts → persists. */
-    private duplicateSelected;
+    private forEachTarget;
+    /** Delete the target nodes (removeNode broadcasts onNodeDeleted → persists). */
+    private deleteTargets;
+    /** Duplicate the target nodes offset (+20,+20); addNode broadcasts → persists. */
+    private duplicateTargets;
 }

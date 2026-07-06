@@ -188,6 +188,16 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## ALIGN + DISTRIBUTE added (Miro parity)
+- Slate.alignNodes(mode, nodes?) — align a multi-selection to its shared bounding box (left / centerH /
+  right / top / middle / bottom). Slate.distributeNodes(axis, nodes?) — even the gaps (horizontal /
+  vertical, 3+ nodes). Both broadcast onNodesMove → persist + sync. Surfaced in the context menu: for a
+  2+ selection a divider + 6 align items appear; 3+ adds 2 distribute items. IMPORTANT: the menu
+  snapshots the selection at open() (this.targetNodes) and all actions use it — a real-mouse right-click
+  collapses a multi-selection on pointerup, which would otherwise make align/duplicate/delete a no-op.
+  Verified live: right-click a node in a 3-selection → Align left → all share min-x + persists. e2e
+  align.spec.ts (logic + menu-click + snapshot robustness). 1073 unit / 184 e2e.
+
 ## RIGHT-CLICK CONTEXT MENU added (Miro parity)
 - Right-clicking a node had no useful menu. Added ContextMenu.ts (isolated class, wired in Slate,
   exported + window global): a positioned HTML overlay with Bring to front / Send to back / Duplicate /
