@@ -214,6 +214,11 @@ function connectable(options, elmTarget) {
   con.sourceAnchor = options.sourceAnchor || null;
   con.targetAnchor = options.targetAnchor || null;
   con.curveRadius = options.curveRadius || 20;
+  // Bezier bow amount as a 0..1 fraction of the connector length (the app's
+  // "Line Curve" slider). Distinct from curveRadius (a pixel value used by the
+  // orthogonal router). Defaults to a moderate curve.
+  con.lineCurviness =
+    typeof options.lineCurviness === "number" ? options.lineCurviness : 0.3;
 
   // Support for separate source and target markers
   con.markerSourceType = options.markerSource || "null";

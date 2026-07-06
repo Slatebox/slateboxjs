@@ -365,10 +365,12 @@ function computeConnectorCoordinates(con) {
     // Outward (edge-normal) direction at each port = center → port.
     const sDir = norm(pp1[0] - sourceCenter[0], pp1[1] - sourceCenter[1], dx, dy);
     const tDir = norm(pp2[0] - targetCenter[0], pp2[1] - targetCenter[1], -dx, -dy);
-    // Handle length: responds to the curve slider (curveRadius) but keeps a
-    // minimum so the perpendicular approach is always visible, and is capped at
-    // half the span so short links don't loop back on themselves.
-    const handle = Math.max(30, Math.min(con.curveRadius * 2.5, distance * 0.5));
+    // Handle length: the "Line Curve" slider (lineCurviness, 0..1) scales how far
+    // the control points bow out, as a fraction of the span — so the slider is
+    // always responsive. A small floor keeps the perpendicular approach visible.
+    const curviness =
+      typeof con.lineCurviness === "number" ? con.lineCurviness : 0.3;
+    const handle = Math.max(20, distance * (0.12 + curviness * 0.55));
 
     const cp1 = [pp1[0] + sDir[0] * handle, pp1[1] + sDir[1] * handle];
     const cp2 = [pp2[0] + tDir[0] * handle, pp2[1] + tDir[1] * handle];

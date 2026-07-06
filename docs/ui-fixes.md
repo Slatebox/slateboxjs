@@ -74,6 +74,16 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   slate-theme. Remaining: slate background EFFECT (texture, needs types:['slate']) + theme vectorPath
   (app stores it as an SVGPathData object) — shape not applied via theme yet.
 
+- LINE PANE SWEEP: verified live — line WIDTH (stroke + model), ARROWS (showParentArrow/
+  showChildArrow toggle marker-start/-end), and lineType/locks/color all WORK. Only curviness broken:
+- U10 DONE [lib, pending commit]: LINE CURVE slider (lineCurviness 0.01-1) did nothing — it was
+  assigned directly to curveRadius (a PIXEL value), so the bezier handle max(30, min(curveRadius*2.5,
+  dist*0.5)) was always clamped to the 30 floor. Fix: connectable now carries lineCurviness (0..1,
+  default 0.3) distinct from curveRadius (pixels, still used by the orthogonal router); the bezier
+  geometry scales the bow as a fraction of span: handle = max(20, dist*(0.12 + curviness*0.55));
+  Connector create + updateConnection set c.lineCurviness (not curveRadius). Verified live: control
+  point shifts 161px between curviness 0.05 and 0.95. e2e connector-curviness.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

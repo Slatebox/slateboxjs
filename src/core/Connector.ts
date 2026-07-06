@@ -234,7 +234,8 @@ export class Connector {
           markerSource,
           markerTarget,
           showHandles: this.options.showHandles,
-          curveRadius: co.lineCurviness ?? this.options.curveRadius,
+          curveRadius: this.options.curveRadius,
+          lineCurviness: co.lineCurviness,
           // Edge-pin mode (optional): normalized local anchors {x,y} 0..1
           sourceAnchor: connectionOptions.sourceAnchor,
           targetAnchor: connectionOptions.targetAnchor,
@@ -448,7 +449,8 @@ export class Connector {
           c.setType(map[(updates as any).lineType] || "curved");
         }
         if ((updates as any).lineCurviness != null) {
-          c.curveRadius = (updates as any).lineCurviness;
+          // 0..1 bezier bow fraction (NOT the pixel curveRadius).
+          c.lineCurviness = (updates as any).lineCurviness;
         }
         // Arrow markers: source = parent arrow, target = child arrow
         if (

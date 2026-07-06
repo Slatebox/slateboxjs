@@ -4474,15 +4474,15 @@ function _n(n) {
     const a = o[0] - s[0], l = o[1] - s[1], c = Math.sqrt(a * a + l * l);
     if (c < 1)
       return [["M", s[0], s[1]], ["L", o[0], o[1]]];
-    const h = (y, m, b, w) => {
-      const v = Math.sqrt(y * y + m * m);
-      if (v > 1e-4) return [y / v, m / v];
-      const x = Math.sqrt(b * b + w * w) || 1;
-      return [b / x, w / x];
-    }, d = h(s[0] - e[0], s[1] - e[1], a, l), u = h(o[0] - i[0], o[1] - i[1], -a, -l), p = Math.max(30, Math.min(n.curveRadius * 2.5, c * 0.5)), g = [s[0] + d[0] * p, s[1] + d[1] * p], f = [o[0] + u[0] * p, o[1] + u[1] * p];
+    const h = (m, b, w, v) => {
+      const x = Math.sqrt(m * m + b * b);
+      if (x > 1e-4) return [m / x, b / x];
+      const _ = Math.sqrt(w * w + v * v) || 1;
+      return [w / _, v / _];
+    }, d = h(s[0] - e[0], s[1] - e[1], a, l), u = h(o[0] - i[0], o[1] - i[1], -a, -l), p = typeof n.lineCurviness == "number" ? n.lineCurviness : 0.3, g = Math.max(20, c * (0.12 + p * 0.55)), f = [s[0] + d[0] * g, s[1] + d[1] * g], y = [o[0] + u[0] * g, o[1] + u[1] * g];
     r = [
       ["M", s[0], s[1]],
-      ["C", g[0], g[1], f[0], f[1], o[0], o[1]]
+      ["C", f[0], f[1], y[0], y[1], o[0], o[1]]
     ];
   } else if (n.type === "orthogonal") {
     const a = o[0] - s[0], l = o[1] - s[1], c = s[0] < e[0], h = s[1] < e[1], d = o[0] < i[0], u = o[1] < i[1];
@@ -5178,7 +5178,7 @@ function sa(n, t) {
   } catch {
     e.connector.node.setAttribute("style", "cursor: pointer"), e.hitArea.node.setAttribute("style", "cursor: pointer");
   }
-  e.hitArea.back(), e.sourceAttach = n.sourceAttach || "perifery", e.targetAttach = n.targetAttach || "perifery", e.sourceAnchor = n.sourceAnchor || null, e.targetAnchor = n.targetAnchor || null, e.curveRadius = n.curveRadius || 20, e.markerSourceType = n.markerSource || "null", e.markerTargetType = n.markerTarget || n.marker || "default", e.showHandles = n.showHandles || !1, e.handleRadius = n.handleRadius || 6, e.handleStrokeWidth = n.handleStrokeWidth || 2, e.handleStroke = n.handleStroke || "#007cff", e.handleFill = n.handleFill || "none", e.isSelected = !1, e.computeConnectorCoordinates = function(a) {
+  e.hitArea.back(), e.sourceAttach = n.sourceAttach || "perifery", e.targetAttach = n.targetAttach || "perifery", e.sourceAnchor = n.sourceAnchor || null, e.targetAnchor = n.targetAnchor || null, e.curveRadius = n.curveRadius || 20, e.lineCurviness = typeof n.lineCurviness == "number" ? n.lineCurviness : 0.3, e.markerSourceType = n.markerSource || "null", e.markerTargetType = n.markerTarget || n.marker || "default", e.showHandles = n.showHandles || !1, e.handleRadius = n.handleRadius || 6, e.handleStrokeWidth = n.handleStrokeWidth || 2, e.handleStroke = n.handleStroke || "#007cff", e.handleFill = n.handleFill || "none", e.isSelected = !1, e.computeConnectorCoordinates = function(a) {
     return _n(a || e);
   }, i.cons = i.cons || [], i.cons.push(e), t.targetCons = t.targetCons || [], t.targetCons.push(e), e.update = function() {
     if (e.connector.attr("connectortype") == "default") {
@@ -5555,7 +5555,8 @@ class Ne {
           markerSource: a,
           markerTarget: l,
           showHandles: this.options.showHandles,
-          curveRadius: s.lineCurviness ?? this.options.curveRadius,
+          curveRadius: this.options.curveRadius,
+          lineCurviness: s.lineCurviness,
           // Edge-pin mode (optional): normalized local anchors {x,y} 0..1
           sourceAnchor: e.sourceAnchor,
           targetAnchor: e.targetAnchor
@@ -5666,7 +5667,7 @@ class Ne {
           };
           s.setType(o[e.lineType] || "curved");
         }
-        if (e.lineCurviness != null && (s.curveRadius = e.lineCurviness), e.showParentArrow != null || e.showChildArrow != null) {
+        if (e.lineCurviness != null && (s.lineCurviness = e.lineCurviness), e.showParentArrow != null || e.showChildArrow != null) {
           const o = e.showParentArrow ?? i.showParentArrow ? "arrow" : "null", r = e.showChildArrow ?? i.showChildArrow ?? !0 ? "arrow" : "null";
           s.setMarker?.(o, r);
         }
