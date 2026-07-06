@@ -82,6 +82,69 @@ test.describe("Serialization", () => {
     expect(res.renderedAsPath).toBe(true);
   });
 
+  // Comprehensive node-property round-trip: every field an Invoker handler can
+  // write must also survive exportJSON→loadJSON, else it silently reverts on
+  // reload. Guards against adding a property setter but forgetting serialization.
+  test("a broad set of node properties all survive a serialize→load round-trip", async ({
+    page,
+  }) => {
+    const res = await page.evaluate(async () => {
+      const slate = (window as any).slate;
+      const a = slate.nodes.one("sa");
+      a.setColors("#8e24aa", "#ff5722");
+      Object.assign(a.options, {
+        borderWidth: 4,
+        borderStyle: "dashed",
+        borderOpacity: 0.8,
+        opacity: 0.7,
+        fontFamily: "Caveat",
+        fontSize: 22,
+        fontColor: "#ffeb3b",
+        textXAlign: "left",
+        textYAlign: "top",
+      });
+      a.setText("RoundTrip");
+      a.setRotation && a.setRotation(37);
+      a.links && a.links.set({ show: true, type: "url", url: "https://rt.test", target: "_blank" });
+      await new Promise((r) => setTimeout(r, 300));
+
+      const keys = [
+        "backgroundColor", "borderColor", "borderWidth", "borderStyle", "borderOpacity",
+        "opacity", "fontFamily", "fontSize", "fontColor", "textXAlign", "textYAlign", "text",
+      ];
+      const src: any = {};
+      keys.forEach((k) => (src[k] = a.options[k]));
+      src.rotationAngle = a.options.rotate?.rotationAngle;
+      src.linkUrl = a.options.link?.url;
+
+      const json = slate.exportJSON();
+      const div = document.createElement("div");
+      div.id = "appRT";
+      document.body.appendChild(div);
+      const s2 = (window as any).SlateboxJS("#appRT", {
+        viewPort: { originalWidth: 1200, originalHeight: 800 },
+        panZoom: { enabled: false },
+      });
+      if (s2.loadJSON) s2.loadJSON(json);
+      else if (s2.importJSON) s2.importJSON(json);
+      await new Promise((r) => setTimeout(r, 700));
+
+      const b = s2.nodes.one("sa");
+      const dst: any = {};
+      keys.forEach((k) => (dst[k] = b?.options?.[k]));
+      dst.rotationAngle = b?.options?.rotate?.rotationAngle;
+      dst.linkUrl = b?.options?.link?.url;
+
+      const dropped = Object.keys(src).filter(
+        (k) => JSON.stringify(src[k]) !== JSON.stringify(dst[k])
+      );
+      return { dropped, src, dst };
+    });
+
+    // No property was dropped or altered by the round-trip.
+    expect(res.dropped).toEqual([]);
+  });
+
   // A whole small diagram (styled nodes + a connection + an orthogonal line type)
   // must survive exportJSON→loadJSON intact — this is the serialization behind a
   // page reload (server saves exportJSON, reloads it). Integration guard.
