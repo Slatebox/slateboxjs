@@ -319,12 +319,16 @@ export class Invoker {
     if (pkg.data.bg) {
       this.slate.options.containerStyle!.backgroundImage = pkg.data.bg.url
       this.slate.options.containerStyle!.backgroundSize = pkg.data.bg.size
+      // An image supersedes any gradient (which otherwise wins in applyContainerStyle).
+      this.slate.options.containerStyle!.backgroundColorAsGradient = false
     } else {
       const c = this.slate.options.containerStyle?.prevBackgroundColor || '#fff'
       this.slate.options.containerStyle!.backgroundColor = c
       this.slate.options.containerStyle!.backgroundImage = undefined
       this.slate.options.containerStyle!.backgroundEffect = undefined
     }
+    // Push the option change onto the container element (was a no-op before).
+    this.slate.applyContainerStyle()
   }
 
   onSlateBackgroundColorChanged(pkg: SlatePackage) {
@@ -336,6 +340,8 @@ export class Invoker {
     cs.backgroundGradientStrategy = pkg.data.gradientStrategy
     cs.backgroundImage = undefined
     cs.backgroundEffect = undefined
+    // Actually paint the container (previously only options were updated).
+    this.slate.applyContainerStyle()
   }
 
   onLineColorChanged(pkg: SlatePackage) {

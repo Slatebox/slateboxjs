@@ -8330,15 +8330,16 @@ class ba {
   }
   onSlateBackgroundImageChanged(t) {
     if (t.data.bg)
-      this.slate.options.containerStyle.backgroundImage = t.data.bg.url, this.slate.options.containerStyle.backgroundSize = t.data.bg.size;
+      this.slate.options.containerStyle.backgroundImage = t.data.bg.url, this.slate.options.containerStyle.backgroundSize = t.data.bg.size, this.slate.options.containerStyle.backgroundColorAsGradient = !1;
     else {
       const e = this.slate.options.containerStyle?.prevBackgroundColor || "#fff";
       this.slate.options.containerStyle.backgroundColor = e, this.slate.options.containerStyle.backgroundImage = void 0, this.slate.options.containerStyle.backgroundEffect = void 0;
     }
+    this.slate.applyContainerStyle();
   }
   onSlateBackgroundColorChanged(t) {
     const e = this.slate.options.containerStyle;
-    e.backgroundColor = t.data.color, e.backgroundColorAsGradient = t.data.asGradient, e.backgroundGradientType = t.data.gradientType, e.backgroundGradientColors = t.data.gradientColors, e.backgroundGradientStrategy = t.data.gradientStrategy, e.backgroundImage = void 0, e.backgroundEffect = void 0;
+    e.backgroundColor = t.data.color, e.backgroundColorAsGradient = t.data.asGradient, e.backgroundGradientType = t.data.gradientType, e.backgroundGradientColors = t.data.gradientColors, e.backgroundGradientStrategy = t.data.gradientStrategy, e.backgroundImage = void 0, e.backgroundEffect = void 0, this.slate.applyContainerStyle();
   }
   onLineColorChanged(t) {
     this.slate.options.defaultLineColor = t.data.color, this.slate.nodes.allNodes.forEach((e) => {

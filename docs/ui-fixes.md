@@ -55,6 +55,15 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   Verified live: setting a data-URI image → node fill becomes url(#SvgjsPattern...) + options.image
   set; clearing restores the solid color. e2e node-image.
 
+- U8 DONE [lib, pending commit]: SLATE BACKGROUND color/gradient/image changed options but never
+  painted the container (onSlateBackgroundColorChanged / onSlateBackgroundImageChanged didn't call
+  applyContainerStyle). Fix: both call applyContainerStyle(); the image handler also clears
+  backgroundColorAsGradient (else the gradient branch wins in applyContainerStyle and the image never
+  shows). Verified live: canvas bg → solid #ff8800, linear-gradient, then image url. e2e
+  slate-background. DEFERRED: slate background EFFECT (texture) needs filters w/ types:['slate'] +
+  onSlateBackgroundEffectChanged apply — SlateEffects list is empty until then. onSlateThemeChanged
+  still a stub (theme apply to nodes) — larger, separate.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

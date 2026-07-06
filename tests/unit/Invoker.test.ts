@@ -54,6 +54,7 @@ describe("Invoker", () => {
 
     mockSlate = {
       pan: vi.fn(),
+      applyContainerStyle: vi.fn(),
       panZoom: { zoom: vi.fn() },
       options: {
         followMe: false,
@@ -782,6 +783,8 @@ describe("Invoker", () => {
       expect(mockSlate.options.containerStyle.backgroundColorAsGradient).toBe(false);
       expect(mockSlate.options.containerStyle.backgroundImage).toBeUndefined();
       expect(mockSlate.options.containerStyle.backgroundEffect).toBeUndefined();
+      // The change must actually be painted onto the container element.
+      expect(mockSlate.applyContainerStyle).toHaveBeenCalled();
     });
   });
 
