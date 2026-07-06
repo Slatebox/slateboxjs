@@ -6,9 +6,13 @@
  * - Ctrl+Z / Cmd+Z: undo
  * - Ctrl+Y / Cmd+Shift+Z: redo
  * - Ctrl+A / Cmd+A: select all
+ * - Ctrl+C / Ctrl+V: copy / paste selected nodes
+ * - Ctrl+D: duplicate selected nodes in place (offset)
  * - Arrow keys: nudge selected nodes
  * - Escape: deselect all
  */
+
+import { guid } from "../utils";
 
 export interface KeyboardOptions {
   enabled?: boolean;
@@ -19,6 +23,8 @@ export class Keyboard {
   private slate: any;
   private options: KeyboardOptions;
   private boundHandler: ((e: KeyboardEvent) => void) | null = null;
+  // Internal clipboard of copied node options (deep-cloned snapshots).
+  private clipboard: any[] = [];
 
   constructor(slate: any, options: KeyboardOptions = {}) {
     this.slate = slate;
@@ -97,6 +103,24 @@ export class Keyboard {
       case "a":
         if (isMod) {
           this.selectAll(e);
+        }
+        break;
+
+      case "c":
+        if (isMod) {
+          this.copySelected(e);
+        }
+        break;
+
+      case "v":
+        if (isMod) {
+          this.pasteClipboard(e);
+        }
+        break;
+
+      case "d":
+        if (isMod) {
+          this.duplicateSelected(e);
         }
         break;
 
@@ -184,6 +208,84 @@ export class Keyboard {
   private deselect(e: KeyboardEvent): void {
     e.preventDefault();
     this.slate.clearSelection();
+  }
+
+  /**
+   * A serializable snapshot of a node's paintable options — enough to recreate
+   * it, minus identity (id) and relationship arrays (which reference the OLD node
+   * ids and would create dangling connections on a copy).
+   */
+  private snapshotNode(node: any): any {
+    let snap: any = {};
+    try {
+      snap = JSON.parse(JSON.stringify(node.options || {}));
+    } catch (err) {
+      snap = { ...(node.options || {}) };
+    }
+    delete snap.id;
+    delete snap.parentArrowForChildren;
+    delete snap.noChildArrowForChildren;
+    delete snap.associations;
+    delete snap.relationships;
+    return snap;
+  }
+
+  /** Ctrl/Cmd+C — copy the selected nodes to the internal clipboard. */
+  private copySelected(e: KeyboardEvent): void {
+    const selected = this.slate.getSelectedNodes?.() || [];
+    if (selected.length === 0) return;
+    e.preventDefault();
+    this.clipboard = selected.map((n: any) => this.snapshotNode(n));
+    this.slate.announce?.(`Copied ${this.clipboard.length} node(s)`);
+  }
+
+  /** Ctrl/Cmd+V — paste the clipboard nodes (offset), then select the copies. */
+  private pasteClipboard(e: KeyboardEvent): void {
+    if (this.clipboard.length === 0) return;
+    e.preventDefault();
+    this.createCopies(this.clipboard, 20);
+  }
+
+  /** Ctrl/Cmd+D — duplicate the current selection in place (offset). */
+  private duplicateSelected(e: KeyboardEvent): void {
+    const selected = this.slate.getSelectedNodes?.() || [];
+    if (selected.length === 0) return;
+    e.preventDefault();
+    const snaps = selected.map((n: any) => this.snapshotNode(n));
+    this.createCopies(snaps, 20);
+  }
+
+  /**
+   * Create fresh nodes from option snapshots, offset by (offset,offset) and each
+   * given a new id, then select the new nodes. addNode() broadcasts onNodeAdded,
+   * so copies persist + sync to collab peers like any other added node.
+   */
+  private createCopies(snapshots: any[], offset: number): void {
+    if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;
+    const created: any[] = [];
+    for (const snap of snapshots) {
+      const opts = { ...snap };
+      opts.id = guid();
+      opts.x = (opts.x || 0) + offset;
+      opts.y = (opts.y || 0) + offset;
+      try {
+        const node = this.slate.addNode(opts);
+        if (node) created.push(node);
+      } catch (err) {
+        /* noop */
+      }
+    }
+    if (created.length > 0) {
+      // Select the copies once their async creation settles.
+      const selectCopies = () => this.slate.selectNodes?.(created, false);
+      const pending = created.map((n: any) => n?.ready).filter(Boolean);
+      if (pending.length) {
+        Promise.all(pending).then(selectCopies).catch(selectCopies);
+      } else {
+        setTimeout(selectCopies, 120);
+      }
+      this.slate.announce?.(`Pasted ${created.length} node(s)`);
+    }
   }
 
   private nudge(dx: number, dy: number, e: KeyboardEvent): void {

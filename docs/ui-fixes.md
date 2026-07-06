@@ -188,6 +188,17 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## COPY/PASTE/DUPLICATE implemented (Ctrl+C/V/D) + rotation verified
+- Node ROTATION (rotation handle, arc drag): rotates the node (getRotation reflects the angle, group
+  transform gets rotate(angle …)), and PERSISTS through reload (98° before+after). Verified live.
+- NEW FEATURE (lib): copy/paste/duplicate keyboard shortcuts were unimplemented (Ctrl+C/V/D did
+  nothing). Added to Keyboard.ts: Ctrl+C copies selected nodes to an internal clipboard (option
+  snapshots, minus id + relationship arrays), Ctrl+V pastes them offset +20,+20 with fresh ids, Ctrl+D
+  duplicates the selection in place. Copies inherit paintable options (shape/color/etc.) and are
+  selected after creation. addNode() broadcasts onNodeAdded, so copies persist + sync to collab like
+  any added node. Verified live: Ctrl+D 1→2 (pink color copied, offset), Ctrl+C/V 2→3, all survive
+  reload. e2e tests/e2e/copy-paste.spec.ts. 1072 unit.
+
 ## MULTI-SELECT group-move FIXED (real-mouse trailing click wiped selection)
 - Node RESIZE (interactive handle drag): verified — resizes to the dragged size, no fly-away (x/y
   anchored), persists through reload.
