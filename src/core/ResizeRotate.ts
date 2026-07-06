@@ -113,8 +113,11 @@ export class ResizeRotate {
 
         const handles = root.querySelectorAll(".svg_select_handle");
         handles.forEach((h: SVGElement) => {
-          h.setAttribute("stroke-width", "8");
-          h.setAttribute("stroke", "#333");
+          // Miro-style: light-blue corner/edge handles (was chunky black #333).
+          // stroke-width 6 keeps them easy to grab while looking far lighter than
+          // the old 8px black brackets.
+          h.setAttribute("stroke-width", "6");
+          h.setAttribute("stroke", "#4A90E2");
           h.style.pointerEvents = "all";
         });
       } catch (e) {

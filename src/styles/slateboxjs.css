@@ -44,23 +44,23 @@
   transform: scale(0.95);
 }
 
-/* svg.select.js handle overrides — make handles easy to grab */
+/* svg.select.js handle overrides — Miro-style light-blue handles (easy to grab) */
 .svg_select_handle {
-  stroke-width: 7;
-  stroke: #333;
+  stroke-width: 6;
+  stroke: #4A90E2;
   fill: none;
   pointer-events: stroke;
 }
 
 .svg_select_handle:hover {
-  stroke: #4A90E2;
+  stroke: #1a6dd0;
 }
 
 .svg_select_shape {
-  stroke-width: 1;
+  stroke-width: 1.5;
   stroke-dasharray: 5 5;
-  stroke: #333;
-  stroke-opacity: 0.4;
+  stroke: #4A90E2;
+  stroke-opacity: 0.55;
   pointer-events: none;
   fill: none !important;
   fill-opacity: 0;
@@ -73,13 +73,13 @@
 
 .svg_select_handle_rot {
   fill: white;
-  stroke: #333;
-  stroke-width: 1;
+  stroke: #4A90E2;
+  stroke-width: 1.5;
   cursor: move;
 }
 
 .svg_select_handle_rot:hover {
-  stroke: #4A90E2;
+  stroke: #1a6dd0;
 }
 
 /* Node specific styles */

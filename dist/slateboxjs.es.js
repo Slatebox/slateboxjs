@@ -5362,7 +5362,7 @@ class Gi {
         ).forEach((o) => {
           o.setAttribute("fill", "none"), o.setAttribute("fill-opacity", "0"), o.setAttribute("pointer-events", "none"), o.style.fill = "none", o.style.fillOpacity = "0", o.style.pointerEvents = "none";
         }), e.querySelectorAll(".svg_select_handle").forEach((o) => {
-          o.setAttribute("stroke-width", "8"), o.setAttribute("stroke", "#333"), o.style.pointerEvents = "all";
+          o.setAttribute("stroke-width", "6"), o.setAttribute("stroke", "#4A90E2"), o.style.pointerEvents = "all";
         });
       } catch (t) {
         console.warn("RESIZE_ROTATE_DEBUG: Failed to widen handle hit areas:", t);

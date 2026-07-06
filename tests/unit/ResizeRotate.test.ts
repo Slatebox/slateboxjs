@@ -722,8 +722,8 @@ describe("ResizeRotate", () => {
 
       expect(ownerSVG.querySelectorAll).toHaveBeenCalledWith(".svg_select_handle");
       for (const el of handleEls) {
-        expect(el.setAttribute).toHaveBeenCalledWith("stroke-width", "8");
-        expect(el.setAttribute).toHaveBeenCalledWith("stroke", "#333");
+        expect(el.setAttribute).toHaveBeenCalledWith("stroke-width", "6");
+        expect(el.setAttribute).toHaveBeenCalledWith("stroke", "#4A90E2");
         expect(el.style.pointerEvents).toBe("all");
       }
     });
