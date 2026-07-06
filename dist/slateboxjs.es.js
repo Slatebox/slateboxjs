@@ -7079,6 +7079,15 @@ class Pe {
     ), this.centerText();
   }
   /**
+   * Apply the node's fill opacity (options.opacity) to the shape element. Mirrors
+   * what createBackground does on load, for the edit path (color pane opacity
+   * slider), which otherwise only updated options.
+   */
+  applyOpacity() {
+    const t = this.contentPath ?? this.backgroundRect;
+    t?.opacity && this.options.opacity !== void 0 && t.opacity(this.options.opacity);
+  }
+  /**
    * Re-apply font (size / family / color / opacity) from options to the text
    * element and re-center for alignment. The text pane sends font changes via
    * onNodeTextChanged; without this they only updated options, never the render.
@@ -8321,7 +8330,7 @@ class ba {
     e && (e.setColors(
       t.data.color ?? t.data.backgroundColor,
       t.data.borderColor
-    ), t.data.opacity !== void 0 && (e.options.opacity = t.data.opacity));
+    ), t.data.opacity !== void 0 && (e.options.opacity = t.data.opacity, e.applyOpacity()));
   }
   onNodeTextChanged(t) {
     const e = this.slate.nodes.one(t.data.id);

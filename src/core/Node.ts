@@ -704,6 +704,18 @@ export class Node {
   }
 
   /**
+   * Apply the node's fill opacity (options.opacity) to the shape element. Mirrors
+   * what createBackground does on load, for the edit path (color pane opacity
+   * slider), which otherwise only updated options.
+   */
+  public applyOpacity(): void {
+    const el: any = this.contentPath ?? this.backgroundRect;
+    if (el?.opacity && this.options.opacity !== undefined) {
+      el.opacity(this.options.opacity);
+    }
+  }
+
+  /**
    * Re-apply font (size / family / color / opacity) from options to the text
    * element and re-center for alignment. The text pane sends font changes via
    * onNodeTextChanged; without this they only updated options, never the render.

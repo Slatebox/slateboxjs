@@ -192,6 +192,7 @@ export class Invoker {
       )
       if (pkg.data.opacity !== undefined) {
         node.options.opacity = pkg.data.opacity
+        node.applyOpacity()
       }
     }
   }

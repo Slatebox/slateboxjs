@@ -124,6 +124,11 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   font({family,size,fill,opacity}) + centerText (alignment). Verified live: size 30, color #ff0000,
   family Georgia, left-align shifts x 110→5. e2e node-text-style.
 
+- U15 DONE [lib, pending commit]: NODE OPACITY (color pane slider) was inert. onNodeColorChanged set
+  options.opacity but never applied it. Fix: new Node.applyOpacity() pushes options.opacity onto the
+  shape element (contentPath ?? backgroundRect), matching createBackground's load path; handler calls
+  it. Verified live: opacity 0.35 applies AND persists across reload. e2e node-opacity.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

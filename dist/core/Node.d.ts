@@ -185,6 +185,12 @@ export declare class Node {
     setShape(shape: string, vectorPath?: string): void;
     private createText;
     /**
+     * Apply the node's fill opacity (options.opacity) to the shape element. Mirrors
+     * what createBackground does on load, for the edit path (color pane opacity
+     * slider), which otherwise only updated options.
+     */
+    applyOpacity(): void;
+    /**
      * Re-apply font (size / family / color / opacity) from options to the text
      * element and re-center for alignment. The text pane sends font changes via
      * onNodeTextChanged; without this they only updated options, never the render.
