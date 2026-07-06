@@ -208,8 +208,19 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   circle/ellipse keep their exact math. SAFE: guarded + falls back to the bbox intersection, so the
   connector never breaks. Verified live in-app: connector into a star lands ON the outline (dist 0) at
   a point 47px OFF the bbox corner (diagonal target). e2e connector-path-outline (wiring + no-fly-away;
-  precise outline attach is CTM-dependent so verified live, not in headless). NEXT for paths: convert
-  default rect (bbox==outline, safe) then circle/ellipse to <path>, keeping connectors accurate.
+  precise outline attach is CTM-dependent so verified live, not in headless).
+- PATHS step 2 ATTEMPTED + REVERTED: converted the default rect to a rounded-rect <path> (drawn at
+  actual size, regenerated on resize via setSize→attr('d') to keep constant corners — resize routes
+  through setSize, so that part worked; unit suite passed). BUT the full e2e suite failed ~9 tests:
+  connector-edge-pin, connector-floating-endpoint, connector-follows-rotation, line-properties (type
+  re-render+persist), node-border reload, node-opacity reload, node-setshape. The default node's
+  backgroundRect being a <path> instead of a Rect broke code that assumes Rect + the serialize/reload
+  + shape-change + connector-pin paths. Reverted per the full-suite gate. LEARNING: converting the
+  DEFAULT shape is a wide, multi-subsystem change — needs a dedicated effort touching setSize,
+  serialize/deserialize (shape round-trip), setShape re-render, connector edge-pin/rotation, and
+  opacity/border reload TOGETHER, each with its own e2e. Not a single-iteration change. The connector-
+  outline (step 1) already delivers the visible "adaptive paths" benefit for picked path shapes;
+  default-shape conversion is lower value / higher risk and should be scoped as its own project.
 - ABSOLUTE-ANCHOR + DRAG: re-verified with a REAL mouse drag on a clean single connection — the pinned
   endpoint STAYS at the same relative point (relX 0.39 before/after) with the anchor preserved. Works.
   Could not reproduce the user's detach; awaiting exact repro (likely multi-connection or a specific
