@@ -129,6 +129,17 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   shape element (contentPath ?? backgroundRect), matching createBackground's load path; handler calls
   it. Verified live: opacity 0.35 applies AND persists across reload. e2e node-opacity.
 
+- REGRESSION SWEEP: full chromium e2e after the 15 fixes → 167/170; the 3 failures were PRE-EXISTING
+  (fail identically against the pre-session dist) — zero regressions from U1-U15.
+- U16 DONE [lib, pending commit]: BIRDSEYE minimap didn't reflect node ROTATION on the incremental/
+  load paths (updateNodePosition + addNodeShape only moved shapes). Fix: new applyShapeRotation()
+  applies the node's rotationAngle as an absolute transform about the shape center, called from both.
+  (The end-of-rotate full-refresh already handled it; this covers add/load of pre-rotated nodes.)
+  Verified live: minimap shape gets matrix(0.707...) = rotate(45).
+  Also fixed the 3 pre-existing red tests: connections-comprehensive (asserted toBeVisible on an
+  intentionally-invisible hitarea → toBeAttached); birdseye-rotation x2 (rewrote fragile handle-drag
+  → engine-API rotation + assert minimap reflects it). Full suite now 170/170 green.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

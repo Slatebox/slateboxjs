@@ -38,6 +38,12 @@ export declare class BirdsEye {
     updateViewport(): void;
     updateNodePosition(node: Node): void;
     /**
+     * Rotate a minimap shape to match the node's rotation, about its center.
+     * Absolute (transform, not the relative .rotate()) so repeated updates don't
+     * accumulate. Position (x/y attrs from move) is unaffected.
+     */
+    private applyShapeRotation;
+    /**
      * Q4: tween a minimap shape to (x,y) with a short easeInOutQuad rAF animation,
      * cancelling any in-flight tween so it retargets smoothly (e.g. during a drag).
      */

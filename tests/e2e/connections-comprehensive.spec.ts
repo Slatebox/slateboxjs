@@ -367,9 +367,10 @@ test.describe("Line Selection and Repositioning", () => {
   });
 
   test("clicking on connection line should select it", async ({ page }) => {
-    // Find the connection hit area (invisible click area)
+    // Find the connection hit area (an intentionally transparent click target —
+    // present in the DOM but not "visible" to Playwright).
     const hitArea = page.locator('path[connectortype="hitarea"]');
-    await expect(hitArea).toBeVisible();
+    await expect(hitArea).toBeAttached();
 
     // Click on the hit area
     await hitArea.click({ force: true });

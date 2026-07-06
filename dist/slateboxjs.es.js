@@ -8762,6 +8762,20 @@ class Ki {
     if (!e) return;
     const i = this.calculateContentBounds(), s = 100, o = (t.options.x - i.minX + s) * this.scale, r = (t.options.y - i.minY + s) * this.scale;
     this.animateShapeMove(e, o, r);
+    const a = (t.options.width || 100) * this.scale, l = (t.options.height || 60) * this.scale;
+    this.applyShapeRotation(e, t, o, r, a, l);
+  }
+  /**
+   * Rotate a minimap shape to match the node's rotation, about its center.
+   * Absolute (transform, not the relative .rotate()) so repeated updates don't
+   * accumulate. Position (x/y attrs from move) is unaffected.
+   */
+  applyShapeRotation(t, e, i, s, o, r) {
+    const a = e.options.rotate?.rotationAngle || 0;
+    try {
+      t.transform({ rotate: a, origin: [i + o / 2, s + r / 2] });
+    } catch {
+    }
   }
   /**
    * Q4: tween a minimap shape to (x,y) with a short easeInOutQuad rAF animation,
@@ -8807,7 +8821,7 @@ class Ki {
       l = this.miniCanvas.circle(c * 2).move(s, o);
     } else
       l = this.miniCanvas.rect(r, a).move(s, o);
-    l.fill(t.options.backgroundColor || this.options.nodeColor), l.stroke({ width: 0 }), this.nodeShapes.set(t.id, l);
+    l.fill(t.options.backgroundColor || this.options.nodeColor), l.stroke({ width: 0 }), this.applyShapeRotation(l, t, s, o, r, a), this.nodeShapes.set(t.id, l);
     try {
       l.opacity(0), l.animate(220).opacity(1);
     } catch {

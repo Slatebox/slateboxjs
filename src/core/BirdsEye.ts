@@ -171,6 +171,32 @@ export class BirdsEye {
     const y = (node.options.y! - bounds.minY + padding) * this.scale;
 
     this.animateShapeMove(shape as any, x, y);
+
+    // Reflect the node's rotation in the minimap (fidelity with the canvas).
+    const w = (node.options.width || 100) * this.scale;
+    const h = (node.options.height || 60) * this.scale;
+    this.applyShapeRotation(shape as any, node, x, y, w, h);
+  }
+
+  /**
+   * Rotate a minimap shape to match the node's rotation, about its center.
+   * Absolute (transform, not the relative .rotate()) so repeated updates don't
+   * accumulate. Position (x/y attrs from move) is unaffected.
+   */
+  private applyShapeRotation(
+    shape: any,
+    node: Node,
+    x: number,
+    y: number,
+    w: number,
+    h: number
+  ): void {
+    const angle = node.options.rotate?.rotationAngle || 0;
+    try {
+      shape.transform({ rotate: angle, origin: [x + w / 2, y + h / 2] });
+    } catch (e) {
+      /* noop */
+    }
   }
 
   /**
@@ -240,6 +266,9 @@ export class BirdsEye {
 
     shape.fill(node.options.backgroundColor || this.options.nodeColor!);
     shape.stroke({ width: 0 });
+
+    // Reflect an already-rotated node in the minimap on creation.
+    this.applyShapeRotation(shape as any, node, x, y, w, h);
 
     this.nodeShapes.set(node.id, shape);
 
