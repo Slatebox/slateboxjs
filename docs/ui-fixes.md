@@ -188,6 +188,14 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## Z-ORDER keyboard shortcuts added (Miro parity)
+- Z-order (bring-to-front/send-to-back) worked at the model level (node.toFront/toBack broadcast
+  onNodeToFront/onNodeToBack; Invoker applies them on the collab-receive side; persists via serialize
+  order) but had NO user trigger. Added Ctrl/Cmd+] = bring to front, Ctrl/Cmd+[ = send to back in
+  Keyboard.ts (for the selection). Verified live: Ctrl+] moves a node on top, Ctrl+[ behind, survives
+  reload. e2e z-order.spec.ts asserts DOM reorder + onNodeToFront/onNodeToBack broadcasts. Help text
+  updated (also documents Ctrl+C/V/D). 1073 unit.
+
 ## ARROW-KEY NUDGE persistence FIXED
 - BUG: selecting a node + pressing arrow keys moved it (Keyboard.nudge, 5px), but it did NOT persist —
   on reload the node snapped back. Root cause: nudge() called node.position() but never broadcast, so

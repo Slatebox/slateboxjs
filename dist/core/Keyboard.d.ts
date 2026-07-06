@@ -46,6 +46,10 @@ export declare class Keyboard {
     private copySelected;
     /** Ctrl/Cmd+V — paste the clipboard nodes (offset), then select the copies. */
     private pasteClipboard;
+    /** Ctrl/Cmd+] — bring the selected node(s) to the front of the z-order. */
+    private bringToFront;
+    /** Ctrl/Cmd+[ — send the selected node(s) to the back of the z-order. */
+    private sendToBack;
     /** Ctrl/Cmd+D — duplicate the current selection in place (offset). */
     private duplicateSelected;
     /**

@@ -127,6 +127,18 @@ export class Keyboard {
         }
         break;
 
+      case "]":
+        if (isMod) {
+          this.bringToFront(e);
+        }
+        break;
+
+      case "[":
+        if (isMod) {
+          this.sendToBack(e);
+        }
+        break;
+
       case "Escape":
         this.deselect(e);
         break;
@@ -139,6 +151,9 @@ export class Keyboard {
           "  Ctrl+Z — undo\n" +
           "  Ctrl+Y — redo\n" +
           "  Ctrl+A — select all\n" +
+          "  Ctrl+C / Ctrl+V — copy / paste\n" +
+          "  Ctrl+D — duplicate\n" +
+          "  Ctrl+] / Ctrl+[ — bring to front / send to back\n" +
           "  Escape — deselect\n" +
           "  Arrow keys — nudge selected (1px)\n" +
           "  Tab — focus next node\n" +
@@ -247,6 +262,23 @@ export class Keyboard {
     if (this.clipboard.length === 0) return;
     e.preventDefault();
     this.createCopies(this.clipboard, 20);
+  }
+
+  /** Ctrl/Cmd+] — bring the selected node(s) to the front of the z-order. */
+  private bringToFront(e: KeyboardEvent): void {
+    const selected = this.slate.getSelectedNodes?.() || [];
+    if (selected.length === 0) return;
+    e.preventDefault();
+    // node.toFront() broadcasts onNodeToFront, so it persists + syncs to collab.
+    for (const node of selected) node.toFront?.();
+  }
+
+  /** Ctrl/Cmd+[ — send the selected node(s) to the back of the z-order. */
+  private sendToBack(e: KeyboardEvent): void {
+    const selected = this.slate.getSelectedNodes?.() || [];
+    if (selected.length === 0) return;
+    e.preventDefault();
+    for (const node of selected) node.toBack?.();
   }
 
   /** Ctrl/Cmd+D — duplicate the current selection in place (offset). */
