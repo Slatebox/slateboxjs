@@ -200,6 +200,11 @@ export class Node {
     container?: G;
   } = {};
   private connectionHandlesVisible: boolean = false;
+  // Hover-reveal (Miro-style) bookkeeping: a debounce timer so moving from the
+  // node to an offset plug-circle doesn't hide it, and a flag marking that the
+  // handles are pinned by SELECTION (so hover-leave must not hide them).
+  private _connHandleHideTimer: ReturnType<typeof setTimeout> | null = null;
+  private _connHandlesPinned: boolean = false;
   private connectionPreview?: {
     node?: Rect | Circle | Ellipse | any;
     connector?: any;
@@ -342,6 +347,8 @@ export class Node {
       // Miro-style: a move cursor on hover signals the node is draggable (was the
       // default arrow, which gave no affordance).
       if (this.svgGroup.node.style) this.svgGroup.node.style.cursor = "move";
+      // Miro-style: reveal the connection plug-circles on hover (not just select).
+      this.wireConnectionHandleHover();
       console.log("NODE_DEBUG: Created svgGroup for", this.id, this.svgGroup);
 
       // Continue with the rest of the creation process
@@ -2273,6 +2280,15 @@ export class Node {
     // Create container for all connection handles at canvas level
     // IMPORTANT: Must be outside svgGroup to avoid affecting group's bbox during drag
     this.connectionHandles.container = this.slate.canvas.group();
+    // The circles sit just OUTSIDE the node, so moving from node → circle briefly
+    // leaves the node's hover region. Keep them alive while the pointer is over
+    // the handle container (cancels the hide debounce).
+    this.connectionHandles.container.on("mouseenter", () =>
+      this.revealConnHandlesOnHover()
+    );
+    this.connectionHandles.container.on("mouseleave", () =>
+      this.scheduleConnHandlesHide()
+    );
 
     const handleRadius = 8;
     const handleColor = "#007cff";
@@ -2407,6 +2423,37 @@ export class Node {
         handle.center(transformedX, transformedY);
       }
     });
+  }
+
+  /**
+   * Miro-style: reveal the plug-circles when the node is hovered (not just when
+   * selected), so you can drag-to-connect without selecting first. A hide
+   * debounce bridges the small gap between the node edge and the offset circles;
+   * selection pins them (`_connHandlesPinned`); a connect-drag keeps them alive.
+   */
+  private wireConnectionHandleHover(): void {
+    if (!this.svgGroup) return;
+    this.svgGroup.on("mouseenter", () => this.revealConnHandlesOnHover());
+    this.svgGroup.on("mouseleave", () => this.scheduleConnHandlesHide());
+  }
+
+  private revealConnHandlesOnHover(): void {
+    if (this.slate?.isReadOnly?.()) return;
+    if (this._connHandleHideTimer) {
+      clearTimeout(this._connHandleHideTimer);
+      this._connHandleHideTimer = null;
+    }
+    if (!this.connectionHandlesVisible) this.showConnectionHandles();
+  }
+
+  private scheduleConnHandlesHide(): void {
+    if (this._connHandlesPinned) return; // selected → keep shown
+    if (this._connHandleHideTimer) clearTimeout(this._connHandleHideTimer);
+    this._connHandleHideTimer = setTimeout(() => {
+      this._connHandleHideTimer = null;
+      if (this._connHandlesPinned || (this as any)._connectDragging) return;
+      this.hideConnectionHandles();
+    }, 220);
   }
 
   private showConnectionHandles() {
@@ -2786,6 +2833,12 @@ export class Node {
       "CONNECTION_HANDLES_DEBUG: enableConnectionHandles called for",
       this.id
     );
+    // Pinned by selection → hover-leave won't hide them.
+    this._connHandlesPinned = true;
+    if (this._connHandleHideTimer) {
+      clearTimeout(this._connHandleHideTimer);
+      this._connHandleHideTimer = null;
+    }
     this.showConnectionHandles();
   }
 
@@ -2795,6 +2848,7 @@ export class Node {
       "CONNECTION_HANDLES_DEBUG: disableConnectionHandles called for",
       this.id
     );
+    this._connHandlesPinned = false;
     this.hideConnectionHandles();
   }
 

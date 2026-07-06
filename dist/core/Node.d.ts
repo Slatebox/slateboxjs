@@ -133,6 +133,8 @@ export declare class Node {
     menu: Menu;
     private connectionHandles;
     private connectionHandlesVisible;
+    private _connHandleHideTimer;
+    private _connHandlesPinned;
     private connectionPreview?;
     slate: Slate;
     private isDragging;
@@ -383,6 +385,15 @@ export declare class Node {
     onDeselected(): void;
     private createConnectionHandles;
     private updateConnectionHandlePositions;
+    /**
+     * Miro-style: reveal the plug-circles when the node is hovered (not just when
+     * selected), so you can drag-to-connect without selecting first. A hide
+     * debounce bridges the small gap between the node edge and the offset circles;
+     * selection pins them (`_connHandlesPinned`); a connect-drag keeps them alive.
+     */
+    private wireConnectionHandleHover;
+    private revealConnHandlesOnHover;
+    private scheduleConnHandlesHide;
     private showConnectionHandles;
     private hideConnectionHandles;
     private showConnectionPreview;
