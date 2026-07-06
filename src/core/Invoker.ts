@@ -46,8 +46,12 @@ export class Invoker {
 
   onNodeLinkAdded(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node?.links) {
-      node.links.set(pkg as any, false)
+    // The package carries the link under data.link (see Links.set); passing the
+    // whole pkg here stored the entire collab envelope as options.link and
+    // corrupted the link on reload / for remote peers.
+    const link = (pkg.data as any)?.link
+    if (node?.links && link) {
+      node.links.set(link, false)
     }
   }
 

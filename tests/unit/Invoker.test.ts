@@ -482,18 +482,16 @@ describe("Invoker", () => {
   // ---------------------------------------------------------------------------
 
   describe("onNodeLinkAdded", () => {
-    it("should call links.set with the pkg and sendCollab=false", () => {
-      const pkg = {
-        data: {
-          id: "node1",
-          type: "url",
-          data: "https://example.com",
-        },
-      };
+    it("calls links.set with the link options (data.link), not the whole pkg", () => {
+      // Shape matches Links.set's broadcast: { data: { id, link } }. Passing the
+      // whole pkg used to store the collab envelope as options.link and corrupt
+      // the link on reload / for remote peers.
+      const link = { show: true, type: "url", url: "https://example.com", target: "_blank" };
+      const pkg = { data: { id: "node1", link } };
 
       invoker.onNodeLinkAdded(pkg);
 
-      expect(mockNode.links.set).toHaveBeenCalledWith(pkg, false);
+      expect(mockNode.links.set).toHaveBeenCalledWith(link, false);
     });
 
     it("should do nothing when node is not found", () => {

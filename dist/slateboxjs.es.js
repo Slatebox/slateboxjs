@@ -8298,8 +8298,8 @@ class xa {
     e?.links && e.links.unset(!1);
   }
   onNodeLinkAdded(t) {
-    const e = this.slate.nodes.one(t.data.id);
-    e?.links && e.links.set(t, !1);
+    const e = this.slate.nodes.one(t.data.id), i = t.data?.link;
+    e?.links && i && e.links.set(i, !1);
   }
   onNodeUnlocked(t) {
     const e = this.slate.nodes.one(t.data.id);

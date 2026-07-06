@@ -188,6 +188,18 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## NODE LINK corruption on reload / collab fixed
+- Found by driving the library node-link API (app has no link UI yet). Setting a URL link persisted
+  locally, but after reload options.link held the ENTIRE collab envelope
+  ({type:'onNodeLinkAdded', data:{id, link:{…}}, clientID, timestamp}) instead of the link options.
+  Root cause: Invoker.onNodeLinkAdded passed the whole pkg to links.set() (which expects the link
+  options) — so the collab receive/replay path stored the envelope as options.link and corrupted it.
+  Fix: extract pkg.data.link (matches Links.set's broadcast shape) + guard when absent. Also fixes
+  remote-peer link sync (a peer's link corrupted the receiver). Verified live: set link → reload →
+  options.link is the clean {show,type:'url',url,target}. Unit (Invoker onNodeLinkAdded) + e2e
+  node-link.spec.ts. 1074 unit / 186 e2e. NOTE: app has no node-link UI — library is correct now;
+  exposing it is app-side feature work.
+
 ## ENDPOINT LOCK Absolute→Relative REVERT fixed (named bug 2 — real root cause)
 - Found via real-user pane testing (API tests missed it). Clicking the Absolute endpoint-lock button
   persisted, but toggling BACK to Relative reverted to Absolute after reload. Root cause: the collab
