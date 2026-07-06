@@ -363,6 +363,43 @@ export async function runCollabSurfaceMatrix(
     });
   }
 
+  // ── onNodeShapeChanged / onNodeBorderPropertiesChanged / onNodeEffectChanged ──
+  //    (node-pane surfaces: shape re-render, border stroke, effect filter) ──
+  {
+    await a.evaluate((id) => {
+      const star =
+        "M 50 0 L 61.8 38.2 L 100 38.2 L 69.1 61.8 L 80.9 100 L 50 76.4 L 19.1 100 L 30.9 61.8 L 0 38.2 L 38.2 38.2 Z";
+      (window as any).__ct.slate().broadcast("onNodeShapeChanged", { id, shape: star });
+    }, seedId);
+    const okShape = await waitForState(
+      b,
+      `!!document.querySelector('[data-node-id="${seedId}"] path')`
+    );
+    push("onNodeShapeChanged: shape syncs to B", okShape);
+
+    await a.evaluate((id) => {
+      const s = (window as any).__ct.slate();
+      s.broadcast("onNodeBorderPropertiesChanged", { id, prop: "borderWidth", val: 7 });
+      s.broadcast("onNodeBorderPropertiesChanged", { id, prop: "borderColor", val: "#00aa00" });
+    }, seedId);
+    const okBorder = await waitForState(
+      b,
+      `document.querySelector('[data-node-id="${seedId}"] path')?.getAttribute('stroke-width') === '7'`
+    );
+    push("onNodeBorderPropertiesChanged: border syncs to B", okBorder);
+
+    await a.evaluate((id) => {
+      (window as any).__ct
+        .slate()
+        .broadcast("onNodeEffectChanged", { id, filter: { apply: "vect", id: "dropShadow" } });
+    }, seedId);
+    const okEffect = await waitForState(
+      b,
+      `(document.querySelector('[data-node-id="${seedId}"] svg')?.getAttribute('filter')||'').includes('drop-shadow')`
+    );
+    push("onNodeEffectChanged: effect syncs to B", okEffect);
+  }
+
   // ── onNodeDeleted (last — removes the added node) ──
   {
     await a.evaluate(() => {

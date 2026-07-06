@@ -110,6 +110,12 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   Verified live: star node fill #ff0000, stroke #00aa00 w8 dash 24,8. e2e node-pathshape-styling.
   (Effects already worked on path shapes — filter sits on the nested SVG.)
 
+- COLLAB PARITY VERIFIED [durable e2e]: two-window test (A edits → B observes, isolated contexts,
+  yjs websocket relay). Confirmed live on :3000 AND added to the standalone collab-surfaces matrix:
+  onNodeShapeChanged, onNodeBorderPropertiesChanged, onNodeEffectChanged all sync A→B (shape
+  re-render, border stroke, effect filter). The Invoker handlers are the shared local+remote apply
+  path, so every fix (U5/U6/U11/U13...) rides the same proven pipeline. No lib change this iteration.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the
