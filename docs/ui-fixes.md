@@ -188,6 +188,18 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## ENDPOINT LOCK Absolute→Relative REVERT fixed (named bug 2 — real root cause)
+- Found via real-user pane testing (API tests missed it). Clicking the Absolute endpoint-lock button
+  persisted, but toggling BACK to Relative reverted to Absolute after reload. Root cause: the collab
+  doc (yjs collabMap) ACCUMULATES packages and is replayed on reload; it kept BOTH the old
+  {sourceLock:absolute} and new {sourceLock:relative} package, and replay order (not recency) decided
+  the winner → the stale Absolute re-applied. DB/serialization was correct (sourceAnchor null); the
+  replay re-introduced the anchor. Fix: Collab.send prunes superseded onLinePropertiesChanged packages
+  matching the same (node id, associationId, prop) before adding the new one — so replay applies only
+  the latest value. Same mechanism as the delete-prune fix. Also hardens lineType/lineColor/lineWidth
+  toggles against repeated changes. Verified live: Absolute→Relative→reload STAYS relative + pane
+  reflects it. Unit test Collab.test.ts (supersede); e2e unchanged. 1073 unit.
+
 ## ALIGN + DISTRIBUTE added (Miro parity)
 - Slate.alignNodes(mode, nodes?) — align a multi-selection to its shared bounding box (left / centerH /
   right / top / middle / bottom). Slate.distributeNodes(axis, nodes?) — even the gaps (horizontal /

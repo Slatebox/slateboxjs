@@ -137,6 +137,35 @@ describe("Collab", () => {
       expect(after).toContain("onNodeAdded:A"); // other node untouched
       expect(after.filter((s) => s === "onNodeDeleted:B").length).toBe(1); // tombstone kept
     });
+
+    // Line-property toggle persistence: the doc is replayed on reload and replay
+    // order is not guaranteed to be recency order. A later change to the SAME
+    // property on the SAME association must supersede the earlier one, else e.g.
+    // toggling Absolute→Relative leaves both packages and the stale Absolute can
+    // win on replay → the toggle "reverts". (Named bug 2.)
+    it("supersedes an earlier line-property change to the same prop/association", () => {
+      mockSlate.emitSlateChange = vi.fn();
+      const collab = new Collab(mockSlate);
+      const map = new Map<string, any>();
+      (collab as any).collabMap = map;
+
+      // Toggle source endpoint: absolute, then relative (same node, same assoc).
+      collab.send({ type: "onLinePropertiesChanged", data: { id: "N", associationId: "R1", prop: "sourceLock", val: "absolute" } });
+      collab.send({ type: "onLinePropertiesChanged", data: { id: "N", associationId: "R1", prop: "sourceLock", val: "relative" } });
+      // A DIFFERENT prop on the same association must be left alone.
+      collab.send({ type: "onLinePropertiesChanged", data: { id: "N", associationId: "R1", prop: "lineColor", val: "#f00" } });
+      // Same prop on a DIFFERENT association must be left alone.
+      collab.send({ type: "onLinePropertiesChanged", data: { id: "N", associationId: "R2", prop: "sourceLock", val: "absolute" } });
+
+      const sourceLockR1 = [...map.values()].filter(
+        (v: any) => v.data?.prop === "sourceLock" && v.data?.associationId === "R1"
+      );
+      expect(sourceLockR1.length).toBe(1); // only the latest survives
+      expect(sourceLockR1[0].data.val).toBe("relative"); // and it's the latest value
+      // The other prop + other association are untouched.
+      expect([...map.values()].some((v: any) => v.data?.prop === "lineColor")).toBe(true);
+      expect([...map.values()].some((v: any) => v.data?.prop === "sourceLock" && v.data?.associationId === "R2")).toBe(true);
+    });
   });
 
   describe("invoke", () => {

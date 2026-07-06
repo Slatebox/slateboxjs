@@ -10535,7 +10535,7 @@ class us {
     if (this.collabMap)
       for (const i of e) {
         const s = `${i.type}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-        if (this.collabMap.set(s, {
+        if (i.type === "onLinePropertiesChanged" && this.pruneSupersededLineProperty(i.data), this.collabMap.set(s, {
           ...i,
           clientID: this.clientID,
           timestamp: Date.now()
@@ -10566,6 +10566,29 @@ class us {
           (o && !Array.isArray(o) ? o.id : void 0) === t && i?.type !== "onNodeDeleted" && e.push(s);
         });
         for (const i of e) this.collabMap.delete(i);
+      } catch {
+      }
+  }
+  /**
+   * Remove earlier onLinePropertiesChanged packages that target the SAME
+   * property on the SAME association, so a reload/sync replay applies only the
+   * latest value. Matches on (node id, associationId, prop). Guards the "the
+   * Absolute/Relative (and Bezier/Orthogonal) toggle reverts after reload" bug:
+   * the doc kept both the old and new value and replay order — not recency —
+   * decided the winner.
+   */
+  pruneSupersededLineProperty(t) {
+    if (!this.collabMap || !t || Array.isArray(t)) return;
+    const { id: e, associationId: i, prop: s } = t;
+    if (s != null)
+      try {
+        const o = [];
+        this.collabMap.forEach((r, a) => {
+          if (r?.type !== "onLinePropertiesChanged") return;
+          const l = r?.data;
+          !l || Array.isArray(l) || l.id === e && l.associationId === i && l.prop === s && o.push(a);
+        });
+        for (const r of o) this.collabMap.delete(r);
       } catch {
       }
   }

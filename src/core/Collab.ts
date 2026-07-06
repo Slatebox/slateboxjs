@@ -243,6 +243,16 @@ export class Collab {
           .toString(36)
           .substr(2, 5)}`;
 
+        // A line-property change (lineType, sourceLock/targetLock, lineColor…)
+        // supersedes any earlier change to the SAME property on the SAME
+        // association. The collab doc accumulates and is replayed on reload, and
+        // the replay order is not guaranteed to be recency order — so leaving the
+        // old package in means e.g. toggling Absolute→Relative can be re-applied
+        // as Absolute and the toggle "reverts". Prune the superseded ones first.
+        if (pkg.type === "onLinePropertiesChanged") {
+          this.pruneSupersededLineProperty(pkg.data);
+        }
+
         this.collabMap.set(key, {
           ...pkg,
           clientID: this.clientID,
@@ -284,6 +294,34 @@ export class Collab {
         const d: any = val?.data;
         const id = d && !Array.isArray(d) ? d.id : undefined;
         if (id === nodeId && val?.type !== "onNodeDeleted") {
+          toDelete.push(key);
+        }
+      });
+      for (const key of toDelete) this.collabMap.delete(key);
+    } catch (e) {
+      /* noop */
+    }
+  }
+
+  /**
+   * Remove earlier onLinePropertiesChanged packages that target the SAME
+   * property on the SAME association, so a reload/sync replay applies only the
+   * latest value. Matches on (node id, associationId, prop). Guards the "the
+   * Absolute/Relative (and Bezier/Orthogonal) toggle reverts after reload" bug:
+   * the doc kept both the old and new value and replay order — not recency —
+   * decided the winner.
+   */
+  private pruneSupersededLineProperty(data: any): void {
+    if (!this.collabMap || !data || Array.isArray(data)) return;
+    const { id, associationId, prop } = data as any;
+    if (prop == null) return;
+    try {
+      const toDelete: string[] = [];
+      this.collabMap.forEach((val: any, key: string) => {
+        if (val?.type !== "onLinePropertiesChanged") return;
+        const d: any = val?.data;
+        if (!d || Array.isArray(d)) return;
+        if (d.id === id && d.associationId === associationId && d.prop === prop) {
           toDelete.push(key);
         }
       });

@@ -82,6 +82,15 @@ export declare class Collab {
      */
     private pruneNodePackages;
     /**
+     * Remove earlier onLinePropertiesChanged packages that target the SAME
+     * property on the SAME association, so a reload/sync replay applies only the
+     * latest value. Matches on (node id, associationId, prop). Guards the "the
+     * Absolute/Relative (and Bezier/Orthogonal) toggle reverts after reload" bug:
+     * the doc kept both the old and new value and replay order — not recency —
+     * decided the winner.
+     */
+    private pruneSupersededLineProperty;
+    /**
      * Execute a single collab package using the Invoker.
      */
     exe(pkg: SlatePackage): void;
