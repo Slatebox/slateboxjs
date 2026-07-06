@@ -188,6 +188,17 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
 - U18b DONE: arrow tip now touches the node edge exactly (removed the ~19px endpoint offset that
   double-counted after U18 made the arrow tip-anchored). Gap 17px → 0.
 
+## DELETE-PERSISTENCE FIXED (deleted nodes came back on reload)
+- BUG: deleting a node (Delete key) removed it locally + cleaned up its connector (no rogue line), and
+  the Slates DB was correctly saved without it (exportJSON excludes it; slates.update $sets the full
+  slate). BUT after reload the node + its connector CAME BACK. Root cause: the yjs collab doc
+  (collabMap) accumulates every package and is replayed on reload/sync — the deleted node's earlier
+  onNodeAdded got re-applied, recreating it. FIX (lib Collab.ts): send() of onNodeDeleted prunes that
+  node's add/change packages from the collabMap (keeps the delete tombstone), so the replay can't
+  recreate it. Verified live: delete a connected node → reload → node + connector stay gone
+  (nodeCount 1, connLines 0). Unit test Collab.test.ts "prunes a deleted node's add/change packages".
+  1073 unit.
+
 ## COPY/PASTE/DUPLICATE implemented (Ctrl+C/V/D) + rotation verified
 - Node ROTATION (rotation handle, arc drag): rotates the node (getRotation reflects the angle, group
   transform gets rotate(angle …)), and PERSISTS through reload (98° before+after). Verified live.

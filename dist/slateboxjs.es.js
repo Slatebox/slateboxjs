@@ -10394,11 +10394,14 @@ class ds {
     if (this.collabMap)
       for (const i of e) {
         const s = `${i.type}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-        this.collabMap.set(s, {
+        if (this.collabMap.set(s, {
           ...i,
           clientID: this.clientID,
           timestamp: Date.now()
-        });
+        }), i.type === "onNodeDeleted") {
+          const o = i.data?.id;
+          o != null && this.pruneNodePackages(o);
+        }
       }
     else
       console.log(
@@ -10406,6 +10409,24 @@ class ds {
       );
     for (const i of e)
       this.slate.emitSlateChange?.(i.type, i.data);
+  }
+  /**
+   * Remove a node's accumulated packages (onNodeAdded + onNodeXXXChanged) from
+   * the shared collab doc so a reload/sync replay can't recreate a deleted node.
+   * Keeps onNodeDeleted tombstones (harmless no-ops on replay). Node packages
+   * carry data.id; move/batch packages use array data and are left alone.
+   */
+  pruneNodePackages(t) {
+    if (this.collabMap)
+      try {
+        const e = [];
+        this.collabMap.forEach((i, s) => {
+          const o = i?.data;
+          (o && !Array.isArray(o) ? o.id : void 0) === t && i?.type !== "onNodeDeleted" && e.push(s);
+        });
+        for (const i of e) this.collabMap.delete(i);
+      } catch {
+      }
   }
   /**
    * Execute a single collab package using the Invoker.

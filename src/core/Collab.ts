@@ -248,6 +248,15 @@ export class Collab {
           clientID: this.clientID,
           timestamp: Date.now(),
         });
+
+        // The collab doc accumulates every package and is replayed on reload/
+        // sync. Without this, a deleted node's earlier onNodeAdded would be
+        // re-applied on reload and the node would come back. When a node is
+        // deleted, prune its add/change packages so the replay can't recreate it.
+        if (pkg.type === "onNodeDeleted") {
+          const deletedId = (pkg.data as any)?.id;
+          if (deletedId != null) this.pruneNodePackages(deletedId);
+        }
       }
     } else {
       // Normal pre-init / no-server path: still surface to the host below
@@ -258,6 +267,29 @@ export class Collab {
 
     for (const pkg of pkgs) {
       (this.slate as any).emitSlateChange?.(pkg.type, pkg.data);
+    }
+  }
+
+  /**
+   * Remove a node's accumulated packages (onNodeAdded + onNodeXXXChanged) from
+   * the shared collab doc so a reload/sync replay can't recreate a deleted node.
+   * Keeps onNodeDeleted tombstones (harmless no-ops on replay). Node packages
+   * carry data.id; move/batch packages use array data and are left alone.
+   */
+  private pruneNodePackages(nodeId: string): void {
+    if (!this.collabMap) return;
+    try {
+      const toDelete: string[] = [];
+      this.collabMap.forEach((val: any, key: string) => {
+        const d: any = val?.data;
+        const id = d && !Array.isArray(d) ? d.id : undefined;
+        if (id === nodeId && val?.type !== "onNodeDeleted") {
+          toDelete.push(key);
+        }
+      });
+      for (const key of toDelete) this.collabMap.delete(key);
+    } catch (e) {
+      /* noop */
     }
   }
 

@@ -75,6 +75,13 @@ export declare class Collab {
      */
     send(packages: SlatePackage | SlatePackage[]): void;
     /**
+     * Remove a node's accumulated packages (onNodeAdded + onNodeXXXChanged) from
+     * the shared collab doc so a reload/sync replay can't recreate a deleted node.
+     * Keeps onNodeDeleted tombstones (harmless no-ops on replay). Node packages
+     * carry data.id; move/batch packages use array data and are left alone.
+     */
+    private pruneNodePackages;
+    /**
      * Execute a single collab package using the Invoker.
      */
     exe(pkg: SlatePackage): void;

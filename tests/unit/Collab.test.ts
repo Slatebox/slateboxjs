@@ -110,6 +110,33 @@ describe("Collab", () => {
         { id: "n1", text: "t" }
       );
     });
+
+    // Delete persistence: the collab doc is replayed on reload/sync, so a deleted
+    // node's earlier onNodeAdded must be pruned or the node comes back. send() of
+    // onNodeDeleted prunes that node's add/change packages (keeps the tombstone),
+    // leaving other nodes' packages intact.
+    it("prunes a deleted node's add/change packages from the collab doc", () => {
+      mockSlate.emitSlateChange = vi.fn();
+      const collab = new Collab(mockSlate);
+      const map = new Map<string, any>();
+      (collab as any).collabMap = map;
+
+      collab.send({ type: "onNodeAdded", data: { id: "B", nodeOptions: {} } });
+      collab.send({ type: "onNodeColorChanged", data: { id: "B", color: "#fff" } });
+      collab.send({ type: "onNodeAdded", data: { id: "A", nodeOptions: {} } });
+
+      const tags = () =>
+        [...map.values()].map((v: any) => `${v.type}:${v.data?.id}`);
+      expect(tags()).toContain("onNodeAdded:B");
+
+      collab.send({ type: "onNodeDeleted", data: { id: "B" } });
+
+      const after = tags();
+      expect(after).not.toContain("onNodeAdded:B"); // pruned
+      expect(after).not.toContain("onNodeColorChanged:B"); // pruned
+      expect(after).toContain("onNodeAdded:A"); // other node untouched
+      expect(after.filter((s) => s === "onNodeDeleted:B").length).toBe(1); // tombstone kept
+    });
   });
 
   describe("invoke", () => {
