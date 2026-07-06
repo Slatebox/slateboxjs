@@ -92,6 +92,17 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   live: width 9, color #ff0000, dashed 27,9, solid restore. e2e node-border. NOTE: applyBorder is a
   no-op for nested path-shape nodes (stroke is on the inner path, not backgroundRect) — edge case.
 
+- PERSISTENCE/COLLAB SWEEP: serialize→deserialize round-trip of the new fixes. SHAPE ✅, border
+  width/color ✅, EFFECT ✅ (re-applied via finishCreate for rect; on nested-path shapes the filter
+  is on the nested SVG). GAP found + fixed:
+- U12 DONE [lib, pending commit]: BORDER STYLE (dash) didn't survive a reload. createBackground only
+  mapped 'dashed'/'dotted' words, so the app's symbol styles ('-','.','--.') produced no dasharray on
+  deserialize. Fix: extracted Node.borderDashArray() (symbols+words, width-scaled) shared by
+  createBackground (load path) AND applyBorder (edit path). Verified: dashed border restores as 18,6
+  after loadJSON. e2e node-border (reload test). NOTE: Invoker handlers are shared by local +
+  remote(collab) apply, so collab parity is covered by the same code path; late-joining peers/reload
+  read the serialized JSON — now correct for these props.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

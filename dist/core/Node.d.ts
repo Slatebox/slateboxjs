@@ -235,6 +235,13 @@ export declare class Node {
      * content / nested path shapes).
      */
     applyBorder(): void;
+    /**
+     * SVG stroke-dasharray for the current borderStyle, scaled by border width.
+     * Accepts the app's symbols ('-', '.', '--.') and words ('dashed', 'dotted').
+     * Returns "none" for solid. Shared by createBackground (load path) and
+     * applyBorder (edit path) so border style survives a reload.
+     */
+    private borderDashArray;
     /** Lock the node, disabling drag and resize/rotate. */
     lock(): void;
     /** Unlock the node, re-enabling drag and resize/rotate. */

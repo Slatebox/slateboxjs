@@ -537,12 +537,13 @@ export class Node {
       opacity,
     } = this.options;
 
-    // Build stroke options
+    // Build stroke options. borderStyle → dasharray uses the shared mapping so
+    // the app's symbol styles ('-', '.', '--.') survive a reload (deserialize).
     const strokeOpts: { color: string; width: number; dasharray?: string; opacity?: number } = { color: borderColor!, width: borderWidth! };
-    if (borderStyle === "dashed") {
-      strokeOpts.dasharray = "8,4";
-    } else if (borderStyle === "dotted") {
-      strokeOpts.dasharray = "2,4";
+    void borderStyle; // consumed via borderDashArray()
+    const dash = this.borderDashArray();
+    if (dash !== "none") {
+      strokeOpts.dasharray = dash;
     }
     if (borderOpacity !== undefined) {
       strokeOpts.opacity = borderOpacity;
@@ -1171,17 +1172,27 @@ export class Node {
   public applyBorder(): void {
     const rect: any = this.backgroundRect;
     if (!rect || typeof rect.stroke !== "function") return;
-    const { borderColor, borderWidth, borderStyle, borderOpacity } = this.options;
+    const { borderColor, borderWidth, borderOpacity } = this.options;
     const strokeOpts: {
       color?: string;
       width?: number;
       opacity?: number;
       dasharray?: string;
-    } = {};
+    } = { dasharray: this.borderDashArray() };
     if (borderColor) strokeOpts.color = borderColor;
     if (borderWidth !== undefined) strokeOpts.width = borderWidth;
     if (borderOpacity !== undefined) strokeOpts.opacity = borderOpacity;
+    rect.stroke(strokeOpts);
+  }
 
+  /**
+   * SVG stroke-dasharray for the current borderStyle, scaled by border width.
+   * Accepts the app's symbols ('-', '.', '--.') and words ('dashed', 'dotted').
+   * Returns "none" for solid. Shared by createBackground (load path) and
+   * applyBorder (edit path) so border style survives a reload.
+   */
+  private borderDashArray(): string {
+    const { borderStyle, borderWidth } = this.options;
     const w = borderWidth || 1;
     const dash: Record<string, number[]> = {
       "-": [3, 1],
@@ -1191,12 +1202,9 @@ export class Node {
       "--.": [8, 3, 1, 3],
       combo: [8, 3, 1, 3],
     };
-    strokeOpts.dasharray =
-      borderStyle && dash[borderStyle]
-        ? dash[borderStyle].map((n) => n * w).join(",")
-        : "none";
-
-    rect.stroke(strokeOpts);
+    return borderStyle && dash[borderStyle]
+      ? dash[borderStyle].map((n) => n * w).join(",")
+      : "none";
   }
 
   /** Lock the node, disabling drag and resize/rotate. */

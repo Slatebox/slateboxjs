@@ -43,4 +43,42 @@ test.describe("node border width/color/style apply (§U11)", () => {
     // Back to solid → no dashes.
     expect(res.solid.dash === "none" || !res.solid.dash).toBe(true);
   });
+
+  // U12: border style (dash) must survive a reload — createBackground shares the
+  // dash mapping with applyBorder so the app's symbol styles restore.
+  test("border style survives serialize/deserialize (reload)", async ({ page }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+
+    const res = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const mk = (id: string) => {
+        const d = document.createElement("div");
+        d.id = id;
+        d.style.cssText = "width:700px;height:450px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+        document.body.appendChild(d);
+        return d;
+      };
+      mk("bd1");
+      const s1 = await new sb.slate({ container: "bd1", allowCollaboration: false }, {}).init();
+      s1.nodes.add(new sb.node({ id: "N", xPos: 200, yPos: 150, width: 160, height: 100, text: "N" }));
+      await new Promise((r) => setTimeout(r, 300));
+      s1.v2.invoker.onNodeBorderPropertiesChanged({ data: { id: "N", prop: "borderWidth", val: 6 } });
+      s1.v2.invoker.onNodeBorderPropertiesChanged({ data: { id: "N", prop: "borderStyle", val: "-" } });
+      await new Promise((r) => setTimeout(r, 150));
+      const json = s1.exportJSON();
+      s1.v2.destroy();
+
+      mk("bd2");
+      const s2 = await new sb.slate({ container: "bd2", allowCollaboration: false }, {}).init();
+      await s2.loadJSON(json);
+      await new Promise((r) => setTimeout(r, 500));
+      const rect = document.querySelector('#bd2 [data-node-id="N"] rect') as SVGElement;
+      return { dash: rect?.getAttribute("stroke-dasharray"), w: rect?.getAttribute("stroke-width") };
+    });
+
+    expect(res.w).toBe("6");
+    // Dashed border restored after reload ([3,1] * 6 = "18,6").
+    expect(res.dash).toBe("18,6");
+  });
 });
