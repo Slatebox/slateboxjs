@@ -397,7 +397,12 @@ describe("slate methods (§C)", () => {
     expect(s.keyboard).toBe((s.v2 as any).keyboard);
     expect(s.undoRedo).toBe((s.v2 as any).undoRedo);
     expect(s.birdsEye).toBe((s.v2 as any).birdsEye);
-    expect(Array.isArray(s.filters.availableFilters)).toBe(true);
+    // v1 shape: object keyed by filter name, each with a `types` array.
+    const avail = s.filters.availableFilters;
+    expect(avail).toBeTypeOf("object");
+    expect(Array.isArray(avail)).toBe(false);
+    expect(Object.keys(avail).length).toBeGreaterThan(0);
+    expect(Array.isArray(avail.dropShadow.types)).toBe(true);
   });
 
   it("disable()/enable() toggle interactivity flags and pan/zoom", async () => {

@@ -28,6 +28,7 @@ import {
 import { Association } from "./Relationship";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
+import { getAvailableFilters } from "./Filters";
 import { loadAllFonts as loadAllFontsForSlate } from "./FontLoader";
 
 export interface SlateEvents {
@@ -197,6 +198,17 @@ export class Slate {
   private _nodeNotifyTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _liveRegion: HTMLElement | null = null; // Hidden aria-live region for screen readers
   private _resizeObserver: ResizeObserver | null = null;
+
+  /**
+   * v1-parity `slate.filters.availableFilters` — the node Effects pane reads
+   * `node.slate.filters.availableFilters` (keyed by name, each with `types`) to
+   * decide which effects to offer. Per-node application lives on `node.filters`.
+   */
+  public get filters(): {
+    availableFilters: Record<string, { types: string[] }>;
+  } {
+    return { availableFilters: getAvailableFilters() };
+  }
 
   /**
    * Creates a new Slate — the main orchestrator for a diagramming canvas.

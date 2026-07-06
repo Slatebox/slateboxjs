@@ -41,6 +41,16 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   calls setShape. Verified live: picking a shape re-renders (rect → path in nested SVG); node COLOR
   swatch also verified working (blue→red). e2e node-setshape.
 
+- U6 DONE [lib, pending commit]: NODE EFFECTS tab was empty AND inert. Two bugs: (a)
+  slate.filters.availableFilters returned an array of {id}, but the app reads Object.keys(...) +
+  [name].types → no effects rendered (and the v2 Slate had NO .filters at all — the facade getter
+  wasn't on node.slate's path); (b) Invoker.onNodeEffectChanged was a stub. Fixes: FilterDef.types
+  + getAvailableFilters() (object keyed by name w/ types); Slate.get filters() returns it (node.slate
+  path); facade getter uses the same; Invoker.onNodeEffectChanged applies/removes via node.filters
+  (exclusive toggle: removes prev, clears id on deselect). Verified live: EFFECTS shows dropShadow/
+  blur/outline; clicking dropShadow sets DOM filter drop-shadow(...) + options.filters.vect. e2e
+  node-effects. NOTE: onNodeImageChanged is still a stub (IMAGE tab) — next.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

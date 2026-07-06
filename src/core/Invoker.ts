@@ -230,9 +230,20 @@ export class Invoker {
 
   onNodeEffectChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      // Apply filters/effects
-      console.log('Effect changed for node:', pkg.data.id)
+    if (!node?.filters) return
+    // App sends { filter: { apply: 'vect'|'text'|'image', id: <filterName|null> } }.
+    const filter = (pkg.data as any).filter
+    if (!filter) return
+    const target = filter.apply === 'text' ? 'text' : 'vect'
+    const optKey = target === 'text' ? 'text' : 'vect'
+    const prev = node.options.filters?.[optKey]
+    // Exclusive toggle: remove the previously-applied effect for this target.
+    if (prev) node.filters.remove(prev)
+    if (filter.id) {
+      node.filters.apply(filter.id, target as 'vect' | 'text' | 'both')
+    } else if (node.options.filters) {
+      // Deselected → clear the stored id.
+      node.options.filters[optKey] = undefined
     }
   }
 

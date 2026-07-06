@@ -8,6 +8,8 @@
 
 export interface FilterDef {
   name: string;
+  /** Which element types this effect can target (v1 parity: ['text','vect']). */
+  types?: string[];
   apply: (element: any) => void;
   remove: (element: any) => void;
 }
@@ -20,6 +22,7 @@ const filterDefs: Map<string, FilterDef> = new Map();
 
 filterDefs.set("dropShadow", {
   name: "dropShadow",
+  types: ["text", "vect", "image"],
   apply: (element: any) => {
     try {
       element.attr(
@@ -39,6 +42,7 @@ filterDefs.set("dropShadow", {
 
 filterDefs.set("blur", {
   name: "blur",
+  types: ["text", "vect", "image"],
   apply: (element: any) => {
     try {
       element.attr("filter", "blur(2px)");
@@ -53,6 +57,7 @@ filterDefs.set("blur", {
 
 filterDefs.set("outline", {
   name: "outline",
+  types: ["text", "vect"],
   apply: (element: any) => {
     try {
       // Save original stroke before changing
@@ -218,4 +223,17 @@ export function registerFilter(def: FilterDef): void {
 /** Get all available filter names */
 export function getFilterNames(): string[] {
   return Array.from(filterDefs.keys());
+}
+
+/**
+ * v1-parity shape for `slate.filters.availableFilters`: an object keyed by
+ * filter name, each carrying its `types` array (which element kinds it targets).
+ * The app iterates Object.keys(...) and reads `[name].types`.
+ */
+export function getAvailableFilters(): Record<string, { types: string[] }> {
+  const out: Record<string, { types: string[] }> = {};
+  for (const [name, def] of filterDefs) {
+    out[name] = { types: def.types || ["text", "vect"] };
+  }
+  return out;
 }

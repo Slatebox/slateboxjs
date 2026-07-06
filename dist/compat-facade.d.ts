@@ -188,10 +188,14 @@ declare class slate {
     get collab(): any;
     /** v1: `slate.keyboard.bindGlobal()/unbindGlobal()` (NodeDrawer uses it) */
     get keyboard(): any;
-    /** v1: `slate.filters.availableFilters` — list of registered filter defs */
+    /**
+     * v1: `slate.filters.availableFilters` — an object keyed by filter name, each
+     * with a `types` array. The node Effects pane iterates Object.keys(...) and
+     * reads `[name].types` to decide which effects to show, so the shape matters.
+     */
     get filters(): {
-        availableFilters: Array<{
-            id: string;
+        availableFilters: Record<string, {
+            types: string[];
         }>;
     };
     /** v1: `slate.undoRedo` / `slate.birdsEye` passthroughs */

@@ -22,7 +22,7 @@ import { Slate } from "./core/Slate";
 import type { Node as V2Node, NodeOptions } from "./core/Node";
 import * as utilsModule from "./utils";
 import { v1NodeToV2, v1SlateToV2, v2NodeToV1 } from "./core/compat";
-import { getFilterNames } from "./core/Filters";
+import { getAvailableFilters } from "./core/Filters";
 
 /** v1-style events object passed as the 2nd constructor argument. */
 export type V1Events = Record<string, ((...args: any[]) => any) | undefined>;
@@ -593,10 +593,14 @@ class slate {
     return (this.v2 as any).keyboard;
   }
 
-  /** v1: `slate.filters.availableFilters` — list of registered filter defs */
-  public get filters(): { availableFilters: Array<{ id: string }> } {
+  /**
+   * v1: `slate.filters.availableFilters` — an object keyed by filter name, each
+   * with a `types` array. The node Effects pane iterates Object.keys(...) and
+   * reads `[name].types` to decide which effects to show, so the shape matters.
+   */
+  public get filters(): { availableFilters: Record<string, { types: string[] }> } {
     return {
-      availableFilters: getFilterNames().map((id) => ({ id })),
+      availableFilters: getAvailableFilters(),
     };
   }
 

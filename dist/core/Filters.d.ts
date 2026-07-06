@@ -7,6 +7,8 @@
  */
 export interface FilterDef {
     name: string;
+    /** Which element types this effect can target (v1 parity: ['text','vect']). */
+    types?: string[];
     apply: (element: any) => void;
     remove: (element: any) => void;
 }
@@ -46,3 +48,11 @@ export declare class Filters {
 export declare function registerFilter(def: FilterDef): void;
 /** Get all available filter names */
 export declare function getFilterNames(): string[];
+/**
+ * v1-parity shape for `slate.filters.availableFilters`: an object keyed by
+ * filter name, each carrying its `types` array (which element kinds it targets).
+ * The app iterates Object.keys(...) and reads `[name].types`.
+ */
+export declare function getAvailableFilters(): Record<string, {
+    types: string[];
+}>;

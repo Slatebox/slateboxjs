@@ -42,6 +42,10 @@ describe("Invoker", () => {
         set: vi.fn(),
         unset: vi.fn(),
       },
+      filters: {
+        apply: vi.fn(),
+        remove: vi.fn(),
+      },
     };
 
     mockSlate = {
@@ -603,17 +607,17 @@ describe("Invoker", () => {
   });
 
   describe("onNodeEffectChanged", () => {
-    it("should log when effect changes", () => {
+    it("should apply the effect filter to the node", () => {
       const pkg = {
         data: {
           id: "node1",
-          effect: "drop-shadow",
+          filter: { apply: "vect", id: "dropShadow" },
         },
       };
 
       invoker.onNodeEffectChanged(pkg);
 
-      expect(console.log).toHaveBeenCalledWith("Effect changed for node:", "node1");
+      expect(mockNode.filters.apply).toHaveBeenCalledWith("dropShadow", "vect");
     });
 
     it("should do nothing when node is not found", () => {

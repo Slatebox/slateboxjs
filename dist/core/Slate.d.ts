@@ -155,6 +155,16 @@ export declare class Slate {
     private _liveRegion;
     private _resizeObserver;
     /**
+     * v1-parity `slate.filters.availableFilters` — the node Effects pane reads
+     * `node.slate.filters.availableFilters` (keyed by name, each with `types`) to
+     * decide which effects to offer. Per-node application lives on `node.filters`.
+     */
+    get filters(): {
+        availableFilters: Record<string, {
+            types: string[];
+        }>;
+    };
+    /**
      * Creates a new Slate — the main orchestrator for a diagramming canvas.
      *
      * Initializes the SVG canvas, sets up all sub-modules (nodes manager,
