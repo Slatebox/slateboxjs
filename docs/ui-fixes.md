@@ -196,6 +196,16 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   (new wins, untouched fields preserved). Unit test added (update-same-field). AI needs the backend to
   live-drive, so the unit test is the guard. Rest of the ~40 handlers audited clean. 1075 unit / 186 e2e.
 
+## NODE LINKS — piece 1: badge indicator + navigate wiring (feature completion)
+- Node links were an INCOMPLETE feature: set/persist worked but navigate() was never called (clicking a
+  linked node did nothing) and there was no visual indicator. Piece 1 (library-only): Node.updateLinkIndicator()
+  renders a Miro-style "↗" badge (top-right, inside svgGroup so it tracks the node) when options.link.show +
+  link.data is set; clicking it calls Links.navigate() → window.open(link.data). Links.set/unset refresh the
+  badge. Canonical link target field is NodeLinkOptions.data (NOT .url). Raw <text> for the glyph (SVG.js
+  text() wraps a tspan that ignores x/y). Verified live: badge renders centered, click opens the URL, persists
+  through reload; unset removes it. e2e node-link-badge.spec.ts. 1075 unit / 190 e2e.
+- REMAINING pieces: app UI to create a link (NodeDrawer), view-mode click-to-follow, slate-to-slate nav events.
+
 ## NODE LINK corruption on reload / collab fixed
 - Found by driving the library node-link API (app has no link UI yet). Setting a URL link persisted
   locally, but after reload options.link held the ENTIRE collab envelope

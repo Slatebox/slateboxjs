@@ -176,6 +176,11 @@ export declare class Node {
     private generateId;
     private createAsync;
     private finishCreate;
+    /** Small "↗" badge shown on a node that has a link; clicking it follows the
+     * link (Links.navigate). Rebuilt whenever the link changes (Links.set/unset).
+     * Lives inside svgGroup so it tracks the node's position/size automatically. */
+    private _linkBadge?;
+    updateLinkIndicator(): void;
     private createBackground;
     /**
      * Change the node's shape at runtime (U5). `shape` may be a named shape or a

@@ -35,6 +35,9 @@ export class Links {
     // Update node options
     this.node.options.link = { ...this.linkData };
 
+    // Refresh the on-node link badge (Miro-style indicator).
+    this.node.updateLinkIndicator?.();
+
     console.log("LINKS_DEBUG: Set link on", this.node.id, this.linkData);
 
     // Broadcast via collab if needed
@@ -57,6 +60,9 @@ export class Links {
   public unset(sendCollab: boolean = true): void {
     this.linkData = null;
     this.node.options.link = undefined;
+
+    // Remove the on-node link badge.
+    this.node.updateLinkIndicator?.();
 
     console.log("LINKS_DEBUG: Removed link from", this.node.id);
 

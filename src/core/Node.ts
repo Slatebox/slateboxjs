@@ -521,8 +521,61 @@ export class Node {
       /* noop */
     }
 
+    // Show a link badge if this node carries a link (Miro-style indicator).
+    this.updateLinkIndicator();
+
     // Signal that the node is fully created
     this._resolveReady();
+  }
+
+  /** Small "↗" badge shown on a node that has a link; clicking it follows the
+   * link (Links.navigate). Rebuilt whenever the link changes (Links.set/unset).
+   * Lives inside svgGroup so it tracks the node's position/size automatically. */
+  private _linkBadge?: any;
+  public updateLinkIndicator(): void {
+    try {
+      if (this._linkBadge) {
+        this._linkBadge.remove();
+        this._linkBadge = undefined;
+      }
+      const link: any = this.options.link;
+      if (!link?.show || !link.data) return;
+      const w = this.options.width || 0;
+      const R = 11;
+      const cx = w - R - 3;
+      const cy = R + 3;
+      const badge = this.svgGroup.group();
+      badge.node.setAttribute("class", "node-link-badge");
+      badge.node.setAttribute("style", "cursor:pointer");
+      badge
+        .circle(R * 2)
+        .move(cx - R, cy - R)
+        .fill("#2d6cdf")
+        .stroke({ color: "#fff", width: 1.5 });
+      // Raw <text> so x/y/anchor apply directly (SVG.js text() wraps a tspan
+      // that ignores them, mispositioning the glyph).
+      const NS = "http://www.w3.org/2000/svg";
+      const glyph = document.createElementNS(NS, "text");
+      glyph.setAttribute("x", String(cx));
+      glyph.setAttribute("y", String(cy));
+      glyph.setAttribute("text-anchor", "middle");
+      glyph.setAttribute("dominant-baseline", "central");
+      glyph.setAttribute("font-family", "sans-serif");
+      glyph.setAttribute("font-size", "15");
+      glyph.setAttribute("font-weight", "bold");
+      glyph.setAttribute("fill", "#fff");
+      glyph.setAttribute("pointer-events", "none");
+      glyph.textContent = "↗";
+      badge.node.appendChild(glyph);
+      badge.on("click", (e: any) => {
+        e.stopPropagation();
+        e.preventDefault?.();
+        this.links?.navigate();
+      });
+      this._linkBadge = badge;
+    } catch (e) {
+      /* noop — badge is non-critical decoration */
+    }
   }
 
   private createBackground() {

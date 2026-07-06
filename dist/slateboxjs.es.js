@@ -6364,7 +6364,7 @@ class Yi {
     this.linkData = {
       show: !0,
       ...t
-    }, this.node.options.link = { ...this.linkData }, console.log("LINKS_DEBUG: Set link on", this.node.id, this.linkData), e && this.node.slate?.collab?.isCollabConnected() && this.node.slate.collab.send({
+    }, this.node.options.link = { ...this.linkData }, this.node.updateLinkIndicator?.(), console.log("LINKS_DEBUG: Set link on", this.node.id, this.linkData), e && this.node.slate?.collab?.isCollabConnected() && this.node.slate.collab.send({
       type: "onNodeLinkAdded",
       data: {
         id: this.node.id,
@@ -6378,7 +6378,7 @@ class Yi {
    * @param sendCollab - If true, broadcast via collaboration
    */
   unset(t = !0) {
-    this.linkData = null, this.node.options.link = void 0, console.log("LINKS_DEBUG: Removed link from", this.node.id), t && this.node.slate?.collab?.isCollabConnected() && this.node.slate.collab.send({
+    this.linkData = null, this.node.options.link = void 0, this.node.updateLinkIndicator?.(), console.log("LINKS_DEBUG: Removed link from", this.node.id), t && this.node.slate?.collab?.isCollabConnected() && this.node.slate.collab.send({
       type: "onNodeLinkRemoved",
       data: { id: this.node.id }
     });
@@ -6992,7 +6992,21 @@ class Ie {
       this.slate.markersContainer?.front?.();
     } catch {
     }
-    this._resolveReady();
+    this.updateLinkIndicator(), this._resolveReady();
+  }
+  updateLinkIndicator() {
+    try {
+      this._linkBadge && (this._linkBadge.remove(), this._linkBadge = void 0);
+      const t = this.options.link;
+      if (!t?.show || !t.data) return;
+      const e = this.options.width || 0, i = 11, s = e - i - 3, o = i + 3, r = this.svgGroup.group();
+      r.node.setAttribute("class", "node-link-badge"), r.node.setAttribute("style", "cursor:pointer"), r.circle(i * 2).move(s - i, o - i).fill("#2d6cdf").stroke({ color: "#fff", width: 1.5 });
+      const l = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      l.setAttribute("x", String(s)), l.setAttribute("y", String(o)), l.setAttribute("text-anchor", "middle"), l.setAttribute("dominant-baseline", "central"), l.setAttribute("font-family", "sans-serif"), l.setAttribute("font-size", "15"), l.setAttribute("font-weight", "bold"), l.setAttribute("fill", "#fff"), l.setAttribute("pointer-events", "none"), l.textContent = "↗", r.node.appendChild(l), r.on("click", (c) => {
+        c.stopPropagation(), c.preventDefault?.(), this.links?.navigate();
+      }), this._linkBadge = r;
+    } catch {
+    }
   }
   createBackground() {
     console.log(
