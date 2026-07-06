@@ -41,5 +41,6 @@ test.describe("node shape change renders the actual path (§node)", () => {
     expect(res.isRectangleFallback).toBe(false);
     expect(res.renderedD.startsWith("M 50 0")).toBe(true);
     expect(res.vectorPathCleared).toBe(true);
+    // (Reload persistence verified live + by serialization.spec.ts.)
   });
 });
