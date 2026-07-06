@@ -226,6 +226,15 @@ export declare class Node {
      * @param borderColor     - New stroke color (or undefined to keep current)
      */
     setColors(backgroundColor?: string, borderColor?: string): void;
+    /**
+     * Re-apply the border stroke (color / width / style / opacity) from options.
+     * The app's border pane sends one { prop, val } at a time, so we repaint the
+     * whole stroke from current options each change. borderStyle accepts the app's
+     * symbols ('-', '.', '--.') or words ('dashed', 'dotted'); dash lengths scale
+     * with the border width. No-op when there's no plain shape stroke (e.g. SVG
+     * content / nested path shapes).
+     */
+    applyBorder(): void;
     /** Lock the node, disabling drag and resize/rotate. */
     lock(): void;
     /** Unlock the node, re-enabling drag and resize/rotate. */

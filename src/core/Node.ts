@@ -1160,6 +1160,45 @@ export class Node {
     }
   }
 
+  /**
+   * Re-apply the border stroke (color / width / style / opacity) from options.
+   * The app's border pane sends one { prop, val } at a time, so we repaint the
+   * whole stroke from current options each change. borderStyle accepts the app's
+   * symbols ('-', '.', '--.') or words ('dashed', 'dotted'); dash lengths scale
+   * with the border width. No-op when there's no plain shape stroke (e.g. SVG
+   * content / nested path shapes).
+   */
+  public applyBorder(): void {
+    const rect: any = this.backgroundRect;
+    if (!rect || typeof rect.stroke !== "function") return;
+    const { borderColor, borderWidth, borderStyle, borderOpacity } = this.options;
+    const strokeOpts: {
+      color?: string;
+      width?: number;
+      opacity?: number;
+      dasharray?: string;
+    } = {};
+    if (borderColor) strokeOpts.color = borderColor;
+    if (borderWidth !== undefined) strokeOpts.width = borderWidth;
+    if (borderOpacity !== undefined) strokeOpts.opacity = borderOpacity;
+
+    const w = borderWidth || 1;
+    const dash: Record<string, number[]> = {
+      "-": [3, 1],
+      dashed: [3, 1],
+      ".": [1, 1],
+      dotted: [1, 1],
+      "--.": [8, 3, 1, 3],
+      combo: [8, 3, 1, 3],
+    };
+    strokeOpts.dasharray =
+      borderStyle && dash[borderStyle]
+        ? dash[borderStyle].map((n) => n * w).join(",")
+        : "none";
+
+    rect.stroke(strokeOpts);
+  }
+
   /** Lock the node, disabling drag and resize/rotate. */
   public lock() {
     this.options.isLocked = true;

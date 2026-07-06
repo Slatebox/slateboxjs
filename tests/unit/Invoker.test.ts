@@ -50,6 +50,7 @@ describe("Invoker", () => {
         set: vi.fn(),
         clear: vi.fn(),
       },
+      applyBorder: vi.fn(),
     };
 
     mockSlate = {
@@ -649,20 +650,23 @@ describe("Invoker", () => {
   });
 
   describe("onNodeBorderPropertiesChanged", () => {
-    it("should update border options and call setColors", () => {
-      const pkg = {
-        data: {
-          id: "node1",
-          borderColor: "#ff0000",
-          borderWidth: 4,
-        },
-      };
+    it("should update the border prop and re-apply the border (pane shape)", () => {
+      invoker.onNodeBorderPropertiesChanged({
+        data: { id: "node1", prop: "borderWidth", val: 4 },
+      });
 
-      invoker.onNodeBorderPropertiesChanged(pkg);
+      expect(mockNode.options.borderWidth).toBe(4);
+      expect(mockNode.applyBorder).toHaveBeenCalled();
+    });
+
+    it("should support the legacy bulk shape", () => {
+      invoker.onNodeBorderPropertiesChanged({
+        data: { id: "node1", borderColor: "#ff0000", borderWidth: 4 },
+      });
 
       expect(mockNode.options.borderColor).toBe("#ff0000");
       expect(mockNode.options.borderWidth).toBe(4);
-      expect(mockNode.setColors).toHaveBeenCalledWith(undefined, "#ff0000");
+      expect(mockNode.applyBorder).toHaveBeenCalled();
     });
 
     it("should do nothing when node is not found", () => {

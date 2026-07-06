@@ -84,6 +84,14 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   Connector create + updateConnection set c.lineCurviness (not curveRadius). Verified live: control
   point shifts 161px between curviness 0.05 and 0.95. e2e connector-curviness.
 
+- U11 DONE [lib, pending commit]: NODE BORDER pane (width/color/style) was inert. App sends one
+  {prop,val} at a time, but onNodeBorderPropertiesChanged read pkg.data.borderColor/.borderWidth
+  (wrong shape) and only applied stroke COLOR via setColors (never width/dash). Fix: handler sets
+  options[prop]=val and calls new Node.applyBorder() which repaints color+width+dasharray+opacity
+  from options (borderStyle maps '-'/'.'/'--.' or words → dash lengths scaled by width). Verified
+  live: width 9, color #ff0000, dashed 27,9, solid restore. e2e node-border. NOTE: applyBorder is a
+  no-op for nested path-shape nodes (stroke is on the inner path, not backgroundRect) — edge case.
+
 ## Backlog (from user, this loop)
 - U3b (was U3, done): the END OF THE ARROW should ALWAYS connect exactly at the DROP POINT on a
   node (dropping an endpoint should pin the connection there, not snap to the

@@ -253,12 +253,18 @@ export class Invoker {
 
   onNodeBorderPropertiesChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      // Apply border properties
-      node.options.borderColor = pkg.data.borderColor
-      node.options.borderWidth = pkg.data.borderWidth
-      node.setColors(undefined, pkg.data.borderColor)
+    if (!node) return
+    const { prop, val } = pkg.data as any
+    if (prop !== undefined) {
+      // Pane shape: one { prop, val } at a time (borderColor / borderWidth /
+      // borderStyle / borderOpacity).
+      ;(node.options as any)[prop] = val
+    } else {
+      // Legacy bulk shape.
+      if (pkg.data.borderColor !== undefined) node.options.borderColor = pkg.data.borderColor
+      if (pkg.data.borderWidth !== undefined) node.options.borderWidth = pkg.data.borderWidth
     }
+    node.applyBorder()
   }
 
   onLinePropertiesChanged(pkg: SlatePackage) {

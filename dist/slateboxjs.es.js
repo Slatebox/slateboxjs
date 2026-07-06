@@ -7275,6 +7275,29 @@ class Pe {
       borderColor: this.options.borderColor
     });
   }
+  /**
+   * Re-apply the border stroke (color / width / style / opacity) from options.
+   * The app's border pane sends one { prop, val } at a time, so we repaint the
+   * whole stroke from current options each change. borderStyle accepts the app's
+   * symbols ('-', '.', '--.') or words ('dashed', 'dotted'); dash lengths scale
+   * with the border width. No-op when there's no plain shape stroke (e.g. SVG
+   * content / nested path shapes).
+   */
+  applyBorder() {
+    const t = this.backgroundRect;
+    if (!t || typeof t.stroke != "function") return;
+    const { borderColor: e, borderWidth: i, borderStyle: s, borderOpacity: o } = this.options, r = {};
+    e && (r.color = e), i !== void 0 && (r.width = i), o !== void 0 && (r.opacity = o);
+    const a = i || 1, l = {
+      "-": [3, 1],
+      dashed: [3, 1],
+      ".": [1, 1],
+      dotted: [1, 1],
+      "--.": [8, 3, 1, 3],
+      combo: [8, 3, 1, 3]
+    };
+    r.dasharray = s && l[s] ? l[s].map((c) => c * a).join(",") : "none", t.stroke(r);
+  }
   /** Lock the node, disabling drag and resize/rotate. */
   lock() {
     this.options.isLocked = !0, this.options.allowDrag = !1, this.svgGroup.draggable && this.svgGroup.draggable(!1), this.disableResizeRotate();
@@ -8303,7 +8326,9 @@ class ba {
   }
   onNodeBorderPropertiesChanged(t) {
     const e = this.slate.nodes.one(t.data.id);
-    e && (e.options.borderColor = t.data.borderColor, e.options.borderWidth = t.data.borderWidth, e.setColors(void 0, t.data.borderColor));
+    if (!e) return;
+    const { prop: i, val: s } = t.data;
+    i !== void 0 ? e.options[i] = s : (t.data.borderColor !== void 0 && (e.options.borderColor = t.data.borderColor), t.data.borderWidth !== void 0 && (e.options.borderWidth = t.data.borderWidth)), e.applyBorder();
   }
   onLinePropertiesChanged(t) {
     (Array.isArray(t.data) ? t.data : [t.data]).forEach((i) => {
