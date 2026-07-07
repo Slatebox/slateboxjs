@@ -113,6 +113,9 @@ describe("Filters", () => {
       expect(names).toContain("dropShadow");
       expect(names).toContain("blur");
       expect(names).toContain("outline");
+      // v1-parity theme filters (were logged as "Unknown filter").
+      expect(names).toContain("postItNote");
+      expect(names).toContain("pencil");
     });
 
     it("should allow registering custom filters", () => {

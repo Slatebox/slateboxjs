@@ -79,6 +79,55 @@ filterDefs.set("outline", {
   },
 });
 
+// v1 parity: "post-it note" is a soft drop shadow (v1 built it from
+// feGaussianBlur + feOffset + feMerge); a CSS drop-shadow reproduces it.
+filterDefs.set("postItNote", {
+  name: "postItNote",
+  types: ["text", "vect", "image"],
+  apply: (element: any) => {
+    try {
+      element.attr("filter", "drop-shadow(0 4px 2px rgba(0,0,0,0.5))");
+    } catch {}
+  },
+  remove: (element: any) => {
+    try {
+      element.attr("filter", null);
+    } catch {}
+  },
+});
+
+// v1 parity: "pencil" is a hand-drawn/sketch look — feTurbulence +
+// feDisplacementMap jitter the edges. CSS can't express this, so we register a
+// reusable SVG <filter> in the canvas <defs> and reference it by url.
+filterDefs.set("pencil", {
+  name: "pencil",
+  types: ["text", "vect", "image"],
+  apply: (element: any) => {
+    try {
+      const root = element.root?.();
+      const defs = root?.defs?.();
+      if (defs && !defs.findOne?.("#sb-pencil-filter")) {
+        const f = defs.element("filter").id("sb-pencil-filter");
+        f.attr({
+          x: "-10%",
+          y: "-10%",
+          width: "120%",
+          height: "120%",
+        });
+        f.node.innerHTML =
+          '<feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" seed="1" result="noise"/>' +
+          '<feDisplacementMap xChannelSelector="R" yChannelSelector="G" scale="3" in="SourceGraphic" in2="noise"/>';
+      }
+      element.attr("filter", "url(#sb-pencil-filter)");
+    } catch {}
+  },
+  remove: (element: any) => {
+    try {
+      element.attr("filter", null);
+    } catch {}
+  },
+});
+
 // ─── Filters class (isolated class pattern) ─────────────────────────
 
 export class Filters {
