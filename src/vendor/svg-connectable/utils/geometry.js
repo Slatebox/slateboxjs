@@ -202,10 +202,24 @@ function closestPointOnPathOutline(shape, targetPoint) {
 
     let best = null;
     let bestScore = -Infinity;
-    const N = 240;
-    for (let i = 0; i < N; i++) {
-      const lp = pathEl.getPointAtLength((i / N) * total);
-      const [wx, wy] = toUser(lp.x, lp.y);
+    // getPointAtLength is an expensive DOM call, and this runs on every connector
+    // update (every frame of a node drag). The path's LOCAL outline is constant —
+    // only its transform changes — so sample the local points ONCE and cache them
+    // on the element, then just matrix-transform the cached points per frame. This
+    // is what made dragging nodes with complex custom-shape connectors slow.
+    const N = 96;
+    let samples = pathEl.__outlineSamples;
+    if (!samples || pathEl.__outlineLen !== total) {
+      samples = new Array(N);
+      for (let i = 0; i < N; i++) {
+        const lp = pathEl.getPointAtLength((i / N) * total);
+        samples[i] = [lp.x, lp.y];
+      }
+      pathEl.__outlineSamples = samples;
+      pathEl.__outlineLen = total;
+    }
+    for (let i = 0; i < samples.length; i++) {
+      const [wx, wy] = toUser(samples[i][0], samples[i][1]);
       if (!isFinite(wx) || !isFinite(wy)) continue;
       const px = wx - cx;
       const py = wy - cy;
