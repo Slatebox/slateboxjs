@@ -231,6 +231,10 @@ export class Node {
    * for native rect/circle/ellipse (where backgroundRect carries fill/stroke).
    */
   public contentPath?: any;
+  // Transparent same-size <rect> used as the svg.select/svg.resize target for
+  // custom vector shapes (the nested <svg> backgroundRect can't be resized by
+  // the plugin). Undefined for native shapes.
+  public resizeTarget?: any;
   public textElement!: Text;
   public nestedSvg?: any; // Store reference to nested SVG for SVG content
   public resizeRotate!: ResizeRotate;
@@ -722,6 +726,24 @@ export class Node {
       // the bounding box) for vector shapes.
       try {
         pathEl.node.setAttribute("data-shape-path", "1");
+      } catch (e) {
+        /* noop */
+      }
+      // svg.resize.js can't resize a nested <svg> target — its point()/bbox()
+      // map to the child viewBox space, so corner-drags produce ~0 delta and the
+      // shape won't resize. Give custom shapes a transparent same-size <rect> as
+      // the select/resize target; setSize() syncs the nested svg on each resize
+      // frame. pointer-events:none so it never intercepts clicks/drags (the shape
+      // path + svgGroup handle those); the select/resize handles are their own
+      // layer and don't need the target to be interactive.
+      try {
+        this.resizeTarget = (this.svgGroup as any)
+          .rect(width!, height!)
+          .fill({ color: "#000", opacity: 0 })
+          .stroke({ width: 0 })
+          .move(0, 0);
+        this.resizeTarget.node.setAttribute("data-resize-proxy", "1");
+        this.resizeTarget.node.style.pointerEvents = "none";
       } catch (e) {
         /* noop */
       }
@@ -1648,6 +1670,16 @@ export class Node {
 
       // Use SVG.js native size() and move() methods
       this.nestedSvg.size(width, height).move(bgX, bgY);
+    }
+
+    // Keep the custom-shape resize proxy in lockstep with the shape so the
+    // select/resize handles stay on the shape's bounding box after a resize.
+    if (this.resizeTarget) {
+      try {
+        this.resizeTarget.size(width, height);
+      } catch (_) {
+        /* noop */
+      }
     }
 
     // Re-wrap the text to the NEW width so it reflows on resize (Miro-style) —

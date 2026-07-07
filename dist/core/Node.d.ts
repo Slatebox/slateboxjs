@@ -137,6 +137,7 @@ export declare class Node {
      * for native rect/circle/ellipse (where backgroundRect carries fill/stroke).
      */
     contentPath?: any;
+    resizeTarget?: any;
     textElement: Text;
     nestedSvg?: any;
     resizeRotate: ResizeRotate;

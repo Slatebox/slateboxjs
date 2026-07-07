@@ -64,7 +64,9 @@ export class ResizeRotate {
    */
   constructor(node: Node, options: ResizeRotateOptions = {}) {
     this.node = node;
-    this.target = node.backgroundRect;
+    // Custom vector shapes use a transparent proxy <rect> as the resize/select
+    // target (the nested <svg> backgroundRect can't be resized by svg.resize.js).
+    this.target = (node as any).resizeTarget ?? node.backgroundRect;
     this.options = {
       resizeEnabled: true,
       rotateEnabled: true,
@@ -79,6 +81,9 @@ export class ResizeRotate {
   /** Enable resize and rotate handles on the node. */
   public enable() {
     if (this.isActive) return;
+    // Re-resolve in case the proxy was created after construction (custom shapes
+    // build the proxy during async shape rendering).
+    this.target = (this.node as any).resizeTarget ?? this.node.backgroundRect;
     // Guard: backgroundRect may not be initialized if node creation failed
     if (!this.target) {
       console.warn("RESIZE_ROTATE_DEBUG: Cannot enable — target (backgroundRect) not available on", this.node?.id);
