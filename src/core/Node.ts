@@ -1058,9 +1058,12 @@ export class Node {
       // Selection behavior - ensure this node is selected when drag starts
       const isCurrentlySelected = this.slate.getSelectedNodes().includes(this);
 
-      // Check for multi-select modifier keys from the original pointer/mouse event
+      // Check for multi-select modifier keys from the original pointer/mouse event.
+      // Shift is included for Miro parity (shift-click adds to the selection), the
+      // same modifier MultiSelection uses for additive rect-select.
       const origEvt = event.detail?.event || event;
-      const isMultiSelect = origEvt?.ctrlKey || origEvt?.metaKey;
+      const isMultiSelect =
+        origEvt?.ctrlKey || origEvt?.metaKey || origEvt?.shiftKey;
 
       if (!isCurrentlySelected) {
         console.log(
@@ -2237,8 +2240,9 @@ export class Node {
           if (this.links?.hasLink?.() && this.slate.isReadOnly?.()) {
             this.links.navigate();
           } else {
-            // Check for multi-select modifier keys
-            const isMultiSelect = event.ctrlKey || event.metaKey;
+            // Check for multi-select modifier keys (shift included for Miro parity)
+            const isMultiSelect =
+              event.ctrlKey || event.metaKey || event.shiftKey;
 
             // Let Slate handle the selection logic and resize/rotate enabling
             this.slate.selectNodes([this], isMultiSelect);

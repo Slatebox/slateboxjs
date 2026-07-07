@@ -7949,7 +7949,7 @@ class Ie {
   makeDraggable() {
     this.svgGroup.draggable(), this.svgGroup.on("dragstart.node", (t) => {
       console.log("DRAG_DEBUG: Drag started on", this.id), this.toFront(!1);
-      const e = this.slate.getSelectedNodes().includes(this), n = t.detail?.event || t, s = n?.ctrlKey || n?.metaKey;
+      const e = this.slate.getSelectedNodes().includes(this), n = t.detail?.event || t, s = n?.ctrlKey || n?.metaKey || n?.shiftKey;
       e ? console.log(
         "SELECTION_DEBUG: Drag started on already selected node",
         this.id
@@ -8553,7 +8553,7 @@ class Ie {
           ), this.links?.hasLink?.() && this.slate.isReadOnly?.())
             this.links.navigate();
           else {
-            const r = n.ctrlKey || n.metaKey;
+            const r = n.ctrlKey || n.metaKey || n.shiftKey;
             this.slate.selectNodes([this], r);
             const a = Date.now();
             a - this._lastClickTime < 400 ? (this._lastClickTime = 0, this.handleDoubleClickEdit()) : this._lastClickTime = a;
