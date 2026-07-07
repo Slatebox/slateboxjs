@@ -391,12 +391,12 @@ export class Invoker {
 
   onSlateShowGridChanged(pkg: SlatePackage) {
     this.slate.options.viewPort!.showGrid = pkg.data.showGrid
+    // Actually show/hide the grid overlay — previously this only logged, so the
+    // "Show Grid" toggle set the option but never rendered the grid.
     if (pkg.data.showGrid) {
-      // Show grid
-      console.log('Show grid')
+      this.slate.grid?.show()
     } else {
-      // Hide grid
-      console.log('Hide grid')
+      this.slate.grid?.hide()
     }
   }
 

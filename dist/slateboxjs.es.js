@@ -9189,7 +9189,7 @@ class Va {
     this.slate.options.description = t.data.description;
   }
   onSlateShowGridChanged(t) {
-    this.slate.options.viewPort.showGrid = t.data.showGrid, t.data.showGrid ? console.log("Show grid") : console.log("Hide grid");
+    this.slate.options.viewPort.showGrid = t.data.showGrid, t.data.showGrid ? this.slate.grid?.show() : this.slate.grid?.hide();
   }
   onSlateMindMapModeChanged(t) {
     this.slate.options.mindMapMode = t.data.mindMapMode;

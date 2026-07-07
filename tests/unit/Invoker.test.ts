@@ -1152,18 +1152,22 @@ describe("Invoker", () => {
   });
 
   describe("onSlateShowGridChanged", () => {
-    it("should update showGrid and log when true", () => {
+    it("should update showGrid and SHOW the grid when true", () => {
+      (mockSlate as any).grid = { show: vi.fn(), hide: vi.fn() };
       invoker.onSlateShowGridChanged({ data: { showGrid: true } });
 
       expect(mockSlate.options.viewPort.showGrid).toBe(true);
-      expect(console.log).toHaveBeenCalledWith("Show grid");
+      expect((mockSlate as any).grid.show).toHaveBeenCalled();
+      expect((mockSlate as any).grid.hide).not.toHaveBeenCalled();
     });
 
-    it("should log hide grid when false", () => {
+    it("should update showGrid and HIDE the grid when false", () => {
+      (mockSlate as any).grid = { show: vi.fn(), hide: vi.fn() };
       invoker.onSlateShowGridChanged({ data: { showGrid: false } });
 
       expect(mockSlate.options.viewPort.showGrid).toBe(false);
-      expect(console.log).toHaveBeenCalledWith("Hide grid");
+      expect((mockSlate as any).grid.hide).toHaveBeenCalled();
+      expect((mockSlate as any).grid.show).not.toHaveBeenCalled();
     });
   });
 
