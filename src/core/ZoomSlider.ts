@@ -146,6 +146,19 @@ export class ZoomSlider {
     this.label.style.cssText = "min-width: 40px; text-align: right;";
     this.container.appendChild(this.label);
 
+    // Fit-to-content button (Miro "zoom to fit"): pans + zooms so every node is
+    // in view. Uses the ⤢ glyph; calls slate.fitToContent(). Inserted as the
+    // LEFTMOST control so it isn't overlapped by the bottom-right add-node FAB
+    // (which sits over the slider's right edge and would eat the click).
+    const fit = document.createElement("button");
+    fit.textContent = "⤢";
+    fit.title = "Fit to content";
+    fit.setAttribute("aria-label", "fitToContent");
+    fit.style.cssText =
+      "background:none;border:none;color:white;cursor:pointer;font-size:15px;padding:0 4px;line-height:1;";
+    fit.onclick = () => this.slate.fitToContent?.();
+    this.container.insertBefore(fit, this.container.firstChild);
+
     this.slate.element.appendChild(this.container);
 
     // Update periodically

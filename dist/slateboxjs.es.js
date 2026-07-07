@@ -11353,11 +11353,13 @@ class xs {
     `;
     const e = document.createElement("button");
     e.textContent = "-", e.style.cssText = "background:none;border:none;color:white;cursor:pointer;font-size:16px;padding:0 4px;", e.onclick = () => this.slate.zoomOut?.(), this.container.appendChild(e), this.slider = document.createElement("input"), this.slider.type = "range", this.slider.min = String(this.options.minZoom), this.slider.max = String(this.options.maxZoom), this.slider.step = "0.1", this.slider.value = "1", this.slider.style.cssText = "width: 100px; cursor: pointer;", this.slider.oninput = () => {
-      const s = parseFloat(this.slider.value);
-      this.slate.zoom?.(s), this.update();
+      const o = parseFloat(this.slider.value);
+      this.slate.zoom?.(o), this.update();
     }, this.container.appendChild(this.slider);
     const n = document.createElement("button");
-    n.textContent = "+", n.style.cssText = "background:none;border:none;color:white;cursor:pointer;font-size:16px;padding:0 4px;", n.onclick = () => this.slate.zoomIn?.(), this.container.appendChild(n), this.label = document.createElement("span"), this.label.textContent = "100%", this.label.style.cssText = "min-width: 40px; text-align: right;", this.container.appendChild(this.label), this.slate.element.appendChild(this.container), this._intervalId = setInterval(() => this.update(), 500);
+    n.textContent = "+", n.style.cssText = "background:none;border:none;color:white;cursor:pointer;font-size:16px;padding:0 4px;", n.onclick = () => this.slate.zoomIn?.(), this.container.appendChild(n), this.label = document.createElement("span"), this.label.textContent = "100%", this.label.style.cssText = "min-width: 40px; text-align: right;", this.container.appendChild(this.label);
+    const s = document.createElement("button");
+    s.textContent = "⤢", s.title = "Fit to content", s.setAttribute("aria-label", "fitToContent"), s.style.cssText = "background:none;border:none;color:white;cursor:pointer;font-size:15px;padding:0 4px;line-height:1;", s.onclick = () => this.slate.fitToContent?.(), this.container.insertBefore(s, this.container.firstChild), this.slate.element.appendChild(this.container), this._intervalId = setInterval(() => this.update(), 500);
   }
 }
 class _s {
