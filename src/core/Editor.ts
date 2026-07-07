@@ -104,10 +104,19 @@ export class Editor {
           type: "onNodeTextChanged",
           data: { id: node.id, text: newText },
         };
-        const collab = (node.slate as any)?.collab;
+        const slate = node.slate as any;
+        const collab = slate?.collab;
         if (collab?.invoke) {
+          // Apply locally, then broadcast + record ONE undo checkpoint.
+          // broadcast() does collab.send AND undoRedo.snap(), so the edit syncs to
+          // collaborators and becomes its own undo step. (A plain click no longer
+          // snaps — see toFront(false) — so this yields clean stepwise undo.)
           collab.invoke(pkg);
-          collab.send?.(pkg);
+          if (typeof slate.broadcast === "function") {
+            slate.broadcast("onNodeTextChanged", pkg.data);
+          } else {
+            collab.send?.(pkg);
+          }
         } else {
           // No collab layer (e.g. standalone) — apply directly.
           (node as any).setText?.(newText);

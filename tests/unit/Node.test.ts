@@ -840,6 +840,27 @@ describe("Visibility", () => {
     node.toBack();
     expect(spy).toHaveBeenCalled();
   });
+
+  it("toFront(true) persists (broadcasts); toFront(false) raises visually only", async () => {
+    const node = await createNode();
+    const frontSpy = vi.spyOn(node.svgGroup, "front");
+    const bcast = vi.fn();
+    (node.slate as any).broadcast = bcast;
+
+    // Deliberate bring-to-front → broadcasts (persists + undo step).
+    node.toFront(true);
+    expect(frontSpy).toHaveBeenCalled();
+    expect(bcast).toHaveBeenCalledWith("onNodeToFront", { id: node.id });
+
+    // Transient raise on pointer-down/drag-start → visual only, NO broadcast.
+    // (A plain click is a zero-distance drag; persisting z-order per click
+    // flooded the undo stack.)
+    bcast.mockClear();
+    frontSpy.mockClear();
+    node.toFront(false);
+    expect(frontSpy).toHaveBeenCalled();
+    expect(bcast).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------

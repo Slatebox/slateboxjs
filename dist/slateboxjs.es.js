@@ -6417,8 +6417,8 @@ class Yi {
         const d = {
           type: "onNodeTextChanged",
           data: { id: t.id, text: h }
-        }, u = t.slate?.collab;
-        u?.invoke ? (u.invoke(d), u.send?.(d)) : t.setText?.(h);
+        }, u = t.slate, f = u?.collab;
+        f?.invoke ? (f.invoke(d), typeof u.broadcast == "function" ? u.broadcast("onNodeTextChanged", d.data) : f.send?.(d)) : t.setText?.(h);
       }
     };
     a.addEventListener("keydown", (c) => {
@@ -7948,7 +7948,7 @@ class Ie {
   }
   makeDraggable() {
     this.svgGroup.draggable(), this.svgGroup.on("dragstart.node", (t) => {
-      console.log("DRAG_DEBUG: Drag started on", this.id), this.toFront();
+      console.log("DRAG_DEBUG: Drag started on", this.id), this.toFront(!1);
       const e = this.slate.getSelectedNodes().includes(this), n = t.detail?.event || t, s = n?.ctrlKey || n?.metaKey;
       e ? console.log(
         "SELECTION_DEBUG: Drag started on already selected node",
@@ -7983,25 +7983,29 @@ class Ie {
       console.log("DRAG_DEBUG: Drag ended on", this.id);
       const e = this.pointerFromDragEvent(t);
       if (e && this._dragStartPointer && this.preDragPosition) {
-        const s = this.slate.getZoom?.() || 1, o = (e.x - this._dragStartPointer.x) / s, r = (e.y - this._dragStartPointer.y) / s;
-        this.options.x = this.preDragPosition.x + o, this.options.y = this.preDragPosition.y + r;
-        let a = o, l = r;
-        const c = this.slate.grid?.snapPoint?.(
+        const d = this.slate.getZoom?.() || 1, u = (e.x - this._dragStartPointer.x) / d, f = (e.y - this._dragStartPointer.y) / d;
+        this.options.x = this.preDragPosition.x + u, this.options.y = this.preDragPosition.y + f;
+        let g = u, p = f;
+        const y = this.slate.grid?.snapPoint?.(
           this.options.x,
           this.options.y
         );
-        if (c && (this.options.x = c.x, this.options.y = c.y, a = c.x - this.preDragPosition.x, l = c.y - this.preDragPosition.y), this.slate.options.viewPort?.snapToObjects) {
-          const h = this.snapToNeighbors(this.options.x, this.options.y);
-          this.options.x = h.x, this.options.y = h.y, a = this.options.x - this.preDragPosition.x, l = this.options.y - this.preDragPosition.y;
+        if (y && (this.options.x = y.x, this.options.y = y.y, g = y.x - this.preDragPosition.x, p = y.y - this.preDragPosition.y), this.slate.options.viewPort?.snapToObjects) {
+          const m = this.snapToNeighbors(this.options.x, this.options.y);
+          this.options.x = m.x, this.options.y = m.y, g = this.options.x - this.preDragPosition.x, p = this.options.y - this.preDragPosition.y;
         }
-        for (const h of this._groupDragSiblings)
-          h.node.options.x = h.x + a, h.node.options.y = h.y + l, h.node.applyPositionAndRotation();
+        for (const m of this._groupDragSiblings)
+          m.node.options.x = m.x + g, m.node.options.y = m.y + p, m.node.applyPositionAndRotation();
       }
       const n = this._groupDragSiblings;
-      this._groupDragSiblings = [], this.preDragTransform = null, this.preDragPosition = null, this._dragStartPointer = null, this.applyPositionAndRotation(), this.slate.broadcast?.("onNodesMove", {
+      this._groupDragSiblings = [];
+      const s = this.preDragPosition, o = 0.5, r = this.options.x ?? 0, a = this.options.y ?? 0, l = !s || Math.abs(r - s.x) > o || Math.abs(a - s.y) > o, c = n.some(
+        (d) => Math.abs((d.node.options.x ?? 0) - d.x) > o || Math.abs((d.node.options.y ?? 0) - d.y) > o
+      ), h = l || c;
+      this.preDragTransform = null, this.preDragPosition = null, this._dragStartPointer = null, this.applyPositionAndRotation(), h && this.slate.broadcast?.("onNodesMove", {
         nodeOptions: [
           bt(this.options),
-          ...n.map((s) => bt(s.node.options))
+          ...n.map((d) => bt(d.node.options))
         ]
       }), this._dragEndTimeoutId = setTimeout(() => {
         if (this._destroyed) return;
@@ -8075,12 +8079,18 @@ class Ie {
       this.applyPositionAndRotation(), n && n();
   }
   /** Bring the node to the front of the SVG z-order. */
-  toFront() {
-    this.svgGroup.front(), this.slate.broadcast?.("onNodeToFront", { id: this.id });
+  /**
+   * Raise this node to the top of the SVG z-order. When `persist` is true
+   * (deliberate "bring to front"), it broadcasts + records an undo step. Pass
+   * false for the transient raise on pointer-down/drag-start so a plain click
+   * doesn't persist a z-order change or pollute the undo stack.
+   */
+  toFront(t = !0) {
+    this.svgGroup.front(), t && this.slate.broadcast?.("onNodeToFront", { id: this.id });
   }
   /** Send the node to the back of the SVG z-order. */
-  toBack() {
-    this.svgGroup.back(), this.slate.broadcast?.("onNodeToBack", { id: this.id });
+  toBack(t = !0) {
+    this.svgGroup.back(), t && this.slate.broadcast?.("onNodeToBack", { id: this.id });
   }
   /**
    * Remove the node from the canvas (light teardown).

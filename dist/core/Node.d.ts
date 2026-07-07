@@ -253,9 +253,15 @@ export declare class Node {
     private pointerFromDragEvent;
     position(x: number, y: number, callback?: () => void, easing?: any, duration?: number): void;
     /** Bring the node to the front of the SVG z-order. */
-    toFront(): void;
+    /**
+     * Raise this node to the top of the SVG z-order. When `persist` is true
+     * (deliberate "bring to front"), it broadcasts + records an undo step. Pass
+     * false for the transient raise on pointer-down/drag-start so a plain click
+     * doesn't persist a z-order change or pollute the undo stack.
+     */
+    toFront(persist?: boolean): void;
     /** Send the node to the back of the SVG z-order. */
-    toBack(): void;
+    toBack(persist?: boolean): void;
     /**
      * Remove the node from the canvas (light teardown).
      * Cleans up DOM elements but does NOT disable sub-modules. Use `destroy()` for full teardown.

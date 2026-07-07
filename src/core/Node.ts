@@ -1050,8 +1050,10 @@ export class Node {
     this.svgGroup.on("dragstart.node", (event: any) => {
       console.log("DRAG_DEBUG: Drag started on", this.id);
 
-      // Bring to front during drag
-      this.toFront();
+      // Raise visually during drag, but DON'T persist/undo it — a plain click is
+      // a zero-distance drag, and persisting z-order per click flooded the undo
+      // stack (making undo feel broken). Deliberate "bring to front" still persists.
+      this.toFront(false);
 
       // Selection behavior - ensure this node is selected when drag starts
       const isCurrentlySelected = this.slate.getSelectedNodes().includes(this);
@@ -1173,6 +1175,26 @@ export class Node {
       const movedSiblings = this._groupDragSiblings;
       this._groupDragSiblings = [];
 
+      // Did the node (or any group sibling) ACTUALLY move? A pure click fires
+      // dragstart+dragend with a zero delta; broadcasting onNodesMove then records
+      // a no-op undo snapshot, so every click became an undo step and undo felt
+      // broken. Only broadcast when something really moved. When we can't tell
+      // (no pre-drag position captured), broadcast to be safe.
+      const startPos = this.preDragPosition;
+      const EPS = 0.5;
+      const curX = this.options.x ?? 0;
+      const curY = this.options.y ?? 0;
+      const primaryMoved =
+        !startPos ||
+        Math.abs(curX - startPos.x) > EPS ||
+        Math.abs(curY - startPos.y) > EPS;
+      const siblingMoved = movedSiblings.some(
+        (s) =>
+          Math.abs((s.node.options.x ?? 0) - s.x) > EPS ||
+          Math.abs((s.node.options.y ?? 0) - s.y) > EPS
+      );
+      const actuallyMoved = primaryMoved || siblingMoved;
+
       // Clear pre-drag state
       this.preDragTransform = null;
       this.preDragPosition = null;
@@ -1184,12 +1206,15 @@ export class Node {
 
       // Notify the host app of the completed move (v1 package shape) — include
       // every node that moved as part of a group drag so they sync + persist.
-      this.slate.broadcast?.("onNodesMove", {
-        nodeOptions: [
-          v2NodeToV1(this.options),
-          ...movedSiblings.map((s) => v2NodeToV1(s.node.options)),
-        ],
-      });
+      // Skipped for a zero-distance drag (a click) so undo isn't polluted.
+      if (actuallyMoved) {
+        this.slate.broadcast?.("onNodesMove", {
+          nodeOptions: [
+            v2NodeToV1(this.options),
+            ...movedSiblings.map((s) => v2NodeToV1(s.node.options)),
+          ],
+        });
+      }
 
       // Small delay to distinguish drag from click - reduced for better responsiveness
       this._dragEndTimeoutId = setTimeout(() => {
@@ -1360,15 +1385,21 @@ export class Node {
   }
 
   /** Bring the node to the front of the SVG z-order. */
-  public toFront() {
+  /**
+   * Raise this node to the top of the SVG z-order. When `persist` is true
+   * (deliberate "bring to front"), it broadcasts + records an undo step. Pass
+   * false for the transient raise on pointer-down/drag-start so a plain click
+   * doesn't persist a z-order change or pollute the undo stack.
+   */
+  public toFront(persist = true) {
     this.svgGroup.front();
-    this.slate.broadcast?.("onNodeToFront", { id: this.id });
+    if (persist) this.slate.broadcast?.("onNodeToFront", { id: this.id });
   }
 
   /** Send the node to the back of the SVG z-order. */
-  public toBack() {
+  public toBack(persist = true) {
     this.svgGroup.back();
-    this.slate.broadcast?.("onNodeToBack", { id: this.id });
+    if (persist) this.slate.broadcast?.("onNodeToBack", { id: this.id });
   }
 
   /**
