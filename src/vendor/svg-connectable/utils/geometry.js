@@ -166,7 +166,30 @@ function getElementCenter(element) {
 function closestPointOnPathOutline(shape, targetPoint) {
   try {
     const node = shape && shape.node;
-    const pathEl = node && node.querySelector && node.querySelector("path[data-shape-path]");
+    let pathEl =
+      node && node.querySelector && node.querySelector("path[data-shape-path]");
+    // svgContent nodes (custom SVG artwork — e.g. a flower/cloud shape) have no
+    // tagged shape path, so the connector was falling back to the bounding BOX and
+    // the arrow floated in the empty corner instead of touching the artwork. Use
+    // the largest <path> inside the node's nested <svg> as the outline so the arrow
+    // attaches flush to the shape. (Native rect/circle have no nested path → still
+    // null → their exact edge math is used, unchanged.)
+    if (!pathEl && node && node.querySelectorAll) {
+      let bestArea = 0;
+      node.querySelectorAll("svg path").forEach((cand) => {
+        if (typeof cand.getTotalLength !== "function") return;
+        try {
+          const b = cand.getBBox();
+          const area = b.width * b.height;
+          if (area > bestArea) {
+            bestArea = area;
+            pathEl = cand;
+          }
+        } catch (e) {
+          /* noop */
+        }
+      });
+    }
     if (!pathEl || typeof pathEl.getTotalLength !== "function") return null;
     const total = pathEl.getTotalLength();
     if (!total || !isFinite(total)) return null;
