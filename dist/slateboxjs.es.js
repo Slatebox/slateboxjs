@@ -10878,6 +10878,9 @@ function Dn(i, t = {}, e) {
       ".node-cog",
       // selection toolbar (delete/connect/cog pill)
       ".node-toolbar",
+      ".line-cog",
+      // line selection pill (delete/cog) — parallel to the node cog
+      ".line-toolbar",
       "#slate-coordinates"
     ];
     for (const l of o)

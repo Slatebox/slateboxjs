@@ -53,6 +53,8 @@ export function exportSVG(
       ".node-link-badge", // link indicator badge (also in the node group)
       ".node-cog", // selection toolbar (delete/connect/cog pill)
       ".node-toolbar",
+      ".line-cog", // line selection pill (delete/cog) — parallel to the node cog
+      ".line-toolbar",
       "#slate-coordinates",
     ];
 
