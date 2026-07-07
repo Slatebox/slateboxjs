@@ -10873,6 +10873,8 @@ function Dn(i, t = {}, e) {
       // UI chrome that shouldn't appear in an exported diagram:
       ".comment-badge",
       // comment-count badges (rendered in the node group)
+      ".node-link-badge",
+      // link indicator badge (also in the node group)
       ".node-cog",
       // selection toolbar (delete/connect/cog pill)
       ".node-toolbar",

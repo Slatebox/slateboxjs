@@ -138,17 +138,21 @@ test.describe("comment badge (§node)", () => {
       );
       await new Promise((r) => setTimeout(r, 300));
       A.v2.setCommentBadge(3, "unresolved");
+      A.v2.links?.set?.({ show: true, type: "url", data: "https://ex.com" });
+      await new Promise((r) => setTimeout(r, 100));
       const svg = await s.v2.svg();
       return {
         badgeInExport: /comment-badge|e5484d/i.test(svg),
+        linkBadgeInExport: /node-link-badge/.test(svg),
         badgeStillOnCanvas: !!document.querySelector(".comment-badge"),
         exportHasNodeText: /Ex/.test(svg),
       };
     });
 
-    // The badge does NOT leak into the export...
+    // Neither UI badge leaks into the export...
     expect(res.badgeInExport).toBe(false);
-    // ...but stays on the live canvas, and the node itself is still exported.
+    expect(res.linkBadgeInExport).toBe(false);
+    // ...but the badge stays on the live canvas, and node content is still exported.
     expect(res.badgeStillOnCanvas).toBe(true);
     expect(res.exportHasNodeText).toBe(true);
   });
