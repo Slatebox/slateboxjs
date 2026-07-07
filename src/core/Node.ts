@@ -9,6 +9,10 @@ import {
 } from "@svgdotjs/svg.js";
 
 import "@svgdotjs/svg.draggable.js";
+// Outline-aware edge point (attaches to the real shape outline incl. svgContent
+// artwork) — used to make the connect-drag PREVIEW match the committed connector.
+// @ts-ignore — vendored JS module has no type declarations.
+import { getClosestPointOnEdge } from "../vendor/svg-connectable/utils/geometry.js";
 import { ResizeRotate, ResizeRotateOptions } from "./ResizeRotate";
 import type { Slate } from "./Slate";
 import { Connector, ConnectorOptions } from "./Connector";
@@ -2690,8 +2694,24 @@ export class Node {
         const to = (target as any).options;
         const tcx = (to.x || 0) + (to.width || 0) / 2;
         const tcy = (to.y || 0) + (to.height || 0) / 2;
-        const tp = edgePoint(to, sx, sy); // target edge toward source center
-        const sp = edgePoint(this.options, tcx, tcy); // source edge toward target center
+        // Outline-aware attach so the PREVIEW matches the committed connector for
+        // custom/svgContent shapes (arrow flush to the artwork, not the bbox);
+        // falls back to the bbox edge if the outline can't be resolved.
+        const oEdge = (node: any, opt: any, px: number, py: number) => {
+          try {
+            const g = node && node.svgGroup;
+            if (g) {
+              const q = getClosestPointOnEdge(g, [px, py]);
+              if (q && isFinite(q[0]) && isFinite(q[1]))
+                return { x: q[0], y: q[1] };
+            }
+          } catch (e) {
+            /* noop */
+          }
+          return edgePoint(opt, px, py);
+        };
+        const tp = oEdge(target, to, sx, sy); // target outline toward source
+        const sp = oEdge(this, this.options, tcx, tcy); // source outline toward target center
         const dx = tp.x - sp.x;
         const dy = tp.y - sp.y;
         const dist = Math.hypot(dx, dy) || 1;
