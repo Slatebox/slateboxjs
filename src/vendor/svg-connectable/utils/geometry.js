@@ -174,7 +174,13 @@ function closestPointOnPathOutline(shape, targetPoint) {
     // The path lives in a nested <svg> with its own viewBox. Convert its local
     // points to the connector's coordinate space via screen CTMs: path-local →
     // screen → root SVG user space (the space getElementCenter/points use).
-    const rootSvg = pathEl.ownerSVGElement;
+    // ownerSVGElement is the NEAREST ancestor <svg>. A shape outline lives in a
+    // nested <svg> (its own viewBox), so ownerSVGElement is that nested svg —
+    // whose screen CTM equals the path's, making the local→user transform a no-op
+    // (outline points come back in viewBox coords and get rejected as "too far").
+    // Walk up to the OUTERMOST svg, which is the connector's coordinate space.
+    let rootSvg = pathEl.ownerSVGElement;
+    while (rootSvg && rootSvg.ownerSVGElement) rootSvg = rootSvg.ownerSVGElement;
     const pathCTM = pathEl.getScreenCTM && pathEl.getScreenCTM();
     const rootScreenCTM = rootSvg && rootSvg.getScreenCTM && rootSvg.getScreenCTM();
     if (!rootSvg || !pathCTM || !rootScreenCTM) return null;

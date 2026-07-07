@@ -4406,7 +4406,9 @@ function Fr(i, t) {
     if (!n || typeof n.getTotalLength != "function") return null;
     const s = n.getTotalLength();
     if (!s || !isFinite(s)) return null;
-    const o = n.ownerSVGElement, r = n.getScreenCTM && n.getScreenCTM(), a = o && o.getScreenCTM && o.getScreenCTM();
+    let o = n.ownerSVGElement;
+    for (; o && o.ownerSVGElement; ) o = o.ownerSVGElement;
+    const r = n.getScreenCTM && n.getScreenCTM(), a = o && o.getScreenCTM && o.getScreenCTM();
     if (!o || !r || !a) return null;
     const l = a.inverse(), c = o.createSVGPoint(), h = (_, x) => {
       c.x = _, c.y = x;
