@@ -7724,12 +7724,16 @@ class Oe {
       this._linkBadge && (this._linkBadge.remove(), this._linkBadge = void 0);
       const t = this.options.link;
       if (!t?.show || !t.data) return;
-      const e = this.options.width || 0, n = 11, s = e - n - 3, o = n + 3, r = this.svgGroup.group();
-      r.node.setAttribute("class", "node-link-badge"), r.node.setAttribute("style", "cursor:pointer"), r.circle(n * 2).move(s - n, o - n).fill("#2d6cdf").stroke({ color: "#fff", width: 1.5 });
-      const l = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      l.setAttribute("x", String(s)), l.setAttribute("y", String(o)), l.setAttribute("text-anchor", "middle"), l.setAttribute("dominant-baseline", "central"), l.setAttribute("font-family", "sans-serif"), l.setAttribute("font-size", "15"), l.setAttribute("font-weight", "bold"), l.setAttribute("fill", "#fff"), l.setAttribute("pointer-events", "none"), l.textContent = "↗", r.node.appendChild(l), r.on("click", (c) => {
-        c.stopPropagation(), c.preventDefault?.(), this.links?.navigate();
-      }), this._linkBadge = r;
+      const e = this.options.width || 0, n = this.options.height || 0, s = 11;
+      let o = e - s - 3, r = s + 3;
+      const a = this.options.shape;
+      this.contentPath || this.nestedSvg ? (o = e * 0.72, r = n * 0.28) : (a === "circle" || a === "ellipse") && (o = e * 0.85, r = n * 0.15);
+      const l = this.svgGroup.group();
+      l.node.setAttribute("class", "node-link-badge"), l.node.setAttribute("style", "cursor:pointer"), l.circle(s * 2).move(o - s, r - s).fill("#2d6cdf").stroke({ color: "#fff", width: 1.5 });
+      const h = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      h.setAttribute("x", String(o)), h.setAttribute("y", String(r)), h.setAttribute("text-anchor", "middle"), h.setAttribute("dominant-baseline", "central"), h.setAttribute("font-family", "sans-serif"), h.setAttribute("font-size", "15"), h.setAttribute("font-weight", "bold"), h.setAttribute("fill", "#fff"), h.setAttribute("pointer-events", "none"), h.textContent = "↗", l.node.appendChild(h), l.on("click", (d) => {
+        d.stopPropagation(), d.preventDefault?.(), this.links?.navigate();
+      }), this._linkBadge = l;
     } catch {
     }
   }

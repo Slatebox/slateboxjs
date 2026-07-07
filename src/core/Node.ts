@@ -602,9 +602,20 @@ export class Node {
       const link: any = this.options.link;
       if (!link?.show || !link.data) return;
       const w = this.options.width || 0;
+      const h = this.options.height || 0;
       const R = 11;
-      const cx = w - R - 3;
-      const cy = R + 3;
+      // Match the comment badge: hug the shape for non-rect shapes instead of
+      // floating in the empty bbox corner.
+      let cx = w - R - 3;
+      let cy = R + 3;
+      const shp = this.options.shape;
+      if (this.contentPath || this.nestedSvg) {
+        cx = w * 0.72;
+        cy = h * 0.28;
+      } else if (shp === "circle" || shp === "ellipse") {
+        cx = w * 0.85;
+        cy = h * 0.15;
+      }
       const badge = this.svgGroup.group();
       badge.node.setAttribute("class", "node-link-badge");
       badge.node.setAttribute("style", "cursor:pointer");
