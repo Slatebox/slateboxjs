@@ -8135,18 +8135,22 @@ class Oe {
    */
   setCommentBadge(t, e = "unresolved") {
     if (this.clearCommentBadge(), !t || t < 0 || !this.svgGroup) return;
-    const n = this.options.width || 100, s = 11, o = n - 2, r = 2, a = e === "resolved" ? "#2e7d32" : e === "empty" ? "#6b7280" : "#e5484d", l = this.svgGroup.group().addClass("comment-badge");
-    l.circle(s * 2).center(o, r).fill(a).stroke({
+    const n = this.options.width || 100, s = this.options.height || 100, o = 11;
+    let r = n - 2, a = 2;
+    const l = this.options.shape;
+    this.contentPath || this.nestedSvg ? (r = n * 0.72, a = s * 0.28) : (l === "circle" || l === "ellipse") && (r = n * 0.85, a = s * 0.15);
+    const c = e === "resolved" ? "#2e7d32" : e === "empty" ? "#6b7280" : "#e5484d", h = this.svgGroup.group().addClass("comment-badge");
+    h.circle(o * 2).center(r, a).fill(c).stroke({
       color: "#ffffff",
       width: 1.5
     });
-    const c = t > 99 ? "99+" : String(t);
-    l.text(c).font({
+    const d = t > 99 ? "99+" : String(t);
+    h.text(d).font({
       size: 12,
       anchor: "middle",
       family: "sans-serif",
       weight: "bold"
-    }).fill("#ffffff").center(o, r).attr("dy", "0.05em"), l.attr("pointer-events", "none"), this._commentBadge = l, this._commentBadgeState = { count: t, kind: e };
+    }).fill("#ffffff").center(r, a).attr("dy", "0.05em"), h.attr("pointer-events", "none"), this._commentBadge = h, this._commentBadgeState = { count: t, kind: e };
   }
   /** Remove the comment-count badge if present. */
   clearCommentBadge() {

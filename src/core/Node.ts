@@ -1433,9 +1433,25 @@ export class Node {
     this.clearCommentBadge();
     if (!count || count < 0 || !this.svgGroup) return;
     const w = this.options.width || 100;
+    const h = this.options.height || 100;
     const r = 11;
-    const cx = w - 2;
-    const cy = 2;
+    // Badge sits at the node's top-right. For a plain rectangle that's the corner;
+    // for round or custom vector shapes the bbox corner is EMPTY (the shape
+    // doesn't fill it), so the badge would float off the shape. Pull it inward so
+    // it hugs the shape's upper-right instead.
+    let cx = w - 2;
+    let cy = 2;
+    const shp = this.options.shape;
+    if (this.contentPath || this.nestedSvg) {
+      // Custom vector shape (diamond/star/hexagon/… via contentPath) or svgContent
+      // node: inward along the diagonal so the badge hugs the shape.
+      cx = w * 0.72;
+      cy = h * 0.28;
+    } else if (shp === "circle" || shp === "ellipse") {
+      // On the round edge at ~45° (top-right).
+      cx = w * 0.85;
+      cy = h * 0.15;
+    }
     const color =
       kind === "resolved"
         ? "#2e7d32"
