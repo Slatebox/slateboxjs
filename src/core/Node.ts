@@ -1066,10 +1066,24 @@ export class Node {
         const fdy = (ptr.y - this._dragStartPointer.y) / zoom;
         this.options.x = this.preDragPosition.x + fdx;
         this.options.y = this.preDragPosition.y + fdy;
-        // Finalize group siblings with the same delta (fallback for dragend-only).
+        // Snap the FINAL (persisted) position to the grid when enabled — this is
+        // the value that broadcasts + saves, so it must snap too (no-op unless on).
+        let feffDx = fdx;
+        let feffDy = fdy;
+        const fsnapped = this.slate.grid?.snapPoint?.(
+          this.options.x,
+          this.options.y
+        );
+        if (fsnapped) {
+          this.options.x = fsnapped.x;
+          this.options.y = fsnapped.y;
+          feffDx = fsnapped.x - this.preDragPosition.x;
+          feffDy = fsnapped.y - this.preDragPosition.y;
+        }
+        // Finalize group siblings with the same (snapped) delta.
         for (const sib of this._groupDragSiblings) {
-          sib.node.options.x = sib.x + fdx;
-          sib.node.options.y = sib.y + fdy;
+          sib.node.options.x = sib.x + feffDx;
+          sib.node.options.y = sib.y + feffDy;
           sib.node.applyPositionAndRotation();
         }
       }
@@ -1143,11 +1157,27 @@ export class Node {
         const dy = (ptr.y - this._dragStartPointer.y) / zoom;
         this.options.x = this.preDragPosition.x + dx;
         this.options.y = this.preDragPosition.y + dy;
+        // Snap to grid when enabled — no-op unless slate.grid.snapToGrid is on.
+        // Snap the primary node, then move group siblings by the SNAPPED delta so
+        // a multi-selection keeps its relative layout instead of each node
+        // snapping independently.
+        let effDx = dx;
+        let effDy = dy;
+        const snapped = this.slate.grid?.snapPoint?.(
+          this.options.x,
+          this.options.y
+        );
+        if (snapped) {
+          this.options.x = snapped.x;
+          this.options.y = snapped.y;
+          effDx = snapped.x - this.preDragPosition.x;
+          effDy = snapped.y - this.preDragPosition.y;
+        }
         this.applyPositionAndRotation();
-        // Group move: shift every other selected node by the same delta.
+        // Group move: shift every other selected node by the same (snapped) delta.
         for (const sib of this._groupDragSiblings) {
-          sib.node.options.x = sib.x + dx;
-          sib.node.options.y = sib.y + dy;
+          sib.node.options.x = sib.x + effDx;
+          sib.node.options.y = sib.y + effDy;
           sib.node.applyPositionAndRotation();
         }
         // svg.draggable raises the dragged node to front, which would push

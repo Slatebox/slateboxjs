@@ -7823,8 +7823,14 @@ class Ie {
       if (e && this._dragStartPointer && this.preDragPosition) {
         const s = this.slate.getZoom?.() || 1, o = (e.x - this._dragStartPointer.x) / s, r = (e.y - this._dragStartPointer.y) / s;
         this.options.x = this.preDragPosition.x + o, this.options.y = this.preDragPosition.y + r;
-        for (const a of this._groupDragSiblings)
-          a.node.options.x = a.x + o, a.node.options.y = a.y + r, a.node.applyPositionAndRotation();
+        let a = o, l = r;
+        const c = this.slate.grid?.snapPoint?.(
+          this.options.x,
+          this.options.y
+        );
+        c && (this.options.x = c.x, this.options.y = c.y, a = c.x - this.preDragPosition.x, l = c.y - this.preDragPosition.y);
+        for (const h of this._groupDragSiblings)
+          h.node.options.x = h.x + a, h.node.options.y = h.y + l, h.node.applyPositionAndRotation();
       }
       const n = this._groupDragSiblings;
       this._groupDragSiblings = [], this.preDragTransform = null, this.preDragPosition = null, this._dragStartPointer = null, this.applyPositionAndRotation(), this.slate.broadcast?.("onNodesMove", {
@@ -7850,9 +7856,15 @@ class Ie {
       if (e && this._dragStartPointer && this.preDragPosition) {
         t.preventDefault?.();
         const n = this.slate.getZoom?.() || 1, s = (e.x - this._dragStartPointer.x) / n, o = (e.y - this._dragStartPointer.y) / n;
-        this.options.x = this.preDragPosition.x + s, this.options.y = this.preDragPosition.y + o, this.applyPositionAndRotation();
-        for (const r of this._groupDragSiblings)
-          r.node.options.x = r.x + s, r.node.options.y = r.y + o, r.node.applyPositionAndRotation();
+        this.options.x = this.preDragPosition.x + s, this.options.y = this.preDragPosition.y + o;
+        let r = s, a = o;
+        const l = this.slate.grid?.snapPoint?.(
+          this.options.x,
+          this.options.y
+        );
+        l && (this.options.x = l.x, this.options.y = l.y, r = l.x - this.preDragPosition.x, a = l.y - this.preDragPosition.y), this.applyPositionAndRotation();
+        for (const c of this._groupDragSiblings)
+          c.node.options.x = c.x + r, c.node.options.y = c.y + a, c.node.applyPositionAndRotation();
         try {
           this.slate.markersContainer?.front?.();
         } catch {
