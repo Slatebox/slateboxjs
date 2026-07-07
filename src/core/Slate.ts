@@ -1384,30 +1384,36 @@ export class Slate {
     // Calculate bounding box of all selected nodes
     const groupBBox = this.calculateGroupBoundingBox();
 
+    // Bail out on a non-finite or degenerate box — feeding NaN/zero-size geometry
+    // to svg.select.js produces "NaN" polyline-handle errors.
+    if (
+      ![groupBBox.x, groupBBox.y, groupBBox.width, groupBBox.height].every(
+        Number.isFinite
+      ) ||
+      groupBBox.width <= 0 ||
+      groupBBox.height <= 0
+    ) {
+      return;
+    }
+
     // Create a temporary group element for resize/rotate handles
     this.groupResizeRotate = this.canvas.group();
 
-    // Create invisible rectangle that covers the group
-    const groupRect = this.groupResizeRotate
+    // Dashed bounding rect around the whole selection — a clean visual indicator
+    // that multiple nodes are selected. (Nodes are still moved together by drag.)
+    this.groupResizeRotate
       .rect(groupBBox.width, groupBBox.height)
       .move(groupBBox.x, groupBBox.y)
       .fill("transparent")
-      .stroke({ color: "#4a90e2", width: 2, dasharray: "5,5" });
+      .stroke({ color: "#4a90e2", width: 2, dasharray: "5,5" })
+      .attr("pointer-events", "none");
 
-    // Enable resize/rotate on the group rectangle
-    // This will need to be implemented with svg.select.js or custom logic
-    if (typeof (groupRect as any).select === "function") {
-      (groupRect as any).select({
-        createHandle: this.createGroupHandle.bind(this),
-        updateHandle: this.updateGroupHandle.bind(this),
-      });
-
-      // Listen for resize/rotate events on the group
-      groupRect.on("resize", this.handleGroupResize.bind(this));
-      groupRect.on("rotate", this.handleGroupRotate.bind(this));
-    } else {
-      console.warn("svg.select.js not available for group resize/rotate");
-    }
+    // NOTE: svg.select.js group resize/rotate handles were intentionally removed.
+    // They were never functional (handleGroupResize used the same local-bbox math
+    // that mispositioned the group) and, applied to this synthetic group rect,
+    // svg.select.js emitted a storm of "NaN" polyline-handle errors on every
+    // multi-select. A proper group-resize implementation is a separate feature;
+    // until then a non-interactive selection outline is correct and quiet.
   }
 
   private calculateGroupBoundingBox() {
@@ -1420,12 +1426,20 @@ export class Slate {
       maxX = -Infinity,
       maxY = -Infinity;
 
+    // Use each node's LOGICAL position/size (options), not svgGroup.bbox() —
+    // bbox() returns the group's *local* box (origin 0,0, ignoring the node's
+    // translate), so the group box collapsed to the canvas origin. Off-screen
+    // there, svg.select.js computed a degenerate screenCTM and emitted a storm
+    // of "NaN" polyline-handle errors on every multi-select.
     this.selectedNodes.forEach((node) => {
-      const bbox = node.svgGroup.bbox();
-      minX = Math.min(minX, bbox.x);
-      minY = Math.min(minY, bbox.y);
-      maxX = Math.max(maxX, bbox.x + bbox.width);
-      maxY = Math.max(maxY, bbox.y + bbox.height);
+      const x = node.options.x ?? 0;
+      const y = node.options.y ?? 0;
+      const w = node.options.width ?? 0;
+      const h = node.options.height ?? 0;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + w);
+      maxY = Math.max(maxY, y + h);
     });
 
     return {

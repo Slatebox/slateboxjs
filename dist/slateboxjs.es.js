@@ -11895,20 +11895,17 @@ const Te = class Te {
   createGroupResizeRotate() {
     console.log("SELECTION_DEBUG: Creating group resize/rotate controller"), this.groupResizeRotate && this.groupResizeRotate.remove();
     const t = this.calculateGroupBoundingBox();
-    this.groupResizeRotate = this.canvas.group();
-    const e = this.groupResizeRotate.rect(t.width, t.height).move(t.x, t.y).fill("transparent").stroke({ color: "#4a90e2", width: 2, dasharray: "5,5" });
-    typeof e.select == "function" ? (e.select({
-      createHandle: this.createGroupHandle.bind(this),
-      updateHandle: this.updateGroupHandle.bind(this)
-    }), e.on("resize", this.handleGroupResize.bind(this)), e.on("rotate", this.handleGroupRotate.bind(this))) : console.warn("svg.select.js not available for group resize/rotate");
+    ![t.x, t.y, t.width, t.height].every(
+      Number.isFinite
+    ) || t.width <= 0 || t.height <= 0 || (this.groupResizeRotate = this.canvas.group(), this.groupResizeRotate.rect(t.width, t.height).move(t.x, t.y).fill("transparent").stroke({ color: "#4a90e2", width: 2, dasharray: "5,5" }).attr("pointer-events", "none"));
   }
   calculateGroupBoundingBox() {
     if (this.selectedNodes.length === 0)
       return { x: 0, y: 0, width: 100, height: 100 };
     let t = 1 / 0, e = 1 / 0, i = -1 / 0, s = -1 / 0;
     return this.selectedNodes.forEach((o) => {
-      const r = o.svgGroup.bbox();
-      t = Math.min(t, r.x), e = Math.min(e, r.y), i = Math.max(i, r.x + r.width), s = Math.max(s, r.y + r.height);
+      const r = o.options.x ?? 0, a = o.options.y ?? 0, l = o.options.width ?? 0, c = o.options.height ?? 0;
+      t = Math.min(t, r), e = Math.min(e, a), i = Math.max(i, r + l), s = Math.max(s, a + c);
     }), {
       x: t,
       y: e,
