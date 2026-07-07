@@ -409,6 +409,8 @@ export class Slate {
     this.grid = new Grid(this, {
       enabled: this.options.viewPort?.showGrid || false,
       gridSize: this.options.viewPort?.gridSize || 20,
+      // Re-apply the persisted snap-to-grid setting so it survives reload.
+      snapToGrid: this.options.viewPort?.snapToGrid || false,
     });
     if (this.options.viewPort?.showGrid) {
       this.grid.show();
