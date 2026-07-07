@@ -1444,6 +1444,9 @@ export class Node {
       .attr("dy", "0.05em");
     badge.attr("pointer-events", "none");
     (this as any)._commentBadge = badge;
+    // Remember it so it can be re-anchored after a resize (the badge is placed at
+    // width-2, which changes when the node is resized).
+    (this as any)._commentBadgeState = { count, kind };
   }
 
   /** Remove the comment-count badge if present. */
@@ -1457,6 +1460,7 @@ export class Node {
       }
       (this as any)._commentBadge = undefined;
     }
+    (this as any)._commentBadgeState = undefined;
   }
 
   /**
@@ -1613,6 +1617,10 @@ export class Node {
     // Reposition the link badge to the new top-right corner (it's anchored to
     // the node width, which just changed).
     if (this._linkBadge) this.updateLinkIndicator();
+
+    // Re-anchor the comment-count badge too (also placed at width-2).
+    const cbs = (this as any)._commentBadgeState;
+    if (cbs) this.setCommentBadge(cbs.count, cbs.kind);
   }
 
   /**

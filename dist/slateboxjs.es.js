@@ -8112,7 +8112,7 @@ class Ie {
       anchor: "middle",
       family: "sans-serif",
       weight: "bold"
-    }).fill("#ffffff").center(o, r).attr("dy", "0.05em"), l.attr("pointer-events", "none"), this._commentBadge = l;
+    }).fill("#ffffff").center(o, r).attr("dy", "0.05em"), l.attr("pointer-events", "none"), this._commentBadge = l, this._commentBadgeState = { count: t, kind: e };
   }
   /** Remove the comment-count badge if present. */
   clearCommentBadge() {
@@ -8124,6 +8124,7 @@ class Ie {
       }
       this._commentBadge = void 0;
     }
+    this._commentBadgeState = void 0;
   }
   /**
    * Remove the node from the canvas (light teardown).
@@ -8167,21 +8168,23 @@ class Ie {
     if (this.options.width = t, this.options.height = e, this.backgroundRect instanceof pe)
       this.backgroundRect.size(t, e);
     else if (this.backgroundRect instanceof Ne) {
-      const n = Math.min(t, e);
-      this.backgroundRect.size(n, n), this.options.width = n, this.options.height = n;
+      const s = Math.min(t, e);
+      this.backgroundRect.size(s, s), this.options.width = s, this.options.height = s;
     } else if (this.backgroundRect instanceof de)
       this.backgroundRect.size(t, e);
     else
       try {
         this.backgroundRect.size?.(t, e);
-      } catch (n) {
-        console.warn("NODE_DEBUG: Failed to resize custom shape backgroundRect:", n);
+      } catch (s) {
+        console.warn("NODE_DEBUG: Failed to resize custom shape backgroundRect:", s);
       }
     if (this.nestedSvg) {
-      const n = this.backgroundRect.x?.() ?? 0, s = this.backgroundRect.y?.() ?? 0;
-      this.nestedSvg.size(t, e).move(n, s);
+      const s = this.backgroundRect.x?.() ?? 0, o = this.backgroundRect.y?.() ?? 0;
+      this.nestedSvg.size(t, e).move(s, o);
     }
     this.textElement && this.options.text && this.textElement.text(this.wrapTextToWidth(this.options.text)), this.centerText(), this._linkBadge && this.updateLinkIndicator();
+    const n = this._commentBadgeState;
+    n && this.setCommentBadge(n.count, n.kind);
   }
   /**
    * Change the node[s background and/or border colors.

@@ -67,4 +67,52 @@ test.describe("comment badge (§node)", () => {
     // Clear removes it.
     expect(res.afterClear.exists).toBe(false);
   });
+
+  test("badge re-anchors to the corner after a resize", async ({ page }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+
+    const res = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText =
+        "width:600px;height:500px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        {}
+      ).init();
+      const A = s.nodes.add(
+        new sb.node({ id: "A", xPos: 100, yPos: 100, width: 120, height: 80, text: "R" })
+      );
+      await new Promise((r) => setTimeout(r, 300));
+      const v2 = A.v2;
+      v2.setCommentBadge(2, "unresolved");
+
+      // Distance of the badge center from the shape's right edge (should stay
+      // near 0 — i.e. pinned to the corner — regardless of size).
+      const distFromRight = () => {
+        const g = document.querySelector('#slateCanvas [data-node-id="A"]');
+        const shape = g!.querySelector("rect,path,circle,ellipse");
+        const sr = shape!.getBoundingClientRect();
+        const b = g!.querySelector(".comment-badge circle");
+        const br = b!.getBoundingClientRect();
+        return Math.round(br.x + br.width / 2 - sr.right);
+      };
+      const before = distFromRight();
+      v2.setSize(280, 160);
+      v2.applyPositionAndRotation();
+      const bigger = distFromRight();
+      v2.setSize(90, 60);
+      v2.applyPositionAndRotation();
+      const smaller = distFromRight();
+      return { before, bigger, smaller };
+    });
+
+    // Badge stays within ~14px of the corner at every size.
+    expect(Math.abs(res.before)).toBeLessThan(14);
+    expect(Math.abs(res.bigger)).toBeLessThan(14);
+    expect(Math.abs(res.smaller)).toBeLessThan(14);
+  });
 });
