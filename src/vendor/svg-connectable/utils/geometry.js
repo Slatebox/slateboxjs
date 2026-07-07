@@ -458,16 +458,13 @@ function computeConnectorCoordinates(con) {
       const fm = Math.sqrt(fx * fx + fy * fy) || 1;
       return [fx / fm, fy / fm];
     };
-    // Outward direction at each port. Prefer the true axis-aligned EDGE normal
-    // (so a rectangle's arrow tip meets the edge at 90°, honoring the drop spot);
-    // fall back to the radial center→port direction (correct for circles) when
-    // the edge normal can't be resolved.
-    const sDir =
-      edgeNormalAt(con.source, pp1) ||
-      norm(pp1[0] - sourceCenter[0], pp1[1] - sourceCenter[1], dx, dy);
-    const tDir =
-      edgeNormalAt(con.target, pp2) ||
-      norm(pp2[0] - targetCenter[0], pp2[1] - targetCenter[1], -dx, -dy);
+    // Enter/leave each node along the line through its CENTER, so the arrowhead
+    // always points AT the node's center (user preference — this intentionally
+    // overrides the earlier "meet the edge at 90°" behavior). The radial
+    // center→port direction is correct for every shape (rect, circle, and custom
+    // vector outlines) and updates live as nodes move/resize.
+    const sDir = norm(pp1[0] - sourceCenter[0], pp1[1] - sourceCenter[1], dx, dy);
+    const tDir = norm(pp2[0] - targetCenter[0], pp2[1] - targetCenter[1], -dx, -dy);
     // Handle length: the "Line Curve" slider (lineCurviness, 0..1) scales how far
     // the control points bow out, as a fraction of the span — so the slider is
     // always responsive. A small floor keeps the perpendicular approach visible.
