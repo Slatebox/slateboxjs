@@ -4512,51 +4512,51 @@ function Sn(i) {
   const s = t.point1, o = t.point2;
   let r;
   if (i.type === "curved") {
-    const a = o[0] - s[0], l = o[1] - s[1], c = Math.sqrt(a * a + l * l);
-    if (c < 1)
+    const l = o[0] - s[0], c = o[1] - s[1], h = Math.sqrt(l * l + c * c);
+    if (h < 1)
       return [["M", s[0], s[1]], ["L", o[0], o[1]]];
-    const h = (m, b, w, x) => {
-      const _ = Math.sqrt(m * m + b * b);
-      if (_ > 1e-4) return [m / _, b / _];
-      const v = Math.sqrt(w * w + x * x) || 1;
-      return [w / v, x / v];
-    }, d = i.sourceAnchor && Xn(i.source, s) || h(s[0] - e[0], s[1] - e[1], a, l), u = i.targetAnchor && Xn(i.target, o) || h(o[0] - n[0], o[1] - n[1], -a, -l), f = typeof i.lineCurviness == "number" ? i.lineCurviness : 0.3, g = Math.max(20, c * (0.12 + f * 0.55)), p = [s[0] + d[0] * g, s[1] + d[1] * g], y = [o[0] + u[0] * g, o[1] + u[1] * g];
+    const d = (b, w, x, _) => {
+      const v = Math.sqrt(b * b + w * w);
+      if (v > 1e-4) return [b / v, w / v];
+      const C = Math.sqrt(x * x + _ * _) || 1;
+      return [x / C, _ / C];
+    }, u = i.sourceAnchor && Xn(i.source, s) || d(s[0] - e[0], s[1] - e[1], l, c), f = i.targetAnchor && Xn(i.target, o) || d(o[0] - n[0], o[1] - n[1], -l, -c), g = typeof i.lineCurviness == "number" ? i.lineCurviness : 0.3, p = Math.max(20, h * (0.12 + g * 0.55)), y = [s[0] + u[0] * p, s[1] + u[1] * p], m = [o[0] + f[0] * p, o[1] + f[1] * p];
     r = [
       ["M", s[0], s[1]],
-      ["C", p[0], p[1], y[0], y[1], o[0], o[1]]
+      ["C", y[0], y[1], m[0], m[1], o[0], o[1]]
     ];
   } else if (i.type === "orthogonal") {
-    const a = o[0] - s[0], l = o[1] - s[1], c = s[0] < e[0], h = s[1] < e[1], d = o[0] < n[0], u = o[1] < n[1];
-    let f, g;
-    if (Math.abs(a) > Math.abs(l))
-      if (c && d || !c && !d) {
-        const p = Math.max(i.curveRadius, Math.abs(l) / 2);
-        g = s[1] + (l > 0 ? -p : p), r = [
+    const l = o[0] - s[0], c = o[1] - s[1], h = s[0] < e[0], d = s[1] < e[1], u = o[0] < n[0], f = o[1] < n[1];
+    let g, p;
+    if (Math.abs(l) > Math.abs(c))
+      if (h && u || !h && !u) {
+        const y = Math.max(i.curveRadius, Math.abs(c) / 2);
+        p = s[1] + (c > 0 ? -y : y), r = [
           ["M", s[0], s[1]],
-          ["L", s[0], g],
-          ["L", o[0], g],
+          ["L", s[0], p],
+          ["L", o[0], p],
           ["L", o[0], o[1]]
         ];
       } else
-        f = s[0] + a / 2, r = [
+        g = s[0] + l / 2, r = [
           ["M", s[0], s[1]],
-          ["L", f, s[1]],
-          ["L", f, o[1]],
+          ["L", g, s[1]],
+          ["L", g, o[1]],
           ["L", o[0], o[1]]
         ];
-    else if (h && u || !h && !u) {
-      const p = Math.max(i.curveRadius, Math.abs(a) / 2);
-      f = s[0] + (a > 0 ? -p : p), r = [
+    else if (d && f || !d && !f) {
+      const y = Math.max(i.curveRadius, Math.abs(l) / 2);
+      g = s[0] + (l > 0 ? -y : y), r = [
         ["M", s[0], s[1]],
-        ["L", f, s[1]],
-        ["L", f, o[1]],
+        ["L", g, s[1]],
+        ["L", g, o[1]],
         ["L", o[0], o[1]]
       ];
     } else
-      g = s[1] + l / 2, r = [
+      p = s[1] + c / 2, r = [
         ["M", s[0], s[1]],
-        ["L", s[0], g],
-        ["L", o[0], g],
+        ["L", s[0], p],
+        ["L", o[0], p],
         ["L", o[0], o[1]]
       ];
   } else
@@ -4564,6 +4564,20 @@ function Sn(i) {
       ["M", s[0], s[1]],
       ["L", o[0], o[1]]
     ];
+  const a = i.markerTarget && i.markerTarget.size;
+  if (a && r && r.length >= 2 && Math.hypot(o[0] - s[0], o[1] - s[1]) > a * 1.5) {
+    const c = r[r.length - 1], h = c[c.length - 2], d = c[c.length - 1];
+    let u, f;
+    if (c[0] === "C")
+      u = c[3], f = c[4];
+    else {
+      const m = r[r.length - 2];
+      u = m[m.length - 2], f = m[m.length - 1];
+    }
+    let g = h - u, p = d - f;
+    const y = Math.hypot(g, p);
+    y > 1e-3 && (g /= y, p /= y, c[c.length - 2] = h - g * a, c[c.length - 1] = d - p * a, c[0] === "C" && (c[3] -= g * a, c[4] -= p * a));
+  }
   return r;
 }
 function $n(i, t, e, n, s, o) {
@@ -4572,10 +4586,13 @@ function $n(i, t, e, n, s, o) {
   d.attr({
     id: h,
     viewBox: "0 0 " + l + " " + c,
-    // Anchor the marker at its TIP so the arrow point sits exactly on the line's
-    // endpoint (the node edge) instead of overshooting into the node. The target
-    // arrow's tip is at x=arrowWidth; the source arrow's tip is at x=0.
-    refX: e ? "0" : l,
+    // TARGET arrow: anchor at the head BASE (x=0) so the head is drawn FORWARD of
+    // the line's endpoint. computeConnectorCoordinates pulls the target line back
+    // by the arrow length, so the head fills that gap and its TIP lands exactly on
+    // the node edge (#4) — while the thin stroke stops at the base and never pokes
+    // out the head's sides near the tip. SOURCE arrow: x=0 is its tip, so refX=0
+    // keeps the source tip on the line's start (unchanged).
+    refX: "0",
     refY: c / 2,
     // Center vertically
     // userSpaceOnUse (was "strokeWidth"): with strokeWidth units the rendered

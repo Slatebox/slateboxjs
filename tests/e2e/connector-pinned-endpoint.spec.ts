@@ -44,6 +44,13 @@ test.describe("pinned endpoint meets edge at 90° (§connector)", () => {
       const back = p.getPointAtLength(total - 8);
       const tanx = end.x - back.x;
       const tany = end.y - back.y;
+      // Path END is the arrowhead base; the TIP (attach point on the edge) is one
+      // arrow-length further along the tangent.
+      const url = p.getAttribute("marker-end") || "";
+      const mk = document.getElementById(url.replace(/url\(#|\)/g, ""));
+      const aw = mk ? Number((mk.getAttribute("viewBox") || "0 0 0 0").split(/\s+/)[2]) : 0;
+      const tmg = Math.hypot(tanx, tany) || 1;
+      const tip = { x: end.x + (tanx / tmg) * aw, y: end.y + (tany / tmg) * aw };
       const bo = b.v2.options;
       // Right-edge inward normal = (-1, 0).
       const nDot = (tanx * -1 + tany * 0) / (Math.hypot(tanx, tany) || 1);
@@ -54,7 +61,7 @@ test.describe("pinned endpoint meets edge at 90° (§connector)", () => {
         (tanx * (cx - end.x) + tany * (cy - end.y)) /
         ((Math.hypot(tanx, tany) || 1) * (Math.hypot(cx - end.x, cy - end.y) || 1));
       const angleToCenter = Math.acos(Math.max(-1, Math.min(1, cDot))) * (180 / Math.PI);
-      const pinnedAtRightEdge = Math.abs(end.x - (bo.x + bo.width)) < 4;
+      const pinnedAtRightEdge = Math.abs(tip.x - (bo.x + bo.width)) < 5;
       return {
         angleToNormal: Math.round(angleToNormal),
         angleToCenter: Math.round(angleToCenter),

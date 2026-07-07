@@ -34,7 +34,18 @@ test.describe("connector attaches to custom shape outline (§connector)", () => 
       await new Promise((r) => setTimeout(r, 500));
 
       const p = document.querySelector('#slateCanvas path[connectortype="default"]') as any;
-      const end = p.getPointAtLength(p.getTotalLength());
+      // The path END is the arrowhead base (line is trimmed back by the arrow
+      // length); the arrow TIP — the actual attach point on the outline — is one
+      // arrow-length further along the tangent.
+      const total = p.getTotalLength();
+      const pe = p.getPointAtLength(total);
+      const back = p.getPointAtLength(Math.max(0, total - 6));
+      const url = p.getAttribute("marker-end") || "";
+      const m = document.getElementById(url.replace(/url\(#|\)/g, ""));
+      const aw = m ? Number((m.getAttribute("viewBox") || "0 0 0 0").split(/\s+/)[2]) : 0;
+      const tx = pe.x - back.x, ty = pe.y - back.y;
+      const tm = Math.hypot(tx, ty) || 1;
+      const end = { x: pe.x + (tx / tm) * aw, y: pe.y + (ty / tm) * aw };
       const bo = star.v2.options;
       // The source is to the LEFT, so a bbox attach would land at bbox-left,
       // center-y (the empty gap between the star's two left arms). The real

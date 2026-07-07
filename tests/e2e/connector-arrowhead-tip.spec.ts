@@ -1,11 +1,12 @@
 import { test, expect } from "@playwright/test";
 
-// U18: the arrowhead was anchored at its BASE (refX=0 for the target marker), so
-// the tip overshot ~arrowWidth*strokeWidth PAST the endpoint and buried itself
-// inside the node. The marker must be anchored at its TIP so the point sits on
-// the line's endpoint (the node edge) — "just touching" the node.
+// U18: the arrowhead tip must sit on the node edge ("just touching"). The target
+// marker is now BASE-anchored (refX=0) and the drawn line is trimmed back by the
+// arrow length, so the head fills that gap and its TIP lands on the edge while the
+// thin stroke stops at the base (never poking out the head's sides near the tip).
+// So the PATH END is the arrowhead base; the TIP = end + tangent*arrowWidth.
 test.describe("arrowhead tip sits on the node edge (§U18)", () => {
-  test("target marker is anchored at its tip, source at its tip", async ({
+  test("target marker base-anchored; computed tip lands on the node edge", async ({
     page,
   }) => {
     await page.goto("/test.html");
@@ -29,11 +30,12 @@ test.describe("arrowhead tip sits on the node edge (§U18)", () => {
       await new Promise((r) => setTimeout(r, 200));
 
       const p = document.querySelector('#slateCanvas path[connectortype="default"]') as SVGPathElement;
-      // Endpoint should sit ON the target node's edge (no outward gap): B is below
-      // A, so the target end lands on B's TOP edge.
-      const end = p.getPointAtLength(p.getTotalLength());
+      // B is below A, so the target end lands on B's TOP edge. The path END is the
+      // arrowhead BASE; the arrow TIP is one arrow-length further along the tangent.
+      const total = p.getTotalLength();
+      const end = p.getPointAtLength(total);
+      const back = p.getPointAtLength(Math.max(0, total - 6));
       const bTop = b.v2.options.y;
-      const gapToEdge = Math.abs(end.y - bTop);
       const readMarker = (attr: string) => {
         const url = p.getAttribute(attr);
         if (!url) return null;
@@ -42,16 +44,26 @@ test.describe("arrowhead tip sits on the node edge (§U18)", () => {
         const vb = (m.getAttribute("viewBox") || "0 0 0 0").split(/\s+/).map(Number);
         return { refX: Number(m.getAttribute("refX")), vbWidth: vb[2] };
       };
-      return { target: readMarker("marker-end"), source: readMarker("marker-start"), gapToEdge };
+      const target = readMarker("marker-end");
+      // Tip = end + unit-tangent * arrowWidth.
+      const tx = end.x - back.x, ty = end.y - back.y;
+      const tm = Math.hypot(tx, ty) || 1;
+      const aw = target ? target.vbWidth : 0;
+      const tipY = end.y + (ty / tm) * aw;
+      return {
+        target,
+        source: readMarker("marker-start"),
+        tipGapToEdge: Math.abs(tipY - bTop),
+      };
     });
 
-    // Target arrow tip is at x = viewBox width → refX must equal it.
+    // Target arrow is base-anchored (refX=0).
     expect(res.target).not.toBeNull();
-    expect(res.target!.refX).toBe(res.target!.vbWidth);
-    // Source arrow tip is at x = 0 → refX must be 0.
+    expect(res.target!.refX).toBe(0);
+    // Source arrow tip is at x = 0 → refX 0.
     expect(res.source).not.toBeNull();
     expect(res.source!.refX).toBe(0);
-    // And the endpoint sits ON the node edge (no outward gap) so the tip touches.
-    expect(res.gapToEdge).toBeLessThan(4);
+    // The computed TIP sits on the node edge (no gap, no overshoot).
+    expect(res.tipGapToEdge).toBeLessThan(5);
   });
 });

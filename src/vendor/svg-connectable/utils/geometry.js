@@ -558,6 +558,47 @@ function computeConnectorCoordinates(con) {
     ];
   }
 
+  // Pull the drawn line back to the arrowhead's BASE at the arrowed (target) end.
+  // The stroke is much thinner than the arrowhead's base but WIDER than its narrow
+  // tip, so a line drawn all the way to the tip pokes out the arrowhead's sides
+  // near the point (looks like the line doesn't conform to the arrow). Paired with
+  // the base-anchored target marker (refX=0), the arrowhead still extends forward
+  // so its TIP lands exactly on the node edge (pp2) — endpoint accuracy (#4) is
+  // preserved. Guarded to connectors long enough that the trim can't invert.
+  const aw = con.markerTarget && con.markerTarget.size;
+  if (aw && points && points.length >= 2) {
+    const span = Math.hypot(pp2[0] - pp1[0], pp2[1] - pp1[1]);
+    if (span > aw * 1.5) {
+      const last = points[points.length - 1];
+      const ex = last[last.length - 2];
+      const ey = last[last.length - 1];
+      let rx, ry;
+      if (last[0] === "C") {
+        rx = last[3]; // cp2
+        ry = last[4];
+      } else {
+        const prev = points[points.length - 2];
+        rx = prev[prev.length - 2];
+        ry = prev[prev.length - 1];
+      }
+      let tx = ex - rx;
+      let ty = ey - ry;
+      const m = Math.hypot(tx, ty);
+      if (m > 0.001) {
+        tx /= m;
+        ty /= m;
+        last[last.length - 2] = ex - tx * aw;
+        last[last.length - 1] = ey - ty * aw;
+        // Shift the trailing control point too so the approach tangent (and thus
+        // the arrow's aim) is unchanged.
+        if (last[0] === "C") {
+          last[3] -= tx * aw;
+          last[4] -= ty * aw;
+        }
+      }
+    }
+  }
+
   return points;
 }
 
