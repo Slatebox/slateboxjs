@@ -10870,6 +10870,12 @@ function Dn(i, t = {}, e) {
       ".svg_select_handle_rot",
       ".svg_select_boundingRect",
       ".connection-handle",
+      // UI chrome that shouldn't appear in an exported diagram:
+      ".comment-badge",
+      // comment-count badges (rendered in the node group)
+      ".node-cog",
+      // selection toolbar (delete/connect/cog pill)
+      ".node-toolbar",
       "#slate-coordinates"
     ];
     for (const l of o)

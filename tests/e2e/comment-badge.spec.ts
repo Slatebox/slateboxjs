@@ -115,4 +115,41 @@ test.describe("comment badge (§node)", () => {
     expect(Math.abs(res.bigger)).toBeLessThan(14);
     expect(Math.abs(res.smaller)).toBeLessThan(14);
   });
+
+  test("badge is excluded from SVG export (UI chrome, not diagram content)", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+
+    const res = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText =
+        "width:600px;height:500px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        {}
+      ).init();
+      const A = s.nodes.add(
+        new sb.node({ id: "A", xPos: 100, yPos: 100, width: 120, height: 70, text: "Ex" })
+      );
+      await new Promise((r) => setTimeout(r, 300));
+      A.v2.setCommentBadge(3, "unresolved");
+      const svg = await s.v2.svg();
+      return {
+        badgeInExport: /comment-badge|e5484d/i.test(svg),
+        badgeStillOnCanvas: !!document.querySelector(".comment-badge"),
+        exportHasNodeText: /Ex/.test(svg),
+      };
+    });
+
+    // The badge does NOT leak into the export...
+    expect(res.badgeInExport).toBe(false);
+    // ...but stays on the live canvas, and the node itself is still exported.
+    expect(res.badgeStillOnCanvas).toBe(true);
+    expect(res.exportHasNodeText).toBe(true);
+  });
 });
