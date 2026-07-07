@@ -2419,7 +2419,11 @@ export class Node {
     const stepX = R * 2 + GAP;
     const totalW = n * (R * 2) + (n - 1) * GAP;
     const startX = cx - totalW / 2 + R;
-    const barY = topY - (R + 18); // sit clearly above the node + rotate handle
+    // Sit clearly above the node, the rotate handle, AND the top connection plug
+    // (which sits ~topOffset(35)+radius(8) ≈ 43px above the node top). Without the
+    // extra clearance the pill overlaps and covers that top "create relationship"
+    // dot on hover.
+    const barY = topY - (R + 18 + 36);
 
     const bar = container.group().addClass("node-cog").addClass("node-toolbar");
     // Modern (Miro-style) flat white pill.

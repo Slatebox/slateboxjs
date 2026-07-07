@@ -8644,7 +8644,7 @@ class Ie {
       // plug: press-drag-to-connect (G3) — starts on pointerdown, not click.
       { key: "plug", color: a, onPress: (p) => this.startConnectDrag(p) },
       { key: "cog", color: a, onClick: () => this.menu?.open?.() }
-    ], c = l.length, h = o * 2 + r, d = c * (o * 2) + (c - 1) * r, u = n - d / 2 + o, f = s - (o + 18), g = e.group().addClass("node-cog").addClass("node-toolbar");
+    ], c = l.length, h = o * 2 + r, d = c * (o * 2) + (c - 1) * r, u = n - d / 2 + o, f = s - (o + 18 + 36), g = e.group().addClass("node-cog").addClass("node-toolbar");
     g.rect(d + 14, o * 2 + 10).radius((o * 2 + 10) / 2).center(n, f).fill("#ffffff").stroke({ color: "#e3e5ea", width: 1 }), l.forEach((p, y) => {
       const m = u + y * h, b = g.group().addClass(`node-tool-${p.key}`);
       b.circle(o * 2).center(m, f).fill("#ffffff").attr("fill-opacity", 1e-3), Ie.drawToolIcon(b, p.key, m, f, p.color), b.attr("pointer-events", "all");
