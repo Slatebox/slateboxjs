@@ -23,7 +23,10 @@ test.describe("node shape change re-renders (§U5)", () => {
       await new Promise((r) => setTimeout(r, 400));
 
       const g = () => document.querySelector('#slateCanvas [data-node-id="N"]') as SVGGElement;
-      const start = { hasRect: !!g().querySelector(":scope > rect"), hasPath: !!g().querySelector("path") };
+      // Exclude the transparent resize-proxy rect that custom shapes add as their
+      // svg.resize target — it's not the shape's own background rect.
+      const bareRect = () => g().querySelector(":scope > rect:not([data-resize-proxy])");
+      const start = { hasRect: !!bareRect(), hasPath: !!g().querySelector("path") };
 
       // 1) raw SVG path (a star)
       const starPath = "M 50 0 L 61.8 38.2 L 100 38.2 L 69.1 61.8 L 80.9 100 L 50 76.4 L 19.1 100 L 30.9 61.8 L 0 38.2 L 38.2 38.2 Z";
@@ -32,7 +35,7 @@ test.describe("node shape change re-renders (§U5)", () => {
       const afterPath = {
         shapeIsPath: (n.v2.options.shape || "").trim().startsWith("M"),
         hasPath: !!g().querySelector("path"),
-        hasBareRect: !!g().querySelector(":scope > rect"),
+        hasBareRect: !!bareRect(),
         textStillThere: !!g().querySelector("text"),
       };
 
