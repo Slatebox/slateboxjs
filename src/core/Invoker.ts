@@ -422,6 +422,12 @@ export class Invoker {
     this.slate.options.viewPort!.snapToObjects = pkg.data.snapToObjects
   }
 
+  onSlateSnapToGridChanged(pkg: SlatePackage) {
+    this.slate.options.viewPort!.snapToGrid = pkg.data.snapToGrid
+    // Wire the toggle into the live Grid so node drags snap (or stop snapping).
+    this.slate.grid?.updateOptions({ snapToGrid: !!pkg.data.snapToGrid })
+  }
+
   onSlateFollowMeChanged(pkg: SlatePackage) {
     this.slate.options.followMe = pkg.data.followMe
   }

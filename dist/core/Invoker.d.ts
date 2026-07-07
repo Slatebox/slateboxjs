@@ -46,6 +46,7 @@ export declare class Invoker {
     onSlateTagsAndTemplateMarkdownChanged(pkg: SlatePackage): void;
     onSlateTemplateChanged(pkg: SlatePackage): void;
     onSlateSnapToObjectsChanged(pkg: SlatePackage): void;
+    onSlateSnapToGridChanged(pkg: SlatePackage): void;
     onSlateFollowMeChanged(pkg: SlatePackage): void;
     onSlateHuddleChanged(pkg: SlatePackage): void;
 }

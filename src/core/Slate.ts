@@ -113,6 +113,7 @@ export interface SlateOptions {
     showGrid?: boolean;
     gridSize?: number;
     snapToObjects?: boolean;
+    snapToGrid?: boolean;
     showCoordinates?: boolean;
     useInertiaScrolling?: boolean;
     zoom?: {
