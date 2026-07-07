@@ -6613,10 +6613,10 @@ class $i {
     this.removeAll(), this.activeFilters.clear(), this.hidden = !1, this.node = null;
   }
 }
-function gl(i) {
+function ml(i) {
   wt.set(i.name, i);
 }
-function ml() {
+function yl() {
   return Array.from(wt.keys());
 }
 function Wi() {
@@ -7413,6 +7413,24 @@ const Wa = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   stopEvent: Xa,
   whiteOrBlack: ns
 }, Symbol.toStringTag, { value: "Module" }));
+function ja(i, t, e = 8) {
+  const { x: n, y: s, width: o, height: r } = i, a = [n, n + o / 2, n + o], l = [s, s + r / 2, s + r];
+  let c = n, h = s, d = e, u = e;
+  for (const f of t) {
+    const g = [f.x, f.x + f.width / 2, f.x + f.width], p = [f.y, f.y + f.height / 2, f.y + f.height];
+    for (const y of a)
+      for (const m of g) {
+        const b = Math.abs(y - m);
+        b < d && (d = b, c = n + (m - y));
+      }
+    for (const y of l)
+      for (const m of p) {
+        const b = Math.abs(y - m);
+        b < u && (u = b, h = s + (m - y));
+      }
+  }
+  return { x: c, y: h };
+}
 class Ie {
   /**
    * Creates a new diagram node.
@@ -7690,6 +7708,25 @@ class Ie {
     }), this.options.text && this.textElement.text(this.wrapTextToWidth(this.options.text)), this.centerText();
   }
   /**
+   * "Snap to neighbors" (Miro smart-align): nudge (x, y) so one of this node's
+   * edges or center lines up with a nearby node's matching edge/center. Gated by
+   * the caller on viewPort.snapToObjects.
+   */
+  snapToNeighbors(t, e) {
+    const n = {
+      x: t,
+      y: e,
+      width: this.options.width || 0,
+      height: this.options.height || 0
+    }, s = this.slate.nodes.allNodes.filter((o) => o !== this).map((o) => ({
+      x: o.options.x || 0,
+      y: o.options.y || 0,
+      width: o.options.width || 0,
+      height: o.options.height || 0
+    }));
+    return ja(n, s);
+  }
+  /**
    * Word-wrap `text` to the node's inner width, returning it with newlines
    * inserted at break points (SVG.js renders one tspan per line). Explicit
    * newlines are preserved; a single word longer than the width stays on its own
@@ -7828,7 +7865,10 @@ class Ie {
           this.options.x,
           this.options.y
         );
-        c && (this.options.x = c.x, this.options.y = c.y, a = c.x - this.preDragPosition.x, l = c.y - this.preDragPosition.y);
+        if (c && (this.options.x = c.x, this.options.y = c.y, a = c.x - this.preDragPosition.x, l = c.y - this.preDragPosition.y), this.slate.options.viewPort?.snapToObjects) {
+          const h = this.snapToNeighbors(this.options.x, this.options.y);
+          this.options.x = h.x, this.options.y = h.y, a = this.options.x - this.preDragPosition.x, l = this.options.y - this.preDragPosition.y;
+        }
         for (const h of this._groupDragSiblings)
           h.node.options.x = h.x + a, h.node.options.y = h.y + l, h.node.applyPositionAndRotation();
       }
@@ -7862,7 +7902,11 @@ class Ie {
           this.options.x,
           this.options.y
         );
-        l && (this.options.x = l.x, this.options.y = l.y, r = l.x - this.preDragPosition.x, a = l.y - this.preDragPosition.y), this.applyPositionAndRotation();
+        if (l && (this.options.x = l.x, this.options.y = l.y, r = l.x - this.preDragPosition.x, a = l.y - this.preDragPosition.y), this.slate.options.viewPort?.snapToObjects) {
+          const c = this.snapToNeighbors(this.options.x, this.options.y);
+          this.options.x = c.x, this.options.y = c.y, r = this.options.x - this.preDragPosition.x, a = this.options.y - this.preDragPosition.y;
+        }
+        this.applyPositionAndRotation();
         for (const c of this._groupDragSiblings)
           c.node.options.x = c.x + r, c.node.options.y = c.y + a, c.node.applyPositionAndRotation();
         try {
@@ -8892,7 +8936,7 @@ class Ie {
     this.connector.isEnabled() || this.connector.enable(), this.connector.connectTo(t);
   }
 }
-class ja {
+class Va {
   constructor(t) {
     this.nodes = /* @__PURE__ */ new Map(), this.slate = t;
   }
@@ -8993,7 +9037,7 @@ class ja {
     return this.allNodes.find(t);
   }
 }
-class Va {
+class qa {
   constructor(t) {
     this.slate = t;
   }
@@ -9797,7 +9841,7 @@ function Oe(i, t, e) {
   return e && s.forEach((o, r) => {
     o.options._presentationIndex = r;
   }), {
-    options: Ka(i.options),
+    options: Qa(i.options),
     nodes: s,
     shareId: i.options.shareId || ""
   };
@@ -9806,12 +9850,12 @@ async function Nn(i, t, e = !1, n = !1) {
   const s = typeof i == "string" ? JSON.parse(i) : i;
   t.beginRemoteApply?.();
   try {
-    await qa(s, t, e, n);
+    await Ka(s, t, e, n);
   } finally {
     t.endRemoteApply?.();
   }
 }
-async function qa(i, t, e, n) {
+async function Ka(i, t, e, n) {
   if (i.options) {
     const o = i.options;
     Object.assign(t.options, o), i.shareId && (t.options.shareId = i.shareId), t.applyContainerStyle?.();
@@ -9949,7 +9993,7 @@ function rs(i) {
 function as(i) {
   return qt(i);
 }
-function Ka(i) {
+function Qa(i) {
   const t = {}, e = [
     "id",
     "name",
@@ -9999,7 +10043,7 @@ function Ka(i) {
 function ls(i) {
   return Oe(i);
 }
-const Qa = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const Ja = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   deserialize: Nn,
   deserializeNodeOptions: as,
@@ -10697,7 +10741,7 @@ async function ps(i, t = {}, e) {
     return e?.(r), r;
   }
 }
-const Ja = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const tl = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   exportPNG: ps,
   exportSVG: Dn
@@ -11011,7 +11055,7 @@ function ms(i, t, e = !1, n = !1) {
   const s = i.nodes.allNodes;
   !s || s.length === 0 || !t.styles || (s.forEach((o, r) => {
     const a = ys(t, r);
-    a && tl(o, a);
+    a && el(o, a);
   }), console.log("THEME_DEBUG: Applied theme", t.name || t._id));
 }
 function ys(i, t) {
@@ -11026,7 +11070,7 @@ function ys(i, t) {
   const s = `child_${(t - 1) % e.length + 1}`;
   return i.styles[s] || i.styles.parent || null;
 }
-function tl(i, t) {
+function el(i, t) {
   const e = t, n = t.backgroundColor ?? e.nodeColor, s = t.fontColor ?? e.foregroundColor;
   n && (i.options.backgroundColor = n), t.borderColor && (i.options.borderColor = t.borderColor), t.borderWidth !== void 0 && (i.options.borderWidth = t.borderWidth), s && (i.options.fontColor = s), t.fontFamily && (i.options.fontFamily = t.fontFamily), t.fontSize !== void 0 && (i.options.fontSize = t.fontSize), t.lineColor && (i.options.lineColor = t.lineColor), t.opacity !== void 0 && (i.options.opacity = t.opacity), i.setColors?.(n, t.borderColor), i.textElement && (s || t.fontSize || t.fontFamily) && i.textElement.font({
     fill: s || i.options.fontColor,
@@ -11034,7 +11078,7 @@ function tl(i, t) {
     family: t.fontFamily || i.options.fontFamily
   });
 }
-const el = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const nl = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   applyTheme: ms,
   buildNodeStyleFromTheme: ys
@@ -11087,7 +11131,7 @@ function vs(i) {
     y: t.options.y || 0
   }));
 }
-const nl = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const il = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   applyLayout: ws,
   packageLayout: vs,
@@ -11416,7 +11460,7 @@ const Me = class Me {
     const n = this.options.viewPort.originalWidth || Math.round(e.width) || 800, s = this.options.viewPort.originalHeight || Math.round(e.height) || 600;
     this.options.viewPort.originalWidth = n, this.options.viewPort.originalHeight = s;
     const o = this.options.viewPort.left ?? 0, r = this.options.viewPort.top ?? 0;
-    this.canvas.viewbox(o, r, n, s), this._setupResizeObserver(), this.nodes = new ja(this), this.invoker = new Va(this), this.applyContainerStyle(), this.setupSelectionHandling(), this.options.viewPort?.showCoordinates && this.setupCoordinateCallbacks(), this.panZoom = new ss(this, this.options.panZoom), this.birdsEye = new os(this, this.options.birdsEye), this.options.birdsEye?.enabled && (this._birdsEyeTimeoutId = setTimeout(() => {
+    this.canvas.viewbox(o, r, n, s), this._setupResizeObserver(), this.nodes = new Va(this), this.invoker = new qa(this), this.applyContainerStyle(), this.setupSelectionHandling(), this.options.viewPort?.showCoordinates && this.setupCoordinateCallbacks(), this.panZoom = new ss(this, this.options.panZoom), this.birdsEye = new os(this, this.options.birdsEye), this.options.birdsEye?.enabled && (this._birdsEyeTimeoutId = setTimeout(() => {
       this._destroyed || this.birdsEye.enable();
     }, 200)), this.undoRedo = new cs(this, {
       enabled: this.options.showUndoRedo !== !1
@@ -12192,7 +12236,7 @@ Me.NON_UNDOABLE = /* @__PURE__ */ new Set([
   "onSlateChanged"
 ]);
 let le = Me;
-function il(i, t) {
+function sl(i, t) {
   return i.addNode({
     text: t.text,
     x: t.x || 100,
@@ -12218,24 +12262,24 @@ function il(i, t) {
     commentTimestamp: t.timestamp || Date.now()
   });
 }
-function sl(i, t) {
+function ol(i, t) {
   const e = i.nodes.one(t);
   return !e || !e.options.isComment ? !1 : i.removeNode(t);
 }
-function ol(i) {
+function rl(i) {
   return i.nodes.allNodes.filter(
     (t) => t.options.isComment === !0
   );
 }
-const rl = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const al = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  createComment: il,
-  getComments: ol,
-  removeComment: sl
+  createComment: sl,
+  getComments: rl,
+  removeComment: ol
 }, Symbol.toStringTag, { value: "Module" }));
 class Ht {
   constructor(t = {}) {
-    this.options = { id: Zt(), ...t }, this.resize = new al(this), this.relationships = new ll(this);
+    this.options = { id: Zt(), ...t }, this.resize = new ll(this), this.relationships = new cl(this);
   }
   /**
    * v1: `node.png(withNodes?, cb)` — export this node (or the given group of
@@ -12286,7 +12330,7 @@ class Ht {
     return this;
   }
 }
-class al {
+class ll {
   constructor(t) {
     this.owner = t;
   }
@@ -12310,7 +12354,7 @@ class al {
     }), this.pending = void 0;
   }
 }
-class ll {
+class cl {
   constructor(t) {
     this.owner = t;
   }
@@ -12337,7 +12381,7 @@ class ll {
     }));
   }
 }
-class cl {
+class hl {
   constructor(t) {
     this.wrappers = /* @__PURE__ */ new Map(), this.owner = t;
   }
@@ -12462,12 +12506,12 @@ class cl {
     return e || (e = new Ht({ ...t.options }), e.options.id = t.id, e.v2 = t, e.slate = this.owner, this.wrappers.set(t.id, e)), e;
   }
 }
-class hl {
+class dl {
   constructor(t = {}, e = {}) {
     this.savingTemplateImage = !1, this.options = {
       ...t,
       id: t.id || Zt()
-    }, this.events = e || {}, this._shareId = this.options.shareId || Zt(), this.nodes = new cl(this), this.controller = {
+    }, this.events = e || {}, this._shareId = this.options.shareId || Zt(), this.nodes = new hl(this), this.controller = {
       scaleToFitAndCenter: (n) => {
         this.assertReady(), this.v2.fitToContent(), n?.();
       }
@@ -12629,53 +12673,53 @@ const Et = class Et {
 };
 Et.availablePlugins = {};
 let ln = Et;
-const dl = {
-  slate: hl,
+const ul = {
+  slate: dl,
   node: Ht,
   base: ln,
   utils: Wa
 };
-function ul(i, t = {}) {
+function fl(i, t = {}) {
   return new le(i, t);
 }
-typeof window < "u" && (window.SlateboxJS = ul, window.Slate = le, window.Node = Ie, window.PanZoom = ss, window.ResizeRotate = Hi, window.BirdsEye = os, window.Connector = Pe, window.Serialization = Qa, window.ShapeRegistry = wa, window.Relationship = ua, window.Relationships = Ui, window.FontLoader = ga, window.Images = Fi, window.Editor = Yi, window.UndoRedo = cs, window.MultiSelection = hs, window.Grid = ds, window.Menu = ji, window.Keyboard = us, window.ContextMenu = fs, window.Filters = $i, window.Links = Xi, window.Export = Ja, window.Collab = gs, window.Theme = el, window.Layout = nl, window.ZoomSlider = xs, window.Comments = rl, window.Presentation = _s, window.Slatebox = Object.assign({}, dl, { compat: Ca }));
+typeof window < "u" && (window.SlateboxJS = fl, window.Slate = le, window.Node = Ie, window.PanZoom = ss, window.ResizeRotate = Hi, window.BirdsEye = os, window.Connector = Pe, window.Serialization = Ja, window.ShapeRegistry = wa, window.Relationship = ua, window.Relationships = Ui, window.FontLoader = ga, window.Images = Fi, window.Editor = Yi, window.UndoRedo = cs, window.MultiSelection = hs, window.Grid = ds, window.Menu = ji, window.Keyboard = us, window.ContextMenu = fs, window.Filters = $i, window.Links = Xi, window.Export = tl, window.Collab = gs, window.Theme = nl, window.Layout = il, window.ZoomSlider = xs, window.Comments = al, window.Presentation = _s, window.Slatebox = Object.assign({}, ul, { compat: Ca }));
 export {
   os as BirdsEye,
   gs as Collab,
-  rl as Comments,
+  al as Comments,
   Pe as Connector,
   fs as ContextMenu,
   Yi as Editor,
-  Ja as ExportModule,
+  tl as ExportModule,
   $i as Filters,
   ga as FontLoader,
   ds as Grid,
   Fi as Images,
-  Va as Invoker,
+  qa as Invoker,
   us as Keyboard,
-  nl as Layout,
+  il as Layout,
   Xi as Links,
   ji as Menu,
   hs as MultiSelection,
   Ie as Node,
-  ja as NodesManager,
+  Va as NodesManager,
   ss as PanZoom,
   _s as Presentation,
   ua as Relationship,
   Ui as Relationships,
   Hi as ResizeRotate,
-  Qa as Serialization,
+  Ja as Serialization,
   wa as ShapeRegistry,
   le as Slate,
-  dl as Slatebox,
-  ul as SlateboxJS,
-  el as Theme,
+  ul as Slatebox,
+  fl as SlateboxJS,
+  nl as Theme,
   cs as UndoRedo,
   xs as ZoomSlider,
   Ca as compat,
-  ul as default,
-  ml as getFilterNames,
-  gl as registerFilter,
+  fl as default,
+  yl as getFilterNames,
+  ml as registerFilter,
   Wa as utils
 };
 //# sourceMappingURL=slateboxjs.es.js.map

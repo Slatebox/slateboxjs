@@ -22,6 +22,56 @@ import { resolveShapePath, isNativeShape } from "./ShapeRegistry";
 import { v2NodeToV1 } from "./compat";
 import { whiteOrBlack, contrastRatio } from "../utils";
 
+interface SnapRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Smart-align a rect to a set of neighbor rects: return the position where the
+ * rect's nearest edge/center (left/center/right, top/middle/bottom) lines up
+ * with a neighbor's matching edge/center, within `threshold` px. Unchanged when
+ * nothing is close. Pure + independently testable (drives node snap-to-objects).
+ */
+export function snapRectToNeighbors(
+  rect: SnapRect,
+  others: SnapRect[],
+  threshold = 8
+): { x: number; y: number } {
+  const { x, y, width: w, height: h } = rect;
+  const myXs = [x, x + w / 2, x + w];
+  const myYs = [y, y + h / 2, y + h];
+  let snapX = x;
+  let snapY = y;
+  let bestDX = threshold;
+  let bestDY = threshold;
+  for (const o of others) {
+    const otherXs = [o.x, o.x + o.width / 2, o.x + o.width];
+    const otherYs = [o.y, o.y + o.height / 2, o.y + o.height];
+    for (const mx of myXs) {
+      for (const oX of otherXs) {
+        const d = Math.abs(mx - oX);
+        if (d < bestDX) {
+          bestDX = d;
+          snapX = x + (oX - mx);
+        }
+      }
+    }
+    for (const my of myYs) {
+      for (const oY of otherYs) {
+        const d = Math.abs(my - oY);
+        if (d < bestDY) {
+          bestDY = d;
+          snapY = y + (oY - my);
+        }
+      }
+    }
+  }
+  return { x: snapX, y: snapY };
+}
+
 export interface NodeLinkOptions {
   show?: boolean;
   type?: "url" | "currentSlate" | "externalSlate";
@@ -823,6 +873,29 @@ export class Node {
   }
 
   /**
+   * "Snap to neighbors" (Miro smart-align): nudge (x, y) so one of this node's
+   * edges or center lines up with a nearby node's matching edge/center. Gated by
+   * the caller on viewPort.snapToObjects.
+   */
+  private snapToNeighbors(x: number, y: number): { x: number; y: number } {
+    const rect = {
+      x,
+      y,
+      width: this.options.width || 0,
+      height: this.options.height || 0,
+    };
+    const others = this.slate.nodes.allNodes
+      .filter((n: Node) => n !== this)
+      .map((n: Node) => ({
+        x: n.options.x || 0,
+        y: n.options.y || 0,
+        width: n.options.width || 0,
+        height: n.options.height || 0,
+      }));
+    return snapRectToNeighbors(rect, others);
+  }
+
+  /**
    * Word-wrap `text` to the node's inner width, returning it with newlines
    * inserted at break points (SVG.js renders one tspan per line). Explicit
    * newlines are preserved; a single word longer than the width stays on its own
@@ -1080,6 +1153,14 @@ export class Node {
           feffDx = fsnapped.x - this.preDragPosition.x;
           feffDy = fsnapped.y - this.preDragPosition.y;
         }
+        // Snap to neighbors on the FINAL position too (this is what persists).
+        if (this.slate.options.viewPort?.snapToObjects) {
+          const aligned = this.snapToNeighbors(this.options.x, this.options.y);
+          this.options.x = aligned.x;
+          this.options.y = aligned.y;
+          feffDx = this.options.x - this.preDragPosition.x;
+          feffDy = this.options.y - this.preDragPosition.y;
+        }
         // Finalize group siblings with the same (snapped) delta.
         for (const sib of this._groupDragSiblings) {
           sib.node.options.x = sib.x + feffDx;
@@ -1172,6 +1253,14 @@ export class Node {
           this.options.y = snapped.y;
           effDx = snapped.x - this.preDragPosition.x;
           effDy = snapped.y - this.preDragPosition.y;
+        }
+        // Snap to neighbors (align edges/centers) when enabled — no-op otherwise.
+        if (this.slate.options.viewPort?.snapToObjects) {
+          const aligned = this.snapToNeighbors(this.options.x, this.options.y);
+          this.options.x = aligned.x;
+          this.options.y = aligned.y;
+          effDx = this.options.x - this.preDragPosition.x;
+          effDy = this.options.y - this.preDragPosition.y;
         }
         this.applyPositionAndRotation();
         // Group move: shift every other selected node by the same (snapped) delta.

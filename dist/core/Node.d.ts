@@ -9,6 +9,22 @@ import { Editor } from "./Editor";
 import { Links } from "./Links";
 import { Filters } from "./Filters";
 import { Menu } from "./Menu";
+interface SnapRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+/**
+ * Smart-align a rect to a set of neighbor rects: return the position where the
+ * rect's nearest edge/center (left/center/right, top/middle/bottom) lines up
+ * with a neighbor's matching edge/center, within `threshold` px. Unchanged when
+ * nothing is close. Pure + independently testable (drives node snap-to-objects).
+ */
+export declare function snapRectToNeighbors(rect: SnapRect, others: SnapRect[], threshold?: number): {
+    x: number;
+    y: number;
+};
 export interface NodeLinkOptions {
     show?: boolean;
     type?: "url" | "currentSlate" | "externalSlate";
@@ -204,6 +220,12 @@ export declare class Node {
      * onNodeTextChanged; without this they only updated options, never the render.
      */
     applyTextStyle(): void;
+    /**
+     * "Snap to neighbors" (Miro smart-align): nudge (x, y) so one of this node's
+     * edges or center lines up with a nearby node's matching edge/center. Gated by
+     * the caller on viewPort.snapToObjects.
+     */
+    private snapToNeighbors;
     /**
      * Word-wrap `text` to the node's inner width, returning it with newlines
      * inserted at break points (SVG.js renders one tspan per line). Explicit
@@ -432,3 +454,4 @@ export declare class Node {
     private cloneNodeOptions;
     private connectToNode;
 }
+export {};
