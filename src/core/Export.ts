@@ -44,9 +44,9 @@ export function exportSVG(
 
     // Remove non-exportable elements
     const removeSelectors = [
-      ".svg_select_handle",
-      ".svg_select_handle_rot",
-      ".svg_select_boundingRect",
+      // All svg.select.js overlays (handles, rotate handle, bounding rect,
+      // selection shape) — matched by prefix so none are missed.
+      '[class*="svg_select"]',
       ".connection-handle", // node drag-to-connect plugs
       ".connector-handle", // line endpoint drag handles (distinct class!)
       // UI chrome that shouldn't appear in an exported diagram:

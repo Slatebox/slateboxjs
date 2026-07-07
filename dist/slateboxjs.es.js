@@ -10866,9 +10866,9 @@ function Dn(i, t = {}, e) {
   }
   try {
     const s = n.node.cloneNode(!0), o = [
-      ".svg_select_handle",
-      ".svg_select_handle_rot",
-      ".svg_select_boundingRect",
+      // All svg.select.js overlays (handles, rotate handle, bounding rect,
+      // selection shape) — matched by prefix so none are missed.
+      '[class*="svg_select"]',
       ".connection-handle",
       // node drag-to-connect plugs
       ".connector-handle",
