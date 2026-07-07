@@ -8093,6 +8093,39 @@ class Ie {
     this.svgGroup.back(), t && this.slate.broadcast?.("onNodeToBack", { id: this.id });
   }
   /**
+   * Comment-count badge (Miro-style): a small count bubble at the node's
+   * top-right corner. NON-destructive — it lives in the node's SVG group (so it
+   * tracks pan/zoom/position/rotation for free) and never touches the node's text
+   * or fill. `resolved` picks the color (green = resolved, red = unresolved,
+   * grey = unknown/empty). Pass count <= 0 (or call clearCommentBadge) to remove.
+   */
+  setCommentBadge(t, e = "unresolved") {
+    if (this.clearCommentBadge(), !t || t < 0 || !this.svgGroup) return;
+    const n = this.options.width || 100, s = 11, o = n - 2, r = 2, a = e === "resolved" ? "#2e7d32" : e === "empty" ? "#6b7280" : "#e5484d", l = this.svgGroup.group().addClass("comment-badge");
+    l.circle(s * 2).center(o, r).fill(a).stroke({
+      color: "#ffffff",
+      width: 1.5
+    });
+    const c = t > 99 ? "99+" : String(t);
+    l.text(c).font({
+      size: 12,
+      anchor: "middle",
+      family: "sans-serif",
+      weight: "bold"
+    }).fill("#ffffff").center(o, r).attr("dy", "0.05em"), l.attr("pointer-events", "none"), this._commentBadge = l;
+  }
+  /** Remove the comment-count badge if present. */
+  clearCommentBadge() {
+    const t = this._commentBadge;
+    if (t) {
+      try {
+        t.remove();
+      } catch {
+      }
+      this._commentBadge = void 0;
+    }
+  }
+  /**
    * Remove the node from the canvas (light teardown).
    * Cleans up DOM elements but does NOT disable sub-modules. Use `destroy()` for full teardown.
    */

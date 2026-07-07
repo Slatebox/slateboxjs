@@ -263,6 +263,16 @@ export declare class Node {
     /** Send the node to the back of the SVG z-order. */
     toBack(persist?: boolean): void;
     /**
+     * Comment-count badge (Miro-style): a small count bubble at the node's
+     * top-right corner. NON-destructive — it lives in the node's SVG group (so it
+     * tracks pan/zoom/position/rotation for free) and never touches the node's text
+     * or fill. `resolved` picks the color (green = resolved, red = unresolved,
+     * grey = unknown/empty). Pass count <= 0 (or call clearCommentBadge) to remove.
+     */
+    setCommentBadge(count: number, kind?: "resolved" | "unresolved" | "empty"): void;
+    /** Remove the comment-count badge if present. */
+    clearCommentBadge(): void;
+    /**
      * Remove the node from the canvas (light teardown).
      * Cleans up DOM elements but does NOT disable sub-modules. Use `destroy()` for full teardown.
      */
