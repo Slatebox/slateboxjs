@@ -154,9 +154,9 @@ describe("ResizeRotate", () => {
       rr.enable();
 
       expect(node.backgroundRect.select).toHaveBeenCalledTimes(1);
-      expect(node.backgroundRect.select).toHaveBeenCalledWith({
-        rotationPoint: true,
-      });
+      expect(node.backgroundRect.select).toHaveBeenCalledWith(
+        expect.objectContaining({ rotationPoint: true })
+      );
 
       expect(node.backgroundRect.resize).toHaveBeenCalledTimes(1);
       expect(node.backgroundRect.resize).toHaveBeenCalledWith({
@@ -183,9 +183,9 @@ describe("ResizeRotate", () => {
       const rr = new ResizeRotate(node, { rotateEnabled: false });
       rr.enable();
 
-      expect(node.backgroundRect.select).toHaveBeenCalledWith({
-        rotationPoint: false,
-      });
+      expect(node.backgroundRect.select).toHaveBeenCalledWith(
+        expect.objectContaining({ rotationPoint: false })
+      );
     });
 
     it("enable() does not call select/resize when the target lacks those methods", () => {
@@ -289,9 +289,9 @@ describe("ResizeRotate", () => {
 
       // Re-enable
       rr.enable();
-      expect(node.backgroundRect.select).toHaveBeenLastCalledWith({
-        rotationPoint: true,
-      });
+      expect(node.backgroundRect.select).toHaveBeenLastCalledWith(
+        expect.objectContaining({ rotationPoint: true })
+      );
       expect(rr.isEnabled()).toBe(true);
     });
   });
@@ -614,9 +614,9 @@ describe("ResizeRotate", () => {
 
       // Should have disabled (select(false)) and re-enabled (select({rotationPoint:true}))
       expect(node.backgroundRect.select).toHaveBeenCalledWith(false);
-      expect(node.backgroundRect.select).toHaveBeenLastCalledWith({
-        rotationPoint: true,
-      });
+      expect(node.backgroundRect.select).toHaveBeenLastCalledWith(
+        expect.objectContaining({ rotationPoint: true })
+      );
     });
 
     it("does not disable/enable when not active", () => {
@@ -640,9 +640,9 @@ describe("ResizeRotate", () => {
       rr.refresh();
 
       expect(node.backgroundRect.select).toHaveBeenCalledWith(false);
-      expect(node.backgroundRect.select).toHaveBeenLastCalledWith({
-        rotationPoint: true,
-      });
+      expect(node.backgroundRect.select).toHaveBeenLastCalledWith(
+        expect.objectContaining({ rotationPoint: true })
+      );
       expect(rr.isEnabled()).toBe(true);
     });
 
@@ -794,9 +794,9 @@ describe("ResizeRotate", () => {
       expect(node.backgroundRect.select).toHaveBeenLastCalledWith(false);
 
       rr.enable();
-      expect(node.backgroundRect.select).toHaveBeenLastCalledWith({
-        rotationPoint: true,
-      });
+      expect(node.backgroundRect.select).toHaveBeenLastCalledWith(
+        expect.objectContaining({ rotationPoint: true })
+      );
 
       // Event listeners should be re-registered (on called again)
       const onCallsForResize = node.backgroundRect.on.mock.calls.filter(

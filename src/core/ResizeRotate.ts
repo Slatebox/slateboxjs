@@ -62,7 +62,32 @@ export class ResizeRotate {
 
       // Make the whole group selectable / rotatable
       if (typeof element.select === "function") {
-        element.select({ rotationPoint: this.options.rotateEnabled });
+        element.select({
+          rotationPoint: this.options.rotateEnabled,
+          // svg.select.js' default updateHandle divides by the distance between
+          // adjacent handle points; when a transient/degenerate bbox makes points
+          // coincide (or the screenCTM collapses), that divide-by-zero plots
+          // "NaN" polyline points and floods the console (notably on multi-select
+          // via the keyboard). This replicates the default L-bracket exactly but
+          // guards the division and never plots non-finite points.
+          updateHandle: (handle: any, point: any, index: number, points: any[]) => {
+            const prev = points[(index - 1 + points.length) % points.length];
+            const next = points[(index + 1) % points.length];
+            const a = point;
+            const l = [a[0] - prev[0], a[1] - prev[1]];
+            const h = [a[0] - next[0], a[1] - next[1]];
+            const r = Math.sqrt(l[0] * l[0] + l[1] * l[1]) || 1;
+            const c = Math.sqrt(h[0] * h[0] + h[1] * h[1]) || 1;
+            const d = [l[0] / r, l[1] / r];
+            const u = [h[0] / c, h[1] / c];
+            const p = [a[0] - 10 * d[0], a[1] - 10 * d[1]];
+            const H = [a[0] - 10 * u[0], a[1] - 10 * u[1]];
+            const plot = [p, a, H];
+            if (plot.every((pt) => Number.isFinite(pt[0]) && Number.isFinite(pt[1]))) {
+              handle.plot(plot);
+            }
+          },
+        });
       }
 
       // Attach resize capability (applies a transform on the group)

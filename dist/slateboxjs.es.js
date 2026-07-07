@@ -5350,7 +5350,19 @@ class Gi {
       }
       try {
         const t = this.target;
-        typeof t.select == "function" && t.select({ rotationPoint: this.options.rotateEnabled }), this.options.resizeEnabled && typeof t.resize == "function" && t.resize({
+        typeof t.select == "function" && t.select({
+          rotationPoint: this.options.rotateEnabled,
+          // svg.select.js' default updateHandle divides by the distance between
+          // adjacent handle points; when a transient/degenerate bbox makes points
+          // coincide (or the screenCTM collapses), that divide-by-zero plots
+          // "NaN" polyline points and floods the console (notably on multi-select
+          // via the keyboard). This replicates the default L-bracket exactly but
+          // guards the division and never plots non-finite points.
+          updateHandle: (e, i, s, o) => {
+            const r = o[(s - 1 + o.length) % o.length], a = o[(s + 1) % o.length], l = i, c = [l[0] - r[0], l[1] - r[1]], h = [l[0] - a[0], l[1] - a[1]], d = Math.sqrt(c[0] * c[0] + c[1] * c[1]) || 1, u = Math.sqrt(h[0] * h[0] + h[1] * h[1]) || 1, f = [c[0] / d, c[1] / d], g = [h[0] / u, h[1] / u], p = [l[0] - 10 * f[0], l[1] - 10 * f[1]], y = [l[0] - 10 * g[0], l[1] - 10 * g[1]], m = [p, l, y];
+            m.every((b) => Number.isFinite(b[0]) && Number.isFinite(b[1])) && e.plot(m);
+          }
+        }), this.options.resizeEnabled && typeof t.resize == "function" && t.resize({
           preserveAspectRatio: this.options.preserveAspectRatio,
           aroundCenter: this.options.aroundCenter,
           grid: this.options.grid ?? 1,
