@@ -47,7 +47,8 @@ export function exportSVG(
       ".svg_select_handle",
       ".svg_select_handle_rot",
       ".svg_select_boundingRect",
-      ".connection-handle",
+      ".connection-handle", // node drag-to-connect plugs
+      ".connector-handle", // line endpoint drag handles (distinct class!)
       // UI chrome that shouldn't appear in an exported diagram:
       ".comment-badge", // comment-count badges (rendered in the node group)
       ".node-link-badge", // link indicator badge (also in the node group)
