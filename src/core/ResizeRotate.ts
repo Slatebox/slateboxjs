@@ -2,6 +2,35 @@ import "@svgdotjs/svg.select.js";
 import "@svgdotjs/svg.resize.js";
 import type { Node } from "./Node";
 
+/**
+ * Compute the L-bracket polyline points for one svg.select.js resize handle.
+ * Mirrors svg.select.js' default updateHandle, but guards the divide-by-distance
+ * (adjacent handle points can transiently coincide → r/c = 0 → NaN) and returns
+ * `null` when any input/result is non-finite so the caller skips the plot. This
+ * is what kept multi-select (Cmd+A/Cmd+D) from flooding the console with
+ * "<polyline> points: Expected number, NaN" errors.
+ */
+export function computeSelectHandlePlot(
+  point: [number, number],
+  prev: [number, number],
+  next: [number, number]
+): Array<[number, number]> | null {
+  const a = point;
+  const l = [a[0] - prev[0], a[1] - prev[1]];
+  const h = [a[0] - next[0], a[1] - next[1]];
+  const r = Math.sqrt(l[0] * l[0] + l[1] * l[1]) || 1;
+  const c = Math.sqrt(h[0] * h[0] + h[1] * h[1]) || 1;
+  const d = [l[0] / r, l[1] / r];
+  const u = [h[0] / c, h[1] / c];
+  const p: [number, number] = [a[0] - 10 * d[0], a[1] - 10 * d[1]];
+  const H: [number, number] = [a[0] - 10 * u[0], a[1] - 10 * u[1]];
+  const plot: Array<[number, number]> = [p, a, H];
+  const finite = plot.every(
+    (pt) => Number.isFinite(pt[0]) && Number.isFinite(pt[1])
+  );
+  return finite ? plot : null;
+}
+
 export interface ResizeRotateOptions {
   resizeEnabled?: boolean;
   rotateEnabled?: boolean;
@@ -73,19 +102,8 @@ export class ResizeRotate {
           updateHandle: (handle: any, point: any, index: number, points: any[]) => {
             const prev = points[(index - 1 + points.length) % points.length];
             const next = points[(index + 1) % points.length];
-            const a = point;
-            const l = [a[0] - prev[0], a[1] - prev[1]];
-            const h = [a[0] - next[0], a[1] - next[1]];
-            const r = Math.sqrt(l[0] * l[0] + l[1] * l[1]) || 1;
-            const c = Math.sqrt(h[0] * h[0] + h[1] * h[1]) || 1;
-            const d = [l[0] / r, l[1] / r];
-            const u = [h[0] / c, h[1] / c];
-            const p = [a[0] - 10 * d[0], a[1] - 10 * d[1]];
-            const H = [a[0] - 10 * u[0], a[1] - 10 * u[1]];
-            const plot = [p, a, H];
-            if (plot.every((pt) => Number.isFinite(pt[0]) && Number.isFinite(pt[1]))) {
-              handle.plot(plot);
-            }
+            const plot = computeSelectHandlePlot(point, prev, next);
+            if (plot) handle.plot(plot);
           },
         });
       }

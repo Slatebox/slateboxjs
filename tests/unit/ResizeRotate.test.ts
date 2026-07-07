@@ -7,7 +7,40 @@
 // hides connection handles while the user is manipulating handles.
 // ---------------------------------------------------------------------------
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ResizeRotate } from "../../src/core/ResizeRotate";
+import {
+  ResizeRotate,
+  computeSelectHandlePlot,
+} from "../../src/core/ResizeRotate";
+
+describe("computeSelectHandlePlot (NaN-safe select handle)", () => {
+  it("returns a finite 3-point L-bracket for normal input", () => {
+    const plot = computeSelectHandlePlot([10, 10], [0, 10], [10, 0]);
+    expect(plot).not.toBeNull();
+    expect(plot).toHaveLength(3);
+    // middle point is the handle point itself
+    expect(plot![1]).toEqual([10, 10]);
+    plot!.forEach((pt) => {
+      expect(Number.isFinite(pt[0])).toBe(true);
+      expect(Number.isFinite(pt[1])).toBe(true);
+    });
+  });
+
+  it("does NOT produce NaN when adjacent points coincide (divide-by-zero guard)", () => {
+    // prev === next === point → distances are 0; the default svg.select.js
+    // updateHandle would divide by 0 and plot NaN. Ours must stay finite.
+    const plot = computeSelectHandlePlot([5, 5], [5, 5], [5, 5]);
+    expect(plot).not.toBeNull();
+    plot!.forEach((pt) => {
+      expect(Number.isFinite(pt[0])).toBe(true);
+      expect(Number.isFinite(pt[1])).toBe(true);
+    });
+  });
+
+  it("returns null when the handle point is non-finite (skip the plot)", () => {
+    expect(computeSelectHandlePlot([NaN, NaN], [0, 0], [1, 1])).toBeNull();
+    expect(computeSelectHandlePlot([0, 0], [NaN, 0], [1, 1])).toBeNull();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Helpers

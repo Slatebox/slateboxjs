@@ -1,6 +1,15 @@
 import "@svgdotjs/svg.select.js";
 import "@svgdotjs/svg.resize.js";
 import type { Node } from "./Node";
+/**
+ * Compute the L-bracket polyline points for one svg.select.js resize handle.
+ * Mirrors svg.select.js' default updateHandle, but guards the divide-by-distance
+ * (adjacent handle points can transiently coincide → r/c = 0 → NaN) and returns
+ * `null` when any input/result is non-finite so the caller skips the plot. This
+ * is what kept multi-select (Cmd+A/Cmd+D) from flooding the console with
+ * "<polyline> points: Expected number, NaN" errors.
+ */
+export declare function computeSelectHandlePlot(point: [number, number], prev: [number, number], next: [number, number]): Array<[number, number]> | null;
 export interface ResizeRotateOptions {
     resizeEnabled?: boolean;
     rotateEnabled?: boolean;
