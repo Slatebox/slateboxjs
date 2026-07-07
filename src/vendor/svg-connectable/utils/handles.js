@@ -5,6 +5,31 @@
 
 import { getElementCenter } from "./geometry.js";
 import { computeConnectorCoordinates } from "./geometry.js";
+import { svgCoordsToLocal } from "./geometry.js";
+
+/**
+ * Normalized [0,1] anchor for a world point on a node, snapped to the nearest
+ * edge — the same mapping the host uses when it commits a drop-to-pin, so the
+ * live drag PREVIEW matches where the endpoint will actually land.
+ */
+function snappedAnchorForDrop(node, worldPos) {
+  try {
+    const [lx, ly] = svgCoordsToLocal(node, worldPos[0], worldPos[1]);
+    const bb = node.bbox();
+    if (!bb || !bb.width || !bb.height) return null;
+    let ax = Math.max(0, Math.min(1, (lx - bb.x) / bb.width));
+    let ay = Math.max(0, Math.min(1, (ly - bb.y) / bb.height));
+    const dl = ax, dr = 1 - ax, dt = ay, db = 1 - ay;
+    const m = Math.min(dl, dr, dt, db);
+    if (m === dl) ax = 0;
+    else if (m === dr) ax = 1;
+    else if (m === dt) ay = 0;
+    else ay = 1;
+    return { x: ax, y: ay };
+  } catch (e) {
+    return null;
+  }
+}
 
 /**
  * Helper function to check if a plugin method is available
@@ -109,13 +134,14 @@ function setupHandleDrag(con, handleObj) {
       const currentPos = [handleObj.element.cx(), handleObj.element.cy()];
       handleObj.position = currentPos;
 
-      // Update connector to follow the dragged handle
-      updateConnectorForDrag(con, handleObj, currentPos);
-
-      // Check for potential drop targets using original mouse event
+      // Resolve the drop target FIRST so the live preview can render the actual
+      // pinned/edge layout it would have if dropped here (not a raw line to the
+      // pointer). Then update the connector using that target.
       const mouseEvent = event.detail.event;
       dragTarget = findDropTarget(con, mouseEvent, handleObj);
       highlightDropTarget(dragTarget);
+
+      updateConnectorForDrag(con, handleObj, currentPos, dragTarget);
     })
     .on("dragend", function (event) {
       // Reset cursor
@@ -207,9 +233,25 @@ function detachHandle(con, handleObj) {
  * @param {Object} handleObj The handle being dragged
  * @param {Array} position Current drag position [x, y]
  */
-function updateConnectorForDrag(con, handleObj, position) {
+function updateConnectorForDrag(con, handleObj, position, dropTarget) {
   // Use the preserved line type from when the handle was detached
   const lineType = handleObj.originalType || con.type;
+
+  // Over a real drop target → preview the ACTUAL pinned layout (endpoint snapped
+  // to the nearest edge, arrow perpendicular) instead of a raw line to the
+  // pointer, so the drag conforms to where it will land. Guarded to real nodes
+  // (has bbox), never phantom/handle elements.
+  let previewNode = null;
+  let previewAnchor = null;
+  if (
+    dropTarget &&
+    typeof dropTarget.bbox === "function" &&
+    !dropTarget._isPhantomRect &&
+    !(dropTarget.hasClass && dropTarget.hasClass("connector-handle"))
+  ) {
+    previewAnchor = snappedAnchorForDrop(dropTarget, position);
+    if (previewAnchor) previewNode = dropTarget;
+  }
 
   // Create a mock element to represent the floating endpoint
   const mockElement = {
@@ -234,6 +276,8 @@ function updateConnectorForDrag(con, handleObj, position) {
   const originalSource = con.source;
   const originalTarget = con.target;
   const originalType = con.type;
+  const originalSourceAnchor = con.sourceAnchor;
+  const originalTargetAnchor = con.targetAnchor;
 
   try {
     // Set up temporary connector state for path calculation
@@ -241,7 +285,14 @@ function updateConnectorForDrag(con, handleObj, position) {
 
     if (handleObj.isSource) {
       // Source handle is being dragged
-      con.source = mockElement;
+      if (previewNode) {
+        // Preview the pinned layout on the hovered node.
+        con.source = previewNode;
+        con.sourceAnchor = previewAnchor;
+      } else {
+        con.source = mockElement;
+        con.sourceAnchor = null;
+      }
       if (!con.target) {
         // Both ends floating - create a simple target for calculation
         con.target = {
@@ -264,7 +315,14 @@ function updateConnectorForDrag(con, handleObj, position) {
       }
     } else {
       // Target handle is being dragged
-      con.target = mockElement;
+      if (previewNode) {
+        // Preview the pinned layout on the hovered node.
+        con.target = previewNode;
+        con.targetAnchor = previewAnchor;
+      } else {
+        con.target = mockElement;
+        con.targetAnchor = null;
+      }
       if (!con.source) {
         // Both ends floating - create a simple source for calculation
         con.source = {
@@ -294,10 +352,13 @@ function updateConnectorForDrag(con, handleObj, position) {
     con.connector.plot(pathData);
     con.hitArea.plot(pathData);
   } finally {
-    // Restore original values
+    // Restore original values (incl. anchors — the preview must never leak into
+    // the committed connection; the real pin is set on dragend by the host).
     con.source = originalSource;
     con.target = originalTarget;
     con.type = originalType;
+    con.sourceAnchor = originalSourceAnchor;
+    con.targetAnchor = originalTargetAnchor;
   }
 }
 
