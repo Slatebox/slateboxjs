@@ -6738,10 +6738,10 @@ class $i {
     this.removeAll(), this.activeFilters.clear(), this.hidden = !1, this.node = null;
   }
 }
-function ml(i) {
+function yl(i) {
   mt.set(i.name, i);
 }
-function yl() {
+function bl() {
   return Array.from(mt.keys());
 }
 function Wi() {
@@ -11251,10 +11251,35 @@ function ms(i, t, e = !1, n = !1) {
   if (!t) return;
   t._id && (i.options.themeId = t._id), e && (i.options.syncWithTheme = !0), t.containerStyle?.backgroundColor && (i.options.containerStyle = i.options.containerStyle || {}, i.options.containerStyle.backgroundColor = t.containerStyle.backgroundColor, i.applyContainerStyle?.()), t.defaultLineColor && (i.options.defaultLineColor = t.defaultLineColor);
   const s = i.nodes.allNodes;
-  !s || s.length === 0 || !t.styles || (s.forEach((o, r) => {
-    const a = ys(t, r);
-    a && el(o, a);
-  }), console.log("THEME_DEBUG: Applied theme", t.name || t._id));
+  if (!s || s.length === 0 || !t.styles) return;
+  const o = el(i, s);
+  s.forEach((r, a) => {
+    const l = o ? o.get(r.options.id) ?? 0 : a, c = ys(t, l);
+    c && nl(r, c);
+  }), console.log("THEME_DEBUG: Applied theme", t.name || t._id);
+}
+function el(i, t) {
+  if (!i?.options?.mindMapMode) return null;
+  const e = /* @__PURE__ */ new Set(), n = /* @__PURE__ */ new Map();
+  let s = !1;
+  for (const a of t) {
+    const l = a.relationships?.assocMap, c = l ? Array.from(l.values()).map((h) => h.childId || h.child?.id).filter(Boolean) : [];
+    c.length && (s = !0), n.set(a.options.id, c), c.forEach((h) => e.add(h));
+  }
+  if (!s) return null;
+  const o = /* @__PURE__ */ new Map(), r = [];
+  for (const a of t)
+    e.has(a.options.id) || r.push([a.options.id, 0]);
+  for (; r.length; ) {
+    const [a, l] = r.shift();
+    if (!o.has(a)) {
+      o.set(a, l);
+      for (const c of n.get(a) || []) r.push([c, l + 1]);
+    }
+  }
+  for (const a of t)
+    o.has(a.options.id) || o.set(a.options.id, 0);
+  return o;
 }
 function ys(i, t) {
   if (!i.styles) return null;
@@ -11268,7 +11293,7 @@ function ys(i, t) {
   const s = `child_${(t - 1) % e.length + 1}`;
   return i.styles[s] || i.styles.parent || null;
 }
-function el(i, t) {
+function nl(i, t) {
   const e = t, n = t.backgroundColor ?? e.nodeColor, s = t.fontColor ?? e.foregroundColor;
   n && (i.options.backgroundColor = n), t.borderColor && (i.options.borderColor = t.borderColor), t.borderWidth !== void 0 && (i.options.borderWidth = t.borderWidth), s && (i.options.fontColor = s), t.fontFamily && (i.options.fontFamily = t.fontFamily), t.fontSize !== void 0 && (i.options.fontSize = t.fontSize), t.lineColor && (i.options.lineColor = t.lineColor), t.opacity !== void 0 && (i.options.opacity = t.opacity), i.setColors?.(n, t.borderColor), i.textElement && (s || t.fontSize || t.fontFamily) && i.textElement.font({
     fill: s || i.options.fontColor,
@@ -11276,7 +11301,7 @@ function el(i, t) {
     family: t.fontFamily || i.options.fontFamily
   });
 }
-const nl = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const il = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   applyTheme: ms,
   buildNodeStyleFromTheme: ys
@@ -11329,7 +11354,7 @@ function vs(i) {
     y: t.options.y || 0
   }));
 }
-const il = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const sl = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   applyLayout: ws,
   packageLayout: vs,
@@ -12436,7 +12461,7 @@ Me.NON_UNDOABLE = /* @__PURE__ */ new Set([
   "onSlateChanged"
 ]);
 let le = Me;
-function sl(i, t) {
+function ol(i, t) {
   return i.addNode({
     text: t.text,
     x: t.x || 100,
@@ -12462,24 +12487,24 @@ function sl(i, t) {
     commentTimestamp: t.timestamp || Date.now()
   });
 }
-function ol(i, t) {
+function rl(i, t) {
   const e = i.nodes.one(t);
   return !e || !e.options.isComment ? !1 : i.removeNode(t);
 }
-function rl(i) {
+function al(i) {
   return i.nodes.allNodes.filter(
     (t) => t.options.isComment === !0
   );
 }
-const al = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const ll = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  createComment: sl,
-  getComments: rl,
-  removeComment: ol
+  createComment: ol,
+  getComments: al,
+  removeComment: rl
 }, Symbol.toStringTag, { value: "Module" }));
 class Ht {
   constructor(t = {}) {
-    this.options = { id: Zt(), ...t }, this.resize = new ll(this), this.relationships = new cl(this);
+    this.options = { id: Zt(), ...t }, this.resize = new cl(this), this.relationships = new hl(this);
   }
   /**
    * v1: `node.png(withNodes?, cb)` — export this node (or the given group of
@@ -12530,7 +12555,7 @@ class Ht {
     return this;
   }
 }
-class ll {
+class cl {
   constructor(t) {
     this.owner = t;
   }
@@ -12554,7 +12579,7 @@ class ll {
     }), this.pending = void 0;
   }
 }
-class cl {
+class hl {
   constructor(t) {
     this.owner = t;
   }
@@ -12581,7 +12606,7 @@ class cl {
     }));
   }
 }
-class hl {
+class dl {
   constructor(t) {
     this.wrappers = /* @__PURE__ */ new Map(), this.owner = t;
   }
@@ -12706,12 +12731,12 @@ class hl {
     return e || (e = new Ht({ ...t.options }), e.options.id = t.id, e.v2 = t, e.slate = this.owner, this.wrappers.set(t.id, e)), e;
   }
 }
-class dl {
+class ul {
   constructor(t = {}, e = {}) {
     this.savingTemplateImage = !1, this.options = {
       ...t,
       id: t.id || Zt()
-    }, this.events = e || {}, this._shareId = this.options.shareId || Zt(), this.nodes = new hl(this), this.controller = {
+    }, this.events = e || {}, this._shareId = this.options.shareId || Zt(), this.nodes = new dl(this), this.controller = {
       scaleToFitAndCenter: (n) => {
         this.assertReady(), this.v2.fitToContent(), n?.();
       }
@@ -12873,20 +12898,20 @@ const Et = class Et {
 };
 Et.availablePlugins = {};
 let ln = Et;
-const ul = {
-  slate: dl,
+const fl = {
+  slate: ul,
   node: Ht,
   base: ln,
   utils: Wa
 };
-function fl(i, t = {}) {
+function pl(i, t = {}) {
   return new le(i, t);
 }
-typeof window < "u" && (window.SlateboxJS = fl, window.Slate = le, window.Node = Ie, window.PanZoom = ss, window.ResizeRotate = Hi, window.BirdsEye = os, window.Connector = Pe, window.Serialization = Ja, window.ShapeRegistry = wa, window.Relationship = ua, window.Relationships = Ui, window.FontLoader = ga, window.Images = Fi, window.Editor = Yi, window.UndoRedo = cs, window.MultiSelection = hs, window.Grid = ds, window.Menu = ji, window.Keyboard = us, window.ContextMenu = fs, window.Filters = $i, window.Links = Xi, window.Export = tl, window.Collab = gs, window.Theme = nl, window.Layout = il, window.ZoomSlider = xs, window.Comments = al, window.Presentation = _s, window.Slatebox = Object.assign({}, ul, { compat: Ca }));
+typeof window < "u" && (window.SlateboxJS = pl, window.Slate = le, window.Node = Ie, window.PanZoom = ss, window.ResizeRotate = Hi, window.BirdsEye = os, window.Connector = Pe, window.Serialization = Ja, window.ShapeRegistry = wa, window.Relationship = ua, window.Relationships = Ui, window.FontLoader = ga, window.Images = Fi, window.Editor = Yi, window.UndoRedo = cs, window.MultiSelection = hs, window.Grid = ds, window.Menu = ji, window.Keyboard = us, window.ContextMenu = fs, window.Filters = $i, window.Links = Xi, window.Export = tl, window.Collab = gs, window.Theme = il, window.Layout = sl, window.ZoomSlider = xs, window.Comments = ll, window.Presentation = _s, window.Slatebox = Object.assign({}, fl, { compat: Ca }));
 export {
   os as BirdsEye,
   gs as Collab,
-  al as Comments,
+  ll as Comments,
   Pe as Connector,
   fs as ContextMenu,
   Yi as Editor,
@@ -12897,7 +12922,7 @@ export {
   Fi as Images,
   qa as Invoker,
   us as Keyboard,
-  il as Layout,
+  sl as Layout,
   Xi as Links,
   ji as Menu,
   hs as MultiSelection,
@@ -12911,15 +12936,15 @@ export {
   Ja as Serialization,
   wa as ShapeRegistry,
   le as Slate,
-  ul as Slatebox,
-  fl as SlateboxJS,
-  nl as Theme,
+  fl as Slatebox,
+  pl as SlateboxJS,
+  il as Theme,
   cs as UndoRedo,
   xs as ZoomSlider,
   Ca as compat,
-  fl as default,
-  yl as getFilterNames,
-  ml as registerFilter,
+  pl as default,
+  bl as getFilterNames,
+  yl as registerFilter,
   Wa as utils
 };
 //# sourceMappingURL=slateboxjs.es.js.map

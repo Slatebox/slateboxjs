@@ -71,18 +71,74 @@ export function applyTheme(
     slate.options.defaultLineColor = theme.defaultLineColor;
   }
 
-  // Apply styles to nodes
+  // Apply styles to nodes. In mindMapMode over a connected tree, color by
+  // HIERARCHY — root(s) get the parent style, each level down cycles child_1,
+  // child_2, … — so the theme follows the mind-map's structure (v1/Miro parity).
+  // For a flat slate (no associations) fall back to insertion-order cycling so
+  // every node still gets a distinct style (and existing behavior is unchanged).
   const nodes = slate.nodes.allNodes;
   if (!nodes || nodes.length === 0 || !theme.styles) return;
 
+  const depthByNodeId = computeHierarchyDepths(slate, nodes);
+
   nodes.forEach((node: any, index: number) => {
-    const style = buildNodeStyleFromTheme(theme, index);
+    const childNumber = depthByNodeId
+      ? depthByNodeId.get(node.options.id) ?? 0
+      : index;
+    const style = buildNodeStyleFromTheme(theme, childNumber);
     if (style) {
       applyStyleToNode(node, style);
     }
   });
 
   console.log("THEME_DEBUG: Applied theme", theme.name || theme._id);
+}
+
+/**
+ * Depth of each node in the association tree, for mindMapMode theme coloring.
+ * Returns null (→ caller uses insertion-order index) when mindMapMode is off or
+ * the slate has no associations at all (a flat slate), so unconnected nodes keep
+ * distinct cycling styles and non-mind-map slates are unaffected.
+ */
+function computeHierarchyDepths(
+  slate: any,
+  nodes: any[]
+): Map<string, number> | null {
+  if (!slate?.options?.mindMapMode) return null;
+
+  const childIds = new Set<string>();
+  const childrenOf = new Map<string, string[]>();
+  let hasEdges = false;
+  for (const n of nodes) {
+    const assocMap = n.relationships?.assocMap;
+    const kids: string[] = assocMap
+      ? Array.from(assocMap.values())
+          .map((a: any) => a.childId || a.child?.id)
+          .filter(Boolean)
+      : [];
+    if (kids.length) hasEdges = true;
+    childrenOf.set(n.options.id, kids);
+    kids.forEach((k) => childIds.add(k));
+  }
+  if (!hasEdges) return null;
+
+  // Roots = nodes that are nobody's child. BFS assigns depth (root = 0 = parent).
+  const depth = new Map<string, number>();
+  const queue: Array<[string, number]> = [];
+  for (const n of nodes) {
+    if (!childIds.has(n.options.id)) queue.push([n.options.id, 0]);
+  }
+  while (queue.length) {
+    const [id, d] = queue.shift()!;
+    if (depth.has(id)) continue;
+    depth.set(id, d);
+    for (const k of childrenOf.get(id) || []) queue.push([k, d + 1]);
+  }
+  // Cycle/orphan safety: anything unreached gets parent style.
+  for (const n of nodes) {
+    if (!depth.has(n.options.id)) depth.set(n.options.id, 0);
+  }
+  return depth;
 }
 
 /**
