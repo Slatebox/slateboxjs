@@ -12,6 +12,8 @@ import type { Node } from "./Node";
 
 export class Editor {
   private node: Node;
+  private _inlineEditing = false;
+  private _inlineFO: SVGForeignObjectElement | null = null;
 
   constructor(node: Node) {
     this.node = node;
@@ -19,7 +21,138 @@ export class Editor {
 
   /** Destroy the editor, clearing all references */
   public destroy(): void {
+    if (this._inlineEditing) this.cancelInline();
     (this as any).node = null;
+  }
+
+  /** Whether an inline (on-canvas) edit is currently active. */
+  public isInlineEditing(): boolean {
+    return this._inlineEditing;
+  }
+
+  /**
+   * Start inline (on-canvas) text editing — Miro-style. Overlays a
+   * contenteditable box exactly on the node (inside its group so it tracks
+   * pan/zoom/position), pre-filled + all-selected. Enter commits, Shift+Enter
+   * inserts a newline, Escape cancels, blur commits.
+   *
+   * Commit routes through collab.invoke + collab.send (the same persist/sync path
+   * the drawer uses via onNodeTextChanged), so the edit survives reload and syncs
+   * to collaborators. SVG-content nodes (no textElement) are skipped.
+   */
+  public startInline(): void {
+    const node = this.node;
+    if (this._inlineEditing || !node || node.nestedSvg) return;
+    const group = (node.svgGroup as any)?.node as SVGGElement | undefined;
+    if (!group) return;
+
+    const w = node.options.width || 100;
+    const h = node.options.height || 60;
+    const SVGNS = "http://www.w3.org/2000/svg";
+    const fo = document.createElementNS(
+      SVGNS,
+      "foreignObject"
+    ) as SVGForeignObjectElement;
+    fo.setAttribute("x", "0");
+    fo.setAttribute("y", "0");
+    fo.setAttribute("width", String(w));
+    fo.setAttribute("height", String(h));
+    fo.style.overflow = "visible";
+
+    const div = document.createElement("div");
+    div.setAttribute("contenteditable", "true");
+    div.className = "sb-inline-editor";
+    div.textContent = node.options.text || "";
+    div.style.cssText = [
+      `width:${w}px`,
+      `height:${h}px`,
+      "box-sizing:border-box",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "text-align:center",
+      "outline:none",
+      "padding:4px",
+      "cursor:text",
+      "word-break:break-word",
+      "overflow:hidden",
+      "white-space:pre-wrap",
+      `font-family:${node.options.fontFamily || "Arial, sans-serif"}`,
+      `font-size:${node.options.fontSize || 14}px`,
+      `color:${node.options.fontColor || "#000000"}`,
+    ].join(";");
+    fo.appendChild(div);
+    group.appendChild(fo);
+    this._inlineFO = fo;
+    this._inlineEditing = true;
+    // Hide the rendered SVG text while the editor box is showing.
+    (node.textElement as any)?.hide?.();
+
+    const finish = (save: boolean) => {
+      if (!this._inlineEditing) return;
+      this._inlineEditing = false;
+      const newText = (div.innerText || "").replace(/\n+$/, "");
+      try {
+        fo.remove();
+      } catch {
+        /* already gone */
+      }
+      this._inlineFO = null;
+      (node.textElement as any)?.show?.();
+      if (save && newText !== (node.options.text || "")) {
+        const pkg = {
+          type: "onNodeTextChanged",
+          data: { id: node.id, text: newText },
+        };
+        const collab = (node.slate as any)?.collab;
+        if (collab?.invoke) {
+          collab.invoke(pkg);
+          collab.send?.(pkg);
+        } else {
+          // No collab layer (e.g. standalone) — apply directly.
+          (node as any).setText?.(newText);
+        }
+      }
+    };
+
+    div.addEventListener("keydown", (ev) => {
+      ev.stopPropagation();
+      if (ev.key === "Enter" && !ev.shiftKey) {
+        ev.preventDefault();
+        finish(true);
+      } else if (ev.key === "Escape") {
+        ev.preventDefault();
+        finish(false);
+      }
+    });
+    div.addEventListener("blur", () => finish(true));
+
+    // Focus + select-all on the next tick (after it's in the DOM).
+    setTimeout(() => {
+      try {
+        div.focus();
+        const range = document.createRange();
+        range.selectNodeContents(div);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      } catch {
+        /* headless */
+      }
+    }, 0);
+  }
+
+  /** Cancel an in-progress inline edit without saving. */
+  public cancelInline(): void {
+    if (!this._inlineEditing) return;
+    this._inlineEditing = false;
+    try {
+      this._inlineFO?.remove();
+    } catch {
+      /* noop */
+    }
+    this._inlineFO = null;
+    (this.node?.textElement as any)?.show?.();
   }
 
   /**

@@ -163,7 +163,18 @@ export class Keyboard {
         this.slate.announce?.("Keyboard shortcuts reference logged to console");
         break;
 
+      case "F2":
+        // Miro-style: edit the selected node's text inline on the canvas.
+        this.startInlineEditSelected(e);
+        break;
+
       case "Enter":
+        // If exactly one node is selected, Enter begins inline text editing
+        // (Miro parity); otherwise fall back to selecting the focused node.
+        if (this.startInlineEditSelected(e)) break;
+        this.selectFocused(e);
+        break;
+
       case " ":
         // Select the currently focused node (if a node SVG group has focus)
         this.selectFocused(e);
@@ -391,5 +402,20 @@ export class Keyboard {
       e.preventDefault();
       this.slate.selectNodes([node], false);
     }
+  }
+
+  /**
+   * If exactly one node is selected, begin inline text editing on it.
+   * Returns true when it started an edit (so callers can stop falling through).
+   * Skips SVG-content nodes (they have no editable text).
+   */
+  private startInlineEditSelected(e: KeyboardEvent): boolean {
+    const selected = (this.slate as any).selectedNodes || [];
+    if (selected.length !== 1) return false;
+    const node = selected[0];
+    if (!node?.editor?.startInline || node.nestedSvg) return false;
+    e.preventDefault();
+    node.editor.startInline();
+    return true;
   }
 }

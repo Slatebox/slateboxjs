@@ -6356,11 +6356,94 @@ const ga = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
 }, Symbol.toStringTag, { value: "Module" }));
 class Yi {
   constructor(t) {
-    this.node = t;
+    this._inlineEditing = !1, this._inlineFO = null, this.node = t;
   }
   /** Destroy the editor, clearing all references */
   destroy() {
-    this.node = null;
+    this._inlineEditing && this.cancelInline(), this.node = null;
+  }
+  /** Whether an inline (on-canvas) edit is currently active. */
+  isInlineEditing() {
+    return this._inlineEditing;
+  }
+  /**
+   * Start inline (on-canvas) text editing — Miro-style. Overlays a
+   * contenteditable box exactly on the node (inside its group so it tracks
+   * pan/zoom/position), pre-filled + all-selected. Enter commits, Shift+Enter
+   * inserts a newline, Escape cancels, blur commits.
+   *
+   * Commit routes through collab.invoke + collab.send (the same persist/sync path
+   * the drawer uses via onNodeTextChanged), so the edit survives reload and syncs
+   * to collaborators. SVG-content nodes (no textElement) are skipped.
+   */
+  startInline() {
+    const t = this.node;
+    if (this._inlineEditing || !t || t.nestedSvg) return;
+    const e = t.svgGroup?.node;
+    if (!e) return;
+    const n = t.options.width || 100, s = t.options.height || 60, r = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "foreignObject"
+    );
+    r.setAttribute("x", "0"), r.setAttribute("y", "0"), r.setAttribute("width", String(n)), r.setAttribute("height", String(s)), r.style.overflow = "visible";
+    const a = document.createElement("div");
+    a.setAttribute("contenteditable", "true"), a.className = "sb-inline-editor", a.textContent = t.options.text || "", a.style.cssText = [
+      `width:${n}px`,
+      `height:${s}px`,
+      "box-sizing:border-box",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "text-align:center",
+      "outline:none",
+      "padding:4px",
+      "cursor:text",
+      "word-break:break-word",
+      "overflow:hidden",
+      "white-space:pre-wrap",
+      `font-family:${t.options.fontFamily || "Arial, sans-serif"}`,
+      `font-size:${t.options.fontSize || 14}px`,
+      `color:${t.options.fontColor || "#000000"}`
+    ].join(";"), r.appendChild(a), e.appendChild(r), this._inlineFO = r, this._inlineEditing = !0, t.textElement?.hide?.();
+    const l = (c) => {
+      if (!this._inlineEditing) return;
+      this._inlineEditing = !1;
+      const h = (a.innerText || "").replace(/\n+$/, "");
+      try {
+        r.remove();
+      } catch {
+      }
+      if (this._inlineFO = null, t.textElement?.show?.(), c && h !== (t.options.text || "")) {
+        const d = {
+          type: "onNodeTextChanged",
+          data: { id: t.id, text: h }
+        }, u = t.slate?.collab;
+        u?.invoke ? (u.invoke(d), u.send?.(d)) : t.setText?.(h);
+      }
+    };
+    a.addEventListener("keydown", (c) => {
+      c.stopPropagation(), c.key === "Enter" && !c.shiftKey ? (c.preventDefault(), l(!0)) : c.key === "Escape" && (c.preventDefault(), l(!1));
+    }), a.addEventListener("blur", () => l(!0)), setTimeout(() => {
+      try {
+        a.focus();
+        const c = document.createRange();
+        c.selectNodeContents(a);
+        const h = window.getSelection();
+        h?.removeAllRanges(), h?.addRange(c);
+      } catch {
+      }
+    }, 0);
+  }
+  /** Cancel an in-progress inline edit without saving. */
+  cancelInline() {
+    if (this._inlineEditing) {
+      this._inlineEditing = !1;
+      try {
+        this._inlineFO?.remove();
+      } catch {
+      }
+      this._inlineFO = null, this.node?.textElement?.show?.();
+    }
   }
   /**
    * Set text content and properties on the node.
@@ -10440,7 +10523,13 @@ class us {
   ? — show this help`
         ), this.slate.announce?.("Keyboard shortcuts reference logged to console");
         break;
+      case "F2":
+        this.startInlineEditSelected(t);
+        break;
       case "Enter":
+        if (this.startInlineEditSelected(t)) break;
+        this.selectFocused(t);
+        break;
       case " ":
         this.selectFocused(t);
         break;
@@ -10591,6 +10680,17 @@ class us {
   selectFocused(t) {
     const e = document.activeElement, s = this.slate.getAllNodes().find((o) => o.svgGroup?.node === e);
     s && (t.preventDefault(), this.slate.selectNodes([s], !1));
+  }
+  /**
+   * If exactly one node is selected, begin inline text editing on it.
+   * Returns true when it started an edit (so callers can stop falling through).
+   * Skips SVG-content nodes (they have no editable text).
+   */
+  startInlineEditSelected(t) {
+    const e = this.slate.selectedNodes || [];
+    if (e.length !== 1) return !1;
+    const n = e[0];
+    return !n?.editor?.startInline || n.nestedSvg ? !1 : (t.preventDefault(), n.editor.startInline(), !0);
   }
 }
 class fs {

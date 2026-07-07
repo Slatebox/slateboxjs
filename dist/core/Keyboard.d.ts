@@ -61,4 +61,10 @@ export declare class Keyboard {
     private nudge;
     private handleArrowKey;
     private selectFocused;
+    /**
+     * If exactly one node is selected, begin inline text editing on it.
+     * Returns true when it started an edit (so callers can stop falling through).
+     * Skips SVG-content nodes (they have no editable text).
+     */
+    private startInlineEditSelected;
 }
