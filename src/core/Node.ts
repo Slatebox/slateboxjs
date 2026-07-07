@@ -2245,11 +2245,11 @@ export class Node {
               event.ctrlKey || event.metaKey || event.shiftKey;
 
             // Let Slate handle the selection logic and resize/rotate enabling.
-            // (Modifier-click TOGGLE-off is intentionally not done here: the
-            // drag-start handler already adds the node on pointer-down, so a
-            // toggle in this click handler would immediately undo a fresh
-            // additive-select. Toggle-off would need pre-pointer-down state
-            // tracking — deferred to avoid regressing additive selection.)
+            // (Modifier-click TOGGLE-off is intentionally NOT implemented: two
+            // attempts both destabilized multi-select — the pointerup/drag-start
+            // selection interplay is subtle, and additive shift-click is the
+            // behavior that matters. Documented as future work; needs a careful
+            // rework of the selection event flow, not a spot toggle here.)
             this.slate.selectNodes([this], isMultiSelect);
 
             // Double-click detection: svg.draggable's pointer handling
