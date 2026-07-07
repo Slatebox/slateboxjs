@@ -1084,6 +1084,15 @@ export class Node {
       this.isDragging = true;
       this.wasSelectedBeforeDrag = true; // Always true now since we ensure selection
 
+      // Hide the drag-to-connect plug handles for the duration of the drag. They
+      // live in a global canvas group (not this node's group), so they don't
+      // follow the node while it moves — leaving "ghost" dots behind at the old
+      // position. Force-hide past the selection pin; drag-end re-anchors them.
+      this.hideConnectionHandles();
+      this.slate.getSelectedNodes?.().forEach((n) => {
+        if (n !== this) (n as any).hideConnectionHandles?.();
+      });
+
       // Store the transform at drag start so we can calculate drag delta later
       const transform = this.svgGroup.transform();
       this.preDragTransform = {
@@ -1248,6 +1257,11 @@ export class Node {
 
         // Notify slate of node position change (for BirdsEye refresh)
         this.slate.notifyNodeChanged(this);
+
+        // Re-anchor the plug handles at the node's NEW position (they were hidden
+        // for the drag). Only if still pinned/selected — otherwise they stay
+        // hidden until the next hover, at the correct spot.
+        if (this._connHandlesPinned) this.showConnectionHandles();
       }, 10); // Reduced from 50ms to 10ms
     });
 

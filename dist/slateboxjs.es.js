@@ -7958,7 +7958,9 @@ class Ie {
         this.id,
         "- selecting it, addToSelection:",
         s
-      ), this.slate.selectNodes([this], s)), this.isDragging = !0, this.wasSelectedBeforeDrag = !0;
+      ), this.slate.selectNodes([this], s)), this.isDragging = !0, this.wasSelectedBeforeDrag = !0, this.hideConnectionHandles(), this.slate.getSelectedNodes?.().forEach((r) => {
+        r !== this && r.hideConnectionHandles?.();
+      });
       const o = this.svgGroup.transform();
       this.preDragTransform = {
         translateX: o.translateX || 0,
@@ -8017,7 +8019,7 @@ class Ie {
           "SELECTION_DEBUG: Drag ended on unselected node",
           this.id,
           "- selecting it"
-        ), this.slate.selectNodes([this], !1)), this.slate.notifyNodeChanged(this);
+        ), this.slate.selectNodes([this], !1)), this.slate.notifyNodeChanged(this), this._connHandlesPinned && this.showConnectionHandles();
       }, 10);
     }), this.svgGroup.on("dragmove.node", (t) => {
       this.isDragging = !0;
