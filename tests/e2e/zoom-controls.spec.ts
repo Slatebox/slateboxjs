@@ -37,12 +37,17 @@ test.describe("Zoom Controls", () => {
     const zoomSlider = await page.locator(".slatebox-zoom-slider");
     await expect(zoomSlider).toBeVisible();
 
-    // Should have zoom out (-), slider, zoom in (+), and label
+    // Fit-to-content (⤢), zoom out (-), slider, zoom in (+), and label
     const buttons = await zoomSlider.locator("button");
-    await expect(buttons).toHaveCount(2); // - and +
+    await expect(buttons).toHaveCount(3); // fit, -, +
 
     const slider = await zoomSlider.locator('input[type="range"]');
     await expect(slider).toBeVisible();
+
+    // The fit-to-content button is present.
+    await expect(
+      zoomSlider.locator('[aria-label="fitToContent"]')
+    ).toBeVisible();
   });
 
   test("should zoom in when clicking + button", async ({ page }) => {
@@ -51,8 +56,11 @@ test.describe("Zoom Controls", () => {
       return (window as any).currentSlate.panZoom.getZoom();
     });
 
-    // Click zoom in button (the + button, second button in slider)
-    const zoomInBtn = await page.locator(".slatebox-zoom-slider button").nth(1);
+    // Click zoom in button (the + button) — select by text so it's robust to
+    // button order (a fit button was added as the first control).
+    const zoomInBtn = page.locator(".slatebox-zoom-slider button", {
+      hasText: "+",
+    });
     await zoomInBtn.click();
     await page.waitForTimeout(300);
 
@@ -70,8 +78,11 @@ test.describe("Zoom Controls", () => {
       return (window as any).currentSlate.panZoom.getZoom();
     });
 
-    // Click zoom out button (the - button, first button in slider)
-    const zoomOutBtn = await page.locator(".slatebox-zoom-slider button").first();
+    // Click zoom out button (the - button) — select by text so it's robust to
+    // button order (a fit button was added as the first control).
+    const zoomOutBtn = page.locator(".slatebox-zoom-slider button", {
+      hasText: "-",
+    });
     await zoomOutBtn.click();
     await page.waitForTimeout(300);
 
@@ -81,6 +92,32 @@ test.describe("Zoom Controls", () => {
     });
 
     expect(newZoom).toBeLessThan(initialZoom);
+  });
+
+  test("fit-to-content button returns zoomed-in content to a fit view", async ({
+    page,
+  }) => {
+    // Zoom in so the slate is no longer at 1:1.
+    await page.evaluate(() => {
+      (window as any).currentSlate.zoom(3);
+    });
+    await page.waitForTimeout(200);
+    const zoomedIn = await page.evaluate(() =>
+      (window as any).currentSlate.panZoom.getZoom()
+    );
+    expect(zoomedIn).toBeGreaterThan(1.5);
+
+    // Click the fit button → zoom should change (fit recomputes zoom to frame
+    // all content).
+    await page
+      .locator('.slatebox-zoom-slider [aria-label="fitToContent"]')
+      .click();
+    await page.waitForTimeout(400);
+
+    const afterFit = await page.evaluate(() =>
+      (window as any).currentSlate.panZoom.getZoom()
+    );
+    expect(afterFit).toBeLessThan(zoomedIn);
   });
 
   test("should support programmatic zoom", async ({ page }) => {
