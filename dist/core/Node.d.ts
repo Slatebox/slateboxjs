@@ -412,6 +412,14 @@ export declare class Node {
      * or when the host registered no handler.
      */
     requestTextPane(): void;
+    /**
+     * Double-click behaviour. Miro parity: double-clicking an ordinary text node
+     * edits its text inline on the canvas. Comment nodes, SVG-content nodes, locked
+     * / read-only nodes have no inline-editable text, so they fall back to the host
+     * text pane. The properties drawer stays reachable either way via the selection
+     * cog (which opens the same pane), so this doesn't remove drawer access.
+     */
+    handleDoubleClickEdit(): void;
     private isResizeRotateHandle;
     /** Called by the Slate when this node is selected. */
     onSelected(): void;

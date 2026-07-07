@@ -9,7 +9,11 @@ test.describe("host-driven event callbacks (§B)", () => {
     await page.waitForFunction(() => (window as any).Slatebox);
   });
 
-  test("onTextPaneRequested fires on dblclick; cb applies text", async ({
+  // Note: double-clicking an ordinary text node now starts inline on-canvas
+  // editing (Miro parity). onTextPaneRequested is still the host contract — it
+  // fires for comment/SVG/locked nodes and via the selection cog — so this test
+  // triggers it via requestTextPane() directly rather than a dblclick.
+  test("onTextPaneRequested fires when requested; cb applies text", async ({
     page,
   }) => {
     await page.evaluate(async () => {
@@ -39,7 +43,9 @@ test.describe("host-driven event callbacks (§B)", () => {
       await new Promise((r) => setTimeout(r, 500));
     });
 
-    await page.dblclick('#slateCanvas svg g[data-node-id="tp1"]');
+    await page.evaluate(() =>
+      (window as any).__slate.nodes.one("tp1")?.v2.requestTextPane()
+    );
     await page.waitForTimeout(400);
 
     const result = await page.evaluate(() => ({

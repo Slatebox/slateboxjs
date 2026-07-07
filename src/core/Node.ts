@@ -2116,7 +2116,7 @@ export class Node {
     // double-clicks are detected in the pointerup path below)
     this.svgGroup.on("dblclick", (event: any) => {
       if (this.isResizeRotateHandle(event.target)) return;
-      this.requestTextPane();
+      this.handleDoubleClickEdit();
     });
 
     // SOLUTION: Use pointerdown/pointerup with position-based click detection
@@ -2184,7 +2184,7 @@ export class Node {
             const now = Date.now();
             if (now - this._lastClickTime < 400) {
               this._lastClickTime = 0;
-              this.requestTextPane();
+              this.handleDoubleClickEdit();
             } else {
               this._lastClickTime = now;
             }
@@ -2218,6 +2218,28 @@ export class Node {
         opts.textYAlign
       );
     });
+  }
+
+  /**
+   * Double-click behaviour. Miro parity: double-clicking an ordinary text node
+   * edits its text inline on the canvas. Comment nodes, SVG-content nodes, locked
+   * / read-only nodes have no inline-editable text, so they fall back to the host
+   * text pane. The properties drawer stays reachable either way via the selection
+   * cog (which opens the same pane), so this doesn't remove drawer access.
+   */
+  public handleDoubleClickEdit(): void {
+    if (
+      !this.options.isComment &&
+      !this.nestedSvg &&
+      !this.options.isLocked &&
+      !this.slate.isReadOnly?.() &&
+      !this.slate.isCommentOnly?.() &&
+      typeof this.editor?.startInline === "function"
+    ) {
+      this.editor.startInline();
+    } else {
+      this.requestTextPane();
+    }
   }
 
   // Helper method to identify resize/rotate handles

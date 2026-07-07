@@ -861,6 +861,26 @@ describe("Visibility", () => {
     expect(frontSpy).toHaveBeenCalled();
     expect(bcast).not.toHaveBeenCalled();
   });
+
+  it("handleDoubleClickEdit: text node → inline edit; comment → text pane", async () => {
+    const node = await createNode();
+    (node as any).editor = { startInline: vi.fn() };
+    const paneSpy = vi
+      .spyOn(node, "requestTextPane")
+      .mockImplementation(() => {});
+
+    // Ordinary text node → inline edit (Miro), NOT the pane.
+    node.handleDoubleClickEdit();
+    expect((node as any).editor.startInline).toHaveBeenCalled();
+    expect(paneSpy).not.toHaveBeenCalled();
+
+    // Comment node → falls back to the host text pane, NOT inline edit.
+    (node as any).editor.startInline.mockClear();
+    node.options.isComment = true;
+    node.handleDoubleClickEdit();
+    expect(paneSpy).toHaveBeenCalled();
+    expect((node as any).editor.startInline).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
