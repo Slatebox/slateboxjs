@@ -458,13 +458,20 @@ function computeConnectorCoordinates(con) {
       const fm = Math.sqrt(fx * fx + fy * fy) || 1;
       return [fx / fm, fy / fm];
     };
-    // Enter/leave each node along the line through its CENTER, so the arrowhead
-    // always points AT the node's center (user preference — this intentionally
-    // overrides the earlier "meet the edge at 90°" behavior). The radial
-    // center→port direction is correct for every shape (rect, circle, and custom
-    // vector outlines) and updates live as nodes move/resize.
-    const sDir = norm(pp1[0] - sourceCenter[0], pp1[1] - sourceCenter[1], dx, dy);
-    const tDir = norm(pp2[0] - targetCenter[0], pp2[1] - targetCenter[1], -dx, -dy);
+    // Direction the curve enters/leaves each port:
+    //  - RELATIVE endpoint (auto-flow, no anchor): aim along the line through the
+    //    node CENTER so the arrowhead points at the center (user preference #7).
+    //  - PINNED endpoint (absolute anchor, dropped at a spot): meet the edge at
+    //    90° at the pin point via the axis-aligned edge normal — so a pinned
+    //    arrow stays perpendicular to the edge where it was dropped.
+    const sDir = con.sourceAnchor
+      ? edgeNormalAt(con.source, pp1) ||
+        norm(pp1[0] - sourceCenter[0], pp1[1] - sourceCenter[1], dx, dy)
+      : norm(pp1[0] - sourceCenter[0], pp1[1] - sourceCenter[1], dx, dy);
+    const tDir = con.targetAnchor
+      ? edgeNormalAt(con.target, pp2) ||
+        norm(pp2[0] - targetCenter[0], pp2[1] - targetCenter[1], -dx, -dy)
+      : norm(pp2[0] - targetCenter[0], pp2[1] - targetCenter[1], -dx, -dy);
     // Handle length: the "Line Curve" slider (lineCurviness, 0..1) scales how far
     // the control points bow out, as a fraction of the span — so the slider is
     // always responsive. A small floor keeps the perpendicular approach visible.

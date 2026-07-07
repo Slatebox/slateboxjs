@@ -548,7 +548,14 @@ export class Connector {
             // Reattach to a node (L1a) — pin the TARGET endpoint at the DROP
             // POINT so the arrow connects exactly where the user dropped (U3).
             const newNode = this.slate.nodes.one(targetNodeId);
-            if (!newNode || newNode.id === origChildId) return;
+            if (!newNode) return;
+            if (newNode.id === origChildId) {
+              // Dropped back on the SAME target node → just RE-PIN the anchor at
+              // the new drop point (reposition the pin) instead of bailing. This
+              // is how you move a pinned endpoint along its own node's edge.
+              this.pinDropAnchor(parent, origChildId, newNode, "targetAnchor", point);
+              return;
+            }
             if (origChildId) parent.relationships.removeAssociation(origChildId);
             parent.relationships.addAssociation(newNode, props);
             this.pinDropAnchor(parent, newNode.id, newNode, "targetAnchor", point);
@@ -559,8 +566,13 @@ export class Connector {
           const oldParent: any = connection.source;
           const child: any = connection.target;
           const newNode = this.slate.nodes.one(targetNodeId);
-          if (!newNode || !child || !oldParent?.relationships || newNode.id === oldParent.id)
+          if (!newNode || !child || !oldParent?.relationships) return;
+          if (newNode.id === oldParent.id) {
+            // Dropped back on the SAME source node → re-pin the source anchor at
+            // the new drop point instead of bailing.
+            this.pinDropAnchor(oldParent, child.id, newNode, "sourceAnchor", point);
             return;
+          }
           oldParent.relationships.removeAssociation(child.id);
           newNode.relationships?.addAssociation(child, props);
           // Pin the SOURCE endpoint at the drop point on the new source node.
