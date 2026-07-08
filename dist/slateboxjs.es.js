@@ -11233,32 +11233,43 @@ async function ps(i, t = {}, e) {
   }
   const s = t.scale || 2;
   try {
-    const r = i.canvas.viewbox(), a = r.width * s, l = r.height * s, c = document.createElement("canvas");
-    c.width = a, c.height = l;
-    const h = c.getContext("2d");
-    t.alpha || (h.fillStyle = i.options.containerStyle?.backgroundColor || "#ffffff", h.fillRect(0, 0, a, l));
-    const d = new Image(), u = new Blob([n], {
+    const o = i.canvas;
+    let r, a;
+    const l = n.match(
+      /viewBox="[\d.\-]+\s+[\d.\-]+\s+([\d.\-]+)\s+([\d.\-]+)"/
+    );
+    if (l)
+      r = parseFloat(l[1]), a = parseFloat(l[2]);
+    else {
+      const y = o.viewbox();
+      r = y.width, a = y.height;
+    }
+    const c = r * s, h = a * s, d = document.createElement("canvas");
+    d.width = c, d.height = h;
+    const u = d.getContext("2d");
+    t.alpha || (u.fillStyle = i.options.containerStyle?.backgroundColor || "#ffffff", u.fillRect(0, 0, c, h));
+    const f = new Image(), g = new Blob([n], {
       type: "image/svg+xml;charset=utf-8"
-    }), f = URL.createObjectURL(u);
-    return new Promise((g, p) => {
-      d.onload = () => {
-        if (h.drawImage(d, 0, 0, a, l), URL.revokeObjectURL(f), t.asBinary)
-          c.toBlob(
-            (y) => {
-              const m = y || new Blob();
-              e?.(m), g(m);
+    }), p = URL.createObjectURL(g);
+    return new Promise((y, m) => {
+      f.onload = () => {
+        if (u.drawImage(f, 0, 0, c, h), URL.revokeObjectURL(p), t.asBinary)
+          d.toBlob(
+            (b) => {
+              const w = b || new Blob();
+              e?.(w), y(w);
             },
             "image/png"
           );
         else {
-          const y = c.toDataURL("image/png"), m = t.base64 ? y.split(",")[1] : y;
-          e?.(m), g(m);
+          const b = d.toDataURL("image/png"), w = t.base64 ? b.split(",")[1] : b;
+          e?.(w), y(w);
         }
-      }, d.onerror = (y) => {
-        URL.revokeObjectURL(f), console.error("EXPORT_DEBUG: PNG rendering failed:", y);
-        const m = t.asBinary ? new Blob() : "";
-        e?.(m), g(m);
-      }, d.src = f;
+      }, f.onerror = (b) => {
+        URL.revokeObjectURL(p), console.error("EXPORT_DEBUG: PNG rendering failed:", b);
+        const w = t.asBinary ? new Blob() : "";
+        e?.(w), y(w);
+      }, f.src = p;
     });
   } catch (o) {
     console.error("EXPORT_DEBUG: PNG export failed:", o);

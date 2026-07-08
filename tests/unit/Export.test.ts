@@ -478,12 +478,15 @@ describe("Export", () => {
     });
 
     describe("scale option", () => {
-      it("should pass the scale factor through to the viewbox dimensions", async () => {
+      it("should render a PNG using the exported (fit-to-content) dimensions", async () => {
+        // PNG dimensions now derive from the exported SVG's content viewBox (not the
+        // canvas viewport), so exporting while scrolled/zoomed still frames the
+        // diagram. It only falls back to canvas.viewbox() when the SVG has no viewBox.
         const promise = exportPNG(mockSlate, { scale: 1 });
         mockImage.triggerLoad();
-        await promise;
+        const result = await promise;
 
-        expect(mockSlate.canvas.viewbox).toHaveBeenCalled();
+        expect(result).toContain("data:image/png;base64,");
       });
     });
 

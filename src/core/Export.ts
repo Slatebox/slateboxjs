@@ -174,11 +174,26 @@ export async function exportPNG(
   const scale = opts.scale || 2; // Default 2x for better quality
 
   try {
-    // Get SVG dimensions
+    // Size the PNG to the EXPORTED svg's dimensions (fit-to-content), NOT the
+    // canvas's current pan/zoom viewport — else the PNG comes out at the viewport
+    // size with the diagram letterboxed/mis-scaled. exportSVG stamps the content
+    // viewBox; read its W/H, falling back to the viewport only if absent.
     const canvas = slate.canvas;
-    const viewbox = canvas.viewbox();
-    const width = viewbox.width * scale;
-    const height = viewbox.height * scale;
+    let baseW: number;
+    let baseH: number;
+    const vbMatch = svgString.match(
+      /viewBox="[\d.\-]+\s+[\d.\-]+\s+([\d.\-]+)\s+([\d.\-]+)"/
+    );
+    if (vbMatch) {
+      baseW = parseFloat(vbMatch[1]);
+      baseH = parseFloat(vbMatch[2]);
+    } else {
+      const viewbox = canvas.viewbox();
+      baseW = viewbox.width;
+      baseH = viewbox.height;
+    }
+    const width = baseW * scale;
+    const height = baseH * scale;
 
     // Create canvas element for rendering
     const renderCanvas = document.createElement("canvas");
