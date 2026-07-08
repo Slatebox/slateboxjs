@@ -37,6 +37,7 @@ export interface Connection {
   connectable: any; // The svg.connectable.js object
   lineColor?: string;
   lineWidth?: number;
+  label?: string; // Optional text label centered on the edge (Miro-style).
   // Edge-pin mode: normalized local anchor {x,y} in 0..1 on source/target.
   // Omitted/undefined = auto-flow (endpoint re-solves to the nearest edge).
   sourceAnchor?: { x: number; y: number } | null;
@@ -269,6 +270,10 @@ export class Connector {
       if (connection.lineColor && connectableObj.setLineColor) {
         connectableObj.setLineColor(connection.lineColor);
       }
+      // Render the edge label (if this connection carries one).
+      if (connection.label && connectableObj.setLabel) {
+        connectableObj.setLabel(connection.label);
+      }
 
       // Store the connection
       this.connections.set(connectionId, connection);
@@ -456,6 +461,10 @@ export class Connector {
         }
         if (updates.lineWidth != null && c.setStrokeWidth) {
           c.setStrokeWidth(updates.lineWidth);
+        }
+        // Edge label (Miro-style): set/update/clear the text centered on the line.
+        if ((updates as any).label != null && c.setLabel) {
+          c.setLabel((updates as any).label);
         }
         // Line type: pane uses bezier/orthogonal; connectable uses
         // straight/curved/orthogonal.

@@ -324,6 +324,7 @@ export class Relationships {
       showChildArrow: (assoc as any).showChildArrow,
       sourceAnchor: (assoc as any).sourceAnchor,
       targetAnchor: (assoc as any).targetAnchor,
+      label: (assoc as any).label,
     };
 
     // Free-floating target endpoint (L1b): connect to a bare point, not a node.

@@ -276,6 +276,8 @@ function connectable(options, elmTarget) {
         con.connector.plot(pathData);
         con.hitArea.plot(pathData); // Update hit area with same path
         updateHandles(con, pathData);
+        // Keep the edge LABEL (if any) centered on the line as it reshapes.
+        if (con.positionLabel) con.positionLabel();
       } else {
         console.error("Skipping plot due to invalid path data");
       }
@@ -296,6 +298,62 @@ function connectable(options, elmTarget) {
 
   con.setMarkerSettings = function (sourceMarker, targetMarker) {
     return setMarkerSettings(con, sourceMarker, targetMarker);
+  };
+
+  // --- Edge label (Miro-style) ---------------------------------------------
+  // A connector can carry a text label centered on the line. Rendered lazily —
+  // connectors WITHOUT a label create no extra elements and positionLabel() is a
+  // no-op, so existing connectors are completely unaffected.
+  con.positionLabel = function () {
+    if (!con.label || !con.connector || !con.connector.node) return;
+    try {
+      const total = con.connector.node.getTotalLength();
+      if (!total || !isFinite(total)) return;
+      const mid = con.connector.node.getPointAtLength(total / 2);
+      con.label.center(mid.x, mid.y);
+      if (con.labelBg) {
+        const bb = con.label.bbox();
+        con.labelBg
+          .size(bb.width + 10, bb.height + 4)
+          .center(mid.x, mid.y);
+      }
+    } catch (e) {
+      /* noop */
+    }
+  };
+
+  con.setLabel = function (text) {
+    con.labelText = text == null ? "" : String(text);
+    if (!con.labelText) {
+      if (con.label) {
+        con.label.remove();
+        con.label = null;
+      }
+      if (con.labelBg) {
+        con.labelBg.remove();
+        con.labelBg = null;
+      }
+      return;
+    }
+    if (!con.label) {
+      // A translucent chip behind the text keeps it readable over the line.
+      con.labelBg = container
+        .rect(0, 0)
+        .attr({ fill: "#ffffff", "fill-opacity": 0.85, "pointer-events": "none" })
+        .radius(3);
+      con.label = container
+        .text(con.labelText)
+        .attr({
+          "font-size": 13,
+          "font-family": "Arial, sans-serif",
+          fill: "#333333",
+          "text-anchor": "middle",
+          "pointer-events": "none",
+        });
+    } else {
+      con.label.text(con.labelText);
+    }
+    con.positionLabel();
   };
 
   con.setStrokeWidth = function (width) {

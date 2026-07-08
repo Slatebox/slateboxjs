@@ -25,6 +25,7 @@ export interface Connection {
     connectable: any;
     lineColor?: string;
     lineWidth?: number;
+    label?: string;
     sourceAnchor?: {
         x: number;
         y: number;

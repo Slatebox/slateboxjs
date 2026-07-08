@@ -145,6 +145,7 @@ export interface V2Association {
   targetPoint?: { x: number; y: number } | null;
   sourceAnchor?: { x: number; y: number } | null;
   targetAnchor?: { x: number; y: number } | null;
+  label?: string;
 }
 
 /** Convert v1 association to v2 format */
@@ -167,6 +168,7 @@ export function v1AssociationToV2(v1: Record<string, any>): V2Association {
     targetPoint: v1.targetPoint ?? null,
     sourceAnchor: v1.sourceAnchor ?? null,
     targetAnchor: v1.targetAnchor ?? null,
+    label: v1.label ?? "",
   };
 }
 
@@ -192,6 +194,7 @@ export function v2AssociationToV1(v2: V2Association): Record<string, any> {
     targetPoint: v2.targetPoint ?? null,
     sourceAnchor: v2.sourceAnchor ?? null,
     targetAnchor: v2.targetAnchor ?? null,
+    label: v2.label ?? "",
   };
 }
 

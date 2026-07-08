@@ -30,6 +30,8 @@ export interface Association {
   // null = RELATIVE (auto-flow, re-solves to the nearest edge).
   sourceAnchor?: { x: number; y: number } | null;
   targetAnchor?: { x: number; y: number } | null;
+  // Optional text label centered on the edge (Miro-style). Empty/undefined = none.
+  label?: string;
 }
 
 /** Create a default association between two node IDs */

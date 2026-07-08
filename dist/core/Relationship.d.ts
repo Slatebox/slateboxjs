@@ -34,6 +34,7 @@ export interface Association {
         x: number;
         y: number;
     } | null;
+    label?: string;
 }
 /** Create a default association between two node IDs */
 export declare function createDefaultAssociation(parentId: string, childId: string, overrides?: Partial<Association>): Association;
