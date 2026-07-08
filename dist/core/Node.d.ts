@@ -245,6 +245,12 @@ export declare class Node {
     private fitHeightToText;
     /** Position the text element within the background shape based on alignment settings. */
     centerText(): void;
+    /**
+     * Shrink the rendered text to fit within the node bounds (Miro shape behavior).
+     * Applies a uniform scale transform around the text's visual center; never grows
+     * beyond 1 (the set size) and never shrinks below a readable floor.
+     */
+    private fitTextToNode;
     private makeDraggable;
     /**
      * Extract the pointer position in client coordinates from an svg.draggable

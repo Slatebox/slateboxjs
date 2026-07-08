@@ -1085,6 +1085,55 @@ export class Node {
 
     // Use x/y attributes directly for proper text-anchor behavior
     this.textElement.attr({ x, y });
+
+    // Miro-style auto-fit: if the text (at its set fontSize) doesn't fit the node,
+    // scale it down so it stays INSIDE the shape instead of spilling out. The
+    // stored fontSize is untouched — only the rendered size shrinks — so the user's
+    // choice is preserved and restored when the node is made large enough.
+    this.fitTextToNode();
+  }
+
+  /**
+   * Shrink the rendered text to fit within the node bounds (Miro shape behavior).
+   * Applies a uniform scale transform around the text's visual center; never grows
+   * beyond 1 (the set size) and never shrinks below a readable floor.
+   */
+  private fitTextToNode(): void {
+    if (!this.textElement || this.nestedSvg) return;
+    const t = this.textElement as any;
+    // Clear any prior fit-scale so we measure the NATURAL text size.
+    try {
+      t.attr("transform", null);
+    } catch (e) {
+      return;
+    }
+    let bb: any;
+    try {
+      bb = (t.node as any).getBBox();
+    } catch (e) {
+      return;
+    }
+    if (!bb || bb.width <= 0 || bb.height <= 0) return;
+    const availW = (this.options.width || 0) - 12; // horizontal padding
+    const availH = (this.options.height || 0) - 10; // vertical padding
+    if (availW <= 0 || availH <= 0) return;
+    let scale = Math.min(availW / bb.width, availH / bb.height);
+    if (scale >= 0.999) return; // already fits — leave at full size
+    scale = Math.max(scale, 0.3); // don't shrink to unreadable
+    // Scale around the text's geometric center so it stays where it was centered,
+    // regardless of alignment / multi-line stacking.
+    const gcx = bb.x + bb.width / 2;
+    const gcy = bb.y + bb.height / 2;
+    try {
+      t.attr(
+        "transform",
+        `translate(${gcx} ${gcy}) scale(${scale.toFixed(
+          4
+        )}) translate(${-gcx} ${-gcy})`
+      );
+    } catch (e) {
+      /* noop */
+    }
   }
 
   private makeDraggable() {

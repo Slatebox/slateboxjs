@@ -8031,7 +8031,43 @@ class ze {
       const d = (this.options.fontSize || 14) * 1.3;
       c -= (h - 1) * d / 2;
     }
-    this.textElement.attr({ x: l, y: c });
+    this.textElement.attr({ x: l, y: c }), this.fitTextToNode();
+  }
+  /**
+   * Shrink the rendered text to fit within the node bounds (Miro shape behavior).
+   * Applies a uniform scale transform around the text's visual center; never grows
+   * beyond 1 (the set size) and never shrinks below a readable floor.
+   */
+  fitTextToNode() {
+    if (!this.textElement || this.nestedSvg) return;
+    const t = this.textElement;
+    try {
+      t.attr("transform", null);
+    } catch {
+      return;
+    }
+    let e;
+    try {
+      e = t.node.getBBox();
+    } catch {
+      return;
+    }
+    if (!e || e.width <= 0 || e.height <= 0) return;
+    const n = (this.options.width || 0) - 12, s = (this.options.height || 0) - 10;
+    if (n <= 0 || s <= 0) return;
+    let o = Math.min(n / e.width, s / e.height);
+    if (o >= 0.999) return;
+    o = Math.max(o, 0.3);
+    const r = e.x + e.width / 2, a = e.y + e.height / 2;
+    try {
+      t.attr(
+        "transform",
+        `translate(${r} ${a}) scale(${o.toFixed(
+          4
+        )}) translate(${-r} ${-a})`
+      );
+    } catch {
+    }
   }
   makeDraggable() {
     this.svgGroup.draggable(), this.svgGroup.on("dragstart.node", (t) => {
