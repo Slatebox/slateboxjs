@@ -242,6 +242,7 @@ export class Connector {
           showHandles: this.options.showHandles,
           curveRadius: this.options.curveRadius,
           lineCurviness: co.lineCurviness,
+          lineCurveType: (co as any).lineCurveType,
           // Edge-pin mode (optional): normalized local anchors {x,y} 0..1
           sourceAnchor: connectionOptions.sourceAnchor,
           targetAnchor: connectionOptions.targetAnchor,
@@ -482,6 +483,11 @@ export class Connector {
           // 0..1 bezier bow fraction (NOT the pixel curveRadius).
           c.lineCurviness = (updates as any).lineCurviness;
         }
+        if ((updates as any).lineCurveType != null) {
+          // Bezier sub-type: 'cubic' | 'quadratic' — re-solve so the curve redraws.
+          c.lineCurveType = (updates as any).lineCurveType;
+          c.update?.();
+        }
         // Arrow markers: source = parent arrow, target = child arrow
         if (
           (updates as any).showParentArrow != null ||
@@ -552,6 +558,7 @@ export class Connector {
       lineWidth: connection.lineWidth,
       lineType: (connection as any).lineType,
       lineCurviness: (connection as any).lineCurviness,
+      lineCurveType: (connection as any).lineCurveType,
       showParentArrow: (connection as any).showParentArrow,
       showChildArrow: (connection as any).showChildArrow,
     };

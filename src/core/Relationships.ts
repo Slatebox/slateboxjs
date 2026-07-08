@@ -324,6 +324,7 @@ export class Relationships {
       lineWidth: assoc.lineWidth,
       lineType: (assoc as any).lineType,
       lineCurviness: (assoc as any).lineCurviness,
+      lineCurveType: (assoc as any).lineCurveType,
       showParentArrow: (assoc as any).showParentArrow,
       showChildArrow: (assoc as any).showChildArrow,
       sourceAnchor: (assoc as any).sourceAnchor,

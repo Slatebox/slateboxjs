@@ -519,10 +519,21 @@ function computeConnectorCoordinates(con) {
     const cp1 = [pp1[0] + sDir[0] * handle, pp1[1] + sDir[1] * handle];
     const cp2 = [pp2[0] + tDir[0] * handle, pp2[1] + tDir[1] * handle];
 
-    points = [
-      ["M", pp1[0], pp1[1]],
-      ["C", cp1[0], cp1[1], cp2[0], cp2[1], pp2[0], pp2[1]],
-    ];
+    if (con.lineCurveType === "quadratic") {
+      // Quadratic bezier: a single control point (the average of the two cubic
+      // control points) gives a similar bow with one handle. Without this the
+      // Cubic/Quadratic toggle changed the model but rendered the same cubic curve.
+      const qcp = [(cp1[0] + cp2[0]) / 2, (cp1[1] + cp2[1]) / 2];
+      points = [
+        ["M", pp1[0], pp1[1]],
+        ["Q", qcp[0], qcp[1], pp2[0], pp2[1]],
+      ];
+    } else {
+      points = [
+        ["M", pp1[0], pp1[1]],
+        ["C", cp1[0], cp1[1], cp2[0], cp2[1], pp2[0], pp2[1]],
+      ];
+    }
   } else if (con.type === "orthogonal") {
     const dx = pp2[0] - pp1[0];
     const dy = pp2[1] - pp1[1];

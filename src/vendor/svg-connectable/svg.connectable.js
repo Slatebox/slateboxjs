@@ -219,6 +219,8 @@ function connectable(options, elmTarget) {
   // orthogonal router). Defaults to a moderate curve.
   con.lineCurviness =
     typeof options.lineCurviness === "number" ? options.lineCurviness : 0.3;
+  // Bezier sub-type: 'cubic' (default, two control points) or 'quadratic' (one).
+  con.lineCurveType = options.lineCurveType || "cubic";
 
   // Support for separate source and target markers
   con.markerSourceType = options.markerSource || "null";

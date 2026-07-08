@@ -4533,10 +4533,17 @@ function Sn(i) {
       const C = Math.sqrt(x * x + _ * _) || 1;
       return [x / C, _ / C];
     }, u = i.sourceAnchor && $n(i.source, s) || d(s[0] - e[0], s[1] - e[1], l, c), f = i.targetAnchor && $n(i.target, o) || d(o[0] - n[0], o[1] - n[1], -l, -c), g = typeof i.lineCurviness == "number" ? i.lineCurviness : 0.3, p = Math.max(20, h * (0.12 + g * 0.55)), y = [s[0] + u[0] * p, s[1] + u[1] * p], m = [o[0] + f[0] * p, o[1] + f[1] * p];
-    r = [
-      ["M", s[0], s[1]],
-      ["C", y[0], y[1], m[0], m[1], o[0], o[1]]
-    ];
+    if (i.lineCurveType === "quadratic") {
+      const b = [(y[0] + m[0]) / 2, (y[1] + m[1]) / 2];
+      r = [
+        ["M", s[0], s[1]],
+        ["Q", b[0], b[1], o[0], o[1]]
+      ];
+    } else
+      r = [
+        ["M", s[0], s[1]],
+        ["C", y[0], y[1], m[0], m[1], o[0], o[1]]
+      ];
   } else if (i.type === "orthogonal") {
     const l = o[0] - s[0], c = o[1] - s[1], h = s[0] < e[0], d = s[1] < e[1], u = o[0] < n[0], f = o[1] < n[1];
     let g, p;
@@ -5283,7 +5290,7 @@ function da(i, t) {
   } catch {
     e.connector.node.setAttribute("style", "cursor: pointer"), e.hitArea.node.setAttribute("style", "cursor: pointer");
   }
-  e.hitArea.back(), e.sourceAttach = i.sourceAttach || "perifery", e.targetAttach = i.targetAttach || "perifery", e.sourceAnchor = i.sourceAnchor || null, e.targetAnchor = i.targetAnchor || null, e.curveRadius = i.curveRadius || 20, e.lineCurviness = typeof i.lineCurviness == "number" ? i.lineCurviness : 0.3, e.markerSourceType = i.markerSource || "null", e.markerTargetType = i.markerTarget || i.marker || "default", e.showHandles = i.showHandles || !1, e.handleRadius = i.handleRadius || 6, e.handleStrokeWidth = i.handleStrokeWidth || 2, e.handleStroke = i.handleStroke || "#007cff", e.handleFill = i.handleFill || "none", e.isSelected = !1, e.computeConnectorCoordinates = function(a) {
+  e.hitArea.back(), e.sourceAttach = i.sourceAttach || "perifery", e.targetAttach = i.targetAttach || "perifery", e.sourceAnchor = i.sourceAnchor || null, e.targetAnchor = i.targetAnchor || null, e.curveRadius = i.curveRadius || 20, e.lineCurviness = typeof i.lineCurviness == "number" ? i.lineCurviness : 0.3, e.lineCurveType = i.lineCurveType || "cubic", e.markerSourceType = i.markerSource || "null", e.markerTargetType = i.markerTarget || i.marker || "default", e.showHandles = i.showHandles || !1, e.handleRadius = i.handleRadius || 6, e.handleStrokeWidth = i.handleStrokeWidth || 2, e.handleStroke = i.handleStroke || "#007cff", e.handleFill = i.handleFill || "none", e.isSelected = !1, e.computeConnectorCoordinates = function(a) {
     return Sn(a || e);
   }, n.cons = n.cons || [], n.cons.push(e), t.targetCons = t.targetCons || [], t.targetCons.push(e), e.update = function() {
     if (e.connector.attr("connectortype") == "default") {
@@ -5709,6 +5716,7 @@ class Oe {
           showHandles: this.options.showHandles,
           curveRadius: this.options.curveRadius,
           lineCurviness: s.lineCurviness,
+          lineCurveType: s.lineCurveType,
           // Edge-pin mode (optional): normalized local anchors {x,y} 0..1
           sourceAnchor: e.sourceAnchor,
           targetAnchor: e.targetAnchor
@@ -5824,7 +5832,7 @@ class Oe {
           };
           s.setType(o[e.lineType] || "curved");
         }
-        if (e.lineCurviness != null && (s.lineCurviness = e.lineCurviness), e.showParentArrow != null || e.showChildArrow != null) {
+        if (e.lineCurviness != null && (s.lineCurviness = e.lineCurviness), e.lineCurveType != null && (s.lineCurveType = e.lineCurveType, s.update?.()), e.showParentArrow != null || e.showChildArrow != null) {
           const o = e.showParentArrow ?? n.showParentArrow ? "arrow" : "null", r = e.showChildArrow ?? n.showChildArrow ?? !0 ? "arrow" : "null";
           s.setMarker?.(o, r);
         }
@@ -5862,6 +5870,7 @@ class Oe {
       lineWidth: t.lineWidth,
       lineType: t.lineType,
       lineCurviness: t.lineCurviness,
+      lineCurveType: t.lineCurveType,
       showParentArrow: t.showParentArrow,
       showChildArrow: t.showChildArrow
     }, l = (t.id.split("->")[1] || "").trim();
@@ -6320,6 +6329,7 @@ class Fi {
       lineWidth: t.lineWidth,
       lineType: t.lineType,
       lineCurviness: t.lineCurviness,
+      lineCurveType: t.lineCurveType,
       showParentArrow: t.showParentArrow,
       showChildArrow: t.showChildArrow,
       sourceAnchor: t.sourceAnchor,
