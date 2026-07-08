@@ -121,4 +121,54 @@ test.describe("parallel-edge reconnect does not duplicate (§connectors)", () =>
     expect(r.count).toBe(2);
     expect(r.childIds).toEqual(["B", "C"]);
   });
+
+  test("reconnecting a parallel edge's SOURCE to a different node keeps the sibling", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+
+    const r = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText =
+        "width:900px;height:600px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        {}
+      ).init();
+      s.nodes.add(new sb.node({ id: "A", xPos: 200, yPos: 170, width: 120, height: 70, text: "A" }));
+      s.nodes.add(new sb.node({ id: "B", xPos: 200, yPos: 450, width: 150, height: 100, text: "B" }));
+      s.nodes.add(new sb.node({ id: "D", xPos: 500, yPos: 170, width: 120, height: 70, text: "D" }));
+      await new Promise((res) => setTimeout(res, 300));
+      const a = s.v2.nodes.one("A");
+      const b = s.v2.nodes.one("B");
+      const d = s.v2.nodes.one("D");
+      a.relationships.addAssociation(b);
+      await new Promise((res) => setTimeout(res, 150));
+      a.relationships.addAssociation(b, { targetAnchor: { x: 1, y: 0.5 } });
+      await new Promise((res) => setTimeout(res, 300));
+
+      const conns = a.connector.getConnections?.() || [];
+      const e2 = conns.find((x: any) => String(x.id).includes("~2"));
+      e2.connectable.onEndpointChange({
+        which: "source",
+        targetNodeId: "D",
+        isPhantom: false,
+        point: { x: d.options.x + d.options.width * 0.5, y: d.options.y + d.options.height * 0.9 },
+      });
+      await new Promise((res) => setTimeout(res, 400));
+      return {
+        aIds: a.relationships.associations.map((x: any) => x.id),
+        dIds: d.relationships.associations.map((x: any) => x.id),
+      };
+    });
+
+    // A keeps ONLY the canonical A->B (sibling not over-removed); D now owns the moved edge.
+    expect(r.aIds.length).toBe(1);
+    expect(r.aIds.some((id: string) => id.includes("~2"))).toBe(false);
+    expect(r.dIds.some((id: string) => id.includes("->B"))).toBe(true);
+  });
 });
