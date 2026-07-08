@@ -115,10 +115,40 @@ export function exportSVG(
           const y = o.y || 0;
           const w = o.width || 0;
           const h = o.height || 0;
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x + w);
-          maxY = Math.max(maxY, y + h);
+          // Account for ROTATION: a rotated node's corners extend past its
+          // un-rotated bbox, so frame to the rotated corner extent or it gets
+          // clipped. rotate may be a number or a {rotationAngle} object.
+          const angle =
+            Number(
+              typeof o.rotate === "object" ? o.rotate?.rotationAngle : o.rotate
+            ) || 0;
+          if (angle) {
+            const cx = x + w / 2;
+            const cy = y + h / 2;
+            const rad = (angle * Math.PI) / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            for (const [px, py] of [
+              [x, y],
+              [x + w, y],
+              [x + w, y + h],
+              [x, y + h],
+            ]) {
+              const dx = px - cx;
+              const dy = py - cy;
+              const rx = cx + dx * cos - dy * sin;
+              const ry = cy + dx * sin + dy * cos;
+              minX = Math.min(minX, rx);
+              minY = Math.min(minY, ry);
+              maxX = Math.max(maxX, rx);
+              maxY = Math.max(maxY, ry);
+            }
+          } else {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + w);
+            maxY = Math.max(maxY, y + h);
+          }
         }
         if (isFinite(minX) && maxX > minX) {
           const vbW = maxX - minX + pad * 2;
