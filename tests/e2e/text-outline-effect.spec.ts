@@ -48,7 +48,10 @@ test.describe("outline text effect renders as a clean halo (§effects)", () => {
 
     // Text: outline sits behind the fill so glyphs stay legible.
     expect(res.textPaintOrder).toBe("stroke");
-    expect(res.textStroke).toBe("#ff0000");
+    // Outline contrasts the fill (no longer a hardcoded #ff0000 red) — a white or
+    // black halo depending on the text color.
+    expect(res.textStroke).not.toBe("#ff0000");
+    expect(["#ffffff", "#000000"]).toContain((res.textStroke || "").toLowerCase());
     expect(res.textStrokeW).toBe("3");
     // Shape: keeps a full border (no behind-fill paint order).
     expect(res.rectPaintOrder).toBeNull();
