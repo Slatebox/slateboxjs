@@ -57,6 +57,10 @@ export function exportSVG(
       ".line-cog", // line selection pill (delete/cog) — parallel to the node cog
       ".line-toolbar",
       "#slate-coordinates",
+      // Connector hit areas: invisible wide paths used only for click detection
+      // (attribute-tagged, so the class selectors above miss them). Not visible
+      // content — strip them so the export has no near-invisible cruft / bbox skew.
+      '[connectortype="hitarea"]',
     ];
 
     for (const sel of removeSelectors) {
