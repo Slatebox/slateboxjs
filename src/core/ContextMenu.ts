@@ -204,6 +204,8 @@ export class ContextMenu {
   private duplicateTargets(): void {
     if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;
     const created: any[] = [];
+    const srcToCopy = new Map<string, any>();
+    const idSet = new Set(this.targetNodes.map((n: any) => n.id));
     for (const n of this.targetNodes) {
       let opts: any;
       try {
@@ -211,6 +213,7 @@ export class ContextMenu {
       } catch (err) {
         opts = { ...(n.options || {}) };
       }
+      const srcId = opts.id;
       opts.id = guid();
       opts.x = (opts.x || 0) + 20;
       opts.y = (opts.y || 0) + 20;
@@ -219,13 +222,62 @@ export class ContextMenu {
       delete opts.associations;
       try {
         const node = this.slate.addNode?.(opts);
-        if (node) created.push(node);
+        if (node) {
+          created.push(node);
+          if (srcId) srcToCopy.set(srcId, node);
+        }
       } catch (err) {
         /* noop */
       }
     }
+    // Internal connectors (both endpoints duplicated) → recreate between copies
+    // so a right-click "Duplicate" of a connected group keeps its edges (Miro).
+    const edges: any[] = [];
+    for (const n of this.targetNodes) {
+      const am = n.relationships?.assocMap;
+      if (!am) continue;
+      for (const as of am.values()) {
+        if (idSet.has((as as any).childId)) {
+          let data: any = {};
+          try {
+            data = JSON.parse(JSON.stringify(as));
+          } catch (e) {
+            data = { ...(as as any) };
+          }
+          // Strip id fields referencing the ORIGINAL nodes so the recreated edge
+          // derives parent/child/id from the COPIES (else reload adds a phantom edge).
+          delete data.id;
+          delete data.childId;
+          delete data.parentId;
+          edges.push({
+            parentSrcId: n.id,
+            childSrcId: (as as any).childId,
+            data,
+          });
+        }
+      }
+    }
     if (created.length > 0) {
-      setTimeout(() => this.slate.selectNodes?.(created, false), 100);
+      const finish = () => {
+        this.slate.selectNodes?.(created, false);
+        for (const edge of edges) {
+          const p = srcToCopy.get(edge.parentSrcId);
+          const c = srcToCopy.get(edge.childSrcId);
+          if (p && c) {
+            try {
+              p.relationships?.addAssociation?.(c, edge.data);
+            } catch (e) {
+              /* noop */
+            }
+          }
+        }
+      };
+      const pending = created.map((n: any) => n?.ready).filter(Boolean);
+      if (pending.length) {
+        Promise.all(pending).then(finish).catch(finish);
+      } else {
+        setTimeout(finish, 120);
+      }
     }
   }
 }

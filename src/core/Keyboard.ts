@@ -26,6 +26,8 @@ export class Keyboard {
   private boundHandler: ((e: KeyboardEvent) => void) | null = null;
   // Internal clipboard of copied node options (deep-cloned snapshots).
   private clipboard: any[] = [];
+  // Internal edges (connectors) among the copied nodes, rewired on paste.
+  private clipboardEdges: any[] = [];
   // Debounce handle for persisting arrow-key nudges.
   private nudgeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -251,12 +253,46 @@ export class Keyboard {
     } catch (err) {
       snap = { ...(node.options || {}) };
     }
+    const srcId = snap.id; // keep the source id so copies can rewire internal edges
     delete snap.id;
     delete snap.parentArrowForChildren;
     delete snap.noChildArrowForChildren;
     delete snap.associations;
     delete snap.relationships;
+    if (srcId) snap.__srcId = srcId;
     return snap;
+  }
+
+  /**
+   * Capture the connectors whose BOTH endpoints are within `nodes` — the internal
+   * edges of a selection. Duplicating/pasting a connected group must recreate these
+   * between the copies (Miro parity), or the copies come out disconnected.
+   */
+  private internalEdges(nodes: any[]): any[] {
+    const idSet = new Set(nodes.map((n: any) => n.id));
+    const edges: any[] = [];
+    for (const n of nodes) {
+      const am = n.relationships?.assocMap;
+      if (!am) continue;
+      for (const as of am.values()) {
+        if (idSet.has((as as any).childId)) {
+          let data: any = {};
+          try {
+            data = JSON.parse(JSON.stringify(as));
+          } catch (e) {
+            data = { ...(as as any) };
+          }
+          // Strip the id fields that reference the ORIGINAL nodes — the recreated
+          // edge must derive parent/child/id from the COPIES, or persistence
+          // re-attributes it to the source node on reload (a phantom extra edge).
+          delete data.id;
+          delete data.childId;
+          delete data.parentId;
+          edges.push({ parentSrcId: n.id, childSrcId: (as as any).childId, data });
+        }
+      }
+    }
+    return edges;
   }
 
   /** Ctrl/Cmd+C — copy the selected nodes to the internal clipboard. */
@@ -265,6 +301,7 @@ export class Keyboard {
     if (selected.length === 0) return;
     e.preventDefault();
     this.clipboard = selected.map((n: any) => this.snapshotNode(n));
+    this.clipboardEdges = this.internalEdges(selected);
     this.slate.announce?.(`Copied ${this.clipboard.length} node(s)`);
   }
 
@@ -272,7 +309,7 @@ export class Keyboard {
   private pasteClipboard(e: KeyboardEvent): void {
     if (this.clipboard.length === 0) return;
     e.preventDefault();
-    this.createCopies(this.clipboard, 20);
+    this.createCopies(this.clipboard, 20, this.clipboardEdges);
   }
 
   /** Ctrl/Cmd+] — bring the selected node(s) to the front of the z-order. */
@@ -298,7 +335,7 @@ export class Keyboard {
     if (selected.length === 0) return;
     e.preventDefault();
     const snaps = selected.map((n: any) => this.snapshotNode(n));
-    this.createCopies(snaps, 20);
+    this.createCopies(snaps, 20, this.internalEdges(selected));
   }
 
   /**
@@ -306,29 +343,53 @@ export class Keyboard {
    * given a new id, then select the new nodes. addNode() broadcasts onNodeAdded,
    * so copies persist + sync to collab peers like any other added node.
    */
-  private createCopies(snapshots: any[], offset: number): void {
+  private createCopies(
+    snapshots: any[],
+    offset: number,
+    edges: any[] = []
+  ): void {
     if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;
     const created: any[] = [];
+    const srcToCopy = new Map<string, any>();
     for (const snap of snapshots) {
       const opts = { ...snap };
+      const srcId = opts.__srcId;
+      delete opts.__srcId;
       opts.id = guid();
       opts.x = (opts.x || 0) + offset;
       opts.y = (opts.y || 0) + offset;
       try {
         const node = this.slate.addNode(opts);
-        if (node) created.push(node);
+        if (node) {
+          created.push(node);
+          if (srcId) srcToCopy.set(srcId, node);
+        }
       } catch (err) {
         /* noop */
       }
     }
     if (created.length > 0) {
-      // Select the copies once their async creation settles.
-      const selectCopies = () => this.slate.selectNodes?.(created, false);
+      const finish = () => {
+        this.slate.selectNodes?.(created, false);
+        // Rewire internal connectors between the copies (Miro parity): a connector
+        // whose BOTH endpoints were duplicated is recreated between the new nodes.
+        for (const edge of edges) {
+          const p = srcToCopy.get(edge.parentSrcId);
+          const c = srcToCopy.get(edge.childSrcId);
+          if (p && c) {
+            try {
+              p.relationships?.addAssociation?.(c, edge.data);
+            } catch (e) {
+              /* noop */
+            }
+          }
+        }
+      };
       const pending = created.map((n: any) => n?.ready).filter(Boolean);
       if (pending.length) {
-        Promise.all(pending).then(selectCopies).catch(selectCopies);
+        Promise.all(pending).then(finish).catch(finish);
       } else {
-        setTimeout(selectCopies, 120);
+        setTimeout(finish, 120);
       }
       this.slate.announce?.(`Pasted ${created.length} node(s)`);
     }

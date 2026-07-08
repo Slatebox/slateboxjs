@@ -20,6 +20,7 @@ export declare class Keyboard {
     private options;
     private boundHandler;
     private clipboard;
+    private clipboardEdges;
     private nudgeTimer;
     constructor(slate: any, options?: KeyboardOptions);
     /** Bind global keyboard shortcuts */
@@ -42,6 +43,12 @@ export declare class Keyboard {
      * ids and would create dangling connections on a copy).
      */
     private snapshotNode;
+    /**
+     * Capture the connectors whose BOTH endpoints are within `nodes` — the internal
+     * edges of a selection. Duplicating/pasting a connected group must recreate these
+     * between the copies (Miro parity), or the copies come out disconnected.
+     */
+    private internalEdges;
     /** Ctrl/Cmd+C — copy the selected nodes to the internal clipboard. */
     private copySelected;
     /** Ctrl/Cmd+V — paste the clipboard nodes (offset), then select the copies. */
