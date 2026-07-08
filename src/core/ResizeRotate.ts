@@ -238,6 +238,17 @@ export class ResizeRotate {
           rotate: this.node.options.rotate,
           vectorPath: this.node.options.vectorPath,
         });
+        // Re-fit the text once the resize has FULLY settled. During the drag,
+        // fitTextToNode (via centerText in setSize) measures transient, mid-rewrap
+        // geometry and can leave the text unscaled/overflowing on a shrunk node. A
+        // final centerText on the reflowed DOM applies the correct fit (Miro-style).
+        requestAnimationFrame(() => {
+          try {
+            this.node.centerText?.();
+          } catch (e) {
+            /* noop */
+          }
+        });
       }
       this._didRotate = false;
       this._didResize = false;

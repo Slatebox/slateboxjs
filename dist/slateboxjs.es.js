@@ -5476,13 +5476,18 @@ class Hi {
         rotate: this.node.options.rotate,
         width: this.node.options.width,
         height: this.node.options.height
-      }) : this._didResize && t?.broadcast?.("onNodeResized", {
+      }) : this._didResize && (t?.broadcast?.("onNodeResized", {
         id: this.node.id,
         width: this.node.options.width,
         height: this.node.options.height,
         rotate: this.node.options.rotate,
         vectorPath: this.node.options.vectorPath
-      }), this._didRotate = !1, this._didResize = !1;
+      }), requestAnimationFrame(() => {
+        try {
+          this.node.centerText?.();
+        } catch {
+        }
+      })), this._didRotate = !1, this._didResize = !1;
     }, window.addEventListener("pointerup", this._endListener), window.addEventListener("touchend", this._endListener), this.target.on("resize", (t) => {
       this._preInteractionPos === null && (this._preInteractionPos = {
         x: this.node.options.x ?? 0,
