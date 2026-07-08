@@ -2765,8 +2765,34 @@ export class Node {
       }
       const g = (el as any)?.closest?.("[data-node-id]");
       const id = g?.getAttribute?.("data-node-id");
-      if (!id || id === this.id) return null;
-      return slate.nodes?.one?.(id) || null;
+      if (id && id !== this.id) return slate.nodes?.one?.(id) || null;
+      // elementFromPoint may land on a connection handle / resize handle (a global
+      // overlay circle with NO node ancestor) that sits over a node — those aren't
+      // drop targets. See THROUGH them: geometrically find the node whose rendered
+      // box contains the pointer, so a drop over a dot still connects to its node.
+      try {
+        const nodes = slate.nodes?.allNodes || [];
+        for (const n of nodes) {
+          if (!n || n.id === this.id) continue;
+          const box = document
+            .querySelector(`#slateCanvas [data-node-id="${n.id}"]`)
+            ?.getBoundingClientRect?.();
+          // Small margin so a handle sitting just outside the edge still resolves.
+          const pad = 14;
+          if (
+            box &&
+            clientX >= box.left - pad &&
+            clientX <= box.right + pad &&
+            clientY >= box.top - pad &&
+            clientY <= box.bottom + pad
+          ) {
+            return n;
+          }
+        }
+      } catch (e) {
+        /* noop */
+      }
+      return null;
     };
 
     const onMove = (ev: any) => {
@@ -2857,29 +2883,38 @@ export class Node {
           try {
             const w = toWorld(ev.clientX, ev.clientY);
             const to = (target as any).options;
-            let ax = Math.max(
+            const ax = Math.max(
               0,
               Math.min(1, (w.x - (to.x || 0)) / (to.width || 1))
             );
-            let ay = Math.max(
+            const ay = Math.max(
               0,
               Math.min(1, (w.y - (to.y || 0)) / (to.height || 1))
             );
-            // Snap to the NEAREST bbox edge so the endpoint sits on the perimeter.
-            // Without this, a drop in the node's interior would pin the arrow deep
-            // INSIDE the node. Keeps the along-edge position, so parallel edges
-            // dropped at different spots stay visually distinct. (For custom-shape
-            // outlines the connector further refines this to the real outline.)
-            const dl = ax,
-              dr = 1 - ax,
-              dt = ay,
-              db = 1 - ay;
-            const m = Math.min(dl, dr, dt, db);
-            if (m === dl) ax = 0;
-            else if (m === dr) ax = 1;
-            else if (m === dt) ay = 0;
-            else ay = 1;
-            data = { targetAnchor: { x: ax, y: ay } };
+            // Only PIN an absolute anchor when the drop is DELIBERATELY near an edge.
+            // A drop in the node's interior/center uses RELATIVE auto-flow so the arrow
+            // attaches at the natural source-facing edge (arrowhead visible outside the
+            // node), instead of snapping to an arbitrary edge that routes the arrow
+            // awkwardly around and can obscure the head. (There is no 'center' target.)
+            const edgeDist = Math.min(ax, 1 - ax, ay, 1 - ay);
+            if (edgeDist < 0.25) {
+              // Near an edge — pin to that edge (perimeter), keeping the along-edge
+              // position so parallel edges dropped at different edges stay distinct.
+              let sx = ax,
+                sy = ay;
+              const dl = ax,
+                dr = 1 - ax,
+                dt = ay,
+                db = 1 - ay;
+              const m = Math.min(dl, dr, dt, db);
+              if (m === dl) sx = 0;
+              else if (m === dr) sx = 1;
+              else if (m === dt) sy = 0;
+              else sy = 1;
+              data = { targetAnchor: { x: sx, y: sy } };
+            }
+            // else: interior drop → data stays undefined → relative auto-flow to the
+            // source-facing edge (like a normal connection).
           } catch (e) {
             /* fall back to auto-attach */
           }
