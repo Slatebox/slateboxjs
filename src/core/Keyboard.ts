@@ -28,6 +28,9 @@ export class Keyboard {
   private clipboard: any[] = [];
   // Internal edges (connectors) among the copied nodes, rewired on paste.
   private clipboardEdges: any[] = [];
+  // How many times the current clipboard has been pasted — so repeated pastes
+  // CASCADE (each further from the source) instead of stacking on one spot (Miro).
+  private pasteCount = 0;
   // Debounce handle for persisting arrow-key nudges.
   private nudgeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -302,6 +305,7 @@ export class Keyboard {
     e.preventDefault();
     this.clipboard = selected.map((n: any) => this.snapshotNode(n));
     this.clipboardEdges = this.internalEdges(selected);
+    this.pasteCount = 0; // fresh clipboard → restart the paste cascade
     this.slate.announce?.(`Copied ${this.clipboard.length} node(s)`);
   }
 
@@ -309,7 +313,9 @@ export class Keyboard {
   private pasteClipboard(e: KeyboardEvent): void {
     if (this.clipboard.length === 0) return;
     e.preventDefault();
-    this.createCopies(this.clipboard, 20, this.clipboardEdges);
+    // Cascade: 1st paste +20, 2nd +40, … so repeated pastes don't stack on one spot.
+    this.pasteCount++;
+    this.createCopies(this.clipboard, 20 * this.pasteCount, this.clipboardEdges);
   }
 
   /** Ctrl/Cmd+] — bring the selected node(s) to the front of the z-order. */

@@ -21,6 +21,7 @@ export declare class Keyboard {
     private boundHandler;
     private clipboard;
     private clipboardEdges;
+    private pasteCount;
     private nudgeTimer;
     constructor(slate: any, options?: KeyboardOptions);
     /** Bind global keyboard shortcuts */

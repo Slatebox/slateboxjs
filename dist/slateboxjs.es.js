@@ -10688,7 +10688,7 @@ class ds {
 }
 class us {
   constructor(t, e = {}) {
-    this.boundHandler = null, this.clipboard = [], this.clipboardEdges = [], this.nudgeTimer = null, this.slate = t, this.options = {
+    this.boundHandler = null, this.clipboard = [], this.clipboardEdges = [], this.pasteCount = 0, this.nudgeTimer = null, this.slate = t, this.options = {
       enabled: !0,
       nudgeDistance: 5,
       ...e
@@ -10851,11 +10851,11 @@ class us {
   /** Ctrl/Cmd+C — copy the selected nodes to the internal clipboard. */
   copySelected(t) {
     const e = this.slate.getSelectedNodes?.() || [];
-    e.length !== 0 && (t.preventDefault(), this.clipboard = e.map((n) => this.snapshotNode(n)), this.clipboardEdges = this.internalEdges(e), this.slate.announce?.(`Copied ${this.clipboard.length} node(s)`));
+    e.length !== 0 && (t.preventDefault(), this.clipboard = e.map((n) => this.snapshotNode(n)), this.clipboardEdges = this.internalEdges(e), this.pasteCount = 0, this.slate.announce?.(`Copied ${this.clipboard.length} node(s)`));
   }
   /** Ctrl/Cmd+V — paste the clipboard nodes (offset), then select the copies. */
   pasteClipboard(t) {
-    this.clipboard.length !== 0 && (t.preventDefault(), this.createCopies(this.clipboard, 20, this.clipboardEdges));
+    this.clipboard.length !== 0 && (t.preventDefault(), this.pasteCount++, this.createCopies(this.clipboard, 20 * this.pasteCount, this.clipboardEdges));
   }
   /** Ctrl/Cmd+] — bring the selected node(s) to the front of the z-order. */
   bringToFront(t) {
