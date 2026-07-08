@@ -10114,6 +10114,13 @@ class os {
       this.isDragging = !0, this.dragStartX = e.clientX, this.dragStartY = e.clientY;
       const n = this.viewportIndicator.bbox();
       this.viewportStartX = n.x, this.viewportStartY = n.y, this.boundMouseMove = this.handleMouseMove.bind(this), this.boundMouseUp = this.handleMouseUp.bind(this), document.addEventListener("mousemove", this.boundMouseMove), document.addEventListener("mouseup", this.boundMouseUp);
+    }), this.miniCanvas.on("mousedown", (t) => {
+      const e = t;
+      try {
+        const n = this.miniCanvas.point(e.clientX, e.clientY), s = this.viewportIndicator?.bbox().width || 50, o = this.viewportIndicator?.bbox().height || 40, r = this.calculateContentBounds(), a = 100, l = (n.x - s / 2) / this.scale + r.minX - a, c = (n.y - o / 2) / this.scale + r.minY - a;
+        this.slate.panZoom?.pan({ x: l, y: c });
+      } catch {
+      }
     }));
   }
   handleMouseMove(t) {

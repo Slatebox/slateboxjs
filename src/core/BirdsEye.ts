@@ -449,6 +449,25 @@ export class BirdsEye {
       document.addEventListener("mousemove", this.boundMouseMove);
       document.addEventListener("mouseup", this.boundMouseUp);
     });
+
+    // Miro parity: click ANYWHERE ELSE in the minimap to JUMP the viewport, centered
+    // on the clicked point. (The indicator's own mousedown stops propagation, so
+    // dragging it still pans continuously — this only fires for clicks off it.)
+    this.miniCanvas.on("mousedown", (e: Event) => {
+      const me = e as MouseEvent;
+      try {
+        const p = (this.miniCanvas as any).point(me.clientX, me.clientY);
+        const iw = this.viewportIndicator?.bbox().width || 50;
+        const ih = this.viewportIndicator?.bbox().height || 40;
+        const bounds = this.calculateContentBounds();
+        const padding = 100;
+        const panX = (p.x - iw / 2) / this.scale + bounds.minX - padding;
+        const panY = (p.y - ih / 2) / this.scale + bounds.minY - padding;
+        this.slate.panZoom?.pan({ x: panX, y: panY });
+      } catch (err) {
+        /* noop */
+      }
+    });
   }
 
   private handleMouseMove(e: MouseEvent): void {
