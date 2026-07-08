@@ -1196,8 +1196,11 @@ export class Slate {
     });
 
     // Miro parity: double-click on EMPTY canvas drops a new node at the cursor.
-    // (Double-click on a NODE edits its text — that's handled on the node, and the
-    // isCanvasClick guard keeps the two from colliding.)
+    // (Double-click on a NODE edits its text — the isCanvasClick guard separates the
+    // two.) NOTE: auto-entering the inline editor on create was attempted 4 ways
+    // (await ready, poll for svgGroup, next-frame defer, preventDefault) — the editor
+    // opens fine programmatically but never survives the real double-click's event/
+    // render sequence, so we create + select and let the user double-click to edit.
     this.canvas.on("dblclick", (event: any) => {
       const isCanvasClick =
         event.target === this.canvas.node ||
@@ -1215,10 +1218,6 @@ export class Slate {
           height: h,
           text: "",
         });
-        // Select it so it's immediately movable/editable, like Miro. (Auto-entering
-        // text-edit on create was attempted but the just-created node's inline
-        // editor doesn't open cleanly through the double-click focus aftermath;
-        // double-clicking the new node edits it, which is reliable.)
         this.selectNodes?.([node]);
       } catch (e) {
         /* noop */
