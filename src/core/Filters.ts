@@ -15,6 +15,7 @@ export interface FilterDef {
 }
 
 import type { Node } from "./Node";
+import { whiteOrBlack } from "../utils";
 
 // ─── Built-in filter definitions ─────────────────────────────────────
 
@@ -65,7 +66,15 @@ filterDefs.set("outline", {
       const origStrokeWidth = element.attr("stroke-width");
       element.data("original-stroke", origStroke || "#333");
       element.data("original-stroke-width", origStrokeWidth || 2);
-      element.stroke({ color: "#ff0000", width: 3 });
+      // Outline color contrasts the element's fill so it reads as a clean halo
+      // (dark text → white outline, light text → black). Was a hardcoded #ff0000
+      // red placeholder that looked wrong on virtually any text/shape.
+      const fill = element.attr("fill");
+      const outlineColor =
+        typeof fill === "string" && /^#[0-9a-fA-F]{3,6}$/.test(fill)
+          ? whiteOrBlack(fill)
+          : "#ffffff";
+      element.stroke({ color: outlineColor, width: 3 });
       // On TEXT the stroke is painted OVER the fill by default, so a 3px stroke
       // bleeds across the thin glyph strokes and turns the letters into an
       // illegible blob. Paint the stroke BEHIND the fill (paint-order: stroke) so
