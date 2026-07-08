@@ -2866,10 +2866,19 @@ export class Node {
       } else if (!target) {
         // Miro parity: dropping the connector on EMPTY canvas creates a NEW node
         // at the drop point, connected from this node — fast mind-map growth.
-        // (A drop back on THIS node — target.id === this.id — is a no-op cancel.)
         try {
-          if (!slate.isReadOnly?.()) {
-            const w = toWorld(ev.clientX, ev.clientY);
+          const w = toWorld(ev.clientX, ev.clientY);
+          // nodeUnder EXCLUDES this node (self), so a release back ON the source
+          // also arrives here with target=null — that's a CANCEL, not empty canvas.
+          // Guard against spawning a node on top of the source (a self-drop no-op).
+          const o = this.options;
+          const pad = 16;
+          const overSelf =
+            w.x >= (o.x || 0) - pad &&
+            w.x <= (o.x || 0) + (o.width || 0) + pad &&
+            w.y >= (o.y || 0) - pad &&
+            w.y <= (o.y || 0) + (o.height || 0) + pad;
+          if (!slate.isReadOnly?.() && !overSelf) {
             const nw = 120;
             const nh = 70;
             const newNode = slate.addNode({
