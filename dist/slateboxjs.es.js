@@ -7976,9 +7976,24 @@ class ze {
    * line rather than being split mid-word. Falls back to a character estimate
    * when canvas measurement isn't available.
    */
+  /**
+   * Fraction of the bounding box usable for text, by shape. Tapering shapes
+   * (diamond, triangle, star) have a much smaller INSCRIBED area than their
+   * bounding box, so text laid out to the full width spills past the angled
+   * edges (e.g. a diamond's usable width is roughly half its bbox). Rectangles
+   * use the full box. Applied to BOTH wrap width and fit scale so text wraps +
+   * shrinks to stay inside the actual shape, not just its bounding rect.
+   */
+  shapeTextInset() {
+    const t = String(this.options.shape || "rectangle").toLowerCase();
+    return t.includes("diamond") ? 0.6 : t.includes("triangle") ? 0.55 : t.includes("star") ? 0.5 : t.includes("ellipse") || t.includes("circle") ? 0.82 : 1;
+  }
   wrapTextToWidth(t) {
     if (!t) return t;
-    const e = Math.max(24, (this.options.width || 100) - 14), n = this.options.fontSize || 14, s = this.options.fontFamily || "sans-serif";
+    const e = Math.max(
+      24,
+      (this.options.width || 100) * this.shapeTextInset() - 14
+    ), n = this.options.fontSize || 14, s = this.options.fontFamily || "sans-serif";
     let o = null;
     try {
       o = (this._measureCanvas || (this._measureCanvas = document.createElement("canvas"))).getContext("2d"), o && (o.font = `${n}px ${s}`);
@@ -8084,18 +8099,18 @@ class ze {
       return;
     }
     if (!e || e.width <= 0 || e.height <= 0) return;
-    const n = (this.options.width || 0) - 12, s = (this.options.height || 0) - 10;
-    if (n <= 0 || s <= 0) return;
-    let o = Math.min(n / e.width, s / e.height);
-    if (o >= 0.999) return;
-    o = Math.max(o, 0.3);
-    const r = e.x + e.width / 2, a = e.y + e.height / 2;
+    const n = this.shapeTextInset(), s = (this.options.width || 0) * n - 12, o = (this.options.height || 0) * n - 10;
+    if (s <= 0 || o <= 0) return;
+    let r = Math.min(s / e.width, o / e.height);
+    if (r >= 0.999) return;
+    r = Math.max(r, 0.3);
+    const a = e.x + e.width / 2, l = e.y + e.height / 2;
     try {
       t.attr(
         "transform",
-        `translate(${r} ${a}) scale(${o.toFixed(
+        `translate(${a} ${l}) scale(${r.toFixed(
           4
-        )}) translate(${-r} ${-a})`
+        )}) translate(${-a} ${-l})`
       );
     } catch {
     }

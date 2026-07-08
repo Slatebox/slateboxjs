@@ -947,9 +947,29 @@ export class Node {
    * line rather than being split mid-word. Falls back to a character estimate
    * when canvas measurement isn't available.
    */
+  /**
+   * Fraction of the bounding box usable for text, by shape. Tapering shapes
+   * (diamond, triangle, star) have a much smaller INSCRIBED area than their
+   * bounding box, so text laid out to the full width spills past the angled
+   * edges (e.g. a diamond's usable width is roughly half its bbox). Rectangles
+   * use the full box. Applied to BOTH wrap width and fit scale so text wraps +
+   * shrinks to stay inside the actual shape, not just its bounding rect.
+   */
+  private shapeTextInset(): number {
+    const shape = String(this.options.shape || "rectangle").toLowerCase();
+    if (shape.includes("diamond")) return 0.6;
+    if (shape.includes("triangle")) return 0.55;
+    if (shape.includes("star")) return 0.5;
+    if (shape.includes("ellipse") || shape.includes("circle")) return 0.82;
+    return 1;
+  }
+
   private wrapTextToWidth(text: string): string {
     if (!text) return text;
-    const maxWidth = Math.max(24, (this.options.width || 100) - 14);
+    const maxWidth = Math.max(
+      24,
+      (this.options.width || 100) * this.shapeTextInset() - 14
+    );
     const fontSize = this.options.fontSize || 14;
     const fontFamily = this.options.fontFamily || "sans-serif";
     let ctx: any = null;
@@ -1114,8 +1134,12 @@ export class Node {
       return;
     }
     if (!bb || bb.width <= 0 || bb.height <= 0) return;
-    const availW = (this.options.width || 0) - 12; // horizontal padding
-    const availH = (this.options.height || 0) - 10; // vertical padding
+    // Inset for tapering shapes (diamond/triangle/star/ellipse) so the text is
+    // scaled to the inscribed area, not the bounding box — otherwise it spills
+    // past the angled edges.
+    const inset = this.shapeTextInset();
+    const availW = (this.options.width || 0) * inset - 12; // horizontal padding
+    const availH = (this.options.height || 0) * inset - 10; // vertical padding
     if (availW <= 0 || availH <= 0) return;
     let scale = Math.min(availW / bb.width, availH / bb.height);
     if (scale >= 0.999) return; // already fits — leave at full size

@@ -234,6 +234,15 @@ export declare class Node {
      * line rather than being split mid-word. Falls back to a character estimate
      * when canvas measurement isn't available.
      */
+    /**
+     * Fraction of the bounding box usable for text, by shape. Tapering shapes
+     * (diamond, triangle, star) have a much smaller INSCRIBED area than their
+     * bounding box, so text laid out to the full width spills past the angled
+     * edges (e.g. a diamond's usable width is roughly half its bbox). Rectangles
+     * use the full box. Applied to BOTH wrap width and fit scale so text wraps +
+     * shrinks to stay inside the actual shape, not just its bounding rect.
+     */
+    private shapeTextInset;
     private wrapTextToWidth;
     /**
      * Grow the node's height so wrapped text fits inside it (Miro-style: nodes
