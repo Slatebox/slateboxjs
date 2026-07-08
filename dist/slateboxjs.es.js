@@ -12288,7 +12288,15 @@ const Ae = class Ae {
   }
   /** Remove a node by ID. */
   removeNode(t) {
-    const e = this.nodes.one(t), n = e?.options?.text || "(unnamed)", s = !!e?.options?.isComment, o = this.nodes.remove(t);
+    const e = this.nodes.one(t), n = e?.options?.text || "(unnamed)", s = !!e?.options?.isComment;
+    if (e && this.selectedNodes.some((r) => r.id === t)) {
+      try {
+        e.resizeRotate?.disable();
+      } catch {
+      }
+      this.selectedNodes = this.selectedNodes.filter((r) => r.id !== t);
+    }
+    const o = this.nodes.remove(t);
     return this.notifyNodeChanged(), this.announce(`Node removed: ${n}`), o && this.broadcast("onNodeDeleted", { id: t, isComment: s }), o;
   }
   /**

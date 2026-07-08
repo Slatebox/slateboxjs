@@ -904,6 +904,20 @@ export class Slate {
     const node = this.nodes.one(id);
     const text = node?.options?.text || "(unnamed)";
     const isComment = !!node?.options?.isComment;
+    // If the node is currently SELECTED, tear down its svg.select resize/rotate overlay
+    // (selection box + handles) BEFORE removing it — those handles live in a separate
+    // overlay and select(false) needs the element to still exist, or deleting a selected
+    // node leaves the whole rogue selection box floating with nothing selected. (Done
+    // here, not in node.remove(), to preserve remove()'s light "don't disable sub-modules"
+    // contract — this is the permanent user-delete path.)
+    if (node && this.selectedNodes.some((n) => n.id === id)) {
+      try {
+        (node as any).resizeRotate?.disable();
+      } catch (e) {
+        /* noop */
+      }
+      this.selectedNodes = this.selectedNodes.filter((n) => n.id !== id);
+    }
     const result = this.nodes.remove(id);
     // Notify BirdsEye of the removed node
     this.notifyNodeChanged();
