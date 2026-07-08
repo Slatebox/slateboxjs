@@ -10760,7 +10760,7 @@ class us {
   Ctrl+D — duplicate
   Ctrl+] / Ctrl+[ — bring to front / send to back
   Escape — deselect
-  Arrow keys — nudge selected (1px)
+  Arrow keys — nudge selected (Shift = larger step)
   Tab — focus next node
   Enter/Space — select focused node
   ? — show this help`
@@ -10897,19 +10897,19 @@ class us {
   }
   handleArrowKey(t) {
     if (this.slate.getSelectedNodes().length > 0) {
-      const n = this.options.nudgeDistance;
+      const n = this.options.nudgeDistance, s = t.shiftKey ? n * 4 : n;
       switch (t.key) {
         case "ArrowUp":
-          this.nudge(0, -n, t);
+          this.nudge(0, -s, t);
           break;
         case "ArrowDown":
-          this.nudge(0, n, t);
+          this.nudge(0, s, t);
           break;
         case "ArrowLeft":
-          this.nudge(-n, 0, t);
+          this.nudge(-s, 0, t);
           break;
         case "ArrowRight":
-          this.nudge(n, 0, t);
+          this.nudge(s, 0, t);
           break;
       }
     } else {

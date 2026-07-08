@@ -155,7 +155,7 @@ export class Keyboard {
           "  Ctrl+D — duplicate\n" +
           "  Ctrl+] / Ctrl+[ — bring to front / send to back\n" +
           "  Escape — deselect\n" +
-          "  Arrow keys — nudge selected (1px)\n" +
+          "  Arrow keys — nudge selected (Shift = larger step)\n" +
           "  Tab — focus next node\n" +
           "  Enter/Space — select focused node\n" +
           "  ? — show this help"
@@ -364,8 +364,10 @@ export class Keyboard {
   private handleArrowKey(e: KeyboardEvent): void {
     const selected = this.slate.getSelectedNodes();
     if (selected.length > 0) {
-      // Nodes selected — nudge them
-      const d = this.options.nudgeDistance!;
+      // Nodes selected — nudge them. Shift = a larger jump (Miro parity): a plain
+      // arrow moves by nudgeDistance, Shift+arrow by 4× for coarse positioning.
+      const base = this.options.nudgeDistance!;
+      const d = e.shiftKey ? base * 4 : base;
       switch (e.key) {
         case "ArrowUp":    this.nudge(0, -d, e); break;
         case "ArrowDown":  this.nudge(0, d, e); break;
