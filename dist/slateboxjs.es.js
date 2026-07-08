@@ -6202,7 +6202,7 @@ class Ui {
         }
     }
     if (!s) return !1;
-    const o = `${this.node.id}->${s.childId}`;
+    const o = s.id;
     if (e === "sourceLock" || e === "targetLock") {
       const r = e === "sourceLock" ? "source" : "target", a = this.node.connector?.setEndpointLock(
         o,

@@ -164,7 +164,11 @@ export class Relationships {
       }
     }
     if (!assoc) return false;
-    const connId = `${this.node.id}->${assoc.childId}`;
+    // Key the connector op on the ASSOCIATION id, not the pair — else parallel
+    // edges (`A->B~2`) all collapse onto the canonical `A->B` connection, so a line
+    // property (color/width/type/lock/label) set on one parallel edge lands on (or
+    // overwrites) the wrong one. For a canonical edge assoc.id === `A->B` anyway.
+    const connId = assoc.id;
 
     // L5 locking: prop 'sourceLock'/'targetLock' with val 'absolute'|'relative'
     // toggles the endpoint's anchor. Persist the resolved anchor on the record.
