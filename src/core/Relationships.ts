@@ -199,10 +199,10 @@ export class Relationships {
     for (const [id, assoc] of this.assocMap) {
       Object.assign(assoc, opts);
 
-      // Update visual if connector supports it
+      // Update visual if connector supports it. Key by the association id (not the
+      // pair) so parallel edges (`A->B~2`) recolor the correct connection.
       if (this.node.connector) {
-        const connId = `${this.node.id}->${assoc.childId}`;
-        this.node.connector.updateConnection(connId, {
+        this.node.connector.updateConnection(assoc.id, {
           lineColor: assoc.lineColor,
           lineWidth: assoc.lineWidth,
         });

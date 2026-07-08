@@ -66,9 +66,16 @@ export function applyTheme(
     slate.applyContainerStyle?.();
   }
 
-  // Apply default line color
+  // Apply default line color (for future connections) AND re-color EXISTING
+  // connections — a theme restyles the WHOLE slate (it recolors nodes below), so
+  // existing lines shouldn't stay their old color while everything else changes.
   if (theme.defaultLineColor) {
     slate.options.defaultLineColor = theme.defaultLineColor;
+    slate.nodes?.allNodes?.forEach((node: any) => {
+      node.relationships?.updateAssociationsWith?.({
+        lineColor: theme.defaultLineColor,
+      });
+    });
   }
 
   // Apply styles to nodes. In mindMapMode over a connected tree, color by

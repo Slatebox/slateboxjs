@@ -6194,13 +6194,10 @@ class Ui {
    */
   updateAssociationsWith(t) {
     for (const [e, n] of this.assocMap)
-      if (Object.assign(n, t), this.node.connector) {
-        const s = `${this.node.id}->${n.childId}`;
-        this.node.connector.updateConnection(s, {
-          lineColor: n.lineColor,
-          lineWidth: n.lineWidth
-        });
-      }
+      Object.assign(n, t), this.node.connector && this.node.connector.updateConnection(n.id, {
+        lineColor: n.lineColor,
+        lineWidth: n.lineWidth
+      });
   }
   /**
    * Refresh all visual connections (e.g., after drag/move).
@@ -11426,7 +11423,11 @@ class gs {
 }
 function ms(i, t, e = !1, n = !1) {
   if (!t) return;
-  t._id && (i.options.themeId = t._id), e && (i.options.syncWithTheme = !0), t.containerStyle?.backgroundColor && (i.options.containerStyle = i.options.containerStyle || {}, i.options.containerStyle.backgroundColor = t.containerStyle.backgroundColor, i.applyContainerStyle?.()), t.defaultLineColor && (i.options.defaultLineColor = t.defaultLineColor);
+  t._id && (i.options.themeId = t._id), e && (i.options.syncWithTheme = !0), t.containerStyle?.backgroundColor && (i.options.containerStyle = i.options.containerStyle || {}, i.options.containerStyle.backgroundColor = t.containerStyle.backgroundColor, i.applyContainerStyle?.()), t.defaultLineColor && (i.options.defaultLineColor = t.defaultLineColor, i.nodes?.allNodes?.forEach((r) => {
+    r.relationships?.updateAssociationsWith?.({
+      lineColor: t.defaultLineColor
+    });
+  }));
   const s = i.nodes.allNodes;
   if (!s || s.length === 0 || !t.styles) return;
   const o = nl(i, s);
