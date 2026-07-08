@@ -160,7 +160,7 @@ export function v1AssociationToV2(v1: Record<string, any>): V2Association {
     lineType: v1.lineType || "bezier",
     lineCurveType: v1.lineCurveType || "cubic",
     lineCurviness: v1.lineCurviness ?? 0.1,
-    lineWidth: v1.lineWidth ?? 6,
+    lineWidth: v1.lineWidth ?? 3,
     showParentArrow: v1.showParentArrow ?? false,
     showChildArrow: v1.showChildArrow ?? true,
     sourcePoint: v1.sourcePoint ?? null,

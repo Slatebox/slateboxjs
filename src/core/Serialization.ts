@@ -333,7 +333,7 @@ export function serializeNode(node: any): NodeJSON {
           lineType: "bezier",
           lineCurviness: 0.1,
           lineCurveType: "cubic",
-          lineWidth: conn.lineWidth || 6,
+          lineWidth: conn.lineWidth || 3,
         });
       }
     }

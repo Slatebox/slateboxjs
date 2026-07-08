@@ -60,7 +60,7 @@ describe("Relationships", () => {
         mockChildNode,
         expect.objectContaining({
           lineColor: "#000",
-          lineWidth: 6,
+          lineWidth: 3,
         })
       );
     });

@@ -148,7 +148,7 @@ describe("compat - v1/v2 property mapping", () => {
       expect(v2.lineType).toBe("bezier");
       expect(v2.lineCurveType).toBe("cubic");
       expect(v2.lineCurviness).toBe(0.1);
-      expect(v2.lineWidth).toBe(6);
+      expect(v2.lineWidth).toBe(3);
       expect(v2.isStraightLine).toBe(false);
       expect(v2.showParentArrow).toBe(false);
       expect(v2.showChildArrow).toBe(true);
@@ -185,7 +185,7 @@ describe("compat - v1/v2 property mapping", () => {
       expect(v2.childId).toBeUndefined();
       // But defaults still apply to optional fields
       expect(v2.lineColor).toBe("#000");
-      expect(v2.lineWidth).toBe(6);
+      expect(v2.lineWidth).toBe(3);
     });
   });
 

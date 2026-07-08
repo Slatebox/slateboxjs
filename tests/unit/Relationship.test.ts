@@ -18,7 +18,7 @@ describe("Relationship", () => {
       expect(assoc.lineType).toBe("bezier");
       expect(assoc.lineCurveType).toBe("cubic");
       expect(assoc.lineCurviness).toBe(0.1);
-      expect(assoc.lineWidth).toBe(6);
+      expect(assoc.lineWidth).toBe(3);
       expect(assoc.isStraightLine).toBe(false);
       expect(assoc.showParentArrow).toBe(false);
       expect(assoc.showChildArrow).toBe(true);

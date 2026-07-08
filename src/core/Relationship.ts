@@ -48,7 +48,7 @@ export function createDefaultAssociation(
     lineType: "bezier",
     lineCurveType: "cubic",
     lineCurviness: 0.1,
-    lineWidth: 6,
+    lineWidth: 3,
     isStraightLine: false,
     showParentArrow: false,
     showChildArrow: true,

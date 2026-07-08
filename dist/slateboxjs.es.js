@@ -6075,7 +6075,7 @@ function an(i, t, e) {
     lineType: "bezier",
     lineCurveType: "cubic",
     lineCurviness: 0.1,
-    lineWidth: 6,
+    lineWidth: 3,
     isStraightLine: !1,
     showParentArrow: !1,
     showChildArrow: !0,
@@ -7032,7 +7032,7 @@ function An(i) {
     lineType: i.lineType || "bezier",
     lineCurveType: i.lineCurveType || "cubic",
     lineCurviness: i.lineCurviness ?? 0.1,
-    lineWidth: i.lineWidth ?? 6,
+    lineWidth: i.lineWidth ?? 3,
     showParentArrow: i.showParentArrow ?? !1,
     showChildArrow: i.showChildArrow ?? !0,
     sourcePoint: i.sourcePoint ?? null,
@@ -10252,7 +10252,7 @@ function rs(i) {
         lineType: "bezier",
         lineCurviness: 0.1,
         lineCurveType: "cubic",
-        lineWidth: s.lineWidth || 6
+        lineWidth: s.lineWidth || 3
       });
   }
   return {
