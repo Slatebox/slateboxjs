@@ -11196,6 +11196,26 @@ function Dn(i, t = {}, e) {
         d && !l.has(d) && h.remove();
       });
     }
+    try {
+      const l = s.querySelectorAll("[data-node-id]");
+      if (l.length > 0) {
+        let h = 1 / 0, d = 1 / 0, u = -1 / 0, f = -1 / 0;
+        for (const g of Array.from(l)) {
+          const p = g.getAttribute("data-node-id"), m = i.nodes?.one?.(p)?.options;
+          if (!m) continue;
+          const b = m.x || 0, w = m.y || 0, x = m.width || 0, _ = m.height || 0;
+          h = Math.min(h, b), d = Math.min(d, w), u = Math.max(u, b + x), f = Math.max(f, w + _);
+        }
+        if (isFinite(h) && u > h) {
+          const g = u - h + 80, p = f - d + 40 * 2;
+          s.setAttribute(
+            "viewBox",
+            `${h - 40} ${d - 40} ${g} ${p}`
+          ), s.setAttribute("width", String(Math.round(g))), s.setAttribute("height", String(Math.round(p))), s.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        }
+      }
+    } catch {
+    }
     let a = new XMLSerializer().serializeToString(s);
     return a = `<?xml version="1.0" encoding="UTF-8"?>
 ` + a, e?.(a), a;

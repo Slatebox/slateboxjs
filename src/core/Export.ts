@@ -95,6 +95,47 @@ export function exportSVG(
       });
     }
 
+    // Frame the export to the CONTENT bounds (all remaining node groups), NOT the
+    // canvas's current pan/zoom viewBox — otherwise a scrolled or zoomed-in view
+    // exports clipped or blank. This gives the whole diagram every time (Miro).
+    try {
+      const groups = svgNode.querySelectorAll("[data-node-id]");
+      if (groups.length > 0) {
+        const pad = 40;
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        for (const g of Array.from(groups)) {
+          const id = g.getAttribute("data-node-id");
+          const node = slate.nodes?.one?.(id);
+          const o = node?.options;
+          if (!o) continue;
+          const x = o.x || 0;
+          const y = o.y || 0;
+          const w = o.width || 0;
+          const h = o.height || 0;
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x + w);
+          maxY = Math.max(maxY, y + h);
+        }
+        if (isFinite(minX) && maxX > minX) {
+          const vbW = maxX - minX + pad * 2;
+          const vbH = maxY - minY + pad * 2;
+          svgNode.setAttribute(
+            "viewBox",
+            `${minX - pad} ${minY - pad} ${vbW} ${vbH}`
+          );
+          svgNode.setAttribute("width", String(Math.round(vbW)));
+          svgNode.setAttribute("height", String(Math.round(vbH)));
+          svgNode.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        }
+      }
+    } catch (e) {
+      /* noop — fall back to the cloned canvas viewBox */
+    }
+
     // Serialize to string
     const serializer = new XMLSerializer();
     let svgString = serializer.serializeToString(svgNode);
