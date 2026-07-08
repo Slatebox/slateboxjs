@@ -8939,6 +8939,28 @@ class ze {
           this.relationships.addAssociation(b, w);
         } catch {
         }
+      else if (!b)
+        try {
+          if (!e.isReadOnly?.()) {
+            const w = f(m.clientX, m.clientY), x = 120, _ = 70, v = e.addNode({
+              x: Math.round(w.x - x / 2),
+              y: Math.round(w.y - _ / 2),
+              width: x,
+              height: _,
+              text: ""
+            });
+            if (v) {
+              const C = () => {
+                try {
+                  this.relationships.addAssociation(v);
+                } catch {
+                }
+              };
+              v.ready?.then ? v.ready.then(C) : C(), e.selectNodes?.([v]);
+            }
+          }
+        } catch {
+        }
     };
     window.addEventListener("pointermove", p, !0), window.addEventListener("pointerup", y, !0);
   }

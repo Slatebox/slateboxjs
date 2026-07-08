@@ -2859,6 +2859,41 @@ export class Node {
         } catch (e) {
           /* noop */
         }
+      } else if (!target) {
+        // Miro parity: dropping the connector on EMPTY canvas creates a NEW node
+        // at the drop point, connected from this node — fast mind-map growth.
+        // (A drop back on THIS node — target.id === this.id — is a no-op cancel.)
+        try {
+          if (!slate.isReadOnly?.()) {
+            const w = toWorld(ev.clientX, ev.clientY);
+            const nw = 120;
+            const nh = 70;
+            const newNode = slate.addNode({
+              x: Math.round(w.x - nw / 2),
+              y: Math.round(w.y - nh / 2),
+              width: nw,
+              height: nh,
+              text: "",
+            });
+            if (newNode) {
+              // Connect once the new node has finished rendering (createAsync), so
+              // the connector attaches to a laid-out shape.
+              const connect = () => {
+                try {
+                  this.relationships.addAssociation(newNode);
+                } catch (e) {
+                  /* noop */
+                }
+              };
+              if ((newNode as any).ready?.then)
+                (newNode as any).ready.then(connect);
+              else connect();
+              slate.selectNodes?.([newNode]);
+            }
+          }
+        } catch (e) {
+          /* noop */
+        }
       }
     };
 
