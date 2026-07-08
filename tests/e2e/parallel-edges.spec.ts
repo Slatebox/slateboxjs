@@ -97,4 +97,68 @@ test.describe("parallel edges: multiple lines between the same pair (§connector
     expect(res.afterDelete.connectors).toBe(1);
     expect(res.afterDelete.remaining).toEqual(["A->B"]);
   });
+
+  test("each parallel edge keeps independent line state that serializes", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+
+    const res = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText =
+        "width:820px;height:520px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        {}
+      ).init();
+      const a = s.nodes.add(
+        new sb.node({ id: "A", xPos: 120, yPos: 200, width: 100, height: 64, text: "A" })
+      );
+      const b = s.nodes.add(
+        new sb.node({ id: "B", xPos: 460, yPos: 180, width: 150, height: 120, text: "B" })
+      );
+      await new Promise((r) => setTimeout(r, 400));
+      a.v2.relationships.addAssociation(b.v2);
+      a.v2.relationships.addAssociation(b.v2, { targetAnchor: { x: 0, y: 0.8 } });
+      await new Promise((r) => setTimeout(r, 300));
+
+      // Change ONLY the parallel edge to orthogonal (as the line pane would).
+      a.v2.relationships.applyLineProperty("A->B~2", "lineType", "orthogonal");
+      await new Promise((r) => setTimeout(r, 200));
+
+      // The exported JSON (what the app persists) must carry both edges with their
+      // own id + independent line state.
+      const json = JSON.parse(s.exportJSON());
+      const assocs: any[] = [];
+      (json.nodes || []).forEach((n: any) => {
+        const as = n.relationships?.associations;
+        if (Array.isArray(as))
+          as.forEach((x: any) =>
+            assocs.push({ id: x.id, lineType: x.lineType, anchor: x.targetAnchor })
+          );
+      });
+      const canonical = assocs.find((x) => x.id === "A->B");
+      const parallel = assocs.find((x) => x.id === "A->B~2");
+
+      // In-memory: only the parallel edge changed.
+      const mem = {
+        canonical: a.v2.relationships.assocMap.get("A->B")?.lineType,
+        parallel: a.v2.relationships.assocMap.get("A->B~2")?.lineType,
+      };
+      return { count: assocs.length, canonical, parallel, mem };
+    });
+
+    expect(res.count).toBe(2);
+    // Independent in memory…
+    expect(res.mem.canonical).toBe("bezier");
+    expect(res.mem.parallel).toBe("orthogonal");
+    // …and independent + id-tagged in the persisted JSON.
+    expect(res.canonical.lineType).toBe("bezier");
+    expect(res.parallel.lineType).toBe("orthogonal");
+    expect(res.parallel.anchor).toEqual({ x: 0, y: 0.8 });
+  });
 });
