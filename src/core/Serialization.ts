@@ -327,7 +327,7 @@ export function serializeNode(node: any): NodeJSON {
           childId: conn.target?.id || conn.target,
           parentId: node.id,
           isStraightLine: false,
-          lineColor: conn.lineColor || "#000",
+          lineColor: conn.lineColor || "#666666",
           lineEffect: "",
           lineOpacity: 1,
           lineType: "bezier",

@@ -59,7 +59,7 @@ describe("Relationships", () => {
       expect(mockNode.connector.connectTo).toHaveBeenCalledWith(
         mockChildNode,
         expect.objectContaining({
-          lineColor: "#000",
+          lineColor: "#666666",
           lineWidth: 3,
         })
       );

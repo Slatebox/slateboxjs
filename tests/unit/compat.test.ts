@@ -143,7 +143,7 @@ describe("compat - v1/v2 property mapping", () => {
       expect(v2.parentId).toBe("p1");
       expect(v2.childId).toBe("c1");
       expect(v2.id).toBe("p1->c1");
-      expect(v2.lineColor).toBe("#000");
+      expect(v2.lineColor).toBe("#666666");
       expect(v2.lineOpacity).toBe(1);
       expect(v2.lineType).toBe("bezier");
       expect(v2.lineCurveType).toBe("cubic");
@@ -184,7 +184,7 @@ describe("compat - v1/v2 property mapping", () => {
       expect(v2.parentId).toBeUndefined();
       expect(v2.childId).toBeUndefined();
       // But defaults still apply to optional fields
-      expect(v2.lineColor).toBe("#000");
+      expect(v2.lineColor).toBe("#666666");
       expect(v2.lineWidth).toBe(3);
     });
   });

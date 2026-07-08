@@ -12,7 +12,7 @@ describe("Relationship", () => {
       expect(assoc.id).toBe("parent1->child1");
       expect(assoc.parentId).toBe("parent1");
       expect(assoc.childId).toBe("child1");
-      expect(assoc.lineColor).toBe("#000");
+      expect(assoc.lineColor).toBe("#666666");
       expect(assoc.lineOpacity).toBe(1);
       expect(assoc.lineEffect).toBe("");
       expect(assoc.lineType).toBe("bezier");

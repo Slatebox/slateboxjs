@@ -154,7 +154,7 @@ export function v1AssociationToV2(v1: Record<string, any>): V2Association {
     childId: v1.childId,
     parentId: v1.parentId,
     isStraightLine: v1.isStraightLine ?? v1.blnStraight ?? false,
-    lineColor: v1.lineColor || "#000",
+    lineColor: v1.lineColor || "#666666",
     lineEffect: v1.lineEffect || "",
     lineOpacity: v1.lineOpacity ?? 1,
     lineType: v1.lineType || "bezier",

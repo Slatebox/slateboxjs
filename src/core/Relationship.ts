@@ -42,7 +42,7 @@ export function createDefaultAssociation(
     id: `${parentId}->${childId}`,
     parentId,
     childId,
-    lineColor: "#000",
+    lineColor: "#666666",
     lineOpacity: 1,
     lineEffect: "",
     lineType: "bezier",
