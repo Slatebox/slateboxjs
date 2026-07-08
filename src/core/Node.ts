@@ -3357,6 +3357,12 @@ export class Node {
       clearTimeout(this._connHandleHideTimer);
       this._connHandleHideTimer = null;
     }
+    // While THIS node is mid-drag, don't show the plug handles: they live in a
+    // global canvas group (not the node's group) so they wouldn't follow the node
+    // and would leave "ghost" dots at the old position. Selection re-runs
+    // updateSelectionResizeRotate() during drag (resize/rotate toggling), which
+    // lands here — stay pinned but hidden; drag-end re-anchors them at the new spot.
+    if (this.isDragging) return;
     this.showConnectionHandles();
   }
 

@@ -9088,7 +9088,7 @@ class ze {
     console.log(
       "CONNECTION_HANDLES_DEBUG: enableConnectionHandles called for",
       this.id
-    ), this._connHandlesPinned = !0, this._connHandleHideTimer && (clearTimeout(this._connHandleHideTimer), this._connHandleHideTimer = null), this.showConnectionHandles();
+    ), this._connHandlesPinned = !0, this._connHandleHideTimer && (clearTimeout(this._connHandleHideTimer), this._connHandleHideTimer = null), !this.isDragging && this.showConnectionHandles();
   }
   /** Hide connection handles on this node. */
   disableConnectionHandles() {
