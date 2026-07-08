@@ -612,6 +612,25 @@ class slate {
   }
 
   /**
+   * Lifecycle: `slate.destroy()` — tears down the slate. Delegates to the v2
+   * Slate's destroy(), which deregisters from `window.__slateboxInstances`,
+   * disconnects the ResizeObserver, clears all timers/intervals, removes the
+   * canvas handler, and chains destroy to sub-modules (panZoom/zoomSlider/…).
+   *
+   * The host app MUST call this when unmounting a canvas (React unmount / route
+   * change) — otherwise every navigation LEAKS a Slate: its timers, observers,
+   * and `__slateboxInstances` entry persist (the array grows unbounded across
+   * navigations). Best-effort: safe to call more than once and before ready.
+   */
+  public destroy(): void {
+    try {
+      this.v2?.destroy();
+    } catch (e) {
+      /* best-effort teardown — never throw from destroy */
+    }
+  }
+
+  /**
    * v1: `slate.getOrientation()` → `{orientation, width, height, left, top}`
    * computed over the bounding box of all nodes (10px padding, like v1),
    * falling back to the viewport dimensions when the slate is empty.
