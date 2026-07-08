@@ -376,7 +376,8 @@ describe("Connector", () => {
 
       connector.connectTo(mockNodeB);
 
-      const reverseId = "nodeB<-nodeA";
+      // Reverse lookup is keyed by the unique connection id (parallel-edge aware).
+      const reverseId = "nodeB<-nodeA->nodeB";
       expect(mockNodeB.connector.connections.has(reverseId)).toBe(true);
       expect(mockNodeB.connector.connections.get(reverseId)!.id).toBe("nodeA->nodeB");
     });

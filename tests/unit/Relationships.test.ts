@@ -21,6 +21,7 @@ describe("Relationships", () => {
         enable: vi.fn(),
         connectTo: vi.fn(),
         disconnectFrom: vi.fn(),
+        disconnectById: vi.fn(),
         updateConnection: vi.fn(),
         getConnections: vi.fn().mockReturnValue([]),
         // Mirrors the real setEndpointLock: absolute → a resolved anchor, relative → null.

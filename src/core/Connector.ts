@@ -176,7 +176,12 @@ export class Connector {
         targetNode.id
       );
 
-      const connectionId = `${this.node.id}->${targetNode.id}`;
+      // Parallel edges: the association drives the connection id (e.g.
+      // `A->B~2`), so a second line to the same node gets its own key instead of
+      // colliding with the first. Falls back to the pair id for direct callers.
+      const connectionId =
+        (connectionOptions as any).connectionId ||
+        `${this.node.id}->${targetNode.id}`;
 
       // Check if connection already exists
       if (this.connections.has(connectionId)) {
@@ -285,7 +290,9 @@ export class Connector {
 
       // Also store on target node (for bidirectional lookup)
       if (targetNode.connector) {
-        const reverseId = `${targetNode.id}<-${this.node.id}`;
+        // Keyed by the unique connection id (not the pair) so parallel edges each
+        // get their own reverse-lookup entry instead of overwriting one another.
+        const reverseId = `${targetNode.id}<-${connectionId}`;
         targetNode.connector.connections.set(reverseId, connection);
       }
 
@@ -344,8 +351,16 @@ export class Connector {
   }
 
   public disconnectFrom(targetNode: any): boolean {
-    const connectionId = `${this.node.id}->${targetNode.id}`;
-    return this.disconnectById(connectionId);
+    // Disconnect EVERY edge to this target (the canonical `A->B` plus any parallel
+    // `A->B~N`), so node deletion / disconnect-from-child never orphans a line.
+    const base = `${this.node.id}->${targetNode.id}`;
+    const ids = [...this.connections.keys()].filter(
+      (id) => id === base || id.startsWith(`${base}~`)
+    );
+    if (ids.length === 0) return this.disconnectById(base);
+    let ok = false;
+    for (const id of ids) ok = this.disconnectById(id) || ok;
+    return ok;
   }
 
   public disconnectById(connectionId: string): boolean {
@@ -376,9 +391,10 @@ export class Connector {
       // Remove from both nodes' connection maps
       this.connections.delete(connectionId);
 
-      // Remove reverse connection from target node
+      // Remove reverse connection from target node (unique-id keyed, matching
+      // how it was stored in connectTo — so parallel edges clean up individually).
       if (connection.target && connection.target.connector) {
-        const reverseId = `${connection.target.id}<-${this.node.id}`;
+        const reverseId = `${connection.target.id}<-${connectionId}`;
         connection.target.connector.connections.delete(reverseId);
       }
 

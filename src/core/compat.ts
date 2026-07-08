@@ -173,6 +173,9 @@ export function v1AssociationToV2(v1: Record<string, any>): V2Association {
 /** Convert v2 association to v1 format */
 export function v2AssociationToV1(v2: V2Association): Record<string, any> {
   return {
+    // Persist the association id so parallel edges (`A->B~2`) survive a save/reload
+    // round-trip instead of collapsing back onto the canonical `A->B` and deduping.
+    id: v2.id,
     childId: v2.childId,
     parentId: v2.parentId,
     isStraightLine: v2.isStraightLine,

@@ -34,7 +34,7 @@ export declare class Relationships {
     /**
      * Remove a specific association by child node ID.
      */
-    removeAssociation(childId: string): boolean;
+    removeAssociation(childIdOrAssocId: string): boolean;
     /**
      * Remove all associations from this node.
      */
@@ -62,8 +62,10 @@ export declare class Relationships {
     refreshOwnRelationships(): void;
     /** Get all associations where this node is the parent */
     getAssociations(): Association[];
-    /** Get a specific association by child ID */
+    /** Get a specific association by child ID (the canonical edge to that child) */
     getAssociation(childId: string): Association | undefined;
+    /** True if an association with this exact id exists (parallel-edge aware). */
+    hasAssociationId(id: string): boolean;
     /** Check if this node has any associations */
     hasAssociations(): boolean;
     /** Get count of associations */

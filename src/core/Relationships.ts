@@ -57,6 +57,18 @@ export class Relationships {
   ): Association {
     const assoc = createDefaultAssociation(this.node.id, childNode.id, data);
 
+    // Parallel edges (Miro-style): allow MORE THAN ONE line between the same pair.
+    // The first edge keeps the canonical `parent->child` id (back-compat with saved
+    // slates + collab + the reverse lookup); an additional edge to a child that's
+    // already connected gets a unique `~N` suffix so it renders as a SEPARATE line
+    // instead of being deduped away. A caller that passes an explicit id
+    // (deserialize / remote collab add) keeps that id verbatim.
+    if (!data?.id && this.assocMap.has(assoc.id)) {
+      let n = 2;
+      while (this.assocMap.has(`${assoc.id}~${n}`)) n++;
+      assoc.id = `${assoc.id}~${n}`;
+    }
+
     // Store the association
     this.assocMap.set(assoc.id, assoc);
 
@@ -81,37 +93,42 @@ export class Relationships {
   /**
    * Remove a specific association by child node ID.
    */
-  public removeAssociation(childId: string): boolean {
-    const assocId = `${this.node.id}->${childId}`;
-    const assoc = this.assocMap.get(assocId);
+  public removeAssociation(childIdOrAssocId: string): boolean {
+    // Accept either a specific association id (`A->B~2` → remove just that
+    // parallel edge) or a child id (`B` → remove EVERY edge to that child, so
+    // node deletion / disconnect-from-child never orphans a parallel line).
+    const direct = this.assocMap.get(childIdOrAssocId);
+    const matches = direct
+      ? [direct]
+      : Array.from(this.assocMap.values()).filter(
+          (a) => a.childId === childIdOrAssocId
+        );
 
-    if (!assoc) {
+    if (matches.length === 0) {
       console.warn(
         "RELATIONSHIP_DEBUG: Association not found:",
-        assocId
+        childIdOrAssocId
       );
       return false;
     }
 
-    // Remove visual connection (floating endpoints have no child node → remove
-    // by connection id; node-backed ones disconnect from the child node).
-    if ((assoc as any).targetPoint && this.node.connector) {
-      this.node.connector.disconnectById(assocId);
-    } else {
-      const childNode = this.slate.nodes.one(childId);
-      if (childNode && this.node.connector) {
-        this.node.connector.disconnectFrom(childNode);
+    for (const assoc of matches) {
+      // Each edge (canonical or parallel) is keyed by its unique association id
+      // in the connector, so remove by that id.
+      if (this.node.connector) {
+        this.node.connector.disconnectById(assoc.id);
       }
+      this.assocMap.delete(assoc.id);
+      console.log("RELATIONSHIP_DEBUG: Removed association", assoc.id);
+
+      // Broadcast to collaborators (suppressed during remote apply/teardown).
+      // Include the id so a peer removes the exact parallel edge, not all of them.
+      (this.node as any).slate?.broadcast?.("removeRelationship", {
+        parentId: this.node.id,
+        childId: assoc.childId,
+        id: assoc.id,
+      });
     }
-
-    this.assocMap.delete(assocId);
-    console.log("RELATIONSHIP_DEBUG: Removed association", assocId);
-
-    // Broadcast to collaborators (suppressed during remote apply/teardown)
-    (this.node as any).slate?.broadcast?.("removeRelationship", {
-      parentId: this.node.id,
-      childId,
-    });
     return true;
   }
 
@@ -121,8 +138,8 @@ export class Relationships {
   public removeAll(): void {
     const ids = Array.from(this.assocMap.keys());
     for (const id of ids) {
-      const assoc = this.assocMap.get(id)!;
-      this.removeAssociation(assoc.childId);
+      // Remove by the exact association id (handles parallel edges correctly).
+      this.removeAssociation(id);
     }
   }
 
@@ -232,9 +249,14 @@ export class Relationships {
     return Array.from(this.assocMap.values());
   }
 
-  /** Get a specific association by child ID */
+  /** Get a specific association by child ID (the canonical edge to that child) */
   public getAssociation(childId: string): Association | undefined {
     return this.assocMap.get(`${this.node.id}->${childId}`);
+  }
+
+  /** True if an association with this exact id exists (parallel-edge aware). */
+  public hasAssociationId(id: string): boolean {
+    return this.assocMap.has(id);
   }
 
   /** Check if this node has any associations */
@@ -290,6 +312,10 @@ export class Relationships {
     }
 
     const props: any = {
+      // Drive the connection identity from the association id so parallel edges
+      // (`parent->child~N`) render as separate connections instead of colliding
+      // on the pair-based key.
+      connectionId: assoc.id,
       lineColor: assoc.lineColor,
       lineWidth: assoc.lineWidth,
       lineType: (assoc as any).lineType,

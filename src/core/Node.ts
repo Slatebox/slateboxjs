@@ -2763,7 +2763,28 @@ export class Node {
       clearHover();
       if (target && target.id !== this.id) {
         try {
-          this.relationships.addAssociation(target);
+          // Pin the new edge's target endpoint at the DROP point (normalized 0..1
+          // anchor on the target node), so the arrow lands exactly where the user
+          // dropped it (named bug #4) AND a second/parallel line to the same node
+          // is visually distinct instead of overlapping the first at the auto edge
+          // point.
+          let data: any = undefined;
+          try {
+            const w = toWorld(ev.clientX, ev.clientY);
+            const to = (target as any).options;
+            const ax = Math.max(
+              0,
+              Math.min(1, (w.x - (to.x || 0)) / (to.width || 1))
+            );
+            const ay = Math.max(
+              0,
+              Math.min(1, (w.y - (to.y || 0)) / (to.height || 1))
+            );
+            data = { targetAnchor: { x: ax, y: ay } };
+          } catch (e) {
+            /* fall back to auto-attach */
+          }
+          this.relationships.addAssociation(target, data);
         } catch (e) {
           /* noop */
         }

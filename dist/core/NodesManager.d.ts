@@ -21,7 +21,7 @@ export declare class NodesManager {
     }): void;
     /** Create an association from a collab package: `{parentId, childId, ...opts}` */
     addRelationship(relationshipData: any): void;
-    /** Remove an association from a collab package: `{parentId, childId}` */
+    /** Remove an association from a collab package: `{parentId, childId, id?}` */
     removeRelationship(relationshipData: any): void;
     private generateId;
     count(): number;

@@ -118,9 +118,15 @@ export class NodesManager {
       console.warn("NODESMANAGER_DEBUG: addRelationship missing parent", parentId);
       return;
     }
-    // Idempotent: skip if the association already exists (guards duplicate line
-    // / echo loop when the same package arrives via multiple collab paths).
-    if ((parent as any).relationships?.getAssociation?.(childId)) return;
+    // Idempotent by the EXACT association id (parallel edges have distinct ids
+    // like `A->B~2`, so keying on childId alone would wrongly drop the second
+    // line). Falls back to childId for legacy packages that carry no id.
+    const rid = (relationshipData as any).id;
+    if (rid) {
+      if ((parent as any).relationships?.hasAssociationId?.(rid)) return;
+    } else if ((parent as any).relationships?.getAssociation?.(childId)) {
+      return;
+    }
 
     // Free-floating endpoint (L1b): target is a bare point, no child node.
     if (targetPoint) {
@@ -143,12 +149,14 @@ export class NodesManager {
     (parent as any).relationships?.addAssociation(child, relationshipData);
   }
 
-  /** Remove an association from a collab package: `{parentId, childId}` */
+  /** Remove an association from a collab package: `{parentId, childId, id?}` */
   public removeRelationship(relationshipData: any) {
-    const { parentId, childId } = relationshipData || {};
+    const { parentId, childId, id } = relationshipData || {};
     const parent = parentId ? this.one(parentId) : undefined;
-    if (!parent || !childId) return;
-    (parent as any).relationships?.removeAssociation(childId);
+    if (!parent || (!childId && !id)) return;
+    // Prefer the exact association id so a peer removes only the intended
+    // parallel edge; fall back to childId (removes all edges to that child).
+    (parent as any).relationships?.removeAssociation(id || childId);
   }
 
   private generateId(): string {

@@ -210,8 +210,9 @@ describe("compat - v1/v2 property mapping", () => {
       expect(v1.parentId).toBe("p");
       expect(v1.childId).toBe("c");
       expect(v1.lineColor).toBe("#000");
-      // v1 doesn't have id
-      expect(v1.id).toBeUndefined();
+      // The association id is now persisted so parallel edges (`A->B~2`) survive
+      // a save/reload round-trip instead of collapsing onto the canonical id.
+      expect(v1.id).toBe("p->c");
     });
   });
 
