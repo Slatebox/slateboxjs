@@ -5873,7 +5873,7 @@ class Oe {
       lineCurveType: t.lineCurveType,
       showParentArrow: t.showParentArrow,
       showChildArrow: t.showChildArrow
-    }, l = (t.id.split("->")[1] || "").trim();
+    }, l = (t.id.split("->")[1] || "").trim().replace(/~\d+$/, "");
     setTimeout(() => {
       try {
         if (n === "target") {
@@ -5881,15 +5881,15 @@ class Oe {
           if (!c?.relationships) return;
           if (o || !s) {
             if (!r) return;
-            l && c.relationships.removeAssociation(l), c.relationships.addFloatingAssociation(r, a);
+            l && c.relationships.removeAssociation(t.id), c.relationships.addFloatingAssociation(r, a);
           } else {
             const h = this.slate.nodes.one(s);
             if (!h) return;
             if (h.id === l) {
-              this.pinDropAnchor(c, l, h, "targetAnchor", r);
+              this.pinDropAnchor(c, t.id, h, "targetAnchor", r);
               return;
             }
-            l && c.relationships.removeAssociation(l), c.relationships.addAssociation(h, a), this.pinDropAnchor(c, h.id, h, "targetAnchor", r);
+            l && c.relationships.removeAssociation(t.id), c.relationships.addAssociation(h, a), this.pinDropAnchor(c, h.id, h, "targetAnchor", r);
           }
         } else {
           if (o || !s) return;
@@ -5899,7 +5899,7 @@ class Oe {
             this.pinDropAnchor(c, h.id, d, "sourceAnchor", r);
             return;
           }
-          c.relationships.removeAssociation(h.id), d.relationships?.addAssociation(h, a), this.pinDropAnchor(d, h.id, d, "sourceAnchor", r);
+          c.relationships.removeAssociation(t.id), d.relationships?.addAssociation(h, a), this.pinDropAnchor(d, h.id, d, "sourceAnchor", r);
         }
       } catch (c) {
         console.warn("CONNECTOR_DEBUG: endpoint change → model failed:", c);
@@ -5922,7 +5922,7 @@ class Oe {
       let l = a((o.x - (r.x || 0)) / r.width), c = a((o.y - (r.y || 0)) / r.height);
       const h = l, d = 1 - l, u = c, f = 1 - c, g = Math.min(h, d, u, f);
       g === h ? l = 0 : g === d ? l = 1 : g === u ? c = 0 : c = 1;
-      const p = { x: l, y: c }, y = t?.relationships, m = y?.associations?.find((b) => b.childId === e);
+      const p = { x: l, y: c }, y = t?.relationships, m = y?.associations?.find((b) => b.id === e) || y?.associations?.find((b) => b.childId === e);
       m?.id && (y.applyLineProperty(m.id, s, p), t.slate?.broadcast?.("onLinePropertiesChanged", {
         id: t.id,
         prop: s,

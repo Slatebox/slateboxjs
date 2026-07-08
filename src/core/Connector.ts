@@ -563,8 +563,14 @@ export class Connector {
       showChildArrow: (connection as any).showChildArrow,
     };
     // The connection's ORIGINAL child id (stable in the id `parent->child`),
-    // used to remove the outgoing association before we rebuild it.
-    const origChildId = (connection.id.split("->")[1] || "").trim();
+    // used for the same-node re-pin check + child lookup. STRIP any parallel-edge
+    // `~N` suffix: id `A->B~2` must yield child "B", not "B~2" — otherwise the
+    // same-node check below fails and the reconnect remove+adds → DUPLICATE edge
+    // (moving a parallel line "copies" it). Removal/pinning key on connection.id
+    // (the SPECIFIC edge), not the child, so parallels aren't over-removed.
+    const origChildId = (connection.id.split("->")[1] || "")
+      .trim()
+      .replace(/~\d+$/, "");
 
     setTimeout(() => {
       try {
@@ -574,7 +580,7 @@ export class Connector {
           if (isPhantom || !targetNodeId) {
             // Dropped on empty canvas → free-floating target endpoint (L1b)
             if (!point) return;
-            if (origChildId) parent.relationships.removeAssociation(origChildId);
+            if (origChildId) parent.relationships.removeAssociation(connection.id);
             parent.relationships.addFloatingAssociation(point, props);
           } else {
             // Reattach to a node (L1a) — pin the TARGET endpoint at the DROP
@@ -585,10 +591,10 @@ export class Connector {
               // Dropped back on the SAME target node → just RE-PIN the anchor at
               // the new drop point (reposition the pin) instead of bailing. This
               // is how you move a pinned endpoint along its own node's edge.
-              this.pinDropAnchor(parent, origChildId, newNode, "targetAnchor", point);
+              this.pinDropAnchor(parent, connection.id, newNode, "targetAnchor", point);
               return;
             }
-            if (origChildId) parent.relationships.removeAssociation(origChildId);
+            if (origChildId) parent.relationships.removeAssociation(connection.id);
             parent.relationships.addAssociation(newNode, props);
             this.pinDropAnchor(parent, newNode.id, newNode, "targetAnchor", point);
           }
@@ -605,7 +611,7 @@ export class Connector {
             this.pinDropAnchor(oldParent, child.id, newNode, "sourceAnchor", point);
             return;
           }
-          oldParent.relationships.removeAssociation(child.id);
+          oldParent.relationships.removeAssociation(connection.id);
           newNode.relationships?.addAssociation(child, props);
           // Pin the SOURCE endpoint at the drop point on the new source node.
           this.pinDropAnchor(newNode, child.id, newNode, "sourceAnchor", point);
@@ -654,7 +660,11 @@ export class Connector {
       else ay = 1;
       const anchor = { x: ax, y: ay };
       const rels = ownerNode?.relationships;
-      const assoc = rels?.associations?.find((a: any) => a.childId === childId);
+      // `childId` may be a specific association id (`A->B~2`, passed for reconnect
+      // pinning) OR a bare child id — prefer the exact edge, fall back to child.
+      const assoc =
+        rels?.associations?.find((a: any) => a.id === childId) ||
+        rels?.associations?.find((a: any) => a.childId === childId);
       if (assoc?.id) {
         rels.applyLineProperty(assoc.id, which, anchor);
         // Broadcast the pinned anchor so it PERSISTS and syncs. The reconnect's
