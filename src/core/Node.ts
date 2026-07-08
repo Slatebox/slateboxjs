@@ -2772,14 +2772,28 @@ export class Node {
           try {
             const w = toWorld(ev.clientX, ev.clientY);
             const to = (target as any).options;
-            const ax = Math.max(
+            let ax = Math.max(
               0,
               Math.min(1, (w.x - (to.x || 0)) / (to.width || 1))
             );
-            const ay = Math.max(
+            let ay = Math.max(
               0,
               Math.min(1, (w.y - (to.y || 0)) / (to.height || 1))
             );
+            // Snap to the NEAREST bbox edge so the endpoint sits on the perimeter.
+            // Without this, a drop in the node's interior would pin the arrow deep
+            // INSIDE the node. Keeps the along-edge position, so parallel edges
+            // dropped at different spots stay visually distinct. (For custom-shape
+            // outlines the connector further refines this to the real outline.)
+            const dl = ax,
+              dr = 1 - ax,
+              dt = ay,
+              db = 1 - ay;
+            const m = Math.min(dl, dr, dt, db);
+            if (m === dl) ax = 0;
+            else if (m === dr) ax = 1;
+            else if (m === dt) ay = 0;
+            else ay = 1;
             data = { targetAnchor: { x: ax, y: ay } };
           } catch (e) {
             /* fall back to auto-attach */
