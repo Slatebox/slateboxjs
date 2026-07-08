@@ -10228,7 +10228,13 @@ async function Ja(i, t, e, n) {
     const o = i.options;
     Object.assign(t.options, o), i.shareId && (t.options.shareId = i.shareId), t.applyContainerStyle?.();
   }
-  e || t.nodes.clear();
+  if (!e) {
+    t.nodes.clear();
+    try {
+      t.linesContainer?.clear?.();
+    } catch {
+    }
+  }
   const s = /* @__PURE__ */ new Map();
   if (Array.isArray(i.nodes)) {
     for (const r of i.nodes) {

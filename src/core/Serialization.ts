@@ -126,6 +126,15 @@ async function deserializeInner(
   // Clear existing nodes unless preserving
   if (!preserve) {
     slate.nodes.clear();
+    // Connectors render in a GLOBAL container (slate.linesContainer), not the node
+    // groups — so nodes.clear() alone can leave orphaned connector paths behind
+    // (e.g. an undo that removes async-created copies leaves rogue lines). Wipe the
+    // container so the rebuild below re-renders exactly the snapshot's connectors.
+    try {
+      (slate as any).linesContainer?.clear?.();
+    } catch (e) {
+      /* noop */
+    }
   }
 
   // First pass: create all nodes (without relationships)
