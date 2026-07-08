@@ -104,6 +104,27 @@
   filter: brightness(1.05) drop-shadow(0 0 8px rgba(74, 144, 226, 0.5));
 }
 
+/* Canvas labels must not be text-selectable: a marquee-select or node drag used to
+   highlight the SVG node text (browser text-selection), which never happens in Miro.
+   Node groups carry no class — they're identified by [data-node-id] — so target that.
+   The inline text editor re-enables selection below. */
+.slateboxjs-node,
+[data-node-id],
+[data-node-id] text,
+[data-node-id] tspan {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+}
+
+/* ...but the inline text editor stays selectable so editing works normally. */
+.sb-inline-editor,
+[contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+}
+
 /* Transition animations */
 .slateboxjs-node,
 .svg-select-point,
