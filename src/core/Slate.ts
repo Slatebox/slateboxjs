@@ -1215,7 +1215,10 @@ export class Slate {
           height: h,
           text: "",
         });
-        // Select it so it's immediately movable/editable, like Miro.
+        // Select it so it's immediately movable/editable, like Miro. (Auto-entering
+        // text-edit on create was attempted but the just-created node's inline
+        // editor doesn't open cleanly through the double-click focus aftermath;
+        // double-clicking the new node edits it, which is reliable.)
         this.selectNodes?.([node]);
       } catch (e) {
         /* noop */
