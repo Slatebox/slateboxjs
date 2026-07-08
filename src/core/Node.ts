@@ -820,11 +820,19 @@ export class Node {
     this.backgroundRect = undefined as any;
 
     this.options.shape = shape;
-    // Always sync vectorPath to this shape change — DON'T leave a stale value.
-    // resolveShapePath() prioritizes vectorPath, so a leftover vectorPath (e.g.
-    // the default node's "rectangle") would override the new shape and render the
-    // OLD one — the root cause of "I changed the shape but it stayed a rectangle".
-    this.options.vectorPath = vectorPath;
+    // Sync vectorPath to THIS shape change (default it to `shape` when no explicit
+    // vectorPath is given). Two things matter here:
+    //  1. It must never be a STALE value — a leftover vectorPath (e.g. the default
+    //     node's "rectangle") would override the new shape via resolveShapePath()
+    //     and render the OLD one ("I changed the shape but it stayed a rectangle").
+    //  2. It must REFLECT the current shape — the app's Shape tab reads
+    //     options.vectorPath to highlight the active swatch, so clearing it left the
+    //     tab unable to show which shape is selected after a change.
+    // Defaulting to `shape` satisfies both: vectorPath always equals the current
+    // shape (never stale), and the pane can read it. (resolveShapePath prioritizes
+    // vectorPath, but it now holds the same value as `shape`, so the render is
+    // identical.)
+    this.options.vectorPath = vectorPath ?? shape;
 
     this.createBackground();
     // Keep the shape behind the text and any other content.

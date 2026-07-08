@@ -37,6 +37,11 @@ test.describe("node shape change re-renders (§U5)", () => {
         hasPath: !!g().querySelector("path"),
         hasBareRect: !!bareRect(),
         textStillThere: !!g().querySelector("text"),
+        // vectorPath must track the current shape (never stale, and readable by the
+        // app's Shape tab to highlight the active swatch), not be left empty.
+        vectorPathSyncsShape:
+          n.v2.options.vectorPath === n.v2.options.shape &&
+          (n.v2.options.vectorPath || "").startsWith("M"),
       };
 
       // 2) named shape
@@ -57,6 +62,7 @@ test.describe("node shape change re-renders (§U5)", () => {
     expect(res.afterPath.hasPath).toBe(true);
     expect(res.afterPath.hasBareRect).toBe(false);
     expect(res.afterPath.textStillThere).toBe(true);
+    expect(res.afterPath.vectorPathSyncsShape).toBe(true);
     // Named shape → re-rendered.
     expect(res.afterNamed.shape).toBe("circle");
     expect(res.afterNamed.hasCircleOrPath).toBe(true);

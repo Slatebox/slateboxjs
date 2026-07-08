@@ -7862,7 +7862,7 @@ class ze {
       this.backgroundRect?.remove?.();
     } catch {
     }
-    this.backgroundRect = void 0, this.options.shape = t, this.options.vectorPath = e, this.createBackground();
+    this.backgroundRect = void 0, this.options.shape = t, this.options.vectorPath = e ?? t, this.createBackground();
     try {
       this.backgroundRect?.back?.();
     } catch {
