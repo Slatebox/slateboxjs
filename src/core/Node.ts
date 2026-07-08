@@ -1605,6 +1605,10 @@ export class Node {
       this.connectionPreview.container.remove();
       this.connectionPreview.container = undefined;
     }
+    // Clean up the selection toolbar (delete/connect/gear pill). It's rendered in a
+    // GLOBAL container, not svgGroup, so removing the group won't take it — without
+    // this an in-toolbar delete leaves a stale cog floating for a node that's gone.
+    this.hideNodeCog();
     // Remove the main SVG group (cleans up all child elements and sub-system references)
     this.svgGroup.remove();
   }

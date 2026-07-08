@@ -8289,7 +8289,7 @@ class ze {
    * Cleans up DOM elements but does NOT disable sub-modules. Use `destroy()` for full teardown.
    */
   remove() {
-    this.connectionHandles.container && (this.connectionHandles.container.remove(), this.connectionHandles.container = void 0), this.connectionPreview?.container && (this.connectionPreview.container.remove(), this.connectionPreview.container = void 0), this.svgGroup.remove();
+    this.connectionHandles.container && (this.connectionHandles.container.remove(), this.connectionHandles.container = void 0), this.connectionPreview?.container && (this.connectionPreview.container.remove(), this.connectionPreview.container = void 0), this.hideNodeCog(), this.svgGroup.remove();
   }
   /**
    * Destroy the node completely, cleaning up all timers, event handlers,
