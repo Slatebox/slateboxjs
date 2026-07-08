@@ -66,6 +66,14 @@ filterDefs.set("outline", {
       element.data("original-stroke", origStroke || "#333");
       element.data("original-stroke-width", origStrokeWidth || 2);
       element.stroke({ color: "#ff0000", width: 3 });
+      // On TEXT the stroke is painted OVER the fill by default, so a 3px stroke
+      // bleeds across the thin glyph strokes and turns the letters into an
+      // illegible blob. Paint the stroke BEHIND the fill (paint-order: stroke) so
+      // the outline reads as a clean halo. Shapes (rect/path) keep the default so
+      // their border stays a full 3px.
+      if (element.type === "text") {
+        element.attr("paint-order", "stroke");
+      }
     } catch {}
   },
   remove: (element: any) => {
@@ -75,6 +83,7 @@ filterDefs.set("outline", {
         color: element.data("original-stroke") || "#333",
         width: element.data("original-stroke-width") || 2,
       });
+      element.attr("paint-order", null);
     } catch {}
   },
 });

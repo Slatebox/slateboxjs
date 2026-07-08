@@ -6675,7 +6675,7 @@ yt.set("outline", {
   apply: (i) => {
     try {
       const t = i.attr("stroke"), e = i.attr("stroke-width");
-      i.data("original-stroke", t || "#333"), i.data("original-stroke-width", e || 2), i.stroke({ color: "#ff0000", width: 3 });
+      i.data("original-stroke", t || "#333"), i.data("original-stroke-width", e || 2), i.stroke({ color: "#ff0000", width: 3 }), i.type === "text" && i.attr("paint-order", "stroke");
     } catch {
     }
   },
@@ -6684,7 +6684,7 @@ yt.set("outline", {
       i.stroke({
         color: i.data("original-stroke") || "#333",
         width: i.data("original-stroke-width") || 2
-      });
+      }), i.attr("paint-order", null);
     } catch {
     }
   }
