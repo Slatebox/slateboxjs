@@ -12286,6 +12286,19 @@ const ke = class ke {
       e ? (console.log("SELECTION_DEBUG: Canvas clicked - deselecting all"), this.clearSelection(), this.clearLineCog(), this.options.events?.onCanvasClicked?.(t)) : console.log(
         "SELECTION_DEBUG: Click on non-canvas element, not deselecting"
       );
+    }), this.canvas.on("dblclick", (t) => {
+      if ((t.target === this.canvas.node || t.target && t.target.tagName === "svg") && !this.isReadOnly?.())
+        try {
+          const n = this.canvas.point(t.clientX, t.clientY), s = 120, o = 70, r = this.addNode({
+            x: Math.round(n.x - s / 2),
+            y: Math.round(n.y - o / 2),
+            width: s,
+            height: o,
+            text: ""
+          });
+          this.selectNodes?.([r]);
+        } catch {
+        }
     });
   }
   /**

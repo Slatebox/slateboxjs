@@ -1194,6 +1194,33 @@ export class Slate {
         );
       }
     });
+
+    // Miro parity: double-click on EMPTY canvas drops a new node at the cursor.
+    // (Double-click on a NODE edits its text — that's handled on the node, and the
+    // isCanvasClick guard keeps the two from colliding.)
+    this.canvas.on("dblclick", (event: any) => {
+      const isCanvasClick =
+        event.target === this.canvas.node ||
+        (event.target && event.target.tagName === "svg");
+      if (!isCanvasClick) return;
+      if (this.isReadOnly?.()) return;
+      try {
+        const world = this.canvas.point(event.clientX, event.clientY);
+        const w = 120;
+        const h = 70;
+        const node = this.addNode({
+          x: Math.round(world.x - w / 2),
+          y: Math.round(world.y - h / 2),
+          width: w,
+          height: h,
+          text: "",
+        });
+        // Select it so it's immediately movable/editable, like Miro.
+        this.selectNodes?.([node]);
+      } catch (e) {
+        /* noop */
+      }
+    });
   }
 
   /**
