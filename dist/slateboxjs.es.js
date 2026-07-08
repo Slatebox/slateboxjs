@@ -4540,10 +4540,23 @@ function Sn(i) {
   } else if (i.type === "orthogonal") {
     const l = o[0] - s[0], c = o[1] - s[1], h = s[0] < e[0], d = s[1] < e[1], u = o[0] < n[0], f = o[1] < n[1];
     let g, p;
-    if (Math.abs(l) > Math.abs(c))
+    const y = 32;
+    if (Math.abs(l) <= y && Math.abs(c) > y) {
+      const m = (s[0] + o[0]) / 2;
+      r = [
+        ["M", m, s[1]],
+        ["L", m, o[1]]
+      ];
+    } else if (Math.abs(c) <= y && Math.abs(l) > y) {
+      const m = (s[1] + o[1]) / 2;
+      r = [
+        ["M", s[0], m],
+        ["L", o[0], m]
+      ];
+    } else if (Math.abs(l) > Math.abs(c))
       if (h && u || !h && !u) {
-        const y = Math.max(i.curveRadius, Math.abs(c) / 2);
-        p = s[1] + (c > 0 ? -y : y), r = [
+        const m = Math.max(i.curveRadius, Math.abs(c) / 2);
+        p = s[1] + (c > 0 ? -m : m), r = [
           ["M", s[0], s[1]],
           ["L", s[0], p],
           ["L", o[0], p],
@@ -4557,8 +4570,8 @@ function Sn(i) {
           ["L", o[0], o[1]]
         ];
     else if (d && f || !d && !f) {
-      const y = Math.max(i.curveRadius, Math.abs(l) / 2);
-      g = s[0] + (l > 0 ? -y : y), r = [
+      const m = Math.max(i.curveRadius, Math.abs(l) / 2);
+      g = s[0] + (l > 0 ? -m : m), r = [
         ["M", s[0], s[1]],
         ["L", g, s[1]],
         ["L", g, o[1]],

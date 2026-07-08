@@ -534,7 +534,25 @@ function computeConnectorCoordinates(con) {
 
     let midX, midY;
 
-    if (Math.abs(dx) > Math.abs(dy)) {
+    // Miro-clean routing: when the two anchors are nearly co-linear (small
+    // perpendicular offset), draw a straight run instead of a tiny ~22px jog.
+    // Source/target anchors carry a small inherent x/y offset even for
+    // center-aligned nodes, which otherwise reads as an ugly step. Snapping both
+    // ends to the shared mid-coordinate keeps each point on its node edge.
+    const ORTHO_SNAP = 32;
+    if (Math.abs(dx) <= ORTHO_SNAP && Math.abs(dy) > ORTHO_SNAP) {
+      const cx = (pp1[0] + pp2[0]) / 2;
+      points = [
+        ["M", cx, pp1[1]],
+        ["L", cx, pp2[1]],
+      ];
+    } else if (Math.abs(dy) <= ORTHO_SNAP && Math.abs(dx) > ORTHO_SNAP) {
+      const cy = (pp1[1] + pp2[1]) / 2;
+      points = [
+        ["M", pp1[0], cy],
+        ["L", pp2[0], cy],
+      ];
+    } else if (Math.abs(dx) > Math.abs(dy)) {
       if ((sourceIsLeft && targetIsLeft) || (!sourceIsLeft && !targetIsLeft)) {
         const offset = Math.max(con.curveRadius, Math.abs(dy) / 2);
         midY = pp1[1] + (dy > 0 ? -offset : offset);
