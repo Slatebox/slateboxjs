@@ -98,5 +98,42 @@ test.describe("connector edge labels (§labels)", () => {
     });
     // If serialize is reachable, the label must be in the JSON.
     if (roundTrip !== null) expect(roundTrip).toBe(true);
+
+    // Clearing the label (empty text) removes it — no rogue text element.
+    await page.evaluate((ids) => {
+      const a = (window as any).__s.v2.nodes.one(ids.aid);
+      a.relationships.applyLineProperty(ids.assocId, "label", "");
+    }, ids);
+    await page.waitForTimeout(200);
+    const afterClear = await page.evaluate(
+      () =>
+        [...document.querySelectorAll("#slateCanvas text")].filter(
+          (t) => t.textContent === "Approves"
+        ).length
+    );
+    expect(afterClear).toBe(0);
+
+    // Re-label, then DELETE the connector — the label must be cleaned up too.
+    await page.evaluate((ids) => {
+      const a = (window as any).__s.v2.nodes.one(ids.aid);
+      a.relationships.applyLineProperty(ids.assocId, "label", "Approves");
+    }, ids);
+    await page.waitForTimeout(200);
+    await page.evaluate((ids) => {
+      const a = (window as any).__s.v2.nodes.one(ids.aid);
+      a.relationships.removeAssociation(ids.assocId);
+    }, ids);
+    await page.waitForTimeout(300);
+    const afterDelete = await page.evaluate(() => ({
+      labels: [...document.querySelectorAll("#slateCanvas text")].filter(
+        (t) => t.textContent === "Approves"
+      ).length,
+      conns: document.querySelectorAll(
+        '#slateCanvas path[connectortype="default"]'
+      ).length,
+    }));
+    // No rogue label, no rogue connector.
+    expect(afterDelete.labels).toBe(0);
+    expect(afterDelete.conns).toBe(0);
   });
 });

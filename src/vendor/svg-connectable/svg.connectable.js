@@ -385,6 +385,8 @@ function connectable(options, elmTarget) {
     rm(con.markerTarget);
     rm(con._sourcePhantomRect);
     rm(con._targetPhantomRect);
+    rm(con.label);
+    rm(con.labelBg);
     return con;
   };
 
