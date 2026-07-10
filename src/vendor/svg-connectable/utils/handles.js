@@ -1236,47 +1236,26 @@ function updateHandles(con, pathData) {
   const lastCmd = pathData[pathData.length - 1];
   const endPoint = [lastCmd[lastCmd.length - 2], lastCmd[lastCmd.length - 1]]; // Last point
 
-  // Pull the endpoint grab-handles back ~25px from the node edge ALONG the line so
-  // the hollow circles don't overlap the node's resize / add-node icons (which sit
-  // right at the edge). The line + arrowhead still terminate at the true endpoint;
-  // only the draggable handle is offset inward. Skipped for short lines (the pull
-  // would cross the midpoint). Drops are pointer-driven (findDropTarget uses the
-  // mouse event), so this purely cosmetic offset does not affect where an endpoint
-  // lands when dragged.
-  const HANDLE_PULLBACK = 25;
-  const pullBack = (from, toward) => {
-    const dx = toward[0] - from[0];
-    const dy = toward[1] - from[1];
-    const len = Math.hypot(dx, dy);
-    if (len < HANDLE_PULLBACK * 2.2) return from;
-    return [
-      from[0] + (dx / len) * HANDLE_PULLBACK,
-      from[1] + (dy / len) * HANDLE_PULLBACK,
-    ];
-  };
-  const srcPos = pullBack(startPoint, endPoint);
-  const tgtPos = pullBack(endPoint, startPoint);
-
   // Create or update source handle
   if (!con.sourceHandle) {
-    con.sourceHandle = createHandle(con, true, srcPos);
+    con.sourceHandle = createHandle(con, true, startPoint);
   } else {
     con.sourceHandle.element.attr({
-      cx: srcPos[0],
-      cy: srcPos[1],
+      cx: startPoint[0],
+      cy: startPoint[1],
     });
-    con.sourceHandle.position = srcPos;
+    con.sourceHandle.position = startPoint;
   }
 
   // Create or update target handle
   if (!con.targetHandle) {
-    con.targetHandle = createHandle(con, false, tgtPos);
+    con.targetHandle = createHandle(con, false, endPoint);
   } else {
     con.targetHandle.element.attr({
-      cx: tgtPos[0],
-      cy: tgtPos[1],
+      cx: endPoint[0],
+      cy: endPoint[1],
     });
-    con.targetHandle.position = tgtPos;
+    con.targetHandle.position = endPoint;
   }
 }
 

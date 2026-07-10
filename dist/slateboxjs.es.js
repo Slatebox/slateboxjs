@@ -5139,20 +5139,14 @@ function Kn(i, t) {
     i.sourceHandle && (i.sourceHandle.element.remove(), i.sourceHandle = null), i.targetHandle && (i.targetHandle.element.remove(), i.targetHandle = null);
     return;
   }
-  const e = [t[0][1], t[0][2]], n = t[t.length - 1], s = [n[n.length - 2], n[n.length - 1]], o = 25, r = (c, h) => {
-    const d = h[0] - c[0], u = h[1] - c[1], f = Math.hypot(d, u);
-    return f < o * 2.2 ? c : [
-      c[0] + d / f * o,
-      c[1] + u / f * o
-    ];
-  }, a = r(e, s), l = r(s, e);
+  const e = [t[0][1], t[0][2]], n = t[t.length - 1], s = [n[n.length - 2], n[n.length - 1]];
   i.sourceHandle ? (i.sourceHandle.element.attr({
-    cx: a[0],
-    cy: a[1]
-  }), i.sourceHandle.position = a) : i.sourceHandle = Vn(i, !0, a), i.targetHandle ? (i.targetHandle.element.attr({
-    cx: l[0],
-    cy: l[1]
-  }), i.targetHandle.position = l) : i.targetHandle = Vn(i, !1, l);
+    cx: e[0],
+    cy: e[1]
+  }), i.sourceHandle.position = e) : i.sourceHandle = Vn(i, !0, e), i.targetHandle ? (i.targetHandle.element.attr({
+    cx: s[0],
+    cy: s[1]
+  }), i.targetHandle.position = s) : i.targetHandle = Vn(i, !1, s);
 }
 function ta(i, t) {
   const e = i.container.rect(20, 20).attr({
