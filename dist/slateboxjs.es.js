@@ -5010,10 +5010,9 @@ function Jr(i, t, e) {
   }), n && console.log("Selected closest candidate:", d[0]), d[0].element) : (n && console.log("No drop target found"), null);
 }
 function Xe(i, t, e) {
-  const n = e.isSource ? i.source : i.target;
-  if (t === n || t.attr("connectortype") || t.hasClass && t.hasClass("connector-handle") || t._isPhantomRect) return !1;
-  const s = e.isSource ? i.target : i.source;
-  return t !== s;
+  if (t.attr("connectortype") || t.hasClass && t.hasClass("connector-handle") || t._isPhantomRect) return !1;
+  const n = e.isSource ? i.target : i.source;
+  return t !== n;
 }
 function qn(i, t, e) {
   let n = null;

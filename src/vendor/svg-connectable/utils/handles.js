@@ -899,9 +899,12 @@ function findDropTarget(con, e, handleObj) {
  * @return {Boolean} True if valid drop target
  */
 function isValidDropTarget(con, element, handleObj) {
-  // Don't allow dropping on the same element it's already connected to
-  const currentTarget = handleObj.isSource ? con.source : con.target;
-  if (element === currentTarget) return false;
+  // Dropping back on the endpoint's OWN current node is ALLOWED — that is how you
+  // reposition a pinned endpoint along its node's edge (handleEndpointChange re-pins it
+  // via pinDropAnchor). Excluding the current target here made the node invisible to the
+  // drop hit-test, so a same-node reposition fell through to a canvas drop: the endpoint
+  // detached into a free-floating point (straight line, no longer followed the node) and
+  // the same-node re-pin path was effectively unreachable.
 
   // Don't allow dropping on connector elements themselves
   if (element.attr("connectortype")) return false;
