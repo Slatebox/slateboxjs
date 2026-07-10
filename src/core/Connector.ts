@@ -640,10 +640,28 @@ export class Connector {
       if (!point) return;
       const o = anchorNode?.options || {};
       if (!o.width || !o.height) return;
-      if (o.rotate?.rotationAngle) return; // non-rotated only for now
       const clamp = (v: number) => Math.max(0, Math.min(1, v));
-      let ax = clamp((point.x - (o.x || 0)) / o.width);
-      let ay = clamp((point.y - (o.y || 0)) / o.height);
+      // Un-rotate the world drop point into the node's LOCAL (unrotated) frame so the
+      // normalized anchor is correct on ROTATED nodes too. The node rotates around its
+      // center by rotationAngle; the connectable re-applies that rotation when rendering
+      // a stored local anchor (getCurrentAnchor round-trips through the shape CTM), so a
+      // correct local anchor renders exactly at the drop point. Previously this bailed on
+      // rotated nodes → the endpoint fell back to auto-flow (nearest edge) and "reverted"
+      // away from where the user dropped it (the reported bug).
+      let px = point.x;
+      let py = point.y;
+      const angle = o.rotate?.rotationAngle || 0;
+      if (angle) {
+        const cx = (o.x || 0) + o.width / 2;
+        const cy = (o.y || 0) + o.height / 2;
+        const rad = (-angle * Math.PI) / 180;
+        const dx = px - cx;
+        const dy = py - cy;
+        px = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
+        py = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
+      }
+      let ax = clamp((px - (o.x || 0)) / o.width);
+      let ay = clamp((py - (o.y || 0)) / o.height);
       // Snap to the nearest EDGE so the arrowhead sits ON the node's boundary
       // (touching it, on the side the user dropped) instead of at an interior
       // point — an interior anchor put the arrowhead inside/covered by the node

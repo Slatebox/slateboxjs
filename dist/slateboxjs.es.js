@@ -5139,14 +5139,20 @@ function Kn(i, t) {
     i.sourceHandle && (i.sourceHandle.element.remove(), i.sourceHandle = null), i.targetHandle && (i.targetHandle.element.remove(), i.targetHandle = null);
     return;
   }
-  const e = [t[0][1], t[0][2]], n = t[t.length - 1], s = [n[n.length - 2], n[n.length - 1]];
+  const e = [t[0][1], t[0][2]], n = t[t.length - 1], s = [n[n.length - 2], n[n.length - 1]], o = 25, r = (c, h) => {
+    const d = h[0] - c[0], u = h[1] - c[1], f = Math.hypot(d, u);
+    return f < o * 2.2 ? c : [
+      c[0] + d / f * o,
+      c[1] + u / f * o
+    ];
+  }, a = r(e, s), l = r(s, e);
   i.sourceHandle ? (i.sourceHandle.element.attr({
-    cx: e[0],
-    cy: e[1]
-  }), i.sourceHandle.position = e) : i.sourceHandle = Vn(i, !0, e), i.targetHandle ? (i.targetHandle.element.attr({
-    cx: s[0],
-    cy: s[1]
-  }), i.targetHandle.position = s) : i.targetHandle = Vn(i, !1, s);
+    cx: a[0],
+    cy: a[1]
+  }), i.sourceHandle.position = a) : i.sourceHandle = Vn(i, !0, a), i.targetHandle ? (i.targetHandle.element.attr({
+    cx: l[0],
+    cy: l[1]
+  }), i.targetHandle.position = l) : i.targetHandle = Vn(i, !1, l);
 }
 function ta(i, t) {
   const e = i.container.rect(20, 20).attr({
@@ -5917,17 +5923,23 @@ class Oe {
     try {
       if (!o) return;
       const r = n?.options || {};
-      if (!r.width || !r.height || r.rotate?.rotationAngle) return;
-      const a = (b) => Math.max(0, Math.min(1, b));
-      let l = a((o.x - (r.x || 0)) / r.width), c = a((o.y - (r.y || 0)) / r.height);
-      const h = l, d = 1 - l, u = c, f = 1 - c, g = Math.min(h, d, u, f);
-      g === h ? l = 0 : g === d ? l = 1 : g === u ? c = 0 : c = 1;
-      const p = { x: l, y: c }, y = t?.relationships, m = y?.associations?.find((b) => b.id === e) || y?.associations?.find((b) => b.childId === e);
-      m?.id && (y.applyLineProperty(m.id, s, p), t.slate?.broadcast?.("onLinePropertiesChanged", {
+      if (!r.width || !r.height) return;
+      const a = (_) => Math.max(0, Math.min(1, _));
+      let l = o.x, c = o.y;
+      const h = r.rotate?.rotationAngle || 0;
+      if (h) {
+        const _ = (r.x || 0) + r.width / 2, v = (r.y || 0) + r.height / 2, C = -h * Math.PI / 180, E = l - _, S = c - v;
+        l = _ + E * Math.cos(C) - S * Math.sin(C), c = v + E * Math.sin(C) + S * Math.cos(C);
+      }
+      let d = a((l - (r.x || 0)) / r.width), u = a((c - (r.y || 0)) / r.height);
+      const f = d, g = 1 - d, p = u, y = 1 - u, m = Math.min(f, g, p, y);
+      m === f ? d = 0 : m === g ? d = 1 : m === p ? u = 0 : u = 1;
+      const b = { x: d, y: u }, w = t?.relationships, x = w?.associations?.find((_) => _.id === e) || w?.associations?.find((_) => _.childId === e);
+      x?.id && (w.applyLineProperty(x.id, s, b), t.slate?.broadcast?.("onLinePropertiesChanged", {
         id: t.id,
         prop: s,
-        val: p,
-        associationId: m.id
+        val: b,
+        associationId: x.id
       }));
     } catch {
     }
@@ -9136,7 +9148,7 @@ class ze {
     this.svgGroup && (this.svgGroup.on("mouseenter", () => this.revealConnHandlesOnHover()), this.svgGroup.on("mouseleave", () => this.scheduleConnHandlesHide()));
   }
   revealConnHandlesOnHover() {
-    this.slate?.isReadOnly?.() || (this._connHandleHideTimer && (clearTimeout(this._connHandleHideTimer), this._connHandleHideTimer = null), this.connectionHandlesVisible || this.showConnectionHandles());
+    this.slate?.isReadOnly?.() || this.isDragging || (this._connHandleHideTimer && (clearTimeout(this._connHandleHideTimer), this._connHandleHideTimer = null), this.connectionHandlesVisible || this.showConnectionHandles());
   }
   scheduleConnHandlesHide() {
     this._connHandlesPinned || (this._connHandleHideTimer && clearTimeout(this._connHandleHideTimer), this._connHandleHideTimer = setTimeout(() => {

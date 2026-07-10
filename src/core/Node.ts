@@ -3156,6 +3156,12 @@ export class Node {
 
   private revealConnHandlesOnHover(): void {
     if (this.slate?.isReadOnly?.()) return;
+    // Don't reveal while this node is being dragged. The pointer stays over the
+    // moving node so mouseenter re-fires, which re-showed the plug handles at their
+    // stale (pre-drag) position — leaving "ghost" dots behind at the old spot while
+    // the node moved away. dragstart hides them and dragend re-anchors them at the
+    // new position (see makeDraggable), i.e. hide-on-mousedown / show-on-mouseup.
+    if (this.isDragging) return;
     if (this._connHandleHideTimer) {
       clearTimeout(this._connHandleHideTimer);
       this._connHandleHideTimer = null;
