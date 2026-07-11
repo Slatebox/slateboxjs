@@ -1747,6 +1747,11 @@ export class Slate {
     this.broadcast("onNodesMove", {
       nodeOptions: sel.map((n) => v2NodeToV1(n.options)),
     });
+    // The nodes moved — refresh the selection UI so the dashed group outline (and the
+    // per-node handles) re-wrap the NEW positions. Without this the outline kept its
+    // stale pre-align extent, making aligned nodes look like they'd moved "to the
+    // center" of a too-wide box.
+    this.updateSelectionResizeRotate();
   }
 
   /**
@@ -1801,6 +1806,11 @@ export class Slate {
     this.broadcast("onNodesMove", {
       nodeOptions: sel.map((n) => v2NodeToV1(n.options)),
     });
+    // The nodes moved — refresh the selection UI so the dashed group outline (and the
+    // per-node handles) re-wrap the NEW positions. Without this the outline kept its
+    // stale pre-align extent, making aligned nodes look like they'd moved "to the
+    // center" of a too-wide box.
+    this.updateSelectionResizeRotate();
   }
 
   // ─── Serialization API ──────────────────────────────────────────────

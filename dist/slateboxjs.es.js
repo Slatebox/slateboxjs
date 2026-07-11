@@ -12825,7 +12825,7 @@ const Ae = class Ae {
     }
     this.broadcast("onNodesMove", {
       nodeOptions: n.map((d) => wt(d.options))
-    });
+    }), this.updateSelectionResizeRotate();
   }
   /**
    * Evenly distribute the selected (or given) nodes along an axis so the gaps
@@ -12865,7 +12865,7 @@ const Ae = class Ae {
       return;
     this.broadcast("onNodesMove", {
       nodeOptions: n.map((o) => wt(o.options))
-    });
+    }), this.updateSelectionResizeRotate();
   }
   // ─── Serialization API ──────────────────────────────────────────────
   /**
