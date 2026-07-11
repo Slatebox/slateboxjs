@@ -1477,15 +1477,14 @@ export class Slate {
     // translate), so the group box collapsed to the canvas origin. Off-screen
     // there, svg.select.js computed a degenerate screenCTM and emitted a storm
     // of "NaN" polyline-handle errors on every multi-select.
+    // Use each node's ROTATION-AWARE world box so the dashed outline tightly encloses
+    // rotated nodes (a rotated node's option box is smaller than its visual extent).
     this.selectedNodes.forEach((node) => {
-      const x = node.options.x ?? 0;
-      const y = node.options.y ?? 0;
-      const w = node.options.width ?? 0;
-      const h = node.options.height ?? 0;
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x + w);
-      maxY = Math.max(maxY, y + h);
+      const rb = this.rotatedBounds(node);
+      minX = Math.min(minX, rb.minX);
+      minY = Math.min(minY, rb.minY);
+      maxX = Math.max(maxX, rb.maxX);
+      maxY = Math.max(maxY, rb.maxY);
     });
 
     return {
@@ -1657,32 +1656,90 @@ export class Slate {
    * mode: left | centerH | right | top | middle | bottom. Broadcasts onNodesMove
    * so the change persists + syncs to collab. No-op for < 2 nodes.
    */
+  /**
+   * Axis-aligned bounding box of a node in WORLD coords, accounting for its
+   * rotation (the four corners rotated about the node's center). Un-rotated → the
+   * option box; rotated → the tight box enclosing the visually-rotated shape. This
+   * is what alignment, distribution and the group-selection outline must use so
+   * rotated nodes line up by what you SEE, not by their un-rotated option box.
+   */
+  private rotatedBounds(node: Node): {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  } {
+    const o = node.options;
+    const x = o.x || 0;
+    const y = o.y || 0;
+    const w = o.width || 0;
+    const h = o.height || 0;
+    const angle = o.rotate?.rotationAngle || 0;
+    if (!angle) return { minX: x, minY: y, maxX: x + w, maxY: y + h };
+    const cxp = x + w / 2;
+    const cyp = y + h / 2;
+    const rad = (angle * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    const corners: number[][] = [
+      [x, y],
+      [x + w, y],
+      [x + w, y + h],
+      [x, y + h],
+    ];
+    for (const [px, py] of corners) {
+      const dx = px - cxp;
+      const dy = py - cyp;
+      const rx = cxp + dx * cos - dy * sin;
+      const ry = cyp + dx * sin + dy * cos;
+      minX = Math.min(minX, rx);
+      minY = Math.min(minY, ry);
+      maxX = Math.max(maxX, rx);
+      maxY = Math.max(maxY, ry);
+    }
+    return { minX, minY, maxX, maxY };
+  }
+
   public alignNodes(mode: string, nodes?: Node[]): void {
     const sel = nodes || this.getSelectedNodes();
     if (!sel || sel.length < 2) return;
-    const b = sel.map((n) => ({
-      n,
-      x: n.options.x || 0,
-      y: n.options.y || 0,
-      w: n.options.width || 0,
-      h: n.options.height || 0,
-    }));
-    const minX = Math.min(...b.map((o) => o.x));
-    const maxRight = Math.max(...b.map((o) => o.x + o.w));
-    const minY = Math.min(...b.map((o) => o.y));
-    const maxBottom = Math.max(...b.map((o) => o.y + o.h));
-    const cx = (minX + maxRight) / 2;
-    const cy = (minY + maxBottom) / 2;
+    // Align by each node's VISUAL (rotation-aware) box, and move via a DELTA on the
+    // node's own option position so its rotation is preserved. Aligning raw options.x
+    // made rotated nodes' visual edges disagree with the rest (they "don't line up").
+    const b = sel.map((n) => {
+      const rb = this.rotatedBounds(n);
+      return {
+        n,
+        minX: rb.minX,
+        maxX: rb.maxX,
+        minY: rb.minY,
+        maxY: rb.maxY,
+        cx: (rb.minX + rb.maxX) / 2,
+        cy: (rb.minY + rb.maxY) / 2,
+        ox: n.options.x || 0,
+        oy: n.options.y || 0,
+      };
+    });
+    const gMinX = Math.min(...b.map((o) => o.minX));
+    const gMaxX = Math.max(...b.map((o) => o.maxX));
+    const gMinY = Math.min(...b.map((o) => o.minY));
+    const gMaxY = Math.max(...b.map((o) => o.maxY));
+    const gcx = (gMinX + gMaxX) / 2;
+    const gcy = (gMinY + gMaxY) / 2;
     for (const o of b) {
-      let x = o.x;
-      let y = o.y;
+      let x = o.ox;
+      let y = o.oy;
       switch (mode) {
-        case "left": x = minX; break;
-        case "right": x = maxRight - o.w; break;
-        case "centerH": x = cx - o.w / 2; break;
-        case "top": y = minY; break;
-        case "bottom": y = maxBottom - o.h; break;
-        case "middle": y = cy - o.h / 2; break;
+        case "left": x = o.ox + (gMinX - o.minX); break;
+        case "right": x = o.ox + (gMaxX - o.maxX); break;
+        case "centerH": x = o.ox + (gcx - o.cx); break;
+        case "top": y = o.oy + (gMinY - o.minY); break;
+        case "bottom": y = o.oy + (gMaxY - o.maxY); break;
+        case "middle": y = o.oy + (gcy - o.cy); break;
         default: return;
       }
       o.n.position(x, y);
@@ -1700,33 +1757,42 @@ export class Slate {
   public distributeNodes(axis: string, nodes?: Node[]): void {
     const sel = nodes || this.getSelectedNodes();
     if (!sel || sel.length < 3) return;
-    const b = sel.map((n) => ({
-      n,
-      x: n.options.x || 0,
-      y: n.options.y || 0,
-      w: n.options.width || 0,
-      h: n.options.height || 0,
-    }));
+    // Distribute by each node's VISUAL (rotation-aware) box; move via an option
+    // DELTA so rotation is preserved and the gaps you SEE come out equal.
+    const b = sel.map((n) => {
+      const rb = this.rotatedBounds(n);
+      return {
+        n,
+        minX: rb.minX,
+        maxX: rb.maxX,
+        minY: rb.minY,
+        maxY: rb.maxY,
+        w: rb.maxX - rb.minX,
+        h: rb.maxY - rb.minY,
+        ox: n.options.x || 0,
+        oy: n.options.y || 0,
+      };
+    });
     if (axis === "horizontal") {
-      b.sort((p, q) => p.x - q.x);
-      const left = b[0].x;
-      const right = b[b.length - 1].x + b[b.length - 1].w;
+      b.sort((p, q) => p.minX - q.minX);
+      const left = b[0].minX;
+      const right = b[b.length - 1].maxX;
       const totalW = b.reduce((s, o) => s + o.w, 0);
       const gap = (right - left - totalW) / (b.length - 1);
       let cursor = left;
       for (const o of b) {
-        o.n.position(cursor, o.y);
+        o.n.position(o.ox + (cursor - o.minX), o.oy);
         cursor += o.w + gap;
       }
     } else if (axis === "vertical") {
-      b.sort((p, q) => p.y - q.y);
-      const top = b[0].y;
-      const bottom = b[b.length - 1].y + b[b.length - 1].h;
+      b.sort((p, q) => p.minY - q.minY);
+      const top = b[0].minY;
+      const bottom = b[b.length - 1].maxY;
       const totalH = b.reduce((s, o) => s + o.h, 0);
       const gap = (bottom - top - totalH) / (b.length - 1);
       let cursor = top;
       for (const o of b) {
-        o.n.position(o.x, cursor);
+        o.n.position(o.ox, o.oy + (cursor - o.minY));
         cursor += o.h + gap;
       }
     } else {

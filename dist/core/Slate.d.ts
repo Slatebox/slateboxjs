@@ -417,6 +417,14 @@ export declare class Slate {
      * mode: left | centerH | right | top | middle | bottom. Broadcasts onNodesMove
      * so the change persists + syncs to collab. No-op for < 2 nodes.
      */
+    /**
+     * Axis-aligned bounding box of a node in WORLD coords, accounting for its
+     * rotation (the four corners rotated about the node's center). Un-rotated → the
+     * option box; rotated → the tight box enclosing the visually-rotated shape. This
+     * is what alignment, distribution and the group-selection outline must use so
+     * rotated nodes line up by what you SEE, not by their un-rotated option box.
+     */
+    private rotatedBounds;
     alignNodes(mode: string, nodes?: Node[]): void;
     /**
      * Evenly distribute the selected (or given) nodes along an axis so the gaps
