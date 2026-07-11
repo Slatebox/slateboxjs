@@ -146,6 +146,13 @@ export declare class Slate {
     _activeEndpointToggles?: any[];
     private selectedNodes;
     private groupResizeRotate;
+    /**
+     * The groupId currently "entered" for individual-member editing (Miro
+     * double-click-into-group). When set, clicking a member of THIS group selects
+     * just that member instead of expanding to the whole group. null = not inside
+     * any group.
+     */
+    private enteredGroupId;
     private _coordinateIntervalId;
     private _destroyed;
     private _applyingRemote;
@@ -395,6 +402,16 @@ export declare class Slate {
     disableNodeResizeRotate(node: Node): void;
     private disableGroupResizeRotate;
     private createGroupResizeRotate;
+    /**
+     * Attach an interactive rotate knob to the group-selection outline. Dragging it
+     * rotates every selected node about the group centre: each member's centre is
+     * revolved around the group centre and the same delta is added to the member's
+     * own rotationAngle, so the whole selection turns rigidly (Miro group rotate).
+     *
+     * Angle math is done in SCREEN space (invariant to the uniform viewBox zoom/pan),
+     * then the delta is applied in world space to positions + per-node angles.
+     */
+    private addGroupRotateHandle;
     private calculateGroupBoundingBox;
     private createGroupHandle;
     private updateGroupHandle;
@@ -432,6 +449,49 @@ export declare class Slate {
      * vertical. Broadcasts onNodesMove. No-op for < 3 nodes.
      */
     distributeNodes(axis: string, nodes?: Node[]): void;
+    /** All nodes belonging to the given groupId (empty if none/falsy). */
+    getGroupMembers(groupId: string | null | undefined): Node[];
+    /** The groupId of a node, or null if it isn't grouped. */
+    getGroupIdOf(node: Node): string | null;
+    /** True if the node is a member of any group. */
+    isGrouped(node: Node): boolean;
+    /** The groupId currently entered for member editing, or null. */
+    getEnteredGroupId(): string | null;
+    /**
+     * Expand a node list to include every group-mate of any grouped node in it
+     * (deduped, order-stable). Used so lock/rotate/etc. apply to whole groups.
+     */
+    private expandToGroups;
+    /**
+     * Group the selected (or given) nodes into ONE group so they select/move/rotate/
+     * lock as a unit. Assigns a fresh groupId to every member (flattening any prior
+     * groups in the selection into the new one, Miro-style). Persists via onNodesMove
+     * and re-selects the whole new group. No-op for < 2 nodes.
+     * @returns the new groupId, or null if nothing was grouped.
+     */
+    groupNodes(nodes?: Node[]): string | null;
+    /**
+     * Ungroup: dissolve every group represented in the selected (or given) nodes by
+     * clearing each member's groupId. Persists and keeps the nodes multi-selected.
+     */
+    ungroupNodes(nodes?: Node[]): void;
+    /**
+     * Lock the selected (or given) nodes — and, for any grouped node, its whole
+     * group — disabling drag/resize. Persists via onNodesMove.
+     */
+    lockNodes(nodes?: Node[]): void;
+    /** Unlock the selected (or given) nodes and their groups. */
+    unlockNodes(nodes?: Node[]): void;
+    /** True if every given (or selected) node is locked. */
+    isSelectionLocked(nodes?: Node[]): boolean;
+    /**
+     * Enter a group for individual-member editing (Miro double-click-into-group).
+     * Selects `member` if given, else the first member. While entered, clicking a
+     * member selects just that member instead of the whole group.
+     */
+    enterGroup(groupId: string, member?: Node): void;
+    /** Exit the currently-entered group and re-select it as a whole. */
+    exitGroup(): void;
     /**
      * Export the slate to a JSON string in v1-compatible format.
      *

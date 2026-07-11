@@ -505,6 +505,188 @@ describe("Slate", () => {
     });
   });
 
+  // -----------------------------------------------------------------------
+  // Grouping (Miro-style) — select/move/rotate/lock as one + enter-to-edit
+  //
+  // The module-level NodesManager mock has a static empty `allNodes`, but group
+  // membership is driven by `slate.nodes.allNodes`. So we swap in a tiny
+  // array-backed nodes manager whose stub nodes expose just the surface the
+  // group + selection code touches. This exercises the REAL Slate group methods.
+  // -----------------------------------------------------------------------
+  describe("grouping", () => {
+    function makeGroupSlate() {
+      const slate = new Slate(container);
+      const store: any[] = [];
+      const makeStub = (opts: any) => ({
+        id: opts.id,
+        options: { x: 0, y: 0, width: 100, height: 60, ...opts },
+        onSelected() {},
+        onDeselected() {},
+        resizeRotate: {
+          isEnabled: () => false,
+          enable() {},
+          disable() {},
+        },
+        isConnectionHandlesEnabled: () => false,
+        enableConnectionHandles() {},
+        disableConnectionHandles() {},
+        disableResizeRotate() {},
+        hideNodeCog() {},
+        showNodeCog() {},
+        lock(this: any) {
+          this.options.isLocked = true;
+        },
+        unlock(this: any) {
+          this.options.isLocked = false;
+        },
+        position(this: any, x: number, y: number) {
+          this.options.x = x;
+          this.options.y = y;
+        },
+      });
+      (slate as any).nodes = {
+        allNodes: store,
+        one: (id: string) => store.find((n) => n.id === id),
+      };
+      const add = (opts: any) => {
+        const n = makeStub(opts);
+        store.push(n);
+        return n as any;
+      };
+      return { slate, add };
+    }
+
+    it("groupNodes assigns one shared groupId and selects the whole group", () => {
+      const { slate, add } = makeGroupSlate();
+      const a = add({ id: "a" });
+      const b = add({ id: "b" });
+
+      const gid = slate.groupNodes([a, b]);
+
+      expect(gid).toBeTruthy();
+      expect(a.options.groupId).toBe(gid);
+      expect(b.options.groupId).toBe(gid);
+      expect(slate.getSelectedNodes()).toHaveLength(2);
+      expect(slate.getGroupMembers(gid!)).toHaveLength(2);
+    });
+
+    it("is a no-op for fewer than 2 nodes", () => {
+      const { slate, add } = makeGroupSlate();
+      const a = add({ id: "a" });
+      expect(slate.groupNodes([a])).toBeNull();
+      expect(a.options.groupId).toBeUndefined();
+    });
+
+    it("flattens a prior group into the new one", () => {
+      const { slate, add } = makeGroupSlate();
+      const a = add({ id: "a" });
+      const b = add({ id: "b" });
+      const c = add({ id: "c" });
+      const g1 = slate.groupNodes([a, b]);
+      const g2 = slate.groupNodes([a, c]);
+      expect(g2).not.toBe(g1);
+      expect(a.options.groupId).toBe(g2);
+      expect(c.options.groupId).toBe(g2);
+    });
+
+    it("clicking a single member selects the whole group", () => {
+      const { slate, add } = makeGroupSlate();
+      const a = add({ id: "a" });
+      const b = add({ id: "b" });
+      slate.groupNodes([a, b]);
+      slate.clearSelection();
+
+      slate.selectNodes([a]); // simulate a click on one member
+
+      const sel = slate.getSelectedNodes();
+      expect(sel).toHaveLength(2);
+      expect(sel).toContain(a);
+      expect(sel).toContain(b);
+    });
+
+    it("enterGroup selects one member; clicking another member inside does not expand", () => {
+      const { slate, add } = makeGroupSlate();
+      const a = add({ id: "a" });
+      const b = add({ id: "b" });
+      const gid = slate.groupNodes([a, b])!;
+
+      slate.enterGroup(gid, a);
+      expect(slate.getEnteredGroupId()).toBe(gid);
+      expect(slate.getSelectedNodes()).toEqual([a]);
+
+      slate.selectNodes([b]);
+      expect(slate.getSelectedNodes()).toEqual([b]);
+      expect(slate.getEnteredGroupId()).toBe(gid);
+    });
+
+    it("exitGroup re-selects the whole group and clears entered state", () => {
+      const { slate, add } = makeGroupSlate();
+      const a = add({ id: "a" });
+      const b = add({ id: "b" });
+      const gid = slate.groupNodes([a, b])!;
+      slate.enterGroup(gid, a);
+
+      slate.exitGroup();
+
+      expect(slate.getEnteredGroupId()).toBeNull();
+      expect(slate.getSelectedNodes()).toHaveLength(2);
+    });
+
+    it("selecting a node outside the entered group exits it", () => {
+      const { slate, add } = makeGroupSlate();
+      const a = add({ id: "a" });
+      const b = add({ id: "b" });
+      const outsider = add({ id: "z" });
+      const gid = slate.groupNodes([a, b])!;
+      slate.enterGroup(gid, a);
+
+      slate.selectNodes([outsider]);
+
+      expect(slate.getEnteredGroupId()).toBeNull();
+      expect(slate.getSelectedNodes()).toEqual([outsider]);
+    });
+
+    it("ungroupNodes clears groupId for every member of the touched group", () => {
+      const { slate, add } = makeGroupSlate();
+      const a = add({ id: "a" });
+      const b = add({ id: "b" });
+      slate.groupNodes([a, b]);
+
+      slate.ungroupNodes([a]); // pass just one member
+
+      expect(a.options.groupId).toBeUndefined();
+      expect(b.options.groupId).toBeUndefined();
+    });
+
+    it("lockNodes locks every member when one is passed; unlock reverses it", () => {
+      const { slate, add } = makeGroupSlate();
+      const a = add({ id: "a" });
+      const b = add({ id: "b" });
+      slate.groupNodes([a, b]);
+
+      slate.lockNodes([a]);
+      expect(a.options.isLocked).toBe(true);
+      expect(b.options.isLocked).toBe(true);
+      expect(slate.isSelectionLocked([a, b])).toBe(true);
+
+      slate.unlockNodes([b]);
+      expect(a.options.isLocked).toBe(false);
+      expect(b.options.isLocked).toBe(false);
+    });
+
+    it("getGroupMembers / isGrouped reflect membership", () => {
+      const { slate, add } = makeGroupSlate();
+      const a = add({ id: "a" });
+      const b = add({ id: "b" });
+      const loner = add({ id: "l" });
+      const gid = slate.groupNodes([a, b])!;
+
+      expect(slate.getGroupMembers(gid)).toHaveLength(2);
+      expect(slate.isGrouped(a)).toBe(true);
+      expect(slate.isGrouped(loner)).toBe(false);
+    });
+  });
+
   describe("selectNode (single, backward compat)", () => {
     it("selects a single node (replaces selection)", () => {
       const slate = new Slate(container);

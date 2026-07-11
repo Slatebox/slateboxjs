@@ -132,6 +132,18 @@ export class Keyboard {
         }
         break;
 
+      case "g":
+      case "G":
+        if (isMod) {
+          e.preventDefault();
+          if (e.shiftKey) {
+            this.slate.ungroupNodes?.();
+          } else {
+            this.slate.groupNodes?.();
+          }
+        }
+        break;
+
       case "]":
         if (isMod) {
           this.bringToFront(e);
@@ -241,6 +253,12 @@ export class Keyboard {
 
   private deselect(e: KeyboardEvent): void {
     e.preventDefault();
+    // Inside a group? Escape first steps OUT to re-select the whole group
+    // (Miro), and only a second Escape clears the selection.
+    if (this.slate.getEnteredGroupId?.()) {
+      this.slate.exitGroup?.();
+      return;
+    }
     this.slate.clearSelection();
   }
 

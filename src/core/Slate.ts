@@ -19,6 +19,7 @@ import { exportSVG, exportPNG, type ExportOptions } from "./Export";
 import { Collab, CollabUser } from "./Collab";
 import type { SlatePackage } from "./SlatePackage";
 import { v2NodeToV1 } from "./compat";
+import { guid } from "../utils";
 import { applyTheme, type ThemeDefinition } from "./Theme";
 import {
   removeLayoutOverlaps,
@@ -190,6 +191,13 @@ export class Slate {
   public _activeEndpointToggles?: any[];
   private selectedNodes: Node[] = [];
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
+  /**
+   * The groupId currently "entered" for individual-member editing (Miro
+   * double-click-into-group). When set, clicking a member of THIS group selects
+   * just that member instead of expanding to the whole group. null = not inside
+   * any group.
+   */
+  private enteredGroupId: string | null = null;
   private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
   private _destroyed: boolean = false;
   private _applyingRemote: boolean = false;
@@ -1198,6 +1206,8 @@ export class Slate {
 
       if (isCanvasClick) {
         console.log("SELECTION_DEBUG: Canvas clicked - deselecting all");
+        // Clicking empty canvas also steps out of any entered group.
+        this.enteredGroupId = null;
         this.clearSelection();
         this.clearLineCog();
         // v1 contract: notify the host (used to close app-side panes)
@@ -1269,6 +1279,21 @@ export class Slate {
 
     // Selecting a node clears any line cog affordance.
     this.clearLineCog();
+
+    // Miro-style groups: clicking a single member of a group selects the WHOLE
+    // group — unless we've "entered" that group to edit its members. Selecting
+    // anything outside the entered group also exits it. Marquee/programmatic
+    // multi-node selects (length > 1) are left untouched.
+    if (nodes.length === 1) {
+      const gid = this.getGroupIdOf(nodes[0]);
+      if (this.enteredGroupId && gid !== this.enteredGroupId) {
+        this.enteredGroupId = null;
+      }
+      if (gid && gid !== this.enteredGroupId) {
+        const members = this.getGroupMembers(gid);
+        if (members.length > 1) nodes = members;
+      }
+    }
 
     // If not adding to selection, clear current selection first
     if (!addToSelection) {
@@ -1454,12 +1479,118 @@ export class Slate {
       .stroke({ color: "#4a90e2", width: 2, dasharray: "5,5" })
       .attr("pointer-events", "none");
 
-    // NOTE: svg.select.js group resize/rotate handles were intentionally removed.
-    // They were never functional (handleGroupResize used the same local-bbox math
-    // that mispositioned the group) and, applied to this synthetic group rect,
-    // svg.select.js emitted a storm of "NaN" polyline-handle errors on every
-    // multi-select. A proper group-resize implementation is a separate feature;
-    // until then a non-interactive selection outline is correct and quiet.
+    // Rotate-as-one: an interactive knob above the box rotates every selected node
+    // about the group centre (position + own angle), so a group turns as a unit.
+    // Skipped when any member is locked. (Group RESIZE remains out of scope.)
+    const anyLocked = this.selectedNodes.some((n) => n.options.isLocked);
+    if (!anyLocked) this.addGroupRotateHandle(groupBBox);
+  }
+
+  /**
+   * Attach an interactive rotate knob to the group-selection outline. Dragging it
+   * rotates every selected node about the group centre: each member's centre is
+   * revolved around the group centre and the same delta is added to the member's
+   * own rotationAngle, so the whole selection turns rigidly (Miro group rotate).
+   *
+   * Angle math is done in SCREEN space (invariant to the uniform viewBox zoom/pan),
+   * then the delta is applied in world space to positions + per-node angles.
+   */
+  private addGroupRotateHandle(groupBBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): void {
+    const g = this.groupResizeRotate;
+    if (!g) return;
+    // A rendering affordance must never break selection — any SVG hiccup here is
+    // swallowed so the outline still shows and the selection stays usable.
+    try {
+    const cx = groupBBox.x + groupBBox.width / 2;
+    const cy = groupBBox.y + groupBBox.height / 2;
+    const offset = 28; // world units above the top edge
+    const knobY = groupBBox.y - offset;
+
+    g.line(cx, groupBBox.y, cx, knobY)
+      .stroke({ color: "#4a90e2", width: 1 })
+      .attr("pointer-events", "none");
+    const knob = g
+      .circle(14)
+      .center(cx, knobY)
+      .fill("#ffffff")
+      .stroke({ color: "#4a90e2", width: 2 });
+    const setCursor = (c: string) => {
+      const el = knob.node as any;
+      if (el?.style) el.style.cursor = c;
+    };
+    setCursor("grab");
+    knob.attr("pointer-events", "all");
+
+    let dragging = false;
+    let startAngle = 0;
+    let pivot = { x: 0, y: 0 };
+    let snapshot: { node: Node; cx: number; cy: number; angle: number }[] = [];
+
+    const pivotScreen = () => {
+      const m = (g.node as any as SVGGraphicsElement).getScreenCTM();
+      if (!m) return { x: 0, y: 0 };
+      return { x: m.a * cx + m.c * cy + m.e, y: m.b * cx + m.d * cy + m.f };
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (!dragging) return;
+      const cur = Math.atan2(e.clientY - pivot.y, e.clientX - pivot.x);
+      let deltaDeg = ((cur - startAngle) * 180) / Math.PI;
+      if (e.shiftKey) deltaDeg = Math.round(deltaDeg / 15) * 15; // 15° snap
+      const rad = (deltaDeg * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      snapshot.forEach((s) => {
+        const dx = s.cx - cx;
+        const dy = s.cy - cy;
+        const ncx = cx + dx * cos - dy * sin;
+        const ncy = cy + dx * sin + dy * cos;
+        const w = s.node.options.width || 0;
+        const h = s.node.options.height || 0;
+        const rot = (s.node.options.rotate =
+          s.node.options.rotate || ({} as any));
+        rot.rotationAngle = s.angle + deltaDeg;
+        s.node.position(ncx - w / 2, ncy - h / 2);
+      });
+    };
+
+    const onUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      setCursor("grab");
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      this.broadcast("onNodesMove", {
+        nodeOptions: this.selectedNodes.map((n) => v2NodeToV1(n.options)),
+      });
+      // Redraw the outline to wrap the freshly-rotated group.
+      this.updateSelectionResizeRotate();
+    };
+
+    knob.on("pointerdown", (e: any) => {
+      e.preventDefault?.();
+      e.stopPropagation?.();
+      dragging = true;
+      pivot = pivotScreen();
+      startAngle = Math.atan2(e.clientY - pivot.y, e.clientX - pivot.x);
+      snapshot = this.selectedNodes.map((n) => ({
+        node: n,
+        cx: (n.options.x || 0) + (n.options.width || 0) / 2,
+        cy: (n.options.y || 0) + (n.options.height || 0) / 2,
+        angle: n.options.rotate?.rotationAngle || 0,
+      }));
+      setCursor("grabbing");
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    });
+    } catch (e) {
+      /* rotate knob is best-effort; selection remains usable without it */
+    }
   }
 
   private calculateGroupBoundingBox() {
@@ -1811,6 +1942,151 @@ export class Slate {
     // stale pre-align extent, making aligned nodes look like they'd moved "to the
     // center" of a too-wide box.
     this.updateSelectionResizeRotate();
+  }
+
+  // ─── Grouping (Miro-style) ──────────────────────────────────────────
+  //
+  // A group is simply a set of nodes sharing a `groupId`. There is NO reparenting:
+  // nodes stay in the canvas, so connectors/serialization are untouched. Group
+  // behaviour is layered on the existing multi-selection machinery — selecting a
+  // member selects all members, and drag/rotate/lock then act on the whole set.
+
+  /** All nodes belonging to the given groupId (empty if none/falsy). */
+  public getGroupMembers(groupId: string | null | undefined): Node[] {
+    if (!groupId) return [];
+    return this.nodes.allNodes.filter(
+      (n) => (n.options.groupId as string) === groupId
+    );
+  }
+
+  /** The groupId of a node, or null if it isn't grouped. */
+  public getGroupIdOf(node: Node): string | null {
+    return (node?.options?.groupId as string) || null;
+  }
+
+  /** True if the node is a member of any group. */
+  public isGrouped(node: Node): boolean {
+    return !!this.getGroupIdOf(node);
+  }
+
+  /** The groupId currently entered for member editing, or null. */
+  public getEnteredGroupId(): string | null {
+    return this.enteredGroupId;
+  }
+
+  /**
+   * Expand a node list to include every group-mate of any grouped node in it
+   * (deduped, order-stable). Used so lock/rotate/etc. apply to whole groups.
+   */
+  private expandToGroups(nodes: Node[]): Node[] {
+    const out = new Map<string, Node>();
+    nodes.forEach((n) => {
+      out.set(n.id, n);
+      const g = this.getGroupIdOf(n);
+      if (g) this.getGroupMembers(g).forEach((m) => out.set(m.id, m));
+    });
+    return [...out.values()];
+  }
+
+  /**
+   * Group the selected (or given) nodes into ONE group so they select/move/rotate/
+   * lock as a unit. Assigns a fresh groupId to every member (flattening any prior
+   * groups in the selection into the new one, Miro-style). Persists via onNodesMove
+   * and re-selects the whole new group. No-op for < 2 nodes.
+   * @returns the new groupId, or null if nothing was grouped.
+   */
+  public groupNodes(nodes?: Node[]): string | null {
+    const sel = (nodes || this.getSelectedNodes()).slice();
+    if (sel.length < 2) return null;
+    const gid = "grp-" + guid(8);
+    sel.forEach((n) => {
+      n.options.groupId = gid;
+    });
+    this.enteredGroupId = null;
+    this.broadcast("onNodesMove", {
+      nodeOptions: sel.map((n) => v2NodeToV1(n.options)),
+    });
+    // Re-select as a group (single outline, no per-node handles).
+    this.selectNodes(sel);
+    return gid;
+  }
+
+  /**
+   * Ungroup: dissolve every group represented in the selected (or given) nodes by
+   * clearing each member's groupId. Persists and keeps the nodes multi-selected.
+   */
+  public ungroupNodes(nodes?: Node[]): void {
+    const sel = nodes || this.getSelectedNodes();
+    const gids = new Set<string>();
+    sel.forEach((n) => {
+      const g = this.getGroupIdOf(n);
+      if (g) gids.add(g);
+    });
+    if (!gids.size) return;
+    const affected: Node[] = [];
+    gids.forEach((g) => {
+      this.getGroupMembers(g).forEach((m) => {
+        m.options.groupId = undefined;
+        affected.push(m);
+      });
+    });
+    this.enteredGroupId = null;
+    this.broadcast("onNodesMove", {
+      nodeOptions: affected.map((n) => v2NodeToV1(n.options)),
+    });
+    this.selectNodes(affected);
+  }
+
+  /**
+   * Lock the selected (or given) nodes — and, for any grouped node, its whole
+   * group — disabling drag/resize. Persists via onNodesMove.
+   */
+  public lockNodes(nodes?: Node[]): void {
+    const targets = this.expandToGroups(nodes || this.getSelectedNodes());
+    if (!targets.length) return;
+    targets.forEach((n) => n.lock());
+    this.broadcast("onNodesMove", {
+      nodeOptions: targets.map((n) => v2NodeToV1(n.options)),
+    });
+    this.updateSelectionResizeRotate();
+  }
+
+  /** Unlock the selected (or given) nodes and their groups. */
+  public unlockNodes(nodes?: Node[]): void {
+    const targets = this.expandToGroups(nodes || this.getSelectedNodes());
+    if (!targets.length) return;
+    targets.forEach((n) => n.unlock());
+    this.broadcast("onNodesMove", {
+      nodeOptions: targets.map((n) => v2NodeToV1(n.options)),
+    });
+    this.updateSelectionResizeRotate();
+  }
+
+  /** True if every given (or selected) node is locked. */
+  public isSelectionLocked(nodes?: Node[]): boolean {
+    const t = nodes || this.getSelectedNodes();
+    return t.length > 0 && t.every((n) => !!n.options.isLocked);
+  }
+
+  /**
+   * Enter a group for individual-member editing (Miro double-click-into-group).
+   * Selects `member` if given, else the first member. While entered, clicking a
+   * member selects just that member instead of the whole group.
+   */
+  public enterGroup(groupId: string, member?: Node): void {
+    const members = this.getGroupMembers(groupId);
+    if (!members.length) return;
+    this.enteredGroupId = groupId;
+    this.selectNodes([member && members.includes(member) ? member : members[0]]);
+  }
+
+  /** Exit the currently-entered group and re-select it as a whole. */
+  public exitGroup(): void {
+    const gid = this.enteredGroupId;
+    this.enteredGroupId = null;
+    if (!gid) return;
+    const members = this.getGroupMembers(gid);
+    if (members.length) this.selectNodes(members);
   }
 
   // ─── Serialization API ──────────────────────────────────────────────

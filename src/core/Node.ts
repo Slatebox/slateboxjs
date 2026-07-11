@@ -2490,6 +2490,18 @@ export class Node {
    * cog (which opens the same pane), so this doesn't remove drawer access.
    */
   public handleDoubleClickEdit(): void {
+    // Miro parity: double-clicking a GROUPED node enters the group for member
+    // editing (instead of text editing), unless we're already inside that group.
+    const slate: any = this.slate;
+    const gid = this.options.groupId;
+    if (
+      gid &&
+      typeof slate?.enterGroup === "function" &&
+      slate.getEnteredGroupId?.() !== gid
+    ) {
+      slate.enterGroup(gid, this);
+      return;
+    }
     if (
       !this.options.isComment &&
       !this.nestedSvg &&
