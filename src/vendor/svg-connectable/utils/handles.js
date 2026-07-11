@@ -906,6 +906,24 @@ function isValidDropTarget(con, element, handleObj) {
   // detached into a free-floating point (straight line, no longer followed the node) and
   // the same-node re-pin path was effectively unreachable.
 
+  // A drop target must be part of an ACTUAL NODE (have a data-node-id ancestor). Without
+  // this, valid-looking shapes that are NOT nodes — the node's connection-plug dots
+  // (circles), connector arrowheads (polygons), birdseye/minimap shapes — matched the hit
+  // test; dropping on one derived a null targetNodeId → the endpoint went free-floating and
+  // flew off to a stale coordinate. Requiring a node id also stops endpoints snapping to the
+  // four plug-dot icons.
+  try {
+    let nel = element.node;
+    while (nel && nel.getAttribute && !nel.getAttribute("data-node-id")) {
+      nel = nel.parentNode;
+    }
+    if (!(nel && nel.getAttribute && nel.getAttribute("data-node-id"))) {
+      return false;
+    }
+  } catch (e) {
+    return false;
+  }
+
   // Don't allow dropping on connector elements themselves
   if (element.attr("connectortype")) return false;
 

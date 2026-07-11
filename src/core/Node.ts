@@ -2073,6 +2073,32 @@ export class Node {
       }
     }
 
+    // Defend against DOUBLE-rotation of the text/nested content. During a live UI
+    // rotate, ResizeRotate bakes an individual rotation onto the text element (so it
+    // follows in real time). The group transform set below ALSO rotates them (they're
+    // children), so if that baked rotation is left on, the text renders at 2x the node's
+    // angle. finalizeInteraction strips it on interaction-end, but that can be missed
+    // (e.g. an intervening drag/render/reload) — strip any residual child rotation here
+    // too, then re-center. Cheap: only fires when a baked rotation is actually present.
+    try {
+      const stripBakedRotation = (el: any): boolean => {
+        if (!el?.node?.removeAttribute) return false;
+        const tr = typeof el.transform === "function" ? el.transform() : null;
+        if (tr && Math.abs(tr.rotate || 0) > 0.01) {
+          el.node.removeAttribute("transform");
+          return true;
+        }
+        return false;
+      };
+      const strippedText = stripBakedRotation(this.textElement);
+      stripBakedRotation(this.nestedSvg);
+      if (strippedText && typeof this.centerText === "function") {
+        this.centerText();
+      }
+    } catch (e) {
+      /* noop */
+    }
+
     // Set the group transform EXPLICITLY as an SVG transform string —
     // deterministic, no SVG.js object-form / relative-compose ambiguity.
     // SVG applies right-to-left: a local point is first rotated about the
@@ -3755,16 +3781,19 @@ export class Node {
       x: x,
       y: y,
       text: `Node ${newId.split("_")[1]}`, // Give it a different default text
-      // Keep the same visual properties (shape, color, size, etc.)
+      // Inherit the source node's rotation angle so the new node MATCHES the drag preview,
+      // but give it its OWN independent rotate object — a fresh object, NOT the shared
+      // reference the `...this.options` spread would leave. That shared reference was the
+      // bug: rotating the source LATER also rotated the new node (both pointed at the same
+      // object, applied on the new node's next drag). A fresh copy makes each node rotate
+      // independently from then on.
+      rotate: {
+        rotationAngle:
+          (rotationAngle !== undefined
+            ? rotationAngle
+            : this.options.rotate?.rotationAngle) || 0,
+      },
     };
-
-    // Apply rotation angle if provided
-    if (rotationAngle !== undefined && rotationAngle !== 0) {
-      options.rotate = {
-        ...options.rotate,
-        rotationAngle: rotationAngle,
-      };
-    }
 
     return options;
   }

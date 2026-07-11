@@ -5010,6 +5010,15 @@ function Jr(i, t, e) {
   }), n && console.log("Selected closest candidate:", d[0]), d[0].element) : (n && console.log("No drop target found"), null);
 }
 function Xe(i, t, e) {
+  try {
+    let s = t.node;
+    for (; s && s.getAttribute && !s.getAttribute("data-node-id"); )
+      s = s.parentNode;
+    if (!(s && s.getAttribute && s.getAttribute("data-node-id")))
+      return !1;
+  } catch {
+    return !1;
+  }
   if (t.attr("connectortype") || t.hasClass && t.hasClass("connector-handle") || t._isPhantomRect) return !1;
   const n = e.isSource ? i.target : i.source;
   return t !== n;
@@ -8561,6 +8570,15 @@ class ze {
       } catch (a) {
         console.warn("NODE_DEBUG: child normalization failed:", a);
       }
+    try {
+      const a = (c) => {
+        if (!c?.node?.removeAttribute) return !1;
+        const h = typeof c.transform == "function" ? c.transform() : null;
+        return h && Math.abs(h.rotate || 0) > 0.01 ? (c.node.removeAttribute("transform"), !0) : !1;
+      }, l = a(this.textElement);
+      a(this.nestedSvg), l && typeof this.centerText == "function" && this.centerText();
+    } catch {
+    }
     const r = o ? `translate(${t} ${e}) rotate(${o} ${n / 2} ${s / 2})` : `translate(${t} ${e})`;
     this.svgGroup.node.setAttribute("transform", r);
     try {
@@ -9355,19 +9373,24 @@ class ze {
     }
   }
   cloneNodeOptions(t, e, n) {
-    const s = "node_" + Math.random().toString(36).substr(2, 9), o = {
+    const s = "node_" + Math.random().toString(36).substr(2, 9);
+    return {
       ...this.options,
       id: s,
       x: t,
       y: e,
-      text: `Node ${s.split("_")[1]}`
+      text: `Node ${s.split("_")[1]}`,
       // Give it a different default text
-      // Keep the same visual properties (shape, color, size, etc.)
+      // Inherit the source node's rotation angle so the new node MATCHES the drag preview,
+      // but give it its OWN independent rotate object — a fresh object, NOT the shared
+      // reference the `...this.options` spread would leave. That shared reference was the
+      // bug: rotating the source LATER also rotated the new node (both pointed at the same
+      // object, applied on the new node's next drag). A fresh copy makes each node rotate
+      // independently from then on.
+      rotate: {
+        rotationAngle: (n !== void 0 ? n : this.options.rotate?.rotationAngle) || 0
+      }
     };
-    return n !== void 0 && n !== 0 && (o.rotate = {
-      ...o.rotate,
-      rotationAngle: n
-    }), o;
   }
   connectToNode(t) {
     if (this.relationships) {
