@@ -79,6 +79,30 @@ commit in the image labels.
 7. Promote the reviewed app commit to `main`, wait for the production rollout,
    and repeat the smoke against `app.slatebox.com`.
 
+Run the real-host suite against the deployed test application rather than
+substituting a local container:
+
+```sh
+SLATEBOX_APP_EXTERNAL=true \
+SLATEBOX_APP_URL=https://test.slatebox.com \
+npm run test:app
+```
+
+This creates a guest slate through the deployed onboarding flow and verifies
+all 16 collaboration surfaces plus Mongo-backed text, grouping, themes,
+primitive paths, undo, and redo across two isolated browser contexts.
+
+The 2026-07-14 test promotion advanced `slatebox-test` from revision 39 to 40
+using exact registry digest
+`sha256:11bba759d6772d6f70a97e6879029df83041d05c3a9a2462e0e949c485675ef2`.
+The image build and registry push completed in workflow run 29343005633, but
+its Kubernetes apply was rejected because the Actions kubeconfig did not
+provide valid credentials. The already-pushed immutable digest was therefore
+applied through the authenticated local `sb-k3s` context. Revision 40 reached
+1/1 ready with zero restarts; `/`, `/livez`, and `/readyz` returned HTTP 200;
+and the external suite passed both tests in 26.9 seconds. Repair and verify the
+Actions kubeconfig before relying on an automated production apply.
+
 Record the library commit, app commit, package integrity, image tag/digest,
 target architecture, workflow run URLs, and Kubernetes deployment revision in
 the productionization ledger.
