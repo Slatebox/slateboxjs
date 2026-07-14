@@ -10,6 +10,7 @@
 - Production-slate fixtures and v1 → v3 → v1 serialization round-trip coverage.
 - Public stylesheet export at `slateboxjs/style.css`.
 - Fresh-consumer package verification through `npm run verify:package`.
+- A strict canonical-Meteor-app gate through `npm run test:app`; it packs and installs the current library artifact, boots the app, and exercises real-host collaboration plus persistence.
 
 ### Changed
 - Package name is `slateboxjs`; version 3 replaces the Raphael-era 2.x engine while retaining the migration facade.
@@ -20,6 +21,7 @@
 - Persistence, reload, collaboration, and undo behavior across node movement, text, styles, resize, rotation, ordering, relationships, canvas state, and grouped interactions.
 - Connector geometry for rotated/custom shapes, parallel edges, arrowhead trimming, endpoint reconnection, and pinned anchors.
 - Host lifecycle leaks by exposing and exercising slate destruction on unmount.
+- Undo/redo now publishes an authoritative full-state collaboration baseline, reaches the host save path, supplies usable snapshot callback data, and remains correct for reconnecting peers.
 
 ### Migration
 - Existing applications may continue using `import { Slatebox } from 'slateboxjs'`; see `docs/drop-in-contract.md` and `docs/meteor-swap.md`.

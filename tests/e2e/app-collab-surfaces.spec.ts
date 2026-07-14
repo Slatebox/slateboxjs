@@ -3,6 +3,7 @@ import {
   installHelpers,
   runCollabSurfaceMatrix,
 } from "./collab-surfaces.shared";
+import { bootstrapGuestSlate } from "./app-host.shared";
 
 // REAL-APP runner for the collab surface matrix: two isolated browser
 // contexts (same guest user via shared storageState) on the SAME slate in
@@ -10,23 +11,14 @@ import {
 // production app uses (yjs map over BroadcastChannel/websocket + the
 // app's own Collaboration relay).
 //
-// Skips automatically when the app is not running:
-//   cd ~/Projects/node/slatebox/web/app && meteor --settings settings.dev.json
-const APP_URL = "http://localhost:3000";
-
-async function appUp(): Promise<boolean> {
-  try {
-    const res = await fetch(APP_URL, { signal: AbortSignal.timeout(2000) });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
+// playwright.app.config.ts builds and installs the current package, then boots
+// the canonical app. This test is intentionally strict: an unavailable host is
+// a failed integration gate, not a skip.
+const APP_URL = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 
 test("every collab surface propagates A → B (real Meteor app)", async ({
   browser,
 }) => {
-  test.skip(!(await appUp()), "Meteor app not running on :3000");
   test.setTimeout(180_000);
 
   // ── Client A: guest login, create a slate ──
@@ -34,17 +26,7 @@ test("every collab surface propagates A → B (real Meteor app)", async ({
     viewport: { width: 1300, height: 1000 },
   });
   const a = await ctxA.newPage();
-  await a.goto(APP_URL);
-  await a.waitForTimeout(4000);
-  const startBtn = a.getByRole("button", { name: /Start now/ });
-  if (await startBtn.isVisible().catch(() => false)) {
-    await startBtn.click();
-    await a.waitForTimeout(3000);
-  }
-  const ok = a.getByRole("button", { name: "OK" });
-  if (await ok.isVisible().catch(() => false)) await ok.click();
-  await a.getByRole("button", { name: "New", exact: true }).click();
-  await a.waitForSelector("#slateCanvas [data-node-id]", { timeout: 30000 });
+  await bootstrapGuestSlate(a, APP_URL);
   await a.waitForTimeout(2500);
   const slateUrl = a.url();
 

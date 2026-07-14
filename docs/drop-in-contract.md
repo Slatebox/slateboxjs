@@ -2,7 +2,7 @@
 
 This is the compatibility contract slateboxjs-v2 must satisfy to replace `slateboxjs@^2.4.0`
 (the Raphael-era library at `~/Projects/node/slateboxjs`, npm name `slateboxjs`) inside the
-Meteor app at `~/Projects/node/slatebox` (based on https://github.com/Slatebox/slatebox-app).
+Canonical Meteor 3.5 app at `~/Projects/node/app.slatebox.com` (based on https://github.com/Slatebox/slatebox-app). The older `~/Projects/node/slatebox` checkout is reference-only; current convergence is tracked in `docs/productionization-ledger.md`.
 
 It was derived by auditing all 13 files in the Meteor app that `import { Slatebox } from 'slateboxjs'`:
 `imports/api/client/createSlate.js`, `imports/api/common/ai.js`, `imports/ui/pages/Canvas.jsx`,
@@ -51,7 +51,7 @@ App usage: `const slate = await new Slatebox.slate(options, events).init()`
   - [x] `onSlateChanged(pkg, collabUsers)` — v1 pkg shape + echo suppression; types per §F (proof: tests/e2e/compat-facade.spec.ts)
   - [x] `onCollaborationUsersChanged(users)` (awareness incl. BroadcastChannel-early), `onCollaboration(pkg)` on exe (proof: tests/e2e/collab-live.spec.ts). `onCollaborationUsersRemoved` — v2 fires the Changed callback with the updated roster on removals (app uses identical handler bodies for both)
   - [x] `onInitCollaboration(clientID)` — awaited, connection details + HMAC params applied (proof: tests/unit/Collab.test.ts + collab-live e2e)
-  - [x] `onTakeSnapshot(opts)` — fires on undo/redo (UndoRedo.ts:100,131)
+  - [x] `onTakeSnapshot(opts)` — fires after undo/redo restoration with `{ action, slateId, snapshot }`, matching the Meteor snapshot method (proof: unit + `app-port-invariants.spec.ts`)
   - [x] `onTextPaneRequested(node, cb)` — double-click (custom detection; svg.draggable suppresses native dblclick) with read-only/comment-only/locked guards; cb applies via Editor (proof: tests/e2e/host-callbacks.spec.ts)
   - [x] `onLineMenuRequested(node, association, cb)` — wired to connection-line clicks in Connector.connectTo; cb restyles line + persists to association (implemented; interactive click e2e pending — line hit-areas are thin)
   - [x] `onMenuRequested(node, cb)` — Menu.ts delegates to host
@@ -138,7 +138,8 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 - [x] `.collab.updateUserData(data)` presence update — added to v2 Collab (proof: tests/unit/Collab.test.ts)
 - [x] Auth: `onInitCollaboration(clientID)` is now AWAITED; returned `{websocketUrl, websocketParams: {bearer, timestamp}, userName, color}` applied and params passed to WebsocketProvider (proof: tests/unit/Collab.test.ts "connection handshake")
 - [x] Verified against a locally-run collab server — `tests/collab-server-standalone.cjs` (self-contained y-protocols relay, auto-started by playwright.config.ts); two clients: send()→exe() applies remotely, presence propagates incl. BroadcastChannel-early states (proof: tests/e2e/collab-live.spec.ts). CRITICAL FIX en route: the `Function('import yjs')` pattern was invisible to bundlers — collab could NEVER load yjs in a browser; now a true lazy `import()` + optional module injection via CollabOptions. Facade auto-inits collab when allowCollaboration + onInitCollaboration present (v1 semantics). Staging check vs `~/Projects/node/collab.slatebox.com` still open (map GC semantics — see collab-migration.md)
-- [x] **EVERY collab surface vetted A→B** — user reported node-moves not broadcasting (only text did). Root cause: interactions emitted onSlateChanged for saving but never broadcast to the yjs map (v1 sent every interaction via collab.send). Fixed with `Slate.broadcast()` on all interaction sites + Invoker/NodesManager apply-side fixes (moveNodes v1 shape, real setRotation/setColors/zoom/pan/associations — were console stubs). SHARED matrix `tests/e2e/collab-surfaces.shared.ts` runs in BOTH environments: standalone (`collab-surfaces.spec.ts`, real relay, real mouse — 13/13) and the real Meteor app (`app-collab-surfaces.spec.ts`, :3000 — 13/13). Surfaces: presence, add, move (drag), text, color, resize (drag), rotate, toBack/toFront, association add/remove, followMe zoom, delete.
+- [x] **EVERY collab surface vetted A→B** — user reported node-moves not broadcasting (only text did). Root cause: interactions emitted onSlateChanged for saving but never broadcast to the yjs map (v1 sent every interaction via collab.send). Fixed with `Slate.broadcast()` on all interaction sites + Invoker/NodesManager apply-side fixes. The shared matrix runs in BOTH environments: standalone (`collab-surfaces.spec.ts`, real relay, real mouse) and the canonical Meteor app (`app-collab-surfaces.spec.ts`). Current 16-surface proof: presence, add, move, text, color, resize, rotate, toBack/toFront, association add/remove, followMe zoom, shape, border, effect, and delete. `npm run test:app` boots the real app and fails rather than skipping when it is unavailable.
+- [x] Undo/redo is collaborative and durable: the restoring client publishes one authoritative `onSlateReplaced` baseline, old replay packages are pruned, peers and late joiners load it, and the host save hook persists it. Proof: `undo-redo-collab.spec.ts` plus `app-port-invariants.spec.ts` (two Meteor clients and direct `slates.get` Mongo verification).
 - [ ] Migration PR prepared for the slatebox repo per docs/collab-migration.md (user-coordinated)
 
 ## J. Open-source / publication hygiene

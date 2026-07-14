@@ -2,6 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  // Real-consumer tests have their own strict config that builds/installs this
+  // package and boots the canonical Meteor app. Keep the fast library suite
+  // independent of that external host.
+  testIgnore: ["**/app-*.spec.ts"],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

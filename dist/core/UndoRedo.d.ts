@@ -16,6 +16,8 @@ export declare class UndoRedo {
     private redoStack;
     private debounceTimer;
     private isRestoring;
+    private restoreQueue;
+    private pendingRestores;
     constructor(slate: any, options?: UndoRedoOptions);
     /**
      * Take a snapshot of the current state.

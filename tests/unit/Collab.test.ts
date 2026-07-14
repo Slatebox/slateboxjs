@@ -166,6 +166,26 @@ describe("Collab", () => {
       expect([...map.values()].some((v: any) => v.data?.prop === "lineColor")).toBe(true);
       expect([...map.values()].some((v: any) => v.data?.prop === "sourceLock" && v.data?.associationId === "R2")).toBe(true);
     });
+
+    it("replaces the replay log with an authoritative slate baseline", () => {
+      mockSlate.emitSlateChange = vi.fn();
+      const collab = new Collab(mockSlate);
+      const map = new Map<string, any>();
+      (collab as any).collabMap = map;
+
+      collab.send({ type: "onNodeAdded", data: { nodeOptions: [{ id: "old" }] } });
+      collab.send({ type: "onNodeTextChanged", data: { id: "old", text: "stale" } });
+      collab.send({
+        type: "onSlateReplaced",
+        data: { action: "undo", snapshot: '{"options":{},"nodes":[],"shareId":""}' },
+      });
+
+      expect([...map.values()]).toHaveLength(1);
+      expect([...map.values()][0]).toMatchObject({
+        type: "onSlateReplaced",
+        data: { action: "undo" },
+      });
+    });
   });
 
   describe("invoke", () => {

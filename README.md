@@ -376,6 +376,13 @@ npx vitest run tests/unit/Node.test.ts
 # Run end-to-end tests
 npm run test:e2e
 
+# Build and pack this checkout, install it into the canonical Meteor 3.5 app,
+# boot the app, and run strict two-client persistence/collaboration tests
+npm run test:app
+
+# Verify the published-package shape in a fresh TypeScript consumer
+npm run verify:package
+
 # Run all tests (unit + e2e)
 npm run test:all
 ```

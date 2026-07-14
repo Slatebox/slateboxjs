@@ -81,6 +81,8 @@ export declare class Collab {
      * carry data.id; move/batch packages use array data and are left alone.
      */
     private pruneNodePackages;
+    /** Remove the mutation replay log before installing a full-state baseline. */
+    private pruneBeforeSlateReplacement;
     /**
      * Remove earlier onLinePropertiesChanged packages that target the SAME
      * property on the SAME association, so a reload/sync replay applies only the

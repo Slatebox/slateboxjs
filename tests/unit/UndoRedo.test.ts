@@ -10,6 +10,7 @@ describe("UndoRedo", () => {
 
     mockSlate = {
       options: {
+        id: "slate-1",
         name: "Test",
         shareId: "",
         events: {
@@ -22,6 +23,7 @@ describe("UndoRedo", () => {
         one: vi.fn(),
       },
       addNode: vi.fn(),
+      broadcast: vi.fn(),
     };
   });
 
@@ -103,14 +105,25 @@ describe("UndoRedo", () => {
       expect(ur.canRedo()).toBe(false); // Redo cleared
     });
 
-    it("should fire onTakeSnapshot event on undo", () => {
+    it("broadcasts and snapshots the restored state after undo", async () => {
       const ur = new UndoRedo(mockSlate);
       ur.snap(true);
       ur.snap(true);
       ur.undo();
 
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(mockSlate.broadcast).toHaveBeenCalledWith(
+        "onSlateReplaced",
+        expect.objectContaining({ action: "undo", snapshot: expect.any(String) })
+      );
+
       expect(mockSlate.options.events.onTakeSnapshot).toHaveBeenCalledWith(
-        expect.objectContaining({ action: "undo" })
+        expect.objectContaining({
+          action: "undo",
+          slateId: "slate-1",
+          snapshot: expect.any(String),
+        })
       );
     });
   });

@@ -1,6 +1,7 @@
 import type { Slate } from "./Slate";
 import type { SlatePackage } from "./SlatePackage";
 import { v1NodeToV2 } from "./compat";
+import { deserialize } from "./Serialization";
 
 export class Invoker {
   private slate: Slate
@@ -387,6 +388,13 @@ export class Invoker {
 
   onSlateDescriptionChanged(pkg: SlatePackage) {
     this.slate.options.description = pkg.data.description
+  }
+
+  /** Apply an authoritative full-document baseline (undo/redo collaboration). */
+  async onSlateReplaced(pkg: SlatePackage) {
+    const snapshot = pkg.data?.snapshot
+    if (!snapshot) return
+    await deserialize(snapshot, this.slate, false, true)
   }
 
   onSlateShowGridChanged(pkg: SlatePackage) {

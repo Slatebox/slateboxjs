@@ -40,6 +40,8 @@ export declare class Invoker {
     onSlateAISet(pkg: SlatePackage): void;
     onSlateNameChanged(pkg: SlatePackage): void;
     onSlateDescriptionChanged(pkg: SlatePackage): void;
+    /** Apply an authoritative full-document baseline (undo/redo collaboration). */
+    onSlateReplaced(pkg: SlatePackage): Promise<void>;
     onSlateShowGridChanged(pkg: SlatePackage): void;
     onSlateMindMapModeChanged(pkg: SlatePackage): void;
     onSlateAutoResizeNodesBasedOnTextChanged(pkg: SlatePackage): void;

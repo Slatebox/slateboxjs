@@ -20,6 +20,8 @@ export class UndoRedo {
   private redoStack: SlateJSON[] = [];
   private debounceTimer: any = null;
   private isRestoring: boolean = false;
+  private restoreQueue: Promise<void> = Promise.resolve();
+  private pendingRestores: number = 0;
 
   constructor(slate: any, options: UndoRedoOptions = {}) {
     this.slate = slate;
@@ -96,7 +98,7 @@ export class UndoRedo {
 
     // Restore previous state
     const previous = this.undoStack[this.undoStack.length - 1];
-    this.restore(previous);
+    this.restore(previous, "undo");
 
     console.log(
       "UNDOREDO_DEBUG: Undo performed. Undo stack:",
@@ -104,9 +106,6 @@ export class UndoRedo {
       "Redo stack:",
       this.redoStack.length
     );
-
-    // Trigger event
-    this.slate.options.events?.onTakeSnapshot?.({ action: "undo" });
 
     return true;
   }
@@ -127,7 +126,7 @@ export class UndoRedo {
     this.undoStack.push(next);
 
     // Restore state
-    this.restore(next);
+    this.restore(next, "redo");
 
     console.log(
       "UNDOREDO_DEBUG: Redo performed. Undo stack:",
@@ -135,9 +134,6 @@ export class UndoRedo {
       "Redo stack:",
       this.redoStack.length
     );
-
-    // Trigger event
-    this.slate.options.events?.onTakeSnapshot?.({ action: "redo" });
 
     return true;
   }
@@ -196,10 +192,38 @@ export class UndoRedo {
     );
   }
 
-  private restore(snapshot: SlateJSON): void {
+  private restore(snapshot: SlateJSON, action: "undo" | "redo"): void {
+    // Restoring creates SVG nodes asynchronously. Serialize rapid undo/redo
+    // requests so an older restore cannot finish after a newer one and win.
+    this.pendingRestores += 1;
     this.isRestoring = true;
-    deserialize(snapshot, this.slate, false, true)
-      .catch((err: Error) => console.error("UNDOREDO_DEBUG: Restore failed", err))
-      .finally(() => { this.isRestoring = false; });
+    this.restoreQueue = this.restoreQueue
+      .then(async () => {
+        await deserialize(snapshot, this.slate, false, true);
+
+        // A local undo/redo is still a document mutation. Broadcast one
+        // authoritative full-state baseline so remote peers restore the same
+        // document and the host's onSlateChanged persistence path runs.
+        const snapshotJSON = JSON.stringify(snapshot);
+        this.slate.broadcast?.("onSlateReplaced", {
+          action,
+          snapshot: snapshotJSON,
+        });
+
+        // The Meteor host persists named snapshots through this callback and
+        // expects both fields (passing only `action` made the method unusable).
+        this.slate.options.events?.onTakeSnapshot?.({
+          action,
+          slateId: this.slate.options.id,
+          snapshot: snapshotJSON,
+        });
+      })
+      .catch((err: Error) =>
+        console.error("UNDOREDO_DEBUG: Restore failed", err)
+      )
+      .finally(() => {
+        this.pendingRestores -= 1;
+        if (this.pendingRestores === 0) this.isRestoring = false;
+      });
   }
 }

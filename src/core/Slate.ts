@@ -647,6 +647,9 @@ export class Slate {
     "onCursorMoved",
     "onPresenceChanged",
     "onSlateChanged",
+    // UndoRedo already moved the history pointer before broadcasting this
+    // authoritative state; recording it again would create a duplicate step.
+    "onSlateReplaced",
   ]);
 
   /** Queue onSlateChanged packages until flushEmits() (v1 collab-init timing). */

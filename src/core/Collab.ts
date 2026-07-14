@@ -239,6 +239,13 @@ export class Collab {
 
     if (this.collabMap) {
       for (const pkg of pkgs) {
+        // A full-state replacement (undo/redo) supersedes every accumulated
+        // document mutation. Clear the replay log first so stale add/change
+        // packages cannot corrupt the restored baseline on reconnect.
+        if (pkg.type === "onSlateReplaced") {
+          this.pruneBeforeSlateReplacement();
+        }
+
         const key = `${pkg.type}_${Date.now()}_${Math.random()
           .toString(36)
           .substr(2, 5)}`;
@@ -303,6 +310,18 @@ export class Collab {
     }
   }
 
+  /** Remove the mutation replay log before installing a full-state baseline. */
+  private pruneBeforeSlateReplacement(): void {
+    if (!this.collabMap) return;
+    try {
+      const keys: string[] = [];
+      this.collabMap.forEach((_val: any, key: string) => keys.push(key));
+      for (const key of keys) this.collabMap.delete(key);
+    } catch (e) {
+      /* noop */
+    }
+  }
+
   /**
    * Remove earlier onLinePropertiesChanged packages that target the SAME
    * property on the SAME association, so a reload/sync replay applies only the
@@ -347,7 +366,10 @@ export class Collab {
       // Applying a remote package must not re-emit onSlateChanged (echo)
       this.slate.beginRemoteApply?.();
       try {
-        (invoker as any)[methodName](pkg);
+        const result = (invoker as any)[methodName](pkg);
+        result?.catch?.((error: unknown) =>
+          console.warn("COLLAB_DEBUG: Async invoker failed:", methodName, error)
+        );
       } finally {
         this.slate.endRemoteApply?.();
       }

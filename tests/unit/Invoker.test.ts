@@ -799,6 +799,31 @@ describe("Invoker", () => {
     });
   });
 
+  describe("onSlateReplaced", () => {
+    it("loads the authoritative serialized slate", async () => {
+      mockSlate.nodes.clear = vi.fn();
+      mockSlate.addNode = vi.fn();
+      mockSlate.beginRemoteApply = vi.fn();
+      mockSlate.endRemoteApply = vi.fn();
+
+      await invoker.onSlateReplaced({
+        type: "onSlateReplaced",
+        data: {
+          snapshot: JSON.stringify({
+            options: { name: "Restored" },
+            nodes: [],
+            shareId: "",
+          }),
+        },
+      });
+
+      expect(mockSlate.nodes.clear).toHaveBeenCalledOnce();
+      expect(mockSlate.options.name).toBe("Restored");
+      expect(mockSlate.beginRemoteApply).toHaveBeenCalledOnce();
+      expect(mockSlate.endRemoteApply).toHaveBeenCalledOnce();
+    });
+  });
+
   describe("onSlateThemeChanged", () => {
     it("should set the theme id and log", () => {
       const pkg = {
