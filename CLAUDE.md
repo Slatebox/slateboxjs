@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SlateboxJS v2 is a modern diagramming library built with TypeScript (ES2020), SVG.js 3+, and Vite. It provides draggable nodes, pan/zoom functionality, resize/rotate capabilities, node connections, and a rich feature set (collaboration, presentation, themes, comments, export, etc.).
+SlateboxJS v3 is a modern diagramming library built with TypeScript (ES2020), SVG.js 3+, and Vite. It provides draggable nodes, pan/zoom functionality, resize/rotate capabilities, node connections, and a rich feature set (collaboration, presentation, themes, comments, export, etc.).
 
 ## Development Commands
 

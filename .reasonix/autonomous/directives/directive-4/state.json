@@ -1,7 +1,0 @@
-{
-  "version": 1,
-  "status": "complete",
-  "current_milestone": "All phases complete",
-  "updated_at": "2026-06-01T17:00:00Z",
-  "last_note": "Directive complete. 994 unit, 93/101 e2e (10 new collab), tsc clean, build succeeds. Sandbox expanded for future collab server access. Patched server.js ready at tests/collab-server-dev.js."
-}

@@ -1,29 +1,30 @@
-
+# OS files
 .DS_Store
+Thumbs.db
+
+# Environment and editor files
 .env
 .idea/
-.vite/
-*.log
-*.png
 *.swo
 *.swp
-# Debug screenshots (root level PNGs from testing)
-# Environment
-# IDE
-# Logs
-# OS files
-# Test artifacts
-arrowhead-fix.png
-arrowhead-touch.png
-capstone-diagram.png
+
+# Dependencies and build caches
 node_modules/
-node-color-tab.png
-node-effects-tab.png
-node-shape-tab.png
-node-text-tab.png
+.vite/
+
+# Local agent and browser state
+.codegraph/
+.playwright-mcp/
+.reasonix/
+.serena/
+reasonix.toml
+
+# Logs and generated test artifacts
+*.log
 playwright-report/
-star-connector.png
 test-results/
-Thumbs.db
-u3-drop-point.png
-u5-shape-change.png
+
+# Root-level debug and package artifacts
+/*.png
+/dump.rdb
+/slateboxjs-*.tgz
