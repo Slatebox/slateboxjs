@@ -1,0 +1,30 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment and editor files
+.env
+.idea/
+*.swo
+*.swp
+
+# Dependencies and build caches
+node_modules/
+.vite/
+
+# Local agent and browser state
+.codegraph/
+.playwright-mcp/
+.reasonix/
+.serena/
+reasonix.toml
+
+# Logs and generated test artifacts
+*.log
+playwright-report/
+test-results/
+
+# Root-level debug and package artifacts
+/*.png
+/dump.rdb
+/slateboxjs-*.tgz

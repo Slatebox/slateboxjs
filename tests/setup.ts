@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { afterEach, vi } from "vitest";
 
 // Mock SVG.js and browser APIs that aren't available in jsdom
 // @ts-ignore - Mocking global for testing
@@ -8,13 +8,32 @@ global.SVGElement = class MockSVGElement {
   }
 };
 
-// Mock requestAnimationFrame for animations
-global.requestAnimationFrame = vi.fn((cb) => {
-  setTimeout(cb, 16);
-  return 1;
+// Mock requestAnimationFrame for animations. Track the backing timers so an
+// animation started by one test cannot keep running after Vitest tears down its
+// jsdom environment (Node 18 reports that leak as an unhandled error).
+let nextAnimationFrameId = 0;
+const animationFrameTimers = new Map<number, ReturnType<typeof setTimeout>>();
+
+global.requestAnimationFrame = vi.fn((cb: FrameRequestCallback) => {
+  const id = ++nextAnimationFrameId;
+  const timer = setTimeout(() => {
+    animationFrameTimers.delete(id);
+    cb(performance.now());
+  }, 16);
+  animationFrameTimers.set(id, timer);
+  return id;
 });
 
-global.cancelAnimationFrame = vi.fn();
+global.cancelAnimationFrame = vi.fn((id: number) => {
+  const timer = animationFrameTimers.get(id);
+  if (timer) clearTimeout(timer);
+  animationFrameTimers.delete(id);
+});
+
+afterEach(() => {
+  for (const timer of animationFrameTimers.values()) clearTimeout(timer);
+  animationFrameTimers.clear();
+});
 
 // Mock ResizeObserver for responsive behavior
 global.ResizeObserver = vi.fn().mockImplementation(() => ({

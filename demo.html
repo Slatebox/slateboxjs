@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SlateboxJS v2 — Feature Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #1a1a2e; color: #eee; overflow: hidden; height: 100vh; display: flex; }
+  .sidebar { width: 280px; background: #16213e; padding: 16px; overflow-y: auto; border-right: 1px solid #0f3460; flex-shrink: 0; }
+  .sidebar h2 { font-size: 16px; margin-bottom: 12px; color: #e94560; border-bottom: 1px solid #0f3460; padding-bottom: 8px; }
+  .sidebar h3 { font-size: 13px; color: #aaa; margin: 12px 0 6px; }
+  .sidebar button { display: block; width: 100%; margin: 3px 0; padding: 7px 12px; font-size: 12px; background: #0f3460; color: #eee; border: 1px solid #1a1a4e; border-radius: 4px; cursor: pointer; text-align: left; }
+  .sidebar button:hover { background: #1a4a8a; }
+  .sidebar button.primary { background: #e94560; font-weight: bold; }
+  .sidebar button.toggle { background: #0f3460; }
+  .sidebar button.toggle.on { background: #1a8a4a; }
+  .sidebar .info { font-size: 11px; color: #888; margin-top: 8px; padding: 8px; background: #0f3460; border-radius: 4px; max-height: 120px; overflow-y: auto; }
+  .main { flex: 1; position: relative; }
+  #slate-container { width: 100%; height: 100%; }
+  #slate { width: 100%; height: 100%; }
+  #status-bar { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: #aaa; font-size: 11px; padding: 4px 12px; display: flex; gap: 20px; z-index: 100; }
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <h2>SlateboxJS v2 Demo</h2>
+
+  <h3>Add Nodes</h3>
+  <button onclick="addShape('rectangle')">📦 Rectangle</button>
+  <button onclick="addShape('circle')">⭕ Circle</button>
+  <button onclick="addShape('ellipse')">🔵 Ellipse</button>
+  <button onclick="addShape('diamond')">💎 Diamond</button>
+  <button onclick="addShape('star')">⭐ Star</button>
+  <button onclick="addShape('triangle')">📐 Triangle</button>
+  <button onclick="addShape('hexagon')">⬡ Hexagon</button>
+  <button class="primary" onclick="addShape('image')">🖼️ Image Node</button>
+
+  <h3>Connectors</h3>
+  <button class="toggle" id="btn-connect-mode" onclick="toggleConnectMode()">🔗 Connect Mode: OFF</button>
+  <button onclick="clearConnections()">✂️ Clear Connections</button>
+
+  <h3>Selection</h3>
+  <button onclick="selectAll()">☑️ Select All</button>
+  <button onclick="clearSelection()">⬜ Deselect All</button>
+
+  <h3>View</h3>
+  <button onclick="zoomIn()">🔍 Zoom In</button>
+  <button onclick="zoomOut()">🔎 Zoom Out</button>
+  <button onclick="resetZoom()">↺ Reset View</button>
+  <button class="toggle" id="btn-grid" onclick="toggleGrid()">📏 Grid: OFF</button>
+  <button class="toggle" id="btn-birdseye" onclick="toggleBirdsEye()">🗺️ BirdsEye: OFF</button>
+
+  <h3>Actions</h3>
+  <button onclick="undo()">↩ Undo</button>
+  <button onclick="redo()">↪ Redo</button>
+  <button onclick="addCommentNode()">💬 Add Comment</button>
+  <button class="toggle" id="btn-presentation" onclick="togglePresentation()">▶️ Presentation: OFF</button>
+  <button class="toggle" id="btn-theme" onclick="cycleTheme()">🎨 Theme: Default</button>
+
+  <h3>Export</h3>
+  <button onclick="exportSVG()">📄 Export SVG</button>
+  <button onclick="exportPNG()">🖼️ Export PNG</button>
+
+  <h3>Filters</h3>
+  <button onclick="applyFilter('dropShadow')">🌓 Drop Shadow</button>
+  <button onclick="applyFilter('blur')">🌫️ Blur</button>
+  <button onclick="applyFilter('outline')">✏️ Outline</button>
+  <button onclick="clearFilters()">🧹 Clear Filters</button>
+
+  <div class="info" id="info-panel">
+    <strong>Keyboard:</strong><br>
+    Ctrl+Z Undo · Ctrl+Y Redo · Delete = remove · Esc = deselect<br>
+    Scroll = zoom · Drag canvas = pan · Shift+click = multi-select
+  </div>
+</div>
+
+<div class="main">
+  <div id="slate-container"><div id="slate"></div></div>
+  <div id="status-bar">
+    <span id="st-zoom">Zoom: 100%</span>
+    <span id="st-nodes">Nodes: 0</span>
+    <span id="st-selected">Selected: 0</span>
+    <span id="st-collab">Collab: —</span>
+  </div>
+</div>
+
+<script type="module">
+import SlateboxJS from './dist/slateboxjs.mjs';
+
+const THEMES = [
+  { name: "Default", bg: "#ffffff", line: "#333333" },
+  { name: "Dark Blue", bg: "#1a1a2e", line: "#e94560" },
+  { name: "Forest", bg: "#e8f5e8", line: "#2e7d32" },
+  { name: "Sunset", bg: "#fff3e0", line: "#e65100" },
+  { name: "Ocean", bg: "#e3f2fd", line: "#1565c0" },
+];
+let themeIdx = 0;
+
+// --- Init Slate ---
+const slate = SlateboxJS('#slate', {
+  viewPort: { originalWidth: 1200, originalHeight: 800, showGrid: false, gridSize: 20, showCoordinates: false },
+  containerStyle: { backgroundColor: '#ffffff' },
+  showUndoRedo: true,
+  showMultiSelect: true,
+  showZoom: false,
+  panZoom: { enabled: true, panning: true, pinchZoom: true, wheelZoom: true, zoomMin: 0.1, zoomMax: 10 },
+});
+window.slate = slate;
+
+// --- Status bar ---
+function updateStatus() {
+  const nodes = slate.getAllNodes();
+  const sel = slate.getSelectedNodes ? slate.getSelectedNodes() : [];
+  const zoom = slate.panZoom ? Math.round(slate.panZoom.getZoom() * 100) : 100;
+  document.getElementById('st-zoom').textContent = `Zoom: ${zoom}%`;
+  document.getElementById('st-nodes').textContent = `Nodes: ${nodes.length}`;
+  document.getElementById('st-selected').textContent = `Selected: ${sel.length}`;
+}
+setInterval(updateStatus, 500);
+
+// --- Node Creation ---
+window.addShape = function(shape) {
+  const names = {
+    rectangle: 'Rect', circle: 'Circle', ellipse: 'Oval', diamond: 'Diamond',
+    star: 'Star', triangle: 'Tri', hexagon: 'Hexagon',
+  };
+  const sizes = { rectangle: [120,80], circle: [100,100], ellipse: [140,70], diamond: [100,100],
+    star: [100,100], triangle: [100,87], hexagon: [100,87] };
+  const [w, h] = sizes[shape] || [120,80];
+  const colors = ['#ff6b6b','#4ecdc4','#45b7d1','#96ceb4','#feca57','#c084fc','#fb923c'];
+
+  const node = slate.addNode({
+    id: shape + '_' + Date.now(),
+    x: 100 + Math.random() * 700,
+    y: 100 + Math.random() * 400,
+    width: w, height: h,
+    text: names[shape] || shape,
+    backgroundColor: colors[Math.floor(Math.random()*colors.length)],
+    borderColor: '#333',
+    shape: shape,
+    fontSize: 14,
+    fontColor: '#333',
+  });
+
+  if (node && node.connector) node.connector.enable();
+  updateStatus();
+  return node;
+};
+
+window.addShape('image', function() {
+  const node = slate.addNode({
+    id: 'img_' + Date.now(),
+    x: 100 + Math.random() * 700,
+    y: 100 + Math.random() * 400,
+    width: 160, height: 120,
+    text: 'Image',
+    backgroundColor: '#e0e0e0',
+    borderColor: '#333',
+    fontSize: 14,
+  });
+  if (node && node.images) {
+    node.images.set('https://picsum.photos/320/240', 320, 240, true);
+  }
+  if (node && node.connector) node.connector.enable();
+  updateStatus();
+  return node;
+});
+
+// --- Connectors ---
+let connectMode = false;
+window.toggleConnectMode = function() {
+  connectMode = !connectMode;
+  document.getElementById('btn-connect-mode').textContent = '🔗 Connect Mode: ' + (connectMode ? 'ON (click two nodes)' : 'OFF');
+  document.getElementById('btn-connect-mode').className = connectMode ? 'toggle on' : 'toggle';
+  if (connectMode) {
+    window._connectFirst = null;
+    slate.options.events = slate.options.events || {};
+    slate.options.events.onCanvasClicked = function(evt) {
+      const target = evt.target;
+      const sel = slate.getSelectedNodes();
+      if (sel.length === 1) {
+        if (!window._connectFirst) {
+          window._connectFirst = sel[0];
+          document.getElementById('btn-connect-mode').textContent = '🔗 Connect Mode: Select target node...';
+        } else {
+          const source = window._connectFirst;
+          const target = sel[0];
+          if (source !== target) {
+            source.connector.connectTo(target, { lineColor: '#e94560', lineWidth: 3 });
+            document.getElementById('btn-connect-mode').textContent = '🔗 Connected! Mode: ON';
+          }
+          window._connectFirst = null;
+        }
+      }
+    };
+  }
+};
+
+window.clearConnections = function() {
+  slate.getAllNodes().forEach(n => { if (n.connector) n.connector.disconnectAll(); });
+};
+
+// --- Selection ---
+window.selectAll = function() {
+  slate.selectNodes(slate.getAllNodes());
+};
+window.clearSelection = function() {
+  slate.clearSelection ? slate.clearSelection() : slate.selectNodes([]);
+};
+
+// --- View ---
+window.zoomIn = function() { slate.panZoom?.zoomIn(); };
+window.zoomOut = function() { slate.panZoom?.zoomOut(); };
+window.resetZoom = function() { slate.panZoom?.zoom(1); };
+
+let gridOn = false;
+window.toggleGrid = function() {
+  gridOn = !gridOn;
+  document.getElementById('btn-grid').textContent = '📏 Grid: ' + (gridOn ? 'ON' : 'OFF');
+  document.getElementById('btn-grid').className = 'toggle' + (gridOn ? ' on' : '');
+  if (gridOn) slate.grid.show(); else slate.grid.hide();
+};
+
+let birdsEyeOn = false;
+window.toggleBirdsEye = function() {
+  birdsEyeOn = !birdsEyeOn;
+  document.getElementById('btn-birdseye').textContent = '🗺️ BirdsEye: ' + (birdsEyeOn ? 'ON' : 'OFF');
+  document.getElementById('btn-birdseye').className = 'toggle' + (birdsEyeOn ? ' on' : '');
+  if (birdsEyeOn) slate.birdsEye.enable(); else slate.birdsEye.disable();
+};
+
+// --- Undo/Redo ---
+window.undo = function() { slate.undoRedo?.undo(); };
+window.redo = function() { slate.undoRedo?.redo(); };
+
+// --- Comments ---
+window.addCommentNode = function() {
+  const node = slate.addNode({
+    id: 'comment_' + Date.now(),
+    x: 100 + Math.random() * 700,
+    y: 100 + Math.random() * 400,
+    width: 200, height: 80,
+    text: '💬 Comment: ' + new Date().toLocaleTimeString(),
+    backgroundColor: '#fff9c4',
+    borderColor: '#f9a825',
+    fontSize: 12,
+    fontColor: '#333',
+    isComment: true,
+  });
+  updateStatus();
+};
+
+// --- Presentation ---
+let presenting = false;
+window.togglePresentation = function() {
+  presenting = !presenting;
+  document.getElementById('btn-presentation').textContent = '▶️ Presentation: ' + (presenting ? 'ON' : 'OFF');
+  document.getElementById('btn-presentation').className = 'toggle' + (presenting ? ' on' : '');
+  if (presenting) {
+    slate.presentation.start(slate.getAllNodes().map((n,i) => ({ nodeId: n.id, index: i })));
+  } else {
+    slate.presentation.stop();
+  }
+};
+
+// --- Themes ---
+window.cycleTheme = function() {
+  themeIdx = (themeIdx + 1) % THEMES.length;
+  const t = THEMES[themeIdx];
+  document.getElementById('btn-theme').textContent = '🎨 Theme: ' + t.name;
+  slate.getAllNodes().forEach(n => n.setColors ? n.setColors(t.bg, t.line) : null);
+};
+
+// --- Export ---
+window.exportSVG = function() {
+  slate.exportSVG ? slate.exportSVG((xml) => {
+    const blob = new Blob([xml], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'slatebox-export.svg'; a.click();
+    URL.revokeObjectURL(url);
+  }) : alert('Export module not available');
+};
+window.exportPNG = function() {
+  slate.exportPNG ? slate.exportPNG((dataUrl) => {
+    const a = document.createElement('a'); a.href = dataUrl; a.download = 'slatebox-export.png'; a.click();
+  }) : alert('Export module not available');
+};
+
+// --- Filters ---
+window.applyFilter = function(name) {
+  const sel = slate.getSelectedNodes();
+
+  if (sel.length > 0) {
+    sel.forEach(n => n.filters?.apply(name, 'both'));
+  } else {
+    slate.getAllNodes().forEach(n => n.filters?.apply(name, 'both'));
+  }
+};
+window.clearFilters = function() {
+  slate.getAllNodes().forEach(n => n.filters?.removeAll());
+};
+
+// --- Collab (Yjs) ---
+(async function() {
+  try {
+    const Y = (await Function('return import("yjs")')()) as any;
+    const { WebsocketProvider } = (await Function('return import("y-websocket")')()) as any;
+    document.getElementById('st-collab').textContent = 'Collab: yjs available (not connected)';
+
+    // Auto-connect if collab init is configured
+    if (slate.collab) {
+      slate.collab.init({ wsUrl: 'ws://localhost:1234', roomName: 'demo-' + Date.now() });
+
+    setTimeout(() => {
+        const connected = slate.collab.isCollabConnected();
+        document.getElementById('st-collab').textContent = 'Collab: ' + (connected ? 'connected ✅' : 'disconnected (no server)');
+      }, 2000);
+    }
+  } catch {
+    document.getElementById('st-collab').textContent = 'Collab: yjs not installed';
+  }
+})();
+
+// --- Seed initial nodes ---
+setTimeout(() => {
+  addShape('rectangle');
+  addShape('circle');
+  addShape('diamond');
+  addShape('star');
+  addShape('triangle');
+  addShape('hexagon');
+}, 200);
+
+console.log('✅ SlateboxJS v2 Demo loaded');
+console.log('  Slate:', slate);
+console.log('  API: addShape(), zoomIn/Out(), toggleGrid(), toggleBirdsEye(), undo/redo, exportSVG/PNG');
+</script>
+</body>
+</html>

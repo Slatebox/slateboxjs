@@ -1,3 +1,4 @@
+import type { Node } from "./Node";
 export interface ConnectorOptions {
     enabled?: boolean;
     lineContainer?: any;
@@ -5,8 +6,8 @@ export interface ConnectorOptions {
     padEllipse?: boolean;
     defaultLineColor?: string;
     defaultLineWidth?: number;
-    onConnect?: (connection: any) => void;
-    onDisconnect?: (connection: any) => void;
+    onConnect?: (connection: Connection) => void;
+    onDisconnect?: (connection: Connection) => void;
     type?: "straight" | "curved" | "orthogonal";
     color?: string;
     strokeWidth?: number;
@@ -19,11 +20,22 @@ export interface ConnectorOptions {
 }
 export interface Connection {
     id: string;
-    source: any;
-    target: any;
+    source: Node;
+    target: Node;
     connectable: any;
     lineColor?: string;
     lineWidth?: number;
+    lineOpacity?: number;
+    lineEffect?: string;
+    label?: string;
+    sourceAnchor?: {
+        x: number;
+        y: number;
+    } | null;
+    targetAnchor?: {
+        x: number;
+        y: number;
+    } | null;
 }
 export declare class Connector {
     private node;
@@ -31,17 +43,102 @@ export declare class Connector {
     private options;
     private connections;
     private isActive;
-    constructor(node: any, options?: ConnectorOptions);
+    /**
+     * Creates a connector for a node. Manages connection lines to other nodes.
+     *
+     * @param node    - The parent Node instance
+     * @param options - Connector configuration (line color, width, type, etc.)
+     */
+    constructor(node: Node, options?: ConnectorOptions);
+    /** Enable the connector, making connection handles available. */
     enable(): void;
+    /** Disable the connector and remove all connections. */
     disable(): void;
+    destroy(): void;
     private ensureContainers;
     connectTo(targetNode: any, connectionOptions?: Partial<Connection>): Connection | null;
+    /**
+     * Connect this node to a bare WORLD point (free-floating endpoint, L1b).
+     * Backed by an invisible 1px "phantom" rect at the point so the existing
+     * svg.connectable geometry (edge-solve on the target's bbox) works unchanged.
+     * The synthetic id keys the connection like a normal one.
+     */
+    connectToPoint(point: {
+        x: number;
+        y: number;
+    }, synthId: string, connectionOptions?: Partial<Connection>): Connection | null;
     disconnectFrom(targetNode: any): boolean;
     disconnectById(connectionId: string): boolean;
     disconnectAll(): void;
     getConnections(): Connection[];
     getConnection(targetNodeId: string): Connection | null;
     updateConnection(connectionId: string, updates: Partial<Connection>): boolean;
+    /** Apply v1 line opacity/effect fields to the visible connector path. */
+    private applyLineAppearance;
+    /**
+     * Edge-pin mode: pin (or unpin with null) a connection's endpoint to a
+     * normalized local anchor {x,y} in 0..1 on the source or target node.
+     * A pinned endpoint stays on that point and rotates with the node; null
+     * restores auto-flow (nearest-edge). Re-solves immediately.
+     */
+    setConnectionAnchor(targetNodeId: string, which: "source" | "target", anchor: {
+        x: number;
+        y: number;
+    } | null): boolean;
+    /**
+     * Endpoint-drag → model (L1). The vendored lib has already reattached the
+     * VIEW when this fires; we reconcile the association MODEL so the change
+     * broadcasts to peers and persists. Reattaching to a node rebuilds the
+     * association (remove old + add new) through the already-synced/persisted
+     * addAssociation/removeAssociation. Deferred a tick so the lib's dragend
+     * finishes before we tear down/recreate the connection.
+     *
+     * Free-floating (phantom) drops are L1b — not yet persisted; left as a
+     * view-only endpoint for now (no rogue model state).
+     */
+    private handleEndpointChange;
+    /**
+     * U3: pin an endpoint at the exact drop point on a node. Converts the world
+     * drop point into a normalized [0,1] anchor on the node's box and stores it as
+     * the source/target anchor (persists + renders there). Skipped for rotated
+     * nodes (world→local normalization would be wrong) — those fall back to
+     * auto-flow. relationships owner is `ownerNode`; the association is childId.
+     */
+    private pinDropAnchor;
+    /**
+     * L5 per-endpoint locking. mode "absolute" freezes the endpoint at its
+     * current spot on the node (a normalized local anchor that then moves/rotates
+     * with the node); "relative" clears it back to auto-flow (nearest-edge).
+     * Returns the anchor that was set (or null) so callers can persist it.
+     */
+    setEndpointLock(connectionId: string, which: "source" | "target", mode: "absolute" | "relative"): {
+        x: number;
+        y: number;
+    } | null;
+    /**
+     * Show a cog affordance at the midpoint of a clicked line (M1/M2). Clicking
+     * the cog opens the host's line-properties pane. Only one cog is shown at a
+     * time (tracked on the slate) and it clears on canvas/node interaction.
+     */
+    /**
+     * Miro-style hover reveal for a connection's endpoint handles. Handles are
+     * hidden by default (CSS) and shown while the pointer is over the line, its
+     * hit area, or a handle — then hidden again on leave, UNLESS the connection is
+     * selected (`_handlesPinned`, set by showLineCog / cleared by clearLineCog).
+     * Handles are created lazily by the vendored lib, so we resolve them at event
+     * time rather than capturing them now.
+     */
+    private wireHandleReveal;
+    private showLineCog;
+    private openLinePane;
+    /**
+     * Q3: show a lock/relative toggle at EACH endpoint (source + target) when the
+     * line cog is clicked. Clicking a toggle flips absolute (pinned anchor) ↔
+     * relative (auto-flow) via applyLineProperty, and broadcasts for collab parity.
+     */
+    private showEndpointLockToggles;
+    /** Draw a small padlock (closed = absolute/locked, open = relative). */
+    private static drawLockIcon;
     isEnabled(): boolean;
     updateOptions(options: Partial<ConnectorOptions>): void;
 }

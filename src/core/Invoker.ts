@@ -1,19 +1,31 @@
-export class Invoker {
-  private slate: any
+import type { Slate } from "./Slate";
+import type { SlatePackage } from "./SlatePackage";
+import { v1NodeToV2 } from "./compat";
+import { deserialize } from "./Serialization";
 
-  constructor(slate: any) {
+export class Invoker {
+  private slate: Slate
+
+  constructor(slate: Slate) {
     this.slate = slate
   }
 
-  onZoom(pkg: any) {
+  /** Destroy the invoker, clearing all callback references */
+  public destroy(): void {
+    (this as any).slate = null;
+  }
+
+  onZoom(pkg: SlatePackage) {
     if (this.slate.options.followMe) {
-      const zoomPercent = (this.slate.options.viewPort.originalWidth / pkg.data.zoomLevel) * 100
-      // Implementation for zoom functionality
-      console.log('Zoom to:', zoomPercent + '%')
+      const level = pkg.data.zoomLevel
+      if (typeof level === 'number' && level > 0) {
+        // Apply directly through panZoom — Slate.zoom would re-broadcast
+        this.slate.panZoom?.zoom(level)
+      }
     }
   }
 
-  onNodePositioned(pkg: any) {
+  onNodePositioned(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.position(
@@ -26,83 +38,87 @@ export class Invoker {
     }
   }
 
-  onNodeLinkRemoved(pkg: any) {
+  onNodeLinkRemoved(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node?.links) {
       node.links.unset(false)
     }
   }
 
-  onNodeLinkAdded(pkg: any) {
+  onNodeLinkAdded(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node?.links) {
-      node.links.set(pkg, false)
+    // The package carries the link under data.link (see Links.set); passing the
+    // whole pkg here stored the entire collab envelope as options.link and
+    // corrupted the link on reload / for remote peers.
+    const link = (pkg.data as any)?.link
+    if (node?.links && link) {
+      node.links.set(link, false)
     }
   }
 
-  onNodeUnlocked(pkg: any) {
+  onNodeUnlocked(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.unlock()
     }
   }
 
-  onNodeLocked(pkg: any) {
+  onNodeLocked(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.lock()
     }
   }
 
-  onNodeBehaviorChanged(pkg: any) {
+  onNodeBehaviorChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       pkg.data.behaviorChanges.forEach((b: any) => {
         if (typeof b.value === 'object') {
-          node.options[b.name] = b.value.val
+          (node.options as any)[b.name] = b.value.val
           Object.keys(b.value).forEach((k) => {
             if (k !== 'val') {
-              node.options[k] = b.value[k]
+              (node.options as any)[k] = b.value[k]
             }
           })
         } else {
-          node.options[b.name] = b.value
+          (node.options as any)[b.name] = b.value
         }
       })
     }
   }
 
-  onNodeToBack(pkg: any) {
+  onNodeToBack(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.toBack()
     }
   }
 
-  onNodeToFront(pkg: any) {
+  onNodeToFront(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       node.toFront()
     }
   }
 
-  onNodeShapeChanged(pkg: any) {
+  onNodeShapeChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      // Update shape properties
-      Object.assign(node.options, pkg.data)
-      // Recreate the node with new shape if needed
-      // This is a simplified implementation
-      console.log('Shape changed for node:', pkg.data.id)
+    if (!node) return
+    const shape = (pkg.data as any).shape ?? (pkg.data as any).vectorPath
+    // Carry any co-sent props (border, etc.), then re-render the shape.
+    Object.assign(node.options, pkg.data)
+    if (shape) {
+      node.setShape(shape, (pkg.data as any).vectorPath)
     }
   }
 
-  onNodeAdded(pkg: any) {
+  onNodeAdded(pkg: SlatePackage) {
     if (pkg.data?.multiSelectCopy) {
       // Handle multi-selection copy
       console.log('Multi-select copy:', pkg.data)
-    } else if (pkg.data.id) {
-      // Add node with specific parent
+    } else if (pkg.data.id && pkg.data.options && !pkg.data.nodeOptions) {
+      // Add node connected to a specific parent (data.id = PARENT id)
       const parentNode = this.slate.nodes.one(pkg.data.id)
       if (parentNode) {
         // Create connected node
@@ -113,33 +129,38 @@ export class Invoker {
         })
       }
     } else {
-      // Straight up node addition
+      // Straight up node addition — packages carry v1-shaped options
+      // (xPos/yPos/foregroundColor/…); convert before creating
       let nodesToCreate = pkg.data.nodeOptions
       if (!Array.isArray(nodesToCreate)) {
         nodesToCreate = [nodesToCreate]
       }
-      nodesToCreate.forEach((nOpts: any) => {
+      nodesToCreate.filter(Boolean).forEach((nOpts: any) => {
         const exists = this.slate.nodes.one(nOpts.id)
         if (!exists) {
-          this.slate.nodes.add(nOpts)
+          this.slate.nodes.add(v1NodeToV2(nOpts) as any)
         }
       })
     }
   }
 
-  onNodeImageChanged(pkg: any) {
+  onNodeImageChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      // Implementation for image change
-      console.log('Image changed for node:', pkg.data.id)
+    if (!node?.images) return
+    // App sends { img: <url>, w, h } (or clears with a falsy img).
+    const url = (pkg.data as any).img ?? (pkg.data as any).image
+    if (url) {
+      node.images.set(url, (pkg.data as any).w, (pkg.data as any).h)
+    } else {
+      node.images.clear()
     }
   }
 
-  onNodeDeleted(pkg: any) {
+  onNodeDeleted(pkg: SlatePackage) {
     this.slate.nodes.remove(pkg.data.id)
   }
 
-  onNodeResized(pkg: any) {
+  onNodeResized(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
       Object.assign(node.options, pkg.data)
@@ -147,105 +168,156 @@ export class Invoker {
     }
   }
 
-  onNodeRotated(pkg: any) {
+  onNodeRotated(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
-      // Update rotation
-      node.options.textOffset = pkg.data.textOffset
-      Object.assign(node.options, pkg.data)
-      // Apply rotation - this would need SVG transformation
-      console.log('Node rotated:', pkg.data.id)
+      if (pkg.data.textOffset !== undefined) {
+        node.options.textOffset = pkg.data.textOffset
+      }
+      const angle =
+        pkg.data.rotate?.rotationAngle ?? pkg.data.rotationAngle
+      if (typeof angle === 'number') {
+        // Animate remotely-applied rotation (collab bug #5) so it glides in
+        // this window like drag does, instead of snapping.
+        node.setRotation(angle, 400)
+      }
+      if (pkg.data.width && pkg.data.height) {
+        node.setSize(pkg.data.width, pkg.data.height)
+      }
     }
   }
 
-  onNodeColorChanged(pkg: any) {
+  onNodeColorChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
-      node.setColors(pkg.data.backgroundColor, pkg.data.borderColor)
+      // v1 packages carry the background as `color`; accept both
+      node.setColors(
+        pkg.data.color ?? pkg.data.backgroundColor,
+        pkg.data.borderColor
+      )
+      if (pkg.data.opacity !== undefined) {
+        node.options.opacity = pkg.data.opacity
+        node.applyOpacity()
+      }
     }
   }
 
-  onNodeTextChanged(pkg: any) {
+  onNodeTextChanged(pkg: SlatePackage) {
+    const node = this.slate.nodes.one(pkg.data.id)
+    if (!node) return
+    // Update font/alignment options FIRST — only when present (a text-only
+    // package must not wipe font settings with undefined).
+    if (pkg.data.fontSize !== undefined) node.options.fontSize = pkg.data.fontSize
+    if (pkg.data.fontFamily !== undefined) node.options.fontFamily = pkg.data.fontFamily
+    if (pkg.data.fontColor !== undefined) node.options.fontColor = pkg.data.fontColor
+    if (pkg.data.textOpacity !== undefined) node.options.textOpacity = pkg.data.textOpacity
+    if (pkg.data.textXAlign !== undefined) node.options.textXAlign = pkg.data.textXAlign
+    if (pkg.data.textYAlign !== undefined) node.options.textYAlign = pkg.data.textYAlign
+    // Apply the text string (if any), then re-render font + alignment.
+    if (pkg.data.text !== undefined) node.setText(pkg.data.text)
+    node.applyTextStyle()
+  }
+
+  onNodeAITextChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (node) {
-      node.setText(pkg.data.text)
-      // Update text properties
-      node.options.fontSize = pkg.data.fontSize
-      node.options.fontFamily = pkg.data.fontFamily
-      node.options.fontColor = pkg.data.fontColor
-      node.options.textOpacity = pkg.data.textOpacity
-      node.options.textXAlign = pkg.data.textXAlign
-      node.options.textYAlign = pkg.data.textYAlign
+      // Merge with NEW winning (existing fields not in the package are kept).
+      // The order was reversed, so a re-set of the same field was ignored and a
+      // remote peer never picked up another client's AI change. Matches the
+      // update semantics of onSlateAISet.
+      node.options.ai = { ...node.options.ai, ...pkg.data.ai }
     }
   }
 
-  onNodeAITextChanged(pkg: any) {
-    const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      node.options.ai = { ...pkg.data.ai, ...node.options.ai }
-    }
-  }
-
-  addRelationship(pkg: any) {
+  addRelationship(pkg: SlatePackage) {
     this.slate.nodes.addRelationship(pkg.data)
   }
 
-  removeRelationship(pkg: any) {
+  removeRelationship(pkg: SlatePackage) {
     this.slate.nodes.removeRelationship(pkg.data)
   }
 
-  onNodesMove(pkg: any) {
-    this.slate.nodes.moveNodes(pkg, { animate: pkg.data.dur > 0 })
+  onNodesMove(pkg: SlatePackage) {
+    // Remote moves glide by default (v1 semantics); moveNodes honors an
+    // explicit dur:0 for instant placement
+    this.slate.nodes.moveNodes(pkg)
   }
 
-  onNodeEffectChanged(pkg: any) {
+  onNodeEffectChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      // Apply filters/effects
-      console.log('Effect changed for node:', pkg.data.id)
+    if (!node?.filters) return
+    // App sends { filter: { apply: 'vect'|'text'|'image', id: <filterName|null> } }.
+    const filter = (pkg.data as any).filter
+    if (!filter) return
+    const target = filter.apply === 'text' ? 'text' : 'vect'
+    const optKey = target === 'text' ? 'text' : 'vect'
+    const prev = node.options.filters?.[optKey]
+    // Exclusive toggle: remove the previously-applied effect for this target.
+    if (prev) node.filters.remove(prev)
+    if (filter.id) {
+      node.filters.apply(filter.id, target as 'vect' | 'text' | 'both')
+    } else if (node.options.filters) {
+      // Deselected → clear the stored id.
+      node.options.filters[optKey] = undefined
     }
   }
 
-  onNodeBorderPropertiesChanged(pkg: any) {
+  onNodeBorderPropertiesChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      // Apply border properties
-      node.options.borderColor = pkg.data.borderColor
-      node.options.borderWidth = pkg.data.borderWidth
-      node.setColors(undefined, pkg.data.borderColor)
+    if (!node) return
+    const { prop, val } = pkg.data as any
+    if (prop !== undefined) {
+      // Pane shape: one { prop, val } at a time (borderColor / borderWidth /
+      // borderStyle / borderOpacity).
+      ;(node.options as any)[prop] = val
+    } else {
+      // Legacy bulk shape.
+      if (pkg.data.borderColor !== undefined) node.options.borderColor = pkg.data.borderColor
+      if (pkg.data.borderWidth !== undefined) node.options.borderWidth = pkg.data.borderWidth
     }
+    node.applyBorder()
   }
 
-  onLinePropertiesChanged(pkg: any) {
+  onLinePropertiesChanged(pkg: SlatePackage) {
     const data = Array.isArray(pkg.data) ? pkg.data : [pkg.data]
     data.forEach((p: any) => {
       const node = this.slate.nodes.one(p.id)
-      if (node) {
+      if (!node) return
+      // Pane packages: { prop, val, associationId } — update the specific
+      // association's line property AND re-render its connector. Applied for
+      // both local edits and remote (collab) so line changes sync + persist.
+      if (p.associationId && p.prop !== undefined && node.relationships) {
+        node.relationships.applyLineProperty(p.associationId, p.prop, p.val)
+      } else if (p.options) {
+        // Fallback: bulk options merge (legacy shape)
         Object.assign(node.options, p.options)
       }
     })
   }
 
-  onFollowMeChanged(pkg: any) {
+  onFollowMeChanged(pkg: SlatePackage) {
     this.slate.options.followMe = pkg.data?.followMe
   }
 
-  onCanvasMove(pkg: any) {
+  onCanvasMove(pkg: SlatePackage) {
     if (this.slate.options.followMe) {
-      // Implement canvas movement
-      console.log('Canvas move:', pkg.data)
+      const { left, top } = pkg.data || {}
+      if (typeof left === 'number' && typeof top === 'number') {
+        this.slate.pan({ x: left, y: top })
+      }
     }
   }
 
-  onSlateThemeChanged(pkg: any) {
-    this.slate.options.themeId = pkg.data?.theme?._id
-    if (pkg.data?.theme) {
-      // Apply theme
-      console.log('Theme changed:', pkg.data.theme)
+  onSlateThemeChanged(pkg: SlatePackage) {
+    const theme = pkg.data?.theme
+    if (theme?._id) this.slate.options.themeId = theme._id
+    if (theme) {
+      // Apply the theme (container bg, line color, per-node parent/child styles).
+      this.slate.applyTheme(theme, (pkg.data as any)?.syncWithTheme)
     }
   }
 
-  onSlateLayoutTypeChanged(pkg: any) {
+  onSlateLayoutTypeChanged(pkg: SlatePackage) {
     if (pkg.data.layoutType != null) {
       this.slate.options.layoutType = pkg.data.layoutType
     }
@@ -255,35 +327,42 @@ export class Invoker {
     }
   }
 
-  onSlateBackgroundEffectChanged(pkg: any) {
-    this.slate.options.containerStyle.backgroundEffect = pkg.data.effect
+  onSlateBackgroundEffectChanged(pkg: SlatePackage) {
+    this.slate.options.containerStyle!.backgroundEffect = pkg.data.effect
     // Apply background effect
     console.log('Background effect changed:', pkg.data.effect)
   }
 
-  onSlateBackgroundImageChanged(pkg: any) {
+  onSlateBackgroundImageChanged(pkg: SlatePackage) {
     if (pkg.data.bg) {
-      this.slate.options.containerStyle.backgroundImage = pkg.data.bg.url
-      this.slate.options.containerStyle.backgroundSize = pkg.data.bg.size
+      this.slate.options.containerStyle!.backgroundImage = pkg.data.bg.url
+      this.slate.options.containerStyle!.backgroundSize = pkg.data.bg.size
+      // An image supersedes any gradient (which otherwise wins in applyContainerStyle).
+      this.slate.options.containerStyle!.backgroundColorAsGradient = false
     } else {
-      const c = this.slate.options.containerStyle.prevBackgroundColor || '#fff'
-      this.slate.options.containerStyle.backgroundColor = c
-      this.slate.options.containerStyle.backgroundImage = null
-      this.slate.options.containerStyle.backgroundEffect = null
+      const c = this.slate.options.containerStyle?.prevBackgroundColor || '#fff'
+      this.slate.options.containerStyle!.backgroundColor = c
+      this.slate.options.containerStyle!.backgroundImage = undefined
+      this.slate.options.containerStyle!.backgroundEffect = undefined
     }
+    // Push the option change onto the container element (was a no-op before).
+    this.slate.applyContainerStyle()
   }
 
-  onSlateBackgroundColorChanged(pkg: any) {
-    this.slate.options.containerStyle.backgroundColor = pkg.data.color
-    this.slate.options.containerStyle.backgroundColorAsGradient = pkg.data.asGradient
-    this.slate.options.containerStyle.backgroundGradientType = pkg.data.gradientType
-    this.slate.options.containerStyle.backgroundGradientColors = pkg.data.gradientColors
-    this.slate.options.containerStyle.backgroundGradientStrategy = pkg.data.gradientStrategy
-    this.slate.options.containerStyle.backgroundImage = null
-    this.slate.options.containerStyle.backgroundEffect = null
+  onSlateBackgroundColorChanged(pkg: SlatePackage) {
+    const cs = this.slate.options.containerStyle!;
+    cs.backgroundColor = pkg.data.color
+    cs.backgroundColorAsGradient = pkg.data.asGradient
+    cs.backgroundGradientType = pkg.data.gradientType
+    cs.backgroundGradientColors = pkg.data.gradientColors
+    cs.backgroundGradientStrategy = pkg.data.gradientStrategy
+    cs.backgroundImage = undefined
+    cs.backgroundEffect = undefined
+    // Actually paint the container (previously only options were updated).
+    this.slate.applyContainerStyle()
   }
 
-  onLineColorChanged(pkg: any) {
+  onLineColorChanged(pkg: SlatePackage) {
     this.slate.options.defaultLineColor = pkg.data.color
     this.slate.nodes.allNodes.forEach((node: any) => {
       node.options.lineColor = pkg.data.color
@@ -296,59 +375,72 @@ export class Invoker {
     })
   }
 
-  onSlateAISet(pkg: any) {
+  onSlateAISet(pkg: SlatePackage) {
     this.slate.options.ai = {
       ...(this.slate.options.ai || {}),
       ...pkg.data,
     }
   }
 
-  onSlateNameChanged(pkg: any) {
+  onSlateNameChanged(pkg: SlatePackage) {
     this.slate.options.name = pkg.data.name
   }
 
-  onSlateDescriptionChanged(pkg: any) {
+  onSlateDescriptionChanged(pkg: SlatePackage) {
     this.slate.options.description = pkg.data.description
   }
 
-  onSlateShowGridChanged(pkg: any) {
-    this.slate.options.viewPort.showGrid = pkg.data.showGrid
+  /** Apply an authoritative full-document baseline (undo/redo collaboration). */
+  async onSlateReplaced(pkg: SlatePackage) {
+    const snapshot = pkg.data?.snapshot
+    if (!snapshot) return
+    await deserialize(snapshot, this.slate, false, true)
+  }
+
+  onSlateShowGridChanged(pkg: SlatePackage) {
+    this.slate.options.viewPort!.showGrid = pkg.data.showGrid
+    // Actually show/hide the grid overlay — previously this only logged, so the
+    // "Show Grid" toggle set the option but never rendered the grid.
     if (pkg.data.showGrid) {
-      // Show grid
-      console.log('Show grid')
+      this.slate.grid?.show()
     } else {
-      // Hide grid
-      console.log('Hide grid')
+      this.slate.grid?.hide()
     }
   }
 
-  onSlateMindMapModeChanged(pkg: any) {
+  onSlateMindMapModeChanged(pkg: SlatePackage) {
     this.slate.options.mindMapMode = pkg.data.mindMapMode
   }
 
-  onSlateAutoResizeNodesBasedOnTextChanged(pkg: any) {
+  onSlateAutoResizeNodesBasedOnTextChanged(pkg: SlatePackage) {
     this.slate.options.autoResizeNodesBasedOnText = pkg.data.autoResizeNodesBasedOnText
   }
 
-  onSlateTagsAndTemplateMarkdownChanged(pkg: any) {
+  onSlateTagsAndTemplateMarkdownChanged(pkg: SlatePackage) {
     this.slate.options.tags = pkg.data.tags
     this.slate.options.templateMarkdown = pkg.data.templateMarkdown
     this.slate.options.templatePrompt = pkg.data.templatePrompt
   }
 
-  onSlateTemplateChanged(pkg: any) {
+  onSlateTemplateChanged(pkg: SlatePackage) {
     this.slate.options.isTemplate = pkg.data.isTemplate
   }
 
-  onSlateSnapToObjectsChanged(pkg: any) {
-    this.slate.options.viewPort.snapToObjects = pkg.data.snapToObjects
+  onSlateSnapToObjectsChanged(pkg: SlatePackage) {
+    this.slate.options.viewPort!.snapToObjects = pkg.data.snapToObjects
   }
 
-  onSlateFollowMeChanged(pkg: any) {
+  onSlateSnapToGridChanged(pkg: SlatePackage) {
+    this.slate.options.viewPort!.snapToGrid = pkg.data.snapToGrid
+    // Wire the toggle into the live Grid so node drags snap (or stop snapping).
+    this.slate.grid?.updateOptions({ snapToGrid: !!pkg.data.snapToGrid })
+  }
+
+  onSlateFollowMeChanged(pkg: SlatePackage) {
     this.slate.options.followMe = pkg.data.followMe
   }
 
-  onSlateHuddleChanged(pkg: any) {
+  onSlateHuddleChanged(pkg: SlatePackage) {
     if (pkg.data.huddleType != null) {
       this.slate.options.huddleType = pkg.data.huddleType
     }

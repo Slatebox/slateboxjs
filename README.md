@@ -1,10 +1,11 @@
-# SlateboxJS v2
+# SlateboxJS
 
-A modern, ground-up rewrite of a diagramming library built with svg.js and Vite. SlateboxJS v2 provides a powerful, flexible platform for creating interactive diagrams with draggable nodes, pan/zoom functionality, and advanced node manipulation capabilities.
+SlateboxJS 3 is the modern, MIT-licensed Slatebox diagramming engine. It is a ground-up TypeScript and SVG.js rewrite with draggable nodes, an infinite pan/zoom canvas, connectors, groups, collaboration, presentation, serialization, export, and a compatibility facade for applications built against SlateboxJS 2.x.
 
 ## ✨ Features
 
 - **Modern Architecture**: Built with TypeScript, svg.js, and Vite
+- **Self-Contained**: All plugins bundled (svg.connectable.js vendored in-tree — no external dependencies beyond npm) 
 - **Draggable Nodes**: Full drag-and-drop support using svg.draggable.js
 - **Pan & Zoom Canvas**: Mouse wheel zoom, drag to pan, with zoom controls
 - **Resize & Rotate Nodes**: Interactive resize handles and rotation controls
@@ -20,7 +21,7 @@ A modern, ground-up rewrite of a diagramming library built with svg.js and Vite.
 ### Installation
 
 ```bash
-npm install slateboxjs-v2
+npm install slateboxjs
 ```
 
 ### Basic Usage
@@ -30,15 +31,16 @@ npm install slateboxjs-v2
 <html>
 <head>
     <title>SlateboxJS Demo</title>
-    <link rel="stylesheet" href="node_modules/slateboxjs-v2/dist/slateboxjs.css">
+    <link rel="stylesheet" href="node_modules/slateboxjs/dist/slateboxjs.css">
 </head>
 <body>
-    <div id="slate-container"></div>
+    <div id="slate-container" style="width: 100%; height: 100vh;"></div>
     
     <script type="module">
-        import SlateboxJS from 'slateboxjs-v2'
+        import SlateboxJS from 'slateboxjs'
+        import 'slateboxjs/style.css'
         
-        // Create a new slate with pan/zoom enabled
+        // Create a new slate
         const slate = SlateboxJS('#slate-container', {
             viewPort: {
                 originalWidth: 800,
@@ -46,14 +48,12 @@ npm install slateboxjs-v2
             },
             panZoom: {
                 enabled: true,
-                controlIconsEnabled: true,
-                zoomScaleSensitivity: 0.1,
                 minZoom: 0.1,
                 maxZoom: 5
             }
         })
         
-        // Add a draggable, resizable node
+        // Add a draggable node
         const node = slate.addNode({
             id: 'node1',
             x: 100,
@@ -62,19 +62,37 @@ npm install slateboxjs-v2
             height: 80,
             text: 'Hello World',
             backgroundColor: '#4ecdc4',
-            shape: 'rectangle',
-            resizeRotate: {
-                resizeEnabled: true,
-                rotateEnabled: true
-            }
+            shape: 'rectangle'
         })
         
-        // Enable resize/rotate for this node
-        node.enableResizeRotate()
+        // Click to select — enables resize/rotate handles automatically
+        // Shift+click to multi-select, drag on canvas to marquee-select
     </script>
 </body>
 </html>
 ```
+
+### Migrating an existing SlateboxJS 2.x application
+
+Version 3 retains the historical named `Slatebox` namespace as a migration layer. Existing code can keep its constructor and serialized-data shapes while the host moves to the modern engine:
+
+```js
+import { Slatebox } from 'slateboxjs'
+import 'slateboxjs/style.css'
+
+const slate = await new Slatebox.slate(options, events).init()
+const node = new Slatebox.node({
+  id: 'welcome',
+  xPos: 100,
+  yPos: 100,
+  text: 'Welcome!',
+})
+
+slate.nodes.add(node)
+const persisted = slate.exportJSON()
+```
+
+The facade maps the 2.x runtime namespace, constructors, event packages, `xPos`/`yPos` serialization, node relationships, collaboration calls, and commonly used utilities onto version 3. New integrations should prefer the typed `SlateboxJS`, `Slate`, and `Node` APIs. See [`docs/drop-in-contract.md`](docs/drop-in-contract.md) for the audited compatibility surface and [`docs/meteor-swap.md`](docs/meteor-swap.md) for the host migration procedure.
 
 ## 📖 API Reference
 
@@ -187,7 +205,8 @@ interface PanZoomOptions {
   enabled?: boolean              // Enable/disable pan/zoom (default: true)
   panEnabled?: boolean           // Enable panning (default: true)
   zoomEnabled?: boolean          // Enable zooming (default: true)
-  controlIconsEnabled?: boolean  // Show zoom controls (default: true)
+  controlIconsEnabled?: boolean  // Show zoom slider controls (default: true)
+  zoomControls?: boolean         // Zoom control buttons (default: false)
   dblClickZoomEnabled?: boolean  // Double-click to zoom (default: true)
   mouseWheelZoomEnabled?: boolean // Mouse wheel zoom (default: true)
   zoomScaleSensitivity?: number  // Zoom sensitivity (default: 0.2)
@@ -200,9 +219,52 @@ interface PanZoomOptions {
 }
 ```
 
+### Connection Options
+
+```typescript
+interface ConnectorOptions {
+  enabled?: boolean              // Enable connections (default: true)
+  lineColor?: string             // Default line color
+  lineWidth?: number             // Default line width
+  showParentArrow?: boolean      // Show arrow at parent end
+  showChildArrow?: boolean       // Show arrow at child end
+}
+
+// Create a connection between two nodes
+slate.nodes.one('node1')?.connector?.connectTo(
+  slate.nodes.one('node2'),
+  { lineColor: '#ff6b6b', lineWidth: 3 }
+)
+```
+
+### Theme System
+
+```typescript
+interface ThemeOptions {
+  themeId?: string
+  // Theme defines node type styles, colors, fonts
+}
+
+// Apply a theme
+slate.applyTheme({ /* theme object */ })
+```
+
+### Serialization
+
+```typescript
+// Export to JSON
+const json = slate.exportJSON()
+
+// Import from JSON
+await slate.loadJSON(json)
+
+// Snapshot for undo/redo
+const snap = slate.snapshot()
+```
+
 ### Invoker Contract
 
-SlateboxJS v2 implements a complete invoker contract for external tool integration. All `onXXXX` methods from the original requirements are supported:
+SlateboxJS 3 implements the complete host-integration invoker contract. All audited `onXXXX` methods used by the Slatebox application are supported:
 
 ```javascript
 // External tools can invoke these methods
@@ -299,6 +361,32 @@ document.addEventListener('keydown', (e) => {
 })
 ```
 
+## 🧪 Testing
+
+```bash
+# Run all unit tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run a single test file
+npx vitest run tests/unit/Node.test.ts
+
+# Run end-to-end tests
+npm run test:e2e
+
+# Build and pack this checkout, install it into the canonical Meteor 3.5 app,
+# boot the app, and run strict two-client persistence/collaboration tests
+npm run test:app
+
+# Verify the published-package shape in a fresh TypeScript consumer
+npm run verify:package
+
+# Run all tests (unit + e2e)
+npm run test:all
+```
+
 ## 🛠️ Development
 
 ### Building from Source
@@ -306,40 +394,84 @@ document.addEventListener('keydown', (e) => {
 ```bash
 # Clone the repository
 git clone [repository-url]
-cd slateboxjs-v2
+cd slateboxjs
 
 # Install dependencies
 npm install
 
-# Build the library
+# Build the library (ESM + CJS + types + CSS)
 npm run build
 
-# Start development server
+# Development server with hot reload
 npm run dev
+
+# TypeScript type checking
+npx tsc --noEmit
+
+# Run all unit tests
+npm test
 ```
+
+### Build Output
+
+| Artifact | Format | Path |
+|---|---|---|
+| ESM bundle | ES Module | `dist/slateboxjs.mjs` |
+| CJS bundle | CommonJS | `dist/slateboxjs.js` |
+| TypeScript types | `.d.ts` | `dist/index.d.ts` |
+| Styles | CSS | `dist/slateboxjs.css` |
 
 ### Project Structure
 
 ```
-slateboxjs-v2/
+slateboxjs/
 ├── src/
 │   ├── core/
-│   │   ├── Slate.ts          # Main slate class
-│   │   ├── Node.ts           # Node class
-│   │   ├── NodesManager.ts   # Node collection management
-│   │   ├── Invoker.ts        # External integration contract
-│   │   ├── PanZoom.ts        # Pan/zoom functionality
-│   │   └── ResizeRotate.ts   # Resize/rotate functionality
+│   │   ├── Slate.ts              # Main slate orchestrator
+│   │   ├── Node.ts               # Node class (shape + text or SVG content)
+│   │   ├── NodesManager.ts       # Node collection CRUD
+│   │   ├── Invoker.ts            # External integration contract
+│   │   ├── PanZoom.ts            # Pan/zoom functionality
+│   │   ├── ResizeRotate.ts       # Resize/rotate handles
+│   │   ├── Connector.ts          # Node connections/lines
+│   │   ├── MultiSelection.ts     # Shift-click + drag-select
+│   │   ├── Keyboard.ts           # Keyboard shortcuts
+│   │   ├── BirdsEye.ts           # Mini-map overview
+│   │   ├── Grid.ts               # Snap-to-grid and grid rendering
+│   │   ├── Editor.ts             # Inline text editing
+│   │   ├── UndoRedo.ts           # Snapshot-based undo/redo
+│   │   ├── Serialization.ts      # JSON save/load
+│   │   ├── Export.ts             # SVG/PNG/PDF export
+│   │   ├── Theme.ts              # Theming system
+│   │   ├── ShapeRegistry.ts      # Shape type definitions
+│   │   ├── Relationship.ts       # Node relationship management
+│   │   ├── Relationships.ts      # Association collection
+│   │   ├── Collab.ts             # Real-time collaboration
+│   │   ├── Comments.ts           # Annotation/comment system
+│   │   ├── Filters.ts            # SVG filters (drop-shadow, blur)
+│   │   ├── FontLoader.ts         # External font loading
+│   │   ├── Images.ts             # Image node support
+│   │   ├── Layout.ts             # Layout algorithms
+│   │   ├── Links.ts              # URL/click-through links
+│   │   ├── Menu.ts               # Context menu
+│   │   ├── Presentation.ts       # Step-by-step presentation
+│   │   ├── ZoomSlider.ts         # Zoom level slider UI
+│   │   └── compat.ts             # v1 API compatibility shim
 │   ├── styles/
-│   │   └── slateboxjs.css    # Core styles for UI components
-│   └── index.ts              # Main entry point
-├── dist/                     # Built library files
-├── index.html                # Basic demo
-├── advanced-demo.html        # Advanced demo with all features
-├── example.html              # Simple usage example
+│   │   └── slateboxjs.css        # Core styles
+│   └── index.ts                  # Main entry point
+├── tests/
+│   ├── unit/                     # 22 files, 840+ unit tests
+│   └── e2e/                      # 10 spec files, 56 e2e tests
+├── dist/                         # Built library files
+├── index.html                    # Basic demo
+├── advanced-demo.html            # Advanced feature demo
+├── example.html                  # Simple usage example
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
+├── vitest.config.ts
+├── playwright.config.ts
 └── README.md
 ```
 
@@ -365,8 +497,21 @@ interface SlateOptions {
     backgroundImage?: string
     // ... more style options
   }
-  panZoom?: PanZoomOptions     // Pan/zoom configuration
-  // ... more options
+  panZoom?: PanZoomOptions
+  connector?: ConnectorOptions
+  keyboard?: { enabled?: boolean }
+  grid?: { enabled?: boolean; size?: number }
+  birdsEye?: { enabled?: boolean }
+  multiSelection?: { enabled?: boolean }
+  undoRedo?: { enabled?: boolean; maxHistory?: number }
+  collab?: { enabled?: boolean; roomName?: string }
+  events?: {
+    onNodeClick?: (node) => void
+    onNodeDblClick?: (node) => void
+    onSelectionChanged?: (nodes) => void
+    onTakeSnapshot?: (action) => void
+    // ... more event hooks
+  }
 }
 ```
 
@@ -374,13 +519,16 @@ interface SlateOptions {
 
 ### Mouse/Touch Controls
 
-- **Pan**: Click and drag on empty canvas area
-- **Zoom**: Mouse wheel up/down, pinch on touch devices
+- **Pan**: Click and drag on empty canvas area, two-finger drag on trackpad
+- **Zoom**: Mouse wheel, Ctrl+scroll on trackpad, pinch on touch devices
 - **Node Drag**: Click and drag any unlocked node
-- **Node Resize**: Enable resize, then drag corner handles
-- **Node Rotate**: Enable rotate, then drag rotation handle
+- **Node Resize**: Select node, then drag corner handles
+- **Node Rotate**: Select node, then drag green rotation handle
+- **Multi-Select**: Shift+click nodes or click-drag on empty canvas
 - **Double-click**: Quick zoom (if enabled)
-
+- **Undo/Redo**: Ctrl+Z / Ctrl+Y
+- **Delete**: Delete or Backspace key on selected nodes
+- **Copy**: Ctrl+C on selected nodes (if multi-selection enabled)
 ### Visual Feedback
 
 - **Hover Effects**: Nodes and controls highlight on hover
@@ -413,15 +561,67 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - Built on top of [svg.js](https://svgjs.dev/) and its ecosystem
-- Pan/zoom powered by [svg-pan-zoom](https://github.com/bumbu/svg-pan-zoom)
+- Pan/zoom powered by [@svgdotjs/svg.panzoom.js](https://github.com/svgdotjs/svg.panzoom.js)
 - Resize/rotate using [@svgdotjs/svg.select.js](https://github.com/svgdotjs/svg.select.js) and [@svgdotjs/svg.resize.js](https://github.com/svgdotjs/svg.resize.js)
 - Inspired by the original SlateboxJS library
 - Uses [Vite](https://vitejs.dev/) for modern build tooling
 
+## 🔗 Collaboration Setup (Collab.ts)
+
+SlateboxJS 3 supports real-time collaboration via [Yjs](https://yjs.dev/) and [y-websocket](https://github.com/yjs/y-websocket). The `Collab` module requires these peer dependencies:
+
+```bash
+npm install yjs y-websocket
+```
+
+### Starting a local collab server
+
+The production collab server (`collab.slatebox.com`) uses HMAC/MongoDB authentication. For local development and testing, enable dev mode:
+
+1. **Edit `../collab.slatebox.com/bin/server.js`** — add the following check:
+   ```js
+   const devMode = process.env.COLLAB_DEV_MODE === "1";
+   // In the upgrade handler, before authenticate:
+   if (devMode) {
+     wss.handleUpgrade(request, socket, head, (ws) => {
+       wss.emit("connection", ws, request);
+     });
+     return;
+   }
+   ```
+
+2. **Start the dev server:**
+   ```bash
+   cd ../collab.slatebox.com
+   COLLAB_DEV_MODE=1 PORT=1234 npm start
+   ```
+
+3. **Connect from your application:**
+   ```ts
+   import { SlateboxJS } from 'slateboxjs';
+   const slate = SlateboxJS('#container');
+   await slate.collab.init({
+     wsUrl: 'ws://localhost:1234',
+     roomName: 'my-room',
+     userName: 'Alice'
+   });
+   // isConnected will update via WebSocket status event
+   ```
+
+### Running collab e2e tests
+
+```bash
+# Terminal 1: start the test server
+COLLAB_DEV_MODE=1 PORT=1234 node ../collab.slatebox.com/bin/server.js
+
+# Terminal 2: run collab tests
+npx playwright test tests/e2e/collab.spec.ts --project=chromium
+```
+
 ## 📞 Support
 
-For questions, issues, or contributions, please visit our [GitHub repository](https://github.com/your-username/slateboxjs-v2).
+For questions, issues, or contributions, please visit the [SlateboxJS repository](https://github.com/Slatebox/slateboxjs-v2).
 
 ---
 
-**SlateboxJS v2** - Creating the future of web-based diagramming tools with advanced interaction capabilities.
+**SlateboxJS 3** — the modern diagramming engine for Slatebox and embeddable web applications.

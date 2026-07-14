@@ -4,104 +4,99 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SlateboxJS v2 is a modern diagramming library built with TypeScript, SVG.js 3+, and Vite. It provides draggable nodes, pan/zoom functionality, resize/rotate capabilities, and node connections for creating interactive diagrams.
+SlateboxJS v3 is a modern diagramming library built with TypeScript (ES2020), SVG.js 3+, and Vite. It provides draggable nodes, pan/zoom functionality, resize/rotate capabilities, node connections, and a rich feature set (collaboration, presentation, themes, comments, export, etc.).
 
 ## Development Commands
 
 ### Build and Development
 ```bash
-npm run build              # Build library (always run after code changes)
-npm run build:types        # Generate TypeScript declarations
-npm run dev                # Start Vite dev server (http://localhost:3000)
-npm start                  # Alias for dev server
-npm run preview            # Preview production build
+npm run build              # vite build + tsc declarations (always run after code changes)
+npm run build:types        # tsc --declaration --emitDeclarationOnly --outDir dist
+npm run dev                # Start Vite dev server (http://localhost:5173, opens browser)
+npm run preview            # vite preview (production build preview)
+npm run serve              # alias for vite preview
 ```
 
 ### Testing
 ```bash
-npm test                   # Run unit tests (Vitest)
-npm run test:watch         # Run tests in watch mode
-npm run test:e2e           # Run e2e tests (Playwright)
-npm run test:e2e:ui        # Run e2e tests with UI
-npm run test:all           # Run all tests
+npm test                   # vitest run (unit tests, jsdom)
+npm run test:watch         # vitest (watch mode)
+npm run test:e2e           # npx playwright test --project=chromium
+npm run test:e2e:ui        # npx playwright test --ui
+npm run test:e2e:all       # npx playwright test (all browsers)
+npm run test:all           # vitest run + npx playwright test --project=chromium
 ```
 
-## Core Architecture
+### Run single test
+```bash
+npx vitest run tests/unit/Node.test.ts
+npx playwright test tests/e2e/connectors.spec.ts --project=chromium
+```
 
-### Main Classes and Responsibilities
+## Architecture
 
-**Slate** (`src/core/Slate.ts`)
-- Main container class that orchestrates the entire diagramming system
-- Manages the root SVG canvas using SVG.js
-- Handles global selection state and coordinates between nodes
-- Initializes pan/zoom, coordinate display, and viewport management
-- **Selection orchestrator**: Single source of truth for which nodes are selected and which have resize/rotate enabled
-- **CRITICAL**: Slate controls resize/rotate enabling through `updateSelectionResizeRotate()` - nodes delegate to Slate, never manage directly
+### Entry Point
+- `src/index.ts` — Plugin loading order (SVG → draggable → select → resize → panzoom → connectable), global window exports, factory function `SlateboxJS()`
 
-**Node** (`src/core/Node.ts`)
-- Represents individual diagram nodes (shapes, text, SVG content)
-- Uses SVG.js groups to bundle background shape, text/content, and interaction handles
-- Supports three shape types: rectangle, circle, ellipse
-- Can render either text content or custom SVG content (mutually exclusive)
-- Delegates resize/rotate control to Slate via `slate.enableNodeResizeRotate()` and `slate.disableNodeResizeRotate()`
-- Uses position-based click detection (pointerdown/pointerup) to distinguish clicks from drags
+### Core System (src/core/)
+30+ modules in `src/core/`. Key categories:
 
-**NodesManager** (`src/core/NodesManager.ts`)
-- Collection manager for all nodes in a slate
-- Handles node lifecycle (add, remove, lookup)
-- Provides iteration and filtering methods
+**Container & Lifecycle:**
+- `Slate.ts` — Main orchestrator: SVG canvas, selection coordination, delegates resize/rotate
+- `Node.ts` — Individual diagram node (shape + text or SVG content, drag, resize, rotate)
+- `NodesManager.ts` — Collection CRUD for all nodes on a slate
+- `Invoker.ts` — External integration API (all `onXXXX` methods)
 
-**ResizeRotate** (`src/core/ResizeRotate.ts`)
-- Encapsulates resize/rotate functionality using `@svgdotjs/svg.select.js` and `@svgdotjs/svg.resize.js`
-- Isolated class pattern - owned by Node but managed by Slate
-- Handles both text nodes and SVG content nodes differently during rotation
+**Interactions:**
+- `PanZoom.ts` — Pan/zoom via `@svgdotjs/svg.panzoom.js`; trackpad-friendly (two-finger pan, Ctrl+scroll zoom, pinch)
+- `ResizeRotate.ts` — Resize/rotate via `@svgdotjs/svg.select.js` + `@svgdotjs/svg.resize.js`; isolated class owned by Node, managed by Slate
+- `Connector.ts` — Node connections via local `svg.connectable.js`; lines/arrows in global containers
+- `MultiSelection.ts` — Multi-select with shift-click or drag-select rectangle
+- `Keyboard.ts` — Keyboard shortcut bindings
 
-**PanZoom** (`src/core/PanZoom.ts`)
-- Pan and zoom functionality using `@svgdotjs/svg.panzoom.js`
-- **Trackpad-friendly**: Two-finger scroll = panning (natural direction), Ctrl+scroll = zooming, pinch = fine-grained zoom
-- Custom wheel handling for better gesture control
-- Works directly with root canvas (no complex viewport nesting)
+**UI Features:**
+- `Grid.ts` — Snap-to-grid and grid rendering
+- `Menu.ts` — Context menu
+- `ZoomSlider.ts` — Zoom level control UI
+- `BirdsEye.ts` — Mini-map / overview panel
+- `Editor.ts` — Inline text editing
+- `UndoRedo.ts` — Undo/redo stack
 
-**Connector** (`src/core/Connector.ts`)
-- Node connection functionality using local upgraded `svg.connectable.js`
-- Manages connections between nodes with lines/arrows
-- Global line and marker containers stored on Slate
+**Content & Data:**
+- `Serialization.ts` — JSON save/load (`SlateJSON`, `NodeJSON`)
+- `ShapeRegistry.ts` — Shape type definitions and registration
+- `Relationship.ts` / `Relationships.ts` — Node relationship/association management
+- `Theme.ts` — Theming system (style definitions per node type)
+- `Layout.ts` — Layout algorithms
+- `Filters.ts` — SVG filter management (drop-shadow, blur, etc.)
+- `Links.ts` — URL/click-through link handling on nodes
+- `Images.ts` — Image node support
+- `FontLoader.ts` — External font loading for text nodes
+- `Comments.ts` — Annotation/comment system
+- `Presentation.ts` — Step-by-step presentation mode
 
-**Invoker** (`src/core/Invoker.ts`)
-- External integration contract implementing all `onXXXX` methods
-- Allows external tools to manipulate the slate/nodes programmatically
-- Maps external commands to internal node/slate operations
+**Collaboration & Export:**
+- `Collab.ts` — Real-time collaboration (yjs/y-websocket optional peers)
+- `Export.ts` — SVG/PNG/PDF export helpers
+
+**Compatibility:**
+- `compat.ts` — v1 API compatibility shim
+- `utils.ts` — Utility functions (guid, color contrast, text measurement, bbox, etc.)
 
 ### Critical Selection and Resize/Rotate Pattern
 
-**NEVER implement individual node-level resize/rotate enabling.** The architecture follows a centralized orchestration pattern:
+**NEVER implement individual node-level resize/rotate enabling.** Architecture follows centralized orchestration:
 
 1. **Slate is the orchestrator**: Only `Slate.updateSelectionResizeRotate()` enables/disables resize/rotate
-2. **Nodes delegate upward**: `node.enableResizeRotate()` calls `slate.enableNodeResizeRotate(this)` which calls `slate.selectNodes([node])`
+2. **Nodes delegate upward**: `node.enableResizeRotate()` → `slate.enableNodeResizeRotate(this)` → `slate.selectNodes([node])`
 3. **Single source of truth**: `Slate.selectedNodes` array determines what's selected
-4. **Automatic management**: When selection changes (click, drag, multi-select), Slate automatically:
-   - Disables ALL resize/rotate on ALL nodes
-   - Enables resize/rotate only on selected node(s)
-   - Enables connection handles only on single selected node
-
-This prevents conflicts between multiple active resize/rotate controllers.
+4. **Automatic management** on selection change: disables ALL resize/rotate on ALL nodes, enables only on selected, shows connection handles only on single selection
 
 ### Content Type Duality
 
 Nodes support two mutually exclusive content types:
-
-**Text Content** (default):
-- `this.textElement` exists and contains Text element
-- `this.nestedSvg` is undefined
-- Text is centered within background shape
-- Methods like `centerText()` are active
-
-**SVG Content** (when `options.svgContent` provided):
-- `this.nestedSvg` exists and contains nested SVG
-- `this.textElement` is undefined
-- Background is transparent (`backgroundColor: "none"`)
-- SVG scales using `viewBox` and `preserveAspectRatio`
-- Text methods do early return
+- **Text Content** (default): `this.textElement` exists, `this.nestedSvg` undefined, text centered in shape
+- **SVG Content** (when `options.svgContent`): `this.nestedSvg` exists, `this.textElement` undefined, background transparent, SVG scales via `viewBox`/`preserveAspectRatio`
 
 **Always guard methods that assume one or the other:**
 ```typescript
@@ -109,205 +104,72 @@ if (!this.textElement) return; // Skip for SVG content
 if (this.nestedSvg) { /* handle SVG */ }
 ```
 
-## Plugin Ecosystem
+### Plugin Ecosystem
 
-### Official SVG.js 3+ Plugins (Use These)
-- `@svgdotjs/svg.js` - Core library (v3.2.4)
-- `@svgdotjs/svg.draggable.js` - Drag functionality
-- `@svgdotjs/svg.panzoom.js` - Pan/zoom (replaces standalone svg-pan-zoom)
-- `@svgdotjs/svg.select.js` - Selection handles
-- `@svgdotjs/svg.resize.js` - Resize functionality (works well)
+**Official SVG.js 3+ Plugins (bundled):**
+- `@svgdotjs/svg.js` v3.2.4
+- `@svgdotjs/svg.draggable.js` v3.0.6
+- `@svgdotjs/svg.panzoom.js` v2.1.2
+- `@svgdotjs/svg.select.js` v4.0.2
+- `@svgdotjs/svg.resize.js` v2.0.5
 
-### Local/Legacy Plugins
-- `svg.connectable.js` - **Local upgraded version** at `file:../svg.connectable.js`, now compatible with SVG.js 3+
+**Local/Legacy:**
+- `svg.connectable.js` — local upgraded version at `file:../svg.connectable.js`
 
-### Plugin Loading Pattern
-In `src/index.ts`, plugins are loaded in specific order, and SVG is exposed globally for legacy compatibility:
+**Plugin loading order in `src/index.ts`:**
 ```typescript
 import { SVG } from '@svgdotjs/svg.js'
 import '@svgdotjs/svg.draggable.js'
+import '@svgdotjs/svg.panzoom.js'
 import '@svgdotjs/svg.select.js'
 import '@svgdotjs/svg.resize.js'
-import '@svgdotjs/svg.panzoom.js'
-
-if (typeof window !== 'undefined') {
-  (window as any).SVG = SVG;
-}
-
 import 'svg.connectable.js'
+// Global window exposes: SVG, SlateboxJS, Slate, Node, PanZoom, ResizeRotate, BirdsEye, Connector, etc.
 ```
 
-## Development Principles
+## Conventions
 
 ### 1. Always Use SVG.js Native Methods
-Never implement custom SVG manipulations. Use built-in transforms like `size()`, `move()`, `rotate()`, `scale()`. Leverage SVG standards like `viewBox` and `preserveAspectRatio` for scaling.
-
-**Example:**
+Never custom SVG manipulations. Use `size()`, `move()`, `rotate()`, `scale()`, `viewBox`, `preserveAspectRatio`.
 ```typescript
-// ✅ Do: Use native SVG standards
+// ✅
 nested.viewbox(bb.x, bb.y, bb.width, bb.height);
 nested.node.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-
-// ❌ Don't: Custom transform calculations
-content.transform({ scale: scale, translate: [offsetX, offsetY] });
+// ❌ Not: content.transform({ scale, translate: [...] })
 ```
 
 ### 2. Store Element References
-Store references to SVG elements as class properties instead of searching the DOM repeatedly:
-```typescript
-this.nestedSvg = this.svgGroup.nested().size(w, h);
-this.textElement = this.svgGroup.text(text!);
-```
+Save SVG element references as class properties, don't re-query the DOM.
 
 ### 3. Defensive Programming
-Always guard against undefined elements since nodes can have either text OR SVG content:
-```typescript
-private centerText() {
-  if (!this.textElement) return; // Skip for SVG content nodes
-  // ... rest of method
-}
-```
+Always guard methods that assume text OR SVG content since content types are mutually exclusive.
 
 ### 4. Consistent Debug Logging
-Use filterable debug strings with consistent prefixes:
-- Format: `COMPONENT_ACTION_DEBUG: description`
-- Examples: `NODE_DEBUG`, `SELECTION_DEBUG`, `CONNECTOR_DEBUG`, `PANZOOM_DEBUG`, `VIEWPORT_DEBUG`
-
-```typescript
-console.log("NODE_DEBUG: finishCreate started for", this.id);
-console.log("SELECTION_DEBUG: Node selected", this.id);
-```
+Format: `COMPONENT_ACTION_DEBUG: description`
+Prefixes: `NODE_DEBUG`, `SELECTION_DEBUG`, `CONNECTOR_DEBUG`, `PANZOOM_DEBUG`, `VIEWPORT_DEBUG`
 
 ### 5. Isolated Class Pattern
-For new features, create isolated classes following the ResizeRotate/Connector pattern:
-- Constructor takes `node` and `options`
-- Has `enable()`, `disable()`, `isEnabled()`, `updateOptions()` methods
-- Integrates into Node class with delegation methods
-- Exported in `src/index.ts` and added to window globals
+New features create isolated classes (constructor takes `node` + `options`, has `enable()`/`disable()`/`isEnabled()`/`updateOptions()`), add to Node as property, export in `src/index.ts`, add to window globals.
 
-## Pan/Zoom Architecture
-
-Uses `@svgdotjs/svg.panzoom.js` which works directly with the root canvas - no complex viewport nesting needed.
-
-**Viewport access** is simple:
+### 6. Async Node Creation
+Nodes use `createAsync()` awaiting viewport readiness:
 ```typescript
-public getViewport(): any {
-  return this.canvas; // SVG.js panzoom works with root canvas
-}
+const viewport = await this.slate.getViewportAsync();
+this.svgGroup = viewport.group();
+this.finishCreate();
 ```
 
-**Custom wheel handling** provides trackpad-friendly gestures:
-- Two-finger scroll: Panning in natural direction
-- Ctrl+scroll: Zooming
-- Pinch: Fine-grained zoom (30% sensitivity)
+### 7. Vite Config Notes
+- `dedupe: ['@svgdotjs/svg.js']` to ensure all plugins share the same SVG instance
+- `preserveSymlinks: false` so linked packages use consumer's deps
+- Alias forces `@svgdotjs/svg.js` to local node_modules path
+- External peer deps: `yjs`, `y-websocket`
 
-## Testing
+## Notes
 
-Tests use Vitest (unit) and Playwright (e2e):
-- Unit tests: `tests/unit/*.test.ts`
-- E2e tests: `tests/e2e/*.spec.ts`
-- Setup: `tests/setup.ts` (jsdom configuration)
-
-Run single test file:
-```bash
-npx vitest run tests/unit/Node.test.ts
-```
-
-## File Structure
-
-```
-src/
-├── core/
-│   ├── Slate.ts          # Main orchestrator, selection manager
-│   ├── Node.ts           # Node class with content type handling
-│   ├── NodesManager.ts   # Node collection management
-│   ├── Invoker.ts        # External integration API
-│   ├── PanZoom.ts        # Pan/zoom with trackpad gestures
-│   ├── ResizeRotate.ts   # Resize/rotate isolation class
-│   └── Connector.ts      # Connection functionality
-├── styles/
-│   └── slateboxjs.css    # Core UI styles
-└── index.ts              # Main entry, plugin loading, exports
-```
-
-## Common Patterns
-
-### Adding New Functionality
-1. Create isolated class (e.g., `MyFeature.ts`) following ResizeRotate pattern
-2. Add to Node: `public myFeature!: MyFeature;`
-3. Initialize in `Node.finishCreate()`: `this.myFeature = new MyFeature(this, this.options.myFeature);`
-4. Add delegation methods to Node: `public enableMyFeature() { this.myFeature.enable(); }`
-5. Export in `src/index.ts`: `export { MyFeature } from './core/MyFeature'`
-6. Add to window globals in `src/index.ts`
-
-### Handling SVG Content vs Text
-```typescript
-// Check content type
-const hasSvg = !!this.options.svgContent;
-
-// Guard text-specific methods
-if (!this.textElement) return;
-
-// Handle rotation differently
-if (this.textElement?.rotate) {
-  this.textElement.rotate(angle, bbox.cx, bbox.cy);
-} else if (this.nestedSvg?.rotate) {
-  this.nestedSvg.rotate(angle, bbox.cx, bbox.cy);
-}
-```
-
-### Plugin Compatibility Checks
-```typescript
-if (!(this.element as any).pluginMethod) {
-  console.warn('PLUGIN_DEBUG: Plugin not available - may need compatibility update');
-  return null;
-}
-
-try {
-  const result = (this.element as any).pluginMethod(options);
-  if (!result) {
-    console.error('PLUGIN_DEBUG: Plugin method failed');
-    return null;
-  }
-  return result;
-} catch (error) {
-  console.error('PLUGIN_DEBUG: Compatibility issue:', error);
-  return null;
-}
-```
-
-## Key Implementation Details
-
-### Async Node Creation
-Nodes use `createAsync()` to wait for viewport readiness:
-```typescript
-private async createAsync() {
-  const viewport = await this.slate.getViewportAsync();
-  this.svgGroup = viewport.group();
-  this.finishCreate();
-}
-```
-
-### SVG Content Scaling
-For SVG content nodes, use native viewBox instead of transforms:
-```typescript
-const content = this.nestedSvg.children()[0];
-const bb = content.bbox();
-this.nestedSvg.viewbox(bb.x, bb.y, bb.width, bb.height);
-this.nestedSvg.node.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-```
-
-### Connection Handles
-Single-selected nodes show connection handles (top/right/bottom/left) for creating connected nodes:
-- Managed by Slate through `updateSelectionResizeRotate()`
-- Only shown for single selection
-- Preview shown on hover
-- Creates new node + connection on click
-
-## Cursor Rules Integration
-
-This project includes detailed cursor rules in `.cursor/rules/`:
-- `slateboxjs-svg-development.mdc` - Core development guidelines
-- `slateboxjs-development-workflow.mdc` - Build and workflow patterns
-
-These rules provide deeper technical details on the patterns described above.
+- Dev server port: 5173 (not 3000)
+- node >= 18.0.0 required
+- Unit tests: Vitest + jsdom in `tests/unit/`; e2e: Playwright in `tests/e2e/`
+- `.env` contains `DEEPSEEK_API_KEY` (for Reasonix config, not the library)
+- CSS is built into `dist/slateboxjs.css` via `cssCodeSplit: false`
+- Source maps enabled in build

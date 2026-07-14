@@ -1,10 +1,11 @@
 import { Node, NodeOptions } from './Node'
+import type { Slate } from './Slate'
 
 export class NodesManager {
-  private slate: any
+  private slate: Slate
   private nodes: Map<string, Node> = new Map()
 
-  constructor(slate: any) {
+  constructor(slate: Slate) {
     this.slate = slate
   }
 
@@ -32,6 +33,25 @@ export class NodesManager {
   public remove(id: string): boolean {
     const node = this.nodes.get(id)
     if (node) {
+      // Clean up EVERY association involving this node so no rogue connector
+      // lines or stale associations survive the delete (parity + no-rogue-lines):
+      //  (a) this node's own outgoing associations (it is the parent)
+      try {
+        (node as any).relationships?.removeAll?.()
+      } catch (e) {
+        /* noop */
+      }
+      //  (b) incoming associations from other nodes (this node is the child)
+      this.allNodes.forEach((other) => {
+        if (other.id === id) return
+        try {
+          if ((other as any).relationships?.getAssociation?.(id)) {
+            (other as any).relationships.removeAssociation(id)
+          }
+        } catch (e) {
+          /* noop */
+        }
+      })
       node.remove()
       this.nodes.delete(id)
       return true
@@ -52,28 +72,128 @@ export class NodesManager {
     this.nodes.clear()
   }
 
+  /** Destroy the nodes manager, clearing all nodes */
+  public destroy(): void {
+    this.clear();
+    (this as any).slate = null;
+  }
+
+  /**
+   * Move nodes from a collab package. Accepts BOTH shapes:
+   *  - v2: `data.nodes: [{id, x, y}]`
+   *  - v1: `data.nodeOptions: [{id, xPos, yPos, groupId, isLocked}]`
+   *    (drag, arrangement, grouping, and group-lock broadcasts)
+   */
   public moveNodes(packageData: any, options: { animate?: boolean } = {}) {
-    // Implementation for moving multiple nodes
-    if (packageData.data && Array.isArray(packageData.data.nodes)) {
-      packageData.data.nodes.forEach((nodeData: any) => {
-        const node = this.one(nodeData.id)
-        if (node) {
-          const duration = options.animate ? (packageData.data.dur || 500) : 0
-          node.position(nodeData.x, nodeData.y, undefined, undefined, duration)
-        }
-      })
+    const data = packageData?.data ?? packageData ?? {};
+    // Programmatic/collab moves GLIDE (v1 animated); a drag-end broadcast
+    // carries no dur, so default to a smooth ~400ms unless explicitly 0.
+    const duration =
+      options.animate === false || data.dur === 0
+        ? 0
+        : data.dur ?? 400;
+
+    const moves: Array<{
+      id: string
+      x: number
+      y: number
+      groupId?: string | null
+      hasGroupId: boolean
+      isLocked?: boolean
+    }> = [];
+    if (Array.isArray(data.nodes)) {
+      data.nodes.forEach((n: any) =>
+        moves.push({
+          id: n.id,
+          x: n.x,
+          y: n.y,
+          groupId: n.groupId,
+          hasGroupId: Object.prototype.hasOwnProperty.call(n, 'groupId'),
+          isLocked: n.isLocked,
+        })
+      );
     }
+    if (Array.isArray(data.nodeOptions)) {
+      data.nodeOptions.forEach((n: any) =>
+        moves.push({
+          id: n.id,
+          x: n.xPos ?? n.x,
+          y: n.yPos ?? n.y,
+          groupId: n.groupId,
+          hasGroupId: Object.prototype.hasOwnProperty.call(n, 'groupId'),
+          isLocked: n.isLocked,
+        })
+      );
+    }
+
+    moves.forEach((m) => {
+      const node = this.one(m.id);
+      if (!node) return;
+      if (typeof m.x === "number" && typeof m.y === "number") {
+        node.position(m.x, m.y, undefined, undefined, duration);
+      }
+      // onNodesMove is also the established persistence/collaboration package
+      // for groups and group locks. Applying only x/y made those mutations look
+      // correct locally and in Mongo while every remote client silently dropped
+      // the grouping/lock state.
+      if (m.hasGroupId) {
+        node.options.groupId = m.groupId || undefined;
+      }
+      if (m.isLocked === true && !node.options.isLocked) {
+        node.lock();
+      } else if (m.isLocked === false && node.options.isLocked) {
+        node.unlock();
+      }
+    });
   }
 
+  /** Create an association from a collab package: `{parentId, childId, ...opts}` */
   public addRelationship(relationshipData: any) {
-    // Placeholder for relationship functionality
-    // This would connect nodes with lines/arrows
-    console.log('Adding relationship:', relationshipData)
+    const { parentId, childId, targetPoint } = relationshipData || {};
+    const parent = parentId ? this.one(parentId) : undefined;
+    if (!parent) {
+      console.warn("NODESMANAGER_DEBUG: addRelationship missing parent", parentId);
+      return;
+    }
+    // Idempotent by the EXACT association id (parallel edges have distinct ids
+    // like `A->B~2`, so keying on childId alone would wrongly drop the second
+    // line). Falls back to childId for legacy packages that carry no id.
+    const rid = (relationshipData as any).id;
+    if (rid) {
+      if ((parent as any).relationships?.hasAssociationId?.(rid)) return;
+    } else if ((parent as any).relationships?.getAssociation?.(childId)) {
+      return;
+    }
+
+    // Free-floating endpoint (L1b): target is a bare point, no child node.
+    if (targetPoint) {
+      (parent as any).relationships?.addFloatingAssociation(
+        targetPoint,
+        relationshipData
+      );
+      return;
+    }
+
+    const child = childId ? this.one(childId) : undefined;
+    if (!child) {
+      console.warn(
+        "NODESMANAGER_DEBUG: addRelationship missing child",
+        parentId,
+        childId
+      );
+      return;
+    }
+    (parent as any).relationships?.addAssociation(child, relationshipData);
   }
 
+  /** Remove an association from a collab package: `{parentId, childId, id?}` */
   public removeRelationship(relationshipData: any) {
-    // Placeholder for relationship functionality
-    console.log('Removing relationship:', relationshipData)
+    const { parentId, childId, id } = relationshipData || {};
+    const parent = parentId ? this.one(parentId) : undefined;
+    if (!parent || (!childId && !id)) return;
+    // Prefer the exact association id so a peer removes only the intended
+    // parallel edge; fall back to childId (removes all edges to that child).
+    (parent as any).relationships?.removeAssociation(id || childId);
   }
 
   private generateId(): string {

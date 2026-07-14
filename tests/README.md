@@ -1,6 +1,6 @@
-# SlateboxJS v2 Testing
+# SlateboxJS v3 Testing
 
-This directory contains both unit tests and end-to-end (e2e) tests for SlateboxJS v2.
+This directory contains both unit tests and end-to-end (e2e) tests for SlateboxJS v3.
 
 ## Directory Structure
 

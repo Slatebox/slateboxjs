@@ -1,4 +1,11 @@
-/* SlateboxJS v2 - Core Styles */
+/* SlateboxJS v3 - Core Styles */
+
+/* Accessibility: focus ring for keyboard-navigated nodes */
+.slatebox-node:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid #4285f4;
+  outline-offset: 2px;
+}
 
 /* Pan/Zoom Controls */
 .svg-pan-zoom-controls {
@@ -37,73 +44,43 @@
   transform: scale(0.95);
 }
 
-/* Select/Resize Styles */
-.svg-select-boundingRect {
-  fill: none;
+/* svg.select.js handle overrides — Miro-style light-blue handles (easy to grab) */
+.svg_select_handle {
+  stroke-width: 6;
   stroke: #4A90E2;
-  stroke-width: 1;
-  stroke-dasharray: 3,3;
-  pointer-events: none;
-}
-
-.svg-select-point {
-  fill: #4A90E2;
-  stroke: #ffffff;
-  stroke-width: 1;
-  cursor: pointer;
-}
-
-.svg-select-point:hover {
-  fill: #357ABD;
-  transform: scale(1.2);
-}
-
-.svg-select-line {
   fill: none;
+  pointer-events: stroke;
+}
+
+.svg_select_handle:hover {
+  stroke: #1a6dd0;
+}
+
+.svg_select_shape {
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
   stroke: #4A90E2;
-  stroke-width: 1;
-  stroke-dasharray: 3,3;
+  stroke-opacity: 0.55;
   pointer-events: none;
+  fill: none !important;
+  fill-opacity: 0;
 }
 
-.svg-select-rotationPoint {
-  fill: #50C878;
-  stroke: #ffffff;
-  stroke-width: 1;
-  cursor: grab;
+.svg_select_shape_pointSelect {
+  fill: none !important;
+  fill-opacity: 0;
 }
 
-.svg-select-rotationPoint:hover {
-  fill: #45B069;
-  transform: scale(1.2);
+.svg_select_handle_rot {
+  fill: white;
+  stroke: #4A90E2;
+  stroke-width: 1.5;
+  cursor: move;
 }
 
-.svg-select-rotationPoint:active {
-  cursor: grabbing;
+.svg_select_handle_rot:hover {
+  stroke: #1a6dd0;
 }
-
-/* Resize handles */
-.svg-resize-handle {
-  fill: #4A90E2;
-  stroke: #ffffff;
-  stroke-width: 1;
-  cursor: nw-resize;
-  opacity: 0.8;
-}
-
-.svg-resize-handle:hover {
-  opacity: 1;
-  transform: scale(1.2);
-}
-
-.svg-resize-handle.svg-resize-nw { cursor: nw-resize; }
-.svg-resize-handle.svg-resize-ne { cursor: ne-resize; }
-.svg-resize-handle.svg-resize-sw { cursor: sw-resize; }
-.svg-resize-handle.svg-resize-se { cursor: se-resize; }
-.svg-resize-handle.svg-resize-n  { cursor: n-resize; }
-.svg-resize-handle.svg-resize-s  { cursor: s-resize; }
-.svg-resize-handle.svg-resize-e  { cursor: e-resize; }
-.svg-resize-handle.svg-resize-w  { cursor: w-resize; }
 
 /* Node specific styles */
 .slateboxjs-node {
@@ -127,6 +104,27 @@
   filter: brightness(1.05) drop-shadow(0 0 8px rgba(74, 144, 226, 0.5));
 }
 
+/* Canvas labels must not be text-selectable: a marquee-select or node drag used to
+   highlight the SVG node text (browser text-selection), which never happens in Miro.
+   Node groups carry no class — they're identified by [data-node-id] — so target that.
+   The inline text editor re-enables selection below. */
+.slateboxjs-node,
+[data-node-id],
+[data-node-id] text,
+[data-node-id] tspan {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+}
+
+/* ...but the inline text editor stays selectable so editing works normally. */
+.sb-inline-editor,
+[contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+}
+
 /* Transition animations */
 .slateboxjs-node,
 .svg-select-point,
@@ -141,16 +139,67 @@
     right: 5px;
     padding: 3px;
   }
-  
+
   .svg-pan-zoom-controls button {
     width: 25px;
     height: 25px;
     font-size: 12px;
   }
-  
+
   .svg-select-point,
   .svg-resize-handle {
     width: 8px;
     height: 8px;
   }
+}
+
+/* BirdsEye / Minimap Styles */
+.slateboxjs-birdseye {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 100;
+  transition: opacity 0.2s ease;
+}
+
+.slateboxjs-birdseye:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.slateboxjs-birdseye svg {
+  display: block;
+}
+
+/* Responsive minimap */
+@media (max-width: 768px) {
+  .slateboxjs-birdseye {
+    width: 150px !important;
+    height: 100px !important;
+  }
+}
+
+/* Node hover affordance (Miro-style): a subtle lift on hover of an unselected
+   node signals it's interactive. Uses a soft drop-shadow so it composes with the
+   node's own fill/border without touching the theme's stroke. */
+#slateCanvas [data-node-id] {
+  transition: filter 120ms ease;
+}
+#slateCanvas [data-node-id]:hover {
+  filter: drop-shadow(0 2px 5px rgba(38, 50, 56, 0.22));
+}
+
+/* Connector endpoint handles — Miro-style reveal on hover/select. Hidden by
+   default (persistent dots on every line are clutter); shown when the connection
+   is hovered or selected, at which point they become draggable for reconnection. */
+.connector-handle {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+.connector-handle.connector-handle--revealed {
+  opacity: 1;
+  pointer-events: all;
 }

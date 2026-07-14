@@ -1,22 +1,130 @@
 import { SVG, Svg } from "@svgdotjs/svg.js";
-import { Node } from "./Node";
+import { Node, NodeOptions } from "./Node";
 import { NodesManager } from "./NodesManager";
 import { Invoker } from "./Invoker";
 import { PanZoom, PanZoomOptions } from "./PanZoom";
+import { BirdsEye, BirdsEyeOptions } from "./BirdsEye";
+import {
+  serialize,
+  deserialize,
+  snapshot as takeSnapshot,
+  type SlateJSON,
+} from "./Serialization";
+import { UndoRedo } from "./UndoRedo";
+import { MultiSelection } from "./MultiSelection";
+import { Grid } from "./Grid";
+import { Keyboard } from "./Keyboard";
+import { ContextMenu } from "./ContextMenu";
+import { exportSVG, exportPNG, type ExportOptions } from "./Export";
+import { Collab, CollabUser } from "./Collab";
+import type { SlatePackage } from "./SlatePackage";
+import { v2NodeToV1 } from "./compat";
+import { guid } from "../utils";
+import { applyTheme, type ThemeDefinition } from "./Theme";
+import {
+  removeLayoutOverlaps,
+  applyLayout as applyLayoutMoves,
+  packageLayout,
+  type LayoutMove,
+} from "./Layout";
+import { Association } from "./Relationship";
+import { ZoomSlider } from "./ZoomSlider";
+import { Presentation } from "./Presentation";
+import { getAvailableFilters } from "./Filters";
+import { loadAllFonts as loadAllFontsForSlate } from "./FontLoader";
+
+export interface SlateEvents {
+  onSlateChanged?: (pkg: SlatePackage, collabUsers?: CollabUser[]) => void;
+  /**
+   * Called before the collab websocket connects. May return (or resolve to)
+   * connection details: `{websocketUrl, websocketParams: {bearer, timestamp},
+   * userName, color, ...}` — websocketParams carries server auth.
+   */
+  onInitCollaboration?: (
+    clientID: string
+  ) => void | Record<string, any> | Promise<void | Record<string, any>>;
+  onTextPaneRequested?: (node: Node, cb: Function) => void;
+  onLineMenuRequested?: (node: Node, association: Association, cb: Function) => void;
+  onTakeSnapshot?: (opts?: Record<string, any>) => void;
+  onConfirmRequested?: (title: string, msg: string, cb: Function) => void;
+  onCollaborationUsersChanged?: (users: CollabUser[]) => void;
+  onCollaborationUsersRemoved?: (users: CollabUser[]) => void;
+  onCollaboration?: (pkg: SlatePackage) => void;
+  onNodeDragged?: (node: Node, evt: MouseEvent) => void;
+  onCanvasClicked?: (evt: MouseEvent) => void;
+  /** Fired when a multi-node selection forms (nodes) or ends ([]) */
+  onGroupSelection?: (selectedNodes: Node[]) => void;
+  onImagesRequested?: (opts: Record<string, any>) => void;
+  onRequestSave?: (opts?: Record<string, any>) => void;
+  onCreateImage?: (opts: Record<string, any>, cb: Function) => void;
+  onMenuRequested?: (node: Node, cb: Function) => void;
+  isReadOnly?: () => boolean;
+  isCommentOnly?: () => boolean;
+  canRemoveComments?: () => boolean;
+}
 
 export interface SlateOptions {
+  // Identity
+  id?: string;
   name?: string;
   description?: string;
+  container?: string;
+  instance?: string;
+  shareId?: string;
+
+  // Behavior
+  enabled?: boolean;
+  allowDrag?: boolean;
   followMe?: boolean;
   mindMapMode?: boolean;
   autoResizeNodesBasedOnText?: boolean;
+  useLayoutQuadrants?: boolean;
+  autoEnableDefaultFilters?: boolean;
+
+  // UI visibility
+  showbirdsEye?: boolean;
+  sizeOfbirdsEye?: number;
+  showMultiSelect?: boolean;
+  showZoom?: boolean;
+  showUndoRedo?: boolean;
+  showStatus?: boolean;
+  showLocks?: boolean;
+
+  // Access control
+  isPublic?: boolean;
+  isUnlisted?: boolean;
+  isPrivate?: boolean;
+  isTemplate?: boolean;
+  basedOnTemplate?: string;
+  basedOnThemeId?: string;
+  syncWithTheme?: boolean;
+
+  // Collaboration
+  allowCollaboration?: boolean;
+  eligibleForThemeCompilation?: boolean;
+
+  // Viewport
   viewPort?: {
     originalWidth?: number;
     originalHeight?: number;
+    width?: number;
+    height?: number;
+    left?: number;
+    top?: number;
     showGrid?: boolean;
+    gridSize?: number;
     snapToObjects?: boolean;
+    snapToGrid?: boolean;
     showCoordinates?: boolean;
+    useInertiaScrolling?: boolean;
+    zoom?: {
+      r?: number;
+      w?: number;
+      h?: number;
+    };
   };
+
+  // Appearance
   containerStyle?: {
     backgroundColor?: string;
     backgroundColorAsGradient?: boolean;
@@ -28,18 +136,32 @@ export interface SlateOptions {
     backgroundEffect?: string;
     prevBackgroundColor?: string;
   };
+
+  // Defaults
   defaultLineColor?: string;
   themeId?: string;
+
+  // Layout
   layoutType?: "manual" | "auto";
   disableAutoLayoutOfManuallyPositionedNodes?: boolean;
+  nodeOrder?: string[]; // Array of node IDs for z-ordering
+
+  // Huddle
   huddleType?: "none" | "basic" | "advanced";
   huddleEnabled?: boolean;
+
+  // Metadata
   tags?: string[];
   templateMarkdown?: string;
   templatePrompt?: string;
-  isTemplate?: boolean;
   ai?: any;
+
+  // Sub-systems
   panZoom?: PanZoomOptions;
+  birdsEye?: BirdsEyeOptions;
+
+  // Events
+  events?: SlateEvents;
 }
 
 export class Slate {
@@ -48,10 +170,77 @@ export class Slate {
   public nodes!: NodesManager;
   public invoker!: Invoker;
   public panZoom!: PanZoom;
+  public birdsEye!: BirdsEye;
+  public undoRedo!: UndoRedo;
+  public multiSelection!: MultiSelection;
+  public grid!: Grid;
+  public keyboard!: Keyboard;
+  public contextMenu!: ContextMenu;
+  public collab!: Collab;
+  public zoomSlider!: ZoomSlider;
+  public presentation!: Presentation;
   public options: SlateOptions;
+  // Runtime-injected by Connector for global line/marker containers
+  public linesContainer?: any;
+  public markersContainer?: any;
+  /** The single active line-properties cog affordance (M1), if shown. */
+  public _activeLineCog?: any;
+  /** The connectable whose endpoint handles are currently shown (L1/M8). */
+  public _activeLineConnectable?: any;
+  /** The active per-endpoint lock/relative toggle affordances (Q3). */
+  public _activeEndpointToggles?: any[];
   private selectedNodes: Node[] = [];
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
+  /**
+   * The groupId currently "entered" for individual-member editing (Miro
+   * double-click-into-group). When set, clicking a member of THIS group selects
+   * just that member instead of expanding to the whole group. null = not inside
+   * any group.
+   */
+  private enteredGroupId: string | null = null;
+  private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
+  private _destroyed: boolean = false;
+  private _applyingRemote: boolean = false;
+  private _hadGroupSelection: boolean = false;
+  private _emitDeferred: boolean = false;
+  private _emitQueue: SlatePackage[] = [];
+  private _birdsEyeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private _coordDisplayTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private _nodeNotifyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private _liveRegion: HTMLElement | null = null; // Hidden aria-live region for screen readers
+  private _resizeObserver: ResizeObserver | null = null;
 
+  /**
+   * v1-parity `slate.filters.availableFilters` — the node Effects pane reads
+   * `node.slate.filters.availableFilters` (keyed by name, each with `types`) to
+   * decide which effects to offer. Per-node application lives on `node.filters`.
+   */
+  public get filters(): {
+    availableFilters: Record<string, { types: string[] }>;
+  } {
+    return { availableFilters: getAvailableFilters() };
+  }
+
+  /**
+   * Creates a new Slate — the main orchestrator for a diagramming canvas.
+   *
+   * Initializes the SVG canvas, sets up all sub-modules (nodes manager,
+   * pan/zoom, selection, grid, keyboard shortcuts, undo/redo, etc.),
+   * and attaches event handlers.
+   *
+   * @param element - CSS selector string or HTMLElement to mount the canvas on
+   * @param options - Full slate configuration (see SlateOptions interface)
+   * @throws If element is a selector string and no matching element is found
+   *
+   * @example
+   * ```ts
+   * import { Slate } from 'slateboxjs';
+   * const slate = new Slate('#canvas', {
+   *   viewPort: { originalWidth: 1200, originalHeight: 800 },
+   *   panZoom: { enabled: true }
+   * });
+   * ```
+   */
   constructor(element: string | HTMLElement, options: SlateOptions = {}) {
     // Get or create the target element
     if (typeof element === "string") {
@@ -62,6 +251,13 @@ export class Slate {
       this.element = found;
     } else {
       this.element = element;
+    }
+
+    // Register on window for host-app debugging and e2e tooling
+    if (typeof window !== "undefined") {
+      const w = window as any;
+      w.__slateboxInstances = w.__slateboxInstances || [];
+      w.__slateboxInstances.push(this);
     }
 
     // Default options
@@ -119,16 +315,71 @@ export class Slate {
     // Initialize SVG canvas
     this.canvas = SVG().addTo(this.element);
 
-    // Use normal viewport dimensions - svg-pan-zoom will handle infinite panning
-    const width = this.options.viewPort?.originalWidth || 800;
-    const height = this.options.viewPort?.originalHeight || 600;
-    this.canvas.size(width, height);
+    // Accessibility: label the canvas for screen readers
+    this.canvas.node.setAttribute("role", "img");
+    this.canvas.node.setAttribute("aria-label", this.options.name || "Diagram canvas");
+    this.canvas.node.setAttribute("tabindex", "0");
+
+    // Accessibility: create hidden live region for screen-reader announcements
+    this._liveRegion = document.createElement("div");
+    this._liveRegion.setAttribute("aria-live", "polite");
+    this._liveRegion.setAttribute("aria-atomic", "true");
+    this._liveRegion.style.cssText =
+      "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;";
+    this.element.appendChild(this._liveRegion);
+
+    // ── Infinite canvas ──
+    // The SVG root FILLS its container; the visible region is driven entirely
+    // by the viewBox (Miro-style). Nothing is clipped to a fixed box — pan/
+    // zoom just move the viewBox across an unbounded plane.
+    this.element.style.overflow = this.element.style.overflow || "hidden";
+    if (getComputedStyle(this.element).position === "static") {
+      this.element.style.position = "relative";
+    }
+    const svgNode = this.canvas.node as SVGSVGElement;
+    if (svgNode?.style) {
+      svgNode.style.width = "100%";
+      svgNode.style.height = "100%";
+      svgNode.style.display = "block";
+    }
+    svgNode?.removeAttribute?.("width");
+    svgNode?.removeAttribute?.("height");
+    svgNode?.setAttribute?.("preserveAspectRatio", "xMidYMid slice");
+
+    // Initial viewBox = container pixel size at zoom 1 (1 unit = 1px),
+    // centered on the world origin so content near it is in view. Falls back
+    // to sensible defaults before the element has been laid out.
+    const rect = this.element.getBoundingClientRect();
+    this.options.viewPort = this.options.viewPort || {};
+    // Honor an explicit originalWidth/Height for the initial viewBox; else
+    // measure the container. The ResizeObserver keeps it synced to real px.
+    const vw =
+      this.options.viewPort.originalWidth || Math.round(rect.width) || 800;
+    const vh =
+      this.options.viewPort.originalHeight || Math.round(rect.height) || 600;
+    this.options.viewPort.originalWidth = vw;
+    this.options.viewPort.originalHeight = vh;
+    // Default framing: origin at top-left (matches v1's initial viewBox), so
+    // content near (0,0) is visible immediately. Content placed far away
+    // (e.g. the app seeds nodes near 10000,10000) is framed by the host's
+    // scaleToFitAndCenter/fitToContent after load. Honors an explicit
+    // viewPort.left/top when provided.
+    const originX = this.options.viewPort.left ?? 0;
+    const originY = this.options.viewPort.top ?? 0;
+    this.canvas.viewbox(originX, originY, vw, vh);
+
+    // Keep the viewBox 1:1 with the container as it resizes (preserve zoom
+    // and center point) so the canvas always fills and never distorts.
+    this._setupResizeObserver();
 
     // Initialize nodes manager
     this.nodes = new NodesManager(this);
 
     // Initialize invoker with the contract methods
     this.invoker = new Invoker(this);
+
+    // Apply background color/gradient/image from options
+    this.applyContainerStyle();
 
     // Set up selection management
     this.setupSelectionHandling();
@@ -141,13 +392,341 @@ export class Slate {
     // Initialize pan/zoom functionality
     this.panZoom = new PanZoom(this, this.options.panZoom);
 
+    // Initialize birds eye / minimap
+    this.birdsEye = new BirdsEye(this, this.options.birdsEye);
+    if (this.options.birdsEye?.enabled) {
+      // Delay enable to ensure canvas is ready
+      this._birdsEyeTimeoutId = setTimeout(() => {
+        if (!this._destroyed) this.birdsEye.enable();
+      }, 200);
+    }
+
+    // Initialize undo/redo + take an empty baseline so the very first edit on a
+    // fresh slate is undoable (loadJSON re-baselines for loaded documents).
+    this.undoRedo = new UndoRedo(this, {
+      enabled: this.options.showUndoRedo !== false,
+    });
+    this.undoRedo.snap?.(true);
+
+    // Initialize multi-selection
+    this.multiSelection = new MultiSelection(this, {
+      enabled: this.options.showMultiSelect !== false,
+    });
+
+    // Initialize grid
+    this.grid = new Grid(this, {
+      enabled: this.options.viewPort?.showGrid || false,
+      gridSize: this.options.viewPort?.gridSize || 20,
+      // Re-apply the persisted snap-to-grid setting so it survives reload.
+      snapToGrid: this.options.viewPort?.snapToGrid || false,
+    });
+    if (this.options.viewPort?.showGrid) {
+      this.grid.show();
+    }
+
+    // Initialize keyboard bindings
+    this.keyboard = new Keyboard(this);
+    if (this.options.enabled !== false) {
+      this.keyboard.bindGlobal();
+    }
+
+    // Right-click context menu (bring-to-front / back / duplicate / delete)
+    this.contextMenu = new ContextMenu(this);
+    if (this.options.enabled !== false) {
+      this.contextMenu.enable();
+    }
+
+    // Initialize collaboration (lazy — call collab.init() to connect)
+    this.collab = new Collab(this);
+
+    // Initialize zoom slider
+    this.zoomSlider = new ZoomSlider(this, {
+      enabled: this.options.showZoom || false,
+    });
+
+    // Initialize presentation mode
+    this.presentation = new Presentation(this);
+
     // Make canvas responsive
     this.makeResponsive();
 
     // Add coordinate display element after pan/zoom is ready
     if (this.options.viewPort?.showCoordinates) {
-      setTimeout(() => this.addCoordinateDisplay(), 150);
+      this._coordDisplayTimeoutId = setTimeout(() => {
+        if (!this._destroyed) this.addCoordinateDisplay();
+      }, 150);
     }
+  }
+
+  /**
+   * Destroy the Slate, cleaning up all sub-modules, timers, and event listeners.
+   * Follows the PanZoom.ts pattern: clear timers → remove listeners → chain to owned objects.
+   */
+  public destroy(): void {
+    this._destroyed = true;
+
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+
+    // Deregister from the window instance list
+    if (typeof window !== "undefined") {
+      const w = window as any;
+      if (Array.isArray(w.__slateboxInstances)) {
+        w.__slateboxInstances = w.__slateboxInstances.filter(
+          (s: any) => s !== this
+        );
+      }
+    }
+
+    // Clear all pending timeouts
+    if (this._birdsEyeTimeoutId !== null) {
+      clearTimeout(this._birdsEyeTimeoutId);
+      this._birdsEyeTimeoutId = null;
+    }
+    if (this._coordDisplayTimeoutId !== null) {
+      clearTimeout(this._coordDisplayTimeoutId);
+      this._coordDisplayTimeoutId = null;
+    }
+    if (this._nodeNotifyTimeoutId !== null) {
+      clearTimeout(this._nodeNotifyTimeoutId);
+      this._nodeNotifyTimeoutId = null;
+    }
+
+    // Clear coordinate polling interval
+    if (this._coordinateIntervalId !== null) {
+      clearInterval(this._coordinateIntervalId);
+      this._coordinateIntervalId = null;
+    }
+
+    // Remove coordinate display element
+    const coordDisplay = this.element.querySelector("#slate-coordinates") as HTMLElement;
+    if (coordDisplay) {
+      coordDisplay.remove();
+    }
+
+    // Remove canvas click handler
+    this.canvas.off("click");
+
+    // Chain destroy to sub-modules
+    if (this.panZoom) {
+      this.panZoom.destroy();
+    }
+    if (this.birdsEye) {
+      this.birdsEye.disable();
+    }
+    if (this.zoomSlider) {
+      this.zoomSlider.destroy();
+    }
+    if (this.keyboard) {
+      this.keyboard.unbindGlobal();
+    }
+    if (this.contextMenu) {
+      this.contextMenu.disable();
+    }
+    if (this.multiSelection) {
+      this.multiSelection.disable();
+    }
+    if (this.undoRedo) {
+      this.undoRedo.clear();
+    }
+    if (this.collab) {
+      this.collab.disconnect();
+    }
+    if (this.presentation) {
+      this.presentation.stop();
+    }
+    if (this.grid) {
+      this.grid.hide();
+    }
+
+    // Clear all nodes
+    if (this.nodes) {
+      this.nodes.clear();
+    }
+
+    // Remove the SVG canvas
+    if (this.canvas) {
+      this.canvas.remove();
+    }
+
+    // Remove live region
+    if (this._liveRegion) {
+      this._liveRegion.remove();
+      this._liveRegion = null;
+    }
+  }
+
+  /**
+   * Announce a message to screen readers via the hidden aria-live region.
+   * Used for state changes: node add/remove, selection changes, zoom changes.
+   */
+  public announce(msg: string): void {
+    if (this._liveRegion) {
+      // Clear and set to force re-announcement
+      this._liveRegion.textContent = "";
+      // Use setTimeout to ensure the clear is processed before the new text
+      setTimeout(() => { if (this._liveRegion) this._liveRegion.textContent = msg; }, 50);
+    }
+  }
+
+  /**
+   * Emit a v1-compatible change package to the host application via
+   * `options.events.onSlateChanged(pkg, collabUsers)`.
+   *
+   * Suppressed while a remote package is being applied (see
+   * {@link beginRemoteApply}) so remote changes are never echoed back to the
+   * host as local ones — mirroring v1's clientID filtering.
+   *
+   * @param type - v1 package type (e.g. "onNodeAdded", "onNodesMove")
+   * @param data - v1-shaped package data
+   */
+  public emitSlateChange(type: string, data: Record<string, any> = {}): void {
+    if (this._applyingRemote || this._destroyed) return;
+    const cb = this.options.events?.onSlateChanged;
+    if (!cb) return;
+    const pkg: SlatePackage = { type, data };
+    if (this.options.instance) pkg.instanceId = this.options.instance;
+
+    // v1 timing: onSlateChanged arrived via the async collab echo, so host
+    // apps assume collab init already ran (e.g. slatebox.com reads its
+    // collaborator ref). While deferred, queue packages for later flush.
+    if (this._emitDeferred) {
+      this._emitQueue.push(pkg);
+      return;
+    }
+
+    let users: CollabUser[] = [];
+    try {
+      users = this.collab?.getCollabUsers?.() ?? [];
+    } catch {
+      // collab is optional — no users available
+    }
+    try {
+      const result: any = cb(pkg, users);
+      // Host handlers are often async — surface rejections as warnings
+      // instead of unhandled promise rejections
+      result?.catch?.((error: unknown) =>
+        console.warn("SLATE_EVENTS_DEBUG: onSlateChanged handler rejected", error)
+      );
+    } catch (error) {
+      console.warn("SLATE_EVENTS_DEBUG: onSlateChanged handler threw", error);
+    }
+  }
+
+  /**
+   * Broadcast a library-originated change to collaborators AND surface it to
+   * the host (collab.send emits onSlateChanged — v1 echo semantics). This is
+   * what interactive mutations (drag, resize, rotate, z-order, delete…) call:
+   * in v1 every one of them went out through collab.send. Suppressed while a
+   * remote package is being applied so remote changes never re-broadcast.
+   */
+  public broadcast(type: string, data: Record<string, any> = {}): void {
+    if (this._applyingRemote || this._destroyed) return;
+    if (typeof this.collab?.send === "function") {
+      this.collab.send({ type, data });
+    } else {
+      this.emitSlateChange(type, data);
+    }
+    // Record an undo snapshot for state-mutating changes (debounced so a drag or
+    // a burst of edits collapses into one undo step). View/presence events don't
+    // change document state, so they're excluded.
+    this.recordUndoFor(type);
+  }
+
+  /** Record a debounced undo checkpoint for a document-mutating package. */
+  public recordUndoFor(type: string): void {
+    if (this.undoRedo && !Slate.NON_UNDOABLE.has(type)) {
+      this.undoRedo.snap?.();
+    }
+  }
+
+  /** Broadcast types that change the viewport/presence, not document state. */
+  private static readonly NON_UNDOABLE = new Set<string>([
+    "onZoom",
+    "onCanvasMove",
+    "onFollowMeChanged",
+    "onSlateFollowMeChanged",
+    "onSlateHuddleChanged",
+    "onCursorMoved",
+    "onPresenceChanged",
+    "onSlateChanged",
+    // UndoRedo already moved the history pointer before broadcasting this
+    // authoritative state; recording it again would create a duplicate step.
+    "onSlateReplaced",
+  ]);
+
+  /** Queue onSlateChanged packages until flushEmits() (v1 collab-init timing). */
+  public deferEmits(): void {
+    this._emitDeferred = true;
+  }
+
+  /** Deliver queued packages and resume synchronous emission. */
+  public flushEmits(): void {
+    this._emitDeferred = false;
+    const queued = this._emitQueue.splice(0);
+    for (const pkg of queued) {
+      this.emitSlateChange(pkg.type, pkg.data);
+    }
+  }
+
+  /**
+   * Apply `options.containerStyle` (background color / gradient / image) to
+   * the container element. v1's canvas.refreshBackground equivalent — called
+   * during init and again after loadJSON replaces the options.
+   */
+  public applyContainerStyle(): void {
+    const cs = this.options.containerStyle;
+    if (!cs || !this.element) return;
+
+    const el = this.element;
+
+    if (
+      cs.backgroundColorAsGradient &&
+      Array.isArray(cs.backgroundGradientColors) &&
+      cs.backgroundGradientColors.length > 1
+    ) {
+      const colors = cs.backgroundGradientColors.join(", ");
+      el.style.backgroundImage =
+        cs.backgroundGradientType === "radial"
+          ? `radial-gradient(circle, ${colors})`
+          : `linear-gradient(${colors})`;
+    } else if (cs.backgroundImage) {
+      el.style.backgroundImage = `url(${cs.backgroundImage})`;
+      if (cs.backgroundSize) el.style.backgroundSize = cs.backgroundSize;
+    } else {
+      el.style.backgroundImage = "";
+    }
+
+    if (cs.backgroundColor) {
+      el.style.backgroundColor = cs.backgroundColor;
+    }
+  }
+
+  /** v1: host-supplied permission check — true when the viewer cannot edit. */
+  public isReadOnly(): boolean {
+    return !!this.options.events?.isReadOnly?.();
+  }
+
+  /** v1: host-supplied permission check — true when only comments are allowed. */
+  public isCommentOnly(): boolean {
+    return !!this.options.events?.isCommentOnly?.();
+  }
+
+  /** v1: host-supplied permission check for removing comment nodes. */
+  public canRemoveComments(): boolean {
+    return !!this.options.events?.canRemoveComments?.();
+  }
+
+  /** Suppress emitSlateChange while applying a remote package (v1 echo semantics). */
+  public beginRemoteApply(): void {
+    this._applyingRemote = true;
+  }
+
+  /** Re-enable emitSlateChange after a remote package has been applied. */
+  public endRemoteApply(): void {
+    this._applyingRemote = false;
   }
 
   private setupCoordinateCallbacks() {
@@ -173,9 +752,31 @@ export class Slate {
         originalOnZoom(zoom);
       }
     };
+
+    // v1 contract: a completed pan broadcasts onCanvasMove
+    const originalOnPanEnd = this.options.panZoom.onPanEnd;
+    this.options.panZoom.onPanEnd = (evt: any) => {
+      if (originalOnPanEnd) {
+        originalOnPanEnd(evt);
+      }
+      try {
+        const pan = this.getPan();
+        this.broadcast("onCanvasMove", {
+          left: pan.x,
+          top: pan.y,
+          relative: { x: pan.x, y: pan.y },
+          orient: this.getOrientation(),
+        });
+      } catch {
+        // pan/zoom may not be initialized yet
+      }
+    };
   }
 
   private addCoordinateDisplay() {
+    // Dev-only debug readout — hidden unless explicitly opted in. It must never
+    // show in production (or in the presentation view).
+    if (!(this.options as any).showCoordinates) return;
     console.log("COORD_DEBUG: Starting coordinate display creation");
 
     // Create coordinate display in upper left
@@ -217,11 +818,12 @@ export class Slate {
   }
 
   private startCoordinatePolling() {
+    if (this._destroyed) return;
     console.log("COORD_DEBUG: Starting coordinate polling");
 
     // Poll every 200ms to update coordinates (reduced frequency)
-    setInterval(() => {
-      this.updateCoordinateDisplay();
+    this._coordinateIntervalId = setInterval(() => {
+      if (!this._destroyed) this.updateCoordinateDisplay();
     }, 200);
   }
 
@@ -252,7 +854,8 @@ export class Slate {
         // Fallback: get directly from viewBox
         const viewBox = this.canvas.viewbox();
         pan = { x: viewBox.x, y: viewBox.y };
-        zoom = this.canvas.attr("width") / viewBox.width || 1;
+        const px = this.element.getBoundingClientRect().width || viewBox.width;
+        zoom = px / viewBox.width || 1;
         console.log(
           "COORD_DEBUG: Got fallback values from viewBox - pan:",
           pan,
@@ -278,37 +881,100 @@ export class Slate {
   }
 
   private makeResponsive() {
-    // Add viewbox for responsive behavior
-    const width = this.options.viewPort?.originalWidth || 800;
-    const height = this.options.viewPort?.originalHeight || 600;
-    this.canvas.viewbox(0, 0, width, height);
+    // No-op: the infinite-canvas setup in init() already established a
+    // container-filling SVG (width/height 100%) with a viewBox centered on
+    // the world origin. Overwriting the viewBox here would undo that.
   }
 
-  public addNode(options: any = {}) {
-    return this.nodes.add(options);
+  /**
+   * Add a new node to the slate.
+   *
+   * @param options - Node options including position, size, text, shape, colors, etc.
+   * @returns The newly created Node instance
+   *
+   * @example
+   * ```ts
+   * slate.addNode({
+   *   id: 'my-node', x: 200, y: 150,
+   *   width: 120, height: 80, text: 'Hello',
+   *   shape: 'rectangle', backgroundColor: '#4ecdc4'
+   * });
+   * ```
+   */
+  public addNode(options: Partial<NodeOptions> = {}) {
+    const node = this.nodes.add(options);
+    // Notify BirdsEye of the new node after a short delay for rendering
+    this._nodeNotifyTimeoutId = setTimeout(() => {
+      if (!this._destroyed) this.notifyNodeChanged();
+      this.announce(`Node added: ${node.options.text || "(unnamed)"}`);
+    }, 100);
+    this.broadcast("onNodeAdded", {
+      id: node.id,
+      nodeOptions: v2NodeToV1(node.options),
+    });
+    return node;
   }
 
+  /** Remove a node by ID. */
   public removeNode(id: string) {
-    return this.nodes.remove(id);
+    const node = this.nodes.one(id);
+    const text = node?.options?.text || "(unnamed)";
+    const isComment = !!node?.options?.isComment;
+    // If the node is currently SELECTED, tear down its svg.select resize/rotate overlay
+    // (selection box + handles) BEFORE removing it — those handles live in a separate
+    // overlay and select(false) needs the element to still exist, or deleting a selected
+    // node leaves the whole rogue selection box floating with nothing selected. (Done
+    // here, not in node.remove(), to preserve remove()'s light "don't disable sub-modules"
+    // contract — this is the permanent user-delete path.)
+    if (node && this.selectedNodes.some((n) => n.id === id)) {
+      try {
+        (node as any).resizeRotate?.disable();
+      } catch (e) {
+        /* noop */
+      }
+      this.selectedNodes = this.selectedNodes.filter((n) => n.id !== id);
+    }
+    const result = this.nodes.remove(id);
+    // Notify BirdsEye of the removed node
+    this.notifyNodeChanged();
+    this.announce(`Node removed: ${text}`);
+    if (result) {
+      this.broadcast("onNodeDeleted", { id, isComment });
+    }
+    return result;
   }
 
+  /**
+   * Notify that a node has changed (position, rotation, added, removed)
+   * This triggers BirdsEye refresh if enabled
+   */
+  public notifyNodeChanged(node?: Node): void {
+    if (this.birdsEye?.isEnabled()) {
+      this.birdsEye.scheduleRefresh();
+    }
+  }
+
+  /** @returns The node with the given ID, or undefined if not found. */
   public getNode(id: string) {
     return this.nodes.one(id);
   }
 
+  /** @returns All nodes currently on the slate. */
   public getAllNodes(): Node[] {
     return this.nodes.allNodes;
   }
 
   // Get the pan/zoom viewport for adding content that should pan/zoom
-  public getViewport(): any {
+  /** @returns The SVG root canvas (used as the viewport for pan/zoom). */
+  public getViewport(): Svg {
     // SVG.js panzoom works directly with root canvas - no viewport nesting needed!
     console.log("VIEWPORT_DEBUG: Using root canvas (SVG.js panzoom)");
     return this.canvas;
   }
 
   // Get viewport with retry logic for proper initialization
-  public getViewportAsync(): Promise<any> {
+  /** @returns Promise resolving to the SVG root canvas. */
+  public getViewportAsync(): Promise<Svg> {
     // SVG.js panzoom works directly with root canvas - immediate return
     console.log(
       "VIEWPORT_DEBUG: Returning root canvas immediately (SVG.js panzoom)"
@@ -317,88 +983,208 @@ export class Slate {
   }
 
   // Pan/Zoom API methods
+  /** Enable pan and zoom interactions. */
   public enablePanZoom() {
     this.panZoom.enable();
   }
 
+  /** Disable pan and zoom interactions. */
   public disablePanZoom() {
     this.panZoom.disable();
   }
 
+  /** Enable canvas panning. */
   public enablePan() {
     this.panZoom.enablePan();
   }
 
+  /** Disable canvas panning. */
   public disablePan() {
     this.panZoom.disablePan();
   }
 
+  /** Enable canvas zoom. */
   public enableZoom() {
     this.panZoom.enableZoom();
   }
 
+  /** Disable canvas zoom. */
   public disableZoom() {
     this.panZoom.disableZoom();
   }
 
+  /**
+   * Pan to a specific position.
+   * @param point - { x, y } target position
+   */
   public pan(point: { x: number; y: number }) {
     this.panZoom.pan(point);
   }
 
+  /**
+   * Pan by a relative delta.
+   * @param delta - { dx, dy } distance to pan
+   */
   public panBy(delta: { x: number; y: number }) {
     this.panZoom.panBy(delta);
   }
 
+  /**
+   * Set the zoom level.
+   * @param level - Zoom factor (1 = 100%)
+   */
   public zoom(level: number) {
     this.panZoom.zoom(level);
+    this.announce(`Zoom: ${Math.round(level * 100)}%`);
+    this.broadcast("onZoom", { zoomLevel: level });
   }
 
+  /**
+   * Zoom by a relative factor.
+   * @param factor - Multiplier applied to current zoom
+   */
   public zoomBy(factor: number) {
     this.panZoom.zoomBy(factor);
   }
 
+  /** Zoom in one step. */
   public zoomIn() {
     this.panZoom.zoomIn();
   }
 
+  /** Zoom out one step. */
   public zoomOut() {
     this.panZoom.zoomOut();
   }
 
+  /**
+   * Zoom centered on a point.
+   * @param level - Target zoom level
+   * @param point - { x, y } focus point
+   */
   public zoomAtPoint(level: number, point: { x: number; y: number }) {
     this.panZoom.zoomAtPoint(level, point);
   }
 
+  /** Reset both pan and zoom to defaults. */
   public resetPanZoom() {
     this.panZoom.reset();
   }
 
+  /** Reset zoom to 100%. */
   public resetZoom() {
     this.panZoom.resetZoom();
   }
 
+  /** Reset pan position to origin. */
   public resetPan() {
     this.panZoom.resetPan();
   }
 
+  /** Zoom/pan to fit all nodes in the viewport. */
   public fitToContent() {
     this.panZoom.fit();
   }
 
+  /** Pan to center all nodes in the viewport. */
   public centerContent() {
     this.panZoom.center();
   }
 
+  /** @returns Current zoom level (1 = 100%). */
   public getZoom(): number {
     return this.panZoom.getZoom();
   }
 
+  /** @returns Current pan position as { x, y }. */
   public getPan(): { x: number; y: number } {
     return this.panZoom.getPan();
   }
 
+  /** Notify pan/zoom that the viewport was resized. */
   public resizePanZoom() {
     this.panZoom.resize();
+  }
+
+  /**
+   * Keep the viewBox 1:1 with the container pixel size across resizes so the
+   * infinite canvas always fills its element and never distorts. Preserves
+   * the current zoom level and the world-point at the viewBox center.
+   */
+  private _setupResizeObserver(): void {
+    if (typeof ResizeObserver === "undefined") return;
+    let lastW = 0;
+    let lastH = 0;
+    this._resizeObserver = new ResizeObserver(() => {
+      if (this._destroyed) return;
+      const rect = this.element.getBoundingClientRect();
+      const pw = Math.max(1, Math.round(rect.width));
+      const ph = Math.max(1, Math.round(rect.height));
+      if (pw === lastW && ph === lastH) return;
+
+      const vb = this.canvas.viewbox();
+      // Current on-screen scale (viewBox units per pixel). Use the previous
+      // container width to recover it; fall back to viewBox/px on first run.
+      const unitsPerPx = vb.width / (lastW || pw);
+      lastW = pw;
+      lastH = ph;
+
+      const cx = vb.x + vb.width / 2;
+      const cy = vb.y + vb.height / 2;
+      const newW = pw * unitsPerPx;
+      const newH = ph * unitsPerPx;
+      this.canvas.viewbox(cx - newW / 2, cy - newH / 2, newW, newH);
+      this.options.viewPort = this.options.viewPort || {};
+      this.options.viewPort.originalWidth = pw;
+      this.options.viewPort.originalHeight = ph;
+    });
+    this._resizeObserver.observe(this.element);
+  }
+
+  /**
+   * Bounding-box orientation of the current content (v1 contract):
+   * `{orientation, width, height, left, top}` computed over all nodes with
+   * 10px padding, falling back to the viewport dimensions when empty.
+   */
+  public getOrientation(): {
+    orientation: "landscape" | "portrait";
+    width: number;
+    height: number;
+    left: number;
+    top: number;
+  } {
+    const all = this.nodes?.allNodes ?? [];
+    const vp: any = this.options.viewPort || {};
+    let width = vp.width ?? vp.originalWidth ?? 800;
+    let height = vp.height ?? vp.originalHeight ?? 600;
+    let left = 0;
+    let top = 0;
+    let orientation: "landscape" | "portrait" = "landscape";
+
+    if (all.length > 0) {
+      const pad = 10;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      all.forEach((n: any) => {
+        const x = n.options.x ?? 0;
+        const y = n.options.y ?? 0;
+        const w = n.options.width ?? 0;
+        const h = n.options.height ?? 0;
+        minX = Math.min(minX, x - pad);
+        minY = Math.min(minY, y - pad);
+        maxX = Math.max(maxX, x + w + pad);
+        maxY = Math.max(maxY, y + h + pad);
+      });
+      left = Math.abs(minX);
+      top = Math.abs(minY);
+      width = maxX - minX;
+      height = maxY - minY;
+      if (height > width) orientation = "portrait";
+    }
+
+    return { orientation, width, height, left, top };
   }
 
   // Selection Management
@@ -417,18 +1203,80 @@ export class Slate {
         event.target === this.canvas.node ||
         (event.target && event.target.tagName === "svg");
 
+      // Skip the deselect if this click is the tail end of a rubber-band drag
+      // that just selected nodes — otherwise the drag-selection is wiped the
+      // instant it's made (breaking group-move on the selection).
+      const sinceRubberBand = Date.now() - ((this as any)._rubberBandSelectedAt || 0);
+      if (sinceRubberBand < 400) {
+        (this as any)._rubberBandSelectedAt = 0;
+        return;
+      }
+
       if (isCanvasClick) {
         console.log("SELECTION_DEBUG: Canvas clicked - deselecting all");
+        // Clicking empty canvas also steps out of any entered group.
+        this.enteredGroupId = null;
         this.clearSelection();
+        this.clearLineCog();
+        // v1 contract: notify the host (used to close app-side panes)
+        this.options.events?.onCanvasClicked?.(event);
       } else {
         console.log(
           "SELECTION_DEBUG: Click on non-canvas element, not deselecting"
         );
       }
     });
+
+    // Miro parity: double-click on EMPTY canvas drops a new node at the cursor.
+    // (Double-click on a NODE edits its text — the isCanvasClick guard separates the
+    // two.) NOTE: auto-entering the inline editor on create was attempted 4 ways
+    // (await ready, poll for svgGroup, next-frame defer, preventDefault) — the editor
+    // opens fine programmatically but never survives the real double-click's event/
+    // render sequence, so we create + select and let the user double-click to edit.
+    this.canvas.on("dblclick", (event: any) => {
+      const isCanvasClick =
+        event.target === this.canvas.node ||
+        (event.target && event.target.tagName === "svg");
+      if (!isCanvasClick) return;
+      if (this.isReadOnly?.()) return;
+      try {
+        const world = this.canvas.point(event.clientX, event.clientY);
+        const w = 120;
+        const h = 70;
+        const node = this.addNode({
+          x: Math.round(world.x - w / 2),
+          y: Math.round(world.y - h / 2),
+          width: w,
+          height: h,
+          text: "",
+        });
+        this.selectNodes?.([node]);
+      } catch (e) {
+        /* noop */
+      }
+    });
   }
 
-  // New multi-node selection method - SINGLE ORCHESTRATOR
+  /**
+   * Select one or more nodes on the slate.
+   *
+   * This is the SINGLE ORCHESTRATOR for selection. It:
+   * 1. Clears current selection unless addToSelection is true
+   * 2. Adds the specified nodes to the selection set
+   * 3. Calls updateSelectionResizeRotate() to enable handles on selected nodes
+   * 4. Fires onSelectionChanged event
+   *
+   * @param nodes - Array of nodes to select
+   * @param addToSelection - If true, adds to existing selection instead of replacing it
+   *
+   * @example
+   * ```ts
+   * // Select a single node
+   * slate.selectNodes([node]);
+   * // Add to existing selection
+   * slate.selectNodes([node2, node3], true);
+   * ```
+   */
   public selectNodes(nodes: Node[], addToSelection: boolean = false) {
     console.log(
       "SELECTION_DEBUG: Selecting nodes",
@@ -436,6 +1284,24 @@ export class Slate {
       "addToSelection:",
       addToSelection
     );
+
+    // Selecting a node clears any line cog affordance.
+    this.clearLineCog();
+
+    // Miro-style groups: clicking a single member of a group selects the WHOLE
+    // group — unless we've "entered" that group to edit its members. Selecting
+    // anything outside the entered group also exits it. Marquee/programmatic
+    // multi-node selects (length > 1) are left untouched.
+    if (nodes.length === 1) {
+      const gid = this.getGroupIdOf(nodes[0]);
+      if (this.enteredGroupId && gid !== this.enteredGroupId) {
+        this.enteredGroupId = null;
+      }
+      if (gid && gid !== this.enteredGroupId) {
+        const members = this.getGroupMembers(gid);
+        if (members.length > 1) nodes = members;
+      }
+    }
 
     // If not adding to selection, clear current selection first
     if (!addToSelection) {
@@ -452,9 +1318,26 @@ export class Slate {
 
     // Enable resize/rotate for the selection - CENTRALIZED CONTROL
     this.updateSelectionResizeRotate();
+
+    // Announce selection change
+    const count = this.selectedNodes.length;
+    if (count === 0) {
+      this.announce("No nodes selected");
+    } else if (count === 1) {
+      this.announce(`Node selected: ${this.selectedNodes[0].options.text || "(unnamed)"}`);
+    } else {
+      this.announce(`${count} nodes selected`);
+    }
+
+    // v1 contract: multi-node selections notify the host (group toolbar etc.)
+    if (count > 1) {
+      this._hadGroupSelection = true;
+      this.options.events?.onGroupSelection?.(this.selectedNodes.slice());
+    }
   }
 
   // SINGLE ORCHESTRATOR for resize/rotate management
+  /** Re-evaluate which nodes should have resize/rotate handles based on current selection. */
   public updateSelectionResizeRotate() {
     console.log(
       "SELECTION_DEBUG: Updating resize/rotate for",
@@ -474,6 +1357,9 @@ export class Slate {
         node.disableConnectionHandles();
         console.log("SELECTION_DEBUG: Disabled connection handles on", node.id);
       }
+
+      // Remove any node-properties cog affordance (M1)
+      (node as any).hideNodeCog?.();
     });
 
     // Remove any existing group controller
@@ -493,6 +1379,8 @@ export class Slate {
       selectedNode.resizeRotate.enable();
 
       selectedNode.enableConnectionHandles();
+      // Show the node-properties cog affordance (M1)
+      (selectedNode as any).showNodeCog?.();
       console.log(
         "SELECTION_DEBUG: Enabled individual resize/rotate and connection handles on",
         selectedNode.id
@@ -510,6 +1398,7 @@ export class Slate {
   }
 
   // Node-level resize/rotate control (called by Node methods)
+  /** Request resize/rotate enable for a specific node (checked against selection). */
   public enableNodeResizeRotate(node: Node) {
     // Only enable if this node is currently selected
     if (this.selectedNodes.includes(node)) {
@@ -530,6 +1419,7 @@ export class Slate {
     }
   }
 
+  /** Disable resize/rotate for a specific node. */
   public disableNodeResizeRotate(node: Node) {
     console.log(
       "SELECTION_DEBUG: Node",
@@ -573,29 +1463,141 @@ export class Slate {
     // Calculate bounding box of all selected nodes
     const groupBBox = this.calculateGroupBoundingBox();
 
+    // Bail out on a non-finite or degenerate box — feeding NaN/zero-size geometry
+    // to svg.select.js produces "NaN" polyline-handle errors.
+    if (
+      ![groupBBox.x, groupBBox.y, groupBBox.width, groupBBox.height].every(
+        Number.isFinite
+      ) ||
+      groupBBox.width <= 0 ||
+      groupBBox.height <= 0
+    ) {
+      return;
+    }
+
     // Create a temporary group element for resize/rotate handles
     this.groupResizeRotate = this.canvas.group();
 
-    // Create invisible rectangle that covers the group
-    const groupRect = this.groupResizeRotate
+    // Dashed bounding rect around the whole selection — a clean visual indicator
+    // that multiple nodes are selected. (Nodes are still moved together by drag.)
+    this.groupResizeRotate
       .rect(groupBBox.width, groupBBox.height)
       .move(groupBBox.x, groupBBox.y)
       .fill("transparent")
-      .stroke({ color: "#4a90e2", width: 2, dasharray: "5,5" });
+      .stroke({ color: "#4a90e2", width: 2, dasharray: "5,5" })
+      .attr("pointer-events", "none");
 
-    // Enable resize/rotate on the group rectangle
-    // This will need to be implemented with svg.select.js or custom logic
-    if (typeof (groupRect as any).select === "function") {
-      (groupRect as any).select({
-        createHandle: this.createGroupHandle.bind(this),
-        updateHandle: this.updateGroupHandle.bind(this),
+    // Rotate-as-one: an interactive knob above the box rotates every selected node
+    // about the group centre (position + own angle), so a group turns as a unit.
+    // Skipped when any member is locked. (Group RESIZE remains out of scope.)
+    const anyLocked = this.selectedNodes.some((n) => n.options.isLocked);
+    if (!anyLocked) this.addGroupRotateHandle(groupBBox);
+  }
+
+  /**
+   * Attach an interactive rotate knob to the group-selection outline. Dragging it
+   * rotates every selected node about the group centre: each member's centre is
+   * revolved around the group centre and the same delta is added to the member's
+   * own rotationAngle, so the whole selection turns rigidly (Miro group rotate).
+   *
+   * Angle math is done in SCREEN space (invariant to the uniform viewBox zoom/pan),
+   * then the delta is applied in world space to positions + per-node angles.
+   */
+  private addGroupRotateHandle(groupBBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): void {
+    const g = this.groupResizeRotate;
+    if (!g) return;
+    // A rendering affordance must never break selection — any SVG hiccup here is
+    // swallowed so the outline still shows and the selection stays usable.
+    try {
+    const cx = groupBBox.x + groupBBox.width / 2;
+    const cy = groupBBox.y + groupBBox.height / 2;
+    const offset = 28; // world units above the top edge
+    const knobY = groupBBox.y - offset;
+
+    g.line(cx, groupBBox.y, cx, knobY)
+      .stroke({ color: "#4a90e2", width: 1 })
+      .attr("pointer-events", "none");
+    const knob = g
+      .circle(14)
+      .center(cx, knobY)
+      .fill("#ffffff")
+      .stroke({ color: "#4a90e2", width: 2 });
+    const setCursor = (c: string) => {
+      const el = knob.node as any;
+      if (el?.style) el.style.cursor = c;
+    };
+    setCursor("grab");
+    knob.attr("pointer-events", "all");
+
+    let dragging = false;
+    let startAngle = 0;
+    let pivot = { x: 0, y: 0 };
+    let snapshot: { node: Node; cx: number; cy: number; angle: number }[] = [];
+
+    const pivotScreen = () => {
+      const m = (g.node as any as SVGGraphicsElement).getScreenCTM();
+      if (!m) return { x: 0, y: 0 };
+      return { x: m.a * cx + m.c * cy + m.e, y: m.b * cx + m.d * cy + m.f };
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (!dragging) return;
+      const cur = Math.atan2(e.clientY - pivot.y, e.clientX - pivot.x);
+      let deltaDeg = ((cur - startAngle) * 180) / Math.PI;
+      if (e.shiftKey) deltaDeg = Math.round(deltaDeg / 15) * 15; // 15° snap
+      const rad = (deltaDeg * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      snapshot.forEach((s) => {
+        const dx = s.cx - cx;
+        const dy = s.cy - cy;
+        const ncx = cx + dx * cos - dy * sin;
+        const ncy = cy + dx * sin + dy * cos;
+        const w = s.node.options.width || 0;
+        const h = s.node.options.height || 0;
+        const rot = (s.node.options.rotate =
+          s.node.options.rotate || ({} as any));
+        rot.rotationAngle = s.angle + deltaDeg;
+        s.node.position(ncx - w / 2, ncy - h / 2);
       });
+    };
 
-      // Listen for resize/rotate events on the group
-      groupRect.on("resize", this.handleGroupResize.bind(this));
-      groupRect.on("rotate", this.handleGroupRotate.bind(this));
-    } else {
-      console.warn("svg.select.js not available for group resize/rotate");
+    const onUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      setCursor("grab");
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      this.broadcast("onNodesMove", {
+        nodeOptions: this.selectedNodes.map((n) => v2NodeToV1(n.options)),
+      });
+      // Redraw the outline to wrap the freshly-rotated group.
+      this.updateSelectionResizeRotate();
+    };
+
+    knob.on("pointerdown", (e: any) => {
+      e.preventDefault?.();
+      e.stopPropagation?.();
+      dragging = true;
+      pivot = pivotScreen();
+      startAngle = Math.atan2(e.clientY - pivot.y, e.clientX - pivot.x);
+      snapshot = this.selectedNodes.map((n) => ({
+        node: n,
+        cx: (n.options.x || 0) + (n.options.width || 0) / 2,
+        cy: (n.options.y || 0) + (n.options.height || 0) / 2,
+        angle: n.options.rotate?.rotationAngle || 0,
+      }));
+      setCursor("grabbing");
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    });
+    } catch (e) {
+      /* rotate knob is best-effort; selection remains usable without it */
     }
   }
 
@@ -609,12 +1611,19 @@ export class Slate {
       maxX = -Infinity,
       maxY = -Infinity;
 
+    // Use each node's LOGICAL position/size (options), not svgGroup.bbox() —
+    // bbox() returns the group's *local* box (origin 0,0, ignoring the node's
+    // translate), so the group box collapsed to the canvas origin. Off-screen
+    // there, svg.select.js computed a degenerate screenCTM and emitted a storm
+    // of "NaN" polyline-handle errors on every multi-select.
+    // Use each node's ROTATION-AWARE world box so the dashed outline tightly encloses
+    // rotated nodes (a rotated node's option box is smaller than its visual extent).
     this.selectedNodes.forEach((node) => {
-      const bbox = node.svgGroup.bbox();
-      minX = Math.min(minX, bbox.x);
-      minY = Math.min(minY, bbox.y);
-      maxX = Math.max(maxX, bbox.x + bbox.width);
-      maxY = Math.max(maxY, bbox.y + bbox.height);
+      const rb = this.rotatedBounds(node);
+      minX = Math.min(minX, rb.minX);
+      minY = Math.min(minY, rb.minY);
+      maxX = Math.max(maxX, rb.maxX);
+      maxY = Math.max(maxY, rb.maxY);
     });
 
     return {
@@ -693,11 +1702,13 @@ export class Slate {
     });
   }
 
+  /** Select a single node (convenience wrapper for selectNodes). */
   public selectNode(node: Node) {
     // Maintain backward compatibility - convert to new selectNodes method
     this.selectNodes([node], false);
   }
 
+  /** Deselect a single node. */
   public deselectNode(node: Node) {
     if (this.selectedNodes.includes(node)) {
       console.log("SELECTION_DEBUG: Deselecting node", node.id);
@@ -710,6 +1721,40 @@ export class Slate {
       } else {
         this.updateSelectionResizeRotate();
       }
+    }
+  }
+
+  /** Deselect all currently selected nodes. */
+  /** Remove the active line cog + endpoint handles (M1/L1), if any. */
+  public clearLineCog(): void {
+    if (this._activeLineCog) {
+      try {
+        this._activeLineCog.remove();
+      } catch (e) {
+        /* noop */
+      }
+      this._activeLineCog = undefined;
+    }
+    if (this._activeLineConnectable) {
+      try {
+        // Release the pinned endpoint handles so they hide again (Miro-style).
+        (this._activeLineConnectable as any)._handlesPinned = false;
+        (this._activeLineConnectable as any)._revealHandles?.(false);
+        this._activeLineConnectable.deselectConnector?.();
+      } catch (e) {
+        /* noop */
+      }
+      this._activeLineConnectable = undefined;
+    }
+    if (this._activeEndpointToggles) {
+      this._activeEndpointToggles.forEach((g) => {
+        try {
+          g.remove();
+        } catch (e) {
+          /* noop */
+        }
+      });
+      this._activeEndpointToggles = undefined;
     }
   }
 
@@ -726,14 +1771,468 @@ export class Slate {
 
     // Disable all resize/rotate controls and connection handles - CENTRALIZED CONTROL
     this.updateSelectionResizeRotate();
+
+    // v1 contract: a group selection ending notifies the host with []
+    if (this._hadGroupSelection) {
+      this._hadGroupSelection = false;
+      this.options.events?.onGroupSelection?.([]);
+    }
   }
 
+  /** @returns Array of currently selected nodes. */
   public getSelectedNodes(): Node[] {
     return this.selectedNodes;
   }
 
   // Backward compatibility
+  /** @returns The first selected node, or null if none selected. */
   public getSelectedNode(): Node | null {
     return this.selectedNodes.length > 0 ? this.selectedNodes[0] : null;
+  }
+
+  /**
+   * Align the selected (or given) nodes to their shared bounding box (Miro-style).
+   * mode: left | centerH | right | top | middle | bottom. Broadcasts onNodesMove
+   * so the change persists + syncs to collab. No-op for < 2 nodes.
+   */
+  /**
+   * Axis-aligned bounding box of a node in WORLD coords, accounting for its
+   * rotation (the four corners rotated about the node's center). Un-rotated → the
+   * option box; rotated → the tight box enclosing the visually-rotated shape. This
+   * is what alignment, distribution and the group-selection outline must use so
+   * rotated nodes line up by what you SEE, not by their un-rotated option box.
+   */
+  private rotatedBounds(node: Node): {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  } {
+    const o = node.options;
+    const x = o.x || 0;
+    const y = o.y || 0;
+    const w = o.width || 0;
+    const h = o.height || 0;
+    const angle = o.rotate?.rotationAngle || 0;
+    if (!angle) return { minX: x, minY: y, maxX: x + w, maxY: y + h };
+    const cxp = x + w / 2;
+    const cyp = y + h / 2;
+    const rad = (angle * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    const corners: number[][] = [
+      [x, y],
+      [x + w, y],
+      [x + w, y + h],
+      [x, y + h],
+    ];
+    for (const [px, py] of corners) {
+      const dx = px - cxp;
+      const dy = py - cyp;
+      const rx = cxp + dx * cos - dy * sin;
+      const ry = cyp + dx * sin + dy * cos;
+      minX = Math.min(minX, rx);
+      minY = Math.min(minY, ry);
+      maxX = Math.max(maxX, rx);
+      maxY = Math.max(maxY, ry);
+    }
+    return { minX, minY, maxX, maxY };
+  }
+
+  public alignNodes(mode: string, nodes?: Node[]): void {
+    const sel = nodes || this.getSelectedNodes();
+    if (!sel || sel.length < 2) return;
+    // Align by each node's VISUAL (rotation-aware) box, and move via a DELTA on the
+    // node's own option position so its rotation is preserved. Aligning raw options.x
+    // made rotated nodes' visual edges disagree with the rest (they "don't line up").
+    const b = sel.map((n) => {
+      const rb = this.rotatedBounds(n);
+      return {
+        n,
+        minX: rb.minX,
+        maxX: rb.maxX,
+        minY: rb.minY,
+        maxY: rb.maxY,
+        cx: (rb.minX + rb.maxX) / 2,
+        cy: (rb.minY + rb.maxY) / 2,
+        ox: n.options.x || 0,
+        oy: n.options.y || 0,
+      };
+    });
+    const gMinX = Math.min(...b.map((o) => o.minX));
+    const gMaxX = Math.max(...b.map((o) => o.maxX));
+    const gMinY = Math.min(...b.map((o) => o.minY));
+    const gMaxY = Math.max(...b.map((o) => o.maxY));
+    const gcx = (gMinX + gMaxX) / 2;
+    const gcy = (gMinY + gMaxY) / 2;
+    for (const o of b) {
+      let x = o.ox;
+      let y = o.oy;
+      switch (mode) {
+        case "left": x = o.ox + (gMinX - o.minX); break;
+        case "right": x = o.ox + (gMaxX - o.maxX); break;
+        case "centerH": x = o.ox + (gcx - o.cx); break;
+        case "top": y = o.oy + (gMinY - o.minY); break;
+        case "bottom": y = o.oy + (gMaxY - o.maxY); break;
+        case "middle": y = o.oy + (gcy - o.cy); break;
+        default: return;
+      }
+      o.n.position(x, y);
+    }
+    this.broadcast("onNodesMove", {
+      nodeOptions: sel.map((n) => v2NodeToV1(n.options)),
+    });
+    // The nodes moved — refresh the selection UI so the dashed group outline (and the
+    // per-node handles) re-wrap the NEW positions. Without this the outline kept its
+    // stale pre-align extent, making aligned nodes look like they'd moved "to the
+    // center" of a too-wide box.
+    this.updateSelectionResizeRotate();
+  }
+
+  /**
+   * Evenly distribute the selected (or given) nodes along an axis so the gaps
+   * between them are equal; the outermost two stay put. axis: horizontal |
+   * vertical. Broadcasts onNodesMove. No-op for < 3 nodes.
+   */
+  public distributeNodes(axis: string, nodes?: Node[]): void {
+    const sel = nodes || this.getSelectedNodes();
+    if (!sel || sel.length < 3) return;
+    // Distribute by each node's VISUAL (rotation-aware) box; move via an option
+    // DELTA so rotation is preserved and the gaps you SEE come out equal.
+    const b = sel.map((n) => {
+      const rb = this.rotatedBounds(n);
+      return {
+        n,
+        minX: rb.minX,
+        maxX: rb.maxX,
+        minY: rb.minY,
+        maxY: rb.maxY,
+        w: rb.maxX - rb.minX,
+        h: rb.maxY - rb.minY,
+        ox: n.options.x || 0,
+        oy: n.options.y || 0,
+      };
+    });
+    if (axis === "horizontal") {
+      b.sort((p, q) => p.minX - q.minX);
+      const left = b[0].minX;
+      const right = b[b.length - 1].maxX;
+      const totalW = b.reduce((s, o) => s + o.w, 0);
+      const gap = (right - left - totalW) / (b.length - 1);
+      let cursor = left;
+      for (const o of b) {
+        o.n.position(o.ox + (cursor - o.minX), o.oy);
+        cursor += o.w + gap;
+      }
+    } else if (axis === "vertical") {
+      b.sort((p, q) => p.minY - q.minY);
+      const top = b[0].minY;
+      const bottom = b[b.length - 1].maxY;
+      const totalH = b.reduce((s, o) => s + o.h, 0);
+      const gap = (bottom - top - totalH) / (b.length - 1);
+      let cursor = top;
+      for (const o of b) {
+        o.n.position(o.ox, o.oy + (cursor - o.minY));
+        cursor += o.h + gap;
+      }
+    } else {
+      return;
+    }
+    this.broadcast("onNodesMove", {
+      nodeOptions: sel.map((n) => v2NodeToV1(n.options)),
+    });
+    // The nodes moved — refresh the selection UI so the dashed group outline (and the
+    // per-node handles) re-wrap the NEW positions. Without this the outline kept its
+    // stale pre-align extent, making aligned nodes look like they'd moved "to the
+    // center" of a too-wide box.
+    this.updateSelectionResizeRotate();
+  }
+
+  // ─── Grouping (Miro-style) ──────────────────────────────────────────
+  //
+  // A group is simply a set of nodes sharing a `groupId`. There is NO reparenting:
+  // nodes stay in the canvas, so connectors/serialization are untouched. Group
+  // behaviour is layered on the existing multi-selection machinery — selecting a
+  // member selects all members, and drag/rotate/lock then act on the whole set.
+
+  /** All nodes belonging to the given groupId (empty if none/falsy). */
+  public getGroupMembers(groupId: string | null | undefined): Node[] {
+    if (!groupId) return [];
+    return this.nodes.allNodes.filter(
+      (n) => (n.options.groupId as string) === groupId
+    );
+  }
+
+  /** The groupId of a node, or null if it isn't grouped. */
+  public getGroupIdOf(node: Node): string | null {
+    return (node?.options?.groupId as string) || null;
+  }
+
+  /** True if the node is a member of any group. */
+  public isGrouped(node: Node): boolean {
+    return !!this.getGroupIdOf(node);
+  }
+
+  /** The groupId currently entered for member editing, or null. */
+  public getEnteredGroupId(): string | null {
+    return this.enteredGroupId;
+  }
+
+  /**
+   * Expand a node list to include every group-mate of any grouped node in it
+   * (deduped, order-stable). Used so lock/rotate/etc. apply to whole groups.
+   */
+  private expandToGroups(nodes: Node[]): Node[] {
+    const out = new Map<string, Node>();
+    nodes.forEach((n) => {
+      out.set(n.id, n);
+      const g = this.getGroupIdOf(n);
+      if (g) this.getGroupMembers(g).forEach((m) => out.set(m.id, m));
+    });
+    return [...out.values()];
+  }
+
+  /**
+   * Group the selected (or given) nodes into ONE group so they select/move/rotate/
+   * lock as a unit. Assigns a fresh groupId to every member (flattening any prior
+   * groups in the selection into the new one, Miro-style). Persists via onNodesMove
+   * and re-selects the whole new group. No-op for < 2 nodes.
+   * @returns the new groupId, or null if nothing was grouped.
+   */
+  public groupNodes(nodes?: Node[]): string | null {
+    const sel = (nodes || this.getSelectedNodes()).slice();
+    if (sel.length < 2) return null;
+    const gid = "grp-" + guid(8);
+    sel.forEach((n) => {
+      n.options.groupId = gid;
+    });
+    this.enteredGroupId = null;
+    this.broadcast("onNodesMove", {
+      nodeOptions: sel.map((n) => v2NodeToV1(n.options)),
+    });
+    // Re-select as a group (single outline, no per-node handles).
+    this.selectNodes(sel);
+    return gid;
+  }
+
+  /**
+   * Ungroup: dissolve every group represented in the selected (or given) nodes by
+   * clearing each member's groupId. Persists and keeps the nodes multi-selected.
+   */
+  public ungroupNodes(nodes?: Node[]): void {
+    const sel = nodes || this.getSelectedNodes();
+    const gids = new Set<string>();
+    sel.forEach((n) => {
+      const g = this.getGroupIdOf(n);
+      if (g) gids.add(g);
+    });
+    if (!gids.size) return;
+    const affected: Node[] = [];
+    gids.forEach((g) => {
+      this.getGroupMembers(g).forEach((m) => {
+        m.options.groupId = undefined;
+        affected.push(m);
+      });
+    });
+    this.enteredGroupId = null;
+    this.broadcast("onNodesMove", {
+      // Use an explicit null tombstone in the collaboration package. JSON/Yjs
+      // transports may omit `undefined`, which would leave peers in the old
+      // group forever instead of clearing it.
+      nodeOptions: affected.map((n) => ({
+        ...v2NodeToV1(n.options),
+        groupId: null,
+      })),
+    });
+    this.selectNodes(affected);
+  }
+
+  /**
+   * Lock the selected (or given) nodes — and, for any grouped node, its whole
+   * group — disabling drag/resize. Persists via onNodesMove.
+   */
+  public lockNodes(nodes?: Node[]): void {
+    const targets = this.expandToGroups(nodes || this.getSelectedNodes());
+    if (!targets.length) return;
+    targets.forEach((n) => n.lock());
+    this.broadcast("onNodesMove", {
+      nodeOptions: targets.map((n) => v2NodeToV1(n.options)),
+    });
+    this.updateSelectionResizeRotate();
+  }
+
+  /** Unlock the selected (or given) nodes and their groups. */
+  public unlockNodes(nodes?: Node[]): void {
+    const targets = this.expandToGroups(nodes || this.getSelectedNodes());
+    if (!targets.length) return;
+    targets.forEach((n) => n.unlock());
+    this.broadcast("onNodesMove", {
+      nodeOptions: targets.map((n) => v2NodeToV1(n.options)),
+    });
+    this.updateSelectionResizeRotate();
+  }
+
+  /** True if every given (or selected) node is locked. */
+  public isSelectionLocked(nodes?: Node[]): boolean {
+    const t = nodes || this.getSelectedNodes();
+    return t.length > 0 && t.every((n) => !!n.options.isLocked);
+  }
+
+  /**
+   * Enter a group for individual-member editing (Miro double-click-into-group).
+   * Selects `member` if given, else the first member. While entered, clicking a
+   * member selects just that member instead of the whole group.
+   */
+  public enterGroup(groupId: string, member?: Node): void {
+    const members = this.getGroupMembers(groupId);
+    if (!members.length) return;
+    this.enteredGroupId = groupId;
+    this.selectNodes([member && members.includes(member) ? member : members[0]]);
+  }
+
+  /** Exit the currently-entered group and re-select it as a whole. */
+  public exitGroup(): void {
+    const gid = this.enteredGroupId;
+    this.enteredGroupId = null;
+    if (!gid) return;
+    const members = this.getGroupMembers(gid);
+    if (members.length) this.selectNodes(members);
+  }
+
+  // ─── Serialization API ──────────────────────────────────────────────
+
+  /**
+   * Export the slate to a JSON string in v1-compatible format.
+   *
+   * @param nodes - Optional subset of nodes to include
+   * @param asPresentation - If true, includes presentation ordering
+   * @returns JSON string
+   */
+  public exportJSON(nodes?: Node[], asPresentation?: boolean): string {
+    const json = serialize(this, nodes, asPresentation);
+    return JSON.stringify(json);
+  }
+
+  /**
+   * Load a v1-compatible JSON string or object into this slate.
+   *
+   * @param json - JSON string or SlateJSON object
+   * @param preserve - If true, merge with existing nodes instead of replacing
+   * @param skipZoom - If true, don't adjust zoom/pan after load
+   * @param useMainCanvas - Reserved for future use
+   */
+  public async loadJSON(
+    json: string | SlateJSON,
+    preserve: boolean = false,
+    skipZoom: boolean = false,
+    useMainCanvas?: boolean
+  ): Promise<void> {
+    await deserialize(json, this, preserve, skipZoom);
+    // Baseline snapshot of the loaded document so the first edit is undoable.
+    this.undoRedo?.clear?.();
+    this.undoRedo?.snap?.(true);
+  }
+
+  /**
+   * Take a snapshot of the current slate state.
+   * Used by undo/redo system.
+   *
+   * @returns SlateJSON object (not stringified)
+   */
+  public snapshot(): SlateJSON {
+    return takeSnapshot(this);
+  }
+
+  // ─── Export API ─────────────────────────────────────────────────
+
+  /**
+   * Export the slate as an SVG string.
+   */
+  public svg(
+    opts?: ExportOptions,
+    callback?: (svg: string) => void
+  ): string {
+    return exportSVG(this, opts, callback);
+  }
+
+  /**
+   * Export the slate as a PNG (async).
+   */
+  public async png(
+    opts?: ExportOptions,
+    callback?: (result: string | Blob) => void
+  ): Promise<string | Blob> {
+    return exportPNG(this, opts, callback);
+  }
+
+  /**
+   * Synchronous-style PNG export (returns a Promise).
+   * Alias for png() for v1 compatibility.
+   */
+  public pngSync(opts?: ExportOptions): Promise<string | Blob> {
+    return this.png(opts);
+  }
+
+  // ─── Theme API ──────────────────────────────────────────────────
+
+  /** Apply a theme to this slate */
+  public applyTheme(
+    theme: ThemeDefinition,
+    syncWithTheme?: boolean,
+    revertTheme?: boolean
+  ): void {
+    applyTheme(this, theme, syncWithTheme, revertTheme);
+  }
+
+  // ─── Layout API ─────────────────────────────────────────────────
+
+  /** Remove overlapping nodes by pushing them apart */
+  public removeLayoutOverlaps(
+    enableAttraction?: boolean,
+    threshold?: number
+  ): void {
+    removeLayoutOverlaps(this, enableAttraction, threshold);
+  }
+
+  /** Apply pre-computed layout moves */
+  public applyLayout(
+    moves: LayoutMove[],
+    cb?: () => void,
+    noAnimation?: boolean
+  ): void {
+    applyLayoutMoves(this, moves, cb, noAnimation);
+  }
+
+  /** Package current node positions for layout transfer */
+  public packageLayout(): LayoutMove[] {
+    return packageLayout(this);
+  }
+
+  // ─── Lock display API ───────────────────────────────────────────
+
+  /** Show lock icons on all locked nodes */
+  public displayLocks(): void {
+    this.nodes.allNodes.forEach((node: Node) => {
+      if (node.options.isLocked) {
+        // Visual lock indicator could be added here
+        console.log("LOCK_DEBUG: Displaying lock for", node.id);
+      }
+    });
+  }
+
+  /** Hide all lock icons */
+  public hideLocks(): void {
+    console.log("LOCK_DEBUG: Hiding all locks");
+  }
+
+  // ─── Font loading ───────────────────────────────────────────────
+
+  /** Load all fonts used by nodes in this slate */
+  public async loadAllFonts(): Promise<void> {
+    await loadAllFontsForSlate(this);
   }
 }

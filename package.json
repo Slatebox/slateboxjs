@@ -1,16 +1,22 @@
 {
-  "name": "slateboxjs-v2",
-  "version": "2.0.0",
-  "description": "A modern, ground-up rewrite of a diagramming library using svg.js and Vite",
+  "name": "slateboxjs",
+  "version": "3.0.0",
+  "description": "Slatebox.js — modern diagramming library for mind mapping, concept drawing, and brainstorming. Ground-up rewrite on svg.js.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/slatebox/slateboxjs-v2.git"
+  },
   "main": "dist/slateboxjs.js",
-  "module": "dist/slateboxjs.es.js",
+  "module": "dist/slateboxjs.mjs",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/slateboxjs.es.js",
-      "require": "./dist/slateboxjs.js",
-      "types": "./dist/index.d.ts"
-    }
+      "types": "./dist/index.d.ts",
+      "import": "./dist/slateboxjs.mjs",
+      "require": "./dist/slateboxjs.js"
+    },
+    "./style.css": "./dist/slateboxjs.css",
+    "./dist/slateboxjs.css": "./dist/slateboxjs.css"
   },
   "files": [
     "dist"
@@ -18,10 +24,17 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && npm run build:types",
-    "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist && node scripts/clean-declarations.mjs",
     "preview": "vite preview",
     "serve": "vite preview",
-    "test": "vitest"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "npx playwright test --project=chromium",
+    "test:app": "npx playwright test --config playwright.app.config.ts",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:all": "npx playwright test",
+    "test:all": "vitest run && npx playwright test --project=chromium",
+    "verify:package": "node scripts/verify-package.mjs"
   },
   "keywords": [
     "diagramming",
@@ -30,21 +43,37 @@
     "nodes",
     "visualization"
   ],
-  "author": "SlateboxJS Team",
+  "author": "Tim Heckel <tim@slatebox.com>",
   "license": "MIT",
+  "peerDependencies": {
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.0"
+  },
+  "peerDependenciesMeta": {
+    "y-websocket": {
+      "optional": true
+    },
+    "yjs": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/node": "^20.10.5",
+    "jsdom": "^26.1.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.10",
-    "vitest": "^1.1.0"
+    "vitest": "^1.1.0",
+    "ws": "^8.21.0",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.31"
   },
   "dependencies": {
     "@svgdotjs/svg.draggable.js": "^3.0.6",
     "@svgdotjs/svg.js": "^3.2.4",
     "@svgdotjs/svg.panzoom.js": "^2.1.2",
     "@svgdotjs/svg.resize.js": "^2.0.5",
-    "@svgdotjs/svg.select.js": "^4.0.2",
-    "svg.connectable.js": "github:Slatebox/svg.connectable.js"
+    "@svgdotjs/svg.select.js": "^4.0.2"
   },
   "engines": {
     "node": ">=18.0.0"
