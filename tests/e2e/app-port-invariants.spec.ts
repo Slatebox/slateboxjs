@@ -3,7 +3,7 @@ import { bootstrapGuestSlate } from "./app-host.shared";
 
 const APP_URL = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 
-test("Meteor host persists collaborative text, grouping, and themes through undo and redo", async ({
+test("Meteor host persists collaborative text, grouping, themes, and primitive paths through undo and redo", async ({
   browser,
 }) => {
   test.setTimeout(180_000);
@@ -124,6 +124,23 @@ test("Meteor host persists collaborative text, grouping, and themes through undo
         (ids) => ids.every((id) => !!(window as any).slate.v2.nodes.one(id)),
         groupedNodeIds
       );
+      const primitive = await page.evaluate((id) => {
+        const node = (window as any).slate.v2.nodes.one(id);
+        return {
+          shape: node?.options.shape,
+          pathTag: node?.contentPath?.node?.tagName?.toLowerCase(),
+          wrapperTag: node?.backgroundRect?.node?.tagName?.toLowerCase(),
+          proxies: node?.svgGroup?.node?.querySelectorAll(
+            "[data-resize-proxy]"
+          ).length,
+        };
+      }, groupedNodeIds[1]);
+      expect(primitive).toEqual({
+        shape: "rectangle",
+        pathTag: "path",
+        wrapperTag: "svg",
+        proxies: 1,
+      });
     }
 
     await a.evaluate(() => {
