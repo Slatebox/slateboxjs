@@ -3,7 +3,7 @@ import { bootstrapGuestSlate } from "./app-host.shared";
 
 const APP_URL = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 
-test("Meteor host persists collaborative text and grouping through undo and redo", async ({
+test("Meteor host persists collaborative text, grouping, and themes through undo and redo", async ({
   browser,
 }) => {
   test.setTimeout(180_000);
