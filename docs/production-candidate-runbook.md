@@ -14,6 +14,16 @@ From `~/Projects/node/app.slatebox.com` with the sibling library at
 npm run test:port-container
 ```
 
+The Slatebox cluster nodes are `linux/amd64`. Before promotion, repeat the same
+gate against that target architecture (Docker Desktop may use emulation on an
+ARM development host):
+
+```sh
+SLATEBOX_PORT_PLATFORM=linux/amd64 \
+SLATEBOX_PORT_IMAGE=slatebox-port:meteor-3.5-amd64 \
+npm run test:port-container
+```
+
 The gate builds and packs the library, creates a disposable app context with a
 clean npm 11 lock, builds the production Dockerfile, and verifies:
 
@@ -26,8 +36,9 @@ clean npm 11 lock, builds the production Dockerfile, and verifies:
 
 The settings JSON is read without printing it. Override paths or image names
 with `SLATEBOX_LIBRARY_DIR`, `SLATEBOX_APP_SETTINGS`,
-`SLATEBOX_PORT_IMAGE`, or `SLATEBOX_MONGO_IMAGE`. Use `--build-only` when a
-runtime smoke is intentionally out of scope.
+`SLATEBOX_PORT_IMAGE`, `SLATEBOX_PORT_PLATFORM`, or
+`SLATEBOX_MONGO_IMAGE`. Use `--build-only` when a runtime smoke is
+intentionally out of scope.
 
 ## Promotion order
 
@@ -65,6 +76,21 @@ kubectl get deployment slatebox-prod -o wide
 
 Do not treat image push or `kubectl apply` alone as success. The rollout and
 product smoke must both pass.
+
+## Pre-promotion cluster baseline
+
+Read-only verification on 2026-07-14 through the local `sb-k3s` context found:
+
+- production at deployment revision 82, image
+  `timheckel/slatebox-prod:1.2.6`, with 4/4 replicas ready;
+- test at deployment revision 39, image `timheckel/slatebox-test:1.2.6`, with
+  1/1 replica ready; and
+- `/`, `/livez`, and `/readyz` returning HTTP 200 on both
+  `app.slatebox.com` and `test.slatebox.com`.
+
+This is the known-good pre-promotion baseline, not a permanent rollback target.
+Re-read rollout history immediately before deployment so a newer release is
+never rolled back accidentally.
 
 ## Rollback
 

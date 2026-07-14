@@ -234,7 +234,7 @@ export class Slate {
    *
    * @example
    * ```ts
-   * import { Slate } from 'slateboxjs-v2';
+   * import { Slate } from 'slateboxjs';
    * const slate = new Slate('#canvas', {
    *   viewPort: { originalWidth: 1200, originalHeight: 800 },
    *   panZoom: { enabled: true }
