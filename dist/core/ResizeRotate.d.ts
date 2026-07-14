@@ -1,5 +1,3 @@
-import "@svgdotjs/svg.select.js";
-import "@svgdotjs/svg.resize.js";
 import type { Node } from "./Node";
 /**
  * Compute the L-bracket polyline points for one svg.select.js resize handle.

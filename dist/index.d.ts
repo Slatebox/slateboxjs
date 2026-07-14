@@ -1,10 +1,3 @@
-import '@svgdotjs/svg.draggable.js';
-import '@svgdotjs/svg.panzoom.js';
-import '@svgdotjs/svg.select.js';
-import '@svgdotjs/svg.select.js/src/svg.select.css';
-import '@svgdotjs/svg.resize.js';
-import './vendor/svg-connectable/svg.connectable.js';
-import './styles/slateboxjs.css';
 import { Slate } from './core/Slate';
 import { Node } from './core/Node';
 import { Invoker } from './core/Invoker';
@@ -58,7 +51,7 @@ export type { FilterDef } from './core/Filters';
  *
  * @example
  * ```ts
- * import SlateboxJS from 'slateboxjs-v2'
+ * import SlateboxJS from 'slateboxjs'
  *
  * const slate = SlateboxJS('#container', {
  *   viewPort: { originalWidth: 800, originalHeight: 600 },

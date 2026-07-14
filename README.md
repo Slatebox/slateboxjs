@@ -1,6 +1,6 @@
-# SlateboxJS v2
+# SlateboxJS
 
-A modern, ground-up rewrite of a diagramming library built with svg.js and Vite. SlateboxJS v2 provides a powerful, flexible platform for creating interactive diagrams with draggable nodes, pan/zoom functionality, and advanced node manipulation capabilities.
+SlateboxJS 3 is the modern, MIT-licensed Slatebox diagramming engine. It is a ground-up TypeScript and SVG.js rewrite with draggable nodes, an infinite pan/zoom canvas, connectors, groups, collaboration, presentation, serialization, export, and a compatibility facade for applications built against SlateboxJS 2.x.
 
 ## ✨ Features
 
@@ -21,7 +21,7 @@ A modern, ground-up rewrite of a diagramming library built with svg.js and Vite.
 ### Installation
 
 ```bash
-npm install slateboxjs-v2
+npm install slateboxjs
 ```
 
 ### Basic Usage
@@ -31,13 +31,14 @@ npm install slateboxjs-v2
 <html>
 <head>
     <title>SlateboxJS Demo</title>
-    <link rel="stylesheet" href="node_modules/slateboxjs-v2/dist/slateboxjs.css">
+    <link rel="stylesheet" href="node_modules/slateboxjs/dist/slateboxjs.css">
 </head>
 <body>
     <div id="slate-container" style="width: 100%; height: 100vh;"></div>
     
     <script type="module">
-        import SlateboxJS from 'slateboxjs-v2'
+        import SlateboxJS from 'slateboxjs'
+        import 'slateboxjs/style.css'
         
         // Create a new slate
         const slate = SlateboxJS('#slate-container', {
@@ -70,6 +71,28 @@ npm install slateboxjs-v2
 </body>
 </html>
 ```
+
+### Migrating an existing SlateboxJS 2.x application
+
+Version 3 retains the historical named `Slatebox` namespace as a migration layer. Existing code can keep its constructor and serialized-data shapes while the host moves to the modern engine:
+
+```js
+import { Slatebox } from 'slateboxjs'
+import 'slateboxjs/style.css'
+
+const slate = await new Slatebox.slate(options, events).init()
+const node = new Slatebox.node({
+  id: 'welcome',
+  xPos: 100,
+  yPos: 100,
+  text: 'Welcome!',
+})
+
+slate.nodes.add(node)
+const persisted = slate.exportJSON()
+```
+
+The facade maps the 2.x runtime namespace, constructors, event packages, `xPos`/`yPos` serialization, node relationships, collaboration calls, and commonly used utilities onto version 3. New integrations should prefer the typed `SlateboxJS`, `Slate`, and `Node` APIs. See [`docs/drop-in-contract.md`](docs/drop-in-contract.md) for the audited compatibility surface and [`docs/meteor-swap.md`](docs/meteor-swap.md) for the host migration procedure.
 
 ## 📖 API Reference
 
@@ -241,7 +264,7 @@ const snap = slate.snapshot()
 
 ### Invoker Contract
 
-SlateboxJS v2 implements a complete invoker contract for external tool integration. All `onXXXX` methods from the original requirements are supported:
+SlateboxJS 3 implements the complete host-integration invoker contract. All audited `onXXXX` methods used by the Slatebox application are supported:
 
 ```javascript
 // External tools can invoke these methods
@@ -364,7 +387,7 @@ npm run test:all
 ```bash
 # Clone the repository
 git clone [repository-url]
-cd slateboxjs-v2
+cd slateboxjs
 
 # Install dependencies
 npm install
@@ -386,7 +409,7 @@ npm test
 
 | Artifact | Format | Path |
 |---|---|---|
-| ESM bundle | ES Module | `dist/slateboxjs.es.js` |
+| ESM bundle | ES Module | `dist/slateboxjs.mjs` |
 | CJS bundle | CommonJS | `dist/slateboxjs.js` |
 | TypeScript types | `.d.ts` | `dist/index.d.ts` |
 | Styles | CSS | `dist/slateboxjs.css` |
@@ -394,7 +417,7 @@ npm test
 ### Project Structure
 
 ```
-slateboxjs-v2/
+slateboxjs/
 ├── src/
 │   ├── core/
 │   │   ├── Slate.ts              # Main slate orchestrator
@@ -531,14 +554,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - Built on top of [svg.js](https://svgjs.dev/) and its ecosystem
-- Pan/zoom powered by [svg-pan-zoom](https://github.com/bumbu/svg-pan-zoom)
+- Pan/zoom powered by [@svgdotjs/svg.panzoom.js](https://github.com/svgdotjs/svg.panzoom.js)
 - Resize/rotate using [@svgdotjs/svg.select.js](https://github.com/svgdotjs/svg.select.js) and [@svgdotjs/svg.resize.js](https://github.com/svgdotjs/svg.resize.js)
 - Inspired by the original SlateboxJS library
 - Uses [Vite](https://vitejs.dev/) for modern build tooling
 
 ## 🔗 Collaboration Setup (Collab.ts)
 
-SlateboxJS v2 supports real-time collaboration via [Yjs](https://yjs.dev/) and [y-websocket](https://github.com/yjs/y-websocket). The `Collab` module requires these peer dependencies:
+SlateboxJS 3 supports real-time collaboration via [Yjs](https://yjs.dev/) and [y-websocket](https://github.com/yjs/y-websocket). The `Collab` module requires these peer dependencies:
 
 ```bash
 npm install yjs y-websocket
@@ -568,7 +591,7 @@ The production collab server (`collab.slatebox.com`) uses HMAC/MongoDB authentic
 
 3. **Connect from your application:**
    ```ts
-   import { SlateboxJS } from 'slateboxjs-v2';
+   import { SlateboxJS } from 'slateboxjs';
    const slate = SlateboxJS('#container');
    await slate.collab.init({
      wsUrl: 'ws://localhost:1234',
@@ -590,8 +613,8 @@ npx playwright test tests/e2e/collab.spec.ts --project=chromium
 
 ## 📞 Support
 
-For questions, issues, or contributions, please visit our [GitHub repository](https://github.com/your-username/slateboxjs-v2).
+For questions, issues, or contributions, please visit the [SlateboxJS repository](https://github.com/Slatebox/slateboxjs-v2).
 
 ---
 
-**SlateboxJS v2** - Creating the future of web-based diagramming tools with advanced interaction capabilities.
+**SlateboxJS 3** — the modern diagramming engine for Slatebox and embeddable web applications.

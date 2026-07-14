@@ -1,4 +1,3 @@
-import '@svgdotjs/svg.panzoom.js';
 export interface PanZoomOptions {
     enabled?: boolean;
     panning?: boolean;

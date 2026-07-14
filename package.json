@@ -7,14 +7,16 @@
     "url": "git+https://github.com/slatebox/slateboxjs-v2.git"
   },
   "main": "dist/slateboxjs.js",
-  "module": "dist/slateboxjs.es.js",
+  "module": "dist/slateboxjs.mjs",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/slateboxjs.es.js",
-      "require": "./dist/slateboxjs.js",
-      "types": "./dist/index.d.ts"
-    }
+      "types": "./dist/index.d.ts",
+      "import": "./dist/slateboxjs.mjs",
+      "require": "./dist/slateboxjs.js"
+    },
+    "./style.css": "./dist/slateboxjs.css",
+    "./dist/slateboxjs.css": "./dist/slateboxjs.css"
   },
   "files": [
     "dist"
@@ -22,7 +24,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && npm run build:types",
-    "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist && node scripts/clean-declarations.mjs",
     "preview": "vite preview",
     "serve": "vite preview",
     "test": "vitest run",
@@ -30,7 +32,8 @@
     "test:e2e": "npx playwright test --project=chromium",
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:all": "npx playwright test",
-    "test:all": "vitest run && npx playwright test --project=chromium"
+    "test:all": "vitest run && npx playwright test --project=chromium",
+    "verify:package": "node scripts/verify-package.mjs"
   },
   "keywords": [
     "diagramming",

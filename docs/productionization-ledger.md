@@ -1,0 +1,40 @@
+# Slatebox v3 productionization ledger
+
+Updated: 2026-07-14
+
+This ledger tracks the long-running convergence of the SlateboxJS v3 library and the canonical Meteor 3.5 application. A historical checklist being green is not sufficient evidence; each row names the current artifact or command that proves the product-level requirement.
+
+## Repository roles
+
+| Surface | Canonical location | Current role | Evidence / action |
+|---|---|---|---|
+| Diagramming library | `~/Projects/node/slateboxjs-v2` | `slateboxjs@3.0.0`, modern engine plus 2.x migration facade | `package.json`, `src/index.ts`, `src/compat-facade.ts` |
+| Meteor application | `~/Projects/node/app.slatebox.com` | Canonical Meteor 3.5 product app on `meteor-3.5-changestreams` | This is the checkout containing the latest Meteor 3.5 and Miro-style group commits. Reconcile it to a reviewed remote branch before release. |
+| Older app checkout | `~/Projects/node/slatebox` | Reference/in-flight checkout, not an independent product source of truth | Compare and deliberately port or retire its uncommitted work; do not merge its whole tree blindly. |
+| Collaboration service | `~/Projects/node/collab.slatebox.com` | Authenticated Yjs/y-websocket relay | `docs/collab-migration.md` plus library and host two-client tests |
+
+## Completion matrix
+
+| Requirement | State | Authoritative evidence / remaining gate |
+|---|---|---|
+| v3 is the app's only diagramming engine | Proven locally | Canonical app depends on the v3 tarball and imports `Slatebox` from `slateboxjs`; final proof requires the reviewed app branch and deployment artifact. |
+| Canonical app chosen and reconciled | In progress | `app.slatebox.com` is designated above. Reconcile intentional changes from the older checkout and establish a remote tracking branch. |
+| Library work committed and remotely recoverable | Not proven | Local `main` is currently far ahead of `origin/main`; push/review is required. Tool caches and generated artifacts are not release work. |
+| App work committed and remotely recoverable | Not proven | Canonical app has uncommitted Canvas/group wiring and a deployment-manifest change that must be reviewed independently. |
+| Reproducible package consumer install | Proven and automated | `npm run verify:package` builds, packs, installs into a fresh temporary project, checks required files plus ESM/CJS/CSS exports, and runs strict TypeScript checking. It passed locally on 2026-07-14 and CI invokes the same command. |
+| Versioned dependency replaces local tarball | Pending release | Both app checkouts still use `file:../../../slateboxjs-v2/slateboxjs-3.0.0.tgz`. Replace only after the user-authorized publish or another reviewed immutable artifact exists. |
+| Migration and release documentation | In progress | README and CHANGELOG describe v3 and the facade. `docs/drop-in-contract.md` now points here for post-drop-in work; `docs/meteor-swap.md`, `docs/collab-migration.md`, and the historical parity/fix logs still need a final release-candidate reconciliation. |
+| Known interaction gaps triaged | In progress | `docs/parity-gaps.md`, `docs/ui-fixes.md`, and `docs/collab-bugs-loop.md` contain historical findings; convert live remaining items into an explicit accepted/fix list. |
+| Render → persist/reload → collab → undo invariant | Partially proven | Existing shared collaboration and real-app tests cover core surfaces. Produce a current matrix identifying every important mutation and the test covering all four legs. |
+| Production fixtures round-trip | Proven locally | `tests/e2e/real-fixtures.spec.ts` and `tests/fixtures/real-slates/`. Must pass in the final release SHA. |
+| Standalone and real-host collaboration | Proven historically; refresh required | Standalone Playwright relay coverage exists. Re-run the shared matrix through the canonical Meteor 3.5 app at the final app/library SHAs. |
+| Library gates | Refresh required | Required: `npm test`, `npm run build`, `npm run verify:package`, and Chromium Playwright. Record exact counts and SHAs at release candidate time. |
+| Dependency security | Production clean; dev upgrade pending | `npm audit --omit=dev` reported zero vulnerabilities on 2026-07-14. The full audit reports six development-tool advisories in the Vite/Vitest toolchain; upgrade and re-run all gates in a dedicated slice. |
+| App build and integration gates | Missing durable automation | Canonical app has no checked-in app-level Playwright suite. Establish a reproducible smoke/integration command rather than relying only on ad hoc browser sessions. |
+| Production-like deployment smoke | Pending | Run against the candidate artifact and record create/edit/connect/group/reload/two-client collaboration results plus rollback steps. |
+| npm publication | User-reserved | Do not run `npm publish` without explicit approval. |
+| Final handoff | Pending | Record package/app/collab commits, artifact versions, migration steps, deployment and rollback procedure, test output, and accepted limitations. |
+
+## Iteration rule
+
+Choose one high-risk unproven vertical slice. Reproduce it in the canonical app, fix it at the correct library/facade/app boundary, verify every applicable invariant leg, add regression coverage, run proportional gates, commit each repository independently, and update this ledger with current evidence.

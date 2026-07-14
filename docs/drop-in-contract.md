@@ -146,9 +146,9 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 - [x] `LICENSE` file (MIT) at repo root — added 2026-07-01; verified included in `npm pack` tarball
 - [x] `CONTRIBUTING.md` extracted from README — added 2026-07-01 (workflow + quality gates + conventions)
 - [x] `yjs` / `y-websocket` moved to optional `peerDependencies` (+ `peerDependenciesMeta`), kept in devDependencies for CI — done 2026-07-01; 998 unit tests + build still green
-- [ ] `npm pack` tarball installs and type-checks in a fresh project (re-verify after facade work)
-- [ ] README updated to document the v1-compat facade and migration path
-- [ ] CHANGELOG entry for the compat facade
+- [x] `npm pack` tarball installs and type-checks in a fresh project — automated by `npm run verify:package` (builds, packs, installs, verifies ESM/CJS/CSS exports, strict type-checks)
+- [x] README updated to document the v1-compat facade and migration path
+- [x] CHANGELOG entry for the compat facade
 - [ ] **DECISION (user)**: actually publishing to npm
 
 ## K. Integration proof (definition of done)
@@ -177,11 +177,7 @@ the way — most critically: collab could never load yjs in a browser
 `getTextWidth`/`createMultiLineText` had wrong signatures that would have
 broken the AI flows.
 
-**Remaining boxes are user-coordinated only:**
-1. Execute the Meteor swap per `docs/meteor-swap.md` (tarball install + smoke checklist)
-2. Collab staging check vs `~/Projects/node/collab.slatebox.com` + migration PR per `docs/collab-migration.md`
-3. `npm publish` of `slateboxjs@3.0.0` (name takeover was decided; publishing is reserved)
-4. Optional: interactive line-click e2e for `onLineMenuRequested` (implemented, guarded, but thin hit-areas make a reliable e2e finicky)
+**Current follow-through:** the local Meteor swap and real collab-server check were executed in iteration 15. Remaining release coordination is the reviewed app/collab migration, replacement of the local tarball with an immutable package, pushing/reviewing the accumulated library and app commits, and the user-reserved `npm publish` of `slateboxjs@3.0.0`. Product-level convergence is tracked in `docs/productionization-ledger.md`.
 
 | Date | Iteration notes |
 |------|-----------------|

@@ -1,5 +1,30 @@
 # Changelog
 
+## [3.0.0] — Unreleased
+
+### Added
+- Modern `SlateboxJS`, `Slate`, and `Node` APIs backed by SVG.js.
+- Audited `Slatebox.slate`, `Slatebox.node`, `Slatebox.base`, and `Slatebox.utils` compatibility facade for SlateboxJS 2.x hosts.
+- Infinite canvas, Miro-style pan/zoom, multi-selection, grouped move/rotate/lock behavior, presentation mode, connector labels and endpoint pinning.
+- Yjs/y-websocket collaboration with authenticated host initialization, awareness, echo suppression, and two-client integration coverage.
+- Production-slate fixtures and v1 → v3 → v1 serialization round-trip coverage.
+- Public stylesheet export at `slateboxjs/style.css`.
+- Fresh-consumer package verification through `npm run verify:package`.
+
+### Changed
+- Package name is `slateboxjs`; version 3 replaces the Raphael-era 2.x engine while retaining the migration facade.
+- Connector rendering, custom vector shapes, text fitting, undo/redo, collaboration replay, and app integration now use the SVG.js engine.
+- `yjs` and `y-websocket` are optional peer dependencies and remain development dependencies for integration tests.
+
+### Fixed
+- Persistence, reload, collaboration, and undo behavior across node movement, text, styles, resize, rotation, ordering, relationships, canvas state, and grouped interactions.
+- Connector geometry for rotated/custom shapes, parallel edges, arrowhead trimming, endpoint reconnection, and pinned anchors.
+- Host lifecycle leaks by exposing and exercising slate destruction on unmount.
+
+### Migration
+- Existing applications may continue using `import { Slatebox } from 'slateboxjs'`; see `docs/drop-in-contract.md` and `docs/meteor-swap.md`.
+- Publishing `slateboxjs@3.0.0` remains an explicit release action and is not performed by the build or verification scripts.
+
 ## [2.0.0] — 2025-05-31
 
 ### Added

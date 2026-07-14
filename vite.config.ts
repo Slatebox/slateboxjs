@@ -20,7 +20,7 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'SlateboxJS',
-      fileName: (format) => `slateboxjs.${format === 'es' ? 'es.js' : 'js'}`
+      fileName: (format) => `slateboxjs.${format === 'es' ? 'mjs' : 'js'}`
     },
     rollupOptions: {
       // Make sure to externalize deps that shouldn't be bundled

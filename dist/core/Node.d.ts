@@ -1,5 +1,4 @@
 import { G, Rect, Text, Circle, Ellipse } from "@svgdotjs/svg.js";
-import "@svgdotjs/svg.draggable.js";
 import { ResizeRotate, ResizeRotateOptions } from "./ResizeRotate";
 import type { Slate } from "./Slate";
 import { Connector, ConnectorOptions } from "./Connector";

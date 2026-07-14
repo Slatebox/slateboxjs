@@ -130,7 +130,7 @@ export type { FilterDef } from './core/Filters'
  *
  * @example
  * ```ts
- * import SlateboxJS from 'slateboxjs-v2'
+ * import SlateboxJS from 'slateboxjs'
  *
  * const slate = SlateboxJS('#container', {
  *   viewPort: { originalWidth: 800, originalHeight: 600 },

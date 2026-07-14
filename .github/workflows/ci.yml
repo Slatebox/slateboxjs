@@ -35,8 +35,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Verify npm pack
-        run: npm pack --dry-run
+      - name: Verify packed consumer install and types
+        run: npm run verify:package
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps

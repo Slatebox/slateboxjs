@@ -13649,4 +13649,4 @@ export {
   bl as registerFilter,
   Ha as utils
 };
-//# sourceMappingURL=slateboxjs.es.js.map
+//# sourceMappingURL=slateboxjs.mjs.map
