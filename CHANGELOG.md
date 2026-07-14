@@ -15,6 +15,7 @@
 ### Changed
 - Package name is `slateboxjs`; version 3 replaces the Raphael-era 2.x engine while retaining the migration facade.
 - Connector rendering, custom vector shapes, text fitting, undo/redo, collaboration replay, and app integration now use the SVG.js engine.
+- Rectangle, rounded-rectangle, circle, and ellipse nodes now share the SVG path rendering, styling, resize, connector-outline, persistence, collaboration, and undo pipeline used by custom shapes.
 - `yjs` and `y-websocket` are optional peer dependencies and remain development dependencies for integration tests.
 
 ### Fixed

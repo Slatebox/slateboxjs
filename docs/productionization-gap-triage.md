@@ -10,17 +10,6 @@ implemented and committed.
 
 ## Live product gaps
 
-### Default primitive nodes as SVG paths — isolated follow-up
-
-The requested direction is for rectangle, rounded rectangle, circle, and
-ellipse nodes to share the path-based rendering pipeline used by custom shapes.
-An earlier rectangle-only conversion was reverted because it broke resize,
-shape changes, connector pinning/rotation, and reload styling. Treat this as a
-deliberate subsystem migration, not a cosmetic one-line change. Acceptance must
-cover fill/border/opacity/effects, resize/rotate, connector geometry and pinned
-anchors, selection bounds, serialization, collaboration, and undo/redo before
-the native-shape fast path is removed.
-
 ### Release and deployment — required after code convergence
 
 - Review and merge the library and canonical-app draft PRs.
@@ -33,6 +22,15 @@ the native-shape fast path is removed.
 
 ## Closed findings
 
+- Default rectangle, rounded-rectangle, circle, and ellipse nodes now render
+  through the same path, visible-style, resize-proxy, and connector-outline
+  pipeline as custom shapes. The migration also makes image fills target the
+  visible path, keeps SVG-content artwork distinct from its invisible
+  background, and removes stale resize proxies during shape changes.
+  `primitive-path-invariants.spec.ts` proves all four families render and style,
+  serialize/reload, collaborate, and undo/redo; the full browser catalog covers
+  live resize/rotate, pinned and rotated connector geometry, selection, badges,
+  effects, images, opacity, borders, and production fixtures.
 - The G, P, Q, M, L, and U interaction backlogs are implemented and guarded by
   unit/browser coverage. This includes presentation, modern context toolbars,
   endpoint editing and locking, themes/color application, comments, export,

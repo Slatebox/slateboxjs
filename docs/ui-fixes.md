@@ -467,6 +467,14 @@ edits in the slatebox repo (approved, uncommitted/user-gated).
   opacity/border reload TOGETHER, each with its own e2e. Not a single-iteration change. The connector-
   outline (step 1) already delivers the visible "adaptive paths" benefit for picked path shapes;
   default-shape conversion is lower value / higher risk and should be scoped as its own project.
+- PATHS step 3 COMPLETE (current productionization branch): rectangle, rounded rectangle, circle,
+  and ellipse now use the established nested-SVG path plus resize-proxy pipeline together. The
+  migration updated visible-path image fills, primitive-aware badges, shape teardown, SVG-content
+  outline selection, and DOM assertions that previously mistook node paths for connector paths.
+  `primitive-path-invariants.spec.ts` covers all four families through render/style,
+  serialize/reload, two-client collaboration, undo, and redo. The entire Chromium catalog passes
+  (271 passed, 2 skipped), including resize/rotate, connector pin/rotation/reconnect, selection,
+  borders, opacity, effects, image fills, real fixtures, and all 16 collaboration surfaces.
 - ABSOLUTE-ANCHOR + DRAG: re-verified with a REAL mouse drag on a clean single connection — the pinned
   endpoint STAYS at the same relative point (relX 0.39 before/after) with the anchor preserved. Works.
   Could not reproduce the user's detach; awaiting exact repro (likely multi-connection or a specific
