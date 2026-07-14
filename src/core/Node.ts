@@ -495,23 +495,19 @@ export class Node {
             // Use SVG.js native viewbox method to scale content to fit
             this.nestedSvg.viewbox(bb.x, bb.y, bb.width, bb.height);
 
-            // Set preserveAspectRatio to fit the content within bounds
-            this.nestedSvg.node.setAttribute(
-              "preserveAspectRatio",
-              "xMidYMid meet"
-            );
+            // Custom artwork follows the node's dimensions, so an ordinary
+            // resize can stretch it. ResizeRotate uses Shift to preserve the
+            // node's ratio when that is what the user wants.
+            this.nestedSvg.node.setAttribute("preserveAspectRatio", "none");
 
             console.log(
-              `NODE_DEBUG: Set viewbox(${bb.x}, ${bb.y}, ${bb.width}, ${bb.height}) with preserveAspectRatio="xMidYMid meet"`
+              `NODE_DEBUG: Set viewbox(${bb.x}, ${bb.y}, ${bb.width}, ${bb.height}) with preserveAspectRatio="none"`
             );
           } else {
             console.log("NODE_DEBUG: Invalid bounds, trying default viewbox approach");
             // Fallback: set a reasonable viewbox for typical icon content
             this.nestedSvg.viewbox(0, 0, 24, 24);
-            this.nestedSvg.node.setAttribute(
-              "preserveAspectRatio",
-              "xMidYMid meet"
-            );
+            this.nestedSvg.node.setAttribute("preserveAspectRatio", "none");
           }
         }
       }, 10);
@@ -714,13 +710,11 @@ export class Node {
         .nested()
         .size(width!, height!);
 
-      // Primitive shapes must continue to occupy the complete node bounds just
-      // as their former native SVG elements did. Custom artwork retains the
-      // default aspect-ratio-preserving behavior. A circle is the exception:
-      // its resize contract keeps it square, and `meet` also protects malformed
-      // legacy data whose stored width and height differ.
+      // Shapes occupy the complete node bounds and therefore stretch during a
+      // normal resize. A circle is the exception: its resize contract keeps it
+      // square, and `meet` also protects malformed legacy dimensions.
       const shapeName = String(vectorPath || shape || "").toLowerCase();
-      if (["rectangle", "roundedrectangle", "ellipse"].includes(shapeName)) {
+      if (shapeName !== "circle") {
         nested.node.setAttribute("preserveAspectRatio", "none");
       }
 
@@ -3551,10 +3545,7 @@ export class Node {
 
               if (bb.width > 0 && bb.height > 0) {
                 previewSvg.viewbox(bb.x, bb.y, bb.width, bb.height);
-                previewSvg.node.setAttribute(
-                  "preserveAspectRatio",
-                  "xMidYMid meet"
-                );
+                previewSvg.node.setAttribute("preserveAspectRatio", "none");
               }
 
               // Apply blue color and opacity to the SVG content

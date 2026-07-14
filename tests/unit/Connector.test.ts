@@ -765,6 +765,30 @@ describe("Connector", () => {
       );
     });
 
+    it("toggles source and target arrowheads independently", () => {
+      const connector = new Connector(mockNodeA);
+      enableConnector(connector);
+      const connection = connector.connectTo(mockNodeB)!;
+
+      connector.updateConnection("nodeA->nodeB", { showParentArrow: true });
+      expect(connection.connectable.setMarker).toHaveBeenLastCalledWith(
+        "arrow",
+        "arrow",
+      );
+
+      connector.updateConnection("nodeA->nodeB", { showChildArrow: false });
+      expect(connection.connectable.setMarker).toHaveBeenLastCalledWith(
+        "arrow",
+        "null",
+      );
+
+      connector.updateConnection("nodeA->nodeB", { showParentArrow: false });
+      expect(connection.connectable.setMarker).toHaveBeenLastCalledWith(
+        "null",
+        "null",
+      );
+    });
+
     it("should return false for non-existent connection", () => {
       const connector = new Connector(mockNodeA);
       enableConnector(connector);

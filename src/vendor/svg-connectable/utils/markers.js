@@ -100,6 +100,12 @@ function createMarker(type, angle, isSource, strokeWidth, markers, color) {
 function setMarker(con, sourceMarker, targetMarker, markersContainer) {
   if (markersContainer) con.markers = markersContainer;
 
+  // Keep the marker configuration authoritative. Width changes rebuild marker
+  // elements from these fields, so stale values could otherwise bring back an
+  // arrowhead that an independent endpoint toggle had just removed.
+  con.markerSourceType = sourceMarker || "null";
+  con.markerTargetType = targetMarker || "null";
+
   // Clean up existing markers
   if (con.markerSource) {
     con.markerSource.element.remove();

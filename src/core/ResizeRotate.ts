@@ -197,6 +197,19 @@ export class ResizeRotate {
   }
 
   private addEventListeners() {
+    // Miro interaction contract: resize freely by default; hold Shift when the
+    // drag begins to preserve the current proportions. The plugin exposes its
+    // live handler in `beforeresize`, before it snapshots the starting box.
+    this.target.on("beforeresize.resizerotate", (event: any) => {
+      const handler = event.detail?.handler;
+      const pointerEvent = event.detail?.event?.detail?.event;
+      if (handler) {
+        handler.preserveAspectRatio = Boolean(
+          this.options.preserveAspectRatio || pointerEvent?.shiftKey
+        );
+      }
+    });
+
     // Hide connection handles when resize/rotate starts
     this.target.on("mousedown.resizerotate touchstart.resizerotate", (event: any) => {
       // Check if the event is on a resize/rotate handle
@@ -327,6 +340,7 @@ export class ResizeRotate {
 
   private removeEventListeners() {
     this.target.off("resize");
+    this.target.off("beforeresize.resizerotate");
     this.target.off("mousedown.resizerotate touchstart.resizerotate");
     if (this._endListener) {
       window.removeEventListener("pointerup", this._endListener);

@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.0.2] — 2026-07-14
+
+### Changed
+- Custom vector and SVG-content nodes stretch during ordinary resize; holding Shift preserves their aspect ratio, matching Miro's resize convention.
+
+### Fixed
+- Source and target arrowheads remain independently configurable when connector width or color changes rebuild their markers.
+
 ## [3.0.0] — Unreleased
 
 ### Added

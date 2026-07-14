@@ -6,7 +6,7 @@ import { test, expect } from "@playwright/test";
 // is the select/resize target and setSize() syncs the nested svg. Regression guard
 // for the "custom shapes won't resize by dragging a corner handle" bug.
 test.describe("custom shape resize via handle (§resize)", () => {
-  test("dragging a corner handle grows a diamond; proxy stays in sync", async ({
+  test("a diamond stretches freely; Shift preserves its current proportions", async ({
     page,
   }) => {
     await page.goto("/test.html");
@@ -60,8 +60,8 @@ test.describe("custom shape resize via handle (§resize)", () => {
     await page.mouse.move(rb.x, rb.y);
     await page.mouse.down();
     await page.waitForTimeout(150);
-    await page.mouse.move(rb.x + 50, rb.y + 50, { steps: 10 });
-    await page.mouse.move(rb.x + 100, rb.y + 100, { steps: 10 });
+    await page.mouse.move(rb.x + 50, rb.y + 10, { steps: 10 });
+    await page.mouse.move(rb.x + 100, rb.y + 20, { steps: 10 });
     await page.waitForTimeout(150);
     await page.mouse.up();
     await page.waitForTimeout(400);
@@ -70,7 +70,9 @@ test.describe("custom shape resize via handle (§resize)", () => {
       const d = (window as any).__s.v2.nodes.one("DIA");
       return {
         w: Math.round(d.options.width),
+        h: Math.round(d.options.height),
         proxyW: Math.round(d.resizeTarget?.width?.() || 0),
+        preserveAspectRatio: d.backgroundRect?.node?.getAttribute("preserveAspectRatio"),
         pathOk: !!document
           .querySelector('#slateCanvas [data-node-id="DIA"] path[data-shape-path]')
           ?.getAttribute("d"),
@@ -79,7 +81,31 @@ test.describe("custom shape resize via handle (§resize)", () => {
 
     // Diamond grew substantially, proxy tracks it, shape path intact.
     expect(after.w).toBeGreaterThan(180);
+    expect(after.w / after.h).toBeGreaterThan(1.35);
     expect(Math.abs(after.proxyW - after.w)).toBeLessThan(3);
+    expect(after.preserveAspectRatio).toBe("none");
     expect(after.pathOk).toBe(true);
+
+    // A second corner drag with Shift held must keep the stretched ratio.
+    const beforeShiftRatio = after.w / after.h;
+    const rbShift = await page.evaluate(() => {
+      const h = document.querySelector(".svg_select_handle_rb")!;
+      const r = h.getBoundingClientRect();
+      return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
+    });
+    await page.keyboard.down("Shift");
+    await page.mouse.move(rbShift.x, rbShift.y);
+    await page.mouse.down();
+    await page.mouse.move(rbShift.x + 80, rbShift.y + 10, { steps: 12 });
+    await page.mouse.up();
+    await page.keyboard.up("Shift");
+    await page.waitForTimeout(400);
+
+    const afterShift = await page.evaluate(() => {
+      const d = (window as any).__s.v2.nodes.one("DIA");
+      return { w: d.options.width, h: d.options.height };
+    });
+    expect(afterShift.w).toBeGreaterThan(after.w);
+    expect(afterShift.w / afterShift.h).toBeCloseTo(beforeShiftRatio, 1);
   });
 });

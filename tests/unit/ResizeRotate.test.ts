@@ -282,6 +282,10 @@ describe("ResizeRotate", () => {
         "resize",
         expect.any(Function),
       );
+      expect(node.backgroundRect.on).toHaveBeenCalledWith(
+        "beforeresize.resizerotate",
+        expect.any(Function),
+      );
     });
 
     it("disable() calls element.select(false) and element.resize(false)", () => {
@@ -302,6 +306,9 @@ describe("ResizeRotate", () => {
       rr.disable();
 
       expect(node.backgroundRect.off).toHaveBeenCalledWith("resize");
+      expect(node.backgroundRect.off).toHaveBeenCalledWith(
+        "beforeresize.resizerotate",
+      );
       expect(node.backgroundRect.off).toHaveBeenCalledWith(
         "mousedown.resizerotate touchstart.resizerotate",
       );
@@ -356,6 +363,50 @@ describe("ResizeRotate", () => {
   // 4. Event callbacks
   // -----------------------------------------------------------------------
   describe("event callback propagation", () => {
+    it("preserves proportions only when Shift starts a resize", () => {
+      const rr = new ResizeRotate(node);
+      rr.enable();
+      const beforeResize = getHandler(
+        node.backgroundRect.on,
+        "beforeresize.resizerotate",
+      );
+      const handler = { preserveAspectRatio: false };
+
+      beforeResize({
+        detail: {
+          handler,
+          event: { detail: { event: { shiftKey: true } } },
+        },
+      });
+      expect(handler.preserveAspectRatio).toBe(true);
+
+      beforeResize({
+        detail: {
+          handler,
+          event: { detail: { event: { shiftKey: false } } },
+        },
+      });
+      expect(handler.preserveAspectRatio).toBe(false);
+    });
+
+    it("keeps an explicitly constrained shape proportional without Shift", () => {
+      const rr = new ResizeRotate(node, { preserveAspectRatio: true });
+      rr.enable();
+      const beforeResize = getHandler(
+        node.backgroundRect.on,
+        "beforeresize.resizerotate",
+      );
+      const handler = { preserveAspectRatio: false };
+
+      beforeResize({
+        detail: {
+          handler,
+          event: { detail: { event: { shiftKey: false } } },
+        },
+      });
+      expect(handler.preserveAspectRatio).toBe(true);
+    });
+
     it("calls onResize when resize event fires", () => {
       const onResize = vi.fn();
       const rr = new ResizeRotate(node, { onResize });

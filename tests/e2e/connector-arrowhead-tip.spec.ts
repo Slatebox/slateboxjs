@@ -6,6 +6,51 @@ import { test, expect } from "@playwright/test";
 // thin stroke stops at the base (never poking out the head's sides near the tip).
 // So the PATH END is the arrowhead base; the TIP = end + tangent*arrowWidth.
 test.describe("arrowhead tip sits on the node edge (§U18)", () => {
+  test("source and target arrowheads toggle independently and survive width changes", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+
+    const states = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText = "width:800px;height:500px;position:fixed;top:0;left:0;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate({ container: "slateCanvas", allowCollaboration: false }, {}).init();
+      const a = s.nodes.add(new sb.node({ id: "A", xPos: 100, yPos: 180, width: 140, height: 80, text: "A" }));
+      const b = s.nodes.add(new sb.node({ id: "B", xPos: 500, yPos: 180, width: 140, height: 80, text: "B" }));
+      await new Promise((r) => setTimeout(r, 200));
+      a.v2.relationships.addAssociation(b.v2);
+      await new Promise((r) => setTimeout(r, 200));
+      const id = a.v2.relationships.associations[0].id;
+      const path = () => document.querySelector('#slateCanvas path[connectortype="default"]')!;
+      const read = () => ({
+        start: !!path().getAttribute("marker-start"),
+        end: !!path().getAttribute("marker-end"),
+      });
+
+      a.v2.relationships.applyLineProperty(id, "showChildArrow", false);
+      const neither = read();
+      a.v2.relationships.applyLineProperty(id, "showParentArrow", true);
+      const sourceOnly = read();
+      a.v2.relationships.applyLineProperty(id, "lineWidth", 12);
+      const afterWidth = read();
+      a.v2.relationships.applyLineProperty(id, "showChildArrow", true);
+      const both = read();
+      a.v2.relationships.applyLineProperty(id, "showParentArrow", false);
+      const targetOnly = read();
+      return { neither, sourceOnly, afterWidth, both, targetOnly };
+    });
+
+    expect(states.neither).toEqual({ start: false, end: false });
+    expect(states.sourceOnly).toEqual({ start: true, end: false });
+    expect(states.afterWidth).toEqual({ start: true, end: false });
+    expect(states.both).toEqual({ start: true, end: true });
+    expect(states.targetOnly).toEqual({ start: false, end: true });
+  });
+
   test("target marker base-anchored; computed tip lands on the node edge", async ({
     page,
   }) => {
