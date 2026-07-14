@@ -1,13 +1,21 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const dist = resolve(import.meta.dirname, '../dist')
+const scriptDirectory = dirname(fileURLToPath(import.meta.url))
+const dist = resolve(scriptDirectory, '../dist')
 const runtimeOnlyImport =
   /^import ['"](?:@svgdotjs\/(?:svg\.draggable\.js|svg\.panzoom\.js|svg\.select\.js(?:\/src\/svg\.select\.css)?|svg\.resize\.js)|\.\/vendor\/svg-connectable\/svg\.connectable\.js|\.\/styles\/slateboxjs\.css)['"];\r?\n/gm
 
-const declarationFiles = readdirSync(dist, { recursive: true })
-  .filter((file) => file.endsWith('.d.ts'))
-  .map((file) => resolve(dist, file))
+function findDeclarationFiles(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = resolve(directory, entry.name)
+    if (entry.isDirectory()) return findDeclarationFiles(path)
+    return path.endsWith('.d.ts') ? [path] : []
+  })
+}
+
+const declarationFiles = findDeclarationFiles(dist)
 
 let removed = 0
 for (const declarationPath of declarationFiles) {

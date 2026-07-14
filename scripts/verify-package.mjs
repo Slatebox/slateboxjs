@@ -1,9 +1,11 @@
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const projectRoot = resolve(import.meta.dirname, '..')
+const scriptDirectory = dirname(fileURLToPath(import.meta.url))
+const projectRoot = resolve(scriptDirectory, '..')
 const sandbox = mkdtempSync(join(tmpdir(), 'slateboxjs-package-smoke-'))
 
 function run(command, args, cwd = projectRoot) {
