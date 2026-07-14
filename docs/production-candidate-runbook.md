@@ -40,6 +40,25 @@ with `SLATEBOX_LIBRARY_DIR`, `SLATEBOX_APP_SETTINGS`,
 `SLATEBOX_MONGO_IMAGE`. Use `--build-only` when a runtime smoke is
 intentionally out of scope.
 
+The default `SLATEBOX_LIBRARY_SOURCE=packed` mode is only the pre-publication
+paired-candidate proof. After publication, the tracked app dependency and lock
+must be verified without substituting a local pack:
+
+```sh
+SLATEBOX_LIBRARY_SOURCE=registry \
+SLATEBOX_LIBRARY_VERSION=3.0.0 \
+SLATEBOX_LIBRARY_INTEGRITY='sha512-O/1T67Q1fbFRnuB+ykNehgjKZ8tfIxe9jv+SelxtffvPt4hFC9+ktSuu/bOivzYYYM1G2D1yyTKfW+pOVvkcxw==' \
+SLATEBOX_LIBRARY_REVISION=7655b0d1b6e723b57fa70bb29659a08bbc76ba67 \
+SLATEBOX_PORT_PLATFORM=linux/amd64 \
+SLATEBOX_PORT_IMAGE=slatebox-port:meteor-3.5-registry \
+npm run test:port-container
+```
+
+Registry mode rejects a range, `file:` dependency, non-registry lock entry,
+integrity mismatch, or abbreviated library revision. It then asserts the
+released version inside the final server bundle and records the full library
+commit in the image labels.
+
 ## Promotion order
 
 1. Review and merge the library PR at its fully green SHA.
@@ -47,7 +66,8 @@ intentionally out of scope.
    package and verify its registry version and integrity.
 3. Replace the app's sibling tarball dependency with exact version `3.0.0`,
    regenerate its lock with npm 11 and `legacy-peer-deps=false`, and rerun the
-   candidate gate.
+   candidate gate in `registry` mode using the registry integrity returned by
+   npm. A default packed-mode run is not release evidence at this stage.
 4. Resolve or formally accept the app production-dependency audit findings.
    Critical findings are a production promotion blocker unless their paths are
    proven unreachable and recorded.

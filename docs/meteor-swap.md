@@ -1,106 +1,107 @@
-# Swapping slateboxjs v3 into the Meteor app (slatebox.com)
+# SlateboxJS v3 in the canonical Meteor app
 
-Step-by-step for the real drop-in test at `~/Projects/node/slatebox`.
-**Executed 2026-07-01** — the swap is live and verified (create/drag/text-
-edit/reload persist; all 13 collab surfaces sync two-window). The slatebox
-repo has uncommitted changes (package.json dep, +yjs/y-websocket, CSS import
-in client/main.jsx) — commit them when ready.
+The canonical product app is `~/Projects/node/app.slatebox.com` on the
+`meteor-3.5-changestreams` branch. The older `~/Projects/node/slatebox`
+checkout is historical reference material, not a second migration target.
+Draft app PR [Slatebox/slatebox-app#33](https://github.com/Slatebox/slatebox-app/pull/33)
+contains the committed Meteor 3.5 integration.
 
-## Verifying collab after any library change
-
-The collab surface matrix runs in TWO environments from the same source
-(`tests/e2e/collab-surfaces.shared.ts`):
-
-```bash
-# Standalone (spins up its own relay via playwright.config.ts) — no app needed
-npx playwright test tests/e2e/collab-surfaces.spec.ts --project=chromium
-
-# Against the running Meteor app on :3000 (auto-skips if the app is down)
-npx playwright test tests/e2e/app-collab-surfaces.spec.ts --project=chromium
-```
-
-Both must print 13/13 ✓ (presence, add, move, text, color, resize, rotate,
-toBack/toFront, association add+remove, followMe zoom, delete). Rerun after
-every reinstall — remember to clear Meteor's bundler cache first (below).
-
-## Reinstall loop gotcha
-
-Meteor's bundler-cache keys on package VERSION, so reinstalling the same
-`slateboxjs-3.0.0.tgz` serves the STALE bundle. After each rebuild:
-
-```bash
-cd ~/Projects/node/slateboxjs-v2 && npm run build && npm pack
-cd ~/Projects/node/slatebox/web/app
-meteor npm install ~/Projects/node/slateboxjs-v2/slateboxjs-3.0.0.tgz
-rm -rf .meteor/local/bundler-cache      # <-- REQUIRED or you run the old code
-# restart meteor
-```
-
-## 1. Link the local build
-
-```bash
-cd ~/Projects/node/slateboxjs-v2
-npm run build && npm pack        # → slateboxjs-3.0.0.tgz
-
-cd ~/Projects/node/slatebox/web/app
-# Meteor plays poorly with symlinked node_modules; install the tarball:
-meteor npm install ~/Projects/node/slateboxjs-v2/slateboxjs-3.0.0.tgz
-```
-
-(`package.json` will show `"slateboxjs": "file:../../..../slateboxjs-3.0.0.tgz"` —
-revert to `"^2.4.0"` to roll back.)
-
-## 2. One import addition (CSS)
-
-v3 ships its stylesheet separately (v1 injected styles from JS). Add to the
-app's client entry (e.g. `web/app/client/main.jsx`):
+The app keeps the existing public import:
 
 ```js
+import { Slatebox } from 'slateboxjs'
 import 'slateboxjs/dist/slateboxjs.css'
 ```
 
-The library remains functional without it (inline attrs cover selection UI),
-but menus/handles look better with it.
+The v2-compatible facade preserves the host contract, while SlateboxJS v3 is
+the only diagramming engine behind it.
 
-## 3. What should just work (already proven by e2e in this repo)
+## Pre-publication development loop
 
-- `import { Slatebox } from 'slateboxjs'` → same namespace, same constructors
-- `new Slatebox.slate(opts, events).init()` with the app's exact opts/events
-- `new Slatebox.node({...})` + `slate.nodes.add/addRange/one/allNodes`
-- `exportJSON`/`loadJSON` in the Mongo document shape (xPos/yPos field names)
-- `Slatebox.utils.*` incl. `_transformPath`, `getBBox`, `getTextWidth` ({width,height})
-- `controller.scaleToFitAndCenter`, `canvas.hideBg`, `getOrientation`,
-  `viewPort.zoom.r`, `nodes.packageLayout/applyLayout/nodeMovePackage`
-- `onSlateChanged` persistence flow (add/delete/text/move/color/z-order/zoom/
-  canvas-move/resize), echo-suppressed for remote packages
-- Collab: `onInitCollaboration` is awaited; its `websocketUrl` +
-  `websocketParams` (HMAC) are used to connect. `collab.exe/invoke/send/
-  updateUserData` all present.
+Before `slateboxjs@3.0.0` is published, run the paired candidate from the app
+checkout with the sibling library at `../slateboxjs-v2`:
 
-## 4. Known app-side follow-ups (collab modernization decision)
-
-Per `docs/collab-migration.md`:
-- Replace `collab.send({type:'onMouseMoved'})` cursor path with
-  `slate.collab.updateCursor(x, y)`
-- Verify collab doc GC behavior against collab.slatebox.com (v3 appends
-  unique map keys rather than per-node keys)
-
-## 5. Smoke checklist (manual, in the running app)
-
-1. `meteor npm start` → open an existing slate: nodes/connectors render at
-   the right positions, background color/gradient correct
-2. Create a new slate → "Welcome!" node appears; drag it → position persists
-   after reload (saveSlateLite fired via onSlateChanged)
-3. Double-click text edit, color change, shape menu, resize — each persists
-4. Undo/redo, zoom slider, birds-eye, multi-select rectangle
-5. Two browser windows on the same slate → live sync + presence avatars
-6. PNG thumbnail generation (isTemplate/isEmbedded path) and SnapSlate previews
-7. AI node creation (uses `_transformPath`, `getBBox`, `nodeMovePackage`)
-
-## Rollback
-
-```bash
-cd ~/Projects/node/slatebox/web/app
-meteor npm install slateboxjs@2.4.0
-# remove the CSS import if added
+```sh
+cd ~/Projects/node/app.slatebox.com
+npm run test:port-container
 ```
+
+This default `packed` mode builds the library, packs it, writes a disposable
+self-contained app lock, builds the Meteor production image, starts a clean
+Mongo replica set, and runs the real-host collaboration and persistence
+invariants. It never changes the tracked app dependency or lock.
+
+For a manual Meteor development reinstall, clear the same-version bundler
+cache after repacking:
+
+```sh
+cd ~/Projects/node/slateboxjs-v2
+npm run build
+npm pack
+
+cd ~/Projects/node/app.slatebox.com/web/app
+meteor npm install ../../../slateboxjs-v2/slateboxjs-3.0.0.tgz
+rm -rf .meteor/local/bundler-cache
+```
+
+Do not commit that file dependency as the final release state.
+
+## Published-package verification
+
+After explicit publication approval, replace the app dependency with exact
+version `3.0.0`, regenerate `web/app/package-lock.json` with npm 11 and
+`legacy-peer-deps=false`, then run the gate in `registry` mode:
+
+```sh
+cd ~/Projects/node/app.slatebox.com
+SLATEBOX_LIBRARY_SOURCE=registry \
+SLATEBOX_LIBRARY_VERSION=3.0.0 \
+SLATEBOX_LIBRARY_INTEGRITY='sha512-O/1T67Q1fbFRnuB+ykNehgjKZ8tfIxe9jv+SelxtffvPt4hFC9+ktSuu/bOivzYYYM1G2D1yyTKfW+pOVvkcxw==' \
+SLATEBOX_LIBRARY_REVISION=7655b0d1b6e723b57fa70bb29659a08bbc76ba67 \
+SLATEBOX_PORT_PLATFORM=linux/amd64 \
+SLATEBOX_PORT_IMAGE=slatebox-port:meteor-3.5-registry \
+npm run test:port-container
+```
+
+Registry mode does not pack or substitute the sibling checkout. It requires:
+
+- an exact app dependency rather than a range or `file:` reference;
+- the expected `https://registry.npmjs.org/` lock resolution;
+- the exact npm SHA-512 integrity; and
+- the full library product commit for the candidate image label.
+
+The build also asserts the installed package version inside the final Meteor
+server bundle. A passing registry-mode run is therefore the proof that the app
+actually consumes the immutable release.
+
+## Collaboration verification
+
+The collaboration surface matrix runs against both the standalone relay and
+the real Meteor host:
+
+```sh
+cd ~/Projects/node/slateboxjs-v2
+npx playwright test tests/e2e/collab-surfaces.spec.ts --project=chromium
+npx playwright test tests/e2e/app-collab-surfaces.spec.ts --project=chromium
+```
+
+The current matrix covers 16 surfaces: presence, add, move, text, color,
+resize, rotate, z-order in both directions, relationship add/remove, follow
+zoom, shape, border, effect, and delete. `app-port-invariants.spec.ts` adds
+Mongo-backed text, grouping/locking, themes, primitive paths, undo, and redo.
+
+## Product smoke
+
+Before production promotion, the test deployment must prove all of the
+following on one persisted slate:
+
+1. add, edit, move, connect, group, reload, undo, and redo;
+2. the same mutations in a second browser with presence and collaboration;
+3. the same document after a fresh authenticated session;
+4. readiness and liveness endpoints; and
+5. image and presentation paths used by the canonical app.
+
+Use `docs/production-candidate-runbook.md` for the test-first deployment,
+evidence record, and Kubernetes rollback procedure. Do not publish, merge,
+push an image, or mutate the cluster without the corresponding release
+authorization.
