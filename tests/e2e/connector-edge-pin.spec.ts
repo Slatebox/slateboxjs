@@ -32,7 +32,9 @@ test.describe("connector edge-pin mode (§4)", () => {
       await new Promise((r) => setTimeout(r, 300));
 
       const srcEndpoint = () => {
-        const p = document.querySelector("#slateCanvas path[stroke]");
+        const p = document.querySelector(
+          "#slateCanvas path[stroke]:not([data-shape-path])"
+        );
         const d = p?.getAttribute("d") || "";
         const m = d.match(/M\s*([\d.-]+)\s+([\d.-]+)/);
         return m ? { x: parseFloat(m[1]), y: parseFloat(m[2]) } : null;

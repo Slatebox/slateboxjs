@@ -32,8 +32,7 @@ test.describe("node effects render + apply (§U6)", () => {
         Array.isArray(avail.dropShadow?.types) &&
         avail.dropShadow.types.includes("vect");
 
-      const el = () =>
-        document.querySelector('#slateCanvas [data-node-id="N"] rect, #slateCanvas [data-node-id="N"] path') as SVGElement;
+      const el = () => n.v2.backgroundRect.node as SVGElement;
       const filterBefore = el().getAttribute("filter");
 
       // (b) apply via the Invoker path the app uses.

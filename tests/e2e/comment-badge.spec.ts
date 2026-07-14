@@ -94,7 +94,7 @@ test.describe("comment badge (§node)", () => {
       // near 0 — i.e. pinned to the corner — regardless of size).
       const distFromRight = () => {
         const g = document.querySelector('#slateCanvas [data-node-id="A"]');
-        const shape = g!.querySelector("rect,path,circle,ellipse");
+        const shape = g!.querySelector("path[data-shape-path]");
         const sr = shape!.getBoundingClientRect();
         const b = g!.querySelector(".comment-badge circle");
         const br = b!.getBoundingClientRect();

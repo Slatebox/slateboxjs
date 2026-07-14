@@ -35,7 +35,9 @@ test.describe("line properties apply + persist (§L2/L3)", () => {
       const assocId = a.v2.relationships.associations[0].id;
 
       const pathInfo = () => {
-        const p = document.querySelector("#slateCanvas path[stroke]");
+        const p = document.querySelector(
+          "#slateCanvas path[stroke]:not([data-shape-path])"
+        );
         const d = p ? p.getAttribute("d") || "" : "";
         return { hasCubic: d.includes("C"), hasLine: /\dL|\sL/.test(d) };
       };
@@ -73,7 +75,9 @@ test.describe("line properties apply + persist (§L2/L3)", () => {
       await new Promise((r) => setTimeout(r, 600));
       const reloadedType = s2.v2.nodes.one("p1")?.relationships?.associations?.[0]?.lineType;
       const reloadedPath = (() => {
-        const p = document.querySelector("#slateCanvas2 path[stroke]");
+        const p = document.querySelector(
+          "#slateCanvas2 path[stroke]:not([data-shape-path])"
+        );
         const d = p ? p.getAttribute("d") || "" : "";
         return { hasCubic: d.includes("C"), hasLine: /\dL|\sL/.test(d) };
       })();

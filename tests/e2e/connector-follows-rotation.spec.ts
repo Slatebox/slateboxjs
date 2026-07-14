@@ -34,7 +34,9 @@ test.describe("connector follows a rotated node (§4)", () => {
       await new Promise((r) => setTimeout(r, 400));
 
       const pathD = () => {
-        const p = document.querySelector("#slateCanvas path[stroke]");
+        const p = document.querySelector(
+          "#slateCanvas path[stroke]:not([data-shape-path])"
+        );
         return p ? p.getAttribute("d") : null;
       };
       const before = pathD();

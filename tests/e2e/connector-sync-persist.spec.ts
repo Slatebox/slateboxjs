@@ -45,7 +45,7 @@ test.describe("connector sync + persist (§3/§6)", () => {
           p.data?.childId === "c1"
       );
       const connectorLinesBeforeReload = document.querySelectorAll(
-        "#slateCanvas path[stroke]"
+        "#slateCanvas path[stroke]:not([data-shape-path])"
       ).length;
 
       // …and the association must survive a serialize → load (persist/reload).
@@ -73,7 +73,7 @@ test.describe("connector sync + persist (§3/§6)", () => {
         s2.v2.nodes.one("p1")?.relationships?.associations?.length ?? 0;
       const connectorLinesAfterReload = document
         .querySelector("#slateCanvas2")!
-        .querySelectorAll("path[stroke]").length;
+        .querySelectorAll("path[stroke]:not([data-shape-path])").length;
 
       return {
         broadcastFired,

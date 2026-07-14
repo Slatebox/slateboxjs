@@ -22,7 +22,7 @@ import { Editor } from "./Editor";
 import { Links } from "./Links";
 import { Filters } from "./Filters";
 import { Menu } from "./Menu";
-import { resolveShapePath, isNativeShape } from "./ShapeRegistry";
+import { resolveShapePath } from "./ShapeRegistry";
 import { v2NodeToV1 } from "./compat";
 import { whiteOrBlack, contrastRatio } from "../utils";
 
@@ -238,14 +238,14 @@ export class Node {
   public svgGroup!: G;
   public backgroundRect!: Rect | Circle | Ellipse | G;
   /**
-   * For path (vector) shapes, backgroundRect is the nested <svg> wrapper used for
+   * For path shapes, backgroundRect is the nested <svg> wrapper used for
    * sizing/handles; the actual fill/stroke live on this inner <path>. Undefined
-   * for native rect/circle/ellipse (where backgroundRect carries fill/stroke).
+   * only for the unknown-shape compatibility rectangle and SVG-content setup.
    */
   public contentPath?: any;
   // Transparent same-size <rect> used as the svg.select/svg.resize target for
-  // custom vector shapes (the nested <svg> backgroundRect can't be resized by
-  // the plugin). Undefined for native shapes.
+  // path shapes (the nested <svg> backgroundRect can't be resized by the
+  // plugin). Undefined for the unknown-shape compatibility fallback.
   public resizeTarget?: any;
   public textElement!: Text;
   public nestedSvg?: any; // Store reference to nested SVG for SVG content
@@ -702,11 +702,21 @@ export class Node {
     // Try to resolve a named shape or vector path
     const shapeDef = resolveShapePath(shape, vectorPath);
 
-    if (shapeDef && !isNativeShape(shape || "")) {
+    if (shapeDef) {
       // Render as SVG path — use a nested SVG with viewBox for proper scaling
       const nested = this.svgGroup
         .nested()
         .size(width!, height!);
+
+      // Primitive shapes must continue to occupy the complete node bounds just
+      // as their former native SVG elements did. Custom artwork retains the
+      // default aspect-ratio-preserving behavior. A circle is the exception:
+      // its resize contract keeps it square, and `meet` also protects malformed
+      // legacy data whose stored width and height differ.
+      const shapeName = String(vectorPath || shape || "").toLowerCase();
+      if (["rectangle", "roundedrectangle", "ellipse"].includes(shapeName)) {
+        nested.node.setAttribute("preserveAspectRatio", "none");
+      }
 
       const pathEl = nested
         .path(shapeDef.path)
@@ -737,13 +747,19 @@ export class Node {
       // Tag it so the connector geometry can attach to the ACTUAL outline (not
       // the bounding box) for vector shapes.
       try {
-        pathEl.node.setAttribute("data-shape-path", "1");
+        pathEl.node.setAttribute("data-node-background-path", "1");
+        // SVG-content nodes draw their actual artwork in a second nested SVG.
+        // Do not advertise this invisible background path as their connector
+        // outline; geometry will select the artwork path instead.
+        if (!this.options.svgContent) {
+          pathEl.node.setAttribute("data-shape-path", "1");
+        }
       } catch (e) {
         /* noop */
       }
       // svg.resize.js can't resize a nested <svg> target — its point()/bbox()
       // map to the child viewBox space, so corner-drags produce ~0 delta and the
-      // shape won't resize. Give custom shapes a transparent same-size <rect> as
+      // shape won't resize. Give path shapes a transparent same-size <rect> as
       // the select/resize target; setSize() syncs the nested svg on each resize
       // frame. pointer-events:none so it never intercepts clicks/drags (the shape
       // path + svgGroup handle those); the select/resize handles are their own
@@ -760,7 +776,8 @@ export class Node {
         /* noop */
       }
     } else {
-      // Native shapes — fast path
+      // Unknown shapes retain the compatibility rectangle fallback. All
+      // registered primitives and custom shapes use the path pipeline above.
       this.contentPath = undefined;
       switch (shape) {
         case "circle": {
@@ -826,6 +843,13 @@ export class Node {
       /* noop */
     }
     this.backgroundRect = undefined as any;
+    this.contentPath = undefined;
+    try {
+      this.resizeTarget?.remove?.();
+    } catch (e) {
+      /* noop */
+    }
+    this.resizeTarget = undefined;
 
     this.options.shape = shape;
     // Sync vectorPath to THIS shape change (default it to `shape` when no explicit
@@ -1571,16 +1595,26 @@ export class Node {
     // it hugs the shape's upper-right instead.
     let cx = w - 2;
     let cy = 2;
-    const shp = this.options.shape;
-    if (this.contentPath || this.nestedSvg) {
-      // Custom vector shape (diamond/star/hexagon/… via contentPath) or svgContent
-      // node: inward along the diagonal so the badge hugs the shape.
+    const shp = String(
+      this.options.vectorPath || this.options.shape || "rectangle"
+    ).toLowerCase();
+    if (this.nestedSvg) {
+      // SVG-content artwork is not necessarily rectangular.
       cx = w * 0.72;
       cy = h * 0.28;
     } else if (shp === "circle" || shp === "ellipse") {
       // On the round edge at ~45° (top-right).
       cx = w * 0.85;
       cy = h * 0.15;
+    } else if (
+      this.contentPath &&
+      shp !== "rectangle" &&
+      shp !== "roundedrectangle"
+    ) {
+      // Custom vector shape: pull inward along the diagonal so the badge hugs
+      // the artwork rather than floating at the bounding-box corner.
+      cx = w * 0.72;
+      cy = h * 0.28;
     }
     const color =
       kind === "resolved"
@@ -1740,6 +1774,11 @@ export class Node {
    * @param height - New height
    */
   public setSize(width: number, height: number) {
+    if (this.options.shape === "circle") {
+      const diameter = Math.min(width, height);
+      width = diameter;
+      height = diameter;
+    }
     this.options.width = width;
     this.options.height = height;
 
@@ -2621,7 +2660,7 @@ export class Node {
     // (which sits ~topOffset(35)+radius(8) ≈ 43px above the node top). Without the
     // extra clearance the pill overlaps and covers that top "create relationship"
     // dot on hover.
-    const barY = topY - (R + 18 + 36);
+    const barY = topY - (R + 28 + 36);
 
     const bar = container.group().addClass("node-cog").addClass("node-toolbar");
     // Modern (Miro-style) flat white pill.

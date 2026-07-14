@@ -73,8 +73,10 @@ test.describe("node border width/color/style apply (§U11)", () => {
       const s2 = await new sb.slate({ container: "bd2", allowCollaboration: false }, {}).init();
       await s2.loadJSON(json);
       await new Promise((r) => setTimeout(r, 500));
-      const rect = document.querySelector('#bd2 [data-node-id="N"] rect') as SVGElement;
-      return { dash: rect?.getAttribute("stroke-dasharray"), w: rect?.getAttribute("stroke-width") };
+      const path = document.querySelector(
+        '#bd2 [data-node-id="N"] path[data-shape-path]'
+      ) as SVGElement;
+      return { dash: path?.getAttribute("stroke-dasharray"), w: path?.getAttribute("stroke-width") };
     });
 
     expect(res.w).toBe("6");

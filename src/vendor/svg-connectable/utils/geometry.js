@@ -176,19 +176,21 @@ function closestPointOnPathOutline(shape, targetPoint) {
     // null → their exact edge math is used, unchanged.)
     if (!pathEl && node && node.querySelectorAll) {
       let bestArea = 0;
-      node.querySelectorAll("svg path").forEach((cand) => {
-        if (typeof cand.getTotalLength !== "function") return;
-        try {
-          const b = cand.getBBox();
-          const area = b.width * b.height;
-          if (area > bestArea) {
-            bestArea = area;
-            pathEl = cand;
+      node
+        .querySelectorAll("svg path:not([data-node-background-path])")
+        .forEach((cand) => {
+          if (typeof cand.getTotalLength !== "function") return;
+          try {
+            const b = cand.getBBox();
+            const area = b.width * b.height;
+            if (area > bestArea) {
+              bestArea = area;
+              pathEl = cand;
+            }
+          } catch (e) {
+            /* noop */
           }
-        } catch (e) {
-          /* noop */
-        }
-      });
+        });
     }
     if (!pathEl || typeof pathEl.getTotalLength !== "function") return null;
     const total = pathEl.getTotalLength();

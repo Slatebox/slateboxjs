@@ -21,11 +21,14 @@ test.describe("node opacity applies + persists (§U15)", () => {
       s1.nodes.add(new sb.node({ id: "N", xPos: 200, yPos: 150, width: 180, height: 110, text: "N", backgroundColor: "#3366cc" }));
       await new Promise((r) => setTimeout(r, 300));
 
-      const rect1 = () => document.querySelector('#op1 [data-node-id="N"] rect') as SVGElement;
-      const before = rect1().getAttribute("opacity");
+      const path1 = () =>
+        document.querySelector(
+          '#op1 [data-node-id="N"] path[data-shape-path]'
+        ) as SVGElement;
+      const before = path1().getAttribute("opacity");
       s1.v2.invoker.onNodeColorChanged({ data: { id: "N", color: "#3366cc", opacity: 0.35 } });
       await new Promise((r) => setTimeout(r, 100));
-      const applied = rect1().getAttribute("opacity");
+      const applied = path1().getAttribute("opacity");
 
       const json = s1.exportJSON();
       s1.v2.destroy();
@@ -34,7 +37,11 @@ test.describe("node opacity applies + persists (§U15)", () => {
       const s2 = await new sb.slate({ container: "op2", allowCollaboration: false }, {}).init();
       await s2.loadJSON(json);
       await new Promise((r) => setTimeout(r, 500));
-      const persisted = (document.querySelector('#op2 [data-node-id="N"] rect') as SVGElement).getAttribute("opacity");
+      const persisted = (
+        document.querySelector(
+          '#op2 [data-node-id="N"] path[data-shape-path]'
+        ) as SVGElement
+      ).getAttribute("opacity");
 
       return { before, applied, persisted };
     });

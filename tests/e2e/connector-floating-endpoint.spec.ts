@@ -25,7 +25,9 @@ test.describe("connector floating endpoint + no rogue lines (§L1b/L4)", () => {
       await new Promise((r) => setTimeout(r, 400));
       n1.v2.relationships.addAssociation(n2.v2);
       await new Promise((r) => setTimeout(r, 300));
-      const pathsAfterConnect = document.querySelectorAll("#slateCanvas path[stroke]").length;
+      const pathsAfterConnect = document.querySelectorAll(
+        "#slateCanvas path[stroke]:not([data-shape-path])"
+      ).length;
 
       // Simulate the endpoint-drag-to-canvas result: rebuild as floating (this
       // is exactly what handleEndpointChange does on a phantom drop).
@@ -34,7 +36,9 @@ test.describe("connector floating endpoint + no rogue lines (§L1b/L4)", () => {
       await new Promise((r) => setTimeout(r, 200));
 
       const assocs = n1.v2.relationships.associations;
-      const pathsAfterFloat = document.querySelectorAll("#slateCanvas path[stroke]").length;
+      const pathsAfterFloat = document.querySelectorAll(
+        "#slateCanvas path[stroke]:not([data-shape-path])"
+      ).length;
 
       // Persist: serialize → load into a fresh slate
       const json = s.exportJSON();
@@ -53,7 +57,7 @@ test.describe("connector floating endpoint + no rogue lines (§L1b/L4)", () => {
       const reloadedFloat = reAssocs.find((a: any) => a.targetPoint);
       const reloadedPaths = document
         .querySelector("#slateCanvas2")!
-        .querySelectorAll("path[stroke]").length;
+        .querySelectorAll("path[stroke]:not([data-shape-path])").length;
 
       return {
         pathsAfterConnect,

@@ -22,7 +22,9 @@ test.describe("node image fill applies + clears (§U7)", () => {
       await new Promise((r) => setTimeout(r, 300));
 
       const shape = () =>
-        document.querySelector('#slateCanvas [data-node-id="N"] rect, #slateCanvas [data-node-id="N"] path') as SVGElement;
+        document.querySelector(
+          '#slateCanvas [data-node-id="N"] path[data-shape-path]'
+        ) as SVGElement;
       const fillBefore = shape().getAttribute("fill");
 
       const img =

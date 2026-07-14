@@ -57,11 +57,10 @@ export class Images {
     this.imageUrl = "";
     this.node.options.image = undefined;
 
-    // Restore solid fill
-    if (this.node.backgroundRect) {
-      this.node.backgroundRect.fill(
-        this.node.options.backgroundColor || "#f0f0f0"
-      );
+    // Restore solid fill on the visible shape, not the nested SVG wrapper.
+    const shape = this.node.contentPath ?? this.node.backgroundRect;
+    if (shape) {
+      shape.fill(this.node.options.backgroundColor || "#f0f0f0");
     }
   }
 
@@ -88,7 +87,8 @@ export class Images {
   // ─── Private ─────────────────────────────────────────────────────
 
   private render(): void {
-    if (!this.imageUrl || !this.node.backgroundRect) return;
+    const shape = this.node.contentPath ?? this.node.backgroundRect;
+    if (!this.imageUrl || !shape) return;
 
     try {
       // Remove old pattern if exists
@@ -119,7 +119,7 @@ export class Images {
         .attr("height", "100%");
 
       // Apply pattern as fill
-      this.node.backgroundRect.fill(this.patternElement);
+      shape.fill(this.patternElement);
 
       console.log(
         "IMAGES_DEBUG: Set image fill for",

@@ -132,9 +132,9 @@ export declare class Node {
     svgGroup: G;
     backgroundRect: Rect | Circle | Ellipse | G;
     /**
-     * For path (vector) shapes, backgroundRect is the nested <svg> wrapper used for
+     * For path shapes, backgroundRect is the nested <svg> wrapper used for
      * sizing/handles; the actual fill/stroke live on this inner <path>. Undefined
-     * for native rect/circle/ellipse (where backgroundRect carries fill/stroke).
+     * only for the unknown-shape compatibility rectangle and SVG-content setup.
      */
     contentPath?: any;
     resizeTarget?: any;

@@ -111,7 +111,7 @@ test.describe("Node Selection", () => {
     expect(selectedNodes).toEqual(["node1"]);
 
     // Click empty area of canvas (far from any nodes)
-    await page.locator("svg").click({ position: { x: 10, y: 10 } });
+    await page.locator("#app > svg").click({ position: { x: 10, y: 10 } });
     await page.waitForTimeout(200);
 
     // Verify selection is cleared

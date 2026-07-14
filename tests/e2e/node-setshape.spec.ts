@@ -55,8 +55,9 @@ test.describe("node shape change re-renders (§U5)", () => {
       return { start, afterPath, afterNamed };
     });
 
-    // Started as a native rounded rect.
-    expect(res.start.hasRect).toBe(true);
+    // Default primitives start in the same path pipeline as custom shapes.
+    expect(res.start.hasRect).toBe(false);
+    expect(res.start.hasPath).toBe(true);
     // Raw path → re-rendered as a path, no bare rect, text preserved.
     expect(res.afterPath.shapeIsPath).toBe(true);
     expect(res.afterPath.hasPath).toBe(true);
