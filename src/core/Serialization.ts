@@ -1,5 +1,5 @@
 /**
- * Serialization.ts - Full serialize/deserialize for SlateboxJS v2
+ * Serialization.ts - Full serialize/deserialize for SlateboxJS v3
  *
  * Produces and consumes JSON matching the v1 format:
  * {
