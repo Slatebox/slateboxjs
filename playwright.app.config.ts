@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const appUrl = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
+const useExternalApp = process.env.SLATEBOX_APP_EXTERNAL === "true";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -23,10 +24,12 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
-    command: "node scripts/start-meteor-app-test.mjs",
-    url: appUrl,
-    reuseExistingServer: process.env.CI !== "true",
-    timeout: 5 * 60 * 1000,
-  },
+  webServer: useExternalApp
+    ? undefined
+    : {
+        command: "node scripts/start-meteor-app-test.mjs",
+        url: appUrl,
+        reuseExistingServer: process.env.CI !== "true",
+        timeout: 5 * 60 * 1000,
+      },
 });
