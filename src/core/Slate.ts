@@ -632,6 +632,11 @@ export class Slate {
     // Record an undo snapshot for state-mutating changes (debounced so a drag or
     // a burst of edits collapses into one undo step). View/presence events don't
     // change document state, so they're excluded.
+    this.recordUndoFor(type);
+  }
+
+  /** Record a debounced undo checkpoint for a document-mutating package. */
+  public recordUndoFor(type: string): void {
     if (this.undoRedo && !Slate.NON_UNDOABLE.has(type)) {
       this.undoRedo.snap?.();
     }

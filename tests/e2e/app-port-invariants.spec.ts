@@ -174,6 +174,122 @@ test("Meteor host persists collaborative text and grouping through undo and redo
     await waitForGroup(null);
     expect(await a.evaluate(() => (window as any).slate.undoRedo.redo())).toBe(true);
     await waitForGroup(groupId);
+
+    // Saved app themes are host-owned mutations: Canvas applies the package
+    // through collab.invoke(), then collab.send() drives peer sync and Mongo
+    // persistence. Prove that exact boundary also records undo history and
+    // carries the full SVG shape/style, not just palette colors.
+    const themeBaseline = await a.evaluate(({ id }) => {
+      const s = (window as any).slate.v2;
+      const node = s.nodes.one(id);
+      s.undoRedo.clear();
+      s.undoRedo.forceSnapshot();
+      return {
+        vectorPath: node.options.vectorPath || null,
+        backgroundColor: node.options.backgroundColor || null,
+      };
+    }, { id: baseline.id });
+    const themePath = "M0 50L50 0L100 50L50 100Z";
+    const themeColor = "#1355aa";
+    await a.evaluate(
+      ({ path, color }) => {
+        const s = (window as any).slate.v2;
+        const pkg = {
+          type: "onSlateThemeChanged",
+          data: {
+            syncWithTheme: true,
+            theme: {
+              _id: "port-invariant-theme",
+              styles: {
+                parent: {
+                  vectorPath: path,
+                  backgroundColor: color,
+                  foregroundColor: "#ffffff",
+                  borderColor: "#ffeb3b",
+                  borderWidth: 6,
+                  borderStyle: "dashed",
+                  fontFamily: "Bangers",
+                  fontSize: 28,
+                  fontStyle: "italic",
+                  filters: { vect: "postItNote" },
+                },
+              },
+            },
+          },
+        };
+        s.collab.invoke(pkg);
+        s.collab.send(pkg);
+      },
+      { path: themePath, color: themeColor }
+    );
+
+    const waitForTheme = async (
+      expectedPath: string | null,
+      expectedColor: string | null
+    ) => {
+      for (const page of [a, b]) {
+        await page.waitForFunction(
+          ({ id, path, color }) => {
+            const options = (window as any).slate.v2.nodes.one(id)?.options;
+            return (
+              (options?.vectorPath || null) === path &&
+              (options?.backgroundColor || null) === color
+            );
+          },
+          {
+            id: baseline.id,
+            path: expectedPath,
+            color: expectedColor,
+          }
+        );
+      }
+      await a.waitForFunction(
+        async ({ id, path, color, share }) => {
+          const w = window as any;
+          const meteor = w.Meteor || w.Package?.meteor?.Meteor;
+          if (!meteor?.callAsync) return false;
+          const result = await meteor.callAsync("slates.get", { shareId: share });
+          const options = result?.slateBase?.nodes?.find(
+            (item: any) => item?.options?.id === id
+          )?.options;
+          return (
+            (options?.vectorPath || null) === path &&
+            (options?.backgroundColor || null) === color
+          );
+        },
+        {
+          id: baseline.id,
+          path: expectedPath,
+          color: expectedColor,
+          share: shareId,
+        },
+        { timeout: 30_000, polling: 500 }
+      );
+    };
+
+    await waitForTheme(themePath, themeColor);
+    for (const page of [a, b]) {
+      const rendered = await page.evaluate(({ id }) => {
+        const node = (window as any).slate.v2.nodes.one(id);
+        return {
+          path: node?.contentPath?.attr?.("d") || null,
+          filter: node?.backgroundRect?.attr?.("filter") || null,
+          fontStyle: node?.textElement?.attr?.("font-style") || null,
+        };
+      }, { id: baseline.id });
+      expect(rendered.path).toBeTruthy();
+      expect(rendered.filter).toContain("drop-shadow");
+      expect(rendered.fontStyle).toBe("italic");
+    }
+
+    await a.waitForTimeout(650);
+    expect(await a.evaluate(() => (window as any).slate.undoRedo.undo())).toBe(true);
+    await waitForTheme(
+      themeBaseline.vectorPath,
+      themeBaseline.backgroundColor
+    );
+    expect(await a.evaluate(() => (window as any).slate.undoRedo.redo())).toBe(true);
+    await waitForTheme(themePath, themeColor);
   } finally {
     await Promise.all([ctxA.close(), ctxB.close()]);
   }

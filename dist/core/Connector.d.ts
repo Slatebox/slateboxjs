@@ -25,6 +25,8 @@ export interface Connection {
     connectable: any;
     lineColor?: string;
     lineWidth?: number;
+    lineOpacity?: number;
+    lineEffect?: string;
     label?: string;
     sourceAnchor?: {
         x: number;
@@ -71,6 +73,8 @@ export declare class Connector {
     getConnections(): Connection[];
     getConnection(targetNodeId: string): Connection | null;
     updateConnection(connectionId: string, updates: Partial<Connection>): boolean;
+    /** Apply v1 line opacity/effect fields to the visible connector path. */
+    private applyLineAppearance;
     /**
      * Edge-pin mode: pin (or unpin with null) a connection's endpoint to a
      * normalized local anchor {x,y} in 0..1 on the source or target node.

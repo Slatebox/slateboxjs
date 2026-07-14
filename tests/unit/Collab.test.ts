@@ -210,6 +210,23 @@ describe("Collab", () => {
         ])
       ).not.toThrow();
     });
+
+    it("records undo checkpoints for locally-invoked host packages", () => {
+      mockSlate.recordUndoFor = vi.fn();
+      const collab = new Collab(mockSlate);
+      collab.invoke([
+        { type: "onNodeTextChanged", data: { id: "a", text: "after" } },
+        { type: "onSlateThemeChanged", data: { theme: { _id: "theme" } } },
+      ]);
+      expect(mockSlate.recordUndoFor).toHaveBeenNthCalledWith(
+        1,
+        "onNodeTextChanged"
+      );
+      expect(mockSlate.recordUndoFor).toHaveBeenNthCalledWith(
+        2,
+        "onSlateThemeChanged"
+      );
+    });
   });
 
   describe("exe", () => {

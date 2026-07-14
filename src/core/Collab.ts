@@ -223,6 +223,11 @@ export class Collab {
 
     for (const pkg of pkgs) {
       this.exe(pkg);
+      // Host-owned panes use invoke() to apply locally and send() to sync/save.
+      // Unlike engine-originated mutations, that path never called
+      // Slate.broadcast(), so it silently skipped undo history. Remote Yjs
+      // packages call exe() directly and therefore do not create local history.
+      this.slate.recordUndoFor?.(pkg.type);
     }
   }
 

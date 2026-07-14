@@ -1,5 +1,9 @@
 # Collab bug loop — canvas drag / presence / connector / rotation parity
 
+> Historical implementation log. Current open/accepted decisions are tracked in
+> `docs/productionization-gap-triage.md`; superseded backlog text below is kept as
+> evidence rather than an active release checklist.
+
 ## line/UX backlog M1-M9 (ALL DONE)
 - M1 line cog→pane [bc09134] + node cog→pane [e1416b7] (both pop from bottom)
 - M2 line-click stall FIXED [bc09134] (onLineClick hook; clearLineCog on canvas/node click)

@@ -209,6 +209,8 @@ export class Relationships {
         this.node.connector.updateConnection(assoc.id, {
           lineColor: assoc.lineColor,
           lineWidth: assoc.lineWidth,
+          lineOpacity: assoc.lineOpacity,
+          lineEffect: assoc.lineEffect,
         });
       }
     }
@@ -241,6 +243,8 @@ export class Relationships {
         this.node.connector.updateConnection(connId, {
           lineColor: assoc.lineColor,
           lineWidth: assoc.lineWidth,
+          lineOpacity: assoc.lineOpacity,
+          lineEffect: assoc.lineEffect,
         });
       }
     }
@@ -322,6 +326,8 @@ export class Relationships {
       connectionId: assoc.id,
       lineColor: assoc.lineColor,
       lineWidth: assoc.lineWidth,
+      lineOpacity: assoc.lineOpacity,
+      lineEffect: assoc.lineEffect,
       lineType: (assoc as any).lineType,
       lineCurviness: (assoc as any).lineCurviness,
       lineCurveType: (assoc as any).lineCurveType,

@@ -37,6 +37,8 @@ export interface Connection {
   connectable: any; // The svg.connectable.js object
   lineColor?: string;
   lineWidth?: number;
+  lineOpacity?: number;
+  lineEffect?: string;
   label?: string; // Optional text label centered on the edge (Miro-style).
   // Edge-pin mode: normalized local anchor {x,y} in 0..1 on source/target.
   // Omitted/undefined = auto-flow (endpoint re-solves to the nearest edge).
@@ -271,6 +273,7 @@ export class Connector {
       if (connection.lineColor && connectableObj.setLineColor) {
         connectableObj.setLineColor(connection.lineColor);
       }
+      this.applyLineAppearance(connectableObj, connection);
       // Render the edge label (if this connection carries one).
       if (connection.label && connectableObj.setLabel) {
         connectableObj.setLabel(connection.label);
@@ -463,6 +466,7 @@ export class Connector {
         if (updates.lineWidth != null && c.setStrokeWidth) {
           c.setStrokeWidth(updates.lineWidth);
         }
+        this.applyLineAppearance(c, connection);
         // Edge label (Miro-style): set/update/clear the text centered on the line.
         if ((updates as any).label != null && c.setLabel) {
           c.setLabel((updates as any).label);
@@ -515,6 +519,24 @@ export class Connector {
     } catch (error) {
       console.error("CONNECTOR_DEBUG: Failed to update connection:", error);
       return false;
+    }
+  }
+
+  /** Apply v1 line opacity/effect fields to the visible connector path. */
+  private applyLineAppearance(connectable: any, connection: Connection): void {
+    const line = connectable?.connector;
+    if (!line?.attr) return;
+    if (connection.lineOpacity != null) {
+      line.attr("stroke-opacity", connection.lineOpacity);
+    }
+    if (connection.lineEffect !== undefined) {
+      const filters: Record<string, string> = {
+        dropShadow: "drop-shadow(3px 3px 4px rgba(0,0,0,0.3))",
+        postItNote: "drop-shadow(0 4px 2px rgba(0,0,0,0.5))",
+        blur: "blur(2px)",
+        pencil: "url(#sb-pencil-filter)",
+      };
+      line.attr("filter", filters[connection.lineEffect] || null);
     }
   }
 

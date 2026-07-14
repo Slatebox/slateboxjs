@@ -5,15 +5,29 @@
  * When applied, nodes cycle through child styles based on their index.
  */
 export interface ThemeStyle {
+    image?: string;
     backgroundColor?: string;
+    nodeColor?: string;
+    opacity?: number;
+    borderOpacity?: number;
     borderColor?: string;
+    borderStyle?: "solid" | "dashed" | "dotted" | "-" | "." | "--." | "combo";
     borderWidth?: number;
     fontColor?: string;
+    foregroundColor?: string;
     fontFamily?: string;
     fontSize?: number;
+    fontStyle?: string;
+    textOpacity?: number;
     lineColor?: string;
+    lineOpacity?: number;
+    lineEffect?: string;
     lineWidth?: number;
-    opacity?: number;
+    filters?: {
+        vect?: string | null;
+        text?: string | null;
+        line?: string | null;
+    };
     vectorPath?: string;
     shape?: string;
 }

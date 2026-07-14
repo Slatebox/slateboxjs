@@ -126,6 +126,67 @@ describe("Theme", () => {
       expect(mockSlate.nodes.allNodes[2].options.backgroundColor).toBe("#0000ff");
     });
 
+    it("should apply a complete saved app style, including shape and effects", () => {
+      const node = mockSlate.nodes.allNodes[0];
+      Object.assign(node, {
+        setShape: vi.fn(),
+        applyBorder: vi.fn(),
+        applyOpacity: vi.fn(),
+        applyTextStyle: vi.fn(),
+        images: { clear: vi.fn(), set: vi.fn() },
+        filters: { removeAll: vi.fn(), apply: vi.fn() },
+        relationships: { updateAssociationsWith: vi.fn() },
+      });
+      const path = "M0 0L100 0L50 100Z";
+      testTheme.styles!.parent = {
+        vectorPath: path,
+        image: "data:image/png;base64,theme",
+        backgroundColor: "#112233",
+        foregroundColor: "#fefefe",
+        opacity: 0.7,
+        borderColor: "#445566",
+        borderWidth: 5,
+        borderStyle: "dashed",
+        borderOpacity: 0.8,
+        fontFamily: "Bangers",
+        fontSize: 24,
+        textOpacity: 0.9,
+        lineColor: "#abcdef",
+        lineWidth: 7,
+        filters: { vect: "postItNote", text: "dropShadow" },
+      };
+
+      applyTheme(mockSlate, testTheme);
+
+      expect(node.setShape).toHaveBeenCalledWith(path, path);
+      expect(node.options).toMatchObject({
+        backgroundColor: "#112233",
+        fontColor: "#fefefe",
+        opacity: 0.7,
+        borderColor: "#445566",
+        borderWidth: 5,
+        borderStyle: "dashed",
+        borderOpacity: 0.8,
+        fontFamily: "Bangers",
+        fontSize: 24,
+        textOpacity: 0.9,
+        lineColor: "#abcdef",
+        lineWidth: 7,
+      });
+      expect(node.applyBorder).toHaveBeenCalled();
+      expect(node.applyOpacity).toHaveBeenCalled();
+      expect(node.applyTextStyle).toHaveBeenCalled();
+      expect(node.images.set).toHaveBeenCalledWith(
+        "data:image/png;base64,theme"
+      );
+      expect(node.filters.apply).toHaveBeenCalledWith("postItNote", "vect");
+      expect(node.filters.apply).toHaveBeenCalledWith("dropShadow", "text");
+      expect(node.relationships.updateAssociationsWith).toHaveBeenCalledWith({
+        lineColor: "#abcdef",
+        lineWidth: 7,
+      });
+    });
+
     it("should call setColors on nodes", () => {
       applyTheme(mockSlate, testTheme);
       expect(mockSlate.nodes.allNodes[0].setColors).toHaveBeenCalledWith(

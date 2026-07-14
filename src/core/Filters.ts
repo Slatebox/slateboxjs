@@ -23,7 +23,7 @@ const filterDefs: Map<string, FilterDef> = new Map();
 
 filterDefs.set("dropShadow", {
   name: "dropShadow",
-  types: ["text", "vect", "image"],
+  types: ["text", "vect", "image", "line"],
   apply: (element: any) => {
     try {
       element.attr(
@@ -43,7 +43,7 @@ filterDefs.set("dropShadow", {
 
 filterDefs.set("blur", {
   name: "blur",
-  types: ["text", "vect", "image"],
+  types: ["text", "vect", "image", "line"],
   apply: (element: any) => {
     try {
       element.attr("filter", "blur(2px)");
@@ -101,7 +101,7 @@ filterDefs.set("outline", {
 // feGaussianBlur + feOffset + feMerge); a CSS drop-shadow reproduces it.
 filterDefs.set("postItNote", {
   name: "postItNote",
-  types: ["text", "vect", "image"],
+  types: ["text", "vect", "image", "line"],
   apply: (element: any) => {
     try {
       element.attr("filter", "drop-shadow(0 4px 2px rgba(0,0,0,0.5))");

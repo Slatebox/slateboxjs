@@ -743,6 +743,28 @@ describe("Connector", () => {
       expect(connection!.connectable.setConnectorColor).toHaveBeenCalledWith("#ff0000");
     });
 
+    it("should paint line opacity and effects on the connector path", () => {
+      const connector = new Connector(mockNodeA);
+      enableConnector(connector);
+      const connection = connector.connectTo(mockNodeB)!;
+
+      connector.updateConnection("nodeA->nodeB", {
+        lineOpacity: 0.45,
+        lineEffect: "postItNote",
+      });
+
+      expect(connection.lineOpacity).toBe(0.45);
+      expect(connection.lineEffect).toBe("postItNote");
+      expect(connection.connectable.connector.attr).toHaveBeenCalledWith(
+        "stroke-opacity",
+        0.45
+      );
+      expect(connection.connectable.connector.attr).toHaveBeenCalledWith(
+        "filter",
+        "drop-shadow(0 4px 2px rgba(0,0,0,0.5))"
+      );
+    });
+
     it("should return false for non-existent connection", () => {
       const connector = new Connector(mockNodeA);
       enableConnector(connector);

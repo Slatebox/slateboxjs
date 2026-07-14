@@ -226,6 +226,8 @@ export declare class Slate {
      * remote package is being applied so remote changes never re-broadcast.
      */
     broadcast(type: string, data?: Record<string, any>): void;
+    /** Record a debounced undo checkpoint for a document-mutating package. */
+    recordUndoFor(type: string): void;
     /** Broadcast types that change the viewport/presence, not document state. */
     private static readonly NON_UNDOABLE;
     /** Queue onSlateChanged packages until flushEmits() (v1 collab-init timing). */

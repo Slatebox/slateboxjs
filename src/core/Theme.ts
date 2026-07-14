@@ -6,15 +6,36 @@
  */
 
 export interface ThemeStyle {
+  image?: string;
   backgroundColor?: string;
+  nodeColor?: string;
+  opacity?: number;
+  borderOpacity?: number;
   borderColor?: string;
+  borderStyle?:
+    | "solid"
+    | "dashed"
+    | "dotted"
+    | "-"
+    | "."
+    | "--."
+    | "combo";
   borderWidth?: number;
   fontColor?: string;
+  foregroundColor?: string;
   fontFamily?: string;
   fontSize?: number;
+  fontStyle?: string;
+  textOpacity?: number;
   lineColor?: string;
+  lineOpacity?: number;
+  lineEffect?: string;
   lineWidth?: number;
-  opacity?: number;
+  filters?: {
+    vect?: string | null;
+    text?: string | null;
+    line?: string | null;
+  };
   vectorPath?: string;
   shape?: string;
 }
@@ -184,40 +205,88 @@ function applyStyleToNode(node: any, style: ThemeStyle): void {
   const backgroundColor = style.backgroundColor ?? s.nodeColor;
   const fontColor = style.fontColor ?? s.foregroundColor;
 
+  // A saved app theme is a complete visual style, not just a color palette.
+  // Copy every explicitly-present scalar before repainting so createBackground,
+  // setShape, and the apply* helpers all read one coherent option set.
+  const optionKeys = [
+    "opacity",
+    "borderOpacity",
+    "borderColor",
+    "borderStyle",
+    "borderWidth",
+    "fontFamily",
+    "fontSize",
+    "fontStyle",
+    "textOpacity",
+    "lineColor",
+    "lineOpacity",
+    "lineEffect",
+    "lineWidth",
+  ] as const;
+  for (const key of optionKeys) {
+    if (Object.prototype.hasOwnProperty.call(style, key)) {
+      node.options[key] = (style as any)[key];
+    }
+  }
+
   if (backgroundColor) {
     node.options.backgroundColor = backgroundColor;
-  }
-  if (style.borderColor) {
-    node.options.borderColor = style.borderColor;
-  }
-  if (style.borderWidth !== undefined) {
-    node.options.borderWidth = style.borderWidth;
   }
   if (fontColor) {
     node.options.fontColor = fontColor;
   }
-  if (style.fontFamily) {
-    node.options.fontFamily = style.fontFamily;
-  }
-  if (style.fontSize !== undefined) {
-    node.options.fontSize = style.fontSize;
-  }
-  if (style.lineColor) {
-    node.options.lineColor = style.lineColor;
-  }
-  if (style.opacity !== undefined) {
-    node.options.opacity = style.opacity;
+
+  const changesShape = !!(style.vectorPath || style.shape);
+  if (changesShape) {
+    // Filters and image patterns point at the old shape element. Tear them down
+    // before replacing it, then restore the theme's own image/effects below.
+    node.filters?.removeAll?.();
+    node.images?.clear?.();
+    const shape = style.shape || style.vectorPath!;
+    node.setShape?.(shape, style.vectorPath);
   }
 
-  // Apply colors visually
+  // Apply all paintable node properties to the (possibly new) shape.
   node.setColors?.(backgroundColor, style.borderColor);
+  node.applyBorder?.();
+  node.applyOpacity?.();
 
-  // Apply text properties
-  if (node.textElement && (fontColor || style.fontSize || style.fontFamily)) {
-    node.textElement.font({
-      fill: fontColor || node.options.fontColor,
-      size: style.fontSize || node.options.fontSize,
-      family: style.fontFamily || node.options.fontFamily,
-    });
+  if (
+    fontColor ||
+    style.fontSize !== undefined ||
+    style.fontFamily ||
+    style.textOpacity !== undefined ||
+    style.fontStyle
+  ) {
+    node.applyTextStyle?.();
+  }
+
+  if (Object.prototype.hasOwnProperty.call(style, "image")) {
+    if (style.image) node.images?.set?.(style.image);
+    else node.images?.clear?.();
+  }
+
+  if (style.filters) {
+    node.filters?.removeAll?.();
+    node.options.filters = {};
+    if (style.filters.vect) node.filters?.apply?.(style.filters.vect, "vect");
+    if (style.filters.text) node.filters?.apply?.(style.filters.text, "text");
+  }
+
+  // Existing connections inherit the themed parent node's line style. New
+  // connections already read these values from node.options.
+  const lineStyle: Record<string, any> = {};
+  for (const key of [
+    "lineColor",
+    "lineOpacity",
+    "lineEffect",
+    "lineWidth",
+  ] as const) {
+    if (Object.prototype.hasOwnProperty.call(style, key)) {
+      lineStyle[key] = style[key];
+    }
+  }
+  if (Object.keys(lineStyle).length) {
+    node.relationships?.updateAssociationsWith?.(lineStyle);
   }
 }

@@ -118,6 +118,7 @@ export interface NodeOptions {
   fontSize?: number;
   fontFamily?: string;
   fontColor?: string; // v1 compat: foregroundColor mapped via compat layer
+  fontStyle?: string;
   textOpacity?: number;
   textXAlign?: "left" | "center" | "right";
   textYAlign?: "top" | "middle" | "bottom";
@@ -130,7 +131,14 @@ export interface NodeOptions {
   backgroundColor?: string;
   borderColor?: string;
   borderWidth?: number;
-  borderStyle?: "solid" | "dashed" | "dotted";
+  borderStyle?:
+    | "solid"
+    | "dashed"
+    | "dotted"
+    | "-"
+    | "."
+    | "--."
+    | "combo";
   borderOpacity?: number;
   borderDisplayOnly?: boolean;
   opacity?: number;
@@ -858,7 +866,8 @@ export class Node {
   private createText() {
     console.log("NODE_DEBUG: createText called for", this.id);
 
-    const { text, fontSize, fontFamily, fontColor, textOpacity } = this.options;
+    const { text, fontSize, fontFamily, fontColor, fontStyle, textOpacity } =
+      this.options;
 
     this.textElement = this.svgGroup.text(this.wrapTextToWidth(text!)).font({
       family: fontFamily!,
@@ -871,6 +880,7 @@ export class Node {
     this.textElement.attr({
       'text-anchor': 'middle',
       'dominant-baseline': 'central',
+      'font-style': fontStyle || null,
     });
 
     console.log(
@@ -902,13 +912,15 @@ export class Node {
    */
   public applyTextStyle(): void {
     if (!this.textElement) return;
-    const { fontSize, fontFamily, fontColor, textOpacity } = this.options;
+    const { fontSize, fontFamily, fontColor, fontStyle, textOpacity } =
+      this.options;
     this.textElement.font({
       family: fontFamily!,
       size: fontSize!,
       fill: fontColor!,
       opacity: textOpacity!,
     });
+    this.textElement.attr("font-style", fontStyle || null);
     // Re-wrap with the new font metrics — a larger font fits fewer words per line,
     // so without this the text would overflow the node after a size change.
     if (this.options.text) {

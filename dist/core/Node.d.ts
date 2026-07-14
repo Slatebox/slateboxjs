@@ -54,6 +54,7 @@ export interface NodeOptions {
     fontSize?: number;
     fontFamily?: string;
     fontColor?: string;
+    fontStyle?: string;
     textOpacity?: number;
     textXAlign?: "left" | "center" | "right";
     textYAlign?: "top" | "middle" | "bottom";
@@ -64,7 +65,7 @@ export interface NodeOptions {
     backgroundColor?: string;
     borderColor?: string;
     borderWidth?: number;
-    borderStyle?: "solid" | "dashed" | "dotted";
+    borderStyle?: "solid" | "dashed" | "dotted" | "-" | "." | "--." | "combo";
     borderOpacity?: number;
     borderDisplayOnly?: boolean;
     opacity?: number;

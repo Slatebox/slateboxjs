@@ -1,5 +1,9 @@
 # UI-usability iteration (2026-07-05, /loop)
 
+> Historical implementation log. Current open/accepted decisions are tracked in
+> `docs/productionization-gap-triage.md`; old `TODO`, `NEXT`, and `pending commit`
+> labels below are not the current release state.
+
 Refocus on the slatebox UI as a human user; Miro as reference. Fix every broken
 surface one at a time, root-cause, verify LIVE (:3000) with Playwright, persist +
 two-window parity, e2e where possible. Library fixes in slateboxjs-v2; app pane

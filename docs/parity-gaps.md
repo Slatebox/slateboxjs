@@ -1,5 +1,9 @@
 # Legacy-vs-new parity gaps (2026-07-02)
 
+> Historical implementation log. Current open/accepted decisions are tracked in
+> `docs/productionization-gap-triage.md`; old `TODO`, `NEXT`, and `pending commit`
+> labels below are not the current release state.
+
 Mine gaps by comparing the **legacy production app** (app.slatebox.com — Raphael-era slatebox)
 against **our build** (slatebox Meteor app on :3000 using slateboxjs@3 / SVG.js). Work them
 ONE AT A TIME with the standard cycle: npm test (1063), npm run build, pack→install into the

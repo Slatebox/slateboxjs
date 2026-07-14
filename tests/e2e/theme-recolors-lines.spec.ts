@@ -53,7 +53,13 @@ test.describe("theme recolors existing connections (§theme)", () => {
         containerStyle: { backgroundColor: "#1a1a2e" },
         defaultLineColor: "#e94560",
         styles: {
-          parent: { backgroundColor: "#e94560" },
+          parent: {
+            backgroundColor: "#e94560",
+            lineColor: "#e94560",
+            lineWidth: 7,
+            lineOpacity: 0.4,
+            lineEffect: "postItNote",
+          },
           child_1: { backgroundColor: "#0f3460" },
         },
       };
@@ -61,10 +67,23 @@ test.describe("theme recolors existing connections (§theme)", () => {
       await new Promise((r) => setTimeout(r, 500));
 
       const after = lineColors();
+      const lineAppearance = [
+        ...document.querySelectorAll('#slateCanvas path[connectortype="default"]'),
+      ].map((p) => ({
+        width: p.getAttribute("stroke-width"),
+        opacity: p.getAttribute("stroke-opacity"),
+        filter: p.getAttribute("filter"),
+      }));
       const nodeColors = a.v2.slate.nodes.allNodes.map(
         (n: any) => n.options.backgroundColor
       );
-      return { before, after, nodeColors, connectorCount: after.length };
+      return {
+        before,
+        after,
+        lineAppearance,
+        nodeColors,
+        connectorCount: after.length,
+      };
     });
 
     // Three connectors (incl. the parallel edge), all recolored to the theme line
@@ -73,6 +92,14 @@ test.describe("theme recolors existing connections (§theme)", () => {
     expect(res.after.every((c) => c === "rgb(233, 69, 96)")).toBe(true);
     // And they were NOT that color before (started at the #666 default).
     expect(res.before.every((c) => c !== "rgb(233, 69, 96)")).toBe(true);
+    expect(
+      res.lineAppearance.every(
+        (line) =>
+          line.width === "7" &&
+          line.opacity === "0.4" &&
+          line.filter?.includes("drop-shadow")
+      )
+    ).toBe(true);
     // Nodes were restyled too (theme parent/child).
     expect(res.nodeColors).toContain("#e94560");
     expect(res.nodeColors).toContain("#0f3460");
