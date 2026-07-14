@@ -31,7 +31,7 @@ package flow inside the client and the app-side glue.
 | `collab.send()` writes map key = nodeId (last-write-wins per node) | unique key per package (append-style) | None — server relays either; Collaboration-collection observers unaffected |
 | Local map write echoes back through the observer → `onSlateChanged` fires → app saves | `onSlateChanged` fires directly from the user action; `collab.send` does not re-echo | None in Canvas.jsx (it already saves from `onSlateChanged`); remove any reliance on send-echo ordering |
 | `onMouseMoved` packages routed via awareness `user` field | `collab.updateCursor(x, y)` awareness cursor field + `renderCursor` | Replace `collab.send({type:'onMouseMoved'})` with `slate.collab.updateCursor(x, y)` |
-| `collab.updateUserData(data)` merges into awareness user | same concept; v3 method name `updateUserData` needs adding OR use `awareness.setLocalStateField('user', ...)` | Small shim (see below) |
+| `collab.updateUserData(data)` merges into awareness user | v3 exposes the same method and merges into awareness user data | No app change |
 | `undoRedo.snap()` implicit on every send | explicit — call `slate.undoRedo.forceSnapshot()` where snapshotting matters | Optional |
 
 ## collab.slatebox.com changes
@@ -81,10 +81,15 @@ onInitCollaboration: async (clientID) => {
 slate.collab.updateCursor(evt.clientX, evt.clientY)
 ```
 
-## Open items tracked in drop-in-contract.md §I
+## Migration completion
 
-- [ ] `collab.updateUserData(data)` parity method on v3 Collab
-- [ ] Map GC/clearing semantics verified against collab.slatebox.com
-- [ ] End-to-end test against `tests/collab-server-dev.js` with two clients
-      exchanging a package through `send()` → remote `exe()`
-- [ ] Migration PR prepared for the slatebox repo (user-coordinated)
+- [x] `collab.updateUserData(data)` parity method on v3 Collab, covered by
+      `tests/unit/Collab.test.ts`
+- [x] Map lifecycle verified against the real `collab.slatebox.com` server;
+      rooms are discarded when empty, and authoritative full-state baselines
+      now prune superseded replay packages
+- [x] Standalone two-client send → remote apply coverage in
+      `tests/e2e/collab-live.spec.ts`, plus the 16-surface mutation matrix and
+      late-join undo/redo baseline coverage
+- [x] Canonical Meteor 3.5 migration prepared as draft PR
+      [Slatebox/slatebox-app#33](https://github.com/Slatebox/slatebox-app/pull/33)
