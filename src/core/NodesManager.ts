@@ -81,7 +81,8 @@ export class NodesManager {
   /**
    * Move nodes from a collab package. Accepts BOTH shapes:
    *  - v2: `data.nodes: [{id, x, y}]`
-   *  - v1: `data.nodeOptions: [{id, xPos, yPos}]` (what drag-end broadcasts)
+   *  - v1: `data.nodeOptions: [{id, xPos, yPos, groupId, isLocked}]`
+   *    (drag, arrangement, grouping, and group-lock broadcasts)
    */
   public moveNodes(packageData: any, options: { animate?: boolean } = {}) {
     const data = packageData?.data ?? packageData ?? {};
@@ -92,20 +93,56 @@ export class NodesManager {
         ? 0
         : data.dur ?? 400;
 
-    const moves: Array<{ id: string; x: number; y: number }> = [];
+    const moves: Array<{
+      id: string
+      x: number
+      y: number
+      groupId?: string | null
+      hasGroupId: boolean
+      isLocked?: boolean
+    }> = [];
     if (Array.isArray(data.nodes)) {
-      data.nodes.forEach((n: any) => moves.push({ id: n.id, x: n.x, y: n.y }));
+      data.nodes.forEach((n: any) =>
+        moves.push({
+          id: n.id,
+          x: n.x,
+          y: n.y,
+          groupId: n.groupId,
+          hasGroupId: Object.prototype.hasOwnProperty.call(n, 'groupId'),
+          isLocked: n.isLocked,
+        })
+      );
     }
     if (Array.isArray(data.nodeOptions)) {
       data.nodeOptions.forEach((n: any) =>
-        moves.push({ id: n.id, x: n.xPos ?? n.x, y: n.yPos ?? n.y })
+        moves.push({
+          id: n.id,
+          x: n.xPos ?? n.x,
+          y: n.yPos ?? n.y,
+          groupId: n.groupId,
+          hasGroupId: Object.prototype.hasOwnProperty.call(n, 'groupId'),
+          isLocked: n.isLocked,
+        })
       );
     }
 
     moves.forEach((m) => {
       const node = this.one(m.id);
-      if (node && typeof m.x === "number" && typeof m.y === "number") {
+      if (!node) return;
+      if (typeof m.x === "number" && typeof m.y === "number") {
         node.position(m.x, m.y, undefined, undefined, duration);
+      }
+      // onNodesMove is also the established persistence/collaboration package
+      // for groups and group locks. Applying only x/y made those mutations look
+      // correct locally and in Mongo while every remote client silently dropped
+      // the grouping/lock state.
+      if (m.hasGroupId) {
+        node.options.groupId = m.groupId || undefined;
+      }
+      if (m.isLocked === true && !node.options.isLocked) {
+        node.lock();
+      } else if (m.isLocked === false && node.options.isLocked) {
+        node.unlock();
       }
     });
   }

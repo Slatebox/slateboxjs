@@ -14,7 +14,8 @@ export declare class NodesManager {
     /**
      * Move nodes from a collab package. Accepts BOTH shapes:
      *  - v2: `data.nodes: [{id, x, y}]`
-     *  - v1: `data.nodeOptions: [{id, xPos, yPos}]` (what drag-end broadcasts)
+     *  - v1: `data.nodeOptions: [{id, xPos, yPos, groupId, isLocked}]`
+     *    (drag, arrangement, grouping, and group-lock broadcasts)
      */
     moveNodes(packageData: any, options?: {
         animate?: boolean;

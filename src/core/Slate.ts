@@ -2035,7 +2035,13 @@ export class Slate {
     });
     this.enteredGroupId = null;
     this.broadcast("onNodesMove", {
-      nodeOptions: affected.map((n) => v2NodeToV1(n.options)),
+      // Use an explicit null tombstone in the collaboration package. JSON/Yjs
+      // transports may omit `undefined`, which would leave peers in the old
+      // group forever instead of clearing it.
+      nodeOptions: affected.map((n) => ({
+        ...v2NodeToV1(n.options),
+        groupId: null,
+      })),
     });
     this.selectNodes(affected);
   }

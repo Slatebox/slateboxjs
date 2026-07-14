@@ -27,6 +27,14 @@ vi.mock("../../src/core/Node", () => {
     this.position = vi.fn((x: number, y: number, _a?: any, _b?: any, dur?: number) => {
       this._positionCalls.push({ x, y, dur: dur ?? 0 });
     });
+    this.lock = vi.fn(() => {
+      this.options.isLocked = true;
+      this.options.allowDrag = false;
+    });
+    this.unlock = vi.fn(() => {
+      this.options.isLocked = false;
+      this.options.allowDrag = true;
+    });
   });
 
   // Expose a helper to reset the counter between tests
@@ -421,6 +429,39 @@ describe("NodesManager", () => {
       manager.moveNodes(pkg);
       const n1 = manager.one("n1")!;
       expect(n1._positionCalls[0].dur).toBe(350);
+    });
+
+    it("replays grouping, ungrouping, locking, and unlocking from nodeOptions", () => {
+      const n1 = manager.one("n1")! as any;
+      const n2 = manager.one("n2")! as any;
+
+      manager.moveNodes({
+        data: {
+          nodeOptions: [
+            { id: "n1", xPos: 0, yPos: 0, groupId: "grp-shared", isLocked: true },
+            { id: "n2", xPos: 100, yPos: 100, groupId: "grp-shared", isLocked: true },
+          ],
+        },
+      });
+
+      expect(n1.options.groupId).toBe("grp-shared");
+      expect(n2.options.groupId).toBe("grp-shared");
+      expect(n1.lock).toHaveBeenCalledOnce();
+      expect(n2.lock).toHaveBeenCalledOnce();
+
+      manager.moveNodes({
+        data: {
+          nodeOptions: [
+            { id: "n1", xPos: 0, yPos: 0, groupId: null, isLocked: false },
+            { id: "n2", xPos: 100, yPos: 100, groupId: null, isLocked: false },
+          ],
+        },
+      });
+
+      expect(n1.options.groupId).toBeUndefined();
+      expect(n2.options.groupId).toBeUndefined();
+      expect(n1.unlock).toHaveBeenCalledOnce();
+      expect(n2.unlock).toHaveBeenCalledOnce();
     });
 
     it("places instantly when options.animate is false", () => {
