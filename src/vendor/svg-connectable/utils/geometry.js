@@ -612,6 +612,32 @@ function computeConnectorCoordinates(con) {
     ];
   }
 
+  // Push the line forward to the source arrowhead's BASE. Its marker uses
+  // refX=arrowWidth, so the left-facing tip remains on the original node edge.
+  const sourceArrowWidth = con.markerSource && con.markerSource.size;
+  if (sourceArrowWidth && points && points.length >= 2) {
+    const span = Math.hypot(pp2[0] - pp1[0], pp2[1] - pp1[1]);
+    if (span > sourceArrowWidth * 1.5) {
+      const first = points[0];
+      const next = points[1];
+      const sx = first[first.length - 2];
+      const sy = first[first.length - 1];
+      let tx = next[1] - sx;
+      let ty = next[2] - sy;
+      const m = Math.hypot(tx, ty);
+      if (m > 0.001) {
+        tx /= m;
+        ty /= m;
+        first[first.length - 2] = sx + tx * sourceArrowWidth;
+        first[first.length - 1] = sy + ty * sourceArrowWidth;
+        if (next[0] === "C" || next[0] === "Q") {
+          next[1] += tx * sourceArrowWidth;
+          next[2] += ty * sourceArrowWidth;
+        }
+      }
+    }
+  }
+
   // Pull the drawn line back to the arrowhead's BASE at the arrowed (target) end.
   // The stroke is much thinner than the arrowhead's base but WIDER than its narrow
   // tip, so a line drawn all the way to the tip pokes out the arrowhead's sides

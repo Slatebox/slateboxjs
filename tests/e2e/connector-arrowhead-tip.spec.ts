@@ -33,9 +33,12 @@ test.describe("arrowhead tip sits on the node edge (§U18)", () => {
       // B is below A, so the target end lands on B's TOP edge. The path END is the
       // arrowhead BASE; the arrow TIP is one arrow-length further along the tangent.
       const total = p.getTotalLength();
+      const start = p.getPointAtLength(0);
+      const ahead = p.getPointAtLength(Math.min(total, 6));
       const end = p.getPointAtLength(total);
       const back = p.getPointAtLength(Math.max(0, total - 6));
       const bTop = b.v2.options.y;
+      const aBottom = a.v2.options.y + a.v2.options.height;
       const readMarker = (attr: string) => {
         const url = p.getAttribute(attr);
         if (!url) return null;
@@ -50,20 +53,26 @@ test.describe("arrowhead tip sits on the node edge (§U18)", () => {
       const tm = Math.hypot(tx, ty) || 1;
       const aw = target ? target.vbWidth : 0;
       const tipY = end.y + (ty / tm) * aw;
+      const stx = ahead.x - start.x, sty = ahead.y - start.y;
+      const stm = Math.hypot(stx, sty) || 1;
+      const source = readMarker("marker-start");
+      const sourceTipY = start.y - (sty / stm) * (source?.vbWidth || 0);
       return {
         target,
-        source: readMarker("marker-start"),
+        source,
         tipGapToEdge: Math.abs(tipY - bTop),
+        sourceTipGapToEdge: Math.abs(sourceTipY - aBottom),
       };
     });
 
     // Target arrow is base-anchored (refX=0).
     expect(res.target).not.toBeNull();
     expect(res.target!.refX).toBe(0);
-    // Source arrow tip is at x = 0 → refX 0.
+    // Source arrow is base-anchored too; geometry trims the line at its base.
     expect(res.source).not.toBeNull();
-    expect(res.source!.refX).toBe(0);
+    expect(res.source!.refX).toBe(res.source!.vbWidth);
     // The computed TIP sits on the node edge (no gap, no overshoot).
     expect(res.tipGapToEdge).toBeLessThan(5);
+    expect(res.sourceTipGapToEdge).toBeLessThan(5);
   });
 });

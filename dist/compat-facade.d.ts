@@ -20,6 +20,7 @@
 import { Slate } from "./core/Slate";
 import type { Node as V2Node } from "./core/Node";
 import * as utilsModule from "./utils";
+import { type AnimationDef } from "./core/Animations";
 /** v1-style events object passed as the 2nd constructor argument. */
 export type V1Events = Record<string, ((...args: any[]) => any) | undefined>;
 /**
@@ -221,6 +222,7 @@ declare class slate {
         availableFilters: Record<string, {
             types: string[];
         }>;
+        availableAnimations: Record<string, AnimationDef>;
     };
     /** v1: `slate.undoRedo` / `slate.birdsEye` passthroughs */
     get undoRedo(): any;

@@ -27,13 +27,10 @@ function createMarker(type, angle, isSource, strokeWidth, markers, color) {
   markerEl.attr({
     id: markerId,
     viewBox: "0 0 " + arrowWidth + " " + arrowHeight,
-    // TARGET arrow: anchor at the head BASE (x=0) so the head is drawn FORWARD of
-    // the line's endpoint. computeConnectorCoordinates pulls the target line back
-    // by the arrow length, so the head fills that gap and its TIP lands exactly on
-    // the node edge (#4) — while the thin stroke stops at the base and never pokes
-    // out the head's sides near the tip. SOURCE arrow: x=0 is its tip, so refX=0
-    // keeps the source tip on the line's start (unchanged).
-    refX: "0",
+    // Both ends are BASE-anchored. Geometry trims the drawn line by one marker
+    // length, leaving the head to fill the gap to the node edge. The thin stroke
+    // therefore never runs through the triangle or blunts its point.
+    refX: isSource ? String(arrowWidth) : "0",
     refY: arrowHeight / 2, // Center vertically
     // userSpaceOnUse (was "strokeWidth"): with strokeWidth units the rendered
     // marker is markerWidth × strokeWidth, but markerSize ALREADY scales with

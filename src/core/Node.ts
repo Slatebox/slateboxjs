@@ -562,6 +562,12 @@ export class Node {
     if (this.options.filters?.text) {
       this.filters.apply(this.options.filters.text, "text");
     }
+    if (this.options.animations?.vect) {
+      this.filters.applyAnimation(this.options.animations.vect, "vect");
+    }
+    if (this.options.animations?.text) {
+      this.filters.applyAnimation(this.options.animations.text, "text");
+    }
 
     // Make draggable if allowed
     if (this.options.allowDrag && !this.options.isLocked) {

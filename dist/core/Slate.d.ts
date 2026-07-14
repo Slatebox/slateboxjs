@@ -18,6 +18,7 @@ import { type LayoutMove } from "./Layout";
 import { Association } from "./Relationship";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
+import { type AnimationDef } from "./Animations";
 export interface SlateEvents {
     onSlateChanged?: (pkg: SlatePackage, collabUsers?: CollabUser[]) => void;
     /**
@@ -173,6 +174,7 @@ export declare class Slate {
         availableFilters: Record<string, {
             types: string[];
         }>;
+        availableAnimations: Record<string, AnimationDef>;
     };
     /**
      * Creates a new Slate — the main orchestrator for a diagramming canvas.

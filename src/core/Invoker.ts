@@ -251,6 +251,13 @@ export class Invoker {
     if (!filter) return
     const target = filter.apply === 'text' ? 'text' : 'vect'
     const optKey = target === 'text' ? 'text' : 'vect'
+    if (filter.isAnimation) {
+      node.filters.removeAnimation(target)
+      if (filter.id && filter.id !== 'None' && filter.id !== 'none') {
+        node.filters.applyAnimation(filter.id, target)
+      }
+      return
+    }
     const prev = node.options.filters?.[optKey]
     // Exclusive toggle: remove the previously-applied effect for this target.
     if (prev) node.filters.remove(prev)

@@ -33,6 +33,10 @@ export declare class Filters {
      * Remove all filters from the node.
      */
     removeAll(): void;
+    /** Apply one exclusive animation to a node element. */
+    applyAnimation(animationName: string, target: "vect" | "text"): boolean;
+    /** Clear the animation from a node element without affecting filter effects. */
+    removeAnimation(target: "vect" | "text"): void;
     /**
      * Toggle filter visibility (hide/show without removing).
      */

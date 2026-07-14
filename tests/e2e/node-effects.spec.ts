@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
 // Now slate.filters.availableFilters is keyed by name with `types`, and applying
 // an effect sets the SVG filter on the node.
 test.describe("node effects render + apply (§U6)", () => {
-  test("availableFilters has the right shape and effects apply/remove", async ({
+  test("filter and animation catalogs have the right shape and apply/remove", async ({
     page,
   }) => {
     await page.goto("/test.html");
@@ -31,6 +31,11 @@ test.describe("node effects render + apply (§U6)", () => {
         typeof avail === "object" &&
         Array.isArray(avail.dropShadow?.types) &&
         avail.dropShadow.types.includes("vect");
+      const animations = n.v2.slate.filters.availableAnimations;
+      const animationsShapeOk =
+        !Array.isArray(animations) &&
+        animations.fadeSlideUp?.display === "Fade up" &&
+        animations.fadeSlideUp.types.includes("text");
 
       const el = () => n.v2.backgroundRect.node as SVGElement;
       const filterBefore = el().getAttribute("filter");
@@ -46,7 +51,15 @@ test.describe("node effects render + apply (§U6)", () => {
       await new Promise((r) => setTimeout(r, 100));
       const filterRemoved = el().getAttribute("filter");
 
-      return { shapeOk, filterBefore, filterAfter, optAfter, filterRemoved };
+      const textEl = n.v2.textElement.node as SVGElement;
+      s.v2.invoker.onNodeEffectChanged({ data: { id: "N", filter: { apply: "text", isAnimation: true, id: "fadeSlideUp" } } });
+      const animationClass = textEl.getAttribute("class");
+      const animationOption = n.v2.options.animations?.text;
+      const animationStyle = document.querySelector("#sb-node-animation-styles")?.textContent;
+      s.v2.invoker.onNodeEffectChanged({ data: { id: "N", filter: { apply: "text", isAnimation: true, id: null } } });
+      const animationClassRemoved = textEl.getAttribute("class");
+
+      return { shapeOk, animationsShapeOk, filterBefore, filterAfter, optAfter, filterRemoved, animationClass, animationOption, animationStyle, animationClassRemoved };
     });
 
     expect(res.shapeOk).toBe(true);
@@ -54,5 +67,10 @@ test.describe("node effects render + apply (§U6)", () => {
     expect(res.filterAfter).toContain("drop-shadow");
     expect(res.optAfter).toBe("dropShadow");
     expect(res.filterRemoved).toBeFalsy(); // removed on deselect
+    expect(res.animationsShapeOk).toBe(true);
+    expect(res.animationClass).toContain("sb-animation-fadeSlideUp");
+    expect(res.animationOption).toBe("fadeSlideUp");
+    expect(res.animationStyle).toContain("@keyframes sb-fade-slide-up");
+    expect(res.animationClassRemoved).not.toContain("sb-animation-fadeSlideUp");
   });
 });

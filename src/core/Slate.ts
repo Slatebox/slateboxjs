@@ -31,6 +31,7 @@ import { Association } from "./Relationship";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
 import { getAvailableFilters } from "./Filters";
+import { getAvailableAnimations, type AnimationDef } from "./Animations";
 import { loadAllFonts as loadAllFontsForSlate } from "./FontLoader";
 
 export interface SlateEvents {
@@ -217,8 +218,12 @@ export class Slate {
    */
   public get filters(): {
     availableFilters: Record<string, { types: string[] }>;
+    availableAnimations: Record<string, AnimationDef>;
   } {
-    return { availableFilters: getAvailableFilters() };
+    return {
+      availableFilters: getAvailableFilters(),
+      availableAnimations: getAvailableAnimations(),
+    };
   }
 
   /**

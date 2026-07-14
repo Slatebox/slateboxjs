@@ -7,6 +7,9 @@ import { fileURLToPath } from 'node:url'
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(scriptDirectory, '..')
 const sandbox = mkdtempSync(join(tmpdir(), 'slateboxjs-package-smoke-'))
+const expectedPackage = JSON.parse(
+  readFileSync(join(projectRoot, 'package.json'), 'utf8')
+)
 
 function run(command, args, cwd = projectRoot) {
   execFileSync(command, args, { cwd, stdio: 'inherit' })
@@ -108,7 +111,10 @@ void saved
   const installed = JSON.parse(
     readFileSync(join(sandbox, 'node_modules/slateboxjs/package.json'), 'utf8')
   )
-  if (installed.name !== 'slateboxjs' || installed.version !== '3.0.0') {
+  if (
+    installed.name !== expectedPackage.name ||
+    installed.version !== expectedPackage.version
+  ) {
     throw new Error(
       `Installed unexpected package ${installed.name}@${installed.version}`
     )

@@ -16,6 +16,7 @@ export interface FilterDef {
 
 import type { Node } from "./Node";
 import { whiteOrBlack } from "../utils";
+import { applyAnimation, removeAnimations } from "./Animations";
 
 // ─── Built-in filter definitions ─────────────────────────────────────
 
@@ -233,6 +234,25 @@ export class Filters {
       this.remove(name);
     }
     this.activeFilters.clear();
+  }
+
+  /** Apply one exclusive animation to a node element. */
+  public applyAnimation(
+    animationName: string,
+    target: "vect" | "text"
+  ): boolean {
+    const element = target === "text" ? this.node.textElement : this.node.backgroundRect;
+    if (!applyAnimation(element, animationName)) return false;
+    if (!this.node.options.animations) this.node.options.animations = {};
+    this.node.options.animations[target] = animationName;
+    return true;
+  }
+
+  /** Clear the animation from a node element without affecting filter effects. */
+  public removeAnimation(target: "vect" | "text"): void {
+    const element = target === "text" ? this.node.textElement : this.node.backgroundRect;
+    removeAnimations(element);
+    if (this.node.options.animations) this.node.options.animations[target] = undefined;
   }
 
   /**

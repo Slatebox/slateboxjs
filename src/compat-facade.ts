@@ -23,6 +23,7 @@ import type { Node as V2Node, NodeOptions } from "./core/Node";
 import * as utilsModule from "./utils";
 import { v1NodeToV2, v1SlateToV2, v2NodeToV1 } from "./core/compat";
 import { getAvailableFilters } from "./core/Filters";
+import { getAvailableAnimations, type AnimationDef } from "./core/Animations";
 
 /** v1-style events object passed as the 2nd constructor argument. */
 export type V1Events = Record<string, ((...args: any[]) => any) | undefined>;
@@ -720,9 +721,11 @@ class slate {
    */
   public get filters(): {
     availableFilters: Record<string, { types: string[] }>;
+    availableAnimations: Record<string, AnimationDef>;
   } {
     return {
       availableFilters: getAvailableFilters(),
+      availableAnimations: getAvailableAnimations(),
     };
   }
 
