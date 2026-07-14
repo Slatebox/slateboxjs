@@ -93,6 +93,11 @@ vi.mock("../../src/core/Slate", () => {
     keyboard = { bindGlobal: vi.fn(), unbindGlobal: vi.fn() };
     undoRedo = { undo: vi.fn(), redo: vi.fn() };
     birdsEye = { enable: vi.fn(), disable: vi.fn() };
+    groupNodes = vi.fn(() => "group-1");
+    ungroupNodes = vi.fn();
+    lockNodes = vi.fn();
+    unlockNodes = vi.fn();
+    isSelectionLocked = vi.fn(() => true);
     enablePanZoom = vi.fn();
     disablePanZoom = vi.fn();
     getZoom = vi.fn(() => 1);
@@ -144,7 +149,7 @@ describe("Slatebox namespace (§A)", () => {
 
   it("base supports the v1 static plugin registry contract", () => {
     expect(() => (Slatebox.base as any).registerPlugin({})).toThrow(
-      /name and a plugin/
+      /name and a plugin/,
     );
     class MyPlugin extends (Slatebox.base as any) {}
     (Slatebox.base as any).registerPlugin({ name: "p1", plugin: MyPlugin });
@@ -158,10 +163,7 @@ describe("Slatebox namespace (§A)", () => {
 describe("new Slatebox.slate(options, events).init() (§B)", () => {
   it("resolves options.container as a bare element id (v1 semantics)", async () => {
     const el = makeContainer("slateCanvas");
-    const s = await new Slatebox.slate(
-      { container: "slateCanvas" },
-      {}
-    ).init();
+    const s = await new Slatebox.slate({ container: "slateCanvas" }, {}).init();
     expect(s.v2).toBeDefined();
     expect((s.v2 as any).element).toBe(el);
   });
@@ -185,7 +187,7 @@ describe("new Slatebox.slate(options, events).init() (§B)", () => {
 
   it("throws when the container is missing or not found", async () => {
     await expect(
-      new Slatebox.slate({ container: "nope" }).init()
+      new Slatebox.slate({ container: "nope" }).init(),
     ).rejects.toThrow(/not found/);
     await expect(new Slatebox.slate({}).init()).rejects.toThrow(/required/);
   });
@@ -195,7 +197,7 @@ describe("new Slatebox.slate(options, events).init() (§B)", () => {
     const events = { onSlateChanged: vi.fn(), isReadOnly: () => false };
     const s = await new Slatebox.slate(
       { container: "slateCanvas" },
-      events
+      events,
     ).init();
     expect((s.v2 as any).options.events).toBe(events);
   });
@@ -386,7 +388,7 @@ describe("slate.nodes facade (§C partial)", () => {
 
     await s.loadJSON('{"options":{},"nodes":[]}');
     expect((s.v2 as any).loadJSON).toHaveBeenCalledWith(
-      '{"options":{},"nodes":[]}'
+      '{"options":{},"nodes":[]}',
     );
   });
 });
@@ -474,6 +476,26 @@ describe("slate methods (§C)", () => {
     expect(Array.isArray(avail.dropShadow.types)).toBe(true);
   });
 
+  it("delegates grouping and locking without the global instance registry", async () => {
+    const s = await initSlate();
+    const a = s.nodes.add({ id: "group-a", text: "A" });
+    const b = s.nodes.add({ id: "group-b", text: "B" });
+    const engine = s.v2 as any;
+
+    expect(s.groupNodes([a, b.v2!])).toBe("group-1");
+    expect(engine.groupNodes).toHaveBeenCalledWith([a.v2, b.v2]);
+
+    s.ungroupNodes([a, b]);
+    s.lockNodes([a.v2!, b]);
+    s.unlockNodes([a, b.v2!]);
+    expect(s.isSelectionLocked([a, b])).toBe(true);
+
+    expect(engine.ungroupNodes).toHaveBeenCalledWith([a.v2, b.v2]);
+    expect(engine.lockNodes).toHaveBeenCalledWith([a.v2, b.v2]);
+    expect(engine.unlockNodes).toHaveBeenCalledWith([a.v2, b.v2]);
+    expect(engine.isSelectionLocked).toHaveBeenCalledWith([a.v2, b.v2]);
+  });
+
   it("disable()/enable() toggle interactivity flags and pan/zoom", async () => {
     const s = await initSlate();
     s.disable(null, null, true);
@@ -512,7 +534,13 @@ describe("nodes layout facade (§C)", () => {
       text: "A",
       backgroundColor: "#fff",
     });
-    const b = s.nodes.add({ id: "lb", xPos: 200, yPos: 0, width: 100, height: 50 });
+    const b = s.nodes.add({
+      id: "lb",
+      xPos: 200,
+      yPos: 0,
+      width: 100,
+      height: 50,
+    });
     a.relationships.addAssociation(b, { lineWidth: 3 });
 
     const pkg = s.nodes.packageLayout();
@@ -554,7 +582,7 @@ describe("nodes layout facade (§C)", () => {
     s.nodes.add({ id: "m1", xPos: 0, yPos: 0 });
     s.nodes.applyLayout(
       { exportNodes: { m1: { x: "5", y: "5" } } },
-      { skipCenter: true }
+      { skipCenter: true },
     );
     expect((s.v2 as any).centerContent).not.toHaveBeenCalled();
   });
@@ -608,7 +636,13 @@ describe("node sub-facades (§D)", () => {
 
   it("resize.set() applies dimensions to the live v2 node; send() re-applies", async () => {
     const s = await initSlate();
-    const n = s.nodes.add({ id: "rz", xPos: 0, yPos: 0, width: 10, height: 10 });
+    const n = s.nodes.add({
+      id: "rz",
+      xPos: 0,
+      yPos: 0,
+      width: 10,
+      height: 10,
+    });
     n.resize.set(200, 150);
     expect(n.options.width).toBe(200);
     expect(n.options.height).toBe(150);
@@ -619,12 +653,18 @@ describe("node sub-facades (§D)", () => {
 
   it("resize.send() broadcasts an onNodeResized package (v1 semantics)", async () => {
     const s = await initSlate();
-    const n = s.nodes.add({ id: "rzb", xPos: 0, yPos: 0, width: 10, height: 10 });
+    const n = s.nodes.add({
+      id: "rzb",
+      xPos: 0,
+      yPos: 0,
+      width: 10,
+      height: 10,
+    });
     n.resize.set(300, 200);
     n.resize.send();
     expect((s.v2 as any).emitSlateChange).toHaveBeenCalledWith(
       "onNodeResized",
-      expect.objectContaining({ id: "rzb", width: 300, height: 200 })
+      expect.objectContaining({ id: "rzb", width: 300, height: 200 }),
     );
     // send() consumes the pending resize — a second send is a no-op
     (s.v2 as any).emitSlateChange.mockClear();
@@ -666,7 +706,7 @@ describe("node sub-facades (§D)", () => {
     n.png(cb);
     expect((s.v2 as any).png).toHaveBeenCalledWith(
       { nodes: ["png1"], noBackground: true, asBinary: true },
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(cb).toHaveBeenCalledWith("png-blob");
   });
@@ -679,7 +719,7 @@ describe("node sub-facades (§D)", () => {
     n.png(["png2", "png3"], cb);
     expect((s.v2 as any).png).toHaveBeenCalledWith(
       { nodes: ["png2", "png3"], noBackground: true, asBinary: true },
-      expect.any(Function)
+      expect.any(Function),
     );
   });
 
@@ -690,7 +730,7 @@ describe("node sub-facades (§D)", () => {
     n.svg(cb);
     expect((s.v2 as any).svg).toHaveBeenCalledWith(
       { nodes: ["svg1"], noBackground: true },
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(cb).toHaveBeenCalledWith("<svg/>");
   });

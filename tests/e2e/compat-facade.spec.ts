@@ -74,6 +74,47 @@ test.describe("v1 compat facade (window.Slatebox)", () => {
     expect(result.exportParses).toBe(true);
   });
 
+  test("grouping and locking stay on the owned facade instance", async ({ page }) => {
+    const result = await page.evaluate(async () => {
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.width = "800px";
+      div.style.height = "600px";
+      document.body.appendChild(div);
+
+      const sb = (window as any).Slatebox;
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        {}
+      ).init();
+      const a = s.nodes.add(new sb.node({ id: "group-a", xPos: 100, yPos: 100 }));
+      const b = s.nodes.add(new sb.node({ id: "group-b", xPos: 300, yPos: 100 }));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const groupId = s.groupNodes([a, b]);
+      const grouped = [a.v2.options.groupId, b.v2.options.groupId];
+      s.lockNodes([a, b.v2]);
+      const locked = [a.v2.options.isLocked, b.v2.options.isLocked];
+      s.unlockNodes([a.v2, b]);
+      const unlocked = [a.v2.options.isLocked, b.v2.options.isLocked];
+      s.ungroupNodes([a]);
+
+      return {
+        groupId,
+        grouped,
+        locked,
+        unlocked,
+        ungrouped: [a.v2.options.groupId, b.v2.options.groupId],
+      };
+    });
+
+    expect(result.groupId).toBeTruthy();
+    expect(result.grouped).toEqual([result.groupId, result.groupId]);
+    expect(result.locked).toEqual([true, true]);
+    expect(result.unlocked).toEqual([false, false]);
+    expect(result.ungrouped).toEqual([undefined, undefined]);
+  });
+
   test("facade node options stay live after engine mutations", async ({ page }) => {
     const result = await page.evaluate(async () => {
       const div = document.createElement("div");

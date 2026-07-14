@@ -226,6 +226,22 @@ declare class slate {
     get undoRedo(): any;
     get birdsEye(): any;
     /**
+     * Grouping/locking controls used by the canonical app. These deliberately
+     * live on the facade so hosts never need to discover the active engine via
+     * the internal `window.__slateboxInstances` lifecycle registry.
+     *
+     * Event callbacks such as `onGroupSelection` carry live v2 nodes, while
+     * older integrations may pass facade node wrappers. Accept both shapes and
+     * delegate the actual mutation to the engine so persistence, collaboration,
+     * and undo continue through the normal `onNodesMove` path.
+     */
+    groupNodes(nodes?: Array<node | V2Node>): string | null;
+    ungroupNodes(nodes?: Array<node | V2Node>): void;
+    lockNodes(nodes?: Array<node | V2Node>): void;
+    unlockNodes(nodes?: Array<node | V2Node>): void;
+    isSelectionLocked(nodes?: Array<node | V2Node>): boolean;
+    private unwrapNodes;
+    /**
      * v1: `slate.disable(exemptSlate?, exemptNodes?, full?)` — freeze
      * interactions (used when the app opens read-only/embedded views).
      */

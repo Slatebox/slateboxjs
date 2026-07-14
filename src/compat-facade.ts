@@ -69,10 +69,7 @@ class node {
       set: (target, property, value, receiver) => {
         const written = Reflect.set(target, property, value, receiver);
         if (written && typeof property === "string" && this.v2) {
-          Object.assign(
-            this.v2.options,
-            v1NodeToV2({ [property]: value })
-          );
+          Object.assign(this.v2.options, v1NodeToV2({ [property]: value }));
         }
         return written;
       },
@@ -118,7 +115,7 @@ class node {
    */
   public png(
     withNodes: string[] | ((blob: Blob) => void) | undefined,
-    cb?: (blob: Blob) => void
+    cb?: (blob: Blob) => void,
   ): void {
     // v1 allows node.png(cb) with the group omitted
     const callback = typeof withNodes === "function" ? withNodes : cb;
@@ -128,14 +125,14 @@ class node {
     const nodes = group && group.length > 0 ? group : [v2Node.id];
     (v2Node.slate as any).png(
       { nodes, noBackground: true, asBinary: true },
-      (blob: any) => callback(blob)
+      (blob: any) => callback(blob),
     );
   }
 
   /** v1: `node.svg(withNodes?, cb)` — same as png but returns the SVG string. */
   public svg(
     withNodes: string[] | ((svg: string) => void) | undefined,
-    cb?: (svg: string) => void
+    cb?: (svg: string) => void,
   ): void {
     const callback = typeof withNodes === "function" ? withNodes : cb;
     const group = Array.isArray(withNodes) ? withNodes : undefined;
@@ -143,7 +140,7 @@ class node {
     if (!v2Node || !callback) return;
     const nodes = group && group.length > 0 ? group : [v2Node.id];
     (v2Node.slate as any).svg({ nodes, noBackground: true }, (svg: string) =>
-      callback(svg)
+      callback(svg),
     );
   }
 
@@ -160,8 +157,8 @@ class node {
       coords && typeof coords === "object"
         ? { x: coords.x, y: coords.y }
         : typeof coords === "number"
-        ? { x: coords, y: maybeY }
-        : null;
+          ? { x: coords, y: maybeY }
+          : null;
 
     if (!v2) {
       if (explicit) {
@@ -181,7 +178,9 @@ class node {
       const svgEl: any = (v2.slate as any)?.canvas?.node;
       const vb = svgEl?.getAttribute?.("viewBox");
       if (vb) {
-        const p = String(vb).split(/[\s,]+/).map(Number);
+        const p = String(vb)
+          .split(/[\s,]+/)
+          .map(Number);
         if (p.length === 4 && p.every((n) => !isNaN(n))) {
           const cx = p[0] + p[2] / 2;
           const cy = p[1] + p[3] / 2;
@@ -257,13 +256,13 @@ class NodeRelationshipsFacade {
   public addAssociation(child: node | V2Node, data?: Record<string, any>) {
     if (!this.owner.v2) {
       throw new Error(
-        "SLATEBOX_COMPAT: add the node to a slate before creating associations"
+        "SLATEBOX_COMPAT: add the node to a slate before creating associations",
       );
     }
     const childV2 = child instanceof node ? child.v2 : child;
     if (!childV2) {
       throw new Error(
-        "SLATEBOX_COMPAT: child node must be added to the slate first"
+        "SLATEBOX_COMPAT: child node must be added to the slate first",
       );
     }
     return (this.owner.v2 as any).relationships?.addAssociation(childV2, data);
@@ -300,7 +299,7 @@ class NodesFacade {
   private get v2Slate(): Slate {
     if (!this.owner.v2) {
       throw new Error(
-        "SLATEBOX_COMPAT: slate.init() must complete before using slate.nodes"
+        "SLATEBOX_COMPAT: slate.init() must complete before using slate.nodes",
       );
     }
     return this.owner.v2;
@@ -394,7 +393,7 @@ class NodesFacade {
    */
   public applyLayout(
     layout: Record<string, any>,
-    cbOrOpts?: (() => void) | { skipCenter?: boolean }
+    cbOrOpts?: (() => void) | { skipCenter?: boolean },
   ): void {
     const v2 = this.v2Slate;
     const exportNodes = layout?.exportNodes || {};
@@ -425,18 +424,14 @@ class NodesFacade {
       easing?: string;
       moves?: Array<{ id: string; x: number; y: number }>;
       nodes?: Array<node | V2Node>;
-    } = {}
+    } = {},
   ): Record<string, any> {
     const v2 = this.v2Slate;
-    const deltas = new Map(
-      (opts.moves || []).map((m) => [m.id, m] as const)
-    );
+    const deltas = new Map((opts.moves || []).map((m) => [m.id, m] as const));
     const targets: any[] = opts.nodes
       ? opts.nodes.map((n) => (n instanceof node ? n.v2 : n)).filter(Boolean)
       : opts.moves
-        ? (opts.moves
-            .map((m) => v2.nodes.one(m.id))
-            .filter(Boolean) as any[])
+        ? (opts.moves.map((m) => v2.nodes.one(m.id)).filter(Boolean) as any[])
         : v2.nodes.allNodes;
 
     return {
@@ -462,7 +457,7 @@ class NodesFacade {
           childId: a.childId,
           linePath: "",
           id: a.id,
-        }))
+        })),
       ),
     };
   }
@@ -590,7 +585,7 @@ class slate {
       const bySelector = document.querySelector<HTMLElement>(container);
       if (bySelector) return bySelector;
       throw new Error(
-        `SLATEBOX_COMPAT: container "${container}" not found in document`
+        `SLATEBOX_COMPAT: container "${container}" not found in document`,
       );
     }
     throw new Error("SLATEBOX_COMPAT: options.container is required");
@@ -644,11 +639,10 @@ class slate {
       v2.deferEmits?.();
       setTimeout(() => {
         const initPromise: Promise<void> =
-          v2?.collab?.init({ roomName: this.options.id }) ??
-          Promise.resolve();
+          v2?.collab?.init({ roomName: this.options.id }) ?? Promise.resolve();
         initPromise
           .catch((error: unknown) =>
-            console.warn("SLATEBOX_COMPAT: collab init failed", error)
+            console.warn("SLATEBOX_COMPAT: collab init failed", error),
           )
           .finally(() => v2?.flushEmits?.());
       }, 100);
@@ -724,7 +718,9 @@ class slate {
    * with a `types` array. The node Effects pane iterates Object.keys(...) and
    * reads `[name].types` to decide which effects to show, so the shape matters.
    */
-  public get filters(): { availableFilters: Record<string, { types: string[] }> } {
+  public get filters(): {
+    availableFilters: Record<string, { types: string[] }>;
+  } {
     return {
       availableFilters: getAvailableFilters(),
     };
@@ -742,13 +738,57 @@ class slate {
   }
 
   /**
+   * Grouping/locking controls used by the canonical app. These deliberately
+   * live on the facade so hosts never need to discover the active engine via
+   * the internal `window.__slateboxInstances` lifecycle registry.
+   *
+   * Event callbacks such as `onGroupSelection` carry live v2 nodes, while
+   * older integrations may pass facade node wrappers. Accept both shapes and
+   * delegate the actual mutation to the engine so persistence, collaboration,
+   * and undo continue through the normal `onNodesMove` path.
+   */
+  public groupNodes(nodes?: Array<node | V2Node>): string | null {
+    this.assertReady();
+    return this.v2!.groupNodes(this.unwrapNodes(nodes));
+  }
+
+  public ungroupNodes(nodes?: Array<node | V2Node>): void {
+    this.assertReady();
+    this.v2!.ungroupNodes(this.unwrapNodes(nodes));
+  }
+
+  public lockNodes(nodes?: Array<node | V2Node>): void {
+    this.assertReady();
+    this.v2!.lockNodes(this.unwrapNodes(nodes));
+  }
+
+  public unlockNodes(nodes?: Array<node | V2Node>): void {
+    this.assertReady();
+    this.v2!.unlockNodes(this.unwrapNodes(nodes));
+  }
+
+  public isSelectionLocked(nodes?: Array<node | V2Node>): boolean {
+    this.assertReady();
+    return this.v2!.isSelectionLocked(this.unwrapNodes(nodes));
+  }
+
+  private unwrapNodes(nodes?: Array<node | V2Node>): V2Node[] | undefined {
+    if (!nodes) return undefined;
+    return nodes
+      .map((candidate) =>
+        candidate instanceof node ? candidate.v2 : candidate,
+      )
+      .filter((candidate): candidate is V2Node => !!candidate);
+  }
+
+  /**
    * v1: `slate.disable(exemptSlate?, exemptNodes?, full?)` — freeze
    * interactions (used when the app opens read-only/embedded views).
    */
   public disable(
     exemptSlate?: unknown,
     exemptNodes?: unknown,
-    full?: boolean
+    full?: boolean,
   ): void {
     this.assertReady();
     const v2 = this.v2 as any;
@@ -785,7 +825,7 @@ class slate {
   /** v1: `slate.png({base64: true}, cb)` — thumbnail export */
   public png(
     opts?: Record<string, any>,
-    callback?: (result: string | Blob) => void
+    callback?: (result: string | Blob) => void,
   ): Promise<string | Blob> {
     this.assertReady();
     return this.v2!.png(opts as any, callback);
@@ -793,9 +833,7 @@ class slate {
 
   private assertReady(): void {
     if (!this.v2) {
-      throw new Error(
-        "SLATEBOX_COMPAT: slate.init() must complete before use"
-      );
+      throw new Error("SLATEBOX_COMPAT: slate.init() must complete before use");
     }
   }
 }
@@ -835,7 +873,7 @@ class base {
   }): void {
     if (!details?.name || !details?.plugin) {
       throw new Error(
-        "Plugins must provide a name and a plugin (class definition)"
+        "Plugins must provide a name and a plugin (class definition)",
       );
     }
     const root = Object.getPrototypeOf(details.plugin).name;
