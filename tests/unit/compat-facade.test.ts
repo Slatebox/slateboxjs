@@ -310,6 +310,60 @@ describe("slate.nodes facade (§C partial)", () => {
     expect(s.nodes.one("missing")).toBeUndefined();
   });
 
+  it("node options stay live in v1 shape after v2 changes", async () => {
+    const s = await initSlate();
+    const n = s.nodes.add({
+      id: "live-options",
+      xPos: 10,
+      yPos: 20,
+      width: 100,
+      height: 60,
+      foregroundColor: "#111111",
+    });
+
+    Object.assign((n.v2 as any).options, {
+      x: 45,
+      y: 55,
+      width: 180,
+      height: 90,
+      fontColor: "#ffffff",
+      vectorPath: "M0,0L10,10",
+      backgroundColor: "#336699",
+    });
+
+    expect(n.options).toMatchObject({
+      id: "live-options",
+      xPos: 45,
+      yPos: 55,
+      width: 180,
+      height: 90,
+      vectorPath: "M0,0L10,10",
+      backgroundColor: "#336699",
+      foregroundColor: "#ffffff",
+    });
+    expect({ ...n.options }).toMatchObject({ xPos: 45, yPos: 55 });
+    expect(n.slate).toBe(s);
+  });
+
+  it("writes through v1 option aliases to the attached v2 model", async () => {
+    const s = await initSlate();
+    const n = s.nodes.add({ id: "write-options", xPos: 1, yPos: 2 });
+
+    n.options.xPos = 88;
+    n.options.yPos = 99;
+    n.options.foregroundColor = "#abcdef";
+    n.options.text = "updated";
+
+    expect((n.v2 as any).options).toMatchObject({
+      x: 88,
+      y: 99,
+      fontColor: "#abcdef",
+      text: "updated",
+    });
+    expect((n.v2 as any).options.xPos).toBeUndefined();
+    expect((n.v2 as any).options.foregroundColor).toBeUndefined();
+  });
+
   it("allNodes lazily wraps nodes created outside the facade (e.g. loadJSON)", async () => {
     const s = await initSlate();
     // Simulate a node the v2 engine created directly

@@ -28,8 +28,13 @@ export type V1Events = Record<string, ((...args: any[]) => any) | undefined>;
  * object; once added, `v2` points at the live v2 Node.
  */
 declare class node {
-    /** v1-shaped options (xPos/yPos/foregroundColor/…) */
+    /**
+     * Live v1-shaped options (xPos/yPos/foregroundColor/…). Before attachment
+     * the proxy behaves like a plain object. Once attached, reads reflect the
+     * current v2 NodeOptions and writes update both the v1 view and v2 model.
+     */
     options: Record<string, any>;
+    private optionState;
     /** The live v2 node once this wrapper has been added to a slate. */
     v2?: V2Node;
     /** Back-reference to the owning facade slate (set on add, like v1). */

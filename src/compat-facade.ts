@@ -33,8 +33,14 @@ export type V1Events = Record<string, ((...args: any[]) => any) | undefined>;
  * object; once added, `v2` points at the live v2 Node.
  */
 class node {
-  /** v1-shaped options (xPos/yPos/foregroundColor/…) */
+  /**
+   * Live v1-shaped options (xPos/yPos/foregroundColor/…). Before attachment
+   * the proxy behaves like a plain object. Once attached, reads reflect the
+   * current v2 NodeOptions and writes update both the v1 view and v2 model.
+   */
   public options: Record<string, any>;
+
+  private optionState: Record<string, any>;
 
   /** The live v2 node once this wrapper has been added to a slate. */
   public v2?: V2Node;
@@ -49,7 +55,59 @@ class node {
   public relationships: NodeRelationshipsFacade;
 
   constructor(options: Record<string, any> = {}) {
-    this.options = { id: utilsModule.guid(), ...options };
+    this.optionState = { id: utilsModule.guid(), ...options };
+    this.options = new Proxy(this.optionState, {
+      get: (target, property, receiver) => {
+        if (typeof property !== "string" || !this.v2) {
+          return Reflect.get(target, property, receiver);
+        }
+        const live = v2NodeToV1(this.v2.options || {});
+        return Object.prototype.hasOwnProperty.call(live, property)
+          ? live[property]
+          : Reflect.get(target, property, receiver);
+      },
+      set: (target, property, value, receiver) => {
+        const written = Reflect.set(target, property, value, receiver);
+        if (written && typeof property === "string" && this.v2) {
+          Object.assign(
+            this.v2.options,
+            v1NodeToV2({ [property]: value })
+          );
+        }
+        return written;
+      },
+      deleteProperty: (target, property) => {
+        const deleted = Reflect.deleteProperty(target, property);
+        if (deleted && typeof property === "string" && this.v2) {
+          const v2Property =
+            {
+              xPos: "x",
+              yPos: "y",
+              foregroundColor: "fontColor",
+              shapeHint: "shape",
+              svgString: "svgContent",
+            }[property] || property;
+          delete (this.v2.options as Record<string, any>)[v2Property];
+        }
+        return deleted;
+      },
+      ownKeys: (target) => {
+        if (!this.v2) return Reflect.ownKeys(target);
+        const liveKeys = Reflect.ownKeys(v2NodeToV1(this.v2.options || {}));
+        return Array.from(new Set([...Reflect.ownKeys(target), ...liveKeys]));
+      },
+      getOwnPropertyDescriptor: (target, property) => {
+        const existing = Reflect.getOwnPropertyDescriptor(target, property);
+        if (existing || !this.v2 || typeof property !== "string") {
+          return existing;
+        }
+        const live = v2NodeToV1(this.v2.options || {});
+        if (Object.prototype.hasOwnProperty.call(live, property)) {
+          return { configurable: true, enumerable: true, writable: true };
+        }
+        return undefined;
+      },
+    });
     this.resize = new NodeResizeFacade(this);
     this.relationships = new NodeRelationshipsFacade(this);
   }

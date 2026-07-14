@@ -74,6 +74,60 @@ test.describe("v1 compat facade (window.Slatebox)", () => {
     expect(result.exportParses).toBe(true);
   });
 
+  test("facade node options stay live after engine mutations", async ({ page }) => {
+    const result = await page.evaluate(async () => {
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.width = "800px";
+      div.style.height = "600px";
+      document.body.appendChild(div);
+
+      const sb = (window as any).Slatebox;
+      const s = await new sb.slate({ container: "slateCanvas" }, {}).init();
+      const n = s.nodes.add(
+        new sb.node({
+          id: "live-e2e",
+          xPos: 100,
+          yPos: 120,
+          width: 140,
+          height: 80,
+          text: "before",
+          foregroundColor: "#111111",
+        })
+      );
+      await new Promise((r) => setTimeout(r, 300));
+
+      n.v2.position(260, 310);
+      n.v2.setText("after");
+      n.v2.setColors("#336699");
+      n.v2.options.fontColor = "#ffffff";
+
+      const readThrough = { ...n.options };
+      n.options.xPos = 420;
+      n.options.foregroundColor = "#abcdef";
+
+      return {
+        readThrough,
+        v2AfterWrite: {
+          x: n.v2.options.x,
+          fontColor: n.v2.options.fontColor,
+        },
+        slateBackref: n.slate === s,
+      };
+    });
+
+    expect(result.readThrough).toMatchObject({
+      id: "live-e2e",
+      xPos: 260,
+      yPos: 310,
+      text: "after",
+      backgroundColor: "#336699",
+      foregroundColor: "#ffffff",
+    });
+    expect(result.v2AfterWrite).toEqual({ x: 420, fontColor: "#abcdef" });
+    expect(result.slateBackref).toBe(true);
+  });
+
   test("onSlateChanged fires with v1-shaped packages; remote applies are suppressed", async ({
     page,
   }) => {

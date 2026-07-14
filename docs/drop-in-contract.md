@@ -88,7 +88,7 @@ App usage: `const node = new Slatebox.node(options)`
 - [x] `.relationships.addAssociation(otherNode)` — unwraps facade nodes to v2, delegates to Relationships (proof: unit)
 - [x] `.relationships.associations` → array of `{parent, child, lineWidth, ...}` with live wrapper refs, `parent.options.id` resolves (proof: unit)
 - [x] `.png(groupNodes?, callback)` — facade delegates to slate.png({nodes, noBackground, asBinary}); Export accepts id strings; `.svg` variant too (proof: tests/unit/compat-facade.test.ts "node.png")
-- [ ] Properties: `.options` (with `.id/.text/.xPos/.yPos/.width/.height/.vectorPath/.backgroundColor/.foregroundColor`), `.slate` backref
+- [x] Properties: live `.options` view (`.id/.text/.xPos/.yPos/.width/.height/.vectorPath/.backgroundColor/.foregroundColor`) and `.slate` backref; v2 interaction/collab changes read through in v1 shape and host writes map back to v2 options (proof: tests/unit/compat-facade.test.ts "node options stay live" / "writes through")
 
 ## E. Slatebox.utils
 
