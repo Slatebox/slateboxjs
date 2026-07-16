@@ -5740,6 +5740,12 @@ class ze {
       );
       if (!c)
         return console.error("CONNECTOR_DEBUG: Failed to create connectable object"), null;
+      c.connector?.attr?.({
+        rel: `association-${this.node.id}-${t.id}`,
+        "data-connection-id": n,
+        "data-source-node-id": this.node.id,
+        "data-target-node-id": t.id
+      });
       const h = {
         id: n,
         source: this.node,

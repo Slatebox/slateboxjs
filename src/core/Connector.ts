@@ -258,6 +258,17 @@ export class Connector {
         return null;
       }
 
+      // Keep relationship ownership in the exported SVG. Presentation and
+      // other read-only consumers clone the canvas without the live Connector
+      // instances, so they need durable endpoint metadata to decide which
+      // line belongs to the focused node while panning and zooming.
+      connectableObj.connector?.attr?.({
+        rel: `association-${this.node.id}-${targetNode.id}`,
+        "data-connection-id": connectionId,
+        "data-source-node-id": this.node.id,
+        "data-target-node-id": targetNode.id,
+      });
+
       // Create connection object
       const connection: Connection = {
         id: connectionId,

@@ -349,6 +349,22 @@ describe("Connector", () => {
       expect(connector.getConnections()).toHaveLength(1);
     });
 
+    it("should stamp exported relationship ownership on the visible path", () => {
+      const mockConnectable = createMockConnectable();
+      mockNodeA.svgGroup.connectable = vi.fn().mockReturnValue(mockConnectable);
+
+      const connector = new Connector(mockNodeA);
+      connector.enable();
+      connector.connectTo(mockNodeB, { connectionId: "edge-1" } as any);
+
+      expect(mockConnectable.connector.attr).toHaveBeenCalledWith({
+        rel: "association-nodeA-nodeB",
+        "data-connection-id": "edge-1",
+        "data-source-node-id": "nodeA",
+        "data-target-node-id": "nodeB",
+      });
+    });
+
     it("should return existing connection on duplicate attempt", () => {
       const connector = new Connector(mockNodeA);
       enableConnector(connector);
