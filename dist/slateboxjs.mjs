@@ -13728,7 +13728,7 @@ class vl {
    */
   wrap(t) {
     let e = this.wrappers.get(t.id);
-    return e || (e = new Ot({ ...t.options }), e.options.id = t.id, e.v2 = t, e.slate = this.owner, this.wrappers.set(t.id, e)), e;
+    return e || (e = new Ot({ ...t.options }), e.options.id = t.id, this.wrappers.set(t.id, e)), e.v2 = t, e.slate = this.owner, e;
   }
 }
 class xl {

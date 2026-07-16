@@ -380,6 +380,32 @@ describe("slate.nodes facade (§C partial)", () => {
     expect(s.nodes.one("ext")).toBe(all[0]);
   });
 
+  it("rebinds a stable wrapper when loadJSON replaces its live v2 node", async () => {
+    const s = await initSlate();
+    const root = s.nodes.add({ id: "root", xPos: 10, yPos: 20 });
+    const originalV2 = root.v2;
+
+    // Simulate deserialization replacing the engine node with the same id.
+    const replacementV2 = (s.v2 as any).nodes.add({
+      id: "root",
+      x: 100,
+      y: 200,
+    });
+    const rebound = s.nodes.one("root");
+
+    expect(rebound).toBe(root);
+    expect(rebound?.v2).toBe(replacementV2);
+    expect(rebound?.v2).not.toBe(originalV2);
+    expect(rebound?.options.xPos).toBe(100);
+
+    const child = s.nodes.add({ id: "child", xPos: 300, yPos: 400 });
+    rebound?.relationships.addAssociation(child, { lineWidth: 4 });
+    expect(replacementV2.relationships.addAssociation).toHaveBeenCalledWith(
+      child.v2,
+      { lineWidth: 4 },
+    );
+  });
+
   it("exportJSON()/loadJSON() delegate to the v2 engine", async () => {
     const s = await initSlate();
     const json = s.exportJSON();

@@ -472,10 +472,13 @@ class NodesFacade {
     if (!wrapper) {
       wrapper = new node({ ...(v2Node.options as Record<string, any>) });
       wrapper.options.id = v2Node.id;
-      wrapper.v2 = v2Node;
-      wrapper.slate = this.owner;
       this.wrappers.set(v2Node.id, wrapper);
     }
+    // loadJSON() replaces the engine's Node instances while preserving their
+    // ids. Keep the stable v1 wrapper identity, but always bind it to the live
+    // v2 node so post-load moves and relationships serialize correctly.
+    wrapper.v2 = v2Node;
+    wrapper.slate = this.owner;
     return wrapper;
   }
 }
