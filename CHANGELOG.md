@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.3] — 2026-07-15
+
+### Fixed
+- Stable compatibility-facade node wrappers now rebind to the live engine node
+  after `loadJSON()` replaces instances, so subsequent relationships and moves
+  persist against the deserialized slate.
+
 ## [3.0.2] — 2026-07-14
 
 ### Changed
