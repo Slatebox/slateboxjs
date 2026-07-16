@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.1.0] — 2026-07-16
+
+### Added
+- Added the public `SlateOperations` module with typed, validated add, update,
+  delete, connect, disconnect, arrange, and slate-level operation plans.
+- Added collaboration-aware execution, stable AI summaries, idempotent node ids,
+  relative placement, and safeguards against unrequested theme or destructive
+  changes.
+- Added regression coverage for the Slatebox AI request to place three triangle
+  nodes to the right of an existing Welcome node without changing the canvas.
+
 ## [3.0.4] — 2026-07-16
 
 ### Fixed

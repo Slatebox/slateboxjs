@@ -53,6 +53,7 @@ import * as Layout from './core/Layout'
 import { ZoomSlider } from './core/ZoomSlider'
 import * as Comments from './core/Comments'
 import { Presentation } from './core/Presentation'
+import * as SlateOperations from './core/SlateOperations'
 
 // Utilities
 import * as utils from './utils'
@@ -103,6 +104,7 @@ export {
   ZoomSlider,
   Comments,
   Presentation,
+  SlateOperations,
   // Utilities
   utils,
   // v1 runtime API facade
@@ -121,6 +123,15 @@ export type { LayoutMove } from './core/Layout'
 export type { CommentOptions } from './core/Comments'
 export type { PresentationStep } from './core/Presentation'
 export type { FilterDef } from './core/Filters'
+export type {
+  SlateNodeSelector,
+  SlateOperation,
+  SlateOperationKind,
+  SlateOperationPlan,
+  SlateOperationReport,
+  SlateOperationShape,
+  SlateOperationValidation,
+} from './core/SlateOperations'
 
 /**
  * SlateboxJS — Modern diagramming library built with SVG.js.

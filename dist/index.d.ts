@@ -29,9 +29,10 @@ import * as Layout from './core/Layout';
 import { ZoomSlider } from './core/ZoomSlider';
 import * as Comments from './core/Comments';
 import { Presentation } from './core/Presentation';
+import * as SlateOperations from './core/SlateOperations';
 import * as utils from './utils';
 import { Slatebox } from './compat-facade';
-export { Slate, Node, Invoker, PanZoom, ResizeRotate, BirdsEye, Connector, NodesManager, Serialization, ShapeRegistry, Relationship, Relationships, compat, FontLoader, Images, Editor, UndoRedo, MultiSelection, Grid, Menu, Keyboard, ContextMenu, Filters, registerFilter, getFilterNames, Links, ExportModule, Collab, Theme, Layout, ZoomSlider, Comments, Presentation, utils, Slatebox, };
+export { Slate, Node, Invoker, PanZoom, ResizeRotate, BirdsEye, Connector, NodesManager, Serialization, ShapeRegistry, Relationship, Relationships, compat, FontLoader, Images, Editor, UndoRedo, MultiSelection, Grid, Menu, Keyboard, ContextMenu, Filters, registerFilter, getFilterNames, Links, ExportModule, Collab, Theme, Layout, ZoomSlider, Comments, Presentation, SlateOperations, utils, Slatebox, };
 export type { SlateJSON, NodeJSON } from './core/Serialization';
 export type { ShapeDefinition } from './core/ShapeRegistry';
 export type { Association } from './core/Relationship';
@@ -43,6 +44,7 @@ export type { LayoutMove } from './core/Layout';
 export type { CommentOptions } from './core/Comments';
 export type { PresentationStep } from './core/Presentation';
 export type { FilterDef } from './core/Filters';
+export type { SlateNodeSelector, SlateOperation, SlateOperationKind, SlateOperationPlan, SlateOperationReport, SlateOperationShape, SlateOperationValidation, } from './core/SlateOperations';
 /**
  * SlateboxJS — Modern diagramming library built with SVG.js.
  *
