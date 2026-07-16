@@ -25,6 +25,7 @@ export type SlateOperationKind =
   | "delete_nodes"
   | "connect_nodes"
   | "disconnect_nodes"
+  | "update_connections"
   | "arrange_nodes"
   | "update_slate";
 
@@ -39,6 +40,7 @@ export interface SlateOperation {
   shape?: SlateOperationShape;
   text?: string;
   ids?: string[];
+  connectionIds?: string[];
   width?: number;
   height?: number;
   gap?: number;
@@ -72,6 +74,7 @@ export interface SlateOperationReport {
   deleted: string[];
   connected: string[];
   disconnected: string[];
+  connectionsUpdated: string[];
 }
 
 const OPERATION_KINDS: SlateOperationKind[] = [
@@ -80,6 +83,7 @@ const OPERATION_KINDS: SlateOperationKind[] = [
   "delete_nodes",
   "connect_nodes",
   "disconnect_nodes",
+  "update_connections",
   "arrange_nodes",
   "update_slate",
 ];
@@ -106,6 +110,28 @@ const NODE_CHANGE_KEYS = new Set([
   "locked",
 ]);
 const SLATE_CHANGE_KEYS = new Set(["name", "description", "background"]);
+const CONNECTION_CHANGE_KEYS = new Set([
+  "label",
+  "lineColor",
+  "lineWidth",
+  "lineOpacity",
+  "lineType",
+  "lineCurveType",
+  "lineCurviness",
+  "showParentArrow",
+  "showChildArrow",
+]);
+const NODE_STYLE_KEYS = new Set([
+  "backgroundColor",
+  "foregroundColor",
+  "borderColor",
+  "borderWidth",
+  "borderOpacity",
+  "borderStyle",
+  "opacity",
+  "fontFamily",
+  "fontSize",
+]);
 const STYLE_INTENT =
   /\b(theme|background|canvas|palette|gradient|recolor|colour|color scheme)\b/i;
 const DESTRUCTIVE_INTENT =
@@ -118,7 +144,7 @@ function objectValue(value: any): value is Record<string, any> {
 function selectorHasValue(selector?: SlateNodeSelector): boolean {
   return Boolean(
     selector &&
-      ((selector.ids?.some(Boolean) ?? false) || selector.text?.trim())
+    ((selector.ids?.some(Boolean) ?? false) || selector.text?.trim()),
   );
 }
 
@@ -131,7 +157,7 @@ function checkSelectorIds(
   selector: SlateNodeSelector | undefined,
   knownIds: Set<string>,
   prefix: string,
-  errors: string[]
+  errors: string[],
 ): void {
   if (!knownIds.size || !selector?.ids) return;
   if (selector.ids.some((id) => !knownIds.has(id))) {
@@ -139,12 +165,143 @@ function checkSelectorIds(
   }
 }
 
+function validateString(
+  changes: any,
+  key: string,
+  prefix: string,
+  errors: string[],
+  { nullable = false }: { nullable?: boolean } = {},
+): void {
+  if (changes?.[key] === undefined) return;
+  if (nullable && changes[key] === null) return;
+  if (typeof changes[key] !== "string") {
+    errors.push(`${prefix} ${key} must be a string.`);
+  }
+}
+
+function validateNumber(
+  changes: any,
+  key: string,
+  prefix: string,
+  errors: string[],
+  { min = -1000000, max = 1000000 }: { min?: number; max?: number } = {},
+): void {
+  if (changes?.[key] === undefined) return;
+  if (
+    !Number.isFinite(changes[key]) ||
+    changes[key] < min ||
+    changes[key] > max
+  ) {
+    errors.push(`${prefix} ${key} must be a number from ${min} to ${max}.`);
+  }
+}
+
+function validateBoolean(
+  changes: any,
+  key: string,
+  prefix: string,
+  errors: string[],
+): void {
+  if (changes?.[key] !== undefined && typeof changes[key] !== "boolean") {
+    errors.push(`${prefix} ${key} must be true or false.`);
+  }
+}
+
+function validateEnum(
+  changes: any,
+  key: string,
+  values: string[],
+  prefix: string,
+  errors: string[],
+): void {
+  if (changes?.[key] !== undefined && !values.includes(changes[key])) {
+    errors.push(`${prefix} ${key} must be one of: ${values.join(", ")}.`);
+  }
+}
+
+function validateNodeChangeValues(
+  changes: any,
+  prefix: string,
+  errors: string[],
+): void {
+  for (const key of [
+    "text",
+    "backgroundColor",
+    "foregroundColor",
+    "borderColor",
+    "borderStyle",
+    "fontFamily",
+  ]) {
+    validateString(changes, key, prefix, errors);
+  }
+  validateString(changes, "animation", prefix, errors, { nullable: true });
+  for (const key of ["x", "y", "rotationAngle"]) {
+    validateNumber(changes, key, prefix, errors);
+  }
+  for (const key of ["width", "height"]) {
+    validateNumber(changes, key, prefix, errors, { min: 20, max: 5000 });
+  }
+  validateNumber(changes, "borderWidth", prefix, errors, { min: 0, max: 100 });
+  validateNumber(changes, "borderOpacity", prefix, errors, { min: 0, max: 1 });
+  validateNumber(changes, "opacity", prefix, errors, { min: 0, max: 1 });
+  validateNumber(changes, "fontSize", prefix, errors, { min: 1, max: 500 });
+  validateEnum(
+    changes,
+    "textXAlign",
+    ["left", "middle", "right"],
+    prefix,
+    errors,
+  );
+  validateEnum(
+    changes,
+    "textYAlign",
+    ["top", "middle", "bottom"],
+    prefix,
+    errors,
+  );
+  validateBoolean(changes, "locked", prefix, errors);
+}
+
+function validateConnectionChangeValues(
+  changes: any,
+  prefix: string,
+  errors: string[],
+): void {
+  for (const key of ["label", "lineColor"]) {
+    validateString(changes, key, prefix, errors);
+  }
+  validateNumber(changes, "lineWidth", prefix, errors, { min: 0.1, max: 100 });
+  validateNumber(changes, "lineOpacity", prefix, errors, { min: 0, max: 1 });
+  validateNumber(changes, "lineCurviness", prefix, errors, { min: 0, max: 1 });
+  validateEnum(
+    changes,
+    "lineType",
+    ["bezier", "orthogonal", "straight", "linear", "curved"],
+    prefix,
+    errors,
+  );
+  validateEnum(
+    changes,
+    "lineCurveType",
+    ["cubic", "quadratic"],
+    prefix,
+    errors,
+  );
+  validateBoolean(changes, "showParentArrow", prefix, errors);
+  validateBoolean(changes, "showChildArrow", prefix, errors);
+}
+
 export function validateSlateOperationPlan(
   plan: SlateOperationPlan,
   {
     userMessage = "",
     existingNodeIds = [],
-  }: { userMessage?: string; existingNodeIds?: string[] } = {}
+    existingConnectionIds = [],
+  }: {
+    userMessage?: string;
+    existingNodeIds?: string[];
+    existingConnectionIds?: string[];
+  } = {},
 ): SlateOperationValidation {
   const errors: string[] = [];
   if (!objectValue(plan)) {
@@ -160,6 +317,7 @@ export function validateSlateOperationPlan(
   }
 
   const knownIds = new Set(existingNodeIds.filter(Boolean));
+  const knownConnectionIds = new Set(existingConnectionIds.filter(Boolean));
   (plan.operations || []).forEach((operation, index) => {
     const prefix = `Operation ${index + 1}`;
     if (!objectValue(operation) || !OPERATION_KINDS.includes(operation.kind)) {
@@ -184,6 +342,13 @@ export function validateSlateOperationPlan(
       ) {
         errors.push(`${prefix} references a node that is not in the slate.`);
       }
+      const invalidStyle = unknownKeys(operation.style, NODE_STYLE_KEYS);
+      if (invalidStyle.length) {
+        errors.push(
+          `${prefix} contains unsupported node styles: ${invalidStyle.join(", ")}.`,
+        );
+      }
+      validateNodeChangeValues(operation.style, prefix, errors);
       return;
     }
     if (operation.kind === "update_nodes") {
@@ -191,11 +356,25 @@ export function validateSlateOperationPlan(
         errors.push(`${prefix} requires a node target.`);
       }
       const invalid = unknownKeys(operation.changes, NODE_CHANGE_KEYS);
-      if (!objectValue(operation.changes) || !Object.keys(operation.changes).length) {
+      if (
+        !objectValue(operation.changes) ||
+        !Object.keys(operation.changes).length
+      ) {
         errors.push(`${prefix} requires at least one node change.`);
       } else if (invalid.length) {
-        errors.push(`${prefix} contains unsupported changes: ${invalid.join(", ")}.`);
+        errors.push(
+          `${prefix} contains unsupported changes: ${invalid.join(", ")}.`,
+        );
       }
+      if (
+        operation.changes?.shape &&
+        !SUPPORTED_SLATE_OPERATION_SHAPES.includes(
+          operation.changes.shape as SlateOperationShape,
+        )
+      ) {
+        errors.push(`${prefix} contains an unsupported shape.`);
+      }
+      validateNodeChangeValues(operation.changes, prefix, errors);
       checkSelectorIds(operation.target, knownIds, prefix, errors);
       return;
     }
@@ -203,16 +382,70 @@ export function validateSlateOperationPlan(
       if (!selectorHasValue(operation.target)) {
         errors.push(`${prefix} requires a node target.`);
       }
-      if (!DESTRUCTIVE_INTENT.test(userMessage) && operation.target?.text === "*") {
-        errors.push(`${prefix} cannot delete every node without an explicit request.`);
+      if (
+        !DESTRUCTIVE_INTENT.test(userMessage) &&
+        operation.target?.text === "*"
+      ) {
+        errors.push(
+          `${prefix} cannot delete every node without an explicit request.`,
+        );
       }
       checkSelectorIds(operation.target, knownIds, prefix, errors);
       return;
     }
     if (["connect_nodes", "disconnect_nodes"].includes(operation.kind)) {
-      if (!selectorHasValue(operation.from) || !selectorHasValue(operation.to)) {
+      if (
+        !selectorHasValue(operation.from) ||
+        !selectorHasValue(operation.to)
+      ) {
         errors.push(`${prefix} requires both from and to node selectors.`);
       }
+      checkSelectorIds(operation.from, knownIds, prefix, errors);
+      checkSelectorIds(operation.to, knownIds, prefix, errors);
+      if (operation.kind === "connect_nodes") {
+        const invalidStyle = unknownKeys(
+          operation.style,
+          CONNECTION_CHANGE_KEYS,
+        );
+        if (invalidStyle.length) {
+          errors.push(
+            `${prefix} contains unsupported connection styles: ${invalidStyle.join(", ")}.`,
+          );
+        }
+        validateConnectionChangeValues(operation.style, prefix, errors);
+      }
+      return;
+    }
+    if (operation.kind === "update_connections") {
+      const hasConnectionIds = operation.connectionIds?.some(Boolean) ?? false;
+      const hasEndpoints =
+        selectorHasValue(operation.from) && selectorHasValue(operation.to);
+      if (!hasConnectionIds && !hasEndpoints) {
+        errors.push(
+          `${prefix} requires connectionIds or both from and to node selectors.`,
+        );
+      }
+      if (
+        hasConnectionIds &&
+        knownConnectionIds.size &&
+        operation.connectionIds!.some((id) => !knownConnectionIds.has(id))
+      ) {
+        errors.push(
+          `${prefix} references connections that are not in the slate.`,
+        );
+      }
+      const invalid = unknownKeys(operation.changes, CONNECTION_CHANGE_KEYS);
+      if (
+        !objectValue(operation.changes) ||
+        !Object.keys(operation.changes).length
+      ) {
+        errors.push(`${prefix} requires at least one connection change.`);
+      } else if (invalid.length) {
+        errors.push(
+          `${prefix} contains unsupported connection changes: ${invalid.join(", ")}.`,
+        );
+      }
+      validateConnectionChangeValues(operation.changes, prefix, errors);
       checkSelectorIds(operation.from, knownIds, prefix, errors);
       checkSelectorIds(operation.to, knownIds, prefix, errors);
       return;
@@ -221,7 +454,10 @@ export function validateSlateOperationPlan(
       if (!selectorHasValue(operation.target)) {
         errors.push(`${prefix} requires a node target.`);
       }
-      if (!operation.layout || !["row", "column", "grid", "circle"].includes(operation.layout)) {
+      if (
+        !operation.layout ||
+        !["row", "column", "grid", "circle"].includes(operation.layout)
+      ) {
         errors.push(`${prefix} requires a supported layout.`);
       }
       checkSelectorIds(operation.target, knownIds, prefix, errors);
@@ -229,16 +465,19 @@ export function validateSlateOperationPlan(
     }
     if (operation.kind === "update_slate") {
       const invalid = unknownKeys(operation.changes, SLATE_CHANGE_KEYS);
-      if (!objectValue(operation.changes) || !Object.keys(operation.changes).length) {
+      if (
+        !objectValue(operation.changes) ||
+        !Object.keys(operation.changes).length
+      ) {
         errors.push(`${prefix} requires at least one slate change.`);
       } else if (invalid.length) {
         errors.push(
-          `${prefix} contains unsupported slate changes: ${invalid.join(", ")}.`
+          `${prefix} contains unsupported slate changes: ${invalid.join(", ")}.`,
         );
       }
       if (operation.changes?.background && !STYLE_INTENT.test(userMessage)) {
         errors.push(
-          `${prefix} cannot change the canvas background unless the user explicitly asks for it.`
+          `${prefix} cannot change the canvas background unless the user explicitly asks for it.`,
         );
       }
     }
@@ -263,12 +502,60 @@ function allNodes(slate: any): any[] {
   return slate?.nodes?.allNodes || [];
 }
 
+function allConnections(slate: any): Array<{ source: any; association: any }> {
+  const seen = new Set<string>();
+  const result: Array<{ source: any; association: any }> = [];
+  allNodes(slate).forEach((source) => {
+    const associations =
+      source?.relationships?.associations ||
+      source?.relationships?.getAssociations?.() ||
+      [];
+    Array.from(associations).forEach((association: any) => {
+      const id = association?.id;
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      result.push({ source, association });
+    });
+  });
+  return result;
+}
+
+function selectConnections(
+  slate: any,
+  operation: SlateOperation,
+): Array<{ source: any; association: any }> {
+  const connectionIds = new Set(
+    (operation.connectionIds || []).filter(Boolean),
+  );
+  const connections = allConnections(slate);
+  if (connectionIds.size) {
+    return connections.filter(({ association }) =>
+      connectionIds.has(association.id),
+    );
+  }
+  const fromIds = new Set(
+    selectNodes(slate, operation.from).map((node) =>
+      option(node, "id", node.id),
+    ),
+  );
+  const toIds = new Set(
+    selectNodes(slate, operation.to).map((node) => option(node, "id", node.id)),
+  );
+  return connections.filter(({ source, association }) => {
+    const parentId = association.parentId || option(source, "id", source.id);
+    return fromIds.has(parentId) && toIds.has(association.childId);
+  });
+}
+
 function selectNodes(slate: any, selector: SlateNodeSelector = {}): any[] {
   const nodes = allNodes(slate);
   const ids = new Set((selector.ids || []).filter(Boolean));
-  if (ids.size) return nodes.filter((node) => ids.has(option(node, "id", node.id)));
+  if (ids.size)
+    return nodes.filter((node) => ids.has(option(node, "id", node.id)));
   const text = cleanText(selector.text);
-  const exact = nodes.filter((node) => cleanText(option(node, "text", "")) === text);
+  const exact = nodes.filter(
+    (node) => cleanText(option(node, "text", "")) === text,
+  );
   if (exact.length) return exact;
   return text
     ? nodes.filter((node) => cleanText(option(node, "text", "")).includes(text))
@@ -284,8 +571,9 @@ function referenceNode(slate: any, relativeTo?: string): any {
   }
   return [...allNodes(slate)].sort(
     (a, b) =>
-      option(b, "x") + option(b, "width") -
-      (option(a, "x") + option(a, "width"))
+      option(b, "x") +
+      option(b, "width") -
+      (option(a, "x") + option(a, "width")),
   )[0];
 }
 
@@ -293,7 +581,7 @@ function positions(
   slate: any,
   operation: SlateOperation,
   width: number,
-  height: number
+  height: number,
 ): Array<{ x: number; y: number }> {
   const count = operation.count || 1;
   const placement = operation.placement || {};
@@ -309,14 +597,14 @@ function positions(
       arrangement === "column"
         ? index
         : arrangement === "grid"
-        ? Math.floor(index / columns)
-        : 0;
+          ? Math.floor(index / columns)
+          : 0;
     const column =
       arrangement === "column"
         ? 0
         : arrangement === "grid"
-        ? index % columns
-        : index;
+          ? index % columns
+          : index;
     let x = option(reference, "x") + column * (width + gap);
     let y = option(reference, "y") + row * (height + gap);
     if (direction === "right") x += option(reference, "width", 160) + gap;
@@ -328,38 +616,64 @@ function positions(
 }
 
 function invokeAndSend(slate: any, packages: any | any[]): void {
-  const list = (Array.isArray(packages) ? packages : [packages]).filter(Boolean);
+  const list = (Array.isArray(packages) ? packages : [packages]).filter(
+    Boolean,
+  );
   if (!list.length) return;
   slate.collab.invoke(list);
   slate.collab.send(list);
 }
 
 export function summarizeSlateForOperations(slate: any): Record<string, any> {
-  const nodes = allNodes(slate).slice(0, 150).map((node) => ({
-    id: option(node, "id", node.id),
-    text: `${option(node, "text", "")}`.replace(/\s+/g, " ").trim().slice(0, 240),
-    shape: option(node, "shape", option(node, "vectorPath", "rectangle")),
-    x: Number(option(node, "x")),
-    y: Number(option(node, "y")),
-    width: Number(option(node, "width", 120)),
-    height: Number(option(node, "height", 80)),
-  }));
+  const nodes = allNodes(slate)
+    .slice(0, 150)
+    .map((node) => ({
+      id: option(node, "id", node.id),
+      text: `${option(node, "text", "")}`
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 240),
+      shape: option(node, "shape", option(node, "vectorPath", "rectangle")),
+      x: Number(option(node, "x")),
+      y: Number(option(node, "y")),
+      width: Number(option(node, "width", 120)),
+      height: Number(option(node, "height", 80)),
+    }));
   return {
     name: slate?.options?.name || "",
     description: slate?.options?.description || "",
     nodeCount: nodes.length,
     nodes,
+    connections: allConnections(slate)
+      .slice(0, 250)
+      .map(({ source, association }) => ({
+        id: association.id,
+        from: association.parentId || option(source, "id", source.id),
+        to: association.childId,
+        label: association.label || "",
+        lineColor: association.lineColor,
+        lineWidth: association.lineWidth,
+        lineOpacity: association.lineOpacity,
+        lineType: association.lineType,
+        lineCurveType: association.lineCurveType,
+        lineCurviness: association.lineCurviness,
+        showParentArrow: association.showParentArrow,
+        showChildArrow: association.showChildArrow,
+      })),
   };
 }
 
 export function applySlateOperations(
   slate: any,
   plan: SlateOperationPlan,
-  { userMessage = "" }: { userMessage?: string } = {}
+  { userMessage = "" }: { userMessage?: string } = {},
 ): { message: string; report: SlateOperationReport } {
   const validation = validateSlateOperationPlan(plan, {
     userMessage,
     existingNodeIds: allNodes(slate).map((node) => option(node, "id", node.id)),
+    existingConnectionIds: allConnections(slate).map(
+      ({ association }) => association.id,
+    ),
   });
   if (!validation.valid) throw new Error(validation.errors.join(" "));
   const report: SlateOperationReport = {
@@ -368,13 +682,16 @@ export function applySlateOperations(
     deleted: [],
     connected: [],
     disconnected: [],
+    connectionsUpdated: [],
   };
 
   plan.operations.forEach((operation) => {
     if (operation.kind === "add_nodes") {
       const shape = operation.shape!;
-      const width = Number(operation.width) || (shape === "triangle" ? 150 : 180);
-      const height = Number(operation.height) || (shape === "triangle" ? 130 : 110);
+      const width =
+        Number(operation.width) || (shape === "triangle" ? 150 : 180);
+      const height =
+        Number(operation.height) || (shape === "triangle" ? 130 : 110);
       const reference = referenceNode(slate, operation.placement?.relativeTo);
       const backgroundColor =
         operation.style?.backgroundColor ||
@@ -404,7 +721,8 @@ export function applySlateOperations(
               height,
               backgroundColor,
               foregroundColor:
-                operation.style?.foregroundColor || whiteOrBlack(backgroundColor),
+                operation.style?.foregroundColor ||
+                whiteOrBlack(backgroundColor),
               borderColor: operation.style?.borderColor || "#333333",
               borderWidth: operation.style?.borderWidth ?? 1,
               borderOpacity: operation.style?.borderOpacity ?? 1,
@@ -433,7 +751,9 @@ export function applySlateOperations(
           changes.text !== undefined ||
           changes.fontFamily !== undefined ||
           changes.fontSize !== undefined ||
-          changes.foregroundColor !== undefined
+          changes.foregroundColor !== undefined ||
+          changes.textXAlign !== undefined ||
+          changes.textYAlign !== undefined
         ) {
           packages.push({
             type: "onNodeTextChanged",
@@ -477,7 +797,7 @@ export function applySlateOperations(
                 data: { id, prop, val: changes[prop] },
               });
             }
-          }
+          },
         );
         if (changes.width !== undefined || changes.height !== undefined) {
           packages.push({
@@ -521,7 +841,11 @@ export function applySlateOperations(
             type: "onNodeEffectChanged",
             data: {
               id,
-              filter: { apply: "vect", id: changes.animation, isAnimation: true },
+              filter: {
+                apply: "vect",
+                id: changes.animation,
+                isAnimation: true,
+              },
             },
           });
         }
@@ -559,6 +883,7 @@ export function applySlateOperations(
               lineColor: operation.style?.lineColor || "#333333",
               lineWidth: operation.style?.lineWidth || 3,
               lineType: operation.style?.lineType || "bezier",
+              ...(operation.style || {}),
             },
           });
           report[
@@ -569,16 +894,43 @@ export function applySlateOperations(
       return;
     }
 
+    if (operation.kind === "update_connections") {
+      selectConnections(slate, operation).forEach(({ source, association }) => {
+        const sourceId =
+          association.parentId || option(source, "id", source.id);
+        const packages = Object.entries(operation.changes || {}).map(
+          ([prop, val]) => ({
+            type: "onLinePropertiesChanged",
+            data: {
+              id: sourceId,
+              associationId: association.id,
+              prop,
+              val,
+            },
+          }),
+        );
+        invokeAndSend(slate, packages);
+        report.connectionsUpdated.push(association.id);
+      });
+      return;
+    }
+
     if (operation.kind === "arrange_nodes") {
       const nodes = selectNodes(slate, operation.target);
       if (!nodes.length) return;
       const originX = Math.min(...nodes.map((node) => option(node, "x")));
       const originY = Math.min(...nodes.map((node) => option(node, "y")));
-      const maxWidth = Math.max(...nodes.map((node) => option(node, "width", 120)));
-      const maxHeight = Math.max(...nodes.map((node) => option(node, "height", 80)));
+      const maxWidth = Math.max(
+        ...nodes.map((node) => option(node, "width", 120)),
+      );
+      const maxHeight = Math.max(
+        ...nodes.map((node) => option(node, "height", 80)),
+      );
       const gap = operation.gap ?? 48;
       const columns =
-        operation.layout === "grid" ? Math.ceil(Math.sqrt(nodes.length)) : nodes.length;
+        operation.layout === "grid"
+          ? Math.ceil(Math.sqrt(nodes.length))
+          : nodes.length;
       const moves = nodes.map((node, index) => {
         if (operation.layout === "circle") {
           const radius = Math.max(180, nodes.length * 35);
@@ -591,8 +943,7 @@ export function applySlateOperations(
         }
         const row =
           operation.layout === "column" ? index : Math.floor(index / columns);
-        const column =
-          operation.layout === "row" ? index : index % columns;
+        const column = operation.layout === "row" ? index : index % columns;
         return {
           id: option(node, "id", node.id),
           x: originX + column * (maxWidth + gap),

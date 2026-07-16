@@ -14,6 +14,7 @@ node_modules/
 
 # Local agent and browser state
 .codegraph/
+graphify-out/
 .playwright-mcp/
 .reasonix/
 .serena/
