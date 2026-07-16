@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.4] — 2026-07-16
+
+### Fixed
+- Exported connector paths now retain their connection, source-node, and
+  target-node identity so presentation playback can keep the active
+  relationship visible while panning and zooming.
+
 ## [3.0.3] — 2026-07-15
 
 ### Fixed

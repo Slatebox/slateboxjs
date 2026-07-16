@@ -52,6 +52,9 @@ test.describe("SVG export is clean (§export)", () => {
     expect(svg).toContain("Finish");
     expect(svg).toContain("goes to"); // edge label
     expect(svg).toMatch(/connectortype="default"/); // connector path
+    expect(svg).toContain('data-source-node-id="A"');
+    expect(svg).toContain('data-target-node-id="B"');
+    expect(svg).toContain('rel="association-A-B"');
     expect(svg.toLowerCase()).toContain("8e24aa"); // node color
     // Chrome + hit areas absent.
     expect(svg).not.toContain('connectortype="hitarea"');
