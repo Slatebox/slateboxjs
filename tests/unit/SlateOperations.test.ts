@@ -110,6 +110,20 @@ describe("SlateOperations", () => {
     expect(slate.nodes.allNodes).toHaveLength(5);
   });
 
+  it("moves a requested group outward until it clears existing nodes", () => {
+    const slate = mockSlate();
+    slate.nodes.allNodes.push(node("blocking-node", "Already here", 348, 100));
+    applySlateOperations(slate, plan, { userMessage: "Add 3 triangles" });
+    const triangles = slate.nodes.allNodes
+      .filter((item) => item.options.shape === "triangle")
+      .map((item) => item.options);
+    expect(triangles.map((item) => [item.xPos, item.yPos])).toEqual([
+      [596, 100],
+      [596, 278],
+      [596, 456],
+    ]);
+  });
+
   it("rejects unrequested background changes", () => {
     const result = validateSlateOperationPlan(
       {

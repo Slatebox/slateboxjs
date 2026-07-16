@@ -577,6 +577,71 @@ function referenceNode(slate: any, relativeTo?: string): any {
   )[0];
 }
 
+type PlacementPoint = { x: number; y: number };
+type PlacementRect = PlacementPoint & { width: number; height: number };
+
+function overlapsWithGap(
+  first: PlacementRect,
+  second: PlacementRect,
+  gap: number,
+): boolean {
+  return (
+    first.x < second.x + second.width + gap &&
+    first.x + first.width + gap > second.x &&
+    first.y < second.y + second.height + gap &&
+    first.y + first.height + gap > second.y
+  );
+}
+
+function avoidNodeCollisions(
+  points: PlacementPoint[],
+  obstacles: PlacementRect[],
+  width: number,
+  height: number,
+  direction: string,
+  gap: number,
+): PlacementPoint[] {
+  let result = points;
+  for (let attempt = 0; attempt <= obstacles.length; attempt += 1) {
+    const collisions = obstacles.filter((obstacle) =>
+      result.some((point) =>
+        overlapsWithGap({ ...point, width, height }, obstacle, gap),
+      ),
+    );
+    if (!collisions.length) return result;
+
+    let dx = 0;
+    let dy = 0;
+    if (direction === "left") {
+      const groupRight = Math.max(...result.map((point) => point.x + width));
+      const targetRight = Math.min(
+        ...collisions.map((obstacle) => obstacle.x - gap),
+      );
+      dx = targetRight - groupRight;
+    } else if (direction === "above") {
+      const groupBottom = Math.max(...result.map((point) => point.y + height));
+      const targetBottom = Math.min(
+        ...collisions.map((obstacle) => obstacle.y - gap),
+      );
+      dy = targetBottom - groupBottom;
+    } else if (direction === "below" || direction === "center") {
+      const groupTop = Math.min(...result.map((point) => point.y));
+      const targetTop = Math.max(
+        ...collisions.map((obstacle) => obstacle.y + obstacle.height + gap),
+      );
+      dy = targetTop - groupTop;
+    } else {
+      const groupLeft = Math.min(...result.map((point) => point.x));
+      const targetLeft = Math.max(
+        ...collisions.map((obstacle) => obstacle.x + obstacle.width + gap),
+      );
+      dx = targetLeft - groupLeft;
+    }
+    result = result.map((point) => ({ x: point.x + dx, y: point.y + dy }));
+  }
+  return result;
+}
+
 function positions(
   slate: any,
   operation: SlateOperation,
@@ -592,7 +657,7 @@ function positions(
     placement.arrangement ||
     (["left", "right"].includes(direction) ? "column" : "row");
   const columns = arrangement === "grid" ? Math.ceil(Math.sqrt(count)) : count;
-  return Array.from({ length: count }, (_, index) => {
+  const proposed = Array.from({ length: count }, (_, index) => {
     const row =
       arrangement === "column"
         ? index
@@ -613,6 +678,20 @@ function positions(
     if (direction === "above") y -= height + gap;
     return { x, y };
   });
+  const obstacles = allNodes(slate).map((node) => ({
+    x: Number(option(node, "x")),
+    y: Number(option(node, "y")),
+    width: Number(option(node, "width", 120)),
+    height: Number(option(node, "height", 80)),
+  }));
+  return avoidNodeCollisions(
+    proposed,
+    obstacles,
+    width,
+    height,
+    direction,
+    gap,
+  );
 }
 
 function invokeAndSend(slate: any, packages: any | any[]): void {
