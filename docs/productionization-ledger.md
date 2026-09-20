@@ -17,13 +17,22 @@ Updated: 2026-09-20
   (sha256 `6fbdf5d6a17d458d592b95216453fb4b0f26fa2422e9151811858af1cefdc374`,
   integrity `sha512-l1S/19dQpEUc1nFF+1oQ17haCitOceAaovu75EVrsULDaimwN3sazW2E1UJuVaK54u1BhNOk3k2wxKhDud9u0Q==`).
 - **Packed-mode port-container gate PASSED 2026-09-20** on the 3.1.2
-  candidate tree: real Meteor 3.5 production image (Node 24.15.0, bcrypt 6 +
+  candidate tree, on BOTH native arm64 and the `linux/amd64` target
+  architecture: real Meteor 3.5 production image (Node 24.15.0, bcrypt 6 +
   Argon2, Underscore 1.13.8, node-gyp removed), clean Mongo 7 replica set,
   and the real-host suite — all 16 collab surfaces A→B plus
   `app-port-invariants` (two-client persistence through undo/redo) — green
   with zero failures. The gate rebuilt `dist/` byte-identical to the
   committed tree. Working dir was the disposable `packed` mode; no tracked
-  app dependency or lock changed.
+  app dependency or lock changed. No local MongoDB exists on the dev host,
+  so the Docker gate IS the sanctioned live-host verification path; the
+  manual :3000 dev-app pass is not an available mode.
+- CI on library PR #10 (runs 35521906566, 35520234205): Node 18/20/22
+  typecheck+unit+build+package-verify and cross-browser Firefox/WebKit all
+  success on the release-branch commits. App-side suites green at app HEAD:
+  slate-operations 27/27, ai-chat-contract 6/6, MCP 5/5, port-package-source
+  / deployment-template / release-version contract tests pass. Library
+  `npm audit --omit=dev` zero vulnerabilities at the candidate tree.
 - Remaining before this can ship: user-approved publish of
   `slateboxjs@3.1.2`, then app pin + lock refresh to exact `3.1.2` and the
   registry-mode gate (`SLATEBOX_LIBRARY_SOURCE=registry`) with integrity and
