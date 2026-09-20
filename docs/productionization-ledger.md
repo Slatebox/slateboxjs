@@ -27,6 +27,18 @@ Updated: 2026-09-20
   app dependency or lock changed. No local MongoDB exists on the dev host,
   so the Docker gate IS the sanctioned live-host verification path; the
   manual :3000 dev-app pass is not an available mode.
+- **Integrity finding 2026-09-20:** the app's `web/app/node_modules/slateboxjs`
+  (and its `.meteor/local/build` copy) was a September local build wearing a
+  3.1.0 label — it contained the link-badge pointer-throttle and the rotate
+  finalize-refresh, which exist in NO published version. npm skips reinstall
+  when the installed version string matches the lock, so the poisoned copy
+  survived the 3.1.0 lock refresh. Consequence: earlier local test runs
+  (including today's first 27/27) actually exercised that patched build, not
+  the registry artifact. Remediated: purged both copies plus the Meteor
+  bundler/build caches, reinstalled from the registry, and the app contract
+  suites (slate-operations 27, MCP 5, ai-chat 6) now pass against a
+  byte-identical copy of the published 3.1.0 tarball. Any future local dev
+  run therefore starts from the same artifact CI uses.
 - CI on library PR #10 (runs 35521906566, 35520234205): Node 18/20/22
   typecheck+unit+build+package-verify and cross-browser Firefox/WebKit all
   success on the release-branch commits. App-side suites green at app HEAD:
