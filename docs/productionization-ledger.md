@@ -1,6 +1,25 @@
 # Slatebox v3 productionization ledger
 
-Updated: 2026-07-14
+Updated: 2026-09-20
+
+## 3.1.2 release candidate (2026-09-20, in progress)
+
+- Drift found: the published `slateboxjs@3.1.0`/`3.1.1` tarballs (2026-07-16)
+  predate the September real-input fixes on `agent/slate-operations-3-1`
+  (rotate/resize selection-kill guard, link-badge click fix, 12 e2e guard
+  specs). The canonical app consumes registry `3.1.0`.
+- `release/3.1.2-candidate` = `origin/main` (includes collision-aware
+  placement #9, the 3.1.1 content) + September src fixes + ported e2e specs,
+  one commit `e7ffd5948317ed201c217cb282f285a16cb68133`, version `3.1.2`.
+- Gates on the merged tree: 1121 unit passed; chromium e2e 292 passed /
+  2 skipped (birdseye click-jump is parallel-timing flaky, green solo and
+  on full rerun); `verify:package` green; two byte-identical packs
+  (sha256 `6fbdf5d6a17d458d592b95216453fb4b0f26fa2422e9151811858af1cefdc374`,
+  integrity `sha512-l1S/19dQpEUc1nFF+1oQ17haCitOceAaovu75EVrsULDaimwN3sazW2E1UJuVaK54u1BhNOk3k2wxKhDud9u0Q==`).
+- Remaining before this can ship: packed-mode port-container gate against
+  the app (blocked: Docker daemon not running), then user-approved publish
+  of `slateboxjs@3.1.2`, then app pin + lock refresh to exact `3.1.2` and
+  the registry-mode gate with recomputed integrity/revision.
 
 This ledger tracks the long-running convergence of the SlateboxJS v3 library and the canonical Meteor 3.5 application. A historical checklist being green is not sufficient evidence; each row names the current artifact or command that proves the product-level requirement.
 
