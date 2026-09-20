@@ -657,11 +657,28 @@ export class Node {
       glyph.setAttribute("pointer-events", "none");
       glyph.textContent = "↗";
       badge.node.appendChild(glyph);
-      badge.on("click", (e: any) => {
+      // Activate the badge on real user clicks. We CANNOT rely on the native
+      // `click` event: the node's drag machinery captures the pointer on
+      // pointerdown, so the browser never synthesizes a `click` on the badge — a
+      // real click would silently do nothing. Instead, stop the pointerdown from
+      // starting a node drag/select, and navigate on pointerup. A `click` handler
+      // is kept for programmatic/synthetic dispatch and accessibility, deduped by
+      // timestamp so a browser that DOES synthesize click won't double-navigate.
+      let lastNav = 0;
+      const activate = (e: any) => {
         e.stopPropagation();
         e.preventDefault?.();
+        const now =
+          typeof performance !== "undefined" ? performance.now() : Date.now();
+        if (now - lastNav < 350) return;
+        lastNav = now;
         this.links?.navigate();
+      };
+      badge.on("pointerdown", (e: any) => {
+        e.stopPropagation();
       });
+      badge.on("pointerup", activate);
+      badge.on("click", activate);
       this._linkBadge = badge;
     } catch (e) {
       /* noop — badge is non-critical decoration */
@@ -2208,6 +2225,30 @@ export class Node {
     clear(this.nestedSvg);
     this.applyPositionAndRotation();
     if (this.textElement) this.centerText();
+
+    // Re-sync the selection overlay (svg.select resize/rotate handles) and the
+    // connection plug-dots to the node's FINAL transform. During an interactive
+    // rotate/resize, svg.select draws its overlay against its own internal state;
+    // once finalizeInteraction re-asserts the canonical group transform, that
+    // overlay + the plug-dots are left detached from the now-rotated node (the
+    // handles stay axis-aligned and the dots sit at the pre-rotation edges).
+    // Refreshing the selection redraws both correctly. Deferred a frame so
+    // svg.resize/select finish their own end-of-drag teardown first.
+    try {
+      const slate = this.slate as any;
+      if (slate?.getSelectedNodes?.().includes(this)) {
+        const refresh = () => {
+          if (!this._destroyed) slate.updateSelectionResizeRotate?.();
+        };
+        if (typeof requestAnimationFrame !== "undefined") {
+          requestAnimationFrame(refresh);
+        } else {
+          refresh();
+        }
+      }
+    } catch (e) {
+      /* overlay refresh is best-effort; never break interaction finalize */
+    }
   }
 
   /**

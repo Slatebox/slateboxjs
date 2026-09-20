@@ -1,5 +1,27 @@
 # Changelog
 
+## [3.1.2] — 2026-09-20
+
+### Fixed
+- Rotating or resizing a node no longer dismisses the selection: the trailing
+  `click` of a drag is dispatched on the common ancestor of the pointer
+  down/up targets, which the canvas-click handler misread as an empty-canvas
+  click. Deselect now requires the pointer to go down on blank canvas and to
+  travel less than 6 px.
+- Selection overlay and plug-dots re-anchor after rotate/resize instead of
+  staying at the pre-rotation edge positions.
+- Node link badges navigate on a real click (not only synthetic events).
+
+### Added
+- Real-input e2e guards for rotate/overlay-follow, connection-handle click,
+  marquee/context menu, copy-paste, inline edit, keyboard nudge, undo/redo
+  keyboard journey, snap-to-grid, birdseye click-to-jump, and multi-select.
+
+## [3.1.1] — 2026-07-16
+
+### Fixed
+- Operation group placement avoids collisions with existing nodes.
+
 ## [3.1.0] — 2026-07-16
 
 ### Added

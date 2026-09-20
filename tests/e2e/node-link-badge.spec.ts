@@ -30,13 +30,8 @@ test.describe("node link badge (§links)", () => {
       const badge = document.querySelector(badgeSel);
       const glyph = badge?.querySelector("text")?.textContent;
 
-      // Clicking the badge follows the link.
-      let opened: string | null = null;
-      const orig = window.open;
-      (window as any).open = (url: string) => { opened = url; return null; };
-      (badge as HTMLElement)?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-      await new Promise((r) => setTimeout(r, 50));
-      window.open = orig;
+      // (Click-navigates is covered robustly by the real-mouse test below; this
+      // test focuses on render / glyph / resize-tracking / unset.)
 
       // Badge follows a resize (it's anchored to the node width).
       const circleX = () => ((document.querySelector(badgeSel + " circle") as any)?.getBBox?.().x ?? 0);
@@ -50,13 +45,12 @@ test.describe("node link badge (§links)", () => {
       await new Promise((r) => setTimeout(r, 100));
       const afterUnset = !!document.querySelector(badgeSel);
 
-      return { before, hasBadge: !!badge, glyph, opened, afterUnset, badgeXBefore, badgeXAfter };
+      return { before, hasBadge: !!badge, glyph, afterUnset, badgeXBefore, badgeXAfter };
     });
 
     expect(res.before).toBe(false); // no badge before a link
     expect(res.hasBadge).toBe(true); // badge appears when linked
     expect(res.glyph).toBe("↗");
-    expect(res.opened).toBe("https://example.com/x"); // click navigates
     expect(res.badgeXAfter).toBeGreaterThan(res.badgeXBefore + 100); // badge tracks the wider node
     expect(res.afterUnset).toBe(false); // badge removed on unset
   });
@@ -107,5 +101,47 @@ test.describe("node link badge (§links)", () => {
 
     expect(res.openedEdit).toBe(null); // edit-mode click selects, not navigate
     expect(res.openedView).toBe("https://example.com/view"); // view-mode click follows
+  });
+
+  // The tests above dispatch synthetic events. This drives a REAL page.mouse click
+  // directly on the "↗" badge and asserts the link is followed (window.open) — the
+  // exact interaction a person performs when they click the badge.
+  test("a real click on the badge follows the link", async ({ page }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText =
+        "width:600px;height:400px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        {}
+      ).init();
+      const n = s.nodes.add(
+        new sb.node({ id: "LB", xPos: 140, yPos: 120, width: 180, height: 100, text: "L" })
+      );
+      await new Promise((r) => setTimeout(r, 250));
+      n.v2.links.set({ show: true, type: "url", data: "https://example.com/real" });
+      await new Promise((r) => setTimeout(r, 150));
+      // Capture navigations through the real click pipeline.
+      (window as any).__opened = [];
+      (window as any).open = (url: string) => {
+        (window as any).__opened.push(url);
+        return null;
+      };
+    });
+
+    const badge = page.locator('#slateCanvas [data-node-id="LB"] .node-link-badge');
+    await expect(badge).toBeVisible();
+    const box = await badge.boundingBox();
+    expect(box).not.toBeNull();
+    await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await page.waitForTimeout(150);
+
+    const opened = await page.evaluate(() => (window as any).__opened);
+    expect(opened).toContain("https://example.com/real");
   });
 });

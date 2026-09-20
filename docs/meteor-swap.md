@@ -55,13 +55,21 @@ version `3.0.0`, regenerate `web/app/package-lock.json` with npm 11 and
 ```sh
 cd ~/Projects/node/app.slatebox.com
 SLATEBOX_LIBRARY_SOURCE=registry \
-SLATEBOX_LIBRARY_VERSION=3.0.0 \
-SLATEBOX_LIBRARY_INTEGRITY='sha512-O/1T67Q1fbFRnuB+ykNehgjKZ8tfIxe9jv+SelxtffvPt4hFC9+ktSuu/bOivzYYYM1G2D1yyTKfW+pOVvkcxw==' \
-SLATEBOX_LIBRARY_REVISION=7655b0d1b6e723b57fa70bb29659a08bbc76ba67 \
+SLATEBOX_LIBRARY_VERSION=3.1.2 \
+SLATEBOX_LIBRARY_INTEGRITY='sha512-l1S/19dQpEUc1nFF+1oQ17haCitOceAaovu75EVrsULDaimwN3sazW2E1UJuVaK54u1BhNOk3k2wxKhDud9u0Q==' \
+SLATEBOX_LIBRARY_REVISION=<40-char-SHA-of-the-library-release-commit-whose-tree-produced-this-tarball> \
 SLATEBOX_PORT_PLATFORM=linux/amd64 \
 SLATEBOX_PORT_IMAGE=slatebox-port:meteor-3.5-registry \
 npm run test:port-container
 ```
+
+The 3.1.2 candidate values above were computed from two byte-identical local
+packs of the `release/3.1.2-candidate` tree on 2026-09-20 (SHA-256
+`6fbdf5d6a17d458d592b95216453fb4b0f26fa2422e9151811858af1cefdc374`). They are
+a release candidate, not a published artifact: recompute and replace all four
+values against the actual published tarball before running the gate, and
+re-run `npm run verify:package` plus the app contract suites if the tarball
+is repacked from a different checkout.
 
 Registry mode does not pack or substitute the sibling checkout. It requires:
 

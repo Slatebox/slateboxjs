@@ -55,4 +55,61 @@ test.describe("BirdsEye minimap reflects nodes (§birdseye)", () => {
     // Two more nodes ⇒ at least two more thumbnail rects.
     expect(after).toBeGreaterThanOrEqual(setup.rects + 2);
   });
+
+  // Click-to-jump navigation: previously "verified live only" because the v1-facade
+  // harness didn't mount panZoom. The SlateboxJS() factory DOES mount panZoom (see
+  // zoom-controls.spec), so we can now drive a REAL click on the minimap and assert
+  // the viewport pans — the actual human "click the map to jump there" interaction.
+  test("a real click on the minimap jumps the viewport (pan changes)", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).SlateboxJS);
+    const mounted = await page.evaluate(async () => {
+      const s = (window as any).SlateboxJS("#app", {
+        viewPort: { allowZoom: true, allowPan: true },
+        birdsEye: { enabled: true },
+      });
+      (window as any).__bs = s;
+      // Spread nodes so content bounds are large enough for a meaningful jump.
+      for (const [id, x, y] of [
+        ["A", 100, 100],
+        ["B", 900, 200],
+        ["C", 300, 800],
+        ["D", 1100, 900],
+      ] as [string, number, number][]) {
+        const n = s.addNode({ id, x, y, width: 120, height: 80, text: id });
+        await n.ready;
+      }
+      await new Promise((r) => setTimeout(r, 1200));
+      return !!document.querySelector(".slateboxjs-birdseye svg");
+    });
+
+    test.skip(!mounted, "BirdsEye/panZoom not mounted in this harness config");
+
+    const panBefore = await page.evaluate(() =>
+      (window as any).__bs.panZoom.getPan()
+    );
+
+    // Real click near the BOTTOM-RIGHT of the minimap. At pan (0,0) the viewport
+    // indicator sits in the top-left, so a bottom-right click lands off it (a click
+    // on the indicator stops propagation and would pan continuously instead).
+    const mini = await page.evaluate(() => {
+      const svg = document.querySelector(
+        ".slateboxjs-birdseye svg"
+      ) as SVGSVGElement;
+      const r = svg.getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width, h: r.height };
+    });
+    await page.mouse.click(mini.x + mini.w * 0.85, mini.y + mini.h * 0.85);
+    await page.waitForTimeout(400);
+
+    const panAfter = await page.evaluate(() =>
+      (window as any).__bs.panZoom.getPan()
+    );
+    // The viewport actually moved in response to the click.
+    const moved =
+      Math.abs(panAfter.x - panBefore.x) + Math.abs(panAfter.y - panBefore.y);
+    expect(moved).toBeGreaterThan(5);
+  });
 });

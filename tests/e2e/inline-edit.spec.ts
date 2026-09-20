@@ -52,4 +52,77 @@ test.describe("inline text edit (§editor)", () => {
     const afterEscape = await page.evaluate(() => (window as any).__A.options.text);
     expect(afterEscape).toBe("NewLabel");
   });
+
+  // The real human triggers: double-click to start, click-away (blur) to commit,
+  // Shift+Enter for a newline. The test above drives startInline() directly; these
+  // exercise the actual on-canvas interactions.
+  async function bootNode(page: import("@playwright/test").Page) {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText =
+        "width:600px;height:500px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        {}
+      ).init();
+      const A = s.nodes.add(
+        new sb.node({ id: "A", xPos: 120, yPos: 120, width: 160, height: 80, text: "Old" })
+      );
+      await new Promise((r) => setTimeout(r, 300));
+      (window as any).__A = A.v2;
+    });
+  }
+
+  function nodeCenter(page: import("@playwright/test").Page) {
+    return page.evaluate(() => {
+      const el = document.querySelector(
+        '#slateCanvas [data-node-id="A"]'
+      ) as SVGGraphicsElement;
+      const r = el.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    });
+  }
+
+  test("a real double-click starts inline editing", async ({ page }) => {
+    await bootNode(page);
+    const c = await nodeCenter(page);
+    await page.mouse.dblclick(c.x, c.y);
+    await expect(page.locator(".sb-inline-editor")).toBeVisible();
+  });
+
+  test("clicking away (blur) commits the edit", async ({ page }) => {
+    await bootNode(page);
+    await page.evaluate(() => (window as any).__A.editor.startInline());
+    await expect(page.locator(".sb-inline-editor")).toBeVisible();
+    await page.waitForTimeout(120);
+    await page.keyboard.type("BlurCommit");
+    // Click empty canvas away from the node → blur → commit.
+    await page.mouse.click(480, 420);
+    await expect(page.locator(".sb-inline-editor")).toHaveCount(0);
+    const committed = await page.evaluate(() => (window as any).__A.options.text);
+    expect(committed).toBe("BlurCommit");
+  });
+
+  test("Shift+Enter inserts a newline instead of committing", async ({ page }) => {
+    await bootNode(page);
+    await page.evaluate(() => (window as any).__A.editor.startInline());
+    await expect(page.locator(".sb-inline-editor")).toBeVisible();
+    await page.waitForTimeout(120);
+    await page.keyboard.type("Line1");
+    await page.keyboard.press("Shift+Enter");
+    await page.keyboard.type("Line2");
+    // Editor still open (Shift+Enter did NOT commit).
+    await expect(page.locator(".sb-inline-editor")).toBeVisible();
+    await page.keyboard.press("Enter"); // now commit
+    await expect(page.locator(".sb-inline-editor")).toHaveCount(0);
+    const committed = await page.evaluate(() => (window as any).__A.options.text);
+    expect(committed).toContain("Line1");
+    expect(committed).toContain("Line2");
+    expect(committed).toMatch(/Line1[\s\S]*Line2/);
+  });
 });
