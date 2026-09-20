@@ -1,9 +1,12 @@
 # Slatebox v3 production candidate runbook
 
-This runbook coordinates the `slateboxjs@3.0.0` library and the canonical
-Meteor 3.5 application. Publishing and deployment remain explicit release
-decisions; the commands below do not authorize `npm publish`, a merge, or a
-cluster mutation.
+This runbook coordinates the SlateboxJS library and the canonical Meteor 3.5
+application. The `slateboxjs@3.0.0` cycle completed in July 2026 (published;
+deployed to test as app release 1.3.0). The current cycle is
+`slateboxjs@3.1.2` on `release/3.1.2-candidate` (library PR #10): the
+September real-input fixes composed onto the published 3.1.1 lineage.
+Publishing and deployment remain explicit release decisions; the commands
+below do not authorize `npm publish`, a merge, or a cluster mutation.
 
 ## Reproduce the candidate locally
 
@@ -28,7 +31,8 @@ The gate builds and packs the library, creates a disposable app context with a
 clean npm 11 lock, builds the production Dockerfile, and verifies:
 
 - Meteor 3.5 with Node 24.15.0;
-- `slateboxjs@3.0.0` in the final server bundle;
+- the exact `slateboxjs` version under release in the final server bundle
+  (asserted via `SLATEBOX_LIBRARY_VERSION`);
 - native Sharp loading in the Alpine runtime;
 - a clean Mongo 7 replica set and `/readyz`/`/livez` health endpoints;
 - all 16 real-host collaboration surfaces; and
@@ -46,13 +50,22 @@ must be verified without substituting a local pack:
 
 ```sh
 SLATEBOX_LIBRARY_SOURCE=registry \
-SLATEBOX_LIBRARY_VERSION=3.0.0 \
-SLATEBOX_LIBRARY_INTEGRITY='sha512-O/1T67Q1fbFRnuB+ykNehgjKZ8tfIxe9jv+SelxtffvPt4hFC9+ktSuu/bOivzYYYM1G2D1yyTKfW+pOVvkcxw==' \
-SLATEBOX_LIBRARY_REVISION=7655b0d1b6e723b57fa70bb29659a08bbc76ba67 \
+SLATEBOX_LIBRARY_VERSION=3.1.2 \
+SLATEBOX_LIBRARY_INTEGRITY='sha512-RECOMPUTE-FROM-PUBLISHED-TARBALL' \
+SLATEBOX_LIBRARY_REVISION=<40-char-SHA-of-the-library-commit-whose-tree-produced-the-published-tarball> \
 SLATEBOX_PORT_PLATFORM=linux/amd64 \
 SLATEBOX_PORT_IMAGE=slatebox-port:meteor-3.5-registry \
 npm run test:port-container
 ```
+
+Candidate pre-flight evidence (2026-09-20): packed-mode gates passed on both
+native arm64 and `linux/amd64` against the `release/3.1.2-candidate` tree —
+16/16 collaboration surfaces and Mongo-backed undo/redo invariants, zero
+failures. The candidate pack was reproducible (two byte-identical tarballs,
+SHA-256 `6fbdf5d6a17d458d592b95216453fb4b0f26fa2422e9151811858af1cefdc374`,
+local integrity `sha512-l1S/19dQpEUc1nFF+1oQ17haCitOceAaovu75EVrsULDaimwN3sazW2E1UJuVaK54u1BhNOk3k2wxKhDud9u0Q==`).
+These are pre-publication values: replace integrity and revision with the
+values returned for the actual published artifact before running the gate.
 
 Registry mode rejects a range, `file:` dependency, non-registry lock entry,
 integrity mismatch, or abbreviated library revision. It then asserts the
@@ -62,12 +75,12 @@ commit in the image labels.
 ## Promotion order
 
 1. Review and merge the library PR at its fully green SHA.
-2. With explicit user approval, publish the immutable `slateboxjs@3.0.0`
+2. With explicit user approval, publish the immutable `slateboxjs@3.1.2`
    package and verify its registry version and integrity.
-3. Replace the app's sibling tarball dependency with exact version `3.0.0`,
-   regenerate its lock with npm 11 and `legacy-peer-deps=false`, and rerun the
-   candidate gate in `registry` mode using the registry integrity returned by
-   npm. A default packed-mode run is not release evidence at this stage.
+3. Update the app's `slateboxjs` dependency and lock from `3.1.0` to exact
+   `3.1.2` (npm 11, `legacy-peer-deps=false`), then rerun the candidate gate
+   in `registry` mode using the registry integrity returned by npm. A default
+   packed-mode run is not release evidence at this stage.
 4. Resolve or formally accept the app production-dependency audit findings.
    Critical findings are a production promotion blocker unless their paths are
    proven unreachable and recorded.

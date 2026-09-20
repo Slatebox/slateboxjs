@@ -18,7 +18,7 @@ the only diagramming engine behind it.
 
 ## Pre-publication development loop
 
-Before `slateboxjs@3.0.0` is published, run the paired candidate from the app
+Before `slateboxjs@3.1.2` is published, run the paired candidate from the app
 checkout with the sibling library at `../slateboxjs-v2`:
 
 ```sh
@@ -40,7 +40,7 @@ npm run build
 npm pack
 
 cd ~/Projects/node/app.slatebox.com/web/app
-meteor npm install ../../../slateboxjs-v2/slateboxjs-3.0.0.tgz
+meteor npm install ../../../slateboxjs-v2/slateboxjs-3.1.2.tgz
 rm -rf .meteor/local/bundler-cache
 ```
 
@@ -49,7 +49,7 @@ Do not commit that file dependency as the final release state.
 ## Published-package verification
 
 After explicit publication approval, replace the app dependency with exact
-version `3.0.0`, regenerate `web/app/package-lock.json` with npm 11 and
+version `3.1.2`, regenerate `web/app/package-lock.json` with npm 11 and
 `legacy-peer-deps=false`, then run the gate in `registry` mode:
 
 ```sh
