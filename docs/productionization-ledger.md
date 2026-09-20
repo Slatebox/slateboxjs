@@ -16,10 +16,18 @@ Updated: 2026-09-20
   on full rerun); `verify:package` green; two byte-identical packs
   (sha256 `6fbdf5d6a17d458d592b95216453fb4b0f26fa2422e9151811858af1cefdc374`,
   integrity `sha512-l1S/19dQpEUc1nFF+1oQ17haCitOceAaovu75EVrsULDaimwN3sazW2E1UJuVaK54u1BhNOk3k2wxKhDud9u0Q==`).
-- Remaining before this can ship: packed-mode port-container gate against
-  the app (blocked: Docker daemon not running), then user-approved publish
-  of `slateboxjs@3.1.2`, then app pin + lock refresh to exact `3.1.2` and
-  the registry-mode gate with recomputed integrity/revision.
+- **Packed-mode port-container gate PASSED 2026-09-20** on the 3.1.2
+  candidate tree: real Meteor 3.5 production image (Node 24.15.0, bcrypt 6 +
+  Argon2, Underscore 1.13.8, node-gyp removed), clean Mongo 7 replica set,
+  and the real-host suite — all 16 collab surfaces A→B plus
+  `app-port-invariants` (two-client persistence through undo/redo) — green
+  with zero failures. The gate rebuilt `dist/` byte-identical to the
+  committed tree. Working dir was the disposable `packed` mode; no tracked
+  app dependency or lock changed.
+- Remaining before this can ship: user-approved publish of
+  `slateboxjs@3.1.2`, then app pin + lock refresh to exact `3.1.2` and the
+  registry-mode gate (`SLATEBOX_LIBRARY_SOURCE=registry`) with integrity and
+  revision recomputed against the published tarball.
 
 This ledger tracks the long-running convergence of the SlateboxJS v3 library and the canonical Meteor 3.5 application. A historical checklist being green is not sufficient evidence; each row names the current artifact or command that proves the product-level requirement.
 
