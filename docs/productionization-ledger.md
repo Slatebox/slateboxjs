@@ -45,6 +45,17 @@ Updated: 2026-09-20
   slate-operations 27/27, ai-chat-contract 6/6, MCP 5/5, port-package-source
   / deployment-template / release-version contract tests pass. Library
   `npm audit --omit=dev` zero vulnerabilities at the candidate tree.
+- Publish attempt 2026-09-21: pre-publish unit smoke green (1121/1121, tree
+  unchanged since the gates); `npm publish` blocked — the stored
+  registry.npmjs.org `_authToken` in ~/.npmrc returns 401 (expired). No env
+  token, no keychain credential. User must `npm login` or add a fresh
+  publish-scoped token; then publish `slateboxjs@3.1.2` from
+  `release/3.1.2-candidate` and verify the published integrity equals
+  `sha512-l1S/19dQpEUc1nFF+1oQ17haCitOceAaovu75EVrsULDaimwN3sazW2E1UJuVaK54u1BhNOk3k2wxKhDud9u0Q==`
+  (mismatch = dirty-tree build: stop, do not fix-forward). Remaining chain
+  after publish: app pin to exact 3.1.2 + lock regen + registry-mode gate on
+  linux/amd64 (full command in docs/meteor-swap.md), then test-cluster
+  promotion (user-reserved).
 - Remaining before this can ship: user-approved publish of
   `slateboxjs@3.1.2`, then app pin + lock refresh to exact `3.1.2` and the
   registry-mode gate (`SLATEBOX_LIBRARY_SOURCE=registry`) with integrity and
