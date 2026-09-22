@@ -200,6 +200,19 @@ export class Slate {
    */
   private enteredGroupId: string | null = null;
   private _coordinateIntervalId: ReturnType<typeof setInterval> | null = null;
+  /**
+   * Provenance of the last real pointerdown (client coords, whether it hit the
+   * blank canvas itself, timestamp). Lets the canvas-click deselect tell a true
+   * click on empty space apart from the trailing `click` of a drag whose
+   * pointerdown happened elsewhere (rotate/resize handles, marquee, pan).
+   */
+  private _lastPointerDown: {
+    x: number;
+    y: number;
+    onCanvas: boolean;
+    time: number;
+  } | null = null;
+  private _windowPointerDownHandler: ((e: PointerEvent) => void) | null = null;
   private _destroyed: boolean = false;
   private _applyingRemote: boolean = false;
   private _hadGroupSelection: boolean = false;
@@ -513,6 +526,13 @@ export class Slate {
 
     // Remove canvas click handler
     this.canvas.off("click");
+
+    // Remove the window pointerdown tracker
+    if (this._windowPointerDownHandler) {
+      window.removeEventListener("pointerdown", this._windowPointerDownHandler, true);
+      this._windowPointerDownHandler = null;
+    }
+    this._lastPointerDown = null;
 
     // Chain destroy to sub-modules
     if (this.panZoom) {
@@ -1194,6 +1214,23 @@ export class Slate {
 
   // Selection Management
   private setupSelectionHandling() {
+    // Record every pointerdown (capture phase, so handlers that stop propagation
+    // can't hide it) so the canvas-click handler can see where the matching
+    // interaction STARTED, not just where its trailing click was dispatched.
+    const onPointerDown = (e: PointerEvent) => {
+      const t = e.target as Element | null;
+      this._lastPointerDown = {
+        x: e.clientX,
+        y: e.clientY,
+        onCanvas:
+          !!t &&
+          (t === this.canvas.node || t.tagName?.toLowerCase() === "svg"),
+        time: Date.now(),
+      };
+    };
+    window.addEventListener("pointerdown", onPointerDown, true);
+    this._windowPointerDownHandler = onPointerDown;
+
     // Add canvas click handler to deselect all nodes when clicking empty space
     this.canvas.on("click", (event: any) => {
       console.log(
@@ -1214,6 +1251,32 @@ export class Slate {
       const sinceRubberBand = Date.now() - ((this as any)._rubberBandSelectedAt || 0);
       if (sinceRubberBand < 400) {
         (this as any)._rubberBandSelectedAt = 0;
+        return;
+      }
+
+      // A drag that was released over empty canvas dispatches its trailing
+      // `click` on the nearest COMMON ANCESTOR of the pointerdown/pointerup
+      // targets — the SVG root — which the isCanvasClick check above would
+      // otherwise read as a click on empty space, wiping the selection. Rotate
+      // and resize handles, marquee, and pan all routinely release over blank
+      // canvas. A real click never travels, so distinguish by the DOWN→up
+      // distance and by where the pointer went down (not by time: a deliberate
+      // rotation can take longer than any timeout, and that must still keep
+      // the selection). With no recorded pointerdown at all (synthetic
+      // dispatched clicks in tests) keep the legacy behaviour.
+      const pd = this._lastPointerDown;
+      const isDragTail =
+        !!pd &&
+        (!pd.onCanvas ||
+          Math.hypot(
+            (event.clientX ?? 0) - pd.x,
+            (event.clientY ?? 0) - pd.y
+          ) > 6);
+
+      if (isCanvasClick && isDragTail) {
+        console.log(
+          "SELECTION_DEBUG: Drag-tail click (started on a handle/node or travelled) - not deselecting"
+        );
         return;
       }
 

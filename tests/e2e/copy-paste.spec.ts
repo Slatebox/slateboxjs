@@ -64,4 +64,62 @@ test.describe("copy / paste / duplicate (§keyboard)", () => {
     expect(res.dupOffsetX).toBe(20); // offset from the source
     expect(res.dupOffsetY).toBe(20);
   });
+
+  // The test above dispatches synthetic KeyboardEvents. This one uses the REAL
+  // browser keyboard (page.keyboard.press) so the whole key pipeline is exercised
+  // the way a person's keystrokes actually arrive.
+  test("real key presses: Ctrl+A selects all, Ctrl+D duplicates, Ctrl+C/V pastes", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText =
+        "width:900px;height:700px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        {}
+      ).init();
+      (window as any).__s = s;
+      const a = s.nodes.add(
+        new sb.node({ id: "A", xPos: 220, yPos: 200, width: 130, height: 80, text: "A" })
+      );
+      const b = s.nodes.add(
+        new sb.node({ id: "B", xPos: 480, yPos: 200, width: 130, height: 80, text: "B" })
+      );
+      if (a.v2.ready) await a.v2.ready;
+      if (b.v2.ready) await b.v2.ready;
+      await new Promise((r) => setTimeout(r, 300));
+    });
+
+    // Focus the canvas so key events route to the Keyboard handler.
+    await page.mouse.click(700, 500);
+    await page.waitForTimeout(100);
+
+    const count = () =>
+      page.evaluate(() => (window as any).__s.v2.nodes.allNodes.length);
+    const selCount = () =>
+      page.evaluate(() => (window as any).__s.v2.getSelectedNodes().length);
+
+    // Ctrl+A selects all.
+    await page.keyboard.press("Control+a");
+    await page.waitForTimeout(200);
+    expect(await selCount()).toBe(2);
+
+    // Ctrl+D duplicates the selection (2 → 4).
+    await page.keyboard.press("Control+d");
+    await page.waitForTimeout(500);
+    expect(await count()).toBe(4);
+
+    // Ctrl+C / Ctrl+V copies+pastes the current selection (4 → 6).
+    await page.keyboard.press("Control+c");
+    await page.waitForTimeout(150);
+    await page.keyboard.press("Control+v");
+    await page.waitForTimeout(500);
+    expect(await count()).toBe(6);
+  });
 });

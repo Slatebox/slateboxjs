@@ -1,6 +1,77 @@
 # Slatebox v3 productionization ledger
 
-Updated: 2026-07-14
+Updated: 2026-09-20
+
+## 3.1.2 published and integrated (2026-09-21)
+
+- `slateboxjs@3.1.2` published to npm 2026-09-21 with user-supplied OTP; the
+  published tarball's integrity (`sha512-l1S/19dQpEUc1nFF+1oQ17haCitOceAaovu75EVrsULDaimwN3sazW2E1UJuVaK54u1BhNOk3k2wxKhDud9u0Q==`)
+  was verified equal to the pre-publication candidate packs before anything
+  else ran — the dirty-tree guard passed. Provenance tag `v3.1.2` → library
+  commit `e7ffd5948317ed201c217cb282f285a16cb68133`, pushed.
+- Drift found: the published `slateboxjs@3.1.0`/`3.1.1` tarballs (2026-07-16)
+  predate the September real-input fixes on `agent/slate-operations-3-1`
+  (rotate/resize selection-kill guard, link-badge click fix, 12 e2e guard
+  specs). The canonical app had been consuming registry `3.1.0`; it now
+  consumes `3.1.2` via app PR #64.
+- `release/3.1.2-candidate` = `origin/main` (includes collision-aware
+  placement #9, the 3.1.1 content) + September src fixes + ported e2e specs,
+  one commit `e7ffd5948317ed201c217cb282f285a16cb68133`, version `3.1.2`.
+- Gates on the merged tree: 1121 unit passed; chromium e2e 292 passed /
+  2 skipped (birdseye click-jump is parallel-timing flaky, green solo and
+  on full rerun); `verify:package` green; two byte-identical packs
+  (sha256 `6fbdf5d6a17d458d592b95216453fb4b0f26fa2422e9151811858af1cefdc374`,
+  integrity `sha512-l1S/19dQpEUc1nFF+1oQ17haCitOceAaovu75EVrsULDaimwN3sazW2E1UJuVaK54u1BhNOk3k2wxKhDud9u0Q==`).
+- **Packed-mode port-container gate PASSED 2026-09-20** on the 3.1.2
+  candidate tree, on BOTH native arm64 and the `linux/amd64` target
+  architecture: real Meteor 3.5 production image (Node 24.15.0, bcrypt 6 +
+  Argon2, Underscore 1.13.8, node-gyp removed), clean Mongo 7 replica set,
+  and the real-host suite — all 16 collab surfaces A→B plus
+  `app-port-invariants` (two-client persistence through undo/redo) — green
+  with zero failures. The gate rebuilt `dist/` byte-identical to the
+  committed tree. Working dir was the disposable `packed` mode; no tracked
+  app dependency or lock changed. No local MongoDB exists on the dev host,
+  so the Docker gate IS the sanctioned live-host verification path; the
+  manual :3000 dev-app pass is not an available mode.
+- **Integrity finding 2026-09-20:** the app's `web/app/node_modules/slateboxjs`
+  (and its `.meteor/local/build` copy) was a September local build wearing a
+  3.1.0 label — it contained the link-badge pointer-throttle and the rotate
+  finalize-refresh, which exist in NO published version. npm skips reinstall
+  when the installed version string matches the lock, so the poisoned copy
+  survived the 3.1.0 lock refresh. Consequence: earlier local test runs
+  (including today's first 27/27) actually exercised that patched build, not
+  the registry artifact. Remediated: purged both copies plus the Meteor
+  bundler/build caches, reinstalled from the registry, and the app contract
+  suites (slate-operations 27, MCP 5, ai-chat 6) now pass against a
+  byte-identical copy of the published 3.1.0 tarball. Any future local dev
+  run therefore starts from the same artifact CI uses.
+- CI on library PR #10 (runs 35521906566, 35520234205): Node 18/20/22
+  typecheck+unit+build+package-verify and cross-browser Firefox/WebKit all
+  success on the release-branch commits. App-side suites green at app HEAD:
+  slate-operations 27/27, ai-chat-contract 6/6, MCP 5/5, port-package-source
+  / deployment-template / release-version contract tests pass. Library
+  `npm audit --omit=dev` zero vulnerabilities at the candidate tree.
+- Publish path notes: pre-publish unit smoke stayed green (1121/1121, tree
+  unchanged); the first publish attempt was blocked on an expired npm token,
+  which the user resolved via `npm login` + OTP before the successful run.
+  The dirty-tree guard (published integrity must equal the precomputed sha)
+  was enforced and passed. No fix-forward versions exist: 3.1.2 is the release.
+- App integration complete on branch `release/consume-slateboxjs-3.1.2`
+  (commit `90bf033e25354b39fdc77f10c1c9098cc00a0758`, draft app PR #64):
+  exact `3.1.2` pin + regenerated lock resolving the registry tarball at the
+  published integrity; installed artifact byte-identical to the tested
+  candidate; contract suites green on the published package (27+5+6).
+- Registry-mode port-container gate PASSED 2026-09-21 on `linux/amd64`
+  against the published package: first attempt aborted on a cold-Docker
+  MongoDB warm-up timeout (infrastructure only, no gate weakening); warm
+  rerun green — Meteor 3.5 image, Mongo 7 replica set, all 16 collab
+  surfaces (`onNodeRotated` included) and two-client Mongo-backed
+  persistence/undo invariants. The built image's server bundle was then
+  independently verified to contain slateboxjs@3.1.2 including the rotate
+  selection fix.
+- Remaining (user-reserved only): review/merge library PR #10 and app PR
+  #64, test-cluster promotion of the app PR merge, cluster smoke, and
+  rollback evidence per docs/production-candidate-runbook.md.
 
 This ledger tracks the long-running convergence of the SlateboxJS v3 library and the canonical Meteor 3.5 application. A historical checklist being green is not sufficient evidence; each row names the current artifact or command that proves the product-level requirement.
 
@@ -8,7 +79,7 @@ This ledger tracks the long-running convergence of the SlateboxJS v3 library and
 
 | Surface               | Canonical location                    | Current role                                                             | Evidence / action                                                                                                                                                                                           |
 | --------------------- | ------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Diagramming library   | `~/Projects/node/slateboxjs-v2`       | `slateboxjs@3.0.0`, modern engine plus 2.x migration facade              | `package.json`, `src/index.ts`, `src/compat-facade.ts`                                                                                                                                                      |
+| Diagramming library   | `~/Projects/node/slateboxjs-v2`       | `slateboxjs` published through `3.1.1`; current cycle `3.1.2` on `release/3.1.2-candidate` (PR #10), modern engine plus 2.x migration facade | `package.json`, `src/index.ts`, `src/compat-facade.ts`, `docs/production-candidate-runbook.md`                                                                                    |
 | Meteor application    | `~/Projects/node/app.slatebox.com`    | Canonical Meteor 3.5 product app, release `1.3.0` deployed to test       | App PR [Slatebox/slatebox-app#33](https://github.com/Slatebox/slatebox-app/pull/33) merged as `534708e`; test revision 40 runs the exact published v3 package. Production promotion still requires a separate `test` to `main` review. |
 | Older app checkout    | `~/Projects/node/slatebox`            | Reference/in-flight checkout, not an independent product source of truth | Compare and deliberately port or retire its uncommitted work; do not merge its whole tree blindly.                                                                                                          |
 | Collaboration service | `~/Projects/node/collab.slatebox.com` | Authenticated Yjs/y-websocket relay                                      | `docs/collab-migration.md` plus library and host two-client tests                                                                                                                                           |

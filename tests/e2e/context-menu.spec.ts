@@ -71,4 +71,51 @@ test.describe("node right-click context menu (§contextmenu)", () => {
     expect(res.countAfterDup).toBe(res.countBefore + 1); // Duplicate added one
     expect(res.aGone).toBe(true); // Delete removed A
   });
+
+  // The test above dispatches a synthetic `contextmenu` event and clicks the row
+  // programmatically. This one uses a REAL right-click (page.mouse button:right)
+  // and a REAL click on the menu row — the exact interaction a person performs.
+  test("a real right-click opens the menu; a real click on Delete removes the node", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText =
+        "width:900px;height:700px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        {}
+      ).init();
+      (window as any).__s = s;
+      s.nodes.add(new sb.node({ id: "A", xPos: 200, yPos: 180, width: 130, height: 80, text: "A" }));
+      await new Promise((r) => setTimeout(r, 300));
+    });
+
+    const c = await page.evaluate(() => {
+      const g = document.querySelector(
+        '#slateCanvas [data-node-id="A"]'
+      ) as SVGGraphicsElement;
+      const r = g.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    });
+
+    // Real right-click opens the HTML menu.
+    await page.mouse.click(c.x, c.y, { button: "right" });
+    const menu = page.locator(".sb-context-menu");
+    await expect(menu).toBeVisible();
+    await expect(menu.locator("> div")).toHaveCount(4);
+
+    // Real click on the Delete row removes the node.
+    await menu.locator("> div", { hasText: /delete/i }).click();
+    await page.waitForTimeout(150);
+    const aGone = await page.evaluate(() => !(window as any).__s.nodes.one("A"));
+    expect(aGone).toBe(true);
+    // Menu closes after an action.
+    await expect(menu).toHaveCount(0);
+  });
 });

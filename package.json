@@ -1,6 +1,6 @@
 {
   "name": "slateboxjs",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "description": "Slatebox.js — modern diagramming library for mind mapping, concept drawing, and brainstorming. Ground-up rewrite on svg.js.",
   "repository": {
     "type": "git",

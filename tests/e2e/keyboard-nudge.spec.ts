@@ -47,4 +47,42 @@ test.describe("keyboard arrow-nudge persists (§keyboard)", () => {
     expect(res.moveBroadcasts).toBeGreaterThan(0); // persisted via broadcast
     expect(res.lastMoveHasNode).toBe(true); // package carries the node options
   });
+
+  // The test above dispatches synthetic keydowns. This uses the REAL browser
+  // keyboard and also proves Shift+Arrow nudges by a LARGER step than a plain arrow.
+  test("real arrow keys nudge; Shift+Arrow nudges further", async ({ page }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).SlateboxJS);
+    await page.evaluate(async () => {
+      const s = (window as any).SlateboxJS("#app", {
+        viewPort: { originalWidth: 1200, originalHeight: 800 },
+        panZoom: { enabled: false },
+      });
+      (window as any).slate = s;
+      const a = s.addNode({ id: "N", x: 300, y: 300, width: 120, height: 80, text: "N" });
+      if (a.ready) await a.ready;
+      s.selectNodes([a], false);
+      await new Promise((r) => setTimeout(r, 100));
+    });
+
+    const x = () =>
+      page.evaluate(() =>
+        Math.round((window as any).slate.nodes.one("N").options.x)
+      );
+
+    // Plain ArrowRight → small step.
+    const x0 = await x();
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(120);
+    const x1 = await x();
+    const plainStep = x1 - x0;
+    expect(plainStep).toBeGreaterThan(0);
+
+    // Shift+ArrowRight → larger step.
+    await page.keyboard.press("Shift+ArrowRight");
+    await page.waitForTimeout(120);
+    const x2 = await x();
+    const shiftStep = x2 - x1;
+    expect(shiftStep).toBeGreaterThan(plainStep);
+  });
 });

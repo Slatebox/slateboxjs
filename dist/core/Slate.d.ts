@@ -155,6 +155,14 @@ export declare class Slate {
      */
     private enteredGroupId;
     private _coordinateIntervalId;
+    /**
+     * Provenance of the last real pointerdown (client coords, whether it hit the
+     * blank canvas itself, timestamp). Lets the canvas-click deselect tell a true
+     * click on empty space apart from the trailing `click` of a drag whose
+     * pointerdown happened elsewhere (rotate/resize handles, marquee, pan).
+     */
+    private _lastPointerDown;
+    private _windowPointerDownHandler;
     private _destroyed;
     private _applyingRemote;
     private _hadGroupSelection;

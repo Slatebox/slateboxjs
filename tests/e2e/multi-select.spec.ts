@@ -107,4 +107,67 @@ test.describe("rubber-band multi-select (§U20)", () => {
     expect(res.afterUp).toBe(2); // rubber-band selected A + B
     expect(res.afterClick).toEqual(["A", "B"]); // trailing click did NOT wipe it
   });
+
+  // Both tests above dispatch synthetic PointerEvents. This drives a REAL mouse
+  // drag (page.mouse) across empty canvas — the full browser hit-testing + event
+  // pipeline a person actually triggers when they drag-select.
+  test("a real mouse drag rubber-band-selects the overlapped nodes", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText =
+        "width:900px;height:700px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        {}
+      ).init();
+      (window as any).__s = s;
+      s.nodes.add(new sb.node({ id: "A", xPos: 200, yPos: 150, width: 120, height: 80, text: "A" }));
+      s.nodes.add(new sb.node({ id: "B", xPos: 200, yPos: 320, width: 120, height: 80, text: "B" }));
+      s.nodes.add(new sb.node({ id: "C", xPos: 640, yPos: 150, width: 120, height: 80, text: "C" }));
+      await new Promise((r) => setTimeout(r, 300));
+    });
+
+    // Screen box enclosing A + B but not C.
+    const box = await page.evaluate(() => {
+      const ra = (
+        document.querySelector('#slateCanvas [data-node-id="A"]') as SVGGraphicsElement
+      ).getBoundingClientRect();
+      const rb = (
+        document.querySelector('#slateCanvas [data-node-id="B"]') as SVGGraphicsElement
+      ).getBoundingClientRect();
+      return {
+        sx: Math.min(ra.x, rb.x) - 30,
+        sy: Math.min(ra.y, rb.y) - 30,
+        ex: Math.max(ra.x + ra.width, rb.x + rb.width) + 30,
+        ey: Math.max(ra.y + ra.height, rb.y + rb.height) + 30,
+      };
+    });
+
+    // Real drag: down on empty canvas, move across A+B, up.
+    await page.mouse.move(box.sx, box.sy);
+    await page.mouse.down();
+    await page.waitForTimeout(30);
+    for (let i = 1; i <= 8; i++) {
+      await page.mouse.move(
+        box.sx + ((box.ex - box.sx) * i) / 8,
+        box.sy + ((box.ey - box.sy) * i) / 8,
+        { steps: 2 }
+      );
+      await page.waitForTimeout(15);
+    }
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+
+    const ids = await page.evaluate(() =>
+      (window as any).__s.v2.getSelectedNodes().map((n: any) => n.id).sort()
+    );
+    expect(ids).toEqual(["A", "B"]);
+  });
 });
