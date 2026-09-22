@@ -2,12 +2,18 @@
 
 Updated: 2026-09-20
 
-## 3.1.2 release candidate (2026-09-20, in progress)
+## 3.1.2 published and integrated (2026-09-21)
 
+- `slateboxjs@3.1.2` published to npm 2026-09-21 with user-supplied OTP; the
+  published tarball's integrity (`sha512-l1S/19dQpEUc1nFF+1oQ17haCitOceAaovu75EVrsULDaimwN3sazW2E1UJuVaK54u1BhNOk3k2wxKhDud9u0Q==`)
+  was verified equal to the pre-publication candidate packs before anything
+  else ran — the dirty-tree guard passed. Provenance tag `v3.1.2` → library
+  commit `e7ffd5948317ed201c217cb282f285a16cb68133`, pushed.
 - Drift found: the published `slateboxjs@3.1.0`/`3.1.1` tarballs (2026-07-16)
   predate the September real-input fixes on `agent/slate-operations-3-1`
   (rotate/resize selection-kill guard, link-badge click fix, 12 e2e guard
-  specs). The canonical app consumes registry `3.1.0`.
+  specs). The canonical app had been consuming registry `3.1.0`; it now
+  consumes `3.1.2` via app PR #64.
 - `release/3.1.2-candidate` = `origin/main` (includes collision-aware
   placement #9, the 3.1.1 content) + September src fixes + ported e2e specs,
   one commit `e7ffd5948317ed201c217cb282f285a16cb68133`, version `3.1.2`.
@@ -45,21 +51,27 @@ Updated: 2026-09-20
   slate-operations 27/27, ai-chat-contract 6/6, MCP 5/5, port-package-source
   / deployment-template / release-version contract tests pass. Library
   `npm audit --omit=dev` zero vulnerabilities at the candidate tree.
-- Publish attempt 2026-09-21: pre-publish unit smoke green (1121/1121, tree
-  unchanged since the gates); `npm publish` blocked — the stored
-  registry.npmjs.org `_authToken` in ~/.npmrc returns 401 (expired). No env
-  token, no keychain credential. User must `npm login` or add a fresh
-  publish-scoped token; then publish `slateboxjs@3.1.2` from
-  `release/3.1.2-candidate` and verify the published integrity equals
-  `sha512-l1S/19dQpEUc1nFF+1oQ17haCitOceAaovu75EVrsULDaimwN3sazW2E1UJuVaK54u1BhNOk3k2wxKhDud9u0Q==`
-  (mismatch = dirty-tree build: stop, do not fix-forward). Remaining chain
-  after publish: app pin to exact 3.1.2 + lock regen + registry-mode gate on
-  linux/amd64 (full command in docs/meteor-swap.md), then test-cluster
-  promotion (user-reserved).
-- Remaining before this can ship: user-approved publish of
-  `slateboxjs@3.1.2`, then app pin + lock refresh to exact `3.1.2` and the
-  registry-mode gate (`SLATEBOX_LIBRARY_SOURCE=registry`) with integrity and
-  revision recomputed against the published tarball.
+- Publish path notes: pre-publish unit smoke stayed green (1121/1121, tree
+  unchanged); the first publish attempt was blocked on an expired npm token,
+  which the user resolved via `npm login` + OTP before the successful run.
+  The dirty-tree guard (published integrity must equal the precomputed sha)
+  was enforced and passed. No fix-forward versions exist: 3.1.2 is the release.
+- App integration complete on branch `release/consume-slateboxjs-3.1.2`
+  (commit `90bf033e25354b39fdc77f10c1c9098cc00a0758`, draft app PR #64):
+  exact `3.1.2` pin + regenerated lock resolving the registry tarball at the
+  published integrity; installed artifact byte-identical to the tested
+  candidate; contract suites green on the published package (27+5+6).
+- Registry-mode port-container gate PASSED 2026-09-21 on `linux/amd64`
+  against the published package: first attempt aborted on a cold-Docker
+  MongoDB warm-up timeout (infrastructure only, no gate weakening); warm
+  rerun green — Meteor 3.5 image, Mongo 7 replica set, all 16 collab
+  surfaces (`onNodeRotated` included) and two-client Mongo-backed
+  persistence/undo invariants. The built image's server bundle was then
+  independently verified to contain slateboxjs@3.1.2 including the rotate
+  selection fix.
+- Remaining (user-reserved only): review/merge library PR #10 and app PR
+  #64, test-cluster promotion of the app PR merge, cluster smoke, and
+  rollback evidence per docs/production-candidate-runbook.md.
 
 This ledger tracks the long-running convergence of the SlateboxJS v3 library and the canonical Meteor 3.5 application. A historical checklist being green is not sufficient evidence; each row names the current artifact or command that proves the product-level requirement.
 
