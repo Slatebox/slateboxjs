@@ -29,3 +29,7 @@ test-results/
 /*.png
 /dump.rdb
 /slateboxjs-*.tgz
+
+# Loop scheduler session state
+.pi-loop.json
+.pi-loop.json.lock
