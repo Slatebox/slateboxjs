@@ -773,6 +773,22 @@ describe("Slate", () => {
       expect(n2.resizeRotate.disable).toHaveBeenCalled();
     });
 
+    it("survives nodes whose finishCreate has not run (no resizeRotate)", () => {
+      // Async node creation (createAsync/collab/paste) can transiently expose
+      // a node in allNodes before resizeRotate exists. An unguarded
+      // .resizeRotate.isEnabled() in updateSelectionResizeRotate threw the
+      // whole selection pipeline in the Meteor app.
+      const slate = new Slate(container);
+      const n1 = slate.addNode({ id: "n1" });
+      const n2 = slate.addNode({ id: "n2" });
+      delete (n2 as any).resizeRotate;
+      delete (n2 as any).isConnectionHandlesEnabled;
+      slate.nodes.allNodes = [n1, n2];
+
+      expect(() => slate.selectNodes([n1])).not.toThrow();
+      expect(n1.resizeRotate.enable).toHaveBeenCalled();
+    });
+
     it("enables resizeRotate for a single selected node", () => {
       const slate = new Slate(container);
       const n1 = slate.addNode({ id: "n1" });
