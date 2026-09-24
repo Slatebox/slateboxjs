@@ -1414,14 +1414,18 @@ export class Slate {
     );
 
     // First, disable ALL resize/rotate on ALL nodes to prevent conflicts
+    // Guard: allNodes can transiently contain nodes whose finishCreate() has
+    // not run yet (async creation, collab seeds, paste) — those have no
+    // resizeRotate/connection handles; an unguarded call threw the WHOLE
+    // selection pipeline (selectNodes → clearSelection → this loop).
     this.nodes.allNodes.forEach((node) => {
-      if (node.resizeRotate.isEnabled()) {
+      if (node.resizeRotate?.isEnabled?.()) {
         node.resizeRotate.disable();
         console.log("SELECTION_DEBUG: Disabled resize/rotate on", node.id);
       }
 
       // Also disable connection handles on all nodes
-      if (node.isConnectionHandlesEnabled()) {
+      if (node.isConnectionHandlesEnabled?.()) {
         node.disableConnectionHandles();
         console.log("SELECTION_DEBUG: Disabled connection handles on", node.id);
       }
@@ -1444,9 +1448,9 @@ export class Slate {
     if (this.selectedNodes.length === 1) {
       // Single node selection - enable its individual resize/rotate and connection handles
       const selectedNode = this.selectedNodes[0];
-      selectedNode.resizeRotate.enable();
+      selectedNode.resizeRotate?.enable?.();
 
-      selectedNode.enableConnectionHandles();
+      selectedNode.enableConnectionHandles?.();
       // Show the node-properties cog affordance (M1)
       (selectedNode as any).showNodeCog?.();
       console.log(
@@ -1495,8 +1499,8 @@ export class Slate {
       "requested resize/rotate disable"
     );
     // Disable the node's resize/rotate directly
-    if (node.resizeRotate.isEnabled()) {
-      node.resizeRotate.disable();
+    if (node.resizeRotate?.isEnabled?.()) {
+      node.resizeRotate?.disable?.();
     }
 
     // Also hide connection handles during resize/rotate operations

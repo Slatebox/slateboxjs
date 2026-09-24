@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Fixed
+- `selectNodes` no longer throws when the slate contains a node whose
+  `finishCreate()` has not run yet (async creation, collab peer seeds, paste
+  cascades): `updateSelectionResizeRotate` called `resizeRotate.isEnabled()`
+  unguarded over all nodes, and one half-initialized node killed the whole
+  selection pipeline (no handles, stale overlay, dropped state update).
 - Rotating a node now rotates the VISIBLE content during the drag, not just
   the dashed selection outline. The live rotate handler only touched the text
   label (or the svgContent `nestedSvg`, which custom-shape nodes do not
