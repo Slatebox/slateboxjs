@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Rotating a node now rotates the VISIBLE content during the drag, not just
+  the dashed selection outline. The live rotate handler only touched the text
+  label (or the svgContent `nestedSvg`, which custom-shape nodes do not
+  use), so custom shapes (diamond etc.) and image/complex nodes rendered a
+  ghost outline mid-drag while the artwork stayed flat. The handler now
+  rotates every visible child (artwork nested-svg, svg content, label) by
+  the same delta around the same center — a rigid motion of the whole node.
+  Plain-rect shapes, whose resize/rotate target IS the visible background
+  rect (rotated by svg.resize.js itself), are skipped to avoid double
+  rotation; `finalizeInteraction` continues to strip child rotations and
+  re-bake the group transform on release.
+
 ## [3.1.2] — 2026-09-20
 
 ### Fixed
