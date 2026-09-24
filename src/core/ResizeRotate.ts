@@ -417,23 +417,47 @@ export class ResizeRotate {
         }
         this.node.options.rotate.rotationAngle = totalRotation;
 
-        // Rotate content elements to match background rotation
+        // Rotate content elements to match background rotation.
         // Use deltaAngle because content elements are children of svgGroup
-        // and we're applying incremental rotation to match backgroundRect
-        if (
-          this.node.textElement &&
-          typeof this.node.textElement.rotate === "function"
-        ) {
-          // For regular nodes: rotate text element
+        // and we're applying incremental rotation to match backgroundRect.
+        // IMPORTANT: rotate EVERY visible sibling (artwork nested-svg, svg
+        // content, AND the text label) — not just one. The old if/else-if
+        // meant a diamond node (textElement = label, backgroundRect = nested
+        // <svg> holding the shape path, and a separate invisible resize
+        // proxy as the plugin target) never had its ARTWORK rotated during
+        // the drag: only the dashed overlay + invisible proxy spun, so the
+        // visible box appeared not to rotate until finalize bakes the group
+        // transform. Rotating each sibling by the SAME delta around the SAME
+        // center is a rigid motion of the whole visible node. The plugin's
+        // own target is skipped when it IS the visible background (plain
+        // rect shapes) — svg.resize.js already rotates it, rotating it here
+        // too would double the angle. finalizeInteraction strips all of
+        // these child rotations on release and re-bakes the group transform.
+        try {
           const bbox = this.target.bbox();
-          this.node.textElement.rotate(deltaAngle, bbox.cx, bbox.cy);
-        } else if (
-          this.node.nestedSvg &&
-          typeof this.node.nestedSvg.rotate === "function"
-        ) {
-          // For SVG content nodes: rotate nested SVG
-          const bbox = this.target.bbox();
-          this.node.nestedSvg.rotate(deltaAngle, bbox.cx, bbox.cy);
+          const rotateContent = (el: any) => {
+            if (el && typeof el.rotate === "function") {
+              try {
+                el.rotate(deltaAngle, bbox.cx, bbox.cy);
+              } catch (e) {
+                /* noop */
+              }
+            }
+          };
+          if (this.node.textElement) rotateContent(this.node.textElement);
+          if (this.node.nestedSvg) rotateContent(this.node.nestedSvg);
+          const bg: any = this.node.backgroundRect;
+          const targetNode = (this.target as any)?.node;
+          if (
+            bg &&
+            bg !== this.node.nestedSvg &&
+            bg.node !== targetNode &&
+            bg.node !== this.node.textElement?.node
+          ) {
+            rotateContent(bg);
+          }
+        } catch (e) {
+          /* noop */
         }
       }
     }
