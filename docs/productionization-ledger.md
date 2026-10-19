@@ -38,6 +38,15 @@ Guest "Pro/Con list" chat on app.slatebox.com produced no slate. Diagnosis:
 - Honest gap closed + new one: live-provider smoke should be added (it would have caught the dead-key era).
 - NOTE: a kubectl error dump echoed live secret VALUES (old aws/deepgram/daily/cf tokens + k12io DeepInfra key) into tool output. Recommend rotating the k12io DeepInfra key when convenient (it fronts the user's Pi infra too); old copied keys are all dead anyway.
 
+### Vision config-driven + crash containment SHIPPED (2026-10-19 late)
+
+- app 67c861b + 044832a shipped to TEST and PROD (images 175649Z -> 1821xxZ range; see shipping-log). Smoke 24/24 both.
+- openai.js: generation provider/config now ALWAYS settings-driven (no null-vision branch, no provider-inference-to-dead-keys). vision feature defaults deepinfra Qwen3-235B-Instruct (+V3.1-Terminus fallback); settings.ai.features.vision overrides.
+- processConversation unhandled-rejection crash contained (2 fire-and-forget call sites now catch). Before: one bad provider chain could kill a whole container (observed live on test).
+- Default (non-template) generation VERIFIED end-to-end in prod after deploy (full puppy slate, both replicas stable).
+- OPEN DEFECT (next slice): template-population kickoff payload fails DeepInfra chat-template rendering ("template error: list object has no element 0") -> graceful no-content. Hypothesis: dangling tool_use/tool_result pairs flattened as text; needs proper OpenAI-style tool_call/tool_call_id pairing (or drop) in provider.mjs normalizeDeepInfraMessages + history shape from initUsage for the template kick. Latent since provider refactor; masked earlier because every key was dead.
+- Ops note: Docker build disk-full on the Mac (host Data volume 100%); cleared caches (gh/npm/Google ~7G) + builder prune 13G. If ships start failing "no space left", prune first; consider bigger OrbStack disk or Downloads triage (7G, untouched).
+
 ### Async back-verification result (2026-10-19, post-ship, non-blocking)
 
 Full paired gate (disposable Meteor 3.5 image + Mongo replica set + real-host suite) re-run against the shipped combination by a background agent: **3/3 suites PASS** — 16 collab A→B surfaces, two-client Mongo-backed persistence through undo/redo (text/grouping/themes/primitive paths), rotate-middrag; palette + dependency contracts + guest-registration green; 56.8s suite time. Live re-check: test + prod `readyz ok:true`, `slatebox-smoke.sh final` 0 failed checks, zero pod restarts.
