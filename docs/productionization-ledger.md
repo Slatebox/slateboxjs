@@ -205,3 +205,11 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 | --- | --- | --- |
 | Rotate handle drag rotates visible content | Root-caused and fixed locally; PR #15 merged | User-reported "dashed outline rotates, the box does not" reproduced mid-drag (artwork CTM 0° while overlay rotated). Fix rotates every visible child rigidly during the drag; group-level live rotation ruled out via the plugin's local-space angle feedback loop (half-angle convergence). Regression: `tests/e2e/rotate-visual.spec.ts` (post-release) + `tests/e2e/rotate-middrag.spec.ts` (mouse-held-down sampling; A/B-verified red without the fix). Verified against the local Meteor app (:3100, fixed tarball): diamond + seeded node artwork mid-drag angles 44.6°/44.1° with matching live model angles, stable on release. |
 | Selection pipeline crash on not-yet-initialized nodes | Guarded with unit pin | `updateSelectionResizeRotate` iterated `allNodes` calling `resizeRotate.isEnabled()` unguarded; a node whose `finishCreate()` had not run (async creation/collab/paste windows) threw through `selectNodes` → `clearSelection`, killing selection entirely. Observed via app-host probe stack trace at `packages/modules.js`. Fixed with optional chaining at all three call sites; unit test `Slate.test.ts › survives nodes whose finishCreate has not run` mutation-verified (removing guards fails exactly that test). |
+
+### Iteration 6 (Oct 19, ~19:10) — template-400 FORENSICALLY RESOLVED
+- Discriminating probes (2): real tools array (full SLATE_OPERATION_TOOL + forced tool_choice) + 10KB rider + special tokens => 200.
+- Bit-exact replay of the failing run's stored aiContent prompts (incl. the `content:""` doc + tool_use parts) => 200 x2.
+- VERDICT: "template error: list object has no element 0" = TRANSIENT DEEPINFRA SERVING FLAKE (jinja/cold-start class), not app payload. Retry+fallback chain carried the run; containment held (no crash).
+- Next slice: retry policy — retry same-provider 400-class infra flakes before falling to fallback model; + live template e2e as proof.
+- Tooling landed: scripts/repro-template-payload.mjs, scripts/replay-real-payload.mjs. Live budget 4/5. Scratch payloads deleted pod + local.
+
