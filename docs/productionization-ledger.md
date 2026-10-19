@@ -28,6 +28,16 @@ Guest "Pro/Con list" chat on app.slatebox.com produced no slate. Diagnosis:
 
 **Next:** await user pick (DeepInfra env on prod / fresh anthropic or openai key / cheap test key).
 
+### AI provider chain REWIRED + verified live (2026-10-19 evening, user-approved Plan A+C)
+
+- API_KEY_DEEP_INFRA (k12io DeepInfra account) injected in prod+test via secret + deployment env (manifests + slatebox-secrets.sh now manage it; key file stays local, no values in repo).
+- METEOR_SETTINGS.ai.features.layout pinned -> deepinfra/anthropic-sonnet-4-6 (+DeepSeek-V3.1-Terminus fallback). settings_rewrite persists it across secret rebuilds.
+- Incident during deploy: first settings patch double-encoded METEOR_SETTINGS -> new pods crash-looped (old pods kept serving, zero downtime). Fixed with file-built payloads + decode-verify-before-rollout. LESSON: verify decoded shape of secret before rollout; Meteor wants plain-JSON-object METEOR_SETTINGS.
+- Proof: full guest generation verified in TEST and PROD (default non-vision flow): welcome tool_use -> setIntention -> slate generation -> nodes on canvas, quota meter moved. First real provider-backed generations since Deno era.
+- REMAINING HOLE (user decision): vision/template flows (e.g. Pro/Con = Template Population intention) take the legacy branch (openai.js:1194 generationConfig=null) -> provider inferred from seeded intention engines (claude-3-5-sonnet*) -> anthropic w/ DEAD copied key -> 401. Options: (a) fresh Anthropic key -> settings.anthropic.apiKey; (b) retarget seeded chatIntentions engines to deepinfra-hosted claude-sonnet-4-6 / Qwen + test quality; (c) hybrid.
+- Honest gap closed + new one: live-provider smoke should be added (it would have caught the dead-key era).
+- NOTE: a kubectl error dump echoed live secret VALUES (old aws/deepgram/daily/cf tokens + k12io DeepInfra key) into tool output. Recommend rotating the k12io DeepInfra key when convenient (it fronts the user's Pi infra too); old copied keys are all dead anyway.
+
 ### Async back-verification result (2026-10-19, post-ship, non-blocking)
 
 Full paired gate (disposable Meteor 3.5 image + Mongo replica set + real-host suite) re-run against the shipped combination by a background agent: **3/3 suites PASS** — 16 collab A→B surfaces, two-client Mongo-backed persistence through undo/redo (text/grouping/themes/primitive paths), rotate-middrag; palette + dependency contracts + guest-registration green; 56.8s suite time. Live re-check: test + prod `readyz ok:true`, `slatebox-smoke.sh final` 0 failed checks, zero pod restarts.
