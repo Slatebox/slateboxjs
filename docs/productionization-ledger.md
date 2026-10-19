@@ -213,3 +213,10 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - Next slice: retry policy — retry same-provider 400-class infra flakes before falling to fallback model; + live template e2e as proof.
 - Tooling landed: scripts/repro-template-payload.mjs, scripts/replay-real-payload.mjs. Live budget 4/5. Scratch payloads deleted pod + local.
 
+
+### Iteration 7 (Oct 19, ~21:30) — retry-before-fallback SHIPPED (test+prod) + entry-point defect confirmed
+- SHIPPED to test AND prod (app a8c7f95): transient provider failures (timeouts/5xx/429/cold-start "template error" class) now retry SAME provider (max 2, backoff, settings-overridable ai.providerInfraRetries) before fallback. Predicate unit-tested + contract-tested; all four local suites green; 24/24 smoke both envs; test pod 0 restarts.
+- Live-proof gap found: eval-deepinfra-slate-route.mjs is single-shot and went red on model drift (Qwen emitted 2-op plan, op2 untargeted). App has recovery for this (pendingErrors ladder); eval doesn't. Next slice: make evals mirror app retry ladder (or accept-and-retry) so "eval red" ≠ "prod broken".
+- **NEW P0 DEFECT (user-facing): fresh-guest wizard submit is a SILENT NO-OP.** Fresh session, Personal Use->Engineering->typed prompt->send-button click: textarea clears, no navigation, ZERO aiContent/slates in test DB => request never leaves client. Reproduced on button-click path too (not just headless Enter). This blocks the whole new-user entry point; likely the #1 thing a real user would hit. Next slice priority: trace /start submit client path (DDP method never called => client-side regression or wizard-state gate).
+- Ops: host disk crashed to <2G mid-build (OrbStack VM + caches). Reclaimed ~15G (builder prune 6.6G + caches). Flag: ~/Projects/node/sleeperhitstudio = 81G user assets — untouched, biggest single lever if user clears it; ~/Downloads 7G mostly stale zips.
+
