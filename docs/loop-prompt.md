@@ -17,6 +17,6 @@ Per iteration, exactly one unit of work:
 
 3. GATE+SHIP: run the relevant unit/contract scripts (web/app/scripts/test-*.mjs, npm run test:ai-chat-contract / test:slate-operations) and targeted e2e for what you touched. Commit BEFORE ship (no dirty lib tree beyond dist/; identity: lib sha + app sha + stamp traceable). Ship via ~/Projects/roscoe-k8s/scripts/slatebox-ship.sh --test → verify live in browser or smoke → then --prod. Test-after-merge policy: a red suite never blocks shipping; fix forward, never roll back without flagging.
 
-4. CLOSE LOOP: append iteration outcome to the ledger (what changed, what's verified live, next open item), update shipping-log via the ship script, commit+push all edited repos. Output one line of status. If genuinely nothing is actionable, reply exactly "IDLE" and stop.
+4. CLOSE LOOP: append iteration outcome to the END of the ledger file (no anchor search) (what changed, what's verified live, next open item), update shipping-log via the ship script, commit+push all edited repos. Output one line of status. If genuinely nothing is actionable, reply exactly "IDLE" and stop.
 
 GUARDRAILS: never leave test AND prod worse than found — same-iteration fix attempt or loud ledger flag. Cluster writes only via ship script / slatebox-secrets.sh / slatebox-apply.sh. No secret values in commits or output (names only). DeepInfra key = k12io personal account: ≤5 live generations per iteration. Guests on test are free to break; prod user data: read-only.
