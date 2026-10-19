@@ -12,7 +12,7 @@ implemented and committed.
 
 ### Release and deployment — required after code convergence
 
-- **3.1.3 cycle (open, added 2026-10-18):** the Sept-24 rotate/selection fixes (PR #15/#16) exist only in library `main` src; no published or packed artifact contains them. Test deployment runs registry 3.1.2 *without* those fixes. A 3.1.3 release + app consumption + re-gate is required before any promotion decision. Publish/merge/deploy remain user-reserved.
+- **3.1.3 cycle (candidate ready, awaiting user action — was: open):** the Sept-24 rotate/selection fixes (PR #15/#16) exist only in library `main` src; no published artifact contained them. A verified 3.1.3 candidate now exists (branch `release/3.1.3-candidate`, integrity recorded in the ledger; both-architecture paired gate green, 2026-10-19). Remaining steps are user-reserved: npm publish, PR merge, app consumption + registry-mode re-gate, test-cluster deploy.
 - Review and merge the library and canonical-app draft PRs.
 - With explicit user approval, publish `slateboxjs@3.0.0` (or choose another
   reviewed immutable artifact), then replace the app's local tarball dependency.

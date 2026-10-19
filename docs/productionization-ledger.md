@@ -1,6 +1,20 @@
 # Slatebox v3 productionization ledger
 
-Updated: 2026-10-18
+Updated: 2026-10-19
+
+## 3.1.3 candidate built and re-gated on both architectures (2026-10-18/19, loop iter 2)
+
+Candidate = slateboxjs-v2 branch `release/3.1.3-candidate` (tip `c687989`; version bump `aa8ab31` + dist regen). Content = main `44e43ca` (published 3.1.2 + Sept-24 rotate-middrag + selection-guard fixes + specs) + regenerated dist. Evidence bundle: `~/Projects/node/.v3-evidence/2026-10-18/` (candidate pack, both gate logs, git state).
+
+- **Stale-dist finding:** the committed `dist/` on main did NOT contain the Sept-24 guards (0 `isEnabled?.()` occurrences); rebuilt bundle is deterministic (double-build byte-identical) and carries the 2 guard sites. First testable artifact with the fixes. Rebuilds must be treated as release-relevant, not derived noise.
+- **Candidate pack identity:** 1,063,933 B; sha256 `fcfbb4bfa74e8b03dc96ec06385786eb7d5c6590d71ceb39ecf08e8ea487b97f`; integrity `sha512-AzyH4gBTey3RXriUTnJv3j/BLAC8ES3+JxeJ0YS5ZCTt2VQ2ep+Bbu/0WH+99GkWpw9HJ5SifZIUGeHlhoYf8A==`; double pack byte-identical.
+- **Library gates:** unit 1122/1122; chromium e2e 302 passed / 2 skipped (run in `mcr.microsoft.com/playwright:v1.57.0-noble` to match the pinned @playwright/test 1.57.0); `verify:package` green (fresh install, ESM/CJS/CSS exports, strict-TS consumer).
+- **Paired port-container gate EXIT 0 on BOTH `native arm64` and `linux/amd64`,** from canonical app `dacc0d0` (branch `test`), packed mode, with `SLATEBOX_LIBRARY_VERSION/INTEGRITY` pinned — identity is enforced (verified `slatebox-package-source.mjs` fails the run on lock-integrity drift). All 3 real-host suites passed on both platforms (16 collab A→B surfaces; two-client Mongo-backed port invariants; rotate-middrag app probe). Tracked app repo files untouched by the gate.
+- **Infra finding for future iterations:** `cdn.playwright.dev` is non-functional from this machine (0 bytes/15 s). Browser repair channels proven: `registry.npmmirror.com/-/binary/playwright/builds/chromium/1200/chromium-headless-shell-mac-arm64.zip` (94 MB @ 7 MB/s) and Docker mcr registry (39 s pull). Headless-shell 1200 for mac-arm64 is now installed in the local cache; Docker Hub reachable. Do NOT “fix” this by bumping @playwright/test — the lockfile pins 1.57.0 and CI depends on it.
+
+**User-reserved boundary reached for this slice (pending, not started):** (1) npm publish 3.1.3; (2) library release PR merge; (3) post-publish app branch consuming registry 3.1.3 on `test` + registry-mode gate + PR + test-cluster deploy; (4) test→main promotion. Do not cross without an explicit new instruction from Tim.
+
+**Next:** draft the test→main promotion package, pinned to this candidate identity: release notes for the 2.5.17→3.1.3 engine slice, prod smoke plan on roscoe (`scripts/slatebox-smoke.sh` modes + expected assertions), and rollback proof procedure per `docs/production-candidate-runbook.md`. Draft only — promotion itself stays pending.
 
 ## Dirty-tree reconciliation and baseline verification (2026-10-18, loop iter 1)
 
