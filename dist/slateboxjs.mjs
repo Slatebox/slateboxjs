@@ -5606,12 +5606,19 @@ class as {
           console.warn("RESIZE_ROTATE_DEBUG: Failed to read svgGroup rotation:", l);
         }
         const a = r + o;
-        if (this.node.options.rotate || (this.node.options.rotate = { rotationAngle: 0 }), this.node.options.rotate.rotationAngle = a, this.node.textElement && typeof this.node.textElement.rotate == "function") {
-          const l = this.target.bbox();
-          this.node.textElement.rotate(s, l.cx, l.cy);
-        } else if (this.node.nestedSvg && typeof this.node.nestedSvg.rotate == "function") {
-          const l = this.target.bbox();
-          this.node.nestedSvg.rotate(s, l.cx, l.cy);
+        this.node.options.rotate || (this.node.options.rotate = { rotationAngle: 0 }), this.node.options.rotate.rotationAngle = a;
+        try {
+          const l = this.target.bbox(), c = (u) => {
+            if (u && typeof u.rotate == "function")
+              try {
+                u.rotate(s, l.cx, l.cy);
+              } catch {
+              }
+          };
+          this.node.textElement && c(this.node.textElement), this.node.nestedSvg && c(this.node.nestedSvg);
+          const h = this.node.backgroundRect, d = this.target?.node;
+          h && h !== this.node.nestedSvg && h.node !== d && h.node !== this.node.textElement?.node && c(h);
+        } catch {
         }
       }
     }
@@ -12948,7 +12955,7 @@ const Ge = class Ge {
       this.selectedNodes.length,
       "selected nodes"
     ), this.nodes.allNodes.forEach((t) => {
-      t.resizeRotate.isEnabled() && (t.resizeRotate.disable(), console.log("SELECTION_DEBUG: Disabled resize/rotate on", t.id)), t.isConnectionHandlesEnabled() && (t.disableConnectionHandles(), console.log("SELECTION_DEBUG: Disabled connection handles on", t.id)), t.hideNodeCog?.();
+      t.resizeRotate?.isEnabled?.() && (t.resizeRotate.disable(), console.log("SELECTION_DEBUG: Disabled resize/rotate on", t.id)), t.isConnectionHandlesEnabled?.() && (t.disableConnectionHandles(), console.log("SELECTION_DEBUG: Disabled connection handles on", t.id)), t.hideNodeCog?.();
     }), this.disableGroupResizeRotate(), this.selectedNodes.length === 0) {
       console.log(
         "SELECTION_DEBUG: No nodes selected - all resize/rotate disabled"
@@ -12957,7 +12964,7 @@ const Ge = class Ge {
     }
     if (this.selectedNodes.length === 1) {
       const t = this.selectedNodes[0];
-      t.resizeRotate.enable(), t.enableConnectionHandles(), t.showNodeCog?.(), console.log(
+      t.resizeRotate?.enable?.(), t.enableConnectionHandles?.(), t.showNodeCog?.(), console.log(
         "SELECTION_DEBUG: Enabled individual resize/rotate and connection handles on",
         t.id
       );
@@ -12987,7 +12994,7 @@ const Ge = class Ge {
       "SELECTION_DEBUG: Node",
       t.id,
       "requested resize/rotate disable"
-    ), t.resizeRotate.isEnabled() && t.resizeRotate.disable(), t.isConnectionHandlesEnabled() && t.disableConnectionHandles();
+    ), t.resizeRotate?.isEnabled?.() && t.resizeRotate?.disable?.(), t.isConnectionHandlesEnabled() && t.disableConnectionHandles();
   }
   disableGroupResizeRotate() {
     console.log("SELECTION_DEBUG: Disabling group resize/rotate"), this.selectedNodes.forEach((t) => {
