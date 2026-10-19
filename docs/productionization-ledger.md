@@ -17,6 +17,17 @@ Tim adopted the Scion-style shipping policy (per sleeperhitstudio) and ordered t
 - Cloudflare purge **not needed**: `/` answers `cf-cache-status: DYNAMIC`, assets `BYPASS`; live HTML already references post-ship content-hash bundles.
 - Hetzner decommission **verified complete live** (`hcloud server/network/loadbalancer list` on the Slatebox project = empty). The loop-prompt era text about "frozen sb-k3s leftovers" was stale pre-decommission state.
 - Still open (non-Hetzner, dashboard-token work, user-reserved): remove the two Deno Deploy custom domains + delete the inert `slatebox-api`/`slatebox-marketing` Deno apps, then `slatebox-dns.sh delete-deno`; revoke the leftover certbot Cloudflare API token (id prefix `ead03b55`) found on the old redis VM.
+### AI-generation outage found in live test (2026-10-19, user report 10:53 CDT)
+
+Guest "Pro/Con list" chat on app.slatebox.com produced no slate. Diagnosis:
+- api.slatebox.com is healthy and NOT in the chat path (500-on-/ is by design; embeds + WS 101 verified; its "Unauthorized" log lines were probe-shaped, from the smoke runs).
+- Chat path = Meteor method → provider directly. Merged test-branch code defaults welcome/generation/presentation to **deepinfra + Qwen** (`ai/feature-config.mjs`); prod METEOR_SETTINGS has NO `ai` block and NO deepinfra key (no settings entry, no `API_KEY_DEEP_INFRA` env — PR #66 removed test injection; prod never had it).
+- Copied-from-Deno keys are DEAD: live probe from prod pod → anthropic key 401, openai key 401. So NO provider path currently works on test or prod.
+- Honest gap: port-container + smoke gates never exercise a live provider call — "green" never covered this feature.
+- Fix ready (user's choice): `provider.mjs` accepts `env.API_KEY_DEEP_INFRA`; a live DeepInfra key exists locally (`deepinfra-key.sh` → k12io key, active for Pi today). Ship = add that env to prod deploy (bills k12io DeepInfra account — user's call), then verify with a real guest generation.
+
+**Next:** await user pick (DeepInfra env on prod / fresh anthropic or openai key / cheap test key).
+
 ### Async back-verification result (2026-10-19, post-ship, non-blocking)
 
 Full paired gate (disposable Meteor 3.5 image + Mongo replica set + real-host suite) re-run against the shipped combination by a background agent: **3/3 suites PASS** — 16 collab A→B surfaces, two-client Mongo-backed persistence through undo/redo (text/grouping/themes/primitive paths), rotate-middrag; palette + dependency contracts + guest-registration green; 56.8s suite time. Live re-check: test + prod `readyz ok:true`, `slatebox-smoke.sh final` 0 failed checks, zero pod restarts.
