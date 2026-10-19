@@ -11,6 +11,14 @@ Tim adopted the Scion-style shipping policy (per sleeperhitstudio) and ordered t
 - Library `main` pushed to `e90ed91` (candidate ff-merged). App `main` pushed `cc9056c` (test merged onto origin/main, `[skip ci]`); `CLAUDE.md` codifies the policy in the app repo.
 - No-backwards-compat mandate: legacy Raphael-era compatibility concerns are off the table (near-zero external users).
 
+## Backoffice cleanup (2026-10-19)
+
+- CI push-deploys **disabled** (roscoe-deploy-prod/test.yml now `workflow_dispatch` only): ship is the single deploy path during local-bake mode; manual CI deploys remain possible and would ship registry-pinned content.
+- Cloudflare purge **not needed**: `/` answers `cf-cache-status: DYNAMIC`, assets `BYPASS`; live HTML already references post-ship content-hash bundles.
+- Hetzner decommission **verified complete live** (`hcloud server/network/loadbalancer list` on the Slatebox project = empty). The loop-prompt era text about "frozen sb-k3s leftovers" was stale pre-decommission state.
+- Still open (non-Hetzner, dashboard-token work, user-reserved): remove the two Deno Deploy custom domains + delete the inert `slatebox-api`/`slatebox-marketing` Deno apps, then `slatebox-dns.sh delete-deno`; revoke the leftover certbot Cloudflare API token (id prefix `ead03b55`) found on the old redis VM.
+- Post-ship back-verification (full paired gate against shipped combination) dispatched as an async agent 2026-10-19; results will land in this ledger.
+
 **Next:** work the v3-vs-legacy parity/quality list end-to-end via ship: fix in `slateboxjs-v2` or app, targeted gates only, ship to test+prod, verify live (smoke + Playwright two-window), fix forward. When the pair feels done: cut 3.1.3 → publish → registry re-pin + re-gate → ship baseline. No loop-driven cluster changes outside ship.
 
 ## Promotion package drafted (2026-10-19, loop iter 3)
