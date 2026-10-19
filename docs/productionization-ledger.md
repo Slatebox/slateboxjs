@@ -249,3 +249,10 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - NEXT SLICE (fix): make template assembly fail LOUD + non-empty: (1) if basedOnTemplate and template content empty -> surface "template has no content" instead of firing a contentless kick; (2) require prompts survive placeholder-replacement with a warning path rather than silent drop; (3) unit test for prompt-assembly with: empty templatePrompt, unresolved {{}}, empty aiPrompts. Then prove with a real seeded template (Pro/Con) rendering nodes.
 - Test env keeps debugRequestPayload=true until that lands. Budget used: 1 live chain.
 
+
+### Iteration 11 (Oct 20, ~00:20) — contentless-kick containment SHIPPED (test+prod) + first full template-class slate seen live
+- Shipped: initAIConversation now aborts (user-visible message) when assembly yields zero prompts; warns on dropped {{placeholders}}; latent aiPrompts[0] crash guarded; Chat.jsx honors the abort contract that AdHoc + IntentionsDialog already had (toast/spinner release). Contract-pinned (3 new assertions).
+- Verified on test: 24/24 smoke + one full live wizard run: pro/con prompt generated a 14-node slate (Advantages/Disadvantages/Evaluation-criteria/Costs sections + title) — first end-to-end template-class GENERATION, ~70s, no 400s, no spinner hang. (Model chose a non-placeholder-prompt intention this time; abort fallback remains unexercises-live but is source-pinned + all 3 consumer call sites now handle abort.)
+- Fix-forward note: template-fill success now depends on which intention welcome picks (model nondeterminism). The deterministic gap left: sSdf (Template-Population) seeds carry unresolved {{templatePrompt}}/{{templateName}} and guest wizard rarely passes a real template slate — when picked, users now get a clean refusal instead of a dead 45s. NEXT: either (a) wizard template picker should load a real seeded template slate WITH content (data + flow fix), or (b) drop sSdf's unresolved-prompt seed and route 'template-ish' requests to expert-collaborator. Option study next tick.
+- Live-gen budget: 2 used. Prod+test aligned. Prod restarts 0.
+
