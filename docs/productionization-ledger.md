@@ -2,6 +2,15 @@
 
 Updated: 2026-10-19
 
+## Promotion package drafted (2026-10-19, loop iter 3)
+
+- `roscoe-k8s/docs/promotion-draft-test-to-main.md` created (draft, nothing executed): artifact chain, verified deploy-path facts, T-0…T-4 runbook, ≤5-min rollback fast path to `1.2.6-d360902ab1bd-arm64`, open questions R1–R4.
+- Key discovery: `production` GitHub environment has **branch_policy only — no reviewers, no timer**; push-to-main auto-deploys prod within ~11 min of a merge. Merge-pause requires adding required reviewers first (user decision R1).
+- Baselines recorded: smoke `final` 24/24 exit 0 (2026-10-19); live prod image = origin/main HEAD build (CI), live test image `1.3.21-dacc0d0b6e6c` — CI deploy path already proven post-cutover on both branches (slice #2 of the original order is thereby satisfied; no further verification owed).
+- Recommend promoting the 3.1.3 chain, not current test state (R4): the deployed 3.1.2 lacks the Sept-24 rotate/selection fixes.
+
+**Next:** all remaining program items are user-reserved (3.1.3 publish; library PR merge; app consume-3.1.3 PR + registry-mode gate; test-cluster deploy + acceptance; R1 posture; test→main merge + prod smoke). Per rule 6, **the loop should stop** unless Tim adds new loop-legal work. Remaining loop-legal candidate (only if Tim re-arms): read-only weekly drift watch — live images vs GitHub heads, backup CronJob freshness, restart counts.
+
 ## 3.1.3 candidate built and re-gated on both architectures (2026-10-18/19, loop iter 2)
 
 Candidate = slateboxjs-v2 branch `release/3.1.3-candidate` (tip `c687989`; version bump `aa8ab31` + dist regen). Content = main `44e43ca` (published 3.1.2 + Sept-24 rotate-middrag + selection-guard fixes + specs) + regenerated dist. Evidence bundle: `~/Projects/node/.v3-evidence/2026-10-18/` (candidate pack, both gate logs, git state).
