@@ -1,6 +1,19 @@
 # Slatebox v3 productionization ledger
 
-Updated: 2026-09-20
+Updated: 2026-10-18
+
+## Dirty-tree reconciliation and baseline verification (2026-10-18, loop iter 1)
+
+Decisions taken under loop authority (prompt slice #1). All discarded artifacts archived with hashes to `~/Projects/node/.retired-dirty-trees/2026-10-18/` (patches + tarball + sha256 record); nothing ported.
+
+- **Canonical app tree returned to registry baseline.** The `test` checkout carried an uncommitted `slateboxjs: file:./slateboxjs-3.1.2.tgz` override + untracked tarball + stale `internal/k8/sb-prod.yml` hostAliases edit. All discarded; tree now clean at `dacc0d0` (= `origin/test`, post-cutover CI head).
+- **Tarball identity proven divergent.** Local `slateboxjs-3.1.2.tgz` (sha256 `b5f8cf55e2f2f1c82a3b9aa7d03ea82c656cb11cf619d45cf9b16fe775e74d2a`, 1,063,609 B) is byte-different from the published 3.1.2 (`6fbdf5d6a17d458d592b95216453fb4b0f26fa2422e9151811858af1cefdc374`, 1,062,404 B; live-fetched, integrity equals the Sept-21 ledger record). Neither published dist, local tarball dist, nor the installed copy (a third variant, `a16d546d…`) contained the PR #16 selection guards — those exist only in library `main` `src/core/Slate.ts` (`resizeRotate?.isEnabled?.()`, merged Sept 24, *after* 3.1.2 published Sept 21). **No artifact anywhere carries the Sept-24 rotate/selection fixes.** The deployed test head (`1.3.21-e58974445ebf`, registry 3.1.2) runs without them; the fixes need a proper version bump (3.1.3), not a 3.1.2-labeled tarball.
+- **Poisoned-copy hazard purged** per the Sept-20 pattern: drifted installed `node_modules/slateboxjs` + `.meteor/local/build` + `bundler-cache` removed (nothing was running against them), reinstalled from registry — installed `dist/slateboxjs.js` now byte-identical to published (`e67ae68deb60a4b49170f2f71fca0e96e13ad5bfdd8c0927a8e4281685b52079`). A local `npm install` rewrote lockfile metadata (devOptional flags, dev-entry pruning, no resolution changes); reverted — the committed lock is CI-canonical and stays byte-clean.
+- **`internal/k8/sb-prod.yml` is dead weight.** No consumer in roscoe-k8s scripts or app CI; live prod Deployment defines no hostAliases (Mongo = `mongo-0.mongo.slatebox.svc`; see `roscoe-k8s/apps/slatebox/app-prod.yaml`). Candidate for outright deletion in a later user-approved infra tidy.
+- **Historical checkout retired as migration source.** Its uncommitted presentation-modal + openai model-selection patch is exactly what the ledger marks superseded; verified (`PresentSlate.jsx`/`PresentSlateDialogue.jsx` + provider-aware `openai.js`/`provider.mjs` exist in canonical). Discarded after archiving. Its 30 unpushed local commits remain untouched reference.
+- **Prod identity confirmed, no drift.** Live `slatebox-prod` image `1.2.6-d360902ab1bd-arm64` = `origin/main` HEAD `d360902` ("CI: deploy slatebox-prod to roscoe-k8s (#67)", Oct 17): CI post-merge deploys advanced prod beyond the cutover manual image. Production engine remains legacy 2.5.17 until a test→main promotion (user-reserved). Post-cutover CI deploy path already proven green per runbook C1 (prod run 39064639088, test run 39064616890).
+
+**Next:** library 3.1.3 release cycle *to the boundary*: version bump on `main`, library gates + `verify:package`, candidate tarball + recorded integrity, drafted app PR consuming 3.1.3 on `test`, and a `test:port-container` gate run against the candidate — publish, PR merge, and test-cluster deploy are user-reserved and stay pending.
 
 ## 3.1.2 published and integrated (2026-09-21)
 

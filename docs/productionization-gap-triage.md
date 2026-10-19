@@ -1,6 +1,6 @@
 # Slatebox v3 current gap triage
 
-Updated: 2026-07-14
+Updated: 2026-10-18
 
 This is the current decision record for the SlateboxJS v3 plus canonical Meteor
 3.5 port. The dated `parity-gaps.md`, `ui-fixes.md`, and
@@ -12,6 +12,7 @@ implemented and committed.
 
 ### Release and deployment — required after code convergence
 
+- **3.1.3 cycle (open, added 2026-10-18):** the Sept-24 rotate/selection fixes (PR #15/#16) exist only in library `main` src; no published or packed artifact contains them. Test deployment runs registry 3.1.2 *without* those fixes. A 3.1.3 release + app consumption + re-gate is required before any promotion decision. Publish/merge/deploy remain user-reserved.
 - Review and merge the library and canonical-app draft PRs.
 - With explicit user approval, publish `slateboxjs@3.0.0` (or choose another
   reviewed immutable artifact), then replace the app's local tarball dependency.
