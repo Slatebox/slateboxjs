@@ -2,6 +2,17 @@
 
 Updated: 2026-10-19
 
+## Policy shift: ship-from-Mac, local-bake engine, test after merge (2026-10-19)
+
+Tim adopted the Scion-style shipping policy (per sleeperhitstudio) and ordered the staged chain compressed: no test staging, everything straight to `main`.
+
+- **Shipped v3 to BOTH test and production** via the new `roscoe-k8s/scripts/slatebox-ship.sh`: image `1.3.21-local.20261019T141510Z-arm64`, one build deployed to `slatebox-test` and `slatebox-prod`. Post-ship smoke 24/24; all pods 0 restarts; stamped engine `3.1.3+local.e90ed91a…` verified inside the prod bundle. Prod now runs the v3 engine + Meteor 3.5/Node 24 (previously 2.5.17/3.2.2).
+- **Engine source mode is now LOCAL BUILD for iteration** (Tim's call): every ship bakes the current `slateboxjs-v2` build, stamped `+local.<libsha8>.<UTC>`; tracked `package.json` keeps the registry pin and ship stages a disposable context (no poisoned-copy recurrence; the ship script refuses identity-less dirty library trees). npm publish is deferred until iteration settles, then: publish 3.1.3, re-pin, `--library-source registry` re-gate, ship baseline.
+- Library `main` pushed to `e90ed91` (candidate ff-merged). App `main` pushed `cc9056c` (test merged onto origin/main, `[skip ci]`); `CLAUDE.md` codifies the policy in the app repo.
+- No-backwards-compat mandate: legacy Raphael-era compatibility concerns are off the table (near-zero external users).
+
+**Next:** work the v3-vs-legacy parity/quality list end-to-end via ship: fix in `slateboxjs-v2` or app, targeted gates only, ship to test+prod, verify live (smoke + Playwright two-window), fix forward. When the pair feels done: cut 3.1.3 → publish → registry re-pin + re-gate → ship baseline. No loop-driven cluster changes outside ship.
+
 ## Promotion package drafted (2026-10-19, loop iter 3)
 
 - `roscoe-k8s/docs/promotion-draft-test-to-main.md` created (draft, nothing executed): artifact chain, verified deploy-path facts, T-0…T-4 runbook, ≤5-min rollback fast path to `1.2.6-d360902ab1bd-arm64`, open questions R1–R4.
