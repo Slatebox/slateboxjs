@@ -235,3 +235,17 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - Test env currently keeps ai.debugRequestPayload=true for the next slice; disable after.
 - Live-gen budget: ~2 used (one e2e chain). Prod aligned with test again.
 
+
+### Iteration 10 (Oct 19, ~23:55) — template emptiness localized to CLIENT prompt assembly
+- probe v4 (caller ctx + full raw prompts) shipped to test; one live template run captured:
+  - 8 provider calls, ZERO template-400s (iter9 guards holding in production-shaped traffic).
+  - The kick (type conversation / feature vision) carried ONE prompt: [{role:user, content:[{type:'text'}]}] = 45 bytes, no text => server placeholders it => model can only return empty notes. Template content NEVER MADE IT OUT OF THE CLIENT.
+- Localization: openai.js replay/initUsage are innocent (they forward what they get); content originates in imports/api/common/initAIConversation.js:
+  - L155-ish "only include prompts if no {{ }} left" silently DROPS any prompt with unresolved placeholders (e.g. when wizard dialog ran without filling gather fields);
+  - prompt: aiPrompts can therefore be empty/thin;
+  - .replace(/{{templatePrompt}}/...) depends on slate.options.templatePrompt which is EMPTY on seeded/guest templates;
+  - seed intention sSdf: function_call {type:any} + respond are legal; engine claude-3-5-sonnet strings are inert now (config precedence proven by audit model=Qwen), but still noise — clean during next data pass.
+- ALSO: initAIConversation.js L373 aiPrompts[0].replace would THROW TypeError if aiPrompts empty and a doc has image — latent crash path on client (worth guarding during the fix).
+- NEXT SLICE (fix): make template assembly fail LOUD + non-empty: (1) if basedOnTemplate and template content empty -> surface "template has no content" instead of firing a contentless kick; (2) require prompts survive placeholder-replacement with a warning path rather than silent drop; (3) unit test for prompt-assembly with: empty templatePrompt, unresolved {{}}, empty aiPrompts. Then prove with a real seeded template (Pro/Con) rendering nodes.
+- Test env keeps debugRequestPayload=true until that lands. Budget used: 1 live chain.
+
