@@ -227,3 +227,11 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - CAPTURE: probe v1 shipped but DEAD (gated on TEST_ROOT_URL env which the test deploy never projected — 0 wasted provider calls, self-verified). Probe v2: gated on METEOR_SETTINGS.ai.debugRequestPayload (real lever), dumps provider + model + toolCount + msgShapes and, on provider_error, first 3000 chars of the exact failing BODY. Next tick: enable flag on test settings (decode-verify pattern — remember double-encode crash), run one template gen, harvest body, repro locally, binary-search tokens/tools/size, fix + disable probe.
 - Ops: disk fine (38G free). e2e entry recipe proven: /start wizard via clicks + DOM-dispatched send click; template repro prompt "Pro/Con list for platform choice".
 
+
+### Iteration 9 (Oct 19, ~23:10) — TEMPLATE-400 ROOT-CAUSED + FIXED + SHIPPED (test+prod)
+- Probe v3 (raw-prompts dump) captured the failing body verbatim: `messages:[]` + `tool_choice: setIntention` against `tools:[respond]` — double violation. "template error: list object has no element 0" = DeepInfra chat-template failing on (a) empty messages array and/or (b) forced tool_choice naming an absent tool. The hidden payload was degraded HISTORY REPLAY ({type:text} without text) + stale function_call reuse — not jinja tokens (theory dead).
+- Fix shipped to BOTH envs: (1) never send messages:[] — placeholder keeps a degraded run alive instead of 3x400+fallback; (2) drop forced tool_choice whose name is absent from tools; contract-pinned (4 new assertions incl. valid-choice-preserved case). Live-verified on test: template run = ZERO provider 400s, chain completed in ~26s (was 45s of retries), 0 restarts.
+- NEXT DEFECT (was masked by the 400): template kickoff carries NO template content (kick payload text was empty; templateMarkdown:'' in logs). Chain now "succeeds" with 0 notes: model can't populate what it never received. Next slice: trace template content lookup (intention seed vs seed-template markdown loading) so the kick actually ships content; verify with real pro/con nodes on canvas.
+- Test env currently keeps ai.debugRequestPayload=true for the next slice; disable after.
+- Live-gen budget: ~2 used (one e2e chain). Prod aligned with test again.
+
