@@ -1406,6 +1406,28 @@ export class Slate {
 
   // SINGLE ORCHESTRATOR for resize/rotate management
   /** Re-evaluate which nodes should have resize/rotate handles based on current selection. */
+  private _decoRefreshQueued = false;
+
+  /**
+   * Coalesce decoration-refresh storms (group rotate, collab bursts, paste +
+   * rotate) into ONE overlay rebuild per animation frame. Idempotent and
+   * cheap: the rebuild disables/re-enables handles for the whole selection,
+   * so per-node calls must not each trigger a full pipeline pass.
+   */
+  public queueSelectionDecorationRefresh() {
+    if (this._decoRefreshQueued) return;
+    this._decoRefreshQueued = true;
+    const run = () => {
+      this._decoRefreshQueued = false;
+      this.updateSelectionResizeRotate();
+    };
+    if (typeof requestAnimationFrame !== "undefined") {
+      requestAnimationFrame(run);
+    } else {
+      run();
+    }
+  }
+
   public updateSelectionResizeRotate() {
     console.log(
       "SELECTION_DEBUG: Updating resize/rotate for",

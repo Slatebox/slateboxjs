@@ -2091,13 +2091,34 @@ export class Node {
         } else {
           this.options.rotate.rotationAngle = angle;
           this.applyPositionAndRotation();
+          // Tween finished: re-key the selection decorations to the final
+          // geometry (stale mid-tween ring during flight is intentional —
+          // rebuilding every frame thrashes the overlay's listeners).
+          this.refreshSelectionDecorations();
         }
       };
       requestAnimationFrame(step);
     } else {
       this.options.rotate.rotationAngle = angle;
       this.applyPositionAndRotation();
+      this.refreshSelectionDecorations();
     }
+  }
+
+  /**
+   * The selection ring + plug-dots are positioned from the selected shape's
+   * axis-aligned box, and their MutationObserver watches the shape elements —
+   * but rotation lives on the PARENT group transform, which those observers
+   * never see. Interactive drags refresh via finalizeInteraction; this call
+   * covers the non-drag paths (setRotation, collab onNodeRotated, group
+   * rotate, SlateOperations, host API) where nothing else re-positions the
+   * decorations and they would strand at the pre-rotation box.
+   */
+  private refreshSelectionDecorations() {
+    const slate: any = this.slate;
+    if (!slate || this._destroyed) return;
+    if (!slate.selectedNodes?.includes?.(this)) return;
+    slate.queueSelectionDecorationRefresh?.();
   }
 
   /**
