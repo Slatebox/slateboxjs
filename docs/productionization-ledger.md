@@ -313,3 +313,39 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - Built suite #7 test:template-kick-assembly: replays REAL sSdf fixture + REAL Pro/Con seed through REAL initAIConversation via source-transform harness (meteor/slateboxjs boundary stubbed). A: loaded → clean kick, no {{ leakage; B: unloaded → loud abort. Also caught a latent crash: uploadedFiles undefined → uploadedDocs.find throws (fixed: (uploadedFiles || [])).
 - Shipped test: (1) kick-assembly self-diag (abort names leftover placeholders); (2) templateLoadFail surfaced in DOM + [welcomeResp] probe; guard slates.get-null crash. 7/7 suites green, 24/24 smoke both envs.
 - NEXT TICK SCRIPT: (a) run journey with fresh-bundle protocol (above); (b) if welcome succeeds → read [templateLoadFail]/template fetch in pod logs → determine if slateTemplateId survived DDP transport (add probe console.info of resp keys if still dark); (c) if run dies at provider chain (no tool-call) → retry once, else declare "welcome-model-drift" the gating bug and script a deterministic wizard path (server-side template detect, no model roundtrip) as the next build. (d) FILED: infinite spinner on ladder exhaustion (no provider-recovery UX). (e) FILED: sSdf decisionTree still carries engine claude-3-5-sonnet + isVision:true — likely routes kickoff to dead Anthropic key or vision path; MUST re-verify kickoff feature resolution before trusting any green journey.
+
+### Iteration 19 (Oct 20, ~21:00-04:00) — TEMPLATE JOURNEY ROOT-CAUSED: facade options decoupling
+- Live journey (1 run, 5/5 gen budget on welcome ladder): FIRST full server-chain success.
+  Qwen×3 invalid → DeepSeek fallback → valid setIntention (rich Pro/Con instructions);
+  server resolver attached tplprocon001. No kickoff request fired → failure was client-side.
+- ROOT CAUSE (engine, not model): compat-facade `slate.options` is a SEPARATE plain object
+  from the v2 engine options (init() spreads via v1SlateToV2; deserialize merges ONLY into
+  v2.options). The app reads `slate.options.basedOnTemplate/templatePrompt/templateName` off
+  the FACADE → gate in initAIConversation was always false → every template kickoff assembled
+  against an invisible template → loud abort (0 contentless kicks, but 0 real kicks either).
+  Explains why 5/5 runs showed nodeCount:5/cats:0/basedOnTemplate:null even when template
+  JSON reached the canvas ("Node added: Costs" + section labels rendered).
+- Forensic lesson (cheap stale-execution detector): the ABORT MESSAGE SHAPE fingerprints the
+  executed bundle version — names+`[dbg tpl=…]` = iter18 code; names-only = iter17; plain =
+  ≤iter16. The page-load `performance.getEntriesByType('resource')` transferSize>0 for the
+  script URL proves what was FETCHED, not what EXECUTED — cross-check message shape against
+  bundle fingerprint before believing any live result.
+- FIX (engine commit 190faa7): loadJSON mirrors loaded v2 options back onto the facade copy,
+  preserving the live viewPort/zoom.r surface. v1 semantics restored. 4 new unit tests with a
+  FAITHFUL deserialize mock (RED before fix; 1126/1126 suite green).
+- HARNESS (app commit 7ad0b73): suite #7 Scenario C = real built dist under jsdom →
+  loadTemplateIntoSlate-shaped load → real initAIConversation on the SAME live instance;
+  asserts gate visible, 4 cats injected, zero {{ leakage. Skips gracefully without sibling
+  lib. All 7 app suites green.
+- SHIPPED test-only: image 1.3.21-local.20261020T044225Z-arm64, 24/24 smoke, 0 restarts,
+  1-replica; live bundle e6499fb3 fingerprint-checked to contain the fix (kubectl cp + local
+  grep — container grep lacks ERE braces). PROD HELD at iter14 (policy: unverified → test only).
+- NEXT TICK SCRIPT: (a) fresh browser session + ?nc, verify served bundle = current hash and
+  DOM-abort fingerprint BEFORE trusting run; (b) run Pro/Con wizard journey on test, budget
+  ≤5 gen. Expect: template gate fires → kickoff generation appears in aiAudit (feature
+  generation/sSdf) — this is the first green-path target. If abort: message now carries
+  [dbg tpl=… loadOk=…] → distinguishes transport loss vs load fail vs assembly break.
+  (c) if green → ship prod, then disable ai.debugRequestPayload on test; (d) still filed:
+  infinite spinner on ladder exhaustion; deterministic wizard template-detect (model-drift
+  defense); expert-collaborator assembly quality; sSdf seed isVision/engine fields (verified
+  inert this tick — modality routing + explicit-provider resolution).
