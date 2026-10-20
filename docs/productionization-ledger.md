@@ -292,3 +292,13 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - Fix v2 shipped to test: resolution + catalog-validation now inside the setIntention case (name from model input, else text-resolve from userMessage + assistant text; invalid ids degrade to no-template). Offline replay of the EXACT failing wizard payload resolves to tplprocon001. All 6 suites green.
 - Next tick: ONE live wizard run on test → expect 'setIntention template resolved: tplprocon001' in logs + 5-node template LOAD + populated content; green → ship prod (prod still on iter14 build meanwhile). If welcome still picks sSdf WITHOUT template mention in text, resolver stays silent by design — then the remaining gap is welcome model nondeterminism, escalate to tool_choice audit.
 - Budget used: 5/5.
+
+### Iteration 17 (Oct 20, ~05:00) — template journey still red; narrowed from "whole chain" to "one function"
+- Live run (5/5 budget): welcome succeeded (4 validation-retries + success, no 400s). SERVER chain verified working: 'setIntention template resolved: tplprocon001' logged → slateTemplateId returned → client RECEIVED it (4 section labels + main node rendered in canvas DOM; DOC stored 0 nodes because nothing was ever applied — abort fired BEFORE kick).
+- Remaining break is inside initAIConversation: either basedOnTemplate not visible at assembly time (race persists) or placeholders survive replacement. Static reading shows both should work → need runtime truth.
+- Shipped to test: self-diagnostic abort (message + console.warn now include basedOnTemplate, nodeCount, category count, and the EXACT leftover {{placeholders}}). Contract window widened; 6/6 suites green.
+- NEXT TICK SCRIPT (do not re-investigate blind): fresh session, same Pro/Con prompt. The abort text (or clean generation) IS the diagnosis:
+  • basedOnTemplate:null + nodeCount:5 → load happened but options not seen → pass template flag explicitly via handleWelcome (templateLoaded) + re-check.
+  • basedOnTemplate:'tplprocon001' + leftover {{templatePrompt}} → replacement ordering bug in assembly.
+  • No abort + populated canvas → journey green: ship prod immediately.
+- Prod still on iter14 build (test carries 3 unverified-to-prod changes: seed, await-chain, resolver v2 — all contract-tested; do not ship prod blind).
