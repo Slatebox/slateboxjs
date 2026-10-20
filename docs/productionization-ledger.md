@@ -264,3 +264,10 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - Known model nondeterminism: welcome picks template-fill vs working intention variably across identical prompts (iter15 generated 14 nodes; iter12-13 aborted cleanly). Both branches now behave. Remaining product gap = the template picker never hands content to the kick (data/flow study, iteration 11's NEXT, unchanged).
 - Budget: 1 live chain. Test probe stays armed. Test+prod aligned.
 
+
+### Iteration 13 (Oct 20, ~01:55) — rotation-decoration sync SHIPPED (test+prod, engine-side)
+- Root fix: non-drag rotation paths (setRotation immediate/animated = collab onNodeRotated, SlateOperations rotate, group rotate, host API) now re-key selection decorations via explicit rAF-coalesced refresh (queueSelectionDecorationRefresh on Slate; refreshSelectionDecorations on Node, selection-membership guarded). The MutationObserver could NEVER see these: rotation lands on the PARENT group transform, observer watches shape elements only. Mid-drag stays handled by finalizeInteraction; per-frame rebuilds deliberately avoided (listener thrash).
+- Group rotate: each node's refresh hits the coalescer → ONE overlay rebuild per frame for the whole group.
+- New discriminating e2e spec (programmatic-rotation-decoration.spec.ts, 2 tests): asserts affordance RELOCATION + AABB tracking (grows at 45°, shrinks at ~90°). Verified red on old code, green with fix — no false-green risk.
+- Gates: unit 1122/1122, e2e 304/304 (+2 skipped), ship smoke 24/24 both envs. Live: test canvas loads clean, 0 console errors.
+- Both envs aligned. Live-gen budget: 0 used this tick.
