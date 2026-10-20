@@ -1,0 +1,298 @@
+{
+ "_id": "tplprocon001",
+ "shareId": "tplprocon001",
+ "userId": "system",
+ "created": 0,
+ "lastSaved": 0,
+ "options": {
+  "id": "tplprocon001",
+  "name": "Pro/Con Analysis",
+  "description": "Weigh a decision \u2014 advantages, disadvantages, evaluation criteria, and costs. Ideal for platform, vendor, tool, or architecture choices. Starts as a structure; AI fills it with decision-relevant specifics.",
+  "isTemplate": true,
+  "templateApproved": true,
+  "isFeatured": false,
+  "isCommunity": true,
+  "templatePrompt": "Populate this Pro/Con template for the specific decision the user described. If the user named concrete options (e.g. Postgres vs MySQL, Notion vs Obsidian), first REPLACE the four section categories with one category per option, then fill each option category with that option's strengths, weaknesses, risks, and costs. Otherwise keep the four sections and fill each with 4-7 decision-relevant notes grounded in the named options. Each note must be 10-25 words, specific enough to change a decision \u2014 concrete tradeoffs, not generic filler ('query latency ceiling under connection pooling' yes, 'performance matters' no). Evaluation criteria are questions or thresholds the user can test (latency ceiling, licensing caps, migration path, lock-in risk). Costs include licensing, migration effort, training burden, and lock-in with realistic magnitudes. Place notes only inside the template's existing categories and set parentCategoryIds to the matching category name so they attach correctly. Keep exactly one short title note stating the decision being analyzed.",
+  "mindMapMode": true,
+  "layoutType": {
+   "val": "dot",
+   "overlap": "compress",
+   "rankdir": "LR"
+  },
+  "isPublic": true
+ },
+ "nodes": [
+  {
+   "options": {
+    "id": "mainpc0001",
+    "name": "mainpc0001",
+    "text": "The Platform Decision",
+    "x": 160,
+    "y": 340,
+    "width": 300,
+    "height": 200,
+    "xPos": 160,
+    "yPos": 340,
+    "fontSize": 34,
+    "fontFamily": "Manrope",
+    "fontColor": "#000000",
+    "backgroundColor": "#5b8db8",
+    "borderColor": "#cccccc",
+    "borderWidth": 1,
+    "borderOpacity": 0,
+    "lineColor": "#000",
+    "lineWidth": 5,
+    "opacity": 1,
+    "textOpacity": 1,
+    "shape": "rectangle",
+    "shapeHint": "rectangle",
+    "vectorPath": "roundedrectangle",
+    "allowDrag": true,
+    "isLocked": false,
+    "rotate": {
+     "rotationAngle": 0
+    },
+    "textOffset": {
+     "x": 0,
+     "y": 0
+    },
+    "resizeRotate": {
+     "resizeEnabled": true,
+     "rotateEnabled": true,
+     "preserveAspectRatio": false,
+     "aroundCenter": false,
+     "grid": 0,
+     "degree": 0
+    }
+   },
+   "relationships": {
+    "associations": [
+     {
+      "id": "mainpc0001->catadv0001",
+      "childId": "catadv0001",
+      "parentId": "mainpc0001",
+      "isStraightLine": false,
+      "lineColor": "#000000",
+      "lineEffect": "postItNote",
+      "lineOpacity": 1
+     },
+     {
+      "id": "mainpc0001->catcon0001",
+      "childId": "catcon0001",
+      "parentId": "mainpc0001",
+      "isStraightLine": false,
+      "lineColor": "#000000",
+      "lineEffect": "postItNote",
+      "lineOpacity": 1
+     },
+     {
+      "id": "mainpc0001->cateval0001",
+      "childId": "cateval0001",
+      "parentId": "mainpc0001",
+      "isStraightLine": false,
+      "lineColor": "#000000",
+      "lineEffect": "postItNote",
+      "lineOpacity": 1
+     },
+     {
+      "id": "mainpc0001->catcst0001",
+      "childId": "catcst0001",
+      "parentId": "mainpc0001",
+      "isStraightLine": false,
+      "lineColor": "#000000",
+      "lineEffect": "postItNote",
+      "lineOpacity": 1
+     }
+    ]
+   }
+  },
+  {
+   "options": {
+    "id": "catadv0001",
+    "name": "catadv0001",
+    "text": "Advantages",
+    "isCategory": true,
+    "categoryName": "Advantages",
+    "x": 620,
+    "y": 60,
+    "width": 520,
+    "height": 260,
+    "xPos": 620,
+    "yPos": 60,
+    "fontSize": 24,
+    "fontFamily": "Manrope",
+    "fontColor": "#000000",
+    "backgroundColor": "#4c9f70",
+    "borderColor": "#cccccc",
+    "borderWidth": 1,
+    "borderOpacity": 0,
+    "lineColor": "#000",
+    "lineWidth": 5,
+    "opacity": 0.9,
+    "textOpacity": 1,
+    "shape": "rectangle",
+    "shapeHint": "rectangle",
+    "vectorPath": "roundedrectangle",
+    "allowDrag": true,
+    "isLocked": false,
+    "rotate": {
+     "rotationAngle": 0
+    },
+    "textOffset": {
+     "x": 0,
+     "y": 0
+    },
+    "textXAlign": "left",
+    "resizeRotate": {
+     "resizeEnabled": true,
+     "rotateEnabled": false,
+     "preserveAspectRatio": false,
+     "aroundCenter": false,
+     "grid": 0,
+     "degree": 0
+    }
+   }
+  },
+  {
+   "options": {
+    "id": "catcon0001",
+    "name": "catcon0001",
+    "text": "Disadvantages",
+    "isCategory": true,
+    "categoryName": "Disadvantages",
+    "x": 620,
+    "y": 400,
+    "width": 520,
+    "height": 260,
+    "xPos": 620,
+    "yPos": 400,
+    "fontSize": 24,
+    "fontFamily": "Manrope",
+    "fontColor": "#000000",
+    "backgroundColor": "#c25e5e",
+    "borderColor": "#cccccc",
+    "borderWidth": 1,
+    "borderOpacity": 0,
+    "lineColor": "#000",
+    "lineWidth": 5,
+    "opacity": 0.9,
+    "textOpacity": 1,
+    "shape": "rectangle",
+    "shapeHint": "rectangle",
+    "vectorPath": "roundedrectangle",
+    "allowDrag": true,
+    "isLocked": false,
+    "rotate": {
+     "rotationAngle": 0
+    },
+    "textOffset": {
+     "x": 0,
+     "y": 0
+    },
+    "textXAlign": "left",
+    "resizeRotate": {
+     "resizeEnabled": true,
+     "rotateEnabled": false,
+     "preserveAspectRatio": false,
+     "aroundCenter": false,
+     "grid": 0,
+     "degree": 0
+    }
+   }
+  },
+  {
+   "options": {
+    "id": "cateval0001",
+    "name": "cateval0001",
+    "text": "Evaluation Criteria",
+    "isCategory": true,
+    "categoryName": "Evaluation Criteria",
+    "x": 1260,
+    "y": 60,
+    "width": 520,
+    "height": 260,
+    "xPos": 1260,
+    "yPos": 60,
+    "fontSize": 24,
+    "fontFamily": "Manrope",
+    "fontColor": "#000000",
+    "backgroundColor": "#c9a24a",
+    "borderColor": "#cccccc",
+    "borderWidth": 1,
+    "borderOpacity": 0,
+    "lineColor": "#000",
+    "lineWidth": 5,
+    "opacity": 0.9,
+    "textOpacity": 1,
+    "shape": "rectangle",
+    "shapeHint": "rectangle",
+    "vectorPath": "roundedrectangle",
+    "allowDrag": true,
+    "isLocked": false,
+    "rotate": {
+     "rotationAngle": 0
+    },
+    "textOffset": {
+     "x": 0,
+     "y": 0
+    },
+    "textXAlign": "left",
+    "resizeRotate": {
+     "resizeEnabled": true,
+     "rotateEnabled": false,
+     "preserveAspectRatio": false,
+     "aroundCenter": false,
+     "grid": 0,
+     "degree": 0
+    }
+   }
+  },
+  {
+   "options": {
+    "id": "catcst0001",
+    "name": "catcst0001",
+    "text": "Costs",
+    "isCategory": true,
+    "categoryName": "Costs",
+    "x": 1260,
+    "y": 400,
+    "width": 520,
+    "height": 260,
+    "xPos": 1260,
+    "yPos": 400,
+    "fontSize": 24,
+    "fontFamily": "Manrope",
+    "fontColor": "#000000",
+    "backgroundColor": "#8a6fb8",
+    "borderColor": "#cccccc",
+    "borderWidth": 1,
+    "borderOpacity": 0,
+    "lineColor": "#000",
+    "lineWidth": 5,
+    "opacity": 0.9,
+    "textOpacity": 1,
+    "shape": "rectangle",
+    "shapeHint": "rectangle",
+    "vectorPath": "roundedrectangle",
+    "allowDrag": true,
+    "isLocked": false,
+    "rotate": {
+     "rotationAngle": 0
+    },
+    "textOffset": {
+     "x": 0,
+     "y": 0
+    },
+    "textXAlign": "left",
+    "resizeRotate": {
+     "resizeEnabled": true,
+     "rotateEnabled": false,
+     "preserveAspectRatio": false,
+     "aroundCenter": false,
+     "grid": 0,
+     "degree": 0
+    }
+   }
+  }
+ ]
+}

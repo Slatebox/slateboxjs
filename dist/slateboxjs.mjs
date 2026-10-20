@@ -8750,11 +8750,24 @@ class qe {
       const o = t - n, r = performance.now(), a = () => {
         if (this._destroyed || !this.svgGroup || !this.options.rotate) return;
         const l = Math.min(1, (performance.now() - r) / e), c = l < 0.5 ? 2 * l * l : 1 - Math.pow(-2 * l + 2, 2) / 2;
-        this.options.rotate.rotationAngle = n + o * c, this.applyPositionAndRotation(), l < 1 ? requestAnimationFrame(a) : (this.options.rotate.rotationAngle = t, this.applyPositionAndRotation());
+        this.options.rotate.rotationAngle = n + o * c, this.applyPositionAndRotation(), l < 1 ? requestAnimationFrame(a) : (this.options.rotate.rotationAngle = t, this.applyPositionAndRotation(), this.refreshSelectionDecorations());
       };
       requestAnimationFrame(a);
     } else
-      this.options.rotate.rotationAngle = t, this.applyPositionAndRotation();
+      this.options.rotate.rotationAngle = t, this.applyPositionAndRotation(), this.refreshSelectionDecorations();
+  }
+  /**
+   * The selection ring + plug-dots are positioned from the selected shape's
+   * axis-aligned box, and their MutationObserver watches the shape elements —
+   * but rotation lives on the PARENT group transform, which those observers
+   * never see. Interactive drags refresh via finalizeInteraction; this call
+   * covers the non-drag paths (setRotation, collab onNodeRotated, group
+   * rotate, SlateOperations, host API) where nothing else re-positions the
+   * decorations and they would strand at the pre-rotation box.
+   */
+  refreshSelectionDecorations() {
+    const t = this.slate;
+    !t || this._destroyed || t.selectedNodes?.includes?.(this) && t.queueSelectionDecorationRefresh?.();
   }
   /**
    * Set the group's transform to translate(options.x, options.y) followed by a
@@ -12360,7 +12373,7 @@ const Ge = class Ge {
    * ```
    */
   constructor(t, e = {}) {
-    if (this.selectedNodes = [], this.groupResizeRotate = null, this.enteredGroupId = null, this._coordinateIntervalId = null, this._lastPointerDown = null, this._windowPointerDownHandler = null, this._destroyed = !1, this._applyingRemote = !1, this._hadGroupSelection = !1, this._emitDeferred = !1, this._emitQueue = [], this._birdsEyeTimeoutId = null, this._coordDisplayTimeoutId = null, this._nodeNotifyTimeoutId = null, this._liveRegion = null, this._resizeObserver = null, typeof t == "string") {
+    if (this.selectedNodes = [], this.groupResizeRotate = null, this.enteredGroupId = null, this._coordinateIntervalId = null, this._lastPointerDown = null, this._windowPointerDownHandler = null, this._destroyed = !1, this._applyingRemote = !1, this._hadGroupSelection = !1, this._emitDeferred = !1, this._emitQueue = [], this._birdsEyeTimeoutId = null, this._coordDisplayTimeoutId = null, this._nodeNotifyTimeoutId = null, this._liveRegion = null, this._resizeObserver = null, this._decoRefreshQueued = !1, typeof t == "string") {
       const n = document.querySelector(t);
       if (!n)
         throw new Error(`Element with selector "${t}" not found`);
@@ -12947,8 +12960,20 @@ const Ge = class Ge {
     const n = this.selectedNodes.length;
     n === 0 ? this.announce("No nodes selected") : n === 1 ? this.announce(`Node selected: ${this.selectedNodes[0].options.text || "(unnamed)"}`) : this.announce(`${n} nodes selected`), n > 1 && (this._hadGroupSelection = !0, this.options.events?.onGroupSelection?.(this.selectedNodes.slice()));
   }
-  // SINGLE ORCHESTRATOR for resize/rotate management
-  /** Re-evaluate which nodes should have resize/rotate handles based on current selection. */
+  /**
+   * Coalesce decoration-refresh storms (group rotate, collab bursts, paste +
+   * rotate) into ONE overlay rebuild per animation frame. Idempotent and
+   * cheap: the rebuild disables/re-enables handles for the whole selection,
+   * so per-node calls must not each trigger a full pipeline pass.
+   */
+  queueSelectionDecorationRefresh() {
+    if (this._decoRefreshQueued) return;
+    this._decoRefreshQueued = !0;
+    const t = () => {
+      this._decoRefreshQueued = !1, this.updateSelectionResizeRotate();
+    };
+    typeof requestAnimationFrame < "u" ? requestAnimationFrame(t) : t();
+  }
   updateSelectionResizeRotate() {
     if (console.log(
       "SELECTION_DEBUG: Updating resize/rotate for",
@@ -14454,6 +14479,11 @@ class Jl {
   /** v1: `slate.loadJSON(jsonString)` */
   async loadJSON(t) {
     this.assertReady(), await this.v2.loadJSON(t);
+    const e = this.v2?.options;
+    if (e) {
+      const n = this.options.viewPort;
+      this.options = { ...this.options, ...e }, n && (this.options.viewPort = n);
+    }
   }
   /**
    * Lifecycle: `slate.destroy()` — tears down the slate. Delegates to the v2

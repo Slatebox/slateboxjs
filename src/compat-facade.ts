@@ -665,6 +665,22 @@ class slate {
   public async loadJSON(json: string): Promise<void> {
     this.assertReady();
     await this.v2!.loadJSON(json);
+    // v1 semantics: loadJSON replaced the slate's live options, and host
+    // code reads them off this facade object (initAIConversation gates the
+    // template kickoff on `slate.options.basedOnTemplate` + reads
+    // templateName/templatePrompt; QuickNodeActions reads viewPort.zoom.r).
+    // init() gave the v2 engine its OWN options object (v1SlateToV2 spread),
+    // and deserialize merges into that copy — so mirror the loaded state
+    // back onto the facade here, or those reads stay frozen at boot state.
+    const loaded = (this.v2 as any)?.options as Record<string, any> | undefined;
+    if (loaded) {
+      const prevViewPort = this.options.viewPort;
+      this.options = { ...this.options, ...loaded };
+      // Keep the live viewPort surface: the `zoom.r` getter and the w/h/l/t
+      // runtime fields would otherwise be clobbered by a plain viewPort from
+      // JSON, breaking host zoom reads (QuickNodeActions et al.).
+      if (prevViewPort) this.options.viewPort = prevViewPort;
+    }
   }
 
   /**

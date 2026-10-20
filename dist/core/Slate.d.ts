@@ -407,6 +407,14 @@ export declare class Slate {
      */
     selectNodes(nodes: Node[], addToSelection?: boolean): void;
     /** Re-evaluate which nodes should have resize/rotate handles based on current selection. */
+    private _decoRefreshQueued;
+    /**
+     * Coalesce decoration-refresh storms (group rotate, collab bursts, paste +
+     * rotate) into ONE overlay rebuild per animation frame. Idempotent and
+     * cheap: the rebuild disables/re-enables handles for the whole selection,
+     * so per-node calls must not each trigger a full pipeline pass.
+     */
+    queueSelectionDecorationRefresh(): void;
     updateSelectionResizeRotate(): void;
     /** Request resize/rotate enable for a specific node (checked against selection). */
     enableNodeResizeRotate(node: Node): void;

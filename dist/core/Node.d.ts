@@ -368,6 +368,16 @@ export declare class Node {
      */
     setRotation(angle: number, duration?: number): void;
     /**
+     * The selection ring + plug-dots are positioned from the selected shape's
+     * axis-aligned box, and their MutationObserver watches the shape elements —
+     * but rotation lives on the PARENT group transform, which those observers
+     * never see. Interactive drags refresh via finalizeInteraction; this call
+     * covers the non-drag paths (setRotation, collab onNodeRotated, group
+     * rotate, SlateOperations, host API) where nothing else re-positions the
+     * decorations and they would strand at the pre-rotation box.
+     */
+    private refreshSelectionDecorations;
+    /**
      * Set the group's transform to translate(options.x, options.y) followed by a
      * rotation around the node's visual center. The shape/text are drawn at the
      * group's local origin, so position is a pure translate and rotation must be
