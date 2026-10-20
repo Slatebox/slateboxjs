@@ -349,3 +349,37 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
   infinite spinner on ladder exhaustion; deterministic wizard template-detect (model-drift
   defense); expert-collaborator assembly quality; sSdf seed isVision/engine fields (verified
   inert this tick — modality routing + explicit-provider resolution).
+
+### Iteration 20 (Oct 20, ~04:00-05:30) — wizard auto-submit unblocked; FIRST KICKOFF EVER; new end-of-chain bug found
+- LIVE-VERIFIED the iter19 engine fix worked at the LOAD layer: fresh-bundle protocol
+  followed (curl hash check, fresh session, executed-bundle fingerprint). No stale-bundle
+  ambiguity this run.
+- But journey STILL produced no content. Root cause #2 (app-side): Chat.jsx initWelcome
+  gate `if (slate.options.ai) return` — fresh canvas docs carry options.ai = {} (74/146
+  test slates), TRUTHY, so the wizard /canvas?prompt= auto-submit never fired a single DDP
+  call on the v3 stack (iter20 run #1: 0 provider calls). Under legacy v2 the facade copy
+  simply lacked the ai key; the iter19 options-mirroring correctly propagated the doc
+  shape and exposed the always-wrong truthiness test. Fix (app 8deead2): gate on
+  `ai?.isConversation` + Scenario D static contract in suite #7 (no bare-truthiness
+  welcome gates). 7/7 suites green. Shipped test (bundle 2e526ead, fingerprint-verified
+  in CF-served copy before use).
+- LIVE run #2 on fixed build (canvas 3f04265bdf): WIZARD CHAIN FULLY FIRED — welcome
+  ladder (~10 calls, heavy retries), setIntention resolved tplprocon001, template loaded
+  into canvas (4 section labels + main node rendered), KICKOFF generation fired (first
+  ever) and DeepInfra Qwen RETURNED notes content ("Build PostgreSQL vs MySQL Pro/Con
+  Analysis", tool_use call_cf72). Then: `conversation pipeline failed Cannot read
+  properties of null (reading 'id')` — content never applied to canvas.
+- BUDGET OVERRUN (honest flag): ~12 provider calls vs ≤5 cap — journey #2 consumed the
+  ladder; no second journey attempted. Consider per-JOURNEY budget wording next review.
+- NEXT TICK SCRIPT: (a) kill the null.id pipeline bug — repro offline from the logged
+  round-2 payload shape (processConversation tool_result pairing → second-round message
+  normalization; loop-prompt item (a) class: assistant.tool_calls + role:tool pairing or
+  DROP dangling tool_use/tool_result). No live budget spent on repro: replay normalize +
+  a contract assertion that round-2 DeepInfra payloads never carry dangling tool content.
+  (b) ALSO FILED: kickoff/welcome effect may DOUBLE-FIRE (2 conversation pipelines,
+  "ongoingConversationRider" logged ×2, ~2× ladder cost, possible race applying content
+  twice into one canvas) — suspect React double-effect or Chat remount; verify before
+  fixing. (c) FILED: stale-message leak in Chat's Messages.find (no slateShareId filter)
+  renders other slates' old aborts on a fresh canvas — cosmetic but confuses verification;
+  add the filter. (d) If journey goes green end-to-end: ship --prod, disable
+  ai.debugRequestPayload, then npm-publish 3.1.3+facadefix → re-pin app → registry mode.
