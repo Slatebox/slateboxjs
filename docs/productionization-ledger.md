@@ -383,3 +383,9 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
   renders other slates' old aborts on a fresh canvas — cosmetic but confuses verification;
   add the filter. (d) If journey goes green end-to-end: ship --prod, disable
   ai.debugRequestPayload, then npm-publish 3.1.3+facadefix → re-pin app → registry mode.
+
+## Iteration 21 — double-dispatch killed at the source + pipeline hardening (app dd790ba, test-only ship)
+- Forensics (offline, 0 provider calls): test pod log is ONE journey; counts prove ONE wizard submit produced 2 welcome chains + 2 kickoff pipelines (2 conversation aids, 2 template loads, 2 pipelines, interleaved). 12-call budget overrun = double-dispatch, not bad luck. The null.id crash = two pipelines racing one shared canvas (chain 2 kicked while chain 1 was applying) + a plausible null-entry path through errorChecks/apply loops.
+- Fix shipped TEST-ONLY (prod held): promptLatch (page-scoped canvas+prompt one-shot; verified live-served in bundle), Chat welcome effect now has one dispatch per canvas+prompt regardless of mount/remount/deps shape; null-entry guards in processConversation loops; pipeline-failure catch logs full stack+aid.
+- Gates: 7/7 contract suites green (new scenario E = latch semantics + wiring), Meteor build clean, post-ship smoke 24/24, 0 restarts, bundle freshness verified by curl marker.
+- NEXT (iter 22): fresh-browser live Pro/Con journey on test (expect: ONE welcome ladder ~4-5 calls + ONE kickoff — first content-on-canvas attempt with stack-logging armed). Budget ≤5 total. If green → prod ship + disable ai.debugRequestPayload. If a pipeline fails again, the stack lands in logs now → root-cause in one pass.
