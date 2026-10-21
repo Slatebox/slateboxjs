@@ -503,3 +503,7 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - 8h audit window decoded with timestamps: ALL prod non-success entries (incl. the 271s double-timeout pair) are 17:16-17:26Z = PRE-iter56/57-ship. Post-ship prod traffic = 1 success call + no anomalies. Test 8h entries are my own it56/57 verification journeys. Degrade marker fired exactly once (my fd090a26c3 test journey), zero false fires.
 - Watch items (wizard edit-tool misfires, timeout-class recurrence) cannot be evaluated without real traffic — next fires re-check the 24h window. If clean AND no user input arrives: IDLE is correct (don't tune rare classes).
 - State unchanged: test+prod both on iter57 build, all pods steady, disk 66Gi.
+
+## Iteration 63 — CADENCE CUT to hourly; watch items remain (0 post-ship traffic, 0 errors)
+- Eight consecutive clean sweeps; prod traffic since iter57 ship = 0 calls (near-zero-user product, expected). Watch items (wizard edit-misfires, timeout class) cannot evaluate without traffic — no tuning manufactured on zero samples.
+- Loop cron: 20-min (5be398b5) → hourly-at-:05 (60c1711e) to keep anomaly coverage at lower idle cost. Ship-time smoke+probe+tripwire remain the standing gates. Unblocks still user-gated: npm token (3.1.3 publish runbook ready), prod Chatwoot identity decision.
