@@ -14,9 +14,12 @@ by replacing the legacy Raphael-era canvas engine with a new TypeScript/SVG.js e
 ("SlateboxJS v3") and making the AI generation + template product work end-to-end in production,
 with fast iteration tooling and runtime-verified gates.
 
-Owner preference ("Scion-style"): test-after-merge. No CI gate blocks a ship. Fix forward, don't
-roll back. No backwards-compat worries — near-zero external users today. Skip staging ceremony
-beyond the test namespace. Ship-from-Mac is the deliberate workflow.
+Owner policy ("Scion-style", canonical version in §5): push to main and test AFTER merge.
+No CI gate, no PR-review gate, no merge queue. Ship with one script on the build box (roscoe),
+never from a laptop. Fix forward, don't roll back. No backwards-compat worries — near-zero
+external users today. Skip staging ceremony beyond the test namespace. The engine library is
+consumed FILE-BASED (no npm publish during iteration — publish happens ONCE, when the dust
+settles). Where any older note in this doc or the ledger says "ship-from-Mac," §5 wins.
 
 ## 2. Ground truth locations (READ THESE FIRST)
 
@@ -71,25 +74,79 @@ beyond the test namespace. Ship-from-Mac is the deliberate workflow.
   Playwright e2e baseline: 304 passed / 2 skipped (chromium) at iter33.
 - **Infra**: `~/Projects/roscoe-k8s` — no git remote (local repo; commits are the record).
 
-## 5. How shipping works RIGHT NOW
+## 5. Shipping: push to main, test after merge (CANONICAL PRINCIPLE — overrides every older
+## shipping note in this doc, the ledger, and AGENTS.md)
 
-```
-~/Projects/roscoe-k8s/scripts/slatebox-ship.sh --test|--prod|--both [--no-probe] [--note "..."]
-```
-- DEFAULT is **packed mode**: builds the local `slateboxjs-v2` engine, tars it, stages a
-  **disposable build context** whose package.json points at `file:./slateboxjs-<stamp>.tgz`.
-  npm publish is NOT part of the flow. The tracked `package.json` pin (registry 3.1.2) is inert
-  in packed mode.
-- **NEVER ship `--library-source registry` until slateboxjs@3.1.3 actually publishes.** Registry
-  3.1.2 PREDATES the template-gate fix — registry mode = engine rollback. The ship script prints a
-  KNOWN-REGRESSIVE warning (tripwire, iter38) — do not silence it, don't use that mode.
-- `file:` dependency edits to the TRACKED app package.json are forbidden (poisoned-copy class).
-- Every artifact must be identity-stamped (lib sha + app sha + stamp) — this rule exists because
-  untraceable copies burned the project twice.
-- Ship runs smoke (24/24 baseline) then the live-probe post-deploy automatically. Probe is
-  WARN-ONLY (never gates): a probe warn = inspect, don't rollback; treat as hold-prod signal for
-  generation-dependent changes.
-- Test-after-merge: a red suite doesn't block a ship, but you fix forward same-iteration.
+Apply to BOTH code repos — the app (`app.slatebox.com`) AND the engine library
+(`slateboxjs-v2`). Same rules, same `ship` path, no per-repo exceptions.
+
+### 5.1 The principle (verbatim policy)
+
+1. **Targeted checks only before shipping**: the tests covering what you changed,
+   typecheck/lint, and a fast preflight (build + smoke start of the app). Do NOT run the full
+   suite before shipping. Full suite is a post-merge activity, never a gate.
+2. **One script, `ship`, run on the build box (the roscoe), never from a laptop.** It, in order:
+   - **refuses a stale tree** — the branch must be rebased on origin/main; `git rebase
+     origin/main` is the ONLY way to update a branch (never merge, never reset);
+   - reruns the preflight;
+   - **fast-forwards main and pushes it**;
+   - deploys;
+   - checks health (the app answers, pages hydrate).
+   If any step fails, nothing reaches main. **Never push to main by hand.**
+3. **After a ship**, the full test suite runs in the BACKGROUND on the build box against the
+   new main and appends one line per run (sha, passed, failed, failing test names) to a log,
+   e.g. `logs/suite.jsonl`.
+4. **Never wait on, poll for, or block on that post-ship suite.** Ship, report, move on.
+5. **Fix a red suite forward; don't roll back by default.** Whoever caused the red fixes it
+   first: find the first red sha in the log and ship a fix through the same `ship` path.
+   Roll back only deliberately (e.g. `ship --allow-revert <sha>`).
+6. **Never loosen a test to make it pass.** Fix the code, or fix the test only when the test
+   itself is wrong.
+
+### 5.2 Engine consumption: file-based, no npm round-trips during iteration
+
+- The app must reference the **file-based slateboxjs** (the local `slateboxjs-v2` build), not
+  the registry package. npm publish is deferred: publish slateboxjs **once, when the dust
+  settles** (runbook already armed: `docs/publish-3.1.3-runbook.md`).
+- Today's mechanism already satisfies "file-based": packed mode stages a **disposable build
+  context** with `file:./slateboxjs-<stamp>.tgz` freshly built from current `slateboxjs-v2`
+  source. You may keep that shape, or make the tracked package.json dependency genuinely
+  file-based — either is acceptable as long as the three invariants below hold. What is NOT
+  acceptable: pinning a stale tarball, a cached engine copy, or the registry package as the
+  daily-driver path.
+- **Invariants (these are what make file-based safe — the poisoned-copy class burned this
+  project twice):** (a) every ship rebuilds the engine fresh from slateboxjs-v2 HEAD; no stale
+  copy is ever consumed; (b) identity stamping — lib sha + app sha + stamp on every artifact
+  and ship-log line, always traceable; (c) engine changes go to slateboxjs-v2 main immediately
+  (same push-to-main-test-after rule), and the app ship consumes that main.
+- **Registry-mode ships stay FORBIDDEN until slateboxjs@3.1.3 is actually published AND
+  byte-identity-verified.** Registry 3.1.2 predates the template-gate fix — registry mode =
+  engine rollback. The ship script's KNOWN-REGRESSIVE tripwire (iter38) must stay armed.
+
+### 5.3 Gap to close: today's tooling vs the principle (= open work U3)
+
+- `slatebox-ship.sh` currently runs FROM THE MAC (docker build via OrbStack). The principle
+  puts `ship` on the build box. Facts: roscoe-2tb is arm64 and ssh-reachable from the Mac
+  (`ssh roscoe-2tb` verified working at handoff). Decide at U3 whether docker/build moves
+  natively onto roscoe (arm64 box, likely faster + matches the principle's letter) or a thin
+  Mac-side stage remains — but the single-entrypoint contract is non-negotiable: stale-tree
+  gate → preflight rerun → ff main + push → deploy → health check, one command, and it is NOT
+  "from a laptop with hand-pushed main."
+- Remote facts for the stale-tree gate (verify, don't trust): app repo's GitHub remote is named
+  **`community`** (Slatebox/slatebox), NOT origin — `git rebase origin/main` will silently
+  no-op or fail there; the gate must use the right remote. Engine remote is `origin`
+  (Slatebox/slateboxjs-v2). `roscoe-k8s` has NO remote (local-only record repo — the
+  stale-tree gate there reduces to "clean tree + recorded sha").
+- Local mains may be AHEAD of the GitHub remotes after 2+ weeks of local-only commits. First
+  act of U3: check ahead/behind per repo (`git status -sb`, `git log origin/main..main`). If
+  diverged, reconcile deliberately BEFORE enabling the push-to-main step — do not let ship
+  force-push or rebase-dump 60 iterations of history unreviewed onto a public repo.
+- Post-ship background suite (`logs/suite.jsonl`, on the build box): app side = the 9 contract
+  suites (+ playwright e2e where touched); engine side = the 1126 unit tests (+ its e2e).
+  One line per run: `sha, passed, failed, failing test names`. Red handling per principle 5.
+- Keep: post-deploy 24/24 smoke + warn-only live-probe inside the ship path (probe warn =
+  inspect; hold-prod signal for generation-dependent changes). Keep `--allow-revert` energy
+  low — the default is fix-forward.
 
 ## 6. Deployed state at handoff (VERIFY BEFORE TRUSTING — 14 days idle)
 
@@ -112,8 +169,9 @@ beyond the test namespace. Ship-from-Mac is the deliberate workflow.
   (permanent, encoded in secrets script). Prod = widget ON (default behavior) — unresolved
   identity decision, see open work.
 - debugRequestPayload: fully disarmed (code removed + config deleted).
-- Loop cron cadence: hourly `:05` (id 60c1711e, durable, auto-expires ~Nov 10). You may want to
-  replace or kill it; the ship-time gates are the real standing protection.
+- Loop cron: NO active task at handoff (the 20-min and hourly durable crons have both expired
+  or been deleted). If the owner wants automated sweeps again they'd re-create one; ship-time
+  gates (smoke + probe) are the real standing protection either way.
 
 ## 7. The AI request path (current architecture, condensed)
 
@@ -183,8 +241,9 @@ in params. Verify with lsp_references on the consuming method BEFORE wiring.
   last-known-good until live verification.
 - No secret values in commits/output (names only).
 - Prod user data: read-only. Test namespace canvases: free to break.
-- Commit BEFORE ship (no dirty lib tree beyond dist/). Ledger entry + infra/app commits close
-  every iteration ("one unit" protocol).
+- Commit BEFORE ship (no dirty lib tree beyond dist/); ship itself refuses a stale tree (§5).
+  Ledger entry + infra/app commits close every iteration ("one unit" protocol). Pushes to main
+  happen ONLY through the ship path — never by hand.
 - Idle is correct when everything is gated: don't manufacture churn (the project's own lesson).
 
 ## 10. Open work (priority order)
@@ -206,11 +265,20 @@ or tighten the route system prompt (feature `welcome-route` in openai.js
 (pre-iter56); iter56 policy should prevent; audit will show if it recurred. If traffic is still
 zero, U2 is unverifiable — say so and move on rather than tuning on zero samples.
 
-**U3 — npm publish chain (BLOCKED on a human: npm auth 401).** Full runbook:
-`~/Projects/node/slateboxjs-v2/docs/publish-3.1.3-runbook.md`. Chain = publish 3.1.3 → byte-identity
-gate (published tarball vs local build) → re-pin app package.json → registry-mode gate run →
-baseline ship. UNTIL DONE: registry-mode ships are FORBIDDEN (3.1.2 regressive; tripwire armed).
-If auth still fails, this stays blocked — don't half-do it.
+**U3 — SHIPPING 2.0: implement the §5 principle (the main build work).** Today `ship` runs from
+the Mac with no stale-tree gate and no post-ship background suite. Target state:
+(a) single `ship` entrypoint that runs on the build box (roscoe), for BOTH repos; (b) stale-tree
+gate (rebase check against the right remote — app's is named `community`); (c) preflight rerun;
+(d) fast-forward main + push (AFTER reconciling the 2+ weeks of local-only history deliberately —
+check ahead/behind first, don't dump 60 iterations onto the public repos unreviewed); (e) deploy
++ health check (app answers, pages hydrate); (f) background post-ship full suite appending to
+`logs/suite.jsonl` (sha, passed, failed, failing names) — never blocked on, never a gate;
+(g) red → first-red-sha fix-forward via the same path; rollback only via deliberate
+`--allow-revert`. Engine stays file-based (fresh-per-ship build + identity stamps, §5.2).
+npm publish is DEFERRED to "dust settles" — the runbook stays armed; do not half-run it.
+Verification for this unit: a dry-run ship attempt must visibly refuse (1) a stale tree,
+(2) a hand-pushed main, and a red preflight must leave main untouched. Then one real ship
+through it + one background-suite line in the log = unit done.
 
 **U4 — Prod Chatwoot identity decision (needs owner call, then ~30 min).** Prod users currently
 share one anonymous widget contact space (test escaped it via config-OFF in iter30/25). Options:
@@ -235,7 +303,9 @@ NOT a defect, revisit only if the wizard is redesigned).
 4. A fix touches `slateEngine.call` — what two surfaces must it exist on and how do you verify
    before shipping?
 5. Ship script defaults to what library source, and why is the other one armed with a warning?
-6. You need to reconstruct what provider calls a failed journey made without spending any calls —
+6. Where does `ship` run, and what are the three things it must refuse before anything reaches
+   main? Where do post-ship full-suite results go, and who is allowed to block on them?
+7. You need to reconstruct what provider calls a failed journey made without spending any calls —
    what do you query and where does the driver live in the image?
 
 Good luck. Verify first, ship small, keep the ledger alive — append your iteration outcomes to the
