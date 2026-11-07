@@ -173,9 +173,12 @@ Apply to BOTH code repos — the app (`app.slatebox.com`) AND the engine library
 - Chatwoot: per-env kill switch `public.chatWoot.enabled` shipped both envs. Test = config-OFF
   (permanent, in secrets script). Prod = DECIDED Nov 7: CONFIG-OFF TOO (see U4 — execute it).
 - debugRequestPayload: fully disarmed (code removed + config deleted).
-- Loop cron: ACTIVE at handoff — durable task `slatebox-loop-active` every 20 min (see
-  loop-prompt.md for the iteration protocol; the cron prompt embeds the current priorities).
-  Auto-expires after 7 days unless recreated; owner can kill via /loop-kill.
+- Loop cron: PERPETUAL, self-re-arming. Durable task every 20 min (current id in
+  docs/.loop-marker, line 2). The cron prompt is a short seed pointing at docs/loop-prompt.md;
+  that file's Step 0 tells every fire to re-create the durable task at age >=5 days (tasks
+  auto-expire at 7d), so the loop survives expiry as long as the machine is on sometimes.
+  If you find the loop dead: the re-arm recipe is loop-prompt.md Step 0 + its .loop-marker
+  protocol; owner can also kill everything via /loop-kill.
 
 ## 7. The AI request path (current architecture, condensed)
 
