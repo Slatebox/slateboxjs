@@ -265,12 +265,15 @@ or tighten the route system prompt (feature `welcome-route` in openai.js
 (pre-iter56); iter56 policy should prevent; audit will show if it recurred. If traffic is still
 zero, U2 is unverifiable — say so and move on rather than tuning on zero samples.
 
-**U3 — SHIPPING 2.0: implement the §5 principle (the main build work).** Today `ship` runs from
-the Mac with no stale-tree gate and no post-ship background suite. Target state:
+**U3 — SHIPPING 2.0: implement the §5 principle (the main build work). GIT DECISION MADE by
+owner Nov 7: RECONCILE + ENABLE PUSH to GitHub remotes.** Target state:
 (a) single `ship` entrypoint that runs on the build box (roscoe), for BOTH repos; (b) stale-tree
 gate (rebase check against the right remote — app's is named `community`); (c) preflight rerun;
-(d) fast-forward main + push (AFTER reconciling the 2+ weeks of local-only history deliberately —
-check ahead/behind first, don't dump 60 iterations onto the public repos unreviewed); (e) deploy
+(d) fast-forward main + push. BEFORE enabling the push step: inspect what's actually on the
+GitHub remotes (Slatebox/slatebox, Slatebox/slateboxjs-v2), compare vs local main (2+ weeks of
+local-only commits, ~60 iterations), reconcile deliberately, and REPORT the divergence + plan
+before the first real push — do not bulk-dump history unreviewed. Once reconciled, ff-push is ON
+permanently (never hand-push main again). (e) deploy
 + health check (app answers, pages hydrate); (f) background post-ship full suite appending to
 `logs/suite.jsonl` (sha, passed, failed, failing names) — never blocked on, never a gate;
 (g) red → first-red-sha fix-forward via the same path; rollback only via deliberate
@@ -280,12 +283,11 @@ Verification for this unit: a dry-run ship attempt must visibly refuse (1) a sta
 (2) a hand-pushed main, and a red preflight must leave main untouched. Then one real ship
 through it + one background-suite line in the log = unit done.
 
-**U4 — Prod Chatwoot identity decision (needs owner call, then ~30 min).** Prod users currently
-share one anonymous widget contact space (test escaped it via config-OFF in iter30/25). Options:
-(a) config-off prod too — one line in `slatebox-secrets.sh` settings + redeploy; (b) wire real
-identity: configure per-env `chatWoot.userIdentityValidationToken` (the crash-prone unguarded
-read was fixed iter30; the KILL SWITCH `public.chatWoot.enabled` defaults to ENABLED when the
-config key is absent, so absent-key = widget on). Ask the owner which; do not guess.
+**U4 — Prod Chatwoot: DECIDED by owner Nov 7 — CONFIG-OFF prod, same as test.** Execute: flip
+the per-env kill switch (`public.chatWoot.enabled=false`) in the PROD settings path
+(`slatebox-secrets.sh` METEOR_SETTINGS — remember `--root-url final` on manual runs) + redeploy
+prod. Verify: fresh prod session → widget absent, no chatWoot TypeErrors in pod logs, rest of
+app unaffected. Test is already config-off (permanent) so nothing regresses there. ~1 iteration.
 
 **U5 — Optional cleanup (only if U1–U4 exhausted):** an in-flight edit exists to
 `web/app/scripts/replay-real-payload.mjs` (usage guard + API_KEY_DEEP_INFRA env-key support
