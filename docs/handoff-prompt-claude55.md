@@ -148,17 +148,22 @@ Apply to BOTH code repos — the app (`app.slatebox.com`) AND the engine library
   inspect; hold-prod signal for generation-dependent changes). Keep `--allow-revert` energy
   low — the default is fix-forward.
 
-## 6. Deployed state at handoff (VERIFY BEFORE TRUSTING — 14 days idle)
+## 6. Deployed state at handoff (RE-BASELINED LIVE Nov 7 — these checks were run on the
+## cluster today; re-verify if anything contradicts)
 
-- Last known-good deploy: "iter57 seed-surgery" build on BOTH test and prod
-  (template-less basedOnTemplate journeys degrade to default mindmap; welcome display sanitized
-  of raw `{{token}}`; bootstrap repin of dead claude-3-5 pins). Both shipped ~Oct 20 evening,
-  smoke 24/24 + probe green at ship time, and a post-ship window with ZERO real user calls.
-- **The one sweep taken just before this handoff (Nov 5) showed pod churn**: test ReplicaSet
-  rolled (old pod Error, new Running), prod 77d9694bc6 has 2 Error/Unknown + 2 Running
-  replicas, api/marketing also churned. Could be node sleep/rollout residue, could be a crash
-  loop that resolved. **Unit #1 is: reconcile this** (kubectl describe, logs, what RS is current,
-  whether smoke+probe still pass, whether anything deployed itself that shouldn't have).
+- Running build verified: **iter57 seed-surgery on BOTH envs** (bundle markers in all live
+  pods: `fallbackBlocked`×3 = iter56 ladder-cost, `seed-hygiene`×2 = iter57 repin). No deploy
+  since Oct 20. Live probe re-run Nov 7: PASS both envs (200, ~0.5s, real completion, key
+  present). HTTP 200 app/test/api-health. Node Ready.
+- The Error/Unknown/ContainerStatusUnknown pods in `get pods` are TERMINAL RECORDS (Oct 20
+  rollout residue + idle-node reschedule tombstones), NOT live failures. Every deployment has
+  healthy Running replicas. Don't chase them; anchor selectors to Running RSes.
+- **REAL TRAFFIC EXISTS — changes the open-work picture: ~90 provider calls Oct 22–Nov 5 in
+  prod, 50 non-success.** Classes: 'Model busy, retry later (after 3 attempts)' infra bursts
+  (Oct 22 ~01:07/02:35 UTC, serving-side flakiness signature), welcome-route
+  `slateOperationPlanInvalid`/`slateMessageRouteMissing` misfires, `generationNodeInvalid`,
+  timeout pairs, and chains where fallback RECOVERED (FB markers present). Session shares
+  seen: 1e6483, d8a1dd, 383b6a, 56f54b + more. Decode per chain before fixing anything.
 - Template catalog: 1 entry (`tplprocon001`, Pro/Con Analysis, 21-node seed, seed-sync verified
   in both DBs as of Oct 20).
 - AI provider: DeepInfra (K12io account key, OpenAI-compatible endpoint
@@ -166,12 +171,11 @@ Apply to BOTH code repos — the app (`app.slatebox.com`) AND the engine library
   deployments. Anthropic key is DEAD (any "API key is invalid" audit rows = legacy leftovers).
   No hardcoded model strings remain in code (iter12 eradication).
 - Chatwoot: per-env kill switch `public.chatWoot.enabled` shipped both envs. Test = config-OFF
-  (permanent, encoded in secrets script). Prod = widget ON (default behavior) — unresolved
-  identity decision, see open work.
+  (permanent, in secrets script). Prod = DECIDED Nov 7: CONFIG-OFF TOO (see U4 — execute it).
 - debugRequestPayload: fully disarmed (code removed + config deleted).
-- Loop cron: NO active task at handoff (the 20-min and hourly durable crons have both expired
-  or been deleted). If the owner wants automated sweeps again they'd re-create one; ship-time
-  gates (smoke + probe) are the real standing protection either way.
+- Loop cron: ACTIVE at handoff — durable task `slatebox-loop-active` every 20 min (see
+  loop-prompt.md for the iteration protocol; the cron prompt embeds the current priorities).
+  Auto-expires after 7 days unless recreated; owner can kill via /loop-kill.
 
 ## 7. The AI request path (current architecture, condensed)
 
@@ -248,13 +252,9 @@ in params. Verify with lsp_references on the consuming method BEFORE wiring.
 
 ## 10. Open work (priority order)
 
-**U1 — RE-BASELINE CLUSTER (do this first).** Nov 5 sweep saw: test rolled to a new RS (old pod
-Error/terminated, new Running), prod deployment 77d9694bc6 showing 2 Error/Unknown + 2 Running
-replicas and collab replica churn. (a) Determine what's actually running and what deployed since
-Oct 20 (shipping-log + `kubectl -n slatebox describe rs/deploy` + pod logs). (b) Run smoke
-(24/24 baseline) both envs. (c) Run `bash ~/Projects/roscoe-k8s/scripts/slatebox-live-probe.sh
-both` (warn-only; costs ~2 tiny calls). (d) Query aiAudit (recipe above) for ANY traffic in the
-idle window — the watch items below depend on it. (e) Only then touch code.
+**U1 — RE-BASELINE CLUSTER — DONE Nov 7 (result = §6; no work left, verification facts
+only).** Reconciled pod churn (tombstones), verified iter57 live both envs, probe PASS both,
+found the 90-call traffic window. If reality later contradicts §6, re-verify from scratch.
 
 **U2 — Wizard default-path watch items (need traffic data from U1d).** Two filed classes:
 (i) welcome-route/edit-tool misfires: on wizard entry the first welcome attempt sometimes calls
