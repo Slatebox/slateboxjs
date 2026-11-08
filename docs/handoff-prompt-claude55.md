@@ -276,8 +276,11 @@ owner Nov 7: RECONCILE + ENABLE PUSH to GitHub remotes.**
 > remote `main` intentionally untouched (legacy 2024 line, decision C). Canonical push commands:
 > engine `git push origin main`, app `git push community main:main-v3`. Pre-push secret gate
 > passed (no new exposure; pre-existing settings.*.json hygiene item filed for owner rotation).
-> Remaining U3b = the pipeline below (stale-tree gate must compare app against `main-v3`, not
-> remote `main`).
+> **STATUS Nov 8 (iter68) — U3b DONE:** stale-tree gate + ff-push + background suite.jsonl are LIVE in
+> slatebox-ship.sh, verified by a full no-code --test ship (24/24 + probe green + 9/9 suite). Gate
+> compares app against `main-v3` as designed. Remaining tail = U3c (execute the SAME script FROM
+> roscoe; needs container toolchain there — open question whether that's required or gates-close-
+> the-principle; ask owner before building it).
 
 Target state:
 (a) single `ship` entrypoint that runs on the build box (roscoe), for BOTH repos; (b) stale-tree
