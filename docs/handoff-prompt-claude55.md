@@ -269,7 +269,17 @@ or tighten the route system prompt (feature `welcome-route` in openai.js
 zero, U2 is unverifiable — say so and move on rather than tuning on zero samples.
 
 **U3 — SHIPPING 2.0: implement the §5 principle (the main build work). GIT DECISION MADE by
-owner Nov 7: RECONCILE + ENABLE PUSH to GitHub remotes.** Target state:
+owner Nov 7: RECONCILE + ENABLE PUSH to GitHub remotes.**
+
+> **STATUS Nov 7 (iter67) — U3a DONE, U3b REMAINING.** Push is LIVE: engine ff-pushed to
+> origin/main (now 0/0 with remote); app pushed as NEW branch `main-v3` on `community` —
+> remote `main` intentionally untouched (legacy 2024 line, decision C). Canonical push commands:
+> engine `git push origin main`, app `git push community main:main-v3`. Pre-push secret gate
+> passed (no new exposure; pre-existing settings.*.json hygiene item filed for owner rotation).
+> Remaining U3b = the pipeline below (stale-tree gate must compare app against `main-v3`, not
+> remote `main`).
+
+Target state:
 (a) single `ship` entrypoint that runs on the build box (roscoe), for BOTH repos; (b) stale-tree
 gate (rebase check against the right remote — app's is named `community`); (c) preflight rerun;
 (d) fast-forward main + push. BEFORE enabling the push step: inspect what's actually on the
