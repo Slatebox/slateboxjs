@@ -568,3 +568,9 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 
 ## Iteration 73b — OWNER DECISION: retire api.slatebox.com + rebuild embeds on Cloudflare (Workers/Pages)
 - Queue updated (loop-prompt): removal scope = constants.js magicLink + getMagicLink.js + AIMagicLink share buttons + slates.js getEmbedCode(sb.min.js). Replacement = iframe/read-only-viewer embed on CF with parity test BEFORE api pod retires. Marketing site may demo embeds again via the new path. Next fires: waitlist count -> R1b skeleton incl. embed design note -> implementation.
+
+## Iteration 74 — R1-1a FULLY CLOSED: waitlist + presentations data story (0 provider calls, read-only)
+- Waitlist = Mailgun email-to-owner flow (no datastore!). Nothing to migrate; rebuild = Pages Function/Worker calling Mailgun API (keys already configured in slatebox-marketing-env: MAILGUN_*, RECIPIENT_EMAIL — names verified, values untouched).
+- Public presentations gallery: LIVE endpoint works but returns [] (flag/filter-limited). 847 slatePresentations + 2758 slatePresentationConversations docs sit in the app mongo behind that filter — NOT a public leak today, but the CONVERSATION-KEYED PUBLIC SHARE MODEL must be treated as a privacy class when rebuilt: any new /embed + gallery surface needs an explicit opt-in flag + redaction review before launch.
+- Old homepage defects catalogued for the rebuild: dead api.slatebox.com WS widget, always-empty gallery, twitter-only social, no github/open-source/Miro framing.
+- NEXT (1b): begin new-site unit — Cloudflare Pages project scaffold + brand spec (open-source MIT Miro replacement, live-diff vs Miro/FigJam/excalidraw), waitlist flow as Pages Function, /embed viewer design note FIRST (parity harness before api pod retires). Cadence */10 active.
