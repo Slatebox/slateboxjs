@@ -558,3 +558,10 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 ## Iteration 72 — MIT RELICENSE DONE (owner decision) — "open source Miro replacement" now truthful
 - app repo + slatebox monorepo LICENSE.md ELv2 -> MIT (engine was already MIT); README license prose rewritten truthful; pushed: app main->main-v3 ce4889f, monorepo main->origin/main 55df4c6 (30-commit pre-existing monorepo lineage rode along — post-push secret scan CLEAN, engine-rework-era code only). Remote-main note: Slatebox/slatebox `main` now carries monorepo lineage; app lineage stays main-v3. If owner wants main untouched again, revert is one push.
 - Consequence for rebrand: homepage may state "open source (MIT) Miro alternative" + GitHub links once site lands.
+
+## Iteration 73 — api.slatebox.com ROOT-CAUSED + waitlist datastore located (0 provider calls)
+- api.slatebox.com 500s: routing is FINE (live hits reach k8s slatebox-api pod, 78 log lines from 3 probes; Deno Deploy NOT involved). The containerized Deno api throws UNCAUGHT {"Unauthorized":true} (oak) on EVERY request = auth-guard bug carried through the Deno-Deploy->container move. Deployed sha dc35318d verified present in local api repo (provenance clean).
+- Blast radius via source trace: magicLink constant feeds ONLY the AISettings share-buttons (FB/Twitter/LinkedIn share links carrying a magic-link URL) + embed code gen (sb.min.js widget, 1.7KB, whose WS endpoint is dead). Core AI generation NEVER calls this host (probes + real traffic prove it). No core user feature is currently broken.
+- DECISION PINGED TO OWNER: retire api.slatebox.com + magicLink + embed path entirely (rebuild embeds later on Workers if product wants) vs debug the auth guard. Loop recommends RETIRE (cleaner CF end-state, near-zero usage).
+- Waitlist: MONGO_URL now points at INTERNAL cluster mongo (not public 27017 anymore — runbook line is stale). Data reachable in-cluster; exact count deferred (mongosh absent in mongo pod; use app-pod node driver next fire).
+- NEXT FIRE: waitlist count via node driver; then R1b site skeleton begins (LICENSE cleared). R2 defect localization queued behind.
