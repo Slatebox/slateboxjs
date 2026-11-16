@@ -565,3 +565,6 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - DECISION PINGED TO OWNER: retire api.slatebox.com + magicLink + embed path entirely (rebuild embeds later on Workers if product wants) vs debug the auth guard. Loop recommends RETIRE (cleaner CF end-state, near-zero usage).
 - Waitlist: MONGO_URL now points at INTERNAL cluster mongo (not public 27017 anymore — runbook line is stale). Data reachable in-cluster; exact count deferred (mongosh absent in mongo pod; use app-pod node driver next fire).
 - NEXT FIRE: waitlist count via node driver; then R1b site skeleton begins (LICENSE cleared). R2 defect localization queued behind.
+
+## Iteration 73b — OWNER DECISION: retire api.slatebox.com + rebuild embeds on Cloudflare (Workers/Pages)
+- Queue updated (loop-prompt): removal scope = constants.js magicLink + getMagicLink.js + AIMagicLink share buttons + slates.js getEmbedCode(sb.min.js). Replacement = iframe/read-only-viewer embed on CF with parity test BEFORE api pod retires. Marketing site may demo embeds again via the new path. Next fires: waitlist count -> R1b skeleton incl. embed design note -> implementation.
