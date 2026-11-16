@@ -208,4 +208,62 @@ describe("Theme", () => {
       expect(() => applyTheme(mockSlate, testTheme)).not.toThrow();
     });
   });
+
+  describe("F3 container-style passthrough", () => {
+    const mkSlate = (initialCs?: any) => ({
+      options: initialCs ? { containerStyle: { ...initialCs } } : {},
+      nodes: { allNodes: [] },
+      applyContainerStyle: vi.fn(function (this: any) {
+        // emulate the real renderer decision from Slate.ts
+        const cs = this.options.containerStyle || {};
+        if (
+          cs.backgroundColorAsGradient &&
+          Array.isArray(cs.backgroundGradientColors) &&
+          cs.backgroundGradientColors.length > 1
+        ) {
+          (this as any)._painted = `linear-gradient(${cs.backgroundGradientColors.join(", ")})`;
+        } else if (cs.backgroundImage) {
+          (this as any)._painted = `url(${cs.backgroundImage})`;
+        } else {
+          (this as any)._painted = "";
+        }
+      }),
+    });
+
+    it("carries gradient fields through and paints them", () => {
+      const slate = mkSlate();
+      applyTheme(slate, {
+        _id: "t1",
+        containerStyle: {
+          backgroundColor: "#223",
+          backgroundColorAsGradient: true,
+          backgroundGradientColors: ["#223344", "#443322"],
+          backgroundGradientType: "linear",
+        },
+      } as any);
+      expect(slate.options.containerStyle.backgroundColorAsGradient).toBe(true);
+      expect(slate.options.containerStyle.backgroundGradientColors).toEqual([
+        "#223344",
+        "#443322",
+      ]);
+      expect((slate as any)._painted).toContain("linear-gradient");
+    });
+
+    it("replacing theme clears previous gradient/image (no stale wallpaper)", () => {
+      const slate = mkSlate({
+        backgroundColor: "#101010",
+        backgroundColorAsGradient: true,
+        backgroundGradientColors: ["#111", "#222"],
+        backgroundImage: "old-wallpaper.png",
+      });
+      applyTheme(slate, {
+        _id: "t2",
+        containerStyle: { backgroundColor: "#abcdef" },
+      } as any);
+      expect(slate.options.containerStyle.backgroundImage).toBeUndefined();
+      expect(slate.options.containerStyle.backgroundColorAsGradient).toBeUndefined();
+      expect(slate.options.containerStyle.backgroundColor).toBe("#abcdef");
+      expect((slate as any)._painted).toBe(""); // nothing stale painted
+    });
+  });
 });

@@ -46,6 +46,11 @@ export interface ThemeDefinition {
   description?: string;
   containerStyle?: {
     backgroundColor?: string;
+    backgroundColorAsGradient?: boolean;
+    backgroundGradientColors?: string[];
+    backgroundGradientType?: string;
+    backgroundImage?: string;
+    backgroundSize?: string;
   };
   defaultLineColor?: string;
   styles?: {
@@ -78,11 +83,13 @@ export function applyTheme(
     slate.options.syncWithTheme = true;
   }
 
-  // Apply container style
-  if (theme.containerStyle?.backgroundColor) {
-    slate.options.containerStyle = slate.options.containerStyle || {};
-    slate.options.containerStyle.backgroundColor =
-      theme.containerStyle.backgroundColor;
+  // Apply container style. A theme RESTYLES THE WHOLE SLATE, so the theme's
+  // containerStyle REPLACES the slate's — carrying the gradient fields through
+  // (F3, Nov 16: they were silently dropped, so gradient themes rendered as
+  // flat washes) and clearing a previous theme's image/gradient when the new
+  // theme doesn't declare one (same stale-decoration class as iter13).
+  if (theme.containerStyle && Object.keys(theme.containerStyle).length > 0) {
+    slate.options.containerStyle = { ...theme.containerStyle };
     // Paint it onto the container (setting the option alone is a no-op).
     slate.applyContainerStyle?.();
   }
