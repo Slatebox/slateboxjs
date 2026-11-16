@@ -62,11 +62,12 @@ Slatebox v3 perpetual build loop. Read ~/Projects/node/slateboxjs-v2/docs/loop-p
       minimal iframe/read-only /embed viewer on CF (Pages Function or Worker) as the
       NEW embed path + marketing demo; parity test BEFORE retiring api pod. Old host
       may then 410/retire per dns tool.
-   R2 CANVAS DEFECT HUNT (owner screenshot Nov 16): maroon palette bleed in default
-      theme; canvas content rendering UNDER the bottom toolbar; EFFECTS Style/Animation
-      + alignment dropdowns broken; ghost "Anonymous" cursor labels; stray red-arrow
-      edge decorations on selected notes. For each: localize engine vs app, seed
-      repro, fix, cover with new unit/e2e spec.
+   R2 DEFECT FIXES (map DONE iter76, see ledger): F1 ghost-cursor persistence
+      (engine Collab.ts, includes "Anonymous" label + red-arrow artifact); F2 wire
+      bottom-bar align icons to slate.alignNodes (app; engine fns exist); F3
+      applyTheme gradient preservation (engine Theme.ts) + template-theme maroon
+      audit; F4 toolbar-overlap layout + BirdsEye clip. ORDER F1->F2->F3->F4;
+      each fix ships WITH its spec (repro recipes in ledger iter76).
    R3 TEST EXPANSION: unit (engine themes/decorations/selection) + e2e Playwright
       (304 spec baseline) — every R2 fix ships WITH its spec.
    Also ongoing: decode audit window each fire; wizard misfire watch (>=3 samples).
