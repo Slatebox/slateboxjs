@@ -56,6 +56,12 @@ Slatebox v3 perpetual build loop. Read ~/Projects/node/slateboxjs-v2/docs/loop-p
       rollback origin until 48h clean. LICENSE = MIT (owner decision Nov 16, DONE:
       app + monorepo LICENSE flipped, READMEs truthful, pushed). "Open source MIT"
       claims are now legal — use them in the new site.
+      API DECISION (owner Nov 16): RETIRE api.slatebox.com legacy surface + REBUILD
+      embeds on Cloudflare. Removal scope = constants.js magicLink, getMagicLink.js,
+      AIMagicLink share buttons, slates.js getEmbedCode (sb.min.js). Replacement =
+      minimal iframe/read-only /embed viewer on CF (Pages Function or Worker) as the
+      NEW embed path + marketing demo; parity test BEFORE retiring api pod. Old host
+      may then 410/retire per dns tool.
    R2 CANVAS DEFECT HUNT (owner screenshot Nov 16): maroon palette bleed in default
       theme; canvas content rendering UNDER the bottom toolbar; EFFECTS Style/Animation
       + alignment dropdowns broken; ghost "Anonymous" cursor labels; stray red-arrow
