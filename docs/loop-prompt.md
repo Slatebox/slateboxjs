@@ -40,12 +40,23 @@ Slatebox v3 perpetual build loop. Read ~/Projects/node/slateboxjs-v2/docs/loop-p
    the Oct 22–Nov 5 idle window alone). Cluster writes ONLY via sanctioned scripts
    (slatebox-ship.sh / slatebox-secrets.sh --root-url final / slatebox-apply.sh).
 
-2. PICK highest open item (test-first, end-to-end proof = goal). STATUS since Nov 16 —
-   U2/U3(a+b)/U4 all CLOSED (see ledger). Live work = DECODE the window since last fire
-   (audit recipe, handoff §8): timeouts vs shape classes, double chains, new failure shapes.
-   Fix ONLY evidenced patterns (>=3 samples or a dead-chain cost signature). WATCH-only
-   otherwise: wizard edit-tool misfires; timeout class; pod exit-1 crashes (investigate only
-   on recurrence or restarts climbing). Old PICK list follows for history only:
+2. PICK highest open item (test-first, end-to-end proof = goal). ACTIVE QUEUE (owner
+   reopened fast-build mode Nov 16; cadence */10; workflow UNCHANGED: direct pushes to
+   main, file-linked engine, NO npm publish, ship via slatebox-ship.sh gates):
+   R1 HOMEPAGE REBRAND -> "open source Miro replacement". Live marketing = Fresh/Deno
+      site, source ~/Projects/node/slatebox-marketing (verify build provenance first:
+      deployed image tag git-e1c473ab24dc is NOT in either local marketing repo).
+      BLOCKER pending owner: monorepo LICENSE.md is Elastic License 2.0 = NOT open
+      source; do NOT ship "open source" claims until owner picks a license.
+   R2 CANVAS DEFECT HUNT (owner screenshot Nov 16): maroon palette bleed in default
+      theme; canvas content rendering UNDER the bottom toolbar; EFFECTS Style/Animation
+      + alignment dropdowns broken; ghost "Anonymous" cursor labels; stray red-arrow
+      edge decorations on selected notes. For each: localize engine vs app, seed
+      repro, fix, cover with new unit/e2e spec.
+   R3 TEST EXPANSION: unit (engine themes/decorations/selection) + e2e Playwright
+      (304 spec baseline) — every R2 fix ships WITH its spec.
+   Also ongoing: decode audit window each fire; wizard misfire watch (>=3 samples).
+   Old PICK list follows for history only:
    - U2 (top): audit-decode of the 90-call window (50 non-success: Model-busy infra bursts,
      welcome-route slateOperationPlanInvalid/slateMessageRouteMissing, generationNodeInvalid,
      timeout pairs). Per chain: did the iter56 ladder policy fire correctly (infra→fallback
