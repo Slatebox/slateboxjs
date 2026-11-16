@@ -43,11 +43,19 @@ Slatebox v3 perpetual build loop. Read ~/Projects/node/slateboxjs-v2/docs/loop-p
 2. PICK highest open item (test-first, end-to-end proof = goal). ACTIVE QUEUE (owner
    reopened fast-build mode Nov 16; cadence */10; workflow UNCHANGED: direct pushes to
    main, file-linked engine, NO npm publish, ship via slatebox-ship.sh gates):
-   R1 HOMEPAGE REBRAND -> "open source Miro replacement". Live marketing = Fresh/Deno
-      site, source ~/Projects/node/slatebox-marketing (verify build provenance first:
-      deployed image tag git-e1c473ab24dc is NOT in either local marketing repo).
-      BLOCKER pending owner: monorepo LICENSE.md is Elastic License 2.0 = NOT open
-      source; do NOT ship "open source" claims until owner picks a license.
+   R1 HOMEPAGE = slatebox.com: REBRAND + MIGRATE TO CLOUDFLARE (owner directive
+      Nov 16: Deno stack is being deprecated). Current = Fresh 2 (deno serve) + tiny
+      api (waitlist.tsx, /api/*). Target end-state: new "open source Miro replacement"
+      marketing site on Cloudflare Pages (static/prerender; dynamic bits as Pages
+      Functions/Workers), deployed via existing CF tokens — retire the k8s
+      slatebox-marketing + slatebox-api deployments once parity proven. Unit split:
+      (1a) inventory: what api.slatebox.com + slatebox.com /api actually serve +
+      waitlist datastore + provenance check of deployed image sha e1c473ab (NOT in
+      either local marketing repo); (1b) new brand+site build on Pages behind a
+      preview, e2e-smokeable; (1c) cutover via slatebox-dns.sh + keep k8s as
+      rollback origin until 48h clean. BLOCKER pending owner: LICENSE.md is Elastic
+      License 2.0 = NOT open source; do NOT ship "open source" claims until owner
+      picks a license (asked Nov 16).
    R2 CANVAS DEFECT HUNT (owner screenshot Nov 16): maroon palette bleed in default
       theme; canvas content rendering UNDER the bottom toolbar; EFFECTS Style/Animation
       + alignment dropdowns broken; ghost "Anonymous" cursor labels; stray red-arrow
