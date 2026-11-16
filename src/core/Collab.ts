@@ -27,6 +27,13 @@ export interface CollabOptions {
   onReceive?: (pkg: any) => void;
   /** Called when connection status changes */
   onStatusChange?: (status: "connected" | "disconnected" | "connecting") => void;
+  /**
+   * A remote cursor whose awareness state has received NO update for this
+   * long is treated as a ghost (provider v3 has no heartbeat; a vanished
+   * peer's state otherwise persists forever). Default 45s; idle real users
+   * re-materialize instantly on their next pointer move.
+   */
+  cursorStaleMs?: number;
   /** Called when awareness (user presence) changes */
   onAwarenessChange?: (users: CollabUser[]) => void;
 }
@@ -55,6 +62,8 @@ export class Collab {
   private cursorElements: Map<number, any> = new Map();
   private _cursorMoveHandler: ((e: any) => void) | null = null;
   private _cursorTrackingNode: any = null;
+  private _cursorSweepTimer: ReturnType<typeof setInterval> | null = null;
+  private _cursorLastSeen: Map<number, number> = new Map();
   /** Connection/user payload returned by the host's onInitCollaboration */
   public userBaseData?: Record<string, any>;
 
@@ -63,7 +72,7 @@ export class Collab {
     this.options = {
       wsUrl: "ws://localhost:1234",
       roomName: "default-slate",
-      userName: "Anonymous",
+      userName: "", // empty = no label rendered (see renderCursor); hosts pass real names via onInitCollaboration
       userColor: "#" + Math.floor(Math.random() * 16777215).toString(16),
       ...options,
     };
@@ -173,6 +182,27 @@ export class Collab {
       };
       this.awareness.on("change", notifyUsersChanged);
 
+      // Track awareness FRESHNESS per peer: any update (new cursor, heartbeat,
+      // re-add) revives/extends its cursor; silence past cursorStaleMs makes
+      // it a ghost the sweep can then remove (see renderRemoteCursors).
+      this.awareness.on(
+        "update",
+        ({
+          added,
+          updated,
+          removed,
+        }: {
+          added: number[];
+          updated: number[];
+          removed: number[];
+        }) => {
+          const now = Date.now();
+          for (const id of added) this._cursorLastSeen.set(id, now);
+          for (const id of updated) this._cursorLastSeen.set(id, now);
+          for (const id of removed) this._cursorLastSeen.delete(id);
+        },
+      );
+
       // Broadcast this client's pointer position so peers can show its cursor
       this.setupCursorTracking();
 
@@ -186,9 +216,24 @@ export class Collab {
       // Connection status
       this.provider.on("status", (event: any) => {
         this.isConnected = event.status === "connected";
+        if (event.status !== "connected") {
+          // WS dropped: every rendered remote cursor is now unverifiable
+          // state. Wipe them (ghost-cursor class, F1); reconnect re-renders
+          // still-present peers via awareness change or the sweep below.
+          this.clearRemoteCursors();
+        }
         this.options.onStatusChange?.(event.status);
       });
 
+      // Reconcile cursor DOM against awareness every 4s even when no
+      // 'change' event fires (missed events, provider-internal removals,
+      // BroadcastChannel echoes after reload). Without this, a peer that
+      // vanishes leaves its cursor painted forever.
+      this._cursorSweepTimer = setInterval(() => {
+        if (this.slate?.canvas && this.awareness) {
+          this.renderRemoteCursors(this.getCollabUsers());
+        }
+      }, 4000);
       // isConnected will be set by the status event handler above when the
       // WebSocket actually connects. (onInitCollaboration already ran —
       // awaited before the provider was created.)
@@ -437,13 +482,41 @@ export class Collab {
     this._cursorTrackingNode = node;
   }
 
+  /** Remove every rendered remote cursor (drops/reconnects, disconnect). */
+  private clearRemoteCursors(): void {
+    for (const [, element] of this.cursorElements) {
+      try {
+        element.remove();
+      } catch (_) {
+        /* noop */
+      }
+    }
+    this.cursorElements.clear();
+  }
+
   /**
    * Render (or update) remote collaborators' cursors and remove cursors for
    * clients that have left. Called on every awareness change.
    */
   private renderRemoteCursors(users: CollabUser[]): void {
     if (!this.slate.canvas) return;
-    const present = new Set(users.map((u) => u.clientID));
+    const staleMs = this.options.cursorStaleMs ?? 45_000;
+    const now = Date.now();
+    const fresh = users.filter((u) => {
+      if (!u.cursor) return false;
+      const seen = this._cursorLastSeen.get(u.clientID);
+      if (seen === undefined) {
+        // first sighting: seed grace so the sweep cannot kill a live cursor
+        // that simply arrived between ticks
+        this._cursorLastSeen.set(u.clientID, now);
+        return true;
+      }
+      // Ghost rule: no awareness freshness signal for this peer within
+      // staleMs -> treat as not present (element removed below; revives on
+      // the next real update).
+      return now - seen <= staleMs;
+    });
+    const present = new Set(fresh.map((u) => u.clientID));
     for (const [id, el] of this.cursorElements) {
       if (!present.has(id)) {
         try {
@@ -452,10 +525,11 @@ export class Collab {
           /* noop */
         }
         this.cursorElements.delete(id);
+        this._cursorLastSeen.delete(id);
       }
     }
-    for (const u of users) {
-      if (u.cursor) this.renderCursor(u);
+    for (const u of fresh) {
+      this.renderCursor(u);
     }
   }
 
@@ -477,9 +551,13 @@ export class Collab {
         .attr("stroke-linejoin", "round");
 
       // Name label: white rounded-rect background with the name in the user's
-      // color on top (matches the pre-regression presence style).
+      // color on top (matches the pre-regression presence style). Peers
+      // WITHOUT a real name render the arrow only — a nameless "Anonymous"
+      // tag read as a stuck ghost user (F1, Nov 16).
+      const name =
+        user.userName && user.userName !== "Anonymous" ? user.userName : "";
+      if (name) {
       const label = g.group();
-      const name = user.userName || "Anonymous";
       const txt = label
         .text(name)
         .font({ size: 12, family: "Roboto, Helvetica, Arial, sans-serif" })
@@ -506,6 +584,7 @@ export class Collab {
       txt.move(padX, padY);
       // Offset the label from the pointer tip
       label.transform({ translateX: 16, translateY: 6 });
+      } // if (name)
 
       g.attr("pointer-events", "none");
       this.cursorElements.set(user.clientID, g);
@@ -529,7 +608,7 @@ export class Collab {
 
       users.push({
         clientID,
-        userName: state.user?.name || "Anonymous",
+        userName: state.user?.name || "",
         color: state.user?.color || "#999",
         cursor: state.cursor,
       });
@@ -555,6 +634,10 @@ export class Collab {
     }
     this._cursorMoveHandler = null;
     this._cursorTrackingNode = null;
+    if (this._cursorSweepTimer) {
+      clearInterval(this._cursorSweepTimer);
+      this._cursorSweepTimer = null;
+    }
     for (const [, element] of this.cursorElements) {
       element.remove();
     }
