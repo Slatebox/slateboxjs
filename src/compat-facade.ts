@@ -794,6 +794,22 @@ class slate {
     return this.v2!.isSelectionLocked(this.unwrapNodes(nodes));
   }
 
+  /**
+   * Multi-node arrangement (F2, Nov 16): expose align/distribute on the v1
+   * facade so app-level selection toolbars can drive the same rotation-aware
+   * engine path the v2 context menu uses (undo/persist/collab via the normal
+   * onNodesMove flow). `nodes` accepts facade wrappers or live v2 nodes.
+   */
+  public alignNodes(mode: string, nodes?: Array<node | V2Node>): void {
+    this.assertReady();
+    this.v2!.alignNodes(mode, this.unwrapNodes(nodes));
+  }
+
+  public distributeNodes(axis: string, nodes?: Array<node | V2Node>): void {
+    this.assertReady();
+    this.v2!.distributeNodes(axis, this.unwrapNodes(nodes));
+  }
+
   private unwrapNodes(nodes?: Array<node | V2Node>): V2Node[] | undefined {
     if (!nodes) return undefined;
     return nodes

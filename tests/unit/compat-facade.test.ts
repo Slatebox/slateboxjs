@@ -97,6 +97,8 @@ vi.mock("../../src/core/Slate", () => {
     ungroupNodes = vi.fn();
     lockNodes = vi.fn();
     unlockNodes = vi.fn();
+    alignNodes = vi.fn();
+    distributeNodes = vi.fn();
     isSelectionLocked = vi.fn(() => true);
     enablePanZoom = vi.fn();
     disablePanZoom = vi.fn();
@@ -520,6 +522,25 @@ describe("slate methods (§C)", () => {
     expect(engine.lockNodes).toHaveBeenCalledWith([a.v2, b.v2]);
     expect(engine.unlockNodes).toHaveBeenCalledWith([a.v2, b.v2]);
     expect(engine.isSelectionLocked).toHaveBeenCalledWith([a.v2, b.v2]);
+  });
+
+  it("delegates alignNodes/distributeNodes (F2 facade exposure, mixed wrapper shapes)", async () => {
+    const s = await initSlate();
+    const a = s.nodes.add({ id: "align-a", text: "A" });
+    const b = s.nodes.add({ id: "align-b", text: "B" });
+    const c = s.nodes.add({ id: "align-c", text: "C" });
+    const engine = s.v2 as any;
+
+    s.alignNodes("left", [a, b.v2!]);
+    s.distributeNodes("horizontal", [a, b, c]);
+
+    // mode/axis passed through; both facade wrappers and raw v2 nodes unwrap
+    expect(engine.alignNodes).toHaveBeenCalledWith("left", [a.v2, b.v2]);
+    expect(engine.distributeNodes).toHaveBeenCalledWith("horizontal", [
+      a.v2,
+      b.v2,
+      c.v2,
+    ]);
   });
 
   it("disable()/enable() toggle interactivity flags and pan/zoom", async () => {
