@@ -618,3 +618,9 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - Staging rewrite: stdin streaming -> chunked base64 through the exec-ARG channel + decode-verify md5 gate (3 attempts). Verified live on BOTH envs first-pass-clean (zero corruption warnings) — early-warning system restored, this time stream-free by design.
 - Live probe results: test PASS (200, 12s — provider slow); prod WARN: DeepInfra 429 engine_overloaded ("Model busy, retry later") = PROVIDER-SIDE, not product. Product behavior under this class: timeout/429 -> fallback DeepSeek per policy. Zero prod user traffic in window (no impact). If 429s recur with traffic -> candidate for a 2-provider fallback chain (parked idea, needs evidence).
 - Queue: soak F1+F2+F3 on test (suite + app-arrange re-run pattern ready, 0-AI), then F4 (layout overlap + BirdsEye clip), then prod batch ship after >=2 soak fires clean.
+
+## Iteration 83 — PROD BATCH SHIP DONE: F1+F2+F3 live on BOTH envs (3 provider calls)
+- Pre-ship gates met: full engine e2e 306 passed/0 failed (includes new presence guards), soak probes green, live-regressions green.
+- Prod ship 1.3.21-local.223509 (app 3ed21ca / lib 725bff1f): rollout clean, smoke 0/24, bg suite 0-fail, post-ship probe PASS (in-ship probe drew transient DeepInfra 429 twice; provider recovered, chain verified green post-deploy). Transport v2 worked flawlessly in prod path.
+- PROD NOW RUNS: ghost-cursor TTL + no-Anonymous-label, arrange toolbar (F2), gradient-preserving applyTheme (F3).
+- WATCH: real-traffic decode each fire for (a) 429-class bursts, (b) any presence/cursor complaints class, (c) the original screenshot canvas class actually being fixed (no stray cursor artifacts). F4 (drawer overlap/BirdsEye clip) remains queued — lower severity (Miro-parallax overlay is defensible; want owner eye on a repro screenshot first).
