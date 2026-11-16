@@ -40,8 +40,12 @@ Slatebox v3 perpetual build loop. Read ~/Projects/node/slateboxjs-v2/docs/loop-p
    the Oct 22–Nov 5 idle window alone). Cluster writes ONLY via sanctioned scripts
    (slatebox-ship.sh / slatebox-secrets.sh --root-url final / slatebox-apply.sh).
 
-2. PICK highest open item (test-first, end-to-end proof = goal). Open set as of Nov 7 —
-   details + DECIDED status in the handoff doc's U-list:
+2. PICK highest open item (test-first, end-to-end proof = goal). STATUS since Nov 16 —
+   U2/U3(a+b)/U4 all CLOSED (see ledger). Live work = DECODE the window since last fire
+   (audit recipe, handoff §8): timeouts vs shape classes, double chains, new failure shapes.
+   Fix ONLY evidenced patterns (>=3 samples or a dead-chain cost signature). WATCH-only
+   otherwise: wizard edit-tool misfires; timeout class; pod exit-1 crashes (investigate only
+   on recurrence or restarts climbing). Old PICK list follows for history only:
    - U2 (top): audit-decode of the 90-call window (50 non-success: Model-busy infra bursts,
      welcome-route slateOperationPlanInvalid/slateMessageRouteMissing, generationNodeInvalid,
      timeout pairs). Per chain: did the iter56 ladder policy fire correctly (infra→fallback
