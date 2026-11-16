@@ -53,9 +53,9 @@ Slatebox v3 perpetual build loop. Read ~/Projects/node/slateboxjs-v2/docs/loop-p
       waitlist datastore + provenance check of deployed image sha e1c473ab (NOT in
       either local marketing repo); (1b) new brand+site build on Pages behind a
       preview, e2e-smokeable; (1c) cutover via slatebox-dns.sh + keep k8s as
-      rollback origin until 48h clean. BLOCKER pending owner: LICENSE.md is Elastic
-      License 2.0 = NOT open source; do NOT ship "open source" claims until owner
-      picks a license (asked Nov 16).
+      rollback origin until 48h clean. LICENSE = MIT (owner decision Nov 16, DONE:
+      app + monorepo LICENSE flipped, READMEs truthful, pushed). "Open source MIT"
+      claims are now legal — use them in the new site.
    R2 CANVAS DEFECT HUNT (owner screenshot Nov 16): maroon palette bleed in default
       theme; canvas content rendering UNDER the bottom toolbar; EFFECTS Style/Animation
       + alignment dropdowns broken; ghost "Anonymous" cursor labels; stray red-arrow

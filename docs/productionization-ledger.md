@@ -554,3 +554,7 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - api.slatebox.com source (Deno, genSBToken/provision/decrypter tasks) = legacy token/provisioning API. 1b scope now includes: trace every caller, decide keep-in-Workers vs delete-per-callers; NOTHING gets cut over without replacement parity.
 - Traffic window: 0 prod calls since 20:00Z.
 - NEXT: 1b (site build behind CF Pages preview) still blocked on LICENSE decision (asked owner Nov 16). Unblocked next-fire work: (i) trace api.slatebox.com consumers in app code + determine true upstream of the 500 (CF dns list vs pod logs); (ii) waitlist Mongo alive? row count?; (iii) start R2 defect localization meanwhile if (i)+(ii) close fast.
+
+## Iteration 72 — MIT RELICENSE DONE (owner decision) — "open source Miro replacement" now truthful
+- app repo + slatebox monorepo LICENSE.md ELv2 -> MIT (engine was already MIT); README license prose rewritten truthful; pushed: app main->main-v3 ce4889f, monorepo main->origin/main 55df4c6 (30-commit pre-existing monorepo lineage rode along — post-push secret scan CLEAN, engine-rework-era code only). Remote-main note: Slatebox/slatebox `main` now carries monorepo lineage; app lineage stays main-v3. If owner wants main untouched again, revert is one push.
+- Consequence for rebrand: homepage may state "open source (MIT) Miro alternative" + GitHub links once site lands.
