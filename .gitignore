@@ -33,3 +33,4 @@ test-results/
 # Loop scheduler session state
 .pi-loop.json
 .pi-loop.json.lock
+docs/.loop-marker
