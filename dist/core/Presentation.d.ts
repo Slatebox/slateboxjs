@@ -36,13 +36,13 @@ export declare class Presentation {
      */
     setStepOrder(nodeIds: string[]): PresentationStep[];
     /** Start presentation mode */
-    start(): void;
+    start(duration?: number): void;
     /** Stop presentation mode */
     stop(): void;
     /** Go to next step */
-    next(): boolean;
+    next(duration?: number): boolean;
     /** Go to previous step */
-    previous(): boolean;
+    previous(duration?: number): boolean;
     /**
      * Go to a specific step, smoothly panning+zooming the viewport so the step's
      * node is centered (P3). Pass duration 0 for an instant jump.

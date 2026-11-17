@@ -80,7 +80,10 @@ export declare class PanZoom {
     }): void;
     reset(): void;
     /** Container pixel size (the infinite canvas fills its element). */
-    private containerPx;
+    getViewportSize(): {
+        w: number;
+        h: number;
+    };
     resetZoom(): void;
     resetPan(): void;
     fit(): void;
