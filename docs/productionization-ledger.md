@@ -636,3 +636,8 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - F4a + F4a.1 (app repo, 2 test ships): pill form (left-inset, rounded, shadowed) + content padding fix; text clip caught by visual verification loop and fixed same fire. Post-ship: probe green, suite 0-fail, visual confirmed via f4-geo repro on fresh guest canvas.
 - Remaining F4 candidates (smaller): NodeDrawer still full-bleed slab when a node is selected (float-inset candidate); zoom "100%" label clipped at right edge (tiny). Provider 429s recurring intermittently (no user traffic affected yet; two-provider chain stays parked).
 - Live-gen used this fire: ~4 provider calls (3 geo repro chains incl. autokick + 1 in-ship probe). Budget <=5 kept.
+
+## Iteration 86 — FIRST REAL USER ON V3 DECODED (0 provider calls used)
+- 1 real user, 1 slate, 4 calls total (04:10-04:14Z): welcome invalid_response -> 1 repair retry -> success; generation 429-class -> shape/ladder cap held at 3 attempts -> immediate DeepSeek fallback -> success. Bounded-chain policy CONFIRMED under real traffic. User journey completed with content.
+- Implication: 429-class provider busy is now hitting real users; fallback covers it (user got result at 14:25 not 14:05 -> ~20s slower path). If the 429 rate rises, two-provider chain (Qwen + DeepSeek both default-able) gets un-parked.
+- F4a soak on test continues (no user traffic on test; soak = e2e + probes). Prod batch ship (F4a pill only, engine unchanged) on track for next fire if suite stays 0-fail.
