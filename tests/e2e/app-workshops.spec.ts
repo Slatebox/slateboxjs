@@ -9,7 +9,24 @@ test('review a workshop, move a card, present and open a private editable slate'
   await page.goto(origin + '/workshops')
   await expect(page.getByRole('heading', { name: 'Build a workshop around a decision.' })).toBeVisible()
   expect(await page.evaluate(() => localStorage.getItem('meteor_token'))).toBeNull()
-  await expect(page.getByRole('link', { name: /Explore Pro/ })).toHaveAttribute('href', '/plans')
+  if (process.env.SLATEBOX_SELFHOST === 'true') {
+    await expect(page.getByText('Sign in to use workshop generation when enabled by your administrator.')).toBeVisible()
+  } else {
+    await expect(page.getByRole('link', { name: /Explore Pro/ })).toHaveAttribute('href', '/plans')
+  }
+  const workshop = page.locator('main.workshops')
+  await expect(workshop).toHaveAttribute('data-mode', 'light')
+  await page.getByRole('button', { name: 'Dark mode' }).click()
+  await expect(workshop).toHaveAttribute('data-mode', 'dark')
+  await expect(page.getByLabel('Workshop title')).toBeVisible()
+  await page.getByRole('button', { name: 'Light mode' }).click()
+  await expect(workshop).toHaveAttribute('data-mode', 'light')
+  const typography = await page.getByRole('heading', { level: 1 }).evaluate(async heading => {
+    await document.fonts.ready
+    const style = getComputedStyle(heading)
+    return [style.fontFamily, style.fontWeight, style.fontStyle, document.fonts.check('700 16px "Archivo Narrow"')]
+  })
+  expect(typography).toEqual(['"Archivo Narrow", Arial, sans-serif', '700', 'normal', true])
   await page.getByLabel('Workshop title').fill('Review the winter shutdown pilots')
   await page.getByRole('button', { name: 'Start workshop' }).click()
   await page.getByText('Move a card by name').click()
