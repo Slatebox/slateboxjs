@@ -641,3 +641,8 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - 1 real user, 1 slate, 4 calls total (04:10-04:14Z): welcome invalid_response -> 1 repair retry -> success; generation 429-class -> shape/ladder cap held at 3 attempts -> immediate DeepSeek fallback -> success. Bounded-chain policy CONFIRMED under real traffic. User journey completed with content.
 - Implication: 429-class provider busy is now hitting real users; fallback covers it (user got result at 14:25 not 14:05 -> ~20s slower path). If the 429 rate rises, two-provider chain (Qwen + DeepSeek both default-able) gets un-parked.
 - F4a soak on test continues (no user traffic on test; soak = e2e + probes). Prod batch ship (F4a pill only, engine unchanged) on track for next fire if suite stays 0-fail.
+
+## Iteration 87 — F4a SHIPPED TO PROD + bundle-fingerprint verified both envs
+- Prod ship 1.3.21-local.051747: rollout clean (2 pods), suite 0-fail, both envs 200. In-ship probe WARNed on 429-class again (provider busy persists; fallback chain proven by real-user evidence — kept as signal, not blocker).
+- Verification lesson: /start route does NOT mount the CookieConsent shell — DOM-absent there is NOT a stale-bundle signal. Correct check = fetch shipped script chunks + grep build marker (0d2b3e) -> present in BOTH envs. Codified: bundle-hash confirmation done via scripts/bundle-marker.mjs (kept in repo).
+- 429 trend: provider-busy class now appears in most probes + hit one real generation (user got fallback OK). Threshold for un-parking two-provider chain: 2+ real-user journeys degraded by 429-class in one window. Watching.
