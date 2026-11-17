@@ -660,3 +660,7 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 ## Iteration 90 — real user #2 decoded; shape-repair ladder worked live (0 calls used)
 - New prod user, 5-call bounded journey: welcome gate 1 repair; generation drew TWO invalid shape responses -> capped ladder -> DeepSeek fallback success. Pre-v3 this path ran 6+6 blind retries. Cost + latency + crash-safety all held for a paying-class real use.
 - No action needed; watch threshold unchanged (2+ journeys fully degraded = un-park two-provider chain; this one self-healed).
+
+## Iteration 91 — homepage v1 REJECTED by owner -> handed off to external agent
+- Slate is NOT deployed anywhere (preview-only local). Plumbing preserved in slatebox-home (smoke gate, waitlist fn, CF Pages path) with a README handoff for the incoming builder-agent: tested-claims-only rule, privacy redline, token need, keep smoke.sh green.
+- Queue after this: NodeDrawer float (low sev), prod watches, user-gated items (CF token, npm, public-repo). Loop reverts toward watch-mode as these drain.
