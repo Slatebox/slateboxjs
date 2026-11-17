@@ -669,3 +669,9 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - Change live on test (probe green, suite 0-fail). But the 0-AI proof did NOT actually open NodeDrawer: blank-area dblclick hit the Welcome node (text selection), so the drawer DOM match was likely a hidden/other presentation root. Float therefore UNPROVEN, not proven-broken.
 - NEXT FIRE recipe (cheap, 0-AI): on a loaded canvas, single-CLICK an existing generated node (they exist after autokick) -> expect selection + NodeDrawer; assert computed paper radius 12px + width calc(100%-24px) + screenshot. If drawer fails to open from node-click at all, that's a real defect class (regression watch), escalate.
 - Live chains used this fire: 1 (wizard autokick x2 runs share the same canvas journey; second run completed content).
+
+## STANDING DOWN — loop stopped by owner (2026-11-17 ~19:30Z)
+- Perpetual cron killed; no scheduler tasks active. Preview server stopped. Both envs verified healthy at stop (200/200).
+- Final live state: test = F1+F2+F3+F4a+F4b(drawer float, verification pending); prod = F1+F2+F3+F4a+canvas/new-redirect. Suites last-run 0-fail. Provider chain quiet; 2 real users observed, all journeys clean/self-healed.
+- TO RESUME: reopen queue = HANDOFF.md (queue items 1-4 + testing story + shipping policy). Loop prompt unchanged at docs/loop-prompt.md (Step 0 would re-arm a fresh cron).
+- User-gated items for owner (unchanged): fresh CF Pages token (Pages: Read & Edit class), homepage builder-agent, npm publish 3.1.3 (token + runbook), public-repo decision, Pro/Con template content decision, OpenRouter key rotation.
