@@ -664,3 +664,8 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 ## Iteration 91 — homepage v1 REJECTED by owner -> handed off to external agent
 - Slate is NOT deployed anywhere (preview-only local). Plumbing preserved in slatebox-home (smoke gate, waitlist fn, CF Pages path) with a README handoff for the incoming builder-agent: tested-claims-only rule, privacy redline, token need, keep smoke.sh green.
 - Queue after this: NodeDrawer float (low sev), prod watches, user-gated items (CF token, npm, public-repo). Loop reverts toward watch-mode as these drain.
+
+## Iteration 92 — F4b (NodeDrawer float) shipped to TEST; verification INCONCLUSIVE
+- Change live on test (probe green, suite 0-fail). But the 0-AI proof did NOT actually open NodeDrawer: blank-area dblclick hit the Welcome node (text selection), so the drawer DOM match was likely a hidden/other presentation root. Float therefore UNPROVEN, not proven-broken.
+- NEXT FIRE recipe (cheap, 0-AI): on a loaded canvas, single-CLICK an existing generated node (they exist after autokick) -> expect selection + NodeDrawer; assert computed paper radius 12px + width calc(100%-24px) + screenshot. If drawer fails to open from node-click at all, that's a real defect class (regression watch), escalate.
+- Live chains used this fire: 1 (wizard autokick x2 runs share the same canvas journey; second run completed content).
