@@ -646,3 +646,8 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - Prod ship 1.3.21-local.051747: rollout clean (2 pods), suite 0-fail, both envs 200. In-ship probe WARNed on 429-class again (provider busy persists; fallback chain proven by real-user evidence — kept as signal, not blocker).
 - Verification lesson: /start route does NOT mount the CookieConsent shell — DOM-absent there is NOT a stale-bundle signal. Correct check = fetch shipped script chunks + grep build marker (0d2b3e) -> present in BOTH envs. Codified: bundle-hash confirmation done via scripts/bundle-marker.mjs (kept in repo).
 - 429 trend: provider-busy class now appears in most probes + hit one real generation (user got fallback OK). Threshold for un-parking two-provider chain: 2+ real-user journeys degraded by 429-class in one window. Watching.
+
+## Iteration 88 — 9h-window sweep clean + /canvas/new dead-end FIXED (test, verified) + prod 429 trend quiet
+- 9h fire-gap (harness downtime): decoded full window = 4 calls, ALL success, single returning user, zero 429-degraded journeys -> two-provider chain stays parked (threshold: 2+ degraded journeys/window).
+- /canvas/new (dead No-Access wall for bookmark/typed URLs) now redirects to /start. Verified true-guest 0-AI against deployed test: lands on wizard, dialog gone. No source-code callers of the old path. Prod ship next fire (after soak) unless evidence changes.
+- Probe green on this fire's ship -> provider-busy window from iters 81-85 has passed.
