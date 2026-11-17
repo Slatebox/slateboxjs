@@ -56,6 +56,7 @@ test('review a workshop, move a card, present and open a private editable slate'
     const guest = await visitor.newPage()
     await guest.goto(origin + '/workshops')
     await expect(guest.getByRole('button', { name: 'Start workshop' })).toBeVisible()
+    expect(await guest.evaluate(() => [(window as any).Meteor.userId(), localStorage.getItem('meteor_token')])).toEqual([null, null])
     const denials = await guest.evaluate(async id => {
       const meteor = (window as any).Meteor
       const code = async (name: string, arg: string) => {
@@ -63,9 +64,9 @@ test('review a workshop, move a card, present and open a private editable slate'
         catch (err: any) { return err.error }
       }
       const canvas = await meteor.callAsync('slates.get', { shareId: id })
-      return [await code('workshops.restore', id!), await code('workshops.draft', 'Review our winter shutdown pilots'), canvas?.slateBase ?? null]
+      return [await code('workshops.restore', id!), await code('workshops.draft', 'Review our winter shutdown pilots'), Boolean(canvas?.slateBase)]
     }, shareId)
-    expect(denials).toEqual(['unavailable', 'plan-required', null])
+    expect(denials).toEqual(['unavailable', 'plan-required', false])
   } finally {
     await visitor.close()
   }
