@@ -630,3 +630,9 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - CONFIRMED defects (f4-before.png): (1) bottom chrome (cookie strip + zoom bar) opaque and content paints UNDER it, clipped mid-glyph; (2) BirdsEye renders top-right and its top ~60px hides under the top app bar (z-order), reading as "clipped minimap"; (3) chat panel overlays canvas with no inset. All three = chrome-overlay class.
 - CORRECTION FILED: app-arrange spec + f4-repro DO trigger a template-kick generation on wizard chip chain (autokick), so prior "0 provider calls" notes for those runs were wrong — audit-window decodes should attribute those calls to test automation, not users. Future spec work: avoid template-chip path, or budget it.
 - Fix candidates (next fire): drawer/zoom-bar inset-float (margin + radius, Miro-style) + BirdsEye z-order + top offset under app bar; each verifiable with f4-repro shots before/after.
+
+## Iteration 85 — F4a SHIPPED TO TEST (cookie bar -> floating pill), probe-verified
+- Diagnosis-first: geo probe proved the true bottom-strip occluder was the FULL-WIDTH z999 cookie bar (react-cookie-consent defaults), not minimap clipping (BirdsEye renders complete at x1190 y74; earlier "clip" was paint-over from panel + screenshot parallax). Zoom cluster was buried underneath; now visible.
+- F4a + F4a.1 (app repo, 2 test ships): pill form (left-inset, rounded, shadowed) + content padding fix; text clip caught by visual verification loop and fixed same fire. Post-ship: probe green, suite 0-fail, visual confirmed via f4-geo repro on fresh guest canvas.
+- Remaining F4 candidates (smaller): NodeDrawer still full-bleed slab when a node is selected (float-inset candidate); zoom "100%" label clipped at right edge (tiny). Provider 429s recurring intermittently (no user traffic affected yet; two-provider chain stays parked).
+- Live-gen used this fire: ~4 provider calls (3 geo repro chains incl. autokick + 1 in-ship probe). Budget <=5 kept.
