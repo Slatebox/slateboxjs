@@ -1,28 +1,38 @@
+import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
-const b = await chromium.launch();
-const ctx = await b.newContext({ viewport: { width: 1400, height: 800 } });
-const p = await ctx.newPage();
-await p.goto('https://test.slatebox.com/start', { waitUntil: 'domcontentloaded' });
-await p.waitForTimeout(3000);
-for (const label of ['Personal Use', 'Consultant', 'Infographic for market analysis']) {
-  const el = p.getByText(label, { exact: true }).first();
-  try { await el.waitFor({ state: 'visible', timeout: 2500 }); await el.click(); await p.waitForTimeout(1200); } catch {}
-}
-const seeded = await p.waitForFunction(() => { const i = window.__slateboxInstances; return Array.isArray(i) && i.some(s => s && (s.nodes || s.v2)); }, { timeout: 90000 }).then(() => true).catch(() => false);
-console.log('canvas:', seeded);
-if (seeded) {
-  await p.waitForTimeout(4000);
-  await p.mouse.dblclick(300, 600);
-  await p.waitForTimeout(2500);
-  const state = await p.evaluate(() => {
-    const drawers = Array.from(document.querySelectorAll('[role="presentation"]')).filter(e => e.querySelector('.MuiTabs-root'));
-    if (!drawers.length) return 'NO DRAWER';
-    const r = drawers[drawers.length - 1].getBoundingClientRect();
-    const paper = drawers[drawers.length - 1].querySelector('.MuiPaper-root');
-    const cs = paper ? getComputedStyle(paper) : null;
-    return `drawer w=${r.width|0} radius=${cs ? cs.borderRadius : '?'} shadow=${cs ? cs.boxShadow.slice(0,24) : '?'} bottom=${(800 - r.y - r.height)|0}px`;
+
+// Use an existing test fixture to avoid triggering another provider journey.
+const url = new URL(process.env.CANVAS_URL);
+assert.ok(/^https:\/\/(test|app)\.slatebox\.com$/.test(url.origin));
+assert.ok(/^\/canvas\/[\w-]+$/.test(url.pathname));
+const browser = await chromium.launch();
+try {
+  const page = await browser.newPage({ viewport: { width: 1400, height: 800 } });
+  await page.goto(url.origin, { waitUntil: 'domcontentloaded' });
+  assert.equal(await page.evaluate(() => localStorage.getItem('meteor_token')), null);
+  await page.goto(url.href);
+  await page.locator('g[data-node-id]').first().click();
+  // A click selects the node. Its settings cog opens the actual node drawer.
+  await page.locator('.node-tool-cog').first().click();
+  await page.waitForFunction(() => [...document.querySelectorAll('.MuiDrawer-paper')].some(paper => {
+    const box = paper.getBoundingClientRect();
+    return paper.querySelectorAll('[role="tab"]').length >= 6 &&
+      getComputedStyle(paper).borderRadius === '12px' &&
+      box.left === 12 && box.width === innerWidth - 24 &&
+      Math.abs(innerHeight - box.bottom - 12) < 0.1;
+  }));
+  const chunks = await page.evaluate(async () => {
+    const sources = [...document.scripts].map(script => script.src)
+      .filter(src => src && new URL(src).origin === location.origin);
+    for (const src of sources) {
+      const body = await (await fetch(src)).text();
+      if (body.includes('calc(100% - 24px)') && body.includes('0 8px 24px rgba(0,0,0,0.28)')) return new URL(src).pathname;
+    }
+    return null;
   });
-  console.log('drawer:', state);
-  await p.screenshot({ path: '/tmp/f4b-drawer.png' });
+  assert.ok(chunks, 'deployed drawer styles missing from shipped chunks');
+  await page.screenshot({ path: process.env.SCREENSHOT || '/tmp/slatebox-node-drawer.png' });
+  console.log('Node settings drawer verified at 1376px wide, 12px radius and bottom inset.', chunks);
+} finally {
+  await browser.close();
 }
-await b.close();
