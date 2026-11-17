@@ -651,3 +651,8 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - 9h fire-gap (harness downtime): decoded full window = 4 calls, ALL success, single returning user, zero 429-degraded journeys -> two-provider chain stays parked (threshold: 2+ degraded journeys/window).
 - /canvas/new (dead No-Access wall for bookmark/typed URLs) now redirects to /start. Verified true-guest 0-AI against deployed test: lands on wizard, dialog gone. No source-code callers of the old path. Prod ship next fire (after soak) unless evidence changes.
 - Probe green on this fire's ship -> provider-busy window from iters 81-85 has passed.
+
+## Iteration 89 — canvas/new redirect SHIPPED TO PROD + verified both envs
+- Prod ship clean: rollout ok, probe green (provider still quiet), post-ship suite 0-fail.
+- 0-AI guest verification now codified as scripts/new-redirect-check.mjs (U= env target) — ran green against prod: redirect to /start, dialog class dead.
+- Test+prod both on: F1 ghosts, F2 arrange, F3 gradients, F4a pill, canvas/new redirect. Queue remaining: NodeDrawer float (low sev), homepage deploy (needs fresh CF Pages token from owner), npm publish (deferred).

@@ -1,12 +1,12 @@
 import { chromium } from 'playwright';
+const U = process.env.U || 'https://test.slatebox.com';
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1200, height: 800 } });
 const p = await ctx.newPage();
-await p.goto('https://test.slatebox.com/canvas/new?nc=' + Date.now(), { waitUntil: 'networkidle', timeout: 45000 });
+await p.goto(U + '/canvas/new?nc=' + Date.now(), { waitUntil: 'networkidle', timeout: 45000 });
 await p.waitForTimeout(3500);
 const txt = await p.evaluate(() => document.body.innerText.slice(0, 300));
 console.log('URL:', p.url());
 console.log('noAccess dialog present:', /no access/i.test(txt));
 console.log('welcome/wizard present:', /Welcome to slatebox|What will you use/i.test(txt));
-await p.screenshot({ path: '/tmp/newredirect.png' });
 await b.close();
