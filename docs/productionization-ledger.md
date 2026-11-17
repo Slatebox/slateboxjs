@@ -656,3 +656,7 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - Prod ship clean: rollout ok, probe green (provider still quiet), post-ship suite 0-fail.
 - 0-AI guest verification now codified as scripts/new-redirect-check.mjs (U= env target) — ran green against prod: redirect to /start, dialog class dead.
 - Test+prod both on: F1 ghosts, F2 arrange, F3 gradients, F4a pill, canvas/new redirect. Queue remaining: NodeDrawer float (low sev), homepage deploy (needs fresh CF Pages token from owner), npm publish (deferred).
+
+## Iteration 90 — real user #2 decoded; shape-repair ladder worked live (0 calls used)
+- New prod user, 5-call bounded journey: welcome gate 1 repair; generation drew TWO invalid shape responses -> capped ladder -> DeepSeek fallback success. Pre-v3 this path ran 6+6 blind retries. Cost + latency + crash-safety all held for a paying-class real use.
+- No action needed; watch threshold unchanged (2+ journeys fully degraded = un-park two-provider chain; this one self-healed).
