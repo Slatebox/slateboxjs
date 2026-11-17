@@ -341,7 +341,7 @@ export class PanZoom {
     if (!this.isEnabled) return
     // Reset to 1:1 (viewBox = container px) centered on the current view
     // center — never a hardcoded origin box — then fit content if any.
-    const px = this.containerPx()
+    const px = this.getViewportSize()
     const vb = this.canvas.viewbox() || { x: 0, y: 0, width: px.w, height: px.h }
     const cx = (vb.x || 0) + (vb.width || px.w) / 2
     const cy = (vb.y || 0) + (vb.height || px.h) / 2
@@ -350,7 +350,7 @@ export class PanZoom {
   }
 
   /** Container pixel size (the infinite canvas fills its element). */
-  private containerPx(): { w: number; h: number } {
+  public getViewportSize(): { w: number; h: number } {
     const el = this.slate?.element
     const rect = el?.getBoundingClientRect?.()
     return {
@@ -401,7 +401,7 @@ export class PanZoom {
     // Compute viewbox that centers content with padding
     const vbWidth = contentWidth + padding * 2
     const vbHeight = contentHeight + padding * 2
-    const px = this.containerPx()
+    const px = this.getViewportSize()
     const containerAspect = px.w / px.h
     const contentAspect = vbWidth / vbHeight
 

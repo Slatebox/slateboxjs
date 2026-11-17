@@ -108,3 +108,48 @@ test.describe("presentation step centers each node (§presentation)", () => {
     expect(res.midX).toBeLessThan(hi - 1);
   });
 });
+
+for (const width of [320, 1024]) {
+  test(`read-only camera keeps each whole node centered after fit and repeated navigation at ${width}px`, async ({page}) => {
+    await page.goto('/test.html');
+    await page.waitForFunction(() => (window as any).Slatebox);
+    const samples = await page.evaluate(async viewportWidth => {
+      const sb = (window as any).Slatebox;
+      const host = document.createElement('div');
+      host.id = 'repeated-presentation';
+      host.style.cssText = `position:fixed;left:0;top:0;width:${viewportWidth}px;height:360px`;
+      document.body.append(host);
+      const facade = await new sb.slate({container: host.id, allowCollaboration:false}, {}).init();
+      facade.nodes.add(new sb.node({id:'signal', xPos:10500, yPos:11000, width:210, height:90, text:'Signal'}));
+      facade.nodes.add(new sb.node({id:'trial', xPos:11900, yPos:11200, width:580, height:130, text:'Trial', rotate:{rotationAngle:18}}));
+      const slate = facade.v2;
+      await Promise.all(slate.nodes.allNodes.map((node: any) => node.ready));
+      slate.fitToContent();
+      slate.panZoom.disable();
+      const player = facade.presentation;
+      player.extractLayout();
+      const readings = [];
+      const record = (id:string) => {
+        const rect = host.querySelector(`[data-node-id="${id}"]`)!.getBoundingClientRect();
+        const bounds = host.getBoundingClientRect();
+        readings.push({id, dx:rect.left + rect.width / 2 - bounds.left - bounds.width / 2,
+          dy:rect.top + rect.height / 2 - bounds.top - bounds.height / 2,
+          fits:rect.left >= bounds.left && rect.right <= bounds.right && rect.top >= bounds.top && rect.bottom <= bounds.bottom,
+          width:slate.canvas.viewbox().width});
+      };
+      player.start(0);
+      record('signal');
+      for (let lap = 0; lap < 8; lap++) {
+        player.next(0); record('trial');
+        player.previous(0); record('signal');
+      }
+      return readings;
+    }, width);
+    for (const sample of samples) {
+      expect(Math.abs(sample.dx)).toBeLessThan(3);
+      expect(Math.abs(sample.dy)).toBeLessThan(3);
+      expect(sample.fits).toBe(true);
+      expect(sample.width).toBeCloseTo(samples.find(item => item.id === sample.id)!.width, 4);
+    }
+  });
+}

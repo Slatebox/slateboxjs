@@ -28,7 +28,7 @@ export class Presentation {
   public extractLayout(opts?: {
     nodeIds?: string[];
   }): PresentationStep[] {
-    let nodes = this.slate.nodes.allNodes;
+    let nodes = [...this.slate.nodes.allNodes];
 
     // Filter to specific nodes if provided
     if (opts?.nodeIds) {
@@ -159,34 +159,38 @@ export class Presentation {
   }
 
   /** Start presentation mode */
-  public start(): void {
+  public start(duration = 450): void {
     if (this.steps.length === 0) {
       this.extractLayout();
     }
     this.isActive = true;
     this.currentStep = -1;
-    this.next();
+    this.next(duration);
   }
 
   /** Stop presentation mode */
   public stop(): void {
     this.isActive = false;
     this.currentStep = -1;
+    if (this._animRaf !== null) {
+      cancelAnimationFrame(this._animRaf);
+      this._animRaf = null;
+    }
   }
 
   /** Go to next step */
-  public next(): boolean {
+  public next(duration = 450): boolean {
     if (this.currentStep >= this.steps.length - 1) return false;
     this.currentStep++;
-    this.goToStep(this.currentStep);
+    this.goToStep(this.currentStep, duration);
     return true;
   }
 
   /** Go to previous step */
-  public previous(): boolean {
+  public previous(duration = 450): boolean {
     if (this.currentStep <= 0) return false;
     this.currentStep--;
-    this.goToStep(this.currentStep);
+    this.goToStep(this.currentStep, duration);
     return true;
   }
 
@@ -202,20 +206,26 @@ export class Presentation {
     const node: any = this.slate.nodes.one(step.nodeId);
     if (!node) return;
 
-    // Center on the node's WORLD center. The target viewbox has the node's
-    // center in the middle; its dimensions come from the target zoom: at zoom Z
-    // the viewbox is (containerPx / Z), i.e. current viewbox scaled by
-    // (currentZoom / Z). We then tween the viewbox from current → target.
+    // Each step is an absolute camera position. The gesture plugin's reported
+    // zoom is deliberately 1 when gestures are disabled, even after a fit.
     try {
-      const o = node.options || {};
-      const nx = (o.x || 0) + (o.width || 0) / 2;
-      const ny = (o.y || 0) + (o.height || 0) / 2;
-
-      const canvas = (this.slate as any).canvas;
+      const o = node.options;
+      const width = o.width || 0;
+      const height = o.height || 0;
+      const nx = (o.x || 0) + width / 2;
+      const ny = (o.y || 0) + height / 2;
+      const canvas = this.slate.canvas;
       const vb = canvas.viewbox();
-      const zc = (this.slate as any).panZoom?.getZoom?.() ?? 1;
-      const tw = (vb.width * zc) / this.zoomLevel;
-      const th = (vb.height * zc) / this.zoomLevel;
+      const viewport = this.slate.panZoom.getViewportSize();
+      const radians = (o.rotate?.rotationAngle || 0) * Math.PI / 180;
+      const cos = Math.abs(Math.cos(radians));
+      const sin = Math.abs(Math.sin(radians));
+      const frameWidth = Math.max(1, width * cos + height * sin);
+      const frameHeight = Math.max(1, height * cos + width * sin);
+      const zoom = Math.min(this.zoomLevel > 0 ? this.zoomLevel : 1,
+        0.9 * viewport.w / frameWidth, 0.9 * viewport.h / frameHeight);
+      const tw = viewport.w / zoom;
+      const th = viewport.h / zoom;
       const target = { x: nx - tw / 2, y: ny - th / 2, width: tw, height: th };
       this.animateViewbox(
         { x: vb.x, y: vb.y, width: vb.width, height: vb.height },
