@@ -46,6 +46,7 @@ test('review a workshop, move a card, present and open a private editable slate'
   await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/, { timeout: 45000 })
   const shareId = new URL(page.url()).pathname.split('/').pop()
   await expect(page.locator('g[data-node-id="card-sensors"]').first()).toBeVisible({ timeout: 45000 })
+  await expect(page.locator('header').getByText('Private', { exact: true })).toBeVisible()
   await page.goto(origin + '/workshops')
   await page.getByRole('button', { name: 'Review the winter shutdown pilots' }).click()
   await expect(page.getByRole('button', { name: 'Present decisions' })).toBeVisible()
@@ -61,9 +62,10 @@ test('review a workshop, move a card, present and open a private editable slate'
         try { await meteor.callAsync(name, arg); return 'allowed' }
         catch (err: any) { return err.error }
       }
-      return [await code('workshops.restore', id!), await code('workshops.draft', 'Review our winter shutdown pilots')]
+      const canvas = await meteor.callAsync('slates.get', { shareId: id })
+      return [await code('workshops.restore', id!), await code('workshops.draft', 'Review our winter shutdown pilots'), canvas?.slateBase ?? null]
     }, shareId)
-    expect(denials).toEqual(['unavailable', 'plan-required'])
+    expect(denials).toEqual(['unavailable', 'plan-required', null])
   } finally {
     await visitor.close()
   }
