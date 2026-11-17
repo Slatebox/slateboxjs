@@ -1,0 +1,37 @@
+// Build separate package entries so non-React canvas consumers never load Dragology.
+import { defineConfig } from 'vite'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+export default defineConfig({
+  plugins: [{
+    name: 'workshop-dependency-notices',
+    generateBundle(_options, bundle) {
+      const packages = new Set<string>()
+      for (const output of Object.values(bundle)) {
+        if (output.type !== 'chunk') continue
+        for (const moduleId of Object.keys(output.modules)) {
+          const directory = moduleId.match(/^(.*\/node_modules\/(?:@[^/]+\/)?[^/]+)\//)?.[1]
+          if (directory) packages.add(directory)
+        }
+      }
+      const notices = [...packages].sort().map(directory => {
+        const { name, version } = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
+        const license = readdirSync(directory).find(file => /^(?:LICENSE|LICENCE|COPYING)(?:\..*)?$/i.test(file))
+        if (!license) throw new Error('Missing bundled dependency license for ' + name)
+        return name + ' ' + version + '\n' + readFileSync(join(directory, license), 'utf8')
+      })
+      this.emitFile({ type: 'asset', fileName: 'workshops-LICENSE.txt', source: notices.join('\n') })
+    },
+  }],
+  build: {
+    emptyOutDir: false,
+    lib: {
+      entry: { workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts' },
+      formats: ['es', 'cjs'],
+      fileName: (format, entry) => entry + (format === 'es' ? '.mjs' : '.cjs'),
+    },
+    rollupOptions: { external: ['react', 'react-dom', 'react/jsx-runtime'] },
+    target: 'es2020',
+    copyPublicDir: false,
+  },
+})

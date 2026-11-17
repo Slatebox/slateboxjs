@@ -37,6 +37,11 @@ export interface ThemeDefinition {
     description?: string;
     containerStyle?: {
         backgroundColor?: string;
+        backgroundColorAsGradient?: boolean;
+        backgroundGradientColors?: string[];
+        backgroundGradientType?: string;
+        backgroundImage?: string;
+        backgroundSize?: string;
     };
     defaultLineColor?: string;
     styles?: {

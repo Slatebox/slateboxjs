@@ -4,7 +4,7 @@
  * Provides all utility functions used by the app.
  */
 
-import { pathBBox, transformPath } from "./vendor/raphael-path";
+import { pathBBox, transformPath } from "./core/PathGeometry";
 
 /** Generate a unique ID string */
 export function guid(length: number = 10): string {
@@ -147,10 +147,10 @@ export function getBBox(opts: { path: string }): {
 }
 
 /**
- * v1: `Slatebox.utils._transformPath(path, transform)` — apply a Raphael
+ * v1: `Slatebox.utils._transformPath(path, transform)` — apply a stored compact
  * transform string (`t/T`, `s/S`, `r/R`, `m/M`) to a path, returning the
  * curve-ified transformed path string. Scale/rotate without explicit
- * centers pivot on the path's bounding-box center, exactly like Raphael.
+ * centers pivot on the path's bounding-box center.
  */
 export function _transformPath(path: string, transform: string): string {
   return transformPath(path, transform);

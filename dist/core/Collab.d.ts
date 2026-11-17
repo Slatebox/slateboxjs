@@ -26,6 +26,13 @@ export interface CollabOptions {
     onReceive?: (pkg: any) => void;
     /** Called when connection status changes */
     onStatusChange?: (status: "connected" | "disconnected" | "connecting") => void;
+    /**
+     * A remote cursor whose awareness state has received NO update for this
+     * long is treated as a ghost (provider v3 has no heartbeat; a vanished
+     * peer's state otherwise persists forever). Default 45s; idle real users
+     * re-materialize instantly on their next pointer move.
+     */
+    cursorStaleMs?: number;
     /** Called when awareness (user presence) changes */
     onAwarenessChange?: (users: CollabUser[]) => void;
 }
@@ -53,6 +60,8 @@ export declare class Collab {
     private cursorElements;
     private _cursorMoveHandler;
     private _cursorTrackingNode;
+    private _cursorSweepTimer;
+    private _cursorLastSeen;
     /** Connection/user payload returned by the host's onInitCollaboration */
     userBaseData?: Record<string, any>;
     constructor(slate: Slate, options?: CollabOptions);
@@ -112,6 +121,8 @@ export declare class Collab {
      * clients render it through renderCursor(). Throttled to ~25fps.
      */
     private setupCursorTracking;
+    /** Remove every rendered remote cursor (drops/reconnects, disconnect). */
+    private clearRemoteCursors;
     /**
      * Render (or update) remote collaborators' cursors and remove cursors for
      * clients that have left. Called on every awareness change.

@@ -16,14 +16,25 @@
       "require": "./dist/slateboxjs.js"
     },
     "./style.css": "./dist/slateboxjs.css",
-    "./dist/slateboxjs.css": "./dist/slateboxjs.css"
+    "./dist/slateboxjs.css": "./dist/slateboxjs.css",
+    "./workshops": {
+      "types": "./dist/workshops/index.d.ts",
+      "import": "./dist/workshops.mjs",
+      "require": "./dist/workshops.cjs"
+    },
+    "./workshops/model": {
+      "types": "./dist/workshops/model.d.ts",
+      "import": "./dist/workshop-model.mjs",
+      "require": "./dist/workshop-model.cjs"
+    }
   },
   "files": [
-    "dist"
+    "dist",
+    "workshops"
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build && npm run build:types",
+    "build": "vite build && vite build --config vite.workshops.config.ts && npm run build:types",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist && node scripts/clean-declarations.mjs",
     "preview": "vite preview",
     "serve": "vite preview",
@@ -46,6 +57,8 @@
   "author": "Tim Heckel <tim@slatebox.com>",
   "license": "MIT",
   "peerDependencies": {
+    "react": "^18 || ^19",
+    "react-dom": "^18 || ^19",
     "y-websocket": "^3.0.0",
     "yjs": "^13.6.0"
   },
@@ -55,12 +68,23 @@
     },
     "yjs": {
       "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
     }
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@types/node": "^20.10.5",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "dragology": "0.2.0",
     "jsdom": "^26.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "typescript": "^5.3.3",
     "vite": "^5.0.10",
     "vitest": "^1.1.0",
@@ -69,11 +93,11 @@
     "yjs": "^13.6.31"
   },
   "dependencies": {
-    "@svgdotjs/svg.draggable.js": "^3.0.6",
-    "@svgdotjs/svg.js": "^3.2.4",
-    "@svgdotjs/svg.panzoom.js": "^2.1.2",
-    "@svgdotjs/svg.resize.js": "^2.0.5",
-    "@svgdotjs/svg.select.js": "^4.0.2"
+    "@svgdotjs/svg.draggable.js": "3.0.7",
+    "@svgdotjs/svg.js": "3.2.8",
+    "@svgdotjs/svg.panzoom.js": "2.1.3",
+    "@svgdotjs/svg.resize.js": "2.0.7",
+    "@svgdotjs/svg.select.js": "4.0.5"
   },
   "engines": {
     "node": ">=18.0.0"

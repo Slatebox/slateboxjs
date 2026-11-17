@@ -43,10 +43,10 @@ export declare function getBBox(opts: {
     cy: number;
 };
 /**
- * v1: `Slatebox.utils._transformPath(path, transform)` — apply a Raphael
+ * v1: `Slatebox.utils._transformPath(path, transform)` — apply a stored compact
  * transform string (`t/T`, `s/S`, `r/R`, `m/M`) to a path, returning the
  * curve-ified transformed path string. Scale/rotate without explicit
- * centers pivot on the path's bounding-box center, exactly like Raphael.
+ * centers pivot on the path's bounding-box center.
  */
 export declare function _transformPath(path: string, transform: string): string;
 /**
