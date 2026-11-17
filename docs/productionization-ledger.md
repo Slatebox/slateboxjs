@@ -675,3 +675,11 @@ Choose one high-risk unproven vertical slice. Reproduce it in the canonical app,
 - Final live state: test = F1+F2+F3+F4a+F4b(drawer float, verification pending); prod = F1+F2+F3+F4a+canvas/new-redirect. Suites last-run 0-fail. Provider chain quiet; 2 real users observed, all journeys clean/self-healed.
 - TO RESUME: reopen queue = HANDOFF.md (queue items 1-4 + testing story + shipping policy). Loop prompt unchanged at docs/loop-prompt.md (Step 0 would re-arm a fresh cron).
 - User-gated items for owner (unchanged): fresh CF Pages token (Pages: Read & Edit class), homepage builder-agent, npm publish 3.1.3 (token + runbook), public-repo decision, Pro/Con template content decision, OpenRouter key rotation.
+
+## November 17 release verification
+
+Cloudflare Pages serves the marketing site and the apex Worker routes slatebox.com. The embed API serves explicit published presentation images only. Three existing published examples decoded in Chromium with exactly two requests per frame. Unpublished IDs returned 404. The old Deno origins remain available during the 48-hour cutover window. Source visibility and npm publication remain owner decisions.
+
+The marketing checkout board is a native SlateboxJS export. Desktop and mobile Chromium on the public hostname verified adding a connected agent suggestion, undoing it, dragging a note, and automatic and manual presentation camera movement. The readout asks the live editor for its current export. The generated checkout workshop uses the engine's Dragology entry. A browser-local rule change requires explicit approval. The Pro starting model came from a synthetic staging brief.
+
+Engine 7e1df13 passed 1,135 unit tests and 309 Chromium tests, including the relay. The package consumer check passed. On TEST app 8bc308a the node settings drawer passed the 12px inset, radius and width checks in a fresh browser against b454a752f6d58b3cd95f256a673d47244129689c.js. An authenticated staging user reached a hosted Stripe test checkout using an existing Pro price. No payment was submitted. The isolated self-host stack and public TEST both passed the workshop journey. Production user AI audit had no entries in the hour ending 20:10 UTC.
