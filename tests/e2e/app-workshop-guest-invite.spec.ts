@@ -166,3 +166,87 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     }
   }
 })
+
+test('an invited editor can return through a historical link until the owner makes it private', async ({ browser }) => {
+  const endpoint = process.env.SLATEBOX_LOCAL_FIXTURE_MONGO
+  test.skip(!endpoint || !['localhost','127.0.0.1'].includes(origin.hostname), 'Opt in with the matching disposable local Meteor MongoDB.')
+  const dbUrl = new URL(endpoint!)
+  // Meteor's local development database runs on the next port.
+  expect(dbUrl.hostname).toBe(origin.hostname)
+  expect(Number(dbUrl.port)).toBe(Number(origin.port) + 1)
+  expect(dbUrl.pathname).toBe('/meteor')
+  const { MongoClient } = require(process.env.MONGODB_DRIVER || 'mongodb')
+  const dbClient = new MongoClient(endpoint!)
+  const grants = dbClient.db('meteor').collection('slateAccess')
+  const ownerContext = await browser.newContext(), peerContext = await browser.newContext()
+  const owner = await ownerContext.newPage(), peer = await peerContext.newPage()
+  let ownerId: string | null = null, peerId: string | null = null
+  try {
+    await owner.goto(new URL('/new/workshop' + encodeWorkshopFragment(model), origin).href)
+    await owner.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
+    ownerId = await userId(owner)
+    await dismissWelcome(owner)
+    const key = new URL(owner.url()).pathname.split('/').pop()!
+    const board = await getSlate(owner, key)
+    expect(board.userId).toBe(ownerId)
+    const invite = await shareAs(owner, 'edit')
+    const grant = await grants.findOne({ _id: board._id, slateId: board._id, owningUserId: ownerId })
+    expect(grant.accessKey).toBe(invite.pathname.split('/').pop())
+    const historicId = 'legacy-general-' + board._id
+    await grants.insertOne({ ...grant, _id: historicId })
+    await grants.deleteOne({ _id: board._id, slateId: board._id, accessKey: grant.accessKey })
+    await peer.goto(invite.href)
+    await dismissWelcome(peer)
+    await peer.getByRole('button', { name:'Join to edit' }).click()
+    await expect.poll(() => userId(peer)).toBeTruthy()
+    peerId = await userId(peer)
+    await peer.getByRole('button', { name:'Lens → Bright star' }).click()
+    await expect(owner.getByText('Lens · Bright star', { exact: true })).toBeVisible()
+    await peer.goto(origin.href)
+    const recent = peer.getByRole('region', { name:'Recently joined' }).getByRole('link', { name:model.title })
+    await expect(recent).toHaveAttribute('href', invite.pathname)
+    await recent.click()
+    await expect(peer).toHaveURL(invite.href)
+    await dismissWelcome(peer)
+    await expect(peer.getByText('Lens · Bright star', { exact:true })).toBeVisible()
+    await peer.goto(origin.href)
+    await expect(recent).toBeVisible()
+    const downgraded = await shareAs(owner, 'read')
+    expect(downgraded.pathname).toBe(invite.pathname)
+    expect(await grants.countDocuments({ slateId:board._id, type:'unlisted' })).toBe(1)
+    await expect(recent).toHaveAttribute('href', invite.pathname)
+    await owner.getByRole('button', { name:'Share', exact:true }).click()
+    const sharing = owner.getByRole('dialog', { name:/sharing settings/i })
+    await sharing.getByRole('button', { name:/^Private/ }).click()
+    await sharing.getByRole('button', { name:'Save', exact:true }).click()
+    await expect(recent).toHaveCount(0)
+    expect(await grants.findOne({ _id:historicId })).toBeNull()
+    const fresh = await shareAs(owner, 'edit')
+    expect(fresh.pathname).not.toBe(invite.pathname)
+    expect(await getSlate(peer, grant.accessKey)).toBeFalsy()
+    await expect(recent).toHaveCount(0)
+
+    // Two owner tabs issue independent DDP calls. Whichever wins, visibility and
+    // the set of usable grants must agree; neither can revive the withdrawn key.
+    const secondTab = await owner.context().newPage()
+    try {
+      await secondTab.goto(origin.href)
+      await expect.poll(() => userId(secondTab)).toBe(ownerId)
+      const change = (tab: typeof owner, type: string) => tab.evaluate(({ slateId, type }) =>
+        (window as any).Meteor.callAsync('slateAccess.configureLink', { slateId, type, permission:'EDIT' }),
+      { slateId:board._id, type })
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await change(owner, 'unlisted')
+        const previous = await grants.findOne({ slateId:board._id, type:'unlisted' })
+        await Promise.all([change(owner, 'private'), change(secondTab, 'unlisted')])
+        const current = await getSlate(owner, key)
+        const active = await grants.find({ slateId:board._id, userId:null, type: { $in:['public','unlisted'] } }).toArray()
+        expect(active).toHaveLength(current.options.isPrivate ? 0 : 1)
+        expect(active.map((record: {accessKey:string}) => record.accessKey)).not.toContain(previous.accessKey)
+      }
+    } finally { await secondTab.close() }
+  } finally {
+    try { await Promise.all([removeTestGuest(owner, ownerId), removeTestGuest(peer, peerId)]) }
+    finally { await Promise.all([dbClient.close(), ownerContext.close(), peerContext.close()]) }
+  }
+})
