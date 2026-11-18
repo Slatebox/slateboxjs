@@ -233,3 +233,19 @@ test('an empty fitted board anchors card creation and lane editing by keyboard o
   await expect(add).toHaveCount(0)
   await expect(lane).toHaveCount(0)
 })
+
+test('releasing over a forbidden lane cannot commit the adjacent legal lane', async ({page}) => {
+  await page.goto('/tests/fixtures/workshop.html')
+  await page.locator('summary').click()
+  const card = page.getByLabel('Move Measure cooling losses at shift change')
+  await expect(card).toHaveValue('evidence')
+  const source = (await page.locator('#choice-cooling').boundingBox())!
+  const forbidden = (await page.locator('#heading-proposed').boundingBox())!
+  await page.mouse.move(source.x + 24, source.y + 20)
+  await page.mouse.down()
+  await page.mouse.move(forbidden.x + 24, source.y + 20, {steps:20})
+  await expect(page.getByLabel('Quarterly budget')).toHaveText('1 of 2 pilots funded')
+  await page.mouse.up()
+  await expect(card).toHaveValue('evidence')
+  await expect(page.getByLabel('Committed decisions')).toHaveText('0')
+})

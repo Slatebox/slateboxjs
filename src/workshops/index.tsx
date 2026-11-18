@@ -16,7 +16,7 @@ function wrapLabel(label: string) {
 function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean, fitted?: ReturnType<typeof fitLaneLayout>, editHeaders = false, addCards = false) {
   const layout = fitted?.layout ?? workshopLayout
   const { width, row, height, top } = layout
-  const { points } = workshopPositions(state, layout)
+  const { points, height: boardHeight } = workshopPositions(state, layout)
   const map = Boolean(state.lanes[0].station)
   const position = (card: Workshop['cards'][number]) => {
     const column = state.lanes.findIndex(lane => lane.id === card.laneId)
@@ -28,7 +28,11 @@ function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Worksho
     const card = state.cards.find(item => 'choice-' + item.id === draggedId)
     if (card) return <g id={draggedId} transform={position(card)} />
   }
+  const ordinary = !map && !state.kind
   return <g fontFamily="system-ui, sans-serif" fill="#18302d">
+    {ordinary && draggedId && state.lanes.map((lane, i) =>
+      <rect id={'drop-' + lane.id} x={points[i].x} y={0} width={layout.pitch} height={boardHeight}
+        fill="none" pointerEvents="none" aria-hidden="true" />)}
     {state.lanes.flatMap((lane, index) => (lane.station?.next ?? []).map(next => {
       const from = points[index]
       const to = points[state.lanes.findIndex(dest => dest.id === next)]
@@ -70,8 +74,13 @@ function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Worksho
       const key = 'choice-' + card.id
       return <g id={key} data-workshop-card={card.id} transform={position(card)}
         dragologyZIndex={draggedId === key ? '/1' : false}
-        dragologyOnDrag={allowed.length > 1 ? () => d.closest(allowed.map(lane =>
-          moveWorkshopCard(state, card.id, lane.id))).withFloating() : undefined}>
+        dragologyOnDrag={allowed.length > 1 ? () => {
+          const candidates = allowed.map(lane => moveWorkshopCard(state, card.id, lane.id))
+          if (!ordinary) return d.closest(candidates).withFloating()
+          // A full or forbidden lane is not an invitation to a neighboring lane.
+          const targets = allowed.map((lane, i) => d.dropTarget('drop-' + lane.id, candidates[i], { boundsState: state }))
+          return d.closest(targets).whenFar(state).withFloating()
+        } : undefined}>
         <rect width={map ? width - 20 : width} height={height - (map ? 6 : 0)} fill={map ? "#ffda75" : "#fffdf6"} stroke="#78857d" rx={map ? 1 : 8} />
         {map && <path d="M198 0v70" stroke="#897530" strokeDasharray="4 5" />}
         {state.kind === 'release-plan' && <text transform={translate(12, height - 10)} fill="#466358" fontSize={12}>{card.points} pts</text>}
