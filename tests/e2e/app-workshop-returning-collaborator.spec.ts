@@ -119,9 +119,10 @@ test('a joined editor returns from My Slates across devices as the live title an
     await library(returning)
     await expect(reentry).toBeVisible()
     await owner.getByRole('button', { name: 'Share', exact: true }).click()
-    const sharing = owner.getByRole('dialog', { name: /sharing settings/i })
+    const sharing = owner.getByRole('dialog', { name: 'Share this slate' })
     await sharing.getByRole('button', { name: /^Private/ }).click()
-    await sharing.getByRole('button', { name: 'Save', exact: true }).click()
+    await sharing.getByRole('button', { name: 'Make private', exact: true }).click()
+    await sharing.getByRole('button', { name: 'Done', exact: true }).click()
     await expect.poll(async () => (await getSlate(owner, source.key)).options.isPrivate).toBe(true)
     await expect(reentry).toHaveCount(0)
     const oldKey = invite.pathname.split('/').pop()!

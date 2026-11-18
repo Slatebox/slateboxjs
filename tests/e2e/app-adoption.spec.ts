@@ -1,4 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { removeTestGuest, userId } from "./workshop-guests.shared";
 
 const app = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 const homepage = process.env.SLATEBOX_MARKETING_URL;
@@ -25,8 +26,10 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
     const notice = page.getByRole("button", {name: "Accept cookies"});
     await page.addLocatorHandler(notice, () => notice.click());
   }
-  const share = owner.getByRole("dialog",{name:/sharing settings/i});
+  const share = owner.getByRole("dialog",{name:'Share this slate'});
   let shared = false;
+  let ownerId: string | null = null;
+  let peerId: string | null = null;
   let invite: URL | undefined;
   try {
     if (homepage) {
@@ -47,13 +50,12 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
     await ready(owner);
     const original = owner.url();
     expect(original).toMatch(/\/canvas\/[a-f0-9]{10}$/);
-    const userId = (p:Page)=>p.evaluate(()=>(window as any).Meteor.userId());
-    const ownerId = await userId(owner);
+    ownerId = await userId(owner);
     expect(ownerId).toBeTruthy();
     if (recipient === "existing") {
       await peer.goto(app+"/new",{waitUntil:"domcontentloaded"});
       await ready(peer);
-      const peerId = await userId(peer);
+      peerId = await userId(peer);
       expect(peerId).toBeTruthy();
       expect(peerId).not.toBe(ownerId);
     }
@@ -67,11 +69,12 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
     await level.click();
     await owner.getByRole("option",{name:"edit",exact:true}).click();
     await expect(level).toHaveText("edit");
-    invite = new URL(await unlisted.getByText(/^https?:\/\//).innerText());
+    await unlisted.getByRole("button", {name:"Create link", exact:true}).click();
+    invite = new URL(await unlisted.getByRole("textbox", {name:"Invitation link"}).inputValue());
     expect(invite.origin).toBe(new URL(app).origin);
     expect(invite.pathname).toMatch(/^\/canvas\/[a-zA-Z0-9]{8}$/);
     expect(invite.href).not.toBe(original);
-    await share.getByRole("button",{name:"Save"}).click();
+    await share.getByRole("button",{name:"Done"}).click();
     await peer.goto(invite.href,{waitUntil:"domcontentloaded"});
     await ready(peer, recipient === "signed-out");
     if (recipient === "signed-out") {
@@ -125,7 +128,8 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
         if (!await share.isVisible()) await owner.getByRole("button",{name:"Share",exact:true}).click();
         await share.getByRole("button",{name:/^Private/}).click();
         await expect(share.getByRole("button",{name:/^Private/})).toHaveAttribute("aria-expanded","true");
-        await share.getByRole("button",{name:"Save"}).click();
+        await share.getByRole("button",{name:"Make private"}).click();
+        await share.getByRole("button",{name:"Done"}).click();
         if (invite && recipient === "signed-out") {
           const shareId = invite.pathname.split("/").pop();
           await expect.poll(()=>peer.evaluate(async id=>
@@ -136,7 +140,17 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
         }
       }
     } finally {
-      await Promise.all([peerContext.close(),ownerContext.close()]);
+      try {
+        await Promise.all(([[owner,ownerId], [peer,peerId]] as const).map(async ([page,id]) => {
+          if (id) {
+            await page.goto(new URL("/plans",app).href);
+            await expect.poll(() => userId(page)).toBe(id);
+            await removeTestGuest(page,id);
+          }
+        }));
+      } finally {
+        await Promise.all([peerContext.close(),ownerContext.close()]);
+      }
     }
   }
 }

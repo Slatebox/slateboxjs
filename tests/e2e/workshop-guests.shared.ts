@@ -15,17 +15,20 @@ export async function dismissWelcome(page: Page) {
 
 export async function shareAs(page: Page, permission: 'read' | 'edit') {
   await page.getByRole('button', { name: 'Share', exact: true }).click()
-  const dialog = page.getByRole('dialog', { name: /sharing settings/i })
+  const dialog = page.getByRole('dialog', { name: 'Share this slate' })
   const unlisted = dialog.getByRole('button', { name: /^Unlisted/ })
   if (await unlisted.getAttribute('aria-expanded') !== 'true') await unlisted.click()
   const region = dialog.getByRole('region', { name: /Unlisted/ })
-  await region.getByRole('combobox').click()
+  const role = region.getByRole('combobox', { name: 'Link permission' })
+  await role.click()
   await page.getByRole('option', { name: permission, exact: true }).click()
-  const link = region.getByText(/^https?:\/\//)
+  const commit = region.getByRole('button', { name: /^(Create link|Apply access)$/ })
+  if (await commit.count()) await commit.click()
+  const link = region.getByRole('textbox', {name:'Invitation link'})
   await expect(link).toBeVisible()
-  const url = new URL(await link.innerText())
+  const url = new URL(await link.inputValue())
   expect(url.origin).toBe(origin.origin)
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Done', exact: true }).click()
   return url
 }
 
