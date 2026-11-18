@@ -164,6 +164,14 @@ export class ResizeRotate {
           ".svg_select_shape, .svg_select_shape_pointSelect",
         );
         selectionShapes.forEach((shape: SVGElement) => {
+          // The Meteor host may load the JS without the optional stylesheet.
+          // Give the selection polygon an actual painted stroke in that case.
+          if (shape.classList.contains("svg_select_shape")) {
+            shape.setAttribute("stroke", "#4A90E2");
+            shape.setAttribute("stroke-width", "1.5");
+            shape.setAttribute("stroke-dasharray", "5 5");
+            shape.setAttribute("stroke-opacity", "0.55");
+          }
           shape.setAttribute("fill", "none");
           shape.setAttribute("fill-opacity", "0");
           shape.setAttribute("pointer-events", "none");

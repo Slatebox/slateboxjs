@@ -26,29 +26,42 @@ async function readGeometry(page: Page, id: string) {
     const box = [point(b.x,b.y),point(b.x+b.width,b.y),point(b.x+b.width,b.y+b.height),point(b.x,b.y+b.height)];
     const center = point(b.x+b.width/2,b.y+b.height/2);
     const world = center.matrixTransform(main.getScreenCTM()!.inverse());
-    const visible = (selector: string) => Array.from(main.querySelectorAll<SVGGraphicsElement>(selector)).filter(el => el.getBoundingClientRect().width > 0);
+    const rendered = (el: SVGGraphicsElement) => {
+      // WebKit can return a nonempty SVG client rect under display:none.
+      for (let parent: Element | null = el; parent; parent = parent.parentElement) {
+        const style = getComputedStyle(parent);
+        if (style.display === "none" || style.visibility === "hidden") return false;
+      }
+      return el.getBoundingClientRect().width > 0;
+    };
+    const visible = (selector: string) => Array.from(main.querySelectorAll<SVGGraphicsElement>(selector)).filter(rendered);
     const outlines = visible("polygon.svg_select_shape") as SVGPolygonElement[];
+    const paintedOutlines = outlines.filter(el => {
+      const style = getComputedStyle(el);
+      return style.stroke !== "none" && Number(style.strokeOpacity) > 0 && parseFloat(style.strokeWidth) > 0;
+    });
     const outlinePoints = outlines.flatMap(el => Array.from(el.points).map(p => p.matrixTransform(el.getScreenCTM()!)));
     const distance = (a: DOMPoint, c: DOMPoint) => Math.hypot(a.x-c.x,a.y-c.y);
     const cornerError = Math.max(...box.map(p => Math.min(...outlinePoints.map(q => distance(p,q)))));
     const gaps = ["top","right","bottom","left"].map((direction,i) => {
-      const c = visible(".connection-handle-" + direction)[0]?.getBoundingClientRect();
+      const plug = node.connectionHandles[direction]?.node;
+      const c = plug && rendered(plug) ? plug.getBoundingClientRect() : null;
       if (!c) return null;
       const a = box[i], d = box[(i+1)%4];
       return Math.hypot(c.x+c.width/2-(a.x+d.x)/2,c.y+c.height/2-(a.y+d.y)/2);
     });
     const angle = (el: SVGGraphicsElement) => { const m = el.getScreenCTM()!; return Math.atan2(m.b,m.a)*180/Math.PI; };
     return { x:center.x,y:center.y,width:distance(box[0],box[1]),height:distance(box[1],box[2]),
-      angle:angle(paint),textAngle:angle(label),cornerError, outlines:outlines.length,gaps,
+      angle:angle(paint),textAngle:angle(label),cornerError, outlines:outlines.length, paintedOutlines:paintedOutlines.length,gaps,
       worldX:world.x, worldY:world.y, topLeft:{x:box[0].x,y:box[0].y},
       imageFill:node.contentPath?.attr("fill"), shape:paint.tagName };
   }, id);
 }
 
-async function waitForPlugs(page: Page) {
-  // The engine hides the plugs during a gesture, then restores them after the
-  // plugin delivers its final mouseup update. Assert the actual visible UI.
-  await expect(page.locator("#slateCanvas .connection-handle-top:visible")).toHaveCount(1);
+async function waitForPlugs(page: Page, id: string) {
+  // Hovering a different node can reveal that node's plugs too. Wait for
+  // all four plugs belonging to the selected node after gesture finalization.
+  await expect.poll(async () => (await readGeometry(page,id)).gaps.filter(gap=>gap !== null).length).toBe(4);
 }
 
 async function grip(page: Page, selector: string) {
@@ -82,7 +95,8 @@ test("editor resize and live rotation keep artwork, labels, plugs and a single o
       await node.ready;
       slate.selectNodes([node]);
     }, {id,f});
-    await waitForPlugs(page);
+    await waitForPlugs(page,id);
+    await expect.poll(async ()=>(await readGeometry(page,id)).paintedOutlines).toBe(1);
     const before = await readGeometry(page,id);
     expect(before.outlines).toBe(1);
     expect(before.cornerError).toBeLessThan(3);
@@ -94,11 +108,15 @@ test("editor resize and live rotation keep artwork, labels, plugs and a single o
       await page.mouse.move(rb.x,rb.y);
       await page.mouse.down();
       await page.mouse.move(rb.x+change,rb.y+change*.65,{steps:8});
+      const held = await readGeometry(page,id);
+      expect(Math.abs(held.width-prior.width)).toBeGreaterThan(9);
+      expect([held.outlines,held.paintedOutlines]).toEqual([1,1]);
+      expect(held.cornerError).toBeLessThan(3);
       await page.mouse.up();
       await expect.poll(async () => Math.abs((await readGeometry(page,id)).width-prior.width)).toBeGreaterThan(9);
-      await waitForPlugs(page);
+      await waitForPlugs(page,id);
       const result = await readGeometry(page,id);
-      expect(result.outlines).toBe(1);
+      expect([result.outlines,result.paintedOutlines]).toEqual([1,1]);
       expect(result.cornerError).toBeLessThan(3);
       for (const [i,gap] of result.gaps.entries()) {
         expect(gap).not.toBeNull();
@@ -118,15 +136,15 @@ test("editor resize and live rotation keep artwork, labels, plugs and a single o
       await expect.poll(async () => Math.abs((await readGeometry(page,id)).angle-turn)).toBeLessThan(5);
       const moving = await readGeometry(page,id);
       expect(Math.abs(moving.angle-moving.textAngle)).toBeLessThan(1);
-      expect(moving.outlines).toBe(1);
+      expect([moving.outlines,moving.paintedOutlines]).toEqual([1,1]);
       expect(moving.cornerError).toBeLessThan(3);
     }
     await page.mouse.up();
-    await waitForPlugs(page);
+    await waitForPlugs(page,id);
     const final = await readGeometry(page,id);
     expect(Math.abs(final.angle-50)).toBeLessThan(5);
     expect(Math.abs(final.angle-final.textAngle)).toBeLessThan(1);
-    expect(final.outlines).toBe(1);
+    expect([final.outlines,final.paintedOutlines]).toEqual([1,1]);
     expect(final.cornerError).toBeLessThan(3);
     for (const [i,gap] of final.gaps.entries()) {
       expect(gap).not.toBeNull();
@@ -141,15 +159,20 @@ test("editor resize and live rotation keep artwork, labels, plugs and a single o
     await page.mouse.move(rb.x,rb.y);
     await page.mouse.down();
     await page.mouse.move(rb.x+dx,rb.y+dy,{steps:10});
+    const held = await readGeometry(page,id);
+    expect(held.width-final.width).toBeGreaterThan(12);
+    expect(Math.abs(held.angle-final.angle)).toBeLessThan(1);
+    expect([held.outlines,held.paintedOutlines]).toEqual([1,1]);
+    expect(held.cornerError).toBeLessThan(3);
     await page.mouse.up();
-    await waitForPlugs(page);
+    await waitForPlugs(page,id);
     const resized = await readGeometry(page,id);
     expect(resized.width - final.width).toBeGreaterThan(12);
     expect(resized.height - final.height).toBeGreaterThan(8);
     expect(Math.abs(resized.angle-final.angle)).toBeLessThan(1);
     expect(Math.abs(resized.angle-resized.textAngle)).toBeLessThan(1);
     expect(Math.hypot(resized.topLeft.x-final.topLeft.x,resized.topLeft.y-final.topLeft.y)).toBeLessThan(3);
-    expect(resized.outlines).toBe(1);
+    expect([resized.outlines,resized.paintedOutlines]).toEqual([1,1]);
     expect(resized.cornerError).toBeLessThan(3);
     for (const [i,gap] of resized.gaps.entries()) {
       expect(gap).not.toBeNull();
@@ -178,24 +201,32 @@ test("editor resize and live rotation keep artwork, labels, plugs and a single o
   await page.reload();
   for (const [id, prior] of saved) await test.step("reload " + id, async () => {
     await page.locator('#slateCanvas [data-node-id="' + id + '"]').waitFor({state:"attached"});
-    await page.evaluate(key=>{
+    await page.evaluate(async key=>{
       const slate = (window as any).__slateboxInstances.find((s:any)=>s.element.id==="slateCanvas");
       const node = slate.nodes.one(key);
+      await node.ready;
+      await new Promise(requestAnimationFrame);
       const viewport = slate.canvas.node.getBoundingClientRect();
       slate.canvas.viewbox(node.options.x-viewport.width/2+80,node.options.y-viewport.height/2+50,viewport.width,viewport.height);
       slate.selectNodes([node]);
     },id);
-    await waitForPlugs(page);
-    const current = await readGeometry(page,id);
-    expect(current.outlines).toBe(1);
-    expect(current.cornerError).toBeLessThan(3);
-    for (const key of ["angle","textAngle","width","height","worldX","worldY"] as const) {
-      expect(Math.abs(current[key]-prior[key]),id+" "+key).toBeLessThan(1);
-    }
-    for (const [i,gap] of current.gaps.entries()) {
-      expect(gap).not.toBeNull();
-      expect(Math.abs(gap!-prior.gaps[i]!)).toBeLessThan(3);
-    }
-    if (id === "geometry-image") expect(current.imageFill).toContain("url(");
+    await waitForPlugs(page,id);
+    await expect.poll(async ()=>(await readGeometry(page,id)).paintedOutlines).toBe(1);
+    // A reopened collaboration room can replay the guest's rotations, which
+    // the host deliberately animates. Compare the final rendered frame with
+    // the saved one. Held-pointer and mouseup checks above run immediately.
+    await expect(async () => {
+      const current = await readGeometry(page,id);
+      expect([current.outlines,current.paintedOutlines]).toEqual([1,1]);
+      expect(current.cornerError,id + " selection corners").toBeLessThan(3);
+      for (const key of ["angle","textAngle","width","height","worldX","worldY"] as const) {
+        expect(Math.abs(current[key]-prior[key]),id+" "+key).toBeLessThan(1);
+      }
+      for (const [i,gap] of current.gaps.entries()) {
+        expect(gap).not.toBeNull();
+        expect(Math.abs(gap!-prior.gaps[i]!)).toBeLessThan(3);
+      }
+      if (id === "geometry-image") expect(current.imageFill).toContain("url(");
+    }).toPass({timeout:5000});
   });
 });
