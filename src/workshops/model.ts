@@ -40,6 +40,7 @@ export interface ResolvedWorkshopSignal extends WorkshopSignal {
 }
 
 export interface Workshop {
+  experience?: StartupExperience
   version: 1
   kind?: 'release-plan'
   title: string
@@ -214,6 +215,13 @@ export function validateWorkshop(input: unknown): Workshop {
   })
   unique(cards.map(card => card.id), 'card ID')
   const board: Workshop = { version: 1, title, lanes, cards }
+  if (value.experience !== undefined) {
+    const experience = record(value.experience)
+    if (experience.version !== 1 || (experience.kind !== 'customer-interviews' && experience.kind !== 'experiment-budget')) {
+      throw new Error('Unsupported workshop experience.')
+    }
+    board.experience = {version: 1, kind: experience.kind}
+  }
   if (value.signals !== undefined) {
     if (!Array.isArray(value.signals) || value.signals.length > 24) throw new Error('A workshop supports up to 24 placement outcomes.')
     board.signals = value.signals.map(item => {
@@ -460,3 +468,66 @@ export const industrialWorkshop: Workshop = {
 
 export * from './moonGallery'
 export * from './darkroom/model'
+
+
+export type StartupExperience = {version: 1; kind: 'customer-interviews' | 'experiment-budget'}
+
+export const interviews = [
+  {id:'preview', who:'Jo · agency owner', quote:'“Will this email every client on my list?”', action:'Show a ten-row preview', signal:'Mara will test whether Jo can import a list without contacting a client.'},
+  {id:'duplicate', who:'Bea · studio manager', quote:'“I already added half these clients by hand.”', action:'Review matching clients', signal:'Imani will test whether Bea can keep the existing client and skip its duplicate.'},
+  {id:'undo', who:'Sam · founder', quote:'“I’d try it if I could take the whole import back.”', action:'Undo the last import', signal:'Dev will test whether Sam can restore the original list without support.'},
+]
+export const channels = [
+  {id:'calls',label:'Customer calls',unit:'customer calls',single:'customer call',per:4,rate:'$50 per call'},
+  {id:'newsletter',label:'Partner newsletter',unit:'placements',single:'placement',per:1,rate:'$200 per placement'},
+  {id:'pilot',label:'Concierge onboarding',unit:'assisted imports',single:'assisted import',per:2,rate:'$100 per import'},
+]
+export function createInterviewWorkshop(): Workshop {
+  return {version:1,experience:{version:1,kind:'customer-interviews'},title:'Design partner interviews · first client import',
+    lanes:[{id:'interviews',label:'Customer interviews'},{id:'prototype',label:'Prototype to test',capacity:1}],
+    presentationOrder:['prototype','interviews'],
+    cards:interviews.map(({id,who,quote})=>({id,label:who+' · '+quote,laneId:id==='preview'?'prototype':'interviews'})),
+    signals:interviews.map(({id,action,signal})=>({id:'test-'+id,label:action,cardId:id,laneId:'prototype',whenPresent:signal,whenAbsent:'Still in the interview notes.'}))}
+}
+export function createBudgetWorkshop(): Workshop {
+  return {version:1,experience:{version:1,kind:'experiment-budget'},title:'Design partner pilot · $600 launch budget',
+    lanes:[{id:'reserve',label:'Unallocated'}, ...channels.map(({id,label,rate})=>({id,label:label+' · '+rate}))],
+    cards:['First','Second','Third'].map((label,i)=>({id:'fund-'+i,label:label+' $200',laneId:i===0?'calls':'reserve'})),
+    presentationOrder:['calls','newsletter','pilot','reserve']}
+}
+
+/** Boards outside the versioned layouts stay editable with the ordinary lane renderer. */
+export function startupExperienceKind(board: Workshop) {
+  if (board.experience?.version !== 1 || board.kind || board.lanes.some(l=>l.station)) return
+  const kind=board.experience.kind
+  const laneIds=kind==='customer-interviews' ? ['interviews','prototype'] : ['reserve',...channels.map(c=>c.id)]
+  if (board.lanes.length!==laneIds.length || !board.lanes.every(l=>laneIds.includes(l.id))) return
+  if (kind==='customer-interviews' && (!board.cards.every(c=>interviews.some(q=>q.id===c.id)) ||
+    board.cards.filter(c=>c.laneId==='prototype').length>1)) return
+  return kind
+}
+
+export function planStartupMove(board:Workshop, cardId:string, destination:string): Workshop | null {
+  const kind=startupExperienceKind(board)
+  const card=board.cards.find(c=>c.id===cardId)
+  if (!kind || !card || card.laneId===destination) return null
+  let next=board
+  if(kind==='customer-interviews') {
+    if(destination!=='prototype') return null
+    const previous=board.cards.find(c=>c.laneId===destination)
+    if(previous) {
+      if(!availableLanes(board,previous).some(l=>l.id==='interviews')) return null
+      next=moveWorkshopCard(board,previous.id,'interviews')
+    }
+  }
+  if(!availableLanes(next,card).some(l=>l.id===destination)) return null
+  return moveWorkshopCard(next,cardId,destination)
+}
+
+export function workshopBudgetResult(board: Workshop, laneId: string) {
+  if (startupExperienceKind(board)!=='experiment-budget') return null
+  const channel=channels.find(c=>c.id===laneId)
+  const cards=board.cards.filter(c=>c.laneId===laneId).length
+  const quantity=cards*(channel?.per ?? 0)
+  return {amount:cards*200, description:channel ? quantity+' '+(quantity===1?channel.single:channel.unit) : 'unallocated'}
+}

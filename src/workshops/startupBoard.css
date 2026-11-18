@@ -1,0 +1,49 @@
+.pilot-board {--ink:#243d33; box-sizing:border-box; color:var(--ink); background:#efece3; padding:clamp(14px,3.5vw,35px); font:15px/1.4 system-ui,sans-serif}
+.pilot-board *, .pilot-board *::before {box-sizing:border-box}
+.pilot-board header {margin:0 0 1.4rem; color:inherit; background:none; display:block; position:static; padding:0; border:0}
+.pilot-board header h2 {font:700 clamp(30px,5vw,52px)/1 'Pilot Narrow',sans-serif; margin:.28em 0; color:inherit; letter-spacing:-.025em}
+.pilot-board p {margin:0}
+.pilot-board .pilot-kicker {font:600 12px/1.4 ui-monospace,monospace; letter-spacing:.06em; text-transform:uppercase}
+.pilot-board button {font:inherit; cursor:pointer; color:inherit}
+.pilot-board button:focus-visible,.pilot-board a:focus-visible {outline:3px solid #007486;outline-offset:3px}
+.pilot-board footer {display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between; padding:14px 0 0; margin:0; background:none; color:inherit; border:0}
+.pilot-board footer a {color:inherit; text-underline-offset:.24em; font-weight:700}
+.pilot-board footer button {background:transparent; border:0; text-decoration:underline; text-underline-offset:.23em}
+.pilot-board .interview-desk {display:grid; grid-template-columns:minmax(0,.94fr) minmax(0,1.2fr); gap:clamp(12px,3vw,32px); align-items:center}
+.pilot-board .quote-stack {display:grid; gap:10px;padding:4px}
+.pilot-board .quote {border:1px solid #a79e88; border-radius:2px; box-shadow:2px 3px 0 #756d592b; padding:11px 14px; display:grid; gap:6px; text-align:left; touch-action:none; cursor:grab; position:relative}
+.pilot-board .quote small {font:600 11px/1.3 ui-monospace,monospace}
+.pilot-board .quote strong {font:600 clamp(15px,2.1vw,22px)/1.15 Georgia,serif}
+.pilot-board .quote-preview {background:#f5d989}.pilot-board .quote-duplicate {background:#c5dacf}.pilot-board .quote-undo {background:#ded1ea}
+.pilot-board .quote[aria-pressed=true] {outline:2px solid #385947; outline-offset:1px}
+.pilot-board .prototype-slot {position:relative;background:#254a3e; color:#fcf9ee; padding:30px clamp(12px,3vw,26px) 16px; border:2px dashed transparent; border-radius:4px}
+.pilot-board .prototype-slot.drop-active {border-color:#edc65e}
+.pilot-board .prototype-screen {background:#fffdf7;color:#233a30;border:1px solid #162d25;border-radius:6px;box-shadow:3px 4px 0 #102b2166;overflow:hidden}
+.pilot-board .prototype-screen>strong {display:block;padding:15px 12px 7px;font-size:clamp(16px,2.3vw,24px)}
+.pilot-board .prototype-bar,.pilot-board .prototype-row {display:flex;align-items:center;justify-content:space-between;gap:5px;padding:8px 12px;font-size:12px}
+.pilot-board .prototype-bar {background:#e8eade;border-bottom:1px solid #c3cbbe;font-weight:650}
+.pilot-board .prototype-bar span+span,.pilot-board .prototype-row span+span {font:11px/1.3 ui-monospace,monospace}
+.pilot-board .prototype-row {margin:0 10px;padding:8px 2px;border-bottom:1px solid #e1e5da}
+.pilot-board .prototype-screen p {padding:8px 12px 12px;color:#355d49;font-weight:650;font-size:12px}
+.pilot-board .test-brief {margin-top:14px}.pilot-board .test-brief strong {font-size:18px}.pilot-board .test-brief p {font-size:13px;margin-top:3px}
+.pilot-board .design-cursor {position:absolute;right:17px;top:5px;font:700 10px/1.5 ui-monospace,monospace;color:#f8d7bc; pointer-events:none}
+.pilot-board .design-cursor span {display:inline-block;transform:rotate(-126deg)}
+@media(prefers-reduced-motion:no-preference){.pilot-board .design-cursor {animation:point-to-screen .45s ease-out}@keyframes point-to-screen {from {transform:translate(15px,12px)} to {transform:translate(0,0)}}}
+.pilot-board .budget-board {background:#e1e8dc}
+.pilot-board .budget-ledger {padding:clamp(12px,2.5vw,24px); background:#fcf9f0; border:1px solid #9fae9e}
+.pilot-board .budget-heading,.pilot-board .reserve {display:flex; justify-content:space-between; align-items:baseline; gap:12px}
+.pilot-board .budget-heading {font-weight:700}.pilot-board .budget-heading b {font:700 clamp(22px,3vw,32px)/1 'Pilot Narrow',sans-serif}.pilot-board .budget-heading small {font:400 12px/1.4 system-ui,sans-serif}
+.pilot-board .budget-bar {display:flex;gap:2px;margin:12px 0;height:10px}.pilot-board .budget-bar span {flex:1}.pilot-board .band-calls {background:#386759}.pilot-board .band-pilot {background:#b8804f}.pilot-board .band-newsletter {background:#80698c}.pilot-board .band-reserve {background:#dfded2}
+.pilot-board .budget-chips,.pilot-board .budget-targets {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pilot-board .budget-chips {margin:14px 0 18px}
+.pilot-board .budget-chips button {background:#f4e6bd;border:1px solid #b7a46b;border-left:4px solid #a98b43;display:grid;justify-items:start;text-align:left;align-content:start;gap:3px;padding:9px 10px; touch-action:none;cursor:grab}
+.pilot-board .budget-chips button[aria-pressed=true] {outline:2px solid #485e49;outline-offset:1px}
+.pilot-board .budget-chips small {font:11px/1.2 ui-monospace,monospace}.pilot-board .budget-chips span {font-size:12px}.pilot-board .budget-chips strong,.pilot-board .budget-targets b {font:700 clamp(22px,4vw,38px)/1.1 'Pilot Narrow',sans-serif}
+.pilot-board .budget-targets button {border:1px dashed #969a8b;border-radius:4px;display:grid;grid-template-rows:1fr auto auto;text-align:left;gap:4px;padding:12px 10px}
+.pilot-board .budget-targets strong {font-size:14px; line-height:1.15}.pilot-board .budget-targets span {font-size:12px}
+.pilot-board .target-calls {background:#d6e5d9}.pilot-board .target-newsletter {background:#e6ddeb}.pilot-board .target-pilot {background:#f1ddc6}
+.pilot-board .reserve {width:100%;border:0;border-top:1px solid #b4baad;background:none;margin-top:14px;padding:10px 0 0;font-size:13px}
+.pilot-board .pilot-ghost {position:fixed;z-index:10;pointer-events:none;background:#25382e;color:#fff9ee;box-shadow:1px 4px 10px #0003;padding:6px 10px;border-radius:3px;font:600 12px/1.3 system-ui,sans-serif}
+@media(max-width:480px) {.pilot-board .interview-desk {grid-template-columns:1fr;gap:12px}.pilot-board .quote-stack {gap:6px}.pilot-board .quote {padding:8px 10px;gap:3px}.pilot-board footer {font-size:14px}.pilot-board .budget-chips,.pilot-board .budget-targets {gap:5px}.pilot-board .budget-targets button,.pilot-board .budget-chips button {padding:8px 5px}.pilot-board .budget-targets strong {font-size:12px}.pilot-board .budget-targets span,.pilot-board .budget-chips span {font-size:11px}}
+
+.pilot-board button:disabled {cursor:default}

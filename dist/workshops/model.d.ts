@@ -39,6 +39,7 @@ export interface ResolvedWorkshopSignal extends WorkshopSignal {
     text: string;
 }
 export interface Workshop {
+    experience?: StartupExperience;
     version: 1;
     kind?: 'release-plan';
     title: string;
@@ -108,3 +109,31 @@ export declare function workshopToSlate(input: Workshop): SlateJSON;
 export declare const industrialWorkshop: Workshop;
 export * from './moonGallery';
 export * from './darkroom/model';
+export type StartupExperience = {
+    version: 1;
+    kind: 'customer-interviews' | 'experiment-budget';
+};
+export declare const interviews: {
+    id: string;
+    who: string;
+    quote: string;
+    action: string;
+    signal: string;
+}[];
+export declare const channels: {
+    id: string;
+    label: string;
+    unit: string;
+    single: string;
+    per: number;
+    rate: string;
+}[];
+export declare function createInterviewWorkshop(): Workshop;
+export declare function createBudgetWorkshop(): Workshop;
+/** Boards outside the versioned layouts stay editable with the ordinary lane renderer. */
+export declare function startupExperienceKind(board: Workshop): "customer-interviews" | "experiment-budget" | undefined;
+export declare function planStartupMove(board: Workshop, cardId: string, destination: string): Workshop | null;
+export declare function workshopBudgetResult(board: Workshop, laneId: string): {
+    amount: number;
+    description: string;
+} | null;

@@ -32,3 +32,4 @@ export interface WorkshopBoardProps {
 export declare function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onEditLane, onAddCard, onUndo, canUndo, readOnly, fitLanes, mapCanvas, showPlacementOutcomes }: WorkshopBoardProps): React.JSX.Element;
 export { MoonGalleryBoard, type MoonGalleryBoardProps } from './MoonGalleryBoard';
 export { FocusDarkroomBoard } from './darkroom/FocusDarkroomBoard';
+export { StartupWorkshopBoard } from './StartupWorkshopBoard';
