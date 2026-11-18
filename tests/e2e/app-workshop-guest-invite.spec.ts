@@ -12,11 +12,13 @@ const model: Workshop = {
   cards: [{ id: 'lens', label: 'Lens', laneId: 'bench' }],
 }
 
-test('a first-time workshop visitor chooses whether to join an edit link and loses access when revoked', async ({ browser }) => {
+test('a first-time workshop visitor chooses whether to join an edit link and loses access when revoked', async ({ browser, browserName }) => {
   test.skip(!['localhost', '127.0.0.1', 'test.slatebox.com'].includes(origin.hostname), 'Creates disposable guest-owned slates on local or staging only')
   const ownerContext = await browser.newContext()
   const readerContext = await browser.newContext()
-  const editorContext = await browser.newContext()
+  const editorContext = await browser.newContext({
+    viewport: { width: 390, height: 844 }, hasTouch: true, deviceScaleFactor: 2,
+  })
   const owner = await ownerContext.newPage()
   const reader = await readerContext.newPage()
   const editor = await editorContext.newPage()
@@ -65,18 +67,55 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     expect(await userId(editor)).toBeNull()
     const move = editor.getByRole('button', { name: 'Lens → Bright star', exact: true })
     await expect(move).toBeDisabled()
-    await join.click()
+    await join.tap()
     await expect.poll(() => userId(editor)).toBeTruthy()
     editorId = await userId(editor)
     await expect(move).toBeEnabled()
     expect(editorId).not.toBe(ownerId)
     expect(new URL(editor.url()).pathname).toBe(editLink.pathname)
-    await move.click()
+    if (browserName === 'chromium') {
+      // A trusted finger gesture on the scaled drawing uses displayed screen coordinates.
+      const card = editor.locator('.workshop-drawing #choice-lens')
+      await card.scrollIntoViewIfNeeded()
+      const start = (await card.boundingBox())!
+      const from = (await editor.locator('.workshop-drawing #heading-bench').boundingBox())!
+      const to = (await editor.locator('.workshop-drawing #heading-star').boundingBox())!
+      const x = start.x + start.width / 2, y = start.y + start.height / 2
+      const device = await editorContext.newCDPSession(editor)
+      try {
+        await device.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] })
+        for (const fraction of [0.1, 0.5, 1]) {
+          await device.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{
+            x: x + (to.x - from.x) * fraction, y: y + (to.y - from.y) * fraction,
+          }] })
+        }
+        await device.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+      } finally {
+        await device.detach()
+      }
+    } else {
+      await move.tap()
+    }
 
     const location = 'Lens · Bright star'
     await expect(owner.getByText(location, { exact: true })).toBeVisible()
     const expected = { ...model, cards: [{ ...model.cards[0], laneId: 'star' }] }
     await expect.poll(async () => (await getSlate(owner, key)).creative.model.workshop).toEqual(expected)
+    const present = editor.getByRole('button', { name: 'Present', exact: true })
+    const bounds = await present.boundingBox()
+    expect(bounds).not.toBeNull()
+    expect(bounds!.x).toBeGreaterThanOrEqual(0)
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390)
+    await present.tap()
+    const presentation = editor.getByRole('region', { name: 'Decision presentation' })
+    await expect(presentation.getByRole('heading', { name: 'Lens bench' })).toBeVisible()
+    await presentation.getByRole('button', { name: 'Next station' }).tap()
+    await expect(presentation.getByRole('heading', { name: 'Bright star' })).toBeVisible()
+    await expect(presentation.getByRole('listitem')).toHaveText('Lens')
+    await expect(presentation.getByRole('paragraph').filter({ hasText: /^Star in focus\.$/ })).toBeVisible()
+    await presentation.getByRole('button', { name: 'Back to board' }).tap()
+    await expect(presentation).toHaveCount(0)
+    await expect(editor.getByText(location, { exact: true })).toBeVisible()
     await editor.reload()
     await dismissWelcome(editor)
     await expect(editor.getByText(location, { exact: true })).toBeVisible()
