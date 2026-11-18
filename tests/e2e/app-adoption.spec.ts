@@ -305,7 +305,9 @@ test('a registered native editor finds their saved note in Recently joined until
 
 test('a signed-out whiteboard contributor can choose to keep the original invitation on this browser', async ({browser}) => {
   test.skip(!allowed, 'Uses temporary accounts on staging or a local installation')
-  const [ownerContext, peerContext] = await Promise.all([browser.newContext(), browser.newContext()])
+  const [ownerContext, peerContext] = await Promise.all([
+    browser.newContext(), browser.newContext({viewport:{width:390,height:844}}),
+  ])
   const owner = await ownerContext.newPage()
   let peer = await peerContext.newPage()
   let ownerId: string | null = null
