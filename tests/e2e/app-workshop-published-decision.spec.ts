@@ -34,6 +34,44 @@ async function verifyPublishedScenes(host: Page, player: Page | FrameLocator, sh
   await expectWorkshopSlide(player, 'Display case', [shellLabel], ['lane-case', 'card-shell'])
 }
 
+async function verifyCompactReader(article: Page, snippet: string) {
+  for (const [width, height] of [[304, 171], [354, 199]]) {
+    await article.setViewportSize({ width: width + 16, height: 620 })
+    await article.setContent('<!doctype html><main>' + snippet + '</main>')
+    const frame = article.frameLocator('iframe')
+    const scene = frame.getByRole('region', { name: 'Decision presentation' })
+    await expect(scene.getByRole('heading', { name: 'Display case' })).toBeVisible()
+    const bounds = await article.locator('iframe').boundingBox()
+    expect(bounds?.width).toBe(width)
+    expect(Math.round(bounds!.height)).toBe(height)
+    const controlsVisible = async () => {
+      // Check before clicking. Playwright automatically scrolls offscreen controls into view.
+      const controls = scene.locator('.workshop-actions button')
+      expect(await controls.count()).toBeGreaterThan(0)
+      expect(await controls.evaluateAll(buttons => buttons.every(button => {
+        const r = button.getBoundingClientRect()
+        return r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 &&
+          r.bottom <= window.innerHeight && r.right <= window.innerWidth &&
+          button.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2))
+      }))).toBe(true)
+    }
+    await controlsVisible()
+    const contents = scene.getByRole('region', { name: 'Scene contents' })
+    await contents.focus()
+    await article.keyboard.press('End')
+    await expect.poll(() => contents.evaluate(e => e.scrollTop)).toBeGreaterThan(0)
+    await expect(scene.getByRole('listitem', { name: '' }).filter({ hasText: 'Shell carving' })).toBeInViewport()
+    await controlsVisible()
+    await scene.getByRole('button', { name: 'Next lane' }).click()
+    await expect(scene.getByRole('heading', { name: 'Reserve' })).toBeVisible()
+    await controlsVisible()
+    await scene.getByRole('button', { name: 'Previous' }).click()
+    await expect(scene.getByRole('heading', { name: 'Display case' })).toBeVisible()
+    await controlsVisible()
+  }
+  await article.setViewportSize({ width: 1100, height: 800 })
+}
+
 test('publish a workshop decision, keep the audience snapshot stable across edits, then withdraw both players', async ({ browser }) => {
   test.skip(!['localhost','127.0.0.1','test.slatebox.com'].includes(origin.hostname) ||
     process.env.SLATEBOX_TEST_WORKSHOP_PUBLICATION !== 'true', 'Opt in to publishing and withdrawing a synthetic link-only workshop on local or staging.')
@@ -82,6 +120,7 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
     await viewer.reload()
     await verifyPublishedScenes(viewer, viewer)
     await verifyPublishedScenes(article, embed)
+    await verifyCompactReader(article, snippet)
     expect(await userId(viewer)).toBeNull()
     expect(await getSlate(viewer, key)).toBeFalsy()
 
