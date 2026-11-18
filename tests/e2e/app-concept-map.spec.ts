@@ -74,3 +74,20 @@ test('author a branching concept map, follow a consequence, present and reopen t
   expect(restored.lanes).toEqual(model.lanes)
   expect(restored.cards).toEqual(model.cards.map((card: { id: string }) => card.id === 'rider' ? { ...card, laneId: 'depot' } : card))
 })
+
+test('a phone shows the complete starter map and keeps pointer moves aligned', async ({ page }) => {
+  test.skip(process.env.SLATEBOX_APP_EXTERNAL !== 'true', 'Requires the hosted whiteboard app')
+  await page.setViewportSize({ width: 390, height: 760 })
+  await page.goto(origin + '/workshops?format=map')
+  const drawing = page.locator('.workshop-drawing svg').first()
+  await expect(drawing).toBeVisible()
+  await expect.poll(() => drawing.evaluate(svg =>
+    svg.getBoundingClientRect().width <= svg.parentElement!.clientWidth + 1)).toBe(true)
+  const token = (await page.locator('#choice-rider rect').boundingBox())!
+  const station = (await page.locator('#heading-lift').boundingBox())!
+  await page.mouse.move(token.x + 25, token.y + 12)
+  await page.mouse.down()
+  await page.mouse.move(station.x + 25, station.y + station.height * .7, { steps: 20 })
+  await page.mouse.up()
+  await expect(page.locator('.workshop-outcomes')).toContainText('Last rider · Market St lift')
+})
