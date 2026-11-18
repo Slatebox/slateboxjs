@@ -8,7 +8,7 @@ const button = (page: Page, name: string) => page.getByRole('button', { name, ex
 const report = (page: Page) => page.getByRole('region', { name: 'Placement outcomes', exact: true })
 
 async function addCard(page: Page, name: string) {
-  await button(page, 'Add card to Lane 1').click()
+  await button(page, 'Add card to Field recordings').click()
   const dialog = page.getByRole('dialog', { name: 'Add card' })
   await dialog.getByLabel('Card name').fill(name)
   await dialog.getByRole('button', { name: 'Add card', exact: true }).click()
@@ -37,6 +37,14 @@ test('two editors build a blank workshop, fill a lane and present their saved ch
     if (process.env.SLATEBOX_EXPECTED_APP_BUNDLE) {
       await expect(owner.locator('script[src*="/' + process.env.SLATEBOX_EXPECTED_APP_BUNDLE + '.js"]')).toHaveCount(1)
     }
+
+    await button(owner, 'Edit an object').click()
+    const firstLaneId = (await model()).lanes[0].id
+    const rename = owner.locator('.workshop-inspector')
+    await rename.getByLabel('Object', { exact: true }).selectOption('lane:' + firstLaneId)
+    await rename.getByLabel('Name', { exact: true }).fill('Field recordings')
+    await rename.getByRole('button', { name: 'Save changes' }).click()
+    await expect(button(owner, 'Add card to Field recordings')).toBeVisible()
 
     await button(owner, 'Add lane').click()
     const laneDialog = owner.getByRole('dialog', { name: 'Add lane' })
@@ -95,7 +103,7 @@ test('two editors build a blank workshop, fill a lane and present their saved ch
     expect(saved.cards.map(card => card.laneId)).toEqual([booth.id,source.id])
     expect(saved.lanes).toEqual(authored.lanes)
     await button(owner, 'Present').click()
-    await expectWorkshopSlide(owner, 'Lane 1', [second.label], ['lane-' + source.id, 'card-' + second.id])
+    await expectWorkshopSlide(owner, 'Field recordings', [second.label], ['lane-' + source.id, 'card-' + second.id])
     await button(owner, 'Next lane').click()
     await button(owner, 'Next lane').click()
     await expectWorkshopSlide(owner, booth.label, [first.label], ['lane-' + booth.id,'card-' + first.id])
