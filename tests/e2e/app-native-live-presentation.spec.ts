@@ -78,6 +78,7 @@ test('a read-only phone follows the presenter across native outage notes and ret
     await button(reader,'Leave presentation').tap()
     await expect(deck(reader)).toHaveCount(0)
     await button(owner,'Next').click()
+    await expectNativeView(owner,'signin','Sign in\nUnavailable',2)
     await button(owner,'Next').click()
     await expectNativeView(owner,'fallback',title,3)
     await expect(follow).toBeInViewport()
