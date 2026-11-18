@@ -95,6 +95,33 @@ test.describe("inline text edit (§editor)", () => {
     await expect(page.locator(".sb-inline-editor")).toBeVisible();
   });
 
+  for (const gesture of ["mouse","touch"] as const) {
+    test("the first "+gesture+" double activation opens an editor without the optional stylesheet",async({page,browserName})=>{
+      test.skip(gesture==="touch" && browserName!=="chromium","Uses native Chromium touch input.")
+      await bootNode(page)
+      await page.evaluate(()=>{
+        for(const sheet of document.styleSheets) sheet.disabled=true
+      })
+      const {x,y}=await nodeCenter(page)
+      if(gesture==="mouse") await page.mouse.dblclick(x,y)
+      else {
+        const device=await page.context().newCDPSession(page)
+        try {
+          await device.send("Emulation.setTouchEmulationEnabled",{enabled:true,maxTouchPoints:2})
+          for(let tap=0;tap<2;tap++){
+            await device.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[{x,y}]})
+            await device.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]})
+          }
+        } finally {await device.detach()}
+      }
+      const editor=page.locator(".sb-inline-editor")
+      await expect(editor).toBeFocused()
+      await editor.fill("Keep only the customer records")
+      await editor.press("Enter")
+      await expect(page.locator('[data-node-id="A"]')).toHaveAttribute("aria-label","Keep only the customer records")
+    })
+  }
+
   test("clicking away (blur) commits the edit", async ({ page }) => {
     await bootNode(page);
     await page.evaluate(() => (window as any).__A.editor.startInline());

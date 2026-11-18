@@ -154,48 +154,47 @@ export class ResizeRotate {
    * intentional because consumers can use the built JS without loading CSS.
    */
   private styleSelectionUi() {
-    // Defer to next frame — svg.select.js may not have appended handles yet
-    requestAnimationFrame(() => {
-      try {
-        const svgNode = this.target.node;
-        const root = svgNode.ownerSVGElement || svgNode;
+    // The plugin creates its polygon synchronously. Ignore hits immediately so a
+    // fast second click or tap still reaches the note in hosts without our stylesheet.
+    try {
+      const svgNode = this.target.node;
+      const root = svgNode.ownerSVGElement || svgNode;
 
-        const selectionShapes = root.querySelectorAll(
-          ".svg_select_shape, .svg_select_shape_pointSelect",
-        );
-        selectionShapes.forEach((shape: SVGElement) => {
-          // The Meteor host may load the JS without the optional stylesheet.
-          // Give the selection polygon an actual painted stroke in that case.
-          if (shape.classList.contains("svg_select_shape")) {
-            shape.setAttribute("stroke", "#4A90E2");
-            shape.setAttribute("stroke-width", "1.5");
-            shape.setAttribute("stroke-dasharray", "5 5");
-            shape.setAttribute("stroke-opacity", "0.55");
-          }
-          shape.setAttribute("fill", "none");
-          shape.setAttribute("fill-opacity", "0");
-          shape.setAttribute("pointer-events", "none");
-          (shape.style as any).fill = "none";
-          (shape.style as any).fillOpacity = "0";
-          shape.style.pointerEvents = "none";
-        });
+      const selectionShapes = root.querySelectorAll(
+        ".svg_select_shape, .svg_select_shape_pointSelect",
+      );
+      selectionShapes.forEach((shape: SVGElement) => {
+        // The Meteor host may load the JS without the optional stylesheet.
+        // Give the selection polygon an actual painted stroke in that case.
+        if (shape.classList.contains("svg_select_shape")) {
+          shape.setAttribute("stroke", "#4A90E2");
+          shape.setAttribute("stroke-width", "1.5");
+          shape.setAttribute("stroke-dasharray", "5 5");
+          shape.setAttribute("stroke-opacity", "0.55");
+        }
+        shape.setAttribute("fill", "none");
+        shape.setAttribute("fill-opacity", "0");
+        shape.setAttribute("pointer-events", "none");
+        (shape.style as any).fill = "none";
+        (shape.style as any).fillOpacity = "0";
+        shape.style.pointerEvents = "none";
+      });
 
-        const handles = root.querySelectorAll(".svg_select_handle");
-        handles.forEach((h: SVGElement) => {
-          // Miro-style: light-blue corner/edge handles (was chunky black #333).
-          // stroke-width 6 keeps them easy to grab while looking far lighter than
-          // the old 8px black brackets.
-          h.setAttribute("stroke-width", "6");
-          h.setAttribute("stroke", "#4A90E2");
-          h.style.pointerEvents = "all";
-        });
-      } catch (e) {
-        console.warn(
-          "RESIZE_ROTATE_DEBUG: Failed to widen handle hit areas:",
-          e,
-        );
-      }
-    });
+      const handles = root.querySelectorAll(".svg_select_handle");
+      handles.forEach((h: SVGElement) => {
+        // Miro-style: light-blue corner/edge handles (was chunky black #333).
+        // stroke-width 6 keeps them easy to grab while looking far lighter than
+        // the old 8px black brackets.
+        h.setAttribute("stroke-width", "6");
+        h.setAttribute("stroke", "#4A90E2");
+        h.style.pointerEvents = "all";
+      });
+    } catch (e) {
+      console.warn(
+        "RESIZE_ROTATE_DEBUG: Failed to widen handle hit areas:",
+        e,
+      );
+    }
   }
 
   /** Disable resize and rotate handles on the node. */
