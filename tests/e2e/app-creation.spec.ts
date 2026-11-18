@@ -9,8 +9,9 @@ test("map entry, gallery and dashboard New open their respective editors", async
   await expect(page.getByRole("heading", { name: "Start a new slate" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Create an interactive map" })).toHaveAttribute("href", "/new/map");
   const sample = page.getByRole("link", { name: "Try a sample map" });
-  await expect(sample).toHaveAttribute("href", "/workshops?format=map");
+  await expect(sample).toHaveAttribute("href", "/workshops?format=map&example=customer-import");
   await sample.click();
+  await expect(page.getByRole("heading", { name: "First customer import" })).toBeVisible();
   await expect(page.locator(".workshop-paper svg").first()).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("meteor_token"))).toBeNull();
 
