@@ -36,7 +36,7 @@ function G(e) {
 function W({ mix: e, leftLabel: n, rightLabel: r }) {
   return e < 0.32 ? n === g.leftLabel ? "Rain ticks on the copper roof." : "You hear " + n + "." : e > 0.68 ? r === g.rightLabel ? "Glass chimes ring, then fade." : "You hear " + r + "." : n === g.leftLabel && r === g.rightLabel ? "Rain and glass chimes overlap." : n + " and " + r + " overlap.";
 }
-function k(e, n) {
+function b(e, n) {
   return e.cards.reduce((r, o) => r + (o.laneId === n ? o.points ?? 1 : 0), 0);
 }
 function A(e) {
@@ -58,7 +58,7 @@ function A(e) {
   for (const d of e.cards) l(d);
   for (const d of e.lanes) {
     if (d.station) throw new Error("Release windows cannot also be map stations.");
-    if (k(e, d.id) > (d.capacity ?? 1 / 0)) throw new Error(`Release "${d.label}" exceeds its point budget.`);
+    if (b(e, d.id) > (d.capacity ?? 1 / 0)) throw new Error(`Release "${d.label}" exceeds its point budget.`);
   }
 }
 function v(e, n, r) {
@@ -76,7 +76,7 @@ function v(e, n, r) {
   }
   if (e.cards.filter((f) => d.has(f.id)).some((f) => f.allowedLaneIds && !f.allowedLaneIds.includes(r))) return null;
   const a = { ...e, cards: e.cards.map((f) => d.has(f.id) ? { ...f, laneId: r } : f) }, c = e.lanes[t].capacity;
-  return c !== void 0 && k(a, r) > c ? null : a;
+  return c !== void 0 && b(a, r) > c ? null : a;
 }
 const $ = {
   version: 1,
@@ -132,6 +132,7 @@ function D(e, n) {
   return M(e, n) ? { ...e, hung: [...e.hung, n] } : e;
 }
 const I = ["firstPrint", "secondPrint", "thirdPrint"], E = {
+  kind: "focus-darkroom",
   version: 1,
   firstPrint: "Fern",
   secondPrint: "Silk moth",
@@ -141,6 +142,7 @@ const I = ["firstPrint", "secondPrint", "thirdPrint"], E = {
 function H(e) {
   if (!e || typeof e != "object") throw new Error("Expected a darkroom.");
   const n = e;
+  if (n.kind !== void 0 && n.kind !== "focus-darkroom") throw new Error("Expected a darkroom.");
   if (n.version !== 1) throw new Error("Unknown darkroom version.");
   if (n.route !== null && n.route !== "start" && n.route !== "opener") throw new Error("Unknown return path.");
   const r = { ...E, route: n.route };
@@ -169,7 +171,7 @@ function y(e) {
   if (!e || typeof e != "object" || Array.isArray(e)) throw new Error("Expected a workshop object.");
   return e;
 }
-function b(e, n = 80) {
+function k(e, n = 80) {
   if (typeof e != "string" || !e.trim() || e.trim().length > n)
     throw new Error(`Labels must contain 1 to ${n} characters.`);
   if (/[<>\u0000-\u001f]/.test(e)) throw new Error("Use plain text without markup or control characters.");
@@ -187,13 +189,13 @@ function P(e) {
   const n = y(e);
   if (n.version !== 1) throw new Error("Unsupported workshop version.");
   if (n.kind !== void 0 && n.kind !== "release-plan") throw new Error("Unsupported workshop kind.");
-  const r = n.kind === "release-plan", o = b(n.title, 120);
+  const r = n.kind === "release-plan", o = k(n.title, 120);
   if (!Array.isArray(n.lanes) || n.lanes.length < 2 || n.lanes.length > 5)
     throw new Error("A workshop needs 2 to 5 lanes.");
   if (!Array.isArray(n.cards) || n.cards.length < 1 || n.cards.length > 24)
     throw new Error("A workshop needs 1 to 24 cards.");
   const t = n.lanes.map((i) => {
-    const s = y(i), a = { id: w(s.id), label: b(s.label) };
+    const s = y(i), a = { id: w(s.id), label: k(s.label) };
     if (s.capacity !== void 0) {
       const c = r ? 576 : 24;
       if (typeof s.capacity != "number" || !Number.isInteger(s.capacity) || s.capacity < 1 || s.capacity > c)
@@ -208,7 +210,7 @@ function P(e) {
       };
       if (!Array.isArray(c.next) || c.next.length > 4) throw new Error("A station needs a list of onward stops.");
       const h = c.next.map(w);
-      m(h, "onward stop"), a.station = { column: f(c.column), row: f(c.row), next: h, outcome: b(c.outcome, 160) };
+      m(h, "onward stop"), a.station = { column: f(c.column), row: f(c.row), next: h, outcome: k(c.outcome, 160) };
     }
     return a;
   }), l = t.map((i) => i.id);
@@ -219,7 +221,7 @@ function P(e) {
       if (i.station.next.some((s) => s === i.id || !l.includes(s))) throw new Error("Connect each stop to another station on this map.");
   }
   const d = n.cards.map((i) => {
-    const s = y(i), a = { id: w(s.id), label: b(s.label), laneId: w(s.laneId) };
+    const s = y(i), a = { id: w(s.id), label: k(s.label), laneId: w(s.laneId) };
     if (!l.includes(a.laneId)) throw new Error("Card refers to an unknown lane.");
     if (s.allowedLaneIds !== void 0) {
       if (!Array.isArray(s.allowedLaneIds) || s.allowedLaneIds.length > t.length) throw new Error("Invalid allowed lanes.");
@@ -305,7 +307,7 @@ function Z(e) {
   const { points: s } = N(n);
   n.lanes.forEach((a, c) => {
     const { x: f, y: h } = s[c], p = n.kind === "release-plan" ? a.label + `
-` + (a.capacity ? k(n, a.id) + " / " + a.capacity + " points" : k(n, a.id) + " points") : a.label;
+` + (a.capacity ? b(n, a.id) + " / " + a.capacity + " points" : b(n, a.id) + " points") : a.label;
     i("lane-" + a.id, p, f, h, l - 12, C[c]), n.cards.filter((u) => u.laneId === a.id).forEach((u, L) => i("card-" + u.id, n.kind === "release-plan" ? u.label + `
 ` + u.points + " points" : u.label, f, h + l + L * o, t, "#fffdf6"));
   });
@@ -368,7 +370,7 @@ export {
   R as normalizeOfflineHandoff,
   O as offlineHandoff,
   I as printFields,
-  k as releaseLoad,
+  b as releaseLoad,
   $ as releasePlan,
   z as resolveHandoff,
   T as reviewHandoff,

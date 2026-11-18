@@ -9686,8 +9686,7 @@ class ln {
       id: s,
       x: t,
       y: e,
-      text: `Node ${s.split("_")[1]}`,
-      // Give it a different default text
+      text: "",
       // Inherit the source node's rotation angle so the new node MATCHES the drag preview,
       // but give it its OWN independent rotate object — a fresh object, NOT the shared
       // reference the `...this.options` spread would leave. That shared reference was the
