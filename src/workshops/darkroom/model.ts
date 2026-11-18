@@ -1,17 +1,19 @@
 export const printFields = ['firstPrint', 'secondPrint', 'thirdPrint'] as const
 export type ReturnPath = 'start' | 'opener' | null
 export type FocusDarkroom = Record<(typeof printFields)[number], string> & {
+  kind: 'focus-darkroom'
   version: 1
   route: ReturnPath
 }
 
 const defaults: FocusDarkroom = {
-  version: 1, firstPrint: 'Fern', secondPrint: 'Silk moth', thirdPrint: 'Sea fan', route: null,
+  kind: 'focus-darkroom', version: 1, firstPrint: 'Fern', secondPrint: 'Silk moth', thirdPrint: 'Sea fan', route: null,
 }
 
 export function normalizeFocusDarkroom(input: unknown): FocusDarkroom {
   if (!input || typeof input !== 'object') throw new Error('Expected a darkroom.')
   const raw = input as Record<string, unknown>
+  if (raw.kind !== undefined && raw.kind !== 'focus-darkroom') throw new Error('Expected a darkroom.')
   if (raw.version !== 1) throw new Error('Unknown darkroom version.')
   if (raw.route !== null && raw.route !== 'start' && raw.route !== 'opener') throw new Error('Unknown return path.')
   const result: FocusDarkroom = { ...defaults, route: raw.route }

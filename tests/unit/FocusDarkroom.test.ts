@@ -4,6 +4,8 @@ import { initialFocusDarkroom, normalizeFocusDarkroom, describeFocusDarkroom } f
 describe('Focus Darkroom model', () => {
   it('imports an authored print and wire and round-trips through JSON', () => {
     const value = initialFocusDarkroom(new URLSearchParams('secondPrint=Night+%26+day&route=start'))
+    expect(value.kind).toBe('focus-darkroom')
+    expect(normalizeFocusDarkroom({...value, kind: undefined}).kind).toBe('focus-darkroom')
     expect(value.secondPrint).toBe('Night & day')
     expect(value.route).toBe('start')
     expect(normalizeFocusDarkroom(JSON.parse(JSON.stringify(value)))).toEqual(value)
@@ -11,7 +13,7 @@ describe('Focus Darkroom model', () => {
   })
   it('rejects invalid persisted data while opening malformed public links with valid defaults', () => {
     const value = initialFocusDarkroom()
-    for (const field of [{route: 'first'}, {version: 2}, {thirdPrint: ' '}, {firstPrint: 'x'.repeat(49)}]) {
+    for (const field of [{route: 'first'}, {kind: 'gallery'}, {version: 2}, {thirdPrint: ' '}, {firstPrint: 'x'.repeat(49)}]) {
       expect(() => normalizeFocusDarkroom({...value, ...field})).toThrow()
     }
     expect(initialFocusDarkroom(new URLSearchParams('route=first&thirdPrint=%20'))).toEqual(value)
