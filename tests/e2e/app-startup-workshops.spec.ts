@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test'
-import {decodeWorkshopFragment} from '../../src/workshops/model'
+import {decodeWorkshopFragment, planStartupMove} from '../../src/workshops/model'
 import {dismissWelcome, getSlate, removeTestGuest, shareAs, userId} from './workshop-guests.shared'
 import {editObject} from './workshop-edit.shared'
 
@@ -25,13 +25,22 @@ for (const example of examples) {
       const href=new URL((await entry.getAttribute('href'))!,origin)
       expect(href.pathname).toBe('/new/workshop')
       expect(decodeWorkshopFragment(href.hash).experience?.kind).toBe(example.kind)
+      let incoming=decodeWorkshopFragment(href.hash)
       if(process.env.SLATEBOX_STARTUP_MARKETING_URL) {
         const demo=new URL('/assets/product/workshop-demo.html?mode='+example.mode,process.env.SLATEBOX_STARTUP_MARKETING_URL)
         await owner.goto(demo.href)
+        if(example.kind==='customer-interviews') {
+          await owner.locator('[data-card="undo"]').press('Enter')
+          incoming=planStartupMove(incoming,'undo','prototype')!
+        } else {
+          await owner.locator('[data-card="fund-2"]').press('Enter')
+          await owner.locator('[data-drop="pilot"]').press('Enter')
+          incoming=planStartupMove(incoming,'fund-2','pilot')!
+        }
         const handoff=new URL((await owner.getByRole('link',{name:/Open this.*in Slatebox/}).getAttribute('href'))!)
         expect(handoff.origin).toBe('https://app.slatebox.com')
         expect(handoff.pathname).toBe(href.pathname)
-        expect(decodeWorkshopFragment(handoff.hash)).toEqual(decodeWorkshopFragment(href.hash))
+        expect(decodeWorkshopFragment(handoff.hash)).toEqual(incoming)
         // Only the origin changes: never create a fixture on the production URL in the link.
         await owner.goto(new URL(handoff.pathname+handoff.hash,origin).href)
       } else await entry.click()
@@ -41,7 +50,9 @@ for (const example of examples) {
       await dismissWelcome(owner)
       const key=new URL(owner.url()).pathname.split('/').pop()!
       const stored=()=>getSlate(owner,key)
-      expect((await stored()).options.isPrivate).toBe(true)
+      const source=await stored()
+      expect(source.options.isPrivate).toBe(true)
+      expect(source.creative.model.workshop).toEqual(incoming)
       const expectedHash=process.env.SLATEBOX_EXPECTED_APP_BUNDLE
       if(expectedHash) await expect(owner.locator('script[src*="/'+expectedHash+'.js"]')).toHaveCount(1)
       const edit=await shareAs(owner,'edit')
