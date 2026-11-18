@@ -167,6 +167,8 @@ A visitor who tries a hands-on example on slatebox.com should be able to open it
 
 | Experience | Capability to reproduce on a real slate | Evidence required |
 | --- | --- | --- |
+| Design partner interviews | Pick a customer quote to swap the single prototype choice. The proposed screen and test brief follow the candidate placement. | Cancel during a preview, commit using the keyboard, reopen the same quote and present its outcome. |
+| Pilot budget | Reassign a $200 allocation. The preview updates the funded activities. Native presentation reads the committed dollar amount and quantity. | Verify the newsletter, onboarding and reserve balances after cancel, commit, a second editor’s change and reload. |
 | Listening room | Move a listening horn continuously between two sound sources. Preview the mix and caption during the gesture, with sound opt-in. Edit the source labels on the slate. | Check a midpoint, both endpoints, cancel and a saved position. Reopen with the edited labels. |
 | Moon Gallery | Hang a work in a free space and preview the audience’s sightline. Rearrange the room with a colleague. | Exercise a full wall and a competing placement. Both visitors must see the same legal arrangement after reconnect. |
 | Focus darkroom | Connect a dialog to a return target and try the keyboard path the author chose. | Change the connection, open and dismiss the dialog by keyboard, and verify focus returns to the chosen object. |
@@ -203,6 +205,12 @@ For a standalone player, call `workshopPresentationScenes(workshop)` from the sa
 **Placement outcomes.** A version 1 board may carry up to 24 `signals`. Each has a unique `id`, a `label` (up to 80 characters), a `cardId`, a target `laneId`, and two plain-text messages, `whenPresent` and `whenAbsent` (up to 160 characters each). Both references must exist on the board. Pass a candidate or committed board to `resolveWorkshopSignals(board)` to get each definition with its current boolean `present` and message `text`. Playback exposes both present and absent outcomes in the target lane’s scene. Older definitions produce an empty list. A viewer can preview a move, cancel it or commit it. Only a committed edit changes the shared board. A published presentation keeps its saved version of both placements and messages until the owner publishes again. [Runnable theatre example](https://docs.slatebox.com/examples/theatre-cues/)
 
 **Acceptance.** For each row, link the packaged export, marketing example, app entry and a deployed browser proof to the goal ledger. Use the file-based package installed by the app. Verify an authored change and its visible consequence, keyboard and touch operation, cancel, undo, a second session, presentation and reload. Record which checks passed on which release. A website-only renderer or a model unit test leaves the app journey open.
+
+### Startup examples and conversational authoring
+
+`createInterviewWorkshop()` and `createBudgetWorkshop()` return portable workshops with a versioned `experience` field. Import the factories from `slateboxjs/workshops/model`. On the web or in the app, render `StartupWorkshopBoard` from `slateboxjs/workshops` with `value`, `onChange` and the appropriate `readOnly` setting. Save the committed value. `planStartupMove` evaluates the lane rules before replacing a quote or allocating money. `workshopBudgetResult` gives the presentation the same amount and quantity as the canvas. Older workshops use their existing renderer. [Runnable workflow and component example](https://docs.slatebox.com/examples/startup-experiments/)
+
+The app hosts the conversation and owns authentication, model access and persistence. `workshops.mapChat` accepts the slate share ID, current revision, message and bounded conversation history. It may return a text reply alone, or a reply and a validated candidate workshop for that revision. The app renders a candidate on the canvas and saves it through the existing revision-checked write when the user chooses **Keep changes**. Discard and canceled gestures leave the other editor’s slate intact. On free accounts the app translates supported direct-edit commands locally into the same workshop model. The current browser keeps recent conversation turns for that account and slate. The saved map is shared with its authorized collaborators.
 
 ## Status log
 
