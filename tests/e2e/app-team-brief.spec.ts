@@ -66,3 +66,19 @@ test('the team’s brief becomes a private map with real playable choices that s
     try {await removeTestGuest(owner,id)} finally {await owner.close()}
   }
 })
+
+test('the pilot budget shortcut opens a private playable allocation board', async ({page}) => {
+  test.skip(!['localhost','127.0.0.1','test.slatebox.com'].includes(origin.hostname),'Disposable local or staging source only.')
+  let id:string|null = null
+  try {
+    await page.goto(new URL('/new/pilot-budget',origin).href)
+    await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
+    id = await userId(page)
+    await dismissWelcome(page)
+    const key = new URL(page.url()).pathname.split('/').pop()!
+    const board = await getSlate(page,key)
+    expect(board.options.isPrivate).toBe(true)
+    expect(board.creative.model.workshop.experience.kind).toBe('experiment-budget')
+    await expect(page.locator('[data-card="fund-1"]')).toBeVisible()
+  } finally { await removeTestGuest(page,id) }
+})
