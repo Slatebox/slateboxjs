@@ -7,7 +7,7 @@ const base = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 const canSave = ['localhost', '127.0.0.1', 'test.slatebox.com'].includes(new URL(base).hostname)
 
 async function openExistingDraft(page: Page) {
-  await page.goto(base + '/workshops?format=release-plan')
+  await page.goto(base + '/workshops?format=release-plan&view=archive')
   await expect(page.locator('.workshop-paper svg').first()).toBeVisible()
   await expect(page.getByRole('heading', {level:1})).toHaveText(/last train/)
   await page.evaluate(model => {
@@ -66,10 +66,10 @@ test('share a release plan, observe committed moves, and undo as the participant
   const b = await browser.newContext({ storageState: process.env.SLATEBOX_EDITOR_B })
   try {
     const owner = await a.newPage(), peer = await b.newPage()
-    await peer.goto(base + '/workshops')
+    await peer.goto(base + '/workshops?view=archive')
     await peer.waitForFunction(() => (window as any).Meteor?.user()?.emails?.[0]?.address)
     const email = await peer.evaluate(() => (window as any).Meteor.user().emails[0].address)
-    await owner.goto(base + '/workshops')
+    await owner.goto(base + '/workshops?view=archive')
     await owner.waitForFunction(() => (window as any).Meteor?.user()?.emails?.[0]?.address)
     await openExistingDraft(owner)
     await owner.getByRole('button', { name: 'Share live workshop' }).click()

@@ -14,7 +14,7 @@ const test = base.extend<{ editors: { owner: Page; peer: Page; email: string } }
     try {
       const [owner, peer] = await Promise.all([ownerContext.newPage(), peerContext.newPage()])
       async function actor(page: Page) {
-        await page.goto(new URL('/workshops', origin).href, { waitUntil: 'domcontentloaded' })
+        await page.goto(new URL('/workshops?view=archive', origin).href, { waitUntil: 'domcontentloaded' })
         await page.waitForFunction(() => (window as any).Meteor?.user()?.emails?.[0]?.address)
         return page.evaluate(() => {
           const user = (window as any).Meteor.user()
