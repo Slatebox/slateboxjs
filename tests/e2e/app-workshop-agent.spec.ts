@@ -112,6 +112,7 @@ test('a saved agent move follows the team’s map rules and reaches its reader�
     const result = await summary()
     expect(result.revision).toBe(map.revision + 1)
     expect(result.cards.find((card: { id: string }) => card.id === team.id).laneId).toBe(finance.id)
+    await expect(owner.locator('.map-stage')).toContainText('Team · Ask finance', { timeout: 15000 })
     await owner.reload()
     await expect(owner.locator('.map-stage')).toContainText('Team · Ask finance')
 
