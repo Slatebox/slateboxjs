@@ -68,6 +68,24 @@ export function workshopPresentationLanes({ lanes, presentationOrder }: Pick<Wor
   })
 }
 
+const laneNodeId = (id: string) => 'lane-' + id
+const cardNodeId = (id: string) => 'card-' + id
+
+export interface WorkshopPresentationScene {
+  lane: WorkshopLane
+  cards: WorkshopCard[]
+  /** Native node IDs for this viewpoint in the artwork produced by workshopToSlate. */
+  nodeIds: string[]
+}
+
+/** Describe each authored viewpoint from the committed state, including empty lanes. */
+export function workshopPresentationScenes(board: Workshop): WorkshopPresentationScene[] {
+  return workshopPresentationLanes(board).map(lane => {
+    const cards = board.cards.filter(card => card.laneId === lane.id)
+    return { lane, cards, nodeIds: [laneNodeId(lane.id), ...cards.map(card => cardNodeId(card.id))] }
+  })
+}
+
 // Treat agent output and stored drafts alike. Only declarative fields survive.
 export function validateWorkshop(input: unknown): Workshop {
   const value = record(input)
@@ -248,14 +266,14 @@ export function workshopToSlate(input: Workshop): SlateJSON {
     const { x, y } = points[column]
     const label = board.kind === 'release-plan' ? lane.label + '\n' +
       (lane.capacity ? releaseLoad(board, lane.id) + ' / ' + lane.capacity + ' points' : releaseLoad(board, lane.id) + ' points') : lane.label
-    node('lane-' + lane.id, label, x, y, top - 12, laneColors[column])
+    node(laneNodeId(lane.id), label, x, y, top - 12, laneColors[column])
     board.cards.filter(card => card.laneId === lane.id).forEach((card, i) =>
-      node('card-' + card.id, board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label, x, y + top + i * row, height, '#fffdf6'))
+      node(cardNodeId(card.id), board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label, x, y + top + i * row, height, '#fffdf6'))
   })
   for (const lane of board.lanes) {
     if (!lane.station) continue
-    const heading = nodes.find(n => n.options.id === 'lane-' + lane.id)!
-    heading.relationships.associations = lane.station.next.map(key => ({ id: lane.id + '-to-' + key, parentId: heading.options.id, childId: 'lane-' + key, lineType: 'straight', lineColor: '#506b61', lineWidth: 2, showChildArrow: true }))
+    const heading = nodes.find(n => n.options.id === laneNodeId(lane.id))!
+    heading.relationships.associations = lane.station.next.map(key => ({ id: lane.id + '-to-' + key, parentId: heading.options.id, childId: laneNodeId(key), lineType: 'straight', lineColor: '#506b61', lineWidth: 2, showChildArrow: true }))
     heading.options.text = lane.label + '\n' + lane.station.outcome
     heading.options.fontSize = 13
   }
@@ -263,7 +281,7 @@ export function workshopToSlate(input: Workshop): SlateJSON {
     const byId = new Map(nodes.map(n => [n.options.id, n]))
     for (const card of board.cards) {
       for (const prerequisite of card.dependsOn ?? []) {
-        const parentId = 'card-' + prerequisite, childId = 'card-' + card.id
+        const parentId = cardNodeId(prerequisite), childId = cardNodeId(card.id)
         byId.get(parentId)!.relationships.associations.push({
           id: `dependency-${prerequisite.length}-${prerequisite}-${card.id}`, parentId, childId, lineType: 'straight',
           lineColor: '#566a67', lineWidth: 2, showChildArrow: true,

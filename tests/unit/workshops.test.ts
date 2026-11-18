@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { deserializeNodeOptions } from '../../src/core/Serialization'
-import { availableLanes, decodeWorkshopFragment, encodeWorkshopFragment, nightTransfer, industrialWorkshop, releasePlan, workshopPresentationLanes, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
+import { availableLanes, decodeWorkshopFragment, encodeWorkshopFragment, nightTransfer, industrialWorkshop, releasePlan, workshopPresentationLanes, workshopPresentationScenes, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
 
 describe('agent-authored workshops', () => {
   it('opens the authored state, including its rules and literal URL punctuation', () => {
@@ -27,6 +27,19 @@ describe('agent-authored workshops', () => {
     expect(availableLanes(board, card)).toEqual(destinations)
     const destination = destinations.find(lane => lane.id !== card.laneId)
     if (destination) expect(moveWorkshopCard(board, card.id, destination.id).presentationOrder).toEqual(order)
+  })
+
+  it('frames current cards with their authored station and retains empty stations in a cyclic map', () => {
+    const moved = moveWorkshopCard(nightTransfer, 'rider', 'lift')
+    const board = decodeWorkshopFragment(encodeWorkshopFragment({ ...moved, presentationOrder: ['lift', 'shuttle', 'stairs', 'platform'] }))
+    const scenes = workshopPresentationScenes(board)
+    expect(scenes.map(scene => scene.nodeIds)).toEqual([
+      ['lane-lift', 'card-rider'], ['lane-shuttle'], ['lane-stairs'], ['lane-platform'],
+    ])
+    expect(scenes[0].lane).toBe(board.lanes[2])
+    expect(scenes[0].cards[0]).toBe(board.cards[0])
+    const nativeNodes = workshopToSlate(board).nodes.map(node => node.options.id)
+    expect(scenes.flatMap(scene => scene.nodeIds).sort()).toEqual(nativeNodes.sort())
   })
 
   it('rejects partial, oversized, repeated and unknown presentation stages', () => {

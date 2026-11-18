@@ -32,6 +32,14 @@ export interface Workshop {
 }
 /** Resolve the original lanes for playback without changing their board positions or rules. */
 export declare function workshopPresentationLanes({ lanes, presentationOrder }: Pick<Workshop, 'lanes' | 'presentationOrder'>): WorkshopLane[];
+export interface WorkshopPresentationScene {
+    lane: WorkshopLane;
+    cards: WorkshopCard[];
+    /** Native node IDs for this viewpoint in the artwork produced by workshopToSlate. */
+    nodeIds: string[];
+}
+/** Describe each authored viewpoint from the committed state, including empty lanes. */
+export declare function workshopPresentationScenes(board: Workshop): WorkshopPresentationScene[];
 export declare function validateWorkshop(input: unknown): Workshop;
 /** Build the fragment for /new/workshop from portable workshop data. */
 export declare function encodeWorkshopFragment(value: Workshop): string;

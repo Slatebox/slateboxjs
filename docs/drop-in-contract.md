@@ -194,6 +194,9 @@ Each component accepts `value`, `onChange` and `readOnly`. A native starter crea
 
 **Workshop presentation order.** The version 1 workshop model accepts an optional `presentationOrder` array containing each lane or station ID exactly once. Use `workshopPresentationLanes(workshop)` from `slateboxjs/workshops/model` for playback and `workshop.lanes` for spatial layout. Existing documents open in lane order. The native player frames the selected lane and its currently assigned cards, including a collaborator’s accepted moves. The app saves scene reordering through its ordinary edit permission and revision checks. The portable link carries the same order into a new slate. [Radio cue sheet example](https://docs.slatebox.com/examples/research-cue-sheet/)
 
+For a standalone player, call `workshopPresentationScenes(workshop)` from the same package entry. It returns one `{ lane, cards, nodeIds }` per stage in presentation order. Use the lane label and current cards for the accessible readout. Pass `scenes.map(({ nodeIds }) => ({ nodeIds }))` as native viewpoints for the artwork from `workshopToSlate(workshop)`. The lane header gives an empty stage a camera target. Cyclic map connections remain in the artwork and do not determine playback order. Generate the viewpoints and artwork from the same saved model revision so a moved card appears in its new station. Authored playback requires no separate copy of the workshop layout.
+
+
 **Acceptance.** For each row, link the packaged export, marketing example, app entry and a deployed browser proof to the goal ledger. Use the file-based package installed by the app. Verify an authored change and its visible consequence, keyboard and touch operation, cancel, undo, a second session, presentation and reload. Record which checks passed on which release. A website-only renderer or a model unit test leaves the app journey open.
 
 ## Status log

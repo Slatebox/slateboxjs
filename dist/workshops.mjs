@@ -1,7 +1,7 @@
 import e, { useState as C, useRef as q, useMemo as se, useLayoutEffect as Q, useEffect as A, useId as ge } from "react";
 import { DraggableRenderer as B, translate as W, param as be, inOrder as Ee } from "./dragology.mjs";
-import { handoffSummary as ee, reviewHandoff as T, resolveHandoff as te, offlineHandoff as ye, listeningRoom as ne, listeningRoomCaption as re, workshopLayout as Z, releaseLoad as ce, availableLanes as V, moveWorkshopCard as j, canHangPanel as J, hangGalleryPanel as G, printFields as H, workshopPositions as U, laneColors as ke } from "./workshop-model.mjs";
-import { decodeWorkshopFragment as Ze, describeFocusDarkroom as Je, encodeWorkshopFragment as Ue, industrialWorkshop as Oe, initialFocusDarkroom as et, moonGallery as tt, nightTransfer as nt, normalizeFocusDarkroom as rt, normalizeListeningRoom as ot, normalizeMoonGallery as at, normalizeOfflineHandoff as lt, releasePlan as it, validateWorkshop as st, workshopPresentationLanes as ct, workshopToSlate as dt } from "./workshop-model.mjs";
+import { handoffSummary as ee, reviewHandoff as T, resolveHandoff as te, offlineHandoff as ye, listeningRoom as ne, listeningRoomCaption as re, workshopLayout as Z, releaseLoad as ce, availableLanes as V, moveWorkshopCard as j, canHangPanel as J, hangGalleryPanel as G, printFields as P, workshopPositions as U, laneColors as ke } from "./workshop-model.mjs";
+import { decodeWorkshopFragment as Ze, describeFocusDarkroom as Je, encodeWorkshopFragment as Ue, industrialWorkshop as Oe, initialFocusDarkroom as et, moonGallery as tt, nightTransfer as nt, normalizeFocusDarkroom as rt, normalizeListeningRoom as ot, normalizeMoonGallery as at, normalizeOfflineHandoff as lt, releasePlan as it, validateWorkshop as st, workshopPresentationLanes as ct, workshopPresentationScenes as dt, workshopToSlate as ft } from "./workshop-model.mjs";
 function xe(t, f, n) {
   return /* @__PURE__ */ e.createElement("g", { transform: `translate(${t} ${f}) scale(${n} ${n * 0.88})` }, /* @__PURE__ */ e.createElement("rect", { width: "142", height: "73", rx: "3", fill: "#b8d0c5" }), /* @__PURE__ */ e.createElement("path", { d: "M0 27L46 7h96v12H50L0 38Z", fill: "#728d81" }), /* @__PURE__ */ e.createElement("path", { d: "M12 38l36-17v43l-36 6z", fill: "#395c50" }), /* @__PURE__ */ e.createElement("path", { d: "M49 20h89v43H49z", fill: "#f1e3b8" }), /* @__PURE__ */ e.createElement("path", { d: "M57 33h45v30H57z", fill: "#557468" }), [37, 42, 47, 52, 57].map((o) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "slat" + o, d: `M59 ${o}h41`, stroke: "#a5b6a3" })), /* @__PURE__ */ e.createElement("path", { d: "M0 69l49-7h93v11H0z", fill: "#84998a" }), /* @__PURE__ */ e.createElement("path", { d: "M12 73l40-7h65", fill: "none", stroke: "#e9b04e", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("rect", { x: "111", y: "34", width: "19", height: "27", fill: "#d1a45c" }), /* @__PURE__ */ e.createElement("rect", { x: "116", y: "39", width: "9", height: "12", rx: "2", fill: "#38574b" }), /* @__PURE__ */ e.createElement("circle", { cx: "120", cy: "42", r: "2", fill: "#f0a466" }), /* @__PURE__ */ e.createElement("text", { x: "59", y: "30", fontSize: "8", fontWeight: "bold", fill: "#354e40" }, "GATE B"));
 }
@@ -293,16 +293,16 @@ function De({ value: t, preview: f, stage: n, apply: o, cancel: r }) {
     s(l.target.value), r();
   } }, t.cards.map((l) => /* @__PURE__ */ e.createElement("option", { key: l.id, value: l.id }, l.label))), /* @__PURE__ */ e.createElement("div", null, V(t, a).filter((l) => l.id !== a.laneId).map((l) => /* @__PURE__ */ e.createElement("button", { key: l.id, type: "button", onClick: () => n(j(t, a.id, l.id), { cardId: a.id, laneId: l.id }) }, "Preview ", l.label))), f && /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: o }, "Apply move"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: r }, "Cancel preview")));
 }
-const oe = [{ x: 90, y: 56 }, { x: 246, y: 56 }, { x: 402, y: 56 }], Ie = [{ x: 55, y: 162 }, { x: 219, y: 174 }, { x: 455, y: 154 }], R = 148, P = 104;
+const oe = [{ x: 90, y: 56 }, { x: 246, y: 56 }, { x: 402, y: 56 }], Ie = [{ x: 55, y: 162 }, { x: 219, y: 174 }, { x: 455, y: 154 }], R = 148, H = 104;
 function Fe(t) {
   const f = (n, o, r) => {
     const d = Array.from({ length: 38 }, (s, a) => {
       const m = Math.min(R, 4 * a), l = t * R + m, h = n + o * (Math.sin(l / 46) + 0.39 * Math.cos(l / 19) + 0.09 * Math.sin(l / 7));
       return (a ? "L" : "M") + m + " " + h.toFixed(1);
     }).join("");
-    return /* @__PURE__ */ e.createElement("path", { d: d + `L${R} ${P}H0z`, fill: r });
+    return /* @__PURE__ */ e.createElement("path", { d: d + `L${R} ${H}H0z`, fill: r });
   };
-  return /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { x: "-4", y: "-4", width: R + 8, height: P + 8, fill: "#4b423c" }), /* @__PURE__ */ e.createElement("rect", { x: "-2", y: "-2", width: R + 4, height: P + 4, fill: "#caa67d" }), /* @__PURE__ */ e.createElement("rect", { width: R, height: P, fill: "#343b66" }), Array.from({ length: 13 }, (n, o) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "sky" + o, cx: 6 + (o * 77 + t * 19) % 136, cy: 4 + (o * 29 + t * 11) % 35, r: o % 4 === 0 ? 1.3 : 0.65, fill: "#f4e0bc" })), t === 1 && /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("circle", { cx: "90", cy: "22", r: "15", fill: "#ffdf9a" }), /* @__PURE__ */ e.createElement("circle", { cx: "95", cy: "18", r: "3", fill: "#ebc68b" }), /* @__PURE__ */ e.createElement("circle", { cx: "85", cy: "28", r: "2", fill: "#ebc68b" })), f(48, 7, "#9b88aa"), f(59, 10, "#bf9492"), f(75, 7, "#596d83"), f(88, 6, "#2a4858"), Array.from({ length: 7 }, (n, o) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "water" + o, d: `M${4 + (o * 37 + t * 13) % 124} ${92 + o * 3 % 10}h${4 + o % 3 * 4}`, stroke: "#7d9b9a" })));
+  return /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { x: "-4", y: "-4", width: R + 8, height: H + 8, fill: "#4b423c" }), /* @__PURE__ */ e.createElement("rect", { x: "-2", y: "-2", width: R + 4, height: H + 4, fill: "#caa67d" }), /* @__PURE__ */ e.createElement("rect", { width: R, height: H, fill: "#343b66" }), Array.from({ length: 13 }, (n, o) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "sky" + o, cx: 6 + (o * 77 + t * 19) % 136, cy: 4 + (o * 29 + t * 11) % 35, r: o % 4 === 0 ? 1.3 : 0.65, fill: "#f4e0bc" })), t === 1 && /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("circle", { cx: "90", cy: "22", r: "15", fill: "#ffdf9a" }), /* @__PURE__ */ e.createElement("circle", { cx: "95", cy: "18", r: "3", fill: "#ebc68b" }), /* @__PURE__ */ e.createElement("circle", { cx: "85", cy: "28", r: "2", fill: "#ebc68b" })), f(48, 7, "#9b88aa"), f(59, 10, "#bf9492"), f(75, 7, "#596d83"), f(88, 6, "#2a4858"), Array.from({ length: 7 }, (n, o) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "water" + o, d: `M${4 + (o * 37 + t * 13) % 124} ${92 + o * 3 % 10}h${4 + o % 3 * 4}`, stroke: "#7d9b9a" })));
 }
 function qe(t, f) {
   return ({ state: n, d: o, draggedId: r, isTracking: d }) => {
@@ -320,7 +320,7 @@ function qe(t, f) {
           x: p.x,
           y: p.y,
           width: R,
-          height: P,
+          height: H,
           stroke: "#887e6b",
           strokeDasharray: "4 7",
           fill: "none"
@@ -395,7 +395,7 @@ function fe({ state: t, d: f, isTracking: n }, o = !1) {
   const r = t.route ? _[t.route] : 232, d = t.route ? 48 : 85;
   return n ? /* @__PURE__ */ e.createElement("g", { id: "focus-ring", transform: W(r, d) }) : /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { width: "460", height: "108", fill: "#14282c" }), [_.start, _.opener].map((s, a) => /* @__PURE__ */ e.createElement("g", { dragologyKey: String(s) }, /* @__PURE__ */ e.createElement("path", { d: `M232 85Q${s} 85 ${s} 48V0`, fill: "none", stroke: t.route === "start" && a === 0 || t.route === "opener" && a === 1 ? ae : "#52727a", strokeWidth: "2", strokeDasharray: "3 5" }), /* @__PURE__ */ e.createElement("circle", { id: a ? "opener-jack" : "first-jack", cx: s, cy: "48", r: "12", fill: "#233d40", stroke: "#608185" }), /* @__PURE__ */ e.createElement("text", { x: s, y: "24", fill: "#dae9e1", fontFamily: "system-ui,sans-serif", fontSize: "13", textAnchor: "middle" }, a ? "Opening print" : "First print"))), /* @__PURE__ */ e.createElement("g", { id: "focus-ring", transform: W(r, d), dragologyOnDrag: o ? void 0 : () => f.closest([Re, { route: "start" }, { route: "opener" }]).withFloating() }, /* @__PURE__ */ e.createElement("circle", { r: "19", fill: "#132a2e", stroke: "#85693d", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("circle", { r: "13.5", fill: "#203336", stroke: ae, strokeWidth: "4" }), /* @__PURE__ */ e.createElement("path", { d: "M-5 -5L1 8l2-6 6-2z", fill: "#f8db94" })));
 }
-function He(t) {
+function Pe(t) {
   return fe(t, !0);
 }
 function je({ value: t, onChange: f, readOnly: n = !1 }) {
@@ -413,8 +413,8 @@ function je({ value: t, onChange: f, readOnly: n = !1 }) {
   function k() {
     const w = t.route === "start" ? 0 : m;
     v.current[w]?.focus({ preventScroll: !0 });
-    const I = t[H[w]];
-    p(w === m ? "Focus returned to " + I + ", the print you opened." : "Focus jumped to " + I + ". You opened " + t[H[m]] + ".");
+    const I = t[P[w]];
+    p(w === m ? "Focus returned to " + I + ", the print you opened." : "Focus jumped to " + I + ". You opened " + t[P[m]] + ".");
   }
   function S() {
     a((w) => w + 1), d(null);
@@ -433,7 +433,7 @@ function je({ value: t, onChange: f, readOnly: n = !1 }) {
     /* @__PURE__ */ e.createElement("style", null, Ne),
     /* @__PURE__ */ e.createElement("h1", null, "Where does focus land?"),
     /* @__PURE__ */ e.createElement("p", null, o ? "" : "Wire the gold ring to a return path. ", "Open ", t.secondPrint, ", then close its viewer."),
-    /* @__PURE__ */ e.createElement("div", { className: "contact-sheet" }, H.map((w, I) => /* @__PURE__ */ e.createElement(
+    /* @__PURE__ */ e.createElement("div", { className: "contact-sheet" }, P.map((w, I) => /* @__PURE__ */ e.createElement(
       "button",
       {
         type: "button",
@@ -454,7 +454,7 @@ function je({ value: t, onChange: f, readOnly: n = !1 }) {
         state: M,
         width: 460,
         height: 108,
-        draggable: o ? He : fe,
+        draggable: o ? Pe : fe,
         onDragState: o ? void 0 : d,
         onDropState: o ? void 0 : $
       }
@@ -464,9 +464,9 @@ function je({ value: t, onChange: f, readOnly: n = !1 }) {
     /* @__PURE__ */ e.createElement("output", { "aria-label": "Focus result" }, h || "Open " + t.secondPrint + " to try the return path."),
     /* @__PURE__ */ e.createElement("dialog", { ref: E, onClose: k, "aria-labelledby": L, onKeyDown: (w) => {
       w.key === "Escape" && (w.preventDefault(), w.stopPropagation(), w.currentTarget.close());
-    } }, /* @__PURE__ */ e.createElement("svg", { viewBox: "-65 -50 130 100", "aria-hidden": "true" }, le(m)), /* @__PURE__ */ e.createElement("h2", { id: L }, t[H[m]]), !o && g !== null ? /* @__PURE__ */ e.createElement("form", { onSubmit: (w) => {
-      w.preventDefault(), g.trim() && (f?.({ ...t, [H[m]]: g.trim() }), x(null), E.current?.querySelector("[data-close]")?.focus());
-    } }, /* @__PURE__ */ e.createElement("label", null, "Print name ", /* @__PURE__ */ e.createElement("input", { autoFocus: !0, required: !0, maxLength: 48, value: g, onChange: (w) => x(w.target.value) })), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "submit", disabled: !g.trim() }, "Save name"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => x(null) }, "Cancel rename"))) : null, /* @__PURE__ */ e.createElement("button", { type: "button", "data-close": !0, onClick: () => E.current?.close() }, "Close viewer"), !o && g === null && /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => x(t[H[m]]) }, "Rename print"))
+    } }, /* @__PURE__ */ e.createElement("svg", { viewBox: "-65 -50 130 100", "aria-hidden": "true" }, le(m)), /* @__PURE__ */ e.createElement("h2", { id: L }, t[P[m]]), !o && g !== null ? /* @__PURE__ */ e.createElement("form", { onSubmit: (w) => {
+      w.preventDefault(), g.trim() && (f?.({ ...t, [P[m]]: g.trim() }), x(null), E.current?.querySelector("[data-close]")?.focus());
+    } }, /* @__PURE__ */ e.createElement("label", null, "Print name ", /* @__PURE__ */ e.createElement("input", { autoFocus: !0, required: !0, maxLength: 48, value: g, onChange: (w) => x(w.target.value) })), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "submit", disabled: !g.trim() }, "Save name"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => x(null) }, "Cancel rename"))) : null, /* @__PURE__ */ e.createElement("button", { type: "button", "data-close": !0, onClick: () => E.current?.close() }, "Close viewer"), !o && g === null && /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => x(t[P[m]]) }, "Rename print"))
   );
 }
 function ie(t) {
@@ -504,7 +504,7 @@ function O({ state: t, d: f, draggedId: n, isTracking: o }, r, d) {
     );
   }));
 }
-const Pe = (t) => O(t, !1), Ae = (t) => O(t, !0);
+const He = (t) => O(t, !1), Ae = (t) => O(t, !0);
 function Xe({ value: t, onChange: f, onPreview: n, onUndo: o, canUndo: r, readOnly: d = !1, fitLanes: s = !1 }) {
   const a = e.useRef(null), [m, l] = e.useState(0), h = s && !t.kind && !t.lanes[0].station;
   e.useLayoutEffect(() => {
@@ -540,7 +540,7 @@ function Xe({ value: t, onChange: f, onPreview: n, onUndo: o, canUndo: r, readOn
       document.removeEventListener("keydown", b), document.removeEventListener("pointercancel", b), window.removeEventListener("blur", b);
     };
   }, [N, i]);
-  const X = d ? null : S?.next ?? L, Y = !!(d || S), pe = e.useMemo(() => p ? (b) => O(b, Y, p) : Y ? Ae : Pe, [p, Y]), he = X ? Math.max(x, U(X, p?.layout).height) : x;
+  const X = d ? null : S?.next ?? L, Y = !!(d || S), pe = e.useMemo(() => p ? (b) => O(b, Y, p) : Y ? Ae : He, [p, Y]), he = X ? Math.max(x, U(X, p?.layout).height) : x;
   return /* @__PURE__ */ e.createElement("section", { "aria-label": t.title }, /* @__PURE__ */ e.createElement("div", { ref: a, style: { maxWidth: "100%", overflowX: "auto" } }, /* @__PURE__ */ e.createElement(
     B,
     {
@@ -609,7 +609,7 @@ export {
   at as normalizeMoonGallery,
   lt as normalizeOfflineHandoff,
   ye as offlineHandoff,
-  H as printFields,
+  P as printFields,
   ce as releaseLoad,
   it as releasePlan,
   te as resolveHandoff,
@@ -618,5 +618,6 @@ export {
   Z as workshopLayout,
   U as workshopPositions,
   ct as workshopPresentationLanes,
-  dt as workshopToSlate
+  dt as workshopPresentationScenes,
+  ft as workshopToSlate
 };
