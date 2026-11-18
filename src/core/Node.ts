@@ -26,6 +26,9 @@ import { resolveShapePath } from "./ShapeRegistry";
 import { v2NodeToV1 } from "./compat";
 import { whiteOrBlack, contrastRatio } from "../utils";
 
+const plugDirections = ["top", "right", "bottom", "left"] as const;
+type PlugDirection = typeof plugDirections[number];
+
 interface SnapRect {
   x: number;
   y: number;
@@ -267,6 +270,7 @@ export class Node {
     container?: G;
   } = {};
   private connectionHandlesVisible: boolean = false;
+  private draggedPlug?: Circle;
   // Hover-reveal (Miro-style) bookkeeping: a debounce timer so moving from the
   // node to an offset plug-circle doesn't hide it, and a flag marking that the
   // handles are pinned by SELECTION (so hover-leave must not hide them).
@@ -2912,6 +2916,7 @@ export class Node {
     };
 
     const onMove = (ev: any) => {
+      if (startEvent.pointerId != null && ev.pointerId !== startEvent.pointerId) return;
       const w = toWorld(ev.clientX, ev.clientY);
       const target = nodeUnder(ev.clientX, ev.clientY);
 
@@ -2972,6 +2977,8 @@ export class Node {
     };
 
     const onUp = (ev: any) => {
+      if (startEvent.pointerId != null && ev.pointerId !== startEvent.pointerId) return;
+      window.removeEventListener("pointercancel", onUp, true);
       window.removeEventListener("pointermove", onMove, true);
       window.removeEventListener("pointerup", onUp, true);
       (this as any)._connectDragging = false;
@@ -2986,8 +2993,9 @@ export class Node {
       } catch (e) {
         /* noop */
       }
-      const target = nodeUnder(ev.clientX, ev.clientY);
       clearHover();
+      if (ev.type === "pointercancel") return;
+      const target = nodeUnder(ev.clientX, ev.clientY);
       if (target && target.id !== this.id) {
         try {
           // Pin the new edge's target endpoint at the DROP point (normalized 0..1
@@ -3087,6 +3095,7 @@ export class Node {
 
     window.addEventListener("pointermove", onMove, true);
     window.addEventListener("pointerup", onUp, true);
+    window.addEventListener("pointercancel", onUp, true);
   }
 
   /** Called by the Slate when this node is deselected. */
@@ -3129,14 +3138,7 @@ export class Node {
     const handleStrokeWidth = 2;
 
     // Create four connection handles positioned around the node
-    const positions = {
-      top: { x: 0, y: -handleRadius - 5 },
-      right: { x: handleRadius + 5, y: 0 },
-      bottom: { x: 0, y: handleRadius + 5 },
-      left: { x: -handleRadius - 5, y: 0 },
-    };
-
-    Object.entries(positions).forEach(([direction, offset]) => {
+    plugDirections.forEach(direction => {
       if (!this.connectionHandles.container) return;
 
       const handle = this.connectionHandles.container
@@ -3149,28 +3151,25 @@ export class Node {
       handle.node.style.cursor = "pointer";
 
       // Store reference
-      this.connectionHandles[direction as keyof typeof positions] = handle;
+      this.connectionHandles[direction] = handle;
 
       // Add hover effects for preview
       handle.on("mouseenter", () =>
-        this.showConnectionPreview(
-          direction as "top" | "right" | "bottom" | "left"
-        )
+        this.showConnectionPreview(direction)
       );
       handle.on("mouseleave", () => this.hideConnectionPreview());
 
       // Add click handler for node creation and connection
       handle.on("click", (event: any) => {
         event.stopPropagation();
+        if (this.draggedPlug === handle || this.slate.isReadOnly()) return;
         console.log(
           `CONNECTION_HANDLES_DEBUG: ${direction} handle clicked on`,
           this.id
         );
 
         // Create new connected node
-        this.createConnectedNode(
-          direction as "top" | "right" | "bottom" | "left"
-        );
+        this.createConnectedNode(direction);
       });
 
       // Miro-style: DRAG from a plug-circle to connect to another node (or create
@@ -3178,33 +3177,11 @@ export class Node {
       // (above). We distinguish drag from click with a small movement threshold —
       // once the pointer moves past it, we hand off to startConnectDrag (same path
       // as the plug tool) and suppress the ensuing click.
-      handle.on("pointerdown", (event: any) => {
-        if (this.slate?.isReadOnly?.()) return;
-        event.stopPropagation();
-        const startX = event.clientX;
-        const startY = event.clientY;
-        let handedOff = false;
-        const cleanup = () => {
-          window.removeEventListener("pointermove", onMove, true);
-          window.removeEventListener("pointerup", onUp, true);
-        };
-        const onMove = (e: PointerEvent) => {
-          if (handedOff) return;
-          if (Math.hypot(e.clientX - startX, e.clientY - startY) > 5) {
-            handedOff = true;
-            cleanup();
-            // Swallow the click that would otherwise fire createConnectedNode.
-            const swallow = (ce: Event) => {
-              ce.stopPropagation();
-              (handle.node as any).removeEventListener("click", swallow, true);
-            };
-            (handle.node as any).addEventListener("click", swallow, true);
-            this.startConnectDrag(event);
-          }
-        };
-        const onUp = () => cleanup();
-        window.addEventListener("pointermove", onMove, true);
-        window.addEventListener("pointerup", onUp, true);
+      handle.node.style.touchAction = 'none';
+      handle.on("pointerdown", (event: PointerEvent) => {
+        this.beginPlugGesture(event, handle, event.pointerType === 'touch'
+          ? () => this.createConnectedNode(direction)
+          : undefined);
       });
     });
 
@@ -3213,6 +3190,59 @@ export class Node {
       this.connectionHandles.container.hide();
     }
     this.updateConnectionHandlePositions();
+  }
+
+  /** A touch on empty canvas can start at most 14 displayed CSS pixels from a selected plug. */
+  public beginNearbyTouchConnection(event: PointerEvent): boolean {
+    if (!this.connectionHandlesVisible || this.slate.isReadOnly()) return false;
+    let nearest: { direction: PlugDirection; handle: Circle } | undefined;
+    let nearestDistance = 14;
+    for (const direction of plugDirections) {
+      const handle = this.connectionHandles[direction];
+      if (!handle) continue;
+      const r = handle.node.getBoundingClientRect();
+      const distance = Math.hypot(event.clientX - r.left - r.width / 2, event.clientY - r.top - r.height / 2);
+      if (r.width && distance <= nearestDistance) {
+        nearest = { direction, handle };
+        nearestDistance = distance;
+      }
+    }
+    if (!nearest) return false;
+    const { direction, handle } = nearest;
+    this.beginPlugGesture(event, handle, () => this.createConnectedNode(direction));
+    return true;
+  }
+
+  private beginPlugGesture(event: PointerEvent, handle: Circle, onTouchTap?: () => void) {
+    if (this.slate.isReadOnly()) return;
+    event.stopPropagation();
+    this.draggedPlug = undefined;
+    const canvas = this.slate.canvas.node;
+    // The surrounding canvas still scrolls normally. Suppress native scrolling/click
+    // synthesis only for the touch that actually acquired this connector.
+    const preventScroll = (e: TouchEvent) => e.preventDefault();
+    if (onTouchTap) canvas.addEventListener('touchstart', preventScroll, { capture: true, passive: false, once: true });
+    const end = () => {
+      canvas.removeEventListener('touchstart', preventScroll, true);
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', up, true);
+      window.removeEventListener('pointercancel', cancel, true);
+    };
+    const cancel = (e: PointerEvent) => { if (e.pointerId === event.pointerId) end(); };
+    const up = (e: PointerEvent) => {
+      if (e.pointerId !== event.pointerId) return;
+      end();
+      onTouchTap?.();
+    };
+    const move = (e: PointerEvent) => {
+      if (e.pointerId !== event.pointerId || Math.hypot(e.clientX - event.clientX, e.clientY - event.clientY) <= 5) return;
+      end();
+      this.draggedPlug = handle;
+      this.startConnectDrag(event);
+    };
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', up, true);
+    window.addEventListener('pointercancel', cancel, true);
   }
 
   private updateConnectionHandlePositions() {

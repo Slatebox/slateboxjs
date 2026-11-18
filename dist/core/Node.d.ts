@@ -150,6 +150,7 @@ export declare class Node {
     menu: Menu;
     private connectionHandles;
     private connectionHandlesVisible;
+    private draggedPlug?;
     private _connHandleHideTimer;
     private _connHandlesPinned;
     private connectionPreview?;
@@ -472,6 +473,9 @@ export declare class Node {
     /** Called by the Slate when this node is deselected. */
     onDeselected(): void;
     private createConnectionHandles;
+    /** A touch on empty canvas can start at most 14 displayed CSS pixels from a selected plug. */
+    beginNearbyTouchConnection(event: PointerEvent): boolean;
+    private beginPlugGesture;
     private updateConnectionHandlePositions;
     /**
      * Miro-style: reveal the plug-circles when the node is hovered (not just when

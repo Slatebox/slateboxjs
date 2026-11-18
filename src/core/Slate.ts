@@ -1219,6 +1219,10 @@ export class Slate {
     // interaction STARTED, not just where its trailing click was dispatched.
     const onPointerDown = (e: PointerEvent) => {
       const t = e.target as Element | null;
+      // Give touch users room outside the visible dot. Only empty root SVG
+      // space is eligible: nodes, resize/rotate handles and edges keep priority.
+      if (e.pointerType === 'touch' && e.isPrimary && t === this.canvas.node &&
+          this.selectedNodes.length === 1 && this.selectedNodes[0].beginNearbyTouchConnection(e)) return;
       this._lastPointerDown = {
         x: e.clientX,
         y: e.clientY,
