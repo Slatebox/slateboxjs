@@ -182,7 +182,11 @@ The app and website import the React components from `slateboxjs/workshops`. The
 | `MoonGalleryBoard` | `normalizeMoonGallery` | [/new/moon-gallery](https://app.slatebox.com/new/moon-gallery) |
 | `FocusDarkroomBoard` | `normalizeFocusDarkroom` | [/new/focus-darkroom](https://app.slatebox.com/new/focus-darkroom) |
 | `OfflineHandoffBoard` | `normalizeOfflineHandoff` | [/new/offline-handoff](https://app.slatebox.com/new/offline-handoff) |
-| `WorkshopBoard` | `validateWorkshop` | `/new/workshop` with an encoded model |
+| `WorkshopBoard` | `validateWorkshop` | [Start a blank workshop](https://app.slatebox.com/new/workshop) or open a link containing an encoded model |
+
+Opening `/new/workshop` creates a private slate with two empty lanes. In a host application, call `createLaneWorkshop()` for the same starting model. Use `addWorkshopLane(board, { label, capacity })` to add a destination and `addWorkshopCard(board, laneId, { label, allowedLaneIds })` to place a card. Both helpers return a new, validated model. Omit `capacity` for an unlimited lane. Omit `allowedLaneIds` to let the card enter any lane, including one the team adds later. A restricted card’s list must include its current lane.
+
+Pass `onAddCard(laneId, anchorElement)` and `onEditLane(laneId, anchorElement)` to `WorkshopBoard` to open contextual editors from the lane itself. A drop on a full or forbidden lane leaves the card at its original location. The host can use the same model for saving and for presentation playback. [Build a workshop with one recording slot](https://docs.slatebox.com/developers/javascriptlibrary/creative-slates/#build-a-workshop-with-one-recording-slot)
 
 For a workshop authored in another application, call `encodeWorkshopFragment(workshop)` from `slateboxjs/workshops/model` and append the result to `/new/workshop` on the chosen Slatebox host. The fragment carries the current pieces, placement, labels and rules. Whoever receives the link can read that data and open a separate copy. To work together on one saved copy, use Share inside the slate. `decodeWorkshopFragment(location.hash)` reads and validates the same format. Both helpers accept links up to 65,536 encoded characters including the initial hash.
 
