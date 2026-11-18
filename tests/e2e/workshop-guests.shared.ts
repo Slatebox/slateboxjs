@@ -33,8 +33,17 @@ export async function removeTestGuest(page: Page, expectedId: string | null) {
   if (!expectedId) return
   const removed = await page.evaluate(async id => {
     const meteor = (window as any).Meteor
-    if (meteor.userId() !== id || meteor.user()?.isAnonymous !== true) return false
-    return meteor.callAsync('users.delete')
+    if (meteor.userId() !== id) return false
+    // A freshly reloaded page can resume its DDP login before the guest profile arrives.
+    const profile = await new Promise<{ stop(): void }>((resolve, reject) => {
+      const handle = meteor.subscribe('me', { onReady: () => resolve(handle), onStop: (err: Error | undefined) => {
+        if (err) reject(err)
+      } })
+    })
+    try {
+      if (meteor.userId() !== id || meteor.user()?.isAnonymous !== true) return false
+      return await meteor.callAsync('users.delete')
+    } finally { profile.stop() }
   }, expectedId)
   expect(removed).toBe(true)
 }

@@ -122,6 +122,8 @@ test('audiences can keep a private copy only of a currently opted-in workshop ed
     await expect(owner.getByRole('status')).toContainText('Presentation withdrawn')
     await assertDenied(nextEdition)
     await copier.reload()
+    await expect(copier.getByText('Move a card by name', {exact:true})).toBeVisible()
+    await expect.poll(() => userId(copier!)).toBe(copierId)
     expect((await getSlate(copier,copyKey)).creative.model.workshop.cards[0].laneId).toBe('air')
   } finally {
     try {
@@ -134,8 +136,12 @@ test('audiences can keep a private copy only of a currently opted-in workshop ed
         },{key,sourceId})
       }
     } finally {
-      try { if(copier) await removeTestGuest(copier,copierId); await removeTestGuest(owner,ownerId) }
-      finally { await Promise.all([ownerContext.close(),guestContext.close(),deniedContext.close()]) }
+      try {
+        if (copier) await removeTestGuest(copier,copierId)
+      } finally {
+        try { await removeTestGuest(owner,ownerId) }
+        finally { await Promise.all([ownerContext.close(),guestContext.close(),deniedContext.close()]) }
+      }
     }
   }
 })
