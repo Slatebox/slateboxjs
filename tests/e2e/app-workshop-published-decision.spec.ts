@@ -22,21 +22,21 @@ async function prepareDecision(owner: Page) {
   await expect(owner.locator('.workshop-inspector')).toHaveCount(0)
 }
 
-async function verifyPublishedScenes(host: Page, player: Page | FrameLocator) {
+async function verifyPublishedScenes(host: Page, player: Page | FrameLocator, shellLabel = 'Shell carving') {
   await host.bringToFront()
   const presentation = player.getByRole('region', { name: 'Decision presentation' })
-  await expectWorkshopSlide(player, 'Display case', ['Shell carving'], ['lane-case', 'card-shell'])
+  await expectWorkshopSlide(player, 'Display case', [shellLabel], ['lane-case', 'card-shell'])
   await expect(presentation.getByRole('button', { name: 'Back to board' })).toHaveCount(0)
   await expect(player.getByRole('button', { name: 'Edit an object' })).toHaveCount(0)
   await presentation.getByRole('button', { name: 'Next lane' }).click()
   await expectWorkshopSlide(player, 'Reserve', ['Copper coin'], ['lane-reserve', 'card-coin'])
   await presentation.getByRole('button', { name: 'Previous' }).click()
-  await expectWorkshopSlide(player, 'Display case', ['Shell carving'], ['lane-case', 'card-shell'])
+  await expectWorkshopSlide(player, 'Display case', [shellLabel], ['lane-case', 'card-shell'])
 }
 
 test('publish a workshop decision, keep the audience snapshot stable across edits, then withdraw both players', async ({ browser }) => {
   test.skip(!['localhost','127.0.0.1','test.slatebox.com'].includes(origin.hostname) ||
-    process.env.SLATEBOX_PRESENTATION_MEDIA_ISOLATED !== 'true', 'Requires local or staging with an isolated publication store.')
+    process.env.SLATEBOX_TEST_WORKSHOP_PUBLICATION !== 'true', 'Opt in to publishing and withdrawing a synthetic link-only workshop on local or staging.')
   const authorContext = await browser.newContext({ permissions:['clipboard-read','clipboard-write'] })
   const audienceContext = await browser.newContext({ reducedMotion:'reduce', viewport:{width:1100,height:800} })
   const owner = await authorContext.newPage()
@@ -98,6 +98,15 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
     await owner.bringToFront()
     await owner.getByRole('button', {name:'Publish presentation',exact:true}).click()
     await expect(dialog.getByText('The slate has changed since this version was published.')).toBeVisible()
+    await dialog.getByRole('button', {name:'Republish',exact:true}).click()
+    await expect(dialog.getByRole('status')).toContainText('Presentation published')
+    await expect(dialog.getByRole('link', {name:'Open published presentation'})).toHaveAttribute('href', publishedUrl)
+    await viewer.reload()
+    await verifyPublishedScenes(viewer, viewer, privateLabel)
+    await article.setContent('<!doctype html><main>' + snippet + '</main>')
+    await verifyPublishedScenes(article, embed, privateLabel)
+
+    await owner.bringToFront()
     await dialog.getByRole('button', {name:'Withdraw presentation',exact:true}).click()
     await expect(dialog.getByRole('status')).toContainText('Presentation withdrawn')
     await viewer.reload()
