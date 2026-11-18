@@ -218,8 +218,9 @@ test('a registered native editor finds their saved note in Recently joined until
       expect(await asset.text()).toContain('Recently joined')
     }
     await editor.goto(app+'/profile')
-    await editor.getByRole('button',{name:'Save My Slatebox'}).click()
     const registration = editor.getByRole('dialog',{name:'Save your work'})
+    // A fresh guest profile opens registration automatically after the login resumes.
+    await expect(registration).toBeVisible()
     await registration.getByLabel('Email address').fill(email)
     await registration.getByLabel(/^Password/i).fill(randomUUID())
     await registration.getByRole('button',{name:'Save my Slatebox'}).click()

@@ -1,21 +1,12 @@
 import {expect, test} from '@playwright/test'
 import {openGuestCanvas} from './app-host.shared'
+import {removeTestGuest} from './workshop-guests.shared'
 
 let guestId: string | null = null
 
 test.afterEach(async ({page}) => {
-  if (!guestId) return
-  const expectedGuest = guestId
+  await removeTestGuest(page, guestId)
   guestId = null
-  await page.goto('/profile')
-  await page.waitForFunction(id => {
-    const meteor = (window as any).Meteor
-    return meteor?.userId() === id && meteor.user()?.isAnonymous
-  }, expectedGuest)
-  expect(await page.evaluate(async id => {
-    const meteor = (window as any).Meteor
-    return meteor.userId() === id && meteor.user()?.isAnonymous && meteor.callAsync('users.delete')
-  }, expectedGuest)).toBe(true)
 })
 
 test('new connected nodes start blank and keep authored labels and edges through save and reopen', async ({page}) => {
