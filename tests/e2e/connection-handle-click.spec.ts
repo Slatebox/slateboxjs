@@ -61,7 +61,11 @@ test.describe("connection handle click creates a connected node (§connector)", 
       const s = (window as any).__slate.v2;
       const a = s.nodes.one("A");
       const assoc = a ? a.relationships.associations : [];
+      const child = s.nodes.allNodes.find((node: {id: string}) => node.id !== "A");
       return {
+        id: child?.id,
+        label: child?.options.text,
+        drawnText: child?.svgGroup.node.querySelector("text")?.textContent ?? "",
         count: s.nodes.allNodes.length,
         childCount: assoc.length,
         connectors: document.querySelectorAll(
@@ -70,6 +74,9 @@ test.describe("connection handle click creates a connected node (§connector)", 
       };
     });
     // A new node was created and connected to A.
+    expect(res.id).toBeTruthy();
+    expect(res.label).toBe("");
+    expect(res.drawnText.trim()).toBe("");
     expect(res.count).toBe(2);
     expect(res.childCount).toBeGreaterThan(0);
     expect(res.connectors).toBeGreaterThan(0);
