@@ -24,11 +24,13 @@ function wrapWords(text: string, width: number, measure: CanvasRenderingContext2
   return lines
 }
 
+export const compactStationGap = 12
+
 export function fitLaneLayout(board: Workshop, viewport: number, mapCanvas = false) {
   // Keep dense boards horizontally scrollable once a column would become unreadable.
   const columns = mapCanvas ? Math.max(...board.lanes.map(lane => lane.station!.column)) + 1 : board.lanes.length
-  const gaps = mapCanvas ? (columns - 1) * 28 : 0
-  const pitch = Math.min(mapCanvas ? 202 : workshopLayout.pitch, Math.max(mapCanvas ? 145 : 124, Math.floor((viewport - gaps) / columns)))
+  const gaps = mapCanvas ? (columns - 1) * compactStationGap : 0
+  const pitch = Math.min(mapCanvas ? 202 : workshopLayout.pitch, Math.max(mapCanvas ? 108 : 124, Math.floor((viewport - gaps) / columns)))
   const width = pitch - 16
   const measure = document.createElement('canvas').getContext('2d')!
   const labels = new Map<string, string[]>()

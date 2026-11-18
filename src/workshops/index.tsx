@@ -1,7 +1,7 @@
 export { OfflineHandoffBoard } from './OfflineHandoffBoard'
 export { ListeningRoomBoard, type ListeningRoomBoardProps } from './ListeningRoomBoard'
 import React from 'react'
-import { fitLaneLayout } from './fitLanes'
+import { compactStationGap, fitLaneLayout } from './fitLanes'
 import { DraggableRenderer, translate, type Draggable, type DraggableProps, type DragStatus } from 'dragology'
 import { availableLanes, resolveWorkshopSignals, releaseLoad, laneColors, moveWorkshopCard, workshopLayout, workshopPositions, maxWorkshopCards, type Workshop } from './model'
 
@@ -16,7 +16,7 @@ function wrapLabel(label: string) {
 function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean, fitted?: ReturnType<typeof fitLaneLayout>, editHeaders = false, addCards = false, actionId = '', mapCanvas = false) {
   const layout = fitted?.layout ?? workshopLayout
   const { width, row, height, top } = layout
-  const { points, height: boardHeight } = workshopPositions(state, layout)
+  const { points, height: boardHeight } = workshopPositions(state, layout, mapCanvas ? compactStationGap : undefined)
   const map = Boolean(state.lanes[0].station)
   const position = (card: Workshop['cards'][number]) => {
     const column = state.lanes.findIndex(lane => lane.id === card.laneId)
@@ -137,7 +137,7 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
     return () => observer.disconnect()
   }, [fit])
   const fitted = React.useMemo(() => fit && viewport ? fitLaneLayout(value, viewport, compactMap) : undefined, [fit, viewport, value, compactMap])
-  const { width, height } = workshopPositions(value, fitted?.layout)
+  const { width, height } = workshopPositions(value, fitted?.layout, compactMap ? compactStationGap : undefined)
   const release = value.kind === 'release-plan'
   const hasSignals = Boolean(value.signals?.length)
   const [gesture, setGesture] = React.useState(0)
@@ -214,7 +214,7 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
     else if (target.dataset.workshopLane) onEditLane?.(target.dataset.workshopLane, target)
     else if (target.dataset.workshopAddCard) onAddCard?.(target.dataset.workshopAddCard, target)
   }
-  const canvasHeight = linked ? Math.max(height, workshopPositions(linked, fitted?.layout).height) : height
+  const canvasHeight = linked ? Math.max(height, workshopPositions(linked, fitted?.layout, compactMap ? compactStationGap : undefined).height) : height
   return <section aria-label={value.title}>
     {/* Keep accessible names current without asking Dragology to interpolate text attributes. */}
     {(editHeaders || addCards) && <div hidden>{value.lanes.map(lane => <React.Fragment key={lane.id}>
@@ -286,7 +286,7 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
     {value.lanes[0].station && <div className="workshop-outcomes" aria-live="polite">
       {value.cards.map(card => {
         const current = value.lanes.find(lane => lane.id === card.laneId)!
-        return <div key={card.id}><p><strong>{card.label} · {current.label}</strong><br />{current.station!.outcome}</p>
+        return <div key={card.id}><p><strong>{card.label} · {current.label}</strong>{(!compactMap || current.station!.outcome !== current.label) && <><br />{current.station!.outcome}</>}</p>
           {current.station!.image && <img src={current.station!.image.src} alt={current.station!.image.alt}
             referrerPolicy="no-referrer" style={{ display:'block', maxWidth:'100%', width:360, maxHeight:240, objectFit:'contain', objectPosition:'left', marginBlock:'8px' }} />}
           {availableLanes(value, card).filter(lane => lane.id !== card.laneId).map(lane =>

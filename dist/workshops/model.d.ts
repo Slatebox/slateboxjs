@@ -84,7 +84,7 @@ export declare function workshopPositions(board: Workshop, layout?: {
     row: number;
     height: number;
     top: number;
-}): {
+}, stationGap?: number): {
     points: {
         x: number;
         y: number;

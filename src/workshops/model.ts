@@ -302,13 +302,13 @@ export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string
 export const workshopLayout = { pitch: 244, width: 228, row: 88, height: 76, top: 98 }
 export const laneColors = ['#d5e9e3', '#fbdfac', '#dedef4', '#dcebf3', '#efd7dc']
 
-export function workshopPositions(board: Workshop, layout = workshopLayout) {
+export function workshopPositions(board: Workshop, layout = workshopLayout, stationGap = 28) {
   const { pitch, row, top } = layout
   const map = Boolean(board.lanes[0].station)
   const rows = board.lanes.map(lane => board.cards.filter(card => card.laneId === lane.id).length)
   const rowHeight = top + Math.max(1, ...rows) * row + 36
   const points = board.lanes.map((lane, index) => ({
-    x: map ? lane.station!.column * (pitch + 28) : index * pitch,
+    x: map ? lane.station!.column * (pitch + stationGap) : index * pitch,
     y: map ? lane.station!.row * rowHeight : 0,
   }))
   return { points, width: Math.max(...points.map(p => p.x)) + pitch,
