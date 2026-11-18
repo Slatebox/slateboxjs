@@ -3,7 +3,7 @@ import { openGuestCanvas } from "./app-host.shared";
 
 const appUrl = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 
-test("new slates offer an interactive map before signup and from the dashboard and board", async ({ page }) => {
+test("map entry, gallery and dashboard New open their respective editors", async ({ page }) => {
   await page.goto(appUrl + "/canvas/new");
   await expect(page.getByRole("heading", { name: "Start a new slate" })).toBeVisible();
   const map = page.getByRole("link", { name: "Build an interactive map" });
@@ -22,9 +22,42 @@ test("new slates offer an interactive map before signup and from the dashboard a
   await page.keyboard.press("Escape");
   await page.getByRole("link", { name: "Slatebox home" }).click();
   await page.getByRole("button", { name: "New", exact: true }).click();
-  await expect(page.getByRole("link", { name: "Back to my slates" })).toBeVisible();
-  await map.click();
+  await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/);
+  const second = page.url();
+  expect(second).not.toBe(canvas);
+  const node = page.locator("#slateCanvas [data-node-id]").first();
+  await expect(node).toBeVisible();
+  await page.reload();
+  await expect(node).toBeVisible();
+  expect(page.url()).toBe(second);
+  await page.goBack();
+  await expect(page.getByRole("button", { name: "New", exact: true })).toBeVisible();
+  await page.goto(appUrl + "/templates");
+  await page.getByRole("link", { name: "Build an interactive map" }).click();
   await expect(page.locator(".workshop-paper svg").first()).toBeVisible();
   await page.goto(canvas);
-  await expect(page.locator("#slateCanvas [data-node-id]").first()).toBeVisible();
+  await expect(node).toBeVisible();
+});
+
+test("the marketing creation link opens a guest-owned native slate and preserves browser history", async ({ page }) => {
+  test.skip(!["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(appUrl).hostname));
+  await page.goto(appUrl + "/workshops?format=map");
+  await expect(page.locator(".workshop-paper svg").first()).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("meteor_token"))).toBeNull();
+  await page.goto(appUrl + "/new");
+  await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/);
+  const canvas = page.url();
+  const node = page.locator("#slateCanvas [data-node-id]").first();
+  await expect(node).toBeVisible();
+  const actor = await page.evaluate(() => (window as any).Meteor.userId());
+  expect(actor).toBeTruthy();
+  await page.reload();
+  await expect(node).toBeVisible();
+  expect(page.url()).toBe(canvas);
+  expect(await page.evaluate(() => (window as any).Meteor.userId())).toBe(actor);
+  await page.goBack();
+  await expect(page.locator(".workshop-paper svg").first()).toBeVisible();
+  await page.goForward();
+  await expect(node).toBeVisible();
+  expect(page.url()).toBe(canvas);
 });
