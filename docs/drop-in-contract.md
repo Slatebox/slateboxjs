@@ -161,6 +161,23 @@ v2 protocol: yjs + y-websocket (`doc.getMap("collabPackages")`, awareness cursor
 
 ---
 
+## Creative drag experiences
+
+A visitor who tries a hands-on example on slatebox.com should be able to open its editable counterpart in the app, change the example and return to the result. This contract covers user-visible behavior. Scripted cursors and illustrations can remain part of the marketing presentation.
+
+| Experience | Capability to reproduce on a real slate | Evidence required |
+| --- | --- | --- |
+| Listening room | Move a listening horn continuously between two sound sources. Preview the mix and caption during the gesture, with sound opt-in. Edit the source labels on the slate. | Check a midpoint, both endpoints, cancel and a saved position. Reopen with the edited labels. |
+| Moon Gallery | Hang a work in a free space and preview the audience’s sightline. Rearrange the room with a colleague. | Exercise a full wall and a competing placement. Both visitors must see the same legal arrangement after reconnect. |
+| Focus darkroom | Connect a dialog to a return target and try the keyboard path the author chose. | Change the connection, open and dismiss the dialog by keyboard, and verify focus returns to the chosen object. |
+| Offline handoff | Explore what happens to competing field notes through disconnection, review and recovery. | Take both branches and undo a decision. Verify the simulated field-note outcome separately from real multi-user reconnection. |
+
+**Engine responsibilities.** Expose supported package entry points. The existing discrete board uses `WorkshopBoard` from `slateboxjs/workshops`. It takes a controlled `value`, emits disposable candidates through `onPreview`, commits a legal move through `onChange` and supports host-controlled undo and read-only display. Keep the scene definition and committed state serializable and versioned. Validate loaded input and retain existing board formats. Keep preview, focus, sound playback and scripted presence local to the viewer. Drive linked visuals, captions and optional audio from the same candidate. Permit cancellation without changing the saved revision.
+
+**App responsibilities.** Route a feature CTA to an immediately usable slate. Provide on-canvas contextual editing, a visible affordance for the first gesture, equivalent keyboard controls and a reversible first move. The host owns permissions, saving, revision conflicts, shared undo and reopening. A viewer can present the saved result without obtaining editing rights. Interactive exercises explicitly invite input. Illustrative homepage slates ignore edits and drags while allowing page scroll.
+
+**Acceptance.** For each row, link the packaged export, marketing example, app entry and a deployed browser proof to the goal ledger. Use the file-based package installed by the app. Verify an authored change and its visible consequence, keyboard and touch operation, cancel, undo, a second session, presentation and reload. Record which checks passed on which release. A website-only renderer or a model unit test leaves the app journey open.
+
 ## Status log
 
 ### FINAL HANDOFF (2026-07-01, loop complete after 14 iterations)
