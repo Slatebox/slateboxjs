@@ -74,6 +74,8 @@ undo/redo, the production container gate, and production-like cluster smoke.
 
 ## Canvas and workshops, November 2026
 
+The [team adoption goal and evidence ledger](team-adoption-goal.md) tracks the remaining cross-product journeys and the declarative dragging integration.
+
 The app and homepage consume the file build of SlateboxJS. The October registry and PR instructions above describe the old release process. The Roscoe ship script now rebuilds the engine and stamps the deployed app with both source revisions.
 
 | Capability | Implementation and scope |
