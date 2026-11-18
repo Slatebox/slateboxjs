@@ -1,6 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const appUrl = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
+const browsers = {
+  chromium: devices["Desktop Chrome"],
+  firefox: devices["Desktop Firefox"],
+  webkit: devices["Desktop Safari"],
+};
+const browser = process.env.SLATEBOX_APP_BROWSER || "chromium";
+if (!(browser in browsers)) throw new Error("Choose chromium, firefox, or webkit for SLATEBOX_APP_BROWSER");
 const useExternalApp = process.env.SLATEBOX_APP_EXTERNAL === "true";
 
 export default defineConfig({
@@ -20,8 +27,8 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "meteor-chromium",
-      use: { ...devices["Desktop Chrome"] },
+      name: "meteor-" + browser,
+      use: browsers[browser as keyof typeof browsers],
     },
   ],
   webServer: useExternalApp
