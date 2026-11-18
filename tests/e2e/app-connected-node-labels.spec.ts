@@ -68,6 +68,7 @@ test('new connected nodes start blank and keep authored labels and edges through
     return ids.map(id => response.slateBase?.nodes?.find((n:any) => n.options.id === id)?.options.text)
   }, children), {timeout:25000}).toEqual(expected)
   await page.reload()
+  await page.locator('#slateCanvas').getByRole('button', {name:'Original observation', exact:true}).waitFor()
   for (const [index,id] of children.entries()) {
     const node = page.locator('#slateCanvas [data-node-id="' + id + '"]').first()
     await expect(node).toHaveAttribute('aria-label', expected[index])
