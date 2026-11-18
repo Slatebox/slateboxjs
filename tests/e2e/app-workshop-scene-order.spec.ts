@@ -25,7 +25,7 @@ async function readScenes(page: Page, draft: Workshop, orderedLanes: string[]) {
     const lane = draft.lanes.find(item => item.id === id)!
     const cards = draft.cards.filter(card => card.laneId === id)
     await expectWorkshopSlide(page, lane.label, cards.map(card => card.label), ['lane-' + id, ...cards.map(card => 'card-' + card.id)])
-    if (lane.station) await expect(region.getByText(lane.station.outcome, { exact: true })).toBeVisible()
+    if (lane.station) await expect(region.locator(':scope > p').filter({ hasText: lane.station.outcome })).toBeVisible()
     if (index < orderedLanes.length - 1) await region.getByRole('button', { name: lane.station ? 'Next station' : 'Next lane' }).click()
   }
   await region.getByRole('button', { name: 'Back to board' }).click()
@@ -37,9 +37,13 @@ async function boardPositions(page: Page, draft: Workshop) {
   for (const lane of draft.lanes) {
     const heading = page.locator('.workshop-drawing #heading-' + lane.id)
     await expect(heading).toBeVisible()
-    positions.push(await heading.getAttribute('transform'))
+    const point = await heading.evaluate(element => {
+      const { e, f } = (element as SVGGraphicsElement).transform.baseVal.getItem(0).matrix
+      return [e, f]
+    })
+    positions.push(point)
   }
-  expect(new Set(positions).size).toBe(draft.lanes.length)
+  expect(new Set(positions.map(point => point.join(','))).size).toBe(draft.lanes.length)
   return positions
 }
 
