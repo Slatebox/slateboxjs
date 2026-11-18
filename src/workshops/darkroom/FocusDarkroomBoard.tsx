@@ -124,7 +124,13 @@ export function FocusDarkroomBoard({value, onChange, readOnly = false}: Props) {
     <output aria-label="Return path">{route === 'start' ? 'Every viewer returns to the first print.'
       : route === 'opener' ? 'Each viewer returns to the print that opened it.' : 'No wire attached. The viewer uses its native return path.'}</output>
     <output aria-label="Focus result">{result || 'Open ' + value.secondPrint + ' to try the return path.'}</output>
-    <dialog ref={viewer} onClose={close} aria-labelledby={heading}>
+    <dialog ref={viewer} onClose={close} aria-labelledby={heading} onKeyDown={event => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        event.currentTarget.close()
+      }
+    }}>
       <svg viewBox="-65 -50 130 100" aria-hidden="true">{specimen(opened)}</svg>
       <h2 id={heading}>{value[printFields[opened]]}</h2>
       {!locked && draft !== null ? <form onSubmit={e => {
