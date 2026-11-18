@@ -52,7 +52,7 @@ function renderWall(readOnly: boolean, enabledIds?: readonly string[]): Draggabl
         <rect id={index === 1 ? 'gallery-hook' : 'gallery-hook-' + index} x={hook.x} y={hook.y}
           width={panelWidth} height={panelHeight} stroke="#887e6b" strokeDasharray="4 7" fill="none"/>
         <circle cx={hook.x+panelWidth/2} cy={hook.y+6} r="3" fill="#7a6c57"/>
-        <g id={anchor(index)} transform={translate(point.x,point.y)} style={{cursor: movable ? 'grab' : 'default', touchAction: movable ? 'none' : 'auto'}}
+        <g id={anchor(index)} transform={translate(point.x,point.y)}
           dragologyZIndex={draggedId === anchor(index) ? '/1' : false}
           dragologyOnDrag={movable ? () => d.between([state, hangGalleryPanel(state, panel.id)]) : undefined}>
           {painting(['dunes','moon','coast'].indexOf(panel.artwork))}
