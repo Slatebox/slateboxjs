@@ -61,8 +61,10 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
   try {
     await owner.goto(new URL('/new/workshop' + encodeWorkshopFragment(model), origin).href)
     await owner.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
-    await expect(owner.getByRole('button', { name: 'Lens → Bright star' })).toBeEnabled()
+    await expect.poll(() => userId(owner)).toBeTruthy()
     ownerId = await userId(owner)
+    await dismissWelcome(owner)
+    await expect(owner.getByRole('button', { name: 'Lens → Bright star' })).toBeEnabled()
     expect(ownerId).toBeTruthy()
     const key = new URL(owner.url()).pathname.split('/').pop()!
     const original = await getSlate(owner, key)
@@ -78,7 +80,6 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
       expect(bundle.ok()).toBe(true)
       expect(await bundle.text()).toContain('Join to edit')
     }
-    await dismissWelcome(owner)
 
     const readLink = await shareAs(owner, 'read')
     await reader.goto(readLink.href)
