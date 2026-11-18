@@ -8,7 +8,9 @@ During an Apple services outage, a visitor reported that a store could neither p
 
 Give a founder, engineer and support lead one actual dependency drawing. Connect “Sign in” to “New customer” and put “Existing session” on a separate path. Move the sign-in note aside to make room for a fallback, draw the alternate path and let a teammate name the customer action it restores. Present the before-and-after views from the same board. Every gesture should work with ordinary notes, connectors and presentation controls. Automatic impact propagation would need a separate engine capability and proof. Hosted teams can rehearse an incident together. Teams that keep internal topology private have a concrete reason to install.
 
-**First test.** Give someone the slate with its labels visible and ask “Can an existing customer still open their work?” Watch whether they can answer from the drawing and add the missing recovery path unaided.
+The implemented example has six editable notes and four directed connectors. The visitor can move either customer path and write the support response. Opening it in Slatebox preserves the drawing. A second editor changed the fallback and the owner reopened it during staging verification. [Use the example](https://slatebox.com/#collaboration) · [Follow the guide](https://docs.slatebox.com/examples/sign-in-outage/)
+
+**First test with a prospective team.** Give someone the slate with its labels visible and ask “Can an existing customer still open their work?” Watch whether they can answer from the drawing and add the missing recovery path unaided.
 
 ## First self-host example — Could we switch tools and still book a room?
 
