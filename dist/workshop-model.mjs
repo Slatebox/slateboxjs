@@ -9,16 +9,16 @@ const O = {
 };
 function R(e) {
   if (!e || typeof e != "object") return null;
-  const { kind: n, version: r, stage: o, choice: t, fieldNote: l, deskNote: d, fallback: i } = e, s = (a) => typeof a == "string" && a.trim().length > 0 && a.trim().length <= 240 && !/[<>\u0000-\u001f]/u.test(a);
-  return n !== "offline-handoff" || r !== 1 || o !== "queued" && o !== "review" && o !== "resolved" || (o === "resolved" ? t !== "field" && t !== "desk" : t !== null) || t === void 0 || !s(l) || !s(d) || !s(i) ? null : { kind: n, version: r, stage: o, choice: t, fieldNote: l.trim(), deskNote: d.trim(), fallback: i.trim() };
-}
-function T(e) {
-  return { ...e, stage: "review", choice: null };
-}
-function z(e, n) {
-  return e.stage === "review" ? { ...e, stage: "resolved", choice: n } : e;
+  const { kind: n, version: o, stage: t, choice: r, fieldNote: l, deskNote: d, fallback: i } = e, s = (a) => typeof a == "string" && a.trim().length > 0 && a.trim().length <= 240 && !/[<>\u0000-\u001f]/u.test(a);
+  return n !== "offline-handoff" || o !== 1 || t !== "queued" && t !== "review" && t !== "resolved" || (t === "resolved" ? r !== "field" && r !== "desk" : r !== null) || r === void 0 || !s(l) || !s(d) || !s(i) ? null : { kind: n, version: o, stage: t, choice: r, fieldNote: l.trim(), deskNote: d.trim(), fallback: i.trim() };
 }
 function F(e) {
+  return { ...e, stage: "review", choice: null };
+}
+function W(e, n) {
+  return e.stage === "review" ? { ...e, stage: "resolved", choice: n } : e;
+}
+function z(e) {
   return e.stage === "resolved" ? (e.choice === "field" ? e.fieldNote : e.deskNote) + " " + e.fallback : e.stage === "queued" ? "One edit waiting to sync." : "Which result should the crew use?";
 }
 const g = {
@@ -30,29 +30,29 @@ const g = {
 };
 function G(e) {
   if (!e || typeof e != "object") return null;
-  const { kind: n, version: r, mix: o, leftLabel: t, rightLabel: l } = e, d = (i) => typeof i == "string" && i.trim().length > 0 && i.trim().length <= 80 && !/[<>\u0000-\u001f]/u.test(i);
-  return n !== "listening-room" || r !== 1 || typeof o != "number" || !Number.isFinite(o) || o < 0 || o > 1 || !d(t) || !d(l) ? null : { kind: n, version: r, mix: o, leftLabel: t.trim(), rightLabel: l.trim() };
+  const { kind: n, version: o, mix: t, leftLabel: r, rightLabel: l } = e, d = (i) => typeof i == "string" && i.trim().length > 0 && i.trim().length <= 80 && !/[<>\u0000-\u001f]/u.test(i);
+  return n !== "listening-room" || o !== 1 || typeof t != "number" || !Number.isFinite(t) || t < 0 || t > 1 || !d(r) || !d(l) ? null : { kind: n, version: o, mix: t, leftLabel: r.trim(), rightLabel: l.trim() };
 }
-function W({ mix: e, leftLabel: n, rightLabel: r }) {
-  return e < 0.32 ? n === g.leftLabel ? "Rain ticks on the copper roof." : "You hear " + n + "." : e > 0.68 ? r === g.rightLabel ? "Glass chimes ring, then fade." : "You hear " + r + "." : n === g.leftLabel && r === g.rightLabel ? "Rain and glass chimes overlap." : n + " and " + r + " overlap.";
+function U({ mix: e, leftLabel: n, rightLabel: o }) {
+  return e < 0.32 ? n === g.leftLabel ? "Rain ticks on the copper roof." : "You hear " + n + "." : e > 0.68 ? o === g.rightLabel ? "Glass chimes ring, then fade." : "You hear " + o + "." : n === g.leftLabel && o === g.rightLabel ? "Rain and glass chimes overlap." : n + " and " + o + " overlap.";
 }
 function b(e, n) {
-  return e.cards.reduce((r, o) => r + (o.laneId === n ? o.points ?? 1 : 0), 0);
+  return e.cards.reduce((o, t) => o + (t.laneId === n ? t.points ?? 1 : 0), 0);
 }
-function A(e) {
-  const n = new Map(e.cards.map((d) => [d.id, d])), r = new Map(e.lanes.map((d, i) => [d.id, i])), o = /* @__PURE__ */ new Set(), t = /* @__PURE__ */ new Set();
+function P(e) {
+  const n = new Map(e.cards.map((d) => [d.id, d])), o = new Map(e.lanes.map((d, i) => [d.id, i])), t = /* @__PURE__ */ new Set(), r = /* @__PURE__ */ new Set();
   function l(d) {
-    if (!o.has(d.id)) {
-      if (t.has(d.id)) throw new Error("Release dependencies must be acyclic.");
-      t.add(d.id);
+    if (!t.has(d.id)) {
+      if (r.has(d.id)) throw new Error("Release dependencies must be acyclic.");
+      r.add(d.id);
       for (const i of d.dependsOn ?? []) {
         const s = n.get(i);
         if (!s) throw new Error("A release dependency refers to an unknown feature.");
-        if (r.get(s.laneId) > r.get(d.laneId))
+        if (o.get(s.laneId) > o.get(d.laneId))
           throw new Error("Schedule each dependency in the same window as its feature or earlier.");
         l(s);
       }
-      t.delete(d.id), o.add(d.id);
+      r.delete(d.id), t.add(d.id);
     }
   }
   for (const d of e.cards) l(d);
@@ -61,22 +61,22 @@ function A(e) {
     if (b(e, d.id) > (d.capacity ?? 1 / 0)) throw new Error(`Release "${d.label}" exceeds its point budget.`);
   }
 }
-function v(e, n, r) {
-  if (r === n.laneId) return e;
-  const o = new Map(e.lanes.map((f, h) => [f.id, h])), t = o.get(r);
-  if (t === void 0) return null;
-  const l = t < o.get(n.laneId), d = /* @__PURE__ */ new Set([n.id]), i = [n];
+function I(e, n, o) {
+  if (o === n.laneId) return e;
+  const t = new Map(e.lanes.map((f, h) => [f.id, h])), r = t.get(o);
+  if (r === void 0) return null;
+  const l = r < t.get(n.laneId), d = /* @__PURE__ */ new Set([n.id]), i = [n];
   for (; i.length; ) {
     const f = i.pop();
     for (const h of e.cards) {
       if (d.has(h.id)) continue;
-      const p = o.get(h.laneId);
-      (l ? p > t && f.dependsOn?.includes(h.id) : p < t && h.dependsOn?.includes(f.id)) && (d.add(h.id), i.push(h));
+      const p = t.get(h.laneId);
+      (l ? p > r && f.dependsOn?.includes(h.id) : p < r && h.dependsOn?.includes(f.id)) && (d.add(h.id), i.push(h));
     }
   }
-  if (e.cards.filter((f) => d.has(f.id)).some((f) => f.allowedLaneIds && !f.allowedLaneIds.includes(r))) return null;
-  const a = { ...e, cards: e.cards.map((f) => d.has(f.id) ? { ...f, laneId: r } : f) }, c = e.lanes[t].capacity;
-  return c !== void 0 && b(a, r) > c ? null : a;
+  if (e.cards.filter((f) => d.has(f.id)).some((f) => f.allowedLaneIds && !f.allowedLaneIds.includes(o))) return null;
+  const a = { ...e, cards: e.cards.map((f) => d.has(f.id) ? { ...f, laneId: o } : f) }, c = e.lanes[r].capacity;
+  return c !== void 0 && b(a, o) > c ? null : a;
 }
 const $ = {
   version: 1,
@@ -93,7 +93,7 @@ const $ = {
     { id: "billing", label: "Invoice download", laneId: "friday", points: 3 },
     { id: "export", label: "Workspace export", laneId: "next", points: 4 }
   ]
-}, U = {
+}, j = {
   kind: "moon-gallery",
   version: 1,
   panels: [
@@ -103,35 +103,35 @@ const $ = {
   ],
   hung: ["dunes"]
 };
-function j(e) {
+function D(e) {
   if (!e || typeof e != "object") return null;
   const n = e;
   if (n.kind !== "moon-gallery" || n.version !== 1 || !Array.isArray(n.panels) || n.panels.length !== 3 || !Array.isArray(n.hung)) return null;
-  const r = [];
+  const o = [];
   for (const l of n.panels) {
     if (!l || typeof l.id != "string" || !/^[a-z][\w-]{0,31}$/.test(l.id) || typeof l.label != "string" || !l.label.trim() || l.label.trim().length > 48 || !["dunes", "moon", "coast"].includes(l.artwork) || !(l.after === null || typeof l.after == "string")) return null;
-    r.push({ id: l.id, label: l.label.trim(), artwork: l.artwork, after: l.after });
+    o.push({ id: l.id, label: l.label.trim(), artwork: l.artwork, after: l.after });
   }
-  const o = new Map(r.map((l) => [l.id, l])), t = [...new Set(n.hung)];
-  if (o.size !== r.length || t.length !== n.hung.length || t.some((l) => !o.has(l))) return null;
-  for (const l of r) {
+  const t = new Map(o.map((l) => [l.id, l])), r = [...new Set(n.hung)];
+  if (t.size !== o.length || r.length !== n.hung.length || r.some((l) => !t.has(l))) return null;
+  for (const l of o) {
     const d = /* @__PURE__ */ new Set([l.id]);
     let i = l.after;
     for (; i !== null; ) {
-      if (d.has(i) || !o.has(i) || t.includes(l.id) && !t.includes(i)) return null;
-      d.add(i), i = o.get(i).after;
+      if (d.has(i) || !t.has(i) || r.includes(l.id) && !r.includes(i)) return null;
+      d.add(i), i = t.get(i).after;
     }
   }
-  return { kind: "moon-gallery", version: 1, panels: r, hung: t };
+  return { kind: "moon-gallery", version: 1, panels: o, hung: r };
 }
 function M(e, n) {
-  const r = e.panels.find((o) => o.id === n);
-  return !!r && !e.hung.includes(n) && (r.after === null || e.hung.includes(r.after));
+  const o = e.panels.find((t) => t.id === n);
+  return !!o && !e.hung.includes(n) && (o.after === null || e.hung.includes(o.after));
 }
-function D(e, n) {
+function H(e, n) {
   return M(e, n) ? { ...e, hung: [...e.hung, n] } : e;
 }
-const I = ["firstPrint", "secondPrint", "thirdPrint"], E = {
+const E = ["firstPrint", "secondPrint", "thirdPrint"], x = {
   kind: "focus-darkroom",
   version: 1,
   firstPrint: "Fern",
@@ -139,31 +139,31 @@ const I = ["firstPrint", "secondPrint", "thirdPrint"], E = {
   thirdPrint: "Sea fan",
   route: null
 };
-function H(e) {
+function q(e) {
   if (!e || typeof e != "object") throw new Error("Expected a darkroom.");
   const n = e;
   if (n.kind !== void 0 && n.kind !== "focus-darkroom") throw new Error("Expected a darkroom.");
   if (n.version !== 1) throw new Error("Unknown darkroom version.");
   if (n.route !== null && n.route !== "start" && n.route !== "opener") throw new Error("Unknown return path.");
-  const r = { ...E, route: n.route };
-  for (const o of I) {
-    const t = n[o];
-    if (typeof t != "string" || !t.trim() || t.trim().length > 48)
+  const o = { ...x, route: n.route };
+  for (const t of E) {
+    const r = n[t];
+    if (typeof r != "string" || !r.trim() || r.trim().length > 48)
       throw new Error("Give each print a name of up to 48 characters.");
-    r[o] = t.trim();
+    o[t] = r.trim();
   }
-  return r;
+  return o;
 }
-function q(e = new URLSearchParams()) {
-  const n = { ...E };
-  for (const o of I) {
-    const t = e.get(o)?.trim();
-    t && t.length <= 48 && (n[o] = t);
+function B(e = new URLSearchParams()) {
+  const n = { ...x };
+  for (const t of E) {
+    const r = e.get(t)?.trim();
+    r && r.length <= 48 && (n[t] = r);
   }
-  const r = e.get("route");
-  return (r === "start" || r === "opener") && (n.route = r), n;
+  const o = e.get("route");
+  return (o === "start" || o === "opener") && (n.route = o), n;
 }
-function B(e) {
+function J(e) {
   const n = e.route === "start" ? "Every viewer returns to the first print." : e.route === "opener" ? "Each viewer returns to the print that opened it." : "No wire attached. The viewer uses its native return path.";
   return [e.firstPrint, e.secondPrint, e.thirdPrint].join(" · ") + ". " + n;
 }
@@ -185,19 +185,19 @@ function w(e) {
 function m(e, n) {
   if (new Set(e).size !== e.length) throw new Error(`Duplicate ${n}.`);
 }
-function P(e) {
+function v(e) {
   const n = y(e);
   if (n.version !== 1) throw new Error("Unsupported workshop version.");
   if (n.kind !== void 0 && n.kind !== "release-plan") throw new Error("Unsupported workshop kind.");
-  const r = n.kind === "release-plan", o = k(n.title, 120);
+  const o = n.kind === "release-plan", t = k(n.title, 120);
   if (!Array.isArray(n.lanes) || n.lanes.length < 2 || n.lanes.length > 5)
     throw new Error("A workshop needs 2 to 5 lanes.");
   if (!Array.isArray(n.cards) || n.cards.length < 1 || n.cards.length > 24)
     throw new Error("A workshop needs 1 to 24 cards.");
-  const t = n.lanes.map((i) => {
+  const r = n.lanes.map((i) => {
     const s = y(i), a = { id: w(s.id), label: k(s.label) };
     if (s.capacity !== void 0) {
-      const c = r ? 576 : 24;
+      const c = o ? 576 : 24;
       if (typeof s.capacity != "number" || !Number.isInteger(s.capacity) || s.capacity < 1 || s.capacity > c)
         throw new Error(`Lane capacity must be a whole number from 1 to ${c}.`);
       a.capacity = s.capacity;
@@ -213,22 +213,22 @@ function P(e) {
       m(h, "onward stop"), a.station = { column: f(c.column), row: f(c.row), next: h, outcome: k(c.outcome, 160) };
     }
     return a;
-  }), l = t.map((i) => i.id);
-  if (m(l, "lane ID"), t.some((i) => i.station)) {
-    if (!t.every((i) => i.station)) throw new Error("Give every station on the map a position.");
-    m(t.map((i) => i.station.column + "," + i.station.row), "map position");
-    for (const i of t)
+  }), l = r.map((i) => i.id);
+  if (m(l, "lane ID"), r.some((i) => i.station)) {
+    if (!r.every((i) => i.station)) throw new Error("Give every station on the map a position.");
+    m(r.map((i) => i.station.column + "," + i.station.row), "map position");
+    for (const i of r)
       if (i.station.next.some((s) => s === i.id || !l.includes(s))) throw new Error("Connect each stop to another station on this map.");
   }
   const d = n.cards.map((i) => {
     const s = y(i), a = { id: w(s.id), label: k(s.label), laneId: w(s.laneId) };
     if (!l.includes(a.laneId)) throw new Error("Card refers to an unknown lane.");
     if (s.allowedLaneIds !== void 0) {
-      if (!Array.isArray(s.allowedLaneIds) || s.allowedLaneIds.length > t.length) throw new Error("Invalid allowed lanes.");
+      if (!Array.isArray(s.allowedLaneIds) || s.allowedLaneIds.length > r.length) throw new Error("Invalid allowed lanes.");
       if (a.allowedLaneIds = s.allowedLaneIds.map(w), m(a.allowedLaneIds, "allowed lane"), !a.allowedLaneIds.includes(a.laneId) || !a.allowedLaneIds.every((c) => l.includes(c)))
         throw new Error("Allowed lanes must exist and include the starting lane.");
     }
-    if (r) {
+    if (o) {
       if (typeof s.points != "number" || !Number.isInteger(s.points) || s.points < 1 || s.points > 24)
         throw new Error("Give each feature 1 to 24 effort points.");
       if (a.points = s.points, s.dependsOn !== void 0) {
@@ -238,43 +238,62 @@ function P(e) {
     }
     return a;
   });
-  if (m(d.map((i) => i.id), "card ID"), r) {
-    const i = { version: 1, kind: "release-plan", title: o, lanes: t, cards: d };
-    return A(i), i;
+  if (m(d.map((i) => i.id), "card ID"), o) {
+    const i = { version: 1, kind: "release-plan", title: t, lanes: r, cards: d };
+    return P(i), i;
   }
-  for (const i of t)
+  for (const i of r)
     if (d.filter((s) => s.laneId === i.id).length > (i.capacity ?? 1 / 0))
       throw new Error(`Lane "${i.label}" exceeds its capacity.`);
-  return { version: 1, title: o, lanes: t, cards: d };
+  return { version: 1, title: t, lanes: r, cards: d };
 }
-function S(e, n) {
-  if (e.kind === "release-plan") return e.lanes.filter((o) => v(e, n, o.id) !== null);
-  const r = e.lanes.find((o) => o.id === n.laneId)?.station;
-  return e.lanes.filter((o) => o.id === n.laneId || (!r || r.next.includes(o.id)) && (!n.allowedLaneIds || n.allowedLaneIds.includes(o.id)) && e.cards.filter((t) => t.laneId === o.id).length < (o.capacity ?? 1 / 0));
+const L = 65536;
+function V(e) {
+  const n = JSON.stringify(v(e)), o = "#" + new URLSearchParams({ model: n }).toString();
+  if (o.length > L) throw new Error("This workshop is too large to open from a link.");
+  return o;
 }
-function V(e, n, r) {
-  const o = e.cards.find((t) => t.id === n);
-  if (o && e.kind === "release-plan") {
-    const t = v(e, o, r);
-    if (!t) throw new Error("Move is unavailable.");
-    return t;
+function Y(e) {
+  if (e.length > L) throw new Error("This workshop is too large to open from a link.");
+  const n = new URLSearchParams(e.slice(1)), o = n.get("model");
+  if (!e.startsWith("#") || !o || Array.from(n.keys()).length !== 1)
+    throw new Error("This link needs one workshop model.");
+  let t;
+  try {
+    t = JSON.parse(o);
+  } catch {
+    throw new Error("This link contains unreadable workshop data.");
   }
-  if (!o || !S(e, o).some((t) => t.id === r)) throw new Error("Move is unavailable.");
-  return o.laneId === r ? e : { ...e, cards: e.cards.map((t) => t === o ? { ...o, laneId: r } : t) };
+  return v(t);
 }
-const x = { pitch: 244, width: 228, row: 88, height: 76, top: 98 }, C = ["#d5e9e3", "#fbdfac", "#dedef4", "#dcebf3", "#efd7dc"];
-function N(e) {
-  const { pitch: n, row: r, top: o } = x, t = !!e.lanes[0].station, l = e.lanes.map((s) => e.cards.filter((a) => a.laneId === s.id).length), d = o + Math.max(1, ...l) * r + 36, i = e.lanes.map((s, a) => ({
-    x: t ? s.station.column * (n + 28) : a * n,
-    y: t ? s.station.row * d : 0
+function N(e, n) {
+  if (e.kind === "release-plan") return e.lanes.filter((t) => I(e, n, t.id) !== null);
+  const o = e.lanes.find((t) => t.id === n.laneId)?.station;
+  return e.lanes.filter((t) => t.id === n.laneId || (!o || o.next.includes(t.id)) && (!n.allowedLaneIds || n.allowedLaneIds.includes(t.id)) && e.cards.filter((r) => r.laneId === t.id).length < (t.capacity ?? 1 / 0));
+}
+function Z(e, n, o) {
+  const t = e.cards.find((r) => r.id === n);
+  if (t && e.kind === "release-plan") {
+    const r = I(e, t, o);
+    if (!r) throw new Error("Move is unavailable.");
+    return r;
+  }
+  if (!t || !N(e, t).some((r) => r.id === o)) throw new Error("Move is unavailable.");
+  return t.laneId === o ? e : { ...e, cards: e.cards.map((r) => r === t ? { ...t, laneId: o } : r) };
+}
+const A = { pitch: 244, width: 228, row: 88, height: 76, top: 98 }, T = ["#d5e9e3", "#fbdfac", "#dedef4", "#dcebf3", "#efd7dc"];
+function C(e) {
+  const { pitch: n, row: o, top: t } = A, r = !!e.lanes[0].station, l = e.lanes.map((s) => e.cards.filter((a) => a.laneId === s.id).length), d = t + Math.max(1, ...l) * o + 36, i = e.lanes.map((s, a) => ({
+    x: r ? s.station.column * (n + 28) : a * n,
+    y: r ? s.station.row * d : 0
   }));
   return {
     points: i,
     width: Math.max(...i.map((s) => s.x)) + n,
-    height: Math.max(...i.map((s, a) => s.y + o + (t ? Math.max(1, l[a]) : l[a] + 1) * r))
+    height: Math.max(...i.map((s, a) => s.y + t + (r ? Math.max(1, l[a]) : l[a] + 1) * o))
   };
 }
-const Y = {
+const _ = {
   version: 1,
   title: "Can the last train meet the shuttle?",
   lanes: [
@@ -285,8 +304,8 @@ const Y = {
   ],
   cards: [{ id: "rider", label: "Last rider", laneId: "platform" }]
 };
-function Z(e) {
-  const n = P(e), { width: r, row: o, height: t, top: l } = x, d = [];
+function K(e) {
+  const n = v(e), { width: o, row: t, height: r, top: l } = A, d = [];
   function i(a, c, f, h, p, u) {
     d.push({ options: {
       id: a,
@@ -294,7 +313,7 @@ function Z(e) {
       name: c,
       xPos: f,
       yPos: h,
-      width: r,
+      width: o,
       height: p,
       shapeHint: "rectangle",
       backgroundColor: u,
@@ -304,12 +323,12 @@ function Z(e) {
       borderWidth: 1
     }, relationships: { associations: [] } });
   }
-  const { points: s } = N(n);
+  const { points: s } = C(n);
   n.lanes.forEach((a, c) => {
     const { x: f, y: h } = s[c], p = n.kind === "release-plan" ? a.label + `
 ` + (a.capacity ? b(n, a.id) + " / " + a.capacity + " points" : b(n, a.id) + " points") : a.label;
-    i("lane-" + a.id, p, f, h, l - 12, C[c]), n.cards.filter((u) => u.laneId === a.id).forEach((u, L) => i("card-" + u.id, n.kind === "release-plan" ? u.label + `
-` + u.points + " points" : u.label, f, h + l + L * o, t, "#fffdf6"));
+    i("lane-" + a.id, p, f, h, l - 12, T[c]), n.cards.filter((u) => u.laneId === a.id).forEach((u, S) => i("card-" + u.id, n.kind === "release-plan" ? u.label + `
+` + u.points + " points" : u.label, f, h + l + S * t, r, "#fffdf6"));
   });
   for (const a of n.lanes) {
     if (!a.station) continue;
@@ -335,7 +354,7 @@ function Z(e) {
   }
   return { options: { name: n.title }, shareId: "", nodes: d };
 }
-const _ = {
+const Q = {
   version: 1,
   title: "Which field trials should run before the winter shutdown?",
   lanes: [
@@ -351,31 +370,33 @@ const _ = {
   ]
 };
 export {
-  S as availableLanes,
+  N as availableLanes,
   M as canHangPanel,
-  B as describeFocusDarkroom,
-  F as handoffSummary,
-  D as hangGalleryPanel,
-  _ as industrialWorkshop,
-  q as initialFocusDarkroom,
-  C as laneColors,
+  Y as decodeWorkshopFragment,
+  J as describeFocusDarkroom,
+  V as encodeWorkshopFragment,
+  z as handoffSummary,
+  H as hangGalleryPanel,
+  Q as industrialWorkshop,
+  B as initialFocusDarkroom,
+  T as laneColors,
   g as listeningRoom,
-  W as listeningRoomCaption,
-  U as moonGallery,
-  V as moveWorkshopCard,
-  Y as nightTransfer,
-  H as normalizeFocusDarkroom,
+  U as listeningRoomCaption,
+  j as moonGallery,
+  Z as moveWorkshopCard,
+  _ as nightTransfer,
+  q as normalizeFocusDarkroom,
   G as normalizeListeningRoom,
-  j as normalizeMoonGallery,
+  D as normalizeMoonGallery,
   R as normalizeOfflineHandoff,
   O as offlineHandoff,
-  I as printFields,
+  E as printFields,
   b as releaseLoad,
   $ as releasePlan,
-  z as resolveHandoff,
-  T as reviewHandoff,
-  P as validateWorkshop,
-  x as workshopLayout,
-  N as workshopPositions,
-  Z as workshopToSlate
+  W as resolveHandoff,
+  F as reviewHandoff,
+  v as validateWorkshop,
+  A as workshopLayout,
+  C as workshopPositions,
+  K as workshopToSlate
 };

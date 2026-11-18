@@ -29,6 +29,10 @@ export interface Workshop {
     cards: WorkshopCard[];
 }
 export declare function validateWorkshop(input: unknown): Workshop;
+/** Build the fragment for /new/workshop from portable workshop data. */
+export declare function encodeWorkshopFragment(value: Workshop): string;
+/** Read location.hash before creating a slate. Only the validated model is imported. */
+export declare function decodeWorkshopFragment(fragment: string): Workshop;
 export declare function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLane[];
 export declare function moveWorkshopCard(board: Workshop, cardId: string, laneId: string): Workshop;
 export declare const workshopLayout: {

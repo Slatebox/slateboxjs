@@ -1,8 +1,25 @@
 import { describe, expect, it } from 'vitest'
 import { deserializeNodeOptions } from '../../src/core/Serialization'
-import { availableLanes, nightTransfer, industrialWorkshop, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
+import { availableLanes, decodeWorkshopFragment, encodeWorkshopFragment, nightTransfer, industrialWorkshop, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
 
 describe('agent-authored workshops', () => {
+  it('opens the authored state, including its rules and literal URL punctuation', () => {
+    const map = { ...moveWorkshopCard(nightTransfer, 'rider', 'lift'), title: 'Météores + auroras #2 & 3 / 北' }
+    const url = new URL('/new/workshop' + encodeWorkshopFragment(map), 'https://example.com')
+    expect(url.search).toBe('')
+    const copy = decodeWorkshopFragment(url.hash)
+    expect(copy).toEqual(map)
+    expect(() => moveWorkshopCard(copy, 'rider', 'stairs')).toThrow()
+  })
+
+  it('rejects incomplete, ambiguous, oversized and unsupported workshop links', () => {
+    const valid = encodeWorkshopFragment(industrialWorkshop)
+    for (const fragment of ['', '#model=', '#model=oops', valid + '&model=null', valid + '&owner=someone',
+      '#model=' + 'a'.repeat(65536), '#model=%7B%22version%22%3A2%7D']) {
+      expect(() => decodeWorkshopFragment(fragment)).toThrow()
+    }
+  })
+
   it('keeps only portable data and rejects ambiguous rules or markup', () => {
     const clean = validateWorkshop({ ...industrialWorkshop, script: 'extra' })
     expect(clean).toEqual(industrialWorkshop)

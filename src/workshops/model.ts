@@ -139,6 +139,33 @@ export function validateWorkshop(input: unknown): Workshop {
   return { version: 1, title, lanes, cards }
 }
 
+const maxWorkshopFragmentLength = 65536
+
+/** Build the fragment for /new/workshop from portable workshop data. */
+export function encodeWorkshopFragment(value: Workshop): string {
+  const model = JSON.stringify(validateWorkshop(value))
+  const fragment = '#' + new URLSearchParams({ model }).toString()
+  if (fragment.length > maxWorkshopFragmentLength) throw new Error('This workshop is too large to open from a link.')
+  return fragment
+}
+
+/** Read location.hash before creating a slate. Only the validated model is imported. */
+export function decodeWorkshopFragment(fragment: string): Workshop {
+  if (fragment.length > maxWorkshopFragmentLength) throw new Error('This workshop is too large to open from a link.')
+  const params = new URLSearchParams(fragment.slice(1))
+  const model = params.get('model')
+  if (!fragment.startsWith('#') || !model || Array.from(params.keys()).length !== 1) {
+    throw new Error('This link needs one workshop model.')
+  }
+  let value: unknown
+  try {
+    value = JSON.parse(model)
+  } catch {
+    throw new Error('This link contains unreadable workshop data.')
+  }
+  return validateWorkshop(value)
+}
+
 export function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLane[] {
   if (board.kind === 'release-plan') return board.lanes.filter(lane => planReleaseMove(board, card, lane.id) !== null)
   const station = board.lanes.find(lane => lane.id === card.laneId)?.station

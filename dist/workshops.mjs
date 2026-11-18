@@ -1,7 +1,7 @@
 import e, { useState as W, useRef as q, useMemo as ne, useLayoutEffect as T, useEffect as A, useId as ie } from "react";
 import { DraggableRenderer as P, translate as S, param as ce, inOrder as se } from "./dragology.mjs";
 import { handoffSummary as Y, reviewHandoff as B, resolveHandoff as _, offlineHandoff as de, listeningRoom as Z, listeningRoomCaption as J, releaseLoad as re, availableLanes as G, moveWorkshopCard as Q, canHangPanel as j, hangGalleryPanel as K, printFields as R, workshopPositions as X, workshopLayout as fe, laneColors as me } from "./workshop-model.mjs";
-import { describeFocusDarkroom as Be, industrialWorkshop as Ke, initialFocusDarkroom as Te, moonGallery as Ge, nightTransfer as Qe, normalizeFocusDarkroom as Ve, normalizeListeningRoom as je, normalizeMoonGallery as Xe, normalizeOfflineHandoff as Ye, releasePlan as _e, validateWorkshop as Ze, workshopToSlate as Je } from "./workshop-model.mjs";
+import { decodeWorkshopFragment as Be, describeFocusDarkroom as Ke, encodeWorkshopFragment as Te, industrialWorkshop as Ge, initialFocusDarkroom as Qe, moonGallery as Ve, nightTransfer as je, normalizeFocusDarkroom as Xe, normalizeListeningRoom as Ye, normalizeMoonGallery as _e, normalizeOfflineHandoff as Ze, releasePlan as Je, validateWorkshop as Ue, workshopToSlate as Oe } from "./workshop-model.mjs";
 function ue(t, p, n) {
   return /* @__PURE__ */ e.createElement("g", { transform: `translate(${t} ${p}) scale(${n} ${n * 0.88})` }, /* @__PURE__ */ e.createElement("rect", { width: "142", height: "73", rx: "3", fill: "#b8d0c5" }), /* @__PURE__ */ e.createElement("path", { d: "M0 27L46 7h96v12H50L0 38Z", fill: "#728d81" }), /* @__PURE__ */ e.createElement("path", { d: "M12 38l36-17v43l-36 6z", fill: "#395c50" }), /* @__PURE__ */ e.createElement("path", { d: "M49 20h89v43H49z", fill: "#f1e3b8" }), /* @__PURE__ */ e.createElement("path", { d: "M57 33h45v30H57z", fill: "#557468" }), [37, 42, 47, 52, 57].map((o) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "slat" + o, d: `M59 ${o}h41`, stroke: "#a5b6a3" })), /* @__PURE__ */ e.createElement("path", { d: "M0 69l49-7h93v11H0z", fill: "#84998a" }), /* @__PURE__ */ e.createElement("path", { d: "M12 73l40-7h65", fill: "none", stroke: "#e9b04e", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("rect", { x: "111", y: "34", width: "19", height: "27", fill: "#d1a45c" }), /* @__PURE__ */ e.createElement("rect", { x: "116", y: "39", width: "9", height: "12", rx: "2", fill: "#38574b" }), /* @__PURE__ */ e.createElement("circle", { cx: "120", cy: "42", r: "2", fill: "#f0a466" }), /* @__PURE__ */ e.createElement("text", { x: "59", y: "30", fontSize: "8", fontWeight: "bold", fill: "#354e40" }, "GATE B"));
 }
@@ -553,29 +553,31 @@ export {
   He as WorkshopBoard,
   G as availableLanes,
   j as canHangPanel,
-  Be as describeFocusDarkroom,
+  Be as decodeWorkshopFragment,
+  Ke as describeFocusDarkroom,
+  Te as encodeWorkshopFragment,
   Y as handoffSummary,
   K as hangGalleryPanel,
-  Ke as industrialWorkshop,
-  Te as initialFocusDarkroom,
+  Ge as industrialWorkshop,
+  Qe as initialFocusDarkroom,
   me as laneColors,
   Z as listeningRoom,
   J as listeningRoomCaption,
-  Ge as moonGallery,
+  Ve as moonGallery,
   Q as moveWorkshopCard,
-  Qe as nightTransfer,
-  Ve as normalizeFocusDarkroom,
-  je as normalizeListeningRoom,
-  Xe as normalizeMoonGallery,
-  Ye as normalizeOfflineHandoff,
+  je as nightTransfer,
+  Xe as normalizeFocusDarkroom,
+  Ye as normalizeListeningRoom,
+  _e as normalizeMoonGallery,
+  Ze as normalizeOfflineHandoff,
   de as offlineHandoff,
   R as printFields,
   re as releaseLoad,
-  _e as releasePlan,
+  Je as releasePlan,
   _ as resolveHandoff,
   B as reviewHandoff,
-  Ze as validateWorkshop,
+  Ue as validateWorkshop,
   fe as workshopLayout,
   X as workshopPositions,
-  Je as workshopToSlate
+  Oe as workshopToSlate
 };
