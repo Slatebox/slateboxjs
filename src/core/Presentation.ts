@@ -91,10 +91,7 @@ export class Presentation {
       (node.relationships?.associations || [])
         .map((a: any) => a.childId)
         .filter((id: string) => byId.has(id));
-    const isChildOfAny = (node: any): boolean =>
-      nodes.some((p) =>
-        (p.relationships?.associations || []).some((a: any) => a.childId === node.id)
-      );
+    const childIds = new Set(nodes.flatMap(childIdsOf));
 
     const processed = new Set<string>();
     const processNode = (node: any): any => {
@@ -122,11 +119,16 @@ export class Presentation {
       };
     };
 
-    const rootNodes = nodes.filter((n) => !isChildOfAny(n));
+    const roots = nodes.filter((node) => !childIds.has(node.id)).map(processNode);
+    // A disconnected loop has no parentless node. Start a tree for each
+    // unvisited component so its scenes have bounds and the camera can visit it.
+    for (const node of nodes) {
+      if (!processed.has(node.id)) roots.push(processNode(node));
+    }
     return {
       presentationHeight: Math.ceil(orient.height),
       presentationWidth: Math.ceil(orient.width),
-      nodes: rootNodes.map(processNode).filter(Boolean),
+      nodes: roots,
     };
   }
 

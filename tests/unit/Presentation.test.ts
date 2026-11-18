@@ -69,6 +69,23 @@ describe("Presentation", () => {
     });
   });
 
+  it("frames every station in a rootless cycle, alongside independent cards", () => {
+    mockSlate.nodes.allNodes = [
+      { id: "bench", options: { x: 40, y: 10, width: 100, height: 60 }, relationships: { associations: [{ childId: "lamp" }] } },
+      { id: "lamp", options: { x: 220, y: 30, width: 120, height: 40 }, relationships: { associations: [{ childId: "bench" }] } },
+      { id: "lens", options: { x: 80, y: 90, width: 70, height: 40 } },
+    ];
+    const layout = new Presentation(mockSlate).extractPresentationLayout();
+    expect(layout.nodes.map((node: {nodeId: string}) => node.nodeId)).toEqual(["lens", "bench"]);
+    const bench = layout.nodes[1];
+    expect(bench.metrics.bbox).toEqual({ x: 0, y: 0, width: 100, height: 60 });
+    expect(bench.childrenNodes).toHaveLength(1);
+    const lamp = bench.childrenNodes[0];
+    expect(lamp.nodeId).toBe("lamp");
+    expect(lamp.metrics.bbox).toEqual({ x: 180, y: 20, width: 120, height: 40 });
+    expect(lamp.childrenNodes).toHaveLength(0);
+  });
+
   describe("start/stop", () => {
     it("should start presentation and go to first step", () => {
       const pres = new Presentation(mockSlate);

@@ -12,7 +12,7 @@ const workshops: Workshop[] = [{
   version: 1, title: 'Lens test routes',
   lanes: [
     { id: 'bench', label: 'Lens bench', station: { column: 0, row: 0, next: ['lamp', 'star'], outcome: 'Choose a light source.' } },
-    { id: 'lamp', label: 'Indoor lamp', station: { column: 1, row: 1, next: [], outcome: 'Lamp test complete.' } },
+    { id: 'lamp', label: 'Indoor lamp', station: { column: 1, row: 1, next: ['bench'], outcome: 'Lamp test complete.' } },
     { id: 'star', label: 'Bright star', station: { column: 2, row: 0, next: [], outcome: 'Night test complete.' } },
   ],
   cards: [{ id: 'lens', label: 'Test lens', laneId: 'bench' }],
