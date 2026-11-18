@@ -20,16 +20,23 @@ async function openBoard(page: Page, scale = 0.63) {
   }, scale)
 }
 
-async function outsideDot(page: Page) {
-  await page.locator('[data-node-id="rain"]').first().tap()
-  const dot = page.locator('.connection-handle-bottom:visible').first()
-  await expect(dot).toBeVisible()
-  const point = await dot.evaluate(element => {
-    const r = element.getBoundingClientRect()
-    const x = r.left + r.width / 2 + 12, y = r.top + r.height / 2
-    return { x, y, width: r.width, hit: document.elementFromPoint(x, y)?.tagName }
-  })
-  expect(point.width / 2).toBeLessThan(12)
+async function outsideDot(page: Page, offset = 12) {
+  const selected = () => page.evaluate(() => (window as any).touchBoard.getSelectedNodes().map((n:any) => n.id))
+  if (!(await selected()).includes('rain')) await page.locator('[data-node-id="rain"]').first().tap()
+  await expect.poll(selected).toEqual(['rain'])
+  // Hover can keep the previous node's dots visible during the selection change.
+  // Wait for the selected node's own plug to settle before using its coordinates.
+  const hit = await page.waitForFunction(offset => {
+    const source = (window as any).touchBoard.getNode('rain')
+    const dot = source.connectionHandles.bottom?.node
+    if (!dot || !source.isConnectionHandlesEnabled()) return
+    const r = dot.getBoundingClientRect()
+    if (!r.width) return
+    const x = r.left + r.width / 2 + offset, y = r.top + r.height / 2
+    return {x, y, width:r.width, hit:document.elementFromPoint(x,y)?.tagName}
+  }, offset)
+  const point = await hit.jsonValue()
+  expect(point.width / 2).toBeLessThan(Math.abs(offset))
   expect(point.hit).toBe('svg')
   return { x: point.x, y: point.y }
 }
@@ -51,8 +58,10 @@ async function nameNewChild(page: Page) {
 test('off-center touch creates a blank connected child; the same mouse point and read-only touch do not', async ({page}) => {
   await openBoard(page)
   const point = await outsideDot(page)
+  const artwork = () => page.evaluate(() => JSON.parse((window as any).touchBoard.exportJSON()).nodes)
+  const before = await artwork()
   await page.mouse.click(point.x, point.y)
-  await expect(page.locator('.connection-handle-bottom:visible')).toHaveCount(0)
+  expect(await artwork()).toEqual(before)
   const target = await outsideDot(page)
   await page.evaluate(() => { (window as any).readonly = true })
   await page.touchscreen.tap(target.x, target.y)
@@ -75,12 +84,7 @@ test('at normal scale, adjacent artwork owns its touch and remaining empty space
   await page.touchscreen.tap(point.x + 1, point.y)
   await expect.poll(() => page.evaluate(() => (window as any).touchBoard.getSelectedNodes().map((n:any) => n.id))).toEqual(['neighbor'])
   expect(await page.evaluate(() => (window as any).touchBoard.getAllNodes().length)).toBe(2)
-  await page.locator('g[data-node-id="rain"]').first().tap()
-  const dot = page.locator('.connection-handle-bottom:visible').first()
-  const safe = await dot.evaluate(el => {
-    const r = el.getBoundingClientRect()
-    return {x:r.x+r.width/2-12, y:r.y+r.height/2}
-  })
+  const safe = await outsideDot(page, -12)
   await page.touchscreen.tap(safe.x, safe.y)
   await expect.poll(() => page.evaluate(() => (window as any).touchBoard.getAllNodes().length)).toBe(3)
 })
