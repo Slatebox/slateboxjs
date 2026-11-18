@@ -1,3 +1,4 @@
+export * from './offlineHandoff'
 export * from './listeningRoom'
 import { planReleaseMove, releaseLoad, validateRelease } from './release'
 export { releaseLoad, releasePlan } from './release'

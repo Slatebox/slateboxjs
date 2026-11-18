@@ -1,3 +1,4 @@
+export { OfflineHandoffBoard } from './OfflineHandoffBoard'
 export { ListeningRoomBoard, type ListeningRoomBoardProps } from './ListeningRoomBoard'
 import React from 'react'
 import { DraggableRenderer, translate, type Draggable, type DraggableProps, type DragStatus } from 'dragology'

@@ -1,0 +1,36 @@
+import {expect,test} from '@playwright/test'
+
+test('a note previews at the desk, cancels, and can be resolved twice without losing either report',async({page})=>{
+  await page.setViewportSize({width:390,height:760})
+  await page.goto('/tests/fixtures/offline-handoff.html')
+  const board=page.getByRole('region',{name:'Field handoff simulation'})
+  const commits=page.getByLabel('Commits')
+  async function carry(){
+    const phone=(await board.locator('#field-edit').boundingBox())!,desk=(await board.locator('#desk-drop').boundingBox())!
+    await page.mouse.move(phone.x+phone.width/2,phone.y+phone.height/2)
+    await page.mouse.down()
+    await page.mouse.move(desk.x+desk.width/2,desk.y+desk.height/2,{steps:16})
+    await expect(board.getByRole('status')).toHaveText('The two access reports disagree.')
+    await expect(board).toHaveAttribute('data-stage','queued')
+    await expect(commits).toHaveText('0')
+  }
+  await carry();await page.keyboard.press('Escape');await page.mouse.up()
+  await expect(board.getByRole('status')).toHaveText('One edit waiting to sync.')
+  await carry();await page.mouse.up()
+  await expect(board).toHaveAttribute('data-stage','review')
+  await board.getByRole('button',{name:'Merge field test'}).press('Enter')
+  const result=board.getByRole('region',{name:'Published handoff'})
+  await expect(result).toContainText('Visitor badge rejected at Gate B. Use the staffed lane after 17:00.')
+  await board.getByRole('button',{name:'Reopen review'}).click()
+  await board.getByRole('button',{name:'Keep shared note'}).click()
+  await expect(result).toContainText('Visitor access ready at Gate B. Use the staffed lane after 17:00.')
+  await page.getByRole('button',{name:'Undo'}).click()
+  await expect(board).toHaveAttribute('data-stage','review')
+  await board.getByRole('button',{name:'Start over'}).click()
+  await board.getByRole('button',{name:'Preview sync'}).press('Enter')
+  await expect(board.locator('#shared-notebook')).toContainText('REVIEW QUEUE')
+  await board.getByRole('button',{name:'Cancel preview'}).press('Enter')
+  await expect(board.locator('#shared-notebook')).toContainText('SHIFT HANDOFF')
+  await page.getByRole('button',{name:'Toggle read-only'}).click()
+  await expect(board.getByRole('button')).toHaveCount(0)
+})
