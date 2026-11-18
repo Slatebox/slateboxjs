@@ -58,6 +58,7 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
   const editor = await editorContext.newPage()
   let ownerId: string | null = null
   let editorId: string | null = null
+  let slateId: string | null = null
   try {
     await owner.goto(new URL('/new/workshop' + encodeWorkshopFragment(model), origin).href)
     await owner.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
@@ -69,6 +70,7 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     const key = new URL(owner.url()).pathname.split('/').pop()!
     const original = await getSlate(owner, key)
     expect(original.userId).toBe(ownerId)
+    slateId = original._id
     expect(original.options.isPrivate).toBe(true)
     expect(original.creative.model.workshop).toEqual(model)
     if (process.env.SLATEBOX_EXPECTED_APP_BUNDLE) {
@@ -132,7 +134,14 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     expect((await getSlate(owner, key)).creative.model.workshop).toEqual(expected)
   } finally {
     try {
-      await Promise.all([removeTestGuest(owner, ownerId), removeTestGuest(editor, editorId)])
+      try {
+        if (slateId && ownerId && await userId(owner) === ownerId) {
+          // The board deletion also removes its link grants.
+          await owner.evaluate(id => (window as any).Meteor.callAsync('slates.remove', { slateIds: [id] }), slateId)
+        }
+      } finally {
+        await Promise.all([removeTestGuest(owner, ownerId), removeTestGuest(editor, editorId)])
+      }
     } finally {
       await Promise.all([ownerContext.close(), readerContext.close(), editorContext.close()])
     }
