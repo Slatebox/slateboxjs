@@ -38,4 +38,8 @@ Give a reviewer two pieces of evidence on a slate, a quicker run and a known reg
 
 ## Selection and proof
 
+A second look at the first 120 top stories at 20:53 UTC surfaced a question worth taking into a buyer walkthrough. A developer considering Mastra Factory could not tell from the docs whether an agent acts as itself or under the engineer’s GitHub identity. In the Maritime launch, a prospective user asked which credentials their own customers would supply. These are two distinct questions about whose account is involved at a particular step. [Mastra identity question](https://news.ycombinator.com/item?id=50551956) · [Maritime customer question](https://news.ycombinator.com/item?id=50549551)
+
+**Candidate for a second buyer walkthrough.** Put a teammate, an agent and a customer workspace on an ordinary slate. Ask the buyer to place “Whose account approves this?” on the connection they want explained. The engineer adds the actual answer and walks the buyer through it. The drawing records the team’s explanation. The visitor gets to ask a question the team did not script. Test whether a second engineer can answer it from the reopened drawing before putting this on the product page.
+
 Start with the outage drawing for broad team use and the room-booking rehearsal for the install guide. Both give people a reason to disagree, rearrange an idea and leave with something another teammate can use. Keep the Voyager-inspired walkthrough as the first dynamic presentation candidate. In a fresh app session, recreate the advertised gesture through the public editor, save it, reopen it with a second participant and present the result. Record exactly which outcomes are manual and which the engine computes. Only advertise the outcomes that pass.
