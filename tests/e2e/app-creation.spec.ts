@@ -61,3 +61,46 @@ test("the marketing creation link opens a guest-owned native slate and preserves
   await expect(node).toBeVisible();
   expect(page.url()).toBe(canvas);
 });
+
+test("a collaboration visitor owns a private, connected incident timeline on first open", async ({ page }) => {
+  test.skip(!["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(appUrl).hostname));
+  await page.goto(appUrl + "/start");
+  expect(await page.evaluate(() => localStorage.getItem("meteor_token"))).toBeNull();
+  await page.goto(appUrl + "/new/incident-timeline");
+  await page.waitForURL(/\/canvas\/[\w-]+$/);
+  const key = new URL(page.url()).pathname.split("/").pop()!;
+  try {
+    const question = page.locator("#slateCanvas").getByRole("button", { name: "Who owns the retry limit?", exact: true });
+    await expect(question).toBeVisible();
+    const timeline = await page.evaluate(async shareId => {
+      const meteor = (window as any).Meteor;
+      const { slateBase } = await meteor.callAsync("slates.get", { shareId });
+      return {
+        owned: slateBase.userId === meteor.userId(),
+        private: slateBase.options.isPrivate,
+        public: slateBase.options.isPublic,
+        unlisted: slateBase.options.isUnlisted,
+        nodes: slateBase.nodes.map((node: any) => node.options.id).sort(),
+        edges: slateBase.nodes.flatMap((node: any) => node.relationships.associations.map(
+          (edge: any) => edge.parentId + " → " + edge.childId
+        )).sort(),
+      };
+    }, key);
+    expect(timeline).toEqual({
+      owned: true, private: true, public: false, unlisted: false,
+      nodes: ["handoff", "recovery", "retries", "trace"],
+      edges: ["recovery → handoff", "retries → recovery", "trace → retries"],
+    });
+    await page.reload();
+    await expect(question).toBeVisible();
+  } finally {
+    await page.evaluate(async shareId => {
+      const meteor = (window as any).Meteor;
+      const row = (await meteor.callAsync("slates.get", { shareId }))?.slateBase;
+      if (meteor.user()?.isAnonymous && row && row.userId === meteor.userId()) {
+        await meteor.callAsync("slates.remove", { slateIds: [row._id] });
+        meteor.call("users.delete");
+      }
+    }, key);
+  }
+});
