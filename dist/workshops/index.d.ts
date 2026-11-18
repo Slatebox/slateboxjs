@@ -1,3 +1,5 @@
+export { OfflineHandoffBoard } from './OfflineHandoffBoard';
+export { ListeningRoomBoard, type ListeningRoomBoardProps } from './ListeningRoomBoard';
 import React from 'react';
 import { type Workshop } from './model';
 import { type WorkshopMove } from './ReleasePlan';
@@ -14,3 +16,5 @@ export interface WorkshopBoardProps {
     onPreview?: (value: Workshop | null) => void;
 }
 export declare function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, readOnly }: WorkshopBoardProps): React.JSX.Element;
+export { MoonGalleryBoard, type MoonGalleryBoardProps } from './MoonGalleryBoard';
+export { FocusDarkroomBoard } from './darkroom/FocusDarkroomBoard';

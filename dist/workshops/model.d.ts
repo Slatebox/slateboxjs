@@ -1,3 +1,5 @@
+export * from './offlineHandoff';
+export * from './listeningRoom';
 export { releaseLoad, releasePlan } from './release';
 import type { SlateJSON } from '../core/Serialization';
 export interface WorkshopLane {
@@ -48,3 +50,5 @@ export declare function workshopPositions(board: Workshop): {
 export declare const nightTransfer: Workshop;
 export declare function workshopToSlate(input: Workshop): SlateJSON;
 export declare const industrialWorkshop: Workshop;
+export * from './moonGallery';
+export * from './darkroom/model';
