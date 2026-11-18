@@ -13,7 +13,7 @@ function wrapLabel(label: string) {
   return label.match(/.{1,23}(?:\s+|$)|.{1,23}/gu)?.map(line => line.trim()) ?? [label]
 }
 
-function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean, fitted?: ReturnType<typeof fitLaneLayout>, editHeaders = false, addCards = false) {
+function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean, fitted?: ReturnType<typeof fitLaneLayout>, editHeaders = false, addCards = false, actionId = '') {
   const layout = fitted?.layout ?? workshopLayout
   const { width, row, height, top } = layout
   const { points, height: boardHeight } = workshopPositions(state, layout)
@@ -54,7 +54,7 @@ function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Worksho
       return <g id={'heading-' + lane.id} transform={translate(8 + points[column].x, 4 + points[column].y)}>
         {map && <rect x={0} y={0} width={width} height={top + Math.max(1, count) * row - 10} rx={9} fill="#fcf9ed" stroke="#a8b5aa" strokeDasharray="4 4" />}
         <g {...(editHeaders && !readOnly ? {
-          ...(map ? { 'data-workshop-station': lane.id } : { 'data-workshop-lane': lane.id }), role: 'button', tabIndex: 0, 'aria-label': 'Edit ' + lane.label, cursor: 'pointer',
+          ...(map ? { 'data-workshop-station': lane.id } : { 'data-workshop-lane': lane.id }), role: 'button', tabIndex: 0, 'aria-labelledby': actionId + '-edit-' + lane.id, cursor: 'pointer',
         } : {})}>
           <rect width={width} height={top - 12} rx={map ? 6 : 9} fill={map ? "#253c36" : laneColors[column]} />
           {(fitted?.labels.get('heading-' + lane.id) ?? wrapLabel(lane.label)).map((line, i) =>
@@ -63,7 +63,7 @@ function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Worksho
         </g>
         {addCards && count < (lane.capacity ?? Infinity) && <g data-workshop-add-card={lane.id}
           transform={translate(0, top + count * row - 4)} role="button" tabIndex={0}
-          aria-label={'Add card to ' + lane.label} cursor="pointer">
+          aria-labelledby={actionId + '-add-' + lane.id} cursor="pointer">
           <rect width={width} height={40} rx={7} fill="#fbfcf9" stroke="#64796c" strokeDasharray="4 3" />
           <text transform={translate(12, 25)} fontSize={14}>+ Add card</text>
         </g>}
@@ -119,6 +119,7 @@ export interface WorkshopBoardProps {
 
 export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onEditLane, onAddCard, onUndo, canUndo, readOnly = false, fitLanes = false, showPlacementOutcomes = true }: WorkshopBoardProps) {
   const container = React.useRef<HTMLDivElement>(null)
+  const actionId = React.useId()
   const press = React.useRef<{target: SVGGElement; x: number; y: number} | null>(null)
   const lastTap = React.useRef<{id: string; at: number} | null>(null)
   const [viewport, setViewport] = React.useState(0)
@@ -201,8 +202,8 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
   const editHeaders = !viewOnly && (map ? Boolean(onEditStation) : !release && Boolean(onEditLane))
   const addCards = !viewOnly && !map && !release && Boolean(onAddCard) && value.cards.length < maxWorkshopCards
   const draggable = React.useMemo<Draggable<Workshop>>(() => fitted || editHeaders || addCards
-    ? props => renderBoard(props, viewOnly, fitted, editHeaders, addCards)
-    : viewOnly ? readOnlyBoard : editableBoard, [fitted, viewOnly, editHeaders, addCards])
+    ? props => renderBoard(props, viewOnly, fitted, editHeaders, addCards, actionId)
+    : viewOnly ? readOnlyBoard : editableBoard, [fitted, viewOnly, editHeaders, addCards, actionId])
   const controls = '[data-workshop-station],[data-workshop-lane],[data-workshop-add-card]'
   function activate(target: SVGGElement) {
     if (viewOnly) return
@@ -212,6 +213,11 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
   }
   const canvasHeight = linked ? Math.max(height, workshopPositions(linked, fitted?.layout).height) : height
   return <section aria-label={value.title}>
+    {/* Keep accessible names current without asking Dragology to interpolate text attributes. */}
+    {(editHeaders || addCards) && <div hidden>{value.lanes.map(lane => <React.Fragment key={lane.id}>
+      {editHeaders && <span id={actionId + '-edit-' + lane.id}>Edit {lane.label}</span>}
+      {addCards && <span id={actionId + '-add-' + lane.id}>Add card to {lane.label}</span>}
+    </React.Fragment>)}</div>}
     <div ref={container} style={{ maxWidth: '100%', overflowX: 'auto' }}
       onKeyDownCapture={event => {
         const target = (event.target as Element).closest<SVGGElement>(controls)

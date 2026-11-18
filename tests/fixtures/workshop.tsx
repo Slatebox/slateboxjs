@@ -35,6 +35,7 @@ function Example() {
     } : undefined} onEditStation={id => setEditing('station:' + id)} onEditCard={setEditing} fitLanes={fitLanes} readOnly={readOnly} value={board} onPreview={setPreview} onChange={next => {
       setUndo(board); setBoard(next); setCommits(count => count + 1)
     }} />
+    <button onClick={() => setBoard(old => ({ ...old, lanes:old.lanes.map((lane,i) => i ? lane : {...lane,label:'Pitches / prises de son'}) }))}>Rename first lane</button>
     <output aria-label="Selected object">{editing}</output>
     <output aria-label="Quarterly budget">{shown.cards.filter(card => card.laneId === 'pilot').length} of 2 pilots funded</output>
     <output aria-label="Committed decisions">{commits}</output>

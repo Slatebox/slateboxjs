@@ -249,3 +249,30 @@ test('releasing over a forbidden lane cannot commit the adjacent legal lane', as
   await expect(card).toHaveValue('evidence')
   await expect(page.getByLabel('Committed decisions')).toHaveText('0')
 })
+
+
+for (const state of ['empty lane', 'populated lane', 'map station']) {
+  test('rename a ' + state + ' while the board stays interactive and exposes the new accessible names', async ({page}) => {
+    const errors: string[] = []
+    page.on('pageerror', error => errors.push(error.message))
+    await page.setViewportSize({ width:320, height:780 })
+    const map = state === 'map station'
+    await page.goto('/tests/fixtures/workshop.html?' + (map ? 'map' : 'author'))
+    const initial = map ? 'Last train' : 'Lane 1'
+    await expect(page.getByRole('button',{name:'Edit ' + initial,exact:true})).toBeVisible()
+    if (state === 'populated lane') await page.getByRole('button',{name:'Add card to Lane 1'}).click()
+    await page.getByRole('button',{name:'Rename first lane'}).click()
+    const edit = page.getByRole('button',{name:'Edit Pitches / prises de son',exact:true})
+    await edit.press('Enter')
+    await expect(page.getByLabel('Selected object')).toHaveText(map ? 'station:platform' : 'lane:lane-1')
+    await expect(page.getByRole('button',{name:'Edit ' + initial,exact:true})).toHaveCount(0)
+    if (map) {
+      await page.getByRole('button',{name:'Last rider → Market St lift'}).click()
+      await expect(page.locator('.workshop-outcomes')).toContainText('Last rider · Market St lift')
+    } else {
+      await page.getByRole('button',{name:'Add card to Pitches / prises de son'}).click()
+      await expect(page.locator('[data-workshop-card]')).toHaveCount(state === 'populated lane' ? 2 : 1)
+    }
+    expect(errors).toEqual([])
+  })
+}
