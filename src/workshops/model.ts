@@ -239,3 +239,4 @@ export const industrialWorkshop: Workshop = {
 }
 
 export * from './moonGallery'
+export * from './darkroom/model'

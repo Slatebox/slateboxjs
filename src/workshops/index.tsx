@@ -189,3 +189,4 @@ export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, rea
 }
 
 export { MoonGalleryBoard, type MoonGalleryBoardProps } from './MoonGalleryBoard'
+export { FocusDarkroomBoard } from './darkroom/FocusDarkroomBoard'
