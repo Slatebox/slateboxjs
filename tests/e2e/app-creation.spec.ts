@@ -33,7 +33,7 @@ test("map entry, gallery and dashboard New open their respective editors", async
   await page.goBack();
   await expect(page.getByRole("button", { name: "New", exact: true })).toBeVisible();
   await page.goto(appUrl + "/templates");
-  await page.getByRole("link", { name: "Build an interactive map" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Build an interactive map" }).click();
   await expect(page.locator(".workshop-paper svg").first()).toBeVisible();
   await page.goto(canvas);
   await expect(node).toBeVisible();
