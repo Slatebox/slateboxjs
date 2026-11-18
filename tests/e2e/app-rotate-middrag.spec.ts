@@ -1,4 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { openGuestCanvas } from "./app-host.shared";
 
 const fixtures = [
@@ -51,7 +53,7 @@ async function readGeometry(page: Page, id: string) {
       return Math.hypot(c.x+c.width/2-(a.x+d.x)/2,c.y+c.height/2-(a.y+d.y)/2);
     });
     const angle = (el: SVGGraphicsElement) => { const m = el.getScreenCTM()!; return Math.atan2(m.b,m.a)*180/Math.PI; };
-    return { x:center.x,y:center.y,width:distance(box[0],box[1]),height:distance(box[1],box[2]),
+    return { lines:label.querySelectorAll("tspan").length, textWidth:label.getBBox().width, x:center.x,y:center.y,width:distance(box[0],box[1]),height:distance(box[1],box[2]),
       angle:angle(paint),textAngle:angle(label),cornerError, outlines:outlines.length, paintedOutlines:paintedOutlines.length,gaps,
       worldX:world.x, worldY:world.y, topLeft:{x:box[0].x,y:box[0].y},
       imageFill:node.contentPath?.attr("fill"), shape:paint.tagName };
@@ -79,6 +81,160 @@ async function grip(page: Page, selector: string) {
   });
 }
 
+type Geometry = Awaited<ReturnType<typeof readGeometry>>;
+
+async function selectSavedNode(page: Page, id: string) {
+  await page.locator('#slateCanvas [data-node-id="' + id + '"]').waitFor({state:"attached"});
+  await page.evaluate(async key=>{
+    const slate = (window as any).__slateboxInstances.find((s:any)=>s.element.id==="slateCanvas");
+    const node = slate.nodes.one(key);
+    await node.ready;
+    await new Promise(requestAnimationFrame);
+    const viewport = slate.canvas.node.getBoundingClientRect();
+    slate.canvas.viewbox(node.options.x-viewport.width/2+80,node.options.y-viewport.height/2+50,viewport.width,viewport.height);
+    slate.selectNodes([node]);
+  },id);
+}
+
+async function rotateSelected(page: Page, id: string, prior: Geometry, delta: number, wrapped: boolean) {
+  const rot = await grip(page,".svg_select_handle_rot circle");
+  const radius = Math.hypot(rot.x-prior.x,rot.y-prior.y);
+  const start = Math.atan2(rot.y-prior.y,rot.x-prior.x);
+  await page.mouse.move(rot.x,rot.y);
+  await page.mouse.down();
+  for (const turn of [delta/2,delta]) {
+    const target = start + turn*Math.PI/180;
+    await page.mouse.move(prior.x+Math.cos(target)*radius,prior.y+Math.sin(target)*radius,{steps:8});
+    await expect.poll(async () => Math.abs((await readGeometry(page,id)).angle-prior.angle-turn)).toBeLessThan(5);
+    const moving = await readGeometry(page,id);
+    if (wrapped) {
+      expect(moving.lines).toBeGreaterThan(1);
+      expect(moving.textWidth).toBeLessThanOrEqual(moving.width+1);
+    }
+    expect(Math.abs(moving.angle-moving.textAngle)).toBeLessThan(1);
+    expect([moving.outlines,moving.paintedOutlines]).toEqual([1,1]);
+    expect(moving.cornerError).toBeLessThan(3);
+  }
+  await page.mouse.up();
+  await waitForPlugs(page,id);
+  const final = await readGeometry(page,id);
+  expect(Math.abs(final.angle-prior.angle-delta)).toBeLessThan(5);
+  expect(Math.abs(final.angle-final.textAngle)).toBeLessThan(1);
+  expect([final.outlines,final.paintedOutlines]).toEqual([1,1]);
+  expect(final.cornerError).toBeLessThan(3);
+  for (const [i,gap] of final.gaps.entries()) {
+    expect(gap).not.toBeNull();
+    expect(Math.abs(gap!-prior.gaps[i]!)).toBeLessThan(3);
+  }
+  return final;
+}
+
+async function exerciseGestures(page: Page, id: string, { image = false, wrapped = false } = {}) {
+  await waitForPlugs(page,id);
+  await expect.poll(async ()=>(await readGeometry(page,id)).paintedOutlines).toBe(1);
+  const before = await readGeometry(page,id);
+  expect(before.outlines).toBe(1);
+  expect(before.cornerError).toBeLessThan(3);
+  if (image) expect(before.imageFill).toContain("url(");
+  for (const gap of before.gaps) expect(gap).toBeGreaterThan(2);
+  let prior = before;
+  for (const change of [32,24,-19]) {
+    const rb = await grip(page,".svg_select_handle_rb");
+    await page.mouse.move(rb.x,rb.y);
+    await page.mouse.down();
+    await page.mouse.move(rb.x+change,rb.y+change*.65,{steps:8});
+    const held = await readGeometry(page,id);
+    expect(Math.abs(held.width-prior.width)).toBeGreaterThan(9);
+    expect([held.outlines,held.paintedOutlines]).toEqual([1,1]);
+    expect(held.cornerError).toBeLessThan(3);
+    await page.mouse.up();
+    await expect.poll(async () => Math.abs((await readGeometry(page,id)).width-prior.width)).toBeGreaterThan(9);
+    await waitForPlugs(page,id);
+    const result = await readGeometry(page,id);
+    expect([result.outlines,result.paintedOutlines]).toEqual([1,1]);
+    expect(result.cornerError).toBeLessThan(3);
+    for (const [i,gap] of result.gaps.entries()) {
+      expect(gap).not.toBeNull();
+      expect(Math.abs(gap!-before.gaps[i]!)).toBeLessThan(3);
+    }
+    prior = result;
+  }
+
+  const final = await rotateSelected(page, id, prior, 50, wrapped);
+  // Move the same bottom-right grip in its own rotated coordinate space.
+  // The opposite corner stays fixed while the actual painted artwork grows.
+  const rb = await grip(page, ".svg_select_handle_rb");
+  const angle = final.angle*Math.PI/180;
+  const dx = 34*Math.cos(angle)-22*Math.sin(angle);
+  const dy = 34*Math.sin(angle)+22*Math.cos(angle);
+  await page.mouse.move(rb.x,rb.y);
+  await page.mouse.down();
+  await page.mouse.move(rb.x+dx,rb.y+dy,{steps:10});
+  const held = await readGeometry(page,id);
+  expect(held.width-final.width).toBeGreaterThan(12);
+  expect(Math.abs(held.angle-final.angle)).toBeLessThan(1);
+  expect([held.outlines,held.paintedOutlines]).toEqual([1,1]);
+  expect(held.cornerError).toBeLessThan(3);
+  await page.mouse.up();
+  await waitForPlugs(page,id);
+  const resized = await readGeometry(page,id);
+  expect(resized.width - final.width).toBeGreaterThan(12);
+  expect(resized.height - final.height).toBeGreaterThan(8);
+  expect(Math.abs(resized.angle-final.angle)).toBeLessThan(1);
+  expect(Math.abs(resized.angle-resized.textAngle)).toBeLessThan(1);
+  expect(Math.hypot(resized.topLeft.x-final.topLeft.x,resized.topLeft.y-final.topLeft.y)).toBeLessThan(3);
+  expect([resized.outlines,resized.paintedOutlines]).toEqual([1,1]);
+  expect(resized.cornerError).toBeLessThan(3);
+  for (const [i,gap] of resized.gaps.entries()) {
+    expect(gap).not.toBeNull();
+    expect(Math.abs(gap!-before.gaps[i]!)).toBeLessThan(3);
+  }
+  return resized;
+}
+
+async function verifyReopened(page: Page, saved: Map<string, Geometry>) {
+  // Wait for the app's debounced save through the same authorized read that
+  // opens this guest's own board. Reload from the server only after it lands.
+  const persistedGeometry = (fromServer: boolean) => page.evaluate(async ({server,ids}) => {
+    const win = window as any;
+    const slate = win.__slateboxInstances.find((s:any)=>s.element.id==="slateCanvas");
+    const board = server
+      ? (await win.Meteor.callAsync("slates.get",{shareId:location.pathname.split("/").pop()})).slateBase
+      : JSON.parse(slate.exportJSON());
+    return (board?.nodes || [])
+      .map((n:any)=>n.options)
+      .filter((n:any)=>ids.includes(n.id))
+      .map((n:any)=>[n.id,n.xPos,n.yPos,n.width,n.height,n.rotate?.rotationAngle])
+      .sort(([a]:string[],[b]:string[])=>a.localeCompare(b));
+  },{server:fromServer,ids:[...saved.keys()]});
+  const expected = await persistedGeometry(false);
+  expect(expected).toHaveLength(saved.size);
+  await expect.poll(()=>persistedGeometry(true),{timeout:20000}).toEqual(expected);
+  await page.reload();
+  for (const [id, prior] of saved) await test.step("reload " + id, async () => {
+    await selectSavedNode(page, id);
+    await waitForPlugs(page,id);
+    await expect.poll(async ()=>(await readGeometry(page,id)).paintedOutlines).toBe(1);
+    // A reopened collaboration room can replay the guest's rotations, which
+    // the host deliberately animates. Compare the final rendered frame with
+    // the saved one. Held-pointer and mouseup checks above run immediately.
+    await expect(async () => {
+      const current = await readGeometry(page,id);
+      expect(current.lines).toBe(prior.lines);
+      expect([current.outlines,current.paintedOutlines]).toEqual([1,1]);
+      expect(current.cornerError,id + " selection corners").toBeLessThan(3);
+      for (const key of ["angle","textAngle","width","height","worldX","worldY"] as const) {
+        expect(Math.abs(current[key]-prior[key]),id+" "+key).toBeLessThan(1);
+      }
+      for (const [i,gap] of current.gaps.entries()) {
+        expect(gap).not.toBeNull();
+        expect(Math.abs(gap!-prior.gaps[i]!)).toBeLessThan(3);
+      }
+      if (id === "geometry-image") expect(current.imageFill).toContain("url(");
+    }).toPass({timeout:5000});
+  });
+}
+
 test("editor resize and live rotation keep artwork, labels, plugs and a single outline together", async ({page}) => {
   const origin = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
   await openGuestCanvas(page,origin);
@@ -95,138 +251,49 @@ test("editor resize and live rotation keep artwork, labels, plugs and a single o
       await node.ready;
       slate.selectNodes([node]);
     }, {id,f});
-    await waitForPlugs(page,id);
-    await expect.poll(async ()=>(await readGeometry(page,id)).paintedOutlines).toBe(1);
-    const before = await readGeometry(page,id);
-    expect(before.outlines).toBe(1);
-    expect(before.cornerError).toBeLessThan(3);
-    if (f.image) expect(before.imageFill).toContain("url(");
-    for (const gap of before.gaps) expect(gap).toBeGreaterThan(2);
-    let prior = before;
-    for (const change of [32,24,-19]) {
-      const rb = await grip(page,".svg_select_handle_rb");
-      await page.mouse.move(rb.x,rb.y);
-      await page.mouse.down();
-      await page.mouse.move(rb.x+change,rb.y+change*.65,{steps:8});
-      const held = await readGeometry(page,id);
-      expect(Math.abs(held.width-prior.width)).toBeGreaterThan(9);
-      expect([held.outlines,held.paintedOutlines]).toEqual([1,1]);
-      expect(held.cornerError).toBeLessThan(3);
-      await page.mouse.up();
-      await expect.poll(async () => Math.abs((await readGeometry(page,id)).width-prior.width)).toBeGreaterThan(9);
-      await waitForPlugs(page,id);
-      const result = await readGeometry(page,id);
-      expect([result.outlines,result.paintedOutlines]).toEqual([1,1]);
-      expect(result.cornerError).toBeLessThan(3);
-      for (const [i,gap] of result.gaps.entries()) {
-        expect(gap).not.toBeNull();
-        expect(Math.abs(gap!-before.gaps[i]!)).toBeLessThan(3);
-      }
-      prior = result;
-    }
-
-    const rot = await grip(page,".svg_select_handle_rot circle");
-    const radius = Math.hypot(rot.x-prior.x,rot.y-prior.y);
-    const start = Math.atan2(rot.y-prior.y,rot.x-prior.x);
-    await page.mouse.move(rot.x,rot.y);
-    await page.mouse.down();
-    for (const turn of [25,50]) {
-      const target = start + turn*Math.PI/180;
-      await page.mouse.move(prior.x+Math.cos(target)*radius,prior.y+Math.sin(target)*radius,{steps:8});
-      await expect.poll(async () => Math.abs((await readGeometry(page,id)).angle-turn)).toBeLessThan(5);
-      const moving = await readGeometry(page,id);
-      expect(Math.abs(moving.angle-moving.textAngle)).toBeLessThan(1);
-      expect([moving.outlines,moving.paintedOutlines]).toEqual([1,1]);
-      expect(moving.cornerError).toBeLessThan(3);
-    }
-    await page.mouse.up();
-    await waitForPlugs(page,id);
-    const final = await readGeometry(page,id);
-    expect(Math.abs(final.angle-50)).toBeLessThan(5);
-    expect(Math.abs(final.angle-final.textAngle)).toBeLessThan(1);
-    expect([final.outlines,final.paintedOutlines]).toEqual([1,1]);
-    expect(final.cornerError).toBeLessThan(3);
-    for (const [i,gap] of final.gaps.entries()) {
-      expect(gap).not.toBeNull();
-      expect(Math.abs(gap!-before.gaps[i]!)).toBeLessThan(3);
-    }
-    // Move the same bottom-right grip in its own rotated coordinate space.
-    // The opposite corner stays fixed while the actual painted artwork grows.
-    const rb = await grip(page, ".svg_select_handle_rb");
-    const angle = final.angle*Math.PI/180;
-    const dx = 34*Math.cos(angle)-22*Math.sin(angle);
-    const dy = 34*Math.sin(angle)+22*Math.cos(angle);
-    await page.mouse.move(rb.x,rb.y);
-    await page.mouse.down();
-    await page.mouse.move(rb.x+dx,rb.y+dy,{steps:10});
-    const held = await readGeometry(page,id);
-    expect(held.width-final.width).toBeGreaterThan(12);
-    expect(Math.abs(held.angle-final.angle)).toBeLessThan(1);
-    expect([held.outlines,held.paintedOutlines]).toEqual([1,1]);
-    expect(held.cornerError).toBeLessThan(3);
-    await page.mouse.up();
-    await waitForPlugs(page,id);
-    const resized = await readGeometry(page,id);
-    expect(resized.width - final.width).toBeGreaterThan(12);
-    expect(resized.height - final.height).toBeGreaterThan(8);
-    expect(Math.abs(resized.angle-final.angle)).toBeLessThan(1);
-    expect(Math.abs(resized.angle-resized.textAngle)).toBeLessThan(1);
-    expect(Math.hypot(resized.topLeft.x-final.topLeft.x,resized.topLeft.y-final.topLeft.y)).toBeLessThan(3);
-    expect([resized.outlines,resized.paintedOutlines]).toEqual([1,1]);
-    expect(resized.cornerError).toBeLessThan(3);
-    for (const [i,gap] of resized.gaps.entries()) {
-      expect(gap).not.toBeNull();
-      expect(Math.abs(gap!-before.gaps[i]!)).toBeLessThan(3);
-    }
-    saved.set(id,resized);
+    saved.set(id, await exerciseGestures(page, id, {image: Boolean(f.image)}));
   });
+  await verifyReopened(page, saved);
+});
 
-  // Wait for the app's debounced save through the same authorized read that
-  // opens this guest's own board. Reload from the server only after it lands.
-  const persistedGeometry = (fromServer: boolean) => page.evaluate(async server => {
-    const win = window as any;
-    const slate = win.__slateboxInstances.find((s:any)=>s.element.id==="slateCanvas");
-    const board = server
-      ? (await win.Meteor.callAsync("slates.get",{shareId:location.pathname.split("/").pop()})).slateBase
-      : JSON.parse(slate.exportJSON());
-    return (board?.nodes || [])
-      .map((n:any)=>n.options)
-      .filter((n:any)=>n.id.startsWith("geometry-"))
-      .map((n:any)=>[n.id,n.xPos,n.yPos,n.width,n.height,n.rotate?.rotationAngle])
-      .sort(([a]:string[],[b]:string[])=>a.localeCompare(b));
-  },fromServer);
-  const expected = await persistedGeometry(false);
-  expect(expected).toHaveLength(fixtures.length);
-  await expect.poll(()=>persistedGeometry(true),{timeout:20000}).toEqual(expected);
-  await page.reload();
-  for (const [id, prior] of saved) await test.step("reload " + id, async () => {
-    await page.locator('#slateCanvas [data-node-id="' + id + '"]').waitFor({state:"attached"});
-    await page.evaluate(async key=>{
-      const slate = (window as any).__slateboxInstances.find((s:any)=>s.element.id==="slateCanvas");
-      const node = slate.nodes.one(key);
-      await node.ready;
-      await new Promise(requestAnimationFrame);
-      const viewport = slate.canvas.node.getBoundingClientRect();
-      slate.canvas.viewbox(node.options.x-viewport.width/2+80,node.options.y-viewport.height/2+50,viewport.width,viewport.height);
-      slate.selectNodes([node]);
-    },id);
-    await waitForPlugs(page,id);
-    await expect.poll(async ()=>(await readGeometry(page,id)).paintedOutlines).toBe(1);
-    // A reopened collaboration room can replay the guest's rotations, which
-    // the host deliberately animates. Compare the final rendered frame with
-    // the saved one. Held-pointer and mouseup checks above run immediately.
-    await expect(async () => {
-      const current = await readGeometry(page,id);
-      expect([current.outlines,current.paintedOutlines]).toEqual([1,1]);
-      expect(current.cornerError,id + " selection corners").toBeLessThan(3);
-      for (const key of ["angle","textAngle","width","height","worldX","worldY"] as const) {
-        expect(Math.abs(current[key]-prior[key]),id+" "+key).toBeLessThan(1);
-      }
-      for (const [i,gap] of current.gaps.entries()) {
-        expect(gap).not.toBeNull();
-        expect(Math.abs(gap!-prior.gaps[i]!)).toBeLessThan(3);
-      }
-      if (id === "geometry-image") expect(current.imageFill).toContain("url(");
-    }).toPass({timeout:5000});
-  });
+test("archived flowchart keeps its wrapped label and connections through repeated resize, rotation and reopen", async ({page}) => {
+  const origin = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
+  test.skip(!["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(origin).hostname), "Uses a disposable private slate");
+  const archived = JSON.parse(readFileSync(join(__dirname, "../fixtures/real-slates/flowchart.json"), "utf8"));
+  const action = archived.nodes.find((node: any) => node.options.text === "Action");
+  action.options.text = "Inspect the crossing before the last train leaves";
+  const id = action.options.id;
+  await openGuestCanvas(page, origin);
+  const shareId = new URL(page.url()).pathname.split("/").pop();
+  const databaseId = await page.evaluate(async ({shareId, nodes}) => {
+    const meteor = (window as any).Meteor;
+    const {slateBase} = await meteor.callAsync("slates.get", {shareId});
+    if (!meteor.userId() || ![slateBase.ownerId, slateBase.userId].includes(meteor.userId())) {
+      throw new Error("The new slate must belong to this guest");
+    }
+    await meteor.callAsync("slates.update", {slate: {
+      shareId, options: {...slateBase.options, isPrivate:true, isPublic:false}, nodes
+    }});
+    return slateBase._id;
+  }, {shareId, nodes:archived.nodes});
+
+  try {
+    await page.reload();
+    const cookies = page.getByRole("button", {name:"Accept cookies"});
+    if (await cookies.isVisible()) await cookies.click();
+    await selectSavedNode(page, id);
+    let state = await exerciseGestures(page, id, {wrapped:true});
+    for (const delta of [-23, 17]) state = await rotateSelected(page, id, state, delta, true);
+    await verifyReopened(page, new Map([[id,state]]));
+    const stored = await page.evaluate(async key =>
+      (await (window as any).Meteor.callAsync("slates.get", {shareId:key})).slateBase.nodes, shareId);
+    const edges = (nodes:any[]) => [...new Set(nodes.flatMap(node =>
+      (node.relationships?.associations || []).map((edge:any) => edge.parentId + "/" + edge.childId)))].sort();
+    expect(stored).toHaveLength(archived.nodes.length);
+    expect(edges(archived.nodes)).toHaveLength(6);
+    expect(edges(stored)).toEqual(edges(archived.nodes));
+    expect(stored.find((node:any) => node.options.id === id)?.options.text).toBe(action.options.text);
+  } finally {
+    await page.evaluate(async id => (window as any).Meteor.callAsync("slates.remove", {slateIds:[id]}), databaseId);
+  }
 });
