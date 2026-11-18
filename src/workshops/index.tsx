@@ -13,7 +13,7 @@ function wrapLabel(label: string) {
   return label.match(/.{1,23}(?:\s+|$)|.{1,23}/gu)?.map(line => line.trim()) ?? [label]
 }
 
-function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean, fitted?: ReturnType<typeof fitLaneLayout>, editHeaders = false, addCards = false, actionId = '') {
+function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean, fitted?: ReturnType<typeof fitLaneLayout>, editHeaders = false, addCards = false, actionId = '', mapCanvas = false) {
   const layout = fitted?.layout ?? workshopLayout
   const { width, row, height, top } = layout
   const { points, height: boardHeight } = workshopPositions(state, layout)
@@ -52,14 +52,14 @@ function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Worksho
         ? pointsUsed + (lane.capacity ? ' / ' + lane.capacity : '') + ' points'
         : lane.station ? (count ? '● Occupied' : 'Open stop') : lane.capacity ? `${count} of ${lane.capacity} slots` : `${count} ${count === 1 ? 'choice' : 'choices'}`
       return <g id={'heading-' + lane.id} transform={translate(8 + points[column].x, 4 + points[column].y)}>
-        {map && <rect x={0} y={0} width={width} height={top + Math.max(1, count) * row - 10} rx={9} fill="#fcf9ed" stroke="#a8b5aa" strokeDasharray="4 4" />}
+        {map && !mapCanvas && <rect x={0} y={0} width={width} height={top + Math.max(1, count) * row - 10} rx={9} fill="#fcf9ed" stroke="#a8b5aa" strokeDasharray="4 4" />}
         <g {...(editHeaders && !readOnly ? {
           ...(map ? { 'data-workshop-station': lane.id } : { 'data-workshop-lane': lane.id }), role: 'button', tabIndex: 0, 'aria-labelledby': actionId + '-edit-' + lane.id, cursor: 'pointer',
         } : {})}>
-          <rect width={width} height={top - 12} rx={map ? 6 : 9} fill={map ? "#253c36" : laneColors[column]} />
+          <rect width={width} height={top - 12} rx={mapCanvas ? 12 : map ? 6 : 9} stroke={mapCanvas ? "#a0b9a6" : undefined} fill={mapCanvas ? "#f4f8ef" : map ? "#253c36" : laneColors[column]} />
           {(fitted?.labels.get('heading-' + lane.id) ?? wrapLabel(lane.label)).map((line, i) =>
-            <text dragologyKey={'line-' + i} fill={map ? "#fffdf3" : "#18302d"} transform={translate(12, (map ? 23 : 16) + i * 16)} fontSize={map ? 17 : 13} fontWeight="bold">{line}</text>)}
-          <text fill={map ? "#ebd29a" : "#18302d"} transform={translate(12, top - 23)} fontSize={12}>{caption}</text>
+            <text dragologyKey={'line-' + i} fill={mapCanvas ? "#244b3d" : map ? "#fffdf3" : "#18302d"} transform={translate(12, (map ? 23 : 16) + i * 16)} fontSize={mapCanvas ? 15 : map ? 17 : 13} fontWeight="bold">{line}</text>)}
+          {!mapCanvas && <text fill={map ? "#ebd29a" : "#18302d"} transform={translate(12, top - 23)} fontSize={12}>{caption}</text>}
         </g>
         {addCards && count < (lane.capacity ?? Infinity) && <g data-workshop-add-card={lane.id}
           transform={translate(0, top + count * row - 4)} role="button" tabIndex={0}
@@ -81,11 +81,11 @@ function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Worksho
           const targets = allowed.map((lane, i) => d.dropTarget('drop-' + lane.id, candidates[i], { boundsState: state }))
           return d.closest(targets).whenFar(state).withFloating()
         } : undefined}>
-        <rect width={map ? width - 20 : width} height={height - (map ? 6 : 0)} fill={map ? "#ffda75" : "#fffdf6"} stroke="#78857d" rx={map ? 1 : 8} />
-        {map && <path d="M198 0v70" stroke="#897530" strokeDasharray="4 5" />}
+        <rect width={map ? width - 20 : width} height={height - (map ? 6 : 0)} fill={map ? "#ffda75" : "#fffdf6"} stroke="#78857d" rx={mapCanvas ? 12 : map ? 1 : 8} />
+        {map && !mapCanvas && <path d="M198 0v70" stroke="#897530" strokeDasharray="4 5" />}
         {state.kind === 'release-plan' && <text transform={translate(12, height - 10)} fill="#466358" fontSize={12}>{card.points} pts</text>}
         {(fitted?.labels.get(key) ?? wrapLabel(card.label)).map((line, i) =>
-          <text dragologyKey={'line-' + i} transform={translate(12, 17 + i * 16)} fontSize={14}>{line}</text>)}
+          <text dragologyKey={'line-' + i} transform={translate(12, (mapCanvas ? 21 : 17) + i * 16)} fontSize={14}>{line}</text>)}
       </g>
     })}
   </g>
@@ -101,6 +101,8 @@ export interface WorkshopBoardProps {
   onUndo?: () => void
   canUndo?: boolean
   readOnly?: boolean
+  /** Compact station map for conversation-led editors. Each playable exit remains a keyboard button. */
+  mapCanvas?: boolean
   /** Fit ordinary lane boards to the host while retaining legible notes and pointer targets. */
   fitLanes?: boolean
   /** Hide the built-in readout when the host supplies its own accessible outcome display. */
@@ -117,13 +119,14 @@ export interface WorkshopBoardProps {
   onAddCard?: (laneId: string, anchorElement: SVGGElement) => void
 }
 
-export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onEditLane, onAddCard, onUndo, canUndo, readOnly = false, fitLanes = false, showPlacementOutcomes = true }: WorkshopBoardProps) {
+export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onEditLane, onAddCard, onUndo, canUndo, readOnly = false, fitLanes = false, mapCanvas = false, showPlacementOutcomes = true }: WorkshopBoardProps) {
   const container = React.useRef<HTMLDivElement>(null)
   const actionId = React.useId()
   const press = React.useRef<{target: SVGGElement; x: number; y: number} | null>(null)
   const lastTap = React.useRef<{id: string; at: number} | null>(null)
   const [viewport, setViewport] = React.useState(0)
-  const fit = fitLanes && !value.kind && !value.lanes[0].station
+  const compactMap = mapCanvas && Boolean(value.lanes[0].station)
+  const fit = compactMap || (fitLanes && !value.kind && !value.lanes[0].station)
   React.useLayoutEffect(() => {
     const host = container.current
     if (!fit || !host) return
@@ -133,7 +136,7 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
     observer.observe(host)
     return () => observer.disconnect()
   }, [fit])
-  const fitted = React.useMemo(() => fit && viewport ? fitLaneLayout(value, viewport) : undefined, [fit, viewport, value])
+  const fitted = React.useMemo(() => fit && viewport ? fitLaneLayout(value, viewport, compactMap) : undefined, [fit, viewport, value, compactMap])
   const { width, height } = workshopPositions(value, fitted?.layout)
   const release = value.kind === 'release-plan'
   const hasSignals = Boolean(value.signals?.length)
@@ -201,9 +204,9 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
   const map = Boolean(value.lanes[0].station)
   const editHeaders = !viewOnly && (map ? Boolean(onEditStation) : !release && Boolean(onEditLane))
   const addCards = !viewOnly && !map && !release && Boolean(onAddCard) && value.cards.length < maxWorkshopCards
-  const draggable = React.useMemo<Draggable<Workshop>>(() => fitted || editHeaders || addCards
-    ? props => renderBoard(props, viewOnly, fitted, editHeaders, addCards, actionId)
-    : viewOnly ? readOnlyBoard : editableBoard, [fitted, viewOnly, editHeaders, addCards, actionId])
+  const draggable = React.useMemo<Draggable<Workshop>>(() => fitted || editHeaders || addCards || compactMap
+    ? props => renderBoard(props, viewOnly, fitted, editHeaders, addCards, actionId, compactMap)
+    : viewOnly ? readOnlyBoard : editableBoard, [fitted, viewOnly, editHeaders, addCards, actionId, compactMap])
   const controls = '[data-workshop-station],[data-workshop-lane],[data-workshop-add-card]'
   function activate(target: SVGGElement) {
     if (viewOnly) return
@@ -293,7 +296,7 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
         </div>
       })}
     </div>}
-    {!release && value.cards.length > 0 && <details>
+    {!release && !compactMap && value.cards.length > 0 && <details>
       <summary>Move a card by name</summary>
       {value.cards.map(card => <label key={card.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBlock: 6 }}>
         {card.label}

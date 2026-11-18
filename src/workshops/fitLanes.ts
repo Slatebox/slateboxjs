@@ -24,9 +24,11 @@ function wrapWords(text: string, width: number, measure: CanvasRenderingContext2
   return lines
 }
 
-export function fitLaneLayout(board: Workshop, viewport: number) {
+export function fitLaneLayout(board: Workshop, viewport: number, mapCanvas = false) {
   // Keep dense boards horizontally scrollable once a column would become unreadable.
-  const pitch = Math.min(workshopLayout.pitch, Math.max(124, Math.floor(viewport / board.lanes.length)))
+  const columns = mapCanvas ? Math.max(...board.lanes.map(lane => lane.station!.column)) + 1 : board.lanes.length
+  const gaps = mapCanvas ? (columns - 1) * 28 : 0
+  const pitch = Math.min(mapCanvas ? 202 : workshopLayout.pitch, Math.max(mapCanvas ? 145 : 124, Math.floor((viewport - gaps) / columns)))
   const width = pitch - 16
   const measure = document.createElement('canvas').getContext('2d')!
   const labels = new Map<string, string[]>()
@@ -34,14 +36,19 @@ export function fitLaneLayout(board: Workshop, viewport: number) {
     measure.font = font
     let longest = 1
     for (const item of items) {
-      const lines = wrapWords(item.label, width - 25, measure)
+      const inset = mapCanvas && prefix === 'choice-' ? 49 : 25
+      const lines = wrapWords(item.label, width - inset, measure)
       labels.set(prefix + item.id, lines)
       longest = Math.max(longest, lines.length)
     }
     return longest
   }
-  const headingLines = prepare(board.lanes, 'heading-', 'bold 13px system-ui, sans-serif')
+  const headingLines = prepare(board.lanes, 'heading-', mapCanvas ? 'bold 15px system-ui, sans-serif' : 'bold 13px system-ui, sans-serif')
   const cardLines = prepare(board.cards, 'choice-', '14px system-ui, sans-serif')
+  if (mapCanvas) {
+    const height = 16 * cardLines + 22
+    return {labels, layout:{pitch, width, height, row:height + 6, top:16 * headingLines + 32}}
+  }
   const height = Math.max(workshopLayout.height, 16 * cardLines + 14)
   return {labels, layout:{pitch, width, height, row:height + 12, top:16 * headingLines + 45}}
 }
