@@ -140,7 +140,7 @@ export function workshopPositions(board: Workshop) {
     y: map ? lane.station!.row * rowHeight : 0,
   }))
   return { points, width: Math.max(...points.map(p => p.x)) + pitch,
-    height: Math.max(...points.map((p, i) => p.y + top + (rows[i] + 1) * row)) }
+    height: Math.max(...points.map((p, i) => p.y + top + (map ? Math.max(1, rows[i]) : rows[i] + 1) * row)) }
 }
 
 export const nightTransfer: Workshop = {
@@ -149,7 +149,7 @@ export const nightTransfer: Workshop = {
     { id: 'platform', label: 'Last train', station: { column: 0, row: 0, next: ['stairs', 'lift'], outcome: 'The platform closes at 23:40. Find a step-free transfer before the last shuttle leaves.' } },
     { id: 'stairs', label: 'East stairs', station: { column: 1, row: 0, next: ['platform'], outcome: 'The east doors open onto the closed platform. Follow the signs back to the lift.' } },
     { id: 'lift', label: 'Market St lift', station: { column: 0, row: 1, next: ['shuttle'], outcome: 'The lift opens on Market Street. The marked path leads to shuttle bay B.' } },
-    { id: 'shuttle', label: 'Shuttle · Bay B', station: { column: 1, row: 1, next: ['platform'], outcome: 'The rider makes the connection. Run it again to try the other exit.' } },
+    { id: 'shuttle', label: 'Shuttle · Bay B', station: { column: 1, row: 1, next: [], outcome: 'The rider makes the connection. Run it again to try the other exit.' } },
   ],
   cards: [{ id: 'rider', label: 'Last rider', laneId: 'platform' }],
 }

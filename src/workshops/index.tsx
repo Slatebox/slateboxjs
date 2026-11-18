@@ -28,10 +28,11 @@ const draggable: Draggable<Workshop> = ({ state, d, draggedId }) => {
     {state.lanes.map((lane, column) => {
       const count = state.cards.filter(card => card.laneId === lane.id).length
       return <g id={'heading-' + lane.id} transform={translate(8 + points[column].x, 4 + points[column].y)}>
-        <rect width={width} height={top - 12} rx={map ? 2 : 9} fill={laneColors[column]} />
+        {map && <rect x={0} y={0} width={width} height={top + Math.max(1, count) * row - 10} rx={9} fill="#fcf9ed" stroke="#a8b5aa" strokeDasharray="4 4" />}
+        <rect width={width} height={top - 12} rx={map ? 6 : 9} fill={map ? "#253c36" : laneColors[column]} />
         {wrapLabel(lane.label).map((line, i) =>
-          <text dragologyKey={'line-' + i} transform={translate(12, 16 + i * 15)} fontSize={map ? 17 : 13} fontWeight="bold">{line}</text>)}
-        <text transform={translate(12, top - 23)} fontSize={12}>{lane.station ? (count ? '● Occupied' : 'Open stop') : lane.capacity ? `${count} of ${lane.capacity} slots` : `${count} ${count === 1 ? "choice" : "choices"}`}</text>
+          <text dragologyKey={'line-' + i} fill={map ? "#fffdf3" : "#18302d"} transform={translate(12, (map ? 23 : 16) + i * 16)} fontSize={map ? 17 : 13} fontWeight="bold">{line}</text>)}
+        <text fill={map ? "#ebd29a" : "#18302d"} transform={translate(12, top - 23)} fontSize={12}>{lane.station ? (count ? '● Occupied' : 'Open stop') : lane.capacity ? `${count} of ${lane.capacity} slots` : `${count} ${count === 1 ? "choice" : "choices"}`}</text>
       </g>
     })}
     {state.cards.map(card => {
@@ -39,11 +40,12 @@ const draggable: Draggable<Workshop> = ({ state, d, draggedId }) => {
       const index = state.cards.filter(item => item.laneId === card.laneId).indexOf(card)
       const allowed = availableLanes(state, card)
       const key = 'choice-' + card.id
-      return <g id={key} transform={translate(8 + points[column].x, points[column].y + top + index * row)}
+      return <g id={key} transform={translate((map ? 18 : 8) + points[column].x, points[column].y + top + index * row)}
         dragologyZIndex={draggedId === key ? '/1' : false}
         dragologyOnDrag={allowed.length > 1 ? () => d.closest(allowed.map(lane =>
           moveWorkshopCard(state, card.id, lane.id))).withFloating() : undefined}>
-        <rect width={width} height={height} fill={map ? "#ffe381" : "#fffdf6"} stroke="#78857d" rx={map ? 1 : 8} />
+        <rect width={map ? width - 20 : width} height={height - (map ? 6 : 0)} fill={map ? "#ffda75" : "#fffdf6"} stroke="#78857d" rx={map ? 1 : 8} />
+        {map && <path d="M198 0v70" stroke="#897530" strokeDasharray="4 5" />}
         {wrapLabel(card.label).map((line, i) =>
           <text dragologyKey={'line-' + i} transform={translate(12, 17 + i * 16)} fontSize={14}>{line}</text>)}
       </g>

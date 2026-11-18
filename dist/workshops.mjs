@@ -1,7 +1,7 @@
 var hs = Object.defineProperty;
 var cs = (t, e, r) => e in t ? hs(t, e, { enumerable: !0, configurable: !0, writable: !0, value: r }) : t[e] = r;
 var O = (t, e, r) => cs(t, typeof e != "symbol" ? e + "" : e, r);
-import X, { createContext as Mn, useState as Or, useCallback as We, useEffect as dr, useRef as _t, useLayoutEffect as fs, useMemo as Qn, createElement as qt, cloneElement as lt, Fragment as Jn, Component as ds, createRef as ps, useContext as Pe } from "react";
+import B, { createContext as Mn, useState as Or, useCallback as We, useEffect as dr, useRef as _t, useLayoutEffect as fs, useMemo as Qn, createElement as qt, cloneElement as lt, Fragment as Jn, Component as ds, createRef as ps, useContext as Pe } from "react";
 import { jsx as S, jsxs as Y, Fragment as Tr } from "react/jsx-runtime";
 import { createPortal as gs } from "react-dom";
 import { workshopPositions as sa, availableLanes as sn, moveWorkshopCard as on, workshopLayout as ys, laneColors as ms } from "./workshop-model.mjs";
@@ -897,14 +897,14 @@ class yr {
           break;
         }
       if (M === -1) continue;
-      let B = this._addTriangle(M, I, n[M], -1, -1, i[M]);
-      i[I] = this._legalize(B + 2), i[M] = B, L++;
+      let W = this._addTriangle(M, I, n[M], -1, -1, i[M]);
+      i[I] = this._legalize(W + 2), i[M] = W, L++;
       let j = n[M];
       for (; k = n[j], ar(N, w, e[2 * j], e[2 * j + 1], e[2 * k], e[2 * k + 1]) < 0; )
-        B = this._addTriangle(j, I, k, i[I], -1, i[j]), i[I] = this._legalize(B + 2), n[j] = j, L--, j = k;
+        W = this._addTriangle(j, I, k, i[I], -1, i[j]), i[I] = this._legalize(W + 2), n[j] = j, L--, j = k;
       if (M === E)
         for (; k = r[M], ar(N, w, e[2 * k], e[2 * k + 1], e[2 * M], e[2 * M + 1]) < 0; )
-          B = this._addTriangle(k, I, M, -1, i[M], i[k]), this._legalize(B + 2), i[k] = B, n[M] = M, L--, M = k;
+          W = this._addTriangle(k, I, M, -1, i[M], i[k]), this._legalize(W + 2), i[k] = W, n[M] = M, L--, M = k;
       this._hullStart = r[I] = M, n[M] = r[j] = I, n[I] = j, a[this._hashKey(N, w)] = I, a[this._hashKey(e[2 * M], e[2 * M + 1])] = M;
     }
     this.hull = new Uint32Array(L);
@@ -1117,11 +1117,11 @@ class uh {
           for (const j of r) a += e[j * 2], s += e[j * 2 + 1];
           a /= r.length, s /= r.length;
         }
-        const B = 1e9 * Math.sign((a - z) * M - (s - L) * E);
-        x = (z + C) / 2 - B * M, P = (L + I) / 2 + B * E;
+        const W = 1e9 * Math.sign((a - z) * M - (s - L) * E);
+        x = (z + C) / 2 - W * M, P = (L + I) / 2 + W * E;
       } else {
-        const B = 1 / k, j = N * N + w * w, H = E * E + M * M;
-        x = z + (M * j - w * H) * B, P = L + (N * H - E * j) * B;
+        const W = 1 / k, j = N * N + w * w, H = E * E + M * M;
+        x = z + (M * j - w * H) * W, P = L + (N * H - E * j) * W;
       }
       o[v] = x, o[v + 1] = P;
     }
@@ -2679,18 +2679,18 @@ function oc(t, e, r) {
   return t ? e ? jt(ur(n, i, r)) : t : e;
 }
 function oe(t) {
-  return X.isValidElement(t);
+  return B.isValidElement(t);
 }
 function Vt(t) {
-  return typeof t.type != "string" && t.type !== X.Fragment;
+  return typeof t.type != "string" && t.type !== B.Fragment;
 }
 function lc(t) {
   if (Vt(t) && t.props.dragologyKey !== void 0) throw Error(`<${ve(t)}> has a dragologyKey, which only works on intrinsic elements. Wrap it in a <g dragologyKey=…> instead.`);
 }
 function uc(t) {
-  if (t.type === "foreignObject") for (let e of X.Children.toArray(t.props.children)) {
-    if (X.isValidElement(e) && Vt(e)) continue;
-    let r = X.isValidElement(e) ? `<${ve(e)}>` : JSON.stringify(e);
+  if (t.type === "foreignObject") for (let e of B.Children.toArray(t.props.children)) {
+    if (B.isValidElement(e) && Vt(e)) continue;
+    let r = B.isValidElement(e) ? `<${ve(e)}>` : JSON.stringify(e);
     throw Error(`<foreignObject> contains ${r}, but it may only contain component elements. Move the HTML into a component.`);
   }
 }
@@ -2706,9 +2706,9 @@ function mn(t) {
     if (Array.isArray(n)) n.forEach((a, s) => r(a, i === "" ? `.${s}` : `${i}:${s}`));
     else {
       if (n == null || typeof n == "boolean") return;
-      if (X.isValidElement(n) && n.key == null) e.push(X.cloneElement(n, { key: i || ".0" }));
+      if (B.isValidElement(n) && n.key == null) e.push(B.cloneElement(n, { key: i || ".0" }));
       else {
-        if (X.isValidElement(n) && !n.key.startsWith(".")) throw Error(`<${ve(n)}> has a key prop (${n.key}). Draggables match elements by id or dragologyKey, not key.`);
+        if (B.isValidElement(n) && !n.key.startsWith(".")) throw Error(`<${ve(n)}> has a key prop (${n.key}). Draggables match elements by id or dragologyKey, not key.`);
         e.push(n);
       }
     }
@@ -2719,7 +2719,7 @@ function Vn(t, e, r) {
   let { children: n } = t.props;
   if (e && n && Ue(t)) {
     let s = mn(n), o = !1, l = s.map((u, f) => {
-      if (X.isValidElement(u)) {
+      if (B.isValidElement(u)) {
         let h = e(u, f);
         return h !== u && (o = !0), h;
       } else return u;
@@ -2729,15 +2729,15 @@ function Vn(t, e, r) {
   if (!r) return t;
   let i = { ...t.props, ...r }, a = {};
   for (let [s, o] of Object.entries(i)) o !== void 0 && (a[s] = o);
-  return t.key != null && (a.key = t.key), X.createElement(t.type, a);
+  return t.key != null && (a.key = t.key), B.createElement(t.type, a);
 }
 function Oe(t, e, r = "", n = []) {
   let i = Ln(r, t.props.transform || "");
   if (e(t)) return { element: t, accumulatedTransform: i, ancestors: n };
   let a = [...n, t];
   if (Ue(t)) {
-    let s = X.Children.toArray(t.props.children);
-    for (let o of s) if (X.isValidElement(o)) {
+    let s = B.Children.toArray(t.props.children);
+    for (let o of s) if (B.isValidElement(o)) {
       let l = Oe(o, e, i, a);
       if (l) return l;
     }
@@ -3037,9 +3037,9 @@ function _c(t, e, r) {
   }
   let L = new Float64Array(m), $ = 0, D = null;
   for (let w = 0; w < m; w++) {
-    let E = (w + 1) % m, M = (E + 1) % m, k = R[w], B = z[w], j = R[E], H = z[E], A = R[M], T = z[M], _ = (k + j) / 2, tt = (B + H) / 2, F = (j + A) / 2, dt = (H + T) / 2, K = D ?? xn(k, B, j, H, 0, 0), W = xn(j, H, A, T, 0, 0);
-    D = W;
-    let st = _ * K.y - K.x * tt + (K.x * W.y - W.x * K.y) + (W.x * dt - F * W.y), ht = P[w], ot = P[E], G = Ut(ht), Q = hr(a, s, G, l, u), rt = _ * Q.y - Q.x * tt, gt = 0;
+    let E = (w + 1) % m, M = (E + 1) % m, k = R[w], W = z[w], j = R[E], H = z[E], A = R[M], T = z[M], _ = (k + j) / 2, tt = (W + H) / 2, F = (j + A) / 2, dt = (H + T) / 2, K = D ?? xn(k, W, j, H, 0, 0), X = xn(j, H, A, T, 0, 0);
+    D = X;
+    let st = _ * K.y - K.x * tt + (K.x * X.y - X.x * K.y) + (X.x * dt - F * X.y), ht = P[w], ot = P[E], G = Ut(ht), Q = hr(a, s, G, l, u), rt = _ * Q.y - Q.x * tt, gt = 0;
     for (; G !== ot && gt < 1e3; ) {
       gt++;
       let zt = o[G];
@@ -3227,8 +3227,8 @@ function Xn(t) {
   let n = e.children;
   if (n == null) return ue;
   let i = ue;
-  for (let a of X.Children.toArray(n)) {
-    if (!X.isValidElement(a)) continue;
+  for (let a of B.Children.toArray(n)) {
+    if (!B.isValidElement(a)) continue;
     let s = Xn(a), o = a.props.transform, l = o ? Qa(s, o) : s;
     i = vn(i, l);
   }
@@ -3273,8 +3273,8 @@ function Cc(t) {
   return typeof t == "number" && !Number.isInteger(t) ? Math.round(t * 100) / 100 : typeof t == "function" ? `[Function ${t.name || "anonymous"}]` : typeof t == "bigint" ? `${t}n` : typeof t == "symbol" ? t.toString() : t instanceof Map ? Object.fromEntries(t) : t instanceof Set ? [...t] : t;
 }
 function Ja(t, e = "") {
-  if (!X.isValidElement(t)) return e + (typeof t == "string" ? t : Yn(t));
-  let r = t, n = ve(r) ?? "", { children: i, ...a } = r.props, s = Object.entries(a).filter(([, l]) => l !== void 0).map(([l, u]) => ` ${l}=${Rc(u)}`).join(""), o = X.Children.toArray(i);
+  if (!B.isValidElement(t)) return e + (typeof t == "string" ? t : Yn(t));
+  let r = t, n = ve(r) ?? "", { children: i, ...a } = r.props, s = Object.entries(a).filter(([, l]) => l !== void 0).map(([l, u]) => ` ${l}=${Rc(u)}`).join(""), o = B.Children.toArray(i);
   return o.length === 0 ? `${e}<${n}${s} />` : [`${e}<${n}${s}>`, ...o.map((l) => Ja(l, e + "  ")), `${e}</${n}>`].join(`
 `);
 }
@@ -3351,7 +3351,7 @@ function ts(t, e, r, n = "a") {
       l[g] = m;
     } else l[g] = Pn(g, v, b, r);
   }
-  if (!Ue(t)) return X.cloneElement(t, { ...l, ...o ? { transform: o } : {}, children: (s ? a : i).children });
+  if (!Ue(t)) return B.cloneElement(t, { ...l, ...o ? { transform: o } : {}, children: (s ? a : i).children });
   let f = mn(i.children), h = mn(a.children), c = [], p = /* @__PURE__ */ new Map(), y = (g, v) => {
     let b = 0;
     for (let x of g) {
@@ -3368,7 +3368,7 @@ function ts(t, e, r, n = "a") {
     let b = $r(v, r);
     b && c.push(b);
   }
-  return X.cloneElement(t, { ...l, ...o ? { transform: o } : {}, children: c.length === 0 ? void 0 : c });
+  return B.cloneElement(t, { ...l, ...o ? { transform: o } : {}, children: c.length === 0 ? void 0 : c });
 }
 function Nc(t, e, r, n) {
   let i = n === "b", a = i ? lt(e, { key: t.key ?? void 0 }) : t, { dragologyLerpProps: s } = a.props;
@@ -3423,8 +3423,8 @@ function Wc(t, e, r) {
   return n && i ? Bc(n, i, r) : null;
 }
 function cr(t) {
-  let e = X.Children.toArray(t.props.children), r = null, n = null, i = null;
-  for (let a of e) if (X.isValidElement(a)) {
+  let e = B.Children.toArray(t.props.children), r = null, n = null, i = null;
+  for (let a of e) if (B.isValidElement(a)) {
     if (a.type === "rect" && r === null) {
       let s = a.props;
       r = parseFloat(s.width), n = parseFloat(s.height);
@@ -3436,9 +3436,9 @@ function cr(t) {
   return r !== null && n !== null && !isNaN(r) && !isNaN(n) ? { rectWidth: r, rectHeight: n, textY: i !== null && !isNaN(i) ? i : null } : null;
 }
 function ea(t, e) {
-  let r = t.props, n = X.Children.toArray(r.children), i = !1, a = !1;
+  let r = t.props, n = B.Children.toArray(r.children), i = !1, a = !1;
   return lt(t, { children: n.map((s) => {
-    if (X.isValidElement(s)) {
+    if (B.isValidElement(s)) {
       if (!i && s.type === "rect") return i = !0, lt(s, { width: e.rectWidth, height: e.rectHeight });
       if (!a && s.type === "text" && e.textY !== null) return a = !0, lt(s, { y: e.textY });
     }
@@ -3934,9 +3934,9 @@ var wf = class extends ft {
     return c.lastNumberOfEvaluations += 1, c.arraycopy(v, 1, x, 0, y), P = c.arr(g), m = t(y, g, x, P), c.arraycopy(P, 0, b, 1, g), m;
   }, f = this.cobylb(p, e, r, u, h, i, a, s, o, l), this.arraycopy(h, 1, n, 0, e), f;
 }, cobylb: function(t, e, r, n, i, a, s, o, l, u) {
-  var f = -1, h = 0.25, c = 2.1, p = 0.5, y = 1.1, g = 0, v = 0, b, x = e + 1, P = r + 1, m = a, d = 0, R = !1, z = !1, L = 0, $ = 0, D = 0, C = this.arr(1 + n), I = this.arr2(1 + e, 1 + x), N = this.arr2(1 + e, 1 + e), w = this.arr2(1 + n, 1 + x), E = this.arr2(1 + e, 1 + P), M = this.arr(1 + e), k = this.arr(1 + e), B = this.arr(1 + e), j = this.arr(1 + e), H = this.arr(1 + e), A, T, _, tt, F, dt, K, W, st, ht, ot, G, Q, rt, gt, Et, zt, Ct, Bt, wt, Wt, Xt, Te, Yt, Rt, Ie, Ht, nt, ct, yt, ie = !0;
+  var f = -1, h = 0.25, c = 2.1, p = 0.5, y = 1.1, g = 0, v = 0, b, x = e + 1, P = r + 1, m = a, d = 0, R = !1, z = !1, L = 0, $ = 0, D = 0, C = this.arr(1 + n), I = this.arr2(1 + e, 1 + x), N = this.arr2(1 + e, 1 + e), w = this.arr2(1 + n, 1 + x), E = this.arr2(1 + e, 1 + P), M = this.arr(1 + e), k = this.arr(1 + e), W = this.arr(1 + e), j = this.arr(1 + e), H = this.arr(1 + e), A, T, _, tt, F, dt, K, X, st, ht, ot, G, Q, rt, gt, Et, zt, Ct, Bt, wt, Wt, Xt, Te, Yt, Rt, Ie, Ht, nt, ct, yt, ie = !0;
   for (o >= 2 && console.log("The initial value of RHO is " + m + " and PARMU is set to zero."), K = 0, F = 1 / m, A = 1; A <= e; ++A) I[A][x] = i[A], I[A][A] = m, N[A][A] = F;
-  W = x, st = !1;
+  X = x, st = !1;
   t: do {
     if (K >= l && K > 0) {
       f = this.MaxIterationsReached;
@@ -3944,18 +3944,18 @@ var wf = class extends ft {
     }
     for (++K, g = t(e, r, i, C), v = 0, _ = 1; _ <= r; ++_) v = Math.max(v, -C[_]);
     if ((K === o - 1 || o === 3) && this.PrintIterationResult(K, g, v, i, e, o), C[P] = g, C[n] = v, ht = !0, !st) {
-      for (ht = !1, A = 1; A <= n; ++A) w[A][W] = C[A];
+      for (ht = !1, A = 1; A <= n; ++A) w[A][X] = C[A];
       if (K <= x) {
-        if (W <= e) if (w[P][x] <= g) i[W] = I[W][x];
+        if (X <= e) if (w[P][x] <= g) i[X] = I[X][x];
         else {
-          for (I[W][x] = i[W], _ = 1; _ <= n; ++_) w[_][W] = w[_][x], w[_][x] = C[_];
-          for (_ = 1; _ <= W; ++_) {
-            for (I[W][_] = -m, F = 0, A = _; A <= W; ++A) F -= N[A][_];
-            N[W][_] = F;
+          for (I[X][x] = i[X], _ = 1; _ <= n; ++_) w[_][X] = w[_][x], w[_][x] = C[_];
+          for (_ = 1; _ <= X; ++_) {
+            for (I[X][_] = -m, F = 0, A = _; A <= X; ++A) F -= N[A][_];
+            N[X][_] = F;
           }
         }
         if (K <= e) {
-          W = K, i[W] += m;
+          X = K, i[X] += m;
           continue t;
         }
       }
@@ -3986,14 +3986,14 @@ var wf = class extends ft {
             M[T] = 1 / Math.sqrt(gt), k[T] = Math.sqrt(Et), (M[T] < L || k[T] > rt) && (R = !1);
           }
           if (!st && !R) {
-            for (W = 0, F = rt, T = 1; T <= e; ++T) k[T] > F && (W = T, F = k[T]);
-            if (W === 0) for (T = 1; T <= e; ++T) M[T] < F && (W = T, F = M[T]);
-            for (F = p * m * M[W], _ = 1; _ <= e; ++_) j[_] = F * N[W][_];
+            for (X = 0, F = rt, T = 1; T <= e; ++T) k[T] > F && (X = T, F = k[T]);
+            if (X === 0) for (T = 1; T <= e; ++T) M[T] < F && (X = T, F = M[T]);
+            for (F = p * m * M[X], _ = 1; _ <= e; ++_) j[_] = F * N[X][_];
             for (zt = 0, Ct = 0, b = 0, _ = 1; _ <= P; ++_) b = this.DOT_PRODUCT_ROW_COL(j, -1, E, _, 1, e), _ < P && (F = w[_][x], zt = Math.max(zt, -b - F), Ct = Math.max(Ct, b - F));
-            for (Bt = d * (zt - Ct) > 2 * b ? -1 : 1, F = 0, A = 1; A <= e; ++A) j[A] = Bt * j[A], I[A][W] = j[A], F += N[W][A] * j[A];
-            for (_ = 1; _ <= e; ++_) N[W][_] /= F;
+            for (Bt = d * (zt - Ct) > 2 * b ? -1 : 1, F = 0, A = 1; A <= e; ++A) j[A] = Bt * j[A], I[A][X] = j[A], F += N[X][A] * j[A];
+            for (_ = 1; _ <= e; ++_) N[X][_] /= F;
             for (T = 1; T <= e; ++T) {
-              if (T !== W) for (F = this.DOT_PRODUCT_ROW_COL(N, T, j, -1, 1, e), _ = 1; _ <= e; ++_) N[T][_] -= F * N[W][_];
+              if (T !== X) for (F = this.DOT_PRODUCT_ROW_COL(N, T, j, -1, 1, e), _ = 1; _ <= e; ++_) N[T][_] -= F * N[X][_];
               i[T] = I[T][x] + j[T];
             }
             continue t;
@@ -4013,19 +4013,19 @@ var wf = class extends ft {
           st = !0;
           continue t;
         }
-        for (ht = !1, Te = w[P][x] + d * w[n][x], Yt = g + d * v, Rt = Te - Yt, d === 0 && g === w[P][x] && (D = $, Rt = w[n][x] - v), Ie = Rt <= 0 ? 1 : 0, W = 0, T = 1; T <= e; ++T) F = Math.abs(this.DOT_PRODUCT_ROW_COL(N, T, j, -1, 1, e)), F > Ie && (W = T, Ie = F), B[T] = F * M[T];
-        for (Ht = y * m, tt = 0, T = 1; T <= e; ++T) if (B[T] >= L || B[T] >= M[T]) {
+        for (ht = !1, Te = w[P][x] + d * w[n][x], Yt = g + d * v, Rt = Te - Yt, d === 0 && g === w[P][x] && (D = $, Rt = w[n][x] - v), Ie = Rt <= 0 ? 1 : 0, X = 0, T = 1; T <= e; ++T) F = Math.abs(this.DOT_PRODUCT_ROW_COL(N, T, j, -1, 1, e)), F > Ie && (X = T, Ie = F), W[T] = F * M[T];
+        for (Ht = y * m, tt = 0, T = 1; T <= e; ++T) if (W[T] >= L || W[T] >= M[T]) {
           if (F = k[T], Rt > 0) {
             for (F = 0, _ = 1; _ <= e; ++_) F += (j[_] - I[_][T]) ** 2;
             F = Math.sqrt(F);
           }
           F > Ht && (tt = T, Ht = F);
         }
-        if (tt > 0 && (W = tt), W !== 0) {
-          for (F = 0, A = 1; A <= e; ++A) I[A][W] = j[A], F += N[W][A] * j[A];
-          for (_ = 1; _ <= e; ++_) N[W][_] /= F;
-          for (T = 1; T <= e; ++T) if (T !== W) for (F = this.DOT_PRODUCT_ROW_COL(N, T, j, -1, 1, e), _ = 1; _ <= e; ++_) N[T][_] -= F * N[W][_];
-          for (_ = 1; _ <= n; ++_) w[_][W] = C[_];
+        if (tt > 0 && (X = tt), X !== 0) {
+          for (F = 0, A = 1; A <= e; ++A) I[A][X] = j[A], F += N[X][A] * j[A];
+          for (_ = 1; _ <= e; ++_) N[X][_] /= F;
+          for (T = 1; T <= e; ++T) if (T !== X) for (F = this.DOT_PRODUCT_ROW_COL(N, T, j, -1, 1, e), _ = 1; _ <= e; ++_) N[T][_] -= F * N[X][_];
+          for (_ = 1; _ <= n; ++_) w[_][X] = C[_];
           if (Rt > 0 && Rt >= 0.1 * D) continue e;
         }
       } while (!ie);
@@ -4061,7 +4061,7 @@ var wf = class extends ft {
   for (_ = 1; _ <= e; ++_) i[_] = I[_][x];
   return g = w[P][x], v = w[n][x], o >= 1 && this.PrintIterationResult(K, g, v, i, e, o), f;
 }, trstlp: function(t, e, r, n, i, a) {
-  var s = 0, o = 0, l = 0, u = this.arr2(1 + t, 1 + t), f = this.arr(2 + e), h = this.arr(2 + e), c = this.arr(1 + t), p = this.arr(1 + t), y = this.arr(2 + e), g = this.arr(2 + e), v = e, b = 0, x, P, m, d, R, z, L, $, D, C, I, N, w, E, M, k, B, j, H, A, T, _, tt, F, dt, K, W, st, ht, ot, G, Q, rt, gt, Et = !0;
+  var s = 0, o = 0, l = 0, u = this.arr2(1 + t, 1 + t), f = this.arr(2 + e), h = this.arr(2 + e), c = this.arr(1 + t), p = this.arr(1 + t), y = this.arr(2 + e), g = this.arr(2 + e), v = e, b = 0, x, P, m, d, R, z, L, $, D, C, I, N, w, E, M, k, W, j, H, A, T, _, tt, F, dt, K, X, st, ht, ot, G, Q, rt, gt, Et = !0;
   for (m = 1; m <= t; ++m) u[m][m] = 1, a[m] = 0;
   if (x = 0, P = 0, e >= 1) {
     for (d = 1; d <= e; ++d) n[d] > P && (P = n[d], x = d);
@@ -4077,7 +4077,7 @@ var wf = class extends ft {
           if (x < b) {
             N = g[x], w = h[x], d = x;
             do {
-              for (M = d + 1, k = g[M], B = this.DOT_PRODUCT(this.PART(this.COL(u, d), 1, t), this.PART(this.COL(r, k), 1, t)), s = Math.hypot(B, f[M]), j = f[M] / s, H = B / s, f[M] = j * f[d], f[d] = s, m = 1; m <= t; ++m) s = j * u[m][M] + H * u[m][d], u[m][M] = j * u[m][d] - H * u[m][M], u[m][d] = s;
+              for (M = d + 1, k = g[M], W = this.DOT_PRODUCT(this.PART(this.COL(u, d), 1, t), this.PART(this.COL(r, k), 1, t)), s = Math.hypot(W, f[M]), j = f[M] / s, H = W / s, f[M] = j * f[d], f[d] = s, m = 1; m <= t; ++m) s = j * u[m][M] + H * u[m][d], u[m][M] = j * u[m][d] - H * u[m][M], u[m][d] = s;
               g[d] = k, h[d] = h[M], d = M;
             } while (d < b);
             g[d] = N, h[d] = w;
@@ -4087,9 +4087,9 @@ var wf = class extends ft {
         } else {
           for (k = g[x], d = 1; d <= t; ++d) p[d] = r[d][k];
           for (A = 0, d = t; d > b; ) {
-            for (B = 0, T = 0, m = 1; m <= t; ++m) s = u[m][d] * p[m], B += s, T += Math.abs(s);
-            if (_ = T + 0.1 * Math.abs(B), tt = T + 0.2 * Math.abs(B), (T >= _ || _ >= tt) && (B = 0), A === 0) A = B;
-            else for (M = d + 1, s = Math.hypot(B, A), j = B / s, H = A / s, A = s, m = 1; m <= t; ++m) s = j * u[m][d] + H * u[m][M], u[m][M] = j * u[m][M] - H * u[m][d], u[m][d] = s;
+            for (W = 0, T = 0, m = 1; m <= t; ++m) s = u[m][d] * p[m], W += s, T += Math.abs(s);
+            if (_ = T + 0.1 * Math.abs(W), tt = T + 0.2 * Math.abs(W), (T >= _ || _ >= tt) && (W = 0), A === 0) A = W;
+            else for (M = d + 1, s = Math.hypot(W, A), j = W / s, H = A / s, A = s, m = 1; m <= t; ++m) s = j * u[m][d] + H * u[m][M], u[m][M] = j * u[m][M] - H * u[m][d], u[m][d] = s;
             --d;
           }
           if (A === 0) {
@@ -4106,7 +4106,7 @@ var wf = class extends ft {
             if (x < b) {
               N = g[x], w = h[x], d = x;
               do {
-                for (M = d + 1, K = g[M], B = this.DOT_PRODUCT(this.PART(this.COL(u, d), 1, t), this.PART(this.COL(r, K), 1, t)), s = Math.hypot(B, f[M]), j = f[M] / s, H = B / s, f[M] = j * f[d], f[d] = s, m = 1; m <= t; ++m) s = j * u[m][M] + H * u[m][d], u[m][M] = j * u[m][d] - H * u[m][M], u[m][d] = s;
+                for (M = d + 1, K = g[M], W = this.DOT_PRODUCT(this.PART(this.COL(u, d), 1, t), this.PART(this.COL(r, K), 1, t)), s = Math.hypot(W, f[M]), j = f[M] / s, H = W / s, f[M] = j * f[d], f[d] = s, m = 1; m <= t; ++m) s = j * u[m][M] + H * u[m][d], u[m][M] = j * u[m][d] - H * u[m][M], u[m][d] = s;
                 g[d] = K, h[d] = h[M], d = M;
               } while (d < b);
               g[d] = N, h[d] = w;
@@ -4115,15 +4115,15 @@ var wf = class extends ft {
             f[b] = s, h[x] = 0, h[b] = I;
           } else ++b, f[b] = A, h[x] = h[b], h[b] = 0;
           if (g[x] = g[b], g[b] = k, v > e && k !== v) {
-            for (d = b - 1, B = this.DOT_PRODUCT(this.PART(this.COL(u, d), 1, t), this.PART(this.COL(r, k), 1, t)), s = Math.hypot(B, f[b]), j = f[b] / s, H = B / s, f[b] = j * f[d], f[d] = s, m = 1; m <= t; ++m) s = j * u[m][b] + H * u[m][d], u[m][b] = j * u[m][d] - H * u[m][b], u[m][d] = s;
+            for (d = b - 1, W = this.DOT_PRODUCT(this.PART(this.COL(u, d), 1, t), this.PART(this.COL(r, k), 1, t)), s = Math.hypot(W, f[b]), j = f[b] / s, H = W / s, f[b] = j * f[d], f[d] = s, m = 1; m <= t; ++m) s = j * u[m][b] + H * u[m][d], u[m][b] = j * u[m][d] - H * u[m][b], u[m][d] = s;
             g[b] = g[d], g[d] = k, s = h[d], h[d] = h[b], h[b] = s;
           }
           if (v > e) for (s = 1 / f[b], d = 1; d <= t; ++d) c[d] = s * u[d][b];
           else for (k = g[b], s = (this.DOT_PRODUCT_ROW_COL(c, -1, r, k, 1, t) - 1) / f[b], d = 1; d <= t; ++d) c[d] -= s * u[d][b];
         }
-        for (W = i * i, ht = 0, st = 0, m = 1; m <= t; ++m) Math.abs(a[m]) >= 1e-6 * i && (W -= a[m] * a[m]), ht += a[m] * c[m], st += c[m] * c[m];
-        if (W <= 0) break t;
-        if (s = Math.sqrt(st * W), Math.abs(ht) >= 1e-6 * s && (s = Math.sqrt(st * W + ht * ht)), D = W / (s + ht), $ = D, v === e) {
+        for (X = i * i, ht = 0, st = 0, m = 1; m <= t; ++m) Math.abs(a[m]) >= 1e-6 * i && (X -= a[m] * a[m]), ht += a[m] * c[m], st += c[m] * c[m];
+        if (X <= 0) break t;
+        if (s = Math.sqrt(st * X), Math.abs(ht) >= 1e-6 * s && (s = Math.sqrt(st * X + ht * ht)), D = X / (s + ht), $ = D, v === e) {
           if (_ = $ + 0.1 * P, tt = $ + 0.2 * P, $ >= _ || _ >= tt) break e;
           $ = Math.min($, P);
         }
@@ -4741,10 +4741,10 @@ function us({ draggable: t, state: e, width: r, height: n, onDropState: i, onDra
     if (M) {
       let k = Xn(M.element);
       if (!k.empty) {
-        let B = wn(k), j = re(M.accumulatedTransform, B).add(E);
+        let W = wn(k), j = re(M.accumulatedTransform, W).add(E);
         b.current = j;
         let H = er(M.element)?.(), A = qe(M.element);
-        H && A && p(qn(H, { draggable: t, draggedPath: A, draggedId: w, anchorPos: B, startState: e, debug: { varyVisualizer: !1 } }, e, { pointer: j }, null));
+        H && A && p(qn(H, { draggable: t, draggedPath: A, draggedId: w, anchorPos: W, startState: e, debug: { varyVisualizer: !1 } }, e, { pointer: j }, null));
       }
     }
   }
@@ -4757,8 +4757,8 @@ function us({ draggable: t, state: e, width: r, height: n, onDropState: i, onDra
     let w = h((M) => {
       let k = y.current;
       if (k.type === "idle" && k.pendingDrag) {
-        let { pendingDrag: B } = k;
-        V(M.clientX, M.clientY).sub(B.startClientPos).len2() > B.threshold * B.threshold && (L(M), p(B.status));
+        let { pendingDrag: W } = k;
+        V(M.clientX, M.clientY).sub(W.startClientPos).len2() > W.threshold * W.threshold && (L(M), p(W.status));
       } else L(M);
     }), E = h((M) => {
       let k = y.current;
@@ -4768,7 +4768,7 @@ function us({ draggable: t, state: e, width: r, height: n, onDropState: i, onDra
       }
       if (k.type !== "dragging") return;
       d.current = !0;
-      let B = { pointer: L(M) }, j = k.behavior(B), H = j.dropState;
+      let W = { pointer: L(M) }, j = k.behavior(W), H = j.dropState;
       p({ type: "idle", state: H, springOrigin: Be(j.dropTransition, () => pe(k.springOrigin, j.preview())) }), P.current?.(H), m.current?.(H);
     });
     return document.addEventListener("pointermove", w), document.addEventListener("pointerup", E), () => {
@@ -4852,30 +4852,31 @@ function aa(t) {
 }
 const pd = ({ state: t, d: e, draggedId: r }) => {
   const { width: n, row: i, height: a, top: s } = ys, { points: o } = sa(t), l = !!t.lanes[0].station;
-  return /* @__PURE__ */ X.createElement("g", { fontFamily: "system-ui, sans-serif", fill: "#18302d" }, t.lanes.flatMap((u, f) => (u.station?.next ?? []).map((h) => {
+  return /* @__PURE__ */ B.createElement("g", { fontFamily: "system-ui, sans-serif", fill: "#18302d" }, t.lanes.flatMap((u, f) => (u.station?.next ?? []).map((h) => {
     const c = o[f], p = o[t.lanes.findIndex((d) => d.id === h)], y = n / 2 + 8, g = (s - 12) / 2 + 4, v = p.x - c.x, b = p.y - c.y, x = Math.min(v ? n / 2 / Math.abs(v) : 1 / 0, b ? (g - 4) / Math.abs(b) : 1 / 0), P = p.x + y - v * x, m = p.y + g - b * x;
-    return /* @__PURE__ */ X.createElement("g", { dragologyKey: u.id + "-" + h }, /* @__PURE__ */ X.createElement("line", { x1: c.x + y, y1: c.y + g, x2: P, y2: m, stroke: "#506b61", strokeWidth: 3 }), /* @__PURE__ */ X.createElement("path", { d: "M0 0l-11 -5v10z", fill: "#315044", transform: `translate(${P} ${m}) rotate(${Math.atan2(b, v) * 180 / Math.PI})` }));
+    return /* @__PURE__ */ B.createElement("g", { dragologyKey: u.id + "-" + h }, /* @__PURE__ */ B.createElement("line", { x1: c.x + y, y1: c.y + g, x2: P, y2: m, stroke: "#506b61", strokeWidth: 3 }), /* @__PURE__ */ B.createElement("path", { d: "M0 0l-11 -5v10z", fill: "#315044", transform: `translate(${P} ${m}) rotate(${Math.atan2(b, v) * 180 / Math.PI})` }));
   })), t.lanes.map((u, f) => {
     const h = t.cards.filter((c) => c.laneId === u.id).length;
-    return /* @__PURE__ */ X.createElement("g", { id: "heading-" + u.id, transform: Ft(8 + o[f].x, 4 + o[f].y) }, /* @__PURE__ */ X.createElement("rect", { width: n, height: s - 12, rx: l ? 2 : 9, fill: ms[f] }), aa(u.label).map((c, p) => /* @__PURE__ */ X.createElement("text", { dragologyKey: "line-" + p, transform: Ft(12, 16 + p * 15), fontSize: l ? 17 : 13, fontWeight: "bold" }, c)), /* @__PURE__ */ X.createElement("text", { transform: Ft(12, s - 23), fontSize: 12 }, u.station ? h ? "● Occupied" : "Open stop" : u.capacity ? `${h} of ${u.capacity} slots` : `${h} ${h === 1 ? "choice" : "choices"}`));
+    return /* @__PURE__ */ B.createElement("g", { id: "heading-" + u.id, transform: Ft(8 + o[f].x, 4 + o[f].y) }, l && /* @__PURE__ */ B.createElement("rect", { x: 0, y: 0, width: n, height: s + Math.max(1, h) * i - 10, rx: 9, fill: "#fcf9ed", stroke: "#a8b5aa", strokeDasharray: "4 4" }), /* @__PURE__ */ B.createElement("rect", { width: n, height: s - 12, rx: l ? 6 : 9, fill: l ? "#253c36" : ms[f] }), aa(u.label).map((c, p) => /* @__PURE__ */ B.createElement("text", { dragologyKey: "line-" + p, fill: l ? "#fffdf3" : "#18302d", transform: Ft(12, (l ? 23 : 16) + p * 16), fontSize: l ? 17 : 13, fontWeight: "bold" }, c)), /* @__PURE__ */ B.createElement("text", { fill: l ? "#ebd29a" : "#18302d", transform: Ft(12, s - 23), fontSize: 12 }, u.station ? h ? "● Occupied" : "Open stop" : u.capacity ? `${h} of ${u.capacity} slots` : `${h} ${h === 1 ? "choice" : "choices"}`));
   }), t.cards.map((u) => {
     const f = t.lanes.findIndex((y) => y.id === u.laneId), h = t.cards.filter((y) => y.laneId === u.laneId).indexOf(u), c = sn(t, u), p = "choice-" + u.id;
-    return /* @__PURE__ */ X.createElement(
+    return /* @__PURE__ */ B.createElement(
       "g",
       {
         id: p,
-        transform: Ft(8 + o[f].x, o[f].y + s + h * i),
+        transform: Ft((l ? 18 : 8) + o[f].x, o[f].y + s + h * i),
         dragologyZIndex: r === p ? "/1" : !1,
         dragologyOnDrag: c.length > 1 ? () => e.closest(c.map((y) => on(t, u.id, y.id))).withFloating() : void 0
       },
-      /* @__PURE__ */ X.createElement("rect", { width: n, height: a, fill: l ? "#ffe381" : "#fffdf6", stroke: "#78857d", rx: l ? 1 : 8 }),
-      aa(u.label).map((y, g) => /* @__PURE__ */ X.createElement("text", { dragologyKey: "line-" + g, transform: Ft(12, 17 + g * 16), fontSize: 14 }, y))
+      /* @__PURE__ */ B.createElement("rect", { width: l ? n - 20 : n, height: a - (l ? 6 : 0), fill: l ? "#ffda75" : "#fffdf6", stroke: "#78857d", rx: l ? 1 : 8 }),
+      l && /* @__PURE__ */ B.createElement("path", { d: "M198 0v70", stroke: "#897530", strokeDasharray: "4 5" }),
+      aa(u.label).map((y, g) => /* @__PURE__ */ B.createElement("text", { dragologyKey: "line-" + g, transform: Ft(12, 17 + g * 16), fontSize: 14 }, y))
     );
   }));
 };
 function vd({ value: t, onChange: e }) {
   const { width: r, height: n } = sa(t);
-  return /* @__PURE__ */ X.createElement("section", { "aria-label": t.title }, /* @__PURE__ */ X.createElement("div", { style: { maxWidth: "100%", overflowX: "auto" } }, /* @__PURE__ */ X.createElement(
+  return /* @__PURE__ */ B.createElement("section", { "aria-label": t.title }, /* @__PURE__ */ B.createElement("div", { style: { maxWidth: "100%", overflowX: "auto" } }, /* @__PURE__ */ B.createElement(
     od,
     {
       draggable: pd,
@@ -4884,17 +4885,17 @@ function vd({ value: t, onChange: e }) {
       width: r,
       height: n
     }
-  )), t.lanes[0].station && /* @__PURE__ */ X.createElement("div", { className: "workshop-outcomes", "aria-live": "polite" }, t.cards.map((i) => {
+  )), t.lanes[0].station && /* @__PURE__ */ B.createElement("div", { className: "workshop-outcomes", "aria-live": "polite" }, t.cards.map((i) => {
     const a = t.lanes.find((s) => s.id === i.laneId);
-    return /* @__PURE__ */ X.createElement("div", { key: i.id }, /* @__PURE__ */ X.createElement("p", null, /* @__PURE__ */ X.createElement("strong", null, i.label, " · ", a.label), /* @__PURE__ */ X.createElement("br", null), a.station.outcome), sn(t, i).filter((s) => s.id !== i.laneId).map((s) => /* @__PURE__ */ X.createElement("button", { key: s.id, type: "button", onClick: () => e(on(t, i.id, s.id)) }, i.label, " → ", s.label)));
-  })), /* @__PURE__ */ X.createElement("details", null, /* @__PURE__ */ X.createElement("summary", null, "Move a card by name"), t.cards.map((i) => /* @__PURE__ */ X.createElement("label", { key: i.id, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBlock: 6 } }, i.label, /* @__PURE__ */ X.createElement(
+    return /* @__PURE__ */ B.createElement("div", { key: i.id }, /* @__PURE__ */ B.createElement("p", null, /* @__PURE__ */ B.createElement("strong", null, i.label, " · ", a.label), /* @__PURE__ */ B.createElement("br", null), a.station.outcome), sn(t, i).filter((s) => s.id !== i.laneId).map((s) => /* @__PURE__ */ B.createElement("button", { key: s.id, type: "button", onClick: () => e(on(t, i.id, s.id)) }, i.label, " → ", s.label)));
+  })), /* @__PURE__ */ B.createElement("details", null, /* @__PURE__ */ B.createElement("summary", null, "Move a card by name"), t.cards.map((i) => /* @__PURE__ */ B.createElement("label", { key: i.id, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBlock: 6 } }, i.label, /* @__PURE__ */ B.createElement(
     "select",
     {
       "aria-label": "Move " + i.label,
       value: i.laneId,
       onChange: (a) => e(on(t, i.id, a.currentTarget.value))
     },
-    sn(t, i).map((a) => /* @__PURE__ */ X.createElement("option", { key: a.id, value: a.id }, a.label))
+    sn(t, i).map((a) => /* @__PURE__ */ B.createElement("option", { key: a.id, value: a.id }, a.label))
   )))));
 }
 export {

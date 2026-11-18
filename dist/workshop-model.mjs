@@ -24,66 +24,66 @@ function b(t) {
     throw new Error("A workshop needs 2 to 5 lanes.");
   if (!Array.isArray(e.cards) || e.cards.length < 1 || e.cards.length > 24)
     throw new Error("A workshop needs 1 to 24 cards.");
-  const n = e.lanes.map((r) => {
-    const o = m(r), i = { id: w(o.id), label: y(o.label) };
+  const r = e.lanes.map((a) => {
+    const o = m(a), i = { id: w(o.id), label: y(o.label) };
     if (o.capacity !== void 0) {
       if (typeof o.capacity != "number" || !Number.isInteger(o.capacity) || o.capacity < 1 || o.capacity > 24)
         throw new Error("Lane capacity must be a whole number from 1 to 24.");
       i.capacity = o.capacity;
     }
     if (o.station !== void 0) {
-      const a = m(o.station), d = (h) => {
-        if (typeof h != "number" || !Number.isInteger(h) || h < 0 || h > 2)
+      const n = m(o.station), d = (p) => {
+        if (typeof p != "number" || !Number.isInteger(p) || p < 0 || p > 2)
           throw new Error("Use map coordinates from 0 to 2.");
-        return h;
+        return p;
       };
-      if (!Array.isArray(a.next) || a.next.length > 4) throw new Error("A station needs a list of onward stops.");
-      const c = a.next.map(w);
-      u(c, "onward stop"), i.station = { column: d(a.column), row: d(a.row), next: c, outcome: y(a.outcome, 160) };
+      if (!Array.isArray(n.next) || n.next.length > 4) throw new Error("A station needs a list of onward stops.");
+      const c = n.next.map(w);
+      u(c, "onward stop"), i.station = { column: d(n.column), row: d(n.row), next: c, outcome: y(n.outcome, 160) };
     }
     return i;
-  }), s = n.map((r) => r.id);
-  if (u(s, "lane ID"), n.some((r) => r.station)) {
-    if (!n.every((r) => r.station)) throw new Error("Give every station on the map a position.");
-    u(n.map((r) => r.station.column + "," + r.station.row), "map position");
-    for (const r of n)
-      if (r.station.next.some((o) => o === r.id || !s.includes(o))) throw new Error("Connect each stop to another station on this map.");
+  }), s = r.map((a) => a.id);
+  if (u(s, "lane ID"), r.some((a) => a.station)) {
+    if (!r.every((a) => a.station)) throw new Error("Give every station on the map a position.");
+    u(r.map((a) => a.station.column + "," + a.station.row), "map position");
+    for (const a of r)
+      if (a.station.next.some((o) => o === a.id || !s.includes(o))) throw new Error("Connect each stop to another station on this map.");
   }
-  const p = e.cards.map((r) => {
-    const o = m(r), i = { id: w(o.id), label: y(o.label), laneId: w(o.laneId) };
+  const h = e.cards.map((a) => {
+    const o = m(a), i = { id: w(o.id), label: y(o.label), laneId: w(o.laneId) };
     if (!s.includes(i.laneId)) throw new Error("Card refers to an unknown lane.");
     if (o.allowedLaneIds !== void 0) {
-      if (!Array.isArray(o.allowedLaneIds) || o.allowedLaneIds.length > n.length) throw new Error("Invalid allowed lanes.");
-      if (i.allowedLaneIds = o.allowedLaneIds.map(w), u(i.allowedLaneIds, "allowed lane"), !i.allowedLaneIds.includes(i.laneId) || !i.allowedLaneIds.every((a) => s.includes(a)))
+      if (!Array.isArray(o.allowedLaneIds) || o.allowedLaneIds.length > r.length) throw new Error("Invalid allowed lanes.");
+      if (i.allowedLaneIds = o.allowedLaneIds.map(w), u(i.allowedLaneIds, "allowed lane"), !i.allowedLaneIds.includes(i.laneId) || !i.allowedLaneIds.every((n) => s.includes(n)))
         throw new Error("Allowed lanes must exist and include the starting lane.");
     }
     return i;
   });
-  u(p.map((r) => r.id), "card ID");
-  for (const r of n)
-    if (p.filter((o) => o.laneId === r.id).length > (r.capacity ?? 1 / 0))
-      throw new Error(`Lane "${r.label}" exceeds its capacity.`);
-  return { version: 1, title: l, lanes: n, cards: p };
+  u(h.map((a) => a.id), "card ID");
+  for (const a of r)
+    if (h.filter((o) => o.laneId === a.id).length > (a.capacity ?? 1 / 0))
+      throw new Error(`Lane "${a.label}" exceeds its capacity.`);
+  return { version: 1, title: l, lanes: r, cards: h };
 }
 function x(t, e) {
-  const l = t.lanes.find((n) => n.id === e.laneId)?.station;
-  return t.lanes.filter((n) => n.id === e.laneId || (!l || l.next.includes(n.id)) && (!e.allowedLaneIds || e.allowedLaneIds.includes(n.id)) && t.cards.filter((s) => s.laneId === n.id).length < (n.capacity ?? 1 / 0));
+  const l = t.lanes.find((r) => r.id === e.laneId)?.station;
+  return t.lanes.filter((r) => r.id === e.laneId || (!l || l.next.includes(r.id)) && (!e.allowedLaneIds || e.allowedLaneIds.includes(r.id)) && t.cards.filter((s) => s.laneId === r.id).length < (r.capacity ?? 1 / 0));
 }
 function A(t, e, l) {
-  const n = t.cards.find((s) => s.id === e);
-  if (!n || !x(t, n).some((s) => s.id === l)) throw new Error("Move is unavailable.");
-  return n.laneId === l ? t : { ...t, cards: t.cards.map((s) => s === n ? { ...n, laneId: l } : s) };
+  const r = t.cards.find((s) => s.id === e);
+  if (!r || !x(t, r).some((s) => s.id === l)) throw new Error("Move is unavailable.");
+  return r.laneId === l ? t : { ...t, cards: t.cards.map((s) => s === r ? { ...r, laneId: l } : s) };
 }
 const I = { pitch: 244, width: 228, row: 88, height: 76, top: 98 }, E = ["#d5e9e3", "#fbdfac", "#dedef4", "#dcebf3", "#efd7dc"];
 function L(t) {
-  const { pitch: e, row: l, top: n } = I, s = !!t.lanes[0].station, p = t.lanes.map((i) => t.cards.filter((a) => a.laneId === i.id).length), r = n + Math.max(1, ...p) * l + 36, o = t.lanes.map((i, a) => ({
-    x: s ? i.station.column * (e + 28) : a * e,
-    y: s ? i.station.row * r : 0
+  const { pitch: e, row: l, top: r } = I, s = !!t.lanes[0].station, h = t.lanes.map((i) => t.cards.filter((n) => n.laneId === i.id).length), a = r + Math.max(1, ...h) * l + 36, o = t.lanes.map((i, n) => ({
+    x: s ? i.station.column * (e + 28) : n * e,
+    y: s ? i.station.row * a : 0
   }));
   return {
     points: o,
     width: Math.max(...o.map((i) => i.x)) + e,
-    height: Math.max(...o.map((i, a) => i.y + n + (p[a] + 1) * l))
+    height: Math.max(...o.map((i, n) => i.y + r + (s ? Math.max(1, h[n]) : h[n] + 1) * l))
   };
 }
 const k = {
@@ -93,19 +93,19 @@ const k = {
     { id: "platform", label: "Last train", station: { column: 0, row: 0, next: ["stairs", "lift"], outcome: "The platform closes at 23:40. Find a step-free transfer before the last shuttle leaves." } },
     { id: "stairs", label: "East stairs", station: { column: 1, row: 0, next: ["platform"], outcome: "The east doors open onto the closed platform. Follow the signs back to the lift." } },
     { id: "lift", label: "Market St lift", station: { column: 0, row: 1, next: ["shuttle"], outcome: "The lift opens on Market Street. The marked path leads to shuttle bay B." } },
-    { id: "shuttle", label: "Shuttle · Bay B", station: { column: 1, row: 1, next: ["platform"], outcome: "The rider makes the connection. Run it again to try the other exit." } }
+    { id: "shuttle", label: "Shuttle · Bay B", station: { column: 1, row: 1, next: [], outcome: "The rider makes the connection. Run it again to try the other exit." } }
   ],
   cards: [{ id: "rider", label: "Last rider", laneId: "platform" }]
 };
 function v(t) {
-  const e = b(t), { width: l, row: n, height: s, top: p } = I, r = [];
-  function o(a, d, c, h, f, g) {
-    r.push({ options: {
-      id: a,
+  const e = b(t), { width: l, row: r, height: s, top: h } = I, a = [];
+  function o(n, d, c, p, f, g) {
+    a.push({ options: {
+      id: n,
       text: d,
       name: d,
       xPos: c,
-      yPos: h,
+      yPos: p,
       width: l,
       height: f,
       shapeHint: "rectangle",
@@ -117,17 +117,17 @@ function v(t) {
     }, relationships: { associations: [] } });
   }
   const { points: i } = L(e);
-  e.lanes.forEach((a, d) => {
-    const { x: c, y: h } = i[d];
-    o("lane-" + a.id, a.label, c, h, p - 12, E[d]), e.cards.filter((f) => f.laneId === a.id).forEach((f, g) => o("card-" + f.id, f.label, c, h + p + g * n, s, "#fffdf6"));
+  e.lanes.forEach((n, d) => {
+    const { x: c, y: p } = i[d];
+    o("lane-" + n.id, n.label, c, p, h - 12, E[d]), e.cards.filter((f) => f.laneId === n.id).forEach((f, g) => o("card-" + f.id, f.label, c, p + h + g * r, s, "#fffdf6"));
   });
-  for (const a of e.lanes) {
-    if (!a.station) continue;
-    const d = r.find((c) => c.options.id === "lane-" + a.id);
-    d.relationships.associations = a.station.next.map((c) => ({ id: a.id + "-to-" + c, parentId: d.options.id, childId: "lane-" + c, lineType: "straight", lineColor: "#506b61", lineWidth: 2, showChildArrow: !0 })), d.options.text = a.label + `
-` + a.station.outcome, d.options.fontSize = 13;
+  for (const n of e.lanes) {
+    if (!n.station) continue;
+    const d = a.find((c) => c.options.id === "lane-" + n.id);
+    d.relationships.associations = n.station.next.map((c) => ({ id: n.id + "-to-" + c, parentId: d.options.id, childId: "lane-" + c, lineType: "straight", lineColor: "#506b61", lineWidth: 2, showChildArrow: !0 })), d.options.text = n.label + `
+` + n.station.outcome, d.options.fontSize = 13;
   }
-  return { options: { name: e.title }, shareId: "", nodes: r };
+  return { options: { name: e.title }, shareId: "", nodes: a };
 }
 const C = {
   version: 1,
