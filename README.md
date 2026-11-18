@@ -688,3 +688,32 @@ Dragology is MIT licensed, © 2025 Dragology contributors. See
 [upstream source](https://github.com/declarative-dragging/dragology/tree/v0.2.0),
 [the license](licenses/Dragology-MIT.txt), and the bundled dependency notices
 in `dist/workshops-LICENSE.txt`.
+
+### Release planning
+
+`releasePlan` is an editable example of the version-1 workshop format. A
+`kind: 'release-plan'` workshop orders its lanes by release date, earliest
+first. A lane's optional `capacity` is a budget in effort points. Each card
+has positive integer `points`, an optional `dependsOn` list of prerequisite
+card IDs and its scheduled `laneId`. Use a final lane without a capacity
+for an unscheduled backlog.
+
+`moveWorkshopCard(plan, featureId, targetLaneId)` computes one atomic
+decision. Moving a feature earlier brings any late prerequisites. Deferring
+a prerequisite moves affected dependants to the later release. A point-budget
+or allowed-window violation makes the whole move unavailable. Validation
+rejects cycles, unknown IDs, backward dependencies and overspent budgets.
+
+`WorkshopBoard` uses Dragology to preview the candidate schedule while the
+pointer is held. A dependency list and capacity meters reflect that future
+without saving it. The keyboard controls preview, apply or cancel the same
+choices. On commit the board calls `onChange(next, {cardId, laneId})`; a
+shared host can send the small intent to its server and run the reducer
+against the current revision. Use `readOnly` for observers. Private controlled
+boards can undo their last move while it is still current. Shared hosts
+supply `onUndo` and `canUndo` for revision-checked history.
+
+`ReleasePlanReadout` accepts a committed `value` and optional `preview`
+for a separate display. Persist the validated model to retain authorship
+and rules. `workshopToSlate` exports its current windows, point totals,
+features and dependency arrows for editing or native presentation.

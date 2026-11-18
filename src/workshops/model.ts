@@ -1,3 +1,5 @@
+import { planReleaseMove, releaseLoad, validateRelease } from './release'
+export { releaseLoad, releasePlan } from './release'
 import type { NodeJSON, SlateJSON } from '../core/Serialization'
 
 export interface WorkshopLane {
@@ -12,10 +14,13 @@ export interface WorkshopCard {
   label: string
   laneId: string
   allowedLaneIds?: string[]
+  points?: number
+  dependsOn?: string[]
 }
 
 export interface Workshop {
   version: 1
+  kind?: 'release-plan'
   title: string
   lanes: WorkshopLane[]
   cards: WorkshopCard[]
@@ -49,6 +54,8 @@ function unique(values: string[], what: string) {
 export function validateWorkshop(input: unknown): Workshop {
   const value = record(input)
   if (value.version !== 1) throw new Error('Unsupported workshop version.')
+  if (value.kind !== undefined && value.kind !== 'release-plan') throw new Error('Unsupported workshop kind.')
+  const release = value.kind === 'release-plan'
   const title = label(value.title, 120)
   if (!Array.isArray(value.lanes) || value.lanes.length < 2 || value.lanes.length > 5) {
     throw new Error('A workshop needs 2 to 5 lanes.')
@@ -61,8 +68,9 @@ export function validateWorkshop(input: unknown): Workshop {
     const raw = record(item)
     const lane: WorkshopLane = { id: id(raw.id), label: label(raw.label) }
     if (raw.capacity !== undefined) {
-      if (typeof raw.capacity !== 'number' || !Number.isInteger(raw.capacity) || raw.capacity < 1 || raw.capacity > 24) {
-        throw new Error('Lane capacity must be a whole number from 1 to 24.')
+      const limit = release ? 576 : 24
+      if (typeof raw.capacity !== 'number' || !Number.isInteger(raw.capacity) || raw.capacity < 1 || raw.capacity > limit) {
+        throw new Error(`Lane capacity must be a whole number from 1 to ${limit}.`)
       }
       lane.capacity = raw.capacity
     }
@@ -102,9 +110,25 @@ export function validateWorkshop(input: unknown): Workshop {
         throw new Error('Allowed lanes must exist and include the starting lane.')
       }
     }
+    if (release) {
+      if (typeof raw.points !== 'number' || !Number.isInteger(raw.points) || raw.points < 1 || raw.points > 24) {
+        throw new Error('Give each feature 1 to 24 effort points.')
+      }
+      card.points = raw.points
+      if (raw.dependsOn !== undefined) {
+        if (!Array.isArray(raw.dependsOn) || raw.dependsOn.length > 23) throw new Error('Invalid release dependencies.')
+        card.dependsOn = raw.dependsOn.map(id)
+        unique(card.dependsOn, 'dependency')
+      }
+    }
     return card
   })
   unique(cards.map(card => card.id), 'card ID')
+  if (release) {
+    const plan: Workshop = { version: 1, kind: 'release-plan', title, lanes, cards }
+    validateRelease(plan)
+    return plan
+  }
   for (const lane of lanes) {
     if (cards.filter(card => card.laneId === lane.id).length > (lane.capacity ?? Infinity)) {
       throw new Error(`Lane "${lane.label}" exceeds its capacity.`)
@@ -114,6 +138,7 @@ export function validateWorkshop(input: unknown): Workshop {
 }
 
 export function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLane[] {
+  if (board.kind === 'release-plan') return board.lanes.filter(lane => planReleaseMove(board, card, lane.id) !== null)
   const station = board.lanes.find(lane => lane.id === card.laneId)?.station
   return board.lanes.filter(lane =>
     lane.id === card.laneId || ((!station || station.next.includes(lane.id)) && (!card.allowedLaneIds || card.allowedLaneIds.includes(lane.id)) &&
@@ -122,6 +147,11 @@ export function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLan
 
 export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string): Workshop {
   const card = board.cards.find(item => item.id === cardId)
+  if (card && board.kind === 'release-plan') {
+    const candidate = planReleaseMove(board, card, laneId)
+    if (!candidate) throw new Error('Move is unavailable.')
+    return candidate
+  }
   if (!card || !availableLanes(board, card).some(lane => lane.id === laneId)) throw new Error('Move is unavailable.')
   if (card.laneId === laneId) return board
   return { ...board, cards: board.cards.map(item => item === card ? { ...card, laneId } : item) }
@@ -166,9 +196,11 @@ export function workshopToSlate(input: Workshop): SlateJSON {
   const { points } = workshopPositions(board)
   board.lanes.forEach((lane, column) => {
     const { x, y } = points[column]
-    node('lane-' + lane.id, lane.label, x, y, top - 12, laneColors[column])
+    const label = board.kind === 'release-plan' ? lane.label + '\n' +
+      (lane.capacity ? releaseLoad(board, lane.id) + ' / ' + lane.capacity + ' points' : releaseLoad(board, lane.id) + ' points') : lane.label
+    node('lane-' + lane.id, label, x, y, top - 12, laneColors[column])
     board.cards.filter(card => card.laneId === lane.id).forEach((card, i) =>
-      node('card-' + card.id, card.label, x, y + top + i * row, height, '#fffdf6'))
+      node('card-' + card.id, board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label, x, y + top + i * row, height, '#fffdf6'))
   })
   for (const lane of board.lanes) {
     if (!lane.station) continue
@@ -176,6 +208,18 @@ export function workshopToSlate(input: Workshop): SlateJSON {
     heading.relationships.associations = lane.station.next.map(key => ({ id: lane.id + '-to-' + key, parentId: heading.options.id, childId: 'lane-' + key, lineType: 'straight', lineColor: '#506b61', lineWidth: 2, showChildArrow: true }))
     heading.options.text = lane.label + '\n' + lane.station.outcome
     heading.options.fontSize = 13
+  }
+  if (board.kind === 'release-plan') {
+    const byId = new Map(nodes.map(n => [n.options.id, n]))
+    for (const card of board.cards) {
+      for (const prerequisite of card.dependsOn ?? []) {
+        const parentId = 'card-' + prerequisite, childId = 'card-' + card.id
+        byId.get(parentId)!.relationships.associations.push({
+          id: `dependency-${prerequisite.length}-${prerequisite}-${card.id}`, parentId, childId, lineType: 'straight',
+          lineColor: '#566a67', lineWidth: 2, showChildArrow: true,
+        })
+      }
+    }
   }
   return { options: { name: board.title }, shareId: '', nodes }
 }

@@ -1,3 +1,4 @@
+export { releaseLoad, releasePlan } from './release';
 import type { SlateJSON } from '../core/Serialization';
 export interface WorkshopLane {
     id: string;
@@ -15,9 +16,12 @@ export interface WorkshopCard {
     label: string;
     laneId: string;
     allowedLaneIds?: string[];
+    points?: number;
+    dependsOn?: string[];
 }
 export interface Workshop {
     version: 1;
+    kind?: 'release-plan';
     title: string;
     lanes: WorkshopLane[];
     cards: WorkshopCard[];
