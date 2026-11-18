@@ -12,24 +12,28 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
   test.skip(!['localhost', '127.0.0.1', 'test.slatebox.com'].includes(origin.hostname), 'Disposable staging or local fixtures only.')
   const owner = await browser.newPage()
   const reader = await browser.newPage({ viewport: { width: 390, height: 844 } })
-  const email = 'map-agent-' + randomUUID() + '@qa.slatebox.invalid'
+  const email = 'refund-move-final-' + randomUUID() + '@qa.slatebox.invalid'
   let ownerId: string | null = null
   let shareId: string | undefined
   let tokenId: string | undefined
   try {
-    await owner.goto(new URL('/plans', origin).href)
-    await owner.waitForFunction(() => (window as any).Accounts && (window as any).Meteor.status().connected)
+    const entry = new URL('/new/map#brief=Who%20can%20approve%20a%20refund%3F', origin)
+    await owner.goto(entry.href)
+    await owner.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
+    await owner.waitForFunction(() => (window as any).Meteor?.userId())
+    ownerId = await userId(owner)
+    shareId = new URL(owner.url()).pathname.split('/').pop()!
     if (process.env.SLATEBOX_EXPECTED_APP_BUNDLE) {
       await expect(owner.locator('script[src*="/' + process.env.SLATEBOX_EXPECTED_APP_BUNDLE + '.js"]')).toHaveCount(1)
     }
-    ownerId = await owner.evaluate(async ({ email, password }) => {
-      await new Promise<void>((ok, fail) => (window as any).Accounts.createUser({ email, password }, (err: Error) => err ? fail(err) : ok()))
-      return (window as any).Meteor.userId()
-    }, { email, password: randomBytes(24).toString('hex') })
-    expect(ownerId).toBeTruthy()
-    await owner.goto(new URL('/new/map#brief=Who%20can%20approve%20a%20refund%3F', origin).href)
-    await owner.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
-    shareId = new URL(owner.url()).pathname.split('/').pop()!
+    await owner.goto(new URL('/profile', origin).href)
+    const claim = owner.getByTestId('guest-account-claim')
+    await claim.getByLabel('Email address').fill(email)
+    await claim.locator('input[type=password]').fill(randomBytes(24).toString('hex'))
+    await claim.getByRole('button', { name: 'Save my Slatebox' }).click()
+    await owner.waitForFunction(() => (window as any).Meteor?.user()?.isAnonymous === false)
+    await owner.goto(new URL('/canvas/' + shareId, origin).href)
+    await owner.waitForFunction(id => (window as any).Meteor?.userId() === id, ownerId)
     const first = await getSlate(owner, shareId)
     expect(first.userId).toBe(ownerId)
     expect(first.options.isPrivate).toBe(true)
@@ -40,6 +44,7 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
     await input.press('Enter')
     await chat.getByRole('button', { name: 'Keep changes' }).click()
     await expect.poll(async () => (await getSlate(owner, shareId!)).creative.model.workshop.lanes.length).toBe(3)
+    console.info('Private map created and both authored branches saved.')
     const issued = await owner.evaluate(() => (window as any).Meteor.callAsync('apiTokens.create', { name: 'Refund map proof', scopes: ['slates:read', 'slates:write'] }))
     tokenId = issued.id
     const headers = { authorization: 'Bearer ' + issued.token }
@@ -113,6 +118,7 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
     expect(result.revision).toBe(map.revision + 1)
     expect(result.cards.find((card: { id: string }) => card.id === team.id).laneId).toBe(finance.id)
     await expect(owner.locator('.map-stage')).toContainText('Team Â· Ask finance', { timeout: 15000 })
+    console.info('Owner saw the external move in the open map after preview, commit and retries.')
     await owner.reload()
     await expect(owner.locator('.map-stage')).toContainText('Team Â· Ask finance')
 
@@ -126,20 +132,28 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
     await expect(player.getByRole('heading', { name: 'Ask finance', exact: true })).toBeVisible()
     await expect(player.getByRole('listitem').filter({ hasText: /^Team$/ })).toHaveCount(1)
     expect(await userId(reader)).toBeNull()
+    console.info('Independent read invitation presented the team token at the saved station.')
   } finally {
     try {
       if (ownerId) {
         await owner.goto(new URL('/profile', origin).href)
-        await owner.waitForFunction((id) => (window as any).Meteor.userId() === id, ownerId)
+        await owner.waitForFunction((id) => (window as any).Meteor?.userId() === id, ownerId)
+        await owner.waitForFunction(({ id, email }) => {
+          const u = (window as any).Meteor?.user()
+          return u?._id === id && (u.isAnonymous === true || u.emails?.[0]?.address === email)
+        }, { id: ownerId, email })
         const cleaned = await owner.evaluate(async ({ ownerId, email, shareId, tokenId }) => {
           const meteor = (window as any).Meteor
-          if (meteor.userId() !== ownerId || meteor.user()?.emails?.[0]?.address !== email) return false
-          const mine = await meteor.callAsync('slates.get', { type: 'mine', skip: 0, limit: 5, filterString: '', private: false })
-          if (mine.counts.total !== (shareId ? 1 : 0) || (shareId && mine.slates[0]?.shareId !== shareId)) return false
+          if (meteor.userId() !== ownerId || !(meteor.user()?.isAnonymous || meteor.user()?.emails?.[0]?.address === email)) return false
+          if (meteor.user()?.orgId) return false
+          if (shareId) {
+            const owned = (await meteor.callAsync('slates.get', { shareId }))?.slateBase
+            if (owned?.userId !== ownerId || owned.shareId !== shareId) return false
+          }
           if (tokenId) await meteor.callAsync('apiTokens.revoke', { tokenId })
           return meteor.callAsync('users.delete')
         }, { ownerId, email, shareId, tokenId })
-        expect(cleaned).toBe(true)
+        expect(cleaned, 'Revoke the fixture token and delete its unique owner and sole board').toBe(true)
       }
     } finally {
       await reader.close()
