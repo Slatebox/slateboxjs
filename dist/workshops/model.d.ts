@@ -26,8 +26,12 @@ export interface Workshop {
     kind?: 'release-plan';
     title: string;
     lanes: WorkshopLane[];
+    /** Lane IDs in playback order. Boards without an authored order present their lanes in layout order. */
+    presentationOrder?: string[];
     cards: WorkshopCard[];
 }
+/** Resolve the original lanes for playback without changing their board positions or rules. */
+export declare function workshopPresentationLanes({ lanes, presentationOrder }: Pick<Workshop, 'lanes' | 'presentationOrder'>): WorkshopLane[];
 export declare function validateWorkshop(input: unknown): Workshop;
 /** Build the fragment for /new/workshop from portable workshop data. */
 export declare function encodeWorkshopFragment(value: Workshop): string;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { deserializeNodeOptions } from '../../src/core/Serialization'
-import { availableLanes, decodeWorkshopFragment, encodeWorkshopFragment, nightTransfer, industrialWorkshop, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
+import { availableLanes, decodeWorkshopFragment, encodeWorkshopFragment, nightTransfer, industrialWorkshop, releasePlan, workshopPresentationLanes, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
 
 describe('agent-authored workshops', () => {
   it('opens the authored state, including its rules and literal URL punctuation', () => {
@@ -10,6 +10,30 @@ describe('agent-authored workshops', () => {
     const copy = decodeWorkshopFragment(url.hash)
     expect(copy).toEqual(map)
     expect(() => moveWorkshopCard(copy, 'rider', 'stairs')).toThrow()
+  })
+
+  it.each([industrialWorkshop, nightTransfer, releasePlan])('persists authored presentation order independently of $title board layout', model => {
+    const ids = model.lanes.map(lane => lane.id)
+    const order = [...ids].reverse()
+    const board = validateWorkshop({ ...model, presentationOrder: order })
+    expect(workshopPresentationLanes(model)).toEqual(model.lanes)
+    expect(workshopPresentationLanes(board)[0]).toBe(board.lanes[board.lanes.length - 1])
+    expect(decodeWorkshopFragment(encodeWorkshopFragment(board))).toEqual(board)
+    expect(workshopPresentationLanes(validateWorkshop(JSON.parse(JSON.stringify(board)))).map(lane => lane.id)).toEqual(order)
+    expect(board.lanes.map(lane => lane.id)).toEqual(ids)
+    expect(workshopToSlate(board)).toEqual(workshopToSlate(model))
+    const card = model.cards[0]
+    const destinations = availableLanes(model, card)
+    expect(availableLanes(board, card)).toEqual(destinations)
+    const destination = destinations.find(lane => lane.id !== card.laneId)
+    if (destination) expect(moveWorkshopCard(board, card.id, destination.id).presentationOrder).toEqual(order)
+  })
+
+  it('rejects partial, oversized, repeated and unknown presentation stages', () => {
+    const ids = nightTransfer.lanes.map(lane => lane.id)
+    for (const order of [null, 'platform', [], ids.slice(1), [...ids, 'more'], [...ids.slice(1), ids[1]], [...ids.slice(1), 'unknown']]) {
+      expect(() => validateWorkshop({ ...nightTransfer, presentationOrder: order })).toThrow(/Presentation order/)
+    }
   })
 
   it('rejects incomplete, ambiguous, oversized and unsupported workshop links', () => {

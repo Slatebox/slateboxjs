@@ -25,6 +25,8 @@ export interface Workshop {
   kind?: 'release-plan'
   title: string
   lanes: WorkshopLane[]
+  /** Lane IDs in playback order. Boards without an authored order present their lanes in layout order. */
+  presentationOrder?: string[]
   cards: WorkshopCard[]
 }
 
@@ -50,6 +52,20 @@ function id(value: unknown): string {
 
 function unique(values: string[], what: string) {
   if (new Set(values).size !== values.length) throw new Error(`Duplicate ${what}.`)
+}
+
+/** Resolve the original lanes for playback without changing their board positions or rules. */
+export function workshopPresentationLanes({ lanes, presentationOrder }: Pick<Workshop, 'lanes' | 'presentationOrder'>): WorkshopLane[] {
+  if (presentationOrder === undefined) return lanes.slice()
+  if (!Array.isArray(presentationOrder) || presentationOrder.length !== lanes.length ||
+      new Set(presentationOrder).size !== lanes.length) {
+    throw new Error('Presentation order must include every lane exactly once.')
+  }
+  return Array.from(presentationOrder, key => {
+    const lane = lanes.find(lane => lane.id === key)
+    if (!lane) throw new Error('Presentation order refers to an unknown lane.')
+    return lane
+  })
 }
 
 // Treat agent output and stored drafts alike. Only declarative fields survive.
@@ -126,17 +142,22 @@ export function validateWorkshop(input: unknown): Workshop {
     return card
   })
   unique(cards.map(card => card.id), 'card ID')
+  const board: Workshop = { version: 1, title, lanes, cards }
+  if (value.presentationOrder !== undefined) {
+    if (!Array.isArray(value.presentationOrder)) throw new Error('Presentation order must be a list of lane IDs.')
+    board.presentationOrder = workshopPresentationLanes({ lanes, presentationOrder: value.presentationOrder }).map(lane => lane.id)
+  }
   if (release) {
-    const plan: Workshop = { version: 1, kind: 'release-plan', title, lanes, cards }
-    validateRelease(plan)
-    return plan
+    board.kind = 'release-plan'
+    validateRelease(board)
+    return board
   }
   for (const lane of lanes) {
     if (cards.filter(card => card.laneId === lane.id).length > (lane.capacity ?? Infinity)) {
       throw new Error(`Lane "${lane.label}" exceeds its capacity.`)
     }
   }
-  return { version: 1, title, lanes, cards }
+  return board
 }
 
 const maxWorkshopFragmentLength = 65536
