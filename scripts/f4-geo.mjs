@@ -5,10 +5,7 @@ const ctx = await b.newContext({ viewport: { width: 1400, height: 800 } });
 const p = await ctx.newPage();
 await p.goto(APP + '/start', { waitUntil: 'domcontentloaded' });
 await p.waitForTimeout(3000);
-for (const label of ['Personal Use', 'Consultant', 'Infographic for market analysis']) {
-  const el = p.getByText(label, { exact: true }).first();
-  try { await el.waitFor({ state: 'visible', timeout: 2500 }); await el.click(); await p.waitForTimeout(1200); } catch {}
-}
+await p.getByRole('button', { name: 'Open a blank slate' }).click();
 const seeded = await p.waitForFunction(() => { const i = window.__slateboxInstances; return Array.isArray(i) && i.some(s => s && (s.nodes || s.v2)); }, { timeout: 90000 }).then(() => true).catch(() => false);
 console.log('canvas:', seeded, p.url());
 if (seeded) {

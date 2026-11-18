@@ -9,10 +9,7 @@ await p.goto(APP + '/start', { waitUntil: 'domcontentloaded' });
 await p.waitForTimeout(3000);
 const ok = p.getByRole('button', { name: 'OK', exact: true }).first();
 try { await ok.waitFor({ state: 'visible', timeout: 2500 }); await ok.click(); await p.goto(APP + '/start', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(2000); } catch {}
-for (const label of ['Personal Use', 'Consultant', 'Infographic for market analysis']) {
-  const el = p.getByText(label, { exact: true }).first();
-  try { await el.waitFor({ state: 'visible', timeout: 2500 }); await el.click(); await p.waitForTimeout(1200); console.log('clicked', label); } catch { console.log('miss', label); }
-}
+await p.getByRole('button', { name: 'Open a blank slate' }).click();
 const seeded = await p.waitForFunction(() => {
   const inst = window.__slateboxInstances;
   return Array.isArray(inst) && inst.some(s => s && (s.nodes || s.v2));

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openGuestCanvas } from "./app-host.shared";
 
 // F2 live proof: multi-node arrangement reachable in the REAL app chrome.
 // Runs against a deployed app (SLATEBOX_APP_EXTERNAL=true, SLATEBOX_APP_URL=
@@ -28,76 +29,7 @@ test.describe("arrange toolbar (F2, app-level)", () => {
     );
     expect(token, "fresh session must have no resumed auth").toBeFalsy();
 
-    // Any authenticated guest canvas would do; simplest deterministic path:
-    // create via guest slate, then fall back to ANY reachable canvas URL.
-    let canvasOk = false;
-    // Fresh guest truth (Nov 16): /canvas/new resolves "new" as a SLATE ID ->
-    // "No Access" dialog on the login wall. The real guest entry is /start
-    // ("Start now. No Registration required.").
-    await page.goto(APP + "/start", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(3000);
-    // Dismiss any "No Access"/alert dialog that swallows clicks.
-    const ok = page.getByRole("button", { name: "OK", exact: true }).first();
-    try {
-      await ok.waitFor({ state: "visible", timeout: 2500 });
-      await ok.click();
-      await page.goto(APP + "/start", { waitUntil: "domcontentloaded" });
-      await page.waitForTimeout(2000);
-    } catch {
-      /* no dialog */
-    }
-    canvasOk = await page
-      .evaluate(() => !!(window as any).__slateboxInstances && (window as any).__slateboxInstances.length > 0)
-      .catch(() => false);
-    if (!canvasOk) {
-      // Wizard, IF present, is transient — adaptive: one 12s budget for any
-      // wizard text, then short per-step clicks. Guests often skip straight
-      // to a blank canvas and must not pay 3x dead selector waits.
-      const wizard = await page
-        .waitForFunction(
-          () =>
-            !!document.body &&
-            /Personal Use|Consultant|pick.{0,20}topic|template/i.test(
-              document.body.innerText,
-            ),
-          { timeout: 12_000 },
-        )
-        .then(() => true)
-        .catch(() => false);
-      if (wizard) {
-        for (const label of [
-          "Personal Use",
-          "Consultant",
-          "Infographic for market analysis",
-        ]) {
-          const el = page.getByText(label, { exact: true }).first();
-          try {
-            await el.waitFor({ state: "visible", timeout: 2500 });
-            await el.click();
-          } catch {
-            /* step not on this path */
-          }
-        }
-        // if a wizard is mid-flow, submit/auto-advance may need a beat
-        await page.waitForTimeout(2000);
-      }
-      // wait for a canvas to exist (submit/autokick included)
-      const seeded = await page
-        .waitForFunction(
-          () => {
-            const inst = (window as any).__slateboxInstances;
-            return (
-              Array.isArray(inst) &&
-              inst.some((s: any) => s && (s.nodes || s.v2))
-            );
-          },
-          { timeout: 90_000 },
-        )
-        .then(() => true)
-        .catch(() => false);
-      canvasOk = seeded;
-    }
-    expect(canvasOk, "no canvas/engine instance reachable").toBe(true);
+    await openGuestCanvas(page, APP);
 
     const result = await page
       .evaluate(async () => {
