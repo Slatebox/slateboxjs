@@ -386,15 +386,9 @@ export declare class Node {
      * reload. Single source of truth for the group transform.
      */
     private applyPositionAndRotation;
-    /**
-     * Re-assert the canonical model after a resize/rotate interaction. During the
-     * interaction svg.resize.js transforms the backgroundRect (and we rotate the
-     * text/nested separately) — rotation is baked into those CHILDREN. Here we
-     * strip those child transforms so rotation lives only on the group, then
-     * apply the canonical group transform (which also normalizes child position
-     * back to the local origin). Without this the shape carries a baked rotation
-     * AND the group re-applies rotation on reload → double rotation / fly-off.
-     */
+    /** Rotate the parent once. Text, image fills, custom paths and badges all follow. */
+    applyInteractionRotation(angle: number): void;
+    /** Normalize the plugin's local resize offset after its last mouse/touch frame. */
     finalizeInteraction(): void;
     /**
      * Get the current rotation angle. Reads from options.rotate first,

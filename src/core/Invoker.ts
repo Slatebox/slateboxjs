@@ -165,6 +165,9 @@ export class Invoker {
     if (node) {
       Object.assign(node.options, pkg.data)
       node.setSize(pkg.data.width, pkg.data.height)
+      if (Number.isFinite(pkg.data.x) && Number.isFinite(pkg.data.y)) {
+        node.position(pkg.data.x, pkg.data.y)
+      }
     }
   }
 

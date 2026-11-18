@@ -2129,7 +2129,7 @@ export class Node {
    * alone does) would drop the translate and fling the node far off-screen on
    * reload. Single source of truth for the group transform.
    */
-  private applyPositionAndRotation() {
+  private applyPositionAndRotation(normalizeChildren = true) {
     if (!this.svgGroup) return;
     const x = this.options.x || 0;
     const y = this.options.y || 0;
@@ -2146,12 +2146,13 @@ export class Node {
     // "flies away on reload" bug). So first pull the children back to the local
     // origin, reading their true local bbox with the group transform cleared.
     if (
-      typeof this.svgGroup.node?.removeAttribute === "function" &&
+      normalizeChildren && typeof this.svgGroup.node?.removeAttribute === "function" &&
       typeof this.svgGroup.bbox === "function"
     ) {
       try {
         this.svgGroup.node.removeAttribute("transform");
-        const bb = this.svgGroup.bbox();
+        const anchor = this.resizeTarget ?? this.backgroundRect;
+        const bb = anchor ? {x: anchor.x(), y: anchor.y()} : this.svgGroup.bbox();
         if (bb && (Math.abs(bb.x) > 0.01 || Math.abs(bb.y) > 0.01)) {
           this.svgGroup.children().forEach((child: any) => {
             if (typeof child?.dmove === "function") child.dmove(-bb.x, -bb.y);
@@ -2162,13 +2163,7 @@ export class Node {
       }
     }
 
-    // Defend against DOUBLE-rotation of the text/nested content. During a live UI
-    // rotate, ResizeRotate bakes an individual rotation onto the text element (so it
-    // follows in real time). The group transform set below ALSO rotates them (they're
-    // children), so if that baked rotation is left on, the text renders at 2x the node's
-    // angle. finalizeInteraction strips it on interaction-end, but that can be missed
-    // (e.g. an intervening drag/render/reload) — strip any residual child rotation here
-    // too, then re-center. Cheap: only fires when a baked rotation is actually present.
+    // Normalize residual transforms from imported or legacy baked artwork.
     try {
       const stripBakedRotation = (el: any): boolean => {
         if (!el?.node?.removeAttribute) return false;
@@ -2224,51 +2219,21 @@ export class Node {
     }
   }
 
-  /**
-   * Re-assert the canonical model after a resize/rotate interaction. During the
-   * interaction svg.resize.js transforms the backgroundRect (and we rotate the
-   * text/nested separately) — rotation is baked into those CHILDREN. Here we
-   * strip those child transforms so rotation lives only on the group, then
-   * apply the canonical group transform (which also normalizes child position
-   * back to the local origin). Without this the shape carries a baked rotation
-   * AND the group re-applies rotation on reload → double rotation / fly-off.
-   */
+  /** Rotate the parent once. Text, image fills, custom paths and badges all follow. */
+  public applyInteractionRotation(angle: number) {
+    this.options.rotate = {...this.options.rotate, rotationAngle:angle};
+    this.applyPositionAndRotation(false);
+  }
+
+  /** Normalize the plugin's local resize offset after its last mouse/touch frame. */
   public finalizeInteraction() {
-    const clear = (el: any) => {
-      try {
-        if (el?.node?.removeAttribute) el.node.removeAttribute("transform");
-      } catch (e) {
-        /* noop */
-      }
-    };
-    clear(this.backgroundRect);
-    clear(this.textElement);
-    clear(this.nestedSvg);
     this.applyPositionAndRotation();
     if (this.textElement) this.centerText();
 
-    // Re-sync the selection overlay (svg.select resize/rotate handles) and the
-    // connection plug-dots to the node's FINAL transform. During an interactive
-    // rotate/resize, svg.select draws its overlay against its own internal state;
-    // once finalizeInteraction re-asserts the canonical group transform, that
-    // overlay + the plug-dots are left detached from the now-rotated node (the
-    // handles stay axis-aligned and the dots sit at the pre-rotation edges).
-    // Refreshing the selection redraws both correctly. Deferred a frame so
-    // svg.resize/select finish their own end-of-drag teardown first.
-    try {
-      const slate = this.slate as any;
-      if (slate?.getSelectedNodes?.().includes(this)) {
-        const refresh = () => {
-          if (!this._destroyed) slate.updateSelectionResizeRotate?.();
-        };
-        if (typeof requestAnimationFrame !== "undefined") {
-          requestAnimationFrame(refresh);
-        } else {
-          refresh();
-        }
-      }
-    } catch (e) {
-      /* overlay refresh is best-effort; never break interaction finalize */
+    if (this.slate?.getSelectedNodes().includes(this)) {
+      this.resizeRotate?.syncOverlay();
+      this.updateConnectionHandlePositions();
+      this.showNodeCog();
     }
   }
 
@@ -3254,13 +3219,12 @@ export class Node {
     if (!this.connectionHandles.container || !this.connectionHandlesVisible)
       return;
 
-    // Get the backgroundRect's bbox and transformation matrix
-    // This is the same approach svg.select.js uses for resize handles
-    const bbox = this.backgroundRect.bbox();
-
-    // Get transformation matrices
-    const elMatrix = (this.backgroundRect as any).screenCTM();
-    const rootMatrix = (this.backgroundRect as any).root().screenCTM();
+    // Use the selector's target. Nested artwork has its own scaled viewBox;
+    // using its units for plug offsets moves the plugs further away on every resize.
+    const target = this.resizeTarget ?? this.backgroundRect;
+    const bbox = target.bbox();
+    const elMatrix = target.screenCTM();
+    const rootMatrix = target.root().screenCTM();
     const fromShapeToUiMatrix = rootMatrix.inverseO().multiplyO(elMatrix);
 
     // Helper function to transform points (same as svg.select.js transformPoint)

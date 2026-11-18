@@ -50,11 +50,16 @@ export class ResizeRotate {
   private _interacting = false;
   private _didRotate = false;
   private _didResize = false;
-  private _endListener: (() => void) | null = null;
-  // Canonical world position captured at the START of a resize/rotate, before
-  // svg.resize.js displaces children in local space. Used to convert the
-  // plugin's local box back to world coords in handleResize.
-  private _preInteractionPos: { x: number; y: number } | null = null;
+  private _endTimer?: ReturnType<typeof setTimeout>;
+  private _start?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    angle: number;
+    localX: number;
+    localY: number;
+  };
 
   /**
    * Creates resize/rotate handle management for a node.
@@ -86,7 +91,10 @@ export class ResizeRotate {
     this.target = (this.node as any).resizeTarget ?? this.node.backgroundRect;
     // Guard: backgroundRect may not be initialized if node creation failed
     if (!this.target) {
-      console.warn("RESIZE_ROTATE_DEBUG: Cannot enable — target (backgroundRect) not available on", this.node?.id);
+      console.warn(
+        "RESIZE_ROTATE_DEBUG: Cannot enable — target (backgroundRect) not available on",
+        this.node?.id,
+      );
       return;
     }
 
@@ -104,7 +112,12 @@ export class ResizeRotate {
           // "NaN" polyline points and floods the console (notably on multi-select
           // via the keyboard). This replicates the default L-bracket exactly but
           // guards the division and never plots non-finite points.
-          updateHandle: (handle: any, point: any, index: number, points: any[]) => {
+          updateHandle: (
+            handle: any,
+            point: any,
+            index: number,
+            points: any[],
+          ) => {
             const prev = points[(index - 1 + points.length) % points.length];
             const next = points[(index + 1) % points.length];
             const plot = computeSelectHandlePlot(point, prev, next);
@@ -148,7 +161,7 @@ export class ResizeRotate {
         const root = svgNode.ownerSVGElement || svgNode;
 
         const selectionShapes = root.querySelectorAll(
-          ".svg_select_shape, .svg_select_shape_pointSelect"
+          ".svg_select_shape, .svg_select_shape_pointSelect",
         );
         selectionShapes.forEach((shape: SVGElement) => {
           shape.setAttribute("fill", "none");
@@ -169,7 +182,10 @@ export class ResizeRotate {
           h.style.pointerEvents = "all";
         });
       } catch (e) {
-        console.warn("RESIZE_ROTATE_DEBUG: Failed to widen handle hit areas:", e);
+        console.warn(
+          "RESIZE_ROTATE_DEBUG: Failed to widen handle hit areas:",
+          e,
+        );
       }
     });
   }
@@ -197,270 +213,125 @@ export class ResizeRotate {
   }
 
   private addEventListeners() {
-    // Miro interaction contract: resize freely by default; hold Shift when the
-    // drag begins to preserve the current proportions. The plugin exposes its
-    // live handler in `beforeresize`, before it snapshots the starting box.
     this.target.on("beforeresize.resizerotate", (event: any) => {
-      const handler = event.detail?.handler;
-      const pointerEvent = event.detail?.event?.detail?.event;
-      if (handler) {
-        handler.preserveAspectRatio = Boolean(
-          this.options.preserveAspectRatio || pointerEvent?.shiftKey
-        );
-      }
-    });
-
-    // Hide connection handles when resize/rotate starts
-    this.target.on("mousedown.resizerotate touchstart.resizerotate", (event: any) => {
-      // Check if the event is on a resize/rotate handle
-      if (this.isResizeRotateHandle(event.target)) {
-        if (this.node.isConnectionHandlesEnabled()) {
-          this.node.disableConnectionHandles();
-        }
-        this._interacting = true;
-        this._didRotate = false;
-        this._didResize = false;
-      }
-    });
-
-    // Emit the v1 end-of-interaction package once, on pointer release
-    this._endListener = () => {
-      if (!this._interacting) return;
-      this._interacting = false;
-      // Re-assert the canonical model: strip rotation baked into the shape/text
-      // during the interaction and move it to the group transform, with children
-      // normalized back to the local origin. This is what makes resize/rotate
-      // survive a reload without the node flying off-screen.
-      if ((this._didRotate || this._didResize) && this.node.finalizeInteraction) {
-        this.node.finalizeInteraction();
-      }
-      this._preInteractionPos = null;
-      const slate = this.node.slate as any;
-      if (this._didRotate) {
-        slate?.broadcast?.("onNodeRotated", {
-          id: this.node.id,
-          rotate: this.node.options.rotate,
-          width: this.node.options.width,
-          height: this.node.options.height,
-        });
-      } else if (this._didResize) {
-        slate?.broadcast?.("onNodeResized", {
-          id: this.node.id,
-          width: this.node.options.width,
-          height: this.node.options.height,
-          rotate: this.node.options.rotate,
-          vectorPath: this.node.options.vectorPath,
-        });
-        // Re-fit the text once the resize has FULLY settled. During the drag,
-        // fitTextToNode (via centerText in setSize) measures transient, mid-rewrap
-        // geometry and can leave the text unscaled/overflowing on a shrunk node. A
-        // final centerText on the reflowed DOM applies the correct fit (Miro-style).
-        requestAnimationFrame(() => {
-          try {
-            this.node.centerText?.();
-          } catch (e) {
-            /* noop */
-          }
-        });
-      }
-      this._didRotate = false;
-      this._didResize = false;
-    };
-    window.addEventListener("pointerup", this._endListener);
-    window.addEventListener("touchend", this._endListener);
-
-    // Re-show connection handles when resize/rotate ends
-    this.target.on("resize", (event: any) => {
-      // Capture the canonical world position ONCE, before svg.resize.js has
-      // displaced any children this interaction (handleResize converts the
-      // plugin's local box against this).
-      if (this._preInteractionPos === null) {
-        this._preInteractionPos = {
-          x: this.node.options.x ?? 0,
-          y: this.node.options.y ?? 0,
-        };
-      }
-      // A resize event means an interaction is in progress (the handle's own
-      // mousedown does not reliably bubble through the target); track its
-      // kind for the end-of-drag package
+      this.finish();
+      const handler = event.detail.handler;
+      const pointer = event.detail.event.detail.event;
+      handler.preserveAspectRatio = Boolean(
+        this.options.preserveAspectRatio || pointer.shiftKey,
+      );
+      const o = this.node.options;
+      const box = this.target.bbox();
+      this._start = {
+        x: o.x ?? 0,
+        y: o.y ?? 0,
+        width: o.width ?? 0,
+        height: o.height ?? 0,
+        angle: o.rotate?.rotationAngle ?? 0,
+        localX: box.x,
+        localY: box.y,
+      };
       this._interacting = true;
-      // svg.resize.js includes an angle field on plain resize events too —
-      // only a non-zero angle indicates actual rotation; a box indicates
-      // a size change
-      if (event.detail?.box) {
-        this._didResize = true;
-      }
-      if (
-        typeof event.detail?.angle === "number" &&
-        event.detail.angle !== 0
-      ) {
+      this._didRotate = this._didResize = false;
+      this.node.disableConnectionHandles();
+      // svg.select gives resize its screen-overlay points. The plugin scales a
+      // local box around the opposite handle, so that anchor must be local too.
+      const points = this.target
+        .remember("_selectHandler")
+        ?.getHandlePoints(box);
+      if (points)
+        queueMicrotask(() => {
+          handler.points = points;
+        });
+    });
+    this.target.on("resize.resizerotate", (event: any) => {
+      const { box, angle, eventType } = event.detail ?? {};
+      const start = this._start;
+      if (!start || !box) return;
+      event.preventDefault(); // Slatebox owns the write; the plugin computes the gesture.
+      if (eventType === "rot") {
+        if (!Number.isFinite(angle) || !angle) return;
         this._didRotate = true;
+        this.node.applyInteractionRotation(
+          (this.node.options.rotate?.rotationAngle ?? 0) + angle,
+        );
+        this.options.onRotate?.(event);
+      } else {
+        this._didResize = true;
+        // Keep the parent matrix fixed while the plugin maps screen coordinates
+        // to its start box. Move every drawing and the hit target together.
+        this.node.backgroundRect.move(box.x, box.y);
+        this.node.resizeTarget?.move(box.x, box.y);
+        this.node.setSize(box.width, box.height);
+        const w = this.node.options.width ?? box.width;
+        const h = this.node.options.height ?? box.height;
+        const dx = box.x - start.localX + (w - start.width) / 2;
+        const dy = box.y - start.localY + (h - start.height) / 2;
+        const radians = (start.angle * Math.PI) / 180;
+        this.node.options.x =
+          start.x +
+          (start.width - w) / 2 +
+          Math.cos(radians) * dx -
+          Math.sin(radians) * dy;
+        this.node.options.y =
+          start.y +
+          (start.height - h) / 2 +
+          Math.sin(radians) * dx +
+          Math.cos(radians) * dy;
+        this.node.svgGroup.fire("transform");
       }
-
-      this.handleResize(event);
+      // The selector observes the target's attributes, not the parent matrix.
+      // Update its existing polygon in place; rebuilding it interrupts a live drag.
+      this.syncOverlay();
       this.options.onResize?.(event);
-
-      // Re-enable connection handles after resize completes
-      if (this.node.slate && this.node.slate.getSelectedNodes().includes(this.node)) {
-        // Only re-enable if this node is still selected
-        setTimeout(() => {
-          this.node.enableConnectionHandles();
-        }, 50);
-      }
-
-      // Notify slate of node change (for BirdsEye refresh)
       this.node.slate?.notifyNodeChanged(this.node);
     });
+    window.addEventListener("mouseup", this.scheduleFinish);
+    window.addEventListener("touchend", this.scheduleFinish);
+    window.addEventListener("touchcancel", this.scheduleFinish);
   }
 
-  private isResizeRotateHandle(target: any): boolean {
-    if (!target || !target.classList) return false;
+  private scheduleFinish = () => {
+    if (!this._interacting) return;
+    clearTimeout(this._endTimer);
+    // svg.resize emits a final size update from its own mouseup listener.
+    this._endTimer = setTimeout(() => this.finish(), 0);
+  };
 
-    const handleClasses = [
-      "svg_select_handle",
-      "svg_select_handle_rot",
-      "svg_select_handle_lt",
-      "svg_select_handle_rt",
-      "svg_select_handle_rb",
-      "svg_select_handle_lb",
-      "svg_select_handle_t",
-      "svg_select_handle_r",
-      "svg_select_handle_b",
-      "svg_select_handle_l",
-    ];
-
-    for (const className of handleClasses) {
-      if (target.classList.contains(className)) {
-        return true;
-      }
+  private finish() {
+    clearTimeout(this._endTimer);
+    if (!this._interacting) return;
+    this._interacting = false;
+    this._start = undefined;
+    const { id, options, slate } = this.node;
+    if (this._didRotate || this._didResize) {
+      this.node.finalizeInteraction();
+      slate?.broadcast?.(this._didRotate ? "onNodeRotated" : "onNodeResized", {
+        id,
+        rotate: options.rotate,
+        width: options.width,
+        height: options.height,
+        x: options.x,
+        y: options.y,
+        ...(!this._didRotate && { vectorPath: options.vectorPath }),
+      });
     }
-
-    return false;
+    if (slate?.getSelectedNodes().includes(this.node))
+      this.node.enableConnectionHandles();
+    this._didRotate = this._didResize = false;
   }
 
   private removeEventListeners() {
-    this.target.off("resize");
-    this.target.off("beforeresize.resizerotate");
-    this.target.off("mousedown.resizerotate touchstart.resizerotate");
-    if (this._endListener) {
-      window.removeEventListener("pointerup", this._endListener);
-      window.removeEventListener("touchend", this._endListener);
-      this._endListener = null;
-    }
+    this.target.off(".resizerotate");
+    window.removeEventListener("mouseup", this.scheduleFinish);
+    window.removeEventListener("touchend", this.scheduleFinish);
+    window.removeEventListener("touchcancel", this.scheduleFinish);
+    this.finish();
   }
 
-  private handleResize(event: any) {
-    // The resize plugin emits the final box in event.detail.box
-    if (event.detail && event.detail.box) {
-      const box = event.detail.box as any;
-
-      // Persist and recentre text since we change actual width/height of shape
-      this.node.options.width = box.width;
-      this.node.options.height = box.height;
-      // svg.resize.js reports box.x/y in the group's LOCAL space (children are
-      // normalized to the local origin at interaction start). Convert to a WORLD
-      // position: pre-interaction world + local delta. Storing box.x directly
-      // would write a local coord into options.x and get double-counted against
-      // the group translate on reload (node flies off-screen).
-      const base = this._preInteractionPos ?? {
-        x: this.node.options.x ?? 0,
-        y: this.node.options.y ?? 0,
-      };
-      this.node.options.x = base.x + box.x;
-      this.node.options.y = base.y + box.y;
-
-      // Call setSize to update nested SVG and other elements
-      this.node.setSize(box.width, box.height);
-
-      this.node.centerText();
-
-      // Connectors follow LIVE during resize (M7): svg.connectable re-solves on
-      // a "transform" event on the connected group. handleResize runs each
-      // resize frame, so fire it here to re-layout attached lines in real time
-      // (previously they only updated at the end of the interaction).
-      try {
-        this.node.svgGroup?.fire?.("transform");
-      } catch (e) {
-        /* noop */
-      }
-
-      // If a rotation happened, the resize event carries angle (delta)
-      // svg.resize.js applies rotation incrementally to backgroundRect
-      // We need to read the ACTUAL cumulative rotation from backgroundRect.transform()
-      if (event.detail && typeof event.detail.angle === "number") {
-        const deltaAngle = event.detail.angle as number;
-
-        // Read the cumulative rotation from backgroundRect (where svg.resize.js applies it)
-        let backgroundRectRotation = 0;
-        try {
-          const targetTransform = this.target.transform();
-          backgroundRectRotation = targetTransform?.rotate || 0;
-        } catch (e) {
-          console.warn("RESIZE_ROTATE_DEBUG: Failed to read backgroundRect rotation:", e);
-        }
-
-        // Also get any existing rotation on svgGroup (from setRotation, e.g., duplicated nodes)
-        let existingSvgGroupRotation = 0;
-        try {
-          const groupTransform = this.node.svgGroup.transform();
-          existingSvgGroupRotation = groupTransform?.rotate || 0;
-        } catch (e) {
-          console.warn("RESIZE_ROTATE_DEBUG: Failed to read svgGroup rotation:", e);
-        }
-
-        // Total rotation = svgGroup rotation + backgroundRect rotation
-        const totalRotation = existingSvgGroupRotation + backgroundRectRotation;
-
-        // Store the rotation angle - create the rotate object if it doesn't exist
-        if (!this.node.options.rotate) {
-          this.node.options.rotate = { rotationAngle: 0 };
-        }
-        this.node.options.rotate.rotationAngle = totalRotation;
-
-        // Rotate content elements to match background rotation.
-        // Use deltaAngle because content elements are children of svgGroup
-        // and we're applying incremental rotation to match backgroundRect.
-        // IMPORTANT: rotate EVERY visible sibling (artwork nested-svg, svg
-        // content, AND the text label) — not just one. The old if/else-if
-        // meant a diamond node (textElement = label, backgroundRect = nested
-        // <svg> holding the shape path, and a separate invisible resize
-        // proxy as the plugin target) never had its ARTWORK rotated during
-        // the drag: only the dashed overlay + invisible proxy spun, so the
-        // visible box appeared not to rotate until finalize bakes the group
-        // transform. Rotating each sibling by the SAME delta around the SAME
-        // center is a rigid motion of the whole visible node. The plugin's
-        // own target is skipped when it IS the visible background (plain
-        // rect shapes) — svg.resize.js already rotates it, rotating it here
-        // too would double the angle. finalizeInteraction strips all of
-        // these child rotations on release and re-bakes the group transform.
-        try {
-          const bbox = this.target.bbox();
-          const rotateContent = (el: any) => {
-            if (el && typeof el.rotate === "function") {
-              try {
-                el.rotate(deltaAngle, bbox.cx, bbox.cy);
-              } catch (e) {
-                /* noop */
-              }
-            }
-          };
-          if (this.node.textElement) rotateContent(this.node.textElement);
-          if (this.node.nestedSvg) rotateContent(this.node.nestedSvg);
-          const bg: any = this.node.backgroundRect;
-          const targetNode = (this.target as any)?.node;
-          if (
-            bg &&
-            bg !== this.node.nestedSvg &&
-            bg.node !== targetNode &&
-            bg.node !== this.node.textElement?.node
-          ) {
-            rotateContent(bg);
-          }
-        } catch (e) {
-          /* noop */
-        }
-      }
-    }
+  public syncOverlay() {
+    if (this.isActive)
+      this.target.remember("_selectHandler")?.mutationHandler();
   }
 
   public isEnabled(): boolean {

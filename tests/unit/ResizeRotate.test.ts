@@ -55,6 +55,8 @@ function makeMockSvgElement(overrides: Record<string, any> = {}) {
     // Event system (SVG.js .on() / .off()) — real svg.js uses namespaced events
     on: vi.fn(),
     off: vi.fn(),
+    remember: vi.fn(),
+    move: vi.fn(),
     // Used by widenHandleHitAreas
     node: {
       ownerSVGElement: {
@@ -93,7 +95,9 @@ function createMockNode(overrides: Record<string, any> = {}) {
       y: 40,
       rotate: { rotationAngle: 0 },
     },
-    setSize: vi.fn(),
+    setSize: vi.fn(function(this:any,width:number,height:number){Object.assign(this.options,{width,height});}),
+    finalizeInteraction: vi.fn(),
+    applyInteractionRotation: vi.fn(function(this:any,angle:number){this.options.rotate = {rotationAngle:angle};}),
     centerText: vi.fn(),
     isConnectionHandlesEnabled: vi.fn().mockReturnValue(false),
     disableConnectionHandles: vi.fn(),
@@ -101,8 +105,10 @@ function createMockNode(overrides: Record<string, any> = {}) {
     slate: {
       getSelectedNodes: vi.fn().mockReturnValue([]),
       notifyNodeChanged: vi.fn(),
+      broadcast: vi.fn(),
     },
     svgGroup: {
+      fire: vi.fn(),
       transform: vi.fn().mockReturnValue({ rotate: 0 }),
     },
     textElement: {
@@ -225,6 +231,8 @@ describe("ResizeRotate", () => {
       const basicTarget = {
         on: vi.fn(),
         off: vi.fn(),
+    remember: vi.fn(),
+    move: vi.fn(),
         node: { ownerSVGElement: { querySelectorAll: vi.fn().mockReturnValue([]) } },
         transform: vi.fn(),
         bbox: vi.fn(),
@@ -273,19 +281,8 @@ describe("ResizeRotate", () => {
       const rr = new ResizeRotate(node);
       rr.enable();
 
-      // Should have registered resize + mousedown/touchstart handlers
-      expect(node.backgroundRect.on).toHaveBeenCalledWith(
-        "mousedown.resizerotate touchstart.resizerotate",
-        expect.any(Function),
-      );
-      expect(node.backgroundRect.on).toHaveBeenCalledWith(
-        "resize",
-        expect.any(Function),
-      );
-      expect(node.backgroundRect.on).toHaveBeenCalledWith(
-        "beforeresize.resizerotate",
-        expect.any(Function),
-      );
+      expect(node.backgroundRect.on).toHaveBeenCalledWith('beforeresize.resizerotate',expect.any(Function));
+      expect(node.backgroundRect.on).toHaveBeenCalledWith('resize.resizerotate',expect.any(Function));
     });
 
     it("disable() calls element.select(false) and element.resize(false)", () => {
@@ -305,13 +302,7 @@ describe("ResizeRotate", () => {
       rr.enable();
       rr.disable();
 
-      expect(node.backgroundRect.off).toHaveBeenCalledWith("resize");
-      expect(node.backgroundRect.off).toHaveBeenCalledWith(
-        "beforeresize.resizerotate",
-      );
-      expect(node.backgroundRect.off).toHaveBeenCalledWith(
-        "mousedown.resizerotate touchstart.resizerotate",
-      );
+      expect(node.backgroundRect.off).toHaveBeenCalledWith('.resizerotate');
     });
 
     it("disable() is idempotent — calling when not active is a no-op", () => {
@@ -407,277 +398,89 @@ describe("ResizeRotate", () => {
       expect(handler.preserveAspectRatio).toBe(true);
     });
 
-    it("calls onResize when resize event fires", () => {
+    function begin() {
+      const before = getHandler(
+        node.backgroundRect.on,
+        "beforeresize.resizerotate",
+      );
+      before({
+        detail: {
+          handler: {},
+          event: { detail: { event: { shiftKey: false } } },
+        },
+      });
+    }
+    function frame(eventType: string, angle = 0) {
+      const e = {
+        detail: {
+          eventType,
+          angle,
+          box: { x: -8, y: 4, width: 218, height: 130 },
+        },
+        preventDefault: vi.fn(),
+      };
+      getHandler(node.backgroundRect.on, "resize.resizerotate")(e);
+      return e;
+    }
+    it("applies plugin resize geometry and notifies callbacks once per frame", () => {
       const onResize = vi.fn();
       const rr = new ResizeRotate(node, { onResize });
       rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      const event = { detail: { box: { width: 300, height: 150, x: 40, y: 30 } } };
-      resizeHandler(event);
-
+      begin();
+      const event = frame("lt");
+      expect(event.preventDefault).toHaveBeenCalledOnce();
+      expect(node.setSize).toHaveBeenCalledWith(218, 130);
+      expect(node.backgroundRect.move).toHaveBeenCalledWith(-8, 4);
+      expect(node.options.x).toBe(42);
+      expect(node.options.y).toBe(44);
       expect(onResize).toHaveBeenCalledWith(event);
-    });
-
-    it("does not crash when onResize is not provided", () => {
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      const event = { detail: { box: { width: 300, height: 150 } } };
-
-      expect(() => resizeHandler(event)).not.toThrow();
-    });
-
-    it("resize event updates node options and calls setSize/centerText", () => {
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      const event = { detail: { box: { width: 300, height: 150, x: 40, y: 30 } } };
-      resizeHandler(event);
-
-      expect(node.options.width).toBe(300);
-      expect(node.options.height).toBe(150);
-      // options.x/y are WORLD coords: pre-interaction position (50,40) + the
-      // plugin's local box (40,30) → (90,70). (Storing the raw local box would
-      // double-count against the group translate on reload.)
-      expect(node.options.x).toBe(90);
-      expect(node.options.y).toBe(70);
-
-      expect(node.setSize).toHaveBeenCalledWith(300, 150);
-      expect(node.centerText).toHaveBeenCalled();
-    });
-
-    it("resize event notifies slate via notifyNodeChanged", () => {
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      resizeHandler({ detail: { box: { width: 200, height: 100, x: 0, y: 0 } } });
-
       expect(node.slate.notifyNodeChanged).toHaveBeenCalledWith(node);
     });
-
-    it("resize event re-enables connection handles if node is still selected", () => {
-      // Make isConnectionHandlesEnabled return true for the mousedown test below
-      // For the resize handler, we need getSelectedNodes to include this node
-      node.slate.getSelectedNodes.mockReturnValue([node]);
-
-      const rr = new ResizeRotate(node);
+    it.each([true, false])(
+      "restores handles only to selected nodes after the plugin final mouseup frame (selected=%s)",
+      (selected) => {
+        const rr = new ResizeRotate(node);
+        rr.enable();
+        begin();
+        frame("rb");
+        expect(node.disableConnectionHandles).toHaveBeenCalled();
+        expect(node.enableConnectionHandles).not.toHaveBeenCalled();
+        node.slate.getSelectedNodes.mockReturnValue(selected ? [node] : []);
+        window.dispatchEvent(new MouseEvent("mouseup"));
+        frame("rb");
+        vi.runAllTimers();
+        expect(node.finalizeInteraction).toHaveBeenCalledOnce();
+        expect(node.slate.broadcast).toHaveBeenCalledOnce();
+        expect(node.enableConnectionHandles).toHaveBeenCalledTimes(
+          selected ? 1 : 0,
+        );
+      },
+    );
+    it("uses one parent rotation for all content and preserves text fit during the gesture", () => {
+      const onRotate = vi.fn();
+      const rr = new ResizeRotate(node, { onRotate });
       rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      resizeHandler({ detail: { box: { width: 200, height: 100, x: 0, y: 0 } } });
-
-      // The re-enable is wrapped in setTimeout(50)
-      expect(node.enableConnectionHandles).not.toHaveBeenCalled();
-
-      vi.advanceTimersByTime(50);
-      expect(node.enableConnectionHandles).toHaveBeenCalled();
-    });
-
-    it("resize event does NOT re-enable connection handles if node is no longer selected", () => {
-      node.slate.getSelectedNodes.mockReturnValue([]);
-
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      resizeHandler({ detail: { box: { width: 200, height: 100, x: 0, y: 0 } } });
-
-      vi.advanceTimersByTime(50);
-      expect(node.enableConnectionHandles).not.toHaveBeenCalled();
-    });
-
-    it("mousedown on a resize handle hides connection handles when they are enabled", () => {
-      node.isConnectionHandlesEnabled.mockReturnValue(true);
-
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const mousedownHandler = getHandler(
-        node.backgroundRect.on,
-        "mousedown.resizerotate touchstart.resizerotate",
-      );
-
-      // Simulate clicking a resize handle (has .svg_select_handle class)
-      const handleTarget = {
-        classList: { contains: vi.fn((cls) => cls === "svg_select_handle") },
-      };
-      mousedownHandler({ target: handleTarget });
-
-      expect(node.disableConnectionHandles).toHaveBeenCalled();
-    });
-
-    it("mousedown on non-handle does not hide connection handles", () => {
-      node.isConnectionHandlesEnabled.mockReturnValue(true);
-
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const mousedownHandler = getHandler(
-        node.backgroundRect.on,
-        "mousedown.resizerotate touchstart.resizerotate",
-      );
-
-      // Click on the node background itself (not a handle)
-      const nonHandleTarget = {
-        classList: { contains: vi.fn().mockReturnValue(false) },
-      };
-      mousedownHandler({ target: nonHandleTarget });
-
-      expect(node.disableConnectionHandles).not.toHaveBeenCalled();
-    });
-
-    it("mousedown on handle does nothing when connection handles are already hidden", () => {
-      node.isConnectionHandlesEnabled.mockReturnValue(false);
-
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const mousedownHandler = getHandler(
-        node.backgroundRect.on,
-        "mousedown.resizerotate touchstart.resizerotate",
-      );
-
-      const handleTarget = {
-        classList: { contains: vi.fn((cls) => cls === "svg_select_handle") },
-      };
-      mousedownHandler({ target: handleTarget });
-
-      expect(node.disableConnectionHandles).not.toHaveBeenCalled();
-    });
-
-    it("isResizeRotateHandle detects all handle class names", () => {
-      const rr = new ResizeRotate(node);
-      const handleClasses = [
-        "svg_select_handle",
-        "svg_select_handle_rot",
-        "svg_select_handle_lt",
-        "svg_select_handle_rt",
-        "svg_select_handle_rb",
-        "svg_select_handle_lb",
-        "svg_select_handle_t",
-        "svg_select_handle_r",
-        "svg_select_handle_b",
-        "svg_select_handle_l",
-      ];
-
-      for (const cls of handleClasses) {
-        const target = { classList: { contains: vi.fn((c: string) => c === cls) } };
-        expect((rr as any).isResizeRotateHandle(target)).toBe(true);
-      }
-    });
-
-    it("isResizeRotateHandle returns false for non-handle targets", () => {
-      const rr = new ResizeRotate(node);
-      const target = { classList: { contains: vi.fn().mockReturnValue(false) } };
-      expect((rr as any).isResizeRotateHandle(target)).toBe(false);
-    });
-
-    it("isResizeRotateHandle returns false for null/undefined targets", () => {
-      const rr = new ResizeRotate(node);
-      expect((rr as any).isResizeRotateHandle(null)).toBe(false);
-      expect((rr as any).isResizeRotateHandle(undefined)).toBe(false);
-    });
-
-    it("isResizeRotateHandle returns false for targets without classList", () => {
-      const rr = new ResizeRotate(node);
-      expect((rr as any).isResizeRotateHandle({})).toBe(false);
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // 5. Rotation handling in resize events
-  // -----------------------------------------------------------------------
-  describe("rotation handling", () => {
-    it("reads backgroundRect rotation and updates node.options.rotate when angle present", () => {
-      node.backgroundRect.transform.mockReturnValue({ rotate: 25 });
-      node.svgGroup.transform.mockReturnValue({ rotate: 10 });
-
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      resizeHandler({
-        detail: {
-          box: { width: 200, height: 100, x: 0, y: 0 },
-          angle: 15,
-        },
-      });
-
-      // totalRotation = 10 (svgGroup) + 25 (backgroundRect) = 35
-      expect(node.options.rotate.rotationAngle).toBe(35);
-      // Text element should be rotated with deltaAngle around center
-      expect(node.textElement.rotate).toHaveBeenCalledWith(15, 50, 30);
-    });
-
-    it("rotates nestedSvg instead of textElement when textElement is absent", () => {
-      const nestedSvgMock = { rotate: vi.fn() };
-      const nodeWithNestedSvg = createMockNode({
-        textElement: undefined,
-        nestedSvg: nestedSvgMock,
-      });
-      nodeWithNestedSvg.backgroundRect.transform.mockReturnValue({ rotate: 15 });
-      nodeWithNestedSvg.svgGroup.transform.mockReturnValue({ rotate: 0 });
-
-      const rr = new ResizeRotate(nodeWithNestedSvg);
-      rr.enable();
-
-      const resizeHandler = getHandler(nodeWithNestedSvg.backgroundRect.on, "resize");
-      resizeHandler({
-        detail: {
-          box: { width: 200, height: 100, x: 0, y: 0 },
-          angle: 15,
-        },
-      });
-
-      expect(nestedSvgMock.rotate).toHaveBeenCalledWith(15, 50, 30);
-    });
-
-    it("skips rotation when event.detail has no angle", () => {
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      resizeHandler({
-        detail: {
-          box: { width: 200, height: 100, x: 0, y: 0 },
-          // no angle
-        },
-      });
-
+      begin();
+      frame("rot", 15);
+      frame("rot", 25);
+      expect(node.options.rotate.rotationAngle).toBe(40);
+      expect(onRotate).toHaveBeenCalledTimes(2);
       expect(node.textElement.rotate).not.toHaveBeenCalled();
-      // rotationAngle should remain unchanged
-      expect(node.options.rotate.rotationAngle).toBe(0);
+      expect(node.setSize).not.toHaveBeenCalled();
+      expect(node.centerText).not.toHaveBeenCalled();
     });
-
-    it("creates rotate option object if it does not exist", () => {
-      delete node.options.rotate;
-
-      node.backgroundRect.transform.mockReturnValue({ rotate: 15 });
-      node.svgGroup.transform.mockReturnValue({ rotate: 0 });
-
+    it("ignores non-gesture notifications and malformed geometry", () => {
       const rr = new ResizeRotate(node);
       rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      resizeHandler({
-        detail: {
-          box: { width: 200, height: 100, x: 0, y: 0 },
-          angle: 15,
-        },
-      });
-
-      expect(node.options.rotate).toBeDefined();
-      expect(node.options.rotate.rotationAngle).toBe(15);
+      frame("rb");
+      begin();
+      const resize = getHandler(node.backgroundRect.on, "resize.resizerotate");
+      resize({});
+      resize({ detail: {} });
+      expect(node.setSize).not.toHaveBeenCalled();
     });
   });
 
-  // -----------------------------------------------------------------------
-  // 6. updateOptions
-  // -----------------------------------------------------------------------
   describe("updateOptions", () => {
     it("merges provided options into existing options", () => {
       const rr = new ResizeRotate(node, { resizeEnabled: true });
@@ -859,75 +662,21 @@ describe("ResizeRotate", () => {
   // 9. Cleanup / edge cases
   // -----------------------------------------------------------------------
   describe("cleanup and edge cases", () => {
-    it("events are fully cleaned up after disable()", () => {
+    it("removes only its own SVG listeners and release hooks across repeated enable/disable cycles", () => {
+      const remove = vi.spyOn(window, "removeEventListener");
       const rr = new ResizeRotate(node);
-      rr.enable();
-      rr.disable();
-
-      // After disable, no new events should be handled
-      expect(node.backgroundRect.off).toHaveBeenCalledWith("resize");
-      expect(node.backgroundRect.off).toHaveBeenCalledWith(
-        "mousedown.resizerotate touchstart.resizerotate",
-      );
-    });
-
-    it("no handle leak when enable is called after disable", () => {
-      const rr = new ResizeRotate(node);
-      rr.enable();
-      rr.disable();
-      expect(node.backgroundRect.select).toHaveBeenLastCalledWith(false);
-
-      rr.enable();
-      expect(node.backgroundRect.select).toHaveBeenLastCalledWith(
-        expect.objectContaining({ rotationPoint: true })
-      );
-
-      // Event listeners should be re-registered (on called again)
-      const onCallsForResize = node.backgroundRect.on.mock.calls.filter(
-        ([name]) => name === "resize",
-      );
-      expect(onCallsForResize.length).toBe(2);
-    });
-
-    it("multiple enable/disable cycles do not accumulate listeners", () => {
-      const rr = new ResizeRotate(node);
-
       for (let i = 0; i < 3; i++) {
         rr.enable();
         rr.disable();
       }
-
-      // off should have been called 3 times for each event type
-      const offCallsForResize = node.backgroundRect.off.mock.calls.filter(
-        ([name]) => name === "resize",
+      expect(node.backgroundRect.off.mock.calls).toEqual(
+        Array.from({ length: 3 }, () => [".resizerotate"]),
       );
-      expect(offCallsForResize.length).toBe(3);
-
-      const offCallsForMouse = node.backgroundRect.off.mock.calls.filter(
-        ([name]) => name === "mousedown.resizerotate touchstart.resizerotate",
-      );
-      expect(offCallsForMouse.length).toBe(3);
+      expect(
+        remove.mock.calls.filter(([event]) => event === "mouseup"),
+      ).toHaveLength(3);
+      remove.mockRestore();
     });
-
-    it("handleResize does not crash when event.detail is missing", () => {
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      // Simulate resize event with empty detail
-      expect(() => resizeHandler({})).not.toThrow();
-      expect(() => resizeHandler({ detail: {} })).not.toThrow();
-    });
-
-    it("handleResize does not crash when event.detail.box is missing", () => {
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      expect(() => resizeHandler({ detail: { angle: 5 } })).not.toThrow();
-      expect(node.setSize).not.toHaveBeenCalled();
-    });
-
     it("enable() catches errors from select/resize and warns", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       const throwingTarget = makeMockSvgElement({
@@ -975,44 +724,5 @@ describe("ResizeRotate", () => {
       warnSpy.mockRestore();
     });
 
-    it("resize event with rotation reads transform from backgroundRect and svgGroup", () => {
-      node.backgroundRect.transform.mockReturnValue({ rotate: 45, x: 0, y: 0 });
-      node.svgGroup.transform.mockReturnValue({ rotate: 10 });
-
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const resizeHandler = getHandler(node.backgroundRect.on, "resize");
-      resizeHandler({
-        detail: {
-          box: { width: 150, height: 80, x: 10, y: 10 },
-          angle: 35,
-        },
-      });
-
-      expect(node.backgroundRect.transform).toHaveBeenCalled();
-      expect(node.svgGroup.transform).toHaveBeenCalled();
-      expect(node.options.rotate.rotationAngle).toBe(55); // 10 + 45
-    });
-
-    it("does not re-enable connection handles if resize was not on a handle (isConnectionHandlesEnabled false)", () => {
-      // Setup: connection handles are disabled, mousedown fires on non-handle
-      node.isConnectionHandlesEnabled.mockReturnValue(false);
-
-      const rr = new ResizeRotate(node);
-      rr.enable();
-
-      const mouseHandler = getHandler(
-        node.backgroundRect.on,
-        "mousedown.resizerotate touchstart.resizerotate",
-      );
-
-      const nonHandleTarget = {
-        classList: { contains: vi.fn().mockReturnValue(false) },
-      };
-      mouseHandler({ target: nonHandleTarget });
-
-      expect(node.disableConnectionHandles).not.toHaveBeenCalled();
-    });
   });
 });

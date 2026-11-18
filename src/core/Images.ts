@@ -96,8 +96,8 @@ export class Images {
         this.patternElement.remove();
       }
 
-      const w = this.node.options.width || 100;
-      const h = this.node.options.height || 60;
+      const w = this.origWidth || this.node.options.width || 100;
+      const h = this.origHeight || this.node.options.height || 60;
 
       // Create SVG pattern with image
       const root = this.node.svgGroup.root();
@@ -115,6 +115,8 @@ export class Images {
             .attr("preserveAspectRatio", this.preserveAspectRatio ? "xMidYMid meet" : "xMidYMid slice");
         })
         .attr("patternUnits", "objectBoundingBox")
+        .attr("viewBox", `0 0 ${w} ${h}`)
+        .attr("preserveAspectRatio", this.preserveAspectRatio ? "xMidYMid meet" : "xMidYMid slice")
         .attr("width", "100%")
         .attr("height", "100%");
 

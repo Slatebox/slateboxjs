@@ -26,8 +26,8 @@ export declare class ResizeRotate {
     private _interacting;
     private _didRotate;
     private _didResize;
-    private _endListener;
-    private _preInteractionPos;
+    private _endTimer?;
+    private _start?;
     /**
      * Creates resize/rotate handle management for a node.
      *
@@ -46,9 +46,10 @@ export declare class ResizeRotate {
     /** Disable resize and rotate handles on the node. */
     disable(): void;
     private addEventListeners;
-    private isResizeRotateHandle;
+    private scheduleFinish;
+    private finish;
     private removeEventListeners;
-    private handleResize;
+    syncOverlay(): void;
     isEnabled(): boolean;
     /** Destroy the resize/rotate instance, disabling all plugins and clearing references */
     destroy(): void;
