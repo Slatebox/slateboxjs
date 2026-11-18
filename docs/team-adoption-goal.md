@@ -28,7 +28,7 @@ Ship Slatebox as the MIT-licensed, open-source Miro replacement where a team can
 
 8. **Teach by example.** Refresh docs.slatebox.com with the marketing typography, navigation and palette. Link to it from the developer page. Give the library, app, HTTP API and self-hosting distinct guides. Keep existing reference URLs working. Provide a searchable collection of runnable examples, each with one thing to try, verified code and an observable result.
 
-9. **Keep internal IDs out of default labels.** From a fresh slate, click a connector handle and drag another connector onto empty space. Both gestures should create a connected node ready to name. The engine must keep the generated ID for the connection and leave the visible and serialized text empty until someone names the shape. Check this in the app editor and on the public documentation canvas. Name it, save, and reopen to verify the authored label and connection. Preserve explicit user-authored names on existing slates.
+9. **Keep internal IDs out of default labels.** From a fresh slate, click a connector handle and drag another connector onto empty space. Both gestures should create a connected node ready to name. On the default canvas, selection handles may expose editing controls, but the label must never show generated text such as “Node 351kjiuaq”. The engine must keep the generated ID for the connection and leave the visible and serialized text empty until someone names the shape. Check this in the app editor and on the public documentation canvas. Name it, save, and reopen to verify the authored label and connection. Preserve explicit user-authored names on existing slates.
 
 ## Canvas entry and marketing demonstrations
 
