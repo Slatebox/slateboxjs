@@ -15,7 +15,11 @@ async function expectWorkshopSlide(page: Page, heading: string, cards: string[],
     const ids = active.map(node => node.dataset.nodeId).sort()
     if (ids.join('|') !== [...expected].sort().join('|')) return false
     const bounds = element.getBoundingClientRect()
-    const rects = active.map(node => node.getBoundingClientRect())
+    // Firefox includes the unclipped nested SVG viewport in a group's DOMRect.
+    // Measure the painted shape and its label, which must both fit on screen.
+    const rects = active.flatMap(node => [...node.querySelectorAll('[data-node-background-path], text')]
+      .map(art => art.getBoundingClientRect()))
+    if (!active.every(node => node.querySelector('[data-node-background-path]') && node.querySelector('text'))) return false
     if (!rects.every(r => r.width > 2 && r.height > 2 && r.left >= bounds.left - 2 && r.right <= bounds.right + 2 &&
       r.top >= bounds.top - 2 && r.bottom <= bounds.bottom + 2)) return false
     const left = Math.min(...rects.map(r => r.left)), right = Math.max(...rects.map(r => r.right))
