@@ -25,27 +25,36 @@ test('new connected nodes start blank and keep authored labels and edges through
     board.selectNodes([node])
   }, parentId)
   const children: string[] = []
-  for (const gesture of ['click', 'drag']) {
+  for (const gesture of ['click', 'drag', 'keyboard']) {
     const direction = gesture === 'click' ? 'right' : 'left'
     await page.evaluate(id => {
       const board = (window as any).__slateboxInstances.find((s:any) => s.element.id === 'slateCanvas')
       board.clearSelection()
       board.selectNodes([board.nodes.one(id)])
     }, parentId)
-    const {x,y} = await page.evaluate(({id, side}) => {
-      const board = (window as any).__slateboxInstances.find((s:any) => s.element.id === 'slateCanvas')
-      const handle = board.nodes.one(id).connectionHandles[side].node
-      const rect = handle.getBoundingClientRect()
-      const x = rect.x + rect.width / 2, y = rect.y + rect.height / 2
-      if (document.elementFromPoint(x,y) !== handle) throw new Error('Source connector is obscured')
-      return {x,y}
-    }, {id:parentId,side:direction})
-    if (gesture === 'click') await page.mouse.click(x,y)
-    else {
-      await page.mouse.move(x,y)
-      await page.mouse.down()
-      await page.mouse.move(x-165,y+85,{steps:14})
-      await page.mouse.up()
+    if (gesture === 'keyboard') {
+      const source = page.locator('#slateCanvas').getByRole('button', {name:'Original observation', exact:true})
+      await source.focus()
+      await page.keyboard.press('Space')
+      await page.keyboard.press('Tab')
+      await expect(page.getByRole('button',{name:'Add connected note above',exact:true})).toBeFocused()
+      await page.keyboard.press('Enter')
+    } else {
+      const {x,y} = await page.evaluate(({id, side}) => {
+        const board = (window as any).__slateboxInstances.find((s:any) => s.element.id === 'slateCanvas')
+        const handle = board.nodes.one(id).connectionHandles[side].node
+        const rect = handle.getBoundingClientRect()
+        const x = rect.x + rect.width / 2, y = rect.y + rect.height / 2
+        if (document.elementFromPoint(x,y) !== handle) throw new Error('Source connector is obscured')
+        return {x,y}
+      }, {id:parentId,side:direction})
+      if (gesture === 'click') await page.mouse.click(x,y)
+      else {
+        await page.mouse.move(x,y)
+        await page.mouse.down()
+        await page.mouse.move(x-165,y+85,{steps:14})
+        await page.mouse.up()
+      }
     }
     const outbound = () => page.evaluate(id => {
       const board = (window as any).__slateboxInstances.find((s:any) => s.element.id === 'slateCanvas')
@@ -63,17 +72,21 @@ test('new connected nodes start blank and keep authored labels and edges through
       return JSON.parse(board.exportJSON()).nodes.find((n:any) => n.options.id === id)?.options.text
     }, child)
     expect(await exportedLabel()).toBe('')
-    await page.evaluate(id => {
-      const board = (window as any).__slateboxInstances.find((s:any) => s.element.id === 'slateCanvas')
-      board.selectNodes([board.nodes.one(id)])
-    }, child)
+    if (gesture === 'keyboard') {
+      await expect(node).toBeFocused()
+    } else {
+      await page.evaluate(id => {
+        const board = (window as any).__slateboxInstances.find((s:any) => s.element.id === 'slateCanvas')
+        board.selectNodes([board.nodes.one(id)])
+      }, child)
+    }
     await page.keyboard.press('F2')
     const editor = page.locator('#slateCanvas .sb-inline-editor')
     await editor.fill('Named with ' + gesture)
     await editor.press('Enter')
     await expect.poll(exportedLabel).toBe('Named with ' + gesture)
   }
-  const expected = ['Named with click', 'Named with drag']
+  const expected = ['Named with click', 'Named with drag', 'Named with keyboard']
   await expect.poll(() => page.evaluate(async ids => {
     const response = await (window as any).Meteor.callAsync('slates.get',{shareId:location.pathname.split('/').pop()})
     return ids.map(id => response.slateBase?.nodes?.find((n:any) => n.options.id === id)?.options.text)

@@ -334,7 +334,7 @@ export class Slate {
     this.canvas = SVG().addTo(this.element);
 
     // Accessibility: label the canvas for screen readers
-    this.canvas.node.setAttribute("role", "img");
+    this.canvas.node.setAttribute("role", this.options.enabled === false ? "img" : "group");
     this.canvas.node.setAttribute("aria-label", this.options.name || "Diagram canvas");
     this.canvas.node.setAttribute("tabindex", "0");
 

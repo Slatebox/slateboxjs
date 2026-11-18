@@ -86,6 +86,10 @@ export class Keyboard {
       return;
     }
 
+    // Controls outside this canvas own their keyboard events, even when a note is selected.
+    if (target !== document.body && !this.slate.element.contains(target) &&
+        ["Enter", " ", "F2", "Tab"].includes(e.key)) return;
+
     const isMod = e.ctrlKey || e.metaKey;
 
     switch (e.key) {
@@ -186,6 +190,8 @@ export class Keyboard {
         break;
 
       case "Enter":
+        // A held connector activation can continue repeating after focus moves to its child.
+        if (e.repeat && target.matches("[data-node-id]")) break;
         // If exactly one node is selected, Enter begins inline text editing
         // (Miro parity); otherwise fall back to selecting the focused node.
         if (this.startInlineEditSelected(e)) break;
@@ -198,8 +204,10 @@ export class Keyboard {
         break;
 
       case "Tab":
-        // Let native Tab navigation work for node focusing
-        // When Shift+Tab is pressed, let browser handle reverse order
+        if (!e.shiftKey) {
+          const source = this.slate.getSelectedNodes()[0];
+          if (source?.svgGroup.node === target && source.focusFirstConnectionHandle()) e.preventDefault();
+        }
         break;
 
       case "ArrowUp":

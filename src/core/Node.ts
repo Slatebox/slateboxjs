@@ -28,6 +28,12 @@ import { whiteOrBlack, contrastRatio } from "../utils";
 
 const plugDirections = ["top", "right", "bottom", "left"] as const;
 type PlugDirection = typeof plugDirections[number];
+const plugLabels: Record<PlugDirection, string> = {
+  top: "Add connected note above",
+  right: "Add connected note to the right",
+  bottom: "Add connected note below",
+  left: "Add connected note to the left",
+};
 
 interface SnapRect {
   x: number;
@@ -304,7 +310,6 @@ export class Node {
   private _svgViewboxTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _dragEndTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _previewViewboxTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  private _connectTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * Creates a new diagram node.
@@ -1724,10 +1729,6 @@ export class Node {
       clearTimeout(this._previewViewboxTimeoutId);
       this._previewViewboxTimeoutId = null;
     }
-    if (this._connectTimeoutId !== null) {
-      clearTimeout(this._connectTimeoutId);
-      this._connectTimeoutId = null;
-    }
 
     // Disable owned sub-modules (each handles its own cleanup)
     if (this.resizeRotate && this.resizeRotate.isEnabled()) {
@@ -3104,6 +3105,18 @@ export class Node {
     // Note: Slate now handles resize/rotate disabling
   }
 
+  private canUseConnectionHandles(): boolean {
+    return this.slate.options.enabled !== false && !this.slate.isReadOnly() &&
+      !this.slate.isCommentOnly() && !this.options.isLocked;
+  }
+
+  /** The plugs live outside the node group so their geometry does not affect the note. */
+  public focusFirstConnectionHandle(): boolean {
+    if (!this._connHandlesPinned || !this.connectionHandlesVisible || !this.canUseConnectionHandles()) return false;
+    this.connectionHandles.top?.node.focus();
+    return true;
+  }
+
   // Connection Handles for New Node Creation
   private createConnectionHandles() {
     if (this.connectionHandles.container) {
@@ -3132,6 +3145,17 @@ export class Node {
       this.scheduleConnHandlesHide()
     );
 
+    // The plug group is painted above the artwork, outside its normal tab order.
+    // Include its buttons in sequential navigation only while the group has focus.
+    const controls = this.connectionHandles.container.attr("tabindex", -1);
+    controls.on("focusin", () => {
+      for (const direction of plugDirections) this.connectionHandles[direction]?.attr("tabindex", 0);
+    });
+    controls.on("focusout", (event: FocusEvent) => {
+      if (controls.node.contains(event.relatedTarget as globalThis.Node | null)) return;
+      for (const direction of plugDirections) this.connectionHandles[direction]?.attr("tabindex", -1);
+    });
+
     const handleRadius = 8;
     const handleColor = "#007cff";
     const handleStroke = "#ffffff";
@@ -3145,6 +3169,7 @@ export class Node {
         .circle(handleRadius * 2)
         .fill(handleColor)
         .stroke({ color: handleStroke, width: handleStrokeWidth })
+        .attr({ role: "button", tabindex: -1, "aria-label": plugLabels[direction] })
         .addClass(`connection-handle connection-handle-${direction}`);
 
       // Set cursor style using DOM node
@@ -3159,17 +3184,39 @@ export class Node {
       );
       handle.on("mouseleave", () => this.hideConnectionPreview());
 
+      handle.on("keydown", (event: KeyboardEvent) => {
+        if (event.key === "Tab" && event.shiftKey && direction === "top") {
+          event.preventDefault();
+          this.svgGroup.node.focus();
+          return;
+        }
+        if (event.key === "Tab" && !event.shiftKey && direction === "left") {
+          // Native Tab now continues from the source to its next sibling or the page.
+          this.svgGroup.node.focus();
+          return;
+        }
+        if (event.key === "Escape") {
+          this.svgGroup.node.focus();
+          return; // The canvas deselects the focused node.
+        }
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.repeat || !this._connHandlesPinned || !this.canUseConnectionHandles()) return;
+        this.createConnectedNode(direction, true);
+      });
+
       // Add click handler for node creation and connection
       handle.on("click", (event: any) => {
         event.stopPropagation();
-        if (this.draggedPlug === handle || this.slate.isReadOnly()) return;
+        if (this.draggedPlug === handle || !this.canUseConnectionHandles()) return;
         console.log(
           `CONNECTION_HANDLES_DEBUG: ${direction} handle clicked on`,
           this.id
         );
 
         // Create new connected node
-        this.createConnectedNode(direction);
+        this.createConnectedNode(direction, event.detail === 0 && this._connHandlesPinned);
       });
 
       // Miro-style: DRAG from a plug-circle to connect to another node (or create
@@ -3194,7 +3241,7 @@ export class Node {
 
   /** A touch on empty canvas can start at most 14 displayed CSS pixels from a selected plug. */
   public beginNearbyTouchConnection(event: PointerEvent): boolean {
-    if (!this.connectionHandlesVisible || this.slate.isReadOnly()) return false;
+    if (!this.connectionHandlesVisible || !this.canUseConnectionHandles()) return false;
     let nearest: { direction: PlugDirection; handle: Circle } | undefined;
     let nearestDistance = 14;
     for (const direction of plugDirections) {
@@ -3300,7 +3347,7 @@ export class Node {
   }
 
   private revealConnHandlesOnHover(): void {
-    if (this.slate?.isReadOnly?.()) return;
+    if (!this.canUseConnectionHandles()) return;
     // Don't reveal while this node is being dragged. The pointer stays over the
     // moving node so mouseenter re-fires, which re-showed the plug handles at their
     // stale (pre-drag) position — leaving "ghost" dots behind at the old spot while
@@ -3334,6 +3381,7 @@ export class Node {
       this.id
     );
     this.connectionHandlesVisible = true;
+    this.connectionHandles.container?.attr("aria-hidden", !this._connHandlesPinned);
     if (this.connectionHandles.container) {
       this.connectionHandles.container.show();
     }
@@ -3694,6 +3742,7 @@ export class Node {
 
   /** Show connection handles (4 blue dots) on this node for creating connected siblings. */
   public enableConnectionHandles() {
+    if (!this.canUseConnectionHandles()) return;
     console.log(
       "CONNECTION_HANDLES_DEBUG: enableConnectionHandles called for",
       this.id
@@ -3748,7 +3797,7 @@ export class Node {
   }
 
   private createConnectedNode(
-    direction: "top" | "right" | "bottom" | "left"
+    direction: PlugDirection, focusChild = false
   ): void {
     console.log(
       "CONNECTION_HANDLES_DEBUG: Creating connected node in direction",
@@ -3874,10 +3923,20 @@ export class Node {
       // Hide the preview and handles before creating connection
       this.hideConnectionPreview();
 
-      // Wait a moment for the new node to be fully created, then connect
-      this._connectTimeoutId = setTimeout(() => {
-        if (!this._destroyed) this.connectToNode(newNode);
-      }, 100);
+      void newNode.ready.then(() => {
+        if (this._destroyed || this.slate.getNode(this.id) !== this || this.slate.getNode(newNode.id) !== newNode) return;
+        this.connectToNode(newNode);
+        if (focusChild && this.canUseConnectionHandles()) {
+          const viewport = this.slate.canvas.viewbox();
+          const bounds = newNode.svgGroup.rbox(this.slate.canvas);
+          if (bounds.x < viewport.x || bounds.x2 > viewport.x2 ||
+              bounds.y < viewport.y || bounds.y2 > viewport.y2) {
+            this.slate.pan({ x: bounds.cx - viewport.width / 2, y: bounds.cy - viewport.height / 2 });
+          }
+          this.slate.selectNodes([newNode]);
+          newNode.svgGroup.node.focus({ preventScroll: true });
+        }
+      }).catch(error => console.error("Could not connect the new note", error));
     } catch (error) {
       console.error(
         "CONNECTION_HANDLES_DEBUG: Error creating connected node:",

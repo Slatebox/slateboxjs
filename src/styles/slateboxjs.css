@@ -7,6 +7,15 @@
   outline-offset: 2px;
 }
 
+/* A dark rim and a light outline stay visible on both light and dark canvases. */
+.connection-handle:focus-visible {
+  stroke: #192b30;
+  stroke-width: 3px;
+  vector-effect: non-scaling-stroke;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 /* Pan/Zoom Controls */
 .svg-pan-zoom-controls {
   position: absolute;

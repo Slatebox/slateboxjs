@@ -171,7 +171,6 @@ export declare class Node {
     private _svgViewboxTimeoutId;
     private _dragEndTimeoutId;
     private _previewViewboxTimeoutId;
-    private _connectTimeoutId;
     /**
      * Creates a new diagram node.
      *
@@ -472,6 +471,9 @@ export declare class Node {
     startConnectDrag(startEvent: any): void;
     /** Called by the Slate when this node is deselected. */
     onDeselected(): void;
+    private canUseConnectionHandles;
+    /** The plugs live outside the node group so their geometry does not affect the note. */
+    focusFirstConnectionHandle(): boolean;
     private createConnectionHandles;
     /** A touch on empty canvas can start at most 14 displayed CSS pixels from a selected plug. */
     beginNearbyTouchConnection(event: PointerEvent): boolean;
