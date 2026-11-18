@@ -20,6 +20,20 @@ export interface WorkshopCard {
   dependsOn?: string[]
 }
 
+export interface WorkshopSignal {
+  id: string
+  label: string
+  cardId: string
+  laneId: string
+  whenPresent: string
+  whenAbsent: string
+}
+
+export interface ResolvedWorkshopSignal extends WorkshopSignal {
+  present: boolean
+  text: string
+}
+
 export interface Workshop {
   version: 1
   kind?: 'release-plan'
@@ -27,6 +41,7 @@ export interface Workshop {
   lanes: WorkshopLane[]
   /** Lane IDs in playback order. Boards without an authored order present their lanes in layout order. */
   presentationOrder?: string[]
+  signals?: WorkshopSignal[]
   cards: WorkshopCard[]
 }
 
@@ -68,21 +83,32 @@ export function workshopPresentationLanes({ lanes, presentationOrder }: Pick<Wor
   })
 }
 
+/** Resolve authored outcomes against this exact committed or transient candidate board. */
+export function resolveWorkshopSignals(board: Workshop): ResolvedWorkshopSignal[] {
+  return (board.signals ?? []).map(signal => {
+    const present = board.cards.some(card => card.id === signal.cardId && card.laneId === signal.laneId)
+    return { ...signal, present, text: present ? signal.whenPresent : signal.whenAbsent }
+  })
+}
+
 const laneNodeId = (id: string) => 'lane-' + id
 const cardNodeId = (id: string) => 'card-' + id
 
 export interface WorkshopPresentationScene {
   lane: WorkshopLane
   cards: WorkshopCard[]
+  signals: ResolvedWorkshopSignal[]
   /** Native node IDs for this viewpoint in the artwork produced by workshopToSlate. */
   nodeIds: string[]
 }
 
 /** Describe each authored viewpoint from the committed state, including empty lanes. */
 export function workshopPresentationScenes(board: Workshop): WorkshopPresentationScene[] {
+  const outcomes = resolveWorkshopSignals(board)
   return workshopPresentationLanes(board).map(lane => {
     const cards = board.cards.filter(card => card.laneId === lane.id)
-    return { lane, cards, nodeIds: [laneNodeId(lane.id), ...cards.map(card => cardNodeId(card.id))] }
+    const signals = outcomes.filter(signal => signal.laneId === lane.id)
+    return { lane, cards, signals, nodeIds: [laneNodeId(lane.id), ...cards.map(card => cardNodeId(card.id))] }
   })
 }
 
@@ -161,6 +187,19 @@ export function validateWorkshop(input: unknown): Workshop {
   })
   unique(cards.map(card => card.id), 'card ID')
   const board: Workshop = { version: 1, title, lanes, cards }
+  if (value.signals !== undefined) {
+    if (!Array.isArray(value.signals) || value.signals.length > 24) throw new Error('A workshop supports up to 24 placement outcomes.')
+    board.signals = value.signals.map(item => {
+      const raw = record(item)
+      const cardId = id(raw.cardId), laneId = id(raw.laneId)
+      if (!cards.some(card => card.id === cardId) || !laneIds.includes(laneId)) {
+        throw new Error('Each placement outcome must refer to a card and lane on this board.')
+      }
+      return { id: id(raw.id), label: label(raw.label), cardId, laneId,
+        whenPresent: label(raw.whenPresent, 160), whenAbsent: label(raw.whenAbsent, 160) }
+    })
+    unique(board.signals.map(signal => signal.id), 'placement outcome ID')
+  }
   if (value.presentationOrder !== undefined) {
     if (!Array.isArray(value.presentationOrder)) throw new Error('Presentation order must be a list of lane IDs.')
     board.presentationOrder = workshopPresentationLanes({ lanes, presentationOrder: value.presentationOrder }).map(lane => lane.id)

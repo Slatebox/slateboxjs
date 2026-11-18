@@ -146,3 +146,33 @@ for (const width of [320, 960]) {
     await expect(board.getByRole('combobox', {name:/Move Birdsong/})).toHaveValue('notes')
   })
 }
+
+test('authored placement outcomes follow held, canceled, committed and undone moves', async ({page}) => {
+  await page.goto('/tests/fixtures/workshop.html?signals')
+  const state = page.getByRole('region',{name:'Placement outcomes'})
+  const commits = page.getByLabel('Committed decisions')
+  const ready = 'The instruments are ready.', waiting = 'The instruments are waiting.'
+  await expect(state).toContainText(waiting)
+  const box = (await page.locator('#choice-sensors').boundingBox())!
+  const x=box.x+25, y=box.y+20
+  await page.mouse.move(x,y); await page.mouse.down(); await page.mouse.move(x+244,y,{steps:12})
+  await expect(state).toContainText(ready)
+  await expect(commits).toHaveText('0')
+  await page.keyboard.press('Escape'); await page.mouse.up()
+  await expect(state).toContainText(waiting)
+  await page.mouse.move(x,y); await page.mouse.down(); await page.mouse.move(x+244,y,{steps:12}); await page.mouse.up()
+  await expect(state).toContainText(ready)
+  await expect(commits).toHaveText('1')
+  await page.getByRole('button',{name:'Undo decision'}).click()
+  await expect(state).toContainText(waiting)
+  await page.getByText('Move a card by name').click()
+  const select = page.getByRole('combobox').first()
+  await select.selectOption('pilot')
+  await expect(state).toContainText(ready)
+  await page.keyboard.press('Escape')
+  await expect(state).toContainText(waiting)
+  await select.selectOption('pilot')
+  await page.getByRole('button',{name:'Apply move'}).click()
+  await expect(state).toContainText(ready)
+  await expect(commits).toHaveText('2')
+})

@@ -15,7 +15,10 @@ const fieldNotes: Workshop = {
 
 function Example() {
   const fitLanes = location.search === '?fit'
-  const [board, setBoard] = useState(fitLanes ? fieldNotes : location.search === '?map' ? nightTransfer : industrialWorkshop)
+  const signaled = location.search === '?signals'
+  const [board, setBoard] = useState(signaled ? {...industrialWorkshop,
+    signals:[{id:'sensors-ready',label:'Sensor status',cardId:'sensors',laneId:'pilot',
+      whenPresent:'The instruments are ready.',whenAbsent:'The instruments are waiting.'}]} : fitLanes ? fieldNotes : location.search === '?map' ? nightTransfer : industrialWorkshop)
   const [preview, setPreview] = useState<Workshop | null>(null)
   const [readOnly, setReadOnly] = useState(false)
   const [commits, setCommits] = useState(0)

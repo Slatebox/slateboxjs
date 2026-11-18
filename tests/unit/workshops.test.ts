@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { deserializeNodeOptions } from '../../src/core/Serialization'
-import { availableLanes, decodeWorkshopFragment, encodeWorkshopFragment, nightTransfer, industrialWorkshop, releasePlan, workshopPresentationLanes, workshopPresentationScenes, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
+import { availableLanes, decodeWorkshopFragment, encodeWorkshopFragment, nightTransfer, industrialWorkshop, releasePlan, resolveWorkshopSignals, workshopPresentationLanes, workshopPresentationScenes, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
 
 describe('agent-authored workshops', () => {
   it('opens the authored state, including its rules and literal URL punctuation', () => {
@@ -40,6 +40,23 @@ describe('agent-authored workshops', () => {
     expect(scenes[0].cards[0]).toBe(board.cards[0])
     const nativeNodes = workshopToSlate(board).nodes.map(node => node.options.id)
     expect(scenes.flatMap(scene => scene.nodeIds).sort()).toEqual(nativeNodes.sort())
+  })
+
+  it('resolves portable placement outcomes for current cards and presentation stages', () => {
+    const rule = {id:'cue', label:'Window', cardId:'rider', laneId:'lift', whenPresent:'The doors open.', whenAbsent:'Wait for the rider.'}
+    const original = validateWorkshop({...nightTransfer, signals:[rule]})
+    expect(resolveWorkshopSignals(original)).toEqual([{...rule, present:false, text:rule.whenAbsent}])
+    const moved = moveWorkshopCard(original, 'rider', 'lift')
+    const imported = decodeWorkshopFragment(encodeWorkshopFragment(moved))
+    expect(imported).toEqual(moved)
+    expect(resolveWorkshopSignals(imported)[0]).toMatchObject({present:true, text:rule.whenPresent})
+    expect(workshopPresentationScenes(original).find(s => s.lane.id === 'lift')?.signals[0].text).toBe(rule.whenAbsent)
+    expect(workshopPresentationScenes(imported).find(s => s.lane.id === 'lift')?.signals[0].text).toBe(rule.whenPresent)
+    expect(workshopPresentationScenes(imported).filter(s => s.signals.length)).toHaveLength(1)
+    expect(resolveWorkshopSignals(nightTransfer)).toEqual([])
+    for (const signals of [null, [rule,rule], Array(25).fill(rule), [{...rule,cardId:'missing'}],
+      [{...rule,laneId:'missing'}],[{...rule,whenPresent:'<x>'}], [{...rule,whenAbsent:''}], [{...rule,label:'x'.repeat(81)}],
+      [{...rule,whenAbsent:'x'.repeat(161)}]]) expect(()=>validateWorkshop({...original,signals})).toThrow()
   })
 
   it('rejects partial, oversized, repeated and unknown presentation stages', () => {

@@ -3,7 +3,7 @@ export { ListeningRoomBoard, type ListeningRoomBoardProps } from './ListeningRoo
 import React from 'react'
 import { fitLaneLayout } from './fitLanes'
 import { DraggableRenderer, translate, type Draggable, type DraggableProps, type DragStatus } from 'dragology'
-import { availableLanes, releaseLoad, laneColors, moveWorkshopCard, workshopLayout, workshopPositions, type Workshop } from './model'
+import { availableLanes, resolveWorkshopSignals, releaseLoad, laneColors, moveWorkshopCard, workshopLayout, workshopPositions, type Workshop } from './model'
 
 import { ReleaseMoveControls, ReleasePlanReadout, type WorkshopMove } from './ReleasePlan'
 export { ReleasePlanReadout, type WorkshopMove } from './ReleasePlan'
@@ -84,11 +84,13 @@ export interface WorkshopBoardProps {
   readOnly?: boolean
   /** Fit ordinary lane boards to the host while retaining legible notes and pointer targets. */
   fitLanes?: boolean
+  /** Hide the built-in readout when the host supplies its own accessible outcome display. */
+  showPlacementOutcomes?: boolean
   /** Temporary model shown to a linked view while the pointer is held. */
   onPreview?: (value: Workshop | null) => void
 }
 
-export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, readOnly = false, fitLanes = false }: WorkshopBoardProps) {
+export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, readOnly = false, fitLanes = false, showPlacementOutcomes = true }: WorkshopBoardProps) {
   const container = React.useRef<HTMLDivElement>(null)
   const [viewport, setViewport] = React.useState(0)
   const fit = fitLanes && !value.kind && !value.lanes[0].station
@@ -104,6 +106,7 @@ export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, rea
   const fitted = React.useMemo(() => fit && viewport ? fitLaneLayout(value, viewport) : undefined, [fit, viewport, value])
   const { width, height } = workshopPositions(value, fitted?.layout)
   const release = value.kind === 'release-plan'
+  const hasSignals = Boolean(value.signals?.length)
   const [gesture, setGesture] = React.useState(0)
   const dragging = React.useRef(false)
   const feature = React.useRef<string | null>(null)
@@ -113,9 +116,9 @@ export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, rea
   const keyboardMove = !readOnly && keyboard?.source === value ? keyboard : null
   const prior = React.useRef(value)
   const showPreview = React.useCallback((candidate: Workshop | null) => {
-    if (release) setPreview(candidate)
+    if (release || hasSignals) setPreview(candidate)
     onPreview?.(candidate)
-  }, [release, onPreview])
+  }, [release, hasSignals, onPreview])
   const cancel = React.useCallback(() => {
     dragging.current = false
     feature.current = null
@@ -131,6 +134,7 @@ export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, rea
   const commit = (next: Workshop, move?: WorkshopMove) => {
     dragging.current = false
     setKeyboard(null)
+    showPreview(null)
     if (next === value) return
     if (release && !onUndo) setLast({before: value, after: next})
     onChange(next, move)
@@ -175,6 +179,9 @@ export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, rea
         onDropState={readOnly ? undefined : onDrop} onDragState={readOnly ? undefined : showPreview} onDragStatus={onDragStatus}
         width={width} height={canvasHeight} />
     </div>
+    {hasSignals && showPlacementOutcomes && <section aria-label="Placement outcomes" aria-live="polite" style={{overflowWrap:'anywhere'}}>
+      {resolveWorkshopSignals(linked ?? value).map(signal => <p key={signal.id}><strong>{signal.label}</strong><br />{signal.text}</p>)}
+    </section>}
     {release && <>
       <ReleasePlanReadout value={value} preview={linked} />
       {!readOnly && <><ReleaseMoveControls value={value} preview={keyboardMove?.move ?? null}
@@ -201,11 +208,21 @@ export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, rea
       <summary>Move a card by name</summary>
       {value.cards.map(card => <label key={card.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBlock: 6 }}>
         {card.label}
-        <select disabled={readOnly} aria-label={'Move ' + card.label} value={card.laneId}
-          onChange={e => commit(moveWorkshopCard(value, card.id, e.currentTarget.value), {cardId: card.id, laneId: e.currentTarget.value})}>
+        <select disabled={readOnly} aria-label={'Move ' + card.label} value={keyboardMove?.move.cardId === card.id ? keyboardMove.move.laneId : card.laneId}
+          onChange={e => {
+            const move = {cardId:card.id, laneId:e.currentTarget.value}
+            const next = moveWorkshopCard(value, card.id, move.laneId)
+            if (!hasSignals) commit(next, move)
+            else if (next === value) cancel()
+            else { setKeyboard({source:value, next, move}); onPreview?.(next) }
+          }}>
           {availableLanes(value, card).map(lane => <option key={lane.id} value={lane.id}>{lane.label}</option>)}
         </select>
       </label>)}
+      {keyboardMove && <div>
+        <button type="button" onClick={() => commit(keyboardMove.next, keyboardMove.move)}>Apply move</button>
+        <button type="button" onClick={cancel}>Cancel move</button>
+      </div>}
     </details>}
   </section>
 }

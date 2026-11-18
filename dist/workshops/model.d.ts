@@ -21,6 +21,18 @@ export interface WorkshopCard {
     points?: number;
     dependsOn?: string[];
 }
+export interface WorkshopSignal {
+    id: string;
+    label: string;
+    cardId: string;
+    laneId: string;
+    whenPresent: string;
+    whenAbsent: string;
+}
+export interface ResolvedWorkshopSignal extends WorkshopSignal {
+    present: boolean;
+    text: string;
+}
 export interface Workshop {
     version: 1;
     kind?: 'release-plan';
@@ -28,13 +40,17 @@ export interface Workshop {
     lanes: WorkshopLane[];
     /** Lane IDs in playback order. Boards without an authored order present their lanes in layout order. */
     presentationOrder?: string[];
+    signals?: WorkshopSignal[];
     cards: WorkshopCard[];
 }
 /** Resolve the original lanes for playback without changing their board positions or rules. */
 export declare function workshopPresentationLanes({ lanes, presentationOrder }: Pick<Workshop, 'lanes' | 'presentationOrder'>): WorkshopLane[];
+/** Resolve authored outcomes against this exact committed or transient candidate board. */
+export declare function resolveWorkshopSignals(board: Workshop): ResolvedWorkshopSignal[];
 export interface WorkshopPresentationScene {
     lane: WorkshopLane;
     cards: WorkshopCard[];
+    signals: ResolvedWorkshopSignal[];
     /** Native node IDs for this viewpoint in the artwork produced by workshopToSlate. */
     nodeIds: string[];
 }
