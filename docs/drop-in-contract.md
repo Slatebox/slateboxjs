@@ -172,6 +172,19 @@ A visitor who tries a hands-on example on slatebox.com should be able to open it
 | Focus darkroom | Connect a dialog to a return target and try the keyboard path the author chose. | Change the connection, open and dismiss the dialog by keyboard, and verify focus returns to the chosen object. |
 | Offline handoff | Explore what happens to competing field notes through disconnection, review and recovery. | Take both branches and undo a decision. Verify the simulated field-note outcome separately from real multi-user reconnection. |
 
+### Packaged components and app entries
+
+The app and website import the React components from `slateboxjs/workshops`. The server-safe models and normalizers come from `slateboxjs/workshops/model`.
+
+| React component | Model normalizer | Native app entry |
+| --- | --- | --- |
+| `ListeningRoomBoard` | `normalizeListeningRoom` | [/new/listening-room](https://app.slatebox.com/new/listening-room) |
+| `MoonGalleryBoard` | `normalizeMoonGallery` | [/new/moon-gallery](https://app.slatebox.com/new/moon-gallery) |
+| `FocusDarkroomBoard` | `normalizeFocusDarkroom` | [/new/focus-darkroom](https://app.slatebox.com/new/focus-darkroom) |
+| `OfflineHandoffBoard` | `normalizeOfflineHandoff` | [/new/offline-handoff](https://app.slatebox.com/new/offline-handoff) |
+
+Each component accepts `value`, `onChange` and `readOnly`. A native starter creates an owned private document and replaces the entry URL with its saved canvas. The authenticated host validates the model and expected revision on save. A stale revision cannot overwrite another editor’s decision or undo it. See the [developer guide and worked examples](https://docs.slatebox.com/developers/javascriptlibrary/creative-slates/).
+
 **Engine responsibilities.** Expose supported package entry points. The existing discrete board uses `WorkshopBoard` from `slateboxjs/workshops`. It takes a controlled `value`, emits disposable candidates through `onPreview`, commits a legal move through `onChange` and supports host-controlled undo and read-only display. Keep the scene definition and committed state serializable and versioned. Validate loaded input and retain existing board formats. Keep preview, focus, sound playback and scripted presence local to the viewer. Drive linked visuals, captions and optional audio from the same candidate. Permit cancellation without changing the saved revision.
 
 **App responsibilities.** Route a feature CTA to an immediately usable slate. Provide on-canvas contextual editing, a visible affordance for the first gesture, equivalent keyboard controls and a reversible first move. The host owns permissions, saving, revision conflicts, shared undo and reopening. A viewer can present the saved result without obtaining editing rights. Interactive exercises explicitly invite input. Illustrative homepage slates ignore edits and drags while allowing page scroll.
