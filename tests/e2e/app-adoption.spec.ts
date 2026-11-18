@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { removeTestGuest, userId } from "./workshop-guests.shared";
+import { randomUUID } from 'node:crypto'
+import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from "./workshop-guests.shared";
 
 const app = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 const homepage = process.env.SLATEBOX_MARKETING_URL;
@@ -162,3 +163,139 @@ test("create, share an editable invitation, present a teammate's note, and reope
 test("a signed-out recipient opens the edit link directly, saves and reopens a note, then loses access on revocation", async ({browser}) => {
   await verifyInvitation(browser, "signed-out");
 });
+
+test('a registered native editor finds their saved note in Recently joined until its invitation is retired', async ({browser}) => {
+  test.skip(!allowed, 'Creates isolated accounts only on local or staging deployments')
+  const contexts = await Promise.all(Array.from({length:3}, () => browser.newContext({viewport:{width:1360,height:940}})))
+  const [owner, editor, observer] = await Promise.all(contexts.map(context => context.newPage()))
+  const ids = new Map<Page, string>()
+  const email = 'recent-native-' + randomUUID() + '@slatebox.invalid'
+  const recent = (page:Page) => page.getByRole('region', {name:'Recently joined'}).getByRole('link')
+  const library = async (page:Page) => {
+    await page.goto(app+'/')
+    await expect.poll(() => userId(page)).toBe(ids.get(page))
+    // An empty section is meaningful only once the user's history has arrived.
+    await page.evaluate(async () => {
+      const meteor = (window as any).Meteor
+      const sub = await new Promise<{stop():void}>((resolve,reject) => {
+        const h = meteor.subscribe('joinedSlates.index', {onReady:()=>resolve(h), onStop:(e:Error)=>e && reject(e)})
+      })
+      sub.stop()
+    })
+    await dismissWelcome(page)
+  }
+  const editNote = async (page:Page,id:string,text:string) => {
+    await page.locator('#slateCanvas g[data-node-id="'+id+'"]').click()
+    await page.keyboard.press('F2')
+    const input = page.locator('.sb-inline-editor[contenteditable="true"]')
+    await input.fill(text)
+    await input.press('Enter')
+  }
+  let boardId: string | undefined
+  try {
+    for (const page of [owner, editor, observer]) {
+      page.setDefaultTimeout(15_000)
+      const consent = page.getByRole('button',{name:'Accept cookies'})
+      await page.addLocatorHandler(consent,()=>consent.click())
+      await page.goto(app+'/new')
+      await expect.poll(()=>userId(page)).toBeTruthy()
+      ids.set(page, (await userId(page))!)
+      await ready(page)
+    }
+    expect(new Set(ids.values()).size).toBe(3)
+    const original = owner.url()
+    const key = new URL(original).pathname.split('/').pop()!
+    const initial = await getSlate(owner,key)
+    boardId = initial._id
+    const node = initial.nodes[0].options.id
+    const title = initial.options.name || 'Untitled slate'
+    const release = process.env.SLATEBOX_EXPECTED_APP_BUNDLE
+    if (release) {
+      const tag = owner.locator('script[src*="/'+release+'.js"]')
+      await expect(tag).toHaveCount(1)
+      const asset = await owner.request.get(new URL((await tag.getAttribute('src'))!,app).href)
+      expect(asset.ok()).toBe(true)
+      expect(await asset.text()).toContain('Recently joined')
+    }
+    await editor.goto(app+'/profile')
+    await editor.getByRole('button',{name:'Save My Slatebox'}).click()
+    const registration = editor.getByRole('dialog',{name:'Save your work'})
+    await registration.getByLabel('Email address').fill(email)
+    await registration.getByLabel(/^Password/i).fill(randomUUID())
+    await registration.getByRole('button',{name:'Save my Slatebox'}).click()
+    await expect.poll(()=>editor.evaluate(()=>(window as any).Meteor.user()?.emails?.[0]?.address)).toBe(email)
+    const invite = await shareAs(owner,'edit')
+    await observer.goto(invite.href)
+    await ready(observer)
+    const viewport = observer.locator('#slateCanvas svg[viewBox]').first()
+    const viewBox = await viewport.getAttribute('viewBox')
+    await viewport.hover({position:{x:220,y:180}})
+    await observer.mouse.wheel(0,120)
+    await expect(viewport).not.toHaveAttribute('viewBox',viewBox!)
+    await editNote(owner,node,'Listen for the signal')
+    await expect(observer.locator('#slateCanvas g[data-node-id="'+node+'"]')).toContainText('Listen for the signal')
+    await expect.poll(async ()=>(await getSlate(owner,key)).nodes.find((n:any)=>n.options.id===node)?.options.text).toBe('Listen for the signal')
+    await library(observer)
+    await expect(recent(observer)).toHaveCount(0)
+    await library(owner)
+    await expect(recent(owner)).toHaveCount(0)
+    await owner.goto(original)
+    await ready(owner)
+    await editor.goto(invite.href)
+    await ready(editor)
+    const note = 'Record the fourth bell'
+    await editNote(editor,node,note)
+    await expect.poll(async ()=>(await getSlate(owner,key)).nodes.find((n:any)=>n.options.id===node)?.options.text).toBe(note)
+    await library(editor)
+    const link = recent(editor).filter({hasText:title})
+    await expect(link).toHaveAttribute('href',invite.pathname)
+    await link.click()
+    await expect(editor.locator('#slateCanvas g[data-node-id="'+node+'"]')).toContainText(note)
+    const read = await shareAs(owner,'read')
+    expect(read.href).toBe(invite.href)
+    await library(editor)
+    await link.click()
+    await expect(editor.locator('#slateCanvas g[data-node-id="'+node+'"]')).toContainText(note)
+    await expect(editor.getByRole('button',{name:'Slatebox - quickly add a node'})).toHaveCount(0)
+    await library(editor)
+    await expect(link).toHaveAttribute('href',read.pathname)
+    await owner.getByRole('button',{name:'Share',exact:true}).click()
+    const sharing = owner.getByRole('dialog',{name:'Share this slate'})
+    await sharing.getByRole('button',{name:/^Private/}).click()
+    await sharing.getByRole('button',{name:'Make private',exact:true}).click()
+    await sharing.getByRole('button',{name:'Done',exact:true}).click()
+    await expect(link).toHaveCount(0)
+    const replacement = await shareAs(owner,'edit')
+    expect(replacement.pathname).not.toBe(invite.pathname)
+    await library(editor)
+    await expect(recent(editor)).toHaveCount(0)
+    await editor.goto(invite.href)
+    await expect(editor.getByText('This slate is not accessible.',{exact:true})).toBeVisible()
+    await editor.goto(replacement.href)
+    await ready(editor)
+    await editNote(editor,node,'Record the fifth bell')
+    await expect.poll(async ()=>(await getSlate(owner,key)).nodes.find((n:any)=>n.options.id===node)?.options.text).toBe('Record the fifth bell')
+    await library(editor)
+    await expect(link).toHaveAttribute('href',replacement.pathname)
+  } finally {
+    try {
+      if (boardId && await userId(owner)===ids.get(owner)) {
+        await owner.evaluate(id=>(window as any).Meteor.callAsync('slates.remove',{slateIds:[id]}),boardId)
+      }
+    } finally {
+      try {
+        await Promise.all([...ids].map(async ([page,id])=>{
+          await page.goto(app+'/plans')
+          await expect.poll(()=>userId(page)).toBe(id)
+          if (page!==editor) return removeTestGuest(page,id)
+          await expect.poll(()=>page.evaluate(()=>{const u=(window as any).Meteor.user();return Boolean(u?.isAnonymous || u?.emails?.length)})).toBe(true)
+          expect(await page.evaluate(async ({id,email})=>{
+            const m=(window as any).Meteor
+            if(m.userId()!==id || !(m.user()?.isAnonymous || m.user()?.emails?.[0]?.address===email)) return false
+            return m.callAsync('users.delete')
+          },{id,email})).toBe(true)
+        }))
+      } finally { await Promise.all(contexts.map(context=>context.close())) }
+    }
+  }
+})
