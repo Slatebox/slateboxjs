@@ -22,6 +22,12 @@ Ship Slatebox as the MIT-licensed, open-source Miro replacement where a team can
 
 7. **Ship and verify under the existing policy.** Use Roscoe's canonical ship for app and engine, direct to main, with a freshly built local SlateboxJS package and identity stamps. Use the established Cloudflare path for marketing and API. Run targeted preflight and targeted deployed checks, verify bundle identity and release-window logs. Leave the full post-ship suite in the background as instructed and fix regressions forward. Keep PRs and npm publication outside this iteration.
 
+## Canvas entry and marketing demonstrations
+
+Open creation routes on a usable slate. Let a visitor act immediately and edit one selected object in context. Exercise legacy saved boards while removing new sprint-planning and release-budget examples from product discovery. Audit the first screen of each creation route on a phone and desktop for questionnaire or grid-of-input regressions.
+
+Keep illustrative marketing slates read-only, including the homepage hero and presentation artwork. Scripted collaborators can still move and edit. Allow visitor manipulation only in an example that explicitly teaches that interaction. Test attempted drag, double-click, keyboard deletion and scrolling across the hero, as well as successful pointer and keyboard actions in the hands-on examples. Check pricing header titles, subtitles and icons against their actual backgrounds in both themes.
+
 ## Evidence ledger
 
 | Journey | Current evidence | Open acceptance |
