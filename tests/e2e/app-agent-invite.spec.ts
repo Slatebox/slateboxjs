@@ -18,7 +18,7 @@ const map = {
   cards:[{id:'request',label:'Refund',laneId:'support'}],
 }
 
-test.use({trace:'off',screenshot:'off',video:'off'})
+test.use({actionTimeout:15000,trace:'off',screenshot:'off',video:'off'})
 
 type Actor = {page:Page; email:string; id:string|null}
 async function register(actor: Actor, path: string) {
@@ -66,6 +66,7 @@ test('an owner issues a native editor invitation and can downgrade and retire it
     await register(peer,'/new/map')
     expect(peer.id).not.toBe(owner.id)
     expect(await getSlate(peer.page,shareId)).toBeFalsy()
+    await owner.page.goto(new URL('/profile',origin).href)
     await owner.page.getByRole('tab',{name:'Developer'}).click()
     const expectedBundle = process.env.SLATEBOX_EXPECTED_APP_BUNDLE
     if (expectedBundle) await expect(owner.page.locator('script[src*="/'+expectedBundle+'.js"]')).toHaveCount(1)
@@ -118,12 +119,14 @@ test('an owner issues a native editor invitation and can downgrade and retire it
     const downgraded=await mcp.callTool({name:'create_slate_invite',arguments:{share_id:shareId,role:'read',idempotency_key:randomUUID()}})
     expect(downgraded.isError).toBeFalsy()
     expect(downgraded.structuredContent.url === link.href && downgraded.structuredContent.inviteId === invitation.inviteId).toBe(true)
+    await expect(back).toBeDisabled()
     await peer.page.reload()
     await expect(back).toBeDisabled()
     await expect(peer.page.getByRole('button',{name:'Join to edit'})).toHaveCount(0)
     const revokeKey=randomUUID()
     const revoked=await mcp.callTool({name:'revoke_slate_invite',arguments:{share_id:shareId,invite_id:invitation.inviteId,idempotency_key:revokeKey}})
     expect(revoked.structuredContent?.revoked).toBe(true)
+    await expect(peer.page.getByRole('heading',{name:map.title})).toHaveCount(0)
     const replay=await cli('unshare',shareId,'--invite-id',invitation.inviteId,'--idempotency-key',revokeKey)
     expect(replay.revoked).toBe(true)
     expect((await httpIssue(manager,'edit',issueKey)).status()).toBe(409)
