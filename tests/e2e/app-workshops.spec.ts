@@ -1,6 +1,28 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
 const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
+
+async function expectWorkshopSlide(page: Page, heading: string, cards: string[], nodeIds: string[]) {
+  const presentation = page.getByRole('region', { name: 'Decision presentation' })
+  await expect(presentation.getByRole('heading', { name: heading })).toBeVisible()
+  await expect(presentation.getByRole('listitem')).toHaveText(cards)
+  const surface = presentation.locator('.workshop-slide-art')
+  await expect(surface.locator('svg [data-node-id]').first()).toBeAttached()
+  await expect.poll(() => surface.evaluate((element, expected) => {
+    const graphic = element.querySelector('svg')
+    const active = [...graphic!.querySelectorAll<SVGGraphicsElement>('[data-node-id]')]
+      .filter(node => Number(getComputedStyle(node).opacity) > 0.95)
+    const ids = active.map(node => node.dataset.nodeId).sort()
+    if (ids.join('|') !== [...expected].sort().join('|')) return false
+    const bounds = element.getBoundingClientRect()
+    const rects = active.map(node => node.getBoundingClientRect())
+    if (!rects.every(r => r.width > 2 && r.height > 2 && r.left >= bounds.left - 2 && r.right <= bounds.right + 2 &&
+      r.top >= bounds.top - 2 && r.bottom <= bounds.bottom + 2)) return false
+    const left = Math.min(...rects.map(r => r.left)), right = Math.max(...rects.map(r => r.right))
+    const top = Math.min(...rects.map(r => r.top)), bottom = Math.max(...rects.map(r => r.bottom))
+    return Math.abs((left + right - bounds.left - bounds.right) / 2) < 3 && Math.abs((top + bottom - bounds.top - bounds.bottom) / 2) < 3
+  }, nodeIds)).toBe(true)
+}
 
 test('review a workshop, move a card, present and open a private editable slate', async ({ page, browser }) => {
   test.skip(process.env.SLATEBOX_APP_EXTERNAL !== 'true', 'Set the deployed app URL for the live contract')
@@ -33,12 +55,28 @@ test('review a workshop, move a card, present and open a private editable slate'
   await page.getByRole('combobox', { name: 'Move Test bearing sensors on line four' }).selectOption('pilot')
   const second = page.getByRole('combobox', { name: 'Move Stage a spare drive at the north mill' })
   await expect(second.locator('option[value="pilot"]')).toHaveCount(0)
+  await second.selectOption('evidence')
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Review the winter shutdown pilots' })).toBeVisible()
   await page.getByRole('button', { name: 'Present decisions' }).click()
+  await expectWorkshopSlide(page, 'Proposed trials', [], ['lane-proposed'])
+  await expect(page.getByText('No cards in this lane.')).toBeVisible()
+  const pilotCards = ['Test bearing sensors on line four', 'Rehearse the overnight restart']
+  const pilotNodes = ['lane-pilot', 'card-sensors', 'card-training']
   await page.getByRole('button', { name: 'Next lane' }).click()
-  await expect(page.getByRole('heading', { name: 'Fund this quarter' })).toBeVisible()
-  await expect(page.getByRole('listitem').filter({ hasText: 'Test bearing sensors on line four' })).toBeVisible()
+  await expectWorkshopSlide(page, 'Fund this quarter', pilotCards, pilotNodes)
+  const viewport = page.viewportSize()!
+  await page.setViewportSize({ width: 390, height: 760 })
+  await expectWorkshopSlide(page, 'Fund this quarter', pilotCards, pilotNodes)
+  for (let pass = 0; pass < 3; pass++) {
+    await page.keyboard.press('ArrowRight')
+    await expectWorkshopSlide(page, 'Gather evidence', ['Stage a spare drive at the north mill', 'Measure cooling losses at shift change'],
+      ['lane-evidence', 'card-spares', 'card-cooling'])
+    await page.keyboard.press('ArrowLeft')
+    await expectWorkshopSlide(page, 'Fund this quarter', pilotCards, pilotNodes)
+  }
+  await page.setViewportSize(viewport)
+  await expectWorkshopSlide(page, 'Fund this quarter', pilotCards, pilotNodes)
   await page.getByRole('button', { name: 'Back to board' }).click()
   if (!save) return
 
