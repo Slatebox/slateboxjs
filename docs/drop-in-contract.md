@@ -192,6 +192,8 @@ Each component accepts `value`, `onChange` and `readOnly`. A native starter crea
 
 **App responsibilities.** Route a feature CTA to an immediately usable slate. Provide on-canvas contextual editing, a visible affordance for the first gesture, equivalent keyboard controls and a reversible first move. The host owns permissions, saving, revision conflicts, shared undo and reopening. A viewer can present the saved result without obtaining editing rights. Interactive exercises explicitly invite input. Illustrative homepage slates ignore edits and drags while allowing page scroll.
 
+**Workshop presentation order.** The version 1 workshop model accepts an optional `presentationOrder` array containing each lane or station ID exactly once. Use `workshopPresentationLanes(workshop)` from `slateboxjs/workshops/model` for playback and `workshop.lanes` for spatial layout. Existing documents open in lane order. The native player frames the selected lane and its currently assigned cards, including a collaborator’s accepted moves. The app saves scene reordering through its ordinary edit permission and revision checks. The portable link carries the same order into a new slate. [Radio cue sheet example](https://docs.slatebox.com/examples/research-cue-sheet/)
+
 **Acceptance.** For each row, link the packaged export, marketing example, app entry and a deployed browser proof to the goal ledger. Use the file-based package installed by the app. Verify an authored change and its visible consequence, keyboard and touch operation, cancel, undo, a second session, presentation and reload. Record which checks passed on which release. A website-only renderer or a model unit test leaves the app journey open.
 
 ## Status log
