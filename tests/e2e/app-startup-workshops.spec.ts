@@ -1,0 +1,82 @@
+import {test, expect} from '@playwright/test'
+import {decodeWorkshopFragment} from '../../src/workshops/model'
+import {dismissWelcome, getSlate, removeTestGuest, shareAs, userId} from './workshop-guests.shared'
+import {editObject} from './workshop-edit.shared'
+
+const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
+const examples = [
+  {kind:'customer-interviews', entry:'Turn interviews into a prototype brief', mode:'interview-brief', card:'duplicate', lane:'prototype'},
+  {kind:'experiment-budget', entry:'Plan a $600 pilot budget', mode:'pilot-budget', card:'fund-1', lane:'newsletter'},
+] as const
+
+for (const example of examples) {
+  test(example.kind+' keeps its native experience through shared edits, reopening and presentation', async ({browser})=>{
+    test.skip(!['localhost','127.0.0.1','test.slatebox.com'].includes(origin.hostname),'Disposable local or staging guests only')
+    const ownerContext=await browser.newContext()
+    const peerContext=await browser.newContext({viewport:{width:390,height:844}})
+    const owner=await ownerContext.newPage()
+    const peer=await peerContext.newPage()
+    let ownerId:string|null=null
+    let peerId:string|null=null
+    try {
+      await owner.goto(origin.origin+'/start')
+      const entry=owner.getByRole('link',{name:example.entry,exact:true})
+      await expect(entry).toBeVisible()
+      const href=new URL((await entry.getAttribute('href'))!,origin)
+      expect(href.pathname).toBe('/new/workshop')
+      expect(decodeWorkshopFragment(href.hash).experience?.kind).toBe(example.kind)
+      if(process.env.SLATEBOX_STARTUP_MARKETING_URL) {
+        const demo=new URL('/assets/product/workshop-demo.html?mode='+example.mode,process.env.SLATEBOX_STARTUP_MARKETING_URL)
+        await owner.goto(demo.href)
+        const handoff=new URL((await owner.getByRole('link',{name:/Open this.*in Slatebox/}).getAttribute('href'))!)
+        expect(handoff.origin).toBe('https://app.slatebox.com')
+        expect(handoff.pathname).toBe(href.pathname)
+        expect(decodeWorkshopFragment(handoff.hash)).toEqual(decodeWorkshopFragment(href.hash))
+        // Only the origin changes: never create a fixture on the production URL in the link.
+        await owner.goto(new URL(handoff.pathname+handoff.hash,origin).href)
+      } else await entry.click()
+      await owner.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
+      await expect.poll(()=>userId(owner)).toBeTruthy()
+      ownerId=await userId(owner)
+      await dismissWelcome(owner)
+      const key=new URL(owner.url()).pathname.split('/').pop()!
+      const stored=()=>getSlate(owner,key)
+      expect((await stored()).options.isPrivate).toBe(true)
+      const expectedHash=process.env.SLATEBOX_EXPECTED_APP_BUNDLE
+      if(expectedHash) await expect(owner.locator('script[src*="/'+expectedHash+'.js"]')).toHaveCount(1)
+      const edit=await shareAs(owner,'edit')
+      await peer.goto(edit.href)
+      await dismissWelcome(peer)
+      await peer.getByRole('button',{name:'Join to edit',exact:true}).click()
+      await expect.poll(()=>userId(peer)).toBeTruthy()
+      peerId=await userId(peer)
+      expect(peerId).not.toBe(ownerId)
+      const choice='[data-card="'+example.card+'"]'
+      await peer.locator(choice).press('Enter')
+      if(example.kind==='experiment-budget') await peer.locator('[data-drop="newsletter"]').press('Enter')
+      await expect.poll(async()=>(await stored()).creative.model.workshop.cards.find((c:{id:string})=>c.id===example.card)?.laneId).toBe(example.lane)
+      const decision=example.kind==='customer-interviews'?'Keep original record':'1 placement'
+      const target='[data-drop="'+example.lane+'"]'
+      await expect(owner.locator(target)).toContainText(decision)
+      await editObject(owner,'card:'+example.card, async()=>{await owner.getByLabel('Name',{exact:true}).fill('First customer pilot')})
+      await expect(peer.locator(choice)).toContainText('First customer pilot')
+      await peer.reload()
+      await dismissWelcome(peer)
+      await expect(peer.locator(target)).toContainText(decision)
+      await peer.getByRole('button',{name:'Present',exact:true}).click()
+      const slides=peer.getByRole('region',{name:'Decision presentation'})
+      if(example.kind==='experiment-budget') {
+        await slides.getByRole('button',{name:'Next lane'}).click()
+        await expect(slides).toContainText('$200 · 1 placement')
+      } else await expect(slides).toContainText('Imani will test whether Bea can keep the existing client')
+      await expect(slides.getByRole('listitem')).toContainText('First customer pilot')
+      await slides.getByRole('button',{name:'Back to board'}).click()
+      await shareAs(owner,'read')
+      await expect(peer.locator(choice)).toBeDisabled()
+      await expect(peer.locator(target)).toContainText(decision)
+    } finally {
+      try {await Promise.all([removeTestGuest(owner,ownerId),removeTestGuest(peer,peerId)])}
+      finally {await Promise.all([ownerContext.close(),peerContext.close()])}
+    }
+  })
+}
