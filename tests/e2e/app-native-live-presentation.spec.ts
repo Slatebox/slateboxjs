@@ -85,6 +85,11 @@ test('a read-only phone follows the presenter across native outage notes and ret
     await expect(deck(reader)).toHaveCount(0)
     await follow.tap()
     await expectNativeView(reader,'fallback',title,3)
+    // Two real navigation actions must reach two distinct stops even when the
+    // second action happens before the previous DDP update has painted.
+    await button(owner,'Previous').click()
+    await button(owner,'Previous').click()
+    await expectNativeView(reader,'newcomer','New customer',1)
     await button(owner,'End presentation').click()
     await expect(deck(reader)).toHaveCount(0)
     await expect(follow).toHaveCount(0)
