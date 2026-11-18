@@ -1,6 +1,6 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Page, type FrameLocator } from '@playwright/test'
 
-export async function expectWorkshopSlide(page: Page, heading: string, cards: string[], nodeIds: string[]) {
+export async function expectWorkshopSlide(page: Page | FrameLocator, heading: string, cards: string[], nodeIds: string[]) {
   const presentation = page.getByRole('region', { name: 'Decision presentation' })
   await expect(presentation.getByRole('heading', { name: heading })).toBeVisible()
   await expect(presentation.getByRole('listitem')).toHaveText(cards)
