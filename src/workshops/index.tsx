@@ -186,3 +186,5 @@ export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, rea
     </details>}
   </section>
 }
+
+export { MoonGalleryBoard, type MoonGalleryBoardProps } from './MoonGalleryBoard'

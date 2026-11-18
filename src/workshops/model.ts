@@ -236,3 +236,5 @@ export const industrialWorkshop: Workshop = {
     { id: 'training', label: 'Rehearse the overnight restart', laneId: 'pilot' },
   ],
 }
+
+export * from './moonGallery'
