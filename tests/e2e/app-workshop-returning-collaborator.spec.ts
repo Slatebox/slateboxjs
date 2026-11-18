@@ -29,7 +29,10 @@ async function startWorkshop(page: Page, model: Workshop) {
 
 test('a joined editor returns from My Slates across devices as the live title and sharing permissions change', async ({ browser }) => {
   test.skip(!['localhost', '127.0.0.1', 'test.slatebox.com'].includes(origin.hostname), 'Creates disposable accounts on local or staging only')
-  const contexts = await Promise.all(Array.from({ length: 4 }, () => browser.newContext()))
+  const contexts = await Promise.all([
+    browser.newContext(), browser.newContext(), browser.newContext(),
+    browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true }),
+  ])
   const [owner, editor, observer, returning] = await Promise.all(contexts.map(context => context.newPage()))
   const email = 'joined-workshop-' + randomUUID() + '@slatebox.invalid'
   const password = randomUUID()
@@ -100,7 +103,13 @@ test('a joined editor returns from My Slates across devices as the live title an
     await expect(joined(returning).getByRole('link', { name: workshop.title, exact: true })).toHaveCount(0)
     const downgraded = await shareAs(owner, 'read')
     expect(downgraded.pathname).toBe(invite.pathname)
-    await reentry.click()
+    const bounds = await reentry.boundingBox()
+    expect(bounds).not.toBeNull()
+    expect(bounds!.x).toBeGreaterThanOrEqual(0)
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390)
+    expect(bounds!.y).toBeGreaterThanOrEqual(0)
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844)
+    await reentry.tap()
     await expect(returning).toHaveURL(invite.href)
     await dismissWelcome(returning)
     await expect(returning.getByRole('heading', { name: renamed })).toBeVisible()
