@@ -1,3 +1,4 @@
+import { editObject } from './workshop-edit.shared'
 import { test, expect, type Page } from '@playwright/test'
 
 const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
@@ -31,20 +32,23 @@ async function expectWorkshopSlide(page: Page, heading: string, cards: string[],
 test('review a workshop, move a card, present and open a private editable slate', async ({ page, browser }) => {
   test.skip(process.env.SLATEBOX_APP_EXTERNAL !== 'true', 'Set the deployed app URL for the live contract')
   // This proof creates one guest-owned test slate. Production gets the read-only journey.
-  const save = new URL(origin).hostname === 'test.slatebox.com' || new URL(origin).hostname === 'localhost'
+  const save = new URL(origin).hostname === 'test.slatebox.com' || new URL(origin).hostname === 'localhost' || new URL(origin).hostname === '127.0.0.1'
   await page.goto(origin + '/workshops')
-  await expect(page.getByRole('heading', { name: 'Build a workshop around a decision.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /field trials/ })).toBeVisible()
   expect(await page.evaluate(() => localStorage.getItem('meteor_token'))).toBeNull()
+  await expect(page.locator('main textarea:visible, main input:visible')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Ask AI' }).click()
+  await page.getByText('Draft a different board').click()
   if (process.env.SLATEBOX_SELFHOST === 'true') {
-    await expect(page.getByText('Sign in to use workshop generation when enabled by your administrator.')).toBeVisible()
+    await expect(page.getByText('Sign in to use AI when enabled by your administrator.')).toBeVisible()
   } else {
-    await expect(page.getByRole('link', { name: /Explore Pro/ })).toHaveAttribute('href', '/plans')
+    await expect(page.getByRole('link', { name: /Explore plans/ })).toHaveAttribute('href', '/plans')
   }
   const workshop = page.locator('main.workshops')
   await expect(workshop).toHaveAttribute('data-mode', 'light')
   await page.getByRole('button', { name: 'Dark mode' }).click()
   await expect(workshop).toHaveAttribute('data-mode', 'dark')
-  await expect(page.getByLabel('Workshop title')).toBeVisible()
+  await expect(page.locator('.workshop-paper svg').first()).toBeVisible()
   await page.getByRole('button', { name: 'Light mode' }).click()
   await expect(workshop).toHaveAttribute('data-mode', 'light')
   const typography = await page.getByRole('heading', { level: 1 }).evaluate(async heading => {
@@ -53,8 +57,7 @@ test('review a workshop, move a card, present and open a private editable slate'
     return [style.fontFamily, style.fontWeight, style.fontStyle, document.fonts.check('700 16px "Archivo Narrow"')]
   })
   expect(typography).toEqual(['"Archivo Narrow", Arial, sans-serif', '700', 'normal', true])
-  await page.getByLabel('Workshop title').fill('Review the winter shutdown pilots')
-  await page.getByRole('button', { name: 'Start workshop' }).click()
+  await editObject(page, 'title', () => page.getByLabel('Board title').fill('Review the winter shutdown pilots'))
   await page.getByText('Move a card by name').click()
   await page.getByRole('combobox', { name: 'Move Test bearing sensors on line four' }).selectOption('pilot')
   const second = page.getByRole('combobox', { name: 'Move Stage a spare drive at the north mill' })
@@ -62,7 +65,7 @@ test('review a workshop, move a card, present and open a private editable slate'
   await second.selectOption('evidence')
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Review the winter shutdown pilots' })).toBeVisible()
-  await page.getByRole('button', { name: 'Present decisions' }).click()
+  await page.getByRole('button', { name: 'Present', exact: true }).click()
   await expectWorkshopSlide(page, 'Proposed trials', [], ['lane-proposed'])
   await expect(page.getByText('No cards in this lane.')).toBeVisible()
   const pilotCards = ['Test bearing sensors on line four', 'Rehearse the overnight restart']
@@ -91,13 +94,13 @@ test('review a workshop, move a card, present and open a private editable slate'
   await expect(page.locator('header').getByText('Private', { exact: true })).toBeVisible()
   await page.goto(origin + '/workshops')
   await page.getByRole('button', { name: 'Review the winter shutdown pilots' }).click()
-  await expect(page.getByRole('button', { name: 'Present decisions' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Present', exact: true })).toBeVisible()
 
   const visitor = await browser.newContext()
   try {
     const guest = await visitor.newPage()
     await guest.goto(origin + '/workshops')
-    await expect(guest.getByRole('button', { name: 'Start workshop' })).toBeVisible()
+    await expect(guest.getByRole('button', { name: 'Edit an object' })).toBeVisible()
     expect(await guest.evaluate(() => [(window as any).Meteor.userId(), localStorage.getItem('meteor_token')])).toEqual([null, null])
     const denials = await guest.evaluate(async id => {
       const meteor = (window as any).Meteor

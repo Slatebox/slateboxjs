@@ -1,3 +1,4 @@
+import { editObject } from './workshop-edit.shared'
 import { expect, test } from '@playwright/test'
 
 const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
@@ -5,9 +6,11 @@ const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 test('author a branching concept map, follow a consequence, present and reopen the private model', async ({ page }) => {
   test.skip(process.env.SLATEBOX_APP_EXTERNAL !== 'true', 'Requires the hosted whiteboard app')
   await page.goto(origin + '/workshops')
-  await page.getByRole('link', { name: 'Build a concept map' }).click()
+  await page.getByText('More board options').click()
+  await page.getByRole('link', { name: 'Open an interactive map' }).click()
   await expect(page).toHaveURL(/workshops\?format=map/)
-  await expect(page.getByLabel('Map title')).toHaveValue(/last train/)
+  await expect(page.getByRole('heading', {level: 1})).toHaveText(/last train/)
+  await expect(page.locator('main textarea:visible, main input:visible')).toHaveCount(0)
   const generationGate = await page.evaluate(async () => {
     try {
       await (window as any).Meteor.callAsync('workshops.draft', 'Map a night shift transfer with branching exits.', 'map')
@@ -15,10 +18,13 @@ test('author a branching concept map, follow a consequence, present and reopen t
     } catch (error: any) { return error.error }
   })
   expect(generationGate).toBe('plan-required')
-  await page.getByLabel('Map title').fill('Night shift route review')
-  await page.getByLabel('On arrival at Market St lift').fill('The lift gives the rider a step-free route.')
+  await editObject(page, 'title', () => page.getByLabel('Board title').fill('Night shift route review'))
+  await editObject(page, 'lane:lift', () => page.getByLabel('On arrival at Market St lift').fill('The lift gives the rider a step-free route.'))
   const paths = page.getByRole('group', { name: 'Paths from Last train' })
+  await page.locator('#heading-platform text').first().dblclick()
   await paths.getByRole('checkbox', { name: 'East stairs' }).uncheck()
+  await page.getByRole('button', {name:'Save changes'}).click()
+  await page.getByText('More board options').click()
   await page.getByRole('button', { name: 'Edit map JSON' }).click()
   const editor = page.getByRole('dialog', { name: 'Edit map structure' })
   const source = editor.getByLabel('Map JSON')
@@ -34,7 +40,6 @@ test('author a branching concept map, follow a consequence, present and reopen t
   await source.fill(JSON.stringify(model))
   await editor.getByRole('button', { name: 'Apply map JSON' }).click()
   await expect(editor).toHaveCount(0)
-  await page.getByRole('button', { name: 'Run concept map' }).click()
   await expect(page.getByRole('button', { name: 'Last rider → East stairs' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Last rider → Market St lift' }).click()
   await expect(page.locator('.workshop-outcomes')).toContainText('The lift gives the rider a step-free route.')
@@ -42,7 +47,7 @@ test('author a branching concept map, follow a consequence, present and reopen t
   await expect(page.locator('.workshop-outcomes')).toContainText('Last rider · Depot')
   await page.reload()
   await expect(page.locator('.workshop-outcomes')).toContainText('Last rider · Depot')
-  await page.getByRole('button', { name: 'Present map' }).click()
+  await page.getByRole('button', { name: 'Present', exact: true }).click()
   const player = page.getByRole('region', { name: 'Decision presentation' })
   await expect(player.locator('svg [data-node-id="lane-platform"]').first()).toBeAttached()
   for (let index = 0; index < 4; index++) await player.getByRole('button', { name: 'Next station' }).click()
@@ -51,7 +56,7 @@ test('author a branching concept map, follow a consequence, present and reopen t
   await expect(player.getByRole('listitem')).toHaveText(['Last rider', 'Dispatcher'])
   await player.getByRole('button', { name: 'Back to board' }).click()
   await page.goto(origin + '/workshops')
-  await expect(page.getByLabel('Workshop title')).toHaveValue(/field trials/)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/field trials/)
   await page.goto(origin + '/workshops?format=map')
   await expect(page.locator('.workshop-outcomes')).toContainText('Last rider · Depot')
   if (!['test.slatebox.com', 'localhost', '127.0.0.1'].includes(new URL(origin).hostname)) return
@@ -63,7 +68,7 @@ test('author a branching concept map, follow a consequence, present and reopen t
   await page.goto(origin + '/workshops?format=map')
   await page.getByRole('button', { name: 'Night shift route review' }).click()
   await expect(page.locator('.workshop-outcomes')).toContainText('Last rider · Depot')
-  await page.getByRole('button', { name: 'Edit map' }).click()
+  await page.getByText('More board options').click()
   await page.getByRole('button', { name: 'Edit map JSON' }).click()
   const restored = JSON.parse(await page.getByLabel('Map JSON').inputValue())
   expect(restored.lanes).toEqual(model.lanes)

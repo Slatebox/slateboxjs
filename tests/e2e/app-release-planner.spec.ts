@@ -1,20 +1,36 @@
+import { editObject } from './workshop-edit.shared'
+import { releasePlan } from '../../src/workshops/release'
+import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
 const base = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 const canSave = ['localhost', '127.0.0.1', 'test.slatebox.com'].includes(new URL(base).hostname)
 
+async function openExistingDraft(page: Page) {
+  await page.goto(base + '/workshops?format=release-plan')
+  await expect(page.locator('.workshop-paper svg').first()).toBeVisible()
+  await expect(page.getByRole('heading', {level:1})).toHaveText(/last train/)
+  await page.evaluate(model => {
+    const actor = (window as any).Meteor.userId() || 'guest'
+    sessionStorage.setItem('slatebox.release.v1.' + actor, JSON.stringify({draft:model,stage:'review'}))
+  }, releasePlan)
+  await page.reload()
+  await expect(page.getByRole('heading', {level:1})).toHaveText(releasePlan.title)
+}
+
 test('review a release plan, preview a dependent move, undo it and present the committed budget', async ({ page }) => {
   test.skip(process.env.SLATEBOX_APP_EXTERNAL !== 'true', 'Requires the actual app')
   await page.goto(base + '/start')
-  await page.getByRole('link', { name: 'Plan a release' }).click()
-  await page.getByLabel('Plan title').fill('Review the Friday build')
-  await page.getByLabel('Point budget for Friday release').fill('9')
-  await page.getByLabel('Effort for Invoice download').fill('4')
+  await expect(page.getByRole('link', { name: 'Plan a release' })).toHaveCount(0)
+  await openExistingDraft(page)
+  await editObject(page, 'title', () => page.getByLabel('Board title').fill('Review the Friday build'))
+  await editObject(page, 'lane:friday', () => page.getByRole('spinbutton', {name:'Point budget', exact:true}).fill('9'))
+  await editObject(page, 'card:billing', () => page.getByLabel('Points', {exact:true}).fill('4'))
+  await page.getByText('More board options').click()
   await page.getByRole('button', { name: 'Edit plan JSON' }).click()
   const source = JSON.parse(await page.getByLabel('Plan JSON').inputValue())
   expect(source.cards.find((card: {id: string}) => card.id === 'invite').dependsOn).toEqual(['guardrails'])
   await page.getByRole('button', { name: 'Cancel JSON edit' }).click()
-  await page.getByRole('button', { name: 'Try the release plan' }).click()
   const capacity = page.getByLabel('Friday release capacity')
   await expect(capacity).toHaveText('4 / 9 points')
   await page.getByRole('combobox', { name: 'Feature', exact: true }).selectOption('invite')
@@ -31,7 +47,7 @@ test('review a release plan, preview a dependent move, undo it and present the c
   await page.getByRole('button', { name: 'Apply move' }).click()
   await page.reload()
   await expect(capacity).toHaveText('9 / 9 points')
-  await page.getByRole('button', { name: 'Present release plan' }).click()
+  await page.getByRole('button', { name: 'Present', exact: true }).click()
   const presentation = page.getByRole('region', { name: 'Decision presentation' })
   await expect(presentation.locator('svg [data-node-id="card-invite"]').first()).toBeAttached()
   await expect(presentation.getByText('9 points assigned of 9 available.')).toBeVisible()
@@ -53,9 +69,11 @@ test('share a release plan, observe committed moves, and undo as the participant
     await peer.goto(base + '/workshops')
     await peer.waitForFunction(() => (window as any).Meteor?.user()?.emails?.[0]?.address)
     const email = await peer.evaluate(() => (window as any).Meteor.user().emails[0].address)
-    await owner.goto(base + '/workshops?format=release-plan')
-    await owner.getByRole('button', { name: 'Try the release plan' }).click()
+    await owner.goto(base + '/workshops')
+    await owner.waitForFunction(() => (window as any).Meteor?.user()?.emails?.[0]?.address)
+    await openExistingDraft(owner)
     await owner.getByRole('button', { name: 'Share live workshop' }).click()
+    await owner.getByText('Team access', {exact:true}).click()
     await owner.getByLabel('Team member email').fill(email)
     await owner.getByLabel('Access level').selectOption('EDIT')
     await owner.getByRole('button', { name: 'Save access' }).click()

@@ -30,7 +30,9 @@ const test = base.extend<{ editors: { owner: Page; peer: Page; email: string } }
 })
 
 async function grant(owner: Page, email: string, level: string) {
-  await owner.getByLabel('Team member email').fill(email)
+  const field = owner.getByLabel('Team member email')
+  if (!await field.isVisible()) await owner.getByText('Team access', {exact:true}).click()
+  await field.fill(email)
   await owner.getByLabel('Access level').selectOption(level)
   await owner.getByRole('button', { name: 'Save access' }).click()
   await expect(owner.getByRole('status')).toHaveText('Team access updated.')
@@ -48,8 +50,8 @@ async function share(owner: Page) {
 
 test('share a branching map, follow its outcome together and return from a live readout', async ({ editors }) => {
   const { owner, peer, email } = editors
-  await owner.getByRole('link', { name: 'Build a concept map' }).click()
-  await owner.getByRole('button', { name: 'Run concept map' }).click()
+  await owner.getByText('More board options').click()
+  await owner.getByRole('link', { name: 'Open an interactive map' }).click()
   const room = await share(owner)
   await grant(owner, email, 'READ')
   await peer.goto(room)
@@ -111,7 +113,6 @@ async function waitAtDispatch(page: Page) {
 
 test('two team members contest the last funded slot and rejoin the same board', async ({ editors }) => {
   const { owner, peer, email } = editors
-  await owner.getByRole('button', { name: 'Start workshop' }).click()
   const room = await share(owner)
   await grant(owner, email, 'EDIT')
   await peer.goto(room)
