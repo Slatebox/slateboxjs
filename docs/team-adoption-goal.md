@@ -34,6 +34,14 @@ Ship Slatebox as the MIT-licensed, open-source Miro replacement where a team can
 
 11. **Author a map through conversation with Slatebox.** Put the conversation beside the canvas and make it reachable at phone widths. Start on a slate, ask for a path in plain language, try the proposed outcome, keep or discard it, ask a follow-up and undo a change. Explain the available direct-edit commands on free accounts. Use the current stable Vercel AI SDK for paid map chat and preserve the tool calls used by existing assistants. Check entitlements, provider errors, conflicting edits, keyboard access, a read-only share, and the saved result after both editors reopen it.
 
+### Evidence for the team value propositions
+
+Use Miro as one market reference alongside product discovery practice, observed Slatebox behavior and direct interviews with prospective startup teams. Prioritize three jobs in the first visit.
+
+- **Choose the next customer test.** Research is easier for a designer or engineer to act on when they can see the customer’s original words beside the proposed change. MING Labs describes putting an early prototype in front of customers and recording what happened. Product Talk’s interview snapshots preserve the individual customer story for later comparison. On Slatebox, select an interview quote, try a different onboarding screen and hand the brief to a teammate. This example is an authored prototype. [MING Labs case study](https://miro.com/blog/ming-labs-and-miro/) · [Interview snapshots](https://www.producttalk.org/interview-snapshot/)
+- **Try a trade-off before committing the team.** Give the founders one budget and two plausible uses for the same money. While one cofounder moves $200 from newsletter placement to assisted onboarding, the other can see which conversations the team can afford. Preserve their choice when they open the slate. Comparing alternatives and testing assumptions are common discovery practices. [Opportunity solution trees](https://www.producttalk.org/opportunity-solution-trees/)
+- **Present the decision with its evidence.** Munich Re describes rebuilding the story across documents before a stakeholder review. Demonstrate a Slatebox presentation that follows the customer file, the missing owners and the launch decision, using the notes the team just edited. A working presentation verifies the product capability. Observe whether a startup chooses it for its own review before making an adoption or time-saving claim. [Munich Re case study](https://miro.com/blog/munich-re-builds-customer-centric-products-with-miro/)
+
 ## Canvas entry and marketing demonstrations
 
 Open creation routes on a usable slate. Let a visitor act immediately and edit one selected object in context. Exercise legacy saved boards while removing new sprint-planning and release-budget examples from product discovery. Audit the first screen of each creation route on a phone and desktop for questionnaire or grid-of-input regressions.
