@@ -1,9 +1,28 @@
 import {expect, test} from '@playwright/test'
 import {openGuestCanvas} from './app-host.shared'
 
+let guestId: string | null = null
+
+test.afterEach(async ({page}) => {
+  if (!guestId) return
+  const expectedGuest = guestId
+  guestId = null
+  await page.goto('/profile')
+  await page.waitForFunction(id => {
+    const meteor = (window as any).Meteor
+    return meteor?.userId() === id && meteor.user()?.isAnonymous
+  }, expectedGuest)
+  expect(await page.evaluate(async id => {
+    const meteor = (window as any).Meteor
+    return meteor.userId() === id && meteor.user()?.isAnonymous && meteor.callAsync('users.delete')
+  }, expectedGuest)).toBe(true)
+})
+
 test('new connected nodes start blank and keep authored labels and edges through save and reopen', async ({page}) => {
   const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
   await openGuestCanvas(page, origin)
+  guestId = await page.evaluate(() => (window as any).Meteor.userId())
+  expect(guestId).toBeTruthy()
   const parentId = 'label-proof-root'
   await page.evaluate(async id => {
     const board = (window as any).__slateboxInstances.find((s:any) => s.element.id === 'slateCanvas')
@@ -46,6 +65,7 @@ test('new connected nodes start blank and keep authored labels and edges through
     expect(child).toBeTruthy()
     children.push(child)
     const node = page.locator('#slateCanvas [data-node-id="' + child + '"]').first()
+    await expect(node).toHaveAccessibleName('Unnamed node')
     await expect(node.locator('text').first()).toHaveText('')
     const exportedLabel = () => page.evaluate(id => {
       const board = (window as any).__slateboxInstances.find((s:any) => s.element.id === 'slateCanvas')
