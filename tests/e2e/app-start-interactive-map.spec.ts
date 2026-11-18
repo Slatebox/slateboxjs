@@ -54,6 +54,7 @@ test('create a private interactive map from Start, author a branch and share the
     expect(starter.cards).toHaveLength(1)
     expect(starter.cards[0]).toMatchObject({ label: 'Token', laneId: start.id })
 
+    await owner.getByRole('button', {name:'Map tools'}).click()
     const add = owner.getByRole('button', { name: 'Add a branch', exact: true })
     await owner.getByRole('button', { name: 'Edit Next step', exact: true }).press('Enter')
     await expect(owner.getByRole('combobox', { name: 'Object', exact: true })).toHaveValue('lane:' + next.id)

@@ -150,6 +150,7 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     await expect(editor.getByRole('heading', { name: model.title })).toHaveCount(0)
     await editor.goto(replacement.href)
     await dismissWelcome(editor)
+    await editor.getByRole('button', {name:'Map tools'}).click()
     await expect(editor.getByRole('button', { name: 'Edit an object' })).toBeVisible()
     await expect(editor.getByText(location, { exact: true })).toBeVisible()
   } finally {

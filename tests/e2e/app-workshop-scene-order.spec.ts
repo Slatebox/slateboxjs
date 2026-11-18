@@ -92,6 +92,7 @@ for (const workshop of workshops) {
       const updated = { ...workshop, cards: workshop.cards.map((card, index) => index === 0 ? { ...card, laneId: destination.id } : card) }
       await expect.poll(async () => (await getSlate(owner, key)).creative.model.workshop.cards).toEqual(updated.cards)
       const positions = await boardPositions(owner, workshop)
+      if (start.station) await owner.getByRole('button', {name:'Map tools'}).click()
       await owner.getByRole('button', { name: 'Presentation order' }).click()
       await owner.getByRole('combobox', { name: 'Scene', exact: true }).selectOption('lane:' + destination.id)
       await owner.getByRole('combobox', { name: 'Presentation position' }).selectOption('1')
@@ -99,6 +100,7 @@ for (const workshop of workshops) {
       await expect(owner.locator('.workshop-inspector')).toHaveCount(0)
       const order = [destination.id, start.id, alternate.id]
       await readScenes(editor, updated, order)
+      if (start.station) await editor.getByRole('button', {name:'Map tools'}).click()
       await expect(editor.getByRole('button', { name: 'Edit an object' })).toBeVisible()
 
       await owner.reload()
