@@ -149,6 +149,8 @@ for (const width of [320, 960]) {
 
 test('authored placement outcomes follow held, canceled, committed and undone moves', async ({page}) => {
   await page.goto('/tests/fixtures/workshop.html?signals')
+  await page.locator('#choice-sensors').dblclick()
+  await expect(page.getByLabel('Selected object')).toHaveText('sensors')
   const state = page.getByRole('region',{name:'Placement outcomes'})
   const commits = page.getByLabel('Committed decisions')
   const ready = 'The instruments are ready.', waiting = 'The instruments are waiting.'

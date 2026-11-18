@@ -20,15 +20,17 @@ function Example() {
     signals:[{id:'sensors-ready',label:'Sensor status',cardId:'sensors',laneId:'pilot',
       whenPresent:'The instruments are ready.',whenAbsent:'The instruments are waiting.'}]} : fitLanes ? fieldNotes : location.search === '?map' ? nightTransfer : industrialWorkshop)
   const [preview, setPreview] = useState<Workshop | null>(null)
+  const [editing, setEditing] = useState('')
   const [readOnly, setReadOnly] = useState(false)
   const [commits, setCommits] = useState(0)
   const [undo, setUndo] = useState<Workshop | null>(null)
   const shown = preview ?? board
   return <>
     <label>View only<input type="checkbox" checked={readOnly} onChange={e => setReadOnly(e.target.checked)} /></label>
-    <WorkshopBoard fitLanes={fitLanes} readOnly={readOnly} value={board} onPreview={setPreview} onChange={next => {
+    <WorkshopBoard onEditCard={setEditing} fitLanes={fitLanes} readOnly={readOnly} value={board} onPreview={setPreview} onChange={next => {
       setUndo(board); setBoard(next); setCommits(count => count + 1)
     }} />
+    <output aria-label="Selected object">{editing}</output>
     <output aria-label="Quarterly budget">{shown.cards.filter(card => card.laneId === 'pilot').length} of 2 pilots funded</output>
     <output aria-label="Committed decisions">{commits}</output>
     <button disabled={!undo} onClick={() => { if (undo) setBoard(undo); setUndo(null) }}>Undo decision</button>

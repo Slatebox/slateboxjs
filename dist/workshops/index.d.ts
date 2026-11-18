@@ -18,7 +18,9 @@ export interface WorkshopBoardProps {
     showPlacementOutcomes?: boolean;
     /** Temporary model shown to a linked view while the pointer is held. */
     onPreview?: (value: Workshop | null) => void;
+    /** Open the host's object editor when an author double-clicks a card. */
+    onEditCard?: (cardId: string) => void;
 }
-export declare function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, readOnly, fitLanes, showPlacementOutcomes }: WorkshopBoardProps): React.JSX.Element;
+export declare function WorkshopBoard({ value, onChange, onPreview, onEditCard, onUndo, canUndo, readOnly, fitLanes, showPlacementOutcomes }: WorkshopBoardProps): React.JSX.Element;
 export { MoonGalleryBoard, type MoonGalleryBoardProps } from './MoonGalleryBoard';
 export { FocusDarkroomBoard } from './darkroom/FocusDarkroomBoard';

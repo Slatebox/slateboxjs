@@ -58,7 +58,7 @@ function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Worksho
     {state.cards.map(card => {
       const allowed = readOnly ? [] : availableLanes(state, card)
       const key = 'choice-' + card.id
-      return <g id={key} transform={position(card)}
+      return <g id={key} data-workshop-card={card.id} transform={position(card)}
         dragologyZIndex={draggedId === key ? '/1' : false}
         dragologyOnDrag={allowed.length > 1 ? () => d.closest(allowed.map(lane =>
           moveWorkshopCard(state, card.id, lane.id))).withFloating() : undefined}>
@@ -88,10 +88,14 @@ export interface WorkshopBoardProps {
   showPlacementOutcomes?: boolean
   /** Temporary model shown to a linked view while the pointer is held. */
   onPreview?: (value: Workshop | null) => void
+  /** Open the host's object editor when an author double-clicks a card. */
+  onEditCard?: (cardId: string) => void
 }
 
-export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, readOnly = false, fitLanes = false, showPlacementOutcomes = true }: WorkshopBoardProps) {
+export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onUndo, canUndo, readOnly = false, fitLanes = false, showPlacementOutcomes = true }: WorkshopBoardProps) {
   const container = React.useRef<HTMLDivElement>(null)
+  const press = React.useRef<{id: string; x: number; y: number} | null>(null)
+  const lastTap = React.useRef<{id: string; at: number} | null>(null)
   const [viewport, setViewport] = React.useState(0)
   const fit = fitLanes && !value.kind && !value.lanes[0].station
   React.useLayoutEffect(() => {
@@ -173,7 +177,30 @@ export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, rea
     : viewOnly ? readOnlyBoard : editableBoard, [fitted, viewOnly])
   const canvasHeight = linked ? Math.max(height, workshopPositions(linked, fitted?.layout).height) : height
   return <section aria-label={value.title}>
-    <div ref={container} style={{ maxWidth: '100%', overflowX: 'auto' }}>
+    <div ref={container} style={{ maxWidth: '100%', overflowX: 'auto' }}
+      onPointerDownCapture={event => {
+        const id = (event.target as Element).closest('[data-workshop-card]')?.getAttribute('data-workshop-card')
+        press.current = !readOnly && onEditCard && id && event.isPrimary && event.button === 0
+          ? {id, x:event.clientX, y:event.clientY} : null
+      }}
+      onPointerMoveCapture={event => {
+        if (press.current && Math.hypot(event.clientX - press.current.x, event.clientY - press.current.y) > 5) {
+          press.current = null
+          lastTap.current = null
+        }
+      }}
+      onPointerCancelCapture={() => { press.current = null; lastTap.current = null }}
+      onPointerUpCapture={event => {
+        // Dragology suppresses synthesized click events. Two stationary taps
+        // on the same card open it while a drag remains exclusively a move.
+        const current = press.current
+        press.current = null
+        if (!current || !onEditCard || readOnly) return
+        if (lastTap.current?.id === current.id && event.timeStamp - lastTap.current.at < 400) {
+          lastTap.current = null
+          onEditCard(current.id)
+        } else lastTap.current = {id:current.id, at:event.timeStamp}
+      }}>
       <DraggableRenderer key={readOnly ? 'read-only' : gesture}
         draggable={draggable} state={keyboardMove?.next ?? value}
         onDropState={readOnly ? undefined : onDrop} onDragState={readOnly ? undefined : showPreview} onDragStatus={onDragStatus}
