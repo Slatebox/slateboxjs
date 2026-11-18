@@ -121,6 +121,11 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     await expect(editor.getByText(location, { exact: true })).toBeVisible()
     expect(await userId(editor)).toBe(editorId)
 
+    const downgraded = await shareAs(owner, 'read')
+    expect(downgraded.href).toBe(editLink.href)
+    await expect(editor.getByRole('button', { name: 'Edit an object' })).toHaveCount(0)
+    await expect(editor.getByText(location, { exact: true })).toBeVisible()
+
     await owner.getByRole('button', { name: 'Share', exact: true }).click()
     const dialog = owner.getByRole('dialog', { name: /sharing settings/i })
     await dialog.getByRole('button', { name: /^Private/ }).click()
@@ -135,6 +140,16 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     await expect(editor.getByRole('button', { name: 'Join to edit' })).toHaveCount(0)
     expect(await getSlate(editor, accessKey)).toBeFalsy()
     expect((await getSlate(owner, key)).creative.model.workshop).toEqual(expected)
+
+    const replacement = await shareAs(owner, 'edit')
+    expect(replacement.href).not.toBe(editLink.href)
+    await editor.goto(editLink.href)
+    await expect.poll(() => userId(editor)).toBe(editorId)
+    expect(await getSlate(editor, accessKey)).toBeFalsy()
+    await expect(editor.getByRole('heading', { name: model.title })).toHaveCount(0)
+    await editor.goto(replacement.href)
+    await expect(editor.getByRole('button', { name: 'Edit an object' })).toBeVisible()
+    await expect(editor.getByText(location, { exact: true })).toBeVisible()
   } finally {
     try {
       try {
