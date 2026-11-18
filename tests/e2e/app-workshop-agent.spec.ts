@@ -71,8 +71,15 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
       const { Client } = requireTools('@modelcontextprotocol/sdk/client/index.js')
       const { StdioClientTransport } = requireTools('@modelcontextprotocol/sdk/client/stdio.js')
       const env = { PATH: process.env.PATH!, SLATEBOX_API_TOKEN: issued.token, SLATEBOX_BASE_URL: origin.origin }
-      const cli = await promisify(execFile)(process.execPath, [resolve(tools, 'src/slatebox.js'), 'read', shareId], { env })
-      expect(JSON.parse(cli.stdout).summary.workshop).toEqual(map)
+      const shell = async (...args: string[]) => {
+        const result = await promisify(execFile)(process.execPath, [resolve(tools, 'src/slatebox.js'), ...args], { env })
+        return JSON.parse(result.stdout)
+      }
+      expect((await shell('read', shareId)).summary.workshop).toEqual(map)
+      const namedPreview = await shell('move', shareId, 'Team', 'Ask finance')
+      expect(namedPreview.operations).toEqual([move])
+      expect(namedPreview.dryRun).toBe(true)
+      expect(await summary()).toEqual(map)
       const mcp = new Client({ name: 'refund-map-proof', version: '1' })
       try {
         await mcp.connect(new StdioClientTransport({ command: process.execPath, args: [resolve(tools, 'src/cli.js')], env, stderr: 'ignore' }))
@@ -87,6 +94,9 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
         expect(commit.isError).toBeFalsy()
         expect(commit.structuredContent.dryRun).toBe(false)
         saved = commit.structuredContent
+        const cliReplay = await shell('move', shareId, 'Team', 'Ask finance', '--apply',
+          '--revision', String(map.revision), '--idempotency-key', key)
+        expect(cliReplay).toEqual(saved)
       } finally {
         await mcp.close()
       }
