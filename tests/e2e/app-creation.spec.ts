@@ -112,3 +112,25 @@ test("a collaboration visitor owns a private, connected incident timeline on fir
     }, key);
   }
 });
+
+test("explicit template creation links preserve the selected preview and encoded copy title", async ({ page }) => {
+  const topic = "Lighting & sound / evening rehearsal?";
+  for (const [entry, key, value, expected] of [
+    ["/canvas/new", "template", "proConScaffold", "pro-con-analysis"],
+    ["/start", "templateId", "tplprocon001", "tplprocon001"],
+    ["/new", "template", "Pro/Con Analysis", "pro-con-analysis"],
+  ]) {
+    await page.goto(appUrl + entry + "?" + new URLSearchParams({ [key]: value, topic }));
+    await expect(page.getByRole("heading", { name: "Pro/Con Analysis", exact: true })).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe("/templates/" + expected);
+    expect(new URL(page.url()).searchParams.get("topic")).toBe(topic);
+    await expect(page.getByText("Your copy will be named “" + topic + "”.")).toBeVisible();
+    await expect(page.getByRole("img", { name: "Canvas preview of Pro/Con Analysis" }).locator("[data-node-id]").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Use this template" })).toBeEnabled();
+    expect(await userId(page)).toBeNull();
+  }
+  await page.goto(appUrl + "/canvas/new?template=slatebox-missing-entry-template-807fa");
+  await expect(page.getByRole("heading", { name: "Template unavailable" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "All templates" })).toHaveAttribute("href", "/templates");
+  expect(await userId(page)).toBeNull();
+});
