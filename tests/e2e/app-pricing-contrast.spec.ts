@@ -8,6 +8,30 @@ function luminance(rgb: string) {
   return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2]
 }
 
+test('a visitor can compare monthly and annual Pro prices using the keyboard', async ({ page }) => {
+  await page.goto('/plans')
+  const periods = page.getByRole('group', { name: 'Slatebox Pricing Period' })
+  const annual = periods.getByRole('button', { name: 'Annually, save 25%' })
+  const monthly = periods.getByRole('button', { name: 'Monthly', exact: true })
+  const pro = page.locator('.MuiCard-root').filter({
+    has: page.locator('.MuiCardHeader-title').filter({ hasText: /pro/i }),
+  })
+
+  await expect(annual).toHaveAttribute('aria-pressed', 'true')
+  await monthly.focus()
+  await page.keyboard.press('Space')
+  await expect(monthly).toHaveAttribute('aria-pressed', 'true')
+  await expect(pro.getByRole('heading', { name: '$8', exact: true })).toBeVisible()
+  await expect(pro.getByText('($72/yr)')).toHaveCount(0)
+
+  await annual.focus()
+  await page.keyboard.press('Enter')
+  await expect(annual).toHaveAttribute('aria-pressed', 'true')
+  await expect(monthly).toHaveAttribute('aria-pressed', 'false')
+  await expect(pro.getByRole('heading', { name: '$6', exact: true })).toBeVisible()
+  await expect(pro.getByText('($72/yr)')).toBeVisible()
+})
+
 for (const scheme of ['light', 'dark']) {
   test(`pricing headers and plan details have readable contrast in ${scheme} mode`, async ({ page }) => {
     await page.addInitScript(mode => localStorage.setItem('mui-mode', mode), scheme)
