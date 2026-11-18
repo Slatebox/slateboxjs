@@ -17,6 +17,14 @@ async function ready(page: Page, expectGuestWelcome = false) {
   }
 }
 
+async function editNote(page: Page, id: string, text: string) {
+  await page.locator('#slateCanvas g[data-node-id="' + id + '"]').click()
+  await page.keyboard.press('F2')
+  const input = page.locator('.sb-inline-editor[contenteditable="true"]')
+  await input.fill(text)
+  await input.press('Enter')
+}
+
 async function verifyInvitation(browser: Browser, recipient: "existing" | "signed-out") {
   test.skip(!allowed,"writes require a staging or local app");
   const ownerContext = await browser.newContext({viewport:{width:1400,height:960},reducedMotion:"reduce"});
@@ -184,13 +192,7 @@ test('a registered native editor finds their saved note in Recently joined until
     })
     await dismissWelcome(page)
   }
-  const editNote = async (page:Page,id:string,text:string) => {
-    await page.locator('#slateCanvas g[data-node-id="'+id+'"]').click()
-    await page.keyboard.press('F2')
-    const input = page.locator('.sb-inline-editor[contenteditable="true"]')
-    await input.fill(text)
-    await input.press('Enter')
-  }
+
   let boardId: string | undefined
   try {
     for (const page of [owner, editor, observer]) {
@@ -297,6 +299,87 @@ test('a registered native editor finds their saved note in Recently joined until
           },{id,email})).toBe(true)
         }))
       } finally { await Promise.all(contexts.map(context=>context.close())) }
+    }
+  }
+})
+
+test('a signed-out whiteboard contributor can choose to keep the original invitation on this browser', async ({browser}) => {
+  test.skip(!allowed, 'Uses temporary accounts on staging or a local installation')
+  const [ownerContext, peerContext] = await Promise.all([browser.newContext(), browser.newContext()])
+  const owner = await ownerContext.newPage()
+  let peer = await peerContext.newPage()
+  let ownerId: string | null = null
+  let peerId: string | null = null
+  let boardId: string | undefined
+  try {
+    for (const page of [owner, peer]) {
+      const consent = page.getByRole('button', {name:'Accept cookies'})
+      await page.addLocatorHandler(consent, () => consent.click())
+    }
+    await owner.goto(app + '/new')
+    await ready(owner)
+    ownerId = await userId(owner)
+    expect(ownerId).toBeTruthy()
+    const key = new URL(owner.url()).pathname.split('/').pop()!
+    const board = await getSlate(owner, key)
+    boardId = board._id
+    const node = board.nodes[0].options.id
+    const invitation = await shareAs(owner, 'edit')
+    await peer.goto(invitation.href)
+    await ready(peer, true)
+    const keep = peer.getByRole('button', {name:'Keep in My Slates', exact:true})
+    const note = 'Set the cue light beside the sound desk'
+    expect(await userId(peer)).toBeNull()
+    await editNote(owner, node, 'The cue light is in storage')
+    await expect(peer.locator('#slateCanvas g[data-node-id="' + node + '"]')).toHaveAccessibleName('The cue light is in storage')
+    await expect(keep).toHaveCount(0)
+    await editNote(peer, node, note)
+    await expect.poll(async () => (await getSlate(owner,key)).nodes.find((n:any) => n.options.id === node)?.options.text).toBe(note)
+    await expect(keep).toBeVisible()
+    expect(await userId(peer)).toBeNull()
+    expect(await peer.evaluate(() => localStorage.getItem('Meteor.loginToken'))).toBeNull()
+    await peer.reload()
+    await ready(peer, true)
+    await expect(keep).toBeVisible()
+    expect(await userId(peer)).toBeNull()
+    await keep.click()
+    await expect.poll(() => userId(peer)).toBeTruthy()
+    peerId = await userId(peer)
+    expect(peerId).not.toBe(ownerId)
+    expect(peer.url()).toBe(invitation.href)
+    await expect(peer.getByRole('link', {name:'Open My Slates'})).toHaveAttribute('href', '/')
+    await expect(peer.getByRole('dialog', {name:'Save your work'})).toHaveCount(0)
+
+    // Start at the library in a new tab without reusing the invitation URL.
+    await peer.close()
+    peer = await peerContext.newPage()
+    await peer.goto(app + '/')
+    const history = peer.getByRole('region', {name:'Recently joined'}).getByRole('link')
+    await expect(history).toHaveAttribute('href', invitation.pathname)
+    expect(await userId(peer)).toBe(peerId)
+    await history.click()
+    await expect(peer.locator('#slateCanvas g[data-node-id="' + node + '"]')).toHaveAccessibleName(note)
+    await peer.goto(app + '/')
+    await expect(history).toHaveAttribute('href', invitation.pathname)
+    await owner.getByRole('button', {name:'Share', exact:true}).click()
+    const sharing = owner.getByRole('dialog', {name:'Share this slate'})
+    await sharing.getByRole('button', {name:/^Private/}).click()
+    await sharing.getByRole('button', {name:'Make private',exact:true}).click()
+    await expect(history).toHaveCount(0)
+  } finally {
+    try {
+      if (boardId && ownerId && await userId(owner) === ownerId) {
+        await owner.evaluate(id => (window as any).Meteor.callAsync('slates.remove', {slateIds:[id]}), boardId)
+      }
+    } finally {
+      try {
+        await Promise.all(([[owner,ownerId],[peer,peerId]] as const).map(async ([page,id]) => {
+          if (!id) return
+          await page.goto(app + '/plans')
+          await expect.poll(() => userId(page)).toBe(id)
+          await removeTestGuest(page,id)
+        }))
+      } finally { await Promise.all([ownerContext.close(), peerContext.close()]) }
     }
   }
 })
