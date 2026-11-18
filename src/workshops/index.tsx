@@ -1,3 +1,4 @@
+export { ListeningRoomBoard, type ListeningRoomBoardProps } from './ListeningRoomBoard'
 import React from 'react'
 import { DraggableRenderer, translate, type Draggable, type DraggableProps, type DragStatus } from 'dragology'
 import { availableLanes, releaseLoad, laneColors, moveWorkshopCard, workshopLayout, workshopPositions, type Workshop } from './model'

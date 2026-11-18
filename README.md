@@ -689,6 +689,17 @@ Dragology is MIT licensed, © 2025 Dragology contributors. See
 [the license](licenses/Dragology-MIT.txt), and the bundled dependency notices
 in `dist/workshops-LICENSE.txt`.
 
+### Listening room
+
+Import `ListeningRoomBoard` from `slateboxjs/workshops` and give it a controlled
+`value`, starting with `listeningRoom`. Save the immutable model from
+`onChange(next)` to keep the mix and the host's material names. During dragging
+the horn, captions and optionally enabled audio follow the candidate mix. Escape
+cancels it. Arrow keys adjust the focused horn by one percent. Home and End
+select the two sculptures. `readOnly` keeps the saved mix available for playback.
+The DOM-free `slateboxjs/workshops/model` exports `ListeningRoomModel`,
+`normalizeListeningRoom(raw)` and `listeningRoomCaption(value)`.
+
 ### Release planning
 
 `releasePlan` is an editable example of the version-1 workshop format. A
