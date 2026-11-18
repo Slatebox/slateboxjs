@@ -1,3 +1,4 @@
+import {resumeArchivedDraft} from './workshop-archive.shared'
 import { test as base, expect, firefox, type Page } from '@playwright/test'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -14,7 +15,7 @@ const test = base.extend<{ editors: { owner: Page; peer: Page; email: string } }
     try {
       const [owner, peer] = await Promise.all([ownerContext.newPage(), peerContext.newPage()])
       async function actor(page: Page) {
-        await page.goto(new URL('/workshops?view=archive', origin).href, { waitUntil: 'domcontentloaded' })
+        await resumeArchivedDraft(page, origin)
         await page.waitForFunction(() => (window as any).Meteor?.user()?.emails?.[0]?.address)
         return page.evaluate(() => {
           const user = (window as any).Meteor.user()
@@ -51,8 +52,7 @@ async function share(owner: Page) {
 
 test('share a branching map, follow its outcome together and return from a live readout', async ({ editors }) => {
   const { owner, peer, email } = editors
-  await owner.getByText('More board options').click()
-  await owner.getByRole('link', { name: 'Open an interactive map' }).click()
+  await resumeArchivedDraft(owner, origin,'map')
   const room = await share(owner)
   await grant(owner, email, 'READ')
   await peer.goto(room)
@@ -209,8 +209,7 @@ async function reconnect(page: Page) {
 
 test('competing exits converge, including a move queued while the teammate was offline', async ({ editors }) => {
   const { owner, peer, email } = editors
-  await owner.getByText('More board options').click()
-  await owner.getByRole('link', { name: 'Open an interactive map' }).click()
+  await resumeArchivedDraft(owner, origin,'map')
   const room = await share(owner)
   await grant(owner, email, 'EDIT')
   await peer.goto(room, { waitUntil: 'domcontentloaded' })

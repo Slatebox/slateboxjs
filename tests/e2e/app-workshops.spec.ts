@@ -1,3 +1,4 @@
+import {resumeArchivedDraft} from './workshop-archive.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
 import { editObject } from './workshop-edit.shared'
 import { test, expect } from '@playwright/test'
@@ -8,7 +9,7 @@ test('review a workshop, move a card, present and open a private editable slate'
   test.skip(process.env.SLATEBOX_APP_EXTERNAL !== 'true', 'Set the deployed app URL for the live contract')
   // This proof creates one guest-owned test slate. Production gets the read-only journey.
   const save = new URL(origin).hostname === 'test.slatebox.com' || new URL(origin).hostname === 'localhost' || new URL(origin).hostname === '127.0.0.1'
-  await page.goto(origin + '/workshops?view=archive')
+  await resumeArchivedDraft(page, origin, 'lanes')
   await expect(page.getByRole('heading', { name: /field trials/ })).toBeVisible()
   expect(await page.evaluate(() => localStorage.getItem('meteor_token'))).toBeNull()
   await expect(page.locator('main textarea:visible, main input:visible')).toHaveCount(0)
@@ -67,14 +68,14 @@ test('review a workshop, move a card, present and open a private editable slate'
   const shareId = new URL(page.url()).pathname.split('/').pop()
   await expect(page.locator('g[data-node-id="card-sensors"]').first()).toBeVisible({ timeout: 45000 })
   await expect(page.locator('header').getByText('Private', { exact: true })).toBeVisible()
-  await page.goto(origin + '/workshops?view=archive')
+  await resumeArchivedDraft(page, origin, 'lanes')
   await page.getByRole('button', { name: 'Review the winter shutdown pilots' }).click()
   await expect(page.getByRole('button', { name: 'Present', exact: true })).toBeVisible()
 
   const visitor = await browser.newContext()
   try {
     const guest = await visitor.newPage()
-    await guest.goto(origin + '/workshops?view=archive')
+    await resumeArchivedDraft(guest, origin, 'lanes')
     await expect(guest.getByRole('button', { name: 'Edit an object' })).toBeVisible()
     expect(await guest.evaluate(() => [(window as any).Meteor.userId(), localStorage.getItem('meteor_token')])).toEqual([null, null])
     const denials = await guest.evaluate(async id => {

@@ -1,3 +1,4 @@
+import {resumeArchivedDraft} from './workshop-archive.shared'
 import { editObject } from './workshop-edit.shared'
 import { expect, test } from '@playwright/test'
 
@@ -5,10 +6,9 @@ const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 
 test('author a branching concept map, follow a consequence, present and reopen the private model', async ({ page }) => {
   test.skip(process.env.SLATEBOX_APP_EXTERNAL !== 'true', 'Requires the hosted whiteboard app')
-  await page.goto(origin + '/workshops?view=archive')
-  await page.getByText('More board options').click()
-  await page.getByRole('link', { name: 'Open an interactive map' }).click()
-  await expect(page).toHaveURL(/workshops\?format=map/)
+  await resumeArchivedDraft(page, origin, 'lanes')
+  await resumeArchivedDraft(page, origin,'map')
+  await expect(page).toHaveURL(/format=map&resume=tab/)
   await expect(page.getByRole('heading', {level: 1})).toHaveText(/last train/)
   await expect(page.locator('main textarea:visible, main input:visible')).toHaveCount(0)
   const generationGate = await page.evaluate(async () => {
@@ -55,9 +55,9 @@ test('author a branching concept map, follow a consequence, present and reopen t
   await expect(player.getByText('Dispatch records the arrival.', { exact: true }).last()).toBeVisible()
   await expect(player.getByRole('listitem')).toHaveText(['Last rider', 'Dispatcher'])
   await player.getByRole('button', { name: 'Back to board' }).click()
-  await page.goto(origin + '/workshops?view=archive')
+  await resumeArchivedDraft(page, origin, 'lanes')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/field trials/)
-  await page.goto(origin + '/workshops?format=map&view=archive')
+  await resumeArchivedDraft(page, origin, 'map')
   await expect(page.locator('.workshop-outcomes')).toContainText('Last rider · Depot')
   if (!['test.slatebox.com', 'localhost', '127.0.0.1'].includes(new URL(origin).hostname)) return
 
@@ -65,7 +65,7 @@ test('author a branching concept map, follow a consequence, present and reopen t
   await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/, { timeout: 45000 })
   await expect(page.locator('header').getByText('Private', { exact: true })).toBeVisible()
   await expect(page.locator('#slateCanvas [data-node-id="lane-depot"]').first()).toBeVisible()
-  await page.goto(origin + '/workshops?format=map&view=archive')
+  await resumeArchivedDraft(page, origin, 'map')
   await page.getByRole('button', { name: 'Night shift route review' }).click()
   await expect(page.locator('.workshop-outcomes')).toContainText('Last rider · Depot')
   await page.getByText('More board options').click()
@@ -78,7 +78,7 @@ test('author a branching concept map, follow a consequence, present and reopen t
 test('a phone shows the complete starter map and keeps pointer moves aligned', async ({ page }) => {
   test.skip(process.env.SLATEBOX_APP_EXTERNAL !== 'true', 'Requires the hosted whiteboard app')
   await page.setViewportSize({ width: 390, height: 760 })
-  await page.goto(origin + '/workshops?format=map&view=archive')
+  await resumeArchivedDraft(page, origin, 'map')
   const drawing = page.locator('.workshop-drawing svg').first()
   await expect(drawing).toBeVisible()
   await expect.poll(() => drawing.evaluate(svg =>
