@@ -1,0 +1,96 @@
+import { expect, test } from "@playwright/test";
+import { randomBytes } from "node:crypto";
+
+const origin = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
+
+test("independent copies of private and published slates start private for a free individual", async ({ page }) => {
+  test.skip(!["localhost", "127.0.0.1"].includes(new URL(origin).hostname), "Publishes a synthetic slate on a local test installation");
+  await page.goto(origin + "/start");
+  await page.waitForFunction(() => (window as any).Accounts && (window as any).Meteor.status().connected);
+  const email = "copy-proof-" + randomBytes(12).toString("hex") + "@slatebox.invalid";
+  const password = randomBytes(24).toString("hex");
+  const owner = await page.evaluate(async credentials => {
+    await new Promise<void>((resolve, reject) => (window as any).Accounts.createUser(credentials, (error: Error) => error ? reject(error) : resolve()));
+    return (window as any).Meteor.userId();
+  }, { email, password });
+
+  const read = (key: string) => page.evaluate(async shareId => {
+    const { slateBase: slate } = await (window as any).Meteor.callAsync("slates.get", { shareId });
+    return slate && {
+      id: slate.options.id, owner: slate.userId, text: slate.nodes.map((n: any) => n.options.text),
+      visibility: [slate.options.isPrivate, slate.options.isUnlisted, slate.options.isPublic],
+    };
+  }, key);
+  const privateBoard = [true, false, false];
+  const publicBoard = [false, false, true];
+
+  let sourceId: string | undefined;
+  try {
+    await page.goto(origin + "/new");
+    await page.waitForURL(/\/canvas\//);
+    const key = new URL(page.url()).pathname.split("/").pop()!;
+    await page.locator("#slateCanvas [data-node-id]").first().waitFor();
+    const welcome = page.getByRole("dialog", { name: /welcome/i });
+    if (await welcome.waitFor({ timeout: 2000 }).then(() => true, () => false)) await welcome.getByRole("button", { name: "OK" }).click();
+    const consent = page.getByRole("button", { name: "Accept cookies" });
+    if (await consent.isVisible()) await consent.click();
+    await page.getByRole("button", { name: "Slatebox - quickly add a node" }).focus();
+    await page.getByRole("button", { name: "Add Text", exact: true }).press("Enter");
+    const note = "Observe how visitors use the exhibit";
+    await page.locator("#txtNode").fill(note);
+    await page.keyboard.press("Escape");
+    await expect.poll(async () => (await read(key))?.text ?? []).toContain(note);
+    const source = await read(key);
+    sourceId = source.id;
+    expect(source.visibility).toEqual(privateBoard);
+    for (const visibility of ["private", "public"]) {
+      const name = visibility + " exhibit";
+      await page.evaluate(async ({key, name, visibility}) => {
+        const meteor = (window as any).Meteor;
+        const {slateBase: slate} = await meteor.callAsync("slates.get", {shareId:key});
+        slate.options.name = name;
+        await meteor.callAsync("slates.update", {slate});
+        if (visibility === "public") await meteor.callAsync("slateAccess.configureLink", {slateId:slate.options.id, type:visibility, permission:"READ"});
+      }, {key, name, visibility});
+      await page.goto(origin + "/");
+      await page.getByRole("button", {name:"Options for " + name, exact:true}).click();
+      await page.getByRole("menuitem", {name:"Copy Slate"}).click();
+      const boards = page.getByRole("button", {name:"Open " + name, exact:true});
+      await expect(boards).toHaveCount(2);
+      await boards.first().click();
+      await page.waitForURL(/\/canvas\//);
+      if (page.url().endsWith("/" + key)) {
+        await page.goto(origin + "/");
+        await boards.nth(1).click();
+        await page.waitForURL(/\/canvas\//);
+      }
+      const copyKey = new URL(page.url()).pathname.split("/").pop()!;
+      expect(copyKey).not.toBe(key);
+      const copy = await read(copyKey);
+      expect(copy.owner).toBe(owner);
+      expect(copy.visibility).toEqual(privateBoard);
+      expect(copy.text).toContain(note);
+      expect((await read(key)).visibility).toEqual(visibility === "public" ? publicBoard : privateBoard);
+    }
+  } finally {
+    await page.evaluate(async ({owner, sourceId}) => {
+      const meteor = (window as any).Meteor;
+      if (meteor.userId() !== owner) throw new Error("Unexpected fixture owner");
+      // Remove the source's sharing grant before deleting its owner and copies.
+      if (sourceId) await meteor.callAsync("slates.remove", {slateIds:[sourceId]});
+      // Removing the logged-in account closes its DDP session before the
+      // ordinary method promise settles. Verify removal from a fresh session.
+      meteor.call("users.delete");
+    }, {owner, sourceId});
+    const check = await page.context().browser()!.newPage();
+    try {
+      await check.goto(origin + "/start");
+      await check.waitForFunction(() => (window as any).Meteor?.status().connected);
+      await expect.poll(() => check.evaluate(async credentials => new Promise(resolve => {
+        (window as any).Meteor.loginWithPassword(credentials.email, credentials.password, (error: any) => resolve(error?.error));
+      }), {email, password})).toBe(403);
+    } finally {
+      await check.close();
+    }
+  }
+});
