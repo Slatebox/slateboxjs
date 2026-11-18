@@ -82,9 +82,14 @@ test("legacy workshop links open a private slate and preserve native browser his
     await expect(page.getByRole("complementary", {name:"Map conversation"})).toBeVisible();
     await page.goForward();
     await expect(page).toHaveURL(lanesUrl);
-    expect(await userId(page)).toBe(actor);
+    await expect(page.getByRole("button", {name:"Add card to Lane 1"})).toBeVisible();
+    await expect.poll(() => userId(page)).toBe(actor);
   } finally {
-    await removeTestGuest(page, actor);
+    if (actor) {
+      await page.goto(appUrl + "/profile");
+      await page.waitForFunction(id => (window as any).Meteor?.userId() === id, actor);
+      await removeTestGuest(page, actor);
+    }
   }
 });
 
