@@ -4,11 +4,16 @@ import { planReleaseMove, releaseLoad, validateRelease } from './release'
 export { releaseLoad, releasePlan } from './release'
 import type { NodeJSON, SlateJSON } from '../core/Serialization'
 
+export interface StationImage {
+  src: string
+  alt: string
+}
+
 export interface WorkshopLane {
   id: string
   label: string
   capacity?: number
-  station?: { column: number; row: number; next: string[]; outcome: string }
+  station?: { column: number; row: number; next: string[]; outcome: string; image?: StationImage }
 }
 
 export interface WorkshopCard {
@@ -58,6 +63,17 @@ function label(value: unknown, limit = 80): string {
   return value.trim()
 }
 
+function stationImage(input: unknown): StationImage {
+  const raw = record(input)
+  let url: URL
+  try { url = new URL(label(raw.src, 2048)) }
+  catch { throw new Error('Use a full HTTPS address for the image.') }
+  if (url.protocol !== 'https:' || url.username || url.password || url.href.length > 2048) {
+    throw new Error('Use an HTTPS image address without sign-in details.')
+  }
+  return { src: url.href, alt: label(raw.alt, 240) }
+}
+
 function id(value: unknown): string {
   if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(value)) {
     throw new Error('IDs must be short alphanumeric slugs.')
@@ -93,6 +109,7 @@ export function resolveWorkshopSignals(board: Workshop): ResolvedWorkshopSignal[
 
 const laneNodeId = (id: string) => 'lane-' + id
 const cardNodeId = (id: string) => 'card-' + id
+const imageNodeId = (id: string) => 'image-' + id
 
 export interface WorkshopPresentationScene {
   lane: WorkshopLane
@@ -108,7 +125,9 @@ export function workshopPresentationScenes(board: Workshop): WorkshopPresentatio
   return workshopPresentationLanes(board).map(lane => {
     const cards = board.cards.filter(card => card.laneId === lane.id)
     const signals = outcomes.filter(signal => signal.laneId === lane.id)
-    return { lane, cards, signals, nodeIds: [laneNodeId(lane.id), ...cards.map(card => cardNodeId(card.id))] }
+    const nodeIds = [laneNodeId(lane.id)]
+    if (lane.station?.image) nodeIds.push(imageNodeId(lane.id))
+    return { lane, cards, signals, nodeIds: [...nodeIds, ...cards.map(card => cardNodeId(card.id))] }
   })
 }
 
@@ -151,6 +170,7 @@ export function validateWorkshop(input: unknown): Workshop {
       const next = point.next.map(id)
       unique(next, 'onward stop')
       lane.station = { column: coordinate(point.column), row: coordinate(point.row), next, outcome: label(point.outcome, 160) }
+      if (point.image !== undefined) lane.station.image = stationImage(point.image)
     }
     return lane
   })
@@ -296,7 +316,7 @@ export function createWorkshopMap(): Workshop {
 }
 
 /** Append a destination without moving any existing stations or relaxing token restrictions. */
-export function addWorkshopBranch(board: Workshop, fromStationId: string, branch: { label: string; outcome: string }): Workshop {
+export function addWorkshopBranch(board: Workshop, fromStationId: string, branch: { label: string; outcome: string; image?: StationImage }): Workshop {
   const map = validateWorkshop(board)
   if (map.kind || !map.lanes[0].station) throw new Error('Add branches to an interactive map.')
   const source = map.lanes.find(lane => lane.id === fromStationId)
@@ -324,7 +344,7 @@ export function addWorkshopBranch(board: Workshop, fromStationId: string, branch
   if (!position) throw new Error('There is no free station position.')
   // validateWorkshop returned a fresh document, independent of the caller's board.
   source.station.next.push(nextId)
-  map.lanes.push({ id: nextId, label: name, station: { ...position, next: [], outcome } })
+  map.lanes.push({ id: nextId, label: name, station: { ...position, next: [], outcome, ...(branch.image === undefined ? {} : { image: stationImage(branch.image) }) } })
   map.presentationOrder?.push(nextId)
   return map
 }
@@ -350,13 +370,23 @@ export function workshopToSlate(input: Workshop): SlateJSON {
       borderColor: '#667872', borderWidth: 1 }, relationships: { associations: [] } })
   }
   const { points } = workshopPositions(board)
+  const imageHeight = 152
+  const imageSpace = imageHeight + 12
+  const hasImages = board.lanes.some(lane => lane.station?.image)
   board.lanes.forEach((lane, column) => {
-    const { x, y } = points[column]
+    const x = points[column].x
+    const y = points[column].y + (hasImages ? (lane.station?.row ?? 0) * imageSpace : 0)
+    const image = lane.station?.image
     const label = board.kind === 'release-plan' ? lane.label + '\n' +
       (lane.capacity ? releaseLoad(board, lane.id) + ' / ' + lane.capacity + ' points' : releaseLoad(board, lane.id) + ' points') : lane.label
     node(laneNodeId(lane.id), label, x, y, top - 12, laneColors[column])
+    if (image) {
+      nodes.push({ options: { id: imageNodeId(lane.id), name: image.alt, text: '',
+        xPos: x, yPos: y + top, width, height: imageHeight, shapeHint: 'rectangle',
+        image: image.src, borderWidth: 0 }, relationships: { associations: [] } })
+    }
     board.cards.filter(card => card.laneId === lane.id).forEach((card, i) =>
-      node(cardNodeId(card.id), board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label, x, y + top + i * row, height, '#fffdf6'))
+      node(cardNodeId(card.id), board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label, x, y + top + (image ? imageSpace : 0) + i * row, height, '#fffdf6'))
   })
   for (const lane of board.lanes) {
     if (!lane.station) continue

@@ -1,15 +1,15 @@
-import e, { useState as F, useRef as R, useMemo as ge, useLayoutEffect as J, useEffect as X, useId as Me } from "react";
-import { DraggableRenderer as Y, translate as I, param as $e, inOrder as Le } from "./dragology.mjs";
-import { handoffSummary as se, reviewHandoff as _, resolveHandoff as ce, offlineHandoff as Ce, listeningRoom as de, listeningRoomCaption as fe, workshopLayout as ne, releaseLoad as be, availableLanes as U, moveWorkshopCard as O, canHangPanel as re, hangGalleryPanel as Z, printFields as G, workshopPositions as oe, resolveWorkshopSignals as Se, laneColors as ze } from "./workshop-model.mjs";
+import e, { useState as F, useRef as R, useMemo as ge, useLayoutEffect as J, useEffect as V, useId as Me } from "react";
+import { DraggableRenderer as X, translate as I, param as $e, inOrder as Le } from "./dragology.mjs";
+import { handoffSummary as se, reviewHandoff as _, resolveHandoff as ce, offlineHandoff as Ce, listeningRoom as de, listeningRoomCaption as fe, workshopLayout as ne, releaseLoad as be, availableLanes as U, moveWorkshopCard as O, canHangPanel as re, hangGalleryPanel as Z, printFields as G, workshopPositions as oe, resolveWorkshopSignals as Se, laneColors as We } from "./workshop-model.mjs";
 import { addWorkshopBranch as at, createWorkshopMap as lt, decodeWorkshopFragment as it, describeFocusDarkroom as st, encodeWorkshopFragment as ct, industrialWorkshop as dt, initialFocusDarkroom as ft, moonGallery as ut, nightTransfer as mt, normalizeFocusDarkroom as pt, normalizeListeningRoom as ht, normalizeMoonGallery as gt, normalizeOfflineHandoff as bt, releasePlan as Et, validateWorkshop as yt, workshopPresentationLanes as kt, workshopPresentationScenes as xt, workshopToSlate as wt } from "./workshop-model.mjs";
-function We(t, m, n) {
+function ze(t, m, n) {
   return /* @__PURE__ */ e.createElement("g", { transform: `translate(${t} ${m}) scale(${n} ${n * 0.88})` }, /* @__PURE__ */ e.createElement("rect", { width: "142", height: "73", rx: "3", fill: "#b8d0c5" }), /* @__PURE__ */ e.createElement("path", { d: "M0 27L46 7h96v12H50L0 38Z", fill: "#728d81" }), /* @__PURE__ */ e.createElement("path", { d: "M12 38l36-17v43l-36 6z", fill: "#395c50" }), /* @__PURE__ */ e.createElement("path", { d: "M49 20h89v43H49z", fill: "#f1e3b8" }), /* @__PURE__ */ e.createElement("path", { d: "M57 33h45v30H57z", fill: "#557468" }), [37, 42, 47, 52, 57].map((o) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "slat" + o, d: `M59 ${o}h41`, stroke: "#a5b6a3" })), /* @__PURE__ */ e.createElement("path", { d: "M0 69l49-7h93v11H0z", fill: "#84998a" }), /* @__PURE__ */ e.createElement("path", { d: "M12 73l40-7h65", fill: "none", stroke: "#e9b04e", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("rect", { x: "111", y: "34", width: "19", height: "27", fill: "#d1a45c" }), /* @__PURE__ */ e.createElement("rect", { x: "116", y: "39", width: "9", height: "12", rx: "2", fill: "#38574b" }), /* @__PURE__ */ e.createElement("circle", { cx: "120", cy: "42", r: "2", fill: "#f0a466" }), /* @__PURE__ */ e.createElement("text", { x: "59", y: "30", fontSize: "8", fontWeight: "bold", fill: "#354e40" }, "GATE B"));
 }
 function De(t, m) {
-  const n = t ? 9 : 49, o = t ? 20 : 23, r = t ? 144 : 181, f = t ? 183 : 370, c = t ? 35 : 40, a = t ? 164 : 255, u = t ? 119 : 147, l = 45, g = (p, b, h, w, i = "#243c32", E = "normal", x = "Arial, sans-serif") => /* @__PURE__ */ e.createElement("text", { transform: I(p, b), fill: i, fontSize: w, fontFamily: x, fontWeight: E }, h);
+  const n = t ? 9 : 49, o = t ? 20 : 23, r = t ? 144 : 181, f = t ? 183 : 370, c = t ? 35 : 40, a = t ? 164 : 255, u = t ? 119 : 147, l = 45, g = (p, b, h, w, i = "#243c32", y = "normal", x = "Arial, sans-serif") => /* @__PURE__ */ e.createElement("text", { transform: I(p, b), fill: i, fontSize: w, fontFamily: x, fontWeight: y }, h);
   return ({ state: p, d: b, draggedId: h }) => {
-    const w = p.stage === "queued", i = p.stage === "resolved", E = f + (a - u) / 2, x = c + 138, $ = w ? n + (r - u) / 2 : E, L = w ? o + 141 : x, M = "#233e33";
-    return /* @__PURE__ */ e.createElement("g", { fontFamily: "Arial, sans-serif" }, /* @__PURE__ */ e.createElement("g", { id: "sync-cable" }, /* @__PURE__ */ e.createElement("path", { d: `M${n + r - 2} ${o + 180} C${n + r + 45} ${o + 235},${f - 24} ${c + 204},${f + 22} ${c + 159}`, fill: "none", stroke: w ? "#9aab9b" : "#2a7464", strokeWidth: "2.5", strokeDasharray: w ? "5 7" : "8 2" })), /* @__PURE__ */ e.createElement("g", { id: "field-phone", transform: I(n, o) }, /* @__PURE__ */ e.createElement("rect", { x: "3", y: "5", width: r, height: "202", rx: "18", fill: "#a6b3a5" }), /* @__PURE__ */ e.createElement("rect", { width: r, height: "202", rx: "18", fill: "#243d34" }), /* @__PURE__ */ e.createElement("rect", { x: "5", y: "5", width: r - 10, height: "192", rx: "14", fill: "#f4f1db" }), /* @__PURE__ */ e.createElement("rect", { x: r / 2 - 17, y: "7", width: "34", height: "5", rx: "3", fill: "#283b30" }), g(13, 27, "17:08", 9, M, "bold"), g(r - 50, 27, w ? "Offline" : "Online", 10, w ? "#835420" : "#266451", "bold"), g(13, 47, "Field log", t ? 18 : 20, M, "bold"), We(13, 55, (r - 26) / 142), g(13, t ? 132 : 134, "Noor · Gate B", t ? 10 : 12, M), /* @__PURE__ */ e.createElement("rect", { x: r / 2 - 19, y: "190", width: "38", height: "2.6", rx: "2", fill: "#697a69" })), /* @__PURE__ */ e.createElement("g", { id: "shared-notebook", transform: I(f, c) }, /* @__PURE__ */ e.createElement("path", { d: `M4 3l${a - 5} -3 5 190 -${a - 3} 5z`, fill: "#c6c4ab" }), /* @__PURE__ */ e.createElement("path", { d: `M-3 5l${a - 1} -3 3 183 -${a - 1} 6z`, fill: "#dccfb0", stroke: "#b2aa8c" }), /* @__PURE__ */ e.createElement("rect", { width: a, height: "184", fill: "#fffbea", stroke: "#b9ba9f" }), /* @__PURE__ */ e.createElement("path", { d: "M15 0v184", stroke: "#e1b9a6" }), [30, 65, 100, 135, 169].map((d) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "hole" + d, cx: "8", cy: d, r: "2.7", fill: "#bfbba7" })), /* @__PURE__ */ e.createElement("path", { d: "M29 7V1q0-7 6-7t6 7v16q0 5-4 5t-4-4V3", fill: "none", stroke: "#718273", strokeWidth: "2" }), g(23, 38, w ? "SHIFT HANDOFF" : i ? "CREW COPY" : "REVIEW QUEUE", t ? 10 : 12, "#586e5f", "bold", "monospace"), g(22, 69, "Gate B", t ? 30 : 37, M, "bold", "Georgia, serif"), /* @__PURE__ */ e.createElement("path", { d: `M23 79h${a - 42}`, stroke: "#bfc5b1" }), g(23, 101, (i && p.choice === "field" ? p.fieldNote : p.deskNote).slice(0, t ? 18 : 25), t ? 12 : 16, M, "bold"), g(23, 120, i && p.choice === "field" ? "Noor + Jules" : "Jules · Release desk", t ? 10 : 12, "#5a6c5d"), /* @__PURE__ */ e.createElement("g", { id: "desk-drop", transform: I((a - u) / 2, 138) }, /* @__PURE__ */ e.createElement("rect", { width: u, height: l, rx: "3", stroke: "#849785", strokeDasharray: "4 3", fill: "#f0f2df" }), g(11, 26, "Attach field edit", t ? 12 : 15, "#607465"))), /* @__PURE__ */ e.createElement(
+    const w = p.stage === "queued", i = p.stage === "resolved", y = f + (a - u) / 2, x = c + 138, $ = w ? n + (r - u) / 2 : y, L = w ? o + 141 : x, M = "#233e33";
+    return /* @__PURE__ */ e.createElement("g", { fontFamily: "Arial, sans-serif" }, /* @__PURE__ */ e.createElement("g", { id: "sync-cable" }, /* @__PURE__ */ e.createElement("path", { d: `M${n + r - 2} ${o + 180} C${n + r + 45} ${o + 235},${f - 24} ${c + 204},${f + 22} ${c + 159}`, fill: "none", stroke: w ? "#9aab9b" : "#2a7464", strokeWidth: "2.5", strokeDasharray: w ? "5 7" : "8 2" })), /* @__PURE__ */ e.createElement("g", { id: "field-phone", transform: I(n, o) }, /* @__PURE__ */ e.createElement("rect", { x: "3", y: "5", width: r, height: "202", rx: "18", fill: "#a6b3a5" }), /* @__PURE__ */ e.createElement("rect", { width: r, height: "202", rx: "18", fill: "#243d34" }), /* @__PURE__ */ e.createElement("rect", { x: "5", y: "5", width: r - 10, height: "192", rx: "14", fill: "#f4f1db" }), /* @__PURE__ */ e.createElement("rect", { x: r / 2 - 17, y: "7", width: "34", height: "5", rx: "3", fill: "#283b30" }), g(13, 27, "17:08", 9, M, "bold"), g(r - 50, 27, w ? "Offline" : "Online", 10, w ? "#835420" : "#266451", "bold"), g(13, 47, "Field log", t ? 18 : 20, M, "bold"), ze(13, 55, (r - 26) / 142), g(13, t ? 132 : 134, "Noor · Gate B", t ? 10 : 12, M), /* @__PURE__ */ e.createElement("rect", { x: r / 2 - 19, y: "190", width: "38", height: "2.6", rx: "2", fill: "#697a69" })), /* @__PURE__ */ e.createElement("g", { id: "shared-notebook", transform: I(f, c) }, /* @__PURE__ */ e.createElement("path", { d: `M4 3l${a - 5} -3 5 190 -${a - 3} 5z`, fill: "#c6c4ab" }), /* @__PURE__ */ e.createElement("path", { d: `M-3 5l${a - 1} -3 3 183 -${a - 1} 6z`, fill: "#dccfb0", stroke: "#b2aa8c" }), /* @__PURE__ */ e.createElement("rect", { width: a, height: "184", fill: "#fffbea", stroke: "#b9ba9f" }), /* @__PURE__ */ e.createElement("path", { d: "M15 0v184", stroke: "#e1b9a6" }), [30, 65, 100, 135, 169].map((d) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "hole" + d, cx: "8", cy: d, r: "2.7", fill: "#bfbba7" })), /* @__PURE__ */ e.createElement("path", { d: "M29 7V1q0-7 6-7t6 7v16q0 5-4 5t-4-4V3", fill: "none", stroke: "#718273", strokeWidth: "2" }), g(23, 38, w ? "SHIFT HANDOFF" : i ? "CREW COPY" : "REVIEW QUEUE", t ? 10 : 12, "#586e5f", "bold", "monospace"), g(22, 69, "Gate B", t ? 30 : 37, M, "bold", "Georgia, serif"), /* @__PURE__ */ e.createElement("path", { d: `M23 79h${a - 42}`, stroke: "#bfc5b1" }), g(23, 101, (i && p.choice === "field" ? p.fieldNote : p.deskNote).slice(0, t ? 18 : 25), t ? 12 : 16, M, "bold"), g(23, 120, i && p.choice === "field" ? "Noor + Jules" : "Jules · Release desk", t ? 10 : 12, "#5a6c5d"), /* @__PURE__ */ e.createElement("g", { id: "desk-drop", transform: I((a - u) / 2, 138) }, /* @__PURE__ */ e.createElement("rect", { width: u, height: l, rx: "3", stroke: "#849785", strokeDasharray: "4 3", fill: "#f0f2df" }), g(11, 26, "Attach field edit", t ? 12 : 15, "#607465"))), /* @__PURE__ */ e.createElement(
       "g",
       {
         id: "field-edit",
@@ -46,7 +46,7 @@ const Ie = `.sb-handoff .field-art{border-block:1px solid #bac3b1;background-col
 .sb-handoff .field-actions button.field-quiet{color:#355441;background:transparent;border-color:#a9bba6}
 @media(max-width:460px){.sb-handoff .field-art{margin-inline:-2px}.sb-handoff .field-versions>div{padding:12px 8px 12px 0}.sb-handoff .field-versions>div+div{padding-inline:9px 0}.sb-handoff .field-versions p{font-size:14px}.sb-handoff .field-actions [role=status]{width:100%}}.sb-handoff{background:#faf8ee;color:#213e32;font:15px/1.35 system-ui,Arial,sans-serif}.sb-handoff #field-edit{touch-action:none}.sb-handoff [data-stage=queued]{cursor:grab}.sb-handoff button:focus-visible{outline:3px solid #ab601d;outline-offset:2px}`;
 function Ue({ value: t, onChange: m, readOnly: n = !1 }) {
-  const [o, r] = F(null), [f, c] = F(null), [a, u] = F(0), [l, g] = F(!1), [p, b] = F(1), h = R(null), w = R(!1), i = R(t), E = ge(() => De(l, n), [l, n]), x = n ? t : f ?? o ?? t, $ = t.stage === "queued" && x.stage === "review";
+  const [o, r] = F(null), [f, c] = F(null), [a, u] = F(0), [l, g] = F(!1), [p, b] = F(1), h = R(null), w = R(!1), i = R(t), y = ge(() => De(l, n), [l, n]), x = n ? t : f ?? o ?? t, $ = t.stage === "queued" && x.stage === "review";
   function L() {
     w.current = !1, c(null), r(null), u((d) => d + 1);
   }
@@ -63,7 +63,7 @@ function Ue({ value: t, onChange: m, readOnly: n = !1 }) {
     d();
     const C = new ResizeObserver(d);
     return C.observe(h.current), () => C.disconnect();
-  }, []), X(() => {
+  }, []), V(() => {
     function d(C) {
       (w.current || f) && (!(C instanceof KeyboardEvent) || C.key === "Escape") && L();
     }
@@ -71,11 +71,11 @@ function Ue({ value: t, onChange: m, readOnly: n = !1 }) {
       document.removeEventListener("keydown", d), document.removeEventListener("pointercancel", d), window.removeEventListener("blur", d);
     };
   }, [f]), /* @__PURE__ */ e.createElement("section", { className: "sb-handoff", "data-stage": t.stage, "data-readonly": n, "aria-label": "Field handoff simulation" }, /* @__PURE__ */ e.createElement("style", null, Ie), /* @__PURE__ */ e.createElement("div", { className: "field-art", ref: h, style: { "--drawing-scale": p } }, /* @__PURE__ */ e.createElement(
-    Y,
+    X,
     {
       key: n ? "read-only" : a,
       state: f ?? t,
-      draggable: E,
+      draggable: y,
       width: l ? 360 : 685,
       height: l ? 254 : 262,
       onDragState: n ? void 0 : (d) => {
@@ -104,15 +104,15 @@ function Fe() {
   for (let p = 0; p < 100; p++) {
     const b = Math.floor(l() * o), h = 380 + l() * 1500, w = 0.09 + l() * 0.08;
     for (let i = 0; i < n * 0.12; i++) {
-      const E = i / n, x = Math.sin(2 * Math.PI * h * E) + 0.22 * (l() * 2 - 1);
-      c[(b + i) % o] += w * Math.exp(-E * 76) * x;
+      const y = i / n, x = Math.sin(2 * Math.PI * h * y) + 0.22 * (l() * 2 - 1);
+      c[(b + i) % o] += w * Math.exp(-y * 76) * x;
     }
   }
   [659.25, 987.77, 783.99, 1174.66].forEach((p, b) => {
     const h = Math.floor((b * 0.93 + 0.1) * n);
     for (let w = 0; w < n * 1.6; w++) {
-      const i = w / n, E = Math.sin(i * p * 2 * Math.PI) + 0.23 * Math.sin(i * p * 5.42 * Math.PI);
-      a[(h + w) % o] += 0.16 * Math.min(1, i * 250) * Math.exp(-i * 3.3) * E;
+      const i = w / n, y = Math.sin(i * p * 2 * Math.PI) + 0.23 * Math.sin(i * p * 5.42 * Math.PI);
+      a[(h + w) % o] += 0.16 * Math.min(1, i * 250) * Math.exp(-i * 3.3) * y;
     }
   });
   const g = [r, f].map((p) => {
@@ -154,43 +154,43 @@ const Pe = (t) => Ee(t, !1), Re = (t) => Ee(t, !0), Ae = `
 .sb-listening :focus-visible{outline:3px solid #ab601d;outline-offset:2px}
 `;
 function Oe({ value: t, onChange: m, readOnly: n = !1 }) {
-  const o = R(null), r = R(null), [f, c] = F(null), [a, u] = F(0), [l, g] = F(1), [p, b] = F(!1), [h, w] = F(!1), i = f ?? t, E = R(t), x = R(!1);
+  const o = R(null), r = R(null), [f, c] = F(null), [a, u] = F(0), [l, g] = F(1), [p, b] = F(!1), [h, w] = F(!1), i = f ?? t, y = R(t), x = R(!1);
   function $() {
-    x.current = !1, c(null), u((y) => y + 1);
+    x.current = !1, c(null), u((k) => k + 1);
   }
   J(() => {
-    x.current && (n || t !== E.current) && $(), E.current = t;
+    x.current && (n || t !== y.current) && $(), y.current = t;
   }, [t, n]), J(() => {
-    const y = o.current, W = () => g(Math.min(1, y.clientWidth / 640));
-    W();
-    const v = new ResizeObserver(W);
-    return v.observe(y), () => v.disconnect();
-  }, []), X(() => {
-    function y(W) {
-      x.current && (!(W instanceof KeyboardEvent) || W.key === "Escape") && $();
+    const k = o.current, z = () => g(Math.min(1, k.clientWidth / 640));
+    z();
+    const v = new ResizeObserver(z);
+    return v.observe(k), () => v.disconnect();
+  }, []), V(() => {
+    function k(z) {
+      x.current && (!(z instanceof KeyboardEvent) || z.key === "Escape") && $();
     }
-    return document.addEventListener("keydown", y), document.addEventListener("pointercancel", y), window.addEventListener("blur", y), () => {
-      document.removeEventListener("keydown", y), document.removeEventListener("pointercancel", y), window.removeEventListener("blur", y);
+    return document.addEventListener("keydown", k), document.addEventListener("pointercancel", k), window.addEventListener("blur", k), () => {
+      document.removeEventListener("keydown", k), document.removeEventListener("pointercancel", k), window.removeEventListener("blur", k);
     };
   }, []);
-  function L(y) {
-    x.current = !1, c(null), !n && y !== t.mix && m?.({ ...t, mix: y });
+  function L(k) {
+    x.current = !1, c(null), !n && k !== t.mix && m?.({ ...t, mix: k });
   }
   function M() {
     r.current?.stop(), r.current = null, b(!1);
   }
-  X(() => {
+  V(() => {
     r.current?.mix(i.mix);
-  }, [i.mix]), X(() => {
-    const y = new IntersectionObserver(([v]) => {
+  }, [i.mix]), V(() => {
+    const k = new IntersectionObserver(([v]) => {
       v.isIntersecting || M();
     });
-    y.observe(o.current);
-    const W = () => {
+    k.observe(o.current);
+    const z = () => {
       document.hidden && M();
     };
-    return document.addEventListener("visibilitychange", W), () => {
-      y.disconnect(), document.removeEventListener("visibilitychange", W), r.current?.stop(), r.current = null;
+    return document.addEventListener("visibilitychange", z), () => {
+      k.disconnect(), document.removeEventListener("visibilitychange", z), r.current?.stop(), r.current = null;
     };
   }, []);
   async function d() {
@@ -199,8 +199,8 @@ function Oe({ value: t, onChange: m, readOnly: n = !1 }) {
       return;
     }
     try {
-      const y = Fe();
-      r.current = y, y.mix(i.mix), await y.ctx.resume(), r.current === y && b(!0);
+      const k = Fe();
+      r.current = k, k.mix(i.mix), await k.ctx.resume(), r.current === k && b(!0);
     } catch {
       M(), w(!0);
     }
@@ -220,9 +220,9 @@ function Oe({ value: t, onChange: m, readOnly: n = !1 }) {
       "aria-valuemax": 100,
       "aria-valuenow": Math.round(i.mix * 100),
       "aria-valuetext": fe(i),
-      onKeyDown: (y) => {
+      onKeyDown: (k) => {
         if (n) return;
-        const W = {
+        const z = {
           ArrowLeft: i.mix - 0.01,
           ArrowRight: i.mix + 0.01,
           ArrowDown: i.mix - 0.01,
@@ -230,21 +230,21 @@ function Oe({ value: t, onChange: m, readOnly: n = !1 }) {
           Home: 0,
           End: 1
         };
-        Object.prototype.hasOwnProperty.call(W, y.key) && (y.preventDefault(), L(Math.round(100 * Math.min(1, Math.max(0, W[y.key]))) / 100));
+        Object.prototype.hasOwnProperty.call(z, k.key) && (k.preventDefault(), L(Math.round(100 * Math.min(1, Math.max(0, z[k.key]))) / 100));
       }
     },
     /* @__PURE__ */ e.createElement(
-      Y,
+      X,
       {
         key: n ? "read-only" : a,
         state: t,
         draggable: n ? Re : Pe,
         width: 640,
         height: 276,
-        onDragState: n ? void 0 : (y) => {
-          x.current = y !== null, c(y);
+        onDragState: n ? void 0 : (k) => {
+          x.current = k !== null, c(k);
         },
-        onDropState: n ? void 0 : (y) => L(y.mix)
+        onDropState: n ? void 0 : (k) => L(k.mix)
       }
     )
   ), !n && /* @__PURE__ */ e.createElement("div", { className: "sb-listening-choices" }, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => L(0) }, "Listen to ", C), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => L(0.5) }, "Blend both"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => L(1) }, "Listen to ", S)), /* @__PURE__ */ e.createElement("div", { className: "sb-listening-caption" }, /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("strong", null, "Sound caption"), /* @__PURE__ */ e.createElement("output", { "aria-label": "Sound caption" }, fe(i))), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: d, "aria-pressed": p, disabled: h }, h ? "Audio unavailable" : p ? "Mute sound" : "Enable sound")));
@@ -293,16 +293,16 @@ function He({ value: t, preview: m, stage: n, apply: o, cancel: r }) {
     c(l.target.value), r();
   } }, t.cards.map((l) => /* @__PURE__ */ e.createElement("option", { key: l.id, value: l.id }, l.label))), /* @__PURE__ */ e.createElement("div", null, U(t, a).filter((l) => l.id !== a.laneId).map((l) => /* @__PURE__ */ e.createElement("button", { key: l.id, type: "button", onClick: () => n(O(t, a.id, l.id), { cardId: a.id, laneId: l.id }) }, "Preview ", l.label))), m && /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: o }, "Apply move"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: r }, "Cancel preview")));
 }
-const ue = [{ x: 90, y: 56 }, { x: 246, y: 56 }, { x: 402, y: 56 }], Ke = [{ x: 55, y: 162 }, { x: 219, y: 174 }, { x: 455, y: 154 }], q = 148, V = 104;
+const ue = [{ x: 90, y: 56 }, { x: 246, y: 56 }, { x: 402, y: 56 }], Ke = [{ x: 55, y: 162 }, { x: 219, y: 174 }, { x: 455, y: 154 }], q = 148, j = 104;
 function Te(t) {
   const m = (n, o, r) => {
     const f = Array.from({ length: 38 }, (c, a) => {
       const u = Math.min(q, 4 * a), l = t * q + u, g = n + o * (Math.sin(l / 46) + 0.39 * Math.cos(l / 19) + 0.09 * Math.sin(l / 7));
       return (a ? "L" : "M") + u + " " + g.toFixed(1);
     }).join("");
-    return /* @__PURE__ */ e.createElement("path", { d: f + `L${q} ${V}H0z`, fill: r });
+    return /* @__PURE__ */ e.createElement("path", { d: f + `L${q} ${j}H0z`, fill: r });
   };
-  return /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { x: "-4", y: "-4", width: q + 8, height: V + 8, fill: "#4b423c" }), /* @__PURE__ */ e.createElement("rect", { x: "-2", y: "-2", width: q + 4, height: V + 4, fill: "#caa67d" }), /* @__PURE__ */ e.createElement("rect", { width: q, height: V, fill: "#343b66" }), Array.from({ length: 13 }, (n, o) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "sky" + o, cx: 6 + (o * 77 + t * 19) % 136, cy: 4 + (o * 29 + t * 11) % 35, r: o % 4 === 0 ? 1.3 : 0.65, fill: "#f4e0bc" })), t === 1 && /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("circle", { cx: "90", cy: "22", r: "15", fill: "#ffdf9a" }), /* @__PURE__ */ e.createElement("circle", { cx: "95", cy: "18", r: "3", fill: "#ebc68b" }), /* @__PURE__ */ e.createElement("circle", { cx: "85", cy: "28", r: "2", fill: "#ebc68b" })), m(48, 7, "#9b88aa"), m(59, 10, "#bf9492"), m(75, 7, "#596d83"), m(88, 6, "#2a4858"), Array.from({ length: 7 }, (n, o) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "water" + o, d: `M${4 + (o * 37 + t * 13) % 124} ${92 + o * 3 % 10}h${4 + o % 3 * 4}`, stroke: "#7d9b9a" })));
+  return /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { x: "-4", y: "-4", width: q + 8, height: j + 8, fill: "#4b423c" }), /* @__PURE__ */ e.createElement("rect", { x: "-2", y: "-2", width: q + 4, height: j + 4, fill: "#caa67d" }), /* @__PURE__ */ e.createElement("rect", { width: q, height: j, fill: "#343b66" }), Array.from({ length: 13 }, (n, o) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "sky" + o, cx: 6 + (o * 77 + t * 19) % 136, cy: 4 + (o * 29 + t * 11) % 35, r: o % 4 === 0 ? 1.3 : 0.65, fill: "#f4e0bc" })), t === 1 && /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("circle", { cx: "90", cy: "22", r: "15", fill: "#ffdf9a" }), /* @__PURE__ */ e.createElement("circle", { cx: "95", cy: "18", r: "3", fill: "#ebc68b" }), /* @__PURE__ */ e.createElement("circle", { cx: "85", cy: "28", r: "2", fill: "#ebc68b" })), m(48, 7, "#9b88aa"), m(59, 10, "#bf9492"), m(75, 7, "#596d83"), m(88, 6, "#2a4858"), Array.from({ length: 7 }, (n, o) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "water" + o, d: `M${4 + (o * 37 + t * 13) % 124} ${92 + o * 3 % 10}h${4 + o % 3 * 4}`, stroke: "#7d9b9a" })));
 }
 function Ge(t, m) {
   return ({ state: n, d: o, draggedId: r, isTracking: f }) => {
@@ -320,7 +320,7 @@ function Ge(t, m) {
           x: p.x,
           y: p.y,
           width: q,
-          height: V,
+          height: j,
           stroke: "#887e6b",
           strokeDasharray: "4 7",
           fill: "none"
@@ -345,7 +345,7 @@ function et({ value: t, onChange: m, onPreview: n, readOnly: o = !1, enabledIds:
     p(d), n?.(d);
   }, i = e.useRef(n);
   i.current = n;
-  const E = e.useCallback(() => {
+  const y = e.useCallback(() => {
     p(null), i.current?.(null), l((d) => d + 1);
   }, []);
   e.useEffect(() => {
@@ -354,22 +354,22 @@ function et({ value: t, onChange: m, onPreview: n, readOnly: o = !1, enabledIds:
     });
     return d.observe(f.current), () => d.disconnect();
   }, []), e.useEffect(() => {
-    E();
+    y();
     const d = (C) => {
-      C.key === "Escape" && E();
+      C.key === "Escape" && y();
     };
-    return document.addEventListener("keydown", d), window.addEventListener("blur", E), () => {
-      document.removeEventListener("keydown", d), window.removeEventListener("blur", E);
+    return document.addEventListener("keydown", d), window.addEventListener("blur", y), () => {
+      document.removeEventListener("keydown", d), window.removeEventListener("blur", y);
     };
-  }, [t, o, E]);
+  }, [t, o, y]);
   function x(d) {
     if (w(null), o || b.current !== t) return;
     const C = d.hung.find((S) => !t.hung.includes(S));
     C && (!r || r.includes(C)) && re(t, C) && m(Z(t, C));
   }
   const $ = g ?? t, L = $.panels.find((d) => $.hung.includes(d.id) && !t.hung.includes(d.id)), M = t.panels.filter((d) => !t.hung.includes(d.id));
-  return /* @__PURE__ */ e.createElement("section", { "aria-label": "Panorama wall" }, /* @__PURE__ */ e.createElement("div", { className: "exhibit-stage", ref: f, onPointerCancel: E, style: { overflow: "hidden", background: "#d6c7b2" } }, /* @__PURE__ */ e.createElement("div", { style: { width: 640, zoom: c, margin: "auto" } }, /* @__PURE__ */ e.createElement(
-    Y,
+  return /* @__PURE__ */ e.createElement("section", { "aria-label": "Panorama wall" }, /* @__PURE__ */ e.createElement("div", { className: "exhibit-stage", ref: f, onPointerCancel: y, style: { overflow: "hidden", background: "#d6c7b2" } }, /* @__PURE__ */ e.createElement("div", { style: { width: 640, zoom: c, margin: "auto" } }, /* @__PURE__ */ e.createElement(
+    X,
     {
       key: u,
       draggable: h,
@@ -381,7 +381,7 @@ function et({ value: t, onChange: m, onPreview: n, readOnly: o = !1, enabledIds:
     }
   ))), /* @__PURE__ */ e.createElement("div", { style: { display: "flex", gap: 12, alignItems: "center", marginTop: 8 } }, /* @__PURE__ */ e.createElement("strong", null, "Visitor’s view"), /* @__PURE__ */ e.createElement("svg", { "aria-hidden": "true", viewBox: "0 0 150 40", width: "150", height: "40", style: { maxWidth: "45%" } }, $.panels.map((d, C) => /* @__PURE__ */ e.createElement("svg", { key: d.id, x: C * 50, width: "50", height: "40", viewBox: "0 0 50 40" }, /* @__PURE__ */ e.createElement("rect", { width: "50", height: "40", fill: $.hung.includes(d.id) ? "#343b66" : "#c7b8a8" }), $.hung.includes(d.id) && /* @__PURE__ */ e.createElement("g", null, d.artwork === "moon" && /* @__PURE__ */ e.createElement("circle", { cx: "27", cy: "10", r: "6", fill: "#ffdf9a" }), /* @__PURE__ */ e.createElement("path", { d: d.artwork === "dunes" ? "M0 24Q14 8 50 25V40H0z" : d.artwork === "moon" ? "M0 25Q24 36 50 22V40H0z" : "M0 22Q25 8 50 18V40H0z", fill: "#bd969d" }), /* @__PURE__ */ e.createElement("path", { d: "M0 32q13-4 25-1t25 1v8H0z", fill: "#365566" })))))), /* @__PURE__ */ e.createElement("output", { "aria-label": "Panorama", style: { display: "block", marginBlock: 8 } }, L ? L.label + " lines up with its hook." : M.length ? t.hung.length + " of " + t.panels.length + " panels on the wall." : "The panorama is complete."), !o && M.filter((d) => (!r || r.includes(d.id)) && re(t, d.id)).map((d) => /* @__PURE__ */ e.createElement("button", { key: d.id, type: "button", onFocus: () => w(Z(t, d.id)), onBlur: () => w(null), onClick: () => x(Z(t, d.id)) }, "Hang ", d.label)));
 }
-const Qe = ".focus-darkroom{background:#e7ece3;color:#1c3736;padding:clamp(14px,3vw,28px);font:15px/1.4 system-ui,sans-serif}.focus-darkroom h1{font:500 clamp(30px,5vw,45px)/1 Georgia,serif;letter-spacing:-.045em;margin:0}.focus-darkroom>p{margin:.45rem 0 1rem}.focus-darkroom .contact-sheet{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(5px,2vw,13px);background:#183237;padding:14px 12px 0}.focus-darkroom .contact-sheet button{background:#1d4a56;border:1px solid #779390;padding:0;color:#def0dc;min-width:0;cursor:zoom-in}.focus-darkroom .contact-sheet svg{width:100%;display:block;background:radial-gradient(ellipse at 62% 59%,#367188,#173e52)}.focus-darkroom .contact-sheet span{display:block;text-align:left;padding:.3rem .45rem;background:#f0e9ce;color:#343b36;font:italic clamp(13px,2vw,19px) Georgia,serif}.focus-darkroom .contact-sheet button:focus,.focus-darkroom button:focus-visible{outline:3px solid #e3a522;outline-offset:2px}.focus-darkroom .return-circuit{background:#14282c;overflow:hidden}.focus-darkroom .return-circuit svg{zoom:var(--circuit-scale);display:block;margin:auto}.focus-darkroom .return-circuit #focus-ring{cursor:grab}.focus-darkroom .wire-controls{display:flex;gap:.4rem;flex-wrap:wrap;margin:.8rem 0 .55rem}.focus-darkroom .wire-controls button,.focus-darkroom dialog button{font:600 13px system-ui,sans-serif;border:1px solid #75918b;border-radius:3px;padding:.5rem .7rem;background:transparent;color:#1e3d3b}.focus-darkroom .wire-controls button[aria-pressed=true]{background:#284e4b;color:#fff}.focus-darkroom output{display:block}.focus-darkroom output:last-of-type{font:500 clamp(18px,3vw,24px)/1.1 Georgia,serif;margin:.45rem 0 0}.focus-darkroom dialog{border:1px solid #597475;background:#e8ebd9;color:#243d40;width:min(76vw,340px);padding:14px}.focus-darkroom dialog svg{display:block;width:100%;background:radial-gradient(ellipse at 62% 59%,#367188,#173e52)}.focus-darkroom dialog h2{font:italic 26px Georgia,serif;margin:.5rem 0}.focus-darkroom dialog::backdrop{background:#0b1b21bd}.focus-darkroom .return-circuit #focus-ring{touch-action:none}.focus-darkroom .contact-sheet span,.focus-darkroom dialog h2{overflow-wrap:anywhere}.focus-darkroom dialog{max-height:90vh;overflow:auto}.focus-darkroom dialog form{display:grid;gap:.4rem}.focus-darkroom dialog input{font:inherit;max-width:100%;min-width:0}.focus-darkroom dialog button{margin-right:.35rem}.focus-darkroom[data-readonly] #focus-ring{cursor:default}", te = { start: 99, opener: 361 }, Ve = { route: null }, me = "#ffcb62";
+const Qe = ".focus-darkroom{background:#e7ece3;color:#1c3736;padding:clamp(14px,3vw,28px);font:15px/1.4 system-ui,sans-serif}.focus-darkroom h1{font:500 clamp(30px,5vw,45px)/1 Georgia,serif;letter-spacing:-.045em;margin:0}.focus-darkroom>p{margin:.45rem 0 1rem}.focus-darkroom .contact-sheet{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(5px,2vw,13px);background:#183237;padding:14px 12px 0}.focus-darkroom .contact-sheet button{background:#1d4a56;border:1px solid #779390;padding:0;color:#def0dc;min-width:0;cursor:zoom-in}.focus-darkroom .contact-sheet svg{width:100%;display:block;background:radial-gradient(ellipse at 62% 59%,#367188,#173e52)}.focus-darkroom .contact-sheet span{display:block;text-align:left;padding:.3rem .45rem;background:#f0e9ce;color:#343b36;font:italic clamp(13px,2vw,19px) Georgia,serif}.focus-darkroom .contact-sheet button:focus,.focus-darkroom button:focus-visible{outline:3px solid #e3a522;outline-offset:2px}.focus-darkroom .return-circuit{background:#14282c;overflow:hidden}.focus-darkroom .return-circuit svg{zoom:var(--circuit-scale);display:block;margin:auto}.focus-darkroom .return-circuit #focus-ring{cursor:grab}.focus-darkroom .wire-controls{display:flex;gap:.4rem;flex-wrap:wrap;margin:.8rem 0 .55rem}.focus-darkroom .wire-controls button,.focus-darkroom dialog button{font:600 13px system-ui,sans-serif;border:1px solid #75918b;border-radius:3px;padding:.5rem .7rem;background:transparent;color:#1e3d3b}.focus-darkroom .wire-controls button[aria-pressed=true]{background:#284e4b;color:#fff}.focus-darkroom output{display:block}.focus-darkroom output:last-of-type{font:500 clamp(18px,3vw,24px)/1.1 Georgia,serif;margin:.45rem 0 0}.focus-darkroom dialog{border:1px solid #597475;background:#e8ebd9;color:#243d40;width:min(76vw,340px);padding:14px}.focus-darkroom dialog svg{display:block;width:100%;background:radial-gradient(ellipse at 62% 59%,#367188,#173e52)}.focus-darkroom dialog h2{font:italic 26px Georgia,serif;margin:.5rem 0}.focus-darkroom dialog::backdrop{background:#0b1b21bd}.focus-darkroom .return-circuit #focus-ring{touch-action:none}.focus-darkroom .contact-sheet span,.focus-darkroom dialog h2{overflow-wrap:anywhere}.focus-darkroom dialog{max-height:90vh;overflow:auto}.focus-darkroom dialog form{display:grid;gap:.4rem}.focus-darkroom dialog input{font:inherit;max-width:100%;min-width:0}.focus-darkroom dialog button{margin-right:.35rem}.focus-darkroom[data-readonly] #focus-ring{cursor:default}", te = { start: 99, opener: 361 }, je = { route: null }, me = "#ffcb62";
 function pe(t) {
   return t === 1 ? /* @__PURE__ */ e.createElement("g", { fill: "#d4e6db", stroke: "#8ebcbb", strokeWidth: "1" }, [-1, 1].map((m) => /* @__PURE__ */ e.createElement("g", { key: m, transform: "scale(" + m + " 1)" }, /* @__PURE__ */ e.createElement("path", { d: "M1 1Q20-26 54-33Q54-8 34 7Q54 11 40 29Q20 36 4 14Z" }), /* @__PURE__ */ e.createElement("path", { d: "M5 2L47-25M7 5L37-9M5 11L36 22M7 10L30 29", fill: "none" }), /* @__PURE__ */ e.createElement("ellipse", { cx: "29", cy: "-9", rx: "6", ry: "5", fill: "#3d7280" }), /* @__PURE__ */ e.createElement("circle", { cx: "29", cy: "-9", r: "2", fill: "#e4eee1" }), /* @__PURE__ */ e.createElement("path", { d: "M2-4Q5-17 12-22", fill: "none", stroke: "#d4e6db", strokeWidth: "2" }))), /* @__PURE__ */ e.createElement("ellipse", { cy: "4", rx: "3.3", ry: "15", fill: "#eaebcf" })) : t === 0 ? /* @__PURE__ */ e.createElement("g", { transform: "rotate(22)", stroke: "#cedfd0", fill: "#b6d1be" }, /* @__PURE__ */ e.createElement("path", { d: "M-3 42Q0 0 0-44", fill: "none", strokeWidth: "2" }), Array.from({ length: 11 }, (m, n) => {
     const o = 33 - n * 6, r = 9 + 16 * Math.sin(n / 10 * Math.PI);
@@ -393,15 +393,15 @@ function pe(t) {
 }
 function ye({ state: t, d: m, isTracking: n }, o = !1) {
   const r = t.route ? te[t.route] : 232, f = t.route ? 48 : 85;
-  return n ? /* @__PURE__ */ e.createElement("g", { id: "focus-ring", transform: I(r, f) }) : /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { width: "460", height: "108", fill: "#14282c" }), [te.start, te.opener].map((c, a) => /* @__PURE__ */ e.createElement("g", { dragologyKey: String(c) }, /* @__PURE__ */ e.createElement("path", { d: `M232 85Q${c} 85 ${c} 48V0`, fill: "none", stroke: t.route === "start" && a === 0 || t.route === "opener" && a === 1 ? me : "#52727a", strokeWidth: "2", strokeDasharray: "3 5" }), /* @__PURE__ */ e.createElement("circle", { id: a ? "opener-jack" : "first-jack", cx: c, cy: "48", r: "12", fill: "#233d40", stroke: "#608185" }), /* @__PURE__ */ e.createElement("text", { x: c, y: "24", fill: "#dae9e1", fontFamily: "system-ui,sans-serif", fontSize: "13", textAnchor: "middle" }, a ? "Opening print" : "First print"))), /* @__PURE__ */ e.createElement("g", { id: "focus-ring", transform: I(r, f), dragologyOnDrag: o ? void 0 : () => m.closest([Ve, { route: "start" }, { route: "opener" }]).withFloating() }, /* @__PURE__ */ e.createElement("circle", { r: "19", fill: "#132a2e", stroke: "#85693d", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("circle", { r: "13.5", fill: "#203336", stroke: me, strokeWidth: "4" }), /* @__PURE__ */ e.createElement("path", { d: "M-5 -5L1 8l2-6 6-2z", fill: "#f8db94" })));
+  return n ? /* @__PURE__ */ e.createElement("g", { id: "focus-ring", transform: I(r, f) }) : /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { width: "460", height: "108", fill: "#14282c" }), [te.start, te.opener].map((c, a) => /* @__PURE__ */ e.createElement("g", { dragologyKey: String(c) }, /* @__PURE__ */ e.createElement("path", { d: `M232 85Q${c} 85 ${c} 48V0`, fill: "none", stroke: t.route === "start" && a === 0 || t.route === "opener" && a === 1 ? me : "#52727a", strokeWidth: "2", strokeDasharray: "3 5" }), /* @__PURE__ */ e.createElement("circle", { id: a ? "opener-jack" : "first-jack", cx: c, cy: "48", r: "12", fill: "#233d40", stroke: "#608185" }), /* @__PURE__ */ e.createElement("text", { x: c, y: "24", fill: "#dae9e1", fontFamily: "system-ui,sans-serif", fontSize: "13", textAnchor: "middle" }, a ? "Opening print" : "First print"))), /* @__PURE__ */ e.createElement("g", { id: "focus-ring", transform: I(r, f), dragologyOnDrag: o ? void 0 : () => m.closest([je, { route: "start" }, { route: "opener" }]).withFloating() }, /* @__PURE__ */ e.createElement("circle", { r: "19", fill: "#132a2e", stroke: "#85693d", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("circle", { r: "13.5", fill: "#203336", stroke: me, strokeWidth: "4" }), /* @__PURE__ */ e.createElement("path", { d: "M-5 -5L1 8l2-6 6-2z", fill: "#f8db94" })));
 }
-function Xe(t) {
+function Ve(t) {
   return ye(t, !0);
 }
 function tt({ value: t, onChange: m, readOnly: n = !1 }) {
-  const o = n || !m, [r, f] = F(null), [c, a] = F(0), [u, l] = F(1), [g, p] = F(""), [b, h] = F(null), [w, i] = F(1), E = R(null), x = R(null), $ = R([]), L = Me(), M = ge(() => ({ route: t.route }), [t.route]), d = (!o && r ? r : M).route;
-  X(() => {
-    const v = E.current, D = new ResizeObserver(() => i(Math.min(1, v.clientWidth / 460)));
+  const o = n || !m, [r, f] = F(null), [c, a] = F(0), [u, l] = F(1), [g, p] = F(""), [b, h] = F(null), [w, i] = F(1), y = R(null), x = R(null), $ = R([]), L = Me(), M = ge(() => ({ route: t.route }), [t.route]), d = (!o && r ? r : M).route;
+  V(() => {
+    const v = y.current, D = new ResizeObserver(() => i(Math.min(1, v.clientWidth / 460)));
     return D.observe(v), () => D.disconnect();
   }, []);
   function C(v) {
@@ -410,13 +410,13 @@ function tt({ value: t, onChange: m, readOnly: n = !1 }) {
   function S(v) {
     l(v), h(null), window.frameElement?.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" }), x.current?.showModal();
   }
-  function y() {
+  function k() {
     const v = t.route === "start" ? 0 : u;
     $.current[v]?.focus({ preventScroll: !0 });
     const D = t[G[v]];
     p(v === u ? "Focus returned to " + D + ", the print you opened." : "Focus jumped to " + D + ". You opened " + t[G[u]] + ".");
   }
-  function W() {
+  function z() {
     a((v) => v + 1), f(null);
   }
   return /* @__PURE__ */ e.createElement(
@@ -425,9 +425,9 @@ function tt({ value: t, onChange: m, readOnly: n = !1 }) {
       className: "focus-darkroom",
       "aria-label": "Focus Darkroom",
       "data-readonly": o || void 0,
-      onPointerCancel: W,
+      onPointerCancel: z,
       onKeyDown: (v) => {
-        v.key === "Escape" && !x.current?.open && W();
+        v.key === "Escape" && !x.current?.open && z();
       }
     },
     /* @__PURE__ */ e.createElement("style", null, Qe),
@@ -447,14 +447,14 @@ function tt({ value: t, onChange: m, readOnly: n = !1 }) {
       /* @__PURE__ */ e.createElement("svg", { viewBox: "-65 -50 130 100", "aria-hidden": "true" }, pe(D)),
       /* @__PURE__ */ e.createElement("span", null, t[v])
     ))),
-    /* @__PURE__ */ e.createElement("div", { className: "return-circuit", ref: E, style: { "--circuit-scale": w } }, /* @__PURE__ */ e.createElement(
-      Y,
+    /* @__PURE__ */ e.createElement("div", { className: "return-circuit", ref: y, style: { "--circuit-scale": w } }, /* @__PURE__ */ e.createElement(
+      X,
       {
         key: o ? "locked" : c,
         state: M,
         width: 460,
         height: 108,
-        draggable: o ? Xe : ye,
+        draggable: o ? Ve : ye,
         onDragState: o ? void 0 : f,
         onDropState: o ? void 0 : C
       }
@@ -462,7 +462,7 @@ function tt({ value: t, onChange: m, readOnly: n = !1 }) {
     !o && /* @__PURE__ */ e.createElement("div", { className: "wire-controls" }, /* @__PURE__ */ e.createElement("button", { type: "button", "aria-pressed": d === "start", onClick: () => C({ route: "start" }) }, "Wire first print"), /* @__PURE__ */ e.createElement("button", { type: "button", "aria-pressed": d === "opener", onClick: () => C({ route: "opener" }) }, "Wire opening print")),
     /* @__PURE__ */ e.createElement("output", { "aria-label": "Return path" }, d === "start" ? "Every viewer returns to the first print." : d === "opener" ? "Each viewer returns to the print that opened it." : "No wire attached. The viewer uses its native return path."),
     /* @__PURE__ */ e.createElement("output", { "aria-label": "Focus result" }, g || "Open " + t.secondPrint + " to try the return path."),
-    /* @__PURE__ */ e.createElement("dialog", { ref: x, onClose: y, "aria-labelledby": L, onKeyDown: (v) => {
+    /* @__PURE__ */ e.createElement("dialog", { ref: x, onClose: k, "aria-labelledby": L, onKeyDown: (v) => {
       v.key === "Escape" && (v.preventDefault(), v.stopPropagation(), v.currentTarget.close());
     } }, /* @__PURE__ */ e.createElement("svg", { viewBox: "-65 -50 130 100", "aria-hidden": "true" }, pe(u)), /* @__PURE__ */ e.createElement("h2", { id: L }, t[G[u]]), !o && b !== null ? /* @__PURE__ */ e.createElement("form", { onSubmit: (v) => {
       v.preventDefault(), b.trim() && (m?.({ ...t, [G[u]]: b.trim() }), h(null), x.current?.querySelector("[data-close]")?.focus());
@@ -474,27 +474,27 @@ function he(t) {
 }
 function ae({ state: t, d: m, draggedId: n, isTracking: o }, r, f, c = !1) {
   const a = f?.layout ?? ne, { width: u, row: l, height: g, top: p } = a, { points: b } = oe(t, a), h = !!t.lanes[0].station, w = (i) => {
-    const E = t.lanes.findIndex(($) => $.id === i.laneId), x = t.cards.filter(($) => $.laneId === i.laneId).indexOf(i);
-    return I((h ? 18 : 8) + b[E].x, b[E].y + p + x * l);
+    const y = t.lanes.findIndex(($) => $.id === i.laneId), x = t.cards.filter(($) => $.laneId === i.laneId).indexOf(i);
+    return I((h ? 18 : 8) + b[y].x, b[y].y + p + x * l);
   };
   if (o && n) {
-    const i = t.cards.find((E) => "choice-" + E.id === n);
+    const i = t.cards.find((y) => "choice-" + y.id === n);
     if (i) return /* @__PURE__ */ e.createElement("g", { id: n, transform: w(i) });
   }
-  return /* @__PURE__ */ e.createElement("g", { fontFamily: "system-ui, sans-serif", fill: "#18302d" }, t.lanes.flatMap((i, E) => (i.station?.next ?? []).map((x) => {
-    const $ = b[E], L = b[t.lanes.findIndex((D) => D.id === x)], M = u / 2 + 8, d = (p - 12) / 2 + 4, C = L.x - $.x, S = L.y - $.y, y = Math.min(C ? u / 2 / Math.abs(C) : 1 / 0, S ? (d - 4) / Math.abs(S) : 1 / 0), W = L.x + M - C * y, v = L.y + d - S * y;
-    return /* @__PURE__ */ e.createElement("g", { dragologyKey: i.id + "-" + x }, /* @__PURE__ */ e.createElement("line", { x1: $.x + M, y1: $.y + d, x2: W, y2: v, stroke: "#506b61", strokeWidth: 3 }), /* @__PURE__ */ e.createElement("path", { d: "M0 0l-11 -5v10z", fill: "#315044", transform: `translate(${W} ${v}) rotate(${Math.atan2(S, C) * 180 / Math.PI})` }));
-  })), t.lanes.map((i, E) => {
+  return /* @__PURE__ */ e.createElement("g", { fontFamily: "system-ui, sans-serif", fill: "#18302d" }, t.lanes.flatMap((i, y) => (i.station?.next ?? []).map((x) => {
+    const $ = b[y], L = b[t.lanes.findIndex((D) => D.id === x)], M = u / 2 + 8, d = (p - 12) / 2 + 4, C = L.x - $.x, S = L.y - $.y, k = Math.min(C ? u / 2 / Math.abs(C) : 1 / 0, S ? (d - 4) / Math.abs(S) : 1 / 0), z = L.x + M - C * k, v = L.y + d - S * k;
+    return /* @__PURE__ */ e.createElement("g", { dragologyKey: i.id + "-" + x }, /* @__PURE__ */ e.createElement("line", { x1: $.x + M, y1: $.y + d, x2: z, y2: v, stroke: "#506b61", strokeWidth: 3 }), /* @__PURE__ */ e.createElement("path", { d: "M0 0l-11 -5v10z", fill: "#315044", transform: `translate(${z} ${v}) rotate(${Math.atan2(S, C) * 180 / Math.PI})` }));
+  })), t.lanes.map((i, y) => {
     const x = t.cards.filter((M) => M.laneId === i.id).length, $ = t.kind === "release-plan" && be(t, i.id), L = t.kind === "release-plan" ? $ + (i.capacity ? " / " + i.capacity : "") + " points" : i.station ? x ? "● Occupied" : "Open stop" : i.capacity ? `${x} of ${i.capacity} slots` : `${x} ${x === 1 ? "choice" : "choices"}`;
-    return /* @__PURE__ */ e.createElement("g", { id: "heading-" + i.id, transform: I(8 + b[E].x, 4 + b[E].y) }, h && /* @__PURE__ */ e.createElement("rect", { x: 0, y: 0, width: u, height: p + Math.max(1, x) * l - 10, rx: 9, fill: "#fcf9ed", stroke: "#a8b5aa", strokeDasharray: "4 4" }), /* @__PURE__ */ e.createElement("g", { ...h && c && !r ? {
+    return /* @__PURE__ */ e.createElement("g", { id: "heading-" + i.id, transform: I(8 + b[y].x, 4 + b[y].y) }, h && /* @__PURE__ */ e.createElement("rect", { x: 0, y: 0, width: u, height: p + Math.max(1, x) * l - 10, rx: 9, fill: "#fcf9ed", stroke: "#a8b5aa", strokeDasharray: "4 4" }), /* @__PURE__ */ e.createElement("g", { ...h && c && !r ? {
       "data-workshop-station": i.id,
       role: "button",
       tabIndex: 0,
       "aria-label": "Edit " + i.label,
       cursor: "pointer"
-    } : {} }, /* @__PURE__ */ e.createElement("rect", { width: u, height: p - 12, rx: h ? 6 : 9, fill: h ? "#253c36" : ze[E] }), (f?.labels.get("heading-" + i.id) ?? he(i.label)).map((M, d) => /* @__PURE__ */ e.createElement("text", { dragologyKey: "line-" + d, fill: h ? "#fffdf3" : "#18302d", transform: I(12, (h ? 23 : 16) + d * 16), fontSize: h ? 17 : 13, fontWeight: "bold" }, M)), /* @__PURE__ */ e.createElement("text", { fill: h ? "#ebd29a" : "#18302d", transform: I(12, p - 23), fontSize: 12 }, L)));
+    } : {} }, /* @__PURE__ */ e.createElement("rect", { width: u, height: p - 12, rx: h ? 6 : 9, fill: h ? "#253c36" : We[y] }), (f?.labels.get("heading-" + i.id) ?? he(i.label)).map((M, d) => /* @__PURE__ */ e.createElement("text", { dragologyKey: "line-" + d, fill: h ? "#fffdf3" : "#18302d", transform: I(12, (h ? 23 : 16) + d * 16), fontSize: h ? 17 : 13, fontWeight: "bold" }, M)), /* @__PURE__ */ e.createElement("text", { fill: h ? "#ebd29a" : "#18302d", transform: I(12, p - 23), fontSize: 12 }, L)));
   }), t.cards.map((i) => {
-    const E = r ? [] : U(t, i), x = "choice-" + i.id;
+    const y = r ? [] : U(t, i), x = "choice-" + i.id;
     return /* @__PURE__ */ e.createElement(
       "g",
       {
@@ -502,7 +502,7 @@ function ae({ state: t, d: m, draggedId: n, isTracking: o }, r, f, c = !1) {
         "data-workshop-card": i.id,
         transform: w(i),
         dragologyZIndex: n === x ? "/1" : !1,
-        dragologyOnDrag: E.length > 1 ? () => m.closest(E.map(($) => O(t, i.id, $.id))).withFloating() : void 0
+        dragologyOnDrag: y.length > 1 ? () => m.closest(y.map(($) => O(t, i.id, $.id))).withFloating() : void 0
       },
       /* @__PURE__ */ e.createElement("rect", { width: h ? u - 20 : u, height: g - (h ? 6 : 0), fill: h ? "#ffda75" : "#fffdf6", stroke: "#78857d", rx: h ? 1 : 8 }),
       h && /* @__PURE__ */ e.createElement("path", { d: "M198 0v70", stroke: "#897530", strokeDasharray: "4 5" }),
@@ -511,60 +511,60 @@ function ae({ state: t, d: m, draggedId: n, isTracking: o }, r, f, c = !1) {
     );
   }));
 }
-const Ye = (t) => ae(t, !1), je = (t) => ae(t, !0);
+const Xe = (t) => ae(t, !1), Ye = (t) => ae(t, !0);
 function nt({ value: t, onChange: m, onPreview: n, onEditCard: o, onEditStation: r, onUndo: f, canUndo: c, readOnly: a = !1, fitLanes: u = !1, showPlacementOutcomes: l = !0 }) {
   const g = e.useRef(null), p = e.useRef(null), b = e.useRef(null), [h, w] = e.useState(0), i = u && !t.kind && !t.lanes[0].station;
   e.useLayoutEffect(() => {
     const s = g.current;
     if (!i || !s) return;
-    const k = () => w(s.clientWidth);
-    k();
-    const z = new ResizeObserver(k);
-    return z.observe(s), () => z.disconnect();
+    const E = () => w(s.clientWidth);
+    E();
+    const W = new ResizeObserver(E);
+    return W.observe(s), () => W.disconnect();
   }, [i]);
-  const E = e.useMemo(() => i && h ? Ne(t, h) : void 0, [i, h, t]), { width: x, height: $ } = oe(t, E?.layout), L = t.kind === "release-plan", M = !!t.signals?.length, [d, C] = e.useState(0), S = e.useRef(!1), y = e.useRef(null), [W, v] = e.useState(null), [D, N] = e.useState(null), [ee, le] = e.useState(null), P = !a && D?.source === t ? D : null, ie = e.useRef(t), B = e.useCallback((s) => {
+  const y = e.useMemo(() => i && h ? Ne(t, h) : void 0, [i, h, t]), { width: x, height: $ } = oe(t, y?.layout), L = t.kind === "release-plan", M = !!t.signals?.length, [d, C] = e.useState(0), S = e.useRef(!1), k = e.useRef(null), [z, v] = e.useState(null), [D, N] = e.useState(null), [ee, le] = e.useState(null), P = !a && D?.source === t ? D : null, ie = e.useRef(t), B = e.useCallback((s) => {
     (L || M) && v(s), n?.(s);
   }, [L, M, n]), A = e.useCallback(() => {
-    S.current = !1, y.current = null, N(null), B(null), C((s) => s + 1);
+    S.current = !1, k.current = null, N(null), B(null), C((s) => s + 1);
   }, [B]);
   e.useLayoutEffect(() => {
     ie.current !== t && (S.current || D) && A(), ie.current = t;
   }, [t, D, A]);
-  const Q = (s, k) => {
-    S.current = !1, N(null), B(null), s !== t && (L && !f && le({ before: t, after: s }), m(s, k));
+  const Q = (s, E) => {
+    S.current = !1, N(null), B(null), s !== t && (L && !f && le({ before: t, after: s }), m(s, E));
   }, ke = (s) => {
-    const k = s.cards.find((z) => z.id === y.current);
-    Q(s, k && { cardId: k.id, laneId: k.laneId });
+    const E = s.cards.find((W) => W.id === k.current);
+    Q(s, E && { cardId: E.id, laneId: E.laneId });
   }, xe = e.useCallback((s) => {
-    const k = s.type === "dragging" ? s : s.pendingDrag?.status;
-    S.current = !!k, k ? (y.current = k.behaviorCtx.draggedId?.replace(/^choice-/, "") ?? null, N(null)) : y.current !== null && (y.current = null, B(null));
+    const E = s.type === "dragging" ? s : s.pendingDrag?.status;
+    S.current = !!E, E ? (k.current = E.behaviorCtx.draggedId?.replace(/^choice-/, "") ?? null, N(null)) : k.current !== null && (k.current = null, B(null));
   }, [B]);
   e.useEffect(() => {
-    function s(k) {
-      !S.current && !D || k instanceof KeyboardEvent && k.key !== "Escape" || A();
+    function s(E) {
+      !S.current && !D || E instanceof KeyboardEvent && E.key !== "Escape" || A();
     }
     return document.addEventListener("keydown", s), document.addEventListener("pointercancel", s), window.addEventListener("blur", s), () => {
       document.removeEventListener("keydown", s), document.removeEventListener("pointercancel", s), window.removeEventListener("blur", s);
     };
   }, [A, D]);
-  const j = a ? null : P?.next ?? W, K = !!(a || P), T = !!(r && t.lanes[0].station && !K), we = e.useMemo(() => E || T ? (s) => ae(s, K, E, T) : K ? je : Ye, [E, K, T]), ve = j ? Math.max($, oe(j, E?.layout).height) : $;
+  const Y = a ? null : P?.next ?? z, K = !!(a || P), T = !!(r && t.lanes[0].station && !K), we = e.useMemo(() => y || T ? (s) => ae(s, K, y, T) : K ? Ye : Xe, [y, K, T]), ve = Y ? Math.max($, oe(Y, y?.layout).height) : $;
   return /* @__PURE__ */ e.createElement("section", { "aria-label": t.title }, /* @__PURE__ */ e.createElement(
     "div",
     {
       ref: g,
       style: { maxWidth: "100%", overflowX: "auto" },
       onKeyDownCapture: (s) => {
-        const k = s.target.closest("[data-workshop-station]")?.getAttribute("data-workshop-station");
-        !T || !k || !["Enter", " "].includes(s.key) || (s.preventDefault(), s.repeat || r?.(k));
+        const E = s.target.closest("[data-workshop-station]")?.getAttribute("data-workshop-station");
+        !T || !E || !["Enter", " "].includes(s.key) || (s.preventDefault(), s.repeat || r?.(E));
       },
       onClickCapture: (s) => {
-        const k = s.target.closest("[data-workshop-station]")?.getAttribute("data-workshop-station");
-        T && s.detail === 0 && k && r?.(k);
+        const E = s.target.closest("[data-workshop-station]")?.getAttribute("data-workshop-station");
+        T && s.detail === 0 && E && r?.(E);
       },
       onPointerDownCapture: (s) => {
         if (p.current = null, K || !s.isPrimary || s.button !== 0) return;
-        const k = s.target.closest("[data-workshop-card],[data-workshop-station]"), z = k?.getAttribute("data-workshop-station"), H = k?.getAttribute("data-workshop-card");
-        z && T ? p.current = { kind: "station", id: z, x: s.clientX, y: s.clientY } : H && o && (p.current = { kind: "card", id: H, x: s.clientX, y: s.clientY });
+        const E = s.target.closest("[data-workshop-card],[data-workshop-station]"), W = E?.getAttribute("data-workshop-station"), H = E?.getAttribute("data-workshop-card");
+        W && T ? p.current = { kind: "station", id: W, x: s.clientX, y: s.clientY } : H && o && (p.current = { kind: "card", id: H, x: s.clientX, y: s.clientY });
       },
       onPointerMoveCapture: (s) => {
         p.current && Math.hypot(s.clientX - p.current.x, s.clientY - p.current.y) > 5 && (p.current = null, b.current = null);
@@ -573,18 +573,18 @@ function nt({ value: t, onChange: m, onPreview: n, onEditCard: o, onEditStation:
         p.current = null, b.current = null;
       },
       onPointerUpCapture: (s) => {
-        const k = p.current;
-        if (p.current = null, !(!k || K)) {
-          if (k.kind === "station") {
-            b.current = null, r?.(k.id);
+        const E = p.current;
+        if (p.current = null, !(!E || K)) {
+          if (E.kind === "station") {
+            b.current = null, r?.(E.id);
             return;
           }
-          o && (b.current?.id === k.id && s.timeStamp - b.current.at < 400 ? (b.current = null, o(k.id)) : b.current = { id: k.id, at: s.timeStamp });
+          o && (b.current?.id === E.id && s.timeStamp - b.current.at < 400 ? (b.current = null, o(E.id)) : b.current = { id: E.id, at: s.timeStamp });
         }
       }
     },
     /* @__PURE__ */ e.createElement(
-      Y,
+      X,
       {
         key: a ? "read-only" : d,
         draggable: we,
@@ -596,13 +596,13 @@ function nt({ value: t, onChange: m, onPreview: n, onEditCard: o, onEditStation:
         height: ve
       }
     )
-  ), M && l && /* @__PURE__ */ e.createElement("section", { "aria-label": "Placement outcomes", "aria-live": "polite", style: { overflowWrap: "anywhere" } }, Se(j ?? t).map((s) => /* @__PURE__ */ e.createElement("p", { key: s.id }, /* @__PURE__ */ e.createElement("strong", null, s.label), /* @__PURE__ */ e.createElement("br", null), s.text))), L && /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement(Be, { value: t, preview: j }), !a && /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement(
+  ), M && l && /* @__PURE__ */ e.createElement("section", { "aria-label": "Placement outcomes", "aria-live": "polite", style: { overflowWrap: "anywhere" } }, Se(Y ?? t).map((s) => /* @__PURE__ */ e.createElement("p", { key: s.id }, /* @__PURE__ */ e.createElement("strong", null, s.label), /* @__PURE__ */ e.createElement("br", null), s.text))), L && /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement(Be, { value: t, preview: Y }), !a && /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement(
     He,
     {
       value: t,
       preview: P?.move ?? null,
-      stage: (s, k) => {
-        N({ source: t, next: s, move: k }), n?.(s);
+      stage: (s, E) => {
+        N({ source: t, next: s, move: E }), n?.(s);
       },
       cancel: A,
       apply: () => {
@@ -612,20 +612,28 @@ function nt({ value: t, onChange: m, onPreview: n, onEditCard: o, onEditStation:
   ), /* @__PURE__ */ e.createElement("button", { type: "button", disabled: !(f ? c : ee?.after === t), onClick: () => {
     A(), f ? f() : ee?.after === t && (le(null), m(ee.before));
   } }, "Undo move"))), t.lanes[0].station && /* @__PURE__ */ e.createElement("div", { className: "workshop-outcomes", "aria-live": "polite" }, t.cards.map((s) => {
-    const k = t.lanes.find((z) => z.id === s.laneId);
-    return /* @__PURE__ */ e.createElement("div", { key: s.id }, /* @__PURE__ */ e.createElement("p", null, /* @__PURE__ */ e.createElement("strong", null, s.label, " · ", k.label), /* @__PURE__ */ e.createElement("br", null), k.station.outcome), U(t, s).filter((z) => z.id !== s.laneId).map((z) => /* @__PURE__ */ e.createElement("button", { key: z.id, type: "button", disabled: a, onClick: () => Q(O(t, s.id, z.id), { cardId: s.id, laneId: z.id }) }, s.label, " → ", z.label)));
+    const E = t.lanes.find((W) => W.id === s.laneId);
+    return /* @__PURE__ */ e.createElement("div", { key: s.id }, /* @__PURE__ */ e.createElement("p", null, /* @__PURE__ */ e.createElement("strong", null, s.label, " · ", E.label), /* @__PURE__ */ e.createElement("br", null), E.station.outcome), E.station.image && /* @__PURE__ */ e.createElement(
+      "img",
+      {
+        src: E.station.image.src,
+        alt: E.station.image.alt,
+        referrerPolicy: "no-referrer",
+        style: { display: "block", maxWidth: "100%", width: 360, maxHeight: 240, objectFit: "contain", objectPosition: "left", marginBlock: "8px" }
+      }
+    ), U(t, s).filter((W) => W.id !== s.laneId).map((W) => /* @__PURE__ */ e.createElement("button", { key: W.id, type: "button", disabled: a, onClick: () => Q(O(t, s.id, W.id), { cardId: s.id, laneId: W.id }) }, s.label, " → ", W.label)));
   })), !L && /* @__PURE__ */ e.createElement("details", null, /* @__PURE__ */ e.createElement("summary", null, "Move a card by name"), t.cards.map((s) => /* @__PURE__ */ e.createElement("label", { key: s.id, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBlock: 6 } }, s.label, /* @__PURE__ */ e.createElement(
     "select",
     {
       disabled: a,
       "aria-label": "Move " + s.label,
       value: P?.move.cardId === s.id ? P.move.laneId : s.laneId,
-      onChange: (k) => {
-        const z = { cardId: s.id, laneId: k.currentTarget.value }, H = O(t, s.id, z.laneId);
-        M ? H === t ? A() : (N({ source: t, next: H, move: z }), n?.(H)) : Q(H, z);
+      onChange: (E) => {
+        const W = { cardId: s.id, laneId: E.currentTarget.value }, H = O(t, s.id, W.laneId);
+        M ? H === t ? A() : (N({ source: t, next: H, move: W }), n?.(H)) : Q(H, W);
       }
     },
-    U(t, s).map((k) => /* @__PURE__ */ e.createElement("option", { key: k.id, value: k.id }, k.label))
+    U(t, s).map((E) => /* @__PURE__ */ e.createElement("option", { key: E.id, value: E.id }, E.label))
   ))), P && /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => Q(P.next, P.move) }, "Apply move"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: A }, "Cancel move"))));
 }
 export {
@@ -646,7 +654,7 @@ export {
   Z as hangGalleryPanel,
   dt as industrialWorkshop,
   ft as initialFocusDarkroom,
-  ze as laneColors,
+  We as laneColors,
   de as listeningRoom,
   fe as listeningRoomCaption,
   ut as moonGallery,

@@ -2,6 +2,10 @@ export * from './offlineHandoff';
 export * from './listeningRoom';
 export { releaseLoad, releasePlan } from './release';
 import type { SlateJSON } from '../core/Serialization';
+export interface StationImage {
+    src: string;
+    alt: string;
+}
 export interface WorkshopLane {
     id: string;
     label: string;
@@ -11,6 +15,7 @@ export interface WorkshopLane {
         row: number;
         next: string[];
         outcome: string;
+        image?: StationImage;
     };
 }
 export interface WorkshopCard {
@@ -91,6 +96,7 @@ export declare function createWorkshopMap(): Workshop;
 export declare function addWorkshopBranch(board: Workshop, fromStationId: string, branch: {
     label: string;
     outcome: string;
+    image?: StationImage;
 }): Workshop;
 export declare const nightTransfer: Workshop;
 export declare function workshopToSlate(input: Workshop): SlateJSON;

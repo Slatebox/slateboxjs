@@ -139,6 +139,24 @@ describe('interactive map authoring', () => {
     expect(native.relationships.associations.map(a => a.childId)).toContain('lane-' + destination.id)
   })
 
+  it('carries station artwork through a shared link and frames it with the occupied station', () => {
+    const image = { src: 'https://museum.example/shoreline.webp', alt: 'Boats along the riverbank' }
+    const board = addWorkshopBranch(createWorkshopMap(), 'start', { label: 'Shoreline', outcome: 'Follow the river.', image })
+    const station = board.lanes[2]
+    const restored = decodeWorkshopFragment(encodeWorkshopFragment(moveWorkshopCard(board, 'token', station.id)))
+    expect(restored.lanes[2].station?.image).toEqual(image)
+    const scene = workshopPresentationScenes(restored)[2]
+    expect(scene.nodeIds).toEqual(['lane-' + station.id, 'image-' + station.id, 'card-token'])
+    const nodes = workshopToSlate(restored).nodes.map(n => deserializeNodeOptions(n.options))
+    const art = nodes.find(n => n.id === 'image-' + station.id)!
+    expect(art).toMatchObject({ image: image.src, name: image.alt, text: '' })
+    expect(nodes.find(n => n.id === 'card-token')!.y).toBeGreaterThanOrEqual(art.y! + art.height!)
+    for (const src of ['data:image/png,hello', 'http://example.com/x', 'https://user:pass@museum.example/x']) {
+      expect(() => validateWorkshop({ ...board, lanes: board.lanes.map(lane => lane !== station ? lane :
+        { ...lane, station: { ...lane.station, image: { ...image, src } } }) })).toThrow(/HTTPS/)
+    }
+  })
+
   it('preserves authored restrictions, placements, existing routes and presentation order', () => {
     const map = createWorkshopMap()
     map.presentationOrder = ['next', 'start']

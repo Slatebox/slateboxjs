@@ -252,6 +252,8 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
       {value.cards.map(card => {
         const current = value.lanes.find(lane => lane.id === card.laneId)!
         return <div key={card.id}><p><strong>{card.label} · {current.label}</strong><br />{current.station!.outcome}</p>
+          {current.station!.image && <img src={current.station!.image.src} alt={current.station!.image.alt}
+            referrerPolicy="no-referrer" style={{ display:'block', maxWidth:'100%', width:360, maxHeight:240, objectFit:'contain', objectPosition:'left', marginBlock:'8px' }} />}
           {availableLanes(value, card).filter(lane => lane.id !== card.laneId).map(lane =>
             <button key={lane.id} type="button" disabled={readOnly} onClick={() => commit(moveWorkshopCard(value, card.id, lane.id), {cardId: card.id, laneId: lane.id})}>
               {card.label} → {lane.label}
