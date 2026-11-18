@@ -13,7 +13,7 @@ function wrapLabel(label: string) {
   return label.match(/.{1,23}(?:\s+|$)|.{1,23}/gu)?.map(line => line.trim()) ?? [label]
 }
 
-function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean, fitted?: ReturnType<typeof fitLaneLayout>) {
+function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean, fitted?: ReturnType<typeof fitLaneLayout>, editStations = false) {
   const layout = fitted?.layout ?? workshopLayout
   const { width, row, height, top } = layout
   const { points } = workshopPositions(state, layout)
@@ -49,10 +49,14 @@ function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Worksho
         : lane.station ? (count ? '● Occupied' : 'Open stop') : lane.capacity ? `${count} of ${lane.capacity} slots` : `${count} ${count === 1 ? 'choice' : 'choices'}`
       return <g id={'heading-' + lane.id} transform={translate(8 + points[column].x, 4 + points[column].y)}>
         {map && <rect x={0} y={0} width={width} height={top + Math.max(1, count) * row - 10} rx={9} fill="#fcf9ed" stroke="#a8b5aa" strokeDasharray="4 4" />}
-        <rect width={width} height={top - 12} rx={map ? 6 : 9} fill={map ? "#253c36" : laneColors[column]} />
-        {(fitted?.labels.get('heading-' + lane.id) ?? wrapLabel(lane.label)).map((line, i) =>
-          <text dragologyKey={'line-' + i} fill={map ? "#fffdf3" : "#18302d"} transform={translate(12, (map ? 23 : 16) + i * 16)} fontSize={map ? 17 : 13} fontWeight="bold">{line}</text>)}
-        <text fill={map ? "#ebd29a" : "#18302d"} transform={translate(12, top - 23)} fontSize={12}>{caption}</text>
+        <g {...(map && editStations && !readOnly ? {
+          'data-workshop-station': lane.id, role: 'button', tabIndex: 0, 'aria-label': 'Edit ' + lane.label, cursor: 'pointer',
+        } : {})}>
+          <rect width={width} height={top - 12} rx={map ? 6 : 9} fill={map ? "#253c36" : laneColors[column]} />
+          {(fitted?.labels.get('heading-' + lane.id) ?? wrapLabel(lane.label)).map((line, i) =>
+            <text dragologyKey={'line-' + i} fill={map ? "#fffdf3" : "#18302d"} transform={translate(12, (map ? 23 : 16) + i * 16)} fontSize={map ? 17 : 13} fontWeight="bold">{line}</text>)}
+          <text fill={map ? "#ebd29a" : "#18302d"} transform={translate(12, top - 23)} fontSize={12}>{caption}</text>
+        </g>
       </g>
     })}
     {state.cards.map(card => {
@@ -90,11 +94,13 @@ export interface WorkshopBoardProps {
   onPreview?: (value: Workshop | null) => void
   /** Open the host's object editor when an author double-clicks a card. */
   onEditCard?: (cardId: string) => void
+  /** Open the host's station editor from a map header by touch, click or keyboard. */
+  onEditStation?: (stationId: string) => void
 }
 
-export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onUndo, canUndo, readOnly = false, fitLanes = false, showPlacementOutcomes = true }: WorkshopBoardProps) {
+export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onUndo, canUndo, readOnly = false, fitLanes = false, showPlacementOutcomes = true }: WorkshopBoardProps) {
   const container = React.useRef<HTMLDivElement>(null)
-  const press = React.useRef<{id: string; x: number; y: number} | null>(null)
+  const press = React.useRef<{kind: 'card' | 'station'; id: string; x: number; y: number} | null>(null)
   const lastTap = React.useRef<{id: string; at: number} | null>(null)
   const [viewport, setViewport] = React.useState(0)
   const fit = fitLanes && !value.kind && !value.lanes[0].station
@@ -172,16 +178,32 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onUndo, 
   }, [cancel, keyboard])
   const linked = readOnly ? null : keyboardMove?.next ?? preview
   const viewOnly = Boolean(readOnly || keyboardMove)
-  const draggable = React.useMemo<Draggable<Workshop>>(() => fitted
-    ? props => renderBoard(props, viewOnly, fitted)
-    : viewOnly ? readOnlyBoard : editableBoard, [fitted, viewOnly])
+  const editStations = Boolean(onEditStation && value.lanes[0].station && !viewOnly)
+  const draggable = React.useMemo<Draggable<Workshop>>(() => fitted || editStations
+    ? props => renderBoard(props, viewOnly, fitted, editStations)
+    : viewOnly ? readOnlyBoard : editableBoard, [fitted, viewOnly, editStations])
   const canvasHeight = linked ? Math.max(height, workshopPositions(linked, fitted?.layout).height) : height
   return <section aria-label={value.title}>
     <div ref={container} style={{ maxWidth: '100%', overflowX: 'auto' }}
+      onKeyDownCapture={event => {
+        const id = (event.target as Element).closest('[data-workshop-station]')?.getAttribute('data-workshop-station')
+        if (!editStations || !id || !['Enter', ' '].includes(event.key)) return
+        event.preventDefault()
+        if (!event.repeat) onEditStation?.(id)
+      }}
+      onClickCapture={event => {
+        // Assistive technology can activate an SVG button without pointer events.
+        const id = (event.target as Element).closest('[data-workshop-station]')?.getAttribute('data-workshop-station')
+        if (editStations && event.detail === 0 && id) onEditStation?.(id)
+      }}
       onPointerDownCapture={event => {
-        const id = (event.target as Element).closest('[data-workshop-card]')?.getAttribute('data-workshop-card')
-        press.current = !readOnly && onEditCard && id && event.isPrimary && event.button === 0
-          ? {id, x:event.clientX, y:event.clientY} : null
+        press.current = null
+        if (viewOnly || !event.isPrimary || event.button !== 0) return
+        const element = (event.target as Element).closest('[data-workshop-card],[data-workshop-station]')
+        const station = element?.getAttribute('data-workshop-station')
+        const card = element?.getAttribute('data-workshop-card')
+        if (station && editStations) press.current = {kind:'station', id:station, x:event.clientX, y:event.clientY}
+        else if (card && onEditCard) press.current = {kind:'card', id:card, x:event.clientX, y:event.clientY}
       }}
       onPointerMoveCapture={event => {
         if (press.current && Math.hypot(event.clientX - press.current.x, event.clientY - press.current.y) > 5) {
@@ -195,7 +217,13 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onUndo, 
         // on the same card open it while a drag remains exclusively a move.
         const current = press.current
         press.current = null
-        if (!current || !onEditCard || readOnly) return
+        if (!current || viewOnly) return
+        if (current.kind === 'station') {
+          lastTap.current = null
+          onEditStation?.(current.id)
+          return
+        }
+        if (!onEditCard) return
         if (lastTap.current?.id === current.id && event.timeStamp - lastTap.current.at < 400) {
           lastTap.current = null
           onEditCard(current.id)

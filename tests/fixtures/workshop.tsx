@@ -27,7 +27,7 @@ function Example() {
   const shown = preview ?? board
   return <>
     <label>View only<input type="checkbox" checked={readOnly} onChange={e => setReadOnly(e.target.checked)} /></label>
-    <WorkshopBoard onEditCard={setEditing} fitLanes={fitLanes} readOnly={readOnly} value={board} onPreview={setPreview} onChange={next => {
+    <WorkshopBoard onEditStation={id => setEditing('station:' + id)} onEditCard={setEditing} fitLanes={fitLanes} readOnly={readOnly} value={board} onPreview={setPreview} onChange={next => {
       setUndo(board); setBoard(next); setCommits(count => count + 1)
     }} />
     <output aria-label="Selected object">{editing}</output>

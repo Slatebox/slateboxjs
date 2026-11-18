@@ -20,7 +20,9 @@ export interface WorkshopBoardProps {
     onPreview?: (value: Workshop | null) => void;
     /** Open the host's object editor when an author double-clicks a card. */
     onEditCard?: (cardId: string) => void;
+    /** Open the host's station editor from a map header by touch, click or keyboard. */
+    onEditStation?: (stationId: string) => void;
 }
-export declare function WorkshopBoard({ value, onChange, onPreview, onEditCard, onUndo, canUndo, readOnly, fitLanes, showPlacementOutcomes }: WorkshopBoardProps): React.JSX.Element;
+export declare function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onUndo, canUndo, readOnly, fitLanes, showPlacementOutcomes }: WorkshopBoardProps): React.JSX.Element;
 export { MoonGalleryBoard, type MoonGalleryBoardProps } from './MoonGalleryBoard';
 export { FocusDarkroomBoard } from './darkroom/FocusDarkroomBoard';

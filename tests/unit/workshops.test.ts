@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { deserializeNodeOptions } from '../../src/core/Serialization'
-import { availableLanes, decodeWorkshopFragment, encodeWorkshopFragment, nightTransfer, industrialWorkshop, releasePlan, resolveWorkshopSignals, workshopPresentationLanes, workshopPresentationScenes, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
+import { createWorkshopMap, addWorkshopBranch, availableLanes, decodeWorkshopFragment, encodeWorkshopFragment, nightTransfer, industrialWorkshop, releasePlan, resolveWorkshopSignals, workshopPresentationLanes, workshopPresentationScenes, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
 
 describe('agent-authored workshops', () => {
   it('opens the authored state, including its rules and literal URL punctuation', () => {
@@ -120,5 +120,56 @@ describe('agent-authored workshops', () => {
     expect(trial.x).toBe(lane.x)
     expect(trial.y!).toBeGreaterThan(lane.y!)
     expect(trial.text).toBe('Test bearing sensors on line four')
+  })
+})
+
+describe('interactive map authoring', () => {
+  it('starts independently and adds a playable fork with its own scene and native connector', () => {
+    const first = createWorkshopMap()
+    const next = addWorkshopBranch(first, 'start', { label: 'Sound booth', outcome: 'A recording begins.' })
+    const destination = next.lanes[2]
+    expect(first).toEqual(createWorkshopMap())
+    expect(first.lanes).not.toBe(createWorkshopMap().lanes)
+    expect(destination.station).toEqual({ column: 0, row: 1, next: [], outcome: 'A recording begins.' })
+    expect(availableLanes(next, next.cards[0]).map(l => l.id)).toEqual(['start', 'next', destination.id])
+    const moved = moveWorkshopCard(next, 'token', destination.id)
+    expect(workshopPresentationScenes(moved)[2].cards.map(c => c.id)).toEqual(['token'])
+    expect(decodeWorkshopFragment(encodeWorkshopFragment(moved))).toEqual(moved)
+    const native = workshopToSlate(next).nodes.find(n => n.options.id === 'lane-start')!
+    expect(native.relationships.associations.map(a => a.childId)).toContain('lane-' + destination.id)
+  })
+
+  it('preserves authored restrictions, placements, existing routes and presentation order', () => {
+    const map = createWorkshopMap()
+    map.presentationOrder = ['next', 'start']
+    map.cards[0].id = 'station-1'
+    map.cards[0].allowedLaneIds = ['start', 'next']
+    map.lanes[1].capacity = 1
+    map.signals = [{ id:'station-2', label:'Arrival', cardId:'station-1', laneId:'next', whenPresent:'Here', whenAbsent:'Away' }]
+    const branch = { label:'Next step', outcome:'A different destination.' }
+    const result = addWorkshopBranch(map, 'next', branch)
+    expect(result.lanes[2].id).toBe('station-3')
+    expect(result.lanes[1].station!.next).toEqual(['station-3'])
+    expect(result.lanes[0]).toEqual(map.lanes[0])
+    expect(result.lanes[1].capacity).toBe(1)
+    expect(result.cards).toEqual(map.cards)
+    expect(result.signals).toEqual(map.signals)
+    expect(result.presentationOrder).toEqual(['next', 'start', 'station-3'])
+    expect(validateWorkshop(result)).toEqual(result)
+    const atFork = moveWorkshopCard(result, 'station-1', 'next')
+    expect(availableLanes(atFork, atFork.cards[0]).map(lane => lane.id)).toEqual(['next'])
+  })
+
+  it('rejects invalid destinations and caps the map without modifying the source', () => {
+    const map = createWorkshopMap()
+    const branch = { label:'Room', outcome:'Arrived.' }
+    expect(() => addWorkshopBranch(industrialWorkshop, 'start', branch)).toThrow(/interactive map/)
+    expect(() => addWorkshopBranch(map, 'unknown', branch)).toThrow(/Choose a station/)
+    expect(() => addWorkshopBranch(map, 'start', { ...branch, label:' ' })).toThrow()
+    expect(() => addWorkshopBranch(map, 'start', { ...branch, outcome:'<svg>' })).toThrow()
+    const full = [1, 2, 3].reduce(board => addWorkshopBranch(board, 'start', branch), map)
+    expect(new Set(full.lanes.map(l => l.station!.column + ',' + l.station!.row)).size).toBe(5)
+    expect(() => addWorkshopBranch(full, 'start', branch)).toThrow(/five stations/)
+    expect(map).toEqual(createWorkshopMap())
   })
 })

@@ -85,6 +85,13 @@ export declare function workshopPositions(board: Workshop, layout?: {
     width: number;
     height: number;
 };
+/** A fresh editable map, with enough structure to move a token or add a second path. */
+export declare function createWorkshopMap(): Workshop;
+/** Append a destination without moving any existing stations or relaxing token restrictions. */
+export declare function addWorkshopBranch(board: Workshop, fromStationId: string, branch: {
+    label: string;
+    outcome: string;
+}): Workshop;
 export declare const nightTransfer: Workshop;
 export declare function workshopToSlate(input: Workshop): SlateJSON;
 export declare const industrialWorkshop: Workshop;

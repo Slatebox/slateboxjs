@@ -178,3 +178,38 @@ test('authored placement outcomes follow held, canceled, committed and undone mo
   await expect(state).toContainText(ready)
   await expect(commits).toHaveText('2')
 })
+
+test('station headers open their editor from pointer and keyboard while token movement stays independent', async ({page}) => {
+  await page.goto('/tests/fixtures/workshop.html?map')
+  const selected = page.getByLabel('Selected object')
+  const platform = page.getByRole('button', {name:'Edit Last train', exact:true})
+  const stairs = page.getByRole('button', {name:'Edit East stairs', exact:true})
+  await platform.click()
+  await expect(selected).toHaveText('station:platform')
+  await stairs.focus()
+  await stairs.press('Space')
+  await expect(selected).toHaveText('station:stairs')
+  await platform.focus()
+  await platform.press('Enter')
+  await expect(selected).toHaveText('station:platform')
+  const card = (await page.locator('#choice-rider').boundingBox())!
+  const from = (await platform.boundingBox())!, to = (await stairs.boundingBox())!
+  const x = card.x + card.width / 2, y = card.y + card.height / 2
+  await page.mouse.move(x, y); await page.mouse.down()
+  await page.mouse.move(x + to.x - from.x, y + to.y - from.y, {steps:12}); await page.mouse.up()
+  await expect(page.getByLabel('Committed decisions')).toHaveText('1')
+  await expect(selected).toHaveText('station:platform')
+  await page.getByLabel('View only').check()
+  await expect(page.getByRole('button', {name:/^Edit /})).toHaveCount(0)
+})
+
+test('a phone tap selects a station without moving its token', async ({browser, baseURL}) => {
+  const context = await browser.newContext({baseURL, hasTouch:true, viewport:{width:390,height:844}})
+  try {
+    const page = await context.newPage()
+    await page.goto('/tests/fixtures/workshop.html?map')
+    await page.getByRole('button', {name:'Edit Last train', exact:true}).tap()
+    await expect(page.getByLabel('Selected object')).toHaveText('station:platform')
+    await expect(page.getByLabel('Committed decisions')).toHaveText('0')
+  } finally { await context.close() }
+})

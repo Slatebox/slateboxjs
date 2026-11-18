@@ -112,6 +112,9 @@ export function workshopPresentationScenes(board: Workshop): WorkshopPresentatio
   })
 }
 
+const maxWorkshopLanes = 5
+const mapGridSize = 3
+
 // Treat agent output and stored drafts alike. Only declarative fields survive.
 export function validateWorkshop(input: unknown): Workshop {
   const value = record(input)
@@ -119,7 +122,7 @@ export function validateWorkshop(input: unknown): Workshop {
   if (value.kind !== undefined && value.kind !== 'release-plan') throw new Error('Unsupported workshop kind.')
   const release = value.kind === 'release-plan'
   const title = label(value.title, 120)
-  if (!Array.isArray(value.lanes) || value.lanes.length < 2 || value.lanes.length > 5) {
+  if (!Array.isArray(value.lanes) || value.lanes.length < 2 || value.lanes.length > maxWorkshopLanes) {
     throw new Error('A workshop needs 2 to 5 lanes.')
   }
   if (!Array.isArray(value.cards) || value.cards.length < 1 || value.cards.length > 24) {
@@ -139,7 +142,7 @@ export function validateWorkshop(input: unknown): Workshop {
     if (raw.station !== undefined) {
       const point = record(raw.station)
       const coordinate = (n: unknown) => {
-        if (typeof n !== 'number' || !Number.isInteger(n) || n < 0 || n > 2) {
+        if (typeof n !== 'number' || !Number.isInteger(n) || n < 0 || n >= mapGridSize) {
           throw new Error('Use map coordinates from 0 to 2.')
         }
         return n
@@ -278,6 +281,52 @@ export function workshopPositions(board: Workshop, layout = workshopLayout) {
   }))
   return { points, width: Math.max(...points.map(p => p.x)) + pitch,
     height: Math.max(...points.map((p, i) => p.y + top + (map ? Math.max(1, rows[i]) : rows[i] + 1) * row)) }
+}
+
+/** A fresh editable map, with enough structure to move a token or add a second path. */
+export function createWorkshopMap(): Workshop {
+  return {
+    version: 1, title: 'Untitled map',
+    lanes: [
+      { id: 'start', label: 'Start', station: { column: 0, row: 0, next: ['next'], outcome: 'The token is at the start.' } },
+      { id: 'next', label: 'Next step', station: { column: 1, row: 0, next: [], outcome: 'The token has reached the next step.' } },
+    ],
+    cards: [{ id: 'token', label: 'Token', laneId: 'start' }],
+  }
+}
+
+/** Append a destination without moving any existing stations or relaxing token restrictions. */
+export function addWorkshopBranch(board: Workshop, fromStationId: string, branch: { label: string; outcome: string }): Workshop {
+  const map = validateWorkshop(board)
+  if (map.kind || !map.lanes[0].station) throw new Error('Add branches to an interactive map.')
+  const source = map.lanes.find(lane => lane.id === fromStationId)
+  if (!source?.station) throw new Error('Choose a station on this map.')
+  if (map.lanes.length >= maxWorkshopLanes) throw new Error('A map can have up to five stations.')
+  const name = label(branch?.label)
+  const outcome = label(branch?.outcome, 160)
+  const used = new Set([...map.lanes, ...map.cards, ...(map.signals ?? [])].map(item => item.id))
+  let n = 1
+  while (used.has('station-' + n)) n++
+  const nextId = 'station-' + n
+
+  let position: { column: number; row: number } | undefined
+  let closest = Infinity
+  for (let row = 0; row < mapGridSize; row++) {
+    for (let column = 0; column < mapGridSize; column++) {
+      if (map.lanes.some(lane => lane.station!.column === column && lane.station!.row === row)) continue
+      const distance = Math.abs(source.station.column - column) + Math.abs(source.station.row - row)
+      if (distance < closest) {
+        closest = distance
+        position = { column, row }
+      }
+    }
+  }
+  if (!position) throw new Error('There is no free station position.')
+  // validateWorkshop returned a fresh document, independent of the caller's board.
+  source.station.next.push(nextId)
+  map.lanes.push({ id: nextId, label: name, station: { ...position, next: [], outcome } })
+  map.presentationOrder?.push(nextId)
+  return map
 }
 
 export const nightTransfer: Workshop = {
