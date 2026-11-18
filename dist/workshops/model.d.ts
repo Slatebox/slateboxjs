@@ -61,6 +61,7 @@ export interface WorkshopPresentationScene {
 }
 /** Describe each authored viewpoint from the committed state, including empty lanes. */
 export declare function workshopPresentationScenes(board: Workshop): WorkshopPresentationScene[];
+export declare const maxWorkshopCards = 24;
 export declare function validateWorkshop(input: unknown): Workshop;
 /** Build the fragment for /new/workshop from portable workshop data. */
 export declare function encodeWorkshopFragment(value: Workshop): string;
@@ -90,6 +91,10 @@ export declare function workshopPositions(board: Workshop, layout?: {
     width: number;
     height: number;
 };
+/** Start with two empty, editable lanes. IDs have no special meaning to the renderer. */
+export declare function createLaneWorkshop(): Workshop;
+export declare function addWorkshopLane(input: Workshop, lane: Pick<WorkshopLane, 'label' | 'capacity'>): Workshop;
+export declare function addWorkshopCard(input: Workshop, laneId: string, card: Pick<WorkshopCard, 'label' | 'allowedLaneIds'>): Workshop;
 /** A fresh editable map, with enough structure to move a token or add a second path. */
 export declare function createWorkshopMap(): Workshop;
 /** Append a destination without moving any existing stations or relaxing token restrictions. */

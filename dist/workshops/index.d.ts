@@ -22,7 +22,11 @@ export interface WorkshopBoardProps {
     onEditCard?: (cardId: string) => void;
     /** Open the host's station editor from a map header by touch, click or keyboard. */
     onEditStation?: (stationId: string) => void;
+    /** Open the ordinary lane editor from its heading. */
+    onEditLane?: (laneId: string, anchorElement: SVGGElement) => void;
+    /** Offer a place to author a new card in each ordinary lane with room. */
+    onAddCard?: (laneId: string, anchorElement: SVGGElement) => void;
 }
-export declare function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onUndo, canUndo, readOnly, fitLanes, showPlacementOutcomes }: WorkshopBoardProps): React.JSX.Element;
+export declare function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onEditLane, onAddCard, onUndo, canUndo, readOnly, fitLanes, showPlacementOutcomes }: WorkshopBoardProps): React.JSX.Element;
 export { MoonGalleryBoard, type MoonGalleryBoardProps } from './MoonGalleryBoard';
 export { FocusDarkroomBoard } from './darkroom/FocusDarkroomBoard';

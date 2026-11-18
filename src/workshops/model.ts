@@ -132,6 +132,7 @@ export function workshopPresentationScenes(board: Workshop): WorkshopPresentatio
 }
 
 const maxWorkshopLanes = 5
+export const maxWorkshopCards = 24
 const mapGridSize = 3
 
 // Treat agent output and stored drafts alike. Only declarative fields survive.
@@ -144,8 +145,8 @@ export function validateWorkshop(input: unknown): Workshop {
   if (!Array.isArray(value.lanes) || value.lanes.length < 2 || value.lanes.length > maxWorkshopLanes) {
     throw new Error('A workshop needs 2 to 5 lanes.')
   }
-  if (!Array.isArray(value.cards) || value.cards.length < 1 || value.cards.length > 24) {
-    throw new Error('A workshop needs 1 to 24 cards.')
+  if (!Array.isArray(value.cards) || value.cards.length > maxWorkshopCards) {
+    throw new Error('A workshop supports up to 24 cards.')
   }
 
   const lanes: WorkshopLane[] = value.lanes.map(item => {
@@ -176,6 +177,9 @@ export function validateWorkshop(input: unknown): Workshop {
   })
   const laneIds = lanes.map(lane => lane.id)
   unique(laneIds, 'lane ID')
+  if ((release || lanes.some(lane => lane.station)) && !value.cards.length) {
+    throw new Error('Maps and release plans need at least one card.')
+  }
   if (lanes.some(lane => lane.station)) {
     if (!lanes.every(lane => lane.station)) throw new Error('Give every station on the map a position.')
     unique(lanes.map(lane => lane.station!.column + ',' + lane.station!.row), 'map position')
@@ -303,6 +307,40 @@ export function workshopPositions(board: Workshop, layout = workshopLayout) {
     height: Math.max(...points.map((p, i) => p.y + top + (map ? Math.max(1, rows[i]) : rows[i] + 1) * row)) }
 }
 
+/** Start with two empty, editable lanes. IDs have no special meaning to the renderer. */
+export function createLaneWorkshop(): Workshop {
+  return { version: 1, title: 'Untitled workshop',
+    lanes: [{ id: 'lane-1', label: 'Lane 1' }, { id: 'lane-2', label: 'Lane 2' }], cards: [] }
+}
+
+function nextWorkshopId(board: Workshop, prefix: string): string {
+  const used = new Set([...board.lanes, ...board.cards, ...(board.signals ?? [])].map(item => item.id))
+  let n = 1
+  while (used.has(prefix + '-' + n)) n++
+  return prefix + '-' + n
+}
+
+function ordinaryWorkshop(input: Workshop): Workshop {
+  const board = validateWorkshop(input)
+  if (board.kind || board.lanes[0].station) throw new Error('Choose a lane workshop to add lanes or cards.')
+  return board
+}
+
+export function addWorkshopLane(input: Workshop, lane: Pick<WorkshopLane, 'label' | 'capacity'>): Workshop {
+  const board = ordinaryWorkshop(input)
+  const id = nextWorkshopId(board, 'lane')
+  board.lanes.push({ id, label: lane.label, ...(lane.capacity === undefined ? {} : { capacity: lane.capacity }) })
+  board.presentationOrder?.push(id)
+  return validateWorkshop(board)
+}
+
+export function addWorkshopCard(input: Workshop, laneId: string, card: Pick<WorkshopCard, 'label' | 'allowedLaneIds'>): Workshop {
+  const board = ordinaryWorkshop(input)
+  board.cards.push({ id: nextWorkshopId(board, 'card'), label: card.label, laneId,
+    ...(card.allowedLaneIds === undefined ? {} : { allowedLaneIds: card.allowedLaneIds }) })
+  return validateWorkshop(board)
+}
+
 /** A fresh editable map, with enough structure to move a token or add a second path. */
 export function createWorkshopMap(): Workshop {
   return {
@@ -324,10 +362,7 @@ export function addWorkshopBranch(board: Workshop, fromStationId: string, branch
   if (map.lanes.length >= maxWorkshopLanes) throw new Error('A map can have up to five stations.')
   const name = label(branch?.label)
   const outcome = label(branch?.outcome, 160)
-  const used = new Set([...map.lanes, ...map.cards, ...(map.signals ?? [])].map(item => item.id))
-  let n = 1
-  while (used.has('station-' + n)) n++
-  const nextId = 'station-' + n
+  const nextId = nextWorkshopId(map, 'station')
 
   let position: { column: number; row: number } | undefined
   let closest = Infinity

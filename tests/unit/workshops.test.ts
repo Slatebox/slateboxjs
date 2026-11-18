@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { deserializeNodeOptions } from '../../src/core/Serialization'
-import { createWorkshopMap, addWorkshopBranch, availableLanes, decodeWorkshopFragment, encodeWorkshopFragment, nightTransfer, industrialWorkshop, releasePlan, resolveWorkshopSignals, workshopPresentationLanes, workshopPresentationScenes, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
+import { createLaneWorkshop, addWorkshopLane, addWorkshopCard, createWorkshopMap, addWorkshopBranch, availableLanes, decodeWorkshopFragment, encodeWorkshopFragment, nightTransfer, industrialWorkshop, releasePlan, resolveWorkshopSignals, workshopPresentationLanes, workshopPresentationScenes, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
 
 describe('agent-authored workshops', () => {
   it('opens the authored state, including its rules and literal URL punctuation', () => {
@@ -79,12 +79,49 @@ describe('agent-authored workshops', () => {
     expect(clean).toEqual(industrialWorkshop)
     const first = clean.cards[0]
     for (const update of [
-      { version: 2 }, { lanes: [] }, { cards: [] }, { title: '<img>' },
+      { version: 2 }, { lanes: [] }, { cards: null }, { title: '<img>' },
       { lanes: [clean.lanes[0], clean.lanes[0]] },
       { cards: [first, first] }, { cards: [{ ...first, laneId: 'missing' }] },
       { cards: [{ ...first, allowedLaneIds: ['evidence'] }] },
       { lanes: clean.lanes.map(lane => ({ ...lane, capacity: 1 })) },
     ]) expect(() => validateWorkshop({ ...clean, ...update })).toThrow()
+  })
+
+  it('authors an empty two-lane board without changing earlier rules, objects or presentation order', () => {
+    const empty = createLaneWorkshop()
+    expect(empty.cards).toEqual([])
+    expect(decodeWorkshopFragment(encodeWorkshopFragment(empty))).toEqual(empty)
+    expect(workshopPresentationScenes(empty).map(scene => scene.nodeIds)).toEqual([['lane-lane-1'], ['lane-lane-2']])
+    expect(workshopToSlate(empty).nodes).toHaveLength(2)
+    const imported = validateWorkshop({ ...empty, lanes: [{id:'card-1',label:'Drafts'}, {id:'lane-1',label:'Broadcast',capacity:1}],
+      presentationOrder:['lane-1','card-1'] })
+    const first = addWorkshopCard(imported, 'card-1', {label:'Harbour bell',allowedLaneIds:['card-1']})
+    expect(first.cards[0].id).toBe('card-2')
+    const expanded = addWorkshopLane(first, {label:'Drafts',capacity:1})
+    expect(expanded.presentationOrder).toEqual(['lane-1','card-1','lane-2'])
+    expect(expanded.cards[0].allowedLaneIds).toEqual(['card-1'])
+    expect(expanded.lanes.map(lane => lane.label)).toEqual(['Drafts','Broadcast','Drafts'])
+    expect(imported.cards).toEqual([])
+    const full = addWorkshopCard(expanded,'lane-2',{label:'Harbour bell'})
+    expect(() => addWorkshopCard(full,'lane-2',{label:'Second bell'})).toThrow(/capacity/)
+    expect(() => addWorkshopCard(full,'missing',{label:'Another recording'})).toThrow(/unknown lane/)
+    expect(() => addWorkshopCard(full,'lane-1',{label:'Tune',allowedLaneIds:['card-1']})).toThrow(/starting lane/)
+    expect(() => addWorkshopLane(full,{label:'<b>markup</b>'})).toThrow(/plain text/)
+    expect(() => addWorkshopCard(full,'card-1',{label:' '})).toThrow()
+    expect(decodeWorkshopFragment(encodeWorkshopFragment(full))).toEqual(full)
+  })
+
+  it('enforces lane/card limits and retains the minimum card for maps and release plans', () => {
+    let board = createLaneWorkshop()
+    for (let i = 0; i < 3; i++) board = addWorkshopLane(board,{label:'New lane'})
+    expect(() => addWorkshopLane(board,{label:'Extra lane'})).toThrow(/2 to 5/)
+    for (let i = 0; i < 24; i++) board = addWorkshopCard(board,board.lanes[0].id,{label:'Idea'})
+    expect(() => addWorkshopCard(board,board.lanes[0].id,{label:'Extra card'})).toThrow(/24 cards/)
+    for (const other of [createWorkshopMap(),releasePlan]) {
+      expect(() => validateWorkshop({...other,cards:[]})).toThrow(/at least one card/)
+      expect(() => addWorkshopLane(other,{label:'Draft'})).toThrow(/lane workshop/)
+      expect(() => addWorkshopCard(other,other.lanes[0].id,{label:'Draft'})).toThrow(/lane workshop/)
+    }
   })
 
   it('applies capacity and per-card rules to both movement and available destinations', () => {

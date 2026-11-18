@@ -213,3 +213,23 @@ test('a phone tap selects a station without moving its token', async ({browser, 
     await expect(page.getByLabel('Committed decisions')).toHaveText('0')
   } finally { await context.close() }
 })
+
+
+test('an empty fitted board anchors card creation and lane editing by keyboard or pointer', async ({page}) => {
+  await page.setViewportSize({width:320,height:780})
+  await page.goto('/tests/fixtures/workshop.html?author')
+  await expect(page.locator('summary')).toHaveCount(0)
+  const lane = page.getByRole('button',{name:'Edit Lane 2'})
+  await lane.press('Space')
+  await expect(page.getByLabel('Selected object')).toHaveText('lane:lane-2')
+  const add = page.getByRole('button',{name:'Add card to Lane 2'})
+  await add.press('Enter')
+  await expect(page.locator('#choice-card-1')).toContainText('Wind chimes')
+  await page.getByRole('button',{name:'Add card to Lane 1'}).click()
+  await expect(page.locator('#choice-card-2')).toContainText('Wind chimes')
+  await page.locator('summary').click()
+  await expect(page.getByLabel('Move Wind chimes').first()).toHaveValue('lane-2')
+  await page.getByLabel('View only').check()
+  await expect(add).toHaveCount(0)
+  await expect(lane).toHaveCount(0)
+})

@@ -3,7 +3,7 @@ export { ListeningRoomBoard, type ListeningRoomBoardProps } from './ListeningRoo
 import React from 'react'
 import { fitLaneLayout } from './fitLanes'
 import { DraggableRenderer, translate, type Draggable, type DraggableProps, type DragStatus } from 'dragology'
-import { availableLanes, resolveWorkshopSignals, releaseLoad, laneColors, moveWorkshopCard, workshopLayout, workshopPositions, type Workshop } from './model'
+import { availableLanes, resolveWorkshopSignals, releaseLoad, laneColors, moveWorkshopCard, workshopLayout, workshopPositions, maxWorkshopCards, type Workshop } from './model'
 
 import { ReleaseMoveControls, ReleasePlanReadout, type WorkshopMove } from './ReleasePlan'
 export { ReleasePlanReadout, type WorkshopMove } from './ReleasePlan'
@@ -13,7 +13,7 @@ function wrapLabel(label: string) {
   return label.match(/.{1,23}(?:\s+|$)|.{1,23}/gu)?.map(line => line.trim()) ?? [label]
 }
 
-function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean, fitted?: ReturnType<typeof fitLaneLayout>, editStations = false) {
+function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean, fitted?: ReturnType<typeof fitLaneLayout>, editHeaders = false, addCards = false) {
   const layout = fitted?.layout ?? workshopLayout
   const { width, row, height, top } = layout
   const { points } = workshopPositions(state, layout)
@@ -49,14 +49,20 @@ function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Worksho
         : lane.station ? (count ? '● Occupied' : 'Open stop') : lane.capacity ? `${count} of ${lane.capacity} slots` : `${count} ${count === 1 ? 'choice' : 'choices'}`
       return <g id={'heading-' + lane.id} transform={translate(8 + points[column].x, 4 + points[column].y)}>
         {map && <rect x={0} y={0} width={width} height={top + Math.max(1, count) * row - 10} rx={9} fill="#fcf9ed" stroke="#a8b5aa" strokeDasharray="4 4" />}
-        <g {...(map && editStations && !readOnly ? {
-          'data-workshop-station': lane.id, role: 'button', tabIndex: 0, 'aria-label': 'Edit ' + lane.label, cursor: 'pointer',
+        <g {...(editHeaders && !readOnly ? {
+          ...(map ? { 'data-workshop-station': lane.id } : { 'data-workshop-lane': lane.id }), role: 'button', tabIndex: 0, 'aria-label': 'Edit ' + lane.label, cursor: 'pointer',
         } : {})}>
           <rect width={width} height={top - 12} rx={map ? 6 : 9} fill={map ? "#253c36" : laneColors[column]} />
           {(fitted?.labels.get('heading-' + lane.id) ?? wrapLabel(lane.label)).map((line, i) =>
             <text dragologyKey={'line-' + i} fill={map ? "#fffdf3" : "#18302d"} transform={translate(12, (map ? 23 : 16) + i * 16)} fontSize={map ? 17 : 13} fontWeight="bold">{line}</text>)}
           <text fill={map ? "#ebd29a" : "#18302d"} transform={translate(12, top - 23)} fontSize={12}>{caption}</text>
         </g>
+        {addCards && count < (lane.capacity ?? Infinity) && <g data-workshop-add-card={lane.id}
+          transform={translate(0, top + count * row - 4)} role="button" tabIndex={0}
+          aria-label={'Add card to ' + lane.label} cursor="pointer">
+          <rect width={width} height={40} rx={7} fill="#fbfcf9" stroke="#64796c" strokeDasharray="4 3" />
+          <text transform={translate(12, 25)} fontSize={14}>+ Add card</text>
+        </g>}
       </g>
     })}
     {state.cards.map(card => {
@@ -96,11 +102,15 @@ export interface WorkshopBoardProps {
   onEditCard?: (cardId: string) => void
   /** Open the host's station editor from a map header by touch, click or keyboard. */
   onEditStation?: (stationId: string) => void
+  /** Open the ordinary lane editor from its heading. */
+  onEditLane?: (laneId: string, anchorElement: SVGGElement) => void
+  /** Offer a place to author a new card in each ordinary lane with room. */
+  onAddCard?: (laneId: string, anchorElement: SVGGElement) => void
 }
 
-export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onUndo, canUndo, readOnly = false, fitLanes = false, showPlacementOutcomes = true }: WorkshopBoardProps) {
+export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onEditLane, onAddCard, onUndo, canUndo, readOnly = false, fitLanes = false, showPlacementOutcomes = true }: WorkshopBoardProps) {
   const container = React.useRef<HTMLDivElement>(null)
-  const press = React.useRef<{kind: 'card' | 'station'; id: string; x: number; y: number} | null>(null)
+  const press = React.useRef<{target: SVGGElement; x: number; y: number} | null>(null)
   const lastTap = React.useRef<{id: string; at: number} | null>(null)
   const [viewport, setViewport] = React.useState(0)
   const fit = fitLanes && !value.kind && !value.lanes[0].station
@@ -178,32 +188,38 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
   }, [cancel, keyboard])
   const linked = readOnly ? null : keyboardMove?.next ?? preview
   const viewOnly = Boolean(readOnly || keyboardMove)
-  const editStations = Boolean(onEditStation && value.lanes[0].station && !viewOnly)
-  const draggable = React.useMemo<Draggable<Workshop>>(() => fitted || editStations
-    ? props => renderBoard(props, viewOnly, fitted, editStations)
-    : viewOnly ? readOnlyBoard : editableBoard, [fitted, viewOnly, editStations])
+  const map = Boolean(value.lanes[0].station)
+  const editHeaders = !viewOnly && (map ? Boolean(onEditStation) : !release && Boolean(onEditLane))
+  const addCards = !viewOnly && !map && !release && Boolean(onAddCard) && value.cards.length < maxWorkshopCards
+  const draggable = React.useMemo<Draggable<Workshop>>(() => fitted || editHeaders || addCards
+    ? props => renderBoard(props, viewOnly, fitted, editHeaders, addCards)
+    : viewOnly ? readOnlyBoard : editableBoard, [fitted, viewOnly, editHeaders, addCards])
+  const controls = '[data-workshop-station],[data-workshop-lane],[data-workshop-add-card]'
+  function activate(target: SVGGElement) {
+    if (viewOnly) return
+    if (target.dataset.workshopStation) onEditStation?.(target.dataset.workshopStation)
+    else if (target.dataset.workshopLane) onEditLane?.(target.dataset.workshopLane, target)
+    else if (target.dataset.workshopAddCard) onAddCard?.(target.dataset.workshopAddCard, target)
+  }
   const canvasHeight = linked ? Math.max(height, workshopPositions(linked, fitted?.layout).height) : height
   return <section aria-label={value.title}>
     <div ref={container} style={{ maxWidth: '100%', overflowX: 'auto' }}
       onKeyDownCapture={event => {
-        const id = (event.target as Element).closest('[data-workshop-station]')?.getAttribute('data-workshop-station')
-        if (!editStations || !id || !['Enter', ' '].includes(event.key)) return
+        const target = (event.target as Element).closest<SVGGElement>(controls)
+        if (!target || !['Enter', ' '].includes(event.key)) return
         event.preventDefault()
-        if (!event.repeat) onEditStation?.(id)
+        if (!event.repeat) activate(target)
       }}
       onClickCapture={event => {
         // Assistive technology can activate an SVG button without pointer events.
-        const id = (event.target as Element).closest('[data-workshop-station]')?.getAttribute('data-workshop-station')
-        if (editStations && event.detail === 0 && id) onEditStation?.(id)
+        const target = (event.target as Element).closest<SVGGElement>(controls)
+        if (target && event.detail === 0) activate(target)
       }}
       onPointerDownCapture={event => {
         press.current = null
         if (viewOnly || !event.isPrimary || event.button !== 0) return
-        const element = (event.target as Element).closest('[data-workshop-card],[data-workshop-station]')
-        const station = element?.getAttribute('data-workshop-station')
-        const card = element?.getAttribute('data-workshop-card')
-        if (station && editStations) press.current = {kind:'station', id:station, x:event.clientX, y:event.clientY}
-        else if (card && onEditCard) press.current = {kind:'card', id:card, x:event.clientX, y:event.clientY}
+        const target = (event.target as Element).closest<SVGGElement>(controls + ',[data-workshop-card]')
+        if (target) press.current = {target, x:event.clientX, y:event.clientY}
       }}
       onPointerMoveCapture={event => {
         if (press.current && Math.hypot(event.clientX - press.current.x, event.clientY - press.current.y) > 5) {
@@ -218,16 +234,17 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
         const current = press.current
         press.current = null
         if (!current || viewOnly) return
-        if (current.kind === 'station') {
+        const card = current.target.dataset.workshopCard
+        if (!card) {
           lastTap.current = null
-          onEditStation?.(current.id)
+          activate(current.target)
           return
         }
         if (!onEditCard) return
-        if (lastTap.current?.id === current.id && event.timeStamp - lastTap.current.at < 400) {
+        if (lastTap.current?.id === card && event.timeStamp - lastTap.current.at < 400) {
           lastTap.current = null
-          onEditCard(current.id)
-        } else lastTap.current = {id:current.id, at:event.timeStamp}
+          onEditCard(card)
+        } else lastTap.current = {id:card, at:event.timeStamp}
       }}>
       <DraggableRenderer key={readOnly ? 'read-only' : gesture}
         draggable={draggable} state={keyboardMove?.next ?? value}
@@ -261,7 +278,7 @@ export function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditSt
         </div>
       })}
     </div>}
-    {!release && <details>
+    {!release && value.cards.length > 0 && <details>
       <summary>Move a card by name</summary>
       {value.cards.map(card => <label key={card.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBlock: 6 }}>
         {card.label}
