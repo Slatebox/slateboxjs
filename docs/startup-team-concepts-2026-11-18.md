@@ -8,7 +8,7 @@ During an Apple services outage, a visitor reported that a store could neither p
 
 Give a founder, engineer and support lead one actual dependency drawing. Connect “Sign in” to “New customer” and put “Existing session” on a separate path. Move the sign-in note aside to make room for a fallback, draw the alternate path and let a teammate name the customer action it restores. Present the before-and-after views from the same board. Every gesture should work with ordinary notes, connectors and presentation controls. Automatic impact propagation would need a separate engine capability and proof. Hosted teams can rehearse an incident together. Teams that keep internal topology private have a concrete reason to install.
 
-The implemented example has six editable notes and four directed connectors. The visitor can move either customer path and write the support response. Opening it in Slatebox preserves the drawing. A second editor changed the fallback and the owner reopened it during staging verification. [Use the example](https://slatebox.com/#collaboration) · [Follow the guide](https://docs.slatebox.com/examples/sign-in-outage/)
+The implemented example has six editable notes and four directed connectors. The visitor can move either customer path and write the support response. Opening it in Slatebox preserves the drawing. A second editor changed the fallback and the owner reopened it during staging verification. [Use the example](https://slatebox.com/assets/product/sign-in-outage.html) · [Follow the guide](https://docs.slatebox.com/examples/sign-in-outage/)
 
 **First test with a prospective team.** Give someone the slate with its labels visible and ask “Can an existing customer still open their work?” Watch whether they can answer from the drawing and add the missing recovery path unaided.
 
@@ -39,6 +39,8 @@ Give a reviewer two pieces of evidence on a slate, a quicker run and a known reg
 ## Selection and proof
 
 A second look at the first 120 top stories at 20:53 UTC surfaced a question worth taking into a buyer walkthrough. A developer considering Mastra Factory could not tell from the docs whether an agent acts as itself or under the engineer’s GitHub identity. In the Maritime launch, a prospective user asked which credentials their own customers would supply. These are two distinct questions about whose account is involved at a particular step. [Mastra identity question](https://news.ycombinator.com/item?id=50551956) · [Maritime customer question](https://news.ycombinator.com/item?id=50549551)
+
+The team handoff applies that question to a fictional refund. Someone can replace the opening question, carry it into a private slate and ask Slatebox to add two possible decisions. A teammate can trace the paths on the reopened map. The resulting artifact records who the team says can approve a refund. [Start a team handoff](https://slatebox.com/use-cases/creative-handoffs/)
 
 **Candidate for a second buyer walkthrough.** Put a teammate, an agent and a customer workspace on an ordinary slate. Ask the buyer to place “Whose account approves this?” on the connection they want explained. The engineer adds the actual answer and walks the buyer through it. The drawing records the team’s explanation. The visitor gets to ask a question the team did not script. Test whether a second engineer can answer it from the reopened drawing before putting this on the product page.
 
