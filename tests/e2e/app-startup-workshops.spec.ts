@@ -58,7 +58,7 @@ for (const example of examples) {
       const decision=example.kind==='customer-interviews'?'Keep original record':'1 placement'
       const target='[data-drop="'+example.lane+'"]'
       await expect(owner.locator(target)).toContainText(decision)
-      await editObject(owner,'card:'+example.card, async()=>{await owner.getByLabel('Name',{exact:true}).fill('First customer pilot')})
+      await editObject(owner,'card:'+example.card, async()=>{await owner.locator('.workshop-inspector').getByLabel('Name',{exact:true}).fill('First customer pilot')})
       await expect(peer.locator(choice)).toContainText('First customer pilot')
       await peer.reload()
       await dismissWelcome(peer)
