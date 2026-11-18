@@ -52,7 +52,7 @@ test("create, share an editable invitation, present a teammate's note, and reope
     await owner.getByRole("button",{name:"Share",exact:true}).click();
     await share.getByRole("button",{name:/Unlisted/}).click();
     shared = true;
-    const unlisted = share.getByRole("region").filter({hasText:"Share the unlisted link"});
+    const unlisted = share.getByRole("region",{name:/Unlisted/});
     const level = unlisted.getByRole("combobox");
     await expect(level).toHaveText("read");
     await level.click();
