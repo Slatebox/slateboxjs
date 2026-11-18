@@ -47,7 +47,7 @@ test("a saved legacy flowchart keeps its shapes and connections after an editor 
     for (const old of fixture.nodes) {
       const current = saved.find((entry: any) => entry.options.id === old.options.id);
       expect(current?.options.text).toBe(old.options.text);
-      expect(current?.options.vectorPath).toBeTruthy();
+      expect(current?.options.vectorPath).toBe(old.options.vectorPath);
     }
   }).toPass({ timeout: 20000 });
   await page.reload();
