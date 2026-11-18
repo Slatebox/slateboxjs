@@ -36,6 +36,8 @@ for (const scheme of ['light', 'dark']) {
   test(`pricing headers and plan details have readable contrast in ${scheme} mode`, async ({ page }) => {
     await page.addInitScript(mode => localStorage.setItem('mui-mode', mode), scheme)
     await page.goto('/plans')
+    // Hosted plan cards arrive via Meteor after the pricing page first renders.
+    await page.getByRole('button', { name: 'Go Pro', exact: true }).waitFor({ timeout: 15000 })
     const headers = page.locator('.MuiCardHeader-root')
     await expect(headers).toHaveCount(3)
     const colors = await headers.evaluateAll(elements => elements.flatMap(header => {
