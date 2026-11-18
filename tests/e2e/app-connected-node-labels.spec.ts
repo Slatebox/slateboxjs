@@ -70,7 +70,10 @@ test('new connected nodes start blank and keep authored labels and edges through
   await page.reload()
   for (const [index,id] of children.entries()) {
     const node = page.locator('#slateCanvas [data-node-id="' + id + '"]').first()
-    await expect(node.locator('text').first()).toHaveText(expected[index])
+    await expect(node).toHaveAttribute('aria-label', expected[index])
+    // SVG wraps each line in its own tspan; textContent omits the visual line break.
+    const lines = node.locator('text').first().locator('tspan')
+    await expect.poll(async () => (await lines.allTextContents()).join(' ')).toBe(expected[index])
   }
   const endpoints = await page.evaluate(id => {
     const board = (window as any).__slateboxInstances.find((s:any) => s.element.id === 'slateCanvas')
