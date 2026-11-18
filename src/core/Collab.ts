@@ -144,14 +144,7 @@ export class Collab {
       this.collabMap.observe((event: any) => {
         if (event.transaction.local) return; // Skip local changes
 
-        event.changes.keys.forEach((change: any, key: string) => {
-          if (change.action === "add" || change.action === "update") {
-            const pkg = this.collabMap.get(key);
-            if (pkg) {
-              this.handleRemotePackage(pkg);
-            }
-          }
-        });
+        this.applyRemoteChanges(event.keysChanged);
       });
 
       // Create WebSocket provider — params carry auth (e.g. HMAC bearer +
@@ -310,11 +303,12 @@ export class Collab {
           this.pruneSupersededLineProperty(pkg.data);
         }
 
-        this.collabMap.set(key, {
-          ...pkg,
-          clientID: this.clientID,
-          timestamp: Date.now(),
-        });
+        const entry = { ...pkg, clientID: this.clientID, timestamp: Date.now() };
+        if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string") {
+          this.storeNodeText(key, entry);
+        } else {
+          this.collabMap.set(key, entry);
+        }
 
         // The collab doc accumulates every package and is replayed on reload/
         // sync. Without this, a deleted node's earlier onNodeAdded would be
@@ -335,6 +329,62 @@ export class Collab {
     for (const pkg of pkgs) {
       (this.slate as any).emitSlateChange?.(pkg.type, pkg.data);
     }
+  }
+
+  private applyRemoteChanges(keys: Iterable<string>): void {
+    const changes = new Map<string, SlatePackage>();
+    const labelIds = new Set<string>();
+    for (const key of keys) {
+      const pkg: SlatePackage | undefined = this.collabMap.get(key);
+      if (!pkg) continue;
+      changes.set(key, pkg);
+      if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string") labelIds.add(pkg.data.id);
+    }
+
+    // Old clients gave every label edit a separate key. Even an untouched
+    // pre-upgrade room must replay its latest stored label on a late join.
+    const latest = new Map<string, { key: string; timestamp: number }>();
+    if (labelIds.size) this.collabMap.forEach((pkg: SlatePackage, key: string) => {
+      if (pkg.type !== "onNodeTextChanged" || typeof pkg.data?.text !== "string" || !labelIds.has(pkg.data.id)) return;
+      const previous = latest.get(pkg.data.id);
+      const timestamp = pkg.timestamp ?? 0;
+      if (!previous || timestamp > previous.timestamp || (timestamp === previous.timestamp && key > previous.key)) {
+        latest.set(pkg.data.id, { key, timestamp });
+      }
+    });
+    for (const [key, pkg] of changes) {
+      if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string" && latest.get(pkg.data.id)?.key !== key) {
+        const { text, ...style } = pkg.data;
+        if (Object.keys(style).some(field => field !== "id")) this.handleRemotePackage({ ...pkg, data: style });
+      } else {
+        this.handleRemotePackage(pkg);
+      }
+    }
+  }
+
+  // Y.Map chooses one convergent label per node, including simultaneous
+  // edits. Random keys retain every old label and replay them in varying order.
+  private storeNodeText(key: string, entry: SlatePackage): void {
+    const { id, text, ...style } = entry.data;
+    const labelKey = "node-text:" + id;
+    const write = () => {
+      // Preserve formatting from older clients' combined text-and-style
+      // packets when migrating their accumulated label changes.
+      this.collabMap.forEach((old: SlatePackage, oldKey: string) => {
+        if (oldKey === labelKey || old.type !== "onNodeTextChanged" ||
+            old.data?.id !== id || old.data.text === undefined) return;
+        const { text: previousText, ...remaining } = old.data;
+        if (Object.keys(remaining).some(field => field !== "id")) {
+          this.collabMap.set(oldKey, { ...old, data: remaining });
+        } else {
+          this.collabMap.delete(oldKey);
+        }
+      });
+      if (Object.keys(style).length) this.collabMap.set(key, { ...entry, data: { id, ...style } });
+      this.collabMap.set(labelKey, { ...entry, data: { id, text } });
+    };
+    if (this.doc) this.doc.transact(write);
+    else write();
   }
 
   /**

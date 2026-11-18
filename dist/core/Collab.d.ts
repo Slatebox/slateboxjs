@@ -83,6 +83,8 @@ export declare class Collab {
      * depends on it even when no collab server is connected.
      */
     send(packages: SlatePackage | SlatePackage[]): void;
+    private applyRemoteChanges;
+    private storeNodeText;
     /**
      * Remove a node's accumulated packages (onNodeAdded + onNodeXXXChanged) from
      * the shared collab doc so a reload/sync replay can't recreate a deleted node.

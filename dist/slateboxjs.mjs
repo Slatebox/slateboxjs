@@ -11778,12 +11778,7 @@ class wo {
           );
         }
       s && (this.userBaseData = s, s.websocketUrl && (this.options.wsUrl = s.websocketUrl), s.websocketParams && (this.options.wsParams = s.websocketParams), s.userName && (this.options.userName = s.userName), s.color && (this.options.userColor = s.color)), this.collabMap = this.doc.getMap("collabPackages"), this.collabMap.observe((a) => {
-        a.transaction.local || a.changes.keys.forEach((l, c) => {
-          if (l.action === "add" || l.action === "update") {
-            const h = this.collabMap.get(c);
-            h && this.handleRemotePackage(h);
-          }
-        });
+        a.transaction.local || this.applyRemoteChanges(a.keysChanged);
       }), this.provider = new i(
         this.options.wsUrl,
         this.options.roomName,
@@ -11852,13 +11847,11 @@ class wo {
       for (const i of e) {
         i.type === "onSlateReplaced" && this.pruneBeforeSlateReplacement();
         const s = `${i.type}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-        if (i.type === "onLinePropertiesChanged" && this.pruneSupersededLineProperty(i.data), this.collabMap.set(s, {
-          ...i,
-          clientID: this.clientID,
-          timestamp: Date.now()
-        }), i.type === "onNodeDeleted") {
-          const o = i.data?.id;
-          o != null && this.pruneNodePackages(o);
+        i.type === "onLinePropertiesChanged" && this.pruneSupersededLineProperty(i.data);
+        const o = { ...i, clientID: this.clientID, timestamp: Date.now() };
+        if (i.type === "onNodeTextChanged" && typeof i.data?.text == "string" ? this.storeNodeText(s, o) : this.collabMap.set(s, o), i.type === "onNodeDeleted") {
+          const r = i.data?.id;
+          r != null && this.pruneNodePackages(r);
         }
       }
     else
@@ -11867,6 +11860,37 @@ class wo {
       );
     for (const i of e)
       this.slate.emitSlateChange?.(i.type, i.data);
+  }
+  applyRemoteChanges(t) {
+    const e = /* @__PURE__ */ new Map(), i = /* @__PURE__ */ new Set();
+    for (const o of t) {
+      const r = this.collabMap.get(o);
+      r && (e.set(o, r), r.type === "onNodeTextChanged" && typeof r.data?.text == "string" && i.add(r.data.id));
+    }
+    const s = /* @__PURE__ */ new Map();
+    i.size && this.collabMap.forEach((o, r) => {
+      if (o.type !== "onNodeTextChanged" || typeof o.data?.text != "string" || !i.has(o.data.id)) return;
+      const a = s.get(o.data.id), l = o.timestamp ?? 0;
+      (!a || l > a.timestamp || l === a.timestamp && r > a.key) && s.set(o.data.id, { key: r, timestamp: l });
+    });
+    for (const [o, r] of e)
+      if (r.type === "onNodeTextChanged" && typeof r.data?.text == "string" && s.get(r.data.id)?.key !== o) {
+        const { text: a, ...l } = r.data;
+        Object.keys(l).some((c) => c !== "id") && this.handleRemotePackage({ ...r, data: l });
+      } else
+        this.handleRemotePackage(r);
+  }
+  // Y.Map chooses one convergent label per node, including simultaneous
+  // edits. Random keys retain every old label and replay them in varying order.
+  storeNodeText(t, e) {
+    const { id: i, text: s, ...o } = e.data, r = "node-text:" + i, a = () => {
+      this.collabMap.forEach((l, c) => {
+        if (c === r || l.type !== "onNodeTextChanged" || l.data?.id !== i || l.data.text === void 0) return;
+        const { text: h, ...d } = l.data;
+        Object.keys(d).some((u) => u !== "id") ? this.collabMap.set(c, { ...l, data: d }) : this.collabMap.delete(c);
+      }), Object.keys(o).length && this.collabMap.set(t, { ...e, data: { id: i, ...o } }), this.collabMap.set(r, { ...e, data: { id: i, text: s } });
+    };
+    this.doc ? this.doc.transact(a) : a();
   }
   /**
    * Remove a node's accumulated packages (onNodeAdded + onNodeXXXChanged) from

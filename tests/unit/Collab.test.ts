@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import * as Y from "yjs";
 import { Collab } from "../../src/core/Collab";
 
 describe("Collab", () => {
@@ -136,6 +137,72 @@ describe("Collab", () => {
       expect(after).not.toContain("onNodeColorChanged:B"); // pruned
       expect(after).toContain("onNodeAdded:A"); // other node untouched
       expect(after.filter((s) => s === "onNodeDeleted:B").length).toBe(1); // tombstone kept
+    });
+
+    it("opens a legacy room at its latest label even when random keys replay in reverse order", () => {
+      const collab = new Collab(mockSlate);
+      const apply = vi.spyOn(collab as any, "handleRemotePackage").mockImplementation(() => {});
+      const map = new Map([
+        ["old-2", { type: "onNodeTextChanged", data: { id: "a", text: "latest" }, timestamp: 20 }],
+        ["old-1", { type: "onNodeTextChanged", data: { id: "a", text: "obsolete", fontSize: 20 }, timestamp: 10 }],
+      ]);
+      (collab as any).collabMap = map;
+      (collab as any).applyRemoteChanges(map.keys());
+      expect(apply.mock.calls.map(([pkg]: any[]) => pkg.data)).toEqual([
+        { id: "a", text: "latest" }, { id: "a", fontSize: 20 },
+      ]);
+      apply.mockClear();
+      (collab as any).applyRemoteChanges(["old-1"]);
+      expect(apply.mock.calls.map(([pkg]: any[]) => pkg.data)).toEqual([{ id: "a", fontSize: 20 }]);
+    });
+
+    it("syncs an old Yjs room to a new reader, then reopens the migrated label from stored updates", () => {
+      const room = new Y.Doc();
+      const entries = room.getMap<any>("collabPackages");
+      // Deliberately store the obsolete packet after the winner, matching the
+      // reverse replay order seen across separate authors on a returning tab.
+      entries.set("onNodeTextChanged_20_abc", { type: "onNodeTextChanged", data: { id: "n", text: "approved" }, timestamp: 20 });
+      entries.set("onNodeTextChanged_10_def", { type: "onNodeTextChanged", data: { id: "n", text: "draft" }, timestamp: 10 });
+      function open() {
+        const client = new Y.Doc();
+        const map = client.getMap<any>("collabPackages");
+        const collab = new Collab(mockSlate);
+        Object.assign(collab, { doc: client, collabMap: map });
+        let label = "";
+        vi.spyOn(collab as any, "handleRemotePackage").mockImplementation((pkg: any) => {
+          if (pkg.data.text !== undefined) label = pkg.data.text;
+        });
+        map.observe(event => { if (!event.transaction.local) (collab as any).applyRemoteChanges(event.keysChanged); });
+        Y.applyUpdate(client, Y.encodeStateAsUpdate(room));
+        return { client, collab, label: () => label };
+      }
+      const reader = open();
+      expect(reader.label()).toBe("approved");
+      reader.collab.send({ type: "onNodeTextChanged", data: { id: "n", text: "shipped" } });
+      Y.applyUpdate(room, Y.encodeStateAsUpdate(reader.client));
+      reader.client.destroy();
+      const fresh = open();
+      expect(fresh.label()).toBe("shipped");
+      expect([...entries.values()].filter(pkg => pkg.data.text !== undefined)).toHaveLength(1);
+      fresh.client.destroy();
+      room.destroy();
+    });
+
+    it("replays one current label while retaining other nodes and formatting from older clients", () => {
+      const collab = new Collab(mockSlate);
+      const map = new Map<string, any>([
+        ["legacy1", { type: "onNodeTextChanged", data: { id: "a", text: "obsolete", fontFamily: "Arial" } }],
+        ["legacy2", { type: "onNodeTextChanged", data: { id: "a", text: "also obsolete" } }],
+        ["legacy3", { type: "onNodeTextChanged", data: { id: "b", text: "another node" } }],
+      ]);
+      (collab as any).collabMap = map;
+      collab.send({ type: "onNodeTextChanged", data: { id: "a", text: "first", fontSize: 20 } });
+      collab.send({ type: "onNodeTextChanged", data: { id: "a", text: "final" } });
+      const patches = [...map.values()].map(v => v.data);
+      expect(patches.filter(p => p.id === "a" && p.text !== undefined)).toEqual([{ id: "a", text: "final" }]);
+      expect(patches).toEqual(expect.arrayContaining([
+        { id: "a", fontFamily: "Arial" }, { id: "a", fontSize: 20 }, { id: "b", text: "another node" },
+      ]));
     });
 
     // Line-property toggle persistence: the doc is replayed on reload and replay
