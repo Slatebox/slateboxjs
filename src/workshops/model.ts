@@ -189,8 +189,8 @@ export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string
 export const workshopLayout = { pitch: 244, width: 228, row: 88, height: 76, top: 98 }
 export const laneColors = ['#d5e9e3', '#fbdfac', '#dedef4', '#dcebf3', '#efd7dc']
 
-export function workshopPositions(board: Workshop) {
-  const { pitch, row, top } = workshopLayout
+export function workshopPositions(board: Workshop, layout = workshopLayout) {
+  const { pitch, row, top } = layout
   const map = Boolean(board.lanes[0].station)
   const rows = board.lanes.map(lane => board.cards.filter(card => card.laneId === lane.id).length)
   const rowHeight = top + Math.max(1, ...rows) * row + 36

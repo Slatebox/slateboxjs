@@ -96,3 +96,53 @@ test('removing edit permission discards a pending candidate and disables every i
   await expect(page.getByRole('button', {name:'Last rider → Market St lift'})).toBeDisabled()
   await expect(page.locator('.workshop-outcomes')).toContainText('Last rider')
 })
+
+for (const width of [320, 960]) {
+  test(`fitted lanes preserve readable field notes and legal drop targets at ${width}px`, async ({page}) => {
+    await page.setViewportSize({width, height:900})
+    await page.goto('/tests/fixtures/workshop.html?fit')
+    const board = page.getByRole('region', {name:'Choose the two recordings for the evening broadcast'})
+    const cards = board.locator('g[id^="choice-"]')
+    await expect(cards).toHaveCount(3)
+    const right = board.locator('#heading-pilot rect')
+    await expect.poll(async () => {
+      const bounds = await right.boundingBox()
+      return (bounds?.x ?? width) + (bounds?.width ?? width)
+    }).toBeLessThanOrEqual(width)
+    for (const card of await cards.all()) {
+      const readable = await card.evaluate(group => {
+        const bounds = group.querySelector('rect')!.getBoundingClientRect()
+        return [...group.querySelectorAll('text')].every(text => {
+          const line = text.getBoundingClientRect()
+          return parseFloat(getComputedStyle(text).fontSize) >= 13 &&
+            line.left >= bounds.left && line.right <= bounds.right &&
+            line.top >= bounds.top && line.bottom <= bounds.bottom
+        })
+      })
+      expect(readable).toBe(true)
+    }
+    const rain = board.locator('#choice-rain')
+    const source = (await rain.boundingBox())!
+    const dest = (await right.boundingBox())!
+    await page.mouse.move(source.x+20,source.y+20)
+    await page.mouse.down()
+    await page.mouse.move(dest.x+20,source.y+20,{steps:12})
+    await expect(page.getByLabel('Quarterly budget')).toHaveText('1 of 2 pilots funded')
+    await page.mouse.up()
+    await expect.poll(async () => Math.abs((await rain.boundingBox())!.x-dest.x)).toBeLessThan(1)
+    await board.locator('summary').click()
+    const train = board.getByRole('combobox', {name:/Move A driver/})
+    await train.focus()
+    await page.keyboard.press('o')
+    await expect(train).toHaveValue('pilot')
+    await expect(board.locator('#heading-pilot')).toContainText('2 of 2 slots')
+    await expect(board.getByRole('combobox', {name:/Move Birdsong/}).locator('option[value="pilot"]')).toHaveCount(0)
+    const bird = (await board.locator('#choice-birds').boundingBox())!
+    await page.mouse.move(bird.x+20,bird.y+20)
+    await page.mouse.down()
+    await page.mouse.move(dest.x+20,bird.y+20,{steps:12})
+    await page.mouse.up()
+    await expect(page.getByLabel('Committed decisions')).toHaveText('2')
+    await expect(board.getByRole('combobox', {name:/Move Birdsong/})).toHaveValue('notes')
+  })
+}

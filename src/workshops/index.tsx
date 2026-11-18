@@ -1,6 +1,7 @@
 export { OfflineHandoffBoard } from './OfflineHandoffBoard'
 export { ListeningRoomBoard, type ListeningRoomBoardProps } from './ListeningRoomBoard'
 import React from 'react'
+import { fitLaneLayout } from './fitLanes'
 import { DraggableRenderer, translate, type Draggable, type DraggableProps, type DragStatus } from 'dragology'
 import { availableLanes, releaseLoad, laneColors, moveWorkshopCard, workshopLayout, workshopPositions, type Workshop } from './model'
 
@@ -12,9 +13,10 @@ function wrapLabel(label: string) {
   return label.match(/.{1,23}(?:\s+|$)|.{1,23}/gu)?.map(line => line.trim()) ?? [label]
 }
 
-function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean) {
-  const { width, row, height, top } = workshopLayout
-  const { points } = workshopPositions(state)
+function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Workshop>, readOnly: boolean, fitted?: ReturnType<typeof fitLaneLayout>) {
+  const layout = fitted?.layout ?? workshopLayout
+  const { width, row, height, top } = layout
+  const { points } = workshopPositions(state, layout)
   const map = Boolean(state.lanes[0].station)
   const position = (card: Workshop['cards'][number]) => {
     const column = state.lanes.findIndex(lane => lane.id === card.laneId)
@@ -48,7 +50,7 @@ function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Worksho
       return <g id={'heading-' + lane.id} transform={translate(8 + points[column].x, 4 + points[column].y)}>
         {map && <rect x={0} y={0} width={width} height={top + Math.max(1, count) * row - 10} rx={9} fill="#fcf9ed" stroke="#a8b5aa" strokeDasharray="4 4" />}
         <rect width={width} height={top - 12} rx={map ? 6 : 9} fill={map ? "#253c36" : laneColors[column]} />
-        {wrapLabel(lane.label).map((line, i) =>
+        {(fitted?.labels.get('heading-' + lane.id) ?? wrapLabel(lane.label)).map((line, i) =>
           <text dragologyKey={'line-' + i} fill={map ? "#fffdf3" : "#18302d"} transform={translate(12, (map ? 23 : 16) + i * 16)} fontSize={map ? 17 : 13} fontWeight="bold">{line}</text>)}
         <text fill={map ? "#ebd29a" : "#18302d"} transform={translate(12, top - 23)} fontSize={12}>{caption}</text>
       </g>
@@ -63,7 +65,7 @@ function renderBoard({ state, d, draggedId, isTracking }: DraggableProps<Worksho
         <rect width={map ? width - 20 : width} height={height - (map ? 6 : 0)} fill={map ? "#ffda75" : "#fffdf6"} stroke="#78857d" rx={map ? 1 : 8} />
         {map && <path d="M198 0v70" stroke="#897530" strokeDasharray="4 5" />}
         {state.kind === 'release-plan' && <text transform={translate(12, height - 10)} fill="#466358" fontSize={12}>{card.points} pts</text>}
-        {wrapLabel(card.label).map((line, i) =>
+        {(fitted?.labels.get(key) ?? wrapLabel(card.label)).map((line, i) =>
           <text dragologyKey={'line-' + i} transform={translate(12, 17 + i * 16)} fontSize={14}>{line}</text>)}
       </g>
     })}
@@ -80,12 +82,27 @@ export interface WorkshopBoardProps {
   onUndo?: () => void
   canUndo?: boolean
   readOnly?: boolean
+  /** Fit ordinary lane boards to the host while retaining legible notes and pointer targets. */
+  fitLanes?: boolean
   /** Temporary model shown to a linked view while the pointer is held. */
   onPreview?: (value: Workshop | null) => void
 }
 
-export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, readOnly = false }: WorkshopBoardProps) {
-  const { width, height } = workshopPositions(value)
+export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, readOnly = false, fitLanes = false }: WorkshopBoardProps) {
+  const container = React.useRef<HTMLDivElement>(null)
+  const [viewport, setViewport] = React.useState(0)
+  const fit = fitLanes && !value.kind && !value.lanes[0].station
+  React.useLayoutEffect(() => {
+    const host = container.current
+    if (!fit || !host) return
+    const measure = () => setViewport(host.clientWidth)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(host)
+    return () => observer.disconnect()
+  }, [fit])
+  const fitted = React.useMemo(() => fit && viewport ? fitLaneLayout(value, viewport) : undefined, [fit, viewport, value])
+  const { width, height } = workshopPositions(value, fitted?.layout)
   const release = value.kind === 'release-plan'
   const [gesture, setGesture] = React.useState(0)
   const dragging = React.useRef(false)
@@ -146,11 +163,15 @@ export function WorkshopBoard({ value, onChange, onPreview, onUndo, canUndo, rea
     }
   }, [cancel, keyboard])
   const linked = readOnly ? null : keyboardMove?.next ?? preview
-  const canvasHeight = linked ? Math.max(height, workshopPositions(linked).height) : height
+  const viewOnly = Boolean(readOnly || keyboardMove)
+  const draggable = React.useMemo<Draggable<Workshop>>(() => fitted
+    ? props => renderBoard(props, viewOnly, fitted)
+    : viewOnly ? readOnlyBoard : editableBoard, [fitted, viewOnly])
+  const canvasHeight = linked ? Math.max(height, workshopPositions(linked, fitted?.layout).height) : height
   return <section aria-label={value.title}>
-    <div style={{ maxWidth: '100%', overflowX: 'auto' }}>
+    <div ref={container} style={{ maxWidth: '100%', overflowX: 'auto' }}>
       <DraggableRenderer key={readOnly ? 'read-only' : gesture}
-        draggable={readOnly || keyboardMove ? readOnlyBoard : editableBoard} state={keyboardMove?.next ?? value}
+        draggable={draggable} state={keyboardMove?.next ?? value}
         onDropState={readOnly ? undefined : onDrop} onDragState={readOnly ? undefined : showPreview} onDragStatus={onDragStatus}
         width={width} height={canvasHeight} />
     </div>
