@@ -43,7 +43,13 @@ export declare const workshopLayout: {
     top: number;
 };
 export declare const laneColors: string[];
-export declare function workshopPositions(board: Workshop): {
+export declare function workshopPositions(board: Workshop, layout?: {
+    pitch: number;
+    width: number;
+    row: number;
+    height: number;
+    top: number;
+}): {
     points: {
         x: number;
         y: number;

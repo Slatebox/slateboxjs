@@ -84,7 +84,18 @@ try {
     `import SlateboxJS, { Slatebox, utils, type SlateJSON } from 'slateboxjs'
 import 'slateboxjs/style.css'
 import { createElement } from 'react'
+import { WorkshopBoard, type WorkshopBoardProps } from 'slateboxjs/workshops'
+import { validateWorkshop, encodeWorkshopFragment } from 'slateboxjs/workshops/model'
 import { DraggableRenderer, type Draggable, type DragSpecBuilder, produceAmb } from 'slateboxjs/dragology'
+const fieldNotes = validateWorkshop({
+  version: 1, title: 'Sound check', lanes: [{id:'notes', label:'Notes'}, {id:'check', label:'Rehearsal', capacity:2}],
+  cards: [{id:'cue', label:'Try a headphone cue', laneId:'notes'}]
+})
+const boardProps: WorkshopBoardProps = {
+  fitLanes: true, value: fieldNotes, onPreview: candidate => { void candidate?.cards },
+  onChange: committed => { encodeWorkshopFragment(committed) },
+}
+void createElement(WorkshopBoard, boardProps)
 const legal = produceAmb({ friday: false }, draft => { draft.friday = true })
 const render: Draggable<{friday: boolean}> = () => createElement('g')
 void [legal, render, DraggableRenderer]
