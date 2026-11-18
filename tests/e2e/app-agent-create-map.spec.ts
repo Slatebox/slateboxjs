@@ -1,0 +1,144 @@
+import { execFile } from 'node:child_process'
+import { randomBytes, randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { resolve } from 'node:path'
+import { promisify } from 'node:util'
+import { expect, test } from '@playwright/test'
+import { dismissWelcome, getSlate, shareAs, userId } from './workshop-guests.shared'
+
+const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
+const installed = process.env.SLATEBOX_AGENT_TOOLS_DIR
+
+test('a packaged agent creates one private decision map and its owner continues the brief on canvas', async ({ browser, request }) => {
+  test.skip(!installed, 'Requires an installed CLI and MCP release package.')
+  test.skip(!['localhost', '127.0.0.1', 'test.slatebox.com'].includes(origin.hostname), 'Uses a disposable registered member.')
+  const manifest = JSON.parse(readFileSync(resolve(installed!, 'package.json'), 'utf8'))
+  const tools = createRequire(resolve(installed!, 'package.json'))
+  const { Client } = tools('@modelcontextprotocol/sdk/client/index.js')
+  const { StdioClientTransport } = tools('@modelcontextprotocol/sdk/client/stdio.js')
+  const owner = await browser.newPage()
+  const reader = await browser.newPage({ viewport: { width: 390, height: 844 } })
+  const expectedBundle = process.env.SLATEBOX_EXPECTED_APP_BUNDLE
+  const email = 'agent-create-' + randomUUID() + '@qa.slatebox.invalid'
+  const brief = 'Who approves a return for a damaged item?'
+  const tokenIds: string[] = []
+  let principal: string | null = null
+  let mcp: InstanceType<typeof Client> | undefined
+  const mine = () => owner.evaluate(async () =>
+    (await (window as any).Meteor.callAsync('slates.get', { type: 'mine', skip: 0, limit: 20 })).slates.map((s: { shareId: string }) => s.shareId).sort())
+  try {
+    await owner.goto(new URL('/new/map', origin).href)
+    await owner.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
+    await owner.waitForFunction(() => Boolean((window as any).Meteor?.userId()))
+    principal = await userId(owner)
+    await owner.goto(new URL('/profile', origin).href)
+    const claim = owner.getByTestId('guest-account-claim')
+    await claim.getByLabel('Email address').fill(email)
+    await claim.locator('input[type=password]').fill(randomBytes(24).toString('hex'))
+    await claim.getByRole('button', { name: 'Save my Slatebox' }).click()
+    await owner.waitForFunction(email => (window as any).Meteor?.user()?.emails?.[0]?.address === email, email)
+    const initial = await mine()
+    const issue = async (name: string, scopes: string[]) => {
+      const created = await owner.evaluate(args => (window as any).Meteor.callAsync('apiTokens.create', args), { name, scopes })
+      tokenIds.push(created.id)
+      return created.token as string
+    }
+    const write = await issue('Create map proof', ['slates:read', 'slates:write'])
+    const read = await issue('Read map proof', ['slates:read'])
+    const url = new URL('/api/v1/slates', origin).href
+    const key = randomUUID()
+    const post = (token: string, message: string, idempotencyKey = key) => request.post(url, {
+      headers: { Authorization: 'Bearer ' + token, 'Idempotency-Key': idempotencyKey },
+      data: { brief: message },
+    })
+    expect((await post(read, brief, randomUUID())).status()).toBe(401)
+    expect(await mine()).toEqual(initial)
+
+    const env = { PATH: process.env.PATH!, SLATEBOX_API_TOKEN: write, SLATEBOX_BASE_URL: origin.origin }
+    const shell = async (...args: string[]) => JSON.parse((await promisify(execFile)(process.execPath, [
+      resolve(installed!, manifest.bin.slatebox), ...args,
+    ], { env })).stdout)
+    const created = await shell('create', brief, '--idempotency-key', key)
+    expect(created.shareId).toMatch(/^[a-zA-Z0-9]{10}$/)
+    expect(created.url).toBe(new URL('/canvas/' + created.shareId, origin).href)
+    expect(created.workshop.revision).toBe(0)
+    mcp = new Client({ name: 'slatebox-create-acceptance', version: '1' })
+    await mcp.connect(new StdioClientTransport({
+      command: process.execPath, args: [resolve(installed!, manifest.bin['slatebox-mcp'])], env, stderr: 'ignore',
+    }))
+    const replay = await mcp.callTool({ name: 'create_slate', arguments: { brief, idempotency_key: key } })
+    expect(replay.isError).toBeFalsy()
+    expect(replay.structuredContent).toEqual(created)
+    const httpReplay = await post(write, brief)
+    expect(httpReplay.status()).toBe(200)
+    expect(await httpReplay.json()).toEqual(created)
+    expect((await post(write, 'Who processes a refund?')).status()).toBe(409)
+    expect(await mine()).toEqual([...initial, created.shareId].sort())
+
+    await owner.goto(created.url)
+    await dismissWelcome(owner)
+    if (expectedBundle) await expect(owner.locator('script[src*="/' + expectedBundle + '.js"]')).toHaveCount(1)
+    const saved = () => getSlate(owner, created.shareId)
+    const source = await saved()
+    expect(source.userId).toBe(principal)
+    expect(source.options).toMatchObject({ isPrivate: true, isPublic: false })
+    expect(source.creative.model.workshop.title).toBe(brief)
+    await reader.goto(new URL('/start', origin).href)
+    await reader.waitForFunction(() => (window as any).Meteor?.status().connected)
+    expect(await userId(reader)).toBeNull()
+    expect(await getSlate(reader, created.shareId)).toBeFalsy()
+
+    const chat = owner.getByRole('complementary', { name: 'Map conversation' })
+    const message = chat.getByRole('textbox', { name: 'Direct map edits' })
+    await message.fill('Ask the shop or ask the courier')
+    await message.press('Enter')
+    const keep = chat.getByRole('button', { name: 'Keep changes' })
+    await expect(keep).toBeEnabled()
+    expect((await saved()).creative.revision).toBe(0)
+    await keep.click()
+    await expect.poll(async () => (await saved()).creative.revision).toBe(1)
+    const edited = (await saved()).creative.model.workshop
+    expect(edited.lanes.map((lane: {label: string}) => lane.label)).toEqual([brief, 'Ask the shop', 'ask the courier'])
+    await owner.reload()
+    await expect(owner.locator('.map-stage')).toContainText('Ask the shop')
+    expect((await saved()).creative.model.workshop).toEqual(edited)
+    const invite = await shareAs(owner, 'read')
+    await reader.goto(invite.href)
+    await dismissWelcome(reader)
+    if (expectedBundle) await expect(reader.locator('script[src*="/' + expectedBundle + '.js"]')).toHaveCount(1)
+    await expect(reader.getByRole('button', { name: 'Join to edit' })).toHaveCount(0)
+    await expect(reader.getByRole('complementary', { name: 'Map conversation' })).toHaveCount(0)
+    await reader.getByRole('button', { name: 'Present', exact: true }).click()
+    const show = reader.getByRole('region', { name: 'Decision presentation' })
+    await expect(show.getByRole('heading', { name: brief, exact: true })).toBeVisible()
+    await show.getByRole('button', { name: 'Next station' }).click()
+    await expect(show.getByRole('heading', { name: 'Ask the shop', exact: true })).toBeVisible()
+    expect(await userId(reader)).toBeNull()
+    expect((await shell('create', brief, '--idempotency-key', key))).toEqual(created)
+    expect((await saved()).creative.model.workshop).toEqual(edited)
+    expect(await mine()).toEqual([...initial, created.shareId].sort())
+  } finally {
+    try {
+      if (mcp) await mcp.close()
+      if (principal) {
+        // Leave the editor before cleanup so a pending autosave cannot recreate its source.
+        await owner.goto(new URL('/profile', origin).href)
+        await owner.waitForFunction(({ id, email }) => {
+          const u = (window as any).Meteor?.user()
+          return u?._id === id && !u.orgId && (u.isAnonymous === true || u.emails?.[0]?.address === email)
+        }, { id: principal, email })
+        const removed = await owner.evaluate(async ({ id, email, tokenIds }) => {
+          const m = (window as any).Meteor, u = m.user()
+          if (m.userId() !== id || u.orgId || !(u.isAnonymous || u.emails?.[0]?.address === email)) return false
+          for (const tokenId of tokenIds) await m.callAsync('apiTokens.revoke', { tokenId })
+          return m.callAsync('users.delete')
+        }, { id: principal, email, tokenIds })
+        expect(removed, 'Retire only the registered test member, token pair and owned slates').toBe(true)
+      }
+    } finally {
+      await reader.close()
+      await owner.close()
+    }
+  }
+})
