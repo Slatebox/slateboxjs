@@ -1,11 +1,24 @@
 // Build separate package entries so non-React canvas consumers never load Dragology.
 import { defineConfig } from 'vite'
 import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { createRequire } from 'node:module'
+
+const resolve = createRequire(import.meta.url).resolve
+const dragologyEntry = resolve('dragology')
+const dragologyTypes = join(dirname(dragologyEntry), 'index.d.ts')
+const immerTypes = join(dirname(createRequire(dragologyEntry).resolve('immer/package.json')), 'dist/immer.d.ts')
 export default defineConfig({
   plugins: [{
     name: 'workshop-dependency-notices',
     generateBundle(_options, bundle) {
+      // Ship the release's complete JSX augmentation and public types. Its only
+      // non-React type dependency is Immer's self-contained declaration file.
+      const types = readFileSync(dragologyTypes, 'utf8')
+      const draftImport = "from 'immer'"
+      if (!types.includes(draftImport)) throw new Error('Check Dragology declaration dependencies')
+      this.emitFile({ type: 'asset', fileName: 'dragology/index.d.ts', source: types.replace(draftImport, "from './immer'") })
+      this.emitFile({ type: 'asset', fileName: 'dragology/immer.d.ts', source: readFileSync(immerTypes, 'utf8') })
       const packages = new Set<string>()
       for (const output of Object.values(bundle)) {
         if (output.type !== 'chunk') continue
@@ -26,7 +39,7 @@ export default defineConfig({
   build: {
     emptyOutDir: false,
     lib: {
-      entry: { workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts' },
+      entry: { dragology: dragologyEntry, workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts' },
       formats: ['es', 'cjs'],
       fileName: (format, entry) => entry + (format === 'es' ? '.mjs' : '.cjs'),
     },

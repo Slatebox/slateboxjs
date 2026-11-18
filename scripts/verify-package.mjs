@@ -34,6 +34,13 @@ try {
     'dist/slateboxjs.mjs',
     'dist/slateboxjs.js',
     'dist/slateboxjs.css',
+    'dist/dragology.mjs',
+    'dist/dragology.cjs',
+    'dist/dragology/index.d.ts',
+    'dist/dragology/immer.d.ts',
+    'dist/workshops-LICENSE.txt',
+    'licenses/Dragology-MIT.txt',
+    'dragology/index.js',
   ]) {
     if (!paths.has(required)) {
       throw new Error(`Packed artifact is missing ${required}`)
@@ -47,7 +54,7 @@ try {
         private: true,
         type: 'module',
         dependencies: { slateboxjs: `file:${tarball}` },
-        devDependencies: { typescript: '^5.3.3' },
+        devDependencies: { typescript: '^5.3.3', react: '^18.3.1', 'react-dom': '^18.3.1', '@types/react': '^18.3.0' },
       },
       null,
       2
@@ -76,6 +83,13 @@ try {
     join(sandbox, 'consumer.ts'),
     `import SlateboxJS, { Slatebox, utils, type SlateJSON } from 'slateboxjs'
 import 'slateboxjs/style.css'
+import { createElement } from 'react'
+import { DraggableRenderer, type Draggable, type DragSpecBuilder, produceAmb } from 'slateboxjs/dragology'
+const legal = produceAmb({ friday: false }, draft => { draft.friday = true })
+const render: Draggable<{friday: boolean}> = () => createElement('g')
+void [legal, render, DraggableRenderer]
+type Builder = DragSpecBuilder<{friday: boolean}>
+
 
 const factory: typeof SlateboxJS = SlateboxJS
 const id: string = utils.guid()
@@ -108,6 +122,17 @@ void saved
     sandbox
   )
 
+  const upstream = await import('dragology')
+  const expectedExports = Object.keys(upstream).sort()
+  const parity = `const expected = ${JSON.stringify(expectedExports)}; if (JSON.stringify(Object.keys(api).sort()) !== JSON.stringify(expected)) throw Error('Dragology export mismatch'); if (api.runAmb(() => api.amb([1,2])).join() !== '1,2') throw Error('Dragology candidate enumeration failed')`
+  run('node', ['--input-type=module', '--eval', "import * as api from 'slateboxjs/dragology';" + parity], sandbox)
+  run('node', ['--eval', "const api = require('slateboxjs/dragology');" + parity], sandbox)
+  const bundledLicense = readFileSync(join(sandbox, 'node_modules/slateboxjs/dist/workshops-LICENSE.txt'), 'utf8')
+  const upstreamLicense = readFileSync(join(projectRoot, 'node_modules/dragology/LICENSE'), 'utf8')
+  if (!bundledLicense.includes(upstreamLicense) ||
+      readFileSync(join(sandbox, 'node_modules/slateboxjs/licenses/Dragology-MIT.txt'), 'utf8') !== upstreamLicense) {
+    throw new Error('Dragology MIT attribution differs from the integrated release')
+  }
   const installed = JSON.parse(
     readFileSync(join(sandbox, 'node_modules/slateboxjs/package.json'), 'utf8')
   )
@@ -121,7 +146,7 @@ void saved
   }
 
   console.log(
-    `Verified ${installed.name}@${installed.version}: packed files, fresh install, ESM/CJS entry points, public CSS export, and strict TypeScript consumer.`
+    `Verified ${installed.name}@${installed.version}: packed files, fresh install, ESM/CJS entry points, public CSS export, full Dragology export and license parity, and strict TypeScript consumer.`
   )
 } finally {
   rmSync(sandbox, { recursive: true, force: true })

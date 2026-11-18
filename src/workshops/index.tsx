@@ -1,5 +1,5 @@
 import React from 'react'
-import { DraggableRenderer, translate, type Draggable } from 'dragology'
+import { DraggableRenderer, translate, type Draggable, type DraggableProps, type DragStatus } from 'dragology'
 import { availableLanes, laneColors, moveWorkshopCard, workshopLayout, workshopPositions, type Workshop } from './model'
 
 export * from './model'
@@ -8,7 +8,7 @@ function wrapLabel(label: string) {
   return label.match(/.{1,23}(?:\s+|$)|.{1,23}/gu)?.map(line => line.trim()) ?? [label]
 }
 
-const draggable: Draggable<Workshop> = ({ state, d, draggedId }) => {
+function renderBoard({ state, d, draggedId }: DraggableProps<Workshop>, readOnly: boolean) {
   const { width, row, height, top } = workshopLayout
   const { points } = workshopPositions(state)
   const map = Boolean(state.lanes[0].station)
@@ -42,7 +42,7 @@ const draggable: Draggable<Workshop> = ({ state, d, draggedId }) => {
       const key = 'choice-' + card.id
       return <g id={key} transform={translate((map ? 18 : 8) + points[column].x, points[column].y + top + index * row)}
         dragologyZIndex={draggedId === key ? '/1' : false}
-        dragologyOnDrag={allowed.length > 1 ? () => d.closest(allowed.map(lane =>
+        dragologyOnDrag={!readOnly && allowed.length > 1 ? () => d.closest(allowed.map(lane =>
           moveWorkshopCard(state, card.id, lane.id))).withFloating() : undefined}>
         <rect width={map ? width - 20 : width} height={height - (map ? 6 : 0)} fill={map ? "#ffda75" : "#fffdf6"} stroke="#78857d" rx={map ? 1 : 8} />
         {map && <path d="M198 0v70" stroke="#897530" strokeDasharray="4 5" />}
@@ -53,16 +53,49 @@ const draggable: Draggable<Workshop> = ({ state, d, draggedId }) => {
   </g>
 }
 
+const editableBoard: Draggable<Workshop> = props => renderBoard(props, false)
+const readOnlyBoard: Draggable<Workshop> = props => renderBoard(props, true)
+
 export interface WorkshopBoardProps {
   value: Workshop
   onChange: (value: Workshop) => void
+  readOnly?: boolean
+  /** Temporary model shown to a linked view while the pointer is held. */
+  onPreview?: (value: Workshop | null) => void
 }
 
-export function WorkshopBoard({ value, onChange }: WorkshopBoardProps) {
+export function WorkshopBoard({ value, onChange, onPreview, readOnly = false }: WorkshopBoardProps) {
   const { width, height } = workshopPositions(value)
+  const [gesture, setGesture] = React.useState(0)
+  const dragging = React.useRef(false)
+  const onDragStatus = React.useCallback((status: DragStatus<Workshop>) => {
+    dragging.current = status.type === 'dragging' || Boolean(status.pendingDrag)
+    if (!dragging.current) onPreview?.(null)
+  }, [onPreview])
+
+  React.useEffect(() => {
+    function cancel(event: Event) {
+      if (!dragging.current || (event instanceof KeyboardEvent && event.key !== 'Escape')) return
+      dragging.current = false
+      onPreview?.(null)
+      // Unmount the upstream gesture and its document-level pointerup listener.
+      // A release after cancellation must never commit its last candidate.
+      setGesture(id => id + 1)
+    }
+    document.addEventListener('keydown', cancel)
+    document.addEventListener('pointercancel', cancel)
+    window.addEventListener('blur', cancel)
+    return () => {
+      document.removeEventListener('keydown', cancel)
+      document.removeEventListener('pointercancel', cancel)
+      window.removeEventListener('blur', cancel)
+    }
+  }, [onPreview])
   return <section aria-label={value.title}>
     <div style={{ maxWidth: '100%', overflowX: 'auto' }}>
-      <DraggableRenderer draggable={draggable} state={value} onDropState={onChange}
+      <DraggableRenderer key={readOnly ? 'read-only' : gesture}
+        draggable={readOnly ? readOnlyBoard : editableBoard} state={value}
+        onDropState={readOnly ? undefined : onChange} onDragState={readOnly ? undefined : onPreview} onDragStatus={onDragStatus}
         width={width} height={height} />
     </div>
     {value.lanes[0].station && <div className="workshop-outcomes" aria-live="polite">
@@ -70,7 +103,7 @@ export function WorkshopBoard({ value, onChange }: WorkshopBoardProps) {
         const current = value.lanes.find(lane => lane.id === card.laneId)!
         return <div key={card.id}><p><strong>{card.label} · {current.label}</strong><br />{current.station!.outcome}</p>
           {availableLanes(value, card).filter(lane => lane.id !== card.laneId).map(lane =>
-            <button key={lane.id} type="button" onClick={() => onChange(moveWorkshopCard(value, card.id, lane.id))}>
+            <button key={lane.id} type="button" disabled={readOnly} onClick={() => onChange(moveWorkshopCard(value, card.id, lane.id))}>
               {card.label} → {lane.label}
             </button>)}
         </div>
@@ -80,7 +113,7 @@ export function WorkshopBoard({ value, onChange }: WorkshopBoardProps) {
       <summary>Move a card by name</summary>
       {value.cards.map(card => <label key={card.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBlock: 6 }}>
         {card.label}
-        <select aria-label={'Move ' + card.label} value={card.laneId}
+        <select disabled={readOnly} aria-label={'Move ' + card.label} value={card.laneId}
           onChange={e => onChange(moveWorkshopCard(value, card.id, e.currentTarget.value))}>
           {availableLanes(value, card).map(lane => <option key={lane.id} value={lane.id}>{lane.label}</option>)}
         </select>

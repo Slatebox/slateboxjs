@@ -625,3 +625,66 @@ For questions, issues, or contributions, please visit the [SlateboxJS repository
 ---
 
 **SlateboxJS 3** — the modern diagramming engine for Slatebox and embeddable web applications.
+
+## Declarative dragging
+
+For custom interactions, import the complete Dragology 0.2.0 public API from
+`slateboxjs/dragology`. Install React and React DOM 18 or 19 alongside
+SlateboxJS. The file build includes the Dragology runtime, its operators,
+debug views, JSX attributes, and TypeScript declarations. The ordinary
+SVG.js canvas entry and the DOM-free `slateboxjs/workshops/model` entry load
+independently.
+
+A controlled renderer takes a model, a rendering function, and the possible
+future states for a dragged object. A second view can show a candidate before
+the owner commits a move. For example, two Friday scheduling choices can share
+one feature token:
+
+```tsx
+import { useState } from 'react'
+import { DraggableRenderer, translate, type Draggable } from 'slateboxjs/dragology'
+
+type Plan = { friday: boolean }
+const schedule: Draggable<Plan> = ({ state, d }) => (
+  <g>
+    <text x="6" y="18">Backlog</text>
+    <text x="170" y="18">Friday</text>
+    <g id="release" transform={translate(state.friday ? 170 : 6, 30)}
+       dragologyOnDrag={() => d.closest([{ friday: false }, { friday: true }]).withFloating()}>
+      <rect width="118" height="38" fill="#f5cb79" />
+      <text x="8" y="25">Search update</text>
+    </g>
+  </g>
+)
+
+function ReleasePlan() {
+  const [plan, commit] = useState<Plan>({ friday: false })
+  const [candidate, preview] = useState<Plan | null>(null)
+  const shown = candidate ?? plan
+  return <>
+    <DraggableRenderer width={320} height={80} draggable={schedule} state={plan}
+      onDragState={preview} onDropState={commit}
+      onDragStatus={status => { if (status.type === 'idle') preview(null) }} />
+    <output>{shown.friday ? 'Friday is full' : 'One Friday slot open'}</output>
+    <button onClick={() => commit({ friday: !plan.friday })}>
+      {plan.friday ? 'Return to backlog' : 'Schedule for Friday'}
+    </button>
+  </>
+}
+```
+
+For validated, serializable rules supplied by an agent, use
+`WorkshopBoard` from `slateboxjs/workshops`. Its `onPreview(candidate)`
+updates linked views during a gesture, `onPreview(null)` clears a preview,
+and `onChange(committed)` records a legal decision. Escape, a cancelled
+pointer, or losing window focus clears the gesture. Keyboard moves use the
+same rule model. Set `readOnly` for observers to disable pointer and keyboard
+moves, including a pending drag when permission changes. Keep the previous immutable model to support undo.
+`workshopToSlate(committed)` materializes the decision in a native SlateboxJS
+canvas. Agent-authored models are data. Render functions and custom operators
+are supplied by the host application.
+
+Dragology is MIT licensed, © 2025 Dragology contributors. See
+[upstream source](https://github.com/declarative-dragging/dragology/tree/v0.2.0),
+[the license](licenses/Dragology-MIT.txt), and the bundled dependency notices
+in `dist/workshops-LICENSE.txt`.
