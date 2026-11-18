@@ -182,6 +182,9 @@ The app and website import the React components from `slateboxjs/workshops`. The
 | `MoonGalleryBoard` | `normalizeMoonGallery` | [/new/moon-gallery](https://app.slatebox.com/new/moon-gallery) |
 | `FocusDarkroomBoard` | `normalizeFocusDarkroom` | [/new/focus-darkroom](https://app.slatebox.com/new/focus-darkroom) |
 | `OfflineHandoffBoard` | `normalizeOfflineHandoff` | [/new/offline-handoff](https://app.slatebox.com/new/offline-handoff) |
+| `WorkshopBoard` | `validateWorkshop` | `/new/workshop` with an encoded model |
+
+For a workshop authored in another application, call `encodeWorkshopFragment(workshop)` from `slateboxjs/workshops/model` and append the result to `/new/workshop` on the chosen Slatebox host. The fragment carries the current pieces, placement, labels and rules. Whoever receives the link can read that data and open a separate copy. To work together on one saved copy, use Share inside the slate. `decodeWorkshopFragment(location.hash)` reads and validates the same format. Both helpers accept links up to 65,536 encoded characters including the initial hash.
 
 Each component accepts `value`, `onChange` and `readOnly`. A native starter creates an owned private document and replaces the entry URL with its saved canvas. The authenticated host validates the model and expected revision on save. A stale revision cannot overwrite another editor’s decision or undo it. See the [developer guide and worked examples](https://docs.slatebox.com/developers/javascriptlibrary/creative-slates/).
 
