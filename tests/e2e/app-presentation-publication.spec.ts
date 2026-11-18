@@ -1,9 +1,51 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { openGuestCanvas } from './app-host.shared'
 
 const app = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 const edge = process.env.SLATEBOX_PRESENTATION_EMBED_URL
 const isolated = process.env.SLATEBOX_PRESENTATION_MEDIA_ISOLATED === 'true'
+
+async function verifyTimedDeck(viewer: Page, shareId: string) {
+  const play = viewer.getByRole('button', {name:'Play presentation', exact:true})
+  const pause = viewer.getByRole('button', {name:'Pause presentation', exact:true})
+  await expect(play).toBeVisible()
+  const durations: number[] = await viewer.evaluate(async id => {
+    const {presentation} = await (window as any).Meteor.callAsync('presentations.get', {slateShareId:id, asPublished:true})
+    return presentation.viewpoints.map((scene: {duration: number}) => scene.duration)
+  }, shareId)
+  expect(durations.length).toBeGreaterThan(1)
+  const counter = viewer.getByText(/^\d+ \/ \d+$/)
+  const camera = viewer.locator('.sb-presentation-camera')
+  await viewer.emulateMedia({reducedMotion:'no-preference'})
+  await expect(camera).toHaveCSS('transition-property', 'transform')
+  await expect(camera).not.toHaveCSS('transition-duration', '0s')
+  await viewer.emulateMedia({reducedMotion:'reduce'})
+  await expect(camera).toHaveCSS('transition-duration', '0s')
+  await play.click()
+  await expect(counter).toHaveText('1 / ' + durations.length)
+  await pause.click()
+  // Wait past the original scene deadline so a leaked timer is observable.
+  await viewer.waitForTimeout(durations[0] + 250)
+  await expect(counter).toHaveText('1 / ' + durations.length)
+  await play.click()
+  await expect(counter).toHaveText('2 / ' + durations.length)
+  const remainingTime = durations.slice(1).reduce((sum, duration) => sum + duration, 0)
+  await expect(play).toBeVisible({timeout:remainingTime + 10_000})
+  await expect(counter).toHaveText(durations.length + ' / ' + durations.length)
+  await play.click()
+  await expect(counter).toHaveText('1 / ' + durations.length)
+  await expect(pause).toBeVisible()
+}
+
+test('a supplied published native deck finishes timed playback in reduced motion', async ({page}) => {
+  const id = process.env.SLATEBOX_TIMED_PRESENTATION_ID
+  test.skip(!id, 'Requires an existing multi-scene, manually started published presentation.')
+  await page.goto(app + '/present/' + id)
+  if (process.env.SLATEBOX_EXPECTED_APP_BUNDLE) {
+    await expect(page.locator('script[src*="/' + process.env.SLATEBOX_EXPECTED_APP_BUNDLE + '.js"]')).toHaveCount(1)
+  }
+  await verifyTimedDeck(page, id!)
+})
 
 test('author reorders scenes, publishes an unlisted deck, and withdraws guest and embed access', async ({browser}) => {
   test.skip(!isolated || !edge || !['localhost','127.0.0.1','test.slatebox.com'].includes(new URL(app).hostname),
@@ -68,6 +110,9 @@ test('author reorders scenes, publishes an unlisted deck, and withdraws guest an
     await viewer.reload({waitUntil:'domcontentloaded'})
     await viewer.bringToFront()
     await expect(viewer.locator('#presentMain svg').filter({hasText: 'Look for the Pleiades'}).first()).toBeVisible()
+    await verifyTimedDeck(viewer, id!)
+    await viewer.reload()
+    await expect(viewer.getByRole('button',{name:'Play presentation'})).toBeVisible()
     await viewer.keyboard.press('ArrowRight')
     await expect(viewer.getByText(marker,{exact:true})).toBeVisible()
     await viewer.keyboard.press('ArrowRight')
