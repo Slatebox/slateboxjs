@@ -14,12 +14,13 @@ const fieldNotes: Workshop = {
 }
 
 function Example() {
+  const mapCanvas = location.search === '?map-studio'
   const author = location.search === '?author'
   const fitLanes = location.search === '?fit' || author
   const signaled = location.search === '?signals'
   const [board, setBoard] = useState(author ? createLaneWorkshop() : signaled ? {...industrialWorkshop,
     signals:[{id:'sensors-ready',label:'Sensor status',cardId:'sensors',laneId:'pilot',
-      whenPresent:'The instruments are ready.',whenAbsent:'The instruments are waiting.'}]} : fitLanes ? fieldNotes : location.search === '?map' ? nightTransfer : industrialWorkshop)
+      whenPresent:'The instruments are ready.',whenAbsent:'The instruments are waiting.'}]} : fitLanes ? fieldNotes : (mapCanvas || location.search === '?map') ? nightTransfer : industrialWorkshop)
   const [preview, setPreview] = useState<Workshop | null>(null)
   const [editing, setEditing] = useState('')
   const [readOnly, setReadOnly] = useState(false)
@@ -28,7 +29,7 @@ function Example() {
   const shown = preview ?? board
   return <>
     <label>View only<input type="checkbox" checked={readOnly} onChange={e => setReadOnly(e.target.checked)} /></label>
-    <WorkshopBoard onAddCard={author ? (id, element) => {
+    <WorkshopBoard mapCanvas={mapCanvas} onAddCard={author ? (id, element) => {
       if (element.dataset.workshopAddCard === id) setBoard(old => addWorkshopCard(old, id, {label:'Wind chimes'}))
     } : undefined} onEditLane={author ? (id, element) => {
       if (element.dataset.workshopLane === id) setEditing('lane:' + id)

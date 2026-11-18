@@ -179,8 +179,14 @@ test('authored placement outcomes follow held, canceled, committed and undone mo
   await expect(commits).toHaveText('2')
 })
 
-test('station headers open their editor from pointer and keyboard while token movement stays independent', async ({page}) => {
-  await page.goto('/tests/fixtures/workshop.html?map')
+for (const layout of ['map','map-studio']) test(layout + ' station headers open their editor from pointer and keyboard while movement stays independent', async ({page}) => {
+  if (layout === 'map-studio') await page.setViewportSize({width:390,height:844})
+  await page.goto('/tests/fixtures/workshop.html?' + layout)
+  if (layout === 'map-studio') {
+    await expect(page.getByText('Open stop',{exact:true})).toHaveCount(0)
+    await expect(page.getByText('Move a card by name',{exact:true})).toHaveCount(0)
+    await expect(page.getByRole('button',{name:'Last rider → East stairs'})).toBeEnabled()
+  }
   const selected = page.getByLabel('Selected object')
   const platform = page.getByRole('button', {name:'Edit Last train', exact:true})
   const stairs = page.getByRole('button', {name:'Edit East stairs', exact:true})
