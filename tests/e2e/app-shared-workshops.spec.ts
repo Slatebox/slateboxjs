@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from '@playwright/test'
+import { test as base, expect, firefox, type Page } from '@playwright/test'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const ownerState = process.env.SLATEBOX_EDITOR_A
@@ -9,11 +9,12 @@ const test = base.extend<{ editors: { owner: Page; peer: Page; email: string } }
       'Creates synthetic private workshops on an explicitly selected test app')
     base.skip(!ownerState || !peerState, 'Requires two dedicated team editor storage states')
     const ownerContext = await browser.newContext({ storageState: ownerState, permissions: ['clipboard-read', 'clipboard-write'] })
-    const peerContext = await browser.newContext({ storageState: peerState })
+    const otherBrowser = process.env.SLATEBOX_PEER_BROWSER === 'firefox' ? await firefox.launch() : undefined
+    const peerContext = await (otherBrowser || browser).newContext({ storageState: peerState })
     try {
       const [owner, peer] = await Promise.all([ownerContext.newPage(), peerContext.newPage()])
       async function actor(page: Page) {
-        await page.goto(new URL('/workshops', origin).href)
+        await page.goto(new URL('/workshops', origin).href, { waitUntil: 'domcontentloaded' })
         await page.waitForFunction(() => (window as any).Meteor?.user()?.emails?.[0]?.address)
         return page.evaluate(() => {
           const user = (window as any).Meteor.user()
@@ -82,7 +83,15 @@ test('share a branching map, follow its outcome together and return from a live 
 })
 
 type Race = { revision?: number; result?: string; release: () => void }
-type RaceWindow = Window & { workshopRace: Race; Meteor: { callAsync: (...args: any[]) => Promise<any> } }
+type RaceWindow = Window & {
+  workshopRace: Race
+  Meteor: {
+    callAsync: (...args: any[]) => Promise<any>
+    disconnect(): void
+    reconnect(): void
+    status(): { connected: boolean }
+  }
+}
 
 // Hold each actual UI move just before DDP dispatch so both users act on the same
 // revision, independent of browser scheduling or the distance to the test host.
@@ -125,9 +134,9 @@ test('two team members contest the last funded slot and rejoin the same board', 
     await expect(card(page, 'Rehearse the overnight restart')).toHaveValue('pilot')
     await waitAtDispatch(page)
     await card(page, contested[i]).selectOption('pilot')
-    await page.waitForFunction(() => (window as unknown as RaceWindow).workshopRace.revision === 0)
+    await waitForRevisionIntent(page, 0)
   }))
-  await Promise.all(pages.map(page => page.evaluate(() => (window as unknown as RaceWindow).workshopRace.release())))
+  await Promise.all(pages.map(releaseIntent))
   const results = await Promise.all(pages.map(async page => {
     await page.waitForFunction(() => (window as unknown as RaceWindow).workshopRace.result)
     return page.evaluate(() => (window as unknown as RaceWindow).workshopRace.result)
@@ -145,7 +154,114 @@ test('two team members contest the last funded slot and rejoin the same board', 
     await expect(card(page, contested[loser]).locator('option[value="pilot"]')).toHaveCount(0)
     await expect(card(page, 'Rehearse the overnight restart')).toHaveValue('pilot')
   }
-  await card(pages[loser], contested[loser]).selectOption('evidence')
-  await expect(card(pages[winner], contested[loser])).toHaveValue('evidence')
-  await expect(pages[winner].locator('[data-revision]')).toHaveAttribute('data-revision', '2')
+  await disconnect(peer)
+  await waitAtDispatch(peer)
+  await card(peer, contested[loser]).selectOption('evidence')
+  await waitForRevisionIntent(peer, 1)
+  await releaseIntent(peer)
+  await card(owner, contested[winner]).selectOption('evidence')
+  await revision(owner, 2)
+  await revision(peer, 1)
+  await reconnect(peer)
+  await staleIntent(peer)
+  for (const page of pages) {
+    await revision(page, 2)
+    await expect(card(page, contested[loser])).toHaveValue('proposed')
+    await expect(card(page, contested[winner])).toHaveValue('evidence')
+  }
+  // The former loser can now take the slot freed by the online teammate.
+  await card(peer, contested[loser]).selectOption('pilot')
+  for (const page of pages) {
+    await revision(page, 3)
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await revision(page, 3)
+    await page.getByText('Move a card by name', { exact: true }).click()
+    await expect(card(page, contested[winner])).toHaveValue('evidence')
+    await expect(card(page, contested[loser])).toHaveValue('pilot')
+    await expect(card(page, 'Rehearse the overnight restart')).toHaveValue('pilot')
+    await expect(card(page, contested[winner]).locator('option[value="pilot"]')).toHaveCount(0)
+  }
+  console.log('Capacity race accepted', contested[winner], '; offline intent was stale; both reloaded revision 3')
+})
+
+const revision = (p: Page, value: number) =>
+  expect(p.locator('[data-revision]')).toHaveAttribute('data-revision', String(value))
+const waitForRevisionIntent = (p: Page, value: number) =>
+  p.waitForFunction(n => (window as unknown as RaceWindow).workshopRace.revision === n, value)
+const releaseIntent = (p: Page) => p.evaluate(() => (window as unknown as RaceWindow).workshopRace.release())
+async function staleIntent(page: Page) {
+  await page.waitForFunction(() => (window as unknown as RaceWindow).workshopRace.result === 'stale')
+  await expect(page.getByRole('status')).toContainText('The workshop has changed')
+}
+
+async function disconnect(page: Page) {
+  // Browser offline emulation alone can leave an established DDP socket open.
+  // Close the real transport as well, retaining the tab's last room snapshot.
+  await page.evaluate(() => (window as unknown as RaceWindow).Meteor.disconnect())
+  await page.context().setOffline(true)
+  await page.waitForFunction(() => !(window as unknown as RaceWindow).Meteor.status().connected)
+}
+async function reconnect(page: Page) {
+  await page.context().setOffline(false)
+  await page.evaluate(() => (window as unknown as RaceWindow).Meteor.reconnect())
+  await page.waitForFunction(() => (window as unknown as RaceWindow).Meteor.status().connected)
+}
+
+test('competing exits converge, including a move queued while the teammate was offline', async ({ editors }) => {
+  const { owner, peer, email } = editors
+  await owner.getByText('More board options').click()
+  await owner.getByRole('link', { name: 'Open an interactive map' }).click()
+  const room = await share(owner)
+  await grant(owner, email, 'EDIT')
+  await peer.goto(room, { waitUntil: 'domcontentloaded' })
+  const pages = [owner, peer]
+  const exits = ['East stairs', 'Market St lift']
+  const move = (p: Page, name: string) => p.getByRole('button', { name: 'Last rider → ' + name, exact: true })
+  await Promise.all(pages.map(async (p, i) => {
+    await revision(p, 0)
+    await waitAtDispatch(p)
+    await move(p, exits[i]).click()
+    await waitForRevisionIntent(p, 0)
+  }))
+  await Promise.all(pages.map(releaseIntent))
+  const results = await Promise.all(pages.map(async p => {
+    await p.waitForFunction(() => (window as unknown as RaceWindow).workshopRace.result)
+    return p.evaluate(() => (window as unknown as RaceWindow).workshopRace.result)
+  }))
+  expect(results.slice().sort()).toEqual(['accepted', 'stale'])
+  const exit = exits[results.indexOf('accepted')]
+  const next = exit === 'East stairs' ? 'Last train' : 'Shuttle · Bay B'
+  for (const p of pages) {
+    await revision(p, 1)
+    await expect(p.locator('.workshop-outcomes')).toContainText('Last rider · ' + exit)
+    await expect(p.getByRole('button', { name:/^Last rider → / })).toHaveCount(1)
+    await expect(move(p, next)).toBeVisible()
+  }
+  await disconnect(peer)
+  await waitAtDispatch(peer)
+  await move(peer, next).click()
+  await waitForRevisionIntent(peer, 1)
+  await releaseIntent(peer)
+  await move(owner, next).click()
+  await revision(owner, 2)
+  await revision(peer, 1)
+  await reconnect(peer)
+  await staleIntent(peer)
+  let finalRevision = 2
+  if (next === 'Last train') {
+    await revision(peer, 2)
+    await move(peer, 'Market St lift').click()
+    await revision(owner, 3)
+    await move(owner, 'Shuttle · Bay B').click()
+    finalRevision = 4
+  }
+  for (const p of pages) {
+    await revision(p, finalRevision)
+    await p.reload({ waitUntil: 'domcontentloaded' })
+    await revision(p, finalRevision)
+    await expect(p.locator('.workshop-outcomes')).toContainText('Last rider · Shuttle · Bay B')
+    await expect(p.locator('.workshop-outcomes')).toContainText('The rider makes the connection')
+    await expect(p.getByRole('button', { name:/^Last rider → / })).toHaveCount(0)
+  }
+  console.log('Route race accepted', exit, '; offline intent was stale; both reloaded terminal revision', finalRevision)
 })
