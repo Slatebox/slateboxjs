@@ -1,27 +1,33 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 
 const app = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 const homepage = process.env.SLATEBOX_MARKETING_URL;
 const allowed = ["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(app).hostname);
 
-async function ready(page: Page) {
+async function ready(page: Page, expectGuestWelcome = false) {
   await expect(page.locator("#slateCanvas g[data-node-id]").first()).toBeVisible({timeout:30_000});
   const welcome = page.getByRole("dialog", {name:/welcome/i});
-  if (await welcome.waitFor({state:"visible",timeout:1800}).then(()=>true,()=>false)) {
+  if (expectGuestWelcome) {
+    await expect(welcome).toContainText("You have full access", {timeout:25_000});
+    await welcome.getByRole("button", {name:"OK"}).click();
+  } else if (await welcome.waitFor({state:"visible",timeout:1800}).then(()=>true,()=>false)) {
     await welcome.getByRole("button", {name:"OK"}).click();
   }
-  const cookies = page.getByRole("button",{name:"Accept cookies"});
-  if (await cookies.isVisible()) await cookies.click();
 }
 
-test("create, share an editable invitation, present a teammate's note, and reopen the same slate", async ({browser}) => {
+async function verifyInvitation(browser: Browser, recipient: "existing" | "signed-out") {
   test.skip(!allowed,"writes require a staging or local app");
   const ownerContext = await browser.newContext({viewport:{width:1400,height:960},reducedMotion:"reduce"});
   const peerContext = await browser.newContext({viewport:{width:1400,height:960},reducedMotion:"reduce"});
   const owner = await ownerContext.newPage();
   const peer = await peerContext.newPage();
+  for (const page of [owner, peer]) {
+    const notice = page.getByRole("button", {name: "Accept cookies"});
+    await page.addLocatorHandler(notice, () => notice.click());
+  }
   const share = owner.getByRole("dialog",{name:/sharing settings/i});
   let shared = false;
+  let invite: URL | undefined;
   try {
     if (homepage) {
       // Exercise the actual public anchor. Replace only the app origin on a
@@ -41,13 +47,16 @@ test("create, share an editable invitation, present a teammate's note, and reope
     await ready(owner);
     const original = owner.url();
     expect(original).toMatch(/\/canvas\/[a-f0-9]{10}$/);
-    // Use a separate registered guest identity, exactly as /new provisions it.
-    await peer.goto(app+"/new",{waitUntil:"domcontentloaded"});
-    await ready(peer);
     const userId = (p:Page)=>p.evaluate(()=>(window as any).Meteor.userId());
     const ownerId = await userId(owner);
-    const peerId = await userId(peer);
-    expect(ownerId).toBeTruthy();expect(peerId).toBeTruthy();expect(peerId).not.toBe(ownerId);
+    expect(ownerId).toBeTruthy();
+    if (recipient === "existing") {
+      await peer.goto(app+"/new",{waitUntil:"domcontentloaded"});
+      await ready(peer);
+      const peerId = await userId(peer);
+      expect(peerId).toBeTruthy();
+      expect(peerId).not.toBe(ownerId);
+    }
 
     await owner.getByRole("button",{name:"Share",exact:true}).click();
     await share.getByRole("button",{name:/Unlisted/}).click();
@@ -58,13 +67,17 @@ test("create, share an editable invitation, present a teammate's note, and reope
     await level.click();
     await owner.getByRole("option",{name:"edit",exact:true}).click();
     await expect(level).toHaveText("edit");
-    const invite = new URL(await unlisted.getByText(/^https?:\/\//).innerText());
+    invite = new URL(await unlisted.getByText(/^https?:\/\//).innerText());
     expect(invite.origin).toBe(new URL(app).origin);
     expect(invite.pathname).toMatch(/^\/canvas\/[a-zA-Z0-9]{8}$/);
     expect(invite.href).not.toBe(original);
     await share.getByRole("button",{name:"Save"}).click();
     await peer.goto(invite.href,{waitUntil:"domcontentloaded"});
-    await ready(peer);
+    await ready(peer, recipient === "signed-out");
+    if (recipient === "signed-out") {
+      expect(await userId(peer)).toBeNull();
+      expect(await peer.evaluate(()=>localStorage.getItem("Meteor.loginToken"))).toBeNull();
+    }
     await expect(peer.getByRole("button",{name:"Share",exact:true})).toHaveCount(0);
     const note = "Carry the spare lens to the observatory";
     await peer.getByRole("button",{name:"Slatebox - quickly add a node"}).hover();
@@ -96,6 +109,10 @@ test("create, share an editable invitation, present a teammate's note, and reope
     },{shareId:new URL(original).pathname.split('/').pop(),nodeId:id}),{timeout:25_000}).toBe(note);
     // Check the same persisted node via both the creator URL and the invite.
     await Promise.all([peer.reload({waitUntil:"domcontentloaded"}),owner.reload({waitUntil:"domcontentloaded"})]);
+    if (recipient === "signed-out") {
+      await ready(peer, true);
+      expect(await userId(peer)).toBeNull();
+    }
     for (const page of [peer,owner]) {
       await expect(editedNode(page)).toHaveAttribute("data-node-id",id!,{timeout:25_000});
     }
@@ -109,9 +126,25 @@ test("create, share an editable invitation, present a teammate's note, and reope
         await share.getByRole("button",{name:/^Private/}).click();
         await expect(share.getByRole("button",{name:/^Private/})).toHaveAttribute("aria-expanded","true");
         await share.getByRole("button",{name:"Save"}).click();
+        if (invite && recipient === "signed-out") {
+          const shareId = invite.pathname.split("/").pop();
+          await expect.poll(()=>peer.evaluate(async id=>
+            (await (window as any).Meteor.callAsync("slates.get",{shareId:id}))?.accessLevel ?? null, shareId
+          )).toBeNull();
+          await peer.reload({waitUntil:"domcontentloaded"});
+          await expect(peer.getByText("This slate is not accessible.", {exact:true})).toBeVisible();
+        }
       }
     } finally {
       await Promise.all([peerContext.close(),ownerContext.close()]);
     }
   }
+}
+
+test("create, share an editable invitation, present a teammate's note, and reopen the same slate", async ({browser}) => {
+  await verifyInvitation(browser, "existing");
+});
+
+test("a signed-out recipient opens the edit link directly, saves and reopens a note, then loses access on revocation", async ({browser}) => {
+  await verifyInvitation(browser, "signed-out");
 });
