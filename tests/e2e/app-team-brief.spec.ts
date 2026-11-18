@@ -10,10 +10,25 @@ test('the team’s brief becomes a private map with real playable choices that s
   const brief = 'Which materials should our night shift keep if the lighting rig fails during installation?'
   let id:string|null = null
   try {
-    await owner.goto(new URL('/new/map#' + new URLSearchParams({brief}), origin).href)
+    let entry = new URL('/new/map#' + new URLSearchParams({brief}), origin)
+    const marketing = process.env.SLATEBOX_MARKETING_URL
+    if (marketing) {
+      await owner.goto(new URL('/use-cases/creative-handoffs/', marketing).href)
+      await owner.getByRole('textbox',{name:'What handoff do you want to map?'}).fill(brief)
+      // Capture the real top-level destination, including its browser-only
+      // fragment, with no requests to production app or third-party services.
+      await owner.route('https://app.slatebox.com/**', route => route.fulfill({contentType:'text/html',body:''}))
+      await owner.getByRole('button',{name:'Open my private slate'}).click()
+      await owner.waitForURL('https://app.slatebox.com/new/map#**')
+      const handoff = new URL(owner.url())
+      expect(new URLSearchParams(handoff.hash.slice(1)).get('brief')).toBe(brief)
+      entry = new URL(handoff.pathname + handoff.search + handoff.hash, origin)
+    }
+    await owner.goto(entry.href)
     await owner.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
     id = await userId(owner)
     await dismissWelcome(owner)
+    if (process.env.SLATEBOX_EXPECTED_APP_BUNDLE) await expect(owner.locator('script[src*="/' + process.env.SLATEBOX_EXPECTED_APP_BUNDLE + '.js"]')).toHaveCount(1)
     const key = new URL(owner.url()).pathname.split('/').pop()!
     const board = await getSlate(owner,key)
     expect(board.options.isPrivate).toBe(true)
@@ -33,6 +48,12 @@ test('the team’s brief becomes a private map with real playable choices that s
     await reader.goto(invite.href)
     await dismissWelcome(reader)
     await expect(reader.locator('.map-stage')).toContainText(brief)
+    await reader.getByRole('button',{name:'Present',exact:true}).click()
+    const slides = reader.getByRole('region',{name:'Decision presentation'})
+    await expect(slides).toContainText(brief)
+    await slides.getByRole('button',{name:'Next station'}).click()
+    await expect(slides.getByRole('heading',{name:'Borrow work lights',exact:true})).toBeVisible()
+    await slides.getByRole('button',{name:'Back to board'}).click()
     expect(await userId(reader)).toBeNull()
     expect((await getSlate(reader,invite.pathname.split('/').pop()!)).creative.model.workshop).toEqual(await snapshot())
     await owner.getByRole('button',{name:'Team → bring battery lanterns'}).click()
