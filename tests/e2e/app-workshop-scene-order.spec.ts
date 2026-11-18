@@ -89,7 +89,7 @@ for (const workshop of workshops) {
       await expect.poll(async () => (await getSlate(owner, key)).creative.model.workshop.cards).toEqual(updated.cards)
       const positions = await boardPositions(owner, workshop)
       await owner.getByRole('button', { name: 'Presentation order' }).click()
-      await owner.getByRole('combobox', { name: 'Object', exact: true }).selectOption('lane:' + destination.id)
+      await owner.getByRole('combobox', { name: 'Scene', exact: true }).selectOption('lane:' + destination.id)
       await owner.getByRole('combobox', { name: 'Presentation position' }).selectOption('1')
       await owner.getByRole('button', { name: 'Save changes' }).click()
       await expect(owner.locator('.workshop-inspector')).toHaveCount(0)
