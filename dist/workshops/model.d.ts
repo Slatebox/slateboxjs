@@ -3,6 +3,12 @@ export interface WorkshopLane {
     id: string;
     label: string;
     capacity?: number;
+    station?: {
+        column: number;
+        row: number;
+        next: string[];
+        outcome: string;
+    };
 }
 export interface WorkshopCard {
     id: string;
@@ -27,5 +33,14 @@ export declare const workshopLayout: {
     top: number;
 };
 export declare const laneColors: string[];
+export declare function workshopPositions(board: Workshop): {
+    points: {
+        x: number;
+        y: number;
+    }[];
+    width: number;
+    height: number;
+};
+export declare const nightTransfer: Workshop;
 export declare function workshopToSlate(input: Workshop): SlateJSON;
 export declare const industrialWorkshop: Workshop;

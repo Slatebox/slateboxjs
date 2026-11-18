@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { deserializeNodeOptions } from '../../src/core/Serialization'
-import { availableLanes, industrialWorkshop, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
+import { availableLanes, nightTransfer, industrialWorkshop, moveWorkshopCard, validateWorkshop, workshopToSlate } from '../../src/workshops/model'
 
 describe('agent-authored workshops', () => {
   it('keeps only portable data and rejects ambiguous rules or markup', () => {
@@ -24,6 +24,20 @@ describe('agent-authored workshops', () => {
     expect(() => moveWorkshopCard(moved, 'spares', 'pilot')).toThrow()
     expect(() => moveWorkshopCard(moved, 'cooling', 'proposed')).toThrow()
     expect(moveWorkshopCard(moved, 'sensors', 'pilot')).toBe(moved)
+  })
+
+  it('uses declared paths for concept maps and preserves them as editable connections', () => {
+    const map = validateWorkshop(nightTransfer)
+    expect(() => moveWorkshopCard(map, 'rider', 'shuttle')).toThrow()
+    const near = moveWorkshopCard(map, 'rider', 'lift')
+    expect(availableLanes(near, near.cards[0]).map(l => l.id)).toEqual(['lift', 'shuttle'])
+    expect(moveWorkshopCard(near, 'rider', 'shuttle').cards[0].laneId).toBe('shuttle')
+    expect(workshopToSlate(map).nodes[0].relationships.associations.map(a => a.childId)).toEqual(['lane-stairs', 'lane-lift'])
+    for (const invalid of [{ row: 7 }, { next: ['missing'] }, { next: ['platform'] }, { column: 1 }]) {
+      const bad = structuredClone(map)
+      Object.assign(bad.lanes[0].station!, invalid)
+      expect(() => validateWorkshop(bad)).toThrow()
+    }
   })
 
   it('places decisions in the chosen lane as editable Slatebox nodes', () => {
