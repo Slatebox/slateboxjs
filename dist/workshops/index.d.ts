@@ -12,6 +12,8 @@ export interface WorkshopBoardProps {
     onUndo?: () => void;
     canUndo?: boolean;
     readOnly?: boolean;
+    /** Compact station map for conversation-led editors. Each playable exit remains a keyboard button. */
+    mapCanvas?: boolean;
     /** Fit ordinary lane boards to the host while retaining legible notes and pointer targets. */
     fitLanes?: boolean;
     /** Hide the built-in readout when the host supplies its own accessible outcome display. */
@@ -27,6 +29,6 @@ export interface WorkshopBoardProps {
     /** Offer a place to author a new card in each ordinary lane with room. */
     onAddCard?: (laneId: string, anchorElement: SVGGElement) => void;
 }
-export declare function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onEditLane, onAddCard, onUndo, canUndo, readOnly, fitLanes, showPlacementOutcomes }: WorkshopBoardProps): React.JSX.Element;
+export declare function WorkshopBoard({ value, onChange, onPreview, onEditCard, onEditStation, onEditLane, onAddCard, onUndo, canUndo, readOnly, fitLanes, mapCanvas, showPlacementOutcomes }: WorkshopBoardProps): React.JSX.Element;
 export { MoonGalleryBoard, type MoonGalleryBoardProps } from './MoonGalleryBoard';
 export { FocusDarkroomBoard } from './darkroom/FocusDarkroomBoard';
