@@ -44,6 +44,7 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
   const article = await audienceContext.newPage()
   let ownerId: string | null = null
   let slateId: string | null = null
+  let shareId: string | null = null
   try {
     await owner.goto(new URL('/new/workshop' + encodeWorkshopFragment(workshop), origin).href)
     await owner.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
@@ -55,6 +56,7 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
     expect(original.userId).toBe(ownerId)
     expect(original.options.isPrivate).toBe(true)
     slateId = original._id
+    shareId = key
     if (process.env.SLATEBOX_EXPECTED_APP_BUNDLE) {
       await expect(owner.locator('script[src*="/' + process.env.SLATEBOX_EXPECTED_APP_BUNDLE + '.js"]')).toHaveCount(1)
     }
@@ -84,6 +86,7 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
     expect(await getSlate(viewer, key)).toBeFalsy()
 
     await owner.bringToFront()
+    await dialog.getByRole('button', {name:'Close',exact:true}).click()
     const privateLabel = 'Revised private carving'
     await editObject(owner, 'card:shell', () => owner.getByRole('textbox', {name:'Name',exact:true}).fill(privateLabel))
     await expect(owner.locator('#choice-shell')).toContainText(privateLabel)
@@ -93,7 +96,10 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
     await verifyPublishedScenes(article, embed)
 
     await owner.bringToFront()
-    await owner.getByRole('button', {name:'Withdraw presentation',exact:true}).click()
+    await owner.getByRole('button', {name:'Publish presentation',exact:true}).click()
+    await expect(dialog.getByText('The slate has changed since this version was published.')).toBeVisible()
+    await dialog.getByRole('button', {name:'Withdraw presentation',exact:true}).click()
+    await expect(dialog.getByRole('status')).toContainText('Presentation withdrawn')
     await viewer.reload()
     await expect(unavailable(viewer)).toBeVisible()
     await article.setContent('<!doctype html><main>' + snippet + '</main>')
@@ -110,6 +116,15 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
   } finally {
     try {
       if (ownerId && slateId && await userId(owner) === ownerId) {
+        if (shareId) {
+          await owner.evaluate(async key => {
+            const meteor = (window as any).Meteor
+            const active = await meteor.callAsync('presentations.workshopStatus', key)
+            if (active) await meteor.callAsync('presentations.unpublish', {
+              presentationId: 'workshop-presentation-' + key, generation: active.generation
+            })
+          }, shareId)
+        }
         await owner.evaluate(id => (window as any).Meteor.callAsync('slates.remove', { slateIds:[id] }), slateId)
       }
     } finally {
