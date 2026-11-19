@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { promisify } from 'node:util'
 import { expect, test } from '@playwright/test'
-import { dismissWelcome, getSlate, shareAs, userId } from './workshop-guests.shared'
+import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const installed = process.env.SLATEBOX_AGENT_TOOLS_DIR
@@ -84,7 +84,8 @@ test('packaged tools create private maps and source diagrams through the same op
     expect(source.userId).toBe(principal)
     expect(source.options).toMatchObject({ isPrivate: true, isPublic: false })
     expect(source.creative.model.workshop.title).toBe(brief)
-    await reader.goto(new URL('/start', origin).href)
+    // Create slate registers a guest. Warm the signed-out reader on a public page.
+    await reader.goto(new URL('/plans', origin).href)
     await reader.waitForFunction(() => (window as any).Meteor?.status().connected)
     expect(await userId(reader)).toBeNull()
     expect(await getSlate(reader, created.shareId)).toBeFalsy()
@@ -134,6 +135,22 @@ test('packaged tools create private maps and source diagrams through the same op
     expect(drawing.shareId).not.toBe(created.shareId)
     expect(drawing.diagram.nodeCount).toBe(5)
     expect(drawing.diagram.connections).toHaveLength(4)
+    const marketing = process.env.SLATEBOX_MARKETING_URL
+    if (marketing) {
+      const example = await request.get(new URL('/assets/product/call-status-slate.json', marketing).href)
+      expect(example.ok()).toBe(true)
+      const { nodes } = await example.json()
+      for (const { options, relationships } of nodes) {
+        expect(drawing.diagram.nodes).toContainEqual(expect.objectContaining({
+          id:options.id, text:options.text, x:options.xPos, y:options.yPos, width:options.width, height:options.height,
+        }))
+        for (const edge of relationships.associations) {
+          expect(drawing.diagram.connections).toContainEqual(expect.objectContaining({
+            id:edge.id, from:edge.parentId, to:edge.childId,
+          }))
+        }
+      }
+    }
     expect(drawing.workshop).toBeUndefined()
     const replayDrawing = () => mcp!.callTool({ name: 'create_slate', arguments: { ...diagram, idempotency_key: diagramKey } })
     expect((await replayDrawing()).structuredContent).toEqual(drawing)
@@ -149,10 +166,15 @@ test('packaged tools create private maps and source diagrams through the same op
     expect(original.options.isPrivate).toBe(true)
     expect(original.creative).toBeUndefined()
     await expect(owner.getByRole('complementary', {name:'Conversation with Slatebox'})).toContainText(diagram.brief)
-    await note.click()
-    await owner.keyboard.press('F2')
-    await owner.locator('.sb-inline-editor').fill('Offer to call back')
-    await owner.locator('.sb-inline-editor').press('Enter')
+    const diagramInvitation = await shareAs(owner, 'edit')
+    await reader.goto(diagramInvitation.href)
+    await dismissWelcome(reader)
+    const peerNote = reader.locator('#slateCanvas g[data-node-id="unavailable"]').first()
+    await peerNote.click()
+    await reader.keyboard.press('F2')
+    await reader.locator('.sb-inline-editor').fill('Offer to call back')
+    await reader.locator('.sb-inline-editor').press('Enter')
+    await expect(note).toHaveAttribute('aria-label','Offer to call back')
     await expect.poll(async () => (await getSlate(owner,drawing.shareId)).nodes.find((node:{options:{id:string}}) => node.options.id === 'unavailable')?.options.text).toBe('Offer to call back')
     expect((await replayDrawing()).structuredContent).toEqual(drawing)
     await owner.reload()
@@ -177,8 +199,17 @@ test('packaged tools create private maps and source diagrams through the same op
         expect(removed, 'Retire only the registered test member, token pair and owned slates').toBe(true)
       }
     } finally {
-      await reader.close()
-      await owner.close()
+      try {
+        const peerGuest = await userId(reader)
+        if (peerGuest) {
+          await reader.goto(new URL('/plans', origin).href)
+          await reader.waitForFunction(id => (window as any).Meteor?.userId() === id, peerGuest)
+          await removeTestGuest(reader, peerGuest)
+        }
+      } finally {
+        await reader.close()
+        await owner.close()
+      }
     }
   }
 })
