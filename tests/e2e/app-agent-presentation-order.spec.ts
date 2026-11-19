@@ -1,3 +1,4 @@
+import { startAgentMap } from './map-conversation.shared'
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
@@ -35,6 +36,7 @@ test('an agent orders the scenes that an invited reader actually presents', asyn
     await mcp.connect(new StdioClientTransport({command:process.execPath,args:[resolve(installation!,manifest.bin['slatebox-mcp'])],env,stderr:'ignore'}))
 
     const order = ['next','start']
+    await startAgentMap(owner.page,origin,board)
     const initial = (await cli('read',board)).summary.workshop
     const preview = () => cli('order',board,'Next step','Start')
     const before = await preview()
@@ -42,9 +44,6 @@ test('an agent orders the scenes that an invited reader actually presents', asyn
     expect((await cli('read',board)).summary.workshop).toEqual(initial)
 
     // An ordinary canvas edit after preview must invalidate the prepared save.
-    await owner.page.goto(new URL('/canvas/'+board,origin).href)
-    await dismissWelcome(owner.page)
-    await owner.page.getByRole('button',{name:'Map tools',exact:true}).click()
     await owner.page.getByRole('button',{name:'Token → Next step',exact:true}).click()
     await expect.poll(async () => (await getSlate(owner.page,board)).creative.revision).toBe(initial.revision+1)
     const apply = (rev:number,key:string) => cli('order',board,...order,'--apply','--revision',String(rev),'--idempotency-key',key)

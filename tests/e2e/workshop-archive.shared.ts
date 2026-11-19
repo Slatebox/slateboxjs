@@ -7,6 +7,7 @@ export async function resumeArchivedDraft(page:Page, origin:string | URL, format
   const models = {lanes:industrialWorkshop,map:nightTransfer,'release-plan':releasePlan}
   const prefixes = {lanes:'slatebox.workshop.v1.',map:'slatebox.map.v1.','release-plan':'slatebox.release.v1.'}
   const directory = new URL('/workshops?view=saved&format='+format,origin).href
+  if (!['localhost','127.0.0.1','test.slatebox.com'].includes(new URL(directory).hostname)) throw new Error('Resuming an archived draft creates a private native slate; use a local or staging host.')
   await page.goto(directory, {waitUntil:'domcontentloaded'})
   await page.waitForFunction(()=> (window as any).Meteor?.status()?.connected && !(window as any).Meteor.loggingIn())
   await page.evaluate(({prefix,model})=>{
@@ -15,5 +16,6 @@ export async function resumeArchivedDraft(page:Page, origin:string | URL, format
   },{prefix:prefixes[format],model:models[format]})
   await page.reload({waitUntil:'domcontentloaded'})
   await page.getByRole('link',{name:/Resume tab draft/}).click()
-  await expect(page.locator('.workshop-paper svg').first()).toBeVisible()
+  await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/)
+  await expect(page.getByRole('complementary',{name:format==='map'?'Map conversation':'Workshop conversation'})).toBeVisible()
 }

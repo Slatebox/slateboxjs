@@ -1,3 +1,4 @@
+import { startAgentMap } from './map-conversation.shared'
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
@@ -35,6 +36,7 @@ test('an invited teammate follows an agent-authored branch and presents its save
     mcp=new Client({name:'map-authoring-verification',version:'1'})
     await mcp.connect(new StdioClientTransport({command:process.execPath,args:[resolve(installation!,manifest.bin['slatebox-mcp'])],env,stderr:'ignore'}))
     const native=async()=>(await getSlate(owner.page,board)).creative
+    await startAgentMap(owner.page,origin,board)
     const original=await native()
     const label='Ask the account owner'
     const firstOutcome='The account owner confirms the buyer approved the charge.'
@@ -58,7 +60,6 @@ test('an invited teammate follows an agent-authored branch and presents its save
     await dismissWelcome(peer.page)
     const hash=process.env.SLATEBOX_EXPECTED_APP_BUNDLE
     if(hash)await expect(peer.page.locator('script[src*="/'+hash+'.js"]')).toHaveCount(1)
-    await peer.page.getByRole('button',{name:'Map tools',exact:true}).click()
     await peer.page.getByRole('button',{name:'Token → Next step',exact:true}).click()
     await expect.poll(async()=>(await native()).revision).toBe(baseline+1)
     // The peer's change invalidates the original review; no partial station or edge is saved.
