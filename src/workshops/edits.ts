@@ -516,7 +516,8 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       }
       const amount = release ? board.cards.reduce((sum, item) => sum + (item.laneId === target.id ? item.points ?? 1 : 0), 0) : held(target.id)
       if (amount > edit.capacity) {
-        throw new Refusal(said(target.label) + ' already holds ' + amount + ' ' + unit + (amount === 1 ? '' : 's') + '. Move some ' + (map ? 'on' : 'out') + ' first, or choose a higher number.', 'refused', target.id)
+        throw new Refusal(said(target.label) + ' already holds ' + amount + ' ' + unit + (amount === 1 ? '' : 's') + '. Move some ' + (map ? 'on' : 'out') +
+          ' first, or choose a higher ' + (release ? 'budget' : 'number') + '.', 'refused', target.id)
       }
       target.capacity = edit.capacity
       return done(settle(board, family, target.id), said(target.label) + ' now holds up to ' + edit.capacity + ' ' + unit + (edit.capacity === 1 ? '' : 's') + '.', { laneId: target.id })

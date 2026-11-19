@@ -262,7 +262,7 @@ describe('limits, allowed lanes, outcomes and the presentation order', () => {
     expect(lane(cleared.workshop, 'Now').capacity).toBeUndefined()
     expect(cleared.report.edits[0].said).toBe('“Now” now holds any number of cards.')
     expect(lane(ok(apply(plan, { kind: 'set_lane_capacity', lane: 'This week', capacity: 12 })), 'This week').capacity).toBe(12)
-    expect(no(apply(plan, { kind: 'set_lane_capacity', lane: 'This week', capacity: 2 })).reason).toBe('“This week” already holds 3 points. Move some out first, or choose a higher number.')
+    expect(no(apply(plan, { kind: 'set_lane_capacity', lane: 'This week', capacity: 2 })).reason).toBe('“This week” already holds 3 points. Move some out first, or choose a higher budget.')
     // On a map a step holds tokens.
     expect(lane(ok(apply(built, { kind: 'set_lane_capacity', lane: 'Keep originals', capacity: 2 })), 'Keep originals').capacity).toBe(2)
     expect(no(apply(built, { kind: 'set_lane_capacity', lane: 'Keep originals', capacity: 25 })).reason).toBe('A step can hold from 1 to 24 tokens.')
