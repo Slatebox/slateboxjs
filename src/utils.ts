@@ -4,6 +4,7 @@
  * Provides all utility functions used by the app.
  */
 
+import { buildNodeStyleFromTheme as buildThemeStyle } from "./core/Theme";
 import { pathBBox, transformPath } from "./core/PathGeometry";
 
 /** Generate a unique ID string */
@@ -220,9 +221,7 @@ export function buildNodeStyleFromTheme(opts: {
   theme: any;
   childNumber: number;
 }): any {
-  // Re-export from Theme.ts for backwards compatibility
-  const { buildNodeStyleFromTheme: build } = require("./core/Theme");
-  return build(opts.theme, opts.childNumber);
+  return buildThemeStyle(opts.theme, opts.childNumber);
 }
 
 /** Make a string safe for use in URLs */
