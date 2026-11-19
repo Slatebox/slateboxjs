@@ -12,7 +12,7 @@
  */
 
 import { v1AssociationToV2, v1NodeToV2 } from '../core/compat'
-import type { DragPolicy, NodeCapabilities, WorldPoint } from '../core/DragPolicy'
+import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type WorldPoint } from '../core/DragPolicy'
 import {
   validateWorkshop, workshopCandidate, workshopDestinations, workshopLaneCaption, workshopNodeIds,
   workshopRefusal, workshopToSlate, type Workshop,
@@ -114,6 +114,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   const owned = new Map<string, any>()
   const drawn = new Map<string, Record<string, any>>()
   const links = new Map<string, { parentId: string; childId: string; parent: any; child: any }>()
+  /** Names the workshop could not draw because the slate's own document holds a note by that name. */
+  const taken = new Set<string>()
   let held: { cardId: string; evaluate: ((point: { x: number; y: number }) => Workshop) | null; outcome: Outcome } | null = null
   let staged: { cardId: string; laneId: string; next: Workshop } | null = null
   let flash: { laneId: string; reason: string; timer: ReturnType<typeof setTimeout> } | null = null
@@ -253,12 +255,24 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     },
     onNotesReplaced() {
       // loadJSON / undo / redo cleared every note, ours included.
+      const selected: string[] = (slate.getSelectedNodes?.() ?? []).filter((node: any) => owned.get(node.id) === node).map((node: any) => node.id)
       owned.clear()
       drawn.clear()
       links.clear()
       held = null
       staged = null
       draw(proposal ?? value, { animate: false })
+      // The card or lane that was selected is a new note now; a person working by
+      // keyboard keeps their place on it.
+      if (selected.length === 1) {
+        pending = pending.then(() => {
+          const node = owned.get(selected[0])
+          if (destroyed || !node || (slate.getSelectedNodes?.() ?? []).length) return
+          const select = () => slate.selectNodes?.([node])
+          if (typeof slate.withoutAnnouncements === 'function') slate.withoutAnnouncements(select)
+          else select()
+        })
+      }
     },
   }
 
@@ -303,7 +317,18 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const target = lanes[lanes.findIndex(lane => lane.id === at) + step]
     endFlash()
     if (!target) {
-      slate.announce?.(`${card.label} has no lane to move to on that side.`)
+      // A lane on that side that the rules close gets the same refusal a drop on it
+      // would: the cue on the lane, the reason announced, and onRefuse.
+      const closed = value.lanes[value.lanes.findIndex(lane => lane.id === at) + step]
+      if (!closed) {
+        slate.announce?.(`${card.label} has no lane to move to on that side.`)
+        return
+      }
+      const reason = workshopRefusal(value, cardId, closed.id) ?? 'That move is not available.'
+      flash = { laneId: closed.id, reason, timer: setTimeout(() => endFlash(), 1500) }
+      draw(staged?.next ?? proposal ?? value)
+      slate.announce?.(`${card.label} can't move to ${closed.label}. ${reason}`)
+      options.onRefuse?.({ cardId, laneId: closed.id, reason })
       return
     }
     if (target.id === card.laneId) {
@@ -380,7 +405,15 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     for (const { options: v1 } of nodes) {
       const id = v1.id as string
       if (owned.has(id)) continue
-      // Claim the name before the note exists, so the engine treats it as governed from its first frame.
+      // A note of the slate's own that already has this name (a loaded document can
+      // hold one) stays that document's note: it is never taken over, hidden from
+      // saves or removed with the workshop. The workshop goes without that note.
+      if (slate.nodes.one?.(id)) {
+        if (!taken.has(id)) console.warn(`WORKSHOP: the slate already has a note named "${id}"; the workshop cannot draw its own.`)
+        taken.add(id)
+        continue
+      }
+      taken.delete(id)
       const node = slate.nodes.add(v1NodeToV2(v1))
       owned.set(id, node)
       drawn.set(id, { ...v1 })
@@ -447,7 +480,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
           Math.abs((node.options.x ?? 0) - v1.xPos) > 0.5 || Math.abs((node.options.y ?? 0) - v1.yPos) > 0.5
         // The held card is under the pointer; the engine settles it or glides it back.
         if (id !== (how.skip && workshopNodeIds.card(how.skip)) && placed) {
-          node.position(v1.xPos, v1.yPos, undefined, undefined, how.animate ? 180 : 0)
+          node.position(v1.xPos, v1.yPos, undefined, undefined, how.animate && !prefersReducedMotion() ? 180 : 0)
         }
         const label = accessibleName(how.model, id)
         if (label && node.svgGroup.node.getAttribute('aria-label') !== label) node.svgGroup.node.setAttribute('aria-label', label)

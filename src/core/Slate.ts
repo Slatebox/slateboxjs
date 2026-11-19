@@ -2342,11 +2342,33 @@ export class Slate {
 
   /** Tell each policy that loadJSON / undo / redo replaced the slate's notes. */
   public notifyNotesReplaced(): void {
+    if (this._dragPolicies.length === 0) return;
+    // Governed notes that were selected are gone, but the selection still holds
+    // them. Once their policy forgets them they would pass for ordinary notes
+    // (Ctrl+D would copy a card into the saved drawing), so they leave the selection.
+    const gone = this.selectedNodes.filter(
+      (n) => this.nodes.one(n.id) !== n && !!this.governanceOf(n)
+    );
     for (const policy of this._dragPolicies.slice()) {
       try {
         policy.onNotesReplaced?.();
       } catch (error) {
         console.warn("DRAG_POLICY: onNotesReplaced threw", error);
+      }
+    }
+    if (gone.length && this.selectedNodes.some((n) => gone.includes(n))) {
+      this.selectedNodes = this.selectedNodes.filter((n) => !gone.includes(n));
+      for (const node of gone) {
+        try {
+          node.onDeselected();
+        } catch (error) {
+          /* its drawing is already gone */
+        }
+      }
+      try {
+        this.updateSelectionResizeRotate();
+      } catch (error) {
+        /* nothing left to outline */
       }
     }
   }

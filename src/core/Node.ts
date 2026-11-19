@@ -26,6 +26,7 @@ import { Menu } from "./Menu";
 import { resolveShapePath } from "./ShapeRegistry";
 import { normalizeLegacyTextOffset, v2NodeToV1 } from "./compat";
 import { whiteOrBlack, contrastRatio } from "../utils";
+import { prefersReducedMotion } from "./DragPolicy";
 import type {
   DragCancelReason,
   DragGesture,
@@ -37,8 +38,13 @@ import type {
 /** One drag of a governed note, from press to release or cancel. */
 interface GovernedDrag {
   policy: DragPolicy;
-  /** Where the note was when the press began. A refused drag returns here. */
+  /**
+   * Where a refused or cancelled drag returns the note: where it was when the press
+   * began, or where it was gliding to if it was caught on the way.
+   */
   origin: WorldPoint;
+  /** Where the note was when it started to follow the pointer. */
+  grabbed: WorldPoint;
   startClient: { x: number; y: number };
   startWorld: WorldPoint;
   pointerType: "mouse" | "touch";
@@ -330,6 +336,8 @@ export class Node {
   /** The governed drag in progress on this note (see DragPolicy.ts). */
   private _governed: GovernedDrag | null = null;
   private _governanceApplied = false;
+  /** The animated position() in flight, if any: where it ends, and a way to stop it. */
+  private _glide: { x: number; y: number; cancelled: boolean } | null = null;
 
   /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
   public ready: Promise<void>;
@@ -1282,6 +1290,14 @@ export class Node {
         slate.isCommentOnly?.()
       ) {
         event.preventDefault?.();
+        // svg.draggable cancels the press of a note it is about to drag, so a click
+        // never moves keyboard focus onto a note. A note that may not be dragged
+        // gets the same press: otherwise focus would land on it and stay there
+        // while the person selects and moves other notes.
+        const press = event.detail?.event;
+        if (press?.type === "mousedown" && !this.editor?.isInlineEditing?.()) {
+          press.preventDefault?.();
+        }
       }
     });
 
@@ -1549,11 +1565,14 @@ export class Node {
    * After any drag (ordinary or governed) ends: tell a drag from a click, keep the
    * note selected, and put its handles back at the new position.
    */
-  private settleAfterDrag(): void {
+  private settleAfterDrag(governed = false): void {
     {
       // Small delay to distinguish drag from click - reduced for better responsiveness
       this._dragEndTimeoutId = setTimeout(() => {
         if (this._destroyed) return;
+        // A host may remove its governed note the moment a drop is decided (a new
+        // model arrives, the workshop is detached). A removed note is not selected.
+        if (governed && !this.isOnSlate()) return;
         this.isDragging = false;
 
         // Ensure the dragged node remains selected after drag
@@ -1590,6 +1609,11 @@ export class Node {
   }
 
   // ─── Governed drags (host drag policy) ─────────────────────────────
+
+  /** Whether this note is still one of the slate's notes (remove() does not mark it destroyed). */
+  private isOnSlate(): boolean {
+    return (this.slate as any)?.nodes?.one?.(this.id) === this;
+  }
 
   /**
    * Show what a host policy allows on this note: a grab cursor on a note that may
@@ -1664,6 +1688,7 @@ export class Node {
     this._governed = {
       policy,
       origin: { x: this.options.x ?? 0, y: this.options.y ?? 0 },
+      grabbed: { x: this.options.x ?? 0, y: this.options.y ?? 0 },
       startClient: client,
       startWorld: this.slate.clientToWorld(client),
       pointerType,
@@ -1702,13 +1727,25 @@ export class Node {
         return;
       }
       drag.started = true;
+      // Caught while gliding to a slot (settling after a drop, closing up behind
+      // another card): the glide stops here, the note follows the pointer from
+      // where it is, and a refusal sends it on to where it was going.
+      const glide = this._glide;
+      drag.grabbed = { x: this.options.x ?? 0, y: this.options.y ?? 0 };
+      if (glide) {
+        glide.cancelled = true;
+        this._glide = null;
+        drag.origin = { x: glide.x, y: glide.y };
+      } else {
+        drag.origin = { ...drag.grabbed };
+      }
       if (this.svgGroup.node.style) this.svgGroup.node.style.cursor = "grabbing";
     }
     // World coordinates, so the note stays under the pointer through a pan or zoom
     // made while it is held.
     const point = this.slate.clientToWorld(ptr);
-    this.options.x = drag.origin.x + (point.x - drag.startWorld.x);
-    this.options.y = drag.origin.y + (point.y - drag.startWorld.y);
+    this.options.x = drag.grabbed.x + (point.x - drag.startWorld.x);
+    this.options.y = drag.grabbed.y + (point.y - drag.startWorld.y);
     this.applyPositionAndRotation();
     try {
       (this.slate as any).markersContainer?.front?.();
@@ -1754,11 +1791,16 @@ export class Node {
     const rest = () => {
       if (rested || this._destroyed) return;
       rested = true;
+      // The host may have removed this note while it was gliding to its place.
+      if (!this.isOnSlate()) return;
       if (this.svgGroup?.node?.style && this._governanceApplied) {
         this.svgGroup.node.style.cursor = "grab";
       }
-      this.settleAfterDrag();
+      this.settleAfterDrag(true);
     };
+    // No glide for people who ask their system for less motion: the note is simply
+    // where it belongs.
+    const still = prefersReducedMotion();
     if (drag.started) {
       let verdict: DragVerdict = { accept: false };
       if (release) {
@@ -1777,19 +1819,17 @@ export class Node {
       // The policy may have removed this note while deciding.
       if (!this._destroyed && this.slate.nodes?.one?.(this.id) === this) {
         if (verdict.accept) {
-          if (verdict.settle) this.position(verdict.settle.x, verdict.settle.y, rest, undefined, 160);
+          if (verdict.settle) this.position(verdict.settle.x, verdict.settle.y, rest, undefined, still ? 0 : 160);
           else rest();
         } else {
-          this.position(drag.origin.x, drag.origin.y, rest, undefined, 180);
+          this.position(drag.origin.x, drag.origin.y, rest, undefined, still ? 0 : 180);
         }
         // Should the glide be interrupted, the note must still stop being "dragged".
         setTimeout(rest, 400);
       }
     } else {
-      // A press that never became a drag leaves the note exactly where it was.
-      this.options.x = drag.origin.x;
-      this.options.y = drag.origin.y;
-      this.applyPositionAndRotation();
+      // A press that never became a drag never moved the note, so there is nothing
+      // to put back (and a note pressed while gliding to its slot keeps gliding).
       rest();
     }
   }
@@ -1863,6 +1903,10 @@ export class Node {
       (startX !== x || startY !== y);
 
     if (canAnimate) {
+      // Where this glide is heading, so a governed drag that catches the note on the
+      // way can stop it (nothing else ever sets `cancelled`).
+      const glide = { x, y, cancelled: false };
+      this._glide = glide;
       // Tween options.x/y and re-apply the group transform each frame. We do NOT
       // use svg.js animate().move(): that animates the shape's CHILDREN in the
       // group's local frame, so on a ROTATED node the movement is computed
@@ -1871,7 +1915,7 @@ export class Node {
       // rotation intact and moves the node in a straight world-space line.
       const t0 = performance.now();
       const step = () => {
-        if (this._destroyed || !this.svgGroup) return;
+        if (this._destroyed || !this.svgGroup || glide.cancelled) return;
         const p = Math.min(1, (performance.now() - t0) / (duration as number));
         // easeInOutQuad
         const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
@@ -1884,6 +1928,7 @@ export class Node {
           this.options.x = x;
           this.options.y = y;
           this.applyPositionAndRotation();
+          if (this._glide === glide) this._glide = null;
           if (callback) callback();
         }
       };

@@ -1,0 +1,336 @@
+import { expect, test, type Page } from '@playwright/test'
+
+/**
+ * Ways a governed card could move, change, multiply or disappear without the
+ * workshop model agreeing, found by trying to break attachWorkshop. Same fixture
+ * as native-workshop.spec.ts: lanes Now and Later (Later holds one card); Alpha,
+ * Beta and Gamma start in Now, and Gamma may never leave it.
+ */
+
+async function open(page: Page, query = '') {
+  await page.goto('/tests/fixtures/native-workshop.html' + query)
+  await page.waitForFunction(() => (window as any).native?.ready === true)
+}
+
+const box = (page: Page, id: string) =>
+  page.evaluate(key => (window as any).native.box(key) as { x: number; y: number; width: number; height: number }, id)
+const at = (page: Page, id: string) =>
+  page.evaluate(key => (window as any).native.at(key) as { x: number; y: number; width: number; height: number; text: string } | null, id)
+const cards = (page: Page) =>
+  page.evaluate(() => (window as any).native.board.value.cards.map((c: any) => c.id + '@' + c.laneId).join(' ') as string)
+const text = async (page: Page, id: string) => (await at(page, id))?.text
+const journal = (page: Page) => page.evaluate(() => {
+  const { log } = (window as any).native
+  return {
+    changes: log.changes.map((entry: any) => entry.change),
+    refusals: log.refusals as { cardId?: string; laneId?: string | null; reason: string }[],
+    packages: log.packages.map((pkg: any) => pkg.type) as string[],
+  }
+})
+const live = (page: Page) => page.locator('#slate [aria-live]')
+/** Each selected note's name, and whether it is still one of the slate's notes. */
+const selection = (page: Page) => page.evaluate(() => {
+  const { slate } = (window as any).native
+  return slate.getSelectedNodes().map((n: any) => [n.id, slate.nodes.one(n.id) === n] as [string, boolean])
+})
+const focused = (page: Page) => page.evaluate(() => document.activeElement?.getAttribute('data-node-id') ?? document.activeElement?.tagName)
+
+async function inLane(page: Page, laneId: string) {
+  const column = await box(page, 'column-' + laneId)
+  return { x: column.x + column.width / 2, y: column.y + column.height * 0.85 }
+}
+async function press(page: Page, id: string) {
+  const from = await box(page, id)
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+  await page.mouse.down()
+}
+async function carry(page: Page, id: string, to: { x: number; y: number }, steps = 12) {
+  await press(page, id)
+  await page.mouse.move(to.x, to.y, { steps })
+}
+async function drag(page: Page, id: string, to: { x: number; y: number }, steps = 12) {
+  await carry(page, id, to, steps)
+  await page.mouse.up()
+}
+async function click(page: Page, id: string) {
+  const b = await box(page, id)
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2)
+}
+/** Where a card rests in its lane: slot 0 is the first place under the caption. */
+async function slot(page: Page, laneId: string, index: number) {
+  const header = (await at(page, 'lane-' + laneId))!
+  return { x: header.x, y: header.y - 6 + 98 + index * 88 }
+}
+function pageErrors(page: Page) {
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(String(error)))
+  return errors
+}
+
+test.describe('a governed card changes only when the workshop agrees', () => {
+  for (const permission of ['isReadOnly', 'isCommentOnly'] as const) {
+    test(`a viewer cannot move a card from the keyboard when the slate says ${permission}`, async ({ page }) => {
+      await open(page)
+      await click(page, 'card-alpha')
+      await expect.poll(() => selection(page)).toEqual([['card-alpha', true]])
+      // The host withdraws edit rights (a role change, a plan limit) with the card still selected.
+      await page.evaluate(name => { (window as any).native.slate.options.events[name] = () => true }, permission)
+      await page.keyboard.press('ArrowRight')
+      await page.waitForTimeout(250)
+      // Nothing is staged...
+      expect(await text(page, 'caption-later')).toBe('0 of 1')
+      await page.keyboard.press('Enter')
+      await page.waitForTimeout(250)
+      // ...nothing is committed, and no editor opens.
+      expect(await cards(page)).toBe('alpha@now beta@now gamma@now')
+      expect((await journal(page)).changes).toEqual([])
+      await expect(page.locator('.sb-inline-editor')).toHaveCount(0)
+      // The pointer is refused by the same permission.
+      const start = await at(page, 'card-beta')
+      await drag(page, 'card-beta', await inLane(page, 'later'))
+      await page.waitForTimeout(300)
+      expect(await at(page, 'card-beta')).toEqual(start)
+      expect(await cards(page)).toBe('alpha@now beta@now gamma@now')
+    })
+  }
+
+  test('undo with a card selected leaves no ghost of the card to duplicate, copy or paste', async ({ page }) => {
+    const errors = pageErrors(page)
+    await open(page)
+    await page.waitForTimeout(700)
+    const start = (await at(page, 'plain'))!
+    const b = await box(page, 'plain')
+    await drag(page, 'plain', { x: b.x + b.width / 2, y: b.y + b.height / 2 + 150 })
+    await expect.poll(async () => (await at(page, 'plain'))!.y).toBe(start.y + 150)
+    await page.waitForTimeout(700)
+    await click(page, 'card-beta')
+    await expect.poll(() => selection(page)).toEqual([['card-beta', true]])
+    await page.waitForTimeout(100)
+    // Undo replaces every note on the slate, the workshop's included.
+    await page.keyboard.press('Control+z')
+    await expect.poll(async () => (await at(page, 'plain'))?.y).toBe(start.y)
+    await page.waitForTimeout(400)
+    // The selection is the redrawn card, never the note that undo removed.
+    expect(await selection(page)).toEqual([['card-beta', true]])
+    await page.keyboard.press('Control+d')
+    await page.keyboard.press('Control+c')
+    await page.keyboard.press('Control+v')
+    await page.waitForTimeout(500)
+    const state = await page.evaluate(() => {
+      const { slate } = (window as any).native
+      return {
+        ordinary: slate.freeNodes().map((n: any) => n.options.text),
+        saved: JSON.parse(slate.exportJSON()).nodes.map((n: any) => n.options.text),
+      }
+    })
+    expect(state).toEqual({ ordinary: ['Ordinary note'], saved: ['Ordinary note'] })
+    expect((await journal(page)).packages).not.toContain('onNodeAdded')
+    // The redrawn card still plays from the keyboard.
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('Enter')
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@later gamma@now')
+    expect(errors).toEqual([])
+  })
+
+  test('a loaded document that has a note with a card\'s name keeps it as its own note', async ({ page }) => {
+    await open(page)
+    const state = await page.evaluate(async () => {
+      const { slate, board } = (window as any).native
+      const doc = JSON.parse(slate.exportJSON())
+      doc.nodes.push({
+        options: { id: 'card-alpha', text: 'Saved by the document', xPos: 60, yPos: 420, width: 160, height: 80 },
+        relationships: { associations: [] },
+      })
+      await slate.loadJSON(JSON.stringify(doc))
+      await board.whenDrawn()
+      await new Promise(resolve => setTimeout(resolve, 200))
+      const note = slate.nodes.one('card-alpha')
+      const loaded = {
+        text: note.options.text, governed: !!slate.governanceOf(note),
+        saved: JSON.parse(slate.exportJSON()).nodes.map((n: any) => n.options.id),
+        workshopNotes: slate.nodes.allNodes.filter((n: any) => slate.governanceOf(n)).map((n: any) => n.id),
+      }
+      board.destroy()
+      return { loaded, afterDetach: slate.nodes.allNodes.map((n: any) => n.id) }
+    })
+    expect(state.loaded.text).toBe('Saved by the document')
+    // It is still the document's note: ordinary, saved, and not removed with the workshop.
+    expect(state.loaded.governed).toBe(false)
+    expect(state.loaded.saved).toEqual(['plain', 'card-alpha'])
+    expect(state.loaded.workshopNotes).toEqual(['column-now', 'lane-now', 'caption-now', 'card-beta', 'card-gamma', 'column-later', 'lane-later', 'caption-later'])
+    expect(state.afterDetach).toEqual(['plain', 'card-alpha'])
+  })
+
+  test('a card its host removes right after a drop, or a workshop detached mid-drag, leaves no ghost selection', async ({ page }) => {
+    const errors = pageErrors(page)
+    await open(page)
+    // A collaborator's model without Alpha arrives as Alpha is dropped.
+    await drag(page, 'card-alpha', await inLane(page, 'later'))
+    await page.evaluate(() => {
+      const { board } = (window as any).native
+      board.update({ ...board.value, cards: board.value.cards.filter((card: any) => card.id !== 'alpha') })
+    })
+    await page.waitForTimeout(700)
+    await expect(page.locator('#slate [data-node-id="card-alpha"]')).toHaveCount(0)
+    expect((await selection(page)).filter(([, present]) => !present)).toEqual([])
+
+    // The host detaches the workshop while Beta is held.
+    await carry(page, 'card-beta', await inLane(page, 'later'))
+    await page.waitForTimeout(100)
+    await page.evaluate(() => (window as any).native.board.destroy())
+    await page.mouse.move(700, 500, { steps: 3 })
+    await page.mouse.up()
+    await page.waitForTimeout(700)
+    expect((await selection(page)).filter(([, present]) => !present)).toEqual([])
+    expect(await page.evaluate(() => (window as any).native.slate.nodes.allNodes.map((n: any) => n.id))).toEqual(['plain'])
+    expect(errors).toEqual([])
+    // The ordinary note is untouched by all of it and still drags.
+    const plain = (await at(page, 'plain'))!
+    const b = await box(page, 'plain')
+    await drag(page, 'plain', { x: b.x + b.width / 2 + 120, y: b.y + b.height / 2 })
+    await expect.poll(async () => (await at(page, 'plain'))!.x).toBe(plain.x + 120)
+  })
+
+  test('a card caught while it glides to its slot still comes to rest in a slot', async ({ page }) => {
+    await open(page)
+    // Alpha leaves Now, so Beta and Gamma start gliding up one place.
+    await drag(page, 'card-alpha', await inLane(page, 'later'), 3)
+    // Beta is caught on the way and dropped on open canvas: refused, back to its (new) slot.
+    await carry(page, 'card-beta', { x: 150, y: 600 }, 3)
+    await page.mouse.up()
+    // Gamma is only pressed while it glides, and let go once it has arrived.
+    await press(page, 'card-gamma')
+    await page.waitForTimeout(450)
+    await page.mouse.up()
+    await page.waitForTimeout(700)
+    expect(await cards(page)).toBe('alpha@later beta@now gamma@now')
+    const beta = (await at(page, 'card-beta'))!, gamma = (await at(page, 'card-gamma'))!
+    expect({ x: beta.x, y: beta.y }).toEqual(await slot(page, 'now', 0))
+    expect({ x: gamma.x, y: gamma.y }).toEqual(await slot(page, 'now', 1))
+    const alpha = (await at(page, 'card-alpha'))!
+    expect({ x: alpha.x, y: alpha.y }).toEqual(await slot(page, 'later', 0))
+  })
+
+  test('pressing a lane header leaves keyboard focus where a press on any note leaves it', async ({ page }) => {
+    await open(page)
+    await click(page, 'plain')
+    const afterOrdinary = await focused(page)
+    await page.waitForTimeout(450)
+    await click(page, 'lane-now')
+    await expect.poll(() => selection(page)).toEqual([['lane-now', true]])
+    // A lane header cannot be dragged, but it takes a press like every other note.
+    expect(await focused(page)).toBe(afterOrdinary)
+    await page.waitForTimeout(450)
+    await click(page, 'card-alpha')
+    await expect.poll(() => selection(page)).toEqual([['card-alpha', true]])
+    // Keys go to the selected card, not to a lane header that kept focus.
+    await page.keyboard.press('Space')
+    await page.waitForTimeout(200)
+    expect(await selection(page)).toEqual([['card-alpha', true]])
+    // A lane header is still renamed by double-click, and a press inside its open editor still places the caret.
+    await page.waitForTimeout(450)
+    const lane = await box(page, 'lane-later')
+    await page.mouse.dblclick(lane.x + lane.width / 2, lane.y + lane.height / 2)
+    await expect(page.locator('.sb-inline-editor')).toBeVisible()
+    await page.mouse.click(lane.x + lane.width / 2, lane.y + lane.height / 2)
+    await expect(page.locator('.sb-inline-editor')).toBeFocused()
+    await page.keyboard.press('ControlOrMeta+a')
+    await page.keyboard.type('Later!')
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.sb-inline-editor')).toHaveCount(0)
+    await expect.poll(async () => (await journal(page)).changes.at(-1)).toEqual({ rename: { laneId: 'later', label: 'Later!' } })
+  })
+
+  test('keyboard: an arrow toward a lane the rules close gives the refusal a drop there would', async ({ page }) => {
+    await open(page)
+    await drag(page, 'card-alpha', await inLane(page, 'later'))
+    await expect.poll(() => cards(page)).toBe('alpha@later beta@now gamma@now')
+    await page.waitForTimeout(450)
+    await click(page, 'card-beta')
+    const start = await at(page, 'card-beta')
+    await page.keyboard.press('ArrowRight')
+    // Later is full: the lane says so, the reason is announced and the host is told.
+    await expect(live(page)).toHaveText("Beta can't move to Later. Now holds 1 of 1 card.")
+    await expect.poll(() => text(page, 'caption-later')).toBe('Now holds 1 of 1 card.')
+    await expect(page.locator('#slate [data-node-id="lane-later"] path').first()).toHaveAttribute('stroke', '#c2410c')
+    expect((await journal(page)).refusals).toEqual([{ cardId: 'beta', laneId: 'later', reason: 'Now holds 1 of 1 card.' }])
+    // Nothing is staged and nothing moved; the card is still the selection.
+    expect(await cards(page)).toBe('alpha@later beta@now gamma@now')
+    expect(await at(page, 'card-beta')).toEqual(start)
+    await expect.poll(() => text(page, 'caption-later'), { timeout: 4000 }).toBe('1 of 1')
+    expect(await selection(page)).toEqual([['card-beta', true]])
+
+    await page.waitForTimeout(450)
+    await click(page, 'card-gamma')
+    await page.keyboard.press('ArrowRight')
+    await expect(live(page)).toHaveText("Gamma can't move to Later. This card can't go in Later.")
+    expect((await journal(page)).refusals.at(-1)).toEqual({ cardId: 'gamma', laneId: 'later', reason: "This card can't go in Later." })
+    // No lane at all on the other side: said plainly, and not a refusal.
+    await page.keyboard.press('ArrowLeft')
+    await expect(live(page)).toHaveText('Gamma has no lane to move to on that side.')
+    expect((await journal(page)).refusals).toHaveLength(2)
+    expect((await journal(page)).changes).toEqual([{ cardId: 'alpha', laneId: 'later' }])
+  })
+})
+
+test.describe('reduced motion', () => {
+  /**
+   * The world position of some notes two frames after the next mouse release: late
+   * enough for a glide to have taken its first step, far too early for one to have ended.
+   */
+  function onRelease(page: Page, ids: string[]) {
+    return page.evaluate(names => new Promise<Record<string, { x: number; y: number }>>(resolve => {
+      window.addEventListener('mouseup', () => requestAnimationFrame(() => requestAnimationFrame(() => {
+        const { native } = window as any
+        resolve(Object.fromEntries(names.map(id => [id, { x: native.at(id).x, y: native.at(id).y }])))
+      })), { once: true, capture: true })
+    }), ids)
+  }
+
+  test('a refused card is put back, an accepted one settled and a new model drawn without gliding', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await open(page)
+    // Refused: within two frames Gamma is back where it started.
+    const gamma = (await at(page, 'card-gamma'))!
+    await carry(page, 'card-gamma', await inLane(page, 'later'))
+    await page.waitForTimeout(100)
+    let frame = onRelease(page, ['card-gamma'])
+    await page.mouse.up()
+    expect((await frame)['card-gamma']).toEqual({ x: gamma.x, y: gamma.y })
+
+    // Accepted: Alpha is in its slot, and the cards behind it have closed up.
+    await page.waitForTimeout(450)
+    await carry(page, 'card-alpha', await inLane(page, 'later'))
+    await page.waitForTimeout(100)
+    frame = onRelease(page, ['card-alpha', 'card-beta', 'card-gamma'])
+    await page.mouse.up()
+    expect(await frame).toEqual({
+      'card-alpha': await slot(page, 'later', 0), 'card-beta': await slot(page, 'now', 0), 'card-gamma': await slot(page, 'now', 1),
+    })
+
+    // A model from the host: two frames later every card is where the model says.
+    const positions = await page.evaluate(async () => {
+      const { native } = window as any
+      const model = native.board.value
+      native.board.update({ ...model, cards: model.cards.map((card: any) => ({ ...card, laneId: card.id === 'alpha' ? 'now' : card.id === 'beta' ? 'later' : card.laneId })) })
+      await native.board.whenDrawn()
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      return Object.fromEntries(['card-alpha', 'card-beta', 'card-gamma'].map(id => [id, { x: native.at(id).x, y: native.at(id).y }]))
+    })
+    expect(positions).toEqual({
+      'card-alpha': await slot(page, 'now', 0), 'card-beta': await slot(page, 'later', 0), 'card-gamma': await slot(page, 'now', 1),
+    })
+  })
+
+  test('without the preference the same card glides back (so the test above measures something)', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await open(page)
+    const gamma = (await at(page, 'card-gamma'))!
+    await carry(page, 'card-gamma', await inLane(page, 'later'))
+    await page.waitForTimeout(100)
+    const frame = onRelease(page, ['card-gamma'])
+    await page.mouse.up()
+    expect((await frame)['card-gamma']).not.toEqual({ x: gamma.x, y: gamma.y })
+    await expect.poll(async () => { const now = (await at(page, 'card-gamma'))!; return { x: now.x, y: now.y } }).toEqual({ x: gamma.x, y: gamma.y })
+  })
+})

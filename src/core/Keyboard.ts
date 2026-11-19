@@ -268,6 +268,9 @@ export class Keyboard {
     const governance = this.slate.governanceOf?.(node);
     if (!governance?.policy?.onKeyDown) return false;
     if (node.editor?.isInlineEditing?.()) return false;
+    // A viewer may not change a governed note by keyboard any more than by dragging it.
+    const slate: any = this.slate;
+    if (slate.options?.enabled === false || slate.isReadOnly?.() || slate.isCommentOnly?.()) return false;
     try {
       return governance.policy.onKeyDown(node, e) === true;
     } catch (error) {

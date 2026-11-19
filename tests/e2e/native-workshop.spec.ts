@@ -531,11 +531,11 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     const later = (await at(page, 'lane-later'))!
     expect((await resting(page, 'card-alpha')).x).toBe(later.x)
 
-    // Gamma has nowhere to go; Beta cannot enter the full lane. Neither stages anything.
+    // Gamma may not enter Later: nothing is staged, and the arrow says why (see native-workshop-hardening.spec.ts).
     const g = await box(page, 'card-gamma')
     await page.mouse.click(g.x + g.width / 2, g.y + g.height / 2)
     await page.keyboard.press('ArrowRight')
-    await expect(live(page)).toHaveText('Gamma has no lane to move to on that side.')
+    await expect(live(page)).toHaveText("Gamma can't move to Later. This card can't go in Later.")
     const state = await journal(page)
     expect(state.changes).toHaveLength(1)
     expect(state.packages).toEqual([])

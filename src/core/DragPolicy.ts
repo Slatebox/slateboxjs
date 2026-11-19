@@ -136,6 +136,18 @@ export interface NodeGovernance {
   capabilities: NodeCapabilities;
 }
 
+/**
+ * Whether the person has asked their system for less motion. Governed notes then
+ * go straight to where they belong instead of gliding there.
+ */
+export function prefersReducedMotion(): boolean {
+  try {
+    return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
+
 /** Resolve the first policy that claims `node`, with its capabilities filled in. */
 export function resolveGovernance(
   policies: readonly DragPolicy[],

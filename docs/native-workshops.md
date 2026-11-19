@@ -36,9 +36,18 @@ One artwork function draws every view: `workshopToSlate(model, { native: true, o
 
 Station maps also get their connectors; release plans their dependency connectors.
 
-None of these notes is written by `slate.exportJSON()`, recorded for undo, or sent to collaborators.
-A host that autosaves the slate's own drawing can keep doing so; the workshop is persisted by saving
-the model `onChange` hands over.
+None of these notes is written by `slate.exportJSON()`, `slate.snapshot()`, recorded for undo, or
+sent to collaborators; that is the supported way to keep them out of a saved drawing, and it needs
+nothing from the host. A host that autosaves the slate's own drawing can keep doing so; the workshop
+is persisted by saving the model `onChange` hands over. `slate.nodes.allNodes` and
+`slate.getAllNodes()` do include them; `slate.freeNodes()` is the drawing without them.
+
+The names `lane-<id>`, `card-<id>`, `caption-<id>`, `column-<id>` and `image-<id>` belong to the
+workshop. `attachWorkshop` throws if the slate already has a note by one of them. If a document
+loaded later brings one (`loadJSON`, undo, a collaborator's full replace), that note stays the
+document's own note: saved, ungoverned, and left in place by `destroy()`; the workshop logs a
+warning and goes without its own note of that name. `loadJSON`, undo and redo otherwise redraw the
+workshop from its model, as new notes.
 
 ## Moving a card
 
@@ -49,8 +58,14 @@ the model `onChange` hands over.
   outside every lane is refused with an empty reason. Escape, a cancelled pointer or touch, and
   window blur cancel the drag.
 - **Keyboard.** With a card selected, Left and Right stage a move to the previous or next lane it may
-  enter (shown exactly like a pointer hover), Enter commits, Escape cancels. The slate's live region
-  announces each step.
+  enter (shown exactly like a pointer hover), Enter commits, Escape cancels. An arrow toward a lane
+  the rules close is refused the way a drop there is: the lane shows the reason, it is announced,
+  and `onRefuse` is called. The slate's live region announces each step.
+- **Viewers.** When the slate's own `isReadOnly` or `isCommentOnly` event says the person may not
+  edit, cards cannot be moved by pointer or keyboard and nothing can be renamed, whatever
+  `readOnly` was passed here.
+- **Reduced motion.** With `prefers-reduced-motion: reduce` a refused card, a settled card and a
+  redrawn board are placed at once instead of gliding.
 
 The rule is `workshopCandidate(board, cardId, laneId)`: the board the move would produce, the same
 board when the card is already there, or null. `workshopRefusal` gives the sentence for a null.
