@@ -79,10 +79,13 @@ const api = {
   slate, log, models, validateWorkshop, attach,
   board: null as AttachedWorkshop | null,
   ready: false,
-  /** Screen position and size of a note, by its node id. */
+  /** Screen position and size of a note, by its node id: its world box seen through the current pan and zoom. */
   box(id: string) {
-    const r = document.querySelector(`[data-node-id="${id}"]`)?.getBoundingClientRect()
-    return r ? { x: r.x, y: r.y, width: r.width, height: r.height } : null
+    const o = slate.nodes.one(id)?.options
+    if (!o) return null
+    const a = slate.worldToClient({ x: o.x ?? 0, y: o.y ?? 0 })
+    const b = slate.worldToClient({ x: (o.x ?? 0) + (o.width ?? 0), y: (o.y ?? 0) + (o.height ?? 0) })
+    return { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y }
   },
   /** World position of a note, by its node id. */
   at(id: string) {

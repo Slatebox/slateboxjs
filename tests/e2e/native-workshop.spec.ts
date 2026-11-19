@@ -279,10 +279,11 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     const b = await box(page, 'plain')
     await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2)
     await page.mouse.down()
-    await page.mouse.move(b.x + b.width / 2 + 40, b.y + b.height / 2 + 120, { steps: 10 })
+    // Down past the bottom of the board, so growing it later cannot slide it under a card.
+    await page.mouse.move(b.x + b.width / 2 + 40, b.y + b.height / 2 + 470, { steps: 10 })
     await page.mouse.up()
     // It stays where it was dropped (no policy, no snap-back) and the engine broadcasts the move.
-    await expect.poll(async () => (await at(page, 'plain'))!.y).toBe(start.y + 120)
+    await expect.poll(async () => (await at(page, 'plain'))!.y).toBe(start.y + 470)
     expect((await at(page, 'plain'))!.x).toBe(start.x + 40)
     await expect.poll(async () => (await journal(page)).packages).toContain('onNodesMove')
     expect((await journal(page)).sent).toContain('onNodesMove')
@@ -416,6 +417,9 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
 
     // A connector dragged from the ordinary note onto a card does not attach, and makes no new note on top of it.
     await page.mouse.click(plain.x + plain.width / 2, plain.y + plain.height / 2)
+    await expect(page.locator('#slate .node-toolbar .node-tool-plug')).toBeVisible()
+    // The toolbar is redrawn once the click settles; take the one that stays.
+    await page.waitForTimeout(250)
     const plug = (await page.locator('#slate .node-toolbar .node-tool-plug').boundingBox())!
     await page.mouse.move(plug.x + plug.width / 2, plug.y + plug.height / 2)
     await page.mouse.down()
@@ -741,6 +745,34 @@ test.describe('experiences and maps as native notes', () => {
     const interviews = (await at(page, 'lane-interviews'))!
     await expect.poll(async () => (await at(page, 'card-preview'))!.x).toBe(interviews.x)
     expect(await text(page, 'caption-prototype')).toBe('1 of 1')
+  })
+
+  test('release plan: pulling a feature forward previews its prerequisite and the points, and an over-budget move is refused', async ({ page }) => {
+    await open(page, '?release')
+    // Dependencies are drawn with the engine's own connectors.
+    await expect(page.locator('#slate path[data-connection-id]')).toHaveCount(1)
+    expect(await text(page, 'caption-friday')).toBe('3 / 8 points')
+    await carry(page, 'card-invite', await inLane(page, 'friday'))
+    await expect.poll(() => text(page, 'caption-friday')).toBe('8 / 8 points')
+    const friday = (await at(page, 'lane-friday'))!
+    // Permission checks is a prerequisite: it is previewed moving into Friday too.
+    await expect.poll(async () => (await at(page, 'card-guardrails'))!.x).toBe(friday.x)
+    expect((await journal(page)).changes).toEqual([])
+    await page.mouse.up()
+    await expect.poll(() => cards(page)).toBe('guardrails@friday invite@friday billing@friday export@next')
+    expect((await journal(page)).changes).toEqual([{ cardId: 'invite', laneId: 'friday' }])
+    await resting(page, 'card-invite')
+
+    const start = await resting(page, 'card-export')
+    await drag(page, 'card-export', await inLane(page, 'friday'))
+    await expect.poll(async () => (await journal(page)).refusals).toEqual([
+      { cardId: 'export', laneId: 'friday', reason: 'Needs 4 points. Now holds 8 of 8 points.' },
+    ])
+    expect(await resting(page, 'card-export')).toEqual(start)
+    // A release card shows its points on a second line, so it is not renamed in place.
+    const invite = await box(page, 'card-invite')
+    await page.mouse.dblclick(invite.x + invite.width / 2, invite.y + invite.height / 2)
+    await expect(page.locator('.sb-inline-editor')).toHaveCount(0)
   })
 
   test('a three-station map: the token takes one hop, and two hops are refused where it was dropped', async ({ page }) => {
