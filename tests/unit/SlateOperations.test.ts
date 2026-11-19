@@ -497,3 +497,21 @@ describe("the live applier follows the stored rules", () => {
     expect(packages.find((p: any) => p.type === "addRelationship").data).toMatchObject({ id: "loose", parentId: "flower-node", targetPoint: { x: 10, y: 20 } });
   });
 });
+
+describe("live moves", () => {
+  it("send onNodesMove in the shape NodesManager.moveNodes reads (data.nodes)", () => {
+    const slate = mockSlate();
+    applySlateOperations(slate, {
+      message: "Done.",
+      operations: [
+        { kind: "update_nodes", target: { ids: ["welcome-node"] }, changes: { x: 10, y: 20 } },
+        { kind: "arrange_nodes", target: { ids: ["welcome-node", "flower-node"] }, layout: "row", gap: 10 },
+      ],
+    });
+    const moves = slate.collab.invoke.mock.calls.flatMap(([value]: any[]) => value).filter((p: any) => p.type === "onNodesMove");
+    expect(moves.map((p: any) => p.data.nodes)).toEqual([
+      [{ id: "welcome-node", x: 10, y: 20 }],
+      [{ id: "welcome-node", x: 10, y: 20 }, { id: "flower-node", x: 220, y: 20 }],
+    ]);
+  });
+});

@@ -46,10 +46,12 @@ function plain<T>(value: T): T {
  */
 export function toStoredSlate(input: any): StoredSlate {
   const live = input?.nodes && !Array.isArray(input.nodes);
+  // The v1 facade (Slatebox.slate) wraps the engine's slate and notes as `v2`.
+  const engine = live ? input.v2 ?? input : null;
   const slate: StoredSlate = live
     ? {
-        options: plain(input.options || {}),
-        nodes: (input.freeNodes?.() ?? input.nodes.allNodes ?? []).map(liveNode),
+        options: plain(engine.options || {}),
+        nodes: (engine.freeNodes?.() ?? engine.nodes.allNodes ?? []).map((node: any) => liveNode(node?.v2 ?? node)),
       }
     : plain(input || {});
   slate.options ||= {};

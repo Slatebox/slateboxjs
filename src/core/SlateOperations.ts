@@ -33,6 +33,12 @@ function nodePackages(id: string, changes: Record<string, any>, options: Record<
   const value = (key: string) => NODE_KEYS[key].read(options);
   const has = (...keys: string[]) => keys.some((key) => changes[key] !== undefined);
   const packages: any[] = [];
+  if (has("shape")) packages.push({ type: "onNodeShapeChanged", data: { id, shape: value("shape"), vectorPath: options.vectorPath } });
+  if (has("backgroundColor", "opacity")) {
+    packages.push({ type: "onNodeColorChanged", data: { id, color: options.backgroundColor, opacity: options.opacity, borderColor: options.borderColor } });
+  }
+  // After the fill: setColors re-picks a readable text colour, and an explicit
+  // foregroundColor must win over it.
   if (has("text", "fontFamily", "fontSize", "foregroundColor", "textXAlign", "textYAlign")) {
     packages.push({
       type: "onNodeTextChanged",
@@ -47,15 +53,12 @@ function nodePackages(id: string, changes: Record<string, any>, options: Record<
       },
     });
   }
-  if (has("shape")) packages.push({ type: "onNodeShapeChanged", data: { id, shape: value("shape"), vectorPath: options.vectorPath } });
-  if (has("backgroundColor", "opacity")) {
-    packages.push({ type: "onNodeColorChanged", data: { id, color: options.backgroundColor, opacity: options.opacity, borderColor: options.borderColor } });
-  }
   for (const prop of ["borderColor", "borderWidth", "borderOpacity", "borderStyle"]) {
     if (has(prop)) packages.push({ type: "onNodeBorderPropertiesChanged", data: { id, prop, val: options[prop] } });
   }
   if (has("width", "height")) packages.push({ type: "onNodeResized", data: { id, width: options.width, height: options.height } });
-  if (has("x", "y")) packages.push({ type: "onNodesMove", data: { dur: 350, moves: [{ id, x: value("x"), y: value("y") }] } });
+  // NodesManager.moveNodes reads data.nodes (not data.moves).
+  if (has("x", "y")) packages.push({ type: "onNodesMove", data: { dur: 350, nodes: [{ id, x: value("x"), y: value("y") }] } });
   if (has("rotationAngle")) packages.push({ type: "onNodeRotated", data: { id, rotationAngle: value("rotationAngle") } });
   if (has("locked")) packages.push({ type: value("locked") ? "onNodeLocked" : "onNodeUnlocked", data: { id } });
   if (has("animation")) {
@@ -112,7 +115,7 @@ export function packagesForOperation(operation: SlateOperation, before: StoredSl
         const node = notesAfter.get(id);
         return node ? [{ id, x: NODE_KEYS.x.read(node.options), y: NODE_KEYS.y.read(node.options) }] : [];
       });
-      return moves.length ? [{ type: "onNodesMove", data: { dur: 450, moves } }] : [];
+      return moves.length ? [{ type: "onNodesMove", data: { dur: 450, nodes: moves } }] : [];
     }
     case "update_slate": {
       const changes = operation.changes || {};
