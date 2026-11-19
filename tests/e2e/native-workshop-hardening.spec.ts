@@ -273,6 +273,42 @@ test.describe('a governed card changes only when the workshop agrees', () => {
   })
 })
 
+test.describe('the Dragology chooser', () => {
+  /**
+   * Release plan fixture: Friday release, Next week, Unscheduled. "Invoice download"
+   * (billing) starts in Friday and may go to either other lane. Held by its left
+   * edge with the pointer just inside Next week's right edge, the pointer is in
+   * Next week but the card itself is nearest its place in Unscheduled.
+   */
+  async function holdBillingAtTheSeam(page: Page) {
+    const billing = await box(page, 'card-billing'), next = await box(page, 'column-next'), row = await box(page, 'card-guardrails')
+    await page.mouse.move(billing.x + 6, billing.y + billing.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(next.x + next.width - 8, row.y + row.height / 2, { steps: 12 })
+  }
+
+  test('by default the lane under the pointer decides', async ({ page }) => {
+    await page.setViewportSize({ width: 1500, height: 800 })
+    await open(page, '?release')
+    await holdBillingAtTheSeam(page)
+    await expect.poll(() => text(page, 'caption-next')).toBe('9 / 12 points')
+    await page.mouse.up()
+    await expect.poll(() => cards(page)).toBe('guardrails@next invite@backlog billing@next export@next')
+  })
+
+  test('with chooseCandidate the Dragology spec decides: the board whose place for the card is nearest', async ({ page }) => {
+    await page.setViewportSize({ width: 1500, height: 800 })
+    await open(page, '?release&dragology')
+    await holdBillingAtTheSeam(page)
+    // Previewed and committed in Unscheduled, though the pointer is inside Next week.
+    await expect.poll(() => text(page, 'caption-backlog')).toBe('6 points')
+    expect(await text(page, 'caption-next')).toBe('6 / 12 points')
+    await page.mouse.up()
+    await expect.poll(() => cards(page)).toBe('guardrails@next invite@backlog billing@backlog export@next')
+    expect((await journal(page)).changes).toEqual([{ cardId: 'billing', laneId: 'backlog' }])
+  })
+})
+
 test.describe('reduced motion', () => {
   /**
    * The world position of some notes two frames after the next mouse release: late
