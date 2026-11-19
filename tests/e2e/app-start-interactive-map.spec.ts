@@ -15,7 +15,7 @@ async function presentDestination(page: Page, model: Workshop) {
     await player.getByRole('button', { name: 'Next station' }).click()
   }
   const branch = model.lanes.find(station => station.label === destination)!
-  await expectWorkshopSlide(page, destination, ['Token'], ['lane-' + branch.id, 'card-' + model.cards[0].id])
+  await expectWorkshopSlide(page, destination, ['Team'], ['lane-' + branch.id, 'card-' + model.cards[0].id])
   await expect(player.getByText(outcome, { exact: true }).last()).toBeVisible()
   await player.getByRole('button', { name: 'Back to board' }).click()
 }
@@ -34,16 +34,20 @@ test('create a private interactive map from Start, author a branch and share the
       await expect(script).toHaveCount(1)
       const chunk = await owner.request.get(new URL((await script.getAttribute('src'))!, origin).href)
       expect(chunk.ok()).toBe(true)
-      expect(await chunk.text()).toContain('Create an interactive map')
+      expect(await chunk.text()).toContain('Conversation with Slatebox')
     }
-    await owner.getByRole('link', { name: 'Create an interactive map', exact: true }).click()
     await owner.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
     await dismissWelcome(owner)
     ownerId = await userId(owner)
     expect(ownerId).toBeTruthy()
     const ownerUrl = owner.url()
     const key = new URL(ownerUrl).pathname.split('/').pop()!
-    await expect(owner.getByRole('heading', { name: 'Untitled map' })).toBeVisible()
+    const drawingChat = owner.getByRole('complementary', {name:'Conversation with Slatebox'})
+    await drawingChat.getByRole('textbox', {name:'Message Slatebox'}).fill('Make this interactive: Start → Next step')
+    await drawingChat.getByRole('button', {name:'Preview changes'}).click()
+    await drawingChat.getByRole('button', {name:'Keep changes'}).click()
+    await expect(owner.getByRole('complementary', {name:'Map conversation'})).toBeVisible()
+    expect(owner.url()).toBe(ownerUrl)
     const initial = await getSlate(owner, key)
     expect(initial.userId).toBe(ownerId)
     expect(initial.options.isPrivate).toBe(true)
@@ -52,7 +56,7 @@ test('create a private interactive map from Start, author a branch and share the
     const [start, next] = starter.lanes
     expect(start.station?.next).toEqual([next.id])
     expect(starter.cards).toHaveLength(1)
-    expect(starter.cards[0]).toMatchObject({ label: 'Token', laneId: start.id })
+    expect(starter.cards[0]).toMatchObject({ label: 'Team', laneId: start.id })
 
     const chat = owner.getByRole('complementary', {name:'Map conversation'})
     const message = chat.getByRole('textbox', {name:'Direct map edits'})
@@ -66,15 +70,15 @@ test('create a private interactive map from Start, author a branch and share the
     await message.fill('At ' + destination + ', ' + outcome)
     await message.press('Enter')
     await chat.getByRole('button', {name:'Keep changes'}).click()
-    await owner.getByRole('button', { name: 'Token → Next step' }).click()
-    await owner.getByRole('button', { name: 'Token → ' + destination }).click()
-    await expect(owner.getByText('Token · ' + destination, { exact: true })).toBeVisible()
+    await owner.getByRole('button', { name: 'Team → Next step' }).click()
+    await owner.getByRole('button', { name: 'Team → ' + destination }).click()
+    await expect(owner.getByText('Team · ' + destination, { exact: true })).toBeVisible()
     await expect.poll(async () => {
       const model: Workshop = (await getSlate(owner, key)).creative.model.workshop
       return model.lanes.find(station => station.id === model.cards[0].laneId)?.label
     }).toBe(destination)
     await owner.reload()
-    await expect(owner.getByText('Token · ' + destination, { exact: true })).toBeVisible()
+    await expect(owner.getByText('Team · ' + destination, { exact: true })).toBeVisible()
     const saved: Workshop = (await getSlate(owner, key)).creative.model.workshop
     expect(saved.lanes.map(station => station.label)).toEqual(['Start', 'Next step', destination])
     expect(saved.lanes[0].station?.next).toEqual([next.id])
@@ -85,7 +89,7 @@ test('create a private interactive map from Start, author a branch and share the
     const invite = await shareAs(owner, 'read')
     await reader.goto(invite.href)
     await dismissWelcome(reader)
-    await expect(reader.getByText('Token · ' + destination, { exact: true })).toBeVisible()
+    await expect(reader.getByText('Team · ' + destination, { exact: true })).toBeVisible()
     await expect(reader.getByRole('complementary', {name:'Map conversation'})).toHaveCount(0)
     await presentDestination(reader, saved)
     expect(await userId(reader)).toBeNull()
