@@ -32,6 +32,11 @@
       "import": "./dist/workshop-model.mjs",
       "require": "./dist/workshop-model.cjs"
     },
+    "./operations": {
+      "types": "./dist/operations/index.d.ts",
+      "import": "./dist/operations.mjs",
+      "require": "./dist/operations.cjs"
+    },
     "./dragology": {
       "types": "./dist/dragology/index.d.ts",
       "import": "./dist/dragology.mjs",
@@ -41,6 +46,7 @@
   "files": [
     "dist",
     "workshops",
+    "operations",
     "dragology",
     "licenses"
   ],
@@ -52,6 +58,7 @@
     "serve": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:node": "node --test tests/node/",
     "test:e2e": "npx playwright test --project=chromium",
     "test:app": "npx playwright test --config playwright.app.config.ts",
     "test:e2e:ui": "npx playwright test --ui",

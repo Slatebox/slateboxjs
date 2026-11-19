@@ -1,4 +1,5 @@
-// Build separate package entries so non-React canvas consumers never load Dragology.
+// Build separate package entries so non-React canvas consumers never load Dragology,
+// and a server can load the DOM-free canvas operations (slateboxjs/operations) alone.
 import { defineConfig } from 'vite'
 import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -46,7 +47,7 @@ export default defineConfig({
   build: {
     emptyOutDir: false,
     lib: {
-      entry: { dragology: dragologyEntry, workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts', 'workshop-mount': 'src/workshops/mount.ts' },
+      entry: { dragology: dragologyEntry, workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts', 'workshop-mount': 'src/workshops/mount.ts', operations: 'src/operations/index.ts' },
       formats: ['es', 'cjs'],
       fileName: (format, entry) => entry + (format === 'es' ? '.mjs' : '.cjs'),
     },

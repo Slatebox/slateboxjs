@@ -41,6 +41,10 @@ try {
     'dist/workshops-LICENSE.txt',
     'licenses/Dragology-MIT.txt',
     'dragology/index.js',
+    'dist/operations.mjs',
+    'dist/operations.cjs',
+    'dist/operations/index.d.ts',
+    'operations/index.js',
   ]) {
     if (!paths.has(required)) {
       throw new Error(`Packed artifact is missing ${required}`)
@@ -87,6 +91,7 @@ import { createElement } from 'react'
 import { WorkshopBoard, type WorkshopBoardProps } from 'slateboxjs/workshops'
 import { validateWorkshop, encodeWorkshopFragment } from 'slateboxjs/workshops/model'
 import { mountWorkshop } from 'slateboxjs/workshops/mount'
+import { applyPlanToJSON, type SlateOperationPlan } from 'slateboxjs/operations'
 import { DraggableRenderer, type Draggable, type DragSpecBuilder, produceAmb } from 'slateboxjs/dragology'
 const fieldNotes = validateWorkshop({
   version: 1, title: 'Sound check', lanes: [{id:'notes', label:'Notes'}, {id:'check', label:'Rehearsal', capacity:2}],
@@ -105,6 +110,10 @@ const render: Draggable<{friday: boolean}> = () => createElement('g')
 void [legal, render, DraggableRenderer]
 type Builder = DragSpecBuilder<{friday: boolean}>
 
+
+const edit: SlateOperationPlan = { message: 'Added', operations: [{ kind: 'add_nodes', count: 1, shape: 'rectangle', ids: ['x1'] }] }
+const created: string[] = applyPlanToJSON({ options: {}, nodes: [] }, edit).report.created
+void created
 
 const factory: typeof SlateboxJS = SlateboxJS
 const id: string = utils.guid()
@@ -137,6 +146,10 @@ void saved
     sandbox
   )
 
+  const operationsCheck = "const plan = { message: 'Added', operations: [{ kind: 'add_nodes', count: 1, shape: 'rectangle', ids: ['x1'] }] }; if (typeof document !== 'undefined' || api.applyPlanToJSON({ options: {}, nodes: [] }, plan).report.created[0] !== 'x1') throw Error('Operations entry failed without a DOM')"
+  run('node', ['--input-type=module', '--eval', "import * as api from 'slateboxjs/operations';" + operationsCheck], sandbox)
+  run('node', ['--eval', "const api = require('slateboxjs/operations');" + operationsCheck], sandbox)
+
   const upstream = await import('dragology')
   const expectedExports = Object.keys(upstream).sort()
   const parity = `const expected = ${JSON.stringify(expectedExports)}; if (JSON.stringify(Object.keys(api).sort()) !== JSON.stringify(expected)) throw Error('Dragology export mismatch'); if (api.runAmb(() => api.amb([1,2])).join() !== '1,2') throw Error('Dragology candidate enumeration failed')`
@@ -161,7 +174,7 @@ void saved
   }
 
   console.log(
-    `Verified ${installed.name}@${installed.version}: packed files, fresh install, ESM/CJS entry points, public CSS export, full Dragology export and license parity, and strict TypeScript consumer.`
+    `Verified ${installed.name}@${installed.version}: packed files, fresh install, ESM/CJS entry points, public CSS export, full Dragology export and license parity, the DOM-free operations entry, and strict TypeScript consumer.`
   )
 } finally {
   rmSync(sandbox, { recursive: true, force: true })
