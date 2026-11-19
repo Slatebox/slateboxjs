@@ -5,7 +5,7 @@ export async function sendMapEdit(page:Page,message:string,decision:'Keep change
   const chat = page.getByRole('complementary',{name:'Map conversation'})
   const input = chat.getByRole('textbox',{name:'Direct map edits'})
   await input.fill(message)
-  await input.press('Enter')
+  await chat.getByRole('button',{name:'Send map message'}).click()
   await chat.getByRole('button',{name:decision,exact:true}).click()
   await expect(input).toBeVisible()
 }
