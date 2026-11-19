@@ -37,6 +37,9 @@ async function hostControls(page: Page) {
     inside.textContent = 'Copy link'
     dialog.append(inside)
     document.body.append(button, dialog)
+    // Some browsers go back a page on Backspace when no field has it. That is the page's to stop,
+    // after the canvas has had its say: this listener runs once the engine's own has returned.
+    window.addEventListener('keydown', event => { if (event.key === 'Backspace') event.preventDefault() })
   })
 }
 
