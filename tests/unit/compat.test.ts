@@ -8,6 +8,8 @@ import {
   v2SlateToV1,
   convertV1JsonToV2,
   convertV2JsonToV1,
+  isLegacyTextOffset,
+  normalizeLegacyTextOffset,
 } from "../../src/core/compat";
 
 describe("compat - v1/v2 property mapping", () => {
@@ -88,6 +90,48 @@ describe("compat - v1/v2 property mapping", () => {
       const v2 = v1NodeToV2({});
       expect(v2).toBeDefined();
       expect(Object.keys(v2).length).toBe(0);
+    });
+  });
+
+  describe("legacy textOffset", () => {
+    // v1 stored the shape's bbox centre from the top-left corner; v3 reads
+    // textOffset as a nudge from the centre. Reading the v1 value as a nudge
+    // drew every legacy label half a shape too low.
+    const legacy = { x: 0, y: 23, width: 105, height: 46 };
+
+    it("recognises the v1 shape by its width/height measurement", () => {
+      expect(isLegacyTextOffset(legacy)).toBe(true);
+      expect(isLegacyTextOffset({ x: 0, y: 44.14, height: 88.28 })).toBe(true);
+      expect(isLegacyTextOffset({ x: 0, y: 0 })).toBe(false);
+      expect(isLegacyTextOffset({ x: 0, y: 20 })).toBe(false);
+      expect(isLegacyTextOffset(undefined)).toBe(false);
+      expect(isLegacyTextOffset(null)).toBe(false);
+    });
+
+    it("v1NodeToV2 centres a v1 textOffset", () => {
+      const v2 = v1NodeToV2({ xPos: 9357, yPos: 9829, width: 105, height: 46, textOffset: legacy });
+      expect(v2.textOffset).toEqual({ x: 0, y: 0 });
+    });
+
+    it("v1NodeToV2 does not mutate the caller's options", () => {
+      const v1 = { textOffset: { ...legacy } };
+      v1NodeToV2(v1);
+      expect(v1.textOffset).toEqual(legacy);
+    });
+
+    it("keeps a v3 textOffset nudge as authored", () => {
+      expect(v1NodeToV2({ textOffset: { x: 4, y: 20 } }).textOffset).toEqual({ x: 4, y: 20 });
+      expect(v1NodeToV2({ x: 10, y: 10, textOffset: { x: 0, y: 0 } }).textOffset).toEqual({ x: 0, y: 0 });
+    });
+
+    it("normalizeLegacyTextOffset is idempotent and leaves nodes without textOffset alone", () => {
+      const opts: any = { textOffset: { ...legacy } };
+      normalizeLegacyTextOffset(opts);
+      normalizeLegacyTextOffset(opts);
+      expect(opts.textOffset).toEqual({ x: 0, y: 0 });
+      const bare: any = { text: "x" };
+      normalizeLegacyTextOffset(bare);
+      expect(bare).toEqual({ text: "x" });
     });
   });
 

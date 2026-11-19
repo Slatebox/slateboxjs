@@ -23,7 +23,7 @@ import { Links } from "./Links";
 import { Filters } from "./Filters";
 import { Menu } from "./Menu";
 import { resolveShapePath } from "./ShapeRegistry";
-import { v2NodeToV1 } from "./compat";
+import { normalizeLegacyTextOffset, v2NodeToV1 } from "./compat";
 import { whiteOrBlack, contrastRatio } from "../utils";
 
 const plugDirections = ["top", "right", "bottom", "left"] as const;
@@ -1118,6 +1118,10 @@ export class Node {
   public centerText() {
     // Skip if no text element (e.g., when using SVG content)
     if (!this.textElement) return;
+
+    // Options can arrive from paths that skip v1NodeToV2 (direct addNode,
+    // collab packages, option patches); never read a v1 measurement as a nudge.
+    normalizeLegacyTextOffset(this.options);
 
     const { width, height, textXAlign, textYAlign, textOffset } = this.options;
 

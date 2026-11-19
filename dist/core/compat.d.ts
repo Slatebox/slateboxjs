@@ -8,6 +8,25 @@ import type { NodeOptions } from "./Node";
 import type { SlateOptions } from "./Slate";
 /** Convert v1 node JSON properties to v2 NodeOptions */
 export declare function v1NodeToV2(v1: Record<string, any>): Partial<NodeOptions>;
+/**
+ * True for a textOffset written by Slatebox v1. v1 stored the measured centre
+ * of the shape's bounding box relative to the node's top-left corner, together
+ * with that box's size: `{x: 0, y: height / 2, width, height}`. v3 never writes
+ * `width` or `height` into textOffset, so their presence marks the v1 shape.
+ */
+export declare function isLegacyTextOffset(textOffset: unknown): boolean;
+/**
+ * Replace a v1 textOffset with the centred v3 offset `{x: 0, y: 0}`.
+ *
+ * v3 reads textOffset as a nudge away from the shape's centre. Reading the v1
+ * measurement that way added half the shape's height again and put every
+ * legacy label on (or below) the bottom edge. v1 recomputed the value on every
+ * text edit, resize, rotate and shape change and had no control for moving
+ * text by hand, so it never carries intent: a v1 label is always centred.
+ */
+export declare function normalizeLegacyTextOffset<T extends {
+    textOffset?: unknown;
+}>(opts: T): T;
 /** Convert v2 NodeOptions to v1 node JSON format */
 export declare function v2NodeToV1(v2: Partial<NodeOptions>): Record<string, any>;
 /** Convert v1 slate JSON options to v2 SlateOptions */

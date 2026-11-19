@@ -1,0 +1,215 @@
+{
+  "options": {
+    "id": "legacy-text-offset",
+    "name": "Legacy text offset fixture",
+    "containerStyle": {
+      "backgroundColor": "#ffffff"
+    }
+  },
+  "nodes": [
+    {
+      "options": {
+        "id": "legacy-rect-two-lines",
+        "text": "Intake\nQueue",
+        "xPos": 9357.02,
+        "yPos": 9829.58,
+        "width": 105,
+        "height": 46,
+        "shapeHint": "rectangle",
+        "vectorPath": "M9357.02,9829.58C9357.02,9829.58,9462.02,9829.58,9462.02,9829.58C9462.02,9829.58,9462.02,9875.58,9462.02,9875.58C9462.02,9875.58,9357.02,9875.58,9357.02,9875.58C9357.02,9875.58,9357.02,9829.58,9357.02,9829.58C9357.02,9829.58,9357.02,9829.58,9357.02,9829.58",
+        "textOffset": {
+          "x": 0,
+          "y": 23,
+          "width": 105,
+          "height": 46
+        },
+        "textBounds": {
+          "x": 9357.02,
+          "y": 9829.58,
+          "x2": 9462.02,
+          "y2": 9875.58,
+          "width": 105,
+          "height": 46,
+          "cx": 9409.52,
+          "cy": 9852.58
+        },
+        "textXAlign": "middle",
+        "textYAlign": "middle",
+        "fontSize": 18,
+        "fontFamily": "Roboto",
+        "foregroundColor": "#fff",
+        "backgroundColor": "#9c27b0",
+        "borderColor": "#000",
+        "borderWidth": 1,
+        "borderStyle": "solid",
+        "opacity": 1,
+        "textOpacity": 1,
+        "rotate": {
+          "rotationAngle": 0,
+          "point": {
+            "x": 9409.52,
+            "y": 9852.58
+          }
+        },
+        "isEllipse": false
+      },
+      "relationships": {
+        "associations": []
+      }
+    },
+    {
+      "options": {
+        "id": "legacy-wide-ellipse",
+        "text": "Inputs",
+        "xPos": 9136.17,
+        "yPos": 9679.642928546189,
+        "width": 148,
+        "height": 48.22400240156276,
+        "shapeHint": "Circle",
+        "vectorPath": "M9136.17,9703.75C9136.17,9685.23,9197.84,9673.65,9247.17,9682.89C9270.06,9687.19,9284.17,9695.16,9284.17,9703.75C9284.17,9722.28,9222.5,9733.86,9173.17,9724.62C9150.27,9720.32,9136.17,9712.35,9136.17,9703.75",
+        "textOffset": {
+          "x": 0,
+          "y": 24.11200120078138,
+          "width": 148,
+          "height": 48.22400240156276
+        },
+        "textBounds": {
+          "x": 9136.17,
+          "y": 9679.642928546189,
+          "x2": 9284.17,
+          "y2": 9727.866930947752,
+          "width": 148,
+          "height": 48.22400240156276,
+          "cx": 9210.17,
+          "cy": 9703.75492974697
+        },
+        "textXAlign": "middle",
+        "textYAlign": "middle",
+        "fontSize": 18,
+        "fontFamily": "Roboto",
+        "foregroundColor": "#000",
+        "backgroundColor": "#f54336",
+        "borderColor": "#000",
+        "borderWidth": 1,
+        "borderStyle": "-",
+        "opacity": 0.52,
+        "textOpacity": 1,
+        "rotate": {
+          "rotationAngle": 0,
+          "point": {
+            "x": 9210.17,
+            "y": 9703.75492974697
+          }
+        },
+        "isEllipse": false,
+        "origVectWidth": 150,
+        "origVectHeight": 150.2237852264254
+      },
+      "relationships": {
+        "associations": []
+      }
+    },
+    {
+      "options": {
+        "id": "legacy-circle",
+        "text": "Hub",
+        "xPos": 10168.17,
+        "yPos": 9769.859324547822,
+        "width": 90,
+        "height": 88.28135090435353,
+        "shapeHint": "Circle",
+        "vectorPath": "M10168.17,9814C10168.17,9780.09,10205.69,9758.87,10235.67,9775.82C10249.56,9783.7,10258.17,9798.28,10258.17,9814C10258.17,9847.91,10220.65,9869.13,10190.67,9852.18C10176.78,9844.3,10168.17,9829.72,10168.17,9814",
+        "textOffset": {
+          "x": 0,
+          "y": 44.140675452177675,
+          "width": 90,
+          "height": 88.28135090435535
+        },
+        "textBounds": {
+          "x": 10168.17,
+          "y": 9769.859324547822,
+          "x2": 10258.17,
+          "y2": 9858.140675452178,
+          "width": 90,
+          "height": 88.28135090435535,
+          "cx": 10213.17,
+          "cy": 9814
+        },
+        "textXAlign": "middle",
+        "textYAlign": "middle",
+        "fontSize": 18,
+        "fontFamily": "Roboto",
+        "foregroundColor": "#000",
+        "backgroundColor": "#ffeb3b",
+        "borderColor": "#000",
+        "borderWidth": 1,
+        "borderStyle": "solid",
+        "opacity": 1,
+        "textOpacity": 1,
+        "rotate": {
+          "rotationAngle": 0,
+          "point": {
+            "x": 10213.17,
+            "y": 9814
+          }
+        },
+        "isEllipse": false,
+        "origVectWidth": 188,
+        "origVectHeight": 188.2804774837865
+      },
+      "relationships": {
+        "associations": []
+      }
+    },
+    {
+      "options": {
+        "id": "legacy-tall-column",
+        "text": "S\nT\nA\nC\nK",
+        "xPos": 9703.46,
+        "yPos": 9860.98,
+        "width": 51,
+        "height": 204,
+        "shapeHint": "rectangle",
+        "vectorPath": "M9703.46,9860.98C9703.46,9860.98,9754.46,9860.98,9754.46,9860.98C9754.46,9860.98,9754.46,10064.98,9754.46,10064.98C9754.46,10064.98,9703.46,10064.98,9703.46,10064.98C9703.46,10064.98,9703.46,9860.98,9703.46,9860.98C9703.46,9860.98,9703.46,9860.98,9703.46,9860.98",
+        "textOffset": {
+          "x": 0,
+          "y": 102,
+          "width": 51,
+          "height": 204
+        },
+        "textBounds": {
+          "x": 9703.46,
+          "y": 9860.98,
+          "x2": 9754.46,
+          "y2": 10064.98,
+          "width": 51,
+          "height": 204,
+          "cx": 9728.96,
+          "cy": 9962.98
+        },
+        "textXAlign": "middle",
+        "textYAlign": "middle",
+        "fontSize": 18,
+        "fontFamily": "Roboto",
+        "foregroundColor": "#fff",
+        "backgroundColor": "#4051B5",
+        "borderColor": "#000",
+        "borderWidth": 1,
+        "borderStyle": "solid",
+        "opacity": 1,
+        "textOpacity": 1,
+        "rotate": {
+          "rotationAngle": 0,
+          "point": {
+            "x": 9728.96,
+            "y": 9962.98
+          }
+        },
+        "isEllipse": false
+      },
+      "relationships": {
+        "associations": []
+      }
+    }
+  ]
+}
