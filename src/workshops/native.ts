@@ -162,7 +162,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       held.outcome = outcome
       const candidate = outcome.kind === 'candidate' ? outcome.next : null
       draw(candidate ?? value, { skip: held.cardId })
-      options.onPreview?.(candidate)
+      tell(options.onPreview, candidate)
     },
     onEnd(node: any, point) {
       if (!held) return { accept: false }
@@ -170,13 +170,13 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const outcome = decide(cardId, point, evaluate)
       const card = value.cards.find(item => item.id === cardId)!
       held = null
-      options.onPreview?.(null)
+      tell(options.onPreview, null)
       if (outcome.kind === 'candidate') {
         value = outcome.next
         draw(value, { skip: cardId })
         const lane = value.lanes.find(item => item.id === outcome.laneId)!
         slate.announce?.(`${card.label} moved to ${lane.label}. ${workshopLaneCaption(value, lane.id)}.`)
-        options.onChange?.(value, { cardId, laneId: outcome.laneId })
+        tell(options.onChange, value, { cardId, laneId: outcome.laneId })
         const slot = slotOf(value, node.id)
         return slot ? { accept: true, settle: slot } : { accept: true }
       }
@@ -186,7 +186,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         draw(value, { skip: cardId })
         if (outcome.kind === 'outside') {
           slate.announce?.(`${card.label} was not dropped on a lane. It stays where it was.`)
-          options.onRefuse?.({ cardId, laneId: null, reason: '' })
+          tell(options.onRefuse, { cardId, laneId: null, reason: '' })
         }
       }
       return { accept: false }
@@ -194,7 +194,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     onCancel(node: any) {
       const card = held && value.cards.find(item => item.id === held!.cardId)
       held = null
-      options.onPreview?.(null)
+      tell(options.onPreview, null)
       draw(value, { skip: node.id.replace(/^card-/, '') })
       if (card) slate.announce?.(`Move cancelled. ${card.label} stays where it was.`)
     },
@@ -211,14 +211,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       } catch (error) {
         const reason = error instanceof Error ? error.message : 'That name is not allowed.'
         slate.announce?.(`${previous} keeps its name. ${reason}`)
-        options.onRefuse?.({ ...(target.kind === 'lane' ? { laneId: target.key } : { cardId: target.key }), rename, reason })
+        tell(options.onRefuse, { ...(target.kind === 'lane' ? { laneId: target.key } : { cardId: target.key }), rename, reason })
         return false
       }
       if (label === previous) return false
       value = next
       draw(value)
       slate.announce?.(`${previous} renamed to ${label}.`)
-      options.onChange?.(value, { rename })
+      tell(options.onChange, value, { rename })
       return label
     },
     onKeyDown(node: any, event) {
@@ -239,10 +239,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         staged = null
         value = next
         draw(value)
-        options.onPreview?.(null)
+        tell(options.onPreview, null)
         const lane = value.lanes.find(item => item.id === laneId)!
         slate.announce?.(`${card.label} moved to ${lane.label}. ${workshopLaneCaption(value, laneId)}.`)
-        options.onChange?.(value, { cardId: card.id, laneId })
+        tell(options.onChange, value, { cardId: card.id, laneId })
         return true
       }
       if (event.key === 'Escape') {
@@ -328,7 +328,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       flash = { laneId: closed.id, reason, timer: setTimeout(() => endFlash(), 1500) }
       draw(staged?.next ?? proposal ?? value)
       slate.announce?.(`${card.label} can't move to ${closed.label}. ${reason}`)
-      options.onRefuse?.({ cardId, laneId: closed.id, reason })
+      tell(options.onRefuse, { cardId, laneId: closed.id, reason })
       return
     }
     if (target.id === card.laneId) {
@@ -339,14 +339,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const next = workshopCandidate(value, cardId, target.id)!
     staged = { cardId, laneId: target.id, next }
     draw(next)
-    options.onPreview?.(next)
+    tell(options.onPreview, next)
     slate.announce?.(`${card.label} to ${target.label}: ${workshopLaneCaption(next, target.id)}. Press Enter to move it, Escape to cancel.`)
   }
 
   function clearStaged() {
     if (!staged) return
     staged = null
-    options.onPreview?.(null)
+    tell(options.onPreview, null)
     draw(proposal ?? value)
   }
 
@@ -356,7 +356,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     draw(value, { skip: refusal.cardId })
     const lane = value.lanes.find(item => item.id === refusal.laneId)
     slate.announce?.(`${cardLabel} can't move to ${lane?.label ?? 'that lane'}. ${refusal.reason}`)
-    options.onRefuse?.(refusal)
+    tell(options.onRefuse, refusal)
   }
 
   function endFlash(redraw = true) {
@@ -527,7 +527,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   function cancelGestures() {
     if (held) slate.cancelGovernedDrag?.('host')
     held = null
-    if (staged) { staged = null; options.onPreview?.(null) }
+    if (staged) { staged = null; tell(options.onPreview, null) }
     endFlash(false)
   }
 
@@ -584,6 +584,19 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       release()
       slate.notifyNodeChanged?.()
     },
+  }
+}
+
+/**
+ * Call a host callback. One that throws is reported and otherwise ignored: by then
+ * the workshop has already made up its mind, and its notes must end up where its
+ * model says whatever becomes of the host's own code.
+ */
+function tell<A extends unknown[]>(callback: ((...args: A) => void) | undefined, ...args: A) {
+  try {
+    callback?.(...args)
+  } catch (error) {
+    console.error('WORKSHOP: a host callback threw', error)
   }
 }
 

@@ -66,9 +66,9 @@ async function attach(model: Workshop, options: Record<string, unknown> = {}) {
     ? (await import('../../src/workshops/dragologyCandidates')).dragologyCandidates : undefined
   const board = attachWorkshop(slate, model, {
     readOnly: params.has('readonly'), chooseCandidate, ...options,
-    onChange: (next, change) => { log.changes.push({ next, change }) },
-    onRefuse: refusal => { log.refusals.push(refusal) },
-    onPreview: candidate => { log.previews.push(candidate) },
+    onChange: (next, change) => { log.changes.push({ next, change }); if (api.hostThrows) throw new Error('The host could not save.') },
+    onRefuse: refusal => { log.refusals.push(refusal); if (api.hostThrows) throw new Error('The host could not show the refusal.') },
+    onPreview: candidate => { log.previews.push(candidate); if (api.hostThrows) throw new Error('The host could not show the preview.') },
   })
   await board.whenDrawn()
   return board
@@ -79,6 +79,8 @@ const api = {
   slate, log, models, validateWorkshop, attach,
   board: null as AttachedWorkshop | null,
   ready: false,
+  /** Set to make every host callback throw after recording what it was told. */
+  hostThrows: false,
   /** Screen position and size of a note, by its node id: its world box seen through the current pan and zoom. */
   box(id: string) {
     const o = slate.nodes.one(id)?.options

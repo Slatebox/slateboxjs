@@ -224,6 +224,31 @@ test.describe('a governed card changes only when the workshop agrees', () => {
     await expect.poll(async () => (await at(page, 'plain'))!.x).toBe(plain.x + 120)
   })
 
+  test('a host callback that throws does not leave the notes and the model disagreeing', async ({ page }) => {
+    await open(page)
+    await page.evaluate(() => { (window as any).native.hostThrows = true })
+    // By pointer: the move is committed in the model, so the card settles in its new lane.
+    await drag(page, 'card-alpha', await inLane(page, 'later'))
+    await expect.poll(() => cards(page)).toBe('alpha@later beta@now gamma@now')
+    await page.waitForTimeout(600)
+    const alpha = (await at(page, 'card-alpha'))!, beta = (await at(page, 'card-beta'))!
+    expect({ x: alpha.x, y: alpha.y }).toEqual(await slot(page, 'later', 0))
+    expect({ x: beta.x, y: beta.y }).toEqual(await slot(page, 'now', 0))
+    // A refusal the host fails to show still puts the card back.
+    await drag(page, 'card-beta', await inLane(page, 'later'))
+    await page.waitForTimeout(600)
+    const back = (await at(page, 'card-beta'))!
+    expect({ x: back.x, y: back.y }).toEqual(await slot(page, 'now', 0))
+    // By keyboard: Enter commits the staged move and does nothing else (no editor opens on the card).
+    await click(page, 'card-alpha')
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('Enter')
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
+    await page.waitForTimeout(400)
+    await expect(page.locator('.sb-inline-editor')).toHaveCount(0)
+    expect((await journal(page)).changes).toEqual([{ cardId: 'alpha', laneId: 'later' }, { cardId: 'alpha', laneId: 'now' }])
+  })
+
   test('a card caught while it glides to its slot still comes to rest in a slot', async ({ page }) => {
     await open(page)
     // Alpha leaves Now, so Beta and Gamma start gliding up one place.

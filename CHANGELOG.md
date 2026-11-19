@@ -10,7 +10,10 @@
   selection and inline editing. A card dragged to a lane it may enter previews the outcome on the
   lane captions and commits through `onChange`; a full or forbidden lane refuses, the card glides
   back and the reason is shown on the lane and given to `onRefuse`. The notes are a drawing of the
-  model and are never saved, broadcast or put in undo history. See `docs/native-workshops.md`.
+  model and are never saved, broadcast or put in undo history. Cards also move from the keyboard
+  (Left/Right to stage, Enter, Escape), with the same refusals; a viewer (`isReadOnly`,
+  `isCommentOnly`) can move nothing; and with `prefers-reduced-motion` cards are placed without
+  gliding. See `docs/native-workshops.md`.
 - **Host drag policies.** `slate.setDragPolicy(policy)` lets a host govern chosen notes: refuse a
   drag, watch it, accept or refuse the drop and say where the note settles, and decide per note
   whether it may be resized, rotated, deleted, duplicated, connected, edited or selected. Also
