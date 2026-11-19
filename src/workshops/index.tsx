@@ -4,7 +4,7 @@ import React from 'react'
 import { NativeMapSurface } from './NativeMapSurface'
 import { compactStationGap, fitLaneLayout } from './fitLanes'
 import { DraggableRenderer, type Draggable, type DragStatus } from 'dragology'
-import { availableLanes, resolveWorkshopSignals, workshopCandidate, workshopPositions, maxWorkshopCards, type Workshop } from './model'
+import { availableLanes, resolveWorkshopSignals, moveWorkshopCard, workshopPositions, maxWorkshopCards, type Workshop } from './model'
 import { renderBoard } from './boardDrawing'
 export { dragologyCandidates } from './dragologyCandidates'
 
@@ -225,7 +225,7 @@ export function WorkshopBoard({ value, onChange, onPreview, onSelectCard, onEdit
           {current.station!.image && <img src={current.station!.image.src} alt={current.station!.image.alt}
             referrerPolicy="no-referrer" style={{ display:'block', maxWidth:'100%', width:360, maxHeight:240, objectFit:'contain', objectPosition:'left', marginBlock:'8px' }} />}
           {availableLanes(value, card).filter(lane => lane.id !== card.laneId).map(lane =>
-            <button key={lane.id} type="button" disabled={readOnly} onClick={() => commit(workshopCandidate(value, card.id, lane.id)!, {cardId: card.id, laneId: lane.id})}>
+            <button key={lane.id} type="button" disabled={readOnly} onClick={() => commit(moveWorkshopCard(value, card.id, lane.id), {cardId: card.id, laneId: lane.id})}>
               {card.label} → {lane.label}
             </button>)}
         </div>
@@ -238,7 +238,7 @@ export function WorkshopBoard({ value, onChange, onPreview, onSelectCard, onEdit
         <select disabled={readOnly} aria-label={'Move ' + card.label} value={keyboardMove?.move.cardId === card.id ? keyboardMove.move.laneId : card.laneId}
           onChange={e => {
             const move = {cardId:card.id, laneId:e.currentTarget.value}
-            const next = workshopCandidate(value, card.id, move.laneId)!
+            const next = moveWorkshopCard(value, card.id, move.laneId)
             if (!hasSignals) commit(next, move)
             else if (next === value) cancel()
             else { setKeyboard({source:value, next, move}); onPreview?.(next) }

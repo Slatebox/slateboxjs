@@ -1,6 +1,6 @@
 import { dragSpecToBehavior, getElementPositionCheap, Vec2, type Draggable, type DragInitContext, type DragSpecBuilder } from 'dragology'
 import { renderBoard, workshopDragSpec } from './boardDrawing'
-import { workshopDestinations, type Workshop } from './model'
+import { workshopCandidate, workshopDestinations, type Workshop } from './model'
 import type { WorkshopCandidateChooser } from './native'
 
 /**
@@ -35,6 +35,6 @@ export const dragologyCandidates: WorkshopCandidateChooser = (board, cardId, gra
   }
   getElementPositionCheap(context, board)
   if (!builder) return null
-  const behavior = dragSpecToBehavior(workshopDragSpec(builder, board, card, lanes), context)
+  const behavior = dragSpecToBehavior(workshopDragSpec(builder, board, card, lanes, workshopCandidate), context)
   return point => behavior({ pointer: Vec2(point.x, point.y) }).dropState
 }

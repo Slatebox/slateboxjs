@@ -306,16 +306,21 @@ export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string
  * This is the one question each board asks before a drag, a preview or a commit.
  * Release plans answer with planReleaseMove (which may bring dependent features
  * along), a startup experience with planStartupMove (an interview dropped on the
- * occupied prototype swaps with it), and everything else with the lane rules:
- * capacity, allowedLaneIds and, on a map, the stations reachable from here.
+ * occupied prototype swaps with it, or is refused when the one there cannot leave),
+ * and everything else with the lane rules: capacity, allowedLaneIds and, on a map,
+ * the stations reachable from here.
  */
 export function workshopCandidate(board: Workshop, cardId: string, laneId: string): Workshop | null {
   const card = board.cards.find(item => item.id === cardId)
   if (!card || !board.lanes.some(lane => lane.id === laneId)) return null
   if (card.laneId === laneId) return board
   if (board.kind === 'release-plan') return planReleaseMove(board, card, laneId)
-  return planStartupMove(board, cardId, laneId) ??
-    (availableLanes(board, card).some(lane => lane.id === laneId) ? moveWorkshopCard(board, cardId, laneId) : null)
+  const experience = planStartupMove(board, cardId, laneId)
+  if (experience) return experience
+  // The prototype holds one interview. When the experience cannot make room there
+  // (the interview in it has nowhere to go), the lane rules must not stack a second one in.
+  if (laneId === 'prototype' && startupExperienceKind(board) === 'customer-interviews') return null
+  return availableLanes(board, card).some(lane => lane.id === laneId) ? moveWorkshopCard(board, cardId, laneId) : null
 }
 
 /** Every lane the card may be dropped in, including the one it is in. */

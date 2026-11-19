@@ -1,7 +1,7 @@
 import React from 'react'
 import { compactStationGap, type fitLaneLayout } from './fitLanes'
 import { translate, type DraggableProps, type DragSpec, type DragSpecBuilder } from 'dragology'
-import { availableLanes, releaseLoad, laneColors, workshopCandidate, workshopLayout, workshopPositions, type Workshop, type WorkshopCard, type WorkshopLane } from './model'
+import { availableLanes, releaseLoad, laneColors, moveWorkshopCard, workshopLayout, workshopPositions, type Workshop, type WorkshopCard, type WorkshopLane } from './model'
 
 /**
  * The Dragology spec for dragging one card: among the boards its lanes allow, the
@@ -10,12 +10,16 @@ import { availableLanes, releaseLoad, laneColors, workshopCandidate, workshopLay
  * a neighbouring one); on a map or a release plan the card goes to the nearest
  * board it may reach.
  *
- * The SVG board hands this to Dragology's renderer. A native slate evaluates the
- * same spec at its own pointer positions (see dragologyCandidates).
+ * The SVG board hands this to Dragology's renderer with the lane rules it has
+ * always used (availableLanes and moveWorkshopCard). A native slate evaluates the
+ * same spec at its own pointer positions with workshopCandidate as the rule, so an
+ * experience's own moves (an interview swapped into the prototype) are offered too
+ * (see dragologyCandidates).
  */
 export function workshopDragSpec(d: DragSpecBuilder<Workshop>, state: Workshop, card: WorkshopCard,
-  lanes: WorkshopLane[] = availableLanes(state, card)): DragSpec<Workshop> {
-  const candidates = lanes.map(lane => workshopCandidate(state, card.id, lane.id)!)
+  lanes: WorkshopLane[] = availableLanes(state, card),
+  candidate: (board: Workshop, cardId: string, laneId: string) => Workshop | null = moveWorkshopCard): DragSpec<Workshop> {
+  const candidates = lanes.map(lane => candidate(state, card.id, lane.id)!)
   if (state.lanes[0].station || state.kind) return d.closest(candidates).withFloating()
   // A full or forbidden lane is not an invitation to a neighboring lane.
   const targets = lanes.map((lane, i) => d.dropTarget('drop-' + lane.id, candidates[i], { boundsState: state }))
