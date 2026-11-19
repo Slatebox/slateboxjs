@@ -94,6 +94,39 @@ test.describe('a governed card changes only when the workshop agrees', () => {
     })
   }
 
+  test('a host pane cannot restyle a card, or tell anyone it did, through collab.invoke and collab.send', async ({ page }) => {
+    await open(page)
+    const result = await page.evaluate(async () => {
+      const { slate, log } = (window as any).native
+      const card = slate.nodes.one('card-alpha'), plain = slate.nodes.one('plain')
+      const before = { fill: card.options.backgroundColor, text: card.options.text, undo: slate.undoRedo.undoStack.length }
+      // What the app's node panes do for the selected note: apply locally, then send.
+      const aimedAtCard = [
+        { type: 'onNodeColorChanged', data: { id: 'card-alpha', color: '#ff0000' } },
+        { type: 'onNodeTextChanged', data: { id: 'card-alpha', text: 'Hijacked', fontSize: 40 } },
+        { type: 'onNodesMove', data: { nodeOptions: [{ id: 'card-alpha', xPos: 0, yPos: 0 }] } },
+      ]
+      for (const pkg of aimedAtCard) { slate.collab.invoke(pkg); slate.collab.send(pkg) }
+      // The same pane on an ordinary note still works, alone or in a batch with a card.
+      const mixed = [{ type: 'onNodeColorChanged', data: { id: 'plain', color: '#00ff00' } }, { type: 'onNodeColorChanged', data: { id: 'card-beta', color: '#00ff00' } }]
+      slate.collab.invoke(mixed)
+      slate.collab.send(mixed)
+      await new Promise(resolve => setTimeout(resolve, 700))
+      return {
+        card: { fill: card.options.backgroundColor, text: card.options.text, x: card.options.x },
+        before, beta: slate.nodes.one('card-beta').options.backgroundColor, plain: plain.options.backgroundColor,
+        told: log.packages.map((pkg: any) => pkg.type + ':' + (pkg.data.id ?? '')),
+        undoSteps: slate.undoRedo.undoStack.length - before.undo,
+      }
+    })
+    expect(result.card).toEqual({ fill: result.before.fill, text: 'Alpha', x: (await at(page, 'card-alpha'))!.x })
+    expect(result.beta).toBe(result.before.fill)
+    expect(result.plain).toBe('#00ff00')
+    // The host's save path heard about the ordinary note only, and undo gained that one step.
+    expect(result.told).toEqual(['onNodeColorChanged:plain'])
+    expect(result.undoSteps).toBe(1)
+  })
+
   test('undo with a card selected leaves no ghost of the card to duplicate, copy or paste', async ({ page }) => {
     const errors = pageErrors(page)
     await open(page)

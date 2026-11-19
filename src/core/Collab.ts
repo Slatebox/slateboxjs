@@ -260,6 +260,9 @@ export class Collab {
     const pkgs = Array.isArray(packages) ? packages : [packages];
 
     for (const pkg of pkgs) {
+      // A package wholly about a governed note changes nothing here, so it is not
+      // an undo step either.
+      if ((this.slate as any).screenGovernedPackage?.(pkg.type, pkg.data) === null) continue;
       this.exe(pkg);
       // Host-owned panes use invoke() to apply locally and send() to sync/save.
       // Unlike engine-originated mutations, that path never called
@@ -278,7 +281,14 @@ export class Collab {
    * depends on it even when no collab server is connected.
    */
   public send(packages: SlatePackage | SlatePackage[]): void {
-    const pkgs = Array.isArray(packages) ? packages : [packages];
+    // Nothing about a governed note is sent or handed to the host's save path, even
+    // when a host pane sends the package itself instead of going through
+    // Slate.broadcast. (On a slate with no drag policy this returns every package as it is.)
+    const pkgs = (Array.isArray(packages) ? packages : [packages]).flatMap((pkg) => {
+      const data = (this.slate as any).screenGovernedPackage?.(pkg.type, pkg.data);
+      if (data === null) return [];
+      return data === undefined || data === pkg.data ? [pkg] : [{ ...pkg, data }];
+    });
 
     if (this.collabMap) {
       for (const pkg of pkgs) {
