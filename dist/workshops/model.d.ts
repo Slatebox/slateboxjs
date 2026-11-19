@@ -70,6 +70,23 @@ export declare function encodeWorkshopFragment(value: Workshop): string;
 export declare function decodeWorkshopFragment(fragment: string): Workshop;
 export declare function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLane[];
 export declare function moveWorkshopCard(board: Workshop, cardId: string, laneId: string): Workshop;
+/**
+ * The board a move would produce, for every kind of workshop: `board` itself when the
+ * card is already in that lane, or null when the move is unavailable.
+ *
+ * This is the one question each board asks before a drag, a preview or a commit.
+ * Release plans answer with planReleaseMove (which may bring dependent features
+ * along), a startup experience with planStartupMove (an interview dropped on the
+ * occupied prototype swaps with it), and everything else with the lane rules:
+ * capacity, allowedLaneIds and, on a map, the stations reachable from here.
+ */
+export declare function workshopCandidate(board: Workshop, cardId: string, laneId: string): Workshop | null;
+/** Every lane the card may be dropped in, including the one it is in. */
+export declare function workshopDestinations(board: Workshop, cardId: string): WorkshopLane[];
+/** Why workshopCandidate refuses this move, as a sentence for the person moving the card. Null when the move is available. */
+export declare function workshopRefusal(board: Workshop, cardId: string, laneId: string): string | null;
+/** The second line under a lane's name: how full it is, or what its cards add up to. */
+export declare function workshopLaneCaption(board: Workshop, laneId: string): string;
 export declare const workshopLayout: {
     pitch: number;
     width: number;
@@ -105,10 +122,43 @@ export declare function addWorkshopBranch(board: Workshop, fromStationId: string
     image?: StationImage;
 }): Workshop;
 export declare const nightTransfer: Workshop;
-export declare function workshopToSlate(input: Workshop): SlateJSON;
+export interface WorkshopArtworkOptions {
+    /**
+     * Draw for a live slate instead of a presentation: rounded notes in the canvas's
+     * own type, a `caption-<lane>` line under each lane name, and a `column-<lane>`
+     * shape behind each lane. Lane and card notes keep their `lane-<id>` and
+     * `card-<id>` names.
+     */
+    native?: boolean;
+    /** Where the artwork's top-left corner goes, in the slate's world units. */
+    origin?: {
+        x: number;
+        y: number;
+    };
+    /**
+     * Draw each lane column at least this many cards tall. A board keeps its shape
+     * (and its drop zones) while a held card previews a board with shorter lanes.
+     */
+    rows?: number;
+}
+/** The names of the notes workshopToSlate draws for a lane or a card. */
+export declare const workshopNodeIds: {
+    lane: (id: string) => string;
+    card: (id: string) => string;
+    image: (id: string) => string;
+    caption: (id: string) => string;
+    column: (id: string) => string;
+};
+/**
+ * Draw a workshop as slate notes. With no options this is the presentation artwork
+ * the app and its snapshots already consume; `{ native: true }` is the artwork
+ * attachWorkshop keeps on a live slate.
+ */
+export declare function workshopToSlate(input: Workshop, options?: WorkshopArtworkOptions): SlateJSON;
 export declare const industrialWorkshop: Workshop;
 export * from './moonGallery';
 export * from './darkroom/model';
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent } from './native';
 export type StartupExperience = {
     version: 1;
     kind: 'customer-interviews' | 'experiment-budget';

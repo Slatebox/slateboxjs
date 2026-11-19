@@ -35,6 +35,12 @@ export declare class Keyboard {
     disable(): void;
     private handleKeyDown;
     private deleteSelected;
+    /** What may be done to `node` (everything, unless a host policy governs it). */
+    private caps;
+    /** Whether a host policy governs `node`. */
+    private governed;
+    /** Give a key to the policy of the single selected governed note. True when it handled the key. */
+    private offerKeyToPolicy;
     private undo;
     private redo;
     private selectAll;

@@ -8,6 +8,7 @@ import { Editor } from "./Editor";
 import { Links } from "./Links";
 import { Filters } from "./Filters";
 import { Menu } from "./Menu";
+import type { DragCancelReason } from "./DragPolicy";
 interface SnapRect {
     x: number;
     y: number;
@@ -161,6 +162,9 @@ export declare class Node {
     private preDragPosition;
     private _dragStartPointer;
     private _groupDragSiblings;
+    /** The governed drag in progress on this note (see DragPolicy.ts). */
+    private _governed;
+    private _governanceApplied;
     /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
     ready: Promise<void>;
     private _lastClickTime;
@@ -266,6 +270,31 @@ export declare class Node {
      */
     private fitTextToNode;
     private makeDraggable;
+    /**
+     * After any drag (ordinary or governed) ends: tell a drag from a click, keep the
+     * note selected, and put its handles back at the new position.
+     */
+    private settleAfterDrag;
+    /**
+     * Show what a host policy allows on this note: a grab cursor on a note that may
+     * be dragged, a plain one on a note that may not, and no pointer input, focus or
+     * accessibility role at all on decoration. Ordinary notes are left untouched.
+     */
+    applyGovernance(): void;
+    /** The press that may become a governed drag. Nothing is asked of the policy yet. */
+    private beginGovernedDrag;
+    private moveGovernedDrag;
+    /**
+     * End a governed drag. With `release` the policy rules on the drop; without it
+     * the drag was cancelled, which is a refusal. Either way nothing is broadcast:
+     * the host persists what it accepted.
+     */
+    private finishGovernedDrag;
+    /**
+     * Abandon the governed drag in progress on this note, as a refusal: the note
+     * glides back to where it started and the policy's onCancel runs.
+     */
+    cancelGovernedDrag(reason?: DragCancelReason): boolean;
     /**
      * Extract the pointer position in client coordinates from an svg.draggable
      * event (or a raw DOM event). svg.draggable exposes the source event at

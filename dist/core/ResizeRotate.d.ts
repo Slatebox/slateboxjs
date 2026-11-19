@@ -43,6 +43,8 @@ export declare class ResizeRotate {
      * intentional because consumers can use the built JS without loading CSS.
      */
     private styleSelectionUi;
+    /** Keep the selection outline but remove the handles a governed note may not use. */
+    private hideHandles;
     /** Disable resize and rotate handles on the node. */
     disable(): void;
     private addEventListeners;

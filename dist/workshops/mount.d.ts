@@ -1,5 +1,7 @@
 import { type WorkshopBoardProps } from './index';
 import { type Workshop } from './model';
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop } from './native';
+export { dragologyCandidates } from './dragologyCandidates';
 type MountOptions = Omit<WorkshopBoardProps, 'value' | 'onChange'> & {
     onChange?: WorkshopBoardProps['onChange'];
 };
@@ -8,4 +10,3 @@ export declare function mountWorkshop(element: HTMLElement, initial: Workshop, o
     update: (next: Workshop) => void;
     destroy(): void;
 };
-export {};

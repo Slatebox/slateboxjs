@@ -19,6 +19,7 @@ import { Association } from "./Relationship";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
 import { type AnimationDef } from "./Animations";
+import { type DragCancelReason, type DragPolicy, type NodeCapabilities, type NodeGovernance, type WorldPoint } from "./DragPolicy";
 export interface SlateEvents {
     onSlateChanged?: (pkg: SlatePackage, collabUsers?: CollabUser[]) => void;
     /**
@@ -174,6 +175,12 @@ export declare class Slate {
     private _liveRegion;
     private _announcementsHeld;
     private _resizeObserver;
+    /** Hosts that govern some notes (see DragPolicy.ts). Empty on an ordinary slate. */
+    private _dragPolicies;
+    /** >0 while a host is changing its own governed notes (see withPolicyAuthority). */
+    private _policyAuthority;
+    /** The governed note being dragged right now, if any. */
+    _governedDragNode: Node | null;
     /**
      * v1-parity `slate.filters.availableFilters` — the node Effects pane reads
      * `node.slate.filters.availableFilters` (keyed by name, each with `types`) to
@@ -518,6 +525,69 @@ export declare class Slate {
     enterGroup(groupId: string, member?: Node): void;
     /** Exit the currently-entered group and re-select it as a whole. */
     exitGroup(): void;
+    /**
+     * Register a host policy for some notes (see {@link DragPolicy}). The policy says
+     * which notes it governs and what a person may do to each; it is asked before a
+     * governed note is dragged, while it moves, and when it is released.
+     *
+     * @returns a function that removes the policy and returns its notes to ordinary behaviour.
+     */
+    setDragPolicy(policy: DragPolicy): () => void;
+    /** The policy governing `node` and the note's capabilities, or null for an ordinary note. */
+    governanceOf(node: Node | null | undefined): NodeGovernance | null;
+    /**
+     * What may be done to `node` right now. Ordinary notes can do everything; so can
+     * governed notes while their host is changing them (withPolicyAuthority).
+     */
+    capabilitiesOf(node: Node | null | undefined): Readonly<NodeCapabilities>;
+    /** True for a governed note that is a drawing of host state (left out of saves and undo). */
+    isDerivedNode(node: Node | null | undefined): boolean;
+    /** The notes among `nodes` (default: all) that no policy governs. */
+    freeNodes(nodes?: Node[]): Node[];
+    /**
+     * Run `fn` as the host that owns the governed notes: capability checks pass
+     * (the host may remove or connect its own notes) and nothing is broadcast.
+     */
+    withPolicyAuthority<T>(fn: () => T): T;
+    /** End a governed drag in progress as a refusal. Returns whether there was one. */
+    cancelGovernedDrag(reason?: DragCancelReason): boolean;
+    /**
+     * Re-apply what governance shows on each note (cursor, focusability, pointer
+     * input). Call it after a policy starts or stops claiming notes.
+     */
+    refreshGovernance(): void;
+    /** Tell each policy that loadJSON / undo / redo replaced the slate's notes. */
+    notifyNotesReplaced(): void;
+    /**
+     * Remove governed notes from a change package, or return null when nothing is
+     * left of it. Used for packages leaving this slate (broadcast) and arriving from
+     * collaborators, so a governed note is changed only by its host.
+     */
+    screenGovernedPackage(type: string, data: Record<string, any> | any[] | undefined): any;
+    /** Keep governed and decoration notes out of selections they may not join. */
+    private screenSelection;
+    /** Convert a point on screen (clientX/clientY) to world coordinates. */
+    clientToWorld(point: {
+        x: number;
+        y: number;
+    }): WorldPoint;
+    /** Convert a world point to screen (client) coordinates, through the current pan and zoom. */
+    worldToClient(point: WorldPoint): {
+        x: number;
+        y: number;
+    };
+    /**
+     * The topmost note under a world point, by each note's (rotated) box.
+     *
+     * @param point  world coordinates (see clientToWorld)
+     * @param nodes  the notes to consider; defaults to every note on the slate
+     * @param options.padding  extra world units around each box that still count
+     * @param options.exclude  a note to ignore (for example the one being dragged)
+     */
+    hitTestNodes(point: WorldPoint, nodes?: Node[], options?: {
+        padding?: number;
+        exclude?: Node | null;
+    }): Node | null;
     /**
      * Export the slate to a JSON string in v1-compatible format.
      *

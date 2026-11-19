@@ -1,21 +1,23 @@
-import { createElement as f } from "react";
-import { createRoot as d } from "react-dom/client";
+import { createElement as d } from "react";
+import { createRoot as f } from "react-dom/client";
 import { WorkshopBoard as h } from "./workshops.mjs";
+import { dragologyCandidates as w } from "./workshops.mjs";
 import { validateWorkshop as s } from "./workshop-model.mjs";
-function w(u, i, t = {}) {
+import { attachWorkshop as y } from "./workshop-model.mjs";
+function C(p, i, t = {}) {
   let o = s(i), r = !1;
-  const n = d(u);
+  const n = f(p);
   function a(e) {
     if (r) throw new Error("This workshop has been unmounted.");
     o = s(e), m();
   }
   function m() {
-    n.render(f(h, {
+    n.render(d(h, {
       mapCanvas: !!o.lanes[0].station,
       ...t,
       value: o,
-      onChange(e, p) {
-        a(e), t.onChange?.(o, p);
+      onChange(e, u) {
+        a(e), t.onChange?.(o, u);
       }
     }));
   }
@@ -24,5 +26,7 @@ function w(u, i, t = {}) {
   } };
 }
 export {
-  w as mountWorkshop
+  y as attachWorkshop,
+  w as dragologyCandidates,
+  C as mountWorkshop
 };

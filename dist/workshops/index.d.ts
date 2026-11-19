@@ -2,6 +2,7 @@ export { OfflineHandoffBoard } from './OfflineHandoffBoard';
 export { ListeningRoomBoard, type ListeningRoomBoardProps } from './ListeningRoomBoard';
 import React from 'react';
 import { type Workshop } from './model';
+export { dragologyCandidates } from './dragologyCandidates';
 import { type WorkshopMove } from './ReleasePlan';
 export { ReleasePlanReadout, type WorkshopMove } from './ReleasePlan';
 export * from './model';
