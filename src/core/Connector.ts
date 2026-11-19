@@ -831,6 +831,10 @@ export class Connector {
     // Line context toolbar (G2/Q2) — modern Miro-style pill at the line midpoint:
     // delete + cog. (The old "plug" did nothing and was dropped; the cog opens
     // the line pane AND shows per-endpoint lock/relative toggles — Q3.)
+    //
+    // Delete is the engine's own. The cog is the entry to the host's line settings
+    // (events.onLineMenuRequested), so it is drawn only when the host supplied that
+    // callback: a settings button with no settings to open is not shown.
     const R = 15;
     const GAP = 6;
     const NEUTRAL = "#5b6472";
@@ -843,15 +847,17 @@ export class Connector {
           slate.clearLineCog?.();
         },
       },
-      {
+    ];
+    if (typeof slate.options?.events?.onLineMenuRequested === "function") {
+      tools.push({
         key: "cog",
         color: NEUTRAL,
         onClick: () => {
           this.openLinePane(connection, con, targetId);
           this.showEndpointLockToggles(connection, con, targetId);
         },
-      },
-    ];
+      });
+    }
     const n = tools.length;
     const stepX = R * 2 + GAP;
     const totalW = n * (R * 2) + (n - 1) * GAP;

@@ -2725,6 +2725,10 @@ export class Node {
    * Show the node context toolbar (G1) — a compact strip CENTERED ABOVE the
    * node (legacy parity) with: delete, plug (drag-to-connect), cog (settings).
    * Only shown on single selection (Slate.updateSelectionResizeRotate drives it).
+   *
+   * Delete and plug are the engine's own. The cog only asks the host to open its
+   * note settings (events.onMenuRequested), so it is drawn only when the host
+   * supplied that callback: a button that could do nothing is not shown.
    */
   public showNodeCog(): void {
     if (this.options.allowMenu === false) return;
@@ -2754,8 +2758,10 @@ export class Node {
       { key: "delete", color: "#e5484d", onClick: () => this.slate.removeNode(this.id) },
       // plug: press-drag-to-connect (G3) — starts on pointerdown, not click.
       { key: "plug", color: NEUTRAL, onPress: (e: any) => this.startConnectDrag(e) },
-      { key: "cog", color: NEUTRAL, onClick: () => this.menu?.open?.() },
     ];
+    if (typeof slate.options?.events?.onMenuRequested === "function") {
+      tools.push({ key: "cog", color: NEUTRAL, onClick: () => this.menu?.open?.() });
+    }
     const n = tools.length;
     const stepX = R * 2 + GAP;
     const totalW = n * (R * 2) + (n - 1) * GAP;

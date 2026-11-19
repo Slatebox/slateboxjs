@@ -483,6 +483,10 @@ export declare class Node {
      * Show the node context toolbar (G1) — a compact strip CENTERED ABOVE the
      * node (legacy parity) with: delete, plug (drag-to-connect), cog (settings).
      * Only shown on single selection (Slate.updateSelectionResizeRotate drives it).
+     *
+     * Delete and plug are the engine's own. The cog only asks the host to open its
+     * note settings (events.onMenuRequested), so it is drawn only when the host
+     * supplied that callback: a button that could do nothing is not shown.
      */
     showNodeCog(): void;
     /** Draw a crisp monochrome line-icon (delete/plug/cog) centered at (cx,cy). */

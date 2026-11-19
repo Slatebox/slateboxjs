@@ -21,6 +21,14 @@
 - A press inside an open note editor now places the caret instead of starting a
   drag of the note underneath (which closed the editor), and a right-click or
   long-press there shows the browser's text menu, not the note menu.
+- A control that can do nothing is no longer drawn. The gear on a selected
+  note's toolbar only asks the host for its note menu, so it appears only when
+  the host supplies `events.onMenuRequested`; the gear on a selected connector's
+  toolbar appears only when the host supplies `events.onLineMenuRequested`.
+  Delete and the connect plug are the engine's own and stay. Hosts that supply
+  the callbacks see the same toolbars as before. Because the connector gear is
+  also what reveals the per-endpoint lock toggles, a page with no line menu no
+  longer shows those toggles; endpoints can still be pinned by dragging them.
 - `Editor.startInline()` accepts `{ caret, insert, heldKey, preventScroll,
   returnFocus }`, returns whether it opened, and takes focus synchronously.
 

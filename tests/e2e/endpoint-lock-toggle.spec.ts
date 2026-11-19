@@ -17,7 +17,12 @@ test.describe("on-canvas endpoint lock toggles (§Q3)", () => {
       div.style.cssText =
         "width:1000px;height:700px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
       document.body.appendChild(div);
-      const s = await new sb.slate({ container: "slateCanvas", allowCollaboration: false }, {}).init();
+      // The line gear (the way to the endpoint locks) is drawn only for a host that
+      // supplies a line menu, so this host supplies one.
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        { onLineMenuRequested: () => {} }
+      ).init();
       (window as any).__slate = s;
       const a = s.nodes.add(new sb.node({ id: "A", xPos: 150, yPos: 150, width: 160, height: 100, text: "A" }));
       const b = s.nodes.add(new sb.node({ id: "B", xPos: 640, yPos: 430, width: 160, height: 100, text: "B" }));
