@@ -10,7 +10,7 @@ import { dismissWelcome, getSlate, shareAs, userId } from './workshop-guests.sha
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const installed = process.env.SLATEBOX_AGENT_TOOLS_DIR
 
-test('a packaged agent creates one private decision map and its owner continues the brief on canvas', async ({ browser, request }) => {
+test('packaged tools create private maps and source diagrams through the same operation', async ({ browser, request }) => {
   test.skip(!installed, 'Requires an installed CLI and MCP release package.')
   test.skip(!['localhost', '127.0.0.1', 'test.slatebox.com'].includes(origin.hostname), 'Uses a disposable registered member.')
   const manifest = JSON.parse(readFileSync(resolve(installed!, 'package.json'), 'utf8'))
@@ -118,6 +118,46 @@ test('a packaged agent creates one private decision map and its owner continues 
     expect((await shell('create', brief, '--idempotency-key', key))).toEqual(created)
     expect((await saved()).creative.model.workshop).toEqual(edited)
     expect(await mine()).toEqual([...initial, created.shareId].sort())
+
+    const diagramKey = randomUUID()
+    const diagram = {
+      brief: 'What should support tell someone starting a new call during the outage?',
+      kind: 'diagram', source: 'call-status',
+    }
+    const createDrawing = (token: string, body: object) => request.post(url, {
+      headers: { Authorization: 'Bearer ' + token, 'Idempotency-Key': diagramKey }, data: body,
+    })
+    expect((await createDrawing(read, diagram)).status()).toBe(401)
+    const fresh = await createDrawing(write, diagram)
+    expect(fresh.status()).toBe(201)
+    const drawing = await fresh.json()
+    expect(drawing.shareId).not.toBe(created.shareId)
+    expect(drawing.diagram.nodeCount).toBe(5)
+    expect(drawing.diagram.connections).toHaveLength(4)
+    expect(drawing.workshop).toBeUndefined()
+    const replayDrawing = () => mcp!.callTool({ name: 'create_slate', arguments: { ...diagram, idempotency_key: diagramKey } })
+    expect((await replayDrawing()).structuredContent).toEqual(drawing)
+    expect(await shell('create', diagram.brief, '--kind', 'diagram', '--source', diagram.source, '--idempotency-key', diagramKey)).toEqual(drawing)
+    expect((await createDrawing(write, { ...diagram, source: 'interview-notes' })).status()).toBe(409)
+    expect((await createDrawing(write, { brief: diagram.brief })).status()).toBe(409)
+    expect(await getSlate(reader, drawing.shareId)).toBeFalsy()
+    await owner.goto(drawing.url)
+    const note = owner.locator('#slateCanvas g[data-node-id="unavailable"]').first()
+    await expect(note).toHaveAttribute('aria-label','Could not start')
+    const original = await getSlate(owner, drawing.shareId)
+    expect(original.userId).toBe(principal)
+    expect(original.options.isPrivate).toBe(true)
+    expect(original.creative).toBeUndefined()
+    await expect(owner.getByRole('complementary', {name:'Conversation with Slatebox'})).toContainText(diagram.brief)
+    await note.click()
+    await owner.keyboard.press('F2')
+    await owner.locator('.sb-inline-editor').fill('Offer to call back')
+    await owner.locator('.sb-inline-editor').press('Enter')
+    await expect.poll(async () => (await getSlate(owner,drawing.shareId)).nodes.find((node:{options:{id:string}}) => node.options.id === 'unavailable')?.options.text).toBe('Offer to call back')
+    expect((await replayDrawing()).structuredContent).toEqual(drawing)
+    await owner.reload()
+    await expect(note).toHaveAttribute('aria-label','Offer to call back')
+    expect(await mine()).toEqual([...initial,created.shareId,drawing.shareId].sort())
   } finally {
     try {
       if (mcp) await mcp.close()
