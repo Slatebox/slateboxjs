@@ -345,6 +345,17 @@ describe("Text content", () => {
     expect(node.options.text).toBe("");
   });
 
+  // A room replays "add this note" and "name it" back to back, and a note is
+  // drawn a moment after it is added. The name must not be dropped.
+  it("keeps a name given while the note is still being drawn", async () => {
+    const slate = createMockSlate();
+    const node = new Node({ x: 0, y: 0, width: 120, height: 80, text: "", shape: "rectangle" }, slate);
+    node.setText("Child");
+    await node.ready;
+    expect(node.options.text).toBe("Child");
+    expect(node.svgGroup.text).toHaveBeenCalledWith("Child");
+  });
+
   it("should set text with font size", async () => {
     const node = await createNode({ text: "Hello" });
     node.editor.set = vi.fn();
@@ -805,6 +816,18 @@ describe("Destroy/Remove lifecycle", () => {
     (node as any).connectionHandles = { container: { remove: removeSpy } };
     node.remove();
     expect(removeSpy).toHaveBeenCalled();
+  });
+
+  // A room replays "add this note" and "delete it" back to back, and undo
+  // replaces every note at once: either can reach a note that is not drawn yet.
+  it("can be removed while it is still being drawn, and is then never drawn", async () => {
+    const slate = createMockSlate();
+    const viewport = await slate.getViewportAsync();
+    const node = new Node({ x: 0, y: 0, width: 120, height: 80, text: "Gone", shape: "rectangle" }, slate);
+    expect(() => node.remove()).not.toThrow();
+    await node.ready;
+    expect(viewport.group).not.toHaveBeenCalled();
+    expect(node.svgGroup).toBeUndefined();
   });
 });
 

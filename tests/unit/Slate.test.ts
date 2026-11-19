@@ -1110,6 +1110,27 @@ describe("Slate", () => {
       expect(onSlateChanged).toHaveBeenCalledTimes(1);
     });
 
+    // A package that loads a whole document (undo from the room) is still
+    // loading after the caller that applied it has ended its own suppression.
+    it("stays suppressed until every beginRemoteApply has ended", () => {
+      const onSlateChanged = vi.fn();
+      const slate = new Slate(container, { events: { onSlateChanged } });
+      slate.beginRemoteApply(); // the package being applied
+      slate.beginRemoteApply(); // the document load it started
+      slate.endRemoteApply(); // the package returns; the load is still running
+      slate.emitSlateChange("addRelationship", { parentId: "a", childId: "b" });
+      expect(onSlateChanged).not.toHaveBeenCalled();
+
+      slate.endRemoteApply(); // the load has finished
+      slate.endRemoteApply(); // one end too many must not make the next begin a no-op
+      slate.emitSlateChange("onNodeTextChanged", { id: "n1", text: "y" });
+      expect(onSlateChanged).toHaveBeenCalledTimes(1);
+      slate.beginRemoteApply();
+      slate.emitSlateChange("onNodeTextChanged", { id: "n1", text: "z" });
+      slate.endRemoteApply();
+      expect(onSlateChanged).toHaveBeenCalledTimes(1);
+    });
+
     it("survives a throwing host handler", () => {
       const slate = new Slate(container, {
         events: {

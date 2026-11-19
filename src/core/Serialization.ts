@@ -103,7 +103,10 @@ export async function deserialize(
   // duration (v1's loadJSON never fired change packages per node)
   slate.beginRemoteApply?.();
   try {
-    await deserializeInner(data, slate, preserve, skipZoom);
+    // Packages from the room wait for this load: one applied to a slate that is
+    // half loaded is lost with the notes it was meant for.
+    const load = deserializeInner(data, slate, preserve, skipZoom);
+    await (slate.holdUntilLoaded?.(load) ?? load);
   } finally {
     slate.endRemoteApply?.();
   }
@@ -394,6 +397,9 @@ function serializeSlateOptions(options: SlateOptions): Record<string, any> {
     "nodeOrder",
     "huddleType", "huddleEnabled",
     "tags", "templateMarkdown", "templatePrompt", "ai",
+    // Which whole-slate replacement (undo/redo) this document already holds, so a
+    // client that loads it does not rebuild the slate from the room's copy (Collab.ts).
+    "collabBaseline",
   ];
 
   for (const key of keys) {

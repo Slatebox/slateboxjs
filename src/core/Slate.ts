@@ -112,6 +112,12 @@ export interface SlateOptions {
 
   // Collaboration
   allowCollaboration?: boolean;
+  /**
+   * The whole-slate replacement (undo/redo) this document was last built on:
+   * the slate it belongs to and the replacement's place in the room's order.
+   * Written by Collab, stored with the document, read again when it is loaded.
+   */
+  collabBaseline?: { id?: string; t: number; c: number };
   eligibleForThemeCompilation?: boolean;
 
   // Viewport
@@ -224,7 +230,10 @@ export class Slate {
   } | null = null;
   private _windowPointerDownHandler: ((e: PointerEvent) => void) | null = null;
   private _destroyed: boolean = false;
-  private _applyingRemote: boolean = false;
+  /** >0 while packages from the room or a document load are being applied (not the person's own edits). */
+  private _applyingRemote = 0;
+  /** Document loads (loadJSON, undo, redo, a replacement from the room) that have not finished. */
+  private _loadsInFlight = new Set<Promise<unknown>>();
   private _hadGroupSelection: boolean = false;
   private _emitDeferred: boolean = false;
   private _emitQueue: SlatePackage[] = [];
@@ -643,7 +652,7 @@ export class Slate {
    * @param data - v1-shaped package data
    */
   public emitSlateChange(type: string, data: Record<string, any> = {}): void {
-    if (this._applyingRemote || this._destroyed) return;
+    if (this._applyingRemote > 0 || this._destroyed) return;
     const cb = this.options.events?.onSlateChanged;
     if (!cb) return;
     const pkg: SlatePackage = { type, data };
@@ -683,7 +692,7 @@ export class Slate {
    * remote package is being applied so remote changes never re-broadcast.
    */
   public broadcast(type: string, data: Record<string, any> = {}): void {
-    if (this._applyingRemote || this._destroyed) return;
+    if (this._applyingRemote > 0 || this._destroyed) return;
     // A governed note is the host's to persist: nothing about it is sent, saved
     // or recorded for undo.
     if (this._dragPolicies.length) {
@@ -706,7 +715,12 @@ export class Slate {
   /** Record a debounced undo checkpoint for a document-mutating package. */
   public recordUndoFor(type: string): void {
     if (this.undoRedo && !Slate.NON_UNDOABLE.has(type)) {
-      this.undoRedo.snap?.();
+      // A delete is a step of its own; other edits group into one step per burst.
+      if (type === "onNodeDeleted" && typeof this.undoRedo.snapAfterGesture === "function") {
+        this.undoRedo.snapAfterGesture();
+      } else {
+        this.undoRedo.snap?.();
+      }
     }
   }
 
@@ -787,14 +801,57 @@ export class Slate {
     return !!this.options.events?.canRemoveComments?.();
   }
 
-  /** Suppress emitSlateChange while applying a remote package (v1 echo semantics). */
+  /**
+   * Suppress emitSlateChange while applying a remote package (v1 echo semantics).
+   * Calls nest: a package that loads a whole document holds its own begin until
+   * the load has finished, long after the caller that applied the package ended
+   * its own. Emission resumes when every begin has ended.
+   */
   public beginRemoteApply(): void {
-    this._applyingRemote = true;
+    this._applyingRemote++;
   }
 
   /** Re-enable emitSlateChange after a remote package has been applied. */
   public endRemoteApply(): void {
-    this._applyingRemote = false;
+    if (this._applyingRemote > 0) this._applyingRemote--;
+  }
+
+  /** A document load started: nothing from the room is applied until it has finished. */
+  public holdUntilLoaded<T>(load: Promise<T>): Promise<T> {
+    const held = load.then(
+      () => undefined,
+      () => undefined
+    );
+    this._loadsInFlight.add(held);
+    held.then(() => this._loadsInFlight.delete(held));
+    return load;
+  }
+
+  /**
+   * Resolves once every note is drawn and no document load is in flight, or
+   * `null` when that is already so. A note is built a moment after it is added,
+   * and a whole document takes longer: a package applied before then (a name for
+   * a note not yet drawn, a second replacement of a slate still loading) is lost
+   * or lands on the wrong notes. Collab waits on this between packages.
+   */
+  public whenBuilt(): Promise<void> | null {
+    const waits: Promise<unknown>[] = [
+      ...this._loadsInFlight,
+      ...(this.nodes?.building?.() ?? []),
+    ];
+    if (waits.length === 0) return null;
+    // A note that can never be drawn must not hold the room's packages back for
+    // good: after a while it is no longer waited for.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const patience = new Promise<void>((resolve) => {
+      timer = setTimeout(() => {
+        waits.forEach((wait) => this._loadsInFlight.delete(wait));
+        this.nodes?.stopWaitingFor?.(waits as Promise<void>[]);
+        resolve();
+      }, 5000);
+    });
+    const built = Promise.allSettled(waits).then(() => clearTimeout(timer));
+    return Promise.race([built, patience]);
   }
 
   private setupCoordinateCallbacks() {
@@ -1288,6 +1345,16 @@ export class Slate {
       const active = document.activeElement as HTMLElement | null;
       if (t && this.element?.contains(t) && active && active !== document.body &&
           !this.element.contains(active)) active.blur?.();
+      // The same holds inside the canvas: a press on one note takes the keyboard
+      // from another note, or from one of its connector buttons, that still has
+      // focus (Escape on a connector hands focus to its note). Left there, the
+      // keys typed for the note just pressed would go to the other one.
+      else if (t && active && active instanceof SVGElement &&
+          (active as Element) !== (this.canvas?.node as Element | undefined) &&
+          this.element?.contains(active)) {
+        const pressed = t.closest?.("[data-node-id]");
+        if (pressed && !pressed.contains(active)) active.blur?.();
+      }
       // Give touch users room outside the visible dot. Only empty root SVG
       // space is eligible: nodes, resize/rotate handles and edges keep priority.
       if (e.pointerType === 'touch' && e.isPrimary && t === this.canvas.node &&
@@ -1428,6 +1495,15 @@ export class Slate {
 
     // Selecting a node clears any line cog affordance.
     this.clearLineCog();
+
+    // Only a note that is on the slate can be selected. A press that began on a
+    // note can end after undo, redo or a collaborator's undo replaced every
+    // note: the one it began on is gone, and selecting it would leave an
+    // invisible selection that Delete still acts on.
+    if (nodes.some((n) => (n as any)?.isRemoved)) {
+      nodes = nodes.filter((n) => !(n as any).isRemoved);
+      if (nodes.length === 0 && addToSelection) return;
+    }
 
     // A governed note is selected on its own or not at all, so nothing that acts
     // on a multi-selection (group drag, align, group rotate, grouping) can move it.
@@ -2401,7 +2477,10 @@ export class Slate {
 
   /** Tell each policy that loadJSON / undo / redo replaced the slate's notes. */
   public notifyNotesReplaced(): void {
-    if (this._dragPolicies.length === 0) return;
+    if (this._dragPolicies.length === 0) {
+      this.dropReplacedFromSelection();
+      return;
+    }
     // Governed notes that were selected are gone, but the selection still holds
     // them. Once their policy forgets them they would pass for ordinary notes
     // (Ctrl+D would copy a card into the saved drawing), so they leave the selection.
@@ -2430,6 +2509,31 @@ export class Slate {
       } catch (error) {
         /* nothing left to outline */
       }
+    }
+    this.dropReplacedFromSelection();
+  }
+
+  /**
+   * loadJSON, undo and redo replace every note by a new one, even where the id
+   * stays the same. A selection kept across that holds notes that are no longer
+   * on the slate: nothing shows as selected, yet Delete still acts on them, and
+   * the next selection change tries to draw connectors for a note that is gone
+   * ("Cannot read properties of null (reading 'screenCTM')"). Notes that were
+   * replaced leave the selection.
+   */
+  private dropReplacedFromSelection(): void {
+    const kept = this.selectedNodes.filter((n) => this.nodes.one(n.id) === n);
+    if (kept.length === this.selectedNodes.length) return;
+    this.selectedNodes = kept;
+    this.selectionChanged();
+    try {
+      this.updateSelectionResizeRotate();
+    } catch (error) {
+      /* nothing left to outline */
+    }
+    if (this._hadGroupSelection && kept.length < 2) {
+      this._hadGroupSelection = false;
+      this.options.events?.onGroupSelection?.([]);
     }
   }
 
@@ -2554,6 +2658,7 @@ export class Slate {
     useMainCanvas?: boolean
   ): Promise<void> {
     await deserialize(json, this, preserve, skipZoom);
+    this.collab?.documentLoaded?.();
     // Baseline snapshot of the loaded document so the first edit is undoable.
     this.undoRedo?.clear?.();
     this.undoRedo?.snap?.(true);

@@ -91,6 +91,38 @@
   returnFocus }`, returns whether it opened, and takes focus synchronously.
 
 ### Fixed
+
+- **Work done after an undo is no longer blanked or lost when the slate is reloaded or someone
+  joins.** A client rebuilt the slate from its room in the order Yjs delivered the packages (one
+  writer at a time, not the order they were written) and all in one go, before the notes they
+  were for had been drawn. After an undo the room holds a whole-slate replacement, so a reload
+  rebuilt everything from it: a note added after the undo lost its name and its line, a delete
+  replayed onto a note not yet drawn threw and stopped the rest of the room from being applied,
+  and the next edit stored the damaged slate over the good document. Now:
+  - packages are stamped with a clock that is never behind anything their writer has seen, and a
+    room is applied in that order, one package after the other, each waiting until the notes
+    before it are drawn and any document load has finished; one package that fails no longer
+    stops the ones after it;
+  - a document stored after an undo records which replacement it holds
+    (`options.collabBaseline`), and a client that loads it keeps the stored document instead of
+    rebuilding the slate from the room's copy;
+  - a replacement received live is applied, then everything else the room holds is applied on
+    top of it, so a person who was working (or offline) while someone else undid keeps what the
+    undo had not seen; when two people undo at the same moment everyone ends on the later one;
+  - `beginRemoteApply`/`endRemoteApply` nest, so a document load started by a package from the
+    room stays silent towards the host until it has finished;
+  - a name given to a note that is not drawn yet is kept, and a note removed before it was drawn
+    is never drawn.
+- **Other people's work survives one's own next undo.** Changes received from the room are taken
+  into the current undo record, and someone else's undo or redo starts one's own history again
+  from the slate it left.
+- **Two notes deleted one after the other are two undo steps.** A delete is recorded when its key
+  press ends; several selected notes deleted by one press are still one step.
+- **No selection is kept on notes that undo, redo or a load replaced.** Nothing showed as
+  selected, yet Delete still acted on them, and the next selection threw `Cannot read properties
+  of null (reading 'screenCTM')` in `updateConnectionHandlePositions`.
+- **Typing goes to the note just pressed** when another note, or one of its connector buttons,
+  still had keyboard focus (after a connector was dragged onto a note and Escape was pressed).
 - The zoom slider's label was up to half a second behind the view (it polled on a timer), so it
   read the old figure after `fitToContent()`. It now follows the canvas's viewBox and is right at
   once.

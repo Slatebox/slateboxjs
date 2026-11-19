@@ -47,6 +47,55 @@ export interface CollabUser {
 
 export type CollabPackage = SlatePackage; // Backward-compat alias
 
+/**
+ * Where a package stands in the order its room was written in: the writer's
+ * clock (never behind any package the writer had seen), then the writer, then
+ * the package's key.
+ */
+interface Stamp {
+  t: number;
+  c: number;
+  k?: string;
+}
+
+function compareStamps(a: Stamp, b: Stamp): number {
+  if (a.t !== b.t) return a.t - b.t;
+  if (a.c !== b.c) return a.c - b.c;
+  const ak = a.k ?? "";
+  const bk = b.k ?? "";
+  return ak < bk ? -1 : ak > bk ? 1 : 0;
+}
+
+const REPLACED = "onSlateReplaced";
+
+/** Packages about the view or about who is present: they change nothing an undo could put back. */
+const VIEW_ONLY = new Set<string>([
+  "onZoom",
+  "onCanvasMove",
+  "onFollowMeChanged",
+  "onSlateFollowMeChanged",
+  "onSlateHuddleChanged",
+  "onCursorMoved",
+  "onPresenceChanged",
+  "onMouseMoved",
+]);
+
+interface RoomEntry {
+  key: string;
+  pkg: SlatePackage;
+}
+
+function stampOf(key: string, pkg: SlatePackage): Stamp {
+  return {
+    t: typeof pkg.timestamp === "number" ? pkg.timestamp : 0,
+    c: typeof pkg.clientID === "number" ? pkg.clientID : 0,
+    k: key,
+  };
+}
+
+const byStamp = (a: RoomEntry, b: RoomEntry) =>
+  compareStamps(stampOf(a.key, a.pkg), stampOf(b.key, b.pkg));
+
 import type { Slate } from "./Slate";
 import type { SlatePackage } from "./SlatePackage";
 
@@ -64,6 +113,17 @@ export class Collab {
   private _cursorTrackingNode: any = null;
   private _cursorSweepTimer: ReturnType<typeof setInterval> | null = null;
   private _cursorLastSeen: Map<number, number> = new Map();
+  /**
+   * The latest time on any package this client has written or seen. Each package
+   * it writes is stamped later than this, so the room has one order that every
+   * client can rebuild, whatever their own clocks say and whichever client's
+   * packages Yjs happens to deliver first.
+   */
+  private clock = 0;
+  /** The whole-slate replacement this slate was last built on, if any. */
+  private baseline: Stamp | null = null;
+  /** Packages from the room still being applied, one after the other. */
+  private applying: Promise<void> | null = null;
   /** Connection/user payload returned by the host's onInitCollaboration */
   public userBaseData?: Record<string, any>;
 
@@ -292,16 +352,27 @@ export class Collab {
 
     if (this.collabMap) {
       for (const pkg of pkgs) {
-        // A full-state replacement (undo/redo) supersedes every accumulated
-        // document mutation. Clear the replay log first so stale add/change
-        // packages cannot corrupt the restored baseline on reconnect.
-        if (pkg.type === "onSlateReplaced") {
-          this.pruneBeforeSlateReplacement();
-        }
-
         const key = `${pkg.type}_${Date.now()}_${Math.random()
           .toString(36)
           .substr(2, 5)}`;
+
+        // A full-state replacement (undo/redo) supersedes every package this
+        // client has seen: they leave the room in the same step that puts the
+        // replacement in. Whatever is in the room beside a replacement was
+        // therefore written without sight of it or after it, and is applied on
+        // top of it (see rebuildFrom).
+        if (pkg.type === REPLACED) {
+          const timestamp = this.tick();
+          const entry = { ...pkg, clientID: this.clientID, timestamp };
+          const write = () => {
+            this.pruneBeforeSlateReplacement();
+            this.collabMap.set(key, entry);
+          };
+          if (this.doc) this.doc.transact(write);
+          else write();
+          this.adoptBaseline({ t: timestamp, c: this.clientID, k: key });
+          continue;
+        }
 
         // A line-property change (lineType, sourceLock/targetLock, lineColor…)
         // supersedes any earlier change to the SAME property on the SAME
@@ -313,7 +384,7 @@ export class Collab {
           this.pruneSupersededLineProperty(pkg.data);
         }
 
-        const entry = { ...pkg, clientID: this.clientID, timestamp: Date.now() };
+        const entry = { ...pkg, clientID: this.clientID, timestamp: this.tick() };
         if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string") {
           this.storeNodeText(key, entry);
         } else {
@@ -341,18 +412,64 @@ export class Collab {
     }
   }
 
+  /**
+   * Packages arrived from the room: one edit from a person on the slate, or the
+   * whole room when this client joins.
+   *
+   * They are applied in the order they were written, one after the other, each
+   * waiting until the notes before it are drawn. Yjs hands them over grouped by
+   * the client that wrote them, not by time, and a note is built a moment after
+   * it is added: applied as they came, in one go, a rename reached a note that
+   * was not drawn yet and was lost, and a replacement written by one client
+   * could land on top of later work by another.
+   */
   private applyRemoteChanges(keys: Iterable<string>): void {
-    const changes = new Map<string, SlatePackage>();
+    const changes: RoomEntry[] = [];
     const labelIds = new Set<string>();
+    let replaced = false;
     for (const key of keys) {
       const pkg: SlatePackage | undefined = this.collabMap.get(key);
       if (!pkg) continue;
-      changes.set(key, pkg);
+      this.sawTime(pkg.timestamp);
+      if (pkg.type === REPLACED) {
+        replaced = true;
+        continue;
+      }
+      changes.push({ key, pkg });
       if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string") labelIds.add(pkg.data.id);
     }
 
-    // Old clients gave every label edit a separate key. Even an untouched
-    // pre-upgrade room must replay its latest stored label on a late join.
+    if (replaced) {
+      // The room holds a whole-slate replacement this client has not seen. If it
+      // is newer than what this slate is built on, the slate is rebuilt from it
+      // and from everything else in the room; the packages of this batch are
+      // among those, so they are not applied a second time here.
+      const newest = this.newestReplacement();
+      const known = this.knownBaseline();
+      if (newest && (!known || compareStamps(newest.stamp, known) > 0)) {
+        this.run(() => this.rebuildFrom(newest));
+        return;
+      }
+      // Otherwise it lost to the one this slate already holds (two people undid
+      // at the same moment, or this client's document was stored after it).
+      this.dropOlderReplacements(newest);
+    }
+
+    if (changes.length === 0) return;
+    changes.sort(byStamp);
+    const latest = this.latestLabels(labelIds);
+    const documentChanged = changes.some(({ pkg }) => !VIEW_ONLY.has(pkg.type));
+    this.run(() => {
+      const pending = this.applyInOrder(changes, latest);
+      if (!documentChanged) return pending;
+      if (pending) return pending.then(() => this.afterRemote(false));
+      this.afterRemote(false);
+    });
+  }
+
+  // Old clients gave every label edit a separate key. Even an untouched
+  // pre-upgrade room must replay its latest stored label on a late join.
+  private latestLabels(labelIds: Set<string>): Map<string, string> {
     const latest = new Map<string, { key: string; timestamp: number }>();
     if (labelIds.size) this.collabMap.forEach((pkg: SlatePackage, key: string) => {
       if (pkg.type !== "onNodeTextChanged" || typeof pkg.data?.text !== "string" || !labelIds.has(pkg.data.id)) return;
@@ -362,13 +479,207 @@ export class Collab {
         latest.set(pkg.data.id, { key, timestamp });
       }
     });
-    for (const [key, pkg] of changes) {
-      if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string" && latest.get(pkg.data.id)?.key !== key) {
+    return new Map([...latest].map(([id, entry]) => [id, entry.key]));
+  }
+
+  /**
+   * Apply packages in the given order. Returns nothing when all of them could be
+   * applied at once, or a promise when one had to wait for notes to be drawn or
+   * for a document load to finish.
+   */
+  private applyInOrder(
+    entries: RoomEntry[],
+    latestLabel: Map<string, string>,
+    from: number = 0,
+    waitedAt: number = -1
+  ): Promise<void> | void {
+    for (let i = from; i < entries.length; i++) {
+      if (!this.collabMap || !this.slate) return; // disconnected meanwhile
+      const building =
+        waitedAt === i ? null : ((this.slate as any).whenBuilt?.() as Promise<void> | null | undefined);
+      if (building) return building.then(() => this.applyInOrder(entries, latestLabel, i, i));
+      const { key } = entries[i];
+      let { pkg } = entries[i];
+      if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string" && latestLabel.get(pkg.data.id) !== key) {
+        // Not the node's current label: only the formatting it carried applies.
         const { text, ...style } = pkg.data;
-        if (Object.keys(style).some(field => field !== "id")) this.handleRemotePackage({ ...pkg, data: style });
-      } else {
-        this.handleRemotePackage(pkg);
+        if (!Object.keys(style).some(field => field !== "id")) continue;
+        pkg = { ...pkg, data: style };
       }
+      let pending: Promise<unknown> | void = undefined;
+      try {
+        pending = this.handleRemotePackage(pkg);
+      } catch (error) {
+        // One package that cannot be applied must not take the rest of the room with it.
+        console.warn("COLLAB_DEBUG: A package from the room could not be applied:", pkg.type, error);
+      }
+      if (pending && typeof (pending as Promise<unknown>).then === "function") {
+        return (pending as Promise<unknown>).then(
+          () => this.applyInOrder(entries, latestLabel, i + 1),
+          () => this.applyInOrder(entries, latestLabel, i + 1)
+        );
+      }
+    }
+  }
+
+  /**
+   * Rebuild the slate from a whole-slate replacement in the room, then apply
+   * everything else the room holds, in the order it was written. Those packages
+   * were written by people who had not seen the replacement yet, or after it, so
+   * they belong on top of it: this client may have applied some of them before,
+   * and the replacement has just removed what they did.
+   */
+  private async rebuildFrom(replacement: RoomEntry & { stamp: Stamp }): Promise<void> {
+    if (!this.collabMap || !this.slate) return;
+    await (this.slate as any).whenBuilt?.();
+    if (!this.collabMap || !this.slate) return;
+    // A newer one may have arrived while this one waited its turn.
+    const known = this.knownBaseline();
+    if (known && compareStamps(replacement.stamp, known) <= 0) return;
+    // This client's own undo is being superseded by someone else's later one.
+    const lostOwn = !!this.baseline && this.baseline.c === this.clientID && this.clientID !== 0;
+    this.adoptBaseline(replacement.stamp);
+    try {
+      await this.handleRemotePackage(replacement.pkg);
+    } catch (error) {
+      console.warn("COLLAB_DEBUG: The room's replacement could not be applied:", error);
+    }
+    if (!this.collabMap || !this.slate) return;
+    // Loading the replacement put its own (older) marker back into the options.
+    this.adoptBaseline(replacement.stamp);
+    this.dropOlderReplacements(replacement);
+
+    const rest: RoomEntry[] = [];
+    const labelIds = new Set<string>();
+    this.collabMap.forEach((pkg: SlatePackage, key: string) => {
+      if (!pkg || pkg.type === REPLACED) return;
+      rest.push({ key, pkg });
+      if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string") labelIds.add(pkg.data.id);
+    });
+    rest.sort(byStamp);
+    await this.applyInOrder(rest, this.latestLabels(labelIds));
+    this.afterRemote(true);
+    // The host stored this client's own undo a moment ago, and that save may
+    // land after the other person's. Hand it the slate again, as it now is, so
+    // the stored document ends on what everyone sees.
+    if (lostOwn && this.slate) {
+      (this.slate as any).emitSlateChange?.(REPLACED, { action: "superseded" });
+    }
+  }
+
+  /** Run a batch now if nothing from the room is still being applied, else after it. */
+  private run(task: () => Promise<void> | void): void {
+    const start = () => {
+      try {
+        return task();
+      } catch (error) {
+        console.warn("COLLAB_DEBUG: Applying packages from the room failed:", error);
+      }
+    };
+    const work = this.applying ? this.applying.then(start) : start();
+    if (!work) return;
+    const guarded: Promise<void> = work
+      .catch((error: unknown) => console.warn("COLLAB_DEBUG: Applying packages from the room failed:", error))
+      .then(() => {
+        if (this.applying === guarded) this.applying = null;
+      });
+    this.applying = guarded;
+  }
+
+  /** Resolves when every package received from the room so far has been applied. */
+  public whenApplied(): Promise<void> {
+    return this.applying ?? Promise.resolve();
+  }
+
+  /**
+   * Packages from the room have been applied. The person's undo history takes
+   * them in, so a later undo of their own work does not also take away what
+   * other people did in the meantime (see UndoRedo.absorbRemote).
+   */
+  private afterRemote(replaced: boolean): void {
+    try {
+      (this.slate as any)?.undoRedo?.absorbRemote?.(replaced);
+    } catch (error) {
+      console.warn("COLLAB_DEBUG: Undo history could not take in the room's changes:", error);
+    }
+  }
+
+  /** Stamp for a package this client is about to write: later than all it has seen. */
+  private tick(): number {
+    this.knownBaseline(); // the loaded document's replacement counts as seen
+    this.clock = Math.max(Date.now(), this.clock + 1);
+    return this.clock;
+  }
+
+  private sawTime(timestamp: unknown): void {
+    if (typeof timestamp === "number" && timestamp > this.clock) this.clock = timestamp;
+  }
+
+  /**
+   * The replacement this slate is built on: the one this client last applied or
+   * wrote, or the one the loaded document says it already holds, whichever is
+   * later. A document stored after an undo carries that undo's stamp, so the
+   * client that loads it keeps the stored document and applies only what the
+   * room holds beside the replacement, instead of rebuilding the slate from the
+   * room's copy.
+   */
+  private knownBaseline(): Stamp | null {
+    const marker = (this.slate?.options as any)?.collabBaseline;
+    const fromDocument: Stamp | null =
+      marker && typeof marker.t === "number" && marker.id === (this.slate.options as any).id
+        ? { t: marker.t, c: typeof marker.c === "number" ? marker.c : 0, k: marker.k }
+        : null;
+    // Whatever this client writes next is later than the replacement its document holds.
+    if (fromDocument) this.sawTime(fromDocument.t);
+    if (!this.baseline) return fromDocument;
+    if (!fromDocument) return this.baseline;
+    return compareStamps(fromDocument, this.baseline) > 0 ? fromDocument : this.baseline;
+  }
+
+  /**
+   * The host loaded a document into this slate (loadJSON). If the slate already
+   * holds a later replacement than that document says it does (an older version
+   * put back by the host), the slate keeps saying so: the next stored document
+   * must not send the clients that load it back to the room's copy.
+   */
+  public documentLoaded(): void {
+    if (this.baseline && this.knownBaseline() === this.baseline) this.adoptBaseline(this.baseline);
+  }
+
+  private adoptBaseline(stamp: Stamp): void {
+    this.baseline = stamp;
+    this.sawTime(stamp.t);
+    const options = this.slate?.options as any;
+    if (options) options.collabBaseline = { id: options.id, t: stamp.t, c: stamp.c, k: stamp.k };
+  }
+
+  /** The latest whole-slate replacement the room holds. */
+  private newestReplacement(): (RoomEntry & { stamp: Stamp }) | null {
+    let newest: (RoomEntry & { stamp: Stamp }) | null = null;
+    this.collabMap?.forEach((pkg: SlatePackage, key: string) => {
+      if (pkg?.type !== REPLACED) return;
+      const stamp = stampOf(key, pkg);
+      if (!newest || compareStamps(stamp, newest.stamp) > 0) newest = { key, pkg, stamp };
+    });
+    return newest;
+  }
+
+  /** Take replacements that lost to a later one out of the room. */
+  private dropOlderReplacements(keep: { key: string } | null): void {
+    if (!this.collabMap) return;
+    const known = this.knownBaseline();
+    const stale: string[] = [];
+    this.collabMap.forEach((pkg: SlatePackage, key: string) => {
+      if (pkg?.type !== REPLACED || key === keep?.key) return;
+      if (known && compareStamps(stampOf(key, pkg), known) < 0) stale.push(key);
+    });
+    if (stale.length === 0) return;
+    const remove = () => stale.forEach((key) => this.collabMap.delete(key));
+    try {
+      if (this.doc) this.doc.transact(remove);
+      else remove();
+    } catch (e) {
+      /* noop */
     }
   }
 
@@ -463,12 +774,13 @@ export class Collab {
   /**
    * Execute a single collab package using the Invoker.
    */
-  public exe(pkg: SlatePackage): void {
+  public exe(pkg: SlatePackage): Promise<unknown> | void {
     const invoker = this.slate.invoker;
     if (!invoker) {
       console.warn("COLLAB_DEBUG: No invoker available");
       return;
     }
+    let pending: Promise<unknown> | undefined;
 
     const methodName = pkg.type;
 
@@ -483,9 +795,13 @@ export class Collab {
       this.slate.beginRemoteApply?.();
       try {
         const result = (invoker as any)[methodName](pkg);
-        result?.catch?.((error: unknown) =>
-          console.warn("COLLAB_DEBUG: Async invoker failed:", methodName, error)
-        );
+        if (result && typeof result.then === "function") {
+          // A package that takes time (a whole-slate replacement): the caller
+          // waits for it before applying the next one.
+          pending = (result as Promise<unknown>).catch((error: unknown) =>
+            console.warn("COLLAB_DEBUG: Async invoker failed:", methodName, error)
+          );
+        }
       } finally {
         this.slate.endRemoteApply?.();
       }
@@ -495,6 +811,7 @@ export class Collab {
 
     // Trigger collab event
     this.slate.options.events?.onCollaboration?.(pkg);
+    return pending;
   }
 
   /**
@@ -720,6 +1037,7 @@ export class Collab {
     this.collabMap = null;
     this.awareness = null;
     this.isConnected = false;
+    this.applying = null;
     console.log("COLLAB_DEBUG: Disconnected");
   }
 
@@ -742,13 +1060,14 @@ export class Collab {
 
   // ─── Private ─────────────────────────────────────────────────────
 
-  private handleRemotePackage(pkg: SlatePackage): void {
+  private handleRemotePackage(pkg: SlatePackage): Promise<unknown> | void {
     console.log("COLLAB_DEBUG: Received remote package:", pkg.type);
 
     // Execute the package locally
-    this.exe(pkg);
+    const pending = this.exe(pkg);
 
     // Notify via callback
     this.options.onReceive?.(pkg);
+    return pending;
   }
 }

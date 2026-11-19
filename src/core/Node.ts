@@ -353,6 +353,13 @@ export class Node {
   private _rejectReady!: (reason?: unknown) => void;
   private _initFailed: boolean = false;
   private _destroyed: boolean = false;
+  /** Set by remove(): a note removed before it was drawn is never drawn. */
+  private _removed: boolean = false;
+
+  /** True once the note has been taken off its slate (deleted, or replaced by undo, redo or a load). */
+  public get isRemoved(): boolean {
+    return this._removed;
+  }
   /**
    * Set by the connector gestures on the note they create: that gesture makes the one
    * live-region announcement, so Slate.addNode's own "Node added" stays quiet.
@@ -464,6 +471,13 @@ export class Node {
       // Wait for viewport to be ready, then create the node
       const viewport = await this.slate.getViewportAsync();
       console.log("NODE_DEBUG: Got viewport for", this.id, viewport);
+
+      // Removed while waiting: drawing it now would leave a note on the canvas
+      // that the slate no longer holds.
+      if (this._removed) {
+        this._resolveReady();
+        return;
+      }
 
       this.svgGroup = viewport.group();
       // Add data-node-id attribute for test selectors
@@ -2145,8 +2159,12 @@ export class Node {
     // GLOBAL container, not svgGroup, so removing the group won't take it — without
     // this an in-toolbar delete leaves a stale cog floating for a node that's gone.
     this.hideNodeCog();
+    // Removed before it was drawn (deleted, or its slate replaced, in the moment
+    // after it was added): there is nothing to take off the canvas, and
+    // createAsync must not draw it afterwards.
+    this._removed = true;
     // Remove the main SVG group (cleans up all child elements and sub-system references)
-    this.svgGroup.remove();
+    this.svgGroup?.remove();
   }
 
   /**
@@ -2214,6 +2232,15 @@ export class Node {
    * @param text - New text string
    */
   public setText(text: string) {
+    // A note is drawn a moment after it is added. A name given before then (a
+    // rename replayed from the room right behind the note itself) is kept and
+    // drawn with the note, not dropped.
+    if (!this.svgGroup && !this._removed) {
+      const renamed = this.options.text !== text;
+      this.options.text = text;
+      if (renamed) this.slate.broadcast?.("onNodeTextChanged", { id: this.id, text });
+      return;
+    }
     // Skip if no text element (e.g., when using SVG content)
     if (!this.textElement) return;
 
@@ -3852,6 +3879,8 @@ export class Node {
     // Use the selector's target. Nested artwork has its own scaled viewBox;
     // using its units for plug offsets moves the plugs further away on every resize.
     const target = this.resizeTarget ?? this.backgroundRect;
+    // A note that is no longer on the canvas has nowhere to put its connectors.
+    if (!target?.root?.()) return;
     const bbox = target.bbox();
     const elMatrix = target.screenCTM();
     const rootMatrix = target.root().screenCTM();
@@ -3925,6 +3954,9 @@ export class Node {
   }
 
   private showConnectionHandles() {
+    // Removed from the slate (deleted, or replaced by undo/redo): a note still
+    // held by a timer or a stale reference must not draw connectors again.
+    if (this._removed) return;
     if (!this.connectionHandles.container) {
       this.createConnectionHandles();
     }

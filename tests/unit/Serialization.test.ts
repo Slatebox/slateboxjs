@@ -138,6 +138,13 @@ describe("Serialization", () => {
       expect(json.nodes[0].options._presentationIndex).toBe(0);
       expect(json.nodes[1].options._presentationIndex).toBe(1);
     });
+
+    // The stored document says which undo it already holds, so the client that
+    // loads it does not rebuild the slate from the room's copy of that undo.
+    it("stores which whole-slate replacement the document holds", () => {
+      mockSlate.options.collabBaseline = { id: "slate-1", t: 1700000000000, c: 42, k: "onSlateReplaced_1_abc" };
+      expect(serialize(mockSlate).options.collabBaseline).toEqual(mockSlate.options.collabBaseline);
+    });
   });
 
   describe("serializeNode", () => {

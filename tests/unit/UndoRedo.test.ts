@@ -128,6 +128,105 @@ describe("UndoRedo", () => {
     });
   });
 
+  // Snapshots are whole slates: undoing to one that was taken before other
+  // people's changes arrived would take their changes away with it.
+  describe("other people's changes", () => {
+    it("are taken into the current record, so undoing one's next step keeps them", async () => {
+      const ur = new UndoRedo(mockSlate);
+      ur.snap(true); // the slate as loaded
+      mockSlate.options.name = "Renamed by someone else";
+      ur.absorbRemote();
+      mockSlate.options.name = "Renamed by me";
+      ur.snap(true);
+
+      ur.undo();
+      await vi.advanceTimersByTimeAsync(0);
+      const restored = JSON.parse(mockSlate.broadcast.mock.calls.at(-1)[1].snapshot);
+      expect(restored.options.name).toBe("Renamed by someone else");
+    });
+
+    it("do not become a step of one's own", () => {
+      const ur = new UndoRedo(mockSlate);
+      ur.snap(true);
+      ur.absorbRemote();
+      expect(ur.canUndo()).toBe(false);
+    });
+
+    it("leave a change of one's own that is still waiting to be recorded alone", () => {
+      const ur = new UndoRedo(mockSlate);
+      ur.snap(true);
+      ur.snap(); // an edit, not yet recorded
+      mockSlate.options.name = "Renamed by someone else";
+      ur.absorbRemote();
+      vi.advanceTimersByTime(600);
+      expect(ur.canUndo()).toBe(true);
+    });
+
+    it("someone else's undo starts this person's history again", async () => {
+      const ur = new UndoRedo(mockSlate);
+      ur.snap(true);
+      ur.snap(true);
+      ur.undo();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(ur.canRedo()).toBe(true);
+      ur.absorbRemote(true);
+      expect(ur.canUndo()).toBe(false);
+      expect(ur.canRedo()).toBe(false);
+      ur.snap(true);
+      expect(ur.canUndo()).toBe(true);
+    });
+  });
+
+  // Deleting is one deliberate act; a burst of other edits is one step.
+  describe("snapAfterGesture", () => {
+    /** The handler of one key press or click has finished. */
+    const gestureEnds = () => Promise.resolve();
+
+    it("records a delete when its key press ends, so two deletes one after the other are two steps", async () => {
+      const ur = new UndoRedo(mockSlate);
+      ur.snap(true);
+      mockSlate.options.name = "first note deleted";
+      ur.snapAfterGesture();
+      await gestureEnds(); // no time passes: the next press may follow at once
+      mockSlate.options.name = "second note deleted";
+      ur.snapAfterGesture();
+      await gestureEnds();
+
+      ur.undo();
+      const restored = (ur as any).undoStack.at(-1);
+      expect(restored.options.name).toBe("first note deleted");
+    });
+
+    it("keeps several notes deleted by one key press, and what that press also changed, in one step", async () => {
+      const ur = new UndoRedo(mockSlate);
+      ur.snap(true);
+      ur.snapAfterGesture(); // note 1
+      ur.snap(); // a connector that went with it
+      ur.snapAfterGesture(); // note 2
+      ur.snap();
+      await gestureEnds();
+      expect((ur as any).undoStack).toHaveLength(2);
+      vi.advanceTimersByTime(1000);
+      expect((ur as any).undoStack).toHaveLength(2);
+    });
+
+    it("an undo pressed before the record was taken still undoes the delete", () => {
+      const ur = new UndoRedo(mockSlate);
+      ur.snap(true);
+      mockSlate.options.name = "note deleted";
+      ur.snapAfterGesture();
+      expect(ur.undo()).toBe(true);
+      expect((ur as any).undoStack.at(-1).options.name).toBe("Test");
+    });
+
+    it("does nothing when undo is off", async () => {
+      const off = new UndoRedo(mockSlate, { enabled: false });
+      off.snapAfterGesture();
+      await gestureEnds();
+      expect(off.canUndo()).toBe(false);
+    });
+  });
+
   describe("canUndo / canRedo", () => {
     it("canUndo requires at least 2 snapshots", () => {
       const ur = new UndoRedo(mockSlate);

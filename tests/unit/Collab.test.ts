@@ -148,8 +148,9 @@ describe("Collab", () => {
       ]);
       (collab as any).collabMap = map;
       (collab as any).applyRemoteChanges(map.keys());
+      // Applied in the order they were written (timestamp 10, then 20), not in key order.
       expect(apply.mock.calls.map(([pkg]: any[]) => pkg.data)).toEqual([
-        { id: "a", text: "latest" }, { id: "a", fontSize: 20 },
+        { id: "a", fontSize: 20 }, { id: "a", text: "latest" },
       ]);
       apply.mockClear();
       (collab as any).applyRemoteChanges(["old-1"]);

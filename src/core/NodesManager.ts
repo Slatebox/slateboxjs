@@ -4,6 +4,8 @@ import type { Slate } from './Slate'
 export class NodesManager {
   private slate: Slate
   private nodes: Map<string, Node> = new Map()
+  /** Notes added but not yet drawn (a note is built a moment after it is added). */
+  private unbuilt: Set<Promise<void>> = new Set()
 
   constructor(slate: Slate) {
     this.slate = slate
@@ -26,8 +28,25 @@ export class NodesManager {
     
     // Add to collection
     this.nodes.set(node.id, node)
-    
+
+    const built = node.ready
+    if (built && typeof built.then === 'function') {
+      this.unbuilt.add(built)
+      const done = () => { this.unbuilt.delete(built) }
+      built.then(done, done)
+    }
+
     return node
+  }
+
+  /** The notes still being drawn, as promises that settle when each is ready. */
+  public building(): Promise<void>[] {
+    return Array.from(this.unbuilt)
+  }
+
+  /** Give up on notes that never finished drawing (see Slate.whenBuilt). */
+  public stopWaitingFor(stuck: Promise<void>[]): void {
+    stuck.forEach((wait) => this.unbuilt.delete(wait))
   }
 
   public remove(id: string): boolean {
