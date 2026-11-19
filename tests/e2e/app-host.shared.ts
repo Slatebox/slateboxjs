@@ -9,7 +9,6 @@ export async function bootstrapGuestSlate(page: Page, appUrl: string) {
 /** Enter the production editor through blank-slate onboarding in a fresh guest session. */
 export async function openGuestCanvas(page: Page, appUrl: string) {
   await page.goto(appUrl + "/start");
-  await page.getByRole("button", { name: "Open a blank slate" }).click();
   await page.waitForURL(/\/canvas\//);
   await page.locator("#slateCanvas [data-node-id]").first().waitFor();
   const welcome = page.getByRole("dialog", { name: /welcome/i });

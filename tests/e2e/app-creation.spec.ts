@@ -5,15 +5,10 @@ import { dismissWelcome, getSlate, removeTestGuest, userId } from "./workshop-gu
 const appUrl = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 
 test("map entry, gallery and dashboard New open their respective editors", async ({ page }) => {
-  await page.goto(appUrl + "/canvas/new");
-  await expect(page.getByRole("heading", { name: "Start a new slate" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Create an interactive map" })).toHaveAttribute("href", "/new/map");
-  const sample = page.getByRole("link", { name: "Try a sample map" });
-  await expect(sample).toHaveAttribute("href", "/workshops?format=map&example=customer-import");
-
-  // The public proof ends before creating guest-owned data on production.
+  await page.goto(appUrl + "/templates");
+  await expect(page.getByRole("link", {name:"Create slate",exact:true})).toHaveAttribute("href","/new");
   if (!["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(appUrl).hostname)) return;
-  await sample.click();
+  await page.goto(appUrl + "/workshops?format=map&example=customer-import");
   await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/);
   const ownerId = await userId(page);
   try {
@@ -28,7 +23,7 @@ test("map entry, gallery and dashboard New open their respective editors", async
     const canvas = page.url();
     expect(new URL(canvas).search).toBe("");
     await page.getByRole("button", { name: "Board menu" }).click();
-    await expect(page.getByRole("menuitem", { name: "Create an interactive map" })).toHaveAttribute("href", "/new/map");
+    await expect(page.getByRole("menuitem", { name: "Create slate" })).toHaveAttribute("href", "/new");
     await page.keyboard.press("Escape");
     await page.getByRole("link", { name: "Slatebox home" }).click();
     await page.getByRole("button", { name: "New", exact: true }).click();
@@ -43,9 +38,9 @@ test("map entry, gallery and dashboard New open their respective editors", async
     await page.goBack();
     await expect(page.getByRole("button", { name: "New", exact: true })).toBeVisible();
     await page.goto(appUrl + "/templates");
-    await page.getByRole("main").getByRole("link", { name: "Create an interactive map" }).click();
+    await page.getByRole("main").getByRole("link", { name: "Create slate" }).click();
     await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/);
-    await expect(page.getByRole("heading", { name: "Untitled map" })).toBeVisible();
+    await expect(page.locator("#slateCanvas [data-node-id]").first()).toBeVisible();
     await page.goto(canvas);
     await expect(node).toBeVisible();
   } finally {
@@ -70,7 +65,7 @@ test("legacy workshop links open a private slate and preserve native browser his
     await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/);
     const lanesUrl = page.url();
     expect(lanesUrl).not.toBe(mapUrl);
-    await expect(page.getByRole("button",{name:"Add card to Lane 1"})).toBeVisible();
+    await expect(page.getByRole("complementary", {name:"Workshop conversation"}).getByRole("textbox")).toBeVisible();
     const lanes = await getSlate(page, new URL(lanesUrl).pathname.split("/").pop()!);
     expect(lanes.userId).toBe(actor);
     expect(lanes.options).toMatchObject({isPrivate:true,isPublic:false,isUnlisted:false});
@@ -82,7 +77,7 @@ test("legacy workshop links open a private slate and preserve native browser his
     await expect(page.getByRole("complementary", {name:"Map conversation"})).toBeVisible();
     await page.goForward();
     await expect(page).toHaveURL(lanesUrl);
-    await expect(page.getByRole("button", {name:"Add card to Lane 1"})).toBeVisible();
+    await expect(page.getByRole("complementary", {name:"Workshop conversation"}).getByRole("textbox")).toBeVisible();
     await expect.poll(() => userId(page)).toBe(actor);
   } finally {
     if (actor) {
@@ -96,7 +91,7 @@ test("legacy workshop links open a private slate and preserve native browser his
 test("an existing workshop draft becomes one private native board and the old bookmark reopens it", async ({page}) => {
   test.skip(!["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(appUrl).hostname));
   const route = appUrl + "/workshops?format=map";
-  await page.goto(appUrl + "/start");
+  await page.goto(appUrl + "/templates");
   await page.evaluate(() => {
     const draft = {version:1,title:"Parcel return options",lanes:[
       {id:"door",label:"Dispatch",station:{column:0,row:0,next:["desk"],outcome:"Check the parcel."}},
@@ -125,7 +120,7 @@ test("an existing workshop draft becomes one private native board and the old bo
 
 test("a collaboration visitor owns a private, connected incident timeline on first open", async ({ page }) => {
   test.skip(!["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(appUrl).hostname));
-  await page.goto(appUrl + "/start");
+  await page.goto(appUrl + "/templates");
   expect(await page.evaluate(() => localStorage.getItem("meteor_token"))).toBeNull();
   await page.goto(appUrl + "/new/incident-timeline");
   await page.waitForURL(/\/canvas\/[\w-]+$/);
