@@ -55,8 +55,9 @@ test('an owned listening slate persists a gesture and label and presents the sha
     await expect(presentation.getByRole('slider')).toHaveAttribute('aria-readonly','true')
     await expect(presentation.getByText(/Copper singing bowl 100%/)).toBeVisible()
     await presentation.getByRole('button',{name:'Exit presentation'}).click()
-    await reader.goto(origin + '/start')
+    await reader.goto(origin + '/plans')
     await reader.waitForFunction(() => (window as any).Meteor?.status().connected)
+    expect(await reader.evaluate(() => (window as any).Meteor.userId())).toBeNull()
     expect(await call(reader, 'slates.get', { shareId: key })).toBeNull()
     await call(page,'slateAccess.configureLink',{slateId:before._id,type:'unlisted',permission:'READ'})
     await reader.goto(url)
@@ -69,6 +70,6 @@ test('an owned listening slate persists a gesture and label and presents the sha
     await expect(reader.getByRole('slider')).toHaveCount(0)
   } finally {
     await other.close()
-    await page.evaluate(() => { (window as any).Meteor.call('users.delete') })
+    expect(await page.evaluate(() => (window as any).Meteor.callAsync('users.delete'))).toBe(true)
   }
 })

@@ -5,8 +5,9 @@ const origin = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 
 test("independent copies of private and published slates start private for a free individual", async ({ page }) => {
   test.skip(!["localhost", "127.0.0.1"].includes(new URL(origin).hostname), "Publishes a synthetic slate on a local test installation");
-  await page.goto(origin + "/start");
+  await page.goto(origin + "/plans");
   await page.waitForFunction(() => (window as any).Accounts && (window as any).Meteor.status().connected);
+  expect(await page.evaluate(() => (window as any).Meteor.userId())).toBeNull();
   const email = "copy-proof-" + randomBytes(12).toString("hex") + "@slatebox.invalid";
   const password = randomBytes(24).toString("hex");
   const owner = await page.evaluate(async credentials => {
@@ -73,19 +74,19 @@ test("independent copies of private and published slates start private for a fre
       expect((await read(key)).visibility).toEqual(visibility === "public" ? publicBoard : privateBoard);
     }
   } finally {
-    await page.evaluate(async ({owner, sourceId}) => {
+    const removed = await page.evaluate(async ({owner, sourceId}) => {
       const meteor = (window as any).Meteor;
       if (meteor.userId() !== owner) throw new Error("Unexpected fixture owner");
       // Remove the source's sharing grant before deleting its owner and copies.
       if (sourceId) await meteor.callAsync("slates.remove", {slateIds:[sourceId]});
-      // Removing the logged-in account closes its DDP session before the
-      // ordinary method promise settles. Verify removal from a fresh session.
-      meteor.call("users.delete");
+      return meteor.callAsync("users.delete");
     }, {owner, sourceId});
+    expect(removed).toBe(true);
     const check = await page.context().browser()!.newPage();
     try {
-      await check.goto(origin + "/start");
+      await check.goto(origin + "/plans");
       await check.waitForFunction(() => (window as any).Meteor?.status().connected);
+      expect(await check.evaluate(() => (window as any).Meteor.userId())).toBeNull();
       await expect.poll(() => check.evaluate(async credentials => new Promise(resolve => {
         (window as any).Meteor.loginWithPassword(credentials.email, credentials.password, (error: any) => resolve(error?.error));
       }), {email, password})).toBe(403);
