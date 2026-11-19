@@ -560,6 +560,15 @@ export class Keyboard {
     if (selected.length !== 1) return false;
     const node = selected[0];
     if (!node?.editor?.startInline || node.nestedSvg) return false;
+    // The keyboard must not open what a double-click would refuse: a read-only or
+    // comment-only viewer, or a locked note, cannot edit text by pressing Enter.
+    const slate: any = this.slate;
+    if (
+      node.options?.isLocked ||
+      slate?.options?.enabled === false ||
+      slate?.isReadOnly?.() ||
+      (slate?.isCommentOnly?.() && !node.options?.isComment)
+    ) return false;
     e.preventDefault();
     node.editor.startInline();
     return true;

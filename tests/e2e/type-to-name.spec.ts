@@ -375,6 +375,15 @@ test.describe('typing on a selected note', () => {
       expect(await page.evaluate(() => (window as any).editorsOpened)).toBe(0)
       expect((await saved(page)).find(n => n.id === 'root')!.text).toBe('Field recording')
       expect(await sentTypes(page)).toEqual([])
+      // Enter and F2 follow the same permission as typing and double-click.
+      for (const key of ['Enter', 'F2']) {
+        await page.keyboard.press(key)
+        await page.waitForTimeout(120)
+        await expect(editor(page)).toHaveCount(0)
+      }
+      expect(await page.evaluate(() => (window as any).editorsOpened)).toBe(0)
+      expect((await saved(page)).find(n => n.id === 'root')!.text).toBe('Field recording')
+      expect(await sentTypes(page)).toEqual([])
     })
   }
 

@@ -11673,7 +11673,9 @@ class un {
     const e = this.slate.selectedNodes || [];
     if (e.length !== 1) return !1;
     const i = e[0];
-    return !i?.editor?.startInline || i.nestedSvg ? !1 : (t.preventDefault(), i.editor.startInline(), !0);
+    if (!i?.editor?.startInline || i.nestedSvg) return !1;
+    const s = this.slate;
+    return i.options?.isLocked || s?.options?.enabled === !1 || s?.isReadOnly?.() || s?.isCommentOnly?.() && !i.options?.isComment ? !1 : (t.preventDefault(), i.editor.startInline(), !0);
   }
 }
 class xo {

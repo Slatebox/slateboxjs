@@ -72,18 +72,11 @@ test('new connected nodes start blank and keep authored labels and edges through
       return JSON.parse(board.exportJSON()).nodes.find((n:any) => n.options.id === id)?.options.text
     }, child)
     expect(await exportedLabel()).toBe('')
-    if (gesture === 'keyboard') {
-      await expect(node).toBeFocused()
-    } else {
-      await page.evaluate(id => {
-        const board = (window as any).__slateboxInstances.find((s:any) => s.element.id === 'slateCanvas')
-        board.selectNodes([board.nodes.one(id)])
-      }, child)
-    }
-    await page.keyboard.press('F2')
+    // A note made by any of the three gestures is already open for typing.
     const editor = page.locator('#slateCanvas .sb-inline-editor')
-    await editor.fill('Named with ' + gesture)
-    await editor.press('Enter')
+    await expect(editor).toBeFocused()
+    await page.keyboard.type('Named with ' + gesture)
+    await page.keyboard.press('Enter')
     await expect.poll(exportedLabel).toBe('Named with ' + gesture)
   }
   const expected = ['Named with click', 'Named with drag', 'Named with keyboard']
