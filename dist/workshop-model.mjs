@@ -791,12 +791,12 @@ function Re(e, n, o) {
   if (e.kind === "release-plan") {
     if (r.capacity === void 0) return a;
     const u = Q(e, o), w = { ...e, lanes: e.lanes.map((y) => y === r ? { id: r.id, label: r.label } : y) }, b = pe(w, t, o);
-    return b ? `Needs ${Q(b, o) - u} points. Now holds ${u} of ${r.capacity} points.` : a;
+    return b ? `Needs ${Q(b, o) - u} points. It already holds ${u} of ${r.capacity} points.` : a;
   }
   const d = e.lanes.find((u) => u.id === t.laneId);
   if (d?.station && !d.station.next.includes(o)) return `${r.label} can't be reached from ${d.label}.`;
   const f = e.cards.filter((u) => u.laneId === o).length;
-  return r.capacity !== void 0 && f >= r.capacity ? `Now holds ${f} of ${r.capacity} ${r.capacity === 1 ? "card" : "cards"}.` : a;
+  return r.capacity !== void 0 && f >= r.capacity ? `It already holds ${f} of ${r.capacity} ${r.capacity === 1 ? "card" : "cards"}.` : a;
 }
 function re(e, n) {
   const o = e.lanes.find((a) => a.id === n);

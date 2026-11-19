@@ -332,10 +332,10 @@ test.describe('a governed card changes only when the workshop agrees', () => {
     const start = await at(page, 'card-beta')
     await page.keyboard.press('ArrowRight')
     // Later is full: the lane says so, the reason is announced and the host is told.
-    await expect(live(page)).toHaveText("Beta can't move to Later. Now holds 1 of 1 card.")
-    await expect.poll(() => text(page, 'caption-later')).toBe('Now holds 1 of 1 card.')
+    await expect(live(page)).toHaveText("Beta can't move to Later. It already holds 1 of 1 card.")
+    await expect.poll(() => text(page, 'caption-later')).toBe('It already holds 1 of 1 card.')
     await expect(page.locator('#slate [data-node-id="lane-later"] path').first()).toHaveAttribute('stroke', '#c2410c')
-    expect((await journal(page)).refusals).toEqual([{ cardId: 'beta', laneId: 'later', reason: 'Now holds 1 of 1 card.' }])
+    expect((await journal(page)).refusals).toEqual([{ cardId: 'beta', laneId: 'later', reason: 'It already holds 1 of 1 card.' }])
     // Nothing is staged and nothing moved; the card is still the selection.
     expect(await cards(page)).toBe('alpha@later beta@now gamma@now')
     expect(await at(page, 'card-beta')).toEqual(start)

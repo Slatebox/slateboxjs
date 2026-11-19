@@ -188,7 +188,7 @@ test('a note added beside the workshop is saved with the slate and survives a re
     expect(alpha).not.toBe('alpha')
     expect(await laneOfCard(page, alpha)).toBe('Later')
     await dragCard(page, alpha, 'next')
-    await expect(caption(page, 'next')).toContainText('Now holds 1 of 1 card.')
+    await expect(caption(page, 'next')).toContainText('It already holds 1 of 1 card.')
     await dragCard(page, alpha, 'now')
     await expect.poll(async () => (await lanesOf(page, owner.key)).alpha).toBe('now')
     expect(await laneOfCard(page, alpha)).toBe('Now')
@@ -227,15 +227,15 @@ test('a drop the workshop\'s rules refuse sends the card back and the lane says 
     // Next holds one card and already has Beta.
     await holdCardOver(page, 'alpha', 'next')
     await page.mouse.up()
-    await expect(caption(page, 'next')).toContainText('Now holds 1 of 1 card.')
-    await expect(announced(page)).toContainText('Alpha can\'t move to Next. Now holds 1 of 1 card.')
+    await expect(caption(page, 'next')).toContainText('It already holds 1 of 1 card.')
+    await expect(announced(page)).toContainText('Alpha can\'t move to Next. It already holds 1 of 1 card.')
     const back = await resting(page, 'card-alpha')
     expect(Math.abs(back.x - start.x)).toBeLessThan(1)
     expect(Math.abs(back.y - start.y)).toBeLessThan(1)
     expect(await laneOfCard(page, 'alpha')).toBe('Now')
     // The reason leaves the caption again.
     await expect(caption(page, 'next')).toContainText('1 of 1')
-    await expect(caption(page, 'next')).not.toContainText('Now holds')
+    await expect(caption(page, 'next')).not.toContainText('It already holds')
     // Gamma may only be in Now, and a drop on open canvas is not a move either.
     await dragCard(page, 'gamma', 'later')
     await expect(announced(page)).toContainText('Gamma can\'t move to Later. This card can\'t go in Later.')
@@ -370,9 +370,9 @@ test('two people who fill the last place in a lane: one card is stored, the othe
     expect(await laneOfCard(peer.page, 'delta')).toBe('Now')
     // The peer lets go. On the workshop as it now stands, Next is full: the workshop's own rule refuses.
     await peer.page.mouse.up()
-    await expect(caption(peer.page, 'next')).toContainText('Now holds 1 of 1 card.')
-    await expect(announced(peer.page)).toContainText('Next: Now holds 1 of 1 card.')
-    await expect(workshopStatus(peer.page).getByRole('alert')).toContainText('Now holds 1 of 1 card. Your change was not saved.')
+    await expect(caption(peer.page, 'next')).toContainText('It already holds 1 of 1 card.')
+    await expect(announced(peer.page)).toContainText('Next: It already holds 1 of 1 card.')
+    await expect(workshopStatus(peer.page).getByRole('alert')).toContainText('It already holds 1 of 1 card. Your change was not saved.')
     // Their canvas shows the server's workshop at once: the owner's card in Next, and Alpha back in Now.
     await expect.poll(() => laneOfCard(peer!.page, 'delta')).toBe('Next')
     await expect.poll(() => laneOfCard(peer!.page, 'alpha')).toBe('Now')
@@ -384,7 +384,7 @@ test('two people who fill the last place in a lane: one card is stored, the othe
     expect(await revisionOf(page, owner.key)).toBe(2)
     // The reason leaves the caption, and a move the rules allow is saved.
     await expect(caption(peer.page, 'next')).toContainText('1 of 1')
-    await expect(caption(peer.page, 'next')).not.toContainText('Now holds')
+    await expect(caption(peer.page, 'next')).not.toContainText('It already holds')
     await dragCard(peer.page, 'alpha', 'later')
     await expect.poll(async () => (await lanesOf(page, owner.key)).alpha).toBe('later')
     await expect.poll(() => laneOfCard(page, 'alpha')).toBe('Later')

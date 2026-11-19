@@ -488,8 +488,8 @@ test.describe('lanes that wrap', () => {
     expect(shown.y + shown.height).toBeLessThanOrEqual(520)
     // Done is full: the same refusal a drop there gives, and Review stays staged.
     await page.keyboard.press('ArrowDown')
-    await expect(live(page)).toHaveText("Alpha can't move to Done. Now holds 1 of 1 card.")
-    expect((await journal(page)).refusals).toEqual([{ cardId: 'alpha', laneId: 'done', reason: 'Now holds 1 of 1 card.' }])
+    await expect(live(page)).toHaveText("Alpha can't move to Done. It already holds 1 of 1 card.")
+    expect((await journal(page)).refusals).toEqual([{ cardId: 'alpha', laneId: 'done', reason: 'It already holds 1 of 1 card.' }])
     await page.keyboard.press('Enter')
     await expect.poll(() => cards(page)).toBe('alpha@review beta@inbox gamma@inbox omega@done')
     // Up goes back the way it came; Left and Right mean the same in a single column.
@@ -734,9 +734,9 @@ test.describe('a phone: 390x844, touch, one lane to a row', () => {
       const done = await inLane(page, 'done')
       await slide({ x: done.x, y: Math.min(done.y, 760) })
       await touch('touchEnd', [])
-      await expect.poll(async () => (await journal(page)).refusals).toEqual([{ cardId: 'alpha', laneId: 'done', reason: 'Now holds 1 of 1 card.' }])
+      await expect.poll(async () => (await journal(page)).refusals).toEqual([{ cardId: 'alpha', laneId: 'done', reason: 'It already holds 1 of 1 card.' }])
       expect(await resting(page, 'card-alpha')).toEqual(start)
-      expect(await text(page, 'caption-done')).toBe('Now holds 1 of 1 card.')
+      expect(await text(page, 'caption-done')).toBe('It already holds 1 of 1 card.')
 
       // Dropped beside the lanes, on open canvas.
       await top()

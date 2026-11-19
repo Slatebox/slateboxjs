@@ -71,8 +71,8 @@ test('two editors build a blank workshop, fill a lane and present their saved ch
     // Attempt to place the second card directly on the already occupied slot.
     const before = await resting(peer, 'card-' + second.id)
     await dragCard(peer, second.id, booth.id)
-    await expect(caption(peer, booth.id)).toContainText('Now holds 1 of 1 card.')
-    await expect(announced(peer)).toContainText(second.label + ' can\'t move to Listening booth. Now holds 1 of 1 card.')
+    await expect(caption(peer, booth.id)).toContainText('It already holds 1 of 1 card.')
+    await expect(announced(peer)).toContainText(second.label + ' can\'t move to Listening booth. It already holds 1 of 1 card.')
     const after = await resting(peer, 'card-' + second.id)
     expect(Math.abs(after.x - before.x)).toBeLessThan(1)
     expect(Math.abs(after.y - before.y)).toBeLessThan(1)

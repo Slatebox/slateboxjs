@@ -51,14 +51,14 @@ describe('workshopCandidate', () => {
     const full = workshopCandidate(twoLanes, 'alpha', 'later')!
     expect(full.cards.find(card => card.id === 'alpha')!.laneId).toBe('later')
     expect(workshopCandidate(full, 'beta', 'later')).toBeNull()
-    expect(workshopRefusal(full, 'beta', 'later')).toBe('Now holds 1 of 1 card.')
+    expect(workshopRefusal(full, 'beta', 'later')).toBe('It already holds 1 of 1 card.')
     expect(workshopCandidate(twoLanes, 'gamma', 'later')).toBeNull()
     expect(workshopRefusal(twoLanes, 'gamma', 'later')).toBe("This card can't go in Later.")
     expect(workshopRefusal(twoLanes, 'alpha', 'later')).toBeNull()
     expect(workshopCandidate(twoLanes, 'alpha', 'missing')).toBeNull()
     expect(workshopCandidate(twoLanes, 'missing', 'later')).toBeNull()
     const pilot = workshopCandidate(industrialWorkshop, 'sensors', 'pilot')!
-    expect(workshopRefusal(pilot, 'spares', 'pilot')).toBe('Now holds 2 of 2 cards.')
+    expect(workshopRefusal(pilot, 'spares', 'pilot')).toBe('It already holds 2 of 2 cards.')
     expect(workshopDestinations(pilot, 'spares').map(lane => lane.id)).toEqual(['proposed', 'evidence'])
     expect(workshopDestinations(twoLanes, 'gamma').map(lane => lane.id)).toEqual(['now'])
   })
@@ -79,7 +79,7 @@ describe('workshopCandidate', () => {
     const friday = workshopCandidate(releasePlan, 'invite', 'friday')!
     expect(friday.cards.filter(card => card.laneId === 'friday').map(card => card.id).sort()).toEqual(['billing', 'guardrails', 'invite'])
     expect(workshopCandidate(friday, 'export', 'friday')).toBeNull()
-    expect(workshopRefusal(friday, 'export', 'friday')).toBe('Needs 4 points. Now holds 8 of 8 points.')
+    expect(workshopRefusal(friday, 'export', 'friday')).toBe('Needs 4 points. It already holds 8 of 8 points.')
   })
 
   it('answers the budget experience exactly as planStartupMove and the lane rules do', () => {

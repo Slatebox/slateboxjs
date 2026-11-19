@@ -149,7 +149,7 @@ describe('workshopCandidate on random valid boards', () => {
           const context = JSON.stringify({ card: card.id, lane: lane.id, board })
           expect(reason, context).toMatch(/^\S.*[.]$/s)
           expect(reason, context).not.toMatch(/undefined|NaN|null|\[object/)
-          const points = /^Needs (-?\d+) points\. Now holds (\d+) of (\d+) points\.$/.exec(reason!)
+          const points = /^Needs (-?\d+) points\. It already holds (\d+) of (\d+) points\.$/.exec(reason!)
           if (points) {
             // The sentence has to be true: what the move needs does not fit in what is left.
             expect(Number(points[1]), context).toBeGreaterThan(Number(points[3]) - Number(points[2]))

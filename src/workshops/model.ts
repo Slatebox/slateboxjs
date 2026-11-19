@@ -344,13 +344,13 @@ export function workshopRefusal(board: Workshop, cardId: string, laneId: string)
     const unbounded = { ...board, lanes: board.lanes.map(item => item === lane ? { id: lane.id, label: lane.label } : item) }
     const moved = planReleaseMove(unbounded, card, laneId)
     if (!moved) return cannot
-    return `Needs ${releaseLoad(moved, laneId) - used} points. Now holds ${used} of ${lane.capacity} points.`
+    return `Needs ${releaseLoad(moved, laneId) - used} points. It already holds ${used} of ${lane.capacity} points.`
   }
   const source = board.lanes.find(item => item.id === card.laneId)
   if (source?.station && !source.station.next.includes(laneId)) return `${lane.label} can't be reached from ${source.label}.`
   const held = board.cards.filter(item => item.laneId === laneId).length
   if (lane.capacity !== undefined && held >= lane.capacity) {
-    return `Now holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
+    return `It already holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
   }
   return cannot
 }

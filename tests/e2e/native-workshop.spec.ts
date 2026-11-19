@@ -156,12 +156,12 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     await carry(page, 'card-beta', await inLane(page, 'later'))
     await expect(page.locator('#slate [data-node-id="column-later"] path').first()).toHaveAttribute('stroke', '#c2410c')
     await page.mouse.up()
-    await expect.poll(async () => (await journal(page)).refusals).toEqual([{ cardId: 'beta', laneId: 'later', reason: 'Now holds 1 of 1 card.' }])
+    await expect.poll(async () => (await journal(page)).refusals).toEqual([{ cardId: 'beta', laneId: 'later', reason: 'It already holds 1 of 1 card.' }])
     // The refusal is visible on the canvas: the lane is outlined and its caption says why.
-    await expect.poll(() => text(page, 'caption-later')).toBe('Now holds 1 of 1 card.')
-    await expect(page.locator('#slate [data-node-id="caption-later"]')).toContainText('Now holds 1 of 1 card.')
+    await expect.poll(() => text(page, 'caption-later')).toBe('It already holds 1 of 1 card.')
+    await expect(page.locator('#slate [data-node-id="caption-later"]')).toContainText('It already holds 1 of 1 card.')
     await expect(page.locator('#slate [data-node-id="lane-later"] path').first()).toHaveAttribute('stroke', '#c2410c')
-    await expect(live(page)).toHaveText("Beta can't move to Later. Now holds 1 of 1 card.")
+    await expect(live(page)).toHaveText("Beta can't move to Later. It already holds 1 of 1 card.")
     expect(await resting(page, 'card-beta')).toEqual(betaStart)
     // The outline is back around the card where it rests, not where it was dropped.
     const outline = (await page.locator('#slate .svg_select_shape').boundingBox())!
@@ -710,7 +710,7 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     await expect.poll(() => cards(page)).toBe('alpha@later beta@now gamma@now')
     const betaStart = await resting(page, 'card-beta')
     await drag(page, 'card-beta', await inLane(page, 'later'))
-    await expect.poll(async () => (await journal(page)).refusals).toEqual([{ cardId: 'beta', laneId: 'later', reason: 'Now holds 1 of 1 card.' }])
+    await expect.poll(async () => (await journal(page)).refusals).toEqual([{ cardId: 'beta', laneId: 'later', reason: 'It already holds 1 of 1 card.' }])
     expect(await resting(page, 'card-beta')).toEqual(betaStart)
     await drag(page, 'card-alpha', await inLane(page, 'now'))
     await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
@@ -766,7 +766,7 @@ test.describe('experiences and maps as native notes', () => {
     const start = await resting(page, 'card-export')
     await drag(page, 'card-export', await inLane(page, 'friday'))
     await expect.poll(async () => (await journal(page)).refusals).toEqual([
-      { cardId: 'export', laneId: 'friday', reason: 'Needs 4 points. Now holds 8 of 8 points.' },
+      { cardId: 'export', laneId: 'friday', reason: 'Needs 4 points. It already holds 8 of 8 points.' },
     ])
     expect(await resting(page, 'card-export')).toEqual(start)
     // A release card shows its points on a second line, so it is not renamed in place.
@@ -848,7 +848,7 @@ test.describe('touch at 390x844', () => {
       expect([alpha.x, alpha.y]).toEqual([header.x, header.y - 6 + 98])
 
       // The full lane and the forbidden lane refuse; each card returns to its exact start.
-      for (const [id, reason] of [['beta', 'Now holds 1 of 1 card.'], ['gamma', "This card can't go in Later."]]) {
+      for (const [id, reason] of [['beta', 'It already holds 1 of 1 card.'], ['gamma', "This card can't go in Later."]]) {
         const start = await resting(page, 'card-' + id)
         await carryByTouch('card-' + id, await inLane(page, 'later'))
         await touch('touchEnd', [])
