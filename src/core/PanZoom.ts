@@ -430,6 +430,24 @@ export class PanZoom {
     )
   }
 
+  /**
+   * Show a region of the world at the largest scale at which its whole width is
+   * visible, up to `maxZoom` (100% unless the host allows more, as a phone does to
+   * fill its width with one lane), with `padding` world units of room at each side.
+   * A region shorter than the canvas is centred in it; a taller one starts at the
+   * top and the rest is reached by panning.
+   */
+  public fitWidth(region: { x: number; y: number; width: number; height: number }, padding = 16, maxZoom = 1) {
+    if (!this.isEnabled) return
+    const px = this.getViewportSize()
+    const limit = Math.min(maxZoom > 0 ? maxZoom : 1, this.options.zoomMax ?? 10)
+    const width = Math.max(px.w / limit, region.width + padding * 2)
+    const height = (px.h / px.w) * width
+    const x = region.x + region.width / 2 - width / 2
+    const y = region.height + padding * 2 <= height ? region.y + region.height / 2 - height / 2 : region.y - padding
+    this.canvas.viewbox(x, y, width, height)
+  }
+
   public center() {
     if (!this.isEnabled) return
     // Center on the NODES' bounding box, not canvas.bbox() — the latter

@@ -86,6 +86,38 @@ describe("Presentation", () => {
     expect(lamp.childrenNodes).toHaveLength(0);
   });
 
+  describe("decoration a host draws (a drag policy's canSelect: false)", () => {
+    let presentation: Presentation;
+    beforeEach(() => {
+      mockSlate.nodes.allNodes.push(
+        { id: "column-a", options: { x: 0, y: 0, width: 240, height: 300 }, relationships: { associations: [] } },
+        { id: "caption-a", options: { x: 8, y: 66, width: 228, height: 30 }, relationships: { associations: [] } }
+      );
+      mockSlate.capabilitiesOf = (node: any) => ({ canSelect: !/^(column|caption)-/.test(node.id) });
+      presentation = new Presentation(mockSlate);
+    });
+
+    it("is never a step, in the default order or one that names it", () => {
+      expect(presentation.extractLayout().map((s) => s.nodeId)).toEqual(["n1", "n2", "n3"]);
+      expect(presentation.setStepOrder(["column-a", "n3", "caption-a"]).map((s) => s.nodeId)).toEqual(["n3", "n1", "n2"]);
+      expect(presentation.extractLayout({ nodeIds: ["column-a", "n2"] }).map((s) => s.nodeId)).toEqual(["n2"]);
+    });
+
+    it("is left out of the layout handed to whoever orders the scenes", () => {
+      const layout = presentation.extractPresentationLayout();
+      expect(layout.nodes.map((n: any) => n.nodeId)).toEqual(["n1", "n2", "n3"]);
+    });
+
+    it("is never visited by start and next", () => {
+      const visited: string[] = [];
+      mockSlate.selectNodes = vi.fn((nodes: any[]) => visited.push(...nodes.map((n) => n.id)));
+      presentation.start(0);
+      while (presentation.next(0)) { /* to the last step */ }
+      expect(presentation.getTotalSteps()).toBe(3);
+      expect(visited.filter((id) => /^(column|caption)-/.test(id))).toEqual([]);
+    });
+  });
+
   describe("start/stop", () => {
     it("should start presentation and go to first step", () => {
       const pres = new Presentation(mockSlate);

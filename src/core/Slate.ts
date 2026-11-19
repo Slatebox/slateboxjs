@@ -236,6 +236,8 @@ export class Slate {
   private _resizeObserver: ResizeObserver | null = null;
   /** Hosts that govern some notes (see DragPolicy.ts). Empty on an ordinary slate. */
   private _dragPolicies: DragPolicy[] = [];
+  private _selectionListeners: Array<(selected: Node[]) => void> = [];
+  private _selectionNoticeQueued = false;
   /** >0 while a host is changing its own governed notes (see withPolicyAuthority). */
   private _policyAuthority = 0;
   /** The governed note being dragged right now, if any. */
@@ -1004,6 +1006,7 @@ export class Slate {
         /* noop */
       }
       this.selectedNodes = this.selectedNodes.filter((n) => n.id !== id);
+      this.selectionChanged();
     }
     const result = this.nodes.remove(id);
     // Notify BirdsEye of the removed node
@@ -1155,6 +1158,19 @@ export class Slate {
   /** Zoom/pan to fit all nodes in the viewport. */
   public fitToContent() {
     this.panZoom.fit();
+  }
+
+  /**
+   * Show a region of the world (a workshop's `bounds`, say) as large as its width
+   * allows, up to `maxZoom`. Taller than the canvas, it starts at the top and the
+   * rest is reached by panning: the fit for a board on a phone.
+   *
+   * @param region  world coordinates
+   * @param padding room left at each side, in world units
+   * @param maxZoom the largest scale to use (1 = 100%, the default)
+   */
+  public fitToWidth(region: { x: number; y: number; width: number; height: number }, padding = 16, maxZoom = 1) {
+    this.panZoom.fitWidth(region, padding, maxZoom);
   }
 
   /** Pan to center all nodes in the viewport. */
@@ -1444,6 +1460,7 @@ export class Slate {
 
     // Enable resize/rotate for the selection - CENTRALIZED CONTROL
     this.updateSelectionResizeRotate();
+    this.selectionChanged();
 
     // Announce selection change
     const count = this.selectedNodes.length;
@@ -1860,12 +1877,44 @@ export class Slate {
     this.selectNodes([node], false);
   }
 
+  /**
+   * Hear about changes to the selection. The listener is called with the notes now
+   * selected, once per turn of the event loop in which the selection changed (a
+   * click that replaces one selection with another is one call, not two). Returns a
+   * function that stops listening.
+   */
+  public onSelectionChange(listener: (selected: Node[]) => void): () => void {
+    this._selectionListeners.push(listener);
+    return () => {
+      this._selectionListeners = this._selectionListeners.filter((l) => l !== listener);
+    };
+  }
+
+  /** The selection changed; tell the listeners once the change has settled. */
+  private selectionChanged(): void {
+    if (this._selectionNoticeQueued || this._selectionListeners.length === 0) return;
+    this._selectionNoticeQueued = true;
+    queueMicrotask(() => {
+      this._selectionNoticeQueued = false;
+      if (this._destroyed) return;
+      const selected = this.selectedNodes.slice();
+      for (const listener of this._selectionListeners.slice()) {
+        try {
+          listener(selected);
+        } catch (error) {
+          console.warn("SELECTION: a selection listener threw", error);
+        }
+      }
+    });
+  }
+
   /** Deselect a single node. */
   public deselectNode(node: Node) {
     if (this.selectedNodes.includes(node)) {
       console.log("SELECTION_DEBUG: Deselecting node", node.id);
       this.selectedNodes = this.selectedNodes.filter((n) => n !== node);
       node.onDeselected();
+      this.selectionChanged();
 
       // Update group resize/rotate
       if (this.selectedNodes.length === 0) {
@@ -1919,6 +1968,7 @@ export class Slate {
     });
 
     // Clear the selection array
+    if (this.selectedNodes.length) this.selectionChanged();
     this.selectedNodes = [];
 
     // Disable all resize/rotate controls and connection handles - CENTRALIZED CONTROL
@@ -2336,7 +2386,9 @@ export class Slate {
    */
   public refreshGovernance(): void {
     this.nodes?.allNodes.forEach((node: any) => node.applyGovernance?.());
-    this.selectedNodes = this.selectedNodes.filter((n) => this.capabilitiesOf(n).canSelect);
+    const selectable = this.selectedNodes.filter((n) => this.capabilitiesOf(n).canSelect);
+    if (selectable.length !== this.selectedNodes.length) this.selectionChanged();
+    this.selectedNodes = selectable;
     if (this.selectedNodes.length) this.updateSelectionResizeRotate();
   }
 
@@ -2358,6 +2410,7 @@ export class Slate {
     }
     if (gone.length && this.selectedNodes.some((n) => gone.includes(n))) {
       this.selectedNodes = this.selectedNodes.filter((n) => !gone.includes(n));
+      this.selectionChanged();
       for (const node of gone) {
         try {
           node.onDeselected();

@@ -113,6 +113,7 @@ export {
 
 // Host drag policies (governed notes)
 export { FREE_NODE, GOVERNED_NODE, hitTestNodeBoxes } from './core/DragPolicy'
+export { DEFAULT_NOTE_STYLE } from './core/NoteDefaults'
 export type {
   DragPolicy,
   DragVerdict,

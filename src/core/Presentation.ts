@@ -22,13 +22,24 @@ export class Presentation {
   }
 
   /**
+   * The notes a presentation may stop at. Decoration a host draws behind or beside
+   * its own notes (a drag policy's `canSelect: false`: a workshop's lane columns and
+   * captions) is scenery, never a stop.
+   */
+  private stops(): any[] {
+    const all: any[] = this.slate.nodes?.allNodes || [];
+    if (typeof this.slate.capabilitiesOf !== "function") return [...all];
+    return all.filter((n) => this.slate.capabilitiesOf(n).canSelect !== false);
+  }
+
+  /**
    * Extract presentation layout from current nodes.
    * Orders nodes by their _presentationIndex or by position (top-to-bottom, left-to-right).
    */
   public extractLayout(opts?: {
     nodeIds?: string[];
   }): PresentationStep[] {
-    let nodes = [...this.slate.nodes.allNodes];
+    let nodes = this.stops();
 
     // Filter to specific nodes if provided
     if (opts?.nodeIds) {
@@ -63,8 +74,7 @@ export class Presentation {
    * slate.extractPresentationLayout). Bbox is relative to the content top-left.
    */
   public extractPresentationLayout(): any {
-    const all: any[] = this.slate.nodes?.allNodes || [];
-    const nodes = all.filter((n) => !n.options?.isCategory);
+    const nodes = this.stops().filter((n) => !n.options?.isCategory);
 
     // Content bounds (orientation) for relative bbox coordinates.
     let minX = Infinity;
@@ -138,8 +148,7 @@ export class Presentation {
    * default layout order so nothing is lost.
    */
   public setStepOrder(nodeIds: string[]): PresentationStep[] {
-    const all: any[] = this.slate.nodes?.allNodes || [];
-    const exists = new Set(all.map((n) => n.id));
+    const exists = new Set(this.stops().map((n) => n.id));
     const seen = new Set<string>();
     const ordered: string[] = [];
     (nodeIds || []).forEach((id) => {

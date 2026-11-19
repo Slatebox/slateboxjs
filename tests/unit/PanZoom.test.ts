@@ -637,6 +637,24 @@ describe("PanZoom", () => {
       expect(Math.round(args[3])).toBe(600); // finalH (capped to container)
     });
 
+    it("fitWidth shows a region's whole width, never past 100% unless allowed, from its top when it is taller than the canvas", () => {
+      const slate = makeMockSlate();
+      slate.element.getBoundingClientRect = () => ({ width: 390, height: 844, left: 0, top: 0, right: 390, bottom: 844 } as DOMRect);
+      const pz = new PanZoom(slate);
+      // Narrower than the screen and taller: full size, centred across, read from the top.
+      pz.fitWidth({ x: 40, y: 40, width: 244, height: 1044 });
+      expect(slate.canvas.viewbox).toHaveBeenLastCalledWith(40 + 122 - 195, 24, 390, 844);
+      // Wider than the screen: zoomed out until its width and the padding fit.
+      pz.fitWidth({ x: 0, y: 0, width: 976, height: 362 }, 20);
+      expect(slate.canvas.viewbox).toHaveBeenLastCalledWith(-20, 181 - (844 / 390) * 1016 / 2, 1016, (844 / 390) * 1016);
+      // A host that allows more fills the width with it.
+      pz.fitWidth({ x: 40, y: 40, width: 244, height: 1044 }, 8, 2);
+      expect(slate.canvas.viewbox).toHaveBeenLastCalledWith(40 - 8, 40 - 8, 260, (844 / 390) * 260);
+      // A short region is centred down the canvas as well.
+      pz.fitWidth({ x: 0, y: 0, width: 244, height: 100 });
+      expect(slate.canvas.viewbox).toHaveBeenLastCalledWith(122 - 195, 50 - 422, 390, 844);
+    });
+
     it("fit should return early when there are no nodes", () => {
       mockSlate.nodes.allNodes = [];
       const pz = new PanZoom(mockSlate);

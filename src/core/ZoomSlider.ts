@@ -17,7 +17,7 @@ export class ZoomSlider {
   private container: HTMLElement | null = null;
   private slider: HTMLInputElement | null = null;
   private label: HTMLElement | null = null;
-  private _intervalId: ReturnType<typeof setInterval> | null = null;
+  private _viewObserver: MutationObserver | null = null;
 
   constructor(slate: any, options: ZoomSliderOptions = {}) {
     this.slate = slate;
@@ -53,11 +53,8 @@ export class ZoomSlider {
 
   /** Destroy the zoom slider */
   public destroy(): void {
-    // Clear the refresh interval
-    if (this._intervalId !== null) {
-      clearInterval(this._intervalId);
-      this._intervalId = null;
-    }
+    this._viewObserver?.disconnect();
+    this._viewObserver = null;
     if (this.container) {
       this.container.remove();
       this.container = null;
@@ -161,7 +158,15 @@ export class ZoomSlider {
 
     this.slate.element.appendChild(this.container);
 
-    // Update periodically
-    this._intervalId = setInterval(() => this.update(), 500);
+    // The label and the slider follow the view itself. Every zoom, whoever makes it
+    // (the wheel, a pinch, these buttons, fitToContent, a host's own call), ends in a
+    // new viewBox on the canvas, so that is what is watched; a resize of the canvas
+    // changes the viewBox too.
+    this.update();
+    const svg = this.slate.canvas?.node as SVGSVGElement | undefined;
+    if (svg && typeof MutationObserver !== "undefined") {
+      this._viewObserver = new MutationObserver(() => this.update());
+      this._viewObserver.observe(svg, { attributes: true, attributeFilter: ["viewBox"] });
+    }
   }
 }

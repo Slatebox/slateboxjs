@@ -269,6 +269,16 @@ export class Connector {
         "data-target-node-id": targetNode.id,
       });
 
+      // A line a host draws between two of its governed notes (a workshop's map)
+      // is part of that drawing: it takes no pointer input, so nobody can select
+      // it, re-plug it or delete it, and a press on a note it crosses reaches the note.
+      const ruled = (n: any) => (this.slate as any).governanceOf?.(n)?.capabilities?.canConnect === false;
+      if (ruled(this.node) && ruled(targetNode)) {
+        connectableObj.connector?.attr?.({ "pointer-events": "none", "data-governed": "line" });
+        connectableObj.hitArea?.attr?.({ "pointer-events": "none" });
+        if (connectableObj.hitArea?.node?.style) connectableObj.hitArea.node.style.cursor = "";
+      }
+
       // Create connection object
       const connection: Connection = {
         id: connectionId,

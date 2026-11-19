@@ -27,6 +27,7 @@ import { resolveShapePath } from "./ShapeRegistry";
 import { normalizeLegacyTextOffset, v2NodeToV1 } from "./compat";
 import { whiteOrBlack, contrastRatio } from "../utils";
 import { prefersReducedMotion } from "./DragPolicy";
+import { DEFAULT_NOTE_STYLE } from "./NoteDefaults";
 import type {
   DragCancelReason,
   DragGesture,
@@ -53,12 +54,18 @@ interface GovernedDrag {
   /** The policy refused the drag; the note stays put until release. */
   refused: boolean;
   frame: number;
+  /** The animation frame of the edge pan in progress, if the note is held near an edge. */
+  pan: number;
   last: { point: WorldPoint; gesture: DragGesture } | null;
   stopListening: () => void;
 }
 
 /** CSS pixels the pointer must travel before a press on a governed note becomes a drag. */
 const GOVERNED_DRAG_THRESHOLD = 4;
+/** A held governed note this close (CSS pixels) to an edge of the visible canvas pans the canvas that way. */
+const EDGE_PAN_ZONE = 56;
+/** How fast the canvas pans, in CSS pixels a second, with the pointer at the very edge. */
+const EDGE_PAN_SPEED = 900;
 
 const plugDirections = ["top", "right", "bottom", "left"] as const;
 type PlugDirection = typeof plugDirections[number];
@@ -388,15 +395,15 @@ export class Node {
       width: 100,
       height: 60,
       text: "Node",
-      fontSize: 14,
-      fontFamily: "Arial, sans-serif",
-      fontColor: "#000000",
+      fontSize: DEFAULT_NOTE_STYLE.fontSize,
+      fontFamily: DEFAULT_NOTE_STYLE.fontFamily,
+      fontColor: DEFAULT_NOTE_STYLE.fontColor,
       textOpacity: 1,
       textXAlign: "center",
       textYAlign: "middle",
       backgroundColor: "#f0f0f0",
-      borderColor: "#cccccc",
-      borderWidth: 1,
+      borderColor: DEFAULT_NOTE_STYLE.borderColor,
+      borderWidth: DEFAULT_NOTE_STYLE.borderWidth,
       allowDrag: true,
       isLocked: false,
       shape: "rectangle",
@@ -1508,7 +1515,9 @@ export class Node {
     this.svgGroup.on("dragmove.node", (event: any) => {
       this.isDragging = true;
       if (this._governed) {
-        this.moveGovernedDrag(this._governed, event);
+        // The engine places a governed note from the pointer itself (see
+        // beginGovernedDrag); svg.draggable must not also move its children.
+        event.preventDefault?.();
         return;
       }
       const ptr = this.pointerFromDragEvent(event);
@@ -1680,6 +1689,16 @@ export class Node {
     const onPointerCancel = () => cancel("pointercancel");
     const onTouchCancel = () => cancel("touchcancel");
     const onBlur = () => cancel("blur");
+    // The pointer is followed here, from the browser's own move events, and not from
+    // svg.draggable's dragmove: that compares positions in the note's own frame,
+    // which the note following the pointer keeps changing, and so drops a move
+    // whenever two in a row cover the same distance. The note would then sit one
+    // step behind a pointer that has stopped (at an edge, to pan the canvas).
+    const onPointerMove = (e: Event) => {
+      if (this._governed) this.moveGovernedDrag(this._governed, e);
+    };
+    const moveEvent = pointerType === "touch" ? "touchmove" : "mousemove";
+    window.addEventListener(moveEvent, onPointerMove, true);
     window.addEventListener("keydown", onKey, true);
     window.addEventListener("blur", onBlur);
     // A finger reports cancellation as touchcancel; a mouse or pen as pointercancel.
@@ -1695,8 +1714,10 @@ export class Node {
       started: false,
       refused: false,
       frame: 0,
+      pan: 0,
       last: null,
       stopListening: () => {
+        window.removeEventListener(moveEvent, onPointerMove, true);
         window.removeEventListener("keydown", onKey, true);
         window.removeEventListener("blur", onBlur);
         window.removeEventListener("touchcancel", onTouchCancel, true);
@@ -1707,8 +1728,6 @@ export class Node {
   }
 
   private moveGovernedDrag(drag: GovernedDrag, event: any): void {
-    // The engine places the note; svg.draggable must not also move its children.
-    event.preventDefault?.();
     const ptr = this.pointerFromDragEvent(event);
     if (!ptr || drag.refused) return;
     const gesture: DragGesture = { clientX: ptr.x, clientY: ptr.y, pointerType: drag.pointerType };
@@ -1741,9 +1760,15 @@ export class Node {
       }
       if (this.svgGroup.node.style) this.svgGroup.node.style.cursor = "grabbing";
     }
+    this.followGovernedPointer(drag, gesture);
+    this.panWhileHeldNearEdge(drag);
+  }
+
+  /** Put the held note under the pointer and let the policy know where it is. */
+  private followGovernedPointer(drag: GovernedDrag, gesture: DragGesture): void {
     // World coordinates, so the note stays under the pointer through a pan or zoom
     // made while it is held.
-    const point = this.slate.clientToWorld(ptr);
+    const point = this.slate.clientToWorld({ x: gesture.clientX, y: gesture.clientY });
     this.options.x = drag.grabbed.x + (point.x - drag.startWorld.x);
     this.options.y = drag.grabbed.y + (point.y - drag.startWorld.y);
     this.applyPositionAndRotation();
@@ -1767,6 +1792,60 @@ export class Node {
   }
 
   /**
+   * How fast the canvas should pan (CSS pixels a second, each axis) for a note held
+   * at `gesture`: nothing in the middle of the visible canvas, faster the nearer the
+   * pointer is to an edge. An edge only pulls once the pointer has travelled toward
+   * it, so a note that starts beside an edge can be carried away from it in peace.
+   */
+  private edgePanVelocity(drag: GovernedDrag, gesture: DragGesture): { x: number; y: number } {
+    const rect = this.slate.element?.getBoundingClientRect?.();
+    if (!rect || typeof window === "undefined") return { x: 0, y: 0 };
+    const left = Math.max(rect.left, 0);
+    const top = Math.max(rect.top, 0);
+    const right = Math.min(rect.right, window.innerWidth || rect.right);
+    const bottom = Math.min(rect.bottom, window.innerHeight || rect.bottom);
+    const zone = Math.min(EDGE_PAN_ZONE, (right - left) / 4, (bottom - top) / 4);
+    if (!(zone > 0)) return { x: 0, y: 0 };
+    const pull = (distance: number) => {
+      if (distance >= zone) return 0;
+      const depth = Math.min(1, (zone - distance) / zone);
+      return depth * depth * EDGE_PAN_SPEED;
+    };
+    const dx = gesture.clientX - drag.startClient.x;
+    const dy = gesture.clientY - drag.startClient.y;
+    return {
+      x: (dx > 0 ? pull(right - gesture.clientX) : 0) - (dx < 0 ? pull(gesture.clientX - left) : 0),
+      y: (dy > 0 ? pull(bottom - gesture.clientY) : 0) - (dy < 0 ? pull(gesture.clientY - top) : 0),
+    };
+  }
+
+  /**
+   * While a governed note is held near an edge of the visible canvas, pan the canvas
+   * toward that edge so the note can be carried to a place that started off screen.
+   * The note stays under the pointer and the policy hears each step as a move.
+   */
+  private panWhileHeldNearEdge(drag: GovernedDrag): void {
+    if (drag.pan || !drag.started || !drag.last || typeof requestAnimationFrame === "undefined") return;
+    const resting = this.edgePanVelocity(drag, drag.last.gesture);
+    if (!resting.x && !resting.y) return;
+    let before = performance.now();
+    const step = () => {
+      drag.pan = 0;
+      if (this._governed !== drag || !drag.started || !drag.last || this._destroyed) return;
+      const now = performance.now();
+      const seconds = Math.min(64, now - before) / 1000;
+      before = now;
+      const velocity = this.edgePanVelocity(drag, drag.last.gesture);
+      if (!velocity.x && !velocity.y) return;
+      const zoom = this.slate.getZoom?.() || 1;
+      this.slate.panBy({ x: (velocity.x * seconds) / zoom, y: (velocity.y * seconds) / zoom });
+      this.followGovernedPointer(drag, drag.last.gesture);
+      drag.pan = requestAnimationFrame(step);
+    };
+    drag.pan = requestAnimationFrame(step);
+  }
+
+  /**
    * End a governed drag. With `release` the policy rules on the drop; without it
    * the drag was cancelled, which is a refusal. Either way nothing is broadcast:
    * the host persists what it accepted.
@@ -1781,6 +1860,8 @@ export class Node {
     drag.stopListening();
     if (drag.frame && typeof cancelAnimationFrame !== "undefined") cancelAnimationFrame(drag.frame);
     drag.frame = 0;
+    if (drag.pan && typeof cancelAnimationFrame !== "undefined") cancelAnimationFrame(drag.pan);
+    drag.pan = 0;
     this.preDragTransform = null;
     this.preDragPosition = null;
     this._dragStartPointer = null;
