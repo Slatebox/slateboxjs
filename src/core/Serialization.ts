@@ -101,6 +101,9 @@ export async function deserialize(
 
   // Loading is not a user action: suppress onSlateChanged emission for the
   // duration (v1's loadJSON never fired change packages per node)
+  // The note being typed into is replaced with all the others: the edit is
+  // taken now and opened again on its new copy once the load has finished.
+  const draft = preserve ? null : slate.takeInlineDraft?.() ?? null;
   slate.beginRemoteApply?.();
   try {
     // Packages from the room wait for this load: one applied to a slate that is
@@ -112,6 +115,7 @@ export async function deserialize(
   }
   // Replacing the notes also removed any that a host draws from its own state.
   if (!preserve) slate.notifyNotesReplaced?.();
+  if (draft) slate.resumeInlineDraft?.(draft);
 }
 
 async function deserializeInner(

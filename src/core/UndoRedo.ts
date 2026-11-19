@@ -6,6 +6,7 @@
  */
 
 import { serialize, deserialize, type SlateJSON } from "./Serialization";
+import { applyDelta, diffSlates } from "./SlateDelta";
 
 export interface UndoRedoOptions {
   enabled?: boolean;
@@ -174,39 +175,49 @@ export class UndoRedo {
   }
 
   /**
-   * Other people's changes were applied to the slate. Snapshots are whole
-   * slates, so an undo puts back everything as this person last recorded it:
-   * without this, undoing one's own latest step would also take away whatever
-   * the others did since that record was made.
-   *
-   * - After ordinary changes, the current record is brought up to date, so the
-   *   next step this person takes is undone back to a slate that still holds
-   *   the others' work.
-   * - After someone else replaced the whole slate (their undo or redo), every
-   *   earlier record describes a slate that no longer exists, and returning to
-   *   one would undo their undo and all work since. History starts again here.
+   * The slate as it is now, taken just before other people's changes are
+   * applied to it; pass it to {@link absorbRemote} once they have been. Null
+   * when this slate keeps no history.
    */
-  public absorbRemote(replaced: boolean = false): void {
-    if (!this.options.enabled || !this.slate) return;
-    if (replaced) {
-      if (this.debounceTimer) {
-        clearTimeout(this.debounceTimer);
-        this.debounceTimer = null;
-      }
-      this.gestureRecordDue = false;
-      this.undoStack = [];
-      this.redoStack = [];
-      this.takeSnapshot();
-      return;
-    }
-    // A change of this person's own is waiting to be recorded: that record will
-    // hold the others' changes too.
-    if (this.isRestoring || this.debounceTimer || this.gestureRecordDue || this.undoStack.length === 0) return;
+  public beforeRemote(): SlateJSON | null {
+    if (!this.options.enabled || !this.slate) return null;
     try {
-      this.undoStack[this.undoStack.length - 1] = serialize(this.slate);
+      return serialize(this.slate);
     } catch (e) {
-      /* the slate cannot be serialized right now: keep the record as it is */
+      return null;
     }
+  }
+
+  /**
+   * Other people's changes were applied to the slate (ordinary edits, or a
+   * whole-slate replacement from their undo or redo). Records are whole slates,
+   * so going back to one would put back the slate as this person recorded it and
+   * take away everything the others did since, however long ago this person's
+   * own step was. Their change is therefore carried into every record, undo and
+   * redo alike: an undo then takes back only this person's own step.
+   *
+   * @param before - the slate just before those changes (see {@link beforeRemote})
+   */
+  public absorbRemote(before?: SlateJSON | null): void {
+    if (!this.options.enabled || !this.slate) return;
+    let now: SlateJSON;
+    try {
+      now = serialize(this.slate);
+    } catch (e) {
+      return; /* the slate cannot be serialized right now: keep the records as they are */
+    }
+    if (before && typeof before === "object") {
+      const delta = diffSlates(before, now);
+      if (delta) {
+        this.undoStack = this.undoStack.map((record) => applyDelta(record, delta));
+        this.redoStack = this.redoStack.map((record) => applyDelta(record, delta));
+      }
+    }
+    // A change of this person's own is waiting to be recorded: that record is
+    // taken from the slate and holds the others' changes already.
+    if (this.isRestoring || this.debounceTimer || this.gestureRecordDue || this.undoStack.length === 0) return;
+    // The current record is the slate as it is now.
+    this.undoStack[this.undoStack.length - 1] = now;
   }
 
   /** Check if undo is available */

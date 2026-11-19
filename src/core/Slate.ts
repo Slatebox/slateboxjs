@@ -11,6 +11,7 @@ import {
   type SlateJSON,
 } from "./Serialization";
 import { UndoRedo } from "./UndoRedo";
+import type { InlineDraft } from "./Editor";
 import { MultiSelection } from "./MultiSelection";
 import { Grid } from "./Grid";
 import { Keyboard } from "./Keyboard";
@@ -2473,6 +2474,35 @@ export class Slate {
     if (selectable.length !== this.selectedNodes.length) this.selectionChanged();
     this.selectedNodes = selectable;
     if (this.selectedNodes.length) this.updateSelectionResizeRotate();
+  }
+
+  /**
+   * Take the inline edit in progress, if any, before a load replaces every note
+   * (loadJSON, or an undo or redo, this person's or someone else's): the load
+   * destroys the note being edited and its editor with it. Give the result to
+   * {@link resumeInlineDraft} once the load has finished.
+   */
+  public takeInlineDraft(): { id: string; draft: InlineDraft } | null {
+    for (const node of this.nodes?.allNodes ?? []) {
+      const draft = (node as any).editor?.draft?.();
+      if (draft) return { id: node.id, draft };
+    }
+    return null;
+  }
+
+  /**
+   * Open the edit taken by {@link takeInlineDraft} again on the note's new copy,
+   * with the text typed so far and the caret where it was, so the person goes on
+   * typing as if nothing had happened. Nothing is opened when the note is gone,
+   * or when an edit is already open elsewhere.
+   */
+  public resumeInlineDraft(saved: { id: string; draft: InlineDraft } | null): boolean {
+    if (!saved || this._destroyed) return false;
+    const node: any = this.nodes?.one?.(saved.id);
+    if (!node?.editor || node.editor.isInlineEditing?.()) return false;
+    if (this.nodes.allNodes.some((n: any) => n.editor?.isInlineEditing?.())) return false;
+    const { text, selection, returnFocus } = saved.draft;
+    return node.editor.startInline({ text, selection: selection ?? { start: text.length, end: text.length }, returnFocus, preventScroll: true }) === true;
   }
 
   /** Tell each policy that loadJSON / undo / redo replaced the slate's notes. */

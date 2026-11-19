@@ -460,10 +460,11 @@ export class Collab {
     const latest = this.latestLabels(labelIds);
     const documentChanged = changes.some(({ pkg }) => !VIEW_ONLY.has(pkg.type));
     this.run(() => {
+      const before = documentChanged ? this.beforeRemote() : null;
       const pending = this.applyInOrder(changes, latest);
       if (!documentChanged) return pending;
-      if (pending) return pending.then(() => this.afterRemote(false));
-      this.afterRemote(false);
+      if (pending) return pending.then(() => this.afterRemote(before));
+      this.afterRemote(before);
     });
   }
 
@@ -538,6 +539,7 @@ export class Collab {
     if (known && compareStamps(replacement.stamp, known) <= 0) return;
     // This client's own undo is being superseded by someone else's later one.
     const lostOwn = !!this.baseline && this.baseline.c === this.clientID && this.clientID !== 0;
+    const before = this.beforeRemote();
     this.adoptBaseline(replacement.stamp);
     try {
       await this.handleRemotePackage(replacement.pkg);
@@ -558,7 +560,7 @@ export class Collab {
     });
     rest.sort(byStamp);
     await this.applyInOrder(rest, this.latestLabels(labelIds));
-    this.afterRemote(true);
+    this.afterRemote(before);
     // The host stored this client's own undo a moment ago, and that save may
     // land after the other person's. Hand it the slate again, as it now is, so
     // the stored document ends on what everyone sees.
@@ -591,14 +593,23 @@ export class Collab {
     return this.applying ?? Promise.resolve();
   }
 
+  /** The slate just before packages from the room are applied, for the undo history (see afterRemote). */
+  private beforeRemote(): unknown {
+    try {
+      return (this.slate as any)?.undoRedo?.beforeRemote?.() ?? null;
+    } catch (error) {
+      return null;
+    }
+  }
+
   /**
    * Packages from the room have been applied. The person's undo history takes
    * them in, so a later undo of their own work does not also take away what
-   * other people did in the meantime (see UndoRedo.absorbRemote).
+   * other people did, before or after that work (see UndoRedo.absorbRemote).
    */
-  private afterRemote(replaced: boolean): void {
+  private afterRemote(before: unknown): void {
     try {
-      (this.slate as any)?.undoRedo?.absorbRemote?.(replaced);
+      (this.slate as any)?.undoRedo?.absorbRemote?.(before);
     } catch (error) {
       console.warn("COLLAB_DEBUG: Undo history could not take in the room's changes:", error);
     }

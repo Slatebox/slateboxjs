@@ -607,3 +607,105 @@ test('after a connector is dragged from one note onto another, typing goes to th
     await author.context.close()
   }
 })
+
+// ─── Undo with other people on the slate: one's own steps only, and nobody's work is lost ─────────
+
+test('undo takes back only one\'s own step: a note someone else added after it stays, for everyone', async ({ browser }) => {
+  test.setTimeout(150_000)
+  const room = 'undo-replay-seen-' + Math.random().toString(36).slice(2)
+  const store: Store = { json: null, saves: 0 }
+  const a = await open(browser, room, 'A', store)
+  const b = await open(browser, room, 'B', store)
+  try {
+    await addNote(a.page, 'Alpha', 150, 150)
+    await expect.poll(async () => names(await held(b.page))).toContain('Alpha')
+    await addNote(b.page, 'From B', 650, 520)
+    await expect.poll(async () => names(await held(a.page))).toContain('From B')
+    await a.page.waitForTimeout(800)
+
+    await undo(a.page) // A takes back Alpha, A's last step
+    await expect.poll(async () => names(await held(a.page))).toEqual(['From B', 'Welcome!'])
+    await settle(a.page)
+    const seen = await held(a.page)
+    expect(await held(b.page), 'B holds what A holds').toEqual(seen)
+    expect(await drawn(b.page)).toEqual(seen.notes)
+    await joinsAndSees(browser, room, store, seen, 'after A undid its own step')
+
+    // And redo brings Alpha back beside B's note.
+    await redo(a.page)
+    await expect.poll(async () => names(await held(a.page))).toEqual(['Alpha', 'From B', 'Welcome!'])
+    await settle(a.page)
+    expect(await held(b.page)).toEqual(await held(a.page))
+    expect(a.errors).toEqual([])
+    expect(b.errors).toEqual([])
+  } finally {
+    await Promise.all([a, b].map(client => client.context.close()))
+  }
+})
+
+test('after someone else undoes, a person can still undo and redo their own last step', async ({ browser }) => {
+  test.setTimeout(150_000)
+  const room = 'undo-replay-history-' + Math.random().toString(36).slice(2)
+  const store: Store = { json: null, saves: 0 }
+  const a = await open(browser, room, 'A', store)
+  const b = await open(browser, room, 'B', store)
+  try {
+    await addNote(b.page, 'Mine B', 150, 520)
+    await expect.poll(async () => names(await held(a.page))).toContain('Mine B')
+    await addNote(a.page, 'Mine A', 150, 150)
+    await expect.poll(async () => names(await held(b.page))).toContain('Mine A')
+    await a.page.waitForTimeout(800)
+
+    await undo(a.page) // A takes back Mine A
+    await expect.poll(async () => names(await held(b.page))).toEqual(['Mine B', 'Welcome!'])
+    await settle(b.page)
+    expect(await b.page.evaluate(() => (window as any).slate.undoRedo.canUndo()), 'B still has a step to undo').toBe(true)
+
+    await undo(b.page) // B takes back Mine B
+    await expect.poll(async () => names(await held(b.page))).toEqual(['Welcome!'])
+    await settle(b.page)
+    expect(await held(a.page)).toEqual(await held(b.page))
+    await joinsAndSees(browser, room, store, await held(b.page), 'after both undid their own step')
+
+    await redo(b.page) // Mine B comes back; A's undone note does not
+    await expect.poll(async () => names(await held(b.page))).toEqual(['Mine B', 'Welcome!'])
+    await settle(b.page)
+    expect(await held(a.page)).toEqual(await held(b.page))
+    expect(a.errors).toEqual([])
+    expect(b.errors).toEqual([])
+  } finally {
+    await Promise.all([a, b].map(client => client.context.close()))
+  }
+})
+
+test('a name half typed when someone else undoes stays in the editor, and is kept when finished', async ({ browser }) => {
+  test.setTimeout(150_000)
+  const room = 'undo-replay-typing-' + Math.random().toString(36).slice(2)
+  const store: Store = { json: null, saves: 0 }
+  const a = await open(browser, room, 'A', store)
+  const b = await open(browser, room, 'B', store)
+  try {
+    await addNote(a.page, 'Alpha', 150, 150)
+    await addNote(a.page, 'Beta', 150, 520)
+    await expect.poll(async () => names(await held(b.page))).toEqual(['Alpha', 'Beta', 'Welcome!'])
+    await select(b.page, 'Alpha')
+    await b.page.keyboard.type('Ren') // typing on a selected note opens its editor, caret at the end
+    await b.page.locator('.sb-inline-editor').waitFor({ timeout: 10_000 })
+
+    await undo(a.page) // removes Beta while B is typing on Alpha
+    await expect.poll(async () => names(await held(b.page))).toEqual(['Alpha', 'Welcome!'])
+    await expect(b.page.locator('.sb-inline-editor'), 'B\'s editor is open again').toHaveCount(1)
+    await expect(b.page.locator('.sb-inline-editor')).toHaveText('AlphaRen')
+
+    await b.page.keyboard.type('amed')
+    await b.page.keyboard.press('Enter')
+    await expect.poll(async () => names(await held(b.page))).toEqual(['AlphaRenamed', 'Welcome!'])
+    await expect.poll(async () => names(await held(a.page))).toEqual(['AlphaRenamed', 'Welcome!'])
+    await settle(b.page)
+    await joinsAndSees(browser, room, store, await held(a.page), 'after B finished the name');
+    expect(a.errors).toEqual([])
+    expect(b.errors).toEqual([])
+  } finally {
+    await Promise.all([a, b].map(client => client.context.close()))
+  }
+})

@@ -24,6 +24,13 @@ export interface InlineEditOptions {
   /** Focus without letting the browser scroll (the caller has already put the note in view). */
   preventScroll?: boolean;
   /**
+   * The editor's starting text, in place of the note's own text (and `insert`): a
+   * draft carried across a load that replaced the note (see {@link draft}).
+   */
+  text?: string;
+  /** Where the caret or selection goes, as offsets into the text. Overrides `caret`. */
+  selection?: { start: number; end: number };
+  /**
    * Whether Enter/Escape hand keyboard focus back to the note. Defaults to true only
    * when the note itself had focus as the edit opened, so pointer edits leave focus
    * where it was.
@@ -31,10 +38,19 @@ export interface InlineEditOptions {
   returnFocus?: boolean;
 }
 
+/** An inline edit in progress: what has been typed so far and where the caret is. */
+export interface InlineDraft {
+  text: string;
+  selection: { start: number; end: number } | null;
+  returnFocus: boolean;
+}
+
 export class Editor {
   private node: Node;
   private _inlineEditing = false;
   private _inlineFO: SVGForeignObjectElement | null = null;
+  private _inlineDiv: HTMLDivElement | null = null;
+  private _returnFocus = false;
 
   constructor(node: Node) {
     this.node = node;
@@ -49,6 +65,32 @@ export class Editor {
   /** Whether an inline (on-canvas) edit is currently active. */
   public isInlineEditing(): boolean {
     return this._inlineEditing;
+  }
+
+  /**
+   * The edit in progress, or null. A load that replaces the slate's notes (an
+   * undo or redo by someone else on the slate) destroys this note and its open
+   * editor; the slate takes the draft first and opens it again on the note's new
+   * copy (Slate.takeInlineDraft), so what the person was typing is not lost.
+   */
+  public draft(): InlineDraft | null {
+    const div = this._inlineDiv;
+    if (!this._inlineEditing || !div) return null;
+    let selection: InlineDraft["selection"] = null;
+    try {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount && div.contains(sel.anchorNode)) {
+        const range = sel.getRangeAt(0);
+        const before = range.cloneRange();
+        before.selectNodeContents(div);
+        before.setEnd(range.startContainer, range.startOffset);
+        const start = before.toString().length;
+        selection = { start, end: start + range.toString().length };
+      }
+    } catch {
+      /* no selection to keep */
+    }
+    return { text: (div.innerText || div.textContent || "").replace(/\n+$/, ""), selection, returnFocus: this._returnFocus };
   }
 
   /**
@@ -89,7 +131,7 @@ export class Editor {
     const div = document.createElement("div");
     div.setAttribute("contenteditable", "true");
     div.className = "sb-inline-editor";
-    div.textContent = (node.options.text || "") + (options.insert ?? "");
+    div.textContent = options.text ?? (node.options.text || "") + (options.insert ?? "");
     div.style.cssText = [
       `width:${w}px`,
       `height:${h}px`,
@@ -111,6 +153,8 @@ export class Editor {
     fo.appendChild(div);
     group.appendChild(fo);
     this._inlineFO = fo;
+    this._inlineDiv = div;
+    this._returnFocus = returnFocus;
     this._inlineEditing = true;
     // Hide the rendered SVG text while the editor box is showing.
     (node.textElement as any)?.hide?.();
@@ -128,6 +172,7 @@ export class Editor {
         /* already gone */
       }
       this._inlineFO = null;
+      this._inlineDiv = null;
       (node.textElement as any)?.show?.();
       if (refocusNote) {
         try {
@@ -217,7 +262,14 @@ export class Editor {
         div.focus(options.preventScroll ? { preventScroll: true } : undefined);
         const range = document.createRange();
         range.selectNodeContents(div);
-        if (options.caret === "end") range.collapse(false);
+        const text = div.firstChild;
+        if (options.selection && text && text.nodeType === 3) {
+          const length = (text.textContent || "").length;
+          range.setStart(text, Math.min(options.selection.start, length));
+          range.setEnd(text, Math.min(Math.max(options.selection.end, options.selection.start), length));
+        } else if (options.selection) {
+          range.collapse(false);
+        } else if (options.caret === "end") range.collapse(false);
         const sel = window.getSelection();
         sel?.removeAllRanges();
         sel?.addRange(range);
@@ -243,6 +295,7 @@ export class Editor {
       /* noop */
     }
     this._inlineFO = null;
+    this._inlineDiv = null;
     (this.node?.textElement as any)?.show?.();
   }
 

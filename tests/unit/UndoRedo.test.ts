@@ -162,18 +162,63 @@ describe("UndoRedo", () => {
       expect(ur.canUndo()).toBe(true);
     });
 
-    it("someone else's undo starts this person's history again", async () => {
+    // A note as the slate holds it; serialize() reads only these fields here.
+    const note = (id: string, text: string) => ({ options: { id, text, x: 0, y: 0 } });
+    const texts = (record: any) => record.nodes.map((n: any) => n.options.text).sort();
+    const restoredBy = () => JSON.parse(mockSlate.broadcast.mock.calls.at(-1)[1].snapshot);
+
+    it("undoing one's own step keeps a note someone else added after that step", async () => {
       const ur = new UndoRedo(mockSlate);
+      mockSlate.nodes.allNodes = [note("w", "Welcome")];
       ur.snap(true);
+      mockSlate.nodes.allNodes = [note("w", "Welcome"), note("a", "Alpha")]; // mine
       ur.snap(true);
+      // Someone else adds a note; this person sees it.
+      const before = ur.beforeRemote();
+      mockSlate.nodes.allNodes = [...mockSlate.nodes.allNodes, note("b", "FromB")];
+      ur.absorbRemote(before);
+
       ur.undo();
       await vi.advanceTimersByTimeAsync(0);
-      expect(ur.canRedo()).toBe(true);
-      ur.absorbRemote(true);
-      expect(ur.canUndo()).toBe(false);
-      expect(ur.canRedo()).toBe(false);
+      expect(texts(restoredBy())).toEqual(["FromB", "Welcome"]);
+    });
+
+    it("someone else's undo keeps this person's history, carried onto the slate it left", async () => {
+      const ur = new UndoRedo(mockSlate);
+      mockSlate.nodes.allNodes = [note("w", "Welcome")];
       ur.snap(true);
+      mockSlate.nodes.allNodes = [note("w", "Welcome"), note("b", "MineB")]; // mine
+      ur.snap(true);
+      // Someone else adds MineA, then undoes it (their whole-slate replacement).
+      let before = ur.beforeRemote();
+      mockSlate.nodes.allNodes = [...mockSlate.nodes.allNodes, note("a", "MineA")];
+      ur.absorbRemote(before);
+      before = ur.beforeRemote();
+      mockSlate.nodes.allNodes = [note("w", "Welcome"), note("b", "MineB")];
+      ur.absorbRemote(before);
+
       expect(ur.canUndo()).toBe(true);
+      ur.undo();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(texts(restoredBy())).toEqual(["Welcome"]);
+      // And redo brings back this person's note, not the other person's undone one.
+      ur.redo();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(texts(restoredBy())).toEqual(["MineB", "Welcome"]);
+    });
+
+    it("someone else's rename reaches every record, so no undo of one's own puts the old name back", async () => {
+      const ur = new UndoRedo(mockSlate);
+      mockSlate.nodes.allNodes = [note("w", "Welcome")];
+      ur.snap(true);
+      mockSlate.nodes.allNodes = [note("w", "Welcome"), note("a", "Alpha")];
+      ur.snap(true);
+      const before = ur.beforeRemote();
+      mockSlate.nodes.allNodes = [note("w", "Renamed by B"), note("a", "Alpha")];
+      ur.absorbRemote(before);
+      ur.undo();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(texts(restoredBy())).toEqual(["Renamed by B"]);
     });
   });
 

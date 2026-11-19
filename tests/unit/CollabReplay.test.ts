@@ -14,7 +14,8 @@ function slate(options: Record<string, any> = {}) {
   return {
     options: { id: "slate-1", events: {}, ...options },
     emitSlateChange: vi.fn(),
-    undoRedo: { absorbRemote: vi.fn() },
+    // The undo history is handed the slate as it was before the room's packages, then told they were applied.
+    undoRedo: { beforeRemote: vi.fn(() => "the slate before"), absorbRemote: vi.fn() },
   } as any;
 }
 
@@ -145,7 +146,7 @@ describe("replaying a room", () => {
     drawn();
     await vi.advanceTimersByTimeAsync(0);
     expect(joiner.types()).toEqual(["onNodeAdded", "onNodeTextChanged"]);
-    expect(host.undoRedo.absorbRemote).toHaveBeenCalledWith(false);
+    expect(host.undoRedo.absorbRemote).toHaveBeenCalledWith("the slate before");
   });
 
   describe("after an undo", () => {
@@ -163,7 +164,11 @@ describe("replaying a room", () => {
       joiner.sync();
       await vi.advanceTimersByTimeAsync(0);
       expect(joiner.types()).toEqual(["onSlateReplaced", "onNodesMove:after the undo"]);
-      expect(joiner.host.undoRedo.absorbRemote).toHaveBeenLastCalledWith(true);
+      expect(joiner.host.undoRedo.absorbRemote).toHaveBeenLastCalledWith("the slate before");
+      // Taken before the replacement was applied, not after.
+      expect(joiner.host.undoRedo.beforeRemote.mock.invocationCallOrder[0]).toBeLessThan(
+        (joiner.collab as any).handleRemotePackage.mock.invocationCallOrder[0]
+      );
     });
 
     it("the author's slate remembers which replacement it holds, for the document it stores next", () => {
