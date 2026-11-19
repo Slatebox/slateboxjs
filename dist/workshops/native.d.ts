@@ -10,7 +10,7 @@
  * Plain JavaScript, no React. The only thing it asks of the engine is the drag
  * policy in core/DragPolicy.ts.
  */
-import { type Workshop } from './model';
+import { type Workshop, type WorkshopBoardLayout, type WorkshopNoteStyle } from './model';
 /** What a person changed. A move names the card and its new lane; a rename names the lane or card and its new label. */
 export interface WorkshopChangeEvent {
     cardId?: string;
@@ -32,6 +32,12 @@ export interface WorkshopRefusalEvent {
     };
     reason: string;
 }
+/** The one workshop note that is selected: a card or a lane. Null when the selection is anything else. */
+export type WorkshopSelection = {
+    cardId: string;
+} | {
+    laneId: string;
+} | null;
 /**
  * Chooses the board a pointer position means while a card is held. Called once as
  * the drag begins with the board, the card and where on the card it was grabbed;
@@ -62,6 +68,16 @@ export interface AttachWorkshopOptions {
     };
     /** Replace how a pointer position picks among the legal boards (see dragologyCandidates). */
     chooseCandidate?: WorkshopCandidateChooser;
+    /** Wrap the lanes into rows, for a host too narrow for all of them side by side. Change it later with setLayout. */
+    layout?: WorkshopBoardLayout;
+    /** Draw lanes and cards in the host's note style. What is left out is what an ordinary engine note gets. */
+    style?: WorkshopNoteStyle;
+    /**
+     * The selection came to rest on one card or one lane of this workshop, moved from
+     * one to another, or left them (null): for a host that talks about what is
+     * selected. Also called with null when the workshop is destroyed with one selected.
+     */
+    onSelect?: (selection: WorkshopSelection) => void;
 }
 export interface AttachedWorkshop {
     /** Redraw from a new model, moving only what changed. A drag in progress is cancelled first. */
@@ -75,6 +91,12 @@ export interface AttachedWorkshop {
      * for a move the host itself had to turn down, such as a save that lost a race.
      */
     refuse(laneId: string, reason: string): void;
+    /**
+     * Arrange the lanes differently (a phone turned on its side, a pane opened beside
+     * the canvas). The same notes glide to their new places; a drag in progress is
+     * cancelled first.
+     */
+    setLayout(layout: WorkshopBoardLayout): void;
     /** Remove the workshop's notes and its policy. Every other note on the slate is left as it was. */
     destroy(): void;
     /** The committed model. */
@@ -83,6 +105,15 @@ export interface AttachedWorkshop {
     readonly origin: {
         x: number;
         y: number;
+    };
+    /** The layout in use. */
+    readonly layout: WorkshopBoardLayout;
+    /** The box the committed board fills in the current layout, in world units (for slate.fitToWidth). */
+    readonly bounds: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
     };
     /** Resolves once the artwork for the current model is on the slate. */
     whenDrawn(): Promise<void>;

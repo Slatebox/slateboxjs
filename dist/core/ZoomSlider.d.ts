@@ -15,7 +15,7 @@ export declare class ZoomSlider {
     private container;
     private slider;
     private label;
-    private _intervalId;
+    private _viewObserver;
     constructor(slate: any, options?: ZoomSliderOptions);
     /** Show the zoom slider */
     show(): void;

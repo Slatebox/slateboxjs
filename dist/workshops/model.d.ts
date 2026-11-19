@@ -123,10 +123,41 @@ export declare function addWorkshopBranch(board: Workshop, fromStationId: string
     image?: StationImage;
 }): Workshop;
 export declare const nightTransfer: Workshop;
+/** How the native artwork arranges a board's lanes. */
+export interface WorkshopBoardLayout {
+    /**
+     * How many lanes sit side by side before the next lane starts a new row. Leave it
+     * out for every lane in one row. A narrow host passes 1 or 2 so each lane stays
+     * wide enough to read. A map ignores it: its stations stay where they were authored.
+     */
+    lanesPerRow?: number;
+}
+/**
+ * How the native artwork's notes are drawn, so they match the host's ordinary
+ * notes. Anything left out is what an ordinary engine note gets (DEFAULT_NOTE_STYLE).
+ * Sizes are world units: CSS pixels at 100% zoom.
+ */
+export interface WorkshopNoteStyle {
+    /** Type family of every lane, caption and card. */
+    fontFamily?: string;
+    /** Card text. A label too long for its card at this size is set smaller, never below 11. */
+    fontSize?: number;
+    /** Lane names. Defaults to two more than the card text. */
+    laneFontSize?: number;
+    /** The caption under each lane name. Defaults to one less than the card text. */
+    captionFontSize?: number;
+    /** Text of lanes, captions and cards. */
+    textColor?: string;
+    /** Outline of lane headers and cards. */
+    borderColor?: string;
+    borderWidth?: number;
+    /** Corner radius of lane headers and cards; 0 is a square-cornered note. */
+    cornerRadius?: number;
+}
 export interface WorkshopArtworkOptions {
     /**
-     * Draw for a live slate instead of a presentation: rounded notes in the canvas's
-     * own type, a `caption-<lane>` line under each lane name, and a `column-<lane>`
+     * Draw for a live slate instead of a presentation: notes in the canvas's own
+     * type, a `caption-<lane>` line under each lane name, and a `column-<lane>`
      * shape behind each lane. Lane and card notes keep their `lane-<id>` and
      * `card-<id>` names.
      */
@@ -137,10 +168,15 @@ export interface WorkshopArtworkOptions {
         y: number;
     };
     /**
-     * Draw each lane column at least this many cards tall. A board keeps its shape
-     * (and its drop zones) while a held card previews a board with shorter lanes.
+     * Draw each lane column at least this many cards tall: one number for every
+     * lane, or one per lane in lane order. A board keeps its shape (and its drop
+     * zones) while a held card previews a board with shorter lanes.
      */
-    rows?: number;
+    rows?: number | number[];
+    /** Native artwork only: wrap the lanes into rows. */
+    layout?: WorkshopBoardLayout;
+    /** Native artwork only: draw the notes in the host's note style. */
+    style?: WorkshopNoteStyle;
 }
 /** The names of the notes workshopToSlate draws for a lane or a card. */
 export declare const workshopNodeIds: {
@@ -149,6 +185,26 @@ export declare const workshopNodeIds: {
     image: (id: string) => string;
     caption: (id: string) => string;
     column: (id: string) => string;
+};
+/** One lane's place in the native artwork: its column box from the artwork's origin, and its cell in the grid of lanes. */
+export interface WorkshopLanePlace {
+    laneId: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    column: number;
+    row: number;
+}
+/**
+ * Where the native artwork puts each lane, in lane order, and how large the whole
+ * board is. The same arithmetic workshopToSlate({ native: true }) draws with, for a
+ * host that fits the board to its screen or needs to know which lane is above which.
+ */
+export declare function workshopLanePlaces(input: Workshop, options?: Pick<WorkshopArtworkOptions, 'layout' | 'rows'>): {
+    places: WorkshopLanePlace[];
+    width: number;
+    height: number;
 };
 /**
  * Draw a workshop as slate notes. With no options this is the presentation artwork
@@ -159,7 +215,7 @@ export declare function workshopToSlate(input: Workshop, options?: WorkshopArtwo
 export declare const industrialWorkshop: Workshop;
 export * from './moonGallery';
 export * from './darkroom/model';
-export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent } from './native';
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection } from './native';
 export type StartupExperience = {
     version: 1;
     kind: 'customer-interviews' | 'experiment-budget';

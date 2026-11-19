@@ -16,6 +16,12 @@ export declare class Presentation {
     zoomLevel: number;
     constructor(slate: any);
     /**
+     * The notes a presentation may stop at. Decoration a host draws behind or beside
+     * its own notes (a drag policy's `canSelect: false`: a workshop's lane columns and
+     * captions) is scenery, never a stop.
+     */
+    private stops;
+    /**
      * Extract presentation layout from current nodes.
      * Orders nodes by their _presentationIndex or by position (top-to-bottom, left-to-right).
      */

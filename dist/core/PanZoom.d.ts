@@ -87,6 +87,19 @@ export declare class PanZoom {
     resetZoom(): void;
     resetPan(): void;
     fit(): void;
+    /**
+     * Show a region of the world at the largest scale at which its whole width is
+     * visible, up to `maxZoom` (100% unless the host allows more, as a phone does to
+     * fill its width with one lane), with `padding` world units of room at each side.
+     * A region shorter than the canvas is centred in it; a taller one starts at the
+     * top and the rest is reached by panning.
+     */
+    fitWidth(region: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }, padding?: number, maxZoom?: number): void;
     center(): void;
     /** @returns Current zoom level (1 = 100%). */
     getZoom(): number;

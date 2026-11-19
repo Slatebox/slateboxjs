@@ -288,6 +288,21 @@ export declare class Node {
     /** The press that may become a governed drag. Nothing is asked of the policy yet. */
     private beginGovernedDrag;
     private moveGovernedDrag;
+    /** Put the held note under the pointer and let the policy know where it is. */
+    private followGovernedPointer;
+    /**
+     * How fast the canvas should pan (CSS pixels a second, each axis) for a note held
+     * at `gesture`: nothing in the middle of the visible canvas, faster the nearer the
+     * pointer is to an edge. An edge only pulls once the pointer has travelled toward
+     * it, so a note that starts beside an edge can be carried away from it in peace.
+     */
+    private edgePanVelocity;
+    /**
+     * While a governed note is held near an edge of the visible canvas, pan the canvas
+     * toward that edge so the note can be carried to a place that started off screen.
+     * The note stays under the pointer and the policy hears each step as a move.
+     */
+    private panWhileHeldNearEdge;
     /**
      * End a governed drag. With `release` the policy rules on the drop; without it
      * the drag was cancelled, which is a refusal. Either way nothing is broadcast:

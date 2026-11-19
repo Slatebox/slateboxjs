@@ -177,6 +177,8 @@ export declare class Slate {
     private _resizeObserver;
     /** Hosts that govern some notes (see DragPolicy.ts). Empty on an ordinary slate. */
     private _dragPolicies;
+    private _selectionListeners;
+    private _selectionNoticeQueued;
     /** >0 while a host is changing its own governed notes (see withPolicyAuthority). */
     private _policyAuthority;
     /** The governed note being dragged right now, if any. */
@@ -368,6 +370,21 @@ export declare class Slate {
     resetPan(): void;
     /** Zoom/pan to fit all nodes in the viewport. */
     fitToContent(): void;
+    /**
+     * Show a region of the world (a workshop's `bounds`, say) as large as its width
+     * allows, up to `maxZoom`. Taller than the canvas, it starts at the top and the
+     * rest is reached by panning: the fit for a board on a phone.
+     *
+     * @param region  world coordinates
+     * @param padding room left at each side, in world units
+     * @param maxZoom the largest scale to use (1 = 100%, the default)
+     */
+    fitToWidth(region: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }, padding?: number, maxZoom?: number): void;
     /** Pan to center all nodes in the viewport. */
     centerContent(): void;
     /** @returns Current zoom level (1 = 100%). */
@@ -452,6 +469,15 @@ export declare class Slate {
     private handleGroupRotate;
     /** Select a single node (convenience wrapper for selectNodes). */
     selectNode(node: Node): void;
+    /**
+     * Hear about changes to the selection. The listener is called with the notes now
+     * selected, once per turn of the event loop in which the selection changed (a
+     * click that replaces one selection with another is one call, not two). Returns a
+     * function that stops listening.
+     */
+    onSelectionChange(listener: (selected: Node[]) => void): () => void;
+    /** The selection changed; tell the listeners once the change has settled. */
+    private selectionChanged;
     /** Deselect a single node. */
     deselectNode(node: Node): void;
     /** Deselect all currently selected nodes. */
