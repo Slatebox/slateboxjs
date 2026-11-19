@@ -1590,6 +1590,11 @@ export class Node {
    */
   private settleAfterDrag(governed = false): void {
     {
+      // The selection as the press ended. The note's handles stay usable through
+      // a click (they are put away only once a drag moves), so the person can
+      // press one of them, and create and select a connected note, before this
+      // runs: a selection made since then is theirs and is not taken back.
+      const selectedAtRelease = this.slate.getSelectedNodes().slice();
       // Small delay to distinguish drag from click - reduced for better responsiveness
       this._dragEndTimeoutId = setTimeout(() => {
         if (this._destroyed) return;
@@ -1597,6 +1602,15 @@ export class Node {
         // model arrives, the workshop is detached). A removed note is not selected.
         if (governed && !this.isOnSlate()) return;
         this.isDragging = false;
+
+        const selectedNow = this.slate.getSelectedNodes();
+        const reselected =
+          selectedNow.length !== selectedAtRelease.length ||
+          selectedNow.some((node, i) => node !== selectedAtRelease[i]);
+        if (reselected && !selectedNow.includes(this)) {
+          this.slate.notifyNodeChanged(this);
+          return;
+        }
 
         // Ensure the dragged node remains selected after drag
         const isCurrentlySelected = this.slate
