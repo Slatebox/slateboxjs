@@ -43,6 +43,8 @@ test('review a release plan, preview a dependent move, undo it and present the c
     await expect(capacity).toContainText('4 / 9 points')
     await sendLaneEdit(page,'Move @invite to @friday')
     await page.reload()
+    await page.waitForFunction(id=>(window as any).Meteor?.userId()===id,ownerId)
+    await expect(laneChat(page)).toBeVisible({timeout:45000})
     await expect(capacity).toContainText('9 / 9 points')
     await page.getByRole('button', { name: 'Present', exact: true }).click()
     const presentation = page.getByRole('region', { name: 'Decision presentation' })
