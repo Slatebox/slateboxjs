@@ -1748,10 +1748,16 @@ export class Node {
     this.preDragPosition = null;
     this._dragStartPointer = null;
 
+    // The selection outline and handles come back once the note has come to rest,
+    // so they never sit where it was dropped while it glides to its place.
+    let rested = false;
     const rest = () => {
-      if (this._destroyed) return;
-      this.slate.notifyNodeChanged(this);
-      this.refreshSelectionDecorations();
+      if (rested || this._destroyed) return;
+      rested = true;
+      if (this.svgGroup?.node?.style && this._governanceApplied) {
+        this.svgGroup.node.style.cursor = "grab";
+      }
+      this.settleAfterDrag();
     };
     if (drag.started) {
       let verdict: DragVerdict = { accept: false };
@@ -1776,17 +1782,16 @@ export class Node {
         } else {
           this.position(drag.origin.x, drag.origin.y, rest, undefined, 180);
         }
+        // Should the glide be interrupted, the note must still stop being "dragged".
+        setTimeout(rest, 400);
       }
     } else {
       // A press that never became a drag leaves the note exactly where it was.
       this.options.x = drag.origin.x;
       this.options.y = drag.origin.y;
       this.applyPositionAndRotation();
+      rest();
     }
-    if (this.svgGroup?.node?.style && this._governanceApplied) {
-      this.svgGroup.node.style.cursor = "grab";
-    }
-    this.settleAfterDrag();
   }
 
   /**
