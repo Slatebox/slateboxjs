@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
-import { editObject } from './workshop-edit.shared'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -91,7 +90,10 @@ test('a joined editor returns from My Slates across devices as the live title an
     await expect.poll(() => editor.evaluate(() => (window as any).Meteor.user()?.emails?.[0]?.address)).toBe(email)
 
     const renamed = 'Evening harbor recording'
-    await editObject(owner, 'title', () => owner.getByLabel('Board title').fill(renamed))
+    const chat=owner.getByRole('complementary',{name:'Map conversation'})
+    await chat.getByRole('textbox').fill('Rename map to '+renamed)
+    await chat.getByRole('button',{name:'Send map message'}).click()
+    await chat.getByRole('button',{name:'Keep changes'}).click()
     await returning.goto(new URL('/login', origin).href)
     await returning.getByLabel('Email Address').fill(email)
     await returning.getByLabel(/^Password/i).fill(password)
@@ -114,7 +116,7 @@ test('a joined editor returns from My Slates across devices as the live title an
     await dismissWelcome(returning)
     await expect(returning.getByRole('heading', { name: renamed })).toBeVisible()
     await expect(returning.getByText('Hydrophone · On the boat', { exact: true })).toBeVisible()
-    await expect(returning.getByRole('button', { name: 'Edit an object' })).toHaveCount(0)
+    await expect(returning.getByRole('complementary',{name:'Map conversation'})).toHaveCount(0)
 
     await library(returning)
     await expect(reentry).toBeVisible()

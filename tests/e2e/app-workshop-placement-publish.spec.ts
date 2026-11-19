@@ -1,3 +1,4 @@
+import {previewLaneEdit,sendLaneEdit,laneChat} from './workshop-conversation.shared'
 import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
@@ -27,19 +28,7 @@ test('author a placement outcome, accept a second editor’s move and republish 
     const original = await getSlate(owner,key)
     slateId = original._id
     expect(original.creative.model.workshop.signals).toBeUndefined()
-    async function editChime() {
-      await owner.getByRole('button',{name:'Edit an object'}).click()
-      await owner.getByLabel('Object',{exact:true}).selectOption('card:chime')
-    }
-    await editChime()
-    const editor = owner.locator('.workshop-inspector')
-    await expect(editor.getByLabel('Object',{exact:true})).toHaveValue('card:chime')
-    await editor.getByRole('button',{name:'Add placement outcome'}).click()
-    await editor.getByLabel('Outcome name').fill('Broadcast')
-    await editor.getByLabel('Target lane').selectOption('air')
-    await editor.getByLabel('When the card is here').fill('The harbor chime is live.')
-    await editor.getByLabel('When the card is elsewhere').fill('The harbor chime is waiting.')
-    await editor.getByRole('button',{name:'Save changes'}).click()
+    await sendLaneEdit(owner,'Set outcome Broadcast for @chime in @air: The harbor chime is live. | The harbor chime is waiting.')
     await expect(report(owner)).toContainText('The harbor chime is waiting.')
     const publish = async (label: 'Publish' | 'Republish') => {
       await owner.getByRole('button',{name:'Publish presentation',exact:true}).click()
@@ -69,11 +58,10 @@ test('author a placement outcome, accept a second editor’s move and republish 
     expect(peerId).not.toBe(ownerId)
     await peer.goto(link.href)
     await dismissWelcome(peer)
-    await peer.getByText('Move a card by name',{exact:true}).click()
-    await peer.getByRole('combobox',{name:'Move Harbor chime'}).selectOption('air')
+    await previewLaneEdit(peer,'Move @chime to @air')
     await expect(report(peer)).toContainText('The harbor chime is live.')
     await expect(report(owner)).toContainText('The harbor chime is waiting.')
-    await peer.getByRole('button',{name:'Apply move'}).click()
+    await laneChat(peer).getByRole('button',{name:'Keep changes'}).click()
     await expect(report(owner)).toContainText('The harbor chime is live.')
     await owner.reload()
     await dismissWelcome(owner)
@@ -81,15 +69,9 @@ test('author a placement outcome, accept a second editor’s move and republish 
     await openAudience('The harbor chime is waiting.')
     await publish('Republish')
     await openAudience('The harbor chime is live.')
-    await editChime()
-    await editor.getByRole('button',{name:'Broadcast',exact:true}).click()
-    await editor.getByLabel('When the card is here').fill('The bell is live.')
-    await editor.getByRole('button',{name:'Save changes'}).click()
+    await sendLaneEdit(owner,'Set outcome Broadcast for @chime in @air: The bell is live. | The harbor chime is waiting.')
     await expect(report(owner)).toContainText('The bell is live.')
-    await editChime()
-    await editor.getByRole('button',{name:'Broadcast',exact:true}).click()
-    await editor.getByRole('button',{name:'Remove outcome'}).click()
-    await editor.getByRole('button',{name:'Save changes'}).click()
+    await sendLaneEdit(owner,'Remove outcome Broadcast from @chime')
     await expect(report(owner)).toHaveCount(0)
     await expect.poll(async()=> (await getSlate(owner,key)).creative.model.workshop.signals).toBeUndefined()
   } finally {

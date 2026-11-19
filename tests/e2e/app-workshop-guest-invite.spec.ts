@@ -123,7 +123,7 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
 
     const downgraded = await shareAs(owner, 'read')
     expect(downgraded.href).toBe(editLink.href)
-    await expect(editor.getByRole('button', { name: 'Edit an object' })).toHaveCount(0)
+    await expect(editor.getByRole('complementary',{name:'Map conversation'})).toHaveCount(0)
     await expect(editor.getByText(location, { exact: true })).toBeVisible()
 
     await owner.getByRole('button', { name: 'Share', exact: true }).click()
@@ -150,8 +150,7 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     await expect(editor.getByRole('heading', { name: model.title })).toHaveCount(0)
     await editor.goto(replacement.href)
     await dismissWelcome(editor)
-    await editor.getByRole('button', {name:'Map tools'}).click()
-    await expect(editor.getByRole('button', { name: 'Edit an object' })).toBeVisible()
+    await expect(editor.getByRole('complementary',{name:'Map conversation'})).toBeVisible()
     await expect(editor.getByText(location, { exact: true })).toBeVisible()
   } finally {
     try {

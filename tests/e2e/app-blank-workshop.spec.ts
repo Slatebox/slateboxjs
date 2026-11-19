@@ -1,3 +1,4 @@
+import {laneChat, sendLaneEdit, expectRejectedLaneEdit} from './workshop-conversation.shared'
 import { expect, test, type Page } from '@playwright/test'
 import type { Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
@@ -8,11 +9,7 @@ const button = (page: Page, name: string) => page.getByRole('button', { name, ex
 const report = (page: Page) => page.getByRole('region', { name: 'Placement outcomes', exact: true })
 
 async function addCard(page: Page, name: string) {
-  await button(page, 'Add card to Field recordings').click()
-  const dialog = page.getByRole('dialog', { name: 'Add card' })
-  await dialog.getByLabel('Card name').fill(name)
-  await dialog.getByRole('button', { name: 'Add card', exact: true }).click()
-  await expect(dialog).toHaveCount(0)
+  await sendLaneEdit(page, 'Add card ' + name + ' to Field recordings')
 }
 
 test('two editors build a blank workshop, fill a lane and present their saved choice', async ({ browser }) => {
@@ -38,20 +35,12 @@ test('two editors build a blank workshop, fill a lane and present their saved ch
       await expect(owner.locator('script[src*="/' + process.env.SLATEBOX_EXPECTED_APP_BUNDLE + '.js"]')).toHaveCount(1)
     }
 
-    await button(owner, 'Edit an object').click()
-    const firstLaneId = (await model()).lanes[0].id
-    const rename = owner.locator('.workshop-inspector')
-    await rename.getByLabel('Object', { exact: true }).selectOption('lane:' + firstLaneId)
-    await rename.getByLabel('Name', { exact: true }).fill('Field recordings')
-    await rename.getByRole('button', { name: 'Save changes' }).click()
-    await expect(button(owner, 'Add card to Field recordings')).toBeVisible()
-
-    await button(owner, 'Add lane').click()
-    const laneDialog = owner.getByRole('dialog', { name: 'Add lane' })
-    await laneDialog.getByLabel('Lane name').fill('Listening booth')
-    await laneDialog.getByLabel('Capacity').fill('1')
-    await laneDialog.getByRole('button', { name: 'Add lane', exact: true }).click()
-    await expect(laneDialog).toHaveCount(0)
+    await expect(owner.getByRole('region',{name:'Interactive workshop studio'}).getByRole('textbox')).toHaveCount(1)
+    await expect(laneChat(owner).getByRole('textbox')).toHaveCount(1)
+    await expect(button(owner,'Edit an object')).toHaveCount(0)
+    await sendLaneEdit(owner,'Rename lane Lane 1 to Field recordings')
+    await sendLaneEdit(owner,'Add lane Listening booth')
+    await sendLaneEdit(owner,'Set capacity of Listening booth to 1')
     await addCard(owner, 'Listen to the tide')
     const editLink = await shareAs(owner, 'edit')
     await peer.goto(editLink.href)
@@ -67,23 +56,12 @@ test('two editors build a blank workshop, fill a lane and present their saved ch
     const [source, , booth] = authored.lanes
     expect(booth).toMatchObject({ label: 'Listening booth', capacity: 1 })
     expect([first.laneId, second.laneId]).toEqual([source.id,source.id])
-    await button(owner, 'Edit an object').click()
-    const editor = owner.locator('.workshop-inspector')
-    await editor.getByLabel('Object', { exact: true }).selectOption('card:' + first.id)
-    await editor.getByRole('button', { name: 'Add placement outcome' }).click()
-    await editor.getByLabel('Outcome name').fill('Now playing')
-    await editor.getByLabel('Target lane').selectOption(booth.id)
-    await editor.getByLabel('When the card is here').fill('The tide recording is playing.')
-    await editor.getByLabel('When the card is elsewhere').fill('The tide recording is waiting.')
-    await editor.getByRole('button', { name: 'Save changes' }).click()
+    await sendLaneEdit(owner,'Set outcome Now playing for @'+first.id+' in @'+booth.id+': The tide recording is playing. | The tide recording is waiting.')
     await expect(report(peer)).toContainText('The tide recording is waiting.')
 
-    await peer.getByText('Move a card by name', { exact: true }).click()
-    await peer.getByLabel('Move ' + first.label, { exact: true }).selectOption(booth.id)
-    await button(peer, 'Apply move').click()
+    await sendLaneEdit(peer,'Move @'+first.id+' to @'+booth.id)
     await expect(report(owner)).toContainText('The tide recording is playing.')
-    const secondMove = peer.getByLabel('Move ' + second.label, { exact: true })
-    await expect(secondMove.locator('option[value="' + booth.id + '"]')).toHaveCount(0)
+    await expectRejectedLaneEdit(peer,'Move @'+second.id+' to @'+booth.id)
 
     // Attempt to place the second card directly on the already occupied slot.
     const secondCard = peer.locator('.workshop-drawing [data-workshop-card="' + second.id + '"]')
@@ -109,7 +87,7 @@ test('two editors build a blank workshop, fill a lane and present their saved ch
     await expectWorkshopSlide(owner, booth.label, [first.label], ['lane-' + booth.id,'card-' + first.id])
     await expect(report(owner)).toContainText('The tide recording is playing.')
     await button(owner, 'Back to board').click()
-    await expect(button(owner, 'Add lane')).toBeVisible()
+    await expect(laneChat(owner).getByRole('textbox')).toBeVisible()
   } finally {
     try {
       if (ownerId && slateId && await userId(owner) === ownerId) {

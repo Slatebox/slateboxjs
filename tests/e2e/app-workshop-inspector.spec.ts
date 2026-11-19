@@ -1,69 +1,47 @@
-import {expect,test,type Page} from '@playwright/test'
+import {expect,test} from '@playwright/test'
 import {encodeWorkshopFragment} from '../../src/workshops/model'
+
+import {dismissWelcome,getSlate,removeTestGuest,userId} from './workshop-guests.shared'
+import {laneChat,previewLaneEdit,sendLaneEdit} from './workshop-conversation.shared'
 
 const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 
-test('an open workshop inspector keeps a newer saved capacity from another editor tab', async ({page,context}) => {
-  test.skip(!['localhost','127.0.0.1','test.slatebox.com'].includes(new URL(origin).hostname),'Private synthetic documents on local or staging only.')
-  const model = {version:1 as const, title:'Museum loan case', lanes:[{id:'reserve',label:'Reserve'},{id:'case',label:'Loan case',capacity:2}],
-    cards:[{id:'shell',label:'Shell carving',laneId:'case'}]}
-  await page.goto(origin+'/new/workshop'+encodeWorkshopFragment(model))
-  await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
-  const notice=page.getByRole('button',{name:'Accept cookies'})
-  if (await notice.isVisible()) await notice.click()
-  const welcome=page.getByRole('dialog',{name:/welcome/i})
-  if (await welcome.isVisible()) await welcome.getByRole('button',{name:'OK'}).click()
-  const peer=await context.newPage()
-  await peer.goto(page.url())
-  async function edit(tab:Page,capacity:string) {
-    await tab.getByRole('button',{name:'Edit an object'}).click()
-    await tab.getByRole('combobox',{name:'Object',exact:true}).selectOption('lane:case')
-    await tab.getByRole('spinbutton',{name:'Capacity'}).fill(capacity)
-  }
-  await edit(page,'3'); await edit(peer,'4')
-  await peer.getByRole('button',{name:'Save changes'}).click()
-  await expect(page.locator('[data-creative-revision]')).toHaveAttribute('data-creative-revision','1')
-  await page.getByRole('button',{name:'Save changes'}).click()
-  await expect(page.getByRole('alert')).toContainText('A teammate changed this slate')
-  await page.reload()
-  await page.getByRole('button',{name:'Edit an object'}).click()
-  await page.getByRole('combobox',{name:'Object',exact:true}).selectOption('lane:case')
-  await expect(page.getByRole('spinbutton',{name:'Capacity'})).toHaveValue('4')
-  await expect(page.locator('[data-creative-revision]')).toHaveAttribute('data-creative-revision','1')
-})
-
-test('double-opening the same card preserves a stale inspector’s revision', async ({page,context}) => {
-  test.skip(!['localhost','127.0.0.1','test.slatebox.com'].includes(new URL(origin).hostname),'Disposable local or staging slate only.')
-  const source = {version:1 as const, title:'Bell rehearsal',lanes:[{id:'desk',label:'Desk'},{id:'air',label:'Air'}],
-    cards:[{id:'bell',label:'Original bell',laneId:'desk'}]}
-  let ownerId: string | null = null
-  try {
-    await page.goto(origin+'/new/workshop'+encodeWorkshopFragment(source))
-    await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
-    ownerId=await page.evaluate(()=>(window as any).Meteor.userId())
-    const second = await context.newPage()
-    await second.goto(page.url())
-    for(const tab of [page,second]){
-      const welcome=tab.getByRole('dialog',{name:/welcome/i}).getByRole('button',{name:'OK'})
-      await tab.addLocatorHandler(welcome,()=>welcome.click())
-      const cookies=tab.getByRole('button',{name:'Accept cookies'})
-      await tab.addLocatorHandler(cookies,()=>cookies.click())
-      await tab.locator('#choice-bell').dblclick()
-      await expect(tab.getByLabel('Object',{exact:true})).toHaveValue('card:bell')
+for (const kind of ['lane','card'] as const) {
+  test('a stale '+kind+' proposal preserves the peer’s newer edit after reselect and reload', async ({page,context}) => {
+    test.skip(!['localhost','127.0.0.1','test.slatebox.com'].includes(new URL(origin).hostname),'Disposable local or staging slate only.')
+    const source={version:1 as const,title:'Loan case rehearsal',lanes:[{id:'reserve',label:'Reserve'},{id:'case',label:'Case',capacity:2}],
+      cards:[{id:'bell',label:'Desk bell',laneId:'reserve'}]}
+    let ownerId:string|null=null
+    const peer=await context.newPage()
+    try {
+      await page.goto(origin+'/new/workshop'+encodeWorkshopFragment(source))
+      await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
+      await dismissWelcome(page)
+      ownerId=await userId(page)
+      expect(ownerId).toBeTruthy()
+      const key=new URL(page.url()).pathname.split('/').pop()!
+      await peer.goto(page.url())
+      await dismissWelcome(peer)
+      if(kind==='card') {
+        await page.locator('#choice-bell').click()
+        await expect(laneChat(page)).toContainText('Desk bell')
+      }
+      await previewLaneEdit(page,kind==='lane'?'Set capacity of @case to 3':'Rename card this to First draft')
+      await sendLaneEdit(peer,kind==='lane'?'Set capacity of @case to 4':'Rename card @bell to Harbor bell')
+      await expect(laneChat(page)).toContainText('A teammate changed the workshop.')
+      if(kind==='card') await page.locator('#choice-bell').click()
+      await expect(laneChat(page).getByRole('button',{name:'Keep changes'})).toBeDisabled()
+      await page.reload()
+      await dismissWelcome(page)
+      const saved=(await getSlate(page,key)).creative.model.workshop
+      expect(kind==='lane'?saved.lanes[1].capacity:saved.cards[0].label).toBe(kind==='lane'?4:'Harbor bell')
+    } finally {
+      await peer.close()
+      if(ownerId) {
+        await page.goto(origin+'/plans')
+        await page.waitForFunction(id=>(window as any).Meteor?.userId()===id,ownerId)
+        await removeTestGuest(page,ownerId)
+      }
     }
-    await page.locator('.workshop-inspector').getByLabel('Name',{exact:true}).fill('First draft')
-    await second.locator('.workshop-inspector').getByLabel('Name',{exact:true}).fill('Harbor bell')
-    await second.getByRole('button',{name:'Save changes'}).click()
-    await expect(page.locator('[data-creative-revision]')).toHaveAttribute('data-creative-revision','1')
-    await page.locator('#choice-bell').dblclick()
-    await page.getByRole('button',{name:'Save changes'}).click()
-    await expect(page.getByRole('alert')).toContainText('A teammate changed this slate')
-    await page.reload()
-    await expect(page.locator('#choice-bell')).toContainText('Harbor bell')
-  } finally {
-    if(ownerId) await page.evaluate(id=>{
-      const meteor=(window as any).Meteor
-      if(meteor.userId()===id&&meteor.user()?.isAnonymous) return meteor.callAsync('users.delete')
-    },ownerId)
-  }
-})
+  })
+}

@@ -15,3 +15,11 @@ export async function sendLaneEdit(page:Page, message:string) {
   await chat.getByRole('button',{name:'Keep changes'}).click()
   await expect(chat.getByRole('textbox')).toBeVisible()
 }
+
+export async function expectRejectedLaneEdit(page:Page,message:string) {
+  const chat=laneChat(page)
+  await chat.getByRole('textbox').fill(message)
+  await chat.getByRole('button',{name:'Send workshop message'}).click()
+  await expect(chat.getByRole('alert')).toContainText('unavailable')
+  await expect(chat.getByRole('button',{name:'Keep changes'})).toHaveCount(0)
+}

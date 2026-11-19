@@ -2,7 +2,7 @@ import { test, expect, type Page, type FrameLocator } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
-import { editObject } from './workshop-edit.shared'
+import {laneChat,sendLaneEdit,expectRejectedLaneEdit} from './workshop-conversation.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const workshop: Workshop = {
@@ -12,13 +12,9 @@ const workshop: Workshop = {
 }
 
 async function prepareDecision(owner: Page) {
-  await owner.getByText('Move a card by name', { exact: true }).click()
-  await owner.getByLabel('Move Shell carving', { exact: true }).selectOption('case')
-  await expect(owner.getByLabel('Move Copper coin').locator('option[value="case"]')).toHaveCount(0)
-  await owner.getByRole('button', { name: 'Presentation order' }).click()
-  await owner.getByRole('combobox', { name: 'Scene', exact: true }).selectOption('lane:case')
-  await owner.getByRole('combobox', { name: 'Presentation position' }).selectOption('1')
-  await owner.getByRole('button', { name: 'Save changes' }).click()
+  await sendLaneEdit(owner,'Move @shell to @case')
+  await expectRejectedLaneEdit(owner,'Move @coin to @case')
+  await sendLaneEdit(owner,'Present @case first')
   await expect(owner.locator('.workshop-inspector')).toHaveCount(0)
 }
 
@@ -127,7 +123,7 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
     await owner.bringToFront()
     await dialog.getByRole('button', {name:'Close',exact:true}).click()
     const privateLabel = 'Revised private carving'
-    await editObject(owner, 'card:shell', () => owner.getByRole('textbox', {name:'Name',exact:true}).fill(privateLabel))
+    await sendLaneEdit(owner, 'Rename card @shell to '+privateLabel)
     await expect(owner.locator('#choice-shell')).toContainText(privateLabel)
     await viewer.reload()
     await verifyPublishedScenes(viewer, viewer)
@@ -154,7 +150,7 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
     await expect(unavailable(embed)).toBeVisible()
     await owner.reload()
     await dismissWelcome(owner)
-    await expect(owner.getByRole('button', {name:'Edit an object'})).toBeVisible()
+    await expect(laneChat(owner)).toBeVisible()
     await expect(owner.locator('#choice-shell')).toContainText(privateLabel)
     const saved = await getSlate(owner, key)
     expect(saved.options.isPrivate).toBe(true)
