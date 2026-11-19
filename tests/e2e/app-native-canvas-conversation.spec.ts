@@ -1,4 +1,5 @@
-import {expect,test} from '@playwright/test'
+import {expect,test,type Locator} from '@playwright/test'
+import {dismissWelcome, removeTestGuest, shareAs, userId} from './workshop-guests.shared'
 
 const origin=process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 const writable=['localhost','127.0.0.1','test.slatebox.com'].includes(new URL(origin).hostname)
@@ -65,5 +66,77 @@ for(const width of [1360,390]) test('a '+width+'px native drawing gains a route 
       },{uid,key})).toBe(true)
     }
     await context.close()
+  }
+})
+
+test('a drawing converted to a workshop leaves both its view switch and guest invitation reachable',async({browser})=>{
+  test.skip(!writable,'Uses disposable guests on a local or staging deployment')
+  const context=await browser.newContext()
+  const owner=await context.newPage()
+  let ownerId:string|null=null
+  const reachable=async(control:Locator)=>{
+    await expect(control).toBeInViewport()
+    await expect.poll(()=>control.evaluate(el=>{
+      const r=el.getBoundingClientRect()
+      return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))
+    })).toBe(true)
+  }
+  try {
+    await owner.goto(origin+'/new')
+    await owner.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
+    await expect.poll(()=>userId(owner)).toBeTruthy()
+    ownerId=await userId(owner)
+    await dismissWelcome(owner)
+    const chat=owner.getByRole('complementary',{name:'Conversation with Slatebox'})
+    await chat.getByRole('textbox').fill('Make a workshop with Pitches, Record on Friday and Archive, limit Record on Friday to one card')
+    await chat.getByRole('button',{name:'Preview changes'}).click()
+    await chat.getByRole('button',{name:'Keep changes'}).click()
+    await expect(owner.getByRole('button',{name:'View drawing'})).toBeVisible()
+    const invite=await shareAs(owner,'edit')
+    for(const width of [320,390,1360]){
+      const phone=width<500
+      const peerContext=await browser.newContext({viewport:{width,height:844},hasTouch:phone})
+      const peer=await peerContext.newPage()
+      let peerId:string|null=null
+      try {
+        await peer.goto(invite.href)
+        const stamp=process.env.SLATEBOX_EXPECTED_APP_BUNDLE
+        if(stamp) await expect(peer.locator('script[src*="/'+stamp+'.js"]')).toHaveCount(1)
+        await dismissWelcome(peer)
+        const join=peer.getByRole('button',{name:'Join to edit',exact:true})
+        const drawing=peer.getByRole('button',{name:'View drawing',exact:true})
+        await reachable(drawing)
+        await reachable(join)
+        await drawing.focus()
+        await peer.keyboard.press('Tab')
+        await expect(join).toBeFocused()
+        expect(await userId(peer)).toBeNull()
+        if(phone) await join.tap()
+        else await peer.keyboard.press('Enter')
+        await expect.poll(()=>userId(peer)).toBeTruthy()
+        peerId=await userId(peer)
+        expect(peerId).not.toBe(ownerId)
+        await expect(peer.getByRole('complementary',{name:'Workshop conversation'})).toBeVisible()
+        await reachable(drawing)
+        if(phone) await drawing.tap()
+        else await drawing.press('Enter')
+        await expect(peer).toHaveURL(/view=drawing/)
+        await expect(peer.locator('#slateCanvas [data-node-id]').first()).toBeVisible()
+        const workshop=peer.getByRole('button',{name:'Open workshop',exact:true})
+        await reachable(workshop)
+        if(width===390) await workshop.tap()
+        else await workshop.press('Enter')
+        await expect(peer).toHaveURL(invite.href)
+        await expect(drawing).toBeVisible()
+        await expect(join).toHaveCount(0)
+        expect(await userId(peer)).toBe(peerId)
+      } finally {
+        try{await removeTestGuest(peer,peerId)}
+        finally{await peerContext.close()}
+      }
+    }
+  } finally {
+    try{await removeTestGuest(owner,ownerId)}
+    finally{await context.close()}
   }
 })
