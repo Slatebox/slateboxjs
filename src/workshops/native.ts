@@ -19,6 +19,7 @@ import {
   workshopStandInId, workshopTakesNotes, workshopToSlate, type Workshop, type WorkshopBoardLayout, type WorkshopCard,
   type WorkshopCardAsNote, type WorkshopCardLook, type WorkshopNoteOffer, type WorkshopNoteStyle,
 } from './model'
+import { applyWorkshopEdits } from './edits'
 
 /**
  * What a person changed. A move names the card and its new lane; a rename names the lane or
@@ -303,19 +304,17 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (!target || readOnly || proposal) return false
       const label = text.replace(/\s+/g, ' ').trim()
       const rename = target.kind === 'lane' ? { laneId: target.key, label } : { cardId: target.key, label }
-      let next: Workshop
-      try {
-        next = validateWorkshop(target.kind === 'lane'
-          ? { ...value, lanes: value.lanes.map(lane => lane.id === target.key ? { ...lane, label } : lane) }
-          : { ...value, cards: value.cards.map(card => card.id === target.key ? { ...card, label } : card) })
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : 'That name is not allowed.'
+      // The rule every surface renames by: the edit reducer, with its sentence when it refuses.
+      const renamed = applyWorkshopEdits(value, [target.kind === 'lane'
+        ? { kind: 'rename_lane', lane: { id: target.key }, label } : { kind: 'rename_card', card: { id: target.key }, label }])
+      if ('refused' in renamed) {
+        const { reason } = renamed.refused
         slate.announce?.(`${previous} keeps its name. ${reason}`)
         tell(options.onRefuse, { ...(target.kind === 'lane' ? { laneId: target.key } : { cardId: target.key }), rename, reason })
         return false
       }
       if (label === previous) return false
-      value = next
+      value = renamed.workshop
       draw(value)
       slate.announce?.(`${previous} renamed to ${label}.`)
       tell(options.onChange, value, { rename })
