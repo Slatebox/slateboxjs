@@ -2,17 +2,22 @@ import {resumeArchivedDraft} from './workshop-archive.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
 import {laneChat,sendLaneEdit,expectRejectedLaneEdit} from './workshop-conversation.shared'
 import {dismissWelcome,getSlate,userId,removeTestGuest} from './workshop-guests.shared'
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
 const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
+
+async function openSavedDirectory(page:Page) {
+  await page.goto(new URL('/workshops?view=saved',origin).href)
+  await page.waitForFunction(()=> (window as any).Meteor?.status()?.connected && !(window as any).Meteor.loggingIn())
+  await expect(page.getByRole('heading',{name:'Saved workshops'})).toBeVisible({timeout:45000})
+}
 
 test('review a workshop, move a card, present and open a private editable slate', async ({ page, browser }) => {
   test.skip(process.env.SLATEBOX_APP_EXTERNAL !== 'true', 'Set the deployed app URL for the live contract')
   // This proof creates one guest-owned test slate. Production gets the read-only journey.
   const save = new URL(origin).hostname === 'test.slatebox.com' || new URL(origin).hostname === 'localhost' || new URL(origin).hostname === '127.0.0.1'
   if (!save) {
-    await page.goto(new URL('/workshops?view=saved',origin).href)
-    await expect(page.getByRole('heading',{name:'Saved workshops'})).toBeVisible()
+    await openSavedDirectory(page)
     return
   }
   let ownerId:string|null=null
@@ -58,8 +63,7 @@ test('review a workshop, move a card, present and open a private editable slate'
     const visitor = await browser.newContext()
     try {
       const guest = await visitor.newPage()
-      await guest.goto(new URL('/workshops?view=saved',origin).href)
-      await expect(guest.getByRole('heading',{name:'Saved workshops'})).toBeVisible()
+      await openSavedDirectory(guest)
       expect(await guest.evaluate(() => [(window as any).Meteor.userId(), localStorage.getItem('meteor_token')])).toEqual([null, null])
       const denials = await guest.evaluate(async id => {
         const meteor = (window as any).Meteor
