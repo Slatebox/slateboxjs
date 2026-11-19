@@ -76,6 +76,8 @@ test('an agent orders the scenes that an invited reader actually presents', asyn
     await owner.page.getByRole('button',{name:'Next station'}).click()
     await expectWorkshopSlide(reader,'Start',[],['lane-start'])
     await reader.reload()
+    await reader.waitForFunction(()=> (window as any).Meteor?.status()?.connected)
+    await reader.locator('[data-creative-revision]').waitFor({state:'attached'})
     await expectWorkshopSlide(reader,'Start',[],['lane-start'])
     await owner.page.getByRole('button',{name:'Previous',exact:true}).click()
     await expectWorkshopSlide(reader,'Next step',['Token'],['lane-next','card-'+tokenId])
