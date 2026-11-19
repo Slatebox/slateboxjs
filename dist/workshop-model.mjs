@@ -1,4 +1,4 @@
-const pn = {
+const kn = {
   kind: "offline-handoff",
   version: 1,
   stage: "queued",
@@ -7,78 +7,78 @@ const pn = {
   deskNote: "Visitor access ready at Gate B.",
   fallback: "Use the staffed lane after 17:00."
 };
-function wn(e) {
+function bn(e) {
   if (!e || typeof e != "object") return null;
-  const { kind: t, version: o, stage: n, choice: r, fieldNote: i, deskNote: d, fallback: h } = e, u = (p) => typeof p == "string" && p.trim().length > 0 && p.trim().length <= 240 && !/[<>\u0000-\u001f]/u.test(p);
-  return t !== "offline-handoff" || o !== 1 || n !== "queued" && n !== "review" && n !== "resolved" || (n === "resolved" ? r !== "field" && r !== "desk" : r !== null) || r === void 0 || !u(i) || !u(d) || !u(h) ? null : { kind: t, version: o, stage: n, choice: r, fieldNote: i.trim(), deskNote: d.trim(), fallback: h.trim() };
+  const { kind: t, version: o, stage: n, choice: r, fieldNote: a, deskNote: d, fallback: f } = e, u = (w) => typeof w == "string" && w.trim().length > 0 && w.trim().length <= 240 && !/[<>\u0000-\u001f]/u.test(w);
+  return t !== "offline-handoff" || o !== 1 || n !== "queued" && n !== "review" && n !== "resolved" || (n === "resolved" ? r !== "field" && r !== "desk" : r !== null) || r === void 0 || !u(a) || !u(d) || !u(f) ? null : { kind: t, version: o, stage: n, choice: r, fieldNote: a.trim(), deskNote: d.trim(), fallback: f.trim() };
 }
-function mn(e) {
+function In(e) {
   return { ...e, stage: "review", choice: null };
 }
-function gn(e, t) {
+function vn(e, t) {
   return e.stage === "review" ? { ...e, stage: "resolved", choice: t } : e;
 }
-function yn(e) {
+function xn(e) {
   return e.stage === "resolved" ? (e.choice === "field" ? e.fieldNote : e.deskNote) + " " + e.fallback : e.stage === "queued" ? "One edit waiting to sync." : "Which result should the crew use?";
 }
-const le = {
+const de = {
   kind: "listening-room",
   version: 1,
   mix: 0.15,
   leftLabel: "Copper rain",
   rightLabel: "Glass chimes"
 };
-function kn(e) {
+function Sn(e) {
   if (!e || typeof e != "object") return null;
-  const { kind: t, version: o, mix: n, leftLabel: r, rightLabel: i } = e, d = (h) => typeof h == "string" && h.trim().length > 0 && h.trim().length <= 80 && !/[<>\u0000-\u001f]/u.test(h);
-  return t !== "listening-room" || o !== 1 || typeof n != "number" || !Number.isFinite(n) || n < 0 || n > 1 || !d(r) || !d(i) ? null : { kind: t, version: o, mix: n, leftLabel: r.trim(), rightLabel: i.trim() };
+  const { kind: t, version: o, mix: n, leftLabel: r, rightLabel: a } = e, d = (f) => typeof f == "string" && f.trim().length > 0 && f.trim().length <= 80 && !/[<>\u0000-\u001f]/u.test(f);
+  return t !== "listening-room" || o !== 1 || typeof n != "number" || !Number.isFinite(n) || n < 0 || n > 1 || !d(r) || !d(a) ? null : { kind: t, version: o, mix: n, leftLabel: r.trim(), rightLabel: a.trim() };
 }
-function bn({ mix: e, leftLabel: t, rightLabel: o }) {
-  return e < 0.32 ? t === le.leftLabel ? "Rain ticks on the copper roof." : "You hear " + t + "." : e > 0.68 ? o === le.rightLabel ? "Glass chimes ring, then fade." : "You hear " + o + "." : t === le.leftLabel && o === le.rightLabel ? "Rain and glass chimes overlap." : t + " and " + o + " overlap.";
+function Pn({ mix: e, leftLabel: t, rightLabel: o }) {
+  return e < 0.32 ? t === de.leftLabel ? "Rain ticks on the copper roof." : "You hear " + t + "." : e > 0.68 ? o === de.rightLabel ? "Glass chimes ring, then fade." : "You hear " + o + "." : t === de.leftLabel && o === de.rightLabel ? "Rain and glass chimes overlap." : t + " and " + o + " overlap.";
 }
-function X(e, t) {
+function Q(e, t) {
   return e.cards.reduce((o, n) => o + (n.laneId === t ? n.points ?? 1 : 0), 0);
 }
-function Je(e) {
-  const t = new Map(e.cards.map((d) => [d.id, d])), o = new Map(e.lanes.map((d, h) => [d.id, h])), n = /* @__PURE__ */ new Set(), r = /* @__PURE__ */ new Set();
-  function i(d) {
+function Xe(e) {
+  const t = new Map(e.cards.map((d) => [d.id, d])), o = new Map(e.lanes.map((d, f) => [d.id, f])), n = /* @__PURE__ */ new Set(), r = /* @__PURE__ */ new Set();
+  function a(d) {
     if (!n.has(d.id)) {
       if (r.has(d.id)) throw new Error("Release dependencies must be acyclic.");
       r.add(d.id);
-      for (const h of d.dependsOn ?? []) {
-        const u = t.get(h);
+      for (const f of d.dependsOn ?? []) {
+        const u = t.get(f);
         if (!u) throw new Error("A release dependency refers to an unknown feature.");
         if (o.get(u.laneId) > o.get(d.laneId))
           throw new Error("Schedule each dependency in the same window as its feature or earlier.");
-        i(u);
+        a(u);
       }
       r.delete(d.id), n.add(d.id);
     }
   }
-  for (const d of e.cards) i(d);
+  for (const d of e.cards) a(d);
   for (const d of e.lanes) {
     if (d.station) throw new Error("Release windows cannot also be map stations.");
-    if (X(e, d.id) > (d.capacity ?? 1 / 0)) throw new Error(`Release "${d.label}" exceeds its point budget.`);
+    if (Q(e, d.id) > (d.capacity ?? 1 / 0)) throw new Error(`Release "${d.label}" exceeds its point budget.`);
   }
 }
-function he(e, t, o) {
+function pe(e, t, o) {
   if (o === t.laneId) return e;
-  const n = new Map(e.lanes.map((c, b) => [c.id, b])), r = n.get(o);
+  const n = new Map(e.lanes.map((y, k) => [y.id, k])), r = n.get(o);
   if (r === void 0) return null;
-  const i = r < n.get(t.laneId), d = /* @__PURE__ */ new Set([t.id]), h = [t];
-  for (; h.length; ) {
-    const c = h.pop();
-    for (const b of e.cards) {
-      if (d.has(b.id)) continue;
-      const k = n.get(b.laneId);
-      (i ? k > r && c.dependsOn?.includes(b.id) : k < r && b.dependsOn?.includes(c.id)) && (d.add(b.id), h.push(b));
+  const a = r < n.get(t.laneId), d = /* @__PURE__ */ new Set([t.id]), f = [t];
+  for (; f.length; ) {
+    const y = f.pop();
+    for (const k of e.cards) {
+      if (d.has(k.id)) continue;
+      const g = n.get(k.laneId);
+      (a ? g > r && y.dependsOn?.includes(k.id) : g < r && k.dependsOn?.includes(y.id)) && (d.add(k.id), f.push(k));
     }
   }
-  if (e.cards.filter((c) => d.has(c.id)).some((c) => c.allowedLaneIds && !c.allowedLaneIds.includes(o))) return null;
-  const p = { ...e, cards: e.cards.map((c) => d.has(c.id) ? { ...c, laneId: o } : c) }, y = e.lanes[r].capacity;
-  return y !== void 0 && X(p, o) > y ? null : p;
+  if (e.cards.filter((y) => d.has(y.id)).some((y) => y.allowedLaneIds && !y.allowedLaneIds.includes(o))) return null;
+  const w = { ...e, cards: e.cards.map((y) => d.has(y.id) ? { ...y, laneId: o } : y) }, b = e.lanes[r].capacity;
+  return b !== void 0 && Q(w, o) > b ? null : w;
 }
-const vn = {
+const En = {
   version: 1,
   kind: "release-plan",
   title: "What makes the Friday release?",
@@ -93,13 +93,13 @@ const vn = {
     { id: "billing", label: "Invoice download", laneId: "friday", points: 3 },
     { id: "export", label: "Workspace export", laneId: "next", points: 4 }
   ]
-}, de = Object.freeze({
+}, ce = Object.freeze({
   fontSize: 14,
   fontFamily: "Arial, sans-serif",
   fontColor: "#000000",
   borderColor: "#cccccc",
   borderWidth: 1
-}), In = {
+}), Cn = {
   kind: "moon-gallery",
   version: 1,
   panels: [
@@ -109,35 +109,35 @@ const vn = {
   ],
   hung: ["dunes"]
 };
-function xn(e) {
+function $n(e) {
   if (!e || typeof e != "object") return null;
   const t = e;
   if (t.kind !== "moon-gallery" || t.version !== 1 || !Array.isArray(t.panels) || t.panels.length !== 3 || !Array.isArray(t.hung)) return null;
   const o = [];
-  for (const i of t.panels) {
-    if (!i || typeof i.id != "string" || !/^[a-z][\w-]{0,31}$/.test(i.id) || typeof i.label != "string" || !i.label.trim() || i.label.trim().length > 48 || !["dunes", "moon", "coast"].includes(i.artwork) || !(i.after === null || typeof i.after == "string")) return null;
-    o.push({ id: i.id, label: i.label.trim(), artwork: i.artwork, after: i.after });
+  for (const a of t.panels) {
+    if (!a || typeof a.id != "string" || !/^[a-z][\w-]{0,31}$/.test(a.id) || typeof a.label != "string" || !a.label.trim() || a.label.trim().length > 48 || !["dunes", "moon", "coast"].includes(a.artwork) || !(a.after === null || typeof a.after == "string")) return null;
+    o.push({ id: a.id, label: a.label.trim(), artwork: a.artwork, after: a.after });
   }
-  const n = new Map(o.map((i) => [i.id, i])), r = [...new Set(t.hung)];
-  if (n.size !== o.length || r.length !== t.hung.length || r.some((i) => !n.has(i))) return null;
-  for (const i of o) {
-    const d = /* @__PURE__ */ new Set([i.id]);
-    let h = i.after;
-    for (; h !== null; ) {
-      if (d.has(h) || !n.has(h) || r.includes(i.id) && !r.includes(h)) return null;
-      d.add(h), h = n.get(h).after;
+  const n = new Map(o.map((a) => [a.id, a])), r = [...new Set(t.hung)];
+  if (n.size !== o.length || r.length !== t.hung.length || r.some((a) => !n.has(a))) return null;
+  for (const a of o) {
+    const d = /* @__PURE__ */ new Set([a.id]);
+    let f = a.after;
+    for (; f !== null; ) {
+      if (d.has(f) || !n.has(f) || r.includes(a.id) && !r.includes(f)) return null;
+      d.add(f), f = n.get(f).after;
     }
   }
   return { kind: "moon-gallery", version: 1, panels: o, hung: r };
 }
-function _e(e, t) {
+function en(e, t) {
   const o = e.panels.find((n) => n.id === t);
   return !!o && !e.hung.includes(t) && (o.after === null || e.hung.includes(o.after));
 }
-function Sn(e, t) {
-  return _e(e, t) ? { ...e, hung: [...e.hung, t] } : e;
+function An(e, t) {
+  return en(e, t) ? { ...e, hung: [...e.hung, t] } : e;
 }
-const Ne = ["firstPrint", "secondPrint", "thirdPrint"], Oe = {
+const He = ["firstPrint", "secondPrint", "thirdPrint"], Ge = {
   kind: "focus-darkroom",
   version: 1,
   firstPrint: "Fern",
@@ -145,14 +145,14 @@ const Ne = ["firstPrint", "secondPrint", "thirdPrint"], Oe = {
   thirdPrint: "Sea fan",
   route: null
 };
-function Pn(e) {
+function Mn(e) {
   if (!e || typeof e != "object") throw new Error("Expected a darkroom.");
   const t = e;
   if (t.kind !== void 0 && t.kind !== "focus-darkroom") throw new Error("Expected a darkroom.");
   if (t.version !== 1) throw new Error("Unknown darkroom version.");
   if (t.route !== null && t.route !== "start" && t.route !== "opener") throw new Error("Unknown return path.");
-  const o = { ...Oe, route: t.route };
-  for (const n of Ne) {
+  const o = { ...Ge, route: t.route };
+  for (const n of He) {
     const r = t[n];
     if (typeof r != "string" || !r.trim() || r.trim().length > 48)
       throw new Error("Give each print a name of up to 48 characters.");
@@ -160,24 +160,24 @@ function Pn(e) {
   }
   return o;
 }
-function En(e = new URLSearchParams()) {
-  const t = { ...Oe };
-  for (const n of Ne) {
+function Ln(e = new URLSearchParams()) {
+  const t = { ...Ge };
+  for (const n of He) {
     const r = e.get(n)?.trim();
     r && r.length <= 48 && (t[n] = r);
   }
   const o = e.get("route");
   return (o === "start" || o === "opener") && (t.route = o), t;
 }
-function Cn(e) {
+function Tn(e) {
   const t = e.route === "start" ? "Every viewer returns to the first print." : e.route === "opener" ? "Each viewer returns to the print that opened it." : "No wire attached. The viewer uses its native return path.";
   return [e.firstPrint, e.secondPrint, e.thirdPrint].join(" · ") + ". " + t;
 }
-function Qe(e) {
+function nn(e) {
   const t = { ...e };
-  return e.xPos !== void 0 && t.x === void 0 && (t.x = e.xPos, delete t.xPos), e.yPos !== void 0 && t.y === void 0 && (t.y = e.yPos, delete t.yPos), e.foregroundColor !== void 0 && t.fontColor === void 0 && (t.fontColor = e.foregroundColor, delete t.foregroundColor), e.shapeHint !== void 0 && t.shape === void 0 && (t.shape = Ye(e.shapeHint), delete t.shapeHint), e.svgString !== void 0 && t.svgContent === void 0 && (t.svgContent = e.svgString, delete t.svgString), e.blnStraight !== void 0 && (t.isStraightLine = e.blnStraight, delete t.blnStraight), t;
+  return e.xPos !== void 0 && t.x === void 0 && (t.x = e.xPos, delete t.xPos), e.yPos !== void 0 && t.y === void 0 && (t.y = e.yPos, delete t.yPos), e.foregroundColor !== void 0 && t.fontColor === void 0 && (t.fontColor = e.foregroundColor, delete t.foregroundColor), e.shapeHint !== void 0 && t.shape === void 0 && (t.shape = on(e.shapeHint), delete t.shapeHint), e.svgString !== void 0 && t.svgContent === void 0 && (t.svgContent = e.svgString, delete t.svgString), e.blnStraight !== void 0 && (t.isStraightLine = e.blnStraight, delete t.blnStraight), t;
 }
-function Ze(e) {
+function tn(e) {
   return {
     id: e.id || `${e.parentId}->${e.childId}`,
     childId: e.childId,
@@ -199,7 +199,7 @@ function Ze(e) {
     label: e.label ?? ""
   };
 }
-function Ye(e) {
+function on(e) {
   return {
     rect: "rectangle",
     rectangle: "rectangle",
@@ -217,357 +217,366 @@ function Ye(e) {
     larrow: "larrow"
   }[e.toLowerCase()] || e;
 }
-function Xe() {
+function rn() {
   try {
     return typeof matchMedia == "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   } catch {
     return !1;
   }
 }
-const en = "#1f7a5c", nn = "#5b9a85", Ae = "#c2410c", tn = { canMove: !1, canSelect: !1 };
-function U(e) {
+const sn = "#1f7a5c", an = "#5b9a85", Te = "#c2410c", ln = { canMove: !1, canSelect: !1 };
+function dn(e) {
   const t = /^(lane|card|caption|column|image)-(.+)$/.exec(e);
   return t ? { kind: t[1], key: t[2] } : null;
 }
-function $n(e, t, o = {}) {
-  let n = O(t), r = null, i = !!o.readOnly, d = !1;
-  const h = /* @__PURE__ */ new Map(), u = /* @__PURE__ */ new Map(), p = /* @__PURE__ */ new Map(), y = /* @__PURE__ */ new Set();
-  let c = null, b = null, k = null, x = Promise.resolve(), C = null, $ = o.layout?.lanesPerRow === void 0 ? {} : { lanesPerRow: o.layout.lanesPerRow };
-  const A = { ...o.style };
-  let z = null, L = !1;
-  Y(n, { layout: $ });
-  const N = o.origin ? { x: o.origin.x, y: o.origin.y } : sn(e), S = rn(n);
-  for (const l of e.nodes.allNodes)
-    if (S.has(l.id))
-      throw new Error(`This slate already has a note named "${l.id}". A workshop draws its own lane and card notes.`);
-  const T = {
-    governs(l) {
-      if (h.get(l.id) !== l) return null;
-      const s = U(l.id)?.kind;
-      return s === "card" ? { canMove: !i, canEditText: !i && !r && n.kind !== "release-plan" } : s === "lane" ? { canMove: !1, canEditText: !i && !r } : tn;
+function Wn(e, t, o = {}) {
+  let n = D(t), r = null, a = !!o.readOnly, d = !1;
+  const f = /* @__PURE__ */ new Map(), u = /* @__PURE__ */ new Map(), w = /* @__PURE__ */ new Map(), b = /* @__PURE__ */ new Map(), y = /* @__PURE__ */ new Map();
+  let k = null, g = null, v = null, $ = Promise.resolve(), T = null, A = o.layout?.lanesPerRow === void 0 ? {} : { lanesPerRow: o.layout.lanesPerRow };
+  const F = { ...o.style };
+  let W = /* @__PURE__ */ new Map(), j = null, S = !1;
+  _(n, { layout: A });
+  const E = o.origin ? { x: o.origin.x, y: o.origin.y } : un(e), H = (i) => y.get(i) ?? i, L = (i) => dn(H(i));
+  function M(i) {
+    const s = b.get(i);
+    if (s) return s;
+    if (f.has(i) && !y.has(i) || !e.nodes.one?.(i)) return i;
+    const m = Je(i, (h) => !!e.nodes.one?.(h) || y.has(h));
+    return b.set(i, m), y.set(m, i), console.warn(`WORKSHOP: the slate already has a note named "${i}". It stays the slate's own; the workshop draws its note as "${m}".`), m;
+  }
+  const z = {
+    governs(i) {
+      if (f.get(i.id) !== i) return null;
+      const s = L(i.id)?.kind;
+      return s === "card" ? { canMove: !a, canEditText: !a && !r && n.kind !== "release-plan" } : s === "lane" ? { canMove: !1, canEditText: !a && !r } : ln;
     },
-    onStart(l, s) {
-      const g = U(l.id).key;
-      if (i || r || !n.cards.some((a) => a.id === g)) return !1;
-      K(), _();
-      const w = { x: s.x - (l.options.x ?? 0), y: s.y - (l.options.y ?? 0) };
-      let v = null;
+    onStart(i, s) {
+      const m = L(i.id).key;
+      if (a || r || !n.cards.some((l) => l.id === m)) return !1;
+      q(), le();
+      const h = { x: s.x - (i.options.x ?? 0), y: s.y - (i.options.y ?? 0) };
+      let I = null;
       try {
-        v = o.chooseCandidate?.(n, g, w) ?? null;
-      } catch (a) {
-        console.warn("WORKSHOP: chooseCandidate threw; using the lane under the pointer", a);
+        I = o.chooseCandidate?.(n, m, h) ?? null;
+      } catch (l) {
+        console.warn("WORKSHOP: chooseCandidate threw; using the lane under the pointer", l);
       }
-      return c = { cardId: g, evaluate: v, outcome: { kind: "home" } }, M(n, { skip: g }), !0;
+      return k = { cardId: m, evaluate: I, outcome: { kind: "home" } }, R(n, { skip: m }), !0;
     },
-    onMove(l, s) {
-      if (!c) return;
-      const g = V(c.cardId, s, c.evaluate);
-      if (on(g, c.outcome)) return;
-      c.outcome = g;
-      const w = g.kind === "candidate" ? g.next : null;
-      M(w ?? n, { skip: c.cardId }), R(o.onPreview, w);
+    onMove(i, s) {
+      if (!k) return;
+      const m = ee(k.cardId, s, k.evaluate);
+      if (cn(m, k.outcome)) return;
+      k.outcome = m;
+      const h = m.kind === "candidate" ? m.next : null;
+      R(h ?? n, { skip: k.cardId }), N(o.onPreview, h);
     },
-    onEnd(l, s) {
-      if (!c) return { accept: !1 };
-      const { cardId: g, evaluate: w } = c, v = V(g, s, w), a = n.cards.find((m) => m.id === g);
-      if (c = null, R(o.onPreview, null), v.kind === "candidate") {
-        n = v.next, M(n, { skip: g });
-        const m = n.lanes.find((I) => I.id === v.laneId);
-        e.announce?.(`${a.label} moved to ${m.label}. ${ie(n, m.id)}.`), R(o.onChange, n, { cardId: g, laneId: v.laneId });
-        const f = Ve(n, l.id);
-        return f ? { accept: !0, settle: f } : { accept: !0 };
+    onEnd(i, s) {
+      if (!k) return { accept: !1 };
+      const { cardId: m, evaluate: h } = k, I = ee(m, s, h), l = n.cards.find((p) => p.id === m);
+      if (k = null, N(o.onPreview, null), I.kind === "candidate") {
+        n = I.next, R(n, { skip: m });
+        const p = n.lanes.find((x) => x.id === I.laneId);
+        e.announce?.(`${l.label} moved to ${p.label}. ${re(n, p.id)}.`), N(o.onChange, n, { cardId: m, laneId: I.laneId });
+        const c = Ye(n, H(i.id));
+        return c ? { accept: !0, settle: c } : { accept: !0 };
       }
-      return v.kind === "refused" ? Ke(a.label, { cardId: g, laneId: v.laneId, reason: v.reason }) : (M(n, { skip: g }), v.kind === "outside" && (e.announce?.(`${a.label} was not dropped on a lane. It stays where it was.`), R(o.onRefuse, { cardId: g, laneId: null, reason: "" }))), { accept: !1 };
+      return I.kind === "refused" ? Qe(l.label, { cardId: m, laneId: I.laneId, reason: I.reason }) : (R(n, { skip: m }), I.kind === "outside" && (e.announce?.(`${l.label} was not dropped on a lane. It stays where it was.`), N(o.onRefuse, { cardId: m, laneId: null, reason: "" }))), { accept: !1 };
     },
-    onCancel(l) {
-      const s = c && n.cards.find((g) => g.id === c.cardId);
-      c = null, R(o.onPreview, null), M(n, { skip: l.id.replace(/^card-/, "") }), s && e.announce?.(`Move cancelled. ${s.label} stays where it was.`);
+    onCancel(i) {
+      const s = k && n.cards.find((m) => m.id === k.cardId);
+      k = null, N(o.onPreview, null), R(n, { skip: L(i.id)?.key }), s && e.announce?.(`Move cancelled. ${s.label} stays where it was.`);
     },
-    onTextCommit(l, s, g) {
-      const w = U(l.id);
-      if (!w || i || r) return !1;
-      const v = s.replace(/\s+/g, " ").trim(), a = w.kind === "lane" ? { laneId: w.key, label: v } : { cardId: w.key, label: v };
-      let m;
+    onTextCommit(i, s, m) {
+      const h = L(i.id);
+      if (!h || a || r) return !1;
+      const I = s.replace(/\s+/g, " ").trim(), l = h.kind === "lane" ? { laneId: h.key, label: I } : { cardId: h.key, label: I };
+      let p;
       try {
-        m = O(w.kind === "lane" ? { ...n, lanes: n.lanes.map((f) => f.id === w.key ? { ...f, label: v } : f) } : { ...n, cards: n.cards.map((f) => f.id === w.key ? { ...f, label: v } : f) });
-      } catch (f) {
-        const I = f instanceof Error ? f.message : "That name is not allowed.";
-        return e.announce?.(`${g} keeps its name. ${I}`), R(o.onRefuse, { ...w.kind === "lane" ? { laneId: w.key } : { cardId: w.key }, rename: a, reason: I }), !1;
+        p = D(h.kind === "lane" ? { ...n, lanes: n.lanes.map((c) => c.id === h.key ? { ...c, label: I } : c) } : { ...n, cards: n.cards.map((c) => c.id === h.key ? { ...c, label: I } : c) });
+      } catch (c) {
+        const x = c instanceof Error ? c.message : "That name is not allowed.";
+        return e.announce?.(`${m} keeps its name. ${x}`), N(o.onRefuse, { ...h.kind === "lane" ? { laneId: h.key } : { cardId: h.key }, rename: l, reason: x }), !1;
       }
-      return v === g ? !1 : (n = m, M(n), e.announce?.(`${g} renamed to ${v}.`), R(o.onChange, n, { rename: a }), v);
+      return I === m ? !1 : (n = p, R(n), e.announce?.(`${m} renamed to ${I}.`), N(o.onChange, n, { rename: l }), I);
     },
-    onKeyDown(l, s) {
-      const g = U(l.id);
-      if (g?.kind !== "card" || i || r || c || s.ctrlKey || s.metaKey || s.altKey) return !1;
-      const w = n.cards.find((v) => v.id === g.key);
-      if (!w) return !1;
+    onKeyDown(i, s) {
+      const m = L(i.id);
+      if (m?.kind !== "card" || a || r || k || s.ctrlKey || s.metaKey || s.altKey) return !1;
+      const h = n.cards.find((I) => I.id === m.key);
+      if (!h) return !1;
       if (s.key === "ArrowLeft" || s.key === "ArrowRight")
-        return s.preventDefault(), ae(w.id, s.key === "ArrowLeft" ? -1 : 1), !0;
-      if ((s.key === "ArrowUp" || s.key === "ArrowDown") && G())
-        return s.preventDefault(), ae(w.id, s.key === "ArrowUp" ? -1 : 1, !0), !0;
-      if (b?.cardId !== w.id) return !1;
+        return s.preventDefault(), Ee(h.id, s.key === "ArrowLeft" ? -1 : 1), !0;
+      if ((s.key === "ArrowUp" || s.key === "ArrowDown") && se())
+        return s.preventDefault(), Ee(h.id, s.key === "ArrowUp" ? -1 : 1, !0), !0;
+      if (g?.cardId !== h.id) return !1;
       if (s.key === "Enter") {
         s.preventDefault();
-        const { laneId: v, next: a } = b;
-        b = null, n = a, M(n), J(v), R(o.onPreview, null);
-        const m = n.lanes.find((f) => f.id === v);
-        return e.announce?.(`${w.label} moved to ${m.label}. ${ie(n, v)}.`), R(o.onChange, n, { cardId: w.id, laneId: v }), !0;
+        const { laneId: I, next: l } = g;
+        g = null, n = l, R(n), ae(I), N(o.onPreview, null);
+        const p = n.lanes.find((c) => c.id === I);
+        return e.announce?.(`${h.label} moved to ${p.label}. ${re(n, I)}.`), N(o.onChange, n, { cardId: h.id, laneId: I }), !0;
       }
-      return s.key === "Escape" ? (s.preventDefault(), _(), e.announce?.(`Move cancelled. ${w.label} stays where it was.`), !0) : !1;
+      return s.key === "Escape" ? (s.preventDefault(), le(), e.announce?.(`Move cancelled. ${h.label} stays where it was.`), !0) : !1;
     },
     onNotesReplaced() {
-      const l = (e.getSelectedNodes?.() ?? []).filter((s) => h.get(s.id) === s).map((s) => s.id);
-      L = l.length === 1, h.clear(), u.clear(), p.clear(), c = null, b = null, M(r ?? n, { animate: !1 }), l.length === 1 && (x = x.then(() => {
-        L = !1;
-        const s = h.get(l[0]);
+      const i = (e.getSelectedNodes?.() ?? []).filter((s) => f.get(s.id) === s).map((s) => s.id);
+      S = i.length === 1, f.clear(), u.clear(), w.clear(), b.clear(), y.clear(), k = null, g = null, R(r ?? n, { animate: !1 }), i.length === 1 && ($ = $.then(() => {
+        S = !1;
+        const s = f.get(i[0]);
         if (!d && s && !(e.getSelectedNodes?.() ?? []).length) {
-          const g = () => e.selectNodes?.([s]);
-          typeof e.withoutAnnouncements == "function" ? e.withoutAnnouncements(g) : g();
+          const m = () => e.selectNodes?.([s]);
+          typeof e.withoutAnnouncements == "function" ? e.withoutAnnouncements(m) : m();
         }
-        ee();
+        ye();
       }));
     }
-  }, H = e.setDragPolicy(T), D = o.onSelect && e.onSelectionChange?.(() => ee()), q = () => {
-    b && _();
+  }, G = e.setDragPolicy(z), ge = o.onSelect && e.onSelectionChange?.(() => ye()), X = () => {
+    g && le();
   };
-  e.element?.addEventListener?.("pointerdown", q, !0), M(n, { animate: !1 });
-  function V(l, s, g) {
-    const w = n.cards.find((E) => E.id === l);
-    if (!w) return { kind: "outside" };
-    const v = n.lanes.map((E) => h.get(re.column(E.id))).filter(Boolean), a = e.hitTestNodes(s, v, { padding: 6 }), m = a ? U(a.id).key : null;
-    if (!m) return { kind: "outside" };
-    if (m === w.laneId) return { kind: "home" };
-    const f = fe(n, l, m);
-    if (!f) return { kind: "refused", laneId: m, reason: Le(n, l, m) ?? "That move is not available." };
-    if (!g) return { kind: "candidate", laneId: m, next: f };
-    let I = null;
+  e.element?.addEventListener?.("pointerdown", X, !0), R(n, { animate: !1 });
+  function ee(i, s, m) {
+    const h = n.cards.find((C) => C.id === i);
+    if (!h) return { kind: "outside" };
+    const I = n.lanes.map((C) => f.get(M(oe.column(C.id)))).filter(Boolean), l = e.hitTestNodes(s, I, { padding: 6 }), p = l ? L(l.id).key : null;
+    if (!p) return { kind: "outside" };
+    if (p === h.laneId) return { kind: "home" };
+    const c = he(n, i, p);
+    if (!c) return { kind: "refused", laneId: p, reason: Re(n, i, p) ?? "That move is not available." };
+    if (!m) return { kind: "candidate", laneId: p, next: c };
+    let x = null;
     try {
-      I = g({ x: s.x - N.x, y: s.y - N.y });
-    } catch (E) {
-      return console.warn("WORKSHOP: the candidate chooser threw; using the lane under the pointer", E), { kind: "candidate", laneId: m, next: f };
+      x = m({ x: s.x - E.x, y: s.y - E.y });
+    } catch (C) {
+      return console.warn("WORKSHOP: the candidate chooser threw; using the lane under the pointer", C), { kind: "candidate", laneId: p, next: c };
     }
-    const P = I?.cards.find((E) => E.id === l)?.laneId;
-    return !I || !P || P === w.laneId ? { kind: "home" } : { kind: "candidate", laneId: P, next: I };
+    const P = x?.cards.find((C) => C.id === i)?.laneId;
+    return !x || !P || P === h.laneId ? { kind: "home" } : { kind: "candidate", laneId: P, next: x };
   }
-  function G() {
-    return new Set(Y(n, { layout: $ }).places.map((l) => l.row)).size > 1;
+  function se() {
+    return new Set(_(n, { layout: A }).places.map((i) => i.row)).size > 1;
   }
-  function ae(l, s, g = !1) {
-    const w = n.cards.find((P) => P.id === l), v = Me(n, l), a = b?.cardId === l ? b.laneId : w.laneId;
-    let m;
-    if (g) {
-      const { places: P } = Y(n, { layout: $ }), E = P.find((W) => W.laneId === a);
-      m = P.filter((W) => W.column === E.column && (W.row - E.row) * s > 0).sort((W, ne) => (W.row - ne.row) * s).map((W) => n.lanes.find((ne) => ne.id === W.laneId));
+  function Ee(i, s, m = !1) {
+    const h = n.cards.find((P) => P.id === i), I = We(n, i), l = g?.cardId === i ? g.laneId : h.laneId;
+    let p;
+    if (m) {
+      const { places: P } = _(n, { layout: A }), C = P.find((O) => O.laneId === l);
+      p = P.filter((O) => O.column === C.column && (O.row - C.row) * s > 0).sort((O, Z) => (O.row - Z.row) * s).map((O) => n.lanes.find((Z) => Z.id === O.laneId));
     } else {
-      const P = n.lanes.findIndex((E) => E.id === a);
-      m = s > 0 ? n.lanes.slice(P + 1) : n.lanes.slice(0, P).reverse();
+      const P = n.lanes.findIndex((C) => C.id === l);
+      p = s > 0 ? n.lanes.slice(P + 1) : n.lanes.slice(0, P).reverse();
     }
-    const f = m.find((P) => v.includes(P));
-    if (K(), !f) {
-      const P = m[0];
+    const c = p.find((P) => I.includes(P));
+    if (q(), !c) {
+      const P = p[0];
       if (!P) {
-        e.announce?.(`${w.label} has no lane to move to on that side.`);
+        e.announce?.(`${h.label} has no lane to move to on that side.`);
         return;
       }
-      const E = Le(n, l, P.id) ?? "That move is not available.";
-      k = { laneId: P.id, reason: E, timer: setTimeout(() => K(), 1500) }, M(b?.next ?? r ?? n), J(P.id, b?.next ?? r ?? n), e.announce?.(`${w.label} can't move to ${P.label}. ${E}`), R(o.onRefuse, { cardId: l, laneId: P.id, reason: E });
+      const C = Re(n, i, P.id) ?? "That move is not available.";
+      v = { laneId: P.id, reason: C, timer: setTimeout(() => q(), 1500) }, R(g?.next ?? r ?? n), ae(P.id, g?.next ?? r ?? n), e.announce?.(`${h.label} can't move to ${P.label}. ${C}`), N(o.onRefuse, { cardId: i, laneId: P.id, reason: C });
       return;
     }
-    if (f.id === w.laneId) {
-      _(), J(f.id, r ?? n), e.announce?.(`${w.label} is back in ${f.label}.`);
+    if (c.id === h.laneId) {
+      le(), ae(c.id, r ?? n), e.announce?.(`${h.label} is back in ${c.label}.`);
       return;
     }
-    const I = fe(n, l, f.id);
-    b = { cardId: l, laneId: f.id, next: I }, M(I), J(f.id, I), R(o.onPreview, I), e.announce?.(`${w.label} to ${f.label}: ${ie(I, f.id)}. Press Enter to move it, Escape to cancel.`);
+    const x = he(n, i, c.id);
+    g = { cardId: i, laneId: c.id, next: x }, R(x), ae(c.id, x), N(o.onPreview, x), e.announce?.(`${h.label} to ${c.label}: ${re(x, c.id)}. Press Enter to move it, Escape to cancel.`);
   }
-  function J(l, s = n) {
-    const g = Y(s, { layout: $, rows: Ee() }).places.find((I) => I.laneId === l), w = e.canvas?.viewbox?.();
-    if (!g || !w || !(w.width > 0) || !(w.height > 0)) return;
-    const v = 16, a = (I, P, E, W) => P + v * 2 >= W || I - v < E ? I - v - E : I + P + v > E + W ? I + P + v - (E + W) : 0, m = a(N.x + g.x, g.width, w.x, w.width), f = a(N.y + g.y, g.height, w.y, w.height);
-    (m || f) && e.panBy?.({ x: m, y: f });
+  function ae(i, s = n) {
+    const m = _(s, { layout: A, rows: Ae() }).places.find((x) => x.laneId === i), h = e.canvas?.viewbox?.();
+    if (!m || !h || !(h.width > 0) || !(h.height > 0)) return;
+    const I = 16, l = (x, P, C, O) => P + I * 2 >= O || x - I < C ? x - I - C : x + P + I > C + O ? x + P + I - (C + O) : 0, p = l(E.x + m.x, m.width, h.x, h.width), c = l(E.y + m.y, m.height, h.y, h.height);
+    (p || c) && e.panBy?.({ x: p, y: c });
   }
-  function ee() {
-    if (!o.onSelect || L) return;
-    const l = d ? [] : e.getSelectedNodes?.() ?? [], s = l.length === 1 && h.get(l[0].id) === l[0] ? U(l[0].id) : null, g = s?.kind === "card" ? { cardId: s.key } : s?.kind === "lane" ? { laneId: s.key } : null, w = g ? JSON.stringify(g) : null;
-    w !== z && (z = w, R(o.onSelect, g));
+  function ye() {
+    if (!o.onSelect || S) return;
+    const i = d ? [] : e.getSelectedNodes?.() ?? [], s = i.length === 1 && f.get(i[0].id) === i[0] ? L(i[0].id) : null, m = s?.kind === "card" ? { cardId: s.key } : s?.kind === "lane" ? { laneId: s.key } : null, h = m ? JSON.stringify(m) : null;
+    h !== j && (j = h, N(o.onSelect, m));
   }
-  function _() {
-    b && (b = null, R(o.onPreview, null), M(r ?? n));
+  function le() {
+    g && (g = null, N(o.onPreview, null), R(r ?? n));
   }
-  function Ke(l, s) {
-    K(!1), k = { laneId: s.laneId, reason: s.reason, timer: setTimeout(() => K(), 1500) }, M(n, { skip: s.cardId });
-    const g = n.lanes.find((w) => w.id === s.laneId);
-    e.announce?.(`${l} can't move to ${g?.label ?? "that lane"}. ${s.reason}`), R(o.onRefuse, s);
+  function Qe(i, s) {
+    q(!1), v = { laneId: s.laneId, reason: s.reason, timer: setTimeout(() => q(), 1500) }, R(n, { skip: s.cardId });
+    const m = n.lanes.find((h) => h.id === s.laneId);
+    e.announce?.(`${i} can't move to ${m?.label ?? "that lane"}. ${s.reason}`), N(o.onRefuse, s);
   }
-  function K(l = !0) {
-    k && (clearTimeout(k.timer), k = null, l && !d && Se());
+  function q(i = !0) {
+    v && (clearTimeout(v.timer), v = null, i && !d && Ce());
   }
-  function Se() {
-    M(c && c.outcome.kind === "candidate" ? c.outcome.next : b?.next ?? r ?? n, { skip: c?.cardId });
+  function Ce() {
+    R(k && k.outcome.kind === "candidate" ? k.outcome.next : g?.next ?? r ?? n, { skip: k?.cardId });
   }
-  function Pe(l) {
-    const s = ke(l, { native: !0, origin: N, rows: Ee(), layout: $, style: A }).nodes, g = new Map(s.map((a) => [a.options.id, a.options])), w = (a, m, f, I = !1) => {
-      const P = g.get(re.column(a));
-      P && (P.borderColor = m, P.borderWidth = f, delete P.borderStyle);
-      const E = I && g.get(re.lane(a));
-      E && (E.borderColor = m, E.borderWidth = f);
-    }, v = c?.cardId ?? b?.cardId;
+  function $e(i) {
+    const s = Fe(i, { native: !0, origin: E, rows: Ae(), layout: A, style: F }).nodes, m = new Map(s.map((l) => [l.options.id, l.options])), h = (l, p, c, x = !1) => {
+      const P = m.get(oe.column(l));
+      P && (P.borderColor = p, P.borderWidth = c, delete P.borderStyle);
+      const C = x && m.get(oe.lane(l));
+      C && (C.borderColor = p, C.borderWidth = c);
+    }, I = k?.cardId ?? g?.cardId;
+    if (W = /* @__PURE__ */ new Map(), I) {
+      const l = n.cards.find((c) => c.id === I)?.laneId;
+      for (const c of We(n, I)) c.id !== l && (h(c.id, an, 2), W.set(c.id, "open"));
+      const p = k ? k.outcome : g ? { kind: "candidate", laneId: g.laneId } : null;
+      p?.kind === "candidate" && (h(p.laneId, sn, 3, !0), W.set(p.laneId, "over")), p?.kind === "refused" && (h(p.laneId, Te, 3), W.set(p.laneId, "refused"));
+    }
     if (v) {
-      const a = n.cards.find((f) => f.id === v)?.laneId;
-      for (const f of Me(n, v)) f.id !== a && w(f.id, nn, 2);
-      const m = c ? c.outcome : b ? { kind: "candidate", laneId: b.laneId } : null;
-      m?.kind === "candidate" && w(m.laneId, en, 3, !0), m?.kind === "refused" && w(m.laneId, Ae, 3);
+      W.set(v.laneId, "refused"), h(v.laneId, Te, 3, !0);
+      const l = m.get(oe.caption(v.laneId));
+      l && (l.text = v.reason, l.foregroundColor = "#b42318");
     }
-    if (k) {
-      w(k.laneId, Ae, 3, !0);
-      const a = g.get(re.caption(k.laneId));
-      a && (a.text = k.reason, a.foregroundColor = "#b42318");
+    for (const l of s) {
+      l.options.id = M(l.options.id);
+      for (const p of l.relationships.associations)
+        p.parentId = M(p.parentId), p.childId = M(p.childId);
     }
     return s;
   }
-  function Ee() {
-    return c || b ? n.lanes.map((l) => n.cards.filter((s) => s.laneId === l.id).length) : void 0;
+  function Ae() {
+    return k || g ? n.lanes.map((i) => n.cards.filter((s) => s.laneId === i.id).length) : void 0;
   }
-  function M(l, s = {}) {
+  function R(i, s = {}) {
     if (d) return;
-    C = { model: l, skip: s.skip, animate: s.animate !== !1 };
-    const g = Pe(l), w = [];
-    for (const { options: a } of g) {
-      const m = a.id;
-      if (h.has(m)) continue;
-      if (e.nodes.one?.(m)) {
-        y.has(m) || console.warn(`WORKSHOP: the slate already has a note named "${m}"; the workshop cannot draw its own.`), y.add(m);
-        continue;
-      }
-      y.delete(m);
-      const f = e.nodes.add(Qe(a));
-      h.set(m, f), u.set(m, { ...a }), f.ready && w.push(f.ready.then(() => {
-        if (h.get(m) !== f) return;
-        f.applyGovernance?.(), U(m)?.kind === "column" && f.toBack?.(!1);
-        const I = Ce(C?.model ?? l, m);
-        I && f.svgGroup?.node?.setAttribute("aria-label", I);
+    T = { model: i, skip: s.skip, animate: s.animate !== !1 };
+    const m = $e(i), h = [];
+    for (const { options: l } of m) {
+      const p = l.id;
+      if (f.has(p)) continue;
+      const c = e.nodes.add(nn(l));
+      f.set(p, c), u.set(p, { ...l }), c.ready && h.push(c.ready.then(() => {
+        if (f.get(p) !== c) return;
+        c.applyGovernance?.(), L(p)?.kind === "column" && c.toBack?.(!1);
+        const x = Me(T?.model ?? i, p);
+        x && c.svgGroup?.node?.setAttribute("aria-label", x);
       }).catch(() => {
       }));
     }
-    const v = C;
-    x = Promise.all([x, ...w]).then(() => {
-      d || C !== v || je(Pe(v.model), v);
-    }).catch((a) => console.warn("WORKSHOP: could not draw the workshop", a));
+    const I = T;
+    $ = Promise.all([$, ...h]).then(() => {
+      d || T !== I || Ze($e(I.model), I);
+    }).catch((l) => console.warn("WORKSHOP: could not draw the workshop", l));
   }
-  function je(l, s) {
-    const g = new Set(l.map((v) => v.options.id)), w = e.getSelectedNodes?.() ?? [];
+  function Ze(i, s) {
+    const m = new Set(i.map((I) => I.options.id)), h = e.getSelectedNodes?.() ?? [];
     e.withPolicyAuthority(() => {
-      for (const [a, m] of [...h])
-        if (!g.has(a)) {
-          for (const [f, I] of [...p])
-            I.parentId !== a && I.childId !== a || (I.parent.relationships?.removeAssociation(f), p.delete(f));
-          e.deselectNode?.(m), m.editor?.cancelInline?.(), h.delete(a), u.delete(a), e.nodes.remove(a);
-        }
-      for (const { options: a } of l) {
-        const m = a.id, f = h.get(m);
-        if (!f?.svgGroup) continue;
-        const I = u.get(m) ?? {}, P = f.editor?.isInlineEditing?.();
-        (a.fontSize !== I.fontSize || a.foregroundColor !== I.foregroundColor) && (f.options.fontSize = a.fontSize, f.options.fontColor = a.foregroundColor, f.applyTextStyle?.()), a.text !== I.text && !P && f.setText?.(a.text), (a.width !== I.width || a.height !== I.height) && (a.vectorPath ? (f.options.width = a.width, f.options.height = a.height, f.setShape?.(f.options.shape, a.vectorPath), U(m)?.kind === "column" && f.toBack?.(!1)) : f.setSize?.(a.width, a.height)), a.backgroundColor !== I.backgroundColor && f.setColors?.(a.backgroundColor), (a.borderColor !== I.borderColor || a.borderWidth !== I.borderWidth || a.borderStyle !== I.borderStyle) && (f.options.borderColor = a.borderColor, f.options.borderWidth = a.borderWidth, f.options.borderStyle = a.borderStyle, f.applyBorder?.());
-        const E = a.xPos !== I.xPos || a.yPos !== I.yPos || Math.abs((f.options.x ?? 0) - a.xPos) > 0.5 || Math.abs((f.options.y ?? 0) - a.yPos) > 0.5;
-        if (m !== (s.skip && re.card(s.skip)) && E) {
-          const ne = s.animate && !Xe() ? 180 : 0, $e = w.includes(f) ? () => {
-            !d && h.get(m) === f && (e.getSelectedNodes?.() ?? []).includes(f) && e.updateSelectionResizeRotate?.();
-          } : void 0;
-          $e && ne && w.length === 1 && f.resizeRotate?.disable?.(), f.position(a.xPos, a.yPos, $e, void 0, ne);
-        }
-        const W = Ce(s.model, m);
-        W && f.svgGroup.node.getAttribute("aria-label") !== W && f.svgGroup.node.setAttribute("aria-label", W), u.set(m, { ...a });
+      for (const [l, p] of [...f]) {
+        if (m.has(l)) continue;
+        for (const [x, P] of [...w])
+          P.parentId !== l && P.childId !== l || (P.parent.relationships?.removeAssociation(x), w.delete(x));
+        e.deselectNode?.(p), p.editor?.cancelInline?.(), f.delete(l), u.delete(l);
+        const c = y.get(l);
+        c && (y.delete(l), b.delete(c)), e.nodes.remove(l);
       }
-      const v = /* @__PURE__ */ new Map();
-      for (const a of l) for (const m of a.relationships.associations) v.set(m.id, m);
-      for (const [a, m] of [...p])
-        v.has(a) && h.get(m.parentId) === m.parent && h.get(m.childId) === m.child || (m.parent.relationships?.removeAssociation(a), p.delete(a));
-      for (const [a, m] of v) {
-        if (p.has(a)) continue;
-        const f = h.get(m.parentId), I = h.get(m.childId);
-        !f?.relationships || !I?.svgGroup || (f.relationships.addAssociation(I, Ze(m)), p.set(a, { parentId: m.parentId, childId: m.childId, parent: f, child: I }));
+      for (const { options: l } of i) {
+        const p = l.id, c = f.get(p);
+        if (!c?.svgGroup) continue;
+        const x = u.get(p) ?? {}, P = c.editor?.isInlineEditing?.();
+        (l.fontSize !== x.fontSize || l.foregroundColor !== x.foregroundColor) && (c.options.fontSize = l.fontSize, c.options.fontColor = l.foregroundColor, c.applyTextStyle?.()), l.text !== x.text && !P && c.setText?.(l.text), (l.width !== x.width || l.height !== x.height) && (l.vectorPath ? (c.options.width = l.width, c.options.height = l.height, c.setShape?.(c.options.shape, l.vectorPath), L(p)?.kind === "column" && c.toBack?.(!1)) : c.setSize?.(l.width, l.height)), l.backgroundColor !== x.backgroundColor && c.setColors?.(l.backgroundColor), (l.borderColor !== x.borderColor || l.borderWidth !== x.borderWidth || l.borderStyle !== x.borderStyle) && (c.options.borderColor = l.borderColor, c.options.borderWidth = l.borderWidth, c.options.borderStyle = l.borderStyle, c.applyBorder?.());
+        const C = l.xPos !== x.xPos || l.yPos !== x.yPos || Math.abs((c.options.x ?? 0) - l.xPos) > 0.5 || Math.abs((c.options.y ?? 0) - l.yPos) > 0.5;
+        if (p !== (s.skip && M(oe.card(s.skip))) && C) {
+          const te = s.animate && !rn() ? 180 : 0, Le = h.includes(c) ? () => {
+            !d && f.get(p) === c && (e.getSelectedNodes?.() ?? []).includes(c) && e.updateSelectionResizeRotate?.();
+          } : void 0;
+          Le && te && h.length === 1 && c.resizeRotate?.disable?.(), c.position(l.xPos, l.yPos, Le, void 0, te);
+        }
+        const O = Me(s.model, p);
+        O && c.svgGroup.node.getAttribute("aria-label") !== O && c.svgGroup.node.setAttribute("aria-label", O);
+        const Z = L(p);
+        if (Z?.kind === "column") {
+          const te = W.get(Z.key);
+          te ? c.svgGroup.node.setAttribute("data-workshop-drop", te) : c.svgGroup.node.removeAttribute("data-workshop-drop");
+        }
+        u.set(p, { ...l });
+      }
+      const I = /* @__PURE__ */ new Map();
+      for (const l of i) for (const p of l.relationships.associations) I.set(p.id, p);
+      for (const [l, p] of [...w])
+        I.has(l) && f.get(p.parentId) === p.parent && f.get(p.childId) === p.child || (p.parent.relationships?.removeAssociation(l), w.delete(l));
+      for (const [l, p] of I) {
+        if (w.has(l)) continue;
+        const c = f.get(p.parentId), x = f.get(p.childId);
+        !c?.relationships || !x?.svgGroup || (c.relationships.addAssociation(x, tn(p)), w.set(l, { parentId: p.parentId, childId: p.childId, parent: c, child: x }));
       }
     }), e.notifyNodeChanged?.();
   }
-  function Ce(l, s) {
-    const g = U(s);
-    if (g?.kind === "lane") {
-      const w = l.lanes.find((v) => v.id === g.key);
-      return w ? `${w.label}, ${ie(l, w.id)}` : null;
+  function Me(i, s) {
+    const m = L(s);
+    if (m?.kind === "lane") {
+      const h = i.lanes.find((I) => I.id === m.key);
+      return h ? `${h.label}, ${re(i, h.id)}` : null;
     }
-    if (g?.kind === "card") {
-      const w = l.cards.find((a) => a.id === g.key), v = w && l.lanes.find((a) => a.id === w.laneId);
-      return w && v ? `${w.label}, in ${v.label}` : null;
+    if (m?.kind === "card") {
+      const h = i.cards.find((l) => l.id === m.key), I = h && i.lanes.find((l) => l.id === h.laneId);
+      return h && I ? `${h.label}, in ${I.label}` : null;
     }
     return null;
   }
-  function Ve(l, s) {
-    const g = ke(l, { native: !0, origin: N, layout: $, style: A }).nodes.find((w) => w.options.id === s)?.options;
-    return g ? { x: g.xPos, y: g.yPos } : null;
+  function Ye(i, s) {
+    const m = Fe(i, { native: !0, origin: E, layout: A, style: F }).nodes.find((h) => h.options.id === s)?.options;
+    return m ? { x: m.xPos, y: m.yPos } : null;
   }
-  function oe() {
-    c && e.cancelGovernedDrag?.("host"), c = null, b && (b = null, R(o.onPreview, null)), K(!1);
+  function ne() {
+    k && e.cancelGovernedDrag?.("host"), k = null, g && (g = null, N(o.onPreview, null)), q(!1);
   }
   return {
     get value() {
       return n;
     },
     get origin() {
-      return { ...N };
+      return { ...E };
     },
     get layout() {
-      return { ...$ };
+      return { ...A };
     },
     get bounds() {
-      const { width: l, height: s } = Y(n, { layout: $ });
-      return { x: N.x, y: N.y, width: l, height: s };
+      const { width: i, height: s } = _(n, { layout: A });
+      return { x: E.x, y: E.y, width: i, height: s };
     },
-    setLayout(l) {
+    setLayout(i) {
       if (d) throw new Error("This workshop has been detached.");
-      const s = l?.lanesPerRow === void 0 ? {} : { lanesPerRow: l.lanesPerRow };
-      Y(n, { layout: s }), s.lanesPerRow !== $.lanesPerRow && (oe(), $ = s, M(r ?? n));
+      const s = i?.lanesPerRow === void 0 ? {} : { lanesPerRow: i.lanesPerRow };
+      _(n, { layout: s }), s.lanesPerRow !== A.lanesPerRow && (ne(), A = s, R(r ?? n));
     },
-    whenDrawn: () => x,
-    update(l) {
+    whenDrawn: () => $,
+    update(i) {
       if (d) throw new Error("This workshop has been detached.");
-      const s = O(l);
-      oe(), n = s, M(r ?? n);
+      const s = D(i);
+      ne(), n = s, R(r ?? n);
     },
-    preview(l) {
+    preview(i) {
       if (d) throw new Error("This workshop has been detached.");
-      const s = l ? O(l) : null;
-      oe(), r = s, M(r ?? n), e.refreshGovernance?.();
+      const s = i ? D(i) : null;
+      ne(), r = s, R(r ?? n), e.refreshGovernance?.();
     },
-    refuse(l, s) {
-      const g = n.lanes.find((w) => w.id === l);
-      d || !g || (K(!1), k = { laneId: l, reason: s, timer: setTimeout(() => K(), 1500) }, Se(), e.announce?.(`${g.label}: ${s}`));
+    refuse(i, s) {
+      const m = n.lanes.find((h) => h.id === i);
+      d || !m || (q(!1), v = { laneId: i, reason: s, timer: setTimeout(() => q(), 1500) }, Ce(), e.announce?.(`${m.label}: ${s}`));
     },
-    setReadOnly(l) {
-      d || i === !!l || (oe(), i = !!l, M(r ?? n), e.refreshGovernance?.());
+    setReadOnly(i) {
+      d || a === !!i || (ne(), a = !!i, R(r ?? n), e.refreshGovernance?.());
     },
     destroy() {
-      d || (oe(), d = !0, e.element?.removeEventListener?.("pointerdown", q, !0), D?.(), e.withPolicyAuthority(() => {
-        for (const [l, s] of p) s.parent.relationships?.removeAssociation(l);
-        for (const [l, s] of h)
-          e.deselectNode?.(s), s.editor?.cancelInline?.(), e.nodes.one(l) === s && e.nodes.remove(l);
-      }), p.clear(), h.clear(), u.clear(), H(), L = !1, ee(), e.notifyNodeChanged?.());
+      d || (ne(), d = !0, e.element?.removeEventListener?.("pointerdown", X, !0), ge?.(), e.withPolicyAuthority(() => {
+        for (const [i, s] of w) s.parent.relationships?.removeAssociation(i);
+        for (const [i, s] of f)
+          e.deselectNode?.(s), s.editor?.cancelInline?.(), e.nodes.one(i) === s && e.nodes.remove(i);
+      }), w.clear(), f.clear(), u.clear(), b.clear(), y.clear(), G(), S = !1, ye(), e.notifyNodeChanged?.());
     }
   };
 }
-function R(e, ...t) {
+function N(e, ...t) {
   try {
     e?.(...t);
   } catch (o) {
     console.error("WORKSHOP: a host callback threw", o);
   }
 }
-function on(e, t) {
+function cn(e, t) {
   return e.kind === t.kind && e.laneId === t.laneId;
 }
-function rn(e) {
-  return new Set(ke(e, { native: !0 }).nodes.map((t) => t.options.id));
-}
-function sn(e) {
+function un(e) {
   const t = e.nodes?.allNodes ?? [];
   if (!t.length) return { x: 40, y: 40 };
   let o = -1 / 0, n = 1 / 0;
@@ -575,37 +584,37 @@ function sn(e) {
     o = Math.max(o, (r.options.x ?? 0) + (r.options.width ?? 0)), n = Math.min(n, r.options.y ?? 0);
   return { x: Math.round(o + 80), y: Math.round(n) };
 }
-function Z(e) {
+function J(e) {
   if (!e || typeof e != "object" || Array.isArray(e)) throw new Error("Expected a workshop object.");
   return e;
 }
-function F(e, t = 80) {
+function B(e, t = 80) {
   if (typeof e != "string" || !e.trim() || e.trim().length > t)
     throw new Error(`Labels must contain 1 to ${t} characters.`);
   if (/[<>\u0000-\u001f]/.test(e)) throw new Error("Use plain text without markup or control characters.");
   return e.trim();
 }
-function ze(e) {
-  const t = Z(e);
+function De(e) {
+  const t = J(e);
   let o;
   try {
-    o = new URL(F(t.src, 2048));
+    o = new URL(B(t.src, 2048));
   } catch {
     throw new Error("Use a full HTTPS address for the image.");
   }
   if (o.protocol !== "https:" || o.username || o.password || o.href.length > 2048)
     throw new Error("Use an HTTPS image address without sign-in details.");
-  return { src: o.href, alt: F(t.alt, 240) };
+  return { src: o.href, alt: B(t.alt, 240) };
 }
-function B(e) {
+function U(e) {
   if (typeof e != "string" || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(e))
     throw new Error("IDs must be short alphanumeric slugs.");
   return e;
 }
-function Q(e, t) {
+function V(e, t) {
   if (new Set(e).size !== e.length) throw new Error(`Duplicate ${t}.`);
 }
-function Fe({ lanes: e, presentationOrder: t }) {
+function Be({ lanes: e, presentationOrder: t }) {
   if (t === void 0) return e.slice();
   if (!Array.isArray(t) || t.length !== e.length || new Set(t).size !== e.length)
     throw new Error("Presentation order must include every lane exactly once.");
@@ -615,119 +624,119 @@ function Fe({ lanes: e, presentationOrder: t }) {
     return n;
   });
 }
-function an(e) {
+function fn(e) {
   return (e.signals ?? []).map((t) => {
     const o = e.cards.some((n) => n.id === t.cardId && n.laneId === t.laneId);
     return { ...t, present: o, text: o ? t.whenPresent : t.whenAbsent };
   });
 }
-const te = (e) => "lane-" + e, j = (e) => "card-" + e, pe = (e) => "image-" + e;
-function An(e) {
-  const t = an(e);
-  return Fe(e).map((o) => {
-    const n = e.cards.filter((d) => d.laneId === o.id), r = t.filter((d) => d.laneId === o.id), i = [te(o.id)];
-    return o.station?.image && i.push(pe(o.id)), { lane: o, cards: n, signals: r, nodeIds: [...i, ...n.map((d) => j(d.id))] };
+const Y = (e) => "lane-" + e, K = (e) => "card-" + e, we = (e) => "image-" + e;
+function Rn(e) {
+  const t = fn(e);
+  return Be(e).map((o) => {
+    const n = e.cards.filter((d) => d.laneId === o.id), r = t.filter((d) => d.laneId === o.id), a = [Y(o.id)];
+    return o.station?.image && a.push(we(o.id)), { lane: o, cards: n, signals: r, nodeIds: [...a, ...n.map((d) => K(d.id))] };
   });
 }
-const He = 5, ln = 24, me = 3;
-function O(e) {
-  const t = Z(e);
+const Ue = 5, hn = 24, ke = 3;
+function D(e) {
+  const t = J(e);
   if (t.version !== 1) throw new Error("Unsupported workshop version.");
   if (t.kind !== void 0 && t.kind !== "release-plan") throw new Error("Unsupported workshop kind.");
-  const o = t.kind === "release-plan", n = F(t.title, 120);
-  if (!Array.isArray(t.lanes) || t.lanes.length < 2 || t.lanes.length > He)
+  const o = t.kind === "release-plan", n = B(t.title, 120);
+  if (!Array.isArray(t.lanes) || t.lanes.length < 2 || t.lanes.length > Ue)
     throw new Error("A workshop needs 2 to 5 lanes.");
-  if (!Array.isArray(t.cards) || t.cards.length > ln)
+  if (!Array.isArray(t.cards) || t.cards.length > hn)
     throw new Error("A workshop supports up to 24 cards.");
   const r = t.lanes.map((u) => {
-    const p = Z(u), y = { id: B(p.id), label: F(p.label) };
-    if (p.capacity !== void 0) {
-      const c = o ? 576 : 24;
-      if (typeof p.capacity != "number" || !Number.isInteger(p.capacity) || p.capacity < 1 || p.capacity > c)
-        throw new Error(`Lane capacity must be a whole number from 1 to ${c}.`);
-      y.capacity = p.capacity;
+    const w = J(u), b = { id: U(w.id), label: B(w.label) };
+    if (w.capacity !== void 0) {
+      const y = o ? 576 : 24;
+      if (typeof w.capacity != "number" || !Number.isInteger(w.capacity) || w.capacity < 1 || w.capacity > y)
+        throw new Error(`Lane capacity must be a whole number from 1 to ${y}.`);
+      b.capacity = w.capacity;
     }
-    if (p.station !== void 0) {
-      const c = Z(p.station), b = (x) => {
-        if (typeof x != "number" || !Number.isInteger(x) || x < 0 || x >= me)
+    if (w.station !== void 0) {
+      const y = J(w.station), k = (v) => {
+        if (typeof v != "number" || !Number.isInteger(v) || v < 0 || v >= ke)
           throw new Error("Use map coordinates from 0 to 2.");
-        return x;
+        return v;
       };
-      if (!Array.isArray(c.next) || c.next.length > 4) throw new Error("A station needs a list of onward stops.");
-      const k = c.next.map(B);
-      Q(k, "onward stop"), y.station = { column: b(c.column), row: b(c.row), next: k, outcome: F(c.outcome, 160) }, c.image !== void 0 && (y.station.image = ze(c.image));
+      if (!Array.isArray(y.next) || y.next.length > 4) throw new Error("A station needs a list of onward stops.");
+      const g = y.next.map(U);
+      V(g, "onward stop"), b.station = { column: k(y.column), row: k(y.row), next: g, outcome: B(y.outcome, 160) }, y.image !== void 0 && (b.station.image = De(y.image));
     }
-    return y;
-  }), i = r.map((u) => u.id);
-  if (Q(i, "lane ID"), (o || r.some((u) => u.station)) && !t.cards.length)
+    return b;
+  }), a = r.map((u) => u.id);
+  if (V(a, "lane ID"), (o || r.some((u) => u.station)) && !t.cards.length)
     throw new Error("Maps and release plans need at least one card.");
   if (r.some((u) => u.station)) {
     if (!r.every((u) => u.station)) throw new Error("Give every station on the map a position.");
-    Q(r.map((u) => u.station.column + "," + u.station.row), "map position");
+    V(r.map((u) => u.station.column + "," + u.station.row), "map position");
     for (const u of r)
-      if (u.station.next.some((p) => p === u.id || !i.includes(p))) throw new Error("Connect each stop to another station on this map.");
+      if (u.station.next.some((w) => w === u.id || !a.includes(w))) throw new Error("Connect each stop to another station on this map.");
   }
   const d = t.cards.map((u) => {
-    const p = Z(u), y = { id: B(p.id), label: F(p.label), laneId: B(p.laneId) };
-    if (!i.includes(y.laneId)) throw new Error("Card refers to an unknown lane.");
-    if (p.allowedLaneIds !== void 0) {
-      if (!Array.isArray(p.allowedLaneIds) || p.allowedLaneIds.length > r.length) throw new Error("Invalid allowed lanes.");
-      if (y.allowedLaneIds = p.allowedLaneIds.map(B), Q(y.allowedLaneIds, "allowed lane"), !y.allowedLaneIds.includes(y.laneId) || !y.allowedLaneIds.every((c) => i.includes(c)))
+    const w = J(u), b = { id: U(w.id), label: B(w.label), laneId: U(w.laneId) };
+    if (!a.includes(b.laneId)) throw new Error("Card refers to an unknown lane.");
+    if (w.allowedLaneIds !== void 0) {
+      if (!Array.isArray(w.allowedLaneIds) || w.allowedLaneIds.length > r.length) throw new Error("Invalid allowed lanes.");
+      if (b.allowedLaneIds = w.allowedLaneIds.map(U), V(b.allowedLaneIds, "allowed lane"), !b.allowedLaneIds.includes(b.laneId) || !b.allowedLaneIds.every((y) => a.includes(y)))
         throw new Error("Allowed lanes must exist and include the starting lane.");
     }
     if (o) {
-      if (typeof p.points != "number" || !Number.isInteger(p.points) || p.points < 1 || p.points > 24)
+      if (typeof w.points != "number" || !Number.isInteger(w.points) || w.points < 1 || w.points > 24)
         throw new Error("Give each feature 1 to 24 effort points.");
-      if (y.points = p.points, p.dependsOn !== void 0) {
-        if (!Array.isArray(p.dependsOn) || p.dependsOn.length > 23) throw new Error("Invalid release dependencies.");
-        y.dependsOn = p.dependsOn.map(B), Q(y.dependsOn, "dependency");
+      if (b.points = w.points, w.dependsOn !== void 0) {
+        if (!Array.isArray(w.dependsOn) || w.dependsOn.length > 23) throw new Error("Invalid release dependencies.");
+        b.dependsOn = w.dependsOn.map(U), V(b.dependsOn, "dependency");
       }
     }
-    return y;
+    return b;
   });
-  Q(d.map((u) => u.id), "card ID");
-  const h = { version: 1, title: n, lanes: r, cards: d };
+  V(d.map((u) => u.id), "card ID");
+  const f = { version: 1, title: n, lanes: r, cards: d };
   if (t.experience !== void 0) {
-    const u = Z(t.experience);
+    const u = J(t.experience);
     if (u.version !== 1 || u.kind !== "customer-interviews" && u.kind !== "experiment-budget")
       throw new Error("Unsupported workshop experience.");
-    h.experience = { version: 1, kind: u.kind };
+    f.experience = { version: 1, kind: u.kind };
   }
   if (t.signals !== void 0) {
     if (!Array.isArray(t.signals) || t.signals.length > 24) throw new Error("A workshop supports up to 24 placement outcomes.");
-    h.signals = t.signals.map((u) => {
-      const p = Z(u), y = B(p.cardId), c = B(p.laneId);
-      if (!d.some((b) => b.id === y) || !i.includes(c))
+    f.signals = t.signals.map((u) => {
+      const w = J(u), b = U(w.cardId), y = U(w.laneId);
+      if (!d.some((k) => k.id === b) || !a.includes(y))
         throw new Error("Each placement outcome must refer to a card and lane on this board.");
       return {
-        id: B(p.id),
-        label: F(p.label),
-        cardId: y,
-        laneId: c,
-        whenPresent: F(p.whenPresent, 160),
-        whenAbsent: F(p.whenAbsent, 160)
+        id: U(w.id),
+        label: B(w.label),
+        cardId: b,
+        laneId: y,
+        whenPresent: B(w.whenPresent, 160),
+        whenAbsent: B(w.whenAbsent, 160)
       };
-    }), Q(h.signals.map((u) => u.id), "placement outcome ID");
+    }), V(f.signals.map((u) => u.id), "placement outcome ID");
   }
   if (t.presentationOrder !== void 0) {
     if (!Array.isArray(t.presentationOrder)) throw new Error("Presentation order must be a list of lane IDs.");
-    h.presentationOrder = Fe({ lanes: r, presentationOrder: t.presentationOrder }).map((u) => u.id);
+    f.presentationOrder = Be({ lanes: r, presentationOrder: t.presentationOrder }).map((u) => u.id);
   }
   if (o)
-    return h.kind = "release-plan", Je(h), h;
+    return f.kind = "release-plan", Xe(f), f;
   for (const u of r)
-    if (d.filter((p) => p.laneId === u.id).length > (u.capacity ?? 1 / 0))
+    if (d.filter((w) => w.laneId === u.id).length > (u.capacity ?? 1 / 0))
       throw new Error(`Lane "${u.label}" exceeds its capacity.`);
-  return h;
+  return f;
 }
-const De = 65536;
-function Mn(e) {
-  const t = JSON.stringify(O(e)), o = "#" + new URLSearchParams({ model: t }).toString();
-  if (o.length > De) throw new Error("This workshop is too large to open from a link.");
+const qe = 65536;
+function On(e) {
+  const t = JSON.stringify(D(e)), o = "#" + new URLSearchParams({ model: t }).toString();
+  if (o.length > qe) throw new Error("This workshop is too large to open from a link.");
   return o;
 }
-function Ln(e) {
-  if (e.length > De) throw new Error("This workshop is too large to open from a link.");
+function Nn(e) {
+  if (e.length > qe) throw new Error("This workshop is too large to open from a link.");
   const t = new URLSearchParams(e.slice(1)), o = t.get("model");
   if (!e.startsWith("#") || !o || Array.from(t.keys()).length !== 1)
     throw new Error("This link needs one workshop model.");
@@ -737,75 +746,75 @@ function Ln(e) {
   } catch {
     throw new Error("This link contains unreadable workshop data.");
   }
-  return O(n);
+  return D(n);
 }
-function ue(e, t) {
-  if (e.kind === "release-plan") return e.lanes.filter((n) => he(e, t, n.id) !== null);
+function fe(e, t) {
+  if (e.kind === "release-plan") return e.lanes.filter((n) => pe(e, t, n.id) !== null);
   const o = e.lanes.find((n) => n.id === t.laneId)?.station;
   return e.lanes.filter((n) => n.id === t.laneId || (!o || o.next.includes(n.id)) && (!t.allowedLaneIds || t.allowedLaneIds.includes(n.id)) && e.cards.filter((r) => r.laneId === n.id).length < (n.capacity ?? 1 / 0));
 }
-function ge(e, t, o) {
+function be(e, t, o) {
   const n = e.cards.find((r) => r.id === t);
   if (n && e.kind === "release-plan") {
-    const r = he(e, n, o);
+    const r = pe(e, n, o);
     if (!r) throw new Error("Move is unavailable.");
     return r;
   }
-  if (!n || !ue(e, n).some((r) => r.id === o)) throw new Error("Move is unavailable.");
+  if (!n || !fe(e, n).some((r) => r.id === o)) throw new Error("Move is unavailable.");
   return n.laneId === o ? e : { ...e, cards: e.cards.map((r) => r === n ? { ...n, laneId: o } : r) };
 }
-function fe(e, t, o) {
-  const n = e.cards.find((i) => i.id === t);
-  if (!n || !e.lanes.some((i) => i.id === o)) return null;
+function he(e, t, o) {
+  const n = e.cards.find((a) => a.id === t);
+  if (!n || !e.lanes.some((a) => a.id === o)) return null;
   if (n.laneId === o) return e;
-  if (e.kind === "release-plan") return he(e, n, o);
-  const r = fn(e, t, o);
-  return r || (o === "prototype" && xe(e) === "customer-interviews" ? null : ue(e, n).some((i) => i.id === o) ? ge(e, t, o) : null);
+  if (e.kind === "release-plan") return pe(e, n, o);
+  const r = gn(e, t, o);
+  return r || (o === "prototype" && Pe(e) === "customer-interviews" ? null : fe(e, n).some((a) => a.id === o) ? be(e, t, o) : null);
 }
-function Me(e, t) {
-  return e.lanes.filter((o) => fe(e, t, o.id) !== null);
+function We(e, t) {
+  return e.lanes.filter((o) => he(e, t, o.id) !== null);
 }
-function Le(e, t, o) {
-  if (fe(e, t, o) !== null) return null;
+function Re(e, t, o) {
+  if (he(e, t, o) !== null) return null;
   const n = e.cards.find((u) => u.id === t), r = e.lanes.find((u) => u.id === o);
   if (!n || !r) return "That move is not available.";
-  const i = `This card can't go in ${r.label}.`;
-  if (n.allowedLaneIds && !n.allowedLaneIds.includes(o)) return i;
+  const a = `This card can't go in ${r.label}.`;
+  if (n.allowedLaneIds && !n.allowedLaneIds.includes(o)) return a;
   if (e.kind === "release-plan") {
-    if (r.capacity === void 0) return i;
-    const u = X(e, o), p = { ...e, lanes: e.lanes.map((c) => c === r ? { id: r.id, label: r.label } : c) }, y = he(p, n, o);
-    return y ? `Needs ${X(y, o) - u} points. Now holds ${u} of ${r.capacity} points.` : i;
+    if (r.capacity === void 0) return a;
+    const u = Q(e, o), w = { ...e, lanes: e.lanes.map((y) => y === r ? { id: r.id, label: r.label } : y) }, b = pe(w, n, o);
+    return b ? `Needs ${Q(b, o) - u} points. Now holds ${u} of ${r.capacity} points.` : a;
   }
   const d = e.lanes.find((u) => u.id === n.laneId);
   if (d?.station && !d.station.next.includes(o)) return `${r.label} can't be reached from ${d.label}.`;
-  const h = e.cards.filter((u) => u.laneId === o).length;
-  return r.capacity !== void 0 && h >= r.capacity ? `Now holds ${h} of ${r.capacity} ${r.capacity === 1 ? "card" : "cards"}.` : i;
+  const f = e.cards.filter((u) => u.laneId === o).length;
+  return r.capacity !== void 0 && f >= r.capacity ? `Now holds ${f} of ${r.capacity} ${r.capacity === 1 ? "card" : "cards"}.` : a;
 }
-function ie(e, t) {
-  const o = e.lanes.find((i) => i.id === t);
+function re(e, t) {
+  const o = e.lanes.find((a) => a.id === t);
   if (!o) return "";
   if (e.kind === "release-plan") {
-    const i = X(e, t);
-    return o.capacity ? i + " / " + o.capacity + " points" : i + " points";
+    const a = Q(e, t);
+    return o.capacity ? a + " / " + o.capacity + " points" : a + " points";
   }
-  const n = hn(e, t);
+  const n = yn(e, t);
   if (n) return "$" + n.amount + " · " + n.description;
-  const r = e.cards.filter((i) => i.laneId === t).length;
+  const r = e.cards.filter((a) => a.laneId === t).length;
   return o.capacity !== void 0 ? r + " of " + o.capacity : r + (r === 1 ? " card" : " cards");
 }
-const we = { pitch: 244, width: 228, row: 88, height: 76, top: 98 }, ce = ["#d5e9e3", "#fbdfac", "#dedef4", "#dcebf3", "#efd7dc"];
-function Ge(e, t = we, o = 28) {
-  const { pitch: n, row: r, top: i } = t, d = !!e.lanes[0].station, h = e.lanes.map((y) => e.cards.filter((c) => c.laneId === y.id).length), u = i + Math.max(1, ...h) * r + 36, p = e.lanes.map((y, c) => ({
-    x: d ? y.station.column * (n + o) : c * n,
-    y: d ? y.station.row * u : 0
+const me = { pitch: 244, width: 228, row: 88, height: 76, top: 98 }, ue = ["#d5e9e3", "#fbdfac", "#dedef4", "#dcebf3", "#efd7dc"];
+function Ke(e, t = me, o = 28) {
+  const { pitch: n, row: r, top: a } = t, d = !!e.lanes[0].station, f = e.lanes.map((b) => e.cards.filter((y) => y.laneId === b.id).length), u = a + Math.max(1, ...f) * r + 36, w = e.lanes.map((b, y) => ({
+    x: d ? b.station.column * (n + o) : y * n,
+    y: d ? b.station.row * u : 0
   }));
   return {
-    points: p,
-    width: Math.max(...p.map((y) => y.x)) + n,
-    height: Math.max(...p.map((y, c) => y.y + i + (d ? Math.max(1, h[c]) : h[c] + 1) * r))
+    points: w,
+    width: Math.max(...w.map((b) => b.x)) + n,
+    height: Math.max(...w.map((b, y) => b.y + a + (d ? Math.max(1, f[y]) : f[y] + 1) * r))
   };
 }
-function Tn() {
+function zn() {
   return {
     version: 1,
     title: "Untitled workshop",
@@ -813,31 +822,31 @@ function Tn() {
     cards: []
   };
 }
-function ve(e, t) {
+function xe(e, t) {
   const o = new Set([...e.lanes, ...e.cards, ...e.signals ?? []].map((r) => r.id));
   let n = 1;
   for (; o.has(t + "-" + n); ) n++;
   return t + "-" + n;
 }
-function Ue(e) {
-  const t = O(e);
+function je(e) {
+  const t = D(e);
   if (t.kind || t.lanes[0].station) throw new Error("Choose a lane workshop to add lanes or cards.");
   return t;
 }
-function Wn(e, t) {
-  const o = Ue(e), n = ve(o, "lane");
-  return o.lanes.push({ id: n, label: t.label, ...t.capacity === void 0 ? {} : { capacity: t.capacity } }), o.presentationOrder?.push(n), O(o);
+function Fn(e, t) {
+  const o = je(e), n = xe(o, "lane");
+  return o.lanes.push({ id: n, label: t.label, ...t.capacity === void 0 ? {} : { capacity: t.capacity } }), o.presentationOrder?.push(n), D(o);
 }
-function Rn(e, t, o) {
-  const n = Ue(e);
+function Hn(e, t, o) {
+  const n = je(e);
   return n.cards.push({
-    id: ve(n, "card"),
+    id: xe(n, "card"),
     label: o.label,
     laneId: t,
     ...o.allowedLaneIds === void 0 ? {} : { allowedLaneIds: o.allowedLaneIds }
-  }), O(n);
+  }), D(n);
 }
-function Nn() {
+function Gn() {
   return {
     version: 1,
     title: "Untitled map",
@@ -848,24 +857,24 @@ function Nn() {
     cards: [{ id: "token", label: "Token", laneId: "start" }]
   };
 }
-function On(e, t, o) {
-  const n = O(e);
+function Dn(e, t, o) {
+  const n = D(e);
   if (n.kind || !n.lanes[0].station) throw new Error("Add branches to an interactive map.");
-  const r = n.lanes.find((y) => y.id === t);
+  const r = n.lanes.find((b) => b.id === t);
   if (!r?.station) throw new Error("Choose a station on this map.");
-  if (n.lanes.length >= He) throw new Error("A map can have up to five stations.");
-  const i = F(o?.label), d = F(o?.outcome, 160), h = ve(n, "station");
-  let u, p = 1 / 0;
-  for (let y = 0; y < me; y++)
-    for (let c = 0; c < me; c++) {
-      if (n.lanes.some((k) => k.station.column === c && k.station.row === y)) continue;
-      const b = Math.abs(r.station.column - c) + Math.abs(r.station.row - y);
-      b < p && (p = b, u = { column: c, row: y });
+  if (n.lanes.length >= Ue) throw new Error("A map can have up to five stations.");
+  const a = B(o?.label), d = B(o?.outcome, 160), f = xe(n, "station");
+  let u, w = 1 / 0;
+  for (let b = 0; b < ke; b++)
+    for (let y = 0; y < ke; y++) {
+      if (n.lanes.some((g) => g.station.column === y && g.station.row === b)) continue;
+      const k = Math.abs(r.station.column - y) + Math.abs(r.station.row - b);
+      k < w && (w = k, u = { column: y, row: b });
     }
   if (!u) throw new Error("There is no free station position.");
-  return r.station.next.push(h), n.lanes.push({ id: h, label: i, station: { ...u, next: [], outcome: d, ...o.image === void 0 ? {} : { image: ze(o.image) } } }), n.presentationOrder?.push(h), n;
+  return r.station.next.push(f), n.lanes.push({ id: f, label: a, station: { ...u, next: [], outcome: d, ...o.image === void 0 ? {} : { image: De(o.image) } } }), n.presentationOrder?.push(f), n;
 }
-const zn = {
+const Bn = {
   version: 1,
   title: "Can the last train meet the shuttle?",
   lanes: [
@@ -875,134 +884,139 @@ const zn = {
     { id: "shuttle", label: "Shuttle · Bay B", station: { column: 1, row: 1, next: [], outcome: "The rider makes the connection. Run it again to try the other exit." } }
   ],
   cards: [{ id: "rider", label: "Last rider", laneId: "platform" }]
-}, Be = (e) => "caption-" + e, se = (e) => "column-" + e, re = { lane: te, card: j, image: pe, caption: Be, column: se };
-function Te(e, t, o) {
-  const n = Math.max(0, Math.min(o, e / 2, t / 2)), r = e, i = t;
-  return n ? `M ${n} 0 H ${r - n} Q ${r} 0 ${r} ${n} V ${i - n} Q ${r} ${i} ${r - n} ${i} H ${n} Q 0 ${i} 0 ${i - n} V ${n} Q 0 0 ${n} 0 Z` : `M 0 0 H ${r} V ${i} H 0 Z`;
+}, Ve = (e) => "caption-" + e, ie = (e) => "column-" + e, oe = { lane: Y, card: K, image: we, caption: Ve, column: ie };
+function Je(e, t) {
+  let o = 2;
+  for (; t(`${e}--${o}`); ) o++;
+  return `${e}--${o}`;
 }
-function We(e, t) {
+function Oe(e, t, o) {
+  const n = Math.max(0, Math.min(o, e / 2, t / 2)), r = e, a = t;
+  return n ? `M ${n} 0 H ${r - n} Q ${r} 0 ${r} ${n} V ${a - n} Q ${r} ${a} ${r - n} ${a} H ${n} Q 0 ${a} 0 ${a - n} V ${n} Q 0 0 ${n} 0 Z` : `M 0 0 H ${r} V ${a} H 0 Z`;
+}
+function Ne(e, t) {
   const o = (n) => Math.round(parseInt(e.slice(n, n + 2), 16) * (1 - t) + 255 * t).toString(16).padStart(2, "0");
   return "#" + o(1) + o(3) + o(5);
 }
-function Re(e, t, o, n) {
+function ze(e, t, o, n) {
   for (let r = t; r > 11; r--) {
-    const i = Math.max(1, Math.floor(o / (r * 0.55)));
+    const a = Math.max(1, Math.floor(o / (r * 0.55)));
     if (e.split(`
-`).reduce((h, u) => h + Math.max(1, Math.ceil(u.length / i)), 0) * r * 1.3 <= n) return r;
+`).reduce((f, u) => f + Math.max(1, Math.ceil(u.length / a)), 0) * r * 1.3 <= n) return r;
   }
   return Math.min(t, 11);
 }
-const qe = 152, ye = qe + 12, dn = 12;
-function cn(e, t) {
+const _e = 152, Ie = _e + 12, pn = 12;
+function wn(e, t) {
   const o = e?.lanesPerRow;
   if (o === void 0) return t;
   if (typeof o != "number" || !Number.isInteger(o) || o < 1) throw new Error("lanesPerRow must be a whole number, 1 or more.");
   return Math.min(o, t);
 }
-function Y(e, t = {}) {
-  const o = O(e), { pitch: n, row: r, top: i } = we, d = o.lanes.map((b) => o.cards.filter((k) => k.laneId === b.id).length), h = (b) => Math.max(d[b], (Array.isArray(t.rows) ? t.rows[b] : t.rows) ?? 0), u = !!o.lanes[0].station, p = o.lanes.some((b) => b.station?.image), y = cn(t.layout, o.lanes.length), c = [];
+function _(e, t = {}) {
+  const o = D(e), { pitch: n, row: r, top: a } = me, d = o.lanes.map((k) => o.cards.filter((g) => g.laneId === k.id).length), f = (k) => Math.max(d[k], (Array.isArray(t.rows) ? t.rows[k] : t.rows) ?? 0), u = !!o.lanes[0].station, w = o.lanes.some((k) => k.station?.image), b = wn(t.layout, o.lanes.length), y = [];
   if (u) {
-    const { points: b } = Ge(o);
-    o.lanes.forEach((k, x) => c.push({
-      laneId: k.id,
-      x: b[x].x,
-      y: b[x].y + (p ? k.station.row * ye : 0),
+    const { points: k } = Ke(o);
+    o.lanes.forEach((g, v) => y.push({
+      laneId: g.id,
+      x: k[v].x,
+      y: k[v].y + (w ? g.station.row * Ie : 0),
       width: n,
-      height: i + (k.station.image ? ye : 0) + Math.max(1, d[x]) * r,
-      column: k.station.column,
-      row: k.station.row
+      height: a + (g.station.image ? Ie : 0) + Math.max(1, d[v]) * r,
+      column: g.station.column,
+      row: g.station.row
     }));
   } else {
-    let b = 0;
-    for (let k = 0; k < o.lanes.length; k += y) {
-      const x = o.lanes.slice(k, k + y), C = i + (Math.max(...x.map(($, A) => h(k + A))) + 1) * r;
-      x.forEach(($, A) => c.push({ laneId: $.id, x: A * n, y: b, width: n, height: C, column: A, row: k / y })), b += C + dn;
+    let k = 0;
+    for (let g = 0; g < o.lanes.length; g += b) {
+      const v = o.lanes.slice(g, g + b), $ = a + (Math.max(...v.map((T, A) => f(g + A))) + 1) * r;
+      v.forEach((T, A) => y.push({ laneId: T.id, x: A * n, y: k, width: n, height: $, column: A, row: g / b })), k += $ + pn;
     }
   }
-  return { places: c, width: Math.max(...c.map((b) => b.x + b.width)), height: Math.max(...c.map((b) => b.y + b.height)) };
+  return { places: y, width: Math.max(...y.map((k) => k.x + k.width)), height: Math.max(...y.map((k) => k.y + k.height)) };
 }
-function un(e, t) {
-  const { pitch: o, width: n, row: r, height: i, top: d } = we, h = t.origin ?? { x: 0, y: 0 }, u = !!e.lanes[0].station, { places: p } = Y(e, t), y = t.style ?? {}, c = y.textColor ?? de.fontColor, b = y.borderColor ?? de.borderColor, k = y.borderWidth ?? de.borderWidth, x = y.cornerRadius ?? 0, C = y.fontSize ?? de.fontSize, $ = y.laneFontSize ?? C + 2, A = y.captionFontSize ?? Math.max(11, C - 1), z = [], L = (S) => {
-    const T = { options: {
+function mn(e, t) {
+  const { pitch: o, width: n, row: r, height: a, top: d } = me, f = t.origin ?? { x: 0, y: 0 }, u = !!e.lanes[0].station, { places: w } = _(e, t), b = t.style ?? {}, y = b.textColor ?? ce.fontColor, k = b.borderColor ?? ce.borderColor, g = b.borderWidth ?? ce.borderWidth, v = b.cornerRadius ?? 0, $ = b.fontSize ?? ce.fontSize, T = b.laneFontSize ?? $ + 2, A = b.captionFontSize ?? Math.max(11, $ - 1), F = [], W = (S) => {
+    const E = { options: {
       shapeHint: "rectangle",
-      vectorPath: Te(S.width, S.height, x),
-      foregroundColor: c,
-      borderColor: b,
-      borderWidth: k,
-      ...y.fontFamily ? { fontFamily: y.fontFamily } : {},
+      vectorPath: Oe(S.width, S.height, v),
+      foregroundColor: y,
+      borderColor: k,
+      borderWidth: g,
+      ...b.fontFamily ? { fontFamily: b.fontFamily } : {},
       ...S
     }, relationships: { associations: [] } };
-    return z.push(T), T;
+    return F.push(E), E;
   };
-  e.lanes.forEach((S, T) => {
-    const H = p[T], D = h.x + H.x, q = h.y + H.y, V = S.station?.image;
-    L({
-      id: se(S.id),
+  e.lanes.forEach((S, E) => {
+    const H = w[E], L = f.x + H.x, M = f.y + H.y, z = S.station?.image;
+    W({
+      id: ie(S.id),
       text: "",
       name: S.label,
-      xPos: D + 2,
-      yPos: q,
+      xPos: L + 2,
+      yPos: M,
       width: o - 4,
       height: H.height,
-      vectorPath: Te(o - 4, H.height, x ? x + 2 : 0),
-      backgroundColor: u ? "#fcf9ed" : We(ce[T], 0.6),
-      borderColor: u ? "#a8b5aa" : We(ce[T], 0.1),
+      vectorPath: Oe(o - 4, H.height, v ? v + 2 : 0),
+      backgroundColor: u ? "#fcf9ed" : Ne(ue[E], 0.6),
+      borderColor: u ? "#a8b5aa" : Ne(ue[E], 0.1),
       borderWidth: 1,
       ...u ? { borderStyle: "dashed" } : {}
-    }), L({
-      id: te(S.id),
+    }), W({
+      id: Y(S.id),
       text: S.label,
       name: S.label,
-      xPos: D + 8,
-      yPos: q + 6,
+      xPos: L + 8,
+      yPos: M + 6,
       width: n,
       height: 58,
-      backgroundColor: ce[T],
-      fontSize: Re(S.label, $, n - 16, 50)
-    }), L({
-      id: Be(S.id),
-      text: ie(e, S.id),
+      backgroundColor: ue[E],
+      fontSize: ze(S.label, T, n - 16, 50)
+    }), W({
+      id: Ve(S.id),
+      text: re(e, S.id),
       name: S.label,
-      xPos: D + 8,
-      yPos: q + 66,
+      xPos: L + 8,
+      yPos: M + 66,
       width: n,
       height: 30,
       backgroundColor: "transparent",
       borderWidth: 0,
       fontSize: A
-    }), V && z.push({ options: {
-      id: pe(S.id),
-      name: V.alt,
+    }), z && F.push({ options: {
+      id: we(S.id),
+      name: z.alt,
       text: "",
-      xPos: D + 8,
-      yPos: q + d,
+      xPos: L + 8,
+      yPos: M + d,
       width: n,
-      height: qe,
+      height: _e,
       shapeHint: "rectangle",
-      image: V.src,
+      image: z.src,
       borderWidth: 0
-    }, relationships: { associations: [] } }), e.cards.filter((G) => G.laneId === S.id).forEach((G, ae) => {
-      const J = e.kind === "release-plan" ? G.label + `
-` + G.points + " points" : G.label, ee = u ? n - 20 : n, _ = u ? i - 6 : i;
-      L({
-        id: j(G.id),
-        text: J,
+    }, relationships: { associations: [] } }), e.cards.filter((G) => G.laneId === S.id).forEach((G, ge) => {
+      const X = e.kind === "release-plan" ? G.label + `
+` + G.points + " points" : G.label, ee = u ? n - 20 : n, se = u ? a - 6 : a;
+      W({
+        id: K(G.id),
+        text: X,
         name: G.label,
-        xPos: D + (u ? 18 : 8),
-        yPos: q + d + (V ? ye : 0) + ae * r,
+        xPos: L + (u ? 18 : 8),
+        yPos: M + d + (z ? Ie : 0) + ge * r,
         width: ee,
-        height: _,
+        height: se,
         backgroundColor: u ? "#ffda75" : "#fffdf6",
-        fontSize: Re(J, C, ee - 16, _ - 8)
+        fontSize: ze(X, $, ee - 16, se - 8)
       });
     });
   });
-  const N = new Map(z.map((S) => [S.options.id, S]));
+  const j = new Map(F.map((S) => [S.options.id, S]));
   for (const S of e.lanes)
-    S.station && (N.get(se(S.id)).relationships.associations = S.station.next.map((T) => ({
-      id: S.id + "-to-" + T,
-      parentId: se(S.id),
-      childId: se(T),
+    S.station && (j.get(ie(S.id)).relationships.associations = S.station.next.map((E) => ({
+      id: S.id + "-to-" + E,
+      parentId: ie(S.id),
+      childId: ie(E),
       lineType: "straight",
       lineColor: "#506b61",
       lineWidth: 2,
@@ -1010,73 +1024,87 @@ function un(e, t) {
     })));
   if (e.kind === "release-plan")
     for (const S of e.cards)
-      for (const T of S.dependsOn ?? []) {
-        const H = j(T), D = j(S.id);
-        N.get(H).relationships.associations.push({
-          id: `dependency-${T.length}-${T}-${S.id}`,
+      for (const E of S.dependsOn ?? []) {
+        const H = K(E), L = K(S.id);
+        j.get(H).relationships.associations.push({
+          id: `dependency-${E.length}-${E}-${S.id}`,
           parentId: H,
-          childId: D,
+          childId: L,
           lineType: "straight",
           lineColor: "#566a67",
           lineWidth: 2,
           showChildArrow: !0
         });
       }
-  return { options: { name: e.title }, shareId: "", nodes: z };
+  if (t.beside) {
+    const S = new Set(t.beside), E = new Set(F.map((M) => M.options.id)), H = /* @__PURE__ */ new Map();
+    for (const M of [...E]) {
+      if (!S.has(M)) continue;
+      const z = Je(M, (G) => S.has(G) || E.has(G));
+      E.add(z), H.set(M, z);
+    }
+    const L = (M) => H.get(M) ?? M;
+    for (const M of F) {
+      M.options.id = L(M.options.id);
+      for (const z of M.relationships.associations)
+        z.parentId = L(z.parentId), z.childId = L(z.childId);
+    }
+  }
+  return { options: { name: e.title }, shareId: "", nodes: F };
 }
-function ke(e, t) {
-  const o = O(e);
-  if (t?.native) return un(o, t);
-  const { width: n, row: r, height: i, top: d } = we, h = [];
-  function u(k, x, C, $, A, z) {
-    h.push({ options: {
-      id: k,
-      text: x,
-      name: x,
-      xPos: C,
-      yPos: $,
+function Fe(e, t) {
+  const o = D(e);
+  if (t?.native) return mn(o, t);
+  const { width: n, row: r, height: a, top: d } = me, f = [];
+  function u(g, v, $, T, A, F) {
+    f.push({ options: {
+      id: g,
+      text: v,
+      name: v,
+      xPos: $,
+      yPos: T,
       width: n,
       height: A,
       shapeHint: "rectangle",
-      backgroundColor: z,
+      backgroundColor: F,
       foregroundColor: "#18302d",
       fontSize: 18,
       borderColor: "#667872",
       borderWidth: 1
     }, relationships: { associations: [] } });
   }
-  const { points: p } = Ge(o), y = 152, c = y + 12, b = o.lanes.some((k) => k.station?.image);
-  o.lanes.forEach((k, x) => {
-    const C = p[x].x, $ = p[x].y + (b ? (k.station?.row ?? 0) * c : 0), A = k.station?.image, z = o.kind === "release-plan" ? k.label + `
-` + (k.capacity ? X(o, k.id) + " / " + k.capacity + " points" : X(o, k.id) + " points") : k.label;
-    u(te(k.id), z, C, $, d - 12, ce[x]), A && h.push({ options: {
-      id: pe(k.id),
+  const { points: w } = Ke(o), b = 152, y = b + 12, k = o.lanes.some((g) => g.station?.image);
+  o.lanes.forEach((g, v) => {
+    const $ = w[v].x, T = w[v].y + (k ? (g.station?.row ?? 0) * y : 0), A = g.station?.image, F = o.kind === "release-plan" ? g.label + `
+` + (g.capacity ? Q(o, g.id) + " / " + g.capacity + " points" : Q(o, g.id) + " points") : g.label;
+    u(Y(g.id), F, $, T, d - 12, ue[v]), A && f.push({ options: {
+      id: we(g.id),
       name: A.alt,
       text: "",
-      xPos: C,
-      yPos: $ + d,
+      xPos: $,
+      yPos: T + d,
       width: n,
-      height: y,
+      height: b,
       shapeHint: "rectangle",
       image: A.src,
       borderWidth: 0
-    }, relationships: { associations: [] } }), o.cards.filter((L) => L.laneId === k.id).forEach((L, N) => u(j(L.id), o.kind === "release-plan" ? L.label + `
-` + L.points + " points" : L.label, C, $ + d + (A ? c : 0) + N * r, i, "#fffdf6"));
+    }, relationships: { associations: [] } }), o.cards.filter((W) => W.laneId === g.id).forEach((W, j) => u(K(W.id), o.kind === "release-plan" ? W.label + `
+` + W.points + " points" : W.label, $, T + d + (A ? y : 0) + j * r, a, "#fffdf6"));
   });
-  for (const k of o.lanes) {
-    if (!k.station) continue;
-    const x = h.find((C) => C.options.id === te(k.id));
-    x.relationships.associations = k.station.next.map((C) => ({ id: k.id + "-to-" + C, parentId: x.options.id, childId: te(C), lineType: "straight", lineColor: "#506b61", lineWidth: 2, showChildArrow: !0 })), x.options.text = k.label + `
-` + k.station.outcome, x.options.fontSize = 13;
+  for (const g of o.lanes) {
+    if (!g.station) continue;
+    const v = f.find(($) => $.options.id === Y(g.id));
+    v.relationships.associations = g.station.next.map(($) => ({ id: g.id + "-to-" + $, parentId: v.options.id, childId: Y($), lineType: "straight", lineColor: "#506b61", lineWidth: 2, showChildArrow: !0 })), v.options.text = g.label + `
+` + g.station.outcome, v.options.fontSize = 13;
   }
   if (o.kind === "release-plan") {
-    const k = new Map(h.map((x) => [x.options.id, x]));
-    for (const x of o.cards)
-      for (const C of x.dependsOn ?? []) {
-        const $ = j(C), A = j(x.id);
-        k.get($).relationships.associations.push({
-          id: `dependency-${C.length}-${C}-${x.id}`,
-          parentId: $,
+    const g = new Map(f.map((v) => [v.options.id, v]));
+    for (const v of o.cards)
+      for (const $ of v.dependsOn ?? []) {
+        const T = K($), A = K(v.id);
+        g.get(T).relationships.associations.push({
+          id: `dependency-${$.length}-${$}-${v.id}`,
+          parentId: T,
           childId: A,
           lineType: "straight",
           lineColor: "#566a67",
@@ -1085,9 +1113,9 @@ function ke(e, t) {
         });
       }
   }
-  return { options: { name: o.title }, shareId: "", nodes: h };
+  return { options: { name: o.title }, shareId: "", nodes: f };
 }
-const Fn = {
+const Un = {
   version: 1,
   title: "Which field trials should run before the winter shutdown?",
   lanes: [
@@ -1101,112 +1129,113 @@ const Fn = {
     { id: "cooling", label: "Measure cooling losses at shift change", laneId: "evidence", allowedLaneIds: ["evidence", "pilot"] },
     { id: "training", label: "Rehearse the overnight restart", laneId: "pilot" }
   ]
-}, be = [
+}, ve = [
   { id: "preview", who: "Jo · agency owner", quote: "“Will this email every client on my list?”", action: "Show a ten-row preview", signal: "Mara will test whether Jo can import a list without contacting a client." },
   { id: "duplicate", who: "Bea · studio manager", quote: "“I already added half these clients by hand.”", action: "Review matching clients", signal: "Imani will test whether Bea can keep the existing client and skip its duplicate." },
   { id: "undo", who: "Sam · founder", quote: "“I’d try it if I could take the whole import back.”", action: "Undo the last import", signal: "Dev will test whether Sam can restore the original list without support." }
-], Ie = [
+], Se = [
   { id: "calls", label: "Customer calls", unit: "customer calls", single: "customer call", per: 4, rate: "$50 per call" },
   { id: "newsletter", label: "Partner newsletter", unit: "placements", single: "placement", per: 1, rate: "$200 per placement" },
   { id: "pilot", label: "Concierge onboarding", unit: "assisted imports", single: "assisted import", per: 2, rate: "$100 per import" }
 ];
-function Hn() {
+function qn() {
   return {
     version: 1,
     experience: { version: 1, kind: "customer-interviews" },
     title: "Design partner interviews · first client import",
     lanes: [{ id: "interviews", label: "Customer interviews" }, { id: "prototype", label: "Prototype to test", capacity: 1 }],
     presentationOrder: ["prototype", "interviews"],
-    cards: be.map(({ id: e, who: t, quote: o }) => ({ id: e, label: t + " · " + o, laneId: e === "preview" ? "prototype" : "interviews" })),
-    signals: be.map(({ id: e, action: t, signal: o }) => ({ id: "test-" + e, label: t, cardId: e, laneId: "prototype", whenPresent: o, whenAbsent: "Still in the interview notes." }))
+    cards: ve.map(({ id: e, who: t, quote: o }) => ({ id: e, label: t + " · " + o, laneId: e === "preview" ? "prototype" : "interviews" })),
+    signals: ve.map(({ id: e, action: t, signal: o }) => ({ id: "test-" + e, label: t, cardId: e, laneId: "prototype", whenPresent: o, whenAbsent: "Still in the interview notes." }))
   };
 }
-function Dn() {
+function Kn() {
   return {
     version: 1,
     experience: { version: 1, kind: "experiment-budget" },
     title: "Design partner pilot · $600 launch budget",
-    lanes: [{ id: "reserve", label: "Unallocated" }, ...Ie.map(({ id: e, label: t, rate: o }) => ({ id: e, label: t + " · " + o }))],
+    lanes: [{ id: "reserve", label: "Unallocated" }, ...Se.map(({ id: e, label: t, rate: o }) => ({ id: e, label: t + " · " + o }))],
     cards: ["First", "Second", "Third"].map((e, t) => ({ id: "fund-" + t, label: e + " $200", laneId: t === 0 ? "calls" : "reserve" })),
     presentationOrder: ["calls", "newsletter", "pilot", "reserve"]
   };
 }
-function xe(e) {
+function Pe(e) {
   if (e.experience?.version !== 1 || e.kind || e.lanes.some((n) => n.station)) return;
-  const t = e.experience.kind, o = t === "customer-interviews" ? ["interviews", "prototype"] : ["reserve", ...Ie.map((n) => n.id)];
-  if (!(e.lanes.length !== o.length || !e.lanes.every((n) => o.includes(n.id))) && !(t === "customer-interviews" && (!e.cards.every((n) => be.some((r) => r.id === n.id)) || e.cards.filter((n) => n.laneId === "prototype").length > 1)))
+  const t = e.experience.kind, o = t === "customer-interviews" ? ["interviews", "prototype"] : ["reserve", ...Se.map((n) => n.id)];
+  if (!(e.lanes.length !== o.length || !e.lanes.every((n) => o.includes(n.id))) && !(t === "customer-interviews" && (!e.cards.every((n) => ve.some((r) => r.id === n.id)) || e.cards.filter((n) => n.laneId === "prototype").length > 1)))
     return t;
 }
-function fn(e, t, o) {
-  const n = xe(e), r = e.cards.find((d) => d.id === t);
+function gn(e, t, o) {
+  const n = Pe(e), r = e.cards.find((d) => d.id === t);
   if (!n || !r || r.laneId === o) return null;
-  let i = e;
+  let a = e;
   if (n === "customer-interviews") {
     if (o !== "prototype") return null;
-    const d = e.cards.find((h) => h.laneId === o);
+    const d = e.cards.find((f) => f.laneId === o);
     if (d) {
-      if (!ue(e, d).some((h) => h.id === "interviews")) return null;
-      i = ge(e, d.id, "interviews");
+      if (!fe(e, d).some((f) => f.id === "interviews")) return null;
+      a = be(e, d.id, "interviews");
     }
   }
-  return ue(i, r).some((d) => d.id === o) ? ge(i, t, o) : null;
+  return fe(a, r).some((d) => d.id === o) ? be(a, t, o) : null;
 }
-function hn(e, t) {
-  if (xe(e) !== "experiment-budget") return null;
-  const o = Ie.find((i) => i.id === t), n = e.cards.filter((i) => i.laneId === t).length, r = n * (o?.per ?? 0);
+function yn(e, t) {
+  if (Pe(e) !== "experiment-budget") return null;
+  const o = Se.find((a) => a.id === t), n = e.cards.filter((a) => a.laneId === t).length, r = n * (o?.per ?? 0);
   return { amount: n * 200, description: o ? r + " " + (r === 1 ? o.single : o.unit) : "unallocated" };
 }
 export {
-  On as addWorkshopBranch,
-  Rn as addWorkshopCard,
-  Wn as addWorkshopLane,
-  $n as attachWorkshop,
-  ue as availableLanes,
-  _e as canHangPanel,
-  Ie as channels,
-  Dn as createBudgetWorkshop,
-  Hn as createInterviewWorkshop,
-  Tn as createLaneWorkshop,
-  Nn as createWorkshopMap,
-  Ln as decodeWorkshopFragment,
-  Cn as describeFocusDarkroom,
-  Mn as encodeWorkshopFragment,
-  yn as handoffSummary,
-  Sn as hangGalleryPanel,
-  Fn as industrialWorkshop,
-  En as initialFocusDarkroom,
-  be as interviews,
-  ce as laneColors,
-  le as listeningRoom,
-  bn as listeningRoomCaption,
-  ln as maxWorkshopCards,
-  In as moonGallery,
-  ge as moveWorkshopCard,
-  zn as nightTransfer,
-  Pn as normalizeFocusDarkroom,
-  kn as normalizeListeningRoom,
-  xn as normalizeMoonGallery,
-  wn as normalizeOfflineHandoff,
-  pn as offlineHandoff,
-  fn as planStartupMove,
-  Ne as printFields,
-  X as releaseLoad,
-  vn as releasePlan,
-  gn as resolveHandoff,
-  an as resolveWorkshopSignals,
-  mn as reviewHandoff,
-  xe as startupExperienceKind,
-  O as validateWorkshop,
-  hn as workshopBudgetResult,
-  fe as workshopCandidate,
-  Me as workshopDestinations,
-  ie as workshopLaneCaption,
-  Y as workshopLanePlaces,
-  we as workshopLayout,
-  re as workshopNodeIds,
-  Ge as workshopPositions,
-  Fe as workshopPresentationLanes,
-  An as workshopPresentationScenes,
-  Le as workshopRefusal,
-  ke as workshopToSlate
+  Dn as addWorkshopBranch,
+  Hn as addWorkshopCard,
+  Fn as addWorkshopLane,
+  Wn as attachWorkshop,
+  fe as availableLanes,
+  en as canHangPanel,
+  Se as channels,
+  Kn as createBudgetWorkshop,
+  qn as createInterviewWorkshop,
+  zn as createLaneWorkshop,
+  Gn as createWorkshopMap,
+  Nn as decodeWorkshopFragment,
+  Tn as describeFocusDarkroom,
+  On as encodeWorkshopFragment,
+  xn as handoffSummary,
+  An as hangGalleryPanel,
+  Un as industrialWorkshop,
+  Ln as initialFocusDarkroom,
+  ve as interviews,
+  ue as laneColors,
+  de as listeningRoom,
+  Pn as listeningRoomCaption,
+  hn as maxWorkshopCards,
+  Cn as moonGallery,
+  be as moveWorkshopCard,
+  Bn as nightTransfer,
+  Mn as normalizeFocusDarkroom,
+  Sn as normalizeListeningRoom,
+  $n as normalizeMoonGallery,
+  bn as normalizeOfflineHandoff,
+  kn as offlineHandoff,
+  gn as planStartupMove,
+  He as printFields,
+  Q as releaseLoad,
+  En as releasePlan,
+  vn as resolveHandoff,
+  fn as resolveWorkshopSignals,
+  In as reviewHandoff,
+  Pe as startupExperienceKind,
+  D as validateWorkshop,
+  yn as workshopBudgetResult,
+  he as workshopCandidate,
+  We as workshopDestinations,
+  re as workshopLaneCaption,
+  _ as workshopLanePlaces,
+  me as workshopLayout,
+  oe as workshopNodeIds,
+  Ke as workshopPositions,
+  Be as workshopPresentationLanes,
+  Rn as workshopPresentationScenes,
+  Re as workshopRefusal,
+  Je as workshopStandInId,
+  Fe as workshopToSlate
 };

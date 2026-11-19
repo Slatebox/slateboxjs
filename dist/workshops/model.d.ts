@@ -177,6 +177,12 @@ export interface WorkshopArtworkOptions {
     layout?: WorkshopBoardLayout;
     /** Native artwork only: draw the notes in the host's note style. */
     style?: WorkshopNoteStyle;
+    /**
+     * Native artwork only: ids of the notes the slate's own document holds. A workshop
+     * note whose name one of them already has is drawn under another id (see
+     * workshopStandInId), so the artwork can be laid beside those notes as it is.
+     */
+    beside?: Iterable<string>;
 }
 /** The names of the notes workshopToSlate draws for a lane or a card. */
 export declare const workshopNodeIds: {
@@ -186,6 +192,13 @@ export declare const workshopNodeIds: {
     caption: (id: string) => string;
     column: (id: string) => string;
 };
+/**
+ * The id a workshop note takes when the slate's own document already has a note by
+ * its name: `<name>--2`, or the first number after that which `taken` leaves free.
+ * The document's note keeps its id. One rule for the live canvas and for every
+ * drawing made of it.
+ */
+export declare function workshopStandInId(name: string, taken: (id: string) => boolean): string;
 /** One lane's place in the native artwork: its column box from the artwork's origin, and its cell in the grid of lanes. */
 export interface WorkshopLanePlace {
     laneId: string;

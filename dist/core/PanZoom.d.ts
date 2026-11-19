@@ -40,6 +40,18 @@ export declare class PanZoom {
     constructor(slate: any, options?: PanZoomOptions);
     private init;
     private _wheelHandler;
+    private _touchPan;
+    /** Whether a finger on empty canvas pans it (so it does not start a selection rectangle). */
+    pansByTouch(): boolean;
+    /**
+     * One finger on empty canvas pans it, as a finger scrolls any page: on a phone
+     * that is how a person reaches what is below the screen. Two fingers still pinch
+     * and pan (the plugin), a finger on a note still moves the note, and a mouse on
+     * empty canvas still draws the selection rectangle. Hosts hear the same
+     * panStart / panning / panEnd events a mouse pan sends.
+     */
+    private attachTouchPan;
+    private detachTouchPan;
     /**
      * Miro-style wheel behavior on the canvas:
      *  - two-finger trackpad scroll (plain wheel) → PAN

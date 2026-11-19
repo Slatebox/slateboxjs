@@ -76,6 +76,8 @@ export declare class Keyboard {
     private nudge;
     private handleArrowKey;
     private selectFocused;
+    /** Surfaces that keep every key pressed inside them, Ctrl/Cmd shortcuts included. */
+    private static readonly MODAL_SURFACES;
     /** A key press that produces one character of text, with no Ctrl/Cmd/Alt chord. */
     private static isTypingKey;
     /**
