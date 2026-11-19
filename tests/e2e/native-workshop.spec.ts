@@ -606,6 +606,13 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     expect((await journal(page)).changes).toEqual([])
     const home = (await at(page, 'lane-later'))!
     expect((await resting(page, 'card-alpha')).x).toBe(home.x)
+
+    // A move the host had to turn down (a save that lost a race) gets the same cue on the canvas.
+    await page.evaluate(() => (window as any).native.board.refuse('now', 'Someone else just filled Now.'))
+    await expect.poll(() => text(page, 'caption-now')).toBe('Someone else just filled Now.')
+    await expect(page.locator('#slate [data-node-id="lane-now"] path').first()).toHaveAttribute('stroke', '#c2410c')
+    await expect(live(page)).toHaveText('Now: Someone else just filled Now.')
+    await expect.poll(() => text(page, 'caption-now'), { timeout: 4000 }).toBe('1 card')
   })
 
   test('read-only draws the same artwork with nothing draggable or editable', async ({ page }) => {

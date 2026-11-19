@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Workshops can run as native notes on a live slate.** `attachWorkshop(slate, workshop, options)`
+  (from `slateboxjs/workshops/model`, plain JavaScript) draws a workshop model onto a Slate the host
+  already has: lanes, captions and cards are real notes with the canvas's own pan, zoom, minimap,
+  selection and inline editing. A card dragged to a lane it may enter previews the outcome on the
+  lane captions and commits through `onChange`; a full or forbidden lane refuses, the card glides
+  back and the reason is shown on the lane and given to `onRefuse`. The notes are a drawing of the
+  model and are never saved, broadcast or put in undo history. See `docs/native-workshops.md`.
+- **Host drag policies.** `slate.setDragPolicy(policy)` lets a host govern chosen notes: refuse a
+  drag, watch it, accept or refuse the drop and say where the note settles, and decide per note
+  whether it may be resized, rotated, deleted, duplicated, connected, edited or selected. Also
+  `slate.hitTestNodes`, `slate.clientToWorld` and `slate.worldToClient`.
+- `workshopCandidate`, `workshopDestinations`, `workshopRefusal` and `workshopLaneCaption` in the
+  workshop model; `workshopToSlate(model, { native: true })` for the native artwork (its output with
+  no options is unchanged); `dragologyCandidates` to let the SVG board's Dragology spec choose the
+  candidate on a native slate.
+
 ### Changed
 - A connected note is ready to name the moment it is created. Clicking or tapping
   a connector, dragging one into open space, or activating a keyboard direction

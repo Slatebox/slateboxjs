@@ -65,6 +65,11 @@ export interface AttachedWorkshop {
   preview(candidate: Workshop | null): void
   /** Switch between playable and view-only. */
   setReadOnly(readOnly: boolean): void
+  /**
+   * Show the refusal cue on a lane (outline, reason on its caption, announcement)
+   * for a move the host itself had to turn down, such as a save that lost a race.
+   */
+  refuse(laneId: string, reason: string): void
   /** Remove the workshop's notes and its policy. Every other note on the slate is left as it was. */
   destroy(): void
   /** The committed model. */
@@ -511,6 +516,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       proposal = model
       draw(proposal ?? value)
       slate.refreshGovernance?.()
+    },
+    refuse(laneId, reason) {
+      const lane = value.lanes.find(item => item.id === laneId)
+      if (destroyed || !lane) return
+      endFlash(false)
+      flash = { laneId, reason, timer: setTimeout(() => endFlash(), 1500) }
+      draw(proposal ?? value)
+      slate.announce?.(`${lane.label}: ${reason}`)
     },
     setReadOnly(next) {
       if (destroyed || readOnly === Boolean(next)) return

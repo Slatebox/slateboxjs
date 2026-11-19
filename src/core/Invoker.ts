@@ -374,7 +374,8 @@ export class Invoker {
 
   onLineColorChanged(pkg: SlatePackage) {
     this.slate.options.defaultLineColor = pkg.data.color
-    this.slate.nodes.allNodes.forEach((node: any) => {
+    // Connectors a host drew between its governed notes keep their own colour.
+    ;(this.slate.freeNodes?.() ?? this.slate.nodes.allNodes).forEach((node: any) => {
       node.options.lineColor = pkg.data.color
       if (node.relationships?.associations) {
         node.relationships.associations.forEach((a: any) => {

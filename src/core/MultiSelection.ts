@@ -235,7 +235,10 @@ export class MultiSelection {
 
   /** Move all selected nodes by a delta */
   public moveSelected(dx: number, dy: number): void {
-    const selected = this.slate.getSelectedNodes();
+    // A note its host governs moves only through that host's drag policy.
+    const selected = (this.slate.getSelectedNodes() as any[]).filter(
+      (node) => !this.slate.governanceOf?.(node)
+    );
     for (const node of selected) {
       const x = (node.options.x || 0) + dx;
       const y = (node.options.y || 0) + dy;
