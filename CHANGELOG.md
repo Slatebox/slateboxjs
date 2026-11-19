@@ -64,6 +64,10 @@
   nothing typed leaves the note blank, as before. Notes that arrive any other way
   (`addNode`, `loadJSON`, collaborators, paste, duplicate, undo/redo) never open
   an editor, and nothing is broadcast until a name is committed.
+- When that new note lands outside the view, the view now moves only as far as
+  the note needs (with a little air around it) instead of centring on it, so the
+  note it was created from stays in sight on a small or embedded canvas. A note
+  already in view leaves the view where it was.
 - Typing with exactly one note selected edits it: the editor opens with the caret
   after the existing text and the character is appended. Read-only and
   comment-only viewers, locked notes, comments, artwork and multi-selections are

@@ -582,3 +582,41 @@ test.describe('accessibility of naming a new note', () => {
     }
   })
 })
+
+test.describe('a new note that lands outside the view', () => {
+  test.use({ viewport: { width: 1200, height: 800 } })
+
+  test('the view moves only as far as the new note needs, so the note it came from stays in sight', async ({ page }) => {
+    // A canvas as small as an embedded example: 900 x 252, with "Field recording" near its lower edge.
+    await openBoard(page, { height: 252 })
+    await page.evaluate(() => (window as any).board.pan({ x: 0, y: 80 }))
+    const board = (await page.locator('#board').boundingBox())!
+    const inside = async (id: string) => {
+      const box = (await note(page, id).boundingBox())!
+      return box.x >= board.x && box.y >= board.y &&
+        box.x + box.width <= board.x + board.width && box.y + box.height <= board.y + board.height
+    }
+    await expect.poll(() => inside('root')).toBe(true)
+
+    await createConnectedNote(page, 'click', false)
+    const child = await newChild(page)
+    await expect(editor(page)).toBeFocused()
+    await expect.poll(() => inside(child), { message: 'the new note is fully in view' }).toBe(true)
+    await expect.poll(() => inside('root'), { message: 'the note it was created from is still fully in view' }).toBe(true)
+
+    await page.keyboard.type('Transcript')
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('button', { name: 'Transcript', exact: true })).toBeVisible()
+    expect(await inside(child)).toBe(true)
+    expect(await inside('root')).toBe(true)
+  })
+
+  test('a new note already in view leaves the view where it was', async ({ page }) => {
+    await openBoard(page)
+    const before = await page.evaluate(() => { const v = (window as any).board.canvas.viewbox(); return [v.x, v.y, v.width, v.height] })
+    await createConnectedNote(page, 'click', false)
+    await newChild(page)
+    await expect(editor(page)).toBeFocused()
+    expect(await page.evaluate(() => { const v = (window as any).board.canvas.viewbox(); return [v.x, v.y, v.width, v.height] })).toEqual(before)
+  })
+})

@@ -3087,10 +3087,19 @@ export class Node {
     if (gesture !== "drop") {
       const viewport = slate.canvas.viewbox();
       const bounds = newNode.svgGroup.rbox(slate.canvas);
-      if (bounds.x < viewport.x || bounds.x2 > viewport.x2 ||
-          bounds.y < viewport.y || bounds.y2 > viewport.y2) {
-        slate.pan({ x: bounds.cx - viewport.width / 2, y: bounds.cy - viewport.height / 2 });
-      }
+      // Bring the new note into view by the shortest move, with a little air around it,
+      // so the note it was created from stays in sight too. A note larger than the view
+      // is centred on that axis.
+      const reveal = (start: number, end: number, from: number, size: number) => {
+        const air = Math.min(24, Math.max(0, (size - (end - start)) / 2));
+        if (end - start > size) return (start + end) / 2 - size / 2;
+        if (start - air < from) return start - air;
+        if (end + air > from + size) return end + air - size;
+        return from;
+      };
+      const x = reveal(bounds.x, bounds.x2, viewport.x, viewport.width);
+      const y = reveal(bounds.y, bounds.y2, viewport.y, viewport.height);
+      if (x !== viewport.x || y !== viewport.y) slate.pan({ x, y });
     }
     // One announcement for the whole gesture, not "selected" followed by "added".
     const select = () => slate.selectNodes([newNode]);
