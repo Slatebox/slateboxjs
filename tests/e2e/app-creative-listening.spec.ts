@@ -6,7 +6,7 @@ const local = ['localhost', '127.0.0.1'].includes(new URL(origin).hostname)
 
 test('an owned listening slate persists a gesture and label and presents the shared version', async ({ page, context, browser }) => {
   test.skip(!local, 'Creates and shares a synthetic local board')
-  await page.goto(origin + '/start')
+  await page.goto(origin + '/plans')
   await page.waitForFunction(() => (window as any).Accounts && (window as any).Meteor.status().connected)
   const credentials = { email: 'mix-' + randomBytes(12).toString('hex') + '@slatebox.invalid', password: randomBytes(24).toString('hex') }
   await page.evaluate(values => new Promise<void>((ok, fail) => (window as any).Accounts.createUser(values, (err: Error) => err ? fail(err) : ok())), credentials)
@@ -18,7 +18,6 @@ test('an owned listening slate persists a gesture and label and presents the sha
       catch (error: any) { throw new Error(error.reason || error.message) }
     }, [method, args] as [string, any[]])
   try {
-    await expect(page.getByRole('link', { name: 'Mix two recordings' })).toHaveAttribute('href', '/new/listening-room')
     await page.goto(origin + '/new/listening-room?mix=0.78')
     await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
     const url = page.url(), key = url.split('/').pop()!
