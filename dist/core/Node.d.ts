@@ -161,6 +161,8 @@ export declare class Node {
     private preDragTransform;
     private preDragPosition;
     private _dragStartPointer;
+    /** The plug handles were hidden for the drag in progress (on its first move). */
+    private _handlesHiddenForDrag;
     private _groupDragSiblings;
     /** The governed drag in progress on this note (see DragPolicy.ts). */
     private _governed;
@@ -174,6 +176,10 @@ export declare class Node {
     private _rejectReady;
     private _initFailed;
     private _destroyed;
+    /** Set by remove(): a note removed before it was drawn is never drawn. */
+    private _removed;
+    /** True once the note has been taken off its slate (deleted, or replaced by undo, redo or a load). */
+    get isRemoved(): boolean;
     /**
      * Set by the connector gestures on the note they create: that gesture makes the one
      * live-region announcement, so Slate.addNode's own "Node added" stays quiet.
@@ -565,6 +571,14 @@ export declare class Node {
     private wireConnectionHandleHover;
     private revealConnHandlesOnHover;
     private scheduleConnHandlesHide;
+    /**
+     * Put resize/rotate away and hide the drag-to-connect plug handles for the
+     * rest of a drag that has begun to move. The handles live in a global canvas
+     * group (not this node's group), so they don't follow the node while it moves,
+     * leaving "ghost" dots behind at the old position. Force-hide past the
+     * selection pin; drag-end re-anchors them.
+     */
+    private hideHandlesForDrag;
     private showConnectionHandles;
     private hideConnectionHandles;
     private showConnectionPreview;

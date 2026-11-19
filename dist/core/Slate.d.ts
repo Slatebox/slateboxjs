@@ -76,6 +76,16 @@ export interface SlateOptions {
     basedOnThemeId?: string;
     syncWithTheme?: boolean;
     allowCollaboration?: boolean;
+    /**
+     * The whole-slate replacement (undo/redo) this document was last built on:
+     * the slate it belongs to and the replacement's place in the room's order.
+     * Written by Collab, stored with the document, read again when it is loaded.
+     */
+    collabBaseline?: {
+        id?: string;
+        t: number;
+        c: number;
+    };
     eligibleForThemeCompilation?: boolean;
     viewPort?: {
         originalWidth?: number;
@@ -165,7 +175,10 @@ export declare class Slate {
     private _lastPointerDown;
     private _windowPointerDownHandler;
     private _destroyed;
+    /** >0 while packages from the room or a document load are being applied (not the person's own edits). */
     private _applyingRemote;
+    /** Document loads (loadJSON, undo, redo, a replacement from the room) that have not finished. */
+    private _loadsInFlight;
     private _hadGroupSelection;
     private _emitDeferred;
     private _emitQueue;
@@ -271,10 +284,25 @@ export declare class Slate {
     isCommentOnly(): boolean;
     /** v1: host-supplied permission check for removing comment nodes. */
     canRemoveComments(): boolean;
-    /** Suppress emitSlateChange while applying a remote package (v1 echo semantics). */
+    /**
+     * Suppress emitSlateChange while applying a remote package (v1 echo semantics).
+     * Calls nest: a package that loads a whole document holds its own begin until
+     * the load has finished, long after the caller that applied the package ended
+     * its own. Emission resumes when every begin has ended.
+     */
     beginRemoteApply(): void;
     /** Re-enable emitSlateChange after a remote package has been applied. */
     endRemoteApply(): void;
+    /** A document load started: nothing from the room is applied until it has finished. */
+    holdUntilLoaded<T>(load: Promise<T>): Promise<T>;
+    /**
+     * Resolves once every note is drawn and no document load is in flight, or
+     * `null` when that is already so. A note is built a moment after it is added,
+     * and a whole document takes longer: a package applied before then (a name for
+     * a note not yet drawn, a second replacement of a slate still loading) is lost
+     * or lands on the wrong notes. Collab waits on this between packages.
+     */
+    whenBuilt(): Promise<void> | null;
     private setupCoordinateCallbacks;
     private addCoordinateDisplay;
     private startCoordinatePolling;
@@ -584,6 +612,15 @@ export declare class Slate {
     refreshGovernance(): void;
     /** Tell each policy that loadJSON / undo / redo replaced the slate's notes. */
     notifyNotesReplaced(): void;
+    /**
+     * loadJSON, undo and redo replace every note by a new one, even where the id
+     * stays the same. A selection kept across that holds notes that are no longer
+     * on the slate: nothing shows as selected, yet Delete still acts on them, and
+     * the next selection change tries to draw connectors for a note that is gone
+     * ("Cannot read properties of null (reading 'screenCTM')"). Notes that were
+     * replaced leave the selection.
+     */
+    private dropReplacedFromSelection;
     /**
      * Remove governed notes from a change package, or return null when nothing is
      * left of it. Used for packages leaving this slate (broadcast) and arriving from

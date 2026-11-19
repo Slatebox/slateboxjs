@@ -3,8 +3,14 @@ import type { Slate } from './Slate';
 export declare class NodesManager {
     private slate;
     private nodes;
+    /** Notes added but not yet drawn (a note is built a moment after it is added). */
+    private unbuilt;
     constructor(slate: Slate);
     add(options?: Partial<NodeOptions>): Node;
+    /** The notes still being drawn, as promises that settle when each is ready. */
+    building(): Promise<void>[];
+    /** Give up on notes that never finished drawing (see Slate.whenBuilt). */
+    stopWaitingFor(stuck: Promise<void>[]): void;
     remove(id: string): boolean;
     one(id: string): Node | undefined;
     get allNodes(): Node[];
