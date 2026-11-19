@@ -61,6 +61,17 @@ async function slot(page: Page, laneId: string, index: number) {
   const header = (await at(page, 'lane-' + laneId))!
   return { x: header.x, y: header.y - 6 + 98 + index * 88 }
 }
+/** The note's world position once it has stopped moving (two equal readings a tenth of a second apart). */
+async function resting(page: Page, id: string) {
+  let last = await at(page, id)
+  for (let i = 0; i < 40; i++) {
+    await page.waitForTimeout(100)
+    const next = await at(page, id)
+    if (last && next && next.x === last.x && next.y === last.y) return next
+    last = next
+  }
+  throw new Error(id + ' never came to rest')
+}
 function pageErrors(page: Page) {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(String(error)))
@@ -331,6 +342,106 @@ test.describe('a governed card changes only when the workshop agrees', () => {
   })
 })
 
+test.describe('a refusal the host shows itself', () => {
+  test('refuse() leaves a held card in the hand and a staged move on show', async ({ page }) => {
+    await open(page)
+    // Held over Later: the captions preview the move.
+    await carry(page, 'card-alpha', await inLane(page, 'later'))
+    await expect.poll(() => text(page, 'caption-now')).toBe('2 cards')
+    const held = await at(page, 'card-alpha')
+    await page.evaluate(() => (window as any).native.board.refuse('now', 'Someone else just changed Now.'))
+    await page.waitForTimeout(350)
+    // The cue is on Now, the card has not been taken out of the hand, and the preview is still the preview.
+    expect(await text(page, 'caption-now')).toBe('Someone else just changed Now.')
+    expect(await at(page, 'card-alpha')).toEqual(held)
+    expect(await text(page, 'caption-later')).toBe('1 of 1')
+    await page.mouse.up()
+    await expect.poll(() => cards(page)).toBe('alpha@later beta@now gamma@now')
+    await expect.poll(() => text(page, 'caption-now'), { timeout: 4000 }).toBe('2 cards')
+
+    // Staged from the keyboard: what Enter will commit stays on show while the cue is up.
+    await page.waitForTimeout(450)
+    await click(page, 'card-alpha')
+    await page.keyboard.press('ArrowLeft')
+    await expect.poll(() => text(page, 'caption-later')).toBe('0 of 1')
+    const staged = await resting(page, 'card-alpha')
+    await page.evaluate(() => (window as any).native.board.refuse('now', 'Someone else just changed Now.'))
+    await page.waitForTimeout(350)
+    expect(await text(page, 'caption-now')).toBe('Someone else just changed Now.')
+    expect(await text(page, 'caption-later')).toBe('0 of 1')
+    expect(await at(page, 'card-alpha')).toEqual(staged)
+    await page.keyboard.press('Enter')
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
+  })
+})
+
+test.describe('the selection outline', () => {
+  /** How far the selection outline's corner is from the selected note's corner, in screen pixels. */
+  async function outlineOffset(page: Page, id: string) {
+    // The outline is redrawn when the selection is refreshed; while it is, there is none to measure.
+    const outline = await page.locator('#slate .svg_select_shape').first().boundingBox().catch(() => null)
+    const note = await box(page, id)
+    return outline ? Math.max(Math.abs(outline.x - note.x), Math.abs(outline.y - note.y)) : Number.POSITIVE_INFINITY
+  }
+
+  /**
+   * Arrange to measure, on every frame of the next half second, how far a visible
+   * selection outline is from the note it belongs to. (Armed and awaited before the
+   * key is pressed, so no frame of the glide is missed.)
+   */
+  async function watchOutline(page: Page, id: string) {
+    await page.evaluate(key => {
+      (window as any).outlineWatch = new Promise<{ worst: number; seen: number }>(resolve => {
+        const started = performance.now()
+        let worst = 0, seen = 0
+        const frame = () => {
+          const outline = document.querySelector('#slate .svg_select_shape')?.getBoundingClientRect()
+          const note = (window as any).native.box(key)
+          if (outline && outline.width > 0) {
+            seen++
+            worst = Math.max(worst, Math.abs(outline.x - note.x), Math.abs(outline.y - note.y))
+          }
+          if (performance.now() - started < 500) requestAnimationFrame(frame)
+          else resolve({ worst, seen })
+        }
+        requestAnimationFrame(frame)
+      })
+    }, id)
+  }
+  const outlineWatched = (page: Page) => page.evaluate(() => (window as any).outlineWatch as Promise<{ worst: number; seen: number }>)
+
+  test('stays around a card that is staged and moved from the keyboard, and one a new model moves', async ({ page }) => {
+    await open(page)
+    await click(page, 'card-alpha')
+    await expect(page.locator('#slate .svg_select_shape')).toBeVisible()
+    await expect.poll(() => outlineOffset(page, 'card-alpha')).toBeLessThan(4)
+    // Staged in Later: the outline goes with the card, not round whichever card took its
+    // old place, and on no frame of the glide is it drawn anywhere but round the card.
+    await watchOutline(page, 'card-alpha')
+    await page.keyboard.press('ArrowRight')
+    const glide = await outlineWatched(page)
+    expect(glide.seen).toBeGreaterThan(0)
+    expect(glide.worst).toBeLessThan(4)
+    await expect.poll(() => text(page, 'caption-later')).toBe('1 of 1')
+    await expect.poll(() => outlineOffset(page, 'card-alpha')).toBeLessThan(4)
+    await page.keyboard.press('Escape')
+    await expect.poll(() => text(page, 'caption-later')).toBe('0 of 1')
+    await expect.poll(() => outlineOffset(page, 'card-alpha')).toBeLessThan(4)
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('Enter')
+    await expect.poll(() => cards(page)).toBe('alpha@later beta@now gamma@now')
+    await expect.poll(() => outlineOffset(page, 'card-alpha')).toBeLessThan(4)
+    // A collaborator's model moves the selected card back.
+    await page.evaluate(() => {
+      const { board } = (window as any).native
+      board.update({ ...board.value, cards: board.value.cards.map((card: any) => card.id === 'alpha' ? { ...card, laneId: 'now' } : card) })
+    })
+    await expect.poll(async () => (await at(page, 'card-alpha'))!.x).toBe((await slot(page, 'now', 0)).x)
+    await expect.poll(() => outlineOffset(page, 'card-alpha')).toBeLessThan(4)
+    expect(await selection(page)).toEqual([['card-alpha', true]])
+  })
+})
+
 test.describe('the Dragology chooser', () => {
   /**
    * Release plan fixture: Friday release, Next week, Unscheduled. "Invoice download"
@@ -369,17 +480,22 @@ test.describe('the Dragology chooser', () => {
 
 test.describe('reduced motion', () => {
   /**
-   * The world position of some notes two frames after the next mouse release: late
-   * enough for a glide to have taken its first step, far too early for one to have ended.
+   * Arrange to record the world position of some notes two frames after the next
+   * mouse release: late enough for a glide to have taken its first step, far too
+   * early for one to have ended. (Armed and awaited before the button comes up, so
+   * the release cannot slip past the listener.)
    */
-  function onRelease(page: Page, ids: string[]) {
-    return page.evaluate(names => new Promise<Record<string, { x: number; y: number }>>(resolve => {
-      window.addEventListener('mouseup', () => requestAnimationFrame(() => requestAnimationFrame(() => {
-        const { native } = window as any
-        resolve(Object.fromEntries(names.map(id => [id, { x: native.at(id).x, y: native.at(id).y }])))
-      })), { once: true, capture: true })
-    }), ids)
+  async function watchRelease(page: Page, ids: string[]) {
+    await page.evaluate(names => {
+      (window as any).released = new Promise<Record<string, { x: number; y: number }>>(resolve => {
+        window.addEventListener('mouseup', () => requestAnimationFrame(() => requestAnimationFrame(() => {
+          const { native } = window as any
+          resolve(Object.fromEntries(names.map(id => [id, { x: native.at(id).x, y: native.at(id).y }])))
+        })), { once: true, capture: true })
+      })
+    }, ids)
   }
+  const released = (page: Page) => page.evaluate(() => (window as any).released as Promise<Record<string, { x: number; y: number }>>)
 
   test('a refused card is put back, an accepted one settled and a new model drawn without gliding', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -388,17 +504,17 @@ test.describe('reduced motion', () => {
     const gamma = (await at(page, 'card-gamma'))!
     await carry(page, 'card-gamma', await inLane(page, 'later'))
     await page.waitForTimeout(100)
-    let frame = onRelease(page, ['card-gamma'])
+    await watchRelease(page, ['card-gamma'])
     await page.mouse.up()
-    expect((await frame)['card-gamma']).toEqual({ x: gamma.x, y: gamma.y })
+    expect((await released(page))['card-gamma']).toEqual({ x: gamma.x, y: gamma.y })
 
     // Accepted: Alpha is in its slot, and the cards behind it have closed up.
     await page.waitForTimeout(450)
     await carry(page, 'card-alpha', await inLane(page, 'later'))
     await page.waitForTimeout(100)
-    frame = onRelease(page, ['card-alpha', 'card-beta', 'card-gamma'])
+    await watchRelease(page, ['card-alpha', 'card-beta', 'card-gamma'])
     await page.mouse.up()
-    expect(await frame).toEqual({
+    expect(await released(page)).toEqual({
       'card-alpha': await slot(page, 'later', 0), 'card-beta': await slot(page, 'now', 0), 'card-gamma': await slot(page, 'now', 1),
     })
 
@@ -422,9 +538,9 @@ test.describe('reduced motion', () => {
     const gamma = (await at(page, 'card-gamma'))!
     await carry(page, 'card-gamma', await inLane(page, 'later'))
     await page.waitForTimeout(100)
-    const frame = onRelease(page, ['card-gamma'])
+    await watchRelease(page, ['card-gamma'])
     await page.mouse.up()
-    expect((await frame)['card-gamma']).not.toEqual({ x: gamma.x, y: gamma.y })
+    expect((await released(page))['card-gamma']).not.toEqual({ x: gamma.x, y: gamma.y })
     await expect.poll(async () => { const now = (await at(page, 'card-gamma'))!; return { x: now.x, y: now.y } }).toEqual({ x: gamma.x, y: gamma.y })
   })
 })

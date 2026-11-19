@@ -363,7 +363,16 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     if (!flash) return
     clearTimeout(flash.timer)
     flash = null
-    if (redraw && !destroyed) draw(held && held.outcome.kind === 'candidate' ? held.outcome.next : staged?.next ?? proposal ?? value, { skip: held?.cardId })
+    if (redraw && !destroyed) showCurrent()
+  }
+
+  /**
+   * Draw again what is on show at this moment: the board a held card is over, a move
+   * staged from the keyboard, a host's proposal, or the committed board. A card in
+   * the hand stays in the hand.
+   */
+  function showCurrent() {
+    draw(held && held.outcome.kind === 'candidate' ? held.outcome.next : staged?.next ?? proposal ?? value, { skip: held?.cardId })
   }
 
   // ─── Drawing ─────────────────────────────────────────────────────
@@ -435,6 +444,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
 
   function settle(nodes: ReturnType<typeof artwork>, how: { model: Workshop; skip?: string; animate: boolean }) {
     const keep = new Set(nodes.map(node => node.options.id as string))
+    const selected: any[] = slate.getSelectedNodes?.() ?? []
     slate.withPolicyAuthority(() => {
       for (const [id, node] of [...owned]) {
         if (keep.has(id)) continue
@@ -480,7 +490,16 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
           Math.abs((node.options.x ?? 0) - v1.xPos) > 0.5 || Math.abs((node.options.y ?? 0) - v1.yPos) > 0.5
         // The held card is under the pointer; the engine settles it or glides it back.
         if (id !== (how.skip && workshopNodeIds.card(how.skip)) && placed) {
-          node.position(v1.xPos, v1.yPos, undefined, undefined, how.animate && !prefersReducedMotion() ? 180 : 0)
+          // A selected note takes its outline with it (a card staged or moved from the
+          // keyboard, or moved by a new model, is still the selection). The outline is
+          // put away while the note glides and comes back where it comes to rest, as
+          // after a drag, so it is never left round the place the note has just left.
+          const glide = how.animate && !prefersReducedMotion() ? 180 : 0
+          const outline = selected.includes(node) ? () => {
+            if (!destroyed && owned.get(id) === node && (slate.getSelectedNodes?.() ?? []).includes(node)) slate.updateSelectionResizeRotate?.()
+          } : undefined
+          if (outline && glide && selected.length === 1) node.resizeRotate?.disable?.()
+          node.position(v1.xPos, v1.yPos, outline, undefined, glide)
         }
         const label = accessibleName(how.model, id)
         if (label && node.svgGroup.node.getAttribute('aria-label') !== label) node.svgGroup.node.setAttribute('aria-label', label)
@@ -555,7 +574,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (destroyed || !lane) return
       endFlash(false)
       flash = { laneId, reason, timer: setTimeout(() => endFlash(), 1500) }
-      draw(proposal ?? value)
+      showCurrent()
       slate.announce?.(`${lane.label}: ${reason}`)
     },
     setReadOnly(next) {
