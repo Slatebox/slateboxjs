@@ -1,5 +1,6 @@
 import {expect, test} from '@playwright/test'
 import {dismissWelcome, getSlate, removeTestGuest, shareAs, userId} from './workshop-guests.shared'
+import {card, conversation, dragCardNamed, standing, workshopReady} from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 
@@ -34,20 +35,24 @@ test('the team’s brief becomes a private map with real playable choices that s
     expect(board.options.isPrivate).toBe(true)
     expect(board.userId).toBe(id)
     expect(board.creative.model.workshop.lanes[0].station.outcome).toBe(brief)
-    await expect(owner.locator('.map-stage')).toContainText(brief)
-    const chat = owner.getByRole('complementary',{name:'Map conversation'})
+    await workshopReady(owner)
+    await expect(standing(owner)).toContainText(brief)
+    const chat = conversation(owner)
     await expect(chat.getByRole('log')).toContainText(brief)
     const input = chat.getByRole('textbox',{name:'Direct map edits'})
     await input.fill('Borrow work lights or bring battery lanterns')
     await input.press('Enter')
-    await expect(owner.getByRole('button',{name:'Team → bring battery lanterns'})).toBeVisible()
+    // The proposal's two destinations are drawn on the canvas before anything is kept.
+    await expect(owner.locator('#slateCanvas [data-node-id^="lane-"]').filter({hasText:'bring battery lanterns'})).toBeVisible()
+    await expect(owner.locator('#slateCanvas [data-node-id^="lane-"]').filter({hasText:'Borrow work lights'})).toBeVisible()
     await chat.getByRole('button',{name:'Keep changes'}).click()
     const snapshot = () => getSlate(owner,key).then(s=>s.creative.model.workshop)
     await expect.poll(async()=>(await snapshot()).lanes.map((l:any)=>l.label).slice(1)).toEqual(['Borrow work lights','bring battery lanterns'])
     const invite = await shareAs(owner,'read')
     await reader.goto(invite.href)
     await dismissWelcome(reader)
-    await expect(reader.locator('.map-stage')).toContainText(brief)
+    await workshopReady(reader)
+    await expect(standing(reader)).toContainText(brief)
     await reader.getByRole('button',{name:'Present',exact:true}).click()
     const slides = reader.getByRole('region',{name:'Decision presentation'})
     await expect(slides).toContainText(brief)
@@ -56,10 +61,12 @@ test('the team’s brief becomes a private map with real playable choices that s
     await slides.getByRole('button',{name:'Back to board'}).click()
     expect(await userId(reader)).toBeNull()
     expect((await getSlate(reader,invite.pathname.split('/').pop()!)).creative.model.workshop).toEqual(await snapshot())
-    await owner.getByRole('button',{name:'Team → bring battery lanterns'}).click()
+    await dragCardNamed(owner,'Team','bring battery lanterns')
+    await expect.poll(async()=>{const map=await snapshot();return map.lanes.find((l:any)=>l.id===map.cards[0].laneId).label}).toBe('bring battery lanterns')
     await owner.reload()
+    await workshopReady(owner)
     await expect(chat.getByRole('log')).toContainText(brief)
-    await expect(owner.locator('.map-stage')).toContainText('Team · bring battery lanterns')
+    await expect(standing(owner)).toContainText('Team · bring battery lanterns')
     await expect.poll(async()=>(await snapshot()).lanes[0].station.outcome).toEqual(brief)
   } finally {
     await reader.close()
@@ -79,6 +86,8 @@ test('the pilot budget shortcut opens a private playable allocation board', asyn
     const board = await getSlate(page,key)
     expect(board.options.isPrivate).toBe(true)
     expect(board.creative.model.workshop.experience.kind).toBe('experiment-budget')
-    await expect(page.locator('[data-card="fund-1"]')).toBeVisible()
+    await workshopReady(page)
+    await expect(card(page,'fund-1')).toBeVisible()
+    await expect(card(page,'fund-1')).toHaveAttribute('aria-label','Second $200, in Unallocated')
   } finally { await removeTestGuest(page,id) }
 })

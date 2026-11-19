@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { dragCardNamed, isOffered, workshopReady } from './app-native-workshop.shared'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
 
@@ -79,12 +80,13 @@ test('a private owner previews roles, copies a working invitation, and revokes i
     await expect.poll(() => userId(editor)).toBeTruthy()
     editorId = await userId(editor)
     expect(editorId).not.toBe(ownerId)
-    await editor.getByRole('button', {name:'Microphone → At the pier'}).click()
+    await dragCardNamed(editor, 'Microphone', 'At the pier')
     await expect(owner.getByText('Microphone · At the pier', {exact:true})).toBeVisible()
     await editor.goto(origin.href)
     const recent = editor.getByRole('region', {name:'Recently joined'}).getByRole('link', {name:model.title})
     await expect(recent).toHaveAttribute('href', invite.pathname)
     await recent.click()
+    await workshopReady(editor)
     await expect(editor.getByText('Microphone · At the pier', {exact:true})).toBeVisible()
 
     await share.click()
@@ -92,7 +94,8 @@ test('a private owner previews roles, copies a working invitation, and revokes i
     await panel.getByRole('combobox', {name:'Link permission'}).click()
     await owner.getByRole('option', {name:'read', exact:true}).click()
     await expect(copy).toHaveCount(0)
-    await expect(editor.getByRole('button', {name:'Microphone → On shore'})).toBeEnabled()
+    // Until the owner applies the change, the editor's canvas still offers the way back.
+    expect(await isOffered(editor, 'Microphone', 'On shore')).toBe(true)
     await panel.getByRole('button', {name:'Apply access', exact:true}).click()
     const viewing = await copyUrl()
     expect(viewing.href).toBe(invite.href)
@@ -100,11 +103,12 @@ test('a private owner previews roles, copies a working invitation, and revokes i
     await reader.goto(viewing.href)
     await dismissWelcome(reader)
     await expect(reader.getByText('Microphone · At the pier', {exact:true})).toBeVisible()
-    const returnCard = reader.getByRole('button', {name:'Microphone → On shore'})
-    await expect(returnCard).toBeDisabled()
+    await workshopReady(reader)
+    const returnCard = () => isOffered(reader, 'Microphone', 'On shore')
+    expect(await returnCard()).toBe(false)
     await expect(reader.getByRole('button', {name:'Join to edit'})).toHaveCount(0)
     expect(await userId(reader)).toBeNull()
-    await expect(editor.getByRole('button', {name:'Microphone → On shore'})).toBeDisabled()
+    await expect.poll(() => isOffered(editor, 'Microphone', 'On shore')).toBe(false)
     await editor.goto(origin.href)
     await expect(recent).toBeVisible()
     await share.click()

@@ -1,6 +1,7 @@
 import { userId, getSlate, dismissWelcome, shareAs, removeTestGuest } from './workshop-guests.shared'
 import { expect, test } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
+import { conversation, dragCard, dragCardNamed, editable, finger, isOffered, openConversation, slateTitle, workshopReady, workshopStatus } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const model: Workshop = {
@@ -31,7 +32,8 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     await expect.poll(() => userId(owner)).toBeTruthy()
     ownerId = await userId(owner)
     await dismissWelcome(owner)
-    await expect(owner.getByRole('button', { name: 'Lens → Bright star' })).toBeEnabled()
+    await workshopReady(owner)
+    expect(await isOffered(owner, 'Lens', 'Bright star')).toBe(true)
     expect(ownerId).toBeTruthy()
     const key = new URL(owner.url()).pathname.split('/').pop()!
     const original = await getSlate(owner, key)
@@ -52,8 +54,10 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     const readLink = await shareAs(owner, 'read')
     await reader.goto(readLink.href)
     await dismissWelcome(reader)
-    await expect(reader.getByRole('heading', { name: model.title })).toBeVisible()
-    await expect(reader.getByRole('button', { name: 'Lens → Bright star' })).toBeDisabled()
+    await workshopReady(reader)
+    await expect(slateTitle(reader)).toHaveText(model.title)
+    await expect(workshopStatus(reader)).toContainText('View only')
+    expect(await isOffered(reader, 'Lens', 'Bright star')).toBe(false)
     await expect(reader.getByRole('button', { name: 'Join to edit' })).toHaveCount(0)
     expect(await userId(reader)).toBeNull()
     expect((await getSlate(owner, key)).creative.model.workshop).toEqual(model)
@@ -61,40 +65,26 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     const editLink = await shareAs(owner, 'edit')
     await editor.goto(editLink.href)
     await dismissWelcome(editor)
-    await expect(editor.getByRole('heading', { name: model.title })).toBeVisible()
+    await workshopReady(editor)
+    await expect(slateTitle(editor)).toHaveText(model.title)
     const join = editor.getByRole('button', { name: 'Join to edit', exact: true })
     await expect(join).toBeEnabled()
     expect(await userId(editor)).toBeNull()
-    const move = editor.getByRole('button', { name: 'Lens → Bright star', exact: true })
-    await expect(move).toBeDisabled()
+    // Until the visitor joins, the canvas offers them no move.
+    const move = () => isOffered(editor, 'Lens', 'Bright star')
+    expect(await move()).toBe(false)
     await join.tap()
     await expect.poll(() => userId(editor)).toBeTruthy()
     editorId = await userId(editor)
-    await expect(move).toBeEnabled()
+    await editable(editor)
+    expect(await move()).toBe(true)
     expect(editorId).not.toBe(ownerId)
     expect(new URL(editor.url()).pathname).toBe(editLink.pathname)
     if (browserName === 'chromium') {
-      // A trusted finger gesture on the scaled drawing uses displayed screen coordinates.
-      const card = editor.locator('.workshop-drawing #choice-lens')
-      await card.scrollIntoViewIfNeeded()
-      const start = (await card.boundingBox())!
-      const from = (await editor.locator('.workshop-drawing #heading-bench').boundingBox())!
-      const to = (await editor.locator('.workshop-drawing #heading-star').boundingBox())!
-      const x = start.x + start.width / 2, y = start.y + start.height / 2
-      const device = await editorContext.newCDPSession(editor)
-      try {
-        await device.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] })
-        for (const fraction of [0.1, 0.5, 1]) {
-          await device.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{
-            x: x + (to.x - from.x) * fraction, y: y + (to.y - from.y) * fraction,
-          }] })
-        }
-        await device.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
-      } finally {
-        await device.detach()
-      }
+      // A trusted finger carries the token to the next station on the canvas.
+      await (await finger(editor)).dragCard('lens', 'star')
     } else {
-      await move.tap()
+      await dragCard(editor, 'lens', 'star')
     }
 
     const location = 'Lens · Bright star'
@@ -118,12 +108,14 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     await expect(editor.getByText(location, { exact: true })).toBeVisible()
     await editor.reload()
     await dismissWelcome(editor)
+    await workshopReady(editor)
     await expect(editor.getByText(location, { exact: true })).toBeVisible()
     expect(await userId(editor)).toBe(editorId)
 
     const downgraded = await shareAs(owner, 'read')
     expect(downgraded.href).toBe(editLink.href)
-    await expect(editor.getByRole('complementary',{name:'Map conversation'})).toHaveCount(0)
+    await expect(conversation(editor)).toHaveCount(0)
+    await expect(editor.getByRole('button', { name: 'Ask Slatebox' })).toHaveCount(0)
     await expect(editor.getByText(location, { exact: true })).toBeVisible()
 
     await owner.getByRole('button', { name: 'Share', exact: true }).click()
@@ -132,12 +124,15 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     await dialog.getByRole('button', { name: 'Make private', exact: true }).click()
     await dialog.getByRole('button', { name: 'Done', exact: true }).click()
     await expect.poll(async () => (await getSlate(owner, key)).options.isPrivate).toBe(true)
-    await expect(editor.getByRole('heading', { name: model.title })).toHaveCount(0)
+    // The workshop leaves the canvas of a person whose access is taken away.
+    await expect(editor.locator('#slateCanvas [data-node-id^="lane-"], #slateCanvas [data-node-id^="card-"]')).toHaveCount(0)
+    await expect(workshopStatus(editor)).toContainText('This slate is unavailable.')
     const accessKey = editLink.pathname.split('/').pop()!
     expect(await getSlate(editor, accessKey)).toBeFalsy()
     await editor.reload()
     await expect.poll(() => userId(editor)).toBe(editorId)
-    await expect(editor.getByRole('heading', { name: model.title })).toHaveCount(0)
+    await expect(editor.locator('#slateCanvas [data-node-id^="lane-"], #slateCanvas [data-node-id^="card-"]')).toHaveCount(0)
+    await expect(slateTitle(editor).filter({ hasText: model.title })).toHaveCount(0)
     await expect(editor.getByRole('button', { name: 'Join to edit' })).toHaveCount(0)
     expect(await getSlate(editor, accessKey)).toBeFalsy()
     expect((await getSlate(owner, key)).creative.model.workshop).toEqual(expected)
@@ -147,10 +142,12 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     await editor.goto(editLink.href)
     await expect.poll(() => userId(editor)).toBe(editorId)
     expect(await getSlate(editor, accessKey)).toBeFalsy()
-    await expect(editor.getByRole('heading', { name: model.title })).toHaveCount(0)
+    await expect(editor.locator('#slateCanvas [data-node-id^="lane-"], #slateCanvas [data-node-id^="card-"]')).toHaveCount(0)
+    await expect(slateTitle(editor).filter({ hasText: model.title })).toHaveCount(0)
     await editor.goto(replacement.href)
     await dismissWelcome(editor)
-    await expect(editor.getByRole('complementary',{name:'Map conversation'})).toBeVisible()
+    await workshopReady(editor)
+    await openConversation(editor)
     await expect(editor.getByText(location, { exact: true })).toBeVisible()
   } finally {
     try {
@@ -201,7 +198,8 @@ test('an invited editor can return through a historical link until the owner mak
     await peer.getByRole('button', { name:'Join to edit' }).click()
     await expect.poll(() => userId(peer)).toBeTruthy()
     peerId = await userId(peer)
-    await peer.getByRole('button', { name:'Lens → Bright star' }).click()
+    await editable(peer)
+    await dragCardNamed(peer, 'Lens', 'Bright star')
     await expect(owner.getByText('Lens · Bright star', { exact: true })).toBeVisible()
     await peer.goto(origin.href)
     const recent = peer.getByRole('region', { name:'Recently joined' }).getByRole('link', { name:model.title })
@@ -209,6 +207,7 @@ test('an invited editor can return through a historical link until the owner mak
     await recent.click()
     await expect(peer).toHaveURL(invite.href)
     await dismissWelcome(peer)
+    await workshopReady(peer)
     await expect(peer.getByText('Lens · Bright star', { exact:true })).toBeVisible()
     await peer.goto(origin.href)
     await expect(recent).toBeVisible()

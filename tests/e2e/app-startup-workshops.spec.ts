@@ -2,6 +2,7 @@ import {test, expect} from '@playwright/test'
 import {createBudgetWorkshop, createInterviewWorkshop, decodeWorkshopFragment, planStartupMove} from '../../src/workshops/model'
 import {dismissWelcome, getSlate, removeTestGuest, shareAs, userId} from './workshop-guests.shared'
 import {sendLaneEdit} from './workshop-conversation.shared'
+import {caption, card, dragCard, isOffered, joinToEdit, keyboardMove, placementOutcomes, workshopReady} from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const examples = [
@@ -55,22 +56,29 @@ for (const example of examples) {
       const edit=await shareAs(owner,'edit')
       await peer.goto(edit.href)
       await dismissWelcome(peer)
-      await peer.getByRole('button',{name:'Join to edit',exact:true}).click()
+      await workshopReady(peer)
+      await joinToEdit(peer)
       await expect.poll(()=>userId(peer)).toBeTruthy()
       peerId=await userId(peer)
       expect(peerId).not.toBe(ownerId)
-      const choice='[data-card="'+example.card+'"]'
-      await peer.locator(choice).press('Enter')
-      if(example.kind==='experiment-budget') await peer.locator('[data-drop="newsletter"]').press('Enter')
+      // The peer is on a phone: the lanes are one to a row, and the card is moved from the keyboard,
+      // which is how a person who cannot drag plays the same rules.
+      const laneLabel=(await stored()).creative.model.workshop.lanes.find((l:{id:string})=>l.id===example.lane).label
+      expect(await keyboardMove(peer,example.card,laneLabel)).toBe(true)
       await expect.poll(async()=>(await stored()).creative.model.workshop.cards.find((c:{id:string})=>c.id===example.card)?.laneId).toBe(example.lane)
-      const decision=example.kind==='customer-interviews'?'Keep original record':'1 placement'
-      const target='[data-drop="'+example.lane+'"]'
-      await expect(owner.locator(target)).toContainText(decision)
+      // What the move decided is on the canvas for both people: the budget on the lane's own line,
+      // the interview's test as its placement outcome.
+      const decided=async(page:typeof owner)=>example.kind==='customer-interviews'
+        ? expect(placementOutcomes(page)).toContainText('Imani will test whether Bea can keep the existing client and skip its duplicate.')
+        : expect(caption(page,example.lane)).toContainText('$200 · 1 placement')
+      await workshopReady(owner)
+      await decided(owner)
       await sendLaneEdit(owner,'Rename card @'+example.card+' to First customer pilot')
-      await expect(peer.locator(choice)).toContainText('First customer pilot')
+      await expect(card(peer,example.card)).toContainText('First customer pilot')
       await peer.reload()
       await dismissWelcome(peer)
-      await expect(peer.locator(target)).toContainText(decision)
+      await workshopReady(peer)
+      await decided(peer)
       await peer.getByRole('button',{name:'Present',exact:true}).click()
       const slides=peer.getByRole('region',{name:'Decision presentation'})
       if(example.kind==='experiment-budget') {
@@ -80,8 +88,11 @@ for (const example of examples) {
       await expect(slides.getByRole('listitem')).toContainText('First customer pilot')
       await slides.getByRole('button',{name:'Back to board'}).click()
       await shareAs(owner,'read')
-      await expect(peer.locator(choice)).toBeDisabled()
-      await expect(peer.locator(target)).toContainText(decision)
+      // A reader is offered no way to take the card back, and still sees what was decided.
+      const home=(await stored()).creative.model.workshop.lanes[0]
+      await expect.poll(()=>isOffered(peer,'First customer pilot',home.label)).toBe(false)
+      expect(await keyboardMove(peer,example.card,home.label)).toBe(false)
+      await decided(peer)
     } finally {
       try {await Promise.all([removeTestGuest(owner,ownerId),removeTestGuest(peer,peerId)])}
       finally {await Promise.all([ownerContext.close(),peerContext.close()])}

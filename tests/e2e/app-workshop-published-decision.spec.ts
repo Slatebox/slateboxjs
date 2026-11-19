@@ -3,6 +3,7 @@ import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
 import {laneChat,sendLaneEdit,expectRejectedLaneEdit} from './workshop-conversation.shared'
+import { card, openPublication, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const workshop: Workshop = {
@@ -101,8 +102,8 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
 
     await owner.bringToFront()
     await prepareDecision(owner)
-    await owner.getByRole('button', { name:'Publish presentation', exact:true }).click()
-    const dialog = owner.getByRole('dialog', { name:'Publish presentation', exact:true })
+    await workshopReady(owner)
+    const dialog = await openPublication(owner)
     await expect(dialog.getByRole('radio', {name:'Anyone with the link'})).toBeChecked()
     await dialog.getByRole('button', {name:'Publish', exact:true}).click()
     await owner.getByRole('button', {name:'Copy link',exact:true}).click()
@@ -124,14 +125,14 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
     await dialog.getByRole('button', {name:'Close',exact:true}).click()
     const privateLabel = 'Revised private carving'
     await sendLaneEdit(owner, 'Rename card @shell to '+privateLabel)
-    await expect(owner.locator('#choice-shell')).toContainText(privateLabel)
+    await expect(card(owner,'shell')).toContainText(privateLabel)
     await viewer.reload()
     await verifyPublishedScenes(viewer, viewer)
     await article.setContent('<!doctype html><main>' + snippet + '</main>')
     await verifyPublishedScenes(article, embed)
 
     await owner.bringToFront()
-    await owner.getByRole('button', {name:'Publish presentation',exact:true}).click()
+    await openPublication(owner)
     await expect(dialog.getByText('The slate has changed since this version was published.')).toBeVisible()
     await dialog.getByRole('button', {name:'Republish',exact:true}).click()
     await expect(dialog.getByRole('status')).toContainText('Presentation published')
@@ -151,7 +152,8 @@ test('publish a workshop decision, keep the audience snapshot stable across edit
     await owner.reload()
     await dismissWelcome(owner)
     await expect(laneChat(owner)).toBeVisible()
-    await expect(owner.locator('#choice-shell')).toContainText(privateLabel)
+    await workshopReady(owner)
+    await expect(card(owner,'shell')).toContainText(privateLabel)
     const saved = await getSlate(owner, key)
     expect(saved.options.isPrivate).toBe(true)
     expect(saved.creative.model.workshop.presentationOrder).toEqual(['case','reserve'])

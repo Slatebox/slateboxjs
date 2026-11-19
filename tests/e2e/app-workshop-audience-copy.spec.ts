@@ -2,6 +2,7 @@ import {sendLaneEdit,laneChat} from './workshop-conversation.shared'
 import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
+import {openConversation, openPublication, workshopReady} from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const original: Workshop = {version:1, title:'Harbor soundcheck', lanes:[{id:'desk',label:'Desk'}, {id:'air',label:'On air'}],
@@ -26,8 +27,8 @@ test('audiences can keep a private copy only of a currently opted-in workshop ed
     sourceId=source._id
     const published=new URL('/present/'+key,origin).href
     const publish=async(allow:boolean,first=false)=>{
-      await owner.getByRole('button',{name:'Publish presentation',exact:true}).click()
-      const dlg=owner.getByRole('dialog',{name:'Publish presentation'})
+      await workshopReady(owner)
+      const dlg=await openPublication(owner)
       const check=dlg.getByRole('checkbox',{name:'Let viewers open their own copy'})
       await expect(dlg.getByRole('radio',{name:'Anyone with the link'})).toBeChecked()
       if(first) await expect(check).not.toBeChecked()
@@ -116,12 +117,13 @@ test('audiences can keep a private copy only of a currently opted-in workshop ed
     expect(currentCopy.creative.model.workshop).toEqual(privateRevision)
     await returning.close()
     await assertDenied(edition)
-    await owner.getByRole('button',{name:'Publish presentation',exact:true}).click()
+    await openPublication(owner)
     await owner.getByRole('button',{name:'Withdraw presentation',exact:true}).click()
     await expect(owner.getByRole('status')).toContainText('Presentation withdrawn')
     await assertDenied(nextEdition)
     await copier.reload()
-    await expect(laneChat(copier).getByRole('textbox')).toBeVisible()
+    // The copy is on a phone: its conversation is one tap away, and still takes the copier's edits.
+    await expect((await openConversation(copier)).getByRole('textbox')).toBeVisible()
     await expect.poll(() => userId(copier!)).toBe(copierId)
     expect((await getSlate(copier,copyKey)).creative.model.workshop.cards[0].laneId).toBe('air')
   } finally {

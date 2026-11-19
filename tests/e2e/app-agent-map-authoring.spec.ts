@@ -1,4 +1,5 @@
 import { startAgentMap } from './map-conversation.shared'
+import { dragCardNamed, workshopReady } from './app-native-workshop.shared'
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
@@ -60,7 +61,8 @@ test('an invited teammate follows an agent-authored branch and presents its save
     await dismissWelcome(peer.page)
     const hash=process.env.SLATEBOX_EXPECTED_APP_BUNDLE
     if(hash)await expect(peer.page.locator('script[src*="/'+hash+'.js"]')).toHaveCount(1)
-    await peer.page.getByRole('button',{name:'Token → Next step',exact:true}).click()
+    await workshopReady(peer.page)
+    await dragCardNamed(peer.page,'Token','Next step')
     await expect.poll(async()=>(await native()).revision).toBe(baseline+1)
     // The peer's change invalidates the original review; no partial station or edge is saved.
     let conflict=false
@@ -87,7 +89,7 @@ test('an invited teammate follows an agent-authored branch and presents its save
     }})
     expect(updated.structuredContent?.report.updatedOutcomes).toEqual([{stationId:branch.stationId}])
     await expect(peer.page.locator('[data-creative-revision]')).toHaveAttribute('data-creative-revision',String(updated.structuredContent.workshop.revision))
-    await peer.page.getByRole('button',{name:'Token → '+label,exact:true}).click()
+    await dragCardNamed(peer.page,'Token',label)
     await expect.poll(async()=>(await native()).model.workshop.cards[0].laneId).toBe(branch.stationId)
     await peer.page.reload()
     await dismissWelcome(peer.page)

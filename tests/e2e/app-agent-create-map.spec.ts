@@ -6,6 +6,7 @@ import { resolve } from 'node:path'
 import { promisify } from 'node:util'
 import { expect, test } from '@playwright/test'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
+import { conversation, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const installed = process.env.SLATEBOX_AGENT_TOOLS_DIR
@@ -101,7 +102,8 @@ test('packaged tools create private maps and source diagrams through the same op
     expect(await userId(reader)).toBeNull()
     expect(await getSlate(reader, created.shareId)).toBeFalsy()
 
-    const chat = owner.getByRole('complementary', { name: 'Map conversation' })
+    await workshopReady(owner)
+    const chat = conversation(owner)
     const message = chat.getByRole('textbox', { name: 'Direct map edits' })
     await message.fill('Ask the shop or ask the courier')
     await message.press('Enter')
@@ -113,14 +115,17 @@ test('packaged tools create private maps and source diagrams through the same op
     const edited = (await saved()).creative.model.workshop
     expect(edited.lanes.map((lane: {label: string}) => lane.label)).toEqual([brief, 'Ask the shop', 'ask the courier'])
     await owner.reload()
-    await expect(owner.locator('.map-stage')).toContainText('Ask the shop')
+    await workshopReady(owner)
+    await expect(owner.locator('#slateCanvas [data-node-id^="lane-"]').filter({hasText:'Ask the shop'})).toBeVisible()
     expect((await saved()).creative.model.workshop).toEqual(edited)
     const invite = await shareAs(owner, 'read')
     await reader.goto(invite.href)
     await dismissWelcome(reader)
     if (expectedBundle) await expect(reader.locator('script[src*="/' + expectedBundle + '.js"]')).toHaveCount(1)
     await expect(reader.getByRole('button', { name: 'Join to edit' })).toHaveCount(0)
-    await expect(reader.getByRole('complementary', { name: 'Map conversation' })).toHaveCount(0)
+    await workshopReady(reader)
+    await expect(conversation(reader)).toHaveCount(0)
+    await expect(reader.getByRole('button', { name: 'Ask Slatebox' })).toHaveCount(0)
     await reader.getByRole('button', { name: 'Present', exact: true }).click()
     const show = reader.getByRole('region', { name: 'Decision presentation' })
     await expect(show.getByRole('heading', { name: brief, exact: true })).toBeVisible()

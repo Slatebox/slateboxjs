@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
+import { conversation, dragCardNamed, editable, slateTitle, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const workshop: Workshop = {
@@ -19,7 +20,8 @@ async function startWorkshop(page: Page, model: Workshop) {
   await page.goto(new URL('/new/workshop' + encodeWorkshopFragment(model), origin).href)
   await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
   await dismissWelcome(page)
-  await expect(page.getByRole('heading', { name: model.title })).toBeVisible()
+  await workshopReady(page)
+  await expect(slateTitle(page)).toHaveText(model.title)
   const key = new URL(page.url()).pathname.split('/').pop()!
   const board = await getSlate(page, key)
   expect(board.userId).toBe(await userId(page))
@@ -56,7 +58,8 @@ test('a joined editor returns from My Slates across devices as the live title an
     const read = await shareAs(owner, 'read')
     await observer.goto(read.href)
     await dismissWelcome(observer)
-    await expect(observer.getByRole('heading', { name: workshop.title })).toBeVisible()
+    await workshopReady(observer)
+    await expect(slateTitle(observer)).toHaveText(workshop.title)
     await library(observer)
     await expect(observer.getByRole('button', { name: observerTitle, exact: true })).toBeVisible()
     await expect(observer.getByRole('link', { name: workshop.title, exact: true })).toHaveCount(0)
@@ -72,7 +75,8 @@ test('a joined editor returns from My Slates across devices as the live title an
     await join.click()
     await expect.poll(() => userId(editor)).toBeTruthy()
     editorId = await userId(editor)
-    await editor.getByRole('button', { name: 'Hydrophone → On the boat' }).click()
+    await editable(editor)
+    await dragCardNamed(editor, 'Hydrophone', 'On the boat')
     await expect.poll(async () => (await getSlate(owner, source.key)).creative.model.workshop.cards[0].laneId).toBe('boat')
     await library(editor)
     const firstVisit = joined(editor).getByRole('link', { name: workshop.title, exact: true })
@@ -90,9 +94,9 @@ test('a joined editor returns from My Slates across devices as the live title an
     await expect.poll(() => editor.evaluate(() => (window as any).Meteor.user()?.emails?.[0]?.address)).toBe(email)
 
     const renamed = 'Evening harbor recording'
-    const chat=owner.getByRole('complementary',{name:'Map conversation'})
+    const chat=conversation(owner)
     await chat.getByRole('textbox').fill('Rename map to '+renamed)
-    await chat.getByRole('button',{name:'Send map message'}).click()
+    await chat.getByRole('button',{name:'Preview changes',exact:true}).click()
     await chat.getByRole('button',{name:'Keep changes'}).click()
     await returning.goto(new URL('/login', origin).href)
     await returning.getByLabel('Email Address').fill(email)
@@ -114,9 +118,12 @@ test('a joined editor returns from My Slates across devices as the live title an
     await reentry.tap()
     await expect(returning).toHaveURL(invite.href)
     await dismissWelcome(returning)
-    await expect(returning.getByRole('heading', { name: renamed })).toBeVisible()
+    await workshopReady(returning)
+    await expect(slateTitle(returning)).toHaveText(renamed)
     await expect(returning.getByText('Hydrophone · On the boat', { exact: true })).toBeVisible()
-    await expect(returning.getByRole('complementary',{name:'Map conversation'})).toHaveCount(0)
+    // A reader has no conversation, open or one tap away.
+    await expect(conversation(returning)).toHaveCount(0)
+    await expect(returning.getByRole('button',{name:'Ask Slatebox'})).toHaveCount(0)
 
     await library(returning)
     await expect(reentry).toBeVisible()
@@ -139,7 +146,9 @@ test('a joined editor returns from My Slates across devices as the live title an
     expect(await getSlate(returning, oldKey)).toBeFalsy()
     await returning.goto(replacement.href)
     await dismissWelcome(returning)
-    await returning.getByRole('button', { name: 'Hydrophone → On the dock' }).click()
+    await workshopReady(returning)
+    await editable(returning)
+    await dragCardNamed(returning, 'Hydrophone', 'On the dock')
     await expect.poll(async () => (await getSlate(owner, source.key)).creative.model.workshop.cards[0].laneId).toBe('dock')
     await library(returning)
     await expect(reentry).toHaveAttribute('href', replacement.pathname)

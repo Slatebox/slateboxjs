@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { promisify } from 'node:util'
 import { expect, test } from '@playwright/test'
 import { dismissWelcome, getSlate, shareAs, userId } from './workshop-guests.shared'
+import { conversation, standing, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 
@@ -38,7 +39,8 @@ test('a saved agent move follows the team鈥檚 map rules and reaches its reader鈥
     expect(first.userId).toBe(ownerId)
     expect(first.options.isPrivate).toBe(true)
     await dismissWelcome(owner)
-    const chat = owner.getByRole('complementary', { name: 'Map conversation' })
+    await workshopReady(owner)
+    const chat = conversation(owner)
     const input = chat.getByRole('textbox', { name: 'Direct map edits' })
     await input.fill('Ask finance or ask the account owner')
     await input.press('Enter')
@@ -117,15 +119,17 @@ test('a saved agent move follows the team鈥檚 map rules and reaches its reader鈥
     const result = await summary()
     expect(result.revision).toBe(map.revision + 1)
     expect(result.cards.find((card: { id: string }) => card.id === team.id).laneId).toBe(finance.id)
-    await expect(owner.locator('.map-stage')).toContainText('Team 路 Ask finance', { timeout: 15000 })
+    await expect(standing(owner)).toContainText('Team 路 Ask finance', { timeout: 15000 })
     console.info('Owner saw the external move in the open map after preview, commit and retries.')
     await owner.reload()
-    await expect(owner.locator('.map-stage')).toContainText('Team 路 Ask finance')
+    await workshopReady(owner)
+    await expect(standing(owner)).toContainText('Team 路 Ask finance')
 
     const invite = await shareAs(owner, 'read')
     await reader.goto(invite.href)
     await dismissWelcome(reader)
-    await expect(reader.locator('.map-stage')).toContainText('Team 路 Ask finance')
+    await workshopReady(reader)
+    await expect(standing(reader)).toContainText('Team 路 Ask finance')
     await reader.getByRole('button', { name: 'Present', exact: true }).click()
     const player = reader.getByRole('region', { name: 'Decision presentation' })
     await player.getByRole('button', { name: 'Next station' }).click()

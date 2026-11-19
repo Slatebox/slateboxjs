@@ -2,6 +2,7 @@ import {previewLaneEdit,sendLaneEdit,laneChat} from './workshop-conversation.sha
 import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
+import { openPublication, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const base: Workshop = {
@@ -27,12 +28,12 @@ test('author a placement outcome, accept a second editor’s move and republish 
     key = new URL(owner.url()).pathname.split('/').pop()!
     const original = await getSlate(owner,key)
     slateId = original._id
+    await workshopReady(owner)
     expect(original.creative.model.workshop.signals).toBeUndefined()
     await sendLaneEdit(owner,'Set outcome Broadcast for @chime in @air: The harbor chime is live. | The harbor chime is waiting.')
     await expect(report(owner)).toContainText('The harbor chime is waiting.')
     const publish = async (label: 'Publish' | 'Republish') => {
-      await owner.getByRole('button',{name:'Publish presentation',exact:true}).click()
-      const dialog=owner.getByRole('dialog',{name:'Publish presentation'})
+      const dialog=await openPublication(owner)
       await expect(dialog.getByRole('radio',{name:'Anyone with the link'})).toBeChecked()
       await dialog.getByRole('button',{name:label,exact:true}).click()
       await expect(dialog.getByRole('status')).toContainText('Presentation published')
@@ -58,6 +59,7 @@ test('author a placement outcome, accept a second editor’s move and republish 
     expect(peerId).not.toBe(ownerId)
     await peer.goto(link.href)
     await dismissWelcome(peer)
+    await workshopReady(peer)
     await previewLaneEdit(peer,'Move @chime to @air')
     await expect(report(peer)).toContainText('The harbor chime is live.')
     await expect(report(owner)).toContainText('The harbor chime is waiting.')

@@ -8,6 +8,7 @@ import { expect, firefox, test } from '@playwright/test'
 import { register, retire, type Actor } from './agent-principals.shared'
 import { dismissWelcome, getSlate } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
+import { dragCardNamed } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const installation = process.env.SLATEBOX_AGENT_TOOLS_DIR
@@ -44,7 +45,7 @@ test('an agent orders the scenes that an invited reader actually presents', asyn
     expect((await cli('read',board)).summary.workshop).toEqual(initial)
 
     // An ordinary canvas edit after preview must invalidate the prepared save.
-    await owner.page.getByRole('button',{name:'Token → Next step',exact:true}).click()
+    await dragCardNamed(owner.page,'Token','Next step')
     await expect.poll(async () => (await getSlate(owner.page,board)).creative.revision).toBe(initial.revision+1)
     const apply = (rev:number,key:string) => cli('order',board,...order,'--apply','--revision',String(rev),'--idempotency-key',key)
     let stale = false

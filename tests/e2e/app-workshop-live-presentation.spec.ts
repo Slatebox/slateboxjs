@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
+import { openPublication, slateTitle, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const workshop: Workshop = {
@@ -48,8 +49,8 @@ test('a reader opts into live playback, returns to the current scene, and leaves
     }
     await dismissWelcome(owner)
 
-    await button(owner, 'Publish presentation').click()
-    const dialog = owner.getByRole('dialog', { name: 'Publish presentation' })
+    await workshopReady(owner)
+    const dialog = await openPublication(owner)
     await expect(dialog.getByRole('radio', { name: 'Anyone with the link' })).toBeChecked()
     await dialog.getByRole('button', { name: 'Publish', exact: true }).click()
     const publishedUrl = await dialog.getByRole('link', { name: 'Open published presentation' }).getAttribute('href')
@@ -60,7 +61,8 @@ test('a reader opts into live playback, returns to the current scene, and leaves
     const readLink = await shareAs(owner, 'read')
     await reader.goto(readLink.href)
     await dismissWelcome(reader)
-    await expect(reader.getByRole('heading', { name: workshop.title })).toBeVisible()
+    await workshopReady(reader)
+    await expect(slateTitle(reader)).toHaveText(workshop.title)
     expect(await userId(reader)).toBeNull()
     await expect(button(reader, 'Present together')).toHaveCount(0)
     await expect(button(reader, 'Follow presentation')).toHaveCount(0)

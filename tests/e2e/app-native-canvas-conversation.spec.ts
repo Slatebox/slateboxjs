@@ -1,5 +1,6 @@
 import {expect,test,type Locator} from '@playwright/test'
 import {dismissWelcome, removeTestGuest, shareAs, userId} from './workshop-guests.shared'
+import {conversation, lane, note, openConversation, workshopReady} from './app-native-workshop.shared'
 
 const origin=process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 const writable=['localhost','127.0.0.1','test.slatebox.com'].includes(new URL(origin).hostname)
@@ -41,16 +42,23 @@ for(const width of [1360,390]) test('a '+width+'px native drawing gains a route 
     await chat.getByRole('button',{name:'Preview changes'}).click()
     await expect(keep).toBeVisible()
     await keep.click()
-    const viewDrawing=page.getByRole('button',{name:'View drawing'})
-    await expect(viewDrawing).toBeVisible({timeout:20000})
+    // The route is added to the same slate. Its canvas now shows the drawing and, beside it, the playable route.
+    await expect.poll(async()=>Boolean((await read()).creative),{timeout:20000}).toBe(true)
+    await workshopReady(page)
+    await expect(page.getByRole('button',{name:/View drawing|Open workshop|Play interactive route/})).toHaveCount(0)
+    expect(new URL(page.url()).search).toBe('')
     const dual=await read()
     expect(dual.nodes).toEqual(drawing.nodes)
     expect(dual.creative.model.workshop.lanes.map((lane:any)=>lane.label)).toEqual(['Intake','Review','Notify'])
-    await viewDrawing.click()
-    await expect(page.locator('#slateCanvas [data-node-id="'+nodes[0].options.id+'"]')).toBeVisible()
-    const reopen=page.getByRole('button',{name:'Ask Slatebox'})
-    if(await reopen.isVisible()) await reopen.click()
-    await expect(chat.getByLabel('Kept conversation')).toContainText('Added a playable route')
+    for(const kept of nodes) await expect(note(page,kept.options.id)).toBeAttached()
+    const edge=(id:string)=>page.evaluate(key=>{const o=(window as any).slate.v2.nodes.one(key).options;return {left:o.x as number,right:(o.x as number)+(o.width as number)}},id)
+    const drawingRight=Math.max(...await Promise.all(dual.nodes.map(async(n:any)=>(await edge(n.options.id)).right)))
+    for(const station of dual.creative.model.workshop.lanes) expect((await edge('column-'+station.id)).left).toBeGreaterThan(drawingRight)
+    await expect(lane(page,dual.creative.model.workshop.lanes[0].id)).toContainText('Intake')
+    // One conversation: what was kept while the slate was only a drawing is still in it.
+    await openConversation(page)
+    await expect(chat.getByRole('log')).toContainText(request)
+    await expect(chat.getByRole('log')).toContainText('Added a playable route')
   } finally {
     if(uid && key) {
       const clean=await context.newPage()
@@ -69,7 +77,7 @@ for(const width of [1360,390]) test('a '+width+'px native drawing gains a route 
   }
 })
 
-test('a drawing converted to a workshop leaves both its view switch and guest invitation reachable',async({browser})=>{
+test('a drawing converted to a workshop shows both on one canvas and leaves its guest invitation reachable',async({browser})=>{
   test.skip(!writable,'Uses disposable guests on a local or staging deployment')
   const context=await browser.newContext()
   const owner=await context.newPage()
@@ -91,7 +99,10 @@ test('a drawing converted to a workshop leaves both its view switch and guest in
     await chat.getByRole('textbox').fill('Make a workshop with Pitches, Record on Friday and Archive, limit Record on Friday to one card')
     await chat.getByRole('button',{name:'Preview changes'}).click()
     await chat.getByRole('button',{name:'Keep changes'}).click()
-    await expect(owner.getByRole('button',{name:'View drawing'})).toBeVisible()
+    await workshopReady(owner)
+    await expect(owner.getByRole('button',{name:/View drawing|Open workshop/})).toHaveCount(0)
+    const drawn=await owner.evaluate(()=>JSON.parse((window as any).slate.exportJSON()).nodes.map((n:any)=>n.options.id as string))
+    expect(drawn.length).toBeGreaterThan(0)
     const invite=await shareAs(owner,'edit')
     for(const width of [320,390,1360]){
       const phone=width<500
@@ -103,12 +114,14 @@ test('a drawing converted to a workshop leaves both its view switch and guest in
         const stamp=process.env.SLATEBOX_EXPECTED_APP_BUNDLE
         if(stamp) await expect(peer.locator('script[src*="/'+stamp+'.js"]')).toHaveCount(1)
         await dismissWelcome(peer)
+        await workshopReady(peer)
         const join=peer.getByRole('button',{name:'Join to edit',exact:true})
-        const drawing=peer.getByRole('button',{name:'View drawing',exact:true})
-        await reachable(drawing)
         await reachable(join)
-        await drawing.focus()
-        await peer.keyboard.press('Tab')
+        // The drawing and the workshop are on the one canvas; there is no switch between them.
+        await expect(peer.getByRole('button',{name:/View drawing|Open workshop/})).toHaveCount(0)
+        for(const id of drawn) await expect(note(peer,id)).toBeAttached()
+        await expect(peer.locator('#slateCanvas [data-node-id^="lane-"]')).toHaveCount(3)
+        await join.focus()
         await expect(join).toBeFocused()
         expect(await userId(peer)).toBeNull()
         if(phone) await join.tap()
@@ -116,18 +129,13 @@ test('a drawing converted to a workshop leaves both its view switch and guest in
         await expect.poll(()=>userId(peer)).toBeTruthy()
         peerId=await userId(peer)
         expect(peerId).not.toBe(ownerId)
-        await expect(peer.getByRole('complementary',{name:'Workshop conversation'})).toBeVisible()
-        await reachable(drawing)
-        if(phone) await drawing.tap()
-        else await drawing.press('Enter')
-        await expect(peer).toHaveURL(/view=drawing/)
-        await expect(peer.locator('#slateCanvas [data-node-id]').first()).toBeVisible()
-        const workshop=peer.getByRole('button',{name:'Open workshop',exact:true})
-        await reachable(workshop)
-        if(width===390) await workshop.tap()
-        else await workshop.press('Enter')
+        // Joined, the peer has the slate's conversation: beside a wide canvas, one tap away on a phone.
+        const ask=peer.getByRole('button',{name:'Ask Slatebox',exact:true})
+        if(phone) { await reachable(ask); await ask.tap() }
+        await expect(conversation(peer).getByRole('textbox',{name:'Workshop command'})).toBeVisible()
         await expect(peer).toHaveURL(invite.href)
-        await expect(drawing).toBeVisible()
+        await expect(peer.locator('#slateCanvas [data-node-id^="lane-"]')).toHaveCount(3)
+        for(const id of drawn) await expect(note(peer,id)).toBeAttached()
         await expect(join).toHaveCount(0)
         expect(await userId(peer)).toBe(peerId)
       } finally {

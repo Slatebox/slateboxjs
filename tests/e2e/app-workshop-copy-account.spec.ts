@@ -1,4 +1,5 @@
 import {sendLaneEdit} from './workshop-conversation.shared'
+import {openPublication, slateTitle, workshopReady} from './app-native-workshop.shared'
 import { createServer } from 'node:http'
 import { once } from 'node:events'
 import { randomUUID } from 'node:crypto'
@@ -39,8 +40,8 @@ test('a reader keeps an independent workshop from a handbook and reopens it on a
     expect(ownerId).toBeTruthy()
     await dismissWelcome(owner)
     const sourceKey = new URL(owner.url()).pathname.split('/').pop()!
-    await owner.getByRole('button', { name: 'Publish presentation', exact: true }).click()
-    const publication = owner.getByRole('dialog', { name: 'Publish presentation' })
+    await workshopReady(owner)
+    const publication = await openPublication(owner)
     await expect(publication.getByRole('radio', { name: 'Anyone with the link' })).toBeChecked()
     await publication.getByRole('checkbox', { name: 'Let viewers open their own copy' }).check()
     await publication.getByRole('button', { name: 'Publish', exact: true }).click()
@@ -88,7 +89,8 @@ test('a reader keeps an independent workshop from a handbook and reopens it on a
     await returning.getByRole('button', { name: /^Sign In\s*→/ }).click()
     await expect.poll(() => userId(returning)).toBe(copyOwner)
     await returning.goto(copyUrl)
-    await expect(returning.getByRole('heading', { name: plan.title })).toBeVisible()
+    await workshopReady(returning)
+    await expect(slateTitle(returning)).toHaveText(plan.title)
     const reopened = await getSlate(returning, key)
     expect(reopened.userId).toBe(copyOwner)
     expect(reopened.creative.model.workshop.cards[0].laneId).toBe('walk')

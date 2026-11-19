@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { dragCardNamed, isOffered, workshopReady } from './app-native-workshop.shared'
 import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
@@ -77,34 +78,40 @@ test('an owner issues a native editor invitation and can downgrade and retire it
     await peer.page.goto(link.href)
     await dismissWelcome(peer.page)
     if (expectedBundle) await expect(peer.page.locator('script[src*="/'+expectedBundle+'.js"]')).toHaveCount(1)
-    await peer.page.getByRole('button',{name:'Refund → Finance',exact:true}).click()
+    await workshopReady(peer.page)
+    await dragCardNamed(peer.page,'Refund','Finance')
     const savedLane=async()=>(await getSlate(ownerPage,shareId)).creative.model.workshop.cards[0].laneId
     await expect.poll(savedLane).toBe('finance')
     await peer.page.reload()
-    const back=peer.page.getByRole('button',{name:'Refund → Support',exact:true})
-    await expect(back).toBeEnabled()
+    await workshopReady(peer.page)
+    // Whether the canvas offers the peer the way back: an editor can pick the card up, a reader cannot.
+    const back=()=>isOffered(peer.page,'Refund','Support')
+    expect(await back()).toBe(true)
     mcp=new Client({name:'native-invite-acceptance',version:'1'})
     await mcp.connect(new StdioClientTransport({command:process.execPath,args:[resolve(toolsDir!,manifest.bin['slatebox-mcp'])],env,stderr:'ignore'}))
     const downgraded=await mcp.callTool({name:'create_slate_invite',arguments:{share_id:shareId,role:'read',idempotency_key:randomUUID()}})
     expect(downgraded.isError).toBeFalsy()
     expect(downgraded.structuredContent.url === link.href && downgraded.structuredContent.inviteId === invitation.inviteId).toBe(true)
-    await expect(back).toBeDisabled()
+    await expect.poll(back).toBe(false)
     await peer.page.reload()
-    await expect(back).toBeDisabled()
+    await workshopReady(peer.page)
+    expect(await back()).toBe(false)
     await expect(peer.page.getByRole('button',{name:'Join to edit'})).toHaveCount(0)
     const revokeKey=randomUUID()
     const revoked=await mcp.callTool({name:'revoke_slate_invite',arguments:{share_id:shareId,invite_id:invitation.inviteId,idempotency_key:revokeKey}})
     expect(revoked.structuredContent?.revoked).toBe(true)
-    await expect(peer.page.getByRole('heading',{name:map.title})).toHaveCount(0)
+    // With the invitation revoked the workshop leaves the peer's canvas.
+    await expect(peer.page.locator('#slateCanvas [data-node-id^="lane-"], #slateCanvas [data-node-id^="card-"]')).toHaveCount(0)
     const replay=await cli('unshare',shareId,'--invite-id',invitation.inviteId,'--idempotency-key',revokeKey)
     expect(replay.revoked).toBe(true)
     expect((await httpIssue(manager,'edit',issueKey)).status()).toBe(409)
     await peer.page.goto(link.href)
     await expect.poll(()=>userId(peer.page)).toBe(peer.id)
     await expect.poll(async()=>Boolean(await getSlate(peer.page,link.pathname.split('/').pop()!))).toBe(false)
-    await expect(peer.page.getByRole('heading',{name:map.title})).toHaveCount(0)
+    await expect(peer.page.locator('#slateCanvas [data-node-id^="lane-"], #slateCanvas [data-node-id^="card-"]')).toHaveCount(0)
     await ownerPage.goto(new URL('/canvas/'+shareId,origin).href)
-    await expect(ownerPage.getByRole('button',{name:'Refund → Support',exact:true})).toBeEnabled()
+    await workshopReady(ownerPage)
+    expect(await isOffered(ownerPage,'Refund','Support')).toBe(true)
     expect(await savedLane()).toBe('finance')
   } finally {
     try {

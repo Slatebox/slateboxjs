@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
+import {conversation, dragCardNamed, editable, isOffered, keyboardMove, selectLaneNamed, slateTitle, workshopReady} from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const workshops: Workshop[] = [{
@@ -36,13 +37,15 @@ async function readScenes(page: Page, draft: Workshop, orderedLanes: string[]) {
 
 async function boardPositions(page: Page, draft: Workshop) {
   const positions = []
+  await workshopReady(page)
   for (const lane of draft.lanes) {
-    const heading = page.locator('.workshop-drawing #heading-' + lane.id)
+    const heading = page.locator('#slateCanvas [data-node-id="lane-' + lane.id + '"]')
     await expect(heading).toBeVisible()
-    const point = await heading.evaluate(element => {
-      const { e, f } = (element as SVGGraphicsElement).transform.baseVal.getItem(0).matrix
-      return [e, f]
-    })
+    // Where the lane's note sits on the slate, in the slate's own units.
+    const point = await page.evaluate(id => {
+      const { x, y } = (window as any).slate.v2.nodes.one(id).options
+      return [x, y]
+    }, 'lane-' + lane.id)
     positions.push(point)
   }
   expect(new Set(positions.map(point => point.join(','))).size).toBe(draft.lanes.length)
@@ -74,36 +77,37 @@ for (const workshop of workshops) {
       const editLink = await shareAs(owner, 'edit')
       await editor.goto(editLink.href)
       await dismissWelcome(editor)
+      await workshopReady(editor)
       await editor.getByRole('button', { name: 'Join to edit', exact: true }).click()
       await expect.poll(() => userId(editor)).toBeTruthy()
+      await editable(editor)
       editorId = await userId(editor)
       expect(editorId).not.toBe(ownerId)
 
       const [start, destination, alternate] = workshop.lanes
       const moving = workshop.cards[0]
       if (destination.station) {
-        await editor.getByRole('button', { name: moving.label + ' → ' + destination.label }).click()
+        await dragCardNamed(editor, moving.label, destination.label)
         await expect(editor.getByText(moving.label + ' · ' + destination.label, { exact: true })).toBeVisible()
-        await expect(editor.getByRole('button', { name: moving.label + ' → ' + alternate.label })).toHaveCount(0)
+        expect(await isOffered(editor, moving.label, alternate.label)).toBe(false)
       } else {
         await sendLaneEdit(editor,'Move '+moving.label+' to '+destination.label)
         const chat = laneChat(editor)
         await chat.getByRole('textbox').fill('Move '+workshop.cards[1].label+' to '+destination.label)
-        await chat.getByRole('button',{name:'Send workshop message'}).click()
+        await chat.getByRole('button',{name:'Preview changes',exact:true}).click()
         await expect(chat.getByRole('alert')).toBeVisible()
         await expect(chat.getByRole('button',{name:'Keep changes'})).toHaveCount(0)
       }
       const updated = { ...workshop, cards: workshop.cards.map((card, index) => index === 0 ? { ...card, laneId: destination.id } : card) }
       await expect.poll(async () => (await getSlate(owner, key)).creative.model.workshop.cards).toEqual(updated.cards)
       const positions = await boardPositions(owner, workshop)
-      const aside = start.station ? 'Map conversation' : 'Workshop conversation'
-      await owner.getByRole('button',{name:'Edit '+destination.label,exact:true}).click()
+      await selectLaneNamed(owner, destination.label)
       if (start.station) await expect(owner.getByLabel('Selected object')).toContainText(destination.label)
       else await expect(laneChat(owner).getByRole('status')).toContainText(destination.label)
       await (start.station ? sendMapEdit : sendLaneEdit)(owner,'Present '+destination.label+' first')
       const order = [destination.id, start.id, alternate.id]
       await readScenes(editor, updated, order)
-      await expect(editor.getByRole('complementary',{name:aside})).toBeVisible()
+      await expect(conversation(editor)).toBeVisible()
 
       await owner.reload()
       await dismissWelcome(owner)
@@ -116,17 +120,16 @@ for (const workshop of workshops) {
       const readLink = await shareAs(owner, 'read')
       await reader.goto(readLink.href)
       await dismissWelcome(reader)
-      await expect(reader.getByRole('heading', { name: updated.title })).toBeVisible()
+      await workshopReady(reader)
+      await expect(slateTitle(reader)).toHaveText(updated.title)
       await expect(reader.getByRole('button', { name: 'Presentation order' })).toHaveCount(0)
       await expect(reader.getByRole('button', { name: 'Edit an object' })).toHaveCount(0)
       await readScenes(reader, updated, order)
       expect(await userId(reader)).toBeNull()
-      if(start.station) {
-        await expect(reader.getByRole('button',{name:moving.label+' → '+start.label})).toBeDisabled()
-      } else {
-      await reader.getByText('Move a card by name', { exact: true }).click()
-      await expect(reader.getByLabel('Move ' + moving.label, { exact: true })).toBeDisabled()
-      }
+      // A reader is offered no move: not by picking the card up, and not from the keyboard.
+      expect(await isOffered(reader, moving.label, start.label)).toBe(false)
+      expect(await keyboardMove(reader, moving.id, start.label)).toBe(false)
+      expect((await getSlate(owner, key)).creative.model.workshop.cards).toEqual(updated.cards)
     } finally {
       try {
         if (slateId && ownerId && await userId(owner) === ownerId) {

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { openGuestCanvas } from "./app-host.shared";
 import { dismissWelcome, getSlate, removeTestGuest, userId } from "./workshop-guests.shared";
+import { conversation, slateTitle, standing, workshopReady } from "./app-native-workshop.shared";
 
 const appUrl = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 
@@ -13,7 +14,9 @@ test("map entry, gallery and dashboard New open their respective editors", async
   const ownerId = await userId(page);
   try {
     await dismissWelcome(page);
-    await expect(page.getByRole("heading", { name: "First customer import" })).toBeVisible();
+    await workshopReady(page);
+    await expect(slateTitle(page)).toHaveText("First customer import");
+    await expect(page.locator('#slateCanvas [data-node-id="card-batch"]')).toBeVisible();
     const source = await getSlate(page, new URL(page.url()).pathname.split("/").pop()!);
     expect(source.userId).toBe(ownerId);
     expect(source.options).toMatchObject({isPrivate:true,isUnlisted:false,isPublic:false});
@@ -56,7 +59,9 @@ test("legacy workshop links open a private slate and preserve native browser his
   const mapUrl = page.url();
   try {
     await dismissWelcome(page);
-    await expect(page.getByRole("complementary", {name:"Map conversation"})).toBeVisible();
+    // A map opens on the slate's canvas with the slate's own conversation, taking map edits.
+    await workshopReady(page);
+    await expect(conversation(page).getByRole("textbox", {name:"Direct map edits"})).toBeVisible();
     const map = await getSlate(page, new URL(mapUrl).pathname.split("/").pop()!);
     expect(map.userId).toBe(actor);
     expect(map.options).toMatchObject({isPrivate:true,isPublic:false,isUnlisted:false});
@@ -65,19 +70,23 @@ test("legacy workshop links open a private slate and preserve native browser his
     await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/);
     const lanesUrl = page.url();
     expect(lanesUrl).not.toBe(mapUrl);
-    await expect(page.getByRole("complementary", {name:"Workshop conversation"}).getByRole("textbox")).toBeVisible();
+    await workshopReady(page);
+    await expect(conversation(page).getByRole("textbox", {name:"Workshop command"})).toBeVisible();
     const lanes = await getSlate(page, new URL(lanesUrl).pathname.split("/").pop()!);
     expect(lanes.userId).toBe(actor);
     expect(lanes.options).toMatchObject({isPrivate:true,isPublic:false,isUnlisted:false});
     expect(lanes.creative.model.workshop.cards).toEqual([]);
     await page.reload();
-    await expect(page.getByRole("heading", {name:"Untitled workshop"})).toBeVisible();
+    await workshopReady(page);
+    await expect(slateTitle(page)).toHaveText("Untitled workshop");
     await page.goBack();
     await expect(page).toHaveURL(mapUrl);
-    await expect(page.getByRole("complementary", {name:"Map conversation"})).toBeVisible();
+    await expect(conversation(page).getByRole("textbox", {name:"Direct map edits"})).toBeVisible();
+    await expect(page.locator('#slateCanvas [data-node-id="lane-start"]')).toBeVisible();
     await page.goForward();
     await expect(page).toHaveURL(lanesUrl);
-    await expect(page.getByRole("complementary", {name:"Workshop conversation"}).getByRole("textbox")).toBeVisible();
+    await expect(conversation(page).getByRole("textbox", {name:"Workshop command"})).toBeVisible();
+    await expect(page.locator('#slateCanvas [data-node-id="lane-start"]')).toHaveCount(0);
     await expect.poll(() => userId(page)).toBe(actor);
   } finally {
     if (actor) {
@@ -105,13 +114,15 @@ test("an existing workshop draft becomes one private native board and the old bo
   const owner = await userId(page);
   try {
     await dismissWelcome(page);
-    await expect(page.locator(".map-stage")).toContainText("Parcel · Returns desk");
+    await workshopReady(page);
+    await expect(standing(page)).toContainText("Parcel · Returns desk");
     const first = await getSlate(page,key);
     expect(first.userId).toBe(owner);
     expect(first.options.isPrivate).toBe(true);
     await page.goto(route);
     await expect(page).toHaveURL(new URL("/canvas/"+key,appUrl).href);
-    await expect(page.getByRole("heading",{name:"Parcel return options"})).toBeVisible();
+    await workshopReady(page);
+    await expect(slateTitle(page)).toHaveText("Parcel return options");
     expect((await getSlate(page,key)).creative.model.workshop).toEqual(first.creative.model.workshop);
   } finally {
     await removeTestGuest(page,owner);

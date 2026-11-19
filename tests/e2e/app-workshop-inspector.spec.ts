@@ -3,6 +3,7 @@ import {encodeWorkshopFragment} from '../../src/workshops/model'
 
 import {dismissWelcome,getSlate,removeTestGuest,userId} from './workshop-guests.shared'
 import {laneChat,previewLaneEdit,sendLaneEdit} from './workshop-conversation.shared'
+import {selectCard,workshopReady} from './app-native-workshop.shared'
 
 const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 
@@ -22,14 +23,16 @@ for (const kind of ['lane','card'] as const) {
       const key=new URL(page.url()).pathname.split('/').pop()!
       await peer.goto(page.url())
       await dismissWelcome(peer)
+      await workshopReady(page)
+      await workshopReady(peer)
       if(kind==='card') {
-        await page.locator('#choice-bell').click()
-        await expect(laneChat(page)).toContainText('Desk bell')
+        await selectCard(page,'bell')
+        await expect(laneChat(page)).toContainText('Selected card · Desk bell')
       }
       await previewLaneEdit(page,kind==='lane'?'Set capacity of @case to 3':'Rename card this to First draft')
       await sendLaneEdit(peer,kind==='lane'?'Set capacity of @case to 4':'Rename card @bell to Harbor bell')
       await expect(laneChat(page)).toContainText('A teammate changed the workshop.')
-      if(kind==='card') await page.locator('#choice-bell').click()
+      if(kind==='card') await selectCard(page,'bell')
       await expect(laneChat(page).getByRole('button',{name:'Keep changes'})).toBeDisabled()
       await page.reload()
       await dismissWelcome(page)

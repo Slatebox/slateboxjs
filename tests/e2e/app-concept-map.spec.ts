@@ -4,6 +4,7 @@ import { sendMapEdit } from './map-conversation.shared'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
 import { nightTransfer } from '../../src/workshops/model'
+import { closeConversation, conversation, dragCard, dragCardNamed, isOffered, lane, selectLaneNamed, slateTitle, standing, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const privateHost = ['localhost','127.0.0.1','test.slatebox.com'].includes(origin.hostname)
@@ -26,23 +27,25 @@ test('author a branching concept map, follow a consequence, present and reopen t
     expect(before.userId).toBe(actor)
     expect(before.options.isPrivate).toBe(true)
     expect(before.creative.model.workshop).toMatchObject(nightTransfer)
-    const native = page.locator('[data-native-workshop-map]')
-    await expect(native.locator('[data-node-id="lane-lift"]')).toBeVisible()
-    const chat = page.getByRole('complementary',{name:'Map conversation'})
+    await workshopReady(page)
+    await expect(lane(page,'lift')).toBeVisible()
+    const chat = conversation(page)
+    expect(await isOffered(page,'Last rider','East stairs')).toBe(true)
     await sendMapEdit(page,'Rename this map to Night shift route review')
-    await expect(page.getByRole('heading',{name:'Night shift route review'})).toBeVisible()
-    await page.getByRole('button',{name:'Edit Last train',exact:true}).click()
+    await expect(slateTitle(page)).toHaveText('Night shift route review')
+    await selectLaneNamed(page,'Last train')
     await expect(chat.getByLabel('Selected object')).toContainText('Last train')
     await sendMapEdit(page,'Disconnect from East stairs')
-    await expect(page.getByRole('button',{name:'Last rider → East stairs'})).toHaveCount(0)
-    await page.getByRole('button',{name:'Edit Market St lift',exact:true}).click()
+    expect(await isOffered(page,'Last rider','East stairs')).toBe(false)
+    await selectLaneNamed(page,'Market St lift')
+    await expect(chat.getByLabel('Selected object')).toContainText('Market St lift')
     const destination = 'The lift gives the rider a step-free route.'
     await sendMapEdit(page,'On arrival, '+destination)
     await sendMapEdit(page,'After Market St lift, add Depot. On arrival, Dispatch records the arrival.')
     await sendMapEdit(page,'Add token Dispatcher at Depot')
-    await page.getByRole('button',{name:'Last rider → Market St lift'}).click()
-    await expect(page.locator('.workshop-outcomes')).toContainText(destination)
-    await page.getByRole('button',{name:'Last rider → Depot'}).click()
+    await dragCardNamed(page,'Last rider','Market St lift')
+    await expect(standing(page)).toContainText(destination)
+    await dragCardNamed(page,'Last rider','Depot')
     const saved = () => read().then(result=>result.creative.model.workshop)
     await expect.poll(async()=> (await saved()).cards[0].laneId).not.toBe('lift')
     const state = await saved(), depot = state.lanes.find((x:{label:string})=>x.label==='Depot')
@@ -50,7 +53,8 @@ test('author a branching concept map, follow a consequence, present and reopen t
     expect(state.lanes[0].station.next).toEqual(['lift'])
     await page.reload()
     await dismissWelcome(page)
-    await expect(page.locator('.workshop-outcomes')).toContainText('Last rider · Depot')
+    await workshopReady(page)
+    await expect(standing(page)).toContainText('Last rider · Depot')
     await page.getByRole('button',{name:'Present',exact:true}).click()
     const player = page.getByRole('region',{name:'Decision presentation'})
     for (let step=1; step<state.lanes.length && !(await player.getByRole('heading',{name:'Depot',exact:true}).isVisible()); step++) {
@@ -74,19 +78,26 @@ test('a phone shows the native starter map and keeps pointer moves aligned', asy
     await resumeArchivedDraft(page,origin,'map')
     actor = await userId(page)
     await dismissWelcome(page)
-    const art = page.locator('[data-native-workshop-map]')
-    await expect(art.locator('svg').first()).toBeVisible()
+    await workshopReady(page)
     expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    const card = (await page.getByRole('button',{name:'Select Last rider'}).boundingBox())!
-    const from = (await page.getByRole('button',{name:'Edit Last train'}).boundingBox())!
-    const dest = (await page.getByRole('button',{name:'Edit Market St lift'}).boundingBox())!
-    await page.mouse.move(card.x+20,card.y+12)
-    await page.mouse.down()
-    await page.mouse.move(card.x+20+dest.x-from.x,card.y+12+dest.y-from.y,{steps:18})
-    await page.mouse.up()
-    await expect(page.locator('.workshop-outcomes')).toContainText('Last rider · Market St lift')
+    // The whole map is fitted to the phone's width: every station is inside the screen.
+    await closeConversation(page)
+    for (const station of ['platform','lift','stairs']) {
+      const box = (await page.locator('#slateCanvas [data-node-id="column-'+station+'"]').boundingBox())!
+      expect(box.x).toBeGreaterThanOrEqual(0)
+      expect(box.x+box.width).toBeLessThanOrEqual(390)
+    }
+    await dragCard(page,'rider','lift')
+    await expect(standing(page)).toContainText('Last rider · Market St lift')
+    // The token sits inside the station it was dropped on.
+    const token = (await page.locator('#slateCanvas [data-node-id="card-rider"]').boundingBox())!
+    const zone = (await page.locator('#slateCanvas [data-node-id="column-lift"]').boundingBox())!
+    expect(token.x).toBeGreaterThanOrEqual(zone.x)
+    expect(token.x+token.width).toBeLessThanOrEqual(zone.x+zone.width+1)
+    expect(token.y).toBeGreaterThan(zone.y)
     await page.reload()
     await dismissWelcome(page)
-    await expect(page.locator('.workshop-outcomes')).toContainText('Last rider · Market St lift')
+    await workshopReady(page)
+    await expect(standing(page)).toContainText('Last rider · Market St lift')
   } finally { await removeTestGuest(page,actor) }
 })

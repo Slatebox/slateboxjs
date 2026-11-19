@@ -4,6 +4,7 @@ import {dismissWelcome, getSlate, userId, removeTestGuest} from './workshop-gues
 import { releasePlan } from '../../src/workshops/release'
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+import { caption, slateTitle, workshopReady, workshopStatus } from './app-native-workshop.shared'
 
 const base = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 const canSave = ['localhost', '127.0.0.1', 'test.slatebox.com'].includes(new URL(base).hostname)
@@ -11,7 +12,8 @@ const canSave = ['localhost', '127.0.0.1', 'test.slatebox.com'].includes(new URL
 async function openExistingDraft(page: Page) {
   await resumeArchivedDraft(page,base,'release-plan')
   await dismissWelcome(page)
-  await expect(page.getByRole('heading',{name:releasePlan.title})).toBeVisible()
+  await workshopReady(page)
+  await expect(slateTitle(page)).toHaveText(releasePlan.title)
 }
 
 test('review a release plan, preview a dependent move, undo it and present the committed budget', async ({ page }) => {
@@ -32,19 +34,22 @@ test('review a release plan, preview a dependent move, undo it and present the c
     await sendLaneEdit(page,'Set budget of @friday to 9')
     await sendLaneEdit(page,'Set points of @billing to 4')
     expect((await persisted()).cards.find((c:{id:string})=>c.id==='invite').dependsOn).toEqual(['guardrails'])
-    const capacity=page.locator('#heading-friday')
+    // A release window's budget is the line under its name on the canvas.
+    const capacity=caption(page,'friday')
     await expect(capacity).toContainText('4 / 9 points')
     await previewLaneEdit(page,'Move @invite to @friday')
     await expect(capacity).toContainText('9 / 9 points')
-    await laneChat(page).getByRole('button',{name:'Discard'}).click()
+    await laneChat(page).getByRole('button',{name:'Discard preview',exact:true}).click()
     await expect(capacity).toContainText('4 / 9 points')
     await sendLaneEdit(page,'Move @invite to @friday')
-    await page.getByRole('button',{name:'Undo last change'}).click()
+    await expect(capacity).toContainText('9 / 9 points')
+    await workshopStatus(page).getByRole('button',{name:'Undo last change'}).click()
     await expect(capacity).toContainText('4 / 9 points')
     await sendLaneEdit(page,'Move @invite to @friday')
     await page.reload()
     await page.waitForFunction(id=>(window as any).Meteor?.userId()===id,ownerId)
     await expect(laneChat(page)).toBeVisible({timeout:45000})
+    await workshopReady(page)
     await expect(capacity).toContainText('9 / 9 points')
     await page.getByRole('button', { name: 'Present', exact: true }).click()
     const presentation = page.getByRole('region', { name: 'Decision presentation' })
@@ -88,15 +93,15 @@ test('share a release plan, observe committed moves, and undo as the participant
       await expect.poll(()=>userId(peer)).toBeTruthy()
       expect(await userId(peer)).not.toBe(await userId(owner))
       await previewLaneEdit(peer,'Move @invite to @friday')
-      await expect(peer.locator('#heading-friday')).toContainText('8 / 8 points')
-      await expect(owner.locator('#heading-friday')).toContainText('3 / 8 points')
+      await expect(caption(peer,'friday')).toContainText('8 / 8 points')
+      await expect(caption(owner,'friday')).toContainText('3 / 8 points')
       await laneChat(peer).getByRole('button',{name:'Keep changes'}).click()
-      await expect(owner.locator('#heading-friday')).toContainText('8 / 8 points')
+      await expect(caption(owner,'friday')).toContainText('8 / 8 points')
       await expect(owner.getByRole('button',{name:'Undo last change'})).toHaveCount(0)
       await peer.getByRole('button',{name:'Undo last change'}).click()
-      await expect(owner.locator('#heading-friday')).toContainText('3 / 8 points')
+      await expect(caption(owner,'friday')).toContainText('3 / 8 points')
       await peer.reload()
-      await expect(peer.locator('#heading-friday')).toContainText('3 / 8 points')
+      await expect(caption(peer,'friday')).toContainText('3 / 8 points')
       expect((await getSlate(owner,key)).creative.model.workshop.cards.find((c:{id:string})=>c.id==='guardrails').laneId).toBe('next')
     } finally {
       await owner.goto(base+'/plans')

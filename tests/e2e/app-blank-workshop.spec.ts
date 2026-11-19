@@ -3,10 +3,11 @@ import { expect, test, type Page } from '@playwright/test'
 import type { Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
+import { announced, caption, dragCard, laneOfCard, placementOutcomes, resting, slateTitle, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const button = (page: Page, name: string) => page.getByRole('button', { name, exact: true })
-const report = (page: Page) => page.getByRole('region', { name: 'Placement outcomes', exact: true })
+const report = placementOutcomes
 
 async function addCard(page: Page, name: string) {
   await sendLaneEdit(page, 'Add card ' + name + ' to Field recordings')
@@ -29,13 +30,16 @@ test('two editors build a blank workshop, fill a lane and present their saved ch
     expect(original.options.isPrivate).toBe(true)
     expect(original.creative.model.workshop.cards).toEqual([])
     const model = async (): Promise<Workshop> => (await getSlate(owner, key)).creative.model.workshop
-    await expect(owner.getByRole('heading', { name: 'Untitled workshop' })).toBeVisible()
+    await workshopReady(owner)
+    await expect(slateTitle(owner)).toHaveText('Untitled workshop')
     expect((await model()).lanes.map(lane => lane.label)).toEqual(['Lane 1','Lane 2'])
     if (process.env.SLATEBOX_EXPECTED_APP_BUNDLE) {
       await expect(owner.locator('script[src*="/' + process.env.SLATEBOX_EXPECTED_APP_BUNDLE + '.js"]')).toHaveCount(1)
     }
 
-    await expect(owner.getByRole('region',{name:'Interactive workshop studio'}).getByRole('textbox')).toHaveCount(1)
+    // One place to type: the slate's conversation. No board of fields is laid over the canvas.
+    await expect(owner.getByRole('main').getByRole('textbox')).toHaveCount(1)
+    await expect(owner.locator('.map-studio, .workshop-drawing')).toHaveCount(0)
     await expect(laneChat(owner).getByRole('textbox')).toHaveCount(1)
     await expect(button(owner,'Edit an object')).toHaveCount(0)
     await sendLaneEdit(owner,'Rename lane Lane 1 to Field recordings')
@@ -45,6 +49,7 @@ test('two editors build a blank workshop, fill a lane and present their saved ch
     const editLink = await shareAs(owner, 'edit')
     await peer.goto(editLink.href)
     await dismissWelcome(peer)
+    await workshopReady(peer)
     await button(peer, 'Join to edit').click()
     await expect.poll(() => userId(peer)).toBeTruthy()
     peerId = await userId(peer)
@@ -64,18 +69,17 @@ test('two editors build a blank workshop, fill a lane and present their saved ch
     await expectRejectedLaneEdit(peer,'Move @'+second.id+' to @'+booth.id)
 
     // Attempt to place the second card directly on the already occupied slot.
-    const secondCard = peer.locator('.workshop-drawing [data-workshop-card="' + second.id + '"]')
-    const firstCard = peer.locator('.workshop-drawing [data-workshop-card="' + first.id + '"]')
-    await secondCard.scrollIntoViewIfNeeded()
-    const from = (await secondCard.boundingBox())!, to = (await firstCard.boundingBox())!
-    const before = await secondCard.getAttribute('transform')
-    await peer.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
-    await peer.mouse.down()
-    await peer.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 16 })
-    await peer.mouse.up()
-    await expect(secondCard).toHaveAttribute('transform', before!)
+    const before = await resting(peer, 'card-' + second.id)
+    await dragCard(peer, second.id, booth.id)
+    await expect(caption(peer, booth.id)).toContainText('Now holds 1 of 1 card.')
+    await expect(announced(peer)).toContainText(second.label + ' can\'t move to Listening booth. Now holds 1 of 1 card.')
+    const after = await resting(peer, 'card-' + second.id)
+    expect(Math.abs(after.x - before.x)).toBeLessThan(1)
+    expect(Math.abs(after.y - before.y)).toBeLessThan(1)
+    expect(await laneOfCard(peer, second.id)).toBe('Field recordings')
     await owner.reload()
     await dismissWelcome(owner)
+    await workshopReady(owner)
     await expect(report(owner)).toContainText('The tide recording is playing.')
     const saved = await model()
     expect(saved.cards.map(card => card.laneId)).toEqual([booth.id,source.id])
