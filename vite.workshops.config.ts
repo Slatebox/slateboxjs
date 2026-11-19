@@ -39,11 +39,11 @@ export default defineConfig({
   build: {
     emptyOutDir: false,
     lib: {
-      entry: { dragology: dragologyEntry, workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts' },
+      entry: { dragology: dragologyEntry, workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts', 'workshop-mount': 'src/workshops/mount.ts' },
       formats: ['es', 'cjs'],
       fileName: (format, entry) => entry + (format === 'es' ? '.mjs' : '.cjs'),
     },
-    rollupOptions: { external: ['react', 'react-dom', 'react/jsx-runtime'] },
+    rollupOptions: { external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'] },
     target: 'es2020',
     copyPublicDir: false,
   },

@@ -22,6 +22,11 @@
       "import": "./dist/workshops.mjs",
       "require": "./dist/workshops.cjs"
     },
+    "./workshops/mount": {
+      "types": "./dist/workshops/mount.d.ts",
+      "import": "./dist/workshop-mount.mjs",
+      "require": "./dist/workshop-mount.cjs"
+    },
     "./workshops/model": {
       "types": "./dist/workshops/model.d.ts",
       "import": "./dist/workshop-model.mjs",
