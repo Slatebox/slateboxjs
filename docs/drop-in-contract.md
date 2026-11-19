@@ -167,16 +167,24 @@ A visitor who tries a hands-on example on slatebox.com should be able to open it
 
 | Experience | Capability to reproduce on a real slate | Evidence required |
 | --- | --- | --- |
-| Design partner interviews | Pick a customer quote to swap the single prototype choice. The proposed screen and test brief follow the candidate placement. | Cancel during a preview, commit using the keyboard, reopen the same quote and present its outcome. |
+| Design partner interviews (playable example) | Pick a customer quote to swap the single prototype choice. The proposed screen and test brief follow the candidate placement. | Cancel during a preview, commit using the keyboard, reopen the same quote and present its outcome. |
 | Pilot budget | Reassign a $200 allocation. The preview updates the funded activities. Native presentation reads the committed dollar amount and quantity. | Verify the newsletter, onboarding and reserve balances after cancel, commit, a second editor’s change and reload. |
 | Listening room | Move a listening horn continuously between two sound sources. Preview the mix and caption during the gesture, with sound opt-in. Edit the source labels on the slate. | Check a midpoint, both endpoints, cancel and a saved position. Reopen with the edited labels. |
 | Moon Gallery | Hang a work in a free space and preview the audience’s sightline. Rearrange the room with a colleague. | Exercise a full wall and a competing placement. Both visitors must see the same legal arrangement after reconnect. |
 | Focus darkroom | Connect a dialog to a return target and try the keyboard path the author chose. | Change the connection, open and dismiss the dialog by keyboard, and verify focus returns to the chosen object. |
 | Offline handoff | Explore what happens to competing field notes through disconnection, review and recovery. | Take both branches and undo a decision. Verify the simulated field-note outcome separately from real multi-user reconnection. |
 
-### Packaged components and app entries
+### Create a slate in the app
 
-The app and website import the React components from `slateboxjs/workshops`. The server-safe models and normalizers come from `slateboxjs/workshops/model`.
+The public creation link is [Create slate](https://app.slatebox.com/new). It opens an ordinary native canvas. A marketing example can pass a brief and a supported source key in the URL fragment. The corresponding private drawing must preserve the visible notes, positions and directed connections. A passive marketing embed ignores pointer edits, keyboard edits and drags. Its surrounding page remains scrollable.
+
+The side conversation can create a drawing, revise it, or add a playable map or capacity-limited workshop to the same saved slate. The app keeps the existing drawing, share ID and access grants when it adds play. Selecting a shape supplies optional context. A team can also ask for a change to the whole board. The engine renders the resulting artwork. Dragology constrains the gestures of a playable model. Source-backed ordinary drawings use native notes and connections.
+
+### Packaged components and existing example links
+
+A plain JavaScript host can import `mountWorkshop` from `slateboxjs/workshops/mount` and pass a DOM element, a validated workshop and an `onChange` callback. Use the returned `update(model)` to show a saved revision and `destroy()` when removing the board. The adapter handles React mounting internally. An author supplies the model using data or conversation. [Runnable JavaScript example](https://docs.slatebox.com/developers/javascriptlibrary/creative-slates/#mount-a-map-from-plain-javascript)
+
+Existing links below continue to open specific examples or encoded models. React hosts can import the components from `slateboxjs/workshops`. The server-safe models and normalizers come from `slateboxjs/workshops/model`.
 
 | React component | Model normalizer | Native app entry |
 | --- | --- | --- |
@@ -188,7 +196,7 @@ The app and website import the React components from `slateboxjs/workshops`. The
 
 Opening `/new/workshop` creates a private slate with two empty lanes. In a host application, call `createLaneWorkshop()` for the same starting model. Use `addWorkshopLane(board, { label, capacity })` to add a destination and `addWorkshopCard(board, laneId, { label, allowedLaneIds })` to place a card. Both helpers return a new, validated model. Omit `capacity` for an unlimited lane. Omit `allowedLaneIds` to let the card enter any lane, including one the team adds later. A restricted card’s list must include its current lane.
 
-Pass `onAddCard(laneId, anchorElement)` and `onEditLane(laneId, anchorElement)` to `WorkshopBoard` to open contextual editors from the lane itself. A drop on a full or forbidden lane leaves the card at its original location. The host can use the same model for saving and for presentation playback. [Build a workshop with one recording slot](https://docs.slatebox.com/developers/javascriptlibrary/creative-slates/#build-a-workshop-with-one-recording-slot)
+Host applications can pass `onAddCard(laneId, anchorElement)` and `onEditLane(laneId, anchorElement)` to `WorkshopBoard` when they need object context. Slatebox uses its side conversation for authoring. A drop on a full or forbidden lane leaves the card at its original location. The host can use the same model for saving and for presentation playback. [Build a workshop with one recording slot](https://docs.slatebox.com/developers/javascriptlibrary/creative-slates/#build-a-workshop-with-one-recording-slot)
 
 For a workshop authored in another application, call `encodeWorkshopFragment(workshop)` from `slateboxjs/workshops/model` and append the result to `/new/workshop` on the chosen Slatebox host. The fragment carries the current pieces, placement, labels and rules. Whoever receives the link can read that data and open a separate copy. To work together on one saved copy, use Share inside the slate. `decodeWorkshopFragment(location.hash)` reads and validates the same format. Both helpers accept links up to 65,536 encoded characters including the initial hash.
 
@@ -196,7 +204,7 @@ Each component accepts `value`, `onChange` and `readOnly`. A native starter crea
 
 **Engine responsibilities.** Expose supported package entry points. The existing discrete board uses `WorkshopBoard` from `slateboxjs/workshops`. It takes a controlled `value`, emits disposable candidates through `onPreview`, commits a legal move through `onChange` and supports host-controlled undo and read-only display. Keep the scene definition and committed state serializable and versioned. Validate loaded input and retain existing board formats. Keep preview, focus, sound playback and scripted presence local to the viewer. Drive linked visuals, captions and optional audio from the same candidate. Permit cancellation without changing the saved revision.
 
-**App responsibilities.** Route a feature CTA to an immediately usable slate. Provide on-canvas contextual editing, a visible affordance for the first gesture, equivalent keyboard controls and a reversible first move. The host owns permissions, saving, revision conflicts, shared undo and reopening. A viewer can present the saved result without obtaining editing rights. Interactive exercises explicitly invite input. Illustrative homepage slates ignore edits and drags while allowing page scroll.
+**App responsibilities.** Route a feature CTA to an immediately usable slate. Author changes through the side conversation. Provide a visible affordance for the first gesture, equivalent keyboard controls and a reversible first move. The host owns permissions, saving, revision conflicts, shared undo and reopening. A viewer can present the saved result without obtaining editing rights. Interactive exercises explicitly invite input. Illustrative homepage slates ignore edits and drags while allowing page scroll.
 
 **Workshop presentation order.** The version 1 workshop model accepts an optional `presentationOrder` array containing each lane or station ID exactly once. Use `workshopPresentationLanes(workshop)` from `slateboxjs/workshops/model` for playback and `workshop.lanes` for spatial layout. Existing documents open in lane order. The native player frames the selected lane and its currently assigned cards, including a collaborator’s accepted moves. The app saves scene reordering through its ordinary edit permission and revision checks. The portable link carries the same order into a new slate. [Radio cue sheet example](https://docs.slatebox.com/examples/research-cue-sheet/)
 

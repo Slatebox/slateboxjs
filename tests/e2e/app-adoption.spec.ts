@@ -385,3 +385,62 @@ test('a signed-out whiteboard contributor can choose to keep the original invita
     }
   }
 })
+
+test('a research handoff carries the team’s edited prototype into a shared presentation', async ({browser}) => {
+  test.skip(!allowed || !homepage, 'Requires a marketing site and a staging or local app')
+  const owner = await browser.newPage()
+  const teammate = await browser.newPage({viewport:{width:390,height:844},hasTouch:true})
+  let ownerId: string | null = null
+  try {
+    await owner.goto(new URL('/use-cases/research-synthesis/', homepage!).href)
+    const example = owner.getByRole('link', {name:/Open the research slate/})
+    const link = new URL((await example.getAttribute('href'))!, owner.url())
+    expect(link.pathname).toBe('/new')
+    expect(new URLSearchParams(link.hash.slice(1)).get('source')).toBe('interview-notes')
+    const landing = new URL(link.pathname + link.hash, app)
+    await owner.goto(landing.href)
+    await owner.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
+    ownerId = await userId(owner)
+    expect(ownerId).toBeTruthy()
+    await dismissWelcome(owner)
+    const key = new URL(owner.url()).pathname.split('/').pop()!
+    const board = await getSlate(owner, key)
+    expect(board.userId).toBe(ownerId)
+    expect(board.options.isPrivate).toBe(true)
+    expect(board.nodes).toHaveLength(4)
+    const invitation = await shareAs(owner, 'edit')
+    await teammate.goto(invitation.href)
+    await ready(teammate, true)
+    expect(await userId(teammate)).toBeNull()
+    const bundle = process.env.SLATEBOX_EXPECTED_APP_BUNDLE
+    if (bundle) {
+      for (const page of [owner, teammate]) await expect(page.locator('script[src*="/' + bundle + '.js"]')).toHaveCount(1)
+    }
+    const prototype = 'Let a customer undo the sample import'
+    await editNote(teammate, 'test', prototype)
+    await expect(owner.locator('#slateCanvas g[data-node-id="test"]')).toHaveAccessibleName(prototype)
+    await owner.getByRole('button', {name:'Present notes together', exact:true}).click()
+    await teammate.getByRole('button', {name:'Follow presentation', exact:true}).tap()
+    const presentation = teammate.getByRole('dialog', {name:'Live presentation'})
+    const slide = presentation.locator('footer [aria-live]')
+    await expect(slide).toContainText('1 of 4')
+    for (const position of [2, 3, 4]) {
+      await owner.getByRole('button', {name:'Next', exact:true}).click()
+      await expect(slide).toContainText(position + ' of 4')
+    }
+    await expect(slide).toContainText(prototype)
+    await owner.getByRole('button', {name:'End presentation', exact:true}).click()
+    await expect(presentation).toHaveCount(0)
+    await teammate.reload()
+    await ready(teammate, true)
+    await expect(teammate.locator('#slateCanvas g[data-node-id="test"]')).toHaveAccessibleName(prototype)
+    const reopened = await getSlate(owner, key)
+    expect(reopened._id).toBe(board._id)
+    expect(reopened.nodes.find((node:any) => node.options.id === 'test').options.text).toBe(prototype)
+    expect(reopened.nodes.flatMap((node:any) => node.relationships?.associations || []).map((edge:any) => edge.id).sort())
+      .toEqual(['risk-test', 'sample-risk', 'undo-risk'])
+  } finally {
+    try { await removeTestGuest(owner, ownerId) }
+    finally { await Promise.all([owner.close(), teammate.close()]) }
+  }
+})
