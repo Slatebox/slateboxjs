@@ -1,0 +1,711 @@
+{
+ "budget": {
+  "options": {
+   "name": "Design partner pilot · $600 launch budget"
+  },
+  "shareId": "",
+  "nodes": [
+   {
+    "options": {
+     "id": "lane-reserve",
+     "text": "Unallocated",
+     "name": "Unallocated",
+     "xPos": 0,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#d5e9e3",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-fund-1",
+     "text": "Second $200",
+     "name": "Second $200",
+     "xPos": 0,
+     "yPos": 98,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-fund-2",
+     "text": "Third $200",
+     "name": "Third $200",
+     "xPos": 0,
+     "yPos": 186,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "lane-calls",
+     "text": "Customer calls · $50 per call",
+     "name": "Customer calls · $50 per call",
+     "xPos": 244,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fbdfac",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-fund-0",
+     "text": "First $200",
+     "name": "First $200",
+     "xPos": 244,
+     "yPos": 98,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "lane-newsletter",
+     "text": "Partner newsletter · $200 per placement",
+     "name": "Partner newsletter · $200 per placement",
+     "xPos": 488,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#dedef4",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "lane-pilot",
+     "text": "Concierge onboarding · $100 per import",
+     "name": "Concierge onboarding · $100 per import",
+     "xPos": 732,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#dcebf3",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   }
+  ]
+ },
+ "interview": {
+  "options": {
+   "name": "Design partner interviews · first client import"
+  },
+  "shareId": "",
+  "nodes": [
+   {
+    "options": {
+     "id": "lane-interviews",
+     "text": "Customer interviews",
+     "name": "Customer interviews",
+     "xPos": 0,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#d5e9e3",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-duplicate",
+     "text": "Bea · studio manager · “I already added half these clients by hand.”",
+     "name": "Bea · studio manager · “I already added half these clients by hand.”",
+     "xPos": 0,
+     "yPos": 98,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-undo",
+     "text": "Sam · founder · “I’d try it if I could take the whole import back.”",
+     "name": "Sam · founder · “I’d try it if I could take the whole import back.”",
+     "xPos": 0,
+     "yPos": 186,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "lane-prototype",
+     "text": "Prototype to test",
+     "name": "Prototype to test",
+     "xPos": 244,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fbdfac",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-preview",
+     "text": "Jo · agency owner · “Will this email every client on my list?”",
+     "name": "Jo · agency owner · “Will this email every client on my list?”",
+     "xPos": 244,
+     "yPos": 98,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   }
+  ]
+ },
+ "capacity": {
+  "options": {
+   "name": "Which field trials should run before the winter shutdown?"
+  },
+  "shareId": "",
+  "nodes": [
+   {
+    "options": {
+     "id": "lane-proposed",
+     "text": "Proposed trials",
+     "name": "Proposed trials",
+     "xPos": 0,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#d5e9e3",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-sensors",
+     "text": "Test bearing sensors on line four",
+     "name": "Test bearing sensors on line four",
+     "xPos": 0,
+     "yPos": 98,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-spares",
+     "text": "Stage a spare drive at the north mill",
+     "name": "Stage a spare drive at the north mill",
+     "xPos": 0,
+     "yPos": 186,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "lane-pilot",
+     "text": "Fund this quarter",
+     "name": "Fund this quarter",
+     "xPos": 244,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fbdfac",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-training",
+     "text": "Rehearse the overnight restart",
+     "name": "Rehearse the overnight restart",
+     "xPos": 244,
+     "yPos": 98,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "lane-evidence",
+     "text": "Gather evidence",
+     "name": "Gather evidence",
+     "xPos": 488,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#dedef4",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-cooling",
+     "text": "Measure cooling losses at shift change",
+     "name": "Measure cooling losses at shift change",
+     "xPos": 488,
+     "yPos": 98,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   }
+  ]
+ },
+ "map": {
+  "options": {
+   "name": "Can the last train meet the shuttle?"
+  },
+  "shareId": "",
+  "nodes": [
+   {
+    "options": {
+     "id": "lane-platform",
+     "text": "Last train\nThe platform closes at 23:40. Find a step-free transfer before the last shuttle leaves.",
+     "name": "Last train",
+     "xPos": 0,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#d5e9e3",
+     "foregroundColor": "#18302d",
+     "fontSize": 13,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": [
+      {
+       "id": "platform-to-stairs",
+       "parentId": "lane-platform",
+       "childId": "lane-stairs",
+       "lineType": "straight",
+       "lineColor": "#506b61",
+       "lineWidth": 2,
+       "showChildArrow": true
+      },
+      {
+       "id": "platform-to-lift",
+       "parentId": "lane-platform",
+       "childId": "lane-lift",
+       "lineType": "straight",
+       "lineColor": "#506b61",
+       "lineWidth": 2,
+       "showChildArrow": true
+      }
+     ]
+    }
+   },
+   {
+    "options": {
+     "id": "card-rider",
+     "text": "Last rider",
+     "name": "Last rider",
+     "xPos": 0,
+     "yPos": 98,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "lane-stairs",
+     "text": "East stairs\nThe east doors open onto the closed platform. Follow the signs back to the lift.",
+     "name": "East stairs",
+     "xPos": 272,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fbdfac",
+     "foregroundColor": "#18302d",
+     "fontSize": 13,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": [
+      {
+       "id": "stairs-to-platform",
+       "parentId": "lane-stairs",
+       "childId": "lane-platform",
+       "lineType": "straight",
+       "lineColor": "#506b61",
+       "lineWidth": 2,
+       "showChildArrow": true
+      }
+     ]
+    }
+   },
+   {
+    "options": {
+     "id": "lane-lift",
+     "text": "Market St lift\nThe lift opens on Market Street. The marked path leads to shuttle bay B.",
+     "name": "Market St lift",
+     "xPos": 0,
+     "yPos": 222,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#dedef4",
+     "foregroundColor": "#18302d",
+     "fontSize": 13,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": [
+      {
+       "id": "lift-to-shuttle",
+       "parentId": "lane-lift",
+       "childId": "lane-shuttle",
+       "lineType": "straight",
+       "lineColor": "#506b61",
+       "lineWidth": 2,
+       "showChildArrow": true
+      }
+     ]
+    }
+   },
+   {
+    "options": {
+     "id": "lane-shuttle",
+     "text": "Shuttle · Bay B\nThe rider makes the connection. Run it again to try the other exit.",
+     "name": "Shuttle · Bay B",
+     "xPos": 272,
+     "yPos": 222,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#dcebf3",
+     "foregroundColor": "#18302d",
+     "fontSize": 13,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   }
+  ]
+ },
+ "release": {
+  "options": {
+   "name": "What makes the Friday release?"
+  },
+  "shareId": "",
+  "nodes": [
+   {
+    "options": {
+     "id": "lane-friday",
+     "text": "Friday release\n3 / 8 points",
+     "name": "Friday release\n3 / 8 points",
+     "xPos": 0,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#d5e9e3",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-billing",
+     "text": "Invoice download\n3 points",
+     "name": "Invoice download\n3 points",
+     "xPos": 0,
+     "yPos": 98,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "lane-next",
+     "text": "Next week\n6 / 12 points",
+     "name": "Next week\n6 / 12 points",
+     "xPos": 244,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fbdfac",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-guardrails",
+     "text": "Permission checks\n2 points",
+     "name": "Permission checks\n2 points",
+     "xPos": 244,
+     "yPos": 98,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": [
+      {
+       "id": "dependency-10-guardrails-invite",
+       "parentId": "card-guardrails",
+       "childId": "card-invite",
+       "lineType": "straight",
+       "lineColor": "#566a67",
+       "lineWidth": 2,
+       "showChildArrow": true
+      }
+     ]
+    }
+   },
+   {
+    "options": {
+     "id": "card-export",
+     "text": "Workspace export\n4 points",
+     "name": "Workspace export\n4 points",
+     "xPos": 244,
+     "yPos": 186,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "lane-backlog",
+     "text": "Unscheduled\n3 points",
+     "name": "Unscheduled\n3 points",
+     "xPos": 488,
+     "yPos": 0,
+     "width": 228,
+     "height": 86,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#dedef4",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   },
+   {
+    "options": {
+     "id": "card-invite",
+     "text": "Team invitations\n3 points",
+     "name": "Team invitations\n3 points",
+     "xPos": 488,
+     "yPos": 98,
+     "width": 228,
+     "height": 76,
+     "shapeHint": "rectangle",
+     "backgroundColor": "#fffdf6",
+     "foregroundColor": "#18302d",
+     "fontSize": 18,
+     "borderColor": "#667872",
+     "borderWidth": 1
+    },
+    "relationships": {
+     "associations": []
+    }
+   }
+  ]
+ }
+}

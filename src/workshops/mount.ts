@@ -2,6 +2,8 @@ import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { WorkshopBoard, type WorkshopBoardProps } from './index'
 import { validateWorkshop, type Workshop } from './model'
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop } from './native'
+export { dragologyCandidates } from './dragologyCandidates'
 
 type MountOptions = Omit<WorkshopBoardProps, 'value' | 'onChange'> & {
   onChange?: WorkshopBoardProps['onChange']

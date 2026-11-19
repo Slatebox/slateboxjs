@@ -1,6 +1,12 @@
 import React, {useRef, useState, useEffect, type PointerEvent} from 'react'
 import {resolveWorkshopSignals, type Workshop} from './model'
-import {channels, interviews, planStartupMove, startupExperienceKind, workshopBudgetResult} from './model'
+import {channels, interviews, startupExperienceKind, workshopBudgetResult, workshopCandidate} from './model'
+
+/** The board a move produces, or null when it is unavailable or the card is already there. */
+function planStartupMove(board:Workshop, cardId:string, destination:string) {
+  const next=workshopCandidate(board,cardId,destination)
+  return next===board ? null : next
+}
 import styles from './startupBoard.css?inline'
 
 type Props = {value:Workshop; readOnly?:boolean; onChange?:(value:Workshop)=>unknown}

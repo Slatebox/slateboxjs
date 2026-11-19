@@ -299,6 +299,70 @@ export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string
   return { ...board, cards: board.cards.map(item => item === card ? { ...card, laneId } : item) }
 }
 
+/**
+ * The board a move would produce, for every kind of workshop: `board` itself when the
+ * card is already in that lane, or null when the move is unavailable.
+ *
+ * This is the one question each board asks before a drag, a preview or a commit.
+ * Release plans answer with planReleaseMove (which may bring dependent features
+ * along), a startup experience with planStartupMove (an interview dropped on the
+ * occupied prototype swaps with it), and everything else with the lane rules:
+ * capacity, allowedLaneIds and, on a map, the stations reachable from here.
+ */
+export function workshopCandidate(board: Workshop, cardId: string, laneId: string): Workshop | null {
+  const card = board.cards.find(item => item.id === cardId)
+  if (!card || !board.lanes.some(lane => lane.id === laneId)) return null
+  if (card.laneId === laneId) return board
+  if (board.kind === 'release-plan') return planReleaseMove(board, card, laneId)
+  return planStartupMove(board, cardId, laneId) ??
+    (availableLanes(board, card).some(lane => lane.id === laneId) ? moveWorkshopCard(board, cardId, laneId) : null)
+}
+
+/** Every lane the card may be dropped in, including the one it is in. */
+export function workshopDestinations(board: Workshop, cardId: string): WorkshopLane[] {
+  return board.lanes.filter(lane => workshopCandidate(board, cardId, lane.id) !== null)
+}
+
+/** Why workshopCandidate refuses this move, as a sentence for the person moving the card. Null when the move is available. */
+export function workshopRefusal(board: Workshop, cardId: string, laneId: string): string | null {
+  if (workshopCandidate(board, cardId, laneId) !== null) return null
+  const card = board.cards.find(item => item.id === cardId)
+  const lane = board.lanes.find(item => item.id === laneId)
+  if (!card || !lane) return 'That move is not available.'
+  const cannot = `This card can't go in ${lane.label}.`
+  if (card.allowedLaneIds && !card.allowedLaneIds.includes(laneId)) return cannot
+  if (board.kind === 'release-plan') {
+    if (lane.capacity === undefined) return cannot
+    const used = releaseLoad(board, laneId)
+    // Without the budget the move is legal exactly when the budget was the obstacle.
+    const unbounded = { ...board, lanes: board.lanes.map(item => item === lane ? { id: lane.id, label: lane.label } : item) }
+    const moved = planReleaseMove(unbounded, card, laneId)
+    if (!moved) return cannot
+    return `Needs ${releaseLoad(moved, laneId) - used} points. Now holds ${used} of ${lane.capacity} points.`
+  }
+  const source = board.lanes.find(item => item.id === card.laneId)
+  if (source?.station && !source.station.next.includes(laneId)) return `${lane.label} can't be reached from ${source.label}.`
+  const held = board.cards.filter(item => item.laneId === laneId).length
+  if (lane.capacity !== undefined && held >= lane.capacity) {
+    return `Now holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
+  }
+  return cannot
+}
+
+/** The second line under a lane's name: how full it is, or what its cards add up to. */
+export function workshopLaneCaption(board: Workshop, laneId: string): string {
+  const lane = board.lanes.find(item => item.id === laneId)
+  if (!lane) return ''
+  if (board.kind === 'release-plan') {
+    const used = releaseLoad(board, laneId)
+    return lane.capacity ? used + ' / ' + lane.capacity + ' points' : used + ' points'
+  }
+  const budget = workshopBudgetResult(board, laneId)
+  if (budget) return '$' + budget.amount + ' · ' + budget.description
+  const count = board.cards.filter(card => card.laneId === laneId).length
+  return lane.capacity !== undefined ? count + ' of ' + lane.capacity : count + (count === 1 ? ' card' : ' cards')
+}
+
 export const workshopLayout = { pitch: 244, width: 228, row: 88, height: 76, top: 98 }
 export const laneColors = ['#d5e9e3', '#fbdfac', '#dedef4', '#dcebf3', '#efd7dc']
 
@@ -403,8 +467,113 @@ export const nightTransfer: Workshop = {
   cards: [{ id: 'rider', label: 'Last rider', laneId: 'platform' }],
 }
 
-export function workshopToSlate(input: Workshop): SlateJSON {
+export interface WorkshopArtworkOptions {
+  /**
+   * Draw for a live slate instead of a presentation: rounded notes in the canvas's
+   * own type, a `caption-<lane>` line under each lane name, and a `column-<lane>`
+   * shape behind each lane. Lane and card notes keep their `lane-<id>` and
+   * `card-<id>` names.
+   */
+  native?: boolean
+  /** Where the artwork's top-left corner goes, in the slate's world units. */
+  origin?: { x: number; y: number }
+  /**
+   * Draw each lane column at least this many cards tall. A board keeps its shape
+   * (and its drop zones) while a held card previews a board with shorter lanes.
+   */
+  rows?: number
+}
+
+const captionNodeId = (id: string) => 'caption-' + id
+const columnNodeId = (id: string) => 'column-' + id
+
+/** The names of the notes workshopToSlate draws for a lane or a card. */
+export const workshopNodeIds = { lane: laneNodeId, card: cardNodeId, image: imageNodeId, caption: captionNodeId, column: columnNodeId }
+
+function roundedBox(width: number, height: number, radius: number) {
+  const r = Math.min(radius, width / 2, height / 2), w = width, h = height
+  return `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`
+}
+
+/** Blend a #rrggbb colour toward white. */
+function tint(hex: string, amount: number) {
+  const channel = (i: number) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - amount) + 255 * amount).toString(16).padStart(2, '0')
+  return '#' + channel(1) + channel(3) + channel(5)
+}
+
+/** Short names sit at the canvas's reading size; long ones step down so two lines fit the header. */
+function headerFontSize(label: string) {
+  return label.length <= 22 ? 17 : label.length <= 52 ? 14 : 12
+}
+
+function nativeWorkshopToSlate(board: Workshop, origin: { x: number; y: number }, rows = 0): SlateJSON {
+  const { pitch, width, row, height, top } = workshopLayout
+  const map = Boolean(board.lanes[0].station)
+  const { points } = workshopPositions(board)
+  const counts = board.lanes.map(lane => board.cards.filter(card => card.laneId === lane.id).length)
+  const imageHeight = 152, imageSpace = imageHeight + 12
+  const hasImages = board.lanes.some(lane => lane.station?.image)
+  // Every lane column is as tall as the fullest lane plus one free slot, so the
+  // board reads as columns and each column is one drop zone.
+  const columnHeight = top + (Math.max(rows, ...counts) + 1) * row
+  const ink = '#18302d', line = '#667872'
+  const nodes: NodeJSON[] = []
+  const note = (options: Record<string, unknown>) => {
+    // Each note's outline is drawn at its own size, so corners stay round and the
+    // border stays even however wide or tall the note is.
+    const item: NodeJSON = { options: { shapeHint: 'rectangle', vectorPath: roundedBox(options.width as number, options.height as number, 12),
+      foregroundColor: ink, borderColor: line, borderWidth: 1, ...options }, relationships: { associations: [] } }
+    nodes.push(item)
+    return item
+  }
+  board.lanes.forEach((lane, column) => {
+    const x = origin.x + points[column].x
+    const y = origin.y + points[column].y + (hasImages ? (lane.station?.row ?? 0) * imageSpace : 0)
+    const image = lane.station?.image
+    const zoneHeight = map ? top + (image ? imageSpace : 0) + Math.max(1, counts[column]) * row : columnHeight
+    note({ id: columnNodeId(lane.id), text: '', name: lane.label, xPos: x + 2, yPos: y, width: pitch - 4, height: zoneHeight,
+      vectorPath: roundedBox(pitch - 4, zoneHeight, 14),
+      backgroundColor: map ? '#fcf9ed' : tint(laneColors[column], 0.6), borderColor: map ? '#a8b5aa' : tint(laneColors[column], 0.1),
+      ...(map ? { borderStyle: 'dashed' } : {}) })
+    note({ id: laneNodeId(lane.id), text: lane.label, name: lane.label, xPos: x + 8, yPos: y + 6, width, height: 58,
+      backgroundColor: laneColors[column], fontSize: headerFontSize(lane.label) })
+    note({ id: captionNodeId(lane.id), text: workshopLaneCaption(board, lane.id), name: lane.label, xPos: x + 8, yPos: y + 66, width, height: 30,
+      backgroundColor: 'transparent', borderWidth: 0, foregroundColor: '#3f5750', fontSize: 13 })
+    if (image) {
+      nodes.push({ options: { id: imageNodeId(lane.id), name: image.alt, text: '', xPos: x + 8, yPos: y + top, width, height: imageHeight,
+        shapeHint: 'rectangle', image: image.src, borderWidth: 0 }, relationships: { associations: [] } })
+    }
+    board.cards.filter(card => card.laneId === lane.id).forEach((card, i) =>
+      note({ id: cardNodeId(card.id), text: board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label, name: card.label,
+        xPos: x + (map ? 18 : 8), yPos: y + top + (image ? imageSpace : 0) + i * row, width: map ? width - 20 : width, height: map ? height - 6 : height,
+        backgroundColor: map ? '#ffda75' : '#fffdf6', fontSize: 15 }))
+  })
+  const byId = new Map(nodes.map(item => [item.options.id as string, item]))
+  for (const lane of board.lanes) {
+    if (!lane.station) continue
+    byId.get(laneNodeId(lane.id))!.relationships.associations = lane.station.next.map(key => ({ id: lane.id + '-to-' + key,
+      parentId: laneNodeId(lane.id), childId: laneNodeId(key), lineType: 'straight', lineColor: '#506b61', lineWidth: 2, showChildArrow: true }))
+  }
+  if (board.kind === 'release-plan') {
+    for (const card of board.cards) {
+      for (const prerequisite of card.dependsOn ?? []) {
+        const parentId = cardNodeId(prerequisite), childId = cardNodeId(card.id)
+        byId.get(parentId)!.relationships.associations.push({ id: `dependency-${prerequisite.length}-${prerequisite}-${card.id}`,
+          parentId, childId, lineType: 'straight', lineColor: '#566a67', lineWidth: 2, showChildArrow: true })
+      }
+    }
+  }
+  return { options: { name: board.title }, shareId: '', nodes }
+}
+
+/**
+ * Draw a workshop as slate notes. With no options this is the presentation artwork
+ * the app and its snapshots already consume; `{ native: true }` is the artwork
+ * attachWorkshop keeps on a live slate.
+ */
+export function workshopToSlate(input: Workshop, options?: WorkshopArtworkOptions): SlateJSON {
   const board = validateWorkshop(input)
+  if (options?.native) return nativeWorkshopToSlate(board, options.origin ?? { x: 0, y: 0 }, options.rows)
   const { width, row, height, top } = workshopLayout
   const nodes: NodeJSON[] = []
   function node(key: string, text: string, x: number, y: number, h: number, fill: string) {
@@ -468,6 +637,7 @@ export const industrialWorkshop: Workshop = {
 
 export * from './moonGallery'
 export * from './darkroom/model'
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent } from './native'
 
 
 export type StartupExperience = {version: 1; kind: 'customer-interviews' | 'experiment-budget'}
