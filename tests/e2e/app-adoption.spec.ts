@@ -391,6 +391,8 @@ test('a research handoff carries the team’s edited prototype into a shared pre
   const owner = await browser.newPage()
   const teammate = await browser.newPage({viewport:{width:390,height:844},hasTouch:true})
   let ownerId: string | null = null
+  let ownedBoardId: string | null = null
+  let inviteKey: string | null = null
   try {
     await owner.goto(new URL('/use-cases/research-synthesis/', homepage!).href)
     const example = owner.getByRole('link', {name:/Open the research slate/})
@@ -406,9 +408,11 @@ test('a research handoff carries the team’s edited prototype into a shared pre
     const key = new URL(owner.url()).pathname.split('/').pop()!
     const board = await getSlate(owner, key)
     expect(board.userId).toBe(ownerId)
+    ownedBoardId = board._id
     expect(board.options.isPrivate).toBe(true)
     expect(board.nodes).toHaveLength(4)
     const invitation = await shareAs(owner, 'edit')
+    inviteKey = invitation.pathname.split('/').pop()!
     await teammate.goto(invitation.href)
     await ready(teammate, true)
     expect(await userId(teammate)).toBeNull()
@@ -440,7 +444,18 @@ test('a research handoff carries the team’s edited prototype into a shared pre
     expect(reopened.nodes.flatMap((node:any) => node.relationships?.associations || []).map((edge:any) => edge.id).sort())
       .toEqual(['risk-test', 'sample-risk', 'undo-risk'])
   } finally {
-    try { await removeTestGuest(owner, ownerId) }
+    try {
+      try {
+        if (ownerId && ownedBoardId) {
+          expect(await userId(owner)).toBe(ownerId)
+          // Normal board deletion also retires this fixture's invitation.
+          await owner.evaluate(id => (window as any).Meteor.callAsync('slates.remove', {slateIds:[id]}), ownedBoardId)
+          if (inviteKey) expect(await getSlate(teammate, inviteKey)).toBeFalsy()
+        }
+      } finally {
+        await removeTestGuest(owner, ownerId)
+      }
+    }
     finally { await Promise.all([owner.close(), teammate.close()]) }
   }
 })
