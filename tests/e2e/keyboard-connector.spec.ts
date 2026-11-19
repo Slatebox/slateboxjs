@@ -54,7 +54,7 @@ test('selected connectors have labels, keyboard focus and a way back to the page
 })
 
 for (const [index, key] of ['Enter','Space'].entries()) {
-  test(key+' creates exactly one focused blank child and F2 names it', async ({page})=>{
+  test(key+' creates exactly one blank child that is ready to name; F2 still renames it afterwards', async ({page})=>{
     await openBoard(page)
     const initial = await page.evaluate(()=>{
       const board=(window as any).keyBoard
@@ -66,17 +66,21 @@ for (const [index, key] of ['Enter','Space'].entries()) {
     for(let position=0;position<=index;position++) await page.keyboard.press('Tab')
     await expect(page.getByRole('button',{name:labels[index]})).toBeFocused()
     await page.keyboard.down(key)
-    await page.keyboard.down(key) // repeat after creation must not create another note or start editing
+    // A repeat of the held key must not create another note, and must neither commit
+    // the new note's editor nor type into it.
+    await page.keyboard.down(key)
     await page.keyboard.up(key)
     const child = page.getByRole('button',{name:'Unnamed node',exact:true})
-    await expect(child).toBeFocused()
+    // The new child is open for naming at once: focus is in its editor, with no rename key.
+    const editor = page.locator('.sb-inline-editor')
+    await expect(editor).toBeFocused()
+    await expect(child).toHaveCount(1)
+    await expect(page.locator('g[data-node-id]')).toHaveCount(3)
     const view = await page.evaluate(()=>(window as any).keyBoard.canvas.node.getAttribute('viewBox'))
     if (key === 'Space') expect(view).not.toEqual(initial)
     else expect(view).toEqual(initial)
-    await expect(page.locator('.sb-inline-editor')).toHaveCount(0)
     await expect(child.locator('text').first()).toHaveText('')
-    await page.keyboard.press('F2')
-    const editor = page.locator('.sb-inline-editor')
+    expect(await editor.evaluate(element=>element.textContent)).toBe('')
     const bounds = await editor.boundingBox()
     const canvas = await page.locator('svg').first().boundingBox()
     expect(bounds).toBeTruthy()
@@ -84,9 +88,15 @@ for (const [index, key] of ['Enter','Space'].entries()) {
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(canvas!.x + canvas!.width + 1)
     expect(bounds!.y).toBeGreaterThanOrEqual(canvas!.y)
     expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(canvas!.y + canvas!.height + 1)
-    await editor.fill('Field recording')
-    await editor.press('Enter')
-    await expect(page.getByRole('button',{name:'Field recording',exact:true})).toBeVisible()
+    await page.keyboard.type('Recording')
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('button',{name:'Recording',exact:true})).toBeFocused()
+    // F2 remains a rename gesture on an existing note: everything selected, typing replaces.
+    await page.keyboard.press('F2')
+    await expect(editor).toBeFocused()
+    await page.keyboard.type('Field recording')
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('button',{name:'Field recording',exact:true})).toBeFocused()
     await expect.poll(()=>page.evaluate(()=>{
       const board=(window as any).keyBoard
       const nodes=JSON.parse(board.exportJSON()).nodes

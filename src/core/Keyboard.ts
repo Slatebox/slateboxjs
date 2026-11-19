@@ -10,6 +10,7 @@
  * - Ctrl+D: duplicate selected nodes in place (offset)
  * - Arrow keys: nudge selected nodes
  * - Escape: deselect all
+ * - Enter, or simply typing, with one note selected: edit its text on the canvas
  */
 
 import { guid } from "../utils";
@@ -87,10 +88,15 @@ export class Keyboard {
     }
 
     // Controls outside this canvas own their keyboard events, even when a note is selected.
+    const typing = Keyboard.isTypingKey(e);
     if (target !== document.body && !this.slate.element.contains(target) &&
-        ["Enter", " ", "F2", "Tab"].includes(e.key)) return;
+        (typing || ["Enter", " ", "F2", "Tab"].includes(e.key))) return;
 
     const isMod = e.ctrlKey || e.metaKey;
+
+    // Typing with one note selected edits that note. "?" stays the shortcuts reference,
+    // and every other shortcut below needs Ctrl/Cmd or is not a character at all.
+    if (typing && e.key !== "?" && this.typeIntoSelected(e)) return;
 
     switch (e.key) {
       case "Delete":
@@ -497,6 +503,51 @@ export class Keyboard {
       e.preventDefault();
       this.slate.selectNodes([node], false);
     }
+  }
+
+  /** A key press that produces one character of text, with no Ctrl/Cmd/Alt chord. */
+  private static isTypingKey(e: KeyboardEvent): boolean {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return false;
+    return typeof e.key === "string" && Array.from(e.key).length === 1;
+  }
+
+  /**
+   * Type-to-edit: with exactly one editable note selected and no editor open, a
+   * character key opens the note's editor with the caret after its existing text and
+   * types that character there. It appends; it never replaces what the note says.
+   *
+   * Returns false (leaving the key to its existing meaning) for read-only and
+   * comment-only viewers, locked notes, comments, artwork and multi-selections, and
+   * whenever keyboard focus is on some other control of the canvas.
+   */
+  private typeIntoSelected(e: KeyboardEvent): boolean {
+    if (e.defaultPrevented) return false;
+    const selected =
+      this.slate.getSelectedNodes?.() ?? (this.slate as any).selectedNodes ?? [];
+    if (selected.length !== 1) return false;
+    const node = selected[0];
+    if (!node?.canEditTextInline?.() || node.editor?.isInlineEditing?.()) return false;
+
+    // Keys belong to whatever has focus. Only the page itself, the canvas background
+    // and the selected note pass typing through to that note; a connector button,
+    // another note or a toolbar control keeps its own keys.
+    const target = e.target as HTMLElement;
+    const group = node.svgGroup?.node as Element | undefined;
+    const onNote = !!group && group.contains(target);
+    const onBackground =
+      target === document.body ||
+      target === document.documentElement ||
+      target === this.slate.element ||
+      target === this.slate.canvas?.node;
+    if (!onNote && !onBackground) return false;
+
+    // Space on a focused note already means "select it", and keeps meaning that. With
+    // focus on the page or the canvas background Space has no meaning of its own, so
+    // there it types a space like any other character.
+    if (e.key === " " && !onBackground) return false;
+
+    e.preventDefault();
+    return node.editor.startInline({ caret: "end", insert: e.key, heldKey: e.key }) === true;
   }
 
   /**

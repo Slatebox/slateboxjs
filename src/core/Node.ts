@@ -307,6 +307,11 @@ export class Node {
   private _rejectReady!: (reason?: unknown) => void;
   private _initFailed: boolean = false;
   private _destroyed: boolean = false;
+  /**
+   * Set by the connector gestures on the note they create: that gesture makes the one
+   * live-region announcement, so Slate.addNode's own "Node added" stays quiet.
+   */
+  public announcedByCreator = false;
   private _svgViewboxTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _dragEndTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _previewViewboxTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -2599,6 +2604,73 @@ export class Node {
     }
   }
 
+  /**
+   * Whether this note's text may be edited on the canvas right now. The same rules a
+   * double-click follows: comments and artwork have no inline text, and locked notes,
+   * read-only or comment-only viewers and disabled slates never open an editor.
+   */
+  public canEditTextInline(): boolean {
+    const slate: any = this.slate;
+    return (
+      !this._destroyed &&
+      !!this.svgGroup &&
+      !this.options.isComment &&
+      !this.nestedSvg &&
+      !this.options.isLocked &&
+      slate?.options?.enabled !== false &&
+      !slate?.isReadOnly?.() &&
+      !slate?.isCommentOnly?.() &&
+      typeof this.editor?.startInline === "function"
+    );
+  }
+
+  /**
+   * The person just created `newNode` from one of this note's connectors. Select it
+   * and open its editor so the next thing they type is its name; with nothing typed,
+   * Escape or clicking away leaves it blank.
+   *
+   * Only the three creation gestures call this. Notes that arrive any other way (the
+   * API, loaded JSON, collaborators, paste, duplicate, undo/redo) never open an editor.
+   *
+   * @param gesture "plug": a click or tap on a connector. "keyboard": a direction
+   *   button activated from the keyboard, so focus must stay on the canvas. "drop": a
+   *   connector dragged into open space; the note is under the pointer, so the view
+   *   is left where it is.
+   */
+  private beginNamingCreatedNode(newNode: Node, gesture: "plug" | "keyboard" | "drop"): void {
+    const slate: any = this.slate;
+    const added = () => slate.announce?.(`Node added: ${newNode.options.text || "(unnamed)"}`);
+    const editable = newNode.canEditTextInline();
+    // Artwork and comment children have no inline text. A plug click leaves them
+    // alone, exactly as before.
+    if (!editable && gesture === "plug") return added();
+    if (gesture !== "drop") {
+      const viewport = slate.canvas.viewbox();
+      const bounds = newNode.svgGroup.rbox(slate.canvas);
+      if (bounds.x < viewport.x || bounds.x2 > viewport.x2 ||
+          bounds.y < viewport.y || bounds.y2 > viewport.y2) {
+        slate.pan({ x: bounds.cx - viewport.width / 2, y: bounds.cy - viewport.height / 2 });
+      }
+    }
+    // One announcement for the whole gesture, not "selected" followed by "added".
+    const select = () => slate.selectNodes([newNode]);
+    if (typeof slate.withoutAnnouncements === "function") slate.withoutAnnouncements(select);
+    else select();
+    // A child cloned from a grouped note selects its whole group: nothing to name yet.
+    const selected = slate.getSelectedNodes?.() ?? [];
+    const alone = selected.length === 1 && selected[0] === newNode;
+    if (editable && alone && newNode.editor.startInline({
+      caret: "end",
+      preventScroll: true,
+      returnFocus: gesture === "keyboard",
+    })) {
+      slate.announce?.("Connected note added. Type its name, then press Enter.");
+      return;
+    }
+    if (gesture === "keyboard") newNode.svgGroup.node.focus({ preventScroll: true });
+    added();
+  }
+
   // Helper method to identify resize/rotate handles
   private isResizeRotateHandle(target: any): boolean {
     if (!target || !target.classList) return false;
@@ -3073,11 +3145,21 @@ export class Node {
               text: "",
             });
             if (newNode) {
+              // Announced once, with the prompt to name it (beginNamingCreatedNode).
+              newNode.announcedByCreator = true;
               // Connect once the new node has finished rendering (createAsync), so
-              // the connector attaches to a laid-out shape.
+              // the connector attaches to a laid-out shape; then hand it to the
+              // person ready to name. The drop point is under the pointer, so the
+              // view stays where it is.
               const connect = () => {
                 try {
                   this.relationships.addAssociation(newNode);
+                } catch (e) {
+                  /* noop */
+                }
+                try {
+                  if (slate.nodes?.one?.(newNode.id) === newNode)
+                    this.beginNamingCreatedNode(newNode, "drop");
                 } catch (e) {
                   /* noop */
                 }
@@ -3085,7 +3167,6 @@ export class Node {
               if ((newNode as any).ready?.then)
                 (newNode as any).ready.then(connect);
               else connect();
-              slate.selectNodes?.([newNode]);
             }
           }
         } catch (e) {
@@ -3796,6 +3877,7 @@ export class Node {
     }
   }
 
+  /** @param focusChild the gesture came from the keyboard (or assistive technology) */
   private createConnectedNode(
     direction: PlugDirection, focusChild = false
   ): void {
@@ -3923,18 +4005,16 @@ export class Node {
       // Hide the preview and handles before creating connection
       this.hideConnectionPreview();
 
+      // Announced once, with the prompt to name it (beginNamingCreatedNode).
+      newNode.announcedByCreator = true;
+
       void newNode.ready.then(() => {
         if (this._destroyed || this.slate.getNode(this.id) !== this || this.slate.getNode(newNode.id) !== newNode) return;
         this.connectToNode(newNode);
-        if (focusChild && this.canUseConnectionHandles()) {
-          const viewport = this.slate.canvas.viewbox();
-          const bounds = newNode.svgGroup.rbox(this.slate.canvas);
-          if (bounds.x < viewport.x || bounds.x2 > viewport.x2 ||
-              bounds.y < viewport.y || bounds.y2 > viewport.y2) {
-            this.slate.pan({ x: bounds.cx - viewport.width / 2, y: bounds.cy - viewport.height / 2 });
-          }
-          this.slate.selectNodes([newNode]);
-          newNode.svgGroup.node.focus({ preventScroll: true });
+        if (this.canUseConnectionHandles()) {
+          this.beginNamingCreatedNode(newNode, focusChild ? "keyboard" : "plug");
+        } else {
+          this.slate.announce(`Node added: ${newNode.options.text || "(unnamed)"}`);
         }
       }).catch(error => console.error("Could not connect the new note", error));
     } catch (error) {

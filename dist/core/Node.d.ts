@@ -168,6 +168,11 @@ export declare class Node {
     private _rejectReady;
     private _initFailed;
     private _destroyed;
+    /**
+     * Set by the connector gestures on the note they create: that gesture makes the one
+     * live-region announcement, so Slate.addNode's own "Node added" stays quiet.
+     */
+    announcedByCreator: boolean;
     private _svgViewboxTimeoutId;
     private _dragEndTimeoutId;
     private _previewViewboxTimeoutId;
@@ -450,6 +455,26 @@ export declare class Node {
      * cog (which opens the same pane), so this doesn't remove drawer access.
      */
     handleDoubleClickEdit(): void;
+    /**
+     * Whether this note's text may be edited on the canvas right now. The same rules a
+     * double-click follows: comments and artwork have no inline text, and locked notes,
+     * read-only or comment-only viewers and disabled slates never open an editor.
+     */
+    canEditTextInline(): boolean;
+    /**
+     * The person just created `newNode` from one of this note's connectors. Select it
+     * and open its editor so the next thing they type is its name; with nothing typed,
+     * Escape or clicking away leaves it blank.
+     *
+     * Only the three creation gestures call this. Notes that arrive any other way (the
+     * API, loaded JSON, collaborators, paste, duplicate, undo/redo) never open an editor.
+     *
+     * @param gesture "plug": a click or tap on a connector. "keyboard": a direction
+     *   button activated from the keyboard, so focus must stay on the canvas. "drop": a
+     *   connector dragged into open space; the note is under the pointer, so the view
+     *   is left where it is.
+     */
+    private beginNamingCreatedNode;
     private isResizeRotateHandle;
     /** Called by the Slate when this node is selected. */
     onSelected(): void;
@@ -500,6 +525,7 @@ export declare class Node {
     disableConnectionHandles(): void;
     isConnectionHandlesEnabled(): boolean;
     private getNodeEdgePoint;
+    /** @param focusChild the gesture came from the keyboard (or assistive technology) */
     private createConnectedNode;
     private cloneNodeOptions;
     private connectToNode;

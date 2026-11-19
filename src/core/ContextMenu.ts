@@ -53,6 +53,13 @@ export class ContextMenu {
 
   private onContextMenu(e: MouseEvent): void {
     const target = e.target as Element | null;
+    // Inside a note's open text editor the menu belongs to the text (the browser's
+    // own cut/copy/paste), not to the note. Touch browsers also raise it for a tap
+    // on selected text.
+    if (target?.closest?.(".sb-inline-editor")) {
+      this.close();
+      return;
+    }
     const group = target?.closest?.("[data-node-id]") as Element | null;
     const id = group?.getAttribute?.("data-node-id");
     if (!id) {

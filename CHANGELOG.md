@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### Changed
+- A connected note is ready to name the moment it is created. Clicking or tapping
+  a connector, dragging one into open space, or activating a keyboard direction
+  button now selects the new note and opens its editor with the caret in it, so
+  the next thing typed is its name. Enter commits; Escape or clicking away with
+  nothing typed leaves the note blank, as before. Notes that arrive any other way
+  (`addNode`, `loadJSON`, collaborators, paste, duplicate, undo/redo) never open
+  an editor, and nothing is broadcast until a name is committed.
+- Typing with exactly one note selected edits it: the editor opens with the caret
+  after the existing text and the character is appended. Read-only and
+  comment-only viewers, locked notes, comments, artwork and multi-selections are
+  unaffected, Ctrl/Cmd shortcuts are unchanged, and `?` remains the shortcuts
+  reference. Enter still opens the editor with the text selected.
+- The new note is announced to screen readers once, with a prompt to type its
+  name, instead of as "selected" followed by "added". After Enter or Escape,
+  keyboard focus returns to the note when the edit began from the keyboard.
+- A press inside an open note editor now places the caret instead of starting a
+  drag of the note underneath (which closed the editor), and a right-click or
+  long-press there shows the browser's text menu, not the note menu.
+- `Editor.startInline()` accepts `{ caret, insert, heldKey, preventScroll,
+  returnFocus }`, returns whether it opened, and takes focus synchronously.
+
 ### Fixed
 - `selectNodes` no longer throws when the slate contains a node whose
   `finishCreate()` has not run yet (async creation, collab peer seeds, paste

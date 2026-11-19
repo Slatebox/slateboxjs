@@ -172,6 +172,7 @@ export declare class Slate {
     private _coordDisplayTimeoutId;
     private _nodeNotifyTimeoutId;
     private _liveRegion;
+    private _announcementsHeld;
     private _resizeObserver;
     /**
      * v1-parity `slate.filters.availableFilters` — the node Effects pane reads
@@ -216,6 +217,11 @@ export declare class Slate {
      * Used for state changes: node add/remove, selection changes, zoom changes.
      */
     announce(msg: string): void;
+    /**
+     * Run `fn` without live-region announcements, for a caller that will describe the
+     * whole action in one announcement of its own.
+     */
+    withoutAnnouncements<T>(fn: () => T): T;
     /**
      * Emit a v1-compatible change package to the host application via
      * `options.events.onSlateChanged(pkg, collabUsers)`.

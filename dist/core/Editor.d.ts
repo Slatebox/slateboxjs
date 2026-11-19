@@ -7,6 +7,26 @@
  * - Manages text content, font, alignment, and auto text offset
  */
 import type { Node } from "./Node";
+/** How an inline edit opens. With no options it is the rename gesture: all text selected. */
+export interface InlineEditOptions {
+    /**
+     * "all" (default) selects the existing text so typing replaces it.
+     * "end" keeps the text and puts the caret after it, so typing appends.
+     */
+    caret?: "all" | "end";
+    /** Text appended as the edit opens: the key press that started a type-to-edit. */
+    insert?: string;
+    /** A key that is physically down as the edit opens and should keep auto-repeating into it. */
+    heldKey?: string;
+    /** Focus without letting the browser scroll (the caller has already put the note in view). */
+    preventScroll?: boolean;
+    /**
+     * Whether Enter/Escape hand keyboard focus back to the note. Defaults to true only
+     * when the note itself had focus as the edit opened, so pointer edits leave focus
+     * where it was.
+     */
+    returnFocus?: boolean;
+}
 export declare class Editor {
     private node;
     private _inlineEditing;
@@ -25,8 +45,11 @@ export declare class Editor {
      * Commit routes through collab.invoke + collab.send (the same persist/sync path
      * the drawer uses via onNodeTextChanged), so the edit survives reload and syncs
      * to collaborators. SVG-content nodes (no textElement) are skipped.
+     *
+     * Opening the editor is local only: nothing is broadcast until a commit changes
+     * the text. Returns true when an editor was opened by this call.
      */
-    startInline(): void;
+    startInline(options?: InlineEditOptions): boolean;
     /** Cancel an in-progress inline edit without saving. */
     cancelInline(): void;
     /**

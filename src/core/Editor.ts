@@ -10,6 +10,27 @@
 import { loadFont } from "./FontLoader";
 import type { Node } from "./Node";
 
+/** How an inline edit opens. With no options it is the rename gesture: all text selected. */
+export interface InlineEditOptions {
+  /**
+   * "all" (default) selects the existing text so typing replaces it.
+   * "end" keeps the text and puts the caret after it, so typing appends.
+   */
+  caret?: "all" | "end";
+  /** Text appended as the edit opens: the key press that started a type-to-edit. */
+  insert?: string;
+  /** A key that is physically down as the edit opens and should keep auto-repeating into it. */
+  heldKey?: string;
+  /** Focus without letting the browser scroll (the caller has already put the note in view). */
+  preventScroll?: boolean;
+  /**
+   * Whether Enter/Escape hand keyboard focus back to the note. Defaults to true only
+   * when the note itself had focus as the edit opened, so pointer edits leave focus
+   * where it was.
+   */
+  returnFocus?: boolean;
+}
+
 export class Editor {
   private node: Node;
   private _inlineEditing = false;
@@ -39,12 +60,16 @@ export class Editor {
    * Commit routes through collab.invoke + collab.send (the same persist/sync path
    * the drawer uses via onNodeTextChanged), so the edit survives reload and syncs
    * to collaborators. SVG-content nodes (no textElement) are skipped.
+   *
+   * Opening the editor is local only: nothing is broadcast until a commit changes
+   * the text. Returns true when an editor was opened by this call.
    */
-  public startInline(): void {
+  public startInline(options: InlineEditOptions = {}): boolean {
     const node = this.node;
-    if (this._inlineEditing || !node || node.nestedSvg) return;
+    if (this._inlineEditing || !node || node.nestedSvg) return false;
     const group = (node.svgGroup as any)?.node as SVGGElement | undefined;
-    if (!group) return;
+    if (!group) return false;
+    const returnFocus = options.returnFocus ?? document.activeElement === group;
 
     const w = node.options.width || 100;
     const h = node.options.height || 60;
@@ -62,7 +87,7 @@ export class Editor {
     const div = document.createElement("div");
     div.setAttribute("contenteditable", "true");
     div.className = "sb-inline-editor";
-    div.textContent = node.options.text || "";
+    div.textContent = (node.options.text || "") + (options.insert ?? "");
     div.style.cssText = [
       `width:${w}px`,
       `height:${h}px`,
@@ -88,10 +113,13 @@ export class Editor {
     // Hide the rendered SVG text while the editor box is showing.
     (node.textElement as any)?.hide?.();
 
-    const finish = (save: boolean) => {
+    const finish = (save: boolean, fromKeyboard = false) => {
       if (!this._inlineEditing) return;
       this._inlineEditing = false;
       const newText = (div.innerText || "").replace(/\n+$/, "");
+      // Removing the focused editor drops focus to the page. After Enter/Escape a
+      // keyboard user gets the note back instead of losing their place.
+      const refocusNote = fromKeyboard && returnFocus && document.activeElement === div;
       try {
         fo.remove();
       } catch {
@@ -99,6 +127,13 @@ export class Editor {
       }
       this._inlineFO = null;
       (node.textElement as any)?.show?.();
+      if (refocusNote) {
+        try {
+          group.focus({ preventScroll: true });
+        } catch {
+          /* headless */
+        }
+      }
       if (save && newText !== (node.options.text || "")) {
         const pkg = {
           type: "onNodeTextChanged",
@@ -124,31 +159,57 @@ export class Editor {
       }
     };
 
+    // A key that was already down when the editor opened (the Enter or Space that
+    // created this note from a connector, say) keeps auto-repeating into whatever has
+    // focus. Those repeats must not commit the edit or type into it; only keys pressed
+    // inside the editor count.
+    const pressedHere = new Set<string>(options.heldKey ? [options.heldKey] : []);
     div.addEventListener("keydown", (ev) => {
       ev.stopPropagation();
+      if (ev.repeat && !pressedHere.has(ev.key)) {
+        ev.preventDefault();
+        return;
+      }
+      pressedHere.add(ev.key);
       if (ev.key === "Enter" && !ev.shiftKey) {
         ev.preventDefault();
-        finish(true);
+        finish(true, true);
       } else if (ev.key === "Escape") {
         ev.preventDefault();
-        finish(false);
+        finish(false, true);
       }
     });
+    div.addEventListener("keyup", (ev) => pressedHere.delete(ev.key));
     div.addEventListener("blur", () => finish(true));
+    // A press inside the editor places the caret or selects text. It must not reach
+    // the note underneath: there a press starts a drag, which re-stacks the note in
+    // the DOM, and that blurs (and so closes) the editor the person just clicked into.
+    for (const type of ["pointerdown", "mousedown", "touchstart"]) {
+      div.addEventListener(type, (ev) => ev.stopPropagation());
+    }
 
-    // Focus + select-all on the next tick (after it's in the DOM).
-    setTimeout(() => {
+    // Take focus now, inside the gesture that opened the editor, so the very next key
+    // press lands in it (and touch browsers still treat it as user-initiated).
+    const focusEditor = () => {
       try {
-        div.focus();
+        if (!div.isConnected) return;
+        div.focus(options.preventScroll ? { preventScroll: true } : undefined);
         const range = document.createRange();
         range.selectNodeContents(div);
+        if (options.caret === "end") range.collapse(false);
         const sel = window.getSelection();
         sel?.removeAllRanges();
         sel?.addRange(range);
       } catch {
         /* headless */
       }
+    };
+    focusEditor();
+    // Safety net: something in the opening gesture may have moved focus straight after.
+    setTimeout(() => {
+      if (this._inlineEditing && this._inlineFO === fo && document.activeElement !== div) focusEditor();
     }, 0);
+    return true;
   }
 
   /** Cancel an in-progress inline edit without saving. */

@@ -10,6 +10,7 @@
  * - Ctrl+D: duplicate selected nodes in place (offset)
  * - Arrow keys: nudge selected nodes
  * - Escape: deselect all
+ * - Enter, or simply typing, with one note selected: edit its text on the canvas
  */
 export interface KeyboardOptions {
     enabled?: boolean;
@@ -69,6 +70,18 @@ export declare class Keyboard {
     private nudge;
     private handleArrowKey;
     private selectFocused;
+    /** A key press that produces one character of text, with no Ctrl/Cmd/Alt chord. */
+    private static isTypingKey;
+    /**
+     * Type-to-edit: with exactly one editable note selected and no editor open, a
+     * character key opens the note's editor with the caret after its existing text and
+     * types that character there. It appends; it never replaces what the note says.
+     *
+     * Returns false (leaving the key to its existing meaning) for read-only and
+     * comment-only viewers, locked notes, comments, artwork and multi-selections, and
+     * whenever keyboard focus is on some other control of the canvas.
+     */
+    private typeIntoSelected;
     /**
      * If exactly one node is selected, begin inline text editing on it.
      * Returns true when it started an edit (so callers can stop falling through).

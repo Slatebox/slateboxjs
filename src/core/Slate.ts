@@ -222,6 +222,7 @@ export class Slate {
   private _coordDisplayTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _nodeNotifyTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private _liveRegion: HTMLElement | null = null; // Hidden aria-live region for screen readers
+  private _announcementsHeld = 0; // >0 while a caller is batching its own announcement
   private _resizeObserver: ResizeObserver | null = null;
 
   /**
@@ -588,11 +589,25 @@ export class Slate {
    * Used for state changes: node add/remove, selection changes, zoom changes.
    */
   public announce(msg: string): void {
+    if (this._announcementsHeld > 0) return;
     if (this._liveRegion) {
       // Clear and set to force re-announcement
       this._liveRegion.textContent = "";
       // Use setTimeout to ensure the clear is processed before the new text
       setTimeout(() => { if (this._liveRegion) this._liveRegion.textContent = msg; }, 50);
+    }
+  }
+
+  /**
+   * Run `fn` without live-region announcements, for a caller that will describe the
+   * whole action in one announcement of its own.
+   */
+  public withoutAnnouncements<T>(fn: () => T): T {
+    this._announcementsHeld++;
+    try {
+      return fn();
+    } finally {
+      this._announcementsHeld--;
     }
   }
 
@@ -931,7 +946,10 @@ export class Slate {
     // Notify BirdsEye of the new node after a short delay for rendering
     this._nodeNotifyTimeoutId = setTimeout(() => {
       if (!this._destroyed) this.notifyNodeChanged();
-      this.announce(`Node added: ${node.options.text || "(unnamed)"}`);
+      // A note created from a connector is announced once by that gesture instead.
+      if (!node.announcedByCreator) {
+        this.announce(`Node added: ${node.options.text || "(unnamed)"}`);
+      }
     }, 100);
     this.broadcast("onNodeAdded", {
       id: node.id,
