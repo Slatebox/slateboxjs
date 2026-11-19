@@ -9582,8 +9582,11 @@ class un {
     const i = this.slate, s = () => i.announce?.(`Node added: ${t.options.text || "(unnamed)"}`), o = t.canEditTextInline();
     if (!o && e === "plug") return s();
     if (e !== "drop") {
-      const c = i.canvas.viewbox(), h = t.svgGroup.rbox(i.canvas);
-      (h.x < c.x || h.x2 > c.x2 || h.y < c.y || h.y2 > c.y2) && i.pan({ x: h.cx - c.width / 2, y: h.cy - c.height / 2 });
+      const c = i.canvas.viewbox(), h = t.svgGroup.rbox(i.canvas), d = (p, g, y, b) => {
+        const m = Math.min(24, Math.max(0, (b - (g - p)) / 2));
+        return g - p > b ? (p + g) / 2 - b / 2 : p - m < y ? p - m : g + m > y + b ? g + m - b : y;
+      }, u = d(h.x, h.x2, c.x, c.width), f = d(h.y, h.y2, c.y, c.height);
+      (u !== c.x || f !== c.y) && i.pan({ x: u, y: f });
     }
     const r = () => i.selectNodes([t]);
     typeof i.withoutAnnouncements == "function" ? i.withoutAnnouncements(r) : r();
