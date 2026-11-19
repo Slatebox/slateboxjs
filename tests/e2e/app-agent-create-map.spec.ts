@@ -19,21 +19,31 @@ test('packaged tools create private maps and source diagrams through the same op
   const { StdioClientTransport } = tools('@modelcontextprotocol/sdk/client/stdio.js')
   const owner = await browser.newPage()
   const reader = await browser.newPage({ viewport: { width: 390, height: 844 } })
+  owner.setDefaultTimeout(15_000)
+  reader.setDefaultTimeout(15_000)
   const expectedBundle = process.env.SLATEBOX_EXPECTED_APP_BUNDLE
-  const email = 'agent-create-' + randomUUID() + '@qa.slatebox.invalid'
+  const fixtureId = randomUUID()
+  const email = 'agent-create-' + fixtureId + '@qa.slatebox.invalid'
   const brief = 'Who approves a return for a damaged item?'
   const tokenIds: string[] = []
+  const ownedBoards: string[] = []
   let principal: string | null = null
   let mcp: InstanceType<typeof Client> | undefined
   const mine = () => owner.evaluate(async () =>
     (await (window as any).Meteor.callAsync('slates.get', { type: 'mine', skip: 0, limit: 20 })).slates.map((s: { shareId: string }) => s.shareId).sort())
   try {
-    await owner.goto(new URL('/new/map', origin).href)
+    const entry = new URL('/new', origin)
+    entry.hash = new URLSearchParams({ brief: 'Agent tools verification ' + fixtureId }).toString()
+    await owner.goto(entry.href)
     await owner.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
     await owner.waitForFunction(() => Boolean((window as any).Meteor?.userId()))
     principal = await userId(owner)
     await owner.goto(new URL('/profile', origin).href)
     const claim = owner.getByTestId('guest-account-claim')
+    // Hydration can show the profile before its automatic registration dialog.
+    if (!await claim.waitFor({ timeout: 3000 }).then(() => true, () => false)) {
+      await owner.getByRole('main').getByRole('button', { name: 'Save My Slatebox', exact: true }).click()
+    }
     await claim.getByLabel('Email address').fill(email)
     await claim.locator('input[type=password]').fill(randomBytes(24).toString('hex'))
     await claim.getByRole('button', { name: 'Save my Slatebox' }).click()
@@ -82,6 +92,7 @@ test('packaged tools create private maps and source diagrams through the same op
     const saved = () => getSlate(owner, created.shareId)
     const source = await saved()
     expect(source.userId).toBe(principal)
+    ownedBoards.push(source._id)
     expect(source.options).toMatchObject({ isPrivate: true, isPublic: false })
     expect(source.creative.model.workshop.title).toBe(brief)
     // Create slate registers a guest. Warm the signed-out reader on a public page.
@@ -163,6 +174,7 @@ test('packaged tools create private maps and source diagrams through the same op
     await expect(note).toHaveAttribute('aria-label','Could not start')
     const original = await getSlate(owner, drawing.shareId)
     expect(original.userId).toBe(principal)
+    ownedBoards.push(original._id)
     expect(original.options.isPrivate).toBe(true)
     expect(original.creative).toBeUndefined()
     await expect(owner.getByRole('complementary', {name:'Conversation with Slatebox'})).toContainText(diagram.brief)
@@ -190,12 +202,13 @@ test('packaged tools create private maps and source diagrams through the same op
           const u = (window as any).Meteor?.user()
           return u?._id === id && !u.orgId && (u.isAnonymous === true || u.emails?.[0]?.address === email)
         }, { id: principal, email })
-        const removed = await owner.evaluate(async ({ id, email, tokenIds }) => {
+        const removed = await owner.evaluate(async ({ id, email, tokenIds, ownedBoards }) => {
           const m = (window as any).Meteor, u = m.user()
           if (m.userId() !== id || u.orgId || !(u.isAnonymous || u.emails?.[0]?.address === email)) return false
           for (const tokenId of tokenIds) await m.callAsync('apiTokens.revoke', { tokenId })
+          if (ownedBoards.length) await m.callAsync('slates.remove', { slateIds: ownedBoards })
           return m.callAsync('users.delete')
-        }, { id: principal, email, tokenIds })
+        }, { id: principal, email, tokenIds, ownedBoards })
         expect(removed, 'Retire only the registered test member, token pair and owned slates').toBe(true)
       }
     } finally {
