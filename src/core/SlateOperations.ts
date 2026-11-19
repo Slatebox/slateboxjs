@@ -499,7 +499,8 @@ function cleanText(value: any): string {
 }
 
 function allNodes(slate: any): any[] {
-  return slate?.nodes?.allNodes || [];
+  // Operations address the saved drawing. Notes a host governs are not part of it.
+  return slate?.freeNodes?.() ?? slate?.nodes?.allNodes ?? [];
 }
 
 function allConnections(slate: any): Array<{ source: any; association: any }> {

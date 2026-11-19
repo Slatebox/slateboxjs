@@ -462,6 +462,12 @@ export class Collab {
 
     const methodName = pkg.type;
 
+    // A package aimed at a governed note is dropped (or trimmed to the notes it
+    // may touch): only the host that owns such a note changes it.
+    const screened = (this.slate as any).screenGovernedPackage?.(pkg.type, pkg.data);
+    if (screened === null) return;
+    if (screened !== undefined && screened !== pkg.data) pkg = { ...pkg, data: screened };
+
     if (typeof (invoker as any)[methodName] === "function") {
       // Applying a remote package must not re-emit onSlateChanged (echo)
       this.slate.beginRemoteApply?.();

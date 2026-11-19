@@ -55,7 +55,13 @@ export function serialize(
   nodes?: any[],
   asPresentation?: boolean
 ): SlateJSON {
-  const targetNodes = nodes || slate.nodes.allNodes;
+  // A governed note that draws host state is not part of the saved document
+  // (nor of undo snapshots): its host redraws it from its own model.
+  const candidates: any[] = nodes || slate.nodes.allNodes;
+  const targetNodes =
+    typeof slate.isDerivedNode === "function"
+      ? candidates.filter((node: any) => !slate.isDerivedNode(node))
+      : candidates;
 
   const serializedNodes: NodeJSON[] = targetNodes.map((node: any) =>
     serializeNode(node)
@@ -101,6 +107,8 @@ export async function deserialize(
   } finally {
     slate.endRemoteApply?.();
   }
+  // Replacing the notes also removed any that a host draws from its own state.
+  if (!preserve) slate.notifyNotesReplaced?.();
 }
 
 async function deserializeInner(

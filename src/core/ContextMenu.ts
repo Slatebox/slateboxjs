@@ -71,6 +71,14 @@ export class ContextMenu {
     if (!node) return;
     e.preventDefault();
 
+    // Every item here (z-order, duplicate, delete) changes a note the engine
+    // persists. A governed note belongs to its host, so it gets no menu.
+    if (this.slate.governanceOf?.(node)) {
+      this.close();
+      this.slate.selectNodes?.([node], false);
+      return;
+    }
+
     // Right-clicking a node selects it (unless it's already part of the
     // selection, so a multi-selection stays intact for the action).
     const selected: any[] = this.slate.getSelectedNodes?.() || [];
@@ -94,7 +102,9 @@ export class ContextMenu {
     menu.style.top = `${y}px`;
 
     // Snapshot the selection now (see field comment).
-    this.targetNodes = [...(this.slate.getSelectedNodes?.() || [])];
+    this.targetNodes = [...(this.slate.getSelectedNodes?.() || [])].filter(
+      (n: any) => !this.slate.governanceOf?.(n)
+    );
     const selCount = this.targetNodes.length;
     const items: MenuItem[] = [
       { label: "Bring to front", act: () => this.forEachTarget((n) => n.toFront?.()) },

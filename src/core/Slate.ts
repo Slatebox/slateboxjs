@@ -33,6 +33,16 @@ import { Presentation } from "./Presentation";
 import { getAvailableFilters } from "./Filters";
 import { getAvailableAnimations, type AnimationDef } from "./Animations";
 import { loadAllFonts as loadAllFontsForSlate } from "./FontLoader";
+import {
+  FREE_NODE,
+  hitTestNodeBoxes,
+  resolveGovernance,
+  type DragCancelReason,
+  type DragPolicy,
+  type NodeCapabilities,
+  type NodeGovernance,
+  type WorldPoint,
+} from "./DragPolicy";
 
 export interface SlateEvents {
   onSlateChanged?: (pkg: SlatePackage, collabUsers?: CollabUser[]) => void;
@@ -224,6 +234,12 @@ export class Slate {
   private _liveRegion: HTMLElement | null = null; // Hidden aria-live region for screen readers
   private _announcementsHeld = 0; // >0 while a caller is batching its own announcement
   private _resizeObserver: ResizeObserver | null = null;
+  /** Hosts that govern some notes (see DragPolicy.ts). Empty on an ordinary slate. */
+  private _dragPolicies: DragPolicy[] = [];
+  /** >0 while a host is changing its own governed notes (see withPolicyAuthority). */
+  private _policyAuthority = 0;
+  /** The governed note being dragged right now, if any. */
+  public _governedDragNode: Node | null = null;
 
   /**
    * v1-parity `slate.filters.availableFilters` — the node Effects pane reads
@@ -483,6 +499,8 @@ export class Slate {
    */
   public destroy(): void {
     this._destroyed = true;
+    this._dragPolicies = [];
+    this._governedDragNode = null;
 
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
@@ -664,6 +682,14 @@ export class Slate {
    */
   public broadcast(type: string, data: Record<string, any> = {}): void {
     if (this._applyingRemote || this._destroyed) return;
+    // A governed note is the host's to persist: nothing about it is sent, saved
+    // or recorded for undo.
+    if (this._dragPolicies.length) {
+      if (this._policyAuthority > 0) return;
+      const screened = this.screenGovernedPackage(type, data);
+      if (!screened) return;
+      data = screened;
+    }
     if (typeof this.collab?.send === "function") {
       this.collab.send({ type, data });
     } else {
@@ -961,6 +987,8 @@ export class Slate {
   /** Remove a node by ID. */
   public removeNode(id: string) {
     const node = this.nodes.one(id);
+    // A governed note leaves only when its host removes it.
+    if (node && !this.capabilitiesOf(node).canDelete) return false;
     const text = node?.options?.text || "(unnamed)";
     const isComment = !!node?.options?.isComment;
     // If the node is currently SELECTED, tear down its svg.select resize/rotate overlay
@@ -1377,6 +1405,14 @@ export class Slate {
 
     // Selecting a node clears any line cog affordance.
     this.clearLineCog();
+
+    // A governed note is selected on its own or not at all, so nothing that acts
+    // on a multi-selection (group drag, align, group rotate, grouping) can move it.
+    if (this._dragPolicies.length) {
+      const screened = this.screenSelection(nodes, addToSelection);
+      nodes = screened.nodes;
+      addToSelection = screened.addToSelection;
+    }
 
     // Miro-style groups: clicking a single member of a group selects the WHOLE
     // group — unless we've "entered" that group to edit its members. Selecting
@@ -1960,7 +1996,7 @@ export class Slate {
   }
 
   public alignNodes(mode: string, nodes?: Node[]): void {
-    const sel = nodes || this.getSelectedNodes();
+    const sel = this.freeNodes(nodes || this.getSelectedNodes());
     if (!sel || sel.length < 2) return;
     // Align by each node's VISUAL (rotation-aware) box, and move via a DELTA on the
     // node's own option position so its rotation is preserved. Aligning raw options.x
@@ -2015,7 +2051,7 @@ export class Slate {
    * vertical. Broadcasts onNodesMove. No-op for < 3 nodes.
    */
   public distributeNodes(axis: string, nodes?: Node[]): void {
-    const sel = nodes || this.getSelectedNodes();
+    const sel = this.freeNodes(nodes || this.getSelectedNodes());
     if (!sel || sel.length < 3) return;
     // Distribute by each node's VISUAL (rotation-aware) box; move via an option
     // DELTA so rotation is preserved and the gaps you SEE come out equal.
@@ -2120,7 +2156,7 @@ export class Slate {
    * @returns the new groupId, or null if nothing was grouped.
    */
   public groupNodes(nodes?: Node[]): string | null {
-    const sel = (nodes || this.getSelectedNodes()).slice();
+    const sel = this.freeNodes(nodes || this.getSelectedNodes()).slice();
     if (sel.length < 2) return null;
     const gid = "grp-" + guid(8);
     sel.forEach((n) => {
@@ -2140,7 +2176,7 @@ export class Slate {
    * clearing each member's groupId. Persists and keeps the nodes multi-selected.
    */
   public ungroupNodes(nodes?: Node[]): void {
-    const sel = nodes || this.getSelectedNodes();
+    const sel = this.freeNodes(nodes || this.getSelectedNodes());
     const gids = new Set<string>();
     sel.forEach((n) => {
       const g = this.getGroupIdOf(n);
@@ -2172,7 +2208,7 @@ export class Slate {
    * group — disabling drag/resize. Persists via onNodesMove.
    */
   public lockNodes(nodes?: Node[]): void {
-    const targets = this.expandToGroups(nodes || this.getSelectedNodes());
+    const targets = this.freeNodes(this.expandToGroups(nodes || this.getSelectedNodes()));
     if (!targets.length) return;
     targets.forEach((n) => n.lock());
     this.broadcast("onNodesMove", {
@@ -2183,7 +2219,7 @@ export class Slate {
 
   /** Unlock the selected (or given) nodes and their groups. */
   public unlockNodes(nodes?: Node[]): void {
-    const targets = this.expandToGroups(nodes || this.getSelectedNodes());
+    const targets = this.freeNodes(this.expandToGroups(nodes || this.getSelectedNodes()));
     if (!targets.length) return;
     targets.forEach((n) => n.unlock());
     this.broadcast("onNodesMove", {
@@ -2217,6 +2253,191 @@ export class Slate {
     if (!gid) return;
     const members = this.getGroupMembers(gid);
     if (members.length) this.selectNodes(members);
+  }
+
+  // ─── Governed notes (host drag policies) ─────────────────────────────
+
+  /**
+   * Register a host policy for some notes (see {@link DragPolicy}). The policy says
+   * which notes it governs and what a person may do to each; it is asked before a
+   * governed note is dragged, while it moves, and when it is released.
+   *
+   * @returns a function that removes the policy and returns its notes to ordinary behaviour.
+   */
+  public setDragPolicy(policy: DragPolicy): () => void {
+    if (!policy || typeof policy.governs !== "function" || typeof policy.onEnd !== "function") {
+      throw new Error("A drag policy needs governs() and onEnd().");
+    }
+    if (!this._dragPolicies.includes(policy)) this._dragPolicies.push(policy);
+    this.refreshGovernance();
+    let removed = false;
+    return () => {
+      if (removed) return;
+      removed = true;
+      if (this._governedDragNode && this.governanceOf(this._governedDragNode)?.policy === policy) {
+        this.cancelGovernedDrag("host");
+      }
+      this._dragPolicies = this._dragPolicies.filter((p) => p !== policy);
+      this.refreshGovernance();
+    };
+  }
+
+  /** The policy governing `node` and the note's capabilities, or null for an ordinary note. */
+  public governanceOf(node: Node | null | undefined): NodeGovernance | null {
+    if (!node || this._dragPolicies.length === 0) return null;
+    return resolveGovernance(this._dragPolicies, node);
+  }
+
+  /**
+   * What may be done to `node` right now. Ordinary notes can do everything; so can
+   * governed notes while their host is changing them (withPolicyAuthority).
+   */
+  public capabilitiesOf(node: Node | null | undefined): Readonly<NodeCapabilities> {
+    if (this._dragPolicies.length === 0 || this._policyAuthority > 0) return FREE_NODE;
+    return this.governanceOf(node)?.capabilities ?? FREE_NODE;
+  }
+
+  /** True for a governed note that is a drawing of host state (left out of saves and undo). */
+  public isDerivedNode(node: Node | null | undefined): boolean {
+    const governance = this.governanceOf(node);
+    return !!governance && !governance.capabilities.persist;
+  }
+
+  /** The notes among `nodes` (default: all) that no policy governs. */
+  public freeNodes(nodes?: Node[]): Node[] {
+    const list = nodes ?? this.nodes.allNodes;
+    if (this._dragPolicies.length === 0) return list;
+    return list.filter((n) => !this.governanceOf(n));
+  }
+
+  /**
+   * Run `fn` as the host that owns the governed notes: capability checks pass
+   * (the host may remove or connect its own notes) and nothing is broadcast.
+   */
+  public withPolicyAuthority<T>(fn: () => T): T {
+    this._policyAuthority++;
+    try {
+      return fn();
+    } finally {
+      this._policyAuthority--;
+    }
+  }
+
+  /** End a governed drag in progress as a refusal. Returns whether there was one. */
+  public cancelGovernedDrag(reason: DragCancelReason = "host"): boolean {
+    const node: any = this._governedDragNode;
+    if (!node || typeof node.cancelGovernedDrag !== "function") return false;
+    return node.cancelGovernedDrag(reason);
+  }
+
+  /**
+   * Re-apply what governance shows on each note (cursor, focusability, pointer
+   * input). Call it after a policy starts or stops claiming notes.
+   */
+  public refreshGovernance(): void {
+    this.nodes?.allNodes.forEach((node: any) => node.applyGovernance?.());
+    this.selectedNodes = this.selectedNodes.filter((n) => this.capabilitiesOf(n).canSelect);
+    if (this.selectedNodes.length) this.updateSelectionResizeRotate();
+  }
+
+  /** Tell each policy that loadJSON / undo / redo replaced the slate's notes. */
+  public notifyNotesReplaced(): void {
+    for (const policy of this._dragPolicies.slice()) {
+      try {
+        policy.onNotesReplaced?.();
+      } catch (error) {
+        console.warn("DRAG_POLICY: onNotesReplaced threw", error);
+      }
+    }
+  }
+
+  /**
+   * Remove governed notes from a change package, or return null when nothing is
+   * left of it. Used for packages leaving this slate (broadcast) and arriving from
+   * collaborators, so a governed note is changed only by its host.
+   */
+  public screenGovernedPackage(
+    type: string,
+    data: Record<string, any> | any[] | undefined
+  ): any {
+    if (this._dragPolicies.length === 0 || !data) return data;
+    const governed = (id: unknown) =>
+      typeof id === "string" && !!this.governanceOf(this.nodes.one(id));
+    if (Array.isArray(data)) {
+      const kept = data.filter((entry) => !governed(entry?.id));
+      return kept.length ? (kept.length === data.length ? data : kept) : null;
+    }
+    if (type === "addRelationship" || type === "removeRelationship") {
+      return governed(data.parentId) || governed(data.childId) ? null : data;
+    }
+    let out = data;
+    for (const key of ["nodeOptions", "nodes"] as const) {
+      const list = out[key];
+      if (Array.isArray(list)) {
+        const kept = list.filter((entry: any) => !governed(entry?.id));
+        if (kept.length === list.length) continue;
+        if (!kept.length) return null;
+        out = { ...out, [key]: kept };
+      } else if (list && typeof list === "object" && governed(list.id)) {
+        return null;
+      }
+    }
+    if (/^onNode|^onLine/.test(type) && governed(out.id)) return null;
+    return out;
+  }
+
+  /** Keep governed and decoration notes out of selections they may not join. */
+  private screenSelection(
+    nodes: Node[],
+    addToSelection: boolean
+  ): { nodes: Node[]; addToSelection: boolean } {
+    nodes = nodes.filter((n) => this.capabilitiesOf(n).canSelect);
+    if (this._policyAuthority > 0) return { nodes, addToSelection };
+    const isGoverned = (n: Node) => !!this.governanceOf(n);
+    if (nodes.length > 1) {
+      // Marquee, select-all and programmatic multi-selects pick ordinary notes only.
+      nodes = nodes.filter((n) => !isGoverned(n));
+    } else if (nodes.length === 1 && isGoverned(nodes[0])) {
+      addToSelection = false;
+    }
+    if (addToSelection && this.selectedNodes.some(isGoverned)) addToSelection = false;
+    return { nodes, addToSelection };
+  }
+
+  // ─── Coordinates and hit testing ────────────────────────────────────
+
+  /** Convert a point on screen (clientX/clientY) to world coordinates. */
+  public clientToWorld(point: { x: number; y: number }): WorldPoint {
+    const p = (this.canvas as any).point(point.x, point.y);
+    return { x: p.x, y: p.y };
+  }
+
+  /** Convert a world point to screen (client) coordinates, through the current pan and zoom. */
+  public worldToClient(point: WorldPoint): { x: number; y: number } {
+    const svg = this.canvas.node as SVGSVGElement;
+    const m = svg.getScreenCTM?.();
+    if (!m) return { x: point.x, y: point.y };
+    return {
+      x: m.a * point.x + m.c * point.y + m.e,
+      y: m.b * point.x + m.d * point.y + m.f,
+    };
+  }
+
+  /**
+   * The topmost note under a world point, by each note's (rotated) box.
+   *
+   * @param point  world coordinates (see clientToWorld)
+   * @param nodes  the notes to consider; defaults to every note on the slate
+   * @param options.padding  extra world units around each box that still count
+   * @param options.exclude  a note to ignore (for example the one being dragged)
+   */
+  public hitTestNodes(
+    point: WorldPoint,
+    nodes?: Node[],
+    options: { padding?: number; exclude?: Node | null } = {}
+  ): Node | null {
+    const list = (nodes ?? this.nodes.allNodes).filter((n) => n && n !== options.exclude);
+    return hitTestNodeBoxes(point, list, options.padding ?? 0);
   }
 
   // ─── Serialization API ──────────────────────────────────────────────

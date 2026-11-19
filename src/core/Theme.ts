@@ -99,7 +99,7 @@ export function applyTheme(
   // existing lines shouldn't stay their old color while everything else changes.
   if (theme.defaultLineColor) {
     slate.options.defaultLineColor = theme.defaultLineColor;
-    slate.nodes?.allNodes?.forEach((node: any) => {
+    (slate.freeNodes?.() ?? slate.nodes?.allNodes)?.forEach((node: any) => {
       node.relationships?.updateAssociationsWith?.({
         lineColor: theme.defaultLineColor,
       });
@@ -111,7 +111,9 @@ export function applyTheme(
   // child_2, … — so the theme follows the mind-map's structure (v1/Miro parity).
   // For a flat slate (no associations) fall back to insertion-order cycling so
   // every node still gets a distinct style (and existing behavior is unchanged).
-  const nodes = slate.nodes.allNodes;
+  // A theme restyles the saved drawing. Notes a host governs keep the look their
+  // host gave them.
+  const nodes = slate.freeNodes?.() ?? slate.nodes.allNodes;
   if (!nodes || nodes.length === 0 || !theme.styles) return;
 
   const depthByNodeId = computeHierarchyDepths(slate, nodes);

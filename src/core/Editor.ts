@@ -67,6 +67,8 @@ export class Editor {
   public startInline(options: InlineEditOptions = {}): boolean {
     const node = this.node;
     if (this._inlineEditing || !node || node.nestedSvg) return false;
+    // A governed note is edited only when its host's policy allows it.
+    if ((node.slate as any)?.capabilitiesOf?.(node).canEditText === false) return false;
     const group = (node.svgGroup as any)?.node as SVGGElement | undefined;
     if (!group) return false;
     const returnFocus = options.returnFocus ?? document.activeElement === group;
@@ -133,6 +135,25 @@ export class Editor {
         } catch {
           /* headless */
         }
+      }
+      const governance = (node.slate as any)?.governanceOf?.(node);
+      if (governance) {
+        // The host owns this note's text: its policy accepts, corrects or refuses
+        // the edit, and nothing is broadcast or recorded for undo.
+        const previous = node.options.text || "";
+        if (!save || newText === previous) return;
+        let ruling: boolean | string | void = undefined;
+        try {
+          ruling = governance.policy.onTextCommit?.(node, newText, previous);
+        } catch (error) {
+          console.warn("DRAG_POLICY: onTextCommit threw; keeping the old text", error);
+          ruling = false;
+        }
+        if (ruling === false) return;
+        const accepted = typeof ruling === "string" ? ruling : newText;
+        // The policy may already have redrawn the note with the accepted label.
+        if ((node.options.text || "") !== accepted) (node as any).setText?.(accepted);
+        return;
       }
       if (save && newText !== (node.options.text || "")) {
         const pkg = {

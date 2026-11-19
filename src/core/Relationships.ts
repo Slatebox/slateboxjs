@@ -57,6 +57,15 @@ export class Relationships {
   ): Association {
     const assoc = createDefaultAssociation(this.node.id, childNode.id, data);
 
+    // A governed note is connected only by its host (slate.withPolicyAuthority).
+    const slate: any = (this.node as any).slate;
+    if (
+      slate?.capabilitiesOf?.(this.node).canConnect === false ||
+      slate?.capabilitiesOf?.(childNode).canConnect === false
+    ) {
+      return assoc;
+    }
+
     // Parallel edges (Miro-style): allow MORE THAN ONE line between the same pair.
     // The first edge keeps the canonical `parent->child` id (back-compat with saved
     // slates + collab + the reverse lookup); an additional edge to a child that's

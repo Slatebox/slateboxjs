@@ -94,6 +94,10 @@ export class Keyboard {
 
     const isMod = e.ctrlKey || e.metaKey;
 
+    // A governed note's host gets the first look at keys pressed while that note is
+    // the selection (for example arrows that stage a move instead of nudging).
+    if (this.offerKeyToPolicy(e)) return;
+
     // Typing with one note selected edits that note. "?" stays the shortcuts reference,
     // and every other shortcut below needs Ctrl/Cmd or is not a character at all.
     if (typing && e.key !== "?" && this.typeIntoSelected(e)) return;
@@ -234,13 +238,42 @@ export class Keyboard {
     if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;
 
     e.preventDefault();
-    for (const node of [...selected]) {
+    // A governed note leaves only when its host removes it; the selection stays.
+    const deletable = [...selected].filter((node: any) => this.caps(node).canDelete !== false);
+    if (deletable.length === 0) return;
+    for (const node of deletable) {
       if (node.options?.isComment && !this.slate.canRemoveComments?.()) {
         continue;
       }
       this.slate.removeNode(node.id);
     }
     this.slate.clearSelection();
+  }
+
+  /** What may be done to `node` (everything, unless a host policy governs it). */
+  private caps(node: any): Record<string, boolean> {
+    return this.slate.capabilitiesOf?.(node) ?? {};
+  }
+
+  /** Whether a host policy governs `node`. */
+  private governed(node: any): boolean {
+    return !!this.slate.governanceOf?.(node);
+  }
+
+  /** Give a key to the policy of the single selected governed note. True when it handled the key. */
+  private offerKeyToPolicy(e: KeyboardEvent): boolean {
+    const selected = this.slate.getSelectedNodes?.() ?? [];
+    if (selected.length !== 1) return false;
+    const node = selected[0];
+    const governance = this.slate.governanceOf?.(node);
+    if (!governance?.policy?.onKeyDown) return false;
+    if (node.editor?.isInlineEditing?.()) return false;
+    try {
+      return governance.policy.onKeyDown(node, e) === true;
+    } catch (error) {
+      console.warn("DRAG_POLICY: onKeyDown threw", error);
+      return false;
+    }
   }
 
   private undo(e: KeyboardEvent): void {
@@ -332,7 +365,9 @@ export class Keyboard {
 
   /** Ctrl/Cmd+C — copy the selected nodes to the internal clipboard. */
   private copySelected(e: KeyboardEvent): void {
-    const selected = this.slate.getSelectedNodes?.() || [];
+    const selected = (this.slate.getSelectedNodes?.() || []).filter(
+      (n: any) => this.caps(n).canDuplicate !== false
+    );
     if (selected.length === 0) return;
     e.preventDefault();
     this.clipboard = selected.map((n: any) => this.snapshotNode(n));
@@ -352,7 +387,7 @@ export class Keyboard {
 
   /** Ctrl/Cmd+] — bring the selected node(s) to the front of the z-order. */
   private bringToFront(e: KeyboardEvent): void {
-    const selected = this.slate.getSelectedNodes?.() || [];
+    const selected = (this.slate.getSelectedNodes?.() || []).filter((n: any) => !this.governed(n));
     if (selected.length === 0) return;
     e.preventDefault();
     // node.toFront() broadcasts onNodeToFront, so it persists + syncs to collab.
@@ -361,7 +396,7 @@ export class Keyboard {
 
   /** Ctrl/Cmd+[ — send the selected node(s) to the back of the z-order. */
   private sendToBack(e: KeyboardEvent): void {
-    const selected = this.slate.getSelectedNodes?.() || [];
+    const selected = (this.slate.getSelectedNodes?.() || []).filter((n: any) => !this.governed(n));
     if (selected.length === 0) return;
     e.preventDefault();
     for (const node of selected) node.toBack?.();
@@ -369,7 +404,9 @@ export class Keyboard {
 
   /** Ctrl/Cmd+D — duplicate the current selection in place (offset). */
   private duplicateSelected(e: KeyboardEvent): void {
-    const selected = this.slate.getSelectedNodes?.() || [];
+    const selected = (this.slate.getSelectedNodes?.() || []).filter(
+      (n: any) => this.caps(n).canDuplicate !== false
+    );
     if (selected.length === 0) return;
     e.preventDefault();
     const snaps = selected.map((n: any) => this.snapshotNode(n));
@@ -434,8 +471,12 @@ export class Keyboard {
   }
 
   private nudge(dx: number, dy: number, e: KeyboardEvent): void {
-    const selected = this.slate.getSelectedNodes();
-    if (selected.length === 0) return;
+    // A governed note moves only through its host's policy, never by nudging.
+    const selected = this.slate.getSelectedNodes().filter((n: any) => !this.governed(n));
+    if (selected.length === 0) {
+      e.preventDefault();
+      return;
+    }
 
     e.preventDefault();
     for (const node of selected) {
@@ -451,7 +492,7 @@ export class Keyboard {
     if (this.nudgeTimer) clearTimeout(this.nudgeTimer);
     this.nudgeTimer = setTimeout(() => {
       this.nudgeTimer = null;
-      const sel = this.slate.getSelectedNodes?.() || [];
+      const sel = (this.slate.getSelectedNodes?.() || []).filter((n: any) => !this.governed(n));
       if (sel.length > 0) {
         this.slate.broadcast?.("onNodesMove", {
           nodeOptions: sel.map((n: any) => v2NodeToV1(n.options)),
@@ -475,7 +516,7 @@ export class Keyboard {
       }
     } else {
       // No selection — navigate focus between nodes
-      const nodes = this.slate.getAllNodes();
+      const nodes = this.slate.getAllNodes().filter((n: any) => this.caps(n).canSelect !== false);
       if (nodes.length === 0) return;
 
       const focused = document.activeElement;
@@ -565,6 +606,7 @@ export class Keyboard {
     const slate: any = this.slate;
     if (
       node.options?.isLocked ||
+      slate?.capabilitiesOf?.(node).canEditText === false ||
       slate?.options?.enabled === false ||
       slate?.isReadOnly?.() ||
       (slate?.isCommentOnly?.() && !node.options?.isComment)

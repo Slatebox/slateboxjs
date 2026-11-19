@@ -98,6 +98,14 @@ export class ResizeRotate {
       return;
     }
 
+    // A note governed by a host policy may be selectable without being
+    // resizable or rotatable: it keeps the selection outline and loses the handles.
+    // Ordinary notes take the unchanged path below.
+    const slate: any = (this.node as any).slate;
+    const caps = slate?.governanceOf?.(this.node) ? slate.capabilitiesOf(this.node) : null;
+    const canResize = !!this.options.resizeEnabled && caps?.canResize !== false;
+    const canRotate = !!this.options.rotateEnabled && caps?.canRotate !== false;
+
     try {
       // Use the correct svg.select.js API for generic shapes (rect, circle, ellipse)
       const element: any = this.target;
@@ -105,7 +113,7 @@ export class ResizeRotate {
       // Make the whole group selectable / rotatable
       if (typeof element.select === "function") {
         element.select({
-          rotationPoint: this.options.rotateEnabled,
+          rotationPoint: caps ? canRotate : this.options.rotateEnabled,
           // svg.select.js' default updateHandle divides by the distance between
           // adjacent handle points; when a transient/degenerate bbox makes points
           // coincide (or the screenCTM collapses), that divide-by-zero plots
@@ -127,7 +135,7 @@ export class ResizeRotate {
       }
 
       // Attach resize capability (applies a transform on the group)
-      if (this.options.resizeEnabled && typeof element.resize === "function") {
+      if ((caps ? canResize || canRotate : this.options.resizeEnabled) && typeof element.resize === "function") {
         element.resize({
           preserveAspectRatio: this.options.preserveAspectRatio,
           aroundCenter: this.options.aroundCenter,
@@ -138,6 +146,7 @@ export class ResizeRotate {
 
       // Normalize plugin-generated selection UI after svg.select.js appends it.
       this.styleSelectionUi();
+      if (caps) this.hideHandles(!canResize, !canRotate);
 
       // Add event listeners
       this.addEventListeners();
@@ -194,6 +203,25 @@ export class ResizeRotate {
         "RESIZE_ROTATE_DEBUG: Failed to widen handle hit areas:",
         e,
       );
+    }
+  }
+
+  /** Keep the selection outline but remove the handles a governed note may not use. */
+  private hideHandles(resize: boolean, rotate: boolean) {
+    const selectors = [
+      resize ? ".svg_select_handle:not(.svg_select_handle_rot)" : "",
+      rotate ? ".svg_select_handle_rot" : "",
+    ].filter(Boolean);
+    if (!selectors.length) return;
+    try {
+      const svgNode = this.target.node;
+      const root = svgNode.ownerSVGElement || svgNode;
+      root.querySelectorAll(selectors.join(", ")).forEach((h: SVGElement) => {
+        h.style.display = "none";
+        h.style.pointerEvents = "none";
+      });
+    } catch (e) {
+      /* the outline alone is still a correct selection */
     }
   }
 

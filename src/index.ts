@@ -111,6 +111,18 @@ export {
   Slatebox,
 }
 
+// Host drag policies (governed notes)
+export { FREE_NODE, GOVERNED_NODE, hitTestNodeBoxes } from './core/DragPolicy'
+export type {
+  DragPolicy,
+  DragVerdict,
+  DragGesture,
+  DragCancelReason,
+  NodeCapabilities,
+  NodeGovernance,
+  WorldPoint,
+} from './core/DragPolicy'
+
 // Re-export types for convenience
 export type { SlateJSON, NodeJSON } from './core/Serialization'
 export type { ShapeDefinition } from './core/ShapeRegistry'

@@ -22,7 +22,8 @@ export function removeLayoutOverlaps(
   enableAttraction: boolean = false,
   threshold: number = 20
 ): void {
-  const nodes = slate.nodes.allNodes;
+  // Governed notes are placed by their host, never by a layout pass.
+  const nodes = slate.freeNodes?.() ?? slate.nodes.allNodes;
   if (nodes.length < 2) return;
 
   const maxIterations = 100;
@@ -110,7 +111,7 @@ export function applyLayout(
 
   for (const move of moves) {
     const node = slate.nodes.one(move.id);
-    if (node) {
+    if (node && !slate.governanceOf?.(node)) {
       node.position(move.x, move.y, () => {
         completed++;
         if (completed >= moves.length && callback) {
@@ -132,7 +133,7 @@ export function applyLayout(
  * Can be transmitted via collab and applied elsewhere.
  */
 export function packageLayout(slate: any): LayoutMove[] {
-  return slate.nodes.allNodes.map((node: any) => ({
+  return (slate.freeNodes?.() ?? slate.nodes.allNodes).map((node: any) => ({
     id: node.id,
     x: node.options.x || 0,
     y: node.options.y || 0,

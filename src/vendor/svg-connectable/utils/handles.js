@@ -920,6 +920,8 @@ function isValidDropTarget(con, element, handleObj) {
     if (!(nel && nel.getAttribute && nel.getAttribute("data-node-id"))) {
       return false;
     }
+    // A note its host governs (see core/DragPolicy.ts) may refuse connectors.
+    if (nel.getAttribute("data-no-connect")) return false;
   } catch (e) {
     return false;
   }

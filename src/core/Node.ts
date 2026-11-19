@@ -6,6 +6,7 @@ import {
   Circle,
   Ellipse,
   Path,
+  off as svgOff,
 } from "@svgdotjs/svg.js";
 
 import "@svgdotjs/svg.draggable.js";
@@ -25,6 +26,33 @@ import { Menu } from "./Menu";
 import { resolveShapePath } from "./ShapeRegistry";
 import { normalizeLegacyTextOffset, v2NodeToV1 } from "./compat";
 import { whiteOrBlack, contrastRatio } from "../utils";
+import type {
+  DragCancelReason,
+  DragGesture,
+  DragPolicy,
+  DragVerdict,
+  WorldPoint,
+} from "./DragPolicy";
+
+/** One drag of a governed note, from press to release or cancel. */
+interface GovernedDrag {
+  policy: DragPolicy;
+  /** Where the note was when the press began. A refused drag returns here. */
+  origin: WorldPoint;
+  startClient: { x: number; y: number };
+  startWorld: WorldPoint;
+  pointerType: "mouse" | "touch";
+  /** The pointer travelled far enough and the policy allowed the drag. */
+  started: boolean;
+  /** The policy refused the drag; the note stays put until release. */
+  refused: boolean;
+  frame: number;
+  last: { point: WorldPoint; gesture: DragGesture } | null;
+  stopListening: () => void;
+}
+
+/** CSS pixels the pointer must travel before a press on a governed note becomes a drag. */
+const GOVERNED_DRAG_THRESHOLD = 4;
 
 const plugDirections = ["top", "right", "bottom", "left"] as const;
 type PlugDirection = typeof plugDirections[number];
@@ -299,6 +327,9 @@ export class Node {
   // Other selected nodes to move together when this node is dragged as part of a
   // multi-selection (each with its own pre-drag position).
   private _groupDragSiblings: Array<{ node: Node; x: number; y: number }> = [];
+  /** The governed drag in progress on this note (see DragPolicy.ts). */
+  private _governed: GovernedDrag | null = null;
+  private _governanceApplied = false;
 
   /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
   public ready: Promise<void>;
@@ -616,6 +647,9 @@ export class Node {
 
     // Show a link badge if this node carries a link (Miro-style indicator).
     this.updateLinkIndicator();
+
+    // A host policy may already claim this note (cursor, focus, pointer input).
+    this.applyGovernance();
 
     // Signal that the node is fully created
     this._resolveReady();
@@ -1235,6 +1269,22 @@ export class Node {
     // Use svg.draggable.js to make the group draggable
     (this.svgGroup as any).draggable();
 
+    // A governed note that may not move never starts a drag. (Its press still
+    // selects it, and still reaches an open text editor.)
+    this.svgGroup.on("beforedrag.node", (event: any) => {
+      const governance = this.slate.governanceOf?.(this);
+      if (!governance) return;
+      const slate: any = this.slate;
+      if (
+        !governance.capabilities.canMove ||
+        slate.options?.enabled === false ||
+        slate.isReadOnly?.() ||
+        slate.isCommentOnly?.()
+      ) {
+        event.preventDefault?.();
+      }
+    });
+
     // Add event listeners for drag events with proper namespacing
     this.svgGroup.on("dragstart.node", (event: any) => {
       console.log("DRAG_DEBUG: Drag started on", this.id);
@@ -1301,10 +1351,11 @@ export class Node {
       // which distorts under a group rotation.
       this._dragStartPointer = this.pointerFromDragEvent(event);
 
-      // Group move: if this node is part of a multi-selection, remember the other
-      // selected nodes + their positions so dragmove can move them in lockstep.
+      // A governed note is dragged under its host's policy, never as part of a group.
       this._groupDragSiblings = [];
-      try {
+      const governance = this.slate.governanceOf?.(this);
+      if (governance) this.beginGovernedDrag(governance.policy, event);
+      else try {
         const selected: Node[] = this.slate.getSelectedNodes?.() || [];
         if (selected.length > 1 && selected.includes(this)) {
           for (const other of selected) {
@@ -1330,6 +1381,19 @@ export class Node {
 
     this.svgGroup.on("dragend.node", (event: any) => {
       console.log("DRAG_DEBUG: Drag ended on", this.id);
+
+      if (this._governed) {
+        const drag = this._governed;
+        const ptr = this.pointerFromDragEvent(event);
+        const point = ptr ? this.slate.clientToWorld(ptr) : drag.last?.point ?? drag.startWorld;
+        const gesture: DragGesture = {
+          clientX: ptr?.x ?? drag.last?.gesture.clientX ?? drag.startClient.x,
+          clientY: ptr?.y ?? drag.last?.gesture.clientY ?? drag.startClient.y,
+          pointerType: drag.pointerType,
+        };
+        this.finishGovernedDrag(drag, { point, gesture });
+        return;
+      }
 
       // options.x/y were kept current by the controlled dragmove handler
       // (pointer delta in world units), so no box math is needed here. As a
@@ -1417,41 +1481,7 @@ export class Node {
         });
       }
 
-      // Small delay to distinguish drag from click - reduced for better responsiveness
-      this._dragEndTimeoutId = setTimeout(() => {
-        if (this._destroyed) return;
-        this.isDragging = false;
-
-        // Ensure the dragged node remains selected after drag
-        const isCurrentlySelected = this.slate
-          .getSelectedNodes()
-          .includes(this);
-
-        if (!isCurrentlySelected) {
-          console.log(
-            "SELECTION_DEBUG: Drag ended on unselected node",
-            this.id,
-            "- selecting it"
-          );
-          this.slate.selectNodes([this], false);
-        } else {
-          console.log(
-            "SELECTION_DEBUG: Drag ended on selected node",
-            this.id,
-            "- re-enabling resize/rotate"
-          );
-          // Re-enable resize/rotate since drag is complete
-          this.slate.updateSelectionResizeRotate();
-        }
-
-        // Notify slate of node position change (for BirdsEye refresh)
-        this.slate.notifyNodeChanged(this);
-
-        // Re-anchor the plug handles at the node's NEW position (they were hidden
-        // for the drag). Only if still pinned/selected — otherwise they stay
-        // hidden until the next hover, at the correct spot.
-        if (this._connHandlesPinned) this.showConnectionHandles();
-      }, 10); // Reduced from 50ms to 10ms
+      this.settleAfterDrag();
     });
 
     // Controlled drag: position the node from the POINTER delta in world units,
@@ -1461,6 +1491,10 @@ export class Node {
     // move and drive the transform ourselves via applyPositionAndRotation.
     this.svgGroup.on("dragmove.node", (event: any) => {
       this.isDragging = true;
+      if (this._governed) {
+        this.moveGovernedDrag(this._governed, event);
+        return;
+      }
       const ptr = this.pointerFromDragEvent(event);
       if (ptr && this._dragStartPointer && this.preDragPosition) {
         event.preventDefault?.();
@@ -1509,6 +1543,272 @@ export class Node {
         }
       }
     });
+  }
+
+  /**
+   * After any drag (ordinary or governed) ends: tell a drag from a click, keep the
+   * note selected, and put its handles back at the new position.
+   */
+  private settleAfterDrag(): void {
+    {
+      // Small delay to distinguish drag from click - reduced for better responsiveness
+      this._dragEndTimeoutId = setTimeout(() => {
+        if (this._destroyed) return;
+        this.isDragging = false;
+
+        // Ensure the dragged node remains selected after drag
+        const isCurrentlySelected = this.slate
+          .getSelectedNodes()
+          .includes(this);
+
+        if (!isCurrentlySelected) {
+          console.log(
+            "SELECTION_DEBUG: Drag ended on unselected node",
+            this.id,
+            "- selecting it"
+          );
+          this.slate.selectNodes([this], false);
+        } else {
+          console.log(
+            "SELECTION_DEBUG: Drag ended on selected node",
+            this.id,
+            "- re-enabling resize/rotate"
+          );
+          // Re-enable resize/rotate since drag is complete
+          this.slate.updateSelectionResizeRotate();
+        }
+
+        // Notify slate of node position change (for BirdsEye refresh)
+        this.slate.notifyNodeChanged(this);
+
+        // Re-anchor the plug handles at the node's NEW position (they were hidden
+        // for the drag). Only if still pinned/selected — otherwise they stay
+        // hidden until the next hover, at the correct spot.
+        if (this._connHandlesPinned) this.showConnectionHandles();
+      }, 10); // Reduced from 50ms to 10ms
+    }
+  }
+
+  // ─── Governed drags (host drag policy) ─────────────────────────────
+
+  /**
+   * Show what a host policy allows on this note: a grab cursor on a note that may
+   * be dragged, a plain one on a note that may not, and no pointer input, focus or
+   * accessibility role at all on decoration. Ordinary notes are left untouched.
+   */
+  public applyGovernance(): void {
+    const el = this.svgGroup?.node as (SVGGElement & ElementCSSInlineStyle) | undefined;
+    if (!el?.setAttribute) return;
+    const governance = this.slate?.governanceOf?.(this) ?? null;
+    if (!governance) {
+      if (!this._governanceApplied) return;
+      this._governanceApplied = false;
+      el.removeAttribute("data-governed");
+      el.removeAttribute("data-no-connect");
+      el.removeAttribute("aria-hidden");
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("role", "button");
+      if (el.style) {
+        el.style.cursor = "move";
+        el.style.pointerEvents = "";
+      }
+      return;
+    }
+    this._governanceApplied = true;
+    const caps = governance.capabilities;
+    el.setAttribute(
+      "data-governed",
+      !caps.canSelect ? "decoration" : caps.canMove ? "movable" : "fixed"
+    );
+    if (caps.canConnect) el.removeAttribute("data-no-connect");
+    else el.setAttribute("data-no-connect", "1");
+    if (caps.canSelect) {
+      el.removeAttribute("aria-hidden");
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("role", "button");
+    } else {
+      el.setAttribute("aria-hidden", "true");
+      el.removeAttribute("tabindex");
+      el.removeAttribute("role");
+    }
+    if (el.style) {
+      el.style.cursor = !caps.canSelect ? "" : caps.canMove ? "grab" : "default";
+      el.style.pointerEvents = caps.canSelect ? "" : "none";
+    }
+    if (!caps.canConnect) this.hideConnectionHandles();
+  }
+
+  /** The press that may become a governed drag. Nothing is asked of the policy yet. */
+  private beginGovernedDrag(policy: DragPolicy, event: any): void {
+    const source = event?.detail?.event ?? event;
+    const client = this.pointerFromDragEvent(event) ?? { x: 0, y: 0 };
+    const pointerType: "mouse" | "touch" =
+      typeof source?.type === "string" && source.type.indexOf("touch") === 0 ? "touch" : "mouse";
+    const cancel = (reason: DragCancelReason) => this.cancelGovernedDrag(reason);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      // Only a drag that is actually under way swallows Escape.
+      if (!this._governed?.started) return;
+      e.preventDefault();
+      e.stopPropagation();
+      cancel("escape");
+    };
+    const onPointerCancel = () => cancel("pointercancel");
+    const onTouchCancel = () => cancel("touchcancel");
+    const onBlur = () => cancel("blur");
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("blur", onBlur);
+    // A finger reports cancellation as touchcancel; a mouse or pen as pointercancel.
+    if (pointerType === "touch") window.addEventListener("touchcancel", onTouchCancel, true);
+    else window.addEventListener("pointercancel", onPointerCancel, true);
+    this._governed = {
+      policy,
+      origin: { x: this.options.x ?? 0, y: this.options.y ?? 0 },
+      startClient: client,
+      startWorld: this.slate.clientToWorld(client),
+      pointerType,
+      started: false,
+      refused: false,
+      frame: 0,
+      last: null,
+      stopListening: () => {
+        window.removeEventListener("keydown", onKey, true);
+        window.removeEventListener("blur", onBlur);
+        window.removeEventListener("touchcancel", onTouchCancel, true);
+        window.removeEventListener("pointercancel", onPointerCancel, true);
+      },
+    };
+    (this.slate as any)._governedDragNode = this;
+  }
+
+  private moveGovernedDrag(drag: GovernedDrag, event: any): void {
+    // The engine places the note; svg.draggable must not also move its children.
+    event.preventDefault?.();
+    const ptr = this.pointerFromDragEvent(event);
+    if (!ptr || drag.refused) return;
+    const gesture: DragGesture = { clientX: ptr.x, clientY: ptr.y, pointerType: drag.pointerType };
+    if (!drag.started) {
+      const travelled = Math.hypot(ptr.x - drag.startClient.x, ptr.y - drag.startClient.y);
+      if (travelled < GOVERNED_DRAG_THRESHOLD) return;
+      let allowed = true;
+      try {
+        allowed = drag.policy.onStart?.(this, drag.startWorld, gesture) !== false;
+      } catch (error) {
+        console.warn("DRAG_POLICY: onStart threw; refusing the drag", error);
+        allowed = false;
+      }
+      if (!allowed) {
+        drag.refused = true;
+        return;
+      }
+      drag.started = true;
+      if (this.svgGroup.node.style) this.svgGroup.node.style.cursor = "grabbing";
+    }
+    // World coordinates, so the note stays under the pointer through a pan or zoom
+    // made while it is held.
+    const point = this.slate.clientToWorld(ptr);
+    this.options.x = drag.origin.x + (point.x - drag.startWorld.x);
+    this.options.y = drag.origin.y + (point.y - drag.startWorld.y);
+    this.applyPositionAndRotation();
+    try {
+      (this.slate as any).markersContainer?.front?.();
+    } catch (e) {
+      /* noop */
+    }
+    drag.last = { point, gesture };
+    if (!drag.frame && typeof drag.policy.onMove === "function") {
+      drag.frame = requestAnimationFrame(() => {
+        drag.frame = 0;
+        if (this._governed !== drag || !drag.last) return;
+        try {
+          drag.policy.onMove!(this, drag.last.point, drag.last.gesture);
+        } catch (error) {
+          console.warn("DRAG_POLICY: onMove threw", error);
+        }
+      });
+    }
+  }
+
+  /**
+   * End a governed drag. With `release` the policy rules on the drop; without it
+   * the drag was cancelled, which is a refusal. Either way nothing is broadcast:
+   * the host persists what it accepted.
+   */
+  private finishGovernedDrag(
+    drag: GovernedDrag,
+    release: { point: WorldPoint; gesture: DragGesture } | null,
+    reason: DragCancelReason = "host"
+  ): void {
+    this._governed = null;
+    if ((this.slate as any)._governedDragNode === this) (this.slate as any)._governedDragNode = null;
+    drag.stopListening();
+    if (drag.frame && typeof cancelAnimationFrame !== "undefined") cancelAnimationFrame(drag.frame);
+    drag.frame = 0;
+    this.preDragTransform = null;
+    this.preDragPosition = null;
+    this._dragStartPointer = null;
+
+    const rest = () => {
+      if (this._destroyed) return;
+      this.slate.notifyNodeChanged(this);
+      this.refreshSelectionDecorations();
+    };
+    if (drag.started) {
+      let verdict: DragVerdict = { accept: false };
+      if (release) {
+        try {
+          verdict = drag.policy.onEnd(this, release.point, release.gesture) ?? { accept: false };
+        } catch (error) {
+          console.warn("DRAG_POLICY: onEnd threw; refusing the drop", error);
+        }
+      } else {
+        try {
+          drag.policy.onCancel?.(this, reason);
+        } catch (error) {
+          console.warn("DRAG_POLICY: onCancel threw", error);
+        }
+      }
+      // The policy may have removed this note while deciding.
+      if (!this._destroyed && this.slate.nodes?.one?.(this.id) === this) {
+        if (verdict.accept) {
+          if (verdict.settle) this.position(verdict.settle.x, verdict.settle.y, rest, undefined, 160);
+          else rest();
+        } else {
+          this.position(drag.origin.x, drag.origin.y, rest, undefined, 180);
+        }
+      }
+    } else {
+      // A press that never became a drag leaves the note exactly where it was.
+      this.options.x = drag.origin.x;
+      this.options.y = drag.origin.y;
+      this.applyPositionAndRotation();
+    }
+    if (this.svgGroup?.node?.style && this._governanceApplied) {
+      this.svgGroup.node.style.cursor = "grab";
+    }
+    this.settleAfterDrag();
+  }
+
+  /**
+   * Abandon the governed drag in progress on this note, as a refusal: the note
+   * glides back to where it started and the policy's onCancel runs.
+   */
+  public cancelGovernedDrag(reason: DragCancelReason = "host"): boolean {
+    const drag = this._governed;
+    if (!drag) return false;
+    // svg.draggable is still tracking the pointer for this gesture; stop it and
+    // re-arm it for the next press.
+    try {
+      svgOff(window as any, "mousemove.drag");
+      svgOff(window as any, "touchmove.drag");
+      svgOff(window as any, "mouseup.drag");
+      svgOff(window as any, "touchend.drag");
+      (this.svgGroup as any).remember?.("_draggable")?.init(true);
+    } catch (e) {
+      /* noop */
+    }
+    this.finishGovernedDrag(drag, null, reason);
+    return true;
   }
 
   /**
@@ -2561,6 +2861,9 @@ export class Node {
     if (!events?.onTextPaneRequested) return;
     if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;
     if (this.options.isLocked) return;
+    // A governed note's text belongs to its host: it is edited in place (when the
+    // policy allows) and committed through the policy, never through the host pane.
+    if (this.slate.governanceOf?.(this)) return;
     events.onTextPaneRequested(this, (opts: any = {}) => {
       this.editor?.set(
         opts.text ?? this.options.text ?? "",
@@ -2594,6 +2897,7 @@ export class Node {
       slate.enterGroup(gid, this);
       return;
     }
+    if (slate?.capabilitiesOf?.(this).canEditText === false) return;
     if (
       !this.options.isComment &&
       !this.nestedSvg &&
@@ -2624,6 +2928,7 @@ export class Node {
       slate?.options?.enabled !== false &&
       !slate?.isReadOnly?.() &&
       !slate?.isCommentOnly?.() &&
+      slate?.capabilitiesOf?.(this).canEditText !== false &&
       typeof this.editor?.startInline === "function"
     );
   }
@@ -2753,19 +3058,27 @@ export class Node {
     const R = 15; // button hit radius
     const GAP = 6; // gap between buttons
     const NEUTRAL = "#5b6472";
+    // A governed note offers only what its host allows; with nothing to offer
+    // there is no toolbar. Its settings belong to the host, so it has no gear.
+    const caps = slate.capabilitiesOf?.(this);
+    const governed = !!slate.governanceOf?.(this);
     const tools: Array<{
       key: string;
       color: string;
       onClick?: () => void;
       onPress?: (e: any) => void;
-    }> = [
-      { key: "delete", color: "#e5484d", onClick: () => this.slate.removeNode(this.id) },
+    }> = [];
+    if (caps?.canDelete !== false) {
+      tools.push({ key: "delete", color: "#e5484d", onClick: () => this.slate.removeNode(this.id) });
+    }
+    if (caps?.canConnect !== false) {
       // plug: press-drag-to-connect (G3) — starts on pointerdown, not click.
-      { key: "plug", color: NEUTRAL, onPress: (e: any) => this.startConnectDrag(e) },
-    ];
-    if (typeof slate.options?.events?.onMenuRequested === "function") {
+      tools.push({ key: "plug", color: NEUTRAL, onPress: (e: any) => this.startConnectDrag(e) });
+    }
+    if (!governed && typeof slate.options?.events?.onMenuRequested === "function") {
       tools.push({ key: "cog", color: NEUTRAL, onClick: () => this.menu?.open?.() });
     }
+    if (!tools.length) return;
     const n = tools.length;
     const stepX = R * 2 + GAP;
     const totalW = n * (R * 2) + (n - 1) * GAP;
@@ -2865,6 +3178,7 @@ export class Node {
     const slate: any = this.slate;
     const canvas: any = slate.canvas;
     if (!canvas) return;
+    if (slate.capabilitiesOf?.(this).canConnect === false) return;
     // Guard against re-entry (a single press can emit both pointerdown+mousedown).
     if ((this as any)._connectDragging) return;
     (this as any)._connectDragging = true;
@@ -2998,10 +3312,16 @@ export class Node {
       return null;
     };
 
+    // A governed note that may not be connected is neither a target nor empty
+    // canvas: the connector does not attach to it and no note is created on it.
+    const refusesConnectors = (node: Node | null) =>
+      !!node && slate.capabilitiesOf?.(node).canConnect === false;
+
     const onMove = (ev: any) => {
       if (startEvent.pointerId != null && ev.pointerId !== startEvent.pointerId) return;
       const w = toWorld(ev.clientX, ev.clientY);
-      const target = nodeUnder(ev.clientX, ev.clientY);
+      const under = nodeUnder(ev.clientX, ev.clientY);
+      const target = refusesConnectors(under) ? null : under;
 
       if (target && (target as any).options) {
         // Curve to a perpendicular approach on the hovered node so the arrow
@@ -3079,6 +3399,7 @@ export class Node {
       clearHover();
       if (ev.type === "pointercancel") return;
       const target = nodeUnder(ev.clientX, ev.clientY);
+      if (refusesConnectors(target)) return;
       if (target && target.id !== this.id) {
         try {
           // Pin the new edge's target endpoint at the DROP point (normalized 0..1
@@ -3198,7 +3519,8 @@ export class Node {
 
   private canUseConnectionHandles(): boolean {
     return this.slate.options.enabled !== false && !this.slate.isReadOnly() &&
-      !this.slate.isCommentOnly() && !this.options.isLocked;
+      !this.slate.isCommentOnly() && !this.options.isLocked &&
+      this.slate.capabilitiesOf?.(this).canConnect !== false;
   }
 
   /** The plugs live outside the node group so their geometry does not affect the note. */
