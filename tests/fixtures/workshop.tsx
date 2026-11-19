@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Slate } from '../../src'
-import { addWorkshopCard, createLaneWorkshop, industrialWorkshop, nightTransfer, type Workshop, WorkshopBoard, workshopToSlate } from '../../src/workshops'
+import { addWorkshopCard, createLaneWorkshop, industrialWorkshop, nightTransfer, releasePlan, type Workshop, WorkshopBoard, workshopToSlate } from '../../src/workshops'
 
 const fieldNotes: Workshop = {
   version:1, title:'Choose the two recordings for the evening broadcast',
@@ -17,8 +17,9 @@ function Example() {
   const mapCanvas = location.search === '?map-studio'
   const author = location.search === '?author'
   const fitLanes = location.search === '?fit' || author
+  const selectable = location.search === '?select'
   const signaled = location.search === '?signals'
-  const [board, setBoard] = useState(author ? createLaneWorkshop() : signaled ? {...industrialWorkshop,
+  const [board, setBoard] = useState(selectable ? releasePlan : author ? createLaneWorkshop() : signaled ? {...industrialWorkshop,
     signals:[{id:'sensors-ready',label:'Sensor status',cardId:'sensors',laneId:'pilot',
       whenPresent:'The instruments are ready.',whenAbsent:'The instruments are waiting.'}]} : fitLanes ? fieldNotes : (mapCanvas || location.search === '?map') ? nightTransfer : industrialWorkshop)
   const [preview, setPreview] = useState<Workshop | null>(null)
@@ -31,7 +32,7 @@ function Example() {
     <label>View only<input type="checkbox" checked={readOnly} onChange={e => setReadOnly(e.target.checked)} /></label>
     <WorkshopBoard mapCanvas={mapCanvas} onAddCard={author ? (id, element) => {
       if (element.dataset.workshopAddCard === id) setBoard(old => addWorkshopCard(old, id, {label:'Wind chimes'}))
-    } : undefined} onEditLane={author ? (id, element) => {
+    } : undefined} onSelectCard={selectable || mapCanvas ? id => setEditing('card:' + id) : undefined} onEditLane={author || selectable ? (id, element) => {
       if (element.dataset.workshopLane === id) setEditing('lane:' + id)
     } : undefined} onEditStation={id => setEditing('station:' + id)} onEditCard={setEditing} fitLanes={fitLanes} readOnly={readOnly} value={board} onPreview={setPreview} onChange={next => {
       setUndo(board); setBoard(next); setCommits(count => count + 1)

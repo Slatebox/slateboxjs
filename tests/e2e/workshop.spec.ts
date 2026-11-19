@@ -198,11 +198,29 @@ for (const layout of ['map','map-studio']) test(layout + ' station headers open 
   await platform.focus()
   await platform.press('Enter')
   await expect(selected).toHaveText('station:platform')
+  if (layout === 'map-studio') {
+    const token = page.getByRole('button',{name:'Select Last rider'})
+    await token.click()
+    await expect(selected).toHaveText('card:rider')
+    await platform.click()
+  }
   const card = (await page.locator('#choice-rider').boundingBox())!
   const from = (await platform.boundingBox())!, to = (await stairs.boundingBox())!
   const x = card.x + card.width / 2, y = card.y + card.height / 2
   await page.mouse.move(x, y); await page.mouse.down()
-  await page.mouse.move(x + to.x - from.x, y + to.y - from.y, {steps:12}); await page.mouse.up()
+  await page.mouse.move(x + to.x - from.x, y + to.y - from.y, {steps:12})
+  if (layout === 'map-studio') {
+    const native = page.locator('[data-native-workshop-map]')
+    await expect(native.locator('[data-node-id]')).toHaveCount(5)
+    await expect(native.locator('path[rel^="association-"][marker-end]').first()).toBeAttached()
+    const nativeToken = native.locator('[data-node-id="card-rider"] [data-node-background-path]')
+    await expect.poll(async () => {
+      const ink = await nativeToken.boundingBox()
+      return !!ink && Math.abs(ink.x - (card.x + to.x - from.x)) < 3
+    }).toBe(true)
+    await expect(page.getByLabel('Committed decisions')).toHaveText('0')
+  }
+  await page.mouse.up()
   await expect(page.getByLabel('Committed decisions')).toHaveText('1')
   await expect(selected).toHaveText('station:platform')
   await page.getByLabel('View only').check()
@@ -282,3 +300,25 @@ for (const state of ['empty lane', 'populated lane', 'map station']) {
     expect(errors).toEqual([])
   })
 }
+
+test('selectable cards distinguish a tap, keyboard selection and an actual drag', async ({ browser }) => {
+  const page = await browser.newPage({hasTouch:true})
+  try {
+    await page.goto('http://localhost:5173/tests/fixtures/workshop.html?select')
+    const target = page.getByRole('button',{name:'Select Invoice download'})
+    const lane = page.getByRole('button',{name:'Edit Friday release'})
+    const selected = page.getByLabel('Selected object')
+    await target.tap()
+    await expect(selected).toHaveText('card:billing')
+    for (const key of ['Enter','Space']) {
+      await lane.click()
+      await expect(selected).toHaveText('lane:friday')
+      await target.press(key)
+      await expect(selected).toHaveText('card:billing')
+    }
+    await lane.click()
+    await page.getByLabel('View only').check()
+    await expect(target).toHaveCount(0)
+    await expect(lane).toHaveCount(0)
+  } finally { await page.close() }
+})

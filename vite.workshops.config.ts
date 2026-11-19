@@ -10,6 +10,13 @@ const dragologyTypes = join(dirname(dragologyEntry), 'index.d.ts')
 const immerTypes = join(dirname(createRequire(dragologyEntry).resolve('immer/package.json')), 'dist/immer.d.ts')
 export default defineConfig({
   plugins: [{
+    // Both the host and workshop view use the same package instance of the SVG engine.
+    name: 'workshop-native-engine',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (source === '../index' && importer?.endsWith('/NativeMapSurface.tsx')) return {id:'slateboxjs',external:true}
+    },
+  }, {
     name: 'workshop-dependency-notices',
     generateBundle(_options, bundle) {
       // Ship the release's complete JSX augmentation and public types. Its only
