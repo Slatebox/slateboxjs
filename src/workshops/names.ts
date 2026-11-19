@@ -4,8 +4,12 @@
 // selection. One finder for the edit reducer, the sentence readers and every agent surface,
 // so a name picks the same thing wherever it is written.
 
-/** A name in curly quotes, as every reply and refusal writes it. */
-export const said = (text: string) => '“' + text + '”'
+/**
+ * A name in curly quotes, as every reply and refusal writes it. Curly quotes inside the name
+ * become straight ones, so a name cannot close its quotes early and pass its own words off as
+ * the sentence's (a label is anyone's text, and these sentences reach agents too).
+ */
+export const said = (text: string) => '“' + text.replace(/[“”]/g, '"') + '”'
 /** “A”, “A and B”, “A, B and C”. */
 export const listed = (names: string[]) => names.length < 2 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]
 const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -118,11 +122,11 @@ export function workshopFinder<T extends Named>(items: T[], noun: string, what: 
       const labels = [...new Set(found.several.map(item => item.label))]
       throw new WorkshopReferenceError(labels.length === 1
         ? found.several.length + ' ' + what + 's are called ' + said(labels[0]) + '. Select the one you mean on the canvas and say “this ' + what + '”.'
-        : 'More than one ' + what + ' matches ' + said(name) + ': ' + listed(labels.slice(0, 6)) + '. Use the whole name.', 'ambiguous', found.several.map(item => item.id))
+        : 'More than one ' + what + ' matches ' + said(name) + ': ' + listed(labels.slice(0, 6).map(said)) + '. Use the whole name.', 'ambiguous', found.several.map(item => item.id))
     }
     const labels = items.map(item => item.label)
     throw new WorkshopReferenceError('There is no ' + what + ' called ' + said(name) + ' here.' + (labels.length && labels.length <= 6
-      ? ' The ' + what + 's are ' + listed(labels) + '.' : labels.length ? '' : ' There are no ' + what + 's yet.'), 'unknown', items.map(item => item.id))
+      ? ' The ' + what + 's are ' + listed(labels.map(said)) + '.' : labels.length ? '' : ' There are no ' + what + 's yet.'), 'unknown', items.map(item => item.id))
   }
   return { find, attempt, rank }
 }

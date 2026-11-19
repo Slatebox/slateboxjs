@@ -116,8 +116,10 @@ export interface WorkshopEditOptions {
 
 const sentences = {
   releaseLanes: 'A release plan keeps the releases it came with. You can rename them and set how many points each holds.',
+  releaseOrder: 'A release plan keeps its releases in the order they came in: that order says which release is earlier. You can rename them and set how many points each holds.',
   releaseCards: 'A release plan keeps the features it came with. You can rename them, move them and set their points.',
   keepsLanes: 'This workshop keeps the lanes it came with. You can rename them, and rename and move its cards.',
+  keepsOrder: 'This workshop keeps its lanes in the order they came in. You can rename them, and rename and move its cards.',
   keepsCards: 'This workshop keeps the cards it came with. You can rename them and move them between its lanes.',
   notPoints: 'This workshop counts cards, not points. You can set how many cards a lane holds.',
   mapPoints: 'A map counts tokens, not points. You can set how many tokens a step holds.',
@@ -332,7 +334,7 @@ function settle(board: Workshop, family: WorkshopBoardKind, laneId: string | nul
 }
 
 function shapeProblem(edit: Record<string, unknown>, entry: WorkshopEditKind): string | null {
-  for (const key of Object.keys(edit)) if (key !== 'kind' && !(key in entry.fields)) return entry.kind + ' does not take ' + key + '.'
+  for (const key of Object.keys(edit)) if (key !== 'kind' && !Object.prototype.hasOwnProperty.call(entry.fields, key)) return entry.kind + ' does not take ' + key + '.'
   const isRef = (value: unknown) => (typeof value === 'string' && value.trim().length > 0) ||
     (Boolean(value) && typeof value === 'object' && !Array.isArray(value) && typeof (value as { id?: unknown }).id === 'string' && Object.keys(value as object).length === 1)
   for (const [name, field] of Object.entries(entry.fields)) {
@@ -759,11 +761,15 @@ export function checkWorkshopReplacement(before: Workshop, after: Workshop): str
   }
   const now = workshopBoardKind(next)
   const sameLanes = (a: Workshop, b: Workshop) => a.lanes.length === b.lanes.length && a.lanes.every(item => b.lanes.some(other => other.id === item.id))
+  // No edit reorders the lanes of a board that keeps its lanes; on a release plan the order says which release is earlier.
+  const sameOrder = (a: Workshop, b: Workshop) => a.lanes.every((item, index) => b.lanes[index]?.id === item.id)
   if ((was === 'customer-interviews' || was === 'experiment-budget') && now !== was) {
     return sameLanes(original, next) ? sentences.keepsCards : sentences.keepsLanes
   }
+  if ((was === 'customer-interviews' || was === 'experiment-budget') && !sameOrder(original, next)) return sentences.keepsOrder
   if (was === 'release-plan' && now === 'release-plan') {
     if (!sameLanes(original, next)) return sentences.releaseLanes
+    if (!sameOrder(original, next)) return sentences.releaseOrder
     if (next.cards.some(item => !original.cards.some(other => other.id === item.id))) return sentences.releaseCards
   }
   if (was !== now) return 'This slate holds a ' + boardNames[was] + ', and it stays one. Start a new slate for another kind of workshop.'
