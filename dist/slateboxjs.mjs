@@ -7780,10 +7780,10 @@ class co {
     this.removeAll(), this.activeFilters.clear(), this.hidden = !1, this.node = null;
   }
 }
-function Bh(n) {
+function Hh(n) {
   ht.set(n.name, n);
 }
-function Hh() {
+function Fh() {
   return Array.from(ht.keys());
 }
 function ho() {
@@ -8107,13 +8107,77 @@ const nh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   v2AssociationToV1: bi,
   v2NodeToV1: W,
   v2SlateToV1: po
-}, Symbol.toStringTag, { value: "Module" })), ih = 4, Be = ["top", "right", "bottom", "left"], sh = {
+}, Symbol.toStringTag, { value: "Module" })), Gi = Object.freeze({
+  canMove: !0,
+  canResize: !0,
+  canRotate: !0,
+  canDelete: !0,
+  canDuplicate: !0,
+  canConnect: !0,
+  canEditText: !0,
+  canSelect: !0,
+  persist: !0
+}), Bi = Object.freeze({
+  canMove: !0,
+  canResize: !1,
+  canRotate: !1,
+  canDelete: !1,
+  canDuplicate: !1,
+  canConnect: !1,
+  canEditText: !1,
+  canSelect: !0,
+  persist: !1
+});
+function ih() {
+  try {
+    return typeof matchMedia == "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return !1;
+  }
+}
+function sh(n, t) {
+  for (const e of n) {
+    let i;
+    try {
+      i = e.governs(t);
+    } catch (s) {
+      console.warn("DRAG_POLICY: governs() threw; treating the note as governed", s), i = !0;
+    }
+    if (i)
+      return {
+        policy: e,
+        capabilities: i === !0 ? Bi : { ...Bi, ...i }
+      };
+  }
+  return null;
+}
+function oh(n, t, e = 0) {
+  let i = null;
+  for (const s of t) {
+    const o = s?.options;
+    if (!o) continue;
+    const r = o.width || 0, a = o.height || 0, l = (o.x || 0) + r / 2, c = (o.y || 0) + a / 2;
+    let h = n.x - l, d = n.y - c;
+    const u = o.rotate?.rotationAngle || 0;
+    if (u) {
+      const f = -u * Math.PI / 180, p = h * Math.cos(f) - d * Math.sin(f), g = h * Math.sin(f) + d * Math.cos(f);
+      h = p, d = g;
+    }
+    Math.abs(h) > r / 2 + e || Math.abs(d) > a / 2 + e || (!i || rh(s, i)) && (i = s);
+  }
+  return i;
+}
+function rh(n, t) {
+  const e = n.svgGroup?.node, i = t.svgGroup?.node;
+  return !e || !i || typeof i.compareDocumentPosition != "function" ? !0 : (i.compareDocumentPosition(e) & 4) !== 0;
+}
+const ah = 4, Be = ["top", "right", "bottom", "left"], lh = {
   top: "Add connected note above",
   right: "Add connected note to the right",
   bottom: "Add connected note below",
   left: "Add connected note to the left"
 };
-function oh(n, t, e = 8) {
+function ch(n, t, e = 8) {
   const { x: i, y: s, width: o, height: r } = n, a = [i, i + o / 2, i + o], l = [s, s + r / 2, s + r];
   let c = i, h = s, d = e, u = e;
   for (const f of t) {
@@ -8153,7 +8217,7 @@ class cn {
    * ```
    */
   constructor(t, e) {
-    this.connectionHandles = {}, this.connectionHandlesVisible = !1, this._connHandleHideTimer = null, this._connHandlesPinned = !1, this.isDragging = !1, this.wasSelectedBeforeDrag = !1, this.preDragTransform = null, this.preDragPosition = null, this._dragStartPointer = null, this._groupDragSiblings = [], this._governed = null, this._governanceApplied = !1, this._lastClickTime = 0, this._initFailed = !1, this._destroyed = !1, this.announcedByCreator = !1, this._svgViewboxTimeoutId = null, this._dragEndTimeoutId = null, this._previewViewboxTimeoutId = null, this.id = t.id || this.generateId(), this.slate = e, console.log("NODE_DEBUG: Constructor called", { id: this.id, options: t }), this.options = {
+    this.connectionHandles = {}, this.connectionHandlesVisible = !1, this._connHandleHideTimer = null, this._connHandlesPinned = !1, this.isDragging = !1, this.wasSelectedBeforeDrag = !1, this.preDragTransform = null, this.preDragPosition = null, this._dragStartPointer = null, this._groupDragSiblings = [], this._governed = null, this._governanceApplied = !1, this._glide = null, this._lastClickTime = 0, this._initFailed = !1, this._destroyed = !1, this.announcedByCreator = !1, this._svgViewboxTimeoutId = null, this._dragEndTimeoutId = null, this._previewViewboxTimeoutId = null, this.id = t.id || this.generateId(), this.slate = e, console.log("NODE_DEBUG: Constructor called", { id: this.id, options: t }), this.options = {
       x: 50,
       y: 50,
       width: 100,
@@ -8441,7 +8505,7 @@ class cn {
       width: o.options.width || 0,
       height: o.options.height || 0
     }));
-    return oh(i, s);
+    return ch(i, s);
   }
   /**
    * Word-wrap `text` to the node's inner width, returning it with newlines
@@ -8594,7 +8658,11 @@ class cn {
       const e = this.slate.governanceOf?.(this);
       if (!e) return;
       const i = this.slate;
-      (!e.capabilities.canMove || i.options?.enabled === !1 || i.isReadOnly?.() || i.isCommentOnly?.()) && t.preventDefault?.();
+      if (!e.capabilities.canMove || i.options?.enabled === !1 || i.isReadOnly?.() || i.isCommentOnly?.()) {
+        t.preventDefault?.();
+        const s = t.detail?.event;
+        s?.type === "mousedown" && !this.editor?.isInlineEditing?.() && s.preventDefault?.();
+      }
     }), this.svgGroup.on("dragstart.node", (t) => {
       console.log("DRAG_DEBUG: Drag started on", this.id), this.toFront(!1);
       const e = this.slate.getSelectedNodes().includes(this), i = t.detail?.event || t, s = i?.ctrlKey || i?.metaKey || i?.shiftKey;
@@ -8701,9 +8769,9 @@ class cn {
    * After any drag (ordinary or governed) ends: tell a drag from a click, keep the
    * note selected, and put its handles back at the new position.
    */
-  settleAfterDrag() {
+  settleAfterDrag(t = !1) {
     this._dragEndTimeoutId = setTimeout(() => {
-      if (this._destroyed) return;
+      if (this._destroyed || t && !this.isOnSlate()) return;
       this.isDragging = !1, this.slate.getSelectedNodes().includes(this) ? (console.log(
         "SELECTION_DEBUG: Drag ended on selected node",
         this.id,
@@ -8716,6 +8784,10 @@ class cn {
     }, 10);
   }
   // ─── Governed drags (host drag policy) ─────────────────────────────
+  /** Whether this note is still one of the slate's notes (remove() does not mark it destroyed). */
+  isOnSlate() {
+    return this.slate?.nodes?.one?.(this.id) === this;
+  }
   /**
    * Show what a host policy allows on this note: a grab cursor on a note that may
    * be dragged, a plain one on a note that may not, and no pointer input, focus or
@@ -8745,6 +8817,7 @@ class cn {
     window.addEventListener("keydown", a, !0), window.addEventListener("blur", h), o === "touch" ? window.addEventListener("touchcancel", c, !0) : window.addEventListener("pointercancel", l, !0), this._governed = {
       policy: t,
       origin: { x: this.options.x ?? 0, y: this.options.y ?? 0 },
+      grabbed: { x: this.options.x ?? 0, y: this.options.y ?? 0 },
       startClient: s,
       startWorld: this.slate.clientToWorld(s),
       pointerType: o,
@@ -8763,21 +8836,23 @@ class cn {
     if (!i || t.refused) return;
     const s = { clientX: i.x, clientY: i.y, pointerType: t.pointerType };
     if (!t.started) {
-      if (Math.hypot(i.x - t.startClient.x, i.y - t.startClient.y) < ih) return;
+      if (Math.hypot(i.x - t.startClient.x, i.y - t.startClient.y) < ah) return;
       let a = !0;
       try {
         a = t.policy.onStart?.(this, t.startWorld, s) !== !1;
-      } catch (l) {
-        console.warn("DRAG_POLICY: onStart threw; refusing the drag", l), a = !1;
+      } catch (c) {
+        console.warn("DRAG_POLICY: onStart threw; refusing the drag", c), a = !1;
       }
       if (!a) {
         t.refused = !0;
         return;
       }
-      t.started = !0, this.svgGroup.node.style && (this.svgGroup.node.style.cursor = "grabbing");
+      t.started = !0;
+      const l = this._glide;
+      t.grabbed = { x: this.options.x ?? 0, y: this.options.y ?? 0 }, l ? (l.cancelled = !0, this._glide = null, t.origin = { x: l.x, y: l.y }) : t.origin = { ...t.grabbed }, this.svgGroup.node.style && (this.svgGroup.node.style.cursor = "grabbing");
     }
     const o = this.slate.clientToWorld(i);
-    this.options.x = t.origin.x + (o.x - t.startWorld.x), this.options.y = t.origin.y + (o.y - t.startWorld.y), this.applyPositionAndRotation();
+    this.options.x = t.grabbed.x + (o.x - t.startWorld.x), this.options.y = t.grabbed.y + (o.y - t.startWorld.y), this.applyPositionAndRotation();
     try {
       this.slate.markersContainer?.front?.();
     } catch {
@@ -8800,25 +8875,25 @@ class cn {
     this._governed = null, this.slate._governedDragNode === this && (this.slate._governedDragNode = null), t.stopListening(), t.frame && typeof cancelAnimationFrame < "u" && cancelAnimationFrame(t.frame), t.frame = 0, this.preDragTransform = null, this.preDragPosition = null, this._dragStartPointer = null;
     let s = !1;
     const o = () => {
-      s || this._destroyed || (s = !0, this.svgGroup?.node?.style && this._governanceApplied && (this.svgGroup.node.style.cursor = "grab"), this.settleAfterDrag());
-    };
+      s || this._destroyed || (s = !0, this.isOnSlate() && (this.svgGroup?.node?.style && this._governanceApplied && (this.svgGroup.node.style.cursor = "grab"), this.settleAfterDrag(!0)));
+    }, r = ih();
     if (t.started) {
-      let r = { accept: !1 };
+      let a = { accept: !1 };
       if (e)
         try {
-          r = t.policy.onEnd(this, e.point, e.gesture) ?? { accept: !1 };
-        } catch (a) {
-          console.warn("DRAG_POLICY: onEnd threw; refusing the drop", a);
+          a = t.policy.onEnd(this, e.point, e.gesture) ?? { accept: !1 };
+        } catch (l) {
+          console.warn("DRAG_POLICY: onEnd threw; refusing the drop", l);
         }
       else
         try {
           t.policy.onCancel?.(this, i);
-        } catch (a) {
-          console.warn("DRAG_POLICY: onCancel threw", a);
+        } catch (l) {
+          console.warn("DRAG_POLICY: onCancel threw", l);
         }
-      !this._destroyed && this.slate.nodes?.one?.(this.id) === this && (r.accept ? r.settle ? this.position(r.settle.x, r.settle.y, o, void 0, 160) : o() : this.position(t.origin.x, t.origin.y, o, void 0, 180), setTimeout(o, 400));
+      !this._destroyed && this.slate.nodes?.one?.(this.id) === this && (a.accept ? a.settle ? this.position(a.settle.x, a.settle.y, o, void 0, r ? 0 : 160) : o() : this.position(t.origin.x, t.origin.y, o, void 0, r ? 0 : 180), setTimeout(o, 400));
     } else
-      this.options.x = t.origin.x, this.options.y = t.origin.y, this.applyPositionAndRotation(), o();
+      o();
   }
   /**
    * Abandon the governed drag in progress on this note, as a refusal: the note
@@ -8857,12 +8932,14 @@ class cn {
     );
     const r = this.options.x ?? t, a = this.options.y ?? e;
     if (this.options.x = t, this.options.y = e, !!o && o > 0 && typeof requestAnimationFrame < "u" && typeof performance < "u" && (r !== t || a !== e)) {
-      const c = performance.now(), h = () => {
-        if (this._destroyed || !this.svgGroup) return;
-        const d = Math.min(1, (performance.now() - c) / o), u = d < 0.5 ? 2 * d * d : 1 - Math.pow(-2 * d + 2, 2) / 2;
-        this.options.x = r + (t - r) * u, this.options.y = a + (e - a) * u, this.applyPositionAndRotation(), d < 1 ? requestAnimationFrame(h) : (this.options.x = t, this.options.y = e, this.applyPositionAndRotation(), i && i());
+      const c = { x: t, y: e, cancelled: !1 };
+      this._glide = c;
+      const h = performance.now(), d = () => {
+        if (this._destroyed || !this.svgGroup || c.cancelled) return;
+        const u = Math.min(1, (performance.now() - h) / o), f = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+        this.options.x = r + (t - r) * f, this.options.y = a + (e - a) * f, this.applyPositionAndRotation(), u < 1 ? requestAnimationFrame(d) : (this.options.x = t, this.options.y = e, this.applyPositionAndRotation(), this._glide === c && (this._glide = null), i && i());
       };
-      requestAnimationFrame(h);
+      requestAnimationFrame(d);
     } else
       this.applyPositionAndRotation(), i && i();
   }
@@ -9755,7 +9832,7 @@ class cn {
     const e = 8, i = "#007cff", s = "#ffffff", o = 2;
     Be.forEach((r) => {
       if (!this.connectionHandles.container) return;
-      const a = this.connectionHandles.container.circle(e * 2).fill(i).stroke({ color: s, width: o }).attr({ role: "button", tabindex: -1, "aria-label": sh[r] }).addClass(`connection-handle connection-handle-${r}`);
+      const a = this.connectionHandles.container.circle(e * 2).fill(i).stroke({ color: s, width: o }).attr({ role: "button", tabindex: -1, "aria-label": lh[r] }).addClass(`connection-handle connection-handle-${r}`);
       a.node.style.cursor = "pointer", this.connectionHandles[r] = a, a.on(
         "mouseenter",
         () => this.showConnectionPreview(r)
@@ -10087,7 +10164,7 @@ class cn {
     this.connector.isEnabled() || this.connector.enable(), this.connector.connectTo(t);
   }
 }
-class rh {
+class hh {
   constructor(t) {
     this.nodes = /* @__PURE__ */ new Map(), this.slate = t;
   }
@@ -10216,7 +10293,7 @@ function hn(n, t, e) {
   return e && o.forEach((r, a) => {
     r.options._presentationIndex = a;
   }), {
-    options: lh(n.options),
+    options: uh(n.options),
     nodes: o,
     shareId: n.options.shareId || ""
   };
@@ -10225,13 +10302,13 @@ async function dn(n, t, e = !1, i = !1) {
   const s = typeof n == "string" ? JSON.parse(n) : n;
   t.beginRemoteApply?.();
   try {
-    await ah(s, t, e, i);
+    await dh(s, t, e, i);
   } finally {
     t.endRemoteApply?.();
   }
   e || t.notifyNotesReplaced?.();
 }
-async function ah(n, t, e, i) {
+async function dh(n, t, e, i) {
   if (n.options) {
     const o = n.options;
     Object.assign(t.options, o), n.shareId && (t.options.shareId = n.shareId), t.applyContainerStyle?.();
@@ -10375,7 +10452,7 @@ function go(n) {
 function mo(n) {
   return Vt(n);
 }
-function lh(n) {
+function uh(n) {
   const t = {}, e = [
     "id",
     "name",
@@ -10425,7 +10502,7 @@ function lh(n) {
 function yo(n) {
   return hn(n);
 }
-const ch = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const fh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   deserialize: dn,
   deserializeNodeOptions: mo,
@@ -10433,7 +10510,7 @@ const ch = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   serializeNode: go,
   snapshot: yo
 }, Symbol.toStringTag, { value: "Module" }));
-class hh {
+class ph {
   constructor(t) {
     this.slate = t;
   }
@@ -11665,10 +11742,12 @@ class un {
     if (e.length !== 1) return !1;
     const i = e[0], s = this.slate.governanceOf?.(i);
     if (!s?.policy?.onKeyDown || i.editor?.isInlineEditing?.()) return !1;
+    const o = this.slate;
+    if (o.options?.enabled === !1 || o.isReadOnly?.() || o.isCommentOnly?.()) return !1;
     try {
       return s.policy.onKeyDown(i, t) === !0;
-    } catch (o) {
-      return console.warn("DRAG_POLICY: onKeyDown threw", o), !1;
+    } catch (r) {
+      return console.warn("DRAG_POLICY: onKeyDown threw", r), !1;
     }
   }
   undo(t) {
@@ -12179,7 +12258,7 @@ async function Eo(n, t = {}, e) {
     return e?.(r), r;
   }
 }
-const dh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const gh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   exportPNG: Eo,
   exportSVG: vi
@@ -12275,7 +12354,7 @@ class So {
   invoke(t) {
     const e = Array.isArray(t) ? t : [t];
     for (const i of e)
-      this.exe(i), this.slate.recordUndoFor?.(i.type);
+      this.slate.screenGovernedPackage?.(i.type, i.data) !== null && (this.exe(i), this.slate.recordUndoFor?.(i.type));
   }
   /**
    * Send collab packages to remote peers.
@@ -12286,7 +12365,10 @@ class So {
    * depends on it even when no collab server is connected.
    */
   send(t) {
-    const e = Array.isArray(t) ? t : [t];
+    const e = (Array.isArray(t) ? t : [t]).flatMap((i) => {
+      const s = this.slate.screenGovernedPackage?.(i.type, i.data);
+      return s === null ? [] : s === void 0 || s === i.data ? [i] : [{ ...i, data: s }];
+    });
     if (this.collabMap)
       for (const i of e) {
         i.type === "onSlateReplaced" && this.pruneBeforeSlateReplacement();
@@ -12606,7 +12688,7 @@ function Mo(n) {
     y: t.options.y || 0
   }));
 }
-const uh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const mh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   applyLayout: To,
   packageLayout: Mo,
@@ -12843,63 +12925,6 @@ class No {
     this.stop(), this.steps = [], this.currentStep = -1, this.slate = null;
   }
 }
-const Gi = Object.freeze({
-  canMove: !0,
-  canResize: !0,
-  canRotate: !0,
-  canDelete: !0,
-  canDuplicate: !0,
-  canConnect: !0,
-  canEditText: !0,
-  canSelect: !0,
-  persist: !0
-}), Bi = Object.freeze({
-  canMove: !0,
-  canResize: !1,
-  canRotate: !1,
-  canDelete: !1,
-  canDuplicate: !1,
-  canConnect: !1,
-  canEditText: !1,
-  canSelect: !0,
-  persist: !1
-});
-function fh(n, t) {
-  for (const e of n) {
-    let i;
-    try {
-      i = e.governs(t);
-    } catch (s) {
-      console.warn("DRAG_POLICY: governs() threw; treating the note as governed", s), i = !0;
-    }
-    if (i)
-      return {
-        policy: e,
-        capabilities: i === !0 ? Bi : { ...Bi, ...i }
-      };
-  }
-  return null;
-}
-function ph(n, t, e = 0) {
-  let i = null;
-  for (const s of t) {
-    const o = s?.options;
-    if (!o) continue;
-    const r = o.width || 0, a = o.height || 0, l = (o.x || 0) + r / 2, c = (o.y || 0) + a / 2;
-    let h = n.x - l, d = n.y - c;
-    const u = o.rotate?.rotationAngle || 0;
-    if (u) {
-      const f = -u * Math.PI / 180, p = h * Math.cos(f) - d * Math.sin(f), g = h * Math.sin(f) + d * Math.cos(f);
-      h = p, d = g;
-    }
-    Math.abs(h) > r / 2 + e || Math.abs(d) > a / 2 + e || (!i || gh(s, i)) && (i = s);
-  }
-  return i;
-}
-function gh(n, t) {
-  const e = n.svgGroup?.node, i = t.svgGroup?.node;
-  return !e || !i || typeof i.compareDocumentPosition != "function" ? !0 : (i.compareDocumentPosition(e) & 4) !== 0;
-}
 const Ve = class Ve {
   /**
    * Creates a new Slate — the main orchestrator for a diagramming canvas.
@@ -13001,7 +13026,7 @@ const Ve = class Ve {
     const i = this.options.viewPort.originalWidth || Math.round(e.width) || 800, s = this.options.viewPort.originalHeight || Math.round(e.height) || 600;
     this.options.viewPort.originalWidth = i, this.options.viewPort.originalHeight = s;
     const o = this.options.viewPort.left ?? 0, r = this.options.viewPort.top ?? 0;
-    this.canvas.viewbox(o, r, i, s), this._setupResizeObserver(), this.nodes = new rh(this), this.invoker = new hh(this), this.applyContainerStyle(), this.setupSelectionHandling(), this.options.viewPort?.showCoordinates && this.setupCoordinateCallbacks(), this.panZoom = new bo(this, this.options.panZoom), this.birdsEye = new vo(this, this.options.birdsEye), this.options.birdsEye?.enabled && (this._birdsEyeTimeoutId = setTimeout(() => {
+    this.canvas.viewbox(o, r, i, s), this._setupResizeObserver(), this.nodes = new hh(this), this.invoker = new ph(this), this.applyContainerStyle(), this.setupSelectionHandling(), this.options.viewPort?.showCoordinates && this.setupCoordinateCallbacks(), this.panZoom = new bo(this, this.options.panZoom), this.birdsEye = new vo(this, this.options.birdsEye), this.options.birdsEye?.enabled && (this._birdsEyeTimeoutId = setTimeout(() => {
       this._destroyed || this.birdsEye.enable();
     }, 200)), this.undoRedo = new wo(this, {
       enabled: this.options.showUndoRedo !== !1
@@ -13992,7 +14017,7 @@ const Ve = class Ve {
   }
   /** The policy governing `node` and the note's capabilities, or null for an ordinary note. */
   governanceOf(t) {
-    return !t || this._dragPolicies.length === 0 ? null : fh(this._dragPolicies, t);
+    return !t || this._dragPolicies.length === 0 ? null : sh(this._dragPolicies, t);
   }
   /**
    * What may be done to `node` right now. Ordinary notes can do everything; so can
@@ -14037,12 +14062,28 @@ const Ve = class Ve {
   }
   /** Tell each policy that loadJSON / undo / redo replaced the slate's notes. */
   notifyNotesReplaced() {
-    for (const t of this._dragPolicies.slice())
+    if (this._dragPolicies.length === 0) return;
+    const t = this.selectedNodes.filter(
+      (e) => this.nodes.one(e.id) !== e && !!this.governanceOf(e)
+    );
+    for (const e of this._dragPolicies.slice())
       try {
-        t.onNotesReplaced?.();
-      } catch (e) {
-        console.warn("DRAG_POLICY: onNotesReplaced threw", e);
+        e.onNotesReplaced?.();
+      } catch (i) {
+        console.warn("DRAG_POLICY: onNotesReplaced threw", i);
       }
+    if (t.length && this.selectedNodes.some((e) => t.includes(e))) {
+      this.selectedNodes = this.selectedNodes.filter((e) => !t.includes(e));
+      for (const e of t)
+        try {
+          e.onDeselected();
+        } catch {
+        }
+      try {
+        this.updateSelectionResizeRotate();
+      } catch {
+      }
+    }
   }
   /**
    * Remove governed notes from a change package, or return null when nothing is
@@ -14101,7 +14142,7 @@ const Ve = class Ve {
    */
   hitTestNodes(t, e, i = {}) {
     const s = (e ?? this.nodes.allNodes).filter((o) => o && o !== i.exclude);
-    return ph(t, s, i.padding ?? 0);
+    return oh(t, s, i.padding ?? 0);
   }
   // ─── Serialization API ──────────────────────────────────────────────
   /**
@@ -14204,7 +14245,7 @@ Ve.NON_UNDOABLE = /* @__PURE__ */ new Set([
   "onSlateReplaced"
 ]);
 let Ae = Ve;
-function mh(n, t) {
+function yh(n, t) {
   return n.addNode({
     text: t.text,
     x: t.x || 100,
@@ -14230,20 +14271,20 @@ function mh(n, t) {
     commentTimestamp: t.timestamp || Date.now()
   });
 }
-function yh(n, t) {
+function bh(n, t) {
   const e = n.nodes.one(t);
   return !e || !e.options.isComment ? !1 : n.removeNode(t);
 }
-function bh(n) {
+function vh(n) {
   return n.nodes.allNodes.filter(
     (t) => t.options.isComment === !0
   );
 }
-const vh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const wh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  createComment: mh,
-  getComments: bh,
-  removeComment: yh
+  createComment: yh,
+  getComments: vh,
+  removeComment: bh
 }, Symbol.toStringTag, { value: "Module" })), Un = [
   "rectangle",
   "roundedrectangle",
@@ -14259,7 +14300,7 @@ const vh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   "rarrow",
   "larrow",
   "diamond"
-], wh = [
+], xh = [
   "add_nodes",
   "update_nodes",
   "delete_nodes",
@@ -14268,7 +14309,7 @@ const vh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   "update_connections",
   "arrange_nodes",
   "update_slate"
-], xh = /* @__PURE__ */ new Set([
+], _h = /* @__PURE__ */ new Set([
   "text",
   "shape",
   "x",
@@ -14289,7 +14330,7 @@ const vh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   "textYAlign",
   "animation",
   "locked"
-]), _h = /* @__PURE__ */ new Set(["name", "description", "background"]), Hi = /* @__PURE__ */ new Set([
+]), Ch = /* @__PURE__ */ new Set(["name", "description", "background"]), Hi = /* @__PURE__ */ new Set([
   "label",
   "lineColor",
   "lineWidth",
@@ -14299,7 +14340,7 @@ const vh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   "lineCurviness",
   "showParentArrow",
   "showChildArrow"
-]), Ch = /* @__PURE__ */ new Set([
+]), Eh = /* @__PURE__ */ new Set([
   "backgroundColor",
   "foregroundColor",
   "borderColor",
@@ -14309,7 +14350,7 @@ const vh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   "opacity",
   "fontFamily",
   "fontSize"
-]), Eh = /\b(theme|background|canvas|palette|gradient|recolor|colour|color scheme)\b/i, Sh = /\b(clear|replace|reset|start over|delete all|remove all)\b/i;
+]), Sh = /\b(theme|background|canvas|palette|gradient|recolor|colour|color scheme)\b/i, Ah = /\b(clear|replace|reset|start over|delete all|remove all)\b/i;
 function Jt(n) {
   return !!n && typeof n == "object" && !Array.isArray(n);
 }
@@ -14392,13 +14433,13 @@ function Ro(n, {
   const o = new Set(e.filter(Boolean)), r = new Set(i.filter(Boolean));
   return (n.operations || []).forEach((a, l) => {
     const c = `Operation ${l + 1}`;
-    if (!Jt(a) || !wh.includes(a.kind)) {
+    if (!Jt(a) || !xh.includes(a.kind)) {
       s.push(`${c} has an unsupported kind.`);
       return;
     }
     if (a.kind === "add_nodes") {
       (!Number.isInteger(a.count) || a.count < 1 || a.count > 20) && s.push(`${c} count must be an integer from 1 to 20.`), Un.includes(a.shape) || s.push(`${c} must use a supported shape.`), a.placement?.relativeTo && o.size && !o.has(a.placement.relativeTo) && s.push(`${c} references a node that is not in the slate.`);
-      const h = me(a.style, Ch);
+      const h = me(a.style, Eh);
       h.length && s.push(
         `${c} contains unsupported node styles: ${h.join(", ")}.`
       ), Fi(a.style, c, s);
@@ -14406,7 +14447,7 @@ function Ro(n, {
     }
     if (a.kind === "update_nodes") {
       Ft(a.target) || s.push(`${c} requires a node target.`);
-      const h = me(a.changes, xh);
+      const h = me(a.changes, _h);
       !Jt(a.changes) || !Object.keys(a.changes).length ? s.push(`${c} requires at least one node change.`) : h.length && s.push(
         `${c} contains unsupported changes: ${h.join(", ")}.`
       ), a.changes?.shape && !Un.includes(
@@ -14415,7 +14456,7 @@ function Ro(n, {
       return;
     }
     if (a.kind === "delete_nodes") {
-      Ft(a.target) || s.push(`${c} requires a node target.`), !Sh.test(t) && a.target?.text === "*" && s.push(
+      Ft(a.target) || s.push(`${c} requires a node target.`), !Ah.test(t) && a.target?.text === "*" && s.push(
         `${c} cannot delete every node without an explicit request.`
       ), Ut(a.target, o, c, s);
       return;
@@ -14450,10 +14491,10 @@ function Ro(n, {
       return;
     }
     if (a.kind === "update_slate") {
-      const h = me(a.changes, _h);
+      const h = me(a.changes, Ch);
       !Jt(a.changes) || !Object.keys(a.changes).length ? s.push(`${c} requires at least one slate change.`) : h.length && s.push(
         `${c} contains unsupported slate changes: ${h.join(", ")}.`
-      ), a.changes?.background && !Eh.test(t) && s.push(
+      ), a.changes?.background && !Sh.test(t) && s.push(
         `${c} cannot change the canvas background unless the user explicitly asks for it.`
       );
     }
@@ -14480,7 +14521,7 @@ function wi(n) {
     });
   }), e;
 }
-function Ah(n, t) {
+function Th(n, t) {
   const e = new Set(
     (t.connectionIds || []).filter(Boolean)
   ), i = wi(n);
@@ -14520,15 +14561,15 @@ function Po(n, t) {
     (e, i) => R(i, "x") + R(i, "width") - (R(e, "x") + R(e, "width"))
   )[0];
 }
-function Th(n, t, e) {
+function Mh(n, t, e) {
   return n.x < t.x + t.width + e && n.x + n.width + e > t.x && n.y < t.y + t.height + e && n.y + n.height + e > t.y;
 }
-function Mh(n, t, e, i, s, o) {
+function kh(n, t, e, i, s, o) {
   let r = n;
   for (let a = 0; a <= t.length; a += 1) {
     const l = t.filter(
       (d) => r.some(
-        (u) => Th({ ...u, width: e, height: i }, d, o)
+        (u) => Mh({ ...u, width: e, height: i }, d, o)
       )
     );
     if (!l.length) return r;
@@ -14558,7 +14599,7 @@ function Mh(n, t, e, i, s, o) {
   }
   return r;
 }
-function kh(n, t, e, i) {
+function Nh(n, t, e, i) {
   const s = t.count || 1, o = t.placement || {}, r = Po(n, o.relativeTo), a = Number.isFinite(o.gap) ? o.gap : 48, l = o.direction || "right", c = o.arrangement || (["left", "right"].includes(l) ? "column" : "row"), h = c === "grid" ? Math.ceil(Math.sqrt(s)) : s, d = Array.from({ length: s }, (f, p) => {
     const g = c === "column" ? p : c === "grid" ? Math.floor(p / h) : 0, y = c === "column" ? 0 : c === "grid" ? p % h : p;
     let b = R(r, "x") + y * (e + a), m = R(r, "y") + g * (i + a);
@@ -14569,7 +14610,7 @@ function kh(n, t, e, i) {
     width: Number(R(f, "width", 120)),
     height: Number(R(f, "height", 80))
   }));
-  return Mh(
+  return kh(
     d,
     u,
     e,
@@ -14584,7 +14625,7 @@ function Yt(n, t) {
   );
   e.length && (n.collab.invoke(e), n.collab.send(e));
 }
-function Nh(n) {
+function Rh(n) {
   const t = he(n).slice(0, 150).map((e) => ({
     id: R(e, "id", e.id),
     text: `${R(e, "text", "")}`.replace(/\s+/g, " ").trim().slice(0, 240),
@@ -14615,7 +14656,7 @@ function Nh(n) {
     }))
   };
 }
-function Rh(n, t, { userMessage: e = "" } = {}) {
+function Ph(n, t, { userMessage: e = "" } = {}) {
   const i = Ro(t, {
     userMessage: e,
     existingNodeIds: he(n).map((o) => R(o, "id", o.id)),
@@ -14635,7 +14676,7 @@ function Rh(n, t, { userMessage: e = "" } = {}) {
   return t.operations.forEach((o) => {
     if (o.kind === "add_nodes") {
       const r = o.shape, a = Number(o.width) || (r === "triangle" ? 150 : 180), l = Number(o.height) || (r === "triangle" ? 130 : 110), c = Po(n, o.placement?.relativeTo), h = o.style?.backgroundColor || R(c, "backgroundColor", "#7aa2c8");
-      kh(n, o, a, l).forEach(({ x: d, y: u }, f) => {
+      Nh(n, o, a, l).forEach(({ x: d, y: u }, f) => {
         const p = o.ids?.[f] || Dt(12);
         if (n.nodes.one(p)) return;
         const g = o.text ? o.count > 1 ? o.text.replace(/\{n\}/g, `${f + 1}`) : o.text : "";
@@ -14774,7 +14815,7 @@ function Rh(n, t, { userMessage: e = "" } = {}) {
       return;
     }
     if (o.kind === "update_connections") {
-      Ah(n, o).forEach(({ source: r, association: a }) => {
+      Th(n, o).forEach(({ source: r, association: a }) => {
         const l = a.parentId || R(r, "id", r.id), c = Object.entries(o.changes || {}).map(
           ([h, d]) => ({
             type: "onLinePropertiesChanged",
@@ -14831,11 +14872,11 @@ function Rh(n, t, { userMessage: e = "" } = {}) {
     }
   }), { message: t.message.trim(), report: s };
 }
-const Fh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const Uh = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   SUPPORTED_SLATE_OPERATION_SHAPES: Un,
-  applySlateOperations: Rh,
-  summarizeSlateForOperations: Nh,
+  applySlateOperations: Ph,
+  summarizeSlateForOperations: Rh,
   validateSlateOperationPlan: Ro
 }, Symbol.toStringTag, { value: "Module" }));
 class jt {
@@ -14878,7 +14919,7 @@ class jt {
         if (Object.prototype.hasOwnProperty.call(o, i))
           return { configurable: !0, enumerable: !0, writable: !0 };
       }
-    }), this.resize = new Ph(this), this.relationships = new Oh(this);
+    }), this.resize = new Oh(this), this.relationships = new Dh(this);
   }
   /**
    * v1: `node.png(withNodes?, cb)` — export this node (or the given group of
@@ -14929,7 +14970,7 @@ class jt {
     return this;
   }
 }
-class Ph {
+class Oh {
   constructor(t) {
     this.owner = t;
   }
@@ -14953,7 +14994,7 @@ class Ph {
     }), this.pending = void 0;
   }
 }
-class Oh {
+class Dh {
   constructor(t) {
     this.owner = t;
   }
@@ -14980,7 +15021,7 @@ class Oh {
     }));
   }
 }
-class Dh {
+class Ih {
   constructor(t) {
     this.wrappers = /* @__PURE__ */ new Map(), this.owner = t;
   }
@@ -15103,12 +15144,12 @@ class Dh {
     return e || (e = new jt({ ...t.options }), e.options.id = t.id, this.wrappers.set(t.id, e)), e.v2 = t, e.slate = this.owner, e;
   }
 }
-class Ih {
+class zh {
   constructor(t = {}, e = {}) {
     this.savingTemplateImage = !1, this.options = {
       ...t,
       id: t.id || Dt()
-    }, this.events = e || {}, this._shareId = this.options.shareId || Dt(), this.nodes = new Dh(this), this.controller = {
+    }, this.events = e || {}, this._shareId = this.options.shareId || Dt(), this.nodes = new Ih(this), this.controller = {
       scaleToFitAndCenter: (i) => {
         this.assertReady(), this.v2.fitToContent(), i?.();
       }
@@ -15334,57 +15375,57 @@ const kt = class kt {
 };
 kt.availablePlugins = {};
 let $n = kt;
-const zh = {
-  slate: Ih,
+const Lh = {
+  slate: zh,
   node: jt,
   base: $n,
   utils: Xc
 };
-function Lh(n, t = {}) {
+function Gh(n, t = {}) {
   return new Ae(n, t);
 }
-typeof window < "u" && (window.SlateboxJS = Lh, window.Slate = Ae, window.Node = cn, window.PanZoom = bo, window.ResizeRotate = Ws, window.BirdsEye = vo, window.Connector = rn, window.Serialization = ch, window.ShapeRegistry = Qc, window.Relationship = mc, window.Relationships = Vs, window.FontLoader = vc, window.Images = Ks, window.Editor = Js, window.UndoRedo = wo, window.MultiSelection = xo, window.Grid = _o, window.Menu = uo, window.Keyboard = un, window.ContextMenu = Co, window.Filters = co, window.Links = to, window.Export = dh, window.Collab = So, window.Theme = _c, window.Layout = uh, window.ZoomSlider = ko, window.Comments = vh, window.Presentation = No, window.Slatebox = Object.assign({}, zh, { compat: nh }));
+typeof window < "u" && (window.SlateboxJS = Gh, window.Slate = Ae, window.Node = cn, window.PanZoom = bo, window.ResizeRotate = Ws, window.BirdsEye = vo, window.Connector = rn, window.Serialization = fh, window.ShapeRegistry = Qc, window.Relationship = mc, window.Relationships = Vs, window.FontLoader = vc, window.Images = Ks, window.Editor = Js, window.UndoRedo = wo, window.MultiSelection = xo, window.Grid = _o, window.Menu = uo, window.Keyboard = un, window.ContextMenu = Co, window.Filters = co, window.Links = to, window.Export = gh, window.Collab = So, window.Theme = _c, window.Layout = mh, window.ZoomSlider = ko, window.Comments = wh, window.Presentation = No, window.Slatebox = Object.assign({}, Lh, { compat: nh }));
 export {
   vo as BirdsEye,
   So as Collab,
-  vh as Comments,
+  wh as Comments,
   rn as Connector,
   Co as ContextMenu,
   Js as Editor,
-  dh as ExportModule,
+  gh as ExportModule,
   Gi as FREE_NODE,
   co as Filters,
   vc as FontLoader,
   Bi as GOVERNED_NODE,
   _o as Grid,
   Ks as Images,
-  hh as Invoker,
+  ph as Invoker,
   un as Keyboard,
-  uh as Layout,
+  mh as Layout,
   to as Links,
   uo as Menu,
   xo as MultiSelection,
   cn as Node,
-  rh as NodesManager,
+  hh as NodesManager,
   bo as PanZoom,
   No as Presentation,
   mc as Relationship,
   Vs as Relationships,
   Ws as ResizeRotate,
-  ch as Serialization,
+  fh as Serialization,
   Qc as ShapeRegistry,
   Ae as Slate,
-  Fh as SlateOperations,
-  zh as Slatebox,
-  Lh as SlateboxJS,
+  Uh as SlateOperations,
+  Lh as Slatebox,
+  Gh as SlateboxJS,
   _c as Theme,
   wo as UndoRedo,
   ko as ZoomSlider,
   nh as compat,
-  Lh as default,
-  Hh as getFilterNames,
-  ph as hitTestNodeBoxes,
-  Bh as registerFilter,
+  Gh as default,
+  Fh as getFilterNames,
+  oh as hitTestNodeBoxes,
+  Hh as registerFilter,
   Xc as utils
 };
 //# sourceMappingURL=slateboxjs.mjs.map

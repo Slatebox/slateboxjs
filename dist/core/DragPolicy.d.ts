@@ -100,6 +100,11 @@ export interface NodeGovernance {
     policy: DragPolicy;
     capabilities: NodeCapabilities;
 }
+/**
+ * Whether the person has asked their system for less motion. Governed notes then
+ * go straight to where they belong instead of gliding there.
+ */
+export declare function prefersReducedMotion(): boolean;
 /** Resolve the first policy that claims `node`, with its capabilities filled in. */
 export declare function resolveGovernance(policies: readonly DragPolicy[], node: Node): NodeGovernance | null;
 /** Topmost of `nodes` whose (rotated) box contains the world point. */

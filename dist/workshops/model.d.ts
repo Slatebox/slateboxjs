@@ -77,8 +77,9 @@ export declare function moveWorkshopCard(board: Workshop, cardId: string, laneId
  * This is the one question each board asks before a drag, a preview or a commit.
  * Release plans answer with planReleaseMove (which may bring dependent features
  * along), a startup experience with planStartupMove (an interview dropped on the
- * occupied prototype swaps with it), and everything else with the lane rules:
- * capacity, allowedLaneIds and, on a map, the stations reachable from here.
+ * occupied prototype swaps with it, or is refused when the one there cannot leave),
+ * and everything else with the lane rules: capacity, allowedLaneIds and, on a map,
+ * the stations reachable from here.
  */
 export declare function workshopCandidate(board: Workshop, cardId: string, laneId: string): Workshop | null;
 /** Every lane the card may be dropped in, including the one it is in. */

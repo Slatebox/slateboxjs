@@ -165,6 +165,8 @@ export declare class Node {
     /** The governed drag in progress on this note (see DragPolicy.ts). */
     private _governed;
     private _governanceApplied;
+    /** The animated position() in flight, if any: where it ends, and a way to stop it. */
+    private _glide;
     /** Resolves when the node is fully created (SVG elements, connector, relationships, etc.) */
     ready: Promise<void>;
     private _lastClickTime;
@@ -275,6 +277,8 @@ export declare class Node {
      * note selected, and put its handles back at the new position.
      */
     private settleAfterDrag;
+    /** Whether this note is still one of the slate's notes (remove() does not mark it destroyed). */
+    private isOnSlate;
     /**
      * Show what a host policy allows on this note: a grab cursor on a note that may
      * be dragged, a plain one on a note that may not, and no pointer input, focus or
