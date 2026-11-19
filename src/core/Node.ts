@@ -337,6 +337,8 @@ export class Node {
   // Pointer position (client coords) at drag start — drag is positioned from the
   // pointer delta in world units so rotation never distorts the movement.
   private _dragStartPointer: { x: number; y: number } | null = null;
+  /** The plug handles were hidden for the drag in progress (on its first move). */
+  private _handlesHiddenForDrag: boolean = false;
   // Other selected nodes to move together when this node is dragged as part of a
   // multi-selection (each with its own pre-drag position).
   private _groupDragSiblings: Array<{ node: Node; x: number; y: number }> = [];
@@ -1360,14 +1362,12 @@ export class Node {
       this.isDragging = true;
       this.wasSelectedBeforeDrag = true; // Always true now since we ensure selection
 
-      // Hide the drag-to-connect plug handles for the duration of the drag. They
-      // live in a global canvas group (not this node's group), so they don't
-      // follow the node while it moves — leaving "ghost" dots behind at the old
-      // position. Force-hide past the selection pin; drag-end re-anchors them.
-      this.hideConnectionHandles();
-      this.slate.getSelectedNodes?.().forEach((n) => {
-        if (n !== this) (n as any).hideConnectionHandles?.();
-      });
+      // The drag-to-connect plug handles and resize/rotate are put away once the
+      // note actually moves (see hideHandlesForDrag in dragmove), not on the
+      // press: a click on a selected note is a drag that never moves, and putting
+      // them away then made them blink and left a click on a plug in the next
+      // moment with nothing to hit.
+      this._handlesHiddenForDrag = false;
 
       // Store the transform at drag start so we can calculate drag delta later
       const transform = this.svgGroup.transform();
@@ -1409,9 +1409,8 @@ export class Node {
       }
       console.log("DRAG_DEBUG: Stored pre-drag transform:", this.preDragTransform, "position:", this.preDragPosition);
 
-      // Temporarily disable resize/rotate during drag for clean dragging
-      // The selection system will handle this through updateSelectionResizeRotate
-      this.slate.disableNodeResizeRotate(this);
+      // Resize/rotate is put away for the drag once the note moves (see
+      // hideHandlesForDrag); the selection system brings it back on drag end.
       // Hide the cog during drag; it re-shows at the new spot on drag end.
       this.hideNodeCog();
     });
@@ -1528,6 +1527,7 @@ export class Node {
     // move and drive the transform ourselves via applyPositionAndRotation.
     this.svgGroup.on("dragmove.node", (event: any) => {
       this.isDragging = true;
+      this.hideHandlesForDrag();
       if (this._governed) {
         // The engine places a governed note from the pointer itself (see
         // beginGovernedDrag); svg.draggable must not also move its children.
@@ -3953,6 +3953,25 @@ export class Node {
     }, 220);
   }
 
+  /**
+   * Put resize/rotate away and hide the drag-to-connect plug handles for the
+   * rest of a drag that has begun to move. The handles live in a global canvas
+   * group (not this node's group), so they don't follow the node while it moves,
+   * leaving "ghost" dots behind at the old position. Force-hide past the
+   * selection pin; drag-end re-anchors them.
+   */
+  private hideHandlesForDrag(): void {
+    if (this._handlesHiddenForDrag) return;
+    this._handlesHiddenForDrag = true;
+    // Temporarily disable resize/rotate during drag for clean dragging. The
+    // selection system restores it through updateSelectionResizeRotate.
+    this.slate.disableNodeResizeRotate(this);
+    this.hideConnectionHandles();
+    this.slate.getSelectedNodes?.().forEach((n) => {
+      if (n !== this) (n as any).hideConnectionHandles?.();
+    });
+  }
+
   private showConnectionHandles() {
     // Removed from the slate (deleted, or replaced by undo/redo): a note still
     // held by a timer or a stale reference must not draw connectors again.
@@ -4343,7 +4362,9 @@ export class Node {
     // and would leave "ghost" dots at the old position. Selection re-runs
     // updateSelectionResizeRotate() during drag (resize/rotate toggling), which
     // lands here — stay pinned but hidden; drag-end re-anchors them at the new spot.
-    if (this.isDragging) return;
+    // A press that has not moved yet (a click on the note) is not such a drag:
+    // the handles are still where the note is.
+    if (this.isDragging && this._handlesHiddenForDrag) return;
     this.showConnectionHandles();
   }
 

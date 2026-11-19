@@ -105,4 +105,64 @@ test.describe("connection handles hide during drag (§connector)", () => {
     expect(result.ghosts).toBe(0);
     expect(result.nearNew).toBeGreaterThanOrEqual(3);
   });
+
+  // A click on a note that is already selected is a drag that never moves. The
+  // dots used to be hidden on the press and shown again a moment after the
+  // release, so they blinked, and a click on one of them right after missed.
+  test("a click on a selected note keeps its plug dots in place, and one can be clicked straight after", async ({
+    page,
+  }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText =
+        "width:820px;height:640px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate(
+        { container: "slateCanvas", allowCollaboration: false },
+        {}
+      ).init();
+      (window as any).__s = s;
+      s.nodes.add(
+        new sb.node({ id: "A", xPos: 200, yPos: 160, width: 120, height: 70, text: "A" })
+      );
+      await new Promise((r) => setTimeout(r, 300));
+    });
+    const box = (await page.locator('#slateCanvas [data-node-id="A"]').boundingBox())!;
+    const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+    await page.mouse.click(cx, cy);
+    await page.waitForTimeout(300);
+
+    const shown = () =>
+      page.evaluate(() => {
+        const a = (window as any).__s.v2.nodes.one("A");
+        const dot = a.connectionHandles?.right?.node as SVGElement | undefined;
+        const r = dot?.getBoundingClientRect();
+        return { visible: a.isConnectionHandlesEnabled(), width: r ? Math.round(r.width) : 0 };
+      });
+    expect((await shown()).visible).toBe(true);
+
+    await page.mouse.down();
+    const pressed = await shown();
+    await page.mouse.up();
+    const released = await shown();
+    expect(pressed.visible).toBe(true);
+    expect(pressed.width).toBeGreaterThan(3);
+    expect(released.visible).toBe(true);
+    expect(released.width).toBeGreaterThan(3);
+
+    // The right dot, clicked at once, adds a connected note.
+    const dot = await page.evaluate(() => {
+      const a = (window as any).__s.v2.nodes.one("A");
+      const r = (a.connectionHandles.right.node as SVGElement).getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    });
+    await page.mouse.click(dot.x, dot.y);
+    await expect
+      .poll(() => page.evaluate(() => (window as any).__s.v2.nodes.allNodes.length))
+      .toBe(2);
+  });
 });

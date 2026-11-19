@@ -123,6 +123,10 @@
   of null (reading 'screenCTM')` in `updateConnectionHandlePositions`.
 - **Typing goes to the note just pressed** when another note, or one of its connector buttons,
   still had keyboard focus (after a connector was dragged onto a note and Escape was pressed).
+- **A selected note's connector dots no longer blink when the note is clicked.** A click is a
+  drag that never moves: the dots and the resize/rotate outline were put away on the press and
+  brought back a moment after the release, and a click on a dot in that moment hit nothing. They
+  are now put away on the drag's first move.
 - The zoom slider's label was up to half a second behind the view (it polled on a timer), so it
   read the old figure after `fitToContent()`. It now follows the canvas's viewBox and is right at
   once.
