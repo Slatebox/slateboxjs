@@ -89,6 +89,7 @@ export class PanZoom {
       })
 
       this.attachWheelHandler()
+      this.attachTouchPan()
 
       this.isEnabled = true
 
@@ -118,6 +119,85 @@ export class PanZoom {
   }
 
   private _wheelHandler: ((e: WheelEvent) => void) | null = null
+  private _touchPan: { start: (e: TouchEvent) => void; move: (e: TouchEvent) => void; end: (e: TouchEvent) => void } | null = null
+
+  /** Whether a finger on empty canvas pans it (so it does not start a selection rectangle). */
+  public pansByTouch(): boolean {
+    return this.isEnabled && this.options.panning !== false
+  }
+
+  /**
+   * One finger on empty canvas pans it, as a finger scrolls any page: on a phone
+   * that is how a person reaches what is below the screen. Two fingers still pinch
+   * and pan (the plugin), a finger on a note still moves the note, and a mouse on
+   * empty canvas still draws the selection rectangle. Hosts hear the same
+   * panStart / panning / panEnd events a mouse pan sends.
+   */
+  private attachTouchPan(): void {
+    const node = this.canvas.node as SVGSVGElement
+    if (!node || typeof node.addEventListener !== "function" || this._touchPan) return
+    let finger: { id: number; x: number; y: number } | null = null
+    let panning = false
+    const stop = (e: TouchEvent) => {
+      if (!finger) return
+      finger = null
+      if (panning) {
+        panning = false
+        this.canvas.dispatch("panEnd", { event: e })
+      }
+    }
+    const start = (e: TouchEvent) => {
+      // A second finger makes it a pinch; a gesture another handler has claimed
+      // (a connector pulled from a note) is not a pan either.
+      if (!this.pansByTouch() || e.touches.length !== 1 || e.target !== node || e.defaultPrevented) {
+        stop(e)
+        return
+      }
+      const touch = e.touches[0]
+      finger = { id: touch.identifier, x: touch.clientX, y: touch.clientY }
+      panning = false
+    }
+    const move = (e: TouchEvent) => {
+      if (!finger) return
+      const touch = e.touches.length === 1 && e.touches[0].identifier === finger.id ? e.touches[0] : null
+      if (!touch) {
+        stop(e)
+        return
+      }
+      const dx = touch.clientX - finger.x
+      const dy = touch.clientY - finger.y
+      // A tap that wobbles is still a tap.
+      if (!panning && Math.hypot(dx, dy) < 6) return
+      if (e.cancelable) e.preventDefault()
+      if (!panning) {
+        panning = true
+        this.canvas.dispatch("panStart", { event: e })
+      }
+      const vb = this.canvas.viewbox()
+      const rect = node.getBoundingClientRect()
+      const unitsPerPx = vb.width / (rect.width || vb.width)
+      const box = { x: vb.x - dx * unitsPerPx, y: vb.y - dy * unitsPerPx, width: vb.width, height: vb.height }
+      finger.x = touch.clientX
+      finger.y = touch.clientY
+      if (!this.canvas.dispatch("panning", { box, event: e }).defaultPrevented) {
+        this.canvas.viewbox(box.x, box.y, box.width, box.height)
+      }
+    }
+    node.addEventListener("touchstart", start, { passive: true })
+    document.addEventListener("touchmove", move, { passive: false })
+    document.addEventListener("touchend", stop)
+    document.addEventListener("touchcancel", stop)
+    this._touchPan = { start, move, end: stop }
+  }
+
+  private detachTouchPan(): void {
+    if (!this._touchPan) return
+    this.canvas.node?.removeEventListener?.("touchstart", this._touchPan.start)
+    document.removeEventListener("touchmove", this._touchPan.move)
+    document.removeEventListener("touchend", this._touchPan.end)
+    document.removeEventListener("touchcancel", this._touchPan.end)
+    this._touchPan = null
+  }
 
   /**
    * Miro-style wheel behavior on the canvas:
@@ -503,6 +583,7 @@ export class PanZoom {
       this.canvas.node.removeEventListener("wheel", this._wheelHandler)
       this._wheelHandler = null
     }
+    this.detachTouchPan()
     if (this.isEnabled) {
       this.canvas.panZoom(false)
 

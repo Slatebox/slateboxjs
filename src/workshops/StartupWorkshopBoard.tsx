@@ -1,13 +1,13 @@
 import React, {useRef, useState, useEffect, type PointerEvent} from 'react'
 import {resolveWorkshopSignals, type Workshop} from './model'
 import {channels, interviews, startupExperienceKind, workshopBudgetResult, workshopCandidate} from './model'
+import styles from './startupBoard.css?inline'
 
-/** The board a move produces, or null when it is unavailable or the card is already there. */
-function planStartupMove(board:Workshop, cardId:string, destination:string) {
+/** The board a move to another lane produces, or null when it is unavailable or the card is already there. */
+function boardAfterMove(board:Workshop, cardId:string, destination:string) {
   const next=workshopCandidate(board,cardId,destination)
   return next===board ? null : next
 }
-import styles from './startupBoard.css?inline'
 
 type Props = {value:Workshop; readOnly?:boolean; onChange?:(value:Workshop)=>unknown}
 export function StartupWorkshopBoard({value,readOnly=false,onChange}:Props) {
@@ -27,7 +27,7 @@ export function StartupWorkshopBoard({value,readOnly=false,onChange}:Props) {
     return ()=>window.removeEventListener('keydown',escape)
   },[held])
   function commit(id:string,destination:string) {
-    const next=!readOnly && planStartupMove(value,id,destination)
+    const next=!readOnly && boardAfterMove(value,id,destination)
     if(next) onChange?.(next)
   }
   function tap(id:string) { if(kind==='customer-interviews') commit(id,'prototype'); else select(id) }
@@ -50,7 +50,7 @@ export function StartupWorkshopBoard({value,readOnly=false,onChange}:Props) {
         if(!d.moved) return
         setPosition({left:e.clientX+10,top:e.clientY+10})
         const target=destination(e)
-        const next=target && planStartupMove(value,id,target)
+        const next=target && boardAfterMove(value,id,target)
         setPreview(next ? {base:value,next} : null)
       },
       onPointerUp:(e:PointerEvent<HTMLButtonElement>)=>{
@@ -94,7 +94,7 @@ export function StartupWorkshopBoard({value,readOnly=false,onChange}:Props) {
           aria-label={card.label+', '+laneName(card.laneId)} aria-pressed={active===card.id} {...handlers(card.id)}>
           <small>{card.label}</small><strong>$200</strong><span>{laneName(card.laneId).split(' · ')[0]}</span></button>)}</div>
         <div className="budget-targets">{channels.map(c=>{const result=workshopBudgetResult(view,c.id)!; return <button type="button" key={c.id} className={'target-'+c.id} data-drop={c.id}
-          disabled={readOnly || !active || !planStartupMove(value,active,c.id)} onClick={()=>commit(active,c.id)}>
+          disabled={readOnly || !active || !boardAfterMove(value,active,c.id)} onClick={()=>commit(active,c.id)}>
           <strong>{laneName(c.id).replace(' · '+c.rate,'')}</strong><b>${result.amount}</b><span>{result.description}</span><small>{c.rate}</small></button>})}</div>
         <button type="button" className="reserve" data-drop="reserve" disabled={readOnly || !active} onClick={()=>commit(active,'reserve')}>
           {laneName('reserve')==='Unallocated'?'Return to unallocated funds':laneName('reserve')} <b>${left}</b></button>

@@ -94,12 +94,15 @@ nothing from the host. A host that autosaves the slate's own drawing can keep do
 is persisted by saving the model `onChange` hands over. `slate.nodes.allNodes` and
 `slate.getAllNodes()` do include them; `slate.freeNodes()` is the drawing without them.
 
-The names `lane-<id>`, `card-<id>`, `caption-<id>`, `column-<id>` and `image-<id>` belong to the
-workshop. `attachWorkshop` throws if the slate already has a note by one of them. If a document
-loaded later brings one (`loadJSON`, undo, a collaborator's full replace), that note stays the
-document's own note: saved, ungoverned, and left in place by `destroy()`; the workshop logs a
-warning and goes without its own note of that name. `loadJSON`, undo and redo otherwise redraw the
-workshop from its model, as new notes.
+The workshop draws its notes as `lane-<id>`, `card-<id>`, `caption-<id>`, `column-<id>` and
+`image-<id>` wherever the slate leaves those names free. A slate's own document may already hold a
+note by one of them, when the workshop is attached or in a document loaded later (`loadJSON`, undo,
+a collaborator's full replace). That note stays the document's own note: saved, ungoverned, and left
+in place by `destroy()`. The workshop draws its note under another id (`card-<id>--2`), logs a
+warning, and loses nothing: the card is moved, renamed and refused exactly as before. So every note
+`slate.exportJSON()` returns is the document's, whatever it is called, and a host never has to
+tell the two apart by name. `loadJSON`, undo and redo otherwise redraw the workshop from its
+model, as new notes.
 
 ## In the host's note style
 
@@ -126,13 +129,16 @@ slate.fitToWidth(board.bounds)          // never past 100%: card text is the siz
 slate.fitToWidth(board.bounds, 12, 1.5) // or let one lane fill the width, up to 150%
 ```
 
-The lanes below the screen are reached by panning, and a card is carried to them by holding it
-near an edge (see below). A map ignores `lanesPerRow`: its stations stay where their author put
+The lanes below the screen are reached by panning: one finger on empty canvas (a lane's empty
+space included) pans it, two fingers pinch. A card is carried to them by holding it near an edge
+(see below). A map ignores `lanesPerRow`: its stations stay where their author put
 them, so a map wider than the screen is fitted smaller.
 
 ## Moving a card
 
-- **Pointer or touch.** Lanes the card may enter are outlined. Over one of them the lane captions
+- **Pointer or touch.** Lanes the card may enter are outlined (and their `column-<id>` note carries
+  `data-workshop-drop="open"`; the lane the card is over carries `"over"`, and a lane that refuses
+  it `"refused"`, for as long as the outline shows). Over one of them the lane captions
   and the other cards show the outcome. On release the move commits (`onChange`) and the card
   settles in its slot, or it is refused: the card glides back to exactly where it started, the lane
   is outlined, its caption shows the reason for about 1.5 s, and `onRefuse` is called. A drop
@@ -144,7 +150,11 @@ them, so a map wider than the screen is fitted smaller.
   beside an edge can be carried away in peace. Refusal and cancel return the card to where it
   started, however far the canvas has moved. (This is the drag policy's behaviour for every
   governed note; `onPan` and `onPanEnd` are not called for it.)
-- **Keyboard.** With a card selected, Left and Right stage a move to the previous or next lane it may
+- **Keyboard.** The canvas has the keyboard when focus is inside it or nowhere on the page; a press
+  on the canvas takes focus from a control beside it. A key pressed on a button, field, dialog or
+  menu outside the canvas belongs to that control: Delete there deletes no note and an arrow there
+  stages no move (a Ctrl/Cmd shortcut such as undo still works from a toolbar button, but not from
+  inside a dialog, menu or list). With a card selected, Left and Right stage a move to the previous or next lane it may
   enter (shown exactly like a pointer hover), Enter commits, Escape cancels. An arrow toward a lane
   the rules close is refused the way a drop there is: the lane shows the reason, it is announced,
   and `onRefuse` is called. The slate's live region announces each step. Left and Right follow

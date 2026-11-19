@@ -60,6 +60,60 @@ describe("Keyboard", () => {
       expect(mockSlate.clearSelection).toHaveBeenCalled();
     });
 
+    it("leaves Delete and Backspace to a control outside the canvas, and to a dialog", () => {
+      mockSlate.getSelectedNodes.mockReturnValue([{ id: "n1" }]);
+      const outside = document.createElement("button");
+      const dialog = document.createElement("div");
+      dialog.setAttribute("role", "dialog");
+      const inDialog = document.createElement("button");
+      dialog.append(inDialog);
+      document.body.append(outside, dialog);
+      for (const target of [outside, inDialog]) {
+        for (const key of ["Delete", "Backspace"]) {
+          target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        }
+      }
+      expect(mockSlate.removeNode).not.toHaveBeenCalled();
+      expect(mockSlate.clearSelection).not.toHaveBeenCalled();
+      outside.remove();
+      dialog.remove();
+    });
+
+    it("leaves arrows and Escape to a control outside the canvas", () => {
+      const node = { id: "n1", options: { x: 100, y: 200 }, position: vi.fn() };
+      mockSlate.getSelectedNodes.mockReturnValue([node]);
+      const outside = document.createElement("button");
+      document.body.append(outside);
+      for (const key of ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown", "Escape"]) {
+        const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+        outside.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(false);
+      }
+      expect(node.position).not.toHaveBeenCalled();
+      expect(mockSlate.clearSelection).not.toHaveBeenCalled();
+      outside.remove();
+    });
+
+    it("still takes Ctrl+Z from a toolbar button outside the canvas, but nothing from inside a dialog or a menu", () => {
+      const outside = document.createElement("button");
+      document.body.append(outside);
+      outside.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true }));
+      expect(mockSlate.undoRedo.undo).toHaveBeenCalledTimes(1);
+      for (const role of ["dialog", "alertdialog", "menu", "listbox"]) {
+        const modal = document.createElement("div");
+        modal.setAttribute("role", role);
+        const inside = document.createElement("button");
+        modal.append(inside);
+        document.body.append(modal);
+        inside.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true }));
+        inside.dispatchEvent(new KeyboardEvent("keydown", { key: "a", ctrlKey: true, bubbles: true, cancelable: true }));
+        modal.remove();
+      }
+      expect(mockSlate.undoRedo.undo).toHaveBeenCalledTimes(1);
+      expect(mockSlate.selectNodes).not.toHaveBeenCalled();
+      outside.remove();
+    });
+
     it("should do nothing with no selection", () => {
       mockSlate.getSelectedNodes.mockReturnValue([]);
       fireKey("Delete");

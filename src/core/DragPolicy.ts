@@ -28,7 +28,7 @@ export interface NodeCapabilities {
   canDuplicate: boolean;
   /** Connector plugs, the toolbar plug, and being the target of someone else's connector. */
   canConnect: boolean;
-  /** Double-click, Enter, F2 and type-to-edit. Commits go to the policy's onTextCommit. */
+  /** Editing the note's text in place, however it is begun. Commits go to the policy's onTextCommit. */
   canEditText: boolean;
   /** false makes the note decoration: no pointer input, focus or selection. */
   canSelect: boolean;

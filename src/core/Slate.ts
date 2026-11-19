@@ -689,8 +689,8 @@ export class Slate {
     if (this._dragPolicies.length) {
       if (this._policyAuthority > 0) return;
       const screened = this.screenGovernedPackage(type, data);
-      if (!screened) return;
-      data = screened;
+      if (screened === null) return;
+      if (screened !== undefined) data = screened;
     }
     if (typeof this.collab?.send === "function") {
       this.collab.send({ type, data });
@@ -1281,6 +1281,13 @@ export class Slate {
     // interaction STARTED, not just where its trailing click was dispatched.
     const onPointerDown = (e: PointerEvent) => {
       const t = e.target as Element | null;
+      // A press on the canvas gives it the keyboard. Notes are not focused by a
+      // press, so without this the control last used beside the canvas (a toolbar
+      // button, a field) would keep focus, and with it the keys meant for the note
+      // just pressed.
+      const active = document.activeElement as HTMLElement | null;
+      if (t && this.element?.contains(t) && active && active !== document.body &&
+          !this.element.contains(active)) active.blur?.();
       // Give touch users room outside the visible dot. Only empty root SVG
       // space is eligible: nodes, resize/rotate handles and edges keep priority.
       if (e.pointerType === 'touch' && e.isPrimary && t === this.canvas.node &&
@@ -2435,7 +2442,10 @@ export class Slate {
     type: string,
     data: Record<string, any> | any[] | undefined
   ): any {
-    if (this._dragPolicies.length === 0 || !data) return data;
+    // A package with no data names no note, so there is nothing to screen. It is
+    // never the "nothing left" answer (null), whatever its sender passed as data.
+    if (!data) return undefined;
+    if (this._dragPolicies.length === 0) return data;
     const governed = (id: unknown) =>
       typeof id === "string" && !!this.governanceOf(this.nodes.one(id));
     if (Array.isArray(data)) {

@@ -69,6 +69,8 @@ export class MultiSelection {
         target === canvas.node || target?.tagName === "svg";
 
       if (!isCanvas) return;
+      // A finger on empty canvas pans it; the rectangle is drawn with a mouse or a pen.
+      if (event.pointerType === "touch" && this.slate.panZoom?.pansByTouch?.()) return;
 
       // Get SVG point from pointer position
       const pt = this.getSvgPoint(event);

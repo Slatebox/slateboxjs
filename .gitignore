@@ -10,7 +10,11 @@ Thumbs.db
 
 # Dependencies and build caches
 node_modules/
+# A worktree links node_modules to the main checkout's; a link is not a directory.
+/node_modules
 .vite/
+# Per-worktree test and dev-server configs (own ports, own cache and output folders).
+/*.local.config.ts
 
 # Local agent and browser state
 .codegraph/

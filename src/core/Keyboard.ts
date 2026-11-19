@@ -87,12 +87,16 @@ export class Keyboard {
       return;
     }
 
-    // Controls outside this canvas own their keyboard events, even when a note is selected.
+    // Controls outside this canvas own their keyboard events, even when a note is
+    // selected: Delete in a dialog must not delete a note, and the arrows that drive a
+    // menu must not nudge one. The canvas has the keyboard when focus is inside it or
+    // nowhere (the page body). A Ctrl/Cmd shortcut still reaches it from a toolbar
+    // button beside the canvas, but nothing does from inside a dialog, menu or list.
     const typing = Keyboard.isTypingKey(e);
-    if (target !== document.body && !this.slate.element.contains(target) &&
-        (typing || ["Enter", " ", "F2", "Tab"].includes(e.key))) return;
-
     const isMod = e.ctrlKey || e.metaKey;
+    const outside = target instanceof Element && target !== document.body &&
+      target !== document.documentElement && !this.slate.element.contains(target);
+    if (outside && (!isMod || !!target.closest(Keyboard.MODAL_SURFACES))) return;
 
     // A governed note's host gets the first look at keys pressed while that note is
     // the selection (for example arrows that stage a move instead of nudging).
@@ -548,6 +552,10 @@ export class Keyboard {
       this.slate.selectNodes([node], false);
     }
   }
+
+  /** Surfaces that keep every key pressed inside them, Ctrl/Cmd shortcuts included. */
+  private static readonly MODAL_SURFACES =
+    '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [aria-modal="true"]';
 
   /** A key press that produces one character of text, with no Ctrl/Cmd/Alt chord. */
   private static isTypingKey(e: KeyboardEvent): boolean {

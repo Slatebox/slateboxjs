@@ -193,16 +193,29 @@ test.describe('a governed card changes only when the workshop agrees', () => {
         text: note.options.text, governed: !!slate.governanceOf(note),
         saved: JSON.parse(slate.exportJSON()).nodes.map((n: any) => n.options.id),
         workshopNotes: slate.nodes.allNodes.filter((n: any) => slate.governanceOf(n)).map((n: any) => n.id),
+        alpha: slate.nodes.allNodes.filter((n: any) => slate.governanceOf(n) && n.options.text === 'Alpha').map((n: any) => n.id),
       }
-      board.destroy()
-      return { loaded, afterDetach: slate.nodes.allNodes.map((n: any) => n.id) }
+      return { loaded }
     })
     expect(state.loaded.text).toBe('Saved by the document')
     // It is still the document's note: ordinary, saved, and not removed with the workshop.
     expect(state.loaded.governed).toBe(false)
     expect(state.loaded.saved).toEqual(['plain', 'card-alpha'])
-    expect(state.loaded.workshopNotes).toEqual(['column-now', 'lane-now', 'caption-now', 'card-beta', 'card-gamma', 'column-later', 'lane-later', 'caption-later'])
-    expect(state.afterDetach).toEqual(['plain', 'card-alpha'])
+    // The workshop goes without nothing: Alpha is drawn as a note of another id.
+    expect(state.loaded.alpha).toHaveLength(1)
+    const alpha = state.loaded.alpha[0]
+    expect(alpha).not.toBe('card-alpha')
+    expect([...state.loaded.workshopNotes].sort()).toEqual(['column-now', 'lane-now', 'caption-now', alpha, 'card-beta', 'card-gamma', 'column-later', 'lane-later', 'caption-later'].sort())
+    // And it is Alpha in every way that matters: it is dragged under the workshop's rules.
+    await drag(page, alpha, await inLane(page, 'later'))
+    await expect.poll(() => cards(page)).toBe('alpha@later beta@now gamma@now')
+    expect((await journal(page)).changes).toEqual([{ cardId: 'alpha', laneId: 'later' }])
+    const afterDetach = await page.evaluate(() => {
+      const { slate, board } = (window as any).native
+      board.destroy()
+      return slate.nodes.allNodes.map((n: any) => n.id)
+    })
+    expect(afterDetach).toEqual(['plain', 'card-alpha'])
   })
 
   test('a card its host removes right after a drop, or a workshop detached mid-drag, leaves no ghost selection', async ({ page }) => {

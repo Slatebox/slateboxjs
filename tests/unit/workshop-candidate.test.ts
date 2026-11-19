@@ -141,6 +141,34 @@ describe('workshopToSlate', () => {
     expect(JSON.stringify(workshopToSlate(board, { origin: { x: 500, y: 500 } }))).toBe(JSON.stringify(expected))
   })
 
+  it('draws beside a document that already has notes by its names, under other ids, connectors included', () => {
+    const plain = workshopToSlate(nightTransfer, { native: true })
+    // Nothing of the document's collides: the artwork is exactly what it is without the option.
+    expect(JSON.stringify(workshopToSlate(nightTransfer, { native: true, beside: ['my-note', 'card-of-mine'] }))).toBe(JSON.stringify(plain))
+    const token = plain.nodes.find(node => (node.options.id as string).startsWith('card-'))!.options.id as string
+    const zones = plain.nodes.filter(node => (node.options.id as string).startsWith('column-')).map(node => node.options.id as string)
+    // The document holds the token's name, one station zone's name, and that zone's first stand-in too.
+    const beside = [token, zones[1], zones[1] + '--2']
+    const drawn = workshopToSlate(nightTransfer, { native: true, beside })
+    const ids = drawn.nodes.map(node => node.options.id as string)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const id of beside) expect(ids).not.toContain(id)
+    expect(ids).toContain(token + '--2')
+    expect(ids).toContain(zones[1] + '--3')
+    // Same notes otherwise, in the same order and places.
+    expect(drawn.nodes.map(node => [node.options.text, node.options.xPos, node.options.yPos]))
+      .toEqual(plain.nodes.map(node => [node.options.text, node.options.xPos, node.options.yPos]))
+    // Every connector still joins two notes of the artwork.
+    const links = drawn.nodes.flatMap(node => node.relationships.associations)
+    expect(links.length).toBe(plain.nodes.flatMap(node => node.relationships.associations).length)
+    expect(links.length).toBeGreaterThan(0)
+    for (const link of links) {
+      expect(ids).toContain(link.parentId)
+      expect(ids).toContain(link.childId)
+    }
+    expect(links.some(link => link.parentId === zones[1] + '--3' || link.childId === zones[1] + '--3')).toBe(true)
+  })
+
   it('draws native artwork with the presentation names, a caption and a column per lane', () => {
     const native = workshopToSlate(twoLanes, { native: true, origin: { x: 300, y: 80 } }).nodes
     const byId = new Map(native.map(node => [node.options.id as string, node.options]))

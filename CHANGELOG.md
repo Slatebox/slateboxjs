@@ -33,7 +33,25 @@
   no options is unchanged); `dragologyCandidates` to let the SVG board's Dragology spec choose the
   candidate on a native slate.
 
+- `workshopToSlate(model, { native: true, beside: ids })` draws the native artwork beside a
+  document that already has notes by its names, under other ids (`workshopStandInId` is the rule,
+  shared with the live canvas). While a card is held or staged, each lane's `column-<id>` note says
+  whether it takes the card in a `data-workshop-drop` attribute (`open`, `over`, `refused`).
+
 ### Changed
+- **Keys pressed on a control outside the canvas stay with that control.** Delete, Backspace, the
+  arrow keys and Escape act on the canvas only when focus is inside it or nowhere on the page; a
+  Ctrl/Cmd shortcut still reaches it from a toolbar button beside the canvas, and nothing does from
+  inside a dialog, menu or list. Before, Backspace pressed in a dialog deleted the selected note,
+  and an arrow on a host button nudged it (or staged a workshop card's move). A press on the canvas
+  now takes keyboard focus from the control last used beside it, so the keys that follow go to the
+  note just pressed.
+- **One finger on empty canvas pans it** on a touch screen (two fingers still pinch, a finger on a
+  note still moves the note, and a mouse still draws the selection rectangle). Hosts hear the usual
+  `panStart`, `panning` and `panEnd` events.
+- A native workshop no longer refuses a slate whose own document has a note called `lane-<id>` or
+  `card-<id>` (`attachWorkshop` threw; a document loaded later left the workshop without that note).
+  The document's note stays as it is and the workshop draws its own under another id.
 - Native workshop notes default to the engine's own note style (14px, black text, a light grey
   one-pixel border, square corners) instead of a look of their own; a host passes `style` for
   anything else. `workshopToSlate` with no options is unchanged.

@@ -526,6 +526,12 @@ export interface WorkshopArtworkOptions {
   layout?: WorkshopBoardLayout
   /** Native artwork only: draw the notes in the host's note style. */
   style?: WorkshopNoteStyle
+  /**
+   * Native artwork only: ids of the notes the slate's own document holds. A workshop
+   * note whose name one of them already has is drawn under another id (see
+   * workshopStandInId), so the artwork can be laid beside those notes as it is.
+   */
+  beside?: Iterable<string>
 }
 
 const captionNodeId = (id: string) => 'caption-' + id
@@ -533,6 +539,18 @@ const columnNodeId = (id: string) => 'column-' + id
 
 /** The names of the notes workshopToSlate draws for a lane or a card. */
 export const workshopNodeIds = { lane: laneNodeId, card: cardNodeId, image: imageNodeId, caption: captionNodeId, column: columnNodeId }
+
+/**
+ * The id a workshop note takes when the slate's own document already has a note by
+ * its name: `<name>--2`, or the first number after that which `taken` leaves free.
+ * The document's note keeps its id. One rule for the live canvas and for every
+ * drawing made of it.
+ */
+export function workshopStandInId(name: string, taken: (id: string) => boolean): string {
+  let n = 2
+  while (taken(`${name}--${n}`)) n++
+  return `${name}--${n}`
+}
 
 function roundedBox(width: number, height: number, radius: number) {
   const r = Math.max(0, Math.min(radius, width / 2, height / 2)), w = width, h = height
@@ -679,6 +697,25 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
         const parentId = cardNodeId(prerequisite), childId = cardNodeId(card.id)
         byId.get(parentId)!.relationships.associations.push({ id: `dependency-${prerequisite.length}-${prerequisite}-${card.id}`,
           parentId, childId, lineType: 'straight', lineColor: '#566a67', lineWidth: 2, showChildArrow: true })
+      }
+    }
+  }
+  if (options.beside) {
+    const theirs = new Set(options.beside)
+    const used = new Set(nodes.map(item => item.options.id as string))
+    const drawnAs = new Map<string, string>()
+    for (const name of [...used]) {
+      if (!theirs.has(name)) continue
+      const id = workshopStandInId(name, candidate => theirs.has(candidate) || used.has(candidate))
+      used.add(id)
+      drawnAs.set(name, id)
+    }
+    const as = (name: unknown) => drawnAs.get(name as string) ?? name
+    for (const item of nodes) {
+      item.options.id = as(item.options.id)
+      for (const link of item.relationships.associations) {
+        link.parentId = as(link.parentId)
+        link.childId = as(link.childId)
       }
     }
   }
