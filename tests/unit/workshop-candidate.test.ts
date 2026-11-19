@@ -3,8 +3,9 @@ import baseline from '../fixtures/native/workshop-to-slate.main-64115d9.json'
 import {
   availableLanes, createBudgetWorkshop, createInterviewWorkshop, industrialWorkshop, moveWorkshopCard, nightTransfer,
   planStartupMove, releasePlan, validateWorkshop, workshopBudgetResult, workshopCandidate, workshopDestinations,
-  workshopLaneCaption, workshopPresentationScenes, workshopRefusal, workshopToSlate, type Workshop,
+  workshopLaneCaption, workshopLanePlaces, workshopPresentationScenes, workshopRefusal, workshopToSlate, type Workshop,
 } from '../../src/workshops/model'
+import { DEFAULT_NOTE_STYLE } from '../../src/core/NoteDefaults'
 import { planReleaseMove } from '../../src/workshops/release'
 
 /** Lane rules as the lane board has always applied them. */
@@ -175,7 +176,138 @@ describe('workshopToSlate', () => {
     const map = workshopToSlate(nightTransfer, { native: true }).nodes
     const platform = map.find(node => node.options.id === 'lane-platform')!
     expect(platform.options.text).toBe('Last train')
-    expect(platform.relationships.associations.map(link => link.childId)).toEqual(['lane-stairs', 'lane-lift'])
+    // Onward stops are joined zone to zone (the line runs between stations, not over a token).
+    const zone = map.find(node => node.options.id === 'column-platform')!
+    expect(zone.relationships.associations.map(link => [link.id, link.parentId, link.childId])).toEqual([
+      ['platform-to-stairs', 'column-platform', 'column-stairs'], ['platform-to-lift', 'column-platform', 'column-lift'],
+    ])
+    expect(platform.relationships.associations).toEqual([])
     expect(map.find(node => node.options.id === 'caption-platform')!.options.text).toBe('1 card')
+  })
+})
+
+describe('native artwork: note style', () => {
+  const notes = (board: Workshop, options = {}) => new Map(workshopToSlate(board, { native: true, ...options }).nodes.map(node => [node.options.id as string, node.options]))
+
+  it('draws lanes and cards as an ordinary engine note is drawn when the host passes no style', () => {
+    const byId = notes(twoLanes)
+    for (const id of ['lane-now', 'card-alpha', 'card-gamma']) {
+      const note = byId.get(id)!
+      expect(note.foregroundColor).toBe(DEFAULT_NOTE_STYLE.fontColor)
+      expect(note.borderColor).toBe(DEFAULT_NOTE_STYLE.borderColor)
+      expect(note.borderWidth).toBe(DEFAULT_NOTE_STYLE.borderWidth)
+      // No family of its own: the note falls back to the engine's.
+      expect(note.fontFamily).toBeUndefined()
+      // A plain rectangle at the note's own size.
+      expect(note.vectorPath).toBe(`M 0 0 H ${note.width} V ${note.height} H 0 Z`)
+    }
+    expect(byId.get('card-alpha')!.fontSize).toBe(DEFAULT_NOTE_STYLE.fontSize)
+    expect(byId.get('lane-now')!.fontSize).toBe(DEFAULT_NOTE_STYLE.fontSize + 2)
+    expect(byId.get('caption-now')!.fontSize).toBe(DEFAULT_NOTE_STYLE.fontSize - 1)
+    expect(byId.get('caption-now')!.borderWidth).toBe(0)
+  })
+
+  it('takes the host\'s family, sizes, colours, border and corner', () => {
+    const style = { fontFamily: 'Manrope', fontSize: 18, laneFontSize: 22, captionFontSize: 15, textColor: '#102030', borderColor: '#405060', borderWidth: 2, cornerRadius: 10 }
+    const byId = notes(twoLanes, { style })
+    for (const id of ['lane-now', 'caption-now', 'card-alpha']) {
+      expect(byId.get(id)!.fontFamily).toBe('Manrope')
+      expect(byId.get(id)!.foregroundColor).toBe('#102030')
+    }
+    expect([byId.get('card-alpha')!.fontSize, byId.get('lane-now')!.fontSize, byId.get('caption-now')!.fontSize]).toEqual([18, 22, 15])
+    expect(byId.get('card-alpha')!).toMatchObject({ borderColor: '#405060', borderWidth: 2 })
+    expect(byId.get('card-alpha')!.vectorPath).toBe('M 10 0 H 218 Q 228 0 228 10 V 66 Q 228 76 218 76 H 10 Q 0 76 0 66 V 10 Q 0 0 10 0 Z')
+    // The column behind a lane keeps its own tint and a hairline border, with the corner a little wider.
+    expect(byId.get('column-now')!).toMatchObject({ borderWidth: 1 })
+    expect(byId.get('column-now')!.vectorPath).toContain('Q 240 0 240 12')
+    // The presentation artwork is not touched by a style.
+    expect(JSON.stringify(workshopToSlate(twoLanes, { style } as never))).toBe(JSON.stringify(workshopToSlate(twoLanes)))
+  })
+
+  it('sets a label that would not fit its note smaller, never below 11, and leaves short ones at the size asked', () => {
+    const long: Workshop = validateWorkshop({ ...twoLanes, cards: [
+      { id: 'alpha', label: 'Alpha', laneId: 'now' },
+      { id: 'long', label: 'A label of quite some length that goes on for the full eighty characters allowed', laneId: 'now' },
+    ] })
+    const size = (fontSize: number, id: string) => notes(long, { style: { fontSize } }).get(id)!.fontSize as number
+    expect(size(14, 'card-alpha')).toBe(14)
+    expect(size(14, 'card-long')).toBe(14)
+    expect(size(24, 'card-alpha')).toBe(24)
+    expect(size(24, 'card-long')).toBeLessThan(24)
+    expect(size(24, 'card-long')).toBeGreaterThanOrEqual(11)
+    // Asking for more changes nothing: it is the note that sets the limit.
+    expect(size(60, 'card-long')).toBe(size(24, 'card-long'))
+    expect(size(60, 'card-alpha')).toBeLessThan(60)
+    // A release card carries its points on a second line and is fitted with it.
+    const release = notes(releasePlan, { style: { fontSize: 30 } })
+    expect(release.get('card-guardrails')!.text).toBe('Permission checks\n2 points')
+    expect(release.get('card-guardrails')!.fontSize).toBeLessThan(30)
+    expect(notes(releasePlan).get('card-guardrails')!.fontSize).toBe(14)
+  })
+})
+
+describe('native artwork: lanes that wrap', () => {
+  const budget = createBudgetWorkshop()
+
+  it('puts every lane in one row unless a layout says otherwise', () => {
+    const { places, width, height } = workshopLanePlaces(budget)
+    expect(places.map(place => [place.laneId, place.x, place.y, place.column, place.row])).toEqual([
+      ['reserve', 0, 0, 0, 0], ['calls', 244, 0, 1, 0], ['newsletter', 488, 0, 2, 0], ['pilot', 732, 0, 3, 0],
+    ])
+    // Every column as tall as the fullest lane (two cards) plus one free slot.
+    expect(new Set(places.map(place => place.height))).toEqual(new Set([98 + 3 * 88]))
+    expect([width, height]).toEqual([976, 362])
+    expect(workshopLanePlaces(budget, { layout: {} })).toEqual(workshopLanePlaces(budget))
+    expect(workshopLanePlaces(budget, { layout: { lanesPerRow: 9 } })).toEqual(workshopLanePlaces(budget))
+  })
+
+  it('wraps to rows of lanesPerRow, each row as tall as its own fullest lane', () => {
+    const two = workshopLanePlaces(budget, { layout: { lanesPerRow: 2 } })
+    expect(two.places.map(place => [place.laneId, place.x, place.y, place.height, place.column, place.row])).toEqual([
+      ['reserve', 0, 0, 362, 0, 0], ['calls', 244, 0, 362, 1, 0], ['newsletter', 0, 374, 186, 0, 1], ['pilot', 244, 374, 186, 1, 1],
+    ])
+    expect([two.width, two.height]).toEqual([488, 560])
+    const one = workshopLanePlaces(budget, { layout: { lanesPerRow: 1 } })
+    expect(one.places.map(place => [place.x, place.y, place.height, place.row])).toEqual([[0, 0, 362, 0], [0, 374, 274, 1], [0, 660, 186, 2], [0, 858, 186, 3]])
+    expect([one.width, one.height]).toEqual([244, 1044])
+  })
+
+  it('draws the notes where the places say, with cards under their own lane', () => {
+    const origin = { x: 100, y: 50 }
+    const layout = { lanesPerRow: 2 }
+    const byId = new Map(workshopToSlate(budget, { native: true, origin, layout }).nodes.map(node => [node.options.id as string, node.options]))
+    for (const place of workshopLanePlaces(budget, { layout }).places) {
+      expect(byId.get('column-' + place.laneId)!).toMatchObject({ xPos: origin.x + place.x + 2, yPos: origin.y + place.y, width: 240, height: place.height })
+      expect(byId.get('lane-' + place.laneId)!).toMatchObject({ xPos: origin.x + place.x + 8, yPos: origin.y + place.y + 6 })
+    }
+    expect(byId.get('card-fund-0')!).toMatchObject({ xPos: 100 + 244 + 8, yPos: 50 + 98 })
+    // The same notes, by name, whatever the layout.
+    expect([...byId.keys()].sort()).toEqual(workshopToSlate(budget, { native: true }).nodes.map(node => node.options.id as string).sort())
+  })
+
+  it('keeps each lane at least as tall as the committed board while a card is held, lane by lane', () => {
+    const layout = { lanesPerRow: 1 }
+    const committed = workshopLanePlaces(budget, { layout })
+    const moved = workshopCandidate(budget, 'fund-1', 'pilot')!
+    // Unheld, the preview would shrink Unallocated and move every lane below it.
+    expect(workshopLanePlaces(moved, { layout }).places[1].y).toBeLessThan(committed.places[1].y)
+    const rows = budget.lanes.map(lane => budget.cards.filter(card => card.laneId === lane.id).length)
+    const held = workshopLanePlaces(moved, { layout, rows })
+    expect(held.places.slice(0, 3)).toEqual(committed.places.slice(0, 3))
+    // The lane that gains the card grows; nothing above it moves.
+    expect(held.places[3]).toEqual({ ...committed.places[3], height: committed.places[3].height + 88 })
+    // One number still means the same minimum for every lane.
+    expect(workshopLanePlaces(moved, { rows: 2 }).places.map(place => place.height)).toEqual(committed.places.map(() => 362))
+  })
+
+  it('refuses a layout that makes no sense, and leaves a map where its author put it', () => {
+    for (const lanesPerRow of [0, -1, 1.5, Number.NaN, '2' as unknown as number]) {
+      expect(() => workshopLanePlaces(budget, { layout: { lanesPerRow } })).toThrow('lanesPerRow must be a whole number, 1 or more.')
+      expect(() => workshopToSlate(budget, { native: true, layout: { lanesPerRow } })).toThrow('lanesPerRow must be a whole number, 1 or more.')
+    }
+    expect(workshopLanePlaces(nightTransfer, { layout: { lanesPerRow: 1 } })).toEqual(workshopLanePlaces(nightTransfer))
+    expect(workshopLanePlaces(nightTransfer).places.map(place => [place.laneId, place.column, place.row])).toEqual([
+      ['platform', 0, 0], ['stairs', 1, 0], ['lift', 0, 1], ['shuttle', 1, 1],
+    ])
   })
 })

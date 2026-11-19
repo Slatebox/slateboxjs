@@ -3,6 +3,7 @@ export * from './listeningRoom'
 import { planReleaseMove, releaseLoad, validateRelease } from './release'
 export { releaseLoad, releasePlan } from './release'
 import type { NodeJSON, SlateJSON } from '../core/Serialization'
+import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults'
 
 export interface StationImage {
   src: string
@@ -472,10 +473,43 @@ export const nightTransfer: Workshop = {
   cards: [{ id: 'rider', label: 'Last rider', laneId: 'platform' }],
 }
 
+/** How the native artwork arranges a board's lanes. */
+export interface WorkshopBoardLayout {
+  /**
+   * How many lanes sit side by side before the next lane starts a new row. Leave it
+   * out for every lane in one row. A narrow host passes 1 or 2 so each lane stays
+   * wide enough to read. A map ignores it: its stations stay where they were authored.
+   */
+  lanesPerRow?: number
+}
+
+/**
+ * How the native artwork's notes are drawn, so they match the host's ordinary
+ * notes. Anything left out is what an ordinary engine note gets (DEFAULT_NOTE_STYLE).
+ * Sizes are world units: CSS pixels at 100% zoom.
+ */
+export interface WorkshopNoteStyle {
+  /** Type family of every lane, caption and card. */
+  fontFamily?: string
+  /** Card text. A label too long for its card at this size is set smaller, never below 11. */
+  fontSize?: number
+  /** Lane names. Defaults to two more than the card text. */
+  laneFontSize?: number
+  /** The caption under each lane name. Defaults to one less than the card text. */
+  captionFontSize?: number
+  /** Text of lanes, captions and cards. */
+  textColor?: string
+  /** Outline of lane headers and cards. */
+  borderColor?: string
+  borderWidth?: number
+  /** Corner radius of lane headers and cards; 0 is a square-cornered note. */
+  cornerRadius?: number
+}
+
 export interface WorkshopArtworkOptions {
   /**
-   * Draw for a live slate instead of a presentation: rounded notes in the canvas's
-   * own type, a `caption-<lane>` line under each lane name, and a `column-<lane>`
+   * Draw for a live slate instead of a presentation: notes in the canvas's own
+   * type, a `caption-<lane>` line under each lane name, and a `column-<lane>`
    * shape behind each lane. Lane and card notes keep their `lane-<id>` and
    * `card-<id>` names.
    */
@@ -483,10 +517,15 @@ export interface WorkshopArtworkOptions {
   /** Where the artwork's top-left corner goes, in the slate's world units. */
   origin?: { x: number; y: number }
   /**
-   * Draw each lane column at least this many cards tall. A board keeps its shape
-   * (and its drop zones) while a held card previews a board with shorter lanes.
+   * Draw each lane column at least this many cards tall: one number for every
+   * lane, or one per lane in lane order. A board keeps its shape (and its drop
+   * zones) while a held card previews a board with shorter lanes.
    */
-  rows?: number
+  rows?: number | number[]
+  /** Native artwork only: wrap the lanes into rows. */
+  layout?: WorkshopBoardLayout
+  /** Native artwork only: draw the notes in the host's note style. */
+  style?: WorkshopNoteStyle
 }
 
 const captionNodeId = (id: string) => 'caption-' + id
@@ -496,7 +535,8 @@ const columnNodeId = (id: string) => 'column-' + id
 export const workshopNodeIds = { lane: laneNodeId, card: cardNodeId, image: imageNodeId, caption: captionNodeId, column: columnNodeId }
 
 function roundedBox(width: number, height: number, radius: number) {
-  const r = Math.min(radius, width / 2, height / 2), w = width, h = height
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2)), w = width, h = height
+  if (!r) return `M 0 0 H ${w} V ${h} H 0 Z`
   return `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`
 }
 
@@ -506,58 +546,132 @@ function tint(hex: string, amount: number) {
   return '#' + channel(1) + channel(3) + channel(5)
 }
 
-/** Short names sit at the canvas's reading size; long ones step down so two lines fit the header. */
-function headerFontSize(label: string) {
-  return label.length <= 22 ? 17 : label.length <= 52 ? 14 : 12
+/**
+ * The largest size from `size` down to 11 at which `text` fits a note of this
+ * width and height. An estimate (the engine wraps by measuring): short names keep
+ * the reading size, long ones step down so their lines stay inside the note.
+ */
+function fittingFontSize(text: string, size: number, width: number, height: number) {
+  for (let candidate = size; candidate > 11; candidate--) {
+    const perLine = Math.max(1, Math.floor(width / (candidate * 0.55)))
+    const lines = text.split('\n').reduce((count, line) => count + Math.max(1, Math.ceil(line.length / perLine)), 0)
+    if (lines * candidate * 1.3 <= height) return candidate
+  }
+  return Math.min(size, 11)
 }
 
-function nativeWorkshopToSlate(board: Workshop, origin: { x: number; y: number }, rows = 0): SlateJSON {
-  const { pitch, width, row, height, top } = workshopLayout
-  const map = Boolean(board.lanes[0].station)
-  const { points } = workshopPositions(board)
+const stationImageHeight = 152
+const stationImageSpace = stationImageHeight + 12
+/** World units between one row of lanes and the next when a layout wraps them. */
+const laneRowGap = 12
+
+function lanesPerRow(layout: WorkshopBoardLayout | undefined, most: number) {
+  const wanted = layout?.lanesPerRow
+  if (wanted === undefined) return most
+  if (typeof wanted !== 'number' || !Number.isInteger(wanted) || wanted < 1) throw new Error('lanesPerRow must be a whole number, 1 or more.')
+  return Math.min(wanted, most)
+}
+
+/** One lane's place in the native artwork: its column box from the artwork's origin, and its cell in the grid of lanes. */
+export interface WorkshopLanePlace {
+  laneId: string
+  x: number
+  y: number
+  width: number
+  height: number
+  column: number
+  row: number
+}
+
+/**
+ * Where the native artwork puts each lane, in lane order, and how large the whole
+ * board is. The same arithmetic workshopToSlate({ native: true }) draws with, for a
+ * host that fits the board to its screen or needs to know which lane is above which.
+ */
+export function workshopLanePlaces(input: Workshop, options: Pick<WorkshopArtworkOptions, 'layout' | 'rows'> = {}): { places: WorkshopLanePlace[]; width: number; height: number } {
+  const board = validateWorkshop(input)
+  const { pitch, row, top } = workshopLayout
   const counts = board.lanes.map(lane => board.cards.filter(card => card.laneId === lane.id).length)
-  const imageHeight = 152, imageSpace = imageHeight + 12
+  const least = (index: number) => Math.max(counts[index], (Array.isArray(options.rows) ? options.rows[index] : options.rows) ?? 0)
+  const map = Boolean(board.lanes[0].station)
   const hasImages = board.lanes.some(lane => lane.station?.image)
-  // Every lane column is as tall as the fullest lane plus one free slot, so the
-  // board reads as columns and each column is one drop zone.
-  const columnHeight = top + (Math.max(rows, ...counts) + 1) * row
-  const ink = '#18302d', line = '#667872'
+  const perRow = lanesPerRow(options.layout, board.lanes.length)
+  const places: WorkshopLanePlace[] = []
+  if (map) {
+    // A map's stations stay where their author put them: the layout wraps lanes, not a diagram.
+    const { points } = workshopPositions(board)
+    board.lanes.forEach((lane, index) => places.push({ laneId: lane.id, x: points[index].x,
+      y: points[index].y + (hasImages ? lane.station!.row * stationImageSpace : 0), width: pitch,
+      height: top + (lane.station!.image ? stationImageSpace : 0) + Math.max(1, counts[index]) * row,
+      column: lane.station!.column, row: lane.station!.row }))
+  } else {
+    // Every lane column in a row is as tall as the fullest lane of that row plus
+    // one free slot, so the board reads as columns and each column is one drop zone.
+    let y = 0
+    for (let first = 0; first < board.lanes.length; first += perRow) {
+      const band = board.lanes.slice(first, first + perRow)
+      const height = top + (Math.max(...band.map((_, column) => least(first + column))) + 1) * row
+      band.forEach((lane, column) => places.push({ laneId: lane.id, x: column * pitch, y, width: pitch, height, column, row: first / perRow }))
+      y += height + laneRowGap
+    }
+  }
+  return { places, width: Math.max(...places.map(place => place.x + place.width)), height: Math.max(...places.map(place => place.y + place.height)) }
+}
+
+function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions): SlateJSON {
+  const { pitch, width, row, height, top } = workshopLayout
+  const origin = options.origin ?? { x: 0, y: 0 }
+  const map = Boolean(board.lanes[0].station)
+  const { places } = workshopLanePlaces(board, options)
+  const style = options.style ?? {}
+  const ink = style.textColor ?? DEFAULT_NOTE_STYLE.fontColor
+  const line = style.borderColor ?? DEFAULT_NOTE_STYLE.borderColor
+  const lineWidth = style.borderWidth ?? DEFAULT_NOTE_STYLE.borderWidth
+  const radius = style.cornerRadius ?? 0
+  const cardSize = style.fontSize ?? DEFAULT_NOTE_STYLE.fontSize
+  const laneSize = style.laneFontSize ?? cardSize + 2
+  const captionSize = style.captionFontSize ?? Math.max(11, cardSize - 1)
   const nodes: NodeJSON[] = []
   const note = (options: Record<string, unknown>) => {
     // Each note's outline is drawn at its own size, so corners stay round and the
     // border stays even however wide or tall the note is.
-    const item: NodeJSON = { options: { shapeHint: 'rectangle', vectorPath: roundedBox(options.width as number, options.height as number, 12),
-      foregroundColor: ink, borderColor: line, borderWidth: 1, ...options }, relationships: { associations: [] } }
+    const item: NodeJSON = { options: { shapeHint: 'rectangle', vectorPath: roundedBox(options.width as number, options.height as number, radius),
+      foregroundColor: ink, borderColor: line, borderWidth: lineWidth,
+      ...(style.fontFamily ? { fontFamily: style.fontFamily } : {}), ...options }, relationships: { associations: [] } }
     nodes.push(item)
     return item
   }
-  board.lanes.forEach((lane, column) => {
-    const x = origin.x + points[column].x
-    const y = origin.y + points[column].y + (hasImages ? (lane.station?.row ?? 0) * imageSpace : 0)
+  board.lanes.forEach((lane, index) => {
+    const place = places[index]
+    const x = origin.x + place.x, y = origin.y + place.y
     const image = lane.station?.image
-    const zoneHeight = map ? top + (image ? imageSpace : 0) + Math.max(1, counts[column]) * row : columnHeight
-    note({ id: columnNodeId(lane.id), text: '', name: lane.label, xPos: x + 2, yPos: y, width: pitch - 4, height: zoneHeight,
-      vectorPath: roundedBox(pitch - 4, zoneHeight, 14),
-      backgroundColor: map ? '#fcf9ed' : tint(laneColors[column], 0.6), borderColor: map ? '#a8b5aa' : tint(laneColors[column], 0.1),
+    note({ id: columnNodeId(lane.id), text: '', name: lane.label, xPos: x + 2, yPos: y, width: pitch - 4, height: place.height,
+      vectorPath: roundedBox(pitch - 4, place.height, radius ? radius + 2 : 0),
+      backgroundColor: map ? '#fcf9ed' : tint(laneColors[index], 0.6), borderColor: map ? '#a8b5aa' : tint(laneColors[index], 0.1), borderWidth: 1,
       ...(map ? { borderStyle: 'dashed' } : {}) })
     note({ id: laneNodeId(lane.id), text: lane.label, name: lane.label, xPos: x + 8, yPos: y + 6, width, height: 58,
-      backgroundColor: laneColors[column], fontSize: headerFontSize(lane.label) })
+      backgroundColor: laneColors[index], fontSize: fittingFontSize(lane.label, laneSize, width - 16, 50) })
     note({ id: captionNodeId(lane.id), text: workshopLaneCaption(board, lane.id), name: lane.label, xPos: x + 8, yPos: y + 66, width, height: 30,
-      backgroundColor: 'transparent', borderWidth: 0, foregroundColor: '#3f5750', fontSize: 13 })
+      backgroundColor: 'transparent', borderWidth: 0, fontSize: captionSize })
     if (image) {
-      nodes.push({ options: { id: imageNodeId(lane.id), name: image.alt, text: '', xPos: x + 8, yPos: y + top, width, height: imageHeight,
+      nodes.push({ options: { id: imageNodeId(lane.id), name: image.alt, text: '', xPos: x + 8, yPos: y + top, width, height: stationImageHeight,
         shapeHint: 'rectangle', image: image.src, borderWidth: 0 }, relationships: { associations: [] } })
     }
-    board.cards.filter(card => card.laneId === lane.id).forEach((card, i) =>
-      note({ id: cardNodeId(card.id), text: board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label, name: card.label,
-        xPos: x + (map ? 18 : 8), yPos: y + top + (image ? imageSpace : 0) + i * row, width: map ? width - 20 : width, height: map ? height - 6 : height,
-        backgroundColor: map ? '#ffda75' : '#fffdf6', fontSize: 15 }))
+    board.cards.filter(card => card.laneId === lane.id).forEach((card, i) => {
+      const text = board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label
+      const cardWidth = map ? width - 20 : width, cardHeight = map ? height - 6 : height
+      note({ id: cardNodeId(card.id), text, name: card.label,
+        xPos: x + (map ? 18 : 8), yPos: y + top + (image ? stationImageSpace : 0) + i * row, width: cardWidth, height: cardHeight,
+        backgroundColor: map ? '#ffda75' : '#fffdf6', fontSize: fittingFontSize(text, cardSize, cardWidth - 16, cardHeight - 8) })
+    })
   })
   const byId = new Map(nodes.map(item => [item.options.id as string, item]))
   for (const lane of board.lanes) {
     if (!lane.station) continue
-    byId.get(laneNodeId(lane.id))!.relationships.associations = lane.station.next.map(key => ({ id: lane.id + '-to-' + key,
-      parentId: laneNodeId(lane.id), childId: laneNodeId(key), lineType: 'straight', lineColor: '#506b61', lineWidth: 2, showChildArrow: true }))
+    // A station's onward stops are joined zone to zone, so the line runs in the gap
+    // between two stations and never over a station's caption or its token.
+    byId.get(columnNodeId(lane.id))!.relationships.associations = lane.station.next.map(key => ({ id: lane.id + '-to-' + key,
+      parentId: columnNodeId(lane.id), childId: columnNodeId(key), lineType: 'straight', lineColor: '#506b61', lineWidth: 2, showChildArrow: true }))
   }
   if (board.kind === 'release-plan') {
     for (const card of board.cards) {
@@ -578,7 +692,7 @@ function nativeWorkshopToSlate(board: Workshop, origin: { x: number; y: number }
  */
 export function workshopToSlate(input: Workshop, options?: WorkshopArtworkOptions): SlateJSON {
   const board = validateWorkshop(input)
-  if (options?.native) return nativeWorkshopToSlate(board, options.origin ?? { x: 0, y: 0 }, options.rows)
+  if (options?.native) return nativeWorkshopToSlate(board, options)
   const { width, row, height, top } = workshopLayout
   const nodes: NodeJSON[] = []
   function node(key: string, text: string, x: number, y: number, h: number, fill: string) {
@@ -642,7 +756,7 @@ export const industrialWorkshop: Workshop = {
 
 export * from './moonGallery'
 export * from './darkroom/model'
-export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent } from './native'
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection } from './native'
 
 
 export type StartupExperience = {version: 1; kind: 'customer-interviews' | 'experiment-budget'}

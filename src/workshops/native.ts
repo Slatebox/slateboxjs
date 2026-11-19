@@ -14,8 +14,8 @@
 import { v1AssociationToV2, v1NodeToV2 } from '../core/compat'
 import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type WorldPoint } from '../core/DragPolicy'
 import {
-  validateWorkshop, workshopCandidate, workshopDestinations, workshopLaneCaption, workshopNodeIds,
-  workshopRefusal, workshopToSlate, type Workshop,
+  validateWorkshop, workshopCandidate, workshopDestinations, workshopLaneCaption, workshopLanePlaces, workshopNodeIds,
+  workshopRefusal, workshopToSlate, type Workshop, type WorkshopBoardLayout, type WorkshopNoteStyle,
 } from './model'
 
 /** What a person changed. A move names the card and its new lane; a rename names the lane or card and its new label. */
@@ -32,6 +32,9 @@ export interface WorkshopRefusalEvent {
   rename?: { laneId?: string; cardId?: string; label: string }
   reason: string
 }
+
+/** The one workshop note that is selected: a card or a lane. Null when the selection is anything else. */
+export type WorkshopSelection = { cardId: string } | { laneId: string } | null
 
 /**
  * Chooses the board a pointer position means while a card is held. Called once as
@@ -56,6 +59,16 @@ export interface AttachWorkshopOptions {
   origin?: { x: number; y: number }
   /** Replace how a pointer position picks among the legal boards (see dragologyCandidates). */
   chooseCandidate?: WorkshopCandidateChooser
+  /** Wrap the lanes into rows, for a host too narrow for all of them side by side. Change it later with setLayout. */
+  layout?: WorkshopBoardLayout
+  /** Draw lanes and cards in the host's note style. What is left out is what an ordinary engine note gets. */
+  style?: WorkshopNoteStyle
+  /**
+   * The selection came to rest on one card or one lane of this workshop, moved from
+   * one to another, or left them (null): for a host that talks about what is
+   * selected. Also called with null when the workshop is destroyed with one selected.
+   */
+  onSelect?: (selection: WorkshopSelection) => void
 }
 
 export interface AttachedWorkshop {
@@ -70,12 +83,22 @@ export interface AttachedWorkshop {
    * for a move the host itself had to turn down, such as a save that lost a race.
    */
   refuse(laneId: string, reason: string): void
+  /**
+   * Arrange the lanes differently (a phone turned on its side, a pane opened beside
+   * the canvas). The same notes glide to their new places; a drag in progress is
+   * cancelled first.
+   */
+  setLayout(layout: WorkshopBoardLayout): void
   /** Remove the workshop's notes and its policy. Every other note on the slate is left as it was. */
   destroy(): void
   /** The committed model. */
   readonly value: Workshop
   /** Where the artwork's top-left corner is, in world units. */
   readonly origin: { x: number; y: number }
+  /** The layout in use. */
+  readonly layout: WorkshopBoardLayout
+  /** The box the committed board fills in the current layout, in world units (for slate.fitToWidth). */
+  readonly bounds: { x: number; y: number; width: number; height: number }
   /** Resolves once the artwork for the current model is on the slate. */
   whenDrawn(): Promise<void>
 }
@@ -121,6 +144,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   let flash: { laneId: string; reason: string; timer: ReturnType<typeof setTimeout> } | null = null
   let pending: Promise<void> = Promise.resolve()
   let wanted: { model: Workshop; skip?: string; animate: boolean } | null = null
+  let layout: WorkshopBoardLayout = options.layout?.lanesPerRow === undefined ? {} : { lanesPerRow: options.layout.lanesPerRow }
+  const style: WorkshopNoteStyle = { ...options.style }
+  /** What onSelect was last told, as a string to compare. */
+  let told: string | null = null
+  /** A selected note is being redrawn after undo, redo or a load; its selection is about to come back. */
+  let reselecting = false
+  // An impossible layout is refused before anything is drawn.
+  workshopLanePlaces(value, { layout })
 
   const origin = options.origin ? { x: options.origin.x, y: options.origin.y } : besideExistingContent(slate)
 
@@ -232,6 +263,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         stage(card.id, event.key === 'ArrowLeft' ? -1 : 1)
         return true
       }
+      // Up and Down mean something once the lanes are in more than one row.
+      if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && stacked()) {
+        event.preventDefault()
+        stage(card.id, event.key === 'ArrowUp' ? -1 : 1, true)
+        return true
+      }
       if (staged?.cardId !== card.id) return false
       if (event.key === 'Enter') {
         event.preventDefault()
@@ -239,6 +276,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         staged = null
         value = next
         draw(value)
+        reveal(laneId)
         tell(options.onPreview, null)
         const lane = value.lanes.find(item => item.id === laneId)!
         slate.announce?.(`${card.label} moved to ${lane.label}. ${workshopLaneCaption(value, laneId)}.`)
@@ -256,6 +294,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     onNotesReplaced() {
       // loadJSON / undo / redo cleared every note, ours included.
       const selected: string[] = (slate.getSelectedNodes?.() ?? []).filter((node: any) => owned.get(node.id) === node).map((node: any) => node.id)
+      reselecting = selected.length === 1
       owned.clear()
       drawn.clear()
       links.clear()
@@ -266,17 +305,21 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // keyboard keeps their place on it.
       if (selected.length === 1) {
         pending = pending.then(() => {
+          reselecting = false
           const node = owned.get(selected[0])
-          if (destroyed || !node || (slate.getSelectedNodes?.() ?? []).length) return
-          const select = () => slate.selectNodes?.([node])
-          if (typeof slate.withoutAnnouncements === 'function') slate.withoutAnnouncements(select)
-          else select()
+          if (!destroyed && node && !(slate.getSelectedNodes?.() ?? []).length) {
+            const select = () => slate.selectNodes?.([node])
+            if (typeof slate.withoutAnnouncements === 'function') slate.withoutAnnouncements(select)
+            else select()
+          }
+          reportSelection()
         })
       }
     },
   }
 
   const release = slate.setDragPolicy(policy)
+  const stopWatchingSelection: (() => void) | undefined = options.onSelect && slate.onSelectionChange?.(() => reportSelection())
   // Any press on the slate ends a keyboard-staged move: the person has moved on.
   const onPress = () => { if (staged) clearStaged() }
   slate.element?.addEventListener?.('pointerdown', onPress, true)
@@ -289,8 +332,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const card = value.cards.find(item => item.id === cardId)
     if (!card) return { kind: 'outside' }
     const columns = value.lanes.map(lane => owned.get(workshopNodeIds.column(lane.id))).filter(Boolean)
-    // Columns are drawn 4 units apart; the padding closes that seam.
-    const hit = slate.hitTestNodes(point, columns, { padding: 2 })
+    // Columns are drawn 4 units apart, and rows of lanes 12; the padding closes both seams.
+    const hit = slate.hitTestNodes(point, columns, { padding: 6 })
     const laneId = hit ? kindOf(hit.id)!.key : null
     if (!laneId) return { kind: 'outside' }
     if (laneId === card.laneId) return { kind: 'home' }
@@ -310,16 +353,38 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     return { kind: 'candidate', laneId: chosenLane, next: chosen }
   }
 
-  function stage(cardId: string, step: -1 | 1) {
+  /** Whether the lanes are in more than one row: wrapped by the layout, or a map with stations above one another. */
+  function stacked() {
+    return new Set(workshopLanePlaces(value, { layout }).places.map(place => place.row)).size > 1
+  }
+
+  /**
+   * Stage a keyboard move one lane along (Left and Right: reading order, on through
+   * the rows) or, with `vertical`, to the lane above or below in the same column.
+   */
+  function stage(cardId: string, step: -1 | 1, vertical = false) {
     const card = value.cards.find(item => item.id === cardId)!
-    const lanes = workshopDestinations(value, cardId)
+    const open = workshopDestinations(value, cardId)
     const at = staged?.cardId === cardId ? staged.laneId : card.laneId
-    const target = lanes[lanes.findIndex(lane => lane.id === at) + step]
+    // The lanes on that side, nearest first: every lane along the reading order, or
+    // the lanes of this column in the rows above or below.
+    let side: typeof value.lanes
+    if (vertical) {
+      const { places } = workshopLanePlaces(value, { layout })
+      const here = places.find(place => place.laneId === at)!
+      side = places.filter(place => place.column === here.column && (place.row - here.row) * step > 0)
+        .sort((a, b) => (a.row - b.row) * step)
+        .map(place => value.lanes.find(lane => lane.id === place.laneId)!)
+    } else {
+      const index = value.lanes.findIndex(lane => lane.id === at)
+      side = step > 0 ? value.lanes.slice(index + 1) : value.lanes.slice(0, index).reverse()
+    }
+    const target = side.find(lane => open.includes(lane))
     endFlash()
     if (!target) {
       // A lane on that side that the rules close gets the same refusal a drop on it
       // would: the cue on the lane, the reason announced, and onRefuse.
-      const closed = value.lanes[value.lanes.findIndex(lane => lane.id === at) + step]
+      const closed = side[0]
       if (!closed) {
         slate.announce?.(`${card.label} has no lane to move to on that side.`)
         return
@@ -327,20 +392,55 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const reason = workshopRefusal(value, cardId, closed.id) ?? 'That move is not available.'
       flash = { laneId: closed.id, reason, timer: setTimeout(() => endFlash(), 1500) }
       draw(staged?.next ?? proposal ?? value)
+      reveal(closed.id, staged?.next ?? proposal ?? value)
       slate.announce?.(`${card.label} can't move to ${closed.label}. ${reason}`)
       tell(options.onRefuse, { cardId, laneId: closed.id, reason })
       return
     }
     if (target.id === card.laneId) {
       clearStaged()
+      reveal(target.id, proposal ?? value)
       slate.announce?.(`${card.label} is back in ${target.label}.`)
       return
     }
     const next = workshopCandidate(value, cardId, target.id)!
     staged = { cardId, laneId: target.id, next }
     draw(next)
+    reveal(target.id, next)
     tell(options.onPreview, next)
     slate.announce?.(`${card.label} to ${target.label}: ${workshopLaneCaption(next, target.id)}. Press Enter to move it, Escape to cancel.`)
+  }
+
+  /**
+   * Bring a lane into view when a keyboard move goes to one that is off screen (a
+   * wrapped board on a small screen), by the shortest pan that shows its column.
+   */
+  function reveal(laneId: string, shown: Workshop = value) {
+    const place = workshopLanePlaces(shown, { layout, rows: heldRows() }).places.find(item => item.laneId === laneId)
+    const view = slate.canvas?.viewbox?.()
+    if (!place || !view || !(view.width > 0) || !(view.height > 0)) return
+    const margin = 16
+    const shift = (start: number, size: number, from: number, extent: number) => {
+      if (size + margin * 2 >= extent) return start - margin - from
+      if (start - margin < from) return start - margin - from
+      if (start + size + margin > from + extent) return start + size + margin - (from + extent)
+      return 0
+    }
+    const x = shift(origin.x + place.x, place.width, view.x, view.width)
+    const y = shift(origin.y + place.y, place.height, view.y, view.height)
+    if (x || y) slate.panBy?.({ x, y })
+  }
+
+  /** The selection, as the host hears it: the one card or lane of this workshop that is selected, or null. */
+  function reportSelection() {
+    if (!options.onSelect || reselecting) return
+    const selected: any[] = destroyed ? [] : slate.getSelectedNodes?.() ?? []
+    const only = selected.length === 1 && owned.get(selected[0].id) === selected[0] ? kindOf(selected[0].id) : null
+    const selection: WorkshopSelection = only?.kind === 'card' ? { cardId: only.key } : only?.kind === 'lane' ? { laneId: only.key } : null
+    const key = selection ? JSON.stringify(selection) : null
+    if (key === told) return
+    told = key
+    tell(options.onSelect, selection)
   }
 
   function clearStaged() {
@@ -379,10 +479,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
 
   /** The notes for `model`, with the cues of the moment (legal lanes, the lane under the pointer, a refusal) laid over them. */
   function artwork(model: Workshop) {
-    // While a card is held or staged the columns keep the committed board's height,
-    // so the lane under the pointer does not change shape beneath it.
-    const rows = held || staged ? Math.max(...value.lanes.map(lane => value.cards.filter(card => card.laneId === lane.id).length)) : 0
-    const nodes = workshopToSlate(model, { native: true, origin, rows }).nodes
+    const nodes = workshopToSlate(model, { native: true, origin, rows: heldRows(), layout, style }).nodes
     const byId = new Map(nodes.map(node => [node.options.id as string, node.options]))
     const outline = (laneId: string, color: string, width: number, header = false) => {
       const column = byId.get(workshopNodeIds.column(laneId))
@@ -404,6 +501,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (caption) { caption.text = flash.reason; caption.foregroundColor = '#b42318' }
     }
     return nodes
+  }
+
+  /**
+   * While a card is held or staged each lane keeps at least the committed board's
+   * height, so the lane under the pointer does not change shape beneath it.
+   */
+  function heldRows() {
+    return held || staged ? value.lanes.map(lane => value.cards.filter(card => card.laneId === lane.id).length) : undefined
   }
 
   function draw(model: Workshop, how: { skip?: string; animate?: boolean } = {}) {
@@ -539,7 +644,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   }
 
   function slotOf(model: Workshop, nodeId: string) {
-    const options = workshopToSlate(model, { native: true, origin }).nodes.find(node => node.options.id === nodeId)?.options
+    const options = workshopToSlate(model, { native: true, origin, layout, style }).nodes.find(node => node.options.id === nodeId)?.options
     return options ? { x: options.xPos as number, y: options.yPos as number } : null
   }
 
@@ -553,6 +658,20 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   return {
     get value() { return value },
     get origin() { return { ...origin } },
+    get layout() { return { ...layout } },
+    get bounds() {
+      const { width, height } = workshopLanePlaces(value, { layout })
+      return { x: origin.x, y: origin.y, width, height }
+    },
+    setLayout(next) {
+      if (destroyed) throw new Error('This workshop has been detached.')
+      const wantedLayout: WorkshopBoardLayout = next?.lanesPerRow === undefined ? {} : { lanesPerRow: next.lanesPerRow }
+      workshopLanePlaces(value, { layout: wantedLayout })
+      if (wantedLayout.lanesPerRow === layout.lanesPerRow) return
+      cancelGestures()
+      layout = wantedLayout
+      draw(proposal ?? value)
+    },
     whenDrawn: () => pending,
     update(next) {
       if (destroyed) throw new Error('This workshop has been detached.')
@@ -589,6 +708,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       cancelGestures()
       destroyed = true
       slate.element?.removeEventListener?.('pointerdown', onPress, true)
+      stopWatchingSelection?.()
       slate.withPolicyAuthority(() => {
         for (const [linkId, link] of links) link.parent.relationships?.removeAssociation(linkId)
         for (const [id, node] of owned) {
@@ -601,6 +721,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       owned.clear()
       drawn.clear()
       release()
+      reselecting = false
+      reportSelection()
       slate.notifyNodeChanged?.()
     },
   }

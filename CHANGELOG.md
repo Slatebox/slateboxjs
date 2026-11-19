@@ -14,6 +14,16 @@
   (Left/Right to stage, Enter, Escape), with the same refusals; a viewer (`isReadOnly`,
   `isCommentOnly`) can move nothing; and with `prefers-reduced-motion` cards are placed without
   gliding. See `docs/native-workshops.md`.
+- **Native workshops for narrow screens, in the host's note style.** `attachWorkshop` takes
+  `layout: { lanesPerRow }` to wrap lanes into rows and `setLayout()` to change it live (the same
+  notes glide to their new places); `bounds` and the new `slate.fitToWidth(region, padding, maxZoom)`
+  fit a board to a phone's width. A held card near an edge of the visible canvas pans the canvas, so
+  it can be carried by mouse or touch to a lane that started off screen. Left and Right follow
+  reading order through wrapped rows and Up and Down the column. `style` draws lanes, captions and
+  cards in the host's family, sizes, text colour, border and corner; with none they are drawn as an
+  ordinary engine note (`DEFAULT_NOTE_STYLE`). `onSelect` reports the selected card or lane.
+  `workshopLanePlaces` gives each lane's place. `slate.onSelectionChange(listener)` hears every
+  selection change.
 - **Host drag policies.** `slate.setDragPolicy(policy)` lets a host govern chosen notes: refuse a
   drag, watch it, accept or refuse the drop and say where the note settles, and decide per note
   whether it may be resized, rotated, deleted, duplicated, connected, edited or selected. Also
@@ -24,6 +34,11 @@
   candidate on a native slate.
 
 ### Changed
+- Native workshop notes default to the engine's own note style (14px, black text, a light grey
+  one-pixel border, square corners) instead of a look of their own; a host passes `style` for
+  anything else. `workshopToSlate` with no options is unchanged.
+- A station map's native connectors join one station's zone to the next instead of its header, so
+  a line no longer runs over a token or a caption.
 - A connected note is ready to name the moment it is created. Clicking or tapping
   a connector, dragging one into open space, or activating a keyboard direction
   button now selects the new note and opens its editor with the caret in it, so
@@ -54,6 +69,19 @@
   returnFocus }`, returns whether it opened, and takes focus synchronously.
 
 ### Fixed
+- The zoom slider's label was up to half a second behind the view (it polled on a timer), so it
+  read the old figure after `fitToContent()`. It now follows the canvas's viewBox and is right at
+  once.
+- The built-in presentation stepped through a host's decoration notes (a workshop's lane columns
+  and captions). Notes a drag policy marks `canSelect: false` are never a stop.
+- A connector between two governed notes (a station map's lines) could be clicked, selected and
+  deleted, and one that crossed a token took the press meant for the token. Such a connector now
+  takes no pointer input.
+- A held governed note could sit one pointer step behind a pointer that had stopped: the drag was
+  followed through svg.draggable, which drops a move when two in a row cover the same distance. It
+  is now followed from the browser's own move events.
+- A selected card that a workshop moved (a keyboard move, a new model) left its selection outline
+  round the slot it came from; and `board.refuse()` took a held card out of the hand.
 - `selectNodes` no longer throws when the slate contains a node whose
   `finishCreate()` has not run yet (async creation, collab peer seeds, paste
   cascades): `updateSelectionResizeRotate` called `resizeRotate.isEnabled()`
