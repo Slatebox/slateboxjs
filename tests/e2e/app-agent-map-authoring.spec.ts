@@ -20,6 +20,7 @@ test('an invited teammate follows an agent-authored branch and presents its save
   const owner:Actor={page:await browser.newPage(),id:null,email:'branch-owner-'+randomUUID()+'@qa.slatebox.invalid'}
   const peer:Actor={page:await browser.newPage({viewport:{width:390,height:844}}),id:null,email:'branch-reviewer-'+randomUUID()+'@qa.slatebox.invalid'}
   let mcp:InstanceType<typeof Client>|undefined
+  let withdraw:(()=>Promise<void>)|undefined
   try {
     const board=await register(owner,'/new/map')
     await register(peer,'/new/map')
@@ -46,12 +47,18 @@ test('an invited teammate follows an agent-authored branch and presents its save
     expect(preview.workshop.lanes.at(-1).outcome).toBe(firstOutcome)
     expect((await native()).model).toEqual(original.model)
     const invitation=await cli('share',board,'--role','edit','--idempotency-key',randomUUID())
+    const revokeKey=randomUUID()
+    withdraw=async()=>{
+      const result=await cli('unshare',board,'--invite-id',invitation.inviteId,'--idempotency-key',revokeKey)
+      expect(result.revoked).toBe(true)
+    }
     const link=new URL(invitation.url)
     expect(link.origin).toBe(origin.origin)
     await peer.page.goto(link.href)
     await dismissWelcome(peer.page)
     const hash=process.env.SLATEBOX_EXPECTED_APP_BUNDLE
     if(hash)await expect(peer.page.locator('script[src*="/'+hash+'.js"]')).toHaveCount(1)
+    await peer.page.getByRole('button',{name:'Map tools',exact:true}).click()
     await peer.page.getByRole('button',{name:'Token → Next step',exact:true}).click()
     await expect.poll(async()=>(await native()).revision).toBe(baseline+1)
     // The peer's change invalidates the original review; no partial station or edge is saved.
@@ -78,6 +85,7 @@ test('an invited teammate follows an agent-authored branch and presents its save
       ...update,dry_run:false,expected_revision:outcome.structuredContent.workshop.revision,idempotency_key:randomUUID()
     }})
     expect(updated.structuredContent?.report.updatedOutcomes).toEqual([{stationId:branch.stationId}])
+    await expect(peer.page.locator('[data-creative-revision]')).toHaveAttribute('data-creative-revision',String(updated.structuredContent.workshop.revision))
     await peer.page.getByRole('button',{name:'Token → '+label,exact:true}).click()
     await expect.poll(async()=>(await native()).model.workshop.cards[0].laneId).toBe(branch.stationId)
     await peer.page.reload()
@@ -89,16 +97,19 @@ test('an invited teammate follows an agent-authored branch and presents its save
       await deck.getByRole('button',{name:'Next station'}).click()
     }
     await expect(deck.getByRole('heading',{name:label,exact:true})).toBeVisible()
-    await expect(deck.getByText(finalOutcome,{exact:true})).toBeVisible()
+    await expect(deck.getByText(finalOutcome,{exact:true}).last()).toBeVisible()
     await expect(deck.getByRole('listitem')).toHaveText('Token')
     const latest=(await cli('read',board)).summary.workshop
     expect(latest.cards[0].laneId).toBe(branch.stationId)
     expect(latest.lanes.filter((lane:{id:string})=>lane.id===branch.stationId)).toHaveLength(1)
     expect(latest.lanes.at(-1).outcome).toBe(finalOutcome)
-    const revoked=await cli('unshare',board,'--invite-id',invitation.inviteId,'--idempotency-key',randomUUID())
-    expect(revoked.revoked).toBe(true)
+    await withdraw()
+    withdraw=undefined
   }finally{
-    try{if(mcp)await mcp.close();await Promise.all([retire(peer),retire(owner)])}
-    finally{await Promise.all([peer.page.close(),owner.page.close()])}
+    try{if(withdraw)await withdraw()}
+    finally {
+      try{if(mcp)await mcp.close();await Promise.all([retire(peer),retire(owner)])}
+      finally{await Promise.all([peer.page.close(),owner.page.close()])}
+    }
   }
 })
