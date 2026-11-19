@@ -124,9 +124,15 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     await dialog.getByRole('button', { name: 'Make private', exact: true }).click()
     await dialog.getByRole('button', { name: 'Done', exact: true }).click()
     await expect.poll(async () => (await getSlate(owner, key)).options.isPrivate).toBe(true)
-    // The workshop leaves the canvas of a person whose access is taken away.
+    // A person whose access is taken away is taken off the slate at once, without a reload:
+    // its workshop, its name and its canvas all leave their screen, and they are told why.
     await expect(editor.locator('#slateCanvas [data-node-id^="lane-"], #slateCanvas [data-node-id^="card-"]')).toHaveCount(0)
-    await expect(workshopStatus(editor)).toContainText('This slate is unavailable.')
+    await expect(slateTitle(editor).filter({ hasText: model.title })).toHaveCount(0)
+    await expect(editor.getByText(location, { exact: true })).toHaveCount(0)
+    await expect(editor.locator('#slateCanvas')).toHaveCount(0)
+    const refused = editor.getByRole('dialog').filter({ hasText: 'This slate is not accessible.' })
+    await expect(refused).toBeVisible()
+    await refused.getByRole('button', { name: 'OK', exact: true }).click()
     const accessKey = editLink.pathname.split('/').pop()!
     expect(await getSlate(editor, accessKey)).toBeFalsy()
     await editor.reload()

@@ -50,7 +50,7 @@ for(const width of [1360,390]) test('a '+width+'px native drawing gains a route 
     const dual=await read()
     expect(dual.nodes).toEqual(drawing.nodes)
     expect(dual.creative.model.workshop.lanes.map((lane:any)=>lane.label)).toEqual(['Intake','Review','Notify'])
-    for(const kept of nodes) await expect(note(page,kept.options.id)).toBeAttached()
+    for(const kept of nodes) { await expect(note(page,kept.options.id)).toBeVisible(); await expect(note(page,kept.options.id)).toContainText(kept.options.text) }
     const edge=(id:string)=>page.evaluate(key=>{const o=(window as any).slate.v2.nodes.one(key).options;return {left:o.x as number,right:(o.x as number)+(o.width as number)}},id)
     const drawingRight=Math.max(...await Promise.all(dual.nodes.map(async(n:any)=>(await edge(n.options.id)).right)))
     for(const station of dual.creative.model.workshop.lanes) expect((await edge('column-'+station.id)).left).toBeGreaterThan(drawingRight)
@@ -119,10 +119,14 @@ test('a drawing converted to a workshop shows both on one canvas and leaves its 
         await reachable(join)
         // The drawing and the workshop are on the one canvas; there is no switch between them.
         await expect(peer.getByRole('button',{name:/View drawing|Open workshop/})).toHaveCount(0)
-        for(const id of drawn) await expect(note(peer,id)).toBeAttached()
+        for(const id of drawn) await expect(note(peer,id)).toBeVisible()
         await expect(peer.locator('#slateCanvas [data-node-id^="lane-"]')).toHaveCount(3)
-        await join.focus()
+        // Join is reached with the keyboard alone: Tab from the top of the page arrives at it.
+        await peer.evaluate(()=>{(document.activeElement as HTMLElement|null)?.blur?.();window.scrollTo(0,0)})
+        let tabs=0
+        while(tabs<80 && !await join.evaluate(button=>button===document.activeElement)) { await peer.keyboard.press('Tab'); tabs++ }
         await expect(join).toBeFocused()
+        expect(tabs).toBeGreaterThan(0)
         expect(await userId(peer)).toBeNull()
         if(phone) await join.tap()
         else await peer.keyboard.press('Enter')
@@ -135,7 +139,7 @@ test('a drawing converted to a workshop shows both on one canvas and leaves its 
         await expect(conversation(peer).getByRole('textbox',{name:'Workshop command'})).toBeVisible()
         await expect(peer).toHaveURL(invite.href)
         await expect(peer.locator('#slateCanvas [data-node-id^="lane-"]')).toHaveCount(3)
-        for(const id of drawn) await expect(note(peer,id)).toBeAttached()
+        for(const id of drawn) await expect(note(peer,id)).toBeVisible()
         await expect(join).toHaveCount(0)
         expect(await userId(peer)).toBe(peerId)
       } finally {

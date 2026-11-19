@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
-import { card, conversation, dragCardNamed, lane, laneOfCard, openConversation, workshopReady, workshopStatus } from './app-native-workshop.shared'
+import { card, conversation, dragCardNamed, lane, laneOfCard, openConversation, tryDragNamed, workshopReady, workshopStatus } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 
@@ -36,9 +36,13 @@ test('a free creator previews a route, keeps a decision, follows up and undoes f
     await expect(lane(page,'next')).toContainText('Preview ten rows')
     await expect(page.locator('#slateCanvas [data-node-id^="lane-"]')).toHaveCount(3)
     // A proposal is looked at, not played: the token stays where the saved map has it until the proposal is kept.
-    await dragCardNamed(page,'Progress','Preview ten rows')
+    const revisionBefore = (await getSlate(page, key)).creative.revision
+    expect(await tryDragNamed(page,'Progress','Preview ten rows')).toBe(false)
+    // Long enough for a move that had been wrongly taken to settle on the canvas and be saved.
+    await page.waitForTimeout(1500)
     expect(await laneOfCard(page,(await saved()).cards[0].id)).toBe('Client CSV')
     expect(await saved()).toEqual(original)
+    expect((await getSlate(page, key)).creative.revision).toBe(revisionBefore)
     await review.click()
     await expect.poll(async () => (await saved()).lanes.map((l:any)=>l.label)).toEqual(['Client CSV','Preview ten rows','Start a pilot'])
     // Kept, the route plays on the canvas.

@@ -90,6 +90,10 @@ for (const example of examples) {
       await shareAs(owner,'read')
       // A reader is offered no way to take the card back, and still sees what was decided.
       const home=(await stored()).creative.model.workshop.lanes[0]
+      // The owner, who may edit, is offered the way back by the same canvas (once the Share dialog
+      // has left the screen); the reader is not.
+      await expect(owner.getByRole('dialog',{name:'Share this slate'})).toHaveCount(0)
+      await expect.poll(()=>isOffered(owner,'First customer pilot',home.label)).toBe(true)
       await expect.poll(()=>isOffered(peer,'First customer pilot',home.label)).toBe(false)
       expect(await keyboardMove(peer,example.card,home.label)).toBe(false)
       await decided(peer)

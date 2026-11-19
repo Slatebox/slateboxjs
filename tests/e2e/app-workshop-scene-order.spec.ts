@@ -1,10 +1,10 @@
 import {sendMapEdit} from './map-conversation.shared'
 import {sendLaneEdit,laneChat} from './workshop-conversation.shared'
 import { expect, test, type Page } from '@playwright/test'
-import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
+import { encodeWorkshopFragment, workshopDestinations, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
-import {conversation, dragCardNamed, editable, isOffered, keyboardMove, selectLaneNamed, slateTitle, workshopReady} from './app-native-workshop.shared'
+import {conversation, dragCardNamed, editable, isOffered, keyboardMove, offeredLanes, selectLaneNamed, slateTitle, workshopReady} from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const workshops: Workshop[] = [{
@@ -126,7 +126,12 @@ for (const workshop of workshops) {
       await expect(reader.getByRole('button', { name: 'Edit an object' })).toHaveCount(0)
       await readScenes(reader, updated, order)
       expect(await userId(reader)).toBeNull()
+      // The owner's canvas offers the card exactly the lanes the workshop's rules open to it.
+      const open = workshopDestinations(updated, moving.id).map(item => item.id).filter(id => id !== destination.id).sort()
+      expect(open.length).toBeGreaterThan(0)
+      expect((await offeredLanes(owner, moving.id)).sort()).toEqual(open)
       // A reader is offered no move: not by picking the card up, and not from the keyboard.
+      expect(await offeredLanes(reader, moving.id)).toEqual([])
       expect(await isOffered(reader, moving.label, start.label)).toBe(false)
       expect(await keyboardMove(reader, moving.id, start.label)).toBe(false)
       expect((await getSlate(owner, key)).creative.model.workshop.cards).toEqual(updated.cards)

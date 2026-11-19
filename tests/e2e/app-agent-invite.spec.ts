@@ -100,8 +100,11 @@ test('an owner issues a native editor invitation and can downgrade and retire it
     const revokeKey=randomUUID()
     const revoked=await mcp.callTool({name:'revoke_slate_invite',arguments:{share_id:shareId,invite_id:invitation.inviteId,idempotency_key:revokeKey}})
     expect(revoked.structuredContent?.revoked).toBe(true)
-    // With the invitation revoked the workshop leaves the peer's canvas.
+    // With the invitation revoked the peer is taken off the slate at once: no workshop, no name, no canvas.
     await expect(peer.page.locator('#slateCanvas [data-node-id^="lane-"], #slateCanvas [data-node-id^="card-"]')).toHaveCount(0)
+    await expect(peer.page.locator('.sb-board-name strong').filter({hasText:map.title})).toHaveCount(0)
+    await expect(peer.page.locator('#slateCanvas')).toHaveCount(0)
+    await expect(peer.page.getByRole('dialog').filter({hasText:'This slate is not accessible.'})).toBeVisible()
     const replay=await cli('unshare',shareId,'--invite-id',invitation.inviteId,'--idempotency-key',revokeKey)
     expect(replay.revoked).toBe(true)
     expect((await httpIssue(manager,'edit',issueKey)).status()).toBe(409)

@@ -2,7 +2,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
 import { createInterviewWorkshop, encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import {
-  announced, canvas, caption, card, conversation, dragCard, finger, holdCardOver, keyboardMove, lane, laneOfCard, note, offeredLanes,
+  announced, canvas, caption, card, cardIdNamed, conversation, dragCard, finger, holdCardOver, keyboardMove, lane, laneOfCard, note, offeredLanes,
   placementOutcomes, previewWorkshopMessage, renameInPlace, resting, selectCard, slateKey, storedWorkshop, workshopReady, workshopStatus,
 } from './app-native-workshop.shared'
 
@@ -107,7 +107,7 @@ test('the $600 budget opens on the slate\'s own canvas, which pans, zooms and ke
   } finally { await removeTestGuest(page, id) }
 })
 
-test('a note added beside the workshop is saved with the slate and survives a reload; no workshop note is ever stored', async ({ page }) => {
+test('a note added beside the workshop is saved with the slate and survives a reload; the canvas never sends a workshop note, and a note of the slate\'s own with a workshop name is kept', async ({ page }) => {
   let id: string | null = null
   try {
     const owner = await openRuled(page)
@@ -115,7 +115,7 @@ test('a note added beside the workshop is saved with the slate and survives a re
     // Double-click empty canvas beside the lanes, and name the new note.
     const first = await resting(page, 'column-now')
     const spot = { x: first.x - 70, y: first.y + 120 }
-    const placed = () => page.evaluate(() => { const o = (window as any).slate.v2.nodes.one('lane-now').options; return { x: o.x as number, y: o.y as number } })
+    const placed = () => page.evaluate(() => { const o = (window as any).slate.v2.nodes.one('column-now').options; return { x: o.x as number, y: o.y as number } })
     const laneBefore = await placed()
     await page.mouse.dblclick(spot.x, spot.y)
     // The new note is selected; typing names it.
@@ -139,44 +139,77 @@ test('a note added beside the workshop is saved with the slate and survives a re
     expect(exported).toEqual([saved.options.id])
     expect(await page.locator('#slateCanvas [data-node-id^="card-"]').count()).toBe(4)
 
-    // The server is the authority: a save that carries workshop notes stores none of them.
+    // A slate can hold notes of its own that are called what the workshop calls its notes: a
+    // workshop drawing saved as an ordinary slate has them, and may later be made interactive.
+    // They are the slate's notes. The save keeps them and every connector between them.
     await page.evaluate(async () => {
       const slate = (window as any).slate
       const snapshot = JSON.parse(slate.exportJSON())
       snapshot.shareId ||= slate.shareId
-      const forged = (id: string) => ({ options: { id, text: 'forged', xPos: 0, yPos: 0, width: 80, height: 40 }, relationships: { associations: [] } })
-      snapshot.nodes.push(forged('card-alpha'), forged('lane-now'), forged('column-next'), forged('caption-later'))
-      snapshot.nodes[0].relationships.associations.push({ id: 'to-card', parentId: snapshot.nodes[0].options.id, childId: 'card-beta' })
+      const own = (id: string, text: string, yPos: number) => ({ options: { id, text, xPos: snapshot.nodes[0].options.xPos, yPos, width: 170, height: 70 }, relationships: { associations: [] as unknown[] } })
+      const mine = own('card-alpha', 'My Alpha note', snapshot.nodes[0].options.yPos + 130)
+      mine.relationships.associations.push({ id: 'mine-to-mine', parentId: 'card-alpha', childId: 'lane-now' })
+      snapshot.nodes.push(mine, own('lane-now', 'My Now note', snapshot.nodes[0].options.yPos + 260))
       await (window as any).Meteor.callAsync('slates.update', { slate: snapshot, nativeConversationRevision: slate.nativeConversationRevision ?? 0, routeKey: location.pathname.split('/').pop() })
     })
-    const afterForgery = await getSlate(page, owner.key)
-    expect(afterForgery.nodes.map((node: any) => node.options.id)).toEqual([saved.options.id])
-    expect(afterForgery.nodes[0].relationships.associations).toEqual([])
-    // Neither can a direct collection write by the owner's own client. The same path may write
-    // other fields, which is the control: the probe option lands and the forged notes do not.
-    const forgedNote = { options: { id: 'card-alpha', text: 'forged' }, relationships: { associations: [] } }
-    await page.evaluate(async ({ id, modifiers }) => {
-      for (const modifier of modifiers) {
-        await (window as any).Meteor.connection.applyAsync('/slates/updateAsync', [{ _id: id }, modifier, {}]).catch(() => {})
-      }
-    }, { id: afterForgery._id as string, modifiers: [
-      { $push: { nodes: forgedNote } }, { $set: { nodes: [...afterForgery.nodes, forgedNote] } }, { $set: { 'options.directWriteProbe': true } },
-    ] })
-    const afterDirect = await getSlate(page, owner.key)
-    expect(afterDirect.options.directWriteProbe).toBe(true)
-    expect(afterDirect.nodes.map((node: any) => node.options.id)).toEqual([saved.options.id])
+    const kept = [saved.options.id, 'card-alpha', 'lane-now']
+    const withOwn = await getSlate(page, owner.key)
+    expect(withOwn.nodes.map((node: any) => node.options.id)).toEqual(kept)
+    expect(withOwn.nodes[1].relationships.associations).toEqual([{ id: 'mine-to-mine', parentId: 'card-alpha', childId: 'lane-now' }])
+    expect(await lanesOf(page, owner.key)).toEqual({ alpha: 'later', beta: 'next', gamma: 'now', delta: 'now' })
 
     await page.reload()
     await dismissWelcome(page)
     await workshopReady(page)
+    // Both are on the canvas as ordinary notes with their own words, and so is the first note.
     await expect(note(page, saved.options.id)).toContainText('Parking lot')
-    expect(await laneOfCard(page, 'alpha')).toBe('Later')
-    // The workshop is where it was, so the note is still beside it on the same side after the reload.
+    await expect(note(page, 'card-alpha')).toContainText('My Alpha note')
+    await expect(note(page, 'lane-now')).toContainText('My Now note')
+    const drawn = await page.evaluate(() => {
+      const engine = (window as any).slate.v2
+      const governed = (node: any) => Boolean(engine.governanceOf(node))
+      return {
+        mine: ['card-alpha', 'lane-now'].map(id => governed(engine.nodes.one(id))),
+        workshop: engine.nodes.allNodes.filter(governed).map((node: any) => node.options.text as string),
+        exported: JSON.parse((window as any).slate.exportJSON()).nodes.map((node: any) => node.options.id as string),
+      }
+    })
+    expect(drawn.mine).toEqual([false, false])
+    expect(drawn.exported).toEqual(kept)
+    // The workshop is drawn whole beside them: every lane and every card, each once.
+    for (const label of ['Now', 'Next', 'Later', 'Alpha', 'Beta', 'Gamma', 'Delta']) expect(drawn.workshop.filter(text => text === label)).toHaveLength(1)
+    // Its own Alpha is a different note from the slate's "card-alpha", and it still plays.
+    const alpha = await cardIdNamed(page, 'Alpha')
+    expect(alpha).not.toBe('alpha')
+    expect(await laneOfCard(page, alpha)).toBe('Later')
+    await dragCard(page, alpha, 'next')
+    await expect(caption(page, 'next')).toContainText('Now holds 1 of 1 card.')
+    await dragCard(page, alpha, 'now')
+    await expect.poll(async () => (await lanesOf(page, owner.key)).alpha).toBe('now')
+    expect(await laneOfCard(page, alpha)).toBe('Now')
+
+    // A later canvas save (the person moves their own note) still stores all three notes.
+    const mine = await resting(page, 'card-alpha')
+    const before = (await ordinary(owner.key)).find(node => node.options.id === 'card-alpha') as any
+    await page.mouse.move(mine.x + mine.width / 2, mine.y + mine.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(mine.x + mine.width / 2 - 30, mine.y + mine.height / 2 + 24, { steps: 8 })
+    await page.mouse.up()
+    await expect.poll(async () => ((await ordinary(owner.key)).find(node => node.options.id === 'card-alpha') as any)?.options.yPos).not.toBe(before.options.yPos)
+    expect((await ordinary(owner.key)).map(node => node.options.id)).toEqual(kept)
+    expect(await lanesOf(page, owner.key)).toEqual({ alpha: 'now', beta: 'next', gamma: 'now', delta: 'now' })
+
+    await page.reload()
+    await dismissWelcome(page)
+    await workshopReady(page)
+    await expect(note(page, 'card-alpha')).toContainText('My Alpha note')
+    expect(await laneOfCard(page, await cardIdNamed(page, 'Alpha'))).toBe('Now')
+    // The workshop is where it was, so the first note is still beside it on the same side.
     expect(await placed()).toEqual(laneBefore)
     expect((await getSlate(page, owner.key)).options.workshopOrigin).toEqual({ x: 40, y: 40 })
     const noteBox = await resting(page, saved.options.id), column = await resting(page, 'column-now')
     expect(noteBox.x + noteBox.width / 2).toBeLessThan(column.x)
-    expect((await ordinary(owner.key)).map(node => node.options.text)).toEqual(['Parking lot'])
+    expect((await ordinary(owner.key)).map(node => node.options.text)).toEqual(['Parking lot', 'My Alpha note', 'My Now note'])
   } finally { await removeTestGuest(page, id) }
 })
 
@@ -265,7 +298,7 @@ test('a second person sees a move, a rename and a kept proposal without reloadin
   }
 })
 
-test('a save that loses a race is undone on the canvas and the lane says so', async ({ browser, page }) => {
+test('two people who move different cards at the same moment both keep their move', async ({ browser, page }) => {
   let ownerId: string | null = null
   let peer: Awaited<ReturnType<typeof joinAsEditor>> | null = null
   try {
@@ -280,24 +313,77 @@ test('a save that loses a race is undone on the canvas and the lane says so', as
     await expect.poll(() => revisionOf(page, owner.key)).toBe(1)
     await peer.page.waitForTimeout(800)
     expect(await laneOfCard(peer.page, 'delta')).toBe('Now')
-    // The peer lets go: their save is for a revision that is gone.
+    // The peer lets go. No rule stands between the two moves, so both are saved.
     await peer.page.mouse.up()
-    await expect(caption(peer.page, 'later')).toContainText('Someone else saved first.')
-    await expect(announced(peer.page)).toContainText('Later: Someone else saved first.')
-    await expect(workshopStatus(peer.page).getByRole('alert')).toContainText('Someone else changed this workshop first. Your change was not saved.')
-    // Their canvas now shows the server's workshop: the owner's move, and Alpha back in Now.
-    await expect.poll(() => laneOfCard(peer!.page, 'delta')).toBe('Later')
+    await expect.poll(() => lanesOf(page, owner.key)).toEqual({ alpha: 'later', beta: 'next', gamma: 'now', delta: 'later' })
+    expect(await revisionOf(page, owner.key)).toBe(2)
+    // Each canvas shows both cards in Later, and nobody is told anything went wrong.
+    for (const view of [peer.page, page]) {
+      await expect.poll(() => laneOfCard(view, 'delta')).toBe('Later')
+      await expect.poll(() => laneOfCard(view, 'alpha')).toBe('Later')
+      await expect(caption(view, 'later')).toContainText('2 cards')
+      await expect(workshopStatus(view).getByRole('alert')).toHaveCount(0)
+    }
+    const alpha = await resting(peer.page, 'card-alpha'), later = await resting(peer.page, 'column-later')
+    expect(alpha.x).toBeGreaterThanOrEqual(later.x)
+    expect(alpha.x + alpha.width).toBeLessThanOrEqual(later.x + later.width + 1)
+
+    // A rename and an unrelated move made at the same moment are both saved too.
+    await holdCardOver(peer.page, 'alpha', 'now')
+    await renameInPlace(page, 'card-beta', 'Beta prime')
+    await expect.poll(() => revisionOf(page, owner.key)).toBe(3)
+    await peer.page.mouse.up()
+    await expect.poll(() => lanesOf(page, owner.key)).toEqual({ alpha: 'now', beta: 'next', gamma: 'now', delta: 'later' })
+    expect(await revisionOf(page, owner.key)).toBe(4)
+    expect((await storedWorkshop(page, owner.key)).cards.find((item: any) => item.id === 'beta').label).toBe('Beta prime')
+    await expect(card(peer.page, 'beta')).toContainText('Beta prime')
+    await expect(workshopStatus(peer.page).getByRole('alert')).toHaveCount(0)
+  } finally {
+    if (peer) { await removeTestGuest(peer.page, peer.id).catch(() => {}); await peer.context.close() }
+    await removeTestGuest(page, ownerId)
+  }
+})
+
+test('two people who fill the last place in a lane: one card is stored, the other goes back and the lane says why', async ({ browser, page }) => {
+  let ownerId: string | null = null
+  let peer: Awaited<ReturnType<typeof joinAsEditor>> | null = null
+  try {
+    const owner = await openRuled(page)
+    ownerId = owner.id
+    // Free the one place in Next.
+    await dragCard(page, 'beta', 'later')
+    await expect.poll(() => revisionOf(page, owner.key)).toBe(1)
+    peer = await joinAsEditor(browser, page)
+    await expect.poll(() => laneOfCard(peer!.page, 'beta')).toBe('Later')
+    // The peer holds Alpha over Next, which is free on both canvases.
+    await holdCardOver(peer.page, 'alpha', 'next')
+    // The owner puts Delta there first.
+    await dragCard(page, 'delta', 'next')
+    await expect.poll(async () => (await lanesOf(page, owner.key)).delta).toBe('next')
+    await expect.poll(() => revisionOf(page, owner.key)).toBe(2)
+    await peer.page.waitForTimeout(800)
+    expect(await laneOfCard(peer.page, 'delta')).toBe('Now')
+    // The peer lets go. On the workshop as it now stands, Next is full: the workshop's own rule refuses.
+    await peer.page.mouse.up()
+    await expect(caption(peer.page, 'next')).toContainText('Now holds 1 of 1 card.')
+    await expect(announced(peer.page)).toContainText('Next: Now holds 1 of 1 card.')
+    await expect(workshopStatus(peer.page).getByRole('alert')).toContainText('Now holds 1 of 1 card. Your change was not saved.')
+    // Their canvas shows the server's workshop at once: the owner's card in Next, and Alpha back in Now.
+    await expect.poll(() => laneOfCard(peer!.page, 'delta')).toBe('Next')
     await expect.poll(() => laneOfCard(peer!.page, 'alpha')).toBe('Now')
     const alpha = await resting(peer.page, 'card-alpha'), now = await resting(peer.page, 'column-now')
     expect(alpha.x).toBeGreaterThanOrEqual(now.x)
     expect(alpha.x + alpha.width).toBeLessThanOrEqual(now.x + now.width + 1)
-    expect(await lanesOf(page, owner.key)).toEqual({ alpha: 'now', beta: 'next', gamma: 'now', delta: 'later' })
-    expect(await revisionOf(page, owner.key)).toBe(1)
-    // On the latest workshop the same move is saved.
+    // Exactly one card is stored in Next, and nothing was saved for the refused move.
+    expect(await lanesOf(page, owner.key)).toEqual({ alpha: 'now', beta: 'later', gamma: 'now', delta: 'next' })
+    expect(await revisionOf(page, owner.key)).toBe(2)
+    // The reason leaves the caption, and a move the rules allow is saved.
+    await expect(caption(peer.page, 'next')).toContainText('1 of 1')
+    await expect(caption(peer.page, 'next')).not.toContainText('Now holds')
     await dragCard(peer.page, 'alpha', 'later')
     await expect.poll(async () => (await lanesOf(page, owner.key)).alpha).toBe('later')
     await expect.poll(() => laneOfCard(page, 'alpha')).toBe('Later')
-    expect(await revisionOf(page, owner.key)).toBe(2)
+    expect(await revisionOf(page, owner.key)).toBe(3)
   } finally {
     if (peer) { await removeTestGuest(peer.page, peer.id).catch(() => {}); await peer.context.close() }
     await removeTestGuest(page, ownerId)

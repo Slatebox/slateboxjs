@@ -164,13 +164,24 @@ export async function renameInPlace(page: Page, id: string, text: string) {
   await expect(editor).toHaveCount(0)
 }
 
-/** Open the conversation if it is closed (it starts closed beside a narrow canvas). */
+/** Pages whose conversation this test closed itself, until they next load. */
+const closedByTest = new WeakSet<Page>()
+
+/**
+ * The slate's conversation, ready to type in. Beside a wide canvas (900px and up) it is open
+ * when the slate opens, and this insists on that: it does not open it for the page. It is
+ * opened here only where a person would have to: on a narrower canvas, or after the test
+ * closed it.
+ */
 export async function openConversation(page: Page) {
   const panel = conversation(page)
   const ask = page.getByRole('button', { name: 'Ask Slatebox', exact: true })
   // Either the panel or its button is there once the page is ready (a closing dialog hides both for a moment).
   await expect(panel.or(ask).first()).toBeVisible()
-  if (!await panel.isVisible()) await ask.click()
+  const wide = await page.evaluate(() => innerWidth >= 900)
+  if (wide && !closedByTest.has(page)) await expect(panel, 'the conversation starts open beside a wide canvas').toBeVisible()
+  else if (!await panel.isVisible()) await ask.click()
+  closedByTest.delete(page)
   await expect(panel).toBeVisible()
   return panel
 }
@@ -213,8 +224,9 @@ export async function offeredLanes(page: Page, cardId: string) {
   await page.mouse.move(from.x + 6, from.y + 6, { steps: 3 })
   await page.mouse.move(from.x + 14, from.y + 10, { steps: 3 })
   await page.waitForTimeout(150)
+  // The canvas says which lanes take the held card on each lane's column (data-workshop-drop).
   const offered = await page.evaluate(() => [...document.querySelectorAll('#slateCanvas [data-node-id^="column-"]')]
-    .filter(column => ['#5b9a85', '#1f7a5c'].includes((column.querySelector('path')?.getAttribute('stroke') ?? '').toLowerCase()))
+    .filter(column => ['open', 'over'].includes(column.getAttribute('data-workshop-drop') ?? ''))
     .map(column => column.getAttribute('data-node-id')!.slice('column-'.length)))
   await page.keyboard.press('Escape')
   await page.mouse.up()
@@ -250,6 +262,8 @@ export async function closeConversation(page: Page) {
   const panel = conversation(page)
   if (await panel.isVisible()) await panel.getByRole('button', { name: 'Close conversation', exact: true }).click()
   await expect(panel).toHaveCount(0)
+  closedByTest.add(page)
+  page.once('load', () => closedByTest.delete(page))
 }
 
 /** Wait until this person may edit the workshop: the conversation, or its "Ask Slatebox" button, is there. */
