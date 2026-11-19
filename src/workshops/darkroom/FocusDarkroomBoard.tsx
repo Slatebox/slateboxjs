@@ -57,9 +57,10 @@ interface Props {
   value: FocusDarkroom
   onChange?: (next: FocusDarkroom) => void
   readOnly?: boolean
+  onEditPrint?: (field: (typeof printFields)[number]) => void
 }
 
-export function FocusDarkroomBoard({value, onChange, readOnly = false}: Props) {
+export function FocusDarkroomBoard({value, onChange, readOnly = false, onEditPrint}: Props) {
   const locked = readOnly || !onChange
   const [preview, setPreview] = useState<Wire | null>(null)
   const [epoch, setEpoch] = useState(0)
@@ -145,7 +146,11 @@ export function FocusDarkroomBoard({value, onChange, readOnly = false}: Props) {
         <button type="button" onClick={() => setDraft(null)}>Cancel rename</button></div>
       </form> : null}
       <button type="button" data-close onClick={() => viewer.current?.close()}>Close viewer</button>
-      {!locked && draft === null && <button type="button" onClick={() => setDraft(value[printFields[opened]])}>Rename print</button>}
+      {!locked && draft === null && <button type="button" onClick={() => {
+        const field = printFields[opened]
+        if (onEditPrint) { viewer.current?.close(); onEditPrint(field) }
+        else setDraft(value[field])
+      }}>Rename print</button>}
     </dialog>
   </section>
 }
