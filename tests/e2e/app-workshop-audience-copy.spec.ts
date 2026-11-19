@@ -1,3 +1,4 @@
+import {sendLaneEdit,laneChat} from './workshop-conversation.shared'
 import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
@@ -84,9 +85,7 @@ test('audiences can keep a private copy only of a currently opted-in workshop ed
     expect(duplicate._id).not.toBe(sourceId)
     expect(duplicate.options).toMatchObject({isPrivate:true,isPublic:false,isUnlisted:false})
     expect(duplicate.creative.model.workshop).toEqual(large)
-    await copier.getByText('Move a card by name',{exact:true}).click()
-    await copier.getByRole('combobox',{name:'Move Harbor bell'}).selectOption('air')
-    await copier.getByRole('button',{name:'Apply move'}).click()
+    await sendLaneEdit(copier,'Move @bell to @air')
     await expect.poll(async()=>(await getSlate(copier!,copyKey)).creative.model.workshop.cards[0].laneId).toBe('air')
     expect((await getSlate(owner,key)).creative.model.workshop).toEqual(privateRevision)
     expect(await getSlate(owner,copyKey)).toBeFalsy()
@@ -122,7 +121,7 @@ test('audiences can keep a private copy only of a currently opted-in workshop ed
     await expect(owner.getByRole('status')).toContainText('Presentation withdrawn')
     await assertDenied(nextEdition)
     await copier.reload()
-    await expect(copier.getByText('Move a card by name', {exact:true})).toBeVisible()
+    await expect(laneChat(copier).getByRole('textbox')).toBeVisible()
     await expect.poll(() => userId(copier!)).toBe(copierId)
     expect((await getSlate(copier,copyKey)).creative.model.workshop.cards[0].laneId).toBe('air')
   } finally {

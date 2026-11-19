@@ -1,3 +1,4 @@
+import {sendLaneEdit} from './workshop-conversation.shared'
 import { createServer } from 'node:http'
 import { once } from 'node:events'
 import { randomUUID } from 'node:crypto'
@@ -67,8 +68,7 @@ test('a reader keeps an independent workshop from a handbook and reopens it on a
     expect(copyOwner).not.toBe(ownerId)
     expect((await getSlate(copyPage, key)).options.isPrivate).toBe(true)
 
-    await copyPage.getByText('Move a card by name', { exact: true }).click()
-    await copyPage.getByRole('combobox', { name: 'Move Dawn birdsong' }).selectOption('walk')
+    await sendLaneEdit(copyPage,'Move @birdsong to @walk')
     await expect.poll(async () => (await getSlate(copyPage!, key)).creative.model.workshop.cards[0].laneId).toBe('walk')
     expect((await getSlate(owner, sourceKey)).creative.model.workshop.cards[0].laneId).toBe('studio')
     await publication.getByRole('button', { name: 'Withdraw presentation' }).click()
