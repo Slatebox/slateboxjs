@@ -3,6 +3,7 @@ import { expectWorkshopSlide } from './workshop-slide.shared'
 import {laneChat,sendLaneEdit,expectRejectedLaneEdit} from './workshop-conversation.shared'
 import {dismissWelcome,getSlate,userId,removeTestGuest} from './workshop-guests.shared'
 import { test, expect, type Page } from '@playwright/test'
+import {laneOfCard, slateTitle, workshopReady} from './app-native-workshop.shared'
 
 const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 
@@ -34,7 +35,11 @@ test('review a workshop, move a card, present and open a private editable slate'
     await expectRejectedLaneEdit(page,'Move @spares to @pilot')
     await sendLaneEdit(page,'Move @spares to @evidence')
     await page.reload()
-    await expect(page.getByRole('heading', { name: 'Review the winter shutdown pilots' })).toBeVisible()
+    await workshopReady(page)
+    await expect(slateTitle(page)).toHaveText('Review the winter shutdown pilots')
+    // The saved moves are drawn on the canvas after the reload.
+    expect(await laneOfCard(page,'sensors')).toBe('Fund this quarter')
+    expect(await laneOfCard(page,'spares')).toBe('Gather evidence')
     await page.getByRole('button', { name: 'Present', exact: true }).click()
     await expectWorkshopSlide(page, 'Proposed trials', [], ['lane-proposed'])
     await expect(page.getByText('No cards in this lane.')).toBeVisible()
