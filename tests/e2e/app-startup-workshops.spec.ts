@@ -1,12 +1,12 @@
 import {test, expect} from '@playwright/test'
-import {decodeWorkshopFragment, planStartupMove} from '../../src/workshops/model'
+import {createBudgetWorkshop, createInterviewWorkshop, decodeWorkshopFragment, planStartupMove} from '../../src/workshops/model'
 import {dismissWelcome, getSlate, removeTestGuest, shareAs, userId} from './workshop-guests.shared'
-import {editObject} from './workshop-edit.shared'
+import {sendLaneEdit} from './workshop-conversation.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const examples = [
-  {kind:'customer-interviews', entry:'Turn interviews into a prototype brief', mode:'interview-brief', card:'duplicate', lane:'prototype'},
-  {kind:'experiment-budget', entry:'Plan a $600 pilot budget', mode:'pilot-budget', card:'fund-1', lane:'newsletter'},
+  {kind:'customer-interviews', initial:createInterviewWorkshop, mode:'interview-brief', card:'duplicate', lane:'prototype'},
+  {kind:'experiment-budget', initial:createBudgetWorkshop, mode:'pilot-budget', card:'fund-1', lane:'newsletter'},
 ] as const
 
 for (const example of examples) {
@@ -19,31 +19,28 @@ for (const example of examples) {
     let ownerId:string|null=null
     let peerId:string|null=null
     try {
-      await owner.goto(origin.origin+'/start')
-      const entry=owner.getByRole('link',{name:example.entry,exact:true})
-      await expect(entry).toBeVisible()
-      const href=new URL((await entry.getAttribute('href'))!,origin)
-      expect(href.pathname).toBe('/new/workshop')
-      expect(decodeWorkshopFragment(href.hash).experience?.kind).toBe(example.kind)
-      let incoming=decodeWorkshopFragment(href.hash)
-      if(process.env.SLATEBOX_STARTUP_MARKETING_URL) {
-        const demo=new URL('/assets/product/workshop-demo.html?mode='+example.mode,process.env.SLATEBOX_STARTUP_MARKETING_URL)
-        await owner.goto(demo.href)
-        if(example.kind==='customer-interviews') {
-          await owner.locator('[data-card="undo"]').press('Enter')
-          incoming=planStartupMove(incoming,'undo','prototype')!
-        } else {
-          await owner.locator('[data-card="fund-2"]').press('Enter')
-          await owner.locator('[data-drop="pilot"]').press('Enter')
-          incoming=planStartupMove(incoming,'fund-2','pilot')!
-        }
-        const handoff=new URL((await owner.getByRole('link',{name:/Open this.*in Slatebox/}).getAttribute('href'))!)
-        expect(handoff.origin).toBe('https://app.slatebox.com')
-        expect(handoff.pathname).toBe(href.pathname)
-        expect(decodeWorkshopFragment(handoff.hash)).toEqual(incoming)
-        // Only the origin changes: never create a fixture on the production URL in the link.
-        await owner.goto(new URL(handoff.pathname+handoff.hash,origin).href)
-      } else await entry.click()
+      const demo=new URL('/assets/product/workshop-demo.html?mode='+example.mode,
+        process.env.SLATEBOX_STARTUP_MARKETING_URL || 'https://slatebox.com')
+      await owner.goto(demo.href)
+      const entry=owner.getByRole('link',{name:/Open this.*in Slatebox/})
+      const href=async()=>new URL((await entry.getAttribute('href'))!)
+      const initial=example.initial()
+      expect(decodeWorkshopFragment((await href()).hash)).toEqual(initial)
+      let incoming
+      if(example.kind==='customer-interviews') {
+        await owner.locator('[data-card="undo"]').press('Enter')
+        incoming=planStartupMove(initial,'undo','prototype')!
+      } else {
+        await owner.locator('[data-card="fund-2"]').press('Enter')
+        await owner.locator('[data-drop="pilot"]').press('Enter')
+        incoming=planStartupMove(initial,'fund-2','pilot')!
+      }
+      await expect.poll(async()=>decodeWorkshopFragment((await href()).hash)).toEqual(incoming)
+      const handoff=await href()
+      expect(handoff.origin).toBe('https://app.slatebox.com')
+      expect(handoff.pathname).toBe('/new/workshop')
+      // Run the public handoff on the selected disposable app, preserving its full fragment.
+      await owner.goto(new URL(handoff.pathname+handoff.hash,origin).href)
       await owner.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
       await expect.poll(()=>userId(owner)).toBeTruthy()
       ownerId=await userId(owner)
@@ -69,7 +66,7 @@ for (const example of examples) {
       const decision=example.kind==='customer-interviews'?'Keep original record':'1 placement'
       const target='[data-drop="'+example.lane+'"]'
       await expect(owner.locator(target)).toContainText(decision)
-      await editObject(owner,'card:'+example.card, async()=>{await owner.locator('.workshop-inspector').getByLabel('Name',{exact:true}).fill('First customer pilot')})
+      await sendLaneEdit(owner,'Rename card @'+example.card+' to First customer pilot')
       await expect(peer.locator(choice)).toContainText('First customer pilot')
       await peer.reload()
       await dismissWelcome(peer)
