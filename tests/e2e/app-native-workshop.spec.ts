@@ -71,7 +71,11 @@ test('the $600 budget opens on the slate\'s own canvas, which pans, zooms and ke
       await expect(note(page, id)).toBeVisible()
     }
     await expect(caption(page, 'reserve')).toContainText('$400 · unallocated')
-    await expect(page.locator('#slateCanvas .slateboxjs-birdseye')).toBeVisible()
+    // The minimap is the canvas's own. While the whole slate is on screen it is put away, so it lies over no lane;
+    // it is back as soon as part of the slate is off screen (below, once the view has been zoomed and panned).
+    const minimap = page.locator('#slateCanvas .slateboxjs-birdseye')
+    await expect(minimap).toBeAttached()
+    await expect(minimap).toBeHidden()
     await expect(page.locator('#slateCanvas .slatebox-zoom-slider')).toBeVisible()
     // Nothing on screen covers the card: the element under its centre belongs to the card's own note.
     const fund = await resting(page, 'card-fund-1')
@@ -97,6 +101,7 @@ test('the $600 budget opens on the slate\'s own canvas, which pans, zooms and ke
     const cardPanned = await resting(page, 'card-fund-1')
     expect(Math.round(cardPanned.x - cardZoomed.x)).toBeGreaterThan(20)
     expect(Math.round(cardPanned.y - cardZoomed.y)).toBeLessThan(-10)
+    await expect(minimap).toBeVisible()
 
     // After panning and zooming the workshop still plays, and the move is saved as the model.
     await dragCard(page, 'fund-1', 'calls')

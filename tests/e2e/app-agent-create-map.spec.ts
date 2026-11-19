@@ -104,7 +104,7 @@ test('packaged tools create private maps and source diagrams through the same op
 
     await workshopReady(owner)
     const chat = conversation(owner)
-    const message = chat.getByRole('textbox', { name: 'Direct map edits' })
+    const message = chat.getByRole('textbox', { name: 'Message Slatebox' })
     await message.fill('Ask the shop or ask the courier')
     await message.press('Enter')
     const keep = chat.getByRole('button', { name: 'Keep changes' })

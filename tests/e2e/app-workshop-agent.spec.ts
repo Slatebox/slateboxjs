@@ -41,7 +41,7 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
     await dismissWelcome(owner)
     await workshopReady(owner)
     const chat = conversation(owner)
-    const input = chat.getByRole('textbox', { name: 'Direct map edits' })
+    const input = chat.getByRole('textbox', { name: 'Message Slatebox' })
     await input.fill('Ask finance or ask the account owner')
     await input.press('Enter')
     await chat.getByRole('button', { name: 'Keep changes' }).click()

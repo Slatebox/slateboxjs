@@ -4,7 +4,7 @@ import {lane,openConversation} from './app-native-workshop.shared'
 
 export async function sendMapEdit(page:Page,message:string,decision:'Keep changes'|'Discard preview'='Keep changes') {
   const chat = await openConversation(page)
-  const input = chat.getByRole('textbox',{name:'Direct map edits'})
+  const input = chat.getByRole('textbox',{name:'Message Slatebox'})
   await input.fill(message)
   await chat.getByRole('button',{name:'Preview changes',exact:true}).click()
   await chat.getByRole('button',{name:decision,exact:true}).click()

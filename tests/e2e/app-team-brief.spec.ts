@@ -39,7 +39,7 @@ test('the team’s brief becomes a private map with real playable choices that s
     await expect(standing(owner)).toContainText(brief)
     const chat = conversation(owner)
     await expect(chat.getByRole('log')).toContainText(brief)
-    const input = chat.getByRole('textbox',{name:'Direct map edits'})
+    const input = chat.getByRole('textbox',{name: 'Message Slatebox'})
     await input.fill('Borrow work lights or bring battery lanterns')
     await input.press('Enter')
     // The proposal's two destinations are drawn on the canvas before anything is kept.

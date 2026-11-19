@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { openGuestCanvas } from "./app-host.shared";
 import { dismissWelcome, getSlate, removeTestGuest, userId } from "./workshop-guests.shared";
-import { conversation, slateTitle, standing, workshopReady } from "./app-native-workshop.shared";
+import { conversation, messageBox, slateTitle, standing, starter, workshopReady } from "./app-native-workshop.shared";
 
 const appUrl = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 
@@ -61,7 +61,8 @@ test("legacy workshop links open a private slate and preserve native browser his
     await dismissWelcome(page);
     // A map opens on the slate's canvas with the slate's own conversation, taking map edits.
     await workshopReady(page);
-    await expect(conversation(page).getByRole("textbox", {name:"Direct map edits"})).toBeVisible();
+    await expect(messageBox(page)).toBeVisible();
+    await expect(starter(page, "First upload → Preview 10 rows → Import clients")).toBeVisible();
     const map = await getSlate(page, new URL(mapUrl).pathname.split("/").pop()!);
     expect(map.userId).toBe(actor);
     expect(map.options).toMatchObject({isPrivate:true,isPublic:false,isUnlisted:false});
@@ -71,7 +72,8 @@ test("legacy workshop links open a private slate and preserve native browser his
     const lanesUrl = page.url();
     expect(lanesUrl).not.toBe(mapUrl);
     await workshopReady(page);
-    await expect(conversation(page).getByRole("textbox", {name:"Workshop command"})).toBeVisible();
+    await expect(messageBox(page)).toBeVisible();
+    await expect(starter(page, "Add a lane called Later")).toBeVisible();
     const lanes = await getSlate(page, new URL(lanesUrl).pathname.split("/").pop()!);
     expect(lanes.userId).toBe(actor);
     expect(lanes.options).toMatchObject({isPrivate:true,isPublic:false,isUnlisted:false});
@@ -81,11 +83,13 @@ test("legacy workshop links open a private slate and preserve native browser his
     await expect(slateTitle(page)).toHaveText("Untitled workshop");
     await page.goBack();
     await expect(page).toHaveURL(mapUrl);
-    await expect(conversation(page).getByRole("textbox", {name:"Direct map edits"})).toBeVisible();
+    await expect(messageBox(page)).toBeVisible();
+    await expect(starter(page, "First upload → Preview 10 rows → Import clients")).toBeVisible();
     await expect(page.locator('#slateCanvas [data-node-id="lane-start"]')).toBeVisible();
     await page.goForward();
     await expect(page).toHaveURL(lanesUrl);
-    await expect(conversation(page).getByRole("textbox", {name:"Workshop command"})).toBeVisible();
+    await expect(messageBox(page)).toBeVisible();
+    await expect(starter(page, "Add a lane called Later")).toBeVisible();
     await expect(page.locator('#slateCanvas [data-node-id="lane-start"]')).toHaveCount(0);
     await expect.poll(() => userId(page)).toBe(actor);
   } finally {

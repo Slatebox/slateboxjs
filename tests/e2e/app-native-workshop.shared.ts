@@ -164,6 +164,12 @@ export async function renameInPlace(page: Page, id: string, text: string) {
   await expect(editor).toHaveCount(0)
 }
 
+/** The conversation's message box: the same one on a drawing, a workshop and a map. */
+export const messageBox = (page: Page) => conversation(page).getByRole('textbox', { name: 'Message Slatebox', exact: true })
+/** A starter the conversation offers. What it offers says what the slate holds: steps on a map, lanes and cards on a workshop. */
+export const starter = (page: Page, name: string | RegExp) =>
+  conversation(page).getByLabel('Starter messages').getByRole('button', { name, exact: typeof name === 'string' })
+
 /** Pages whose conversation this test closed itself, until they next load. */
 const closedByTest = new WeakSet<Page>()
 

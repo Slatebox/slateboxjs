@@ -1,6 +1,6 @@
 import {expect,test,type Locator} from '@playwright/test'
 import {dismissWelcome, removeTestGuest, shareAs, userId} from './workshop-guests.shared'
-import {conversation, lane, note, openConversation, workshopReady} from './app-native-workshop.shared'
+import {conversation, lane, messageBox, note, openConversation, starter, workshopReady} from './app-native-workshop.shared'
 
 const origin=process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 const writable=['localhost','127.0.0.1','test.slatebox.com'].includes(new URL(origin).hostname)
@@ -43,7 +43,8 @@ for(const width of [1360,390]) test('a '+width+'px native drawing gains a route 
     await expect(keep).toBeVisible()
     await keep.click()
     // The route is added to the same slate. Its canvas now shows the drawing and, beside it, the playable route.
-    await expect.poll(async()=>Boolean((await read()).creative),{timeout:20000}).toBe(true)
+    // Keeping reloads the page. A read that lands in the middle of that reload is asked again.
+    await expect.poll(async()=>Boolean((await read().catch(()=>null))?.creative),{timeout:20000}).toBe(true)
     await workshopReady(page)
     await expect(page.getByRole('button',{name:/View drawing|Open workshop|Play interactive route/})).toHaveCount(0)
     expect(new URL(page.url()).search).toBe('')
@@ -136,7 +137,8 @@ test('a drawing converted to a workshop shows both on one canvas and leaves its 
         // Joined, the peer has the slate's conversation: beside a wide canvas, one tap away on a phone.
         const ask=peer.getByRole('button',{name:'Ask Slatebox',exact:true})
         if(phone) { await reachable(ask); await ask.tap() }
-        await expect(conversation(peer).getByRole('textbox',{name:'Workshop command'})).toBeVisible()
+        await expect(messageBox(peer)).toBeVisible()
+        await expect(starter(peer,/^Let .+ hold two cards$/)).toBeVisible()
         await expect(peer).toHaveURL(invite.href)
         await expect(peer.locator('#slateCanvas [data-node-id^="lane-"]')).toHaveCount(3)
         for(const id of drawn) await expect(note(peer,id)).toBeVisible()

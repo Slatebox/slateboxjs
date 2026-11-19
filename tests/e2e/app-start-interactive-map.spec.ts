@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
 import type { Workshop } from '../../src/workshops/model'
-import { conversation, dragCardNamed, note, workshopReady } from './app-native-workshop.shared'
+import { conversation, dragCardNamed, messageBox, note, starter, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const destination = 'Listening buoy'
@@ -49,29 +49,30 @@ test('create a private interactive map from Start, author a branch and share the
     await drawingChat.getByRole('button', {name:'Keep changes'}).click()
     // The same slate, on the same canvas, now carries the playable route beside its drawing.
     await workshopReady(owner)
-    await expect(conversation(owner).getByRole('textbox', {name:'Direct map edits'})).toBeVisible()
+    await expect(messageBox(owner)).toBeVisible()
+    await expect(starter(owner, /^Add Follow-up after /)).toBeVisible()
     await expect(owner.getByRole('button', {name:/View drawing|Open workshop|Play interactive route/})).toHaveCount(0)
     expect(owner.url()).toBe(ownerUrl)
     const initial = await getSlate(owner, key)
     expect(initial.userId).toBe(ownerId)
     expect(initial.options.isPrivate).toBe(true)
-    const starter: Workshop = initial.creative.model.workshop
-    expect(starter.lanes.map(station => station.label)).toEqual(['Start', 'Next step'])
-    const [start, next] = starter.lanes
+    const opening: Workshop = initial.creative.model.workshop
+    expect(opening.lanes.map(station => station.label)).toEqual(['Start', 'Next step'])
+    const [start, next] = opening.lanes
     expect(start.station?.next).toEqual([next.id])
-    expect(starter.cards).toHaveLength(1)
-    expect(starter.cards[0]).toMatchObject({ label: 'Team', laneId: start.id })
+    expect(opening.cards).toHaveLength(1)
+    expect(opening.cards[0]).toMatchObject({ label: 'Team', laneId: start.id })
 
     // The drawing's own notes are still on the canvas, and still the only stored notes.
     expect(initial.nativeCanvasDrawing).toBe(true)
     for (const kept of initial.nodes) await expect(note(owner, kept.options.id)).toBeVisible()
     expect(initial.nodes.some((kept: any) => /^(lane|card|column|caption)-/.test(kept.options.id))).toBe(false)
     const chat = conversation(owner)
-    const message = chat.getByRole('textbox', {name:'Direct map edits'})
+    const message = chat.getByRole('textbox', {name:'Message Slatebox'})
     await message.fill('Add Discard this branch after Next step')
     await message.press('Enter')
     await chat.getByRole('button', {name:'Discard preview',exact:true}).click()
-    expect((await getSlate(owner, key)).creative.model.workshop).toEqual(starter)
+    expect((await getSlate(owner, key)).creative.model.workshop).toEqual(opening)
     await message.fill('Add ' + destination + ' after Next step')
     await message.press('Enter')
     await chat.getByRole('button', {name:'Keep changes'}).click()
