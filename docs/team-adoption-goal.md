@@ -38,6 +38,8 @@ Ship Slatebox as the MIT-licensed, open-source Miro replacement where a team can
 
 13. **Release the open-source product under the Slatebox organization.** Call the maintained self-hosted release Slatebox. Recommend `ghcr.io/slatebox/slatebox` and `ghcr.io/slatebox/relay` for the matched app and collaboration relay. Publish immutable release versions with matched app, engine and relay revisions. The stable `latest` tag should point to the verified community version. Verify both architectures, the Compose install and anonymous pulls from a clean host before advertising registry instructions. The original personal Docker Hub tag last changed in July 2022. The current release kit is distributed on request. Public registry publication is open. [GitHub Packages billing](https://docs.github.com/en/billing/concepts/product-billing/github-packages) · [Registry access](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) · [Old Docker Hub tag](https://hub.docker.com/r/timheckel/slatebox-community/tags)
 
+14. **Build the slate from one conversation.** Use the existing Create slate entrance for a blank canvas, a prompt, or a brief with source material. Let a team draw ordinary diagrams, then add playable behavior on the same saved slate when the work calls for it. A question in the side conversation can build an entire flow without selecting an object. Keep the visible artwork native to SlateboxJS, use Dragology for permitted gestures and keep property forms out of authoring. Demonstrate this with real, readable slates above the fold. Use the homepage gutter and split on every marketing page and let an example open through Create slate with its nodes and connections intact. Verify at desktop and phone widths, including authoring, dragging, persistence and presentation.
+
 ### Evidence for the team value propositions
 
 Use [the Hacker News team concept study](startup-team-concepts-2026-11-18.md) alongside the Miro research. Prefer a real visual editing gesture that a team can recreate in the ordinary editor. Check the marketing rendering surface, authoring path, saved document and second participant before calling a scene a canvas demonstration.
@@ -58,6 +60,8 @@ Keep illustrative marketing slates read-only, including the homepage hero and pr
 The current Miro Enterprise hero identifies its media as Lottie. Its public 1920 × 1080 composition runs at 30 fps and contains a vector layer named `SOPHIE` with animated position and a shape group named `Name Tag`. This explains how a collaborator can appear to move through a marketing scene. Use original Slatebox motion for scripted visitors and two independent editor sessions to test real presence. [Enterprise page](https://miro.com/enterprise/) · [Animation source](https://assets.ctfassets.net/x3tur5ylnyf2/5XuBf37dhO657xWfJghHrp/e85c7ab29920faf735649d2481409ea0/enterprise-JSON.json)
 
 ## Evidence ledger
+
+- Release 20261119T004842Z (app 7391cd7, engine a834f1f) passed the narrow-viewport presentation journey on staging, including a saved four-station branch, preview/discard/keep, keyboard moves and return to the same board. Matched arm64 and amd64 self-host kits passed restart and persisted-board checks. The public docs carry the [release receipt](https://docs.slatebox.com/assets/self-host/releases/20261119T004842Z.json). The unified conversational canvas and homepage-width heroes have a separate verification cycle.
 
 | Journey | Current evidence | Open acceptance |
 | --- | --- | --- |
