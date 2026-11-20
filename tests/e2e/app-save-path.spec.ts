@@ -1,5 +1,7 @@
-import { randomBytes, randomUUID } from 'node:crypto'
-import { expect, test, type Page } from '@playwright/test'
+import { createHmac, randomBytes, randomUUID } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
 import { dismissWelcome, getSlate, shareAs } from './workshop-guests.shared'
 
 // P05a: every writer saves through the app's one save core. Two browsers and one token on one
@@ -117,5 +119,120 @@ test('two people and a token save through one core: revisions, scoped conflict, 
   } finally {
     await owner.evaluate((id) => (window as any).Meteor.callAsync('apiTokens.revoke', id), issued.id).catch(() => undefined)
     await peerContext.close()
+  }
+})
+
+// fix-P05a: a signed-in owner with a token and a slate the token made.
+async function ownerWithSlate(browser: Browser, request: APIRequestContext, brief = 'Draft -> Review -> Ship') {
+  const owner = await browser.newPage()
+  owner.setDefaultTimeout(20_000)
+  const entry = new URL('/new', origin)
+  entry.hash = new URLSearchParams({ brief: 'Save path ' + randomUUID() }).toString()
+  await owner.goto(entry.href)
+  await owner.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
+  await owner.waitForFunction(() => Boolean((window as any).Meteor?.userId()))
+  await owner.goto(new URL('/profile', origin).href)
+  const claim = owner.getByTestId('guest-account-claim')
+  const email = 'save-path-' + randomUUID() + '@qa.slatebox.invalid'
+  await claim.getByLabel('Email address').fill(email)
+  await claim.locator('input[type=password]').fill(randomBytes(24).toString('hex'))
+  await claim.getByRole('button', { name: 'Save my Slatebox' }).click()
+  await owner.waitForFunction(email => (window as any).Meteor?.user()?.emails?.[0]?.address === email, email)
+  const issued = await owner.evaluate(() => (window as any).Meteor.callAsync('apiTokens.create', { name: 'Save path proof', scopes: ['slates:read', 'slates:write'] }))
+  const headers = { Authorization: 'Bearer ' + issued.token }
+  const created = await request.post(new URL('/api/v1/slates', origin).href, {
+    headers: { ...headers, 'Idempotency-Key': randomUUID() },
+    data: { kind: 'diagram', brief },
+  })
+  expect(created.status()).toBe(201)
+  const made = await created.json()
+  const read = async () => (await request.get(new URL('/api/v1/slates/' + made.shareId, origin).href, { headers })).json()
+  const revoke = () => owner.evaluate((id) => (window as any).Meteor.callAsync('apiTokens.revoke', id), issued.id).catch(() => undefined)
+  return { owner, headers, made, read, revoke }
+}
+
+// The signed passthrough link (/ai?bearer&dateString&slateIdToCopy) is signed with the app's API
+// keys, read here from the settings file the app runs with. Nothing from it is printed.
+function signedCopyLink(slateIdToCopy: string) {
+  const file = process.env.SLATEBOX_APP_SETTINGS
+  const keys = file && existsSync(resolve(file)) ? JSON.parse(readFileSync(resolve(file), 'utf8')).slateboxAPI : null
+  if (!keys?.publicKey || !keys?.secretKey) return null
+  const dateString = new Date().toISOString()
+  const bearer = createHmac('sha256', keys.secretKey).update(keys.publicKey + ':' + dateString).digest('base64')
+  const link = new URL('/ai', origin)
+  link.search = new URLSearchParams({ bearer, dateString, slateIdToCopy }).toString()
+  return link.href
+}
+
+// fix-P05a (review finding 1): the signed copy link asked slates.copy for a share id that
+// slates.get({asCopy}) had invented and never stored, so the copy was refused and the page
+// stayed on its spinner.
+test('a signed copy link copies a public slate for a new visitor and opens the copy', async ({ browser, request }) => {
+  test.skip(!['localhost', '127.0.0.1'].includes(origin.hostname), 'Local disposable fixtures only.')
+  const a = await ownerWithSlate(browser, request)
+  const visitorContext = await browser.newContext()
+  try {
+    const link = signedCopyLink(a.made.shareId)
+    test.skip(!link, 'Set SLATEBOX_APP_SETTINGS to the settings file the app runs with (it signs the link).')
+    const slate = await getSlate(a.owner, a.made.shareId)
+    await a.owner.evaluate((slateId) => (window as any).Meteor.callAsync('slateAccess.configureLink', { slateId, type: 'public', permission: 'READ' }), slate._id)
+    const visitor = await visitorContext.newPage()
+    visitor.setDefaultTimeout(30_000)
+    await visitor.goto(link!)
+    await visitor.waitForURL((url) => /^\/canvas\/[a-zA-Z0-9]{10}$/.test(url.pathname) && !url.pathname.endsWith(a.made.shareId))
+    const copyShareId = new URL(visitor.url()).pathname.split('/').at(-1)!
+    const copy = await getSlate(visitor, copyShareId)
+    expect(copy.userId).toBe(await visitor.evaluate(() => (window as any).Meteor.userId()))
+    expect(copy.options.isPrivate).toBe(true)
+    expect(copy.nodes.map((n: any) => n.options.text).sort()).toEqual(slate.nodes.map((n: any) => n.options.text).sort())
+    // A private slate's link answers Not Found instead of copying.
+    await a.owner.evaluate((slateId) => (window as any).Meteor.callAsync('slateAccess.configureLink', { slateId, type: 'private', permission: 'READ' }), slate._id)
+    const stranger = await (await browser.newContext()).newPage()
+    await stranger.goto(signedCopyLink(a.made.shareId)!)
+    await expect(stranger.getByText('Looks like this slate got erased')).toBeVisible({ timeout: 30_000 })
+    await stranger.context().close()
+  } finally {
+    await a.revoke()
+    await visitorContext.close()
+  }
+})
+
+// fix-P05a (review finding 3): "Make public" in the dashboard's slate menu sent permission READ,
+// so an edit link silently became a view link.
+test('"Make public" in the dashboard menu keeps the permission the owner chose for the link', async ({ browser, request }) => {
+  test.skip(!['localhost', '127.0.0.1'].includes(origin.hostname), 'Local disposable fixtures only.')
+  const a = await ownerWithSlate(browser, request)
+  try {
+    const slate = await getSlate(a.owner, a.made.shareId)
+    const name = slate.options.name
+    const grants = async () => (await a.owner.evaluate((id) => (window as any).Meteor.callAsync('slateAccess.get', { id }), slate._id))
+      .filter((g: any) => !g.userId).map((g: any) => [g.type, g.slateAccessPermissionId])
+    await a.owner.evaluate((slateId) => (window as any).Meteor.callAsync('slateAccess.configureLink', { slateId, type: 'unlisted', permission: 'EDIT' }), slate._id)
+    expect(await grants()).toEqual([['unlisted', 'EDIT']])
+    await a.owner.goto(new URL('/', origin).href)
+    await dismissWelcome(a.owner)
+    await a.owner.getByRole('button', { name: 'Options for ' + name, exact: true }).click()
+    await a.owner.getByRole('menuitem', { name: 'Make public' }).click()
+    await expect.poll(async () => (await getSlate(a.owner, a.made.shareId)).options.isPublic).toBe(true)
+    expect(await grants()).toEqual([['public', 'EDIT']])
+  } finally {
+    await a.revoke()
+  }
+})
+
+// fix-P05a (review finding 7): the conversation panel saved its empty attached-files list on
+// every open, so opening a slate raised its revision with no edit.
+test('opening a slate without editing it does not raise its revision', async ({ browser, request }) => {
+  test.skip(!['localhost', '127.0.0.1'].includes(origin.hostname), 'Local disposable fixtures only.')
+  const a = await ownerWithSlate(browser, request)
+  try {
+    expect((await a.read()).revision).toBe(1)
+    await a.owner.goto(a.made.url)
+    await dismissWelcome(a.owner)
+    await ready(a.owner)
+    await a.owner.waitForTimeout(5000)
+    expect((await a.read()).revision).toBe(1)
+  } finally {
+    await a.revoke()
   }
 })
