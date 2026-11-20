@@ -328,6 +328,30 @@ describe('native artwork: lanes that wrap', () => {
     expect(workshopLanePlaces(moved, { rows: 2 }).places.map(place => place.height)).toEqual(committed.places.map(() => 362))
   })
 
+  it('keeps every station of a map where it was while a token is held over a fuller station', () => {
+    // The night-transfer map with a Depot station under Market St lift that already holds a token.
+    const board: Workshop = validateWorkshop({
+      ...nightTransfer,
+      lanes: [
+        ...nightTransfer.lanes.map(lane => lane.id === 'lift' ? { ...lane, station: { ...lane.station!, next: [...lane.station!.next, 'depot'] } } : lane),
+        { id: 'depot', label: 'Depot', station: { column: 0, row: 2, next: [], outcome: 'Dispatch records the arrival.' } },
+      ],
+      cards: [{ id: 'rider', label: 'Last rider', laneId: 'lift' }, { id: 'dispatcher', label: 'Dispatcher', laneId: 'depot' }],
+    })
+    const rows = board.lanes.map(lane => board.cards.filter(card => card.laneId === lane.id).length)
+    const committed = workshopLanePlaces(board, { rows })
+    const candidate = workshopCandidate(board, 'rider', 'depot')!
+    expect(candidate.cards.find(card => card.id === 'rider')!.laneId).toBe('depot')
+    const held = workshopLanePlaces(candidate, { rows })
+    // No station moves under the pointer: the drop target stays where the pointer aimed.
+    expect(held.places.map(place => [place.laneId, place.x, place.y])).toEqual(committed.places.map(place => [place.laneId, place.x, place.y]))
+    // Only the station that gains the token grows, downward; the one it left keeps its height.
+    const depot = board.lanes.findIndex(lane => lane.id === 'depot')
+    held.places.forEach((place, index) => expect(place.height).toBe(committed.places[index].height + (index === depot ? 88 : 0)))
+    // At rest the map is drawn as before: the fullest station still sets every row's height.
+    expect(workshopLanePlaces(candidate).places.find(place => place.laneId === 'depot')!.y).toBeGreaterThan(committed.places[depot].y)
+  })
+
   it('refuses a layout that makes no sense, and leaves a map where its author put it', () => {
     for (const lanesPerRow of [0, -1, 1.5, Number.NaN, '2' as unknown as number]) {
       expect(() => workshopLanePlaces(budget, { layout: { lanesPerRow } })).toThrow('lanesPerRow must be a whole number, 1 or more.')
