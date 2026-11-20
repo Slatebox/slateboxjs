@@ -81,8 +81,10 @@ test('the $600 budget opens on the slate\'s own canvas, which pans, zooms and ke
     const fund = await resting(page, 'card-fund-1')
     expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-node-id]')?.getAttribute('data-node-id'),
       { x: fund.x + fund.width / 2, y: fund.y + fund.height / 2 })).toBe('card-fund-1')
-    // It is drawn in the app's own note family, not a board font of its own.
-    expect(await card(page, 'fund-1').locator('text').first().evaluate(element => getComputedStyle(element).fontFamily)).toContain('Manrope')
+    // It is drawn as the canvas draws a note, not in a board font of its own: this slate has no notes
+    // of its own yet, so as the plain note a double-click makes. (Restated 2026-11-19: cards used to
+    // take the lanes' Manrope; see app-workshop-cards-are-notes.spec.ts.)
+    expect(await card(page, 'fund-1').locator('text').first().evaluate(element => getComputedStyle(element).fontFamily)).toContain('Arial')
 
     // Zoom with Ctrl and the wheel, then pan with the wheel alone: the card follows the view.
     const before = await view(page)
@@ -244,7 +246,10 @@ test('a drop the workshop\'s rules refuse sends the card back and the lane says 
     await page.mouse.down()
     await page.mouse.move(gamma.x + gamma.width / 2, gamma.y + gamma.height + 400, { steps: 10 })
     await page.mouse.up()
-    await expect(announced(page)).toContainText('Gamma was not dropped on a lane. It stays where it was.')
+    // (Restated 2026-11-19: open canvas now makes a card a note, and Gamma, which may only be in
+    // Now, says why it may not become one.)
+    await expect(announced(page)).toContainText('Gamma may only be in Now, so it stays a card.')
+    expect(await laneOfCard(page, 'gamma')).toBe('Now')
     // The same rule answers the keyboard.
     expect(await keyboardMove(page, 'alpha', 'Next')).toBe(false)
     // Nothing was saved: same cards in the same lanes, on the first revision.
