@@ -450,3 +450,19 @@ describe("F8: a connector cannot start from a locked note, as for a person", () 
     expect(result.materializedPlan.operations[0]).toMatchObject({ from: { ids: ["b"] }, ids: ["b->a"] });
   });
 });
+
+// From the app's reducer test (P01 review F1), moved here when the reducer
+// became this module: a column once drew a diagonal.
+describe("arrange_nodes: each layout lines the notes up as it names", () => {
+  it("a row shares y, a column shares x, a grid fills rows", () => {
+    const s = slate();
+    s.nodes = ["a", "b", "c", "d"].map((id, index) => note(id, id, 100 + index * 37, 60 + index * 91));
+    const arrange = (layout: string) =>
+      applyPlanToJSON(s, plan({ kind: "arrange_nodes", target: { ids: ["a", "b", "c", "d"] }, layout, gap: 20 }), { userMessage: "Arrange" })
+        .slate.nodes.map((n: any) => [n.options.xPos, n.options.yPos]);
+    // Width 200 and height 100 plus a gap of 20, from the top-left note's corner.
+    expect(arrange("row")).toEqual([[100, 60], [320, 60], [540, 60], [760, 60]]);
+    expect(arrange("column")).toEqual([[100, 60], [100, 180], [100, 300], [100, 420]]);
+    expect(arrange("grid")).toEqual([[100, 60], [320, 60], [100, 180], [320, 180]]);
+  });
+});
