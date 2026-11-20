@@ -29,8 +29,10 @@ test("a saved legacy flowchart keeps its shapes and connections after an editor 
   await expect(addText).toBeVisible();
   await addText.press("Enter");
   const newNote = "Ask the field team which path they took";
-  await page.locator("#txtNode").fill(newNote);
-  await page.keyboard.press("Escape");
+  // Restated 2026-11-19: the note pane's text box is gone; a new text note opens its editor on the canvas.
+  await expect(page.locator(".sb-inline-editor")).toBeVisible();
+  await page.keyboard.type(newNote);
+  await page.keyboard.press("Enter");
 
   // Compare endpoint pairs. Legacy snapshots repeat some links on both nodes.
   const edges = (nodes: typeof fixture.nodes) => [...new Set<string>(nodes.flatMap((entry: any) =>

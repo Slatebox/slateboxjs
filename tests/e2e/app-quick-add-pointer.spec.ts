@@ -31,9 +31,9 @@ test("quick add opens under the pointer after the cookie notice is dismissed", a
   const addText = page.getByRole("button", { name: "Add Text", exact: true });
   await expect(addText).toBeVisible();
   await addText.click();
-  const editor = page.locator("#txtNode");
-  await expect(editor).toBeVisible();
-  await editor.fill("Pointer note");
-  await page.keyboard.press("Escape");
+  // Restated 2026-11-19: the note pane's text box is gone; a new text note opens its editor on the canvas.
+  await expect(page.locator(".sb-inline-editor")).toBeVisible();
+  await page.keyboard.type("Pointer note");
+  await page.keyboard.press("Enter");
   await expect(page.locator("#slateCanvas")).toContainText("Pointer note");
 });

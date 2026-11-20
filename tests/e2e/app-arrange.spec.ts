@@ -45,13 +45,16 @@ test.describe("arrange from the style bar (F2, app-level)", () => {
 
         // Seed three staggered nodes via the engine (NOT via AI).
         const ids = ["proof-a", "proof-b", "proof-c"];
+        // Beside the slate's first note, so they are on screen (the bar follows what is selected).
+        const first = slate.nodes.allNodes[0]?.options ?? { x: 80, y: 80 };
+        const ox = (first.x ?? 80) - 200, oy = (first.y ?? 80) + 140;
         ids.forEach((id, i) => {
           if (!slate.nodes.one(id))
             slate.nodes.add({
               id,
               text: "proof " + i,
-              x: 80 + i * 140,
-              y: 80 + i * 60,
+              x: ox + i * 140,
+              y: oy + i * 60,
               width: 100,
               height: 60,
             });

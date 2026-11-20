@@ -38,8 +38,10 @@ test("independent copies of private and published slates start private for a fre
     await page.getByRole("button", { name: "Slatebox - quickly add a node" }).focus();
     await page.getByRole("button", { name: "Add Text", exact: true }).press("Enter");
     const note = "Observe how visitors use the exhibit";
-    await page.locator("#txtNode").fill(note);
-    await page.keyboard.press("Escape");
+    // Restated 2026-11-19: the note pane's text box is gone; a new text note opens its editor on the canvas.
+    await expect(page.locator(".sb-inline-editor")).toBeVisible();
+    await page.keyboard.type(note);
+    await page.keyboard.press("Enter");
     await expect.poll(async () => (await read(key))?.text ?? []).toContain(note);
     const source = await read(key);
     sourceId = source.id;

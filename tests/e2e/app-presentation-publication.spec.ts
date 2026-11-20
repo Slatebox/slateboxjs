@@ -73,9 +73,11 @@ test('author reorders scenes, publishes an unlisted deck, and withdraws guest an
     if (await cookies.isVisible()) await cookies.click()
     await page.getByRole('button',{name:'Slatebox - quickly add a node'}).hover()
     await page.getByRole('button',{name:'Add Text',exact:true}).click()
-    await page.locator('#txtNode').fill('Look for the Pleiades')
+    // Restated 2026-11-19: the note pane's text box is gone; a new text note opens its editor on the canvas.
+    await expect(page.locator('.sb-inline-editor')).toBeVisible()
+    await page.keyboard.type('Look for the Pleiades')
+    await page.keyboard.press('Enter')
     await expect(page.locator('#slateCanvas')).toContainText('Look for the Pleiades')
-    await page.keyboard.press('Escape')
     const boardTitle = 'Night sky "field notes" & glass <lenses>'
     await fromSlateMenu(page, 'Slate settings')
     await page.getByRole('textbox', { name: 'Name', exact: true }).fill(boardTitle)

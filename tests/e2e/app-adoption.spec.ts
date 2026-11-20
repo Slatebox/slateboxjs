@@ -95,10 +95,13 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
     const note = "Carry the spare lens to the observatory";
     await peer.getByRole("button",{name:"Slatebox - quickly add a node"}).hover();
     await peer.getByRole("button",{name:"Add Text",exact:true}).click();
-    await peer.locator("#txtNode").fill(note);
+    // Restated 2026-11-19: the note pane's text box is gone; a new text note opens its
+    // editor on the canvas, and Enter keeps what was typed.
+    await expect(peer.locator(".sb-inline-editor")).toBeVisible();
+    await peer.keyboard.type(note);
+    await peer.keyboard.press("Enter");
     const editedNode = (p:Page)=>p.locator("#slateCanvas g[data-node-id]").filter({hasText:note});
     await expect(editedNode(peer)).toHaveCount(1);
-    await peer.keyboard.press("Escape");
     await expect(editedNode(owner)).toHaveCount(1,{timeout:25_000});
     const id = await editedNode(peer).getAttribute("data-node-id");
     expect(await editedNode(owner).getAttribute("data-node-id")).toBe(id);
