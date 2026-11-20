@@ -11,6 +11,8 @@ export interface Association {
     lineColor: string;
     lineOpacity: number;
     lineEffect: string;
+    /** "solid" (the default), "dashed" or "dotted". */
+    lineDash?: "solid" | "dashed" | "dotted";
     lineType: string;
     lineCurveType: "cubic" | "quadratic";
     lineCurviness: number;

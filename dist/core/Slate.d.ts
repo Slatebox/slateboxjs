@@ -44,11 +44,61 @@ export interface SlateEvents {
     onRequestSave?: (opts?: Record<string, any>) => void;
     onCreateImage?: (opts: Record<string, any>, cb: Function) => void;
     onMenuRequested?: (node: Node, cb: Function) => void;
+    /**
+     * What is selected and where it is on screen, for a host that draws its own
+     * context toolbar (see `SlateOptions.contextToolbar`). Fired when the selection
+     * changes, once with `moving: true` when a drag, resize, rotate, pan or zoom of
+     * the selection starts, and with `moving: false` and the new place when it ends.
+     */
+    onSelectionFrame?: (frame: SelectionFrame) => void;
     isReadOnly?: () => boolean;
     isCommentOnly?: () => boolean;
     canRemoveComments?: () => boolean;
 }
+/** A box on screen, in client (viewport) pixels. */
+export interface ScreenRect {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+    width: number;
+    height: number;
+}
+/** See `SlateEvents.onSelectionFrame`. */
+export interface SelectionFrame {
+    /** What is selected: one note, several notes, one line, or nothing. */
+    kind: "node" | "nodes" | "line" | "lines" | "mixed" | "none";
+    /** Note ids, or the line's association id. */
+    ids: string[];
+    /** The selection's box on screen (rotation included); null when nothing is selected. */
+    rect: ScreenRect | null;
+    /**
+     * Screen pixels above `rect.top` taken by the engine's own handles (the rotate
+     * handle and the top connect dot). A host bar whose bottom edge sits at
+     * `rect.top - topClearance` or higher covers neither.
+     */
+    topClearance: number;
+    /** True from the start of a drag, resize, rotate, pan or zoom until it ends. */
+    moving: boolean;
+    /** For a line: the note that owns it, its association and the other note. */
+    line?: {
+        nodeId: string;
+        associationId: string;
+        childId: string;
+    };
+    /**
+     * For a line: the screen boxes of the notes at its two ends (start, then end).
+     * A host bar placed over the line's span should stay off these as well.
+     */
+    avoid?: ScreenRect[];
+}
 export interface SlateOptions {
+    /**
+     * Who draws the selection's context toolbar. "engine" (the default) draws the
+     * small pill (delete, connect, settings) above a selected note or line. "host"
+     * draws nothing: the host draws its own bar from `events.onSelectionFrame`.
+     */
+    contextToolbar?: "engine" | "host";
     id?: string;
     name?: string;
     description?: string;
@@ -197,6 +247,16 @@ export declare class Slate {
     private _dragPolicies;
     private _selectionListeners;
     private _selectionNoticeQueued;
+    /** The line selected on the canvas (a click on it), if any. */
+    private _selectedLine;
+    /** Gestures of the selection under way (drag, resize, rotate, pan); see onSelectionFrame. */
+    private _frameGestures;
+    private _frameMovingSent;
+    private _frameQueued;
+    private _frameLastKey;
+    private _frameViewTimer;
+    private _frameSettleTimer;
+    private _frameRecheck;
     /** >0 while a host is changing its own governed notes (see withPolicyAuthority). */
     private _policyAuthority;
     /** The governed note being dragged right now, if any. */
@@ -332,6 +392,8 @@ export declare class Slate {
      * or lands on the wrong notes. Collab waits on this between packages.
      */
     whenBuilt(): Promise<void> | null;
+    /** Tell a host's bar over the selection when the view pans or zooms. */
+    private setupFrameCallbacks;
     private setupCoordinateCallbacks;
     private addCoordinateDisplay;
     private startCoordinatePolling;
@@ -479,7 +541,7 @@ export declare class Slate {
      * 1. Clears current selection unless addToSelection is true
      * 2. Adds the specified nodes to the selection set
      * 3. Calls updateSelectionResizeRotate() to enable handles on selected nodes
-     * 4. Fires onSelectionChanged event
+     * 4. Tells onSelectionChange listeners and the host's events.onSelectionFrame
      *
      * @param nodes - Array of nodes to select
      * @param addToSelection - If true, adds to existing selection instead of replacing it
@@ -535,6 +597,57 @@ export declare class Slate {
     onSelectionChange(listener: (selected: Node[]) => void): () => void;
     /** The selection changed; tell the listeners once the change has settled. */
     private selectionChanged;
+    /**
+     * Delete the selected notes, as the Delete key does: not for a viewer, not a
+     * note the host governs, and a comment only where comments may be removed.
+     */
+    deleteSelection(): void;
+    /** Duplicate the selected notes, as the right-click menu does, and select the copies. */
+    duplicateSelection(): void;
+    /** True when the host draws the context toolbar and the engine draws no pill. */
+    hostDrawsToolbar(): boolean;
+    /**
+     * What is selected and where it is on screen now (see `onSelectionFrame`).
+     * `moving` is true while a drag, resize, rotate, pan or zoom is under way.
+     */
+    getSelectionFrame(): SelectionFrame;
+    /** The line selected on the canvas, with its association, or null. */
+    getSelectedLine(): {
+        node: Node;
+        association: any;
+    } | null;
+    /**
+     * Remove the selected line, the same way the engine's own pill does (the change
+     * is broadcast, saved and undoable like any removed connection). False when no
+     * line is selected or the line may not be removed.
+     */
+    removeSelectedLine(): boolean;
+    /** Called by the connector when a line is selected on the canvas. */
+    setSelectedLine(node: Node, associationId: string, childId: string, connectable: any): void;
+    /** A gesture of the selection started (drag, resize, rotate, pan). See onSelectionFrame. */
+    frameGestureStart(key: string): void;
+    /** That gesture ended: once nothing else is moving, the frame is sent again, still. */
+    frameGestureEnd(key: string): void;
+    /**
+     * The view changed (a pan or zoom step, or the canvas was resized). Each step
+     * restarts a short wait; the frame is still again once the steps stop.
+     */
+    frameViewChanged(): void;
+    /** A note's place or size changed outside a gesture: the frame may have moved. */
+    nodeGeometryChanged(node: Node): void;
+    private sendMovingFrame;
+    private settleFrameSoon;
+    /** Send the frame once the current change has settled (coalesced, and only when it changed). */
+    private scheduleSelectionFrame;
+    private emitSelectionFrame;
+    /** The notes' (rotated) boxes, together, on screen. */
+    private screenRectOfNodes;
+    /**
+     * Room above the frame taken by the engine's handles: the top connect dot and
+     * the rotate handle of one note, or the group's rotate knob. Read from what is
+     * drawn when it is there, otherwise from the handles' known offsets.
+     */
+    private measureTopClearance;
     /** Deselect a single node. */
     deselectNode(node: Node): void;
     /** Deselect all currently selected nodes. */

@@ -255,6 +255,23 @@ declare class slate {
      * move. The app's Settings button and AI layout call this on the facade.
      */
     removeLayoutOverlaps(gap?: number): void;
+    /**
+     * For a host that draws its own context toolbar (`contextToolbar: 'host'`,
+     * events.onSelectionFrame): what is selected and where it is on screen now.
+     * The same answer as the v2 engine's `getSelectionFrame()`.
+     */
+    getSelectionFrame(): import("./core/Slate").SelectionFrame;
+    /** The line selected on the canvas (owning note and its association), or null. */
+    getSelectedLine(): {
+        node: V2Node;
+        association: any;
+    } | null;
+    /** Delete the selected notes, as the Delete key does. */
+    deleteSelection(): void;
+    /** Duplicate the selected notes, as the right-click menu does. */
+    duplicateSelection(): void;
+    /** Remove the line selected on the canvas, as the engine's own pill would. */
+    removeSelectedLine(): boolean;
     private unwrapNodes;
     /**
      * v1: `slate.disable(exemptSlate?, exemptNodes?, full?)` — freeze

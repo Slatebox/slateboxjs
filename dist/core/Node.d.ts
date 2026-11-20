@@ -56,6 +56,8 @@ export interface NodeOptions {
     fontFamily?: string;
     fontColor?: string;
     fontStyle?: string;
+    /** "normal" (the default) or "bold". */
+    fontWeight?: string;
     textOpacity?: number;
     textXAlign?: "left" | "center" | "right";
     textYAlign?: "top" | "middle" | "bottom";
@@ -444,6 +446,8 @@ export declare class Node {
      * alone does) would drop the translate and fling the node far off-screen on
      * reload. Single source of truth for the group transform.
      */
+    /** Tell the slate this note's place or size changed (for a host bar over the selection). */
+    private queueGeometryNotice;
     private applyPositionAndRotation;
     /** Rotate the parent once. Text, image fills, custom paths and badges all follow. */
     applyInteractionRotation(angle: number): void;

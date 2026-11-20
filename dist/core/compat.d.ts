@@ -40,6 +40,7 @@ export interface V1Association {
     blnStraight?: boolean;
     lineColor?: string;
     lineEffect?: string;
+    lineDash?: "solid" | "dashed" | "dotted";
     lineOpacity?: number;
     lineType?: string;
     lineCurviness?: number;
@@ -55,6 +56,7 @@ export interface V2Association {
     isStraightLine: boolean;
     lineColor: string;
     lineEffect: string;
+    lineDash: "solid" | "dashed" | "dotted";
     lineOpacity: number;
     lineType: string;
     lineCurveType: "cubic" | "quadratic";

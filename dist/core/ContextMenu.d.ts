@@ -26,6 +26,8 @@ export declare class ContextMenu {
     private forEachTarget;
     /** Delete the target nodes (removeNode broadcasts onNodeDeleted → persists). */
     private deleteTargets;
+    /** Duplicate these notes (offset +20,+20, connections between them kept) and select the copies. */
+    duplicate(nodes: any[]): void;
     /** Duplicate the target nodes offset (+20,+20); addNode broadcasts → persists. */
     private duplicateTargets;
 }

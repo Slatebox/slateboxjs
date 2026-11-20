@@ -27,6 +27,8 @@ export interface Connection {
     lineWidth?: number;
     lineOpacity?: number;
     lineEffect?: string;
+    /** "solid" (the default), "dashed" or "dotted". */
+    lineDash?: LineDash;
     label?: string;
     sourceAnchor?: {
         x: number;
@@ -37,6 +39,12 @@ export interface Connection {
         y: number;
     } | null;
 }
+export type LineDash = "solid" | "dashed" | "dotted";
+/**
+ * The SVG stroke-dasharray for a line's dash style, scaled by its width, or null
+ * for a solid line (and for any value the engine does not know).
+ */
+export declare function lineDashArray(dash: string | undefined | null, width: number): string | null;
 export declare class Connector {
     private node;
     private slate;
@@ -130,6 +138,12 @@ export declare class Connector {
      */
     private wireHandleReveal;
     private showLineCog;
+    /**
+     * Select the connector so its endpoint handles show — this is what makes the
+     * endpoints draggable (L1 snap-anywhere). Tracked on the slate so
+     * clearLineCog() (canvas click / node select) deselects it — no stuck state.
+     */
+    private selectLineConnectable;
     private openLinePane;
     /**
      * Q3: show a lock/relative toggle at EACH endpoint (source + target) when the
