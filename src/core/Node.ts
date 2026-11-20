@@ -410,7 +410,7 @@ export class Node {
       textOpacity: 1,
       textXAlign: "center",
       textYAlign: "middle",
-      backgroundColor: "#f0f0f0",
+      backgroundColor: DEFAULT_NOTE_STYLE.backgroundColor,
       borderColor: DEFAULT_NOTE_STYLE.borderColor,
       borderWidth: DEFAULT_NOTE_STYLE.borderWidth,
       allowDrag: true,
@@ -1476,6 +1476,26 @@ export class Node {
       const movedSiblings = this._groupDragSiblings;
       this._groupDragSiblings = [];
 
+      // One ordinary note dropped where a host takes notes (a workshop's lane): the host
+      // makes it its own, or refuses it and the note glides back. Either way this drop
+      // is not a move of the drawing.
+      if (!movedSiblings.length && this.preDragPosition && ptr) {
+        const from = { ...this.preDragPosition };
+        const moved = Math.abs((this.options.x ?? 0) - from.x) > 0.5 || Math.abs((this.options.y ?? 0) - from.y) > 0.5;
+        const verdict = moved ? this.slate.offerFreeDrop?.(this, this.slate.clientToWorld(ptr), from) : null;
+        if (verdict) {
+          this.preDragTransform = null;
+          this.preDragPosition = null;
+          this._dragStartPointer = null;
+          if (verdict === "refused") {
+            this.position(from.x, from.y, undefined, undefined, prefersReducedMotion() ? 0 : 180);
+          }
+          if (this.isOnSlate()) this.settleAfterDrag();
+          else this.isDragging = false;
+          return;
+        }
+      }
+
       // Did the node (or any group sibling) ACTUALLY move? A pure click fires
       // dragstart+dragend with a zero delta; broadcasting onNodesMove then records
       // a no-op undo snapshot, so every click became an undo step and undo felt
@@ -1567,6 +1587,8 @@ export class Node {
           effDy = this.options.y - this.preDragPosition.y;
         }
         this.applyPositionAndRotation();
+        // A single ordinary note: a host may show what dropping it here would do.
+        if (!this._groupDragSiblings.length) this.slate.offerFreeMove?.(this, this.slate.clientToWorld(ptr));
         // Group move: shift every other selected node by the same (snapped) delta.
         for (const sib of this._groupDragSiblings) {
           sib.node.options.x = sib.x + effDx;

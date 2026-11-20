@@ -24,6 +24,18 @@ export interface WorkshopCard {
   allowedLaneIds?: string[]
   points?: number
   dependsOn?: string[]
+  /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
+  look?: WorkshopCardLook
+}
+
+/** The look of one card: what an ordinary note dropped on a lane brings with it. */
+export interface WorkshopCardLook {
+  backgroundColor?: string
+  textColor?: string
+  fontFamily?: string
+  fontSize?: number
+  borderColor?: string
+  borderWidth?: number
 }
 
 export interface WorkshopSignal {
@@ -81,6 +93,43 @@ function id(value: unknown): string {
     throw new Error('IDs must be short alphanumeric slugs.')
   }
   return value
+}
+
+const colour = /^(?:#[0-9a-fA-F]{3,8}|rgba?\(\s*[\d.]+%?\s*,\s*[\d.]+%?\s*,\s*[\d.]+%?\s*(?:,\s*[\d.]+%?\s*)?\)|transparent|[a-zA-Z]{3,20})$/
+const family = /^[A-Za-z0-9 ,'"_-]{1,120}$/
+
+/** A card's look: only colours, a type family and sizes the canvas can draw. Anything else is left out. */
+function cardLook(input: unknown): WorkshopCardLook | undefined {
+  const raw = record(input)
+  const look: WorkshopCardLook = {}
+  const paint = (value: unknown) => {
+    if (typeof value !== 'string' || !colour.test(value)) throw new Error('Use a colour such as #f0f0f0 for a card.')
+    return value
+  }
+  const size = (value: unknown, low: number, high: number) => {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < low || value > high) throw new Error('A card size is out of range.')
+    return value
+  }
+  if (raw.backgroundColor !== undefined) look.backgroundColor = paint(raw.backgroundColor)
+  if (raw.textColor !== undefined) look.textColor = paint(raw.textColor)
+  if (raw.borderColor !== undefined) look.borderColor = paint(raw.borderColor)
+  if (raw.fontFamily !== undefined) {
+    if (typeof raw.fontFamily !== 'string' || !family.test(raw.fontFamily)) throw new Error('Use a plain type family for a card.')
+    look.fontFamily = raw.fontFamily
+  }
+  if (raw.fontSize !== undefined) look.fontSize = size(raw.fontSize, 6, 200)
+  if (raw.borderWidth !== undefined) look.borderWidth = size(raw.borderWidth, 0, 20)
+  return Object.keys(look).length ? look : undefined
+}
+
+/** The parts of a note's look a card can keep; anything a card cannot draw is left out. Undefined when nothing is left. */
+export function workshopCardLookOf(input: Record<string, unknown>): WorkshopCardLook | undefined {
+  const look: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(input ?? {})) {
+    if (value === undefined) continue
+    try { if (cardLook({ [key]: value })) look[key] = value } catch { /* not something a card can draw */ }
+  }
+  return cardLook(look)
 }
 
 function unique(values: string[], what: string) {
@@ -200,6 +249,10 @@ export function validateWorkshop(input: unknown): Workshop {
       if (!card.allowedLaneIds.includes(card.laneId) || !card.allowedLaneIds.every(key => laneIds.includes(key))) {
         throw new Error('Allowed lanes must exist and include the starting lane.')
       }
+    }
+    if (raw.look !== undefined) {
+      const look = cardLook(raw.look)
+      if (look) card.look = look
     }
     if (release) {
       if (typeof raw.points !== 'number' || !Number.isInteger(raw.points) || raw.points < 1 || raw.points > 24) {
@@ -355,6 +408,81 @@ export function workshopRefusal(board: Workshop, cardId: string, laneId: string)
   return cannot
 }
 
+/**
+ * Whether ordinary notes and this board's cards are the same thing: a board of plain lanes.
+ * A map's token, a release plan's features (they need points) and a startup experience's
+ * cards are pieces of their own and are not made from notes.
+ */
+export function workshopTakesNotes(board: Workshop): boolean {
+  return !board.kind && !board.lanes.some(lane => lane.station) && !startupExperienceKind(board)
+}
+
+/** An ordinary note offered to a lane: its id, its words and how it is drawn. */
+export interface WorkshopNoteOffer {
+  id: string
+  label: string
+  look?: WorkshopCardLook
+}
+
+const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
+
+/** The id a card made from a note takes: the note's own, unless the board uses it or a card cannot have it. */
+function cardIdFor(board: Workshop, preferred: string) {
+  const used = new Set([...board.lanes, ...board.cards, ...(board.signals ?? [])].map(item => item.id))
+  return typeof preferred === 'string' && idPattern.test(preferred) && !used.has(preferred) ? preferred : nextWorkshopId(board, 'card')
+}
+
+/** Why `note` may not become a card in `laneId`, as a sentence; null when it may. */
+export function workshopNoteRefusal(board: Workshop, laneId: string, note: WorkshopNoteOffer): string | null {
+  const lane = board.lanes.find(item => item.id === laneId)
+  if (!lane) return 'That lane is no longer on the board.'
+  if (board.lanes.some(item => item.station)) return 'A map\'s stations hold its token only.'
+  if (board.kind === 'release-plan') return 'A release plan\'s features need effort points, so a note can\'t become one.'
+  if (startupExperienceKind(board)) return 'This workshop keeps the cards it came with.'
+  const text = typeof note?.label === 'string' ? note.label.replace(/\s+/g, ' ').trim() : ''
+  if (!text) return 'A card needs some words. Type on the note first.'
+  if (text.length > 80) return 'A card holds up to 80 characters. Shorten the note first.'
+  if (/[<>\u0000-\u001f]/.test(text)) return 'A card holds plain words only.'
+  if (board.cards.length >= maxWorkshopCards) return 'A workshop holds up to 24 cards.'
+  const held = board.cards.filter(item => item.laneId === laneId).length
+  if (lane.capacity !== undefined && held >= lane.capacity) return `It already holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
+  if (note.look !== undefined) {
+    try { cardLook(note.look) } catch { return 'This note\'s look can\'t be kept on a card.' }
+  }
+  return null
+}
+
+/**
+ * The board with `note` as a card at the foot of `laneId`, or null when the lane's rules
+ * refuse it (workshopNoteRefusal says why). The card keeps the note's id where it can.
+ */
+export function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer): Workshop | null {
+  if (workshopNoteRefusal(board, laneId, note) !== null) return null
+  const look = note.look === undefined ? undefined : cardLook(note.look)
+  const card: WorkshopCard = { id: cardIdFor(board, note.id), label: note.label.replace(/\s+/g, ' ').trim(), laneId, ...(look ? { look } : {}) }
+  return validateWorkshop({ ...board, cards: [...board.cards, card] })
+}
+
+/** Why the card may not leave the lanes as an ordinary note; null when it may. */
+export function workshopCardAsNoteRefusal(board: Workshop, cardId: string): string | null {
+  const card = board.cards.find(item => item.id === cardId)
+  if (!card) return 'That card is no longer on the board.'
+  if (!workshopTakesNotes(board)) return board.lanes.some(lane => lane.station) ? 'The token stays on the map.' : 'This card stays on the board.'
+  if ((board.signals ?? []).some(signal => signal.cardId === cardId)) return `An outcome on this board depends on ${card.label}, so it stays a card.`
+  if (card.allowedLaneIds && card.allowedLaneIds.length < board.lanes.length) {
+    const names = card.allowedLaneIds.map(id => board.lanes.find(lane => lane.id === id)!.label)
+    const list = names.length > 1 ? names.slice(0, -1).join(', ') + ' or ' + names.at(-1) : names[0]
+    return `${card.label} may only be in ${list}, so it stays a card.`
+  }
+  return null
+}
+
+/** The board without the card, for a card taken off the lanes as an ordinary note; null when it must stay. */
+export function workshopCardAsNote(board: Workshop, cardId: string): Workshop | null {
+  if (workshopCardAsNoteRefusal(board, cardId) !== null) return null
+  return validateWorkshop({ ...board, cards: board.cards.filter(item => item.id !== cardId) })
+}
+
 /** The second line under a lane's name: how full it is, or what its cards add up to. */
 export function workshopLaneCaption(board: Workshop, laneId: string): string {
   const lane = board.lanes.find(item => item.id === laneId)
@@ -499,6 +627,8 @@ export interface WorkshopNoteStyle {
   captionFontSize?: number
   /** Text of lanes, captions and cards. */
   textColor?: string
+  /** Fill of the cards: the host's ordinary note fill. Defaults to an engine note's. */
+  backgroundColor?: string
   /** Outline of lane headers and cards. */
   borderColor?: string
   borderWidth?: number
@@ -678,9 +808,15 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
     board.cards.filter(card => card.laneId === lane.id).forEach((card, i) => {
       const text = board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label
       const cardWidth = map ? width - 20 : width, cardHeight = map ? height - 6 : height
+      // A card is drawn as the slate draws an ordinary note (a map's token is a playing piece of
+      // its own). A card made from a note keeps that note's look.
+      const look = card.look ?? {}
       note({ id: cardNodeId(card.id), text, name: card.label,
         xPos: x + (map ? 18 : 8), yPos: y + top + (image ? stationImageSpace : 0) + i * row, width: cardWidth, height: cardHeight,
-        backgroundColor: map ? '#ffda75' : '#fffdf6', fontSize: fittingFontSize(text, cardSize, cardWidth - 16, cardHeight - 8) })
+        backgroundColor: map ? '#ffda75' : look.backgroundColor ?? style.backgroundColor ?? DEFAULT_NOTE_STYLE.backgroundColor,
+        ...(look.textColor ? { foregroundColor: look.textColor } : {}), ...(look.fontFamily ? { fontFamily: look.fontFamily } : {}),
+        ...(look.borderColor ? { borderColor: look.borderColor } : {}), ...(look.borderWidth !== undefined ? { borderWidth: look.borderWidth } : {}),
+        fontSize: fittingFontSize(text, look.fontSize ?? cardSize, cardWidth - 16, cardHeight - 8) })
     })
   })
   const byId = new Map(nodes.map(item => [item.options.id as string, item]))

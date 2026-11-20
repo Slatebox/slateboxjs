@@ -33,6 +33,8 @@ export class Keyboard {
   // CASCADE (each further from the source) instead of stacking on one spot (Miro).
   private pasteCount = 0;
   // Debounce handle for persisting arrow-key nudges.
+  /** Where each nudged note was when the current burst of nudges began. */
+  private nudgeFrom: Map<any, { x: number; y: number }> | null = null;
   private nudgeTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(slate: any, options: KeyboardOptions = {}) {
@@ -486,6 +488,9 @@ export class Keyboard {
     }
 
     e.preventDefault();
+    // Where a burst of nudges began: a nudge that ends on a host's drop zone (a
+    // workshop's lane) is a drop there, and a refused one goes back to this place.
+    if (!this.nudgeTimer) this.nudgeFrom = new Map(selected.map((n: any) => [n, { x: n.options.x || 0, y: n.options.y || 0 }]));
     for (const node of selected) {
       const x = (node.options.x || 0) + dx;
       const y = (node.options.y || 0) + dy;
@@ -500,6 +505,17 @@ export class Keyboard {
     this.nudgeTimer = setTimeout(() => {
       this.nudgeTimer = null;
       const sel = (this.slate.getSelectedNodes?.() || []).filter((n: any) => !this.governed(n));
+      const from = this.nudgeFrom;
+      this.nudgeFrom = null;
+      // One note nudged: offered to the host as a drop at its middle, as a drag would be.
+      const start = sel.length === 1 ? from?.get(sel[0]) : undefined;
+      if (start) {
+        const node = sel[0];
+        const middle = { x: (node.options.x || 0) + (node.options.width || 0) / 2, y: (node.options.y || 0) + (node.options.height || 0) / 2 };
+        const verdict = this.slate.offerFreeDrop?.(node, middle, start);
+        if (verdict === "refused") node.position(start.x, start.y, () => this.slate.updateSelectionResizeRotate?.());
+        if (verdict) return;
+      }
       if (sel.length > 0) {
         this.slate.broadcast?.("onNodesMove", {
           nodeOptions: sel.map((n: any) => v2NodeToV1(n.options)),

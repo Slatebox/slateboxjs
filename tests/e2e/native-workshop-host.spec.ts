@@ -304,19 +304,6 @@ test.describe('one canvas', () => {
     expect(created.governed).toBe(null)
     expect(created.selected).toEqual([id])
     expect(created.saved).toEqual(['plain', id])
-    // It moves like any note, out of the lane and back in, and the move is saved.
-    await page.waitForTimeout(450)
-    await page.mouse.move(spot.x, spot.y)
-    await page.mouse.down()
-    await page.mouse.move(spot.x + 40, spot.y - 60, { steps: 8 })
-    await page.mouse.up()
-    await page.waitForTimeout(450)
-    const moved = await state()
-    expect(moved.x).toBeCloseTo(created.x + 40, 0)
-    expect(moved.y).toBeCloseTo(created.y - 60, 0)
-    expect(await page.evaluate(key => JSON.parse((window as any).native.slate.exportJSON()).nodes.find((n: any) => n.options.id === key).options.x, id)).toBeCloseTo(moved.x, 0)
-    const place = { x: spot.x + 40, y: spot.y - 60 }
-    expect(await topmost(place)).toBe(id)
     // The workshop is as it was, and still plays: the lane takes a card dropped on it beside the note.
     expect(await cards(page)).toBe('alpha@now beta@now gamma@now')
     const later = await box(page, 'column-later')
@@ -344,6 +331,31 @@ test.describe('one canvas', () => {
     }, id)
     expect(after.there).toBe(true)
     expect(await topmost(after.centre!)).toBe(id)
+    // Carried out of the lane onto open canvas it moves like any note, and the move is saved.
+    // (Restated 2026-11-19: a note let go on a lane now becomes a card there, so the old
+    // "out of the lane and back in" move is now the lane deciding, below.)
+    const placed = await state()
+    const outside = await page.evaluate(() => { const { slate, board } = (window as any).native
+      return slate.worldToClient({ x: board.bounds.x + board.bounds.width + 160, y: board.bounds.y + 40 }) })
+    await page.mouse.move(after.centre!.x, after.centre!.y)
+    await page.mouse.down()
+    await page.mouse.move(outside.x, outside.y, { steps: 10 })
+    await page.mouse.up()
+    await page.waitForTimeout(450)
+    const moved = await state()
+    expect(moved.governed).toBe(null)
+    expect(Math.abs(moved.x - placed.x)).toBeGreaterThan(100)
+    expect(await page.evaluate(key => JSON.parse((window as any).native.slate.exportJSON()).nodes.find((n: any) => n.options.id === key).options.x, id)).toBeCloseTo(moved.x, 0)
+    // Let go on Later it is refused there and goes back: a card needs words, and this note has none yet.
+    const back = await page.evaluate(key => { const b = (window as any).native.box(key); return { x: b.x + b.width / 2, y: b.y + b.height / 2 } }, id)
+    const full = await inLane(page, 'later')
+    await page.mouse.move(back.x, back.y)
+    await page.mouse.down()
+    await page.mouse.move(full.x, full.y, { steps: 10 })
+    await page.mouse.up()
+    await page.waitForTimeout(450)
+    expect((await state()).x).toBeCloseTo(moved.x, 0)
+    expect(await cards(page)).toBe('alpha@later beta@now gamma@now delta@now eta@now')
   })
 })
 
@@ -738,17 +750,23 @@ test.describe('a phone: 390x844, touch, one lane to a row', () => {
       expect(await resting(page, 'card-alpha')).toEqual(start)
       expect(await text(page, 'caption-done')).toBe('It already holds 1 of 1 card.')
 
-      // Dropped beside the lanes, on open canvas.
+      // Dropped beside the lanes, on open canvas, it becomes an ordinary note there; undo makes
+      // it a card again in its own place. (Restated 2026-11-19: this drop used to be refused.)
       await top()
       await press('card-alpha')
       await holdAtBottomUntil('review', 500)
       await slide({ x: 195, y: 600 })
       await slide({ x: 30, y: 600 })
       await touch('touchEnd', [])
-      await expect.poll(async () => (await journal(page)).refusals.at(-1)).toEqual({ cardId: 'alpha', laneId: null, reason: '' })
+      await expect.poll(() => cards(page)).toBe('beta@inbox gamma@inbox omega@done')
+      expect(await page.evaluate(() => JSON.parse((window as any).native.slate.exportJSON()).nodes.map((n: any) => n.options.id))).toEqual(['alpha'])
+      await page.evaluate(() => (window as any).native.slate.undoRedo.undo())
+      await expect.poll(() => cards(page)).toBe('alpha@inbox beta@inbox gamma@inbox omega@done')
       expect(await resting(page, 'card-alpha')).toEqual(start)
-      expect(await cards(page)).toBe('alpha@inbox beta@inbox gamma@inbox omega@done')
-      expect((await journal(page)).changes).toEqual([])
+      expect((await journal(page)).changes).toEqual([
+        { cardId: 'alpha', cardToNote: { noteId: 'alpha' } },
+        { cardId: 'alpha', laneId: 'inbox', noteToCard: { noteId: 'alpha', label: 'Alpha' } },
+      ])
       // The workshop still plays after all three.
       await top()
       const doing = await inLane(page, 'doing')

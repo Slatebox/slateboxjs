@@ -129,6 +129,30 @@ export interface DragPolicy {
    * persisted are gone; the host redraws them here.
    */
   onNotesReplaced?(): void;
+  /**
+   * An ordinary note (one, not part of a group drag) is being dragged. Lets a host show
+   * what a drop there would do. Called at most once per animation frame.
+   */
+  onFreeMove?(node: Node, point: WorldPoint): void;
+  /**
+   * An ordinary note was dropped at `point` (by pointer, or by the arrow keys that
+   * nudge it), having started at `from`. Return "taken" when the host has made the
+   * note its own (it removed the note from the drawing; the engine records no move),
+   * "refused" to have the note glide back to `from` (nothing is saved or sent), or
+   * nothing to leave it where it was dropped as an ordinary move.
+   */
+  onFreeDrop?(node: Node, point: WorldPoint, from: WorldPoint): "taken" | "refused" | void;
+  /**
+   * What the host wants kept with each undo record (taken when the record is taken).
+   * Given back to {@link onUndoRestore} when this person's undo or redo goes back to it.
+   */
+  undoState?(): unknown;
+  /**
+   * This person's undo or redo replaced the slate's notes with a record. `state` is what
+   * undoState returned for that record; `added` and `removed` are the ids of ordinary
+   * notes the restore brought back or took away. Runs after onNotesReplaced.
+   */
+  onUndoRestore?(state: unknown, notes: { added: string[]; removed: string[] }): void;
 }
 
 export interface NodeGovernance {

@@ -11,4 +11,5 @@ export const DEFAULT_NOTE_STYLE = Object.freeze({
   fontColor: "#000000",
   borderColor: "#cccccc",
   borderWidth: 1,
+  backgroundColor: "#f0f0f0",
 });

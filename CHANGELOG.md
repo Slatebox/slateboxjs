@@ -4,6 +4,16 @@
 
 ### Added
 
+- **Notes and cards trade places by being dropped.** On a board of plain lanes, an ordinary note
+  dropped on a lane (or nudged onto one with the arrow keys) becomes a card there under the lane's
+  rules, keeping its words, look and id; a lane that refuses it sends it back and says why. A card
+  dropped on empty canvas, or staged past the first or last lane from the keyboard and committed
+  with Enter, becomes an ordinary note saved with the drawing. Each is one undo step that undoes
+  both the board and the drawing. A note joined by lines stays a note, and says so. New change
+  shapes `{ cardId, laneId, noteToCard }` and `{ cardId, cardToNote }`; model helpers
+  `workshopTakesNotes`, `workshopNoteCandidate`, `workshopNoteRefusal`, `workshopCardAsNote`,
+  `workshopCardAsNoteRefusal`, `workshopCardLookOf`; drag-policy hooks `onFreeMove`, `onFreeDrop`,
+  `undoState` and `onUndoRestore`; `slate.beginHostStep()` / `endHostStep()`.
 - **Workshops can run as native notes on a live slate.** `attachWorkshop(slate, workshop, options)`
   (from `slateboxjs/workshops/model`, plain JavaScript) draws a workshop model onto a Slate the host
   already has: lanes, captions and cards are real notes with the canvas's own pan, zoom, minimap,
@@ -39,6 +49,9 @@
   whether it takes the card in a `data-workshop-drop` attribute (`open`, `over`, `refused`).
 
 ### Changed
+- **Cards look like notes.** A card is drawn with an ordinary note's fill (`#f0f0f0`, now
+  `DEFAULT_NOTE_STYLE.backgroundColor`) or the host's `style.backgroundColor`, instead of a card
+  fill of its own; a card made from a note keeps that note's look (`card.look`).
 - **Keys pressed on a control outside the canvas stay with that control.** Delete, Backspace, the
   arrow keys and Escape act on the canvas only when focus is inside it or nowhere on the page; a
   Ctrl/Cmd shortcut still reaches it from a toolbar button beside the canvas, and nothing does from

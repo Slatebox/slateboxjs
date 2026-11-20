@@ -9,8 +9,8 @@ import { Slate } from 'slateboxjs'
 import { attachWorkshop } from 'slateboxjs/workshops/model' // plain JavaScript, no React
 
 const board = attachWorkshop(slate, model, {
-  onChange(next, change) { save(next) },          // { cardId, laneId } or { rename: { laneId | cardId, label } }
-  onRefuse({ cardId, laneId, reason }) { toast(reason) },
+  onChange(next, change) { return save(next) },   // a move, a rename, or a note and a card trading places (below)
+  onRefuse({ cardId, noteId, laneId, reason }) { toast(reason) },
   onPreview(candidate) {},                         // the board a held or keyboard-staged card would produce, or null
   onSelect(selection) {},                          // { cardId } | { laneId } | null
   readOnly: false,
@@ -35,7 +35,7 @@ The signatures, exactly:
 attachWorkshop(slate: Slate, workshop: Workshop, options?: AttachWorkshopOptions): AttachedWorkshop
 
 interface AttachWorkshopOptions {
-  onChange?: (next: Workshop, change: WorkshopChangeEvent) => void
+  onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | void>
   onRefuse?: (refusal: WorkshopRefusalEvent) => void
   onPreview?: (candidate: Workshop | null) => void
   onSelect?: (selection: { cardId: string } | { laneId: string } | null) => void
@@ -52,6 +52,7 @@ interface WorkshopNoteStyle {           // sizes in world units: CSS px at 100% 
   laneFontSize?: number                 // default fontSize + 2
   captionFontSize?: number              // default fontSize - 1
   textColor?: string                    // default #000000
+  backgroundColor?: string              // card fill; default #f0f0f0, an engine note's
   borderColor?: string                  // default #cccccc
   borderWidth?: number                  // default 1
   cornerRadius?: number                 // default 0 (square, like a plain note)
@@ -107,9 +108,15 @@ model, as new notes.
 ## In the host's note style
 
 With no `style`, lanes and cards are drawn as the engine draws an ordinary note: the same family,
-size, text colour and border (`DEFAULT_NOTE_STYLE`, exported from `slateboxjs`), with square corners.
-A host whose notes look different passes that look in `style`, and every lane header, caption and
-card takes it. Lane fills, card fills and the tint behind each lane stay the workshop's own.
+size, text colour, border and (for cards) fill (`DEFAULT_NOTE_STYLE`, exported from `slateboxjs`),
+with square corners. A host whose notes look different passes that look in `style`, and every lane
+header, caption and card takes it; `style.backgroundColor` is the host's note fill, for cards. A card
+is recognisable as a card by where it sits, in a lane, not by a skin of its own. Lane fills and the
+tint behind each lane stay the workshop's own, and so does a map's token, which is a playing piece.
+
+A card made from an ordinary note keeps that note's look (`card.look`: fill, text colour, type
+family and size, border colour and width), and a card that leaves the lanes becomes a note drawn
+exactly as the card was.
 
 Cards are 228 by 76 and lane headers 228 by 58, whatever the type size. A label that would not fit
 at the size asked is set smaller (never below 11), so a long name stays inside its note; a short one
@@ -142,7 +149,8 @@ them, so a map wider than the screen is fitted smaller.
   and the other cards show the outcome. On release the move commits (`onChange`) and the card
   settles in its slot, or it is refused: the card glides back to exactly where it started, the lane
   is outlined, its caption shows the reason for about 1.5 s, and `onRefuse` is called. A drop
-  outside every lane is refused with an empty reason. Escape, a cancelled pointer or touch, and
+  outside every lane makes the card an ordinary note there (see below); on a map, a release plan
+  or a startup experience it is refused with an empty reason. Escape, a cancelled pointer or touch, and
   window blur cancel the drag.
 - **To a lane that is off screen.** A card held within 56 CSS pixels of an edge of the visible
   canvas pans the canvas that way, faster the nearer the edge, and stays under the pointer or finger
@@ -169,6 +177,69 @@ them, so a map wider than the screen is fitted smaller.
 
 The rule is `workshopCandidate(board, cardId, laneId)`: the board the move would produce, the same
 board when the card is already there, or null. `workshopRefusal` gives the sentence for a null.
+On a board of plain lanes, open canvas beside the board is a destination too (see "Notes and cards
+are the same thing").
+
+## Notes and cards are the same thing
+
+On a board of plain lanes (`workshopTakesNotes(board)`: not a map, a release plan or a startup
+experience) an ordinary note and a card trade places by being dropped:
+
+- **A note dropped on a lane becomes a card** at the foot of that lane, under the lane's rules
+  (`workshopNoteCandidate` / `workshopNoteRefusal`: capacity, 24 cards at most, 1 to 80 characters
+  of plain text). The note leaves the slate's drawing (`onNodeDeleted` is sent to collaborators and
+  the host's save path) and the board gains the card, with the note's words, its look, and its id
+  when the board has no lane or card by that id (otherwise the next free `card-N`). The card glides
+  from where the note was let go into its slot and becomes the selection. Only one ordinary note at a
+  time: a group of selected notes dragged together is an ordinary move.
+- **A lane that refuses a note** sends it gliding back to where it started, outlines the lane, shows
+  the reason in its caption for about 1.5 s, announces it, and calls
+  `onRefuse({ noteId, laneId, reason })`, exactly as for a refused card. Nothing is saved, sent or
+  recorded. While a note is carried over the board the lanes are outlined as for a card
+  (`data-workshop-drop` on each column says `open`, `over` or `refused`).
+- **Connectors.** A note joined to other notes by lines stays a note: the lane refuses it with
+  "A note joined to other notes by lines stays a note. Remove its lines first." A card is a drawing
+  of the model and cannot hold a line to the saved drawing, and a line is never dropped silently.
+  A note with a picture stays a note the same way.
+- **A card dropped on empty canvas, outside every lane, becomes an ordinary note** where it was let
+  go: it leaves the board, and a note with its words and look is added to the drawing
+  (`onNodeAdded`), saved with it and selected. Its id is the card's, unless the slate already holds a
+  note by that id. A card that an outcome (`signals`) depends on, or that may only be in some lanes
+  (`allowedLaneIds`), stays a card: it glides back and `onRefuse({ cardId, laneId: null, reason })`
+  says why (`workshopCardAsNoteRefusal`). Dropped back on a lane, the note is a card again.
+- **Keyboard.** A note nudged with the arrow keys is dropped where it comes to rest (a quarter of a
+  second after the last arrow), at its middle: on a lane it becomes a card there, or is refused and
+  goes back to where the nudging began. With a card selected, Left from the first lane or Right from
+  the last stages a move off the lanes ("Alpha to the canvas, outside the lanes: it becomes an
+  ordinary note. Press Enter to move it, Escape to cancel."); the card waits just beside the board,
+  Enter makes it a note there and selects it, Escape or the opposite arrow brings it back.
+- **One undo step each.** Each conversion is one step of the slate's own undo history, taken with the
+  board as it was just before (`slate.beginHostStep()` / `slate.endHostStep()`). This person's undo
+  and redo put back both halves: the drawing from the record, and the board through `onChange`.
+  A step that brings a note back takes its card off the board; a step that takes a note away puts its
+  card back in the lane and the place among the cards it had. Collaborators' changes carried into the
+  history (see `UndoRedo.absorbRemote`) are never taken back by it.
+- **Viewers** (`readOnly`, or the slate's own `isReadOnly` / `isCommentOnly`) can do neither.
+- **Maps, release plans and startup experiences** keep their own cards: an ordinary note dropped on
+  one of their lanes is an ordinary move, and a card dropped outside every lane is refused with an
+  empty reason, as before.
+
+The two new change shapes `onChange` reports:
+
+```ts
+// An ordinary note became card `cardId` at the foot of `laneId`; the note left the drawing.
+{ cardId, laneId, noteToCard: { noteId, label, look? } }
+// Card `cardId` left the board; it is now the ordinary note `noteId` in the drawing.
+{ cardId, cardToNote: { noteId } }
+```
+
+A host saves both like any change. Return a promise of `false` from `onChange` when the save fails
+(the board was refused on the server, say): the drawing half is put back (the note returns to the
+canvas, or leaves it again), so the note and the card are never both gone. The same shapes come
+from this person's undo and redo of a conversion.
+
+The engine mechanism is three optional policy hooks (`onFreeMove`, `onFreeDrop`, and `undoState` with
+`onUndoRestore`): any host can use them to take ordinary notes into state of its own.
 
 ## What is selected
 
@@ -187,7 +258,7 @@ change with `slate.onSelectionChange(listener)`.
   the accessibility tree; a lane's accessible name carries what its caption shows.
 - **A double-click on empty space inside a lane** makes an ordinary note there, as it does anywhere
   on the canvas: above the lane, selected, movable, saved with the drawing. It is the document's
-  note, not a card. Columns are always the backmost notes, so nothing a person puts on a lane is
+  note until it is dropped on a lane, which (once it has words) makes it a card. Columns are always the backmost notes, so nothing a person puts on a lane is
   hidden behind it.
 - **The zoom label** follows the view itself, so it is right the moment `fitToContent`,
   `fitToWidth` or any other call changes the zoom.
@@ -203,7 +274,9 @@ rules close and a drop outside every lane, which Dragology's `closest()` cannot 
 ## Two people on one workshop
 
 The engine sends nothing about workshop notes, so a second client sees a move only when the host
-delivers the new model and calls `board.update(next)`; its cards then glide to their new slots. To
+delivers the new model and calls `board.update(next)`; its cards then glide to their new slots. A
+conversion has a drawing half that the engine does send (the note leaving or joining the drawing)
+and a board half the host delivers; a second client sees both. To
 show a move in progress, relay `onPreview` and call `board.preview(candidate)` on the other client.
 When a save loses a race (two people fill the last slot), call `board.update(serverModel)` and
 `board.refuse(laneId, reason)` on the loser.
@@ -214,4 +287,6 @@ When a save loses a race (two people fill the last slot), call `board.update(ser
 host can use to govern notes of its own: `governs(node)` claims a note and sets its capabilities
 (`canMove`, `canResize`, `canRotate`, `canDelete`, `canDuplicate`, `canConnect`, `canEditText`,
 `canSelect`, `persist`); `onStart`, `onMove`, `onEnd` and `onCancel` rule on a drag; `onTextCommit`
-on an inline edit; `onKeyDown` gets keys pressed while the note is selected.
+on an inline edit; `onKeyDown` gets keys pressed while the note is selected. For ordinary notes,
+`onFreeMove` sees one carried, `onFreeDrop` may take one that was let go (or nudged into place) or
+refuse it, and `undoState` / `onUndoRestore` keep host state beside the slate's undo records.

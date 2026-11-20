@@ -19,6 +19,12 @@ export class UndoRedo {
   private options: UndoRedoOptions;
   private undoStack: SlateJSON[] = [];
   private redoStack: SlateJSON[] = [];
+  /**
+   * What the slate's host policies kept with each record (see DragPolicy.undoState),
+   * index for index with undoStack and redoStack.
+   */
+  private undoHost: unknown[] = [];
+  private redoHost: unknown[] = [];
   private debounceTimer: any = null;
   private isRestoring: boolean = false;
   private restoreQueue: Promise<void> = Promise.resolve();
@@ -117,6 +123,20 @@ export class UndoRedo {
   }
 
   /**
+   * Record a change still waiting for its pause (or its gesture) now, as a step of
+   * its own. Nothing happens when nothing is waiting.
+   */
+  public flushPending(): void {
+    if (this.debounceTimer || this.gestureRecordDue) this.forceSnapshot();
+  }
+
+  /** Bring what the host keeps with the current record up to date (see Slate.beginHostStep). */
+  public refreshHostState(): void {
+    if (!this.options.enabled || !this.slate || !this.undoStack.length) return;
+    this.undoHost[this.undoStack.length - 1] = this.hostState();
+  }
+
+  /**
    * Undo the last change. Restores the previous snapshot.
    */
   public undo(): boolean {
@@ -131,10 +151,11 @@ export class UndoRedo {
     // Save current state to redo stack
     const current = this.undoStack.pop()!;
     this.redoStack.push(current);
+    this.redoHost.push(this.undoHost.pop());
 
     // Restore previous state
     const previous = this.undoStack[this.undoStack.length - 1];
-    this.restore(previous, "undo");
+    this.restore(previous, "undo", this.undoHost[this.undoStack.length - 1]);
 
     console.log(
       "UNDOREDO_DEBUG: Undo performed. Undo stack:",
@@ -157,12 +178,14 @@ export class UndoRedo {
 
     // Pop from redo stack
     const next = this.redoStack.pop()!;
+    const host = this.redoHost.pop();
 
     // Push to undo stack
     this.undoStack.push(next);
+    this.undoHost.push(host);
 
     // Restore state
-    this.restore(next, "redo");
+    this.restore(next, "redo", host);
 
     console.log(
       "UNDOREDO_DEBUG: Redo performed. Undo stack:",
@@ -218,6 +241,7 @@ export class UndoRedo {
     if (this.isRestoring || this.debounceTimer || this.gestureRecordDue || this.undoStack.length === 0) return;
     // The current record is the slate as it is now.
     this.undoStack[this.undoStack.length - 1] = now;
+    this.undoHost[this.undoStack.length - 1] = this.hostState();
   }
 
   /** Check if undo is available */
@@ -234,6 +258,8 @@ export class UndoRedo {
   public clear(): void {
     this.undoStack = [];
     this.redoStack = [];
+    this.undoHost = [];
+    this.redoHost = [];
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
@@ -261,13 +287,16 @@ export class UndoRedo {
 
     // Clear redo stack on new change
     this.redoStack = [];
+    this.redoHost = [];
 
     // Add to undo stack
     this.undoStack.push(snapshot);
+    this.undoHost.push(this.hostState());
 
     // Trim if exceeds max
     if (this.undoStack.length > this.options.maxHistory!) {
       this.undoStack.shift();
+      this.undoHost.shift();
     }
 
     console.log(
@@ -276,7 +305,21 @@ export class UndoRedo {
     );
   }
 
-  private restore(snapshot: SlateJSON, action: "undo" | "redo"): void {
+  /** What the slate's host policies keep with a record taken now. */
+  private hostState(): unknown {
+    try {
+      return this.slate?.undoHostState?.() ?? null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** The ids of the ordinary notes a slate document holds. */
+  private static noteIds(json: SlateJSON | null): Set<string> {
+    return new Set((json?.nodes ?? []).map((node: any) => node?.options?.id).filter((id: unknown) => typeof id === "string"));
+  }
+
+  private restore(snapshot: SlateJSON, action: "undo" | "redo", host: unknown = null): void {
     // Restoring creates SVG nodes asynchronously. Serialize rapid undo/redo
     // requests so an older restore cannot finish after a newer one and win.
     this.pendingRestores += 1;
@@ -287,7 +330,20 @@ export class UndoRedo {
         // restore that starts in the middle of them would be overwritten by
         // the rest.
         await this.slate.collab?.whenApplied?.();
+        let before: SlateJSON | null = null;
+        try {
+          before = serialize(this.slate);
+        } catch (e) {
+          before = null;
+        }
         await deserialize(snapshot, this.slate, false, true);
+        // A host keeps its own state beside the drawing (a workshop's cards): it hears
+        // which notes this step brought back or took away, with what it kept then.
+        const was = UndoRedo.noteIds(before), now = UndoRedo.noteIds(snapshot);
+        this.slate.restoreUndoHostState?.(host, {
+          added: [...now].filter((id) => !was.has(id)),
+          removed: [...was].filter((id) => !now.has(id)),
+        });
 
         // A local undo/redo is still a document mutation. Broadcast one
         // authoritative full-state baseline so remote peers restore the same

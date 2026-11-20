@@ -347,10 +347,12 @@ test.describe('a governed card changes only when the workshop agrees', () => {
     await page.keyboard.press('ArrowRight')
     await expect(live(page)).toHaveText("Gamma can't move to Later. This card can't go in Later.")
     expect((await journal(page)).refusals.at(-1)).toEqual({ cardId: 'gamma', laneId: 'later', reason: "This card can't go in Later." })
-    // No lane at all on the other side: said plainly, and not a refusal.
+    // The other side is the canvas, where Gamma may not go as a note: refused with the reason.
+    // (Restated 2026-11-19: past the first lane is now the canvas, see native-workshop-cards.spec.ts.)
     await page.keyboard.press('ArrowLeft')
-    await expect(live(page)).toHaveText('Gamma has no lane to move to on that side.')
-    expect((await journal(page)).refusals).toHaveLength(2)
+    await expect(live(page)).toHaveText('Gamma may only be in Now, so it stays a card.')
+    expect((await journal(page)).refusals).toHaveLength(3)
+    expect((await journal(page)).refusals.at(-1)).toEqual({ cardId: 'gamma', laneId: null, reason: 'Gamma may only be in Now, so it stays a card.' })
     expect((await journal(page)).changes).toEqual([{ cardId: 'alpha', laneId: 'later' }])
   })
 })

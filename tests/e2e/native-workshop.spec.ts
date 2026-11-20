@@ -179,10 +179,13 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     await expect.poll(async () => (await journal(page)).refusals.at(-1)).toEqual({ cardId: 'gamma', laneId: 'later', reason: "This card can't go in Later." })
     expect(await resting(page, 'card-gamma')).toEqual(gammaStart)
 
-    // Dropped on open canvas, outside every lane: refused, with nothing to explain.
+    // Dropped on open canvas, outside every lane: Gamma may only be in Now, so it may not
+    // become a note there either, and says so. (Restated 2026-11-19: a card that may leave
+    // the lanes now becomes an ordinary note on open canvas; native-workshop-cards.spec.ts.)
     const plain = await box(page, 'plain')
-    await drag(page, 'card-beta', { x: plain.x + plain.width / 2, y: plain.y + plain.height + 260 })
-    await expect.poll(async () => (await journal(page)).refusals.at(-1)).toEqual({ cardId: 'beta', laneId: null, reason: '' })
+    await drag(page, 'card-gamma', { x: plain.x + plain.width / 2, y: plain.y + plain.height + 260 })
+    await expect.poll(async () => (await journal(page)).refusals.at(-1)).toEqual({ cardId: 'gamma', laneId: null, reason: 'Gamma may only be in Now, so it stays a card.' })
+    expect(await resting(page, 'card-gamma')).toEqual(gammaStart)
     expect(await resting(page, 'card-beta')).toEqual(betaStart)
 
     const state = await journal(page)
@@ -515,12 +518,16 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     // Still selected: the Escape cancelled the move, not the selection.
     expect(await page.evaluate(() => (window as any).native.slate.getSelectedNodes().map((n: any) => n.id))).toEqual(['card-alpha'])
 
-    // Right then Left returns home without committing; there is nowhere further left.
+    // Right then Left returns home without committing. Further left is the canvas, where the
+    // card would become a note; Right brings it back to Now. (Restated 2026-11-19: this used to
+    // say there was no lane on that side.)
     await page.keyboard.press('ArrowRight')
     await page.keyboard.press('ArrowLeft')
     await expect(live(page)).toHaveText('Alpha is back in Now.')
     await page.keyboard.press('ArrowLeft')
-    await expect(live(page)).toHaveText('Alpha has no lane to move to on that side.')
+    await expect(live(page)).toHaveText('Alpha to the canvas, outside the lanes: it becomes an ordinary note. Press Enter to move it, Escape to cancel.')
+    await page.keyboard.press('ArrowRight')
+    await expect(live(page)).toHaveText('Alpha is back in Now.')
     expect((await journal(page)).changes).toEqual([])
 
     await page.keyboard.press('ArrowRight')

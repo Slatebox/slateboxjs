@@ -2505,6 +2505,82 @@ export class Slate {
     return node.editor.startInline({ text, selection: selection ?? { start: text.length, end: text.length }, returnFocus, preventScroll: true }) === true;
   }
 
+  /**
+   * Show the policies an ordinary note on the move (see DragPolicy.onFreeMove). Only a
+   * single ordinary note is offered; a group drag and a governed note are not.
+   */
+  public offerFreeMove(node: Node, point: WorldPoint): void {
+    if (!this._dragPolicies.length || this.governanceOf(node)) return;
+    for (const policy of this._dragPolicies.slice()) {
+      try {
+        policy.onFreeMove?.(node, point);
+      } catch (error) {
+        console.warn("DRAG_POLICY: onFreeMove threw", error);
+      }
+    }
+  }
+
+  /**
+   * Offer a dropped ordinary note to the policies (see DragPolicy.onFreeDrop). The first
+   * that takes or refuses it decides; with none, the drop is an ordinary move.
+   */
+  public offerFreeDrop(node: Node, point: WorldPoint, from: WorldPoint): "taken" | "refused" | null {
+    if (!this._dragPolicies.length || this.governanceOf(node)) return null;
+    for (const policy of this._dragPolicies.slice()) {
+      let verdict: "taken" | "refused" | void = undefined;
+      try {
+        verdict = policy.onFreeDrop?.(node, point, from);
+      } catch (error) {
+        console.warn("DRAG_POLICY: onFreeDrop threw; the drop stays an ordinary move", error);
+      }
+      if (verdict === "taken" || verdict === "refused") return verdict;
+    }
+    return null;
+  }
+
+  /** What each policy keeps with an undo record (see DragPolicy.undoState). Null when none keeps anything. */
+  public undoHostState(): Map<DragPolicy, unknown> | null {
+    const kept = new Map<DragPolicy, unknown>();
+    for (const policy of this._dragPolicies) {
+      if (typeof policy.undoState !== "function") continue;
+      try {
+        kept.set(policy, policy.undoState());
+      } catch (error) {
+        console.warn("DRAG_POLICY: undoState threw", error);
+      }
+    }
+    return kept.size ? kept : null;
+  }
+
+  /** This person's undo or redo went back to a record: hand each policy what it kept with it. */
+  public restoreUndoHostState(state: unknown, notes: { added: string[]; removed: string[] }): void {
+    const kept = state instanceof Map ? state : null;
+    for (const policy of this._dragPolicies.slice()) {
+      if (typeof policy.onUndoRestore !== "function") continue;
+      try {
+        policy.onUndoRestore(kept?.get(policy), notes);
+      } catch (error) {
+        console.warn("DRAG_POLICY: onUndoRestore threw", error);
+      }
+    }
+  }
+
+  /**
+   * A host is about to change its own state and the drawing together as one step (a
+   * note becoming one of its governed notes, or the other way round). Records any edit
+   * still waiting to be recorded as its own step, and brings what the host keeps with
+   * the current record up to date, so an undo goes back to exactly this moment.
+   */
+  public beginHostStep(): void {
+    this.undoRedo?.flushPending?.();
+    this.undoRedo?.refreshHostState?.();
+  }
+
+  /** Record the step begun with {@link beginHostStep} once its changes are made. */
+  public endHostStep(): void {
+    this.undoRedo?.snapAfterGesture?.();
+  }
+
   /** Tell each policy that loadJSON / undo / redo replaced the slate's notes. */
   public notifyNotesReplaced(): void {
     if (this._dragPolicies.length === 0) {
