@@ -115,7 +115,8 @@ function blockSize(record: AgentPresenceRecord, showList: boolean) {
   const label = clip(plainLine(record.label), 48)
   const step = agentStepText(record)
   const stepLine = step ? clip(step, 40) : ''
-  const width = Math.max(96, Math.min(CARD_WIDTH, 16 + 6.6 * Math.max(label.length, stepLine.length)))
+  // Bold 12px words take about 7px a letter, the 11px step about 6.3px: the tag is wide enough for both.
+  const width = Math.max(96, Math.min(CARD_WIDTH, 16 + Math.max(7 * label.length, 6.3 * stepLine.length)))
   const height = stepLine ? 38 : 22
   const rows = showList ? (record.plan?.steps ?? []).length : 0
   return { width, height, w: Math.max(width, rows ? CARD_WIDTH : 0), h: height + (rows ? 6 + 12 + rows * 18 : 0) }
@@ -172,12 +173,23 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   }
 
   // Screen pixels per world unit: the container's width over the view box's.
-  function zoom(): number {
+  // What the canvas shows: its view box as the element fits it (preserveAspectRatio: "slice" crops the longer side,
+  // "meet" or none adds room around it), and screen pixels per world unit. Null when the canvas has no size yet.
+  function shownBox(): { view: Box; scale: number } | null {
     try {
       const box = slate.canvas.viewbox()
-      const width = slate.canvas.node?.getBoundingClientRect?.().width || 0
-      if (box?.width && width) return width / box.width
-    } catch { /* jsdom or a detached canvas */ }
+      const rect = slate.canvas.node?.getBoundingClientRect?.()
+      if (!box?.width || !box?.height || !rect?.width || !rect?.height) return null
+      const fit = String(slate.canvas.node?.getAttribute?.('preserveAspectRatio') || 'xMidYMid meet')
+      const sx = rect.width / box.width, sy = rect.height / box.height
+      const scale = fit === 'none' ? sx : /slice/.test(fit) ? Math.max(sx, sy) : Math.min(sx, sy)
+      const w = rect.width / scale, h = rect.height / scale
+      return { view: { x: box.x + (box.width - w) / 2, y: box.y + (box.height - h) / 2, w, h }, scale }
+    } catch { return null }
+  }
+  function zoom(): number {
+    const shown = shownBox()
+    if (shown) return shown.scale
     try {
       const z = slate.getZoom?.()
       if (typeof z === 'number' && z > 0) return z
@@ -206,6 +218,8 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   const sameBox = (a: Box, b: Box) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
 
   function viewBox(): Box | null {
+    const shown = shownBox()
+    if (shown) return shown.view
     try {
       const box = slate.canvas.viewbox()
       if (box && [box.x, box.y, box.width, box.height].every((value: number) => Number.isFinite(value)) && box.width > 0 && box.height > 0)
@@ -214,17 +228,35 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     return null
   }
 
-  // With no target yet (a plan before the first save), the pointer waits at the top left of the notes.
-  function restingPoint(index: number): { x: number; y: number } {
+  // With no target yet (a plan before the first save), the pointer waits in a corner of the view: the one whose tag
+  // covers the fewest notes' words, its tag pointing inward. Several such agents stack down (or up) from it. With no
+  // view box, above and left of the notes.
+  function restingPoint(index: number, size: { w: number; h: number } = { w: CARD_WIDTH, h: 38 }, scale = 1): { x: number; y: number; side: { right: boolean; down: boolean } | null } {
+    const view = viewBox()
+    if (view) {
+      const m = 8 / scale, step = (index * 64) / scale
+      const corners = [
+        { x: view.x + m, y: view.y + m + step, side: { right: true, down: true } },
+        { x: view.x + view.w - m, y: view.y + m + step, side: { right: false, down: true } },
+        { x: view.x + m, y: view.y + view.h - m - step, side: { right: true, down: false } },
+        { x: view.x + view.w - m, y: view.y + view.h - m - step, side: { right: false, down: false } },
+      ]
+      const notes = noteBoxes()
+      let best = corners[0], bestScore = Infinity
+      for (const corner of corners) {
+        const score = tagScore(agentTagBox(corner, size, scale, corner.side), view, [], notes)
+        if (score <= 1e-9) return corner
+        if (score < bestScore) { best = corner; bestScore = score }
+      }
+      return best
+    }
     let x = Infinity, y = Infinity
     for (const node of slate.nodes?.allNodes ?? []) {
       const o = node?.options
       if (typeof o?.x === 'number' && typeof o?.y === 'number') { x = Math.min(x, o.x); y = Math.min(y, o.y) }
     }
-    if (!Number.isFinite(x)) {
-      try { const box = slate.canvas.viewbox(); x = box.x + box.width * 0.25; y = box.y + box.height * 0.25 } catch { x = 100; y = 100 }
-    }
-    return { x: x - 40, y: y - 40 + index * 64 }
+    if (!Number.isFinite(x)) { x = 100; y = 100 }
+    return { x: x - 40, y: y - 40 + index * 64, side: null }
   }
 
   function draw(item: Drawn, scale: number, compact: boolean) {
@@ -312,8 +344,8 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     const boxes = record.targets.map(id => boxOf(noteOf(id))).filter((box): box is Box => Boolean(box))
     const anchors = boxes.slice(0, AGENT_MAX_VISITS).map(box => agentAnchor(box, size, scale, view, all.filter(other => !sameBox(other, box))))
     if (!anchors.length) {
-      const point = restingPoint(index)
-      return { legs: [{ ...point, ms: AGENT_GLIDE_MS }], side: null }
+      const point = restingPoint(index, size, scale)
+      return { legs: [{ x: point.x, y: point.y, ms: AGENT_GLIDE_MS }], side: point.side }
     }
     const ms = anchors.length === 1 ? AGENT_GLIDE_MS : AGENT_VISIT_MS
     return { legs: anchors.map(anchor => ({ x: anchor.x, y: anchor.y, ms })), side: anchors[anchors.length - 1].side }

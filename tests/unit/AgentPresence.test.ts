@@ -90,7 +90,8 @@ describe('agent presence on a canvas', () => {
     const slate = fakeSlate({ a: { x: 0, y: 0, width: 100, height: 100 } })
     const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
     presence.set([record({ targets: ['late'] })])
-    expect(presence.shown()[0]).toMatchObject({ x: -40, y: -40 })
+    // Before its notes are drawn it waits inside the view, in the corner where its tag covers no note: here the top right.
+    expect(presence.shown()[0]).toMatchObject({ x: 792, y: 8, side: { right: false, down: true } })
     ;(slate.nodes.allNodes as any[]).push({ options: { id: 'late', x: 300, y: 300, width: 100, height: 50 } })
     presence.set([record({ targets: ['late'] })])
     expect(presence.shown()[0]).toMatchObject({ x: 392, y: 342 })
@@ -170,5 +171,20 @@ describe('agent presence on a canvas', () => {
     expect(agentTagSide(at, size, 1, view, [rightDown, leftDown])).toEqual({ right: true, down: false })
     // Zoomed out (half a screen pixel per world unit), the tag is twice as big in world units.
     expect(agentTagBox(at, size, 0.5, { right: true, down: true })).toEqual({ x: 280, y: 210, w: 400, h: 80 })
+  })
+
+  it('reads what the canvas shows when the element crops its view box (preserveAspectRatio slice)', () => {
+    const slate = fakeSlate({ note: { x: 440, y: 200, width: 80, height: 80 } })
+    // The element is 400 by 600 pixels and slices an 800 by 600 view box: only x 200 to 600 is on screen, at 1:1.
+    slate.canvas.attr('preserveAspectRatio', 'xMidYMid slice')
+    ;(slate.canvas.node as any).getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, width: 400, height: 600, right: 400, bottom: 600 })
+    const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
+    presence.set([record({ targets: ['note'], message: 'Draft' })])
+    const [shown] = presence.shown()
+    expect(shown.side.right).toBe(false)
+    const tag = slate.host.querySelector('[data-agent-tag] rect') as SVGRectElement
+    expect(shown.x + Number(tag.getAttribute('x')) + Number(tag.getAttribute('width'))).toBeLessThanOrEqual(600)
+    expect(shown.x + Number(tag.getAttribute('x'))).toBeGreaterThanOrEqual(200)
+    presence.destroy()
   })
 })
