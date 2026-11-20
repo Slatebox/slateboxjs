@@ -58,7 +58,8 @@ test('an owner issues a native editor invitation and can downgrade and retire it
     const httpIssue = (token:string,role:string,key:string) => ownerPage.request.post(endpoint,{
       headers:{Authorization:'Bearer '+token,'Idempotency-Key':key},data:{role}
     })
-    expect((await httpIssue(ordinary,'edit',randomUUID())).status()).toBe(401)
+    // A missing scope is 403 insufficient_scope since the action registry (app P02); it was 401.
+    expect((await httpIssue(ordinary,'edit',randomUUID())).status()).toBe(403)
     await shareScope.check()
     const manager=await issueToken('Owner-controlled invitation')
     await expect(shareScope).not.toBeChecked()

@@ -62,13 +62,14 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
     expect(team.legalLaneIds).toContain(finance.id)
     const move = { kind: 'move_workshop_card', cardId: team.id, laneId: finance.id, expectedRevision: map.revision }
     const key = randomUUID()
-    const submit = (dryRun: boolean, idempotencyKey: string, op = move) => request.post(endpoint + '/operations', {
+    // The API takes mode "preview" or "save" since the action registry (app P02); it took dryRun.
+    const submit = (mode: 'preview' | 'save', idempotencyKey: string, op = move) => request.post(endpoint + '/operations', {
       headers: { ...headers, 'Idempotency-Key': idempotencyKey },
-      data: { dryRun, plan: { message: 'Move the workshop card', operations: [op] } },
+      data: { mode, plan: { message: 'Move the workshop card', operations: [op] } },
     })
-    expect((await submit(true, key)).status()).toBe(200)
+    expect((await submit('preview', key)).status()).toBe(200)
     expect(await summary()).toEqual(map)
-    const forbidden = await submit(false, randomUUID(), { ...move, laneId: 'missing-destination' })
+    const forbidden = await submit('save', randomUUID(), { ...move, laneId: 'missing-destination' })
     expect(forbidden.status()).toBe(400)
     expect(await summary()).toEqual(map)
     let saved
@@ -85,7 +86,7 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
       expect((await shell('read', shareId)).summary.workshop).toEqual(map)
       const namedPreview = await shell('move', shareId, 'Team', 'Ask finance')
       expect(namedPreview.operations).toEqual([move])
-      expect(namedPreview.dryRun).toBe(true)
+      expect(namedPreview.mode).toBe('preview')
       expect(await summary()).toEqual(map)
       const mcp = new Client({ name: 'refund-map-proof', version: '1' })
       try {
@@ -93,13 +94,13 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
         const args = { share_id: shareId, card_id: team.id, lane_id: finance.id, expected_revision: map.revision }
         const preview = await mcp.callTool({ name: 'move_workshop_card', arguments: args })
         expect(preview.isError).toBeFalsy()
-        expect(preview.structuredContent.dryRun).toBe(true)
+        expect(preview.structuredContent.mode).toBe('preview')
         expect(await summary()).toEqual(map)
         const commit = await mcp.callTool({ name: 'move_workshop_card', arguments: {
           ...args, dry_run: false, idempotency_key: key,
         } })
         expect(commit.isError).toBeFalsy()
-        expect(commit.structuredContent.dryRun).toBe(false)
+        expect(commit.structuredContent.mode).toBe('save')
         saved = commit.structuredContent
         const cliReplay = await shell('move', shareId, 'Team', 'Ask finance', '--apply',
           '--revision', String(map.revision), '--idempotency-key', key)
@@ -108,14 +109,14 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
         await mcp.close()
       }
     } else {
-      const committed = await submit(false, key)
+      const committed = await submit('save', key)
       expect(committed.status()).toBe(201)
       saved = await committed.json()
     }
-    const replay = await submit(false, key)
+    const replay = await submit('save', key)
     expect(replay.status()).toBe(200)
     expect(await replay.json()).toEqual(saved)
-    expect((await submit(false, randomUUID())).status()).toBe(409)
+    expect((await submit('save', randomUUID())).status()).toBe(409)
     const result = await summary()
     expect(result.revision).toBe(map.revision + 1)
     expect(result.cards.find((card: { id: string }) => card.id === team.id).laneId).toBe(finance.id)

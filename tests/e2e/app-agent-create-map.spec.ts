@@ -63,7 +63,8 @@ test('packaged tools create private maps and source diagrams through the same op
       headers: { Authorization: 'Bearer ' + token, 'Idempotency-Key': idempotencyKey },
       data: { brief: message },
     })
-    expect((await post(read, brief, randomUUID())).status()).toBe(401)
+    // A missing scope is 403 insufficient_scope since the action registry (app P02); it was 401.
+    expect((await post(read, brief, randomUUID())).status()).toBe(403)
     expect(await mine()).toEqual(initial)
 
     const env = { PATH: process.env.PATH!, SLATEBOX_API_TOKEN: write, SLATEBOX_BASE_URL: origin.origin }
@@ -144,7 +145,7 @@ test('packaged tools create private maps and source diagrams through the same op
     const createDrawing = (token: string, body: object) => request.post(url, {
       headers: { Authorization: 'Bearer ' + token, 'Idempotency-Key': diagramKey }, data: body,
     })
-    expect((await createDrawing(read, diagram)).status()).toBe(401)
+    expect((await createDrawing(read, diagram)).status()).toBe(403)
     const fresh = await createDrawing(write, diagram)
     expect(fresh.status()).toBe(201)
     const drawing = await fresh.json()
