@@ -12,7 +12,7 @@ import { Grid } from "./Grid";
 import { Keyboard } from "./Keyboard";
 import { ContextMenu } from "./ContextMenu";
 import { type ExportOptions } from "./Export";
-import { Collab, CollabUser } from "./Collab";
+import { Collab, CollabUser, type NoteTrade, type NoteTrades } from "./Collab";
 import type { SlatePackage } from "./SlatePackage";
 import { type ThemeDefinition } from "./Theme";
 import { type LayoutMove } from "./Layout";
@@ -137,6 +137,12 @@ export interface SlateOptions {
         t: number;
         c: number;
     };
+    /**
+     * The note and card trades the stored slate records (see Collab.NoteTrade), put on the document
+     * by the host that loads it. Read once the document is drawn and never stored back: while the
+     * room has not been told of a trade, the stored document says what the traded note is.
+     */
+    collabTrades?: NoteTrades;
     eligibleForThemeCompilation?: boolean;
     viewPort?: {
         originalWidth?: number;
@@ -344,6 +350,22 @@ export declare class Slate {
      */
     sendHeld(packages: SlatePackage[]): void;
     /**
+     * The note and card trades the host's server has stored (the newest trade of each note) and
+     * the workshop revision they are complete through. A trade this screen has not drawn is drawn
+     * now, and the room is told of any it has not been (see Collab.settleTrades). Call it before
+     * telling the slate a trade of this person's own was saved.
+     */
+    settleTrades(trades: Record<string, NoteTrade> | null | undefined, through?: number): void;
+    /** The workshop revision through which this screen draws every trade: for the drawing save. */
+    tradesThrough(): number;
+    /**
+     * A trade of this person's own, of note `id`, waits for the host's answer: until then a trade the
+     * server tells of is not drawn over this screen's copy of the note (see Collab.holdTrade).
+     */
+    holdTrade(id: string, answer: unknown): void;
+    /** Draw a traded note as the server's trade has it again (this person's own copy was taken away). */
+    keepTrade(id: string): void;
+    /**
      * A host step made with {@link onlyHere} waits for `saved`, the host's own save of it. The
      * host's drawing save can wait for every such step with {@link whenHeldSettled}, so it never
      * stores a step its own save has not made real.
@@ -382,6 +404,8 @@ export declare class Slate {
     beginRemoteApply(): void;
     /** Re-enable emitSlateChange after a remote package has been applied. */
     endRemoteApply(): void;
+    /** True while a document load is in flight (see holdUntilLoaded). */
+    isLoading(): boolean;
     /** A document load started: nothing from the room is applied until it has finished. */
     holdUntilLoaded<T>(load: Promise<T>): Promise<T>;
     /**
