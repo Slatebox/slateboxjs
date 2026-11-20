@@ -10,8 +10,13 @@
  * Plain JavaScript, no React. The only thing it asks of the engine is the drag
  * policy in core/DragPolicy.ts.
  */
-import { type Workshop, type WorkshopBoardLayout, type WorkshopNoteStyle } from './model';
-/** What a person changed. A move names the card and its new lane; a rename names the lane or card and its new label. */
+import { type Workshop, type WorkshopBoardLayout, type WorkshopCardLook, type WorkshopNoteStyle } from './model';
+/**
+ * What a person changed. A move names the card and its new lane; a rename names the lane or
+ * card and its new label. `noteToCard`: an ordinary note became card `cardId` at the foot of
+ * `laneId` (it left the slate's drawing). `cardToNote`: card `cardId` left the board and is now
+ * the ordinary note `noteId` in the drawing.
+ */
 export interface WorkshopChangeEvent {
     cardId?: string;
     laneId?: string;
@@ -20,10 +25,23 @@ export interface WorkshopChangeEvent {
         cardId?: string;
         label: string;
     };
+    noteToCard?: {
+        noteId: string;
+        label: string;
+        look?: WorkshopCardLook;
+    };
+    cardToNote?: {
+        noteId: string;
+    };
 }
-/** A change the workshop's rules did not allow, with the reason as a sentence (empty when the card was dropped outside every lane). */
+/**
+ * A change the workshop's rules did not allow, with the reason as a sentence (empty when a card
+ * that cannot become a note was dropped outside every lane). `noteId` names an ordinary note
+ * a lane refused.
+ */
 export interface WorkshopRefusalEvent {
     cardId?: string;
+    noteId?: string;
     laneId?: string | null;
     rename?: {
         laneId?: string;
@@ -53,8 +71,12 @@ export type WorkshopCandidateChooser = (board: Workshop, cardId: string, grab: {
     y: number;
 }) => Workshop) | null;
 export interface AttachWorkshopOptions {
-    /** A move or rename was committed. `next` is validated; the host persists it. */
-    onChange?: (next: Workshop, change: WorkshopChangeEvent) => void;
+    /**
+     * A move, rename or conversion was committed. `next` is validated; the host persists it.
+     * Return a promise of false when the host could not save a conversion: the drawing is put
+     * back (the note returns to the canvas, or leaves it again).
+     */
+    onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | void>;
     /** A drop or rename was refused. */
     onRefuse?: (refusal: WorkshopRefusalEvent) => void;
     /** The board a held or keyboard-staged card would produce, or null when there is none. */

@@ -25,6 +25,17 @@ export interface WorkshopCard {
     allowedLaneIds?: string[];
     points?: number;
     dependsOn?: string[];
+    /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
+    look?: WorkshopCardLook;
+}
+/** The look of one card: what an ordinary note dropped on a lane brings with it. */
+export interface WorkshopCardLook {
+    backgroundColor?: string;
+    textColor?: string;
+    fontFamily?: string;
+    fontSize?: number;
+    borderColor?: string;
+    borderWidth?: number;
 }
 export interface WorkshopSignal {
     id: string;
@@ -49,6 +60,8 @@ export interface Workshop {
     signals?: WorkshopSignal[];
     cards: WorkshopCard[];
 }
+/** The parts of a note's look a card can keep; anything a card cannot draw is left out. Undefined when nothing is left. */
+export declare function workshopCardLookOf(input: Record<string, unknown>): WorkshopCardLook | undefined;
 /** Resolve the original lanes for playback without changing their board positions or rules. */
 export declare function workshopPresentationLanes({ lanes, presentationOrder }: Pick<Workshop, 'lanes' | 'presentationOrder'>): WorkshopLane[];
 /** Resolve authored outcomes against this exact committed or transient candidate board. */
@@ -86,6 +99,29 @@ export declare function workshopCandidate(board: Workshop, cardId: string, laneI
 export declare function workshopDestinations(board: Workshop, cardId: string): WorkshopLane[];
 /** Why workshopCandidate refuses this move, as a sentence for the person moving the card. Null when the move is available. */
 export declare function workshopRefusal(board: Workshop, cardId: string, laneId: string): string | null;
+/**
+ * Whether ordinary notes and this board's cards are the same thing: a board of plain lanes.
+ * A map's token, a release plan's features (they need points) and a startup experience's
+ * cards are pieces of their own and are not made from notes.
+ */
+export declare function workshopTakesNotes(board: Workshop): boolean;
+/** An ordinary note offered to a lane: its id, its words and how it is drawn. */
+export interface WorkshopNoteOffer {
+    id: string;
+    label: string;
+    look?: WorkshopCardLook;
+}
+/** Why `note` may not become a card in `laneId`, as a sentence; null when it may. */
+export declare function workshopNoteRefusal(board: Workshop, laneId: string, note: WorkshopNoteOffer): string | null;
+/**
+ * The board with `note` as a card at the foot of `laneId`, or null when the lane's rules
+ * refuse it (workshopNoteRefusal says why). The card keeps the note's id where it can.
+ */
+export declare function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer): Workshop | null;
+/** Why the card may not leave the lanes as an ordinary note; null when it may. */
+export declare function workshopCardAsNoteRefusal(board: Workshop, cardId: string): string | null;
+/** The board without the card, for a card taken off the lanes as an ordinary note; null when it must stay. */
+export declare function workshopCardAsNote(board: Workshop, cardId: string): Workshop | null;
 /** The second line under a lane's name: how full it is, or what its cards add up to. */
 export declare function workshopLaneCaption(board: Workshop, laneId: string): string;
 export declare const workshopLayout: {
@@ -148,6 +184,8 @@ export interface WorkshopNoteStyle {
     captionFontSize?: number;
     /** Text of lanes, captions and cards. */
     textColor?: string;
+    /** Fill of the cards: the host's ordinary note fill. Defaults to an engine note's. */
+    backgroundColor?: string;
     /** Outline of lane headers and cards. */
     borderColor?: string;
     borderWidth?: number;

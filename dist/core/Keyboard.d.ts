@@ -23,6 +23,8 @@ export declare class Keyboard {
     private clipboard;
     private clipboardEdges;
     private pasteCount;
+    /** Where each nudged note was when the current burst of nudges began. */
+    private nudgeFrom;
     private nudgeTimer;
     constructor(slate: any, options?: KeyboardOptions);
     /** Bind global keyboard shortcuts */

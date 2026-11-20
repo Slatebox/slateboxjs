@@ -631,6 +631,32 @@ export declare class Slate {
         id: string;
         draft: InlineDraft;
     } | null): boolean;
+    /**
+     * Show the policies an ordinary note on the move (see DragPolicy.onFreeMove). Only a
+     * single ordinary note is offered; a group drag and a governed note are not.
+     */
+    offerFreeMove(node: Node, point: WorldPoint): void;
+    /**
+     * Offer a dropped ordinary note to the policies (see DragPolicy.onFreeDrop). The first
+     * that takes or refuses it decides; with none, the drop is an ordinary move.
+     */
+    offerFreeDrop(node: Node, point: WorldPoint, from: WorldPoint): "taken" | "refused" | null;
+    /** What each policy keeps with an undo record (see DragPolicy.undoState). Null when none keeps anything. */
+    undoHostState(): Map<DragPolicy, unknown> | null;
+    /** This person's undo or redo went back to a record: hand each policy what it kept with it. */
+    restoreUndoHostState(state: unknown, notes: {
+        added: string[];
+        removed: string[];
+    }): void;
+    /**
+     * A host is about to change its own state and the drawing together as one step (a
+     * note becoming one of its governed notes, or the other way round). Records any edit
+     * still waiting to be recorded as its own step, and brings what the host keeps with
+     * the current record up to date, so an undo goes back to exactly this moment.
+     */
+    beginHostStep(): void;
+    /** Record the step begun with {@link beginHostStep} once its changes are made. */
+    endHostStep(): void;
     /** Tell each policy that loadJSON / undo / redo replaced the slate's notes. */
     notifyNotesReplaced(): void;
     /**

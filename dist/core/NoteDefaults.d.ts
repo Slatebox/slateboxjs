@@ -11,4 +11,5 @@ export declare const DEFAULT_NOTE_STYLE: Readonly<{
     fontColor: "#000000";
     borderColor: "#cccccc";
     borderWidth: 1;
+    backgroundColor: "#f0f0f0";
 }>;

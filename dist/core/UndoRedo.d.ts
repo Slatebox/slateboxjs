@@ -15,6 +15,12 @@ export declare class UndoRedo {
     private options;
     private undoStack;
     private redoStack;
+    /**
+     * What the slate's host policies kept with each record (see DragPolicy.undoState),
+     * index for index with undoStack and redoStack.
+     */
+    private undoHost;
+    private redoHost;
     private debounceTimer;
     private isRestoring;
     private restoreQueue;
@@ -45,6 +51,13 @@ export declare class UndoRedo {
      * guaranteed snapshot state right now (e.g., tests, scripts).
      */
     forceSnapshot(): void;
+    /**
+     * Record a change still waiting for its pause (or its gesture) now, as a step of
+     * its own. Nothing happens when nothing is waiting.
+     */
+    flushPending(): void;
+    /** Bring what the host keeps with the current record up to date (see Slate.beginHostStep). */
+    refreshHostState(): void;
     /**
      * Undo the last change. Restores the previous snapshot.
      */
@@ -79,5 +92,9 @@ export declare class UndoRedo {
     /** Destroy the undo/redo system, clearing all history and references */
     destroy(): void;
     private takeSnapshot;
+    /** What the slate's host policies keep with a record taken now. */
+    private hostState;
+    /** The ids of the ordinary notes a slate document holds. */
+    private static noteIds;
     private restore;
 }
