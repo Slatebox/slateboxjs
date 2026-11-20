@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { presentToEveryone } from './app-header.shared'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
@@ -64,10 +65,10 @@ test('a reader opts into live playback, returns to the current scene, and leaves
     await workshopReady(reader)
     await expect(slateTitle(reader)).toHaveText(workshop.title)
     expect(await userId(reader)).toBeNull()
-    await expect(button(reader, 'Present together')).toHaveCount(0)
+    await expect(button(reader, 'Presentation options')).toHaveCount(0)
     await expect(button(reader, 'Follow presentation')).toHaveCount(0)
 
-    await button(owner, 'Present together').click()
+    await presentToEveryone(owner)
     await scene(owner, 'market')
     await expect(button(reader, 'Follow presentation')).toBeVisible()
     await expect(readout(reader)).toHaveCount(0)
@@ -106,7 +107,7 @@ test('a reader opts into live playback, returns to the current scene, and leaves
     await button(owner, 'End presentation').click()
     await expect(readout(reader)).toHaveCount(0)
     await expect(button(reader, 'Follow presentation')).toHaveCount(0)
-    await expect(button(owner, 'Present together')).toBeVisible()
+    await expect(button(owner, 'Present')).toBeVisible()
     await scene(published, 'quay')
     expect(await userId(reader)).toBeNull()
     expect(await userId(published)).toBeNull()

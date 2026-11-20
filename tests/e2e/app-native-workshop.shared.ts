@@ -16,7 +16,7 @@ export const card = (page: Page, cardId: string) => note(page, 'card-' + cardId)
 export const lane = (page: Page, laneId: string) => note(page, 'lane-' + laneId)
 export const caption = (page: Page, laneId: string) => note(page, 'caption-' + laneId)
 /** The slate's own conversation panel. */
-export const conversation = (page: Page) => page.getByRole('complementary', { name: 'Conversation with Slatebox' })
+export const conversation = (page: Page) => page.getByRole('complementary', { name: 'Ask Slatebox' })
 /** The status strip on the canvas: Join to edit, View only, Undo last change, Saving, errors. */
 export const workshopStatus = (page: Page) => page.getByRole('group', { name: 'Workshop', exact: true })
 /** Where each token of a map is and what happens there. */
@@ -174,7 +174,7 @@ export const starter = (page: Page, name: string | RegExp) =>
 const closedByTest = new WeakSet<Page>()
 
 /**
- * The slate's conversation, ready to type in. Beside a wide canvas (900px and up) it is open
+ * The slate's conversation, ready to type in. Beside a wide canvas (1000px and up) it is open
  * when the slate opens, and this insists on that: it does not open it for the page. It is
  * opened here only where a person would have to: on a narrower canvas, or after the test
  * closed it.
@@ -184,7 +184,7 @@ export async function openConversation(page: Page) {
   const ask = page.getByRole('button', { name: 'Ask Slatebox', exact: true })
   // Either the panel or its button is there once the page is ready (a closing dialog hides both for a moment).
   await expect(panel.or(ask).first()).toBeVisible()
-  const wide = await page.evaluate(() => innerWidth >= 900)
+  const wide = await page.evaluate(() => innerWidth >= 1000)
   if (wide && !closedByTest.has(page)) await expect(panel, 'the conversation starts open beside a wide canvas').toBeVisible()
   else if (!await panel.isVisible()) await ask.click()
   closedByTest.delete(page)

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { slateMenuButton } from './app-header.shared'
 import { openGuestCanvas } from './app-host.shared'
 import { removeTestGuest, userId } from './workshop-guests.shared'
 import { conversation } from './app-native-workshop.shared'
@@ -225,7 +226,7 @@ test('Escape in an open menu or with the note pane open closes that, and only th
     await select(page, 'Welcome!')
 
     // A menu opened with the mouse: Escape closes it and the note stays selected.
-    await page.getByRole('button', { name: 'Board menu', exact: true }).click()
+    await slateMenuButton(page).click()
     const item = page.getByRole('menuitem', { name: 'Version history', exact: true })
     await expect(item).toBeVisible()
     await page.keyboard.press('Escape')

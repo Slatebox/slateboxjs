@@ -19,5 +19,5 @@ export async function resumeArchivedDraft(page:Page, origin:string | URL, format
   await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/)
   // The archived draft opens as a slate with the workshop on its canvas and the slate's own conversation.
   await expect(page.locator('#slateCanvas [data-node-id^="lane-"]').first()).toBeVisible()
-  await expect(page.getByRole('complementary',{name:'Conversation with Slatebox'})).toBeVisible()
+  await expect(page.getByRole('complementary',{name:'Ask Slatebox'})).toBeVisible()
 }

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { presentToEveryone } from './app-header.shared'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -57,8 +58,8 @@ test('a read-only phone follows the presenter across native outage notes and ret
     }
     expect(await userId(reader)).toBeNull()
     await expect(note(reader,'fallback')).toHaveAttribute('aria-label',title)
-    await expect(button(reader,'Present notes together')).toHaveCount(0)
-    await button(owner,'Present notes together').click()
+    await expect(button(reader,'Presentation options')).toHaveCount(0)
+    await presentToEveryone(owner)
     await expectNativeView(owner,'newcomer','New customer',1)
     const follow=button(reader,'Follow presentation')
     await expect(follow).toBeInViewport()
@@ -93,7 +94,8 @@ test('a read-only phone follows the presenter across native outage notes and ret
     await button(owner,'End presentation').click()
     await expect(deck(reader)).toHaveCount(0)
     await expect(follow).toHaveCount(0)
-    await expect(button(owner,'Present notes together')).toBeVisible()
+    await expect(button(owner,'Present')).toBeVisible()
+    await expect(button(reader,'Present')).toBeVisible()
     await reader.reload()
     await expect(note(reader,'fallback')).toHaveAttribute('aria-label',title)
     expect(await userId(reader)).toBeNull()

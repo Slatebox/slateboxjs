@@ -1,4 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { presentToEveryone } from './app-header.shared'
 import { randomUUID } from 'node:crypto'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from "./workshop-guests.shared";
 
@@ -423,7 +424,7 @@ test('a research handoff carries the team’s edited prototype into a shared pre
     const prototype = 'Let a customer undo the sample import'
     await editNote(teammate, 'test', prototype)
     await expect(owner.locator('#slateCanvas g[data-node-id="test"]')).toHaveAccessibleName(prototype)
-    await owner.getByRole('button', {name:'Present notes together', exact:true}).click()
+    await presentToEveryone(owner)
     await teammate.getByRole('button', {name:'Follow presentation', exact:true}).tap()
     const presentation = teammate.getByRole('dialog', {name:'Live presentation'})
     const slide = presentation.locator('footer [aria-live]')

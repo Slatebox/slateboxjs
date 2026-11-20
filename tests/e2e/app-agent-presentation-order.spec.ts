@@ -4,6 +4,7 @@
 // replay, same presentation. New, deliberately: sharing and revoking are held for the person and
 // saved when the run is confirmed.
 import { startAgentMap } from './map-conversation.shared'
+import { presentToEveryone } from './app-header.shared'
 import { randomUUID } from 'node:crypto'
 import { expect, firefox, test } from '@playwright/test'
 import { cliConfirmed, cliExec, cliResult, installedTools, lit, mcpExec } from './agent-exec.shared'
@@ -71,7 +72,7 @@ return slatebox.slates.applyOperations({ shareId: ${lit(board)}, mode: ${lit(mod
     await expect(reader.getByRole('button',{name:'Edit an object'})).toHaveCount(0)
     const tokenId = initial.cards[0].id
     const deck = reader.getByRole('region',{name:'Decision presentation'})
-    await owner.page.getByRole('button',{name:'Present together',exact:true}).click()
+    await presentToEveryone(owner.page)
     await reader.getByRole('button',{name:'Follow presentation',exact:true}).click()
     await expectWorkshopSlide(reader,'Next step',['Token'],['lane-next','card-'+tokenId])
     await expect(reader.getByRole('button',{name:'Next station'})).toHaveCount(0)

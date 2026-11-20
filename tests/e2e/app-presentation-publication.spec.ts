@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { fromSlateMenu } from './app-header.shared'
 import { openGuestCanvas } from './app-host.shared'
 
 const app = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
@@ -76,7 +77,7 @@ test('author reorders scenes, publishes an unlisted deck, and withdraws guest an
     await expect(page.locator('#slateCanvas')).toContainText('Look for the Pleiades')
     await page.keyboard.press('Escape')
     const boardTitle = 'Night sky "field notes" & glass <lenses>'
-    await page.getByRole('button', { name: 'Board settings' }).click()
+    await fromSlateMenu(page, 'Slate settings')
     await page.getByRole('textbox', { name: 'Name', exact: true }).fill(boardTitle)
     await page.keyboard.press('Escape')
     await expect(page.locator('.sb-board-name')).toContainText(boardTitle)

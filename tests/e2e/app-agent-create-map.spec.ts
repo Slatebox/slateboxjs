@@ -180,7 +180,7 @@ test('packaged tools create private maps and source diagrams through the same op
     ownedBoards.push(original._id)
     expect(original.options.isPrivate).toBe(true)
     expect(original.creative).toBeUndefined()
-    await expect(owner.getByRole('complementary', {name:'Conversation with Slatebox'})).toContainText(diagram.brief)
+    await expect(owner.getByRole('complementary', {name:'Ask Slatebox'})).toContainText(diagram.brief)
     const diagramInvitation = await shareAs(owner, 'edit')
     await reader.goto(diagramInvitation.href)
     await dismissWelcome(reader)

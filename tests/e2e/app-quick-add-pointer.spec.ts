@@ -11,6 +11,11 @@ test("quick add opens under the pointer after the cookie notice is dismissed", a
   const accept = page.getByRole("button", { name: "Accept cookies" });
   const trigger = page.getByRole("button", { name: "Slatebox - quickly add a node" });
   await expect(accept).toBeVisible();
+  // The launcher sits in the canvas's corner, clear of the Ask Slatebox panel beside it. With the
+  // panel closed that corner is the window's, under the cookie notice.
+  const ask = page.getByRole("button", { name: "Ask Slatebox", exact: true });
+  if (await ask.getAttribute("aria-pressed") === "true") await ask.click();
+  await expect(page.getByRole("complementary", { name: "Ask Slatebox" })).toHaveCount(0);
 
   // Click where the notice covers the launcher, so the pointer starts inside
   // the newly exposed button. Moving away first would mask the Firefox bug.

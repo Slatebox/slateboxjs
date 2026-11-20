@@ -41,7 +41,7 @@ const seen = (page: Page) => page.evaluate(() => {
     minimap: minimap && getComputedStyle(minimap).display !== 'none' ? box(minimap) : null,
     zoomControl: box(canvas.querySelector('.slatebox-zoom-slider')),
     notice: box(document.querySelector('.sb-cookie')),
-    conversation: box(document.querySelector('[aria-label="Conversation with Slatebox"]')),
+    conversation: box(document.querySelector('aside[aria-label="Ask Slatebox"]')),
     status: box(document.querySelector('[role="group"][aria-label="Workshop"]')),
     zoom: engine.getZoom() as number,
     laneWidth: engine.nodes.allNodes.find((node: any) => String(node.options.id).startsWith('lane-')).options.width as number,
@@ -154,11 +154,12 @@ test.describe('on a phone', () => {
       await welcomed(page)
       await workshopReady(page)
       const view = await settled(page)
-      // Full-size lanes, one to a row, starting under the buttons that float below the toolbar.
+      // Full-size lanes, one to a row, from the top of the canvas. Ask Slatebox is in the bar under the canvas.
       expect(view.zoom).toBeCloseTo(1, 2)
       expect(Math.round(view.firstLane.right - view.firstLane.left)).toBe(Math.round(view.laneWidth))
-      const floating = (await page.getByRole('button', { name: 'Ask Slatebox', exact: true }).boundingBox())!
-      expect(view.firstLane.top).toBeGreaterThanOrEqual(floating.y + floating.height)
+      expect(view.firstLane.top).toBeGreaterThanOrEqual(view.canvas.top)
+      const bar = (await page.getByRole('region', { name: 'Slate tools' }).boundingBox())!
+      expect(bar.y).toBeGreaterThanOrEqual(view.canvas.bottom - 1)
       expect(view.lanes.bottom, 'the lanes wrap down the page').toBeGreaterThan(view.canvas.bottom)
       // The notice has a band of its own under the canvas until it is answered.
       const notice = page.locator('.sb-cookie')

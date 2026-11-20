@@ -15,7 +15,7 @@ for(const width of [1360,390]) test('a '+width+'px native drawing gains a route 
     await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
     key=page.url().split('/').pop()!
     const read=()=>page.evaluate(async id=>(await (window as any).Meteor.callAsync('slates.get',{shareId:id})).slateBase,key)
-    const chat=page.getByRole('complementary',{name:'Conversation with Slatebox'})
+    const chat=page.getByRole('complementary',{name:'Ask Slatebox'})
     await expect(chat).toBeVisible({timeout:20000})
     uid=await page.evaluate(()=>(window as any).Meteor.userId())
     await expect.poll(async()=>(await read())?.userId).toBe(uid)
@@ -96,7 +96,7 @@ test('a drawing converted to a workshop shows both on one canvas and leaves its 
     await expect.poll(()=>userId(owner)).toBeTruthy()
     ownerId=await userId(owner)
     await dismissWelcome(owner)
-    const chat=owner.getByRole('complementary',{name:'Conversation with Slatebox'})
+    const chat=owner.getByRole('complementary',{name:'Ask Slatebox'})
     await chat.getByRole('textbox').fill('Make a workshop with Pitches, Record on Friday and Archive, limit Record on Friday to one card')
     await chat.getByRole('button',{name:'Preview changes'}).click()
     await chat.getByRole('button',{name:'Keep changes'}).click()

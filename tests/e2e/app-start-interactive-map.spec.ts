@@ -35,7 +35,7 @@ test('create a private interactive map from Start, author a branch and share the
       await expect(script).toHaveCount(1)
       const chunk = await owner.request.get(new URL((await script.getAttribute('src'))!, origin).href)
       expect(chunk.ok()).toBe(true)
-      expect(await chunk.text()).toContain('Conversation with Slatebox')
+      expect(await chunk.text()).toContain('aria-label="Ask Slatebox"')
     }
     await owner.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
     await dismissWelcome(owner)
@@ -43,7 +43,7 @@ test('create a private interactive map from Start, author a branch and share the
     expect(ownerId).toBeTruthy()
     const ownerUrl = owner.url()
     const key = new URL(ownerUrl).pathname.split('/').pop()!
-    const drawingChat = owner.getByRole('complementary', {name:'Conversation with Slatebox'})
+    const drawingChat = owner.getByRole('complementary', {name:'Ask Slatebox'})
     await drawingChat.getByRole('textbox', {name:'Message Slatebox'}).fill('Make this interactive: Start → Next step')
     await drawingChat.getByRole('button', {name:'Preview changes'}).click()
     await drawingChat.getByRole('button', {name:'Keep changes'}).click()

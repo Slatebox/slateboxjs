@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { fromSlateMenu } from './app-header.shared'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import {
@@ -159,12 +160,12 @@ test('a note one person adds beside the workshop appears for the other without a
   }
 })
 
-test('Board settings renames the workshop; a name it cannot take is said and the saved name comes back', async ({ page }) => {
+test('Slate settings renames the workshop; a name it cannot take is said and the saved name comes back', async ({ page }) => {
   let id: string | null = null
   try {
     const owner = await openRuled(page)
     id = owner.id
-    await page.getByRole('button', { name: 'Board settings' }).click()
+    await fromSlateMenu(page, 'Slate settings')
     const name = page.getByRole('textbox', { name: 'Name', exact: true })
     await expect(name).toHaveValue('Review proof')
 
@@ -334,7 +335,7 @@ test('an embedded workshop slate is read-only: no card moves, nothing is offered
     await expect(conversation(page)).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Ask Slatebox' })).toHaveCount(0)
     await expect(workshopStatus(page)).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Board settings' })).toHaveCount(0)
+    await expect(page.locator('.sb-board-toolbar')).toHaveCount(0)
     // A card cannot be picked up, dragged, moved from the keyboard or renamed.
     const start = await resting(page, 'card-alpha')
     expect(await offeredLanes(page, 'alpha')).toEqual([])
