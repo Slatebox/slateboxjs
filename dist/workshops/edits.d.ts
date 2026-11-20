@@ -1,7 +1,10 @@
 import { type StationImage, type Workshop, type WorkshopCard, type WorkshopLane } from './model';
+import { type WorkshopLimits } from './launchPlan';
 import { type WorkshopFinder } from './names';
 /** The kinds of board, each with its own rules. */
-export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map';
+export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget';
+/** Every kind of board, for a schema that names them (the app's Workshop record, an MCP tool). */
+export declare const WORKSHOP_BOARD_KINDS: readonly WorkshopBoardKind[];
 export declare function workshopBoardKind(board: Workshop): WorkshopBoardKind;
 /** A lane, card, station, token or outcome: its id, or what a person calls it (see workshopFinder). `{ id }` names only an id the caller saw on the board. */
 export type WorkshopRef = string | {
@@ -30,6 +33,10 @@ export type WorkshopEdit = {
     lane: WorkshopRef;
     label?: string;
     allowedLanes?: WorkshopRef[];
+    duration?: number;
+    lag?: number;
+    waitsOn?: WorkshopRef[];
+    amount?: number;
 } | {
     kind: 'remove_card';
     card: WorkshopRef;
@@ -112,6 +119,34 @@ export type WorkshopEdit = {
     kind: 'set_station_image_alt';
     station: WorkshopRef;
     alt: string;
+} | {
+    kind: 'set_task';
+    card: WorkshopRef;
+    duration?: number;
+    lag?: number;
+} | {
+    kind: 'link_tasks';
+    card: WorkshopRef;
+    waitsOn: WorkshopRef;
+} | {
+    kind: 'unlink_tasks';
+    card: WorkshopRef;
+    waitsOn: WorkshopRef;
+} | {
+    kind: 'set_launch_day';
+    day: number;
+} | {
+    kind: 'set_amount';
+    card: WorkshopRef;
+    amount: number;
+} | {
+    kind: 'set_target';
+    amount: number;
+} | {
+    kind: 'shift_budget';
+    from: WorkshopRef;
+    to: WorkshopRef;
+    amount: number;
 };
 export type WorkshopEditKindName = WorkshopEdit['kind'];
 /** What one edit did: the sentence a person is told, and the ids it concerned or made. */
@@ -161,6 +196,8 @@ export interface WorkshopEditRefusal {
     laneId: string | null;
     cardId?: string;
     candidates?: string[];
+    /** A number out of range: the range a person may use, and the sentence at each end. */
+    limits?: WorkshopLimits;
 }
 export type WorkshopEditResult = {
     workshop: Workshop;
