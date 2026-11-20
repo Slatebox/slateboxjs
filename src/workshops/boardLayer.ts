@@ -1,7 +1,7 @@
 // The part of a business board that is not notes: grid lines, axis labels, arrows, the launch-day
 // line, the forecast bar, budget fills and ticks, and the reason a held handle stopped. One svg.js
 // group per attached board, in world coordinates, under the board's notes and above its lane
-// columns. It is drawn from the board on show (committed or preview), never saved, and goes with destroy().
+// columns; the words a held or refused handle says go in a second group above every note. It is drawn from the board on show (committed or preview), never saved, and goes with destroy().
 import type { Workshop } from './model'
 import type { BoardLayer, BoardLayerState } from './native'
 
@@ -80,21 +80,33 @@ export function createBoardLayer(slate: any, paint: (shown: Workshop, state: Boa
   const group = document.createElementNS(svgNS, 'g') as SVGGElement
   group.setAttribute('data-board-layer', '')
   group.setAttribute('pointer-events', 'none')
+  // The words a held or refused handle says (why it stops, why it was refused) go above every
+  // note, so a bar or a card never covers them.
+  const top = document.createElementNS(svgNS, 'g') as SVGGElement
+  top.setAttribute('data-board-layer-top', '')
+  top.setAttribute('pointer-events', 'none')
   let gone = false
   return {
     draw(board, preview, state) {
       if (gone || !root) return
       const { origin } = state
-      group.setAttribute('transform', `translate(${origin.x} ${origin.y})`)
-      renderLayerShapes(group, paint(preview ?? board, state, board), state.onUnlink)
+      const shapes = paint(preview ?? board, state, board)
+      const said = (shape: LayerShape) => shape.t === 'text' && (shape.role === 'clamp' || shape.role === 'refusal')
+      for (const layer of [group, top]) layer.setAttribute('transform', `translate(${origin.x} ${origin.y})`)
+      renderLayerShapes(group, shapes.filter(shape => !said(shape)), state.onUnlink)
+      renderLayerShapes(top, shapes.filter(said))
       // Above the lane columns, under every other note.
       const above = state.above && state.above.parentNode === root ? state.above : null
       const before = above ? above.nextSibling : root.firstChild
       if (group.parentNode !== root || group.previousSibling !== above) root.insertBefore(group, before === group ? group.nextSibling : before)
+      // Last in the canvas: above every note, the board's own and the slate's.
+      if (top.firstChild && root.lastChild !== top) root.appendChild(top)
+      else if (!top.firstChild && top.parentNode) top.remove()
     },
     destroy() {
       gone = true
       group.remove()
+      top.remove()
     },
   }
 }

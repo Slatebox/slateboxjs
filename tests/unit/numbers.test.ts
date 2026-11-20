@@ -16,6 +16,19 @@ describe('the numbers written on a note', () => {
     expect(readNoteNumbers('Globex · $60k')).toEqual({ label: 'Globex', amount: 60000, currency: '$' })
   })
 
+  it('takes the number with a sign or k/M over a bare one, so a year in the words stays in the words', () => {
+    expect(readNoteNumbers('2026 offsite $12k')).toEqual({ label: '2026 offsite', amount: 12000, currency: '$' })
+    expect(readNoteNumbers('Q3 2026 launch 40k')).toEqual({ label: 'Q3 2026 launch', amount: 40000 })
+    expect(readNoteNumbers('Laptops 2400')).toEqual({ label: 'Laptops', amount: 2400 })
+  })
+
+  it('reads part of a day as a whole one, and weeks as five working days each', () => {
+    expect(readNoteNumbers('Fix bug 0.5d')).toEqual({ label: 'Fix bug', days: 1 })
+    expect(readNoteNumbers('Research 1.5 days')).toEqual({ label: 'Research', days: 2 })
+    expect(readNoteNumbers('Team of 4, 6 weeks')).toEqual({ label: 'Team of 4', days: 30 })
+    expect(readNoteNumbers('Beta 2w')).toEqual({ label: 'Beta', days: 10 })
+  })
+
   it('leaves words alone that carry no number it can read', () => {
     expect(readNoteNumbers('Call 3 customers')).toEqual({ label: 'Call 3 customers' })
     expect(readNoteNumbers('  Plain   words ')).toEqual({ label: 'Plain words' })

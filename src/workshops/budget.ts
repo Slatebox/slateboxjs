@@ -82,6 +82,10 @@ export function budgetShiftRefusal(board: Workshop, from: string, to: string, am
   const limits = budgetShiftLimits(board, from, to)
   if (amount > limits.max) return limits.reasons.max!
   if (amount < limits.min) return limits.reasons.min!
+  // Money moves in the board's steps, as the divider snaps; a move that stops exactly at a
+  // team's bound (what a commitment, floor or cap allows) is the one exception.
+  const step = board.budget?.step
+  if (step && amount % step !== 0 && amount !== limits.max && amount !== limits.min) return `Move money in steps of ${money(step, board.budget?.currency)}.`
   return null
 }
 

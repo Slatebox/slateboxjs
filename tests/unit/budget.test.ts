@@ -52,6 +52,21 @@ describe('budget rules', () => {
     expect(ok(budget, [{ kind: 'set_amount', card: 'Research panel', amount: 150000 }]).cards.find(card => card.id === 'panel')!.amount).toBe(150000)
     expect(refused(budget, [{ kind: 'add_card', lane: 'Design', label: 'Survey' }]).reason).toBe('Give the line item a cost, like \'Contractor $45k\'.')
     expect(ok(budget, [{ kind: 'add_card', lane: 'Design', label: 'Survey', amount: 20000 }]).cards.at(-1)).toEqual({ id: 'card-1', label: 'Survey', laneId: 'design', amount: 20000 })
+    // A new line item keeps the bound set_amount keeps: it costs something.
+    expect(refused(budget, [{ kind: 'add_card', lane: 'Design', label: 'Free lunch', amount: 0 }])).toMatchObject({ reason: 'A line item costs something.', limits: { min: 1 } })
+    expect(refused(budget, [{ kind: 'set_amount', card: 'Research panel', amount: 0 }]).reason).toBe('A line item costs something.')
+  })
+
+  it('moves money in the board\'s steps, as the divider snaps, unless the move stops exactly at a bound', () => {
+    expect(budget.budget!.step).toBe(5000)
+    expect(refused(budget, [{ kind: 'shift_budget', from: 'Product', to: 'Design', amount: 1 }]).reason).toBe('Move money in steps of $5k.')
+    expect(refused(budget, [{ kind: 'shift_budget', from: 'Product', to: 'Design', amount: 12500 }]).reason).toBe('Move money in steps of $5k.')
+    expect(allocations(ok(budget, [{ kind: 'shift_budget', from: 'Product', to: 'Design', amount: 15000 }])).design).toBe(165000)
+    // A bound that is not on a step is still reachable: Design may give exactly what it does not commit.
+    const odd = ok(budget, [{ kind: 'set_amount', card: 'Research panel', amount: 101000 }])
+    const spare = 150000 - odd.cards.filter(card => card.laneId === 'design').reduce((sum, card) => sum + card.amount!, 0)
+    expect(spare % 5000).not.toBe(0)
+    expect(allocations(ok(odd, [{ kind: 'shift_budget', from: 'Design', to: 'Marketing', amount: spare }])).marketing).toBe(250000 + spare)
   })
 })
 

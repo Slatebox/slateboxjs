@@ -241,12 +241,20 @@ function partOf(name: string): { kind: Kind; key: string } | null {
 export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWorkshopOptions = {}): AttachedWorkshop {
   let value = validateWorkshop(workshop)
   const kit = options.kit
-  if (businessKind(value) && !kit) throw new Error(`A ${value.kind} board needs its kit: pass kit: kitFor('${value.kind}') from slateboxjs/boards.`)
+  /**
+   * A launch plan, pipeline or budget with no kit can be shown, but not played: its lanes and
+   * cards are drawn as plain notes, view-only (a host that has not loaded slateboxjs/boards, or
+   * a build that predates it, still opens the slate). Playing one needs its kit.
+   */
+  const kitless = (model: Workshop) => Boolean(businessKind(model)) && !kit
+  if (kitless(value) && !options.readOnly) throw new Error(`A ${value.kind} board needs its kit: pass kit: kitFor('${value.kind}') from slateboxjs/boards.`)
   const layer = kit?.layer(slate)
   /** A handle being dragged, and what the pointer last meant. */
   let grip: { name: string; follow: (point: { x: number; y: number }) => HandleResult; last: HandleResult | null } | null = null
   let proposal: Workshop | null = null
-  let readOnly = Boolean(options.readOnly)
+  /** What the host asked for; a board without its kit is view-only whatever it asks. */
+  let wantedReadOnly = Boolean(options.readOnly)
+  let readOnly = wantedReadOnly || kitless(value)
   let destroyed = false
   const owned = new Map<string, any>()
   const drawn = new Map<string, Record<string, any>>()
@@ -268,6 +276,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   /** Cards made from notes, by note id: where the note was, so the new card comes from there. */
   const arrivals = new Map<string, { x: number; y: number }>()
   let flash: { laneId: string; reason: string; timer: ReturnType<typeof setTimeout> } | null = null
+  /** A handle whose drop was refused: its sentence stays beside it for a while, in the refuse colour. */
+  let gripRefusal: { name: string; reason: string; timer: ReturnType<typeof setTimeout> } | null = null
+  function showGripRefusal(name: string, reason: string) {
+    if (gripRefusal) clearTimeout(gripRefusal.timer)
+    gripRefusal = { name, reason, timer: setTimeout(() => { gripRefusal = null; if (!destroyed) draw(proposal ?? value) }, 3000) }
+  }
   let pending: Promise<void> = Promise.resolve()
   let wanted: { model: Workshop; skip?: string; grip?: string; animate: boolean } | null = null
   let layout: WorkshopBoardLayout = layoutOf(options.layout)
@@ -318,6 +332,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         if (!follow) return false
         endFlash()
         clearStaged()
+        if (gripRefusal) { clearTimeout(gripRefusal.timer); gripRefusal = null }
         grip = { name: nameOf(node.id), follow, last: null }
         return true
       }
@@ -357,6 +372,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         grip = null
         tell(options.onPreview, null)
         if (result.refusal) {
+          // Said on screen as well as aloud: the sentence stays beside the handle, which goes back.
+          showGripRefusal(name, result.refusal)
           draw(value)
           slate.announce?.(result.refusal)
           tell(options.onRefuse, { laneId: null, reason: result.refusal })
@@ -1337,8 +1354,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         .reduce<Element | null>((top, node) => !node ? top : !top || top.compareDocumentPosition(node) & 4 ? node : top, null)
       const shown = how.model
       layer.draw(value, shown === value ? null : shown, { origin, layout, above,
-        clamp: grip?.last?.clampedReason ? { name: grip.name, text: grip.last.clampedReason } : null,
-        refused: Boolean(grip?.last?.refusal),
+        clamp: grip?.last?.clampedReason ? { name: grip.name, text: grip.last.clampedReason }
+          : !grip && gripRefusal ? { name: gripRefusal.name, text: gripRefusal.reason } : null,
+        refused: Boolean(grip?.last?.refusal) || (!grip && Boolean(gripRefusal)),
         onUnlink: (cardId, waitsOn) => {
           if (readOnly || proposal || held || grip || viewer()) return
           const result = applyWorkshopEdits(value, [{ kind: 'unlink_tasks', card: { id: cardId }, waitsOn: { id: waitsOn } }])
@@ -1458,7 +1476,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const model = validateWorkshop(next)
       cancelGestures()
       value = model
+      const wasReadOnly = readOnly
+      readOnly = wantedReadOnly || kitless(value)
       draw(proposal ?? value)
+      if (readOnly !== wasReadOnly) slate.refreshGovernance?.()
     },
     preview(candidate) {
       if (destroyed) throw new Error('This workshop has been detached.')
@@ -1477,9 +1498,11 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       slate.announce?.(`${lane.label}: ${reason}`)
     },
     setReadOnly(next) {
-      if (destroyed || readOnly === Boolean(next)) return
+      wantedReadOnly = Boolean(next)
+      const effective = wantedReadOnly || kitless(value)
+      if (destroyed || readOnly === effective) return
       cancelGestures()
-      readOnly = Boolean(next)
+      readOnly = effective
       draw(proposal ?? value)
       slate.refreshGovernance?.()
     },
@@ -1487,6 +1510,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (destroyed) return
       cancelGestures()
       destroyed = true
+      if (gripRefusal) clearTimeout(gripRefusal.timer)
       slate.element?.removeEventListener?.('pointerdown', onPress, true)
       stopWatchingSelection?.()
       slate.withPolicyAuthority(() => {

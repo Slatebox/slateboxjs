@@ -27,6 +27,7 @@ function recordingSlate() {
   const said: string[] = []
   const slate = {
     policy: null as any,
+    canvas: { node: document.createElementNS('http://www.w3.org/2000/svg', 'svg') },
     announce: (text: string) => { said.push(text) },
     nodes: {
       add(options: any) {
@@ -188,7 +189,7 @@ describe('an attached board played through its drag policy', () => {
     }
     const key = (name: string, keyName: string, shiftKey = false) =>
       slate.policy.onKeyDown(notes.get(name), { key: keyName, shiftKey, ctrlKey: false, metaKey: false, altKey: false, preventDefault() {} })
-    return { attached, notes, said, changes, refusals, drag, key, center }
+    return { attached, notes, said, changes, refusals, drag, key, center, svg: slate.canvas.node }
   }
 
   it('launch plan: a length grip stops at launch and says why; within it, the change goes out as edits', async () => {
@@ -199,7 +200,14 @@ describe('an attached board played through its drag policy', () => {
       t.drag('handle-build', from => ({ x: from.x + 3 * dayW, y: from.y }))
       expect(t.refusals).toEqual(['That pushes QA to day 15, after launch on day 14.'])
       expect(t.attached.value).toEqual(plan)
+      // The refusal is on screen too, above the notes, after the grip goes back.
+      await t.attached.whenDrawn()
+      const said = () => t.svg.querySelector('[data-board-layer-top] [data-board-layer="clamp"]')?.textContent ?? null
+      expect(said()).toBe('That pushes QA to day 15, after launch on day 14.')
+      // The next hold of a grip takes it away.
       t.drag('handle-build', from => ({ x: from.x + 2 * dayW, y: from.y }))
+      await t.attached.whenDrawn()
+      expect(said()).toBeNull()
       expect(t.changes.at(-1)!.change.edits).toEqual([{ kind: 'set_task', card: { id: 'build' }, duration: 8, lag: 0 }])
       expect(t.attached.value.cards.find(card => card.id === 'build')!.duration).toBe(8)
       // Undo is the host putting back the board it had: the notes follow.
@@ -291,5 +299,36 @@ describe('an attached board played through its drag policy', () => {
   it('refuses to draw a business board without its kit', () => {
     const { slate } = recordingSlate()
     expect(() => attachWorkshop(slate, validateWorkshop(sampleBudget()))).toThrow("A budget board needs its kit: pass kit: kitFor('budget') from slateboxjs/boards.")
+  })
+
+  it('shows a business board without its kit as plain lanes, view-only, and never makes it playable', async () => {
+    const { slate, notes } = recordingSlate()
+    const budget = validateWorkshop(sampleBudget())
+    const attached = attachWorkshop(slate, budget, { readOnly: true })
+    await attached.whenDrawn()
+    for (const lane of budget.lanes) expect(notes.has('lane-' + lane.id)).toBe(true)
+    for (const card of budget.cards) expect(notes.has('card-' + card.id)).toBe(true)
+    expect([...notes.keys()].some(name => name.startsWith('handle-') || name.startsWith('gauge-'))).toBe(false)
+    const card = notes.get('card-' + budget.cards[0].id)
+    expect(slate.policy.governs(card)).toMatchObject({ canMove: false, canEditText: false })
+    attached.setReadOnly(false)
+    expect(slate.policy.governs(card)).toMatchObject({ canMove: false, canEditText: false })
+    attached.destroy()
+  })
+
+  it('a playable lane board that is replaced by a business board with no kit becomes view-only, and playable again when lanes come back', async () => {
+    const { slate, notes } = recordingSlate()
+    const lanes = validateWorkshop({ version: 1, title: 'Plan', lanes: [{ id: 'now', label: 'Now' }, { id: 'next', label: 'Next' }], cards: [{ id: 'a', label: 'Alpha', laneId: 'now' }] })
+    const attached = attachWorkshop(slate, lanes)
+    await attached.whenDrawn()
+    expect(slate.policy.governs(notes.get('card-a'))).toMatchObject({ canMove: true })
+    const plan = validateWorkshop(sampleLaunchPlan())
+    expect(() => attached.update(plan)).not.toThrow()
+    await attached.whenDrawn()
+    expect(slate.policy.governs(notes.get('card-' + plan.cards[0].id))).toMatchObject({ canMove: false, canEditText: false })
+    attached.update(lanes)
+    await attached.whenDrawn()
+    expect(slate.policy.governs(notes.get('card-a'))).toMatchObject({ canMove: true })
+    attached.destroy()
   })
 })

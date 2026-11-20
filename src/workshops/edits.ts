@@ -813,6 +813,14 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       if (waits.length) card.dependsOn = waits
     } else if (edit.amount !== undefined) card.amount = edit.amount
     if (family === 'budget' && edit.amount === undefined) throw new Refusal('Give the line item a cost, like \'Contractor $45k\'.', 'refused', target.id)
+    if (edit.amount !== undefined && family !== 'launch-plan') {
+      // The same bounds set_amount keeps: a line item costs something, and no amount is past the most.
+      const limits = pipelineLimits(board, { field: 'amount' })
+      const least = family === 'budget' ? 1 : limits.min
+      if (!Number.isInteger(edit.amount) || edit.amount < least)
+        throw new Refusal(family === 'budget' ? 'A line item costs something.' : limits.reasons.min!, 'refused', target.id, undefined, undefined, { ...limits, min: least })
+      if (edit.amount > limits.max) throw new Refusal(limits.reasons.max!, 'refused', target.id, undefined, undefined, limits)
+    }
     if (family === 'pipeline' && target.role) throw new Refusal('A new deal starts in an open stage, not in ' + target.label + '.', 'refused', target.id)
     const held = board.cards.filter(item => item.laneId === target.id)
     if (family === 'pipeline' && target.capacity !== undefined && held.length >= target.capacity) throw new Refusal(target.label + ' already holds ' + held.length + ' of ' + target.capacity + ' deals.', 'refused', target.id)
