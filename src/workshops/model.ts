@@ -2,6 +2,15 @@ export * from './offlineHandoff'
 export * from './listeningRoom'
 import { planReleaseMove, releaseLoad, validateRelease } from './release'
 export { releaseLoad, releasePlan } from './release'
+import { launchPlanCaption, launchTaskText, planLaunchPlanMove, validateLaunchPlan } from './launchPlan'
+import { pipelineCaption, pipelineRefusal, planPipelineMove, validatePipeline } from './pipeline'
+import { budgetCaption, budgetRefusal, planBudgetMove, validateBudget } from './budget'
+import { money, readNoteNumbers } from './numbers'
+import { applyWorkshopEdits } from './edits'
+export * from './launchPlan'
+export * from './pipeline'
+export * from './budget'
+export * from './numbers'
 import type { NodeJSON, SlateJSON } from '../core/Serialization'
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults'
 /** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
@@ -16,6 +25,14 @@ export interface WorkshopLane {
   id: string
   label: string
   capacity?: number
+  /** Pipeline: the chance a deal in this open stage is won, 0 to 1. */
+  probability?: number
+  /** Pipeline: the stage that holds won deals, or lost ones. */
+  role?: 'won' | 'lost'
+  /** Budget: what this team is given, and the least and most it may be given. */
+  allocation?: number
+  floor?: number
+  cap?: number
   station?: { column: number; row: number; next: string[]; outcome: string; image?: StationImage }
 }
 
@@ -26,6 +43,11 @@ export interface WorkshopCard {
   allowedLaneIds?: string[]
   points?: number
   dependsOn?: string[]
+  /** Launch plan: whole days the task takes, and whole days it waits after what it depends on. */
+  duration?: number
+  lag?: number
+  /** Pipeline and budget: whole currency units. */
+  amount?: number
   /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
   look?: WorkshopCardLook
   /** What the note it was made from had that a card does not show, so it comes back as it was. */
@@ -70,13 +92,41 @@ export interface ResolvedWorkshopSignal extends WorkshopSignal {
 export interface Workshop {
   experience?: StartupExperience
   version: 1
-  kind?: 'release-plan'
+  kind?: WorkshopKind
   title: string
+  /** Launch plan: the day every task must end by. */
+  launch?: { day: number }
+  /** Pipeline: the forecast target, and the currency sign amounts are written with. */
+  forecast?: { target: number; currency: string }
+  /** Budget: the envelope, its currency sign and the step allocations snap to. */
+  budget?: { total: number; currency: string; step: number }
   lanes: WorkshopLane[]
   /** Lane IDs in playback order. Boards without an authored order present their lanes in layout order. */
   presentationOrder?: string[]
   signals?: WorkshopSignal[]
   cards: WorkshopCard[]
+}
+
+/** The kinds of board with rules of their own. A board without a kind is a board of plain lanes. */
+export type WorkshopKind = 'release-plan' | 'launch-plan' | 'pipeline' | 'budget'
+/** The business boards: drawn by a board kit (slateboxjs/boards) on a live slate. */
+export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget'
+export const businessBoardKinds: readonly BusinessBoardKind[] = ['launch-plan', 'pipeline', 'budget']
+export function businessKind(board: Pick<Workshop, 'kind'>): BusinessBoardKind | undefined {
+  return businessBoardKinds.includes(board.kind as BusinessBoardKind) ? board.kind as BusinessBoardKind : undefined
+}
+const cardLimit: Record<BusinessBoardKind, [number, string]> = { 'launch-plan': [12, 'A launch plan holds up to 12 tasks.'],
+  pipeline: [16, 'A pipeline holds up to 16 deals.'], budget: [16, 'A budget holds up to 16 line items.'] }
+
+/** A whole (or, with `fraction`, any) number from `low` to `high`, or the sentence `why`. */
+function amountOf(value: unknown, low: number, high: number, why: string, fraction = false): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < low || value > high || (!fraction && !Number.isInteger(value))) throw new Error(why)
+  return value
+}
+const currencySign = /^(?:[$€£¥₹]|[A-Z]{3} )$/
+function currencyOf(value: unknown) {
+  if (typeof value !== 'string' || !currencySign.test(value)) throw new Error('Use a currency sign such as $ or €.')
+  return value
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -226,8 +276,10 @@ const mapGridSize = 3
 export function validateWorkshop(input: unknown): Workshop {
   const value = record(input)
   if (value.version !== 1) throw new Error('Unsupported workshop version.')
-  if (value.kind !== undefined && value.kind !== 'release-plan') throw new Error('Unsupported workshop kind.')
+  if (value.kind !== undefined && value.kind !== 'release-plan' && !businessKind(value)) throw new Error('Unsupported workshop kind.')
   const release = value.kind === 'release-plan'
+  const business = businessKind(value)
+  const most = 1e9
   const title = label(value.title, 120)
   if (!Array.isArray(value.lanes) || value.lanes.length < 2 || value.lanes.length > maxWorkshopLanes) {
     throw new Error('A workshop needs 2 to 5 lanes.')
@@ -235,16 +287,29 @@ export function validateWorkshop(input: unknown): Workshop {
   if (!Array.isArray(value.cards) || value.cards.length > maxWorkshopCards) {
     throw new Error('A workshop supports up to 24 cards.')
   }
+  if (business && value.cards.length > cardLimit[business][0]) throw new Error(cardLimit[business][1])
 
   const lanes: WorkshopLane[] = value.lanes.map(item => {
     const raw = record(item)
     const lane: WorkshopLane = { id: id(raw.id), label: label(raw.label) }
+    if (raw.capacity !== undefined && business && business !== 'pipeline') throw new Error('Only a pipeline\'s stages hold a set number of cards.')
     if (raw.capacity !== undefined) {
       const limit = release ? 576 : 24
       if (typeof raw.capacity !== 'number' || !Number.isInteger(raw.capacity) || raw.capacity < 1 || raw.capacity > limit) {
         throw new Error(`Lane capacity must be a whole number from 1 to ${limit}.`)
       }
       lane.capacity = raw.capacity
+    }
+    if (business === 'pipeline') {
+      if (raw.role !== undefined) {
+        if (raw.role !== 'won' && raw.role !== 'lost') throw new Error('A stage is won, lost or open.')
+        lane.role = raw.role
+      }
+      if (raw.probability !== undefined) lane.probability = amountOf(raw.probability, 0, 1, 'A stage\'s chance is from 0 to 100%.', true)
+    }
+    if (business === 'budget') {
+      const sum = (key: 'allocation' | 'floor' | 'cap') => { if (raw[key] !== undefined) lane[key] = amountOf(raw[key], 0, most, 'Team amounts are whole amounts.') }
+      sum('allocation'); sum('floor'); sum('cap')
     }
     if (raw.station !== undefined) {
       const point = record(raw.station)
@@ -264,6 +329,7 @@ export function validateWorkshop(input: unknown): Workshop {
   })
   const laneIds = lanes.map(lane => lane.id)
   unique(laneIds, 'lane ID')
+  if (business && lanes.some(lane => lane.station)) throw new Error('A business board has no map stations.')
   if ((release || lanes.some(lane => lane.station)) && !value.cards.length) {
     throw new Error('Maps and release plans need at least one card.')
   }
@@ -293,6 +359,17 @@ export function validateWorkshop(input: unknown): Workshop {
     if (raw.asNote !== undefined) {
       const kept = cardAsNote(raw.asNote)
       if (kept) card.asNote = kept
+    }
+    if (business === 'launch-plan') {
+      card.duration = amountOf(raw.duration, 1, 60, 'A task takes 1 to 60 days.')
+      if (raw.lag !== undefined && raw.lag !== 0) card.lag = amountOf(raw.lag, 0, 120, 'A task waits 0 days or more, and no later than launch.')
+    }
+    if ((business === 'pipeline' || business === 'budget') && raw.amount !== undefined) card.amount = amountOf(raw.amount, 0, most, 'An amount is a whole amount, not below zero.')
+    if (business === 'launch-plan' && raw.dependsOn !== undefined) {
+      if (!Array.isArray(raw.dependsOn)) throw new Error('A task waits on a list of tasks.')
+      card.dependsOn = raw.dependsOn.map(id)
+      unique(card.dependsOn, 'dependency')
+      if (!card.dependsOn.length) delete card.dependsOn
     }
     if (release) {
       if (typeof raw.points !== 'number' || !Number.isInteger(raw.points) || raw.points < 1 || raw.points > 24) {
@@ -338,6 +415,23 @@ export function validateWorkshop(input: unknown): Workshop {
     validateRelease(board)
     return board
   }
+  if (business) {
+    board.kind = business
+    const own = (key: string, missing: string) => { if (!value[key] || typeof value[key] !== 'object') throw new Error(missing); return record(value[key]) }
+    if (business === 'launch-plan') board.launch = { day: amountOf(own('launch', 'A launch plan needs a launch day.').day, 5, 120, 'Launch day is a whole day from 5 to 120.') }
+    if (business === 'pipeline') {
+      const raw = own('forecast', 'A pipeline needs a forecast target.')
+      board.forecast = { target: amountOf(raw.target, 1, most, 'A target is a whole amount above zero.'), currency: currencyOf(raw.currency) }
+    }
+    if (business === 'budget') {
+      const raw = own('budget', 'A budget needs a total.')
+      board.budget = { total: amountOf(raw.total, 1, most, 'A total is a whole amount above zero.'), currency: currencyOf(raw.currency),
+        step: raw.step === undefined ? 5000 : amountOf(raw.step, 1, most, 'A step is a whole amount above zero.') }
+    }
+    const problem = (business === 'launch-plan' ? validateLaunchPlan : business === 'pipeline' ? validatePipeline : validateBudget)(board)
+    if (problem) throw new Error(problem)
+    return board
+  }
   for (const lane of lanes) {
     if (cards.filter(card => card.laneId === lane.id).length > (lane.capacity ?? Infinity)) {
       throw new Error(`Lane "${lane.label}" exceeds its capacity.`)
@@ -373,7 +467,15 @@ export function decodeWorkshopFragment(fragment: string): Workshop {
   return validateWorkshop(value)
 }
 
+/** The board a business kind's own rule makes of a move; undefined for every other board. */
+function planBusinessMove(board: Workshop, cardId: string, laneId: string): Workshop | null | undefined {
+  const kind = businessKind(board)
+  if (!kind) return undefined
+  return (kind === 'launch-plan' ? planLaunchPlanMove : kind === 'pipeline' ? planPipelineMove : planBudgetMove)(board, cardId, laneId)
+}
+
 export function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLane[] {
+  if (businessKind(board)) return board.lanes.filter(lane => planBusinessMove(board, card.id, lane.id))
   if (board.kind === 'release-plan') return board.lanes.filter(lane => planReleaseMove(board, card, lane.id) !== null)
   const station = board.lanes.find(lane => lane.id === card.laneId)?.station
   return board.lanes.filter(lane =>
@@ -383,6 +485,11 @@ export function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLan
 
 export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string): Workshop {
   const card = board.cards.find(item => item.id === cardId)
+  const business = planBusinessMove(board, cardId, laneId)
+  if (business !== undefined) {
+    if (!business) throw new Error('Move is unavailable.')
+    return business
+  }
   if (card && board.kind === 'release-plan') {
     const candidate = planReleaseMove(board, card, laneId)
     if (!candidate) throw new Error('Move is unavailable.')
@@ -409,6 +516,8 @@ export function workshopCandidate(board: Workshop, cardId: string, laneId: strin
   if (!card || !board.lanes.some(lane => lane.id === laneId)) return null
   if (card.laneId === laneId) return board
   if (board.kind === 'release-plan') return planReleaseMove(board, card, laneId)
+  const business = planBusinessMove(board, cardId, laneId)
+  if (business !== undefined) return business
   const experience = planStartupMove(board, cardId, laneId)
   if (experience) return experience
   // The prototype holds one interview. When the experience cannot make room there
@@ -428,6 +537,8 @@ export function workshopRefusal(board: Workshop, cardId: string, laneId: string)
   const card = board.cards.find(item => item.id === cardId)
   const lane = board.lanes.find(item => item.id === laneId)
   if (!card || !lane) return 'That move is not available.'
+  if (board.kind === 'pipeline') return pipelineRefusal(board, cardId, laneId)
+  if (board.kind === 'budget') return budgetRefusal(board, cardId, laneId)
   const cannot = `This card can't go in ${lane.label}.`
   if (card.allowedLaneIds && !card.allowedLaneIds.includes(laneId)) return cannot
   if (board.kind === 'release-plan') {
@@ -454,7 +565,7 @@ export function workshopRefusal(board: Workshop, cardId: string, laneId: string)
  * cards are pieces of their own and are not made from notes.
  */
 export function workshopTakesNotes(board: Workshop): boolean {
-  return !board.kind && !board.lanes.some(lane => lane.station) && !startupExperienceKind(board)
+  return (!board.kind || Boolean(businessKind(board))) && !board.lanes.some(lane => lane.station) && !startupExperienceKind(board)
 }
 
 /** An ordinary note offered to a lane: its id, its words and how it is drawn. */
@@ -483,6 +594,10 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
   if (startupExperienceKind(board)) return 'This workshop keeps the cards it came with.'
   const text = typeof note?.label === 'string' ? note.label.replace(/\s+/g, ' ').trim() : ''
   if (!text) return 'A card needs some words. Type on the note first.'
+  if (businessKind(board)) {
+    const made = businessNote(board, laneId, note)
+    return typeof made === 'string' ? made : null
+  }
   if (text.length > 80) return 'A card holds up to 80 characters. Shorten the note first.'
   if (/[<>\u0000-\u001f]/.test(text)) return 'A card holds plain words only.'
   if (board.cards.length >= maxWorkshopCards) return 'A workshop holds up to 24 cards.'
@@ -505,6 +620,12 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
  */
 export function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null {
   if (workshopNoteRefusal(board, laneId, note) !== null) return null
+  if (businessKind(board)) {
+    const made = businessNote(board, laneId, note) as Workshop
+    const card = made.cards[made.cards.length - 1]
+    const at = before === undefined ? -1 : board.cards.findIndex(item => item.id === before && item.laneId === laneId)
+    return at < 0 ? made : { ...made, cards: [...board.cards.slice(0, at), card, ...board.cards.slice(at)] }
+  }
   const look = note.look === undefined ? undefined : cardLook(note.look)
   const asNote = note.asNote === undefined ? undefined : cardAsNote(note.asNote)
   const card: WorkshopCard = { id: cardIdFor(board, note.id), label: note.label.replace(/\s+/g, ' ').trim(), laneId,
@@ -514,11 +635,45 @@ export function workshopNoteCandidate(board: Workshop, laneId: string, note: Wor
   return validateWorkshop({ ...board, cards })
 }
 
+/**
+ * The board with a note as a card on a business board (its words, and the number written on it: a task's
+ * days, two when none is written), made by the edit every surface adds a card with; or why it may not be.
+ */
+function businessNote(board: Workshop, laneId: string, note: WorkshopNoteOffer): Workshop | string {
+  const read = readNoteNumbers(note.label)
+  if (!read.label) return 'A card needs some words as well as a number.'
+  if (board.kind === 'budget' && read.amount === undefined) return 'Write the cost on the note, like \'Contractor $45k\', then drop it.'
+  const made = applyWorkshopEdits(board, [{ kind: 'add_card', lane: { id: laneId }, label: read.label,
+    ...(board.kind === 'launch-plan' ? { duration: Math.min(60, Math.max(1, read.days ?? 2)) } : read.amount !== undefined ? { amount: read.amount } : {}) }])
+  if ('refused' in made) return made.refused.reason
+  const cards = made.workshop.cards
+  cards[cards.length - 1] = { ...cards[cards.length - 1], id: cardIdFor(board, note.id) }
+  return made.workshop
+}
+
+/** What a card says on the board: its name, with its points, days or amount. */
+export function workshopCardText(board: Workshop, card: WorkshopCard): string {
+  if (board.kind === 'release-plan') return card.label + '\n' + card.points + ' points'
+  if (board.kind === 'launch-plan') return card.label + ' · ' + card.duration + 'd'
+  if ((board.kind === 'pipeline' || board.kind === 'budget') && card.amount !== undefined) {
+    return card.label + '\n' + money(card.amount, board.forecast?.currency ?? board.budget?.currency)
+  }
+  return card.label
+}
+
+/** The words a card takes back to the canvas as a note, numbers and all: "Copy · 3 days", "Acme · $25k". */
+export function workshopCardNoteText(board: Workshop, card: WorkshopCard): string {
+  if (board.kind === 'launch-plan') return launchTaskText(card)
+  if (businessKind(board) && card.amount !== undefined) return card.label + ' · ' + money(card.amount, board.forecast?.currency ?? board.budget?.currency)
+  return card.label
+}
+
 /** Why the card may not leave the lanes as an ordinary note; null when it may. */
 export function workshopCardAsNoteRefusal(board: Workshop, cardId: string): string | null {
   const card = board.cards.find(item => item.id === cardId)
   if (!card) return 'That card is no longer on the board.'
   if (!workshopTakesNotes(board)) return board.lanes.some(lane => lane.station) ? 'The token stays on the map.' : 'This card stays on the board.'
+  if (board.kind === 'launch-plan' && board.cards.length === 1) return 'A launch plan needs at least one task.'
   if ((board.signals ?? []).some(signal => signal.cardId === cardId)) return `An outcome on this board depends on ${card.label}, so it stays a card.`
   if (card.allowedLaneIds && card.allowedLaneIds.length < board.lanes.length) {
     const names = card.allowedLaneIds.map(id => board.lanes.find(lane => lane.id === id)!.label)
@@ -531,7 +686,14 @@ export function workshopCardAsNoteRefusal(board: Workshop, cardId: string): stri
 /** The board without the card, for a card taken off the lanes as an ordinary note; null when it must stay. */
 export function workshopCardAsNote(board: Workshop, cardId: string): Workshop | null {
   if (workshopCardAsNoteRefusal(board, cardId) !== null) return null
-  return validateWorkshop({ ...board, cards: board.cards.filter(item => item.id !== cardId) })
+  // What waited on the task now waits on nothing in its place, from where it started.
+  const rest = board.cards.filter(item => item.id !== cardId).map(item => {
+    if (!item.dependsOn?.includes(cardId)) return item
+    const next = { ...item, dependsOn: item.dependsOn.filter(id => id !== cardId) }
+    if (!next.dependsOn.length) delete (next as WorkshopCard).dependsOn
+    return next
+  })
+  return validateWorkshop({ ...board, cards: rest })
 }
 
 /** The second line under a lane's name: how full it is, or what its cards add up to. */
@@ -542,6 +704,9 @@ export function workshopLaneCaption(board: Workshop, laneId: string): string {
     const used = releaseLoad(board, laneId)
     return lane.capacity ? used + ' / ' + lane.capacity + ' points' : used + ' points'
   }
+  if (board.kind === 'launch-plan') return launchPlanCaption(board, laneId)
+  if (board.kind === 'pipeline') return pipelineCaption(board, laneId)
+  if (board.kind === 'budget') return budgetCaption(board, laneId)
   const budget = workshopBudgetResult(board, laneId)
   if (budget) return '$' + budget.amount + ' · ' + budget.description
   const count = board.cards.filter(card => card.laneId === laneId).length
@@ -654,6 +819,10 @@ export const nightTransfer: Workshop = {
 
 /** How the native artwork arranges a board's lanes. */
 export interface WorkshopBoardLayout {
+  /** Business boards: draw the narrow (phone) arrangement. */
+  narrow?: boolean
+  /** Business boards: the world width the board should fill. */
+  width?: number
   /**
    * How many lanes sit side by side before the next lane starts a new row. Leave it
    * out for every lane in one row. A narrow host passes 1 or 2 so each lane stays
@@ -862,7 +1031,7 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
         shapeHint: 'rectangle', image: image.src, borderWidth: 0 }, relationships: { associations: [] } })
     }
     board.cards.filter(card => card.laneId === lane.id).forEach((card, i) => {
-      const text = board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label
+      const text = workshopCardText(board, card)
       const cardWidth = map ? width - 20 : width, cardHeight = map ? height - 6 : height
       // A card is drawn as the slate draws an ordinary note (a map's token is a playing piece of
       // its own). A card made from a note keeps that note's look.
@@ -948,7 +1117,7 @@ export function workshopToSlate(input: Workshop, options?: WorkshopArtworkOption
         image: image.src, borderWidth: 0 }, relationships: { associations: [] } })
     }
     board.cards.filter(card => card.laneId === lane.id).forEach((card, i) =>
-      node(cardNodeId(card.id), board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label, x, y + top + (image ? imageSpace : 0) + i * row, height, '#fffdf6'))
+      node(cardNodeId(card.id), workshopCardText(board, card), x, y + top + (image ? imageSpace : 0) + i * row, height, '#fffdf6'))
   })
   for (const lane of board.lanes) {
     if (!lane.station) continue
@@ -989,7 +1158,8 @@ export * from './moonGallery'
 export * from './darkroom/model'
 export * from './edits'
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names'
-export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection } from './native'
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection,
+  type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native'
 
 
 export type StartupExperience = {version: 1; kind: 'customer-interviews' | 'experiment-budget'}

@@ -37,6 +37,11 @@
       "import": "./dist/operations.mjs",
       "require": "./dist/operations.cjs"
     },
+    "./boards": {
+      "types": "./dist/boards/index.d.ts",
+      "import": "./dist/boards.mjs",
+      "require": "./dist/boards.cjs"
+    },
     "./dragology": {
       "types": "./dist/dragology/index.d.ts",
       "import": "./dist/dragology.mjs",
@@ -47,6 +52,7 @@
     "dist",
     "workshops",
     "operations",
+    "boards",
     "dragology",
     "licenses"
   ],
@@ -64,7 +70,8 @@
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:all": "npx playwright test",
     "test:all": "vitest run && npx playwright test --project=chromium",
-    "verify:package": "node scripts/verify-package.mjs"
+    "verify:package": "node scripts/verify-package.mjs",
+    "check:budget": "node scripts/check-bundle-budget.mjs"
   },
   "keywords": [
     "diagramming",

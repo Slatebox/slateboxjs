@@ -45,6 +45,10 @@ try {
     'dist/operations.cjs',
     'dist/operations/index.d.ts',
     'operations/index.js',
+    'dist/boards.mjs',
+    'dist/boards.cjs',
+    'dist/boards/index.d.ts',
+    'boards/index.js',
   ]) {
     if (!paths.has(required)) {
       throw new Error(`Packed artifact is missing ${required}`)
