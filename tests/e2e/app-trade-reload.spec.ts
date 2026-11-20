@@ -2,7 +2,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, shareAs, userId } from './workshop-guests.shared'
 import { resting, slateKey, workshopReady, workshopStatus } from './app-native-workshop.shared'
-import { drawnWords, freshContext, harness, harnessOn, roomOf, storedWords, throttle, traceSockets } from './app-trade-harness.shared'
+import { drawnWords, freshContext, harness, harnessOn, hasRoom, roomOf, storedWords, throttle, traceSockets } from './app-trade-harness.shared'
 
 /**
  * A note and a card trading places must leave one thing behind, the same for the server, every
@@ -85,6 +85,7 @@ async function look(browser: Browser, link: URL, relay: boolean) {
     const page = await context.newPage()
     await page.goto(link.href)
     await ready(page)
+    if (relay) await hasRoom(page) // trade-close: a fresh joiner is read once it has the room
     await page.waitForTimeout(500)
     return await drawnWords(page, WORDS)
   } finally { await context.close() }

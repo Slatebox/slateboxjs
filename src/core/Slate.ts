@@ -748,6 +748,8 @@ export class Slate {
       return;
     }
 
+    // The host saves what it is handed: a replacement from someone else drawn soon after was not in it.
+    this.collab?.noteHostChange?.(type);
     let users: CollabUser[] = [];
     try {
       users = this.collab?.getCollabUsers?.() ?? [];

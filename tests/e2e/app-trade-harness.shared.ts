@@ -21,6 +21,7 @@ import { storedWorkshop } from './app-native-workshop.shared'
 export const harnessOn = process.env.SLATEBOX_TRADE_HARNESS === '1'
 const relayUrl = process.env.SLATEBOX_RELAY_URL || 'ws://127.0.0.1:2293'
 const control = process.env.SLATEBOX_HARNESS_CONTROL || 'http://127.0.0.1:2295'
+const appUrl = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 
 function relayParams() {
   const keys = JSON.parse(readFileSync(process.env.SLATEBOX_RELAY_KEYS_FILE!, 'utf8')) as { name: string; publicKey: string; secretKey: string }[]
@@ -60,6 +61,17 @@ export async function harness(path: string, method = 'POST') {
   return res.json()
 }
 
+/**
+ * Wait until a page has the room: its slate's first exchange with the relay is done (about 4-5 s
+ * after it opens on the harness), then a moment for what the room holds to be drawn. A fresh joiner
+ * read before that draws the stored slate alone, which is what the off-relay joiner already checks.
+ * (trade-close, 2026-11-20: the fresh joiner was read about 2 s after it opened.)
+ */
+export async function hasRoom(page: Page) {
+  await expect.poll(() => page.evaluate(() => (window as any).slate?.v2?.collab?.synced === true), { message: 'the fresh joiner has the room', timeout: 30_000, intervals: [250] }).toBe(true)
+  await page.waitForTimeout(1000)
+}
+
 /** Notes and cards with these words, as the server stores them. */
 export async function storedWords(page: Page, key: string, words: string) {
   const slate = await getSlate(page, key)
@@ -82,6 +94,11 @@ export const drawnWords = (page: Page, words: string) => page.evaluate(words => 
 /** Open a page in a fresh context; `relay: false` keeps it off the relay, so it draws the stored slate alone. */
 export async function freshContext(browser: Browser, relay = true): Promise<BrowserContext> {
   const context = await browser.newContext({ viewport: { width: 1360, height: 900 } })
+  // Every fresh joiner is the same visitor (the app's guest cookie), as one person reloading in a
+  // new browser would be. A new visitor each time is refused once the slate's plan has admitted its
+  // guests ("Slate is inaccessible"): that page never joins the room and draws the stored slate
+  // alone. (trade-close, 2026-11-20: from the third step of a spec on, every fresh joiner was one.)
+  await context.addCookies([{ name: 'slatebox_guestCollaboratorId', value: 'trade-harness-fresh-joiner', url: appUrl }])
   if (!relay) await context.routeWebSocket(/:\d+\/[A-Za-z0-9_-]+\?bearer=/, ws => ws.close())
   return context
 }

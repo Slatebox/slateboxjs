@@ -120,6 +120,12 @@ export interface NoteTrades {
  * it for a revision holds what happened to the note from then on, so its packages apply as usual.
  */
 const TRADED = "onNoteTraded";
+/**
+ * How long after this client handed its host a change a replacement from someone else still makes
+ * it save again once rebuilt: the host's save of that change (debounced, then a round trip) may
+ * land after the replacer's save.
+ */
+const RESAVE_WINDOW_MS = 5000;
 const tradeKey = (id: string) => "trade:" + id;
 
 /**
@@ -203,6 +209,14 @@ export class Collab {
   private tradeFixTimer: ReturnType<typeof setTimeout> | null = null;
   /** Notes with a trade of this person's own on its way to the server: left as this screen has them. */
   private ownTrades = new Map<string, number>();
+  /**
+   * Traded notes this screen drew from the server's record (the publication's trade, or the stored
+   * slate it loaded), not from the room: the room's half of that trade, when it arrives, is drawn
+   * over them (it holds what the trader did to the note before its answer came back).
+   */
+  private fromRecord = new Set<string>();
+  /** When this client last handed its host a change to the document (see noteHostChange). */
+  private hostChangeAt = 0;
   /** Connection/user payload returned by the host's onInitCollaboration */
   public userBaseData?: Record<string, any>;
 
@@ -444,6 +458,8 @@ export class Collab {
 
     if (this.collabMap) {
       for (const pkg of pkgs) {
+        // This person changed the note: their copy is their own now, not the record's.
+        for (const id of this.fromRecord) if (withoutNote(pkg, id) !== pkg) this.fromRecord.delete(id);
         // A package about a note whose trade the room has not been told of would be screened out
         // by everyone (see screenTraded): the room is told first, so this package comes after.
         for (const id of this.staleTradesIn(pkg)) this.tellRoomOfTrade(id);
@@ -458,7 +474,12 @@ export class Collab {
         // top of it (see rebuildFrom).
         if (pkg.type === REPLACED) {
           const timestamp = this.tick();
-          const entry = { ...pkg, clientID: this.clientID, timestamp };
+          // The notes whose trade this person has on its way (an undo of a trade holds it before its
+          // replacement goes out): until that trade is saved and the room told, the replacement says
+          // nothing about whether they are notes (see rebuildFrom).
+          const held = [...this.ownTrades.keys()];
+          const data = held.length && pkg.data && typeof pkg.data === "object" ? { ...(pkg.data as any), held } : pkg.data;
+          const entry = { ...pkg, data, clientID: this.clientID, timestamp };
           const write = () => {
             this.pruneBeforeSlateReplacement();
             this.collabMap.set(key, entry);
@@ -618,7 +639,7 @@ export class Collab {
       }
       let pending: Promise<unknown> | void = undefined;
       try {
-        pending = this.handleRemotePackage(pkg);
+        pending = this.applyRoomPackage(pkg);
       } catch (error) {
         // One package that cannot be applied must not take the rest of the room with it.
         console.warn("COLLAB_DEBUG: A package from the room could not be applied:", pkg.type, error);
@@ -648,7 +669,19 @@ export class Collab {
     if (known && compareStamps(replacement.stamp, known) <= 0) return;
     // This client's own undo is being superseded by someone else's later one.
     const lostOwn = !!this.baseline && this.baseline.c === this.clientID && this.clientID !== 0;
+    // This client's host was handed a change a moment ago: its save of it was made without this
+    // replacement and may land after the replacer's own save of it.
+    const savedWithout = this.hostChangeAt > 0 && Date.now() - this.hostChangeAt < RESAVE_WINDOW_MS;
     const before = this.beforeRemote();
+    // A traded note whose trade the replacement's writer still had on its way stays as this screen
+    // has it: whether it is a note is that trade's to say, once saved (its half follows in the room).
+    const held = Array.isArray((replacement.pkg.data as any)?.held) ? ((replacement.pkg.data as any).held as unknown[]) : [];
+    const kept = new Map<string, Record<string, any> | null>();
+    for (const id of held) {
+      if (typeof id !== "string" || kept.has(id)) continue;
+      const here = this.slate.nodes?.one?.(id);
+      kept.set(id, here ? v2NodeToV1(here.options) : null);
+    }
     this.adoptBaseline(replacement.stamp);
     try {
       await this.handleRemotePackage(replacement.pkg);
@@ -659,6 +692,15 @@ export class Collab {
     // Loading the replacement put its own (older) marker back into the options.
     this.adoptBaseline(replacement.stamp);
     this.dropOlderReplacements(replacement);
+    for (const [id, was] of kept) {
+      const here = this.slate.nodes?.one?.(id);
+      try {
+        if (was && !here) await this.handleRemotePackage({ type: "onNodeAdded", data: { id, nodeOptions: [{ ...was, id }] } } as SlatePackage);
+        else if (!was && here) await this.handleRemotePackage({ type: "onNodeDeleted", data: { id, isComment: false } } as SlatePackage);
+      } catch (error) {
+        console.warn("COLLAB_DEBUG: A note whose trade is on its way could not be kept:", error);
+      }
+    }
 
     const rest: RoomEntry[] = [];
     const labelIds = new Set<string>();
@@ -676,7 +718,7 @@ export class Collab {
     // The host stored this client's own undo a moment ago, and that save may
     // land after the other person's. Hand it the slate again, as it now is, so
     // the stored document ends on what everyone sees.
-    if (lostOwn && this.slate) {
+    if ((lostOwn || savedWithout) && this.slate) {
       (this.slate as any).emitSlateChange?.(REPLACED, { action: "superseded" });
     }
   }
@@ -785,6 +827,15 @@ export class Collab {
     answered.then(done, done);
   }
 
+  /**
+   * The slate handed its host a change (onSlateChanged), which the host saves. A whole-slate
+   * replacement from someone else that this client rebuilds from soon after was not in that save:
+   * the host is then handed the slate again, as rebuilt (see rebuildFrom).
+   */
+  public noteHostChange(type: string): void {
+    if (!VIEW_ONLY.has(type)) this.hostChangeAt = Date.now();
+  }
+
   /** The room has been synced with (or lost). */
   private roomSynced(synced: boolean): void {
     this.synced = synced;
@@ -817,6 +868,7 @@ export class Collab {
       if (loaded) {
         const here = this.slate?.nodes?.one?.(id);
         this.tradeTruth.set(id, here ? v2NodeToV1(here.options) : null);
+        if (here) this.fromRecord.add(id);
       } else {
         const options = trade.as === "note" ? trade.note?.options : null;
         this.tradeTruth.set(id, options ? { ...options, id } : null);
@@ -864,6 +916,30 @@ export class Collab {
     return out;
   }
 
+  /**
+   * A package from the room. The room's half of a trade (an arrival marked `traded`) is the note as
+   * the trader had it when the room was told: a screen that drew the note from the server's record
+   * (which holds it as the play saved it) takes the half's copy instead, so a move or an edit the
+   * trader made before its answer came back is not lost there. Anything else is applied as it is.
+   */
+  private applyRoomPackage(pkg: SlatePackage): Promise<unknown> | void {
+    const data: any = pkg.data;
+    if (pkg.type === "onNodeAdded" && typeof data?.traded === "number" && typeof data.id === "string") {
+      const id: string = data.id;
+      const replace = this.fromRecord.has(id) && !this.ownTrades.has(id) && !!this.slate?.nodes?.one?.(id);
+      this.fromRecord.delete(id);
+      if (replace) {
+        const removed = this.handleRemotePackage({ type: "onNodeDeleted", data: { id, isComment: false } } as SlatePackage);
+        if (removed && typeof (removed as Promise<unknown>).then === "function") {
+          return (removed as Promise<unknown>).then(() => this.handleRemotePackage(pkg));
+        }
+      }
+    } else if (pkg.type === "onNodeDeleted" && typeof data?.traded === "number" && typeof data.id === "string") {
+      this.fromRecord.delete(data.id);
+    }
+    return this.handleRemotePackage(pkg);
+  }
+
   /** Draw note `id` as its trade says, when it is not: take it off, or put it on. */
   private enforceTrade(id: string): Promise<unknown> | void {
     if (!this.slate || !this.tradeTruth.has(id) || this.ownTrades.has(id)) return;
@@ -871,7 +947,10 @@ export class Collab {
     const here = this.slate.nodes?.one?.(id);
     try {
       if (truth === null && here) return this.handleRemotePackage({ type: "onNodeDeleted", data: { id, isComment: false } } as SlatePackage);
-      if (truth && !here) return this.handleRemotePackage({ type: "onNodeAdded", data: { id, nodeOptions: [{ ...truth, id }] } } as SlatePackage);
+      if (truth && !here) {
+        this.fromRecord.add(id);
+        return this.handleRemotePackage({ type: "onNodeAdded", data: { id, nodeOptions: [{ ...truth, id }] } } as SlatePackage);
+      }
     } catch (error) {
       console.warn("COLLAB_DEBUG: A traded note could not be drawn as the server has it:", error);
     }
@@ -926,9 +1005,11 @@ export class Collab {
         const here = this.slate?.nodes?.one?.(id);
         const truth = this.tradeTruth.get(id);
         const options = here ? v2NodeToV1(here.options) : truth;
+        // `traded`: this is the room's half of trade r (see applyRoomPackage).
         const half: SlatePackage = options
-          ? ({ type: "onNodeAdded", data: { id, nodeOptions: { ...options, id } } } as SlatePackage)
-          : ({ type: "onNodeDeleted", data: { id, isComment: false } } as SlatePackage);
+          ? ({ type: "onNodeAdded", data: { id, nodeOptions: { ...options, id }, traded: trade.r } } as SlatePackage)
+          : ({ type: "onNodeDeleted", data: { id, isComment: false, traded: trade.r } } as SlatePackage);
+        this.fromRecord.delete(id);
         const key = `${half.type}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         this.collabMap.set(key, { ...half, clientID: this.clientID, timestamp: this.tick() });
         this.collabMap.set(tradeKey(id), {

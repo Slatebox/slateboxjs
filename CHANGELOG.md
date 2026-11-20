@@ -35,6 +35,15 @@
   - `slate.tradesThrough()` gives the revision the screen has drawn trades through, for the host's
     drawing save.
   - `slate.keepTrade(id)` draws a note as the server has it, after this person lost a same-trade race.
+  - The room's half of a trade is marked (`traded: r`). A screen that drew the note from the
+    server's record (the trade itself, or the stored slate it loaded) takes the half's copy when it
+    arrives, so a move or edit the trader made before its answer came back reaches everyone.
+  - An undo's replacement names the notes whose trade its writer still had on its way (`held`).
+    Every other screen, and the next to load, keeps those notes as they are until that trade's own
+    half arrives: an undo whose trade never reached the server no longer takes the note away.
+  - A screen that handed its host a change in the 5 s before it rebuilds from someone else's undo
+    hands the host the slate again (`onSlateReplaced` `superseded`), so a save made without that
+    undo does not stay the stored slate.
 - **A host can keep provisional notes out of exports.** A drag policy may give a note
   `exportable: false` (the default stays `true`, so a workshop's cards still export). SVG and PNG
   exports then leave that note out, with every line drawn to or from it, and frame the picture to

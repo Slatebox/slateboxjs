@@ -2,7 +2,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, userId } from './workshop-guests.shared'
 import { resting, slateKey, workshopReady, workshopStatus } from './app-native-workshop.shared'
-import { drawnWords, freshContext, harness, harnessOn, roomOf, storedWords, traceSockets } from './app-trade-harness.shared'
+import { drawnWords, freshContext, harness, harnessOn, hasRoom, roomOf, storedWords, traceSockets } from './app-trade-harness.shared'
 
 /**
  * trade-attack (2026-11-20): hostile cases for "a trade is server-authoritative". Same record as
@@ -108,6 +108,7 @@ async function look(browser: Browser, link: URL, relay: boolean, words: string[]
     const page = await context.newPage()
     await page.goto(link.href)
     await ready(page)
+    if (relay) await hasRoom(page) // trade-close: a fresh joiner is read once it has the room
     await page.waitForTimeout(500)
     const out: Record<string, Awaited<ReturnType<typeof drawnWords>>> = {}
     for (const w of words) out[w] = await drawnWords(page, w)

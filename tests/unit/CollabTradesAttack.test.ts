@@ -126,6 +126,11 @@ describe("trade-attack: a bystander that drew the trade from the publication", (
     vi.advanceTimersByTime(5);
     // Undo: the whole slate without the note goes to the room at once; its trade (note -> card)
     // never reaches the server because the tab is closed at once.
+    // trade-close: as on a real page, the undo's trade is held before the replacement goes out
+    // (UndoRedo.restore -> restoreUndoHostState -> the workshop's onUndoRestore -> holdTrade, then
+    // broadcast). Without it the replacement is indistinguishable from a redo of an ordinary delete
+    // of the note, which must take the note away (CollabTradesClose.test.ts).
+    writer.collab.holdTrade("delta", new Promise(() => {}));
     writer.collab.send({ type: "onSlateReplaced", data: { action: "undo", snapshot: '{"options":{},"nodes":[],"shareId":""}' } });
     writer.sync();
     // The server still holds the note (trade r=1, as note) and no card.
