@@ -114,6 +114,7 @@ export {
 // Host drag policies (governed notes)
 export { FREE_NODE, GOVERNED_NODE, hitTestNodeBoxes } from './core/DragPolicy'
 export { DEFAULT_NOTE_STYLE } from './core/NoteDefaults'
+export { createAgentPresence, AGENT_PALETTE, agentStepText, agentChecklist, visibleAgents, type AgentPresence, type AgentPresenceRecord, type AgentPresenceOptions, type AgentStepStatus } from './core/AgentPresence'
 export type {
   DragPolicy,
   DragVerdict,
