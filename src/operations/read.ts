@@ -20,7 +20,7 @@ import { backgroundOf } from "./keys/slate";
 import { allConnectors, box, isFreeEnd, noteId, selectNotes, toStoredSlate, type StoredNode, type StoredSlate } from "./stored";
 
 /** Keys every note read carries besides the writable ones: what a person sees but cannot yet set by plan. */
-export const NOTE_READ_KEYS = ["id", ...Object.keys(NODE_KEYS), "groupId", "link", "image"] as const;
+export const NOTE_READ_KEYS = ["id", ...Object.keys(NODE_KEYS), "image"] as const;
 export const READ_LIMITS = Object.freeze({ notes: 100, maxNotes: 500, maxChars: 60000 });
 
 export interface ReadSelection {
@@ -67,8 +67,6 @@ export function readNote(node: StoredNode, fields?: readonly string[]): Record<s
     const value = spec.read(options);
     out[key] = value === undefined ? null : value;
   }
-  if (want("groupId")) out.groupId = options.groupId || null;
-  if (want("link")) out.link = options.link?.data ? { type: options.link.type || "url", data: options.link.data } : null;
   if (want("image")) out.image = options.image || null;
   return out;
 }

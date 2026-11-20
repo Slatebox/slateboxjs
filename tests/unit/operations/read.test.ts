@@ -57,6 +57,10 @@ describe("open-slate: every key a write accepts reads back equal", () => {
     textXAlign: "left",
     textYAlign: "top",
     animation: lists.animations[0],
+    textOpacity: 0.6,
+    link: "https://example.com/more",
+    effect: lists.effects[0],
+    groupId: "g9",
     locked: true,
   };
 
@@ -119,7 +123,9 @@ describe("open-slate: every key a write accepts reads back equal", () => {
     Object.assign(s.nodes[1].options, { link: { show: true, type: "url", data: "https://example.com" }, image: "https://example.com/a.png" });
     const [a, b, c] = readSlate(s).nodes;
     expect([a.groupId, b.groupId, c.groupId]).toEqual(["g1", "g1", null]);
-    expect(b.link).toEqual({ type: "url", data: "https://example.com" });
+    // Restated (integrate-w2): P10 made link and groupId writable keys, so the read returns link
+    // as the write takes it (the web address), not P07's {type, data} object.
+    expect(b.link).toBe("https://example.com");
     expect(b.image).toBe("https://example.com/a.png");
     expect(a.link).toBeNull();
     expect(Object.keys(a)).toEqual([...NOTE_READ_KEYS]);
