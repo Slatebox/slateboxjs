@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Hold the built entries to their size ceilings (build spec §2.3), and check the boards stay lazy:
 // the eager entries must not import the boards entry or Dragology, and the boards entry must share
-// Dragology's chunk instead of carrying its own copy. Run after every dist rebuild: npm run check:budget
+// Dragology's chunk instead of carrying its own copy; the agents' drawing stays out of the canvas entry. Run after every dist rebuild: npm run check:budget
 import { readFileSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
 
@@ -13,6 +13,8 @@ const ceilings = {
   // Measured at release/combined 5d21cac, plus what they may grow.
   'workshops.mjs': { raw: 84089 + 2000, gzip: 24120 + 1000 },
   'operations.mjs': { raw: 80276 + 2000, gzip: 22791 + 1000 },
+  // The agents' drawing: its own entry, loaded when the first agent arrives.
+  'presence.mjs': { raw: 20000, gzip: 7000 },
 }
 
 const read = name => readFileSync(new URL('../dist/' + name, import.meta.url))
@@ -38,6 +40,9 @@ const boards = importsOf('boards.mjs')
 if (!boards.includes('./dragology.mjs')) problems.push('boards.mjs must import ./dragology.mjs as a shared chunk.')
 if (!boards.includes('./workshop-model.mjs')) problems.push('boards.mjs must take the rules from ./workshop-model.mjs, not carry a copy.')
 if (/function dragSpecToBehavior|class DragSpecBuilder/.test(read('boards.mjs').toString('utf8'))) problems.push('boards.mjs carries its own copy of Dragology.')
+// The agents' drawing stays out of the canvas entry, and the presence entry shares no chunk.
+if (read('slateboxjs.mjs').toString('utf8').includes('data-agent-presence')) problems.push('slateboxjs.mjs carries the agents\' drawing: it belongs to the presence entry.')
+if (importsOf('presence.mjs').some(target => target.startsWith('./'))) problems.push('presence.mjs must stand alone (no shared chunk).')
 
 console.table(rows)
 if (problems.length) {

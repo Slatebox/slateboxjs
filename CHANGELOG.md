@@ -4,6 +4,12 @@
 
 ### Added
 
+- **Agents on the canvas** (`slateboxjs/presence`). `createAgentPresence(slate).set(records)`
+  draws each agent run as a hexagon with a pointer, a named tag and its plan, above the notes. It
+  is its own entry, so a slate no agent works on never loads it; the canvas entry keeps only the
+  small text helpers (`AGENT_PALETTE`, `agentStepText`, `agentChecklist`, `visibleAgents`). The
+  pointer rests inside a corner of the note it works on, and the tag goes on the side that stays
+  in view and off the note's words (`agentTagSide`, `agentAnchor`).
 - **Business boards: a launch plan, a sales pipeline and a budget.** Three new workshop kinds
   (`kind: 'launch-plan' | 'pipeline' | 'budget'`), drawn as native notes by `attachWorkshop`.
   A launch plan schedules tasks (`duration`, `lag`, `dependsOn`) in team lanes, derives every start
