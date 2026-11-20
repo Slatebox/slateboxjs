@@ -23,12 +23,15 @@ export function pipelineLayout(board: Workshop, layout: WorkshopBoardLayout = {}
     width = Math.max(300, layout.width ?? 390)
     let y = GAUGE
     board.lanes.forEach((lane, i) => {
-      const h = 76 + (counts[i] + 1) * 64
+      const h = 86 + (counts[i] + 1) * 64
       parts.push({ name: 'column-' + lane.id, x: 2, y, width: width - 4, height: h, fill: tint(color(i), 0.6), line: tint(color(i), 0.1) })
-      parts.push({ name: 'lane-' + lane.id, x: 8, y: y + 6, width: (width - 16) * 0.45, height: 36, text: lane.label, fill: color(i), fontSize: 15 })
-      parts.push({ name: 'caption-' + lane.id, x: 8 + (width - 16) * 0.45 + 6, y: y + 6, width: (width - 16) * 0.55 - 6, height: 36, text: pipelineCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: 12 })
+      // The stage's name takes the room it needs; its caption ("3 deals · $170k · 60%") the rest, at the size of the
+      // deals' words on up to two lines, so a phone that shows two stages at once still sets it at 12px or more.
+      const pill = (width - 16) * 0.36
+      parts.push({ name: 'lane-' + lane.id, x: 8, y: y + 6, width: pill, height: 36, text: lane.label, fill: color(i), fontSize: 15 })
+      parts.push({ name: 'caption-' + lane.id, x: 8 + pill + 6, y: y + 6, width: width - 16 - pill - 6, height: 46, text: pipelineCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: 15 })
       board.cards.filter(card => card.laneId === lane.id).forEach((card, k) =>
-        parts.push({ name: 'card-' + card.id, x: 8, y: y + 52 + k * 64, width: width - 16, height: 56, text: cardText(board, card.id), fontSize: 15 }))
+        parts.push({ name: 'card-' + card.id, x: 8, y: y + 62 + k * 64, width: width - 16, height: 56, text: cardText(board, card.id), fontSize: 15 }))
       y += h + 10
     })
     height = y
