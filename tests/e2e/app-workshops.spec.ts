@@ -76,10 +76,16 @@ test('review a workshop, move a card, present and open a private editable slate'
           try { await meteor.callAsync(name, arg); return 'allowed' }
           catch (err: any) { return err.error }
         }
+        const reason = async (name: string, arg: string) => {
+          try { await meteor.callAsync(name, arg); return 'allowed' }
+          catch (err: any) { return err.reason }
+        }
         const canvas = await meteor.callAsync('slates.get', { shareId: id })
-        return [await code('workshops.restore', id!), await code('workshops.draft', 'Review our winter shutdown pilots'), Boolean(canvas?.slateBase)]
+        return [await code('workshops.restore', id!), await reason('workshops.draft', 'Review our winter shutdown pilots'), Boolean(canvas?.slateBase)]
       }, shareId)
-      expect(denials).toEqual(['unavailable', 'plan-required', false])
+      // Restated 2026-11-20 (switch day): no plans; a visitor who is not signed in is asked to sign in
+      // (the same sentence whether the meter or the method refuses first).
+      expect(denials).toEqual(['unavailable', 'Sign in to use AI. It is free each month.', false])
     } finally {
       await visitor.close()
     }

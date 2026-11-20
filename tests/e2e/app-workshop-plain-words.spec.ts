@@ -65,14 +65,16 @@ test('the budget is changed by saying so: starters fill the message, a preview i
     expect((await lanesOf(page, owner.key))['fund-1']).toBe('reserve')
 
     // A sentence the workshop's own sentences do not cover goes to the slate's own conversation,
-    // never to a reply that lists what may be said. A question has to be thought up: on Free that
-    // is said plainly, with the one way to Pro or Team. (Restated 2026-11-19: this used to answer
-    // "I did not follow that" with examples.)
+    // never to a reply that lists what may be said. A question has to be thought up: AI is free
+    // each month for anyone signed in, so a guest is told plainly to sign in, and no plan is
+    // offered. (Restated 2026-11-19: this used to answer "I did not follow that" with examples.
+    // Restated 2026-11-20, switch day: Slatebox has no plans, so the Pro and Team link is gone.)
     await messageBox(page).fill('Which lane has the most left?')
     await messageBox(page).press('Enter')
-    await expect(chat.getByRole('log')).toContainText('Drafting from a request like this comes with Pro and Team.')
+    await expect(chat.getByRole('log')).toContainText('Sign in to use AI. It is free each month.')
     await expect(chat.getByRole('log')).not.toContainText('I did not follow that')
-    await expect(chat.getByRole('link', { name: 'See Pro and Team plans' })).toHaveAttribute('href', '/plans')
+    await expect(chat.getByRole('log')).not.toContainText(/\bPro\b|Team plan/)
+    await expect(chat.getByRole('link', { name: 'See Pro and Team plans' })).toHaveCount(0)
     await expect(chat.getByRole('alert')).toHaveCount(0)
     await expect(chat.getByRole('button', { name: 'Keep changes' })).toHaveCount(0)
     await expect(messageBox(page)).toHaveValue('')
@@ -111,12 +113,14 @@ test('a map takes its steps as a list and a token is moved on in words', async (
     expect(byLabel('Review').station.next).toEqual([byLabel('Sign-off').id])
     expect(byLabel('Sign-off').station.next).toEqual([byLabel('Done').id])
     expect(saved.cards[0].laneId).toBe(byLabel('Review').id)
-    // A question goes to the slate's own conversation: on Free it needs Pro or Team, said plainly,
-    // and nothing is proposed. (Restated 2026-11-19: this used to list what a map can do.)
+    // A question goes to the slate's own conversation: a guest is asked to sign in for AI, said
+    // plainly, and nothing is proposed. (Restated 2026-11-19: this used to list what a map can do.
+    // Restated 2026-11-20, switch day: no plans, so no Pro and Team link.)
     await messageBox(page).fill('What should come next?')
     await messageBox(page).press('Enter')
-    await expect(chat.getByRole('log')).toContainText('Drafting from a request like this comes with Pro and Team.')
-    await expect(chat.getByRole('link', { name: 'See Pro and Team plans' })).toBeVisible()
+    await expect(chat.getByRole('log')).toContainText('Sign in to use AI. It is free each month.')
+    await expect(chat.getByRole('log')).not.toContainText(/\bPro\b|Team plan/)
+    await expect(chat.getByRole('link', { name: 'See Pro and Team plans' })).toHaveCount(0)
     await expect(chat.getByRole('button', { name: 'Keep changes' })).toHaveCount(0)
     await noLore(page)
   } finally { await removeTestGuest(page, id) }

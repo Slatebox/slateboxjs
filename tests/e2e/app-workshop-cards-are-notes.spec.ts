@@ -179,7 +179,7 @@ test('a card looks like the notes the slate makes: the same fill, border and typ
   } finally { await removeTestGuest(page, id) }
 })
 
-test('with a card selected, plain words still work: notes are added, and drafting on Free says it needs Pro or Team with the way there', async ({ page }) => {
+test('with a card selected, plain words still work: notes are added, and drafting as a guest says to sign in, with no plan offered', async ({ page }) => {
   let id: string | null = null
   try {
     const owner = await openBoard(page)
@@ -191,13 +191,15 @@ test('with a card selected, plain words still work: notes are added, and draftin
     // The selection's suggestions are there as shortcuts.
     await expect(chat.getByLabel('Starter messages').getByRole('button').first()).toBeVisible()
 
-    // A question needs drafting: on Free that is said plainly, with one way to Pro or Team.
+    // A question needs drafting: AI is free each month for anyone signed in, so a guest is told
+    // plainly to sign in. (Restated 2026-11-20, switch day: Slatebox has no plans, so the one way
+    // to Pro or Team is gone; an old /plans link still lands on a page.)
     await messageBox(page).fill('Which lane has the most left?')
     await messageBox(page).press('Enter')
-    await expect(chat.getByRole('log')).toContainText('Drafting from a request like this comes with Pro and Team.')
+    await expect(chat.getByRole('log')).toContainText('Sign in to use AI. It is free each month.')
     await expect(chat.getByRole('log')).not.toContainText('I did not follow that')
-    const plans = chat.getByRole('link', { name: 'See Pro and Team plans' })
-    await expect(plans).toHaveAttribute('href', '/plans')
+    await expect(chat.getByRole('log')).not.toContainText(/\bPro\b|Team plan/)
+    await expect(chat.getByRole('link', { name: 'See Pro and Team plans' })).toHaveCount(0)
     const response = await page.request.get(new URL('/plans', origin).href)
     expect(response.ok()).toBe(true)
 
@@ -475,7 +477,7 @@ test('several notes dropped on a lane together become cards there; a note typed 
   } finally { await removeTestGuest(page, id) }
 })
 
-test('on Free, typed requests are done, not offered as Pro: a card becomes a note, cards by number, a colour', async ({ page }) => {
+test('typed requests are done with no AI and no plan offered: a card becomes a note, cards by number, a colour', async ({ page }) => {
   let id: string | null = null
   try {
     const owner = await openBoard(page)

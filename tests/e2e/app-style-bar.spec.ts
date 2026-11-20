@@ -332,7 +332,8 @@ test('picture search is the server\'s: a guest is asked to register, and the bro
     await page.getByRole('button', { name: 'Search', exact: true }).click()
     // Said in place (the registration dialog also opens, as for any guest-only action).
     await expect(page.locator('.sb-pop [role="alert"]')).toContainText(/register/i)
-    const refused = await page.evaluate(() => (window as any).Meteor.callAsync('images.searchForNote', { query: 'dogs' }).then(() => 'ok', (e: any) => e.error))
+    // One picture search method, metered (switch day: the style bar's and the meter's were joined as images.search).
+    const refused = await page.evaluate(() => (window as any).Meteor.callAsync('images.search', { query: 'dogs' }).then(() => 'ok', (e: any) => e.error))
     expect(refused).toBe('register')
     expect(outside).toEqual([])
   } finally { await removeTestGuest(page, id) }
