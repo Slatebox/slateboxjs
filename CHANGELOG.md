@@ -22,6 +22,14 @@
   with `'taken'` (someone else made it first): this person's copy of the note goes and nothing is
   brought back; a refused trade never takes away a card the host has drawn since.
   `board.toCanvas(cardId)` takes a card off the lanes as a note beside the board.
+- **A host can keep provisional notes out of exports.** A drag policy may give a note
+  `exportable: false` (the default stays `true`, so a workshop's cards still export). SVG and PNG
+  exports then leave that note out, with every line drawn to or from it, and frame the picture to
+  the notes that remain; the canvas itself is untouched. Slatebox uses it for a conversation's
+  preview, which is shown on the canvas but is not yet part of the diagram.
+- **A workshop proposal looks provisional.** While `preview(candidate)` shows a proposal, each
+  card it adds, moves or renames and each lane it adds or changes is outlined dashed and tagged
+  `data-workshop-proposed`; `preview(null)` brings back the committed look.
 - **Workshops can run as native notes on a live slate.** `attachWorkshop(slate, workshop, options)`
   (from `slateboxjs/workshops/model`, plain JavaScript) draws a workshop model onto a Slate the host
   already has: lanes, captions and cards are real notes with the canvas's own pan, zoom, minimap,
