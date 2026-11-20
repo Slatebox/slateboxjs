@@ -5,10 +5,14 @@ import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-gu
 import { dragCard, laneOfCard, slateKey, workshopReady } from './app-native-workshop.shared'
 
 /**
- * What a browser may write straight to the slates collection, without going through a method.
- * Meteor exposes /slates/insertAsync, /slates/updateAsync and /slates/removeAsync to every
- * connected client; the collection's allow and deny rules are the only thing between a signed-in
- * stranger and somebody else's slate, and between an editor and the fields only methods may set.
+ * No browser writes the slates collection (P05a). Meteor still exposes /slates/insertAsync,
+ * /slates/updateAsync and /slates/removeAsync to every connected client; with no allow rule the
+ * server refuses every one of them, the owner's included. Content saves through methods and
+ * actions that use the server's save core; the page's own settings go through
+ * slates.updateSettings, which only someone who may edit the slate can call.
+ *
+ * Restated (P05a): before, the owner's direct write of a setting under options was allowed and
+ * served as the positive control. Now it is refused, and the control is slates.updateSettings.
  */
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -60,15 +64,23 @@ test('a signed-in stranger cannot change, empty, delete or plant a slate through
     // Nor can a slate be planted in somebody else's account.
     const planted = 'planted' + Date.now()
     expect(await write(stranger, 'insertAsync', [{ _id: planted, userId: ownerId, shareId: planted, nodes: [], options: { id: planted, name: 'Planted', allowCollaboration: true } }])).toBe('403')
-    // The owner's own setting still lands, which shows the path itself is open.
-    expect(await write(page, 'updateAsync', [{ _id: before._id }, { $set: { 'options.directWriteProbe': true } }, {}])).toBe('ok')
+    // The owner's own direct write is refused too; the owner's setting lands through the action,
+    // and the stranger's through the action is refused.
+    expect(await write(page, 'updateAsync', [{ _id: before._id }, { $set: { 'options.directWriteProbe': true } }, {}])).toBe('403')
+    expect(await write(page, 'removeAsync', [{ _id: before._id }])).toBe('403')
+    const own = 'own' + Date.now()
+    expect(await write(page, 'insertAsync', [{ _id: own, userId: ownerId, shareId: own, nodes: [], options: { id: own, name: 'Own' } }])).toBe('403')
+    const settings = (target: Page, input: object) => target.evaluate(input => (window as any).Meteor.callAsync('slates.updateSettings', input)
+      .then(() => 'ok', (error: { error?: unknown }) => String(error?.error ?? 'refused')), input)
+    expect(await settings(page, { shareId: key, welcomeAid: 'ai_probe' })).toBe('ok')
+    expect(await settings(stranger, { shareId: key, welcomeAid: 'ai_taken' })).toBe('not_found')
 
     const after = await getSlate(page, key)
     expect(after).toBeTruthy()
     expect(after.userId).toBe(ownerId)
     expect(after.options.name).toBe(before.options.name)
-    expect(after.options.welcomeAid).toBe(before.options.welcomeAid)
-    expect(after.options.directWriteProbe).toBe(true)
+    expect(after.options.welcomeAid).toBe('ai_probe')
+    expect(after.options.directWriteProbe).toBeUndefined()
     expect(after.nodes.map((node: any) => node.options.id)).toEqual(before.nodes.map((node: any) => node.options.id))
     expect(await page.evaluate(id => (window as any).Meteor.callAsync('slates.get', { shareId: id }).then((found: any) => Boolean(found?.slateBase), () => false), planted)).toBe(false)
   } finally {
@@ -77,7 +89,7 @@ test('a signed-in stranger cannot change, empty, delete or plant a slate through
   }
 })
 
-test('an owner\'s own browser may write a setting, and nothing that a method guards: notes, owner, share id, sharing, or the workshop', async ({ page }) => {
+test('an owner\'s own browser writes nothing to the collection: no setting, and nothing that a method guards: notes, owner, share id, sharing, or the workshop', async ({ page }) => {
   let id: string | null = null
   try {
     await page.goto(new URL('/new/workshop' + encodeWorkshopFragment(plan), origin).href)
@@ -90,8 +102,8 @@ test('an owner\'s own browser may write a setting, and nothing that a method gua
     const before = await getSlate(page, key)
     const set = (fields: Record<string, unknown>) => write(page, 'updateAsync', [{ _id: before._id }, { $set: fields }, {}])
 
-    // The control: a setting under options lands.
-    expect(await set({ 'options.directWriteProbe': true })).toBe('ok')
+    // Restated (P05a): a setting under options is refused like everything else.
+    expect(await set({ 'options.directWriteProbe': true })).toBe('403')
     // The workshop is saved by creativeSlates.save alone: validated, on the revision it was made on.
     expect(await set({ 'creative.model.workshop': { version: 1, title: 'x', lanes: 'not lanes', cards: null } })).toBe('403')
     expect(await set({ 'creative.model.kind': 'paused' })).toBe('403')
@@ -108,7 +120,7 @@ test('an owner\'s own browser may write a setting, and nothing that a method gua
     expect(await set({ options: { name: 'Replaced' } })).toBe('403')
 
     const after = await getSlate(page, key)
-    expect(after.options.directWriteProbe).toBe(true)
+    expect(after.options.directWriteProbe).toBeUndefined()
     expect(after.creative).toEqual(before.creative)
     expect(after.nodes).toEqual(before.nodes)
     expect(after.userId).toBe(before.userId)
