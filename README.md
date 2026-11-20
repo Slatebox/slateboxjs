@@ -728,3 +728,15 @@ supply `onUndo` and `canUndo` for revision-checked history.
 for a separate display. Persist the validated model to retain authorship
 and rules. `workshopToSlate` exports its current windows, point totals,
 features and dependency arrows for editing or native presentation.
+
+### Launch plans, pipelines and budgets
+
+`slateboxjs/boards` draws and plays a `launch-plan`, `pipeline` or `budget`
+workshop on the canvas: `attachWorkshop(slate, board, { kit: kitFor(board.kind) })`.
+Load it only for a slate that holds one of these boards. **It needs React 18
+or 19**: the kits describe their geometry to Dragology with React elements
+(nothing is mounted, so React DOM is not used). React is an optional peer of
+SlateboxJS because the canvas and `slateboxjs/workshops/model` do not use it;
+install it when you import `slateboxjs/boards` or `slateboxjs/dragology`.
+Without its kit, such a board can still be shown with `readOnly: true`: its
+lanes and cards are drawn as plain notes and cannot be played.

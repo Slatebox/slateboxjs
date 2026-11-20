@@ -40,7 +40,13 @@ describe('the board layer', () => {
     expect(onUnlink).toHaveBeenCalledTimes(1)
     layer.draw(plan, null, state({ clamp: { name: 'handle-build', text: 'Launch is day 14.' }, refused: true }))
     expect(svg.querySelector('[data-board-layer="clamp"]')!.textContent).toBe('Launch is day 14.')
+    // The sentence is above every note, never under a bar: the canvas's last group.
+    expect(svg.lastElementChild!.hasAttribute('data-board-layer-top')).toBe(true)
+    expect(svg.lastElementChild!.querySelector('[data-board-layer="clamp"]')!.textContent).toBe('Launch is day 14.')
+    expect(svg.lastElementChild!.getAttribute('pointer-events')).toBe('none')
     expect(svg.querySelector('[data-board-layer="header"]')!.getAttribute('fill')).toBe('#c2410c')
+    layer.draw(plan, null, state())
+    expect(svg.querySelector('[data-board-layer-top]')).toBeNull()
   })
 
   it('pipeline: the forecast bar is drawn from the board on show and turns the accept colour at the target', () => {

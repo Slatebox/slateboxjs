@@ -61,6 +61,9 @@ test.describe('desktop, 1440 by 900', () => {
     await expect(layer(page, 'header')).toHaveAttribute('fill', '#c2410c')
     await page.mouse.up()
     expect(await refusals(page)).toEqual(['That pushes QA to day 15, after launch on day 14.'])
+    // Said on screen, not only aloud: the sentence stays beside the grip, above every note.
+    await expect(layer(page, 'clamp')).toHaveText('That pushes QA to day 15, after launch on day 14.')
+    expect(await page.evaluate(() => document.querySelector('#slate svg')?.lastElementChild?.hasAttribute('data-board-layer-top'))).toBe(true)
     expect((await value(page)).cards.find((card: any) => card.id === 'build').duration).toBe(6)
     // The grip glides back to the end of the bar.
     await page.waitForTimeout(400)

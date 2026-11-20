@@ -6,6 +6,9 @@
 //
 // The rules themselves (validateWorkshop, applyWorkshopEdits, the refusal sentences) stay in
 // slateboxjs/workshops/model, which the server shares.
+//
+// Needs React 18 or 19 (an optional peer of slateboxjs): the kits describe their geometry to
+// Dragology as React elements. Nothing is mounted, so React DOM is not used.
 import type { BusinessBoardKind, Workshop, WorkshopBoardKit, WorkshopBoardLayout } from '../workshops/model'
 import { launchPlanKit } from './launchPlanKit'
 import { pipelineKit } from './pipelineKit'

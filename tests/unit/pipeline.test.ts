@@ -63,6 +63,16 @@ describe('pipeline rules', () => {
   })
 })
 
+describe('pipeline amounts', () => {
+  it('refuses an amount past the most with the sentence that says so', () => {
+    const board = validateWorkshop(samplePipeline())
+    const result = applyWorkshopEdits(board, [{ kind: 'add_card', lane: 'Lead', label: 'Huge', amount: 1e12 }])
+    expect('refused' in result && result.refused.reason).toBe('An amount is at most 1,000,000,000.')
+    const below = applyWorkshopEdits(board, [{ kind: 'add_card', lane: 'Lead', label: 'Negative', amount: -5 }])
+    expect('refused' in below && below.refused.reason).toBe('An amount is not below zero.')
+  })
+})
+
 describe('pipeline notes, sync, save and undo', () => {
   it('turns a note into a deal with its amount, in an open stage with room', () => {
     expect(workshopNoteCandidate(pipeline, 'lead', { id: 'n', label: 'Initrode $15k' })!.cards.at(-1)).toEqual({ id: 'n', label: 'Initrode', laneId: 'lead', amount: 15000 })
