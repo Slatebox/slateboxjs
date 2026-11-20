@@ -96,8 +96,67 @@ function stampOf(key: string, pkg: SlatePackage): Stamp {
 const byStamp = (a: RoomEntry, b: RoomEntry) =>
   compareStamps(stampOf(a.key, a.pkg), stampOf(b.key, b.pkg));
 
+/**
+ * A note and a card trading places, as the server stored it: at workshop revision `r`, note `id`
+ * became a card (`as: "card"`: the note left the drawing) or a card became that note
+ * (`as: "note"`; `note` is the note as saved, v1 node JSON). The server writes the trade with the
+ * board and the drawing, in one write, and keeps the newest trade of each note.
+ */
+export interface NoteTrade {
+  r: number;
+  as: "card" | "note";
+  note?: { options?: Record<string, any> };
+}
+
+/** The trades a stored slate records, with the workshop revision the document was stored at. */
+export interface NoteTrades {
+  through: number;
+  trades: Record<string, NoteTrade>;
+}
+
+/**
+ * The room's record that it has been told of a note's trade: `data.trade` (the note), `data.r`
+ * (the trade's revision). One per note, never pruned with the note's packages: a room that holds
+ * it for a revision holds what happened to the note from then on, so its packages apply as usual.
+ */
+const TRADED = "onNoteTraded";
+const tradeKey = (id: string) => "trade:" + id;
+
+/**
+ * The package without what it says about note `id`: unchanged when it says nothing about it,
+ * null when it is only about it, else a copy with that note left out of its list. A whole-slate
+ * replacement and a trade record are left alone, and so is a note added under parent `id`.
+ */
+function withoutNote(pkg: SlatePackage, id: string): SlatePackage | null {
+  if (!pkg || pkg.type === REPLACED || pkg.type === TRADED) return pkg;
+  const data: any = pkg.data;
+  if (!data || typeof data !== "object") return pkg;
+  if (Array.isArray(data)) {
+    const rest = data.filter((item: any) => item?.id !== id);
+    if (rest.length === data.length) return pkg;
+    return rest.length ? { ...pkg, data: rest as any } : null;
+  }
+  // A connected note added under a parent names the parent as data.id: that note is not this one.
+  const parented = pkg.type === "onNodeAdded" && data.options && !data.nodeOptions;
+  if (data.id === id && !parented) return null;
+  let next: any = data;
+  for (const field of ["nodeOptions", "nodes"]) {
+    const list = next[field];
+    if (Array.isArray(list)) {
+      const rest = list.filter((item: any) => item?.id !== id);
+      if (rest.length !== list.length) next = { ...next, [field]: rest };
+    } else if (list && typeof list === "object" && list.id === id) {
+      next = { ...next, [field]: [] };
+    }
+  }
+  if (next === data) return pkg;
+  const empty = ["nodeOptions", "nodes"].every((field) => !Array.isArray(next[field]) || next[field].length === 0);
+  return empty && !parented ? null : { ...pkg, data: next };
+}
+
 import type { Slate } from "./Slate";
 import type { SlatePackage } from "./SlatePackage";
+import { v2NodeToV1 } from "./compat";
 
 /** Packages that change the z-order (the note list's order). */
 const Z_ORDER_PACKAGES = new Set(["onNodeToFront", "onNodeToBack"]);
@@ -129,6 +188,21 @@ export class Collab {
   private baseline: Stamp | null = null;
   /** Packages from the room still being applied, one after the other. */
   private applying: Promise<void> | null = null;
+  /** Whether this client has the room: its first exchange with the relay is done. */
+  private synced = false;
+  /** The newest trade the host has told of, per note (see settleTrades). */
+  private trades = new Map<string, NoteTrade>();
+  /**
+   * What each traded note is while the room has not been told of its trade: its v1 options, or
+   * null for no note. From the stored slate for trades it already held when loaded, else from the
+   * trade itself.
+   */
+  private tradeTruth = new Map<string, Record<string, any> | null>();
+  /** The workshop revision every trade this screen draws is settled through (see settleTrades). */
+  private tradesThrough = 0;
+  private tradeFixTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Notes with a trade of this person's own on its way to the server: left as this screen has them. */
+  private ownTrades = new Map<string, number>();
   /** Connection/user payload returned by the host's onInitCollaboration */
   public userBaseData?: Record<string, any>;
 
@@ -274,6 +348,7 @@ export class Collab {
       // Connection status
       this.provider.on("status", (event: any) => {
         this.isConnected = event.status === "connected";
+        if (event.status !== "connected") this.synced = false;
         if (event.status !== "connected") {
           // WS dropped: every rendered remote cursor is now unverifiable
           // state. Wipe them (ghost-cursor class, F1); reconnect re-renders
@@ -282,6 +357,12 @@ export class Collab {
         }
         this.options.onStatusChange?.(event.status);
       });
+
+      // The room is in hand once the first exchange with the relay is done: only then can this
+      // client tell whether the room has been told of a trade (see tellRoomOfTrades). A room that
+      // is empty (a relay that restarted) changes no key, so the exchange itself is the signal.
+      this.provider.on("sync", (synced: boolean) => this.roomSynced(synced));
+      if (this.provider.synced) this.roomSynced(true);
 
       // Reconcile cursor DOM against awareness every 4s even when no
       // 'change' event fires (missed events, provider-internal removals,
@@ -363,6 +444,9 @@ export class Collab {
 
     if (this.collabMap) {
       for (const pkg of pkgs) {
+        // A package about a note whose trade the room has not been told of would be screened out
+        // by everyone (see screenTraded): the room is told first, so this package comes after.
+        for (const id of this.staleTradesIn(pkg)) this.tellRoomOfTrade(id);
         const key = `${pkg.type}_${Date.now()}_${Math.random()
           .toString(36)
           .substr(2, 5)}`;
@@ -448,6 +532,8 @@ export class Collab {
         replaced = true;
         continue;
       }
+      // A record that the room was told of a trade changes nothing on the canvas.
+      if (pkg.type === TRADED) continue;
       changes.push({ key, pkg });
       if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string") labelIds.add(pkg.data.id);
     }
@@ -468,16 +554,22 @@ export class Collab {
       this.dropOlderReplacements(newest);
     }
 
-    if (changes.length === 0) return;
+    if (changes.length === 0) {
+      this.scheduleTradeFix();
+      return;
+    }
     changes.sort(byStamp);
     const latest = this.latestLabels(labelIds);
     const documentChanged = changes.some(({ pkg }) => !VIEW_ONLY.has(pkg.type));
     this.run(() => {
       const before = documentChanged ? this.beforeRemote() : null;
       const pending = this.applyInOrder(changes, latest);
-      if (!documentChanged) return pending;
-      if (pending) return pending.then(() => this.afterRemote(before));
-      this.afterRemote(before);
+      const done = () => {
+        this.scheduleTradeFix();
+        if (documentChanged) this.afterRemote(before);
+      };
+      if (pending) return pending.then(done);
+      done();
     });
   }
 
@@ -514,6 +606,10 @@ export class Collab {
       if (building) return building.then(() => this.applyInOrder(entries, latestLabel, i, i));
       const { key } = entries[i];
       let { pkg } = entries[i];
+      // Nothing the room says about a note whose trade it has not been told of is applied.
+      const screened = this.screenTraded(pkg);
+      if (!screened) continue;
+      pkg = screened;
       if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string" && latestLabel.get(pkg.data.id) !== key) {
         // Not the node's current label: only the formatting it carried applies.
         const { text, ...style } = pkg.data;
@@ -567,13 +663,16 @@ export class Collab {
     const rest: RoomEntry[] = [];
     const labelIds = new Set<string>();
     this.collabMap.forEach((pkg: SlatePackage, key: string) => {
-      if (!pkg || pkg.type === REPLACED) return;
+      if (!pkg || pkg.type === REPLACED || pkg.type === TRADED) return;
       rest.push({ key, pkg });
       if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string") labelIds.add(pkg.data.id);
     });
     rest.sort(byStamp);
     await this.applyInOrder(rest, this.latestLabels(labelIds));
+    // The replacement may hold a note as it was before a trade the room was not told of.
+    await this.enforceStaleTrades();
     this.afterRemote(before);
+    this.scheduleTradeFix();
     // The host stored this client's own undo a moment ago, and that save may
     // land after the other person's. Hand it the slate again, as it now is, so
     // the stored document ends on what everyone sees.
@@ -628,6 +727,223 @@ export class Collab {
     }
   }
 
+  // ─── Trades the server decided ───────────────────────────────────
+
+  /**
+   * The host tells of the trades its server has stored (the newest per note) and the workshop
+   * revision they are complete through. A trade not heard of before is drawn here at once (the
+   * note leaves the canvas, or arrives as the server saved it), as a change from someone else;
+   * and when the room has not been told of it (the page that made it went away first), this
+   * client tells it a moment later, unless someone else has by then.
+   */
+  public settleTrades(trades: Record<string, NoteTrade> | null | undefined, through?: number): void {
+    this.absorbLoadedTrades();
+    this.learnTrades(trades, through, false);
+  }
+
+  /** The workshop revision this screen has every trade drawn through: what its drawing save holds. */
+  public tradesSettledThrough(): number {
+    this.absorbLoadedTrades();
+    return this.tradesThrough;
+  }
+
+  /**
+   * This person's own copy of a traded note was taken away (someone else made the same trade
+   * first): the note is drawn again as the server has it, when the server's trade says it is one.
+   */
+  public keepTrade(id: string): void {
+    if (!this.tradeTruth.has(id)) return;
+    this.run(async () => {
+      await this.enforceTrade(id);
+    });
+  }
+
+  /**
+   * The page that made a trade heard the server took it: the room is told now. Returns false when
+   * the host has told of no trade of this note, so the caller sends its packages as before.
+   */
+  public tellRoomOfTrade(id: string): boolean {
+    this.absorbLoadedTrades();
+    if (!this.trades.has(id)) return false;
+    if (this.staleTrade(id)) this.writeTrades([id]);
+    return true;
+  }
+
+  /**
+   * A trade of this person's own, of note `id`, is on its way to the server until `answered`
+   * settles. Until then this screen's copy of the note is the newest there is: an older trade the
+   * server tells of meanwhile is not drawn over it, and the room is not told from it.
+   */
+  public holdTrade(id: string, answered: Promise<unknown>): void {
+    this.ownTrades.set(id, (this.ownTrades.get(id) ?? 0) + 1);
+    const done = () => {
+      const left = (this.ownTrades.get(id) ?? 1) - 1;
+      if (left > 0) this.ownTrades.set(id, left);
+      else this.ownTrades.delete(id);
+      this.scheduleTradeFix();
+    };
+    answered.then(done, done);
+  }
+
+  /** The room has been synced with (or lost). */
+  private roomSynced(synced: boolean): void {
+    this.synced = synced;
+    if (synced) this.scheduleTradeFix();
+  }
+
+  /**
+   * The trades the loaded document records (options.collabTrades), once it is drawn: what that
+   * document holds of each traded note is what the note is until the room is told.
+   */
+  private absorbLoadedTrades(loadedNow = false): void {
+    const options = this.slate?.options as any;
+    const loaded: NoteTrades | undefined = options?.collabTrades;
+    if (!loaded || typeof loaded !== "object") return;
+    // Not while the document is still being loaded: its notes are not all there yet.
+    if (!loadedNow && (this.slate as any).isLoading?.()) return;
+    delete options.collabTrades;
+    this.learnTrades(loaded.trades, loaded.through, true);
+  }
+
+  private learnTrades(trades: Record<string, NoteTrade> | null | undefined, through: number | undefined, loaded: boolean): void {
+    if (typeof through === "number" && through > this.tradesThrough) this.tradesThrough = through;
+    if (!trades || typeof trades !== "object") return;
+    const fresh: string[] = [];
+    for (const [id, trade] of Object.entries(trades)) {
+      if (!trade || typeof trade.r !== "number" || (trade.as !== "card" && trade.as !== "note")) continue;
+      const known = this.trades.get(id);
+      if (known && known.r >= trade.r) continue;
+      this.trades.set(id, trade);
+      if (loaded) {
+        const here = this.slate?.nodes?.one?.(id);
+        this.tradeTruth.set(id, here ? v2NodeToV1(here.options) : null);
+      } else {
+        const options = trade.as === "note" ? trade.note?.options : null;
+        this.tradeTruth.set(id, options ? { ...options, id } : null);
+        fresh.push(id);
+      }
+    }
+    if (fresh.length) {
+      this.run(() => {
+        const before = this.beforeRemote();
+        return Promise.all(fresh.map((id) => this.enforceTrade(id))).then(() => this.afterRemote(before));
+      });
+    }
+    this.scheduleTradeFix();
+  }
+
+  /** The newest trade of `id` the host told of is later than the one the room was told of. */
+  private staleTrade(id: string): boolean {
+    const trade = this.trades.get(id);
+    if (!trade || !this.collabMap) return false;
+    const told = this.collabMap.get(tradeKey(id));
+    const r = told?.type === TRADED && typeof told.data?.r === "number" ? told.data.r : 0;
+    return r < trade.r;
+  }
+
+  private staleTradesIn(pkg: SlatePackage): string[] {
+    this.absorbLoadedTrades();
+    if (!this.trades.size || pkg?.type === TRADED || pkg?.type === REPLACED) return [];
+    const out: string[] = [];
+    for (const id of this.trades.keys()) {
+      if (withoutNote(pkg, id) !== pkg && this.staleTrade(id)) out.push(id);
+    }
+    return out;
+  }
+
+  /** The package less what it says about notes whose trade the room has not been told of. */
+  private screenTraded(pkg: SlatePackage): SlatePackage | null {
+    this.absorbLoadedTrades();
+    if (!this.trades.size || !pkg) return pkg;
+    let out: SlatePackage | null = pkg;
+    for (const id of this.trades.keys()) {
+      if (!out) break;
+      const next = withoutNote(out, id);
+      if (next !== out && this.staleTrade(id)) out = next;
+    }
+    return out;
+  }
+
+  /** Draw note `id` as its trade says, when it is not: take it off, or put it on. */
+  private enforceTrade(id: string): Promise<unknown> | void {
+    if (!this.slate || !this.tradeTruth.has(id) || this.ownTrades.has(id)) return;
+    const truth = this.tradeTruth.get(id);
+    const here = this.slate.nodes?.one?.(id);
+    try {
+      if (truth === null && here) return this.handleRemotePackage({ type: "onNodeDeleted", data: { id, isComment: false } } as SlatePackage);
+      if (truth && !here) return this.handleRemotePackage({ type: "onNodeAdded", data: { id, nodeOptions: [{ ...truth, id }] } } as SlatePackage);
+    } catch (error) {
+      console.warn("COLLAB_DEBUG: A traded note could not be drawn as the server has it:", error);
+    }
+  }
+
+  private async enforceStaleTrades(): Promise<void> {
+    for (const id of this.trades.keys()) {
+      if (this.staleTrade(id)) await this.enforceTrade(id);
+    }
+  }
+
+  /**
+   * Some trade the room has not been told of: tell it in a moment (a second or two, so the page
+   * that made the trade, or another screen, usually does first). Only once this client has the
+   * room: before that it cannot know what the room was told.
+   */
+  private scheduleTradeFix(): void {
+    if (this.tradeFixTimer || !this.synced || !this.collabMap || !this.trades.size) return;
+    if (![...this.trades.keys()].some((id) => this.staleTrade(id) && !this.ownTrades.has(id))) return;
+    this.tradeFixTimer = setTimeout(() => {
+      this.tradeFixTimer = null;
+      if (!this.synced || !this.collabMap) return;
+      this.run(async () => {
+        await this.enforceStaleTrades();
+        const stale = [...this.trades.keys()].filter((id) => this.staleTrade(id) && !this.ownTrades.has(id));
+        if (stale.length) this.writeTrades(stale);
+      });
+    }, 1000 + Math.floor(Math.random() * 1000));
+  }
+
+  /**
+   * Tell the room of the trades of these notes, in one step: every package about each note goes,
+   * then the note as this screen draws it (its arrival, or its removal), then the record that the
+   * room has been told. A client that joins after replays the note from there on.
+   */
+  private writeTrades(ids: string[]): void {
+    if (!this.collabMap || !this.synced || !ids.length) return;
+    const write = () => {
+      for (const id of ids) {
+        const trade = this.trades.get(id);
+        if (!trade) continue;
+        const changed: [string, SlatePackage | null][] = [];
+        this.collabMap.forEach((pkg: SlatePackage, key: string) => {
+          if (key === tradeKey(id)) return;
+          const rest = withoutNote(pkg, id);
+          if (rest !== pkg) changed.push([key, rest]);
+        });
+        for (const [key, rest] of changed) {
+          if (rest) this.collabMap.set(key, rest);
+          else this.collabMap.delete(key);
+        }
+        const here = this.slate?.nodes?.one?.(id);
+        const truth = this.tradeTruth.get(id);
+        const options = here ? v2NodeToV1(here.options) : truth;
+        const half: SlatePackage = options
+          ? ({ type: "onNodeAdded", data: { id, nodeOptions: { ...options, id } } } as SlatePackage)
+          : ({ type: "onNodeDeleted", data: { id, isComment: false } } as SlatePackage);
+        const key = `${half.type}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        this.collabMap.set(key, { ...half, clientID: this.clientID, timestamp: this.tick() });
+        this.collabMap.set(tradeKey(id), {
+          type: TRADED, data: { trade: id, r: trade.r }, clientID: this.clientID, timestamp: this.tick(),
+        });
+      }
+    };
+    try {
+      if (this.doc) this.doc.transact(write);
+      else write();
+    } catch (error) {
+      console.warn("COLLAB_DEBUG: The room could not be told of a trade:", error);
+    }
+  }
+
   /** Stamp for a package this client is about to write: later than all it has seen. */
   private tick(): number {
     this.knownBaseline(); // the loaded document's replacement counts as seen
@@ -668,6 +984,8 @@ export class Collab {
    */
   public documentLoaded(): void {
     if (this.baseline && this.knownBaseline() === this.baseline) this.adoptBaseline(this.baseline);
+    // The trades the document records, and what it holds of each traded note.
+    this.absorbLoadedTrades(true);
   }
 
   private adoptBaseline(stamp: Stamp): void {
@@ -776,7 +1094,10 @@ export class Collab {
     if (!this.collabMap) return;
     try {
       const keys: string[] = [];
-      this.collabMap.forEach((_val: any, key: string) => keys.push(key));
+      // What the room was told of trades stays: the replacement is drawn from a slate that had them.
+      this.collabMap.forEach((val: any, key: string) => {
+        if (val?.type !== TRADED) keys.push(key);
+      });
       for (const key of keys) this.collabMap.delete(key);
     } catch (e) {
       /* noop */
@@ -1077,6 +1398,9 @@ export class Collab {
     this.collabMap = null;
     this.awareness = null;
     this.isConnected = false;
+    this.synced = false;
+    if (this.tradeFixTimer) clearTimeout(this.tradeFixTimer);
+    this.tradeFixTimer = null;
     this.applying = null;
     console.log("COLLAB_DEBUG: Disconnected");
   }

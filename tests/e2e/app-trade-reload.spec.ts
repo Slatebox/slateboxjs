@@ -144,6 +144,11 @@ async function trade(page: Page, id: string, to: () => Promise<{ x: number; y: n
     // The server takes it; its answer is held back on the open sockets until the page has gone.
     const { held } = await harness('/hold?which=app&ms=4000')
     expect(held, 'sockets held').toBeGreaterThan(0)
+    // Corrected 2026-11-20 (trade-fix): Chrome can drop a WebSocket frame it reported sent when the
+    // tab is closed a few ms later (Meteor's DDP log showed the call never arrived). The window this
+    // mode stands for is "the server took it, the answer had not arrived", so the page leaves once
+    // the call has crossed the app proxy (at most 90 ms one way) and well before the held answer.
+    await page.waitForTimeout(250)
   } else if (when) await page.waitForTimeout(when)
 }
 const label = (when: When) => (when === 'sent' ? 'the moment its save leaves' : when ? when + ' ms later' : 'at once')
@@ -255,4 +260,123 @@ test('a relay restart loses the room: the stored slate alone still draws the las
   await harness('/relay/restart')
   await reopen(t.a); await reopen(t.b)
   await record(t, 'after a relay restart')
+})
+
+// ─── Added 2026-11-20 (trade-fix): the 0-1000 ms matrix, two people at once, the relay going away,
+// and undo. Same record as above: the server holds Delta once and every screen draws what it holds.
+
+const MATRIX: number[] = [0, 100, 250, 500, 1000]
+
+/**
+ * Trade Delta on `page`, then leave it `ms` later by `how`. `toCard` undefined: the direction the
+ * server's Delta calls for (a page closed within a few ms of the drop may never send its call, and
+ * then the trade did not happen: what counts is that everyone agrees on what the server holds).
+ */
+async function tradeAndLeave(t: Two, how: 'reload' | 'close', ms: number, toCard?: boolean) {
+  if (toCard === undefined) toCard = (await storedWords(t.a, t.key, WORDS)).notes.length > 0
+  const page = how === 'reload' ? t.a : await tab(t, false)
+  const id = toCard ? await noteIdOn(page) : await cardIdOn(page)
+  expect(id, (toCard ? 'a Delta note' : 'a Delta card') + ' to trade').toBeTruthy()
+  await trade(page, id!, toCard ? toLater(page) : toCanvas(page), ms)
+  if (how === 'reload') await reopen(page)
+  else { await page.close(); await t.a.waitForTimeout(300) }
+}
+
+for (const how of ['reload', 'close'] as const) {
+  test(`matrix: each trade direction, the trading page ${how === 'reload' ? 'reloaded' : 'closed'} ${MATRIX.join('/')} ms after: everyone agrees each time`, async ({ browser }) => {
+    test.setTimeout(1_200_000)
+    const t = await setUp(browser)
+    await deltaAsNote(t)
+    for (const ms of MATRIX) {
+      for (const step of ['first', 'second']) {
+        const toCard = (await storedWords(t.a, t.key, WORDS)).notes.length > 0
+        await tradeAndLeave(t, how, ms, toCard)
+        const row = await record(t, `matrix ${how} ${ms} ms (${step}): ${toCard ? 'note->card' : 'card->note'}`)
+        // Ids are kept: whenever Delta is a note, it is the card's own id.
+        if (row.server.notes.length) expect.soft(row.server.notes, `matrix ${how} ${ms} ms: the note keeps its id`).toEqual(['delta'])
+      }
+    }
+  })
+}
+
+test('two people drop the same Delta note on two lanes at once and both reload at once: one card everywhere', async ({ browser }) => {
+  const t = await setUp(browser)
+  await deltaAsNote(t)
+  await reopen(t.b)
+  const [aTo, bTo] = [await laneSpot(t.a, 'later'), await laneSpot(t.b, 'now')]
+  await Promise.all([carry(t.a, 'delta', aTo), carry(t.b, 'delta', bTo)])
+  await Promise.all([reopen(t.a), reopen(t.b)])
+  await record(t, 'two people, same note to two lanes, both reload')
+})
+
+test('two people take the Delta card off the lanes at once, one tab closed at once: one note, its own id, everywhere', async ({ browser }) => {
+  const t = await setUp(browser)
+  const page = await tab(t, false)
+  const [aTo, pTo] = [await offBoard(t.a, 260), await offBoard(page, 120)]
+  await Promise.all([carry(t.a, 'card-delta', aTo), carry(page, 'card-delta', pTo)])
+  await page.close()
+  const row = await record(t, 'two people, same card off the lanes, one tab closed')
+  expect.soft(row.server.notes, 'the note keeps the card\'s id').toEqual(['delta'])
+})
+
+test('two people trade different cards at once, both leave at once: Delta and Alpha are each one thing everywhere', async ({ browser }) => {
+  const t = await setUp(browser)
+  const page = await tab(t, false)
+  await Promise.all([carry(page, 'card-delta', await offBoard(page, 120)), carry(t.b, 'card-alpha', await offBoard(t.b, 320))])
+  await Promise.all([page.close(), reopen(t.b)])
+  await record(t, 'two people, different cards, both leave: Delta')
+  const server = await storedWords(t.a, t.key, 'Alpha')
+  for (const p of [t.a, t.b]) {
+    const v = await drawnWords(p, 'Alpha')
+    expect.soft({ notes: ids(v.notes), cards: v.cards.length }, 'Alpha is drawn as the server holds it').toEqual({ notes: [...server.notes].sort(), cards: server.cards.length })
+  }
+  expect.soft(server.notes.length + server.cards.length, 'the server holds Alpha once').toBe(1)
+})
+
+test('the relay restarts the moment after a trade, before anyone could tell it: the stored trade wins', async ({ browser }) => {
+  const t = await setUp(browser)
+  await deltaAsNote(t)
+  const page = await tab(t, false)
+  await trade(page, 'delta', toLater(page), 'sent')
+  await page.close()
+  await harness('/relay/restart')
+  await reopen(t.a)
+  await record(t, 'note->card, tab closed, relay restarted')
+  await carry(t.a, (await cardIdOn(t.a))!, await offBoard(t.a))
+  await harness('/relay/restart')
+  await reopen(t.a)
+  await record(t, 'card->note, relay restarted at once')
+})
+
+test('a slow relay (600-1200 ms): note → card, reload 200 ms later, then card → note, tab closed 100 ms later', async ({ browser }) => {
+  const t = await setUp(browser)
+  await deltaAsNote(t)
+  await harness('/latency?which=relay&min=600&max=1200')
+  try {
+    await trade(t.a, 'delta', toLater(t.a), 200)
+    await reopen(t.a)
+    await record(t, 'slow relay: note->card, reload 200 ms later')
+    await tradeAndLeave(t, 'close', 100, false)
+    await record(t, 'slow relay: card->note, tab closed 100 ms later')
+  } finally { await harness('/latency?which=relay&min=150&max=400') }
+})
+
+test('undo of a trade, then reload at once: the card is back for everyone, and redo makes it a note again', async ({ browser }) => {
+  const t = await setUp(browser)
+  await deltaAsNote(t)
+  await t.a.mouse.click(5, 300)
+  await t.a.keyboard.press('ControlOrMeta+z')
+  await t.a.waitForTimeout(250)
+  await reopen(t.a)
+  const row = await record(t, 'undo card->note, reload at once')
+  expect.soft(row.server.cards.length, 'the card is back').toBe(1)
+  await deltaAsNote(t)
+  await t.a.mouse.click(5, 300)
+  await t.a.keyboard.press('ControlOrMeta+z')
+  await t.a.waitForTimeout(1500)
+  await t.a.keyboard.press('ControlOrMeta+Shift+z')
+  await t.a.waitForTimeout(250)
+  await reopen(t.a)
+  const again = await record(t, 'undo then redo card->note, reload at once')
+  expect.soft(again.server.notes, 'redo makes it the note again').toEqual(['delta'])
 })

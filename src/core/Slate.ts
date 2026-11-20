@@ -17,7 +17,7 @@ import { Grid } from "./Grid";
 import { Keyboard } from "./Keyboard";
 import { ContextMenu } from "./ContextMenu";
 import { exportSVG, exportPNG, type ExportOptions } from "./Export";
-import { Collab, CollabUser } from "./Collab";
+import { Collab, CollabUser, type NoteTrade, type NoteTrades } from "./Collab";
 import type { SlatePackage } from "./SlatePackage";
 import { v2NodeToV1 } from "./compat";
 import { guid } from "../utils";
@@ -173,6 +173,12 @@ export interface SlateOptions {
    * Written by Collab, stored with the document, read again when it is loaded.
    */
   collabBaseline?: { id?: string; t: number; c: number };
+  /**
+   * The note and card trades the stored slate records (see Collab.NoteTrade), put on the document
+   * by the host that loads it. Read once the document is drawn and never stored back: while the
+   * room has not been told of a trade, the stored document says what the traded note is.
+   */
+  collabTrades?: NoteTrades;
   eligibleForThemeCompilation?: boolean;
 
   // Viewport
@@ -811,11 +817,52 @@ export class Slate {
    */
   public sendHeld(packages: SlatePackage[]): void {
     if (this._destroyed || !packages.length) return;
+    // A trade the host has told of (settleTrades) reaches the room as the server stored it: the
+    // room is told of the note's trade, and the host still hears of the change.
+    const told = packages.filter((pkg) => {
+      const id = (pkg.data as any)?.id;
+      return (pkg.type === "onNodeAdded" || pkg.type === "onNodeDeleted") && typeof id === "string" &&
+        this.collab?.tellRoomOfTrade?.(id) === true;
+    });
+    for (const pkg of told) this.emitSlateChange(pkg.type, pkg.data);
+    const rest = packages.filter((pkg) => !told.includes(pkg));
+    if (!rest.length) return;
     if (typeof this.collab?.send === "function") {
-      this.collab.send(packages);
+      this.collab.send(rest);
     } else {
-      for (const pkg of packages) this.emitSlateChange(pkg.type, pkg.data);
+      for (const pkg of rest) this.emitSlateChange(pkg.type, pkg.data);
     }
+  }
+
+  /**
+   * The note and card trades the host's server has stored (the newest trade of each note) and
+   * the workshop revision they are complete through. A trade this screen has not drawn is drawn
+   * now, and the room is told of any it has not been (see Collab.settleTrades). Call it before
+   * telling the slate a trade of this person's own was saved.
+   */
+  public settleTrades(trades: Record<string, NoteTrade> | null | undefined, through?: number): void {
+    if (this._destroyed) return;
+    this.collab?.settleTrades?.(trades, through);
+  }
+
+  /** The workshop revision through which this screen draws every trade: for the drawing save. */
+  public tradesThrough(): number {
+    return this.collab?.tradesSettledThrough?.() ?? 0;
+  }
+
+  /**
+   * A trade of this person's own, of note `id`, waits for the host's answer: until then a trade the
+   * server tells of is not drawn over this screen's copy of the note (see Collab.holdTrade).
+   */
+  public holdTrade(id: string, answer: unknown): void {
+    if (this._destroyed || !answer || typeof (answer as any).then !== "function") return;
+    this.collab?.holdTrade?.(id, answer as Promise<unknown>);
+  }
+
+  /** Draw a traded note as the server's trade has it again (this person's own copy was taken away). */
+  public keepTrade(id: string): void {
+    if (this._destroyed) return;
+    this.collab?.keepTrade?.(id);
   }
 
   /**
@@ -944,6 +991,11 @@ export class Slate {
   /** Re-enable emitSlateChange after a remote package has been applied. */
   public endRemoteApply(): void {
     if (this._applyingRemote > 0) this._applyingRemote--;
+  }
+
+  /** True while a document load is in flight (see holdUntilLoaded). */
+  public isLoading(): boolean {
+    return this._loadsInFlight.size > 0;
   }
 
   /** A document load started: nothing from the room is applied until it has finished. */

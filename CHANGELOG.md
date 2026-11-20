@@ -22,6 +22,19 @@
   with `'taken'` (someone else made it first): this person's copy of the note goes and nothing is
   brought back; a refused trade never takes away a card the host has drawn since.
   `board.toCanvas(cardId)` takes a card off the lanes as a note beside the board.
+  A trade is the server's to decide, and the room follows it. The host tells the slate the trades
+  its server stored with `slate.settleTrades(trades, revision)`. Each entry is the newest trade of
+  a note: `{ r, as: 'card' | 'note', note? }`. The host also puts the stored slate's trades on the
+  document it loads (`options.collabTrades`).
+  - While the room has not been told of a note's trade, nothing it says about that note is applied,
+    on load or live. The stored slate, or the trade itself, decides what the note is.
+  - The page that made the trade tells the room once it is saved. If that page went away first,
+    any client that has the room tells it a moment later, in one step: the note's packages go, the
+    note as drawn goes in, and an `onNoteTraded` record is written. That record survives undo
+    replacements.
+  - `slate.tradesThrough()` gives the revision the screen has drawn trades through, for the host's
+    drawing save.
+  - `slate.keepTrade(id)` draws a note as the server has it, after this person lost a same-trade race.
 - **A host can keep provisional notes out of exports.** A drag policy may give a note
   `exportable: false` (the default stays `true`, so a workshop's cards still export). SVG and PNG
   exports then leave that note out, with every line drawn to or from it, and frame the picture to

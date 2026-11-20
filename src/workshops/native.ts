@@ -488,7 +488,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (!card) continue
       value = validateWorkshop({ ...value, cards: value.cards.filter(item => item !== card) })
       draw(value)
-      watch(tell(options.onChange, value, { cardId, cardToNote: { noteId } }))
+      const answer = tell(options.onChange, value, { cardId, cardToNote: { noteId } })
+      slate.holdTrade?.(noteId, answer)
+      watch(answer)
     }
     // A note this step took away is a card again, in the lane it was in.
     for (const noteId of notes.removed) {
@@ -507,8 +509,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // Where it went back among the cards, so every copy of the board puts it in the same place.
       const at = value.cards.findIndex(item => item.id === cardId)
       const before = value.cards.slice(at + 1).find(item => item.laneId === lane)?.id
-      watch(tell(options.onChange, value, { cardId, laneId: lane, noteToCard: { noteId, label: card.label, ...(card.look ? { look: card.look } : {}),
-        ...(card.asNote ? { asNote: card.asNote } : {}), ...(before ? { before } : {}) } }))
+      const answer = tell(options.onChange, value, { cardId, laneId: lane, noteToCard: { noteId, label: card.label, ...(card.look ? { look: card.look } : {}),
+        ...(card.asNote ? { asNote: card.asNote } : {}), ...(before ? { before } : {}) } })
+      slate.holdTrade?.(noteId, answer)
+      watch(answer)
     }
   }
 
@@ -818,7 +822,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         committed = value
         draw(value)
       }
-      hear(tell(options.onChange, value, change), () => {
+      const answer = tell(options.onChange, value, change)
+      slate.holdTrade?.(node.id, answer)
+      hear(answer, () => {
         // Saved: now collaborators, and the host's drawing save, hear that the note is gone.
         slate.sendHeld?.([{ type: 'onNodeDeleted', data: { id: node.id, isComment: false } }])
       }, () => {
@@ -837,6 +843,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         // Someone else put this note on the board first: their card is the note now.
         if (destroyed) return
         dropCard()
+        slate.keepTrade?.(node.id)
         slate.announce?.(`Someone else put ${card.label} on the board first.`)
       })
     }
@@ -891,7 +898,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       onlyHere(() => slate.removeNode(id))
       slate.endHostStep?.()
     }
-    hear(tell(options.onChange, value, { cardId, cardToNote: { noteId: id } }), () => {
+    const answer = tell(options.onChange, value, { cardId, cardToNote: { noteId: id } })
+    slate.holdTrade?.(id, answer)
+    hear(answer, () => {
       // Saved: collaborators, and the host's drawing save, hear of the note as it is now.
       if (added && slate.nodes.one(id) === added) slate.sendHeld?.([{ type: 'onNodeAdded', data: { id, nodeOptions: v2NodeToV1(added.options) } }])
     }, () => {
@@ -909,6 +918,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // Someone else took this card off the lanes first: their note is the card now.
       if (destroyed) return
       dropNote()
+      // Their note may have the id this person's copy had: it is drawn as the server has it.
+      slate.keepTrade?.(id)
       slate.announce?.(`Someone else took ${card.label} off the lanes first.`)
     })
   }
