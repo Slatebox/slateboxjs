@@ -30,6 +30,18 @@ export interface WorkshopCard {
     dependsOn?: string[];
     /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
     look?: WorkshopCardLook;
+    /** What the note it was made from had that a card does not show, so it comes back as it was. */
+    asNote?: WorkshopCardAsNote;
+}
+/**
+ * What an ordinary note had that its card does not show: its words with their line breaks,
+ * its shape and its size. A card dropped on the canvas becomes that note again.
+ */
+export interface WorkshopCardAsNote {
+    text?: string;
+    shape?: string;
+    width?: number;
+    height?: number;
 }
 /** The look of one card: what an ordinary note dropped on a lane brings with it. */
 export interface WorkshopCardLook {
@@ -113,14 +125,18 @@ export interface WorkshopNoteOffer {
     id: string;
     label: string;
     look?: WorkshopCardLook;
+    /** What the note has that the card will not show (line breaks, shape, size), kept for its way back. */
+    asNote?: WorkshopCardAsNote;
 }
 /** Why `note` may not become a card in `laneId`, as a sentence; null when it may. */
 export declare function workshopNoteRefusal(board: Workshop, laneId: string, note: WorkshopNoteOffer): string | null;
 /**
- * The board with `note` as a card at the foot of `laneId`, or null when the lane's rules
- * refuse it (workshopNoteRefusal says why). The card keeps the note's id where it can.
+ * The board with `note` as a card in `laneId`, or null when the lane's rules refuse it
+ * (workshopNoteRefusal says why). The card goes at the foot of the lane, or just before the
+ * card `before` when that card is in the lane (a card put back by an undo returns to its
+ * place). The card keeps the note's id where it can.
  */
-export declare function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer): Workshop | null;
+export declare function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null;
 /** Why the card may not leave the lanes as an ordinary note; null when it may. */
 export declare function workshopCardAsNoteRefusal(board: Workshop, cardId: string): string | null;
 /** The board without the card, for a card taken off the lanes as an ordinary note; null when it must stay. */

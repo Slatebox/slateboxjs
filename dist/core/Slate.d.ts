@@ -641,6 +641,14 @@ export declare class Slate {
      * that takes or refuses it decides; with none, the drop is an ordinary move.
      */
     offerFreeDrop(node: Node, point: WorldPoint, from: WorldPoint): "taken" | "refused" | null;
+    /**
+     * Offer several ordinary notes dropped together to the policies (see
+     * DragPolicy.onFreeGroupDrop). The first that takes or refuses them decides; with none,
+     * the drop is an ordinary move.
+     */
+    offerFreeGroupDrop(nodes: Node[], point: WorldPoint): "taken" | "refused" | null;
+    /** Tell the policies an ordinary note's words were committed (see DragPolicy.onFreeTextCommit). */
+    offerFreeTextCommit(node: Node): void;
     /** What each policy keeps with an undo record (see DragPolicy.undoState). Null when none keeps anything. */
     undoHostState(): Map<DragPolicy, unknown> | null;
     /** This person's undo or redo went back to a record: hand each policy what it kept with it. */

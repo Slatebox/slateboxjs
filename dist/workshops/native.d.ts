@@ -10,11 +10,13 @@
  * Plain JavaScript, no React. The only thing it asks of the engine is the drag
  * policy in core/DragPolicy.ts.
  */
-import { type Workshop, type WorkshopBoardLayout, type WorkshopCardLook, type WorkshopNoteStyle } from './model';
+import { type Workshop, type WorkshopBoardLayout, type WorkshopCardAsNote, type WorkshopCardLook, type WorkshopNoteStyle } from './model';
 /**
  * What a person changed. A move names the card and its new lane; a rename names the lane or
  * card and its new label. `noteToCard`: an ordinary note became card `cardId` at the foot of
- * `laneId` (it left the slate's drawing). `cardToNote`: card `cardId` left the board and is now
+ * `laneId`, or just before card `before` when that is where an undo puts it back (it left the
+ * slate's drawing). `asNote` is what the note had that the card does not show (line breaks,
+ * shape, size), kept for its way back. `cardToNote`: card `cardId` left the board and is now
  * the ordinary note `noteId` in the drawing.
  */
 export interface WorkshopChangeEvent {
@@ -29,6 +31,8 @@ export interface WorkshopChangeEvent {
         noteId: string;
         label: string;
         look?: WorkshopCardLook;
+        asNote?: WorkshopCardAsNote;
+        before?: string;
     };
     cardToNote?: {
         noteId: string;
@@ -73,10 +77,14 @@ export type WorkshopCandidateChooser = (board: Workshop, cardId: string, grab: {
 export interface AttachWorkshopOptions {
     /**
      * A move, rename or conversion was committed. `next` is validated; the host persists it.
-     * Return a promise of false when the host could not save a conversion: the drawing is put
-     * back (the note returns to the canvas, or leaves it again).
+     * For a conversion, return a promise of what the save came to:
+     * - false: it was refused. The drawing is put back (the note returns to the canvas, or
+     *   leaves it again). The board is put back too, unless the host has drawn a newer one.
+     * - 'taken': someone else made this same trade first (they put the note in a lane, or took
+     *   the card off the lanes). This person's copy of the note leaves the canvas, nothing is
+     *   brought back, and the board is the host's to draw.
      */
-    onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | void>;
+    onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | 'taken' | void>;
     /** A drop or rename was refused. */
     onRefuse?: (refusal: WorkshopRefusalEvent) => void;
     /** The board a held or keyboard-staged card would produce, or null when there is none. */
@@ -119,6 +127,12 @@ export interface AttachedWorkshop {
      * cancelled first.
      */
     setLayout(layout: WorkshopBoardLayout): void;
+    /**
+     * Take a card off the lanes as an ordinary note just beside the board, as a drop on the
+     * canvas would (a conversation's "make this a note"). Null when it was done; otherwise the
+     * reason it stays a card.
+     */
+    toCanvas(cardId: string): string | null;
     /** Remove the workshop's notes and its policy. Every other note on the slate is left as it was. */
     destroy(): void;
     /** The committed model. */

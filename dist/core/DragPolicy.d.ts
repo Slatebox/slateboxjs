@@ -109,6 +109,18 @@ export interface DragPolicy {
      */
     onFreeDrop?(node: Node, point: WorldPoint, from: WorldPoint): "taken" | "refused" | void;
     /**
+     * Several ordinary notes dragged together were dropped at `point` (where the pointer
+     * let go). Return "taken" when the host has made them all its own, "refused" to have
+     * every one glide back to where it started, or nothing to leave them as an ordinary
+     * move.
+     */
+    onFreeGroupDrop?(nodes: Node[], point: WorldPoint): "taken" | "refused" | void;
+    /**
+     * The words of an ordinary note were committed (typed and confirmed). A host may act on
+     * where the note now is (a note typed on a workshop's lane becomes a card there).
+     */
+    onFreeTextCommit?(node: Node): void;
+    /**
      * What the host wants kept with each undo record (taken when the record is taken).
      * Given back to {@link onUndoRestore} when this person's undo or redo goes back to it.
      */
