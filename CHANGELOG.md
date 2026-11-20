@@ -35,7 +35,8 @@
   dots and a selected line keeps its start/end lock toggles on the canvas. The new
   `events.onSelectionFrame(frame)` says what is selected (`kind`: `node`, `nodes`, `line` or
   `none`, with `ids` and, for a line, `line: { nodeId, associationId, childId }`) and where it is
-  on screen (`rect`, in client pixels, rotation included). `topClearance` is the room above
+  on screen (`rect`, in client pixels, rotation included). A line's frame also carries `avoid`:
+  the screen boxes of the notes at its two ends, so a host bar over the line can stay off them. `topClearance` is the room above
   `rect.top` taken by the rotate handle and the top connect dot. It fires on every selection
   change, once with `moving: true` when a drag, resize, rotate, pan or zoom starts, and with
   `moving: false` and the new place when it ends. `getSelectionFrame()`, `getSelectedLine()` and

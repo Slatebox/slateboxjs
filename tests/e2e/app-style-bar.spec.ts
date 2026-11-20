@@ -284,7 +284,7 @@ test('a line: its own bar with its own values, no dashed button on the bar, Patt
     await line.getByRole('button', { name: 'Line colour' }).click()
     const ticked = page.getByRole('radiogroup', { name: 'Line colour' }).locator('[aria-checked="true"]')
     await expect(ticked).toHaveCount(1)
-    await expect(ticked).toHaveAttribute('aria-label', 'Current colour, #cc0000')
+    await expect(ticked).toHaveAttribute('aria-label', 'Current colour, Red')
     await page.keyboard.press('Escape')
     expect(await line.getByRole('button', { name: /dash/i }).count()).toBe(0)
     await line.getByRole('radio', { name: 'Thick' }).click()

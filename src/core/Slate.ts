@@ -111,6 +111,11 @@ export interface SelectionFrame {
   moving: boolean;
   /** For a line: the note that owns it, its association and the other note. */
   line?: { nodeId: string; associationId: string; childId: string };
+  /**
+   * For a line: the screen boxes of the notes at its two ends (start, then end).
+   * A host bar placed over the line's span should stay off these as well.
+   */
+  avoid?: ScreenRect[];
 }
 
 function toScreenRect(r: { left: number; top: number; right: number; bottom: number }): ScreenRect {
@@ -2196,8 +2201,13 @@ export class Slate {
         rect = null;
       }
       if (rect) {
+        const ends = [line.node, this.getNode?.(line.childId)].filter(Boolean) as Node[];
+        const avoid = ends
+          .map((n) => this.screenRectOfNodes([n]))
+          .filter((r): r is ScreenRect => Boolean(r));
         return {
           kind: "line",
+          avoid,
           ids: [line.associationId],
           rect,
           // The endpoint handles stand a little proud of the line.

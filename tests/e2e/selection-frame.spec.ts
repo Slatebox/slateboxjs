@@ -370,3 +370,28 @@ test("the room above a note is measured from its own handles, never a far-off on
   expect(f.topClearance).toBeGreaterThan(20);
   expect(f.topClearance).toBeLessThan(120);
 });
+
+for (const shape of ["v2", "facade"] as Shape[]) {
+  test(`(${shape}) a line's frame names the boxes of the notes at its ends, so a host bar can stay off them`, async ({ page }) => {
+    await openBoard(page, { shape });
+    const pt = await page.evaluate(() => {
+      const p = document.querySelector('#board path[connectortype="default"]') as SVGGeometryElement;
+      const m = p.getPointAtLength(p.getTotalLength() / 2).matrixTransform(p.getScreenCTM()!);
+      return { x: m.x, y: m.y };
+    });
+    await page.mouse.click(pt.x, pt.y);
+    await expect.poll(async () => (await last(page))?.kind).toBe("line");
+    const f = await last(page);
+    expect(Array.isArray(f.avoid)).toBe(true);
+    expect(f.avoid).toHaveLength(2);
+    for (const [i, id] of ["a", "b"].entries()) {
+      const box = await noteBox(page, id);
+      const r = f.avoid[i];
+      expect(near(r.left, box.left) && near(r.top, box.top) && near(r.right, box.right) && near(r.bottom, box.bottom)).toBe(true);
+    }
+    // Notes need no such list: their own box is the frame.
+    await clickNote(page, "c");
+    await expect.poll(async () => (await last(page))?.kind).toBe("node");
+    expect((await last(page)).avoid ?? []).toEqual([]);
+  });
+}
