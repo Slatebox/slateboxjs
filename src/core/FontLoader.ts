@@ -29,6 +29,22 @@ const systemFonts = new Set([
   "fantasy",
 ]);
 
+/** Whether the page declares an @font-face for this family itself. */
+function hostDeclaresFace(family: string): boolean {
+  const fonts: any = typeof document !== "undefined" ? (document as any).fonts : null;
+  if (!fonts || typeof fonts.forEach !== "function" || typeof fonts.load !== "function") return false;
+  const wanted = family.toLowerCase();
+  let found = false;
+  try {
+    fonts.forEach((face: any) => {
+      if (String(face?.family ?? "").replace(/['"]/g, "").trim().toLowerCase() === wanted) found = true;
+    });
+  } catch {
+    return false;
+  }
+  return found;
+}
+
 /**
  * Load a single Google Font by name.
  * Idempotent — won't reload already-loaded fonts.
@@ -73,6 +89,20 @@ export function loadFont(fontFamily: string): Promise<void> {
       }
     } catch {
       // document.fonts unavailable (older browsers/jsdom) — proceed to load
+    }
+
+    // A face the host declares itself (its own @font-face, served from its own
+    // origin) is loaded from there: no request leaves for Google Fonts, so a
+    // self-hosted install stays offline-clean.
+    if (hostDeclaresFace(primaryFont)) {
+      Promise.resolve(document.fonts.load(`12px "${primaryFont}"`))
+        .catch(() => undefined)
+        .then(() => {
+          loadedFonts.add(lower);
+          pendingLoads.delete(lower);
+          resolve();
+        });
+      return;
     }
 
     // Create link element for Google Fonts

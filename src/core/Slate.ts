@@ -2142,6 +2142,28 @@ export class Slate {
 
   // ─── Selection frame (for a host's own context toolbar) ─────────────
 
+  /**
+   * Delete the selected notes, as the Delete key does: not for a viewer, not a
+   * note the host governs, and a comment only where comments may be removed.
+   */
+  public deleteSelection(): void {
+    const selected = this.getSelectedNodes().slice();
+    if (!selected.length || this.isReadOnly() || this.isCommentOnly()) return;
+    for (const node of selected) {
+      if (this.capabilitiesOf(node).canDelete === false) continue;
+      if (node.options?.isComment && !this.canRemoveComments()) continue;
+      this.removeNode(node.id);
+    }
+    this.clearSelection();
+  }
+
+  /** Duplicate the selected notes, as the right-click menu does, and select the copies. */
+  public duplicateSelection(): void {
+    const selected = this.getSelectedNodes().filter((n) => this.capabilitiesOf(n).canDuplicate !== false);
+    if (!selected.length || this.isReadOnly() || this.isCommentOnly()) return;
+    (this.contextMenu as any)?.duplicate?.(selected);
+  }
+
   /** True when the host draws the context toolbar and the engine draws no pill. */
   public hostDrawsToolbar(): boolean {
     return this.options.contextToolbar === "host";

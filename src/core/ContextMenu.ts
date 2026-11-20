@@ -217,6 +217,12 @@ export class ContextMenu {
     this.slate.clearSelection?.();
   }
 
+  /** Duplicate these notes (offset +20,+20, connections between them kept) and select the copies. */
+  public duplicate(nodes: any[]): void {
+    this.targetNodes = [...nodes];
+    this.duplicateTargets();
+  }
+
   /** Duplicate the target nodes offset (+20,+20); addNode broadcasts → persists. */
   private duplicateTargets(): void {
     if (this.slate.isReadOnly?.() || this.slate.isCommentOnly?.()) return;

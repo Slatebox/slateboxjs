@@ -835,6 +835,18 @@ class slate {
     return this.v2!.getSelectedLine();
   }
 
+  /** Delete the selected notes, as the Delete key does. */
+  public deleteSelection(): void {
+    this.assertReady();
+    this.v2!.deleteSelection();
+  }
+
+  /** Duplicate the selected notes, as the right-click menu does. */
+  public duplicateSelection(): void {
+    this.assertReady();
+    this.v2!.duplicateSelection();
+  }
+
   /** Remove the line selected on the canvas, as the engine's own pill would. */
   public removeSelectedLine(): boolean {
     this.assertReady();

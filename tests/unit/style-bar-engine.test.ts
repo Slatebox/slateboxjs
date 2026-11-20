@@ -67,3 +67,29 @@ describe("Invoker carries the new styles", () => {
     expect(node.relationships.applyLineProperty).toHaveBeenCalledWith("n1->n2", "lineDash", "dashed");
   });
 });
+
+import { loadFont } from "../../src/core/FontLoader";
+
+describe("fonts the host serves itself", () => {
+  it("are loaded from the host's own @font-face, never from Google Fonts", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const appended = vi.spyOn(document.head, "appendChild");
+    const load = vi.fn(async () => []);
+    // jsdom has no FontFaceSet: stand in for one that knows the host's face.
+    (document as any).fonts = {
+      check: () => false,
+      load,
+      forEach: (fn: (face: any) => void) => [{ family: '"Lora"' }, { family: "Caveat" }].forEach(fn),
+    };
+    try {
+      await loadFont("Lora, serif");
+      await loadFont("Caveat");
+      expect(load).toHaveBeenCalledWith('12px "Lora"');
+      expect(load).toHaveBeenCalledWith('12px "Caveat"');
+      expect(appended).not.toHaveBeenCalled();
+    } finally {
+      delete (document as any).fonts;
+      appended.mockRestore();
+    }
+  });
+});

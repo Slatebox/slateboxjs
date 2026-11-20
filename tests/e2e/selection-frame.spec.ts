@@ -322,3 +322,26 @@ test("connecting still works without the pill: drag from the top connect dot to 
     .poll(() => page.evaluate(() => (window as any).board.getNode("c").relationships.getAssociations().map((a: any) => a.childId)))
     .toContain("b");
 });
+
+test("a host bar's Delete and Duplicate act on the selection through the engine's own paths", async ({ page }) => {
+  await openBoard(page, { shape: "facade" });
+  await page.evaluate(() => {
+    const w = window as any;
+    w.sent = [] as string[];
+    const b = w.board;
+    const events = b.options.events;
+    const prior = events.onSlateChanged;
+    events.onSlateChanged = (pkg: any) => { w.sent.push(pkg.type); prior?.(pkg); };
+    b.selectNodes([b.getNode("a"), b.getNode("c")]);
+  });
+  // Duplicate: two copies, offset, selected; the copies keep their connection when both ends were copied.
+  await page.evaluate(() => (window as any).facade.duplicateSelection());
+  await expect.poll(() => page.evaluate(() => (window as any).board.getAllNodes().length)).toBe(5);
+  await expect.poll(() => page.evaluate(() => (window as any).board.getSelectedNodes().map((n: any) => n.id).filter((id: string) => !["a", "b", "c"].includes(id)).length)).toBe(2);
+  expect(await page.evaluate(() => (window as any).sent.filter((t: string) => t === "onNodeAdded").length)).toBeGreaterThanOrEqual(2);
+  // Delete: the selected copies go, the originals stay.
+  await page.evaluate(() => (window as any).facade.deleteSelection());
+  await expect.poll(() => page.evaluate(() => (window as any).board.getAllNodes().map((n: any) => n.id).sort())).toEqual(["a", "b", "c"]);
+  expect(await page.evaluate(() => (window as any).sent.filter((t: string) => t === "onNodeDeleted").length)).toBe(2);
+  await expect.poll(async () => (await last(page))?.kind).toBe("none");
+});
