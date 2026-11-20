@@ -4,7 +4,7 @@ import { sendMapEdit } from './map-conversation.shared'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
 import { nightTransfer } from '../../src/workshops/model'
-import { closeConversation, conversation, dragCard, dragCardNamed, isOffered, lane, selectLaneNamed, slateTitle, standing, workshopReady } from './app-native-workshop.shared'
+import { cardIdNamed, closeConversation, conversation, dragCard, dragCardNamed, holdCardOver, isOffered, lane, laneIdNamed, selectLaneNamed, slateTitle, standing, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const privateHost = ['localhost','127.0.0.1','test.slatebox.com'].includes(origin.hostname)
@@ -67,6 +67,33 @@ test('author a branching concept map, follow a consequence, present and reopen t
     await resumeArchivedDraft(page,origin,'map')
     expect(page.url()).toBe(address)
     expect(await saved()).toEqual(state)
+  } finally { await removeTestGuest(page,actor) }
+})
+
+test('a token held over a fuller station drops there: no station slides out from under the pointer', async ({ page }) => {
+  test.skip(process.env.SLATEBOX_APP_EXTERNAL !== 'true' || !privateHost,'This journey resumes a real private archive.')
+  let actor:string|null = null
+  try {
+    await resumeArchivedDraft(page,origin,'map')
+    actor = await userId(page)
+    await dismissWelcome(page)
+    const key = new URL(page.url()).pathname.split('/').pop()!
+    await workshopReady(page)
+    await selectLaneNamed(page,'Market St lift')
+    await sendMapEdit(page,'After Market St lift, add Depot. On arrival, Dispatch records the arrival.')
+    await sendMapEdit(page,'Add token Dispatcher at Depot')
+    // The board refuses drags while the kept proposal is still saving; a refused drag moves nothing, so try again.
+    await expect(async()=>{
+      await dragCardNamed(page,'Last rider','Market St lift')
+      await expect(standing(page)).toContainText('Last rider · Market St lift',{timeout:2000})
+    }).toPass({timeout:20000})
+    const rider = await cardIdNamed(page,'Last rider'), depot = await laneIdNamed(page,'Depot')
+    // A person carries the token over Depot and pauses before letting go.
+    await holdCardOver(page,rider,depot)
+    await page.waitForTimeout(1000)
+    await page.mouse.up()
+    await expect.poll(async()=> (await getSlate(page,key)).creative.model.workshop.cards.find((x:{id:string})=>x.id===rider).laneId).toBe(depot)
+    await expect(standing(page)).toContainText('Last rider · Depot')
   } finally { await removeTestGuest(page,actor) }
 })
 
