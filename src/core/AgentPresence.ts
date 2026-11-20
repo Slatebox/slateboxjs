@@ -127,6 +127,8 @@ interface Drawn {
   body: any
   record: AgentPresenceRecord
   targetsKey: string
+  /** Whether its targets were found when it was routed: a save's notes can arrive after its record. */
+  found: boolean
   x: number
   y: number
   path: { x: number; y: number; ms: number }[]
@@ -271,6 +273,8 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     return points.slice(0, AGENT_MAX_VISITS).map(point => ({ ...point, ms: AGENT_VISIT_MS }))
   }
 
+  const targetsFound = (record: AgentPresenceRecord) => record.targets.some(id => centreOf(id) !== null)
+
   const ease = (t: number) => 1 - Math.pow(1 - t, 3)
 
   // Moves each pointer along its legs; true while any is still travelling.
@@ -311,11 +315,12 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
         const start = routeTo(record, index)
         const first = start[0]
         item = { key: record.agentKey, group: group.group().attr({ 'data-agent': record.agentKey }), body: null, record, targetsKey,
-          x: first.x, y: first.y, path: start.slice(1), leg: null, open: opened.has(record.agentKey), opacity, compact, lines: [], step: null }
+          found: targetsFound(record), x: first.x, y: first.y, path: start.slice(1), leg: null, open: opened.has(record.agentKey), opacity, compact, lines: [], step: null }
         drawn.set(record.agentKey, item)
-      } else if (item.targetsKey !== targetsKey) {
+      } else if (item.targetsKey !== targetsKey || (!item.found && targetsFound(record))) {
         item.path = routeTo(record, index)
         item.leg = null
+        item.found = targetsFound(record)
       }
       item.targetsKey = targetsKey
       item.record = record

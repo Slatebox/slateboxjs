@@ -85,6 +85,17 @@ describe('agent presence on a canvas', () => {
     presence.destroy()
   })
 
+  it('goes to a save\'s notes once they are drawn, when the record arrived first', () => {
+    const slate = fakeSlate({ a: { x: 0, y: 0, width: 100, height: 100 } })
+    const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
+    presence.set([record({ targets: ['late'] })])
+    expect(presence.shown()[0]).toMatchObject({ x: -40, y: -40 })
+    ;(slate.nodes.allNodes as any[]).push({ options: { id: 'late', x: 300, y: 300, width: 100, height: 50 } })
+    presence.set([record({ targets: ['late'] })])
+    expect(presence.shown()[0]).toMatchObject({ x: 350, y: 325 })
+    presence.destroy()
+  })
+
   it('shows only the current step when two agents are on screen, and the list when a tag is tapped', () => {
     const slate = fakeSlate({ a: { x: 0, y: 0, width: 100, height: 100 } })
     const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
