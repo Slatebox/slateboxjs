@@ -23,7 +23,7 @@ test('a free creator previews a route, keeps a decision, follows up and undoes f
     const chat = conversation(page)
     const box = chat.getByRole('textbox', {name: 'Message Slatebox'})
     const propose = async (message: string) => { await box.fill(message); await box.press('Enter') }
-    await expect(chat.getByRole('heading',{name:'Slatebox',exact:true})).toBeVisible()
+    await expect(chat.getByRole('heading',{name:'Ask Slatebox',exact:true})).toBeVisible()
     await expect(box).toBeInViewport()
     await expect(chat).toBeVisible()
     await expect(page.getByText('Open stop', {exact:true})).toHaveCount(0)

@@ -96,7 +96,9 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     expect(bounds).not.toBeNull()
     expect(bounds!.x).toBeGreaterThanOrEqual(0)
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390)
+    // On a phone, Present opens a sheet of the ways to present; this screen is the first.
     await present.tap()
+    await editor.getByRole('menu', { name: 'Present' }).getByRole('menuitem', { name: 'Present on this screen', exact: true }).tap()
     const presentation = editor.getByRole('region', { name: 'Decision presentation' })
     await expect(presentation.getByRole('heading', { name: 'Lens bench' })).toBeVisible()
     await presentation.getByRole('button', { name: 'Next station' }).tap()

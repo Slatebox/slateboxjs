@@ -85,6 +85,75 @@ test('a guest sees Save your work, the menu, their account menu and no "..." men
   } finally { await removeTestGuest(page, id); await page.close() }
 })
 
+// The account menu from the keyboard alone: Enter opens it on its first item, the arrows move
+// through the items, and Enter on Dark mode switches it. The same on a phone's sheet.
+async function accountByKeyboard(page: Page, first: string, next: string) {
+  const avatar = header(page).getByRole('button', { name: /^Account, / })
+  await avatar.focus()
+  await page.keyboard.press('Enter')
+  const account = page.getByRole('menu', { name: 'Account' })
+  await expect(account.getByRole('menuitem', { name: first, exact: true })).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await expect(account.getByRole('menuitem', { name: next, exact: true })).toBeFocused()
+  const dark = account.getByRole('menuitemcheckbox', { name: 'Dark mode', exact: true })
+  for (let i = 0; i < 6 && !(await dark.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press('ArrowDown')
+  await expect(dark).toBeFocused()
+  const before = await dark.getAttribute('aria-checked')
+  await page.keyboard.press('Enter')
+  await expect(dark).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true')
+  await page.keyboard.press('Enter')
+  await expect(dark).toHaveAttribute('aria-checked', before!)
+  await page.keyboard.press('Escape')
+  await expect(account).toBeHidden()
+  await expect(avatar).toBeFocused()
+}
+
+test('the account menu works from the keyboard for a guest, on a wide screen and on a phone', async ({ browser }) => {
+  const { page, id } = await guestAt(browser, 1440)
+  try {
+    await accountByKeyboard(page, 'Save your work: create an account', 'Sign in')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await accountByKeyboard(page, 'Save your work: create an account', 'Sign in')
+  } finally { await removeTestGuest(page, id); await page.close() }
+})
+
+test('a guest who chooses Sign in is told first that their guest slates stay behind', async ({ browser }) => {
+  const { page, id } = await guestAt(browser, 1440)
+  try {
+    const slateUrl = page.url()
+    await header(page).getByRole('button', { name: 'Account, Guest', exact: true }).click()
+    const account = page.getByRole('menu', { name: 'Account' })
+    // Nothing promises the slates are kept somewhere they are not.
+    await expect(account).not.toContainText(/in this browser/i)
+    await account.getByRole('menuitem', { name: 'Sign in', exact: true }).click()
+    const warn = page.getByRole('dialog', { name: 'Sign in to another account?' })
+    await expect(warn).toBeVisible()
+    await expect(warn).toContainText(/stay with this guest/i)
+    // Keep them: Save your work opens the registration that keeps this guest's slates.
+    await expect(warn.getByRole('button', { name: 'Save your work first', exact: true })).toBeFocused()
+    await warn.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect(warn).toBeHidden()
+    expect(page.url()).toBe(slateUrl)
+    await header(page).getByRole('button', { name: 'Account, Guest', exact: true }).click()
+    await page.getByRole('menu', { name: 'Account' }).getByRole('menuitem', { name: 'Sign in', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Sign in to another account?' }).getByRole('button', { name: 'Save your work first', exact: true }).click()
+    await expect(page.getByRole('dialog').filter({ hasText: /create an account|sign up|register/i }).first()).toBeVisible()
+    await page.keyboard.press('Escape')
+    // Or go on knowingly.
+    await page.goto(slateUrl)
+    await header(page).waitFor()
+    await header(page).getByRole('button', { name: 'Account, Guest', exact: true }).click()
+    await page.getByRole('menu', { name: 'Account' }).getByRole('menuitem', { name: 'Sign in', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Sign in to another account?' }).getByRole('button', { name: 'Sign in anyway', exact: true }).click()
+    await expect(page).toHaveURL(/\/login$/)
+    // The ≡ card says the same plain thing.
+    await page.goto(slateUrl)
+    await header(page).waitFor()
+    await header(page).getByRole('button', { name: 'Open menu', exact: true }).click()
+    await expect(page.getByRole('navigation', { name: 'Slatebox' })).not.toContainText(/in this browser/i)
+  } finally { await removeTestGuest(page, id); await page.close() }
+})
+
 test('the slate menu on the title renames in place, opens settings, copies and deletes', async ({ browser }) => {
   const { page, id } = await guestAt(browser, 1440)
   try {
@@ -200,6 +269,27 @@ test('Present holds presenting to everyone; someone else\'s presentation puts Fo
   } finally { await reader.close(); await removeTestGuest(owner, id); await owner.close() }
 })
 
+test('a signed-in reader on a read-only link can copy the link but not take a copy of the slate', async ({ browser }) => {
+  const { page: owner, id } = await guestAt(browser, 1440)
+  const reader = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+  try {
+    const invite = await shareAs(owner, 'read')
+    await reader.goto(origin + '/login')
+    await reader.waitForFunction(() => (window as any).Accounts && (window as any).Meteor.status().connected)
+    await reader.evaluate(async credentials => {
+      await new Promise<void>((resolve, reject) => (window as any).Accounts.createUser(credentials, (error: Error) => error ? reject(error) : resolve()))
+    }, { email: 'header-reader-' + randomBytes(10).toString('hex') + '@slatebox.invalid', password: randomBytes(20).toString('hex') })
+    await reader.goto(invite.href)
+    await reader.locator('#slateCanvas [data-node-id]').first().waitFor()
+    await dismissWelcome(reader)
+    await slateMenuButton(reader).click()
+    const menu = reader.getByRole('menu', { name: 'Slate' })
+    await expect(menu.getByRole('menuitem', { name: 'Copy link', exact: true })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Make a copy', exact: true })).toHaveCount(0)
+    await reader.keyboard.press('Escape')
+  } finally { await reader.close(); await removeTestGuest(owner, id); await owner.close() }
+})
+
 test('desktop widths keep one row with no overflow; the logo leaves below 1180', async ({ browser }) => {
   const { page, id } = await guestAt(browser, 1440)
   try {
@@ -265,14 +355,29 @@ test('a signed-in person has the bell and an account menu with Profile, Dark mod
   await page.goto(origin + '/new')
   await page.waitForURL(/\/canvas\//)
   await page.locator('#slateCanvas [data-node-id]').first().waitFor()
+  // A notification about this slate, read from another slate.
+  const first = await getSlate(page, key(page))
+  await page.goto(origin + '/new')
+  await page.waitForURL(u => !u.pathname.endsWith(first.shareId) && /\/canvas\//.test(u.pathname))
+  await page.locator('#slateCanvas [data-node-id]').first().waitFor()
+  await page.evaluate(async ({ slateId, userId }) => {
+    // The app's own Messages collection, which lets a signed-in person write a system message to themselves.
+    const messages = (window as any).Meteor.connection._stores.messages._getCollection()
+    await messages.insertAsync({ userId, type: 'system', read: false, text: 'Your first slate has news', timestamp: Date.now(),
+      action: { type: 'slate' }, slateId })
+  }, { slateId: first._id, userId: first.userId })
   const bell = header(page).getByRole('button', { name: /^Notifications/ })
-  await expect(bell).toBeVisible()
+  await expect(bell).toHaveAccessibleName('Notifications, 1 unread')
   await expect(header(page).getByRole('button', { name: 'Save your work', exact: true })).toHaveCount(0)
   await bell.click()
   const notes = page.getByRole('dialog', { name: 'Notifications' })
   await expect(notes).toBeVisible()
   expect((await notes.boundingBox())!.width).toBeLessThanOrEqual(380)
-  await page.keyboard.press('Escape')
+  // Following it opens that slate, closes the list and counts it as read.
+  await notes.getByRole('link', { name: 'Your first slate has news', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp('/canvas/' + first.shareId + '$'))
+  await expect(notes).toBeHidden()
+  await expect(bell).toHaveAccessibleName('Notifications')
 
   await header(page).getByRole('button', { name: /^Account, / }).click()
   const account = page.getByRole('menu', { name: 'Account' })

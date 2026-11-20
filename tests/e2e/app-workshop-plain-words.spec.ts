@@ -33,7 +33,7 @@ test('the budget is changed by saying so: starters fill the message, a preview i
     id = owner.id
     const chat = conversation(page)
     // The same panel as on any slate.
-    await expect(chat.getByRole('heading', { name: 'Slatebox', exact: true })).toBeVisible()
+    await expect(chat.getByRole('heading', { name: 'Ask Slatebox', exact: true })).toBeVisible()
     await expect(chat.getByText('What should happen on this slate?', { exact: true })).toBeVisible()
     await expect(messageBox(page)).toBeVisible()
     await expect(chat.getByRole('textbox')).toHaveCount(1)
