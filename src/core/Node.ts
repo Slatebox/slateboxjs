@@ -169,6 +169,8 @@ export interface NodeOptions {
   fontFamily?: string;
   fontColor?: string; // v1 compat: foregroundColor mapped via compat layer
   fontStyle?: string;
+  /** "normal" (the default) or "bold". */
+  fontWeight?: string;
   textOpacity?: number;
   textXAlign?: "left" | "center" | "right";
   textYAlign?: "top" | "middle" | "bottom";
@@ -280,6 +282,11 @@ export interface NodeOptions {
 
   // Custom render hook
   customRender?: (group: G, options: NodeOptions) => void;
+}
+
+/** The SVG font-weight for a note's `fontWeight` option (null leaves the default). */
+function textWeight(weight: string | undefined): string | null {
+  return weight === "bold" ? "bold" : null;
 }
 
 export class Node {
@@ -1001,6 +1008,7 @@ export class Node {
       'text-anchor': 'middle',
       'dominant-baseline': 'central',
       'font-style': fontStyle || null,
+      'font-weight': textWeight(this.options.fontWeight),
     });
 
     console.log(
@@ -1041,6 +1049,7 @@ export class Node {
       opacity: textOpacity!,
     });
     this.textElement.attr("font-style", fontStyle || null);
+    this.textElement.attr("font-weight", textWeight(this.options.fontWeight));
     // Re-wrap with the new font metrics — a larger font fits fewer words per line,
     // so without this the text would overflow the node after a size change.
     if (this.options.text) {
@@ -1110,7 +1119,7 @@ export class Node {
         (this as any)._measureCanvas ||
         ((this as any)._measureCanvas = document.createElement("canvas"));
       ctx = canvas.getContext("2d");
-      if (ctx) ctx.font = `${fontSize}px ${fontFamily}`;
+      if (ctx) ctx.font = `${this.options.fontWeight === "bold" ? "bold " : ""}${fontSize}px ${fontFamily}`;
     } catch (e) {
       ctx = null;
     }
@@ -1640,6 +1649,7 @@ export class Node {
       const selectedAtRelease = this.slate.getSelectedNodes().slice();
       // Small delay to distinguish drag from click - reduced for better responsiveness
       this._dragEndTimeoutId = setTimeout(() => {
+        (this.slate as any)?.frameGestureEnd?.("drag");
         if (this._destroyed) return;
         // A host may remove its governed note the moment a drop is decided (a new
         // model arrives, the workshop is detached). A removed note is not selected.
@@ -2325,6 +2335,7 @@ export class Node {
    * @param height - New height
    */
   public setSize(width: number, height: number) {
+    this.queueGeometryNotice();
     if (this.options.shape === "circle") {
       const diameter = Math.min(width, height);
       width = diameter;
@@ -2663,7 +2674,17 @@ export class Node {
    * alone does) would drop the translate and fling the node far off-screen on
    * reload. Single source of truth for the group transform.
    */
+  /** Tell the slate this note's place or size changed (for a host bar over the selection). */
+  private queueGeometryNotice(): void {
+    try {
+      (this.slate as any)?.nodeGeometryChanged?.(this);
+    } catch (e) {
+      /* the frame is advisory */
+    }
+  }
+
   private applyPositionAndRotation(normalizeChildren = true) {
+    this.queueGeometryNotice();
     if (!this.svgGroup) return;
     const x = this.options.x || 0;
     const y = this.options.y || 0;
@@ -3272,6 +3293,8 @@ export class Node {
     if (this.options.allowMenu === false) return;
     this.hideNodeCog();
     const slate: any = this.slate;
+    // A host that draws its own context toolbar gets no pill from the engine.
+    if (slate.hostDrawsToolbar?.()) return;
     const container: any = slate.markersContainer || slate.canvas;
     if (!container || !this.svgGroup) return;
     let cx: number, topY: number;
@@ -4025,6 +4048,8 @@ export class Node {
   private hideHandlesForDrag(): void {
     if (this._handlesHiddenForDrag) return;
     this._handlesHiddenForDrag = true;
+    // The note really moves: a host's bar over the selection steps aside until it stops.
+    (this.slate as any).frameGestureStart?.("drag");
     // Temporarily disable resize/rotate during drag for clean dragging. The
     // selection system restores it through updateSelectionResizeRotate.
     this.slate.disableNodeResizeRotate(this);

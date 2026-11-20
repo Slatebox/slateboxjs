@@ -39,11 +39,27 @@ export interface Connection {
   lineWidth?: number;
   lineOpacity?: number;
   lineEffect?: string;
+  /** "solid" (the default), "dashed" or "dotted". */
+  lineDash?: LineDash;
   label?: string; // Optional text label centered on the edge (Miro-style).
   // Edge-pin mode: normalized local anchor {x,y} in 0..1 on source/target.
   // Omitted/undefined = auto-flow (endpoint re-solves to the nearest edge).
   sourceAnchor?: { x: number; y: number } | null;
   targetAnchor?: { x: number; y: number } | null;
+}
+
+export type LineDash = "solid" | "dashed" | "dotted";
+
+/**
+ * The SVG stroke-dasharray for a line's dash style, scaled by its width, or null
+ * for a solid line (and for any value the engine does not know).
+ */
+export function lineDashArray(dash: string | undefined | null, width: number): string | null {
+  const w = Math.max(1, Number(width) || 1);
+  if (dash === "dashed") return `${w * 4} ${w * 3}`;
+  // A near-zero dash with a round cap draws a dot.
+  if (dash === "dotted") return `0.1 ${w * 2.5}`;
+  return null;
 }
 
 export class Connector {
@@ -547,6 +563,12 @@ export class Connector {
   private applyLineAppearance(connectable: any, connection: Connection): void {
     const line = connectable?.connector;
     if (!line?.attr) return;
+    // Dash pattern, scaled by the line's width so a thick dashed line still reads as dashes.
+    line.attr(
+      "stroke-dasharray",
+      lineDashArray(connection.lineDash, connection.lineWidth || this.options.strokeWidth || 3)
+    );
+    line.attr("stroke-linecap", connection.lineDash === "dotted" ? "round" : null);
     if (connection.lineOpacity != null) {
       line.attr("stroke-opacity", connection.lineOpacity);
     }
@@ -604,6 +626,9 @@ export class Connector {
       lineCurveType: (connection as any).lineCurveType,
       showParentArrow: (connection as any).showParentArrow,
       showChildArrow: (connection as any).showChildArrow,
+      lineDash: connection.lineDash,
+      lineOpacity: connection.lineOpacity,
+      lineEffect: connection.lineEffect,
     };
     // The connection's ORIGINAL child id (stable in the id `parent->child`),
     // used for the same-node re-pin check + child lookup. STRIP any parallel-edge
@@ -838,6 +863,17 @@ export class Connector {
     const container: any = slate.markersContainer || slate.canvas;
     if (!container) return;
 
+    // A host that draws its own context toolbar gets no pill: the line is selected
+    // (its endpoint handles pinned, and its start/end lock toggles on the canvas,
+    // which a host bar does not repeat) and the host hears of it through
+    // onSelectionFrame.
+    if (slate.hostDrawsToolbar?.()) {
+      this.selectLineConnectable(con);
+      this.showEndpointLockToggles(connection, con, targetId);
+      slate.setSelectedLine?.(this.node, connection.id, targetId, con);
+      return;
+    }
+
     // Line context toolbar (G2/Q2) — modern Miro-style pill at the line midpoint:
     // delete + cog. (The old "plug" did nothing and was dropped; the cog opens
     // the line pane AND shows per-endpoint lock/relative toggles — Q3.)
@@ -900,9 +936,17 @@ export class Connector {
     });
     bar.attr("pointer-events", "all");
     slate._activeLineCog = bar;
-    // Also select the connector so its endpoint handles show — this is what
-    // makes the endpoints draggable (L1 snap-anywhere). Tracked on the slate so
-    // clearLineCog() (canvas click / node select) deselects it — no stuck state.
+    this.selectLineConnectable(con);
+    slate.setSelectedLine?.(this.node, connection.id, targetId, con);
+  }
+
+  /**
+   * Select the connector so its endpoint handles show — this is what makes the
+   * endpoints draggable (L1 snap-anywhere). Tracked on the slate so
+   * clearLineCog() (canvas click / node select) deselects it — no stuck state.
+   */
+  private selectLineConnectable(con: any): void {
+    const slate: any = this.slate;
     try {
       con.selectConnector?.();
       slate._activeLineConnectable = con;

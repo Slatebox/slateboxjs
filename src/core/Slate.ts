@@ -71,12 +71,60 @@ export interface SlateEvents {
   onRequestSave?: (opts?: Record<string, any>) => void;
   onCreateImage?: (opts: Record<string, any>, cb: Function) => void;
   onMenuRequested?: (node: Node, cb: Function) => void;
+  /**
+   * What is selected and where it is on screen, for a host that draws its own
+   * context toolbar (see `SlateOptions.contextToolbar`). Fired when the selection
+   * changes, once with `moving: true` when a drag, resize, rotate, pan or zoom of
+   * the selection starts, and with `moving: false` and the new place when it ends.
+   */
+  onSelectionFrame?: (frame: SelectionFrame) => void;
   isReadOnly?: () => boolean;
   isCommentOnly?: () => boolean;
   canRemoveComments?: () => boolean;
 }
 
+/** A box on screen, in client (viewport) pixels. */
+export interface ScreenRect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+}
+
+/** See `SlateEvents.onSelectionFrame`. */
+export interface SelectionFrame {
+  /** What is selected: one note, several notes, one line, or nothing. */
+  kind: "node" | "nodes" | "line" | "lines" | "mixed" | "none";
+  /** Note ids, or the line's association id. */
+  ids: string[];
+  /** The selection's box on screen (rotation included); null when nothing is selected. */
+  rect: ScreenRect | null;
+  /**
+   * Screen pixels above `rect.top` taken by the engine's own handles (the rotate
+   * handle and the top connect dot). A host bar whose bottom edge sits at
+   * `rect.top - topClearance` or higher covers neither.
+   */
+  topClearance: number;
+  /** True from the start of a drag, resize, rotate, pan or zoom until it ends. */
+  moving: boolean;
+  /** For a line: the note that owns it, its association and the other note. */
+  line?: { nodeId: string; associationId: string; childId: string };
+}
+
+function toScreenRect(r: { left: number; top: number; right: number; bottom: number }): ScreenRect {
+  return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.right - r.left, height: r.bottom - r.top };
+}
+
 export interface SlateOptions {
+  /**
+   * Who draws the selection's context toolbar. "engine" (the default) draws the
+   * small pill (delete, connect, settings) above a selected note or line. "host"
+   * draws nothing: the host draws its own bar from `events.onSelectionFrame`.
+   */
+  contextToolbar?: "engine" | "host";
+
   // Identity
   id?: string;
   name?: string;
@@ -253,6 +301,16 @@ export class Slate {
   private _dragPolicies: DragPolicy[] = [];
   private _selectionListeners: Array<(selected: Node[]) => void> = [];
   private _selectionNoticeQueued = false;
+  /** The line selected on the canvas (a click on it), if any. */
+  private _selectedLine: { node: Node; associationId: string; childId: string; connectable: any } | null = null;
+  /** Gestures of the selection under way (drag, resize, rotate, pan); see onSelectionFrame. */
+  private _frameGestures = new Set<string>();
+  private _frameMovingSent = false;
+  private _frameQueued = false;
+  private _frameLastKey = "";
+  private _frameViewTimer: ReturnType<typeof setTimeout> | null = null;
+  private _frameSettleTimer: ReturnType<typeof setTimeout> | null = null;
+  private _frameRecheck: number | null = null;
   /** >0 while a host is changing its own governed notes (see withPolicyAuthority). */
   private _policyAuthority = 0;
   /** The governed note being dragged right now, if any. */
@@ -441,6 +499,9 @@ export class Slate {
       this.setupCoordinateCallbacks();
     }
 
+    // A pan or zoom moves the selection on screen (see onSelectionFrame).
+    this.setupFrameCallbacks();
+
     // Initialize pan/zoom functionality
     this.panZoom = new PanZoom(this, this.options.panZoom);
 
@@ -518,6 +579,10 @@ export class Slate {
     this._destroyed = true;
     this._dragPolicies = [];
     this._governedDragNode = null;
+    if (this._frameViewTimer) clearTimeout(this._frameViewTimer);
+    if (this._frameSettleTimer) clearTimeout(this._frameSettleTimer);
+    if (this._frameRecheck !== null && typeof cancelAnimationFrame !== "undefined") cancelAnimationFrame(this._frameRecheck);
+    this._selectedLine = null;
 
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
@@ -914,6 +979,22 @@ export class Slate {
     return Promise.race([built, patience]);
   }
 
+  /** Tell a host's bar over the selection when the view pans or zooms. */
+  private setupFrameCallbacks() {
+    if (!this.options.panZoom) this.options.panZoom = {};
+    const pz = this.options.panZoom;
+    const onPan = pz.onPan;
+    const onZoom = pz.onZoom;
+    pz.onPan = (pan: any) => {
+      this.frameViewChanged();
+      onPan?.(pan);
+    };
+    pz.onZoom = (zoom: any) => {
+      this.frameViewChanged();
+      onZoom?.(zoom);
+    };
+  }
+
   private setupCoordinateCallbacks() {
     // Store original callbacks
     const originalOnPan = this.options.panZoom?.onPan;
@@ -1210,6 +1291,7 @@ export class Slate {
    */
   public pan(point: { x: number; y: number }) {
     this.panZoom.pan(point);
+    this.frameViewChanged();
   }
 
   /**
@@ -1218,6 +1300,7 @@ export class Slate {
    */
   public panBy(delta: { x: number; y: number }) {
     this.panZoom.panBy(delta);
+    this.frameViewChanged();
   }
 
   /**
@@ -1226,6 +1309,7 @@ export class Slate {
    */
   public zoom(level: number) {
     this.panZoom.zoom(level);
+    this.frameViewChanged();
     this.announce(`Zoom: ${Math.round(level * 100)}%`);
     this.broadcast("onZoom", { zoomLevel: level });
   }
@@ -1236,6 +1320,7 @@ export class Slate {
    */
   public zoomBy(factor: number) {
     this.panZoom.zoomBy(factor);
+    this.frameViewChanged();
   }
 
   /** Zoom in one step. */
@@ -1341,6 +1426,7 @@ export class Slate {
       this.options.viewPort = this.options.viewPort || {};
       this.options.viewPort.originalWidth = pw;
       this.options.viewPort.originalHeight = ph;
+      this.frameViewChanged();
     });
     this._resizeObserver.observe(this.element);
   }
@@ -1532,7 +1618,7 @@ export class Slate {
    * 1. Clears current selection unless addToSelection is true
    * 2. Adds the specified nodes to the selection set
    * 3. Calls updateSelectionResizeRotate() to enable handles on selected nodes
-   * 4. Fires onSelectionChanged event
+   * 4. Tells onSelectionChange listeners and the host's events.onSelectionFrame
    *
    * @param nodes - Array of nodes to select
    * @param addToSelection - If true, adds to existing selection instead of replacing it
@@ -1859,6 +1945,7 @@ export class Slate {
 
     const onMove = (e: PointerEvent) => {
       if (!dragging) return;
+      this.frameGestureStart("group-rotate");
       const cur = Math.atan2(e.clientY - pivot.y, e.clientX - pivot.x);
       let deltaDeg = ((cur - startAngle) * 180) / Math.PI;
       if (e.shiftKey) deltaDeg = Math.round(deltaDeg / 15) * 15; // 15° snap
@@ -1890,6 +1977,7 @@ export class Slate {
       });
       // Redraw the outline to wrap the freshly-rotated group.
       this.updateSelectionResizeRotate();
+      this.frameGestureEnd("group-rotate");
     };
 
     knob.on("pointerdown", (e: any) => {
@@ -2035,6 +2123,7 @@ export class Slate {
 
   /** The selection changed; tell the listeners once the change has settled. */
   private selectionChanged(): void {
+    this.scheduleSelectionFrame();
     if (this._selectionNoticeQueued || this._selectionListeners.length === 0) return;
     this._selectionNoticeQueued = true;
     queueMicrotask(() => {
@@ -2049,6 +2138,247 @@ export class Slate {
         }
       }
     });
+  }
+
+  // ─── Selection frame (for a host's own context toolbar) ─────────────
+
+  /** True when the host draws the context toolbar and the engine draws no pill. */
+  public hostDrawsToolbar(): boolean {
+    return this.options.contextToolbar === "host";
+  }
+
+  /**
+   * What is selected and where it is on screen now (see `onSelectionFrame`).
+   * `moving` is true while a drag, resize, rotate, pan or zoom is under way.
+   */
+  public getSelectionFrame(): SelectionFrame {
+    const moving = this._frameGestures.size > 0 || this._frameViewTimer !== null;
+    const nodes = this.selectedNodes.filter((n) => !(n as any).isRemoved);
+    if (nodes.length) {
+      const rect = this.screenRectOfNodes(nodes);
+      return {
+        kind: nodes.length === 1 ? "node" : "nodes",
+        ids: nodes.map((n) => n.id),
+        rect,
+        topClearance: rect ? this.measureTopClearance(nodes, rect) : 0,
+        moving,
+      };
+    }
+    const line = this._selectedLine;
+    if (line) {
+      let rect: ScreenRect | null = null;
+      try {
+        const el = line.connectable?.connector?.node as Element | undefined;
+        if (el?.isConnected) rect = toScreenRect(el.getBoundingClientRect());
+      } catch (e) {
+        rect = null;
+      }
+      if (rect) {
+        return {
+          kind: "line",
+          ids: [line.associationId],
+          rect,
+          // The endpoint handles stand a little proud of the line.
+          topClearance: 10,
+          moving,
+          line: { nodeId: line.node.id, associationId: line.associationId, childId: line.childId },
+        };
+      }
+    }
+    return { kind: "none", ids: [], rect: null, topClearance: 0, moving: false };
+  }
+
+  /** The line selected on the canvas, with its association, or null. */
+  public getSelectedLine(): { node: Node; association: any } | null {
+    const line = this._selectedLine;
+    if (!line) return null;
+    const rels: any = (line.node as any).relationships;
+    const association =
+      rels?.associations?.find((a: any) => a.id === line.associationId) ??
+      rels?.getAssociation?.(line.childId) ??
+      null;
+    if (!association || (line.node as any).isRemoved) return null;
+    return { node: line.node, association };
+  }
+
+  /**
+   * Remove the selected line, the same way the engine's own pill does (the change
+   * is broadcast, saved and undoable like any removed connection). False when no
+   * line is selected or the line may not be removed.
+   */
+  public removeSelectedLine(): boolean {
+    const line = this._selectedLine;
+    if (!line || this.isReadOnly()) return false;
+    const rels: any = (line.node as any).relationships;
+    const removed = rels?.removeAssociation?.(line.associationId);
+    this.clearLineCog();
+    return removed !== false;
+  }
+
+  /** Called by the connector when a line is selected on the canvas. */
+  public setSelectedLine(node: Node, associationId: string, childId: string, connectable: any): void {
+    this._selectedLine = { node, associationId, childId, connectable };
+    this.scheduleSelectionFrame();
+  }
+
+  /** A gesture of the selection started (drag, resize, rotate, pan). See onSelectionFrame. */
+  public frameGestureStart(key: string): void {
+    if (this._frameGestures.has(key)) return;
+    this._frameGestures.add(key);
+    if (this._frameSettleTimer) {
+      clearTimeout(this._frameSettleTimer);
+      this._frameSettleTimer = null;
+    }
+    this.sendMovingFrame();
+  }
+
+  /** That gesture ended: once nothing else is moving, the frame is sent again, still. */
+  public frameGestureEnd(key: string): void {
+    if (!this._frameGestures.delete(key)) return;
+    this.settleFrameSoon();
+  }
+
+  /**
+   * The view changed (a pan or zoom step, or the canvas was resized). Each step
+   * restarts a short wait; the frame is still again once the steps stop.
+   */
+  public frameViewChanged(): void {
+    if (this._destroyed) return;
+    if (this._frameViewTimer) clearTimeout(this._frameViewTimer);
+    this._frameViewTimer = setTimeout(() => {
+      this._frameViewTimer = null;
+      this.settleFrameSoon();
+    }, 180);
+    this.sendMovingFrame();
+  }
+
+  /** A note's place or size changed outside a gesture: the frame may have moved. */
+  public nodeGeometryChanged(node: Node): void {
+    if (this._frameGestures.size || this._frameViewTimer) return;
+    const line = this._selectedLine;
+    if (
+      this.selectedNodes.includes(node) ||
+      (line && (line.node === node || line.childId === node.id))
+    ) {
+      this.scheduleSelectionFrame();
+    }
+  }
+
+  private sendMovingFrame(): void {
+    if (this._frameMovingSent || this._destroyed) return;
+    const frame = this.getSelectionFrame();
+    if (frame.kind === "none") return;
+    this._frameMovingSent = true;
+    this.emitSelectionFrame({ ...frame, moving: true });
+  }
+
+  private settleFrameSoon(): void {
+    if (this._frameSettleTimer) clearTimeout(this._frameSettleTimer);
+    // Let the engine finish its own end-of-gesture work (snapping, the note
+    // re-selected after a drag, handles put back) before the place is read.
+    this._frameSettleTimer = setTimeout(() => {
+      this._frameSettleTimer = null;
+      if (this._destroyed || this._frameGestures.size || this._frameViewTimer) return;
+      // After a move the still frame is always sent, even where the selection
+      // came back to the same place, so the host shows its bar again.
+      if (this._frameMovingSent) this._frameLastKey = "";
+      this._frameMovingSent = false;
+      this.emitSelectionFrame(this.getSelectionFrame());
+    }, 60);
+  }
+
+  /** Send the frame once the current change has settled (coalesced, and only when it changed). */
+  private scheduleSelectionFrame(): void {
+    if (this._frameQueued || this._destroyed) return;
+    this._frameQueued = true;
+    queueMicrotask(() => {
+      this._frameQueued = false;
+      if (this._destroyed) return;
+      // While something moves, the frame is sent once it stops.
+      if (this._frameGestures.size || this._frameViewTimer || this._frameSettleTimer) return;
+      this.emitSelectionFrame(this.getSelectionFrame());
+      // Handles drawn a frame later can change the clearance; check once more then.
+      if (typeof requestAnimationFrame !== "undefined" && this._frameRecheck === null) {
+        this._frameRecheck = requestAnimationFrame(() => {
+          this._frameRecheck = null;
+          if (this._destroyed || this._frameGestures.size || this._frameViewTimer) return;
+          this.emitSelectionFrame(this.getSelectionFrame());
+        });
+      }
+    });
+  }
+
+  private emitSelectionFrame(frame: SelectionFrame): void {
+    const r = frame.rect;
+    const key = [
+      frame.kind,
+      frame.ids.join(","),
+      frame.moving,
+      r ? [r.left, r.top, r.width, r.height].map((v) => Math.round(v)).join(",") : "-",
+      Math.round(frame.topClearance),
+    ].join("|");
+    if (key === this._frameLastKey) return;
+    this._frameLastKey = key;
+    try {
+      this.options.events?.onSelectionFrame?.(frame);
+    } catch (error) {
+      console.warn("SELECTION: onSelectionFrame threw", error);
+    }
+  }
+
+  /** The notes' (rotated) boxes, together, on screen. */
+  private screenRectOfNodes(nodes: Node[]): ScreenRect | null {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const node of nodes) {
+      const rb = this.rotatedBounds(node);
+      for (const [x, y] of [
+        [rb.minX, rb.minY],
+        [rb.maxX, rb.minY],
+        [rb.maxX, rb.maxY],
+        [rb.minX, rb.maxY],
+      ]) {
+        const p = this.worldToClient({ x, y });
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
+      }
+    }
+    if (![minX, minY, maxX, maxY].every(Number.isFinite)) return null;
+    return { left: minX, top: minY, right: maxX, bottom: maxY, width: maxX - minX, height: maxY - minY };
+  }
+
+  /**
+   * Room above the frame taken by the engine's handles: the top connect dot and
+   * the rotate handle of one note, or the group's rotate knob. Read from what is
+   * drawn when it is there, otherwise from the handles' known offsets.
+   */
+  private measureTopClearance(nodes: Node[], rect: ScreenRect): number {
+    const zoom = this.getZoom?.() || 1;
+    let top = Infinity;
+    const consider = (el: Element | null | undefined) => {
+      if (!el || !(el as any).isConnected) return;
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) top = Math.min(top, r.top);
+    };
+    if (nodes.length === 1) {
+      const node: any = nodes[0];
+      consider(node.connectionHandles?.top?.node);
+      // svg.select draws the rotate handle in its own layer beside the note.
+      this.element?.querySelectorAll?.(".svg_select_handle_rot").forEach((el) => consider(el));
+    } else if (this.groupResizeRotate) {
+      try {
+        (this.groupResizeRotate.node as Element).querySelectorAll("circle").forEach((el) => consider(el));
+      } catch (e) {
+        /* nothing drawn */
+      }
+    }
+    if (Number.isFinite(top) && top < rect.top) return Math.ceil(rect.top - top);
+    // Not drawn (yet): the top dot sits 35 world units above the note, 8px tall.
+    return nodes.length === 1 ? Math.ceil(35 * zoom + 9) : Math.ceil(28 * zoom + 8);
   }
 
   /** Deselect a single node. */
@@ -2099,6 +2429,10 @@ export class Slate {
         }
       });
       this._activeEndpointToggles = undefined;
+    }
+    if (this._selectedLine) {
+      this._selectedLine = null;
+      this.scheduleSelectionFrame();
     }
   }
 

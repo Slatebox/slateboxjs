@@ -223,6 +223,7 @@ export class Invoker {
     // package must not wipe font settings with undefined).
     if (pkg.data.fontSize !== undefined) node.options.fontSize = pkg.data.fontSize
     if (pkg.data.fontFamily !== undefined) node.options.fontFamily = pkg.data.fontFamily
+    if (pkg.data.fontWeight !== undefined) node.options.fontWeight = pkg.data.fontWeight
     if (pkg.data.fontColor !== undefined) node.options.fontColor = pkg.data.fontColor
     if (pkg.data.textOpacity !== undefined) node.options.textOpacity = pkg.data.textOpacity
     if (pkg.data.textXAlign !== undefined) node.options.textXAlign = pkg.data.textXAlign

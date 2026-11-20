@@ -147,6 +147,7 @@ export interface V1Association {
   blnStraight?: boolean;
   lineColor?: string;
   lineEffect?: string;
+  lineDash?: "solid" | "dashed" | "dotted";
   lineOpacity?: number;
   lineType?: string;
   lineCurviness?: number;
@@ -163,6 +164,7 @@ export interface V2Association {
   isStraightLine: boolean;
   lineColor: string;
   lineEffect: string;
+  lineDash: "solid" | "dashed" | "dotted";
   lineOpacity: number;
   lineType: string;
   lineCurveType: "cubic" | "quadratic";
@@ -187,6 +189,7 @@ export function v1AssociationToV2(v1: Record<string, any>): V2Association {
     isStraightLine: v1.isStraightLine ?? v1.blnStraight ?? false,
     lineColor: v1.lineColor || "#666666",
     lineEffect: v1.lineEffect || "",
+    lineDash: v1.lineDash === "dashed" || v1.lineDash === "dotted" ? v1.lineDash : "solid",
     lineOpacity: v1.lineOpacity ?? 1,
     lineType: v1.lineType || "bezier",
     lineCurveType: v1.lineCurveType || "cubic",
@@ -213,6 +216,7 @@ export function v2AssociationToV1(v2: V2Association): Record<string, any> {
     isStraightLine: v2.isStraightLine,
     lineColor: v2.lineColor,
     lineEffect: v2.lineEffect,
+    lineDash: v2.lineDash ?? "solid",
     lineOpacity: v2.lineOpacity,
     lineType: v2.lineType,
     lineCurveType: v2.lineCurveType,

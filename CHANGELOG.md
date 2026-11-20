@@ -30,6 +30,22 @@
 - **A workshop proposal looks provisional.** While `preview(candidate)` shows a proposal, each
   card it adds, moves or renames and each lane it adds or changes is outlined dashed and tagged
   `data-workshop-proposed`; `preview(null)` brings back the committed look.
+- **A host can draw its own selection toolbar.** With `contextToolbar: 'host'` the engine draws no
+  pill (delete, connect, settings) above a selected note or line; connecting stays on the connect
+  dots and a selected line keeps its start/end lock toggles on the canvas. The new
+  `events.onSelectionFrame(frame)` says what is selected (`kind`: `node`, `nodes`, `line` or
+  `none`, with `ids` and, for a line, `line: { nodeId, associationId, childId }`) and where it is
+  on screen (`rect`, in client pixels, rotation included). `topClearance` is the room above
+  `rect.top` taken by the rotate handle and the top connect dot. It fires on every selection
+  change, once with `moving: true` when a drag, resize, rotate, pan or zoom starts, and with
+  `moving: false` and the new place when it ends. `getSelectionFrame()`, `getSelectedLine()` and
+  `removeSelectedLine()` are on the Slate and on the v1 facade. Hosts without the option keep the
+  pill.
+- **Dashed and dotted lines.** An association's `lineDash` (`solid`, `dashed`, `dotted`) is set with
+  `onLinePropertiesChanged { prop: 'lineDash' }`, scales with the line's width, and is saved,
+  synced and undone like every other line style.
+- **Bold note text.** A note's `fontWeight: 'bold'` is set with `onNodeTextChanged`, drawn on the
+  canvas and in the inline editor, and is saved, synced and undone like the other text styles.
 - **Workshops can run as native notes on a live slate.** `attachWorkshop(slate, workshop, options)`
   (from `slateboxjs/workshops/model`, plain JavaScript) draws a workshop model onto a Slate the host
   already has: lanes, captions and cards are real notes with the canvas's own pan, zoom, minimap,

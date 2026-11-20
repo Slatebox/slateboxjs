@@ -819,6 +819,28 @@ class slate {
     this.v2!.removeLayoutOverlaps(gap);
   }
 
+  /**
+   * For a host that draws its own context toolbar (`contextToolbar: 'host'`,
+   * events.onSelectionFrame): what is selected and where it is on screen now.
+   * The same answer as the v2 engine's `getSelectionFrame()`.
+   */
+  public getSelectionFrame() {
+    this.assertReady();
+    return this.v2!.getSelectionFrame();
+  }
+
+  /** The line selected on the canvas (owning note and its association), or null. */
+  public getSelectedLine() {
+    this.assertReady();
+    return this.v2!.getSelectedLine();
+  }
+
+  /** Remove the line selected on the canvas, as the engine's own pill would. */
+  public removeSelectedLine(): boolean {
+    this.assertReady();
+    return this.v2!.removeSelectedLine();
+  }
+
   private unwrapNodes(nodes?: Array<node | V2Node>): V2Node[] | undefined {
     if (!nodes) return undefined;
     return nodes

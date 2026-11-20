@@ -220,6 +220,7 @@ export class Relationships {
           lineWidth: assoc.lineWidth,
           lineOpacity: assoc.lineOpacity,
           lineEffect: assoc.lineEffect,
+          lineDash: assoc.lineDash,
         });
       }
     }
@@ -254,6 +255,7 @@ export class Relationships {
           lineWidth: assoc.lineWidth,
           lineOpacity: assoc.lineOpacity,
           lineEffect: assoc.lineEffect,
+          lineDash: assoc.lineDash,
         });
       }
     }
@@ -337,6 +339,7 @@ export class Relationships {
       lineWidth: assoc.lineWidth,
       lineOpacity: assoc.lineOpacity,
       lineEffect: assoc.lineEffect,
+      lineDash: assoc.lineDash,
       lineType: (assoc as any).lineType,
       lineCurviness: (assoc as any).lineCurviness,
       lineCurveType: (assoc as any).lineCurveType,

@@ -148,6 +148,7 @@ export class Editor {
       "white-space:pre-wrap",
       `font-family:${node.options.fontFamily || "Arial, sans-serif"}`,
       `font-size:${node.options.fontSize || 14}px`,
+      `font-weight:${node.options.fontWeight === "bold" ? "bold" : "normal"}`,
       `color:${node.options.fontColor || "#000000"}`,
     ].join(";");
     fo.appendChild(div);
@@ -398,6 +399,7 @@ export class Editor {
       fill: fontColor || "#000000",
       opacity: textOpacity ?? 1,
     });
+    (this.node.textElement as any).attr?.("font-weight", this.node.options.fontWeight === "bold" ? "bold" : null);
 
     // Re-center text
     if (typeof this.node.centerText === "function") {

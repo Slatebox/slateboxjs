@@ -284,6 +284,8 @@ export class ResizeRotate {
       const start = this._start;
       if (!start || !box) return;
       event.preventDefault(); // Slatebox owns the write; the plugin computes the gesture.
+      // A host's bar over the selection steps aside until the gesture ends.
+      (this.node.slate as any)?.frameGestureStart?.("resize");
       if (eventType === "rot") {
         if (!Number.isFinite(angle) || !angle) return;
         this._didRotate = true;
@@ -354,6 +356,7 @@ export class ResizeRotate {
     if (slate?.getSelectedNodes().includes(this.node))
       this.node.enableConnectionHandles();
     this._didRotate = this._didResize = false;
+    (slate as any)?.frameGestureEnd?.("resize");
   }
 
   private removeEventListeners() {
