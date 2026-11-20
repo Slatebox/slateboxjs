@@ -217,10 +217,16 @@ test('a workshop proposal is marked as a preview on the canvas and the box waits
     await expect(button(page, 'Keep changes')).toBeVisible({ timeout: 20000 })
     await expect(caption(page)).toBeVisible()
     await expect(caption(page)).toContainText('Preview')
+    // The proposed card itself looks provisional (dashed), not like a card already kept.
+    const proposed = page.locator('#slateCanvas [data-workshop-proposed]').filter({ hasText: 'Draft' })
+    await expect(proposed).toHaveCount(1)
+    expect(await page.evaluate(() => (window as any).slate.v2.nodes.allNodes
+      .filter((n: any) => n.svgGroup?.node?.hasAttribute('data-workshop-proposed')).map((n: any) => n.options.borderStyle))).toEqual(['dashed'])
     expect((await savedIds(page)).filter(id => id.startsWith('preview-'))).toEqual([])
     await disabledFor(page, /Keep or discard the preview/)
     await button(page, 'Discard preview').click()
     await expect(caption(page)).toHaveCount(0)
+    await expect(page.locator('#slateCanvas [data-workshop-proposed]')).toHaveCount(0)
     await enabledAndFocused(page)
   } finally {
     await cleanUp(page)
@@ -250,6 +256,136 @@ for (const width of [1440, 390]) test(`${width}px: the presentation-ended notice
       expect(overlap(n, (await control.boundingBox())!), 'the notice sits clear of ' + await control.textContent()).toBe(false)
       expect(await control.evaluate(el => { const r = el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)) })).toBe(true)
     }
+  } finally {
+    await cleanUp(page)
+    await context.close()
+  }
+})
+
+test('a preview the drawing has moved on from cannot be kept: Keep is off, the reason says why, and Discard leads back', async ({ browser }) => {
+  test.skip(!writable, 'Creates a disposable guest and private slate')
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  try {
+    const key = await newDrawing(page)
+    const stored = () => page.evaluate(async id => (await (window as any).Meteor.callAsync('slates.get', { shareId: id })).slateBase.nodes, key)
+    const seed = (await stored()).find((n: any) => n.options.text)
+    await ask(page, seed.options.text + ' → Next step')
+    await expect(previewNote(page, 'Next step')).toBeVisible()
+    await expect(button(page, 'Keep changes')).toBeEnabled()
+    // The note the preview continues from is moved (here by its owner; a teammate's move is the same change).
+    const note = page.locator('#slateCanvas [data-node-id="' + seed.options.id + '"]')
+    const box = (await note.boundingBox())!
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width / 2 + 10, box.y + box.height / 2 + 160, { steps: 10 })
+    await page.mouse.up()
+    // Keep would be refused, so it is not offered; the box says why and what to do.
+    await expect(button(page, 'Keep changes')).toBeDisabled({ timeout: 5000 })
+    await disabledFor(page, /drawing changed/)
+    await expect(button(page, 'Discard preview')).toBeEnabled()
+    // A preview drawn against the old drawing is not left on the canvas to mislead.
+    await expect(previewNotes(page)).toHaveCount(0)
+    await expect(caption(page)).toHaveCount(0)
+    await button(page, 'Discard preview').click()
+    await enabledAndFocused(page)
+    // Asked again on the drawing as it is now, the new preview can be kept.
+    await ask(page, seed.options.text + ' → Next step')
+    await expect(button(page, 'Keep changes')).toBeEnabled()
+    await expect(previewNote(page, 'Next step')).toBeVisible()
+  } finally {
+    await cleanUp(page)
+    await context.close()
+  }
+})
+
+test('exports leave a pending preview out, and the canvas keeps showing it', async ({ browser }) => {
+  test.skip(!writable, 'Creates a disposable guest and private slate')
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  try {
+    const key = await newDrawing(page)
+    const first = (await page.evaluate(async id => (await (window as any).Meteor.callAsync('slates.get', { shareId: id })).slateBase.nodes, key))
+      .find((n: any) => n.options.text).options.text as string
+    await ask(page, first + ' → Exported step')
+    await expect(previewNote(page, 'Exported step')).toBeVisible()
+    const svg = await page.evaluate(() => (window as any).slate.v2.svg())
+    expect(svg).toContain(first)
+    expect(svg).not.toContain('Exported step')
+    expect(svg).not.toContain('not kept yet')
+    expect(svg).not.toContain('data-node-id="preview-')
+    // The PNG a published template's image is made from is drawn from the same SVG: a transparent
+    // background export (what the template image uses) leaves the preview out too.
+    expect(await page.evaluate(() => (window as any).slate.v2.svg({ noBackground: true }))).not.toContain('Exported step')
+    await expect(previewNote(page, 'Exported step')).toBeVisible()
+    await expect(caption(page)).toBeVisible()
+  } finally {
+    await cleanUp(page)
+    await context.close()
+  }
+})
+
+test('when the preview arrives, keyboard focus moves from Cancel to Keep, not to the page', async ({ browser }) => {
+  test.skip(!writable, 'Creates a disposable guest and private slate')
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  try {
+    const key = await newDrawing(page)
+    const first = (await page.evaluate(async id => (await (window as any).Meteor.callAsync('slates.get', { shareId: id })).slateBase.nodes, key))
+      .find((n: any) => n.options.text).options.text as string
+    await page.evaluate(() => {
+      const m = (window as any).Meteor, call = m.callAsync.bind(m)
+      m.callAsync = (name: string, ...args: any[]) => name !== 'nativeCanvas.preview' ? call(name, ...args)
+        : new Promise(r => setTimeout(r, 1500)).then(() => call(name, ...args))
+    })
+    await messageBox(page).click()
+    await messageBox(page).fill(first + ' → Keyboard step')
+    await page.keyboard.press('Enter')
+    await expect(composer(page).getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+    await expect(button(page, 'Keep changes')).toBeVisible({ timeout: 20000 })
+    await expect(button(page, 'Keep changes')).toBeFocused()
+    expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false)
+    // Tab then reaches Discard, and Discard by keyboard returns to the box.
+    await page.keyboard.press('Tab')
+    await expect(button(page, 'Discard preview')).toBeFocused()
+    await page.keyboard.press('Enter')
+    await enabledAndFocused(page)
+  } finally {
+    await cleanUp(page)
+    await context.close()
+  }
+})
+
+for (const width of [1440, 390]) test(`${width}px: the largest preview is shown at a readable size, and Discard returns the view the person had`, async ({ browser }) => {
+  test.skip(!writable, 'Creates a disposable guest and private slate')
+  const phone = width < 600
+  const context = await browser.newContext({ viewport: { width, height: phone ? 844 : 900 }, hasTouch: phone, reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  try {
+    await newDrawing(page)
+    // Where the person was looking: the centre of the view and its zoom. (On a phone the canvas
+    // changes height as the panel under it grows, so the box itself cannot be the same.)
+    const view = () => page.evaluate(() => { const s = (window as any).slate.v2, v = s.canvas.viewbox(); return { cx: Math.round(v.x + v.width / 2), cy: Math.round(v.y + v.height / 2), zoom: Math.round(s.getZoom() * 100) / 100 } })
+    const before = await view()
+    // The server takes up to 24 steps in a typed brief: the largest preview there is.
+    const steps = Array.from({ length: 24 }, (_, i) => 'Step ' + (i + 1) + ' reviews the intake form carefully')
+    await messageBox(page).fill(steps.join(' → '))
+    await button(page, 'Preview changes').click()
+    await expect(button(page, 'Keep changes')).toBeVisible({ timeout: 30000 })
+    await expect(previewNote(page, 'Step 1 reviews').first()).toBeVisible()
+    await expect.poll(async () => (await view()).zoom).toBeGreaterThanOrEqual(Math.min(before.zoom, 0.6) - 0.01)
+    expect((await view()).zoom, 'the view did move to show the preview').not.toEqual(before.zoom)
+    // Its start is on screen: the caption and the first step, readable.
+    await expect(caption(page)).toBeInViewport()
+    await expect(previewNote(page, 'Step 1 reviews').first()).toBeInViewport()
+    const noteWidth = await previewNote(page, 'Step 1 reviews').first().evaluate(el => {
+      const r = el.getBoundingClientRect(); return r.width
+    })
+    expect(noteWidth, 'a preview note is drawn at a readable size, not a speck').toBeGreaterThan(60)
+    await button(page, 'Discard preview').click()
+    await expect(previewNotes(page)).toHaveCount(0)
+    await expect.poll(view).toEqual(before)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
   } finally {
     await cleanUp(page)
     await context.close()
