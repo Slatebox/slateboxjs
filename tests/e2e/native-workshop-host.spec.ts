@@ -763,9 +763,11 @@ test.describe('a phone: 390x844, touch, one lane to a row', () => {
       await page.evaluate(() => (window as any).native.slate.undoRedo.undo())
       await expect.poll(() => cards(page)).toBe('alpha@inbox beta@inbox gamma@inbox omega@done')
       expect(await resting(page, 'card-alpha')).toEqual(start)
+      // (Restated 2026-11-19, cards-fix: the undo also says which card Alpha goes back in front
+      // of, so every copy of the board puts it in its own place.)
       expect((await journal(page)).changes).toEqual([
         { cardId: 'alpha', cardToNote: { noteId: 'alpha' } },
-        { cardId: 'alpha', laneId: 'inbox', noteToCard: { noteId: 'alpha', label: 'Alpha' } },
+        { cardId: 'alpha', laneId: 'inbox', noteToCard: { noteId: 'alpha', label: 'Alpha', before: 'beta' } },
       ])
       // The workshop still plays after all three.
       await top()

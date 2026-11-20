@@ -93,7 +93,12 @@ async function attach(model: Workshop, options: Record<string, unknown> = {}) {
     ...(params.has('perRow') ? { layout: { lanesPerRow: Number(params.get('perRow')) } } : {}),
     ...(hostStyle ? { style: hostStyle } : {}),
     ...options,
-    onChange: (next, change) => { log.changes.push({ next, change }); if (api.hostThrows) throw new Error('The host could not save.') },
+    onChange: (next, change) => {
+      log.changes.push({ next, change })
+      if (api.hostThrows) throw new Error('The host could not save.')
+      // What the host's save said, when a test sets an answer (true, false or 'taken').
+      return api.answer?.(change)
+    },
     onRefuse: refusal => { log.refusals.push(refusal); if (api.hostThrows) throw new Error('The host could not show the refusal.') },
     onPreview: candidate => { log.previews.push(candidate); if (api.hostThrows) throw new Error('The host could not show the preview.') },
     onSelect: selection => { log.selections.push(selection); if (api.hostThrows) throw new Error('The host could not show the selection.') },
@@ -109,6 +114,8 @@ const api = {
   ready: false,
   /** Set to make every host callback throw after recording what it was told. */
   hostThrows: false,
+  /** Set to answer each change as a host's save would: a promise of true, false or 'taken'. */
+  answer: null as null | ((change: WorkshopChangeEvent) => unknown),
   /** Screen position and size of a note, by its node id: its world box seen through the current pan and zoom. */
   box(id: string) {
     const o = slate.nodes.one(id)?.options

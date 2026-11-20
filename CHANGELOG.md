@@ -14,6 +14,14 @@
   `workshopTakesNotes`, `workshopNoteCandidate`, `workshopNoteRefusal`, `workshopCardAsNote`,
   `workshopCardAsNoteRefusal`, `workshopCardLookOf`; drag-policy hooks `onFreeMove`, `onFreeDrop`,
   `undoState` and `onUndoRestore`; `slate.beginHostStep()` / `endHostStep()`.
+  Several notes carried together onto a lane become cards there as one step, or all go back with
+  the reason (`onFreeGroupDrop`); a note whose words are typed on a lane is dropped there
+  (`onFreeTextCommit`). A card keeps what its note had that a card does not show (`card.asNote`:
+  line breaks, shape, size) and gives it back on the way out; a note with a link stays a note. An
+  undone trade says where the card goes back (`noteToCard.before`). `onChange` may answer a trade
+  with `'taken'` (someone else made it first): this person's copy of the note goes and nothing is
+  brought back; a refused trade never takes away a card the host has drawn since.
+  `board.toCanvas(cardId)` takes a card off the lanes as a note beside the board.
 - **Workshops can run as native notes on a live slate.** `attachWorkshop(slate, workshop, options)`
   (from `slateboxjs/workshops/model`, plain JavaScript) draws a workshop model onto a Slate the host
   already has: lanes, captions and cards are real notes with the canvas's own pan, zoom, minimap,

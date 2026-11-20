@@ -2538,6 +2538,37 @@ export class Slate {
     return null;
   }
 
+  /**
+   * Offer several ordinary notes dropped together to the policies (see
+   * DragPolicy.onFreeGroupDrop). The first that takes or refuses them decides; with none,
+   * the drop is an ordinary move.
+   */
+  public offerFreeGroupDrop(nodes: Node[], point: WorldPoint): "taken" | "refused" | null {
+    if (!this._dragPolicies.length || nodes.some((node) => this.governanceOf(node))) return null;
+    for (const policy of this._dragPolicies.slice()) {
+      let verdict: "taken" | "refused" | void = undefined;
+      try {
+        verdict = policy.onFreeGroupDrop?.(nodes, point);
+      } catch (error) {
+        console.warn("DRAG_POLICY: onFreeGroupDrop threw; the drop stays an ordinary move", error);
+      }
+      if (verdict === "taken" || verdict === "refused") return verdict;
+    }
+    return null;
+  }
+
+  /** Tell the policies an ordinary note's words were committed (see DragPolicy.onFreeTextCommit). */
+  public offerFreeTextCommit(node: Node): void {
+    if (!this._dragPolicies.length || this.governanceOf(node)) return;
+    for (const policy of this._dragPolicies.slice()) {
+      try {
+        policy.onFreeTextCommit?.(node);
+      } catch (error) {
+        console.warn("DRAG_POLICY: onFreeTextCommit threw", error);
+      }
+    }
+  }
+
   /** What each policy keeps with an undo record (see DragPolicy.undoState). Null when none keeps anything. */
   public undoHostState(): Map<DragPolicy, unknown> | null {
     const kept = new Map<DragPolicy, unknown>();

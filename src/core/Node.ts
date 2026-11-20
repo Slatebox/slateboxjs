@@ -1495,6 +1495,26 @@ export class Node {
           return;
         }
       }
+      // Several ordinary notes dropped together: the host takes them all, or refuses them
+      // and every one glides back to where it started.
+      if (movedSiblings.length && this.preDragPosition && ptr) {
+        const from = { ...this.preDragPosition };
+        const moved = Math.abs((this.options.x ?? 0) - from.x) > 0.5 || Math.abs((this.options.y ?? 0) - from.y) > 0.5;
+        const verdict = moved ? this.slate.offerFreeGroupDrop?.([this, ...movedSiblings.map((s) => s.node)], this.slate.clientToWorld(ptr)) : null;
+        if (verdict) {
+          this.preDragTransform = null;
+          this.preDragPosition = null;
+          this._dragStartPointer = null;
+          if (verdict === "refused") {
+            const glide = prefersReducedMotion() ? 0 : 180;
+            this.position(from.x, from.y, undefined, undefined, glide);
+            for (const s of movedSiblings) if (s.node.isOnSlate()) s.node.position(s.x, s.y, undefined, undefined, glide);
+          }
+          if (this.isOnSlate()) this.settleAfterDrag();
+          else this.isDragging = false;
+          return;
+        }
+      }
 
       // Did the node (or any group sibling) ACTUALLY move? A pure click fires
       // dragstart+dragend with a zero delta; broadcasting onNodesMove then records

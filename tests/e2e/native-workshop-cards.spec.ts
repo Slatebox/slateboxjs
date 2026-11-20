@@ -86,8 +86,11 @@ test.describe('an ordinary note dropped on a lane becomes a card', () => {
     // It looks as it did as a note.
     expect(await fill(page, 'card-plain')).toBe(await page.evaluate(() => 'rgb(240, 211, 153)'))
     const { changes, sent } = await journal(page)
+    // (Restated 2026-11-19, cards-fix: the change also carries the note's shape and size, so the
+    // card becomes the same note again on its way back.)
     expect(changes).toEqual([{ cardId: 'plain', laneId: 'now', noteToCard: { noteId: 'plain', label: 'Ordinary note',
-      look: { backgroundColor: '#f0d399', textColor: '#24372d', fontFamily: 'Arial, sans-serif', fontSize: 16, borderColor: '#627569', borderWidth: 1 } } }])
+      look: { backgroundColor: '#f0d399', textColor: '#24372d', fontFamily: 'Arial, sans-serif', fontSize: 16, borderColor: '#627569', borderWidth: 1 },
+      asNote: { shape: 'roundedrectangle', width: 160, height: 80 } } }])
     // Collaborators hear that the note left the drawing, and nothing about a move.
     expect(sent).toEqual(['onNodeDeleted'])
     await expect.poll(() => undoSteps(page)).toBe(before + 1)
@@ -143,14 +146,10 @@ test.describe('an ordinary note dropped on a lane becomes a card', () => {
       .flatMap((n: any) => n.relationships.associations.map((a: any) => a.id)))).toEqual(['plain-default'])
   })
 
-  test('several notes dragged together, and a note dropped on a map, stay notes', async ({ page }) => {
-    await open(page, '?defaultnote')
-    await page.evaluate(() => { const { slate } = (window as any).native; slate.selectNodes([slate.nodes.one('plain'), slate.nodes.one('default')]) })
-    await drag(page, 'plain', await inLane(page, 'now'))
-    await page.waitForTimeout(300)
-    expect(await cards(page)).toBe('alpha@now beta@now gamma@now')
-    expect((await saved(page)).map(note => note.id)).toEqual(['plain', 'default'])
-
+  // (Restated 2026-11-19, cards-fix: several notes dropped on a lane together now become cards
+  // there, or are all refused with the reason; see "notes carried together" below. A note
+  // dropped on a map still stays a note.)
+  test('a note dropped on a map stays a note', async ({ page }) => {
     await open(page, '?map')
     await drag(page, 'plain', await inLane(page, 'finance'))
     await page.waitForTimeout(300)
@@ -263,5 +262,154 @@ test.describe('cards look like notes', () => {
   test('with no host style a card is filled, outlined and set exactly as an ordinary engine note', async ({ page }) => {
     await open(page, '?defaultnote')
     expect(await fill(page, 'card-alpha')).toBe(await fill(page, 'default'))
+  })
+})
+
+// cards-fix (2026-11-19): what the hostile review of cards-are-notes found.
+test.describe('two people, one note: the host has the last word', () => {
+  test('a card that left the lanes for someone else first: this person\'s copy of the note goes, and the card is not brought back', async ({ page }) => {
+    await open(page)
+    // The host's save says someone else already took Alpha off the lanes; the host draws its board.
+    await page.evaluate(() => {
+      const native = (window as any).native
+      native.answer = () => new Promise(resolve => setTimeout(() => {
+        native.board.update({ ...native.board.value, cards: native.board.value.cards.filter((c: any) => c.id !== 'alpha') })
+        resolve('taken')
+      }, 50))
+    })
+    await drag(page, 'card-alpha', await client(page, { x: 60, y: 420 }))
+    await expect.poll(async () => (await saved(page)).map(note => note.id)).toEqual(['plain'])
+    await page.waitForTimeout(300)
+    expect(await cards(page)).toBe('beta@now gamma@now')
+    await expect(page.locator('#slate [data-node-id="card-alpha"]')).toHaveCount(0)
+  })
+
+  test('a refused trade puts the note back but never takes away a card the host has drawn since', async ({ page }) => {
+    await open(page)
+    // Someone else made this same note a card in Later first: the host draws that card, and its save of this drop is refused.
+    await page.evaluate(() => {
+      const native = (window as any).native
+      native.answer = () => new Promise(resolve => setTimeout(() => {
+        native.board.update({ ...native.board.value, cards: [...native.board.value.cards.filter((c: any) => c.id !== 'plain'), { id: 'plain', label: 'Ordinary note', laneId: 'later' }] })
+        resolve(false)
+      }, 50))
+    })
+    await drag(page, 'plain', await inLane(page, 'now'))
+    await page.waitForTimeout(500)
+    expect(await cards(page)).toBe('alpha@now beta@now gamma@now plain@later')
+    await expect(page.locator('#slate [data-node-id="card-plain"]')).toHaveCount(1)
+  })
+
+  test('someone else made the note a card first: the note is not brought back', async ({ page }) => {
+    await open(page)
+    await page.evaluate(() => {
+      const native = (window as any).native
+      native.answer = () => new Promise(resolve => setTimeout(() => {
+        native.board.update({ ...native.board.value, cards: [...native.board.value.cards.filter((c: any) => c.id !== 'plain'), { id: 'plain', label: 'Ordinary note', laneId: 'later' }] })
+        resolve('taken')
+      }, 50))
+    })
+    await drag(page, 'plain', await inLane(page, 'now'))
+    await page.waitForTimeout(500)
+    expect(await cards(page)).toBe('alpha@now beta@now gamma@now plain@later')
+    expect(await saved(page)).toEqual([])
+  })
+})
+
+test.describe('nothing the note had is lost on its way to a card and back', () => {
+  test('line breaks, shape and size come back; a note with a link stays a note and says why', async ({ page }) => {
+    await open(page)
+    await page.evaluate(() => {
+      const { slate } = (window as any).native
+      slate.addNode({ id: 'shaped', x: 60, y: 260, width: 120, height: 70, text: 'First line\nSecond line', shape: 'ellipse' })
+    })
+    await page.waitForTimeout(300)
+    await drag(page, 'shaped', await inLane(page, 'now'))
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now shaped@now')
+    expect((await journal(page)).changes.at(-1)).toMatchObject({ noteToCard: { noteId: 'shaped', label: 'First line Second line',
+      asNote: { text: 'First line\nSecond line', shape: 'ellipse', width: 120, height: 70 } } })
+    await resting(page, 'card-shaped')
+    await drag(page, 'card-shaped', await client(page, { x: 60, y: 520 }))
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
+    const back = await page.evaluate(() => { const o = (window as any).native.slate.nodes.one('shaped').options; return { text: o.text, shape: o.shape, width: o.width, height: o.height } })
+    expect(back).toEqual({ text: 'First line\nSecond line', shape: 'ellipse', width: 120, height: 70 })
+
+    await page.evaluate(() => { (window as any).native.slate.nodes.one('plain').options.link = { type: 'externalUrl', data: { url: 'https://example.org/x' }, show: true } })
+    const start = await at(page, 'plain')
+    await drag(page, 'plain', await inLane(page, 'now'))
+    await expect(live(page)).toHaveText("Ordinary note can't go in Now. A note with a link stays a note. Remove its link first.")
+    expect(await resting(page, 'plain')).toEqual(start)
+  })
+
+  test('an undone trade sends where the card goes back, so every copy of the board puts it in its own place', async ({ page }) => {
+    await open(page)
+    await drag(page, 'card-beta', await client(page, { x: 60, y: 420 }))
+    await expect.poll(() => cards(page)).toBe('alpha@now gamma@now')
+    await page.mouse.click(5, 5)
+    await page.keyboard.press('ControlOrMeta+z')
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
+    expect((await journal(page)).changes.at(-1)).toMatchObject({ cardId: 'beta', laneId: 'now', noteToCard: { noteId: 'beta', label: 'Beta', before: 'gamma' } })
+  })
+})
+
+test.describe('notes carried together, notes typed in a lane, and a card sent from the conversation', () => {
+  test('several notes dropped on a lane together become cards there as one undo step; a lane that cannot take them all sends them all back and says why', async ({ page }) => {
+    await open(page, '?defaultnote')
+    const before = await settledSteps(page)
+    await page.evaluate(() => { const { slate } = (window as any).native; slate.selectNodes([slate.nodes.one('plain'), slate.nodes.one('default')]) })
+    await drag(page, 'plain', await inLane(page, 'now'))
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now plain@now default@now')
+    expect(await saved(page)).toEqual([])
+    await expect.poll(() => undoSteps(page)).toBe(before + 1)
+    await page.mouse.click(5, 5)
+    await page.keyboard.press('ControlOrMeta+z')
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
+    await expect.poll(async () => (await saved(page)).map(note => note.id).sort()).toEqual(['default', 'plain'])
+
+    // Later holds one card: two notes cannot both go there.
+    const starts = { plain: await resting(page, 'plain'), def: await resting(page, 'default') }
+    await page.evaluate(() => { const { slate } = (window as any).native; slate.selectNodes([slate.nodes.one('plain'), slate.nodes.one('default')]) })
+    await drag(page, 'plain', await inLane(page, 'later'))
+    await expect(live(page)).toHaveText("Ordinary note and Default note can't go in Later. It has room for 1 more card.")
+    expect(await resting(page, 'plain')).toEqual(starts.plain)
+    expect(await resting(page, 'default')).toEqual(starts.def)
+    expect(await cards(page)).toBe('alpha@now beta@now gamma@now')
+  })
+
+  test('a note typed inside a lane becomes a card there; one the lane refuses moves out beside the board and the lane says why', async ({ page }) => {
+    await open(page)
+    const spot = await inLane(page, 'now')
+    await page.mouse.dblclick(spot.x, spot.y)
+    await page.waitForTimeout(300)
+    await page.keyboard.type('Typed in Now')
+    await page.keyboard.press('Enter')
+    await expect.poll(() => page.evaluate(() => (window as any).native.board.value.cards.map((c: any) => c.label + '@' + c.laneId).join(' '))).toBe('Alpha@now Beta@now Gamma@now Typed in Now@now')
+    expect((await saved(page)).map(note => note.id)).toEqual(['plain'])
+
+    // Later is full once Alpha is in it.
+    await drag(page, 'card-alpha', await inLane(page, 'later'))
+    await expect.poll(() => cards(page)).toContain('alpha@later')
+    await resting(page, 'card-alpha')
+    const later = await inLane(page, 'later')
+    await page.mouse.dblclick(later.x, later.y - 40)
+    await page.waitForTimeout(300)
+    await page.keyboard.type('No room')
+    await page.keyboard.press('Enter')
+    await expect.poll(() => text(page, 'caption-later')).toBe('It already holds 1 of 1 card.')
+    const board = await page.evaluate(() => (window as any).native.board.bounds)
+    await expect.poll(async () => (await saved(page)).find(item => item.text === 'No room')?.x ?? 0).toBeGreaterThan(board.x + board.width)
+    expect(await page.evaluate(() => (window as any).native.board.value.cards.map((c: any) => c.label + '@' + c.laneId).sort().join(' '))).toBe('Alpha@later Beta@now Gamma@now Typed in Now@now')
+  })
+
+  test('the host can send a card off the lanes, as the conversation does: it becomes a note beside the board, or says why it stays', async ({ page }) => {
+    await open(page)
+    const answer = await page.evaluate(() => (window as any).native.board.toCanvas('alpha'))
+    expect(answer).toBeNull()
+    await expect.poll(() => cards(page)).toBe('beta@now gamma@now')
+    const board = await page.evaluate(() => (window as any).native.board.bounds)
+    await expect.poll(async () => (await saved(page)).find(item => item.id === 'alpha')?.x ?? 0).toBeGreaterThan(board.x + board.width)
+    expect((await journal(page)).changes.at(-1)!.cardId).toBe('alpha')
+    expect(await page.evaluate(() => (window as any).native.board.toCanvas('gamma'))).toBe('Gamma may only be in Now, so it stays a card.')
+    expect(await cards(page)).toBe('beta@now gamma@now')
   })
 })

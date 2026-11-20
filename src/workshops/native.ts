@@ -11,26 +11,28 @@
  * policy in core/DragPolicy.ts.
  */
 
-import { v1AssociationToV2, v1NodeToV2 } from '../core/compat'
+import { v1AssociationToV2, v1NodeToV2, v2NodeToV1 } from '../core/compat'
 import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type WorldPoint } from '../core/DragPolicy'
 import {
   validateWorkshop, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLookOf, workshopDestinations,
   workshopLaneCaption, workshopLanePlaces, workshopNodeIds, workshopNoteCandidate, workshopNoteRefusal, workshopRefusal,
   workshopStandInId, workshopTakesNotes, workshopToSlate, type Workshop, type WorkshopBoardLayout, type WorkshopCard,
-  type WorkshopCardLook, type WorkshopNoteStyle,
+  type WorkshopCardAsNote, type WorkshopCardLook, type WorkshopNoteOffer, type WorkshopNoteStyle,
 } from './model'
 
 /**
  * What a person changed. A move names the card and its new lane; a rename names the lane or
  * card and its new label. `noteToCard`: an ordinary note became card `cardId` at the foot of
- * `laneId` (it left the slate's drawing). `cardToNote`: card `cardId` left the board and is now
+ * `laneId`, or just before card `before` when that is where an undo puts it back (it left the
+ * slate's drawing). `asNote` is what the note had that the card does not show (line breaks,
+ * shape, size), kept for its way back. `cardToNote`: card `cardId` left the board and is now
  * the ordinary note `noteId` in the drawing.
  */
 export interface WorkshopChangeEvent {
   cardId?: string
   laneId?: string
   rename?: { laneId?: string; cardId?: string; label: string }
-  noteToCard?: { noteId: string; label: string; look?: WorkshopCardLook }
+  noteToCard?: { noteId: string; label: string; look?: WorkshopCardLook; asNote?: WorkshopCardAsNote; before?: string }
   cardToNote?: { noteId: string }
 }
 
@@ -63,10 +65,14 @@ export type WorkshopCandidateChooser = (board: Workshop, cardId: string, grab: {
 export interface AttachWorkshopOptions {
   /**
    * A move, rename or conversion was committed. `next` is validated; the host persists it.
-   * Return a promise of false when the host could not save a conversion: the drawing is put
-   * back (the note returns to the canvas, or leaves it again).
+   * For a conversion, return a promise of what the save came to:
+   * - false: it was refused. The drawing is put back (the note returns to the canvas, or
+   *   leaves it again). The board is put back too, unless the host has drawn a newer one.
+   * - 'taken': someone else made this same trade first (they put the note in a lane, or took
+   *   the card off the lanes). This person's copy of the note leaves the canvas, nothing is
+   *   brought back, and the board is the host's to draw.
    */
-  onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | void>
+  onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | 'taken' | void>
   /** A drop or rename was refused. */
   onRefuse?: (refusal: WorkshopRefusalEvent) => void
   /** The board a held or keyboard-staged card would produce, or null when there is none. */
@@ -107,6 +113,12 @@ export interface AttachedWorkshop {
    * cancelled first.
    */
   setLayout(layout: WorkshopBoardLayout): void
+  /**
+   * Take a card off the lanes as an ordinary note just beside the board, as a drop on the
+   * canvas would (a conversation's "make this a note"). Null when it was done; otherwise the
+   * reason it stays a card.
+   */
+  toCanvas(cardId: string): string | null
   /** Remove the workshop's notes and its policy. Every other note on the slate is left as it was. */
   destroy(): void
   /** The committed model. */
@@ -406,8 +418,54 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       tell(options.onRefuse, { noteId: node.id, laneId, reason })
       return 'refused'
     }
-    adopt(node, laneId, offer)
+    adopt([{ node, offer }], laneId)
     return 'taken'
+  }
+  // Several ordinary notes carried together and dropped on a lane: all become cards there as
+  // one step, or none do, they all go back, and the lane says why.
+  policy.onFreeGroupDrop = (nodes: any[], point: WorldPoint) => {
+    clearHover()
+    if (!acceptsNotes() || nodes.some(node => node.options?.isComment)) return
+    const laneId = laneAt(point)
+    if (!laneId) return
+    const lane = value.lanes.find(item => item.id === laneId)!
+    const entries = nodes.map(node => ({ node, offer: offerOf(node) }))
+    const reason = groupRefusal(entries, laneId)
+    if (reason) {
+      endFlash(false)
+      flash = { laneId, reason, timer: setTimeout(() => endFlash(), 1500) }
+      showCurrent()
+      slate.announce?.(`${names(entries.map(entry => noteName(entry.offer.label)))} can't go in ${lane.label}. ${reason}`)
+      for (const { node } of entries) tell(options.onRefuse, { noteId: node.id, laneId, reason })
+      return 'refused'
+    }
+    adopt(entries, laneId)
+    return 'taken'
+  }
+  // A note whose words were typed while it sits on a lane (a double-click there makes one) is
+  // dropped there: it becomes a card in that lane, or moves out beside the board and the lane
+  // says why. A note never sits on a lane looking like a card without being one.
+  policy.onFreeTextCommit = (node: any) => {
+    if (!acceptsNotes() || node.options?.isComment || !slate.nodes.one(node.id)) return
+    const o = node.options ?? {}
+    const laneId = laneAt({ x: (o.x ?? 0) + (o.width ?? 0) / 2, y: (o.y ?? 0) + (o.height ?? 0) / 2 })
+    if (!laneId) return
+    const offer = offerOf(node)
+    const lane = value.lanes.find(item => item.id === laneId)!
+    const reason = noteObstacle(node) ?? workshopNoteRefusal(value, laneId, offer)
+    if (!reason) {
+      adopt([{ node, offer }], laneId)
+      return
+    }
+    endFlash(false)
+    flash = { laneId, reason, timer: setTimeout(() => endFlash(), 1500) }
+    showCurrent()
+    slate.announce?.(`${noteName(offer.label)} can't go in ${lane.label}. ${reason} It is beside the board.`)
+    tell(options.onRefuse, { noteId: node.id, laneId, reason })
+    const { width } = workshopLanePlaces(value, { layout })
+    const x = Math.round(origin.x + width + 32), y = Math.round(o.y ?? origin.y)
+    node.position(x, y, () => slate.updateSelectionResizeRotate?.(), undefined, prefersReducedMotion() ? 0 : 180)
+    slate.broadcast?.('onNodesMove', { nodeOptions: [v2NodeToV1({ ...node.options, x, y })] })
   }
   policy.undoState = () => ({ cards: value.cards.map(card => ({ ...card })), pairs: [...pairs] })
   policy.onUndoRestore = (state: any, notes: { added: string[]; removed: string[] }) => {
@@ -422,14 +480,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (!card) continue
       value = validateWorkshop({ ...value, cards: value.cards.filter(item => item !== card) })
       draw(value)
-      watch(tell(options.onChange, value, { cardId, cardToNote: { noteId } }), () => undefined)
+      watch(tell(options.onChange, value, { cardId, cardToNote: { noteId } }))
     }
     // A note this step took away is a card again, in the lane it was in.
     for (const noteId of notes.removed) {
       const cardId = cardOf(noteId)
       const card = recorded.get(cardId)
       if (!card || value.cards.some(item => item.id === cardId)) continue
-      const offer = { id: cardId, label: card.label, ...(card.look ? { look: card.look } : {}) }
+      const offer = { id: cardId, label: card.label, ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}) }
       const lane = [card.laneId, ...value.lanes.map(item => item.id)].find(id => workshopNoteCandidate(value, id, offer))
       if (!lane) {
         slate.announce?.(`${card.label} could not go back on the board: there is no room for it.`)
@@ -438,7 +496,11 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       value = inRecordedPlace(workshopNoteCandidate(value, lane, offer)!, cardId, state?.cards ?? [])
       if (cardId !== noteId) pairs.set(noteId, cardId)
       draw(value)
-      watch(tell(options.onChange, value, { cardId, laneId: lane, noteToCard: { noteId, label: card.label, ...(card.look ? { look: card.look } : {}) } }), () => undefined)
+      // Where it went back among the cards, so every copy of the board puts it in the same place.
+      const at = value.cards.findIndex(item => item.id === cardId)
+      const before = value.cards.slice(at + 1).find(item => item.laneId === lane)?.id
+      watch(tell(options.onChange, value, { cardId, laneId: lane, noteToCard: { noteId, label: card.label, ...(card.look ? { look: card.look } : {}),
+        ...(card.asNote ? { asNote: card.asNote } : {}), ...(before ? { before } : {}) } }))
     }
   }
 
@@ -653,12 +715,47 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     return hit ? kindOf(hit.id)?.key ?? null : null
   }
 
-  /** What an ordinary note offers a lane: its id, its words in one line, and its look. */
-  function offerOf(node: any) {
+  /**
+   * What an ordinary note offers a lane: its id, its words in one line, its look, and what it
+   * has that a card does not show (its line breaks, shape and size), kept for its way back.
+   */
+  function offerOf(node: any): WorkshopNoteOffer {
     const o = node.options ?? {}
     const look = workshopCardLookOf({ backgroundColor: o.backgroundColor, textColor: o.fontColor, fontFamily: o.fontFamily,
       fontSize: o.fontSize, borderColor: o.borderColor, borderWidth: o.borderWidth })
-    return { id: node.id as string, label: String(o.text ?? '').replace(/\s+/g, ' ').trim(), ...(look ? { look } : {}) }
+    const words = String(o.text ?? '')
+    const label = words.replace(/\s+/g, ' ').trim()
+    const asNote: WorkshopCardAsNote = {}
+    if (words.trim() !== label && words.length <= 400) asNote.text = words.trim()
+    if (typeof o.shape === 'string' && /^[a-z]{1,24}$/i.test(o.shape)) asNote.shape = o.shape
+    for (const key of ['width', 'height'] as const) if (Number.isFinite(o[key]) && o[key] >= 10 && o[key] <= 4000) asNote[key] = Math.round(o[key])
+    return { id: node.id as string, label, ...(look ? { look } : {}), ...(Object.keys(asNote).length ? { asNote } : {}) }
+  }
+
+  /** "A", "A and B", "A, B and C". */
+  function names(list: string[]) {
+    return list.length > 1 ? list.slice(0, -1).join(', ') + ' and ' + list.at(-1) : list[0] ?? ''
+  }
+
+  /** Why a lane can't take all of these notes at once; null when it can. */
+  function groupRefusal(entries: { node: any; offer: WorkshopNoteOffer }[], laneId: string): string | null {
+    for (const { node } of entries) {
+      const obstacle = noteObstacle(node)
+      if (obstacle) return obstacle
+    }
+    const lane = value.lanes.find(item => item.id === laneId)!
+    const held = value.cards.filter(item => item.laneId === laneId).length
+    if (lane.capacity !== undefined && held + entries.length > lane.capacity) {
+      const room = lane.capacity - held
+      return room > 0 ? `It has room for ${room} more ${room === 1 ? 'card' : 'cards'}.` : `It already holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
+    }
+    let board = value
+    for (const { offer } of entries) {
+      const reason = workshopNoteRefusal(board, laneId, offer)
+      if (reason) return reason
+      board = workshopNoteCandidate(board, laneId, offer)!
+    }
+    return null
   }
 
   /** What about a note, rather than about the lane, keeps it a note. Null when nothing does. */
@@ -667,59 +764,88 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       other !== node && (other.relationships?.associations ?? []).some((link: any) => link.child === node || link.childId === node.id))
     if (joined) return 'A note joined to other notes by lines stays a note. Remove its lines first.'
     if (node.options?.image) return 'A note with a picture stays a note.'
+    if (node.options?.link?.show && node.options.link.data) return 'A note with a link stays a note. Remove its link first.'
     return null
   }
 
   const noteName = (label: string) => label || 'This note'
 
   /**
-   * An ordinary note becomes a card at the foot of `laneId`: it leaves the drawing and the
-   * board gains the card, as one undo step. The card comes from where the note was let go.
+   * Ordinary notes become cards at the foot of `laneId`: they leave the drawing and the board
+   * gains the cards, as one undo step. Each card comes from where its note was let go.
    */
-  function adopt(node: any, laneId: string, offer: { id: string; label: string; look?: WorkshopCardLook }) {
-    const next = workshopNoteCandidate(value, laneId, offer)!
-    const card = next.cards[next.cards.length - 1]
-    const kept = { ...(node.options ?? {}) }
-    const from = { x: node.options?.x ?? 0, y: node.options?.y ?? 0 }
+  function adopt(entries: { node: any; offer: WorkshopNoteOffer }[], laneId: string) {
+    let next = value
+    const made = entries.map(({ node, offer }) => {
+      next = workshopNoteCandidate(next, laneId, offer)!
+      return { node, card: next.cards[next.cards.length - 1], kept: { ...(node.options ?? {}) } }
+    })
     slate.beginHostStep?.()
     value = next
-    if (card.id !== node.id) pairs.set(node.id, card.id)
-    arrivals.set(noteId(workshopNodeIds.card(card.id)), from)
-    slate.removeNode(node.id)
+    // The board as this step left it: a refusal puts the board back only while nothing newer was drawn.
+    let committed = value
+    for (const { node, card } of made) {
+      if (card.id !== node.id) pairs.set(node.id, card.id)
+      arrivals.set(noteId(workshopNodeIds.card(card.id)), { x: node.options?.x ?? 0, y: node.options?.y ?? 0 })
+      slate.removeNode(node.id)
+    }
     slate.endHostStep?.()
     draw(value)
-    keepPlaceOn(noteId(workshopNodeIds.card(card.id)))
+    // A card is selected on its own: the first of them keeps the person's place.
+    keepPlaceOn(noteId(workshopNodeIds.card(made[0].card.id)))
     const lane = value.lanes.find(item => item.id === laneId)!
-    slate.announce?.(`${card.label} is now a card in ${lane.label}. ${workshopLaneCaption(value, laneId)}.`)
-    const change = { cardId: card.id, laneId, noteToCard: { noteId: node.id as string, label: card.label, ...(card.look ? { look: card.look } : {}) } }
-    watch(tell(options.onChange, value, change), () => {
-      // The host could not save it: the note goes back on the canvas, as it was.
-      if (destroyed) return
-      if (value.cards.some(item => item.id === card.id)) { value = validateWorkshop({ ...value, cards: value.cards.filter(item => item.id !== card.id) }); draw(value) }
-      if (!slate.nodes.one(kept.id)) {
-        slate.beginHostStep?.()
-        const back = slate.addNode({ ...kept })
-        if (back) back.announcedByCreator = true
-        slate.endHostStep?.()
+    slate.announce?.(made.length === 1
+      ? `${made[0].card.label} is now a card in ${lane.label}. ${workshopLaneCaption(value, laneId)}.`
+      : `${names(made.map(({ card }) => card.label))} are now cards in ${lane.label}. ${workshopLaneCaption(value, laneId)}.`)
+    for (const { node, card, kept } of made) {
+      const change = { cardId: card.id, laneId, noteToCard: { noteId: node.id as string, label: card.label,
+        ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}) } }
+      const dropCard = () => {
+        if (value !== committed || !value.cards.some(item => item.id === card.id)) return
+        value = validateWorkshop({ ...value, cards: value.cards.filter(item => item.id !== card.id) })
+        committed = value
+        draw(value)
       }
-      slate.announce?.(`${card.label} could not be saved as a card. It is a note on the canvas again.`)
-    })
+      watch(tell(options.onChange, value, change), () => {
+        // The host could not save it: the note goes back on the canvas, as it was.
+        if (destroyed) return
+        dropCard()
+        if (!slate.nodes.one(kept.id)) {
+          slate.beginHostStep?.()
+          const back = slate.addNode({ ...kept })
+          if (back) back.announcedByCreator = true
+          slate.endHostStep?.()
+        }
+        slate.announce?.(`${card.label} could not be saved as a card. It is a note on the canvas again.`)
+      }, () => {
+        // Someone else put this note on the board first: their card is the note now.
+        if (destroyed) return
+        dropCard()
+        slate.announce?.(`Someone else put ${card.label} on the board first.`)
+      })
+    }
   }
 
   /**
    * A card leaves the lanes as an ordinary note at `at`, saved with the drawing, as one
-   * undo step. The note is drawn as the card was.
+   * undo step. The note is drawn as the card was, and gets back what the note it was made
+   * from had (its line breaks, shape and size).
    */
   function release(cardId: string, at: { x: number; y: number }) {
     const card = value.cards.find(item => item.id === cardId)!
     const fromLane = value.lanes.find(item => item.id === card.laneId)!
+    const place = value.cards.findIndex(item => item.id === cardId)
+    const before = value.cards.slice(place + 1).find(item => item.laneId === card.laneId)?.id
     const next = workshopCardAsNote(value, cardId)!
     const drawnCard = drawn.get(noteId(workshopNodeIds.card(cardId))) ?? {}
     const id = slate.nodes.one(cardId) ? 'node_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now() : cardId
     const round = (style.cornerRadius ?? 0) > 0
+    const kept = card.asNote
+    // The words it had, line breaks and all, unless the card has been renamed since.
+    const words = kept?.text !== undefined && kept.text.replace(/\s+/g, ' ').trim() === card.label ? kept.text : card.label
     const note: Record<string, unknown> = {
-      id, x: Math.round(at.x), y: Math.round(at.y), width: drawnCard.width ?? 228, height: drawnCard.height ?? 76, text: card.label,
-      shape: round ? 'roundedrectangle' : 'rectangle',
+      id, x: Math.round(at.x), y: Math.round(at.y), width: kept?.width ?? drawnCard.width ?? 228, height: kept?.height ?? drawnCard.height ?? 76, text: words,
+      shape: kept?.shape ?? (round ? 'roundedrectangle' : 'rectangle'),
       backgroundColor: card.look?.backgroundColor ?? drawnCard.backgroundColor, fontColor: card.look?.textColor ?? drawnCard.foregroundColor,
       fontSize: card.look?.fontSize ?? drawnCard.fontSize, borderColor: card.look?.borderColor ?? drawnCard.borderColor,
       borderWidth: card.look?.borderWidth ?? drawnCard.borderWidth,
@@ -728,6 +854,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     for (const key of Object.keys(note)) if (note[key] === undefined) delete note[key]
     slate.beginHostStep?.()
     value = next
+    const committed = value
     if (id !== cardId) pairs.set(id, cardId)
     else pairs.delete(id)
     const added = slate.addNode(note)
@@ -741,20 +868,28 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       else select()
     })
     slate.announce?.(`${card.label} is now a note on the canvas. ${fromLane.label}: ${workshopLaneCaption(value, fromLane.id)}.`)
+    const dropNote = () => {
+      if (slate.nodes.one(id) !== added) return
+      slate.beginHostStep?.()
+      slate.removeNode(id)
+      slate.endHostStep?.()
+    }
     watch(tell(options.onChange, value, { cardId, cardToNote: { noteId: id } }), () => {
-      // The host could not save it: the note leaves the canvas and the card comes back with the host's model.
+      // The host could not save it: the note leaves the canvas and the card comes back, in its
+      // place, unless the host has drawn a newer board.
       if (destroyed) return
-      if (slate.nodes.one(id) === added) {
-        slate.beginHostStep?.()
-        slate.removeNode(id)
-        slate.endHostStep?.()
-      }
-      if (!value.cards.some(item => item.id === cardId)) {
-        const offer = { id: cardId, label: card.label, ...(card.look ? { look: card.look } : {}) }
-        const back = workshopNoteCandidate(value, card.laneId, offer)
+      dropNote()
+      if (value === committed && !value.cards.some(item => item.id === cardId)) {
+        const offer = { id: cardId, label: card.label, ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}) }
+        const back = workshopNoteCandidate(value, card.laneId, offer, before)
         if (back) { value = back; draw(value) }
       }
       slate.announce?.(`${card.label} could not be saved as a note. It is a card again.`)
+    }, () => {
+      // Someone else took this card off the lanes first: their note is the card now.
+      if (destroyed) return
+      dropNote()
+      slate.announce?.(`Someone else took ${card.label} off the lanes first.`)
     })
   }
 
@@ -1010,6 +1145,20 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   }
 
   return {
+    toCanvas(cardId: string) {
+      if (destroyed || readOnly || viewer()) return 'This workshop is view-only here.'
+      if (!value.cards.some(card => card.id === cardId)) return 'That card is no longer on the board.'
+      const reason = workshopCardAsNoteRefusal(value, cardId)
+      if (reason) return reason
+      if (staged) clearStaged()
+      // A proposal on show (the conversation's own preview of this) gives way to the board.
+      if (proposal) { cancelGestures(); proposal = null; draw(value); slate.refreshGovernance?.() }
+      // Just beside the board, level with where the card is drawn.
+      const { width } = workshopLanePlaces(value, { layout })
+      const drawnCard = owned.get(noteId(workshopNodeIds.card(cardId)))?.options
+      release(cardId, { x: origin.x + width + 32, y: drawnCard?.y ?? origin.y })
+      return null
+    },
     get value() { return value },
     get origin() { return { ...origin } },
     get layout() { return { ...layout } },
@@ -1099,9 +1248,16 @@ function tell<A extends unknown[], R>(callback: ((...args: A) => R) | undefined,
 }
 
 /** Run `failed` when a host's answer to a change is a promise of false: it could not save it. */
-function watch(answer: unknown, failed: () => void) {
+/**
+ * Hear what a host's save of a change came to: `refused` when it says false, `taken` when it
+ * says someone else made the same trade first. Nothing happens for any other answer.
+ */
+function watch(answer: unknown, refused?: () => void, taken?: () => void) {
   if (!answer || typeof (answer as any).then !== 'function') return
-  ;(answer as Promise<unknown>).then(saved => { if (saved === false) failed() }, () => undefined)
+  ;(answer as Promise<unknown>).then(saved => {
+    if (saved === false) refused?.()
+    else if (saved === 'taken') taken?.()
+  }, () => undefined)
 }
 
 function sameOutcome(a: Outcome, b: Outcome) {

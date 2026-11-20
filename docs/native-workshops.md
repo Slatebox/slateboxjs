@@ -35,7 +35,7 @@ The signatures, exactly:
 attachWorkshop(slate: Slate, workshop: Workshop, options?: AttachWorkshopOptions): AttachedWorkshop
 
 interface AttachWorkshopOptions {
-  onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | void>
+  onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | 'taken' | void>
   onRefuse?: (refusal: WorkshopRefusalEvent) => void
   onPreview?: (candidate: Workshop | null) => void
   onSelect?: (selection: { cardId: string } | { laneId: string } | null) => void
@@ -65,6 +65,7 @@ interface AttachedWorkshop {
   setReadOnly(readOnly: boolean): void
   refuse(laneId: string, reason: string): void
   setLayout(layout: WorkshopBoardLayout): void
+  toCanvas(cardId: string): string | null   // a card off the lanes as a note beside the board; else the reason it stays
   destroy(): void
   readonly value: Workshop
   readonly origin: { x: number; y: number }
@@ -194,8 +195,17 @@ experience) an ordinary note and a card trade places by being dropped:
   of plain text). The note leaves the slate's drawing (`onNodeDeleted` is sent to collaborators and
   the host's save path) and the board gains the card, with the note's words, its look, and its id
   when the board has no lane or card by that id (otherwise the next free `card-N`). The card glides
-  from where the note was let go into its slot and becomes the selection. Only one ordinary note at a
-  time: a group of selected notes dragged together is an ordinary move.
+  from where the note was let go into its slot and becomes the selection. The card also keeps what
+  the note had that a card does not show (`card.asNote`: its words with their line breaks, its
+  shape and its size), so the same note comes back when the card leaves the lanes.
+- **Several notes carried together** and dropped on a lane all become cards there, as one undo
+  step, or none do: when the lane cannot take them all (it has room for fewer, or one of them is
+  refused), every one glides back to where it started and the lane says why ("One and Two can't go
+  in Later. It has room for 1 more card.").
+- **A note typed inside a lane.** A double-click on a lane makes an ordinary note there; when its
+  words are committed (Enter, or leaving the editor) it is dropped where it is: it becomes a card in
+  that lane, or the lane says why not and the note moves out just beside the board. A note never
+  sits on a lane looking like a card without being one.
 - **A lane that refuses a note** sends it gliding back to where it started, outlines the lane, shows
   the reason in its caption for about 1.5 s, announces it, and calls
   `onRefuse({ noteId, laneId, reason })`, exactly as for a refused card. Nothing is saved, sent or
@@ -204,7 +214,7 @@ experience) an ordinary note and a card trade places by being dropped:
 - **Connectors.** A note joined to other notes by lines stays a note: the lane refuses it with
   "A note joined to other notes by lines stays a note. Remove its lines first." A card is a drawing
   of the model and cannot hold a line to the saved drawing, and a line is never dropped silently.
-  A note with a picture stays a note the same way.
+  A note with a picture, or with a link, stays a note the same way ("Remove its link first.").
 - **A card dropped on empty canvas, outside every lane, becomes an ordinary note** where it was let
   go: it leaves the board, and a note with its words and look is added to the drawing
   (`onNodeAdded`), saved with it and selected. Its id is the card's, unless the slate already holds a
@@ -231,19 +241,35 @@ experience) an ordinary note and a card trade places by being dropped:
 The two new change shapes `onChange` reports:
 
 ```ts
-// An ordinary note became card `cardId` at the foot of `laneId`; the note left the drawing.
-{ cardId, laneId, noteToCard: { noteId, label, look? } }
+// An ordinary note became card `cardId` at the foot of `laneId` (or just before card `before`, where
+// an undo puts it back); the note left the drawing. `asNote`: what the note had that the card does
+// not show (line breaks, shape, size).
+{ cardId, laneId, noteToCard: { noteId, label, look?, asNote?, before? } }
 // Card `cardId` left the board; it is now the ordinary note `noteId` in the drawing.
 { cardId, cardToNote: { noteId } }
 ```
 
-A host saves both like any change. Return a promise of `false` from `onChange` when the save fails
-(the board was refused on the server, say): the drawing half is put back (the note returns to the
-canvas, or leaves it again), so the note and the card are never both gone. The same shapes come
-from this person's undo and redo of a conversion.
+A host saves both like any change, and should save the board and the drawing half in one write
+(the Slatebox app sends the note itself with a `cardToNote`), so a page closed the moment after a
+trade keeps the note or the card, never both and never neither. Return a promise of what the save
+came to from `onChange`:
 
-The engine mechanism is three optional policy hooks (`onFreeMove`, `onFreeDrop`, and `undoState` with
-`onUndoRestore`): any host can use them to take ordinary notes into state of its own.
+- `false`: the save was refused (the lane filled first, say). The drawing half is put back (the note
+  returns to the canvas, or leaves it again) and so is the board, unless the host has drawn a newer
+  board since; a card the host has drawn is never taken away.
+- `'taken'`: someone else made this same trade first (two people dropped the same note on two
+  lanes, or the same card on the canvas). This person's copy of the note leaves the canvas, nothing
+  is brought back, and the board is the host's to draw.
+
+The same shapes come from this person's undo and redo of a conversion.
+
+The engine mechanism is optional policy hooks (`onFreeMove`, `onFreeDrop`, `onFreeGroupDrop`,
+`onFreeTextCommit`, and `undoState` with `onUndoRestore`): any host can use them to take ordinary
+notes into state of its own.
+
+`board.toCanvas(cardId)` takes a card off the lanes as an ordinary note just beside the board, as a
+drop on the canvas would (one undo step, the same `cardToNote` change): what a conversation does
+for "turn this card into a note". It returns null, or the reason the card stays a card.
 
 ## What is selected
 
@@ -262,7 +288,8 @@ change with `slate.onSelectionChange(listener)`.
   the accessibility tree; a lane's accessible name carries what its caption shows.
 - **A double-click on empty space inside a lane** makes an ordinary note there, as it does anywhere
   on the canvas: above the lane, selected, movable, saved with the drawing. It is the document's
-  note until it is dropped on a lane, which (once it has words) makes it a card. Columns are always the backmost notes, so nothing a person puts on a lane is
+  note until its words are committed, when it is dropped where it is (see "Notes and cards are the
+  same thing"). Columns are always the backmost notes, so nothing a person puts on a lane is
   hidden behind it.
 - **The zoom label** follows the view itself, so it is right the moment `fitToContent`,
   `fitToWidth` or any other call changes the zoom.

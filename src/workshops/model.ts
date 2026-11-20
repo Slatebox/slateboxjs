@@ -28,6 +28,19 @@ export interface WorkshopCard {
   dependsOn?: string[]
   /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
   look?: WorkshopCardLook
+  /** What the note it was made from had that a card does not show, so it comes back as it was. */
+  asNote?: WorkshopCardAsNote
+}
+
+/**
+ * What an ordinary note had that its card does not show: its words with their line breaks,
+ * its shape and its size. A card dropped on the canvas becomes that note again.
+ */
+export interface WorkshopCardAsNote {
+  text?: string
+  shape?: string
+  width?: number
+  height?: number
 }
 
 /** The look of one card: what an ordinary note dropped on a lane brings with it. */
@@ -132,6 +145,27 @@ export function workshopCardLookOf(input: Record<string, unknown>): WorkshopCard
     try { if (cardLook({ [key]: value })) look[key] = value } catch { /* not something a card can draw */ }
   }
   return cardLook(look)
+}
+
+/** What a card keeps of the note it was made from: only words, a shape name and a size. */
+function cardAsNote(input: unknown): WorkshopCardAsNote | undefined {
+  const raw = record(input)
+  const kept: WorkshopCardAsNote = {}
+  if (raw.text !== undefined) {
+    if (typeof raw.text !== 'string' || raw.text.length > 400 || /[<>\u0000-\u0009\u000b-\u001f]/.test(raw.text)) throw new Error('A card keeps plain words only.')
+    kept.text = raw.text
+  }
+  if (raw.shape !== undefined) {
+    if (typeof raw.shape !== 'string' || !/^[a-z]{1,24}$/i.test(raw.shape)) throw new Error('A card keeps a shape by its name only.')
+    kept.shape = raw.shape
+  }
+  for (const key of ['width', 'height'] as const) {
+    const size = raw[key]
+    if (size === undefined) continue
+    if (typeof size !== 'number' || !Number.isFinite(size) || size < 10 || size > 4000) throw new Error('A note size is out of range.')
+    kept[key] = size
+  }
+  return Object.keys(kept).length ? kept : undefined
 }
 
 function unique(values: string[], what: string) {
@@ -255,6 +289,10 @@ export function validateWorkshop(input: unknown): Workshop {
     if (raw.look !== undefined) {
       const look = cardLook(raw.look)
       if (look) card.look = look
+    }
+    if (raw.asNote !== undefined) {
+      const kept = cardAsNote(raw.asNote)
+      if (kept) card.asNote = kept
     }
     if (release) {
       if (typeof raw.points !== 'number' || !Number.isInteger(raw.points) || raw.points < 1 || raw.points > 24) {
@@ -424,6 +462,8 @@ export interface WorkshopNoteOffer {
   id: string
   label: string
   look?: WorkshopCardLook
+  /** What the note has that the card will not show (line breaks, shape, size), kept for its way back. */
+  asNote?: WorkshopCardAsNote
 }
 
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -451,18 +491,27 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
   if (note.look !== undefined) {
     try { cardLook(note.look) } catch { return 'This note\'s look can\'t be kept on a card.' }
   }
+  if (note.asNote !== undefined) {
+    try { cardAsNote(note.asNote) } catch { return 'This note\'s shape or words can\'t be kept on a card.' }
+  }
   return null
 }
 
 /**
- * The board with `note` as a card at the foot of `laneId`, or null when the lane's rules
- * refuse it (workshopNoteRefusal says why). The card keeps the note's id where it can.
+ * The board with `note` as a card in `laneId`, or null when the lane's rules refuse it
+ * (workshopNoteRefusal says why). The card goes at the foot of the lane, or just before the
+ * card `before` when that card is in the lane (a card put back by an undo returns to its
+ * place). The card keeps the note's id where it can.
  */
-export function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer): Workshop | null {
+export function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null {
   if (workshopNoteRefusal(board, laneId, note) !== null) return null
   const look = note.look === undefined ? undefined : cardLook(note.look)
-  const card: WorkshopCard = { id: cardIdFor(board, note.id), label: note.label.replace(/\s+/g, ' ').trim(), laneId, ...(look ? { look } : {}) }
-  return validateWorkshop({ ...board, cards: [...board.cards, card] })
+  const asNote = note.asNote === undefined ? undefined : cardAsNote(note.asNote)
+  const card: WorkshopCard = { id: cardIdFor(board, note.id), label: note.label.replace(/\s+/g, ' ').trim(), laneId,
+    ...(look ? { look } : {}), ...(asNote ? { asNote } : {}) }
+  const at = before === undefined ? -1 : board.cards.findIndex(item => item.id === before && item.laneId === laneId)
+  const cards = at < 0 ? [...board.cards, card] : [...board.cards.slice(0, at), card, ...board.cards.slice(at)]
+  return validateWorkshop({ ...board, cards })
 }
 
 /** Why the card may not leave the lanes as an ordinary note; null when it may. */

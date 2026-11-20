@@ -222,6 +222,9 @@ export class Editor {
           // No collab layer (e.g. standalone) — apply directly.
           (node as any).setText?.(newText);
         }
+        // A host may act on where a note with new words is (a note typed on a workshop's
+        // lane becomes a card there).
+        slate?.offerFreeTextCommit?.(node);
       }
     };
 

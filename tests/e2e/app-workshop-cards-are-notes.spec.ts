@@ -225,3 +225,169 @@ test('with a card selected, plain words still work: notes are added, and draftin
     await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.map((c: any) => c.label + '@' + c.laneId)).toContain('Call the printer@later')
   } finally { await removeTestGuest(page, id) }
 })
+
+// cards-fix (2026-11-19): what a hostile review found with two people, a quick reload, several
+// notes at once, a note typed in a lane, and plain words on Free.
+const shown = (page: Page) => page.evaluate(() => {
+  const s = (window as any).slate.v2
+  return { notes: s.freeNodes().map((n: any) => n.id).sort() as string[],
+    cards: [...document.querySelectorAll('#slateCanvas [data-node-id^="card-"]')].map(el => el.getAttribute('data-node-id')!.slice(5)).sort() as string[] }
+})
+
+test('two people drop the same note on two lanes at once: it is one card, and both pages and the server agree', async ({ page, browser }) => {
+  let id: string | null = null, guest: Awaited<ReturnType<typeof joinAsEditor>> | null = null
+  try {
+    const owner = await openBoard(page)
+    id = owner.id
+    const n = await addNote(page, 'Shared note')
+    guest = await joinAsEditor(browser, page)
+    await expect(note(guest.page, n)).toContainText('Shared note')
+    await page.waitForTimeout(800)
+    await Promise.all([carry(page, n, await laneSpot(page, 'now')), carry(guest.page, n, await laneSpot(guest.page, 'later'))])
+    await expect.poll(async () => (await cardsOf(page, owner.key)).split(' ').filter(c => c.startsWith(n + '@')).length, { timeout: 15000 }).toBe(1)
+    await page.waitForTimeout(2500)
+    expect((await stored(page, owner.key)).map(item => item.id)).toEqual([])
+    const mine = await shown(page), theirs = await shown(guest.page)
+    expect(mine.notes).toEqual([])
+    expect(theirs.notes).toEqual([])
+    expect(mine.cards).toContain(n)
+    expect(theirs.cards).toEqual(mine.cards)
+  } finally {
+    if (guest) { await removeTestGuest(guest.page, guest.id).catch(() => undefined); await guest.context.close() }
+    await removeTestGuest(page, id)
+  }
+})
+
+test('two people drop the same card on the canvas at once: it is one note, on both pages and on the server', async ({ page, browser }) => {
+  let id: string | null = null, guest: Awaited<ReturnType<typeof joinAsEditor>> | null = null
+  try {
+    const owner = await openBoard(page)
+    id = owner.id
+    guest = await joinAsEditor(browser, page)
+    await page.waitForTimeout(800)
+    const mineNow = await resting(page, 'column-now'), theirNow = await resting(guest.page, 'column-now')
+    await Promise.all([
+      carry(page, 'card-alpha', { x: mineNow.x - 160, y: mineNow.y + 120 }),
+      carry(guest.page, 'card-alpha', { x: theirNow.x - 160, y: theirNow.y + 360 }),
+    ])
+    await expect.poll(() => cardsOf(page, owner.key), { timeout: 15000 }).toBe('beta@next')
+    await page.waitForTimeout(3000)
+    const texts = (await stored(page, owner.key)).map(item => item.text)
+    expect(texts).toEqual(['Alpha'])
+    expect((await shown(page)).notes).toHaveLength(1)
+    expect((await shown(guest.page)).notes).toEqual((await shown(page)).notes)
+  } finally {
+    if (guest) { await removeTestGuest(guest.page, guest.id).catch(() => undefined); await guest.context.close() }
+    await removeTestGuest(page, id)
+  }
+})
+
+test('a reload the moment after a trade keeps the note or the card, never both and never neither; an undo puts a card back in its place for everyone', async ({ page, browser }) => {
+  let id: string | null = null, guest: Awaited<ReturnType<typeof joinAsEditor>> | null = null
+  try {
+    const three: Workshop = { ...board, cards: [{ id: 'alpha', label: 'Alpha', laneId: 'now' }, { id: 'gamma', label: 'Gamma', laneId: 'now' }, { id: 'delta', label: 'Delta', laneId: 'now' }, { id: 'beta', label: 'Beta', laneId: 'next' }] }
+    await page.goto(new URL('/new/workshop' + encodeWorkshopFragment(three), origin).href)
+    await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
+    await expect.poll(() => userId(page)).toBeTruthy()
+    await dismissWelcome(page)
+    await workshopReady(page)
+    const key = slateKey(page)
+    id = (await userId(page))!
+    await page.waitForTimeout(800)
+    // A card to the canvas, then a reload 150 ms later.
+    const now = await resting(page, 'column-now')
+    await carry(page, 'card-delta', { x: now.x - 160, y: now.y + 200 })
+    await page.waitForTimeout(150)
+    await page.reload()
+    await workshopReady(page)
+    await page.waitForTimeout(1500)
+    expect(await cardsOf(page, key)).toBe('alpha@now gamma@now beta@next')
+    expect((await stored(page, key)).map(item => item.id)).toEqual(['delta'])
+    // A note to a lane, then a reload 150 ms later.
+    await carry(page, 'delta', await laneSpot(page, 'later'))
+    await page.waitForTimeout(150)
+    await page.reload()
+    await workshopReady(page)
+    await page.waitForTimeout(1500)
+    expect(await cardsOf(page, key)).toBe('alpha@now gamma@now beta@next delta@later')
+    expect(await stored(page, key)).toEqual([])
+
+    // Gamma to the canvas and back with Ctrl+Z: between Alpha and Delta in Now again, for a teammate too.
+    await carry(page, 'card-delta', await laneSpot(page, 'now'))
+    await expect.poll(() => cardsOf(page, key)).toBe('alpha@now gamma@now beta@next delta@now')
+    guest = await joinAsEditor(browser, page)
+    await page.waitForTimeout(800)
+    const column = await resting(page, 'column-now')
+    await carry(page, 'card-gamma', { x: column.x - 160, y: column.y + 200 })
+    await expect.poll(() => cardsOf(page, key)).toBe('alpha@now beta@next delta@now')
+    await page.waitForTimeout(1200)
+    await page.mouse.click(5, 300)
+    await page.keyboard.press('ControlOrMeta+z')
+    const inNow = async () => (await storedWorkshop(page, key)).cards.filter((c: any) => c.laneId === 'now').map((c: any) => c.id).join(' ')
+    await expect.poll(inNow).toBe('alpha gamma delta')
+    const order = (p: Page) => p.evaluate(() => ['alpha', 'gamma', 'delta'].map(c => Math.round((window as any).slate.v2.nodes.one('card-' + c)?.options?.y ?? -1)))
+    await expect.poll(async () => { const y = await order(guest!.page); return y[0] < y[1] && y[1] < y[2] }).toBe(true)
+  } finally {
+    if (guest) { await removeTestGuest(guest.page, guest.id).catch(() => undefined); await guest.context.close() }
+    await removeTestGuest(page, id)
+  }
+})
+
+test('several notes dropped on a lane together become cards there; a note typed inside a lane becomes a card in it', async ({ page }) => {
+  let id: string | null = null
+  try {
+    const owner = await openBoard(page)
+    id = owner.id
+    const one = await addNote(page, 'One')
+    const now = await resting(page, 'column-now')
+    const before = await page.evaluate(() => (window as any).slate.v2.freeNodes().map((n: any) => n.id))
+    await page.mouse.dblclick(now.x - 90, now.y + 300)
+    await page.keyboard.type('Two')
+    await page.keyboard.press('Enter')
+    const two = await page.evaluate(known => (window as any).slate.v2.freeNodes().map((n: any) => n.id).find((x: string) => !known.includes(x)) as string, before)
+    await page.evaluate(([a, b]) => { const s = (window as any).slate.v2; s.selectNodes([s.nodes.one(a), s.nodes.one(b)]) }, [one, two])
+    await carry(page, one, await laneSpot(page, 'later'))
+    await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.map((c: any) => c.label + '@' + c.laneId).sort()).toEqual(['Alpha@now', 'Beta@next', 'One@later', 'Two@later'])
+    await expect.poll(() => stored(page, owner.key)).toEqual([])
+
+    // Typed inside Now: a card there, counted in its caption.
+    const inNow = await laneSpot(page, 'now')
+    await page.mouse.dblclick(inNow.x, inNow.y)
+    await page.keyboard.type('Typed in Now')
+    await page.keyboard.press('Enter')
+    await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.map((c: any) => c.label + '@' + c.laneId)).toContain('Typed in Now@now')
+    await expect(caption(page, 'now')).toContainText('2 cards')
+    await page.waitForTimeout(1000)
+    expect(await stored(page, owner.key)).toEqual([])
+  } finally { await removeTestGuest(page, id) }
+})
+
+test('on Free, typed requests are done, not offered as Pro: a card becomes a note, cards by number, a colour', async ({ page }) => {
+  let id: string | null = null
+  try {
+    const owner = await openBoard(page)
+    id = owner.id
+    await openConversation(page)
+    const chat = conversation(page)
+    for (const [message, reply] of [['add three cards to Later', 'Added 3 cards to “Later”.'], ['make this card red', 'Coloured “Alpha” red.']]) {
+      await selectCard(page, 'alpha')
+      await messageBox(page).fill(message)
+      await messageBox(page).press('Enter')
+      await expect(chat.getByRole('log')).toContainText(reply)
+      await expect(chat.getByRole('link', { name: 'See Pro and Team plans' })).toHaveCount(0)
+      await chat.getByRole('button', { name: 'Keep changes', exact: true }).click()
+      await expect(chat.getByRole('log')).toContainText('Saved to the workshop.')
+    }
+    await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.filter((c: any) => c.laneId === 'later').length).toBe(3)
+    expect((await storedWorkshop(page, owner.key)).cards[0].look.backgroundColor).toMatch(/^#/)
+
+    await selectCard(page, 'alpha')
+    await messageBox(page).fill('turn this card into a note')
+    await messageBox(page).press('Enter')
+    await expect(chat.getByRole('log')).toContainText('Making “Alpha” an ordinary note beside the board.')
+    await expect(chat.getByRole('link', { name: 'See Pro and Team plans' })).toHaveCount(0)
+    await chat.getByRole('button', { name: 'Keep changes', exact: true }).click()
+    await expect.poll(() => stored(page, owner.key)).toEqual([{ id: 'alpha', text: 'Alpha' }])
+    expect((await storedWorkshop(page, owner.key)).cards.some((c: any) => c.id === 'alpha')).toBe(false)
+  } finally { await removeTestGuest(page, id) }
+})

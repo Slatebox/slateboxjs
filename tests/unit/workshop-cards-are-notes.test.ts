@@ -126,3 +126,25 @@ describe('a host that draws its cards as its own notes', () => {
     expect(workshopToSlate(next, { native: true, style }).nodes.find(node => node.options.id === 'card-own')!.options.backgroundColor).toBe('#f0d399')
   })
 })
+
+describe('a note and a card trade places without losing what the note had (cards-fix)', () => {
+  it('keeps the note\'s line breaks, shape and size with the card, and validates them', () => {
+    const asNote = { text: 'First line\nSecond line', shape: 'ellipse', width: 120, height: 70 }
+    const next = workshopNoteCandidate(board, 'now', { id: 'shaped', label: 'First line Second line', asNote })!
+    expect(next.cards.at(-1)).toEqual({ id: 'shaped', label: 'First line Second line', laneId: 'now', asNote })
+    expect(validateWorkshop(next)).toEqual(next)
+    expect(() => validateWorkshop({ ...board, signals: undefined, cards: [{ id: 'x', label: 'X', laneId: 'now', asNote: { text: '<script>' } }] })).toThrow()
+    expect(() => validateWorkshop({ ...board, signals: undefined, cards: [{ id: 'x', label: 'X', laneId: 'now', asNote: { width: 1e9 } }] })).toThrow()
+    expect(() => validateWorkshop({ ...board, signals: undefined, cards: [{ id: 'x', label: 'X', laneId: 'now', asNote: { shape: 'url(x)' } }] })).toThrow()
+    expect(validateWorkshop({ ...board, signals: undefined, cards: [{ id: 'x', label: 'X', laneId: 'now', asNote: { width: 90, extra: 1 } }] }).cards[0])
+      .toEqual({ id: 'x', label: 'X', laneId: 'now', asNote: { width: 90 } })
+  })
+
+  it('puts a card back before the card it was in front of, so an undo restores the order', () => {
+    const next = workshopNoteCandidate(board, 'now', { id: 'back', label: 'Back' }, 'beta')!
+    expect(next.cards.map(card => card.id)).toEqual(['alpha', 'back', 'beta', 'gamma'])
+    // A card that is no longer in that lane, or is gone, puts it at the foot.
+    expect(workshopNoteCandidate(board, 'later', { id: 'back', label: 'Back' }, 'beta')!.cards.map(card => card.id)).toEqual(['alpha', 'beta', 'gamma', 'back'])
+    expect(workshopNoteCandidate(board, 'now', { id: 'back', label: 'Back' }, 'gone')!.cards.map(card => card.id)).toEqual(['alpha', 'beta', 'gamma', 'back'])
+  })
+})
