@@ -626,6 +626,38 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     await expect.poll(() => text(page, 'caption-now'), { timeout: 4000 }).toBe('1 card')
   })
 
+  test('a proposal outlines what it adds or changes as provisional, and only that', async ({ page }) => {
+    await open(page)
+    const look = () => page.evaluate(() => Object.fromEntries((window as any).native.slate.nodes.allNodes
+      .filter((n: any) => /^(card|lane)-/.test(n.id))
+      .map((n: any) => [n.id, n.options.borderStyle === 'dashed' ? 'dashed' : 'solid'])))
+    const committed = await look()
+    expect(Object.values(committed).every(style => style === 'solid')).toBe(true)
+    await page.evaluate(async () => {
+      const { board } = (window as any).native
+      const model = board.value
+      board.preview({
+        ...model,
+        lanes: model.lanes.map((lane: any) => lane.id === 'later' ? { ...lane, label: 'Next week' } : lane),
+        cards: [...model.cards.map((card: any) => card.id === 'beta' ? { ...card, laneId: 'later' } : card), { id: 'draft', label: 'Draft', laneId: 'now' }],
+      })
+      await board.whenDrawn()
+    })
+    // The new card, the moved card and the renamed lane are dashed; what the proposal leaves alone is not.
+    await expect.poll(look).toEqual({ ...committed, 'card-beta': 'dashed', 'card-draft': 'dashed', 'lane-later': 'dashed' })
+    await expect(page.locator('#slate [data-node-id="card-draft"]')).toHaveAttribute('data-workshop-proposed', '')
+    await expect(page.locator('#slate [data-node-id="card-alpha"]')).not.toHaveAttribute('data-workshop-proposed', '')
+    // Nothing is committed, and putting the proposal away brings back the committed look.
+    expect((await journal(page)).changes).toEqual([])
+    await page.evaluate(async () => {
+      const { board } = (window as any).native
+      board.preview(null)
+      await board.whenDrawn()
+    })
+    await expect.poll(look).toEqual(committed)
+    await expect(page.locator('#slate [data-workshop-proposed]')).toHaveCount(0)
+  })
+
   test('read-only draws the same artwork with nothing draggable or editable', async ({ page }) => {
     await open(page)
     const artwork = () => page.evaluate(() => (window as any).native.slate.nodes.allNodes.map((n: any) => [n.id, n.options.x, n.options.y, n.options.text].join('|')))

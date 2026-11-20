@@ -147,6 +147,8 @@ type Outcome =
   | { kind: 'candidate'; laneId: string; next: Workshop }
 
 const ACCEPT = '#1f7a5c', OFFER = '#5b9a85', REFUSE = '#c2410c'
+/** The outline of what a host's proposal adds or changes: dashed, so it reads as not yet kept. */
+const PROPOSED = '#2f5fd0'
 const decoration: Partial<NodeCapabilities> = { canMove: false, canSelect: false }
 
 /** What an artwork name (lane-<id>, card-<id>, ...) draws. */
@@ -197,6 +199,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   const style: WorkshopNoteStyle = { ...options.style }
   /** What each lane's column says of a drop while a card is held or staged (see the data-workshop-drop attribute). */
   let drops = new Map<string, 'open' | 'over' | 'refused'>()
+  // The notes a shown proposal adds or changes (drawn dashed, and tagged for assistive tools and tests).
+  let proposed = new Set<string>()
   /** What onSelect was last told, as a string to compare. */
   let told: string | null = null
   /** A selected note is being redrawn after undo, redo or a load; its selection is about to come back. */
@@ -1015,6 +1019,22 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const caption = byId.get(workshopNodeIds.caption(flash.laneId))
       if (caption) { caption.text = flash.reason; caption.foregroundColor = '#b42318' }
     }
+    // A proposal looks provisional where it differs from the committed board: each card it adds,
+    // moves or renames and each lane it adds or changes is outlined dashed.
+    proposed = new Set()
+    if (proposal && model === proposal) {
+      const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+      const mark = (id: string) => {
+        const options = byId.get(id)
+        if (!options) return
+        options.borderStyle = 'dashed'
+        options.borderColor = PROPOSED
+        options.borderWidth = 2
+        proposed.add(noteId(id))
+      }
+      for (const card of model.cards) if (!same(card, value.cards.find(item => item.id === card.id))) mark(workshopNodeIds.card(card.id))
+      for (const lane of model.lanes) if (!same(lane, value.lanes.find(item => item.id === lane.id))) mark(workshopNodeIds.lane(lane.id))
+    }
     // Each note under the id it is drawn as, and each connector between those ids.
     for (const node of nodes) {
       node.options.id = noteId(node.options.id as string)
@@ -1127,6 +1147,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         }
         const label = accessibleName(how.model, id)
         if (label && node.svgGroup.node.getAttribute('aria-label') !== label) node.svgGroup.node.setAttribute('aria-label', label)
+        if (proposed.has(id)) node.svgGroup.node.setAttribute('data-workshop-proposed', '')
+        else node.svgGroup.node.removeAttribute('data-workshop-proposed')
         // What the outline colours say, said in the document too: which lanes take the card in hand.
         const part = kindOf(id)
         if (part?.kind === 'column') {
