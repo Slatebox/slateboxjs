@@ -1,195 +1,215 @@
-const W = Object.freeze(["#6d28d9", "#0f766e", "#a16207", "#be185d", "#1d4ed8", "#4d7c0f"]), gt = 6e3, pt = 600, yt = 6, Ft = { todo: "○", doing: "◌", done: "✓", skipped: "–", stopped: "■" }, L = (e) => {
+const W = Object.freeze(["#6d28d9", "#0f766e", "#a16207", "#be185d", "#1d4ed8", "#4d7c0f"]), xt = 6e3, wt = 600, mt = 6, Dt = { todo: "○", doing: "◌", done: "✓", skipped: "–", stopped: "■" }, _ = (e) => {
   if (e == null) return null;
-  const s = e instanceof Date ? e.getTime() : typeof e == "number" ? e : Date.parse(e);
-  return Number.isFinite(s) ? s : null;
-}, K = (e, s) => e.length > s ? e.slice(0, s - 1).trimEnd() + "…" : e, E = (e) => String(e ?? "").replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, "").replace(/\s+/g, " ").trim();
-function xt(e) {
-  const s = e.plan?.steps ?? [];
-  if (s.length) {
-    const h = s.findIndex((i) => i.status === "doing"), y = s.findIndex((i) => i.status === "stopped");
-    if (y >= 0) return "Stopped: " + E(s[y].text);
-    if (s.every((i) => i.status === "done" || i.status === "skipped")) return "Done";
-    const c = h >= 0 ? h : Math.min(Math.max(e.plan.current ?? 0, 0), s.length - 1);
-    return E(s[c].text);
+  const r = e instanceof Date ? e.getTime() : typeof e == "number" ? e : Date.parse(e);
+  return Number.isFinite(r) ? r : null;
+}, G = (e, r) => e.length > r ? e.slice(0, r - 1).trimEnd() + "…" : e, F = (e) => String(e ?? "").replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, "").replace(/\s+/g, " ").trim();
+function Mt(e) {
+  const r = e.plan?.steps ?? [];
+  if (r.length) {
+    const y = r.findIndex((l) => l.status === "doing"), w = r.findIndex((l) => l.status === "stopped");
+    if (w >= 0) return "Stopped: " + F(r[w].text);
+    if (r.every((l) => l.status === "done" || l.status === "skipped")) return "Done";
+    const c = y >= 0 ? y : Math.min(Math.max(e.plan.current ?? 0, 0), r.length - 1);
+    return F(r[c].text);
   }
-  return E(e.message ?? "") || null;
+  return F(e.message ?? "") || null;
 }
-function ft(e) {
-  return (e.plan?.steps ?? []).map((s) => Ft[s.status] + " " + (s.status === "stopped" ? "Stopped: " : "") + E(s.text));
+function gt(e) {
+  return (e.plan?.steps ?? []).map((r) => Dt[r.status] + " " + (r.status === "stopped" ? "Stopped: " : "") + F(r.text));
 }
-function dt(e, s, { holdMs: p = gt, fadeMs: h = pt, max: y = yt } = {}) {
+function pt(e, r, { holdMs: x = xt, fadeMs: y = wt, max: w = mt } = {}) {
   const c = [];
-  for (const i of e) {
-    if (!i || typeof i.agentKey != "string") continue;
-    const u = L(i.expiresAt), m = L(i.endedAt);
-    if (i.status === "live" && m === null) {
-      if (u === null || s >= u) continue;
-      c.push({ record: i, opacity: 1, until: u });
+  for (const l of e) {
+    if (!l || typeof l.agentKey != "string") continue;
+    const f = _(l.expiresAt), A = _(l.endedAt);
+    if (l.status === "live" && A === null) {
+      if (f === null || r >= f) continue;
+      c.push({ record: l, opacity: 1, until: f });
       continue;
     }
-    const d = (m ?? L(i.updatedAt) ?? s) + p;
-    s >= d + h || c.push({ record: i, opacity: s <= d ? 1 : 1 - (s - d) / h, until: d + h });
+    const p = (A ?? _(l.updatedAt) ?? r) + x;
+    r >= p + y || c.push({ record: l, opacity: r <= p ? 1 : 1 - (r - p) / y, until: p + y });
   }
-  return c.sort((i, u) => (L(u.record.updatedAt) ?? 0) - (L(i.record.updatedAt) ?? 0)), c.slice(0, y);
+  return c.sort((l, f) => (_(f.record.updatedAt) ?? 0) - (_(l.record.updatedAt) ?? 0)), c.slice(0, w);
 }
-function Dt() {
+function Rt() {
   try {
     return typeof matchMedia == "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   } catch {
     return !1;
   }
 }
-const tt = 400, Gt = 250, Kt = 5, nt = 240, Rt = 600, Z = 40, V = 30, et = (e, s) => Math.max(0, Math.min(e.x + e.w, s.x + s.w) - Math.max(e.x, s.x)) * Math.max(0, Math.min(e.y + e.h, s.y + s.h) - Math.max(e.y, s.y));
-function Xt(e, s, p, h, y, c = []) {
-  const i = [{ right: !0, down: !0 }, { right: !1, down: !0 }, { right: !0, down: !1 }, { right: !1, down: !1 }];
-  let u = i[0], m = 1 / 0;
-  for (const M of i) {
-    const d = mt(wt(e, s, p, M), h, y, c);
-    if (d <= 1e-9) return M;
-    d < m && (u = M, m = d);
+const ot = 400, Gt = 250, Kt = 5, Z = 240, Xt = 600, V = 40, $ = 30, st = (e, r) => Math.max(0, Math.min(e.x + e.w, r.x + r.w) - Math.max(e.x, r.x)) * Math.max(0, Math.min(e.y + e.h, r.y + r.h) - Math.max(e.y, r.y));
+function Yt(e, r, x, y, w, c = []) {
+  const l = [{ right: !0, down: !0 }, { right: !1, down: !0 }, { right: !0, down: !1 }, { right: !1, down: !1 }];
+  let f = l[0], A = 1 / 0;
+  for (const v of l) {
+    const p = it(rt(e, r, x, v), y, w, c);
+    if (p <= 1e-9) return v;
+    p < A && (f = v, A = p);
   }
-  return u;
+  return f;
 }
-function wt(e, s, p, h) {
-  const y = h.right ? Z : -(Z + s.w), c = h.down ? V : -(V + s.h);
-  return { x: e.x + y / p, y: e.y + c / p, w: s.w / p, h: s.h / p };
+function rt(e, r, x, y) {
+  const w = y.right ? V : -(V + r.w), c = y.down ? $ : -($ + r.h);
+  return { x: e.x + w / x, y: e.y + c / x, w: r.w / x, h: r.h / x };
 }
-function ht(e, s) {
-  const p = K(E(e.label), 48), h = xt(e), y = h ? K(h, 40) : "", c = Math.max(96, Math.min(nt, 16 + 6.6 * Math.max(p.length, y.length))), i = y ? 38 : 22, u = s ? (e.plan?.steps ?? []).length : 0;
-  return { width: c, height: i, w: Math.max(c, u ? nt : 0), h: i + (u ? 18 + u * 18 : 0) };
+function yt(e, r) {
+  const x = G(F(e.label), 48), y = Mt(e), w = y ? G(y, 40) : "", c = Math.max(96, Math.min(Z, 16 + Math.max(7 * x.length, 6.3 * w.length))), l = w ? 38 : 22, f = r ? (e.plan?.steps ?? []).length : 0;
+  return { width: c, height: l, w: Math.max(c, f ? Z : 0), h: l + (f ? 18 + f * 18 : 0) };
 }
-function Yt(e, s, p, h, y = []) {
-  const c = Math.min(8, e.w / 4, e.h / 4), i = [
+function Bt(e, r, x, y, w = []) {
+  const c = Math.min(8, e.w / 4, e.h / 4), l = [
     { x: e.x + e.w - c, y: e.y + e.h - c, side: { right: !0, down: !0 } },
     { x: e.x + c, y: e.y + e.h - c, side: { right: !1, down: !0 } },
     { x: e.x + e.w - c, y: e.y + c, side: { right: !0, down: !1 } },
     { x: e.x + c, y: e.y + c, side: { right: !1, down: !1 } }
   ];
-  let u = i[0], m = 1 / 0;
-  for (const M of i) {
-    const d = mt(wt(M, s, p, M.side), h, [e], y);
-    if (d <= 1e-9) return M;
-    d < m && (u = M, m = d);
+  let f = l[0], A = 1 / 0;
+  for (const v of l) {
+    const p = it(rt(v, r, x, v.side), y, [e], w);
+    if (p <= 1e-9) return v;
+    p < A && (f = v, A = p);
   }
-  return u;
+  return f;
 }
-function mt(e, s, p, h) {
-  return (s ? e.w * e.h - et(e, s) : 0) * 10 + p.reduce((c, i) => c + et(e, i), 0) * 3 + h.reduce((c, i) => c + et(e, i), 0);
+function it(e, r, x, y) {
+  return (r ? e.w * e.h - st(e, r) : 0) * 10 + x.reduce((c, l) => c + st(e, l), 0) * 3 + y.reduce((c, l) => c + st(e, l), 0);
 }
-function Bt(e, s = {}) {
-  const p = s.now ?? (() => Date.now()), h = s.reducedMotion ?? Dt, y = s.holdMs ?? gt, c = s.fadeMs ?? pt, i = s.maxAgents ?? yt, u = /* @__PURE__ */ new Map(), m = /* @__PURE__ */ new Set();
-  let M = [], d = null, R = null, B = null, F = !1, $ = 0;
-  const Mt = () => (d && d.node?.isConnected !== !1 && d.node?.parentNode || (d = e.canvas.group(), d.attr({ "data-agent-presence": "", "pointer-events": "none" })), d);
-  function q() {
+function Pt(e, r = {}) {
+  const x = r.now ?? (() => Date.now()), y = r.reducedMotion ?? Rt, w = r.holdMs ?? xt, c = r.fadeMs ?? wt, l = r.maxAgents ?? mt, f = /* @__PURE__ */ new Map(), A = /* @__PURE__ */ new Set();
+  let v = [], p = null, K = null, z = null, D = !1, q = 0;
+  const At = () => (p && p.node?.isConnected !== !1 && p.node?.parentNode || (p = e.canvas.group(), p.attr({ "data-agent-presence": "", "pointer-events": "none" })), p);
+  function at() {
     try {
-      const t = e.canvas.viewbox(), n = e.canvas.node?.getBoundingClientRect?.().width || 0;
-      if (t?.width && n) return n / t.width;
+      const t = e.canvas.viewbox(), n = e.canvas.node?.getBoundingClientRect?.();
+      if (!t?.width || !t?.height || !n?.width || !n?.height) return null;
+      const o = String(e.canvas.node?.getAttribute?.("preserveAspectRatio") || "xMidYMid meet"), i = n.width / t.width, d = n.height / t.height, u = o === "none" ? i : /slice/.test(o) ? Math.max(i, d) : Math.min(i, d), g = n.width / u, h = n.height / u;
+      return { view: { x: t.x + (t.width - g) / 2, y: t.y + (t.height - h) / 2, w: g, h }, scale: u };
     } catch {
+      return null;
     }
+  }
+  function U() {
+    const t = at();
+    if (t) return t.scale;
     try {
-      const t = e.getZoom?.();
-      if (typeof t == "number" && t > 0) return t;
+      const n = e.getZoom?.();
+      if (typeof n == "number" && n > 0) return n;
     } catch {
     }
     return 1;
   }
-  const At = () => {
+  const bt = () => {
     try {
       return e.canvas.node?.getBoundingClientRect?.().width || (typeof window < "u" ? window.innerWidth : 1024);
     } catch {
       return 1024;
     }
   };
-  function bt(t) {
-    const o = (e.nodes?.one?.(t) ?? e.nodes?.allNodes?.find?.((a) => a?.options?.name === t))?.options;
+  function vt(t) {
+    const o = (e.nodes?.one?.(t) ?? e.nodes?.allNodes?.find?.((i) => i?.options?.name === t))?.options;
     return !o || typeof o.x != "number" || typeof o.y != "number" ? null : { x: o.x + (o.width || 0) / 2, y: o.y + (o.height || 0) / 2 };
   }
-  function ot(t) {
+  function lt(t) {
     const n = t?.options;
     return !n || ![n.x, n.y, n.width, n.height].every((o) => typeof o == "number" && Number.isFinite(o)) ? null : { x: n.x, y: n.y, w: n.width, h: n.height };
   }
-  const vt = (t) => e.nodes?.one?.(t) ?? e.nodes?.allNodes?.find?.((n) => n?.options?.name === t), st = () => (e.nodes?.allNodes ?? []).map(ot).filter((t) => !!t), St = (t, n) => t.x === n.x && t.y === n.y && t.w === n.w && t.h === n.h;
-  function rt() {
+  const St = (t) => e.nodes?.one?.(t) ?? e.nodes?.allNodes?.find?.((n) => n?.options?.name === t), J = () => (e.nodes?.allNodes ?? []).map(lt).filter((t) => !!t), kt = (t, n) => t.x === n.x && t.y === n.y && t.w === n.w && t.h === n.h;
+  function Q() {
+    const t = at();
+    if (t) return t.view;
     try {
-      const t = e.canvas.viewbox();
-      if (t && [t.x, t.y, t.width, t.height].every((n) => Number.isFinite(n)) && t.width > 0 && t.height > 0)
-        return { x: t.x, y: t.y, w: t.width, h: t.height };
+      const n = e.canvas.viewbox();
+      if (n && [n.x, n.y, n.width, n.height].every((o) => Number.isFinite(o)) && n.width > 0 && n.height > 0)
+        return { x: n.x, y: n.y, w: n.width, h: n.height };
     } catch {
     }
     return null;
   }
-  function kt(t) {
-    let n = 1 / 0, o = 1 / 0;
-    for (const a of e.nodes?.allNodes ?? []) {
-      const f = a?.options;
-      typeof f?.x == "number" && typeof f?.y == "number" && (n = Math.min(n, f.x), o = Math.min(o, f.y));
-    }
-    if (!Number.isFinite(n))
-      try {
-        const a = e.canvas.viewbox();
-        n = a.x + a.width * 0.25, o = a.y + a.height * 0.25;
-      } catch {
-        n = 100, o = 100;
+  function Tt(t, n = { w: Z, h: 38 }, o = 1) {
+    const i = Q();
+    if (i) {
+      const g = 8 / o, h = t * 64 / o, T = [
+        { x: i.x + g, y: i.y + g + h, side: { right: !0, down: !0 } },
+        { x: i.x + i.w - g, y: i.y + g + h, side: { right: !1, down: !0 } },
+        { x: i.x + g, y: i.y + i.h - g - h, side: { right: !0, down: !1 } },
+        { x: i.x + i.w - g, y: i.y + i.h - g - h, side: { right: !1, down: !1 } }
+      ], s = J();
+      let b = T[0], L = 1 / 0;
+      for (const a of T) {
+        const k = it(rt(a, n, o, a.side), i, [], s);
+        if (k <= 1e-9) return a;
+        k < L && (b = a, L = k);
       }
-    return { x: n - 40, y: o - 40 + t * 64 };
+      return b;
+    }
+    let d = 1 / 0, u = 1 / 0;
+    for (const g of e.nodes?.allNodes ?? []) {
+      const h = g?.options;
+      typeof h?.x == "number" && typeof h?.y == "number" && (d = Math.min(d, h.x), u = Math.min(u, h.y));
+    }
+    return Number.isFinite(d) || (d = 100, u = 100), { x: d - 40, y: u - 40 + t * 64, side: null };
   }
-  function Tt(t, n, o) {
-    const { record: a } = t, f = W[(a.colorIndex % W.length + W.length) % W.length], g = xt(a), S = ft(a), b = S.length > 0 && (t.open || !o), N = K(E(a.label), 48);
+  function Lt(t, n, o) {
+    const { record: i } = t, d = W[(i.colorIndex % W.length + W.length) % W.length], u = Mt(i), g = gt(i), h = g.length > 0 && (t.open || !o), T = G(F(i.label), 48);
     t.body?.remove();
-    const r = t.group.group();
-    t.body = r, r.path("M0 0 L14 5 L7 7 L5 14 Z").fill(f).stroke({ color: "#fff", width: 1.5 }).attr("stroke-linejoin", "round");
-    const v = r.group().attr("data-agent-avatar", ""), D = 11, l = 24, I = 24, H = Array.from({ length: 6 }, (x, Q) => {
-      const O = Math.PI / 6 + Q * Math.PI / 3;
-      return (l + D * Math.cos(O)).toFixed(2) + "," + (I + D * Math.sin(O)).toFixed(2);
+    const s = t.group.group();
+    t.body = s, s.path("M0 0 L14 5 L7 7 L5 14 Z").fill(d).stroke({ color: "#fff", width: 1.5 }).attr("stroke-linejoin", "round");
+    const b = s.group().attr("data-agent-avatar", ""), L = 11, a = 24, k = 24, H = Array.from({ length: 6 }, (m, nt) => {
+      const O = Math.PI / 6 + nt * Math.PI / 3;
+      return (a + L * Math.cos(O)).toFixed(2) + "," + (k + L * Math.sin(O)).toFixed(2);
     }).join(" ");
-    v.polygon(H).fill(f).stroke({ color: "#fff", width: 1.5 }), v.text((x) => x.plain(K(E(a.initial).toUpperCase(), 1) || "?")).font({ size: 11, weight: 700, family: "Roboto, Helvetica, Arial, sans-serif", anchor: "middle" }).fill("#fff").attr({ x: l, y: I + 4 }), v.path("M35 10 L36.5 13.5 L40 15 L36.5 16.5 L35 20 L33.5 16.5 L30 15 L33.5 13.5 Z").fill("#fde68a").stroke({ color: f, width: 0.8 });
-    const A = r.group().attr({
+    b.polygon(H).fill(d).stroke({ color: "#fff", width: 1.5 }), b.text((m) => m.plain(G(F(i.initial).toUpperCase(), 1) || "?")).font({ size: 11, weight: 700, family: "Roboto, Helvetica, Arial, sans-serif", anchor: "middle" }).fill("#fff").attr({ x: a, y: k + 4 }), b.path("M35 10 L36.5 13.5 L40 15 L36.5 16.5 L35 20 L33.5 16.5 L30 15 L33.5 13.5 Z").fill("#fde68a").stroke({ color: d, width: 0.8 });
+    const S = s.group().attr({
       "data-agent-tag": "",
       "pointer-events": "all",
-      cursor: S.length ? "pointer" : "default",
+      cursor: g.length ? "pointer" : "default",
       role: "button",
-      tabindex: S.length ? 0 : -1,
-      "aria-expanded": String(b),
-      "aria-label": N + (g ? ": " + g : "")
-    }), _ = g ? K(g, 40) : "", w = ht(a, b), { width: T, height: G } = w, _t = t.path.length ? t.path[t.path.length - 1] : { x: t.x, y: t.y }, k = t.routedSide ?? Xt(_t, w, n, rt(), [], st()), Y = k.right ? Z : -(Z + w.w), z = k.down ? V : -(V + w.h);
-    t.side = k, (!k.right || !k.down) && v.attr("transform", `translate(${k.right ? 0 : -2 * l} ${k.down ? 0 : -2 * I})`), A.attr("data-agent-side", (k.right ? "right" : "left") + "-" + (k.down ? "down" : "up")), A.rect(T, G).radius(7).move(Y, z).fill("#fff").stroke({ color: f, width: 1.5 }), A.text((x) => x.plain(N)).font({ size: 12, weight: 600, family: "Roboto, Helvetica, Arial, sans-serif" }).fill(f).attr({ x: Y + 8, y: z + 15 }), _ && A.text((x) => x.plain(_)).font({ size: 11, family: "Roboto, Helvetica, Arial, sans-serif" }).fill("#374151").attr({ x: Y + 8, y: z + 31 });
-    const ct = (x) => {
-      x.stopPropagation?.(), lt.expand(a.agentKey);
+      tabindex: g.length ? 0 : -1,
+      "aria-expanded": String(h),
+      "aria-label": T + (u ? ": " + u : "")
+    }), E = u ? G(u, 40) : "", M = yt(i, h), { width: N, height: R } = M, Et = t.path.length ? t.path[t.path.length - 1] : { x: t.x, y: t.y }, I = t.routedSide ?? Yt(Et, M, n, Q(), [], J()), Y = I.right ? V : -(V + M.w), B = I.down ? $ : -($ + M.h);
+    t.side = I, (!I.right || !I.down) && b.attr("transform", `translate(${I.right ? 0 : -2 * a} ${I.down ? 0 : -2 * k})`), S.attr("data-agent-side", (I.right ? "right" : "left") + "-" + (I.down ? "down" : "up")), S.rect(N, R).radius(7).move(Y, B).fill("#fff").stroke({ color: d, width: 1.5 }), S.text((m) => m.plain(T)).font({ size: 12, weight: 600, family: "Roboto, Helvetica, Arial, sans-serif" }).fill(d).attr({ x: Y + 8, y: B + 15 }), E && S.text((m) => m.plain(E)).font({ size: 11, family: "Roboto, Helvetica, Arial, sans-serif" }).fill("#374151").attr({ x: Y + 8, y: B + 31 });
+    const dt = (m) => {
+      m.stopPropagation?.(), ft.expand(i.agentKey);
     };
-    if (A.on("pointerdown", (x) => x.stopPropagation?.()), A.on("click", ct), A.on("keydown", (x) => {
-      (x.key === "Enter" || x.key === " ") && (x.preventDefault?.(), ct(x));
-    }), b) {
-      const x = r.group().attr("data-agent-plan", ""), Q = S.length;
-      x.rect(nt, 12 + Q * 18).radius(8).move(Y, z + G + 6).fill("#ffffff").stroke({ color: "#d1d5db", width: 1 }).attr("fill-opacity", 0.97), S.forEach((O, ut) => {
-        const j = a.plan.steps[ut].status;
-        x.text((Et) => Et.plain(K(O, 38))).font({ size: 12, family: "Roboto, Helvetica, Arial, sans-serif", weight: j === "doing" ? 600 : 400 }).fill(j === "done" || j === "skipped" ? "#6b7280" : "#111827").attr({ x: Y + 10, y: z + G + 6 + 20 + ut * 18 }).attr("data-step-status", j);
+    if (S.on("pointerdown", (m) => m.stopPropagation?.()), S.on("click", dt), S.on("keydown", (m) => {
+      (m.key === "Enter" || m.key === " ") && (m.preventDefault?.(), dt(m));
+    }), h) {
+      const m = s.group().attr("data-agent-plan", ""), nt = g.length;
+      m.rect(Z, 12 + nt * 18).radius(8).move(Y, B + R + 6).fill("#ffffff").stroke({ color: "#d1d5db", width: 1 }).attr("fill-opacity", 0.97), g.forEach((O, ht) => {
+        const j = i.plan.steps[ht].status;
+        m.text((Ft) => Ft.plain(G(O, 38))).font({ size: 12, family: "Roboto, Helvetica, Arial, sans-serif", weight: j === "doing" ? 600 : 400 }).fill(j === "done" || j === "skipped" ? "#6b7280" : "#111827").attr({ x: Y + 10, y: B + R + 6 + 20 + ht * 18 }).attr("data-step-status", j);
       });
     }
-    r.element("title").words(N + (g ? " — " + g : "")), t.compact = o, t.lines = S, t.step = g, t.group.transform({ translateX: t.x, translateY: t.y, scale: 1 / n, originX: 0, originY: 0 }), t.group.attr("opacity", t.opacity), $ = n;
+    s.element("title").words(T + (u ? " — " + u : "")), t.compact = o, t.lines = g, t.step = u, t.group.transform({ translateX: t.x, translateY: t.y, scale: 1 / n, originX: 0, originY: 0 }), t.group.attr("opacity", t.opacity), q = n;
   }
-  function it(t, n) {
+  function ct(t, n) {
     t.group.transform({ translateX: t.x, translateY: t.y, scale: 1 / n, originX: 0, originY: 0 }), t.group.attr("opacity", t.opacity);
   }
-  function U(t, n, o, a) {
-    const f = rt(), g = st(), b = t.targets.map((r) => ot(vt(r))).filter((r) => !!r).slice(0, Kt).map((r) => Yt(r, o, a, f, g.filter((v) => !St(v, r))));
-    if (!b.length)
-      return { legs: [{ ...kt(n), ms: tt }], side: null };
-    const N = b.length === 1 ? tt : Gt;
-    return { legs: b.map((r) => ({ x: r.x, y: r.y, ms: N })), side: b[b.length - 1].side };
+  function tt(t, n, o, i) {
+    const d = Q(), u = J(), h = t.targets.map((s) => lt(St(s))).filter((s) => !!s).slice(0, Kt).map((s) => Bt(s, o, i, d, u.filter((b) => !kt(b, s))));
+    if (!h.length) {
+      const s = Tt(n, o, i);
+      return { legs: [{ x: s.x, y: s.y, ms: ot }], side: s.side };
+    }
+    const T = h.length === 1 ? ot : Gt;
+    return { legs: h.map((s) => ({ x: s.x, y: s.y, ms: T })), side: h[h.length - 1].side };
   }
-  const J = (t) => t.targets.some((n) => bt(n) !== null), Lt = (t) => 1 - Math.pow(1 - t, 3);
-  function at(t) {
+  const et = (t) => t.targets.some((n) => vt(n) !== null), It = (t) => 1 - Math.pow(1 - t, 3);
+  function ut(t) {
     let n = !1;
-    for (const o of u.values())
+    for (const o of f.values())
       for (; o.path.length; ) {
-        const a = o.path[0];
-        if (h() || a.ms <= 0) {
-          o.x = a.x, o.y = a.y, o.path.shift(), o.leg = null;
+        const i = o.path[0];
+        if (y() || i.ms <= 0) {
+          o.x = i.x, o.y = i.y, o.path.shift(), o.leg = null;
           continue;
         }
         o.leg || (o.leg = { fromX: o.x, fromY: o.y, startedAt: t });
-        const f = Math.min(1, (t - o.leg.startedAt) / a.ms), g = Lt(f);
-        if (o.x = o.leg.fromX + (a.x - o.leg.fromX) * g, o.y = o.leg.fromY + (a.y - o.leg.fromY) * g, f < 1) {
+        const d = Math.min(1, (t - o.leg.startedAt) / i.ms), u = It(d);
+        if (o.x = o.leg.fromX + (i.x - o.leg.fromX) * u, o.y = o.leg.fromY + (i.y - o.leg.fromY) * u, d < 1) {
           n = !0;
           break;
         }
@@ -198,84 +218,84 @@ function Bt(e, s = {}) {
     return n;
   }
   function X() {
-    if (F) return;
-    const t = p(), n = dt(M, t, { holdMs: y, fadeMs: c, max: i }), o = new Set(n.map((r) => r.record.agentKey));
-    for (const [r, v] of u) o.has(r) || (v.group.remove(), u.delete(r));
+    if (D) return;
+    const t = x(), n = pt(v, t, { holdMs: w, fadeMs: c, max: l }), o = new Set(n.map((s) => s.record.agentKey));
+    for (const [s, b] of f) o.has(s) || (b.group.remove(), f.delete(s));
     if (!n.length) {
       P(null);
       return;
     }
-    const a = Mt();
-    a.front?.();
-    const f = q(), g = n.length >= 2 || At() < Rt;
-    n.forEach(({ record: r, opacity: v }, D) => {
-      let l = u.get(r.agentKey);
-      const I = r.targets.join("\0"), H = m.has(r.agentKey), A = ht(r, ft(r).length > 0 && (H || !g)), _ = [A.w, A.h, f.toFixed(4)].join(",");
-      if (l) {
-        if (l.targetsKey !== I || !l.found && J(r)) {
-          const w = U(r, D, A, f);
-          l.path = w.legs, l.leg = null, l.found = J(r), l.routedSide = w.side, l.routedFor = _;
-        } else if (l.routedFor !== _ && l.found) {
-          const w = U(r, D, A, f), T = w.legs[w.legs.length - 1], G = l.path.length ? l.path[l.path.length - 1] : { x: l.x, y: l.y };
-          (T.x !== G.x || T.y !== G.y) && (l.path = [{ ...T, ms: tt }], l.leg = null), l.routedSide = w.side, l.routedFor = _;
+    const i = At();
+    i.front?.();
+    const d = U(), u = n.length >= 2 || bt() < Xt;
+    n.forEach(({ record: s, opacity: b }, L) => {
+      let a = f.get(s.agentKey);
+      const k = s.targets.join("\0"), H = A.has(s.agentKey), S = yt(s, gt(s).length > 0 && (H || !u)), E = [S.w, S.h, d.toFixed(4)].join(",");
+      if (a) {
+        if (a.targetsKey !== k || !a.found && et(s)) {
+          const M = tt(s, L, S, d);
+          a.path = M.legs, a.leg = null, a.found = et(s), a.routedSide = M.side, a.routedFor = E;
+        } else if (a.routedFor !== E && a.found) {
+          const M = tt(s, L, S, d), N = M.legs[M.legs.length - 1], R = a.path.length ? a.path[a.path.length - 1] : { x: a.x, y: a.y };
+          (N.x !== R.x || N.y !== R.y) && (a.path = [{ ...N, ms: ot }], a.leg = null), a.routedSide = M.side, a.routedFor = E;
         }
       } else {
-        const w = U(r, D, A, f), T = w.legs[0];
-        l = {
-          key: r.agentKey,
-          group: a.group().attr({ "data-agent": r.agentKey }),
+        const M = tt(s, L, S, d), N = M.legs[0];
+        a = {
+          key: s.agentKey,
+          group: i.group().attr({ "data-agent": s.agentKey }),
           body: null,
-          record: r,
-          targetsKey: I,
-          found: J(r),
-          x: T.x,
-          y: T.y,
-          path: w.legs.slice(1),
+          record: s,
+          targetsKey: k,
+          found: et(s),
+          x: N.x,
+          y: N.y,
+          path: M.legs.slice(1),
           leg: null,
           open: H,
-          opacity: v,
-          compact: g,
+          opacity: b,
+          compact: u,
           lines: [],
           step: null,
-          routedSide: w.side,
-          routedFor: _
-        }, u.set(r.agentKey, l);
+          routedSide: M.side,
+          routedFor: E
+        }, f.set(s.agentKey, a);
       }
-      l.targetsKey = I, l.record = r, l.opacity = Math.max(0, Math.min(1, v)), l.open = m.has(r.agentKey), Tt(l, f, g);
+      a.targetsKey = k, a.record = s, a.opacity = Math.max(0, Math.min(1, b)), a.open = A.has(s.agentKey), Lt(a, d, u);
     });
-    const S = at(t);
-    for (const r of u.values()) it(r, f);
-    const b = n.some((r) => r.opacity < 1), N = Math.min(...n.map((r) => r.record.status === "live" && L(r.record.endedAt) === null ? r.until : (L(r.record.endedAt) ?? L(r.record.updatedAt) ?? t) + y));
-    P(S || b ? "frame" : Math.max(16, N - t));
+    const g = ut(t);
+    for (const s of f.values()) ct(s, d);
+    const h = n.some((s) => s.opacity < 1), T = Math.min(...n.map((s) => s.record.status === "live" && _(s.record.endedAt) === null ? s.until : (_(s.record.endedAt) ?? _(s.record.updatedAt) ?? t) + w));
+    P(g || h ? "frame" : Math.max(16, T - t));
   }
   function Nt() {
-    if (R = null, F) return;
-    const t = p(), n = at(t), o = q(), a = dt(M, t, { holdMs: y, fadeMs: c, max: i });
-    if (a.some((g) => g.opacity < 1) || u.size !== a.length || Math.abs(o - $) > 1e-6) {
+    if (K = null, D) return;
+    const t = x(), n = ut(t), o = U(), i = pt(v, t, { holdMs: w, fadeMs: c, max: l });
+    if (i.some((u) => u.opacity < 1) || f.size !== i.length || Math.abs(o - q) > 1e-6) {
       X();
       return;
     }
-    for (const g of u.values()) it(g, o);
+    for (const u of f.values()) ct(u, o);
     n && P("frame");
   }
   function P(t) {
-    R !== null && (cancelAnimationFrame(R), R = null), B !== null && (clearTimeout(B), B = null), !(t === null || F) && (t === "frame" ? R = requestAnimationFrame(Nt) : B = setTimeout(X, Math.min(t, 6e4)));
+    K !== null && (cancelAnimationFrame(K), K = null), z !== null && (clearTimeout(z), z = null), !(t === null || D) && (t === "frame" ? K = requestAnimationFrame(Nt) : z = setTimeout(X, Math.min(t, 6e4)));
   }
   let C = null;
-  const It = () => {
+  const _t = () => {
     C === null && (C = setInterval(() => {
-      F || !u.size || Math.abs(q() - $) > 1e-6 && X();
+      D || !f.size || Math.abs(U() - q) > 1e-6 && X();
     }, 250));
-  }, lt = {
+  }, ft = {
     set(t) {
-      F || (M = Array.isArray(t) ? t.filter((n) => n && typeof n.agentKey == "string") : [], X(), It());
+      D || (v = Array.isArray(t) ? t.filter((n) => n && typeof n.agentKey == "string") : [], X(), _t());
     },
     expand(t, n) {
-      const o = n ?? !m.has(t);
-      o ? m.add(t) : m.delete(t), s.onToggle?.(t, o), X();
+      const o = n ?? !A.has(t);
+      o ? A.add(t) : A.delete(t), r.onToggle?.(t, o), X();
     },
     shown() {
-      return [...u.values()].map((t) => ({
+      return [...f.values()].map((t) => ({
         agentKey: t.key,
         label: t.record.label,
         step: t.step,
@@ -288,26 +308,26 @@ function Bt(e, s = {}) {
       }));
     },
     destroy() {
-      F = !0, P(null), C !== null && clearInterval(C);
-      for (const t of u.values()) t.group.remove();
-      u.clear(), d?.remove(), d = null;
+      D = !0, P(null), C !== null && clearInterval(C);
+      for (const t of f.values()) t.group.remove();
+      f.clear(), p?.remove(), p = null;
     }
   };
-  return lt;
+  return ft;
 }
 export {
-  pt as AGENT_FADE_MS,
-  tt as AGENT_GLIDE_MS,
-  gt as AGENT_HOLD_MS,
-  yt as AGENT_MAX_DRAWN,
+  wt as AGENT_FADE_MS,
+  ot as AGENT_GLIDE_MS,
+  xt as AGENT_HOLD_MS,
+  mt as AGENT_MAX_DRAWN,
   Kt as AGENT_MAX_VISITS,
   W as AGENT_PALETTE,
   Gt as AGENT_VISIT_MS,
-  Yt as agentAnchor,
-  ft as agentChecklist,
-  xt as agentStepText,
-  wt as agentTagBox,
-  Xt as agentTagSide,
-  Bt as createAgentPresence,
-  dt as visibleAgents
+  Bt as agentAnchor,
+  gt as agentChecklist,
+  Mt as agentStepText,
+  rt as agentTagBox,
+  Yt as agentTagSide,
+  Pt as createAgentPresence,
+  pt as visibleAgents
 };
