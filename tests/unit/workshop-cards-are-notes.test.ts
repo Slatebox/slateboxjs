@@ -111,3 +111,18 @@ describe('a card looks like an ordinary note', () => {
     expect(cardOf(nightTransfer, 'rider').backgroundColor).toBe('#ffda75')
   })
 })
+
+describe('a host that draws its cards as its own notes', () => {
+  it('passes a card look that cards take and lanes do not', () => {
+    const style = { fontFamily: 'Manrope', textColor: '#1d2b2a', card: { backgroundColor: '#699bc3', textColor: 'rgba(255, 255, 255, 0.87)', fontSize: 18, cornerRadius: 12 } }
+    const nodes = workshopToSlate(board, { native: true, style }).nodes
+    const card = nodes.find(node => node.options.id === 'card-alpha')!.options
+    const lane = nodes.find(node => node.options.id === 'lane-now')!.options
+    expect(card).toMatchObject({ backgroundColor: '#699bc3', foregroundColor: 'rgba(255, 255, 255, 0.87)', fontSize: 18, fontFamily: 'Manrope' })
+    expect(card.vectorPath).toContain('Q 228 0 228 12')
+    expect(lane.foregroundColor).toBe('#1d2b2a')
+    // A card made from a note still keeps that note's own look over the host's.
+    const next = workshopNoteCandidate(board, 'now', { id: 'own', label: 'Own', look: { backgroundColor: '#f0d399' } })!
+    expect(workshopToSlate(next, { native: true, style }).nodes.find(node => node.options.id === 'card-own')!.options.backgroundColor).toBe('#f0d399')
+  })
+})

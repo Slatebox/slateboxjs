@@ -4,6 +4,8 @@ import { planReleaseMove, releaseLoad, validateRelease } from './release'
 export { releaseLoad, releasePlan } from './release'
 import type { NodeJSON, SlateJSON } from '../core/Serialization'
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults'
+/** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
+export { DEFAULT_NOTE_STYLE }
 
 export interface StationImage {
   src: string
@@ -634,6 +636,11 @@ export interface WorkshopNoteStyle {
   borderWidth?: number
   /** Corner radius of lane headers and cards; 0 is a square-cornered note. */
   cornerRadius?: number
+  /**
+   * How cards are drawn when they should look like the host's own notes rather than like the
+   * lanes: fill, text, type, border and corners. Overrides the fields above for cards only.
+   */
+  card?: WorkshopCardLook & { cornerRadius?: number }
 }
 
 export interface WorkshopArtworkOptions {
@@ -810,9 +817,11 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
       const cardWidth = map ? width - 20 : width, cardHeight = map ? height - 6 : height
       // A card is drawn as the slate draws an ordinary note (a map's token is a playing piece of
       // its own). A card made from a note keeps that note's look.
-      const look = card.look ?? {}
+      const look = map ? {} : { ...style.card, ...card.look }
+      const corner = map ? radius : style.card?.cornerRadius ?? radius
       note({ id: cardNodeId(card.id), text, name: card.label,
         xPos: x + (map ? 18 : 8), yPos: y + top + (image ? stationImageSpace : 0) + i * row, width: cardWidth, height: cardHeight,
+        ...(corner !== radius ? { vectorPath: roundedBox(cardWidth, cardHeight, corner) } : {}),
         backgroundColor: map ? '#ffda75' : look.backgroundColor ?? style.backgroundColor ?? DEFAULT_NOTE_STYLE.backgroundColor,
         ...(look.textColor ? { foregroundColor: look.textColor } : {}), ...(look.fontFamily ? { fontFamily: look.fontFamily } : {}),
         ...(look.borderColor ? { borderColor: look.borderColor } : {}), ...(look.borderWidth !== undefined ? { borderWidth: look.borderWidth } : {}),

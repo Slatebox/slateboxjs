@@ -64,18 +64,15 @@ test('the budget is changed by saying so: starters fill the message, a preview i
     await expect(chat.getByRole('button', { name: 'Keep changes' })).toHaveCount(0)
     expect((await lanesOf(page, owner.key))['fund-1']).toBe('reserve')
 
-    // Something this conversation cannot do is answered in the conversation: what it can do, and examples that work here.
+    // A sentence the workshop's own sentences do not cover goes to the slate's own conversation,
+    // never to a reply that lists what may be said. A question has to be thought up: on Free that
+    // is said plainly, with the one way to Pro or Team. (Restated 2026-11-19: this used to answer
+    // "I did not follow that" with examples.)
     await messageBox(page).fill('Which lane has the most left?')
     await messageBox(page).press('Enter')
-    const reply = chat.getByRole('log').getByText(/^I did not follow that\./)
-    await expect(reply).toBeVisible()
-    await expect(reply).toContainText('I can move, add, rename and remove cards, rename the lanes and set how many cards a lane holds.')
-    const examples = [...(await reply.innerText()).matchAll(/“([^”]+)”/g)].map(match => match[1])
-    expect(examples.length).toBeGreaterThanOrEqual(2)
-    expect(examples.length).toBeLessThanOrEqual(3)
-    // Each example is one of the starters on offer, so it is something that works on this workshop now.
-    const now = await chat.getByLabel('Starter messages').getByRole('button').allInnerTexts()
-    for (const example of examples) expect(now).toContain(example)
+    await expect(chat.getByRole('log')).toContainText('Drafting from a request like this comes with Pro and Team.')
+    await expect(chat.getByRole('log')).not.toContainText('I did not follow that')
+    await expect(chat.getByRole('link', { name: 'See Pro and Team plans' })).toHaveAttribute('href', '/plans')
     await expect(chat.getByRole('alert')).toHaveCount(0)
     await expect(chat.getByRole('button', { name: 'Keep changes' })).toHaveCount(0)
     await expect(messageBox(page)).toHaveValue('')
@@ -114,10 +111,12 @@ test('a map takes its steps as a list and a token is moved on in words', async (
     expect(byLabel('Review').station.next).toEqual([byLabel('Sign-off').id])
     expect(byLabel('Sign-off').station.next).toEqual([byLabel('Done').id])
     expect(saved.cards[0].laneId).toBe(byLabel('Review').id)
-    // A question is answered with what can be done on a map, and nothing is proposed.
+    // A question goes to the slate's own conversation: on Free it needs Pro or Team, said plainly,
+    // and nothing is proposed. (Restated 2026-11-19: this used to list what a map can do.)
     await messageBox(page).fill('What should come next?')
     await messageBox(page).press('Enter')
-    await expect(chat.getByRole('log').getByText(/^I did not follow that\. I can add steps, connect them, rename them and move a token\. Try “/)).toBeVisible()
+    await expect(chat.getByRole('log')).toContainText('Drafting from a request like this comes with Pro and Team.')
+    await expect(chat.getByRole('link', { name: 'See Pro and Team plans' })).toBeVisible()
     await expect(chat.getByRole('button', { name: 'Keep changes' })).toHaveCount(0)
     await noLore(page)
   } finally { await removeTestGuest(page, id) }

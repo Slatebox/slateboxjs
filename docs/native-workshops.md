@@ -56,6 +56,7 @@ interface WorkshopNoteStyle {           // sizes in world units: CSS px at 100% 
   borderColor?: string                  // default #cccccc
   borderWidth?: number                  // default 1
   cornerRadius?: number                 // default 0 (square, like a plain note)
+  card?: WorkshopCardLook & { cornerRadius?: number } // cards only: drawn as the host's own notes
 }
 
 interface AttachedWorkshop {
@@ -110,7 +111,10 @@ model, as new notes.
 With no `style`, lanes and cards are drawn as the engine draws an ordinary note: the same family,
 size, text colour, border and (for cards) fill (`DEFAULT_NOTE_STYLE`, exported from `slateboxjs`),
 with square corners. A host whose notes look different passes that look in `style`, and every lane
-header, caption and card takes it; `style.backgroundColor` is the host's note fill, for cards. A card
+header, caption and card takes it; `style.backgroundColor` is the host's note fill, for cards. A
+host whose notes do not look like its lanes (white text on a coloured note, say) passes that look
+in `style.card` (`backgroundColor`, `textColor`, `fontFamily`, `fontSize`, `borderColor`,
+`borderWidth`, `cornerRadius`): cards take it and lanes and captions do not. A card
 is recognisable as a card by where it sits, in a lane, not by a skin of its own. Lane fills and the
 tint behind each lane stay the workshop's own, and so does a map's token, which is a playing piece.
 
