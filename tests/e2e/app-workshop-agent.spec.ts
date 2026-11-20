@@ -1,9 +1,11 @@
+// Restated (exec): with the installed package, the per-action `read` and `move` commands and the
+// `move_workshop_card` tool became scripts run by `slatebox exec` and the MCP `exec` tool; the
+// named preview finds the card and lane by label in the script, as the command did. Same preview,
+// same save, same replays across MCP, the CLI and HTTP. Keys inside a script are derived from the
+// run's key, so the HTTP replay sends the key the script's call saved under.
 import { randomBytes, randomUUID } from 'node:crypto'
-import { execFile } from 'node:child_process'
-import { createRequire } from 'node:module'
-import { resolve } from 'node:path'
-import { promisify } from 'node:util'
 import { expect, test } from '@playwright/test'
+import { cliResult, derivedKey, installedTools, lit, mcpExec } from './agent-exec.shared'
 import { dismissWelcome, getSlate, shareAs, userId } from './workshop-guests.shared'
 import { conversation, standing, workshopReady } from './app-native-workshop.shared'
 
@@ -74,37 +76,33 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
     expect(await summary()).toEqual(map)
     let saved
     const tools = process.env.SLATEBOX_AGENT_TOOLS_DIR
+    // The key the save was recorded under: with the package, the key its one call derived.
+    let savedKey = key
     if (tools) {
-      const requireTools = createRequire(resolve(tools, 'package.json'))
-      const { Client } = requireTools('@modelcontextprotocol/sdk/client/index.js')
-      const { StdioClientTransport } = requireTools('@modelcontextprotocol/sdk/client/stdio.js')
+      const { Client, StdioClientTransport, cli, server } = installedTools(tools)
       const env = { PATH: process.env.PATH!, SLATEBOX_API_TOKEN: issued.token, SLATEBOX_BASE_URL: origin.origin }
-      const shell = async (...args: string[]) => {
-        const result = await promisify(execFile)(process.execPath, [resolve(tools, 'src/slatebox.js'), ...args], { env })
-        return JSON.parse(result.stdout)
-      }
-      expect((await shell('read', shareId)).workshop).toEqual(map)
-      const namedPreview = await shell('move', shareId, 'Team', 'Ask finance')
+      expect(await cliResult(cli, env, `return (await slatebox.slates.get({ shareId: ${lit(shareId)} })).workshop`)).toEqual(map)
+      const namedPreview = await cliResult(cli, env, `const { workshop } = await slatebox.slates.get({ shareId: ${lit(shareId)} })
+const card = workshop.cards.find((c) => c.label === "Team"), lane = workshop.lanes.find((l) => l.label === "Ask finance")
+return slatebox.slates.applyOperations({ shareId: ${lit(shareId)}, mode: "preview", plan: { message: "Move the workshop card", operations: [{ kind: "move_workshop_card", cardId: card.id, laneId: lane.id, expectedRevision: workshop.revision }] } })`)
       expect(namedPreview.operations).toEqual([move])
       expect(namedPreview.mode).toBe('preview')
       expect(await summary()).toEqual(map)
       const mcp = new Client({ name: 'refund-map-proof', version: '1' })
       try {
-        await mcp.connect(new StdioClientTransport({ command: process.execPath, args: [resolve(tools, 'src/cli.js')], env, stderr: 'ignore' }))
-        const args = { share_id: shareId, card_id: team.id, lane_id: finance.id, expected_revision: map.revision }
-        const preview = await mcp.callTool({ name: 'move_workshop_card', arguments: args })
-        expect(preview.isError).toBeFalsy()
-        expect(preview.structuredContent.mode).toBe('preview')
+        await mcp.connect(new StdioClientTransport({ command: process.execPath, args: [server], env, stderr: 'ignore' }))
+        const moveIt = (mode: string) => `return slatebox.slates.applyOperations({ shareId: ${lit(shareId)}, mode: ${lit(mode)}, plan: { message: "Move the workshop card", operations: [${lit(move)}] } })`
+        const preview = await mcpExec(mcp, moveIt('preview'))
+        expect(preview.status).toBe('completed')
+        expect(preview.result.mode).toBe('preview')
         expect(await summary()).toEqual(map)
-        const commit = await mcp.callTool({ name: 'move_workshop_card', arguments: {
-          ...args, dry_run: false, idempotency_key: key,
-        } })
-        expect(commit.isError).toBeFalsy()
-        expect(commit.structuredContent.mode).toBe('save')
-        saved = commit.structuredContent
-        const cliReplay = await shell('move', shareId, 'Team', 'Ask finance', '--apply',
-          '--revision', String(map.revision), '--idempotency-key', key)
+        const commit = await mcpExec(mcp, moveIt('save'), { idempotencyKey: key })
+        expect(commit.status, JSON.stringify(commit.error)).toBe('completed')
+        expect(commit.result.mode).toBe('save')
+        saved = commit.result
+        const cliReplay = await cliResult(cli, env, moveIt('save'), { key })
         expect(cliReplay).toEqual(saved)
+        savedKey = derivedKey(issued.id, key, 1)
       } finally {
         await mcp.close()
       }
@@ -113,7 +111,7 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
       expect(committed.status()).toBe(201)
       saved = await committed.json()
     }
-    const replay = await submit('save', key)
+    const replay = await submit('save', savedKey)
     expect(replay.status()).toBe(200)
     expect(await replay.json()).toEqual(saved)
     expect((await submit('save', randomUUID())).status()).toBe(409)

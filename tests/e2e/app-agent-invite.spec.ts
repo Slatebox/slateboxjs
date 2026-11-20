@@ -1,10 +1,12 @@
-import { execFile } from 'node:child_process'
+// Restated (exec): the package's per-action CLI commands and MCP tools became `slatebox exec` and
+// the MCP `exec` tool, each running a script against the typed client. Same invitation, same
+// downgrade and retirement, same assertions on what the peer sees. New, deliberately: sharing and
+// revoking are held for the person (widens_access, removes) and saved when the run is confirmed;
+// keys inside a script are derived from the run's key, so the HTTP replays send the derived key.
 import { dragCardNamed, isOffered, workshopReady } from './app-native-workshop.shared'
 import { randomUUID } from 'node:crypto'
-import { createRequire } from 'node:module'
-import { resolve } from 'node:path'
-import { promisify } from 'node:util'
 import { expect, test } from '@playwright/test'
+import { cliConfirmed, cliExec, derivedKey, installedTools, lit, mcpConfirmed } from './agent-exec.shared'
 import { register, retire, type Actor } from './agent-principals.shared'
 import { encodeWorkshopFragment } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, userId } from './workshop-guests.shared'
@@ -24,10 +26,7 @@ test.use({actionTimeout:15000,trace:'off',screenshot:'off',video:'off'})
 
 test('an owner issues a native editor invitation and can downgrade and retire it across the CLI, MCP and HTTP', async ({browser}) => {
   test.skip(!toolsDir || !['localhost','127.0.0.1','test.slatebox.com'].includes(origin.hostname), 'Requires a clean installed package and an isolated or staging app.')
-  const tools = createRequire(resolve(toolsDir!,'package.json'))
-  const manifest = tools('./package.json')
-  const {Client} = tools('@modelcontextprotocol/sdk/client/index.js')
-  const {StdioClientTransport} = tools('@modelcontextprotocol/sdk/client/stdio.js')
+  const {Client,StdioClientTransport,cli,server} = installedTools(toolsDir!)
   const owner:Actor = {page:await browser.newPage(),email:'invite-owner-'+randomUUID()+'@qa.slatebox.invalid',id:null}
   const peer:Actor = {page:await browser.newPage({viewport:{width:390,height:844}}),email:'invite-reviewer-'+randomUUID()+'@qa.slatebox.invalid',id:null}
   let mcp:InstanceType<typeof Client>|undefined
@@ -63,17 +62,20 @@ test('an owner issues a native editor invitation and can downgrade and retire it
     await shareScope.check()
     const manager=await issueToken('Owner-controlled invitation')
     await expect(shareScope).not.toBeChecked()
+    // The token's id: the key a script's call saved under is derived from it.
+    const managerId=(await ownerPage.evaluate(()=>(window as any).Meteor.callAsync('apiTokens.list',{}))).tokens
+      .find((token:{name:string})=>token.name==='Owner-controlled invitation')._id
     const env={PATH:process.env.PATH!,SLATEBOX_BASE_URL:origin.origin,SLATEBOX_API_TOKEN:manager}
-    const cli=async (...args:string[])=>JSON.parse((await promisify(execFile)(process.execPath,[resolve(toolsDir!,manifest.bin.slatebox),...args],{env})).stdout)
     const issueKey=randomUUID()
-    const invitation=await cli('share',shareId,'--role','edit','--idempotency-key',issueKey)
+    const share=(role:string)=>`return slatebox.slates.issueInvite({ shareId: ${lit(shareId)}, role: ${lit(role)} })`
+    const invitation=(await cliConfirmed(cli,env,share('edit'),['widens_access'],{key:issueKey})).result
     expect(invitation.shareId).toBe(shareId)
     expect(invitation.role).toBe('edit')
     expect(/^[a-f0-9]{32}$/.test(invitation.inviteId)).toBe(true)
     const link=new URL(invitation.url)
     expect(link.origin).toBe(origin.origin)
     expect(link.pathname.startsWith('/canvas/') && !link.pathname.includes(shareId)).toBe(true)
-    const httpReplay=await httpIssue(manager,'edit',issueKey)
+    const httpReplay=await httpIssue(manager,'edit',derivedKey(managerId,issueKey,1))
     expect(httpReplay.status()).toBe(200)
     expect((await httpReplay.json()).url === invitation.url).toBe(true)
     await peer.page.goto(link.href)
@@ -89,26 +91,29 @@ test('an owner issues a native editor invitation and can downgrade and retire it
     const back=()=>isOffered(peer.page,'Refund','Support')
     expect(await back()).toBe(true)
     mcp=new Client({name:'native-invite-acceptance',version:'1'})
-    await mcp.connect(new StdioClientTransport({command:process.execPath,args:[resolve(toolsDir!,manifest.bin['slatebox-mcp'])],env,stderr:'ignore'}))
-    const downgraded=await mcp.callTool({name:'create_slate_invite',arguments:{share_id:shareId,role:'read',idempotency_key:randomUUID()}})
-    expect(downgraded.isError).toBeFalsy()
-    expect(downgraded.structuredContent.url === link.href && downgraded.structuredContent.inviteId === invitation.inviteId).toBe(true)
+    await mcp.connect(new StdioClientTransport({command:process.execPath,args:[server],env,stderr:'ignore'}))
+    const downgraded=(await mcpConfirmed(mcp,share('read'),['widens_access'],{idempotencyKey:randomUUID()})).result
+    expect(downgraded.url === link.href && downgraded.inviteId === invitation.inviteId).toBe(true)
     await expect.poll(back).toBe(false)
     await peer.page.reload()
     await workshopReady(peer.page)
     expect(await back()).toBe(false)
     await expect(peer.page.getByRole('button',{name:'Join to edit'})).toHaveCount(0)
     const revokeKey=randomUUID()
-    const revoked=await mcp.callTool({name:'revoke_slate_invite',arguments:{share_id:shareId,invite_id:invitation.inviteId,idempotency_key:revokeKey}})
-    expect(revoked.structuredContent?.revoked).toBe(true)
+    const unshare=`return slatebox.slates.revokeInvite({ shareId: ${lit(shareId)}, inviteId: ${lit(invitation.inviteId)} })`
+    const revoked=(await mcpConfirmed(mcp,unshare,['removes'],{idempotencyKey:revokeKey})).result
+    expect(revoked?.revoked).toBe(true)
     // With the invitation revoked the peer is taken off the slate at once: no workshop, no name, no canvas.
     await expect(peer.page.locator('#slateCanvas [data-node-id^="lane-"], #slateCanvas [data-node-id^="card-"]')).toHaveCount(0)
     await expect(peer.page.locator('.sb-board-name strong').filter({hasText:map.title})).toHaveCount(0)
     await expect(peer.page.locator('#slateCanvas')).toHaveCount(0)
     await expect(peer.page.getByRole('dialog').filter({hasText:'This slate is not accessible.'})).toBeVisible()
-    const replay=await cli('unshare',shareId,'--invite-id',invitation.inviteId,'--idempotency-key',revokeKey)
-    expect(replay.revoked).toBe(true)
-    expect((await httpIssue(manager,'edit',issueKey)).status()).toBe(409)
+    // The same run key replays the saved revocation from the CLI: nothing is held or saved again.
+    const replay=await cliExec(cli,env,unshare,{key:revokeKey})
+    expect(replay.exit).toBe(0)
+    expect(replay.run.result.revoked).toBe(true)
+    expect(replay.run.calls[0].replayed).toBe(true)
+    expect((await httpIssue(manager,'edit',derivedKey(managerId,issueKey,1))).status()).toBe(409)
     await peer.page.goto(link.href)
     await expect.poll(()=>userId(peer.page)).toBe(peer.id)
     await expect.poll(async()=>Boolean(await getSlate(peer.page,link.pathname.split('/').pop()!))).toBe(false)

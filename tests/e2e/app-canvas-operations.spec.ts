@@ -66,8 +66,10 @@ test('agent canvas edits reach both open browsers and survive a reload', async (
   const b = first.to as string
   const c = second.to as string
   const endpoint = new URL('/api/v1/slates/' + shareId + '/operations', origin).href
-  const save = (operations: object[], userMessage = 'Edit the slate') =>
-    request.post(endpoint, { headers, data: { userMessage, plan: { message: 'Done.', operations } } })
+  // Restated (release/agentic): every edit names the revision it was made on, read just before.
+  const revision = async () => (await (await request.get(new URL('/api/v1/slates/' + shareId, origin).href, { headers })).json()).revision
+  const save = async (operations: object[], userMessage = 'Edit the slate') =>
+    request.post(endpoint, { headers, data: { userMessage, expectedRevision: await revision(), plan: { message: 'Done.', operations } } })
 
   await owner.goto(url)
   await dismissWelcome(owner)

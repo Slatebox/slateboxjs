@@ -1,10 +1,10 @@
-import { execFile } from 'node:child_process'
+// Restated (exec): the package's per-action `create` command and `create_slate` tool became a
+// script, `slatebox.slates.create(...)`, run by `slatebox exec` and the MCP `exec` tool. Same
+// slates, same replays across the CLI, MCP and HTTP, same assertions. Keys inside a script are
+// derived from the run's key, so the HTTP replays send the key the script's call saved under.
 import { randomBytes, randomUUID } from 'node:crypto'
-import { readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
-import { resolve } from 'node:path'
-import { promisify } from 'node:util'
 import { expect, test } from '@playwright/test'
+import { cliResult, derivedKey, installedTools, lit, mcpExec } from './agent-exec.shared'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { conversation, workshopReady } from './app-native-workshop.shared'
 
@@ -14,10 +14,7 @@ const installed = process.env.SLATEBOX_AGENT_TOOLS_DIR
 test('packaged tools create private maps and source diagrams through the same operation', async ({ browser, request }) => {
   test.skip(!installed, 'Requires an installed CLI and MCP release package.')
   test.skip(!['localhost', '127.0.0.1', 'test.slatebox.com'].includes(origin.hostname), 'Uses a disposable registered member.')
-  const manifest = JSON.parse(readFileSync(resolve(installed!, 'package.json'), 'utf8'))
-  const tools = createRequire(resolve(installed!, 'package.json'))
-  const { Client } = tools('@modelcontextprotocol/sdk/client/index.js')
-  const { StdioClientTransport } = tools('@modelcontextprotocol/sdk/client/stdio.js')
+  const { Client, StdioClientTransport, cli, server } = installedTools(installed!)
   const owner = await browser.newPage()
   const reader = await browser.newPage({ viewport: { width: 390, height: 844 } })
   owner.setDefaultTimeout(15_000)
@@ -56,10 +53,13 @@ test('packaged tools create private maps and source diagrams through the same op
       return created.token as string
     }
     const write = await issue('Create map proof', ['slates:read', 'slates:write'])
+    const writeId = tokenIds[0]
     const read = await issue('Read map proof', ['slates:read'])
     const url = new URL('/api/v1/slates', origin).href
     const key = randomUUID()
-    const post = (token: string, message: string, idempotencyKey = key) => request.post(url, {
+    // The key the script's one call saved under.
+    const callKey = derivedKey(writeId, key, 1)
+    const post = (token: string, message: string, idempotencyKey = callKey) => request.post(url, {
       headers: { Authorization: 'Bearer ' + token, 'Idempotency-Key': idempotencyKey },
       data: { brief: message },
     })
@@ -68,20 +68,17 @@ test('packaged tools create private maps and source diagrams through the same op
     expect(await mine()).toEqual(initial)
 
     const env = { PATH: process.env.PATH!, SLATEBOX_API_TOKEN: write, SLATEBOX_BASE_URL: origin.origin }
-    const shell = async (...args: string[]) => JSON.parse((await promisify(execFile)(process.execPath, [
-      resolve(installed!, manifest.bin.slatebox), ...args,
-    ], { env })).stdout)
-    const created = await shell('create', brief, '--idempotency-key', key)
+    const create = (input: object) => `return slatebox.slates.create(${lit(input)})`
+    const created = await cliResult(cli, env, create({ brief }), { key })
     expect(created.shareId).toMatch(/^[a-zA-Z0-9]{10}$/)
     expect(created.url).toBe(new URL('/canvas/' + created.shareId, origin).href)
     expect(created.workshop.revision).toBe(0)
     mcp = new Client({ name: 'slatebox-create-acceptance', version: '1' })
-    await mcp.connect(new StdioClientTransport({
-      command: process.execPath, args: [resolve(installed!, manifest.bin['slatebox-mcp'])], env, stderr: 'ignore',
-    }))
-    const replay = await mcp.callTool({ name: 'create_slate', arguments: { brief, idempotency_key: key } })
-    expect(replay.isError).toBeFalsy()
-    expect(replay.structuredContent).toEqual(created)
+    await mcp.connect(new StdioClientTransport({ command: process.execPath, args: [server], env, stderr: 'ignore' }))
+    const replay = await mcpExec(mcp, create({ brief }), { idempotencyKey: key })
+    expect(replay.status).toBe('completed')
+    expect(replay.calls[0].replayed).toBe(true)
+    expect(replay.result).toEqual(created)
     const httpReplay = await post(write, brief)
     expect(httpReplay.status()).toBe(200)
     expect(await httpReplay.json()).toEqual(created)
@@ -133,7 +130,7 @@ test('packaged tools create private maps and source diagrams through the same op
     await show.getByRole('button', { name: 'Next station' }).click()
     await expect(show.getByRole('heading', { name: 'Ask the shop', exact: true })).toBeVisible()
     expect(await userId(reader)).toBeNull()
-    expect((await shell('create', brief, '--idempotency-key', key))).toEqual(created)
+    expect(await cliResult(cli, env, create({ brief }), { key })).toEqual(created)
     expect((await saved()).creative.model.workshop).toEqual(edited)
     expect(await mine()).toEqual([...initial, created.shareId].sort())
 
@@ -142,8 +139,9 @@ test('packaged tools create private maps and source diagrams through the same op
       brief: 'What should support tell someone starting a new call during the outage?',
       kind: 'diagram', source: 'call-status',
     }
+    // Over HTTP, the drawing is made with the key a script run with diagramKey saves its call under.
     const createDrawing = (token: string, body: object) => request.post(url, {
-      headers: { Authorization: 'Bearer ' + token, 'Idempotency-Key': diagramKey }, data: body,
+      headers: { Authorization: 'Bearer ' + token, 'Idempotency-Key': derivedKey(writeId, diagramKey, 1) }, data: body,
     })
     expect((await createDrawing(read, diagram)).status()).toBe(403)
     const fresh = await createDrawing(write, diagram)
@@ -169,9 +167,9 @@ test('packaged tools create private maps and source diagrams through the same op
       }
     }
     expect(drawing.workshop).toBeUndefined()
-    const replayDrawing = () => mcp!.callTool({ name: 'create_slate', arguments: { ...diagram, idempotency_key: diagramKey } })
-    expect((await replayDrawing()).structuredContent).toEqual(drawing)
-    expect(await shell('create', diagram.brief, '--kind', 'diagram', '--source', diagram.source, '--idempotency-key', diagramKey)).toEqual(drawing)
+    const replayDrawing = async () => (await mcpExec(mcp!, create(diagram), { idempotencyKey: diagramKey })).result
+    expect(await replayDrawing()).toEqual(drawing)
+    expect(await cliResult(cli, env, create(diagram), { key: diagramKey })).toEqual(drawing)
     expect((await createDrawing(write, { ...diagram, source: 'interview-notes' })).status()).toBe(409)
     expect((await createDrawing(write, { brief: diagram.brief })).status()).toBe(409)
     expect(await getSlate(reader, drawing.shareId)).toBeFalsy()
@@ -194,7 +192,7 @@ test('packaged tools create private maps and source diagrams through the same op
     await reader.locator('.sb-inline-editor').press('Enter')
     await expect(note).toHaveAttribute('aria-label','Offer to call back')
     await expect.poll(async () => (await getSlate(owner,drawing.shareId)).nodes.find((node:{options:{id:string}}) => node.options.id === 'unavailable')?.options.text).toBe('Offer to call back')
-    expect((await replayDrawing()).structuredContent).toEqual(drawing)
+    expect(await replayDrawing()).toEqual(drawing)
     await owner.reload()
     await expect(note).toHaveAttribute('aria-label','Offer to call back')
     expect(await mine()).toEqual([...initial,created.shareId,drawing.shareId].sort())

@@ -98,7 +98,8 @@ test('two people and a token save through one core: revisions, scoped conflict, 
     expect(await storedText(owner, shareId, ship)).toBe('Ship by the guest')
 
     // A rename by the token: the dashboard's search finds the slate by its new name and its notes.
-    expect((await edit([{ kind: 'update_slate', changes: { name: word + ' launch' } }])).status()).toBe(201)
+    // Restated (release/agentic): every edit names the revision it was made on.
+    expect((await edit([{ kind: 'update_slate', changes: { name: word + ' launch' } }], { expectedRevision: (await read()).revision })).status()).toBe(201)
     const search = (filterString: string) => owner.evaluate(async filterString =>
       ((await (window as any).Meteor.callAsync('slates.get', { type: 'mine', filterString, limit: 20 }))?.slates ?? []).map((s: any) => s.shareId), filterString)
     await expect.poll(() => search(word)).toContain(shareId)

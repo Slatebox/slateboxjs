@@ -1,12 +1,14 @@
-// App spec (P10): the P10 vocabulary written by an agent (MCP
-// apply_slate_operations -> POST /api/v1/slates/{id}/operations) reaches an open
+// App spec (P10): the P10 vocabulary written by an agent (an MCP exec script's
+// slatebox.slates.applyOperations -> POST /api/v1/slates/{id}/operations) reaches an open
 // canvas through the run listener and equals what is stored, and a reload
 // agrees. Optimize Layout (the facade call the Settings button makes) saves a
 // tidy layout.
+// Restated (exec): the MCP tools create_slate and apply_slate_operations became the exec tool
+// running the same calls; each edit reads the slate's revision first and names it, as every
+// edit must. Same plans, same assertions.
 import { randomBytes, randomUUID } from 'node:crypto'
-import { createRequire } from 'node:module'
-import { resolve } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
+import { installedTools, lit, mcpExec } from './agent-exec.shared'
 import { dismissWelcome, getSlate } from './workshop-guests.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL!)
@@ -24,18 +26,21 @@ async function ownerWithTools(owner: Page) {
   await claim.getByRole('button', { name: 'Save my Slatebox' }).click()
   await owner.waitForFunction(() => (window as any).Meteor?.user()?.isAnonymous === false)
   const issued = await owner.evaluate(() => (window as any).Meteor.callAsync('apiTokens.create', { name: 'P10 proof', scopes: ['slates:read', 'slates:write'] }))
-  const requireTools = createRequire(resolve(tools, 'package.json'))
-  const { Client } = requireTools('@modelcontextprotocol/sdk/client/index.js')
-  const { StdioClientTransport } = requireTools('@modelcontextprotocol/sdk/client/stdio.js')
+  const { Client, StdioClientTransport, server } = installedTools(tools)
   const mcp = new Client({ name: 'p10-proof', version: '1' })
-  await mcp.connect(new StdioClientTransport({ command: process.execPath, args: [resolve(tools, 'src/cli.js')],
+  await mcp.connect(new StdioClientTransport({ command: process.execPath, args: [server],
     env: { PATH: process.env.PATH!, SLATEBOX_API_TOKEN: issued.token, SLATEBOX_BASE_URL: origin.origin }, stderr: 'ignore' }))
-  const call = async (name: string, args: object) => {
-    const result = await mcp.callTool({ name, arguments: args })
-    expect(result.isError, name + ': ' + result.content?.[0]?.text).toBeFalsy()
-    return result.structuredContent
+  // create: slatebox.slates.create(input). edit: one canvas plan, saved on the revision read first.
+  const call = async (name: 'create' | 'edit', { idempotencyKey, ...args }: any) => {
+    const code = name === 'create'
+      ? `return slatebox.slates.create(${lit(args)})`
+      : `const { revision } = await slatebox.slates.get({ shareId: ${lit(args.shareId)} })
+return slatebox.slates.applyOperations({ shareId: ${lit(args.shareId)}, expectedRevision: revision, userMessage: ${lit(args.userMessage)}, plan: { message: ${lit(args.message)}, operations: ${lit(args.operations)} } })`
+    const run = await mcpExec(mcp, code, { idempotencyKey })
+    expect(run.status, name + ': ' + JSON.stringify(run.error ?? run.confirmation)).toBe('completed')
+    return run.result
   }
-  const drawing = await call('create_slate', { brief: 'Alpha -> Beta -> Gamma', kind: 'diagram', idempotency_key: randomUUID() })
+  const drawing = await call('create', { brief: 'Alpha -> Beta -> Gamma', kind: 'diagram', idempotencyKey: randomUUID() })
   const nodes: { id: string, text: string }[] = drawing.diagram.nodes
   const cleanup = async () => {
     await mcp.close()
@@ -62,8 +67,8 @@ test('the P10 vocabulary from an agent appears on the open canvas as stored, and
     await owner.goto(t.drawing.url)
     await dismissWelcome(owner)
     for (const n of t.nodes) await expect(note(owner, n.id)).toHaveAttribute('aria-label', n.text, { timeout: 20000 })
-    const saved = await call('apply_slate_operations', {
-      share_id: share, message: 'P10 proof', user_message: 'P10 proof', dry_run: false, idempotency_key: randomUUID(),
+    const saved = await call('edit', {
+      shareId: share, message: 'P10 proof', userMessage: 'P10 proof', idempotencyKey: randomUUID(),
       operations: [
         { kind: 'add_nodes', count: 1, text: 'Delta', ids: ['p10-delta'], placement: { relativeTo: id('Gamma'), direction: 'below', connect: true } },
         { kind: 'add_nodes', count: 1, preset: 'sticky', text: 'Sticky', ids: ['p10-sticky'], x: 2000, y: 2000 },
@@ -109,8 +114,8 @@ test("Optimize Layout runs the engine's tidy layout and saves it", async ({ brow
   const t = await ownerWithTools(owner)
   try {
     const { call, share, id } = t
-    await call('apply_slate_operations', {
-      share_id: share, message: 'Stack', user_message: 'Stack the notes', dry_run: false, idempotency_key: randomUUID(),
+    await call('edit', {
+      shareId: share, message: 'Stack', userMessage: 'Stack the notes', idempotencyKey: randomUUID(),
       operations: [{ kind: 'update_nodes', target: { ids: t.nodes.map(n => n.id) }, changes: { x: 500, y: 500 } }],
     })
     await owner.goto(t.drawing.url)

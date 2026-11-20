@@ -1,10 +1,12 @@
+// Restated (exec): the package's per-action `read`, `order`, `outcome`, `share` and `unshare`
+// commands and its map tools became scripts run by `slatebox exec` and the MCP `exec` tool; a
+// script names scenes by label or id, as the commands did. Same order, same stale refusal, same
+// replay, same presentation. New, deliberately: sharing and revoking are held for the person and
+// saved when the run is confirmed.
 import { startAgentMap } from './map-conversation.shared'
-import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { createRequire } from 'node:module'
-import { resolve } from 'node:path'
-import { promisify } from 'node:util'
 import { expect, firefox, test } from '@playwright/test'
+import { cliConfirmed, cliExec, cliResult, installedTools, lit, mcpExec } from './agent-exec.shared'
 import { register, retire, type Actor } from './agent-principals.shared'
 import { dismissWelcome, getSlate } from './workshop-guests.shared'
 import { expectWorkshopSlide } from './workshop-slide.shared'
@@ -18,10 +20,7 @@ test('an agent orders the scenes that an invited reader actually presents', asyn
   const readerBrowser = await firefox.launch()
   const reader = await readerBrowser.newPage({viewport:{width:390,height:844}})
   const owner:Actor = {page:await browser.newPage(),id:null,email:'scene-owner-'+randomUUID()+'@qa.slatebox.invalid'}
-  const tools = createRequire(resolve(installation!,'package.json'))
-  const manifest = tools('./package.json')
-  const {Client} = tools('@modelcontextprotocol/sdk/client/index.js')
-  const {StdioClientTransport} = tools('@modelcontextprotocol/sdk/client/stdio.js')
+  const {Client,StdioClientTransport,cli,server} = installedTools(installation!)
   let mcp:InstanceType<typeof Client>|undefined
   let withdraw:(()=>Promise<unknown>)|undefined
   try {
@@ -30,38 +29,40 @@ test('an agent orders the scenes that an invited reader actually presents', asyn
       name:'Workshop presentation order fixture',scopes:['slates:read','slates:write','slates:share']
     })).token)
     const env = {PATH:process.env.PATH!,SLATEBOX_BASE_URL:origin.origin,SLATEBOX_API_TOKEN:token}
-    const cli = async (...args:string[]) => JSON.parse((await promisify(execFile)(process.execPath,[
-      resolve(installation!,manifest.bin.slatebox),...args
-    ],{env})).stdout)
     mcp = new Client({name:'map-presentation-test',version:'1'})
-    await mcp.connect(new StdioClientTransport({command:process.execPath,args:[resolve(installation!,manifest.bin['slatebox-mcp'])],env,stderr:'ignore'}))
+    await mcp.connect(new StdioClientTransport({command:process.execPath,args:[server],env,stderr:'ignore'}))
+    const read = async () => cliResult(cli,env,`return (await slatebox.slates.get({ shareId: ${lit(board)} })).workshop`)
+    // One map edit on scenes named by label or id; expectedRevision is the read's unless given.
+    const mapEdit = (operation:string,{mode='save',revision}:{mode?:string,revision?:number}={}) => `const { workshop } = await slatebox.slates.get({ shareId: ${lit(board)} })
+const scene = (name) => workshop.lanes.find((lane) => lane.label === name || lane.id === name).id
+return slatebox.slates.applyOperations({ shareId: ${lit(board)}, mode: ${lit(mode)}, plan: { message: "Map edit", operations: [{ ${operation}, expectedRevision: ${revision===undefined?'workshop.revision':String(revision)} }] } })`
+    const ordering = (names:string[]) => `kind: "set_presentation_order", laneIds: ${lit(names)}.map(scene)`
 
     const order = ['next','start']
     await startAgentMap(owner.page,origin,board)
-    const initial = (await cli('read',board)).workshop
-    const preview = () => cli('order',board,'Next step','Start')
+    const initial = await read()
+    const preview = () => cliResult(cli,env,mapEdit(ordering(['Next step','Start']),{mode:'preview'}))
     const before = await preview()
     expect(before.report.presentationOrder).toEqual(order)
-    expect((await cli('read',board)).workshop).toEqual(initial)
+    expect(await read()).toEqual(initial)
 
     // An ordinary canvas edit after preview must invalidate the prepared save.
     await dragCardNamed(owner.page,'Token','Next step')
     await expect.poll(async () => (await getSlate(owner.page,board)).creative.revision).toBe(initial.revision+1)
-    const apply = (rev:number,key:string) => cli('order',board,...order,'--apply','--revision',String(rev),'--idempotency-key',key)
-    let stale = false
-    try { await apply(initial.revision,randomUUID()) }
-    catch(error){ stale=/HTTP 409/.test((error as {stderr:string}).stderr) }
-    expect(stale).toBe(true)
+    const apply = (rev:number) => mapEdit(ordering(order),{revision:rev})
+    const stale = await cliExec(cli,env,apply(initial.revision),{key:randomUUID()})
+    expect(stale.exit).toBe(7)
+    expect(stale.run.error!.status).toBe(409)
     const fresh = await preview(), key = randomUUID()
-    const saved = await apply(fresh.workshop.revision,key)
+    const saved = await cliResult(cli,env,apply(fresh.workshop.revision),{key})
     expect(saved.report.presentationOrder).toEqual(order)
-    const replay = await mcp.callTool({name:'set_presentation_order',arguments:{
-      share_id:board,scenes:order,expected_revision:fresh.workshop.revision,dry_run:false,idempotency_key:key
-    }})
-    expect(replay.structuredContent).toEqual(saved)
-    const invite = await cli('share',board,'--role','read','--idempotency-key',randomUUID())
+    // The same run key replays the saved order from MCP (calls[0] is the script's read).
+    const replay = await mcpExec(mcp,apply(fresh.workshop.revision),{idempotencyKey:key})
+    expect(replay.calls[1].replayed).toBe(true)
+    expect(replay.result).toEqual(saved)
+    const invite = (await cliConfirmed(cli,env,`return slatebox.slates.issueInvite({ shareId: ${lit(board)}, role: "read" })`,['widens_access'],{key:randomUUID()})).result
     const revokeKey = randomUUID()
-    withdraw = () => cli('unshare',board,'--invite-id',invite.inviteId,'--idempotency-key',revokeKey)
+    withdraw = () => cliConfirmed(cli,env,`return slatebox.slates.revokeInvite({ shareId: ${lit(board)}, inviteId: ${lit(invite.inviteId)} })`,['removes'],{key:revokeKey})
     expect(new URL(invite.url).origin).toBe(origin.origin)
     await reader.goto(invite.url)
     await dismissWelcome(reader)
@@ -92,14 +93,15 @@ test('an agent orders the scenes that an invited reader actually presents', asyn
     await expectWorkshopSlide(reader,'Next step',['Token'],['lane-next','card-'+tokenId])
     await deck.getByRole('button',{name:'Back to board'}).click()
     const outcome = 'The account owner has confirmed the payment.'
-    const edit = await cli('outcome',board,'Next step',outcome)
-    await cli('outcome',board,'Next step',outcome,'--apply','--revision',String(edit.workshop.revision),'--idempotency-key',randomUUID())
+    const outcomeEdit = `kind: "update_map_outcome", stationId: scene("Next step"), outcome: ${lit(outcome)}`
+    const edit = await cliResult(cli,env,mapEdit(outcomeEdit,{mode:'preview'}))
+    await cliResult(cli,env,mapEdit(outcomeEdit,{revision:edit.workshop.revision}),{key:randomUUID()})
     await reader.reload()
     await dismissWelcome(reader)
     await reader.getByRole('button',{name:'Present',exact:true}).click()
     await expectWorkshopSlide(reader,'Next step',['Token'],['lane-next','card-'+tokenId])
     await expect(deck.getByText(outcome,{exact:true}).last()).toBeVisible()
-    const actual = (await cli('read',board)).workshop
+    const actual = await read()
     expect(actual.presentationOrder).toEqual(order)
     expect(actual.lanes.map((x:{id:string})=>x.id)).toEqual(initial.lanes.map((x:{id:string})=>x.id))
     expect(await reader.evaluate(()=>(window as any).Meteor.userId())).toBeNull()
