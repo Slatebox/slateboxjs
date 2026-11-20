@@ -4,6 +4,8 @@
  * Provides overlap removal and auto-layout capabilities.
  */
 
+import { tidyPositions, type LayoutBox } from "../operations/layout";
+
 export interface LayoutMove {
   id: string;
   x: number;
@@ -11,85 +13,38 @@ export interface LayoutMove {
 }
 
 /**
- * Remove overlapping nodes by pushing them apart.
+ * Optimize Layout: move the slate's notes apart until none overlaps another,
+ * with the shared tidy layout that arrange_nodes "tidy" uses, then save the
+ * move with one onNodesMove. Locked notes and notes a host draws stay where
+ * they are and the others go round them.
  *
  * @param slate - The Slate instance
- * @param enableAttraction - If true, nodes are slightly attracted to center
- * @param threshold - Minimum distance between nodes
+ * @param gap - The space to leave between notes
  */
-export function removeLayoutOverlaps(
-  slate: any,
-  enableAttraction: boolean = false,
-  threshold: number = 20
-): void {
-  // Governed notes are placed by their host, never by a layout pass.
-  const nodes = slate.freeNodes?.() ?? slate.nodes.allNodes;
-  if (nodes.length < 2) return;
-
-  const maxIterations = 100;
-  let hasOverlap = true;
-  let iteration = 0;
-
-  while (hasOverlap && iteration < maxIterations) {
-    hasOverlap = false;
-    iteration++;
-
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const a = nodes[i];
-        const b = nodes[j];
-
-        const ax = a.options.x || 0;
-        const ay = a.options.y || 0;
-        const aw = a.options.width || 100;
-        const ah = a.options.height || 60;
-
-        const bx = b.options.x || 0;
-        const by = b.options.y || 0;
-        const bw = b.options.width || 100;
-        const bh = b.options.height || 60;
-
-        // Check overlap
-        const overlapX = ax < bx + bw + threshold && ax + aw + threshold > bx;
-        const overlapY = ay < by + bh + threshold && ay + ah + threshold > by;
-
-        if (overlapX && overlapY) {
-          hasOverlap = true;
-
-          // Push nodes apart
-          const dx = (ax + aw / 2) - (bx + bw / 2);
-          const dy = (ay + ah / 2) - (by + bh / 2);
-          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-          const pushX = (dx / dist) * (threshold / 2);
-          const pushY = (dy / dist) * (threshold / 2);
-
-          a.position(ax + pushX, ay + pushY);
-          b.position(bx - pushX, by - pushY);
-        }
-      }
-    }
-  }
-
-  if (enableAttraction) {
-    // Gently attract nodes toward center of mass
-    const cx = nodes.reduce((sum: number, n: any) => sum + (n.options.x || 0), 0) / nodes.length;
-    const cy = nodes.reduce((sum: number, n: any) => sum + (n.options.y || 0), 0) / nodes.length;
-
-    for (const node of nodes) {
-      const nx = node.options.x || 0;
-      const ny = node.options.y || 0;
-      const dx = cx - nx;
-      const dy = cy - ny;
-      node.position(nx + dx * 0.05, ny + dy * 0.05);
-    }
-  }
-
-  console.log(
-    "LAYOUT_DEBUG: Overlap removal completed in",
-    iteration,
-    "iterations"
-  );
+export function removeLayoutOverlaps(slate: any, gap: number = 20): void {
+  const all: any[] = slate.nodes.allNodes;
+  const free: any[] = slate.freeNodes?.() ?? all;
+  const movable = free.filter((node) => !node.options.isLocked);
+  if (movable.length < 1 || all.length < 2) return;
+  const toBox = (node: any): LayoutBox => ({
+    id: node.id ?? node.options.id,
+    x: node.options.x || 0,
+    y: node.options.y || 0,
+    width: node.options.width || 100,
+    height: node.options.height || 60,
+  });
+  const moving = new Set(movable);
+  const positions = tidyPositions(movable.map(toBox), all.filter((node) => !moving.has(node)).map(toBox), { gap });
+  const moves = positions.filter((position, index) => {
+    const node = movable[index];
+    return position.x !== (node.options.x || 0) || position.y !== (node.options.y || 0);
+  });
+  if (!moves.length) return;
+  moves.forEach((move) => {
+    const node = movable.find((candidate) => (candidate.id ?? candidate.options.id) === move.id);
+    node.position(move.x, move.y);
+  });
+  slate.broadcast?.("onNodesMove", { nodes: moves });
 }
 
 /**

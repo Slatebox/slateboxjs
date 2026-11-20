@@ -219,6 +219,23 @@ describe("NodesManager", () => {
   });
 
   // -----------------------------------------------------------------------
+  // reorder(): the note list is the z-order a save keeps (P10 reorder-note)
+  // -----------------------------------------------------------------------
+  describe("reorder()", () => {
+    it("moves a note to the end (front) or the start (back) of allNodes", () => {
+      manager.add({ id: "a" });
+      manager.add({ id: "b" });
+      manager.add({ id: "c" });
+      manager.reorder("a", "front");
+      expect(manager.allNodes.map((n) => n.id)).toEqual(["b", "c", "a"]);
+      manager.reorder("c", "back");
+      expect(manager.allNodes.map((n) => n.id)).toEqual(["c", "b", "a"]);
+      manager.reorder("missing", "front");
+      expect(manager.allNodes.map((n) => n.id)).toEqual(["c", "b", "a"]);
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // remove()
   // -----------------------------------------------------------------------
   describe("remove()", () => {

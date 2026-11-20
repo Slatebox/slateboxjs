@@ -1023,8 +1023,9 @@ describe("Slate", () => {
   describe("layout API", () => {
     it("removeLayoutOverlaps delegates", () => {
       const slate = new Slate(container);
-      slate.removeLayoutOverlaps(true, 50);
-      expect(Layout.removeLayoutOverlaps).toHaveBeenCalledWith(slate, true, 50);
+      // RESTATED (P10): the gap is the only argument; the pull toward the centre is gone.
+      slate.removeLayoutOverlaps(50);
+      expect(Layout.removeLayoutOverlaps).toHaveBeenCalledWith(slate, 50);
     });
 
     it("applyLayout delegates", () => {

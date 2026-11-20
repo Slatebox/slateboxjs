@@ -2101,13 +2101,18 @@ export class Node {
    */
   public toFront(persist = true) {
     this.svgGroup.front();
-    if (persist) this.slate.broadcast?.("onNodeToFront", { id: this.id });
+    if (!persist) return;
+    // The slate saves notes in list order, so the list carries the z-order.
+    (this.slate.nodes as any)?.reorder?.(this.id, "front");
+    this.slate.broadcast?.("onNodeToFront", { id: this.id });
   }
 
   /** Send the node to the back of the SVG z-order. */
   public toBack(persist = true) {
     this.svgGroup.back();
-    if (persist) this.slate.broadcast?.("onNodeToBack", { id: this.id });
+    if (!persist) return;
+    (this.slate.nodes as any)?.reorder?.(this.id, "back");
+    this.slate.broadcast?.("onNodeToBack", { id: this.id });
   }
 
   /**

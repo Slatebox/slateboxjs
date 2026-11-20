@@ -885,6 +885,19 @@ describe("Visibility", () => {
     expect(bcast).not.toHaveBeenCalled();
   });
 
+  it("a deliberate front or back also moves the note in the slate's note list, which a save keeps (P10)", async () => {
+    const reorder = vi.fn();
+    const node = await createNode();
+    (node.slate as any).nodes = { ...((node.slate as any).nodes || {}), reorder };
+    node.toFront(true);
+    expect(reorder).toHaveBeenCalledWith(node.id, "front");
+    node.toBack();
+    expect(reorder).toHaveBeenCalledWith(node.id, "back");
+    reorder.mockClear();
+    node.toFront(false);
+    expect(reorder).not.toHaveBeenCalled();
+  });
+
   it("handleDoubleClickEdit: text node → inline edit; comment → text pane", async () => {
     const node = await createNode();
     (node as any).editor = { startInline: vi.fn() };

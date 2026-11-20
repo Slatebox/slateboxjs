@@ -86,6 +86,22 @@ export class NodesManager {
     return Array.from(this.nodes.values())
   }
 
+  /**
+   * Move a note to the front (the end of the list, drawn last) or the back
+   * (the start). The list is the order notes are saved and loaded in, so a
+   * reload keeps the z-order a person or an agent chose.
+   */
+  public reorder(id: string, place: "front" | "back"): void {
+    const node = this.nodes.get(id)
+    if (!node) return
+    this.nodes.delete(id)
+    if (place === "front") {
+      this.nodes.set(id, node)
+      return
+    }
+    this.nodes = new Map([[id, node], ...this.nodes])
+  }
+
   public clear(): void {
     this.allNodes.forEach(node => node.remove())
     this.nodes.clear()

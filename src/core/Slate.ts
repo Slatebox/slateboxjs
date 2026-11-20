@@ -29,6 +29,7 @@ import {
   type LayoutMove,
 } from "./Layout";
 import { Association } from "./Relationship";
+import { alignPositions, distributePositions, type AlignMode, type LayoutBox, type Position } from "../operations/layout";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
 import { getAvailableFilters } from "./Filters";
@@ -2190,51 +2191,11 @@ export class Slate {
   public alignNodes(mode: string, nodes?: Node[]): void {
     const sel = this.freeNodes(nodes || this.getSelectedNodes());
     if (!sel || sel.length < 2) return;
-    // Align by each node's VISUAL (rotation-aware) box, and move via a DELTA on the
-    // node's own option position so its rotation is preserved. Aligning raw options.x
-    // made rotated nodes' visual edges disagree with the rest (they "don't line up").
-    const b = sel.map((n) => {
-      const rb = this.rotatedBounds(n);
-      return {
-        n,
-        minX: rb.minX,
-        maxX: rb.maxX,
-        minY: rb.minY,
-        maxY: rb.maxY,
-        cx: (rb.minX + rb.maxX) / 2,
-        cy: (rb.minY + rb.maxY) / 2,
-        ox: n.options.x || 0,
-        oy: n.options.y || 0,
-      };
-    });
-    const gMinX = Math.min(...b.map((o) => o.minX));
-    const gMaxX = Math.max(...b.map((o) => o.maxX));
-    const gMinY = Math.min(...b.map((o) => o.minY));
-    const gMaxY = Math.max(...b.map((o) => o.maxY));
-    const gcx = (gMinX + gMaxX) / 2;
-    const gcy = (gMinY + gMaxY) / 2;
-    for (const o of b) {
-      let x = o.ox;
-      let y = o.oy;
-      switch (mode) {
-        case "left": x = o.ox + (gMinX - o.minX); break;
-        case "right": x = o.ox + (gMaxX - o.maxX); break;
-        case "centerH": x = o.ox + (gcx - o.cx); break;
-        case "top": y = o.oy + (gMinY - o.minY); break;
-        case "bottom": y = o.oy + (gMaxY - o.maxY); break;
-        case "middle": y = o.oy + (gcy - o.cy); break;
-        default: return;
-      }
-      o.n.position(x, y);
-    }
-    this.broadcast("onNodesMove", {
-      nodeOptions: sel.map((n) => v2NodeToV1(n.options)),
-    });
-    // The nodes moved — refresh the selection UI so the dashed group outline (and the
-    // per-node handles) re-wrap the NEW positions. Without this the outline kept its
-    // stale pre-align extent, making aligned nodes look like they'd moved "to the
-    // center" of a too-wide box.
-    this.updateSelectionResizeRotate();
+    if (!["left", "right", "centerH", "top", "bottom", "middle"].includes(mode)) return;
+    // The shared rule (operations/layout), the one arrange_nodes align-* uses:
+    // align by each node's VISUAL (rotation-aware) box and move by a delta on
+    // its own position, so a rotation is kept and the edges you see line up.
+    this.moveToPositions(sel, alignPositions(mode as AlignMode, sel.map((n) => this.layoutBoxOf(n))));
   }
 
   /**
@@ -2245,47 +2206,19 @@ export class Slate {
   public distributeNodes(axis: string, nodes?: Node[]): void {
     const sel = this.freeNodes(nodes || this.getSelectedNodes());
     if (!sel || sel.length < 3) return;
-    // Distribute by each node's VISUAL (rotation-aware) box; move via an option
-    // DELTA so rotation is preserved and the gaps you SEE come out equal.
-    const b = sel.map((n) => {
-      const rb = this.rotatedBounds(n);
-      return {
-        n,
-        minX: rb.minX,
-        maxX: rb.maxX,
-        minY: rb.minY,
-        maxY: rb.maxY,
-        w: rb.maxX - rb.minX,
-        h: rb.maxY - rb.minY,
-        ox: n.options.x || 0,
-        oy: n.options.y || 0,
-      };
-    });
-    if (axis === "horizontal") {
-      b.sort((p, q) => p.minX - q.minX);
-      const left = b[0].minX;
-      const right = b[b.length - 1].maxX;
-      const totalW = b.reduce((s, o) => s + o.w, 0);
-      const gap = (right - left - totalW) / (b.length - 1);
-      let cursor = left;
-      for (const o of b) {
-        o.n.position(o.ox + (cursor - o.minX), o.oy);
-        cursor += o.w + gap;
-      }
-    } else if (axis === "vertical") {
-      b.sort((p, q) => p.minY - q.minY);
-      const top = b[0].minY;
-      const bottom = b[b.length - 1].maxY;
-      const totalH = b.reduce((s, o) => s + o.h, 0);
-      const gap = (bottom - top - totalH) / (b.length - 1);
-      let cursor = top;
-      for (const o of b) {
-        o.n.position(o.ox, o.oy + (cursor - o.minY));
-        cursor += o.h + gap;
-      }
-    } else {
-      return;
-    }
+    if (axis !== "horizontal" && axis !== "vertical") return;
+    // The shared rule, the one arrange_nodes distribute-* uses: by each node's
+    // VISUAL (rotation-aware) box, so the gaps you SEE come out equal.
+    this.moveToPositions(sel, distributePositions(axis, sel.map((n) => this.layoutBoxOf(n))));
+  }
+
+  private layoutBoxOf(node: Node): LayoutBox {
+    const o = node.options;
+    return { id: node.id, x: o.x || 0, y: o.y || 0, width: o.width || 0, height: o.height || 0, rotationAngle: o.rotate?.rotationAngle || 0 };
+  }
+
+  private moveToPositions(sel: Node[], positions: Position[]): void {
+    positions.forEach((position, index) => sel[index].position(position.x, position.y));
     this.broadcast("onNodesMove", {
       nodeOptions: sel.map((n) => v2NodeToV1(n.options)),
     });
@@ -2913,11 +2846,9 @@ export class Slate {
   // ─── Layout API ─────────────────────────────────────────────────
 
   /** Remove overlapping nodes by pushing them apart */
-  public removeLayoutOverlaps(
-    enableAttraction?: boolean,
-    threshold?: number
-  ): void {
-    removeLayoutOverlaps(this, enableAttraction, threshold);
+  /** Optimize Layout: the shared tidy layout over the slate's notes, saved as one move. */
+  public removeLayoutOverlaps(gap?: number): void {
+    removeLayoutOverlaps(this, gap);
   }
 
   /** Apply pre-computed layout moves */
