@@ -115,7 +115,11 @@ export const NODE_KEYS: Record<string, NodeKey> = {
   textOpacity: {
     spec: () => ({ type: "number", min: 0, max: 1 }),
     description: "Text opacity from 0 to 1.",
-    ...plain("textOpacity"),
+    store: (options, value) => {
+      options.textOpacity = value;
+    },
+    // A note with none stored draws its text fully opaque (Node's default).
+    read: (options) => options.textOpacity ?? 1,
   },
   link: {
     spec: () => ({ type: "url", nullable: true }),

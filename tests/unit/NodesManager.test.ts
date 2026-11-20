@@ -533,6 +533,22 @@ describe("NodesManager", () => {
       );
     });
 
+    it("waits for a note still being drawn, so connectors between new notes are not lost (P10 duplicate)", async () => {
+      const parent = manager.add({ id: "newP" });
+      const child = manager.add({ id: "newC" });
+      let finish!: () => void;
+      const ready = new Promise<void>((resolve) => (finish = resolve));
+      (parent as any).ready = ready;
+      (child as any).ready = ready;
+      manager.addRelationship({ id: "newP->newC", parentId: "newP", childId: "newC" });
+      const addAssociation = vi.fn();
+      (parent as any).relationships = { addAssociation, hasAssociationId: () => false };
+      finish();
+      await ready;
+      await Promise.resolve();
+      expect(addAssociation).toHaveBeenCalledWith(child, expect.objectContaining({ id: "newP->newC" }));
+    });
+
     it("warns when either node is missing", () => {
       manager.addRelationship({ parentId: "ghost", childId: "ghost2" });
       expect(console.warn).toHaveBeenCalled();

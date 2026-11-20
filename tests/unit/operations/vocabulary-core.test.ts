@@ -426,3 +426,32 @@ describe("the live applier sends the packages the canvas's own controls send", (
     expect(packages).toEqual([{ type: "onNodesMove", data: expect.objectContaining({ nodes: expect.any(Array) }) }]);
   });
 });
+
+describe("the live applier keeps plan order while the canvas draws new notes", () => {
+  it("holds the packages of later operations until the notes an operation made are ready", async () => {
+    let finish!: () => void;
+    const ready = new Promise<void>((resolve) => (finish = resolve));
+    const stored = slate();
+    const nodes: any[] = stored.nodes.map((n) => ({ id: n.options.id, options: { ...n.options }, relationships: { associations: [] } }));
+    const invoked: string[] = [];
+    const invoke = vi.fn((packages: any[]) => {
+      packages.forEach((pkg) => {
+        invoked.push(pkg.type);
+        if (pkg.type === "onNodeAdded") nodes.push({ id: pkg.data.nodeOptions.id, options: pkg.data.nodeOptions, ready });
+      });
+    });
+    const live = { options: { ...stored.options }, nodes: { allNodes: nodes, one: (id: string) => nodes.find((n) => n.id === id) }, collab: { invoke, send: vi.fn() } };
+    const result = applySlateOperations(
+      live,
+      plan(
+        { kind: "duplicate_nodes", target: { ids: ["a"] }, ids: ["a2"] },
+        { kind: "update_slate", changes: { defaultLineColor: "#ff0055" } },
+      ),
+    );
+    expect(invoked).toEqual(["onNodeAdded"]);
+    expect(live.collab.send).toHaveBeenCalledTimes(1);
+    finish();
+    await result.applied;
+    expect(invoked).toEqual(["onNodeAdded", "onLineColorChanged"]);
+  });
+});

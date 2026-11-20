@@ -377,12 +377,8 @@ export class Invoker {
     // Connectors a host drew between its governed notes keep their own colour.
     ;(this.slate.freeNodes?.() ?? this.slate.nodes.allNodes).forEach((node: any) => {
       node.options.lineColor = pkg.data.color
-      if (node.relationships?.associations) {
-        node.relationships.associations.forEach((a: any) => {
-          a.lineColor = pkg.data.color
-        })
-        node.relationships.refreshOwnRelationships()
-      }
+      // associations is a list of copies; recolour the stored connectors and their lines.
+      node.relationships?.updateAssociationsWith?.({ lineColor: pkg.data.color })
     })
   }
 

@@ -183,11 +183,22 @@ export class NodesManager {
   }
 
   /** Create an association from a collab package: `{parentId, childId, ...opts}` */
-  public addRelationship(relationshipData: any) {
+  public addRelationship(relationshipData: any, waited = false) {
     const { parentId, childId, targetPoint } = relationshipData || {};
     const parent = parentId ? this.one(parentId) : undefined;
     if (!parent) {
       console.warn("NODESMANAGER_DEBUG: addRelationship missing parent", parentId);
+      return;
+    }
+    // A starting note made a moment ago (a duplicate) is still being drawn and
+    // has no relationships yet: join it once it is ready instead of dropping
+    // the connector. (A new far end is joined at once, as before.)
+    const pending = [parent].filter((node: any) => !node.relationships && node.ready);
+    // Wait once: a note that is ready and still has no relationships never will.
+    if (pending.length && !waited) {
+      Promise.all(pending.map((node: any) => node.ready))
+        .then(() => this.addRelationship(relationshipData, true))
+        .catch((error) => console.warn("NODESMANAGER_DEBUG: addRelationship after ready failed", error));
       return;
     }
     // Idempotent by the EXACT association id (parallel edges have distinct ids

@@ -810,6 +810,15 @@ class slate {
     this.v2!.distributeNodes(axis, this.unwrapNodes(nodes));
   }
 
+  /**
+   * Optimize Layout: the engine's tidy layout over every note, saved as one
+   * move. The app's Settings button and AI layout call this on the facade.
+   */
+  public removeLayoutOverlaps(gap?: number): void {
+    this.assertReady();
+    this.v2!.removeLayoutOverlaps(gap);
+  }
+
   private unwrapNodes(nodes?: Array<node | V2Node>): V2Node[] | undefined {
     if (!nodes) return undefined;
     return nodes

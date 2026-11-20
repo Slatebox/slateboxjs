@@ -99,6 +99,7 @@ vi.mock("../../src/core/Slate", () => {
     unlockNodes = vi.fn();
     alignNodes = vi.fn();
     distributeNodes = vi.fn();
+    removeLayoutOverlaps = vi.fn();
     isSelectionLocked = vi.fn(() => true);
     enablePanZoom = vi.fn();
     disablePanZoom = vi.fn();
@@ -522,6 +523,14 @@ describe("slate methods (§C)", () => {
     expect(engine.lockNodes).toHaveBeenCalledWith([a.v2, b.v2]);
     expect(engine.unlockNodes).toHaveBeenCalledWith([a.v2, b.v2]);
     expect(engine.isSelectionLocked).toHaveBeenCalledWith([a.v2, b.v2]);
+  });
+
+  it("delegates removeLayoutOverlaps, so the app's Optimize Layout reaches the engine (P10)", async () => {
+    const s = await initSlate();
+    s.removeLayoutOverlaps(60);
+    s.removeLayoutOverlaps();
+    expect((s.v2 as any).removeLayoutOverlaps).toHaveBeenNthCalledWith(1, 60);
+    expect((s.v2 as any).removeLayoutOverlaps).toHaveBeenNthCalledWith(2, undefined);
   });
 
   it("delegates alignNodes/distributeNodes (F2 facade exposure, mixed wrapper shapes)", async () => {

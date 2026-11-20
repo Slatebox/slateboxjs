@@ -169,20 +169,41 @@ export function applySlateOperations(
   slate: any,
   plan: SlateOperationPlan,
   { userMessage = "", replay = false, ...contract }: { userMessage?: string; replay?: boolean } & ContractOptions = {},
-): { message: string; report: SlateOperationReport; materializedPlan: SlateOperationPlan } {
+): { message: string; report: SlateOperationReport; materializedPlan: SlateOperationPlan; applied: Promise<void> } {
   let current = toStoredSlate(slate);
   const result = applyPlanToJSON(current, plan, { userMessage, replay, ...contract });
   // Replay one operation at a time so each one's packages are read from the
-  // state it left, then send them in order.
-  const packages: any[] = [];
+  // state it left.
+  const batches: Array<{ packages: any[]; created: string[] }> = [];
   for (const operation of result.materializedPlan.operations) {
     const next = applyPlanToJSON(current, { message: plan.message, operations: [operation] }, { userMessage, replay: true, ...contract }).slate;
-    packages.push(...packagesForOperation(operation, current, next));
+    const packages = packagesForOperation(operation, current, next);
+    const before = new Set(current.nodes.map((node) => node.options.id));
+    batches.push({ packages, created: next.nodes.map((node) => node.options.id).filter((id) => !before.has(id)) });
     current = next;
   }
-  if (packages.length) {
-    slate.collab.invoke(packages);
-    slate.collab.send(packages);
+  // A note the canvas has just been asked to make is drawn asynchronously. The
+  // packages of later operations (a connector from it, a new line colour) wait
+  // until it is ready, so they act on it in plan order, as the stored JSON does.
+  const engine = slate.v2 ?? slate;
+  const drawing = (ids: string[]) =>
+    ids.map((id) => engine.nodes?.one?.(id)).filter((node: any) => node?.ready && !node.relationships);
+  const step = (batch: (typeof batches)[number]): Promise<unknown> | null => {
+    if (batch.packages.length) slate.collab.invoke(batch.packages);
+    const waiting = drawing(batch.created);
+    return waiting.length ? Promise.all(waiting.map((node: any) => node.ready)) : null;
+  };
+  let chain: Promise<unknown> | null = null;
+  for (const batch of batches) {
+    if (chain) chain = chain.then(() => step(batch));
+    else chain = step(batch);
   }
-  return { message: result.materializedPlan.message, report: result.report, materializedPlan: result.materializedPlan };
+  const packages = batches.flatMap((batch) => batch.packages);
+  if (packages.length) slate.collab.send(packages);
+  return {
+    message: result.materializedPlan.message,
+    report: result.report,
+    materializedPlan: result.materializedPlan,
+    applied: (chain ?? Promise.resolve()).then(() => undefined),
+  };
 }

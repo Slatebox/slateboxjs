@@ -982,21 +982,26 @@ describe("Invoker", () => {
       expect(mockNode.options.lineColor).toBe("#ff0000");
     });
 
-    it("should update relationship associations when present", () => {
+    // RESTATED (P10): Relationships.associations returns copies, so writing to
+    // them changed nothing that is saved; the old mock's plain array hid that.
+    // The stored connectors are recoloured through updateAssociationsWith.
+    it("recolours the stored connectors, not copies of them", () => {
+      const stored = [{ id: "a->b", lineColor: "#000" }, { id: "a->c", lineColor: "#000" }];
       const relNode = {
         options: {},
         relationships: {
-          associations: [{ lineColor: "#000" }, { lineColor: "#000" }],
-          refreshOwnRelationships: vi.fn(),
+          get associations() {
+            return stored.map((a) => ({ ...a }));
+          },
+          updateAssociationsWith: vi.fn((opts: any) => stored.forEach((a) => Object.assign(a, opts))),
         },
       };
       mockSlate.nodes.allNodes = [relNode];
 
       invoker.onLineColorChanged({ data: { color: "#00ff00" } });
 
-      expect(relNode.relationships.associations[0].lineColor).toBe("#00ff00");
-      expect(relNode.relationships.associations[1].lineColor).toBe("#00ff00");
-      expect(relNode.relationships.refreshOwnRelationships).toHaveBeenCalled();
+      expect(relNode.relationships.updateAssociationsWith).toHaveBeenCalledWith({ lineColor: "#00ff00" });
+      expect(stored.map((a) => a.lineColor)).toEqual(["#00ff00", "#00ff00"]);
     });
   });
 
