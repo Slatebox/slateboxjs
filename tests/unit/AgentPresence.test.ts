@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { SVG } from '@svgdotjs/svg.js'
 import {
-  AGENT_PALETTE, agentChecklist, agentStepText, createAgentPresence, visibleAgents, type AgentPresenceRecord,
+  AGENT_PALETTE, agentChecklist, agentStepText, agentTagBox, agentTagSide, createAgentPresence, visibleAgents, type AgentPresenceRecord,
 } from '../../src/core/AgentPresence'
 
 function fakeSlate(notes: Record<string, { x: number; y: number; width: number; height: number }> = {}) {
@@ -64,7 +64,8 @@ describe('agent presence on a canvas', () => {
     expect(layer.textContent).toContain("Ada's agent · <b>Tool</b>")
     expect(layer.textContent).toContain('Drafting a brief')
     const [shown] = presence.shown()
-    expect(shown).toMatchObject({ x: 200, y: 150, step: 'Drafting a brief' })
+    // The pointer rests just inside the note's lower right corner, so its tag can sit off the note.
+    expect(shown).toMatchObject({ x: 292, y: 192, step: 'Drafting a brief' })
     expect(layer.querySelector('[data-agent] path')!.getAttribute('fill')).toBe(AGENT_PALETTE[0])
     presence.destroy()
     expect(slate.host.querySelector('[data-agent-presence]')).toBeNull()
@@ -74,14 +75,14 @@ describe('agent presence on a canvas', () => {
     const slate = fakeSlate({ a: { x: 0, y: 0, width: 100, height: 100 }, b: { x: 400, y: 0, width: 100, height: 100 }, c: { x: 400, y: 400, width: 100, height: 100 } })
     const presence = createAgentPresence(slate, { now, reducedMotion: () => false })
     presence.set([record({ targets: ['a'] })])
-    expect(presence.shown()[0]).toMatchObject({ x: 50, y: 50 })
+    expect(presence.shown()[0]).toMatchObject({ x: 92, y: 92 })
     presence.set([record({ targets: ['b', 'c'], updatedAt: 2000 })])
     clock += 250
     await new Promise(resolve => setTimeout(resolve, 40))
-    expect(presence.shown()[0].x).toBeCloseTo(450)
+    expect(presence.shown()[0].x).toBeCloseTo(492)
     clock += 250
     await new Promise(resolve => setTimeout(resolve, 40))
-    expect(presence.shown()[0]).toMatchObject({ x: 450, y: 450 })
+    expect(presence.shown()[0]).toMatchObject({ x: 492, y: 492 })
     presence.destroy()
   })
 
@@ -92,7 +93,7 @@ describe('agent presence on a canvas', () => {
     expect(presence.shown()[0]).toMatchObject({ x: -40, y: -40 })
     ;(slate.nodes.allNodes as any[]).push({ options: { id: 'late', x: 300, y: 300, width: 100, height: 50 } })
     presence.set([record({ targets: ['late'] })])
-    expect(presence.shown()[0]).toMatchObject({ x: 350, y: 325 })
+    expect(presence.shown()[0]).toMatchObject({ x: 392, y: 342 })
     presence.destroy()
   })
 
@@ -122,5 +123,52 @@ describe('agent presence on a canvas', () => {
     await new Promise(resolve => setTimeout(resolve, 60))
     expect(presence.shown()).toHaveLength(0)
     presence.destroy()
+  })
+
+  it('puts the tag on the side of the pointer that stays in view and off the note it works on', () => {
+    // Near the right edge: the tag goes left. Near the bottom: it goes up. In the corner: both.
+    const slate = fakeSlate({
+      middle: { x: 300, y: 200, width: 160, height: 80 },
+      right: { x: 640, y: 200, width: 150, height: 80 },
+      bottom: { x: 300, y: 520, width: 160, height: 70 },
+      corner: { x: 640, y: 520, width: 150, height: 70 },
+    })
+    const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
+    const sideOf = (target: string) => {
+      presence.set([record({ targets: [target], message: 'Connect Monday to the customer email' })])
+      return presence.shown()[0].side
+    }
+    expect(sideOf('middle')).toEqual({ right: true, down: true })
+    expect(sideOf('right')).toEqual({ right: false, down: true })
+    expect(sideOf('bottom')).toEqual({ right: true, down: false })
+    expect(sideOf('corner')).toEqual({ right: false, down: false })
+    // Whatever side it takes, the tag stays inside the view box and off its note.
+    for (const target of ['middle', 'right', 'bottom', 'corner']) {
+      presence.set([record({ targets: [target], message: 'Connect Monday to the customer email' })])
+      const tag = slate.host.querySelector('[data-agent-tag] rect') as SVGRectElement
+      const [x, y] = [Number(tag.getAttribute('x')), Number(tag.getAttribute('y'))]
+      const at = presence.shown()[0]
+      const box = { x: at.x + x, y: at.y + y, w: Number(tag.getAttribute('width')), h: Number(tag.getAttribute('height')) }
+      expect(box.x).toBeGreaterThanOrEqual(0)
+      expect(box.y).toBeGreaterThanOrEqual(0)
+      expect(box.x + box.w).toBeLessThanOrEqual(800)
+      expect(box.y + box.h).toBeLessThanOrEqual(600)
+      const note = slate.nodes.one(target)!.options
+      const overlaps = box.x < note.x + note.width && note.x < box.x + box.w && box.y < note.y + note.height && note.y < box.y + box.h
+      expect(overlaps, target).toBe(false)
+    }
+    presence.destroy()
+  })
+
+  it('chooses the side that covers least when every side covers something', () => {
+    const view = { x: 0, y: 0, w: 400, h: 300 }
+    const size = { w: 200, h: 40 }
+    // A note to the right-down of the pointer and one to the left-down: up wins.
+    const at = { x: 200, y: 150 }
+    const rightDown = agentTagBox(at, size, 1, { right: true, down: true })
+    const leftDown = agentTagBox(at, size, 1, { right: false, down: true })
+    expect(agentTagSide(at, size, 1, view, [rightDown, leftDown])).toEqual({ right: true, down: false })
+    // Zoomed out (half a screen pixel per world unit), the tag is twice as big in world units.
+    expect(agentTagBox(at, size, 0.5, { right: true, down: true })).toEqual({ x: 280, y: 210, w: 400, h: 80 })
   })
 })

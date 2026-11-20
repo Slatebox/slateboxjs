@@ -4,6 +4,12 @@
 
 ### Added
 
+- **Agents on the canvas** (`slateboxjs/presence`). `createAgentPresence(slate).set(records)`
+  draws each agent run as a hexagon with a pointer, a named tag and its plan, above the notes. It
+  is its own entry, so a slate no agent works on never loads it; the canvas entry keeps only the
+  small text helpers (`AGENT_PALETTE`, `agentStepText`, `agentChecklist`, `visibleAgents`). The
+  pointer rests inside a corner of the note it works on, and the tag goes on the side that stays
+  in view and off the note's words (`agentTagSide`, `agentAnchor`).
 - **Notes and cards trade places by being dropped.** On a board of plain lanes, an ordinary note
   dropped on a lane (or nudged onto one with the arrow keys) becomes a card there under the lane's
   rules, keeping its words, look and id; a lane that refuses it sends it back and says why. A card

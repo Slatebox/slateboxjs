@@ -114,7 +114,9 @@ export {
 // Host drag policies (governed notes)
 export { FREE_NODE, GOVERNED_NODE, hitTestNodeBoxes } from './core/DragPolicy'
 export { DEFAULT_NOTE_STYLE } from './core/NoteDefaults'
-export { createAgentPresence, AGENT_PALETTE, agentStepText, agentChecklist, visibleAgents, type AgentPresence, type AgentPresenceRecord, type AgentPresenceOptions, type AgentStepStatus } from './core/AgentPresence'
+// Agents on the canvas: what they say and when they show. The drawing (createAgentPresence) is
+// the slateboxjs/presence entry, loaded when the first agent arrives.
+export { AGENT_PALETTE, agentStepText, agentChecklist, visibleAgents, type AgentPresenceRecord, type AgentStepStatus } from './core/agentPresenceText'
 export type {
   DragPolicy,
   DragVerdict,

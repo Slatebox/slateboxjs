@@ -11,25 +11,12 @@
 
 import { prefersReducedMotion } from './DragPolicy'
 
-export type AgentStepStatus = 'todo' | 'doing' | 'done' | 'skipped' | 'stopped'
+import {
+  AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, agentChecklist, agentStepText, clip, plainLine, time, visibleAgents,
+  type AgentPresenceRecord, type AgentStepStatus,
+} from './agentPresenceText'
 
-export interface AgentPresenceRecord {
-  /** Stable per token and slate; never a token id. */
-  agentKey: string
-  /** "Ada's agent" or "Ada's agent · Client name". */
-  label: string
-  initial: string
-  colorIndex: number
-  /** Note ids, or card-<id> / lane-<id> for a workshop. */
-  targets: string[]
-  plan?: { steps: { text: string; status: AgentStepStatus }[]; current: number } | null
-  /** What the run is doing when it sent no plan (the save's message). */
-  message?: string | null
-  status: 'live' | 'done' | 'stopped'
-  updatedAt: number | string | Date
-  endedAt?: number | string | Date | null
-  expiresAt: number | string | Date
-}
+export { AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, agentChecklist, agentStepText, visibleAgents, type AgentPresenceRecord, type AgentStepStatus }
 
 export interface AgentPresenceOptions {
   now?: () => number
@@ -49,77 +36,19 @@ export interface AgentPresence {
   /** Open or close an agent's full checklist (the tag does this when tapped). */
   expand(agentKey: string, open?: boolean): void
   /** What is drawn now, for hosts and tests. */
-  shown(): { agentKey: string; label: string; step: string | null; x: number; y: number; opacity: number; compact: boolean; lines: string[] }[]
+  shown(): { agentKey: string; label: string; step: string | null; x: number; y: number; opacity: number; compact: boolean; lines: string[]; side: { right: boolean; down: boolean } }[]
   destroy(): void
 }
-
-/** Agent colours. People's colours never use these; the shape, not only the colour, says "agent". */
-export const AGENT_PALETTE: readonly string[] = Object.freeze(['#6d28d9', '#0f766e', '#a16207', '#be185d', '#1d4ed8', '#4d7c0f'])
 
 export const AGENT_GLIDE_MS = 400
 export const AGENT_VISIT_MS = 250
 export const AGENT_MAX_VISITS = 5
-export const AGENT_HOLD_MS = 6000
-export const AGENT_FADE_MS = 600
-export const AGENT_MAX_DRAWN = 6
 const CARD_WIDTH = 240
 const NARROW = 600
+/** Where the tag starts from the pointer's tip, in screen pixels (past the avatar). */
+const TAG_DX = 40
+const TAG_DY = 30
 
-const GLYPH: Record<AgentStepStatus, string> = { todo: '○', doing: '◌', done: '✓', skipped: '–', stopped: '■' }
-
-const time = (value: number | string | Date | null | undefined): number | null => {
-  if (value === null || value === undefined) return null
-  const ms = value instanceof Date ? value.getTime() : typeof value === 'number' ? value : Date.parse(value)
-  return Number.isFinite(ms) ? ms : null
-}
-
-const clip = (text: string, max: number) => (text.length > max ? text.slice(0, max - 1).trimEnd() + '…' : text)
-/** Text as it is drawn: one line of plain characters (the server cleans it; this keeps the canvas safe anyway). */
-const plainLine = (text: unknown) => String(text ?? '').replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, '').replace(/\s+/g, ' ').trim()
-
-/** The step a tag shows: the plan's current step, or the save's message when there is no plan. */
-export function agentStepText(record: AgentPresenceRecord): string | null {
-  const steps = record.plan?.steps ?? []
-  if (steps.length) {
-    const doing = steps.findIndex(step => step.status === 'doing')
-    const stopped = steps.findIndex(step => step.status === 'stopped')
-    if (stopped >= 0) return 'Stopped: ' + plainLine(steps[stopped].text)
-    if (steps.every(item => item.status === 'done' || item.status === 'skipped')) return 'Done'
-    const index = doing >= 0 ? doing : Math.min(Math.max(record.plan!.current ?? 0, 0), steps.length - 1)
-    return plainLine(steps[index].text)
-  }
-  const message = plainLine(record.message ?? '')
-  return message || null
-}
-
-/** The checklist lines a record shows, each with its glyph. */
-export function agentChecklist(record: AgentPresenceRecord): string[] {
-  return (record.plan?.steps ?? []).map(step => GLYPH[step.status] + ' ' + (step.status === 'stopped' ? 'Stopped: ' : '') + plainLine(step.text))
-}
-
-/**
- * Which records are drawn at `now`, and how: a live record until it expires (a run that went
- * silent), an ended one for holdMs and then fading for fadeMs. At most `max`, newest first.
- */
-export function visibleAgents(records: AgentPresenceRecord[], now: number, { holdMs = AGENT_HOLD_MS, fadeMs = AGENT_FADE_MS, max = AGENT_MAX_DRAWN } = {}) {
-  const out: { record: AgentPresenceRecord; opacity: number; until: number }[] = []
-  for (const record of records) {
-    if (!record || typeof record.agentKey !== 'string') continue
-    const expires = time(record.expiresAt)
-    const ended = time(record.endedAt)
-    if (record.status === 'live' && ended === null) {
-      if (expires === null || now >= expires) continue
-      out.push({ record, opacity: 1, until: expires })
-      continue
-    }
-    const end = ended ?? time(record.updatedAt) ?? now
-    const fadeAt = end + holdMs
-    if (now >= fadeAt + fadeMs) continue
-    out.push({ record, opacity: now <= fadeAt ? 1 : 1 - (now - fadeAt) / fadeMs, until: fadeAt + fadeMs })
-  }
-  out.sort((a, b) => (time(b.record.updatedAt) ?? 0) - (time(a.record.updatedAt) ?? 0))
-  return out.slice(0, max)
-}
 
 interface Drawn {
   key: string
@@ -138,6 +67,79 @@ interface Drawn {
   compact: boolean
   lines: string[]
   step: string | null
+  /** Which side of the pointer its tag is on. */
+  side?: { right: boolean; down: boolean }
+  /** The side its route chose for its last target, or null when it points at no note. */
+  routedSide?: { right: boolean; down: boolean } | null
+  /** The tag block size and zoom the route was chosen for. */
+  routedFor?: string
+}
+
+interface Box { x: number; y: number; w: number; h: number }
+const overlap = (a: Box, b: Box) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y))
+
+/**
+ * Which side of its pointer an agent's tag (and open checklist) goes: right and down unless that
+ * leaves the view or covers words. Tried in order: right-down, left-down, right-up, left-up; the
+ * first that stays in view and covers no target note wins, else the one that covers least (a
+ * target note's words count three times another note's, and anything off screen counts most).
+ * `at` is the pointer, `size` the tag block in screen pixels, `scale` screen pixels per world unit.
+ */
+export function agentTagSide(at: { x: number; y: number }, size: { w: number; h: number }, scale: number, view: Box | null, targets: Box[], others: Box[] = []): { right: boolean; down: boolean } {
+  const sides = [{ right: true, down: true }, { right: false, down: true }, { right: true, down: false }, { right: false, down: false }]
+  let best = sides[0], bestScore = Infinity
+  for (const side of sides) {
+    const score = tagScore(agentTagBox(at, size, scale, side), view, targets, others)
+    if (score <= 1e-9) return side
+    if (score < bestScore) { best = side; bestScore = score }
+  }
+  return best
+}
+
+/** The world box the tag block takes on one side of its pointer. */
+export function agentTagBox(at: { x: number; y: number }, size: { w: number; h: number }, scale: number, side: { right: boolean; down: boolean }): Box {
+  const left = side.right ? TAG_DX : -(TAG_DX + size.w)
+  const top = side.down ? TAG_DY : -(TAG_DY + size.h)
+  return { x: at.x + left / scale, y: at.y + top / scale, w: size.w / scale, h: size.h / scale }
+}
+
+/** The tag block an agent draws, in screen pixels: its tag, and its checklist when that shows. */
+function blockSize(record: AgentPresenceRecord, showList: boolean) {
+  const label = clip(plainLine(record.label), 48)
+  const step = agentStepText(record)
+  const stepLine = step ? clip(step, 40) : ''
+  const width = Math.max(96, Math.min(CARD_WIDTH, 16 + 6.6 * Math.max(label.length, stepLine.length)))
+  const height = stepLine ? 38 : 22
+  const rows = showList ? (record.plan?.steps ?? []).length : 0
+  return { width, height, w: Math.max(width, rows ? CARD_WIDTH : 0), h: height + (rows ? 6 + 12 + rows * 18 : 0) }
+}
+
+/**
+ * Where on a target note the pointer goes, and which way its tag points from there: inside one
+ * of the note's corners, with the tag outward from that corner. Lower right first; the first
+ * corner whose tag stays in view and off the note (and, where it can, off other notes) wins,
+ * else the one that covers least.
+ */
+export function agentAnchor(note: Box, size: { w: number; h: number }, scale: number, view: Box | null, others: Box[] = []): { x: number; y: number; side: { right: boolean; down: boolean } } {
+  const inset = Math.min(8, note.w / 4, note.h / 4)
+  const corners = [
+    { x: note.x + note.w - inset, y: note.y + note.h - inset, side: { right: true, down: true } },
+    { x: note.x + inset, y: note.y + note.h - inset, side: { right: false, down: true } },
+    { x: note.x + note.w - inset, y: note.y + inset, side: { right: true, down: false } },
+    { x: note.x + inset, y: note.y + inset, side: { right: false, down: false } },
+  ]
+  let best = corners[0], bestScore = Infinity
+  for (const corner of corners) {
+    const score = tagScore(agentTagBox(corner, size, scale, corner.side), view, [note], others)
+    if (score <= 1e-9) return corner
+    if (score < bestScore) { best = corner; bestScore = score }
+  }
+  return best
+}
+
+function tagScore(box: Box, view: Box | null, targets: Box[], others: Box[]) {
+  const outside = view ? box.w * box.h - overlap(box, view) : 0
+  return outside * 10 + targets.reduce((sum, target) => sum + overlap(box, target), 0) * 3 + others.reduce((sum, other) => sum + overlap(box, other), 0)
 }
 
 export function createAgentPresence(slate: any, options: AgentPresenceOptions = {}): AgentPresence {
@@ -186,6 +188,25 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     if (!o || typeof o.x !== 'number' || typeof o.y !== 'number') return null
     return { x: o.x + (o.width || 0) / 2, y: o.y + (o.height || 0) / 2 }
   }
+  // A note's box in world units, or null.
+  function boxOf(node: any): Box | null {
+    const o = node?.options
+    if (!o || ![o.x, o.y, o.width, o.height].every(value => typeof value === 'number' && Number.isFinite(value))) return null
+    return { x: o.x, y: o.y, w: o.width, h: o.height }
+  }
+  const noteOf = (id: string) => slate.nodes?.one?.(id) ?? slate.nodes?.allNodes?.find?.((n: any) => n?.options?.name === id)
+  const noteBoxes = (): Box[] => (slate.nodes?.allNodes ?? []).map(boxOf).filter((box: Box | null): box is Box => Boolean(box))
+  const sameBox = (a: Box, b: Box) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
+
+  function viewBox(): Box | null {
+    try {
+      const box = slate.canvas.viewbox()
+      if (box && [box.x, box.y, box.width, box.height].every((value: number) => Number.isFinite(value)) && box.width > 0 && box.height > 0)
+        return { x: box.x, y: box.y, w: box.width, h: box.height }
+    } catch { /* no canvas yet */ }
+    return null
+  }
+
   // With no target yet (a plan before the first save), the pointer waits at the top left of the notes.
   function restingPoint(index: number): { x: number; y: number } {
     let x = Infinity, y = Infinity
@@ -227,11 +248,22 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     const tag = body.group().attr({ 'data-agent-tag': '', 'pointer-events': 'all', cursor: lines.length ? 'pointer' : 'default', role: 'button',
       tabindex: lines.length ? 0 : -1, 'aria-expanded': String(showList), 'aria-label': label + (step ? ': ' + step : '') })
     const stepLine = step ? clip(step, 40) : ''
-    const width = Math.max(96, Math.min(CARD_WIDTH, 16 + 6.6 * Math.max(label.length, stepLine.length)))
-    const height = stepLine ? 38 : 22
-    tag.rect(width, height).radius(7).move(40, 30).fill('#fff').stroke({ color, width: 1.5 })
-    tag.text((t: any) => t.plain(label)).font({ size: 12, weight: 600, family: 'Roboto, Helvetica, Arial, sans-serif' }).fill(color).attr({ x: 48, y: 45 })
-    if (stepLine) tag.text((t: any) => t.plain(stepLine)).font({ size: 11, family: 'Roboto, Helvetica, Arial, sans-serif' }).fill('#374151').attr({ x: 48, y: 61 })
+    const size = blockSize(record, showList)
+    const { width, height } = size
+    // The tag and its list go on the side of the pointer that keeps them in view and off the
+    // words of the notes it works on (routeTo chose the corner for that), and, with no note to
+    // point at, of every other note.
+    const resting = item.path.length ? item.path[item.path.length - 1] : { x: item.x, y: item.y }
+    const side = item.routedSide ?? agentTagSide(resting, size, scale, viewBox(), [], noteBoxes())
+    const left = side.right ? TAG_DX : -(TAG_DX + size.w)
+    const top = side.down ? TAG_DY : -(TAG_DY + size.h)
+    item.side = side
+    // The avatar goes to the same side as its tag.
+    if (!side.right || !side.down) hex.attr('transform', `translate(${side.right ? 0 : -2 * cx} ${side.down ? 0 : -2 * cy})`)
+    tag.attr('data-agent-side', (side.right ? 'right' : 'left') + '-' + (side.down ? 'down' : 'up'))
+    tag.rect(width, height).radius(7).move(left, top).fill('#fff').stroke({ color, width: 1.5 })
+    tag.text((t: any) => t.plain(label)).font({ size: 12, weight: 600, family: 'Roboto, Helvetica, Arial, sans-serif' }).fill(color).attr({ x: left + 8, y: top + 15 })
+    if (stepLine) tag.text((t: any) => t.plain(stepLine)).font({ size: 11, family: 'Roboto, Helvetica, Arial, sans-serif' }).fill('#374151').attr({ x: left + 8, y: top + 31 })
     const toggle = (event: Event) => { event.stopPropagation?.(); api.expand(record.agentKey) }
     tag.on('pointerdown', (event: Event) => event.stopPropagation?.())
     tag.on('click', toggle)
@@ -240,13 +272,13 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     if (showList) {
       const card = body.group().attr('data-agent-plan', '')
       const rows = lines.length
-      card.rect(CARD_WIDTH, 12 + rows * 18).radius(8).move(40, 30 + height + 6).fill('#ffffff').stroke({ color: '#d1d5db', width: 1 }).attr('fill-opacity', 0.97)
+      card.rect(CARD_WIDTH, 12 + rows * 18).radius(8).move(left, top + height + 6).fill('#ffffff').stroke({ color: '#d1d5db', width: 1 }).attr('fill-opacity', 0.97)
       lines.forEach((line, index) => {
         const status = record.plan!.steps[index].status
         const row = card.text((t: any) => t.plain(clip(line, 38)))
           .font({ size: 12, family: 'Roboto, Helvetica, Arial, sans-serif', weight: status === 'doing' ? 600 : 400 })
           .fill(status === 'done' || status === 'skipped' ? '#6b7280' : '#111827')
-          .attr({ x: 50, y: 30 + height + 6 + 20 + index * 18 })
+          .attr({ x: left + 10, y: top + height + 6 + 20 + index * 18 })
         row.attr('data-step-status', status)
       })
     }
@@ -265,12 +297,19 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   }
 
   // The legs a pointer travels to a save's targets: one glide to a single target, or a short
-  // visit to each of several (up to five), in order.
-  function routeTo(record: AgentPresenceRecord, index: number) {
-    const points = record.targets.map(centreOf).filter((p): p is { x: number; y: number } => Boolean(p))
-    if (!points.length) return [{ ...restingPoint(index), ms: AGENT_GLIDE_MS }]
-    if (points.length === 1) return [{ ...points[0], ms: AGENT_GLIDE_MS }]
-    return points.slice(0, AGENT_MAX_VISITS).map(point => ({ ...point, ms: AGENT_VISIT_MS }))
+  // visit to each of several (up to five), in order. Each leg ends inside a corner of its note,
+  // the corner from which the tag points into view and off the note. `side` is the last leg's.
+  function routeTo(record: AgentPresenceRecord, index: number, size: { w: number; h: number }, scale: number) {
+    const view = viewBox()
+    const all = noteBoxes()
+    const boxes = record.targets.map(id => boxOf(noteOf(id))).filter((box): box is Box => Boolean(box))
+    const anchors = boxes.slice(0, AGENT_MAX_VISITS).map(box => agentAnchor(box, size, scale, view, all.filter(other => !sameBox(other, box))))
+    if (!anchors.length) {
+      const point = restingPoint(index)
+      return { legs: [{ ...point, ms: AGENT_GLIDE_MS }], side: null }
+    }
+    const ms = anchors.length === 1 ? AGENT_GLIDE_MS : AGENT_VISIT_MS
+    return { legs: anchors.map(anchor => ({ x: anchor.x, y: anchor.y, ms })), side: anchors[anchors.length - 1].side }
   }
 
   const targetsFound = (record: AgentPresenceRecord) => record.targets.some(id => centreOf(id) !== null)
@@ -311,16 +350,32 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     shown.forEach(({ record, opacity }, index) => {
       let item = drawn.get(record.agentKey)
       const targetsKey = record.targets.join('\u0000')
+      const open = opened.has(record.agentKey)
+      const size = blockSize(record, agentChecklist(record).length > 0 && (open || !compact))
+      // A tag that grew (a list opened, a longer step) or a new zoom may need another corner.
+      const routedFor = [size.w, size.h, scale.toFixed(4)].join(',')
       if (!item) {
-        const start = routeTo(record, index)
-        const first = start[0]
+        const route = routeTo(record, index, size, scale)
+        const first = route.legs[0]
         item = { key: record.agentKey, group: group.group().attr({ 'data-agent': record.agentKey }), body: null, record, targetsKey,
-          found: targetsFound(record), x: first.x, y: first.y, path: start.slice(1), leg: null, open: opened.has(record.agentKey), opacity, compact, lines: [], step: null }
+          found: targetsFound(record), x: first.x, y: first.y, path: route.legs.slice(1), leg: null, open, opacity, compact, lines: [], step: null,
+          routedSide: route.side, routedFor }
         drawn.set(record.agentKey, item)
       } else if (item.targetsKey !== targetsKey || (!item.found && targetsFound(record))) {
-        item.path = routeTo(record, index)
+        const route = routeTo(record, index, size, scale)
+        item.path = route.legs
         item.leg = null
         item.found = targetsFound(record)
+        item.routedSide = route.side
+        item.routedFor = routedFor
+      } else if (item.routedFor !== routedFor && item.found) {
+        // Same notes: go to the corner that suits the tag as it is now (only the last one matters).
+        const route = routeTo(record, index, size, scale)
+        const last = route.legs[route.legs.length - 1]
+        const at = item.path.length ? item.path[item.path.length - 1] : { x: item.x, y: item.y }
+        if (last.x !== at.x || last.y !== at.y) { item.path = [{ ...last, ms: AGENT_GLIDE_MS }]; item.leg = null }
+        item.routedSide = route.side
+        item.routedFor = routedFor
       }
       item.targetsKey = targetsKey
       item.record = record
@@ -384,7 +439,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     },
     shown() {
       return [...drawn.values()].map(item => ({ agentKey: item.key, label: item.record.label, step: item.step, x: item.x, y: item.y,
-        opacity: item.opacity, compact: item.compact, lines: item.lines }))
+        opacity: item.opacity, compact: item.compact, lines: item.lines, side: item.side ?? { right: true, down: true } }))
     },
     destroy() {
       destroyed = true

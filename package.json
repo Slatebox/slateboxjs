@@ -41,6 +41,11 @@
       "types": "./dist/dragology/index.d.ts",
       "import": "./dist/dragology.mjs",
       "require": "./dist/dragology.cjs"
+    },
+    "./presence": {
+      "types": "./dist/core/AgentPresence.d.ts",
+      "import": "./dist/presence.mjs",
+      "require": "./dist/presence.cjs"
     }
   },
   "files": [
@@ -48,6 +53,7 @@
     "workshops",
     "operations",
     "dragology",
+    "presence",
     "licenses"
   ],
   "scripts": {
