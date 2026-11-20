@@ -233,6 +233,27 @@ describe("result-size-and-selection: cursor paging in place of the 150/250 cut",
     expect(() => readSlate(s, { cursor: page.nextCursor! })).toThrow(/gone/);
   });
 
+  it("pages to the end when two notes share an id (stored slates can hold duplicates)", () => {
+    const s = { options: {}, nodes: [note("x", "1", 0, 0), note("y", "2", 0, 0), note("x", "3", 0, 0), note("z", "4", 0, 0)] };
+    const texts: string[] = [];
+    let cursor: string | undefined;
+    for (let pages = 0; pages < 10; pages += 1) {
+      const page = readSlate(s, { limit: 1, cursor });
+      texts.push(...page.nodes.map((n) => n.text));
+      cursor = page.nextCursor ?? undefined;
+      if (!cursor) break;
+    }
+    expect(texts).toEqual(["1", "2", "3", "4"]);
+    expect(cursor).toBeUndefined();
+  });
+
+  it("a cursor still continues after the notes before it change", () => {
+    const page = readSlate(big(), { limit: 5 });
+    const s = big();
+    s.nodes.splice(0, 2);
+    expect(readSlate(s, { limit: 1, cursor: page.nextCursor! }).nodes[0].id).toBe("n5");
+  });
+
   it("a cursor survives a note id that is not plain ASCII", () => {
     const s = { options: {}, nodes: [note("café-1", "x", 0, 0), note("ü2", "y", 0, 0)] };
     const first = readSlate(s, { limit: 1 });

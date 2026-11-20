@@ -109,17 +109,35 @@ function selector(selection: ReadSelection): NodeSelector | null {
   return given;
 }
 
-// A cursor names the last note of the page before. It runs in the browser too, so no Buffer.
-const encodeCursor = (id: string) =>
-  btoa(encodeURIComponent(JSON.stringify({ after: id }))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-function decodeCursor(cursor: string): string {
+// A cursor names the last note of the page before and where it stood: a stored slate can hold
+// two notes with one id, and the position tells them apart. It runs in the browser too, so no
+// Buffer.
+interface Cursor {
+  after: string;
+  at: number;
+}
+const encodeCursor = (cursor: Cursor) =>
+  btoa(encodeURIComponent(JSON.stringify(cursor))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function decodeCursor(cursor: string): Cursor {
   try {
-    const { after } = JSON.parse(decodeURIComponent(atob(cursor.replace(/-/g, "+").replace(/_/g, "/"))));
-    if (typeof after === "string" && after) return after;
+    const { after, at } = JSON.parse(decodeURIComponent(atob(cursor.replace(/-/g, "+").replace(/_/g, "/"))));
+    if (typeof after === "string" && after && Number.isSafeInteger(at) && at >= 0) return { after, at };
   } catch {
     /* falls through */
   }
   throw invalid("cursor is not one this slate gave. Read again from the first page.");
+}
+
+// Where the page before ended: the note with the cursor's id nearest the position it stood at,
+// so notes added or removed before it do not lose the place, and a repeated id is never
+// read twice.
+function resume(matched: StoredNode[], { after, at }: Cursor): number {
+  let best = -1;
+  matched.forEach((node, index) => {
+    if (noteId(node) === after && (best < 0 || Math.abs(index - at) < Math.abs(best - at))) best = index;
+  });
+  if (best < 0) throw invalid("The note this cursor continues from is gone. Read again from the first page.");
+  return best + 1;
 }
 
 function boundsOf(nodes: StoredNode[]): SlateRead["bounds"] {
@@ -149,12 +167,7 @@ export function readSlate(input: any, selection: ReadSelection = {}): SlateRead 
   const chosen = selector(selection);
   const matched = chosen ? selectNotes({ ...slate, nodes: drawn }, chosen, "selection") : drawn;
   let start = 0;
-  if (selection.cursor !== undefined) {
-    const after = decodeCursor(selection.cursor);
-    const at = matched.findIndex((node) => noteId(node) === after);
-    if (at < 0) throw invalid("The note this cursor continues from is gone. Read again from the first page.");
-    start = at + 1;
-  }
+  if (selection.cursor !== undefined) start = resume(matched, decodeCursor(selection.cursor));
 
   const markers = new Set(slate.nodes.filter(isCommentMarker).map(noteId));
   const byParent = new Map<string, Record<string, any>[]>();
@@ -189,7 +202,7 @@ export function readSlate(input: any, selection: ReadSelection = {}): SlateRead 
     nodeCount: matched.length,
     nodes,
     connections,
-    nextCursor: index < matched.length && last ? encodeCursor(last.id) : null,
+    nextCursor: index < matched.length && last ? encodeCursor({ after: last.id, at: index - 1 }) : null,
   };
 }
 
