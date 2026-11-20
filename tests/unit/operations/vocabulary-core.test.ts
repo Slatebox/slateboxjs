@@ -67,8 +67,9 @@ describe("add-connected-note: placement.connect makes a note that takes after it
     });
     // The canvas puts a connected note 75 below the source's edge, same column.
     expect([added.xPos, added.yPos]).toEqual([100, 100 + 120 + 75]);
-    // What identifies or belongs to the source is not copied.
-    expect(added.link).toBeUndefined();
+    // What identifies the source is not copied. Restated (P10-8, the owner's decision): the
+    // connected note keeps the source's link, as the canvas's connected note does.
+    expect(added.link).toEqual({ show: true, type: "url", data: "https://a.example" });
     expect(added.name).toBe("n1");
     const connector = find(result, "a").relationships.associations[0];
     expect(connector).toMatchObject({ id: "a->n1", parentId: "a", childId: "n1" });

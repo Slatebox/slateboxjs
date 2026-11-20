@@ -179,8 +179,11 @@ function idTaken(prefix: string, noun: string, ids: string[]): OperationPlanErro
 
 const same = (first: unknown, second: unknown) => JSON.stringify(first) === JSON.stringify(second);
 
-/** What a connected note does not take from its source (Node.cloneNodeOptions keeps the rest). */
-const NOT_COPIED_TO_CONNECTED = ["id", "name", "text", "xPos", "yPos", "x", "y", "isLocked", "link"];
+/**
+ * What a connected note does not take from its source (Node.cloneNodeOptions keeps the rest).
+ * It keeps the source's link, as the canvas's connected note does (the owner's decision on P10-8).
+ */
+const NOT_COPIED_TO_CONNECTED = ["id", "name", "text", "xPos", "yPos", "x", "y", "isLocked"];
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 /** The bound a point may take (keys/node.ts x and y, keys/values.ts point). */
