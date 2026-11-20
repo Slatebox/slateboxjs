@@ -148,9 +148,10 @@ test('while a preview is being prepared the box says so and Cancel leaves it', a
     await newDrawing(page)
     // Hold the request so the preparing state can be seen; its answer arrives after Cancel.
     await page.evaluate(() => {
-      const m = (window as any).Meteor, call = m.callAsync.bind(m)
+      // Restated (combined release): drawing requests preview through exec (canvasConversation.preview).
+      const m = (window as any).Meteor, call = m.callAsync.bind(m), held = /^(nativeCanvas|canvasConversation)\.preview$/
       ;(window as any).__release = null
-      m.callAsync = (name: string, ...args: any[]) => name !== 'nativeCanvas.preview' ? call(name, ...args)
+      m.callAsync = (name: string, ...args: any[]) => !held.test(name) ? call(name, ...args)
         : new Promise((resolve, reject) => { (window as any).__release = () => call(name, ...args).then(resolve, reject) })
     })
     await conversation(page).getByLabel('Starter messages').getByRole('button', { name: 'Draw a flow', exact: true }).click()
@@ -336,8 +337,9 @@ test('when the preview arrives, keyboard focus moves from Cancel to Keep, not to
     const first = (await page.evaluate(async id => (await (window as any).Meteor.callAsync('slates.get', { shareId: id })).slateBase.nodes, key))
       .find((n: any) => n.options.text).options.text as string
     await page.evaluate(() => {
-      const m = (window as any).Meteor, call = m.callAsync.bind(m)
-      m.callAsync = (name: string, ...args: any[]) => name !== 'nativeCanvas.preview' ? call(name, ...args)
+      // Restated (combined release): drawing requests preview through exec (canvasConversation.preview).
+      const m = (window as any).Meteor, call = m.callAsync.bind(m), held = /^(nativeCanvas|canvasConversation)\.preview$/
+      m.callAsync = (name: string, ...args: any[]) => !held.test(name) ? call(name, ...args)
         : new Promise(r => setTimeout(r, 1500)).then(() => call(name, ...args))
     })
     await messageBox(page).click()
