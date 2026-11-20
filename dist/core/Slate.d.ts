@@ -178,6 +178,10 @@ export declare class Slate {
     private _destroyed;
     /** >0 while packages from the room or a document load are being applied (not the person's own edits). */
     private _applyingRemote;
+    /** >0 while a change is made on this screen only (see {@link onlyHere}). */
+    private _onlyHere;
+    /** Host steps made on this screen that wait for the host's save (see {@link holdUntil}). */
+    private _held;
     /** Document loads (loadJSON, undo, redo, a replacement from the room) that have not finished. */
     private _loadsInFlight;
     private _hadGroupSelection;
@@ -265,6 +269,30 @@ export declare class Slate {
      * remote package is being applied so remote changes never re-broadcast.
      */
     broadcast(type: string, data?: Record<string, any>): void;
+    /**
+     * Make a change on this screen only: nothing it broadcasts reaches collaborators or the
+     * host's save, and nothing is recorded for undo (a host step records itself, see
+     * {@link beginHostStep}). A host uses it for a step that only its own save makes real (a
+     * note and a card trading places): the person sees it at once, and the host sends it with
+     * {@link sendHeld} once saved. Until then nobody else, and no one who joins, has seen it.
+     */
+    onlyHere<T>(change: () => T): T;
+    /**
+     * Send packages for a change made with {@link onlyHere}, once the host has saved it: to
+     * collaborators (and so to the host's save), or to the host alone without collaboration.
+     * Sent even while a package from the room is being applied: it is this person's own change.
+     */
+    sendHeld(packages: SlatePackage[]): void;
+    /**
+     * A host step made with {@link onlyHere} waits for `saved`, the host's own save of it. The
+     * host's drawing save can wait for every such step with {@link whenHeldSettled}, so it never
+     * stores a step its own save has not made real.
+     */
+    holdUntil(saved: Promise<unknown>): void;
+    /** True while a host step made on this screen waits for its save. */
+    hasHeldChanges(): boolean;
+    /** Resolves once no host step waits for its save (saved, refused or failed). */
+    whenHeldSettled(): Promise<void>;
     /** Record a debounced undo checkpoint for a document-mutating package. */
     recordUndoFor(type: string): void;
     /** Broadcast types that change the viewport/presence, not document state. */
@@ -646,7 +674,7 @@ export declare class Slate {
      * DragPolicy.onFreeGroupDrop). The first that takes or refuses them decides; with none,
      * the drop is an ordinary move.
      */
-    offerFreeGroupDrop(nodes: Node[], point: WorldPoint): "taken" | "refused" | null;
+    offerFreeGroupDrop(nodes: Node[], point: WorldPoint, from?: WorldPoint[]): "taken" | "refused" | null;
     /** Tell the policies an ordinary note's words were committed (see DragPolicy.onFreeTextCommit). */
     offerFreeTextCommit(node: Node): void;
     /** What each policy keeps with an undo record (see DragPolicy.undoState). Null when none keeps anything. */

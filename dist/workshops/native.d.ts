@@ -77,12 +77,17 @@ export type WorkshopCandidateChooser = (board: Workshop, cardId: string, grab: {
 export interface AttachWorkshopOptions {
     /**
      * A move, rename or conversion was committed. `next` is validated; the host persists it.
-     * For a conversion, return a promise of what the save came to:
-     * - false: it was refused. The drawing is put back (the note returns to the canvas, or
+     * For a conversion, return a promise of what the save came to. The conversion shows on this
+     * screen at once, but collaborators (and the slate's onSlateChanged) hear of it only once
+     * the promise says true; until then the slate holds its drawing saves (Slate.whenHeldSettled).
+     * A host that returns no promise has saved it already.
+     * - true: it was saved, and is sent to collaborators.
+     * - false (or a rejected promise): it was refused. The drawing is put back (the note returns to the canvas, or
      *   leaves it again). The board is put back too, unless the host has drawn a newer one.
      * - 'taken': someone else made this same trade first (they put the note in a lane, or took
      *   the card off the lanes). This person's copy of the note leaves the canvas, nothing is
      *   brought back, and the board is the host's to draw.
+     * - anything else (the host went away before it knew): nothing is sent or put back.
      */
     onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | 'taken' | void>;
     /** A drop or rename was refused. */
