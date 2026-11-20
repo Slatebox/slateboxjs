@@ -9,7 +9,14 @@
 // own svg.js group above the notes, in world coordinates; the pointer, tag and checklist are
 // counter-scaled so they stay the same size on screen at every zoom.
 
-import { prefersReducedMotion } from './DragPolicy'
+// The person's reduced-motion setting (as DragPolicy reads it; kept here so this entry shares no chunk).
+function prefersReducedMotion(): boolean {
+  try {
+    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+  } catch {
+    return false
+  }
+}
 
 import {
   AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, agentChecklist, agentStepText, clip, plainLine, time, visibleAgents,
