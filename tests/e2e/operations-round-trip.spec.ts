@@ -68,7 +68,7 @@ test("every key the JSON applier writes is read back by the loader, and the live
     const readBack = JSON.parse(reloaded.exportJSON());
 
     // Browser side: the run listener applies the materialized plan live.
-    const liveResult = applySlateOperations(live, applied.materializedPlan, { userMessage });
+    const liveResult = applySlateOperations(live, applied.materializedPlan, { userMessage, replay: true });
     await wait(1200);
     const liveAfter = JSON.parse(live.exportJSON());
 

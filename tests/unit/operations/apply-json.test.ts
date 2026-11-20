@@ -306,7 +306,9 @@ describe("JSON applier contract kept from the app reducer", () => {
     const first = applyPlanToJSON(input, plan({ kind: "add_nodes", count: 2, shape: "triangle", placement: { relativeTo: "c", direction: "right" } }), { idFactory: ids("t1", "t2") });
     expect(input).toEqual(before);
     expect(first.report.created).toEqual(["t1", "t2"]);
-    const replay = applyPlanToJSON(first.slate, first.materializedPlan);
+    // RESTATED: a replay says so (replay: true); a fresh plan naming taken ids is refused (review-P03 F2).
+    expect(() => applyPlanToJSON(first.slate, first.materializedPlan)).toThrow(expect.objectContaining({ code: "id_taken", status: 409 }));
+    const replay = applyPlanToJSON(first.slate, first.materializedPlan, { replay: true });
     expect(replay.report.created).toEqual([]);
     expect(replay.slate.nodes).toHaveLength(5);
   });
@@ -314,5 +316,137 @@ describe("JSON applier contract kept from the app reducer", () => {
   it("removes connectors to a deleted note from every note", () => {
     const result = applyPlanToJSON(slate(), plan({ kind: "delete_nodes", target: { ids: ["b"] } }));
     expect(result.slate.nodes.flatMap((n: any) => n.relationships.associations)).toEqual([]);
+  });
+});
+
+// review-P03 findings: each test below failed before its fix.
+const many = (count: number) => ({
+  options: { name: "Many" },
+  nodes: Array.from({ length: count }, (_, i) => note(`n${i}`, `note ${i}`, (i % 40) * 250, Math.floor(i / 40) * 150)),
+});
+
+describe("F1: connecting many notes is bounded and linear", () => {
+  it("refuses a connect that would join more pairs than one operation may (422 connector_limit)", () => {
+    const run = () => applyPlanToJSON(many(30), plan({ kind: "connect_nodes", from: { all: true }, to: { all: true } }));
+    expect(run).toThrow(expect.objectContaining({ code: "connector_limit", status: 422 }));
+  });
+
+  it("refuses the reviewer's 160-note fan-out at once instead of working for seconds", () => {
+    const adds = Array.from({ length: 8 }, (_, i) => ({ kind: "add_nodes", count: 20, shape: "rectangle", x: 0, y: i * 200 }));
+    const started = performance.now();
+    expect(() => applyPlanToJSON(many(0), plan(...adds, { kind: "connect_nodes", from: { all: true }, to: { all: true } }))).toThrow(
+      expect.objectContaining({ code: "connector_limit" }),
+    );
+    expect(performance.now() - started).toBeLessThan(2000);
+  });
+
+  it("joins thousands of pairs across a plan quickly (timing guard)", () => {
+    // 12 operations of 20 x 20 notes on a 1000-note slate: 4800 connectors.
+    // Measured: the per-pair full scan took about 900 ms for this; the index about 12 ms.
+    const operations = Array.from({ length: 12 }, (_, block) => ({
+      kind: "connect_nodes",
+      from: { ids: Array.from({ length: 20 }, (_, i) => `n${block * 40 + i}`) },
+      to: { ids: Array.from({ length: 20 }, (_, i) => `n${block * 40 + 20 + i}`) },
+    }));
+    const started = performance.now();
+    const result = applyPlanToJSON(many(1000), plan(...operations));
+    expect(result.report.connected).toHaveLength(4800);
+    expect(performance.now() - started).toBeLessThan(250);
+  });
+
+  it("refuses a plan that would pass the connector limit for the slate", () => {
+    const run = () =>
+      applyPlanToJSON(many(40), plan({ kind: "connect_nodes", from: { ids: ["n0", "n1"] }, to: { ids: ["n2", "n3", "n4"] } }), {
+        limits: { connectorsPerSlate: 5 },
+      });
+    expect(run).toThrow(expect.objectContaining({ code: "connector_limit", status: 422 }));
+  });
+});
+
+describe("F2: an id already in use is refused, not silently reused", () => {
+  it("refuses add_nodes naming an existing note id (409 id_taken)", () => {
+    const run = () =>
+      applyPlanToJSON(slate(), plan({ kind: "add_nodes", count: 1, shape: "rectangle", ids: ["b"] }, { kind: "connect_nodes", from: { ids: ["a"] }, to: { ids: ["b"] } }));
+    expect(run).toThrow(expect.objectContaining({ code: "id_taken", status: 409, details: { ids: ["b"] } }));
+  });
+
+  it("refuses add_nodes naming an id made earlier in the same plan", () => {
+    const run = () =>
+      applyPlanToJSON(slate(), plan({ kind: "add_nodes", count: 1, shape: "rectangle", ids: ["x1"] }, { kind: "add_nodes", count: 1, shape: "rectangle", ids: ["x1"] }));
+    expect(run).toThrow(expect.objectContaining({ code: "id_taken" }));
+  });
+
+  it("refuses connect_nodes naming a connector id held by another pair, so a later edit cannot hit the old one", () => {
+    const run = () =>
+      applyPlanToJSON(
+        slate(),
+        plan(
+          { kind: "connect_nodes", from: { ids: ["b"] }, to: { ids: ["c"] }, ids: ["a->b"] },
+          { kind: "update_connections", connectionIds: ["a->b"], changes: { label: "L" } },
+        ),
+      );
+    expect(run).toThrow(expect.objectContaining({ code: "id_taken", details: { ids: ["a->b"] } }));
+  });
+
+  it("refuses a free end named with a connector id that ends on a note", () => {
+    const run = () => applyPlanToJSON(slate(), plan({ kind: "connect_nodes", from: { ids: ["c"] }, to: { point: { x: 1, y: 2 } }, ids: ["a->b"] }));
+    expect(run).toThrow(expect.objectContaining({ code: "id_taken" }));
+  });
+
+  it("replays a carried-out connect and free end without change", () => {
+    const first = applyPlanToJSON(
+      slate(),
+      plan(
+        { kind: "connect_nodes", from: { ids: ["b"] }, to: { ids: ["c"] }, ids: ["k1"] },
+        { kind: "connect_nodes", from: { ids: ["a"] }, to: { point: { x: 5, y: 6 } }, ids: ["k2"] },
+      ),
+    );
+    expect(first.report.connected).toEqual(["k1", "k2"]);
+    const again = applyPlanToJSON(first.slate, first.materializedPlan, { replay: true });
+    expect(again.report.unchanged).toBe(true);
+  });
+});
+
+describe("F3: deleting every note through any broad selector needs the explicit request", () => {
+  const wipe = (target: any, userMessage = "tidy up") => () => applyPlanToJSON(slate(), plan({ kind: "delete_nodes", target }), { userMessage });
+
+  it("refuses within, contains with all, and groupId that select every note", () => {
+    expect(wipe({ within: { x: -1e9, y: -1e9, width: 2e9, height: 2e9 } })).toThrow(/cannot delete every note/);
+    expect(wipe({ text: "a", match: "contains", all: true })).toThrow(/cannot delete every note/);
+    const grouped = slate();
+    grouped.nodes.forEach((node: any) => (node.options.groupId = "g"));
+    expect(() => applyPlanToJSON(grouped, plan({ kind: "delete_nodes", target: { groupId: "g" } }), { userMessage: "tidy" })).toThrow(/cannot delete every note/);
+  });
+
+  it("allows it on an explicit request, a part of the slate, or named ids", () => {
+    expect(wipe({ within: { x: -1e9, y: -1e9, width: 2e9, height: 2e9 } }, "clear the slate")().slate.nodes).toEqual([]);
+    expect(wipe({ within: { x: 50, y: 50, width: 600, height: 200 } })().report.deleted).toEqual(["a", "b"]);
+    expect(wipe({ ids: ["a", "b", "c"] })().report.deleted).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("F4: new note ids are bounded and cannot take the free-end prefix", () => {
+  it("refuses a free-end prefix, markup, a connector-like id and an overlong id", () => {
+    for (const id of ["__free_evil", "\"><img>", "n0->n0", "x".repeat(65)]) {
+      const result = validatePlan(plan({ kind: "add_nodes", count: 1, shape: "rectangle", ids: [id] }));
+      expect(result.errors.join(" "), id).toMatch(/ids must be 1 to 64 letters/);
+    }
+    expect(validatePlan(plan({ kind: "add_nodes", count: 1, shape: "rectangle", ids: ["new_note-1"] })).valid).toBe(true);
+  });
+
+  it("refuses an overlong connector id", () => {
+    const result = validatePlan(plan({ kind: "connect_nodes", from: { ids: ["a"] }, to: { ids: ["c"] }, ids: ["k".repeat(201)] }));
+    expect(result.errors.join(" ")).toMatch(/at most 200 characters/);
+  });
+});
+
+describe("F8: a connector cannot start from a locked note, as for a person", () => {
+  it("skips the locked starting note and reports it", () => {
+    const s = slate();
+    (s.nodes[2].options as any).isLocked = true;
+    const result = applyPlanToJSON(s, plan({ kind: "connect_nodes", from: { ids: ["c", "b"] }, to: { ids: ["a"] } }));
+    expect(result.report.connected).toEqual(["b->a"]);
+    expect(result.report.skipped).toEqual([{ operation: 1, id: "c", reason: "locked" }]);
+    expect(result.materializedPlan.operations[0]).toMatchObject({ from: { ids: ["b"] }, ids: ["b->a"] });
   });
 });

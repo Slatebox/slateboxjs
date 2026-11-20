@@ -1,7 +1,8 @@
 /**
  * Note selectors. A selector names notes in exactly one way:
  *   ids       the notes with these ids
- *   text      notes whose text equals this (match: "contains" to search)
+ *   text      notes whose whole text is this, ignoring case and extra spaces
+ *             (match: "contains" to search)
  *   within    notes lying wholly inside {x, y, width, height}
  *   groupId   the notes of one group
  *   all       every note (when used alone)
@@ -66,7 +67,7 @@ export function selectorSchema(): Record<string, any> {
     type: "object",
     additionalProperties: false,
     description:
-      "Name notes one way: ids, text (exact; match: \"contains\" to search), within a rectangle, groupId, or all: true. A text selector matching several notes also needs all: true.",
+      "Name notes one way: ids, text (the whole text, ignoring case and extra spaces; match: \"contains\" to search), within a rectangle, groupId, or all: true. A text selector matching several notes also needs all: true.",
     properties: {
       ids: { type: "array", minItems: 1, items: { type: "string" } },
       text: { type: "string" },

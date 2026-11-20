@@ -30,13 +30,20 @@ import {
   type StoredNode,
   type StoredSlate,
 } from "./stored";
-import { validatePlan } from "./validate";
+import { DESTRUCTIVE_INTENT, validatePlan } from "./validate";
 
 export interface ApplyOptions extends ContractOptions {
   userMessage?: string;
   idFactory?: () => string;
   /** Refuse with 409 no_match when an operation matches nothing (a save, not a preview). */
   requireMatches?: boolean;
+  /**
+   * The plan is a carried-out (materialized) plan being applied again, as the
+   * run listener does: an id it names that already exists was made by that
+   * run, so it is left as it is. Otherwise an id already in use is refused
+   * (409 id_taken), so later operations cannot edit the wrong object.
+   */
+  replay?: boolean;
 }
 
 export interface ApplyResult {
@@ -147,12 +154,23 @@ function freeEndChild(connectorId: string | undefined, idFactory: () => string):
   return { id: connectorId, childId: named ? named[1] : `${FREE_END_PREFIX}${connectorId.replace(/[^A-Za-z0-9_-]/g, "_")}` };
 }
 
-function uniqueConnectorId(slate: StoredSlate, wanted: string): string {
-  const taken = new Set(allConnectors(slate).map(({ association }) => association.id));
+/** A default id not yet taken (a caller-chosen id that is taken is refused instead). */
+function unusedDefaultId(taken: Set<string>, wanted: string): string {
   if (!taken.has(wanted)) return wanted;
   let suffix = 2;
   while (taken.has(`${wanted}~${suffix}`)) suffix += 1;
   return `${wanted}~${suffix}`;
+}
+
+const pairKey = (parentId: string, childId: string) => JSON.stringify([parentId, childId]);
+
+function idTaken(prefix: string, noun: string, ids: string[]): OperationPlanError {
+  return new OperationPlanError(
+    "id_taken",
+    409,
+    `${prefix} names ${noun} ids already in use: ${ids.join(", ")}. Choose new ids, or name the existing ${noun}s in a later operation.`,
+    { ids },
+  );
 }
 
 const same = (first: unknown, second: unknown) => JSON.stringify(first) === JSON.stringify(second);
@@ -205,11 +223,14 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
         const reference = findReference(slate, operation.placement?.relativeTo);
         const backgroundColor = operation.style?.backgroundColor || reference?.options.backgroundColor || "#7aa2c8";
         const { points, arrangement, gap } = addPositions(slate, operation, width, height);
+        const existingIds = new Set(slate.nodes.map(noteId));
+        const taken = (operation.ids || []).filter((id) => existingIds.has(id));
+        if (taken.length && !options.replay) throw idTaken(prefix, "note", taken);
         const ids = points.map((_, position) => operation.ids?.[position] || idFactory());
         points.forEach(({ x, y }, position) => {
           const id = ids[position];
           entry.matched.push(id);
-          if (slate.nodes.some((node) => noteId(node) === id)) return;
+          if (existingIds.has(id)) return;
           const text = operation.text ? (operation.count! > 1 ? operation.text.replace(/\{n\}/g, `${position + 1}`) : operation.text) : "";
           const created: Record<string, any> = {
             id,
@@ -271,6 +292,12 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
         const notes = selectNotes(slate, operation.target!, `${prefix} target`);
         entry.matched = notes.map(noteId);
         if (!notes.length) noNotes();
+        // Deleting every note through a broad selector (all, within, text with
+        // all, groupId) needs the explicit request too, not only {all: true}.
+        const wholeSlate = !operation.target!.ids && slate.nodes.length > 1 && notes.length === slate.nodes.length;
+        if (wholeSlate && !DESTRUCTIVE_INTENT.test(options.userMessage || "")) {
+          throw new OperationPlanError("invalid_operation_plan", 400, `${prefix} cannot delete every note without an explicit request.`);
+        }
         const removed = new Set<string>();
         for (const node of notes) {
           if (node.options.isLocked === true) skipLocked(node);
@@ -293,45 +320,93 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
         const point = (operation.to as any)?.point;
         const children = point ? [] : selectNotes(slate, operation.to!, `${prefix} to`);
         if (!parents.length || (!point && !children.length)) noNotes();
+        const pairs = parents.length * (point ? 1 : children.length);
+        if (pairs > limits.connectorsPerOperation) {
+          throw new OperationPlanError(
+            "connector_limit",
+            422,
+            `${prefix} would join ${pairs} pairs of notes; one operation may join at most ${limits.connectorsPerOperation}.`,
+            { limit: limits.connectorsPerOperation },
+          );
+        }
+        // Index the slate's connectors once per operation, not once per pair.
+        const takenIds = new Set<string>();
+        const joined = new Map<string, string>();
+        for (const { association } of allConnectors(slate)) {
+          takenIds.add(association.id);
+          const key = pairKey(association.parentId, association.childId);
+          if (!joined.has(key)) joined.set(key, association.id);
+        }
+        const taken: string[] = [];
         const connectorIds: string[] = [];
+        const madeFrom: string[] = [];
         let pair = 0;
         for (const parent of parents) {
           const parentId = noteId(parent);
-          const ends: Array<StoredNode | null> = point ? [null] : children;
+          const ends: Array<StoredNode | null> = point ? [null] : children.filter((child) => noteId(child) !== parentId);
+          // A person cannot start a connector from a locked note (its handles are off).
+          if (parent.options.isLocked === true) {
+            if (ends.length) skipLocked(parent);
+            pair += ends.length;
+            continue;
+          }
+          if (ends.length) madeFrom.push(parentId);
           for (const child of ends) {
-            if (child && noteId(child) === parentId) continue;
             const wanted = operation.ids?.[pair];
             pair += 1;
             if (!child) {
               const end = freeEndChild(wanted, idFactory);
               const id = end.id ?? defaultConnectorId(parentId, end.childId);
+              if (takenIds.has(id)) {
+                if (!options.replay) taken.push(id);
+                connectorIds.push(id);
+                entry.matched.push(id);
+                continue;
+              }
+              parent.relationships.associations.push({ id, parentId, childId: end.childId, targetPoint: { ...point }, ...NEW_CONNECTOR, ...(operation.style || {}) });
+              takenIds.add(id);
               connectorIds.push(id);
               entry.matched.push(id);
-              if (allConnectors(slate).some(({ association }) => association.id === id)) continue;
-              parent.relationships.associations.push({ id, parentId, childId: end.childId, targetPoint: { ...point }, ...NEW_CONNECTOR, ...(operation.style || {}) });
               entry.changed.push(id);
               report.connected.push(id);
               continue;
             }
             const childId = noteId(child);
-            const existing = allConnectors(slate).find(({ association }) => association.parentId === parentId && association.childId === childId);
+            const existing = joined.get(pairKey(parentId, childId));
             if (existing) {
-              connectorIds.push(existing.association.id);
-              entry.matched.push(existing.association.id);
+              connectorIds.push(existing);
+              entry.matched.push(existing);
               continue;
             }
-            const id = uniqueConnectorId(slate, wanted || defaultConnectorId(parentId, childId));
+            if (wanted && takenIds.has(wanted)) {
+              if (!options.replay) taken.push(wanted);
+              connectorIds.push(wanted);
+              entry.matched.push(wanted);
+              continue;
+            }
+            const id = wanted || unusedDefaultId(takenIds, defaultConnectorId(parentId, childId));
             parent.relationships.associations.push({ id, parentId, childId, ...NEW_CONNECTOR, ...(operation.style || {}) });
+            takenIds.add(id);
+            joined.set(pairKey(parentId, childId), id);
             connectorIds.push(id);
             entry.matched.push(id);
             entry.changed.push(id);
             report.connected.push(id);
           }
         }
+        if (taken.length) throw idTaken(prefix, "connector", taken);
+        if (takenIds.size > limits.connectorsPerSlate && entry.changed.length) {
+          throw new OperationPlanError(
+            "connector_limit",
+            422,
+            `A slate can hold at most ${limits.connectorsPerSlate} connectors; this plan would leave ${takenIds.size}.`,
+            { limit: limits.connectorsPerSlate },
+          );
+        }
         if (entry.changed.length) {
           materialized.push({
             kind: "connect_nodes",
-            from: { ids: parents.map(noteId) },
+            from: { ids: madeFrom },
             to: point ? ({ point: { ...point } } as any) : { ids: children.map(noteId) },
             ids: connectorIds,
             ...(operation.style ? { style: operation.style } : {}),

@@ -103,8 +103,14 @@ describe("SlateOperations", () => {
   it("is idempotent when materialized node ids are replayed", () => {
     const slate = mockSlate();
     applySlateOperations(slate, plan, { userMessage: "Add 3 triangles" });
+    // RESTATED: the run listener's replay says so (replay: true); a fresh plan
+    // naming ids already on the slate is refused (review-P03 F2).
+    expect(() => applySlateOperations(slate, plan, { userMessage: "Add 3 triangles" })).toThrow(
+      expect.objectContaining({ code: "id_taken" }),
+    );
     const second = applySlateOperations(slate, plan, {
       userMessage: "Add 3 triangles",
+      replay: true,
     });
     expect(second.report.created).toEqual([]);
     expect(slate.nodes.allNodes).toHaveLength(5);

@@ -7,7 +7,9 @@ import {
   ARRANGEMENTS,
   contractLimits,
   contractLists,
+  CONNECTOR_ID_MAX_LENGTH,
   LAYOUTS,
+  NOTE_ID_PATTERN,
   OPERATION_FIELDS,
   PLACEMENT_DIRECTIONS,
   SLATE_OPERATION_KINDS,
@@ -23,7 +25,7 @@ import { checkValue, isObject, type Lists } from "./keys/values";
 // Two guards on words in the person's request. They stay until the action
 // registry offers a preview mode (P02), which replaces them.
 const STYLE_INTENT = /\b(theme|background|canvas|palette|gradient|recolor|colour|color scheme)\b/i;
-const DESTRUCTIVE_INTENT = /\b(clear|replace|reset|start over|delete all|remove all)\b/i;
+export const DESTRUCTIVE_INTENT = /\b(clear|replace|reset|start over|delete all|remove all)\b/i;
 
 export interface ValidateOptions extends ContractOptions {
   userMessage?: string;
@@ -131,6 +133,8 @@ export function validatePlan(plan: any, options: ValidateOptions = {}): SlateOpe
         if (operation.ids !== undefined) {
           if (!stringList(operation.ids) || new Set(operation.ids).size !== operation.ids.length) {
             errors.push(`${prefix} ids must be a list of different note ids.`);
+          } else if (operation.ids.some((id: string) => !NOTE_ID_PATTERN.test(id))) {
+            errors.push(`${prefix} ids must be 1 to 64 letters, digits, _ or -, and must not start with __free_.`);
           } else if (Number.isInteger(operation.count) && operation.ids.length > operation.count) {
             errors.push(`${prefix} has more ids than notes to add.`);
           }
@@ -208,8 +212,12 @@ export function validatePlan(plan: any, options: ValidateOptions = {}): SlateOpe
           errors.push(...to);
           if (!to.length) referencesKnown(operation.to, prefix);
         }
-        if (operation.ids !== undefined && !stringList(operation.ids)) {
-          errors.push(`${prefix} ids must be a list of connector ids.`);
+        if (operation.ids !== undefined) {
+          if (!stringList(operation.ids) || new Set(operation.ids).size !== operation.ids.length) {
+            errors.push(`${prefix} ids must be a list of different connector ids.`);
+          } else if (operation.ids.some((id: string) => id.length > CONNECTOR_ID_MAX_LENGTH)) {
+            errors.push(`${prefix} connector ids can be at most ${CONNECTOR_ID_MAX_LENGTH} characters.`);
+          }
         }
         errors.push(...checkKeys(operation.style, CONNECTOR_STYLE_KEYS, prefix, "connection style", connectorValueCheck(prefix), { required: false }));
         if (stringList(operation.ids)) operation.ids.forEach((id: string) => knownConnections.add(id));

@@ -119,11 +119,18 @@ test("materialized add operations are idempotent", () => {
     userMessage: "Add 3 triangles",
     idFactory: () => `triangle-${++index}`,
   });
+  // RESTATED: a replay of a carried-out plan says so (replay: true); the same
+  // ids in a fresh plan are refused (review-P03 F2), so they cannot hit the wrong note.
+  assert.throws(
+    () => applySlateOperationPlanToJSON(first.slate, first.materializedPlan, { userMessage: "Add 3 triangles" }),
+    (error) => error.code === "id_taken" && error.status === 409,
+  );
   const second = applySlateOperationPlanToJSON(
     first.slate,
     first.materializedPlan,
     {
       userMessage: "Add 3 triangles",
+      replay: true,
     },
   );
   assert.equal(second.slate.nodes.length, 5);

@@ -143,15 +143,15 @@ export function packagesForOperation(operation: SlateOperation, before: StoredSl
 export function applySlateOperations(
   slate: any,
   plan: SlateOperationPlan,
-  { userMessage = "", ...contract }: { userMessage?: string } & ContractOptions = {},
+  { userMessage = "", replay = false, ...contract }: { userMessage?: string; replay?: boolean } & ContractOptions = {},
 ): { message: string; report: SlateOperationReport; materializedPlan: SlateOperationPlan } {
   let current = toStoredSlate(slate);
-  const result = applyPlanToJSON(current, plan, { userMessage, ...contract });
+  const result = applyPlanToJSON(current, plan, { userMessage, replay, ...contract });
   // Replay one operation at a time so each one's packages are read from the
   // state it left, then send them in order.
   const packages: any[] = [];
   for (const operation of result.materializedPlan.operations) {
-    const next = applyPlanToJSON(current, { message: plan.message, operations: [operation] }, { userMessage, ...contract }).slate;
+    const next = applyPlanToJSON(current, { message: plan.message, operations: [operation] }, { userMessage, replay: true, ...contract }).slate;
     packages.push(...packagesForOperation(operation, current, next));
     current = next;
   }

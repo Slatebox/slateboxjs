@@ -42,13 +42,22 @@ export interface Limits {
   operationsPerPlan: number;
   notesPerAdd: number;
   notesPerSlate: number;
+  /** Pairs of notes one connect_nodes may join (20 notes to 20 notes). */
+  connectorsPerOperation: number;
+  connectorsPerSlate: number;
 }
 
 export const LIMITS: Readonly<Limits> = Object.freeze({
   operationsPerPlan: 50,
   notesPerAdd: 20,
   notesPerSlate: 1000,
+  connectorsPerOperation: 400,
+  connectorsPerSlate: 5000,
 });
+
+/** A new note id: letters, digits, _ and -, up to 64 characters, not the free-end prefix. */
+export const NOTE_ID_PATTERN = /^(?!__free_)[A-Za-z0-9_-]{1,64}$/;
+export const CONNECTOR_ID_MAX_LENGTH = 200;
 
 /** The fonts the Slatebox app offers (its picker list plus the default, Manrope). */
 export const DEFAULT_FONTS: readonly string[] = Object.freeze([
@@ -131,6 +140,7 @@ export interface SlateOperationReport {
   disconnected: string[];
   connectionsUpdated: string[];
   operations: OperationReport[];
+  /** Notes left alone because they are locked (a connect skips a locked starting note). */
   skipped: Array<{ operation: number; id: string; reason: "locked" }>;
   warnings: string[];
   /** True when the plan changes nothing on the slate. */

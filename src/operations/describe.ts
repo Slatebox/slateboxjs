@@ -42,6 +42,8 @@ export function describeOperations(options: ContractOptions = {}) {
       ambiguous_selector: "400: a text selector matched several notes; details.candidates lists them.",
       no_match: "409 on save: an operation matched no notes or connectors. A preview reports it as a warning instead.",
       note_limit: "422: the plan would leave more notes than the slate may hold.",
+      connector_limit: "422: one connect_nodes would join more pairs than limits.connectorsPerOperation, or the slate would hold more connectors than limits.connectorsPerSlate.",
+      id_taken: "409: add_nodes or connect_nodes named an id already in use; details.ids lists them.",
     },
   };
 }
@@ -79,7 +81,7 @@ export function slateOperationPlanSchema(options: ContractOptions = {}): Record<
             kind: { type: "string", enum: [...SLATE_OPERATION_KINDS] },
             count: { type: "integer", minimum: 1, maximum: limits.notesPerAdd },
             ...nodeProperties(["shape", "text", "x", "y", "width", "height"]),
-            ids: { ...ids, description: "add_nodes: ids for the new notes, which later operations in the plan may name. connect_nodes: ids for the new connectors, one per pair." },
+            ids: { ...ids, description: "add_nodes: new note ids (1 to 64 letters, digits, _ or -), which later operations in the plan may name. connect_nodes: ids for the new connectors, one per pair. An id already in use is refused." },
             connectionIds: ids,
             gap: { type: "number", minimum: 0, maximum: 2000 },
             placement: {
