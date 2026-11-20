@@ -125,10 +125,12 @@ export declare class Collab {
     private run;
     /** Resolves when every package received from the room so far has been applied. */
     whenApplied(): Promise<void>;
+    /** The slate just before packages from the room are applied, for the undo history (see afterRemote). */
+    private beforeRemote;
     /**
      * Packages from the room have been applied. The person's undo history takes
      * them in, so a later undo of their own work does not also take away what
-     * other people did in the meantime (see UndoRedo.absorbRemote).
+     * other people did, before or after that work (see UndoRedo.absorbRemote).
      */
     private afterRemote;
     /** Stamp for a package this client is about to write: later than all it has seen. */

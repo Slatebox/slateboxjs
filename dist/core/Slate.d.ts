@@ -6,6 +6,7 @@ import { PanZoom, PanZoomOptions } from "./PanZoom";
 import { BirdsEye, BirdsEyeOptions } from "./BirdsEye";
 import { type SlateJSON } from "./Serialization";
 import { UndoRedo } from "./UndoRedo";
+import type { InlineDraft } from "./Editor";
 import { MultiSelection } from "./MultiSelection";
 import { Grid } from "./Grid";
 import { Keyboard } from "./Keyboard";
@@ -610,6 +611,26 @@ export declare class Slate {
      * input). Call it after a policy starts or stops claiming notes.
      */
     refreshGovernance(): void;
+    /**
+     * Take the inline edit in progress, if any, before a load replaces every note
+     * (loadJSON, or an undo or redo, this person's or someone else's): the load
+     * destroys the note being edited and its editor with it. Give the result to
+     * {@link resumeInlineDraft} once the load has finished.
+     */
+    takeInlineDraft(): {
+        id: string;
+        draft: InlineDraft;
+    } | null;
+    /**
+     * Open the edit taken by {@link takeInlineDraft} again on the note's new copy,
+     * with the text typed so far and the caret where it was, so the person goes on
+     * typing as if nothing had happened. Nothing is opened when the note is gone,
+     * or when an edit is already open elsewhere.
+     */
+    resumeInlineDraft(saved: {
+        id: string;
+        draft: InlineDraft;
+    } | null): boolean;
     /** Tell each policy that loadJSON / undo / redo replaced the slate's notes. */
     notifyNotesReplaced(): void;
     /**

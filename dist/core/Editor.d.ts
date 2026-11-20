@@ -21,21 +21,49 @@ export interface InlineEditOptions {
     /** Focus without letting the browser scroll (the caller has already put the note in view). */
     preventScroll?: boolean;
     /**
+     * The editor's starting text, in place of the note's own text (and `insert`): a
+     * draft carried across a load that replaced the note (see {@link draft}).
+     */
+    text?: string;
+    /** Where the caret or selection goes, as offsets into the text. Overrides `caret`. */
+    selection?: {
+        start: number;
+        end: number;
+    };
+    /**
      * Whether Enter/Escape hand keyboard focus back to the note. Defaults to true only
      * when the note itself had focus as the edit opened, so pointer edits leave focus
      * where it was.
      */
     returnFocus?: boolean;
 }
+/** An inline edit in progress: what has been typed so far and where the caret is. */
+export interface InlineDraft {
+    text: string;
+    selection: {
+        start: number;
+        end: number;
+    } | null;
+    returnFocus: boolean;
+}
 export declare class Editor {
     private node;
     private _inlineEditing;
     private _inlineFO;
+    private _inlineDiv;
+    private _returnFocus;
     constructor(node: Node);
     /** Destroy the editor, clearing all references */
     destroy(): void;
     /** Whether an inline (on-canvas) edit is currently active. */
     isInlineEditing(): boolean;
+    /**
+     * The edit in progress, or null. A load that replaces the slate's notes (an
+     * undo or redo by someone else on the slate) destroys this note and its open
+     * editor; the slate takes the draft first and opens it again on the note's new
+     * copy (Slate.takeInlineDraft), so what the person was typing is not lost.
+     */
+    draft(): InlineDraft | null;
     /**
      * Start inline (on-canvas) text editing — Miro-style. Overlays a
      * contenteditable box exactly on the node (inside its group so it tracks

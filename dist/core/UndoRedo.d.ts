@@ -4,6 +4,7 @@
  * Takes full JSON snapshots of the slate state.
  * Uses a 3-second debounce before saving snapshots.
  */
+import { type SlateJSON } from "./Serialization";
 export interface UndoRedoOptions {
     enabled?: boolean;
     maxHistory?: number;
@@ -53,19 +54,22 @@ export declare class UndoRedo {
      */
     redo(): boolean;
     /**
-     * Other people's changes were applied to the slate. Snapshots are whole
-     * slates, so an undo puts back everything as this person last recorded it:
-     * without this, undoing one's own latest step would also take away whatever
-     * the others did since that record was made.
-     *
-     * - After ordinary changes, the current record is brought up to date, so the
-     *   next step this person takes is undone back to a slate that still holds
-     *   the others' work.
-     * - After someone else replaced the whole slate (their undo or redo), every
-     *   earlier record describes a slate that no longer exists, and returning to
-     *   one would undo their undo and all work since. History starts again here.
+     * The slate as it is now, taken just before other people's changes are
+     * applied to it; pass it to {@link absorbRemote} once they have been. Null
+     * when this slate keeps no history.
      */
-    absorbRemote(replaced?: boolean): void;
+    beforeRemote(): SlateJSON | null;
+    /**
+     * Other people's changes were applied to the slate (ordinary edits, or a
+     * whole-slate replacement from their undo or redo). Records are whole slates,
+     * so going back to one would put back the slate as this person recorded it and
+     * take away everything the others did since, however long ago this person's
+     * own step was. Their change is therefore carried into every record, undo and
+     * redo alike: an undo then takes back only this person's own step.
+     *
+     * @param before - the slate just before those changes (see {@link beforeRemote})
+     */
+    absorbRemote(before?: SlateJSON | null): void;
     /** Check if undo is available */
     canUndo(): boolean;
     /** Check if redo is available */
