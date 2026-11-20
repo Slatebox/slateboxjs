@@ -93,6 +93,8 @@ return slatebox.slates.applyOperations({ shareId: ${lit(board)}, mode: ${lit(mod
     await peer.page.reload()
     await dismissWelcome(peer.page)
     await peer.page.getByRole('button',{name:'Present',exact:true}).click()
+    // Restated (combined release): on a phone the canvas header's Present opens its sheet.
+    await peer.page.getByRole('menu',{name:'Present'}).getByRole('menuitem',{name:'Present on this screen',exact:true}).click()
     const deck=peer.page.getByRole('region',{name:'Decision presentation'})
     for(const name of ['Start','Next step']){
       await expect(deck.getByRole('heading',{name,exact:true})).toBeVisible()
