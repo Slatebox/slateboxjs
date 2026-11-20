@@ -233,6 +233,10 @@ export class Slate {
   private _destroyed: boolean = false;
   /** >0 while packages from the room or a document load are being applied (not the person's own edits). */
   private _applyingRemote = 0;
+  /** >0 while a change is made on this screen only (see {@link onlyHere}). */
+  private _onlyHere = 0;
+  /** Host steps made on this screen that wait for the host's save (see {@link holdUntil}). */
+  private _held = new Set<Promise<void>>();
   /** Document loads (loadJSON, undo, redo, a replacement from the room) that have not finished. */
   private _loadsInFlight = new Set<Promise<unknown>>();
   private _hadGroupSelection: boolean = false;
@@ -653,7 +657,7 @@ export class Slate {
    * @param data - v1-shaped package data
    */
   public emitSlateChange(type: string, data: Record<string, any> = {}): void {
-    if (this._applyingRemote > 0 || this._destroyed) return;
+    if (this._applyingRemote > 0 || this._onlyHere > 0 || this._destroyed) return;
     const cb = this.options.events?.onSlateChanged;
     if (!cb) return;
     const pkg: SlatePackage = { type, data };
@@ -693,7 +697,7 @@ export class Slate {
    * remote package is being applied so remote changes never re-broadcast.
    */
   public broadcast(type: string, data: Record<string, any> = {}): void {
-    if (this._applyingRemote > 0 || this._destroyed) return;
+    if (this._applyingRemote > 0 || this._onlyHere > 0 || this._destroyed) return;
     // A governed note is the host's to persist: nothing about it is sent, saved
     // or recorded for undo.
     if (this._dragPolicies.length) {
@@ -711,6 +715,60 @@ export class Slate {
     // a burst of edits collapses into one undo step). View/presence events don't
     // change document state, so they're excluded.
     this.recordUndoFor(type);
+  }
+
+  /**
+   * Make a change on this screen only: nothing it broadcasts reaches collaborators or the
+   * host's save, and nothing is recorded for undo (a host step records itself, see
+   * {@link beginHostStep}). A host uses it for a step that only its own save makes real (a
+   * note and a card trading places): the person sees it at once, and the host sends it with
+   * {@link sendHeld} once saved. Until then nobody else, and no one who joins, has seen it.
+   */
+  public onlyHere<T>(change: () => T): T {
+    this._onlyHere++;
+    try {
+      return change();
+    } finally {
+      this._onlyHere--;
+    }
+  }
+
+  /**
+   * Send packages for a change made with {@link onlyHere}, once the host has saved it: to
+   * collaborators (and so to the host's save), or to the host alone without collaboration.
+   * Sent even while a package from the room is being applied: it is this person's own change.
+   */
+  public sendHeld(packages: SlatePackage[]): void {
+    if (this._destroyed || !packages.length) return;
+    if (typeof this.collab?.send === "function") {
+      this.collab.send(packages);
+    } else {
+      for (const pkg of packages) this.emitSlateChange(pkg.type, pkg.data);
+    }
+  }
+
+  /**
+   * A host step made with {@link onlyHere} waits for `saved`, the host's own save of it. The
+   * host's drawing save can wait for every such step with {@link whenHeldSettled}, so it never
+   * stores a step its own save has not made real.
+   */
+  public holdUntil(saved: Promise<unknown>): void {
+    const held = saved.then(
+      () => undefined,
+      () => undefined
+    );
+    this._held.add(held);
+    held.then(() => this._held.delete(held));
+  }
+
+  /** True while a host step made on this screen waits for its save. */
+  public hasHeldChanges(): boolean {
+    return this._held.size > 0;
+  }
+
+  /** Resolves once no host step waits for its save (saved, refused or failed). */
+  public async whenHeldSettled(): Promise<void> {
+    while (this._held.size) await Promise.all([...this._held]);
   }
 
   /** Record a debounced undo checkpoint for a document-mutating package. */
@@ -2543,12 +2601,12 @@ export class Slate {
    * DragPolicy.onFreeGroupDrop). The first that takes or refuses them decides; with none,
    * the drop is an ordinary move.
    */
-  public offerFreeGroupDrop(nodes: Node[], point: WorldPoint): "taken" | "refused" | null {
+  public offerFreeGroupDrop(nodes: Node[], point: WorldPoint, from?: WorldPoint[]): "taken" | "refused" | null {
     if (!this._dragPolicies.length || nodes.some((node) => this.governanceOf(node))) return null;
     for (const policy of this._dragPolicies.slice()) {
       let verdict: "taken" | "refused" | void = undefined;
       try {
-        verdict = policy.onFreeGroupDrop?.(nodes, point);
+        verdict = policy.onFreeGroupDrop?.(nodes, point, from);
       } catch (error) {
         console.warn("DRAG_POLICY: onFreeGroupDrop threw; the drop stays an ordinary move", error);
       }

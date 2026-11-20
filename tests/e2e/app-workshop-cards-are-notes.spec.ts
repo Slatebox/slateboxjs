@@ -34,10 +34,10 @@ const stored = async (page: Page, key: string) => (await getSlate(page, key)).no
 const cardsOf = async (page: Page, key: string) => (await storedWorkshop(page, key)).cards.map((c: any) => c.id + '@' + c.laneId).join(' ')
 
 /** Double-click empty canvas left of the board and name the new note. Returns its id. */
-async function addNote(page: Page, text: string) {
+async function addNote(page: Page, text: string, dy = 140) {
   const now = await resting(page, 'column-now')
   const before = await page.evaluate(() => (window as any).slate.v2.freeNodes().map((n: any) => n.id))
-  await page.mouse.dblclick(now.x - 90, now.y + 140)
+  await page.mouse.dblclick(now.x - 90, now.y + dy)
   await page.keyboard.type(text)
   await page.keyboard.press('Enter')
   await expect(page.locator('.sb-inline-editor')).toHaveCount(0)
@@ -329,6 +329,119 @@ test('a reload the moment after a trade keeps the note or the card, never both a
     await expect.poll(async () => { const y = await order(guest!.page); return y[0] < y[1] && y[1] < y[2] }).toBe(true)
   } finally {
     if (guest) { await removeTestGuest(guest.page, guest.id).catch(() => undefined); await guest.context.close() }
+    await removeTestGuest(page, id)
+  }
+})
+
+// cards-atomic (2026-11-19): seen on staging. On a slow network a person dropped the note Delta on
+// Later and closed the page at once: the server kept Delta as a note and no card, yet a teammate
+// and a newcomer showed neither, because the note's removal had reached the room and the trade's
+// save never landed. A trade is all or nothing for everyone.
+test('on a slow network, a page closed straight after a trade: the server, a teammate and a newcomer agree, both ways; once saved, everyone sees it', async ({ page, browser }) => {
+  let id: string | null = null
+  const guests: { page: Page; id: string | null }[] = []
+  const contexts: { close(): Promise<void> }[] = []
+  try {
+    const owner = await openBoard(page)
+    id = owner.id
+    const delta = await addNote(page, 'Delta')
+    const other = await addNote(page, 'Other', 300)
+    await expect.poll(async () => (await stored(page, owner.key)).map(n => n.text).sort()).toEqual(['Delta', 'Other'])
+    const link = await shareAs(page, 'edit')
+    const teammate = await browser.newContext()
+    contexts.push(teammate)
+    const b = await teammate.newPage()
+    await b.goto(link.href)
+    await dismissWelcome(b)
+    await workshopReady(b)
+    await workshopStatus(b).getByRole('button', { name: 'Join to edit', exact: true }).click()
+    await expect.poll(() => userId(b)).toBeTruthy()
+    guests.push({ page: b, id: await userId(b) })
+    await expect(note(b, delta)).toContainText('Delta')
+
+    /** A newcomer's first look: the stored slate, then the room. */
+    const newcomer = async () => {
+      const context = await browser.newContext()
+      contexts.push(context)
+      const viewer = await context.newPage()
+      await viewer.goto(link.href)
+      await dismissWelcome(viewer)
+      await workshopReady(viewer)
+      await viewer.waitForTimeout(2500)
+      guests.push({ page: viewer, id: await userId(viewer) })
+      return shown(viewer)
+    }
+    /** A second tab of this person on a slow link; with `late`, its trade's save leaves 4 s after the trade, as behind a slow save. */
+    const slowTab = async (late: boolean) => {
+      const tab = await page.context().newPage()
+      await tab.goto(page.url())
+      await dismissWelcome(tab)
+      await workshopReady(tab)
+      await tab.waitForTimeout(1500)
+      const cdp = await page.context().newCDPSession(tab)
+      await cdp.send('Network.enable')
+      await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 400, downloadThroughput: 100_000, uploadThroughput: 50_000 })
+      if (late) await tab.evaluate(() => {
+        const M = (window as any).Meteor, call = M.callAsync
+        M.callAsync = function (name: string, ...args: unknown[]) {
+          return name === 'creativeSlates.play' ? new Promise(resolve => setTimeout(resolve, 4000)).then(() => call.call(M, name, ...args)) : call.call(M, name, ...args)
+        }
+      })
+      return tab
+    }
+
+    // Note → card, and the tab closed before the save left. Another note is moved meanwhile, so
+    // the page's own drawing save has a reason to run inside the window.
+    let tab = await slowTab(true)
+    await carry(tab, delta, await laneSpot(tab, 'later'))
+    await expect(card(tab, delta)).toBeVisible()
+    await expect(note(tab, delta)).toHaveCount(0)
+    const o = await resting(tab, other)
+    await carry(tab, other, { x: o.x + o.width / 2 + 40, y: o.y + o.height / 2 + 30 })
+    await tab.waitForTimeout(1800)
+    await tab.close()
+    await b.waitForTimeout(3000)
+    expect(await cardsOf(page, owner.key)).toBe('alpha@now beta@next')
+    expect((await stored(page, owner.key)).map(n => n.id)).toContain(delta)
+    let theirs = await shown(b)
+    expect(theirs.notes, 'the teammate still shows Delta as a note').toContain(delta)
+    expect(theirs.cards).toEqual(['alpha', 'beta'])
+    let fresh = await newcomer()
+    expect(fresh.notes, 'a newcomer shows Delta as a note').toContain(delta)
+    expect(fresh.cards).toEqual(['alpha', 'beta'])
+
+    // Card → note, the same way: Alpha stays a card for everyone.
+    tab = await slowTab(true)
+    const now = await resting(tab, 'column-now')
+    await carry(tab, 'card-alpha', { x: now.x - 160, y: now.y + 420 })
+    await expect(note(tab, 'alpha')).toBeVisible()
+    await tab.waitForTimeout(1800)
+    await tab.close()
+    await b.waitForTimeout(3000)
+    expect(await cardsOf(page, owner.key)).toBe('alpha@now beta@next')
+    expect((await stored(page, owner.key)).map(n => n.id)).not.toContain('alpha')
+    theirs = await shown(b)
+    expect(theirs.notes, 'the teammate shows no Alpha note').not.toContain('alpha')
+    expect(theirs.cards).toEqual(['alpha', 'beta'])
+    fresh = await newcomer()
+    expect(fresh.notes, 'a newcomer shows no Alpha note').not.toContain('alpha')
+    expect(fresh.cards).toEqual(['alpha', 'beta'])
+
+    // Once the save lands, on the same slow link, everyone sees the trade.
+    tab = await slowTab(false)
+    await carry(tab, delta, await laneSpot(tab, 'later'))
+    await expect.poll(() => cardsOf(page, owner.key), { timeout: 20000 }).toBe(`alpha@now beta@next ${delta}@later`)
+    await expect.poll(async () => (await shown(b)).notes, { timeout: 15000 }).not.toContain(delta)
+    expect((await shown(b)).cards).toContain(delta)
+    await tab.waitForTimeout(1500)
+    await tab.close()
+    expect((await stored(page, owner.key)).map(n => n.id)).not.toContain(delta)
+    fresh = await newcomer()
+    expect(fresh.notes).not.toContain(delta)
+    expect(fresh.cards).toContain(delta)
+  } finally {
+    for (const guest of guests) await removeTestGuest(guest.page, guest.id).catch(() => undefined)
+    for (const context of contexts) await context.close().catch(() => undefined)
     await removeTestGuest(page, id)
   }
 })

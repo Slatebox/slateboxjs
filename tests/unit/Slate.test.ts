@@ -1192,6 +1192,75 @@ describe("Slate", () => {
     });
   });
 
+  // cards-atomic (2026-11-19): a host's step that waits for its own save (a note and a card
+  // trading places) is made on this screen at once, but reaches collaborators and the host's
+  // drawing save only once the host has saved it.
+  describe("changes made only here, sent once the host has saved them", () => {
+    it("onlyHere: nothing a change broadcasts reaches collaborators or the host", () => {
+      const onSlateChanged = vi.fn();
+      const slate = new Slate(container, { events: { onSlateChanged } });
+      const send = vi.fn();
+      (slate as any).collab = { send };
+      const result = slate.onlyHere(() => {
+        slate.broadcast("onNodeDeleted", { id: "n1" });
+        return 7;
+      });
+      expect(result).toBe(7);
+      expect(send).not.toHaveBeenCalled();
+      expect(onSlateChanged).not.toHaveBeenCalled();
+      // Afterwards the slate broadcasts as usual.
+      slate.broadcast("onNodeDeleted", { id: "n2" });
+      expect(send).toHaveBeenCalledWith({ type: "onNodeDeleted", data: { id: "n2" } });
+    });
+
+    it("onlyHere ends even when the change throws", () => {
+      const slate = new Slate(container);
+      const send = vi.fn();
+      (slate as any).collab = { send };
+      expect(() => slate.onlyHere(() => { throw new Error("boom"); })).toThrow("boom");
+      slate.broadcast("onNodeDeleted", { id: "n2" });
+      expect(send).toHaveBeenCalledTimes(1);
+    });
+
+    it("sendHeld sends to collaborators, even while a package from the room is being applied", () => {
+      const slate = new Slate(container);
+      const send = vi.fn();
+      (slate as any).collab = { send };
+      slate.beginRemoteApply();
+      slate.sendHeld([{ type: "onNodeDeleted", data: { id: "n1" } }]);
+      slate.endRemoteApply();
+      expect(send).toHaveBeenCalledWith([{ type: "onNodeDeleted", data: { id: "n1" } }]);
+    });
+
+    it("sendHeld without collaboration hands the packages to the host", () => {
+      const onSlateChanged = vi.fn();
+      const slate = new Slate(container, { events: { onSlateChanged } });
+      (slate as any).collab = null;
+      slate.sendHeld([{ type: "onNodeAdded", data: { id: "n1" } }]);
+      expect(onSlateChanged).toHaveBeenCalledTimes(1);
+      expect(onSlateChanged.mock.calls[0][0]).toMatchObject({ type: "onNodeAdded", data: { id: "n1" } });
+    });
+
+    it("whenHeldSettled waits for every step still waiting for its save, saved or not", async () => {
+      vi.useRealTimers();
+      const slate = new Slate(container);
+      let settled = false;
+      await slate.whenHeldSettled();
+      let save!: (v: unknown) => void, fail!: (e: unknown) => void;
+      slate.holdUntil(new Promise((resolve) => { save = resolve; }));
+      slate.holdUntil(new Promise((_, reject) => { fail = reject; }));
+      expect(slate.hasHeldChanges()).toBe(true);
+      const waiting = slate.whenHeldSettled().then(() => { settled = true; });
+      save(true);
+      await new Promise((r) => setTimeout(r, 0));
+      expect(settled).toBe(false);
+      fail(new Error("not saved"));
+      await waiting;
+      expect(settled).toBe(true);
+      expect(slate.hasHeldChanges()).toBe(false);
+    });
+  });
+
   // -----------------------------------------------------------------------
   // 11. Display locks
   // -----------------------------------------------------------------------

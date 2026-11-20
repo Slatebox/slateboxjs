@@ -1500,7 +1500,8 @@ export class Node {
       if (movedSiblings.length && this.preDragPosition && ptr) {
         const from = { ...this.preDragPosition };
         const moved = Math.abs((this.options.x ?? 0) - from.x) > 0.5 || Math.abs((this.options.y ?? 0) - from.y) > 0.5;
-        const verdict = moved ? this.slate.offerFreeGroupDrop?.([this, ...movedSiblings.map((s) => s.node)], this.slate.clientToWorld(ptr)) : null;
+        const starts = [from, ...movedSiblings.map((s) => ({ x: s.x, y: s.y }))];
+        const verdict = moved ? this.slate.offerFreeGroupDrop?.([this, ...movedSiblings.map((s) => s.node)], this.slate.clientToWorld(ptr), starts) : null;
         if (verdict) {
           this.preDragTransform = null;
           this.preDragPosition = null;

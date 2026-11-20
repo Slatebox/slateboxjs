@@ -413,3 +413,95 @@ test.describe('notes carried together, notes typed in a lane, and a card sent fr
     expect(await cards(page)).toBe('beta@now gamma@now')
   })
 })
+
+// cards-atomic (2026-11-19): on a slow network a person who traded and closed the page at once
+// had told the room the note was gone while the host never saved the trade; everyone else then
+// lost the note. A trade now shows on this screen at once, but reaches collaborators and the
+// host's drawing save only once the host has saved it; refused, it was never seen elsewhere.
+test.describe('a trade reaches collaborators only once the host has saved it', () => {
+  /** The host's save of each change waits until the test answers it. */
+  const holdSaves = (page: Page) => page.evaluate(() => {
+    const native = (window as any).native
+    native.pending = []
+    native.answer = () => new Promise(resolve => native.pending.push(resolve))
+  })
+  const answerSaves = (page: Page, saved: unknown) => page.evaluate(value => {
+    const native = (window as any).native
+    for (const resolve of native.pending.splice(0)) resolve(value)
+  }, saved)
+  /** The document changes handed to the host's own drawing save. */
+  const handed = (page: Page) => page.evaluate(() => (window as any).native.log.packages.map((pkg: any) => pkg.type)
+    .filter((type: string) => ['onNodeAdded', 'onNodeDeleted', 'onSlateReplaced'].includes(type)) as string[])
+  const heldSettled = (page: Page) => page.evaluate(() => {
+    let done = false
+    ;(window as any).native.slate.whenHeldSettled().then(() => { done = true })
+    return new Promise<boolean>(resolve => setTimeout(() => resolve(done), 50))
+  })
+
+  test('note → card: shown here at once, sent only when saved, and the host may wait for it', async ({ page }) => {
+    await open(page)
+    await holdSaves(page)
+    const before = await settledSteps(page)
+    await drag(page, 'plain', await inLane(page, 'now'))
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now plain@now')
+    expect(await saved(page)).toEqual([])
+    await page.waitForTimeout(600)
+    // Nothing has left this screen: not the note's removal, and not to the host's drawing save.
+    expect((await journal(page)).sent).toEqual([])
+    expect(await handed(page)).toEqual([])
+    expect(await heldSettled(page)).toBe(false)
+    await expect.poll(() => undoSteps(page)).toBe(before + 1)
+
+    await answerSaves(page, true)
+    await expect.poll(async () => (await journal(page)).sent).toEqual(['onNodeDeleted'])
+    expect(await handed(page)).toEqual(['onNodeDeleted'])
+    expect(await heldSettled(page)).toBe(true)
+    expect(await cards(page)).toBe('alpha@now beta@now gamma@now plain@now')
+    // Still one undo step: the save added none.
+    expect(await undoSteps(page)).toBe(before + 1)
+  })
+
+  test('note → card refused: the note comes back and collaborators never heard of the trade', async ({ page }) => {
+    await open(page)
+    await holdSaves(page)
+    const start = await at(page, 'plain')
+    await drag(page, 'plain', await inLane(page, 'now'))
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now plain@now')
+    await answerSaves(page, false)
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
+    await expect.poll(async () => (await saved(page)).map(note => note.id)).toEqual(['plain'])
+    expect((await at(page, 'plain'))!.x).toBe(start!.x)
+    await page.waitForTimeout(400)
+    expect((await journal(page)).sent).toEqual([])
+    expect(await handed(page)).toEqual([])
+    expect(await heldSettled(page)).toBe(true)
+  })
+
+  test('card → note: the note is sent only when saved, as it is then; refused, it leaves and nothing was sent', async ({ page }) => {
+    await open(page)
+    await holdSaves(page)
+    await drag(page, 'card-alpha', await client(page, { x: 60, y: 420 }))
+    await expect.poll(async () => (await saved(page)).map(note => note.id)).toEqual(['plain', 'alpha'])
+    await page.waitForTimeout(600)
+    expect((await journal(page)).sent).toEqual([])
+    expect(await handed(page)).toEqual([])
+    // Renamed while the save is on its way: the room hears of the note with its new words.
+    await page.evaluate(() => (window as any).native.slate.nodes.one('alpha').options.text = 'Alpha renamed')
+    await answerSaves(page, true)
+    await expect.poll(async () => (await journal(page)).sent).toEqual(['onNodeAdded'])
+    const added = await page.evaluate(() => (window as any).native.log.sent[0].data)
+    expect(added.id).toBe('alpha')
+    expect(added.nodeOptions.text).toBe('Alpha renamed')
+    expect(await handed(page)).toEqual(['onNodeAdded'])
+
+    // Beta's trade is refused: its note leaves this screen and the card is back; nothing more was sent.
+    await drag(page, 'card-beta', await client(page, { x: 60, y: 560 }))
+    await expect.poll(async () => (await saved(page)).map(note => note.id)).toEqual(['plain', 'alpha', 'beta'])
+    await answerSaves(page, false)
+    await expect.poll(() => cards(page)).toBe('beta@now gamma@now')
+    await expect.poll(async () => (await saved(page)).map(note => note.id)).toEqual(['plain', 'alpha'])
+    await page.waitForTimeout(400)
+    expect((await journal(page)).sent).toEqual(['onNodeAdded'])
+    expect(await handed(page)).toEqual(['onNodeAdded'])
+  })
+})

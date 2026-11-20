@@ -65,12 +65,17 @@ export type WorkshopCandidateChooser = (board: Workshop, cardId: string, grab: {
 export interface AttachWorkshopOptions {
   /**
    * A move, rename or conversion was committed. `next` is validated; the host persists it.
-   * For a conversion, return a promise of what the save came to:
-   * - false: it was refused. The drawing is put back (the note returns to the canvas, or
+   * For a conversion, return a promise of what the save came to. The conversion shows on this
+   * screen at once, but collaborators (and the slate's onSlateChanged) hear of it only once
+   * the promise says true; until then the slate holds its drawing saves (Slate.whenHeldSettled).
+   * A host that returns no promise has saved it already.
+   * - true: it was saved, and is sent to collaborators.
+   * - false (or a rejected promise): it was refused. The drawing is put back (the note returns to the canvas, or
    *   leaves it again). The board is put back too, unless the host has drawn a newer one.
    * - 'taken': someone else made this same trade first (they put the note in a lane, or took
    *   the card off the lanes). This person's copy of the note leaves the canvas, nothing is
    *   brought back, and the board is the host's to draw.
+   * - anything else (the host went away before it knew): nothing is sent or put back.
    */
   onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | 'taken' | void>
   /** A drop or rename was refused. */
@@ -402,7 +407,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     showCurrent()
   }
   // An ordinary note dropped on a lane becomes a card there, or the lane says why not and it goes back.
-  policy.onFreeDrop = (node: any, point: WorldPoint) => {
+  policy.onFreeDrop = (node: any, point: WorldPoint, from?: WorldPoint) => {
     clearHover()
     if (!acceptsNotes() || node.options?.isComment) return
     const laneId = laneAt(point)
@@ -418,12 +423,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       tell(options.onRefuse, { noteId: node.id, laneId, reason })
       return 'refused'
     }
-    adopt([{ node, offer }], laneId)
+    adopt([{ node, offer, from }], laneId)
     return 'taken'
   }
   // Several ordinary notes carried together and dropped on a lane: all become cards there as
   // one step, or none do, they all go back, and the lane says why.
-  policy.onFreeGroupDrop = (nodes: any[], point: WorldPoint) => {
+  policy.onFreeGroupDrop = (nodes: any[], point: WorldPoint, from?: WorldPoint[]) => {
     clearHover()
     if (!acceptsNotes() || nodes.some(node => node.options?.isComment)) return
     const laneId = laneAt(point)
@@ -439,7 +444,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       for (const { node } of entries) tell(options.onRefuse, { noteId: node.id, laneId, reason })
       return 'refused'
     }
-    adopt(entries, laneId)
+    adopt(entries.map((entry, at) => ({ ...entry, from: from?.[at] })), laneId)
     return 'taken'
   }
   // A note whose words were typed while it sits on a lane (a double-click there makes one) is
@@ -773,12 +778,16 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   /**
    * Ordinary notes become cards at the foot of `laneId`: they leave the drawing and the board
    * gains the cards, as one undo step. Each card comes from where its note was let go.
+   * The note leaves this screen at once, but collaborators hear of it only once the host has
+   * saved the trade: refused, or the page gone first, nobody else ever saw it go.
    */
-  function adopt(entries: { node: any; offer: WorkshopNoteOffer }[], laneId: string) {
+  function adopt(entries: { node: any; offer: WorkshopNoteOffer; from?: WorldPoint }[], laneId: string) {
     let next = value
-    const made = entries.map(({ node, offer }) => {
+    const made = entries.map(({ node, offer, from }) => {
       next = workshopNoteCandidate(next, laneId, offer)!
-      return { node, card: next.cards[next.cards.length - 1], kept: { ...(node.options ?? {}) } }
+      // Should the host not save it, the note goes back where it started.
+      const kept = { ...(node.options ?? {}), ...(from ? { x: from.x, y: from.y } : {}) }
+      return { node, card: next.cards[next.cards.length - 1], kept }
     })
     slate.beginHostStep?.()
     value = next
@@ -787,7 +796,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     for (const { node, card } of made) {
       if (card.id !== node.id) pairs.set(node.id, card.id)
       arrivals.set(noteId(workshopNodeIds.card(card.id)), { x: node.options?.x ?? 0, y: node.options?.y ?? 0 })
-      slate.removeNode(node.id)
+      onlyHere(() => slate.removeNode(node.id))
     }
     slate.endHostStep?.()
     draw(value)
@@ -806,13 +815,17 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         committed = value
         draw(value)
       }
-      watch(tell(options.onChange, value, change), () => {
-        // The host could not save it: the note goes back on the canvas, as it was.
+      hear(tell(options.onChange, value, change), () => {
+        // Saved: now collaborators, and the host's drawing save, hear that the note is gone.
+        slate.sendHeld?.([{ type: 'onNodeDeleted', data: { id: node.id, isComment: false } }])
+      }, () => {
+        // The host could not save it: the note goes back on the canvas, as it was. Nobody else
+        // saw it go, so nothing is sent.
         if (destroyed) return
         dropCard()
         if (!slate.nodes.one(kept.id)) {
           slate.beginHostStep?.()
-          const back = slate.addNode({ ...kept })
+          const back = onlyHere(() => slate.addNode({ ...kept }))
           if (back) back.announcedByCreator = true
           slate.endHostStep?.()
         }
@@ -857,7 +870,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const committed = value
     if (id !== cardId) pairs.set(id, cardId)
     else pairs.delete(id)
-    const added = slate.addNode(note)
+    // Collaborators hear of the note only once the host has saved the trade.
+    const added = onlyHere(() => slate.addNode(note))
     if (added) added.announcedByCreator = true
     slate.endHostStep?.()
     draw(value)
@@ -871,10 +885,13 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const dropNote = () => {
       if (slate.nodes.one(id) !== added) return
       slate.beginHostStep?.()
-      slate.removeNode(id)
+      onlyHere(() => slate.removeNode(id))
       slate.endHostStep?.()
     }
-    watch(tell(options.onChange, value, { cardId, cardToNote: { noteId: id } }), () => {
+    hear(tell(options.onChange, value, { cardId, cardToNote: { noteId: id } }), () => {
+      // Saved: collaborators, and the host's drawing save, hear of the note as it is now.
+      if (added && slate.nodes.one(id) === added) slate.sendHeld?.([{ type: 'onNodeAdded', data: { id, nodeOptions: v2NodeToV1(added.options) } }])
+    }, () => {
       // The host could not save it: the note leaves the canvas and the card comes back, in its
       // place, unless the host has drawn a newer board.
       if (destroyed) return
@@ -914,6 +931,27 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (typeof slate.withoutAnnouncements === 'function') slate.withoutAnnouncements(select)
       else select()
     })
+  }
+
+  /** Make a change on this screen only (see Slate.onlyHere); a slate without it makes it as usual. */
+  function onlyHere<T>(change: () => T): T {
+    return typeof slate.onlyHere === 'function' ? slate.onlyHere(change) : change()
+  }
+
+  /**
+   * Hear what the host's save of a trade came to: `saved` once it says true (at once for a host
+   * that does not answer with a promise), `refused` when it says false or fails, `taken` when
+   * someone else made the same trade first, and nothing for any other answer (the host went away
+   * before it knew). The slate holds its drawing saves until then.
+   */
+  function hear(answer: unknown, saved: () => void, refused: () => void, taken: () => void) {
+    if (!answer || typeof (answer as any).then !== 'function') return saved()
+    const settled = (answer as Promise<unknown>).then(result => {
+      if (result === true) saved()
+      else if (result === false) refused()
+      else if (result === 'taken') taken()
+    }, () => refused())
+    slate.holdUntil?.(settled)
   }
 
   function refuse(cardLabel: string, refusal: { cardId: string; laneId: string; reason: string }) {
