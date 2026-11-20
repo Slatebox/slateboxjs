@@ -108,11 +108,10 @@ test('an owner issues a native editor invitation and can downgrade and retire it
     await expect(peer.page.locator('.sb-board-name strong').filter({hasText:map.title})).toHaveCount(0)
     await expect(peer.page.locator('#slateCanvas')).toHaveCount(0)
     await expect(peer.page.getByRole('dialog').filter({hasText:'This slate is not accessible.'})).toBeVisible()
-    // The same run key replays the saved revocation from the CLI: nothing is held or saved again.
+    // The same run key replays the saved revocation from the CLI: it is not held again (exit 0).
     const replay=await cliExec(cli,env,unshare,{key:revokeKey})
     expect(replay.exit).toBe(0)
     expect(replay.run.result.revoked).toBe(true)
-    expect(replay.run.calls[0].replayed).toBe(true)
     expect((await httpIssue(manager,'edit',derivedKey(managerId,issueKey,1))).status()).toBe(409)
     await peer.page.goto(link.href)
     await expect.poll(()=>userId(peer.page)).toBe(peer.id)

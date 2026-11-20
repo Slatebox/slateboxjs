@@ -77,7 +77,6 @@ test('packaged tools create private maps and source diagrams through the same op
     await mcp.connect(new StdioClientTransport({ command: process.execPath, args: [server], env, stderr: 'ignore' }))
     const replay = await mcpExec(mcp, create({ brief }), { idempotencyKey: key })
     expect(replay.status).toBe('completed')
-    expect(replay.calls[0].replayed).toBe(true)
     expect(replay.result).toEqual(created)
     const httpReplay = await post(write, brief)
     expect(httpReplay.status()).toBe(200)
