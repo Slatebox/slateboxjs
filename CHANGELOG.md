@@ -113,9 +113,17 @@
     room stays silent towards the host until it has finished;
   - a name given to a note that is not drawn yet is kept, and a note removed before it was drawn
     is never drawn.
-- **Other people's work survives one's own next undo.** Changes received from the room are taken
-  into the current undo record, and someone else's undo or redo starts one's own history again
-  from the slate it left.
+- **Undo takes back only one's own steps.** Undo records are whole slates, so undoing one's last
+  step put back the slate from before it and took away a note another person had added since,
+  for everyone. Changes received from the room, someone else's undo or redo included, are now
+  carried note by note into every undo and redo record (`SlateDelta.ts`,
+  `UndoRedo.beforeRemote`/`absorbRemote`). Someone else's undo no longer empties one's own
+  history either: one can still undo and redo one's own steps after it.
+- **A name half typed when someone else undoes is kept.** Their undo replaces every note, and
+  the note being typed into closed its editor and dropped what had been typed. The draft and its
+  caret are now taken before any load that replaces the notes and opened again on the note's new
+  copy (`Editor.draft`, `Slate.takeInlineDraft`/`resumeInlineDraft`; `startInline` takes `text`
+  and `selection`).
 - **Two notes deleted one after the other are two undo steps.** A delete is recorded when its key
   press ends; several selected notes deleted by one press are still one step.
 - **No selection is kept on notes that undo, redo or a load replaced.** Nothing showed as
@@ -126,7 +134,9 @@
 - **A selected note's connector dots no longer blink when the note is clicked.** A click is a
   drag that never moves: the dots and the resize/rotate outline were put away on the press and
   brought back a moment after the release, and a click on a dot in that moment hit nothing. They
-  are now put away on the drag's first move.
+  are now put away on the drag's first move. The end of that click, settled a moment later, no
+  longer selects the note again when a connector pressed in that moment has already created and
+  selected a connected note.
 - The zoom slider's label was up to half a second behind the view (it polled on a timer), so it
   read the old figure after `fitToContent()`. It now follows the canvas's viewBox and is right at
   once.
