@@ -14,6 +14,13 @@ export declare class Invoker {
     onNodeBehaviorChanged(pkg: SlatePackage): void;
     onNodeToBack(pkg: SlatePackage): void;
     onNodeToFront(pkg: SlatePackage): void;
+    /**
+     * A package from the room carries the list order the change left
+     * (Collab.send adds it); the order is applied as a whole, so a replay cannot
+     * lift a note above notes added later. A host's own request to move one
+     * note carries no order.
+     */
+    private reorder;
     onNodeShapeChanged(pkg: SlatePackage): void;
     onNodeAdded(pkg: SlatePackage): void;
     onNodeImageChanged(pkg: SlatePackage): void;

@@ -250,6 +250,11 @@ declare class slate {
      */
     alignNodes(mode: string, nodes?: Array<node | V2Node>): void;
     distributeNodes(axis: string, nodes?: Array<node | V2Node>): void;
+    /**
+     * Optimize Layout: the engine's tidy layout over every note, saved as one
+     * move. The app's Settings button and AI layout call this on the facade.
+     */
+    removeLayoutOverlaps(gap?: number): void;
     private unwrapNodes;
     /**
      * v1: `slate.disable(exemptSlate?, exemptNodes?, full?)` — freeze

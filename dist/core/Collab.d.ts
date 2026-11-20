@@ -157,6 +157,7 @@ export declare class Collab {
     private newestReplacement;
     /** Take replacements that lost to a later one out of the room. */
     private dropOlderReplacements;
+    private storeNodeOrder;
     private storeNodeText;
     /**
      * Remove a node's accumulated packages (onNodeAdded + onNodeXXXChanged) from

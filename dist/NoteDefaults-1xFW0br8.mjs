@@ -1,0 +1,32 @@
+const e = Object.freeze({
+  fontSize: 14,
+  fontFamily: "Arial, sans-serif",
+  fontColor: "#000000",
+  borderColor: "#cccccc",
+  borderWidth: 1,
+  backgroundColor: "#f0f0f0"
+}), t = Object.freeze({
+  text: Object.freeze({
+    shape: "rectangle",
+    width: 270,
+    height: 40,
+    style: Object.freeze({
+      opacity: 0,
+      borderOpacity: 0,
+      textOpacity: 1,
+      backgroundColor: "#ffffff",
+      foregroundColor: "#000000",
+      fontSize: 20
+    })
+  }),
+  sticky: Object.freeze({
+    shape: "stickynote",
+    width: 108,
+    height: 108,
+    style: Object.freeze({ borderOpacity: 0, effect: "postItNote" })
+  })
+});
+export {
+  e as D,
+  t as N
+};

@@ -47,7 +47,7 @@ export type { LayoutMove } from './core/Layout';
 export type { CommentOptions } from './core/Comments';
 export type { PresentationStep } from './core/Presentation';
 export type { FilterDef } from './core/Filters';
-export type { SlateNodeSelector, SlateOperation, SlateOperationKind, SlateOperationPlan, SlateOperationReport, SlateOperationShape, SlateOperationValidation, } from './core/SlateOperations';
+export type { NodeSelector as SlateNodeSelector, SlateOperation, SlateOperationKind, SlateOperationPlan, SlateOperationReport, SlateOperationValidation, } from './operations';
 /**
  * SlateboxJS — Modern diagramming library built with SVG.js.
  *

@@ -13,3 +13,34 @@ export declare const DEFAULT_NOTE_STYLE: Readonly<{
     borderWidth: 1;
     backgroundColor: "#f0f0f0";
 }>;
+/**
+ * The notes the toolbar makes (the app's QuickNodeActions): a text note has no
+ * fill or border and at least 20 point text; a sticky note is the sticky shape
+ * with the post-it effect and no border. An operation's own shape, size and
+ * style win over a preset.
+ */
+export declare const NOTE_PRESETS: Readonly<{
+    text: Readonly<{
+        shape: "rectangle";
+        width: 270;
+        height: 40;
+        style: Readonly<{
+            opacity: 0;
+            borderOpacity: 0;
+            textOpacity: 1;
+            backgroundColor: "#ffffff";
+            foregroundColor: "#000000";
+            fontSize: 20;
+        }>;
+    }>;
+    sticky: Readonly<{
+        shape: "stickynote";
+        width: 108;
+        height: 108;
+        style: Readonly<{
+            borderOpacity: 0;
+            effect: "postItNote";
+        }>;
+    }>;
+}>;
+export type NotePreset = keyof typeof NOTE_PRESETS;

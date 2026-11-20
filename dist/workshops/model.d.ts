@@ -292,6 +292,8 @@ export declare function workshopToSlate(input: Workshop, options?: WorkshopArtwo
 export declare const industrialWorkshop: Workshop;
 export * from './moonGallery';
 export * from './darkroom/model';
+export * from './edits';
+export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names';
 export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection } from './native';
 export type StartupExperience = {
     version: 1;

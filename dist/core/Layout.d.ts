@@ -9,13 +9,15 @@ export interface LayoutMove {
     y: number;
 }
 /**
- * Remove overlapping nodes by pushing them apart.
+ * Optimize Layout: move the slate's notes apart until none overlaps another,
+ * with the shared tidy layout that arrange_nodes "tidy" uses, then save the
+ * move with one onNodesMove. Locked notes and notes a host draws stay where
+ * they are and the others go round them.
  *
  * @param slate - The Slate instance
- * @param enableAttraction - If true, nodes are slightly attracted to center
- * @param threshold - Minimum distance between nodes
+ * @param gap - The space to leave between notes
  */
-export declare function removeLayoutOverlaps(slate: any, enableAttraction?: boolean, threshold?: number): void;
+export declare function removeLayoutOverlaps(slate: any, gap?: number): void;
 /**
  * Apply a set of pre-computed layout moves to nodes.
  *

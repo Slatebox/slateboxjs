@@ -565,6 +565,8 @@ export declare class Slate {
      * vertical. Broadcasts onNodesMove. No-op for < 3 nodes.
      */
     distributeNodes(axis: string, nodes?: Node[]): void;
+    private layoutBoxOf;
+    private moveToPositions;
     /** All nodes belonging to the given groupId (empty if none/falsy). */
     getGroupMembers(groupId: string | null | undefined): Node[];
     /** The groupId of a node, or null if it isn't grouped. */
@@ -774,7 +776,8 @@ export declare class Slate {
     /** Apply a theme to this slate */
     applyTheme(theme: ThemeDefinition, syncWithTheme?: boolean, revertTheme?: boolean): void;
     /** Remove overlapping nodes by pushing them apart */
-    removeLayoutOverlaps(enableAttraction?: boolean, threshold?: number): void;
+    /** Optimize Layout: the shared tidy layout over the slate's notes, saved as one move. */
+    removeLayoutOverlaps(gap?: number): void;
     /** Apply pre-computed layout moves */
     applyLayout(moves: LayoutMove[], cb?: () => void, noAnimation?: boolean): void;
     /** Package current node positions for layout transfer */

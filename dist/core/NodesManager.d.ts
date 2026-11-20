@@ -14,6 +14,19 @@ export declare class NodesManager {
     remove(id: string): boolean;
     one(id: string): Node | undefined;
     get allNodes(): Node[];
+    /**
+     * Move a note to the front (the end of the list, drawn last) or the back
+     * (the start). The list is the order notes are saved and loaded in, so a
+     * reload keeps the z-order a person or an agent chose.
+     */
+    reorder(id: string, place: "front" | "back"): void;
+    /**
+     * Take a z-order result from the room: the notes `order` names go, in that
+     * order, into the places those notes hold now; a note it does not name (one
+     * added after the order was sent) keeps its place. Then the drawing follows
+     * the list, the last note on top.
+     */
+    applyOrder(order: string[]): void;
     clear(): void;
     /** Destroy the nodes manager, clearing all nodes */
     destroy(): void;
@@ -27,7 +40,7 @@ export declare class NodesManager {
         animate?: boolean;
     }): void;
     /** Create an association from a collab package: `{parentId, childId, ...opts}` */
-    addRelationship(relationshipData: any): void;
+    addRelationship(relationshipData: any, waited?: boolean): void;
     /** Remove an association from a collab package: `{parentId, childId, id?}` */
     removeRelationship(relationshipData: any): void;
     private generateId;
