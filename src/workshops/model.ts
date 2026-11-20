@@ -551,11 +551,15 @@ export function workshopLaneCaption(board: Workshop, laneId: string): string {
 export const workshopLayout = { pitch: 244, width: 228, row: 88, height: 76, top: 98 }
 export const laneColors = ['#d5e9e3', '#fbdfac', '#dedef4', '#dcebf3', '#efd7dc']
 
-export function workshopPositions(board: Workshop, layout = workshopLayout, stationGap = 28) {
+/**
+ * Where each lane starts. `held` (cards per lane on the committed board) keeps a map's
+ * rows the height they had when a card was picked up, so no station moves under the pointer.
+ */
+export function workshopPositions(board: Workshop, layout = workshopLayout, stationGap = 28, held?: number[]) {
   const { pitch, row, top } = layout
   const map = Boolean(board.lanes[0].station)
   const rows = board.lanes.map(lane => board.cards.filter(card => card.laneId === lane.id).length)
-  const rowHeight = top + Math.max(1, ...rows) * row + 36
+  const rowHeight = top + Math.max(1, ...(held ?? rows)) * row + 36
   const points = board.lanes.map((lane, index) => ({
     x: map ? lane.station!.column * (pitch + stationGap) : index * pitch,
     y: map ? lane.station!.row * rowHeight : 0,
@@ -803,10 +807,11 @@ export function workshopLanePlaces(input: Workshop, options: Pick<WorkshopArtwor
   const places: WorkshopLanePlace[] = []
   if (map) {
     // A map's stations stay where their author put them: the layout wraps lanes, not a diagram.
-    const { points } = workshopPositions(board)
+    // While a card is held every row keeps its committed height; only the target station grows, downward.
+    const { points } = workshopPositions(board, undefined, undefined, Array.isArray(options.rows) ? options.rows : undefined)
     board.lanes.forEach((lane, index) => places.push({ laneId: lane.id, x: points[index].x,
       y: points[index].y + (hasImages ? lane.station!.row * stationImageSpace : 0), width: pitch,
-      height: top + (lane.station!.image ? stationImageSpace : 0) + Math.max(1, counts[index]) * row,
+      height: top + (lane.station!.image ? stationImageSpace : 0) + Math.max(1, least(index)) * row,
       column: lane.station!.column, row: lane.station!.row }))
   } else {
     // Every lane column in a row is as tall as the fullest lane of that row plus
