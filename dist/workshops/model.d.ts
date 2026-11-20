@@ -1,6 +1,10 @@
 export * from './offlineHandoff';
 export * from './listeningRoom';
 export { releaseLoad, releasePlan } from './release';
+export * from './launchPlan';
+export * from './pipeline';
+export * from './budget';
+export * from './numbers';
 import type { SlateJSON } from '../core/Serialization';
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults';
 /** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
@@ -13,6 +17,14 @@ export interface WorkshopLane {
     id: string;
     label: string;
     capacity?: number;
+    /** Pipeline: the chance a deal in this open stage is won, 0 to 1. */
+    probability?: number;
+    /** Pipeline: the stage that holds won deals, or lost ones. */
+    role?: 'won' | 'lost';
+    /** Budget: what this team is given, and the least and most it may be given. */
+    allocation?: number;
+    floor?: number;
+    cap?: number;
     station?: {
         column: number;
         row: number;
@@ -28,6 +40,11 @@ export interface WorkshopCard {
     allowedLaneIds?: string[];
     points?: number;
     dependsOn?: string[];
+    /** Launch plan: whole days the task takes, and whole days it waits after what it depends on. */
+    duration?: number;
+    lag?: number;
+    /** Pipeline and budget: whole currency units. */
+    amount?: number;
     /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
     look?: WorkshopCardLook;
     /** What the note it was made from had that a card does not show, so it comes back as it was. */
@@ -67,14 +84,35 @@ export interface ResolvedWorkshopSignal extends WorkshopSignal {
 export interface Workshop {
     experience?: StartupExperience;
     version: 1;
-    kind?: 'release-plan';
+    kind?: WorkshopKind;
     title: string;
+    /** Launch plan: the day every task must end by. */
+    launch?: {
+        day: number;
+    };
+    /** Pipeline: the forecast target, and the currency sign amounts are written with. */
+    forecast?: {
+        target: number;
+        currency: string;
+    };
+    /** Budget: the envelope, its currency sign and the step allocations snap to. */
+    budget?: {
+        total: number;
+        currency: string;
+        step: number;
+    };
     lanes: WorkshopLane[];
     /** Lane IDs in playback order. Boards without an authored order present their lanes in layout order. */
     presentationOrder?: string[];
     signals?: WorkshopSignal[];
     cards: WorkshopCard[];
 }
+/** The kinds of board with rules of their own. A board without a kind is a board of plain lanes. */
+export type WorkshopKind = 'release-plan' | 'launch-plan' | 'pipeline' | 'budget';
+/** The business boards: drawn by a board kit (slateboxjs/boards) on a live slate. */
+export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget';
+export declare const businessBoardKinds: readonly BusinessBoardKind[];
+export declare function businessKind(board: Pick<Workshop, 'kind'>): BusinessBoardKind | undefined;
 /** The parts of a note's look a card can keep; anything a card cannot draw is left out. Undefined when nothing is left. */
 export declare function workshopCardLookOf(input: Record<string, unknown>): WorkshopCardLook | undefined;
 /** Resolve the original lanes for playback without changing their board positions or rules. */
@@ -137,6 +175,10 @@ export declare function workshopNoteRefusal(board: Workshop, laneId: string, not
  * place). The card keeps the note's id where it can.
  */
 export declare function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null;
+/** What a card says on the board: its name, with its points, days or amount. */
+export declare function workshopCardText(board: Workshop, card: WorkshopCard): string;
+/** The words a card takes back to the canvas as a note, numbers and all: "Copy · 3 days", "Acme · $25k". */
+export declare function workshopCardNoteText(board: Workshop, card: WorkshopCard): string;
 /** Why the card may not leave the lanes as an ordinary note; null when it may. */
 export declare function workshopCardAsNoteRefusal(board: Workshop, cardId: string): string | null;
 /** The board without the card, for a card taken off the lanes as an ordinary note; null when it must stay. */
@@ -180,6 +222,10 @@ export declare function addWorkshopBranch(board: Workshop, fromStationId: string
 export declare const nightTransfer: Workshop;
 /** How the native artwork arranges a board's lanes. */
 export interface WorkshopBoardLayout {
+    /** Business boards: draw the narrow (phone) arrangement. */
+    narrow?: boolean;
+    /** Business boards: the world width the board should fill. */
+    width?: number;
     /**
      * How many lanes sit side by side before the next lane starts a new row. Leave it
      * out for every lane in one row. A narrow host passes 1 or 2 so each lane stays
@@ -294,7 +340,7 @@ export * from './moonGallery';
 export * from './darkroom/model';
 export * from './edits';
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names';
-export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection } from './native';
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native';
 export type StartupExperience = {
     version: 1;
     kind: 'customer-interviews' | 'experiment-budget';
