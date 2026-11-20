@@ -23,6 +23,38 @@ export interface ExportOptions {
   scale?: number;
 }
 
+const OMIT = "data-export-omit";
+
+/**
+ * The canvas elements of every note a host has marked `exportable: false`
+ * (see DragPolicy), with each line drawn to or from one: its path, hit area and label.
+ */
+function elementsLeftOut(slate: any): Element[] {
+  const nodes: any[] = slate.nodes?.allNodes ?? [];
+  if (typeof slate.governanceOf !== "function" || nodes.length === 0) return [];
+  const out = new Set<string>();
+  for (const node of nodes) {
+    if (slate.governanceOf(node)?.capabilities?.exportable === false) out.add(node.id);
+  }
+  if (out.size === 0) return [];
+  const elements: Element[] = [];
+  const take = (el: any) => {
+    if (el && typeof el.setAttribute === "function") elements.push(el);
+  };
+  for (const node of nodes) {
+    if (out.has(node.id)) take(node.svgGroup?.node);
+    for (const connection of node.connector?.getConnections?.() ?? []) {
+      if (!out.has(node.id) && !out.has(connection?.target?.id)) continue;
+      const line = connection.connectable;
+      take(line?.connector?.node);
+      take(line?.hitArea?.node);
+      take(line?.label?.node);
+      take(line?.labelBg?.node);
+    }
+  }
+  return elements;
+}
+
 /**
  * Export the slate canvas as SVG string.
  */
@@ -38,9 +70,18 @@ export function exportSVG(
     return err;
   }
 
+  // Notes a host keeps out of the picture (exportable: false) and their lines are
+  // tagged on the canvas for the moment of the clone, then dropped from the copy.
+  const omitted = elementsLeftOut(slate);
   try {
     // Clone the SVG to avoid modifying the original
-    const svgNode = canvas.node.cloneNode(true) as SVGElement;
+    for (const el of omitted) el.setAttribute(OMIT, "");
+    let svgNode: SVGElement;
+    try {
+      svgNode = canvas.node.cloneNode(true) as SVGElement;
+    } finally {
+      for (const el of omitted) el.removeAttribute(OMIT);
+    }
 
     // Remove non-exportable elements
     const removeSelectors = [
@@ -61,6 +102,8 @@ export function exportSVG(
       // (attribute-tagged, so the class selectors above miss them). Not visible
       // content — strip them so the export has no near-invisible cruft / bbox skew.
       '[connectortype="hitarea"]',
+      // Notes left out of exports by their host, and their lines.
+      `[${OMIT}]`,
     ];
 
     for (const sel of removeSelectors) {

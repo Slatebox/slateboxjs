@@ -37,6 +37,11 @@ export interface NodeCapabilities {
    * exportJSON, snapshots and undo history leave it out.
    */
   persist: boolean;
+  /**
+   * false leaves the note, and every line to or from it, out of SVG and PNG exports:
+   * a provisional drawing (a conversation's preview, say) is shown but is not the diagram.
+   */
+  exportable: boolean;
 }
 
 /** An ordinary note. Returned for every note no policy claims. */
@@ -50,6 +55,7 @@ export const FREE_NODE: Readonly<NodeCapabilities> = Object.freeze({
   canEditText: true,
   canSelect: true,
   persist: true,
+  exportable: true,
 });
 
 /** What a governed note gets unless its policy says otherwise. */
@@ -63,6 +69,7 @@ export const GOVERNED_NODE: Readonly<NodeCapabilities> = Object.freeze({
   canEditText: false,
   canSelect: true,
   persist: false,
+  exportable: true,
 });
 
 /** A point in world coordinates (the slate's own units, independent of pan and zoom). */

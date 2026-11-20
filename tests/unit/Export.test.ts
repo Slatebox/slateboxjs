@@ -334,6 +334,74 @@ describe("Export", () => {
       });
     });
 
+    describe("notes a host leaves out of exports (exportable: false)", () => {
+      // A host's provisional drawing (a conversation preview, say) is on the canvas but not
+      // part of the diagram: no export shows it, its lines, or room framed for it.
+      function slateWithProvisionalNote() {
+        const slate = createMockSlate();
+        const svg: SVGElement = slate.canvas.node;
+        const ns = "http://www.w3.org/2000/svg";
+        const group = (id: string) => svg.querySelector(`[data-node-id="${id}"]`)!;
+        const path = (type: string, d: string) => {
+          const el = document.createElementNS(ns, "path");
+          el.setAttribute("connectortype", type);
+          el.setAttribute("d", d);
+          svg.appendChild(el);
+          return el;
+        };
+        // node-2 is provisional; it holds a line to node-1, and node-1 holds a line to it.
+        const fromProvisional = { connector: path("default", "M 0 0 L 1 1"), hitArea: path("hitarea", "M 0 0 L 1 1") };
+        const toProvisional = { connector: path("default", "M 5 5 L 9 9"), hitArea: path("hitarea", "M 5 5 L 9 9") };
+        const keptLine = path("default", "M 2 2 L 3 3");
+        const asSvgJs = (line: any) => ({ connector: { node: line.connector }, hitArea: { node: line.hitArea } });
+        const node1: any = { id: "node-1", options: { x: 0, y: 0, width: 100, height: 60 }, svgGroup: { node: group("node-1") } };
+        const node2: any = { id: "node-2", options: { x: 900, y: 900, width: 120, height: 80 }, svgGroup: { node: group("node-2") } };
+        node1.connector = { getConnections: () => [
+          { id: "node-1->node-2", source: node1, target: node2, connectable: asSvgJs(toProvisional) },
+          { id: "node-1->node-1", source: node1, target: node1, connectable: { connector: { node: keptLine } } },
+        ] };
+        node2.connector = { getConnections: () => [{ id: "node-2->node-1", source: node2, target: node1, connectable: asSvgJs(fromProvisional) }] };
+        const nodes = [node1, node2];
+        slate.nodes = { allNodes: nodes, one: (id: string) => nodes.find((n) => n.id === id) };
+        slate.governanceOf = (node: any) => node === node2
+          ? { policy: {}, capabilities: { persist: false, exportable: false } }
+          : null;
+        return { slate, svg, keptLine };
+      }
+
+      it("leaves the note and every line to or from it out of the SVG", () => {
+        const { slate } = slateWithProvisionalNote();
+        const result = exportSVG(slate);
+        expect(result).toContain('data-node-id="node-1"');
+        expect(result).not.toContain('data-node-id="node-2"');
+        expect(result).not.toContain("M 0 0 L 1 1");
+        expect(result).not.toContain("M 5 5 L 9 9");
+        expect(result).toContain("M 2 2 L 3 3");
+      });
+
+      it("frames the export to the notes that are exported", () => {
+        const { slate } = slateWithProvisionalNote();
+        const result = exportSVG(slate);
+        // node-1 alone (0,0 100x60) with 40 of padding; node-2 at 900,900 is not counted.
+        expect(result).toContain('viewBox="-40 -40 180 140"');
+      });
+
+      it("leaves the canvas itself as it was", () => {
+        const { slate, svg } = slateWithProvisionalNote();
+        exportSVG(slate);
+        expect(svg.querySelector('[data-node-id="node-2"]')).not.toBeNull();
+        expect(svg.querySelectorAll("[data-export-omit]").length).toBe(0);
+      });
+
+      it("keeps a governed note that is exportable (a workshop's cards)", () => {
+        const { slate } = slateWithProvisionalNote();
+        slate.governanceOf = () => ({ policy: {}, capabilities: { persist: false, exportable: true } });
+        const result = exportSVG(slate);
+        expect(result).toContain('data-node-id="node-2"');
+        expect(result).toContain("M 0 0 L 1 1");
+      });
+    });
+
     describe("error handling", () => {
       it("should return empty string and log error when cloneNode throws", () => {
         // Replace canvas.node with a plain object that throws on cloneNode

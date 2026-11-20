@@ -40,6 +40,9 @@ describe("resolveGovernance", () => {
       canMove: true, canResize: false, canRotate: false, canDelete: false, canDuplicate: false, canConnect: false, persist: false,
     });
     expect(Object.values(FREE_NODE).every(Boolean)).toBe(true);
+    // A governed note is part of the picture unless its host says otherwise (a workshop's cards export).
+    expect(GOVERNED_NODE.exportable).toBe(true);
+    expect(FREE_NODE.exportable).toBe(true);
   });
 
   it("gives a note to the first policy that claims it, and treats a throwing policy as a claim", () => {
