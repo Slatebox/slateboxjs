@@ -89,17 +89,15 @@ test('the P10 vocabulary from an agent appears on the open canvas as stored, and
     await owner.reload()
     await expect(note(owner, 'p10-delta')).toHaveCount(1, { timeout: 20000 })
     await owner.waitForTimeout(3000)
-    // The relay room replays its whole package log on every join (plan-check F1,
-    // P06's to fix): a replayed onNodeToFront raises Alpha again, above notes added
-    // after it. Everything but the order is compared here; the order after the
-    // reload is logged as evidence for P06.
-    const without = ({ order, ...rest }: any) => rest
+    // The relay room replays its package log on every join, in no fixed order
+    // (plan-check F1). Its z-order entry carries the list order it left, so the
+    // replay leaves the notes duplicated after Alpha came forward above it: the
+    // live order, and what the next save writes, stay the stored order.
     const reloaded = view(await liveView(owner))
-    expect(without(reloaded)).toEqual(without(stored))
+    expect(reloaded).toEqual(stored)
     await owner.waitForTimeout(4000)
     const storedAfter = view(await getSlate(owner, share))
-    expect(without(storedAfter)).toEqual(without(stored))
-    console.info('order: stored before reload', JSON.stringify(stored.order), 'live after reload', JSON.stringify(reloaded.order), 'stored after reload', JSON.stringify(storedAfter.order))
+    expect(storedAfter).toEqual(stored)
   } finally {
     await t.cleanup()
     await owner.close()
