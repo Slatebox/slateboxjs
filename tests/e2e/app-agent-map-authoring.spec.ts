@@ -102,7 +102,7 @@ test('an invited teammate follows an agent-authored branch and presents its save
     await expect(deck.getByRole('heading',{name:label,exact:true})).toBeVisible()
     await expect(deck.getByText(finalOutcome,{exact:true}).last()).toBeVisible()
     await expect(deck.getByRole('listitem')).toHaveText('Token')
-    const latest=(await cli('read',board)).summary.workshop
+    const latest=(await cli('read',board)).workshop
     expect(latest.cards[0].laneId).toBe(branch.stationId)
     expect(latest.lanes.filter((lane:{id:string})=>lane.id===branch.stationId)).toHaveLength(1)
     expect(latest.lanes.at(-1).outcome).toBe(finalOutcome)

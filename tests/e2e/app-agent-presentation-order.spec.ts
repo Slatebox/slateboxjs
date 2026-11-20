@@ -38,11 +38,11 @@ test('an agent orders the scenes that an invited reader actually presents', asyn
 
     const order = ['next','start']
     await startAgentMap(owner.page,origin,board)
-    const initial = (await cli('read',board)).summary.workshop
+    const initial = (await cli('read',board)).workshop
     const preview = () => cli('order',board,'Next step','Start')
     const before = await preview()
     expect(before.report.presentationOrder).toEqual(order)
-    expect((await cli('read',board)).summary.workshop).toEqual(initial)
+    expect((await cli('read',board)).workshop).toEqual(initial)
 
     // An ordinary canvas edit after preview must invalidate the prepared save.
     await dragCardNamed(owner.page,'Token','Next step')
@@ -99,7 +99,7 @@ test('an agent orders the scenes that an invited reader actually presents', asyn
     await reader.getByRole('button',{name:'Present',exact:true}).click()
     await expectWorkshopSlide(reader,'Next step',['Token'],['lane-next','card-'+tokenId])
     await expect(deck.getByText(outcome,{exact:true}).last()).toBeVisible()
-    const actual = (await cli('read',board)).summary.workshop
+    const actual = (await cli('read',board)).workshop
     expect(actual.presentationOrder).toEqual(order)
     expect(actual.lanes.map((x:{id:string})=>x.id)).toEqual(initial.lanes.map((x:{id:string})=>x.id))
     expect(await reader.evaluate(()=>(window as any).Meteor.userId())).toBeNull()

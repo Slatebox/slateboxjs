@@ -54,7 +54,7 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
     async function summary() {
       const response = await request.get(endpoint, { headers })
       expect(response.status()).toBe(200)
-      return (await response.json()).summary.workshop
+      return (await response.json()).workshop
     }
     const map = await summary()
     const team = map.cards.find((card: { label: string }) => card.label === 'Team')
@@ -83,7 +83,7 @@ test('a saved agent move follows the teamâ€™s map rules and reaches its readerâ€
         const result = await promisify(execFile)(process.execPath, [resolve(tools, 'src/slatebox.js'), ...args], { env })
         return JSON.parse(result.stdout)
       }
-      expect((await shell('read', shareId)).summary.workshop).toEqual(map)
+      expect((await shell('read', shareId)).workshop).toEqual(map)
       const namedPreview = await shell('move', shareId, 'Team', 'Ask finance')
       expect(namedPreview.operations).toEqual([move])
       expect(namedPreview.mode).toBe('preview')
