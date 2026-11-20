@@ -135,6 +135,15 @@ shapes.set("diamond", {
   viewBox: "0 0 100 100",
 });
 
+// Sticky note: the app toolbar's sticky outline (defaultShapes stickyNote),
+// a square with a lifted bottom edge.
+shapes.set("stickynote", {
+  path: "M1 1l18 0.1l-0.1 17.8s-15.5 0.4-17.6-1c-0.4-2.1-0.3-16.9-0.3-16.9z",
+  defaultWidth: 108,
+  defaultHeight: 108,
+  viewBox: "1 1 18 18",
+});
+
 // ─── Registry API ────────────────────────────────────────────────────
 
 /** Get a shape definition by name */

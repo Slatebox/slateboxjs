@@ -14,10 +14,66 @@ export interface Background {
   gradient?: { type: (typeof GRADIENT_TYPES)[number]; colors: string[]; direction?: (typeof GRADIENT_DIRECTIONS)[number] };
 }
 
-export const SLATE_KEYS: Record<string, { spec: ValueSpec; description: string }> = {
-  name: { spec: { type: "string", minLength: 1, maxLength: 200 }, description: "The slate's name." },
-  description: { spec: { type: "string", maxLength: 5000 }, description: "The slate's description." },
-  background: { spec: { type: "object" }, description: "Canvas background: {color, gradient?: {type, colors, direction?}}." },
+export interface SlateKey {
+  spec: ValueSpec;
+  description: string;
+  /** Write the (already valid) value into the stored slate. */
+  store: (slate: { options: Record<string, any>; nodes: Array<{ options: Record<string, any>; relationships: { associations: Record<string, any>[] } }> }, value: any) => void;
+}
+
+const option = (key: string) => ({
+  store: (slate: { options: Record<string, any> }, value: any) => {
+    slate.options[key] = value;
+  },
+});
+
+const viewPort = (key: string) => ({
+  store: (slate: { options: Record<string, any> }, value: any) => {
+    slate.options.viewPort = { ...(slate.options.viewPort || {}), [key]: value };
+  },
+});
+
+/**
+ * Slate keys, in the order a change is applied and sent. The settings are
+ * stored where the canvas reads them (Slate.options, options.viewPort), as the
+ * Settings and Colours panels store them.
+ */
+export const SLATE_KEYS: Record<string, SlateKey> = {
+  name: { spec: { type: "string", minLength: 1, maxLength: 200 }, description: "The slate's name.", ...option("name") },
+  description: { spec: { type: "string", maxLength: 5000 }, description: "The slate's description.", ...option("description") },
+  background: {
+    spec: { type: "object" },
+    description: "Canvas background: {color, gradient?: {type, colors, direction?}}.",
+    store: (slate, value: Background) => {
+      const style = { ...(slate.options.containerStyle || {}), ...backgroundToContainerStyle(value) };
+      delete style.backgroundImage;
+      delete style.backgroundEffect;
+      slate.options.containerStyle = style;
+    },
+  },
+  mindMapMode: {
+    spec: { type: "boolean" },
+    description: "Mind map mode: a theme colours notes by their depth in the connected tree.",
+    ...option("mindMapMode"),
+  },
+  autoResizeNodesBasedOnText: {
+    spec: { type: "boolean" },
+    description: "Notes grow to fit their text while it is typed.",
+    ...option("autoResizeNodesBasedOnText"),
+  },
+  showGrid: { spec: { type: "boolean" }, description: "Show the grid behind the canvas.", ...viewPort("showGrid") },
+  snapToObjects: { spec: { type: "boolean" }, description: "A dragged note snaps to the edges of its neighbours.", ...viewPort("snapToObjects") },
+  defaultLineColor: {
+    spec: { type: "color" },
+    description: "The slate's line colour: every connector and every note's line colour takes it, as the Colours panel does.",
+    store: (slate, value) => {
+      slate.options.defaultLineColor = value;
+      for (const node of slate.nodes) {
+        node.options.lineColor = value;
+        for (const association of node.relationships.associations) association.lineColor = value;
+      }
+    },
+  },
 };
 
 export function checkBackground(value: any, label: string): string[] {

@@ -10,11 +10,12 @@ import {
   LAYOUTS,
   OPERATION_FIELDS,
   PLACEMENT_DIRECTIONS,
+  PRESETS,
   SLATE_OPERATION_KINDS,
   type ContractOptions,
   type SlateOperationPlan,
 } from "./contract";
-import { NODE_KEYS, NODE_STYLE_KEYS } from "./keys/node";
+import { NODE_INTENT_KEYS, NODE_KEYS, NODE_STYLE_KEYS } from "./keys/node";
 import { CONNECTOR_KEYS, CONNECTOR_STYLE_KEYS } from "./keys/connector";
 import { backgroundSchema, SLATE_KEYS } from "./keys/slate";
 import { selectorSchema } from "./keys/selector";
@@ -27,16 +28,24 @@ export function describeOperations(options: ContractOptions = {}) {
   return {
     version: 1,
     kinds: Object.fromEntries(SLATE_OPERATION_KINDS.map((kind) => [kind, { fields: OPERATION_FIELDS[kind].filter((field) => field !== "kind") }])),
-    noteKeys: keys(NODE_KEYS, (entry) => entry.spec(lists)),
+    noteKeys: { ...keys(NODE_KEYS, (entry) => entry.spec(lists)), ...keys(NODE_INTENT_KEYS, (entry) => entry.spec) },
     noteStyleKeys: [...NODE_STYLE_KEYS],
     connectorKeys: keys(CONNECTOR_KEYS, (entry) => entry.spec),
     connectorStyleKeys: [...CONNECTOR_STYLE_KEYS],
-    slateKeys: { ...keys({ name: SLATE_KEYS.name, description: SLATE_KEYS.description }, (entry) => entry.spec), background: { ...backgroundSchema(), description: SLATE_KEYS.background.description } },
+    slateKeys: Object.fromEntries(
+      Object.entries(SLATE_KEYS).map(([key, entry]) => [
+        key,
+        { ...(key === "background" ? backgroundSchema() : schemaFor(entry.spec)), description: entry.description },
+      ]),
+    ),
     selector: selectorSchema(),
+    layouts: [...LAYOUTS],
+    presets: [...PRESETS],
     limits: contractLimits(options),
     shapes: lists.shapes,
     fonts: lists.fonts,
     animations: lists.animations,
+    effects: lists.effects,
     errors: {
       invalid_operation_plan: "400: the plan breaks the contract; the message lists each problem.",
       ambiguous_selector: "400: a text selector matched several notes; details.candidates lists them.",
@@ -81,18 +90,26 @@ export function slateOperationPlanSchema(options: ContractOptions = {}): Record<
             kind: { type: "string", enum: [...SLATE_OPERATION_KINDS] },
             count: { type: "integer", minimum: 1, maximum: limits.notesPerAdd },
             ...nodeProperties(["shape", "text", "x", "y", "width", "height"]),
-            ids: { ...ids, description: "add_nodes: new note ids (1 to 64 letters, digits, _ or -), which later operations in the plan may name. connect_nodes: ids for the new connectors, one per pair. An id already in use is refused." },
+            preset: {
+              type: "string",
+              enum: [...PRESETS],
+              description: "add_nodes: text (no fill or border) or sticky (a sticky note), as the note toolbar makes them. Gives the shape when none is given.",
+            },
+            ids: { ...ids, description: "add_nodes and duplicate_nodes: new note ids (1 to 64 letters, digits, _ or -), which later operations in the plan may name. connect_nodes: ids for the new connectors, one per pair. An id already in use is refused." },
             connectionIds: ids,
             gap: { type: "number", minimum: 0, maximum: 2000 },
+            offset: { ...schemaFor({ type: "point" }), description: "duplicate_nodes: how far the copies sit from the notes copied; 20, 20 when left out." },
             placement: {
               type: "object",
               additionalProperties: false,
-              description: "add_nodes: where to put the notes. With x and y, only arrangement and gap apply.",
+              description:
+                "add_nodes: where to put the notes. With x and y, only arrangement and gap apply. connect: true with relativeTo makes notes that copy that note's look and are joined to it, 75 from its edge, as the canvas's connection handles do.",
               properties: {
                 relativeTo: { type: "string" },
                 direction: { type: "string", enum: [...PLACEMENT_DIRECTIONS] },
                 arrangement: { type: "string", enum: [...ARRANGEMENTS] },
                 gap: { type: "number", minimum: 0, maximum: 2000 },
+                connect: { type: "boolean" },
               },
             },
             style: {
@@ -108,18 +125,24 @@ export function slateOperationPlanSchema(options: ContractOptions = {}): Record<
               description: `${selector.description} connect_nodes may instead give {point: {x, y}} for a connector with a free end.`,
               properties: { ...selector.properties, point: schemaFor({ type: "point" }) },
             },
-            layout: { type: "string", enum: [...LAYOUTS] },
+            layout: {
+              type: "string",
+              enum: [...LAYOUTS],
+              description:
+                "arrange_nodes: row, column, grid, circle; align-* and distribute-* as the canvas aligns by what you see; tidy moves notes apart until none overlaps; tree lays connected notes out in layers under their root.",
+            },
             changes: {
               type: "object",
               additionalProperties: false,
               minProperties: 1,
-              description: "update_nodes: note keys. update_connections: connector keys. update_slate: name, description, background.",
+              description: `update_nodes: note keys (and order: front or back). update_connections: connector keys. update_slate: ${Object.keys(SLATE_KEYS).join(", ")}.`,
               properties: {
                 ...nodeProperties(Object.keys(NODE_KEYS)),
+                ...Object.fromEntries(Object.entries(NODE_INTENT_KEYS).map(([key, entry]) => [key, schemaFor(entry.spec)])),
                 ...connectorProperties(Object.keys(CONNECTOR_KEYS)),
-                name: schemaFor(SLATE_KEYS.name.spec),
-                description: schemaFor(SLATE_KEYS.description.spec),
-                background: backgroundSchema(),
+                ...Object.fromEntries(
+                  Object.entries(SLATE_KEYS).map(([key, entry]) => [key, key === "background" ? backgroundSchema() : schemaFor(entry.spec)]),
+                ),
               },
             },
           },

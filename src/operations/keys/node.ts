@@ -22,6 +22,12 @@ const plain = (key: string) => ({
 });
 
 export const BORDER_STYLES = ["solid", "dashed", "dotted", "combo"] as const;
+/**
+ * The note effects the canvas offers: the engine's filters (core/Filters.ts,
+ * kept equal by a test). Listed here so this module loads without the DOM.
+ */
+export const EFFECTS: readonly string[] = Object.freeze(["dropShadow", "blur", "outline", "postItNote", "pencil"]);
+export const ORDERS = ["front", "back"] as const;
 export const TEXT_X_ALIGN = ["left", "middle", "right"] as const;
 export const TEXT_Y_ALIGN = ["top", "middle", "bottom"] as const;
 
@@ -106,6 +112,38 @@ export const NODE_KEYS: Record<string, NodeKey> = {
     },
     read: (options) => options.animations?.vect ?? null,
   },
+  textOpacity: {
+    spec: () => ({ type: "number", min: 0, max: 1 }),
+    description: "Text opacity from 0 to 1.",
+    ...plain("textOpacity"),
+  },
+  link: {
+    spec: () => ({ type: "url", nullable: true }),
+    description: "A web address the note opens (http or https), or null to remove it.",
+    store: (options, value) => {
+      // The shape the link dialog stores (Links.set): {show, type: "url", data}.
+      if (value === null) delete options.link;
+      else options.link = { show: true, type: "url", data: `${value}`.trim() };
+    },
+    read: (options) => (options.link?.show && options.link.type === "url" ? options.link.data : null),
+  },
+  effect: {
+    spec: (lists) => ({ type: "enum", values: lists.effects, nullable: true }),
+    description: "A note effect such as dropShadow or postItNote, or null for none.",
+    store: (options, value) => {
+      options.filters = { ...(options.filters || {}), vect: value ?? null };
+    },
+    read: (options) => options.filters?.vect ?? null,
+  },
+  groupId: {
+    spec: () => ({ type: "id", nullable: true }),
+    description: "Notes sharing a groupId select and move as one group; null takes the note out of its group.",
+    store: (options, value) => {
+      if (value === null) delete options.groupId;
+      else options.groupId = value;
+    },
+    read: (options) => options.groupId ?? null,
+  },
   locked: {
     spec: () => ({ type: "boolean" }),
     description: "A locked note cannot be moved, changed or deleted until it is unlocked.",
@@ -115,6 +153,21 @@ export const NODE_KEYS: Record<string, NodeKey> = {
     read: (options) => options.isLocked === true,
   },
 };
+
+/**
+ * A change that is not stored on the note: order moves the note to the front
+ * (the end of the slate's note list, drawn last) or the back (the start). The
+ * engine saves and loads notes in that order, so the list is the z-order.
+ */
+export const NODE_INTENT_KEYS: Record<string, { spec: ValueSpec; description: string }> = {
+  order: {
+    spec: { type: "enum", values: ORDERS },
+    description: "Bring the note to the front or send it to the back.",
+  },
+};
+
+/** Every key update_nodes accepts in changes. */
+export const NODE_CHANGE_KEYS = [...Object.keys(NODE_KEYS), ...Object.keys(NODE_INTENT_KEYS)];
 
 /** Keys set on add_nodes at the top level of the operation, not in style. */
 export const ADD_LEVEL_KEYS = new Set(["text", "shape", "x", "y", "width", "height"]);

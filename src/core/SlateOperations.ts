@@ -39,7 +39,7 @@ function nodePackages(id: string, changes: Record<string, any>, options: Record<
   }
   // After the fill: setColors re-picks a readable text colour, and an explicit
   // foregroundColor must win over it.
-  if (has("text", "fontFamily", "fontSize", "foregroundColor", "textXAlign", "textYAlign")) {
+  if (has("text", "fontFamily", "fontSize", "foregroundColor", "textOpacity", "textXAlign", "textYAlign")) {
     packages.push({
       type: "onNodeTextChanged",
       data: {
@@ -48,6 +48,7 @@ function nodePackages(id: string, changes: Record<string, any>, options: Record<
         ...(has("fontFamily") ? { fontFamily: value("fontFamily") } : {}),
         ...(has("fontSize") ? { fontSize: value("fontSize") } : {}),
         ...(has("foregroundColor") ? { fontColor: value("foregroundColor") } : {}),
+        ...(has("textOpacity") ? { textOpacity: value("textOpacity") } : {}),
         ...(has("textXAlign") ? { textXAlign: value("textXAlign") } : {}),
         ...(has("textYAlign") ? { textYAlign: value("textYAlign") } : {}),
       },
@@ -64,6 +65,13 @@ function nodePackages(id: string, changes: Record<string, any>, options: Record<
   if (has("animation")) {
     packages.push({ type: "onNodeEffectChanged", data: { id, filter: { apply: "vect", id: value("animation"), isAnimation: true } } });
   }
+  // The packages the note drawer, the group toolbar and Ctrl+[ / Ctrl+] send.
+  if (has("effect")) packages.push({ type: "onNodeEffectChanged", data: { id, filter: { apply: "vect", id: value("effect") } } });
+  if (has("link")) {
+    packages.push(options.link ? { type: "onNodeLinkAdded", data: { id, link: { ...options.link } } } : { type: "onNodeLinkRemoved", data: { id } });
+  }
+  if (has("groupId")) packages.push({ type: "onNodesMove", data: { dur: 0, nodes: [{ id, groupId: value("groupId") }] } });
+  if (has("order")) packages.push({ type: changes.order === "front" ? "onNodeToFront" : "onNodeToBack", data: { id } });
   return packages;
 }
 
@@ -75,9 +83,16 @@ export function packagesForOperation(operation: SlateOperation, before: StoredSl
   const connectorsAfter = connectorsById(after);
   switch (operation.kind) {
     case "add_nodes":
-      return (operation.ids || [])
-        .filter((id) => !notesBefore.has(id) && notesAfter.has(id))
-        .map((id) => ({ type: "onNodeAdded", data: { nodeOptions: { ...notesAfter.get(id)!.options } } }));
+    case "duplicate_nodes": {
+      const made = (operation.ids || []).filter((id) => !notesBefore.has(id) && notesAfter.has(id));
+      const madeSet = new Set(made);
+      // A connected note's connector, or the connectors copied between duplicates.
+      const joined = [...connectorsAfter.values()].filter((association) => !connectorsBefore.has(association.id) && madeSet.has(association.childId));
+      return [
+        ...made.map((id) => ({ type: "onNodeAdded", data: { nodeOptions: { ...notesAfter.get(id)!.options } } })),
+        ...joined.map((association) => ({ type: "addRelationship", data: { ...association } })),
+      ];
+    }
     case "update_nodes":
       return (operation.target?.ids || []).flatMap((id) => {
         const node = notesAfter.get(id);
@@ -120,6 +135,7 @@ export function packagesForOperation(operation: SlateOperation, before: StoredSl
     case "update_slate": {
       const changes = operation.changes || {};
       const packages: any[] = [];
+      const settings = after.options;
       if (changes.name !== undefined) packages.push({ type: "onSlateNameChanged", data: { name: after.options.name } });
       if (changes.description !== undefined) packages.push({ type: "onSlateDescriptionChanged", data: { description: after.options.description } });
       if (changes.background !== undefined) {
@@ -135,9 +151,18 @@ export function packagesForOperation(operation: SlateOperation, before: StoredSl
           },
         });
       }
+      // The Settings and Colours panels' packages.
+      if (changes.mindMapMode !== undefined) packages.push({ type: "onSlateMindMapModeChanged", data: { mindMapMode: settings.mindMapMode } });
+      if (changes.autoResizeNodesBasedOnText !== undefined) {
+        packages.push({ type: "onSlateAutoResizeNodesBasedOnTextChanged", data: { autoResizeNodesBasedOnText: settings.autoResizeNodesBasedOnText } });
+      }
+      if (changes.showGrid !== undefined) packages.push({ type: "onSlateShowGridChanged", data: { showGrid: settings.viewPort.showGrid } });
+      if (changes.snapToObjects !== undefined) packages.push({ type: "onSlateSnapToObjectsChanged", data: { snapToObjects: settings.viewPort.snapToObjects } });
+      if (changes.defaultLineColor !== undefined) packages.push({ type: "onLineColorChanged", data: { color: settings.defaultLineColor } });
       return packages;
     }
   }
+  return [];
 }
 
 export function applySlateOperations(

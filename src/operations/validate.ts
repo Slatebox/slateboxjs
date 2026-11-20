@@ -12,11 +12,12 @@ import {
   NOTE_ID_PATTERN,
   OPERATION_FIELDS,
   PLACEMENT_DIRECTIONS,
+  PRESETS,
   SLATE_OPERATION_KINDS,
   type ContractOptions,
   type SlateOperationValidation,
 } from "./contract";
-import { NODE_KEYS, NODE_STYLE_KEYS } from "./keys/node";
+import { NODE_CHANGE_KEYS, NODE_INTENT_KEYS, NODE_KEYS, NODE_STYLE_KEYS } from "./keys/node";
 import { CONNECTOR_KEYS, CONNECTOR_STYLE_KEYS } from "./keys/connector";
 import { checkBackground, SLATE_KEYS } from "./keys/slate";
 import { checkSelector } from "./keys/selector";
@@ -56,7 +57,8 @@ function checkKeys(
 
 function nodeValueCheck(lists: Lists, label: string) {
   return (key: string, value: unknown, errors: string[]) => {
-    const problem = checkValue(NODE_KEYS[key].spec(lists), value, `${label} ${key}`);
+    const spec = NODE_INTENT_KEYS[key]?.spec ?? NODE_KEYS[key].spec(lists);
+    const problem = checkValue(spec, value, `${label} ${key}`);
     if (problem) errors.push(problem);
   };
 }
@@ -115,8 +117,16 @@ export function validatePlan(plan: any, options: ValidateOptions = {}): SlateOpe
         if (!Number.isInteger(operation.count) || operation.count < 1 || operation.count > limits.notesPerAdd) {
           errors.push(`${prefix} count must be an integer from 1 to ${limits.notesPerAdd}.`);
         }
-        const shape = checkValue(NODE_KEYS.shape.spec(lists), operation.shape, `${prefix} shape`);
-        if (shape) errors.push(shape);
+        if (operation.preset !== undefined) {
+          const preset = checkValue({ type: "enum", values: PRESETS }, operation.preset, `${prefix} preset`);
+          if (preset) errors.push(preset);
+        }
+        // A preset or a connected note's source gives the shape when the operation does not.
+        const connects = isObject(operation.placement) && operation.placement.connect === true;
+        if (operation.shape !== undefined || (operation.preset === undefined && !connects)) {
+          const shape = checkValue(NODE_KEYS.shape.spec(lists), operation.shape, `${prefix} shape`);
+          if (shape) errors.push(shape);
+        }
         for (const key of ["text", "width", "height"]) {
           if (operation[key] === undefined) continue;
           const problem = checkValue(NODE_KEYS[key].spec(lists), operation[key], `${prefix} ${key}`);
@@ -144,14 +154,26 @@ export function validatePlan(plan: any, options: ValidateOptions = {}): SlateOpe
           if (!isObject(placement)) {
             errors.push(`${prefix} placement must be an object.`);
           } else {
-            const allowed = operation.x !== undefined ? ["arrangement", "gap"] : ["relativeTo", "direction", "arrangement", "gap"];
+            // With x and y, relativeTo only names the note a connected note copies and joins.
+            const allowed =
+              operation.x !== undefined
+                ? ["arrangement", "gap", ...(placement.connect === true ? ["relativeTo", "connect"] : [])]
+                : ["relativeTo", "direction", "arrangement", "gap", "connect"];
             for (const key of Object.keys(placement)) {
               if (!allowed.includes(key)) {
                 errors.push(
-                  operation.x !== undefined && ["relativeTo", "direction"].includes(key)
+                  operation.x !== undefined && ["relativeTo", "direction", "connect"].includes(key)
                     ? `${prefix} gives x and y, so placement cannot also give ${key}.`
                     : `${prefix} placement has an unknown field: ${key}.`,
                 );
+              }
+            }
+            if (placement.connect !== undefined) {
+              if (typeof placement.connect !== "boolean") {
+                errors.push(`${prefix} placement.connect must be true or false.`);
+              } else if (placement.connect) {
+                if (placement.relativeTo === undefined) errors.push(`${prefix} placement.connect needs relativeTo, the note to copy and connect from.`);
+                if (placement.direction === "center") errors.push(`${prefix} cannot connect a note placed at the centre of another; choose left, right, above or below.`);
               }
             }
             if (placement.relativeTo !== undefined && typeof placement.relativeTo !== "string") {
@@ -181,7 +203,7 @@ export function validatePlan(plan: any, options: ValidateOptions = {}): SlateOpe
         errors.push(...selector);
         if (!selector.length) referencesKnown(operation.target, prefix);
         if (operation.kind === "update_nodes") {
-          errors.push(...checkKeys(operation.changes, Object.keys(NODE_KEYS), prefix, "node change", nodeValueCheck(lists, prefix), { plural: "changes" }));
+          errors.push(...checkKeys(operation.changes, NODE_CHANGE_KEYS, prefix, "node change", nodeValueCheck(lists, prefix), { plural: "changes" }));
         }
         if (operation.kind === "delete_nodes") {
           const everything = isObject(operation.target) && operation.target.all === true && Object.keys(operation.target).length === 1;
@@ -197,6 +219,26 @@ export function validatePlan(plan: any, options: ValidateOptions = {}): SlateOpe
             if (gap) errors.push(gap);
           }
         }
+        return;
+      }
+      case "duplicate_nodes": {
+        const selector = checkSelector(operation.target, `${prefix} target`);
+        errors.push(...selector);
+        if (!selector.length) referencesKnown(operation.target, prefix);
+        if (operation.offset !== undefined) {
+          const offset = checkValue({ type: "point" }, operation.offset, `${prefix} offset`);
+          if (offset) errors.push(offset);
+        }
+        if (operation.ids !== undefined) {
+          if (!stringList(operation.ids) || new Set(operation.ids).size !== operation.ids.length) {
+            errors.push(`${prefix} ids must be a list of different note ids.`);
+          } else if (operation.ids.some((id: string) => !NOTE_ID_PATTERN.test(id))) {
+            errors.push(`${prefix} ids must be 1 to 64 letters, digits, _ or -, and must not start with __free_.`);
+          } else if (isObject(operation.target) && stringList(operation.target.ids) && operation.ids.length > operation.target.ids.length) {
+            errors.push(`${prefix} has more ids than notes to copy.`);
+          }
+        }
+        if (stringList(operation.ids)) operation.ids.forEach((id: string) => knownIds.add(id));
         return;
       }
       case "connect_nodes": {

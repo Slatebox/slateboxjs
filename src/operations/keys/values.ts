@@ -11,12 +11,17 @@ export type ValueSpec =
   | { type: "enum"; values: readonly string[]; nullable?: boolean; caseless?: boolean }
   | { type: "color" }
   | { type: "point" }
-  | { type: "object" };
+  | { type: "object" }
+  /** An http or https address, or null to remove it. */
+  | { type: "url"; nullable?: boolean }
+  /** A plain id: 1 to 64 letters, digits, _ or -. */
+  | { type: "id"; nullable?: boolean };
 
 export type Lists = {
   shapes: string[];
   fonts: string[];
   animations: string[];
+  effects: string[];
 };
 
 export function isObject(value: unknown): value is Record<string, any> {
@@ -26,6 +31,11 @@ export function isObject(value: unknown): value is Record<string, any> {
 // #rgb, #rrggbb, #rrggbbaa, rgb()/rgba()/hsl()/hsla(), or a CSS colour word.
 const COLOR =
   /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([\d\s.,%+-]{1,60}\)|[a-z]{3,30}|transparent)$/i;
+
+// The link dialog's rule (NodeDrawer.saveNodeLink): http or https and something after it.
+const WEB_ADDRESS = /^https?:\/\/[^\s]+$/i;
+const URL_MAX_LENGTH = 2000;
+const PLAIN_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 export function canonical(values: readonly string[], value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -66,6 +76,16 @@ export function checkValue(spec: ValueSpec, value: unknown, label: string): stri
         : `${label} must be a point {x, y} with numbers from -1000000 to 1000000.`;
     case "object":
       return isObject(value) ? null : `${label} must be an object.`;
+    case "url":
+      if (value === null && spec.nullable) return null;
+      return typeof value === "string" && value.length <= URL_MAX_LENGTH && WEB_ADDRESS.test(value.trim())
+        ? null
+        : `${label} must be an http or https address${spec.nullable ? ", or null to remove it" : ""}.`;
+    case "id":
+      if (value === null && spec.nullable) return null;
+      return typeof value === "string" && PLAIN_ID.test(value)
+        ? null
+        : `${label} must be 1 to 64 letters, digits, _ or -${spec.nullable ? ", or null" : ""}.`;
   }
 }
 
@@ -93,5 +113,14 @@ export function schemaFor(spec: ValueSpec): Record<string, any> {
       };
     case "object":
       return { type: "object" };
+    case "url":
+      return {
+        type: spec.nullable ? ["string", "null"] : "string",
+        maxLength: URL_MAX_LENGTH,
+        pattern: "^https?://\\S+$",
+        description: "An http or https address.",
+      };
+    case "id":
+      return { type: spec.nullable ? ["string", "null"] : "string", pattern: "^[A-Za-z0-9_-]{1,64}$" };
   }
 }

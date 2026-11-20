@@ -7,6 +7,8 @@ export {
   SLATE_OPERATION_KINDS,
   OPERATION_FIELDS,
   LIMITS,
+  LAYOUTS,
+  PRESETS,
   DEFAULT_FONTS,
   OperationPlanError,
   contractLists,
@@ -39,7 +41,9 @@ export {
   operationPlanRetryPrompt,
   naturalOperationFallback,
 } from "./describe";
-export { NODE_KEYS, NODE_STYLE_KEYS, BORDER_STYLES } from "./keys/node";
+export { NODE_KEYS, NODE_INTENT_KEYS, NODE_STYLE_KEYS, BORDER_STYLES, EFFECTS } from "./keys/node";
+export { alignPositions, distributePositions, rotatedBounds, tidyPositions, treePositions } from "./layout";
+export type { AlignMode, DistributeAxis, LayoutBox, Position } from "./layout";
 export { CONNECTOR_KEYS, CONNECTOR_STYLE_KEYS } from "./keys/connector";
 export { SLATE_KEYS, backgroundOf } from "./keys/slate";
 export type { Background } from "./keys/slate";

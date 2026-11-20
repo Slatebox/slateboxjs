@@ -5,8 +5,10 @@
  * report of what each operation matched, changed and skipped.
  */
 import {
+  CONNECTED_NOTE_GAP,
   contractLimits,
   contractLists,
+  DUPLICATE_OFFSET,
   OperationPlanError,
   type ContractOptions,
   type OperationReport,
@@ -14,9 +16,11 @@ import {
   type SlateOperationPlan,
   type SlateOperationReport,
 } from "./contract";
-import { NODE_KEYS } from "./keys/node";
+import { NODE_INTENT_KEYS, NODE_KEYS } from "./keys/node";
 import { CONNECTOR_KEYS, FREE_END_PREFIX, NEW_CONNECTOR } from "./keys/connector";
-import { backgroundToContainerStyle } from "./keys/slate";
+import { SLATE_KEYS } from "./keys/slate";
+import { alignPositions, distributePositions, tidyPositions, treePositions, type AlignMode, type LayoutBox, type Position } from "./layout";
+import { NOTE_PRESETS } from "../core/NoteDefaults";
 import type { Lists } from "./keys/values";
 import {
   allConnectors,
@@ -123,7 +127,7 @@ function grid(count: number, arrangement: string) {
 function addPositions(slate: StoredSlate, operation: SlateOperation, width: number, height: number) {
   const count = operation.count!;
   const placement = operation.placement || {};
-  const gap = placement.gap ?? 48;
+  const gap = placement.gap ?? (placement.connect ? CONNECTED_NOTE_GAP : 48);
   if (operation.x !== undefined && operation.y !== undefined) {
     const arrangement = placement.arrangement || "row";
     const points = grid(count, arrangement).map(({ row, column }) => ({
@@ -175,6 +179,22 @@ function idTaken(prefix: string, noun: string, ids: string[]): OperationPlanErro
 
 const same = (first: unknown, second: unknown) => JSON.stringify(first) === JSON.stringify(second);
 
+/** What a connected note does not take from its source (Node.cloneNodeOptions keeps the rest). */
+const NOT_COPIED_TO_CONNECTED = ["id", "name", "text", "xPos", "yPos", "x", "y", "isLocked", "link"];
+
+const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
+const ALIGN_MODES: Record<string, AlignMode> = {
+  "align-left": "left",
+  "align-center": "centerH",
+  "align-right": "right",
+  "align-top": "top",
+  "align-middle": "middle",
+  "align-bottom": "bottom",
+};
+
+const layoutBox = (node: StoredNode): LayoutBox => ({ id: noteId(node), ...box(node), rotationAngle: read(node, "rotationAngle") });
+
 export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: ApplyOptions = {}): ApplyResult {
   const lists: Lists = contractLists(options);
   const limits = contractLimits(options);
@@ -217,12 +237,27 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
 
     switch (operation.kind) {
       case "add_nodes": {
-        const shape = operation.shape!;
-        const width = operation.width ?? (shape.toLowerCase() === "triangle" ? 150 : 180);
-        const height = operation.height ?? (shape.toLowerCase() === "triangle" ? 130 : 110);
-        const reference = findReference(slate, operation.placement?.relativeTo);
-        const backgroundColor = operation.style?.backgroundColor || reference?.options.backgroundColor || "#7aa2c8";
+        const preset = operation.preset ? NOTE_PRESETS[operation.preset] : undefined;
+        const connect = operation.placement?.connect === true;
+        // A connected note copies its source, so the source must be the note named.
+        const source = connect ? slate.nodes.find((node) => noteId(node) === operation.placement!.relativeTo) : undefined;
+        if (connect && !source) {
+          throw new OperationPlanError("no_match", 409, `${prefix} placement.relativeTo names no note on the slate to connect from.`, { operation: number });
+        }
+        if (source && source.options.isLocked === true) {
+          // A locked note shows no connection handles, so nothing grows from it.
+          skipLocked(source);
+          return;
+        }
+        const shape = operation.shape ?? preset?.shape;
+        const sourceBox = source ? box(source) : undefined;
+        const width = operation.width ?? preset?.width ?? sourceBox?.width ?? (shape?.toLowerCase() === "triangle" ? 150 : 180);
+        const height = operation.height ?? preset?.height ?? sourceBox?.height ?? (shape?.toLowerCase() === "triangle" ? 130 : 110);
+        const reference = source ?? findReference(slate, operation.placement?.relativeTo);
+        const backgroundColor =
+          operation.style?.backgroundColor || (preset?.style as Record<string, any> | undefined)?.backgroundColor || reference?.options.backgroundColor || "#7aa2c8";
         const { points, arrangement, gap } = addPositions(slate, operation, width, height);
+        const takenConnectors = new Set(allConnectors(slate).map(({ association }) => association.id));
         const existingIds = new Set(slate.nodes.map(noteId));
         const taken = (operation.ids || []).filter((id) => existingIds.has(id));
         if (taken.length && !options.replay) throw idTaken(prefix, "note", taken);
@@ -232,7 +267,9 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
           entry.matched.push(id);
           if (existingIds.has(id)) return;
           const text = operation.text ? (operation.count! > 1 ? operation.text.replace(/\{n\}/g, `${position + 1}`) : operation.text) : "";
-          const created: Record<string, any> = {
+          const copied = source ? clone(source.options) : undefined;
+          if (copied) for (const key of NOT_COPIED_TO_CONNECTED) delete copied[key];
+          const created: Record<string, any> = copied ? { ...copied, id, name: id, text, width, height } : {
             id,
             name: id,
             text,
@@ -254,17 +291,30 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
             filters: { vect: null, text: null },
             animations: { vect: null, text: null },
           };
-          NODE_KEYS.shape.store(created, shape, lists);
+          if (shape) NODE_KEYS.shape.store(created, shape, lists);
           NODE_KEYS.x.store(created, x, lists);
           NODE_KEYS.y.store(created, y, lists);
-          NODE_KEYS.foregroundColor.store(created, textColorOn(backgroundColor), lists);
+          if (!source) NODE_KEYS.foregroundColor.store(created, textColorOn(backgroundColor), lists);
+          for (const [key, value] of Object.entries(preset?.style || {})) NODE_KEYS[key].store(created, value, lists);
           for (const [key, value] of Object.entries(operation.style || {})) NODE_KEYS[key].store(created, value, lists);
           slate.nodes.push({ options: created, relationships: { associations: [] } });
           entry.changed.push(id);
           report.created.push(id);
+          if (source) {
+            const connectorId = unusedDefaultId(takenConnectors, defaultConnectorId(noteId(source), id));
+            takenConnectors.add(connectorId);
+            source.relationships.associations.push({ id: connectorId, parentId: noteId(source), childId: id, ...NEW_CONNECTOR });
+            report.connected.push(connectorId);
+          }
         });
         const { placement, ...rest } = operation;
-        materialized.push({ ...rest, ids, x: points[0].x, y: points[0].y, placement: { arrangement, gap } });
+        materialized.push({
+          ...rest,
+          ids,
+          x: points[0].x,
+          y: points[0].y,
+          placement: { arrangement, gap, ...(source ? { relativeTo: noteId(source), connect: true } : {}) },
+        });
         return;
       }
 
@@ -279,9 +329,23 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
             continue;
           }
           const was = JSON.stringify(node.options);
-          for (const [key, value] of Object.entries(operation.changes!)) NODE_KEYS[key].store(node.options, value, lists);
+          for (const [key, value] of Object.entries(operation.changes!)) {
+            if (!NODE_INTENT_KEYS[key]) NODE_KEYS[key].store(node.options, value, lists);
+          }
           applied.push(noteId(node));
           if (JSON.stringify(node.options) !== was) entry.changed.push(noteId(node));
+        }
+        if (operation.changes!.order && applied.length) {
+          // The note list is the z-order: the last note is drawn on top.
+          const moving = new Set(applied);
+          const before = slate.nodes.map(noteId);
+          const chosen = slate.nodes.filter((node) => moving.has(noteId(node)));
+          const others = slate.nodes.filter((node) => !moving.has(noteId(node)));
+          slate.nodes = operation.changes!.order === "front" ? [...others, ...chosen] : [...chosen, ...others];
+          slate.nodes.forEach((node, index) => {
+            const id = noteId(node);
+            if (moving.has(id) && before[index] !== id && !entry.changed.includes(id)) entry.changed.push(id);
+          });
         }
         report.updated.push(...applied);
         if (applied.length) materialized.push({ kind: "update_nodes", target: { ids: applied }, changes: operation.changes });
@@ -312,6 +376,47 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
         entry.changed = [...removed];
         report.deleted.push(...removed);
         if (removed.size) materialized.push({ kind: "delete_nodes", target: { ids: [...removed] } });
+        return;
+      }
+
+      case "duplicate_nodes": {
+        const notes = selectNotes(slate, operation.target!, `${prefix} target`);
+        entry.matched = notes.map(noteId);
+        if (!notes.length) noNotes();
+        const offset = operation.offset ?? DUPLICATE_OFFSET;
+        const existingIds = new Set(slate.nodes.map(noteId));
+        const taken = (operation.ids || []).filter((id) => existingIds.has(id));
+        if (taken.length && !options.replay) throw idTaken(prefix, "note", taken);
+        const copyIds = notes.map((_, position) => operation.ids?.[position] || idFactory());
+        const copyOf = new Map(notes.map((node, position) => [noteId(node), copyIds[position]]));
+        const made = new Map<string, StoredNode>();
+        notes.forEach((node, position) => {
+          const id = copyIds[position];
+          if (existingIds.has(id)) return;
+          // Ctrl+D copies every option of the note (Keyboard.snapshotNode).
+          const copy: StoredNode = { options: { ...clone(node.options), id, name: id }, relationships: { associations: [] } };
+          NODE_KEYS.x.store(copy.options, read(node, "x") + offset.x, lists);
+          NODE_KEYS.y.store(copy.options, read(node, "y") + offset.y, lists);
+          slate.nodes.push(copy);
+          made.set(id, copy);
+          entry.changed.push(id);
+          report.created.push(id);
+        });
+        // A connector with both ends among the copied notes is made again between the copies.
+        const takenConnectors = new Set(allConnectors(slate).map(({ association }) => association.id));
+        for (const node of notes) {
+          const parent = made.get(copyOf.get(noteId(node))!);
+          if (!parent) continue;
+          for (const association of node.relationships.associations) {
+            const childCopy = copyOf.get(association.childId);
+            if (!childCopy || isFreeEnd(association)) continue;
+            const id = unusedDefaultId(takenConnectors, defaultConnectorId(noteId(parent), childCopy));
+            takenConnectors.add(id);
+            parent.relationships.associations.push({ ...clone(association), id, parentId: noteId(parent), childId: childCopy });
+            report.connected.push(id);
+          }
+        }
+        if (notes.length) materialized.push({ kind: "duplicate_nodes", target: { ids: notes.map(noteId) }, ids: copyIds, offset: { ...offset } });
         return;
       }
 
@@ -470,6 +575,34 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
           return false;
         });
         if (!notes.length) return;
+        const layout = operation.layout!;
+        let positions: Position[] | undefined;
+        if (ALIGN_MODES[layout]) positions = alignPositions(ALIGN_MODES[layout], notes.map(layoutBox));
+        else if (layout === "distribute-horizontal" || layout === "distribute-vertical") {
+          positions = distributePositions(layout === "distribute-horizontal" ? "horizontal" : "vertical", notes.map(layoutBox));
+        } else if (layout === "tidy") {
+          const moving = new Set(notes.map(noteId));
+          const obstacles = slate.nodes.filter((node) => !moving.has(noteId(node))).map(layoutBox);
+          positions = tidyPositions(notes.map(layoutBox), obstacles, { gap: operation.gap ?? 20 });
+        } else if (layout === "tree") {
+          const edges = allConnectors(slate)
+            .filter(({ association }) => !isFreeEnd(association))
+            .map(({ association }) => [association.parentId, association.childId] as [string, string]);
+          positions = treePositions(notes.map(layoutBox), edges, { gap: operation.gap ?? 48 });
+        }
+        if (positions) {
+          const byId = new Map(notes.map((node) => [noteId(node), node]));
+          for (const position of positions) {
+            const node = byId.get(position.id)!;
+            const was = [read(node, "x"), read(node, "y")];
+            NODE_KEYS.x.store(node.options, position.x, lists);
+            NODE_KEYS.y.store(node.options, position.y, lists);
+            if (!same(was, [position.x, position.y])) entry.changed.push(position.id);
+          }
+          report.updated.push(...notes.map(noteId));
+          materialized.push({ kind: "arrange_nodes", target: { ids: notes.map(noteId) }, layout: operation.layout, ...(operation.gap !== undefined ? { gap: operation.gap } : {}) });
+          return;
+        }
         const boxes = notes.map(box);
         const gap = operation.gap ?? 48;
         const originX = Math.min(...boxes.map((b) => b.x));
@@ -501,16 +634,11 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
 
       case "update_slate": {
         const changes = operation.changes!;
-        const was = JSON.stringify(slate.options);
-        if (changes.name !== undefined) slate.options.name = changes.name;
-        if (changes.description !== undefined) slate.options.description = changes.description;
-        if (changes.background !== undefined) {
-          const style = { ...(slate.options.containerStyle || {}), ...backgroundToContainerStyle(changes.background) };
-          delete style.backgroundImage;
-          delete style.backgroundEffect;
-          slate.options.containerStyle = style;
+        const was = JSON.stringify(slate);
+        for (const [key, entryKey] of Object.entries(SLATE_KEYS)) {
+          if (changes[key] !== undefined) entryKey.store(slate, changes[key]);
         }
-        if (JSON.stringify(slate.options) !== was) entry.changed.push("slate");
+        if (JSON.stringify(slate) !== was) entry.changed.push("slate");
         materialized.push({ kind: "update_slate", changes });
         return;
       }

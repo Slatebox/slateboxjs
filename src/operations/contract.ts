@@ -5,6 +5,7 @@
  */
 import { getShapeNames } from "../core/ShapeRegistry";
 import { getAvailableAnimations } from "../core/Animations";
+import { EFFECTS } from "./keys/node";
 import type { Lists } from "./keys/values";
 import type { NodeSelector } from "./keys/selector";
 import type { Background } from "./keys/slate";
@@ -13,6 +14,7 @@ export const SLATE_OPERATION_KINDS = [
   "add_nodes",
   "update_nodes",
   "delete_nodes",
+  "duplicate_nodes",
   "connect_nodes",
   "disconnect_nodes",
   "update_connections",
@@ -24,9 +26,10 @@ export type SlateOperationKind = (typeof SLATE_OPERATION_KINDS)[number];
 
 /** Fields each kind accepts. Anything else in an operation is refused. */
 export const OPERATION_FIELDS: Record<SlateOperationKind, readonly string[]> = {
-  add_nodes: ["kind", "count", "shape", "text", "ids", "x", "y", "width", "height", "placement", "style"],
+  add_nodes: ["kind", "count", "shape", "preset", "text", "ids", "x", "y", "width", "height", "placement", "style"],
   update_nodes: ["kind", "target", "changes"],
   delete_nodes: ["kind", "target"],
+  duplicate_nodes: ["kind", "target", "offset", "ids"],
   connect_nodes: ["kind", "from", "to", "ids", "style"],
   disconnect_nodes: ["kind", "from", "to", "connectionIds"],
   update_connections: ["kind", "from", "to", "connectionIds", "changes"],
@@ -36,7 +39,19 @@ export const OPERATION_FIELDS: Record<SlateOperationKind, readonly string[]> = {
 
 export const PLACEMENT_DIRECTIONS = ["left", "right", "above", "below", "center"] as const;
 export const ARRANGEMENTS = ["row", "column", "grid"] as const;
-export const LAYOUTS = ["row", "column", "grid", "circle"] as const;
+export const ALIGN_LAYOUTS = ["align-left", "align-center", "align-right", "align-top", "align-middle", "align-bottom"] as const;
+export const DISTRIBUTE_LAYOUTS = ["distribute-horizontal", "distribute-vertical"] as const;
+/**
+ * arrange_nodes layouts. align-* and distribute-* are the canvas's Align and
+ * Distribute (by each note's rotated outline); tidy moves notes apart until
+ * none overlaps another (the canvas's Optimize Layout); tree lays connected
+ * notes out in layers under their root.
+ */
+export const LAYOUTS = ["row", "column", "grid", "circle", ...ALIGN_LAYOUTS, ...DISTRIBUTE_LAYOUTS, "tidy", "tree"] as const;
+export const PRESETS = ["text", "sticky"] as const;
+/** The canvas's connected-note gap (Node.createConnectedNode) and Ctrl+D offset (Keyboard). */
+export const CONNECTED_NOTE_GAP = 75;
+export const DUPLICATE_OFFSET = Object.freeze({ x: 20, y: 20 });
 
 export interface Limits {
   operationsPerPlan: number;
@@ -80,6 +95,7 @@ export function contractLists(options: ContractOptions = {}): Lists {
     shapes: [...(options.shapes ?? getShapeNames())],
     fonts: [...(options.fonts ?? DEFAULT_FONTS)],
     animations: Object.keys(getAvailableAnimations()),
+    effects: [...EFFECTS],
   };
 }
 
@@ -91,6 +107,7 @@ export interface SlateOperation {
   kind: SlateOperationKind;
   count?: number;
   shape?: string;
+  preset?: (typeof PRESETS)[number];
   text?: string;
   ids?: string[];
   x?: number;
@@ -103,7 +120,10 @@ export interface SlateOperation {
     direction?: (typeof PLACEMENT_DIRECTIONS)[number];
     arrangement?: (typeof ARRANGEMENTS)[number];
     gap?: number;
+    /** Copy relativeTo's look and join it to each new note, as the canvas's connection handles do. */
+    connect?: boolean;
   };
+  offset?: { x: number; y: number };
   style?: Record<string, any>;
   target?: NodeSelector;
   from?: NodeSelector;
