@@ -183,6 +183,8 @@ const same = (first: unknown, second: unknown) => JSON.stringify(first) === JSON
 const NOT_COPIED_TO_CONNECTED = ["id", "name", "text", "xPos", "yPos", "x", "y", "isLocked", "link"];
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+/** The bound a point may take (keys/node.ts x and y, keys/values.ts point). */
+const COORDINATE_BOUND = 1000000;
 
 const ALIGN_MODES: Record<string, AlignMode> = {
   "align-left": "left",
@@ -234,6 +236,30 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
     const skipLocked = (node: StoredNode) => {
       report.skipped.push({ operation: number, id: noteId(node), reason: "locked" });
     };
+    // Checked before an operation makes its notes, so a plan that keeps
+    // doubling the slate is refused at the operation that passes the limit,
+    // not after every copy has been held in memory.
+    const guardNoteLimit = (adding: number) => {
+      const leaving = slate.nodes.length + adding;
+      if (adding > 0 && leaving > limits.notesPerSlate && leaving > notesBefore) {
+        throw new OperationPlanError(
+          "note_limit",
+          422,
+          `${prefix} would leave ${leaving} notes; a slate can hold at most ${limits.notesPerSlate} notes.`,
+          { limit: limits.notesPerSlate, operation: number },
+        );
+      }
+    };
+    const guardConnectorLimit = (connectors: number, made: number) => {
+      if (made > 0 && connectors > limits.connectorsPerSlate) {
+        throw new OperationPlanError(
+          "connector_limit",
+          422,
+          `${prefix} would leave ${connectors} connectors; a slate can hold at most ${limits.connectorsPerSlate} connectors.`,
+          { limit: limits.connectorsPerSlate, operation: number },
+        );
+      }
+    };
 
     switch (operation.kind) {
       case "add_nodes": {
@@ -262,6 +288,8 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
         const taken = (operation.ids || []).filter((id) => existingIds.has(id));
         if (taken.length && !options.replay) throw idTaken(prefix, "note", taken);
         const ids = points.map((_, position) => operation.ids?.[position] || idFactory());
+        guardNoteLimit(ids.filter((id) => !existingIds.has(id)).length);
+        if (source) guardConnectorLimit(takenConnectors.size + ids.filter((id) => !existingIds.has(id)).length, ids.length);
         points.forEach(({ x, y }, position) => {
           const id = ids[position];
           entry.matched.push(id);
@@ -388,6 +416,18 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
         const taken = (operation.ids || []).filter((id) => existingIds.has(id));
         if (taken.length && !options.replay) throw idTaken(prefix, "note", taken);
         const copyIds = notes.map((_, position) => operation.ids?.[position] || idFactory());
+        guardNoteLimit(copyIds.filter((id) => !existingIds.has(id)).length);
+        for (const node of notes) {
+          const x = read(node, "x") + offset.x;
+          const y = read(node, "y") + offset.y;
+          if (Math.abs(x) > COORDINATE_BOUND || Math.abs(y) > COORDINATE_BOUND) {
+            throw new OperationPlanError(
+              "invalid_operation_plan",
+              400,
+              `${prefix} would put the copy of ${noteId(node)} at ${x}, ${y}; a note's position must be from -${COORDINATE_BOUND} to ${COORDINATE_BOUND}.`,
+            );
+          }
+        }
         const copyOf = new Map(notes.map((node, position) => [noteId(node), copyIds[position]]));
         const made = new Map<string, StoredNode>();
         notes.forEach((node, position) => {
@@ -404,6 +444,7 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
         });
         // A connector with both ends among the copied notes is made again between the copies.
         const takenConnectors = new Set(allConnectors(slate).map(({ association }) => association.id));
+        let copied = 0;
         for (const node of notes) {
           const parent = made.get(copyOf.get(noteId(node))!);
           if (!parent) continue;
@@ -414,8 +455,10 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
             takenConnectors.add(id);
             parent.relationships.associations.push({ ...clone(association), id, parentId: noteId(parent), childId: childCopy });
             report.connected.push(id);
+            copied += 1;
           }
         }
+        guardConnectorLimit(takenConnectors.size, copied);
         if (notes.length) materialized.push({ kind: "duplicate_nodes", target: { ids: notes.map(noteId) }, ids: copyIds, offset: { ...offset } });
         return;
       }
@@ -588,7 +631,9 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
           const edges = allConnectors(slate)
             .filter(({ association }) => !isFreeEnd(association))
             .map(({ association }) => [association.parentId, association.childId] as [string, string]);
-          positions = treePositions(notes.map(layoutBox), edges, { gap: operation.gap ?? 48 });
+          const moving = new Set(notes.map(noteId));
+          const obstacles = slate.nodes.filter((node) => !moving.has(noteId(node))).map(layoutBox);
+          positions = treePositions(notes.map(layoutBox), edges, { gap: operation.gap ?? 48, obstacles });
         }
         if (positions) {
           const byId = new Map(notes.map((node) => [noteId(node), node]));
@@ -645,14 +690,6 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
     }
   });
 
-  if (slate.nodes.length > limits.notesPerSlate && slate.nodes.length > notesBefore) {
-    throw new OperationPlanError(
-      "note_limit",
-      422,
-      `A slate can hold at most ${limits.notesPerSlate} notes; this plan would leave ${slate.nodes.length}.`,
-      { limit: limits.notesPerSlate },
-    );
-  }
   if (options.requireMatches && report.warnings.length) {
     const first = report.warnings[0];
     throw new OperationPlanError("no_match", 409, first, { operation: Number(first.match(/^Operation (\d+)/)?.[1]) });

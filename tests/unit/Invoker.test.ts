@@ -461,6 +461,17 @@ describe("Invoker", () => {
     });
   });
 
+  describe("a z-order result from the room", () => {
+    it("applies the order it carries instead of moving one note", () => {
+      mockSlate.nodes.applyOrder = vi.fn();
+      invoker.onNodeToFront({ data: { id: "node1", order: ["node2", "node1"] } });
+      invoker.onNodeToBack({ data: { id: "node1", order: ["node1", "node2"] } });
+      expect(mockSlate.nodes.applyOrder.mock.calls).toEqual([[["node2", "node1"]], [["node1", "node2"]]]);
+      expect(mockNode.toFront).not.toHaveBeenCalled();
+      expect(mockNode.toBack).not.toHaveBeenCalled();
+    });
+  });
+
   describe("onNodeToBack", () => {
     it("should call toBack on the node", () => {
       invoker.onNodeToBack({ data: { id: "node1" } });

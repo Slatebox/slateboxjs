@@ -109,11 +109,17 @@ function overlap(a: LayoutBox, b: LayoutBox, gap: number): { x: number; y: numbe
   return x > 0 && y > 0 ? { x, y } : null;
 }
 
+/** Pair checks one tidy may spend pushing boxes apart before it places the rest. */
+const TIDY_PAIR_CHECKS = 4_000_000;
+
 /**
  * Move the boxes apart until no two are closer than `gap`. Obstacles (notes
  * that are not being arranged, or are locked) never move; the boxes go round
  * them. Each overlap is resolved along the axis that needs the shorter move,
  * away from the other box's centre, split between two boxes that may both move.
+ * The pushing has a fixed budget of pair checks; a box still too close to
+ * another when it runs out is placed in rows below everything else, so the
+ * result never has two boxes closer than `gap`.
  */
 export function tidyPositions(boxes: LayoutBox[], obstacles: LayoutBox[], { gap = 20 }: { gap?: number } = {}): Position[] {
   const moving = boxes.map((box) => ({ ...box }));
@@ -124,7 +130,10 @@ export function tidyPositions(boxes: LayoutBox[], obstacles: LayoutBox[], { gap 
     if (amount.y <= amount.x) mover.y += (dy > 0 || (dy === 0 && order > 0) ? 1 : -1) * amount.y * share;
     else mover.x += (dx > 0 || (dx === 0 && order > 0) ? 1 : -1) * amount.x * share;
   };
-  for (let pass = 0; pass < 1000; pass += 1) {
+  const perPass = Math.max(1, moving.length * (fixed.length + moving.length / 2));
+  const passes = Math.max(1, Math.min(1000, Math.floor(TIDY_PAIR_CHECKS / perPass)));
+  let settled = false;
+  for (let pass = 0; pass < passes; pass += 1) {
     let moved = false;
     for (let i = 0; i < moving.length; i += 1) {
       for (const other of fixed) {
@@ -143,9 +152,51 @@ export function tidyPositions(boxes: LayoutBox[], obstacles: LayoutBox[], { gap 
         moved = true;
       }
     }
-    if (!moved) break;
+    if (!moved) {
+      settled = true;
+      break;
+    }
   }
-  return moving.map(({ id, x, y }) => ({ id, x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 }));
+  const round = (n: number) => Math.round(n * 100) / 100;
+  for (const box of moving) {
+    box.x = round(box.x);
+    box.y = round(box.y);
+  }
+  if (!settled) placeLeftovers(moving, fixed, gap);
+  return moving.map(({ id, x, y }) => ({ id, x, y }));
+}
+
+/**
+ * Keep each box, in order, that is clear of the obstacles and of the boxes kept
+ * before it; put the others in rows below everything kept, `gap` apart.
+ */
+function placeLeftovers(moving: LayoutBox[], fixed: LayoutBox[], gap: number): void {
+  const kept: LayoutBox[] = [...fixed];
+  const leftovers: LayoutBox[] = [];
+  for (const box of moving) {
+    if (kept.some((other) => overlap(box, other, gap))) leftovers.push(box);
+    else kept.push(box);
+  }
+  if (!leftovers.length) return;
+  const left = Math.min(...moving.map((box) => box.x));
+  const top = kept.length ? Math.max(...kept.map((box) => box.y + box.height)) + gap : Math.min(...moving.map((box) => box.y));
+  const keptRight = kept.length ? Math.max(...kept.map((box) => box.x + box.width)) : left;
+  const area = leftovers.reduce((total, box) => total + (box.width + gap) * (box.height + gap), 0);
+  const rowWidth = Math.max(keptRight - left, Math.sqrt(area) * 1.5, ...leftovers.map((box) => box.width));
+  let x = left;
+  let y = top;
+  let rowHeight = 0;
+  for (const box of leftovers) {
+    if (x > left && x + box.width > left + rowWidth) {
+      x = left;
+      y += rowHeight + gap;
+      rowHeight = 0;
+    }
+    box.x = x;
+    box.y = y;
+    x += box.width + gap;
+    rowHeight = Math.max(rowHeight, box.height);
+  }
 }
 
 /**
@@ -154,7 +205,11 @@ export function tidyPositions(boxes: LayoutBox[], obstacles: LayoutBox[], { gap 
  * one layer below the first box that reaches it, and a parent is centred over
  * its children. Boxes are placed from the top-left corner the boxes had.
  */
-export function treePositions(boxes: LayoutBox[], edges: Array<[string, string]>, { gap = 48 }: { gap?: number } = {}): Position[] {
+export function treePositions(
+  boxes: LayoutBox[],
+  edges: Array<[string, string]>,
+  { gap = 48, obstacles = [] }: { gap?: number; obstacles?: LayoutBox[] } = {},
+): Position[] {
   if (!boxes.length) return [];
   const byId = new Map(boxes.map((box) => [box.id, box]));
   const outgoing = new Map<string, string[]>(boxes.map((box) => [box.id, []]));
@@ -234,5 +289,28 @@ export function treePositions(boxes: LayoutBox[], edges: Array<[string, string]>
     place(root, left);
     left += width + gap;
   }
-  return boxes.map((box) => placed.get(box.id)!);
+  const positions = boxes.map((box) => placed.get(box.id)!);
+  return clearOfObstacles(boxes, positions, obstacles, gap);
+}
+
+/**
+ * Move a whole layout down, as one piece, until none of its boxes is closer
+ * than `gap` to a box it may not move. Each step goes past the lowest box in
+ * the way, so it ends after at most one step per obstacle.
+ */
+function clearOfObstacles(boxes: LayoutBox[], positions: Position[], obstacles: LayoutBox[], gap: number): Position[] {
+  if (!obstacles.length) return positions;
+  let shift = 0;
+  for (let step = 0; step <= obstacles.length; step += 1) {
+    let needed = 0;
+    positions.forEach((position, index) => {
+      const box = { ...boxes[index], x: position.x, y: position.y + shift };
+      for (const other of obstacles) {
+        if (overlap(box, other, gap)) needed = Math.max(needed, other.y + other.height + gap - box.y);
+      }
+    });
+    if (!needed) break;
+    shift += needed;
+  }
+  return shift ? positions.map((position) => ({ ...position, y: position.y + shift })) : positions;
 }

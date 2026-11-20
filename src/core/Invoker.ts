@@ -89,17 +89,28 @@ export class Invoker {
   }
 
   onNodeToBack(pkg: SlatePackage) {
-    const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      node.toBack()
-    }
+    this.reorder(pkg, "back")
   }
 
   onNodeToFront(pkg: SlatePackage) {
-    const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      node.toFront()
+    this.reorder(pkg, "front")
+  }
+
+  /**
+   * A package from the room carries the list order the change left
+   * (Collab.send adds it); the order is applied as a whole, so a replay cannot
+   * lift a note above notes added later. A host's own request to move one
+   * note carries no order.
+   */
+  private reorder(pkg: SlatePackage, place: "front" | "back") {
+    if (Array.isArray(pkg.data?.order)) {
+      (this.slate.nodes as any).applyOrder?.(pkg.data.order)
+      return
     }
+    const node = this.slate.nodes.one(pkg.data.id)
+    if (!node) return
+    if (place === "front") node.toFront()
+    else node.toBack()
   }
 
   onNodeShapeChanged(pkg: SlatePackage) {

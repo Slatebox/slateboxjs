@@ -236,6 +236,36 @@ describe("NodesManager", () => {
   });
 
   // -----------------------------------------------------------------------
+  // applyOrder(): a z-order result from the room (P10 review P10-3)
+  // -----------------------------------------------------------------------
+  describe("applyOrder()", () => {
+    const drawn: string[] = [];
+    const add = (id: string) => {
+      const node: any = manager.add({ id });
+      node.svgGroup = { front: () => drawn.push(id) };
+      return node;
+    };
+
+    it("puts the notes it names in its order, in the places those notes hold, and draws the list in order", () => {
+      ["a", "b", "c", "d"].forEach(add);
+      drawn.length = 0;
+      manager.applyOrder(["c", "d", "a", "b"]);
+      expect(manager.allNodes.map((n) => n.id)).toEqual(["c", "d", "a", "b"]);
+      expect(drawn).toEqual(["c", "d", "a", "b"]);
+    });
+
+    it("leaves a note it does not name where it is, so a note added after the order was sent keeps its place", () => {
+      // Stored after a reload: a was brought to front, then e and f were added.
+      ["b", "c", "a", "e", "f"].forEach(add);
+      // The room still holds the order sent when a came forward.
+      manager.applyOrder(["b", "c", "a"]);
+      expect(manager.allNodes.map((n) => n.id)).toEqual(["b", "c", "a", "e", "f"]);
+      manager.applyOrder(["a", "gone", "c", "b"]);
+      expect(manager.allNodes.map((n) => n.id)).toEqual(["a", "c", "b", "e", "f"]);
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // remove()
   // -----------------------------------------------------------------------
   describe("remove()", () => {

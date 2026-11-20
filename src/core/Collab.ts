@@ -99,6 +99,11 @@ const byStamp = (a: RoomEntry, b: RoomEntry) =>
 import type { Slate } from "./Slate";
 import type { SlatePackage } from "./SlatePackage";
 
+/** Packages that change the z-order (the note list's order). */
+const Z_ORDER_PACKAGES = new Set(["onNodeToFront", "onNodeToBack"]);
+/** The one room entry that holds the latest z-order. */
+const NODE_ORDER_KEY = "node-order";
+
 export class Collab {
   private slate: Slate;
   private options: CollabOptions;
@@ -347,7 +352,13 @@ export class Collab {
     const pkgs = (Array.isArray(packages) ? packages : [packages]).flatMap((pkg) => {
       const data = (this.slate as any).screenGovernedPackage?.(pkg.type, pkg.data);
       if (data === null) return [];
-      return data === undefined || data === pkg.data ? [pkg] : [{ ...pkg, data }];
+      const sent = data === undefined || data === pkg.data ? pkg : { ...pkg, data };
+      // A z-order change goes out as the list order it left (see storeNodeOrder).
+      if (Z_ORDER_PACKAGES.has(sent.type) && !Array.isArray(sent.data?.order)) {
+        const order = ((this.slate as any).nodes?.allNodes || []).map((node: any) => node.id ?? node.options?.id);
+        return [{ ...sent, data: { ...sent.data, order } }];
+      }
+      return [sent];
     });
 
     if (this.collabMap) {
@@ -387,6 +398,8 @@ export class Collab {
         const entry = { ...pkg, clientID: this.clientID, timestamp: this.tick() };
         if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string") {
           this.storeNodeText(key, entry);
+        } else if (Z_ORDER_PACKAGES.has(pkg.type)) {
+          this.storeNodeOrder(entry);
         } else {
           this.collabMap.set(key, entry);
         }
@@ -692,6 +705,22 @@ export class Collab {
     } catch (e) {
       /* noop */
     }
+  }
+
+  // The room is replayed on every reload, in no fixed order, on top of the
+  // stored slate. "Bring note x to front" replayed after notes were added would
+  // lift x above them, and the next autosave would keep that. So the room keeps
+  // one z-order entry, the whole list order of the latest change; applying it
+  // (NodesManager.applyOrder) leaves notes added since in their places.
+  private storeNodeOrder(entry: SlatePackage): void {
+    const write = () => {
+      this.collabMap.forEach((old: SlatePackage, oldKey: string) => {
+        if (oldKey !== NODE_ORDER_KEY && Z_ORDER_PACKAGES.has(old.type)) this.collabMap.delete(oldKey);
+      });
+      this.collabMap.set(NODE_ORDER_KEY, entry);
+    };
+    if (this.doc) this.doc.transact(write);
+    else write();
   }
 
   // Y.Map chooses one convergent label per node, including simultaneous

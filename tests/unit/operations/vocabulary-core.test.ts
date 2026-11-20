@@ -397,10 +397,24 @@ describe("the live applier sends the packages the canvas's own controls send", (
         { type: "onNodesMove", data: { dur: 0, nodes: [{ id: "a", groupId: "g1" }] } },
         { type: "onNodeTextChanged", data: { id: "a", textOpacity: 0.4 } },
         { type: "onNodeLinkRemoved", data: { id: "b" } },
-        { type: "onNodeToFront", data: { id: "b" } },
-        { type: "onNodeToBack", data: { id: "c" } },
+        // RESTATED (P10 review P10-3/P10-4): a z-order package carries the whole
+        // list order the operation left, not only the note's id.
+        { type: "onNodeToFront", data: { id: "b", order: ["a", "c", "b"] } },
+        { type: "onNodeToBack", data: { id: "c", order: ["c", "a", "b"] } },
       ]),
     );
+  });
+
+  it("sends several notes to the back in the order the stored slate keeps (P10-4)", () => {
+    const stored = slate([note("a", "A", 0, 0), note("b", "B", 300, 0), note("c", "C", 600, 0), note("d", "D", 900, 0)]);
+    const operation = { kind: "update_nodes", target: { ids: ["c", "d"] }, changes: { order: "back" } };
+    const result = applyPlanToJSON(stored, plan(operation));
+    expect(result.slate.nodes.map((n: any) => n.options.id)).toEqual(["c", "d", "a", "b"]);
+    const nodes = stored.nodes.map((n) => ({ id: n.options.id, options: { ...n.options }, relationships: { associations: [] } }));
+    const invoke = vi.fn();
+    applySlateOperations({ options: { ...stored.options }, nodes: { allNodes: nodes, one: (id: string) => nodes.find((n) => n.id === id) }, collab: { invoke, send: vi.fn() } }, plan(operation));
+    const packages = invoke.mock.calls.flatMap((call: any[]) => call[0]);
+    expect(packages).toEqual([{ type: "onNodeToBack", data: { id: "c", order: ["c", "d", "a", "b"] } }]);
   });
 
   it("a connected note, a duplicate and the slate settings", () => {

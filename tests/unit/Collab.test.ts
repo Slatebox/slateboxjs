@@ -235,6 +235,30 @@ describe("Collab", () => {
       expect([...map.values()].some((v: any) => v.data?.prop === "sourceLock" && v.data?.associationId === "R2")).toBe(true);
     });
 
+    // P10 review P10-3: the room replays its log on every reload, in no fixed
+    // order. A z-order change is kept as one entry that carries the whole list
+    // order it left, so a reload cannot lift a note above notes added later.
+    it("keeps one z-order entry, carrying the list order the change left", () => {
+      mockSlate.emitSlateChange = vi.fn();
+      mockSlate.nodes = { allNodes: [{ id: "b" }, { id: "c" }, { id: "a" }] };
+      const collab = new Collab(mockSlate);
+      const map = new Map<string, any>([
+        ["onNodeToFront_1_old", { type: "onNodeToFront", data: { id: "x" } }],
+        ["onNodeToBack_2_old", { type: "onNodeToBack", data: { id: "y" } }],
+        ["onNodeAdded_3_keep", { type: "onNodeAdded", data: { id: "a" } }],
+      ]);
+      (collab as any).collabMap = map;
+      // A host pane's package (no order): the order is read from the list.
+      collab.send({ type: "onNodeToFront", data: { id: "a" } });
+      expect([...map.keys()]).toEqual(["onNodeAdded_3_keep", "node-order"]);
+      expect(map.get("node-order")).toMatchObject({ type: "onNodeToFront", data: { id: "a", order: ["b", "c", "a"] } });
+      // The live applier's package already carries the order the plan left.
+      collab.send({ type: "onNodeToBack", data: { id: "c", order: ["c", "b", "a"] } });
+      expect(map.size).toBe(2);
+      expect(map.get("node-order")).toMatchObject({ type: "onNodeToBack", data: { id: "c", order: ["c", "b", "a"] } });
+      expect(mockSlate.emitSlateChange).toHaveBeenLastCalledWith("onNodeToBack", { id: "c", order: ["c", "b", "a"] });
+    });
+
     it("replaces the replay log with an authoritative slate baseline", () => {
       mockSlate.emitSlateChange = vi.fn();
       const collab = new Collab(mockSlate);

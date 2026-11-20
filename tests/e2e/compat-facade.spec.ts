@@ -283,8 +283,10 @@ test.describe("v1 compat facade (window.Slatebox)", () => {
     });
 
     expect(result.color?.data).toMatchObject({ id: "fx1", color: "#ff0000" });
-    expect(result.front?.data).toEqual({ id: "fx1" });
-    expect(result.back?.data).toEqual({ id: "fx1" });
+    // RESTATED (P10 review P10-3): a z-order package carries the list order it
+    // left, so a replay from the room cannot lift a note above later ones.
+    expect(result.front?.data).toEqual({ id: "fx1", order: ["fx1"] });
+    expect(result.back?.data).toEqual({ id: "fx1", order: ["fx1"] });
     expect(result.zoom?.data).toEqual({ zoomLevel: 1.5 });
     expect(result.resized?.data).toMatchObject({
       id: "fx1",

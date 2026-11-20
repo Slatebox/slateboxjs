@@ -102,6 +102,22 @@ export class NodesManager {
     this.nodes = new Map([[id, node], ...this.nodes])
   }
 
+  /**
+   * Take a z-order result from the room: the notes `order` names go, in that
+   * order, into the places those notes hold now; a note it does not name (one
+   * added after the order was sent) keeps its place. Then the drawing follows
+   * the list, the last note on top.
+   */
+  public applyOrder(order: string[]): void {
+    const current = Array.from(this.nodes.keys())
+    const named = order.filter((id, index) => this.nodes.has(id) && order.indexOf(id) === index)
+    const wanted = new Set(named)
+    let next = 0
+    const ids = current.map((id) => (wanted.has(id) ? named[next++] : id))
+    this.nodes = new Map(ids.map((id) => [id, this.nodes.get(id)!]))
+    this.nodes.forEach((node) => (node as any).svgGroup?.front?.())
+  }
+
   public clear(): void {
     this.allNodes.forEach(node => node.remove())
     this.nodes.clear()

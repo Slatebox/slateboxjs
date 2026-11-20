@@ -71,7 +71,6 @@ function nodePackages(id: string, changes: Record<string, any>, options: Record<
     packages.push(options.link ? { type: "onNodeLinkAdded", data: { id, link: { ...options.link } } } : { type: "onNodeLinkRemoved", data: { id } });
   }
   if (has("groupId")) packages.push({ type: "onNodesMove", data: { dur: 0, nodes: [{ id, groupId: value("groupId") }] } });
-  if (has("order")) packages.push({ type: changes.order === "front" ? "onNodeToFront" : "onNodeToBack", data: { id } });
   return packages;
 }
 
@@ -93,11 +92,17 @@ export function packagesForOperation(operation: SlateOperation, before: StoredSl
         ...joined.map((association) => ({ type: "addRelationship", data: { ...association } })),
       ];
     }
-    case "update_nodes":
-      return (operation.target?.ids || []).flatMap((id) => {
-        const node = notesAfter.get(id);
-        return node ? nodePackages(id, operation.changes || {}, node.options) : [];
-      });
+    case "update_nodes": {
+      const ids = (operation.target?.ids || []).filter((id) => notesAfter.has(id));
+      const packages = ids.flatMap((id) => nodePackages(id, operation.changes || {}, notesAfter.get(id)!.options));
+      // The z-order goes as the whole list order the operation left, so the
+      // canvas and the room keep the stored order however many notes moved.
+      const order = operation.changes?.order;
+      if (order && ids.length) {
+        packages.push({ type: order === "front" ? "onNodeToFront" : "onNodeToBack", data: { id: ids[0], order: after.nodes.map((node) => node.options.id) } });
+      }
+      return packages;
+    }
     case "delete_nodes":
       return (operation.target?.ids || []).map((id) => ({ type: "onNodeDeleted", data: { id } }));
     case "connect_nodes":
