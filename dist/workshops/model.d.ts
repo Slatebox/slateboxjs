@@ -2,6 +2,9 @@ export * from './offlineHandoff';
 export * from './listeningRoom';
 export { releaseLoad, releasePlan } from './release';
 import type { SlateJSON } from '../core/Serialization';
+import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults';
+/** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
+export { DEFAULT_NOTE_STYLE };
 export interface StationImage {
     src: string;
     alt: string;
@@ -191,6 +194,13 @@ export interface WorkshopNoteStyle {
     borderWidth?: number;
     /** Corner radius of lane headers and cards; 0 is a square-cornered note. */
     cornerRadius?: number;
+    /**
+     * How cards are drawn when they should look like the host's own notes rather than like the
+     * lanes: fill, text, type, border and corners. Overrides the fields above for cards only.
+     */
+    card?: WorkshopCardLook & {
+        cornerRadius?: number;
+    };
 }
 export interface WorkshopArtworkOptions {
     /**
