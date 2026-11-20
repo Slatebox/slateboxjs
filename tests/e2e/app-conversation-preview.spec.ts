@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { dismissWelcome, removeTestGuest, userId } from './workshop-guests.shared'
 import { conversation, messageBox, workshopReady } from './app-native-workshop.shared'
+import { presentToEveryone } from './app-header.shared'
 
 // A request in the conversation is shown on the canvas before it is kept: native notes and
 // connectors, marked as a preview, that nobody can move, select or save. Keep makes them the
@@ -241,7 +242,8 @@ for (const width of [1440, 390]) test(`${width}px: the presentation-ended notice
   const page = await context.newPage()
   try {
     await newDrawing(page)
-    await page.getByRole('button', { name: 'Present notes together', exact: true }).click()
+    // The header's Present ▾ holds "Present to everyone here" (the old "Present notes together" button).
+    await presentToEveryone(page)
     const deck = page.getByRole('dialog', { name: 'Live presentation' })
     await deck.getByRole('button', { name: 'End presentation', exact: true }).click()
     const notice = page.getByRole('status').filter({ hasText: 'The live presentation has ended.' })
