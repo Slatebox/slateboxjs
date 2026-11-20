@@ -345,3 +345,28 @@ test("a host bar's Delete and Duplicate act on the selection through the engine'
   expect(await page.evaluate(() => (window as any).sent.filter((t: string) => t === "onNodeDeleted").length)).toBe(2);
   await expect.poll(async () => (await last(page))?.kind).toBe("none");
 });
+
+test("a line pressed while a note is selected: the note's selection ends and the frame is the line's", async ({ page }) => {
+  await openBoard(page);
+  await clickNote(page, "c");
+  await expect.poll(async () => (await last(page))?.kind).toBe("node");
+  const pt = await page.evaluate(() => {
+    const p = document.querySelector('#board path[connectortype="default"]') as SVGGeometryElement;
+    const m = p.getPointAtLength(p.getTotalLength() / 2).matrixTransform(p.getScreenCTM()!);
+    return { x: m.x, y: m.y };
+  });
+  await page.mouse.click(pt.x, pt.y);
+  await expect.poll(async () => (await last(page))?.kind).toBe("line");
+  expect(await page.evaluate(() => (window as any).board.getSelectedNodes().length)).toBe(0);
+  expect((await last(page)).topClearance).toBeLessThan(40);
+});
+
+test("the room above a note is measured from its own handles, never a far-off one", async ({ page }) => {
+  await openBoard(page);
+  await clickNote(page, "a");
+  await expect.poll(async () => (await last(page))?.kind).toBe("node");
+  await page.waitForTimeout(200);
+  const f = await page.evaluate(() => (window as any).board.getSelectionFrame());
+  expect(f.topClearance).toBeGreaterThan(20);
+  expect(f.topClearance).toBeLessThan(120);
+});

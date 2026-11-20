@@ -2239,6 +2239,8 @@ export class Slate {
 
   /** Called by the connector when a line is selected on the canvas. */
   public setSelectedLine(node: Node, associationId: string, childId: string, connectable: any): void {
+    // A line and notes are not selected together: selecting the line ends the notes' selection.
+    if (this.selectedNodes.length) this.clearSelection();
     this._selectedLine = { node, associationId, childId, connectable };
     this.scheduleSelectionFrame();
   }
@@ -2381,10 +2383,14 @@ export class Slate {
   private measureTopClearance(nodes: Node[], rect: ScreenRect): number {
     const zoom = this.getZoom?.() || 1;
     let top = Infinity;
+    // Only handles drawn just above this selection count (a stale handle elsewhere does not).
     const consider = (el: Element | null | undefined) => {
       if (!el || !(el as any).isConnected) return;
       const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) top = Math.min(top, r.top);
+      if (!(r.width > 0 && r.height > 0)) return;
+      if (r.right < rect.left - 4 || r.left > rect.right + 4) return;
+      if (r.top < rect.top - 120 * Math.max(1, zoom) || r.top > rect.bottom) return;
+      top = Math.min(top, r.top);
     };
     if (nodes.length === 1) {
       const node: any = nodes[0];

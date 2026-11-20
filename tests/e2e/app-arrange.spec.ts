@@ -13,13 +13,13 @@ import { openGuestCanvas } from "./app-host.shared";
 
 const APP = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 
-test.describe("arrange toolbar (F2, app-level)", () => {
+test.describe("arrange from the style bar (F2, app-level)", () => {
   test.skip(
     process.env.SLATEBOX_APP_EXTERNAL !== "true",
     "needs a deployed app; set SLATEBOX_APP_EXTERNAL=true",
   );
 
-  test("align-left via GroupToolbar moves the selection", async ({ page }) => {
+  test("Line up left edges from the bar moves the selection", async ({ page }) => {
     test.setTimeout(240_000);
 
     // True-gate precondition: virgin storage, no resumed login.
@@ -68,11 +68,12 @@ test.describe("arrange toolbar (F2, app-level)", () => {
 
     expect(result.ok, `seed failed: ${(result as any).why}`).toBe(true);
 
-    // The toolbar itself: real DOM, new bundle, 2+ multi-selection.
-    const bar = page.getByLabel("arrange-align-left", { exact: true });
+    // Restated 2026-11-19: the group toolbar was replaced by the style bar over the selection.
+    // Its Arrange popover holds the same rotation-aware engine alignment.
+    const bar = page.getByRole("toolbar", { name: "3 notes", exact: true });
     await bar.waitFor({ state: "visible", timeout: 15_000 });
-
-    await bar.click();
+    await bar.getByRole("button", { name: "Arrange" }).click();
+    await page.getByRole("group", { name: "Arrange", exact: true }).getByRole("button", { name: "Line up left edges" }).click();
     await page.waitForTimeout(800);
 
     const after = await page.evaluate(() => {

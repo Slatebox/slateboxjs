@@ -31,10 +31,10 @@ const keyboardAt = (page: Page) => page.evaluate(() => {
   const at = document.activeElement
   return !at || at === document.body ? 'nowhere' : at.closest('#slateCanvas') ? 'canvas' : at.tagName.toLowerCase()
 })
-// The pane and the surface behind it that takes the press which closes it. (Found by its markup,
-// not by role: while the pane slides away its tabs are no longer exposed, but that surface is still there.)
-const pane = (page: Page) => page.locator('.MuiDrawer-root:has([aria-label="Node Properties"])')
-/** The pane has gone, and a press on the canvas reaches the canvas again. */
+// The colour popover of the style bar over the selected note (restated 2026-11-19: the docked
+// note pane was replaced by the style bar; the rule it checks is the same).
+const pane = (page: Page) => page.getByRole('group', { name: 'Colour', exact: true })
+/** The popover has gone, and a press on the canvas reaches the canvas again. */
 const paneClosed = (page: Page) => expect(pane(page)).toBeHidden()
 
 async function openSlate(page: Page) {
@@ -63,35 +63,21 @@ async function addNote(page: Page, text: string, x: number, y: number) {
   await expect(noteNamed(page, text)).toBeVisible()
 }
 
-/** Open the note pane from the cog in the selected note's own toolbar. */
+/** Open the colour popover from the selected note's style bar. */
 async function openPane(page: Page) {
-  await page.locator('#slateCanvas .node-tool-cog').click()
-  await expect(pane(page).getByRole('tab', { name: 'Color', exact: true })).toBeVisible()
+  await page.getByRole('toolbar', { name: 'Note', exact: true }).getByRole('button', { name: 'Fill colour' }).click()
+  await expect(pane(page).getByRole('tab', { name: 'Fill', exact: true })).toBeVisible()
   return pane(page)
 }
 
-/** Pick a colour the note does not have yet from the swatches of the pane's Color tab. */
+/** Pick a colour the note does not have yet from the slate's colours. */
 async function pickSwatch(page: Page, text: string) {
   const before = await optionOf(page, text, 'backgroundColor')
-  await pane(page).getByRole('tab', { name: 'Color', exact: true }).click()
-  const panel = pane(page).getByRole('tabpanel')
-  await expect(panel).toBeVisible()
-  const at = await panel.evaluate(el => {
-    const swatch = [...el.querySelectorAll('div')].find(item => {
-      const box = item.getBoundingClientRect()
-      return !item.children.length && box.width >= 24 && box.width <= 60 && box.height >= 24 && box.height <= 60 &&
-        !['rgba(0, 0, 0, 0)', 'transparent'].includes(getComputedStyle(item).backgroundColor)
-    })
-    if (!swatch) return null
-    const box = swatch.getBoundingClientRect()
-    return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
-  })
-  expect(at, 'the Color tab offers swatches').not.toBeNull()
-  await page.mouse.click(at!.x, at!.y)
+  await pane(page).getByRole('radiogroup', { name: 'Slate colours' }).locator('[role="radio"][aria-checked="false"]').first().click()
   await expect.poll(() => optionOf(page, text, 'backgroundColor'), 'the swatch restyled the note').not.toBe(before)
 }
 
-test('a note restyled in the note pane, from a list, with the zoom slider or an arrange button is removed by Delete', async ({ page }) => {
+test('a note restyled from the style bar, from a size field, with the zoom slider or an arrange button is removed by Delete', async ({ page }) => {
   let id: string | null = null
   try {
     id = await openSlate(page)
@@ -107,32 +93,32 @@ test('a note restyled in the note pane, from a list, with the zoom slider or an 
     await pickSwatch(page, 'Welcome!')
     expect(await selected(page)).toEqual(['Welcome!'])
     await expect.poll(() => keyboardAt(page), 'the swatch does not keep the keyboard').toBe('nowhere')
-    await expect(pane(page).getByRole('tab', { name: 'Color', exact: true })).toBeVisible()
+    await expect(pane(page).getByRole('tab', { name: 'Fill', exact: true })).toBeVisible()
     await page.keyboard.press('Delete')
     await expect(noteNamed(page, 'Welcome!')).toHaveCount(0)
     expect(await texts(page)).toEqual(['Alpha', 'Beta', 'Delta', 'Gamma'])
     // The pane does not outlive its note.
     await paneClosed(page)
 
-    // A size chosen from a list, then Backspace. The list has the keyboard while it is open.
+    // A size typed in the bar's Custom size field, then Backspace. The field has the keyboard
+    // while it is open; after Apply the keyboard is handed back.
     await select(page, 'Alpha')
-    await openPane(page)
-    const size = await optionOf(page, 'Alpha', 'fontSize')
-    // The pane opens on the tab last used.
-    await pane(page).getByRole('tab', { name: 'Text', exact: true }).click()
-    await pane(page).locator('#font-size').click()
-    const choice = page.getByRole('option', { name: size === 24 ? '28' : '24', exact: true })
-    await expect(choice).toBeVisible()
-    await page.keyboard.press('Delete')
-    expect(await texts(page), 'Delete in the open list is the list\'s').toContain('Alpha')
-    await choice.click()
-    await expect(page.getByRole('listbox')).toHaveCount(0)
-    await expect.poll(() => optionOf(page, 'Alpha', 'fontSize')).toBe(size === 24 ? 28 : 24)
-    await expect.poll(() => keyboardAt(page), 'the closed list does not keep the keyboard').toBe('nowhere')
+    const note = page.getByRole('toolbar', { name: 'Note', exact: true })
+    await note.getByRole('radio', { name: /^Custom size/ }).click()
+    const field = page.getByRole('spinbutton', { name: 'Custom size' })
+    await field.fill('24')
+    await page.keyboard.press('Backspace')
+    expect(await texts(page), 'Backspace in the field is the field\'s').toContain('Alpha')
+    await field.fill('26')
+    await page.getByRole('button', { name: 'Apply', exact: true }).click()
+    await expect.poll(() => optionOf(page, 'Alpha', 'fontSize')).toBe(26)
+    // A size chip is a button: after it the keyboard is the canvas's again.
+    await note.getByRole('radio', { name: 'Large text', exact: true }).click()
+    await expect.poll(() => optionOf(page, 'Alpha', 'fontSize')).toBe(28)
+    await expect.poll(() => keyboardAt(page), 'the size chip does not keep the keyboard').toBe('nowhere')
     await page.keyboard.press('Backspace')
     await expect(noteNamed(page, 'Alpha')).toHaveCount(0)
     expect(await texts(page)).toEqual(['Beta', 'Delta', 'Gamma'])
-    await paneClosed(page)
 
     // The zoom slider, then Delete.
     await select(page, 'Beta')
@@ -153,7 +139,9 @@ test('a note restyled in the note pane, from a list, with the zoom slider or an 
     await expect.poll(() => selected(page)).toEqual(['Delta', 'Gamma'])
     const left = () => page.evaluate(() => (window as any).slate.v2.getSelectedNodes().map((node: any) => Math.round(node.options.x)))
     expect(new Set(await left()).size).toBe(2)
-    await page.getByRole('button', { name: 'arrange-align-left', exact: true }).click()
+    const several = page.getByRole('toolbar', { name: '2 notes', exact: true })
+    await several.getByRole('button', { name: 'Arrange' }).click()
+    await page.getByRole('group', { name: 'Arrange', exact: true }).getByRole('button', { name: 'Line up left edges' }).click()
     await expect.poll(async () => new Set(await left()).size, 'the two notes were aligned').toBe(1)
     await page.keyboard.press('Delete')
     await expect.poll(() => texts(page)).toEqual([])
@@ -238,14 +226,14 @@ test('Escape in an open menu or with the note pane open closes that, and only th
     await expect.poll(() => selected(page)).toEqual([])
     expect(await texts(page)).toEqual(['Welcome!'])
 
-    // The note pane after a swatch: Escape closes the pane and the note stays selected.
+    // The colour popover after a swatch: Escape closes the popover and the note stays selected.
     await select(page, 'Welcome!')
     await openPane(page)
     await pickSwatch(page, 'Welcome!')
     await expect.poll(() => keyboardAt(page)).toBe('nowhere')
     await page.keyboard.press('Escape')
     await paneClosed(page)
-    expect(await selected(page), 'one press closed the pane and did nothing else').toEqual(['Welcome!'])
+    expect(await selected(page), 'one press closed the popover and did nothing else').toEqual(['Welcome!'])
     await page.keyboard.press('Escape')
     await expect.poll(() => selected(page)).toEqual([])
     expect(await texts(page)).toEqual(['Welcome!'])
