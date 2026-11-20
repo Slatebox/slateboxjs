@@ -83,3 +83,18 @@ export function backgroundSchema(): Record<string, any> {
     },
   };
 }
+
+/** The background a stored containerStyle paints, in the shape update_slate takes; null when none is stored. */
+export function backgroundOf(style: Record<string, any> | undefined): Background | null {
+  if (!style?.backgroundColor) return null;
+  const colors = style.backgroundGradientColors;
+  if (!style.backgroundColorAsGradient || !Array.isArray(colors) || colors.length < 2) return { color: style.backgroundColor };
+  return {
+    color: style.backgroundColor,
+    gradient: {
+      type: style.backgroundGradientType ?? "linear",
+      colors: [...colors],
+      direction: style.backgroundGradientStrategy ?? "horizontal",
+    },
+  };
+}

@@ -37,5 +37,10 @@ for (const [format, load] of [
     assert.ok(description.shapes.includes('rectangle'))
     assert.equal(operations.SLATE_OPERATION_TOOL.name, 'applySlateOperations')
     assert.equal(operations.summarizeSlate(result.slate).connections[0].id, 'a->x1')
+    // The read pages with a cursor, which must encode and decode without the DOM or Buffer.
+    const first = operations.readSlate(result.slate, { limit: 1 })
+    const next = operations.readSlate(result.slate, { limit: 1, cursor: first.nextCursor })
+    assert.notEqual(next.nodes[0].id, first.nodes[0].id)
+    assert.equal(operations.toSlateDocument(result.slate).options.isPublic, undefined)
   })
 }

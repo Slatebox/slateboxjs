@@ -27,6 +27,8 @@ export type { ValidateOptions } from "./validate";
 export { applyPlanToJSON } from "./apply-json";
 export type { ApplyOptions, ApplyResult } from "./apply-json";
 export { summarizeSlate } from "./summarize";
+export { readSlate, readNote, readConnector, toSlateDocument, NOTE_READ_KEYS, READ_LIMITS, DOCUMENT_OPTION_KEYS } from "./read";
+export type { ReadSelection, SlateRead } from "./read";
 export type { SlateSummary } from "./summarize";
 export { toStoredSlate } from "./stored";
 export type { StoredNode, StoredSlate } from "./stored";
@@ -39,6 +41,6 @@ export {
 } from "./describe";
 export { NODE_KEYS, NODE_STYLE_KEYS, BORDER_STYLES } from "./keys/node";
 export { CONNECTOR_KEYS, CONNECTOR_STYLE_KEYS } from "./keys/connector";
-export { SLATE_KEYS } from "./keys/slate";
+export { SLATE_KEYS, backgroundOf } from "./keys/slate";
 export type { Background } from "./keys/slate";
 export type { NodeSelector } from "./keys/selector";
