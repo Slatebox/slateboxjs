@@ -29,6 +29,7 @@ async function overlap(page: Page) {
   return page.evaluate(() => {
     const be = (window as any).native.slate.birdsEye
     const indicator = be.viewportIndicator.node as SVGElement
+    const mini = be.miniCanvas.node as SVGSVGElement
     const r = indicator.getBoundingClientRect()
     const lanes: DOMRect[] = []
     for (const [id, shape] of be.nodeShapes as Map<string, any>) {
@@ -41,6 +42,9 @@ async function overlap(page: Page) {
         const y = r.y + (r.height * j) / 10
         if (!lanes.some(l => x > l.x + 1 && x < l.right - 1 && y > l.y + 1 && y < l.bottom - 1)) continue
         const el = document.elementFromPoint(x, y)
+        // Only the minimap's own picture is in question: skip spots clipped off the
+        // minimap (a phone shrinks its box) or under a separate control laid over it.
+        if (!el || !mini.contains(el)) continue
         points.push({ x, y, hitsIndicator: el === indicator, hit: el ? el.tagName + (el === indicator ? '#indicator' : '') : 'none' })
       }
     }
