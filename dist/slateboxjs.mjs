@@ -7856,10 +7856,10 @@ class lr {
     this.removeAll(), this.activeFilters.clear(), this.hidden = !1, this.node = null;
   }
 }
-function Hu(n) {
+function Fu(n) {
   Et.set(n.name, n);
 }
-function Fu() {
+function $u() {
   return Array.from(Et.keys());
 }
 function hr() {
@@ -16191,7 +16191,7 @@ class Ct extends Error {
     super(s), this.name = "OperationPlanError", this.code = t, this.status = e, i && (this.details = i);
   }
 }
-const uu = ["bezier", "orthogonal", "straight", "linear", "curved"], fu = ["cubic", "quadratic"], we = {
+const uu = ["bezier", "orthogonal", "straight", "linear", "curved"], fu = ["cubic", "quadratic"], pu = ["solid", "dashed", "dotted"], we = {
   label: { spec: { type: "string", maxLength: 500 }, description: "Text shown on the connector." },
   lineColor: { spec: { type: "color" }, description: "Line colour." },
   lineWidth: { spec: { type: "number", min: 0.1, max: 100 }, description: "Line width." },
@@ -16199,6 +16199,7 @@ const uu = ["bezier", "orthogonal", "straight", "linear", "curved"], fu = ["cubi
   lineType: { spec: { type: "enum", values: uu }, description: "Path style." },
   lineCurveType: { spec: { type: "enum", values: fu }, description: "Curve type." },
   lineCurviness: { spec: { type: "number", min: 0, max: 1 }, description: "How much the line bends." },
+  lineDash: { spec: { type: "enum", values: pu }, description: "Solid, dashed or dotted line." },
   showParentArrow: { spec: { type: "boolean" }, description: "Arrowhead at the starting note." },
   showChildArrow: { spec: { type: "boolean" }, description: "Arrowhead at the far end." },
   toPoint: {
@@ -16249,7 +16250,7 @@ const uu = ["bezier", "orthogonal", "straight", "linear", "curved"], fu = ["cubi
     }
   }
 };
-function pu(n, t) {
+function gu(n, t) {
   if (!ht(n)) return [`${t} must be an object {color, gradient?}.`];
   const e = [];
   for (const i of Object.keys(n))
@@ -16281,7 +16282,7 @@ function jr(n) {
     backgroundGradientStrategy: n.gradient?.direction ?? "horizontal"
   };
 }
-function gu() {
+function mu() {
   return {
     type: "object",
     additionalProperties: !1,
@@ -16301,13 +16302,13 @@ function gu() {
     }
   };
 }
-const mu = ["ids", "text", "match", "all", "within", "groupId"], yu = ["ids", "text", "within", "groupId"];
+const yu = ["ids", "text", "match", "all", "within", "groupId"], bu = ["ids", "text", "within", "groupId"];
 function Ae(n, t) {
   if (!ht(n)) return [`${t} must be a selector such as {ids: [...]}, {text}, {within}, {groupId} or {all: true}.`];
   const e = [];
   for (const i of Object.keys(n))
-    mu.includes(i) || e.push(`${t} has an unknown field: ${i}.`);
-  const s = yu.filter((i) => n[i] !== void 0);
+    yu.includes(i) || e.push(`${t} has an unknown field: ${i}.`);
+  const s = bu.filter((i) => n[i] !== void 0);
   if (s.length > 1 && e.push(`${t} must name notes one way, not by ${s.join(" and ")}.`), !s.length && n.all !== !0 && e.push(`${t} must name notes by ids, text, within, groupId or all: true.`), n.ids !== void 0 && (!Array.isArray(n.ids) || !n.ids.length || n.ids.some((i) => typeof i != "string" || !i)) && e.push(`${t}.ids must be a list of note ids.`), n.text !== void 0 && (typeof n.text != "string" || !n.text.trim()) && e.push(`${t}.text must be the text of a note.`), n.match !== void 0) {
     n.text === void 0 && e.push(`${t}.match goes with text.`);
     const i = rt({ type: "enum", values: ["exact", "contains"] }, n.match, `${t}.match`);
@@ -16319,7 +16320,7 @@ function Ae(n, t) {
   }
   return e;
 }
-function bu() {
+function vu() {
   return {
     type: "object",
     additionalProperties: !1,
@@ -16339,7 +16340,7 @@ function bu() {
     }
   };
 }
-const vu = /\b(theme|background|canvas|palette|gradient|recolor|colour|color scheme)\b/i, Xr = /\b(clear|replace|reset|start over|delete all|remove all)\b/i;
+const wu = /\b(theme|background|canvas|palette|gradient|recolor|colour|color scheme)\b/i, Xr = /\b(clear|replace|reset|start over|delete all|remove all)\b/i;
 function Me(n, t, e, s, i, { required: o = !0, plural: r = `${s}s` } = {}) {
   const a = [];
   if (n === void 0 && !o) return a;
@@ -16366,7 +16367,7 @@ function zi(n) {
 function Rt(n) {
   return Array.isArray(n) && n.length > 0 && n.every((t) => typeof t == "string" && t.length > 0);
 }
-function wu(n, t = {}) {
+function xu(n, t = {}) {
   const e = ii(t), s = oi(t), i = t.userMessage || "";
   if (!ht(n)) return { valid: !1, errors: ["The operation plan must be an object."] };
   const o = [];
@@ -16483,13 +16484,13 @@ function wu(n, t = {}) {
         o.push(
           ...Me(h.changes, Object.keys(je), f, "slate change", (m, b, y) => {
             if (m === "background") {
-              y.push(...pu(b, `${f} background`));
+              y.push(...gu(b, `${f} background`));
               return;
             }
             const x = rt(je[m].spec, b, `${f} ${m}`);
             x && y.push(x);
           })
-        ), ht(h.changes) && h.changes.background !== void 0 && !vu.test(i) && o.push(`${f} cannot change the canvas background unless the user explicitly asks for it.`);
+        ), ht(h.changes) && h.changes.background !== void 0 && !wu.test(i) && o.push(`${f} cannot change the canvas background unless the user explicitly asks for it.`);
         return;
       }
     }
@@ -16507,7 +16508,7 @@ function _n(n) {
 function Wr(n) {
   const t = n?.nodes && !Array.isArray(n.nodes), e = t ? n.v2 ?? n : null, s = t ? {
     options: _n(e.options || {}),
-    nodes: (e.freeNodes?.() ?? e.nodes.allNodes ?? []).map((i) => xu(i?.v2 ?? i))
+    nodes: (e.freeNodes?.() ?? e.nodes.allNodes ?? []).map((i) => _u(i?.v2 ?? i))
   } : _n(n || {});
   return s.options || (s.options = {}), s.nodes = (Array.isArray(s.nodes) ? s.nodes : []).map((i) => {
     const o = i?.options ? i : { options: { ...i || {} }, relationships: i?.relationships };
@@ -16516,7 +16517,7 @@ function Wr(n) {
     }), o;
   }), s;
 }
-function xu(n) {
+function _u(n) {
   const t = _n(n.options || {});
   t.x !== void 0 && (t.xPos = t.x, delete t.x), t.y !== void 0 && (t.yPos = t.y, delete t.y), t.fontColor !== void 0 && t.foregroundColor === void 0 && (t.foregroundColor = t.fontColor);
   const e = typeof n.getRotation == "function" ? n.getRotation() : void 0;
@@ -16563,13 +16564,13 @@ function Ht(n, t, e) {
   }
   return t.groupId !== void 0 ? s.filter((i) => i.options.groupId === t.groupId) : t.all === !0 ? [...s] : [];
 }
-function _u() {
+function Cu() {
   const n = "abcdefghijklmnopqrstuvwxyz0123456789";
   let t = "";
   for (let e = 0; e < 12; e += 1) t += n[Math.floor(Math.random() * n.length)];
   return t;
 }
-function Cu(n) {
+function Su(n) {
   const t = (o) => {
     const r = (parseInt(o, 16) || 0) / 255;
     return r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
@@ -16579,13 +16580,13 @@ function Cu(n) {
   }, i = /^#[0-9a-f]{6}$/i.test(n) ? n : "#7aa2c8";
   return s(i, "#ffffff") > s(i, "#000000") ? "#ffffff" : "#000000";
 }
-function Su(n, t, e) {
+function Eu(n, t, e) {
   return n.x < t.x + t.width + e && n.x + n.width + e > t.x && n.y < t.y + t.height + e && n.y + n.height + e > t.y;
 }
-function Eu(n, t, e, s, i, o) {
+function Tu(n, t, e, s, i, o) {
   let r = n;
   for (let a = 0; a <= t.length; a += 1) {
-    const c = t.filter((h) => r.some((u) => Su({ ...u, width: e, height: s }, h, o)));
+    const c = t.filter((h) => r.some((u) => Eu({ ...u, width: e, height: s }, h, o)));
     if (!c.length) return r;
     let l = 0, d = 0;
     i === "left" ? l = Math.min(...c.map((h) => h.x - o)) - Math.max(...r.map((h) => h.x + e)) : i === "above" ? d = Math.min(...c.map((h) => h.y - o)) - Math.max(...r.map((h) => h.y + s)) : i === "below" || i === "center" ? d = Math.max(...c.map((h) => h.y + h.height + o)) - Math.min(...r.map((h) => h.y)) : l = Math.max(...c.map((h) => h.x + h.width + o)) - Math.min(...r.map((h) => h.x)), r = r.map((h) => ({ x: h.x + l, y: h.y + d }));
@@ -16608,7 +16609,7 @@ function Es(n, t) {
     column: t === "column" ? 0 : t === "grid" ? i % e : i
   }));
 }
-function Tu(n, t, e, s) {
+function ku(n, t, e, s) {
   const i = t.count, o = t.placement || {}, r = o.gap ?? (o.connect ? cu : 48);
   if (t.x !== void 0 && t.y !== void 0) {
     const u = o.arrangement || "row";
@@ -16621,9 +16622,9 @@ function Tu(n, t, e, s) {
     let p = c.x + f * (e + r), g = c.y + u * (s + r);
     return l === "right" && (p += c.width + r), l === "left" && (p -= e + r), l === "below" && (g += c.height + r), l === "above" && (g -= s + r), { x: p, y: g };
   });
-  return { points: Eu(h, n.nodes.map(Pt), e, s, l, r), arrangement: d, gap: r };
+  return { points: Tu(h, n.nodes.map(Pt), e, s, l, r), arrangement: d, gap: r };
 }
-function ku(n, t) {
+function Au(n, t) {
   if (!n) return { childId: `${Ss}${t()}` };
   const e = n.match(/->(__free_.+)$/);
   return { id: n, childId: e ? e[1] : `${Ss}${n.replace(/[^A-Za-z0-9_-]/g, "_")}` };
@@ -16643,7 +16644,7 @@ function ts(n, t, e) {
     { ids: e }
   );
 }
-const Gi = (n, t) => JSON.stringify(n) === JSON.stringify(t), Au = ["id", "name", "text", "xPos", "yPos", "x", "y", "isLocked"], es = (n) => JSON.parse(JSON.stringify(n)), cn = 1e6, Bi = {
+const Gi = (n, t) => JSON.stringify(n) === JSON.stringify(t), Mu = ["id", "name", "text", "xPos", "yPos", "x", "y", "isLocked"], es = (n) => JSON.parse(JSON.stringify(n)), cn = 1e6, Bi = {
   "align-left": "left",
   "align-center": "centerH",
   "align-right": "right",
@@ -16652,7 +16653,7 @@ const Gi = (n, t) => JSON.stringify(n) === JSON.stringify(t), Au = ["id", "name"
   "align-bottom": "bottom"
 }, fe = (n) => ({ id: L(n), ...Pt(n), rotationAngle: At(n, "rotationAngle") });
 function Hi(n, t, e = {}) {
-  const s = ii(e), i = oi(e), o = e.idFactory || _u, r = Wr(n), a = wu(t, {
+  const s = ii(e), i = oi(e), o = e.idFactory || Cu, r = Wr(n), a = xu(t, {
     ...e,
     existingNodeIds: r.nodes.map(L),
     existingConnectionIds: Qt(r).map(({ association: u }) => u.id)
@@ -16703,14 +16704,14 @@ function Hi(n, t, e = {}) {
           y(_);
           return;
         }
-        const C = u.shape ?? v?.shape, E = _ ? Pt(_) : void 0, T = u.width ?? v?.width ?? E?.width ?? (C?.toLowerCase() === "triangle" ? 150 : 180), A = u.height ?? v?.height ?? E?.height ?? (C?.toLowerCase() === "triangle" ? 130 : 110), R = _ ?? qr(r, u.placement?.relativeTo), P = u.style?.backgroundColor || v?.style?.backgroundColor || R?.options.backgroundColor || "#7aa2c8", { points: O, arrangement: k, gap: M } = Tu(r, u, T, A), I = new Set(Qt(r).map(({ association: V }) => V.id)), D = new Set(r.nodes.map(L)), H = (u.ids || []).filter((V) => D.has(V));
+        const C = u.shape ?? v?.shape, E = _ ? Pt(_) : void 0, T = u.width ?? v?.width ?? E?.width ?? (C?.toLowerCase() === "triangle" ? 150 : 180), A = u.height ?? v?.height ?? E?.height ?? (C?.toLowerCase() === "triangle" ? 130 : 110), R = _ ?? qr(r, u.placement?.relativeTo), P = u.style?.backgroundColor || v?.style?.backgroundColor || R?.options.backgroundColor || "#7aa2c8", { points: O, arrangement: k, gap: M } = ku(r, u, T, A), I = new Set(Qt(r).map(({ association: V }) => V.id)), D = new Set(r.nodes.map(L)), H = (u.ids || []).filter((V) => D.has(V));
         if (H.length && !e.replay) throw ts(g, "note", H);
         const W = O.map((V, j) => u.ids?.[j] || o());
         x(W.filter((V) => !D.has(V)).length), _ && S(I.size + W.filter((V) => !D.has(V)).length, W.length), O.forEach(({ x: V, y: j }, yt) => {
           const K = W[yt];
           if (m.matched.push(K), D.has(K)) return;
           const ct = u.text ? u.count > 1 ? u.text.replace(/\{n\}/g, `${yt + 1}`) : u.text : "", Nt = _ ? es(_.options) : void 0;
-          if (Nt) for (const vt of Au) delete Nt[vt];
+          if (Nt) for (const vt of Mu) delete Nt[vt];
           const bt = Nt ? { ...Nt, id: K, name: K, text: ct, width: T, height: A } : {
             id: K,
             name: K,
@@ -16733,7 +16734,7 @@ function Hi(n, t, e = {}) {
             filters: { vect: null, text: null },
             animations: { vect: null, text: null }
           };
-          C && X.shape.store(bt, C, s), X.x.store(bt, V, s), X.y.store(bt, j, s), _ || X.foregroundColor.store(bt, Cu(P), s);
+          C && X.shape.store(bt, C, s), X.x.store(bt, V, s), X.y.store(bt, j, s), _ || X.foregroundColor.store(bt, Su(P), s);
           for (const [vt, ut] of Object.entries(v?.style || {})) X[vt].store(bt, ut, s);
           for (const [vt, ut] of Object.entries(u.style || {})) X[vt].store(bt, ut, s);
           if (r.nodes.push({ options: bt, relationships: { associations: [] } }), m.changed.push(K), h.created.push(K), _) {
@@ -16857,7 +16858,7 @@ function Hi(n, t, e = {}) {
           for (const D of I) {
             const H = u.ids?.[O];
             if (O += 1, !D) {
-              const V = ku(H, o), j = V.id ?? Pe(M, V.childId);
+              const V = Au(H, o), j = V.id ?? Pe(M, V.childId);
               if (E.has(j)) {
                 e.replay || A.push(j), R.push(j), m.matched.push(j);
                 continue;
@@ -16982,8 +16983,8 @@ function Hi(n, t, e = {}) {
   return h.unchanged = JSON.stringify(r) === c, { slate: r, materializedPlan: { message: t.message.trim(), operations: d }, report: h };
 }
 [...Object.keys(X)];
-function Mu(n = {}) {
-  const t = ii(n), e = oi(n), s = (c) => Object.fromEntries(c.map((l) => [l, Yt(X[l].spec(t))])), i = (c) => Object.fromEntries(c.map((l) => [l, Yt(we[l].spec)])), o = bu(), r = { type: "array", items: { type: "string" } }, a = Cs.map((c) => `${c}: ${zr[c].filter((l) => l !== "kind").join(", ")}`).join("; ");
+function Nu(n = {}) {
+  const t = ii(n), e = oi(n), s = (c) => Object.fromEntries(c.map((l) => [l, Yt(X[l].spec(t))])), i = (c) => Object.fromEntries(c.map((l) => [l, Yt(we[l].spec)])), o = vu(), r = { type: "array", items: { type: "string" } }, a = Cs.map((c) => `${c}: ${zr[c].filter((l) => l !== "kind").join(", ")}`).join("; ");
   return {
     type: "object",
     additionalProperties: !1,
@@ -17055,7 +17056,7 @@ function Mu(n = {}) {
                 ...Object.fromEntries(Object.entries(Ln).map(([c, l]) => [c, Yt(l.spec)])),
                 ...i(Object.keys(we)),
                 ...Object.fromEntries(
-                  Object.entries(je).map(([c, l]) => [c, c === "background" ? gu() : Yt(l.spec)])
+                  Object.entries(je).map(([c, l]) => [c, c === "background" ? mu() : Yt(l.spec)])
                 )
               }
             }
@@ -17068,7 +17069,7 @@ function Mu(n = {}) {
 Object.freeze({
   name: "applySlateOperations",
   description: "Edit the existing slate without starting a new slate, replacing its content, or changing its theme unless the user explicitly asked for that. Always include a natural completion message.",
-  parameters: Mu()
+  parameters: Nu()
 });
 function Fi(n) {
   return new Map(n.nodes.map((t) => [t.options.id, t]));
@@ -17077,7 +17078,7 @@ function $i(n) {
   const t = /* @__PURE__ */ new Map();
   return n.nodes.forEach((e) => e.relationships.associations.forEach((s) => t.set(s.id, s))), t;
 }
-function Nu(n, t, e) {
+function Ru(n, t, e) {
   const s = (r) => X[r].read(e), i = (...r) => r.some((a) => t[a] !== void 0), o = [];
   i("shape") && o.push({ type: "onNodeShapeChanged", data: { id: n, shape: s("shape"), vectorPath: e.vectorPath } }), i("backgroundColor", "opacity") && o.push({ type: "onNodeColorChanged", data: { id: n, color: e.backgroundColor, opacity: e.opacity, borderColor: e.borderColor } }), i("text", "fontFamily", "fontSize", "foregroundColor", "textOpacity", "textXAlign", "textYAlign") && o.push({
     type: "onNodeTextChanged",
@@ -17108,7 +17109,7 @@ function Zr(n, t, e) {
       ];
     }
     case "update_nodes": {
-      const a = (n.target?.ids || []).filter((d) => i.has(d)), c = a.flatMap((d) => Nu(d, n.changes || {}, i.get(d).options)), l = n.changes?.order;
+      const a = (n.target?.ids || []).filter((d) => i.has(d)), c = a.flatMap((d) => Ru(d, n.changes || {}, i.get(d).options)), l = n.changes?.order;
       return l && a.length && c.push({ type: l === "front" ? "onNodeToFront" : "onNodeToBack", data: { id: a[0], order: e.nodes.map((d) => d.options.id) } }), c;
     }
     case "delete_nodes":
@@ -17158,7 +17159,7 @@ function Zr(n, t, e) {
   }
   return [];
 }
-function Ru(n, t, { userMessage: e = "", replay: s = !1, ...i } = {}) {
+function Ou(n, t, { userMessage: e = "", replay: s = !1, ...i } = {}) {
   let o = Wr(n);
   const r = Hi(o, t, { userMessage: e, replay: s, ...i }), a = [];
   for (const f of r.materializedPlan.operations) {
@@ -17182,9 +17183,9 @@ function Ru(n, t, { userMessage: e = "", replay: s = !1, ...i } = {}) {
     })
   };
 }
-const $u = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const Uu = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  applySlateOperations: Ru,
+  applySlateOperations: Ou,
   packagesForOperation: Zr
 }, Symbol.toStringTag, { value: "Module" }));
 class se {
@@ -17227,7 +17228,7 @@ class se {
         if (Object.prototype.hasOwnProperty.call(o, s))
           return { configurable: !0, enumerable: !0, writable: !0 };
       }
-    }), this.resize = new Ou(this), this.relationships = new Pu(this);
+    }), this.resize = new Pu(this), this.relationships = new Iu(this);
   }
   /**
    * v1: `node.png(withNodes?, cb)` — export this node (or the given group of
@@ -17278,7 +17279,7 @@ class se {
     return this;
   }
 }
-class Ou {
+class Pu {
   constructor(t) {
     this.owner = t;
   }
@@ -17302,7 +17303,7 @@ class Ou {
     }), this.pending = void 0;
   }
 }
-class Pu {
+class Iu {
   constructor(t) {
     this.owner = t;
   }
@@ -17329,7 +17330,7 @@ class Pu {
     }));
   }
 }
-class Iu {
+class Du {
   constructor(t) {
     this.wrappers = /* @__PURE__ */ new Map(), this.owner = t;
   }
@@ -17452,12 +17453,12 @@ class Iu {
     return e || (e = new se({ ...t.options }), e.options.id = t.id, this.wrappers.set(t.id, e)), e.v2 = t, e.slate = this.owner, e;
   }
 }
-class Du {
+class Lu {
   constructor(t = {}, e = {}) {
     this.savingTemplateImage = !1, this.options = {
       ...t,
       id: t.id || oe()
-    }, this.events = e || {}, this._shareId = this.options.shareId || oe(), this.nodes = new Iu(this), this.controller = {
+    }, this.events = e || {}, this._shareId = this.options.shareId || oe(), this.nodes = new Du(this), this.controller = {
       scaleToFitAndCenter: (s) => {
         this.assertReady(), this.v2.fitToContent(), s?.();
       }
@@ -17714,16 +17715,16 @@ const jt = class jt {
 };
 jt.availablePlugins = {};
 let Ts = jt;
-const Lu = {
-  slate: Du,
+const zu = {
+  slate: Lu,
   node: se,
   base: Ts,
   utils: ld
 };
-function zu(n, t = {}) {
+function Gu(n, t = {}) {
   return new Ye(n, t);
 }
-typeof window < "u" && (window.SlateboxJS = zu, window.Slate = Ye, window.Node = In, window.PanZoom = vr, window.ResizeRotate = Vo, window.BirdsEye = wr, window.Connector = On, window.Serialization = Pd, window.ShapeRegistry = md, window.Relationship = Ih, window.Relationships = Ko, window.FontLoader = Gh, window.Images = Jo, window.Editor = tr, window.UndoRedo = Ue, window.MultiSelection = xr, window.Grid = _r, window.Menu = dr, window.Keyboard = vn, window.ContextMenu = Cr, window.Filters = lr, window.Links = er, window.Export = Gd, window.Collab = Er, window.Theme = Fh, window.Layout = Yd, window.ZoomSlider = Pr, window.Comments = Zd, window.Presentation = Ir, window.Slatebox = Object.assign({}, Lu, { compat: wd }));
+typeof window < "u" && (window.SlateboxJS = Gu, window.Slate = Ye, window.Node = In, window.PanZoom = vr, window.ResizeRotate = Vo, window.BirdsEye = wr, window.Connector = On, window.Serialization = Pd, window.ShapeRegistry = md, window.Relationship = Ih, window.Relationships = Ko, window.FontLoader = Gh, window.Images = Jo, window.Editor = tr, window.UndoRedo = Ue, window.MultiSelection = xr, window.Grid = _r, window.Menu = dr, window.Keyboard = vn, window.ContextMenu = Cr, window.Filters = lr, window.Links = er, window.Export = Gd, window.Collab = Er, window.Theme = Fh, window.Layout = Yd, window.ZoomSlider = Pr, window.Comments = Zd, window.Presentation = Ir, window.Slatebox = Object.assign({}, zu, { compat: wd }));
 export {
   wr as BirdsEye,
   Er as Collab,
@@ -17755,17 +17756,17 @@ export {
   Pd as Serialization,
   md as ShapeRegistry,
   Ye as Slate,
-  $u as SlateOperations,
-  Lu as Slatebox,
-  zu as SlateboxJS,
+  Uu as SlateOperations,
+  zu as Slatebox,
+  Gu as SlateboxJS,
   Fh as Theme,
   Ue as UndoRedo,
   Pr as ZoomSlider,
   wd as compat,
-  zu as default,
-  Fu as getFilterNames,
+  Gu as default,
+  $u as getFilterNames,
   _d as hitTestNodeBoxes,
-  Hu as registerFilter,
+  Fu as registerFilter,
   ld as utils
 };
 //# sourceMappingURL=slateboxjs.mjs.map
