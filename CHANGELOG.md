@@ -4,6 +4,12 @@
 
 ### Added
 
+- **Content never refuses a trade.** A card's words are kept verbatim, markup included (control
+  characters go); a picture held in the page goes with the card for the host to store; a note whose
+  id a card cannot have gives the card a fresh id and comes back under its own (`card.noteId`,
+  `workshopNoteIdOf`). Lines may name older notes. The 24-card cap now says it is the board's size
+  limit. A trade record to a note carries the note's lines (`NoteTrade.lines`), and a record kept
+  under another key names its note (`NoteTrade.id`).
 - **Any note becomes a card.** A lane no longer refuses a note for its words, look, shape, picture
   or link: an empty note is an empty card (cards may have no words; `add_card` without words and
   `rename_card` to nothing make one), long words are cut to 80 characters on the card and kept whole

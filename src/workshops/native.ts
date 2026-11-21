@@ -16,7 +16,7 @@ import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type Worl
 import {
   validateWorkshop, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopDestinations,
   workshopLaneCaption, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate,
-  workshopCardLabelOf, workshopKeepsLink, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesNotes, workshopToSlate, workshopWithLine,
+  workshopCardLabelOf, workshopKeepsLink, workshopNoteIdOf, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesNotes, workshopToSlate, workshopWithLine,
   workshopWithoutLine, type Workshop, type WorkshopBoardLayout, type WorkshopCard, type WorkshopCardAsNote, type WorkshopCardLook,
   type WorkshopLine, type WorkshopNoteOffer, type WorkshopNoteStyle,
 } from './model'
@@ -1138,7 +1138,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const place = value.cards.findIndex(item => item.id === cardId)
     const before = value.cards.slice(place + 1).find(item => item.laneId === card.laneId)?.id
     const drawnCard = drawn.get(noteId(workshopNodeIds.card(cardId))) ?? {}
-    const id = slate.nodes.one(cardId) ? 'node_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now() : cardId
+    // The note comes back under the id of the note the card was made from, unless the slate uses it now.
+    const wanted = workshopNoteIdOf(card)
+    const id = slate.nodes.one(wanted) ? 'node_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now() : wanted
     // Its lines stay joined to the note: those to other cards stay on the board, those to notes are the drawing's.
     const cardLines = workshopLinesOf(value, cardId)
     const { leave } = workshopCardLines(value, cardId, id)

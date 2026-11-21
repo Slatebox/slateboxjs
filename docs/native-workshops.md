@@ -233,11 +233,19 @@ experience) an ordinary note and a card trade places by being dropped:
   off the lanes); words longer than a card shows are cut to the first 80 characters on the card and
   kept whole for the note (`asNote.text`); a picture with a web address and a link go with the card
   (`asNote.image`, `asNote.link`) and come back with the note; a look or shape a card cannot draw is
-  left out of the card and nothing is refused. What still keeps a note a note: the board's own rules
-  (a full lane, 24 cards on the board, a map, a release plan or a starter that keeps its own cards, a
-  lane that is gone), someone else's change first, a viewer, and, flagged as open, words with markup
-  (`<`, `>`), a picture held in the page itself (a `data:` address), a link a card cannot keep, a line
-  that ends on empty canvas or cannot be joined, and more than 96 lines.
+  left out of the card and nothing is refused. Words are kept verbatim, markup included (every view
+  shows them as text; only control characters go, and line breaks and tabs are spaces on the card). A
+  picture held in the page (a `data:` address) goes with the card for its host to store (the app
+  stores it with the slate's pictures and keeps the address). A note whose id a card cannot have
+  (an older note's) gives the card a fresh id; the card remembers it (`card.noteId`) and the note
+  comes back under it. What still keeps a note a note: the board's own rules (a full lane, the board's
+  size limit of 24 cards, a map, a release plan or a starter that keeps its own cards, a lane that is
+  gone), someone else's change first, a viewer, a link a card cannot keep (over 2 KB, or not text),
+  a line that ends on empty canvas (see `noteObstacle` in `native.ts`), more than 96 lines, and comments.
+- **A trade record carries its lines.** The host's record of a card that became a note
+  (`NoteTrade.lines`) holds the note's lines to other notes: a screen that hears of the trade only
+  from that record (the page that made it went away first) draws them with the note and tells the
+  room of both. A record kept under another key names its note (`NoteTrade.id`).
 - **A card dropped on empty canvas, outside every lane, becomes an ordinary note** where it was let
   go: it leaves the board, and a note with its words and look is added to the drawing
   (`onNodeAdded`), saved with it and selected. Its id is the card's, unless the slate already holds a

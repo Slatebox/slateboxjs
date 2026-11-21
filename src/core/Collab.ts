@@ -106,6 +106,10 @@ export interface NoteTrade {
   r: number;
   as: "card" | "note";
   note?: { options?: Record<string, any> };
+  /** The note, when the record is kept under another key (a note id the store cannot use as one). */
+  id?: string;
+  /** A card that became a note: the note's lines to other notes, drawn with it. */
+  lines?: Record<string, any>[];
 }
 
 /** The trades a stored slate records, with the workshop revision the document was stored at. */
@@ -206,6 +210,8 @@ export class Collab {
   private tradeTruth = new Map<string, Record<string, any> | null>();
   /** The workshop revision every trade this screen draws is settled through (see settleTrades). */
   private tradesThrough = 0;
+  /** The lines a card's trade to a note joined it with, by note id (see NoteTrade.lines). */
+  private tradeLines = new Map<string, Record<string, any>[]>();
   private tradeFixTimer: ReturnType<typeof setTimeout> | null = null;
   /** Notes with a trade of this person's own on its way to the server: left as this screen has them. */
   private ownTrades = new Map<string, number>();
@@ -873,11 +879,13 @@ export class Collab {
     if (typeof through === "number" && through > this.tradesThrough) this.tradesThrough = through;
     if (!trades || typeof trades !== "object") return;
     const fresh: string[] = [];
-    for (const [id, trade] of Object.entries(trades)) {
+    for (const [key, trade] of Object.entries(trades)) {
       if (!trade || typeof trade.r !== "number" || (trade.as !== "card" && trade.as !== "note")) continue;
+      const id = typeof trade.id === "string" && trade.id ? trade.id : key;
       const known = this.trades.get(id);
       if (known && known.r >= trade.r) continue;
       this.trades.set(id, trade);
+      this.tradeLines.set(id, trade.as === "note" && Array.isArray(trade.lines) ? trade.lines.filter((line) => line && typeof line.id === "string") : []);
       if (loaded) {
         const here = this.slate?.nodes?.one?.(id);
         this.tradeTruth.set(id, here ? v2NodeToV1(here.options) : null);
@@ -990,11 +998,29 @@ export class Collab {
       if (truth === null && here) return this.handleRemotePackage({ type: "onNodeDeleted", data: { id, isComment: false } } as SlatePackage);
       if (truth && !here) {
         this.fromRecord.add(id);
-        return this.handleRemotePackage({ type: "onNodeAdded", data: { id, nodeOptions: [{ ...truth, id }] } } as SlatePackage);
+        const added = this.handleRemotePackage({ type: "onNodeAdded", data: { id, nodeOptions: [{ ...truth, id }] } } as SlatePackage);
+        // Then the lines it was joined with as a card, as the server saved them with the trade.
+        const join = () => this.joinTradeLines(id);
+        if (added && typeof (added as Promise<unknown>).then === "function") return (added as Promise<unknown>).then(join);
+        return join();
       }
     } catch (error) {
       console.warn("COLLAB_DEBUG: A traded note could not be drawn as the server has it:", error);
     }
+  }
+
+  /** Draw the lines the server's record of a trade to a note joined it with (those both of whose notes are here). */
+  private joinTradeLines(id: string): Promise<unknown> | void {
+    const waits: Promise<unknown>[] = [];
+    for (const line of this.tradeLines.get(id) ?? []) {
+      try {
+        const done = this.handleRemotePackage({ type: "addRelationship", data: { ...line } } as SlatePackage);
+        if (done && typeof (done as Promise<unknown>).then === "function") waits.push(done as Promise<unknown>);
+      } catch (error) {
+        console.warn("COLLAB_DEBUG: A traded note's line could not be drawn:", error);
+      }
+    }
+    if (waits.length) return Promise.all(waits);
   }
 
   private async enforceStaleTrades(): Promise<void> {
@@ -1056,6 +1082,13 @@ export class Collab {
         this.fromRecord.delete(id);
         const key = `${half.type}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         this.collabMap.set(key, { ...half, clientID: this.clientID, timestamp: this.tick() });
+        // A note's lines follow it into the room, so a client that joins replays them after the note.
+        if (options) {
+          for (const line of this.tradeLines.get(id) ?? []) {
+            const lineKey = `addRelationship_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+            this.collabMap.set(lineKey, { type: "addRelationship", data: { ...line }, clientID: this.clientID, timestamp: this.tick() } as any);
+          }
+        }
         this.collabMap.set(tradeKey(id), {
           type: TRADED, data: { trade: id, r: trade.r, as: trade.as }, clientID: this.clientID, timestamp: this.tick(),
         });
