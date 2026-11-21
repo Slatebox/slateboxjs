@@ -12988,7 +12988,10 @@ class Er {
           const r = this.tick(), a = [...this.ownTrades.keys()], c = a.length && s.data && typeof s.data == "object" ? { ...s.data, held: a } : s.data, l = { ...s, data: c, clientID: this.clientID, timestamp: r }, d = () => {
             this.pruneBeforeSlateReplacement(), this.collabMap.set(i, l);
           };
-          this.doc ? this.doc.transact(d) : d(), this.adoptBaseline({ t: r, c: this.clientID, k: i });
+          this.doc ? this.doc.transact(d) : d(), this.adoptBaseline({ t: r, c: this.clientID, k: i }), this.run(async () => {
+            const h = this.beforeRemote();
+            await this.dropRoomCards(new Set(a)), this.afterRemote(h);
+          });
           continue;
         }
         s.type === "onLinePropertiesChanged" && this.pruneSupersededLineProperty(s.data);
