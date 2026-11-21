@@ -184,7 +184,18 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       const sx = rect.width / box.width, sy = rect.height / box.height
       const scale = fit === 'none' ? sx : /slice/.test(fit) ? Math.max(sx, sy) : Math.min(sx, sy)
       const w = rect.width / scale, h = rect.height / scale
-      return { view: { x: box.x + (box.width - w) / 2, y: box.y + (box.height - h) / 2, w, h }, scale }
+      const full = { x: box.x + (box.width - w) / 2, y: box.y + (box.height - h) / 2, w, h }
+      // A page may show only part of the canvas element (a host that clips it): the view is what is left of it.
+      let left = rect.left, top = rect.top, right = rect.right, bottom = rect.bottom
+      for (let el = slate.canvas.node?.parentElement; el && el !== document.body; el = el.parentElement) {
+        const style = getComputedStyle(el)
+        if (style.overflow === 'visible' && style.overflowX === 'visible' && style.overflowY === 'visible') continue
+        const clip = el.getBoundingClientRect()
+        if (!clip.width || !clip.height) continue
+        left = Math.max(left, clip.left); top = Math.max(top, clip.top); right = Math.min(right, clip.right); bottom = Math.min(bottom, clip.bottom)
+      }
+      if (right - left < 1 || bottom - top < 1) return { view: full, scale }
+      return { view: { x: full.x + (left - rect.left) / scale, y: full.y + (top - rect.top) / scale, w: (right - left) / scale, h: (bottom - top) / scale }, scale }
     } catch { return null }
   }
   function zoom(): number {
