@@ -141,7 +141,7 @@ const sentences = {
 type Limit = number | Partial<Record<WorkshopBoardKind, number>> & { default: number }
 
 export type WorkshopEditField =
-  | { type: 'text'; max: number; optional?: boolean; about: string }
+  | { type: 'text'; max: number; min?: number; optional?: boolean; about: string }
   | { type: 'ref'; of: 'lane' | 'card' | 'outcome'; optional?: boolean; about: string }
   | { type: 'refs'; of: 'lane' | 'card'; min: number; max: number; nullable?: boolean; optional?: boolean; about: string }
   | { type: 'integer'; min: number; max: Limit; nullable?: boolean; optional?: boolean; about: string }
@@ -172,7 +172,7 @@ export const workshopEditKinds: readonly WorkshopEditKind[] = [
   { kind: 'rename_lane', summary: 'Rename a lane, or a step on a map.', intent: true,
     fields: { lane: lane('The lane or step.'), label: text(80, 'The new name, 1 to 80 characters of plain text.') }, boards: everyBoard, refusals: {} },
   { kind: 'rename_card', summary: 'Rename a card, a feature or a token.', intent: true,
-    fields: { card: card('The card or token.'), label: text(80, 'The new name, 1 to 80 characters of plain text.') }, boards: everyBoard, refusals: {} },
+    fields: { card: card('The card or token.'), label: { type: 'text', max: 80, min: 0, about: 'The new words, up to 80 characters of plain text. Empty makes an empty card.' } }, boards: everyBoard, refusals: {} },
   { kind: 'add_lane', summary: 'Add a lane at the end, optionally with how many cards it holds. A workshop has up to five lanes.', intent: false,
     fields: { label: text(80, 'The lane’s name.'), capacity: { type: 'integer', min: 1, max: 24, optional: true, about: 'How many cards it holds, 1 to 24. Leave it out for any number.' } },
     boards: ['lanes'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes, map: sentences.mapAddLane } },
@@ -180,7 +180,7 @@ export const workshopEditKinds: readonly WorkshopEditKind[] = [
     fields: { lane: lane('The lane or step.') },
     boards: ['lanes', 'map'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes } },
   { kind: 'add_card', summary: 'Add a card to a lane that has room, or a token at a step. A workshop has up to 24 cards.', intent: false,
-    fields: { lane: lane('The lane or step it starts in.'), label: text(80, 'What the card says. On a map it may be left out: the token is numbered.', true),
+    fields: { lane: lane('The lane or step it starts in.'), label: text(80, 'What the card says. Left out, the card is empty (on a map, the token is numbered).', true),
       allowedLanes: { type: 'refs', of: 'lane', min: 1, max: 5, optional: true, about: 'Lane boards only: the lanes it may go in, including the one it starts in. Leave it out for any lane.' } },
     boards: ['lanes', 'experiment-budget', 'map'], refusals: { 'release-plan': sentences.releaseCards, 'customer-interviews': sentences.keepsCards } },
   { kind: 'remove_card', summary: 'Remove a card or token, with the dependencies and outcomes that named it.', intent: false,
@@ -260,7 +260,7 @@ function fieldSchema(field: WorkshopEditField, board?: WorkshopBoardKind): Recor
     { type: 'object', additionalProperties: false, required: ['id'], properties: { id: { type: 'string', minLength: 1, maxLength: 64 } } }] }
   const orNull = (schema: Record<string, unknown>, nullable?: boolean) => nullable ? { anyOf: [schema, { type: 'null' }] } : schema
   switch (field.type) {
-    case 'text': return { type: 'string', minLength: 1, maxLength: field.max, description: field.about }
+    case 'text': return { type: 'string', minLength: field.min ?? 1, maxLength: field.max, description: field.about }
     case 'ref': return { ...ref, description: field.about }
     case 'refs': return { ...orNull({ type: 'array', items: ref, minItems: field.min, maxItems: field.max }, field.nullable), description: field.about }
     case 'integer': return { ...orNull({ type: 'integer', minimum: field.min, maximum: limitFor(field.max, board) }, field.nullable), description: field.about }
@@ -484,18 +484,18 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
         const next = settle(board, family, target.id)
         return done(next, 'Added ' + said(next.cards[next.cards.length - 1].label) + ' at ' + said(target.label) + '.', { laneId: target.id, cardId: 'token-' + n })
       }
-      if (edit.label === undefined || !edit.label.trim()) throw new Refusal('Say what the card should say, such as “Add a card called New idea to ' + target.label + '”.', 'refused', target.id)
       if (board.cards.length >= 24) throw new Refusal('A workshop can have up to 24 cards. Remove one first.', 'refused', target.id)
       if (target.capacity !== undefined && held(target.id) >= target.capacity) {
         throw new Refusal(said(target.label) + ' is full: it holds ' + target.capacity + (target.capacity === 1 ? ' card' : ' cards') + '. Add the card to another lane, or raise the limit.', 'refused', target.id)
       }
       const allowedLaneIds = edit.allowedLanes && [...new Set(edit.allowedLanes.map(ref => laneOf(ref).id))]
       let next: Workshop
-      try { next = addWorkshopCard(board, target.id, { label: edit.label, ...(allowedLaneIds && { allowedLaneIds }) }) } catch (error) {
+      // A card without words is an empty card, as an empty note dropped on a lane is.
+      try { next = addWorkshopCard(board, target.id, { label: edit.label?.trim() ?? '', ...(allowedLaneIds && { allowedLaneIds }) }) } catch (error) {
         throw new Refusal(ruleSentence((error as Error).message, family), 'refused', target.id)
       }
       const added = next.cards[next.cards.length - 1]
-      return done(next, 'Added ' + said(added.label) + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: added.id })
+      return done(next, 'Added ' + (added.label ? said(added.label) : 'an empty card') + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: added.id })
     }
     case 'remove_card': {
       const gone = cardOf(edit.card)

@@ -41,6 +41,10 @@ export interface WorkshopCardAsNote {
   shape?: string
   width?: number
   height?: number
+  /** Its picture (an http(s) or site address), with the picture's own size. */
+  image?: { src: string; width?: number; height?: number }
+  /** Its link, as a note keeps one. */
+  link?: { type?: string; data: string | Record<string, string>; show?: boolean }
 }
 
 /** The look of one card: what an ordinary note dropped on a lane brings with it. */
@@ -118,6 +122,21 @@ function label(value: unknown, limit = 80): string {
   return value.trim()
 }
 
+/** A card's words: up to 80 characters of plain text, or none. */
+function cardLabel(value: unknown): string {
+  if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) return ''
+  return label(value)
+}
+
+/** The words a card shows for a note's words: its words in one line, the first 80 characters of longer ones. */
+export function workshopCardLabelOf(words: string): string {
+  const line = String(words ?? '').replace(/\s+/g, ' ').trim()
+  if (line.length <= 80) return line
+  const cut = line.slice(0, 79)
+  const space = cut.lastIndexOf(' ')
+  return (space > 40 ? cut.slice(0, space) : cut).trimEnd() + '…'
+}
+
 function stationImage(input: unknown): StationImage {
   const raw = record(input)
   let url: URL
@@ -173,13 +192,47 @@ export function workshopCardLookOf(input: Record<string, unknown>): WorkshopCard
   return cardLook(look)
 }
 
-/** What a card keeps of the note it was made from: only words, a shape name and a size. */
+/** A picture's address a card can keep for its note: http(s) or on this site, not one held in the page. */
+export function workshopKeepsPicture(src: unknown): boolean {
+  if (typeof src !== 'string' || !src || src.length > 4096) return false
+  if (/^\/(?!\/)/.test(src)) return true
+  try { return ['https:', 'http:'].includes(new URL(src).protocol) } catch { return false }
+}
+
+/** Whether a card can keep a note's link for it. */
+export function workshopKeepsLink(link: unknown): boolean {
+  try { return Boolean(cardAsNote({ link })) } catch { return false }
+}
+
+/** What a card keeps of the note it was made from: its words, shape, size, picture and link. */
 function cardAsNote(input: unknown): WorkshopCardAsNote | undefined {
   const raw = record(input)
   const kept: WorkshopCardAsNote = {}
   if (raw.text !== undefined) {
-    if (typeof raw.text !== 'string' || raw.text.length > 400 || /[<>\u0000-\u0009\u000b-\u001f]/.test(raw.text)) throw new Error('A card keeps plain words only.')
+    if (typeof raw.text !== 'string' || raw.text.length > 4000 || /[<>\u0000-\u0009\u000b-\u001f]/.test(raw.text)) throw new Error('A card keeps plain words only.')
     kept.text = raw.text
+  }
+  if (raw.image !== undefined) {
+    const image = record(raw.image)
+    if (!workshopKeepsPicture(image.src)) throw new Error('A card keeps a picture by its web address only.')
+    kept.image = { src: image.src as string }
+    for (const key of ['width', 'height'] as const) {
+      const size = image[key]
+      if (size === undefined) continue
+      if (typeof size !== 'number' || !Number.isFinite(size) || size < 1 || size > 20000) throw new Error('A picture size is out of range.')
+      kept.image[key] = size
+    }
+  }
+  if (raw.link !== undefined) {
+    const link = record(raw.link)
+    const data = link.data
+    const plainData = typeof data === 'string' ? data.length <= 2048
+      : Boolean(data) && typeof data === 'object' && !Array.isArray(data) && JSON.stringify(data).length <= 2048 &&
+        Object.values(data as object).every(item => typeof item === 'string')
+    if (!plainData || (link.type !== undefined && (typeof link.type !== 'string' || !/^[A-Za-z]{1,40}$/.test(link.type))) ||
+        (link.show !== undefined && typeof link.show !== 'boolean')) throw new Error('A card keeps a link as a note does.')
+    kept.link = { ...(link.type !== undefined ? { type: link.type as string } : {}), data: data as string | Record<string, string>,
+      ...(link.show !== undefined ? { show: link.show as boolean } : {}) }
   }
   if (raw.shape !== undefined) {
     if (typeof raw.shape !== 'string' || !/^[a-z]{1,24}$/i.test(raw.shape)) throw new Error('A card keeps a shape by its name only.')
@@ -366,7 +419,8 @@ export function validateWorkshop(input: unknown): Workshop {
   }
   const cards: WorkshopCard[] = value.cards.map(item => {
     const raw = record(item)
-    const card: WorkshopCard = { id: id(raw.id), label: label(raw.label), laneId: id(raw.laneId) }
+    // A card may be empty, as a note may: an empty note dropped on a lane is an empty card.
+    const card: WorkshopCard = { id: id(raw.id), label: cardLabel(raw.label), laneId: id(raw.laneId) }
     if (!laneIds.includes(card.laneId)) throw new Error('Card refers to an unknown lane.')
     if (raw.allowedLaneIds !== undefined) {
       if (!Array.isArray(raw.allowedLaneIds) || raw.allowedLaneIds.length > lanes.length) throw new Error('Invalid allowed lanes.')
@@ -577,29 +631,53 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
   if (board.lanes.some(item => item.station)) return 'A map\'s stations hold its token only.'
   if (board.kind === 'release-plan') return 'A release plan\'s features need effort points, so a note can\'t become one.'
   if (startupExperienceKind(board)) return 'This workshop keeps the cards it came with.'
+  // A note becomes a card whatever its words, look, shape or lines: empty, long (the card shows
+  // the first 80 characters and keeps the rest for the note), or styled in a way a card does not draw.
+  // Only words a card could not show as plain text (markup) keep it a note.
   const text = typeof note?.label === 'string' ? note.label.replace(/\s+/g, ' ').trim() : ''
-  if (!text) return 'A card needs some words. Type on the note first.'
-  if (text.length > 80) return 'A card holds up to 80 characters. Shorten the note first.'
   if (/[<>\u0000-\u001f]/.test(text)) return 'A card holds plain words only.'
   if (board.cards.length >= maxWorkshopCards) return 'A workshop holds up to 24 cards.'
   const held = board.cards.filter(item => item.laneId === laneId).length
   if (lane.capacity !== undefined && held >= lane.capacity) return `It already holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
-  if (note.look !== undefined) {
-    try { cardLook(note.look) } catch { return 'This note\'s look can\'t be kept on a card.' }
-  }
-  if (note.asNote !== undefined) {
-    try { cardAsNote(note.asNote) } catch { return 'This note\'s shape or words can\'t be kept on a card.' }
-  }
   if (note.lines !== undefined) {
-    let lines: WorkshopLine[]
-    try { lines = Array.isArray(note.lines) ? note.lines.map(workshopLine) : [workshopLine(note.lines)] }
-    catch { return 'This note\'s lines can\'t be kept on a card.' }
+    const lines = offeredLines(note.lines)
+    if (!lines) return 'A line of this note can\'t be joined to a card.'
     const ids = new Set((board.lines ?? []).map(line => line.id))
     if ((board.lines?.length ?? 0) + lines.filter(line => !ids.has(line.id)).length > maxWorkshopLines) {
       return `A workshop holds up to ${maxWorkshopLines} lines.`
     }
   }
   return null
+}
+
+/** The parts of a note's look a card can draw. */
+function keptLook(input: unknown): WorkshopCardLook | undefined {
+  try { return input && typeof input === 'object' ? workshopCardLookOf(input as Record<string, unknown>) : undefined } catch { return undefined }
+}
+
+/** The parts of what a note had that a card can keep for it (its words, shape, size, picture, link). */
+function keptAsNote(input: unknown): WorkshopCardAsNote | undefined {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined
+  const kept: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(input)) {
+    try { if (cardAsNote({ [key]: value })) kept[key] = value } catch { /* not something a card can keep */ }
+  }
+  return Object.keys(kept).length ? cardAsNote(kept) : undefined
+}
+
+/** A note's lines as a card keeps them (their look as far as a line can be drawn), or null when one cannot be joined at all. */
+function offeredLines(input: unknown): WorkshopLine[] | null {
+  const list = Array.isArray(input) ? input : [input]
+  const lines: WorkshopLine[] = []
+  for (const raw of list) {
+    let line: WorkshopLine | null = null
+    try { line = workshopLine(raw) } catch {
+      try { const { id: lineId, parentId, childId } = record(raw); line = workshopLine({ id: lineId, parentId, childId }) } catch { line = null }
+    }
+    if (!line) return null
+    lines.push(line)
+  }
+  return lines
 }
 
 /** `line` with every end named `from` renamed `to`. */
@@ -627,15 +705,18 @@ function withLines(board: Workshop, lines: WorkshopLine[]): WorkshopLine[] {
  */
 export function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null {
   if (workshopNoteRefusal(board, laneId, note) !== null) return null
-  const look = note.look === undefined ? undefined : cardLook(note.look)
-  const asNote = note.asNote === undefined ? undefined : cardAsNote(note.asNote)
-  const card: WorkshopCard = { id: cardIdFor(board, note.id), label: note.label.replace(/\s+/g, ' ').trim(), laneId,
+  const look = keptLook(note.look)
+  const words = typeof note.label === 'string' ? note.label.replace(/\s+/g, ' ').trim() : ''
+  let asNote = keptAsNote(note.asNote)
+  // Words longer than a card shows are kept for the note.
+  if (words.length > 80 && asNote?.text === undefined && words.length <= 4000) asNote = { ...asNote, text: words }
+  const card: WorkshopCard = { id: cardIdFor(board, note.id), label: workshopCardLabelOf(words), laneId,
     ...(look ? { look } : {}), ...(asNote ? { asNote } : {}) }
   const at = before === undefined ? -1 : board.cards.findIndex(item => item.id === before && item.laneId === laneId)
   const cards = at < 0 ? [...board.cards, card] : [...board.cards.slice(0, at), card, ...board.cards.slice(at)]
   // The note's lines stay joined to it: to the card, under the card's id.
   const lines = note.lines === undefined ? undefined
-    : withLines(board, (Array.isArray(note.lines) ? note.lines : [note.lines]).map(workshopLine).map(line => renamedLine(line, note.id, card.id)))
+    : withLines(board, offeredLines(note.lines)!.map(line => renamedLine(line, note.id, card.id)))
   return validateWorkshop({ ...board, cards, ...(lines ? { lines } : {}) })
 }
 

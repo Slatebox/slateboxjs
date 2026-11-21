@@ -4,6 +4,12 @@
 
 ### Added
 
+- **Any note becomes a card.** A lane no longer refuses a note for its words, look, shape, picture
+  or link: an empty note is an empty card (cards may have no words; `add_card` without words and
+  `rename_card` to nothing make one), long words are cut to 80 characters on the card and kept whole
+  for the note, and a picture (web address) and a link are kept (`card.asNote.image`,
+  `card.asNote.link`). New helpers `workshopCardLabelOf`, `workshopKeepsPicture`, `workshopKeepsLink`.
+  Only the board's own rules and someone else's change refuse a trade (see docs/native-workshops.md).
 - **Cards keep their lines (connected cards).** A note joined to other notes by lines now becomes a
   card when it is dropped on a lane, and keeps its lines; a card dropped on the canvas becomes a
   note with them. On a board of plain lanes cards have their connector plugs like any note: lines
@@ -32,7 +38,7 @@
   Several notes carried together onto a lane become cards there as one step, or all go back with
   the reason (`onFreeGroupDrop`); a note whose words are typed on a lane is dropped there
   (`onFreeTextCommit`). A card keeps what its note had that a card does not show (`card.asNote`:
-  line breaks, shape, size) and gives it back on the way out; a note with a link stays a note. An
+  line breaks, shape, size, picture, link) and gives it back on the way out. An
   undone trade says where the card goes back (`noteToCard.before`). `onChange` may answer a trade
   with `'taken'` (someone else made it first): this person's copy of the note goes and nothing is
   brought back; a refused trade never takes away a card the host has drawn since.

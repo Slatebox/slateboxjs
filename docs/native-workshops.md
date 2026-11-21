@@ -227,8 +227,17 @@ experience) an ordinary note and a card trade places by being dropped:
   its lines to other cards stay on the board. A note deleted from the slate takes its line off the
   screen; the board keeps the line for when the note comes back (undo). A card removed from the
   board takes its lines with it. A note with a line that ends on empty canvas stays a note until
-  the line is joined to a note. A note with a picture, or with a link, stays a note ("Remove its
-  link first.").
+  the line is joined to a note.
+- **Any note becomes a card.** A lane takes a note whatever its words, look, shape, picture, link or
+  lines. An empty note is an empty card (counted in its lane, renamed in place, an empty note again
+  off the lanes); words longer than a card shows are cut to the first 80 characters on the card and
+  kept whole for the note (`asNote.text`); a picture with a web address and a link go with the card
+  (`asNote.image`, `asNote.link`) and come back with the note; a look or shape a card cannot draw is
+  left out of the card and nothing is refused. What still keeps a note a note: the board's own rules
+  (a full lane, 24 cards on the board, a map, a release plan or a starter that keeps its own cards, a
+  lane that is gone), someone else's change first, a viewer, and, flagged as open, words with markup
+  (`<`, `>`), a picture held in the page itself (a `data:` address), a link a card cannot keep, a line
+  that ends on empty canvas or cannot be joined, and more than 96 lines.
 - **A card dropped on empty canvas, outside every lane, becomes an ordinary note** where it was let
   go: it leaves the board, and a note with its words and look is added to the drawing
   (`onNodeAdded`), saved with it and selected. Its id is the card's, unless the slate already holds a
