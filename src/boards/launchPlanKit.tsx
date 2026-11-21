@@ -10,6 +10,10 @@ import { handleLabel, launchLinkTargets, partNotes, workshopEditsBetween } from 
 
 const CRITICAL = '#c2410c'
 const BAR = 32
+/** A phone row's bar: a whole finger's height. */
+const PHONE_BAR = 44
+/** How far a length grip's 44px box reaches back over its bar's end: on a phone none of it, so a press on a short bar moves the bar. */
+const gripBack = (narrow: boolean) => narrow ? 0 : 22
 
 export interface LaunchGeometry {
   parts: PartPlace[]
@@ -39,11 +43,11 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
   const bar = (cardId: string, y: number) => {
     const card = board.cards.find(item => item.id === cardId)!
     const t = times.get(cardId)!
-    const box = { x: x0 + t.start * dayW, y, width: card.duration! * dayW, height: narrow ? 28 : BAR }
+    const box = { x: x0 + t.start * dayW, y, width: card.duration! * dayW, height: narrow ? PHONE_BAR : BAR }
     bars.set(cardId, box)
     parts.push({ name: 'card-' + cardId, ...box, text: narrow ? '' : `${card.label} · ${card.duration}d`,
       fill: narrow ? color(card.laneId) : '#fffdf6', line: t.critical ? CRITICAL : '#667872', lineWidth: t.critical ? 2.5 : 1, fontSize: 13 })
-    parts.push({ name: 'handle-' + cardId, x: box.x + box.width - 22, y: box.y + box.height / 2 - 22, width: 44, height: 44 })
+    parts.push({ name: 'handle-' + cardId, x: box.x + box.width - gripBack(narrow), y: box.y + box.height / 2 - 22, width: 44, height: 44 })
   }
   let y: number, gridTop: number, axisY: number
   if (narrow) {
@@ -58,7 +62,7 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
     axisY = 124
     gridTop = 130
     y = 138
-    for (const card of board.cards) { bar(card.id, y + 20); y += 56 }
+    for (const card of board.cards) { bar(card.id, y + 20); y += 72 }
   } else {
     axisY = 48
     gridTop = 56
@@ -118,23 +122,23 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     }
     const t = times.get(card.id)!, box = g.bars.get(card.id)!
     if (g.narrow) shapes.push({ t: 'text', x: 8, y: box.y - 6, text: `${card.label} · ${card.duration}d`, color: layerInk.ink, size: 13, bold: t.critical })
-    if (!t.critical) shapes.push({ t: 'text', x: box.x + box.width + 24, y: box.y + box.height / 2 + 4, text: '+' + t.slack + 'd', color: layerInk.ink, size: 12, role: 'slack-' + card.id })
+    if (!t.critical) shapes.push({ t: 'text', x: box.x + box.width + (g.narrow ? 48 : 24), y: box.y + box.height / 2 + 4, text: '+' + t.slack + 'd', color: layerInk.ink, size: 12, role: 'slack-' + card.id })
   }
   // Launch day: a line, its grip and its label.
   const lx = g.x0 + day * g.dayW
   shapes.push({ t: 'line', x1: lx, y1: g.narrow ? 112 : 26, x2: lx, y2: g.height - 8, color: layerInk.launch, width: 2, dash: '6 4' })
   shapes.push({ t: 'rect', x: lx - 4, y: g.narrow ? 112 : 26, w: 8, h: 18, rx: 4, color: layerInk.launch })
   for (const card of board.cards) {
-    // Each bar's length grip: 8px seen, 44px under the pointer (the handle note).
+    // Each bar's length grip: 8px seen, 44px under the pointer (the handle note). On a phone it sits just past the bar's end.
     const box = g.bars.get(card.id)!
-    shapes.push({ t: 'rect', x: box.x + box.width - 5, y: box.y + 4, w: 4, h: box.height - 8, rx: 2, color: layerInk.ink, opacity: 0.55 })
+    shapes.push({ t: 'rect', x: box.x + box.width + (g.narrow ? 4 : -5), y: box.y + 4, w: g.narrow ? 6 : 4, h: box.height - 8, rx: 2, color: layerInk.ink, opacity: 0.55 })
   }
   const finish = launchFinish(board)
   shapes.push({ t: 'text', x: g.narrow ? 8 : g.x0, y: g.narrow ? 18 : 20, text: `Done day ${finish} · launch day ${day}`,
     color: state.refused ? layerInk.refuse : layerInk.ink, size: 14, bold: true, role: 'header' })
   if (state.clamp) {
     const part = g.parts.find(item => item.name === state.clamp!.name)
-    if (part) shapes.push(...saidNear(g, shapes, state.clamp.text, part))
+    if (part) shapes.push(...saidNear(g, shapes, state.clamp.text, part, state.view))
   }
   return shapes
 }
@@ -167,13 +171,18 @@ let saidMemo: { key: string; shapes: LayerShape[] } | null = null
  * A bar, a row's name, the header, a week label and a slack figure are kept clear; grid lines and arrows may pass
  * under the words. Only when the plan has no such space are they set beside the grip, as before.
  */
-function saidNear(g: LaunchGeometry, shapes: LayerShape[], text: string, part: PartPlace): LayerShape[] {
+function saidNear(g: LaunchGeometry, shapes: LayerShape[], text: string, part: PartPlace, view?: BoardLayerState['view']): LayerShape[] {
   const busy: Box[] = [...g.bars.values()].map(bar => ({ x: bar.x - 4, y: bar.y - 3, w: bar.width + 8, h: bar.height + 6 }))
   for (const shape of shapes) {
     if (shape.t === 'text') busy.push(textBox(shape))
     else if (shape.t === 'rect') busy.push({ x: shape.x - 2, y: shape.y - 2, w: shape.w + 4, h: shape.h + 4 })
   }
-  const left = g.narrow ? 6 : g.x0 + 2, right = g.width - 4, top = g.gridTop + 2, bottom = g.height - 6
+  // Inside the plan, and inside what the canvas shows of it (a panel beside the canvas, a view panned part way).
+  let left = g.narrow ? 6 : g.x0 + 2, right = g.width - 4, top = g.gridTop + 2, bottom = g.height - 6
+  if (view && Math.min(right, view.x + view.width - 8) - Math.max(left, view.x + 8) >= 160) {
+    left = Math.max(left, view.x + 8); right = Math.min(right, view.x + view.width - 8)
+    if (Math.min(bottom, view.y + view.height - 8) - Math.max(top, view.y + 8) >= 40) { top = Math.max(top, view.y + 8); bottom = Math.min(bottom, view.y + view.height - 8) }
+  }
   const grip = { x: part.x + part.width / 2, y: part.y + part.height / 2 }
   const key = JSON.stringify([text, grip, left, right, top, bottom, busy.map(box => [box.x, box.y, box.w, box.h].map(Math.round))])
   if (saidMemo?.key === key) return saidMemo.shapes
@@ -211,6 +220,25 @@ const roundDays = (board: Workshop): Workshop => ({ ...board, cards: board.cards
   if (!next.lag) delete (next as { lag?: number }).lag
   return next
 }), launch: { day: Math.round(board.launch!.day) } })
+
+/**
+ * L on a focused bar: what it may wait on (each task it can be linked to), then what it already waits on
+ * (to stop waiting). The way to make "Copy waits on QA" without a pointer.
+ */
+function keyChoices(board: Workshop, part: string, key: string) {
+  if (key !== 'l' && key !== 'L') return null
+  const match = /^card-(.+)$/.exec(part)
+  const card = match && board.cards.find(item => item.id === match[1])
+  if (!card) return null
+  const name = (id: string) => board.cards.find(item => item.id === id)?.label ?? id
+  const choices: { said: string; edits: WorkshopEdit[] }[] = [
+    ...launchLinkTargets(board, card.id).map(id => ({ said: `${card.label} waits on ${name(id)}`,
+      edits: [{ kind: 'link_tasks', card: { id: card.id }, waitsOn: { id } }] as WorkshopEdit[] })),
+    ...(card.dependsOn ?? []).map(id => ({ said: `${card.label} stops waiting on ${name(id)}`,
+      edits: [{ kind: 'unlink_tasks', card: { id: card.id }, waitsOn: { id } }] as WorkshopEdit[] })),
+  ]
+  return choices.length ? choices : `${card.label} has no task it can wait on.`
+}
 
 /** The edits a key makes on a launch plan: Left and Right move a bar a day, Shift changes its length; on the launch grip they move launch day. */
 function keyEdit(board: Workshop, part: string, { key, shiftKey }: { key: string; shiftKey: boolean }): WorkshopEdit[] | null {
@@ -282,7 +310,7 @@ export const launchPlanKit: WorkshopBoardKit = {
       d.vary(state, param('cards', i, 'duration'), { constraint: (s: Workshop) => [moreThan(s.cards[i].duration!, 1), lessThan(launchFinish(s), day + 0.001)] }).onDrop(roundDays))
     const bar = g.bars.get(cardId)!
     return point => {
-      const wanted = Math.round((point.x - grab.x + 22 - bar.x) / g.dayW)
+      const wanted = Math.round((point.x - grab.x + gripBack(g.narrow) - bar.x) / g.dayW)
       const clamped = Math.min(limits.max, Math.max(limits.min, wanted))
       const next = follow?.(point) ?? withTaskValue(board, ref, clamped)
       if (wanted > limits.max) {
@@ -293,6 +321,8 @@ export const launchPlanKit: WorkshopBoardKit = {
     }
   },
   keyEdit,
+  keyChoices,
+  cardKeys: 'Left and Right move it a day, Shift changes its length, L chooses what it waits on.',
 }
 
 /**

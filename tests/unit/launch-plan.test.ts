@@ -133,3 +133,35 @@ describe('launch plan notes and cards', () => {
     expect(refusal(plan, [{ kind: 'add_card', lane: 'Engineering', label: 'Docs', amount: 4 }]).reason).toBe('Only a pipeline\'s deals and a budget\'s line items carry an amount.')
   })
 })
+
+describe('a launch plan on a phone and from the keyboard (phase 2 review M2, M3)', () => {
+  it('draws each phone row a 44px bar, with its length grip past the bar\'s end, never over it', async () => {
+    const { launchLayout } = await import('../../src/boards/launchPlanKit')
+    const g = launchLayout(plan, { narrow: true, width: 360 })
+    for (const card of plan.cards) {
+      const bar = g.bars.get(card.id)!
+      expect(bar.height).toBe(44)
+      const grip = g.parts.find(part => part.name === 'handle-' + card.id)!
+      expect(grip.x).toBe(bar.x + bar.width)
+      expect(grip.width).toBe(44)
+    }
+    // On a laptop the grip still straddles the end, as before.
+    const wide = launchLayout(plan, { width: 1200 })
+    const build = wide.bars.get('build')!
+    expect(wide.parts.find(part => part.name === 'handle-build')!.x).toBe(build.x + build.width - 22)
+  })
+
+  it('L on a focused bar offers what it may wait on, then what it waits on; the edits are the reducer\'s', async () => {
+    const { launchPlanKit } = await import('../../src/boards/launchPlanKit')
+    const copy = launchPlanKit.keyChoices!(plan, 'card-copy', 'l') as { said: string; edits: WorkshopEdit[] }[]
+    expect(copy.map(choice => choice.said)).toContain('Copy waits on QA')
+    const qa = copy.find(choice => choice.said === 'Copy waits on QA')!
+    const linked = ok(plan, qa.edits)
+    expect(linked.cards.find(card => card.id === 'copy')!.dependsOn).toEqual(['qa'])
+    const back = launchPlanKit.keyChoices!(linked, 'card-copy', 'L') as { said: string; edits: WorkshopEdit[] }[]
+    expect(back.map(choice => choice.said)).toContain('Copy stops waiting on QA')
+    expect(launchPlanKit.keyChoices!(plan, 'card-copy', 'k')).toBeNull()
+    expect(launchPlanKit.keyChoices!(plan, 'handle-copy', 'l')).toBeNull()
+    expect(launchPlanKit.cardKeys).toMatch(/L chooses what it waits on/)
+  })
+})

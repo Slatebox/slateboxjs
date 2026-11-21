@@ -94,6 +94,32 @@ test.describe('desktop, 1440 by 900', () => {
     await expect.poll(async () => (await value(page)).cards.find((card: any) => card.id === 'copy').dependsOn).toBeUndefined()
   })
 
+  test('launch plan by keyboard: L on a bar offers what it may wait on, Enter links it, and the arrow is a button Enter removes', async ({ page }) => {
+    await open(page, 'board=launch-plan')
+    await page.locator('#slate [data-node-id="card-copy"]').click()
+    const said = () => page.evaluate(() => (window as any).boards.log.said.at(-1) as string)
+    for (let i = 0; i < 6 && !/^Copy waits on QA/.test(await said()); i++) await page.keyboard.press('l')
+    expect(await said()).toMatch(/^Copy waits on QA.*Enter to make it, Escape to cancel\.$/)
+    // Shown, not saved, until Enter.
+    expect((await value(page)).cards.find((card: any) => card.id === 'copy').dependsOn).toBeUndefined()
+    await page.keyboard.press('Enter')
+    await expect.poll(async () => (await value(page)).cards.find((card: any) => card.id === 'copy').dependsOn).toEqual(['qa'])
+    expect((await edits(page)).at(-1)).toEqual(expect.arrayContaining([{ kind: 'link_tasks', card: { id: 'copy' }, waitsOn: { id: 'qa' } }]))
+    const arrow = page.locator('#slate [data-board-link="qa>copy"]')
+    await expect(arrow).toHaveAttribute('tabindex', '0')
+    await expect(arrow).toHaveAttribute('aria-label', 'Remove the link: Copy waits on QA')
+    await arrow.focus()
+    await page.keyboard.press('Enter')
+    await expect.poll(async () => (await value(page)).cards.find((card: any) => card.id === 'copy').dependsOn).toBeUndefined()
+    // Escape puts back what a choice showed.
+    await page.locator('#slate [data-node-id="card-qa"]').click()
+    await page.keyboard.press('l')
+    expect(await said()).toMatch(/^QA /)
+    await page.keyboard.press('Escape')
+    expect(await said()).toBe('Cancelled. Nothing changed.')
+    expect((await value(page)).cards.find((card: any) => card.id === 'qa').dependsOn).toEqual(['build'])
+  })
+
   test('pipeline: a skipped stage and a full stage refuse; one stage on moves the deal and the forecast', async ({ page }) => {
     await open(page, 'board=pipeline')
     await drag(page, await center(page, 'card-northwind'), await center(page, 'column-won'))
@@ -140,6 +166,42 @@ test.describe('a phone: 390 by 844, touch', () => {
       }
     })
   }
+
+  test('a press in the middle of a short bar slides it, never stretches it; its bar is 44px and its grip is past its end (review M2)', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Uses Chromium device input for real touch events')
+    await open(page, 'board=launch-plan')
+    const bar = await box(page, 'card-copy'), grip = await box(page, 'handle-copy')
+    expect(bar.height).toBeGreaterThanOrEqual(43.5)
+    expect(grip.x).toBeGreaterThanOrEqual(bar.x + bar.width - 0.5)
+    const day = bar.width / 2
+    const device = await page.context().newCDPSession(page)
+    const touch = (type: string, points: { x: number; y: number }[]) => device.send('Input.dispatchTouchEvent', { type: type as any, touchPoints: points })
+    const from = { x: bar.x + bar.width / 2, y: bar.y + bar.height / 2 }
+    await touch('touchStart', [from])
+    for (let i = 1; i <= 12; i++) await touch('touchMove', [{ x: from.x + day * 2 * i / 12, y: from.y + i }])
+    await touch('touchEnd', [])
+    await expect.poll(async () => (await value(page)).cards.find((card: any) => card.id === 'copy').lag ?? 0).toBeGreaterThan(0)
+    expect((await value(page)).cards.find((card: any) => card.id === 'copy').duration).toBe(2)
+  })
+
+  test('a tap on a link selects it and says so; a second tap removes it (review M2)', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Uses Chromium device input for real touch events')
+    await open(page, 'board=launch-plan')
+    const arrow = page.locator('#slate [data-board-link="design>build"]')
+    const point = () => arrow.evaluate(element => {
+      const line = element as SVGPathElement
+      const at = line.getPointAtLength(line.getTotalLength() * 0.5)
+      const screen = new DOMPoint(at.x, at.y).matrixTransform(line.getScreenCTM()!)
+      return { x: screen.x, y: screen.y }
+    })
+    expect(await arrow.getAttribute('stroke-width')).toBe('24')
+    await page.touchscreen.tap((await point()).x, (await point()).y)
+    await expect(arrow).toHaveAttribute('data-armed', '')
+    expect(await page.evaluate(() => (window as any).boards.log.said.at(-1))).toBe('Link selected. Tap it again to remove it.')
+    expect((await value(page)).cards.find((card: any) => card.id === 'build').dependsOn).toEqual(['design'])
+    await page.touchscreen.tap((await point()).x, (await point()).y)
+    await expect.poll(async () => (await value(page)).cards.find((card: any) => card.id === 'build').dependsOn).toBeUndefined()
+  })
 
   test('a touch drag on a 44px grip changes a task\'s length', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'Uses Chromium device input for real touch events')
