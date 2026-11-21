@@ -19,3 +19,32 @@ export declare function readNoteNumbers(text: string): NoteNumbers;
 export declare function money(amount: number, currency?: string): string;
 /** "1 day", "3 days". */
 export declare const days: (n: number) => string;
+/** The bounds every amount keeps, and their sentences. */
+export declare const amountLimits: {
+    field: string;
+    min: number;
+    max: number;
+    reasons: {
+        min: string;
+        max: string;
+    };
+};
+/** A note's words as a card's name and number, or why they can't be one. */
+export declare function noteNumbers(text: string): NoteNumbers | string;
+/** A card's new words: its name without the number typed on it, and that number. */
+export declare function renamedNumbers(text: string): NoteNumbers;
+/** The next free card id on a board: card-1, card-2… */
+export declare function nextCardId(board: {
+    lanes: {
+        id: string;
+    }[];
+    cards: {
+        id: string;
+    }[];
+}): string;
+/** A whole (or, with `fraction`, any) number from `low` to `high`, or the sentence `why`. */
+export declare function amountOf(value: unknown, low: number, high: number, why: string, fraction?: boolean): number;
+/** A currency sign ($ € £ ¥ ₹) or a three-letter code and a space. */
+export declare function currencyOf(value: unknown): string;
+/** A board's own object field (its launch, forecast or budget), or the sentence when it is missing. */
+export declare function ownField(raw: Record<string, unknown>, key: string, missing: string): Record<string, unknown>;

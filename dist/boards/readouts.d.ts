@@ -1,5 +1,5 @@
 import type { NodeJSON } from '../core/Serialization';
-import { type PartPlace, type Workshop, type WorkshopEdit, type WorkshopNoteStyle } from '../workshops/model';
+import type { PartPlace, Workshop, WorkshopEdit, WorkshopNoteStyle } from '../workshops/model';
 /**
  * The edits that turn `before` into `after` on a launch plan, pipeline or budget: what a canvas
  * change carries (change.edits) so a server applies it with applyWorkshopEdits to the board as it

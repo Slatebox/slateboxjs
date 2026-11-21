@@ -1,5 +1,5 @@
 import { type StationImage, type Workshop, type WorkshopCard, type WorkshopLane } from './model';
-import { type WorkshopLimits } from './launchPlan';
+import { type WorkshopLimits } from './kinds';
 import { type WorkshopFinder } from './names';
 /** The kinds of board, each with its own rules. */
 export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget';

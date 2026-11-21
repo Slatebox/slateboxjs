@@ -1,20 +1,12 @@
 import type { Workshop, WorkshopCard } from './model';
+import type { BusinessBoardRules, WorkshopLimits } from './kinds';
 export interface TaskTimes {
     start: number;
     end: number;
     slack: number;
     critical: boolean;
 }
-/** A numeric edit's legal range, with the sentence a person gets at each end. */
-export interface WorkshopLimits {
-    field: string;
-    min: number;
-    max: number;
-    reasons: {
-        min?: string;
-        max?: string;
-    };
-}
+export type { WorkshopLimits } from './kinds';
 /** Each task's start and end day, its slack against the plan's finish, and whether it is on the critical path. */
 export declare function scheduleLaunch(board: Workshop): Map<string, TaskTimes>;
 /** The day the last task ends. */
@@ -54,3 +46,5 @@ export declare function launchPlanLimits(board: Workshop, ref: {
 /** The words a task takes back to the canvas as a note: "Copy · 3 days". */
 export declare function launchTaskText(card: WorkshopCard): string;
 export declare function sampleLaunchPlan(): Workshop;
+/** The launch plan's part of the one gate (see kinds.ts). */
+export declare const launchPlanRules: BusinessBoardRules;
