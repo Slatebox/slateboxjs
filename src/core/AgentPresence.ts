@@ -36,6 +36,11 @@ export interface AgentPresenceOptions {
   maxAgents?: number
   /** Called when a tag is tapped, with whether its list is now open. */
   onToggle?: (agentKey: string, open: boolean) => void
+  /**
+   * Screen pixels at each edge of the canvas that the host covers with something of its own (a call strip over
+   * the bottom of the canvas, say). Pointers, tags and checklists are kept out of them, as out of the edge itself.
+   */
+  insets?: () => { top?: number; right?: number; bottom?: number; left?: number } | null | undefined
 }
 
 export interface AgentPresence {
@@ -92,11 +97,11 @@ const overlap = (a: Box, b: Box) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) -
  * target note's words count three times another note's, and anything off screen counts most).
  * `at` is the pointer, `size` the tag block in screen pixels, `scale` screen pixels per world unit.
  */
-export function agentTagSide(at: { x: number; y: number }, size: { w: number; h: number }, scale: number, view: Box | null, targets: Box[], others: Box[] = []): { right: boolean; down: boolean } {
+export function agentTagSide(at: { x: number; y: number }, size: { w: number; h: number }, scale: number, view: Box | null, targets: Box[], others: Box[] = [], words?: Box[]): { right: boolean; down: boolean } {
   const sides = [{ right: true, down: true }, { right: false, down: true }, { right: true, down: false }, { right: false, down: false }]
   let best = sides[0], bestScore = Infinity
   for (const side of sides) {
-    const score = tagScore(agentTagBox(at, size, scale, side), view, targets, others)
+    const score = sideScore(at, size, scale, side, view, targets, others, words)
     if (score <= 1e-9) return side
     if (score < bestScore) { best = side; bestScore = score }
   }
@@ -108,6 +113,19 @@ export function agentTagBox(at: { x: number; y: number }, size: { w: number; h: 
   const left = side.right ? TAG_DX : -(TAG_DX + size.w)
   const top = side.down ? TAG_DY : -(TAG_DY + size.h)
   return { x: at.x + left / scale, y: at.y + top / scale, w: size.w / scale, h: size.h / scale }
+}
+
+/**
+ * Where the tag block is drawn on one side: as agentTagBox, slid back inside the view where it would leave it (as
+ * draw() does for a pointer on screen), so a side is judged by where its words would really be.
+ */
+export function agentTagPlaced(at: { x: number; y: number }, size: { w: number; h: number }, scale: number, side: { right: boolean; down: boolean }, view: Box | null): Box {
+  const box = agentTagBox(at, size, scale, side)
+  if (!view || at.x < view.x || at.x > view.x + view.w || at.y < view.y || at.y > view.y + view.h) return box
+  const m = 4 / scale
+  if (box.w <= view.w - 2 * m) box.x = Math.min(Math.max(box.x, view.x + m), view.x + view.w - m - box.w)
+  if (box.h <= view.h - 2 * m) box.y = Math.min(Math.max(box.y, view.y + m), view.y + view.h - m - box.h)
+  return box
 }
 
 /** The tag block an agent draws, in screen pixels: its tag, and its checklist when that shows. */
@@ -128,7 +146,7 @@ function blockSize(record: AgentPresenceRecord, showList: boolean) {
  * corner whose tag stays in view and off the note (and, where it can, off other notes) wins,
  * else the one that covers least.
  */
-export function agentAnchor(note: Box, size: { w: number; h: number }, scale: number, view: Box | null, others: Box[] = []): { x: number; y: number; side: { right: boolean; down: boolean } } {
+export function agentAnchor(note: Box, size: { w: number; h: number }, scale: number, view: Box | null, others: Box[] = [], words?: Box[]): { x: number; y: number; side: { right: boolean; down: boolean } } {
   const inset = Math.min(8, note.w / 4, note.h / 4)
   const corners = [
     { x: note.x + note.w - inset, y: note.y + note.h - inset, side: { right: true, down: true } },
@@ -138,16 +156,31 @@ export function agentAnchor(note: Box, size: { w: number; h: number }, scale: nu
   ]
   let best = corners[0], bestScore = Infinity
   for (const corner of corners) {
-    const score = tagScore(agentTagBox(corner, size, scale, corner.side), view, [note], others)
+    const score = sideScore(corner, size, scale, corner.side, view, [note], others, words)
     if (score <= 1e-9) return corner
     if (score < bestScore) { best = corner; bestScore = score }
   }
   return best
 }
 
-function tagScore(box: Box, view: Box | null, targets: Box[], others: Box[]) {
+/**
+ * What a tag block costs where it would go. Off screen costs most. Where the canvas's words are known (`words`: every
+ * line of text drawn on it, a note's, a board's figures, a person's name or another agent's tag), covering words costs
+ * next most, the note it works on a little, and any other note's empty paper next to nothing; otherwise a target note
+ * counts three times another note.
+ */
+/** A side judged where its tag would be drawn (slid into view), and a little worse when it has to slide at all. */
+function sideScore(at: { x: number; y: number }, size: { w: number; h: number }, scale: number, side: { right: boolean; down: boolean }, view: Box | null, targets: Box[], others: Box[], words?: Box[]) {
+  const raw = agentTagBox(at, size, scale, side)
+  const slid = view ? (raw.w * raw.h - overlap(raw, view)) * 0.5 : 0
+  return tagScore(agentTagPlaced(at, size, scale, side, view), view, targets, others, words) + slid
+}
+
+function tagScore(box: Box, view: Box | null, targets: Box[], others: Box[], words?: Box[]) {
   const outside = view ? box.w * box.h - overlap(box, view) : 0
-  return outside * 10 + targets.reduce((sum, target) => sum + overlap(box, target), 0) * 3 + others.reduce((sum, other) => sum + overlap(box, other), 0)
+  const sum = (list: Box[]) => list.reduce((total, other) => total + overlap(box, other), 0)
+  if (words?.length) return outside * 10 + sum(words) * 4 + sum(targets) + sum(others) * 0.05
+  return outside * 10 + sum(targets) * 3 + sum(others)
 }
 
 export function createAgentPresence(slate: any, options: AgentPresenceOptions = {}): AgentPresence {
@@ -194,6 +227,9 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
         if (!clip.width || !clip.height) continue
         left = Math.max(left, clip.left); top = Math.max(top, clip.top); right = Math.min(right, clip.right); bottom = Math.min(bottom, clip.bottom)
       }
+      // What the host covers at its edges is not view either.
+      const cover = options.insets?.() || {}
+      left += Math.max(0, cover.left ?? 0); right -= Math.max(0, cover.right ?? 0); top += Math.max(0, cover.top ?? 0); bottom -= Math.max(0, cover.bottom ?? 0)
       if (right - left < 1 || bottom - top < 1) return { view: full, scale }
       return { view: { x: full.x + (left - rect.left) / scale, y: full.y + (top - rect.top) / scale, w: (right - left) / scale, h: (bottom - top) / scale }, scale }
     } catch { return null }
@@ -227,6 +263,25 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   const noteOf = (id: string) => slate.nodes?.one?.(id) ?? slate.nodes?.allNodes?.find?.((n: any) => n?.options?.name === id)
   const noteBoxes = (): Box[] => (slate.nodes?.allNodes ?? []).map(boxOf).filter((box: Box | null): box is Box => Boolean(box))
   const sameBox = (a: Box, b: Box) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
+  // Every line of words drawn on the canvas, as world boxes: notes' text, a board's figures and sentences, people's
+  // names, and the tags of agents other than `except`. Empty where the page cannot measure text (no layout).
+  function wordBoxes(except?: string): Box[] {
+    try {
+      const svg = slate.canvas?.node as SVGSVGElement | undefined
+      const matrix = svg?.getScreenCTM?.()?.inverse?.()
+      if (!svg || !matrix) return []
+      const own = except ? layer?.node?.querySelector?.(`[data-agent="${CSS.escape(except)}"]`) : null
+      const boxes: Box[] = []
+      for (const text of svg.querySelectorAll('text')) {
+        if (own?.contains(text) || !text.textContent?.trim()) continue
+        const rect = text.getBoundingClientRect()
+        if (rect.width < 1 || rect.height < 1) continue
+        const a = new DOMPoint(rect.left, rect.top).matrixTransform(matrix), b = new DOMPoint(rect.right, rect.bottom).matrixTransform(matrix)
+        boxes.push({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) })
+      }
+      return boxes
+    } catch { return [] }
+  }
 
   // Where the notes are, as a key: a note that moved or changed size changes it.
   function notesKey(): string {
@@ -251,20 +306,21 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   // With no target yet (a plan before the first save), the pointer waits in a corner of the view: the one whose tag
   // covers the fewest notes' words, its tag pointing inward. Several such agents stack down (or up) from it. With no
   // view box, above and left of the notes.
-  function restingPoint(index: number, size: { w: number; h: number } = { w: CARD_WIDTH, h: 38 }, scale = 1): { x: number; y: number; side: { right: boolean; down: boolean } | null } {
+  function restingPoint(index: number, size: { w: number; h: number } = { w: CARD_WIDTH, h: 38 }, scale = 1, words: Box[] = []): { x: number; y: number; side: { right: boolean; down: boolean } | null } {
     const view = viewBox()
     if (view) {
-      const m = 8 / scale, step = (index * 64) / scale
+      // The pointer's tip sits far enough in from a right or bottom edge that its chevron (14px) is seen whole.
+      const m = 8 / scale, tip = 16 / scale, step = (index * 64) / scale
       const corners = [
         { x: view.x + m, y: view.y + m + step, side: { right: true, down: true } },
-        { x: view.x + view.w - m, y: view.y + m + step, side: { right: false, down: true } },
-        { x: view.x + m, y: view.y + view.h - m - step, side: { right: true, down: false } },
-        { x: view.x + view.w - m, y: view.y + view.h - m - step, side: { right: false, down: false } },
+        { x: view.x + view.w - m - tip, y: view.y + m + step, side: { right: false, down: true } },
+        { x: view.x + m, y: view.y + view.h - m - tip - step, side: { right: true, down: false } },
+        { x: view.x + view.w - m - tip, y: view.y + view.h - m - tip - step, side: { right: false, down: false } },
       ]
       const notes = noteBoxes()
       let best = corners[0], bestScore = Infinity
       for (const corner of corners) {
-        const score = tagScore(agentTagBox(corner, size, scale, corner.side), view, [], notes)
+        const score = sideScore(corner, size, scale, corner.side, view, [], notes, words)
         if (score <= 1e-9) return corner
         if (score < bestScore) { best = corner; bestScore = score }
       }
@@ -313,13 +369,20 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     // words of the notes it works on (routeTo chose the corner for that), and, with no note to
     // point at, of every other note.
     const resting = item.path.length ? item.path[item.path.length - 1] : { x: item.x, y: item.y }
-    const side = item.routedSide ?? agentTagSide(resting, size, scale, viewBox(), [], noteBoxes())
+    const view = viewBox()
+    // Only for a pointer that is itself on screen: an agent at a note the camera is not showing keeps its tag beside it,
+    // on the side away from the view, so no part of it is cut by the view's edge.
+    const pointerShown = view && resting.x >= view.x && resting.x <= view.x + view.w && resting.y >= view.y && resting.y <= view.y + view.h
+    let side = item.routedSide ?? agentTagSide(resting, size, scale, view, [], noteBoxes(), wordBoxes(record.agentKey))
+    if (view && !pointerShown) {
+      const sides = [side, { right: !side.right, down: side.down }, { right: side.right, down: !side.down }, { right: !side.right, down: !side.down }]
+      side = sides.reduce((best, next) => overlap(agentTagBox(resting, size, scale, next), view) < overlap(agentTagBox(resting, size, scale, best), view) ? next : best)
+    }
     let left = side.right ? TAG_DX : -(TAG_DX + size.w)
     let top = side.down ? TAG_DY : -(TAG_DY + size.h)
     // When no side keeps the whole tag on screen (a phone framing a note edge to edge), the tag slides back inside the
     // view: its words are never cut off, even if it then sits beside the pointer rather than off its corner.
-    const view = viewBox()
-    if (view) {
+    if (view && pointerShown) {
       const m = 4, at = resting
       const x0 = (view.x - at.x) * scale + m, x1 = (view.x + view.w - at.x) * scale - m
       const y0 = (view.y - at.y) * scale + m, y1 = (view.y + view.h - at.y) * scale - m
@@ -329,8 +392,9 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     item.side = side
     // The avatar goes to the same side as its tag, unless that side of the pointer is past the edge of the view.
     let avatarRight = side.right, avatarDown = side.down
-    if (view) {
-      const reach = (cx + r + 2) / scale
+    if (view && pointerShown) {
+      // The hexagon and the spark beside it reach 40px from the pointer.
+      const reach = 42 / scale
       if (avatarRight && resting.x + reach > view.x + view.w) avatarRight = false
       else if (!avatarRight && resting.x - reach < view.x) avatarRight = true
       if (avatarDown && resting.y + reach > view.y + view.h) avatarDown = false
@@ -378,11 +442,11 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   // the corner from which the tag points into view and off the note. `side` is the last leg's.
   function routeTo(record: AgentPresenceRecord, index: number, size: { w: number; h: number }, scale: number) {
     const view = viewBox()
-    const all = noteBoxes()
+    const all = noteBoxes(), words = wordBoxes(record.agentKey)
     const boxes = record.targets.map(id => boxOf(noteOf(id))).filter((box): box is Box => Boolean(box))
-    const anchors = boxes.slice(0, AGENT_MAX_VISITS).map(box => agentAnchor(box, size, scale, view, all.filter(other => !sameBox(other, box))))
+    const anchors = boxes.slice(0, AGENT_MAX_VISITS).map(box => agentAnchor(box, size, scale, view, all.filter(other => !sameBox(other, box)), words))
     if (!anchors.length) {
-      const point = restingPoint(index, size, scale)
+      const point = restingPoint(index, size, scale, words)
       return { legs: [{ x: point.x, y: point.y, ms: AGENT_GLIDE_MS }], side: point.side }
     }
     const ms = anchors.length === 1 ? AGENT_GLIDE_MS : AGENT_VISIT_MS
