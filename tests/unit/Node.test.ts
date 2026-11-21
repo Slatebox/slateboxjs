@@ -275,6 +275,18 @@ describe("Node construction", () => {
     expect(node.options.borderWidth).toBeGreaterThanOrEqual(1); // default > 0
   });
 
+  it("writes none of the retired Custom Behavior flags into a new note (nothing reads them)", async () => {
+    const node = await createNode();
+    const retired = [
+      "showDelete", "showResize", "showRotate", "showAdd", "showRelationshipConnector", "showRelationshipDelete",
+      "showRelationshipProperties", "showRelationshipReassign", "showAddAndDeleteConditionally",
+      "spaceBetweenNodesWhenAdding", "disableDrag", "disableMenuAsTemplate",
+    ];
+    expect(retired.filter((key) => key in node.options)).toEqual([]);
+    // Lock is the one way to keep a note in place.
+    expect(node.options.isLocked).toBe(false);
+  });
+
   it("should create an SVG group on construction", async () => {
     const node = await createNode();
     expect(node.svgGroup).toBeDefined();

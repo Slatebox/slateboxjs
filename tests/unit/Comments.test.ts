@@ -32,10 +32,11 @@ describe("Comments", () => {
           isComment: true,
           backgroundColor: "#fffde7",
           borderColor: "#ffd54f",
-          showDelete: true,
-          showAdd: false,
         })
       );
+      // The retired per-note show flags (Custom Behavior) are not written: nothing reads them.
+      const made = mockSlate.addNode.mock.calls[0][0];
+      expect(["showDelete", "showAdd", "showResize", "showRotate"].filter((key) => key in made)).toEqual([]);
       expect(comment).toBeDefined();
     });
 
