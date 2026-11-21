@@ -855,10 +855,13 @@ function findDropTarget(con, e, handleObj) {
   // Get the root SVG container
   const rootSvg = con.container.root();
 
-  // Calculate mouse coordinates relative to the root SVG
+  // Calculate pointer coordinates relative to the root SVG (a finger's are on its touch).
   const svgRect = rootSvg.node.getBoundingClientRect();
-  const svgX = e.clientX - svgRect.left;
-  const svgY = e.clientY - svgRect.top;
+  const touch = e && e.changedTouches && e.changedTouches[0];
+  const at = touch || (e && e.touches && e.touches[0]) || e;
+  if (!at || !Number.isFinite(at.clientX) || !Number.isFinite(at.clientY)) return null;
+  const svgX = at.clientX - svgRect.left;
+  const svgY = at.clientY - svgRect.top;
 
   if (debugMode) {
     console.log("Drop target search at:", { svgX, svgY });

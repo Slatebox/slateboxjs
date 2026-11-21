@@ -161,6 +161,48 @@ test.describe("a selected line's ends", () => {
   });
 });
 
+test.describe("with touch", () => {
+  test.use({ hasTouch: true });
+
+  test("a finger drags an end onto empty canvas, then onto a note's edge", async ({ page }) => {
+    await setup(page);
+    await selectLine(page);
+    const cdp = await page.context().newCDPSession(page);
+    const touchDrag = async (from: { x: number; y: number }, to: { x: number; y: number }) => {
+      const at = (p: { x: number; y: number }) => [{ x: p.x, y: p.y, id: 1 }];
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: at(from) });
+      for (let i = 1; i <= 10; i++) {
+        const p = { x: from.x + ((to.x - from.x) * i) / 10, y: from.y + ((to.y - from.y) * i) / 10 };
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: at(p) });
+        await page.waitForTimeout(15);
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await page.waitForTimeout(350);
+    };
+    await touchDrag(await handleAt(page, "target"), { x: 420, y: 600 });
+    let [line] = await lines(page);
+    expect(line).toMatchObject({ owner: "A", id: "A->B" });
+    expect(line.targetPoint).not.toBeNull();
+    await touchDrag(await handleAt(page, "target"), await nodeAt(page, "C", 0.5, 0.06));
+    [line] = await lines(page);
+    expect(line).toMatchObject({ childId: "C", targetPoint: null });
+    expect(line.targetAnchor).toEqual({ x: expect.any(Number), y: 0 });
+  });
+});
+
+test.describe("export", () => {
+  test("draws a line with a free end, and none of the end handles or their marks", async ({ page }) => {
+    await setup(page);
+    await selectLine(page);
+    await drag(page, await handleAt(page, "target"), { x: 420, y: 600 });
+    const svg = await page.evaluate(() => (window as any).__slate.v2.svg());
+    expect(typeof svg).toBe("string");
+    expect(svg).toContain('connectortype="default"');
+    expect(svg).not.toContain("connector-handle");
+    expect(svg).not.toContain("line-tool");
+  });
+});
+
 test.describe("the line tool", () => {
   test("draws a line from a note to another note, or to a free point, without making a note; Esc cancels", async ({ page }) => {
     await setup(page);

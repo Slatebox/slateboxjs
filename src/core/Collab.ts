@@ -498,7 +498,7 @@ export class Collab {
           continue;
         }
 
-        // A line-property change (lineType, sourceLock/targetLock, lineColor…)
+        // A line-property change (lineType, sourceAnchor/targetAnchor, lineColor…)
         // supersedes any earlier change to the SAME property on the SAME
         // association. The collab doc accumulates and is replayed on reload, and
         // the replay order is not guaranteed to be recency order — so leaving the
