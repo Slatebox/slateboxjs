@@ -162,6 +162,15 @@ export interface DragPolicy {
    */
   onFreeTextCommit?(node: Node): void;
   /**
+   * A person drew, restyled or took away a line with one of this policy's notes at an end (a
+   * note it lets connect). `type` is the change package the engine would have sent for it:
+   * "addRelationship", "removeRelationship" or "onLinePropertiesChanged", with its data. The
+   * engine has already drawn the change on this screen; it sends, saves and records nothing for
+   * it, so the host keeps the line (or takes it off again) itself. A note removed from the slate
+   * takes its lines off with it, and the host hears of that as a removal too.
+   */
+  onLine?(type: string, data: any): void;
+  /**
    * What the host wants kept with each undo record (taken when the record is taken).
    * Given back to {@link onUndoRestore} when this person's undo or redo goes back to it.
    */

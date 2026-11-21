@@ -337,8 +337,15 @@ export function serializeNode(node: any): NodeJSON {
   if (node.relationships && typeof node.relationships.serialize === "function") {
     const relData = node.relationships.serialize();
     if (relData?.associations) {
+      // A line to a note its host draws from its own state (a workshop card) is that host's to
+      // keep, as the note is: the drawing does not save it.
+      const slate: any = node.slate;
+      const derived = (id: unknown) =>
+        typeof id === "string" && typeof slate?.isDerivedNode === "function" && slate.isDerivedNode(slate.nodes?.one?.(id));
       associations.push(
-        ...relData.associations.map((a: any) => v2AssociationToV1(a))
+        ...relData.associations
+          .filter((a: any) => !derived(a.childId))
+          .map((a: any) => v2AssociationToV1(a))
       );
     }
   } else if (node.connector) {

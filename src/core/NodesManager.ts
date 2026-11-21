@@ -61,11 +61,14 @@ export class NodesManager {
         /* noop */
       }
       //  (b) incoming associations from other nodes (this node is the child)
+      // Every line to it, whatever the line's id (a second line between the same two notes,
+      // or a line its host named).
       this.allNodes.forEach((other) => {
         if (other.id === id) return
         try {
-          if ((other as any).relationships?.getAssociation?.(id)) {
-            (other as any).relationships.removeAssociation(id)
+          const rels = (other as any).relationships
+          if (rels?.getAssociation?.(id) || rels?.getAssociations?.().some?.((a: any) => a.childId === id)) {
+            rels.removeAssociation(id)
           }
         } catch (e) {
           /* noop */

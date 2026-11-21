@@ -781,6 +781,8 @@ export class Slate {
     // or recorded for undo.
     if (this._dragPolicies.length) {
       if (this._policyAuthority > 0) return;
+      // A line to or from a governed note is its host's to keep (DragPolicy.onLine).
+      this.offerGovernedLine(type, data);
       const screened = this.screenGovernedPackage(type, data);
       if (screened === null) return;
       if (screened !== undefined) data = screened;
@@ -3127,6 +3129,25 @@ export class Slate {
     }
     if (/^onNode|^onLine/.test(type) && governed(out.id)) return null;
     return out;
+  }
+
+  /** Hand a line change that touches a governed note to the policy that governs it (once per policy). */
+  private offerGovernedLine(type: string, data: any): void {
+    if (type !== "addRelationship" && type !== "removeRelationship" && type !== "onLinePropertiesChanged") return;
+    const ids: unknown[] = type === "onLinePropertiesChanged"
+      ? (Array.isArray(data) ? data : [data]).map((item: any) => item?.id)
+      : [data?.parentId, data?.childId];
+    const told = new Set<DragPolicy>();
+    for (const id of ids) {
+      const governance = typeof id === "string" ? this.governanceOf(this.nodes.one(id)) : null;
+      if (!governance || told.has(governance.policy)) continue;
+      told.add(governance.policy);
+      try {
+        governance.policy.onLine?.(type, data);
+      } catch (error) {
+        console.warn("DRAG_POLICY: onLine threw", error);
+      }
+    }
   }
 
   /** Keep governed and decoration notes out of selections they may not join. */

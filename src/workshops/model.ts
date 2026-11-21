@@ -53,6 +53,30 @@ export interface WorkshopCardLook {
   borderWidth?: number
 }
 
+/**
+ * A line with a card at one end or both: an ordinary connector, drawn and edited like any other.
+ * `parentId` and `childId` name a card on this board by its id, or an ordinary note of the slate's
+ * drawing by its note id. A line between two ordinary notes belongs to the drawing, not here: when
+ * a card becomes a note again, its lines to notes go back to the drawing. The rest of the fields
+ * are the connector's look, as the slate saves a connector.
+ */
+export interface WorkshopLine {
+  id: string
+  parentId: string
+  childId: string
+  lineColor?: string
+  lineOpacity?: number
+  lineWidth?: number
+  lineDash?: 'solid' | 'dashed' | 'dotted'
+  lineType?: string
+  lineCurveType?: 'cubic' | 'quadratic'
+  lineCurviness?: number
+  lineEffect?: string
+  showParentArrow?: boolean
+  showChildArrow?: boolean
+  label?: string
+}
+
 export interface WorkshopSignal {
   id: string
   label: string
@@ -77,6 +101,8 @@ export interface Workshop {
   presentationOrder?: string[]
   signals?: WorkshopSignal[]
   cards: WorkshopCard[]
+  /** The lines joined to its cards (see WorkshopLine). */
+  lines?: WorkshopLine[]
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -166,6 +192,70 @@ function cardAsNote(input: unknown): WorkshopCardAsNote | undefined {
     kept[key] = size
   }
   return Object.keys(kept).length ? kept : undefined
+}
+
+/** How many lines a workshop's cards may have between them. */
+export const maxWorkshopLines = 96
+const lineIdPattern = /^[A-Za-z0-9_][A-Za-z0-9_.:~>-]{0,159}$/
+const lineDashes = ['solid', 'dashed', 'dotted']
+
+/** One line, as a connector of the slate is saved: only the fields a connector draws. */
+function workshopLine(input: unknown): WorkshopLine {
+  const raw = record(input)
+  if (typeof raw.id !== 'string' || !lineIdPattern.test(raw.id)) throw new Error('A line needs a short id.')
+  const line: WorkshopLine = { id: raw.id, parentId: id(raw.parentId), childId: id(raw.childId) }
+  if (line.parentId === line.childId) throw new Error('A line joins two different notes.')
+  const number = (key: keyof WorkshopLine, low: number, high: number) => {
+    const value = raw[key]
+    if (value === undefined || value === null) return
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < low || value > high) throw new Error('A line\'s look is out of range.')
+    ;(line as any)[key] = value
+  }
+  if (raw.lineColor !== undefined && raw.lineColor !== null) {
+    if (typeof raw.lineColor !== 'string' || !colour.test(raw.lineColor)) throw new Error('Use a colour such as #666666 for a line.')
+    line.lineColor = raw.lineColor
+  }
+  number('lineOpacity', 0, 1)
+  number('lineWidth', 0, 40)
+  number('lineCurviness', -10, 10)
+  if (raw.lineDash !== undefined && raw.lineDash !== null) {
+    if (!lineDashes.includes(raw.lineDash as string)) throw new Error('A line is solid, dashed or dotted.')
+    line.lineDash = raw.lineDash as WorkshopLine['lineDash']
+  }
+  if (raw.lineType !== undefined && raw.lineType !== null) {
+    if (typeof raw.lineType !== 'string' || !/^[a-z]{1,24}$/i.test(raw.lineType)) throw new Error('A line keeps its kind by its name only.')
+    line.lineType = raw.lineType
+  }
+  if (raw.lineCurveType !== undefined && raw.lineCurveType !== null) {
+    if (raw.lineCurveType !== 'cubic' && raw.lineCurveType !== 'quadratic') throw new Error('A line curves cubic or quadratic.')
+    line.lineCurveType = raw.lineCurveType
+  }
+  if (raw.lineEffect !== undefined && raw.lineEffect !== null && raw.lineEffect !== '') {
+    if (typeof raw.lineEffect !== 'string' || !/^[a-z-]{1,24}$/i.test(raw.lineEffect)) throw new Error('A line keeps its effect by its name only.')
+    line.lineEffect = raw.lineEffect
+  }
+  for (const key of ['showParentArrow', 'showChildArrow'] as const) {
+    if (raw[key] === undefined || raw[key] === null) continue
+    if (typeof raw[key] !== 'boolean') throw new Error('A line\'s arrows are on or off.')
+    line[key] = raw[key] as boolean
+  }
+  if (raw.label !== undefined && raw.label !== null && raw.label !== '') {
+    if (typeof raw.label !== 'string' || raw.label.length > 200 || /[<>\u0000-\u001f]/.test(raw.label)) throw new Error('A line\'s label is plain words, up to 200 characters.')
+    line.label = raw.label
+  }
+  return line
+}
+
+/**
+ * The lines of a board with these cards. A line with no card at either end is the drawing's, not
+ * the board's, and is left out (its card has left the board).
+ */
+function workshopLines(input: unknown, cardIds: Set<string>): WorkshopLine[] {
+  if (!Array.isArray(input)) throw new Error('A workshop\'s lines are a list.')
+  const lines = input.map(workshopLine).filter(line => cardIds.has(line.parentId) || cardIds.has(line.childId))
+  unique(lines.map(line => line.id), 'line ID')
+  if (lines.length > maxWorkshopLines) throw new Error(`A workshop holds up to ${maxWorkshopLines} lines.`)
+  return lines
 }
 
 function unique(values: string[], what: string) {
@@ -329,6 +419,10 @@ export function validateWorkshop(input: unknown): Workshop {
     })
     unique(board.signals.map(signal => signal.id), 'placement outcome ID')
   }
+  if (value.lines !== undefined) {
+    const lines = workshopLines(value.lines, new Set(cards.map(card => card.id)))
+    if (lines.length) board.lines = lines
+  }
   if (value.presentationOrder !== undefined) {
     if (!Array.isArray(value.presentationOrder)) throw new Error('Presentation order must be a list of lane IDs.')
     board.presentationOrder = workshopPresentationLanes({ lanes, presentationOrder: value.presentationOrder }).map(lane => lane.id)
@@ -464,6 +558,8 @@ export interface WorkshopNoteOffer {
   look?: WorkshopCardLook
   /** What the note has that the card will not show (line breaks, shape, size), kept for its way back. */
   asNote?: WorkshopCardAsNote
+  /** The note's lines, with the note named by `id`: they stay joined to the card it becomes. */
+  lines?: WorkshopLine[]
 }
 
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -494,7 +590,33 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
   if (note.asNote !== undefined) {
     try { cardAsNote(note.asNote) } catch { return 'This note\'s shape or words can\'t be kept on a card.' }
   }
+  if (note.lines !== undefined) {
+    let lines: WorkshopLine[]
+    try { lines = Array.isArray(note.lines) ? note.lines.map(workshopLine) : [workshopLine(note.lines)] }
+    catch { return 'This note\'s lines can\'t be kept on a card.' }
+    const ids = new Set((board.lines ?? []).map(line => line.id))
+    if ((board.lines?.length ?? 0) + lines.filter(line => !ids.has(line.id)).length > maxWorkshopLines) {
+      return `A workshop holds up to ${maxWorkshopLines} lines.`
+    }
+  }
   return null
+}
+
+/** `line` with every end named `from` renamed `to`. */
+function renamedLine(line: WorkshopLine, from: string, to: string): WorkshopLine {
+  if (from === to || (line.parentId !== from && line.childId !== from)) return line
+  return { ...line, parentId: line.parentId === from ? to : line.parentId, childId: line.childId === from ? to : line.childId }
+}
+
+/** `lines` with every end named `from` renamed `to` (a note that became a card under another id, or the way back). */
+export function workshopRenamedLines<T extends WorkshopLine[] | undefined>(lines: T, from: string, to: string): T {
+  return (lines ? lines.map(line => renamedLine(line, from, to)) : lines) as T
+}
+
+/** `lines` added to the board's own, each in place of a line of the board with the same id. */
+function withLines(board: Workshop, lines: WorkshopLine[]): WorkshopLine[] {
+  const added = new Map(lines.map(line => [line.id, line]))
+  return [...(board.lines ?? []).filter(line => !added.has(line.id)), ...added.values()]
 }
 
 /**
@@ -511,7 +633,10 @@ export function workshopNoteCandidate(board: Workshop, laneId: string, note: Wor
     ...(look ? { look } : {}), ...(asNote ? { asNote } : {}) }
   const at = before === undefined ? -1 : board.cards.findIndex(item => item.id === before && item.laneId === laneId)
   const cards = at < 0 ? [...board.cards, card] : [...board.cards.slice(0, at), card, ...board.cards.slice(at)]
-  return validateWorkshop({ ...board, cards })
+  // The note's lines stay joined to it: to the card, under the card's id.
+  const lines = note.lines === undefined ? undefined
+    : withLines(board, (Array.isArray(note.lines) ? note.lines : [note.lines]).map(workshopLine).map(line => renamedLine(line, note.id, card.id)))
+  return validateWorkshop({ ...board, cards, ...(lines ? { lines } : {}) })
 }
 
 /** Why the card may not leave the lanes as an ordinary note; null when it may. */
@@ -528,10 +653,76 @@ export function workshopCardAsNoteRefusal(board: Workshop, cardId: string): stri
   return null
 }
 
-/** The board without the card, for a card taken off the lanes as an ordinary note; null when it must stay. */
-export function workshopCardAsNote(board: Workshop, cardId: string): Workshop | null {
+/**
+ * The board without the card, for a card taken off the lanes as an ordinary note; null when it
+ * must stay. The card's lines stay joined to the note, named `noteId` (the card's own id unless
+ * the note had to take another): a line to another card stays on the board, and a line to an
+ * ordinary note leaves it for the drawing (see workshopCardLines).
+ */
+export function workshopCardAsNote(board: Workshop, cardId: string, noteId: string = cardId): Workshop | null {
   if (workshopCardAsNoteRefusal(board, cardId) !== null) return null
-  return validateWorkshop({ ...board, cards: board.cards.filter(item => item.id !== cardId) })
+  const lines = board.lines?.map(line => renamedLine(line, cardId, noteId))
+  return validateWorkshop({ ...board, cards: board.cards.filter(item => item.id !== cardId), ...(lines ? { lines } : {}) })
+}
+
+/**
+ * The lines of card `cardId` once it is the ordinary note `noteId`: those that stay on the board
+ * (another card is at their other end) and those that leave it, joining two ordinary notes of the
+ * drawing now. Both name the note by `noteId`.
+ */
+export function workshopCardLines(board: Workshop, cardId: string, noteId: string = cardId): { stay: WorkshopLine[]; leave: WorkshopLine[] } {
+  const others = new Set(board.cards.filter(card => card.id !== cardId).map(card => card.id))
+  const touching = (board.lines ?? []).filter(line => line.parentId === cardId || line.childId === cardId)
+    .map(line => renamedLine(line, cardId, noteId))
+  const stays = (line: WorkshopLine) => others.has(line.parentId) || others.has(line.childId)
+  return { stay: touching.filter(stays), leave: touching.filter(line => !stays(line)) }
+}
+
+/** The lines of the board with `id` at either end. */
+export function workshopLinesOf(board: Workshop, id: string): WorkshopLine[] {
+  return (board.lines ?? []).filter(line => line.parentId === id || line.childId === id)
+}
+
+/** Why `line` may not be drawn on the board, as a sentence; null when it may. */
+export function workshopLineRefusal(board: Workshop, line: WorkshopLine): string | null {
+  let drawn: WorkshopLine
+  try { drawn = workshopLine(line) } catch (error) { return error instanceof Error ? error.message : 'That line can\'t be drawn.' }
+  const cards = new Set(board.cards.map(card => card.id))
+  if (!cards.has(drawn.parentId) && !cards.has(drawn.childId)) return 'That card is no longer on the board.'
+  if (board.lanes.some(lane => lane.id === drawn.parentId || lane.id === drawn.childId)) return 'A line joins notes and cards, not lanes.'
+  const known = (board.lines ?? []).some(item => item.id === drawn.id)
+  if (!known && (board.lines?.length ?? 0) >= maxWorkshopLines) return `A workshop holds up to ${maxWorkshopLines} lines.`
+  return null
+}
+
+/** The board with `line` drawn, in place of a line with the same id; null when it may not be (see workshopLineRefusal). */
+export function workshopWithLine(board: Workshop, line: WorkshopLine): Workshop | null {
+  if (workshopLineRefusal(board, line) !== null) return null
+  return validateWorkshop({ ...board, lines: withLines(board, [workshopLine(line)]) })
+}
+
+/** The board without the line `lineId` (the same board when it has no such line). */
+export function workshopWithoutLine(board: Workshop, lineId: string): Workshop {
+  if (!(board.lines ?? []).some(line => line.id === lineId)) return board
+  return validateWorkshop({ ...board, lines: board.lines!.filter(line => line.id !== lineId) })
+}
+
+/**
+ * A new line from `parentId` to `childId` (a card, or an ordinary note), with an arrow at the
+ * child as the canvas draws one. Its id is the canvas's own for a first line between the two, and
+ * the next free one after that.
+ */
+export function workshopNewLine(board: Workshop, parentId: string, childId: string, look: Partial<WorkshopLine> = {}): WorkshopLine {
+  const used = new Set((board.lines ?? []).map(line => line.id))
+  let lineId = `${parentId}->${childId}`
+  for (let n = 2; used.has(lineId); n++) lineId = `${parentId}->${childId}~${n}`
+  return workshopLine({ showChildArrow: true, ...look, id: lineId, parentId, childId })
+}
+
+/** The board without card `cardId`'s lines: a card removed from the board takes its lines with it. */
+export function workshopWithoutCardLines(board: Workshop, cardId: string): Workshop {
+  const lines = (board.lines ?? []).filter(line => line.parentId !== cardId && line.childId !== cardId)
+  return lines.length === (board.lines?.length ?? 0) ? board : { ...board, lines }
 }
 
 /** The second line under a lane's name: how full it is, or what its cards add up to. */

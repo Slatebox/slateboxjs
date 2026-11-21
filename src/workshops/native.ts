@@ -14,10 +14,11 @@
 import { v1AssociationToV2, v1NodeToV2, v2NodeToV1 } from '../core/compat'
 import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type WorldPoint } from '../core/DragPolicy'
 import {
-  validateWorkshop, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLookOf, workshopDestinations,
-  workshopLaneCaption, workshopLanePlaces, workshopNodeIds, workshopNoteCandidate, workshopNoteRefusal, workshopRefusal,
-  workshopStandInId, workshopTakesNotes, workshopToSlate, type Workshop, type WorkshopBoardLayout, type WorkshopCard,
-  type WorkshopCardAsNote, type WorkshopCardLook, type WorkshopNoteOffer, type WorkshopNoteStyle,
+  validateWorkshop, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopDestinations,
+  workshopLaneCaption, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate,
+  workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesNotes, workshopToSlate, workshopWithLine,
+  workshopWithoutLine, type Workshop, type WorkshopBoardLayout, type WorkshopCard, type WorkshopCardAsNote, type WorkshopCardLook,
+  type WorkshopLine, type WorkshopNoteOffer, type WorkshopNoteStyle,
 } from './model'
 import { applyWorkshopEdits } from './edits'
 
@@ -27,14 +28,18 @@ import { applyWorkshopEdits } from './edits'
  * `laneId`, or just before card `before` when that is where an undo puts it back (it left the
  * slate's drawing). `asNote` is what the note had that the card does not show (line breaks,
  * shape, size), kept for its way back. `cardToNote`: card `cardId` left the board and is now
- * the ordinary note `noteId` in the drawing.
+ * the ordinary note `noteId` in the drawing. A note's lines stay joined to it either way:
+ * `noteToCard.lines` are the note's lines as the drawing had them (a card's lines are the board's,
+ * see Workshop.lines). `line`: a person drew or changed a line with a card at one end (`set`), or
+ * took one away (`remove`, its id).
  */
 export interface WorkshopChangeEvent {
   cardId?: string
   laneId?: string
   rename?: { laneId?: string; cardId?: string; label: string }
-  noteToCard?: { noteId: string; label: string; look?: WorkshopCardLook; asNote?: WorkshopCardAsNote; before?: string }
+  noteToCard?: { noteId: string; label: string; look?: WorkshopCardLook; asNote?: WorkshopCardAsNote; before?: string; lines?: WorkshopLine[] }
   cardToNote?: { noteId: string }
+  line?: { set: WorkshopLine; remove?: undefined } | { remove: string; set?: undefined }
 }
 
 /**
@@ -140,6 +145,8 @@ export interface AttachedWorkshop {
 }
 
 type Kind = 'lane' | 'card' | 'caption' | 'column' | 'image'
+/** A change package for collaborators. */
+type SlatePackageLike = { type: string; data: Record<string, unknown> }
 type Outcome =
   | { kind: 'outside' }
   | { kind: 'home' }
@@ -205,6 +212,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   let told: string | null = null
   /** A selected note is being redrawn after undo, redo or a load; its selection is about to come back. */
   let reselecting = false
+  /**
+   * The board's lines as they are drawn, by line id: the card note that holds the connector (a
+   * line is always held by a card, so it is never saved with the drawing), the note at its other
+   * end, and what was drawn, to compare.
+   */
+  const drawnLines = new Map<string, { holder: any; other: any; swapped: boolean; key: string }>()
   // An impossible layout is refused before anything is drawn.
   workshopLanePlaces(value, { layout })
 
@@ -230,7 +243,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     governs(node: any) {
       if (owned.get(node.id) !== node) return null
       const kind = kindOf(node.id)?.kind
-      if (kind === 'card') return { canMove: !readOnly, canEditText: !readOnly && !proposal && value.kind !== 'release-plan' }
+      // A card is a note: lines are drawn to and from it as to any note, on a board that trades notes and cards.
+      if (kind === 'card') return { canMove: !readOnly, canEditText: !readOnly && !proposal && value.kind !== 'release-plan', canConnect: acceptsLines() }
       if (kind === 'lane') return { canMove: false, canEditText: !readOnly && !proposal }
       return decoration
     },
@@ -375,6 +389,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       owned.clear()
       drawn.clear()
       links.clear()
+      drawnLines.clear()
       // The document that was loaded decides afresh which names are free.
       standIn.clear()
       drawnAs.clear()
@@ -475,7 +490,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     node.position(x, y, () => slate.updateSelectionResizeRotate?.(), undefined, prefersReducedMotion() ? 0 : 180)
     slate.broadcast?.('onNodesMove', { nodeOptions: [v2NodeToV1({ ...node.options, x, y })] })
   }
-  policy.undoState = () => ({ cards: value.cards.map(card => ({ ...card })), pairs: [...pairs] })
+  policy.undoState = () => ({ cards: value.cards.map(card => ({ ...card })), pairs: [...pairs], lines: (value.lines ?? []).map(line => ({ ...line })) })
   policy.onUndoRestore = (state: any, notes: { added: string[]; removed: string[] }) => {
     if (destroyed) return
     const recorded = new Map<string, WorkshopCard>((state?.cards ?? []).map((card: WorkshopCard) => [card.id, card]))
@@ -486,7 +501,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const cardId = cardOf(noteId)
       const card = value.cards.find(item => item.id === cardId)
       if (!card) continue
-      value = validateWorkshop({ ...value, cards: value.cards.filter(item => item !== card) })
+      // Its lines stay joined to the note: a line to a note is the drawing's again (the record holds it).
+      value = validateWorkshop({ ...value, cards: value.cards.filter(item => item !== card), lines: workshopRenamedLines(value.lines, cardId, noteId) })
       draw(value)
       const answer = tell(options.onChange, value, { cardId, cardToNote: { noteId } })
       slate.holdTrade?.(noteId, answer)
@@ -497,7 +513,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const cardId = cardOf(noteId)
       const card = recorded.get(cardId)
       if (!card || value.cards.some(item => item.id === cardId)) continue
-      const offer = { id: cardId, label: card.label, ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}) }
+      // The lines it had as a card come back with it.
+      const recordedLines = ((state?.lines ?? []) as WorkshopLine[]).filter(line => line.parentId === cardId || line.childId === cardId)
+      const offer = { id: cardId, label: card.label, ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}),
+        ...(recordedLines.length ? { lines: recordedLines } : {}) }
       const lane = [card.laneId, ...value.lanes.map(item => item.id)].find(id => workshopNoteCandidate(value, id, offer))
       if (!lane) {
         slate.announce?.(`${card.label} could not go back on the board: there is no room for it.`)
@@ -510,10 +529,20 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const at = value.cards.findIndex(item => item.id === cardId)
       const before = value.cards.slice(at + 1).find(item => item.laneId === lane)?.id
       const answer = tell(options.onChange, value, { cardId, laneId: lane, noteToCard: { noteId, label: card.label, ...(card.look ? { look: card.look } : {}),
-        ...(card.asNote ? { asNote: card.asNote } : {}), ...(before ? { before } : {}) } })
+        ...(card.asNote ? { asNote: card.asNote } : {}), ...(before ? { before } : {}),
+        ...(recordedLines.length ? { lines: workshopRenamedLines(recordedLines, cardId, noteId) } : {}) } })
       slate.holdTrade?.(noteId, answer)
       watch(answer)
     }
+    // The lines between cards and notes are as they were at that step.
+    if (Array.isArray(state?.lines)) restoreLines(state.lines as WorkshopLine[])
+  }
+  // A person drew, changed or took away a line with a card at one end. The engine has drawn it
+  // already; once the gesture that made it is over, the board takes it (or the line goes, and the
+  // reason is said).
+  policy.onLine = (type: string, data: any) => {
+    if (destroyed) return
+    queueMicrotask(() => { if (!destroyed) lineChanged(type, data) })
   }
 
   const releasePolicy = slate.setDragPolicy(policy)
@@ -741,7 +770,28 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     if (words.trim() !== label && words.length <= 400) asNote.text = words.trim()
     if (typeof o.shape === 'string' && /^[a-z]{1,24}$/i.test(o.shape)) asNote.shape = o.shape
     for (const key of ['width', 'height'] as const) if (Number.isFinite(o[key]) && o[key] >= 10 && o[key] <= 4000) asNote[key] = Math.round(o[key])
-    return { id: node.id as string, label, ...(look ? { look } : {}), ...(Object.keys(asNote).length ? { asNote } : {}) }
+    const lines = linesOfNote(node)
+    return { id: node.id as string, label, ...(look ? { look } : {}), ...(Object.keys(asNote).length ? { asNote } : {}), ...(lines.length ? { lines } : {}) }
+  }
+
+  /**
+   * Every line an ordinary note has: the drawing's connectors from it and to it, and the board's
+   * lines between it and a card. They stay joined to the card it becomes.
+   */
+  function linesOfNote(node: any): WorkshopLine[] {
+    const found = new Map<string, WorkshopLine>()
+    const ours = (id: unknown) => typeof id === 'string' && Boolean(owned.get(id)) && owned.get(id) === slate.nodes.one(id)
+    for (const link of node.relationships?.getAssociations?.() ?? []) {
+      if (!link.targetPoint && !ours(link.childId)) found.set(link.id, lineOf(link))
+    }
+    for (const other of slate.nodes?.allNodes ?? []) {
+      if (other === node || ours(other.id)) continue
+      for (const link of other.relationships?.getAssociations?.() ?? []) {
+        if (link.childId === node.id && !link.targetPoint) found.set(link.id, lineOf(link))
+      }
+    }
+    for (const line of workshopLinesOf(value, node.id)) found.set(line.id, line)
+    return [...found.values()]
   }
 
   /** "A", "A and B", "A, B and C". */
@@ -772,15 +822,211 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
 
   /** What about a note, rather than about the lane, keeps it a note. Null when nothing does. */
   function noteObstacle(node: any): string | null {
-    const joined = (node.relationships?.associations?.length ?? 0) > 0 || (slate.nodes?.allNodes ?? []).some((other: any) =>
-      other !== node && (other.relationships?.associations ?? []).some((link: any) => link.child === node || link.childId === node.id))
-    if (joined) return 'A note joined to other notes by lines stays a note. Remove its lines first.'
+    // A note keeps its lines as a card. Only a line that ends on empty canvas has no note to stay joined to.
+    if ((node.relationships?.getAssociations?.() ?? []).some((link: any) => link.targetPoint)) {
+      return 'A note with a line that ends on empty canvas stays a note. Join that line to a note first.'
+    }
     if (node.options?.image) return 'A note with a picture stays a note.'
     if (node.options?.link?.show && node.options.link.data) return 'A note with a link stays a note. Remove its link first.'
     return null
   }
 
   const noteName = (label: string) => label || 'This note'
+
+  // ─── Lines ───────────────────────────────────────────────────────
+
+  /** Whether a person may draw lines to and from this board's cards now. */
+  function acceptsLines() {
+    return !destroyed && !readOnly && !proposal && !viewer() && workshopTakesNotes(value)
+  }
+
+  /** A connector as the board keeps a line: its ends and its look, nothing a connector does not draw. */
+  function lineOf(link: Record<string, any>): WorkshopLine {
+    const line: Record<string, unknown> = { id: link.id, parentId: link.parentId, childId: link.childId }
+    for (const key of ['lineColor', 'lineOpacity', 'lineWidth', 'lineDash', 'lineType', 'lineCurveType', 'lineCurviness', 'lineEffect',
+      'showParentArrow', 'showChildArrow', 'label'] as const) {
+      const item = link[key]
+      if (item !== undefined && item !== null && item !== '') line[key] = item
+    }
+    return line as unknown as WorkshopLine
+  }
+
+  /** What a note of the slate is to the board: a card (by its card id), an ordinary note (by its id), or neither. */
+  function refOf(node: any): string | null {
+    if (!node || slate.nodes.one(node.id) !== node) return null
+    if (owned.get(node.id) === node) {
+      const part = kindOf(node.id)
+      return part?.kind === 'card' && value.cards.some(card => card.id === part.key) ? part.key : null
+    }
+    return node.options?.isComment ? null : node.id
+  }
+
+  /** The note a line's end names on `model`: the card's note, or the ordinary note. */
+  function endOf(model: Workshop, ref: string): any {
+    if (model.cards.some(card => card.id === ref)) {
+      const node = owned.get(noteId(workshopNodeIds.card(ref)))
+      return node?.relationships && node.svgGroup ? node : null
+    }
+    const node = slate.nodes.one(ref)
+    return node && owned.get(ref) !== node && node.svgGroup ? node : null
+  }
+
+  /**
+   * Join ordinary notes with lines that are the drawing's (a card's lines once it is a note).
+   * Returns the packages that tell collaborators of them.
+   */
+  function joinNotes(lines: WorkshopLine[]): SlatePackageLike[] {
+    const packages: SlatePackageLike[] = []
+    for (const line of lines) {
+      const parent = slate.nodes.one(line.parentId), child = slate.nodes.one(line.childId)
+      if (!parent?.relationships || !child || owned.get(parent.id) === parent || owned.get(child.id) === child) continue
+      if (parent.relationships.hasAssociationId?.(line.id)) continue
+      const association = parent.relationships.addAssociation(child, v1AssociationToV2(line))
+      packages.push({ type: 'addRelationship', data: { ...association } })
+    }
+    return packages
+  }
+
+  /**
+   * Draw the board's lines on `model`. A line is always held by a card's note (a line from a note
+   * to a card is held by the card, its arrows the other way round), so the slate never saves it
+   * with the drawing: the board keeps it.
+   */
+  function drawLines(model: Workshop) {
+    const wanted = new Set<string>()
+    for (const line of model.lines ?? []) {
+      const parent = endOf(model, line.parentId), child = endOf(model, line.childId)
+      if (!parent || !child || parent === child) continue
+      const swapped = owned.get(parent.id) !== parent
+      const holder = swapped ? child : parent, other = swapped ? parent : child
+      const link: Record<string, unknown> = { ...line, parentId: holder.id, childId: other.id }
+      if (swapped) {
+        link.showParentArrow = line.showChildArrow ?? true
+        link.showChildArrow = line.showParentArrow ?? false
+      }
+      const key = JSON.stringify(link)
+      wanted.add(line.id)
+      const was = drawnLines.get(line.id)
+      if (was && was.key === key && was.holder === holder && was.other === other && holder.relationships.hasAssociationId?.(line.id)) continue
+      if (was && slate.nodes.one(was.holder.id) === was.holder) was.holder.relationships?.removeAssociation?.(line.id)
+      holder.relationships.addAssociation(other, v1AssociationToV2(link))
+      drawnLines.set(line.id, { holder, other, swapped, key })
+    }
+    for (const [lineId, was] of [...drawnLines]) {
+      if (wanted.has(lineId)) continue
+      if (slate.nodes.one(was.holder.id) === was.holder && was.holder.relationships?.hasAssociationId?.(lineId)) was.holder.relationships.removeAssociation(lineId)
+      drawnLines.delete(lineId)
+    }
+  }
+
+  /** Take a connector the engine drew off the slate, as the board's host (nothing is sent). */
+  function unlink(data: { parentId?: string; id?: string; childId?: string }) {
+    const parent = data.parentId ? slate.nodes.one(data.parentId) : null
+    const key = data.id ?? data.childId
+    if (!parent?.relationships || !key) return
+    slate.withPolicyAuthority(() => { if (parent.relationships.hasAssociationId?.(key) || !data.id) parent.relationships.removeAssociation(key) })
+  }
+
+  /** A line the engine drew, changed or took away with a card at one end: the board takes the change, or it is undone. */
+  function lineChanged(type: string, data: any) {
+    if (type === 'addRelationship') {
+      // One of the board's own lines being drawn again is nothing new.
+      if (drawnLines.get(data?.id)?.holder.id === data?.parentId) return
+      const parent = slate.nodes.one(data?.parentId), child = data?.targetPoint ? null : slate.nodes.one(data?.childId)
+      const from = refOf(parent), to = refOf(child)
+      const refuse = (reason: string) => {
+        unlink(data)
+        slate.announce?.(reason)
+        tell(options.onRefuse, { reason, laneId: null })
+      }
+      if (!acceptsLines()) return unlink(data)
+      if (!from || !to) return refuse('A line from a card ends on a note or another card.')
+      const line = workshopNewLine(value, from, to, lineOf(data))
+      const reason = workshopLineRefusal(value, line)
+      if (reason) return refuse(reason)
+      unlink(data)
+      commitLine({ set: line })
+      return
+    }
+    if (type === 'removeRelationship') {
+      const lineId = [...drawnLines].find(([id, was]) => (id === data?.id || (!data?.id && was.other.id === data?.childId)) && was.holder.id === data?.parentId)?.[0]
+      if (!lineId) return
+      const was = drawnLines.get(lineId)!
+      drawnLines.delete(lineId)
+      // A note or card at either end that has left the slate took the line off with it: the board keeps it for when it is back.
+      if (slate.nodes.one(was.holder.id) !== was.holder || slate.nodes.one(was.other.id) !== was.other || !acceptsLines()) {
+        if (acceptsLines() || destroyed) return
+        // A viewer cannot take a line away: it is drawn again.
+        return draw(proposal ?? value)
+      }
+      commitLine({ remove: lineId })
+      return
+    }
+    if (type === 'onLinePropertiesChanged') {
+      for (const item of Array.isArray(data) ? data : [data]) {
+        const entry = [...drawnLines].find(([id, was]) => id === item?.associationId && was.holder.id === item?.id)
+        if (!entry) continue
+        const [lineId, was] = entry
+        const line = value.lines?.find(item => item.id === lineId)
+        const link = was.holder.relationships?.getAssociations?.().find((item: any) => item.id === lineId)
+        if (!line || !link) continue
+        if (!acceptsLines()) { draw(proposal ?? value); continue }
+        const look = lineOf(link)
+        const next: WorkshopLine = { ...look, id: line.id, parentId: line.parentId, childId: line.childId }
+        if (was.swapped) {
+          next.showParentArrow = link.showChildArrow
+          next.showChildArrow = link.showParentArrow
+        }
+        if (JSON.stringify(validateLine(next)) === JSON.stringify(line)) continue
+        // The look it was drawn with is now the line's: the next drawing must not take it back.
+        drawnLines.set(lineId, { ...was, key: '' })
+        commitLine({ set: next })
+      }
+    }
+  }
+
+  /** The line as the board would keep it, or null when it cannot be kept. */
+  function validateLine(line: WorkshopLine): WorkshopLine | null {
+    return workshopWithLine({ ...value, lines: [] }, line)?.lines?.[0] ?? null
+  }
+
+  /**
+   * Draw or take away one line on the board, as one undo step, and tell the host. A host that
+   * cannot save it has the board put back as it was.
+   */
+  function commitLine(change: { set: WorkshopLine } | { remove: string }) {
+    const before = value.lines?.find(line => line.id === ('set' in change ? change.set.id : change.remove))
+    const next = 'set' in change ? workshopWithLine(value, change.set) : workshopWithoutLine(value, change.remove)
+    if (!next || next === value) return
+    slate.beginHostStep?.()
+    value = next
+    slate.endHostStep?.()
+    draw(proposal ?? value)
+    const line = 'set' in change ? change.set : before!
+    const ends = [line.parentId, line.childId].map(ref => value.cards.find(card => card.id === ref)?.label ?? slate.nodes.one(ref)?.options?.text?.replace(/\s+/g, ' ').trim() ?? '')
+    const named = (index: number) => ends[index] || 'a note'
+    slate.announce?.('set' in change
+      ? (before ? `The line from ${named(0)} to ${named(1)} changed.` : `${named(0)} is joined to ${named(1)}.`)
+      : `The line from ${named(0)} to ${named(1)} was taken away.`)
+    const answer = tell(options.onChange, value, { line: change } as WorkshopChangeEvent)
+    watch(answer, () => {
+      // Not saved: the line is as it was, unless the board has moved on since.
+      if (destroyed || value !== next) return
+      const back = before ? workshopWithLine(value, before) : 'set' in change ? workshopWithoutLine(value, change.set.id) : null
+      if (back) { value = back; draw(proposal ?? value) }
+    })
+  }
+
+  /** Put the board's lines back as a record of the undo history has them, telling the host of each change. */
+  function restoreLines(recorded: WorkshopLine[]) {
+    const want = new Map(recorded.map(line => [line.id, line]))
+    const have = new Map((value.lines ?? []).map(line => [line.id, line]))
+    for (const lineId of have.keys()) if (!want.has(lineId)) commitLine({ remove: lineId })
+    for (const [lineId, line] of want) {
+      if (JSON.stringify(have.get(lineId)) === JSON.stringify(line)) continue
+      if (workshopLineRefusal(value, line) === null) commitLine({ set: line })
+    }
+  }
 
   /**
    * Ordinary notes become cards at the foot of `laneId`: they leave the drawing and the board
@@ -790,11 +1036,17 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
    */
   function adopt(entries: { node: any; offer: WorkshopNoteOffer; from?: WorldPoint }[], laneId: string) {
     let next = value
+    const renamed = new Map<string, string>()
     const made = entries.map(({ node, offer, from }) => {
-      next = workshopNoteCandidate(next, laneId, offer)!
-      // Should the host not save it, the note goes back where it started.
+      // A note carried with this one became a card under another id: its lines name that card.
+      let lines = offer.lines
+      for (const [from, to] of renamed) lines = workshopRenamedLines(lines, from, to)
+      next = workshopNoteCandidate(next, laneId, { ...offer, ...(lines ? { lines } : {}) })!
+      const card = next.cards[next.cards.length - 1]
+      if (card.id !== node.id) renamed.set(node.id, card.id)
+      // Should the host not save it, the note goes back where it started, with the lines it had in the drawing.
       const kept = { ...(node.options ?? {}), ...(from ? { x: from.x, y: from.y } : {}) }
-      return { node, card: next.cards[next.cards.length - 1], kept }
+      return { node, card, kept, lines: workshopRenamedLines(lines ?? [], node.id, card.id) }
     })
     slate.beginHostStep?.()
     value = next
@@ -813,12 +1065,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     slate.announce?.(made.length === 1
       ? `${made[0].card.label} is now a card in ${lane.label}. ${workshopLaneCaption(value, laneId)}.`
       : `${names(made.map(({ card }) => card.label))} are now cards in ${lane.label}. ${workshopLaneCaption(value, laneId)}.`)
-    for (const { node, card, kept } of made) {
+    for (const { node, card, kept, lines } of made) {
       const change = { cardId: card.id, laneId, noteToCard: { noteId: node.id as string, label: card.label,
-        ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}) } }
+        ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}), ...(lines.length ? { lines } : {}) } }
       const dropCard = () => {
         if (value !== committed || !value.cards.some(item => item.id === card.id)) return
-        value = validateWorkshop({ ...value, cards: value.cards.filter(item => item.id !== card.id) })
+        value = validateWorkshop({ ...value, cards: value.cards.filter(item => item.id !== card.id), lines: workshopRenamedLines(value.lines, card.id, node.id) })
         committed = value
         draw(value)
       }
@@ -837,6 +1089,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
           const back = onlyHere(() => slate.addNode({ ...kept }))
           if (back) back.announcedByCreator = true
           slate.endHostStep?.()
+          // Its lines to other notes are the drawing's again; nobody else saw them go either.
+          const toNotes = workshopRenamedLines(lines, card.id, node.id).filter(line => !value.cards.some(item => item.id === line.parentId || item.id === line.childId))
+          back?.ready?.then?.(() => { if (!destroyed) onlyHere(() => joinNotes(toNotes)) })
         }
         slate.announce?.(`${card.label} could not be saved as a card. It is a note on the canvas again.`)
       }, () => {
@@ -859,9 +1114,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const fromLane = value.lanes.find(item => item.id === card.laneId)!
     const place = value.cards.findIndex(item => item.id === cardId)
     const before = value.cards.slice(place + 1).find(item => item.laneId === card.laneId)?.id
-    const next = workshopCardAsNote(value, cardId)!
     const drawnCard = drawn.get(noteId(workshopNodeIds.card(cardId))) ?? {}
     const id = slate.nodes.one(cardId) ? 'node_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now() : cardId
+    // Its lines stay joined to the note: those to other cards stay on the board, those to notes are the drawing's.
+    const cardLines = workshopLinesOf(value, cardId)
+    const { leave } = workshopCardLines(value, cardId, id)
+    const next = workshopCardAsNote(value, cardId, id)!
     const round = (style.cornerRadius ?? 0) > 0
     const kept = card.asNote
     // The words it had, line breaks and all, unless the card has been renamed since.
@@ -885,6 +1143,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     if (added) added.announcedByCreator = true
     slate.endHostStep?.()
     draw(value)
+    // The lines to notes are joined to the note once it is drawn, on this screen only until the save.
+    const joined: Promise<SlatePackageLike[]> = Promise.resolve(added?.ready).then(() =>
+      destroyed || !added || slate.nodes.one(id) !== added ? [] : onlyHere(() => joinNotes(leave))).catch(() => [])
     added?.ready?.then?.(() => {
       if (destroyed || slate.nodes.one(id) !== added) return
       const select = () => slate.selectNodes?.([added])
@@ -901,15 +1162,18 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const answer = tell(options.onChange, value, { cardId, cardToNote: { noteId: id } })
     slate.holdTrade?.(id, answer)
     hear(answer, () => {
-      // Saved: collaborators, and the host's drawing save, hear of the note as it is now.
-      if (added && slate.nodes.one(id) === added) slate.sendHeld?.([{ type: 'onNodeAdded', data: { id, nodeOptions: v2NodeToV1(added.options) } }])
+      // Saved: collaborators, and the host's drawing save, hear of the note as it is now, and of its lines.
+      joined.then(lines => {
+        if (added && slate.nodes.one(id) === added) slate.sendHeld?.([{ type: 'onNodeAdded', data: { id, nodeOptions: v2NodeToV1(added.options) } }, ...lines])
+      })
     }, () => {
       // The host could not save it: the note leaves the canvas and the card comes back, in its
       // place, unless the host has drawn a newer board.
       if (destroyed) return
       dropNote()
       if (value === committed && !value.cards.some(item => item.id === cardId)) {
-        const offer = { id: cardId, label: card.label, ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}) }
+        const offer = { id: cardId, label: card.label, ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}),
+          ...(cardLines.length ? { lines: cardLines } : {}) }
         const back = workshopNoteCandidate(value, card.laneId, offer, before)
         if (back) { value = back; draw(value) }
       }
@@ -1183,6 +1447,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         parent.relationships.addAssociation(child, v1AssociationToV2(link))
         links.set(linkId, { parentId: link.parentId, childId: link.childId, parent, child })
       }
+      drawLines(how.model)
     })
     slate.notifyNodeChanged?.()
   }
@@ -1283,6 +1548,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       slate.element?.removeEventListener?.('pointerdown', onPress, true)
       stopWatchingSelection?.()
       slate.withPolicyAuthority(() => {
+        for (const [lineId, was] of drawnLines) if (slate.nodes.one(was.holder.id) === was.holder) was.holder.relationships?.removeAssociation?.(lineId)
         for (const [linkId, link] of links) link.parent.relationships?.removeAssociation(linkId)
         for (const [id, node] of owned) {
           slate.deselectNode?.(node)
@@ -1291,6 +1557,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         }
       })
       links.clear()
+      drawnLines.clear()
       owned.clear()
       drawn.clear()
       standIn.clear()

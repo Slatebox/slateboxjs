@@ -4,12 +4,27 @@
 
 ### Added
 
+- **Cards keep their lines (connected cards).** A note joined to other notes by lines now becomes a
+  card when it is dropped on a lane, and keeps its lines; a card dropped on the canvas becomes a
+  note with them. On a board of plain lanes cards have their connector plugs like any note: lines
+  are drawn from a card to a note, from a note to a card and between cards, and are restyled or
+  taken away like any line. A card's lines are the board's: `Workshop.lines` (validated, up to 96,
+  ends named by card id or note id), held on screen by the card's note so the drawing never saves
+  them. New change shapes `{ line: { set } }` and `{ line: { remove } }`, `noteToCard.lines`; model
+  helpers `workshopCardLines`, `workshopLinesOf`, `workshopLineRefusal`, `workshopWithLine`,
+  `workshopWithoutLine`, `workshopNewLine`, `workshopRenamedLines`, `workshopWithoutCardLines`; edit
+  kinds `connect_cards`, `disconnect_cards`, `connect_note`, `disconnect_note`, and `remove_card`
+  takes the card's lines; drag-policy hook `onLine`. The drawing no longer saves a connector whose
+  other end is a note a host draws, and removing a note takes every line to it whatever the line's
+  id. The lane no longer refuses a note for its lines ("A note joined to other notes by lines stays
+  a note" is gone).
+
 - **Notes and cards trade places by being dropped.** On a board of plain lanes, an ordinary note
   dropped on a lane (or nudged onto one with the arrow keys) becomes a card there under the lane's
   rules, keeping its words, look and id; a lane that refuses it sends it back and says why. A card
   dropped on empty canvas, or staged past the first or last lane from the keyboard and committed
   with Enter, becomes an ordinary note saved with the drawing. Each is one undo step that undoes
-  both the board and the drawing. A note joined by lines stays a note, and says so. New change
+  both the board and the drawing. A note keeps its lines either way (see connected cards). New change
   shapes `{ cardId, laneId, noteToCard }` and `{ cardId, cardToNote }`; model helpers
   `workshopTakesNotes`, `workshopNoteCandidate`, `workshopNoteRefusal`, `workshopCardAsNote`,
   `workshopCardAsNoteRefusal`, `workshopCardLookOf`; drag-policy hooks `onFreeMove`, `onFreeDrop`,
@@ -160,6 +175,10 @@
 
 ### Fixed
 
+- **A note a lane refuses takes its outline back with it.** A selected note dropped on a lane that
+  refuses it glides back to where its drag began; its selection outline, handles and plugs used to
+  stay where it was let go, round empty lane (an empty dashed box). They are drawn again where the
+  note comes to rest.
 - **Work done after an undo is no longer blanked or lost when the slate is reloaded or someone
   joins.** A client rebuilt the slate from its room in the order Yjs delivered the packages (one
   writer at a time, not the order they were written) and all in one go, before the notes they
