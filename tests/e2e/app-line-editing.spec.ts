@@ -270,6 +270,12 @@ test.describe('on a phone, with touch', () => {
       await page.touchscreen.tap(beta.x, beta.y)
       await expect.poll(async () => (await lines(page)).map((l) => `${l.from}>${l.to}`)).toEqual(['Welcome!>Beta'])
       await expect(bar(page, 'Line')).toBeVisible()
+      // The whole line bar is on the screen, its Ends control and Delete with it.
+      const lineBar = (await bar(page, 'Line').boundingBox())!
+      expect(lineBar.x).toBeGreaterThanOrEqual(0)
+      expect(lineBar.x + lineBar.width).toBeLessThanOrEqual(390)
+      await expect(bar(page, 'Line').getByRole('radio', { name: 'Ends pinned' })).toBeInViewport()
+      await expect(bar(page, 'Line').getByRole('button', { name: 'Delete line' })).toBeInViewport()
       await expect(page.locator('#slateCanvas .connector-handle[role="button"]')).toHaveCount(2)
       const hit = (await page.locator('#slateCanvas .connector-handle-target').boundingBox())!
       expect(hit.width).toBeGreaterThanOrEqual(24)
