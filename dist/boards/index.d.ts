@@ -4,6 +4,7 @@ export { pipelineKit, pipelineLayout } from './pipelineKit';
 export { budgetKit, budgetLayout } from './budgetKit';
 export { workshopEditsBetween, pipelineGauge, budgetHeader, launchLinkTargets, partNotes, handleLabel } from './readouts';
 export { createBoardLayer, renderLayerShapes, layerInk, type LayerShape } from '../workshops/boardLayer';
+export * from '../workshops/rules';
 /** The kit for a business board's kind. Throws for any other kind: those boards draw without one. */
 export declare function kitFor(kind: Workshop['kind'] | string | undefined): WorkshopBoardKit;
 /**

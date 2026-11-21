@@ -1,6 +1,8 @@
-import { Vec2 as Y, getElementPositionCheap as ht, translate as ut, dragSpecToBehavior as ft, param as P, moreThan as N, lessThan as V, inOrder as xt } from "./dragology.mjs";
-import { money as L, pipelineForecast as nt, launchLinkRefusal as et, launchPlanLimits as B, withTaskValue as W, launchOverrun as D, scheduleLaunch as G, laneColors as E, launchFinish as T, withLink as mt, pipelineRefusal as pt, workshopDestinations as it, workshopCandidate as at, pipelineCaption as Z, budgetLimits as gt, budgetRefusal as yt, budgetCaption as j, shiftBudget as X, budgetCommitted as wt } from "./workshop-model.mjs";
-import F from "react";
+import { Vec2 as Y, getElementPositionCheap as ht, translate as ut, dragSpecToBehavior as ft, param as N, moreThan as D, lessThan as V, inOrder as xt } from "./dragology.mjs";
+import { laneColors as z, workshopDestinations as nt, workshopCandidate as et } from "./workshop-model.mjs";
+import { money as E, pipelineForecast as it, launchLinkRefusal as at, launchPlanLimits as B, withTaskValue as R, launchOverrun as I, scheduleLaunch as G, launchFinish as T, withLink as mt, pipelineRefusal as pt, pipelineCaption as Z, budgetLimits as gt, budgetRefusal as yt, budgetCaption as j, shiftBudget as X, budgetCommitted as wt } from "./workshop-rules.mjs";
+import { amountLimits as Gt, amountOf as Ut, amountRules as Jt, budgetRules as Kt, budgetShiftLimits as Yt, budgetShiftRefusal as Zt, currencyOf as jt, days as Xt, downstreamTasks as qt, launchPlanCaption as Qt, launchPlanRefusal as tn, launchPlanRules as nn, launchTaskText as en, nextCardId as an, noteNumbers as sn, ownField as on, pipelineLimits as ln, pipelineRules as rn, planBudgetMove as cn, planLaunchPlanMove as dn, planPipelineMove as hn, readNoteNumbers as un, renamedNumbers as fn, sampleBudget as xn, sampleLaunchPlan as mn, samplePipeline as pn, validateBudget as gn, validateLaunchPlan as yn, validatePipeline as wn } from "./workshop-rules.mjs";
+import _ from "react";
 const g = {
   ink: "var(--slatebox-board-ink, #34433f)",
   faint: "var(--slatebox-board-grid, #d9ddd5)",
@@ -11,7 +13,7 @@ const g = {
   track: "var(--slatebox-board-track, #e4e7df)",
   launch: "var(--slatebox-board-launch, #7b3fa0)"
 }, H = "http://www.w3.org/2000/svg", q = (t) => /var\([^,]+,\s*([^)]+)\)/.exec(t)?.[1].trim() ?? t;
-function z(t, a, n) {
+function C(t, a, n) {
   const e = document.createElementNS(H, t);
   for (const [l, s] of Object.entries(a)) e.setAttribute(l, String(s));
   return n?.fill && (e.setAttribute("fill", q(n.fill)), e.style.setProperty("fill", n.fill)), n?.stroke && (e.setAttribute("stroke", q(n.stroke)), e.style.setProperty("stroke", n.stroke)), e;
@@ -20,7 +22,7 @@ function Q(t, a, n) {
   for (; t.firstChild; ) t.removeChild(t.firstChild);
   for (const e of a)
     if (e.t === "line")
-      t.appendChild(z("line", {
+      t.appendChild(C("line", {
         x1: e.x1,
         y1: e.y1,
         x2: e.x2,
@@ -29,7 +31,7 @@ function Q(t, a, n) {
         ...e.dash ? { "stroke-dasharray": e.dash } : {}
       }, { stroke: e.color }));
     else if (e.t === "rect")
-      t.appendChild(z("rect", {
+      t.appendChild(C("rect", {
         x: e.x,
         y: e.y,
         width: Math.max(0, e.w),
@@ -38,7 +40,7 @@ function Q(t, a, n) {
         ...e.opacity !== void 0 ? { opacity: e.opacity } : {}
       }, { fill: e.color }));
     else if (e.t === "text") {
-      const l = z("text", {
+      const l = C("text", {
         x: e.x,
         y: e.y,
         "font-size": e.size ?? 13,
@@ -50,7 +52,7 @@ function Q(t, a, n) {
       l.textContent = e.text, t.appendChild(l);
     } else {
       if (e.unlink && n) {
-        const { cardId: l, waitsOn: s, label: d } = e.unlink, i = z("path", {
+        const { cardId: l, waitsOn: s, label: d } = e.unlink, i = C("path", {
           d: e.d,
           fill: "none",
           "stroke-width": 12,
@@ -64,9 +66,9 @@ function Q(t, a, n) {
           o.stopPropagation(), n(l, s);
         }), t.appendChild(i);
       }
-      if (t.appendChild(z("path", { d: e.d, fill: "none", "stroke-width": e.width ?? 1.5, "pointer-events": "none" }, { stroke: e.color })), e.arrow) {
+      if (t.appendChild(C("path", { d: e.d, fill: "none", "stroke-width": e.width ?? 1.5, "pointer-events": "none" }, { stroke: e.color })), e.arrow) {
         const { x: l, y: s, angle: d } = e.arrow;
-        t.appendChild(z("path", { d: "M0 0 L-8 -4.5 L-8 4.5 Z", transform: `translate(${l} ${s}) rotate(${d})`, "pointer-events": "none" }, { fill: e.color }));
+        t.appendChild(C("path", { d: "M0 0 L-8 -4.5 L-8 4.5 Z", transform: `translate(${l} ${s}) rotate(${d})`, "pointer-events": "none" }, { fill: e.color }));
       }
     }
 }
@@ -90,13 +92,13 @@ function U(t, a) {
     }
   };
 }
-function R(t, a = []) {
+function W(t, a = []) {
   const n = t.filter((e) => e.name.startsWith("card-") || e.name.startsWith("handle-"));
-  return F.createElement(
+  return _.createElement(
     "g",
     null,
-    ...n.map((e) => /* @__PURE__ */ F.createElement("g", { id: e.name, transform: ut(e.x, e.y) }, /* @__PURE__ */ F.createElement("rect", { width: e.width, height: e.height }))),
-    ...t.filter((e) => a.includes(e.name)).map((e) => /* @__PURE__ */ F.createElement("rect", { id: "target-" + e.name.slice(5), x: e.x, y: e.y, width: e.width, height: e.height }))
+    ...n.map((e) => /* @__PURE__ */ _.createElement("g", { id: e.name, transform: ut(e.x, e.y) }, /* @__PURE__ */ _.createElement("rect", { width: e.width, height: e.height }))),
+    ...t.filter((e) => a.includes(e.name)).map((e) => /* @__PURE__ */ _.createElement("rect", { id: "target-" + e.name.slice(5), x: e.x, y: e.y, width: e.width, height: e.height }))
   );
 }
 function A(t, a, n, e, l) {
@@ -113,14 +115,14 @@ function A(t, a, n, e, l) {
   const o = ft(l(s, t), i);
   return (r) => o({ pointer: Y(r.x, r.y) }).dropState;
 }
-const I = (t, a, n = 0) => !!t && a.x >= t.x - n && a.x <= t.x + t.width + n && a.y >= t.y - n && a.y <= t.y + t.height + n;
+const F = (t, a, n = 0) => !!t && a.x >= t.x - n && a.x <= t.x + t.width + n && a.y >= t.y - n && a.y <= t.y + t.height + n;
 function st(t, a, n, e, l) {
   if (!t) return null;
   const s = a.cards.find((d) => d.id === n).laneId;
   return (d) => {
     const i = t(d);
     if (i !== a && JSON.stringify(i) !== JSON.stringify(a)) return i;
-    const o = e.find((r) => r.name.startsWith("column-") && r.name !== "column-" + s && I(r, d));
+    const o = e.find((r) => r.name.startsWith("column-") && r.name !== "column-" + s && F(r, d));
     return o && l.find((r) => r.cards.find((c) => c.id === n).laneId === o.name.slice(7)) || i;
   };
 }
@@ -166,15 +168,15 @@ function J(t, a) {
 }
 function kt(t) {
   const a = t.forecast?.currency;
-  return `Forecast ${L(nt(t), a)} of ${L(t.forecast?.target ?? 0, a)}`;
+  return `Forecast ${E(it(t), a)} of ${E(t.forecast?.target ?? 0, a)}`;
 }
 function vt(t) {
-  return `${L(t.budget?.total ?? 0, t.budget?.currency)} · balanced`;
+  return `${E(t.budget?.total ?? 0, t.budget?.currency)} · balanced`;
 }
 function Mt(t, a) {
-  return t.cards.filter((n) => et(t, a, n.id) === null).map((n) => n.id);
+  return t.cards.filter((n) => at(t, a, n.id) === null).map((n) => n.id);
 }
-function $t(t, a, n, e) {
+function bt(t, a, n, e) {
   for (let l = a; l > 11; l--) {
     const s = Math.max(1, Math.floor(n / (l * 0.55)));
     if (t.split(`
@@ -201,7 +203,7 @@ function K(t, a, n, e) {
       borderColor: i.line ?? s,
       borderWidth: o ? 0 : i.lineWidth ?? 1,
       ...e.fontFamily ? { fontFamily: e.fontFamily } : {},
-      fontSize: $t(r, i.fontSize ?? d, i.width - 12, i.height - 6)
+      fontSize: bt(r, i.fontSize ?? d, i.width - 12, i.height - 6)
     }, relationships: { associations: [] } };
   });
 }
@@ -213,10 +215,10 @@ function ot(t, a) {
   const l = t.lanes.findIndex((s) => s.id === n);
   return l >= 0 && t.lanes[l + 1] ? `Divider between ${t.lanes[l].label} and ${t.lanes[l + 1].label}. Left and Right move money.` : null;
 }
-const lt = "#c2410c", zt = 32;
-function b(t, a = {}) {
-  const n = !!a.narrow, e = t.launch.day, l = G(t), s = [], d = /* @__PURE__ */ new Map(), i = n ? Math.max(300, a.width ?? 390) : Math.max(720, a.width ?? 1200), o = n ? 8 : 168, r = n ? (i - 88) / e : (i - o - 40) / e, c = (h) => E[t.lanes.findIndex((p) => p.id === h) % E.length], f = (h, p) => {
-    const y = t.cards.find((dt) => dt.id === h), w = l.get(h), k = { x: o + w.start * r, y: p, width: y.duration * r, height: n ? 28 : zt };
+const lt = "#c2410c", Ct = 32;
+function $(t, a = {}) {
+  const n = !!a.narrow, e = t.launch.day, l = G(t), s = [], d = /* @__PURE__ */ new Map(), i = n ? Math.max(300, a.width ?? 390) : Math.max(720, a.width ?? 1200), o = n ? 8 : 168, r = n ? (i - 88) / e : (i - o - 40) / e, c = (h) => z[t.lanes.findIndex((p) => p.id === h) % z.length], f = (h, p) => {
+    const y = t.cards.find((dt) => dt.id === h), w = l.get(h), k = { x: o + w.start * r, y: p, width: y.duration * r, height: n ? 28 : Ct };
     d.set(h, k), s.push({
       name: "card-" + h,
       ...k,
@@ -245,7 +247,7 @@ function b(t, a = {}) {
   }
   return s.push({ name: "handle-launch", x: o + e * r - 22, y: n ? 104 : 4, width: 44, height: 44 }), { parts: s, width: i, height: m + 8, narrow: n, x0: o, dayW: r, gridTop: x, axisY: u, bars: d };
 }
-function Ct(t, a, n) {
+function Lt(t, a, n) {
   for (const e of a.parts) e.name.startsWith("caption-") && (e.text = n(e.name.slice(8)));
   return a;
 }
@@ -253,8 +255,8 @@ function St(t, a) {
   const n = t.x + t.width, e = Math.max(t.x + 4, n - 10), s = a.y + a.height / 2 > t.y + t.height / 2 ? t.y + t.height : t.y, d = a.y + a.height / 2;
   return { d: `M ${e} ${s} V ${d} H ${a.x}`, arrow: { x: a.x, y: d, angle: 0 } };
 }
-function bt(t, a) {
-  const n = b(t, a.layout), e = t.launch.day, l = G(t), s = [];
+function $t(t, a) {
+  const n = $(t, a.layout), e = t.launch.day, l = G(t), s = [];
   for (let o = 0; o <= e; o++) {
     const r = n.x0 + o * n.dayW, c = o % 7 === 0;
     !c && n.dayW < 6 || (s.push({ t: "line", x1: r, y1: n.gridTop, x2: r, y2: n.height - 8, color: c ? g.week : g.faint, width: c ? 1 : 0.5 }), c && s.push({ t: "text", x: r + 3, y: n.axisY, text: n.narrow ? "W" + (o / 7 + 1) : "Week " + (o / 7 + 1), color: g.ink, size: 12 }));
@@ -307,11 +309,11 @@ function bt(t, a) {
   }
   return s;
 }
-const _ = (t) => ({ ...t, cards: t.cards.map((a) => {
+const O = (t) => ({ ...t, cards: t.cards.map((a) => {
   const n = { ...a, duration: Math.max(1, Math.round(a.duration)), lag: Math.max(0, Math.round(a.lag ?? 0)) };
   return n.lag || delete n.lag, n;
 }), launch: { day: Math.round(t.launch.day) } });
-function Lt(t, a, { key: n, shiftKey: e }) {
+function zt(t, a, { key: n, shiftKey: e }) {
   if (n !== "ArrowLeft" && n !== "ArrowRight") return null;
   const l = n === "ArrowLeft" ? -1 : 1;
   if (a === "handle-launch") return [{ kind: "set_launch_day", day: t.launch.day + l }];
@@ -326,64 +328,64 @@ const rt = {
   editsBetween: J,
   label: ot,
   places(t, a) {
-    const n = Ct(t, b(t, a), (e) => {
+    const n = Lt(t, $(t, a), (e) => {
       const l = t.cards.filter((d) => d.laneId === e), s = G(t);
       return `${l.length} ${l.length === 1 ? "task" : "tasks"} · ${l.filter((d) => s.get(d.id).critical).length} on the critical path`;
     });
     return { parts: n.parts, width: n.width, height: n.height };
   },
-  layer: (t) => U(t, bt),
+  layer: (t) => U(t, $t),
   chooser(t, a, n, e = {}) {
     const l = t.cards.findIndex((s) => s.id === a);
     return l < 0 ? null : Et(t, a, l, Mt(t, a), n, e);
   },
   refusalAt(t, a, n, e, l) {
-    const s = b(t, l);
+    const s = $(t, l);
     for (const r of t.cards) {
-      if (r.id === a || !I(s.bars.get(r.id), e)) continue;
-      const c = et(t, a, r.id);
+      if (r.id === a || !F(s.bars.get(r.id), e)) continue;
+      const c = at(t, a, r.id);
       return c ? { laneId: r.laneId, reason: c } : null;
     }
     const d = t.cards.find((r) => r.id === a), i = (d.lag ?? 0) + Math.round((e.x - n.x - s.bars.get(a).x) / s.dayW), o = B(t, { cardId: a, field: "lag" });
-    return i > o.max ? { laneId: d.laneId, reason: D(W(t, { cardId: a, field: "lag" }, i), a) ?? o.reasons.max } : null;
+    return i > o.max ? { laneId: d.laneId, reason: I(R(t, { cardId: a, field: "lag" }, i), a) ?? o.reasons.max } : null;
   },
   handleDrag(t, a, n, e) {
-    const l = b(t, e), s = (x) => R(b(x, e).parts);
+    const l = $(t, e), s = (x) => W($(x, e).parts);
     if (a === "handle-launch") {
-      const x = B(t, { field: "day" }), u = A(t, a, n, s, (h, p) => h.vary(p, P("launch", "day"), { constraint: (y) => [N(y.launch.day, T(y) - 1e-3), V(y.launch.day, 120)] }).onDrop(_));
+      const x = B(t, { field: "day" }), u = A(t, a, n, s, (h, p) => h.vary(p, N("launch", "day"), { constraint: (y) => [D(y.launch.day, T(y) - 1e-3), V(y.launch.day, 120)] }).onDrop(O));
       return (h) => {
-        const p = Math.round((h.x - n.x + 22 - l.x0) / l.dayW), y = u?.(h) ?? W(t, { field: "day" }, Math.min(x.max, Math.max(x.min, p)));
-        return p < x.min ? { next: y, clampedReason: x.reasons.min, refusal: D(W(t, { field: "day" }, Math.max(5, p))) ?? void 0 } : { next: y };
+        const p = Math.round((h.x - n.x + 22 - l.x0) / l.dayW), y = u?.(h) ?? R(t, { field: "day" }, Math.min(x.max, Math.max(x.min, p)));
+        return p < x.min ? { next: y, clampedReason: x.reasons.min, refusal: I(R(t, { field: "day" }, Math.max(5, p))) ?? void 0 } : { next: y };
       };
     }
     const d = a.slice(7), i = t.cards.findIndex((x) => x.id === d);
     if (i < 0) return null;
-    const o = { cardId: d, field: "duration" }, r = B(t, o), c = t.launch.day, f = A(t, a, n, s, (x, u) => x.vary(u, P("cards", i, "duration"), { constraint: (h) => [N(h.cards[i].duration, 1), V(T(h), c + 1e-3)] }).onDrop(_)), m = l.bars.get(d);
+    const o = { cardId: d, field: "duration" }, r = B(t, o), c = t.launch.day, f = A(t, a, n, s, (x, u) => x.vary(u, N("cards", i, "duration"), { constraint: (h) => [D(h.cards[i].duration, 1), V(T(h), c + 1e-3)] }).onDrop(O)), m = l.bars.get(d);
     return (x) => {
-      const u = Math.round((x.x - n.x + 22 - m.x) / l.dayW), h = Math.min(r.max, Math.max(r.min, u)), p = f?.(x) ?? W(t, o, h);
-      return u > r.max ? { next: p, clampedReason: `Launch is day ${c}.`, refusal: D(W(t, o, Math.min(60, u)), d) ?? r.reasons.max } : u < r.min ? { next: p, clampedReason: r.reasons.min } : { next: p };
+      const u = Math.round((x.x - n.x + 22 - m.x) / l.dayW), h = Math.min(r.max, Math.max(r.min, u)), p = f?.(x) ?? R(t, o, h);
+      return u > r.max ? { next: p, clampedReason: `Launch is day ${c}.`, refusal: I(R(t, o, Math.min(60, u)), d) ?? r.reasons.max } : u < r.min ? { next: p, clampedReason: r.reasons.min } : { next: p };
     };
   },
-  keyEdit: Lt
+  keyEdit: zt
 };
 function Et(t, a, n, e, l, s) {
-  const d = t.launch.day, i = (r) => R(b(r, s).parts, e.map((c) => "card-" + c)), o = A(t, "card-" + a, l, i, (r, c) => {
+  const d = t.launch.day, i = (r) => W($(r, s).parts, e.map((c) => "card-" + c)), o = A(t, "card-" + a, l, i, (r, c) => {
     const f = s.narrow ? c.lanes.filter((x) => x.id === c.cards[n].laneId) : c.lanes, m = r.closest(f.map((x) => r.vary(
       { ...c, cards: c.cards.map((u, h) => h === n ? { ...u, laneId: x.id, lag: u.lag ?? 0 } : u) },
-      P("cards", n, "lag"),
-      { constraint: (u) => [N(u.cards[n].lag ?? 0, -1e-3), V(T(u), d + 1e-3)] }
+      N("cards", n, "lag"),
+      { constraint: (u) => [D(u.cards[n].lag ?? 0, -1e-3), V(T(u), d + 1e-3)] }
     )));
-    return e.length ? r.closest(e.map((x) => r.dropTarget("target-" + x, mt(c, a, x)))).withFloating({ ghost: { opacity: 0.35 } }).whenFar(m).withBranchTransition(120).onDrop(_) : m.onDrop(_);
+    return e.length ? r.closest(e.map((x) => r.dropTarget("target-" + x, mt(c, a, x)))).withFloating({ ghost: { opacity: 0.35 } }).whenFar(m).withBranchTransition(120).onDrop(O) : m.onDrop(O);
   });
-  return o ? (r) => _(o(r)) : null;
+  return o ? (r) => O(o(r)) : null;
 }
-const C = 76;
+const L = 76;
 function S(t, a = {}) {
-  const n = !!a.narrow, e = [], l = t.lanes.map((o) => t.cards.filter((r) => r.laneId === o.id).length), s = (o) => t.lanes[o].role === "won" ? "#bfe3cf" : t.lanes[o].role === "lost" ? "#e4dcdc" : E[o % E.length];
+  const n = !!a.narrow, e = [], l = t.lanes.map((o) => t.cards.filter((r) => r.laneId === o.id).length), s = (o) => t.lanes[o].role === "won" ? "#bfe3cf" : t.lanes[o].role === "lost" ? "#e4dcdc" : z[o % z.length];
   let d, i;
   if (n) {
     d = Math.max(300, a.width ?? 390);
-    let o = C;
+    let o = L;
     t.lanes.forEach((r, c) => {
       const f = 96 + (l[c] + 1) * 64;
       e.push({ name: "column-" + r.id, x: 2, y: o, width: d - 4, height: f, fill: v(s(c), 0.6), line: v(s(c), 0.1) });
@@ -394,8 +396,8 @@ function S(t, a = {}) {
     const c = 116 + (Math.max(...l) + 1) * 88;
     t.lanes.forEach((f, m) => {
       const x = m * 244;
-      e.push({ name: "column-" + f.id, x: x + 2, y: C, width: 240, height: c, fill: v(s(m), 0.6), line: v(s(m), 0.1) }), e.push({ name: "lane-" + f.id, x: x + 8, y: C + 6, width: 228, height: 58, text: f.label, fill: s(m), fontSize: 16 }), e.push({ name: "caption-" + f.id, x: x + 8, y: C + 66, width: 228, height: 48, text: Z(t, f.id), fill: "transparent", lineWidth: 0, fontSize: 15 }), t.cards.filter((u) => u.laneId === f.id).forEach((u, h) => e.push({ name: "card-" + u.id, x: x + 8, y: C + 116 + h * 88, width: 228, height: 76, text: tt(t, u.id), fontSize: 15 }));
-    }), d = t.lanes.length * 244, i = C + c;
+      e.push({ name: "column-" + f.id, x: x + 2, y: L, width: 240, height: c, fill: v(s(m), 0.6), line: v(s(m), 0.1) }), e.push({ name: "lane-" + f.id, x: x + 8, y: L + 6, width: 228, height: 58, text: f.label, fill: s(m), fontSize: 16 }), e.push({ name: "caption-" + f.id, x: x + 8, y: L + 66, width: 228, height: 48, text: Z(t, f.id), fill: "transparent", lineWidth: 0, fontSize: 15 }), t.cards.filter((u) => u.laneId === f.id).forEach((u, h) => e.push({ name: "card-" + u.id, x: x + 8, y: L + 116 + h * 88, width: 228, height: 76, text: tt(t, u.id), fontSize: 15 }));
+    }), d = t.lanes.length * 244, i = L + c;
   }
   return e.push({ name: "gauge-forecast", x: 0, y: 0, width: Math.min(d, 520), height: 34, text: kt(t), fill: "transparent", lineWidth: 0, fontSize: 17 }), { parts: e, width: d, height: i };
 }
@@ -403,39 +405,39 @@ function tt(t, a) {
   const n = t.cards.find((e) => e.id === a);
   return n.amount === void 0 ? n.label + `
 no amount yet` : n.label + `
-` + L(n.amount, t.forecast.currency);
+` + E(n.amount, t.forecast.currency);
 }
 function At(t, a) {
-  const { width: n } = S(t, a.layout), e = t.forecast.target, l = nt(t), s = Math.max(e * 1.25, l), d = n - 8, i = l >= e;
+  const { width: n } = S(t, a.layout), e = t.forecast.target, l = it(t), s = Math.max(e * 1.25, l), d = n - 8, i = l >= e;
   return [
     { t: "rect", x: 4, y: 42, w: d, h: 14, rx: 7, color: g.track },
     { t: "rect", x: 4, y: 42, w: d * l / s, h: 14, rx: 7, color: i ? g.accept : g.bar },
     { t: "line", x1: 4 + d * e / s, y1: 36, x2: 4 + d * e / s, y2: 62, color: g.ink, width: 2 },
-    { t: "text", x: 4 + d * e / s, y: 72, text: "Target " + L(e, t.forecast.currency), color: g.ink, size: 14, anchor: "middle" }
+    { t: "text", x: 4 + d * e / s, y: 72, text: "Target " + E(e, t.forecast.currency), color: g.ink, size: 14, anchor: "middle" }
   ];
 }
-const Wt = {
+const Rt = {
   laneCues: !0,
   places: (t, a) => S(t, a),
   notes: (t, a, n, e) => K(S(t, a).parts, t, n, e),
   editsBetween: J,
   layer: (t) => U(t, At),
   chooser(t, a, n, e = {}) {
-    const l = it(t, a).map((s) => at(t, a, s.id));
-    return l.length < 2 ? null : st(A(t, "card-" + a, n, (s) => R(S(s, e).parts), (s, d) => s.closest(l, { stickiness: 4 }).withFloating({ ghost: { opacity: 0.3 } }).whenFar(d, { gapIn: 40, gapOut: 56 })), t, a, S(t, e).parts, l);
+    const l = nt(t, a).map((s) => et(t, a, s.id));
+    return l.length < 2 ? null : st(A(t, "card-" + a, n, (s) => W(S(s, e).parts), (s, d) => s.closest(l, { stickiness: 4 }).withFloating({ ghost: { opacity: 0.3 } }).whenFar(d, { gapIn: 40, gapOut: 56 })), t, a, S(t, e).parts, l);
   },
   refusalAt(t, a, n, e, l) {
     const { parts: s } = S(t, l), d = t.cards.find((i) => i.id === a);
     for (const i of t.lanes) {
-      if (i.id === d.laneId || !I(s.find((r) => r.name === "column-" + i.id), e)) continue;
+      if (i.id === d.laneId || !F(s.find((r) => r.name === "column-" + i.id), e)) continue;
       const o = pt(t, a, i.id);
       return o ? { laneId: i.id, reason: o } : null;
     }
     return null;
   },
   handleDrag: () => null
-}, M = 48, O = 960, ct = 900;
-function $(t, a = {}) {
+}, M = 48, P = 960, ct = 900;
+function b(t, a = {}) {
   const n = !!a.narrow, e = t.budget.total, l = [], s = [], d = t.lanes.map((r) => t.cards.filter((c) => c.laneId === r.id).length);
   let i, o;
   if (n) {
@@ -446,14 +448,14 @@ function $(t, a = {}) {
       s.push({ laneId: c.id, start: r, size: m }), r += m;
     }), o = r + 8;
   } else {
-    i = O;
+    i = P;
     let r = 0;
     for (const c of t.lanes)
-      s.push({ laneId: c.id, start: r, size: c.allocation / e * O }), r += c.allocation / e * O;
+      s.push({ laneId: c.id, start: r, size: c.allocation / e * P }), r += c.allocation / e * P;
     o = M + 100 + (Math.max(...d) + 1) * 64;
   }
   return t.lanes.forEach((r, c) => {
-    const { start: f, size: m } = s[c], x = E[c % E.length], u = n ? { x: 2, y: f + 1, width: i - 4, height: m - 2 } : { x: f + 1, y: M, width: Math.max(4, m - 2), height: o - M }, h = { x: u.x + 5, y: u.y, width: Math.max(10, u.width - 10) };
+    const { start: f, size: m } = s[c], x = z[c % z.length], u = n ? { x: 2, y: f + 1, width: i - 4, height: m - 2 } : { x: f + 1, y: M, width: Math.max(4, m - 2), height: o - M }, h = { x: u.x + 5, y: u.y, width: Math.max(10, u.width - 10) };
     l.push({ name: "column-" + r.id, ...u, fill: v(x, 0.6), line: v(x, 0.1) });
     const p = n ? h.width * 0.36 : h.width;
     if (l.push({ name: "lane-" + r.id, x: h.x, y: h.y + 6, width: p, height: 32, text: r.label, fill: x, fontSize: 15 }), l.push({
@@ -474,7 +476,7 @@ function $(t, a = {}) {
       width: h.width,
       height: 56,
       text: y.label + `
-` + L(y.amount, t.budget.currency),
+` + E(y.amount, t.budget.currency),
       fontSize: 14
     })), c < t.lanes.length - 1) {
       const y = f + m;
@@ -482,15 +484,15 @@ function $(t, a = {}) {
     }
   }), { parts: l, width: i, height: o, segments: s, narrow: n };
 }
-function _t(t, a) {
-  const n = $(t, a.layout), e = t.budget.total, l = [{ t: "text", x: 4, y: 28, text: vt(t), color: g.ink, size: 16, bold: !0, role: "header" }];
+function Ot(t, a) {
+  const n = b(t, a.layout), e = t.budget.total, l = [{ t: "text", x: 4, y: 28, text: vt(t), color: g.ink, size: 16, bold: !0, role: "header" }];
   if (t.lanes.forEach((s, d) => {
     const i = n.segments[d], o = s.allocation, r = wt(t, s.id);
     if (n.narrow) {
       const c = i.start + 50, f = 8, m = n.width - 16;
       l.push({ t: "rect", x: f, y: c, w: m, h: 10, rx: 5, color: g.track }), l.push({ t: "rect", x: f, y: c, w: m * r / o || 0, h: 10, rx: 5, color: g.bar }), s.floor !== void 0 && l.push({ t: "line", x1: f + m * s.floor / o, y1: c - 4, x2: f + m * s.floor / o, y2: c + 14, color: g.ink, width: 2 });
     } else {
-      const c = O / e, f = M + 86;
+      const c = P / e, f = M + 86;
       l.push({ t: "rect", x: i.start + 6, y: f, w: i.size - 12, h: 10, rx: 5, color: g.track }), l.push({ t: "rect", x: i.start + 6, y: f, w: Math.max(0, (i.size - 12) * r / o || 0), h: 10, rx: 5, color: g.bar }), s.floor !== void 0 && l.push({ t: "line", x1: i.start + s.floor * c, y1: f - 6, x2: i.start + s.floor * c, y2: f + 16, color: g.ink, width: 2 }), s.cap !== void 0 && i.start + s.cap * c <= n.width && l.push({ t: "line", x1: i.start + s.cap * c, y1: f - 6, x2: i.start + s.cap * c, y2: f + 16, color: g.refuse, width: 2, dash: "3 2" });
     }
     if (d < t.lanes.length - 1) {
@@ -513,24 +515,24 @@ function _t(t, a) {
   }
   return l;
 }
-const Ot = (t, a) => Math.round(t / a) * a, Rt = {
+const Pt = (t, a) => Math.round(t / a) * a, Wt = {
   laneCues: !0,
-  notes: (t, a, n, e) => K($(t, a).parts, t, n, e),
+  notes: (t, a, n, e) => K(b(t, a).parts, t, n, e),
   editsBetween: J,
   label: ot,
   places(t, a) {
-    const { parts: n, width: e, height: l } = $(t, a);
+    const { parts: n, width: e, height: l } = b(t, a);
     return { parts: n, width: e, height: l };
   },
-  layer: (t) => U(t, _t),
+  layer: (t) => U(t, Ot),
   chooser(t, a, n, e = {}) {
-    const l = it(t, a).map((s) => at(t, a, s.id));
-    return l.length < 2 ? null : st(A(t, "card-" + a, n, (s) => R($(s, e).parts), (s, d) => s.closest(l).withFloating({ ghost: { opacity: 0.3 } }).whenFar(d)), t, a, $(t, e).parts, l);
+    const l = nt(t, a).map((s) => et(t, a, s.id));
+    return l.length < 2 ? null : st(A(t, "card-" + a, n, (s) => W(b(s, e).parts), (s, d) => s.closest(l).withFloating({ ghost: { opacity: 0.3 } }).whenFar(d)), t, a, b(t, e).parts, l);
   },
   refusalAt(t, a, n, e, l) {
-    const { parts: s } = $(t, l), d = t.cards.find((i) => i.id === a);
+    const { parts: s } = b(t, l), d = t.cards.find((i) => i.id === a);
     for (const i of t.lanes) {
-      if (i.id === d.laneId || !I(s.find((r) => r.name === "column-" + i.id), e)) continue;
+      if (i.id === d.laneId || !F(s.find((r) => r.name === "column-" + i.id), e)) continue;
       const o = yt(t, a, i.id);
       return o ? { laneId: i.id, reason: o } : null;
     }
@@ -540,9 +542,9 @@ const Ot = (t, a) => Math.round(t / a) * a, Rt = {
     const l = a.slice(7), s = t.lanes.findIndex((u) => u.id === l), d = t.lanes[s + 1];
     if (s < 0 || !d) return null;
     const i = gt(t, { laneId: l }), o = t.budget.step, r = (u) => {
-      const h = Math.min(i.max, Math.max(i.min, Ot(u, o)));
+      const h = Math.min(i.max, Math.max(i.min, Pt(u, o)));
       return X(t, d.id, l, h);
-    }, c = $(t, e), f = c.narrow ? ct / t.budget.total : O / t.budget.total, m = c.parts.find((u) => u.name === a), x = A(t, a, n, (u) => R($(u, e).parts), (u) => u.varyFunc([0], ([h]) => X(t, d.id, l, h), { constraint: (h) => [
+    }, c = b(t, e), f = c.narrow ? ct / t.budget.total : P / t.budget.total, m = c.parts.find((u) => u.name === a), x = A(t, a, n, (u) => W(b(u, e).parts), (u) => u.varyFunc([0], ([h]) => X(t, d.id, l, h), { constraint: (h) => [
       ...xt([i.min, h.lanes[s].allocation - t.lanes[s].allocation, i.max])
     ] }));
     return (u) => {
@@ -557,31 +559,76 @@ const Ot = (t, a) => Math.round(t / a) * a, Rt = {
     const d = n === "ArrowRight" || n === "ArrowDown", i = t.budget.step;
     return [d ? { kind: "shift_budget", from: { id: s.id }, to: { id: e }, amount: i } : { kind: "shift_budget", from: { id: e }, to: { id: s.id }, amount: i }];
   }
-}, Ft = { "launch-plan": rt, pipeline: Wt, budget: Rt };
-function Dt(t) {
-  const a = Ft[t];
+}, _t = { "launch-plan": rt, pipeline: Rt, budget: Wt };
+function Nt(t) {
+  const a = _t[t];
   if (!a) throw new Error(`No board kit for "${t}". Only a launch plan, a pipeline and a budget have one.`);
   return a;
 }
-function Pt(t) {
+function Dt(t) {
   return t < 600 ? { narrow: !0, width: Math.max(300, Math.round(t - 32)) } : {};
 }
 export {
-  Pt as boardLayoutFor,
+  Gt as amountLimits,
+  Ut as amountOf,
+  Jt as amountRules,
+  Dt as boardLayoutFor,
+  j as budgetCaption,
+  wt as budgetCommitted,
   vt as budgetHeader,
-  Rt as budgetKit,
-  $ as budgetLayout,
+  Wt as budgetKit,
+  b as budgetLayout,
+  gt as budgetLimits,
+  yt as budgetRefusal,
+  Kt as budgetRules,
+  Yt as budgetShiftLimits,
+  Zt as budgetShiftRefusal,
   U as createBoardLayer,
+  jt as currencyOf,
+  Xt as days,
+  qt as downstreamTasks,
   ot as handleLabel,
-  Dt as kitFor,
-  b as launchLayout,
+  Nt as kitFor,
+  T as launchFinish,
+  $ as launchLayout,
+  at as launchLinkRefusal,
   Mt as launchLinkTargets,
+  I as launchOverrun,
+  Qt as launchPlanCaption,
   rt as launchPlanKit,
+  B as launchPlanLimits,
+  tn as launchPlanRefusal,
+  nn as launchPlanRules,
+  en as launchTaskText,
   g as layerInk,
+  E as money,
+  an as nextCardId,
+  sn as noteNumbers,
+  on as ownField,
   K as partNotes,
+  Z as pipelineCaption,
+  it as pipelineForecast,
   kt as pipelineGauge,
-  Wt as pipelineKit,
+  Rt as pipelineKit,
   S as pipelineLayout,
+  ln as pipelineLimits,
+  pt as pipelineRefusal,
+  rn as pipelineRules,
+  cn as planBudgetMove,
+  dn as planLaunchPlanMove,
+  hn as planPipelineMove,
+  un as readNoteNumbers,
+  fn as renamedNumbers,
   Q as renderLayerShapes,
+  xn as sampleBudget,
+  mn as sampleLaunchPlan,
+  pn as samplePipeline,
+  G as scheduleLaunch,
+  X as shiftBudget,
+  gn as validateBudget,
+  yn as validateLaunchPlan,
+  wn as validatePipeline,
+  mt as withLink,
+  R as withTaskValue,
   J as workshopEditsBetween
 };
