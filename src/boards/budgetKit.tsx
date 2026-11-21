@@ -54,7 +54,7 @@ export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) 
     const pill = narrow ? inner.width * 0.36 : inner.width
     parts.push({ name: 'lane-' + lane.id, x: inner.x, y: inner.y + 6, width: pill, height: 32, text: lane.label, fill: color, fontSize: 15 })
     parts.push({ name: 'caption-' + lane.id, x: narrow ? inner.x + pill + 6 : inner.x, y: inner.y + (narrow ? 6 : 40), width: narrow ? inner.width - pill - 6 : inner.width,
-      height: 40, text: budgetCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: narrow ? 15 : 12 })
+      height: narrow ? 50 : 40, text: narrow ? budgetCaption(board, lane.id).replace(' · ', '\n') : budgetCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: narrow ? 15 : 12 })
     board.cards.filter(card => card.laneId === lane.id).forEach((card, k) =>
       parts.push({ name: 'card-' + card.id, x: inner.x, y: inner.y + 100 + k * 64, width: inner.width, height: 56,
         text: card.label + '\n' + money(card.amount!, board.budget!.currency), fontSize: 14 }))
