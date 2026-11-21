@@ -94,6 +94,14 @@ test.describe("a selected line's ends", () => {
     // The handle is drawn above the notes and is big enough to take a finger.
     const box = await target.boundingBox();
     expect(box!.width).toBeGreaterThanOrEqual(24);
+    // Its tooltip names every key that changes it (the arrow keys pin a following end too).
+    await expect(target.locator("title")).toHaveText(/Enter pins it where it is; the arrow keys pin it/);
+    // The mark of an end that follows is open: nothing in it is filled, so the arrowhead under it shows.
+    const fills = await page.evaluate(() =>
+      [...document.querySelectorAll('#slateCanvas .connector-handle-glyph[data-end="target"] *')].map((el) => el.getAttribute("fill"))
+    );
+    expect(fills.length).toBeGreaterThan(0);
+    expect(fills.every((f) => f === "none")).toBe(true);
   });
 
   test("an end dropped on empty canvas stays there, free, and the line keeps its id", async ({ page }) => {

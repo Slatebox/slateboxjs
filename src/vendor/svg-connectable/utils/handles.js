@@ -35,7 +35,8 @@ function endStateOf(con, isSource) {
 /**
  * Draw the end's mark: a hollow circle for an end that follows its note, a
  * filled square for one pinned to a spot on the note's edge, a hollow diamond
- * for a free end. A white halo keeps it readable on a line of any colour.
+ * for a free end. A white outline under the ink keeps it readable on a line of
+ * any colour; the hollow marks are open, so the arrowhead under them shows.
  */
 function drawGlyph(con, handleObj, state) {
   const g = handleObj && handleObj.glyph;
@@ -43,13 +44,17 @@ function drawGlyph(con, handleObj, state) {
   if (handleObj.glyphState !== state) {
     g.clear();
     const ink = con.handleStroke;
-    g.circle(20).center(0, 0).fill("#ffffff").attr("fill-opacity", 0.9);
+    // The white outline first, the ink over it.
+    const outlined = (make, width) => {
+      make().fill("none").stroke({ color: "#ffffff", width: width + 3, linejoin: "round" });
+      make().fill("none").stroke({ color: ink, width, linejoin: "round" });
+    };
     if (state === "pinned") {
-      g.rect(12, 12).center(0, 0).fill(ink).stroke({ color: "#ffffff", width: 1.5 });
+      g.rect(10, 10).center(0, 0).fill(ink).stroke({ color: "#ffffff", width: 1.5 });
     } else if (state === "free") {
-      g.polygon("0,-8 8,0 0,8 -8,0").fill("#ffffff").stroke({ color: ink, width: 2.5, linejoin: "round" });
+      outlined(() => g.polygon("0,-8 8,0 0,8 -8,0"), 2.5);
     } else {
-      g.circle(13).center(0, 0).fill("#ffffff").stroke({ color: ink, width: 2.5 });
+      outlined(() => g.circle(13).center(0, 0), 2.5);
     }
     handleObj.glyphState = state;
     g.attr("data-state", state);

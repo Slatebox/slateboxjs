@@ -31,17 +31,17 @@ export const CONNECTOR_KEYS: Record<string, ConnectorKey> = {
   ends: {
     spec: { type: "enum", values: END_MODES },
     description:
-      "Both ends that are on notes: follow (each end takes the shortest way round its note as things move) or pinned (each end stays at the spot on its note's edge where it is now).",
+      "Both ends that are on notes: follow (each end takes the shortest way round its note as things move) or pinned (each end stays at the spot on its note's edge that faces the line's other end, where a following end sits).",
   },
   fromEnd: {
     spec: { type: "enum", values: END_CHOICES },
     description:
-      "The starting end: follow, pinned (where it is now), or pinned to the middle of the note's top, right, bottom or left side.",
+      "The starting end: follow, pinned (at the spot on the note's edge facing the line's other end), or pinned to the middle of the note's top, right, bottom or left side.",
   },
   toEnd: {
     spec: { type: "enum", values: END_CHOICES },
     description:
-      "The far end: follow, pinned (where it is now), or pinned to the middle of the note's top, right, bottom or left side. Not for a free end.",
+      "The far end: follow, pinned (at the spot on the note's edge facing the line's other end), or pinned to the middle of the note's top, right, bottom or left side. Not for a free end.",
   },
   toNote: {
     spec: { type: "string", minLength: 1, maxLength: 200 },

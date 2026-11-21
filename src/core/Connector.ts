@@ -823,7 +823,7 @@ export class Connector {
           ? "Drag it onto a note to attach it there."
           : state === "pinned"
             ? "Arrow keys move it along the edge; Enter lets it follow the note again. Drag it onto a note's middle to follow, onto empty canvas to leave it free."
-            : "Enter pins it where it is. Drag it onto a note's edge to pin it there, or onto empty canvas to leave it free.";
+            : "Enter pins it where it is; the arrow keys pin it and move it along the edge. Drag it onto a note's edge to pin it there, or onto empty canvas to leave it free.";
       el.setAttribute("role", "button");
       el.setAttribute("tabindex", selected ? "0" : "-1");
       el.setAttribute("aria-label", label);
