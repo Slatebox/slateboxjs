@@ -116,7 +116,7 @@ export interface NoteTrades {
 
 /**
  * The room's record that it has been told of a note's trade: `data.trade` (the note), `data.r`
- * (the trade's revision). One per note, never pruned with the note's packages: a room that holds
+ * (the trade's revision), `data.as` (which way it went; missing in records written before 2026-11-21). One per note, never pruned with the note's packages: a room that holds
  * it for a revision holds what happened to the note from then on, so its packages apply as usual.
  */
 const TRADED = "onNoteTraded";
@@ -675,9 +675,12 @@ export class Collab {
     const before = this.beforeRemote();
     // A traded note whose trade the replacement's writer still had on its way stays as this screen
     // has it: whether it is a note is that trade's to say, once saved (its half follows in the room).
+    // So does a note whose trade this person has on its way: the replacement was drawn without it
+    // (staging-2 F4: someone's undo reached the trader before its answer, the rebuild drew the note
+    // back, and the trader then told the room its note -> card trade left a note).
     const held = Array.isArray((replacement.pkg.data as any)?.held) ? ((replacement.pkg.data as any).held as unknown[]) : [];
     const kept = new Map<string, Record<string, any> | null>();
-    for (const id of held) {
+    for (const id of [...held, ...this.ownTrades.keys()]) {
       if (typeof id !== "string" || kept.has(id)) continue;
       const here = this.slate.nodes?.one?.(id);
       kept.set(id, here ? v2NodeToV1(here.options) : null);
@@ -701,6 +704,8 @@ export class Collab {
         console.warn("COLLAB_DEBUG: A note whose trade is on its way could not be kept:", error);
       }
     }
+    // The replacement was drawn from a history that may predate a trade the room has been told of.
+    await this.dropRoomCards(new Set(kept.keys()));
 
     const rest: RoomEntry[] = [];
     const labelIds = new Set<string>();
@@ -940,6 +945,34 @@ export class Collab {
     return this.handleRemotePackage(pkg);
   }
 
+  /**
+   * Take off every note the room's trade records say became a card, unless a newer trade of it is
+   * known here, or its trade is on its way (`skip`, and this person's own). A whole-slate
+   * replacement is drawn from someone's undo history, which can be older than the trade: the room
+   * never brings back a note the server's trade record says is a card.
+   */
+  private async dropRoomCards(skip: Set<string>): Promise<void> {
+    if (!this.collabMap || !this.slate) return;
+    const cards: string[] = [];
+    this.collabMap.forEach((pkg: SlatePackage) => {
+      if (pkg?.type !== TRADED) return;
+      const { trade: id, r } = (pkg.data ?? {}) as { trade?: unknown; r?: unknown };
+      if (typeof id !== "string" || typeof r !== "number" || skip.has(id) || this.ownTrades.has(id)) return;
+      const known = this.trades.get(id);
+      if (known && known.r > r) return; // a newer trade is drawn its own way (see enforceStaleTrades)
+      // Records written before they said which way the trade went: as the host told of it.
+      const as = (pkg.data as any).as ?? (known && known.r === r ? known.as : undefined);
+      if (as === "card" && this.slate.nodes?.one?.(id)) cards.push(id);
+    });
+    for (const id of cards) {
+      try {
+        await this.handleRemotePackage({ type: "onNodeDeleted", data: { id, isComment: false } } as SlatePackage);
+      } catch (error) {
+        console.warn("COLLAB_DEBUG: A note the room's trade record says is a card could not be taken off:", error);
+      }
+    }
+  }
+
   /** Draw note `id` as its trade says, when it is not: take it off, or put it on. */
   private enforceTrade(id: string): Promise<unknown> | void {
     if (!this.slate || !this.tradeTruth.has(id) || this.ownTrades.has(id)) return;
@@ -1002,8 +1035,11 @@ export class Collab {
           if (rest) this.collabMap.set(key, rest);
           else this.collabMap.delete(key);
         }
-        const here = this.slate?.nodes?.one?.(id);
-        const truth = this.tradeTruth.get(id);
+        // A note that became a card is not there, whatever this screen draws (staging-2 F4: a
+        // rebuild had drawn it back on the trader's own screen). A card that became a note is the
+        // note as this screen draws it (moves made before the answer), else as the server saved it.
+        const here = trade.as === "card" ? null : this.slate?.nodes?.one?.(id);
+        const truth = trade.as === "card" ? null : this.tradeTruth.get(id);
         const options = here ? v2NodeToV1(here.options) : truth;
         // `traded`: this is the room's half of trade r (see applyRoomPackage).
         const half: SlatePackage = options
@@ -1013,7 +1049,7 @@ export class Collab {
         const key = `${half.type}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         this.collabMap.set(key, { ...half, clientID: this.clientID, timestamp: this.tick() });
         this.collabMap.set(tradeKey(id), {
-          type: TRADED, data: { trade: id, r: trade.r }, clientID: this.clientID, timestamp: this.tick(),
+          type: TRADED, data: { trade: id, r: trade.r, as: trade.as }, clientID: this.clientID, timestamp: this.tick(),
         });
       }
     };
