@@ -112,6 +112,25 @@ export type WorkshopEdit = {
     kind: 'set_station_image_alt';
     station: WorkshopRef;
     alt: string;
+} | {
+    kind: 'connect_cards';
+    card: WorkshopRef;
+    to: WorkshopRef;
+    label?: string;
+} | {
+    kind: 'disconnect_cards';
+    card: WorkshopRef;
+    to: WorkshopRef;
+} | {
+    kind: 'connect_note';
+    card: WorkshopRef;
+    note: string;
+    direction?: 'to_note' | 'from_note';
+    label?: string;
+} | {
+    kind: 'disconnect_note';
+    card: WorkshopRef;
+    note: string;
 };
 export type WorkshopEditKindName = WorkshopEdit['kind'];
 /** What one edit did: the sentence a person is told, and the ids it concerned or made. */
@@ -181,6 +200,7 @@ type Limit = number | Partial<Record<WorkshopBoardKind, number>> & {
 export type WorkshopEditField = {
     type: 'text';
     max: number;
+    min?: number;
     optional?: boolean;
     about: string;
 } | {

@@ -42,6 +42,18 @@ export interface WorkshopCardAsNote {
     shape?: string;
     width?: number;
     height?: number;
+    /** Its picture (an http(s) or site address), with the picture's own size. */
+    image?: {
+        src: string;
+        width?: number;
+        height?: number;
+    };
+    /** Its link, as a note keeps one. */
+    link?: {
+        type?: string;
+        data: string | Record<string, string>;
+        show?: boolean;
+    };
 }
 /** The look of one card: what an ordinary note dropped on a lane brings with it. */
 export interface WorkshopCardLook {
@@ -51,6 +63,29 @@ export interface WorkshopCardLook {
     fontSize?: number;
     borderColor?: string;
     borderWidth?: number;
+}
+/**
+ * A line with a card at one end or both: an ordinary connector, drawn and edited like any other.
+ * `parentId` and `childId` name a card on this board by its id, or an ordinary note of the slate's
+ * drawing by its note id. A line between two ordinary notes belongs to the drawing, not here: when
+ * a card becomes a note again, its lines to notes go back to the drawing. The rest of the fields
+ * are the connector's look, as the slate saves a connector.
+ */
+export interface WorkshopLine {
+    id: string;
+    parentId: string;
+    childId: string;
+    lineColor?: string;
+    lineOpacity?: number;
+    lineWidth?: number;
+    lineDash?: 'solid' | 'dashed' | 'dotted';
+    lineType?: string;
+    lineCurveType?: 'cubic' | 'quadratic';
+    lineCurviness?: number;
+    lineEffect?: string;
+    showParentArrow?: boolean;
+    showChildArrow?: boolean;
+    label?: string;
 }
 export interface WorkshopSignal {
     id: string;
@@ -74,9 +109,19 @@ export interface Workshop {
     presentationOrder?: string[];
     signals?: WorkshopSignal[];
     cards: WorkshopCard[];
+    /** The lines joined to its cards (see WorkshopLine). */
+    lines?: WorkshopLine[];
 }
+/** The words a card shows for a note's words: its words in one line, the first 80 characters of longer ones. */
+export declare function workshopCardLabelOf(words: string): string;
 /** The parts of a note's look a card can keep; anything a card cannot draw is left out. Undefined when nothing is left. */
 export declare function workshopCardLookOf(input: Record<string, unknown>): WorkshopCardLook | undefined;
+/** A picture's address a card can keep for its note: http(s) or on this site, not one held in the page. */
+export declare function workshopKeepsPicture(src: unknown): boolean;
+/** Whether a card can keep a note's link for it. */
+export declare function workshopKeepsLink(link: unknown): boolean;
+/** How many lines a workshop's cards may have between them. */
+export declare const maxWorkshopLines = 96;
 /** Resolve the original lanes for playback without changing their board positions or rules. */
 export declare function workshopPresentationLanes({ lanes, presentationOrder }: Pick<Workshop, 'lanes' | 'presentationOrder'>): WorkshopLane[];
 /** Resolve authored outcomes against this exact committed or transient candidate board. */
@@ -127,9 +172,13 @@ export interface WorkshopNoteOffer {
     look?: WorkshopCardLook;
     /** What the note has that the card will not show (line breaks, shape, size), kept for its way back. */
     asNote?: WorkshopCardAsNote;
+    /** The note's lines, with the note named by `id`: they stay joined to the card it becomes. */
+    lines?: WorkshopLine[];
 }
 /** Why `note` may not become a card in `laneId`, as a sentence; null when it may. */
 export declare function workshopNoteRefusal(board: Workshop, laneId: string, note: WorkshopNoteOffer): string | null;
+/** `lines` with every end named `from` renamed `to` (a note that became a card under another id, or the way back). */
+export declare function workshopRenamedLines<T extends WorkshopLine[] | undefined>(lines: T, from: string, to: string): T;
 /**
  * The board with `note` as a card in `laneId`, or null when the lane's rules refuse it
  * (workshopNoteRefusal says why). The card goes at the foot of the lane, or just before the
@@ -139,8 +188,38 @@ export declare function workshopNoteRefusal(board: Workshop, laneId: string, not
 export declare function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null;
 /** Why the card may not leave the lanes as an ordinary note; null when it may. */
 export declare function workshopCardAsNoteRefusal(board: Workshop, cardId: string): string | null;
-/** The board without the card, for a card taken off the lanes as an ordinary note; null when it must stay. */
-export declare function workshopCardAsNote(board: Workshop, cardId: string): Workshop | null;
+/**
+ * The board without the card, for a card taken off the lanes as an ordinary note; null when it
+ * must stay. The card's lines stay joined to the note, named `noteId` (the card's own id unless
+ * the note had to take another): a line to another card stays on the board, and a line to an
+ * ordinary note leaves it for the drawing (see workshopCardLines).
+ */
+export declare function workshopCardAsNote(board: Workshop, cardId: string, noteId?: string): Workshop | null;
+/**
+ * The lines of card `cardId` once it is the ordinary note `noteId`: those that stay on the board
+ * (another card is at their other end) and those that leave it, joining two ordinary notes of the
+ * drawing now. Both name the note by `noteId`.
+ */
+export declare function workshopCardLines(board: Workshop, cardId: string, noteId?: string): {
+    stay: WorkshopLine[];
+    leave: WorkshopLine[];
+};
+/** The lines of the board with `id` at either end. */
+export declare function workshopLinesOf(board: Workshop, id: string): WorkshopLine[];
+/** Why `line` may not be drawn on the board, as a sentence; null when it may. */
+export declare function workshopLineRefusal(board: Workshop, line: WorkshopLine): string | null;
+/** The board with `line` drawn, in place of a line with the same id; null when it may not be (see workshopLineRefusal). */
+export declare function workshopWithLine(board: Workshop, line: WorkshopLine): Workshop | null;
+/** The board without the line `lineId` (the same board when it has no such line). */
+export declare function workshopWithoutLine(board: Workshop, lineId: string): Workshop;
+/**
+ * A new line from `parentId` to `childId` (a card, or an ordinary note), with an arrow at the
+ * child as the canvas draws one. Its id is the canvas's own for a first line between the two, and
+ * the next free one after that.
+ */
+export declare function workshopNewLine(board: Workshop, parentId: string, childId: string, look?: Partial<WorkshopLine>): WorkshopLine;
+/** The board without card `cardId`'s lines: a card removed from the board takes its lines with it. */
+export declare function workshopWithoutCardLines(board: Workshop, cardId: string): Workshop;
 /** The second line under a lane's name: how full it is, or what its cards add up to. */
 export declare function workshopLaneCaption(board: Workshop, laneId: string): string;
 export declare const workshopLayout: {

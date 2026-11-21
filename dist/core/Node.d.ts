@@ -284,6 +284,11 @@ export declare class Node {
      * After any drag (ordinary or governed) ends: tell a drag from a click, keep the
      * note selected, and put its handles back at the new position.
      */
+    /**
+     * A selected note glided back to where its drag began (a host refused the drop): its outline,
+     * handles and plugs are drawn again round where it now is.
+     */
+    private reframeAfterGlide;
     private settleAfterDrag;
     /** Whether this note is still one of the slate's notes (remove() does not mark it destroyed). */
     private isOnSlate;

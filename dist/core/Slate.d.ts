@@ -849,6 +849,10 @@ export declare class Slate {
      * collaborators, so a governed note is changed only by its host.
      */
     screenGovernedPackage(type: string, data: Record<string, any> | any[] | undefined): any;
+    /** A note arrived and is drawn: each policy hears of it (DragPolicy.onNodeAdded). */
+    nodeAdded(node: Node): void;
+    /** Hand a line change that touches a governed note to the policy that governs it (once per policy). */
+    private offerGovernedLine;
     /** Keep governed and decoration notes out of selections they may not join. */
     private screenSelection;
     /** Convert a point on screen (clientX/clientY) to world coordinates. */
