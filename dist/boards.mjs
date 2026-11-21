@@ -257,7 +257,7 @@ function bt(t, a) {
   const n = b(t, a.layout), e = t.launch.day, l = G(t), s = [];
   for (let o = 0; o <= e; o++) {
     const r = n.x0 + o * n.dayW, c = o % 7 === 0;
-    !c && n.dayW < 6 || (s.push({ t: "line", x1: r, y1: n.gridTop, x2: r, y2: n.height - 8, color: c ? g.week : g.faint, width: c ? 1 : 0.5 }), c && s.push({ t: "text", x: r + 3, y: n.axisY, text: n.narrow ? "W" + (o / 7 + 1) : "Week " + (o / 7 + 1), color: g.ink, size: 11 }));
+    !c && n.dayW < 6 || (s.push({ t: "line", x1: r, y1: n.gridTop, x2: r, y2: n.height - 8, color: c ? g.week : g.faint, width: c ? 1 : 0.5 }), c && s.push({ t: "text", x: r + 3, y: n.axisY, text: n.narrow ? "W" + (o / 7 + 1) : "Week " + (o / 7 + 1), color: g.ink, size: 12 }));
   }
   for (const o of t.cards) {
     for (const f of o.dependsOn ?? []) {
@@ -273,7 +273,7 @@ function bt(t, a) {
       });
     }
     const r = l.get(o.id), c = n.bars.get(o.id);
-    n.narrow && s.push({ t: "text", x: 8, y: c.y - 6, text: `${o.label} · ${o.duration}d`, color: g.ink, size: 13, bold: r.critical }), r.critical || s.push({ t: "text", x: c.x + c.width + 24, y: c.y + c.height / 2 + 4, text: "+" + r.slack + "d", color: g.ink, size: 11, role: "slack-" + o.id });
+    n.narrow && s.push({ t: "text", x: 8, y: c.y - 6, text: `${o.label} · ${o.duration}d`, color: g.ink, size: 13, bold: r.critical }), r.critical || s.push({ t: "text", x: c.x + c.width + 24, y: c.y + c.height / 2 + 4, text: "+" + r.slack + "d", color: g.ink, size: 12, role: "slack-" + o.id });
   }
   const d = n.x0 + e * n.dayW;
   s.push({ t: "line", x1: d, y1: n.narrow ? 112 : 26, x2: d, y2: n.height - 8, color: g.launch, width: 2, dash: "6 4" }), s.push({ t: "rect", x: d - 4, y: n.narrow ? 112 : 26, w: 8, h: 18, rx: 4, color: g.launch });
@@ -385,16 +385,16 @@ function S(t, a = {}) {
     d = Math.max(300, a.width ?? 390);
     let o = C;
     t.lanes.forEach((r, c) => {
-      const f = 86 + (l[c] + 1) * 64;
+      const f = 96 + (l[c] + 1) * 64;
       e.push({ name: "column-" + r.id, x: 2, y: o, width: d - 4, height: f, fill: v(s(c), 0.6), line: v(s(c), 0.1) });
       const m = (d - 16) * 0.36;
-      e.push({ name: "lane-" + r.id, x: 8, y: o + 6, width: m, height: 36, text: r.label, fill: s(c), fontSize: 15 }), e.push({ name: "caption-" + r.id, x: 8 + m + 6, y: o + 6, width: d - 16 - m - 6, height: 46, text: Z(t, r.id), fill: "transparent", lineWidth: 0, fontSize: 15 }), t.cards.filter((x) => x.laneId === r.id).forEach((x, u) => e.push({ name: "card-" + x.id, x: 8, y: o + 62 + u * 64, width: d - 16, height: 56, text: Q(t, x.id), fontSize: 15 })), o += f + 10;
+      e.push({ name: "lane-" + r.id, x: 8, y: o + 6, width: m, height: 36, text: r.label, fill: s(c), fontSize: 15 }), e.push({ name: "caption-" + r.id, x: 8 + m + 6, y: o + 6, width: d - 16 - m - 6, height: 56, text: Z(t, r.id), fill: "transparent", lineWidth: 0, fontSize: 15 }), t.cards.filter((x) => x.laneId === r.id).forEach((x, u) => e.push({ name: "card-" + x.id, x: 8, y: o + 72 + u * 64, width: d - 16, height: 56, text: Q(t, x.id), fontSize: 15 })), o += f + 10;
     }), i = o;
   } else {
-    const c = 98 + (Math.max(...l) + 1) * 88;
+    const c = 108 + (Math.max(...l) + 1) * 88;
     t.lanes.forEach((f, m) => {
       const x = m * 244;
-      e.push({ name: "column-" + f.id, x: x + 2, y: C, width: 240, height: c, fill: v(s(m), 0.6), line: v(s(m), 0.1) }), e.push({ name: "lane-" + f.id, x: x + 8, y: C + 6, width: 228, height: 58, text: f.label, fill: s(m), fontSize: 16 }), e.push({ name: "caption-" + f.id, x: x + 8, y: C + 66, width: 228, height: 30, text: Z(t, f.id), fill: "transparent", lineWidth: 0, fontSize: 15 }), t.cards.filter((u) => u.laneId === f.id).forEach((u, h) => e.push({ name: "card-" + u.id, x: x + 8, y: C + 98 + h * 88, width: 228, height: 76, text: Q(t, u.id), fontSize: 15 }));
+      e.push({ name: "column-" + f.id, x: x + 2, y: C, width: 240, height: c, fill: v(s(m), 0.6), line: v(s(m), 0.1) }), e.push({ name: "lane-" + f.id, x: x + 8, y: C + 6, width: 228, height: 58, text: f.label, fill: s(m), fontSize: 16 }), e.push({ name: "caption-" + f.id, x: x + 8, y: C + 66, width: 228, height: 40, text: Z(t, f.id), fill: "transparent", lineWidth: 0, fontSize: 15 }), t.cards.filter((u) => u.laneId === f.id).forEach((u, h) => e.push({ name: "card-" + u.id, x: x + 8, y: C + 108 + h * 88, width: 228, height: 76, text: Q(t, u.id), fontSize: 15 }));
     }), d = t.lanes.length * 244, i = C + c;
   }
   return e.push({ name: "gauge-forecast", x: 0, y: 0, width: Math.min(d, 520), height: 34, text: kt(t), fill: "transparent", lineWidth: 0, fontSize: 17 }), { parts: e, width: d, height: i };
@@ -465,7 +465,7 @@ function $(t, a = {}) {
       text: yt(t, r.id),
       fill: "transparent",
       lineWidth: 0,
-      fontSize: n ? 14 : 12
+      fontSize: n ? 15 : 12
     }), t.cards.filter((y) => y.laneId === r.id).forEach((y, w) => l.push({
       name: "card-" + y.id,
       x: h.x,
