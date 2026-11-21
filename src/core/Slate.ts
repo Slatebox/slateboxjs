@@ -2479,6 +2479,7 @@ export class Slate {
       console.log("SELECTION_DEBUG: Deselecting node", node.id);
       this.selectedNodes = this.selectedNodes.filter((n) => n !== node);
       node.onDeselected();
+      this.putAwaySelectionUi(node);
       this.selectionChanged();
 
       // Update group resize/rotate
@@ -2487,6 +2488,22 @@ export class Slate {
       } else {
         this.updateSelectionResizeRotate();
       }
+    }
+  }
+
+  /**
+   * A note's outline, handles, plugs and cog live outside the note, in an overlay
+   * the selection pass reaches only through the notes still on the slate. A note
+   * leaving the selection (deselected, removed, or replaced by an undo) puts them
+   * away itself, or they stay round empty canvas.
+   */
+  private putAwaySelectionUi(node: Node) {
+    try {
+      if (node.resizeRotate?.isEnabled?.()) node.resizeRotate.disable();
+      if (node.isConnectionHandlesEnabled?.()) node.disableConnectionHandles();
+      (node as any).hideNodeCog?.();
+    } catch (error) {
+      /* its drawing is already gone */
     }
   }
 
@@ -3057,6 +3074,7 @@ export class Slate {
         } catch (error) {
           /* its drawing is already gone */
         }
+        this.putAwaySelectionUi(node);
       }
       try {
         this.updateSelectionResizeRotate();
@@ -3078,6 +3096,7 @@ export class Slate {
   private dropReplacedFromSelection(): void {
     const kept = this.selectedNodes.filter((n) => this.nodes.one(n.id) === n);
     if (kept.length === this.selectedNodes.length) return;
+    for (const node of this.selectedNodes) if (!kept.includes(node)) this.putAwaySelectionUi(node);
     this.selectedNodes = kept;
     this.selectionChanged();
     try {

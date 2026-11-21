@@ -71,6 +71,12 @@ export class NodesManager {
           /* noop */
         }
       })
+      // A note leaving the slate leaves the selection first (a collaborator's
+      // delete, or a note someone else made a workshop card, arrives here and
+      // not through slate.removeNode): otherwise its outline and handles stay
+      // round empty canvas and the selection holds a note that is gone.
+      const slate: any = this.slate
+      if (slate?.getSelectedNodes?.()?.includes?.(node)) slate.deselectNode?.(node)
       node.remove()
       this.nodes.delete(id)
       return true

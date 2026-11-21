@@ -498,6 +498,61 @@ describe("Position", () => {
 });
 
 // ---------------------------------------------------------------------------
+// The selection outline follows a programmatic move
+// ---------------------------------------------------------------------------
+
+describe("Position keeps the selection outline on the note", () => {
+  // The outline (svg.select) watches the shape's own attributes; a move lives on the
+  // parent group's transform, which it never sees. A note that is moved while selected
+  // (a note dropped on a workshop lane becomes a card that is selected while it glides
+  // into its slot) must take its outline along, or the outline is left where it was.
+  const glideDone = () => new Promise((resolve) => setTimeout(resolve, 200));
+
+  async function selectedNode(selected: boolean) {
+    const queueSelectionDecorationRefresh = vi.fn();
+    const slate: Record<string, any> = { queueSelectionDecorationRefresh, selectedNodes: [] };
+    const node = await createNode({ x: 100, y: 100 }, slate);
+    const resizeRotate = { ...createMockResizeRotate(), syncOverlay: vi.fn(), isEnabled: vi.fn().mockReturnValue(selected) };
+    (node as any).resizeRotate = resizeRotate;
+    if (selected) {
+      node.slate.selectedNodes.push(node);
+      (node.slate.getSelectedNodes as any).mockReturnValue([node]);
+    }
+    return { node, queueSelectionDecorationRefresh, resizeRotate };
+  }
+
+  it("refreshes the selection outline where a selected note comes to rest after a glide", async () => {
+    const { node, queueSelectionDecorationRefresh } = await selectedNode(true);
+    node.position(300, 260, undefined, undefined, 60);
+    await glideDone();
+    expect(node.options.x).toBe(300);
+    expect(queueSelectionDecorationRefresh).toHaveBeenCalled();
+  });
+
+  it("keeps the outline on a selected note while it glides", async () => {
+    const { node, resizeRotate } = await selectedNode(true);
+    node.position(300, 260, undefined, undefined, 60);
+    await glideDone();
+    expect(resizeRotate.syncOverlay).toHaveBeenCalled();
+  });
+
+  it("refreshes the selection outline when a selected note is moved at once", async () => {
+    const { node, queueSelectionDecorationRefresh } = await selectedNode(true);
+    node.position(300, 260);
+    expect(queueSelectionDecorationRefresh).toHaveBeenCalled();
+  });
+
+  it("leaves the selection alone when the note is not selected", async () => {
+    const { node, queueSelectionDecorationRefresh, resizeRotate } = await selectedNode(false);
+    node.position(300, 260, undefined, undefined, 60);
+    await glideDone();
+    node.position(10, 10);
+    expect(queueSelectionDecorationRefresh).not.toHaveBeenCalled();
+    expect(resizeRotate.syncOverlay).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // setSize Tests (1.38)
 // ---------------------------------------------------------------------------
 
