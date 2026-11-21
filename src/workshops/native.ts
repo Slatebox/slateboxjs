@@ -15,7 +15,7 @@ import { v1AssociationToV2, v1NodeToV2, v2NodeToV1 } from '../core/compat'
 import type { NodeJSON } from '../core/Serialization'
 import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type WorldPoint } from '../core/DragPolicy'
 import {
-  businessKind, validateWorkshop, workshopCandidate, workshopCardNoteText, workshopRules, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLookOf, workshopDestinations,
+  behaviourNote, businessKind, validateWorkshop, workshopCandidate, workshopCardNoteText, workshopRules, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLookOf, workshopDestinations,
   workshopLaneCaption, workshopLanePlaces, workshopNodeIds, workshopNoteCandidate, workshopNoteRefusal, workshopRefusal,
   workshopStandInId, workshopTakesNotes, workshopToSlate, type Workshop, type WorkshopBoardLayout, type WorkshopCard,
   type WorkshopCardAsNote, type WorkshopCardLook, type WorkshopNoteOffer, type WorkshopNoteStyle,
@@ -1453,7 +1453,15 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   /** The notes for a model: the kit's parts, or the lanes and cards of workshopToSlate. */
   function notesOf(model: Workshop, rows?: number[]): NodeJSON[] {
     if (!kit) return workshopToSlate(model, { native: true, origin, rows, layout, style }).nodes
-    return kit.notes(model, layout, origin, style)
+    const nodes = kit.notes(model, layout, origin, style)
+    // A business board with a rulebook: its "How this board behaves" note, under the kit's notes.
+    if (model.behaviour && nodes.length) {
+      const boxes = nodes.map(node => node.options as { xPos: number; yPos: number; width: number; height: number })
+      const left = Math.min(...boxes.map(box => box.xPos)), right = Math.max(...boxes.map(box => box.xPos + box.width))
+      const note = behaviourNote(model, { x: left, y: Math.max(...boxes.map(box => box.yPos + box.height)) + 16, width: Math.min(right - left, 484) }, style)
+      if (note) nodes.push(note)
+    }
+    return nodes
   }
 
   /**

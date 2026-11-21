@@ -17,6 +17,10 @@ const ceilings = {
   'operations.mjs': { raw: 80276 + 2000, gzip: 22791 + 1000 },
   // The agents' drawing: its own entry, loaded when the first agent arrives.
   'presence.mjs': { raw: 20000, gzip: 7000 },
+  // A board's rulebook (behaviour.ts): loaded only for a board that has rules, and by a server.
+  'workshop-behaviour.mjs': { raw: 20000, gzip: 6000 },
+  // The library of what can be added (pure data): loaded when the library opens.
+  'catalog.mjs': { raw: 16000, gzip: 5000 },
 }
 
 const read = name => readFileSync(new URL('../dist/' + name, import.meta.url))
@@ -41,6 +45,11 @@ for (const eager of ['slateboxjs.mjs', 'workshop-model.mjs', 'operations.mjs']) 
 // The business rules load with their kits, never with the model a plain slate loads.
 if (importsOf('workshop-model.mjs').some(target => /rules/.test(target))) problems.push('workshop-model.mjs imports the business rules: they load with the kits (slateboxjs/boards) or slateboxjs/workshops/rules.')
 if (/function scheduleLaunch|function validatePipeline|function validateBudget|function readNoteNumbers/.test(read('workshop-model.mjs').toString('utf8'))) problems.push('workshop-model.mjs carries a business board\'s rules.')
+// The rulebook and the library stay out of the model a plain slate loads, and out of the business rules.
+for (const eager of ['slateboxjs.mjs', 'workshop-model.mjs', 'workshop-rules.mjs', 'boards.mjs']) {
+  if (importsOf(eager).some(target => /behaviour|catalog/.test(target))) problems.push(`${eager} imports the rulebook or the library: they load on their own.`)
+}
+if (importsOf('catalog.mjs').length) problems.push('catalog.mjs must stand alone: pure data, no model.')
 if (!importsOf('workshop-rules.mjs').includes('./workshop-model.mjs')) problems.push('workshop-rules.mjs must plug into ./workshop-model.mjs, not carry its own model.')
 const boards = importsOf('boards.mjs')
 if (!boards.includes('./workshop-rules.mjs')) problems.push('boards.mjs must load the rules from ./workshop-rules.mjs, the code a server runs.')

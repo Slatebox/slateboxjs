@@ -7,8 +7,10 @@
 //   - a browser loads a board's rules with its kit (slateboxjs/boards), before the board is drawn.
 // A slate without one of these boards never downloads their rules. Until a kind's rules have
 // loaded, a board of that kind can't be read: the gate refuses it instead of guessing.
-import type { BusinessBoardKind, Workshop, WorkshopCard, WorkshopLane } from './model'
+import type { BusinessBoardKind, Workshop, WorkshopCard, WorkshopLane, WorkshopNoteStyle } from './model'
+import type { NodeJSON } from '../core/Serialization'
 import type { WorkshopEdit, WorkshopEditRefusalCode, WorkshopRef } from './edits'
+import type { Behaviour, BehaviourVerdict, RuleAudit } from './behaviour'
 
 /** A numeric edit's legal range, with the sentence a person gets at each end. */
 export interface WorkshopLimits { field: string; min: number; max: number; reasons: { min?: string; max?: string } }
@@ -78,4 +80,27 @@ export function workshopRules(kind: BusinessBoardKind): BusinessBoardRules {
   const rules = registry.get(kind)
   if (!rules) throw new Error(`The ${names[kind] ?? kind} rules have not loaded. Load slateboxjs/boards (in a browser) or slateboxjs/workshops/rules (on a server) first.`)
   return rules
+}
+
+/**
+ * The rulebook (behaviour.ts): how a lane board or pipeline behaves, as data. It loads on its own
+ * (slateboxjs/workshops/behaviour), for a board that has rules and on a server, so a slate without one never
+ * downloads it. Until it has loaded, a board that carries rules can't be read: the gate refuses it.
+ */
+export interface RulebookHooks {
+  validate(input: unknown, board: Workshop): Behaviour
+  check(before: Workshop, after: Workshop): BehaviourVerdict
+  laneLimit(board: Workshop, laneId: string): number | undefined
+  lines(board: Workshop): string[]
+  dropLane(behaviour: Behaviour, laneId: string): Behaviour
+  edit(board: Workshop, edit: WorkshopEdit, audit: RuleAudit, tools: Pick<BusinessEditTools, 'lane' | 'refuse' | 'done'>): BusinessEditStep
+  note(board: Workshop, box: { x: number; y: number; width: number }, style: WorkshopNoteStyle): NodeJSON | null
+  setLimit(board: Workshop, laneId: string, capacity: number | null, audit: RuleAudit): Workshop | string | null
+}
+let rulebookHooks: RulebookHooks | null = null
+export function registerRulebook(hooks: RulebookHooks): void { rulebookHooks = hooks }
+export function rulebookLoaded(): boolean { return rulebookHooks !== null }
+export function rulebook(): RulebookHooks {
+  if (!rulebookHooks) throw new Error('This board has rules, and they have not loaded. Load slateboxjs/workshops/behaviour first.')
+  return rulebookHooks
 }

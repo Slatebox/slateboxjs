@@ -1,0 +1,196 @@
+// slateboxjs/catalog: everything a person can add to a slate (library final.md §2.4, §2.8).
+//
+// One list, read by the panel's library, the + menu, the chat (local "what can I add?" and
+// "Add a retro"), exec's components.list, agents and the site. Pure data and small functions:
+// no drawing, no DOM. An entry is listed only when its kind is built and every edit it lists has
+// a phrase that parses on its sample (the app's listing-gate test). Presets are data that ship
+// with the engine, not slates stored in a database.
+import type { Workshop, WorkshopLane } from './model'
+import type { WorkshopBoardKind, WorkshopEditKindName } from './edits'
+import type { BehaviourRule, RuleKindId } from './behaviour'
+
+export const catalogVersion = '1.0'
+
+export type CatalogGroup = 'plan' | 'decide' | 'meetings' | 'track' | 'map'
+export const catalogGroups: { id: CatalogGroup | 'all'; label: string }[] = [
+  { id: 'all', label: 'All' }, { id: 'plan', label: 'Plan' }, { id: 'decide', label: 'Decide' },
+  { id: 'meetings', label: 'Meetings' }, { id: 'track', label: 'Track' }, { id: 'map', label: 'Map' },
+]
+
+export interface CatalogEntry {
+  /** Stable: /new#add=<id>, exec, analytics. */
+  id: string
+  group: CatalogGroup
+  name: string
+  /** One line under the name. */
+  line: string
+  /** The job it does, in the words people search with. */
+  synonyms: string[]
+  build: { kind: WorkshopBoardKind; sample?: 'launch-plan' | 'pipeline' | 'budget' }
+  /** What a person says to add it: the first is the Add button's message. */
+  addSay: string[]
+  /** The workshop_edits this board takes, joined to the engine's edit table (not copied). */
+  edits: WorkshopEditKindName[]
+  /** The rule kinds a person can give it (behaviour.ts). */
+  rules: RuleKindId[]
+  /** "Say it like this": phrases with {lane} / {card} slots the app fills from the live board and checks against its parser. */
+  say: string[]
+  limits: string[]
+  /** A looping picture of its signature drag; the caption is the rule's own sentence. */
+  loop: { src: string; alt: string; caption: string; steps: string[] }
+  multiPerSlate: false
+}
+
+const preset = (by = 'Slatebox'): BehaviourRule['set'] => ({ by, at: '2026-11-21T00:00:00.000Z', via: 'preset' })
+type Lanes = { title: string; lanes: WorkshopLane[]; rules?: Array<Record<string, unknown>> }
+
+/** The lane presets: lanes and default rules, no cards (cards are notes a person brings). */
+const lanePresets: Record<string, Lanes> = {
+  'now-next-later': { title: 'Now, next, later', lanes: [{ id: 'now', label: 'Now' }, { id: 'next', label: 'Next' }, { id: 'later', label: 'Later' }],
+    rules: [{ kind: 'capacity', where: 'next', max: 3 }] },
+  'pros-cons': { title: 'Pros and cons', lanes: [{ id: 'pros', label: 'Pros' }, { id: 'cons', label: 'Cons' }, { id: 'questions', label: 'Questions' }], rules: [] },
+  'must-should-could': { title: 'Must, should, could', lanes: [{ id: 'must', label: 'Must' }, { id: 'should', label: 'Should' }, { id: 'could', label: 'Could' },
+    { id: 'wont', label: "Won't" }], rules: [{ kind: 'capacity', where: 'must', max: 3 }, { kind: 'capacity', where: 'could', max: 2 }, { kind: 'bin', lane: 'wont' }] },
+  retro: { title: 'Retro', lanes: [{ id: 'well', label: 'Went well' }, { id: 'change', label: 'Change' }, { id: 'try', label: 'Try' }],
+    rules: [{ kind: 'capacity', where: 'well', max: 3 }, { kind: 'capacity', where: 'change', max: 3 }, { kind: 'capacity', where: 'try', max: 3 }] },
+  triage: { title: 'Triage', lanes: [{ id: 'new', label: 'New' }, { id: 'today', label: 'Today' }, { id: 'waiting', label: 'Waiting' }, { id: 'done', label: 'Done' }],
+    rules: [{ kind: 'capacity', where: 'today', max: 3 }] },
+  'team-board': { title: 'Team board', lanes: [{ id: 'todo', label: 'To do' }, { id: 'doing', label: 'Doing' }, { id: 'review', label: 'Review' },
+    { id: 'done', label: 'Done' }, { id: 'wont', label: "Won't do" }], rules: [{ kind: 'capacity', where: 'doing', max: 3 }, { kind: 'bin', lane: 'wont' }] },
+}
+
+const decisionPath = (): Workshop => ({ version: 1, title: 'Decision path', lanes: [
+  { id: 'question', label: 'The question', station: { column: 0, row: 0, next: ['option-a', 'option-b'], outcome: 'Say what you are deciding.' } },
+  { id: 'option-a', label: 'Option A', station: { column: 1, row: 0, next: ['decide'], outcome: 'Weigh the first option.' } },
+  { id: 'option-b', label: 'Option B', station: { column: 1, row: 1, next: ['decide'], outcome: 'Weigh the second option.' } },
+  { id: 'decide', label: 'Decide', station: { column: 2, row: 0, next: [], outcome: 'Write down what you chose and why.' } },
+], cards: [{ id: 'token', label: 'Our choice', laneId: 'question' }] })
+
+const laneEdits: WorkshopEditKindName[] = ['rename_workshop', 'rename_lane', 'rename_card', 'add_lane', 'remove_lane', 'add_card', 'remove_card', 'move_card',
+  'set_lane_capacity', 'add_rule', 'set_rule', 'remove_rule']
+const laneSay = ['Add a card called Snacks to {lane}', 'Move {card} to {lane}', 'Let {lane} hold 2', 'Cards move one lane at a time', 'How does this board behave?']
+const laneLimits = ['One board per slate for now; on a slate that has one, this opens on a new slate.', 'Up to 5 lanes and 24 cards.']
+const lanesEntry = (id: string, group: CatalogGroup, name: string, line: string, synonyms: string[], caption: string, steps: string[], extra: Partial<CatalogEntry> = {}): CatalogEntry => ({
+  id, group, name, line, synonyms, build: { kind: 'lanes' }, addSay: ['Add ' + article(name) + name.toLowerCase(), 'Add ' + article(name) + name.toLowerCase() + ' about {topic}'],
+  edits: laneEdits, rules: ['capacity', 'path', 'bin'], say: laneSay, limits: laneLimits,
+  loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false, ...extra,
+})
+const article = (name: string) => /^pros/i.test(name) ? '' : /^[aeiou]/i.test(name) ? 'an ' : 'a '
+
+export const catalog: readonly CatalogEntry[] = [
+  lanesEntry('now-next-later', 'plan', 'Now / Next / Later', 'Order work loosely; Next holds 3', ['roadmap', 'plan work', 'priorities', 'order work', 'backlog'],
+    'Next holds 3.', ['Drag a note into a lane: it becomes a card.', 'A full lane dims and says why.'], { addSay: ['Add a Now / Next / Later board', 'Add a Now / Next / Later board about {topic}'] }),
+  lanesEntry('pros-cons', 'decide', 'Pros and cons', 'Weigh one decision: pros, cons, questions', ['pro con', 'pros cons', 'weigh a decision', 'decide', 'tradeoffs', 'trade-offs'],
+    '2 pros, 1 con', ['Drag a note in: it becomes a point.', 'Drag it out: it is a note again.'], { addSay: ['Add pros and cons', 'Add pros and cons for {topic}'] }),
+  lanesEntry('must-should-could', 'decide', 'Must / Should / Could', 'Prioritise with limits', ['moscow', 'prioritise', 'prioritize', 'priorities', 'features', 'scope'],
+    'Could holds 2.', ['Drop a card in Must or Could.', 'A full lane refuses, in its own words.'], { addSay: ['Add a Must / Should / Could board', 'Add a Must / Should / Could board about {topic}'] }),
+  { id: 'decision-path', group: 'decide', name: 'Decision path', line: 'Walk through a choice step by step', synonyms: ['decision tree', 'walk through', 'flow', 'choice', 'path', 'decide'],
+    build: { kind: 'map' }, addSay: ['Add a decision path', 'Add a decision path about {topic}'],
+    edits: ['rename_workshop', 'rename_lane', 'add_station', 'insert_station', 'connect_stations', 'disconnect_stations', 'set_station_outcome', 'move_card', 'advance_card'],
+    rules: [], say: ['Add Follow-up after {lane}', 'Connect {lane} to {lane}', 'Move to {lane}'], limits: ['Up to 5 steps on a 3 by 3 grid.', laneLimits[0]],
+    loop: { src: '/library/decision-path.svg', alt: 'Decision path: the token moves only along connected steps.', caption: 'Not connected', steps: ['Drag the token along a path.', 'A step with no path to it dims.'] }, multiPerSlate: false },
+  lanesEntry('retro', 'meetings', 'Retro', 'Went well, change, try: 3 cards each', ['retrospective', 'retro', 'run a retro', 'team meeting', 'look back', 'lessons'],
+    'Try holds 3.', ['A note turns into a card and back.', 'Each lane holds 3; the fourth is refused.']),
+  lanesEntry('triage', 'track', 'Triage', 'Sort incoming work; Today holds 3', ['triage', 'inbox', 'incoming', 'support', 'bugs', 'sort work', 'track work'],
+    'Today holds 3.', ['A card goes into Today.', 'A full Today refuses.'], { addSay: ['Add a triage board', 'Add a triage board about {topic}'] }),
+  lanesEntry('team-board', 'track', 'Team board', 'Your working agreements, enforced: limits, paths, a bin', ['kanban', 'team board', 'working agreements', 'wip limit', 'to do doing done', 'track work', 'sprint'],
+    'Review holds 2. It has 3.', ['Say “Let Review hold 2”: the board shows 3 of 2.', 'The next card dragged to Review is refused with that sentence.'], { addSay: ['Add a team board', 'Add a team board about {topic}'] }),
+  { id: 'launch-plan', group: 'plan', name: 'Launch plan', line: 'Tasks over days, with a launch date', synonyms: ['launch', 'timeline', 'gantt', 'schedule', 'deadline', 'release date'],
+    build: { kind: 'launch-plan', sample: 'launch-plan' }, addSay: ['Add a launch plan', 'Add a launch plan about {topic}'],
+    edits: ['rename_workshop', 'rename_card', 'add_card', 'remove_card', 'move_card', 'set_task', 'link_tasks', 'unlink_tasks', 'set_launch_day'], rules: [],
+    say: ['Make {card} 3 days', 'Move launch to day 20'], limits: ['Every task ends by launch day.', laneLimits[0]],
+    loop: { src: '/library/launch-plan.svg', alt: 'Launch plan: stretch a task, slide it past launch and get refused.', caption: 'That pushes QA past launch.', steps: ['Stretch a task.', 'Slide it past launch: refused.'] }, multiPerSlate: false },
+  { id: 'sales-pipeline', group: 'track', name: 'Sales pipeline', line: 'Move deals through stages toward a target', synonyms: ['deals', 'sales', 'pipeline', 'crm', 'track deals', 'forecast', 'customers'],
+    build: { kind: 'pipeline', sample: 'pipeline' }, addSay: ['Add a sales pipeline', 'Add a sales pipeline about {topic}'],
+    edits: ['rename_workshop', 'rename_lane', 'rename_card', 'add_card', 'remove_card', 'move_card', 'set_lane_capacity', 'set_amount', 'set_target', 'add_rule', 'set_rule', 'remove_rule'],
+    rules: ['capacity', 'gate'], say: ['Move {card} to {lane}', 'Let {lane} hold 4', '{lane} needs an amount', 'How does this board behave?'], limits: ['Up to 16 deals.', laneLimits[0]],
+    loop: { src: '/library/sales-pipeline.svg', alt: 'Sales pipeline: carry a deal on; stages it cannot skip dim; the forecast moves.', caption: 'Proposal holds 3.', steps: ['Carry a deal to the next stage.', 'A full stage refuses.'] }, multiPerSlate: false },
+  { id: 'budget', group: 'plan', name: 'Budget', line: 'Split a fixed total across teams', synonyms: ['budget', 'money', 'spend', 'allocate', 'costs'],
+    build: { kind: 'budget', sample: 'budget' }, addSay: ['Add a budget', 'Add a budget about {topic}'],
+    edits: ['rename_workshop', 'rename_card', 'add_card', 'remove_card', 'move_card', 'set_amount', 'shift_budget'], rules: [],
+    say: ['Make {card} $20k'], limits: ['The total stays fixed.', laneLimits[0]],
+    loop: { src: '/library/budget.svg', alt: 'Budget: move money between teams; the total stays fixed.', caption: 'The total stays fixed.', steps: ['Move a divider between teams.', 'The total stays the same.'] }, multiPerSlate: false },
+]
+
+export function catalogEntry(id: string): CatalogEntry | undefined {
+  return catalog.find(entry => entry.id === id)
+}
+
+/** The entries of a group (or all), in catalogue order. */
+export function catalogList(group: CatalogGroup | 'all' = 'all'): CatalogEntry[] {
+  return catalog.filter(entry => group === 'all' || entry.group === group)
+}
+
+/** A business board's sample, from slateboxjs/workshops/rules (sampleLaunchPlan, samplePipeline, sampleBudget): this chunk keeps no rules. */
+export type CatalogSamples = Partial<Record<'launch-plan' | 'pipeline' | 'budget', () => Workshop>>
+
+/** The board an entry adds, as data, named after the topic when one is given. A business board needs its sample. */
+export function catalogPreset(id: string, topic?: string, samples: CatalogSamples = {}): Workshop {
+  const entry = catalogEntry(id)
+  if (!entry) throw new Error('There is nothing called ' + id + ' in the library.')
+  const named = (title: string) => {
+    const about = typeof topic === 'string' ? topic.replace(/\s+/g, ' ').trim().slice(0, 100) : ''
+    return (about ? title + ': ' + about : title).slice(0, 120)
+  }
+  if (entry.build.sample) {
+    const sample = samples[entry.build.sample]
+    if (!sample) throw new Error('Load slateboxjs/workshops/rules before adding a ' + entry.name.toLowerCase() + '.')
+    const board = sample()
+    return { ...board, title: topic ? named(entry.name) : board.title }
+  }
+  if (entry.build.kind === 'map') return { ...decisionPath(), title: named('Decision path') }
+  const lanes = lanePresets[id]
+  return { version: 1, title: named(lanes.title), lanes: lanes.lanes.map(lane => ({ ...lane })), cards: [],
+    behaviour: { version: 1, rev: 0, rules: (lanes.rules ?? []).map((rule, index) => ({ id: 'rule-' + (index + 1), on: true, severity: 'refuse', set: preset(), ...rule }) as BehaviourRule) } }
+}
+
+const plain = (text: string) => text.toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9/ ]+/g, ' ').replace(/\s+/g, ' ').trim()
+
+/**
+ * "Add a retro", "Add a retro about the Q3 launch", "Add pros and cons for hiring": which entry, and
+ * the topic. Null for anything else (a card called Retro, a workshop described in lanes).
+ */
+export function catalogAddRequest(message: string): { id: string; topic?: string } | null {
+  if (typeof message !== 'string' || message.length > 300) return null
+  const text = message.trim().replace(/[.!]+$/, '')
+  const head = /^(?:please\s+)?(?:add|start|set up|make|create|open)\s+(?:(?:a|an|the|some|our|my)\s+)?(?:new\s+)?/i.exec(text)
+  if (!head) return null
+  const rest = text.slice(head[0].length)
+  for (const entry of [...catalog].sort((a, b) => b.name.length - a.name.length)) {
+    const names = [entry.name, ...entry.addSay.map(say => say.replace(/^Add (?:an? )?/i, '').replace(/ (?:about|for) \{topic\}$/, ''))]
+    for (const name of names) {
+      const words = name.toLowerCase().replace(/\s*\/\s*/g, '\\s*/?\\s*').replace(/ /g, '\\s+')
+      const match = new RegExp('^' + words + '(?:\\s+(?:board|component))?(?:\\s+(?:about|for|on)\\s+(.+))?$', 'i').exec(rest)
+      if (match) return match[1] ? { id: entry.id, topic: match[1].trim() } : { id: entry.id }
+    }
+  }
+  return null
+}
+
+/**
+ * The local answer to a question about the library: "what can I add?" (all), or a job ("something to
+ * track deals") ranked by name and synonyms. Null when the message is not about adding (the chat
+ * goes on as before).
+ */
+export function catalogMatch(message: string): { all: boolean; entries: string[] } | null {
+  const text = plain(message)
+  if (!text || text.length > 200) return null
+  if (/^(?:what|which)\s+(?:can|could)\s+(?:i|we|you)\s+(?:add|make|build|put)\b|^(?:show|list|browse)\s+(?:me\s+)?(?:the\s+)?(?:library|components|boards|everything)|^what\s+(?:is|s)\s+in\s+the\s+library/.test(text)) {
+    return { all: true, entries: catalog.map(entry => entry.id) }
+  }
+  if (!/^(?:something|anything|a (?:board|way|tool)|how (?:do|can|could) (?:i|we)|i (?:want|need)|we (?:want|need)|help (?:me|us))\b/.test(text)) return null
+  const words = new Set(text.split(' ').filter(word => word.length > 2 && !['something', 'anything', 'how', 'can', 'could', 'the', 'and', 'for', 'want', 'need', 'help', 'way', 'run', 'our', 'with'].includes(word)))
+  const scored = catalog.map(entry => {
+    const terms = [entry.name, entry.line, ...entry.synonyms].map(plain).join(' ')
+    let score = 0
+    for (const word of words) if (terms.includes(word) || terms.includes(word.replace(/s$/, ''))) score += entry.synonyms.some(syn => plain(syn).includes(word.replace(/s$/, ''))) ? 2 : 1
+    return { id: entry.id, score }
+  }).filter(item => item.score > 0).sort((a, b) => b.score - a.score)
+  return scored.length ? { all: false, entries: scored.slice(0, 3).map(item => item.id) } : null
+}
+
+/** Whether an entry can be added to this slate, and if not, the honest sentence (the control is never disabled). */
+export function catalogFits(id: string, slate: { hasBoard: boolean }): { ok: true } | { ok: false; reason: string } {
+  if (!catalogEntry(id)) return { ok: false, reason: 'That is not in the library.' }
+  return slate.hasBoard ? { ok: false, reason: 'This slate already has a board, so this opens on a new slate.' } : { ok: true }
+}

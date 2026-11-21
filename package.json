@@ -37,6 +37,16 @@
       "import": "./dist/workshop-rules.mjs",
       "require": "./dist/workshop-rules.cjs"
     },
+    "./workshops/behaviour": {
+      "types": "./dist/workshops/behaviour.d.ts",
+      "import": "./dist/workshop-behaviour.mjs",
+      "require": "./dist/workshop-behaviour.cjs"
+    },
+    "./catalog": {
+      "types": "./dist/workshops/catalog.d.ts",
+      "import": "./dist/catalog.mjs",
+      "require": "./dist/catalog.cjs"
+    },
     "./operations": {
       "types": "./dist/operations/index.d.ts",
       "import": "./dist/operations.mjs",
@@ -66,6 +76,7 @@
     "boards",
     "dragology",
     "presence",
+    "catalog",
     "licenses"
   ],
   "scripts": {
