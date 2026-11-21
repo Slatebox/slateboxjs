@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { SVG } from '@svgdotjs/svg.js'
 import {
-  AGENT_PALETTE, agentChecklist, agentStepText, agentTagBox, agentTagSide, createAgentPresence, visibleAgents, type AgentPresenceRecord,
+  AGENT_PALETTE, agentChecklist, agentStepText, agentTagBox, agentTagPlaced, agentTagSide, createAgentPresence, visibleAgents, type AgentPresenceRecord,
 } from '../../src/core/AgentPresence'
 
 function fakeSlate(notes: Record<string, { x: number; y: number; width: number; height: number }> = {}) {
@@ -90,8 +90,9 @@ describe('agent presence on a canvas', () => {
     const slate = fakeSlate({ a: { x: 0, y: 0, width: 100, height: 100 } })
     const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
     presence.set([record({ targets: ['late'] })])
-    // Before its notes are drawn it waits inside the view, in the corner where its tag covers no note: here the top right.
-    expect(presence.shown()[0]).toMatchObject({ x: 792, y: 8, side: { right: false, down: true } })
+    // Before its notes are drawn it waits inside the view, in the corner where its tag covers no note: here the top right,
+    // its tip far enough in that the 14px chevron is seen whole (it used to sit 8px in, its chevron cut by the edge).
+    expect(presence.shown()[0]).toMatchObject({ x: 776, y: 8, side: { right: false, down: true } })
     ;(slate.nodes.allNodes as any[]).push({ options: { id: 'late', x: 300, y: 300, width: 100, height: 50 } })
     presence.set([record({ targets: ['late'] })])
     expect(presence.shown()[0]).toMatchObject({ x: 392, y: 342 })
@@ -173,6 +174,50 @@ describe('agent presence on a canvas', () => {
     expect(agentTagBox(at, size, 0.5, { right: true, down: true })).toEqual({ x: 280, y: 210, w: 400, h: 80 })
   })
 
+  it('covers no words where it can: a tag goes over a note\'s empty paper rather than over anyone\'s words', () => {
+    const view = { x: 0, y: 0, w: 800, h: 600 }
+    const size = { w: 200, h: 40 }
+    const at = { x: 400, y: 300 }
+    // A big column note under every side, and a line of words right-down of the pointer: right-down is the one side not to take.
+    const column = { x: 0, y: 0, w: 800, h: 600 }
+    const words = [agentTagBox(at, size, 1, { right: true, down: true })]
+    expect(agentTagSide(at, size, 1, view, [], [column], words)).toEqual({ right: false, down: true })
+    // Words to the left-down too: up.
+    words.push(agentTagBox(at, size, 1, { right: false, down: true }))
+    expect(agentTagSide(at, size, 1, view, [], [column], words)).toEqual({ right: true, down: false })
+    // A note it works on still counts: of two sides clear of words, the one off that note wins.
+    const target = agentTagBox(at, size, 1, { right: true, down: false })
+    expect(agentTagSide(at, size, 1, view, [target], [column], words)).toEqual({ right: false, down: false })
+  })
+
+  it('judges a side where its tag would really be drawn: one slid back into view can be the clear one', () => {
+    const view = { x: 0, y: 0, w: 400, h: 300 }
+    const size = { w: 200, h: 40 }
+    const at = { x: 380, y: 100 }
+    // Words above the pointer, and words where the left-down tag would go. Right-down leaves the view, so it is drawn
+    // slid back inside (x 196 to 396), where it covers nothing: that side wins over covering words.
+    const words = [{ x: 0, y: 10, w: 400, h: 60 }, { x: 140, y: 130, w: 50, h: 40 }]
+    expect(agentTagSide(at, size, 1, view, [], [], words)).toEqual({ right: true, down: true })
+    expect(agentTagPlaced(at, size, 1, { right: true, down: true }, view)).toEqual({ x: 196, y: 130, w: 200, h: 40 })
+  })
+
+  it('keeps out of what the host covers at the canvas\'s edges (insets), and waits with its chevron whole', () => {
+    const slate = fakeSlate({ top: { x: 0, y: 0, width: 800, height: 240 } })
+    ;(slate.canvas.node as any).getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, width: 800, height: 600, right: 800, bottom: 600 })
+    // The host draws a 120px strip over the bottom of the canvas, and a note fills the top, so the agent waits at the bottom.
+    const presence = createAgentPresence(slate, { now, reducedMotion: () => true, insets: () => ({ bottom: 120 }) })
+    presence.set([record({ message: 'Draft' })])
+    const at = presence.shown()[0]
+    expect(at.side.down).toBe(false)
+    // Above the strip, and the chevron (14px from its tip) inside the view.
+    expect(at.y).toBeGreaterThan(300)
+    expect(at.y + 14).toBeLessThanOrEqual(480)
+    expect(at.x + 14).toBeLessThanOrEqual(800)
+    const tag = slate.host.querySelector('[data-agent-tag] rect') as SVGRectElement
+    expect(at.y + Number(tag.getAttribute('y')) + Number(tag.getAttribute('height'))).toBeLessThanOrEqual(480)
+    presence.destroy()
+  })
+
   it('reads what the canvas shows when the element crops its view box (preserveAspectRatio slice)', () => {
     const slate = fakeSlate({ note: { x: 440, y: 200, width: 80, height: 80 } })
     // The element is 400 by 600 pixels and slices an 800 by 600 view box: only x 200 to 600 is on screen, at 1:1.
@@ -227,6 +272,26 @@ describe('agent presence on a canvas', () => {
     expect(x).toBeGreaterThanOrEqual(0)
     expect(x + w).toBeLessThanOrEqual(800)
     presence.destroy()
+  })
+
+  it('leaves the tag beside its pointer when the camera is not showing the note it works on', () => {
+    const slate = fakeSlate({ away: { x: 1200, y: 200, width: 120, height: 80 } })
+    const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
+    presence.set([record({ targets: ['away'], message: 'Draft' })])
+    const at = presence.shown()[0]
+    expect(at.x).toBeGreaterThan(800)
+    // Its words are not pulled into a view the agent is not in, where they would lie over whatever is shown there.
+    const tag = slate.host.querySelector('[data-agent-tag] rect') as SVGRectElement
+    expect(at.x + Number(tag.getAttribute('x'))).toBeGreaterThan(800)
+    presence.destroy()
+    // Just off the left edge: the tag goes on the side away from the view, so none of it is cut by the edge.
+    const near = fakeSlate({ left: { x: -150, y: 200, width: 120, height: 80 } })
+    const other = createAgentPresence(near, { now, reducedMotion: () => true })
+    other.set([record({ targets: ['left'], message: 'Draft' })])
+    const shown = other.shown()[0], rect = near.host.querySelector('[data-agent-tag] rect') as SVGRectElement
+    expect(shown.x).toBeLessThan(0)
+    expect(shown.x + Number(rect.getAttribute('x')) + Number(rect.getAttribute('width'))).toBeLessThanOrEqual(0)
+    other.destroy()
   })
 
   it('keeps the avatar on screen when the pointer is at the edge of the view', () => {
