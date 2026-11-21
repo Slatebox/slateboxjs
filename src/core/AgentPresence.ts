@@ -217,6 +217,10 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   const noteBoxes = (): Box[] => (slate.nodes?.allNodes ?? []).map(boxOf).filter((box: Box | null): box is Box => Boolean(box))
   const sameBox = (a: Box, b: Box) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
 
+  // Where the notes are, as a key: a note that moved or changed size changes it.
+  function notesKey(): string {
+    return noteBoxes().map(box => [box.x, box.y, box.w, box.h].map(Math.round).join(',')).join(';')
+  }
   // The view as a key, to the nearest 8 screen pixels: a pan or zoom changes it, a jitter does not.
   function viewKey(): string {
     const view = viewBox(), scale = zoom()
@@ -398,7 +402,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       const size = blockSize(record, agentChecklist(record).length > 0 && (open || !compact))
       // A tag that grew (a list opened, a longer step) or a new zoom may need another corner.
       // A pan or zoom moves what is on screen: the corner and side are chosen again for the view as it is now.
-      const routedFor = [size.w, size.h, scale.toFixed(4), viewKey()].join(',')
+      const routedFor = [size.w, size.h, scale.toFixed(4), viewKey(), notesKey()].join(',')
       if (!item) {
         const route = routeTo(record, index, size, scale)
         const first = route.legs[0]
@@ -462,11 +466,15 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   let watch: ReturnType<typeof setInterval> | null = null
   const watchZoom = () => {
     if (watch !== null) return
-    let lastView = viewKey()
+    let lastView = viewKey(), lastNotes = notesKey(), settledNotes = lastNotes
     watch = setInterval(() => {
       if (destroyed || !drawn.size) return
-      const view = viewKey()
-      if (Math.abs(zoom() - lastScale) > 1e-6 || view !== lastView) { lastView = view; render() }
+      const view = viewKey(), notes = notesKey()
+      // Notes that moved under a tag (a card someone dropped there) count once they have stayed put for a beat, so a
+      // drag in progress does not send the pointer from corner to corner.
+      const notesSettled = notes === lastNotes && notes !== settledNotes
+      lastNotes = notes
+      if (Math.abs(zoom() - lastScale) > 1e-6 || view !== lastView || notesSettled) { lastView = view; settledNotes = notes; render() }
     }, 250)
   }
 
