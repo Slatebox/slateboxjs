@@ -151,13 +151,17 @@ export declare const workshopLayout: {
     top: number;
 };
 export declare const laneColors: string[];
+/**
+ * Where each lane starts. `held` (cards per lane on the committed board) keeps a map's
+ * rows the height they had when a card was picked up, so no station moves under the pointer.
+ */
 export declare function workshopPositions(board: Workshop, layout?: {
     pitch: number;
     width: number;
     row: number;
     height: number;
     top: number;
-}, stationGap?: number): {
+}, stationGap?: number, held?: number[]): {
     points: {
         x: number;
         y: number;
