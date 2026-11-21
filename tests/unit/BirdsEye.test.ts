@@ -171,7 +171,8 @@ describe("BirdsEye", () => {
       expect(opts.width).toBe(200);
       expect(opts.height).toBe(150);
       expect(opts.backgroundColor).toBe("rgba(255, 255, 255, 0.95)");
-      expect(opts.viewportColor).toBe("rgba(66, 133, 244, 0.3)");
+      // Light fill (owner, 2026-11-21): the notes under the rectangle read through it.
+      expect(opts.viewportColor).toBe("rgba(66, 133, 244, 0.12)");
       expect(opts.viewportBorderColor).toBe("#4285f4");
       expect(opts.nodeColor).toBe("#666666");
       expect(opts.borderRadius).toBe(4);
@@ -554,7 +555,7 @@ describe("BirdsEye", () => {
       const indicator = (be as any).viewportIndicator;
       expect(indicator).not.toBeNull();
       expect(indicator.fill).toHaveBeenCalledWith(
-        "rgba(66, 133, 244, 0.3)"
+        "rgba(66, 133, 244, 0.12)"
       );
       expect(indicator.stroke).toHaveBeenCalledWith({
         color: "#4285f4",
@@ -725,8 +726,9 @@ describe("BirdsEye", () => {
       const be = new BirdsEye(mockSlate);
       be.enable();
 
-      const miniCanvas = (be as any).miniCanvas;
-      expect(miniCanvas.circle).toHaveBeenCalled();
+      // Thumbnails are drawn in the node layer, under the viewport rectangle.
+      const nodeLayer = (be as any).nodeLayer;
+      expect(nodeLayer.circle).toHaveBeenCalled();
     });
 
     it("addNodeShape does nothing when disabled", () => {
