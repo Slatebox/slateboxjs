@@ -134,10 +134,76 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     color: state.refused ? layerInk.refuse : layerInk.ink, size: 14, bold: true, role: 'header' })
   if (state.clamp) {
     const part = g.parts.find(item => item.name === state.clamp!.name)
-    if (part) shapes.push({ t: 'text', x: Math.min(part.x + 40, g.width - 4), y: part.y + 14, text: state.clamp.text, color: layerInk.refuse, size: 13,
-      anchor: part.x + 40 > g.width - 160 ? 'end' : 'start', bold: true, role: 'clamp' })
+    if (part) shapes.push(...saidNear(g, shapes, state.clamp.text, part))
   }
   return shapes
+}
+
+interface Box { x: number; y: number; w: number; h: number }
+const SAID_SIZE = 13
+const SAID_LINE = 16
+/** A generous width for a letter of bold system-ui words at this size (about 0.58em), so an estimate never runs short. */
+const letter = (size: number, bold?: boolean) => size * (bold ? 0.64 : 0.6)
+const clear = (a: Box, b: Box) => a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y
+function textBox(shape: Extract<LayerShape, { t: 'text' }>): Box {
+  const size = shape.size ?? 13, w = shape.text.length * letter(size, shape.bold)
+  const x = shape.anchor === 'end' ? shape.x - w : shape.anchor === 'middle' ? shape.x - w / 2 : shape.x
+  return { x, y: shape.y - size, w, h: size * 1.3 }
+}
+/** Words on lines no wider than `max` letters, broken between words. */
+function wrap(text: string, max: number): string[] {
+  const lines: string[] = []
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const last = lines.at(-1)
+    if (last !== undefined && last.length + 1 + word.length <= max) lines[lines.length - 1] = last + ' ' + word
+    else lines.push(word)
+  }
+  return lines
+}
+let saidMemo: { key: string; shapes: LayerShape[] } | null = null
+/**
+ * The words a held or refused grip says (why it stops, why it was refused), set where they lie over no bar and no
+ * other words of the plan: in clear space on the day grid, as near the grip as there is room, on as few lines as fit.
+ * A bar, a row's name, the header, a week label and a slack figure are kept clear; grid lines and arrows may pass
+ * under the words. Only when the plan has no such space are they set beside the grip, as before.
+ */
+function saidNear(g: LaunchGeometry, shapes: LayerShape[], text: string, part: PartPlace): LayerShape[] {
+  const busy: Box[] = [...g.bars.values()].map(bar => ({ x: bar.x - 4, y: bar.y - 3, w: bar.width + 8, h: bar.height + 6 }))
+  for (const shape of shapes) {
+    if (shape.t === 'text') busy.push(textBox(shape))
+    else if (shape.t === 'rect') busy.push({ x: shape.x - 2, y: shape.y - 2, w: shape.w + 4, h: shape.h + 4 })
+  }
+  const left = g.narrow ? 6 : g.x0 + 2, right = g.width - 4, top = g.gridTop + 2, bottom = g.height - 6
+  const grip = { x: part.x + part.width / 2, y: part.y + part.height / 2 }
+  const key = JSON.stringify([text, grip, left, right, top, bottom, busy.map(box => [box.x, box.y, box.w, box.h].map(Math.round))])
+  if (saidMemo?.key === key) return saidMemo.shapes
+  const em = letter(SAID_SIZE, true), wide = Math.floor((right - left) / em)
+  const choices = new Map<string, string[]>()
+  for (const share of [1, 0.75, 0.6, 0.5, 0.42, 0.36]) {
+    const lines = wrap(text, Math.max(8, Math.floor(wide * share)))
+    if (lines.length <= 4) choices.set(lines.join('\n'), lines)
+  }
+  let best: { box: Box; lines: string[]; score: number } | null = null
+  for (const lines of choices.values()) {
+    const w = Math.max(...lines.map(line => line.length)) * em, h = lines.length * SAID_LINE + 2
+    if (w > right - left) continue
+    for (let y = top; y + h <= bottom; y += 3) {
+      for (let x = left; x + w <= right; x += 6) {
+        const box = { x, y, w, h }
+        // How far the words are from the grip, and a little for each extra line.
+        const dx = Math.max(box.x - grip.x, 0, grip.x - (box.x + box.w)), dy = Math.max(box.y - grip.y, 0, grip.y - (box.y + box.h))
+        const score = Math.hypot(dx, dy) + (lines.length - 1) * 24
+        if (best && score >= best.score) continue
+        if (busy.every(other => clear(box, other))) best = { box, lines, score }
+      }
+    }
+  }
+  const said: LayerShape[] = best
+    ? [{ t: 'text', x: best.box.x, y: best.box.y + SAID_SIZE - 1, text, lines: best.lines, lineHeight: SAID_LINE, color: layerInk.refuse, size: SAID_SIZE, bold: true, role: 'clamp' }]
+    : [{ t: 'text', x: Math.min(part.x + 40, g.width - 4), y: part.y + 14, text, color: layerInk.refuse, size: SAID_SIZE,
+      anchor: part.x + 40 > g.width - 160 ? 'end' : 'start', bold: true, role: 'clamp' }]
+  saidMemo = { key, shapes: said }
+  return said
 }
 
 const roundDays = (board: Workshop): Workshop => ({ ...board, cards: board.cards.map(card => {

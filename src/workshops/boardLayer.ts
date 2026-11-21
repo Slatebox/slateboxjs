@@ -10,7 +10,8 @@ export type LayerShape =
   | { t: 'rect'; x: number; y: number; w: number; h: number; color: string; rx?: number; opacity?: number }
   /** A path; `arrow` puts an arrowhead at its end, `unlink` makes a 12px stroke under it that removes that link when clicked. */
   | { t: 'path'; d: string; color: string; width?: number; arrow?: { x: number; y: number; angle: number }; unlink?: { cardId: string; waitsOn: string; label: string } }
-  | { t: 'text'; x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end'; bold?: boolean; role?: string }
+  /** Words; `lines` sets `text` on several lines (each line a tspan, `lineHeight` apart), whose words together are `text`. */
+  | { t: 'text'; x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end'; bold?: boolean; role?: string; lines?: string[]; lineHeight?: number }
 
 /** Colours of the layer, as CSS custom properties with the board's own colours behind them. */
 export const layerInk = {
@@ -51,7 +52,14 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
       const text = element('text', { x: shape.x, y: shape.y, 'font-size': shape.size ?? 13, 'text-anchor': shape.anchor ?? 'start',
         'font-family': 'system-ui, sans-serif', ...(shape.bold ? { 'font-weight': 600 } : {}), ...(shape.role ? { 'data-board-layer': shape.role } : {}) }, { fill: shape.color })
       // Words are set as text, never as markup.
-      text.textContent = shape.text
+      if (shape.lines && shape.lines.length > 1) {
+        // One text element, one tspan a line: its words read as the one sentence (a space ends every line but the last).
+        shape.lines.forEach((line, i) => {
+          const span = element('tspan', { x: shape.x, dy: i ? shape.lineHeight ?? Math.round((shape.size ?? 13) * 1.25) : 0 })
+          span.textContent = i < shape.lines!.length - 1 ? line + ' ' : line
+          text.appendChild(span)
+        })
+      } else text.textContent = shape.text
       group.appendChild(text)
     } else {
       if (shape.unlink && onUnlink) {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { budgetKit, launchPlanKit, pipelineKit, renderLayerShapes } from '../../src/boards'
+import { budgetKit, launchLayout, launchPlanKit, pipelineKit, renderLayerShapes } from '../../src/boards'
 import { validateWorkshop, workshopCandidate, type BoardLayerState } from '../../src/workshops/model'
-import { sampleBudget, sampleLaunchPlan, samplePipeline } from '../../src/workshops/rules'
+import { sampleBudget, sampleLaunchPlan, samplePipeline, withTaskValue } from '../../src/workshops/rules'
 
 function canvas() {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
@@ -65,6 +65,41 @@ describe('the board layer', () => {
     layer.draw(reached, null, state())
     expect(fill().getAttribute('fill')).toBe('#1f7a5c')
     expect(texts(svg)).toContain('Target $150k')
+  })
+
+  it('launch plan: a held or refused grip says why in clear space near it, over no bar and no row name, on lines that fit the plan', () => {
+    const plan = validateWorkshop(sampleLaunchPlan())
+    const held = withTaskValue(plan, { cardId: 'build', field: 'duration' }, 8)
+    // A generous estimate of bold 13px words, as wide as the kit allows for them.
+    const box = (x: number, y: number, lines: string[]) => ({ x, y: y - 13, w: Math.max(...lines.map(line => line.length)) * 13 * 0.64, h: lines.length * 16 })
+    const apart = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
+      a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y
+    for (const layout of [{ narrow: true, width: 300 }, { narrow: true, width: 500 }, { width: 760 }, {}]) {
+      for (const [shown, text] of [[held, 'Launch is day 14.'], [plan, 'That pushes QA to day 15, after launch on day 14.']] as const) {
+        const { slate, svg } = canvas()
+        const layer = launchPlanKit.layer(slate)
+        layer.draw(plan, shown === plan ? null : shown, state({ layout, clamp: { name: 'handle-build', text }, refused: true }))
+        const said = svg.querySelector('[data-board-layer-top] [data-board-layer="clamp"]')!
+        expect(said.textContent).toBe(text)
+        const lines = said.querySelectorAll('tspan').length ? [...said.querySelectorAll('tspan')].map(span => span.textContent!.trim()) : [said.textContent!]
+        expect(lines.join(' ')).toBe(text)
+        expect(lines.length).toBeLessThanOrEqual(4)
+        const words = box(Number(said.getAttribute('x')), Number(said.getAttribute('y')), lines)
+        const g = launchLayout(shown, layout)
+        for (const [id, bar] of g.bars) expect(apart(words, { x: bar.x, y: bar.y, w: bar.width, h: bar.height }), JSON.stringify(layout) + ': “' + text + '” lies over the ' + id + ' bar').toBe(true)
+        // Every other word of the plan (row names, the header, week labels, slack) stays clear of it too.
+        for (const other of svg.querySelectorAll('[data-board-layer] > text')) {
+          const size = Number(other.getAttribute('font-size')), x = Number(other.getAttribute('x')), y = Number(other.getAttribute('y'))
+          expect(apart(words, { x, y: y - size, w: other.textContent!.length * size * 0.55, h: size * 1.2 }), JSON.stringify(layout) + ': “' + text + '” covers “' + other.textContent + '”').toBe(true)
+        }
+        expect(words.x).toBeGreaterThanOrEqual(0)
+        expect(words.x + words.w).toBeLessThanOrEqual(g.width)
+        // Near the grip: within the plan's rows, not set aside at its far corner.
+        const grip = g.parts.find(part => part.name === 'handle-build')!
+        expect(Math.abs(words.y + words.h / 2 - (grip.y + grip.height / 2))).toBeLessThan(140)
+        layer.destroy(); svg.remove()
+      }
+    }
   })
 
   it('budget: says the total balances, and shows why a divider stopped', () => {
