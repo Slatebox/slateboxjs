@@ -78,6 +78,15 @@ export interface BoardLayerState {
     above?: Element | null;
     /** A person clicked the arrow from `waitsOn` to `cardId` (launch plan). */
     onUnlink?(cardId: string, waitsOn: string): void;
+    /** What the canvas shows of the board now, in board coordinates: words the board says are set inside it. */
+    view?: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    } | null;
+    /** Say something to a screen reader (the slate's announcer). */
+    announce?(text: string): void;
 }
 export interface BoardLayer {
     draw(board: Workshop, preview: Workshop | null, state: BoardLayerState): void;
@@ -134,6 +143,17 @@ export interface WorkshopBoardKit {
         key: string;
         shiftKey: boolean;
     }): WorkshopEdit[] | null;
+    /**
+     * A key that offers a choice on a focused part (a launch plan's L: what this task waits on). Null when
+     * the key means nothing here; a sentence when there is nothing to choose. The key again offers the next
+     * choice, Enter makes it, Escape cancels.
+     */
+    keyChoices?(board: Workshop, part: string, key: string): {
+        said: string;
+        edits: WorkshopEdit[];
+    }[] | string | null;
+    /** What a screen reader is told a focused card's keys do, after its name. */
+    cardKeys?: string;
     /** Outline the lanes a held card may go to. Off for a launch plan, where every team takes every task. */
     laneCues: boolean;
 }

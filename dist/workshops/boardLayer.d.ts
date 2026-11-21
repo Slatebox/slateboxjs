@@ -19,7 +19,10 @@ export type LayerShape = {
     rx?: number;
     opacity?: number;
 }
-/** A path; `arrow` puts an arrowhead at its end, `unlink` makes a 12px stroke under it that removes that link when clicked. */
+/**
+ * A path; `arrow` puts an arrowhead at its end. `unlink` makes a 24px stroke under it, a button that removes
+ * that link: a click, Enter or Space removes it; a tap first selects it, and a second tap removes it.
+ */
  | {
     t: 'path';
     d: string;
@@ -61,8 +64,13 @@ export declare const layerInk: {
     track: string;
     launch: string;
 };
+/** A link selected by a tap, waiting for a second tap to be removed. */
+export interface LinkSelection {
+    armed: string | null;
+    arm(key: string | null): void;
+}
 /** Draw `shapes` into `group`, replacing what was there. */
-export declare function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUnlink?: (cardId: string, waitsOn: string) => void): void;
+export declare function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUnlink?: (cardId: string, waitsOn: string) => void, links?: LinkSelection): void;
 /**
  * The layer for one attached board. `paint` says what to draw for the board on show; the
  * committed board is passed too, for what a preview is compared against.
