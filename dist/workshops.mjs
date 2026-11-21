@@ -1,30 +1,30 @@
 import e, { useState as I, useRef as F, useMemo as qe, useLayoutEffect as O, useEffect as Q, useId as Xe } from "react";
 import { DraggableRenderer as ne, translate as D, param as Qe, inOrder as Ve, Vec2 as Le, getElementPositionCheap as _e, dragSpecToBehavior as Ue } from "./dragology.mjs";
 import { handoffSummary as Se, reviewHandoff as ie, resolveHandoff as Ce, offlineHandoff as Ze, listeningRoom as We, listeningRoomCaption as ze, workshopLayout as se, workshopToSlate as Je, workshopPositions as ce, releaseLoad as Fe, laneColors as Oe, availableLanes as ee, moveWorkshopCard as de, workshopDestinations as et, workshopCandidate as Re, canHangPanel as Ee, hangGalleryPanel as le, printFields as X, startupExperienceKind as tt, resolveWorkshopSignals as Be, workshopBudgetResult as $e, interviews as nt, channels as rt, maxWorkshopCards as ot } from "./workshop-model.mjs";
-import { WorkshopReferenceError as Kt, addWorkshopBranch as Gt, addWorkshopCard as jt, addWorkshopLane as Yt, applyWorkshopEdits as Xt, attachWorkshop as Qt, checkWorkshopReplacement as Vt, countWord as _t, createBudgetWorkshop as Ut, createInterviewWorkshop as Zt, createLaneWorkshop as Jt, createWorkshopMap as Ot, decodeWorkshopFragment as en, describeFocusDarkroom as tn, describeWorkshopEdits as nn, encodeWorkshopFragment as rn, industrialWorkshop as on, initialFocusDarkroom as an, listed as ln, maxWorkshopLines as sn, moonGallery as cn, named as dn, nightTransfer as pn, normalizeFocusDarkroom as un, normalizeListeningRoom as fn, normalizeMoonGallery as mn, normalizeOfflineHandoff as bn, planStartupMove as gn, pointing as hn, releasePlan as En, said as yn, unquoted as xn, validateWorkshop as kn, workshopBoardKind as wn, workshopCardAsNote as vn, workshopCardAsNoteRefusal as Mn, workshopCardLabelOf as Ln, workshopCardLines as Sn, workshopCardLookOf as Cn, workshopEditKinds as Wn, workshopFinder as zn, workshopKeepsLink as $n, workshopKeepsPicture as Nn, workshopLaneCaption as Pn, workshopLanePlaces as In, workshopLineRefusal as Dn, workshopLinesOf as qn, workshopNewLine as Fn, workshopNodeIds as Rn, workshopNoteCandidate as Bn, workshopNoteRefusal as An, workshopPresentationLanes as Hn, workshopPresentationScenes as Tn, workshopReferences as Kn, workshopRefusal as Gn, workshopRenamedLines as jn, workshopStandInId as Yn, workshopTakesNotes as Xn, workshopWithLine as Qn, workshopWithoutCardLines as Vn, workshopWithoutLine as _n } from "./workshop-model.mjs";
+import { WorkshopReferenceError as Kt, addWorkshopBranch as Gt, addWorkshopCard as jt, addWorkshopLane as Yt, applyWorkshopEdits as Xt, attachWorkshop as Qt, checkWorkshopReplacement as Vt, countWord as _t, createBudgetWorkshop as Ut, createInterviewWorkshop as Zt, createLaneWorkshop as Jt, createWorkshopMap as Ot, decodeWorkshopFragment as en, describeFocusDarkroom as tn, describeWorkshopEdits as nn, encodeWorkshopFragment as rn, industrialWorkshop as on, initialFocusDarkroom as an, listed as ln, maxWorkshopLines as sn, moonGallery as cn, named as dn, nightTransfer as pn, normalizeFocusDarkroom as un, normalizeListeningRoom as fn, normalizeMoonGallery as mn, normalizeOfflineHandoff as bn, planStartupMove as hn, pointing as gn, releasePlan as En, said as yn, unquoted as xn, validateWorkshop as kn, workshopBoardKind as wn, workshopCardAsNote as vn, workshopCardAsNoteRefusal as Mn, workshopCardLabelOf as Ln, workshopCardLines as Sn, workshopCardLookOf as Cn, workshopEditKinds as Wn, workshopFinder as zn, workshopKeepsLink as $n, workshopKeepsPicture as Nn, workshopLaneCaption as Pn, workshopLanePlaces as In, workshopLineRefusal as Dn, workshopLinesOf as qn, workshopNewLine as Fn, workshopNodeIds as Rn, workshopNoteCandidate as Bn, workshopNoteIdOf as An, workshopNoteRefusal as Hn, workshopPresentationLanes as Tn, workshopPresentationScenes as Kn, workshopReferences as Gn, workshopRefusal as jn, workshopRenamedLines as Yn, workshopStandInId as Xn, workshopTakesNotes as Qn, workshopWithLine as Vn, workshopWithoutCardLines as _n, workshopWithoutLine as Un } from "./workshop-model.mjs";
 import { Slate as at } from "slateboxjs";
-import { D as Zn } from "./NoteDefaults-1xFW0br8.mjs";
+import { D as Jn } from "./NoteDefaults-1xFW0br8.mjs";
 function it(t, d, r) {
   return /* @__PURE__ */ e.createElement("g", { transform: `translate(${t} ${d}) scale(${r} ${r * 0.88})` }, /* @__PURE__ */ e.createElement("rect", { width: "142", height: "73", rx: "3", fill: "#b8d0c5" }), /* @__PURE__ */ e.createElement("path", { d: "M0 27L46 7h96v12H50L0 38Z", fill: "#728d81" }), /* @__PURE__ */ e.createElement("path", { d: "M12 38l36-17v43l-36 6z", fill: "#395c50" }), /* @__PURE__ */ e.createElement("path", { d: "M49 20h89v43H49z", fill: "#f1e3b8" }), /* @__PURE__ */ e.createElement("path", { d: "M57 33h45v30H57z", fill: "#557468" }), [37, 42, 47, 52, 57].map((l) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "slat" + l, d: `M59 ${l}h41`, stroke: "#a5b6a3" })), /* @__PURE__ */ e.createElement("path", { d: "M0 69l49-7h93v11H0z", fill: "#84998a" }), /* @__PURE__ */ e.createElement("path", { d: "M12 73l40-7h65", fill: "none", stroke: "#e9b04e", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("rect", { x: "111", y: "34", width: "19", height: "27", fill: "#d1a45c" }), /* @__PURE__ */ e.createElement("rect", { x: "116", y: "39", width: "9", height: "12", rx: "2", fill: "#38574b" }), /* @__PURE__ */ e.createElement("circle", { cx: "120", cy: "42", r: "2", fill: "#f0a466" }), /* @__PURE__ */ e.createElement("text", { x: "59", y: "30", fontSize: "8", fontWeight: "bold", fill: "#354e40" }, "GATE B"));
 }
 function lt(t, d) {
-  const r = t ? 9 : 49, l = t ? 20 : 23, a = t ? 144 : 181, f = t ? 183 : 370, p = t ? 35 : 40, s = t ? 164 : 255, u = t ? 119 : 147, o = 45, m = (y, w, g, x, h = "#243c32", v = "normal", C = "Arial, sans-serif") => /* @__PURE__ */ e.createElement("text", { transform: D(y, w), fill: h, fontSize: x, fontFamily: C, fontWeight: v }, g);
-  return ({ state: y, d: w, draggedId: g }) => {
-    const x = y.stage === "queued", h = y.stage === "resolved", v = f + (s - u) / 2, C = p + 138, M = x ? r + (a - u) / 2 : v, z = x ? l + 141 : C, W = "#233e33";
-    return /* @__PURE__ */ e.createElement("g", { fontFamily: "Arial, sans-serif" }, /* @__PURE__ */ e.createElement("g", { id: "sync-cable" }, /* @__PURE__ */ e.createElement("path", { d: `M${r + a - 2} ${l + 180} C${r + a + 45} ${l + 235},${f - 24} ${p + 204},${f + 22} ${p + 159}`, fill: "none", stroke: x ? "#9aab9b" : "#2a7464", strokeWidth: "2.5", strokeDasharray: x ? "5 7" : "8 2" })), /* @__PURE__ */ e.createElement("g", { id: "field-phone", transform: D(r, l) }, /* @__PURE__ */ e.createElement("rect", { x: "3", y: "5", width: a, height: "202", rx: "18", fill: "#a6b3a5" }), /* @__PURE__ */ e.createElement("rect", { width: a, height: "202", rx: "18", fill: "#243d34" }), /* @__PURE__ */ e.createElement("rect", { x: "5", y: "5", width: a - 10, height: "192", rx: "14", fill: "#f4f1db" }), /* @__PURE__ */ e.createElement("rect", { x: a / 2 - 17, y: "7", width: "34", height: "5", rx: "3", fill: "#283b30" }), m(13, 27, "17:08", 9, W, "bold"), m(a - 50, 27, x ? "Offline" : "Online", 10, x ? "#835420" : "#266451", "bold"), m(13, 47, "Field log", t ? 18 : 20, W, "bold"), it(13, 55, (a - 26) / 142), m(13, t ? 132 : 134, "Noor · Gate B", t ? 10 : 12, W), /* @__PURE__ */ e.createElement("rect", { x: a / 2 - 19, y: "190", width: "38", height: "2.6", rx: "2", fill: "#697a69" })), /* @__PURE__ */ e.createElement("g", { id: "shared-notebook", transform: D(f, p) }, /* @__PURE__ */ e.createElement("path", { d: `M4 3l${s - 5} -3 5 190 -${s - 3} 5z`, fill: "#c6c4ab" }), /* @__PURE__ */ e.createElement("path", { d: `M-3 5l${s - 1} -3 3 183 -${s - 1} 6z`, fill: "#dccfb0", stroke: "#b2aa8c" }), /* @__PURE__ */ e.createElement("rect", { width: s, height: "184", fill: "#fffbea", stroke: "#b9ba9f" }), /* @__PURE__ */ e.createElement("path", { d: "M15 0v184", stroke: "#e1b9a6" }), [30, 65, 100, 135, 169].map((i) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "hole" + i, cx: "8", cy: i, r: "2.7", fill: "#bfbba7" })), /* @__PURE__ */ e.createElement("path", { d: "M29 7V1q0-7 6-7t6 7v16q0 5-4 5t-4-4V3", fill: "none", stroke: "#718273", strokeWidth: "2" }), m(23, 38, x ? "SHIFT HANDOFF" : h ? "CREW COPY" : "REVIEW QUEUE", t ? 10 : 12, "#586e5f", "bold", "monospace"), m(22, 69, "Gate B", t ? 30 : 37, W, "bold", "Georgia, serif"), /* @__PURE__ */ e.createElement("path", { d: `M23 79h${s - 42}`, stroke: "#bfc5b1" }), m(23, 101, (h && y.choice === "field" ? y.fieldNote : y.deskNote).slice(0, t ? 18 : 25), t ? 12 : 16, W, "bold"), m(23, 120, h && y.choice === "field" ? "Noor + Jules" : "Jules · Release desk", t ? 10 : 12, "#5a6c5d"), /* @__PURE__ */ e.createElement("g", { id: "desk-drop", transform: D((s - u) / 2, 138) }, /* @__PURE__ */ e.createElement("rect", { width: u, height: o, rx: "3", stroke: "#849785", strokeDasharray: "4 3", fill: "#f0f2df" }), m(11, 26, "Attach field edit", t ? 12 : 15, "#607465"))), /* @__PURE__ */ e.createElement(
+  const r = t ? 9 : 49, l = t ? 20 : 23, a = t ? 144 : 181, f = t ? 183 : 370, p = t ? 35 : 40, s = t ? 164 : 255, u = t ? 119 : 147, o = 45, m = (y, w, h, x, g = "#243c32", v = "normal", C = "Arial, sans-serif") => /* @__PURE__ */ e.createElement("text", { transform: D(y, w), fill: g, fontSize: x, fontFamily: C, fontWeight: v }, h);
+  return ({ state: y, d: w, draggedId: h }) => {
+    const x = y.stage === "queued", g = y.stage === "resolved", v = f + (s - u) / 2, C = p + 138, M = x ? r + (a - u) / 2 : v, z = x ? l + 141 : C, W = "#233e33";
+    return /* @__PURE__ */ e.createElement("g", { fontFamily: "Arial, sans-serif" }, /* @__PURE__ */ e.createElement("g", { id: "sync-cable" }, /* @__PURE__ */ e.createElement("path", { d: `M${r + a - 2} ${l + 180} C${r + a + 45} ${l + 235},${f - 24} ${p + 204},${f + 22} ${p + 159}`, fill: "none", stroke: x ? "#9aab9b" : "#2a7464", strokeWidth: "2.5", strokeDasharray: x ? "5 7" : "8 2" })), /* @__PURE__ */ e.createElement("g", { id: "field-phone", transform: D(r, l) }, /* @__PURE__ */ e.createElement("rect", { x: "3", y: "5", width: a, height: "202", rx: "18", fill: "#a6b3a5" }), /* @__PURE__ */ e.createElement("rect", { width: a, height: "202", rx: "18", fill: "#243d34" }), /* @__PURE__ */ e.createElement("rect", { x: "5", y: "5", width: a - 10, height: "192", rx: "14", fill: "#f4f1db" }), /* @__PURE__ */ e.createElement("rect", { x: a / 2 - 17, y: "7", width: "34", height: "5", rx: "3", fill: "#283b30" }), m(13, 27, "17:08", 9, W, "bold"), m(a - 50, 27, x ? "Offline" : "Online", 10, x ? "#835420" : "#266451", "bold"), m(13, 47, "Field log", t ? 18 : 20, W, "bold"), it(13, 55, (a - 26) / 142), m(13, t ? 132 : 134, "Noor · Gate B", t ? 10 : 12, W), /* @__PURE__ */ e.createElement("rect", { x: a / 2 - 19, y: "190", width: "38", height: "2.6", rx: "2", fill: "#697a69" })), /* @__PURE__ */ e.createElement("g", { id: "shared-notebook", transform: D(f, p) }, /* @__PURE__ */ e.createElement("path", { d: `M4 3l${s - 5} -3 5 190 -${s - 3} 5z`, fill: "#c6c4ab" }), /* @__PURE__ */ e.createElement("path", { d: `M-3 5l${s - 1} -3 3 183 -${s - 1} 6z`, fill: "#dccfb0", stroke: "#b2aa8c" }), /* @__PURE__ */ e.createElement("rect", { width: s, height: "184", fill: "#fffbea", stroke: "#b9ba9f" }), /* @__PURE__ */ e.createElement("path", { d: "M15 0v184", stroke: "#e1b9a6" }), [30, 65, 100, 135, 169].map((i) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "hole" + i, cx: "8", cy: i, r: "2.7", fill: "#bfbba7" })), /* @__PURE__ */ e.createElement("path", { d: "M29 7V1q0-7 6-7t6 7v16q0 5-4 5t-4-4V3", fill: "none", stroke: "#718273", strokeWidth: "2" }), m(23, 38, x ? "SHIFT HANDOFF" : g ? "CREW COPY" : "REVIEW QUEUE", t ? 10 : 12, "#586e5f", "bold", "monospace"), m(22, 69, "Gate B", t ? 30 : 37, W, "bold", "Georgia, serif"), /* @__PURE__ */ e.createElement("path", { d: `M23 79h${s - 42}`, stroke: "#bfc5b1" }), m(23, 101, (g && y.choice === "field" ? y.fieldNote : y.deskNote).slice(0, t ? 18 : 25), t ? 12 : 16, W, "bold"), m(23, 120, g && y.choice === "field" ? "Noor + Jules" : "Jules · Release desk", t ? 10 : 12, "#5a6c5d"), /* @__PURE__ */ e.createElement("g", { id: "desk-drop", transform: D((s - u) / 2, 138) }, /* @__PURE__ */ e.createElement("rect", { width: u, height: o, rx: "3", stroke: "#849785", strokeDasharray: "4 3", fill: "#f0f2df" }), m(11, 26, "Attach field edit", t ? 12 : 15, "#607465"))), /* @__PURE__ */ e.createElement(
       "g",
       {
         id: "field-edit",
         transform: D(M, z),
-        dragologyZIndex: g === "field-edit" ? "/2" : !1,
+        dragologyZIndex: h === "field-edit" ? "/2" : !1,
         dragologyOnDrag: !d && x ? () => w.closest([y, ie(y)]).withFloating() : void 0
       },
       /* @__PURE__ */ e.createElement("path", { d: `M2 3h${u - 2}v${o - 2}l-6 5H2z`, fill: "#a29165" }),
-      /* @__PURE__ */ e.createElement("path", { d: `M0 0h${u}v${o - 7}l-7 7H0z`, fill: h ? "#c8ddbe" : "#ffcf72", stroke: "#ae8a42" }),
+      /* @__PURE__ */ e.createElement("path", { d: `M0 0h${u}v${o - 7}l-7 7H0z`, fill: g ? "#c8ddbe" : "#ffcf72", stroke: "#ae8a42" }),
       /* @__PURE__ */ e.createElement("path", { d: `M${u - 7} ${o}v-7h7`, fill: "#ca9f55" }),
       [13, 18, 23].map((i) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "handle" + i, cx: "8", cy: i, r: "1.3", fill: "#84662e" })),
       m(17, 17, "BADGE TEST", t ? 9 : 11, "#72522e", "bold", "monospace"),
-      m(17, 34, h ? "Reviewed" : y.fieldNote === Ze.fieldNote ? "Badge rejected" : "Field result", t ? 13 : 16, "#42351f", "bold")
+      m(17, 34, g ? "Reviewed" : y.fieldNote === Ze.fieldNote ? "Badge rejected" : "Field result", t ? 13 : 16, "#42351f", "bold")
     ));
   };
 }
@@ -48,7 +48,7 @@ const st = `.sb-handoff .field-art{border-block:1px solid #bac3b1;background-col
 .sb-handoff .field-actions button.field-quiet{color:#355441;background:transparent;border-color:#a9bba6}
 @media(max-width:460px){.sb-handoff .field-art{margin-inline:-2px}.sb-handoff .field-versions>div{padding:12px 8px 12px 0}.sb-handoff .field-versions>div+div{padding-inline:9px 0}.sb-handoff .field-versions p{font-size:14px}.sb-handoff .field-actions [role=status]{width:100%}}.sb-handoff{background:#faf8ee;color:#213e32;font:15px/1.35 system-ui,Arial,sans-serif}.sb-handoff #field-edit{touch-action:none}.sb-handoff [data-stage=queued]{cursor:grab}.sb-handoff button:focus-visible{outline:3px solid #ab601d;outline-offset:2px}`;
 function It({ value: t, onChange: d, readOnly: r = !1 }) {
-  const [l, a] = I(null), [f, p] = I(null), [s, u] = I(0), [o, m] = I(!1), [y, w] = I(1), g = F(null), x = F(!1), h = F(t), v = qe(() => lt(o, r), [o, r]), C = r ? t : f ?? l ?? t, M = t.stage === "queued" && C.stage === "review";
+  const [l, a] = I(null), [f, p] = I(null), [s, u] = I(0), [o, m] = I(!1), [y, w] = I(1), h = F(null), x = F(!1), g = F(t), v = qe(() => lt(o, r), [o, r]), C = r ? t : f ?? l ?? t, M = t.stage === "queued" && C.stage === "review";
   function z() {
     x.current = !1, p(null), a(null), u((i) => i + 1);
   }
@@ -56,15 +56,15 @@ function It({ value: t, onChange: d, readOnly: r = !1 }) {
     z(), !r && i.stage !== t.stage && d?.(i);
   }
   return O(() => {
-    (x.current || f) && (r || h.current !== t) && z(), h.current = t;
+    (x.current || f) && (r || g.current !== t) && z(), g.current = t;
   }, [t, r, f]), O(() => {
     const i = () => {
-      const L = g.current.clientWidth;
+      const L = h.current.clientWidth;
       m(L < 510), w(Math.min(1, L / (L < 510 ? 360 : 685)));
     };
     i();
     const E = new ResizeObserver(i);
-    return E.observe(g.current), () => E.disconnect();
+    return E.observe(h.current), () => E.disconnect();
   }, []), Q(() => {
     function i(E) {
       (x.current || f) && (!(E instanceof KeyboardEvent) || E.key === "Escape") && z();
@@ -72,7 +72,7 @@ function It({ value: t, onChange: d, readOnly: r = !1 }) {
     return document.addEventListener("keydown", i), document.addEventListener("pointercancel", i), window.addEventListener("blur", i), () => {
       document.removeEventListener("keydown", i), document.removeEventListener("pointercancel", i), window.removeEventListener("blur", i);
     };
-  }, [f]), /* @__PURE__ */ e.createElement("section", { className: "sb-handoff", "data-stage": t.stage, "data-readonly": r, "aria-label": "Field handoff simulation" }, /* @__PURE__ */ e.createElement("style", null, st), /* @__PURE__ */ e.createElement("div", { className: "field-art", ref: g, style: { "--drawing-scale": y } }, /* @__PURE__ */ e.createElement(
+  }, [f]), /* @__PURE__ */ e.createElement("section", { className: "sb-handoff", "data-stage": t.stage, "data-readonly": r, "aria-label": "Field handoff simulation" }, /* @__PURE__ */ e.createElement("style", null, st), /* @__PURE__ */ e.createElement("div", { className: "field-art", ref: h, style: { "--drawing-scale": y } }, /* @__PURE__ */ e.createElement(
     ne,
     {
       key: r ? "read-only" : s,
@@ -104,22 +104,22 @@ function ct() {
     return u = 1664525 * u + 1013904223 >>> 0, u / 4294967296;
   }
   for (let y = 0; y < 100; y++) {
-    const w = Math.floor(o() * l), g = 380 + o() * 1500, x = 0.09 + o() * 0.08;
-    for (let h = 0; h < r * 0.12; h++) {
-      const v = h / r, C = Math.sin(2 * Math.PI * g * v) + 0.22 * (o() * 2 - 1);
-      p[(w + h) % l] += x * Math.exp(-v * 76) * C;
+    const w = Math.floor(o() * l), h = 380 + o() * 1500, x = 0.09 + o() * 0.08;
+    for (let g = 0; g < r * 0.12; g++) {
+      const v = g / r, C = Math.sin(2 * Math.PI * h * v) + 0.22 * (o() * 2 - 1);
+      p[(w + g) % l] += x * Math.exp(-v * 76) * C;
     }
   }
   [659.25, 987.77, 783.99, 1174.66].forEach((y, w) => {
-    const g = Math.floor((w * 0.93 + 0.1) * r);
+    const h = Math.floor((w * 0.93 + 0.1) * r);
     for (let x = 0; x < r * 1.6; x++) {
-      const h = x / r, v = Math.sin(h * y * 2 * Math.PI) + 0.23 * Math.sin(h * y * 5.42 * Math.PI);
-      s[(g + x) % l] += 0.16 * Math.min(1, h * 250) * Math.exp(-h * 3.3) * v;
+      const g = x / r, v = Math.sin(g * y * 2 * Math.PI) + 0.23 * Math.sin(g * y * 5.42 * Math.PI);
+      s[(h + x) % l] += 0.16 * Math.min(1, g * 250) * Math.exp(-g * 3.3) * v;
     }
   });
   const m = [a, f].map((y) => {
-    const w = d.createBufferSource(), g = d.createGain();
-    return g.gain.value = 0, w.buffer = y, w.loop = !0, w.connect(g).connect(d.destination), w.start(), g;
+    const w = d.createBufferSource(), h = d.createGain();
+    return h.gain.value = 0, w.buffer = y, w.loop = !0, w.connect(h).connect(d.destination), w.start(), h;
   });
   return {
     ctx: d,
@@ -156,7 +156,7 @@ const dt = (t) => Ae(t, !1), pt = (t) => Ae(t, !0), ut = `
 .sb-listening :focus-visible{outline:3px solid #ab601d;outline-offset:2px}
 `;
 function Dt({ value: t, onChange: d, readOnly: r = !1 }) {
-  const l = F(null), a = F(null), [f, p] = I(null), [s, u] = I(0), [o, m] = I(1), [y, w] = I(!1), [g, x] = I(!1), h = f ?? t, v = F(t), C = F(!1);
+  const l = F(null), a = F(null), [f, p] = I(null), [s, u] = I(0), [o, m] = I(1), [y, w] = I(!1), [h, x] = I(!1), g = f ?? t, v = F(t), C = F(!1);
   function M() {
     C.current = !1, p(null), u((n) => n + 1);
   }
@@ -182,8 +182,8 @@ function Dt({ value: t, onChange: d, readOnly: r = !1 }) {
     a.current?.stop(), a.current = null, w(!1);
   }
   Q(() => {
-    a.current?.mix(h.mix);
-  }, [h.mix]), Q(() => {
+    a.current?.mix(g.mix);
+  }, [g.mix]), Q(() => {
     const n = new IntersectionObserver(([$]) => {
       $.isIntersecting || W();
     });
@@ -202,7 +202,7 @@ function Dt({ value: t, onChange: d, readOnly: r = !1 }) {
     }
     try {
       const n = ct();
-      a.current = n, n.mix(h.mix), await n.ctx.resume(), a.current === n && w(!0);
+      a.current = n, n.mix(g.mix), await n.ctx.resume(), a.current === n && w(!0);
     } catch {
       W(), x(!0);
     }
@@ -220,15 +220,15 @@ function Dt({ value: t, onChange: d, readOnly: r = !1 }) {
       tabIndex: r ? -1 : 0,
       "aria-valuemin": 0,
       "aria-valuemax": 100,
-      "aria-valuenow": Math.round(h.mix * 100),
-      "aria-valuetext": ze(h),
+      "aria-valuenow": Math.round(g.mix * 100),
+      "aria-valuetext": ze(g),
       onKeyDown: (n) => {
         if (r) return;
         const b = {
-          ArrowLeft: h.mix - 0.01,
-          ArrowRight: h.mix + 0.01,
-          ArrowDown: h.mix - 0.01,
-          ArrowUp: h.mix + 0.01,
+          ArrowLeft: g.mix - 0.01,
+          ArrowRight: g.mix + 0.01,
+          ArrowDown: g.mix - 0.01,
+          ArrowUp: g.mix + 0.01,
           Home: 0,
           End: 1
         };
@@ -249,7 +249,7 @@ function Dt({ value: t, onChange: d, readOnly: r = !1 }) {
         onDropState: r ? void 0 : (n) => z(n.mix)
       }
     )
-  ), !r && /* @__PURE__ */ e.createElement("div", { className: "sb-listening-choices" }, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(0) }, "Listen to ", E), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(0.5) }, "Blend both"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(1) }, "Listen to ", L)), /* @__PURE__ */ e.createElement("div", { className: "sb-listening-caption" }, /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("strong", null, "Sound caption"), /* @__PURE__ */ e.createElement("output", { "aria-label": "Sound caption" }, ze(h))), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: i, "aria-pressed": y, disabled: g }, g ? "Audio unavailable" : y ? "Mute sound" : "Enable sound")));
+  ), !r && /* @__PURE__ */ e.createElement("div", { className: "sb-listening-choices" }, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(0) }, "Listen to ", E), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(0.5) }, "Blend both"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(1) }, "Listen to ", L)), /* @__PURE__ */ e.createElement("div", { className: "sb-listening-caption" }, /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("strong", null, "Sound caption"), /* @__PURE__ */ e.createElement("output", { "aria-label": "Sound caption" }, ze(g))), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: i, "aria-pressed": y, disabled: h }, h ? "Audio unavailable" : y ? "Mute sound" : "Enable sound")));
 }
 function ft(t, d, r) {
   const l = [];
@@ -268,11 +268,11 @@ function ft(t, d, r) {
 }
 const te = 12;
 function mt(t, d, r = !1) {
-  const l = r ? Math.max(...t.lanes.map((g) => g.station.column)) + 1 : t.lanes.length, a = r ? (l - 1) * te : 0, f = Math.min(r ? 202 : se.pitch, Math.max(r ? 108 : 124, Math.floor((d - a) / l))), p = f - 16, s = document.createElement("canvas").getContext("2d"), u = /* @__PURE__ */ new Map();
-  function o(g, x, h) {
-    s.font = h;
+  const l = r ? Math.max(...t.lanes.map((h) => h.station.column)) + 1 : t.lanes.length, a = r ? (l - 1) * te : 0, f = Math.min(r ? 202 : se.pitch, Math.max(r ? 108 : 124, Math.floor((d - a) / l))), p = f - 16, s = document.createElement("canvas").getContext("2d"), u = /* @__PURE__ */ new Map();
+  function o(h, x, g) {
+    s.font = g;
     let v = 1;
-    for (const C of g) {
+    for (const C of h) {
       const M = r && x === "choice-" ? 49 : 25, z = ft(C.label, p - M, s);
       u.set(x + C.id, z), v = Math.max(v, z.length);
     }
@@ -280,8 +280,8 @@ function mt(t, d, r = !1) {
   }
   const m = o(t.lanes, "heading-", r ? "bold 15px system-ui, sans-serif" : "bold 13px system-ui, sans-serif"), y = o(t.cards, "choice-", "14px system-ui, sans-serif");
   if (r) {
-    const g = 16 * y + 22;
-    return { labels: u, layout: { pitch: f, width: p, height: g, row: g + 6, top: 16 * m + 32 } };
+    const h = 16 * y + 22;
+    return { labels: u, layout: { pitch: f, width: p, height: h, row: h + 6, top: 16 * m + 32 } };
   }
   const w = Math.max(se.height, 16 * y + 14);
   return { labels: u, layout: { pitch: f, width: p, height: w, row: w + 12, top: 16 * m + 45 } };
@@ -303,9 +303,9 @@ function bt(t, d) {
       borderColor: "#9ab3a0",
       allowDrag: !1
     }), p.push(m);
-    for (const [y, w] of t.cards.filter((g) => g.laneId === u.id).entries()) {
-      const g = f.get("card-" + w.id);
-      Object.assign(g.options, {
+    for (const [y, w] of t.cards.filter((h) => h.laneId === u.id).entries()) {
+      const h = f.get("card-" + w.id);
+      Object.assign(h.options, {
         xPos: o.x + 18,
         yPos: o.y + l.top + y * l.row,
         width: l.width - 20,
@@ -317,12 +317,12 @@ function bt(t, d) {
         foregroundColor: "#293629",
         borderColor: "#8e814a",
         allowDrag: !1
-      }), p.push(g);
+      }), p.push(h);
     }
   }
   return { ...r, nodes: p };
 }
-function gt({ board: t, fitted: d, width: r, height: l, children: a }) {
+function ht({ board: t, fitted: d, width: r, height: l, children: a }) {
   const f = F(null), p = F(null);
   return O(() => {
     const s = f.current, u = p.current;
@@ -339,9 +339,9 @@ function gt({ board: t, fitted: d, width: r, height: l, children: a }) {
       autoResizeNodesBasedOnText: !1
     }), y = m.canvas.node;
     y.removeAttribute("tabindex");
-    let w = !0, g = 0, x = !1;
-    const h = () => {
-      if (g = 0, !x) return;
+    let w = !0, h = 0, x = !1;
+    const g = () => {
+      if (h = 0, !x) return;
       const W = y.getScreenCTM();
       if (!W) return;
       const i = W.inverse();
@@ -352,7 +352,7 @@ function gt({ board: t, fitted: d, width: r, height: l, children: a }) {
         (Math.abs(b.x - (n.options.x ?? 0)) > 0.1 || Math.abs(b.y - (n.options.y ?? 0)) > 0.1) && n.position(b.x, b.y);
       }
     }, v = () => {
-      g || (g = requestAnimationFrame(h));
+      h || (h = requestAnimationFrame(g));
     }, C = new MutationObserver(v);
     C.observe(u, { subtree: !0, childList: !0, attributes: !0, attributeFilter: ["transform", "style"] });
     const M = m.loadJSON(bt(t, d), !1, !0).then(() => {
@@ -362,7 +362,7 @@ function gt({ board: t, fitted: d, width: r, height: l, children: a }) {
       L && (L.style.outline = W.type === "focusin" ? "2px solid #305d99" : "");
     };
     return u.addEventListener("focusin", z), u.addEventListener("focusout", z), () => {
-      w = !1, C.disconnect(), cancelAnimationFrame(g), u.removeEventListener("focusin", z), u.removeEventListener("focusout", z), o.remove(), M.finally(() => m.destroy());
+      w = !1, C.disconnect(), cancelAnimationFrame(h), u.removeEventListener("focusin", z), u.removeEventListener("focusout", z), o.remove(), M.finally(() => m.destroy());
     };
   }, [t, d, r, l]), /* @__PURE__ */ e.createElement("div", { style: { position: "relative", width: r, height: l, marginInline: "auto", isolation: "isolate" } }, /* @__PURE__ */ e.createElement(
     "div",
@@ -384,9 +384,9 @@ function Ne(t) {
   return t.match(/.{1,23}(?:\s+|$)|.{1,23}/gu)?.map((d) => d.trim()) ?? [t];
 }
 function pe({ state: t, d, draggedId: r, isTracking: l }, a, f, p = !1, s = !1, u = "", o = !1, m = !1) {
-  const y = f?.layout ?? se, { width: w, row: g, height: x, top: h } = y, { points: v, height: C } = ce(t, y, o ? te : void 0), M = !!t.lanes[0].station, z = (i) => {
+  const y = f?.layout ?? se, { width: w, row: h, height: x, top: g } = y, { points: v, height: C } = ce(t, y, o ? te : void 0), M = !!t.lanes[0].station, z = (i) => {
     const E = t.lanes.findIndex((n) => n.id === i.laneId), L = t.cards.filter((n) => n.laneId === i.laneId).indexOf(i);
-    return D((M ? 18 : 8) + v[E].x, v[E].y + h + L * g);
+    return D((M ? 18 : 8) + v[E].x, v[E].y + g + L * h);
   };
   if (l && r) {
     const i = t.cards.find((E) => "choice-" + E.id === r);
@@ -406,21 +406,21 @@ function pe({ state: t, d, draggedId: r, isTracking: l }, a, f, p = !1, s = !1, 
       "aria-hidden": "true"
     }
   )), t.lanes.flatMap((i, E) => (i.station?.next ?? []).map((L) => {
-    const n = v[E], b = v[t.lanes.findIndex((ue) => ue.id === L)], $ = w / 2 + 8, k = (h - 12) / 2 + 4, P = b.x - n.x, B = b.y - n.y, re = Math.min(P ? w / 2 / Math.abs(P) : 1 / 0, B ? (k - 4) / Math.abs(B) : 1 / 0), A = b.x + $ - P * re, H = b.y + k - B * re;
+    const n = v[E], b = v[t.lanes.findIndex((ue) => ue.id === L)], $ = w / 2 + 8, k = (g - 12) / 2 + 4, P = b.x - n.x, B = b.y - n.y, re = Math.min(P ? w / 2 / Math.abs(P) : 1 / 0, B ? (k - 4) / Math.abs(B) : 1 / 0), A = b.x + $ - P * re, H = b.y + k - B * re;
     return /* @__PURE__ */ e.createElement("g", { dragologyKey: i.id + "-" + L }, /* @__PURE__ */ e.createElement("line", { x1: n.x + $, y1: n.y + k, x2: A, y2: H, stroke: "#506b61", strokeWidth: 3 }), /* @__PURE__ */ e.createElement("path", { d: "M0 0l-11 -5v10z", fill: "#315044", transform: `translate(${A} ${H}) rotate(${Math.atan2(B, P) * 180 / Math.PI})` }));
   })), t.lanes.map((i, E) => {
     const L = t.cards.filter(($) => $.laneId === i.id).length, n = t.kind === "release-plan" && Fe(t, i.id), b = t.kind === "release-plan" ? n + (i.capacity ? " / " + i.capacity : "") + " points" : i.station ? L ? "● Occupied" : "Open stop" : i.capacity ? `${L} of ${i.capacity} slots` : `${L} ${L === 1 ? "choice" : "choices"}`;
-    return /* @__PURE__ */ e.createElement("g", { id: "heading-" + i.id, transform: D(8 + v[E].x, 4 + v[E].y) }, M && !o && /* @__PURE__ */ e.createElement("rect", { x: 0, y: 0, width: w, height: h + Math.max(1, L) * g - 10, rx: 9, fill: "#fcf9ed", stroke: "#a8b5aa", strokeDasharray: "4 4" }), /* @__PURE__ */ e.createElement("g", { ...p && !a ? {
+    return /* @__PURE__ */ e.createElement("g", { id: "heading-" + i.id, transform: D(8 + v[E].x, 4 + v[E].y) }, M && !o && /* @__PURE__ */ e.createElement("rect", { x: 0, y: 0, width: w, height: g + Math.max(1, L) * h - 10, rx: 9, fill: "#fcf9ed", stroke: "#a8b5aa", strokeDasharray: "4 4" }), /* @__PURE__ */ e.createElement("g", { ...p && !a ? {
       ...M ? { "data-workshop-station": i.id } : { "data-workshop-lane": i.id },
       role: "button",
       tabIndex: 0,
       "aria-labelledby": u + "-edit-" + i.id,
       cursor: "pointer"
-    } : {} }, /* @__PURE__ */ e.createElement("rect", { width: w, height: h - 12, rx: o ? 12 : M ? 6 : 9, stroke: o ? "#a0b9a6" : void 0, fill: o ? "#f4f8ef" : M ? "#253c36" : Oe[E] }), (f?.labels.get("heading-" + i.id) ?? Ne(i.label)).map(($, k) => /* @__PURE__ */ e.createElement("text", { dragologyKey: "line-" + k, fill: o ? "#244b3d" : M ? "#fffdf3" : "#18302d", transform: D(12, (M ? 23 : 16) + k * 16), fontSize: o ? 15 : M ? 17 : 13, fontWeight: "bold" }, $)), !o && /* @__PURE__ */ e.createElement("text", { fill: M ? "#ebd29a" : "#18302d", transform: D(12, h - 23), fontSize: 12 }, b)), s && L < (i.capacity ?? 1 / 0) && /* @__PURE__ */ e.createElement(
+    } : {} }, /* @__PURE__ */ e.createElement("rect", { width: w, height: g - 12, rx: o ? 12 : M ? 6 : 9, stroke: o ? "#a0b9a6" : void 0, fill: o ? "#f4f8ef" : M ? "#253c36" : Oe[E] }), (f?.labels.get("heading-" + i.id) ?? Ne(i.label)).map(($, k) => /* @__PURE__ */ e.createElement("text", { dragologyKey: "line-" + k, fill: o ? "#244b3d" : M ? "#fffdf3" : "#18302d", transform: D(12, (M ? 23 : 16) + k * 16), fontSize: o ? 15 : M ? 17 : 13, fontWeight: "bold" }, $)), !o && /* @__PURE__ */ e.createElement("text", { fill: M ? "#ebd29a" : "#18302d", transform: D(12, g - 23), fontSize: 12 }, b)), s && L < (i.capacity ?? 1 / 0) && /* @__PURE__ */ e.createElement(
       "g",
       {
         "data-workshop-add-card": i.id,
-        transform: D(0, h + L * g - 4),
+        transform: D(0, g + L * h - 4),
         role: "button",
         tabIndex: 0,
         "aria-labelledby": u + "-add-" + i.id,
@@ -464,7 +464,7 @@ const qt = (t, d, r) => {
   const u = Ue(He(f, t, l, a, Re), s);
   return (o) => u({ pointer: Le(o.x, o.y) }).dropState;
 };
-function ht({ value: t, preview: d }) {
+function gt({ value: t, preview: d }) {
   const r = d ?? t, l = new Map(r.lanes.map((p) => [p.id, p.label])), a = new Map(r.cards.map((p) => [p.id, p])), f = r.cards.flatMap((p) => (p.dependsOn ?? []).map((s) => ({ feature: p, prerequisite: a.get(s) })));
   return /* @__PURE__ */ e.createElement("div", { className: "release-plan-readout", style: { display: "flex", flexWrap: "wrap", gap: "1rem 2rem" } }, /* @__PURE__ */ e.createElement("section", { "aria-label": "Release capacity", style: { flex: "1 1 16rem" } }, /* @__PURE__ */ e.createElement("h3", null, "Release capacity"), r.lanes.filter((p) => p.capacity !== void 0).map((p) => {
     const s = Fe(r, p.id);
@@ -498,7 +498,7 @@ function kt(t, d) {
       return /* @__PURE__ */ e.createElement("g", { id: p(u), transform: D(o.x, o.y) });
     }
     return /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { width: "640", height: "300", fill: "#d6c7b2" }), /* @__PURE__ */ e.createElement("path", { d: "M0 0h640v17H0z", fill: "#b8ad99" }), /* @__PURE__ */ e.createElement("path", { d: "M0 220h640v80H0z", fill: "#c19c79" }), /* @__PURE__ */ e.createElement("path", { d: "M0 218h640v7H0z", fill: "#a38d77" }), [0, 1, 2, 3, 4, 5, 6].map((o) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "floor" + o, d: `M${40 + 83 * o} 225l${(o - 3) * 24} 75`, stroke: "#ae8b6c" })), [0, 1, 2].map((o) => /* @__PURE__ */ e.createElement("g", { dragologyKey: "light" + o, transform: D(163 + o * 156, 8) }, /* @__PURE__ */ e.createElement("path", { d: "M-10 0h20l-4 8H-6z", fill: "#67584b" }), /* @__PURE__ */ e.createElement("path", { d: "M-4 9h8l84 181H-84z", fill: "#f8e8bf", opacity: ".22" }))), r.panels.map((o, m) => {
-      const y = Pe[m], w = s(m), g = !t && (!d || d.includes(o.id)) && Ee(r, o.id);
+      const y = Pe[m], w = s(m), h = !t && (!d || d.includes(o.id)) && Ee(r, o.id);
       return /* @__PURE__ */ e.createElement("g", { dragologyKey: o.id }, /* @__PURE__ */ e.createElement(
         "rect",
         {
@@ -517,7 +517,7 @@ function kt(t, d) {
           id: p(m),
           transform: D(w.x, w.y),
           dragologyZIndex: a === p(m) ? "/1" : !1,
-          dragologyOnDrag: g ? () => l.between([r, le(r, o.id)]) : void 0
+          dragologyOnDrag: h ? () => l.between([r, le(r, o.id)]) : void 0
         },
         xt(["dunes", "moon", "coast"].indexOf(o.artwork))
       ));
@@ -527,12 +527,12 @@ function kt(t, d) {
 function Ft({ value: t, onChange: d, onPreview: r, readOnly: l = !1, enabledIds: a }) {
   const f = e.useRef(null), [p, s] = e.useState(1), [u, o] = e.useState(0), [m, y] = e.useState(null), w = e.useRef(t);
   w.current = t;
-  const g = e.useMemo(() => kt(l, a), [l, a]), x = (i) => {
+  const h = e.useMemo(() => kt(l, a), [l, a]), x = (i) => {
     y(i), r?.(i);
-  }, h = e.useRef(r);
-  h.current = r;
+  }, g = e.useRef(r);
+  g.current = r;
   const v = e.useCallback(() => {
-    y(null), h.current?.(null), o((i) => i + 1);
+    y(null), g.current?.(null), o((i) => i + 1);
   }, []);
   e.useEffect(() => {
     const i = new ResizeObserver(() => {
@@ -558,7 +558,7 @@ function Ft({ value: t, onChange: d, onPreview: r, readOnly: l = !1, enabledIds:
     ne,
     {
       key: u,
-      draggable: g,
+      draggable: h,
       width: 640,
       height: 300,
       state: t,
@@ -567,7 +567,7 @@ function Ft({ value: t, onChange: d, onPreview: r, readOnly: l = !1, enabledIds:
     }
   ))), /* @__PURE__ */ e.createElement("div", { style: { display: "flex", gap: 12, alignItems: "center", marginTop: 8 } }, /* @__PURE__ */ e.createElement("strong", null, "Visitor’s view"), /* @__PURE__ */ e.createElement("svg", { "aria-hidden": "true", viewBox: "0 0 150 40", width: "150", height: "40", style: { maxWidth: "45%" } }, M.panels.map((i, E) => /* @__PURE__ */ e.createElement("svg", { key: i.id, x: E * 50, width: "50", height: "40", viewBox: "0 0 50 40" }, /* @__PURE__ */ e.createElement("rect", { width: "50", height: "40", fill: M.hung.includes(i.id) ? "#343b66" : "#c7b8a8" }), M.hung.includes(i.id) && /* @__PURE__ */ e.createElement("g", null, i.artwork === "moon" && /* @__PURE__ */ e.createElement("circle", { cx: "27", cy: "10", r: "6", fill: "#ffdf9a" }), /* @__PURE__ */ e.createElement("path", { d: i.artwork === "dunes" ? "M0 24Q14 8 50 25V40H0z" : i.artwork === "moon" ? "M0 25Q24 36 50 22V40H0z" : "M0 22Q25 8 50 18V40H0z", fill: "#bd969d" }), /* @__PURE__ */ e.createElement("path", { d: "M0 32q13-4 25-1t25 1v8H0z", fill: "#365566" })))))), /* @__PURE__ */ e.createElement("output", { "aria-label": "Panorama", style: { display: "block", marginBlock: 8 } }, z ? z.label + " lines up with its hook." : W.length ? t.hung.length + " of " + t.panels.length + " panels on the wall." : "The panorama is complete."), !l && W.filter((i) => (!a || a.includes(i.id)) && Ee(t, i.id)).map((i) => /* @__PURE__ */ e.createElement("button", { key: i.id, type: "button", onFocus: () => x(le(t, i.id)), onBlur: () => x(null), onClick: () => C(le(t, i.id)) }, "Hang ", i.label)));
 }
-const wt = ".focus-darkroom{background:#e7ece3;color:#1c3736;padding:clamp(14px,3vw,28px);font:15px/1.4 system-ui,sans-serif}.focus-darkroom h1{font:500 clamp(30px,5vw,45px)/1 Georgia,serif;letter-spacing:-.045em;margin:0}.focus-darkroom>p{margin:.45rem 0 1rem}.focus-darkroom .contact-sheet{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(5px,2vw,13px);background:#183237;padding:14px 12px 0}.focus-darkroom .contact-sheet button{background:#1d4a56;border:1px solid #779390;padding:0;color:#def0dc;min-width:0;cursor:zoom-in}.focus-darkroom .contact-sheet svg{width:100%;display:block;background:radial-gradient(ellipse at 62% 59%,#367188,#173e52)}.focus-darkroom .contact-sheet span{display:block;text-align:left;padding:.3rem .45rem;background:#f0e9ce;color:#343b36;font:italic clamp(13px,2vw,19px) Georgia,serif}.focus-darkroom .contact-sheet button:focus,.focus-darkroom button:focus-visible{outline:3px solid #e3a522;outline-offset:2px}.focus-darkroom .return-circuit{background:#14282c;overflow:hidden}.focus-darkroom .return-circuit svg{zoom:var(--circuit-scale);display:block;margin:auto}.focus-darkroom .return-circuit #focus-ring{cursor:grab}.focus-darkroom .wire-controls{display:flex;gap:.4rem;flex-wrap:wrap;margin:.8rem 0 .55rem}.focus-darkroom .wire-controls button,.focus-darkroom dialog button{font:600 13px system-ui,sans-serif;border:1px solid #75918b;border-radius:3px;padding:.5rem .7rem;background:transparent;color:#1e3d3b}.focus-darkroom .wire-controls button[aria-pressed=true]{background:#284e4b;color:#fff}.focus-darkroom output{display:block}.focus-darkroom output:last-of-type{font:500 clamp(18px,3vw,24px)/1.1 Georgia,serif;margin:.45rem 0 0}.focus-darkroom dialog{border:1px solid #597475;background:#e8ebd9;color:#243d40;width:min(76vw,340px);padding:14px}.focus-darkroom dialog svg{display:block;width:100%;background:radial-gradient(ellipse at 62% 59%,#367188,#173e52)}.focus-darkroom dialog h2{font:italic 26px Georgia,serif;margin:.5rem 0}.focus-darkroom dialog::backdrop{background:#0b1b21bd}.focus-darkroom .return-circuit #focus-ring{touch-action:none}.focus-darkroom .contact-sheet span,.focus-darkroom dialog h2{overflow-wrap:anywhere}.focus-darkroom dialog{max-height:90vh;overflow:auto}.focus-darkroom dialog form{display:grid;gap:.4rem}.focus-darkroom dialog input{font:inherit;max-width:100%;min-width:0}.focus-darkroom dialog button{margin-right:.35rem}.focus-darkroom[data-readonly] #focus-ring{cursor:default}", ge = { start: 99, opener: 361 }, vt = { route: null }, Ie = "#ffcb62";
+const wt = ".focus-darkroom{background:#e7ece3;color:#1c3736;padding:clamp(14px,3vw,28px);font:15px/1.4 system-ui,sans-serif}.focus-darkroom h1{font:500 clamp(30px,5vw,45px)/1 Georgia,serif;letter-spacing:-.045em;margin:0}.focus-darkroom>p{margin:.45rem 0 1rem}.focus-darkroom .contact-sheet{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(5px,2vw,13px);background:#183237;padding:14px 12px 0}.focus-darkroom .contact-sheet button{background:#1d4a56;border:1px solid #779390;padding:0;color:#def0dc;min-width:0;cursor:zoom-in}.focus-darkroom .contact-sheet svg{width:100%;display:block;background:radial-gradient(ellipse at 62% 59%,#367188,#173e52)}.focus-darkroom .contact-sheet span{display:block;text-align:left;padding:.3rem .45rem;background:#f0e9ce;color:#343b36;font:italic clamp(13px,2vw,19px) Georgia,serif}.focus-darkroom .contact-sheet button:focus,.focus-darkroom button:focus-visible{outline:3px solid #e3a522;outline-offset:2px}.focus-darkroom .return-circuit{background:#14282c;overflow:hidden}.focus-darkroom .return-circuit svg{zoom:var(--circuit-scale);display:block;margin:auto}.focus-darkroom .return-circuit #focus-ring{cursor:grab}.focus-darkroom .wire-controls{display:flex;gap:.4rem;flex-wrap:wrap;margin:.8rem 0 .55rem}.focus-darkroom .wire-controls button,.focus-darkroom dialog button{font:600 13px system-ui,sans-serif;border:1px solid #75918b;border-radius:3px;padding:.5rem .7rem;background:transparent;color:#1e3d3b}.focus-darkroom .wire-controls button[aria-pressed=true]{background:#284e4b;color:#fff}.focus-darkroom output{display:block}.focus-darkroom output:last-of-type{font:500 clamp(18px,3vw,24px)/1.1 Georgia,serif;margin:.45rem 0 0}.focus-darkroom dialog{border:1px solid #597475;background:#e8ebd9;color:#243d40;width:min(76vw,340px);padding:14px}.focus-darkroom dialog svg{display:block;width:100%;background:radial-gradient(ellipse at 62% 59%,#367188,#173e52)}.focus-darkroom dialog h2{font:italic 26px Georgia,serif;margin:.5rem 0}.focus-darkroom dialog::backdrop{background:#0b1b21bd}.focus-darkroom .return-circuit #focus-ring{touch-action:none}.focus-darkroom .contact-sheet span,.focus-darkroom dialog h2{overflow-wrap:anywhere}.focus-darkroom dialog{max-height:90vh;overflow:auto}.focus-darkroom dialog form{display:grid;gap:.4rem}.focus-darkroom dialog input{font:inherit;max-width:100%;min-width:0}.focus-darkroom dialog button{margin-right:.35rem}.focus-darkroom[data-readonly] #focus-ring{cursor:default}", he = { start: 99, opener: 361 }, vt = { route: null }, Ie = "#ffcb62";
 function De(t) {
   return t === 1 ? /* @__PURE__ */ e.createElement("g", { fill: "#d4e6db", stroke: "#8ebcbb", strokeWidth: "1" }, [-1, 1].map((d) => /* @__PURE__ */ e.createElement("g", { key: d, transform: "scale(" + d + " 1)" }, /* @__PURE__ */ e.createElement("path", { d: "M1 1Q20-26 54-33Q54-8 34 7Q54 11 40 29Q20 36 4 14Z" }), /* @__PURE__ */ e.createElement("path", { d: "M5 2L47-25M7 5L37-9M5 11L36 22M7 10L30 29", fill: "none" }), /* @__PURE__ */ e.createElement("ellipse", { cx: "29", cy: "-9", rx: "6", ry: "5", fill: "#3d7280" }), /* @__PURE__ */ e.createElement("circle", { cx: "29", cy: "-9", r: "2", fill: "#e4eee1" }), /* @__PURE__ */ e.createElement("path", { d: "M2-4Q5-17 12-22", fill: "none", stroke: "#d4e6db", strokeWidth: "2" }))), /* @__PURE__ */ e.createElement("ellipse", { cy: "4", rx: "3.3", ry: "15", fill: "#eaebcf" })) : t === 0 ? /* @__PURE__ */ e.createElement("g", { transform: "rotate(22)", stroke: "#cedfd0", fill: "#b6d1be" }, /* @__PURE__ */ e.createElement("path", { d: "M-3 42Q0 0 0-44", fill: "none", strokeWidth: "2" }), Array.from({ length: 11 }, (d, r) => {
     const l = 33 - r * 6, a = 9 + 16 * Math.sin(r / 10 * Math.PI);
@@ -578,14 +578,14 @@ function De(t) {
   }));
 }
 function Te({ state: t, d, isTracking: r }, l = !1) {
-  const a = t.route ? ge[t.route] : 232, f = t.route ? 48 : 85;
-  return r ? /* @__PURE__ */ e.createElement("g", { id: "focus-ring", transform: D(a, f) }) : /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { width: "460", height: "108", fill: "#14282c" }), [ge.start, ge.opener].map((p, s) => /* @__PURE__ */ e.createElement("g", { dragologyKey: String(p) }, /* @__PURE__ */ e.createElement("path", { d: `M232 85Q${p} 85 ${p} 48V0`, fill: "none", stroke: t.route === "start" && s === 0 || t.route === "opener" && s === 1 ? Ie : "#52727a", strokeWidth: "2", strokeDasharray: "3 5" }), /* @__PURE__ */ e.createElement("circle", { id: s ? "opener-jack" : "first-jack", cx: p, cy: "48", r: "12", fill: "#233d40", stroke: "#608185" }), /* @__PURE__ */ e.createElement("text", { x: p, y: "24", fill: "#dae9e1", fontFamily: "system-ui,sans-serif", fontSize: "13", textAnchor: "middle" }, s ? "Opening print" : "First print"))), /* @__PURE__ */ e.createElement("g", { id: "focus-ring", transform: D(a, f), dragologyOnDrag: l ? void 0 : () => d.closest([vt, { route: "start" }, { route: "opener" }]).withFloating() }, /* @__PURE__ */ e.createElement("circle", { r: "19", fill: "#132a2e", stroke: "#85693d", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("circle", { r: "13.5", fill: "#203336", stroke: Ie, strokeWidth: "4" }), /* @__PURE__ */ e.createElement("path", { d: "M-5 -5L1 8l2-6 6-2z", fill: "#f8db94" })));
+  const a = t.route ? he[t.route] : 232, f = t.route ? 48 : 85;
+  return r ? /* @__PURE__ */ e.createElement("g", { id: "focus-ring", transform: D(a, f) }) : /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { width: "460", height: "108", fill: "#14282c" }), [he.start, he.opener].map((p, s) => /* @__PURE__ */ e.createElement("g", { dragologyKey: String(p) }, /* @__PURE__ */ e.createElement("path", { d: `M232 85Q${p} 85 ${p} 48V0`, fill: "none", stroke: t.route === "start" && s === 0 || t.route === "opener" && s === 1 ? Ie : "#52727a", strokeWidth: "2", strokeDasharray: "3 5" }), /* @__PURE__ */ e.createElement("circle", { id: s ? "opener-jack" : "first-jack", cx: p, cy: "48", r: "12", fill: "#233d40", stroke: "#608185" }), /* @__PURE__ */ e.createElement("text", { x: p, y: "24", fill: "#dae9e1", fontFamily: "system-ui,sans-serif", fontSize: "13", textAnchor: "middle" }, s ? "Opening print" : "First print"))), /* @__PURE__ */ e.createElement("g", { id: "focus-ring", transform: D(a, f), dragologyOnDrag: l ? void 0 : () => d.closest([vt, { route: "start" }, { route: "opener" }]).withFloating() }, /* @__PURE__ */ e.createElement("circle", { r: "19", fill: "#132a2e", stroke: "#85693d", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("circle", { r: "13.5", fill: "#203336", stroke: Ie, strokeWidth: "4" }), /* @__PURE__ */ e.createElement("path", { d: "M-5 -5L1 8l2-6 6-2z", fill: "#f8db94" })));
 }
 function Mt(t) {
   return Te(t, !0);
 }
 function Rt({ value: t, onChange: d, readOnly: r = !1, onEditPrint: l }) {
-  const a = r || !d, [f, p] = I(null), [s, u] = I(0), [o, m] = I(1), [y, w] = I(""), [g, x] = I(null), [h, v] = I(1), C = F(null), M = F(null), z = F([]), W = Xe(), i = qe(() => ({ route: t.route }), [t.route]), E = (!a && f ? f : i).route;
+  const a = r || !d, [f, p] = I(null), [s, u] = I(0), [o, m] = I(1), [y, w] = I(""), [h, x] = I(null), [g, v] = I(1), C = F(null), M = F(null), z = F([]), W = Xe(), i = qe(() => ({ route: t.route }), [t.route]), E = (!a && f ? f : i).route;
   Q(() => {
     const k = C.current, P = new ResizeObserver(() => v(Math.min(1, k.clientWidth / 460)));
     return P.observe(k), () => P.disconnect();
@@ -633,7 +633,7 @@ function Rt({ value: t, onChange: d, readOnly: r = !1, onEditPrint: l }) {
       /* @__PURE__ */ e.createElement("svg", { viewBox: "-65 -50 130 100", "aria-hidden": "true" }, De(P)),
       /* @__PURE__ */ e.createElement("span", null, t[k])
     ))),
-    /* @__PURE__ */ e.createElement("div", { className: "return-circuit", ref: C, style: { "--circuit-scale": h } }, /* @__PURE__ */ e.createElement(
+    /* @__PURE__ */ e.createElement("div", { className: "return-circuit", ref: C, style: { "--circuit-scale": g } }, /* @__PURE__ */ e.createElement(
       ne,
       {
         key: a ? "locked" : s,
@@ -650,33 +650,33 @@ function Rt({ value: t, onChange: d, readOnly: r = !1, onEditPrint: l }) {
     /* @__PURE__ */ e.createElement("output", { "aria-label": "Focus result" }, y || "Open " + t.secondPrint + " to try the return path."),
     /* @__PURE__ */ e.createElement("dialog", { ref: M, onClose: b, "aria-labelledby": W, onKeyDown: (k) => {
       k.key === "Escape" && (k.preventDefault(), k.stopPropagation(), k.currentTarget.close());
-    } }, /* @__PURE__ */ e.createElement("svg", { viewBox: "-65 -50 130 100", "aria-hidden": "true" }, De(o)), /* @__PURE__ */ e.createElement("h2", { id: W }, t[X[o]]), !a && g !== null ? /* @__PURE__ */ e.createElement("form", { onSubmit: (k) => {
-      k.preventDefault(), g.trim() && (d?.({ ...t, [X[o]]: g.trim() }), x(null), M.current?.querySelector("[data-close]")?.focus());
-    } }, /* @__PURE__ */ e.createElement("label", null, "Print name ", /* @__PURE__ */ e.createElement("input", { autoFocus: !0, required: !0, maxLength: 48, value: g, onChange: (k) => x(k.target.value) })), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "submit", disabled: !g.trim() }, "Save name"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => x(null) }, "Cancel rename"))) : null, /* @__PURE__ */ e.createElement("button", { type: "button", "data-close": !0, onClick: () => M.current?.close() }, "Close viewer"), !a && g === null && /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => {
+    } }, /* @__PURE__ */ e.createElement("svg", { viewBox: "-65 -50 130 100", "aria-hidden": "true" }, De(o)), /* @__PURE__ */ e.createElement("h2", { id: W }, t[X[o]]), !a && h !== null ? /* @__PURE__ */ e.createElement("form", { onSubmit: (k) => {
+      k.preventDefault(), h.trim() && (d?.({ ...t, [X[o]]: h.trim() }), x(null), M.current?.querySelector("[data-close]")?.focus());
+    } }, /* @__PURE__ */ e.createElement("label", null, "Print name ", /* @__PURE__ */ e.createElement("input", { autoFocus: !0, required: !0, maxLength: 48, value: h, onChange: (k) => x(k.target.value) })), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "submit", disabled: !h.trim() }, "Save name"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => x(null) }, "Cancel rename"))) : null, /* @__PURE__ */ e.createElement("button", { type: "button", "data-close": !0, onClick: () => M.current?.close() }, "Close viewer"), !a && h === null && /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => {
       const k = X[o];
       l ? (M.current?.close(), l(k)) : x(t[k]);
     } }, "Rename print"))
   );
 }
 const Lt = '.pilot-board{--ink:#243d33;box-sizing:border-box;color:var(--ink);background:#efece3;padding:clamp(14px,3.5vw,35px);font:15px/1.4 system-ui,sans-serif}.pilot-board *,.pilot-board *:before{box-sizing:border-box}.pilot-board header{margin:0 0 1.4rem;color:inherit;background:none;display:block;position:static;padding:0;border:0}.pilot-board header h2{font:700 clamp(30px,5vw,52px)/1 "Pilot Narrow",sans-serif;margin:.28em 0;color:inherit;letter-spacing:-.025em}.pilot-board p{margin:0}.pilot-board .pilot-kicker{font:600 12px/1.4 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase}.pilot-board button{font:inherit;cursor:pointer;color:inherit}.pilot-board button:focus-visible,.pilot-board a:focus-visible{outline:3px solid #007486;outline-offset:3px}.pilot-board footer{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;padding:14px 0 0;margin:0;background:none;color:inherit;border:0}.pilot-board footer a{color:inherit;text-underline-offset:.24em;font-weight:700}.pilot-board footer button{background:transparent;border:0;text-decoration:underline;text-underline-offset:.23em}.pilot-board .interview-desk{display:grid;grid-template-columns:minmax(0,.94fr) minmax(0,1.2fr);gap:clamp(12px,3vw,32px);align-items:center}.pilot-board .quote-stack{display:grid;gap:10px;padding:4px}.pilot-board .quote{border:1px solid #a79e88;border-radius:2px;box-shadow:2px 3px #756d592b;padding:11px 14px;display:grid;gap:6px;text-align:left;touch-action:none;cursor:grab;position:relative}.pilot-board .quote small{font:600 11px/1.3 ui-monospace,monospace}.pilot-board .quote strong{font:600 clamp(15px,2.1vw,22px)/1.15 Georgia,serif}.pilot-board .quote-preview{background:#f5d989}.pilot-board .quote-duplicate{background:#c5dacf}.pilot-board .quote-undo{background:#ded1ea}.pilot-board .quote[aria-pressed=true]{outline:2px solid #385947;outline-offset:1px}.pilot-board .prototype-slot{position:relative;background:#254a3e;color:#fcf9ee;padding:30px clamp(12px,3vw,26px) 16px;border:2px dashed transparent;border-radius:4px}.pilot-board .prototype-slot.drop-active{border-color:#edc65e}.pilot-board .prototype-screen{background:#fffdf7;color:#233a30;border:1px solid #162d25;border-radius:6px;box-shadow:3px 4px #102b2166;overflow:hidden}.pilot-board .prototype-screen>strong{display:block;padding:15px 12px 7px;font-size:clamp(16px,2.3vw,24px)}.pilot-board .prototype-bar,.pilot-board .prototype-row{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:8px 12px;font-size:12px}.pilot-board .prototype-bar{background:#e8eade;border-bottom:1px solid #c3cbbe;font-weight:650}.pilot-board .prototype-bar span+span,.pilot-board .prototype-row span+span{font:11px/1.3 ui-monospace,monospace}.pilot-board .prototype-row{margin:0 10px;padding:8px 2px;border-bottom:1px solid #e1e5da}.pilot-board .prototype-screen p{padding:8px 12px 12px;color:#355d49;font-weight:650;font-size:12px}.pilot-board .test-brief{margin-top:14px}.pilot-board .test-brief strong{font-size:18px}.pilot-board .test-brief p{font-size:13px;margin-top:3px}.pilot-board .design-cursor{position:absolute;right:17px;top:5px;font:700 10px/1.5 ui-monospace,monospace;color:#f8d7bc;pointer-events:none}.pilot-board .design-cursor span{display:inline-block;transform:rotate(-126deg)}@media (prefers-reduced-motion:no-preference){.pilot-board .design-cursor{animation:point-to-screen .45s ease-out}@keyframes point-to-screen{0%{transform:translate(15px,12px)}to{transform:translate(0)}}}.pilot-board .budget-board{background:#e1e8dc}.pilot-board .budget-ledger{padding:clamp(12px,2.5vw,24px);background:#fcf9f0;border:1px solid #9fae9e}.pilot-board .budget-heading,.pilot-board .reserve{display:flex;justify-content:space-between;align-items:baseline;gap:12px}.pilot-board .budget-heading{font-weight:700}.pilot-board .budget-heading b{font:700 clamp(22px,3vw,32px)/1 "Pilot Narrow",sans-serif}.pilot-board .budget-heading small{font:400 12px/1.4 system-ui,sans-serif}.pilot-board .budget-bar{display:flex;gap:2px;margin:12px 0;height:10px}.pilot-board .budget-bar span{flex:1}.pilot-board .band-calls{background:#386759}.pilot-board .band-pilot{background:#b8804f}.pilot-board .band-newsletter{background:#80698c}.pilot-board .band-reserve{background:#dfded2}.pilot-board .budget-chips,.pilot-board .budget-targets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.pilot-board .budget-chips{margin:14px 0 18px}.pilot-board .budget-chips button{background:#f4e6bd;border:1px solid #b7a46b;border-left:4px solid #a98b43;display:grid;justify-items:start;text-align:left;align-content:start;gap:3px;padding:9px 10px;touch-action:none;cursor:grab}.pilot-board .budget-chips button[aria-pressed=true]{outline:2px solid #485e49;outline-offset:1px}.pilot-board .budget-chips small{font:11px/1.2 ui-monospace,monospace}.pilot-board .budget-chips span{font-size:12px}.pilot-board .budget-chips strong,.pilot-board .budget-targets b{font:700 clamp(22px,4vw,38px)/1.1 "Pilot Narrow",sans-serif}.pilot-board .budget-targets button{border:1px dashed #969a8b;border-radius:4px;display:grid;grid-template-rows:1fr auto auto;text-align:left;gap:4px;padding:12px 10px}.pilot-board .budget-targets strong{font-size:14px;line-height:1.15}.pilot-board .budget-targets span{font-size:12px}.pilot-board .target-calls{background:#d6e5d9}.pilot-board .target-newsletter{background:#e6ddeb}.pilot-board .target-pilot{background:#f1ddc6}.pilot-board .reserve{width:100%;border:0;border-top:1px solid #b4baad;background:none;margin-top:14px;padding:10px 0 0;font-size:13px}.pilot-board .pilot-ghost{position:fixed;z-index:10;pointer-events:none;background:#25382e;color:#fff9ee;box-shadow:1px 4px 10px #0003;padding:6px 10px;border-radius:3px;font:600 12px/1.3 system-ui,sans-serif}@media (max-width:480px){.pilot-board .interview-desk{grid-template-columns:1fr;gap:12px}.pilot-board .quote-stack{gap:6px}.pilot-board .quote{padding:8px 10px;gap:3px}.pilot-board footer{font-size:14px}.pilot-board .budget-chips,.pilot-board .budget-targets{gap:5px}.pilot-board .budget-targets button,.pilot-board .budget-chips button{padding:8px 5px}.pilot-board .budget-targets strong{font-size:12px}.pilot-board .budget-targets span,.pilot-board .budget-chips span{font-size:11px}}.pilot-board button:disabled{cursor:default}';
-function he(t, d, r) {
+function ge(t, d, r) {
   const l = Re(t, d, r);
   return l === t ? null : l;
 }
 function Bt({ value: t, readOnly: d = !1, onChange: r }) {
-  const l = tt(t), a = F(null), [f, p] = I(null), [s, u] = I(null), [o, m] = I(null), [y, w] = I("fund-1"), g = f?.base === t && !d ? f.next : t, x = t.cards.some((n) => n.id === y) ? y : t.cards[0]?.id;
-  function h() {
+  const l = tt(t), a = F(null), [f, p] = I(null), [s, u] = I(null), [o, m] = I(null), [y, w] = I("fund-1"), h = f?.base === t && !d ? f.next : t, x = t.cards.some((n) => n.id === y) ? y : t.cards[0]?.id;
+  function g() {
     a.current = null, u(null), m(null), p(null);
   }
   Q(() => {
     if (!s) return;
     const n = (b) => {
-      b.key === "Escape" && h();
+      b.key === "Escape" && g();
     };
     return window.addEventListener("keydown", n), () => window.removeEventListener("keydown", n);
   }, [s]);
   function v(n, b) {
-    const $ = !d && he(t, n, b);
+    const $ = !d && ge(t, n, b);
     $ && r?.($);
   }
   function C(n) {
@@ -698,30 +698,30 @@ function Bt({ value: t, readOnly: d = !1, onChange: r }) {
       onPointerMove: (b) => {
         const $ = a.current;
         if (!$ || $.card !== n) return;
-        if ($.board !== t || d) return h();
+        if ($.board !== t || d) return g();
         if ($.moved || ($.moved = Math.hypot(b.clientX - $.x, b.clientY - $.y) > 5), !$.moved) return;
         m({ left: b.clientX + 10, top: b.clientY + 10 });
-        const k = M(b), P = k && he(t, n, k);
+        const k = M(b), P = k && ge(t, n, k);
         p(P ? { base: t, next: P } : null);
       },
       onPointerUp: (b) => {
         const $ = a.current;
         if (!$ || $.card !== n) return;
         const k = M(b);
-        h(), !(d || $.board !== t) && ($.moved ? k && v(n, k) : C(n));
+        g(), !(d || $.board !== t) && ($.moved ? k && v(n, k) : C(n));
       },
-      onLostPointerCapture: h,
-      onPointerCancel: h
+      onLostPointerCapture: g,
+      onPointerCancel: g
     };
   }
   if (!l) return null;
-  const W = g.cards.find((n) => n.laneId === "prototype"), i = Be(g).find((n) => n.cardId === W?.id && n.laneId === "prototype" && n.present), E = $e(g, "reserve")?.amount ?? 0, L = (n) => t.lanes.find((b) => b.id === n)?.label ?? "";
+  const W = h.cards.find((n) => n.laneId === "prototype"), i = Be(h).find((n) => n.cardId === W?.id && n.laneId === "prototype" && n.present), E = $e(h, "reserve")?.amount ?? 0, L = (n) => t.lanes.find((b) => b.id === n)?.label ?? "";
   return /* @__PURE__ */ e.createElement(
     "section",
     {
       className: "pilot-board " + (l === "customer-interviews" ? "interview-board" : "budget-board"),
       onKeyDown: (n) => {
-        n.key === "Escape" && h();
+        n.key === "Escape" && g();
       }
     },
     /* @__PURE__ */ e.createElement("style", null, Lt),
@@ -740,7 +740,7 @@ function Bt({ value: t, readOnly: d = !1, onChange: r }) {
         $ && /* @__PURE__ */ e.createElement("small", null, b.who),
         /* @__PURE__ */ e.createElement("strong", null, $ ? b.quote : n.label)
       );
-    })), /* @__PURE__ */ e.createElement("div", { className: "prototype-slot" + (s ? " drop-active" : ""), "data-drop": "prototype", "aria-label": L("prototype") }, /* @__PURE__ */ e.createElement("div", { key: W?.id, className: "design-cursor", "aria-label": "Simulated designer Imani" }, /* @__PURE__ */ e.createElement("span", { "aria-hidden": "true" }, "➤"), " Imani"), W ? /* @__PURE__ */ e.createElement(St, { id: W.id }) : /* @__PURE__ */ e.createElement("p", null, "Choose an interview for the prototype."), i && /* @__PURE__ */ e.createElement("div", { className: "test-brief", "aria-live": "polite" }, /* @__PURE__ */ e.createElement("strong", null, i.label), /* @__PURE__ */ e.createElement("p", null, i.text))))) : /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement("header", null, /* @__PURE__ */ e.createElement("p", { className: "pilot-kicker" }, "First ten design partners"), /* @__PURE__ */ e.createElement("h2", null, "Where would you spend $", t.cards.length * 200, "?"), !d && /* @__PURE__ */ e.createElement("p", null, "Drag a $200 allocation to an experiment, or select an allocation and then a destination.")), /* @__PURE__ */ e.createElement("div", { className: "budget-ledger" }, /* @__PURE__ */ e.createElement("div", { className: "budget-heading" }, /* @__PURE__ */ e.createElement("span", null, "Pilot budget"), /* @__PURE__ */ e.createElement("b", null, "$", t.cards.length * 200 - E, " ", /* @__PURE__ */ e.createElement("small", null, "committed"))), /* @__PURE__ */ e.createElement("div", { className: "budget-bar", "aria-hidden": "true" }, g.cards.map((n) => /* @__PURE__ */ e.createElement("span", { key: n.id, className: "band-" + n.laneId }))), /* @__PURE__ */ e.createElement("div", { className: "budget-chips" }, t.cards.map((n) => /* @__PURE__ */ e.createElement(
+    })), /* @__PURE__ */ e.createElement("div", { className: "prototype-slot" + (s ? " drop-active" : ""), "data-drop": "prototype", "aria-label": L("prototype") }, /* @__PURE__ */ e.createElement("div", { key: W?.id, className: "design-cursor", "aria-label": "Simulated designer Imani" }, /* @__PURE__ */ e.createElement("span", { "aria-hidden": "true" }, "➤"), " Imani"), W ? /* @__PURE__ */ e.createElement(St, { id: W.id }) : /* @__PURE__ */ e.createElement("p", null, "Choose an interview for the prototype."), i && /* @__PURE__ */ e.createElement("div", { className: "test-brief", "aria-live": "polite" }, /* @__PURE__ */ e.createElement("strong", null, i.label), /* @__PURE__ */ e.createElement("p", null, i.text))))) : /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement("header", null, /* @__PURE__ */ e.createElement("p", { className: "pilot-kicker" }, "First ten design partners"), /* @__PURE__ */ e.createElement("h2", null, "Where would you spend $", t.cards.length * 200, "?"), !d && /* @__PURE__ */ e.createElement("p", null, "Drag a $200 allocation to an experiment, or select an allocation and then a destination.")), /* @__PURE__ */ e.createElement("div", { className: "budget-ledger" }, /* @__PURE__ */ e.createElement("div", { className: "budget-heading" }, /* @__PURE__ */ e.createElement("span", null, "Pilot budget"), /* @__PURE__ */ e.createElement("b", null, "$", t.cards.length * 200 - E, " ", /* @__PURE__ */ e.createElement("small", null, "committed"))), /* @__PURE__ */ e.createElement("div", { className: "budget-bar", "aria-hidden": "true" }, h.cards.map((n) => /* @__PURE__ */ e.createElement("span", { key: n.id, className: "band-" + n.laneId }))), /* @__PURE__ */ e.createElement("div", { className: "budget-chips" }, t.cards.map((n) => /* @__PURE__ */ e.createElement(
       "button",
       {
         type: "button",
@@ -754,7 +754,7 @@ function Bt({ value: t, readOnly: d = !1, onChange: r }) {
       /* @__PURE__ */ e.createElement("strong", null, "$200"),
       /* @__PURE__ */ e.createElement("span", null, L(n.laneId).split(" · ")[0])
     ))), /* @__PURE__ */ e.createElement("div", { className: "budget-targets" }, rt.map((n) => {
-      const b = $e(g, n.id);
+      const b = $e(h, n.id);
       return /* @__PURE__ */ e.createElement(
         "button",
         {
@@ -762,7 +762,7 @@ function Bt({ value: t, readOnly: d = !1, onChange: r }) {
           key: n.id,
           className: "target-" + n.id,
           "data-drop": n.id,
-          disabled: d || !x || !he(t, x, n.id),
+          disabled: d || !x || !ge(t, x, n.id),
           onClick: () => v(x, n.id)
         },
         /* @__PURE__ */ e.createElement("strong", null, L(n.id).replace(" · " + n.rate, "")),
@@ -779,10 +779,10 @@ function St({ id: t }) {
   return /* @__PURE__ */ e.createElement("div", { className: "prototype-screen", "aria-label": "Example product screen" }, /* @__PURE__ */ e.createElement("div", { className: "prototype-bar" }, /* @__PURE__ */ e.createElement("span", null, "Client list"), /* @__PURE__ */ e.createElement("span", null, "Prototype")), /* @__PURE__ */ e.createElement("strong", null, t === "duplicate" ? "1 matching client" : t === "undo" ? "Import history" : "Preview your first 10 rows"), d.map(([r, l]) => /* @__PURE__ */ e.createElement("div", { className: "prototype-row", key: r }, /* @__PURE__ */ e.createElement("span", null, r), /* @__PURE__ */ e.createElement("span", null, l))), /* @__PURE__ */ e.createElement("p", null, t === "duplicate" ? "Keep original record" : t === "undo" ? "Restore previous list" : "No emails will be sent"));
 }
 const Ct = (t) => pe(t, !1), Wt = (t) => pe(t, !0);
-function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: a, onEditStation: f, onEditLane: p, onAddCard: s, onUndo: u, canUndo: o, readOnly: m = !1, fitLanes: y = !1, mapCanvas: w = !1, showPlacementOutcomes: g = !0, showMoveControls: x = !0 }) {
-  const h = e.useRef(null), v = e.useId(), C = e.useRef(null), M = e.useRef(!1), z = e.useRef(null), [W, i] = e.useState(0), E = w && !!t.lanes[0].station, L = E || y && !t.kind && !t.lanes[0].station;
+function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: a, onEditStation: f, onEditLane: p, onAddCard: s, onUndo: u, canUndo: o, readOnly: m = !1, fitLanes: y = !1, mapCanvas: w = !1, showPlacementOutcomes: h = !0, showMoveControls: x = !0 }) {
+  const g = e.useRef(null), v = e.useId(), C = e.useRef(null), M = e.useRef(!1), z = e.useRef(null), [W, i] = e.useState(0), E = w && !!t.lanes[0].station, L = E || y && !t.kind && !t.lanes[0].station;
   e.useLayoutEffect(() => {
-    const c = h.current;
+    const c = g.current;
     if (!L || !c) return;
     const S = () => i(c.clientWidth);
     S();
@@ -834,7 +834,7 @@ function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: 
   return /* @__PURE__ */ e.createElement("section", { "aria-label": t.title }, (U || Z) && /* @__PURE__ */ e.createElement("div", { hidden: !0 }, t.lanes.map((c) => /* @__PURE__ */ e.createElement(e.Fragment, { key: c.id }, U && /* @__PURE__ */ e.createElement("span", { id: v + "-edit-" + c.id }, "Edit ", c.label), Z && /* @__PURE__ */ e.createElement("span", { id: v + "-add-" + c.id }, "Add card to ", c.label)))), Y && /* @__PURE__ */ e.createElement("div", { hidden: !0 }, t.cards.map((c) => /* @__PURE__ */ e.createElement("span", { key: c.id, id: v + "-select-" + c.id }, "Select ", c.label))), /* @__PURE__ */ e.createElement(
     "div",
     {
-      ref: h,
+      ref: g,
       style: { maxWidth: "100%", overflowX: "auto" },
       onKeyDownCapture: (c) => {
         const S = c.target.closest(we);
@@ -866,8 +866,8 @@ function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: 
         a && (z.current?.id === N && c.timeStamp - z.current.at < 400 ? (z.current = null, a(N)) : z.current = { id: N, at: c.timeStamp });
       }
     },
-    E ? /* @__PURE__ */ e.createElement(gt, { board: q?.next ?? t, fitted: n, width: b, height: ve }, Me) : Me
-  ), P && g && /* @__PURE__ */ e.createElement("section", { "aria-label": "Placement outcomes", "aria-live": "polite", style: { overflowWrap: "anywhere" } }, Be(oe ?? t).map((c) => /* @__PURE__ */ e.createElement("p", { key: c.id }, /* @__PURE__ */ e.createElement("strong", null, c.label), /* @__PURE__ */ e.createElement("br", null), c.text))), k && /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement(ht, { value: t, preview: oe }), !m && /* @__PURE__ */ e.createElement(e.Fragment, null, x && /* @__PURE__ */ e.createElement(
+    E ? /* @__PURE__ */ e.createElement(ht, { board: q?.next ?? t, fitted: n, width: b, height: ve }, Me) : Me
+  ), P && h && /* @__PURE__ */ e.createElement("section", { "aria-label": "Placement outcomes", "aria-live": "polite", style: { overflowWrap: "anywhere" } }, Be(oe ?? t).map((c) => /* @__PURE__ */ e.createElement("p", { key: c.id }, /* @__PURE__ */ e.createElement("strong", null, c.label), /* @__PURE__ */ e.createElement("br", null), c.text))), k && /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement(gt, { value: t, preview: oe }), !m && /* @__PURE__ */ e.createElement(e.Fragment, null, x && /* @__PURE__ */ e.createElement(
     Et,
     {
       value: t,
@@ -908,12 +908,12 @@ function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: 
   ))), q && /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => _(q.next, q.move) }, "Apply move"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: T }, "Cancel move"))));
 }
 export {
-  Zn as DEFAULT_NOTE_STYLE,
+  Jn as DEFAULT_NOTE_STYLE,
   Rt as FocusDarkroomBoard,
   Dt as ListeningRoomBoard,
   Ft as MoonGalleryBoard,
   It as OfflineHandoffBoard,
-  ht as ReleasePlanReadout,
+  gt as ReleasePlanReadout,
   Bt as StartupWorkshopBoard,
   At as WorkshopBoard,
   Kt as WorkshopReferenceError,
@@ -956,8 +956,8 @@ export {
   mn as normalizeMoonGallery,
   bn as normalizeOfflineHandoff,
   Ze as offlineHandoff,
-  gn as planStartupMove,
-  hn as pointing,
+  hn as planStartupMove,
+  gn as pointing,
   X as printFields,
   Fe as releaseLoad,
   En as releasePlan,
@@ -989,17 +989,18 @@ export {
   Fn as workshopNewLine,
   Rn as workshopNodeIds,
   Bn as workshopNoteCandidate,
-  An as workshopNoteRefusal,
+  An as workshopNoteIdOf,
+  Hn as workshopNoteRefusal,
   ce as workshopPositions,
-  Hn as workshopPresentationLanes,
-  Tn as workshopPresentationScenes,
-  Kn as workshopReferences,
-  Gn as workshopRefusal,
-  jn as workshopRenamedLines,
-  Yn as workshopStandInId,
-  Xn as workshopTakesNotes,
+  Tn as workshopPresentationLanes,
+  Kn as workshopPresentationScenes,
+  Gn as workshopReferences,
+  jn as workshopRefusal,
+  Yn as workshopRenamedLines,
+  Xn as workshopStandInId,
+  Qn as workshopTakesNotes,
   Je as workshopToSlate,
-  Qn as workshopWithLine,
-  Vn as workshopWithoutCardLines,
-  _n as workshopWithoutLine
+  Vn as workshopWithLine,
+  _n as workshopWithoutCardLines,
+  Un as workshopWithoutLine
 };

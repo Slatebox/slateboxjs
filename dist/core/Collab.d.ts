@@ -58,6 +58,10 @@ export interface NoteTrade {
     note?: {
         options?: Record<string, any>;
     };
+    /** The note, when the record is kept under another key (a note id the store cannot use as one). */
+    id?: string;
+    /** A card that became a note: the note's lines to other notes, drawn with it. */
+    lines?: Record<string, any>[];
 }
 /** The trades a stored slate records, with the workshop revision the document was stored at. */
 export interface NoteTrades {
@@ -103,6 +107,8 @@ export declare class Collab {
     private tradeTruth;
     /** The workshop revision every trade this screen draws is settled through (see settleTrades). */
     private tradesThrough;
+    /** The lines a card's trade to a note joined it with, by note id (see NoteTrade.lines). */
+    private tradeLines;
     private tradeFixTimer;
     /** Notes with a trade of this person's own on its way to the server: left as this screen has them. */
     private ownTrades;
@@ -235,6 +241,8 @@ export declare class Collab {
     private dropRoomCards;
     /** Draw note `id` as its trade says, when it is not: take it off, or put it on. */
     private enforceTrade;
+    /** Draw the lines the server's record of a trade to a note joined it with (those both of whose notes are here). */
+    private joinTradeLines;
     private enforceStaleTrades;
     /**
      * Some trade the room has not been told of: tell it in a moment (a second or two, so the page

@@ -12886,7 +12886,7 @@ function rn(n, t) {
 const qn = /* @__PURE__ */ new Set(["onNodeToFront", "onNodeToBack"]), Oi = "node-order";
 class Er {
   constructor(t, e = {}) {
-    this.doc = null, this.provider = null, this.collabMap = null, this.awareness = null, this.isConnected = !1, this.clientID = 0, this.cursorElements = /* @__PURE__ */ new Map(), this._cursorMoveHandler = null, this._cursorTrackingNode = null, this._cursorSweepTimer = null, this._cursorLastSeen = /* @__PURE__ */ new Map(), this.clock = 0, this.baseline = null, this.applying = null, this.synced = !1, this.trades = /* @__PURE__ */ new Map(), this.tradeTruth = /* @__PURE__ */ new Map(), this.tradesThrough = 0, this.tradeFixTimer = null, this.ownTrades = /* @__PURE__ */ new Map(), this.fromRecord = /* @__PURE__ */ new Set(), this.hostChangeAt = 0, this.slate = t, this.options = {
+    this.doc = null, this.provider = null, this.collabMap = null, this.awareness = null, this.isConnected = !1, this.clientID = 0, this.cursorElements = /* @__PURE__ */ new Map(), this._cursorMoveHandler = null, this._cursorTrackingNode = null, this._cursorSweepTimer = null, this._cursorLastSeen = /* @__PURE__ */ new Map(), this.clock = 0, this.baseline = null, this.applying = null, this.synced = !1, this.trades = /* @__PURE__ */ new Map(), this.tradeTruth = /* @__PURE__ */ new Map(), this.tradesThrough = 0, this.tradeLines = /* @__PURE__ */ new Map(), this.tradeFixTimer = null, this.ownTrades = /* @__PURE__ */ new Map(), this.fromRecord = /* @__PURE__ */ new Set(), this.hostChangeAt = 0, this.slate = t, this.options = {
       wsUrl: "ws://localhost:1234",
       roomName: "default-slate",
       userName: "",
@@ -13260,14 +13260,14 @@ class Er {
     const i = [];
     for (const [o, r] of Object.entries(t)) {
       if (!r || typeof r.r != "number" || r.as !== "card" && r.as !== "note") continue;
-      const a = this.trades.get(o);
-      if (!(a && a.r >= r.r))
-        if (this.trades.set(o, r), s) {
-          const c = this.slate?.nodes?.one?.(o);
-          this.tradeTruth.set(o, c ? Q(c.options) : null), c && this.fromRecord.add(o);
+      const a = typeof r.id == "string" && r.id ? r.id : o, c = this.trades.get(a);
+      if (!(c && c.r >= r.r))
+        if (this.trades.set(a, r), this.tradeLines.set(a, r.as === "note" && Array.isArray(r.lines) ? r.lines.filter((l) => l && typeof l.id == "string") : []), s) {
+          const l = this.slate?.nodes?.one?.(a);
+          this.tradeTruth.set(a, l ? Q(l.options) : null), l && this.fromRecord.add(a);
         } else {
-          const c = r.as === "note" ? r.note?.options : null;
-          this.tradeTruth.set(o, c ? { ...c, id: o } : null), i.push(o);
+          const l = r.as === "note" ? r.note?.options : null;
+          this.tradeTruth.set(a, l ? { ...l, id: a } : null), i.push(a);
         }
     }
     i.length && this.run(() => {
@@ -13348,11 +13348,26 @@ class Er {
     const e = this.tradeTruth.get(t), s = this.slate.nodes?.one?.(t);
     try {
       if (e === null && s) return this.handleRemotePackage({ type: "onNodeDeleted", data: { id: t, isComment: !1 } });
-      if (e && !s)
-        return this.fromRecord.add(t), this.handleRemotePackage({ type: "onNodeAdded", data: { id: t, nodeOptions: [{ ...e, id: t }] } });
+      if (e && !s) {
+        this.fromRecord.add(t);
+        const i = this.handleRemotePackage({ type: "onNodeAdded", data: { id: t, nodeOptions: [{ ...e, id: t }] } }), o = () => this.joinTradeLines(t);
+        return i && typeof i.then == "function" ? i.then(o) : o();
+      }
     } catch (i) {
       console.warn("COLLAB_DEBUG: A traded note could not be drawn as the server has it:", i);
     }
+  }
+  /** Draw the lines the server's record of a trade to a note joined it with (those both of whose notes are here). */
+  joinTradeLines(t) {
+    const e = [];
+    for (const s of this.tradeLines.get(t) ?? [])
+      try {
+        const i = this.handleRemotePackage({ type: "addRelationship", data: { ...s } });
+        i && typeof i.then == "function" && e.push(i);
+      } catch (i) {
+        console.warn("COLLAB_DEBUG: A traded note's line could not be drawn:", i);
+      }
+    if (e.length) return Promise.all(e);
   }
   async enforceStaleTrades() {
     for (const t of this.trades.keys())
@@ -13394,7 +13409,12 @@ class Er {
         const r = i.as === "card" ? null : this.slate?.nodes?.one?.(s), a = i.as === "card" ? null : this.tradeTruth.get(s), c = r ? Q(r.options) : a, l = c ? { type: "onNodeAdded", data: { id: s, nodeOptions: { ...c, id: s }, traded: i.r } } : { type: "onNodeDeleted", data: { id: s, isComment: !1, traded: i.r } };
         this.fromRecord.delete(s);
         const d = `${l.type}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-        this.collabMap.set(d, { ...l, clientID: this.clientID, timestamp: this.tick() }), this.collabMap.set(Wn(s), {
+        if (this.collabMap.set(d, { ...l, clientID: this.clientID, timestamp: this.tick() }), c)
+          for (const h of this.tradeLines.get(s) ?? []) {
+            const u = `addRelationship_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+            this.collabMap.set(u, { type: "addRelationship", data: { ...h }, clientID: this.clientID, timestamp: this.tick() });
+          }
+        this.collabMap.set(Wn(s), {
           type: Ut,
           data: { trade: s, r: i.r, as: i.as },
           clientID: this.clientID,

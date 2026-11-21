@@ -32,6 +32,8 @@ export interface WorkshopCard {
     look?: WorkshopCardLook;
     /** What the note it was made from had that a card does not show, so it comes back as it was. */
     asNote?: WorkshopCardAsNote;
+    /** The id of the note it was made from, when the card could not take it: the note comes back under it. */
+    noteId?: string;
 }
 /**
  * What an ordinary note had that its card does not show: its words with their line breaks,
@@ -112,6 +114,8 @@ export interface Workshop {
     /** The lines joined to its cards (see WorkshopLine). */
     lines?: WorkshopLine[];
 }
+/** The id of the note a card stands for: the note it was made from, when that note's id is not the card's. */
+export declare function workshopNoteIdOf(card: Pick<WorkshopCard, 'id' | 'noteId'>): string;
 /** The words a card shows for a note's words: its words in one line, the first 80 characters of longer ones. */
 export declare function workshopCardLabelOf(words: string): string;
 /** The parts of a note's look a card can keep; anything a card cannot draw is left out. Undefined when nothing is left. */
