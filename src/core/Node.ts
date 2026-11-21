@@ -221,16 +221,11 @@ export interface NodeOptions {
   // Behavior flags
   allowDrag?: boolean;
   isLocked?: boolean;
-  disableDrag?: boolean;
   allowMenu?: boolean;
   allowContext?: boolean;
   allowResize?: boolean;
 
-  // Menu tab visibility
-  showDelete?: boolean;
-  showAdd?: boolean;
-  showResize?: boolean;
-  showRotate?: boolean;
+  // Style-bar controls a note leaves off when false (operations key hiddenControls)
   showMenu?: boolean;
   showColorTab?: boolean;
   showTextTab?: boolean;
@@ -239,17 +234,9 @@ export interface NodeOptions {
   showImageTab?: boolean;
   showEffectTab?: boolean;
 
-  // Relationship UI flags
-  showRelationshipConnector?: boolean;
-  showRelationshipDelete?: boolean;
-  showRelationshipProperties?: boolean;
-  showRelationshipReassign?: boolean;
-  showAddAndDeleteConditionally?: boolean;
-  spaceBetweenNodesWhenAdding?: number;
-  disableMenuAsTemplate?: boolean;
-
   // Special node types
   isComment?: boolean;
+  /** A template's category (operations key category): its name is categoryName. */
   isCategory?: boolean;
   categoryName?: string;
   humanTouch?: boolean;
@@ -423,12 +410,8 @@ export class Node {
       allowDrag: true,
       isLocked: false,
       shape: "rectangle",
-      // v1 UI-affordance defaults — host apps gate their node UI (drawer
-      // tabs, delete/add buttons, relationship controls) on these flags
-      showDelete: true,
-      showResize: true,
-      showAdd: true,
-      showRotate: true,
+      isCategory: false,
+      // The style bar leaves a control off a note whose flag is false.
       showMenu: true,
       showColorTab: true,
       showTextTab: true,
@@ -436,10 +419,6 @@ export class Node {
       showShapeTab: true,
       showImageTab: true,
       showEffectTab: true,
-      showRelationshipConnector: true,
-      showRelationshipDelete: true,
-      showRelationshipProperties: true,
-      showRelationshipReassign: true,
       allowMenu: true,
       allowContext: true,
       rotate: {

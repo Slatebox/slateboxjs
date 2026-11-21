@@ -32,10 +32,6 @@ export function createComment(
     fontColor: "#333",
     fontSize: 12,
     isComment: true,
-    showDelete: true,
-    showAdd: false,
-    showResize: true,
-    showRotate: false,
     showMenu: false,
     allowResize: true,
     // Author/timestamp must be part of the node at creation so they're carried

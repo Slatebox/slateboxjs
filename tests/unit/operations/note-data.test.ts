@@ -50,7 +50,7 @@ describe("category: a note is a template category by plain data", () => {
   });
 
   it("add_nodes takes it in style", () => {
-    const result = applyPlanToJSON(slate(), plan({ kind: "add_nodes", count: 1, ids: ["c"], text: "Benefits", style: { category: "Benefits" } }));
+    const result = applyPlanToJSON(slate(), plan({ kind: "add_nodes", count: 1, ids: ["c"], shape: "rectangle", text: "Benefits", style: { category: "Benefits" } }));
     expect(optionsOf(result, "c")).toMatchObject({ isCategory: true, categoryName: "Benefits" });
   });
 

@@ -2,6 +2,10 @@ import type { Slate } from "./Slate";
 import type { SlatePackage } from "./SlatePackage";
 import { v1NodeToV2 } from "./compat";
 import { deserialize } from "./Serialization";
+import { NOTE_CONTROLS } from "../operations/keys/node";
+
+/** The note options onNodeOptionsChanged may set: a category and the bar controls a note leaves off. */
+const NOTE_DATA_KEYS = new Set<string>(["isCategory", "categoryName", ...Object.values(NOTE_CONTROLS)]);
 
 export class Invoker {
   private slate: Slate
@@ -70,21 +74,17 @@ export class Invoker {
     }
   }
 
-  onNodeBehaviorChanged(pkg: SlatePackage) {
+  /**
+   * A note's plain data, set by chat and exec (operations keys category and
+   * hiddenControls): only these keys ride on the package; null removes one.
+   */
+  onNodeOptionsChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      pkg.data.behaviorChanges.forEach((b: any) => {
-        if (typeof b.value === 'object') {
-          (node.options as any)[b.name] = b.value.val
-          Object.keys(b.value).forEach((k) => {
-            if (k !== 'val') {
-              (node.options as any)[k] = b.value[k]
-            }
-          })
-        } else {
-          (node.options as any)[b.name] = b.value
-        }
-      })
+    if (!node) return
+    for (const [key, value] of Object.entries(pkg.data.options || {})) {
+      if (!NOTE_DATA_KEYS.has(key)) continue
+      if (value === null || value === undefined) delete (node.options as any)[key]
+      else (node.options as any)[key] = value
     }
   }
 

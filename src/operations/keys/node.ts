@@ -31,6 +31,21 @@ export const ORDERS = ["front", "back"] as const;
 export const TEXT_X_ALIGN = ["left", "middle", "right"] as const;
 export const TEXT_Y_ALIGN = ["top", "middle", "bottom"] as const;
 
+/**
+ * The style-bar controls a note can leave off, each stored as the flag the bar
+ * reads (note-style barControls): false hides it, true (or no flag) shows it.
+ * Templates use them, e.g. the theme generator's instruction notes.
+ */
+export const NOTE_CONTROLS = Object.freeze({
+  color: "showColorTab",
+  text: "showTextTab",
+  shape: "showShapeTab",
+  picture: "showImageTab",
+  effects: "showEffectTab",
+  ask: "showAITab",
+} as const);
+export const NOTE_CONTROL_NAMES = Object.keys(NOTE_CONTROLS) as Array<keyof typeof NOTE_CONTROLS>;
+
 export const NODE_KEYS: Record<string, NodeKey> = {
   text: { spec: () => ({ type: "string", maxLength: 10000 }), description: "The note's text.", ...plain("text") },
   shape: {
@@ -147,6 +162,31 @@ export const NODE_KEYS: Record<string, NodeKey> = {
       else options.groupId = value;
     },
     read: (options) => options.groupId ?? null,
+  },
+  category: {
+    spec: () => ({ type: "string", minLength: 1, maxLength: 200, nullable: true }),
+    description:
+      "Makes the note a category of a template, named by this text (the template's AI conversation files notes under it, and presentations pass over it); null makes it an ordinary note.",
+    store: (options, value) => {
+      if (value === null) {
+        options.isCategory = false;
+        delete options.categoryName;
+      } else {
+        options.isCategory = true;
+        options.categoryName = `${value}`.trim();
+      }
+    },
+    // Read the way the template conversation reads it: a category has a name.
+    read: (options) => (options.isCategory === true && options.categoryName ? options.categoryName : null),
+  },
+  hiddenControls: {
+    spec: () => ({ type: "list", values: NOTE_CONTROL_NAMES }),
+    description:
+      "Style-bar controls this note leaves off, so people cannot use them on it: color (fill and border), text (text colour, size, alignment, font), shape, picture, effects, ask. An empty list shows them all.",
+    store: (options, value: string[]) => {
+      for (const [name, flag] of Object.entries(NOTE_CONTROLS)) options[flag] = !value.includes(name);
+    },
+    read: (options) => NOTE_CONTROL_NAMES.filter((name) => options[NOTE_CONTROLS[name]] === false),
   },
   locked: {
     spec: () => ({ type: "boolean" }),

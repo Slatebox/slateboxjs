@@ -9,6 +9,8 @@ export type ValueSpec =
   | { type: "number"; min: number; max: number }
   | { type: "boolean" }
   | { type: "enum"; values: readonly string[]; nullable?: boolean; caseless?: boolean }
+  /** A list of distinct values, each one of `values`; it may be empty. */
+  | { type: "list"; values: readonly string[] }
   | { type: "color" }
   | { type: "point" }
   | { type: "object" }
@@ -64,6 +66,12 @@ export function checkValue(spec: ValueSpec, value: unknown, label: string): stri
       const found = spec.caseless ? canonical(spec.values, value) : spec.values.find((item) => item === value);
       return found !== undefined ? null : `${label} must be one of: ${spec.values.join(", ")}.`;
     }
+    case "list":
+      return Array.isArray(value) &&
+        value.every((item) => typeof item === "string" && spec.values.includes(item)) &&
+        new Set(value).size === value.length
+        ? null
+        : `${label} must be a list of different values from: ${spec.values.join(", ")} (or an empty list).`;
     case "color":
       return typeof value === "string" && COLOR.test(value.trim())
         ? null
@@ -102,6 +110,8 @@ export function schemaFor(spec: ValueSpec): Record<string, any> {
       return spec.nullable
         ? { type: ["string", "null"], enum: [...spec.values, null] }
         : { type: "string", enum: [...spec.values] };
+    case "list":
+      return { type: "array", items: { type: "string", enum: [...spec.values] }, uniqueItems: true };
     case "color":
       return { type: "string", maxLength: 64, description: "A CSS colour, such as #336699." };
     case "point":
