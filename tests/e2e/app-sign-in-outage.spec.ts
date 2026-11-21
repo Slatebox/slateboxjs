@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { nextView, openPresenter, stepCounter } from './app-presenter.shared'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
 
 const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
@@ -34,18 +35,18 @@ test('opens the outage whiteboard with native connectors, editable notes and pla
     await page.reload()
     await expect(note('fallback')).toHaveAttribute('aria-label', 'Offer an incident update')
     expect(arrows(await getSlate(page,key))).toEqual(expected)
-    await page.getByRole('button', { name: 'Present', exact: true }).click()
-    const deck = page.getByRole('dialog', { name: 'Board presentation' })
-    const indicator = deck.locator('footer [aria-live]')
+    // Restated 2026-11-21: Present opens the presenter; one viewpoint per note, each with its narrative.
+    const deck = await openPresenter(page)
+    await expect(stepCounter(deck)).toHaveText('0 / 6', { timeout: 30_000 })
     const stops = []
     for (let i = 1; i <= 6; i++) {
-      await expect(indicator).toContainText(i + ' of 6')
-      stops.push(await indicator.innerText())
-      if (i < 6) await deck.getByRole('button', {name:'Next', exact:true}).click()
+      await nextView(page, deck)
+      stops.push(await deck.locator('.sb-presentation-narrative').innerText())
     }
     expect(stops.join(' ')).toContain('Offer an incident update')
     expect(stops.join(' ')).toContain('Open saved work')
-    await deck.getByRole('button', {name:'Exit presentation'}).click()
+    await deck.getByRole('button', {name:'Exit presentation', exact:true}).click()
+    await expect(deck).toHaveCount(0)
     await expect(note('newcomer')).toBeVisible()
   } finally { await removeTestGuest(page, owner) }
 })

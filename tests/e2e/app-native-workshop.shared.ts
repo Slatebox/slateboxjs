@@ -209,15 +209,6 @@ export async function sendWorkshopMessage(page: Page, message: string, decision:
   return panel
 }
 
-/** Open "Publish presentation" from the Present button's menu. */
-export async function openPublication(page: Page) {
-  await page.getByRole('button', { name: 'Presentation options', exact: true }).click()
-  await page.getByRole('menuitem', { name: 'Publish presentation', exact: true }).click()
-  const dialog = page.getByRole('dialog', { name: 'Publish presentation' })
-  await expect(dialog).toBeVisible()
-  return dialog
-}
-
 /**
  * The lanes the canvas offers a card while it is held: pick the card up, read which lane
  * columns are outlined as destinations, and put it back with Escape. Nothing is moved. A

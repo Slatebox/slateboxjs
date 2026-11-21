@@ -1,5 +1,6 @@
 import { startAgentMap } from './map-conversation.shared'
 import { dragCardNamed, workshopReady } from './app-native-workshop.shared'
+import { exitWithEscape, expectLane, nextView, openPresenter } from './app-presenter.shared'
 // Restated (exec): the package's per-action `branch`, `share`, `unshare` and `read` commands and
 // its map tools became scripts run by `slatebox exec` and the MCP `exec` tool. A script finds the
 // station by its label, as the commands did. Same branch, same stale refusal, same replay, same
@@ -92,17 +93,17 @@ return slatebox.slates.applyOperations({ shareId: ${lit(board)}, mode: ${lit(mod
     await expect.poll(async()=>(await native()).model.workshop.cards[0].laneId).toBe(branch.stationId)
     await peer.page.reload()
     await dismissWelcome(peer.page)
-    await peer.page.getByRole('button',{name:'Present',exact:true}).click()
-    // Restated (combined release): on a phone the canvas header's Present opens its sheet.
-    await peer.page.getByRole('menu',{name:'Present'}).getByRole('menuitem',{name:'Present on this screen',exact:true}).click()
-    const deck=peer.page.getByRole('region',{name:'Decision presentation'})
+    // Restated 2026-11-21: Present (on a phone, its sheet's "Present on this screen") opens the presenter.
+    const deck=await openPresenter(peer.page)
+    const narrative=deck.locator('.sb-presentation-narrative')
     for(const name of ['Start','Next step']){
-      await expect(deck.getByRole('heading',{name,exact:true})).toBeVisible()
-      await deck.getByRole('button',{name:'Next station'}).click()
+      await nextView(peer.page,deck)
+      await expect(narrative).toHaveText(new RegExp('^'+name))
     }
-    await expect(deck.getByRole('heading',{name:label,exact:true})).toBeVisible()
-    await expect(deck.getByText(finalOutcome,{exact:true}).last()).toBeVisible()
-    await expect(deck.getByRole('listitem')).toHaveText('Token')
+    await nextView(peer.page,deck)
+    await expectLane(deck,label,branch.stationId,[(await native()).model.workshop.cards[0].id])
+    await expect(narrative).toContainText(finalOutcome)
+    await exitWithEscape(peer.page,deck)
     const latest=await cliResult(cli,env,read)
     expect(latest.cards[0].laneId).toBe(branch.stationId)
     expect(latest.lanes.filter((lane:{id:string})=>lane.id===branch.stationId)).toHaveLength(1)

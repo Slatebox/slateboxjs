@@ -1,5 +1,6 @@
 import { userId, getSlate, dismissWelcome, shareAs, removeTestGuest } from './workshop-guests.shared'
 import { expect, test } from '@playwright/test'
+import { expectLane, presenter, stepCounter } from './app-presenter.shared'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { conversation, dragCard, dragCardNamed, editable, finger, isOffered, openConversation, slateTitle, workshopReady, workshopStatus } from './app-native-workshop.shared'
 
@@ -99,13 +100,15 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     // On a phone, Present opens a sheet of the ways to present; this screen is the first.
     await present.tap()
     await editor.getByRole('menu', { name: 'Present' }).getByRole('menuitem', { name: 'Present on this screen', exact: true }).tap()
-    const presentation = editor.getByRole('region', { name: 'Decision presentation' })
-    await expect(presentation.getByRole('heading', { name: 'Lens bench' })).toBeVisible()
-    await presentation.getByRole('button', { name: 'Next station' }).tap()
-    await expect(presentation.getByRole('heading', { name: 'Bright star' })).toBeVisible()
-    await expect(presentation.getByRole('listitem')).toHaveText('Lens')
-    await expect(presentation.getByRole('paragraph').filter({ hasText: /^Star in focus\.$/ })).toBeVisible()
-    await presentation.getByRole('button', { name: 'Back to board' }).tap()
+    // Restated 2026-11-21: the presenter replaces the readout; its Next button and Exit work by touch.
+    const presentation = presenter(editor)
+    await expect(stepCounter(presentation)).toHaveText(/^0 \/ \d+$/, { timeout: 30_000 })
+    await presentation.getByRole('button', { name: 'Next', exact: true }).tap()
+    await expectLane(presentation, 'Lens bench', 'bench')
+    await presentation.getByRole('button', { name: 'Next', exact: true }).tap()
+    await expectLane(presentation, 'Bright star', 'star', ['lens'])
+    await expect(presentation.locator('.sb-presentation-narrative')).toContainText('Star in focus.')
+    await presentation.getByRole('button', { name: 'Exit presentation', exact: true }).tap()
     await expect(presentation).toHaveCount(0)
     await expect(editor.getByText(location, { exact: true })).toBeVisible()
     await editor.reload()

@@ -69,14 +69,9 @@ test('share a branching map, follow its outcome together and return from a live 
   }
   await peer.reload()
   await expect(peer.locator('.workshop-outcomes')).toContainText('Last rider · Market St lift')
-  await peer.getByRole('button', { name: 'Present workshop' }).click()
-  const readout = peer.getByRole('region', { name: 'Decision presentation' })
-  await expect(readout.locator('svg [data-node-id="lane-platform"]').first()).toBeAttached()
+  // Restated 2026-11-21: the room no longer has its own "Present workshop" readout (presenting is
+  // the slate's Present, on its canvas). The owner's move still reaches the peer's room.
   await owner.getByRole('button', { name: 'Last rider → Shuttle · Bay B' }).click()
-  for (let i = 0; i < 3; i++) await readout.getByRole('button', { name: 'Next station' }).click()
-  await expect(readout.getByRole('heading', { name: 'Shuttle · Bay B' })).toBeVisible()
-  await expect(readout.getByRole('listitem')).toHaveText(['Last rider'])
-  await readout.getByRole('button', { name: 'Back to board' }).click()
   await expect(peer).toHaveURL(room)
   await expect(peer.locator('.workshop-outcomes')).toContainText('The rider makes the connection.')
   await expect(peer.locator('[data-revision]')).toHaveAttribute('data-revision', '2')

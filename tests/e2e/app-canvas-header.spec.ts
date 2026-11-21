@@ -233,7 +233,8 @@ test('Present holds presenting to everyone; someone else\'s presentation puts Fo
     const options = owner.getByRole('menu', { name: 'Present' })
     await expect(options.getByRole('menuitem', { name: 'Present on this screen', exact: true })).toBeVisible()
     await expect(options.getByRole('menuitem', { name: /^Present to everyone here/ })).toBeVisible()
-    await expect(options.getByRole('menuitem', { name: 'Edit or publish presentation', exact: true })).toBeVisible()
+    // Restated 2026-11-21: editing and publishing live in the presenter that Present opens, not in this menu.
+    await expect(options.getByRole('menuitem')).toHaveCount(2)
     await owner.keyboard.press('Escape')
     await expect(button(owner, 'Present notes together')).toHaveCount(0)
 

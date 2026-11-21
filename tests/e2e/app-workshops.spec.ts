@@ -1,5 +1,5 @@
 import {resumeArchivedDraft} from './workshop-archive.shared'
-import { expectWorkshopSlide } from './workshop-slide.shared'
+import { exitWithEscape, expectLane, nextView, openPresenter } from './app-presenter.shared'
 import {laneChat,sendLaneEdit,expectRejectedLaneEdit} from './workshop-conversation.shared'
 import {dismissWelcome,getSlate,userId,removeTestGuest} from './workshop-guests.shared'
 import { test, expect, type Page } from '@playwright/test'
@@ -40,26 +40,26 @@ test('review a workshop, move a card, present and open a private editable slate'
     // The saved moves are drawn on the canvas after the reload.
     expect(await laneOfCard(page,'sensors')).toBe('Fund this quarter')
     expect(await laneOfCard(page,'spares')).toBe('Gather evidence')
-    await page.getByRole('button', { name: 'Present', exact: true }).click()
-    await expectWorkshopSlide(page, 'Proposed trials', [], ['lane-proposed'])
-    await expect(page.getByText('No cards in this lane.')).toBeVisible()
-    const pilotCards = ['Test bearing sensors on line four', 'Rehearse the overnight restart']
-    const pilotNodes = ['lane-pilot', 'card-sensors', 'card-training']
-    await page.getByRole('button', { name: 'Next lane' }).click()
-    await expectWorkshopSlide(page, 'Fund this quarter', pilotCards, pilotNodes)
+    // Restated 2026-11-21: Present opens the presenter. Each lane is a viewpoint framing the lane and
+    // its cards (the readout's "No cards in this lane." line is gone with the readout).
+    const deck = await openPresenter(page)
+    const pilot = ['sensors', 'training']
+    await nextView(page, deck)
+    await expectLane(deck, 'Proposed trials', 'proposed')
+    await nextView(page, deck)
+    await expectLane(deck, 'Fund this quarter', 'pilot', pilot)
     const viewport = page.viewportSize()!
     await page.setViewportSize({ width: 390, height: 760 })
-    await expectWorkshopSlide(page, 'Fund this quarter', pilotCards, pilotNodes)
+    await expectLane(deck, 'Fund this quarter', 'pilot', pilot)
     for (let pass = 0; pass < 3; pass++) {
       await page.keyboard.press('ArrowRight')
-      await expectWorkshopSlide(page, 'Gather evidence', ['Stage a spare drive at the north mill', 'Measure cooling losses at shift change'],
-        ['lane-evidence', 'card-spares', 'card-cooling'])
+      await expectLane(deck, 'Gather evidence', 'evidence', ['spares', 'cooling'])
       await page.keyboard.press('ArrowLeft')
-      await expectWorkshopSlide(page, 'Fund this quarter', pilotCards, pilotNodes)
+      await expectLane(deck, 'Fund this quarter', 'pilot', pilot)
     }
     await page.setViewportSize(viewport)
-    await expectWorkshopSlide(page, 'Fund this quarter', pilotCards, pilotNodes)
-    await page.getByRole('button', { name: 'Back to board' }).click()
+    await expectLane(deck, 'Fund this quarter', 'pilot', pilot)
+    await exitWithEscape(page, deck)
     const doc=await getSlate(page,key)
     expect(doc.userId).toBe(ownerId)
     expect(doc.options.isPrivate).toBe(true)

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { nextView, openPresenter, stepCounter } from './app-presenter.shared'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
 
 const app = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -38,15 +39,18 @@ test('a sales engineer can correct the retention policy on the showcased board a
     await expect.poll(async () => (await getSlate(page, key)).nodes.find((node: any) => node.options.id === 'retained-records')?.options.text).toBe(correction)
     await page.reload()
     await expect(note).toHaveAttribute('aria-label', correction)
-    await page.getByRole('button', { name: 'Present', exact: true }).click()
-    const deck = page.getByRole('dialog', { name: 'Board presentation' })
-    const current = deck.locator('footer [aria-live]')
+    // Restated 2026-11-21: Present opens the presenter; each note is a viewpoint with its narrative.
+    const deck = await openPresenter(page)
+    const current = deck.locator('.sb-presentation-narrative')
+    await expect(stepCounter(deck)).toHaveText('0 / 3', { timeout: 30_000 })
+    await nextView(page, deck)
     await expect(current).toContainText('Customer upload')
-    await deck.getByRole('button', { name: 'Next', exact: true }).click()
+    await nextView(page, deck)
     await expect(current).toContainText('Import worker')
-    await deck.getByRole('button', { name: 'Next', exact: true }).click()
+    await nextView(page, deck)
     await expect(current).toContainText(correction)
-    await deck.getByRole('button', { name: 'Exit presentation' }).click()
+    await deck.getByRole('button', { name: 'Exit presentation', exact: true }).click()
+    await expect(deck).toHaveCount(0)
     await expect(note).toBeVisible()
   } finally {
     await removeTestGuest(page, owner)

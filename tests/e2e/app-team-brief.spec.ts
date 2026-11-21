@@ -1,6 +1,7 @@
 import {expect, test} from '@playwright/test'
 import {dismissWelcome, getSlate, removeTestGuest, shareAs, userId} from './workshop-guests.shared'
 import {card, conversation, dragCardNamed, standing, workshopReady} from './app-native-workshop.shared'
+import {exitWithEscape, nextView, openPresenter} from './app-presenter.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 
@@ -53,12 +54,14 @@ test('the team’s brief becomes a private map with real playable choices that s
     await dismissWelcome(reader)
     await workshopReady(reader)
     await expect(standing(reader)).toContainText(brief)
-    await reader.getByRole('button',{name:'Present',exact:true}).click()
-    const slides = reader.getByRole('region',{name:'Decision presentation'})
-    await expect(slides).toContainText(brief)
-    await slides.getByRole('button',{name:'Next station'}).click()
-    await expect(slides.getByRole('heading',{name:'Borrow work lights',exact:true})).toBeVisible()
-    await slides.getByRole('button',{name:'Back to board'}).click()
+    // Restated 2026-11-21: Present opens the presenter; the brief is the first step's narrative.
+    const slides = await openPresenter(reader)
+    const narrative = slides.locator('.sb-presentation-narrative')
+    await nextView(reader,slides)
+    await expect(narrative).toContainText(brief)
+    await nextView(reader,slides)
+    await expect(narrative).toHaveText(/^Borrow work lights/)
+    await exitWithEscape(reader,slides)
     expect(await userId(reader)).toBeNull()
     expect((await getSlate(reader,invite.pathname.split('/').pop()!)).creative.model.workshop).toEqual(await snapshot())
     await dragCardNamed(owner,'Team','bring battery lanterns')

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { presentToEveryone } from './app-header.shared'
+import { expectFramed, nextView, stepCounter } from './app-presenter.shared'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -7,22 +8,14 @@ const button = (page:Page, name:string) => page.getByRole('button',{name,exact:t
 const deck = (page:Page) => page.getByRole('dialog',{name:'Live presentation'})
 const note = (page:Page,id:string) => page.locator('#slateCanvas [data-node-id="'+id+'"]').first()
 
+// Restated 2026-11-21: live presenting uses the presenter. The presenter's counter and the
+// follower's status say which viewpoint is shown; the camera frames that note.
 async function expectNativeView(page:Page,id:string,label:string,index:number) {
   const player=deck(page)
-  await expect(player.locator('footer [aria-live]')).toContainText(index+' of 6')
-  await expect(player.locator('footer [aria-live]')).toContainText(label)
-  const art=player.locator('.sb-playback-surface')
-  await expect(art.locator('g[data-node-id]')).toHaveCount(6)
-  const current=art.locator('g[data-node-id="'+id+'"]')
-  await expect(current).toHaveAttribute('aria-label',label)
-  // All six notes stay in the SVG throughout playback. Project the native
-  // 192 × 76 note's center through its actual transform to verify camera motion.
-  await expect.poll(()=>current.evaluate(group=>{
-    const graphic=group as SVGGraphicsElement
-    const point=new DOMPoint(96,38).matrixTransform(graphic.getScreenCTM()!)
-    const rect=group.closest('.sb-playback-surface')!.getBoundingClientRect()
-    return Math.max(Math.abs(point.x-rect.x-rect.width/2),Math.abs(point.y-rect.y-rect.height/2))
-  })).toBeLessThan(3)
+  if (await player.getByRole('status').count()) await expect(player.getByRole('status')).toContainText(index+' of 6')
+  else await expect(stepCounter(player)).toHaveText(index+' / 6')
+  await expect(player.locator('.sb-presentation-narrative')).toHaveText(label)
+  await expectFramed(player,[id])
 }
 
 test('a read-only phone follows the presenter across native outage notes and returns to the saved board',async({browser})=>{
@@ -60,6 +53,8 @@ test('a read-only phone follows the presenter across native outage notes and ret
     await expect(note(reader,'fallback')).toHaveAttribute('aria-label',title)
     await expect(button(reader,'Presentation options')).toHaveCount(0)
     await presentToEveryone(owner)
+    await expect(stepCounter(deck(owner))).toHaveText('0 / 6',{timeout:30_000})
+    await nextView(owner,deck(owner))
     await expectNativeView(owner,'newcomer','New customer',1)
     const follow=button(reader,'Follow presentation')
     await expect(follow).toBeInViewport()

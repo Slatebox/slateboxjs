@@ -5,6 +5,7 @@ import { releasePlan } from '../../src/workshops/release'
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { caption, slateTitle, workshopReady, workshopStatus } from './app-native-workshop.shared'
+import { camera, exitWithEscape, expectLane, nextView, openPresenter } from './app-presenter.shared'
 
 const base = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 const canSave = ['localhost', '127.0.0.1', 'test.slatebox.com'].includes(new URL(base).hostname)
@@ -51,12 +52,18 @@ test('review a release plan, preview a dependent move, undo it and present the c
     await expect(laneChat(page)).toBeVisible({timeout:45000})
     await workshopReady(page)
     await expect(capacity).toContainText('9 / 9 points')
-    await page.getByRole('button', { name: 'Present', exact: true }).click()
-    const presentation = page.getByRole('region', { name: 'Decision presentation' })
-    await expect(presentation.locator('svg [data-node-id="card-invite"]').first()).toBeAttached()
-    await expect(presentation.getByText('9 points assigned of 9 available.')).toBeVisible()
-    await expect(presentation.getByRole('listitem').filter({ hasText: 'Team invitations' })).toContainText('Requires Permission checks')
-    await presentation.getByRole('button', { name: 'Back to board' }).click()
+    // Restated 2026-11-21: Present opens the presenter. The release's load is the lane caption on
+    // the slate, shown lit with its lane; the readout's own budget sentence and card list are gone.
+    const plan = (await getSlate(page,key)).creative.model.workshop
+    const presentation = await openPresenter(page)
+    await expect(camera(presentation).locator('svg [data-node-id="card-invite"]').first()).toBeAttached()
+    for (let step = 0; step < plan.lanes.length; step++) {
+      await nextView(page,presentation)
+      if ((await presentation.locator('.sb-presentation-narrative').textContent())?.startsWith('Friday release')) break
+    }
+    await expectLane(presentation,'Friday release','friday',plan.cards.filter((card:{laneId:string})=>card.laneId==='friday').map((card:{id:string})=>card.id))
+    await expect(camera(presentation).locator('svg [data-node-id="caption-friday"]')).toContainText('9 / 9 points')
+    await exitWithEscape(page,presentation)
     expect((await getSlate(page,key)).options.isPrivate).toBe(true)
   } finally {
     if(ownerId){

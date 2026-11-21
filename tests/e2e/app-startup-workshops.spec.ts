@@ -2,6 +2,7 @@ import {test, expect} from '@playwright/test'
 import {createBudgetWorkshop, createInterviewWorkshop, decodeWorkshopFragment, planStartupMove} from '../../src/workshops/model'
 import {dismissWelcome, getSlate, removeTestGuest, shareAs, userId} from './workshop-guests.shared'
 import {sendLaneEdit} from './workshop-conversation.shared'
+import {camera, exitWithEscape, nextView, openPresenter} from './app-presenter.shared'
 import {caption, card, dragCard, isOffered, joinToEdit, keyboardMove, placementOutcomes, workshopReady} from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -79,14 +80,14 @@ for (const example of examples) {
       await dismissWelcome(peer)
       await workshopReady(peer)
       await decided(peer)
-      await peer.getByRole('button',{name:'Present',exact:true}).click()
-      const slides=peer.getByRole('region',{name:'Decision presentation'})
-      if(example.kind==='experiment-budget') {
-        await slides.getByRole('button',{name:'Next lane'}).click()
-        await expect(slides).toContainText('$200 · 1 placement')
-      } else await expect(slides).toContainText('Imani will test whether Bea can keep the existing client')
-      await expect(slides.getByRole('listitem')).toContainText('First customer pilot')
-      await slides.getByRole('button',{name:'Back to board'}).click()
+      // Restated 2026-11-21: Present opens the presenter over the slate's drawing, where the renamed
+      // card and the lanes' captions are drawn. The readout's own list of outcomes is gone with it;
+      // the decision itself is checked on the board (decided) just above.
+      const slides=await openPresenter(peer)
+      if(example.kind==='experiment-budget') await expect(camera(slides).locator('svg [data-node-id^="caption-"]').filter({hasText:'$200 · 1 placement'})).toHaveCount(1)
+      await expect(camera(slides).locator('svg [data-node-id="card-'+example.card+'"]')).toContainText('First customer pilot')
+      await nextView(peer,slides)
+      await exitWithEscape(peer,slides)
       await shareAs(owner,'read')
       // A reader is offered no way to take the card back, and still sees what was decided.
       const home=(await stored()).creative.model.workshop.lanes[0]

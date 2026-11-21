@@ -4,6 +4,7 @@
 // derived from the run's key, so the HTTP replays send the key the script's call saved under.
 import { randomBytes, randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
+import { exitWithEscape, nextView, openPresenter } from './app-presenter.shared'
 import { cliResult, derivedKey, installedTools, lit, mcpExec } from './agent-exec.shared'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { conversation, workshopReady } from './app-native-workshop.shared'
@@ -123,11 +124,13 @@ test('packaged tools create private maps and source diagrams through the same op
     await workshopReady(reader)
     await expect(conversation(reader)).toHaveCount(0)
     await expect(reader.getByRole('button', { name: 'Ask Slatebox' })).toHaveCount(0)
-    await reader.getByRole('button', { name: 'Present', exact: true }).click()
-    const show = reader.getByRole('region', { name: 'Decision presentation' })
-    await expect(show.getByRole('heading', { name: brief, exact: true })).toBeVisible()
-    await show.getByRole('button', { name: 'Next station' }).click()
-    await expect(show.getByRole('heading', { name: 'Ask the shop', exact: true })).toBeVisible()
+    // Restated 2026-11-21: Present opens the presenter; each step of the map is a viewpoint.
+    const show = await openPresenter(reader)
+    await nextView(reader, show)
+    await expect(show.locator('.sb-presentation-narrative')).toHaveText(new RegExp('^' + brief.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    await nextView(reader, show)
+    await expect(show.locator('.sb-presentation-narrative')).toHaveText(/^Ask the shop/)
+    await exitWithEscape(reader, show)
     expect(await userId(reader)).toBeNull()
     expect(await cliResult(cli, env, create({ brief }), { key })).toEqual(created)
     expect((await saved()).creative.model.workshop).toEqual(edited)

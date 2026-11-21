@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { fromSlateMenu } from './app-header.shared'
 import { openGuestCanvas } from './app-host.shared'
+import { openPresenter } from './app-presenter.shared'
 
 const app = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 const edge = process.env.SLATEBOX_PRESENTATION_EMBED_URL
@@ -83,8 +84,8 @@ test('author reorders scenes, publishes an unlisted deck, and withdraws guest an
     await page.getByRole('textbox', { name: 'Name', exact: true }).fill(boardTitle)
     await page.keyboard.press('Escape')
     await expect(page.locator('.sb-board-name')).toContainText(boardTitle)
-    await page.getByRole('button',{name:'Presentation options'}).click()
-    await page.getByRole('menuitem',{name:'Edit or publish presentation'}).click()
+    // Restated 2026-11-21: Present opens the presenter, which holds editing and publishing for an editor.
+    await openPresenter(page)
     const publish = page.getByRole('button',{name:'Publish presentation',exact:true})
     await expect(publish).toBeEnabled({timeout:40_000})
     await page.getByRole('button',{name:'Presentation Settings',exact:true}).click()

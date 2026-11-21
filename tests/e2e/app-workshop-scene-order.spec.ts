@@ -3,7 +3,7 @@ import {sendLaneEdit,laneChat} from './workshop-conversation.shared'
 import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, workshopDestinations, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
-import { expectWorkshopSlide } from './workshop-slide.shared'
+import { exitWithEscape, expectLane, nextView, openPresenter } from './app-presenter.shared'
 import {conversation, dragCardNamed, editable, isOffered, keyboardMove, offeredLanes, selectLaneNamed, slateTitle, workshopReady} from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -21,18 +21,18 @@ const workshops: Workshop[] = [{
   cards: [{ id: 'lens', label: 'Test lens', laneId: 'bench' }],
 }]
 
+// Restated 2026-11-21: Present opens the presenter; the lanes are its first viewpoints, in the
+// authored order, each framing the lane and its cards with the step's outcome in its narrative.
 async function readScenes(page: Page, draft: Workshop, orderedLanes: string[]) {
-  await page.getByRole('button', { name: 'Present', exact: true }).click()
-  const region = page.getByRole('region', { name: 'Decision presentation' })
-  for (const [index, id] of orderedLanes.entries()) {
+  const deck = await openPresenter(page)
+  for (const id of orderedLanes) {
     const lane = draft.lanes.find(item => item.id === id)!
     const cards = draft.cards.filter(card => card.laneId === id)
-    await expectWorkshopSlide(page, lane.label, cards.map(card => card.label), ['lane-' + id, ...cards.map(card => 'card-' + card.id)])
-    if (lane.station) await expect(region.getByText(lane.station.outcome,{exact:true}).last()).toBeVisible()
-    if (index < orderedLanes.length - 1) await region.getByRole('button', { name: lane.station ? 'Next station' : 'Next lane' }).click()
+    await nextView(page, deck)
+    await expectLane(deck, lane.label, id, cards.map(card => card.id))
+    if (lane.station) await expect(deck.locator('.sb-presentation-narrative')).toContainText(lane.station.outcome)
   }
-  await region.getByRole('button', { name: 'Back to board' }).click()
-  await expect(region).toHaveCount(0)
+  await exitWithEscape(page, deck)
 }
 
 async function boardPositions(page: Page, draft: Workshop) {
