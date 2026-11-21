@@ -17,6 +17,8 @@ import type { SlatePackage } from "./SlatePackage";
 import { type ThemeDefinition } from "./Theme";
 import { type LayoutMove } from "./Layout";
 import { Association } from "./Relationship";
+import type { EndAnchor, EndState, LineEnd } from "./LineEnds";
+import { type LineToolResult } from "./LineTool";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
 import { type AnimationDef } from "./Animations";
@@ -211,8 +213,11 @@ export declare class Slate {
     _activeLineCog?: any;
     /** The connectable whose endpoint handles are currently shown (L1/M8). */
     _activeLineConnectable?: any;
-    /** The active per-endpoint lock/relative toggle affordances (Q3). */
-    _activeEndpointToggles?: any[];
+    /** The line tool while it is drawing (see LineTool.ts). */
+    _lineTool: {
+        nodeId: string;
+        cancel: () => void;
+    } | null;
     private selectedNodes;
     private groupResizeRotate;
     /**
@@ -646,6 +651,35 @@ export declare class Slate {
      * line is selected or the line may not be removed.
      */
     removeSelectedLine(): boolean;
+    /**
+     * Select a line, as clicking it does: its end handles show (each marking
+     * whether it follows its note, is pinned or is free) and the host hears of it
+     * through onSelectionFrame. False when the note holds no such line.
+     */
+    selectLine(nodeId: string, associationId: string): boolean;
+    /**
+     * Where an end of a line is on its note now, as a normalized anchor {x, y}
+     * (pinning it there keeps it exactly where it is), or null for a free end.
+     */
+    lineEndAnchor(nodeId: string, associationId: string, which: LineEnd): EndAnchor | null;
+    /** Whether an end of a line follows its note, is pinned to a spot on its edge, or is free. */
+    lineEndState(nodeId: string, associationId: string, which: LineEnd): EndState | null;
+    /**
+     * Pin an end of a line where it is now ("pinned"), at a spot on its note's
+     * edge ({x, y}), or let it follow its note ("follow"). Saved, shared and
+     * undoable. False for a free end, or when the slate cannot be edited.
+     */
+    setLineEnd(nodeId: string, associationId: string, which: LineEnd, mode: "follow" | "pinned" | EndAnchor): boolean;
+    /**
+     * The line tool: a line follows the pointer from the note; a click or tap on
+     * another note connects to it, on empty canvas leaves its end free there;
+     * Escape cancels. Resolves with what happened (see LineTool.ts).
+     */
+    startLineFrom(node: Node | string): Promise<LineToolResult>;
+    /** Stop the line tool, if it is drawing. */
+    cancelLineTool(): void;
+    /** True while the line tool is drawing a line. */
+    isDrawingLine(): boolean;
     /** Called by the connector when a line is selected on the canvas. */
     setSelectedLine(node: Node, associationId: string, childId: string, connectable: any): void;
     /** A gesture of the selection started (drag, resize, rotate, pan). See onSelectionFrame. */

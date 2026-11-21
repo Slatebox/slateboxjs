@@ -1,4 +1,4 @@
-import { N as ae } from "./NoteDefaults-1xFW0br8.mjs";
+import { N as pe } from "./NoteDefaults-1xFW0br8.mjs";
 const B = /* @__PURE__ */ new Map();
 B.set("rectangle", {
   path: "M 0 0 H 100 V 60 H 0 Z",
@@ -91,44 +91,44 @@ B.set("stickynote", {
   defaultHeight: 108,
   viewBox: "1 1 18 18"
 });
-function ce() {
+function fe() {
   return Array.from(B.keys());
 }
-const ot = "0.6s cubic-bezier(0.4, 0, 0.2, 1) both", de = {
+const it = "0.6s cubic-bezier(0.4, 0, 0.2, 1) both", me = {
   mystery: {
     id: "sb-mystery",
     types: ["text", "vect"],
     display: "Mystery",
     description: "Gentle fade in with a subtle zoom",
-    css: `.sb-animation-mystery{animation:sb-mystery ${ot}}@keyframes sb-mystery{0%{opacity:0;transform:scale(1.2)}50%{opacity:.5;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}`
+    css: `.sb-animation-mystery{animation:sb-mystery ${it}}@keyframes sb-mystery{0%{opacity:0;transform:scale(1.2)}50%{opacity:.5;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}`
   },
   fadeSlideUp: {
     id: "sb-fade-slide-up",
     types: ["text", "vect"],
     display: "Fade up",
     description: "Smooth upward entrance",
-    css: `.sb-animation-fadeSlideUp{animation:sb-fade-slide-up ${ot}}@keyframes sb-fade-slide-up{0%{opacity:0;transform:translateY(100%) rotateX(40deg)}100%{opacity:1;transform:translateY(0) rotateX(0)}}`
+    css: `.sb-animation-fadeSlideUp{animation:sb-fade-slide-up ${it}}@keyframes sb-fade-slide-up{0%{opacity:0;transform:translateY(100%) rotateX(40deg)}100%{opacity:1;transform:translateY(0) rotateX(0)}}`
   },
   fadeSlideDown: {
     id: "sb-fade-slide-down",
     types: ["text", "vect"],
     display: "Fade down",
     description: "Smooth downward entrance",
-    css: `.sb-animation-fadeSlideDown{animation:sb-fade-slide-down ${ot}}@keyframes sb-fade-slide-down{0%{opacity:0;transform:translateY(-100%) rotateX(-40deg)}100%{opacity:1;transform:translateY(0) rotateX(0)}}`
+    css: `.sb-animation-fadeSlideDown{animation:sb-fade-slide-down ${it}}@keyframes sb-fade-slide-down{0%{opacity:0;transform:translateY(-100%) rotateX(-40deg)}100%{opacity:1;transform:translateY(0) rotateX(0)}}`
   },
   bumpUpIn: {
     id: "sb-bump-up-in",
     types: ["text", "vect"],
     display: "Bump up",
     description: "Playful bounce from below",
-    css: `.sb-animation-bumpUpIn{animation:sb-bump-up-in ${ot}}@keyframes sb-bump-up-in{0%{opacity:0;transform:scale(.8) rotate(-3deg) translateY(100%)}55%{opacity:.8;transform:scale(1.1) rotate(2deg) translateY(-20%)}100%{opacity:1;transform:scale(1) translateY(0)}}`
+    css: `.sb-animation-bumpUpIn{animation:sb-bump-up-in ${it}}@keyframes sb-bump-up-in{0%{opacity:0;transform:scale(.8) rotate(-3deg) translateY(100%)}55%{opacity:.8;transform:scale(1.1) rotate(2deg) translateY(-20%)}100%{opacity:1;transform:scale(1) translateY(0)}}`
   },
   bumpDownIn: {
     id: "sb-bump-down-in",
     types: ["text", "vect"],
     display: "Bump down",
     description: "Playful bounce from above",
-    css: `.sb-animation-bumpDownIn{animation:sb-bump-down-in ${ot}}@keyframes sb-bump-down-in{0%{opacity:0;transform:scale(.8) rotate(3deg) translateY(-100%)}55%{opacity:.8;transform:scale(1.1) rotate(-2deg) translateY(20%)}100%{opacity:1;transform:scale(1) translateY(0)}}`
+    css: `.sb-animation-bumpDownIn{animation:sb-bump-down-in ${it}}@keyframes sb-bump-down-in{0%{opacity:0;transform:scale(.8) rotate(3deg) translateY(-100%)}55%{opacity:.8;transform:scale(1.1) rotate(-2deg) translateY(20%)}100%{opacity:1;transform:scale(1) translateY(0)}}`
   },
   impactSlide: {
     id: "sb-impact-slide",
@@ -163,14 +163,14 @@ const ot = "0.6s cubic-bezier(0.4, 0, 0.2, 1) both", de = {
     types: ["text", "vect"],
     display: "Smoke",
     description: "Soft blurred emergence",
-    css: `.sb-animation-smoke{animation:sb-smoke ${ot}}@keyframes sb-smoke{0%{opacity:0;transform:scale(1.5) rotate(5deg);filter:blur(10px)}55%{opacity:.75;transform:scale(1.1) rotate(-2deg);filter:blur(3px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}`
+    css: `.sb-animation-smoke{animation:sb-smoke ${it}}@keyframes sb-smoke{0%{opacity:0;transform:scale(1.5) rotate(5deg);filter:blur(10px)}55%{opacity:.75;transform:scale(1.1) rotate(-2deg);filter:blur(3px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}`
   },
   fractured: {
     id: "sb-fractured",
     types: ["text", "vect"],
     display: "Fractured",
     description: "Sharp geometric reveal",
-    css: `.sb-animation-fractured{animation:sb-fractured ${ot}}@keyframes sb-fractured{0%{opacity:0;clip-path:polygon(50% 50%,50% 50%,50% 50%);transform:rotate(45deg) scale(.3)}55%{opacity:.7;clip-path:polygon(10% 0,90% 0,100% 100%,0 100%);transform:rotate(-8deg) scale(1.1)}100%{opacity:1;clip-path:polygon(0 0,100% 0,100% 100%,0 100%);transform:rotate(0) scale(1)}}`
+    css: `.sb-animation-fractured{animation:sb-fractured ${it}}@keyframes sb-fractured{0%{opacity:0;clip-path:polygon(50% 50%,50% 50%,50% 50%);transform:rotate(45deg) scale(.3)}55%{opacity:.7;clip-path:polygon(10% 0,90% 0,100% 100%,0 100%);transform:rotate(-8deg) scale(1.1)}100%{opacity:1;clip-path:polygon(0 0,100% 0,100% 100%,0 100%);transform:rotate(0) scale(1)}}`
   },
   flux: {
     id: "sb-flux",
@@ -211,14 +211,14 @@ const ot = "0.6s cubic-bezier(0.4, 0, 0.2, 1) both", de = {
     css: ".sb-animation-rotate{animation:sb-rotate 8s linear infinite}@keyframes sb-rotate{to{transform:rotate(360deg)}}"
   }
 };
-function le() {
-  return { ...de };
+function ge() {
+  return { ...me };
 }
-function z(t) {
+function R(t) {
   return !!t && typeof t == "object" && !Array.isArray(t);
 }
-const he = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([\d\s.,%+-]{1,60}\)|[a-z]{3,30}|transparent)$/i, ue = /^https?:\/\/[^\s]+$/i, Kt = 2e3, pe = /^[A-Za-z0-9_-]{1,64}$/;
-function Nt(t, e) {
+const ye = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([\d\s.,%+-]{1,60}\)|[a-z]{3,30}|transparent)$/i, be = /^https?:\/\/[^\s]+$/i, te = 2e3, we = /^[A-Za-z0-9_-]{1,64}$/;
+function Tt(t, e) {
   if (typeof e != "string") return;
   const n = e.trim().toLowerCase();
   return t.find((o) => o.toLowerCase() === n);
@@ -232,17 +232,17 @@ function j(t, e, n) {
     case "boolean":
       return typeof e == "boolean" ? null : `${n} must be true or false.`;
     case "enum":
-      return e === null && t.nullable || (t.caseless ? Nt(t.values, e) : t.values.find((r) => r === e)) !== void 0 ? null : `${n} must be one of: ${t.values.join(", ")}.`;
+      return e === null && t.nullable || (t.caseless ? Tt(t.values, e) : t.values.find((s) => s === e)) !== void 0 ? null : `${n} must be one of: ${t.values.join(", ")}.`;
     case "color":
-      return typeof e == "string" && he.test(e.trim()) ? null : `${n} must be a colour such as #336699 or rgb(51, 102, 153).`;
+      return typeof e == "string" && ye.test(e.trim()) ? null : `${n} must be a colour such as #336699 or rgb(51, 102, 153).`;
     case "point":
-      return z(e) && Object.keys(e).every((o) => o === "x" || o === "y") && [e.x, e.y].every((o) => typeof o == "number" && Number.isFinite(o) && Math.abs(o) <= 1e6) ? null : `${n} must be a point {x, y} with numbers from -1000000 to 1000000.`;
+      return R(e) && Object.keys(e).every((o) => o === "x" || o === "y") && [e.x, e.y].every((o) => typeof o == "number" && Number.isFinite(o) && Math.abs(o) <= 1e6) ? null : `${n} must be a point {x, y} with numbers from -1000000 to 1000000.`;
     case "object":
-      return z(e) ? null : `${n} must be an object.`;
+      return R(e) ? null : `${n} must be an object.`;
     case "url":
-      return e === null && t.nullable || typeof e == "string" && e.length <= Kt && ue.test(e.trim()) ? null : `${n} must be an http or https address${t.nullable ? ", or null to remove it" : ""}.`;
+      return e === null && t.nullable || typeof e == "string" && e.length <= te && be.test(e.trim()) ? null : `${n} must be an http or https address${t.nullable ? ", or null to remove it" : ""}.`;
     case "id":
-      return e === null && t.nullable || typeof e == "string" && pe.test(e) ? null : `${n} must be 1 to 64 letters, digits, _ or -${t.nullable ? ", or null" : ""}.`;
+      return e === null && t.nullable || typeof e == "string" && we.test(e) ? null : `${n} must be 1 to 64 letters, digits, _ or -${t.nullable ? ", or null" : ""}.`;
   }
 }
 function Z(t) {
@@ -269,7 +269,7 @@ function Z(t) {
     case "url":
       return {
         type: t.nullable ? ["string", "null"] : "string",
-        maxLength: Kt,
+        maxLength: te,
         pattern: "^https?://\\S+$",
         description: "An http or https address."
       };
@@ -282,13 +282,13 @@ const q = (t) => ({
     e[t] = n;
   },
   read: (e) => e[t]
-}), fe = ["solid", "dashed", "dotted", "combo"], me = Object.freeze(["dropShadow", "blur", "outline", "postItNote", "pencil"]), ge = ["front", "back"], ye = ["left", "middle", "right"], be = ["top", "middle", "bottom"], T = {
+}), xe = ["solid", "dashed", "dotted", "combo"], ke = Object.freeze(["dropShadow", "blur", "outline", "postItNote", "pencil"]), ve = ["front", "back"], $e = ["left", "middle", "right"], _e = ["top", "middle", "bottom"], L = {
   text: { spec: () => ({ type: "string", maxLength: 1e4 }), description: "The note's text.", ...q("text") },
   shape: {
     spec: (t) => ({ type: "enum", values: t.shapes, caseless: !0 }),
     description: "A shape registered with the engine.",
     store: (t, e, n) => {
-      const o = Nt(n.shapes, e);
+      const o = Tt(n.shapes, e);
       t.shape = o, t.vectorPath = o, t.shapeHint = o;
     },
     read: (t) => t.shape || t.shapeHint || t.vectorPath || "rectangle"
@@ -332,7 +332,7 @@ const q = (t) => ({
   borderWidth: { spec: () => ({ type: "number", min: 0, max: 100 }), description: "Border width.", ...q("borderWidth") },
   borderOpacity: { spec: () => ({ type: "number", min: 0, max: 1 }), description: "Border opacity from 0 to 1.", ...q("borderOpacity") },
   borderStyle: {
-    spec: () => ({ type: "enum", values: fe }),
+    spec: () => ({ type: "enum", values: xe }),
     description: "Border line style.",
     ...q("borderStyle")
   },
@@ -341,13 +341,13 @@ const q = (t) => ({
     spec: (t) => ({ type: "enum", values: t.fonts, caseless: !0 }),
     description: "A font this instance offers.",
     store: (t, e, n) => {
-      t.fontFamily = Nt(n.fonts, e);
+      t.fontFamily = Tt(n.fonts, e);
     },
     read: (t) => t.fontFamily
   },
   fontSize: { spec: () => ({ type: "number", min: 1, max: 500 }), description: "Font size.", ...q("fontSize") },
-  textXAlign: { spec: () => ({ type: "enum", values: ye }), description: "Horizontal text alignment.", ...q("textXAlign") },
-  textYAlign: { spec: () => ({ type: "enum", values: be }), description: "Vertical text alignment.", ...q("textYAlign") },
+  textXAlign: { spec: () => ({ type: "enum", values: $e }), description: "Horizontal text alignment.", ...q("textXAlign") },
+  textYAlign: { spec: () => ({ type: "enum", values: _e }), description: "Vertical text alignment.", ...q("textYAlign") },
   animation: {
     spec: (t) => ({ type: "enum", values: t.animations, nullable: !0 }),
     description: "An entrance or looping animation, or null for none.",
@@ -397,12 +397,12 @@ const q = (t) => ({
     },
     read: (t) => t.isLocked === !0
   }
-}, ut = {
+}, mt = {
   order: {
-    spec: { type: "enum", values: ge },
+    spec: { type: "enum", values: ve },
     description: "Bring the note to the front or send it to the back."
   }
-}, xe = [...Object.keys(T), ...Object.keys(ut)], we = /* @__PURE__ */ new Set(["text", "shape", "x", "y", "width", "height"]), Pt = Object.keys(T).filter((t) => !we.has(t)), bt = [
+}, Ie = [...Object.keys(L), ...Object.keys(mt)], Oe = /* @__PURE__ */ new Set(["text", "shape", "x", "y", "width", "height"]), jt = Object.keys(L).filter((t) => !Oe.has(t)), xt = [
   "add_nodes",
   "update_nodes",
   "delete_nodes",
@@ -412,7 +412,7 @@ const q = (t) => ({
   "update_connections",
   "arrange_nodes",
   "update_slate"
-], Ct = {
+], Yt = {
   add_nodes: ["kind", "count", "shape", "preset", "text", "ids", "x", "y", "width", "height", "placement", "style"],
   update_nodes: ["kind", "target", "changes"],
   delete_nodes: ["kind", "target"],
@@ -422,13 +422,13 @@ const q = (t) => ({
   update_connections: ["kind", "from", "to", "connectionIds", "changes"],
   arrange_nodes: ["kind", "target", "layout", "gap"],
   update_slate: ["kind", "changes"]
-}, Jt = ["left", "right", "above", "below", "center"], Zt = ["row", "column", "grid"], ke = ["align-left", "align-center", "align-right", "align-top", "align-middle", "align-bottom"], ve = ["distribute-horizontal", "distribute-vertical"], jt = ["row", "column", "grid", "circle", ...ke, ...ve, "tidy", "tree"], Yt = ["text", "sticky"], $e = 75, _e = Object.freeze({ x: 20, y: 20 }), Se = Object.freeze({
+}, ee = ["left", "right", "above", "below", "center"], ne = ["row", "column", "grid"], Se = ["align-left", "align-center", "align-right", "align-top", "align-middle", "align-bottom"], Ee = ["distribute-horizontal", "distribute-vertical"], Rt = ["row", "column", "grid", "circle", ...Se, ...Ee, "tidy", "tree"], zt = ["text", "sticky"], Me = 75, Ne = Object.freeze({ x: 20, y: 20 }), Pe = Object.freeze({
   operationsPerPlan: 50,
   notesPerAdd: 20,
   notesPerSlate: 1e3,
   connectorsPerOperation: 400,
   connectorsPerSlate: 5e3
-}), Dt = /^(?!__free_)[A-Za-z0-9_-]{1,64}$/, Xt = 200, Ie = Object.freeze([
+}), Wt = /^(?!__free_)[A-Za-z0-9_-]{1,64}$/, Ht = 200, Ae = Object.freeze([
   "Manrope",
   "Arial",
   "Times New Roman",
@@ -464,68 +464,92 @@ const q = (t) => ({
   "Titan One",
   "Urbanist"
 ]);
-function kt(t = {}) {
+function $t(t = {}) {
   return {
-    shapes: [...t.shapes ?? ce()],
-    fonts: [...t.fonts ?? Ie],
-    animations: Object.keys(le()),
-    effects: [...me]
+    shapes: [...t.shapes ?? fe()],
+    fonts: [...t.fonts ?? Ae],
+    animations: Object.keys(ge()),
+    effects: [...ke]
   };
 }
-function vt(t = {}) {
-  return { ...Se, ...t.limits || {} };
+function _t(t = {}) {
+  return { ...Pe, ...t.limits || {} };
 }
 class W extends Error {
-  constructor(e, n, o, r) {
-    super(o), this.name = "OperationPlanError", this.code = e, this.status = n, r && (this.details = r);
+  constructor(e, n, o, s) {
+    super(o), this.name = "OperationPlanError", this.code = e, this.status = n, s && (this.details = s);
   }
 }
-const Oe = ["bezier", "orthogonal", "straight", "linear", "curved"], Me = ["cubic", "quadratic"], nt = {
+const Le = ["bezier", "orthogonal", "straight", "linear", "curved"], Te = ["cubic", "quadratic"], Ce = ["follow", "pinned"], qt = ["follow", "pinned", "top", "right", "bottom", "left"], ot = {
   label: { spec: { type: "string", maxLength: 500 }, description: "Text shown on the connector." },
   lineColor: { spec: { type: "color" }, description: "Line colour." },
   lineWidth: { spec: { type: "number", min: 0.1, max: 100 }, description: "Line width." },
   lineOpacity: { spec: { type: "number", min: 0, max: 1 }, description: "Line opacity from 0 to 1." },
-  lineType: { spec: { type: "enum", values: Oe }, description: "Path style." },
-  lineCurveType: { spec: { type: "enum", values: Me }, description: "Curve type." },
+  lineType: { spec: { type: "enum", values: Le }, description: "Path style." },
+  lineCurveType: { spec: { type: "enum", values: Te }, description: "Curve type." },
   lineCurviness: { spec: { type: "number", min: 0, max: 1 }, description: "How much the line bends." },
   showParentArrow: { spec: { type: "boolean" }, description: "Arrowhead at the starting note." },
   showChildArrow: { spec: { type: "boolean" }, description: "Arrowhead at the far end." },
+  ends: {
+    spec: { type: "enum", values: Ce },
+    description: "Both ends that are on notes: follow (each end takes the shortest way round its note as things move) or pinned (each end stays at the spot on its note's edge where it is now)."
+  },
+  fromEnd: {
+    spec: { type: "enum", values: qt },
+    description: "The starting end: follow, pinned (where it is now), or pinned to the middle of the note's top, right, bottom or left side."
+  },
+  toEnd: {
+    spec: { type: "enum", values: qt },
+    description: "The far end: follow, pinned (where it is now), or pinned to the middle of the note's top, right, bottom or left side. Not for a free end."
+  },
+  toNote: {
+    spec: { type: "string", minLength: 1, maxLength: 200 },
+    description: "Reconnect the far end to this note (its id). A free end is attached to it. The connector keeps its id."
+  },
+  fromNote: {
+    spec: { type: "string", minLength: 1, maxLength: 200 },
+    description: "Reconnect the starting end to this note (its id); the connector then belongs to that note and keeps its id."
+  },
   toPoint: {
     spec: { type: "point" },
-    description: "Move a free end to this point. Only for a connector whose far end is not on a note.",
+    description: "Leave the far end free at this point on the canvas (a saved point that stays put). Detaches it from its note if it is on one; moves it if it is already free.",
     field: "targetPoint"
+  },
+  fromPoint: {
+    spec: { type: "point" },
+    description: "Leave the starting end free at this point. The connector then belongs to the note at its far end, its arrows kept as drawn. A connector keeps at least one end on a note."
   }
-}, Rt = Object.keys(nt).filter((t) => t !== "toPoint"), St = { lineColor: "#333333", lineWidth: 3, lineType: "bezier" }, Tt = "__free_", Vt = ["linear", "radial"], Qt = ["horizontal", "vertical", "diagonal"], ft = (t) => ({
+}, Bt = ["ends", "fromEnd", "toEnd", "toNote", "fromNote", "toPoint", "fromPoint"], Dt = Object.keys(ot).filter((t) => !Bt.includes(t)), St = { lineColor: "#333333", lineWidth: 3, lineType: "bezier" }, pt = "__free_", oe = ["linear", "radial"], se = ["horizontal", "vertical", "diagonal"], yt = (t) => ({
   store: (e, n) => {
     e.options[t] = n;
   }
-}), Ft = (t) => ({
+}), Gt = (t) => ({
   store: (e, n) => {
     e.options.viewPort = { ...e.options.viewPort || {}, [t]: n };
   }
-}), at = {
-  name: { spec: { type: "string", minLength: 1, maxLength: 200 }, description: "The slate's name.", ...ft("name") },
-  description: { spec: { type: "string", maxLength: 5e3 }, description: "The slate's description.", ...ft("description") },
+}), dt = {
+  name: { spec: { type: "string", minLength: 1, maxLength: 200 }, description: "The slate's name.", ...yt("name") },
+  description: { spec: { type: "string", maxLength: 5e3 }, description: "The slate's description.", ...yt("description") },
   background: {
     spec: { type: "object" },
     description: "Canvas background: {color, gradient?: {type, colors, direction?}}.",
     store: (t, e) => {
-      const n = { ...t.options.containerStyle || {}, ...Le(e) };
+      const n = { ...t.options.containerStyle || {}, ...Ye(e) };
       delete n.backgroundImage, delete n.backgroundEffect, t.options.containerStyle = n;
     }
   },
   mindMapMode: {
     spec: { type: "boolean" },
     description: "Mind map mode: a theme colours notes by their depth in the connected tree.",
-    ...ft("mindMapMode")
+    ...yt("mindMapMode")
   },
   autoResizeNodesBasedOnText: {
     spec: { type: "boolean" },
     description: "Notes grow to fit their text while it is typed.",
-    ...ft("autoResizeNodesBasedOnText")
+    ...yt("autoResizeNodesBasedOnText")
   },
-  showGrid: { spec: { type: "boolean" }, description: "Show the grid behind the canvas.", ...Ft("showGrid") },
-  snapToObjects: { spec: { type: "boolean" }, description: "A dragged note snaps to the edges of its neighbours.", ...Ft("snapToObjects") },
+  showGrid: { spec: { type: "boolean" }, description: "Show the grid behind the canvas.", ...Gt("showGrid") },
+  snapToObjects: { spec: { type: "boolean" }, description: "A dragged note snaps to the edges of its neighbours.", ...Gt("snapToObjects") },
   defaultLineColor: {
     spec: { type: "color" },
     description: "The slate's line colour: every connector and every note's line colour takes it, as the Colours panel does.",
@@ -538,30 +562,30 @@ const Oe = ["bezier", "orthogonal", "straight", "linear", "curved"], Me = ["cubi
     }
   }
 };
-function Ee(t, e) {
-  if (!z(t)) return [`${e} must be an object {color, gradient?}.`];
+function je(t, e) {
+  if (!R(t)) return [`${e} must be an object {color, gradient?}.`];
   const n = [];
-  for (const r of Object.keys(t))
-    r !== "color" && r !== "gradient" && n.push(`${e} has an unknown field: ${r}.`);
+  for (const s of Object.keys(t))
+    s !== "color" && s !== "gradient" && n.push(`${e} has an unknown field: ${s}.`);
   const o = j({ type: "color" }, t.color, `${e}.color`);
   if (o && n.push(o), t.gradient !== void 0) {
-    const r = t.gradient;
-    if (!z(r)) return [...n, `${e}.gradient must be an object {type, colors, direction?}.`];
-    for (const a of Object.keys(r))
+    const s = t.gradient;
+    if (!R(s)) return [...n, `${e}.gradient must be an object {type, colors, direction?}.`];
+    for (const a of Object.keys(s))
       ["type", "colors", "direction"].includes(a) || n.push(`${e}.gradient has an unknown field: ${a}.`);
-    const i = j({ type: "enum", values: Vt }, r.type, `${e}.gradient.type`);
-    if (i && n.push(i), r.direction !== void 0) {
-      const a = j({ type: "enum", values: Qt }, r.direction, `${e}.gradient.direction`);
+    const i = j({ type: "enum", values: oe }, s.type, `${e}.gradient.type`);
+    if (i && n.push(i), s.direction !== void 0) {
+      const a = j({ type: "enum", values: se }, s.direction, `${e}.gradient.direction`);
       a && n.push(a);
     }
-    !Array.isArray(r.colors) || r.colors.length < 2 || r.colors.length > 8 ? n.push(`${e}.gradient.colors must list 2 to 8 colours.`) : r.colors.forEach((a, p) => {
-      const g = j({ type: "color" }, a, `${e}.gradient.colors[${p}]`);
-      g && n.push(g);
+    !Array.isArray(s.colors) || s.colors.length < 2 || s.colors.length > 8 ? n.push(`${e}.gradient.colors must list 2 to 8 colours.`) : s.colors.forEach((a, u) => {
+      const y = j({ type: "color" }, a, `${e}.gradient.colors[${u}]`);
+      y && n.push(y);
     });
   }
   return n;
 }
-function Le(t) {
+function Ye(t) {
   return {
     backgroundColor: t.color,
     backgroundColorAsGradient: !!t.gradient,
@@ -570,7 +594,7 @@ function Le(t) {
     backgroundGradientStrategy: t.gradient?.direction ?? "horizontal"
   };
 }
-function te() {
+function ie() {
   return {
     type: "object",
     additionalProperties: !1,
@@ -582,15 +606,15 @@ function te() {
         additionalProperties: !1,
         required: ["type", "colors"],
         properties: {
-          type: { type: "string", enum: [...Vt] },
+          type: { type: "string", enum: [...oe] },
           colors: { type: "array", minItems: 2, maxItems: 8, items: Z({ type: "color" }) },
-          direction: { type: "string", enum: [...Qt] }
+          direction: { type: "string", enum: [...se] }
         }
       }
     }
   };
 }
-function Ne(t) {
+function Re(t) {
   if (!t?.backgroundColor) return null;
   const e = t.backgroundGradientColors;
   return !t.backgroundColorAsGradient || !Array.isArray(e) || e.length < 2 ? { color: t.backgroundColor } : {
@@ -602,25 +626,25 @@ function Ne(t) {
     }
   };
 }
-const Te = ["ids", "text", "match", "all", "within", "groupId"], Ae = ["ids", "text", "within", "groupId"];
-function rt(t, e) {
-  if (!z(t)) return [`${e} must be a selector such as {ids: [...]}, {text}, {within}, {groupId} or {all: true}.`];
+const ze = ["ids", "text", "match", "all", "within", "groupId"], Be = ["ids", "text", "within", "groupId"];
+function at(t, e) {
+  if (!R(t)) return [`${e} must be a selector such as {ids: [...]}, {text}, {within}, {groupId} or {all: true}.`];
   const n = [];
-  for (const r of Object.keys(t))
-    Te.includes(r) || n.push(`${e} has an unknown field: ${r}.`);
-  const o = Ae.filter((r) => t[r] !== void 0);
-  if (o.length > 1 && n.push(`${e} must name notes one way, not by ${o.join(" and ")}.`), !o.length && t.all !== !0 && n.push(`${e} must name notes by ids, text, within, groupId or all: true.`), t.ids !== void 0 && (!Array.isArray(t.ids) || !t.ids.length || t.ids.some((r) => typeof r != "string" || !r)) && n.push(`${e}.ids must be a list of note ids.`), t.text !== void 0 && (typeof t.text != "string" || !t.text.trim()) && n.push(`${e}.text must be the text of a note.`), t.match !== void 0) {
+  for (const s of Object.keys(t))
+    ze.includes(s) || n.push(`${e} has an unknown field: ${s}.`);
+  const o = Be.filter((s) => t[s] !== void 0);
+  if (o.length > 1 && n.push(`${e} must name notes one way, not by ${o.join(" and ")}.`), !o.length && t.all !== !0 && n.push(`${e} must name notes by ids, text, within, groupId or all: true.`), t.ids !== void 0 && (!Array.isArray(t.ids) || !t.ids.length || t.ids.some((s) => typeof s != "string" || !s)) && n.push(`${e}.ids must be a list of note ids.`), t.text !== void 0 && (typeof t.text != "string" || !t.text.trim()) && n.push(`${e}.text must be the text of a note.`), t.match !== void 0) {
     t.text === void 0 && n.push(`${e}.match goes with text.`);
-    const r = j({ type: "enum", values: ["exact", "contains"] }, t.match, `${e}.match`);
-    r && n.push(r);
+    const s = j({ type: "enum", values: ["exact", "contains"] }, t.match, `${e}.match`);
+    s && n.push(s);
   }
   if (t.all !== void 0 && t.all !== !0 && n.push(`${e}.all must be true when given.`), t.groupId !== void 0 && (typeof t.groupId != "string" || !t.groupId) && n.push(`${e}.groupId must be a group id.`), t.within !== void 0) {
-    const r = t.within;
-    z(r) && Object.keys(r).every((a) => ["x", "y", "width", "height"].includes(a)) && ["x", "y", "width", "height"].every((a) => typeof r[a] == "number" && Number.isFinite(r[a])) && r.width > 0 && r.height > 0 || n.push(`${e}.within must be {x, y, width, height} with a positive width and height.`);
+    const s = t.within;
+    R(s) && Object.keys(s).every((a) => ["x", "y", "width", "height"].includes(a)) && ["x", "y", "width", "height"].every((a) => typeof s[a] == "number" && Number.isFinite(s[a])) && s.width > 0 && s.height > 0 || n.push(`${e}.within must be {x, y, width, height} with a positive width and height.`);
   }
   return n;
 }
-function ee() {
+function re() {
   return {
     type: "object",
     additionalProperties: !1,
@@ -640,352 +664,215 @@ function ee() {
     }
   };
 }
-const Pe = /\b(theme|background|canvas|palette|gradient|recolor|colour|color scheme)\b/i, ne = /\b(clear|replace|reset|start over|delete all|remove all)\b/i;
-function dt(t, e, n, o, r, { required: i = !0, plural: a = `${o}s` } = {}) {
-  const p = [];
-  if (t === void 0 && !i) return p;
-  if (!z(t) || i && !Object.keys(t).length)
+const De = /\b(theme|background|canvas|palette|gradient|recolor|colour|color scheme)\b/i, ae = /\b(clear|replace|reset|start over|delete all|remove all)\b/i;
+function ht(t, e, n, o, s, { required: i = !0, plural: a = `${o}s` } = {}) {
+  const u = [];
+  if (t === void 0 && !i) return u;
+  if (!R(t) || i && !Object.keys(t).length)
     return [i ? `${n} requires at least one ${o}.` : `${n} ${a} must be an object.`];
-  const g = Object.keys(t).filter((b) => !e.includes(b));
-  g.length && p.push(`${n} contains unsupported ${a}: ${g.join(", ")}.`);
-  for (const [b, f] of Object.entries(t))
-    e.includes(b) && r(b, f, p);
-  return p;
+  const y = Object.keys(t).filter((w) => !e.includes(w));
+  y.length && u.push(`${n} contains unsupported ${a}: ${y.join(", ")}.`);
+  for (const [w, f] of Object.entries(t))
+    e.includes(w) && s(w, f, u);
+  return u;
 }
-function Wt(t, e) {
-  return (n, o, r) => {
-    const i = ut[n]?.spec ?? T[n].spec(t), a = j(i, o, `${e} ${n}`);
-    a && r.push(a);
+function Ut(t, e) {
+  return (n, o, s) => {
+    const i = mt[n]?.spec ?? L[n].spec(t), a = j(i, o, `${e} ${n}`);
+    a && s.push(a);
   };
 }
-function Ht(t) {
+function Kt(t) {
   return (e, n, o) => {
-    const r = j(nt[e].spec, n, `${t} ${e}`);
-    r && o.push(r);
+    const s = j(ot[e].spec, n, `${t} ${e}`);
+    s && o.push(s);
   };
 }
 function J(t) {
   return Array.isArray(t) && t.length > 0 && t.every((e) => typeof e == "string" && e.length > 0);
 }
-function Ce(t, e = {}) {
-  const n = kt(e), o = vt(e), r = e.userMessage || "";
-  if (!z(t)) return { valid: !1, errors: ["The operation plan must be an object."] };
+function Xe(t, e = {}) {
+  const n = $t(e), o = _t(e), s = e.userMessage || "";
+  if (!R(t)) return { valid: !1, errors: ["The operation plan must be an object."] };
   const i = [];
-  for (const s of Object.keys(t))
-    s !== "message" && s !== "operations" && i.push(`The plan has an unknown field: ${s}.`);
+  for (const r of Object.keys(t))
+    r !== "message" && r !== "operations" && i.push(`The plan has an unknown field: ${r}.`);
   (typeof t.message != "string" || !t.message.trim()) && i.push("A natural completion message is required."), !Array.isArray(t.operations) || t.operations.length === 0 ? i.push("At least one slate operation is required.") : t.operations.length > o.operationsPerPlan && i.push(`A plan cannot contain more than ${o.operationsPerPlan} operations.`);
-  const a = !!e.existingNodeIds?.length, p = new Set((e.existingNodeIds || []).filter(Boolean)), g = !!e.existingConnectionIds?.length, b = new Set((e.existingConnectionIds || []).filter(Boolean)), f = (s, c) => {
-    a && z(s) && Array.isArray(s.ids) && s.ids.some((d) => !p.has(d)) && i.push(`${c} references notes that are not in the slate.`);
+  const a = !!e.existingNodeIds?.length, u = new Set((e.existingNodeIds || []).filter(Boolean)), y = !!e.existingConnectionIds?.length, w = new Set((e.existingConnectionIds || []).filter(Boolean)), f = (r, d) => {
+    a && R(r) && Array.isArray(r.ids) && r.ids.some((c) => !u.has(c)) && i.push(`${d} references notes that are not in the slate.`);
   };
-  return (Array.isArray(t.operations) ? t.operations : []).forEach((s, c) => {
-    const d = `Operation ${c + 1}`;
-    if (!z(s) || !bt.includes(s.kind)) {
-      i.push(`${d} has an unsupported kind.`);
+  return (Array.isArray(t.operations) ? t.operations : []).forEach((r, d) => {
+    const c = `Operation ${d + 1}`;
+    if (!R(r) || !xt.includes(r.kind)) {
+      i.push(`${c} has an unsupported kind.`);
       return;
     }
-    const S = Ct[s.kind], $ = Object.keys(s).filter((m) => !S.includes(m));
-    for (const m of $) i.push(`${d} has an unknown field: ${m}.`);
-    switch (s.kind) {
+    const $ = Yt[r.kind], v = Object.keys(r).filter((m) => !$.includes(m));
+    for (const m of v) i.push(`${c} has an unknown field: ${m}.`);
+    switch (r.kind) {
       case "add_nodes": {
-        if ((!Number.isInteger(s.count) || s.count < 1 || s.count > o.notesPerAdd) && i.push(`${d} count must be an integer from 1 to ${o.notesPerAdd}.`), s.preset !== void 0) {
-          const w = j({ type: "enum", values: Yt }, s.preset, `${d} preset`);
-          w && i.push(w);
+        if ((!Number.isInteger(r.count) || r.count < 1 || r.count > o.notesPerAdd) && i.push(`${c} count must be an integer from 1 to ${o.notesPerAdd}.`), r.preset !== void 0) {
+          const g = j({ type: "enum", values: zt }, r.preset, `${c} preset`);
+          g && i.push(g);
         }
-        const m = z(s.placement) && s.placement.connect === !0;
-        if (s.shape !== void 0 || s.preset === void 0 && !m) {
-          const w = j(T.shape.spec(n), s.shape, `${d} shape`);
-          w && i.push(w);
+        const m = R(r.placement) && r.placement.connect === !0;
+        if (r.shape !== void 0 || r.preset === void 0 && !m) {
+          const g = j(L.shape.spec(n), r.shape, `${c} shape`);
+          g && i.push(g);
         }
-        for (const w of ["text", "width", "height"]) {
-          if (s[w] === void 0) continue;
-          const _ = j(T[w].spec(n), s[w], `${d} ${w}`);
-          _ && i.push(_);
+        for (const g of ["text", "width", "height"]) {
+          if (r[g] === void 0) continue;
+          const I = j(L[g].spec(n), r[g], `${c} ${g}`);
+          I && i.push(I);
         }
-        s.x === void 0 != (s.y === void 0) && i.push(`${d} needs both x and y, or neither.`);
-        for (const w of ["x", "y"]) {
-          if (s[w] === void 0) continue;
-          const _ = j(T[w].spec(n), s[w], `${d} ${w}`);
-          _ && i.push(_);
+        r.x === void 0 != (r.y === void 0) && i.push(`${c} needs both x and y, or neither.`);
+        for (const g of ["x", "y"]) {
+          if (r[g] === void 0) continue;
+          const I = j(L[g].spec(n), r[g], `${c} ${g}`);
+          I && i.push(I);
         }
-        s.ids !== void 0 && (!J(s.ids) || new Set(s.ids).size !== s.ids.length ? i.push(`${d} ids must be a list of different note ids.`) : s.ids.some((w) => !Dt.test(w)) ? i.push(`${d} ids must be 1 to 64 letters, digits, _ or -, and must not start with __free_.`) : Number.isInteger(s.count) && s.ids.length > s.count && i.push(`${d} has more ids than notes to add.`));
-        const y = s.placement;
-        if (y !== void 0)
-          if (!z(y))
-            i.push(`${d} placement must be an object.`);
+        r.ids !== void 0 && (!J(r.ids) || new Set(r.ids).size !== r.ids.length ? i.push(`${c} ids must be a list of different note ids.`) : r.ids.some((g) => !Wt.test(g)) ? i.push(`${c} ids must be 1 to 64 letters, digits, _ or -, and must not start with __free_.`) : Number.isInteger(r.count) && r.ids.length > r.count && i.push(`${c} has more ids than notes to add.`));
+        const b = r.placement;
+        if (b !== void 0)
+          if (!R(b))
+            i.push(`${c} placement must be an object.`);
           else {
-            const w = s.x !== void 0 ? ["arrangement", "gap", ...y.connect === !0 ? ["relativeTo", "connect"] : []] : ["relativeTo", "direction", "arrangement", "gap", "connect"];
-            for (const _ of Object.keys(y))
-              w.includes(_) || i.push(
-                s.x !== void 0 && ["relativeTo", "direction", "connect"].includes(_) ? `${d} gives x and y, so placement cannot also give ${_}.` : `${d} placement has an unknown field: ${_}.`
+            const g = r.x !== void 0 ? ["arrangement", "gap", ...b.connect === !0 ? ["relativeTo", "connect"] : []] : ["relativeTo", "direction", "arrangement", "gap", "connect"];
+            for (const I of Object.keys(b))
+              g.includes(I) || i.push(
+                r.x !== void 0 && ["relativeTo", "direction", "connect"].includes(I) ? `${c} gives x and y, so placement cannot also give ${I}.` : `${c} placement has an unknown field: ${I}.`
               );
-            y.connect !== void 0 && (typeof y.connect != "boolean" ? i.push(`${d} placement.connect must be true or false.`) : y.connect && (y.relativeTo === void 0 && i.push(`${d} placement.connect needs relativeTo, the note to copy and connect from.`), y.direction === "center" && i.push(`${d} cannot connect a note placed at the centre of another; choose left, right, above or below.`))), y.relativeTo !== void 0 && typeof y.relativeTo != "string" ? i.push(`${d} placement.relativeTo must be a note id.`) : y.relativeTo && a && !p.has(y.relativeTo) && i.push(`${d} references a note that is not in the slate.`);
-            for (const [_, X] of [["direction", Jt], ["arrangement", Zt]]) {
-              if (y[_] === void 0) continue;
-              const l = j({ type: "enum", values: X }, y[_], `${d} placement.${_}`);
+            b.connect !== void 0 && (typeof b.connect != "boolean" ? i.push(`${c} placement.connect must be true or false.`) : b.connect && (b.relativeTo === void 0 && i.push(`${c} placement.connect needs relativeTo, the note to copy and connect from.`), b.direction === "center" && i.push(`${c} cannot connect a note placed at the centre of another; choose left, right, above or below.`))), b.relativeTo !== void 0 && typeof b.relativeTo != "string" ? i.push(`${c} placement.relativeTo must be a note id.`) : b.relativeTo && a && !u.has(b.relativeTo) && i.push(`${c} references a note that is not in the slate.`);
+            for (const [I, X] of [["direction", ee], ["arrangement", ne]]) {
+              if (b[I] === void 0) continue;
+              const l = j({ type: "enum", values: X }, b[I], `${c} placement.${I}`);
               l && i.push(l);
             }
-            if (y.gap !== void 0) {
-              const _ = j({ type: "number", min: 0, max: 2e3 }, y.gap, `${d} placement.gap`);
-              _ && i.push(_);
+            if (b.gap !== void 0) {
+              const I = j({ type: "number", min: 0, max: 2e3 }, b.gap, `${c} placement.gap`);
+              I && i.push(I);
             }
           }
-        i.push(...dt(s.style, Pt, d, "node style", Wt(n, d), { required: !1 })), J(s.ids) && s.ids.forEach((w) => p.add(w));
+        i.push(...ht(r.style, jt, c, "node style", Ut(n, c), { required: !1 })), J(r.ids) && r.ids.forEach((g) => u.add(g));
         return;
       }
       case "update_nodes":
       case "delete_nodes":
       case "arrange_nodes": {
-        const m = rt(s.target, `${d} target`);
-        if (i.push(...m), m.length || f(s.target, d), s.kind === "update_nodes" && i.push(...dt(s.changes, xe, d, "node change", Wt(n, d), { plural: "changes" })), s.kind === "delete_nodes" && z(s.target) && s.target.all === !0 && Object.keys(s.target).length === 1 && !ne.test(r) && i.push(`${d} cannot delete every note without an explicit request.`), s.kind === "arrange_nodes") {
-          const y = j({ type: "enum", values: jt }, s.layout, `${d} layout`);
-          if (y && i.push(y), s.gap !== void 0) {
-            const w = j({ type: "number", min: 0, max: 2e3 }, s.gap, `${d} gap`);
-            w && i.push(w);
+        const m = at(r.target, `${c} target`);
+        if (i.push(...m), m.length || f(r.target, c), r.kind === "update_nodes" && i.push(...ht(r.changes, Ie, c, "node change", Ut(n, c), { plural: "changes" })), r.kind === "delete_nodes" && R(r.target) && r.target.all === !0 && Object.keys(r.target).length === 1 && !ae.test(s) && i.push(`${c} cannot delete every note without an explicit request.`), r.kind === "arrange_nodes") {
+          const b = j({ type: "enum", values: Rt }, r.layout, `${c} layout`);
+          if (b && i.push(b), r.gap !== void 0) {
+            const g = j({ type: "number", min: 0, max: 2e3 }, r.gap, `${c} gap`);
+            g && i.push(g);
           }
         }
         return;
       }
       case "duplicate_nodes": {
-        const m = rt(s.target, `${d} target`);
-        if (i.push(...m), m.length || f(s.target, d), s.offset !== void 0) {
-          const y = j({ type: "point" }, s.offset, `${d} offset`);
-          y && i.push(y);
+        const m = at(r.target, `${c} target`);
+        if (i.push(...m), m.length || f(r.target, c), r.offset !== void 0) {
+          const b = j({ type: "point" }, r.offset, `${c} offset`);
+          b && i.push(b);
         }
-        s.ids !== void 0 && (!J(s.ids) || new Set(s.ids).size !== s.ids.length ? i.push(`${d} ids must be a list of different note ids.`) : s.ids.some((y) => !Dt.test(y)) ? i.push(`${d} ids must be 1 to 64 letters, digits, _ or -, and must not start with __free_.`) : z(s.target) && J(s.target.ids) && s.ids.length > s.target.ids.length && i.push(`${d} has more ids than notes to copy.`)), J(s.ids) && s.ids.forEach((y) => p.add(y));
+        r.ids !== void 0 && (!J(r.ids) || new Set(r.ids).size !== r.ids.length ? i.push(`${c} ids must be a list of different note ids.`) : r.ids.some((b) => !Wt.test(b)) ? i.push(`${c} ids must be 1 to 64 letters, digits, _ or -, and must not start with __free_.`) : R(r.target) && J(r.target.ids) && r.ids.length > r.target.ids.length && i.push(`${c} has more ids than notes to copy.`)), J(r.ids) && r.ids.forEach((b) => u.add(b));
         return;
       }
       case "connect_nodes": {
-        const m = rt(s.from, `${d} from`);
-        if (i.push(...m), m.length || f(s.from, d), z(s.to) && s.to.point !== void 0) {
-          Object.keys(s.to).length !== 1 && i.push(`${d} to must be a note selector or {point}, not both.`);
-          const _ = j({ type: "point" }, s.to.point, `${d} to.point`);
-          _ && i.push(_);
+        const m = at(r.from, `${c} from`);
+        if (i.push(...m), m.length || f(r.from, c), R(r.to) && r.to.point !== void 0) {
+          Object.keys(r.to).length !== 1 && i.push(`${c} to must be a note selector or {point}, not both.`);
+          const I = j({ type: "point" }, r.to.point, `${c} to.point`);
+          I && i.push(I);
         } else {
-          const _ = rt(s.to, `${d} to`);
-          i.push(..._), _.length || f(s.to, d);
+          const I = at(r.to, `${c} to`);
+          i.push(...I), I.length || f(r.to, c);
         }
-        s.ids !== void 0 && (!J(s.ids) || new Set(s.ids).size !== s.ids.length ? i.push(`${d} ids must be a list of different connector ids.`) : s.ids.some((_) => _.length > Xt) && i.push(`${d} connector ids can be at most ${Xt} characters.`)), i.push(...dt(s.style, Rt, d, "connection style", Ht(d), { required: !1 })), J(s.ids) && s.ids.forEach((_) => b.add(_));
-        const y = s.from?.ids, w = s.to?.ids;
-        J(y) && J(w) && y.forEach((_) => w.forEach((X) => b.add(`${_}->${X}`)));
+        r.ids !== void 0 && (!J(r.ids) || new Set(r.ids).size !== r.ids.length ? i.push(`${c} ids must be a list of different connector ids.`) : r.ids.some((I) => I.length > Ht) && i.push(`${c} connector ids can be at most ${Ht} characters.`)), i.push(...ht(r.style, Dt, c, "connection style", Kt(c), { required: !1 })), J(r.ids) && r.ids.forEach((I) => w.add(I));
+        const b = r.from?.ids, g = r.to?.ids;
+        J(b) && J(g) && b.forEach((I) => g.forEach((X) => w.add(`${I}->${X}`)));
         return;
       }
       case "disconnect_nodes":
       case "update_connections": {
-        const m = s.connectionIds !== void 0, y = s.from !== void 0 || s.to !== void 0;
-        if (m && y && i.push(`${d} names connectors by connectionIds or by from and to, not both.`), !m && !y && i.push(`${d} requires connectionIds or both from and to note selectors.`), m && (J(s.connectionIds) ? g && s.connectionIds.some((w) => !b.has(w)) && i.push(`${d} references connectors that are not in the slate.`) : i.push(`${d} connectionIds must be a list of connector ids.`)), y)
-          for (const w of ["from", "to"]) {
-            const _ = rt(s[w], `${d} ${w}`);
-            i.push(..._), _.length || f(s[w], d);
+        const m = r.connectionIds !== void 0, b = r.from !== void 0 || r.to !== void 0;
+        if (m && b && i.push(`${c} names connectors by connectionIds or by from and to, not both.`), !m && !b && i.push(`${c} requires connectionIds or both from and to note selectors.`), m && (J(r.connectionIds) ? y && r.connectionIds.some((g) => !w.has(g)) && i.push(`${c} references connectors that are not in the slate.`) : i.push(`${c} connectionIds must be a list of connector ids.`)), b)
+          for (const g of ["from", "to"]) {
+            const I = at(r[g], `${c} ${g}`);
+            i.push(...I), I.length || f(r[g], c);
           }
-        s.kind === "update_connections" && i.push(...dt(s.changes, Object.keys(nt), d, "connection change", Ht(d)));
+        if (r.kind === "update_connections") {
+          i.push(...ht(r.changes, Object.keys(ot), c, "connection change", Kt(c)));
+          const g = R(r.changes) ? r.changes : {};
+          g.toNote !== void 0 && g.toPoint !== void 0 && i.push(`${c} moves the far end with toNote or toPoint, not both.`), g.fromNote !== void 0 && g.fromPoint !== void 0 && i.push(`${c} moves the starting end with fromNote or fromPoint, not both.`), g.ends !== void 0 && (g.fromEnd !== void 0 || g.toEnd !== void 0) && i.push(`${c} sets ends, or fromEnd and toEnd, not both.`), g.toPoint !== void 0 && g.toEnd !== void 0 && i.push(`${c} cannot pin a far end it leaves free (toPoint with toEnd).`), g.fromPoint !== void 0 && (g.toPoint !== void 0 || g.fromEnd !== void 0) && i.push(`${c} keeps one end on a note: fromPoint goes with neither toPoint nor fromEnd.`);
+        }
         return;
       }
       case "update_slate": {
         i.push(
-          ...dt(s.changes, Object.keys(at), d, "slate change", (m, y, w) => {
+          ...ht(r.changes, Object.keys(dt), c, "slate change", (m, b, g) => {
             if (m === "background") {
-              w.push(...Ee(y, `${d} background`));
+              g.push(...je(b, `${c} background`));
               return;
             }
-            const _ = j(at[m].spec, y, `${d} ${m}`);
-            _ && w.push(_);
+            const I = j(dt[m].spec, b, `${c} ${m}`);
+            I && g.push(I);
           })
-        ), z(s.changes) && s.changes.background !== void 0 && !Pe.test(r) && i.push(`${d} cannot change the canvas background unless the user explicitly asks for it.`);
+        ), R(r.changes) && r.changes.background !== void 0 && !De.test(s) && i.push(`${c} cannot change the canvas background unless the user explicitly asks for it.`);
         return;
       }
     }
   }), { valid: i.length === 0, errors: i };
 }
-function se(t) {
-  const { x: e, y: n, width: o, height: r } = t, i = t.rotationAngle || 0;
-  if (!i) return { minX: e, minY: n, maxX: e + o, maxY: n + r };
-  const a = e + o / 2, p = n + r / 2, g = i * Math.PI / 180, b = Math.cos(g), f = Math.sin(g);
-  let s = 1 / 0, c = 1 / 0, d = -1 / 0, S = -1 / 0;
-  for (const [m, y] of [[e, n], [e + o, n], [e + o, n + r], [e, n + r]]) {
-    const w = m - a, _ = y - p, X = a + w * b - _ * f, l = p + w * f + _ * b;
-    s = Math.min(s, X), c = Math.min(c, l), d = Math.max(d, X), S = Math.max(S, l);
-  }
-  const $ = (m) => Math.round(m * 1e6) / 1e6;
-  return { minX: $(s), minY: $(c), maxX: $(d), maxY: $(S) };
-}
-function je(t, e) {
-  if (e.length < 2) return [];
-  const n = e.map(se), o = Math.min(...n.map((b) => b.minX)), r = Math.max(...n.map((b) => b.maxX)), i = Math.min(...n.map((b) => b.minY)), a = Math.max(...n.map((b) => b.maxY)), p = (o + r) / 2, g = (i + a) / 2;
-  return e.map((b, f) => {
-    const s = n[f];
-    let { x: c, y: d } = b;
-    return t === "left" ? c += o - s.minX : t === "right" ? c += r - s.maxX : t === "centerH" ? c += p - (s.minX + s.maxX) / 2 : t === "top" ? d += i - s.minY : t === "bottom" ? d += a - s.maxY : t === "middle" && (d += g - (s.minY + s.maxY) / 2), { id: b.id, x: c, y: d };
-  });
-}
-function Ye(t, e) {
-  if (e.length < 3) return [];
-  const n = e.map((c, d) => ({ box: c, index: d, b: se(c) })), o = t === "horizontal", r = (c) => o ? c.b.minX : c.b.minY, i = (c) => o ? c.b.maxX - c.b.minX : c.b.maxY - c.b.minY, a = [...n].sort((c, d) => r(c) - r(d) || c.index - d.index), p = r(a[0]), b = (a.reduce((c, d) => Math.max(c, r(d) + i(d)), -1 / 0) - p - a.reduce((c, d) => c + i(d), 0)) / (a.length - 1), f = /* @__PURE__ */ new Map();
-  let s = p;
-  for (const c of a) {
-    const d = s - r(c);
-    f.set(c.index, {
-      id: c.box.id,
-      x: o ? c.box.x + d : c.box.x,
-      y: o ? c.box.y : c.box.y + d
-    }), s += i(c) + b;
-  }
-  return n.map((c) => f.get(c.index));
-}
-function xt(t, e, n) {
-  const o = Math.min(t.x + t.width + n - e.x, e.x + e.width + n - t.x), r = Math.min(t.y + t.height + n - e.y, e.y + e.height + n - t.y);
-  return o > 0 && r > 0 ? { x: o, y: r } : null;
-}
-const Re = 4e6;
-function ze(t, e, { gap: n = 20 } = {}) {
-  const o = t.map((f) => ({ ...f })), r = e.map((f) => ({ ...f })), i = (f, s, c, d, S) => {
-    const $ = f.x + f.width / 2 - (s.x + s.width / 2), m = f.y + f.height / 2 - (s.y + s.height / 2);
-    c.y <= c.x ? f.y += (m > 0 || m === 0 && S > 0 ? 1 : -1) * c.y * d : f.x += ($ > 0 || $ === 0 && S > 0 ? 1 : -1) * c.x * d;
-  }, a = Math.max(1, o.length * (r.length + o.length / 2)), p = Math.max(1, Math.min(1e3, Math.floor(Re / a)));
-  let g = !1;
-  for (let f = 0; f < p; f += 1) {
-    let s = !1;
-    for (let c = 0; c < o.length; c += 1) {
-      for (const d of r) {
-        const S = xt(o[c], d, n);
-        S && (i(o[c], d, S, 1, 1), s = !0);
-      }
-      for (let d = c + 1; d < o.length; d += 1) {
-        const S = xt(o[c], o[d], n);
-        S && (i(o[c], o[d], S, 0.5, -1), i(o[d], o[c], S, 0.5, 1), s = !0);
-      }
-    }
-    if (!s) {
-      g = !0;
-      break;
-    }
-  }
-  const b = (f) => Math.round(f * 100) / 100;
-  for (const f of o)
-    f.x = b(f.x), f.y = b(f.y);
-  return g || Be(o, r, n), o.map(({ id: f, x: s, y: c }) => ({ id: f, x: s, y: c }));
-}
-function Be(t, e, n) {
-  const o = [...e], r = [];
-  for (const d of t)
-    o.some((S) => xt(d, S, n)) ? r.push(d) : o.push(d);
-  if (!r.length) return;
-  const i = Math.min(...t.map((d) => d.x)), a = o.length ? Math.max(...o.map((d) => d.y + d.height)) + n : Math.min(...t.map((d) => d.y)), p = o.length ? Math.max(...o.map((d) => d.x + d.width)) : i, g = r.reduce((d, S) => d + (S.width + n) * (S.height + n), 0), b = Math.max(p - i, Math.sqrt(g) * 1.5, ...r.map((d) => d.width));
-  let f = i, s = a, c = 0;
-  for (const d of r)
-    f > i && f + d.width > i + b && (f = i, s += c + n, c = 0), d.x = f, d.y = s, f += d.width + n, c = Math.max(c, d.height);
-}
-function De(t, e, { gap: n = 48, obstacles: o = [] } = {}) {
-  if (!t.length) return [];
-  const r = new Map(t.map((l) => [l.id, l])), i = new Map(t.map((l) => [l.id, []])), a = new Map(t.map((l) => [l.id, 0]));
-  for (const [l, h] of e)
-    !r.has(l) || !r.has(h) || l === h || (i.get(l).push(h), a.set(h, a.get(h) + 1));
-  const p = /* @__PURE__ */ new Map(), g = /* @__PURE__ */ new Map(), b = [], f = (l) => {
-    b.push(l), g.set(l, 0), p.set(l, []);
-    const h = [l];
-    for (; h.length; ) {
-      const u = h.shift();
-      for (const x of i.get(u))
-        g.has(x) || (g.set(x, g.get(u) + 1), p.set(x, []), p.get(u).push(x), h.push(x));
-    }
-  };
-  for (const l of t) a.get(l.id) === 0 && !g.has(l.id) && f(l.id);
-  for (const l of t) g.has(l.id) || f(l.id);
-  const s = [];
-  for (const l of t) {
-    const h = g.get(l.id);
-    s[h] = Math.max(s[h] ?? 0, l.height);
-  }
-  const c = Math.min(...t.map((l) => l.x)), d = Math.min(...t.map((l) => l.y)), S = [];
-  s.forEach((l, h) => {
-    S[h] = h === 0 ? d : S[h - 1] + s[h - 1] + n;
-  });
-  const $ = /* @__PURE__ */ new Map(), m = (l) => {
-    const h = p.get(l), u = h.reduce((O, N) => O + m(N), 0) + n * Math.max(0, h.length - 1), x = Math.max(r.get(l).width, u);
-    return $.set(l, x), x;
-  }, y = /* @__PURE__ */ new Map(), w = (l, h) => {
-    const u = r.get(l), x = p.get(l), O = $.get(l), N = S[g.get(l)];
-    if (!x.length) {
-      y.set(l, { id: l, x: h + (O - u.width) / 2, y: N });
-      return;
-    }
-    const P = x.reduce((I, L) => I + $.get(L), 0) + n * (x.length - 1);
-    let C = h + (O - P) / 2;
-    for (const I of x)
-      w(I, C), C += $.get(I) + n;
-    const Y = y.get(x[0]), M = y.get(x[x.length - 1]), E = (Y.x + r.get(x[0]).width / 2 + M.x + r.get(x[x.length - 1]).width / 2) / 2, v = Math.min(Math.max(E - u.width / 2, h), h + O - u.width);
-    y.set(l, { id: l, x: v, y: N });
-  };
-  let _ = c;
-  for (const l of b) {
-    const h = m(l);
-    w(l, _), _ += h + n;
-  }
-  const X = t.map((l) => y.get(l.id));
-  return Xe(t, X, o, n);
-}
-function Xe(t, e, n, o) {
-  if (!n.length) return e;
-  let r = 0;
-  for (let i = 0; i <= n.length; i += 1) {
-    let a = 0;
-    if (e.forEach((p, g) => {
-      const b = { ...t[g], x: p.x, y: p.y + r };
-      for (const f of n)
-        xt(b, f, o) && (a = Math.max(a, f.y + f.height + o - b.y));
-    }), !a) break;
-    r += a;
-  }
-  return r ? e.map((i) => ({ ...i, y: i.y + r })) : e;
-}
-const k = (t) => t.options.id, G = (t, e) => T[e].read(t.options), U = (t) => ({
+const k = (t) => t.options.id, G = (t, e) => L[e].read(t.options), U = (t) => ({
   x: G(t, "x"),
   y: G(t, "y"),
   width: Number(t.options.width ?? 120),
   height: Number(t.options.height ?? 80)
-}), yt = (t) => !!t.targetPoint || `${t.childId || ""}`.startsWith(Tt), lt = (t, e) => `${t}->${e}`;
-function wt(t) {
+}), nt = (t) => !!t.targetPoint || `${t.childId || ""}`.startsWith(pt), ut = (t, e) => `${t}->${e}`;
+function kt(t) {
   return JSON.parse(JSON.stringify(t ?? null));
 }
-function $t(t) {
+function It(t) {
   const e = t?.nodes && !Array.isArray(t.nodes), n = e ? t.v2 ?? t : null, o = e ? {
-    options: wt(n.options || {}),
-    nodes: (n.freeNodes?.() ?? n.nodes.allNodes ?? []).map((r) => Fe(r?.v2 ?? r))
-  } : wt(t || {});
-  return o.options || (o.options = {}), o.nodes = (Array.isArray(o.nodes) ? o.nodes : []).map((r) => {
-    const i = r?.options ? r : { options: { ...r || {} }, relationships: r?.relationships };
+    options: kt(n.options || {}),
+    nodes: (n.freeNodes?.() ?? n.nodes.allNodes ?? []).map((s) => Fe(s?.v2 ?? s))
+  } : kt(t || {});
+  return o.options || (o.options = {}), o.nodes = (Array.isArray(o.nodes) ? o.nodes : []).map((s) => {
+    const i = s?.options ? s : { options: { ...s || {} }, relationships: s?.relationships };
     return i.options.relationships && delete i.options.relationships, i.relationships = { ...i.relationships || {}, associations: [...i.relationships?.associations || []] }, i.relationships.associations.forEach((a) => {
-      a.parentId || (a.parentId = i.options.id), a.id || (a.id = lt(a.parentId, a.childId));
+      a.parentId || (a.parentId = i.options.id), a.id || (a.id = ut(a.parentId, a.childId));
     }), i;
   }), o;
 }
 function Fe(t) {
-  const e = wt(t.options || {});
+  const e = kt(t.options || {});
   e.x !== void 0 && (e.xPos = e.x, delete e.x), e.y !== void 0 && (e.yPos = e.y, delete e.y), e.fontColor !== void 0 && e.foregroundColor === void 0 && (e.foregroundColor = e.fontColor);
   const n = typeof t.getRotation == "function" ? t.getRotation() : void 0;
   typeof n == "number" && (e.rotate = { ...e.rotate || {}, rotationAngle: n });
-  const o = t.relationships, r = typeof o?.getAssociations == "function" ? o.getAssociations() : Array.from(o?.associations || []);
+  const o = t.relationships, s = typeof o?.getAssociations == "function" ? o.getAssociations() : Array.from(o?.associations || []);
   return {
     options: e,
     relationships: {
-      associations: r.map(({ parent: i, child: a, ...p }) => wt(p))
+      associations: s.map(({ parent: i, child: a, ...u }) => kt(u))
     }
   };
 }
 function et(t) {
   const e = /* @__PURE__ */ new Set(), n = [];
   for (const o of t.nodes)
-    for (const r of o.relationships.associations)
-      e.has(r.id) || (e.add(r.id), n.push({ node: o, association: r }));
+    for (const s of o.relationships.associations)
+      e.has(s.id) || (e.add(s.id), n.push({ node: o, association: s }));
   return n;
 }
-const It = (t) => `${t ?? ""}`.replace(/\s+/g, " ").trim().toLowerCase();
+const Et = (t) => `${t ?? ""}`.replace(/\s+/g, " ").trim().toLowerCase();
 function tt(t, e, n) {
   const o = t.nodes;
   if (e.ids)
-    return e.ids.map((r) => o.find((i) => k(i) === r)).filter(Boolean);
+    return e.ids.map((s) => o.find((i) => k(i) === s)).filter(Boolean);
   if (e.text !== void 0) {
-    const r = It(e.text), i = o.filter(
-      (a) => e.match === "contains" ? It(a.options.text).includes(r) : It(a.options.text) === r
+    const s = Et(e.text), i = o.filter(
+      (a) => e.match === "contains" ? Et(a.options.text).includes(s) : Et(a.options.text) === s
     );
     if (i.length > 1 && e.all !== !0)
       throw new W(
@@ -997,87 +884,314 @@ function tt(t, e, n) {
     return i;
   }
   if (e.within) {
-    const r = e.within;
+    const s = e.within;
     return o.filter((i) => {
       const a = U(i);
-      return a.x >= r.x && a.y >= r.y && a.x + a.width <= r.x + r.width && a.y + a.height <= r.y + r.height;
+      return a.x >= s.x && a.y >= s.y && a.x + a.width <= s.x + s.width && a.y + a.height <= s.y + s.height;
     });
   }
-  return e.groupId !== void 0 ? o.filter((r) => r.options.groupId === e.groupId) : e.all === !0 ? [...o] : [];
+  return e.groupId !== void 0 ? o.filter((s) => s.options.groupId === e.groupId) : e.all === !0 ? [...o] : [];
 }
-function We() {
+const ct = (t) => Math.round(t * 1e4) / 1e4, Jt = (t) => Math.max(0, Math.min(1, t));
+function We(t) {
+  const e = Jt(t.x), n = Jt(t.y), o = [e, 1 - e, n, 1 - n], s = Math.min(...o);
+  return s === o[0] ? { x: 0, y: ct(n) } : s === o[1] ? { x: 1, y: ct(n) } : s === o[2] ? { x: ct(e), y: 0 } : { x: ct(e), y: 1 };
+}
+function He(t) {
+  return { top: { x: 0.5, y: 0 }, right: { x: 1, y: 0.5 }, bottom: { x: 0.5, y: 1 }, left: { x: 0, y: 0.5 } }[t];
+}
+function ce(t, e, n) {
+  if (!n) return { ...t };
+  const o = n * Math.PI / 180, s = t.x - e.x, i = t.y - e.y;
+  return { x: e.x + s * Math.cos(o) - i * Math.sin(o), y: e.y + s * Math.sin(o) + i * Math.cos(o) };
+}
+function qe(t, e) {
+  const n = { x: t.x + t.width / 2, y: t.y + t.height / 2 }, o = ce(e, n, -(t.rotation || 0));
+  return { x: (o.x - t.x) / (t.width || 1), y: (o.y - t.y) / (t.height || 1) };
+}
+function Ge(t, e) {
+  const n = { x: t.x + t.width / 2, y: t.y + t.height / 2 }, o = ce({ x: t.x + e.x * t.width, y: t.y + e.y * t.height }, n, t.rotation || 0);
+  return { x: ct(o.x), y: ct(o.y) };
+}
+function Ue(t, e) {
+  const n = qe(t, e), o = (n.x - 0.5) * (t.width || 1), s = (n.y - 0.5) * (t.height || 1);
+  if (Math.abs(o) < 1e-9 && Math.abs(s) < 1e-9) return { x: 0.5, y: 0 };
+  const i = o !== 0 ? t.width / 2 / Math.abs(o) : 1 / 0, a = s !== 0 ? t.height / 2 / Math.abs(s) : 1 / 0, u = Math.min(i, a);
+  return We({ x: 0.5 + o * u / (t.width || 1), y: 0.5 + s * u / (t.height || 1) });
+}
+function Ke(t) {
+  const e = { ...t };
+  return e.showParentArrow = t.showChildArrow !== !1, e.showChildArrow = !!t.showParentArrow, e.sourceAnchor = t.targetAnchor ?? null, e.targetAnchor = null, e;
+}
+const Mt = (t) => ({ ...U(t), rotation: Number(G(t, "rotationAngle")) || 0 }), Je = (t) => ({ x: t.x + t.width / 2, y: t.y + t.height / 2 });
+function Ze(t, e, n, o, s, i) {
+  const a = (c) => t.nodes.find(($) => k($) === c), u = (c) => {
+    throw new W("invalid_operation_plan", 400, `${s} ${c}`);
+  }, y = (c) => {
+    throw new W("no_match", 409, `${s} names no note ${JSON.stringify(c)} on the slate.`);
+  }, w = (c, $) => {
+    c !== $ && (c.relationships.associations = c.relationships.associations.filter((v) => v !== n), $.relationships.associations.push(n));
+  };
+  let f = e;
+  if (o.toNote !== void 0) {
+    const c = a(o.toNote) ?? y(o.toNote);
+    n.childId = k(c), delete n.targetPoint, n.targetAnchor = null;
+  } else o.toPoint !== void 0 && (nt(n) || (n.childId = `${pt}${i()}`), n.targetPoint = { x: o.toPoint.x, y: o.toPoint.y }, n.targetAnchor = null);
+  if (o.fromNote !== void 0) {
+    const c = a(o.fromNote) ?? y(o.fromNote);
+    n.parentId = k(c), n.sourceAnchor = null, w(f, c), f = c;
+  } else if (o.fromPoint !== void 0) {
+    nt(n) && u(`keeps one end on a note: the far end of ${n.id} is already free.`);
+    const c = a(n.childId) ?? y(n.childId), $ = Ke(n);
+    for (const v of Object.keys(n)) delete n[v];
+    Object.assign(n, $, {
+      parentId: k(c),
+      childId: `${pt}${i()}`,
+      targetPoint: { x: o.fromPoint.x, y: o.fromPoint.y }
+    }), w(f, c), f = c;
+  }
+  n.parentId === n.childId && u(`cannot connect ${n.id} from a note to itself.`);
+  const r = (c) => {
+    if (c === "target" && nt(n)) return n.targetPoint;
+    const $ = a(c === "source" ? n.parentId : n.childId);
+    if (!$) return null;
+    const v = c === "source" ? n.sourceAnchor : n.targetAnchor;
+    return v ? Ge(Mt($), v) : Je(Mt($));
+  }, d = (c, $, v) => {
+    if (c === "target" && nt(n)) {
+      v && u(`cannot pin or follow the far end of ${n.id}: it is free, on no note.`);
+      return;
+    }
+    const m = c === "source" ? "sourceAnchor" : "targetAnchor";
+    if ($ === "follow") n[m] = null;
+    else if ($ !== "pinned") n[m] = He($);
+    else if (!n[m]) {
+      const b = a(c === "source" ? n.parentId : n.childId), g = r(c === "source" ? "target" : "source");
+      b && g && (n[m] = Ue(Mt(b), g));
+    }
+  };
+  return o.ends !== void 0 && (d("source", o.ends, !1), d("target", o.ends, !1)), o.fromEnd !== void 0 && d("source", o.fromEnd, !0), o.toEnd !== void 0 && d("target", o.toEnd, !0), f;
+}
+function Ve(t) {
+  return {
+    fromEnd: t.sourceAnchor ? "pinned" : "follow",
+    toEnd: nt(t) ? "free" : t.targetAnchor ? "pinned" : "follow"
+  };
+}
+function de(t) {
+  const { x: e, y: n, width: o, height: s } = t, i = t.rotationAngle || 0;
+  if (!i) return { minX: e, minY: n, maxX: e + o, maxY: n + s };
+  const a = e + o / 2, u = n + s / 2, y = i * Math.PI / 180, w = Math.cos(y), f = Math.sin(y);
+  let r = 1 / 0, d = 1 / 0, c = -1 / 0, $ = -1 / 0;
+  for (const [m, b] of [[e, n], [e + o, n], [e + o, n + s], [e, n + s]]) {
+    const g = m - a, I = b - u, X = a + g * w - I * f, l = u + g * f + I * w;
+    r = Math.min(r, X), d = Math.min(d, l), c = Math.max(c, X), $ = Math.max($, l);
+  }
+  const v = (m) => Math.round(m * 1e6) / 1e6;
+  return { minX: v(r), minY: v(d), maxX: v(c), maxY: v($) };
+}
+function Qe(t, e) {
+  if (e.length < 2) return [];
+  const n = e.map(de), o = Math.min(...n.map((w) => w.minX)), s = Math.max(...n.map((w) => w.maxX)), i = Math.min(...n.map((w) => w.minY)), a = Math.max(...n.map((w) => w.maxY)), u = (o + s) / 2, y = (i + a) / 2;
+  return e.map((w, f) => {
+    const r = n[f];
+    let { x: d, y: c } = w;
+    return t === "left" ? d += o - r.minX : t === "right" ? d += s - r.maxX : t === "centerH" ? d += u - (r.minX + r.maxX) / 2 : t === "top" ? c += i - r.minY : t === "bottom" ? c += a - r.maxY : t === "middle" && (c += y - (r.minY + r.maxY) / 2), { id: w.id, x: d, y: c };
+  });
+}
+function tn(t, e) {
+  if (e.length < 3) return [];
+  const n = e.map((d, c) => ({ box: d, index: c, b: de(d) })), o = t === "horizontal", s = (d) => o ? d.b.minX : d.b.minY, i = (d) => o ? d.b.maxX - d.b.minX : d.b.maxY - d.b.minY, a = [...n].sort((d, c) => s(d) - s(c) || d.index - c.index), u = s(a[0]), w = (a.reduce((d, c) => Math.max(d, s(c) + i(c)), -1 / 0) - u - a.reduce((d, c) => d + i(c), 0)) / (a.length - 1), f = /* @__PURE__ */ new Map();
+  let r = u;
+  for (const d of a) {
+    const c = r - s(d);
+    f.set(d.index, {
+      id: d.box.id,
+      x: o ? d.box.x + c : d.box.x,
+      y: o ? d.box.y : d.box.y + c
+    }), r += i(d) + w;
+  }
+  return n.map((d) => f.get(d.index));
+}
+function vt(t, e, n) {
+  const o = Math.min(t.x + t.width + n - e.x, e.x + e.width + n - t.x), s = Math.min(t.y + t.height + n - e.y, e.y + e.height + n - t.y);
+  return o > 0 && s > 0 ? { x: o, y: s } : null;
+}
+const en = 4e6;
+function nn(t, e, { gap: n = 20 } = {}) {
+  const o = t.map((f) => ({ ...f })), s = e.map((f) => ({ ...f })), i = (f, r, d, c, $) => {
+    const v = f.x + f.width / 2 - (r.x + r.width / 2), m = f.y + f.height / 2 - (r.y + r.height / 2);
+    d.y <= d.x ? f.y += (m > 0 || m === 0 && $ > 0 ? 1 : -1) * d.y * c : f.x += (v > 0 || v === 0 && $ > 0 ? 1 : -1) * d.x * c;
+  }, a = Math.max(1, o.length * (s.length + o.length / 2)), u = Math.max(1, Math.min(1e3, Math.floor(en / a)));
+  let y = !1;
+  for (let f = 0; f < u; f += 1) {
+    let r = !1;
+    for (let d = 0; d < o.length; d += 1) {
+      for (const c of s) {
+        const $ = vt(o[d], c, n);
+        $ && (i(o[d], c, $, 1, 1), r = !0);
+      }
+      for (let c = d + 1; c < o.length; c += 1) {
+        const $ = vt(o[d], o[c], n);
+        $ && (i(o[d], o[c], $, 0.5, -1), i(o[c], o[d], $, 0.5, 1), r = !0);
+      }
+    }
+    if (!r) {
+      y = !0;
+      break;
+    }
+  }
+  const w = (f) => Math.round(f * 100) / 100;
+  for (const f of o)
+    f.x = w(f.x), f.y = w(f.y);
+  return y || on(o, s, n), o.map(({ id: f, x: r, y: d }) => ({ id: f, x: r, y: d }));
+}
+function on(t, e, n) {
+  const o = [...e], s = [];
+  for (const c of t)
+    o.some(($) => vt(c, $, n)) ? s.push(c) : o.push(c);
+  if (!s.length) return;
+  const i = Math.min(...t.map((c) => c.x)), a = o.length ? Math.max(...o.map((c) => c.y + c.height)) + n : Math.min(...t.map((c) => c.y)), u = o.length ? Math.max(...o.map((c) => c.x + c.width)) : i, y = s.reduce((c, $) => c + ($.width + n) * ($.height + n), 0), w = Math.max(u - i, Math.sqrt(y) * 1.5, ...s.map((c) => c.width));
+  let f = i, r = a, d = 0;
+  for (const c of s)
+    f > i && f + c.width > i + w && (f = i, r += d + n, d = 0), c.x = f, c.y = r, f += c.width + n, d = Math.max(d, c.height);
+}
+function sn(t, e, { gap: n = 48, obstacles: o = [] } = {}) {
+  if (!t.length) return [];
+  const s = new Map(t.map((l) => [l.id, l])), i = new Map(t.map((l) => [l.id, []])), a = new Map(t.map((l) => [l.id, 0]));
+  for (const [l, h] of e)
+    !s.has(l) || !s.has(h) || l === h || (i.get(l).push(h), a.set(h, a.get(h) + 1));
+  const u = /* @__PURE__ */ new Map(), y = /* @__PURE__ */ new Map(), w = [], f = (l) => {
+    w.push(l), y.set(l, 0), u.set(l, []);
+    const h = [l];
+    for (; h.length; ) {
+      const p = h.shift();
+      for (const x of i.get(p))
+        y.has(x) || (y.set(x, y.get(p) + 1), u.set(x, []), u.get(p).push(x), h.push(x));
+    }
+  };
+  for (const l of t) a.get(l.id) === 0 && !y.has(l.id) && f(l.id);
+  for (const l of t) y.has(l.id) || f(l.id);
+  const r = [];
+  for (const l of t) {
+    const h = y.get(l.id);
+    r[h] = Math.max(r[h] ?? 0, l.height);
+  }
+  const d = Math.min(...t.map((l) => l.x)), c = Math.min(...t.map((l) => l.y)), $ = [];
+  r.forEach((l, h) => {
+    $[h] = h === 0 ? c : $[h - 1] + r[h - 1] + n;
+  });
+  const v = /* @__PURE__ */ new Map(), m = (l) => {
+    const h = u.get(l), p = h.reduce((S, N) => S + m(N), 0) + n * Math.max(0, h.length - 1), x = Math.max(s.get(l).width, p);
+    return v.set(l, x), x;
+  }, b = /* @__PURE__ */ new Map(), g = (l, h) => {
+    const p = s.get(l), x = u.get(l), S = v.get(l), N = $[y.get(l)];
+    if (!x.length) {
+      b.set(l, { id: l, x: h + (S - p.width) / 2, y: N });
+      return;
+    }
+    const P = x.reduce((O, A) => O + v.get(A), 0) + n * (x.length - 1);
+    let C = h + (S - P) / 2;
+    for (const O of x)
+      g(O, C), C += v.get(O) + n;
+    const Y = b.get(x[0]), E = b.get(x[x.length - 1]), M = (Y.x + s.get(x[0]).width / 2 + E.x + s.get(x[x.length - 1]).width / 2) / 2, _ = Math.min(Math.max(M - p.width / 2, h), h + S - p.width);
+    b.set(l, { id: l, x: _, y: N });
+  };
+  let I = d;
+  for (const l of w) {
+    const h = m(l);
+    g(l, I), I += h + n;
+  }
+  const X = t.map((l) => b.get(l.id));
+  return rn(t, X, o, n);
+}
+function rn(t, e, n, o) {
+  if (!n.length) return e;
+  let s = 0;
+  for (let i = 0; i <= n.length; i += 1) {
+    let a = 0;
+    if (e.forEach((u, y) => {
+      const w = { ...t[y], x: u.x, y: u.y + s };
+      for (const f of n)
+        vt(w, f, o) && (a = Math.max(a, f.y + f.height + o - w.y));
+    }), !a) break;
+    s += a;
+  }
+  return s ? e.map((i) => ({ ...i, y: i.y + s })) : e;
+}
+function an() {
   const t = "abcdefghijklmnopqrstuvwxyz0123456789";
   let e = "";
   for (let n = 0; n < 12; n += 1) e += t[Math.floor(Math.random() * t.length)];
   return e;
 }
-function He(t) {
+function cn(t) {
   const e = (i) => {
     const a = (parseInt(i, 16) || 0) / 255;
     return a <= 0.03928 ? a / 12.92 : Math.pow((a + 0.055) / 1.055, 2.4);
   }, n = (i) => 0.2126 * e(i.substr(1, 2)) + 0.7152 * e(i.substr(3, 2)) + 0.0722 * e(i.substr(-2)), o = (i, a) => {
-    const [p, g] = [n(i), n(a)];
-    return (Math.max(p, g) + 0.05) / (Math.min(p, g) + 0.05);
-  }, r = /^#[0-9a-f]{6}$/i.test(t) ? t : "#7aa2c8";
-  return o(r, "#ffffff") > o(r, "#000000") ? "#ffffff" : "#000000";
+    const [u, y] = [n(i), n(a)];
+    return (Math.max(u, y) + 0.05) / (Math.min(u, y) + 0.05);
+  }, s = /^#[0-9a-f]{6}$/i.test(t) ? t : "#7aa2c8";
+  return o(s, "#ffffff") > o(s, "#000000") ? "#ffffff" : "#000000";
 }
-function qe(t, e, n) {
+function dn(t, e, n) {
   return t.x < e.x + e.width + n && t.x + t.width + n > e.x && t.y < e.y + e.height + n && t.y + t.height + n > e.y;
 }
-function Ge(t, e, n, o, r, i) {
+function ln(t, e, n, o, s, i) {
   let a = t;
-  for (let p = 0; p <= e.length; p += 1) {
-    const g = e.filter((s) => a.some((c) => qe({ ...c, width: n, height: o }, s, i)));
-    if (!g.length) return a;
-    let b = 0, f = 0;
-    r === "left" ? b = Math.min(...g.map((s) => s.x - i)) - Math.max(...a.map((s) => s.x + n)) : r === "above" ? f = Math.min(...g.map((s) => s.y - i)) - Math.max(...a.map((s) => s.y + o)) : r === "below" || r === "center" ? f = Math.max(...g.map((s) => s.y + s.height + i)) - Math.min(...a.map((s) => s.y)) : b = Math.max(...g.map((s) => s.x + s.width + i)) - Math.min(...a.map((s) => s.x)), a = a.map((s) => ({ x: s.x + b, y: s.y + f }));
+  for (let u = 0; u <= e.length; u += 1) {
+    const y = e.filter((r) => a.some((d) => dn({ ...d, width: n, height: o }, r, i)));
+    if (!y.length) return a;
+    let w = 0, f = 0;
+    s === "left" ? w = Math.min(...y.map((r) => r.x - i)) - Math.max(...a.map((r) => r.x + n)) : s === "above" ? f = Math.min(...y.map((r) => r.y - i)) - Math.max(...a.map((r) => r.y + o)) : s === "below" || s === "center" ? f = Math.max(...y.map((r) => r.y + r.height + i)) - Math.min(...a.map((r) => r.y)) : w = Math.max(...y.map((r) => r.x + r.width + i)) - Math.min(...a.map((r) => r.x)), a = a.map((r) => ({ x: r.x + w, y: r.y + f }));
   }
   return a;
 }
-function oe(t, e) {
+function le(t, e) {
   if (e) {
-    const n = t.nodes.find((r) => k(r) === e);
+    const n = t.nodes.find((s) => k(s) === e);
     if (n) return n;
-    const o = t.nodes.filter((r) => `${r.options.text ?? ""}`.trim().toLowerCase() === e.trim().toLowerCase());
+    const o = t.nodes.filter((s) => `${s.options.text ?? ""}`.trim().toLowerCase() === e.trim().toLowerCase());
     if (o.length === 1) return o[0];
   }
   return [...t.nodes].sort((n, o) => U(o).x + U(o).width - (U(n).x + U(n).width))[0];
 }
-function At(t, e) {
+function Ct(t, e) {
   const n = e === "grid" ? Math.ceil(Math.sqrt(t)) : t;
-  return Array.from({ length: t }, (o, r) => ({
-    row: e === "column" ? r : e === "grid" ? Math.floor(r / n) : 0,
-    column: e === "column" ? 0 : e === "grid" ? r % n : r
+  return Array.from({ length: t }, (o, s) => ({
+    row: e === "column" ? s : e === "grid" ? Math.floor(s / n) : 0,
+    column: e === "column" ? 0 : e === "grid" ? s % n : s
   }));
 }
-function Ue(t, e, n, o) {
-  const r = e.count, i = e.placement || {}, a = i.gap ?? (i.connect ? $e : 48);
+function hn(t, e, n, o) {
+  const s = e.count, i = e.placement || {}, a = i.gap ?? (i.connect ? Me : 48);
   if (e.x !== void 0 && e.y !== void 0) {
-    const c = i.arrangement || "row";
-    return { points: At(r, c).map(({ row: S, column: $ }) => ({
-      x: e.x + $ * (n + a),
-      y: e.y + S * (o + a)
-    })), arrangement: c, gap: a };
+    const d = i.arrangement || "row";
+    return { points: Ct(s, d).map(({ row: $, column: v }) => ({
+      x: e.x + v * (n + a),
+      y: e.y + $ * (o + a)
+    })), arrangement: d, gap: a };
   }
-  const p = oe(t, i.relativeTo), g = p ? U(p) : { x: 0, y: 0, width: 160, height: 100 }, b = i.direction || "right", f = i.arrangement || (["left", "right"].includes(b) ? "column" : "row"), s = At(r, f).map(({ row: c, column: d }) => {
-    let S = g.x + d * (n + a), $ = g.y + c * (o + a);
-    return b === "right" && (S += g.width + a), b === "left" && (S -= n + a), b === "below" && ($ += g.height + a), b === "above" && ($ -= o + a), { x: S, y: $ };
+  const u = le(t, i.relativeTo), y = u ? U(u) : { x: 0, y: 0, width: 160, height: 100 }, w = i.direction || "right", f = i.arrangement || (["left", "right"].includes(w) ? "column" : "row"), r = Ct(s, f).map(({ row: d, column: c }) => {
+    let $ = y.x + c * (n + a), v = y.y + d * (o + a);
+    return w === "right" && ($ += y.width + a), w === "left" && ($ -= n + a), w === "below" && (v += y.height + a), w === "above" && (v -= o + a), { x: $, y: v };
   });
-  return { points: Ge(s, t.nodes.map(U), n, o, b, a), arrangement: f, gap: a };
+  return { points: ln(r, t.nodes.map(U), n, o, w, a), arrangement: f, gap: a };
 }
-function Ke(t, e) {
-  if (!t) return { childId: `${Tt}${e()}` };
+function un(t, e) {
+  if (!t) return { childId: `${pt}${e()}` };
   const n = t.match(/->(__free_.+)$/);
-  return { id: t, childId: n ? n[1] : `${Tt}${t.replace(/[^A-Za-z0-9_-]/g, "_")}` };
+  return { id: t, childId: n ? n[1] : `${pt}${t.replace(/[^A-Za-z0-9_-]/g, "_")}` };
 }
-function Ot(t, e) {
+function Nt(t, e) {
   if (!t.has(e)) return e;
   let n = 2;
   for (; t.has(`${e}~${n}`); ) n += 1;
   return `${e}~${n}`;
 }
-const Mt = (t, e) => JSON.stringify([t, e]);
-function Et(t, e, n) {
+const Pt = (t, e) => JSON.stringify([t, e]);
+function At(t, e, n) {
   return new W(
     "id_taken",
     409,
@@ -1085,23 +1199,23 @@ function Et(t, e, n) {
     { ids: n }
   );
 }
-const qt = (t, e) => JSON.stringify(t) === JSON.stringify(e), Je = ["id", "name", "text", "xPos", "yPos", "x", "y", "isLocked"], Lt = (t) => JSON.parse(JSON.stringify(t)), mt = 1e6, Gt = {
+const Zt = (t, e) => JSON.stringify(t) === JSON.stringify(e), pn = ["id", "name", "text", "xPos", "yPos", "x", "y", "isLocked"], Lt = (t) => JSON.parse(JSON.stringify(t)), bt = 1e6, Vt = {
   "align-left": "left",
   "align-center": "centerH",
   "align-right": "right",
   "align-top": "top",
   "align-middle": "middle",
   "align-bottom": "bottom"
-}, it = (t) => ({ id: k(t), ...U(t), rotationAngle: G(t, "rotationAngle") });
-function cn(t, e, n = {}) {
-  const o = kt(n), r = vt(n), i = n.idFactory || We, a = $t(t), p = Ce(e, {
+}, rt = (t) => ({ id: k(t), ...U(t), rotationAngle: G(t, "rotationAngle") });
+function _n(t, e, n = {}) {
+  const o = $t(n), s = _t(n), i = n.idFactory || an, a = It(t), u = Xe(e, {
     ...n,
     existingNodeIds: a.nodes.map(k),
-    existingConnectionIds: et(a).map(({ association: c }) => c.id)
+    existingConnectionIds: et(a).map(({ association: d }) => d.id)
   });
-  if (!p.valid)
-    throw new W("invalid_operation_plan", 400, p.errors.join(" "), { errors: p.errors });
-  const g = JSON.stringify(a), b = a.nodes.length, f = [], s = {
+  if (!u.valid)
+    throw new W("invalid_operation_plan", 400, u.errors.join(" "), { errors: u.errors });
+  const y = JSON.stringify(a), w = a.nodes.length, f = [], r = {
     created: [],
     updated: [],
     deleted: [],
@@ -1113,50 +1227,50 @@ function cn(t, e, n = {}) {
     warnings: [],
     unchanged: !1
   };
-  if (e.operations.forEach((c, d) => {
-    const S = d + 1, $ = `Operation ${S}`, m = { operation: S, kind: c.kind, matched: [], changed: [] };
-    s.operations.push(m);
-    const y = () => s.warnings.push(`${$} matched no notes.`), w = (l) => {
-      s.skipped.push({ operation: S, id: k(l), reason: "locked" });
-    }, _ = (l) => {
+  if (e.operations.forEach((d, c) => {
+    const $ = c + 1, v = `Operation ${$}`, m = { operation: $, kind: d.kind, matched: [], changed: [] };
+    r.operations.push(m);
+    const b = () => r.warnings.push(`${v} matched no notes.`), g = (l) => {
+      r.skipped.push({ operation: $, id: k(l), reason: "locked" });
+    }, I = (l) => {
       const h = a.nodes.length + l;
-      if (l > 0 && h > r.notesPerSlate && h > b)
+      if (l > 0 && h > s.notesPerSlate && h > w)
         throw new W(
           "note_limit",
           422,
-          `${$} would leave ${h} notes; a slate can hold at most ${r.notesPerSlate} notes.`,
-          { limit: r.notesPerSlate, operation: S }
+          `${v} would leave ${h} notes; a slate can hold at most ${s.notesPerSlate} notes.`,
+          { limit: s.notesPerSlate, operation: $ }
         );
     }, X = (l, h) => {
-      if (h > 0 && l > r.connectorsPerSlate)
+      if (h > 0 && l > s.connectorsPerSlate)
         throw new W(
           "connector_limit",
           422,
-          `${$} would leave ${l} connectors; a slate can hold at most ${r.connectorsPerSlate} connectors.`,
-          { limit: r.connectorsPerSlate, operation: S }
+          `${v} would leave ${l} connectors; a slate can hold at most ${s.connectorsPerSlate} connectors.`,
+          { limit: s.connectorsPerSlate, operation: $ }
         );
     };
-    switch (c.kind) {
+    switch (d.kind) {
       case "add_nodes": {
-        const l = c.preset ? ae[c.preset] : void 0, h = c.placement?.connect === !0, u = h ? a.nodes.find((R) => k(R) === c.placement.relativeTo) : void 0;
-        if (h && !u)
-          throw new W("no_match", 409, `${$} placement.relativeTo names no note on the slate to connect from.`, { operation: S });
-        if (u && u.options.isLocked === !0) {
-          w(u);
+        const l = d.preset ? pe[d.preset] : void 0, h = d.placement?.connect === !0, p = h ? a.nodes.find((z) => k(z) === d.placement.relativeTo) : void 0;
+        if (h && !p)
+          throw new W("no_match", 409, `${v} placement.relativeTo names no note on the slate to connect from.`, { operation: $ });
+        if (p && p.options.isLocked === !0) {
+          g(p);
           return;
         }
-        const x = c.shape ?? l?.shape, O = u ? U(u) : void 0, N = c.width ?? l?.width ?? O?.width ?? (x?.toLowerCase() === "triangle" ? 150 : 180), P = c.height ?? l?.height ?? O?.height ?? (x?.toLowerCase() === "triangle" ? 130 : 110), C = u ?? oe(a, c.placement?.relativeTo), Y = c.style?.backgroundColor || l?.style?.backgroundColor || C?.options.backgroundColor || "#7aa2c8", { points: M, arrangement: E, gap: v } = Ue(a, c, N, P), I = new Set(et(a).map(({ association: R }) => R.id)), L = new Set(a.nodes.map(k)), A = (c.ids || []).filter((R) => L.has(R));
-        if (A.length && !n.replay) throw Et($, "note", A);
-        const D = M.map((R, F) => c.ids?.[F] || i());
-        _(D.filter((R) => !L.has(R)).length), u && X(I.size + D.filter((R) => !L.has(R)).length, D.length), M.forEach(({ x: R, y: F }, zt) => {
-          const K = D[zt];
-          if (m.matched.push(K), L.has(K)) return;
-          const Bt = c.text ? c.count > 1 ? c.text.replace(/\{n\}/g, `${zt + 1}`) : c.text : "", pt = u ? Lt(u.options) : void 0;
-          if (pt) for (const Q of Je) delete pt[Q];
-          const st = pt ? { ...pt, id: K, name: K, text: Bt, width: N, height: P } : {
+        const x = d.shape ?? l?.shape, S = p ? U(p) : void 0, N = d.width ?? l?.width ?? S?.width ?? (x?.toLowerCase() === "triangle" ? 150 : 180), P = d.height ?? l?.height ?? S?.height ?? (x?.toLowerCase() === "triangle" ? 130 : 110), C = p ?? le(a, d.placement?.relativeTo), Y = d.style?.backgroundColor || l?.style?.backgroundColor || C?.options.backgroundColor || "#7aa2c8", { points: E, arrangement: M, gap: _ } = hn(a, d, N, P), O = new Set(et(a).map(({ association: z }) => z.id)), A = new Set(a.nodes.map(k)), T = (d.ids || []).filter((z) => A.has(z));
+        if (T.length && !n.replay) throw At(v, "note", T);
+        const D = E.map((z, F) => d.ids?.[F] || i());
+        I(D.filter((z) => !A.has(z)).length), p && X(O.size + D.filter((z) => !A.has(z)).length, D.length), E.forEach(({ x: z, y: F }, Xt) => {
+          const K = D[Xt];
+          if (m.matched.push(K), A.has(K)) return;
+          const Ft = d.text ? d.count > 1 ? d.text.replace(/\{n\}/g, `${Xt + 1}`) : d.text : "", gt = p ? Lt(p.options) : void 0;
+          if (gt) for (const Q of pn) delete gt[Q];
+          const st = gt ? { ...gt, id: K, name: K, text: Ft, width: N, height: P } : {
             id: K,
             name: K,
-            text: Bt,
+            text: Ft,
             defaultShaped: !0,
             width: N,
             height: P,
@@ -1175,346 +1289,342 @@ function cn(t, e, n = {}) {
             filters: { vect: null, text: null },
             animations: { vect: null, text: null }
           };
-          x && T.shape.store(st, x, o), T.x.store(st, R, o), T.y.store(st, F, o), u || T.foregroundColor.store(st, He(Y), o);
-          for (const [Q, _t] of Object.entries(l?.style || {})) T[Q].store(st, _t, o);
-          for (const [Q, _t] of Object.entries(c.style || {})) T[Q].store(st, _t, o);
-          if (a.nodes.push({ options: st, relationships: { associations: [] } }), m.changed.push(K), s.created.push(K), u) {
-            const Q = Ot(I, lt(k(u), K));
-            I.add(Q), u.relationships.associations.push({ id: Q, parentId: k(u), childId: K, ...St }), s.connected.push(Q);
+          x && L.shape.store(st, x, o), L.x.store(st, z, o), L.y.store(st, F, o), p || L.foregroundColor.store(st, cn(Y), o);
+          for (const [Q, Ot] of Object.entries(l?.style || {})) L[Q].store(st, Ot, o);
+          for (const [Q, Ot] of Object.entries(d.style || {})) L[Q].store(st, Ot, o);
+          if (a.nodes.push({ options: st, relationships: { associations: [] } }), m.changed.push(K), r.created.push(K), p) {
+            const Q = Nt(O, ut(k(p), K));
+            O.add(Q), p.relationships.associations.push({ id: Q, parentId: k(p), childId: K, ...St }), r.connected.push(Q);
           }
         });
-        const { placement: V, ...H } = c;
+        const { placement: V, ...H } = d;
         f.push({
           ...H,
           ids: D,
-          x: M[0].x,
-          y: M[0].y,
-          placement: { arrangement: E, gap: v, ...u ? { relativeTo: k(u), connect: !0 } : {} }
+          x: E[0].x,
+          y: E[0].y,
+          placement: { arrangement: M, gap: _, ...p ? { relativeTo: k(p), connect: !0 } : {} }
         });
         return;
       }
       case "update_nodes": {
-        const l = tt(a, c.target, `${$} target`);
-        m.matched = l.map(k), l.length || y();
+        const l = tt(a, d.target, `${v} target`);
+        m.matched = l.map(k), l.length || b();
         const h = [];
-        for (const u of l) {
-          if (u.options.isLocked === !0 && c.changes.locked !== !1) {
-            w(u);
+        for (const p of l) {
+          if (p.options.isLocked === !0 && d.changes.locked !== !1) {
+            g(p);
             continue;
           }
-          const x = JSON.stringify(u.options);
-          for (const [O, N] of Object.entries(c.changes))
-            ut[O] || T[O].store(u.options, N, o);
-          h.push(k(u)), JSON.stringify(u.options) !== x && m.changed.push(k(u));
+          const x = JSON.stringify(p.options);
+          for (const [S, N] of Object.entries(d.changes))
+            mt[S] || L[S].store(p.options, N, o);
+          h.push(k(p)), JSON.stringify(p.options) !== x && m.changed.push(k(p));
         }
-        if (c.changes.order && h.length) {
-          const u = new Set(h), x = a.nodes.map(k), O = a.nodes.filter((P) => u.has(k(P))), N = a.nodes.filter((P) => !u.has(k(P)));
-          a.nodes = c.changes.order === "front" ? [...N, ...O] : [...O, ...N], a.nodes.forEach((P, C) => {
+        if (d.changes.order && h.length) {
+          const p = new Set(h), x = a.nodes.map(k), S = a.nodes.filter((P) => p.has(k(P))), N = a.nodes.filter((P) => !p.has(k(P)));
+          a.nodes = d.changes.order === "front" ? [...N, ...S] : [...S, ...N], a.nodes.forEach((P, C) => {
             const Y = k(P);
-            u.has(Y) && x[C] !== Y && !m.changed.includes(Y) && m.changed.push(Y);
+            p.has(Y) && x[C] !== Y && !m.changed.includes(Y) && m.changed.push(Y);
           });
         }
-        s.updated.push(...h), h.length && f.push({ kind: "update_nodes", target: { ids: h }, changes: c.changes });
+        r.updated.push(...h), h.length && f.push({ kind: "update_nodes", target: { ids: h }, changes: d.changes });
         return;
       }
       case "delete_nodes": {
-        const l = tt(a, c.target, `${$} target`);
-        if (m.matched = l.map(k), l.length || y(), !c.target.ids && a.nodes.length > 1 && l.length === a.nodes.length && !ne.test(n.userMessage || ""))
-          throw new W("invalid_operation_plan", 400, `${$} cannot delete every note without an explicit request.`);
-        const u = /* @__PURE__ */ new Set();
+        const l = tt(a, d.target, `${v} target`);
+        if (m.matched = l.map(k), l.length || b(), !d.target.ids && a.nodes.length > 1 && l.length === a.nodes.length && !ae.test(n.userMessage || ""))
+          throw new W("invalid_operation_plan", 400, `${v} cannot delete every note without an explicit request.`);
+        const p = /* @__PURE__ */ new Set();
         for (const x of l)
-          x.options.isLocked === !0 ? w(x) : u.add(k(x));
-        a.nodes = a.nodes.filter((x) => !u.has(k(x)));
+          x.options.isLocked === !0 ? g(x) : p.add(k(x));
+        a.nodes = a.nodes.filter((x) => !p.has(k(x)));
         for (const x of a.nodes)
           x.relationships.associations = x.relationships.associations.filter(
-            (O) => !u.has(O.parentId) && !u.has(O.childId)
+            (S) => !p.has(S.parentId) && !p.has(S.childId)
           );
-        m.changed = [...u], s.deleted.push(...u), u.size && f.push({ kind: "delete_nodes", target: { ids: [...u] } });
+        m.changed = [...p], r.deleted.push(...p), p.size && f.push({ kind: "delete_nodes", target: { ids: [...p] } });
         return;
       }
       case "duplicate_nodes": {
-        const l = tt(a, c.target, `${$} target`);
-        m.matched = l.map(k), l.length || y();
-        const h = c.offset ?? _e, u = new Set(a.nodes.map(k)), x = (c.ids || []).filter((M) => u.has(M));
-        if (x.length && !n.replay) throw Et($, "note", x);
-        const O = l.map((M, E) => c.ids?.[E] || i());
-        _(O.filter((M) => !u.has(M)).length);
-        for (const M of l) {
-          const E = G(M, "x") + h.x, v = G(M, "y") + h.y;
-          if (Math.abs(E) > mt || Math.abs(v) > mt)
+        const l = tt(a, d.target, `${v} target`);
+        m.matched = l.map(k), l.length || b();
+        const h = d.offset ?? Ne, p = new Set(a.nodes.map(k)), x = (d.ids || []).filter((E) => p.has(E));
+        if (x.length && !n.replay) throw At(v, "note", x);
+        const S = l.map((E, M) => d.ids?.[M] || i());
+        I(S.filter((E) => !p.has(E)).length);
+        for (const E of l) {
+          const M = G(E, "x") + h.x, _ = G(E, "y") + h.y;
+          if (Math.abs(M) > bt || Math.abs(_) > bt)
             throw new W(
               "invalid_operation_plan",
               400,
-              `${$} would put the copy of ${k(M)} at ${E}, ${v}; a note's position must be from -${mt} to ${mt}.`
+              `${v} would put the copy of ${k(E)} at ${M}, ${_}; a note's position must be from -${bt} to ${bt}.`
             );
         }
-        const N = new Map(l.map((M, E) => [k(M), O[E]])), P = /* @__PURE__ */ new Map();
-        l.forEach((M, E) => {
-          const v = O[E];
-          if (u.has(v)) return;
-          const I = { options: { ...Lt(M.options), id: v, name: v }, relationships: { associations: [] } };
-          T.x.store(I.options, G(M, "x") + h.x, o), T.y.store(I.options, G(M, "y") + h.y, o), a.nodes.push(I), P.set(v, I), m.changed.push(v), s.created.push(v);
+        const N = new Map(l.map((E, M) => [k(E), S[M]])), P = /* @__PURE__ */ new Map();
+        l.forEach((E, M) => {
+          const _ = S[M];
+          if (p.has(_)) return;
+          const O = { options: { ...Lt(E.options), id: _, name: _ }, relationships: { associations: [] } };
+          L.x.store(O.options, G(E, "x") + h.x, o), L.y.store(O.options, G(E, "y") + h.y, o), a.nodes.push(O), P.set(_, O), m.changed.push(_), r.created.push(_);
         });
-        const C = new Set(et(a).map(({ association: M }) => M.id));
+        const C = new Set(et(a).map(({ association: E }) => E.id));
         let Y = 0;
-        for (const M of l) {
-          const E = P.get(N.get(k(M)));
-          if (E)
-            for (const v of M.relationships.associations) {
-              const I = N.get(v.childId);
-              if (!I || yt(v)) continue;
-              const L = Ot(C, lt(k(E), I));
-              C.add(L), E.relationships.associations.push({ ...Lt(v), id: L, parentId: k(E), childId: I }), s.connected.push(L), Y += 1;
+        for (const E of l) {
+          const M = P.get(N.get(k(E)));
+          if (M)
+            for (const _ of E.relationships.associations) {
+              const O = N.get(_.childId);
+              if (!O || nt(_)) continue;
+              const A = Nt(C, ut(k(M), O));
+              C.add(A), M.relationships.associations.push({ ...Lt(_), id: A, parentId: k(M), childId: O }), r.connected.push(A), Y += 1;
             }
         }
-        X(C.size, Y), l.length && f.push({ kind: "duplicate_nodes", target: { ids: l.map(k) }, ids: O, offset: { ...h } });
+        X(C.size, Y), l.length && f.push({ kind: "duplicate_nodes", target: { ids: l.map(k) }, ids: S, offset: { ...h } });
         return;
       }
       case "connect_nodes": {
-        const l = tt(a, c.from, `${$} from`), h = c.to?.point, u = h ? [] : tt(a, c.to, `${$} to`);
-        (!l.length || !h && !u.length) && y();
-        const x = l.length * (h ? 1 : u.length);
-        if (x > r.connectorsPerOperation)
+        const l = tt(a, d.from, `${v} from`), h = d.to?.point, p = h ? [] : tt(a, d.to, `${v} to`);
+        (!l.length || !h && !p.length) && b();
+        const x = l.length * (h ? 1 : p.length);
+        if (x > s.connectorsPerOperation)
           throw new W(
             "connector_limit",
             422,
-            `${$} would join ${x} pairs of notes; one operation may join at most ${r.connectorsPerOperation}.`,
-            { limit: r.connectorsPerOperation }
+            `${v} would join ${x} pairs of notes; one operation may join at most ${s.connectorsPerOperation}.`,
+            { limit: s.connectorsPerOperation }
           );
-        const O = /* @__PURE__ */ new Set(), N = /* @__PURE__ */ new Map();
-        for (const { association: E } of et(a)) {
-          O.add(E.id);
-          const v = Mt(E.parentId, E.childId);
-          N.has(v) || N.set(v, E.id);
+        const S = /* @__PURE__ */ new Set(), N = /* @__PURE__ */ new Map();
+        for (const { association: M } of et(a)) {
+          S.add(M.id);
+          const _ = Pt(M.parentId, M.childId);
+          N.has(_) || N.set(_, M.id);
         }
         const P = [], C = [], Y = [];
-        let M = 0;
-        for (const E of l) {
-          const v = k(E), I = h ? [null] : u.filter((L) => k(L) !== v);
-          if (E.options.isLocked === !0) {
-            I.length && w(E), M += I.length;
+        let E = 0;
+        for (const M of l) {
+          const _ = k(M), O = h ? [null] : p.filter((A) => k(A) !== _);
+          if (M.options.isLocked === !0) {
+            O.length && g(M), E += O.length;
             continue;
           }
-          I.length && Y.push(v);
-          for (const L of I) {
-            const A = c.ids?.[M];
-            if (M += 1, !L) {
-              const R = Ke(A, i), F = R.id ?? lt(v, R.childId);
-              if (O.has(F)) {
+          O.length && Y.push(_);
+          for (const A of O) {
+            const T = d.ids?.[E];
+            if (E += 1, !A) {
+              const z = un(T, i), F = z.id ?? ut(_, z.childId);
+              if (S.has(F)) {
                 n.replay || P.push(F), C.push(F), m.matched.push(F);
                 continue;
               }
-              E.relationships.associations.push({ id: F, parentId: v, childId: R.childId, targetPoint: { ...h }, ...St, ...c.style || {} }), O.add(F), C.push(F), m.matched.push(F), m.changed.push(F), s.connected.push(F);
+              M.relationships.associations.push({ id: F, parentId: _, childId: z.childId, targetPoint: { ...h }, ...St, ...d.style || {} }), S.add(F), C.push(F), m.matched.push(F), m.changed.push(F), r.connected.push(F);
               continue;
             }
-            const D = k(L), V = N.get(Mt(v, D));
+            const D = k(A), V = N.get(Pt(_, D));
             if (V) {
               C.push(V), m.matched.push(V);
               continue;
             }
-            if (A && O.has(A)) {
-              n.replay || P.push(A), C.push(A), m.matched.push(A);
+            if (T && S.has(T)) {
+              n.replay || P.push(T), C.push(T), m.matched.push(T);
               continue;
             }
-            const H = A || Ot(O, lt(v, D));
-            E.relationships.associations.push({ id: H, parentId: v, childId: D, ...St, ...c.style || {} }), O.add(H), N.set(Mt(v, D), H), C.push(H), m.matched.push(H), m.changed.push(H), s.connected.push(H);
+            const H = T || Nt(S, ut(_, D));
+            M.relationships.associations.push({ id: H, parentId: _, childId: D, ...St, ...d.style || {} }), S.add(H), N.set(Pt(_, D), H), C.push(H), m.matched.push(H), m.changed.push(H), r.connected.push(H);
           }
         }
-        if (P.length) throw Et($, "connector", P);
-        if (O.size > r.connectorsPerSlate && m.changed.length)
+        if (P.length) throw At(v, "connector", P);
+        if (S.size > s.connectorsPerSlate && m.changed.length)
           throw new W(
             "connector_limit",
             422,
-            `A slate can hold at most ${r.connectorsPerSlate} connectors; this plan would leave ${O.size}.`,
-            { limit: r.connectorsPerSlate }
+            `A slate can hold at most ${s.connectorsPerSlate} connectors; this plan would leave ${S.size}.`,
+            { limit: s.connectorsPerSlate }
           );
         m.changed.length && f.push({
           kind: "connect_nodes",
           from: { ids: Y },
-          to: h ? { point: { ...h } } : { ids: u.map(k) },
+          to: h ? { point: { ...h } } : { ids: p.map(k) },
           ids: C,
-          ...c.style ? { style: c.style } : {}
+          ...d.style ? { style: d.style } : {}
         });
         return;
       }
       case "disconnect_nodes":
       case "update_connections": {
         let l;
-        if (c.connectionIds) {
-          const h = new Set(c.connectionIds);
-          l = et(a).filter(({ association: u }) => h.has(u.id));
+        if (d.connectionIds) {
+          const h = new Set(d.connectionIds);
+          l = et(a).filter(({ association: p }) => h.has(p.id));
         } else {
-          const h = new Set(tt(a, c.from, `${$} from`).map(k)), u = new Set(tt(a, c.to, `${$} to`).map(k));
+          const h = new Set(tt(a, d.from, `${v} from`).map(k)), p = new Set(tt(a, d.to, `${v} to`).map(k));
           l = et(a).filter(
-            ({ association: x }) => h.has(x.parentId) && u.has(x.childId) || u.has(x.parentId) && h.has(x.childId)
+            ({ association: x }) => h.has(x.parentId) && p.has(x.childId) || p.has(x.parentId) && h.has(x.childId)
           );
         }
-        if (m.matched = l.map(({ association: h }) => h.id), l.length || s.warnings.push(`${$} matched no connectors.`), c.kind === "disconnect_nodes") {
-          for (const { node: h, association: u } of l)
-            h.relationships.associations = h.relationships.associations.filter((x) => x !== u);
-          m.changed = [...m.matched], s.disconnected.push(...m.matched), l.length && f.push({ kind: "disconnect_nodes", connectionIds: m.matched });
+        if (m.matched = l.map(({ association: h }) => h.id), l.length || r.warnings.push(`${v} matched no connectors.`), d.kind === "disconnect_nodes") {
+          for (const { node: h, association: p } of l)
+            h.relationships.associations = h.relationships.associations.filter((x) => x !== p);
+          m.changed = [...m.matched], r.disconnected.push(...m.matched), l.length && f.push({ kind: "disconnect_nodes", connectionIds: m.matched });
           return;
         }
-        for (const { association: h } of l) {
-          if (c.changes.toPoint !== void 0 && !yt(h))
-            throw new W(
-              "invalid_operation_plan",
-              400,
-              `${$} can move only a free end with toPoint; connector ${h.id} ends on a note.`
-            );
-          const u = JSON.stringify(h);
-          for (const [x, O] of Object.entries(c.changes))
-            h[nt[x].field || x] = x === "toPoint" ? { ...O } : O;
-          JSON.stringify(h) !== u && m.changed.push(h.id);
+        for (const { node: h, association: p } of l) {
+          const x = JSON.stringify([k(h), p]), S = Object.entries(d.changes).filter(([P]) => !Bt.includes(P));
+          for (const [P, C] of S) p[ot[P].field || P] = C;
+          const N = Ze(a, h, p, d.changes, v, i);
+          JSON.stringify([k(N), p]) !== x && m.changed.push(p.id);
         }
-        s.connectionsUpdated.push(...m.matched), l.length && f.push({ kind: "update_connections", connectionIds: m.matched, changes: c.changes });
+        r.connectionsUpdated.push(...m.matched), l.length && f.push({ kind: "update_connections", connectionIds: m.matched, changes: d.changes });
         return;
       }
       case "arrange_nodes": {
-        const l = tt(a, c.target, `${$} target`);
-        m.matched = l.map(k), l.length || y();
-        const h = l.filter((v) => v.options.isLocked !== !0 ? !0 : (w(v), !1));
+        const l = tt(a, d.target, `${v} target`);
+        m.matched = l.map(k), l.length || b();
+        const h = l.filter((_) => _.options.isLocked !== !0 ? !0 : (g(_), !1));
         if (!h.length) return;
-        const u = c.layout;
+        const p = d.layout;
         let x;
-        if (Gt[u]) x = je(Gt[u], h.map(it));
-        else if (u === "distribute-horizontal" || u === "distribute-vertical")
-          x = Ye(u === "distribute-horizontal" ? "horizontal" : "vertical", h.map(it));
-        else if (u === "tidy") {
-          const v = new Set(h.map(k)), I = a.nodes.filter((L) => !v.has(k(L))).map(it);
-          x = ze(h.map(it), I, { gap: c.gap ?? 20 });
-        } else if (u === "tree") {
-          const v = et(a).filter(({ association: A }) => !yt(A)).map(({ association: A }) => [A.parentId, A.childId]), I = new Set(h.map(k)), L = a.nodes.filter((A) => !I.has(k(A))).map(it);
-          x = De(h.map(it), v, { gap: c.gap ?? 48, obstacles: L });
+        if (Vt[p]) x = Qe(Vt[p], h.map(rt));
+        else if (p === "distribute-horizontal" || p === "distribute-vertical")
+          x = tn(p === "distribute-horizontal" ? "horizontal" : "vertical", h.map(rt));
+        else if (p === "tidy") {
+          const _ = new Set(h.map(k)), O = a.nodes.filter((A) => !_.has(k(A))).map(rt);
+          x = nn(h.map(rt), O, { gap: d.gap ?? 20 });
+        } else if (p === "tree") {
+          const _ = et(a).filter(({ association: T }) => !nt(T)).map(({ association: T }) => [T.parentId, T.childId]), O = new Set(h.map(k)), A = a.nodes.filter((T) => !O.has(k(T))).map(rt);
+          x = sn(h.map(rt), _, { gap: d.gap ?? 48, obstacles: A });
         }
         if (x) {
-          const v = new Map(h.map((I) => [k(I), I]));
-          for (const I of x) {
-            const L = v.get(I.id), A = [G(L, "x"), G(L, "y")];
-            T.x.store(L.options, I.x, o), T.y.store(L.options, I.y, o), qt(A, [I.x, I.y]) || m.changed.push(I.id);
+          const _ = new Map(h.map((O) => [k(O), O]));
+          for (const O of x) {
+            const A = _.get(O.id), T = [G(A, "x"), G(A, "y")];
+            L.x.store(A.options, O.x, o), L.y.store(A.options, O.y, o), Zt(T, [O.x, O.y]) || m.changed.push(O.id);
           }
-          s.updated.push(...h.map(k)), f.push({ kind: "arrange_nodes", target: { ids: h.map(k) }, layout: c.layout, ...c.gap !== void 0 ? { gap: c.gap } : {} });
+          r.updated.push(...h.map(k)), f.push({ kind: "arrange_nodes", target: { ids: h.map(k) }, layout: d.layout, ...d.gap !== void 0 ? { gap: d.gap } : {} });
           return;
         }
-        const O = h.map(U), N = c.gap ?? 48, P = Math.min(...O.map((v) => v.x)), C = Math.min(...O.map((v) => v.y)), Y = Math.max(...O.map((v) => v.width), 120), M = Math.max(...O.map((v) => v.height), 80), E = At(h.length, c.layout === "circle" ? "row" : c.layout);
-        h.forEach((v, I) => {
-          const L = [G(v, "x"), G(v, "y")];
-          let A, D;
-          if (c.layout === "circle") {
-            const V = Math.max(180, h.length * 35), H = Math.PI * 2 * I / h.length;
-            A = P + V + Math.cos(H) * V, D = C + V + Math.sin(H) * V;
+        const S = h.map(U), N = d.gap ?? 48, P = Math.min(...S.map((_) => _.x)), C = Math.min(...S.map((_) => _.y)), Y = Math.max(...S.map((_) => _.width), 120), E = Math.max(...S.map((_) => _.height), 80), M = Ct(h.length, d.layout === "circle" ? "row" : d.layout);
+        h.forEach((_, O) => {
+          const A = [G(_, "x"), G(_, "y")];
+          let T, D;
+          if (d.layout === "circle") {
+            const V = Math.max(180, h.length * 35), H = Math.PI * 2 * O / h.length;
+            T = P + V + Math.cos(H) * V, D = C + V + Math.sin(H) * V;
           } else
-            A = P + E[I].column * (Y + N), D = C + E[I].row * (M + N);
-          T.x.store(v.options, A, o), T.y.store(v.options, D, o), qt(L, [A, D]) || m.changed.push(k(v));
-        }), s.updated.push(...h.map(k)), f.push({ kind: "arrange_nodes", target: { ids: h.map(k) }, layout: c.layout, ...c.gap !== void 0 ? { gap: N } : {} });
+            T = P + M[O].column * (Y + N), D = C + M[O].row * (E + N);
+          L.x.store(_.options, T, o), L.y.store(_.options, D, o), Zt(A, [T, D]) || m.changed.push(k(_));
+        }), r.updated.push(...h.map(k)), f.push({ kind: "arrange_nodes", target: { ids: h.map(k) }, layout: d.layout, ...d.gap !== void 0 ? { gap: N } : {} });
         return;
       }
       case "update_slate": {
-        const l = c.changes, h = JSON.stringify(a);
-        for (const [u, x] of Object.entries(at))
-          l[u] !== void 0 && x.store(a, l[u]);
+        const l = d.changes, h = JSON.stringify(a);
+        for (const [p, x] of Object.entries(dt))
+          l[p] !== void 0 && x.store(a, l[p]);
         JSON.stringify(a) !== h && m.changed.push("slate"), f.push({ kind: "update_slate", changes: l });
         return;
       }
     }
-  }), n.requireMatches && s.warnings.length) {
-    const c = s.warnings[0];
-    throw new W("no_match", 409, c, { operation: Number(c.match(/^Operation (\d+)/)?.[1]) });
+  }), n.requireMatches && r.warnings.length) {
+    const d = r.warnings[0];
+    throw new W("no_match", 409, d, { operation: Number(d.match(/^Operation (\d+)/)?.[1]) });
   }
-  return s.unchanged = JSON.stringify(a) === g, { slate: a, materializedPlan: { message: e.message.trim(), operations: f }, report: s };
+  return r.unchanged = JSON.stringify(a) === y, { slate: a, materializedPlan: { message: e.message.trim(), operations: f }, report: r };
 }
-const Ut = ["id", ...Object.keys(T), "image"], gt = Object.freeze({ notes: 100, maxNotes: 500, maxChars: 6e4 }), ht = (t) => t.options.isComment === !0;
-function ie(t, e) {
-  const n = t.options, o = (i) => !e || e.includes(i), r = { id: k(t) };
-  for (const [i, a] of Object.entries(T)) {
+const Qt = ["id", ...Object.keys(L), "image"], wt = Object.freeze({ notes: 100, maxNotes: 500, maxChars: 6e4 }), ft = (t) => t.options.isComment === !0;
+function he(t, e) {
+  const n = t.options, o = (i) => !e || e.includes(i), s = { id: k(t) };
+  for (const [i, a] of Object.entries(L)) {
     if (!o(i)) continue;
-    const p = a.read(n);
-    r[i] = p === void 0 ? null : p;
+    const u = a.read(n);
+    s[i] = u === void 0 ? null : u;
   }
-  return o("image") && (r.image = n.image || null), r;
+  return o("image") && (s.image = n.image || null), s;
 }
-function re(t) {
-  const e = yt(t), n = { id: t.id, from: t.parentId, to: e ? null : t.childId };
-  for (const [o, r] of Object.entries(nt)) {
-    if (o === "toPoint") continue;
-    const i = t[r.field ?? o];
-    n[o] = i === void 0 ? null : i;
+function ue(t) {
+  const e = nt(t), n = { id: t.id, from: t.parentId, to: e ? null : t.childId };
+  for (const [s, i] of Object.entries(ot)) {
+    if (Bt.includes(s)) continue;
+    const a = t[i.field ?? s];
+    n[s] = a === void 0 ? null : a;
   }
-  return e && (n.toPoint = t.targetPoint ?? null), n;
+  e && (n.toPoint = t.targetPoint ?? null);
+  const o = Ve(t);
+  return (o.fromEnd !== "follow" || o.toEnd !== "follow") && Object.assign(n, o), n;
 }
-const ct = (t) => new W("invalid_selection", 400, t);
-function Ze(t) {
+const lt = (t) => new W("invalid_selection", 400, t);
+function fn(t) {
   const e = {};
   if (t.ids !== void 0 && (e.ids = t.ids), t.within !== void 0 && (e.within = t.within), t.groupId !== void 0 && (e.groupId = t.groupId), t.q !== void 0)
     e.text = t.q, e.all = !0, t.match !== void 0 && (e.match = t.match);
   else if (t.match !== void 0)
-    throw ct("match goes with q.");
+    throw lt("match goes with q.");
   if (!Object.keys(e).length) return null;
-  const n = rt(e, "selection").map(
+  const n = at(e, "selection").map(
     (o) => o.replace("selection.text", "q").replace(/selection\./g, "").replace("by text", "by q")
   );
-  if (n.length) throw ct(n.join(" "));
+  if (n.length) throw lt(n.join(" "));
   return e;
 }
-const Ve = (t) => btoa(encodeURIComponent(JSON.stringify(t))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-function Qe(t) {
+const mn = (t) => btoa(encodeURIComponent(JSON.stringify(t))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function gn(t) {
   try {
     const { after: e, at: n } = JSON.parse(decodeURIComponent(atob(t.replace(/-/g, "+").replace(/_/g, "/"))));
     if (typeof e == "string" && e && Number.isSafeInteger(n) && n >= 0) return { after: e, at: n };
   } catch {
   }
-  throw ct("cursor is not one this slate gave. Read again from the first page.");
+  throw lt("cursor is not one this slate gave. Read again from the first page.");
 }
-function tn(t, { after: e, at: n }) {
+function yn(t, { after: e, at: n }) {
   let o = -1;
-  if (t.forEach((r, i) => {
-    k(r) === e && (o < 0 || Math.abs(i - n) < Math.abs(o - n)) && (o = i);
-  }), o < 0) throw ct("The note this cursor continues from is gone. Read again from the first page.");
+  if (t.forEach((s, i) => {
+    k(s) === e && (o < 0 || Math.abs(i - n) < Math.abs(o - n)) && (o = i);
+  }), o < 0) throw lt("The note this cursor continues from is gone. Read again from the first page.");
   return o + 1;
 }
-function en(t) {
+function bn(t) {
   if (!t.length) return null;
-  const e = t.map(U), n = Math.min(...e.map((a) => a.x)), o = Math.min(...e.map((a) => a.y)), r = Math.max(...e.map((a) => a.x + a.width)), i = Math.max(...e.map((a) => a.y + a.height));
-  return { x: n, y: o, width: r - n, height: i - o };
+  const e = t.map(U), n = Math.min(...e.map((a) => a.x)), o = Math.min(...e.map((a) => a.y)), s = Math.max(...e.map((a) => a.x + a.width)), i = Math.max(...e.map((a) => a.y + a.height));
+  return { x: n, y: o, width: s - n, height: i - o };
 }
-function dn(t, e = {}) {
-  const n = $t(t), o = n.nodes.filter((y) => !ht(y)), r = e.fields;
-  if (r !== void 0) {
-    const y = r.filter((w) => !Ut.includes(w));
-    if (y.length) throw ct(`Unknown note field: ${y.join(", ")}. Choose from ${Ut.join(", ")}.`);
+function In(t, e = {}) {
+  const n = It(t), o = n.nodes.filter((b) => !ft(b)), s = e.fields;
+  if (s !== void 0) {
+    const b = s.filter((g) => !Qt.includes(g));
+    if (b.length) throw lt(`Unknown note field: ${b.join(", ")}. Choose from ${Qt.join(", ")}.`);
   }
-  const i = e.limit ?? gt.notes;
-  if (!Number.isInteger(i) || i < 1 || i > gt.maxNotes)
-    throw ct(`limit must be a whole number from 1 to ${gt.maxNotes}.`);
-  const a = e.maxChars ?? gt.maxChars, p = Ze(e), g = p ? tt({ ...n, nodes: o }, p, "selection") : o;
-  let b = 0;
-  e.cursor !== void 0 && (b = tn(g, Qe(e.cursor)));
-  const f = new Set(n.nodes.filter(ht).map(k)), s = /* @__PURE__ */ new Map();
-  for (const { association: y } of et(n)) {
-    if (f.has(y.parentId) || f.has(y.childId)) continue;
-    const w = s.get(y.parentId) ?? [];
-    w.push(y), s.set(y.parentId, w);
+  const i = e.limit ?? wt.notes;
+  if (!Number.isInteger(i) || i < 1 || i > wt.maxNotes)
+    throw lt(`limit must be a whole number from 1 to ${wt.maxNotes}.`);
+  const a = e.maxChars ?? wt.maxChars, u = fn(e), y = u ? tt({ ...n, nodes: o }, u, "selection") : o;
+  let w = 0;
+  e.cursor !== void 0 && (w = yn(y, gn(e.cursor)));
+  const f = new Set(n.nodes.filter(ft).map(k)), r = /* @__PURE__ */ new Map();
+  for (const { association: b } of et(n)) {
+    if (f.has(b.parentId) || f.has(b.childId)) continue;
+    const g = r.get(b.parentId) ?? [];
+    g.push(b), r.set(b.parentId, g);
   }
-  const c = [], d = [];
-  let S = 0, $ = b;
-  for (; $ < g.length && c.length < i; $ += 1) {
-    const y = g[$], w = ie(y, r), _ = (s.get(k(y)) ?? []).map(re), X = JSON.stringify(w).length + JSON.stringify(_).length;
-    if (c.length && S + X > a) break;
-    S += X, c.push(w), d.push(..._);
+  const d = [], c = [];
+  let $ = 0, v = w;
+  for (; v < y.length && d.length < i; v += 1) {
+    const b = y[v], g = he(b, s), I = (r.get(k(b)) ?? []).map(ue), X = JSON.stringify(g).length + JSON.stringify(I).length;
+    if (d.length && $ + X > a) break;
+    $ += X, d.push(g), c.push(...I);
   }
-  const m = c[c.length - 1];
+  const m = d[d.length - 1];
   return {
     name: n.options.name || "",
     description: n.options.description || "",
-    background: Ne(n.options.containerStyle),
-    bounds: en(o),
-    nodeCount: g.length,
-    nodes: c,
-    connections: d,
-    nextCursor: $ < g.length && m ? Ve({ after: m.id, at: $ - 1 }) : null
+    background: Re(n.options.containerStyle),
+    bounds: bn(o),
+    nodeCount: y.length,
+    nodes: d,
+    connections: c,
+    nextCursor: v < y.length && m ? mn({ after: m.id, at: v - 1 }) : null
   };
 }
-const nn = [
+const wn = [
   "id",
   "name",
   "description",
@@ -1546,19 +1656,19 @@ const nn = [
   "viewPort",
   "containerStyle"
 ];
-function ln(t) {
-  const e = $t(t), n = new Set(e.nodes.filter(ht).map(k)), o = {};
-  for (const i of nn) e.options[i] !== void 0 && (o[i] = e.options[i]);
-  const r = e.nodes.filter((i) => !n.has(k(i))).map((i) => ({
+function On(t) {
+  const e = It(t), n = new Set(e.nodes.filter(ft).map(k)), o = {};
+  for (const i of wn) e.options[i] !== void 0 && (o[i] = e.options[i]);
+  const s = e.nodes.filter((i) => !n.has(k(i))).map((i) => ({
     options: i.options,
     relationships: {
       ...i.relationships,
       associations: i.relationships.associations.filter((a) => !n.has(a.childId))
     }
   }));
-  return { options: o, nodes: r, shareId: `${t?.shareId ?? e.options.shareId ?? ""}` };
+  return { options: o, nodes: s, shareId: `${t?.shareId ?? e.options.shareId ?? ""}` };
 }
-const sn = ["text", "shape", "x", "y", "width", "height", "rotationAngle", "locked"], on = [
+const xn = ["text", "shape", "x", "y", "width", "height", "rotationAngle", "locked"], kn = [
   "lineColor",
   "lineWidth",
   "lineOpacity",
@@ -1568,59 +1678,61 @@ const sn = ["text", "shape", "x", "y", "width", "height", "rotationAngle", "lock
   "showParentArrow",
   "showChildArrow"
 ];
-function hn(t) {
-  const e = $t(t), n = e.nodes.filter((a) => !ht(a)), o = new Set(e.nodes.filter(ht).map((a) => a.options.id)), r = n.slice(0, 150).map((a) => {
-    const p = ie(a, sn);
+function Sn(t) {
+  const e = It(t), n = e.nodes.filter((a) => !ft(a)), o = new Set(e.nodes.filter(ft).map((a) => a.options.id)), s = n.slice(0, 150).map((a) => {
+    const u = he(a, xn);
     return {
-      id: p.id,
-      text: `${p.text ?? ""}`.replace(/\s+/g, " ").trim().slice(0, 240),
-      shape: p.shape,
-      x: p.x,
-      y: p.y,
-      width: Number(p.width ?? 120),
-      height: Number(p.height ?? 80),
-      ...p.rotationAngle ? { rotationAngle: p.rotationAngle } : {},
-      ...p.locked === !0 ? { locked: !0 } : {}
+      id: u.id,
+      text: `${u.text ?? ""}`.replace(/\s+/g, " ").trim().slice(0, 240),
+      shape: u.shape,
+      x: u.x,
+      y: u.y,
+      width: Number(u.width ?? 120),
+      height: Number(u.height ?? 80),
+      ...u.rotationAngle ? { rotationAngle: u.rotationAngle } : {},
+      ...u.locked === !0 ? { locked: !0 } : {}
     };
   }), i = et(e).filter(({ association: a }) => !o.has(a.parentId) && !o.has(a.childId)).slice(0, 250).map(({ association: a }) => {
-    const p = re(a);
+    const u = ue(a);
     return {
-      id: p.id,
-      from: p.from,
-      to: p.to,
-      ..."toPoint" in p ? { toPoint: p.toPoint } : {},
-      label: p.label || "",
+      id: u.id,
+      from: u.from,
+      to: u.to,
+      ..."toPoint" in u ? { toPoint: u.toPoint } : {},
+      // Whether each end follows its note, is pinned to a spot on its edge, or is free.
+      ..."fromEnd" in u ? { fromEnd: u.fromEnd, toEnd: u.toEnd } : {},
+      label: u.label || "",
       // A key the connector does not store reads as undefined, as it always has in the summary.
-      ...Object.fromEntries(on.map((g) => [g, p[g] ?? void 0]))
+      ...Object.fromEntries(kn.map((y) => [y, u[y] ?? void 0]))
     };
   });
   return {
     name: e.options.name || "",
     description: e.options.description || "",
     nodeCount: n.length,
-    nodes: r,
+    nodes: s,
     connections: i
   };
 }
-function un(t = {}) {
-  const e = kt(t), n = (o, r) => Object.fromEntries(Object.entries(o).map(([i, a]) => [i, { ...Z(r(a)), description: a.description }]));
+function En(t = {}) {
+  const e = $t(t), n = (o, s) => Object.fromEntries(Object.entries(o).map(([i, a]) => [i, { ...Z(s(a)), description: a.description }]));
   return {
     version: 1,
-    kinds: Object.fromEntries(bt.map((o) => [o, { fields: Ct[o].filter((r) => r !== "kind") }])),
-    noteKeys: { ...n(T, (o) => o.spec(e)), ...n(ut, (o) => o.spec) },
-    noteStyleKeys: [...Pt],
-    connectorKeys: n(nt, (o) => o.spec),
-    connectorStyleKeys: [...Rt],
+    kinds: Object.fromEntries(xt.map((o) => [o, { fields: Yt[o].filter((s) => s !== "kind") }])),
+    noteKeys: { ...n(L, (o) => o.spec(e)), ...n(mt, (o) => o.spec) },
+    noteStyleKeys: [...jt],
+    connectorKeys: n(ot, (o) => o.spec),
+    connectorStyleKeys: [...Dt],
     slateKeys: Object.fromEntries(
-      Object.entries(at).map(([o, r]) => [
+      Object.entries(dt).map(([o, s]) => [
         o,
-        { ...o === "background" ? te() : Z(r.spec), description: r.description }
+        { ...o === "background" ? ie() : Z(s.spec), description: s.description }
       ])
     ),
-    selector: ee(),
-    layouts: [...jt],
-    presets: [...Yt],
-    limits: vt(t),
+    selector: re(),
+    layouts: [...Rt],
+    presets: [...zt],
+    limits: _t(t),
     shapes: e.shapes,
     fonts: e.fonts,
     animations: e.animations,
@@ -1635,8 +1747,8 @@ function un(t = {}) {
     }
   };
 }
-function rn(t = {}) {
-  const e = kt(t), n = vt(t), o = (g) => Object.fromEntries(g.map((b) => [b, Z(T[b].spec(e))])), r = (g) => Object.fromEntries(g.map((b) => [b, Z(nt[b].spec)])), i = ee(), a = { type: "array", items: { type: "string" } }, p = bt.map((g) => `${g}: ${Ct[g].filter((b) => b !== "kind").join(", ")}`).join("; ");
+function vn(t = {}) {
+  const e = $t(t), n = _t(t), o = (y) => Object.fromEntries(y.map((w) => [w, Z(L[w].spec(e))])), s = (y) => Object.fromEntries(y.map((w) => [w, Z(ot[w].spec)])), i = re(), a = { type: "array", items: { type: "string" } }, u = xt.map((y) => `${y}: ${Yt[y].filter((w) => w !== "kind").join(", ")}`).join("; ");
   return {
     type: "object",
     additionalProperties: !1,
@@ -1654,14 +1766,14 @@ function rn(t = {}) {
           type: "object",
           additionalProperties: !1,
           required: ["kind"],
-          description: `Fields by kind. ${p}.`,
+          description: `Fields by kind. ${u}.`,
           properties: {
-            kind: { type: "string", enum: [...bt] },
+            kind: { type: "string", enum: [...xt] },
             count: { type: "integer", minimum: 1, maximum: n.notesPerAdd },
             ...o(["shape", "text", "x", "y", "width", "height"]),
             preset: {
               type: "string",
-              enum: [...Yt],
+              enum: [...zt],
               description: "add_nodes: text (no fill or border) or sticky (a sticky note), as the note toolbar makes them. Gives the shape when none is given."
             },
             ids: { ...a, description: "add_nodes and duplicate_nodes: new note ids (1 to 64 letters, digits, _ or -), which later operations in the plan may name. connect_nodes: ids for the new connectors, one per pair. An id already in use is refused." },
@@ -1674,8 +1786,8 @@ function rn(t = {}) {
               description: "add_nodes: where to put the notes. With x and y, only arrangement and gap apply. connect: true with relativeTo makes notes that copy that note's look and are joined to it, 75 from its edge, as the canvas's connection handles do.",
               properties: {
                 relativeTo: { type: "string" },
-                direction: { type: "string", enum: [...Jt] },
-                arrangement: { type: "string", enum: [...Zt] },
+                direction: { type: "string", enum: [...ee] },
+                arrangement: { type: "string", enum: [...ne] },
                 gap: { type: "number", minimum: 0, maximum: 2e3 },
                 connect: { type: "boolean" }
               }
@@ -1684,7 +1796,7 @@ function rn(t = {}) {
               type: "object",
               additionalProperties: !1,
               description: "add_nodes: note keys for the new notes. connect_nodes: connector keys for the new connectors.",
-              properties: { ...o(Pt), ...r(Rt) }
+              properties: { ...o(jt), ...s(Dt) }
             },
             target: i,
             from: i,
@@ -1695,20 +1807,20 @@ function rn(t = {}) {
             },
             layout: {
               type: "string",
-              enum: [...jt],
+              enum: [...Rt],
               description: "arrange_nodes: row, column, grid, circle; align-* and distribute-* as the canvas aligns by what you see; tidy moves notes apart until none overlaps; tree lays connected notes out in layers under their root."
             },
             changes: {
               type: "object",
               additionalProperties: !1,
               minProperties: 1,
-              description: `update_nodes: note keys (and order: front or back). update_connections: connector keys. update_slate: ${Object.keys(at).join(", ")}.`,
+              description: `update_nodes: note keys (and order: front or back). update_connections: connector keys. update_slate: ${Object.keys(dt).join(", ")}.`,
               properties: {
-                ...o(Object.keys(T)),
-                ...Object.fromEntries(Object.entries(ut).map(([g, b]) => [g, Z(b.spec)])),
-                ...r(Object.keys(nt)),
+                ...o(Object.keys(L)),
+                ...Object.fromEntries(Object.entries(mt).map(([y, w]) => [y, Z(w.spec)])),
+                ...s(Object.keys(ot)),
                 ...Object.fromEntries(
-                  Object.entries(at).map(([g, b]) => [g, g === "background" ? te() : Z(b.spec)])
+                  Object.entries(dt).map(([y, w]) => [y, y === "background" ? ie() : Z(w.spec)])
                 )
               }
             }
@@ -1718,15 +1830,15 @@ function rn(t = {}) {
     }
   };
 }
-const pn = Object.freeze({
+const Mn = Object.freeze({
   name: "applySlateOperations",
   description: "Edit the existing slate without starting a new slate, replacing its content, or changing its theme unless the user explicitly asked for that. Always include a natural completion message.",
-  parameters: rn()
+  parameters: vn()
 });
-function fn(t) {
+function Nn(t) {
   return `Call applySlateOperations again with a safe, valid plan. ${t.join(" ")}`;
 }
-function mn(t) {
+function Pn(t) {
   if (typeof t?.message == "string" && t.message.trim()) return t.message.trim();
   const e = (t?.operations || []).reduce(
     (n, o) => n + (o.kind === "add_nodes" ? o.count || 0 : 1),
@@ -1735,43 +1847,43 @@ function mn(t) {
   return `Done — I applied ${e} ${e === 1 ? "change" : "changes"} to the slate.`;
 }
 export {
-  fe as BORDER_STYLES,
-  nt as CONNECTOR_KEYS,
-  Rt as CONNECTOR_STYLE_KEYS,
-  Ie as DEFAULT_FONTS,
-  nn as DOCUMENT_OPTION_KEYS,
-  me as EFFECTS,
-  jt as LAYOUTS,
-  Se as LIMITS,
-  ut as NODE_INTENT_KEYS,
-  T as NODE_KEYS,
-  Pt as NODE_STYLE_KEYS,
-  Ut as NOTE_READ_KEYS,
-  Ct as OPERATION_FIELDS,
+  xe as BORDER_STYLES,
+  ot as CONNECTOR_KEYS,
+  Dt as CONNECTOR_STYLE_KEYS,
+  Ae as DEFAULT_FONTS,
+  wn as DOCUMENT_OPTION_KEYS,
+  ke as EFFECTS,
+  Rt as LAYOUTS,
+  Pe as LIMITS,
+  mt as NODE_INTENT_KEYS,
+  L as NODE_KEYS,
+  jt as NODE_STYLE_KEYS,
+  Qt as NOTE_READ_KEYS,
+  Yt as OPERATION_FIELDS,
   W as OperationPlanError,
-  Yt as PRESETS,
-  gt as READ_LIMITS,
-  at as SLATE_KEYS,
-  bt as SLATE_OPERATION_KINDS,
-  pn as SLATE_OPERATION_TOOL,
-  je as alignPositions,
-  cn as applyPlanToJSON,
-  Ne as backgroundOf,
-  vt as contractLimits,
-  kt as contractLists,
-  un as describeOperations,
-  Ye as distributePositions,
-  mn as naturalOperationFallback,
-  fn as operationPlanRetryPrompt,
-  re as readConnector,
-  ie as readNote,
-  dn as readSlate,
-  se as rotatedBounds,
-  rn as slateOperationPlanSchema,
-  hn as summarizeSlate,
-  ze as tidyPositions,
-  ln as toSlateDocument,
-  $t as toStoredSlate,
-  De as treePositions,
-  Ce as validatePlan
+  zt as PRESETS,
+  wt as READ_LIMITS,
+  dt as SLATE_KEYS,
+  xt as SLATE_OPERATION_KINDS,
+  Mn as SLATE_OPERATION_TOOL,
+  Qe as alignPositions,
+  _n as applyPlanToJSON,
+  Re as backgroundOf,
+  _t as contractLimits,
+  $t as contractLists,
+  En as describeOperations,
+  tn as distributePositions,
+  Pn as naturalOperationFallback,
+  Nn as operationPlanRetryPrompt,
+  ue as readConnector,
+  he as readNote,
+  In as readSlate,
+  de as rotatedBounds,
+  vn as slateOperationPlanSchema,
+  Sn as summarizeSlate,
+  nn as tidyPositions,
+  On as toSlateDocument,
+  It as toStoredSlate,
+  sn as treePositions,
+  Xe as validatePlan
 };

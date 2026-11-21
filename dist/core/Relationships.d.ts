@@ -81,6 +81,12 @@ export declare class Relationships {
     destroy(): void;
     private renderAssociation;
     /**
+     * Draw one of this note's lines again from its record (no change to the
+     * model, nothing sent): puts back a line whose end was dropped somewhere it
+     * cannot go, and redraws one whose end was re-pinned on its own note.
+     */
+    redraw(associationId: string): boolean;
+    /**
      * Add a free-floating association whose target is a bare world point rather
      * than a node (L1b). Backed by a phantom endpoint; broadcasts + persists like
      * a normal association (targetPoint travels in the record).
