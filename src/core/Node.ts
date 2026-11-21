@@ -1271,7 +1271,7 @@ export class Node {
 
   /**
    * Shrink the rendered text to fit within the node bounds (Miro shape behavior).
-   * Applies a uniform scale transform around the text's visual center; never grows
+   * Applies a uniform scale transform about the text's aligned edge; never grows
    * beyond 1 (the set size) and never shrinks below a readable floor.
    */
   private fitTextToNode(): void {
@@ -1300,10 +1300,11 @@ export class Node {
     let scale = Math.min(availW / bb.width, availH / bb.height);
     if (scale >= 0.999) return; // already fits — leave at full size
     scale = Math.max(scale, 0.3); // don't shrink to unreadable
-    // Scale around the text's geometric center so it stays where it was centered,
-    // regardless of alignment / multi-line stacking.
-    const gcx = bb.x + bb.width / 2;
-    const gcy = bb.y + bb.height / 2;
+    // Scale about the edge the text is aligned to (its centre when centred), so
+    // Left, Right, Top and Bottom text stays flush with its edge as it shrinks.
+    const { textXAlign, textYAlign } = this.options;
+    const gcx = textXAlign === "left" ? bb.x : textXAlign === "right" ? bb.x + bb.width : bb.x + bb.width / 2;
+    const gcy = textYAlign === "top" ? bb.y : textYAlign === "bottom" ? bb.y + bb.height : bb.y + bb.height / 2;
     try {
       t.attr(
         "transform",

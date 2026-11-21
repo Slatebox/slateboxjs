@@ -425,6 +425,33 @@ describe("Text content", () => {
     });
   });
 
+  // Text too big for its note is drawn smaller. It shrinks about the edge it is
+  // aligned to, so Left or Bottom text stays flush with that edge.
+  describe("text shrunk to fit stays at its aligned edge", () => {
+    const origin = async (textXAlign: string, textYAlign: string) => {
+      const node = await createNode({ text: "A long line of text", width: 100, height: 60, textXAlign, textYAlign });
+      const text = (node as any).textElement;
+      text.node.getBBox = () => ({ x: 10, y: 20, width: 200, height: 40 });
+      text.attr.mockClear();
+      node.centerText();
+      const call = text.attr.mock.calls.find((c: any[]) => c[0] === "transform" && typeof c[1] === "string");
+      const [, x, y] = /^translate\(([-\d.]+) ([-\d.]+)\) scale/.exec(call[1])!;
+      return [Number(x), Number(y)];
+    };
+
+    it("left and bottom: about the left and bottom edges", async () => {
+      expect(await origin("left", "bottom")).toEqual([10, 60]);
+    });
+
+    it("right and top: about the right and top edges", async () => {
+      expect(await origin("right", "top")).toEqual([210, 20]);
+    });
+
+    it("centre and middle: about the centre", async () => {
+      expect(await origin("center", "middle")).toEqual([110, 40]);
+    });
+  });
+
   it("should support text offset", async () => {
     const node = await createNode({ text: "Offset", xTextOffset: 5, yTextOffset: -5 });
     expect(node.options.xTextOffset).toBe(5);

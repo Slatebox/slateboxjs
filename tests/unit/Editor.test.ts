@@ -167,6 +167,33 @@ describe("Editor", () => {
       expect(group.querySelectorAll(".sb-inline-editor")).toHaveLength(1);
     });
 
+    it("puts its text where the note draws it: Left and Bottom stay left and bottom while typing", () => {
+      mockNode.options.textXAlign = "left";
+      mockNode.options.textYAlign = "bottom";
+      new Editor(mockNode).startInline();
+      const style = box()!.style;
+      expect(style.textAlign).toBe("left");
+      expect(style.justifyContent).toBe("flex-start");
+      expect(style.alignItems).toBe("flex-end");
+    });
+
+    it("follows each of the six alignments, and centres a note that names none", () => {
+      const cases: [string | undefined, string | undefined, string, string, string][] = [
+        ["right", "top", "right", "flex-end", "flex-start"],
+        ["center", "middle", "center", "center", "center"],
+        [undefined, undefined, "center", "center", "center"],
+      ];
+      for (const [x, y, textAlign, justify, align] of cases) {
+        mockNode.options.textXAlign = x;
+        mockNode.options.textYAlign = y;
+        const editor = new Editor(mockNode);
+        editor.startInline();
+        const style = box()!.style;
+        expect([style.textAlign, style.justifyContent, style.alignItems]).toEqual([textAlign, justify, align]);
+        key(box()!, "Escape");
+      }
+    });
+
     it("selects all the text by default, the rename gesture", () => {
       new Editor(mockNode).startInline();
       const selection = window.getSelection()!;
