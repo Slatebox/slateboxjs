@@ -22,6 +22,11 @@ export interface CollabOptions {
     userName?: string;
     /** Client color for cursor */
     userColor?: string;
+    /**
+     * Who this client is, the same on each of the person's tabs and screens, so
+     * peers count a person once. Opaque to the engine; the host app makes it.
+     */
+    personKey?: string;
     /** Called when a remote package is received */
     onReceive?: (pkg: any) => void;
     /** Called when connection status changes */
@@ -40,6 +45,8 @@ export interface CollabUser {
     clientID: number;
     userName: string;
     color: string;
+    /** The person behind this client, the same on each of their tabs (given by the host app). */
+    key?: string;
     cursor?: {
         x: number;
         y: number;

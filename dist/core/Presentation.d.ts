@@ -32,9 +32,16 @@ export declare class Presentation {
      * Build the hierarchical presentation layout (preziData) — a tree of root
      * nodes → children with per-node metrics + descriptions. This is the structure
      * the AI consumes to decide the presentation ORDER (ported from v1
-     * slate.extractPresentationLayout). Bbox is relative to the content top-left.
+     * slate.extractPresentationLayout). Bbox is relative to `orientData`'s left/top
+     * when the host gives it (as v1 did: the origin of the SVG export the host
+     * plays the presentation over), otherwise to the stops' own top-left.
      */
-    extractPresentationLayout(): any;
+    extractPresentationLayout(options?: {
+        orientData?: {
+            left?: number;
+            top?: number;
+        };
+    }): any;
     /**
      * Set the step order explicitly (e.g. from the AI's returned ordering). IDs
      * that don't exist are skipped; any nodes the AI omitted are appended in the
