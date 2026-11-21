@@ -2,7 +2,8 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
 import { openGuestCanvas } from './app-host.shared'
 import { dismissWelcome, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { register, retire, type Actor } from './agent-principals.shared'
-import { card, lane, standing, workshopReady } from './app-native-workshop.shared'
+import { card, conversation, lane, messageBox, standing, workshopReady } from './app-native-workshop.shared'
+import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 
 /**
  * What the owner found on test.slatebox.com (2026-11-21), each in the running Meteor app:
@@ -84,6 +85,30 @@ test('text alignment: all six choices move the text of a plain and a rotated, wr
       await page.keyboard.press('Escape')
     }
 
+    // Typing into an aligned note keeps its text where it is drawn: the editor is Left and Bottom too.
+    {
+      const at = (await noteNamed(page, 'Welcome!').boundingBox())!
+      await page.mouse.click(at.x + at.width / 2, at.y + at.height / 2)
+      await alignWith(page, 'Left')
+      await alignWith(page, 'Bottom')
+      await page.keyboard.press('Escape')
+      await page.mouse.dblclick(at.x + at.width / 2, at.y + at.height / 2)
+      const editor = page.locator('#slateCanvas .sb-inline-editor')
+      await expect(editor).toBeVisible()
+      expect(await editor.evaluate((el) => { const s = getComputedStyle(el); return [s.textAlign, s.justifyContent, s.alignItems] }))
+        .toEqual(['left', 'flex-start', 'flex-end'])
+      // The typed text starts at the note's left edge, not its centre.
+      const range = await editor.evaluate((el) => { const r = document.createRange(); r.selectNodeContents(el); const b = r.getBoundingClientRect(); const e = el.getBoundingClientRect(); return { left: b.left - e.left, bottom: e.bottom - b.bottom } })
+      expect(range.left).toBeLessThan(12)
+      expect(range.bottom).toBeLessThan(12)
+      await page.keyboard.press('Escape')
+      await expect(editor).toHaveCount(0)
+      await page.mouse.click(at.x + at.width / 2, at.y + at.height / 2)
+      await alignWith(page, 'Centre')
+      await alignWith(page, 'Middle')
+      await page.keyboard.press('Escape')
+    }
+
     // Undo takes back an alignment; a second screen and a reload show it.
     const box = (await noteNamed(page, 'Welcome!').boundingBox())!
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
@@ -142,15 +167,63 @@ test('a workshop board has no line under it echoing a card: the words are read a
       const box = (await notice.boundingBox())!
       expect(box.width).toBeLessThanOrEqual(420)
       expect(box.height).toBeLessThan(60)
+      // Taken back before the notice goes: the card is no longer at that stop, so the notice no longer
+      // names it. The newest change wins: it says what the stop the card is back at says.
+      await page.getByRole('button', { name: 'Undo last change' }).click()
+      await expect(standing(page)).toContainText('Customer file · Customer CSV')
+      await expect(notice).not.toContainText('Import 47 rows', { timeout: 1500 })
+      await expect(notice).toContainText('Customer CSV')
+      // Moved there again, and left alone: it goes after its time.
+      await expect(page.getByRole('group', { name: 'Workshop' }).getByText('Saving…')).toHaveCount(0)
+      const again = (await card(page, 'batch').boundingBox())!
+      await page.mouse.move(again.x + again.width / 2, again.y + again.height / 2)
+      await page.mouse.down()
+      for (let i = 1; i <= 12; i++) await page.mouse.move(again.x + again.width / 2 + (to.x + to.width / 2 - again.x - again.width / 2) * i / 12,
+        again.y + again.height / 2 + (to.y + to.height * 0.75 - again.y - again.height / 2) * i / 12)
+      await page.mouse.up()
+      await expect(standing(page)).toContainText('Customer file · Import 47 rows')
+      await expect(notice).toContainText('Import 47 rows')
       await expect(notice).toHaveCount(0, { timeout: 9000 })
     } finally { if (id) await removeTestGuest(page, id); await page.close() }
   }
+})
+
+test('placement outcomes, drawn nowhere on the board, are listed from an Outcomes button at any time, also after a reload', async ({ page }) => {
+  const board: Workshop = {
+    version: 1, title: 'Owner check',
+    lanes: [{ id: 'notes', label: 'Interview notes' }, { id: 'test', label: 'Prototype test' }],
+    cards: [{ id: 'owner', label: 'Owner', laneId: 'notes' }],
+    signals: [{ id: 'who', label: 'Owner', cardId: 'owner', laneId: 'test',
+      whenPresent: 'Mara will test whether Jo can import a list.', whenAbsent: 'Still in the interview notes.' }],
+  }
+  let id: string | null = null
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto(new URL('/new/workshop' + encodeWorkshopFragment(board), origin).href)
+    await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
+    id = await userId(page)
+    await dismissWelcome(page)
+    await workshopReady(page)
+    for (const pass of [1, 2]) {
+      const outcomes = page.locator('.sb-workshop-outcomes').getByRole('button', { name: 'Outcomes (1)' })
+      await expect(outcomes).toBeVisible()
+      await expect(outcomes).toHaveAttribute('aria-expanded', 'false')
+      await outcomes.click()
+      const list = page.getByRole('list', { name: 'Outcomes on this board' })
+      await expect(list).toBeVisible()
+      await expect(list).toContainText('Owner — Still in the interview notes.')
+      await outcomes.click()
+      await expect(list).toHaveCount(0)
+      if (pass === 1) { await page.reload(); await dismissWelcome(page); await workshopReady(page) }
+    }
+  } finally { if (id) await removeTestGuest(page, id) }
 })
 
 test('the people at the foot of the canvas: you once, whatever your tabs; each other person once, told apart', async ({ browser }) => {
   const { page, id } = await guestAt(browser)
   const other = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   let otherId: string | null = null
+  let thirdId: string | null = null
   try {
     const link = await shareAs(page, 'edit')
     const tab = await page.context().newPage()
@@ -162,9 +235,34 @@ test('the people at the foot of the canvas: you once, whatever your tabs; each o
     await dismissWelcome(visitor)
     otherId = await userId(visitor)
     const chips = (p: Page) => p.getByRole('region', { name: 'Huddle' }).locator('.MuiChip-label').allTextContents()
-    for (const p of [page, tab]) await expect.poll(() => chips(p), { timeout: 20000 }).toEqual(['You', 'Guest 1'])
-    await expect.poll(() => chips(visitor), { timeout: 20000 }).toEqual(['You', 'Guest 1'])
+    const guestName = /^[A-Z][a-z]+ [A-Z][a-z]+ \(guest\)$/
+    // The owner's two tabs are one person; each sees You and the visitor, by the visitor's name.
+    await expect.poll(async () => (await chips(page)).length, { timeout: 20000 }).toBe(2)
+    const [, visitorName] = await chips(page)
+    expect(visitorName).toMatch(guestName)
+    await expect.poll(() => chips(tab), { timeout: 20000 }).toEqual(['You', visitorName])
+    await expect.poll(async () => (await chips(visitor)).length, { timeout: 20000 }).toBe(2)
+    const [, ownerName] = await chips(visitor)
+    expect(ownerName).toMatch(guestName)
+    expect(ownerName).not.toBe(visitorName)
     await expect(header(page).getByRole('button', { name: 'People on this slate: you and 1 other' })).toBeVisible()
+    // A third viewer calls each of them by the same name the others do.
+    const third = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage()
+    try {
+      await third.goto(link.href)
+      await third.waitForURL(/\/canvas\//)
+      await dismissWelcome(third)
+      thirdId = await userId(third)
+      await expect.poll(async () => (await chips(third)).slice(1).sort(), { timeout: 20000 }).toEqual([ownerName, visitorName].sort())
+      // The name on a person's pointer is the same name.
+      await visitor.mouse.move(500, 400)
+      await visitor.mouse.move(520, 420, { steps: 5 })
+      await expect(third.locator('#slateCanvas text').filter({ hasText: visitorName })).toHaveCount(1, { timeout: 15000 })
+      await expect(page.locator('#slateCanvas text').filter({ hasText: visitorName })).toHaveCount(1, { timeout: 15000 })
+    } finally {
+      if (thirdId) await removeTestGuest(third, thirdId).catch(() => {})
+      await third.context().close()
+    }
   } finally {
     if (otherId) await removeTestGuest(await other.pages()[0], otherId).catch(() => {})
     await other.close()
@@ -207,11 +305,22 @@ test('Ask Slatebox toggles every time: after a note\'s Ask, after ×, with the s
       // ...and Ask Slatebox, opened while they are open, closes them in one press.
       await toggle(true)
       await expect(settingsPanel(page)).toBeHidden()
-      // Escape closes the settings and the keyboard goes back to the slate menu.
+      // Escape closes the settings and the keyboard goes back to the slate menu. They only covered
+      // Ask Slatebox, so it is back.
       await slateMenu(page).click()
       await page.getByRole('menuitem', { name: 'Slate settings', exact: true }).click()
       await expect(settingsPanel(page)).toBeFocused()
       await page.keyboard.press('Escape')
+      await expect(settingsPanel(page)).toBeHidden()
+      await expect(slateMenu(page)).toBeFocused()
+      await expect(askPanel(page)).toBeVisible()
+      await expect(askToggle(page)).toHaveAttribute('aria-pressed', 'true')
+      // Closed by the person, the settings opened and closed bring nothing back.
+      await toggle(false)
+      await slateMenu(page).click()
+      await page.getByRole('menuitem', { name: 'Slate settings', exact: true }).click()
+      await expect(settingsPanel(page)).toBeVisible()
+      await settingsPanel(page).getByRole('button', { name: 'Close slate settings' }).click()
       await expect(settingsPanel(page)).toBeHidden()
       await expect(askPanel(page)).toHaveCount(0)
       await toggle(true)
@@ -224,6 +333,75 @@ test('Ask Slatebox toggles every time: after a note\'s Ask, after ×, with the s
       await toggle(open)
     } finally { await removeTestGuest(page, id); await page.context().close() }
   }
+})
+
+test('the settings opened over a preview waiting for Keep only cover it: the preview, Keep and the typed words are there after', async ({ browser }) => {
+  for (const width of [1440, 390]) {
+    const { page, id } = await guestAt(browser, width, width < 600 ? 844 : 900)
+    try {
+      if (!(await askPanel(page).count())) await askToggle(page).click()
+      await expect(messageBox(page)).toBeVisible({ timeout: 20000 })
+      await messageBox(page).fill('Welcome! → Next step')
+      await conversation(page).getByRole('button', { name: 'Preview changes', exact: true }).click()
+      const keep = conversation(page).getByRole('button', { name: 'Keep changes', exact: true })
+      await expect(keep).toBeVisible({ timeout: 20000 })
+      const previewed = page.locator('#slateCanvas [data-conversation-preview]')
+      const drawn = await previewed.count()
+      expect(drawn).toBeGreaterThan(0)
+      // The settings take Ask Slatebox's place; the preview stays on the canvas, under the settings' changes.
+      await slateMenu(page).click()
+      await page.getByRole('menuitem', { name: 'Slate settings', exact: true }).click()
+      await expect(settingsPanel(page)).toBeVisible()
+      await expect(askPanel(page)).toHaveCount(0)
+      await expect(previewed).toHaveCount(drawn)
+      // The settings sit beside (or under) the canvas, not over it: the canvas gives them its room.
+      const canvas = (await page.locator('#slateCanvas').boundingBox())!
+      const panel = (await settingsPanel(page).boundingBox())!
+      if (width >= 1000) expect(canvas.x + canvas.width).toBeLessThanOrEqual(panel.x + 1)
+      else expect(canvas.y + canvas.height).toBeLessThanOrEqual(panel.y + 1)
+      await settingsPanel(page).getByRole('button', { name: 'Close slate settings' }).click()
+      // Back as it was: Keep is offered and the preview is drawn.
+      await expect(askPanel(page)).toBeVisible()
+      await expect(keep).toBeEnabled()
+      await expect(previewed).toHaveCount(drawn)
+      // Words typed and not sent stay too.
+      await conversation(page).getByRole('button', { name: 'Discard preview', exact: true }).click()
+      await messageBox(page).fill('add three steps for onboarding')
+      await slateMenu(page).click()
+      await page.getByRole('menuitem', { name: 'Slate settings', exact: true }).click()
+      await expect(askPanel(page)).toHaveCount(0)
+      await askToggle(page).click()
+      await expect(settingsPanel(page)).toBeHidden()
+      await expect(messageBox(page)).toHaveValue('add three steps for onboarding')
+      // Closed by the person, Ask Slatebox lets go of what it held.
+      await askPanel(page).getByRole('button', { name: 'Close conversation', exact: true }).click()
+      await askToggle(page).click()
+      await expect(messageBox(page)).toHaveValue('')
+    } finally { await removeTestGuest(page, id); await page.context().close() }
+  }
+})
+
+test('Export or Embed left open does not follow to another slate', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  const actor: Actor = { page, email: `staging-ui-out-${Date.now()}@example.com`, id: null }
+  try {
+    const first = await register(actor, '/new')
+    await page.goto(new URL('/canvas/' + first, origin).href)
+    await dismissWelcome(page)
+    await page.goto(new URL('/new', origin).href)
+    await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
+    await dismissWelcome(page)
+    await slateMenu(page).click()
+    await page.getByRole('menuitem', { name: 'Export', exact: true }).click()
+    await expect(page.getByRole('dialog', { name: 'Export' })).toBeVisible()
+    // To the first slate inside the app, as the browser's back button does: the page is not reloaded.
+    await page.evaluate((key) => { history.pushState({}, '', '/canvas/' + key); dispatchEvent(new PopStateEvent('popstate')) }, first)
+    await page.waitForURL(new RegExp('/canvas/' + first + '$'))
+    await dismissWelcome(page)
+    await expect.poll(() => page.evaluate(() => (window as any).slate?.shareId)).toBe(first)
+    await page.waitForTimeout(1000)
+    await expect(page.getByRole('dialog', { name: 'Export' })).toHaveCount(0)
+  } finally { await retire(actor).catch(() => {}); await page.close() }
 })
 
 test('Export and Embed open from the slate menu only; the slate settings hold neither', async ({ browser }) => {
