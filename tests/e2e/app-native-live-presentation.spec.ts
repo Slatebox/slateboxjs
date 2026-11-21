@@ -8,12 +8,12 @@ const button = (page:Page, name:string) => page.getByRole('button',{name,exact:t
 const deck = (page:Page) => page.getByRole('dialog',{name:'Live presentation'})
 const note = (page:Page,id:string) => page.locator('#slateCanvas [data-node-id="'+id+'"]').first()
 
-// Restated 2026-11-21: live presenting uses the presenter. The presenter's counter and the
-// follower's status say which viewpoint is shown; the camera frames that note.
+// Restated 2026-11-21: live presenting uses the presenter. Its status, for the presenter and
+// for a follower, says which viewpoint is shown; the camera frames that note.
 async function expectNativeView(page:Page,id:string,label:string,index:number) {
   const player=deck(page)
-  if (await player.getByRole('status').count()) await expect(player.getByRole('status')).toContainText(index+' of 6')
-  else await expect(stepCounter(player)).toHaveText(index+' / 6')
+  // Presenting or following, the presenter's status says which viewpoint is shown.
+  await expect(player.getByRole('status')).toContainText(index+' of 6')
   await expect(player.locator('.sb-presentation-narrative')).toHaveText(label)
   await expectFramed(player,[id])
 }
