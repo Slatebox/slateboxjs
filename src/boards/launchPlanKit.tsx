@@ -106,7 +106,7 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     const week = d % 7 === 0
     if (!week && g.dayW < 6) continue
     shapes.push({ t: 'line', x1: x, y1: g.gridTop, x2: x, y2: g.height - 8, color: week ? layerInk.week : layerInk.faint, width: week ? 1 : 0.5 })
-    if (week) shapes.push({ t: 'text', x: x + 3, y: g.axisY, text: g.narrow ? 'W' + (d / 7 + 1) : 'Week ' + (d / 7 + 1), color: layerInk.ink, size: 11 })
+    if (week) shapes.push({ t: 'text', x: x + 3, y: g.axisY, text: g.narrow ? 'W' + (d / 7 + 1) : 'Week ' + (d / 7 + 1), color: layerInk.ink, size: 12 })
   }
   // What waits on what: elbows into each task, the critical ones in the critical colour. Click one to remove it.
   for (const card of board.cards) {
@@ -120,7 +120,7 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     }
     const t = times.get(card.id)!, box = g.bars.get(card.id)!
     if (g.narrow) shapes.push({ t: 'text', x: 8, y: box.y - 6, text: `${card.label} · ${card.duration}d`, color: layerInk.ink, size: 13, bold: t.critical })
-    if (!t.critical) shapes.push({ t: 'text', x: box.x + box.width + 24, y: box.y + box.height / 2 + 4, text: '+' + t.slack + 'd', color: layerInk.ink, size: 11, role: 'slack-' + card.id })
+    if (!t.critical) shapes.push({ t: 'text', x: box.x + box.width + 24, y: box.y + box.height / 2 + 4, text: '+' + t.slack + 'd', color: layerInk.ink, size: 12, role: 'slack-' + card.id })
   }
   // Launch day: a line, its grip and its label.
   const lx = g.x0 + day * g.dayW
