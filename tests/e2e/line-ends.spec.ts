@@ -121,6 +121,40 @@ test.describe("a selected line's ends", () => {
     expect(all[0].targetPoint).not.toBeNull();
   });
 
+  test("a line handed to another note keeps an id no other line has, when the first note connects again", async ({ page }) => {
+    await setup(page);
+    await selectLine(page);
+    await drag(page, await handleAt(page, "source"), { x: 120, y: 560 });
+    // B now holds A->B, with a free end. A connects to B again, in each way a line is made.
+    await page.evaluate(async () => {
+      const s = (window as any).__slate;
+      s.v2.nodes.one("A").relationships.addAssociation(s.v2.nodes.one("B"));
+      s.v2.nodes.one("A").relationships.addFloatingAssociation({ x: 40, y: 40 }, { childId: "B" } as any);
+    });
+    let ids = (await lines(page)).map((l) => l.id);
+    expect(ids).toHaveLength(3);
+    expect(new Set(ids).size).toBe(3);
+    // And after saving and loading the slate.
+    ids = await page.evaluate(async () => {
+      const s = (window as any).__slate;
+      const json = s.exportJSON();
+      await s.loadJSON(json);
+      await new Promise((r) => setTimeout(r, 400));
+      return JSON.parse(s.exportJSON()).nodes.flatMap((n: any) => n.relationships.associations.map((a: any) => a.id));
+    });
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  test("a note whose line was moved onto it takes the line with it when deleted", async ({ page }) => {
+    await setup(page);
+    await selectLine(page);
+    await drag(page, await handleAt(page, "target"), await nodeAt(page, "C"));
+    expect(await lines(page)).toMatchObject([{ owner: "A", id: "A->B", childId: "C" }]);
+    await page.evaluate(() => (window as any).__slate.v2.removeNode("C"));
+    expect(await lines(page)).toEqual([]);
+    await expect(page.locator('#slateCanvas path[connectortype="default"]')).toHaveCount(0);
+  });
+
   test("a free end dropped on a note's middle attaches and follows it", async ({ page }) => {
     await setup(page);
     await selectLine(page);
@@ -233,5 +267,71 @@ test.describe("the line tool", () => {
     await expect(page.locator("#slateCanvas .line-tool-preview")).toHaveCount(0);
     expect((await lines(page)).length).toBe(3);
     expect(await count()).toBe(3);
+  });
+
+  test("stops when the note it started from is deleted, and draws nothing from it", async ({ page }) => {
+    await setup(page);
+    const before = await lines(page);
+    await page.evaluate(() => { const s = (window as any).__slate; (window as any).__drawn = s.v2.startLineFrom(s.v2.nodes.one("A")); });
+    await page.mouse.move(400, 600);
+    await page.evaluate(() => (window as any).__slate.v2.removeNode("A"));
+    expect(await page.evaluate(() => (window as any).__drawn)).toMatchObject({ result: "cancelled" });
+    expect(await page.evaluate(() => (window as any).__slate.v2.isDrawingLine())).toBe(false);
+    await expect(page.locator("#slateCanvas .line-tool-preview")).toHaveCount(0);
+    const c = await nodeAt(page, "C");
+    await page.mouse.click(c.x, c.y);
+    expect((await lines(page)).filter((l) => l.childId === "C")).toEqual([]);
+    expect(before.length).toBe(1);
+  });
+
+  test("stops when the slate is replaced (undo) or destroyed", async ({ page }) => {
+    await setup(page);
+    // The slate loaded again: the note is a new one under the same id.
+    await page.evaluate(() => { const s = (window as any).__slate; (window as any).__drawn = s.v2.startLineFrom(s.v2.nodes.one("A")); });
+    await page.evaluate(async () => { const s = (window as any).__slate; await s.loadJSON(s.exportJSON()); });
+    expect(await page.evaluate(() => (window as any).__drawn)).toMatchObject({ result: "cancelled" });
+    await page.evaluate(() => { const s = (window as any).__slate; (window as any).__drawn = s.v2.startLineFrom(s.v2.nodes.one("A")); });
+    await page.evaluate(() => (window as any).__slate.v2.destroy());
+    expect(await page.evaluate(() => (window as any).__drawn)).toMatchObject({ result: "cancelled" });
+  });
+});
+
+test.describe("the line tool with touch", () => {
+  test.use({ hasTouch: true });
+
+  test("a pan or a pinch draws nothing; a tap leaves the end free there", async ({ page }) => {
+    await setup(page);
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type: string, points: Array<{ x: number; y: number }>) =>
+      cdp.send("Input.dispatchTouchEvent", { type, touchPoints: points.map((p, i) => ({ ...p, id: i + 1 })) });
+    await page.evaluate(() => { const s = (window as any).__slate; (window as any).__drawn = s.v2.startLineFrom(s.v2.nodes.one("A")); });
+
+    // One finger dragging across the canvas (a pan).
+    await touch("touchStart", [{ x: 420, y: 600 }]);
+    for (let i = 1; i <= 8; i++) {
+      await touch("touchMove", [{ x: 420 + i * 12, y: 600 - i * 8 }]);
+      await page.waitForTimeout(15);
+    }
+    await touch("touchEnd", []);
+    await page.waitForTimeout(400);
+    // Two fingers (a pinch).
+    await touch("touchStart", [{ x: 380, y: 560 }]);
+    await touch("touchStart", [{ x: 380, y: 560 }, { x: 480, y: 620 }]);
+    for (let i = 1; i <= 6; i++) {
+      await touch("touchMove", [{ x: 380 - i * 6, y: 560 - i * 4 }, { x: 480 + i * 6, y: 620 + i * 4 }]);
+      await page.waitForTimeout(15);
+    }
+    await touch("touchEnd", []);
+    await page.waitForTimeout(400);
+    expect(await lines(page)).toHaveLength(1);
+    expect(await page.evaluate(() => (window as any).__slate.v2.isDrawingLine())).toBe(true);
+
+    // A tap.
+    await page.touchscreen.tap(400, 640);
+    await page.waitForTimeout(400);
+    expect(await page.evaluate(() => (window as any).__drawn)).toMatchObject({ result: "free" });
+    const free = (await lines(page)).find((l) => l.targetPoint);
+    const w = await world(page, { x: 400, y: 640 });
+    expect(Math.abs(free!.targetPoint.x - w.x)).toBeLessThan(3);
   });
 });

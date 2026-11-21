@@ -72,6 +72,27 @@ describe("Relationships", () => {
     });
   });
 
+  describe("ids across the slate", () => {
+    // A line keeps its id when its starting end moves to another note, so the note
+    // that holds `node1->child1` may not be node1. A new line takes an id no line has.
+    it("a new line takes an id no other note's line has", () => {
+      const other = { id: "child1", relationships: { hasAssociationId: (id: string) => id === "node1->child1" } };
+      mockSlate.nodes.allNodes = [mockNode, other];
+      const rels = new Relationships(mockNode);
+      mockNode.relationships = rels;
+      expect(rels.addAssociation(mockChildNode).id).toBe("node1->child1~2");
+      expect(rels.addAssociation(mockChildNode).id).toBe("node1->child1~3");
+      expect(rels.addFloatingAssociation({ x: 1, y: 1 }, { childId: "child1" } as any).id).toBe("node1->child1~4");
+    });
+
+    it("a line given its id keeps it", () => {
+      const other = { id: "child1", relationships: { hasAssociationId: (id: string) => id === "node1->child1" } };
+      mockSlate.nodes.allNodes = [mockNode, other];
+      const rels = new Relationships(mockNode);
+      expect(rels.addAssociation(mockChildNode, { id: "node1->child1" }).id).toBe("node1->child1");
+    });
+  });
+
   describe("removeAssociation", () => {
     it("should remove an existing association", () => {
       mockSlate.nodes.one.mockReturnValue(mockChildNode);
