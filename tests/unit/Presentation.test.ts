@@ -86,6 +86,23 @@ describe("Presentation", () => {
     expect(lamp.childrenNodes).toHaveLength(0);
   });
 
+  it("measures from the drawing's origin when the host gives one, so the layout lines up with its SVG export", () => {
+    // A host plays the presentation over the SVG export, whose origin is the whole drawing's
+    // top-left less its padding (decoration such as a lane's column included), not the stops'.
+    mockSlate.nodes.allNodes = [
+      { id: "column-a", options: { x: 990, y: 980, width: 240, height: 300 } },
+      { id: "lane-a", options: { x: 996, y: 986, width: 228, height: 58 } },
+      { id: "card-a", options: { x: 1006, y: 1078, width: 208, height: 70 } },
+    ];
+    mockSlate.capabilitiesOf = (node: any) => ({ canSelect: !/^column-/.test(node.id) });
+    const presentation = new Presentation(mockSlate);
+    const boxes = (layout: any) => layout.nodes.map((node: any) => [node.nodeId, node.metrics.bbox.x, node.metrics.bbox.y]);
+    expect(boxes(presentation.extractPresentationLayout({ orientData: { left: 980, top: 970, width: 260, height: 320 } })))
+      .toEqual([["lane-a", 16, 16], ["card-a", 26, 108]]);
+    // Without one, it measures from the stops' own top-left, as before.
+    expect(boxes(presentation.extractPresentationLayout())).toEqual([["lane-a", 0, 0], ["card-a", 10, 92]]);
+  });
+
   describe("decoration a host draws (a drag policy's canSelect: false)", () => {
     let presentation: Presentation;
     beforeEach(() => {

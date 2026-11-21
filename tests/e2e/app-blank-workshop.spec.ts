@@ -2,7 +2,7 @@ import {laneChat, sendLaneEdit, expectRejectedLaneEdit} from './workshop-convers
 import { expect, test, type Page } from '@playwright/test'
 import type { Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
-import { expectWorkshopSlide } from './workshop-slide.shared'
+import { exitWithEscape, expectLane, nextView, openPresenter } from './app-presenter.shared'
 import { announced, caption, dragCard, laneOfCard, placementOutcomes, resting, slateTitle, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -84,13 +84,15 @@ test('two editors build a blank workshop, fill a lane and present their saved ch
     const saved = await model()
     expect(saved.cards.map(card => card.laneId)).toEqual([booth.id,source.id])
     expect(saved.lanes).toEqual(authored.lanes)
-    await button(owner, 'Present').click()
-    await expectWorkshopSlide(owner, 'Field recordings', [second.label], ['lane-' + source.id, 'card-' + second.id])
-    await button(owner, 'Next lane').click()
-    await button(owner, 'Next lane').click()
-    await expectWorkshopSlide(owner, booth.label, [first.label], ['lane-' + booth.id,'card-' + first.id])
+    // Restated 2026-11-21: Present opens the presenter (the readout's Next lane / Back to board are gone).
+    const deck = await openPresenter(owner)
+    await nextView(owner, deck)
+    await expectLane(deck, 'Field recordings', source.id, [second.id])
+    await nextView(owner, deck)
+    await nextView(owner, deck)
+    await expectLane(deck, booth.label, booth.id, [first.id])
+    await exitWithEscape(owner, deck)
     await expect(report(owner)).toContainText('The tide recording is playing.')
-    await button(owner, 'Back to board').click()
     await expect(laneChat(owner).getByRole('textbox')).toBeVisible()
   } finally {
     try {

@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { presentToEveryone } from './app-header.shared'
+import { camera, nextView, openPresenter, stepCounter } from './app-presenter.shared'
 import { randomUUID } from 'node:crypto'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from "./workshop-guests.shared";
 
@@ -105,16 +106,15 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
     await expect(editedNode(owner)).toHaveCount(1,{timeout:25_000});
     const id = await editedNode(peer).getAttribute("data-node-id");
     expect(await editedNode(owner).getAttribute("data-node-id")).toBe(id);
-    await peer.getByRole("button",{name:"Present",exact:true}).click();
-    const presentation = peer.getByRole("dialog",{name:"Board presentation"});
-    await expect(presentation.locator(".sb-playback-surface g[data-node-id]").filter({hasText:note})).toHaveCount(1);
-    const step = presentation.locator("footer [aria-live]");
-    await expect(step).toContainText("1 of 2");
-    await presentation.getByRole("button",{name:"Next",exact:true}).click();
-    await expect(step).toContainText("2 of 2");
+    // Restated 2026-11-21: Present opens the presenter over the slate's own drawing.
+    const presentation = await openPresenter(peer);
+    await expect(camera(presentation).locator("svg g[data-node-id]").filter({hasText:note})).toHaveCount(1);
+    await expect(stepCounter(presentation)).toHaveText("0 / 2",{timeout:30_000});
+    await nextView(peer,presentation);
+    await nextView(peer,presentation);
     await presentation.getByRole("button",{name:"Previous",exact:true}).click();
-    await expect(step).toContainText("1 of 2");
-    await presentation.getByRole("button",{name:"Exit presentation"}).click();
+    await expect(stepCounter(presentation)).toHaveText("1 / 2");
+    await presentation.getByRole("button",{name:"Exit presentation",exact:true}).click();
     await expect(presentation).toHaveCount(0);
     // A live Yjs room can also restore a node after reload. Verify the same
     // owner-scoped document that the editor fetches from Meteor has the edit.
@@ -427,16 +427,20 @@ test('a research handoff carries the team’s edited prototype into a shared pre
     const prototype = 'Let a customer undo the sample import'
     await editNote(teammate, 'test', prototype)
     await expect(owner.locator('#slateCanvas g[data-node-id="test"]')).toHaveAccessibleName(prototype)
+    // Restated 2026-11-21: the presenter leads and the follower's presenter follows its viewpoints.
     await presentToEveryone(owner)
+    const lead = owner.getByRole('dialog', {name:'Live presentation'})
+    await expect(stepCounter(lead)).toHaveText('0 / 4', {timeout:30_000})
+    await nextView(owner, lead)
     await teammate.getByRole('button', {name:'Follow presentation', exact:true}).tap()
     const presentation = teammate.getByRole('dialog', {name:'Live presentation'})
-    const slide = presentation.locator('footer [aria-live]')
+    const slide = presentation.getByRole('status')
     await expect(slide).toContainText('1 of 4')
     for (const position of [2, 3, 4]) {
-      await owner.getByRole('button', {name:'Next', exact:true}).click()
+      await lead.getByRole('button', {name:'Next', exact:true}).click()
       await expect(slide).toContainText(position + ' of 4')
     }
-    await expect(slide).toContainText(prototype)
+    await expect(presentation.locator('.sb-presentation-narrative')).toContainText(prototype)
     await owner.getByRole('button', {name:'End presentation', exact:true}).click()
     await expect(presentation).toHaveCount(0)
     await teammate.reload()

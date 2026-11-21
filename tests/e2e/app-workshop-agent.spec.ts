@@ -8,6 +8,7 @@ import { expect, test } from '@playwright/test'
 import { cliResult, derivedKey, installedTools, lit, mcpExec } from './agent-exec.shared'
 import { dismissWelcome, getSlate, shareAs, userId } from './workshop-guests.shared'
 import { conversation, standing, workshopReady } from './app-native-workshop.shared'
+import { expectLane, nextView, openPresenter } from './app-presenter.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 
@@ -129,11 +130,15 @@ return slatebox.slates.applyOperations({ shareId: ${lit(shareId)}, mode: "previe
     await dismissWelcome(reader)
     await workshopReady(reader)
     await expect(standing(reader)).toContainText('Team · Ask finance')
-    await reader.getByRole('button', { name: 'Present', exact: true }).click()
-    const player = reader.getByRole('region', { name: 'Decision presentation' })
-    await player.getByRole('button', { name: 'Next station' }).click()
-    await expect(player.getByRole('heading', { name: 'Ask finance', exact: true })).toBeVisible()
-    await expect(player.getByRole('listitem').filter({ hasText: /^Team$/ })).toHaveCount(1)
+    // Restated 2026-11-21: Present opens the presenter; the second step frames Ask finance and the team's card.
+    const presented = (await getSlate(reader, invite.pathname.split('/').pop()!)).creative.model.workshop
+    const askFinance = presented.lanes.find((lane: { label: string }) => lane.label === 'Ask finance')
+    const held = presented.cards.filter((item: { laneId: string }) => item.laneId === askFinance.id)
+    expect(held.map((item: { label: string }) => item.label)).toEqual(['Team'])
+    const player = await openPresenter(reader)
+    await nextView(reader, player)
+    await nextView(reader, player)
+    await expectLane(player, 'Ask finance', askFinance.id, held.map((item: { id: string }) => item.id))
     expect(await userId(reader)).toBeNull()
     console.info('Independent read invitation presented the team token at the saved station.')
   } finally {

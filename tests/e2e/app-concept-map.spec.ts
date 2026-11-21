@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { resumeArchivedDraft } from './workshop-archive.shared'
 import { sendMapEdit } from './map-conversation.shared'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
-import { expectWorkshopSlide } from './workshop-slide.shared'
+import { exitWithEscape, expectLane, nextView, openPresenter } from './app-presenter.shared'
 import { nightTransfer } from '../../src/workshops/model'
 import { cardIdNamed, closeConversation, conversation, dragCard, dragCardNamed, holdCardOver, isOffered, lane, laneIdNamed, selectLaneNamed, slateTitle, standing, workshopReady } from './app-native-workshop.shared'
 
@@ -55,15 +55,17 @@ test('author a branching concept map, follow a consequence, present and reopen t
     await dismissWelcome(page)
     await workshopReady(page)
     await expect(standing(page)).toContainText('Last rider · Depot')
-    await page.getByRole('button',{name:'Present',exact:true}).click()
-    const player = page.getByRole('region',{name:'Decision presentation'})
-    for (let step=1; step<state.lanes.length && !(await player.getByRole('heading',{name:'Depot',exact:true}).isVisible()); step++) {
-      await player.getByRole('button',{name:'Next station'}).click()
+    // Restated 2026-11-21: Present opens the presenter; the map's steps are its first viewpoints.
+    const player = await openPresenter(page)
+    const narrative = player.locator('.sb-presentation-narrative')
+    for (let step=0; step<state.lanes.length; step++) {
+      await nextView(page,player)
+      if ((await narrative.textContent())?.startsWith('Depot')) break
     }
     const dispatcher = state.cards.find((x:{label:string})=>x.label==='Dispatcher')
-    await expectWorkshopSlide(page,'Depot',['Last rider','Dispatcher'],['lane-'+depot.id,'card-rider','card-'+dispatcher.id])
-    await expect(player.getByText('Dispatch records the arrival.',{exact:true}).last()).toBeVisible()
-    await player.getByRole('button',{name:'Back to board'}).click()
+    await expectLane(player,'Depot',depot.id,['rider',dispatcher.id])
+    await expect(narrative).toContainText('Dispatch records the arrival.')
+    await exitWithEscape(page,player)
     await resumeArchivedDraft(page,origin,'map')
     expect(page.url()).toBe(address)
     expect(await saved()).toEqual(state)

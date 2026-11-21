@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
-import { expectWorkshopSlide } from './workshop-slide.shared'
+import { exitWithEscape, expectLane, nextView, openPresenter } from './app-presenter.shared'
 import type { Workshop } from '../../src/workshops/model'
 import { conversation, dragCardNamed, messageBox, note, starter, workshopReady } from './app-native-workshop.shared'
 
@@ -9,16 +9,17 @@ const destination = 'Listening buoy'
 const outcome = 'Record the bell before the tide turns.'
 
 async function presentDestination(page: Page, model: Workshop) {
-  await page.getByRole('button', { name: 'Present', exact: true }).click()
-  const player = page.getByRole('region', { name: 'Decision presentation' })
-  for (const station of model.lanes.slice(0, -1)) {
-    await expect(player.getByRole('heading', { name: station.label, exact: true })).toBeVisible()
-    await player.getByRole('button', { name: 'Next station' }).click()
-  }
+  // Restated 2026-11-21: Present opens the presenter; each step of the map is a viewpoint.
+  const player = await openPresenter(page)
   const branch = model.lanes.find(station => station.label === destination)!
-  await expectWorkshopSlide(page, destination, ['Team'], ['lane-' + branch.id, 'card-' + model.cards[0].id])
-  await expect(player.getByText(outcome, { exact: true }).last()).toBeVisible()
-  await player.getByRole('button', { name: 'Back to board' }).click()
+  for (const station of model.lanes) {
+    await nextView(page, player)
+    if (station === branch) break
+    await expectLane(player, station.label, station.id, model.cards.filter(card => card.laneId === station.id).map(card => card.id))
+  }
+  await expectLane(player, destination, branch.id, [model.cards[0].id])
+  await expect(player.locator('.sb-presentation-narrative')).toContainText(outcome)
+  await exitWithEscape(page, player)
 }
 
 test('create a private interactive map from Start, author a branch and share the saved outcome', async ({ browser }) => {
