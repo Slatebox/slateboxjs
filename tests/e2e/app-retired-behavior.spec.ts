@@ -109,6 +109,7 @@ test('chat and exec set what the dialog kept: a category and hidden controls rea
     expect(created.status()).toBe(201)
     const { shareId, url, diagram } = await created.json()
     const costs = diagram.nodes.find((n: any) => n.text === 'Costs').id as string
+    const rent = diagram.nodes.find((n: any) => n.text === 'Rent').id as string
     const endpoint = new URL('/api/v1/slates/' + shareId + '/operations', origin).href
     const revision = async () => (await (await request.get(new URL('/api/v1/slates/' + shareId, origin).href, { headers })).json()).revision
     const save = async (operations: object[], userMessage: string) =>
@@ -124,49 +125,60 @@ test('chat and exec set what the dialog kept: a category and hidden controls rea
 
     const live = (page: Page, id: string) => page.evaluate((id) => {
       const o = JSON.parse((window as any).slate.exportJSON()).nodes.find((n: any) => n.options.id === id)?.options ?? {}
-      return { isCategory: o.isCategory === true, categoryName: o.categoryName ?? null, showColorTab: o.showColorTab !== false, showShapeTab: o.showShapeTab !== false }
+      return { isCategory: o.isCategory === true, categoryName: o.categoryName ?? null, showColorTab: o.showColorTab !== false, showTextTab: o.showTextTab !== false, showShapeTab: o.showShapeTab !== false }
     }, id)
     const both = async (id: string, want: Record<string, unknown>) => {
       for (const page of [owner, peer]) await expect.poll(() => live(page, id), { timeout: 15_000 }).toEqual(want)
     }
 
-    // "Make Costs a category, and keep people from recolouring or reshaping it."
-    const made = await save([{ kind: 'update_nodes', target: { ids: [costs] }, changes: { category: 'Costs', hiddenControls: ['color', 'shape'] } }],
-      'make Costs a category and stop people recolouring or reshaping it')
+    // "Make Costs a category, and keep people from restyling it."
+    const made = await save([{ kind: 'update_nodes', target: { ids: [costs] }, changes: { category: 'Costs', hiddenControls: ['color', 'text', 'shape'] } }],
+      'make Costs a category and stop people restyling it')
     expect(made.status(), await made.text()).toBe(201)
-    const set = { isCategory: true, categoryName: 'Costs', showColorTab: false, showShapeTab: false }
+    const set = { isCategory: true, categoryName: 'Costs', showColorTab: false, showTextTab: false, showShapeTab: false }
     await both(costs, set)
     const stored = (await getSlate(owner, shareId)).nodes.find((n: any) => n.options.id === costs).options
-    expect([stored.isCategory, stored.categoryName, stored.showColorTab, stored.showShapeTab]).toEqual([true, 'Costs', false, false])
+    expect([stored.isCategory, stored.categoryName, stored.showColorTab, stored.showTextTab, stored.showShapeTab]).toEqual([true, 'Costs', false, false, false])
 
     // The bar leaves those controls off that note, on both screens; Rent keeps them.
+    // Desktop names each control; the phone bar groups them as Colour and Style.
     for (const page of [owner, peer]) {
+      const phone = page === peer
+      const restyle = phone ? ['Colour', 'Style'] : ['Fill colour', 'Border', 'Shape']
       await select(page, 'Costs')
       await expect(bar(page).getByRole('button', { name: 'More', exact: true })).toBeVisible()
-      await expect(bar(page).getByRole('button', { name: 'Fill colour' })).toHaveCount(0)
-      await expect(bar(page).getByRole('button', { name: 'Shape' })).toHaveCount(0)
-      if (shots) await page.screenshot({ path: `${shots}/hidden-controls-${page === owner ? 1440 : 390}.png` })
+      for (const name of restyle) await expect(bar(page).getByRole('button', { name, exact: true })).toHaveCount(0)
+      if (!phone) await expect(bar(page).getByRole('radio', { name: 'Large text', exact: true })).toHaveCount(0)
+      if (shots) await page.screenshot({ path: `${shots}/hidden-controls-${phone ? 390 : 1440}.png` })
       await select(page, 'Rent')
-      await expect(bar(page).getByRole('button', { name: 'Fill colour' })).toBeVisible()
+      for (const name of restyle) await expect(bar(page).getByRole('button', { name, exact: true })).toBeVisible()
     }
 
-    // A read says so, and both screens agree after a reload.
+    // A read says so.
     const read = await (await request.get(new URL('/api/v1/slates/' + shareId, origin).href, { headers })).json()
-    const readCosts = JSON.stringify(read)
-    expect(readCosts).toContain('"category":"Costs"')
-    for (const page of [owner, peer]) {
-      await page.reload()
-      await page.waitForFunction(() => Boolean((window as any).slate?.exportJSON))
-      await expect.poll(() => live(page, costs), { timeout: 15_000 }).toEqual(set)
-    }
+    expect(JSON.stringify(read)).toContain('"category":"Costs"')
 
-    // "Costs is an ordinary note again; let people restyle it."
+    // "Costs is an ordinary note again; let people restyle it." Then Rent becomes a category.
     const cleared = await save([{ kind: 'update_nodes', target: { ids: [costs] }, changes: { category: null, hiddenControls: [] } }], 'make Costs an ordinary note again')
     expect(cleared.status(), await cleared.text()).toBe(201)
-    const plain = { isCategory: false, categoryName: null, showColorTab: true, showShapeTab: true }
+    const plain = { isCategory: false, categoryName: null, showColorTab: true, showTextTab: true, showShapeTab: true }
     await both(costs, plain)
     await select(owner, 'Costs')
     await expect(bar(owner).getByRole('button', { name: 'Fill colour' })).toBeVisible()
+    await select(peer, 'Costs')
+    await expect(bar(peer).getByRole('button', { name: 'Colour', exact: true })).toBeVisible()
+    expect((await save([{ kind: 'update_nodes', target: { text: 'Rent' }, changes: { category: 'Rent' } }], 'make Rent a category')).status()).toBe(201)
+    const rentCategory = { isCategory: true, categoryName: 'Rent', showColorTab: true, showTextTab: true, showShapeTab: true }
+    await both(rent, rentCategory)
+
+    // What is stored is what both screens show, and a reload keeps it.
+    const storedNow = (await getSlate(owner, shareId)).nodes
+    const storedOf = (id: string) => { const o = storedNow.find((n: any) => n.options.id === id).options; return { isCategory: o.isCategory === true, categoryName: o.categoryName ?? null, showColorTab: o.showColorTab !== false, showTextTab: o.showTextTab !== false, showShapeTab: o.showShapeTab !== false } }
+    expect([storedOf(costs), storedOf(rent)]).toEqual([plain, rentCategory])
+    await owner.reload()
+    await owner.waitForFunction(() => Boolean((window as any).slate?.exportJSON))
+    await expect.poll(() => live(owner, costs), { timeout: 15_000 }).toEqual(plain)
+    await expect.poll(() => live(owner, rent), { timeout: 15_000 }).toEqual(rentCategory)
   } finally {
     await owner.evaluate((id) => (window as any).Meteor.callAsync('apiTokens.revoke', id), issued.id).catch(() => undefined)
     await peerContext.close()
