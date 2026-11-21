@@ -279,7 +279,7 @@ function E(t, i = {}) {
       s.push({ name: "column-" + y.id, x: w, y: 30, width: h, height: 72, fill: M(c(y.id), 0.6), line: M(c(y.id), 0.1) }), s.push({ name: "lane-" + y.id, x: w + 4, y: 34, width: h - 8, height: 28, text: y.label, fill: c(y.id), fontSize: 14 }), s.push({ name: "caption-" + y.id, x: w + 4, y: 64, width: h - 8, height: 34, text: "", fill: "transparent", lineWidth: 0, fontSize: 11 });
     }), m = 124, f = 130, x = 138;
     for (const y of t.cards)
-      u(y.id, x + 20), x += 72;
+      u(y.id, x + 20), x += 64;
   } else {
     m = 48, f = 56, x = f;
     for (const h of t.lanes) {

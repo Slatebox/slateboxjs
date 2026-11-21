@@ -62,7 +62,8 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
     axisY = 124
     gridTop = 130
     y = 138
-    for (const card of board.cards) { bar(card.id, y + 20); y += 72 }
+    // Each row: its words, then a 44px bar, with 4px between one bar and the next row's words.
+    for (const card of board.cards) { bar(card.id, y + 20); y += 64 }
   } else {
     axisY = 48
     gridTop = 56
