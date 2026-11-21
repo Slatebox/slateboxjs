@@ -15,7 +15,7 @@ import { v1AssociationToV2, v1NodeToV2, v2NodeToV1 } from '../core/compat'
 import type { NodeJSON } from '../core/Serialization'
 import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type WorldPoint } from '../core/DragPolicy'
 import {
-  businessKind, validateWorkshop, workshopCandidate, workshopCardNoteText, readNoteNumbers, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLookOf, workshopDestinations,
+  businessKind, validateWorkshop, workshopCandidate, workshopCardNoteText, workshopRules, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLookOf, workshopDestinations,
   workshopLaneCaption, workshopLanePlaces, workshopNodeIds, workshopNoteCandidate, workshopNoteRefusal, workshopRefusal,
   workshopStandInId, workshopTakesNotes, workshopToSlate, type Workshop, type WorkshopBoardLayout, type WorkshopCard,
   type WorkshopCardAsNote, type WorkshopCardLook, type WorkshopNoteOffer, type WorkshopNoteStyle,
@@ -441,11 +441,11 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       let label = text.replace(/\s+/g, ' ').trim()
       const edits: WorkshopEdit[] = []
       // On a business board the numbers typed on a card are its days or its amount.
-      const read = businessKind(value) && target.kind === 'card' ? readNoteNumbers(label) : null
-      if (read?.label) {
+      const business = businessKind(value)
+      const read = business && target.kind === 'card' ? workshopRules(business).renamed(value, target.key, label) : null
+      if (read) {
         label = read.label
-        if (read.days !== undefined && value.kind === 'launch-plan') edits.push({ kind: 'set_task', card: { id: target.key }, duration: read.days })
-        if (read.amount !== undefined && value.kind !== 'launch-plan') edits.push({ kind: 'set_amount', card: { id: target.key }, amount: read.amount })
+        edits.push(...read.edits)
       }
       const rename = target.kind === 'lane' ? { laneId: target.key, label } : { cardId: target.key, label }
       edits.unshift(target.kind === 'lane' ? { kind: 'rename_lane', lane: { id: target.key }, label } : { kind: 'rename_card', card: { id: target.key }, label })

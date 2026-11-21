@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  applyWorkshopEdits, checkWorkshopReplacement, decodeWorkshopFragment, describeWorkshopEdits, encodeWorkshopFragment, launchLinkRefusal,
-  launchPlanLimits, sampleLaunchPlan, scheduleLaunch, validateWorkshop, workshopCandidate, workshopCardAsNote,
-  workshopCardNoteText, workshopLaneCaption, workshopNoteCandidate, workshopNoteRefusal, type Workshop, type WorkshopEdit,
-} from '../../src/workshops/model'
+import { applyWorkshopEdits, checkWorkshopReplacement, decodeWorkshopFragment, describeWorkshopEdits, encodeWorkshopFragment, validateWorkshop, workshopCandidate, workshopCardAsNote, workshopCardNoteText, workshopLaneCaption, workshopNoteCandidate, workshopNoteRefusal, type Workshop, type WorkshopEdit } from '../../src/workshops/model'
+import { launchLinkRefusal, launchPlanLimits, sampleLaunchPlan, scheduleLaunch } from '../../src/workshops/rules'
 import { workshopEditsBetween, launchLinkTargets } from '../../src/boards'
 
 const plan = validateWorkshop(sampleLaunchPlan())

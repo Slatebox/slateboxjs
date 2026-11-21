@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  applyWorkshopEdits, budgetCaption, budgetLimits, budgetRefusal, checkWorkshopReplacement, decodeWorkshopFragment,
-  encodeWorkshopFragment, sampleBudget, validateWorkshop, workshopCandidate, workshopNoteCandidate, workshopNoteRefusal,
-  workshopRefusal, type Workshop, type WorkshopEdit,
-} from '../../src/workshops/model'
+import { applyWorkshopEdits, checkWorkshopReplacement, decodeWorkshopFragment, encodeWorkshopFragment, validateWorkshop, workshopCandidate, workshopNoteCandidate, workshopNoteRefusal, workshopRefusal, type Workshop, type WorkshopEdit } from '../../src/workshops/model'
+import { budgetCaption, budgetLimits, budgetRefusal, sampleBudget } from '../../src/workshops/rules'
 import { workshopEditsBetween, budgetHeader } from '../../src/boards'
 
 const budget = validateWorkshop(sampleBudget())

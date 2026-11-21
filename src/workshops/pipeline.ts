@@ -1,8 +1,11 @@
 // Sales pipeline: deals move through stages one at a time, a won deal needs an amount, a stage
 // may hold only so many deals, and the forecast weighs each open deal by its stage's chance.
-import type { Workshop, WorkshopLane } from './model'
-import type { WorkshopLimits } from './launchPlan'
-import { money } from './numbers'
+import type { Workshop, WorkshopCard, WorkshopLane } from './model'
+// The rule modules take the model's own helpers from the model, so they share its chunk instead of copying it.
+import { registerWorkshopRules, said } from './model'
+import type { BusinessBoardRules, BusinessEditTools, WorkshopLimits } from './kinds'
+import type { WorkshopEdit } from './edits'
+import { amountLimits, amountOf, currencyOf, money, nextCardId, noteNumbers, ownField, renamedNumbers } from './numbers'
 
 const open = (lane: WorkshopLane) => !lane.role
 
@@ -77,7 +80,7 @@ export function pipelineCaption(board: Workshop, laneId: string): string {
 export function pipelineLimits(_board: Workshop, ref: { field: 'amount' | 'target' }): WorkshopLimits {
   return ref.field === 'target'
     ? { field: 'target', min: 1, max: 1e9, reasons: { min: 'A target is more than nothing.', max: 'A target is at most 1,000,000,000.' } }
-    : { field: 'amount', min: 0, max: 1e9, reasons: { min: 'An amount is not below zero.', max: 'An amount is at most 1,000,000,000.' } }
+    : amountLimits
 }
 
 export function samplePipeline(): Workshop {
@@ -99,3 +102,83 @@ export function samplePipeline(): Workshop {
     ],
   }
 }
+
+/** A deal or line item's amount on the board ("Acme\n$25k") and as a note again ("Acme · $25k"). */
+const amountText = (board: Workshop, card: WorkshopCard, between: string) =>
+  card.amount === undefined ? card.label : card.label + between + money(card.amount, board.forecast?.currency ?? board.budget?.currency)
+
+/** The parts a pipeline and a budget share: amounts on cards, read and written the same way. */
+export const amountRules = {
+  readCard(raw: Record<string, unknown>, card: WorkshopCard) {
+    if (raw.amount !== undefined) card.amount = amountOf(raw.amount, 0, 1e9, 'An amount is a whole amount, not below zero.')
+  },
+  cardText: (board: Workshop, card: WorkshopCard) => amountText(board, card, '\n'),
+  noteText: (board: Workshop, card: WorkshopCard) => amountText(board, card, ' · '),
+  renamed(_board: Workshop, cardId: string, text: string) {
+    const read = renamedNumbers(text)
+    return { label: read.label, edits: read.amount !== undefined ? [{ kind: 'set_amount' as const, card: { id: cardId }, amount: read.amount }] : [] }
+  },
+}
+
+/** The pipeline's part of the one gate (see kinds.ts). */
+export const pipelineRules: BusinessBoardRules = {
+  ...amountRules,
+  kind: 'pipeline',
+  cards: [16, 'A pipeline holds up to 16 deals.'],
+  readLane(raw, lane) {
+    if (raw.role !== undefined) {
+      if (raw.role !== 'won' && raw.role !== 'lost') throw new Error('A stage is won, lost or open.')
+      lane.role = raw.role
+    }
+    if (raw.probability !== undefined) lane.probability = amountOf(raw.probability, 0, 1, 'A stage\'s chance is from 0 to 100%.', true)
+  },
+  readBoard(raw, board) {
+    const forecast = ownField(raw, 'forecast', 'A pipeline needs a forecast target.')
+    board.forecast = { target: amountOf(forecast.target, 1, 1e9, 'A target is a whole amount above zero.'), currency: currencyOf(forecast.currency) }
+  },
+  validate: validatePipeline,
+  planMove: planPipelineMove,
+  refusal: pipelineRefusal,
+  caption: pipelineCaption,
+  fromNote(_board, text) {
+    const read = noteNumbers(text)
+    return typeof read === 'string' ? read : { label: read.label, ...(read.amount !== undefined && { amount: read.amount }) }
+  },
+  edit(board: Workshop, edit: WorkshopEdit, t: BusinessEditTools) {
+    const currency = board.forecast!.currency
+    switch (edit.kind) {
+      case 'add_card': {
+        const target = t.lane(edit.lane)
+        const label = edit.label?.trim()
+        if (!label) t.refuse('Say what the card should say, such as “Add Docs to ' + target.label + '”.', { laneId: target.id })
+        const card: WorkshopCard = { id: nextCardId(board), label, laneId: target.id }
+        if (edit.amount !== undefined) {
+          if (!Number.isInteger(edit.amount) || edit.amount < amountLimits.min) t.refuse(amountLimits.reasons.min, { laneId: target.id, limits: amountLimits })
+          if (edit.amount > amountLimits.max) t.refuse(amountLimits.reasons.max, { laneId: target.id, limits: amountLimits })
+          card.amount = edit.amount
+        }
+        if (target.role) t.refuse('A new deal starts in an open stage, not in ' + target.label + '.', { laneId: target.id })
+        const held = board.cards.filter(item => item.laneId === target.id).length
+        if (target.capacity !== undefined && held >= target.capacity) t.refuse(target.label + ' already holds ' + held + ' of ' + target.capacity + ' deals.', { laneId: target.id })
+        return t.done(t.settle({ ...board, cards: [...board.cards, card] }, target.id), 'Added ' + said(label) + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: card.id })
+      }
+      case 'set_amount': {
+        const item = t.card(edit.card)
+        const at = { laneId: item.laneId, cardId: item.id, limits: amountLimits }
+        if (!Number.isInteger(edit.amount) || edit.amount < amountLimits.min || edit.amount > amountLimits.max) {
+          t.refuse(edit.amount < amountLimits.min ? amountLimits.reasons.min : amountLimits.reasons.max, at)
+        }
+        item.amount = edit.amount
+        return t.done(t.settle(board, item.laneId, item.id), said(item.label) + ' is now ' + money(edit.amount, currency) + '.', { laneId: item.laneId, cardId: item.id })
+      }
+      case 'set_target': {
+        const limits = pipelineLimits(board, { field: 'target' })
+        if (!Number.isInteger(edit.amount) || edit.amount < 1 || edit.amount > limits.max) t.refuse(edit.amount < 1 ? limits.reasons.min! : limits.reasons.max!, { limits })
+        board.forecast!.target = edit.amount
+        return t.done(t.settle(board), 'The target is now ' + money(edit.amount, currency) + '.')
+      }
+    }
+    return null
+  },
+}
+registerWorkshopRules(pipelineRules)

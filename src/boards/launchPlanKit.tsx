@@ -1,10 +1,8 @@
 // Launch plan kit: tasks as bars in team swimlanes on a day grid, arrows for what waits on what,
 // the critical path, and a launch-day line. Bars slide (lag), stretch (length) and link by Dragology.
 import { lessThan, moreThan, param } from 'dragology'
-import {
-  laneColors, launchFinish, launchLinkRefusal, launchOverrun, launchPlanLimits, scheduleLaunch,
-  withLink, withTaskValue, type BoardLayerState, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type PartPlace, type WorkshopEdit,
-} from '../workshops/model'
+import { laneColors, type BoardLayerState, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type PartPlace, type WorkshopEdit } from '../workshops/model'
+import { launchFinish, launchLinkRefusal, launchOverrun, launchPlanLimits, scheduleLaunch, withLink, withTaskValue } from '../workshops/launchPlan'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
 import { headlessDrag, inside, partsGeometry } from '../workshops/boardSpecs'
 import { tint } from './shared'

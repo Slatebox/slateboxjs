@@ -1,12 +1,15 @@
 // Launch plan: tasks in team lanes, each with a length in days, a lag and the tasks it waits on.
 // Starts are never stored: scheduleLaunch derives them, and every task must end by launch day.
 import type { Workshop, WorkshopCard } from './model'
-import { days } from './numbers'
+// The rule modules take the model's own helpers from the model, so they share its chunk instead of copying it.
+import { registerWorkshopRules, said } from './model'
+import type { BusinessBoardRules, BusinessEditTools, WorkshopLimits } from './kinds'
+import type { WorkshopEdit } from './edits'
+import { amountOf, days, nextCardId, noteNumbers, ownField, renamedNumbers } from './numbers'
 
 export interface TaskTimes { start: number; end: number; slack: number; critical: boolean }
 
-/** A numeric edit's legal range, with the sentence a person gets at each end. */
-export interface WorkshopLimits { field: string; min: number; max: number; reasons: { min?: string; max?: string } }
+export type { WorkshopLimits } from './kinds'
 
 /** Each task's start and end day, its slack against the plan's finish, and whether it is on the critical path. */
 export function scheduleLaunch(board: Workshop): Map<string, TaskTimes> {
@@ -197,3 +200,91 @@ export function sampleLaunchPlan(): Workshop {
     ],
   }
 }
+
+/** The launch plan's part of the one gate (see kinds.ts). */
+export const launchPlanRules: BusinessBoardRules = {
+  kind: 'launch-plan',
+  cards: [12, 'A launch plan holds up to 12 tasks.'],
+  readCard(raw, card, read) {
+    card.duration = amountOf(raw.duration, 1, 60, 'A task takes 1 to 60 days.')
+    if (raw.lag !== undefined && raw.lag !== 0) card.lag = amountOf(raw.lag, 0, 120, 'A task waits 0 days or more, and no later than launch.')
+    if (raw.dependsOn !== undefined) {
+      if (!Array.isArray(raw.dependsOn)) throw new Error('A task waits on a list of tasks.')
+      const ids = raw.dependsOn.map(read.id)
+      if (new Set(ids).size !== ids.length) throw new Error('Duplicate dependency.')
+      if (ids.length) card.dependsOn = ids
+    }
+  },
+  readBoard(raw, board) {
+    board.launch = { day: amountOf(ownField(raw, 'launch', 'A launch plan needs a launch day.').day, 5, 120, 'Launch day is a whole day from 5 to 120.') }
+  },
+  validate: validateLaunchPlan,
+  planMove: planLaunchPlanMove,
+  caption: launchPlanCaption,
+  cardText: (_board, card) => card.label + ' · ' + card.duration + 'd',
+  noteText: (_board, card) => launchTaskText(card),
+  fromNote(_board, text) {
+    const read = noteNumbers(text)
+    return typeof read === 'string' ? read : { label: read.label, duration: Math.min(60, Math.max(1, read.days ?? 2)) }
+  },
+  renamed(_board, cardId, text) {
+    const read = renamedNumbers(text)
+    return { label: read.label, edits: read.days !== undefined ? [{ kind: 'set_task', card: { id: cardId }, duration: read.days }] : [] }
+  },
+  edit(board: Workshop, edit: WorkshopEdit, t: BusinessEditTools) {
+    switch (edit.kind) {
+      case 'add_card': {
+        const target = t.lane(edit.lane)
+        const label = edit.label?.trim()
+        if (!label) t.refuse('Say what the card should say, such as “Add Docs to ' + target.label + '”.', { laneId: target.id })
+        const card: WorkshopCard = { id: nextCardId(board), label, laneId: target.id, duration: edit.duration ?? 2 }
+        if (edit.lag) card.lag = edit.lag
+        const waits = [...new Set((edit.waitsOn ?? []).map(ref => t.card(ref).id))]
+        if (waits.length) card.dependsOn = waits
+        const next = { ...board, cards: [...board.cards, card] }
+        const late = launchOverrun(next, card.id)
+        if (late) t.refuse(late, { laneId: target.id })
+        return t.done(t.settle(next, target.id), 'Added ' + said(label) + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: card.id })
+      }
+      case 'set_task': {
+        const task = t.card(edit.card)
+        const at = { laneId: task.laneId, cardId: task.id }
+        if (edit.duration === undefined && edit.lag === undefined) t.refuse('Say how many days ' + said(task.label) + ' takes, or waits.', { ...at, code: 'invalid_edit' })
+        let next: Workshop = board
+        for (const field of ['duration', 'lag'] as const) {
+          const value = edit[field]
+          if (value === undefined) continue
+          const limits = launchPlanLimits(next, { cardId: task.id, field })
+          if (!Number.isInteger(value)) t.refuse('A task\'s days are whole days.', { ...at, limits })
+          const tried = withTaskValue(next, { cardId: task.id, field }, value)
+          if (value < limits.min || value > limits.max) t.refuse(value < limits.min ? limits.reasons.min! : launchOverrun(tried, task.id) ?? limits.reasons.max!, { ...at, limits })
+          next = tried
+        }
+        const now = next.cards.find(item => item.id === task.id)!
+        return t.done(t.settle(next, task.laneId, task.id), said(task.label) + ' now takes ' + days(now.duration!) +
+          (now.lag ? ' and waits ' + days(now.lag) + '.' : '.'), at)
+      }
+      case 'link_tasks': case 'unlink_tasks': {
+        const task = t.card(edit.card), target = t.card(edit.waitsOn)
+        const at = { laneId: task.laneId, cardId: task.id }
+        if (edit.kind === 'unlink_tasks') {
+          if (!task.dependsOn?.includes(target.id)) t.refuse(said(task.label) + ' doesn’t wait on ' + said(target.label) + '.', at)
+          return t.done(t.settle(withLink(board, task.id, target.id, true), task.laneId, task.id), said(task.label) + ' no longer waits on ' + said(target.label) + '.', at)
+        }
+        const why = launchLinkRefusal(board, task.id, target.id)
+        if (why) t.refuse(why, at)
+        return t.done(t.settle(withLink(board, task.id, target.id), task.laneId, task.id), said(task.label) + ' now waits on ' + said(target.label) + '.', at)
+      }
+      case 'set_launch_day': {
+        const limits = launchPlanLimits(board, { field: 'day' })
+        if (!Number.isInteger(edit.day) || edit.day < limits.min || edit.day > limits.max) {
+          const tried = withTaskValue(board, { field: 'day' }, edit.day)
+          t.refuse((edit.day < limits.min && launchOverrun(tried)) || (edit.day < limits.min ? limits.reasons.min! : limits.reasons.max!), { limits })
+        }
+        return t.done(t.settle(withTaskValue(board, { field: 'day' }, edit.day)), 'Launch is now day ' + edit.day + '.')
+      }
+    }
+    return null
+  },
+}
+registerWorkshopRules(launchPlanRules)

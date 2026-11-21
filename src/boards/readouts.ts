@@ -1,7 +1,10 @@
 // What only a drawn business board needs: the edits a canvas change carries, the gauge and header
 // words, and the parts as slate notes. Lazy, with the kits; the rules stay in the model entry.
 import type { NodeJSON } from '../core/Serialization'
-import { launchLinkRefusal, money, pipelineForecast, type PartPlace, type Workshop, type WorkshopEdit, type WorkshopNoteStyle } from '../workshops/model'
+import type { PartPlace, Workshop, WorkshopEdit, WorkshopNoteStyle } from '../workshops/model'
+import { launchLinkRefusal } from '../workshops/launchPlan'
+import { pipelineForecast } from '../workshops/pipeline'
+import { money } from '../workshops/numbers'
 /**
  * The edits that turn `before` into `after` on a launch plan, pipeline or budget: what a canvas
  * change carries (change.edits) so a server applies it with applyWorkshopEdits to the board as it

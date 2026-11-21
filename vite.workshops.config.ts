@@ -47,8 +47,9 @@ export default defineConfig({
   build: {
     emptyOutDir: false,
     lib: {
+      // workshop-rules: the launch plan's, pipeline's and budget's rules for a server (the browser takes them with the kits).
       // boards: the business boards' kits (layout, board layer, Dragology specs), loaded only for a slate that holds one.
-      entry: { dragology: dragologyEntry, workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts', 'workshop-mount': 'src/workshops/mount.ts', operations: 'src/operations/index.ts', boards: 'src/boards/index.ts' },
+      entry: { dragology: dragologyEntry, workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts', 'workshop-rules': 'src/workshops/rules.ts', 'workshop-mount': 'src/workshops/mount.ts', operations: 'src/operations/index.ts', boards: 'src/boards/index.ts' },
       formats: ['es', 'cjs'],
       fileName: (format, entry) => entry + (format === 'es' ? '.mjs' : '.cjs'),
     },

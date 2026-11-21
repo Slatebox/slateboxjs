@@ -3,9 +3,10 @@
 // a team with room for it.
 import { inOrder } from 'dragology'
 import {
-  budgetCaption, budgetCommitted, budgetLimits, budgetRefusal, laneColors, money, shiftBudget, workshopCandidate, workshopDestinations,
-  type BoardLayerState, type PartPlace, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type WorkshopEdit,
+  laneColors, workshopCandidate, workshopDestinations, type BoardLayerState, type PartPlace, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type WorkshopEdit,
 } from '../workshops/model'
+import { budgetCaption, budgetCommitted, budgetLimits, budgetRefusal, shiftBudget } from '../workshops/budget'
+import { money } from '../workshops/numbers'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
 import { headlessDrag, inside, orColumnUnder, partsGeometry } from '../workshops/boardSpecs'
 import { tint } from './shared'
