@@ -1,9 +1,10 @@
 // Sales pipeline kit: stages as lanes under a forecast gauge. A deal is carried to the nearest stage
 // the rules allow; the gauge is drawn from the board on show, so it moves while a deal is in the air.
 import {
-  laneColors, money, pipelineCaption, pipelineForecast, pipelineRefusal, workshopCandidate, workshopDestinations,
-  type BoardLayerState, type PartPlace, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout,
+  laneColors, workshopCandidate, workshopDestinations, type BoardLayerState, type PartPlace, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout,
 } from '../workshops/model'
+import { pipelineCaption, pipelineForecast, pipelineRefusal } from '../workshops/pipeline'
+import { money } from '../workshops/numbers'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
 import { headlessDrag, inside, orColumnUnder, partsGeometry } from '../workshops/boardSpecs'
 import { tint } from './shared'

@@ -53,6 +53,10 @@ try {
     'dist/boards.cjs',
     'dist/boards/index.d.ts',
     'boards/index.js',
+    'dist/workshop-rules.mjs',
+    'dist/workshop-rules.cjs',
+    'dist/workshops/rules.d.ts',
+    'workshops/rules.js',
   ]) {
     if (!paths.has(required)) {
       throw new Error(`Packed artifact is missing ${required}`)

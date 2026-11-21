@@ -18,8 +18,11 @@
   from the stage before Won, holds stage capacities and forecasts Σ amount × chance against
   `forecast.target`. A budget splits `budget.total` between teams (`allocation`, `floor`, `cap`):
   it always balances, and a team's line items must fit what it was given. The rules are pure
-  functions in `slateboxjs/workshops/model` (`validate*`, `plan*Move`, `*Refusal`, `*Caption`,
-  `*Limits`, `sample*`), shared with the server through `validateWorkshop` and
+  functions in `slateboxjs/workshops/rules` (`validate*`, `plan*Move`, `*Refusal`, `*Caption`,
+  `*Limits`, `sample*`, `readNoteNumbers`), not in the model a plain slate loads: they plug into
+  the model's gate when they load (a server imports `slateboxjs/workshops/rules`, a browser gets
+  them with the kits from `slateboxjs/boards`, the same code), and until then the gate refuses
+  these boards (`workshopRulesLoaded(kind)`). They are shared with the server through `validateWorkshop` and
   `applyWorkshopEdits`, which gains `set_task`, `link_tasks`, `unlink_tasks`, `set_launch_day`,
   `set_amount`, `set_target` and `shift_budget` (`add_card` takes `duration`, `lag`, `waitsOn`,
   `amount`); a refused numeric edit returns `limits`. `WORKSHOP_BOARD_KINDS` names every kind for a

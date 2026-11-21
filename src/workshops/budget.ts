@@ -1,8 +1,12 @@
 // Budget: an envelope split between teams. The allocations always add up to the total, each
 // stays between its team's floor and cap, and a team's line items fit inside what it was given.
-import type { Workshop, WorkshopLane } from './model'
-import type { WorkshopLimits } from './launchPlan'
-import { money } from './numbers'
+import type { Workshop, WorkshopCard, WorkshopLane } from './model'
+// The rule modules take the model's own helpers from the model, so they share its chunk instead of copying it.
+import { registerWorkshopRules, said } from './model'
+import type { BusinessBoardRules, BusinessEditTools, WorkshopLimits } from './kinds'
+import type { WorkshopEdit } from './edits'
+import { amountLimits, amountOf, currencyOf, money, nextCardId, noteNumbers, ownField } from './numbers'
+import { amountRules } from './pipeline'
 
 export function budgetCommitted(board: Workshop, laneId: string): number {
   return board.cards.reduce((sum, card) => sum + (card.laneId === laneId ? card.amount ?? 0 : 0), 0)
@@ -125,3 +129,64 @@ export function sampleBudget(): Workshop {
     ],
   }
 }
+
+/** The budget's part of the one gate (see kinds.ts). */
+export const budgetRules: BusinessBoardRules = {
+  ...amountRules,
+  kind: 'budget',
+  cards: [16, 'A budget holds up to 16 line items.'],
+  readLane(raw, lane) {
+    for (const key of ['allocation', 'floor', 'cap'] as const) if (raw[key] !== undefined) lane[key] = amountOf(raw[key], 0, 1e9, 'Team amounts are whole amounts.')
+  },
+  readBoard(raw, board) {
+    const budget = ownField(raw, 'budget', 'A budget needs a total.')
+    board.budget = { total: amountOf(budget.total, 1, 1e9, 'A total is a whole amount above zero.'), currency: currencyOf(budget.currency),
+      step: budget.step === undefined ? 5000 : amountOf(budget.step, 1, 1e9, 'A step is a whole amount above zero.') }
+  },
+  validate: validateBudget,
+  planMove: planBudgetMove,
+  refusal: budgetRefusal,
+  caption: budgetCaption,
+  fromNote(_board, text) {
+    const read = noteNumbers(text)
+    if (typeof read === 'string') return read
+    return read.amount === undefined ? 'Write the cost on the note, like \'Contractor $45k\', then drop it.' : { label: read.label, amount: read.amount }
+  },
+  edit(board: Workshop, edit: WorkshopEdit, t: BusinessEditTools) {
+    const currency = board.budget!.currency
+    switch (edit.kind) {
+      case 'add_card': {
+        const target = t.lane(edit.lane)
+        const label = edit.label?.trim()
+        if (!label) t.refuse('Say what the card should say, such as “Add Docs to ' + target.label + '”.', { laneId: target.id })
+        if (edit.amount === undefined) t.refuse('Give the line item a cost, like \'Contractor $45k\'.', { laneId: target.id })
+        const least = { ...amountLimits, min: 1 }
+        if (!Number.isInteger(edit.amount) || edit.amount < 1) t.refuse('A line item costs something.', { laneId: target.id, limits: least })
+        if (edit.amount > amountLimits.max) t.refuse(amountLimits.reasons.max, { laneId: target.id, limits: amountLimits })
+        const left = target.allocation! - budgetCommitted(board, target.id)
+        if (edit.amount > left) t.refuse(target.label + ' has ' + money(left, currency) + ' left. ' + label + ' costs ' + money(edit.amount, currency) + '.', { laneId: target.id })
+        const card: WorkshopCard = { id: nextCardId(board), label, laneId: target.id, amount: edit.amount }
+        return t.done(t.settle({ ...board, cards: [...board.cards, card] }, target.id), 'Added ' + said(label) + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: card.id })
+      }
+      case 'set_amount': {
+        const item = t.card(edit.card)
+        const lane = board.lanes.find(other => other.id === item.laneId)!
+        const left = lane.allocation! - budgetCommitted(board, lane.id) + (item.amount ?? 0)
+        const limits = { field: 'amount', min: 1, max: left, reasons: { min: 'A line item costs something.', max: said(lane.label) + ' has ' + money(left, currency) + ' for it.' } }
+        const at = { laneId: item.laneId, cardId: item.id, limits }
+        if (edit.amount > left) t.refuse(lane.label + ' has ' + money(left - (item.amount ?? 0), currency) + ' left. ' + item.label + ' costs ' + money(edit.amount, currency) + '.', { ...at, laneId: lane.id })
+        if (!Number.isInteger(edit.amount) || edit.amount < limits.min) t.refuse(limits.reasons.min, at)
+        item.amount = edit.amount
+        return t.done(t.settle(board, item.laneId, item.id), said(item.label) + ' is now ' + money(edit.amount, currency) + '.', { laneId: item.laneId, cardId: item.id })
+      }
+      case 'shift_budget': {
+        const from = t.lane(edit.from), to = t.lane(edit.to)
+        const why = budgetShiftRefusal(board, from.id, to.id, edit.amount)
+        if (why) t.refuse(why, { laneId: from.id, ...(from.id !== to.id && { limits: budgetShiftLimits(board, from.id, to.id) }) })
+        return t.done(t.settle(shiftBudget(board, from.id, to.id, edit.amount), to.id), 'Moved ' + money(edit.amount, currency) + ' from ' + said(from.label) + ' to ' + said(to.label) + '.', { laneId: to.id })
+      }
+    }
+    return null
+  },
+}
+registerWorkshopRules(budgetRules)

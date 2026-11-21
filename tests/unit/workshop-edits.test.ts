@@ -448,7 +448,8 @@ describe('the business boards in the edit table', () => {
 
   it('says which edits each business board takes, and what the other boards answer', async () => {
     const { describeWorkshopEdits } = await import('../../src/workshops/edits')
-    const { sampleLaunchPlan, samplePipeline, sampleBudget, createLaneWorkshop } = await import('../../src/workshops/model')
+    const { createLaneWorkshop } = await import('../../src/workshops/model')
+    const { sampleLaunchPlan, samplePipeline, sampleBudget } = await import('../../src/workshops/rules')
     const taken = (board: any) => describeWorkshopEdits(board).filter(entry => entry.accepted).map(entry => entry.kind)
     expect(taken(sampleLaunchPlan())).toEqual(expect.arrayContaining(['set_task', 'link_tasks', 'unlink_tasks', 'set_launch_day', 'add_card', 'move_card', 'remove_card', 'rename_card']))
     expect(taken(sampleLaunchPlan())).not.toContain('set_amount')

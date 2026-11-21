@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { budgetKit, launchPlanKit, pipelineKit, renderLayerShapes } from '../../src/boards'
-import { sampleBudget, sampleLaunchPlan, samplePipeline, validateWorkshop, workshopCandidate, type BoardLayerState } from '../../src/workshops/model'
+import { validateWorkshop, workshopCandidate, type BoardLayerState } from '../../src/workshops/model'
+import { sampleBudget, sampleLaunchPlan, samplePipeline } from '../../src/workshops/rules'
 
 function canvas() {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')

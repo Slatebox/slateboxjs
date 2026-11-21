@@ -740,3 +740,14 @@ SlateboxJS because the canvas and `slateboxjs/workshops/model` do not use it;
 install it when you import `slateboxjs/boards` or `slateboxjs/dragology`.
 Without its kit, such a board can still be shown with `readOnly: true`: its
 lanes and cards are drawn as plain notes and cannot be played.
+
+The rules of these boards (their checks, moves, edits and sentences) are not
+in `slateboxjs/workshops/model`, so a slate without one never downloads them.
+They plug into the model's one gate (`validateWorkshop`, `applyWorkshopEdits`)
+when they load: in a browser with the kits (`await import('slateboxjs/boards')`),
+on a server with `import 'slateboxjs/workshops/rules'`, which also exports
+them (`sampleLaunchPlan`, `scheduleLaunch`, `pipelineForecast`,
+`budgetCommitted`, `readNoteNumbers`…). It is the same code in both places.
+Until a kind's rules have loaded, `validateWorkshop` refuses a board of that
+kind ("The launch plan rules have not loaded…"); `workshopRulesLoaded(kind)`
+says whether they have.

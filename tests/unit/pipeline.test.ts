@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  applyWorkshopEdits, checkWorkshopReplacement, decodeWorkshopFragment, encodeWorkshopFragment, pipelineForecast, pipelineGauge,
-  pipelineRefusal, samplePipeline, validateWorkshop, workshopCandidate, workshopCardNoteText, workshopDestinations, workshopEditsBetween,
-  workshopLaneCaption, workshopNoteCandidate, workshopNoteRefusal, workshopRefusal, type Workshop, type WorkshopEdit,
-} from '../../src/workshops/model'
+import { applyWorkshopEdits, checkWorkshopReplacement, decodeWorkshopFragment, encodeWorkshopFragment, pipelineGauge, validateWorkshop, workshopCandidate, workshopCardNoteText, workshopDestinations, workshopEditsBetween, workshopLaneCaption, workshopNoteCandidate, workshopNoteRefusal, workshopRefusal, type Workshop, type WorkshopEdit } from '../../src/workshops/model'
+import { pipelineForecast, pipelineRefusal, samplePipeline } from '../../src/workshops/rules'
 import { workshopEditsBetween, pipelineGauge } from '../../src/boards'
 
 const pipeline = validateWorkshop(samplePipeline())

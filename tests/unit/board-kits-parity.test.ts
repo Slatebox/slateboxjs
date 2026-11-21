@@ -2,10 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { getElementPositionCheap, Vec2, type Draggable } from 'dragology'
 import { budgetKit, budgetLayout, kitFor, launchLayout, launchLinkTargets, launchPlanKit, pipelineKit, pipelineLayout } from '../../src/boards'
 import { partsGeometry } from '../../src/workshops/boardSpecs'
-import {
-  applyWorkshopEdits, attachWorkshop, sampleBudget, sampleLaunchPlan, samplePipeline, validateWorkshop, type WorkshopChangeEvent, launchPlanLimits, withLink, withTaskValue, workshopCandidate, workshopDestinations,
-  type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout,
-} from '../../src/workshops/model'
+import { applyWorkshopEdits, attachWorkshop, validateWorkshop, type WorkshopChangeEvent, workshopCandidate, workshopDestinations, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout } from '../../src/workshops/model'
+import { sampleBudget, sampleLaunchPlan, samplePipeline, launchPlanLimits, withLink, withTaskValue } from '../../src/workshops/rules'
 import { randomBusinessBoards } from './helpers/randomWorkshops'
 
 /**

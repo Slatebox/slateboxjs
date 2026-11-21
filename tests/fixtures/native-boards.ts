@@ -2,14 +2,9 @@
 // the slate; the boards entry (kits, board layer and Dragology) only once a board is opened, as
 // an app does. ?board=launch-plan|pipeline|budget picks the board; the screen width picks the layout.
 import { Slate } from '../../src'
-import {
-  sampleBudget, sampleLaunchPlan, samplePipeline, validateWorkshop,
-  type AttachedWorkshop, type Workshop, type WorkshopChangeEvent, type WorkshopRefusalEvent,
-} from '../../src/workshops/model'
-import { attachWorkshop } from '../../src/workshops/model'
+import { attachWorkshop, validateWorkshop, type AttachedWorkshop, type Workshop, type WorkshopChangeEvent, type WorkshopRefusalEvent } from '../../src/workshops/model'
 
 const params = new URLSearchParams(location.search)
-const samples: Record<string, () => Workshop> = { 'launch-plan': sampleLaunchPlan, pipeline: samplePipeline, budget: sampleBudget }
 const kind = params.get('board') ?? 'launch-plan'
 
 const log = {
@@ -47,7 +42,9 @@ const api = {
     api.ready = true
     return
   }
-  const { kitFor, boardLayoutFor } = await import('../../src/boards')
+  // The boards entry brings the kits and plugs the boards' rules into the model's gate.
+  const { kitFor, boardLayoutFor, sampleLaunchPlan, samplePipeline, sampleBudget } = await import('../../src/boards')
+  const samples: Record<string, () => Workshop> = { 'launch-plan': sampleLaunchPlan, pipeline: samplePipeline, budget: sampleBudget }
   const layout = boardLayoutFor(innerWidth)
   api.board = attachWorkshop(slate, samples[kind](), {
     kit: kitFor(kind), layout, origin: { x: 0, y: 0 },

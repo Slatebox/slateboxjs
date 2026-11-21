@@ -28,15 +28,16 @@ async function drag(page: Page, from: { x: number; y: number }, to: { x: number;
 test.describe('desktop, 1440 by 900', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
-  test('an ordinary slate fetches neither the boards entry nor Dragology; a board slate fetches each once', async ({ page }) => {
+  test('an ordinary slate fetches neither the boards entry, the boards\' rules nor Dragology; a board slate fetches each once', async ({ page }) => {
     const seen: string[] = []
     page.on('request', request => seen.push(new URL(request.url()).pathname))
     await open(page, 'plain')
     await page.waitForTimeout(300)
-    expect(seen.filter(path => /\/src\/boards\/|dragology/.test(path))).toEqual([])
+    expect(seen.filter(path => /\/src\/boards\/|dragology|\/src\/workshops\/(?:rules|launchPlan|pipeline|budget|numbers)\.ts/.test(path))).toEqual([])
     seen.length = 0
     await open(page, 'board=launch-plan')
     expect(seen.filter(path => path.endsWith('/src/boards/index.ts'))).toHaveLength(1)
+    expect(seen.filter(path => path.endsWith('/src/workshops/launchPlan.ts'))).toHaveLength(1)
     expect(seen.filter(path => /\/deps\/dragology\.js$|\/dragology\/dist-lib\/index\.js$/.test(path))).toHaveLength(1)
   })
 

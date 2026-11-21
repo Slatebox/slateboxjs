@@ -11,10 +11,7 @@ import {
   workshopPresentationLanes, workshopRefusal,
   type StationImage, type Workshop, type WorkshopCard, type WorkshopLane, type WorkshopSignal,
 } from './model'
-import { launchLinkRefusal, launchOverrun, launchPlanLimits, withLink, withTaskValue, type WorkshopLimits } from './launchPlan'
-import { pipelineLimits } from './pipeline'
-import { budgetCommitted, budgetShiftLimits, budgetShiftRefusal, shiftBudget } from './budget'
-import { money } from './numbers'
+import { workshopRules, type BusinessEditTools, type WorkshopLimits } from './kinds'
 import { listed, said, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names'
 
 /** The kinds of board, each with its own rules. */
@@ -447,6 +444,19 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
     ? 'The presentation opens with ' + said(order[0].label) + '.'
     : 'The presentation now runs ' + order.map(item => said(item.label)).join(', then ') + '.'
 
+  // A launch plan's, pipeline's or budget's own edits (and its add_card) are its rules' to make.
+  if (business.includes(family)) {
+    if (edit.kind === 'add_card') extraCardFields(edit, family, laneOf(edit.lane).id)
+    const tools: BusinessEditTools = {
+      card: ref => cardOf(ref), lane: ref => laneOf(ref),
+      refuse: (reason, at = {}) => { throw new Refusal(reason, at.code ?? 'refused', at.laneId ?? null, at.cardId, undefined, at.limits) },
+      settle: (next, laneId = null, cardId) => settle(next, family, laneId, cardId),
+      done: (next, sentence, ids) => done(next, sentence, ids),
+    }
+    const step = workshopRules(family as 'launch-plan').edit(board, edit, tools)
+    if (step) return step
+  }
+
   switch (edit.kind) {
     case 'rename_workshop': {
       board.title = edit.title
@@ -511,10 +521,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
         const next = settle(board, family, target.id)
         return done(next, 'Added ' + said(next.cards[next.cards.length - 1].label) + ' at ' + said(target.label) + '.', { laneId: target.id, cardId: 'token-' + n })
       }
-      const extra = (['duration', 'lag', 'waitsOn', 'amount'] as const).find(key => edit[key] !== undefined &&
-        !(family === 'launch-plan' ? key !== 'amount' : (family === 'pipeline' || family === 'budget') && key === 'amount'))
-      if (extra) throw new Refusal(extra === 'amount' ? sentences.notAmounts : sentences.notTasks, 'not_on_this_board', target.id)
-      if (business.includes(family)) return addBusinessCard(target)
+      extraCardFields(edit, family, target.id)
       if (edit.label === undefined || !edit.label.trim()) throw new Refusal('Say what the card should say, such as “Add a card called New idea to ' + target.label + '”.', 'refused', target.id)
       if (board.cards.length >= 24) throw new Refusal('A workshop can have up to 24 cards. Remove one first.', 'refused', target.id)
       if (target.capacity !== undefined && held(target.id) >= target.capacity) {
@@ -728,113 +735,8 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       target.station!.image.alt = edit.alt
       return done(settle(board, family, target.id), 'Updated the image description at ' + said(target.label) + '.', { laneId: target.id })
     }
-    case 'set_task': {
-      const task = cardOf(edit.card)
-      if (edit.duration === undefined && edit.lag === undefined) throw new Refusal('Say how many days ' + said(task.label) + ' takes, or waits.', 'invalid_edit', task.laneId, task.id)
-      let next: Workshop = board
-      for (const field of ['duration', 'lag'] as const) {
-        const value = edit[field]
-        if (value === undefined) continue
-        const limits = launchPlanLimits(next, { cardId: task.id, field })
-        if (!Number.isInteger(value)) throw new Refusal('A task\'s days are whole days.', 'refused', task.laneId, task.id, undefined, limits)
-        const tried = withTaskValue(next, { cardId: task.id, field }, value)
-        if (value < limits.min || value > limits.max) {
-          throw new Refusal(value < limits.min ? limits.reasons.min! : launchOverrun(tried, task.id) ?? limits.reasons.max!, 'refused', task.laneId, task.id, undefined, limits)
-        }
-        next = tried
-      }
-      const now = next.cards.find(item => item.id === task.id)!
-      return done(settle(next, family, task.laneId, task.id), said(task.label) + ' now takes ' + now.duration + (now.duration === 1 ? ' day' : ' days') +
-        (now.lag ? ' and waits ' + now.lag + (now.lag === 1 ? ' day.' : ' days.') : '.'), { laneId: task.laneId, cardId: task.id })
-    }
-    case 'link_tasks': case 'unlink_tasks': {
-      const task = cardOf(edit.card), target = cardOf(edit.waitsOn)
-      const ids = { laneId: task.laneId, cardId: task.id }
-      if (edit.kind === 'unlink_tasks') {
-        if (!task.dependsOn?.includes(target.id)) throw new Refusal(said(task.label) + ' doesn’t wait on ' + said(target.label) + '.', 'refused', task.laneId, task.id)
-        return done(settle(withLink(board, task.id, target.id, true), family, task.laneId, task.id), said(task.label) + ' no longer waits on ' + said(target.label) + '.', ids)
-      }
-      const why = launchLinkRefusal(board, task.id, target.id)
-      if (why) throw new Refusal(why, 'refused', task.laneId, task.id)
-      return done(settle(withLink(board, task.id, target.id), family, task.laneId, task.id), said(task.label) + ' now waits on ' + said(target.label) + '.', ids)
-    }
-    case 'set_launch_day': {
-      const limits = launchPlanLimits(board, { field: 'day' })
-      if (!Number.isInteger(edit.day) || edit.day < limits.min || edit.day > limits.max) {
-        const tried = withTaskValue(board, { field: 'day' }, edit.day)
-        throw new Refusal((edit.day < limits.min && launchOverrun(tried)) || (edit.day < limits.min ? limits.reasons.min! : limits.reasons.max!), 'refused', null, undefined, undefined, limits)
-      }
-      return done(settle(withTaskValue(board, { field: 'day' }, edit.day), family), 'Launch is now day ' + edit.day + '.')
-    }
-    case 'set_amount': {
-      const item = cardOf(edit.card)
-      const currency = board.forecast?.currency ?? board.budget?.currency
-      let limits = pipelineLimits(board, { field: 'amount' })
-      if (family === 'budget') {
-        const lane = board.lanes.find(other => other.id === item.laneId)!
-        const left = lane.allocation! - budgetCommitted(board, lane.id) + (item.amount ?? 0)
-        limits = { field: 'amount', min: 1, max: left, reasons: { min: 'A line item costs something.', max: said(lane.label) + ' has ' + money(left, currency) + ' for it.' } }
-        if (edit.amount > left) throw new Refusal(lane.label + ' has ' + money(left - (item.amount ?? 0), currency) + ' left. ' + item.label + ' costs ' + money(edit.amount, currency) + '.', 'refused', lane.id, item.id, undefined, limits)
-      }
-      if (!Number.isInteger(edit.amount) || edit.amount < limits.min || edit.amount > limits.max) {
-        throw new Refusal(edit.amount < limits.min ? limits.reasons.min! : limits.reasons.max!, 'refused', item.laneId, item.id, undefined, limits)
-      }
-      item.amount = edit.amount
-      return done(settle(board, family, item.laneId, item.id), said(item.label) + ' is now ' + money(edit.amount, currency) + '.', { laneId: item.laneId, cardId: item.id })
-    }
-    case 'set_target': {
-      const limits = pipelineLimits(board, { field: 'target' })
-      if (!Number.isInteger(edit.amount) || edit.amount < 1 || edit.amount > limits.max) throw new Refusal(edit.amount < 1 ? limits.reasons.min! : limits.reasons.max!, 'refused', null, undefined, undefined, limits)
-      board.forecast!.target = edit.amount
-      return done(settle(board, family), 'The target is now ' + money(edit.amount, board.forecast!.currency) + '.')
-    }
-    case 'shift_budget': {
-      const from = laneOf(edit.from), to = laneOf(edit.to)
-      const why = budgetShiftRefusal(board, from.id, to.id, edit.amount)
-      if (why) throw new Refusal(why, 'refused', from.id, undefined, undefined, from.id === to.id ? undefined : budgetShiftLimits(board, from.id, to.id))
-      return done(settle(shiftBudget(board, from.id, to.id, edit.amount), family, to.id), 'Moved ' + money(edit.amount, board.budget!.currency) + ' from ' + said(from.label) + ' to ' + said(to.label) + '.', { laneId: to.id })
-    }
   }
-
-  /** add_card on a launch plan, a pipeline or a budget: the card, with its days or amount, by the board's rules. */
-  function addBusinessCard(target: WorkshopLane): Step {
-    if (edit.kind !== 'add_card') throw new Error('add_card only')
-    const label = edit.label?.trim()
-    if (!label) throw new Refusal('Say what the card should say, such as “Add Docs to ' + target.label + '”.', 'refused', target.id)
-    const ids = new Set([...board.lanes, ...board.cards].map(item => item.id))
-    let n = 1
-    while (ids.has('card-' + n)) n++
-    const card: WorkshopCard = { id: 'card-' + n, label, laneId: target.id }
-    const currency = board.forecast?.currency ?? board.budget?.currency
-    if (family === 'launch-plan') {
-      card.duration = edit.duration ?? 2
-      if (edit.lag) card.lag = edit.lag
-      const waits = [...new Set((edit.waitsOn ?? []).map(ref => cardOf(ref).id))]
-      if (waits.length) card.dependsOn = waits
-    } else if (edit.amount !== undefined) card.amount = edit.amount
-    if (family === 'budget' && edit.amount === undefined) throw new Refusal('Give the line item a cost, like \'Contractor $45k\'.', 'refused', target.id)
-    if (edit.amount !== undefined && family !== 'launch-plan') {
-      // The same bounds set_amount keeps: a line item costs something, and no amount is past the most.
-      const limits = pipelineLimits(board, { field: 'amount' })
-      const least = family === 'budget' ? 1 : limits.min
-      if (!Number.isInteger(edit.amount) || edit.amount < least)
-        throw new Refusal(family === 'budget' ? 'A line item costs something.' : limits.reasons.min!, 'refused', target.id, undefined, undefined, { ...limits, min: least })
-      if (edit.amount > limits.max) throw new Refusal(limits.reasons.max!, 'refused', target.id, undefined, undefined, limits)
-    }
-    if (family === 'pipeline' && target.role) throw new Refusal('A new deal starts in an open stage, not in ' + target.label + '.', 'refused', target.id)
-    const held = board.cards.filter(item => item.laneId === target.id)
-    if (family === 'pipeline' && target.capacity !== undefined && held.length >= target.capacity) throw new Refusal(target.label + ' already holds ' + held.length + ' of ' + target.capacity + ' deals.', 'refused', target.id)
-    if (family === 'budget') {
-      const left = target.allocation! - budgetCommitted(board, target.id)
-      if (card.amount! > left) throw new Refusal(target.label + ' has ' + money(left, currency) + ' left. ' + label + ' costs ' + money(card.amount!, currency) + '.', 'refused', target.id)
-    }
-    const next = { ...board, cards: [...board.cards, card] }
-    if (family === 'launch-plan') {
-      const late = launchOverrun(next, card.id)
-      if (late) throw new Refusal(late, 'refused', target.id)
-    }
-    return done(settle(next, family, target.id), 'Added ' + said(label) + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: card.id })
-  }
+  throw new Refusal('This workshop does not take ' + edit.kind + '.', 'not_on_this_board')
 
   function moveTo(subject: WorkshopCard, destination: WorkshopLane): Step {
     const ids = { laneId: destination.id, cardId: subject.id }
@@ -845,6 +747,13 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
     if (!next) throw new Refusal(workshopRefusal(input, subject.id, destination.id) ?? 'That move is not available.', 'refused', destination.id, subject.id)
     return done(settle(next, family, destination.id, subject.id), 'Moved ' + said(subject.label) + ' to ' + said(destination.label) + '.', ids)
   }
+}
+
+/** Refuse an add_card that carries days or an amount the board doesn't take. */
+function extraCardFields(edit: Extract<WorkshopEdit, { kind: 'add_card' }>, family: WorkshopBoardKind, laneId: string) {
+  const extra = (['duration', 'lag', 'waitsOn', 'amount'] as const).find(key => edit[key] !== undefined &&
+    !(family === 'launch-plan' ? key !== 'amount' : (family === 'pipeline' || family === 'budget') && key === 'amount'))
+  if (extra) throw new Refusal(extra === 'amount' ? sentences.notAmounts : sentences.notTasks, 'not_on_this_board', laneId)
 }
 
 function dropSignals(board: Workshop, gone: (signal: WorkshopSignal) => boolean) {
