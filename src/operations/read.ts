@@ -13,7 +13,8 @@
  * comment thread, not the drawing: they are left out of every read.
  */
 import { OperationPlanError } from "./contract";
-import { CONNECTOR_KEYS } from "./keys/connector";
+import { CONNECTOR_END_KEYS, CONNECTOR_KEYS } from "./keys/connector";
+import { readEnds } from "./line-ends";
 import { NODE_KEYS } from "./keys/node";
 import { checkSelector, type NodeSelector } from "./keys/selector";
 import { backgroundOf } from "./keys/slate";
@@ -76,11 +77,14 @@ export function readConnector(association: Record<string, any>): Record<string, 
   const free = isFreeEnd(association);
   const out: Record<string, any> = { id: association.id, from: association.parentId, to: free ? null : association.childId };
   for (const [key, spec] of Object.entries(CONNECTOR_KEYS)) {
-    if (key === "toPoint") continue;
+    if ((CONNECTOR_END_KEYS as readonly string[]).includes(key)) continue;
     const value = association[spec.field ?? key];
     out[key] = value === undefined ? null : value;
   }
   if (free) out.toPoint = association.targetPoint ?? null;
+  // How the ends behave, when either is not the usual (both following their notes).
+  const ends = readEnds(association);
+  if (ends.fromEnd !== "follow" || ends.toEnd !== "follow") Object.assign(out, ends);
   return out;
 }
 

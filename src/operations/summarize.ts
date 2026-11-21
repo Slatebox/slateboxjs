@@ -59,6 +59,8 @@ export function summarizeSlate(input: any): SlateSummary {
         from: read.from,
         to: read.to,
         ...("toPoint" in read ? { toPoint: read.toPoint } : {}),
+        // Whether each end follows its note, is pinned to a spot on its edge, or is free.
+        ...("fromEnd" in read ? { fromEnd: read.fromEnd, toEnd: read.toEnd } : {}),
         label: read.label || "",
         // A key the connector does not store reads as undefined, as it always has in the summary.
         ...Object.fromEntries(CONNECTOR_SUMMARY_KEYS.map((key) => [key, read[key] ?? undefined])),

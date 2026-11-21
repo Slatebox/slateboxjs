@@ -17,7 +17,8 @@ import {
   type SlateOperationReport,
 } from "./contract";
 import { NODE_INTENT_KEYS, NODE_KEYS } from "./keys/node";
-import { CONNECTOR_KEYS, FREE_END_PREFIX, NEW_CONNECTOR } from "./keys/connector";
+import { CONNECTOR_END_KEYS, CONNECTOR_KEYS, FREE_END_PREFIX, NEW_CONNECTOR } from "./keys/connector";
+import { moveLineEnds } from "./line-ends";
 import { SLATE_KEYS } from "./keys/slate";
 import { alignPositions, distributePositions, tidyPositions, treePositions, type AlignMode, type LayoutBox, type Position } from "./layout";
 import { NOTE_PRESETS } from "../core/NoteDefaults";
@@ -592,19 +593,12 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
           if (found.length) materialized.push({ kind: "disconnect_nodes", connectionIds: entry.matched });
           return;
         }
-        for (const { association } of found) {
-          if (operation.changes!.toPoint !== undefined && !isFreeEnd(association)) {
-            throw new OperationPlanError(
-              "invalid_operation_plan",
-              400,
-              `${prefix} can move only a free end with toPoint; connector ${association.id} ends on a note.`,
-            );
-          }
-          const was = JSON.stringify(association);
-          for (const [key, value] of Object.entries(operation.changes!)) {
-            association[CONNECTOR_KEYS[key].field || key] = key === "toPoint" ? { ...(value as object) } : value;
-          }
-          if (JSON.stringify(association) !== was) entry.changed.push(association.id);
+        for (const { node, association } of found) {
+          const was = JSON.stringify([noteId(node), association]);
+          const style = Object.entries(operation.changes!).filter(([key]) => !(CONNECTOR_END_KEYS as readonly string[]).includes(key));
+          for (const [key, value] of style) association[CONNECTOR_KEYS[key].field || key] = value;
+          const owner = moveLineEnds(slate, node, association, operation.changes!, prefix, idFactory);
+          if (JSON.stringify([noteId(owner), association]) !== was) entry.changed.push(association.id);
         }
         report.connectionsUpdated.push(...entry.matched);
         if (found.length) materialized.push({ kind: "update_connections", connectionIds: entry.matched, changes: operation.changes });
