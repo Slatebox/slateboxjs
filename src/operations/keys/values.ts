@@ -111,7 +111,8 @@ export function schemaFor(spec: ValueSpec): Record<string, any> {
         ? { type: ["string", "null"], enum: [...spec.values, null] }
         : { type: "string", enum: [...spec.values] };
     case "list":
-      return { type: "array", items: { type: "string", enum: [...spec.values] }, uniqueItems: true };
+      // No uniqueItems: not every model provider's constrained decoding takes it; checkValue refuses repeats.
+      return { type: "array", items: { type: "string", enum: [...spec.values] } };
     case "color":
       return { type: "string", maxLength: 64, description: "A CSS colour, such as #336699." };
     case "point":

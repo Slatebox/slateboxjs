@@ -62,6 +62,10 @@ export function slateOperationPlanSchema(options: ContractOptions = {}): Record<
   const limits = contractLimits(options);
   const nodeProperties = (names: string[]) =>
     Object.fromEntries(names.map((key) => [key, schemaFor(NODE_KEYS[key].spec(lists))]));
+  // update_nodes changes carry each key's description, so the model reads what a key does
+  // (templateCategory is not "group these by theme"), as REST and describeOperations give it.
+  const describedNodeProperties = (names: string[]) =>
+    Object.fromEntries(names.map((key) => [key, { ...schemaFor(NODE_KEYS[key].spec(lists)), description: NODE_KEYS[key].description }]));
   const connectorProperties = (names: string[]) => Object.fromEntries(names.map((key) => [key, schemaFor(CONNECTOR_KEYS[key].spec)]));
   const selector = selectorSchema();
   const ids = { type: "array", items: { type: "string" } };
@@ -137,7 +141,7 @@ export function slateOperationPlanSchema(options: ContractOptions = {}): Record<
               minProperties: 1,
               description: `update_nodes: note keys (and order: front or back). update_connections: connector keys. update_slate: ${Object.keys(SLATE_KEYS).join(", ")}.`,
               properties: {
-                ...nodeProperties(Object.keys(NODE_KEYS)),
+                ...describedNodeProperties(Object.keys(NODE_KEYS)),
                 ...Object.fromEntries(Object.entries(NODE_INTENT_KEYS).map(([key, entry]) => [key, schemaFor(entry.spec)])),
                 ...connectorProperties(Object.keys(CONNECTOR_KEYS)),
                 ...Object.fromEntries(

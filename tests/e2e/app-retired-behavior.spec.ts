@@ -6,7 +6,7 @@ import { removeTestGuest, userId, dismissWelcome, getSlate, shareAs } from './wo
 /**
  * The Custom Behavior dialog (More > Note behaviour…) is retired (owner, 2026-11-21). What it set
  * that something still reads is plain note data that chat and exec set through the operations
- * contract, like everything else: `category` (a template's category) and `hiddenControls` (the
+ * contract, like everything else: `templateCategory` (a template's category) and `hiddenControls` (the
  * style-bar controls a note leaves off). Keeping a note in place is Lock (More > Locked, `locked`).
  */
 
@@ -131,12 +131,21 @@ test('chat and exec set what the dialog kept: a category and hidden controls rea
       for (const page of [owner, peer]) await expect.poll(() => live(page, id), { timeout: 15_000 }).toEqual(want)
     }
 
+    // The owner has Fill colour open on Costs when exec hides colour: the popover closes with its
+    // button, so it cannot keep restyling the note (review L1).
+    await select(owner, 'Costs')
+    await bar(owner).getByRole('button', { name: 'Fill colour', exact: true }).click()
+    await expect(owner.locator('#sb-pop-colour')).toBeVisible()
+
     // "Make Costs a category, and keep people from restyling it."
-    const made = await save([{ kind: 'update_nodes', target: { ids: [costs] }, changes: { category: 'Costs', hiddenControls: ['color', 'text', 'shape'] } }],
+    const made = await save([{ kind: 'update_nodes', target: { ids: [costs] }, changes: { templateCategory: 'Costs', hiddenControls: ['color', 'text', 'shape'] } }],
       'make Costs a category and stop people restyling it')
     expect(made.status(), await made.text()).toBe(201)
     const set = { isCategory: true, categoryName: 'Costs', showColorTab: false, showTextTab: false, showShapeTab: false }
     await both(costs, set)
+    await expect(owner.locator('#sb-pop-colour')).toHaveCount(0)
+    await expect(bar(owner).getByRole('button', { name: 'Fill colour', exact: true })).toHaveCount(0)
+    await owner.keyboard.press('Escape')
     const stored = (await getSlate(owner, shareId)).nodes.find((n: any) => n.options.id === costs).options
     expect([stored.isCategory, stored.categoryName, stored.showColorTab, stored.showTextTab, stored.showShapeTab]).toEqual([true, 'Costs', false, false, false])
 
@@ -156,10 +165,10 @@ test('chat and exec set what the dialog kept: a category and hidden controls rea
 
     // A read says so.
     const read = await (await request.get(new URL('/api/v1/slates/' + shareId, origin).href, { headers })).json()
-    expect(JSON.stringify(read)).toContain('"category":"Costs"')
+    expect(JSON.stringify(read)).toContain('"templateCategory":"Costs"')
 
     // "Costs is an ordinary note again; let people restyle it." Then Rent becomes a category.
-    const cleared = await save([{ kind: 'update_nodes', target: { ids: [costs] }, changes: { category: null, hiddenControls: [] } }], 'make Costs an ordinary note again')
+    const cleared = await save([{ kind: 'update_nodes', target: { ids: [costs] }, changes: { templateCategory: null, hiddenControls: [] } }], 'make Costs an ordinary note again')
     expect(cleared.status(), await cleared.text()).toBe(201)
     const plain = { isCategory: false, categoryName: null, showColorTab: true, showTextTab: true, showShapeTab: true }
     await both(costs, plain)
@@ -167,7 +176,7 @@ test('chat and exec set what the dialog kept: a category and hidden controls rea
     await expect(bar(owner).getByRole('button', { name: 'Fill colour' })).toBeVisible()
     await select(peer, 'Costs')
     await expect(bar(peer).getByRole('button', { name: 'Colour', exact: true })).toBeVisible()
-    expect((await save([{ kind: 'update_nodes', target: { text: 'Rent' }, changes: { category: 'Rent' } }], 'make Rent a category')).status()).toBe(201)
+    expect((await save([{ kind: 'update_nodes', target: { text: 'Rent' }, changes: { templateCategory: 'Rent' } }], 'make Rent a category')).status()).toBe(201)
     const rentCategory = { isCategory: true, categoryName: 'Rent', showColorTab: true, showTextTab: true, showShapeTab: true }
     await both(rent, rentCategory)
 

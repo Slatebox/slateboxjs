@@ -163,10 +163,10 @@ export const NODE_KEYS: Record<string, NodeKey> = {
     },
     read: (options) => options.groupId ?? null,
   },
-  category: {
+  templateCategory: {
     spec: () => ({ type: "string", minLength: 1, maxLength: 200, nullable: true }),
     description:
-      "Makes the note a category of a template, named by this text (the template's AI conversation files notes under it, and presentations pass over it); null makes it an ordinary note.",
+      "Only when asked to make a note a template's category heading: names the bucket the template's AI conversation files notes under, and presentations skip the note. Not for grouping or labelling notes by theme (use groupId or text). null makes it an ordinary note.",
     store: (options, value) => {
       if (value === null) {
         options.isCategory = false;
@@ -182,7 +182,7 @@ export const NODE_KEYS: Record<string, NodeKey> = {
   hiddenControls: {
     spec: () => ({ type: "list", values: NOTE_CONTROL_NAMES }),
     description:
-      "Style-bar controls this note leaves off, so people cannot use them on it: color (fill and border), text (text colour, size, alignment, font), shape, picture, effects, ask. An empty list shows them all.",
+      "Controls left off this note's style bar: color (fill and border), text (text colour, size, alignment, font), shape, picture, effects, ask. The list replaces the note's whole list, so to hide one more, send the ones already hidden (the summary lists them) plus it. An empty list shows them all. Chat and exec can still change the note.",
     store: (options, value: string[]) => {
       for (const [name, flag] of Object.entries(NOTE_CONTROLS)) options[flag] = !value.includes(name);
     },

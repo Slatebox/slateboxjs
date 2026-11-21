@@ -63,9 +63,9 @@ function nodePackages(id: string, changes: Record<string, any>, options: Record<
   if (has("rotationAngle")) packages.push({ type: "onNodeRotated", data: { id, rotationAngle: value("rotationAngle") } });
   if (has("locked")) packages.push({ type: value("locked") ? "onNodeLocked" : "onNodeUnlocked", data: { id } });
   // A note's plain data (Invoker.onNodeOptionsChanged takes only these keys).
-  if (has("category", "hiddenControls")) {
+  if (has("templateCategory", "hiddenControls")) {
     const data: Record<string, any> = {};
-    if (has("category")) Object.assign(data, { isCategory: options.isCategory === true, categoryName: options.categoryName ?? null });
+    if (has("templateCategory")) Object.assign(data, { isCategory: options.isCategory === true, categoryName: options.categoryName ?? null });
     if (has("hiddenControls")) for (const flag of Object.values(NOTE_CONTROLS)) data[flag] = options[flag] !== false;
     packages.push({ type: "onNodeOptionsChanged", data: { id, options: data } });
   }
