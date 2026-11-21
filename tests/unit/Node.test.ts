@@ -393,6 +393,38 @@ describe("Text content", () => {
     expect(node.options.textYAlign).toBe("bottom");
   });
 
+  // SVG.js stacks the lines downward from the first one. Bottom-aligned text must
+  // end at the bottom edge, so the block moves up by its extra lines; top starts
+  // at the top edge; middle is centred. A size stored in points is drawn in points.
+  describe("multi-line text keeps its block inside the note", () => {
+    const placed = async (textYAlign: string, fontSize: number | string, lines: number) => {
+      const node = await createNode({ text: "One\nTwo\nThree", width: 120, height: 200, textYAlign, fontSize });
+      const text = (node as any).textElement;
+      text.node.querySelectorAll = () => Array.from({ length: lines });
+      text.attr.mockClear();
+      node.centerText();
+      const call = text.attr.mock.calls.find((c: any[]) => c[0] && typeof c[0] === "object" && "y" in c[0]);
+      return call[0].y as number;
+    };
+
+    it("bottom: the last line sits at the bottom edge", async () => {
+      // Three lines of 20px text, 26px apart: the first line starts two lines above the bottom.
+      expect(await placed("bottom", 20, 3)).toBeCloseTo(200 - 5 - 2 * 26);
+      expect(await placed("bottom", 20, 1)).toBeCloseTo(200 - 5);
+    });
+
+    it("top: the first line sits at the top edge", async () => {
+      expect(await placed("top", 20, 3)).toBeCloseTo(5);
+    });
+
+    it("middle: the block is centred, with a size in points drawn in points", async () => {
+      expect(await placed("middle", 20, 3)).toBeCloseTo(100 - 26);
+      // 15pt is 20px.
+      expect(await placed("middle", "15pt", 3)).toBeCloseTo(100 - 26);
+      expect(await placed("bottom", "15pt", 3)).toBeCloseTo(200 - 5 - 2 * 26);
+    });
+  });
+
   it("should support text offset", async () => {
     const node = await createNode({ text: "Offset", xTextOffset: 5, yTextOffset: -5 });
     expect(node.options.xTextOffset).toBe(5);
