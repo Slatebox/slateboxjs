@@ -226,6 +226,13 @@ export declare class Collab {
      * trader made before its answer came back is not lost there. Anything else is applied as it is.
      */
     private applyRoomPackage;
+    /**
+     * Take off every note the room's trade records say became a card, unless a newer trade of it is
+     * known here, or its trade is on its way (`skip`, and this person's own). A whole-slate
+     * replacement is drawn from someone's undo history, which can be older than the trade: the room
+     * never brings back a note the server's trade record says is a card.
+     */
+    private dropRoomCards;
     /** Draw note `id` as its trade says, when it is not: take it off, or put it on. */
     private enforceTrade;
     private enforceStaleTrades;
