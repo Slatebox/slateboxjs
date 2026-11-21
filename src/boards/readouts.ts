@@ -50,7 +50,9 @@ export function workshopEditsBetween(before: Workshop, after: Workshop): Worksho
   for (const lane of after.lanes) {
     const old = before.lanes.find(item => item.id === lane.id)
     if (old && old.label !== lane.label) edits.push({ kind: 'rename_lane', lane: { id: lane.id }, label: lane.label })
+    if (old && old.capacity !== lane.capacity) edits.push({ kind: 'set_lane_capacity', lane: { id: lane.id }, capacity: lane.capacity ?? null })
   }
+  if (before.title !== after.title) edits.push({ kind: 'rename_workshop', title: after.title })
   return edits
 }
 

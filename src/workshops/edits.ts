@@ -810,6 +810,34 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
   return { workshop: current, report: { edits: done, movedCards } }
 }
 
+/**
+ * What no edit changes on a launch plan, pipeline or budget: a stage's chance and its role (won or
+ * lost), a team's floor and cap, a launch plan's or budget's lane limits, the budget's envelope and
+ * the currency amounts are written in. A whole-board save may not change them either.
+ */
+function fixedBusinessField(before: Workshop, after: Workshop): string | null {
+  const kind = businessKind(before)
+  if (kind === 'pipeline') {
+    if (before.forecast?.currency !== after.forecast?.currency) return 'A pipeline keeps the currency it was made in.'
+    const moved = before.lanes.find(lane => {
+      const other = after.lanes.find(item => item.id === lane.id)!
+      return lane.role !== other.role || lane.probability !== other.probability
+    })
+    if (moved) return `${moved.label} keeps its chance to win and what it holds (open, won or lost). Rename it or set how many deals it holds instead.`
+  }
+  if (kind === 'budget') {
+    const was = before.budget!, now = after.budget
+    if (!now || was.total !== now.total || was.currency !== now.currency || was.step !== now.step) return 'The total cannot change. Move money between teams instead.'
+    const moved = before.lanes.find(lane => {
+      const other = after.lanes.find(item => item.id === lane.id)!
+      return lane.floor !== other.floor || lane.cap !== other.cap || lane.capacity !== other.capacity
+    })
+    if (moved) return `${moved.label} keeps its floor and cap. Move money between teams instead.`
+  }
+  if (kind === 'launch-plan' && before.lanes.some(lane => lane.capacity !== after.lanes.find(item => item.id === lane.id)!.capacity)) return sentences.launchLanes
+  return null
+}
+
 const boardNames: Record<WorkshopBoardKind, string> = {
   lanes: 'lane workshop', 'release-plan': 'release plan', 'customer-interviews': 'interview workshop',
   'experiment-budget': 'budget workshop', map: 'map', 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget',
@@ -836,6 +864,10 @@ export function checkWorkshopReplacement(before: Workshop, after: Workshop): str
   }
   if ((was === 'customer-interviews' || was === 'experiment-budget') && !sameOrder(original, next)) return sentences.keepsOrder
   if (businessKind(original) && now === was && !(sameLanes(original, next) && sameOrder(original, next))) return keepsTeams[was as keyof typeof keepsTeams]
+  if (businessKind(original) && now === was) {
+    const fixed = fixedBusinessField(original, next)
+    if (fixed) return fixed
+  }
   if (was === 'release-plan' && now === 'release-plan') {
     if (!sameLanes(original, next)) return sentences.releaseLanes
     if (!sameOrder(original, next)) return sentences.releaseOrder

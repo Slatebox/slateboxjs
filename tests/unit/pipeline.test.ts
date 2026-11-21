@@ -94,6 +94,20 @@ describe('pipeline notes, sync, save and undo', () => {
     expect(back.cards.map(card => card.id + '@' + card.laneId + ':' + card.amount).sort()).toEqual(pipeline.cards.map(card => card.id + '@' + card.laneId + ':' + card.amount).sort())
   })
 
+  it('a whole-board save keeps what no edit changes: a stage\'s chance, its role, the currency (phase 2 review H1)', () => {
+    const chance = { ...pipeline, lanes: pipeline.lanes.map(lane => lane.id === 'lead' ? { ...lane, probability: 1 } : lane) }
+    expect(checkWorkshopReplacement(pipeline, chance)).toBe('Lead keeps its chance to win and what it holds (open, won or lost). Rename it or set how many deals it holds instead.')
+    const swapped = { ...pipeline, lanes: pipeline.lanes.map(lane => lane.id === 'lead' ? { id: 'lead', label: 'Lead', role: 'won' as const }
+      : lane.id === 'won' ? { id: 'won', label: 'Won', probability: 0.5 } : lane), cards: pipeline.cards.map(card => ({ ...card, amount: card.amount ?? 1 })) }
+    expect(checkWorkshopReplacement(pipeline, swapped)).toMatch(/keeps its chance to win/)
+    expect(checkWorkshopReplacement(pipeline, { ...pipeline, forecast: { ...pipeline.forecast!, currency: '€' } })).toBe('A pipeline keeps the currency it was made in.')
+    // A stage's limit and the target are edits of their own, so a whole save may carry them.
+    expect(checkWorkshopReplacement(pipeline, ok(pipeline, [{ kind: 'set_lane_capacity', lane: 'Proposal', capacity: 4 }, { kind: 'set_target', amount: 300000 }]))).toBeNull()
+    // The edits between two boards carry a stage's limit and the board's name too.
+    const renamed = { ...pipeline, title: 'Q3 deals', lanes: pipeline.lanes.map(lane => lane.id === 'proposal' ? { ...lane, capacity: 4 } : lane) }
+    expect(ok(pipeline, workshopEditsBetween(pipeline, renamed))).toEqual(validateWorkshop(renamed))
+  })
+
   it('refuses a saved board that breaks its rules', () => {
     expect(() => validateWorkshop({ ...pipeline, forecast: undefined })).toThrow('A pipeline needs a forecast target.')
     expect(() => validateWorkshop({ ...pipeline, lanes: pipeline.lanes.slice(0, 2), cards: [] })).toThrow('A pipeline has 3 to 5 stages.')

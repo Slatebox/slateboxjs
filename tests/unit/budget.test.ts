@@ -97,3 +97,14 @@ describe('names on a budget', () => {
     expect('workshop' in result && result.workshop.lanes[0].allocation).toBe(405000)
   })
 })
+
+describe('a whole-board save of a budget (phase 2 review H1)', () => {
+  it('keeps the total, the step, and each team\'s floor and cap', () => {
+    const grown = { ...budget, budget: { ...budget.budget!, total: budget.budget!.total * 4 }, lanes: budget.lanes.map(lane => ({ id: lane.id, label: lane.label, allocation: lane.allocation! * 4 })) }
+    expect(checkWorkshopReplacement(budget, grown)).toBe('The total cannot change. Move money between teams instead.')
+    const uncapped = { ...budget, lanes: budget.lanes.map(lane => { const { cap, ...rest } = lane; void cap; return rest }) }
+    expect(checkWorkshopReplacement(budget, uncapped)).toBe('Marketing keeps its floor and cap. Move money between teams instead.')
+    const moved = ok(budget, [{ kind: 'shift_budget', from: 'Product', to: 'Marketing', amount: 50000 }])
+    expect(checkWorkshopReplacement(budget, moved)).toBeNull()
+  })
+})
