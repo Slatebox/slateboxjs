@@ -1,7 +1,8 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
-import { card, dragCard, note, resting, slateKey, storedWorkshop, workshopReady, workshopStatus } from './app-native-workshop.shared'
+import { card, dragCard, note, openConversation, resting, slateKey, storedWorkshop, workshopReady, workshopStatus } from './app-native-workshop.shared'
+import { harness, harnessOn } from './app-trade-harness.shared'
 
 /**
  * Connected cards (owner decision 2026-11-21, test.slatebox.com): notes joined by lines become
@@ -265,5 +266,92 @@ test('an empty note dropped on a lane is an empty card: saved, counted, seen by 
   } finally {
     if (guest) { await removeTestGuest(guest.page, guest.id).catch(() => undefined); await guest.context.close() }
     await removeTestGuest(page, id)
+  }
+})
+
+// Content never refuses a trade (coordinator decisions, 2026-11-21): words with markup are kept
+// verbatim and every view shows them as text.
+test('markup typed on a note is a card whose words are text everywhere: the canvas, the card bar, the conversation, the read and Present', async ({ page }) => {
+  let id: string | null = null
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  page.on('dialog', dialog => { errors.push('dialog ' + dialog.message()); dialog.dismiss().catch(() => undefined) })
+  const words = '<img src=x onerror="window.__pwned=1"><script>window.__pwned=2</script>'
+  const injected = () => page.evaluate(() => [(window as any).__pwned, document.querySelectorAll('img[src="x"], script:not([src])').length > 0 &&
+    [...document.querySelectorAll('script:not([src])')].some(el => el.textContent?.includes('__pwned'))])
+  try {
+    const owner = await openBoard(page)
+    id = owner.id
+    await page.waitForTimeout(4000)
+    await page.evaluate(w => {
+      const slate = (window as any).slate.v2
+      const column = slate.nodes.one('column-now').options
+      slate.addNode({ id: 'markup', x: column.x - 300, y: column.y + 40, width: 220, height: 80, text: w })
+    }, words)
+    await page.waitForTimeout(500)
+    await page.evaluate(() => (window as any).slate.v2.fitToContent?.())
+    await page.waitForTimeout(400)
+    const later = await resting(page, 'column-later')
+    await carry(page, 'markup', { x: later.x + later.width / 2, y: later.y + later.height - 24 })
+    await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.find((c: any) => c.id === 'markup')?.label).toBe(words)
+    // The canvas draws the words as text.
+    await expect(card(page, 'markup')).toContainText('<script>')
+    // The card bar names it as text.
+    const spot = await resting(page, 'card-markup')
+    await page.mouse.click(spot.x + spot.width / 2, spot.y + spot.height / 2)
+    await expect(page.getByRole('toolbar', { name: 'Card: ' + words })).toBeVisible()
+    // The conversation, with the card selected, names it as text.
+    const panel = await openConversation(page)
+    await expect(panel.getByText('Selected card · ' + words, { exact: false })).toBeVisible()
+    // The read (what an agent's exec gets) holds the words as data.
+    expect((await getSlate(page, owner.key)).creative.model.workshop.cards.find((c: any) => c.id === 'markup').label).toBe(words)
+    // Present shows it, still as text.
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Present', exact: true }).click()
+    await page.waitForTimeout(2000)
+    await page.keyboard.press('Escape')
+    expect(await injected()).toEqual([undefined, false])
+    expect(errors).toEqual([])
+    await shot(page, 'markup-card')
+  } finally {
+    await removeTestGuest(page, id)
+  }
+})
+
+// The page that took a card off the lanes went away before it told the room: a teammate's open
+// screen still gets the note's lines, from the server's record of the trade.
+test('a card with lines taken off the lanes on a page closed at once: an open screen gets the note and its lines', async ({ page, browser }) => {
+  test.skip(!harnessOn, 'Needs the trade harness (SLATEBOX_TRADE_HARNESS=1): the server\'s answer is held while the page closes.')
+  let id: string | null = null, guest: Awaited<ReturnType<typeof joinAsEditor>> | null = null
+  try {
+    const owner = await openBoard(page)
+    id = owner.id
+    const [sam, room] = await addNotes(page)
+    await plug(page, 'card-alpha', room)
+    await expect.poll(() => boardLines(page, owner.key)).toBe(`alpha>${room}`)
+    guest = await joinAsEditor(browser, page)
+    const alphaLine = await lineIdOf(page, owner.key, 'alpha', room)
+    await expect.poll(() => joins(guest!.page, alphaLine, 'card-alpha', room)).toBe(true)
+    await page.waitForTimeout(800)
+    // What the server answers is held back; the page closes before it hears that the trade was saved.
+    await harness('/hold?which=app&ms=4000')
+    const samBox = await resting(page, sam)
+    await carry(page, 'card-alpha', { x: samBox.x + samBox.width / 2, y: samBox.y + samBox.height + 200 })
+    await page.waitForTimeout(300)
+    await page.close({ runBeforeUnload: false })
+    await expect.poll(async () => (await storedWorkshop(guest!.page, owner.key)).cards.map((c: any) => c.id).join(' '), { timeout: 20_000 }).toBe('beta')
+    await expect(note(guest.page, 'alpha')).toContainText('Alpha', { timeout: 20_000 })
+    await expect.poll(() => joins(guest!.page, alphaLine, 'alpha', room), { timeout: 20_000 }).toBe(true)
+    // And someone who opens the slate now draws it too.
+    const fresh = await browser.newContext({ viewport: guest.page.viewportSize()! })
+    const viewer = await fresh.newPage()
+    await viewer.goto(guest.page.url())
+    await dismissWelcome(viewer)
+    await workshopReady(viewer)
+    await expect.poll(() => joins(viewer, alphaLine, 'alpha', room), { timeout: 20_000 }).toBe(true)
+    await fresh.close()
+  } finally {
+    if (guest) { await removeTestGuest(guest.page, guest.id).catch(() => undefined); await guest.context.close() }
+    if (!page.isClosed()) await removeTestGuest(page, id)
   }
 })
