@@ -13,7 +13,9 @@ export interface SlateSummary {
         rotationAngle?: number;
         locked?: true;
         /** The template category the note names. */
-        category?: string;
+        templateCategory?: string;
+        /** The style-bar controls the note leaves off, when any. */
+        hiddenControls?: string[];
     }>;
     connections: Array<Record<string, any>>;
 }

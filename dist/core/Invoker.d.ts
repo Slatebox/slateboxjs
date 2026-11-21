@@ -12,7 +12,7 @@ export declare class Invoker {
     onNodeUnlocked(pkg: SlatePackage): void;
     onNodeLocked(pkg: SlatePackage): void;
     /**
-     * A note's plain data, set by chat and exec (operations keys category and
+     * A note's plain data, set by chat and exec (operations keys templateCategory and
      * hiddenControls): only these keys ride on the package; null removes one.
      */
     onNodeOptionsChanged(pkg: SlatePackage): void;
