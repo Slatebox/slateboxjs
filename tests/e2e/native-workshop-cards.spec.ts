@@ -317,7 +317,9 @@ test.describe('two people, one note: the host has the last word', () => {
 })
 
 test.describe('nothing the note had is lost on its way to a card and back', () => {
-  test('line breaks, shape and size come back; a note with a link stays a note and says why', async ({ page }) => {
+  // (Restated 2026-11-21, owner decision: a note with a link becomes a card and gets the link back;
+  // it was refused here. See native-workshop-any-note.spec.ts.)
+  test('line breaks, shape and size come back; a note with a link is a card too', async ({ page }) => {
     await open(page)
     await page.evaluate(() => {
       const { slate } = (window as any).native
@@ -335,10 +337,9 @@ test.describe('nothing the note had is lost on its way to a card and back', () =
     expect(back).toEqual({ text: 'First line\nSecond line', shape: 'ellipse', width: 120, height: 70 })
 
     await page.evaluate(() => { (window as any).native.slate.nodes.one('plain').options.link = { type: 'externalUrl', data: { url: 'https://example.org/x' }, show: true } })
-    const start = await at(page, 'plain')
     await drag(page, 'plain', await inLane(page, 'now'))
-    await expect(live(page)).toHaveText("Ordinary note can't go in Now. A note with a link stays a note. Remove its link first.")
-    expect(await resting(page, 'plain')).toEqual(start)
+    await expect(live(page)).toHaveText('Ordinary note is now a card in Now. 4 cards.')
+    expect(await page.evaluate(() => (window as any).native.board.value.cards.at(-1).asNote.link)).toEqual({ type: 'externalUrl', data: { url: 'https://example.org/x' }, show: true })
   })
 
   test('an undone trade sends where the card goes back, so every copy of the board puts it in its own place', async ({ page }) => {

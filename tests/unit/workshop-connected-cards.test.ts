@@ -72,9 +72,9 @@ describe('a note with lines becomes a card and keeps them', () => {
     expect(next.lines).toEqual([{ id: 'later->sing', parentId: card.id, childId: 'sing' }])
   })
 
-  it('refuses lines it cannot keep, with a reason about the lines', () => {
+  it('refuses only a line that cannot be joined to a card at all, with a reason about the line', () => {
     expect(workshopNoteRefusal(board, 'later', { id: 'plain', label: 'Plain', lines: [{ id: 'x', parentId: 'plain', childId: 'plain' }] } as any))
-      .toBe('This note\'s lines can\'t be kept on a card.')
+      .toBe('A line of this note can\'t be joined to a card.')
   })
 })
 

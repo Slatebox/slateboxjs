@@ -476,18 +476,19 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     await page.keyboard.press('Enter')
     await expect.poll(async () => (await journal(page)).changes.at(-1)).toEqual({ rename: { laneId: 'later', label: 'Later!' } })
 
-    // An empty name and an over-long one are refused and the old text stays.
-    await edit('card-beta', null)
+    // An over-long name is refused and the old text stays. (Restated 2026-11-21, owner decision: a card
+    // may be empty, so emptying a card's words is taken; it was refused here.)
     await edit('lane-now', 'x'.repeat(90))
     state = await journal(page)
     expect(state.refusals).toEqual([
-      { cardId: 'beta', rename: { cardId: 'beta', label: '' }, reason: 'Labels must contain 1 to 80 characters.' },
       { laneId: 'now', rename: { laneId: 'now', label: 'x'.repeat(90) }, reason: 'Labels must contain 1 to 80 characters.' },
     ])
-    expect(await text(page, 'card-beta')).toBe('Beta')
     expect(await text(page, 'lane-now')).toBe('Today')
-    await expect(page.locator('#slate [data-node-id="card-beta"]')).toContainText('Beta')
     expect(state.changes).toHaveLength(3)
+    await edit('card-beta', null)
+    await expect.poll(async () => (await journal(page)).changes.at(-1)).toEqual({ rename: { cardId: 'beta', label: '' } })
+    expect(await text(page, 'card-beta')).toBe('')
+    state = await journal(page)
     // The caption is not text anyone can edit or select.
     expect(await page.evaluate(() => {
       const { slate } = (window as any).native

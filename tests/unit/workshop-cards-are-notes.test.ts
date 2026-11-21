@@ -32,9 +32,11 @@ describe('a note becomes a card under the lane\'s rules', () => {
     expect(workshopNoteRefusal(board, 'later', { id: 'two', label: 'Two' })).toBeNull()
   })
 
-  it('refuses a note with no words, too many words, or markup, and a board that is full', () => {
-    expect(workshopNoteRefusal(board, 'now', { id: 'n', label: '   ' })).toBe('A card needs some words. Type on the note first.')
-    expect(workshopNoteRefusal(board, 'now', { id: 'n', label: 'x'.repeat(81) })).toBe('A card holds up to 80 characters. Shorten the note first.')
+  // (Restated 2026-11-21, owner decision: an empty note and a note with long words become cards; see
+  // workshop-any-note-is-a-card.test.ts. Markup and a full board still keep a note a note.)
+  it('refuses a note with markup, and a board that is full', () => {
+    expect(workshopNoteRefusal(board, 'now', { id: 'n', label: '   ' })).toBeNull()
+    expect(workshopNoteRefusal(board, 'now', { id: 'n', label: 'x'.repeat(81) })).toBeNull()
     expect(workshopNoteRefusal(board, 'now', { id: 'n', label: '<b>Hi</b>' })).toBe('A card holds plain words only.')
     const crowded = validateWorkshop({ ...board, signals: undefined, cards: Array.from({ length: 24 }, (_, i) => ({ id: 'c' + i, label: 'C' + i, laneId: 'now' })) })
     expect(workshopNoteRefusal(crowded, 'now', { id: 'n', label: 'One more' })).toBe('A workshop holds up to 24 cards.')
