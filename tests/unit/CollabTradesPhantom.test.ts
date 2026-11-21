@@ -205,8 +205,9 @@ describe("staging-2 F4: the room never brings back a note its trade record says 
     vi.advanceTimersByTime(5);
     b.collab.send(undoTo({ gamma: note("gamma"), delta: note("delta", 300) }));
     b.sync(); a.sync();
-    await a.collab.whenApplied();
+    await a.collab.whenApplied(); await b.collab.whenApplied();
     expect(a.host.present.has("delta")).toBe(true);
+    expect(b.host.present.has("delta"), "the writer's own screen").toBe(true);
     const joiner = client(room, 40, slate());
     joiner.sync();
     await joiner.collab.whenApplied();
@@ -230,5 +231,54 @@ describe("staging-2 F4: the room never brings back a note its trade record says 
     b.sync(); c.sync();
     await c.collab.whenApplied();
     expect(c.host.present.has("delta")).toBe(true);
+  });
+
+  // f4-attack finding 1: only the pages that receive a replacement checked it against the room's
+  // trade records; the person who sent it kept drawing the note the record says is a card.
+  it("the replacement's own writer does not keep a note the room's record says is a card", async () => {
+    const a = client(room, 10, slate({ gamma: note("gamma") }));
+    const b = client(room, 20, slate({ gamma: note("gamma") }));
+    a.sync(); b.sync();
+    a.collab.settleTrades({ delta: asCard(1) }, 1);
+    b.collab.settleTrades({ delta: asCard(1) }, 1);
+    a.collab.tellRoomOfTrade("delta");
+    a.sync(); b.sync();
+    await a.collab.whenApplied(); await b.collab.whenApplied();
+    // B's host draws its own undo (Delta still a note in that history) and sends it.
+    b.host.present.set("delta", note("delta", 200));
+    vi.advanceTimersByTime(5);
+    b.collab.send(undoTo({ gamma: note("gamma"), delta: note("delta", 200) }));
+    b.sync(); a.sync();
+    await a.collab.whenApplied(); await b.collab.whenApplied();
+    await vi.advanceTimersByTimeAsync(5000);
+    b.sync(); a.sync();
+    await a.collab.whenApplied(); await b.collab.whenApplied();
+    expect(a.host.present.has("delta")).toBe(false);
+    expect(b.host.present.has("delta"), "the writer's own screen").toBe(false);
+    expect(b.host.present.has("gamma")).toBe(true);
+    const joiner = client(room, 40, slate());
+    joiner.sync();
+    await joiner.collab.whenApplied();
+    expect(joiner.host.present.has("delta")).toBe(false);
+  });
+
+  it("the writer keeps a note whose own trade is on its way when it sends a replacement", async () => {
+    const a = client(room, 10, slate({ gamma: note("gamma") }));
+    a.sync();
+    a.collab.settleTrades({ delta: asCard(1) }, 1);
+    a.collab.tellRoomOfTrade("delta");
+    a.sync();
+    // B takes the card off (card -> note): the note is on B's screen, its trade on its way.
+    const b = client(room, 20, slate({ gamma: note("gamma") }));
+    b.sync();
+    b.collab.settleTrades({ delta: asCard(1) }, 1);
+    await b.collab.whenApplied();
+    b.host.present.set("delta", note("delta", 300));
+    b.collab.holdTrade("delta", new Promise(() => {}));
+    vi.advanceTimersByTime(5);
+    b.collab.send(undoTo({ gamma: note("gamma"), delta: note("delta", 300) }));
+    b.sync();
+    await b.collab.whenApplied();
+    expect(b.host.present.has("delta")).toBe(true);
   });
 });
