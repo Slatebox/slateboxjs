@@ -71,9 +71,11 @@ export class Presentation {
    * Build the hierarchical presentation layout (preziData) — a tree of root
    * nodes → children with per-node metrics + descriptions. This is the structure
    * the AI consumes to decide the presentation ORDER (ported from v1
-   * slate.extractPresentationLayout). Bbox is relative to the content top-left.
+   * slate.extractPresentationLayout). Bbox is relative to `orientData`'s left/top
+   * when the host gives it (as v1 did: the origin of the SVG export the host
+   * plays the presentation over), otherwise to the stops' own top-left.
    */
-  public extractPresentationLayout(): any {
+  public extractPresentationLayout(options: { orientData?: { left?: number; top?: number } } = {}): any {
     const nodes = this.stops().filter((n) => !n.options?.isCategory);
 
     // Content bounds (orientation) for relative bbox coordinates.
@@ -94,7 +96,13 @@ export class Presentation {
       maxX = 0;
       maxY = 0;
     }
-    const orient = { left: minX, top: minY, width: maxX - minX, height: maxY - minY };
+    const origin = options?.orientData;
+    const orient = {
+      left: Number.isFinite(origin?.left) ? (origin!.left as number) : minX,
+      top: Number.isFinite(origin?.top) ? (origin!.top as number) : minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
 
     const byId = new Map<string, any>(nodes.map((n) => [n.id, n]));
     const childIdsOf = (node: any): string[] =>
