@@ -1,4 +1,4 @@
-import { SVG, Svg, Rect, Element } from "@svgdotjs/svg.js";
+import { SVG, Svg, Rect, Element, G } from "@svgdotjs/svg.js";
 import type { Slate } from "./Slate";
 import type { Node } from "./Node";
 
@@ -22,6 +22,12 @@ export class BirdsEye {
   private container: HTMLDivElement | null = null;
   private miniCanvas: Svg | null = null;
   private viewportIndicator: Rect | null = null;
+  /**
+   * Every note thumbnail lives in this group, drawn BEFORE the viewport rectangle and
+   * excluded from hit-testing, so the rectangle is always the top layer: lanes, cards
+   * and notes never cover it or swallow a press on it, however often they re-render.
+   */
+  private nodeLayer: G | null = null;
   private nodeShapes: Map<string, Element> = new Map();
   private _enabled: boolean = false;
   private isDragging: boolean = false;
@@ -35,6 +41,8 @@ export class BirdsEye {
   // Event handler references for cleanup
   private boundMouseMove: ((e: MouseEvent) => void) | null = null;
   private boundMouseUp: ((e: MouseEvent) => void) | null = null;
+  private boundTouchMove: ((e: TouchEvent) => void) | null = null;
+  private boundTouchEnd: ((e: TouchEvent) => void) | null = null;
 
   constructor(slate: Slate, options: BirdsEyeOptions = {}) {
     this.slate = slate;
@@ -44,7 +52,9 @@ export class BirdsEye {
       width: 200,
       height: 150,
       backgroundColor: "rgba(255, 255, 255, 0.95)",
-      viewportColor: "rgba(66, 133, 244, 0.3)",
+      // Light enough that the notes and lanes under the rectangle read through it;
+      // the border carries the outline.
+      viewportColor: "rgba(66, 133, 244, 0.12)",
       viewportBorderColor: "#4285f4",
       nodeColor: "#666666",
       borderRadius: 4,
@@ -86,6 +96,7 @@ export class BirdsEye {
 
     this.container = null;
     this.miniCanvas = null;
+    this.nodeLayer = null;
     this.viewportIndicator = null;
     this.nodeShapes.clear();
 
@@ -256,12 +267,13 @@ export class BirdsEye {
     const w = (node.options.width || 100) * this.scale;
     const h = (node.options.height || 60) * this.scale;
 
+    const layer = this.nodeLayer ?? this.miniCanvas;
     let shape: Element;
     if (node.options.shape === "circle") {
       const radius = Math.min(w, h) / 2;
-      shape = this.miniCanvas.circle(radius * 2).move(x, y);
+      shape = layer.circle(radius * 2).move(x, y);
     } else {
-      shape = this.miniCanvas.rect(w, h).move(x, y);
+      shape = layer.rect(w, h).move(x, y);
     }
 
     shape.fill(node.options.backgroundColor || this.options.nodeColor!);
@@ -281,8 +293,17 @@ export class BirdsEye {
     }
 
     // Ensure viewport indicator stays on top
+    this.keepIndicatorOnTop();
+  }
+
+  /** The viewport rectangle is the last thing painted in the minimap. */
+  private keepIndicatorOnTop(): void {
     if (this.viewportIndicator) {
-      this.viewportIndicator.front();
+      try {
+        this.viewportIndicator.front();
+      } catch (e) {
+        /* noop */
+      }
     }
   }
 
@@ -363,8 +384,17 @@ export class BirdsEye {
       .addTo(this.container)
       .size(this.options.width!, this.options.height!);
 
+    // A press-and-drag on the minimap pans the canvas, never the page (touch).
+    this.miniCanvas.css({ "touch-action": "none" } as any);
+
     // Set a light background
     this.miniCanvas.rect(this.options.width!, this.options.height!).fill("#f8f9fa");
+
+    // Note thumbnails go in their own layer, under the viewport rectangle, and take
+    // no pointer events: a press on a lane reaches the rectangle or the minimap.
+    this.nodeLayer = this.miniCanvas
+      .group()
+      .attr({ class: "slateboxjs-birdseye-nodes", "pointer-events": "none" });
   }
 
   private renderNodes(): void {
@@ -388,6 +418,7 @@ export class BirdsEye {
     );
 
     // Render each node
+    const layer = this.nodeLayer ?? this.miniCanvas;
     const nodes = this.slate.getAllNodes();
     nodes.forEach((node) => {
       const x = (node.options.x! - bounds.minX + padding) * this.scale;
@@ -398,9 +429,9 @@ export class BirdsEye {
       let shape: Element;
       if (node.options.shape === "circle") {
         const radius = Math.min(w, h) / 2;
-        shape = this.miniCanvas!.circle(radius * 2).move(x, y);
+        shape = layer.circle(radius * 2).move(x, y);
       } else {
-        shape = this.miniCanvas!.rect(w, h).move(x, y);
+        shape = layer.rect(w, h).move(x, y);
       }
 
       shape.fill(node.options.backgroundColor || this.options.nodeColor!);
@@ -417,6 +448,8 @@ export class BirdsEye {
 
       this.nodeShapes.set(node.id, shape);
     });
+
+    this.keepIndicatorOnTop();
   }
 
   private createViewportIndicator(): void {
@@ -424,8 +457,11 @@ export class BirdsEye {
 
     this.viewportIndicator = this.miniCanvas
       .rect(50, 40)
+      .attr("class", "slateboxjs-birdseye-viewport")
       .fill(this.options.viewportColor!)
       .stroke({ color: this.options.viewportBorderColor!, width: 2 })
+      // The light fill must still take the press, anywhere inside the rectangle.
+      .attr("pointer-events", "all")
       .css({ cursor: "move" });
 
     // Make it draggable
@@ -434,14 +470,7 @@ export class BirdsEye {
       e.stopPropagation();
 
       const mouseEvent = e as MouseEvent;
-      this.isDragging = true;
-      this.dragStartX = mouseEvent.clientX;
-      this.dragStartY = mouseEvent.clientY;
-
-      // Store current viewport position
-      const bbox = this.viewportIndicator!.bbox();
-      this.viewportStartX = bbox.x;
-      this.viewportStartY = bbox.y;
+      this.beginDrag(mouseEvent.clientX, mouseEvent.clientY);
 
       // Add temporary listeners
       this.boundMouseMove = this.handleMouseMove.bind(this);
@@ -450,24 +479,93 @@ export class BirdsEye {
       document.addEventListener("mouseup", this.boundMouseUp);
     });
 
+    // Touch: the same drag with a finger. preventDefault keeps the page from
+    // scrolling and the browser from following up with synthetic mouse events.
+    this.viewportIndicator.on(
+      "touchstart",
+      (ev: Event) => {
+        const e = ev as TouchEvent;
+        const t = e.touches?.[0];
+        if (!t) return;
+        e.preventDefault();
+        e.stopPropagation();
+        this.beginDrag(t.clientX, t.clientY);
+        this.removeTouchDragListeners();
+        this.boundTouchMove = (ev: TouchEvent) => {
+          const m = ev.touches?.[0] ?? ev.changedTouches?.[0];
+          if (!m) return;
+          if (ev.cancelable) ev.preventDefault();
+          this.handleMouseMove({ clientX: m.clientX, clientY: m.clientY } as MouseEvent);
+        };
+        this.boundTouchEnd = () => {
+          this.isDragging = false;
+          this.removeTouchDragListeners();
+        };
+        document.addEventListener("touchmove", this.boundTouchMove, { passive: false });
+        document.addEventListener("touchend", this.boundTouchEnd);
+        document.addEventListener("touchcancel", this.boundTouchEnd);
+      },
+      undefined,
+      { passive: false }
+    );
+
     // Miro parity: click ANYWHERE ELSE in the minimap to JUMP the viewport, centered
     // on the clicked point. (The indicator's own mousedown stops propagation, so
     // dragging it still pans continuously — this only fires for clicks off it.)
     this.miniCanvas.on("mousedown", (e: Event) => {
       const me = e as MouseEvent;
-      try {
-        const p = (this.miniCanvas as any).point(me.clientX, me.clientY);
-        const iw = this.viewportIndicator?.bbox().width || 50;
-        const ih = this.viewportIndicator?.bbox().height || 40;
-        const bounds = this.calculateContentBounds();
-        const padding = 100;
-        const panX = (p.x - iw / 2) / this.scale + bounds.minX - padding;
-        const panY = (p.y - ih / 2) / this.scale + bounds.minY - padding;
-        this.slate.panZoom?.pan({ x: panX, y: panY });
-      } catch (err) {
-        /* noop */
-      }
+      this.jumpTo(me.clientX, me.clientY);
     });
+    this.miniCanvas.on(
+      "touchstart",
+      (ev: Event) => {
+        const t = (ev as TouchEvent).touches?.[0];
+        if (!t) return;
+        ev.preventDefault();
+        this.jumpTo(t.clientX, t.clientY);
+      },
+      undefined,
+      { passive: false }
+    );
+  }
+
+  private beginDrag(clientX: number, clientY: number): void {
+    this.isDragging = true;
+    this.dragStartX = clientX;
+    this.dragStartY = clientY;
+
+    // Store current viewport position
+    const bbox = this.viewportIndicator!.bbox();
+    this.viewportStartX = bbox.x;
+    this.viewportStartY = bbox.y;
+  }
+
+  /** Center the view on a point of the minimap. */
+  private jumpTo(clientX: number, clientY: number): void {
+    try {
+      const p = (this.miniCanvas as any).point(clientX, clientY);
+      const iw = this.viewportIndicator?.bbox().width || 50;
+      const ih = this.viewportIndicator?.bbox().height || 40;
+      const bounds = this.calculateContentBounds();
+      const padding = 100;
+      const panX = (p.x - iw / 2) / this.scale + bounds.minX - padding;
+      const panY = (p.y - ih / 2) / this.scale + bounds.minY - padding;
+      this.slate.panZoom?.pan({ x: panX, y: panY });
+    } catch (err) {
+      /* noop */
+    }
+  }
+
+  private removeTouchDragListeners(): void {
+    if (this.boundTouchMove) {
+      document.removeEventListener("touchmove", this.boundTouchMove);
+      this.boundTouchMove = null;
+    }
+    if (this.boundTouchEnd) {
+      document.removeEventListener("touchend", this.boundTouchEnd);
+      document.removeEventListener("touchcancel", this.boundTouchEnd);
+      this.boundTouchEnd = null;
+    }
   }
 
   private handleMouseMove(e: MouseEvent): void {
@@ -565,6 +663,7 @@ export class BirdsEye {
       document.removeEventListener("mouseup", this.boundMouseUp);
       this.boundMouseUp = null;
     }
+    this.removeTouchDragListeners();
     this.isDragging = false;
 
     // Remove canvas event listeners (using namespaced events)
