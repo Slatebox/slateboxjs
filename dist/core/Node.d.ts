@@ -329,6 +329,8 @@ export declare class Node {
      */
     private pointerFromDragEvent;
     position(x: number, y: number, callback?: () => void, easing?: any, duration?: number): void;
+    /** Whether this note is part of its slate's selection. */
+    private isSelected;
     /** Bring the node to the front of the SVG z-order. */
     /**
      * Raise this node to the top of the SVG z-order. When `persist` is true
@@ -431,11 +433,11 @@ export declare class Node {
     /**
      * The selection ring + plug-dots are positioned from the selected shape's
      * axis-aligned box, and their MutationObserver watches the shape elements —
-     * but rotation lives on the PARENT group transform, which those observers
-     * never see. Interactive drags refresh via finalizeInteraction; this call
-     * covers the non-drag paths (setRotation, collab onNodeRotated, group
-     * rotate, SlateOperations, host API) where nothing else re-positions the
-     * decorations and they would strand at the pre-rotation box.
+     * but position and rotation live on the PARENT group transform, which those
+     * observers never see. Interactive drags refresh via finalizeInteraction; this
+     * call covers the non-drag paths (position(), setRotation, collab
+     * onNodeRotated, group rotate, SlateOperations, host API) where nothing else
+     * re-positions the decorations and they would strand at the old box.
      */
     private refreshSelectionDecorations;
     /**

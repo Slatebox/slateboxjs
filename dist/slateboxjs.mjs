@@ -9146,11 +9146,15 @@ class In {
       const d = performance.now(), h = () => {
         if (this._destroyed || !this.svgGroup || l.cancelled) return;
         const u = Math.min(1, (performance.now() - d) / o), f = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
-        this.options.x = r + (t - r) * f, this.options.y = a + (e - a) * f, this.applyPositionAndRotation(), u < 1 ? requestAnimationFrame(h) : (this.options.x = t, this.options.y = e, this.applyPositionAndRotation(), this._glide === l && (this._glide = null), s && s());
+        this.options.x = r + (t - r) * f, this.options.y = a + (e - a) * f, this.applyPositionAndRotation(), u < 1 ? (this.isSelected() && this.resizeRotate?.syncOverlay?.(), requestAnimationFrame(h)) : (this.options.x = t, this.options.y = e, this.applyPositionAndRotation(), this._glide === l && (this._glide = null), s && s(), this.refreshSelectionDecorations());
       };
       requestAnimationFrame(h);
     } else
-      this.applyPositionAndRotation(), s && s();
+      this.applyPositionAndRotation(), s && s(), this.refreshSelectionDecorations();
+  }
+  /** Whether this note is part of its slate's selection. */
+  isSelected() {
+    return !!this.slate?.selectedNodes?.includes?.(this);
   }
   /** Bring the node to the front of the SVG z-order. */
   /**
@@ -9429,11 +9433,11 @@ class In {
   /**
    * The selection ring + plug-dots are positioned from the selected shape's
    * axis-aligned box, and their MutationObserver watches the shape elements —
-   * but rotation lives on the PARENT group transform, which those observers
-   * never see. Interactive drags refresh via finalizeInteraction; this call
-   * covers the non-drag paths (setRotation, collab onNodeRotated, group
-   * rotate, SlateOperations, host API) where nothing else re-positions the
-   * decorations and they would strand at the pre-rotation box.
+   * but position and rotation live on the PARENT group transform, which those
+   * observers never see. Interactive drags refresh via finalizeInteraction; this
+   * call covers the non-drag paths (position(), setRotation, collab
+   * onNodeRotated, group rotate, SlateOperations, host API) where nothing else
+   * re-positions the decorations and they would strand at the old box.
    */
   refreshSelectionDecorations() {
     const t = this.slate;
@@ -10438,13 +10442,15 @@ class Nd {
         e.relationships?.removeAll?.();
       } catch {
       }
-      return this.allNodes.forEach((s) => {
-        if (s.id !== t)
+      this.allNodes.forEach((i) => {
+        if (i.id !== t)
           try {
-            s.relationships?.getAssociation?.(t) && s.relationships.removeAssociation(t);
+            i.relationships?.getAssociation?.(t) && i.relationships.removeAssociation(t);
           } catch {
           }
-      }), e.remove(), this.nodes.delete(t), !0;
+      });
+      const s = this.slate;
+      return s?.getSelectedNodes?.()?.includes?.(e) && s.deselectNode?.(e), e.remove(), this.nodes.delete(t), !0;
     }
     return !1;
   }
@@ -15283,7 +15289,19 @@ const Cn = class Cn {
   }
   /** Deselect a single node. */
   deselectNode(t) {
-    this.selectedNodes.includes(t) && (console.log("SELECTION_DEBUG: Deselecting node", t.id), this.selectedNodes = this.selectedNodes.filter((e) => e !== t), t.onDeselected(), this.selectionChanged(), this.selectedNodes.length === 0 ? this.disableGroupResizeRotate() : this.updateSelectionResizeRotate());
+    this.selectedNodes.includes(t) && (console.log("SELECTION_DEBUG: Deselecting node", t.id), this.selectedNodes = this.selectedNodes.filter((e) => e !== t), t.onDeselected(), this.putAwaySelectionUi(t), this.selectionChanged(), this.selectedNodes.length === 0 ? this.disableGroupResizeRotate() : this.updateSelectionResizeRotate());
+  }
+  /**
+   * A note's outline, handles, plugs and cog live outside the note, in an overlay
+   * the selection pass reaches only through the notes still on the slate. A note
+   * leaving the selection (deselected, removed, or replaced by an undo) puts them
+   * away itself, or they stay round empty canvas.
+   */
+  putAwaySelectionUi(t) {
+    try {
+      t.resizeRotate?.isEnabled?.() && t.resizeRotate.disable(), t.isConnectionHandlesEnabled?.() && t.disableConnectionHandles(), t.hideNodeCog?.();
+    } catch {
+    }
   }
   /** Deselect all currently selected nodes. */
   /** Remove the active line cog + endpoint handles (M1/L1), if any. */
@@ -15691,11 +15709,13 @@ const Cn = class Cn {
       }
     if (t.length && this.selectedNodes.some((e) => t.includes(e))) {
       this.selectedNodes = this.selectedNodes.filter((e) => !t.includes(e)), this.selectionChanged();
-      for (const e of t)
+      for (const e of t) {
         try {
           e.onDeselected();
         } catch {
         }
+        this.putAwaySelectionUi(e);
+      }
       try {
         this.updateSelectionResizeRotate();
       } catch {
@@ -15714,6 +15734,7 @@ const Cn = class Cn {
   dropReplacedFromSelection() {
     const t = this.selectedNodes.filter((e) => this.nodes.one(e.id) === e);
     if (t.length !== this.selectedNodes.length) {
+      for (const e of this.selectedNodes) t.includes(e) || this.putAwaySelectionUi(e);
       this.selectedNodes = t, this.selectionChanged();
       try {
         this.updateSelectionResizeRotate();
