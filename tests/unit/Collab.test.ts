@@ -71,6 +71,45 @@ describe("Collab", () => {
       const collab = new Collab(mockSlate);
       expect(collab.getCollabUsers()).toEqual([]);
     });
+
+    // A person on two tabs is two clients with one person key: the host app
+    // tells people apart (and itself from its own other tabs) by the key.
+    it("gives each peer its person key, and leaves this client out", () => {
+      const collab = new Collab(mockSlate);
+      (collab as any).clientID = 1;
+      (collab as any).awareness = {
+        getStates: () => new Map<number, any>([
+          [1, { user: { name: "Guest", color: "#111111", key: "me" } }],
+          [2, { user: { name: "Guest", color: "#111111", key: "me" } }],
+          [3, { user: { name: "Ada", color: "#222222", key: "ada" } }],
+          [4, { user: { name: "Guest", color: "#333333" } }],
+        ]),
+      };
+      expect(collab.getCollabUsers()).toEqual([
+        { clientID: 2, userName: "Guest", color: "#111111", key: "me", cursor: undefined },
+        { clientID: 3, userName: "Ada", color: "#222222", key: "ada", cursor: undefined },
+        { clientID: 4, userName: "Guest", color: "#333333", key: undefined, cursor: undefined },
+      ]);
+    });
+
+    it("puts the person key the host gives into this client's presence", async () => {
+      const set = vi.fn();
+      class FakeProvider {
+        awareness = { setLocalStateField: set, on: vi.fn(), getStates: () => new Map() };
+        synced = false;
+        on = vi.fn();
+        disconnect = vi.fn();
+        destroy = vi.fn();
+      }
+      mockSlate.options.events.onInitCollaboration = async () => ({
+        websocketUrl: "ws://relay", userName: "Guest", color: "#123456", personKey: "k-1",
+      });
+      const collab = new Collab(mockSlate, { Y, WebsocketProvider: FakeProvider });
+      (collab as any).setupCursorTracking = vi.fn();
+      await collab.init();
+      expect(set).toHaveBeenCalledWith("user", { name: "Guest", color: "#123456", key: "k-1" });
+      collab.destroy();
+    });
   });
 
   describe("send", () => {

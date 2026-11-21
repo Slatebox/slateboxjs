@@ -45,6 +45,21 @@ export interface InlineDraft {
   returnFocus: boolean;
 }
 
+/**
+ * Where the inline editor's text sits in the note: the note's own alignment (Left, Centre, Right;
+ * Top, Middle, Bottom), as the drawn text has it, so it stays put while it is edited.
+ */
+export function inlineEditorAlignment(options: { textXAlign?: string; textYAlign?: string }): string[] {
+  const x = options.textXAlign === "left" ? "left" : options.textXAlign === "right" ? "right" : "center";
+  const y = options.textYAlign === "top" ? "flex-start" : options.textYAlign === "bottom" ? "flex-end" : "center";
+  return [
+    "display:flex",
+    `justify-content:${x === "left" ? "flex-start" : x === "right" ? "flex-end" : "center"}`,
+    `align-items:${y}`,
+    `text-align:${x}`,
+  ];
+}
+
 export class Editor {
   private node: Node;
   private _inlineEditing = false;
@@ -136,10 +151,8 @@ export class Editor {
       `width:${w}px`,
       `height:${h}px`,
       "box-sizing:border-box",
-      "display:flex",
-      "align-items:center",
-      "justify-content:center",
-      "text-align:center",
+      // The box sits where the note draws its text, so typing never jumps to the centre.
+      ...inlineEditorAlignment(node.options),
       "outline:none",
       "padding:4px",
       "cursor:text",

@@ -289,6 +289,17 @@ function textWeight(weight: string | undefined): string | null {
   return weight === "bold" ? "bold" : null;
 }
 
+/**
+ * The distance between two lines of a note's text, in pixels: SVG.js's leading
+ * (1.3) times the font size, which may be stored as a number, "18px" or "14pt".
+ */
+function textLineHeight(fontSize: number | string | undefined): number {
+  const raw = String(fontSize ?? "").trim().toLowerCase();
+  let size = typeof fontSize === "number" ? fontSize : parseFloat(raw);
+  if (typeof fontSize !== "number" && raw.endsWith("pt")) size = (size * 4) / 3;
+  return (Number.isFinite(size) && size > 0 ? size : 14) * 1.3;
+}
+
 export class Node {
   public id: string;
   public options: NodeOptions;
@@ -1238,14 +1249,14 @@ export class Node {
         break;
     }
 
-    // Multi-line text: SVG.js stacks tspans downward from the first line, so for
-    // middle/default vertical alignment shift the block up by half its extra
-    // height to keep it centered in the shape.
+    // Multi-line text: SVG.js stacks tspans downward from the first line, so the
+    // block's extra lines hang below y. Bottom moves the block up by all of them,
+    // so the last line ends at the bottom edge; middle by half, to stay centred.
     const lineCount =
       this.textElement.node.querySelectorAll?.("tspan")?.length || 1;
-    if (lineCount > 1 && textYAlign !== "top" && textYAlign !== "bottom") {
-      const lineHeight = (this.options.fontSize || 14) * 1.3;
-      y -= ((lineCount - 1) * lineHeight) / 2;
+    if (lineCount > 1 && textYAlign !== "top") {
+      const extra = (lineCount - 1) * textLineHeight(this.options.fontSize);
+      y -= textYAlign === "bottom" ? extra : extra / 2;
     }
 
     // Use x/y attributes directly for proper text-anchor behavior
@@ -1260,7 +1271,7 @@ export class Node {
 
   /**
    * Shrink the rendered text to fit within the node bounds (Miro shape behavior).
-   * Applies a uniform scale transform around the text's visual center; never grows
+   * Applies a uniform scale transform about the text's aligned edge; never grows
    * beyond 1 (the set size) and never shrinks below a readable floor.
    */
   private fitTextToNode(): void {
@@ -1289,10 +1300,11 @@ export class Node {
     let scale = Math.min(availW / bb.width, availH / bb.height);
     if (scale >= 0.999) return; // already fits — leave at full size
     scale = Math.max(scale, 0.3); // don't shrink to unreadable
-    // Scale around the text's geometric center so it stays where it was centered,
-    // regardless of alignment / multi-line stacking.
-    const gcx = bb.x + bb.width / 2;
-    const gcy = bb.y + bb.height / 2;
+    // Scale about the edge the text is aligned to (its centre when centred), so
+    // Left, Right, Top and Bottom text stays flush with its edge as it shrinks.
+    const { textXAlign, textYAlign } = this.options;
+    const gcx = textXAlign === "left" ? bb.x : textXAlign === "right" ? bb.x + bb.width : bb.x + bb.width / 2;
+    const gcy = textYAlign === "top" ? bb.y : textYAlign === "bottom" ? bb.y + bb.height : bb.y + bb.height / 2;
     try {
       t.attr(
         "transform",

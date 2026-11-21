@@ -393,6 +393,65 @@ describe("Text content", () => {
     expect(node.options.textYAlign).toBe("bottom");
   });
 
+  // SVG.js stacks the lines downward from the first one. Bottom-aligned text must
+  // end at the bottom edge, so the block moves up by its extra lines; top starts
+  // at the top edge; middle is centred. A size stored in points is drawn in points.
+  describe("multi-line text keeps its block inside the note", () => {
+    const placed = async (textYAlign: string, fontSize: number | string, lines: number) => {
+      const node = await createNode({ text: "One\nTwo\nThree", width: 120, height: 200, textYAlign, fontSize });
+      const text = (node as any).textElement;
+      text.node.querySelectorAll = () => Array.from({ length: lines });
+      text.attr.mockClear();
+      node.centerText();
+      const call = text.attr.mock.calls.find((c: any[]) => c[0] && typeof c[0] === "object" && "y" in c[0]);
+      return call[0].y as number;
+    };
+
+    it("bottom: the last line sits at the bottom edge", async () => {
+      // Three lines of 20px text, 26px apart: the first line starts two lines above the bottom.
+      expect(await placed("bottom", 20, 3)).toBeCloseTo(200 - 5 - 2 * 26);
+      expect(await placed("bottom", 20, 1)).toBeCloseTo(200 - 5);
+    });
+
+    it("top: the first line sits at the top edge", async () => {
+      expect(await placed("top", 20, 3)).toBeCloseTo(5);
+    });
+
+    it("middle: the block is centred, with a size in points drawn in points", async () => {
+      expect(await placed("middle", 20, 3)).toBeCloseTo(100 - 26);
+      // 15pt is 20px.
+      expect(await placed("middle", "15pt", 3)).toBeCloseTo(100 - 26);
+      expect(await placed("bottom", "15pt", 3)).toBeCloseTo(200 - 5 - 2 * 26);
+    });
+  });
+
+  // Text too big for its note is drawn smaller. It shrinks about the edge it is
+  // aligned to, so Left or Bottom text stays flush with that edge.
+  describe("text shrunk to fit stays at its aligned edge", () => {
+    const origin = async (textXAlign: string, textYAlign: string) => {
+      const node = await createNode({ text: "A long line of text", width: 100, height: 60, textXAlign, textYAlign });
+      const text = (node as any).textElement;
+      text.node.getBBox = () => ({ x: 10, y: 20, width: 200, height: 40 });
+      text.attr.mockClear();
+      node.centerText();
+      const call = text.attr.mock.calls.find((c: any[]) => c[0] === "transform" && typeof c[1] === "string");
+      const [, x, y] = /^translate\(([-\d.]+) ([-\d.]+)\) scale/.exec(call[1])!;
+      return [Number(x), Number(y)];
+    };
+
+    it("left and bottom: about the left and bottom edges", async () => {
+      expect(await origin("left", "bottom")).toEqual([10, 60]);
+    });
+
+    it("right and top: about the right and top edges", async () => {
+      expect(await origin("right", "top")).toEqual([210, 20]);
+    });
+
+    it("centre and middle: about the centre", async () => {
+      expect(await origin("center", "middle")).toEqual([110, 40]);
+    });
+  });
+
   it("should support text offset", async () => {
     const node = await createNode({ text: "Offset", xTextOffset: 5, yTextOffset: -5 });
     expect(node.options.xTextOffset).toBe(5);
