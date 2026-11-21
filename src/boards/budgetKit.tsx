@@ -50,11 +50,11 @@ export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) 
     const inner = { x: box.x + 5, y: box.y, width: Math.max(10, box.width - 10) }
     parts.push({ name: 'column-' + lane.id, ...box, fill: tint(color, 0.6), line: tint(color, 0.1) })
     // On a phone the team's name takes what it needs and its caption ("$400k · $245k committed") the rest, a little
-    // larger and on up to two lines, so two teams framed at once still read at 12px or more.
+    // at the size of its line items and on up to two lines, so two teams framed at once still read at 12px or more.
     const pill = narrow ? inner.width * 0.36 : inner.width
     parts.push({ name: 'lane-' + lane.id, x: inner.x, y: inner.y + 6, width: pill, height: 32, text: lane.label, fill: color, fontSize: 15 })
     parts.push({ name: 'caption-' + lane.id, x: narrow ? inner.x + pill + 6 : inner.x, y: inner.y + (narrow ? 6 : 40), width: narrow ? inner.width - pill - 6 : inner.width,
-      height: 40, text: budgetCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: narrow ? 14 : 12 })
+      height: 40, text: budgetCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: narrow ? 15 : 12 })
     board.cards.filter(card => card.laneId === lane.id).forEach((card, k) =>
       parts.push({ name: 'card-' + card.id, x: inner.x, y: inner.y + 100 + k * 64, width: inner.width, height: 56,
         text: card.label + '\n' + money(card.amount!, board.budget!.currency), fontSize: 14 }))
