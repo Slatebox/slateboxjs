@@ -47,6 +47,7 @@
       "import": "./dist/boards.mjs",
       "require": "./dist/boards.cjs"
     },
+    "./build.json": "./dist/BUILD.json",
     "./dragology": {
       "types": "./dist/dragology/index.d.ts",
       "import": "./dist/dragology.mjs",
@@ -63,7 +64,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build && vite build --config vite.workshops.config.ts && npm run build:types",
+    "build": "vite build && vite build --config vite.workshops.config.ts && npm run build:types && node scripts/stamp-build.mjs",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist && node scripts/clean-declarations.mjs",
     "preview": "vite preview",
     "serve": "vite preview",
