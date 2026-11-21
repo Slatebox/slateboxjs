@@ -12,6 +12,8 @@ export interface SlateSummary {
         height: number;
         rotationAngle?: number;
         locked?: true;
+        /** The template category the note names. */
+        category?: string;
     }>;
     connections: Array<Record<string, any>>;
 }

@@ -21,6 +21,20 @@ export declare const EFFECTS: readonly string[];
 export declare const ORDERS: readonly ["front", "back"];
 export declare const TEXT_X_ALIGN: readonly ["left", "middle", "right"];
 export declare const TEXT_Y_ALIGN: readonly ["top", "middle", "bottom"];
+/**
+ * The style-bar controls a note can leave off, each stored as the flag the bar
+ * reads (note-style barControls): false hides it, true (or no flag) shows it.
+ * Templates use them, e.g. the theme generator's instruction notes.
+ */
+export declare const NOTE_CONTROLS: Readonly<{
+    readonly color: "showColorTab";
+    readonly text: "showTextTab";
+    readonly shape: "showShapeTab";
+    readonly picture: "showImageTab";
+    readonly effects: "showEffectTab";
+    readonly ask: "showAITab";
+}>;
+export declare const NOTE_CONTROL_NAMES: Array<keyof typeof NOTE_CONTROLS>;
 export declare const NODE_KEYS: Record<string, NodeKey>;
 /**
  * A change that is not stored on the note: order moves the note to the front
