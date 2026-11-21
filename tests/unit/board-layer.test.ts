@@ -36,9 +36,31 @@ describe('the board layer', () => {
     expect(texts(svg)).toEqual(expect.arrayContaining(['Done day 12 · launch day 14', 'Week 1', 'Week 2', '+10d']))
     const links = [...svg.querySelectorAll('[data-board-link]')]
     expect(links.map(link => link.getAttribute('data-board-link')).sort()).toEqual(['build>qa', 'design>build'])
-    expect(links.every(link => link.getAttribute('pointer-events') === 'stroke' && link.getAttribute('stroke-width') === '12')).toBe(true)
+    // A 24px stroke to hit, and a button the keyboard reaches (phase 2 review M2, M3).
+    expect(links.every(link => link.getAttribute('pointer-events') === 'stroke' && link.getAttribute('stroke-width') === '24' &&
+      link.getAttribute('role') === 'button' && link.getAttribute('tabindex') === '0')).toBe(true)
     links[0].dispatchEvent(new MouseEvent('click', { bubbles: true }))
     expect(onUnlink).toHaveBeenCalledTimes(1)
+    links[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    expect(onUnlink).toHaveBeenCalledTimes(2)
+    links[1].dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
+    expect(onUnlink).toHaveBeenCalledTimes(3)
+    // A tap selects the link and says so; only a second tap on it removes it.
+    const tap = (target: Element) => {
+      const down = new MouseEvent('pointerdown', { bubbles: true }) as MouseEvent & { pointerType: string }
+      Object.defineProperty(down, 'pointerType', { value: 'touch' })
+      target.dispatchEvent(down)
+      target.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    }
+    tap(svg.querySelector('[data-board-link="build>qa"]')!)
+    expect(onUnlink).toHaveBeenCalledTimes(3)
+    const armed = svg.querySelector('[data-board-link="build>qa"]')!
+    expect(armed.hasAttribute('data-armed')).toBe(true)
+    expect(armed.getAttribute('aria-label')).toMatch(/Tap again to remove it\.$/)
+    expect(texts(svg)).toContain('Tap again to remove this link')
+    tap(armed)
+    expect(onUnlink).toHaveBeenCalledTimes(4)
+    expect(onUnlink).toHaveBeenLastCalledWith('qa', 'build')
     layer.draw(plan, null, state({ clamp: { name: 'handle-build', text: 'Launch is day 14.' }, refused: true }))
     expect(svg.querySelector('[data-board-layer="clamp"]')!.textContent).toBe('Launch is day 14.')
     // The sentence is above every note, never under a bar: the canvas's last group.

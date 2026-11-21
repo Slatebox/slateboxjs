@@ -8,7 +8,10 @@ import type { BoardLayer, BoardLayerState } from './native'
 export type LayerShape =
   | { t: 'line'; x1: number; y1: number; x2: number; y2: number; color: string; width?: number; dash?: string }
   | { t: 'rect'; x: number; y: number; w: number; h: number; color: string; rx?: number; opacity?: number }
-  /** A path; `arrow` puts an arrowhead at its end, `unlink` makes a 12px stroke under it that removes that link when clicked. */
+  /**
+   * A path; `arrow` puts an arrowhead at its end. `unlink` makes a 24px stroke under it, a button that removes
+   * that link: a click, Enter or Space removes it; a tap first selects it, and a second tap removes it.
+   */
   | { t: 'path'; d: string; color: string; width?: number; arrow?: { x: number; y: number; angle: number }; unlink?: { cardId: string; waitsOn: string; label: string } }
   /** Words; `lines` sets `text` on several lines (each line a tspan, `lineHeight` apart), whose words together are `text`. */
   | { t: 'text'; x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end'; bold?: boolean; role?: string; lines?: string[]; lineHeight?: number }
@@ -38,9 +41,16 @@ function element(name: string, attributes: Record<string, string | number>, pain
   return node
 }
 
+/** A link selected by a tap, waiting for a second tap to be removed. */
+export interface LinkSelection { armed: string | null; arm(key: string | null): void }
+
 /** Draw `shapes` into `group`, replacing what was there. */
-export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUnlink?: (cardId: string, waitsOn: string) => void) {
+export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUnlink?: (cardId: string, waitsOn: string) => void, links?: LinkSelection) {
+  // A link button that has the keyboard's focus keeps it across a redraw.
+  const active = typeof document !== 'undefined' ? document.activeElement : null
+  const focused = active && group.contains(active) ? active.getAttribute('data-board-link') : null
   while (group.firstChild) group.removeChild(group.firstChild)
+  const buttons: SVGElement[] = []
   for (const shape of shapes) {
     if (shape.t === 'line') {
       group.appendChild(element('line', { x1: shape.x1, y1: shape.y1, x2: shape.x2, y2: shape.y2, 'stroke-width': shape.width ?? 1,
@@ -64,19 +74,46 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
     } else {
       if (shape.unlink && onUnlink) {
         const { cardId, waitsOn, label } = shape.unlink
-        const hit = element('path', { d: shape.d, fill: 'none', 'stroke-width': 12, 'pointer-events': 'stroke', cursor: 'pointer',
-          'data-board-link': waitsOn + '>' + cardId, 'aria-label': label, role: 'button' }, { stroke: 'transparent' })
-        hit.addEventListener('pointerdown', event => event.stopPropagation())
-        hit.addEventListener('click', event => { event.stopPropagation(); onUnlink(cardId, waitsOn) })
+        const key = waitsOn + '>' + cardId
+        const armed = links?.armed === key
+        const hit = element('path', { d: shape.d, fill: 'none', 'stroke-width': 24, 'stroke-linecap': 'round', 'pointer-events': 'stroke', cursor: 'pointer',
+          'data-board-link': key, 'aria-label': armed ? label + '. Tap again to remove it.' : label, role: 'button', tabindex: 0,
+          ...(armed ? { 'data-armed': '', opacity: 0.3 } : {}) }, { stroke: armed ? layerInk.refuse : 'transparent' })
+        let touch = false
+        hit.addEventListener('pointerdown', event => { event.stopPropagation(); touch = event.pointerType === 'touch' || event.pointerType === 'pen' })
+        hit.addEventListener('click', event => {
+          event.stopPropagation()
+          // On a touch screen a tap near an arrow selects it; only a second tap on it removes it.
+          if (touch && links && links.armed !== key) { links.arm(key); return }
+          links?.arm(null)
+          onUnlink(cardId, waitsOn)
+        })
+        hit.addEventListener('keydown', event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          event.stopPropagation()
+          onUnlink(cardId, waitsOn)
+        })
+        // The keyboard's focus shows on the link it is on.
+        hit.addEventListener('focus', () => { hit.style.setProperty('stroke', layerInk.accept); hit.setAttribute('opacity', '0.35') })
+        hit.addEventListener('blur', () => { if (!armed) { hit.style.setProperty('stroke', 'transparent'); hit.removeAttribute('opacity') } })
         group.appendChild(hit)
+        buttons.push(hit)
       }
       group.appendChild(element('path', { d: shape.d, fill: 'none', 'stroke-width': shape.width ?? 1.5, 'pointer-events': 'none' }, { stroke: shape.color }))
       if (shape.arrow) {
         const { x, y, angle } = shape.arrow
         group.appendChild(element('path', { d: 'M0 0 L-8 -4.5 L-8 4.5 Z', transform: `translate(${x} ${y}) rotate(${angle})`, 'pointer-events': 'none' }, { fill: shape.color }))
       }
+      if (shape.unlink && links?.armed === shape.unlink.waitsOn + '>' + shape.unlink.cardId && shape.arrow) {
+        const note = element('text', { x: shape.arrow.x - 6, y: shape.arrow.y - 14, 'font-size': 13, 'font-weight': 600, 'text-anchor': 'end',
+          'font-family': 'system-ui, sans-serif', 'pointer-events': 'none', 'data-board-layer': 'unlink-armed' }, { fill: layerInk.refuse })
+        note.textContent = 'Tap again to remove this link'
+        group.appendChild(note)
+      }
     }
   }
+  if (focused) buttons.find(button => button.getAttribute('data-board-link') === focused)?.focus({ preventScroll: true })
 }
 
 /**
@@ -94,14 +131,30 @@ export function createBoardLayer(slate: any, paint: (shown: Workshop, state: Boa
   top.setAttribute('data-board-layer-top', '')
   top.setAttribute('pointer-events', 'none')
   let gone = false
-  return {
+  // A tapped link waits a few seconds for the second tap that removes it.
+  let last: [Workshop, Workshop | null, BoardLayerState] | null = null
+  let disarm: ReturnType<typeof setTimeout> | undefined
+  const links: LinkSelection = {
+    armed: null,
+    arm(key) {
+      clearTimeout(disarm)
+      links.armed = key
+      if (key) {
+        disarm = setTimeout(() => links.arm(null), 5000)
+        last?.[2].announce?.('Link selected. Tap it again to remove it.')
+      }
+      if (last) layer.draw(...last)
+    },
+  }
+  const layer: BoardLayer = {
     draw(board, preview, state) {
       if (gone || !root) return
+      last = [board, preview, state]
       const { origin } = state
       const shapes = paint(preview ?? board, state, board)
       const said = (shape: LayerShape) => shape.t === 'text' && (shape.role === 'clamp' || shape.role === 'refusal')
       for (const layer of [group, top]) layer.setAttribute('transform', `translate(${origin.x} ${origin.y})`)
-      renderLayerShapes(group, shapes.filter(shape => !said(shape)), state.onUnlink)
+      renderLayerShapes(group, shapes.filter(shape => !said(shape)), state.onUnlink, links)
       renderLayerShapes(top, shapes.filter(said))
       // Above the lane columns, under every other note.
       const above = state.above && state.above.parentNode === root ? state.above : null
@@ -113,8 +166,10 @@ export function createBoardLayer(slate: any, paint: (shown: Workshop, state: Boa
     },
     destroy() {
       gone = true
+      clearTimeout(disarm)
       group.remove()
       top.remove()
     },
   }
+  return layer
 }

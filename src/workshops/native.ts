@@ -71,6 +71,10 @@ export interface BoardLayerState {
   above?: Element | null
   /** A person clicked the arrow from `waitsOn` to `cardId` (launch plan). */
   onUnlink?(cardId: string, waitsOn: string): void
+  /** What the canvas shows of the board now, in board coordinates: words the board says are set inside it. */
+  view?: { x: number; y: number; width: number; height: number } | null
+  /** Say something to a screen reader (the slate's announcer). */
+  announce?(text: string): void
 }
 
 export interface BoardLayer {
@@ -101,6 +105,14 @@ export interface WorkshopBoardKit {
   refusalAt(board: Workshop, cardId: string, grab: { x: number; y: number }, point: { x: number; y: number }, layout: WorkshopBoardLayout): { laneId: string; reason: string } | null
   handleDrag(board: Workshop, handleId: string, grab: { x: number; y: number }, layout: WorkshopBoardLayout): ((point: { x: number; y: number }) => HandleResult) | null
   keyEdit?(board: Workshop, part: string, key: { key: string; shiftKey: boolean }): WorkshopEdit[] | null
+  /**
+   * A key that offers a choice on a focused part (a launch plan's L: what this task waits on). Null when
+   * the key means nothing here; a sentence when there is nothing to choose. The key again offers the next
+   * choice, Enter makes it, Escape cancels.
+   */
+  keyChoices?(board: Workshop, part: string, key: string): { said: string; edits: WorkshopEdit[] }[] | string | null
+  /** What a screen reader is told a focused card's keys do, after its name. */
+  cardKeys?: string
   /** Outline the lanes a held card may go to. Off for a launch plan, where every team takes every task. */
   laneCues: boolean
 }
@@ -269,6 +281,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   let held: { cardId: string; evaluate: ((point: { x: number; y: number }) => Workshop) | null; grab?: { x: number; y: number }; outcome: Outcome } | null = null
   /** A keyboard move on show: to a lane, or (laneId null) off the lanes to the canvas on one side. */
   let staged: { cardId: string; laneId: string | null; side?: -1 | 1; spot?: { x: number; y: number }; next: Workshop } | null = null
+  // A choice offered by a key on a focused part (keyChoices): the part, the key, the choices and the one on show.
+  let picking: { node: string; key: string; choices: { said: string; edits: WorkshopEdit[]; next: Workshop; done: string }[]; at: number } | null = null
   /** An ordinary note being dragged over the board, and what a drop where it is would do. */
   let hovering: { noteId: string; laneId: string | null; refusal: string | null; open: string[] } | null = null
   /** A card whose note was given another id than the card's (the board or the slate had it already): note id → card id. */
@@ -468,6 +482,47 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     onKeyDown(node: any, event) {
       const target = kindOf(node.id)
       if (readOnly || proposal || held || grip || event.ctrlKey || event.metaKey || event.altKey) return false
+      if (picking && (picking.node !== node.id || !['Enter', 'Escape'].includes(event.key) && event.key.toLowerCase() !== picking.key)) endPicking()
+      if (picking && event.key === 'Escape') {
+        event.preventDefault()
+        endPicking()
+        slate.announce?.('Cancelled. Nothing changed.')
+        return true
+      }
+      if (picking && event.key === 'Enter') {
+        event.preventDefault()
+        const chosen = picking.choices[picking.at]
+        picking = null
+        tell(options.onPreview, null)
+        // The edits chosen are the change: made by the reducer already, sent as they are.
+        value = chosen.next
+        draw(value)
+        slate.announce?.(chosen.done)
+        tell(options.onChange, value, { ...(target?.kind === 'card' ? { cardId: target.key } : {}), edits: chosen.edits })
+        return true
+      }
+      const offered = kit?.keyChoices?.(value, nameOf(node.id), event.key)
+      if (offered) {
+        event.preventDefault()
+        const choices: { said: string; edits: WorkshopEdit[]; next: Workshop; done: string }[] = []
+        const why: string[] = []
+        for (const choice of typeof offered === 'string' ? [] : offered) {
+          const made = applyWorkshopEdits(value, choice.edits)
+          if ('refused' in made) why.push(`${choice.said}: ${made.refused.reason}`)
+          else choices.push({ ...choice, next: made.workshop, done: made.report.edits.map(edit => edit.said).join(' ') })
+        }
+        if (!choices.length) {
+          slate.announce?.(typeof offered === 'string' ? offered : why.join(' '))
+          return true
+        }
+        const at = picking && picking.node === node.id ? (picking.at + 1) % choices.length : 0
+        picking = { node: node.id, key: event.key.toLowerCase(), choices, at }
+        draw(choices[at].next)
+        tell(options.onPreview, choices[at].next)
+        const more = choices.length > 1 ? ` (${at + 1} of ${choices.length}). Press ${event.key.toUpperCase()} for the next,` : '. Press'
+        slate.announce?.(`${choices[at].said}${more} Enter to make it, Escape to cancel.`)
+        return true
+      }
       const keyed = kit?.keyEdit?.(value, nameOf(node.id), { key: event.key, shiftKey: event.shiftKey })
       if (keyed) {
         event.preventDefault()
@@ -841,6 +896,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     if (key === told) return
     told = key
     tell(options.onSelect, selection)
+  }
+
+  /** Put back the board a key's choice was showing. */
+  function endPicking() {
+    if (!picking) return
+    picking = null
+    draw(value)
+    tell(options.onPreview, null)
   }
 
   function clearStaged() {
@@ -1353,7 +1416,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const above = value.lanes.map(lane => owned.get(noteId(workshopNodeIds.column(lane.id)))?.svgGroup?.node as Element | undefined)
         .reduce<Element | null>((top, node) => !node ? top : !top || top.compareDocumentPosition(node) & 4 ? node : top, null)
       const shown = how.model
-      layer.draw(value, shown === value ? null : shown, { origin, layout, above,
+      const seen = slate.canvas?.viewbox?.()
+      const view = seen && [seen.x, seen.y, seen.width, seen.height].every(Number.isFinite)
+        ? { x: seen.x - origin.x, y: seen.y - origin.y, width: seen.width, height: seen.height } : null
+      layer.draw(value, shown === value ? null : shown, { origin, layout, above, view, announce: text => slate.announce?.(text),
         clamp: grip?.last?.clampedReason ? { name: grip.name, text: grip.last.clampedReason }
           : !grip && gripRefusal ? { name: gripRefusal.name, text: gripRefusal.reason } : null,
         refused: Boolean(grip?.last?.refusal) || (!grip && Boolean(gripRefusal)),
@@ -1420,7 +1486,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     if (target?.kind === 'card') {
       const card = model.cards.find(item => item.id === target.key)
       const lane = card && model.lanes.find(item => item.id === card.laneId)
-      return card && lane ? `${card.label}, in ${lane.label}` : null
+      return card && lane ? `${card.label}, in ${lane.label}${kit?.cardKeys ? '. ' + kit.cardKeys : ''}` : null
     }
     return target?.kind === 'handle' ? kit?.label?.(model, nameOf(id)) ?? null : null
   }
