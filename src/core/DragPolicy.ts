@@ -171,6 +171,11 @@ export interface DragPolicy {
    */
   onLine?(type: string, data: any): void;
   /**
+   * A note arrived on the slate and is drawn, whoever added it and however (a load, a
+   * collaborator's package, undo). A host that draws lines to ordinary notes joins them here.
+   */
+  onNodeAdded?(node: Node): void;
+  /**
    * What the host wants kept with each undo record (taken when the record is taken).
    * Given back to {@link onUndoRestore} when this person's undo or redo goes back to it.
    */

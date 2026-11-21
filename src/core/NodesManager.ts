@@ -30,10 +30,15 @@ export class NodesManager {
     this.nodes.set(node.id, node)
 
     const built = node.ready
+    // Hosts hear of every note once it is drawn, however it arrived (a load, a collaborator, undo).
+    const drawn = () => { if (this.nodes.get(node.id) === node) (this.slate as any).nodeAdded?.(node) }
     if (built && typeof built.then === 'function') {
       this.unbuilt.add(built)
       const done = () => { this.unbuilt.delete(built) }
       built.then(done, done)
+      built.then(drawn, () => undefined)
+    } else {
+      drawn()
     }
 
     return node

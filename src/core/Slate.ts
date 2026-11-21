@@ -3131,6 +3131,19 @@ export class Slate {
     return out;
   }
 
+  /** A note arrived and is drawn: each policy hears of it (DragPolicy.onNodeAdded). */
+  public nodeAdded(node: Node): void {
+    if (this._destroyed) return;
+    for (const policy of this._dragPolicies.slice()) {
+      if (typeof policy.onNodeAdded !== "function") continue;
+      try {
+        policy.onNodeAdded(node);
+      } catch (error) {
+        console.warn("DRAG_POLICY: onNodeAdded threw", error);
+      }
+    }
+  }
+
   /** Hand a line change that touches a governed note to the policy that governs it (once per policy). */
   private offerGovernedLine(type: string, data: any): void {
     if (type !== "addRelationship" && type !== "removeRelationship" && type !== "onLinePropertiesChanged") return;

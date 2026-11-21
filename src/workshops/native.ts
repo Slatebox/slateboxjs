@@ -537,6 +537,15 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     // The lines between cards and notes are as they were at that step.
     if (Array.isArray(state?.lines)) restoreLines(state.lines as WorkshopLine[])
   }
+  // A note at one end of a line of the board arrived (the drawing loaded after the board, a
+  // collaborator's note, an undo): the line is drawn to it.
+  let joining = false
+  policy.onNodeAdded = (node: any) => {
+    if (destroyed || joining || owned.get(node.id) === node) return
+    if (!(value.lines ?? []).some(line => line.parentId === node.id || line.childId === node.id)) return
+    joining = true
+    queueMicrotask(() => { joining = false; if (!destroyed) showCurrent() })
+  }
   // A person drew, changed or took away a line with a card at one end. The engine has drawn it
   // already; once the gesture that made it is over, the board takes it (or the line goes, and the
   // reason is said).
