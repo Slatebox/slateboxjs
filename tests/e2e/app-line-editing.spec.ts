@@ -307,10 +307,11 @@ test.describe('on a phone, with touch', () => {
       expect(chip.x + chip.width).toBeLessThanOrEqual(390)
       if (shots) await page.screenshot({ path: `${shots}/after-phone-line-tool-390.png` })
 
-      // One finger across empty canvas: a pan, not a line.
+      // One finger across empty canvas (clear of the chip at its foot): a pan, not a line.
       const cdp = await page.context().newCDPSession(page)
       const canvas = (await page.locator('#slateCanvas').boundingBox())!
-      const from = { x: canvas.x + 60, y: canvas.y + canvas.height - 120 }
+      const from = { x: canvas.x + 60, y: canvas.y + canvas.height * 0.6 }
+      expect(from.y + 10).toBeLessThan(chip.y)
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...from, id: 1 }] })
       for (let i = 1; i <= 8; i++) {
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from.x + i * 15, y: from.y - i * 10, id: 1 }] })
