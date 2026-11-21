@@ -187,4 +187,16 @@ describe('agent presence on a canvas', () => {
     expect(shown.x + Number(tag.getAttribute('x'))).toBeGreaterThanOrEqual(200)
     presence.destroy()
   })
+
+  it('chooses the side again when the view pans, so a tag that would leave the screen comes back on', async () => {
+    const slate = fakeSlate({ note: { x: 300, y: 200, width: 120, height: 80 } })
+    const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
+    presence.set([record({ targets: ['note'], message: 'Draft' })])
+    expect(presence.shown()[0].side).toEqual({ right: true, down: true })
+    // The camera pans right: the note is now near the right edge of what is shown.
+    slate.canvas.viewbox(-300, 0, 800, 600)
+    await new Promise(resolve => setTimeout(resolve, 320))
+    expect(presence.shown()[0].side.right).toBe(false)
+    presence.destroy()
+  })
 })
