@@ -217,6 +217,11 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   const noteBoxes = (): Box[] => (slate.nodes?.allNodes ?? []).map(boxOf).filter((box: Box | null): box is Box => Boolean(box))
   const sameBox = (a: Box, b: Box) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
 
+  // The view as a key, to the nearest 8 screen pixels: a pan or zoom changes it, a jitter does not.
+  function viewKey(): string {
+    const view = viewBox(), scale = zoom()
+    return view ? [view.x, view.y, view.w, view.h].map(value => Math.round((value * scale) / 8)).join(':') : ''
+  }
   function viewBox(): Box | null {
     const shown = shownBox()
     if (shown) return shown.view
@@ -392,7 +397,8 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       const open = opened.has(record.agentKey)
       const size = blockSize(record, agentChecklist(record).length > 0 && (open || !compact))
       // A tag that grew (a list opened, a longer step) or a new zoom may need another corner.
-      const routedFor = [size.w, size.h, scale.toFixed(4)].join(',')
+      // A pan or zoom moves what is on screen: the corner and side are chosen again for the view as it is now.
+      const routedFor = [size.w, size.h, scale.toFixed(4), viewKey()].join(',')
       if (!item) {
         const route = routeTo(record, index, size, scale)
         const first = route.legs[0]
@@ -452,13 +458,15 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     else timer = setTimeout(render, Math.min(when, 60000))
   }
 
-  // Follow the view: a pan or zoom re-scales the tags. Cheap: it only runs while an agent is drawn.
+  // Follow the view: a pan or zoom re-scales the tags and chooses their side again. Cheap: it only runs while an agent is drawn.
   let watch: ReturnType<typeof setInterval> | null = null
   const watchZoom = () => {
     if (watch !== null) return
+    let lastView = viewKey()
     watch = setInterval(() => {
       if (destroyed || !drawn.size) return
-      if (Math.abs(zoom() - lastScale) > 1e-6) render()
+      const view = viewKey()
+      if (Math.abs(zoom() - lastScale) > 1e-6 || view !== lastView) { lastView = view; render() }
     }, 250)
   }
 
