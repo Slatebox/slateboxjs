@@ -228,4 +228,17 @@ describe('agent presence on a canvas', () => {
     expect(x + w).toBeLessThanOrEqual(800)
     presence.destroy()
   })
+
+  it('keeps the avatar on screen when the pointer is at the edge of the view', () => {
+    const slate = fakeSlate({ wide: { x: 10, y: 200, width: 785, height: 80 } })
+    const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
+    presence.set([record({ targets: ['wide'], message: 'Draft' })])
+    const at = presence.shown()[0]
+    const avatar = slate.host.querySelector('[data-agent-avatar]') as SVGGElement
+    const shift = /translate\(([-\d.]+)/.exec(avatar.getAttribute('transform') || '')?.[1] ?? '0'
+    // The hexagon is drawn 13 to 35 pixels right of the pointer; at the right edge it is mirrored to the left.
+    if (at.x + 36 > 800) expect(Number(shift)).toBeLessThan(0)
+    expect(at.x + Number(shift) + 35).toBeLessThanOrEqual(800)
+    presence.destroy()
+  })
 })
