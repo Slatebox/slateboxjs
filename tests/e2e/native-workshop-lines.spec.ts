@@ -249,6 +249,19 @@ test.describe('lines are drawn between cards and notes with the plug', () => {
   })
 })
 
+test('a line to a note that arrives after the board (a load, a collaborator) is drawn when the note arrives', async ({ page }) => {
+  await open(page, '')
+  await page.evaluate(() => {
+    const { board } = (window as any).native
+    board.update({ ...board.value, lines: [{ id: 'alpha-late', parentId: 'alpha', childId: 'late' }] })
+  })
+  await page.waitForTimeout(300)
+  expect(await lineEnds(page, 'alpha-late')).toBeNull()
+  // As a collaborator's package or a load adds it: nothing the workshop did.
+  await page.evaluate(() => (window as any).native.slate.collab.exe({ type: 'onNodeAdded', data: { id: 'late', nodeOptions: [{ id: 'late', xPos: 60, yPos: 320, width: 160, height: 80, text: 'Late note' }] } }))
+  await expect.poll(() => joins(page, 'alpha-late', 'card-alpha', 'late')).toBe(true)
+})
+
 test('a note the lane refuses glides back with its outline and plugs', async ({ page }) => {
   // tests/fixtures: Later holds one card. Fill it, then drop the selected note there.
   await open(page, '')
