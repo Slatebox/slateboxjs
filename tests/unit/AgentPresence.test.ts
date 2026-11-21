@@ -216,4 +216,16 @@ describe('agent presence on a canvas', () => {
     expect(covers).toBe(false)
     presence.destroy()
   })
+
+  it('keeps the tag on screen when no side fits, as on a phone that frames a note edge to edge', () => {
+    const slate = fakeSlate({ wide: { x: 10, y: 200, width: 780, height: 80 } })
+    const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
+    presence.set([record({ targets: ['wide'], message: 'Map the new signup flow' })])
+    const at = presence.shown()[0]
+    const tag = slate.host.querySelector('[data-agent-tag] rect') as SVGRectElement
+    const x = at.x + Number(tag.getAttribute('x')), w = Number(tag.getAttribute('width'))
+    expect(x).toBeGreaterThanOrEqual(0)
+    expect(x + w).toBeLessThanOrEqual(800)
+    presence.destroy()
+  })
 })
