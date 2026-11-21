@@ -299,9 +299,20 @@ test.describe("the line tool", () => {
 test.describe("the line tool with touch", () => {
   test.use({ hasTouch: true });
 
-  test("a pan or a pinch draws nothing; a tap leaves the end free there", async ({ page }) => {
+  test("a tap on a note connects to it; a pan or a pinch draws nothing; a tap on the canvas leaves the end free there", async ({ page }) => {
     await setup(page);
     const cdp = await page.context().newCDPSession(page);
+    // A tap on a note connects to it, and the new line is what is selected, not the note.
+    await page.evaluate(() => { const s = (window as any).__slate; (window as any).__drawn = s.v2.startLineFrom(s.v2.nodes.one("A")); });
+    const c = await nodeAt(page, "C");
+    await page.touchscreen.tap(c.x, c.y);
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => (window as any).__drawn)).toMatchObject({ result: "connected", associationId: "A->C" });
+    expect(await page.evaluate(() => {
+      const v2 = (window as any).__slate.v2;
+      return { line: v2.getSelectedLine()?.association?.id ?? null, notes: v2.getSelectedNodes().length };
+    })).toEqual({ line: "A->C", notes: 0 });
+
     const touch = (type: string, points: Array<{ x: number; y: number }>) =>
       cdp.send("Input.dispatchTouchEvent", { type, touchPoints: points.map((p, i) => ({ ...p, id: i + 1 })) });
     await page.evaluate(() => { const s = (window as any).__slate; (window as any).__drawn = s.v2.startLineFrom(s.v2.nodes.one("A")); });
@@ -323,10 +334,10 @@ test.describe("the line tool with touch", () => {
     }
     await touch("touchEnd", []);
     await page.waitForTimeout(400);
-    expect(await lines(page)).toHaveLength(1);
+    expect(await lines(page)).toHaveLength(2);
     expect(await page.evaluate(() => (window as any).__slate.v2.isDrawingLine())).toBe(true);
 
-    // A tap.
+    // A tap on the canvas.
     await page.touchscreen.tap(400, 640);
     await page.waitForTimeout(400);
     expect(await page.evaluate(() => (window as any).__drawn)).toMatchObject({ result: "free" });

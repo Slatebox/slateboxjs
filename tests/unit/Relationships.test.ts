@@ -78,6 +78,7 @@ describe("Relationships", () => {
     it("a new line takes an id no other note's line has", () => {
       const other = { id: "child1", relationships: { hasAssociationId: (id: string) => id === "node1->child1" } };
       mockSlate.nodes.allNodes = [mockNode, other];
+      mockNode.connector.connectToPoint = vi.fn();
       const rels = new Relationships(mockNode);
       mockNode.relationships = rels;
       expect(rels.addAssociation(mockChildNode).id).toBe("node1->child1~2");

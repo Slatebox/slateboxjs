@@ -194,6 +194,10 @@ test.describe('editing a line already drawn', () => {
       await expect(line).toBeVisible()
       await line.click()
       await expect(line).toHaveAttribute('aria-pressed', 'true')
+      // The canvas says the tool is on, and how to stop it.
+      const drawing = page.getByRole('status', { name: 'Drawing a line' })
+      await expect(drawing).toBeVisible()
+      await expect(drawing.getByRole('button', { name: 'Cancel' })).toBeVisible()
       await page.mouse.move(700, 760)
       await expect(page.locator('#slateCanvas .line-tool-preview')).toHaveCount(1)
       if (shots) await page.screenshot({ path: `${shots}/after-line-tool-1440.png` })
@@ -202,6 +206,7 @@ test.describe('editing a line already drawn', () => {
       await expect.poll(async () => (await lines(page)).map((l) => `${l.from}>${l.to}`)).toEqual(['Welcome!>Beta'])
       // The new line is selected, ready to edit.
       await expect(bar(page, 'Line')).toBeVisible()
+      await expect(drawing).toHaveCount(0)
 
       await page.mouse.click(...Object.values(await centre(page, `#slateCanvas [data-node-id]:has-text("Welcome!")`)) as [number, number])
       await bar(page, 'Note').getByRole('button', { name: 'Line', exact: true }).click()
@@ -282,6 +287,45 @@ test.describe('on a phone, with touch', () => {
       if (shots) await page.screenshot({ path: `${shots}/after-phone-line-390.png` })
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
       expect(overflow).toBeLessThanOrEqual(0)
+    } finally { await removeTestGuest(page, id) }
+  })
+
+  test('while drawing, the canvas says so with a Cancel button; a finger panning the canvas draws nothing (lines review M2)', async ({ page }) => {
+    let id: string | null = null
+    try {
+      id = await openSlate(page)
+      await page.tap(`#slateCanvas [data-node-id]:has-text("Welcome!")`)
+      const note = bar(page, 'Note')
+      await expect(note).toBeVisible()
+      await note.getByRole('button', { name: 'More' }).tap()
+      await page.getByRole('button', { name: /Draw a line/ }).tap()
+      const drawing = page.getByRole('status', { name: 'Drawing a line' })
+      await expect(drawing).toBeVisible()
+      await expect(drawing).toBeInViewport()
+      const chip = (await drawing.boundingBox())!
+      expect(chip.x).toBeGreaterThanOrEqual(0)
+      expect(chip.x + chip.width).toBeLessThanOrEqual(390)
+      if (shots) await page.screenshot({ path: `${shots}/after-phone-line-tool-390.png` })
+
+      // One finger across empty canvas: a pan, not a line.
+      const cdp = await page.context().newCDPSession(page)
+      const canvas = (await page.locator('#slateCanvas').boundingBox())!
+      const from = { x: canvas.x + 60, y: canvas.y + canvas.height - 120 }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...from, id: 1 }] })
+      for (let i = 1; i <= 8; i++) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from.x + i * 15, y: from.y - i * 10, id: 1 }] })
+        await page.waitForTimeout(15)
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+      await page.waitForTimeout(500)
+      expect(await lines(page)).toEqual([])
+      await expect(drawing).toBeVisible()
+
+      await drawing.getByRole('button', { name: 'Cancel' }).tap()
+      await expect(drawing).toHaveCount(0)
+      expect(await page.evaluate(() => (window as any).slate.v2.isDrawingLine())).toBe(false)
+      await expect(page.locator('#slateCanvas .line-tool-preview')).toHaveCount(0)
+      expect(await lines(page)).toEqual([])
     } finally { await removeTestGuest(page, id) }
   })
 })
