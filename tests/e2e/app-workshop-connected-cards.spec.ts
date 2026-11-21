@@ -214,3 +214,56 @@ test('notes joined by lines become cards and keep them, cards join notes and eac
     await removeTestGuest(page, id)
   }
 })
+
+// Any note becomes a card (owner decision 2026-11-21, "no need to restrict this either").
+test('an empty note dropped on a lane is an empty card: saved, counted, seen by a teammate, kept on reload, undone, presented', async ({ page, browser }) => {
+  let id: string | null = null, guest: Awaited<ReturnType<typeof joinAsEditor>> | null = null
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  try {
+    const owner = await openBoard(page)
+    id = owner.id
+    await page.waitForTimeout(4000)
+    await page.evaluate(() => {
+      const slate = (window as any).slate.v2
+      const column = slate.nodes.one('column-now').options
+      slate.addNode({ id: 'blank', x: column.x - 300, y: column.y + 40, width: 180, height: 70, text: '' })
+    })
+    await page.waitForTimeout(500)
+    await page.evaluate(() => (window as any).slate.v2.fitToContent?.())
+    await page.waitForTimeout(400)
+    guest = await joinAsEditor(browser, page)
+    const later = await resting(page, 'column-later')
+    await carry(page, 'blank', { x: later.x + later.width / 2, y: later.y + later.height - 24 })
+    await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.map((c: any) => c.id + '@' + c.laneId + ':' + c.label).join(' '))
+      .toBe('alpha@now:Alpha beta@next:Beta blank@later:')
+    await expect(page.locator('#slateCanvas').getByText('needs some words')).toHaveCount(0)
+    await expect(note(page, 'caption-later')).toContainText('1 card')
+    await expect(card(page, 'blank')).toHaveAttribute('aria-label', 'Empty card, in Later')
+    await expect(card(guest.page, 'blank')).toHaveCount(1)
+    await expect(note(guest.page, 'caption-later')).toContainText('1 card')
+    await shot(page, 'empty-note-is-a-card')
+
+    // Undo: an empty note again; redo: an empty card.
+    await page.mouse.click(5, 300)
+    await page.keyboard.press('ControlOrMeta+z')
+    await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.map((c: any) => c.id).join(' ')).toBe('alpha beta')
+    await expect.poll(async () => (await getSlate(page, owner.key)).nodes.map((n: any) => n.options.id + ':' + n.options.text).join(' ')).toBe('blank:')
+    await page.keyboard.press('ControlOrMeta+Shift+z')
+    await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.map((c: any) => c.id).join(' ')).toBe('alpha beta blank')
+
+    // A reload keeps it, and Present shows it without a fault.
+    await page.reload()
+    await dismissWelcome(page)
+    await workshopReady(page)
+    await expect(card(page, 'blank')).toHaveCount(1)
+    await expect(note(page, 'caption-later')).toContainText('1 card')
+    await page.getByRole('button', { name: 'Present', exact: true }).click()
+    await page.waitForTimeout(1500)
+    await page.keyboard.press('Escape')
+    expect(errors).toEqual([])
+  } finally {
+    if (guest) { await removeTestGuest(guest.page, guest.id).catch(() => undefined); await guest.context.close() }
+    await removeTestGuest(page, id)
+  }
+})
