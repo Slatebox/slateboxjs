@@ -123,6 +123,36 @@ test('Present on a plain slate plays its viewpoints full screen over the slate, 
   }
 })
 
+test('Back while presenting leaves the presenter with the slate; it does not open again by itself', async ({ browser }) => {
+  test.skip(!writable, 'Creates a disposable guest slate on local or staging only.')
+  const context = await browser.newContext({ viewport: { width: 1360, height: 860 }, reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  // A browser that refuses full screen (a phone's) keeps the presenter in the page, where leaving
+  // full screen cannot close it.
+  await page.addInitScript(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('refused')) })
+  let uid: string | null = null
+  try {
+    await openGuestCanvas(page, app)
+    uid = await userId(page)
+    const canvas = new URL(page.url()).pathname
+    // Arrive at the slate from another page of the app, without a reload.
+    await page.goto(app + '/templates')
+    await page.evaluate(path => { history.pushState({}, '', path); dispatchEvent(new PopStateEvent('popstate')) }, canvas)
+    await page.locator('#slateCanvas [data-node-id]').first().waitFor()
+    const dialog = await openPresenter(page)
+    await page.goBack()
+    await expect(page).toHaveURL(/\/templates$/)
+    await expect(dialog).toHaveCount(0)
+    await page.goForward()
+    await page.locator('#slateCanvas [data-node-id]').first().waitFor()
+    await page.waitForTimeout(1500)
+    await expect(presenter(page)).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(false)
+  } finally {
+    try { await cleanUp(context, uid) } finally { await context.close() }
+  }
+})
+
 test('Present on a slate with a workshop plays each lane with its cards, then the slate\'s other notes', async ({ browser }) => {
   test.skip(!writable, 'Creates a disposable guest slate on local or staging only.')
   const context = await browser.newContext({ viewport: { width: 1360, height: 860 }, reducedMotion: 'reduce' })
@@ -248,6 +278,12 @@ test('a read-only phone follows a live presentation step by step in the same pre
     await expect(livePresenter(reader).getByRole('status')).toContainText('4 of ' + total)
     expect(await chromeText(livePresenter(reader))).not.toMatch(readoutWords)
     expect(await chromeText(lead)).not.toMatch(readoutWords)
+    // Escape leaves full screen; pressed again it does not end the presentation for everyone.
+    await owner.keyboard.press('Escape')
+    await owner.keyboard.press('Escape')
+    await expect(lead).toBeVisible()
+    await expect(stepCounter(lead)).toHaveText('4 / ' + total)
+    await expect(livePresenter(reader).getByRole('status')).toContainText('4 of ' + total)
     await livePresenter(reader).getByRole('button', { name: 'Leave presentation', exact: true }).tap()
     await expect(livePresenter(reader)).toHaveCount(0)
     await expect(follow).toBeVisible()

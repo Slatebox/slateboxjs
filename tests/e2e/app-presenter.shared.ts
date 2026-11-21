@@ -19,6 +19,9 @@ export async function openPresenter(page: Page) {
   const dialog = presenter(page)
   await expect(dialog).toBeVisible()
   await expect(camera(dialog).locator('svg [data-node-id]').first()).toBeAttached({ timeout: 30_000 })
+  // An editor can step through the local sequence at once; the planner may then replace it.
+  // Wait for the deck the presenter settles on.
+  await expect(dialog.getByText('Refining…', { exact: true })).toHaveCount(0, { timeout: 90_000 })
   return dialog
 }
 
