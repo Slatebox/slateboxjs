@@ -198,6 +198,19 @@ test('an agent reads and draws Mermaid over the API, the open canvas draws it li
     await expect.poll(() => engineIds(page), { timeout: 15000 }).toEqual(expect.arrayContaining(['ag1', 'ag2']))
     expect(await engineText(page, 'ag2')).toBe('Drawn live')
 
+    // A bigger diagram is saved once and replayed here as several runs, in order: a later run's
+    // lines join notes an earlier run made.
+    const chain = ['flowchart LR', ...Array.from({ length: 40 }, (_, k) => `  ch${k} --> ch${k + 1}`)].join('\n')
+    const big = await page.request.post(new URL('/api/v1/slates/mermaid', origin).href, { headers: auth, data: { shareId: key, mermaid: chain } })
+    expect(big.status()).toBe(201)
+    const lineCount = () => page.evaluate(() => {
+      const s = (window as any).__slateboxInstances.find((x: any) => x.element?.id === 'slateCanvas')
+      return s.nodes.allNodes.filter((n: any) => /^ch\d+$/.test(n.options.id))
+        .reduce((sum: number, n: any) => sum + n.relationships.associations.filter((a: any) => a.parent?.options?.id === n.options.id).length, 0)
+    })
+    await expect.poll(async () => (await engineIds(page)).filter((id) => /^ch\d+$/.test(id)).length, { timeout: 20000 }).toBe(41)
+    await expect.poll(lineCount, { timeout: 20000 }).toBe(40)
+
     const refused = await page.request.post(new URL('/api/v1/slates/mermaid', origin).href, {
       headers: auth, data: { shareId: key, mermaid: 'classDiagram\n  A <|-- B' },
     })
