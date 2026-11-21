@@ -199,4 +199,21 @@ describe('agent presence on a canvas', () => {
     expect(presence.shown()[0].side.right).toBe(false)
     presence.destroy()
   })
+
+  it('moves its tag off a note that is dropped under it, once the note stays put', async () => {
+    const slate = fakeSlate({ note: { x: 300, y: 200, width: 120, height: 80 }, other: { x: 600, y: 500, width: 120, height: 60 } })
+    const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
+    presence.set([record({ targets: ['note'], message: 'Draft' })])
+    expect(presence.shown()[0].side).toEqual({ right: true, down: true })
+    // Someone drops a card right where the tag is (to the right of and below the note's corner).
+    const other = slate.nodes.one('other')!.options
+    Object.assign(other, { x: 440, y: 300 })
+    await new Promise(resolve => setTimeout(resolve, 600))
+    const tag = slate.host.querySelector('[data-agent-tag] rect') as SVGRectElement
+    const at = presence.shown()[0]
+    const box = { x: at.x + Number(tag.getAttribute('x')), y: at.y + Number(tag.getAttribute('y')), w: Number(tag.getAttribute('width')), h: Number(tag.getAttribute('height')) }
+    const covers = box.x < other.x + other.width && other.x < box.x + box.w && box.y < other.y + other.height && other.y < box.y + box.h
+    expect(covers).toBe(false)
+    presence.destroy()
+  })
 })
