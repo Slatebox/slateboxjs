@@ -70,7 +70,7 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
       const height = Math.max(92, tasks.length * 44 + 20)
       parts.push({ name: 'column-' + lane.id, x: 0, y, width, height, fill: tint(color(lane.id), 0.65), line: tint(color(lane.id), 0.1) })
       parts.push({ name: 'lane-' + lane.id, x: 8, y: y + 8, width: x0 - 24, height: 32, text: lane.label, fill: color(lane.id), fontSize: 15 })
-      parts.push({ name: 'caption-' + lane.id, x: 8, y: y + 44, width: x0 - 24, height: 40, text: '', fill: 'transparent', lineWidth: 0, fontSize: 12 })
+      parts.push({ name: 'caption-' + lane.id, x: 8, y: y + 44, width: x0 - 24, height: 40, text: '', fill: 'transparent', lineWidth: 0, fontSize: 13 })
       tasks.forEach((card, i) => bar(card.id, y + 10 + i * 44))
       y += height + 4
     }
