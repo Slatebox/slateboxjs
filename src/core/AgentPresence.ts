@@ -303,8 +303,18 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     // point at, of every other note.
     const resting = item.path.length ? item.path[item.path.length - 1] : { x: item.x, y: item.y }
     const side = item.routedSide ?? agentTagSide(resting, size, scale, viewBox(), [], noteBoxes())
-    const left = side.right ? TAG_DX : -(TAG_DX + size.w)
-    const top = side.down ? TAG_DY : -(TAG_DY + size.h)
+    let left = side.right ? TAG_DX : -(TAG_DX + size.w)
+    let top = side.down ? TAG_DY : -(TAG_DY + size.h)
+    // When no side keeps the whole tag on screen (a phone framing a note edge to edge), the tag slides back inside the
+    // view: its words are never cut off, even if it then sits beside the pointer rather than off its corner.
+    const view = viewBox()
+    if (view) {
+      const m = 4, at = resting
+      const x0 = (view.x - at.x) * scale + m, x1 = (view.x + view.w - at.x) * scale - m
+      const y0 = (view.y - at.y) * scale + m, y1 = (view.y + view.h - at.y) * scale - m
+      if (size.w <= x1 - x0) left = Math.min(Math.max(left, x0), x1 - size.w)
+      if (size.h <= y1 - y0) top = Math.min(Math.max(top, y0), y1 - size.h)
+    }
     item.side = side
     // The avatar goes to the same side as its tag.
     if (!side.right || !side.down) hex.attr('transform', `translate(${side.right ? 0 : -2 * cx} ${side.down ? 0 : -2 * cy})`)
