@@ -114,3 +114,41 @@ test('a note with words longer than a card shows is a card with the first of the
   await drag(page, 'card-long', await client(page, { x: 60, y: 560 }))
   await expect.poll(() => text(page, 'long')).toBe(words)
 })
+
+// Content never refuses a trade (coordinator decisions, 2026-11-21).
+test('markup typed on a note is a card with those very words, shown as text, never run', async ({ page }) => {
+  await open(page)
+  const words = '<img src=x onerror="window.__pwned=1"><b>Hi</b>'
+  await page.evaluate(w => (window as any).native.slate.addNode({ id: 'mk', x: 60, y: 260, width: 200, height: 80, text: w }), words)
+  await page.waitForTimeout(300)
+  await drag(page, 'mk', await inLane(page, 'now'))
+  await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now mk@now')
+  expect(await page.evaluate(() => (window as any).native.board.value.cards.at(-1).label)).toBe(words)
+  await expect(page.locator('#slate [data-node-id="card-mk"]')).toContainText('<b>Hi</b>')
+  expect(await page.evaluate(() => [(window as any).__pwned, document.querySelectorAll('#slate img[src="x"], #slate b').length])).toEqual([undefined, 0])
+})
+
+test('an old note whose id a card cannot have is a card, and the note comes back under its own id', async ({ page }) => {
+  await open(page)
+  await page.evaluate(() => (window as any).native.slate.addNode({ id: 'old.note id', x: 60, y: 260, width: 160, height: 80, text: 'Old' }))
+  await page.waitForTimeout(300)
+  await drag(page, 'old.note id', await inLane(page, 'now'))
+  await expect.poll(() => page.evaluate(() => (window as any).native.board.value.cards.at(-1))).toMatchObject({ id: 'card-1', noteId: 'old.note id', label: 'Old' })
+  const change = await page.evaluate(() => (window as any).native.log.changes.at(-1).change)
+  expect(change).toMatchObject({ cardId: 'card-1', noteToCard: { noteId: 'old.note id' } })
+  await resting(page, 'card-card-1')
+  await drag(page, 'card-card-1', await client(page, { x: 60, y: 520 }))
+  await expect.poll(() => text(page, 'old.note id')).toBe('Old')
+})
+
+test('a note with a picture held in the page is a card; the note gets the picture back', async ({ page }) => {
+  await open(page)
+  const src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+  await page.evaluate(s => { const n = (window as any).native.slate.nodes.one('plain'); n.options.image = s; n.options.imageOrigWidth = 1; n.options.imageOrigHeight = 1 }, src)
+  await drag(page, 'plain', await inLane(page, 'now'))
+  await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now plain@now')
+  expect(await page.evaluate(() => (window as any).native.board.value.cards.at(-1).asNote.image.src)).toBe(src)
+  await resting(page, 'card-plain')
+  await drag(page, 'card-plain', await client(page, { x: 60, y: 520 }))
+  await expect.poll(() => page.evaluate(() => (window as any).native.slate.nodes.one('plain')?.options.image)).toBe(src)
+})

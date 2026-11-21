@@ -37,9 +37,10 @@ describe('a note becomes a card under the lane\'s rules', () => {
   it('refuses a note with markup, and a board that is full', () => {
     expect(workshopNoteRefusal(board, 'now', { id: 'n', label: '   ' })).toBeNull()
     expect(workshopNoteRefusal(board, 'now', { id: 'n', label: 'x'.repeat(81) })).toBeNull()
-    expect(workshopNoteRefusal(board, 'now', { id: 'n', label: '<b>Hi</b>' })).toBe('A card holds plain words only.')
+    // (Restated 2026-11-21, coordinator: markup is kept verbatim; the 24-card cap says it is the board's size limit.)
+    expect(workshopNoteRefusal(board, 'now', { id: 'n', label: '<b>Hi</b>' })).toBeNull()
     const crowded = validateWorkshop({ ...board, signals: undefined, cards: Array.from({ length: 24 }, (_, i) => ({ id: 'c' + i, label: 'C' + i, laneId: 'now' })) })
-    expect(workshopNoteRefusal(crowded, 'now', { id: 'n', label: 'One more' })).toBe('A workshop holds up to 24 cards.')
+    expect(workshopNoteRefusal(crowded, 'now', { id: 'n', label: 'One more' })).toBe('This board is at its size limit of 24 cards. Remove a card to make room.')
   })
 
   it('gives the card a fresh id when the note\'s id is already a lane or card, or is not one a card can have', () => {
@@ -135,7 +136,8 @@ describe('a note and a card trade places without losing what the note had (cards
     const next = workshopNoteCandidate(board, 'now', { id: 'shaped', label: 'First line Second line', asNote })!
     expect(next.cards.at(-1)).toEqual({ id: 'shaped', label: 'First line Second line', laneId: 'now', asNote })
     expect(validateWorkshop(next)).toEqual(next)
-    expect(() => validateWorkshop({ ...board, signals: undefined, cards: [{ id: 'x', label: 'X', laneId: 'now', asNote: { text: '<script>' } }] })).toThrow()
+    // (Restated 2026-11-21, coordinator: the note's words are kept verbatim, markup included.)
+    expect(validateWorkshop({ ...board, signals: undefined, cards: [{ id: 'x', label: 'X', laneId: 'now', asNote: { text: '<script>' } }] }).cards[0].asNote).toEqual({ text: '<script>' })
     expect(() => validateWorkshop({ ...board, signals: undefined, cards: [{ id: 'x', label: 'X', laneId: 'now', asNote: { width: 1e9 } }] })).toThrow()
     expect(() => validateWorkshop({ ...board, signals: undefined, cards: [{ id: 'x', label: 'X', laneId: 'now', asNote: { shape: 'url(x)' } }] })).toThrow()
     expect(validateWorkshop({ ...board, signals: undefined, cards: [{ id: 'x', label: 'X', laneId: 'now', asNote: { width: 90, extra: 1 } }] }).cards[0])
