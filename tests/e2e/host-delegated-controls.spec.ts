@@ -194,14 +194,16 @@ test.describe('a host that supplies the callbacks', () => {
     await expect(page.locator('#board g[data-node-id="rain"]')).toHaveCount(0)
   })
 
-  test('the connector gear is present, asks the host for the line menu and shows the endpoint locks', async ({ page }) => {
+  test('the connector gear is present, asks the host for the line menu; the ends show handles, not padlocks', async ({ page }) => {
     await openBoard(page, { note: true, line: true, text: true })
     await selectLine(page)
     expect(await tools(page, 'line')).toEqual(['delete', 'cog'])
 
     await clickTool(page, '#board .line-tool-cog')
     await expect.poll(() => page.evaluate(() => (window as any).hostCalls)).toEqual([['onLineMenuRequested', 'rain', 'recording']])
-    await expect(page.locator('#board .endpoint-lock')).toHaveCount(2)
+    // The owner retired the padlocks (2026-11-21): each end has a handle that shows and switches follow / pinned.
+    await expect(page.locator('#board .endpoint-lock')).toHaveCount(0)
+    await expect(page.locator('#board .connector-handle[role="button"]')).toHaveCount(2)
 
     await clickTool(page, '#board .line-tool-delete')
     await expect.poll(() => edges(page)).toEqual([])

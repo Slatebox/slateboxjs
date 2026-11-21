@@ -90,6 +90,9 @@ export function exportSVG(
       '[class*="svg_select"]',
       ".connection-handle", // node drag-to-connect plugs
       ".connector-handle", // line endpoint drag handles (distinct class!)
+      ".connector-handle-glyph", // the marks on those handles (follows / pinned / free)
+      ".line-tool-preview", // the line tool's line while drawing
+      ".line-tool-tip",
       // UI chrome that shouldn't appear in an exported diagram:
       ".comment-badge", // comment-count badges (rendered in the node group)
       ".node-link-badge", // link indicator badge (also in the node group)

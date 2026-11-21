@@ -1,11 +1,12 @@
 import { test, expect } from "@playwright/test";
 
-// U2: the line cog + endpoint-lock toggles are positioned at the connector's
-// geometry when shown. A node move re-solves the connector, so leaving them up
-// makes them DRIFT. They must clear on any node move (Miro hides connector UI
-// during moves); the user re-clicks for fresh, correctly-placed affordances.
+// U2: the line cog is positioned at the connector's geometry when shown. A node
+// move re-solves the connector, so leaving it up makes it DRIFT. It must clear on
+// any node move (Miro hides connector UI during moves); the user re-clicks for a
+// fresh, correctly-placed one. (The endpoint padlocks it once cleared too were
+// retired by the owner on 2026-11-21; there are none to clear.)
 test.describe("line affordances clear on node move (no drift) (§U2)", () => {
-  test("moving a connected node clears the line cog + endpoint toggles", async ({
+  test("moving a connected node clears the line cog, and no padlocks are shown", async ({
     page,
   }) => {
     await page.goto("/test.html");
@@ -32,7 +33,7 @@ test.describe("line affordances clear on node move (no drift) (§U2)", () => {
       await new Promise((r) => setTimeout(r, 300));
     });
 
-    // Click line → cog → show endpoint lock toggles.
+    // Click line → cog.
     const linePt = await page.evaluate(() => {
       const p = document.querySelector('#slateCanvas path[connectortype="default"]') as SVGGraphicsElement;
       const r = p.getBoundingClientRect();
@@ -52,7 +53,7 @@ test.describe("line affordances clear on node move (no drift) (§U2)", () => {
       locks: document.querySelectorAll("#slateCanvas .endpoint-lock").length,
       bar: document.querySelectorAll("#slateCanvas .line-toolbar").length,
     }));
-    expect(before.locks).toBe(2);
+    expect(before.locks).toBe(0);
     expect(before.bar).toBe(1);
 
     // Move node B (programmatic — like a collab/peer move) and re-solve.
@@ -68,7 +69,7 @@ test.describe("line affordances clear on node move (no drift) (§U2)", () => {
       locks: document.querySelectorAll("#slateCanvas .endpoint-lock").length,
       bar: document.querySelectorAll("#slateCanvas .line-toolbar").length,
     }));
-    expect(after.locks).toBe(0); // cleared, not drifted
+    expect(after.locks).toBe(0);
     expect(after.bar).toBe(0);
   });
 });

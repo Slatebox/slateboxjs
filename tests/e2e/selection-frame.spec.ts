@@ -130,7 +130,7 @@ test("several notes give kind 'nodes'; clearing gives 'none'", async ({ page }) 
   expect((await last(page)).rect).toBeNull();
 });
 
-test("a selected line: no line pill, a 'line' frame over its span, endpoint locks on the canvas", async ({ page }) => {
+test("a selected line: no line pill, a 'line' frame over its span, end handles on the canvas", async ({ page }) => {
   await openBoard(page);
   const pt = await page.evaluate(() => {
     const p = document.querySelector('#board path[connectortype="default"]') as SVGGeometryElement;
@@ -145,8 +145,9 @@ test("a selected line: no line pill, a 'line' frame over its span, endpoint lock
   expect(f.ids).toEqual([f.line.associationId]);
   expect(f.rect.width).toBeGreaterThan(100);
   await expect(page.locator("#board .line-toolbar")).toHaveCount(0);
-  // The start/end lock toggles are on the canvas while the line is selected.
-  await expect.poll(() => page.evaluate(() => ((window as any).board as any)._activeEndpointToggles?.length ?? 0)).toBe(2);
+  // The start and end handles (which replaced the padlocks) are on the canvas, in the tab order, while the line is selected.
+  await expect(page.locator('#board .connector-handle[role="button"][tabindex="0"]')).toHaveCount(2);
+  await expect(page.locator("#board .endpoint-lock")).toHaveCount(0);
   expect(await page.evaluate(() => (window as any).board.getSelectedLine()?.association?.childId)).toBe("b");
   // A press on empty canvas ends it.
   await page.mouse.click(60, 650);

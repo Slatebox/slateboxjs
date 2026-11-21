@@ -1,6 +1,17 @@
 import { SVG } from "@svgdotjs/svg.js";
 import type { Node } from "./Node";
 import type { Slate } from "./Slate";
+import {
+  anchorForDrop,
+  flipLine,
+  normalizedOn,
+  nudgeAnchor,
+  NUDGE_STEP,
+  snapToEdge,
+  type EndAnchor,
+  type EndState,
+  type LineEnd,
+} from "./LineEnds";
 // NOTE: svg.connectable.js is imported in src/index.ts - do not import here to avoid conflicts
 
 // Ensure SVG is available globally for svg.connectable.js
@@ -399,10 +410,11 @@ export class Connector {
   public disconnectFrom(targetNode: any): boolean {
     // Disconnect EVERY edge to this target (the canonical `A->B` plus any parallel
     // `A->B~N`), so node deletion / disconnect-from-child never orphans a line.
+    // Matched by the line's two notes, not its id: a line whose end was moved keeps its id.
     const base = `${this.node.id}->${targetNode.id}`;
-    const ids = [...this.connections.keys()].filter(
-      (id) => id === base || id.startsWith(`${base}~`)
-    );
+    const ids = [...this.connections.entries()]
+      .filter(([, c]) => c.source === this.node && (c.target as any)?.id === targetNode.id)
+      .map(([id]) => id);
     if (ids.length === 0) return this.disconnectById(base);
     let ok = false;
     for (const id of ids) ok = this.disconnectById(id) || ok;
@@ -474,7 +486,11 @@ export class Connector {
 
   public getConnection(targetNodeId: string): Connection | null {
     const connectionId = `${this.node.id}->${targetNodeId}`;
-    return this.connections.get(connectionId) || null;
+    return (
+      this.connections.get(connectionId) ||
+      [...this.connections.values()].find((c) => c.source === this.node && (c.target as any)?.id === targetNodeId) ||
+      null
+    );
   }
 
   public updateConnection(
@@ -594,7 +610,7 @@ export class Connector {
     which: "source" | "target",
     anchor: { x: number; y: number } | null
   ): boolean {
-    const connection = this.connections.get(`${this.node.id}->${targetNodeId}`);
+    const connection = this.getConnection(targetNodeId);
     if (!connection) return false;
     if (which === "source") connection.sourceAnchor = anchor;
     else connection.targetAnchor = anchor;
@@ -602,202 +618,251 @@ export class Connector {
     return true;
   }
 
+  // ─── A line's ends (see LineEnds.ts) ─────────────────────────────
+
+  /** Whether an end of one of this note's lines follows its note, is pinned to a spot on its edge, or is free. */
+  public endState(connectionId: string, which: LineEnd): EndState | null {
+    const connection = this.connections.get(connectionId);
+    const con: any = connection?.connectable;
+    if (!con) return null;
+    const shape = which === "source" ? con.source : con.target;
+    if (shape?._isPhantomRect || (which === "target" && (connection as any)._phantom)) return "free";
+    return (which === "source" ? con.sourceAnchor : con.targetAnchor) ? "pinned" : "follow";
+  }
+
   /**
-   * Endpoint-drag → model (L1). The vendored lib has already reattached the
-   * VIEW when this fires; we reconcile the association MODEL so the change
-   * broadcasts to peers and persists. Reattaching to a node rebuilds the
-   * association (remove old + add new) through the already-synced/persisted
-   * addAssociation/removeAssociation. Deferred a tick so the lib's dragend
-   * finishes before we tear down/recreate the connection.
-   *
-   * Free-floating (phantom) drops are L1b — not yet persisted; left as a
-   * view-only endpoint for now (no rogue model state).
+   * Where an end is on its note now, as an anchor: read from the line as drawn,
+   * so pinning an end that follows keeps it exactly where it is. Null for a free end.
+   */
+  public currentAnchor(connectionId: string, which: LineEnd): EndAnchor | null {
+    const connection = this.connections.get(connectionId);
+    if (!connection || this.endState(connectionId, which) === "free") return null;
+    const note: any = which === "source" ? connection.source : connection.target;
+    const o = note?.options || {};
+    const pinned = which === "source" ? connection.connectable?.sourceAnchor : connection.connectable?.targetAnchor;
+    if (pinned) return { x: pinned.x, y: pinned.y };
+    try {
+      const path: any = connection.connectable?.connector?.node;
+      const length = path.getTotalLength();
+      const p = path.getPointAtLength(which === "source" ? 0 : length);
+      const n = normalizedOn(
+        { x: o.x || 0, y: o.y || 0, width: o.width || 1, height: o.height || 1, rotation: o.rotate?.rotationAngle || 0 },
+        { x: p.x, y: p.y }
+      );
+      return snapToEdge(n);
+    } catch (e) {
+      return connection.connectable?.getCurrentAnchor?.(which) ?? null;
+    }
+  }
+
+  /**
+   * Pin an end where it is now ("pinned"), at a given spot ({x, y}), or let it
+   * follow its note ("follow"). Saved on the line, shared and undoable, like
+   * every line property. False for a free end or a line this note does not hold.
+   */
+  public setEnd(connectionId: string, which: LineEnd, mode: "follow" | "pinned" | EndAnchor): boolean {
+    const connection = this.connections.get(connectionId);
+    const owner: any = connection?.source;
+    if (!connection || owner !== this.node || this.endState(connectionId, which) === "free") return false;
+    const anchor = mode === "follow" ? null : mode === "pinned" ? this.currentAnchor(connectionId, which) : snapToEdge(mode);
+    const prop = which === "source" ? "sourceAnchor" : "targetAnchor";
+    owner.relationships?.applyLineProperty(connection.id, prop, anchor);
+    (this.slate as any).broadcast?.("onLinePropertiesChanged", { id: owner.id, associationId: connection.id, prop, val: anchor });
+    this.describeHandles(connection);
+    (this.slate as any).scheduleSelectionFrame?.();
+    return true;
+  }
+
+  /**
+   * An end was dropped (the vendored lib has already moved the VIEW). The model
+   * follows: on another note the end moves there, pinned to the spot when dropped
+   * near the note's edge and following the note when dropped on its middle; on
+   * empty canvas the end stays where it was let go, free. A line whose starting
+   * end is let go belongs to the note at its far end from then on (drawn the same
+   * way). The line keeps its id. Deferred a tick so the lib's dragend finishes
+   * before the connection is drawn again.
    */
   private handleEndpointChange(
     connection: Connection,
-    info: { which: "source" | "target"; targetNodeId: string | null; isPhantom: boolean; point: any }
+    info: { which: LineEnd; targetNodeId: string | null; isPhantom: boolean; point: any }
   ): void {
     const { which, targetNodeId, isPhantom, point } = info;
-    const props = {
-      lineColor: connection.lineColor,
-      lineWidth: connection.lineWidth,
-      lineType: (connection as any).lineType,
-      lineCurviness: (connection as any).lineCurviness,
-      lineCurveType: (connection as any).lineCurveType,
-      showParentArrow: (connection as any).showParentArrow,
-      showChildArrow: (connection as any).showChildArrow,
-      lineDash: connection.lineDash,
-      lineOpacity: connection.lineOpacity,
-      lineEffect: connection.lineEffect,
-    };
-    // The connection's ORIGINAL child id (stable in the id `parent->child`),
-    // used for the same-node re-pin check + child lookup. STRIP any parallel-edge
-    // `~N` suffix: id `A->B~2` must yield child "B", not "B~2" — otherwise the
-    // same-node check below fails and the reconnect remove+adds → DUPLICATE edge
-    // (moving a parallel line "copies" it). Removal/pinning key on connection.id
-    // (the SPECIFIC edge), not the child, so parallels aren't over-removed.
-    const origChildId = (connection.id.split("->")[1] || "")
-      .trim()
-      .replace(/~\d+$/, "");
-
     setTimeout(() => {
       try {
-        if (which === "target") {
-          const parent: any = connection.source;
-          if (!parent?.relationships) return;
-          if (isPhantom || !targetNodeId) {
-            // Dropped on empty canvas → free-floating target endpoint (L1b)
-            if (!point) return;
-            if (origChildId) parent.relationships.removeAssociation(connection.id);
-            parent.relationships.addFloatingAssociation(point, props);
-          } else {
-            // Reattach to a node (L1a) — pin the TARGET endpoint at the DROP
-            // POINT so the arrow connects exactly where the user dropped (U3).
-            const newNode = this.slate.nodes.one(targetNodeId);
-            if (!newNode) return;
-            if (newNode.id === origChildId) {
-              // Dropped back on the SAME target node → just RE-PIN the anchor at
-              // the new drop point (reposition the pin) instead of bailing. This
-              // is how you move a pinned endpoint along its own node's edge.
-              this.pinDropAnchor(parent, connection.id, newNode, "targetAnchor", point);
-              return;
-            }
-            if (origChildId) parent.relationships.removeAssociation(connection.id);
-            parent.relationships.addAssociation(newNode, props);
-            this.pinDropAnchor(parent, newNode.id, newNode, "targetAnchor", point);
-          }
-        } else {
-          // Source-end reattach to a node (source floating not yet modeled)
-          if (isPhantom || !targetNodeId) return;
-          const oldParent: any = connection.source;
-          const child: any = connection.target;
-          const newNode = this.slate.nodes.one(targetNodeId);
-          if (!newNode || !child || !oldParent?.relationships) return;
-          if (newNode.id === oldParent.id) {
-            // Dropped back on the SAME source node → re-pin the source anchor at
-            // the new drop point instead of bailing.
-            this.pinDropAnchor(oldParent, child.id, newNode, "sourceAnchor", point);
-            return;
-          }
-          oldParent.relationships.removeAssociation(connection.id);
-          newNode.relationships?.addAssociation(child, props);
-          // Pin the SOURCE endpoint at the drop point on the new source node.
-          this.pinDropAnchor(newNode, child.id, newNode, "sourceAnchor", point);
-        }
+        this.applyEndDrop(connection, which, isPhantom ? null : targetNodeId, point);
       } catch (e) {
         console.warn("CONNECTOR_DEBUG: endpoint change → model failed:", e);
       }
     }, 0);
   }
 
-  /**
-   * U3: pin an endpoint at the exact drop point on a node. Converts the world
-   * drop point into a normalized [0,1] anchor on the node's box and stores it as
-   * the source/target anchor (persists + renders there). Skipped for rotated
-   * nodes (world→local normalization would be wrong) — those fall back to
-   * auto-flow. relationships owner is `ownerNode`; the association is childId.
-   */
-  private pinDropAnchor(
-    ownerNode: any,
-    childId: string,
-    anchorNode: any,
-    which: "sourceAnchor" | "targetAnchor",
-    point: { x: number; y: number } | null
-  ): void {
-    try {
-      if (!point) return;
-      const o = anchorNode?.options || {};
-      if (!o.width || !o.height) return;
-      const clamp = (v: number) => Math.max(0, Math.min(1, v));
-      // Un-rotate the world drop point into the node's LOCAL (unrotated) frame so the
-      // normalized anchor is correct on ROTATED nodes too. The node rotates around its
-      // center by rotationAngle; the connectable re-applies that rotation when rendering
-      // a stored local anchor (getCurrentAnchor round-trips through the shape CTM), so a
-      // correct local anchor renders exactly at the drop point. Previously this bailed on
-      // rotated nodes → the endpoint fell back to auto-flow (nearest edge) and "reverted"
-      // away from where the user dropped it (the reported bug).
-      let px = point.x;
-      let py = point.y;
-      const angle = o.rotate?.rotationAngle || 0;
-      if (angle) {
-        const cx = (o.x || 0) + o.width / 2;
-        const cy = (o.y || 0) + o.height / 2;
-        const rad = (-angle * Math.PI) / 180;
-        const dx = px - cx;
-        const dy = py - cy;
-        px = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
-        py = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
+  private applyEndDrop(connection: Connection, which: LineEnd, nodeId: string | null, point: { x: number; y: number } | null): void {
+    const slate: any = this.slate;
+    const owner: any = connection.source;
+    const rels: any = owner?.relationships;
+    const assoc: any = rels?.getAssociations?.().find((a: any) => a.id === connection.id);
+    if (!rels || !assoc) return;
+    const id = assoc.id;
+    const drop: any = nodeId ? slate.nodes?.one?.(nodeId) : null;
+    // Put the line back as the model has it (a drop that changes nothing, or is refused).
+    const restore = () => {
+      rels.redraw?.(id);
+      this.reselect(owner.id, id);
+    };
+    const anchorOn = (node: any) => {
+      if (!point) return null;
+      const o = node.options || {};
+      const n = normalizedOn(
+        { x: o.x || 0, y: o.y || 0, width: o.width || 1, height: o.height || 1, rotation: o.rotate?.rotationAngle || 0 },
+        point
+      );
+      return anchorForDrop(n.x, n.y);
+    };
+    if (drop && (slate.capabilitiesOf?.(drop)?.canConnect === false || !drop.relationships)) return restore();
+    const free = !!assoc.targetPoint;
+    const { parent: _p, child: _c, ...record } = assoc;
+
+    if (which === "target") {
+      if (!drop) {
+        if (!point) return restore();
+        // Free at the point it was let go.
+        rels.removeAssociation(id);
+        rels.addFloatingAssociation(
+          { x: Math.round(point.x * 100) / 100, y: Math.round(point.y * 100) / 100 },
+          { ...record, childId: free ? assoc.childId : undefined, targetAnchor: null }
+        );
+        return this.reselect(owner.id, id);
       }
-      let ax = clamp((px - (o.x || 0)) / o.width);
-      let ay = clamp((py - (o.y || 0)) / o.height);
-      // Snap to the nearest EDGE so the arrowhead sits ON the node's boundary
-      // (touching it, on the side the user dropped) instead of at an interior
-      // point — an interior anchor put the arrowhead inside/covered by the node
-      // and made the line's edge-solve disagree with the pinned arrowhead,
-      // rendering a detached/inverted arrow that didn't track the node cleanly.
-      const dl = ax;
-      const dr = 1 - ax;
-      const dt = ay;
-      const db = 1 - ay;
-      const nearest = Math.min(dl, dr, dt, db);
-      if (nearest === dl) ax = 0;
-      else if (nearest === dr) ax = 1;
-      else if (nearest === dt) ay = 0;
-      else ay = 1;
-      const anchor = { x: ax, y: ay };
-      const rels = ownerNode?.relationships;
-      // `childId` may be a specific association id (`A->B~2`, passed for reconnect
-      // pinning) OR a bare child id — prefer the exact edge, fall back to child.
-      const assoc =
-        rels?.associations?.find((a: any) => a.id === childId) ||
-        rels?.associations?.find((a: any) => a.childId === childId);
-      if (assoc?.id) {
-        rels.applyLineProperty(assoc.id, which, anchor);
-        // Broadcast the pinned anchor so it PERSISTS and syncs. The reconnect's
-        // addAssociation save fires before this anchor is set, so without a
-        // broadcast the drop-side anchor is lost on reload (reverts to auto-edge).
-        (ownerNode.slate as any)?.broadcast?.("onLinePropertiesChanged", {
-          id: ownerNode.id,
-          prop: which,
-          val: anchor,
-          associationId: assoc.id,
-        });
+      if (drop.id === owner.id) return restore();
+      const anchor = anchorOn(drop);
+      if (!free && drop.id === assoc.childId) {
+        // Back on its own note: pinned to this spot, or following the note.
+        rels.applyLineProperty(id, "targetAnchor", anchor);
+        slate.broadcast?.("onLinePropertiesChanged", { id: owner.id, associationId: id, prop: "targetAnchor", val: anchor });
+        return restore();
       }
-    } catch (e) {
-      /* noop */
+      const { targetPoint: _t, ...attached } = record;
+      rels.removeAssociation(id);
+      rels.addAssociation(drop, { ...attached, childId: drop.id, targetAnchor: anchor });
+      if (anchor) slate.broadcast?.("onLinePropertiesChanged", { id: owner.id, associationId: id, prop: "targetAnchor", val: anchor });
+      return this.reselect(owner.id, id);
     }
+
+    // The starting end.
+    if (!drop) {
+      // A line keeps one end on a note: a free line's start cannot be let go too.
+      if (!point || free) return restore();
+      const far: any = slate.nodes?.one?.(assoc.childId);
+      if (!far?.relationships) return restore();
+      rels.removeAssociation(id);
+      far.relationships.addFloatingAssociation(
+        { x: Math.round(point.x * 100) / 100, y: Math.round(point.y * 100) / 100 },
+        { ...flipLine(record), parentId: far.id, childId: undefined }
+      );
+      return this.reselect(far.id, id);
+    }
+    if (!free && drop.id === assoc.childId) return restore();
+    const anchor = anchorOn(drop);
+    if (drop.id === owner.id) {
+      rels.applyLineProperty(id, "sourceAnchor", anchor);
+      slate.broadcast?.("onLinePropertiesChanged", { id: owner.id, associationId: id, prop: "sourceAnchor", val: anchor });
+      return restore();
+    }
+    rels.removeAssociation(id);
+    const moved = { ...record, parentId: drop.id, sourceAnchor: anchor };
+    if (free) drop.relationships.addFloatingAssociation(assoc.targetPoint, moved);
+    else {
+      const child: any = slate.nodes?.one?.(assoc.childId);
+      if (!child) return;
+      drop.relationships.addAssociation(child, moved);
+    }
+    if (anchor) slate.broadcast?.("onLinePropertiesChanged", { id: drop.id, associationId: id, prop: "sourceAnchor", val: anchor });
+    this.reselect(drop.id, id);
   }
 
-  /**
-   * L5 per-endpoint locking. mode "absolute" freezes the endpoint at its
-   * current spot on the node (a normalized local anchor that then moves/rotates
-   * with the node); "relative" clears it back to auto-flow (nearest-edge).
-   * Returns the anchor that was set (or null) so callers can persist it.
-   */
-  public setEndpointLock(
-    connectionId: string,
-    which: "source" | "target",
-    mode: "absolute" | "relative"
-  ): { x: number; y: number } | null {
+  /** Select a line again once it has been drawn anew (after its end moved). */
+  private reselect(nodeId: string, associationId: string): void {
+    setTimeout(() => (this.slate as any).selectLine?.(nodeId, associationId), 0);
+  }
+
+  /** Select one of this note's lines, as clicking it does. */
+  public selectConnection(connectionId: string): boolean {
     const connection = this.connections.get(connectionId);
-    if (!connection) return null;
-    const c: any = connection.connectable;
-    if (mode === "absolute") {
-      const anchor = c?.getCurrentAnchor?.(which) || { x: 0.5, y: 0.5 };
-      (connection as any)[which + "Anchor"] = anchor;
-      c?.setAttachmentAnchor?.(which, anchor);
-      return anchor;
-    }
-    (connection as any)[which + "Anchor"] = null;
-    c?.setAttachmentAnchor?.(which, null);
-    return null;
+    if (!connection || connection.source !== this.node) return false;
+    this.showLineCog(connection, connection.connectable, (connection.target as any)?.id);
+    return true;
   }
 
   /**
-   * Show a cog affordance at the midpoint of a clicked line (M1/M2). Clicking
-   * the cog opens the host's line-properties pane. Only one cog is shown at a
-   * time (tracked on the slate) and it clears on canvas/node interaction.
+   * Name each end handle of a selected line for what it is and does (a button
+   * in the tab order, with a tooltip), and handle its keys: Enter or Space pins
+   * an end where it is or lets it follow again; the arrow keys slide a pinned
+   * end round its note's edge; Delete removes the line; Escape leaves it.
    */
+  private describeHandles(connection: Connection, selected = true): void {
+    const con: any = connection.connectable;
+    const text = (node: any) => {
+      const t = String(node?.options?.text ?? "").replace(/\s+/g, " ").trim();
+      return t ? `“${t.length > 40 ? t.slice(0, 39) + "…" : t}”` : "its note";
+    };
+    for (const which of ["source", "target"] as LineEnd[]) {
+      const handle: any = which === "source" ? con?.sourceHandle : con?.targetHandle;
+      const el: any = handle?.element?.node;
+      if (!el) continue;
+      const state = this.endState(connection.id, which);
+      const name = which === "source" ? "Start of the line" : "End of the line";
+      const note = text(which === "source" ? connection.source : connection.target);
+      const label =
+        state === "free"
+          ? `${name}: free, on no note`
+          : state === "pinned"
+            ? `${name}: pinned to a spot on ${note}`
+            : `${name}: follows ${note}`;
+      const how =
+        state === "free"
+          ? "Drag it onto a note to attach it there."
+          : state === "pinned"
+            ? "Arrow keys move it along the edge; Enter lets it follow the note again. Drag it onto a note's middle to follow, onto empty canvas to leave it free."
+            : "Enter pins it where it is. Drag it onto a note's edge to pin it there, or onto empty canvas to leave it free.";
+      el.setAttribute("role", "button");
+      el.setAttribute("tabindex", selected ? "0" : "-1");
+      el.setAttribute("aria-label", label);
+      let title = el.querySelector("title");
+      if (!title) {
+        title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+        el.appendChild(title);
+      }
+      title.textContent = `${label}. ${how}`;
+      if (el._sbEndKeys) continue;
+      el._sbEndKeys = true;
+      el.addEventListener("keydown", (event: KeyboardEvent) => {
+        const end = which;
+        const current = this.connections.get(connection.id);
+        if (!current) return;
+        const key = event.key;
+        const state = this.endState(current.id, end);
+        if (key === "Enter" || key === " ") {
+          if (state === "free") return;
+          this.setEnd(current.id, end, state === "pinned" ? "follow" : "pinned");
+        } else if (key.startsWith("Arrow")) {
+          if (state === "free") return;
+          const from = this.currentAnchor(current.id, end);
+          if (!from) return;
+          this.setEnd(current.id, end, nudgeAnchor(from, key, event.shiftKey ? NUDGE_STEP / 5 : NUDGE_STEP));
+        } else if (key === "Delete" || key === "Backspace") {
+          (this.slate as any).removeSelectedLine?.();
+        } else if (key === "Escape") {
+          (this.slate as any).clearLineCog?.();
+          el.blur?.();
+        } else {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+      });
+    }
+  }
+
   /**
    * Miro-style hover reveal for a connection's endpoint handles. Handles are
    * hidden by default (CSS) and shown while the pointer is over the line, its
@@ -811,8 +876,11 @@ export class Connector {
       [con.sourceHandle?.element, con.targetHandle?.element].filter(
         (h: any) => h && h.node
       );
+    // The marks on the ends show and hide with their handles.
+    const marks = (): any[] =>
+      [con.sourceHandle?.glyph, con.targetHandle?.glyph].filter((g: any) => g && g.node);
     const reveal = (visible: boolean): void => {
-      handleEls().forEach((h: any) => {
+      [...handleEls(), ...marks()].forEach((h: any) => {
         if (visible) h.node.classList.add("connector-handle--revealed");
         // Keep shown while selected (pinned) OR while a handle is mid-drag —
         // otherwise dragging an endpoint off the line hides it and breaks the
@@ -864,19 +932,17 @@ export class Connector {
     if (!container) return;
 
     // A host that draws its own context toolbar gets no pill: the line is selected
-    // (its endpoint handles pinned, and its start/end lock toggles on the canvas,
-    // which a host bar does not repeat) and the host hears of it through
-    // onSelectionFrame.
+    // (its end handles shown, each marking whether it follows its note, is pinned
+    // or is free) and the host hears of it through onSelectionFrame.
     if (slate.hostDrawsToolbar?.()) {
       this.selectLineConnectable(con);
-      this.showEndpointLockToggles(connection, con, targetId);
       slate.setSelectedLine?.(this.node, connection.id, targetId, con);
+      this.describeHandles(connection);
       return;
     }
 
     // Line context toolbar (G2/Q2) — modern Miro-style pill at the line midpoint:
-    // delete + cog. (The old "plug" did nothing and was dropped; the cog opens
-    // the line pane AND shows per-endpoint lock/relative toggles — Q3.)
+    // delete + cog (the host's line settings).
     //
     // Delete is the engine's own. The cog is the entry to the host's line settings
     // (events.onLineMenuRequested), so it is drawn only when the host supplied that
@@ -898,10 +964,7 @@ export class Connector {
       tools.push({
         key: "cog",
         color: NEUTRAL,
-        onClick: () => {
-          this.openLinePane(connection, con, targetId);
-          this.showEndpointLockToggles(connection, con, targetId);
-        },
+        onClick: () => this.openLinePane(connection, con, targetId),
       });
     }
     const n = tools.length;
@@ -938,6 +1001,7 @@ export class Connector {
     slate._activeLineCog = bar;
     this.selectLineConnectable(con);
     slate.setSelectedLine?.(this.node, connection.id, targetId, con);
+    this.describeHandles(connection);
   }
 
   /**
@@ -987,149 +1051,6 @@ export class Connector {
         }
       }
     });
-  }
-
-  /**
-   * Q3: show a lock/relative toggle at EACH endpoint (source + target) when the
-   * line cog is clicked. Clicking a toggle flips absolute (pinned anchor) ↔
-   * relative (auto-flow) via applyLineProperty, and broadcasts for collab parity.
-   */
-  private showEndpointLockToggles(
-    connection: Connection,
-    con: any,
-    targetId: string
-  ): void {
-    const slate: any = this.slate;
-    // clear any previous toggle set
-    if (slate._activeEndpointToggles) {
-      slate._activeEndpointToggles.forEach((g: any) => {
-        try {
-          g.remove();
-        } catch (e) {
-          /* noop */
-        }
-      });
-    }
-    slate._activeEndpointToggles = [];
-
-    const lineNode: any = con?.connector?.node;
-    if (!lineNode || !lineNode.getPointAtLength) return;
-    let total = 0;
-    try {
-      total = lineNode.getTotalLength();
-    } catch (e) {
-      return;
-    }
-    const p0 = lineNode.getPointAtLength(0);
-    const p1 = lineNode.getPointAtLength(total);
-
-    const rels: any = (this.node as any).relationships;
-    const assoc = rels?.associations?.find((a: any) => a.childId === targetId);
-    if (!assoc) return;
-
-    // Match path ends to nodes: p0/p1 → source(this.node) / target(targetId),
-    // then INSET the toggle inward from each end so it sits clear of the node
-    // edge + the endpoint drag-handle (and is reliably clickable).
-    const centerOf = (n: any) => {
-      const o = n?.options || {};
-      return { x: (o.x || 0) + (o.width || 0) / 2, y: (o.y || 0) + (o.height || 0) / 2 };
-    };
-    const dist = (p: any, c: any) => Math.hypot(p.x - c.x, p.y - c.y);
-    const srcC = centerOf(this.node);
-    const srcAtStart = dist(p0, srcC) <= dist(p1, srcC);
-    const inset = Math.min(34, total * 0.28);
-    const srcPt = lineNode.getPointAtLength(srcAtStart ? inset : total - inset);
-    const tgtPt = lineNode.getPointAtLength(srcAtStart ? total - inset : inset);
-
-    const container: any = slate.markersContainer || slate.canvas;
-    const NEUTRAL = "#5b6472";
-    const ABS = "#4051B5";
-
-    const makeToggle = (pt: any, which: "source" | "target") => {
-      const absolute =
-        which === "source" ? !!assoc.sourceAnchor : !!assoc.targetAnchor;
-      const color = absolute ? ABS : NEUTRAL;
-      const g = container
-        .group()
-        .addClass("endpoint-lock")
-        .addClass(`endpoint-lock-${which}`)
-        .addClass(absolute ? "endpoint-lock-absolute" : "endpoint-lock-relative");
-      g.circle(24).center(pt.x, pt.y).fill("#ffffff").stroke({ color, width: 1.5 });
-      Connector.drawLockIcon(g, pt.x, pt.y, color, absolute);
-      // Transparent hit circle ON TOP so a click anywhere on the toggle registers
-      // (the padlock's fill:none paths are not hit-testable at their centers).
-      g.circle(24).center(pt.x, pt.y).fill("#ffffff").attr("fill-opacity", 0.001);
-      g.attr("pointer-events", "all");
-      try {
-        g.node.style.cursor = "pointer";
-      } catch (e) {
-        /* noop */
-      }
-      g.on("mousedown", (e: any) => e.stopPropagation?.());
-      g.on("click", (e: any) => {
-        e.stopPropagation?.();
-        const prop = which === "source" ? "sourceLock" : "targetLock";
-        const val = absolute ? "relative" : "absolute";
-        try {
-          rels.applyLineProperty(assoc.id, prop, val);
-        } catch (err) {
-          /* noop */
-        }
-        // Collab parity: mirror the on-canvas toggle to peers.
-        try {
-          slate.broadcast?.("onLinePropertiesChanged", {
-            id: this.node.id,
-            associationId: assoc.id,
-            prop,
-            val,
-          });
-        } catch (err) {
-          /* noop */
-        }
-        // Re-render toggles to reflect the new state.
-        this.showEndpointLockToggles(connection, con, targetId);
-      });
-      slate._activeEndpointToggles.push(g);
-    };
-
-    makeToggle(srcPt, "source");
-    makeToggle(tgtPt, "target");
-    try {
-      slate.markersContainer?.front?.();
-    } catch (e) {
-      /* noop */
-    }
-  }
-
-  /** Draw a small padlock (closed = absolute/locked, open = relative). */
-  private static drawLockIcon(
-    g: any,
-    cx: number,
-    cy: number,
-    color: string,
-    locked: boolean
-  ): void {
-    const s = { color, width: 1.4, linecap: "round", linejoin: "round" };
-    // body
-    g.rect(11, 8)
-      .radius(1.5)
-      .move(cx - 5.5, cy - 0.5)
-      .fill("none")
-      .stroke(s);
-    // shackle: closed arc when locked, open (raised/partial) when relative
-    if (locked) {
-      g.path(
-        `M ${cx - 3.4} ${cy - 0.5} v -2.2 a 3.4 3.4 0 0 1 6.8 0 v 2.2`
-      )
-        .fill("none")
-        .stroke(s);
-    } else {
-      g.path(`M ${cx - 3.4} ${cy - 0.5} v -2.2 a 3.4 3.4 0 0 1 6.8 -0.6`)
-        .fill("none")
-        .stroke(s);
-    }
-    // keyhole dot
-    g.circle(1.6).center(cx, cy + 3).fill(color);
   }
 
   public isEnabled(): boolean {

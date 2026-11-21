@@ -1,11 +1,10 @@
 import { test, expect } from "@playwright/test";
 
-// L5: per-endpoint locking. RELATIVE = auto-flow (no anchor); ABSOLUTE = pin the
-// endpoint to its current normalized spot on the node (an anchor that rotates/
-// moves with the node). The pane sends prop 'targetLock'/'sourceLock' →
-// applyLineProperty → Connector.setEndpointLock; the resolved anchor persists.
-test.describe("line endpoint locking relative/absolute (§L5)", () => {
-  test("absolute pins the endpoint anchor and persists; relative clears it", async ({
+// L5: an end that FOLLOWS its note has no anchor; a PINNED end holds its current
+// normalized spot on the note (an anchor that rotates/moves with the note).
+// slate.setLineEnd → Connector.setEnd → applyLineProperty; the anchor persists.
+test.describe("line end follow / pinned (§L5)", () => {
+  test("pinned holds the end's anchor and persists; follow clears it", async ({
     page,
   }) => {
     await page.goto("/test.html");
@@ -28,16 +27,14 @@ test.describe("line endpoint locking relative/absolute (§L5)", () => {
       n1.v2.relationships.addAssociation(n2.v2);
       await new Promise((r) => setTimeout(r, 300));
       const assocId = n1.v2.relationships.associations[0].id;
-      const apply = (prop: string, val: any) =>
-        s.v2.invoker.onLinePropertiesChanged({
-          type: "onLinePropertiesChanged",
-          data: { id: "p1", associationId: assocId, prop, val },
-        });
+      // The "sourceLock"/"targetLock" packages went with the padlocks (retired by the
+      // owner, 2026-11-21); an end is pinned where it is, or let follow, by setLineEnd.
+      const apply = (mode: "pinned" | "follow") => s.v2.setLineEnd("p1", assocId, "target", mode);
 
       const relStart = n1.v2.relationships.associations[0].targetAnchor ?? null;
 
       // Lock target to ABSOLUTE → an anchor is captured
-      apply("targetLock", "absolute");
+      apply("pinned");
       await new Promise((r) => setTimeout(r, 150));
       const absAnchor = n1.v2.relationships.associations[0].targetAnchor ?? null;
 
@@ -58,7 +55,7 @@ test.describe("line endpoint locking relative/absolute (§L5)", () => {
         s2.v2.nodes.one("p1")?.relationships?.associations?.[0]?.targetAnchor ?? null;
 
       // Back to RELATIVE → anchor cleared
-      apply("targetLock", "relative");
+      apply("follow");
       await new Promise((r) => setTimeout(r, 150));
       const relAnchor = n1.v2.relationships.associations[0].targetAnchor ?? null;
 

@@ -24,12 +24,6 @@ describe("Relationships", () => {
         disconnectById: vi.fn(),
         updateConnection: vi.fn(),
         getConnections: vi.fn().mockReturnValue([]),
-        // Mirrors the real setEndpointLock: absolute → a resolved anchor, relative → null.
-        setEndpointLock: vi
-          .fn()
-          .mockImplementation((_connId: string, _which: string, mode: string) =>
-            mode === "absolute" ? { x: 0.5, y: 0.5 } : null
-          ),
       },
     };
 
@@ -154,19 +148,21 @@ describe("Relationships", () => {
       expect(rels.getAssociation("child1")!.targetAnchor).toEqual({ x: 0.2, y: 0.9 });
     });
 
-    it("targetLock=absolute stores the resolved anchor (RELATIVE→ABSOLUTE saves)", () => {
+    // The "sourceLock"/"targetLock" props went with the padlocks (owner, 2026-11-21):
+    // an end follows (anchor null) or is pinned (an anchor), set directly.
+    it("letting a pinned end follow clears its anchor back to auto-flow", () => {
       const rels = new Relationships(mockNode);
       const a = rels.addAssociation(mockChildNode);
-      rels.applyLineProperty(a.id, "targetLock", "absolute");
-      expect(rels.getAssociation("child1")!.targetAnchor).toEqual({ x: 0.5, y: 0.5 });
+      rels.applyLineProperty(a.id, "targetAnchor", { x: 1, y: 0.5 });
+      rels.applyLineProperty(a.id, "targetAnchor", null);
+      expect(rels.getAssociation("child1")!.targetAnchor).toBeNull();
     });
 
-    it("targetLock=relative clears the anchor back to auto-flow", () => {
+    it("no longer takes the retired lock props as line properties of their own meaning", () => {
       const rels = new Relationships(mockNode);
       const a = rels.addAssociation(mockChildNode);
       rels.applyLineProperty(a.id, "targetLock", "absolute");
-      rels.applyLineProperty(a.id, "targetLock", "relative");
-      expect(rels.getAssociation("child1")!.targetAnchor).toBeNull();
+      expect(rels.getAssociation("child1")!.targetAnchor ?? null).toBeNull();
     });
 
     it("persists showParentArrow / showChildArrow so the Arrow Heads toggle reflects", () => {

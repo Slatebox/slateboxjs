@@ -175,22 +175,9 @@ export class Relationships {
     if (!assoc) return false;
     // Key the connector op on the ASSOCIATION id, not the pair — else parallel
     // edges (`A->B~2`) all collapse onto the canonical `A->B` connection, so a line
-    // property (color/width/type/lock/label) set on one parallel edge lands on (or
+    // property (color/width/type/anchor/label) set on one parallel edge lands on (or
     // overwrites) the wrong one. For a canonical edge assoc.id === `A->B` anyway.
     const connId = assoc.id;
-
-    // L5 locking: prop 'sourceLock'/'targetLock' with val 'absolute'|'relative'
-    // toggles the endpoint's anchor. Persist the resolved anchor on the record.
-    if (prop === "sourceLock" || prop === "targetLock") {
-      const which = prop === "sourceLock" ? "source" : "target";
-      const anchor = this.node.connector?.setEndpointLock(
-        connId,
-        which,
-        val === "absolute" ? "absolute" : "relative"
-      );
-      (assoc as any)[which + "Anchor"] = anchor ?? null;
-      return true;
-    }
 
     (assoc as any)[prop] = val;
     // Anchor props set directly re-solve the connector; others restyle it.
@@ -367,6 +354,19 @@ export class Relationships {
   }
 
   /**
+   * Draw one of this note's lines again from its record (no change to the
+   * model, nothing sent): puts back a line whose end was dropped somewhere it
+   * cannot go, and redraws one whose end was re-pinned on its own note.
+   */
+  public redraw(associationId: string): boolean {
+    const assoc = this.assocMap.get(associationId);
+    if (!assoc || !this.node.connector) return false;
+    this.node.connector.disconnectById(assoc.id);
+    this.renderAssociation(assoc, (assoc as any).targetPoint ? null : this.slate.nodes.one(assoc.childId));
+    return true;
+  }
+
+  /**
    * Add a free-floating association whose target is a bare world point rather
    * than a node (L1b). Backed by a phantom endpoint; broadcasts + persists like
    * a normal association (targetPoint travels in the record).
@@ -380,9 +380,18 @@ export class Relationships {
       `__free_${Math.random().toString(36).slice(2, 10)}`;
     const assoc = createDefaultAssociation(this.node.id, childId, {
       ...data,
+      parentId: this.node.id,
       childId,
       targetPoint: point,
+      // A free end is on no note, so it is not pinned to one.
+      targetAnchor: null,
     });
+    // A line made here for the first time gets its own id; one moved here keeps its id.
+    if (!data?.id && this.assocMap.has(assoc.id)) {
+      let n = 2;
+      while (this.assocMap.has(`${assoc.id}~${n}`)) n++;
+      assoc.id = `${assoc.id}~${n}`;
+    }
     this.assocMap.set(assoc.id, assoc);
     this.renderAssociation(assoc, null);
     (this.node as any).slate?.broadcast?.("addRelationship", { ...assoc });
