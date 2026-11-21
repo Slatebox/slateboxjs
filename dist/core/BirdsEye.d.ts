@@ -19,6 +19,12 @@ export declare class BirdsEye {
     private container;
     private miniCanvas;
     private viewportIndicator;
+    /**
+     * Every note thumbnail lives in this group, drawn BEFORE the viewport rectangle and
+     * excluded from hit-testing, so the rectangle is always the top layer: lanes, cards
+     * and notes never cover it or swallow a press on it, however often they re-render.
+     */
+    private nodeLayer;
     private nodeShapes;
     private _enabled;
     private isDragging;
@@ -30,6 +36,8 @@ export declare class BirdsEye {
     private zoomControlsContainer;
     private boundMouseMove;
     private boundMouseUp;
+    private boundTouchMove;
+    private boundTouchEnd;
     constructor(slate: Slate, options?: BirdsEyeOptions);
     enable(): void;
     disable(): void;
@@ -49,11 +57,17 @@ export declare class BirdsEye {
      */
     private animateShapeMove;
     addNodeShape(node: Node): void;
+    /** The viewport rectangle is the last thing painted in the minimap. */
+    private keepIndicatorOnTop;
     removeNodeShape(nodeId: string): void;
     private createContainer;
     private createMiniCanvas;
     private renderNodes;
     private createViewportIndicator;
+    private beginDrag;
+    /** Center the view on a point of the minimap. */
+    private jumpTo;
+    private removeTouchDragListeners;
     private handleMouseMove;
     private handleMouseUp;
     private setupEventListeners;
