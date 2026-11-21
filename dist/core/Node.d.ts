@@ -275,7 +275,7 @@ export declare class Node {
     centerText(): void;
     /**
      * Shrink the rendered text to fit within the node bounds (Miro shape behavior).
-     * Applies a uniform scale transform around the text's visual center; never grows
+     * Applies a uniform scale transform about the text's aligned edge; never grows
      * beyond 1 (the set size) and never shrinks below a readable floor.
      */
     private fitTextToNode;

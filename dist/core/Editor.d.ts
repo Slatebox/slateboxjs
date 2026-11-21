@@ -46,6 +46,14 @@ export interface InlineDraft {
     } | null;
     returnFocus: boolean;
 }
+/**
+ * Where the inline editor's text sits in the note: the note's own alignment (Left, Centre, Right;
+ * Top, Middle, Bottom), as the drawn text has it, so it stays put while it is edited.
+ */
+export declare function inlineEditorAlignment(options: {
+    textXAlign?: string;
+    textYAlign?: string;
+}): string[];
 export declare class Editor {
     private node;
     private _inlineEditing;
