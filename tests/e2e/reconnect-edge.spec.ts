@@ -32,11 +32,12 @@ test.describe("connector reconnect edge-pin (§connector)", () => {
       const conn = A.v2.connector.getConnections()[0];
 
       // Spy on broadcasts — the pinned anchor must be broadcast so it persists +
-      // syncs (the reconnect's addAssociation save fires before the anchor).
+      // syncs. It travels in the reconnected line's add (one package per move, so
+      // two people moving the same end at once converge; see Collab.lineStamps).
       const anchorCasts: any[] = [];
       const orig = s.v2.broadcast.bind(s.v2);
       s.v2.broadcast = (t: string, d: any) => {
-        if (t === "onLinePropertiesChanged" && (d?.prop === "targetAnchor" || d?.prop === "sourceAnchor")) anchorCasts.push(d);
+        if (t === "addRelationship" && d?.targetAnchor) anchorCasts.push(d);
         return orig(t, d);
       };
 
@@ -66,7 +67,7 @@ test.describe("connector reconnect edge-pin (§connector)", () => {
     expect(res.left.x).toBe(0);
     // The pinned anchor was broadcast (so it persists + syncs, not lost on reload).
     expect(res.broadcastCount).toBeGreaterThanOrEqual(2);
-    expect(res.lastCast?.prop).toBe("targetAnchor");
-    expect(res.lastCast?.val).toEqual({ x: 0, y: 0.5 });
+    expect(res.lastCast?.childId).toBe("D");
+    expect(res.lastCast?.targetAnchor).toEqual({ x: 0, y: 0.5 });
   });
 });
