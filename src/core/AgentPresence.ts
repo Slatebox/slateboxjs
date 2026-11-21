@@ -316,8 +316,16 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       if (size.h <= y1 - y0) top = Math.min(Math.max(top, y0), y1 - size.h)
     }
     item.side = side
-    // The avatar goes to the same side as its tag.
-    if (!side.right || !side.down) hex.attr('transform', `translate(${side.right ? 0 : -2 * cx} ${side.down ? 0 : -2 * cy})`)
+    // The avatar goes to the same side as its tag, unless that side of the pointer is past the edge of the view.
+    let avatarRight = side.right, avatarDown = side.down
+    if (view) {
+      const reach = (cx + r + 2) / scale
+      if (avatarRight && resting.x + reach > view.x + view.w) avatarRight = false
+      else if (!avatarRight && resting.x - reach < view.x) avatarRight = true
+      if (avatarDown && resting.y + reach > view.y + view.h) avatarDown = false
+      else if (!avatarDown && resting.y - reach < view.y) avatarDown = true
+    }
+    if (!avatarRight || !avatarDown) hex.attr('transform', `translate(${avatarRight ? 0 : -2 * cx} ${avatarDown ? 0 : -2 * cy})`)
     tag.attr('data-agent-side', (side.right ? 'right' : 'left') + '-' + (side.down ? 'down' : 'up'))
     tag.rect(width, height).radius(7).move(left, top).fill('#fff').stroke({ color, width: 1.5 })
     tag.text((t: any) => t.plain(label)).font({ size: 12, weight: 600, family: 'Roboto, Helvetica, Arial, sans-serif' }).fill(color).attr({ x: left + 8, y: top + 15 })
