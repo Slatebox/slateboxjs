@@ -35,7 +35,9 @@ export type LayerShape = {
         waitsOn: string;
         label: string;
     };
-} | {
+}
+/** Words; `lines` sets `text` on several lines (each line a tspan, `lineHeight` apart), whose words together are `text`. */
+ | {
     t: 'text';
     x: number;
     y: number;
@@ -45,6 +47,8 @@ export type LayerShape = {
     anchor?: 'start' | 'middle' | 'end';
     bold?: boolean;
     role?: string;
+    lines?: string[];
+    lineHeight?: number;
 };
 /** Colours of the layer, as CSS custom properties with the board's own colours behind them. */
 export declare const layerInk: {

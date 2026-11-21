@@ -11,6 +11,16 @@ export interface AgentPresenceOptions {
     maxAgents?: number;
     /** Called when a tag is tapped, with whether its list is now open. */
     onToggle?: (agentKey: string, open: boolean) => void;
+    /**
+     * Screen pixels at each edge of the canvas that the host covers with something of its own (a call strip over
+     * the bottom of the canvas, say). Pointers, tags and checklists are kept out of them, as out of the edge itself.
+     */
+    insets?: () => {
+        top?: number;
+        right?: number;
+        bottom?: number;
+        left?: number;
+    } | null | undefined;
 }
 export interface AgentPresence {
     set(records: AgentPresenceRecord[]): void;
@@ -55,7 +65,7 @@ export declare function agentTagSide(at: {
 }, size: {
     w: number;
     h: number;
-}, scale: number, view: Box | null, targets: Box[], others?: Box[]): {
+}, scale: number, view: Box | null, targets: Box[], others?: Box[], words?: Box[]): {
     right: boolean;
     down: boolean;
 };
@@ -71,6 +81,20 @@ export declare function agentTagBox(at: {
     down: boolean;
 }): Box;
 /**
+ * Where the tag block is drawn on one side: as agentTagBox, slid back inside the view where it would leave it (as
+ * draw() does for a pointer on screen), so a side is judged by where its words would really be.
+ */
+export declare function agentTagPlaced(at: {
+    x: number;
+    y: number;
+}, size: {
+    w: number;
+    h: number;
+}, scale: number, side: {
+    right: boolean;
+    down: boolean;
+}, view: Box | null): Box;
+/**
  * Where on a target note the pointer goes, and which way its tag points from there: inside one
  * of the note's corners, with the tag outward from that corner. Lower right first; the first
  * corner whose tag stays in view and off the note (and, where it can, off other notes) wins,
@@ -79,7 +103,7 @@ export declare function agentTagBox(at: {
 export declare function agentAnchor(note: Box, size: {
     w: number;
     h: number;
-}, scale: number, view: Box | null, others?: Box[]): {
+}, scale: number, view: Box | null, others?: Box[], words?: Box[]): {
     x: number;
     y: number;
     side: {
