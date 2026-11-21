@@ -487,6 +487,14 @@ export class Collab {
           if (this.doc) this.doc.transact(write);
           else write();
           this.adoptBaseline({ t: timestamp, c: this.clientID, k: key });
+          // The replacement was drawn from this person's own history, which may predate a trade the
+          // room has been told of: this screen does what every other screen does on receiving it
+          // (see rebuildFrom), once the host has drawn it.
+          this.run(async () => {
+            const before = this.beforeRemote();
+            await this.dropRoomCards(new Set(held));
+            this.afterRemote(before);
+          });
           continue;
         }
 
