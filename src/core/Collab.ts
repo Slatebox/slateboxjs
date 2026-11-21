@@ -93,6 +93,13 @@ function stampOf(key: string, pkg: SlatePackage): Stamp {
   };
 }
 
+/** The line an add or remove of a line names, by its id (older packages without one name none). */
+function lineChangeId(pkg: SlatePackage): string | null {
+  if (pkg.type !== "addRelationship" && pkg.type !== "removeRelationship") return null;
+  const id = (pkg.data as any)?.id;
+  return typeof id === "string" && id ? id : null;
+}
+
 const byStamp = (a: RoomEntry, b: RoomEntry) =>
   compareStamps(stampOf(a.key, a.pkg), stampOf(b.key, b.pkg));
 
@@ -215,6 +222,14 @@ export class Collab {
    * over them (it holds what the trader did to the note before its answer came back).
    */
   private fromRecord = new Set<string>();
+  /**
+   * The latest add or remove of each line (by its id) that this screen has made or
+   * applied. A line keeps its id when one of its ends moves, and a move is its remove
+   * and its add again: when two people move the same line's end at once, the later
+   * move (in the room's order) wins on every screen, and an earlier one arriving after
+   * it is not applied (see staleLineChange).
+   */
+  private lineStamps = new Map<string, Stamp>();
   /** When this client last handed its host a change to the document (see noteHostChange). */
   private hostChangeAt = 0;
   /** Connection/user payload returned by the host's onInitCollaboration */
@@ -509,6 +524,8 @@ export class Collab {
         }
 
         const entry = { ...pkg, clientID: this.clientID, timestamp: this.tick() };
+        const lineId = lineChangeId(pkg);
+        if (lineId) this.lineStamps.set(lineId, { t: entry.timestamp, c: this.clientID, k: key });
         if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string") {
           this.storeNodeText(key, entry);
         } else if (Z_ORDER_PACKAGES.has(pkg.type)) {
@@ -638,6 +655,7 @@ export class Collab {
       // Nothing the room says about a note whose trade it has not been told of is applied.
       const screened = this.screenTraded(pkg);
       if (!screened) continue;
+      if (this.staleLineChange(key, screened)) continue;
       pkg = screened;
       if (pkg.type === "onNodeTextChanged" && typeof pkg.data?.text === "string" && latestLabel.get(pkg.data.id) !== key) {
         // Not the node's current label: only the formatting it carried applies.
@@ -694,6 +712,8 @@ export class Collab {
       kept.set(id, here ? v2NodeToV1(here.options) : null);
     }
     this.adoptBaseline(replacement.stamp);
+    // The slate is rebuilt from the replacement, and the room's packages are applied on top, in order.
+    this.lineStamps.clear();
     try {
       await this.handleRemotePackage(replacement.pkg);
     } catch (error) {
@@ -1067,6 +1087,21 @@ export class Collab {
     } catch (error) {
       console.warn("COLLAB_DEBUG: The room could not be told of a trade:", error);
     }
+  }
+
+  /**
+   * An add or remove of a line from the room that is older than the latest one this
+   * screen has made or applied for that line: someone else's move of the line's end
+   * that lost to a later one. True means skip it; otherwise it becomes the latest.
+   */
+  private staleLineChange(key: string, pkg: SlatePackage): boolean {
+    const id = lineChangeId(pkg);
+    if (!id) return false;
+    const stamp = stampOf(key, pkg);
+    const known = this.lineStamps.get(id);
+    if (known && compareStamps(stamp, known) < 0) return true;
+    this.lineStamps.set(id, stamp);
+    return false;
   }
 
   /** Stamp for a package this client is about to write: later than all it has seen. */

@@ -743,8 +743,9 @@ export class Connector {
       }
       const { targetPoint: _t, ...attached } = record;
       rels.removeAssociation(id);
+      // The pin travels in the line's add (one package per move, so two people moving the
+      // same end at once converge on one of the moves; see Collab.lineStamps).
       rels.addAssociation(drop, { ...attached, childId: drop.id, targetAnchor: anchor });
-      if (anchor) slate.broadcast?.("onLinePropertiesChanged", { id: owner.id, associationId: id, prop: "targetAnchor", val: anchor });
       return this.reselect(owner.id, id);
     }
 
@@ -776,7 +777,6 @@ export class Connector {
       if (!child) return;
       drop.relationships.addAssociation(child, moved);
     }
-    if (anchor) slate.broadcast?.("onLinePropertiesChanged", { id: drop.id, associationId: id, prop: "sourceAnchor", val: anchor });
     this.reselect(drop.id, id);
   }
 

@@ -1,6 +1,13 @@
 import { Node, NodeOptions } from './Node'
 import type { Slate } from './Slate'
 
+/** Whether a line is drawn between the same ends (notes or free point) as a package says. */
+function sameEnds(here: any, data: any): boolean {
+  if (!here) return false;
+  const point = (p: any) => (p ? `${p.x},${p.y}` : "");
+  return here.childId === data.childId && point(here.targetPoint) === point(data.targetPoint);
+}
+
 export class NodesManager {
   private slate: Slate
   private nodes: Map<string, Node> = new Map()
@@ -64,9 +71,10 @@ export class NodesManager {
       this.allNodes.forEach((other) => {
         if (other.id === id) return
         try {
-          if ((other as any).relationships?.getAssociation?.(id)) {
-            (other as any).relationships.removeAssociation(id)
-          }
+          // By where each line ends, not by its id: a line keeps its id when an end moves.
+          const rels = (other as any).relationships
+          const ending = (rels?.getAssociations?.() || []).some((a: any) => a.childId === id)
+          if (ending || rels?.getAssociation?.(id)) rels.removeAssociation(id)
         } catch (e) {
           /* noop */
         }
@@ -220,9 +228,18 @@ export class NodesManager {
     // Idempotent by the EXACT association id (parallel edges have distinct ids
     // like `A->B~2`, so keying on childId alone would wrongly drop the second
     // line). Falls back to childId for legacy packages that carry no id.
+    // A line keeps its id when one of its ends moves, so an add of a line this screen
+    // already has, drawn elsewhere (another person moved its end), moves it there: the
+    // line is taken off the note that holds it here and added as the package says.
+    // The same line, drawn the same way, is left alone.
     const rid = (relationshipData as any).id;
     if (rid) {
-      if ((parent as any).relationships?.hasAssociationId?.(rid)) return;
+      const holder: any = this.allNodes.find((node: any) => node.relationships?.hasAssociationId?.(rid));
+      if (holder) {
+        const here = holder.relationships.getAssociations?.().find((a: any) => a.id === rid);
+        if (holder === parent && sameEnds(here, relationshipData)) return;
+        holder.relationships.removeAssociation(rid);
+      }
     } else if ((parent as any).relationships?.getAssociation?.(childId)) {
       return;
     }

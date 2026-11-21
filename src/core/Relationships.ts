@@ -72,11 +72,7 @@ export class Relationships {
     // already connected gets a unique `~N` suffix so it renders as a SEPARATE line
     // instead of being deduped away. A caller that passes an explicit id
     // (deserialize / remote collab add) keeps that id verbatim.
-    if (!data?.id && this.assocMap.has(assoc.id)) {
-      let n = 2;
-      while (this.assocMap.has(`${assoc.id}~${n}`)) n++;
-      assoc.id = `${assoc.id}~${n}`;
-    }
+    if (!data?.id) assoc.id = this.unusedId(assoc.id);
 
     // Store the association
     this.assocMap.set(assoc.id, assoc);
@@ -309,6 +305,22 @@ export class Relationships {
 
   // ─── Private helpers ─────────────────────────────────────────────
 
+  /**
+   * `id`, or `id~N` when a line on the slate already has it. Ids are unique across
+   * the slate, not only on this note: a line keeps its id when its starting end moves
+   * to another note, so `A->B` may be held by B while A connects to B again.
+   */
+  private unusedId(id: string): string {
+    const others: any[] = (this.slate as any)?.nodes?.allNodes || [];
+    const taken = (candidate: string) =>
+      this.assocMap.has(candidate) ||
+      others.some((n: any) => n && n !== this.node && n.relationships !== this && n.relationships?.hasAssociationId?.(candidate));
+    if (!taken(id)) return id;
+    let n = 2;
+    while (taken(`${id}~${n}`)) n++;
+    return `${id}~${n}`;
+  }
+
   private renderAssociation(assoc: Association, childNode: any): void {
     if (!this.node.connector) return;
 
@@ -387,11 +399,7 @@ export class Relationships {
       targetAnchor: null,
     });
     // A line made here for the first time gets its own id; one moved here keeps its id.
-    if (!data?.id && this.assocMap.has(assoc.id)) {
-      let n = 2;
-      while (this.assocMap.has(`${assoc.id}~${n}`)) n++;
-      assoc.id = `${assoc.id}~${n}`;
-    }
+    if (!data?.id) assoc.id = this.unusedId(assoc.id);
     this.assocMap.set(assoc.id, assoc);
     this.renderAssociation(assoc, null);
     (this.node as any).slate?.broadcast?.("addRelationship", { ...assoc });
