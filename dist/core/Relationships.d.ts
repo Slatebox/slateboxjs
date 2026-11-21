@@ -79,6 +79,12 @@ export declare class Relationships {
     isEnabled(): boolean;
     /** Destroy the relationships, removing all associations and clearing references */
     destroy(): void;
+    /**
+     * `id`, or `id~N` when a line on the slate already has it. Ids are unique across
+     * the slate, not only on this note: a line keeps its id when its starting end moves
+     * to another note, so `A->B` may be held by B while A connects to B again.
+     */
+    private unusedId;
     private renderAssociation;
     /**
      * Draw one of this note's lines again from its record (no change to the
