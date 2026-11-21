@@ -95,6 +95,7 @@ describe("open-slate: every key a write accepts reads back equal", () => {
       lineType: "orthogonal",
       lineCurveType: "quadratic",
       lineCurviness: 0.4,
+      lineDash: "dotted",
       showParentArrow: true,
       showChildArrow: false,
     };
