@@ -43,7 +43,7 @@ export function pipelineLayout(board: Workshop, layout: WorkshopBoardLayout = {}
       const x = i * pitch
       parts.push({ name: 'column-' + lane.id, x: x + 2, y: GAUGE, width: pitch - 4, height: h, fill: tint(color(i), 0.6), line: tint(color(i), 0.1) })
       parts.push({ name: 'lane-' + lane.id, x: x + 8, y: GAUGE + 6, width: 228, height: 58, text: lane.label, fill: color(i), fontSize: 16 })
-      parts.push({ name: 'caption-' + lane.id, x: x + 8, y: GAUGE + 66, width: 228, height: 30, text: pipelineCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: 13 })
+      parts.push({ name: 'caption-' + lane.id, x: x + 8, y: GAUGE + 66, width: 228, height: 30, text: pipelineCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: 15 })
       board.cards.filter(card => card.laneId === lane.id).forEach((card, k) =>
         parts.push({ name: 'card-' + card.id, x: x + 8, y: GAUGE + 98 + k * 88, width: 228, height: 76, text: cardText(board, card.id), fontSize: 15 }))
     })
@@ -69,7 +69,7 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     { t: 'rect', x: 4, y: 42, w: span, h: 14, rx: 7, color: layerInk.track },
     { t: 'rect', x: 4, y: 42, w: span * forecast / scale, h: 14, rx: 7, color: reached ? layerInk.accept : layerInk.bar },
     { t: 'line', x1: 4 + span * target / scale, y1: 36, x2: 4 + span * target / scale, y2: 62, color: layerInk.ink, width: 2 },
-    { t: 'text', x: 4 + span * target / scale, y: 72, text: 'Target ' + money(target, board.forecast!.currency), color: layerInk.ink, size: 11, anchor: 'middle' },
+    { t: 'text', x: 4 + span * target / scale, y: 72, text: 'Target ' + money(target, board.forecast!.currency), color: layerInk.ink, size: 14, anchor: 'middle' },
   ]
 }
 
