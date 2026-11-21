@@ -61,7 +61,7 @@ describe("open-slate: every key a write accepts reads back equal", () => {
     link: "https://example.com/more",
     effect: lists.effects[0],
     groupId: "g9",
-    category: "Costs",
+    templateCategory: "Costs",
     hiddenControls: ["color", "ask"],
     locked: true,
   };

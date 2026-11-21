@@ -578,6 +578,18 @@ describe("Invoker", () => {
       expect(mockNode.options.categoryName).toBe("Kept");
     });
 
+    it("takes each key only with a value of its kind: a flag is a boolean, the name is text", () => {
+      invoker.onNodeOptionsChanged({
+        data: { id: "node1", options: { isCategory: "yes", categoryName: { evil: true }, showColorTab: "no", showTextTab: 0 } },
+      });
+      expect(mockNode.options.isCategory).toBeUndefined();
+      expect(mockNode.options.categoryName).toBeUndefined();
+      expect(mockNode.options.showColorTab).toBeUndefined();
+      expect(mockNode.options.showTextTab).toBeUndefined();
+      invoker.onNodeOptionsChanged({ data: { id: "node1", options: { categoryName: "x".repeat(201) } } });
+      expect(mockNode.options.categoryName).toBeUndefined();
+    });
+
     it("does nothing when the note is not found", () => {
       mockSlate.nodes.one.mockReturnValue(null);
       expect(() => invoker.onNodeOptionsChanged({ data: { id: "nonexistent", options: { isCategory: true } } })).not.toThrow();
