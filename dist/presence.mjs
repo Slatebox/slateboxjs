@@ -1,97 +1,97 @@
-const J = Object.freeze(["#6d28d9", "#0f766e", "#a16207", "#be185d", "#1d4ed8", "#4d7c0f"]), vt = 6e3, bt = 600, St = 6, Xt = { todo: "○", doing: "◌", done: "✓", skipped: "–", stopped: "■" }, E = (n) => {
+const et = Object.freeze(["#6d28d9", "#0f766e", "#a16207", "#be185d", "#1d4ed8", "#4d7c0f"]), St = 6e3, kt = 600, Tt = 6, Bt = { todo: "○", doing: "◌", done: "✓", skipped: "–", stopped: "■" }, E = (n) => {
   if (n == null) return null;
   const r = n instanceof Date ? n.getTime() : typeof n == "number" ? n : Date.parse(n);
   return Number.isFinite(r) ? r : null;
-}, z = (n, r) => n.length > r ? n.slice(0, r - 1).trimEnd() + "…" : n, Y = (n) => String(n ?? "").replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, "").replace(/\s+/g, " ").trim();
-function kt(n) {
+}, H = (n, r) => n.length > r ? n.slice(0, r - 1).trimEnd() + "…" : n, Y = (n) => String(n ?? "").replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, "").replace(/\s+/g, " ").trim();
+function Nt(n) {
   const r = n.plan?.steps ?? [];
   if (r.length) {
-    const y = r.findIndex((l) => l.status === "doing"), M = r.findIndex((l) => l.status === "stopped");
+    const x = r.findIndex((l) => l.status === "doing"), M = r.findIndex((l) => l.status === "stopped");
     if (M >= 0) return "Stopped: " + Y(r[M].text);
     if (r.every((l) => l.status === "done" || l.status === "skipped")) return "Done";
-    const f = y >= 0 ? y : Math.min(Math.max(n.plan.current ?? 0, 0), r.length - 1);
-    return Y(r[f].text);
+    const u = x >= 0 ? x : Math.min(Math.max(n.plan.current ?? 0, 0), r.length - 1);
+    return Y(r[u].text);
   }
   return Y(n.message ?? "") || null;
 }
-function mt(n) {
-  return (n.plan?.steps ?? []).map((r) => Xt[r.status] + " " + (r.status === "stopped" ? "Stopped: " : "") + Y(r.text));
+function At(n) {
+  return (n.plan?.steps ?? []).map((r) => Bt[r.status] + " " + (r.status === "stopped" ? "Stopped: " : "") + Y(r.text));
 }
-function Mt(n, r, { holdMs: m = vt, fadeMs: y = bt, max: M = St } = {}) {
-  const f = [];
+function vt(n, r, { holdMs: m = St, fadeMs: x = kt, max: M = Tt } = {}) {
+  const u = [];
   for (const l of n) {
     if (!l || typeof l.agentKey != "string") continue;
     const d = E(l.expiresAt), A = E(l.endedAt);
     if (l.status === "live" && A === null) {
       if (d === null || r >= d) continue;
-      f.push({ record: l, opacity: 1, until: d });
+      u.push({ record: l, opacity: 1, until: d });
       continue;
     }
-    const p = (A ?? E(l.updatedAt) ?? r) + m;
-    r >= p + y || f.push({ record: l, opacity: r <= p ? 1 : 1 - (r - p) / y, until: p + y });
+    const y = (A ?? E(l.updatedAt) ?? r) + m;
+    r >= y + x || u.push({ record: l, opacity: r <= y ? 1 : 1 - (r - y) / x, until: y + x });
   }
-  return f.sort((l, d) => (E(d.record.updatedAt) ?? 0) - (E(l.record.updatedAt) ?? 0)), f.slice(0, M);
+  return u.sort((l, d) => (E(d.record.updatedAt) ?? 0) - (E(l.record.updatedAt) ?? 0)), u.slice(0, M);
 }
-function Yt() {
+function jt() {
   try {
     return typeof matchMedia == "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   } catch {
     return !1;
   }
 }
-const lt = 400, Bt = 250, jt = 5, Q = 240, zt = 600, tt = 40, et = 30, ct = (n, r) => Math.max(0, Math.min(n.x + n.w, r.x + r.w) - Math.max(n.x, r.x)) * Math.max(0, Math.min(n.y + n.h, r.y + r.h) - Math.max(n.y, r.y));
-function Pt(n, r, m, y, M, f = []) {
+const ut = 400, zt = 250, Pt = 5, nt = 240, Ct = 600, ot = 40, st = 30, dt = (n, r) => Math.max(0, Math.min(n.x + n.w, r.x + r.w) - Math.max(n.x, r.x)) * Math.max(0, Math.min(n.y + n.h, r.y + r.h) - Math.max(n.y, r.y));
+function Ht(n, r, m, x, M, u = []) {
   const l = [{ right: !0, down: !0 }, { right: !1, down: !0 }, { right: !0, down: !1 }, { right: !1, down: !1 }];
   let d = l[0], A = 1 / 0;
-  for (const b of l) {
-    const p = ft(ut(n, r, m, b), y, M, f);
-    if (p <= 1e-9) return b;
-    p < A && (d = b, A = p);
+  for (const S of l) {
+    const y = gt(ht(n, r, m, S), x, M, u);
+    if (y <= 1e-9) return S;
+    y < A && (d = S, A = y);
   }
   return d;
 }
-function ut(n, r, m, y) {
-  const M = y.right ? tt : -(tt + r.w), f = y.down ? et : -(et + r.h);
-  return { x: n.x + M / m, y: n.y + f / m, w: r.w / m, h: r.h / m };
+function ht(n, r, m, x) {
+  const M = x.right ? ot : -(ot + r.w), u = x.down ? st : -(st + r.h);
+  return { x: n.x + M / m, y: n.y + u / m, w: r.w / m, h: r.h / m };
 }
-function At(n, r) {
-  const m = z(Y(n.label), 48), y = kt(n), M = y ? z(y, 40) : "", f = Math.max(96, Math.min(Q, 16 + Math.max(7 * m.length, 6.3 * M.length))), l = M ? 38 : 22, d = r ? (n.plan?.steps ?? []).length : 0;
-  return { width: f, height: l, w: Math.max(f, d ? Q : 0), h: l + (d ? 18 + d * 18 : 0) };
+function bt(n, r) {
+  const m = H(Y(n.label), 48), x = Nt(n), M = x ? H(x, 40) : "", u = Math.max(96, Math.min(nt, 16 + Math.max(7 * m.length, 6.3 * M.length))), l = M ? 38 : 22, d = r ? (n.plan?.steps ?? []).length : 0;
+  return { width: u, height: l, w: Math.max(u, d ? nt : 0), h: l + (d ? 18 + d * 18 : 0) };
 }
-function Ct(n, r, m, y, M = []) {
-  const f = Math.min(8, n.w / 4, n.h / 4), l = [
-    { x: n.x + n.w - f, y: n.y + n.h - f, side: { right: !0, down: !0 } },
-    { x: n.x + f, y: n.y + n.h - f, side: { right: !1, down: !0 } },
-    { x: n.x + n.w - f, y: n.y + f, side: { right: !0, down: !1 } },
-    { x: n.x + f, y: n.y + f, side: { right: !1, down: !1 } }
+function Ot(n, r, m, x, M = []) {
+  const u = Math.min(8, n.w / 4, n.h / 4), l = [
+    { x: n.x + n.w - u, y: n.y + n.h - u, side: { right: !0, down: !0 } },
+    { x: n.x + u, y: n.y + n.h - u, side: { right: !1, down: !0 } },
+    { x: n.x + n.w - u, y: n.y + u, side: { right: !0, down: !1 } },
+    { x: n.x + u, y: n.y + u, side: { right: !1, down: !1 } }
   ];
   let d = l[0], A = 1 / 0;
-  for (const b of l) {
-    const p = ft(ut(b, r, m, b.side), y, [n], M);
-    if (p <= 1e-9) return b;
-    p < A && (d = b, A = p);
+  for (const S of l) {
+    const y = gt(ht(S, r, m, S.side), x, [n], M);
+    if (y <= 1e-9) return S;
+    y < A && (d = S, A = y);
   }
   return d;
 }
-function ft(n, r, m, y) {
-  return (r ? n.w * n.h - ct(n, r) : 0) * 10 + m.reduce((f, l) => f + ct(n, l), 0) * 3 + y.reduce((f, l) => f + ct(n, l), 0);
+function gt(n, r, m, x) {
+  return (r ? n.w * n.h - dt(n, r) : 0) * 10 + m.reduce((u, l) => u + dt(n, l), 0) * 3 + x.reduce((u, l) => u + dt(n, l), 0);
 }
-function Ht(n, r = {}) {
-  const m = r.now ?? (() => Date.now()), y = r.reducedMotion ?? Yt, M = r.holdMs ?? vt, f = r.fadeMs ?? bt, l = r.maxAgents ?? St, d = /* @__PURE__ */ new Map(), A = /* @__PURE__ */ new Set();
-  let b = [], p = null, P = null, W = null, B = !1, nt = 0;
-  const Tt = () => (p && p.node?.isConnected !== !1 && p.node?.parentNode || (p = n.canvas.group(), p.attr({ "data-agent-presence": "", "pointer-events": "none" })), p);
-  function dt() {
+function Wt(n, r = {}) {
+  const m = r.now ?? (() => Date.now()), x = r.reducedMotion ?? jt, M = r.holdMs ?? St, u = r.fadeMs ?? kt, l = r.maxAgents ?? Tt, d = /* @__PURE__ */ new Map(), A = /* @__PURE__ */ new Set();
+  let S = [], y = null, O = null, $ = null, B = !1, rt = 0;
+  const Lt = () => (y && y.node?.isConnected !== !1 && y.node?.parentNode || (y = n.canvas.group(), y.attr({ "data-agent-presence": "", "pointer-events": "none" })), y);
+  function pt() {
     try {
       const t = n.canvas.viewbox(), e = n.canvas.node?.getBoundingClientRect?.();
       if (!t?.width || !t?.height || !e?.width || !e?.height) return null;
-      const o = String(n.canvas.node?.getAttribute?.("preserveAspectRatio") || "xMidYMid meet"), i = e.width / t.width, c = e.height / t.height, u = o === "none" ? i : /slice/.test(o) ? Math.max(i, c) : Math.min(i, c), g = e.width / u, h = e.height / u;
-      return { view: { x: t.x + (t.width - g) / 2, y: t.y + (t.height - h) / 2, w: g, h }, scale: u };
+      const o = String(n.canvas.node?.getAttribute?.("preserveAspectRatio") || "xMidYMid meet"), i = e.width / t.width, c = e.height / t.height, f = o === "none" ? i : /slice/.test(o) ? Math.max(i, c) : Math.min(i, c), p = e.width / f, h = e.height / f;
+      return { view: { x: t.x + (t.width - p) / 2, y: t.y + (t.height - h) / 2, w: p, h }, scale: f };
     } catch {
       return null;
     }
   }
-  function Z() {
-    const t = dt();
+  function q() {
+    const t = pt();
     if (t) return t.scale;
     try {
       const e = n.getZoom?.();
@@ -100,31 +100,31 @@ function Ht(n, r = {}) {
     }
     return 1;
   }
-  const Nt = () => {
+  const It = () => {
     try {
       return n.canvas.node?.getBoundingClientRect?.().width || (typeof window < "u" ? window.innerWidth : 1024);
     } catch {
       return 1024;
     }
   };
-  function Lt(t) {
+  function _t(t) {
     const o = (n.nodes?.one?.(t) ?? n.nodes?.allNodes?.find?.((i) => i?.options?.name === t))?.options;
     return !o || typeof o.x != "number" || typeof o.y != "number" ? null : { x: o.x + (o.width || 0) / 2, y: o.y + (o.height || 0) / 2 };
   }
-  function ht(t) {
+  function yt(t) {
     const e = t?.options;
     return !e || ![e.x, e.y, e.width, e.height].every((o) => typeof o == "number" && Number.isFinite(o)) ? null : { x: e.x, y: e.y, w: e.width, h: e.height };
   }
-  const It = (t) => n.nodes?.one?.(t) ?? n.nodes?.allNodes?.find?.((e) => e?.options?.name === t), V = () => (n.nodes?.allNodes ?? []).map(ht).filter((t) => !!t), _t = (t, e) => t.x === e.x && t.y === e.y && t.w === e.w && t.h === e.h;
-  function ot() {
-    return V().map((t) => [t.x, t.y, t.w, t.h].map(Math.round).join(",")).join(";");
+  const Et = (t) => n.nodes?.one?.(t) ?? n.nodes?.allNodes?.find?.((e) => e?.options?.name === t), U = () => (n.nodes?.allNodes ?? []).map(yt).filter((t) => !!t), Ft = (t, e) => t.x === e.x && t.y === e.y && t.w === e.w && t.h === e.h;
+  function it() {
+    return U().map((t) => [t.x, t.y, t.w, t.h].map(Math.round).join(",")).join(";");
   }
-  function st() {
-    const t = C(), e = Z();
+  function at() {
+    const t = W(), e = q();
     return t ? [t.x, t.y, t.w, t.h].map((o) => Math.round(o * e / 8)).join(":") : "";
   }
-  function C() {
-    const t = dt();
+  function W() {
+    const t = pt();
     if (t) return t.view;
     try {
       const e = n.canvas.viewbox();
@@ -134,95 +134,101 @@ function Ht(n, r = {}) {
     }
     return null;
   }
-  function Et(t, e = { w: Q, h: 38 }, o = 1) {
-    const i = C();
+  function Dt(t, e = { w: nt, h: 38 }, o = 1) {
+    const i = W();
     if (i) {
-      const g = 8 / o, h = t * 64 / o, T = [
-        { x: i.x + g, y: i.y + g + h, side: { right: !0, down: !0 } },
-        { x: i.x + i.w - g, y: i.y + g + h, side: { right: !1, down: !0 } },
-        { x: i.x + g, y: i.y + i.h - g - h, side: { right: !0, down: !1 } },
-        { x: i.x + i.w - g, y: i.y + i.h - g - h, side: { right: !1, down: !1 } }
-      ], s = V();
-      let v = T[0], N = 1 / 0;
-      for (const a of T) {
-        const k = ft(ut(a, e, o, a.side), i, [], s);
-        if (k <= 1e-9) return a;
-        k < N && (v = a, N = k);
+      const p = 8 / o, h = t * 64 / o, N = [
+        { x: i.x + p, y: i.y + p + h, side: { right: !0, down: !0 } },
+        { x: i.x + i.w - p, y: i.y + p + h, side: { right: !1, down: !0 } },
+        { x: i.x + p, y: i.y + i.h - p - h, side: { right: !0, down: !1 } },
+        { x: i.x + i.w - p, y: i.y + i.h - p - h, side: { right: !1, down: !1 } }
+      ], s = U();
+      let v = N[0], L = 1 / 0;
+      for (const a of N) {
+        const T = gt(ht(a, e, o, a.side), i, [], s);
+        if (T <= 1e-9) return a;
+        T < L && (v = a, L = T);
       }
       return v;
     }
-    let c = 1 / 0, u = 1 / 0;
-    for (const g of n.nodes?.allNodes ?? []) {
-      const h = g?.options;
-      typeof h?.x == "number" && typeof h?.y == "number" && (c = Math.min(c, h.x), u = Math.min(u, h.y));
+    let c = 1 / 0, f = 1 / 0;
+    for (const p of n.nodes?.allNodes ?? []) {
+      const h = p?.options;
+      typeof h?.x == "number" && typeof h?.y == "number" && (c = Math.min(c, h.x), f = Math.min(f, h.y));
     }
-    return Number.isFinite(c) || (c = 100, u = 100), { x: c - 40, y: u - 40 + t * 64, side: null };
+    return Number.isFinite(c) || (c = 100, f = 100), { x: c - 40, y: f - 40 + t * 64, side: null };
   }
-  function Ft(t, e, o) {
-    const { record: i } = t, c = J[(i.colorIndex % J.length + J.length) % J.length], u = kt(i), g = mt(i), h = g.length > 0 && (t.open || !o), T = z(Y(i.label), 48);
+  function Kt(t, e, o) {
+    const { record: i } = t, c = et[(i.colorIndex % et.length + et.length) % et.length], f = Nt(i), p = At(i), h = p.length > 0 && (t.open || !o), N = H(Y(i.label), 48);
     t.body?.remove();
     const s = t.group.group();
     t.body = s, s.path("M0 0 L14 5 L7 7 L5 14 Z").fill(c).stroke({ color: "#fff", width: 1.5 }).attr("stroke-linejoin", "round");
-    const v = s.group().attr("data-agent-avatar", ""), N = 11, a = 24, k = 24, U = Array.from({ length: 6 }, (w, _) => {
+    const v = s.group().attr("data-agent-avatar", ""), L = 11, a = 24, T = 24, tt = Array.from({ length: 6 }, (g, _) => {
       const G = Math.PI / 6 + _ * Math.PI / 3;
-      return (a + N * Math.cos(G)).toFixed(2) + "," + (k + N * Math.sin(G)).toFixed(2);
+      return (a + L * Math.cos(G)).toFixed(2) + "," + (T + L * Math.sin(G)).toFixed(2);
     }).join(" ");
-    v.polygon(U).fill(c).stroke({ color: "#fff", width: 1.5 }), v.text((w) => w.plain(z(Y(i.initial).toUpperCase(), 1) || "?")).font({ size: 11, weight: 700, family: "Roboto, Helvetica, Arial, sans-serif", anchor: "middle" }).fill("#fff").attr({ x: a, y: k + 4 }), v.path("M35 10 L36.5 13.5 L40 15 L36.5 16.5 L35 20 L33.5 16.5 L30 15 L33.5 13.5 Z").fill("#fde68a").stroke({ color: c, width: 0.8 });
-    const S = s.group().attr({
+    v.polygon(tt).fill(c).stroke({ color: "#fff", width: 1.5 }), v.text((g) => g.plain(H(Y(i.initial).toUpperCase(), 1) || "?")).font({ size: 11, weight: 700, family: "Roboto, Helvetica, Arial, sans-serif", anchor: "middle" }).fill("#fff").attr({ x: a, y: T + 4 }), v.path("M35 10 L36.5 13.5 L40 15 L36.5 16.5 L35 20 L33.5 16.5 L30 15 L33.5 13.5 Z").fill("#fde68a").stroke({ color: c, width: 0.8 });
+    const k = s.group().attr({
       "data-agent-tag": "",
       "pointer-events": "all",
-      cursor: g.length ? "pointer" : "default",
+      cursor: p.length ? "pointer" : "default",
       role: "button",
-      tabindex: g.length ? 0 : -1,
+      tabindex: p.length ? 0 : -1,
       "aria-expanded": String(h),
-      "aria-label": T + (u ? ": " + u : "")
-    }), F = u ? z(u, 40) : "", x = At(i, h), { width: I, height: j } = x, xt = t.path.length ? t.path[t.path.length - 1] : { x: t.x, y: t.y }, L = t.routedSide ?? Pt(xt, x, e, C(), [], V());
-    let D = L.right ? tt : -(tt + x.w), K = L.down ? et : -(et + x.h);
-    const R = C();
-    if (R) {
-      const _ = xt, G = (R.x - _.x) * e + 4, O = (R.x + R.w - _.x) * e - 4, X = (R.y - _.y) * e + 4, at = (R.y + R.h - _.y) * e - 4;
-      x.w <= O - G && (D = Math.min(Math.max(D, G), O - x.w)), x.h <= at - X && (K = Math.min(Math.max(K, X), at - x.h));
+      "aria-label": N + (f ? ": " + f : "")
+    }), F = f ? H(f, 40) : "", w = bt(i, h), { width: I, height: j } = w, z = t.path.length ? t.path[t.path.length - 1] : { x: t.x, y: t.y }, D = t.routedSide ?? Ht(z, w, e, W(), [], U());
+    let K = D.right ? ot : -(ot + w.w), R = D.down ? st : -(st + w.h);
+    const b = W();
+    if (b) {
+      const _ = z, G = (b.x - _.x) * e + 4, V = (b.x + b.w - _.x) * e - 4, X = (b.y - _.y) * e + 4, ft = (b.y + b.h - _.y) * e - 4;
+      w.w <= V - G && (K = Math.min(Math.max(K, G), V - w.w)), w.h <= ft - X && (R = Math.min(Math.max(R, X), ft - w.h));
     }
-    t.side = L, (!L.right || !L.down) && v.attr("transform", `translate(${L.right ? 0 : -2 * a} ${L.down ? 0 : -2 * k})`), S.attr("data-agent-side", (L.right ? "right" : "left") + "-" + (L.down ? "down" : "up")), S.rect(I, j).radius(7).move(D, K).fill("#fff").stroke({ color: c, width: 1.5 }), S.text((w) => w.plain(T)).font({ size: 12, weight: 600, family: "Roboto, Helvetica, Arial, sans-serif" }).fill(c).attr({ x: D + 8, y: K + 15 }), F && S.text((w) => w.plain(F)).font({ size: 11, family: "Roboto, Helvetica, Arial, sans-serif" }).fill("#374151").attr({ x: D + 8, y: K + 31 });
-    const wt = (w) => {
-      w.stopPropagation?.(), yt.expand(i.agentKey);
+    t.side = D;
+    let P = D.right, C = D.down;
+    if (b) {
+      const g = (a + L + 2) / e;
+      P && z.x + g > b.x + b.w ? P = !1 : !P && z.x - g < b.x && (P = !0), C && z.y + g > b.y + b.h ? C = !1 : !C && z.y - g < b.y && (C = !0);
+    }
+    (!P || !C) && v.attr("transform", `translate(${P ? 0 : -2 * a} ${C ? 0 : -2 * T})`), k.attr("data-agent-side", (D.right ? "right" : "left") + "-" + (D.down ? "down" : "up")), k.rect(I, j).radius(7).move(K, R).fill("#fff").stroke({ color: c, width: 1.5 }), k.text((g) => g.plain(N)).font({ size: 12, weight: 600, family: "Roboto, Helvetica, Arial, sans-serif" }).fill(c).attr({ x: K + 8, y: R + 15 }), F && k.text((g) => g.plain(F)).font({ size: 11, family: "Roboto, Helvetica, Arial, sans-serif" }).fill("#374151").attr({ x: K + 8, y: R + 31 });
+    const Mt = (g) => {
+      g.stopPropagation?.(), mt.expand(i.agentKey);
     };
-    if (S.on("pointerdown", (w) => w.stopPropagation?.()), S.on("click", wt), S.on("keydown", (w) => {
-      (w.key === "Enter" || w.key === " ") && (w.preventDefault?.(), wt(w));
+    if (k.on("pointerdown", (g) => g.stopPropagation?.()), k.on("click", Mt), k.on("keydown", (g) => {
+      (g.key === "Enter" || g.key === " ") && (g.preventDefault?.(), Mt(g));
     }), h) {
-      const w = s.group().attr("data-agent-plan", ""), _ = g.length;
-      w.rect(Q, 12 + _ * 18).radius(8).move(D, K + j + 6).fill("#ffffff").stroke({ color: "#d1d5db", width: 1 }).attr("fill-opacity", 0.97), g.forEach((G, O) => {
-        const X = i.plan.steps[O].status;
-        w.text((Gt) => Gt.plain(z(G, 38))).font({ size: 12, family: "Roboto, Helvetica, Arial, sans-serif", weight: X === "doing" ? 600 : 400 }).fill(X === "done" || X === "skipped" ? "#6b7280" : "#111827").attr({ x: D + 10, y: K + j + 6 + 20 + O * 18 }).attr("data-step-status", X);
+      const g = s.group().attr("data-agent-plan", ""), _ = p.length;
+      g.rect(nt, 12 + _ * 18).radius(8).move(K, R + j + 6).fill("#ffffff").stroke({ color: "#d1d5db", width: 1 }).attr("fill-opacity", 0.97), p.forEach((G, V) => {
+        const X = i.plan.steps[V].status;
+        g.text((Yt) => Yt.plain(H(G, 38))).font({ size: 12, family: "Roboto, Helvetica, Arial, sans-serif", weight: X === "doing" ? 600 : 400 }).fill(X === "done" || X === "skipped" ? "#6b7280" : "#111827").attr({ x: K + 10, y: R + j + 6 + 20 + V * 18 }).attr("data-step-status", X);
       });
     }
-    s.element("title").words(T + (u ? " — " + u : "")), t.compact = o, t.lines = g, t.step = u, t.group.transform({ translateX: t.x, translateY: t.y, scale: 1 / e, originX: 0, originY: 0 }), t.group.attr("opacity", t.opacity), nt = e;
+    s.element("title").words(N + (f ? " — " + f : "")), t.compact = o, t.lines = p, t.step = f, t.group.transform({ translateX: t.x, translateY: t.y, scale: 1 / e, originX: 0, originY: 0 }), t.group.attr("opacity", t.opacity), rt = e;
   }
-  function gt(t, e) {
+  function xt(t, e) {
     t.group.transform({ translateX: t.x, translateY: t.y, scale: 1 / e, originX: 0, originY: 0 }), t.group.attr("opacity", t.opacity);
   }
-  function rt(t, e, o, i) {
-    const c = C(), u = V(), h = t.targets.map((s) => ht(It(s))).filter((s) => !!s).slice(0, jt).map((s) => Ct(s, o, i, c, u.filter((v) => !_t(v, s))));
+  function lt(t, e, o, i) {
+    const c = W(), f = U(), h = t.targets.map((s) => yt(Et(s))).filter((s) => !!s).slice(0, Pt).map((s) => Ot(s, o, i, c, f.filter((v) => !Ft(v, s))));
     if (!h.length) {
-      const s = Et(e, o, i);
-      return { legs: [{ x: s.x, y: s.y, ms: lt }], side: s.side };
+      const s = Dt(e, o, i);
+      return { legs: [{ x: s.x, y: s.y, ms: ut }], side: s.side };
     }
-    const T = h.length === 1 ? lt : Bt;
-    return { legs: h.map((s) => ({ x: s.x, y: s.y, ms: T })), side: h[h.length - 1].side };
+    const N = h.length === 1 ? ut : zt;
+    return { legs: h.map((s) => ({ x: s.x, y: s.y, ms: N })), side: h[h.length - 1].side };
   }
-  const it = (t) => t.targets.some((e) => Lt(e) !== null), Dt = (t) => 1 - Math.pow(1 - t, 3);
-  function pt(t) {
+  const ct = (t) => t.targets.some((e) => _t(e) !== null), Rt = (t) => 1 - Math.pow(1 - t, 3);
+  function wt(t) {
     let e = !1;
     for (const o of d.values())
       for (; o.path.length; ) {
         const i = o.path[0];
-        if (y() || i.ms <= 0) {
+        if (x() || i.ms <= 0) {
           o.x = i.x, o.y = i.y, o.path.shift(), o.leg = null;
           continue;
         }
         o.leg || (o.leg = { fromX: o.x, fromY: o.y, startedAt: t });
-        const c = Math.min(1, (t - o.leg.startedAt) / i.ms), u = Dt(c);
-        if (o.x = o.leg.fromX + (i.x - o.leg.fromX) * u, o.y = o.leg.fromY + (i.y - o.leg.fromY) * u, c < 1) {
+        const c = Math.min(1, (t - o.leg.startedAt) / i.ms), f = Rt(c);
+        if (o.x = o.leg.fromX + (i.x - o.leg.fromX) * f, o.y = o.leg.fromY + (i.y - o.leg.fromY) * f, c < 1) {
           e = !0;
           break;
         }
@@ -230,86 +236,86 @@ function Ht(n, r = {}) {
       }
     return e;
   }
-  function H() {
+  function Z() {
     if (B) return;
-    const t = m(), e = Mt(b, t, { holdMs: M, fadeMs: f, max: l }), o = new Set(e.map((s) => s.record.agentKey));
+    const t = m(), e = vt(S, t, { holdMs: M, fadeMs: u, max: l }), o = new Set(e.map((s) => s.record.agentKey));
     for (const [s, v] of d) o.has(s) || (v.group.remove(), d.delete(s));
     if (!e.length) {
-      $(null);
+      J(null);
       return;
     }
-    const i = Tt();
+    const i = Lt();
     i.front?.();
-    const c = Z(), u = e.length >= 2 || Nt() < zt;
-    e.forEach(({ record: s, opacity: v }, N) => {
+    const c = q(), f = e.length >= 2 || It() < Ct;
+    e.forEach(({ record: s, opacity: v }, L) => {
       let a = d.get(s.agentKey);
-      const k = s.targets.join("\0"), U = A.has(s.agentKey), S = At(s, mt(s).length > 0 && (U || !u)), F = [S.w, S.h, c.toFixed(4), st(), ot()].join(",");
+      const T = s.targets.join("\0"), tt = A.has(s.agentKey), k = bt(s, At(s).length > 0 && (tt || !f)), F = [k.w, k.h, c.toFixed(4), at(), it()].join(",");
       if (a) {
-        if (a.targetsKey !== k || !a.found && it(s)) {
-          const x = rt(s, N, S, c);
-          a.path = x.legs, a.leg = null, a.found = it(s), a.routedSide = x.side, a.routedFor = F;
+        if (a.targetsKey !== T || !a.found && ct(s)) {
+          const w = lt(s, L, k, c);
+          a.path = w.legs, a.leg = null, a.found = ct(s), a.routedSide = w.side, a.routedFor = F;
         } else if (a.routedFor !== F && a.found) {
-          const x = rt(s, N, S, c), I = x.legs[x.legs.length - 1], j = a.path.length ? a.path[a.path.length - 1] : { x: a.x, y: a.y };
-          (I.x !== j.x || I.y !== j.y) && (a.path = [{ ...I, ms: lt }], a.leg = null), a.routedSide = x.side, a.routedFor = F;
+          const w = lt(s, L, k, c), I = w.legs[w.legs.length - 1], j = a.path.length ? a.path[a.path.length - 1] : { x: a.x, y: a.y };
+          (I.x !== j.x || I.y !== j.y) && (a.path = [{ ...I, ms: ut }], a.leg = null), a.routedSide = w.side, a.routedFor = F;
         }
       } else {
-        const x = rt(s, N, S, c), I = x.legs[0];
+        const w = lt(s, L, k, c), I = w.legs[0];
         a = {
           key: s.agentKey,
           group: i.group().attr({ "data-agent": s.agentKey }),
           body: null,
           record: s,
-          targetsKey: k,
-          found: it(s),
+          targetsKey: T,
+          found: ct(s),
           x: I.x,
           y: I.y,
-          path: x.legs.slice(1),
+          path: w.legs.slice(1),
           leg: null,
-          open: U,
+          open: tt,
           opacity: v,
-          compact: u,
+          compact: f,
           lines: [],
           step: null,
-          routedSide: x.side,
+          routedSide: w.side,
           routedFor: F
         }, d.set(s.agentKey, a);
       }
-      a.targetsKey = k, a.record = s, a.opacity = Math.max(0, Math.min(1, v)), a.open = A.has(s.agentKey), Ft(a, c, u);
+      a.targetsKey = T, a.record = s, a.opacity = Math.max(0, Math.min(1, v)), a.open = A.has(s.agentKey), Kt(a, c, f);
     });
-    const g = pt(t);
-    for (const s of d.values()) gt(s, c);
-    const h = e.some((s) => s.opacity < 1), T = Math.min(...e.map((s) => s.record.status === "live" && E(s.record.endedAt) === null ? s.until : (E(s.record.endedAt) ?? E(s.record.updatedAt) ?? t) + M));
-    $(g || h ? "frame" : Math.max(16, T - t));
+    const p = wt(t);
+    for (const s of d.values()) xt(s, c);
+    const h = e.some((s) => s.opacity < 1), N = Math.min(...e.map((s) => s.record.status === "live" && E(s.record.endedAt) === null ? s.until : (E(s.record.endedAt) ?? E(s.record.updatedAt) ?? t) + M));
+    J(p || h ? "frame" : Math.max(16, N - t));
   }
-  function Kt() {
-    if (P = null, B) return;
-    const t = m(), e = pt(t), o = Z(), i = Mt(b, t, { holdMs: M, fadeMs: f, max: l });
-    if (i.some((u) => u.opacity < 1) || d.size !== i.length || Math.abs(o - nt) > 1e-6) {
-      H();
+  function Gt() {
+    if (O = null, B) return;
+    const t = m(), e = wt(t), o = q(), i = vt(S, t, { holdMs: M, fadeMs: u, max: l });
+    if (i.some((f) => f.opacity < 1) || d.size !== i.length || Math.abs(o - rt) > 1e-6) {
+      Z();
       return;
     }
-    for (const u of d.values()) gt(u, o);
-    e && $("frame");
+    for (const f of d.values()) xt(f, o);
+    e && J("frame");
   }
-  function $(t) {
-    P !== null && (cancelAnimationFrame(P), P = null), W !== null && (clearTimeout(W), W = null), !(t === null || B) && (t === "frame" ? P = requestAnimationFrame(Kt) : W = setTimeout(H, Math.min(t, 6e4)));
+  function J(t) {
+    O !== null && (cancelAnimationFrame(O), O = null), $ !== null && (clearTimeout($), $ = null), !(t === null || B) && (t === "frame" ? O = requestAnimationFrame(Gt) : $ = setTimeout(Z, Math.min(t, 6e4)));
   }
-  let q = null;
-  const Rt = () => {
-    if (q !== null) return;
-    let t = st(), e = ot(), o = e;
-    q = setInterval(() => {
+  let Q = null;
+  const Xt = () => {
+    if (Q !== null) return;
+    let t = at(), e = it(), o = e;
+    Q = setInterval(() => {
       if (B || !d.size) return;
-      const i = st(), c = ot(), u = c === e && c !== o;
-      e = c, (Math.abs(Z() - nt) > 1e-6 || i !== t || u) && (t = i, o = c, H());
+      const i = at(), c = it(), f = c === e && c !== o;
+      e = c, (Math.abs(q() - rt) > 1e-6 || i !== t || f) && (t = i, o = c, Z());
     }, 250);
-  }, yt = {
+  }, mt = {
     set(t) {
-      B || (b = Array.isArray(t) ? t.filter((e) => e && typeof e.agentKey == "string") : [], H(), Rt());
+      B || (S = Array.isArray(t) ? t.filter((e) => e && typeof e.agentKey == "string") : [], Z(), Xt());
     },
     expand(t, e) {
       const o = e ?? !A.has(t);
-      o ? A.add(t) : A.delete(t), r.onToggle?.(t, o), H();
+      o ? A.add(t) : A.delete(t), r.onToggle?.(t, o), Z();
     },
     shown() {
       return [...d.values()].map((t) => ({
@@ -325,26 +331,26 @@ function Ht(n, r = {}) {
       }));
     },
     destroy() {
-      B = !0, $(null), q !== null && clearInterval(q);
+      B = !0, J(null), Q !== null && clearInterval(Q);
       for (const t of d.values()) t.group.remove();
-      d.clear(), p?.remove(), p = null;
+      d.clear(), y?.remove(), y = null;
     }
   };
-  return yt;
+  return mt;
 }
 export {
-  bt as AGENT_FADE_MS,
-  lt as AGENT_GLIDE_MS,
-  vt as AGENT_HOLD_MS,
-  St as AGENT_MAX_DRAWN,
-  jt as AGENT_MAX_VISITS,
-  J as AGENT_PALETTE,
-  Bt as AGENT_VISIT_MS,
-  Ct as agentAnchor,
-  mt as agentChecklist,
-  kt as agentStepText,
-  ut as agentTagBox,
-  Pt as agentTagSide,
-  Ht as createAgentPresence,
-  Mt as visibleAgents
+  kt as AGENT_FADE_MS,
+  ut as AGENT_GLIDE_MS,
+  St as AGENT_HOLD_MS,
+  Tt as AGENT_MAX_DRAWN,
+  Pt as AGENT_MAX_VISITS,
+  et as AGENT_PALETTE,
+  zt as AGENT_VISIT_MS,
+  Ot as agentAnchor,
+  At as agentChecklist,
+  Nt as agentStepText,
+  ht as agentTagBox,
+  Ht as agentTagSide,
+  Wt as createAgentPresence,
+  vt as visibleAgents
 };
