@@ -720,6 +720,21 @@ describe("Slate", () => {
       slate.deselectNode(n1); // never selected
       expect(slate.getSelectedNodes()).toEqual([]);
     });
+
+    // The outline and handles live in an overlay outside the note: a note that leaves the
+    // selection (deselected, or on its way off the slate) takes them with it.
+    it("puts away the outline and handles of the last selected node", () => {
+      const slate = new Slate(container);
+      const n1: any = slate.addNode({ id: "n1" });
+      slate.selectNodes([n1]);
+      n1.resizeRotate.isEnabled.mockReturnValue(true);
+      n1.isConnectionHandlesEnabled.mockReturnValue(true);
+
+      slate.deselectNode(n1);
+      expect(slate.getSelectedNodes()).toEqual([]);
+      expect(n1.resizeRotate.disable).toHaveBeenCalled();
+      expect(n1.disableConnectionHandles).toHaveBeenCalled();
+    });
   });
 
   describe("clearSelection", () => {

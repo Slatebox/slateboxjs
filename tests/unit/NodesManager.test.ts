@@ -311,6 +311,30 @@ describe("NodesManager", () => {
       expect(manager.count()).toBe(1);
       expect(manager.one("b")).toBeDefined();
     });
+
+    // A collaborator's delete (and a note someone else made a workshop card) reaches the
+    // slate as nodes.remove(), not slate.removeNode(). A note this person had selected must
+    // leave the selection first, or its outline and handles stay round empty canvas.
+    it("deselects a selected node before removing it, so its outline goes with it", () => {
+      const node = manager.add({ id: "chosen" });
+      const order: string[] = [];
+      const selection = [node];
+      (slate as any).getSelectedNodes = vi.fn(() => selection);
+      (slate as any).deselectNode = vi.fn((n: any) => { order.push("deselect"); selection.splice(selection.indexOf(n), 1); });
+      node.remove.mockImplementation(() => { order.push("remove"); });
+      manager.remove("chosen");
+      expect((slate as any).deselectNode).toHaveBeenCalledWith(node);
+      expect(order).toEqual(["deselect", "remove"]);
+    });
+
+    it("leaves the selection alone when the removed node is not selected", () => {
+      const other = manager.add({ id: "other" });
+      manager.add({ id: "gone" });
+      (slate as any).getSelectedNodes = vi.fn(() => [other]);
+      (slate as any).deselectNode = vi.fn();
+      manager.remove("gone");
+      expect((slate as any).deselectNode).not.toHaveBeenCalled();
+    });
   });
 
   // -----------------------------------------------------------------------
