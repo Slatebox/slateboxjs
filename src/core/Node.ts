@@ -2085,6 +2085,9 @@ export class Node {
         this.options.y = startY + (y - startY) * e;
         this.applyPositionAndRotation();
         if (p < 1) {
+          // A note selected while it glides (a card made from a dropped note is
+          // selected on its way into its slot) takes its outline along.
+          if (this.isSelected()) this.resizeRotate?.syncOverlay?.();
           requestAnimationFrame(step);
         } else {
           this.options.x = x;
@@ -2092,6 +2095,7 @@ export class Node {
           this.applyPositionAndRotation();
           if (this._glide === glide) this._glide = null;
           if (callback) callback();
+          this.refreshSelectionDecorations();
         }
       };
       requestAnimationFrame(step);
@@ -2099,7 +2103,13 @@ export class Node {
       // Move immediately (translate + rotate composed)
       this.applyPositionAndRotation();
       if (callback) callback();
+      this.refreshSelectionDecorations();
     }
+  }
+
+  /** Whether this note is part of its slate's selection. */
+  private isSelected(): boolean {
+    return !!(this.slate as any)?.selectedNodes?.includes?.(this);
   }
 
   /** Bring the node to the front of the SVG z-order. */
@@ -2653,11 +2663,11 @@ export class Node {
   /**
    * The selection ring + plug-dots are positioned from the selected shape's
    * axis-aligned box, and their MutationObserver watches the shape elements —
-   * but rotation lives on the PARENT group transform, which those observers
-   * never see. Interactive drags refresh via finalizeInteraction; this call
-   * covers the non-drag paths (setRotation, collab onNodeRotated, group
-   * rotate, SlateOperations, host API) where nothing else re-positions the
-   * decorations and they would strand at the pre-rotation box.
+   * but position and rotation live on the PARENT group transform, which those
+   * observers never see. Interactive drags refresh via finalizeInteraction; this
+   * call covers the non-drag paths (position(), setRotation, collab
+   * onNodeRotated, group rotate, SlateOperations, host API) where nothing else
+   * re-positions the decorations and they would strand at the old box.
    */
   private refreshSelectionDecorations() {
     const slate: any = this.slate;

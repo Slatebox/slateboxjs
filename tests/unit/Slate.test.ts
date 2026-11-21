@@ -735,6 +735,20 @@ describe("Slate", () => {
       expect(n1.resizeRotate.disable).toHaveBeenCalled();
       expect(n1.disableConnectionHandles).toHaveBeenCalled();
     });
+
+    // Undo and redo replace every note; one that was selected leaves the selection, and its
+    // outline must go with it (a workshop card selected when its trade is undone).
+    it("puts away the outline of a selected node that an undo replaced", () => {
+      const slate = new Slate(container);
+      const n1: any = slate.addNode({ id: "n1" });
+      slate.selectNodes([n1]);
+      n1.resizeRotate.isEnabled.mockReturnValue(true);
+      (slate as any).nodes.one.mockReturnValue(null);
+
+      slate.notifyNotesReplaced();
+      expect(slate.getSelectedNodes()).toEqual([]);
+      expect(n1.resizeRotate.disable).toHaveBeenCalled();
+    });
   });
 
   describe("clearSelection", () => {
