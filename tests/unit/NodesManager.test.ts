@@ -302,6 +302,20 @@ describe("NodesManager", () => {
       expect(manager.one("keep")).toBe(keep);
     });
 
+    // Connected cards: a workshop card holds its lines to notes under the board's own line ids,
+    // and a second line between two notes is `A->B~2`. A note removed takes every line to it.
+    it("removes every line to the removed node, whatever the line's id", () => {
+      const holder: any = manager.add({ id: "card-alpha" });
+      manager.add({ id: "gone" });
+      holder.relationships = {
+        getAssociation: vi.fn(() => undefined),
+        getAssociations: vi.fn(() => [{ id: "plain->alpha", parentId: "card-alpha", childId: "gone" }]),
+        removeAssociation: vi.fn(),
+      };
+      manager.remove("gone");
+      expect(holder.relationships.removeAssociation).toHaveBeenCalledWith("gone");
+    });
+
     it("can remove multiple nodes in succession", () => {
       manager.add({ id: "a" });
       manager.add({ id: "b" });

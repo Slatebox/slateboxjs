@@ -338,7 +338,11 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     expect((await journal(page)).changes).toEqual([])
   })
 
-  test('a card cannot be nudged, resized, rotated, deleted, duplicated, connected or moved by a collaborator', async ({ page }) => {
+  // (Restated 2026-11-21, owner decision: cards connect to notes and to each other like any note.
+  // This test said a card could not be connected: its plug, the engine's addAssociation on a card and a
+  // connector dropped on a card were all refused. A card now shows its plug, and a line drawn to it is
+  // the board's (native-workshop-lines.spec.ts). A collaborator's package still cannot join a card.)
+  test('a card cannot be nudged, resized, rotated, deleted, duplicated or moved by a collaborator; it connects like a note', async ({ page }) => {
     await open(page)
     const start = await resting(page, 'card-alpha')
     const a = await box(page, 'card-alpha')
@@ -347,15 +351,12 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     await page.mouse.click(a.x + a.width / 2, a.y + a.height / 2)
     await expect.poll(() => page.evaluate(() => (window as any).native.slate.getSelectedNodes().map((n: any) => n.id))).toEqual(['card-alpha'])
 
-    // Selected: an outline, but no resize handles, rotate knob, toolbar or connector plugs.
+    // Selected: an outline, but no resize handles, rotate knob or toolbar; its connector plugs show, as a note's do.
     await expect(page.locator('#slate .svg_select_shape')).toBeVisible()
     await expect(page.locator('#slate .svg_select_handle_rb')).toBeHidden()
     await expect(page.locator('#slate .svg_select_handle_rot')).toBeHidden()
     await expect(page.locator('#slate .node-toolbar')).toHaveCount(0)
-    await expect(page.locator('#slate .connection-handle:visible')).toHaveCount(0)
-    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2 + 4)
-    await page.waitForTimeout(150)
-    await expect(page.locator('#slate .connection-handle:visible')).toHaveCount(0)
+    await expect(page.locator('#slate .connection-handle:visible')).toHaveCount(4)
 
     // Keyboard: no nudge, no delete, no duplicate, no copy and paste.
     for (const key of ['ArrowUp', 'ArrowDown', 'Shift+ArrowDown', 'Delete', 'Backspace', 'Control+d', 'Control+c', 'Control+v', 'Control+]', 'Control+[']) {
@@ -394,9 +395,6 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
       slate.distributeNodes('vertical', [plainNote, card, lane])
       const group = slate.groupNodes([plainNote, card])
       slate.lockNodes([card])
-      plainNote.relationships.addAssociation(card)
-      card.relationships.addAssociation(plainNote)
-      card.startConnectDrag({ clientX: 0, clientY: 0 })
       slate.applyLayout([{ id: 'card-alpha', x: 0, y: 0 }], undefined, true)
       // A collaborator's packages aimed at the card, its lane, or its text.
       slate.collab.exe({ type: 'onNodesMove', data: { nodeOptions: [{ id: 'card-alpha', xPos: 0, yPos: 0 }], dur: 0 } })
@@ -418,7 +416,8 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     expect(refused).toEqual({ removed: false, group: null, locked: false, exists: true, links: 0, connectors: 0, rotation: 0, lane: 'Now', size: [228, 76] })
     expect(await at(page, 'card-alpha')).toEqual(start)
 
-    // A connector dragged from the ordinary note onto a card does not attach, and makes no new note on top of it.
+    // A connector dragged from the ordinary note onto a card joins them: the line is the board's (held by the
+    // card, saved by the host, sent to nobody), and no new note is made on top of the card.
     await page.mouse.click(plain.x + plain.width / 2, plain.y + plain.height / 2)
     await expect(page.locator('#slate .node-toolbar .node-tool-plug')).toBeVisible()
     // The toolbar is redrawn once the click settles; take the one that stays.
@@ -430,10 +429,11 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     await page.mouse.up()
     await page.waitForTimeout(200)
     expect(await page.evaluate(() => (window as any).native.slate.nodes.one('plain').relationships.assocMap.size)).toBe(0)
+    expect(await page.evaluate(() => (window as any).native.board.value.lines.map((l: any) => l.parentId + '>' + l.childId))).toEqual(['plain>alpha'])
     expect(await count()).toBe(total)
 
     const state = await journal(page)
-    expect(state.changes).toEqual([])
+    expect(state.changes).toEqual([{ line: { set: expect.objectContaining({ parentId: 'plain', childId: 'alpha' }) } }])
     expect(state.packages.filter(type => /^onNode|Relationship/.test(type))).toEqual([])
     expect(state.sent.filter(type => /^onNode|Relationship/.test(type))).toEqual([])
     // A lane header does not drag at all.

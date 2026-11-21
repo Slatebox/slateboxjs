@@ -131,19 +131,19 @@ test.describe('an ordinary note dropped on a lane becomes a card', () => {
     expect(await undoSteps(page)).toBe(steps)
   })
 
-  test('a note with a line to another note is refused with the reason, and the line stays', async ({ page }) => {
+  // (Restated 2026-11-21, owner decision: a note joined to other notes by lines becomes a card
+  // and keeps its lines. This test said the lane refused it; see native-workshop-lines.spec.ts.)
+  test('a note with a line to another note becomes a card and keeps the line', async ({ page }) => {
     await open(page, '?defaultnote')
     await page.evaluate(() => {
       const { slate } = (window as any).native
       slate.nodes.one('plain').relationships.addAssociation(slate.nodes.one('default'), { id: 'plain-default' })
     })
-    const start = await at(page, 'plain')
     await drag(page, 'plain', await inLane(page, 'now'))
-    await expect(live(page)).toHaveText("Ordinary note can't go in Now. A note joined to other notes by lines stays a note. Remove its lines first.")
-    expect(await resting(page, 'plain')).toEqual(start)
-    expect(await cards(page)).toBe('alpha@now beta@now gamma@now')
-    expect(await page.evaluate(() => JSON.parse((window as any).native.slate.exportJSON()).nodes
-      .flatMap((n: any) => n.relationships.associations.map((a: any) => a.id)))).toEqual(['plain-default'])
+    await expect(live(page)).toHaveText('Ordinary note is now a card in Now. 4 cards.')
+    expect(await cards(page)).toBe('alpha@now beta@now gamma@now plain@now')
+    expect(await page.evaluate(() => (window as any).native.board.value.lines.map((l: any) => l.id))).toEqual(['plain-default'])
+    expect(await page.evaluate(() => (window as any).native.slate.nodes.one('card-plain').relationships.getAssociations().map((a: any) => a.id))).toEqual(['plain-default'])
   })
 
   // (Restated 2026-11-19, cards-fix: several notes dropped on a lane together now become cards
