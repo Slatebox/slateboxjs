@@ -2218,6 +2218,12 @@ export class Node {
    * Cleans up DOM elements but does NOT disable sub-modules. Use `destroy()` for full teardown.
    */
   public remove() {
+    // The line tool drawing from this note stops: there is no note to draw from.
+    try {
+      if ((this.slate as any)?._lineTool?.nodeId === this.id) (this.slate as any).cancelLineTool?.();
+    } catch (e) {
+      /* noop */
+    }
     // Clean up connection handles container (created on slate.canvas, not in svgGroup)
     if (this.connectionHandles.container) {
       this.connectionHandles.container.remove();

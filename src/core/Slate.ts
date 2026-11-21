@@ -589,6 +589,12 @@ export class Slate {
    * Follows the PanZoom.ts pattern: clear timers → remove listeners → chain to owned objects.
    */
   public destroy(): void {
+    // The line tool stops (its window listeners go with it).
+    try {
+      this._lineTool?.cancel();
+    } catch (e) {
+      /* noop */
+    }
     this._destroyed = true;
     this._dragPolicies = [];
     this._governedDragNode = null;

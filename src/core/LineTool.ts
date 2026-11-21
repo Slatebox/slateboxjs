@@ -6,11 +6,17 @@
  * connects to it (pinned to that spot when near the note's edge, following the
  * note when on its middle, the same rule as dropping a line's end); a click or
  * tap on empty canvas leaves the far end free there. Escape, a click on the note
- * it started from, or starting the tool again cancels it. The line is made
+ * it started from, or starting the tool again cancels it, and so does its note
+ * going away (deleted here or by someone else, the slate loaded again by an undo,
+ * the slate destroyed). With a finger or a pen only a tap draws: a pan or a pinch
+ * goes on to the canvas and draws nothing. The line is made
  * through the note's relationships, so it is saved, shared and undoable like any
  * line, and is selected when made.
  */
 import { anchorForDrop, anchorPoint, anchorToward, normalizedOn, type NoteBox } from "./LineEnds";
+
+/** How far (px) a finger may wander and still be a tap rather than a pan. */
+const TAP_SLOP = 10;
 
 export type LineToolResult = { result: "connected" | "free" | "cancelled"; associationId?: string; nodeId?: string };
 
@@ -102,6 +108,8 @@ export function startLineTool(slate: any, node: any): Promise<LineToolResult> {
       highlight(null);
       window.removeEventListener("pointermove", move, true);
       window.removeEventListener("pointerdown", down, true);
+      window.removeEventListener("pointerup", up, true);
+      window.removeEventListener("pointercancel", lift, true);
       window.removeEventListener("keydown", key, true);
       try {
         preview.remove();
@@ -141,7 +149,11 @@ export function startLineTool(slate: any, node: any): Promise<LineToolResult> {
         disarmTimer = setTimeout(disarm, 350);
       }
     };
+    // The note it started from is still on this slate (not deleted, not replaced by a load).
+    const alive = () => !slate._destroyed && !node._removed && slate.nodes?.one?.(node.id) === node;
     const move = (e: PointerEvent) => {
+      if (!alive()) return finish({ result: "cancelled" });
+      if (tap && e.pointerId === tap.id && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > TAP_SLOP) tap = null;
       if (!inCanvas(e)) return;
       const w = canvas.point(e.clientX, e.clientY);
       const target = noteUnder(slate, e.clientX, e.clientY, node.id);
@@ -152,13 +164,38 @@ export function startLineTool(slate: any, node: any): Promise<LineToolResult> {
       if (over) tip.hide();
       else tip.show().attr("transform", `translate(${w.x},${w.y})`);
     };
-    const down = (e: PointerEvent) => {
+    // A finger or a pen draws on a tap: its press goes on to the canvas (a pan or a pinch
+    // starts as usual) and the line is made when it lifts without having moved, alone.
+    const fingers = new Set<number>();
+    let tap: { id: number; x: number; y: number } | null = null;
+    const touchy = (e: PointerEvent) => e.pointerType === "touch" || e.pointerType === "pen";
+    const guarded = (e: PointerEvent) => {
       try {
+        if (!alive()) return finish({ result: "cancelled" });
         press(e);
       } catch (error) {
         console.warn("LINE_TOOL: press failed", error);
         finish({ result: "cancelled" });
       }
+    };
+    const down = (e: PointerEvent) => {
+      if (!touchy(e)) return guarded(e);
+      if (!inCanvas(e)) return;
+      // The first finger of a new touch: no other finger is down (whatever a lost lift left behind).
+      if (e.isPrimary) fingers.clear();
+      fingers.add(e.pointerId);
+      tap = fingers.size === 1 ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null;
+    };
+    const up = (e: PointerEvent) => {
+      if (!touchy(e)) return;
+      fingers.delete(e.pointerId);
+      if (!tap || tap.id !== e.pointerId) return;
+      tap = null;
+      guarded(e);
+    };
+    const lift = (e: PointerEvent) => {
+      fingers.delete(e.pointerId);
+      if (tap?.id === e.pointerId) tap = null;
     };
     const press = (e: PointerEvent) => {
       if (!inCanvas(e) || (e.button !== undefined && e.button !== 0 && e.pointerType === "mouse")) return;
@@ -191,6 +228,8 @@ export function startLineTool(slate: any, node: any): Promise<LineToolResult> {
     slate._lineTool = tool;
     window.addEventListener("pointermove", move, true);
     window.addEventListener("pointerdown", down, true);
+    window.addEventListener("pointerup", up, true);
+    window.addEventListener("pointercancel", lift, true);
     window.addEventListener("keydown", key, true);
     slate.options?.events?.onLineToolChanged?.(true);
   });
