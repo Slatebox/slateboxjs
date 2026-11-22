@@ -216,7 +216,7 @@ export function catalogList(group: CatalogGroup | 'all' = 'all'): CatalogEntry[]
   return catalog.filter(entry => group === 'all' || entry.group === group)
 }
 
-/** The samples a business entry adds: from slateboxjs/workshops/rules (catalogSamples), so this chunk keeps no rules. */
+/** The samples a business entry adds: from slateboxjs/workshops/samples (catalogSamples), so this chunk keeps no rules. */
 export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget' | 'sort-evidence' | 'discovery-tree' | 'break-down' | 'incident-review'
   | 'impact-effort' | 'reorg' | 'goals'
 export type CatalogSamples = Partial<Record<CatalogSample, () => Workshop>>

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { catalog, catalogAddRequest, catalogEntry, catalogFits, catalogMatch, catalogPreset, catalogVersion } from '../../src/workshops/catalog'
 import { describeWorkshopEdits, validateWorkshop, workshopBoardKind } from '../../src/workshops/model'
 import { behaviourLines, ruleKindIds } from '../../src/workshops/behaviour'
-import { catalogSamples as samples, timeRuleKindIds } from '../../src/workshops/rules'
+import { timeRuleKindIds } from '../../src/workshops/rules'
+import { catalogSamples as samples } from '../../src/workshops/samples'
 
 // The smart-component library (library final.md §2.4, §2.8): one catalogue the panel, the + menu,
 // chat, exec and the site read. Only entries whose kind is built are listed.

@@ -29,6 +29,12 @@ const ceilings = {
   // Impact × effort, the reorg sandbox and goals & owners, plugged into the nested boards (loaded with them). Measured at its
   // first build (23184 / 7422), plus a little.
   'workshop-nest-plus.mjs': { raw: 24000, gzip: 7700 },
+  // The nested boards' kit: its own chunk, loaded with the boards only for a slate that holds a nested board. Measured at
+  // its first build (20645 / 6661), plus a little.
+  'boards-nest.mjs': { raw: 21500, gzip: 7000 },
+  // The boards the library adds (catalogSamples): loaded only where a board is added. Measured at its first build
+  // (9163 / 2802), plus a little.
+  'workshop-samples.mjs': { raw: 9500, gzip: 3000 },
   // The library of what can be added (pure data): loaded when the library opens.
   'catalog.mjs': { raw: 16000, gzip: 5000 },
 }
@@ -82,6 +88,11 @@ if (!boards.includes('./workshop-rules.mjs')) problems.push('boards.mjs must loa
 if (!boards.includes('./dragology.mjs')) problems.push('boards.mjs must import ./dragology.mjs as a shared chunk.')
 if (!boards.includes('./workshop-model.mjs')) problems.push('boards.mjs must take the rules from ./workshop-model.mjs, not carry a copy.')
 if (/function dragSpecToBehavior|class DragSpecBuilder/.test(read('boards.mjs').toString('utf8'))) problems.push('boards.mjs carries its own copy of Dragology.')
+// The nested boards' kit and the library's samples load only when they are used: nothing else imports them, and they carry no copy of what they plug into.
+if (boards.some(target => /boards-nest|samples/.test(target))) problems.push('boards.mjs imports the nested boards\' kit or the samples: they load on their own.')
+if (!importsOf('boards-nest.mjs').includes('./boards.mjs')) problems.push('boards-nest.mjs must plug into ./boards.mjs, not carry its own kits.')
+if (importsOf('workshop-rules.mjs').some(target => /samples/.test(target))) problems.push('workshop-rules.mjs imports the samples: they load only where a board is added.')
+if (!importsOf('workshop-samples.mjs').includes('./workshop-rules.mjs')) problems.push('workshop-samples.mjs must take the plans\' samples from ./workshop-rules.mjs, not carry a copy.')
 // The agents' drawing stays out of the canvas entry, and the presence entry shares no chunk.
 if (read('slateboxjs.mjs').toString('utf8').includes('data-agent-presence')) problems.push('slateboxjs.mjs carries the agents\' drawing: it belongs to the presence entry.')
 if (importsOf('presence.mjs').some(target => target.startsWith('./'))) problems.push('presence.mjs must stand alone (no shared chunk).')

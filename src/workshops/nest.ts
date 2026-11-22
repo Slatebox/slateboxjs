@@ -379,9 +379,6 @@ export const nestFamily: RuleFamily = {
   builtIn: board => [board.lanes[1].label + ' holds cards not placed yet: no rule applies there.'],
 }
 
-/** The rules a board is given as it is made (a preset's). */
-const preset = (rules: Array<Record<string, unknown>>): Behaviour => ({ version: 1, rev: 0,
-  rules: rules.map((rule, i) => ({ id: 'rule-' + (i + 1), on: true, severity: 'refuse', set: { by: 'Slatebox', at: '2026-11-21T00:00:00.000Z', via: 'preset' }, ...rule }) as never) })
 
 // ---------------------------------------------------------------------------------------------
 // Where a card may go: the drag's candidates, the library's "changes the next drag", exec's check.
@@ -820,88 +817,3 @@ export const nestRules: BusinessBoardRules = {
   edit: nestEdit,
 }
 registerWorkshopRules(nestRules)
-
-// ---------------------------------------------------------------------------------------------
-// The library's boards.
-
-type Item = [id: string, label: string, extra?: Partial<WorkshopCard>]
-/** Cards in order under one parent (or at the top of an area), with keys. */
-function laid(laneId: string, items: Item[], parentId?: string): WorkshopCard[] {
-  const keys = orderKeys(items.length)
-  return items.map(([id, label, extra], i) => ({ id, label, laneId, order: keys[i], ...(parentId && { parentId }), ...extra }))
-}
-
-/**
- * Sort the evidence: three piles of what customers said, two notes not sorted yet, ARR per customer. Its rules:
- * notes sit in piles, one level deep, piles rank by how many customers, a note let go in empty space starts a pile.
- */
-export function sortEvidenceSample(): Board {
-  const note = (source: string, arr: number) => ({ role: 'note', source, fields: { arr } })
-  return {
-    version: 1, kind: 'nest', title: 'Sort the evidence', nest: { layout: 'clusters', fields: [{ id: 'arr', label: 'ARR', currency: '$' }] },
-    lanes: [{ id: 'piles', label: 'Piles' }, { id: 'unsorted', label: 'Unsorted' }],
-    cards: [
-      ...laid('piles', [['onboarding', 'Onboarding', { role: 'pile' }], ['reporting', 'Reporting', { role: 'pile' }], ['pricing', 'Pricing', { role: 'pile' }]]),
-      ...laid('piles', [['setup-days', 'Setup took two days', note('Acme', 24000)], ['where-start', 'Didn’t know where to start', note('Globex', 36000)],
-        ['invites', 'Invite flow is confusing', note('Initech', 12000)]], 'onboarding'),
-      ...laid('piles', [['csv-export', 'Couldn’t find CSV export', note('Acme', 24000)], ['finance-match', 'Charts don’t match finance', note('Umbrella', 60000)]], 'reporting'),
-      ...laid('piles', [['seats', 'Seats are too expensive', note('Initech', 12000)], ['annual', 'Want annual billing', note('Hooli', 30000)]], 'pricing'),
-      ...laid('unsorted', [['trust', 'I don’t trust the numbers', note('Umbrella', 60000)], ['mobile', 'Mobile app please', note('Hooli', 30000)]]),
-    ],
-    behaviour: preset([{ kind: 'nests', role: 'note', under: ['pile'] }, { kind: 'depth', max: 1 }, { kind: 'rank', by: 'sources' }, { kind: 'emptyDrop', drop: 'new-pile' }]),
-  }
-}
-
-/** Discovery tree: an outcome, the opportunities under it and the solutions under those; two ideas parked. */
-export function discoveryTreeSample(): Board {
-  return {
-    version: 1, kind: 'nest', title: 'Discovery tree', nest: { layout: 'tree' },
-    lanes: [{ id: 'tree', label: 'Discovery tree' }, { id: 'parked', label: 'Parked ideas' }],
-    cards: [
-      ...laid('tree', [['outcome', 'Activation to 40%', { role: 'outcome' }]]),
-      ...laid('tree', [['slow-onboarding', 'Onboarding is slow', { role: 'opportunity' }], ['data-trust', 'Data trust', { role: 'opportunity' }],
-        ['sharing', 'Hard to share results', { role: 'opportunity' }]], 'outcome'),
-      ...laid('tree', [['guided-setup', 'Guided setup', { role: 'solution' }], ['csv-import', 'CSV import', { role: 'solution' }]], 'slow-onboarding'),
-      ...laid('tree', [['reconcile', 'Reconcile with finance', { role: 'solution' }]], 'data-trust'),
-      ...laid('parked', [['templates', 'Templates gallery', { role: 'solution' }], ['digest', 'Slack digest', { role: 'solution' }]]),
-    ],
-    behaviour: preset([{ kind: 'nests', role: 'opportunity', under: ['outcome'] }, { kind: 'nests', role: 'solution', under: ['opportunity'] },
-      { kind: 'depth', max: 3 }, { kind: 'children', role: 'opportunity', max: 4 }]),
-  }
-}
-
-const breakDownRules = () => preset([{ kind: 'nests', role: 'action', under: ['cause'], severity: 'warn' }, { kind: 'depth', max: 6, severity: 'warn' }])
-
-/** Break down a problem (an issue tree): a problem, its causes, causes under those, and actions under causes (warnings, never refusals). */
-export function breakDownSample(): Board {
-  return {
-    version: 1, kind: 'nest', title: 'Break down a problem', nest: { layout: 'tree' },
-    lanes: [{ id: 'tree', label: 'The problem' }, { id: 'parked', label: 'Ideas to place' }],
-    cards: [
-      ...laid('tree', [['problem', 'Churn rose in Q3', { role: 'problem' }]]),
-      ...laid('tree', [['drop-off', 'Onboarding drop-off', { role: 'cause' }], ['price-rise', 'Price rise in July', { role: 'cause' }],
-        ['free-tier', 'A competitor’s free tier', { role: 'cause' }]], 'problem'),
-      ...laid('tree', [['needs-engineer', 'Setup needs an engineer', { role: 'cause' }]], 'drop-off'),
-      ...laid('tree', [['guided', 'Ship guided setup', { role: 'action' }]], 'needs-engineer'),
-      ...laid('parked', [['survey', 'Survey churned accounts', { role: 'action' }]]),
-    ],
-    behaviour: breakDownRules(),
-  }
-}
-
-/** Incident review: the same breakdown for an outage: what caused it, what caused that, and what to fix. */
-export function incidentReviewSample(): Board {
-  return {
-    version: 1, kind: 'nest', title: 'Incident review', nest: { layout: 'tree' },
-    lanes: [{ id: 'tree', label: 'The incident' }, { id: 'parked', label: 'Not placed yet' }],
-    cards: [
-      ...laid('tree', [['outage', 'Sign-in outage, 14 Nov', { role: 'problem' }]]),
-      ...laid('tree', [['certificate', 'Expired certificate', { role: 'cause' }], ['rollback', 'Slow rollback', { role: 'cause' }]], 'outage'),
-      ...laid('tree', [['alert-inbox', 'Renewal alert went to an old inbox', { role: 'cause' }]], 'certificate'),
-      ...laid('tree', [['rota-alerts', 'Send alerts to the on-call rota', { role: 'action' }]], 'alert-inbox'),
-      ...laid('tree', [['script-rollback', 'Script the rollback', { role: 'action' }]], 'rollback'),
-      ...laid('parked', [['status-page', 'Status page went up late', { role: 'cause' }]]),
-    ],
-    behaviour: breakDownRules(),
-  }
-}

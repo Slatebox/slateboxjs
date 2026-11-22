@@ -5,10 +5,11 @@ import { describe, expect, it } from 'vitest'
 import { applyWorkshopEdits, attachWorkshop, checkWorkshopReplacement, validateWorkshop, workshopCardAsNoteRefusal, workshopNoteCandidate, type Workshop, type WorkshopEdit } from '../../src/workshops/model'
 import { behaviourLines } from '../../src/workshops/behaviour'
 import {
-  byOrder, catalogSamples, checkNest, checkNestMove, discoveryTreeSample, nestDrags, nestEmptyDrop, nestKids, nestLegal, nestMeasure, nestPlace, nestRoots,
-  orderBetween, orderKeys, sortEvidenceSample, breakDownSample, incidentReviewSample, behaviourEditsBetween,
+  byOrder, checkNest, checkNestMove, nestDrags, nestEmptyDrop, nestKids, nestLegal, nestMeasure, nestPlace, nestRoots, orderBetween, orderKeys, behaviourEditsBetween,
 } from '../../src/workshops/rules'
-import { kitFor, nestEditsBetween, nestKit, nestLayout } from '../../src/boards'
+import { catalogSamples, discoveryTreeSample, sortEvidenceSample, breakDownSample, incidentReviewSample } from '../../src/workshops/samples'
+import { kitFor } from '../../src/boards'
+import { nestEditsBetween, nestKit, nestLayout } from '../../src/boards/nest'
 
 const tim = { actor: { by: 'Tim', via: 'chat' as const }, now: '2026-11-22T10:00:00.000Z' }
 const ok = (board: Workshop, edits: WorkshopEdit[]) => {

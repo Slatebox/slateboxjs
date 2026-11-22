@@ -5,7 +5,8 @@ import {
   type Workshop, type WorkshopEdit,
 } from '../../src/workshops/model'
 import { describeWorkshopEdits } from '../../src/workshops/edits'
-import { catalogSamples, samplePipeline } from '../../src/workshops/rules'
+import { samplePipeline } from '../../src/workshops/rules'
+import { catalogSamples } from '../../src/workshops/samples'
 
 // The review of the library merged onto main (connected cards, cards-are-notes): each finding as a test.
 

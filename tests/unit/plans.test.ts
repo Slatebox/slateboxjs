@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { applyWorkshopEdits, checkWorkshopReplacement, describeWorkshopEdits, validateWorkshop, type Workshop, type WorkshopEdit } from '../../src/workshops/model'
 import { behaviourLines, ruleSentence } from '../../src/workshops/behaviour'
 import {
-  behaviourEditsBetween, catalogSamples, checkTime, dayFromWords, goLiveSample, hireLagFor, hiringPlanSample, launchPlanSample, legalRuns, pastTheLine,
-  planDrags, runwayMonths, sampleLaunchPlan, scheduleLaunch,
+  behaviourEditsBetween, checkTime, dayFromWords, goLiveSample, hireLagFor, hiringPlanSample, launchPlanSample, legalRuns, pastTheLine, planDrags, runwayMonths, sampleLaunchPlan, scheduleLaunch,
 } from '../../src/workshops/rules'
+import { catalogSamples } from '../../src/workshops/samples'
 import { launchLayout, launchPlanKit } from '../../src/boards'
 import { catalog, catalogPreset } from '../../src/workshops/catalog'
 

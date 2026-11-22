@@ -37,6 +37,11 @@
       "import": "./dist/workshop-rules.mjs",
       "require": "./dist/workshop-rules.cjs"
     },
+    "./workshops/samples": {
+      "types": "./dist/workshops/samples.d.ts",
+      "import": "./dist/workshop-samples.mjs",
+      "require": "./dist/workshop-samples.cjs"
+    },
     "./workshops/behaviour": {
       "types": "./dist/workshops/behaviour.d.ts",
       "import": "./dist/workshop-behaviour.mjs",
@@ -56,6 +61,11 @@
       "types": "./dist/boards/index.d.ts",
       "import": "./dist/boards.mjs",
       "require": "./dist/boards.cjs"
+    },
+    "./boards/nest": {
+      "types": "./dist/boards/nest.d.ts",
+      "import": "./dist/boards-nest.mjs",
+      "require": "./dist/boards-nest.cjs"
     },
     "./build.json": "./dist/BUILD.json",
     "./dragology": {

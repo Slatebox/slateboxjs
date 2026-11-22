@@ -6,9 +6,11 @@ import { describe, expect, it } from 'vitest'
 import { applyWorkshopEdits, attachWorkshop, validateWorkshop, type Workshop, type WorkshopEdit } from '../../src/workshops/model'
 import { behaviourLines } from '../../src/workshops/behaviour'
 import {
-  catalogSamples, checkNest, checkNestMove, goalsSample, impactEffortSample, nestDrags, nestLegal, nestScores, quadrantOf, reorgSample, behaviourEditsBetween,
+  checkNest, checkNestMove, nestDrags, nestLegal, nestScores, quadrantOf, behaviourEditsBetween,
 } from '../../src/workshops/rules'
-import { kitFor, nestEditsBetween, nestKit, nestLayout } from '../../src/boards'
+import { catalogSamples, goalsSample, impactEffortSample, reorgSample } from '../../src/workshops/samples'
+import { kitFor } from '../../src/boards'
+import { nestEditsBetween, nestKit, nestLayout } from '../../src/boards/nest'
 
 const tim = { actor: { by: 'Tim', via: 'chat' as const }, now: '2026-11-22T10:00:00.000Z' }
 const ok = (board: Workshop, edits: WorkshopEdit[]) => {
