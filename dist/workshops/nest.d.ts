@@ -36,6 +36,12 @@ export interface NestSpot {
  * cards under it (the tray holds loose cards). The board itself when the card is there already.
  */
 export declare function nestPlace(board: Board, cardId: string, spot: NestSpot): Board | null;
+/**
+ * Siblings whose keys have grown long get fresh short keys, in the same order. A key put at one end of a
+ * list again and again grows by a character every few moves; without this a card moved to the end of a pile
+ * a few hundred times would carry a key too long to keep, and the board could no longer be saved.
+ */
+export declare function tidyKeys(board: Board): Board;
 /** The structure every nest board keeps, rules or not: null when it holds, otherwise the sentence. */
 export declare function validateNest(board: Board): string | null;
 /** What one rule says: the caption, the refusal, the note's line, the loop's caption. */
