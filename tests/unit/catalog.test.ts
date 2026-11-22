@@ -8,11 +8,11 @@ import { catalogSamples as samples, timeRuleKindIds } from '../../src/workshops/
 // chat, exec and the site read. Only entries whose kind is built are listed.
 
 const ids = ['now-next-later', 'pros-cons', 'must-should-could', 'decision-path', 'retro', 'triage', 'team-board', 'launch-plan', 'customer-go-live', 'hiring-plan',
-  'sort-evidence', 'discovery-tree', 'break-down-problem', 'incident-review', 'sales-pipeline', 'budget']
-const nestRuleKinds = ['nests', 'children', 'depth', 'rank', 'emptyDrop']
+  'sort-evidence', 'discovery-tree', 'break-down-problem', 'incident-review', 'impact-effort', 'reorg-sandbox', 'goals-owners', 'sales-pipeline', 'budget']
+const nestRuleKinds = ['nests', 'children', 'depth', 'rank', 'emptyDrop', 'quadrant', 'parent', 'contains', 'sameOwnerAs']
 
 describe('catalogue', () => {
-  it('lists the sixteen entries built on this line, each with a group, a line, ways to say it and a loop', () => {
+  it('lists the nineteen entries built on this line, each with a group, a line, ways to say it and a loop', () => {
     expect(catalog.map(entry => entry.id)).toEqual(ids)
     expect(catalogVersion).toMatch(/^\d+\.\d+$/)
     for (const entry of catalog) {
@@ -70,6 +70,13 @@ describe('catalogue', () => {
     expect(catalogMatch('I need a template for a root cause')?.entries).toEqual(expect.arrayContaining(['break-down-problem', 'incident-review']))
     expect(catalogMatch('something for product discovery')?.entries[0]).toBe('discovery-tree')
     expect(catalogAddRequest('Add an incident review about the sign-in outage')).toEqual({ id: 'incident-review', topic: 'the sign-in outage' })
+    // Impact × effort, the reorg sandbox and goals & owners: found by the job, added by name.
+    expect(catalogMatch('something to find quick wins')?.entries[0]).toBe('impact-effort')
+    expect(catalogMatch('I need a board for our reorg and reporting lines')?.entries[0]).toBe('reorg-sandbox')
+    expect(catalogMatch('something for quarterly planning of okrs')?.entries[0]).toBe('goals-owners')
+    expect(catalogAddRequest('Add an impact × effort board about Q1 bets')).toEqual({ id: 'impact-effort', topic: 'Q1 bets' })
+    expect(catalogAddRequest('Add a reorg & hiring sandbox')).toEqual({ id: 'reorg-sandbox' })
+    expect(catalogAddRequest('Add a goals & owners board')).toEqual({ id: 'goals-owners' })
   })
 
   it('says honestly when an entry opens on a new slate: one board per slate for now', () => {

@@ -6,9 +6,10 @@ import type { Behaviour, BehaviourRule, RuleInput, RuleKindId } from './behaviou
 
 const bodyKeys: Record<RuleKindId, string[]> = { capacity: ['where', 'max'], path: ['from', 'to', 'noSkip'], gate: ['into', 'needs'], bin: ['lane'],
   deadline: ['at', 'floor'], overlap: ['lane'], snap: ['unit'], workdays: [], blackout: ['start', 'end', 'label'], cascade: ['onConflict'], locked: ['cards'],
-  nests: ['role', 'under'], children: ['max', 'role'], depth: ['max'], rank: ['by'], emptyDrop: ['drop'] }
+  nests: ['role', 'under'], children: ['max', 'role'], depth: ['max'], rank: ['by'], emptyDrop: ['drop'],
+  quadrant: ['quadrant', 'max'], parent: ['not'], contains: ['role', 'of', 'atLeast'], sameOwnerAs: ['mode', 'role'] }
 /** What set_rule changes on a rule; every other key is fixed under its id. */
-const settable = ['max', 'to', 'floor', 'onConflict', 'unit', 'under', 'by', 'drop']
+const settable = ['max', 'to', 'floor', 'onConflict', 'unit', 'under', 'by', 'drop', 'mode']
 const rulesOf = (board: Pick<Workshop, 'behaviour'>): Behaviour => board.behaviour ?? { version: 1, rev: 0, rules: [] }
 
 /**
@@ -47,7 +48,7 @@ export function behaviourEditsBetween(before: Workshop, after: Workshop): Worksh
         change.to = to.map(ref)
       }
     }
-    for (const key of ['floor', 'onConflict', 'unit', 'under', 'by', 'drop', ...(rule.kind === 'capacity' ? [] : ['max'])]) {
+    for (const key of ['floor', 'onConflict', 'unit', 'under', 'by', 'drop', 'mode', ...(rule.kind === 'capacity' ? [] : ['max'])]) {
       const now0 = (rule as unknown as Record<string, unknown>)[key]
       if (JSON.stringify(now0) !== JSON.stringify((old as unknown as Record<string, unknown>)[key])) change[key] = now0
     }

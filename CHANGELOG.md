@@ -4,6 +4,12 @@
 
 ### Added
 
+- **Impact × effort, the reorg & hiring sandbox and goals & owners** (`slateboxjs/workshops/nestPlus`, loaded with
+  the nested boards). A `matrix` layout (`nest.axes`, `score_card`, rule `quadrant`), yes/no fields (`add_field`
+  `flag`) with rules `parent` and `contains`, and owners (`nest.owners`, `card.owner`, `add_owner`, `set_owner` with
+  `carry`) with rule `sameOwnerAs` (`mode` `warn` | `ask` | `carry`; a server carry that differs from the page's is
+  refused). The nest kit draws the square (a phone keeps it square) and a row of teams to drop cards on. Catalogue:
+  `impact-effort`, `reorg-sandbox`, `goals-owners`, each with rule phrases first. See docs/native-workshops.md.
 - **Agents on the canvas** (`slateboxjs/presence`). `createAgentPresence(slate).set(records)`
   draws each agent run as a hexagon with a pointer, a named tag and its plan, above the notes. It
   is its own entry, so a slate no agent works on never loads it; the canvas entry keeps only the

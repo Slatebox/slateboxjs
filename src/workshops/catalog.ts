@@ -42,7 +42,8 @@ export interface CatalogEntry {
    * {busy} (a lane with cards), {ruled} (a lane with a limit rule); on a plan {later} (a date after its
    * line), {dates} (a few days inside it), {month} (a month ahead) and {band} (a role band); on a nested
    * board {pile} and {other pile} (cards at the top), {item} (a card with nothing under it), {parent} (a
-   * card with cards under it) and {opportunity}.
+   * card with cards under it) and {opportunity}; on a 2 by 2 {scored} (a card on the square) and {waiting} (one in the tray); on an
+   * org chart {person}, {manager} and {open} (an open role); with owners {kr} (a key result) and {owner} (a team).
    */
   moves: CatalogMove[]
   limits: string[]
@@ -127,6 +128,25 @@ const nestEntry = (id: string, group: CatalogGroup, name: string, line: string, 
   // A name that is a verb ("Sort the evidence") is added as a board to do it.
   ({ id, group, name, line, synonyms, build: { kind: 'nest', sample }, addSay: [0, 1].map(i => 'Add ' + (/^(?:sort|break)\b/i.test(name) ? 'a board to ' : article(name)) + name.toLowerCase() + (i ? ' about {topic}' : '')),
     ...withMoves(moves), limits: ['Up to 40 cards. On a phone it is an outline.', laneLimits[0]], loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false })
+// Impact × effort, the reorg sandbox and goals & owners (nestPlus.ts), each with its rule phrases first.
+const matrixMoves = [move('add_rule', 'Limit a square', 'Plan it holds 2', 'quadrant'), move('set_rule', 'Make room in Do now', 'Do now holds 4', 'quadrant'),
+  move('score_card', 'Move an idea to a square', 'Move {scored} to Later'), move('score_card', 'Score an idea', 'Score {waiting} impact 7, effort 8'),
+  move('rename_field', 'Rename the axes', 'Rename the axes Reach and Confidence'), move('add_card', 'Add an idea', 'Add a card called Webhooks'),
+  move('rename_card', 'Rename an idea', 'Rename {scored} to Self-serve import'), move('remove_card', 'Remove an idea', 'Remove {scored}')]
+const orgMoves = [move('set_rule', 'Change the span of control', 'No manager over 3 reports', 'children'), move('add_rule', 'Keep a role from managing', 'Engineers don’t manage', 'parent'),
+  move('set_rule', 'Make a warning a rule', 'Stop me when a manager has no designer', 'contains'), move('nest_card', 'Move someone, with their team', 'Move {manager} under {other manager}'),
+  move('set_role', 'Fill an open role', 'Make {open} a manager'), move('add_card', 'Add a hire', 'Add a designer called Mia Holt under {manager}'),
+  move('add_field', 'Track a yes/no field', 'Track remote as yes or no'), move('set_field', 'Mark a contractor', '{person} is a contractor'),
+  move('rename_card', 'Rename someone', 'Rename {person} to Ravi Shah, Staff'), move('remove_card', 'Remove someone', 'Remove {person}')]
+const goalMoves = [move('set_rule', 'Bring what is under a card along', 'When I move a key result, bring its initiatives along', 'sameOwnerAs'),
+  move('set_rule', 'Refuse a cross-team owner', 'Stop me when a key result is owned outside its objective’s team', 'sameOwnerAs'),
+  move('set_rule', 'Ask about what is under it', 'Ask before moving what is under a card'), move('set_owner', 'Give a card to a team', 'Give {kr} to {owner}'),
+  move('add_owner', 'Add a team', 'Add Data as a team'), move('nest_card', 'Move a card under another', 'Move {kr} under {parent}'),
+  move('add_card', 'Add an initiative', 'Add an initiative called Status page under {kr}'), move('rename_card', 'Rename a card', 'Rename {kr} to Activation in a week'),
+  move('remove_card', 'Remove a card', 'Remove {kr}')]
+const nestMore = (id: string, group: CatalogGroup, name: string, line: string, synonyms: string[], sample: CatalogSample, caption: string, steps: string[], moves: CatalogMove[],
+  addSay: string, limit: string): CatalogEntry => ({ id, group, name, line, synonyms, build: { kind: 'nest', sample }, addSay: [addSay, addSay + ' about {topic}'], ...withMoves(moves),
+  limits: [limit, laneLimits[0]], loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false })
 const article = (name: string) => /^pros/i.test(name) ? '' : /^[aeiou]/i.test(name) ? 'an ' : 'a '
 
 export const catalog: readonly CatalogEntry[] = [
@@ -165,6 +185,15 @@ export const catalog: readonly CatalogEntry[] = [
     'break-down', 'Actions sit under a cause (a warning only).', ['Drag a cause under another: why, once more.', 'An action off a cause is flagged, never refused.'], nestMoves(false, breakDown)),
   nestEntry('incident-review', 'meetings', 'Incident review', 'What broke, why, and what to fix', ['incident', 'postmortem', 'post-mortem', 'outage', 'retro', 'root cause'],
     'incident-review', 'Actions sit under a cause (a warning only).', ['Drag a cause under the incident.', 'An action off a cause is flagged.'], nestMoves(false, breakDown)),
+  nestMore('impact-effort', 'decide', 'Impact × effort', 'Score ideas on two axes; Do now holds 3', ['2x2', 'impact effort', 'prioritise', 'prioritize', 'quick wins', 'grooming', 'bets', 'value effort', 'matrix'],
+    'impact-effort', 'Do now holds 3.', ['Drag an idea across the square: its scores follow.', 'A fourth into Do now is refused, naming the weakest there.'], matrixMoves,
+    'Add an impact × effort board', 'Up to 40 cards, scored 0 to 10. On a phone it is a 358 px square.'),
+  nestMore('reorg-sandbox', 'plan', 'Reorg & hiring sandbox', 'Try who reports to whom before you announce it', ['org chart', 'reorg', 'reporting lines', 'team structure', 'span of control', 'managers', 'headcount', 'hiring'],
+    'reorg', 'Open roles don’t manage.', ['Drag a manager: the whole team comes along.', 'Under an open role it is refused.'], orgMoves,
+    'Add a reorg & hiring sandbox', 'Up to 40 people. Roles and yes/no fields only, never salaries. Paste a list of name, role, manager to fill it. On a phone it is an outline; move people by chat.'),
+  nestMore('goals-owners', 'plan', 'Goals & owners', 'Objectives, key results and the teams that own them', ['okr', 'okrs', 'goals', 'objectives', 'key results', 'quarterly planning', 'ownership', 'owners'],
+    'goals', 'A card is owned by the team that owns what it sits under (a warning only).', ['Drop a key result on another team.', 'It lands, flagged cross-team.'], goalMoves,
+    'Add a goals & owners board', 'Up to 40 cards and 8 teams. On a phone it is an outline; change teams by chat.'),
   { id: 'sales-pipeline', group: 'track', name: 'Sales pipeline', line: 'Move deals through stages toward a target', synonyms: ['deals', 'sales', 'pipeline', 'crm', 'track deals', 'forecast', 'customers'],
     build: { kind: 'pipeline', sample: 'pipeline' }, addSay: ['Add a sales pipeline', 'Add a sales pipeline about {topic}'],
     ...withMoves([move('move_card', 'Carry a deal on', 'Move {card} to {other}'), move('set_amount', 'Price a deal', 'Make {card} $40k'),
@@ -189,6 +218,7 @@ export function catalogList(group: CatalogGroup | 'all' = 'all'): CatalogEntry[]
 
 /** The samples a business entry adds: from slateboxjs/workshops/rules (catalogSamples), so this chunk keeps no rules. */
 export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget' | 'sort-evidence' | 'discovery-tree' | 'break-down' | 'incident-review'
+  | 'impact-effort' | 'reorg' | 'goals'
 export type CatalogSamples = Partial<Record<CatalogSample, () => Workshop>>
 
 /** The board an entry adds, as data, named after the topic when one is given. A business board needs its sample. */
