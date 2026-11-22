@@ -130,6 +130,53 @@ test.describe('a task’s bar resized by its grips', () => {
   })
 })
 
+test.describe('go-live moved by its grip', () => {
+  test.use({ viewport: { width: 1440, height: 900 } })
+
+  test('laptop: go-live dragged right past the chart’s end by 3 days lands on Monday (weekends don’t count); one undo; a key moves it a working day', async ({ page }) => {
+    test.setTimeout(240_000)
+    let guest: string | null = null
+    try {
+      guest = await goLive(page)
+      const header = page.locator('#slateCanvas [data-board-layer="header"]')
+      const lineDay = async () => (await storedWorkshop(page, slateKey(page))).launch.day
+      // The sample's go-live is the fourth Friday, at the chart's right edge.
+      expect(await lineDay()).toBe(25)
+      await expect(header).toContainText('go-live Fri')
+      const width = await day(page)
+      const grip = centre(await resting(page, 'handle-launch'))
+      await shot(page, '7-go-live-before')
+
+      // Three calendar days right, past what was drawn: Friday to Monday.
+      await mouseDrag(page, grip, { x: grip.x + 3 * width, y: grip.y })
+      await expect.poll(lineDay).toBe(28)
+      await expect(header).toContainText('go-live Mon')
+      await expect(announced(page)).toContainText('Go-live is now Mon')
+      await shot(page, '8-go-live-later')
+
+      // One drag is one undo step.
+      await workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+      await expect.poll(lineDay).toBe(25)
+      await expect(header).toContainText('go-live Fri')
+
+      // Earlier than the tasks end: refused in the board's sentence, with the earliest go-live that fits.
+      const back = centre(await resting(page, 'handle-launch'))
+      await mouseDrag(page, back, { x: back.x - 13 * (await day(page)), y: back.y })
+      await expect(announced(page)).toContainText('The earliest go-live that fits is')
+      await page.waitForTimeout(600)
+      expect(await lineDay()).toBe(25)
+
+      // A key moves it a working day: Right from Friday is Monday.
+      const line = centre(await resting(page, 'handle-launch'))
+      await page.mouse.click(line.x, line.y)
+      await page.waitForTimeout(500)
+      await page.keyboard.press('ArrowRight')
+      await expect.poll(lineDay).toBe(28)
+      await expect(announced(page)).toContainText('weekends don’t count')
+    } finally { await removeTestGuest(page, guest) }
+  })
+})
+
 test.describe('the owner’s phrases in the chat', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 

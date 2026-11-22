@@ -8,7 +8,7 @@
 // then its cost to the plan's end, the runway readout and the funding round's line; on a phone it is read-only.
 import { lessThan, moreThan, param } from 'dragology'
 import { laneColors, type BoardLayerState, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type PartPlace, type WorkshopEdit } from '../workshops/model'
-import { cascadeStops, dayWords, dragTaskEdge, holdOthers, launchFinish, launchHard, launchLinkRefusal, launchOverrun, launchPlanLimits, legalRuns, lineWord, scheduleLaunch, snapStep, startHandle, startHandleCard, tryTask, withLink, withTaskValue, type EdgeValues, type TaskEdge } from '../workshops/launchPlan'
+import { cascadeStops, dayWords, dragTaskEdge, holdOthers, launchFinish, launchHard, launchLinkRefusal, launchOverrun, launchPlanLimits, legalRuns, lineWord, moveLaunch, scheduleLaunch, snapStep, startHandle, startHandleCard, tryTask, withLink, withTaskValue, type EdgeValues, type TaskEdge } from '../workshops/launchPlan'
 import { checkTime, pastTheLine } from '../workshops/timeRules'
 import { clockOf, dayMap, isoAt, offsetOf, shortDate, weekdayAt } from '../workshops/calendar'
 import { hireStarts, runwayMonths, runwayWords } from '../workshops/hiringPlan'
@@ -54,9 +54,13 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
   const late = pastTheLine(board)
   const parts: PartPlace[] = []
   const bars = new Map<string, { x: number; y: number; width: number; height: number }>()
-  const width = narrow ? Math.max(300, layout.width ?? 390) : Math.max(720, layout.width ?? 1200)
   const x0 = narrow ? 8 : 168
-  const dayW = narrow ? (width - 88) / day : (width - x0 - 40) / day
+  const room = narrow ? 88 : x0 + 40
+  // A line being dragged keeps the day width it started with (layout.dayWidth): a later line draws the days it
+  // adds, and the plan grows to the right under the pointer, instead of every day narrowing to fit.
+  const fits = narrow ? Math.max(300, layout.width ?? 390) : Math.max(720, layout.width ?? 1200)
+  const width = layout.dayWidth ? Math.max(fits, Math.ceil(room + day * layout.dayWidth)) : fits
+  const dayW = layout.dayWidth ?? (width - room) / day
   const color = (laneId: string) => laneColors[board.lanes.findIndex(lane => lane.id === laneId) % laneColors.length]
   const bar = (cardId: string, y: number) => {
     const card = board.cards.find(item => item.id === cardId)!
@@ -398,25 +402,14 @@ export const launchPlanKit: WorkshopBoardKit = {
   },
   handleDrag(board, handleId, grab, layout) {
     const g = launchLayout(board, layout)
-    const render = (state: Workshop) => partsGeometry(launchLayout(state, layout).parts)
     if (board.kind === 'hiring-plan' && layout.narrow) return null
     // A task's start or end grip.
     const from = startHandleCard(handleId)
     if (from !== null) return board.cards.some(card => card.id === from) ? edgeGrip(board, from, 'start', grab, g, handleId) : null
     const ends = handleId.slice('handle-'.length)
     if (board.cards.some(card => card.id === ends)) return edgeGrip(board, ends, 'end', grab, g, handleId)
-    if (ruled(board)) return ruledHandle(board, handleId, grab, layout, g, render)
-    if (handleId === 'handle-launch') {
-      const limits = launchPlanLimits(board, { field: 'day' })
-      const follow = headlessDrag(board, handleId, grab, render, (d, state) =>
-        d.vary(state, param('launch', 'day'), { constraint: (s: Workshop) => [moreThan(s.launch!.day, launchFinish(s) - 0.001), lessThan(s.launch!.day, 120)] }).onDrop(state => roundDays(state)))
-      return point => {
-        const wanted = Math.round((point.x - grab.x + 22 - g.x0) / g.dayW)
-        const next = follow?.(point) ?? withTaskValue(board, { field: 'day' }, Math.min(limits.max, Math.max(limits.min, wanted)))
-        if (wanted < limits.min) return { next, clampedReason: limits.reasons.min, refusal: launchOverrun(withTaskValue(board, { field: 'day' }, Math.max(5, wanted))) ?? undefined }
-        return { next }
-      }
-    }
+    if (handleId === 'handle-launch') return launchGrip(board, grab, g, layout)
+    if (handleId === 'handle-funding' && board.hiring?.funding) return fundingGrip(board, grab, g)
     return null
   },
   keyEdit,
@@ -490,44 +483,44 @@ function ruledChooser(board: Workshop, cardId: string, i: number, targets: strin
   return follow ? (point: { x: number; y: number }) => settle(follow(point)) : null
 }
 
-/** A ruled plan's grips: a bar's length, launch day or the funding round, each over its legal runs, with the rule's sentence past them. */
-function ruledHandle(board: Workshop, handleId: string, grab: { x: number; y: number }, layout: WorkshopBoardLayout, g: LaunchGeometry,
-  render: (state: Workshop) => ReturnType<typeof partsGeometry>) {
-  const runsOf = (values: number[], ok: (value: number) => boolean) => {
-    const runs: [number, number][] = []
-    for (const value of values) if (ok(value)) {
-      const last = runs.at(-1)
-      if (last && last[1] === value - (values[1] - values[0])) last[1] = value
-      else runs.push([value, value])
+/**
+ * Launch day's grip (go-live, or whatever the plan calls its line): the pointer's days from where the line was, on
+ * the scale the drag started with, so a later line draws the days it adds and the plan grows under the pointer
+ * (the drag's layout keeps the day width). It lands on a working day where weekends don't count (later: the
+ * Monday after; earlier: the Friday before). Before the tasks end, a hard line refuses it in the plan's sentence
+ * with the earliest day that fits, shown there while held; the drop goes back. The drop is one set_launch_day.
+ */
+function launchGrip(board: Workshop, grab: { x: number; y: number }, g: LaunchGeometry, layout: WorkshopBoardLayout) {
+  const part = g.parts.find(item => item.name === 'handle-launch')
+  if (!part) return null
+  const keep: WorkshopBoardLayout = { ...layout, dayWidth: g.dayW }
+  return (point: { x: number; y: number }) => {
+    const move = moveLaunch(board, board.launch!.day + Math.round((point.x - grab.x - part.x) / g.dayW))
+    if (move.next) return { next: move.next, layout: keep, ...(move.reason && { clampedReason: move.reason }) }
+    // Held at the nearest day the rules take on the way back to where it was, saying why.
+    let shown: Workshop = board
+    const toward = Math.sign(board.launch!.day - move.day)
+    for (let day = move.day + toward; toward && day !== board.launch!.day; day += toward) {
+      const tried = moveLaunch(board, day)
+      if (tried.next) { shown = tried.next; break }
     }
-    return runs
+    return { next: shown, layout: keep, clampedReason: move.refusal!, refusal: move.refusal! }
   }
-  const span = (from: number, to: number, step: number) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, k) => from + k * step)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const vary = (path: any[], read: (s: Workshop) => number, runs: [number, number][], step: number, cardId?: string) =>
-    headlessDrag(board, handleId, grab, render, (d, state) => d.closest(runs.map(([low, high]) => d.vary(state, (param as (...keys: unknown[]) => never)(...path),
-      { constraint: (s: Workshop) => [moreThan(read(s), low - 0.49), lessThan(read(s), high + 0.49)] }))).withBranchTransition(100).onDrop(s => roundDays(s, step, cardId)))
-  const result = (follow: ((point: { x: number; y: number }) => Workshop) | null, wanted: (point: { x: number; y: number }) => number, legal: (value: number) => string | null, set: (value: number) => Workshop) =>
-    (point: { x: number; y: number }) => {
-      const value = wanted(point)
-      const why = legal(value)
-      const next = follow?.(point) ?? (why ? board : set(value))
-      return why ? { next, clampedReason: why, refusal: why } : { next }
-    }
-  if (handleId === 'handle-launch' || handleId === 'handle-funding') {
-    const launch = handleId === 'handle-launch'
-    const set = (value: number) => launch ? withTaskValue(board, { field: 'day' }, value) : { ...board, hiring: { ...board.hiring!, funding: { ...board.hiring!.funding!, day: value } } }
-    const why = (value: number) => {
-      if (launch && (value < 5 || value > 120)) return 'Launch day is a whole day from 5 to 120.'
-      if (launch && launchHard(board) && value < launchPlanLimits(board, { field: 'day' }).min) return launchOverrun(set(value)) ?? 'Every task ends by ' + lineWord(board) + '.'
-      return planProblem0(board, set(value))
-    }
-    const values = launch ? span(5, 120, 1) : span(0, board.hiring!.weeks * 7, 1)
-    const runs = runsOf(values, value => !why(value))
-    const follow = runs.length ? vary(launch ? ['launch', 'day'] : ['hiring', 'funding', 'day'], s => launch ? s.launch!.day : s.hiring!.funding!.day, runs, 1) : null
-    return result(follow, point => Math.round((point.x - grab.x + 22 - g.x0) / g.dayW), why, set)
+}
+
+/** A hiring plan's funding round: its grip moves it in the plan's steps (a week where it snaps to weeks), on the plan's weeks, as its rules allow. */
+function fundingGrip(board: Workshop, grab: { x: number; y: number }, g: LaunchGeometry) {
+  const part = g.parts.find(item => item.name === 'handle-funding')
+  if (!part) return null
+  const from = board.hiring!.funding!.day, step = snapStep(board), last = board.hiring!.weeks * 7
+  const set = (day: number): Workshop => ({ ...board, hiring: { ...board.hiring!, funding: { ...board.hiring!.funding!, day } } })
+  return (point: { x: number; y: number }) => {
+    const wanted = from + Math.round((point.x - grab.x - part.x) / g.dayW / step) * step
+    const day = Math.min(last, Math.max(0, wanted))
+    const why = planProblem0(board, set(day))
+    if (why) return { next: board, clampedReason: why, refusal: why }
+    return { next: set(day), ...(day !== wanted && { clampedReason: day > wanted ? 'The round closes on the plan’s first day at the earliest.' : 'The round closes within the plan’s ' + board.hiring!.weeks + ' weeks.' }) }
   }
-  return null
 }
 /** The plan's rules on a whole-board change (a marker moved): the sentence, or null. */
 function planProblem0(board: Workshop, next: Workshop): string | null {

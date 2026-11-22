@@ -1209,6 +1209,12 @@ export interface WorkshopBoardLayout {
   /** Business boards: the world width the board should fill. */
   width?: number
   /**
+   * Plans: how wide a day is drawn, in world units. A grip being dragged (launch day) keeps the day width it
+   * started with, so a later line draws the days it adds and the plan grows past `width`. Left out, the
+   * plan's days fill `width`.
+   */
+  dayWidth?: number
+  /**
    * How many lanes sit side by side before the next lane starts a new row. Leave it
    * out for every lane in one row. A narrow host passes 1 or 2 so each lane stays
    * wide enough to read. A map ignores it: its stations stay where they were authored.

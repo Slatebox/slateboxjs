@@ -9,7 +9,7 @@ import { registerWorkshopRules, said } from './model'
 import type { BusinessBoardRules, BusinessEditTools, PlanWords, WorkshopLimits } from './kinds'
 import type { WorkshopEdit } from './edits'
 import { amountOf, days, nextCardId, noteNumbers, ownField, renamedNumbers } from './numbers'
-import { clockOf, dayFromWords, dayMap, isoTime, nextMonday, isoAt } from './calendar'
+import { clockOf, dayFromWords, dayMap, isoTime, nextMonday, isoAt, weekendAt } from './calendar'
 import { extendWorkshopEdits, cascadeStops, dayWords, downstreamTasks, edgeValues, type EdgeValues, type TaskEdge, holdOthers, launchFinish, launchHard, launchIndex, launchOverrun, lineWord, scheduleLaunch, snapStep, withLink, withTaskValue } from './schedule'
 import { checkTime, timeFamily } from './timeRules'
 
@@ -212,6 +212,53 @@ export function launchPlanLimits(board: Workshop, ref: { cardId?: string; field:
       max: typeof tried === 'string' ? tried : field === 'duration' ? 'A task takes at most 60 days.' : `Launch is ${dayWords(board, day)}.` } }
 }
 
+/**
+ * The day the line lands on when it is moved to `day` from `from` (where it is): on a plan whose days are
+ * working days a weekend is no day for it, so moving later it lands on the Monday after, moving earlier on
+ * the Friday before. Always a day from 5 to 120 (past an end, it turns back to the working day inside it).
+ */
+export function launchDayOn(board: Workshop, day: number, from = board.launch?.day ?? day): number {
+  const at = Math.min(120, Math.max(5, Math.round(day)))
+  const clock = clockOf(board)
+  if (!clock?.workdays) return at
+  const walk = (start: number, step: number) => { let d = start; while (weekendAt(clock.origin, d)) d += step; return d }
+  const step = at < from ? -1 : 1
+  const landed = walk(at, step)
+  return landed < 5 || landed > 120 ? walk(at, -step) : landed
+}
+
+/** The earliest day the line may be on and every task still end by it: a working day where days are working days. */
+export function earliestLaunch(board: Workshop): number {
+  const { min } = launchPlanLimits(board, { field: 'day' })
+  return launchDayOn(board, min, -Infinity)
+}
+
+/** Why the line may not be on `day` because a task would not end by it, with the earliest day that fits; null when they all do. */
+export function launchTooEarly(board: Workshop, day: number): string | null {
+  if (!launchHard(board)) return null
+  const late = launchOverrun(withTaskValue(board, { field: 'day' }, day))
+  return late && late + ' The earliest ' + lineWord(board) + ' that fits is ' + dayWords(board, earliestLaunch(board)) + '.'
+}
+
+/** What dragging (or a key moving) the line to `wanted` comes to: the day it lands on, the board, and the sentence that refuses it or holds it. */
+export interface LaunchMove { day: number; next: Workshop | null; refusal: string | null; reason?: string }
+
+/**
+ * The line moved to `wanted` (a whole calendar day, from the pointer): it lands on a working day where weekends
+ * don't count, never past day 120 (held there, said), and a hard line refuses a day before the tasks end, in the
+ * plan's own sentence with the earliest day that fits. A later line needs no room: the grid draws the days it adds.
+ */
+export function moveLaunch(board: Workshop, wanted: number): LaunchMove {
+  const from = board.launch!.day
+  const day = launchDayOn(board, wanted, from)
+  const reason = wanted > 120 ? 'Launch day is at most day 120.' : wanted < 5 ? 'Launch day is day 5 at the earliest.' : undefined
+  const early = launchTooEarly(board, day)
+  if (early) return { day, next: null, refusal: early }
+  const next = withTaskValue(board, { field: 'day' }, day)
+  const broken = board.behaviour ? planProblem(board, next) : null
+  return broken ? { day, next: null, refusal: broken } : { day, next, refusal: null, ...(reason && { reason }) }
+}
+
 /** The words a task takes back to the canvas as a note: "Copy · 3 days". */
 export function launchTaskText(card: WorkshopCard): string {
   return card.label + ' · ' + days(card.duration ?? 1)
@@ -379,12 +426,12 @@ export const launchPlanRules: BusinessBoardRules = {
       }
       case 'set_launch_day': {
         const limits = launchPlanLimits(board, { field: 'day' })
-        if (!Number.isInteger(edit.day) || edit.day < limits.min || edit.day > limits.max) {
-          const tried = withTaskValue(board, { field: 'day' }, edit.day)
-          t.refuse((edit.day < limits.min && launchOverrun(tried)) || (edit.day < limits.min ? limits.reasons.min! : limits.reasons.max!), { limits })
-        }
-        const next = withTaskValue(board, { field: 'day' }, edit.day)
-        return t.done(t.settle(next), cap(lineWord(board)) + ' is now ' + dayWords(board, edit.day) + '.')
+        // A weekend is no day for the line where days are working days: later lands on the Monday, earlier on the Friday.
+        const day = Number.isInteger(edit.day) && edit.day >= 5 && edit.day <= 120 ? launchDayOn(board, edit.day) : edit.day
+        if (!Number.isInteger(day) || day < limits.min || day > limits.max) t.refuse((day < limits.min && launchTooEarly(board, day)) || (day < limits.min ? limits.reasons.min! : limits.reasons.max!), { limits })
+        const next = withTaskValue(board, { field: 'day' }, day)
+        const weekend = day !== edit.day ? ': ' + dayWords(board, edit.day) + ' is a weekend, and weekends don’t count on this plan.' : '.'
+        return t.done(t.settle(next), cap(lineWord(board)) + ' is now ' + dayWords(board, day) + weekend)
       }
     }
     return planEdit(board, edit, t, (card) => said(card.label) + ' now takes ' + days(card.duration!) + (card.lag ? ' and waits ' + days(card.lag) + '.' : '.'))

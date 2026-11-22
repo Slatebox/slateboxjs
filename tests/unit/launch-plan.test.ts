@@ -48,7 +48,7 @@ describe('launch plan constraint: every task ends by launch day', () => {
   })
 
   it('refuses launch day before the last task ends, and a saved plan that runs late', () => {
-    expect(refusal(plan, [{ kind: 'set_launch_day', day: 11 }]).reason).toBe('That pushes QA to day 12, after launch on day 11.')
+    expect(refusal(plan, [{ kind: 'set_launch_day', day: 11 }]).reason).toBe('That pushes QA to day 12, after launch on day 11. The earliest launch that fits is day 12.')
     expect(() => validateWorkshop({ ...plan, launch: { day: 11 } })).toThrow('QA ends on day 12, after launch on day 11.')
   })
 

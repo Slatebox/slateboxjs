@@ -2,7 +2,7 @@
 // words, and the parts as slate notes. Lazy, with the kits; the rules stay in the model entry.
 import type { NodeJSON } from '../core/Serialization'
 import type { PartPlace, Workshop, WorkshopEdit, WorkshopNoteStyle } from '../workshops/model'
-import { dayWords, launchLinkRefusal, scheduleLaunch, startHandleCard } from '../workshops/launchPlan'
+import { dayWords, launchLinkRefusal, lineWord, scheduleLaunch, startHandleCard } from '../workshops/launchPlan'
 import { pipelineForecast } from '../workshops/pipeline'
 import { money } from '../workshops/numbers'
 /**
@@ -106,7 +106,9 @@ export function handleLabel(model: Workshop, part: string): string | null {
   const key = part.slice('handle-'.length)
   const from = startHandleCard(part), task = from !== null && model.cards.find(item => item.id === from)
   if (task) return `${task.label} start, ${dayWords(model, scheduleLaunch(model).get(task.id)!.from)}. Left and Right move it; the end stays.`
-  if (key === 'launch') return `Launch day, day ${model.launch?.day}. Left and Right move it.`
+  // A dated plan says the line's name and date ("Go-live, Fri 18 Dec"); a plan in day numbers, its day.
+  if (key === 'launch') return model.clock ? `${lineWord(model).charAt(0).toUpperCase() + lineWord(model).slice(1)}, ${dayWords(model, model.launch!.day)}. Left and Right move it.`
+    : `Launch day, day ${model.launch?.day}. Left and Right move it.`
   const card = model.cards.find(item => item.id === key)
   if (card) return `${card.label} length, ${card.duration} days. Left and Right change it.`
   const at = model.lanes.findIndex(item => item.id === key)

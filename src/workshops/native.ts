@@ -90,7 +90,11 @@ export interface BoardLayer {
 }
 
 /** What a handle drag means at a pointer position: the board to show, and why it stops when it is held at a bound. */
-export interface HandleResult { next: Workshop; clampedReason?: string; refusal?: string }
+export interface HandleResult {
+  next: Workshop; clampedReason?: string; refusal?: string
+  /** The layout to draw `next` in while the grip is held (a plan's line keeps its day width and the plan grows); left out, the board's own. */
+  layout?: WorkshopBoardLayout
+}
 
 /**
  * Everything a business board (launch plan, pipeline, budget) adds to the native drawing: where its
@@ -316,6 +320,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   let pending: Promise<void> = Promise.resolve()
   let wanted: { model: Workshop; skip?: string; grip?: string; animate: boolean } | null = null
   let layout: WorkshopBoardLayout = layoutOf(options.layout)
+  /** The layout the board on show is drawn in: the board's own, or a held grip's (a plan growing under a dragged line). */
+  let drawnLayout: WorkshopBoardLayout = layout
   const style: WorkshopNoteStyle = { ...options.style }
   /** What each lane's column says of a drop while a card is held or staged (see the data-workshop-drop attribute). */
   let drops = new Map<string, 'open' | 'over' | 'refused' | 'closed'>()
@@ -392,7 +398,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     onMove(_node, point) {
       if (grip) {
         grip.last = grip.follow(local(point))
-        draw(grip.last.next, { grip: grip.name })
+        draw(grip.last.next, { grip: grip.name, layout: grip.last.layout })
         tell(options.onPreview, grip.last.next === value ? null : grip.last.next)
         return
       }
@@ -1693,8 +1699,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     return held || staged ? value.lanes.map(lane => value.cards.filter(card => card.laneId === lane.id).length) : undefined
   }
 
-  function draw(model: Workshop, how: { skip?: string; grip?: string; animate?: boolean } = {}) {
+  function draw(model: Workshop, how: { skip?: string; grip?: string; animate?: boolean; layout?: WorkshopBoardLayout } = {}) {
     if (destroyed) return
+    drawnLayout = how.layout ?? layout
     wanted = { model, skip: how.skip, grip: how.grip, animate: how.animate !== false }
     const nodes = artwork(model)
     const waiting: Promise<void>[] = []
@@ -1855,7 +1862,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const seen = slate.canvas?.viewbox?.()
       const view = seen && [seen.x, seen.y, seen.width, seen.height].every(Number.isFinite)
         ? { x: seen.x - origin.x, y: seen.y - origin.y, width: seen.width, height: seen.height } : null
-      layer.draw(value, shown === value ? null : shown, { origin, layout, above, view, announce: text => slate.announce?.(text), focus: focused,
+      layer.draw(value, shown === value ? null : shown, { origin, layout: drawnLayout, above, view, announce: text => slate.announce?.(text), focus: focused,
         clamp: grip?.last?.clampedReason ? { name: grip.name, text: grip.last.clampedReason }
           : held?.outcome.kind === 'candidate' && held.outcome.said ? { name: 'card-' + held.cardId, text: held.outcome.said }
           : !grip && gripRefusal ? { name: gripRefusal.name, text: gripRefusal.reason } : null,
@@ -1876,20 +1883,20 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
 
   /** The size of a board as drawn now, and (for a kit) its parts. */
   function geometry(model: Workshop) {
-    if (kit) return kit.places(model, layout)
+    if (kit) return kit.places(model, drawnLayout)
     return { ...workshopLanePlaces(model, { layout }), parts: [] as PartPlace[] }
   }
 
   /** A kit part's box in board coordinates, with the shape a lane place has. */
   function partBox(model: Workshop, name: string) {
-    const part = kit!.places(model, layout).parts.find(item => item.name === name)
+    const part = kit!.places(model, drawnLayout).parts.find(item => item.name === name)
     return part ? { x: part.x, y: part.y, width: part.width, height: part.height } : undefined
   }
 
   /** The notes for a model: the kit's parts, or the lanes and cards of workshopToSlate. */
   function notesOf(model: Workshop, rows?: number[]): NodeJSON[] {
     if (!kit) return workshopToSlate(model, { native: true, origin, rows, layout, style }).nodes
-    const nodes = kit.notes(model, layout, origin, style)
+    const nodes = kit.notes(model, drawnLayout, origin, style)
     // A business board with a rulebook: its "How this board behaves" note, under the kit's notes.
     if (model.behaviour && nodes.length) {
       const boxes = nodes.map(node => node.options as { xPos: number; yPos: number; width: number; height: number })
