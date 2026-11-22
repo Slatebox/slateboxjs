@@ -1,6 +1,6 @@
 import { applyWorkshopEdits as R, said as p } from "./workshop-model.mjs";
-import { registerNestPlus as K, extend as U, nestAreas as x, nestPlace as Q, orderKeys as Z, nestSubtree as b, roleOf as L } from "./workshop-nest.mjs";
-const E = (e) => e.charAt(0).toUpperCase() + e.slice(1), T = (e) => /[^aeiou]y$/.test(e) ? e.slice(0, -1) + "ies" : /(?:s|sh|ch|x)$/.test(e) ? e + "es" : e + "s", _ = (e) => (/^[aeiou]/i.test(e) ? "an " : "a ") + e, g = (e, n) => n === void 0 ? void 0 : e.cards.find((a) => a.id === n), P = (e, n, a) => {
+import { registerNestPlus as F, extend as K, nestAreas as x, nestPlace as U, orderKeys as Q, nestSubtree as b, roleOf as q } from "./workshop-nest.mjs";
+const _ = (e) => e.charAt(0).toUpperCase() + e.slice(1), N = (e) => /[^aeiou]y$/.test(e) ? e.slice(0, -1) + "ies" : /(?:s|sh|ch|x)$/.test(e) ? e + "es" : e + "s", P = (e) => (/^[aeiou]/i.test(e) ? "an " : "a ") + e, w = (e, n) => n === void 0 ? void 0 : e.cards.find((a) => a.id === n), j = (e, n, a) => {
   const s = typeof e == "string" ? e.replace(/\s+/g, " ").trim() : "";
   if (!s || s.length > n || /[<>\u0000-\u001f]/.test(s)) throw new Error(a);
   return s;
@@ -9,7 +9,7 @@ const E = (e) => e.charAt(0).toUpperCase() + e.slice(1), T = (e) => /[^aeiou]y$/
   { id: "plan", label: "Plan it", high: [!0, !0] },
   { id: "later", label: "Later", high: [!1, !1] },
   { id: "skip", label: "Skip", high: [!0, !1] }
-], j = (e) => O.find((n) => n.id === e), J = (e) => e >= 5;
+], G = (e) => O.find((n) => n.id === e), J = (e) => e >= 5;
 function k(e) {
   const [n, a] = e.nest?.axes ?? [], s = (t) => e.nest?.fields?.find((o) => o.id === t);
   return e.nest?.layout === "matrix" && n && a ? { x: s(n), y: s(a) } : null;
@@ -24,139 +24,147 @@ function S(e, n) {
   const a = I(e, n);
   return a ? O.find((s) => s.high[0] === J(a.x) && s.high[1] === J(a.y)).id : null;
 }
-function H(e, n, a) {
-  const s = j(a), t = I(e, n) ?? { x: s.high[0] ? 7 : 2, y: s.high[1] ? 7 : 2 }, o = (i, r) => r ? Math.max(5, i) : Math.min(4, i);
+function Z(e, n, a) {
+  const s = G(a), t = I(e, n) ?? { x: s.high[0] ? 7 : 2, y: s.high[1] ? 7 : 2 }, o = (l, r) => r ? Math.max(5, l) : Math.min(4, l);
   return { x: o(t.x, s.high[0]), y: o(t.y, s.high[1]) };
 }
-const A = (e, n) => e.nest?.fields?.find((a) => a.flag && a.id === n), N = (e, n, a) => A(e, a) ? n.fields?.[a] === 1 : n.role === a, V = (e, n) => T((A(e, n)?.label ?? n).toLowerCase()), v = (e, n) => e.nest?.owners?.find((a) => a.id === n);
+const A = (e, n) => e.nest?.fields?.find((a) => a.flag && a.id === n), E = (e, n, a) => A(e, a) ? n.fields?.[a] === 1 : n.role === a, V = (e, n) => N((A(e, n)?.label ?? n).toLowerCase()), v = (e, n) => e.nest?.owners?.find((a) => a.id === n);
 function W(e, n) {
   switch (e.kind) {
     case "quadrant":
-      return (j(e.quadrant)?.label ?? e.quadrant) + " holds " + e.max;
+      return (G(e.quadrant)?.label ?? e.quadrant) + " holds " + e.max;
     case "parent":
-      return E(V(n, e.not)) + " don’t manage";
+      return _(V(n, e.not)) + " don’t manage";
     case "contains": {
       const a = A(n, e.of)?.label.toLowerCase() ?? e.of;
-      return "Every " + e.role + " has " + (e.atLeast === 1 ? _(a) : "at least " + e.atLeast + " " + T(a)) + " under them";
+      return "Every " + e.role + " has " + (e.atLeast === 1 ? P(a) : "at least " + e.atLeast + " " + N(a)) + " under them";
     }
     case "sameOwnerAs":
-      return (e.role ? E(T(e.role)) + " are" : "A card is") + " owned by the team that owns what " + (e.role ? "they sit" : "it sits") + " under" + (e.mode === "carry" ? "; moving one to a team brings what is under it along" : e.mode === "ask" ? "; moving one to a team asks about what is under it" : "");
+      return (e.role ? _(N(e.role)) + " are" : "A card is") + " owned by the team that owns what " + (e.role ? "they sit" : "it sits") + " under" + (e.mode === "carry" ? "; moving one to a team brings what is under it along" : e.mode === "ask" ? "; moving one to a team asks about what is under it" : "");
   }
   return null;
 }
-const X = { quadrant: "quadrant max", parent: "not", contains: "role of atLeast", sameOwnerAs: "mode role" };
-function Y(e, n, a) {
-  const s = (t, o, i) => {
-    if (typeof t != "number" || !Number.isInteger(t) || t < 1 || t > o) throw new Error(i);
+const H = { quadrant: "quadrant max", parent: "not", contains: "role of atLeast", sameOwnerAs: "mode role" };
+function X(e, n, a) {
+  const s = (t, o, l) => {
+    if (typeof t != "number" || !Number.isInteger(t) || t < 1 || t > o) throw new Error(l);
     return t;
   };
   switch (e.kind) {
     case "quadrant": {
-      const t = j(String(e.quadrant));
+      const t = G(String(e.quadrant));
       if (!t) throw new Error("A 2 by 2’s squares are Do now, Plan it, Later and Skip.");
       return { ...n, kind: "quadrant", quadrant: t.id, max: s(e.max, 40, "A square holds from 1 to 40 cards.") };
     }
     case "parent":
-      return { ...n, kind: "parent", not: L(e.not) };
+      return { ...n, kind: "parent", not: q(e.not) };
     case "contains":
-      return { ...n, kind: "contains", role: L(e.role), of: L(e.of), atLeast: s(e.atLeast, 12, "Say at least 1 to 12.") };
+      return { ...n, kind: "contains", role: q(e.role), of: q(e.of), atLeast: s(e.atLeast, 12, "Say at least 1 to 12.") };
     case "sameOwnerAs": {
       if (e.mode !== "warn" && e.mode !== "ask" && e.mode !== "carry") throw new Error("When a card changes team, what is under it stays (warn), is asked about (ask) or comes along (carry).");
       const t = { ...n, kind: "sameOwnerAs", mode: e.mode };
-      return e.role !== void 0 && (t.role = L(e.role)), t;
+      return e.role !== void 0 && (t.role = q(e.role)), t;
     }
   }
   return null;
 }
-function ee(e, n) {
+function Y(e, n) {
   const a = new Map(e.cards.map((s) => [s.id, s]));
   return n.cards.filter((s) => {
     const t = a.get(s.id);
     return !t || t.parentId !== s.parentId || t.laneId !== s.laneId || t.role !== s.role || t.owner !== s.owner || JSON.stringify(t.fields ?? {}) !== JSON.stringify(s.fields ?? {});
   });
 }
-const C = ["parent", "quadrant", "sameOwnerAs", "contains"];
-function ne(e, n, a) {
-  const s = (e.behaviour?.rules ?? []).filter((r) => r.on && C.includes(r.kind)).sort((r, c) => C.indexOf(r.kind) - C.indexOf(c.kind));
+const T = ["parent", "quadrant", "sameOwnerAs", "contains"];
+function ee(e, n, a) {
+  const s = (e.behaviour?.rules ?? []).filter((r) => r.on && T.includes(r.kind)).sort((r, u) => T.indexOf(r.kind) - T.indexOf(u.kind));
   if (!s.length) return null;
-  const { tray: t } = x(n), o = ee(e, n).filter((r) => r.laneId !== t), i = (r, c) => r.cards.filter((h) => h.parentId === c).map((h) => h.id);
+  const { tray: t } = x(n), o = Y(e, n).filter((r) => r.laneId !== t), l = (r, u) => r.cards.filter((m) => m.parentId === u).map((m) => m.id);
   for (const r of s) {
-    let c = null;
-    const h = W(r, e) + ".";
+    let u = null;
+    const m = W(r, e) + ".";
     if (r.kind === "quadrant") {
-      const m = o.find((f) => {
-        const l = g(e, f.id);
-        return S(n, f) === r.quadrant && (!l || S(e, l) !== r.quadrant);
+      const f = o.find((g) => {
+        const i = w(e, g.id);
+        return S(n, g) === r.quadrant && (!i || S(e, i) !== r.quadrant);
       });
-      if (m) {
-        const f = e.cards.filter((u) => S(e, u) === r.quadrant), l = n.cards.filter((u) => S(n, u) === r.quadrant).length;
-        if (l > r.max && l > f.length) {
-          const u = k(e), d = [...f].sort((y, M) => I(e, y).y - I(e, M).y)[0];
-          c = { sentence: h + (d ? " " + d.label + " has the lowest " + u.y.label.toLowerCase() + " there." : ""), card: m };
+      if (f) {
+        const g = e.cards.filter((c) => S(e, c) === r.quadrant), i = n.cards.filter((c) => S(n, c) === r.quadrant).length;
+        if (i > r.max && i > g.length) {
+          const c = k(e), d = [...g].sort((y, L) => I(e, y).y - I(e, L).y)[0];
+          u = { sentence: m + (d ? " " + d.label + " has the lowest " + c.y.label.toLowerCase() + " there." : ""), card: f };
         }
       }
     } else if (r.kind === "parent")
-      for (const m of n.cards) {
-        if (!N(n, m, r.not)) continue;
-        const f = i(n, m.id), l = g(e, m.id), u = l && N(e, l, r.not) ? i(e, m.id) : [], d = f.find((y) => !u.includes(y));
+      for (const f of n.cards) {
+        if (!E(n, f, r.not)) continue;
+        const g = l(n, f.id), i = w(e, f.id), c = i && E(e, i, r.not) ? l(e, f.id) : [], d = g.find((y) => !c.includes(y));
         if (d) {
-          c = { sentence: h + " " + m.label + " is " + (A(n, r.not) ? _(A(n, r.not).label.toLowerCase()) : _(r.not)) + ".", card: g(n, d) };
+          u = { sentence: m + " " + f.label + " is " + (A(n, r.not) ? P(A(n, r.not).label.toLowerCase()) : P(r.not)) + ".", card: w(n, d) };
           break;
         }
       }
     else if (r.kind === "contains") {
-      const m = (f, l) => b(f, l).slice(1).filter((u) => N(f, g(f, u), r.of)).length;
-      for (const f of [...n.cards].sort((l, u) => b(n, l.id).length - b(n, u.id).length)) {
-        if (f.role !== r.role || f.laneId === t) continue;
-        const l = m(n, f.id);
-        if (l >= r.atLeast) continue;
-        const u = g(e, f.id), d = u && u.role === r.role ? m(e, f.id) : -1, y = b(n, f.id);
-        if (d === -1 || d >= r.atLeast || y.some(($) => o.some((F) => F.id === $))) {
-          c = { sentence: h + " " + f.label + " would have " + (l || "none") + ".", card: f };
+      const f = (i, c) => b(i, c).slice(1).filter((d) => E(i, w(i, d), r.of)).length, g = new Set(n.cards.filter((i) => {
+        const c = w(e, i.id);
+        return !c || c.parentId !== i.parentId || c.laneId !== i.laneId;
+      }).map((i) => i.id));
+      for (const i of [...n.cards].sort((c, d) => b(n, c.id).length - b(n, d.id).length)) {
+        if (i.role !== r.role || i.laneId === t) continue;
+        const c = b(n, i.id).slice(1);
+        if (!c.length) continue;
+        const d = f(n, i.id);
+        if (d >= r.atLeast) continue;
+        const y = w(e, i.id), L = y && y.role === r.role ? f(e, i.id) : -1;
+        if (L === -1 || L >= r.atLeast || c.some(($) => g.has($))) {
+          u = { sentence: m + " " + i.label + " would have " + (d || "none") + ".", card: i };
           break;
         }
       }
     } else if (r.kind === "sameOwnerAs") {
-      const m = (l) => !r.role || l.role === r.role, f = new Set(o.map((l) => l.id));
-      for (const l of n.cards) {
-        if (!m(l) || !l.owner || l.laneId === t) continue;
-        const u = g(n, l.parentId);
-        if (!u?.owner || u.owner === l.owner) continue;
-        const d = g(e, u.id);
-        if (!(!f.has(l.id) && d?.owner === u.owner)) {
-          c = { sentence: l.label + " is " + v(n, l.owner).label + "’s; what it sits under is " + v(n, u.owner).label + "’s.", card: l };
+      const f = (i) => !r.role || i.role === r.role, g = new Set(o.filter((i) => {
+        const c = w(e, i.id);
+        return !c || c.parentId !== i.parentId || c.laneId !== i.laneId || c.owner !== i.owner;
+      }).map((i) => i.id));
+      for (const i of n.cards) {
+        if (!f(i) || !i.owner || i.laneId === t) continue;
+        const c = w(n, i.parentId);
+        if (!c?.owner || c.owner === i.owner) continue;
+        const d = w(e, c.id);
+        if (!(!g.has(i.id) && d?.owner === c.owner)) {
+          u = { sentence: i.label + " is " + v(n, i.owner).label + "’s; what it sits under is " + v(n, c.owner).label + "’s.", card: i };
           break;
         }
       }
-      if (r.mode === "ask") for (const l of o) {
-        const u = g(e, l.id);
-        if (!u?.owner || !l.owner || u.owner === l.owner) continue;
-        const d = b(n, l.id).slice(1).filter((y) => g(n, y).owner === u.owner);
-        d.length && a.push(d.length + (d.length === 1 ? " card" : " cards") + " under " + l.label + " stayed with " + v(n, u.owner).label + ". Say “Move what is under " + l.label + " to " + v(n, l.owner).label + " too” to bring " + (d.length === 1 ? "it" : "them") + ".");
+      if (r.mode === "ask") for (const i of o) {
+        const c = w(e, i.id);
+        if (!c?.owner || !i.owner || c.owner === i.owner) continue;
+        const d = b(n, i.id).slice(1).filter((y) => w(n, y).owner === c.owner);
+        d.length && a.push(d.length + (d.length === 1 ? " card" : " cards") + " under " + i.label + " stayed with " + v(n, c.owner).label + ". Say “Move what is under " + i.label + " to " + v(n, i.owner).label + " too” to bring " + (d.length === 1 ? "it" : "them") + ".");
       }
     }
-    if (c) {
+    if (u) {
       if (r.severity === "warn") {
-        a.push(c.sentence);
+        a.push(u.sentence);
         continue;
       }
-      return { refused: { sentence: c.sentence, ruleId: r.id, set: r.set, cardId: c.card.id, laneId: c.card.laneId } };
+      return { refused: { sentence: u.sentence, ruleId: r.id, set: r.set, cardId: u.card.id, laneId: u.card.laneId } };
     }
   }
   return { ok: !0, warnings: a };
 }
-function te(e, n) {
+function ne(e, n) {
   const a = /* @__PURE__ */ new Set();
   for (const s of e.rules) {
-    if (!C.includes(s.kind)) continue;
+    if (!T.includes(s.kind)) continue;
     const t = s.kind + ":" + (s.kind === "quadrant" ? s.quadrant : s.kind === "parent" ? s.not : s.kind === "contains" ? s.role + ">" + s.of : "");
     if (a.has(t)) return "There is already a rule like that on this board. Change that one instead.";
     if (a.add(t), s.kind === "contains" && s.on && s.severity === "refuse" && e.rules.some((o) => o.on && o.severity === "refuse" && o.kind === "parent" && o.not === s.role))
-      return E(T(s.role)) + " would need someone under them, and " + V(n, s.role) + " don’t manage.";
+      return _(N(s.role)) + " would need someone under them, and " + V(n, s.role) + " don’t manage.";
   }
   return null;
 }
-function ae(e, n, a) {
+function te(e, n, a) {
   if (e.axes !== void 0) {
     if (!Array.isArray(e.axes) || e.axes.length !== 2 || e.axes[0] === e.axes[1]) throw new Error("A 2 by 2 reads two fields, one across and one up.");
     n.axes = [a.id(e.axes[0]), a.id(e.axes[1])];
@@ -165,20 +173,20 @@ function ae(e, n, a) {
     if (!Array.isArray(e.owners) || e.owners.length > 8) throw new Error("A board has up to 8 teams that own cards.");
     if (n.owners = e.owners.map((s) => {
       const t = s ?? {};
-      return { id: a.id(t.id), label: P(t.label, 30, "Name a team in a few words.") };
+      return { id: a.id(t.id), label: j(t.label, 30, "Name a team in a few words.") };
     }), new Set(n.owners.map((s) => s.id)).size !== n.owners.length) throw new Error("Duplicate team.");
   }
 }
-function se(e, n, a) {
+function ae(e, n, a) {
   e.owner !== void 0 && (n.owner = a.id(e.owner));
 }
-function re(e) {
+function se(e) {
   const n = e.nest, { main: a } = x(e), s = e.behaviour?.rules ?? [];
   if (n.layout !== "matrix" && s.some((o) => o.kind === "quadrant")) return "Only a 2 by 2 has squares to fill.";
   if (!n.owners?.length && s.some((o) => o.kind === "sameOwnerAs")) return "This board has no teams that own cards. Say “Add Growth as an owner” first.";
   for (const o of n.fields ?? []) if (o.flag) {
-    const i = e.cards.find((r) => r.fields?.[o.id] !== void 0 && r.fields[o.id] > 1);
-    if (i) return p(i.label) + "’s " + o.label + " is yes (1) or no (0).";
+    const l = e.cards.find((r) => r.fields?.[o.id] !== void 0 && r.fields[o.id] > 1);
+    if (l) return p(l.label) + "’s " + o.label + " is yes (1) or no (0).";
   }
   for (const o of e.cards) if (o.owner !== void 0 && !v(e, o.owner)) return p(o.label) + " is owned by a team that is no longer on the board.";
   if (n.layout !== "matrix") return n.axes ? "Only a 2 by 2 has axes." : null;
@@ -187,72 +195,72 @@ function re(e) {
   for (const o of e.cards) {
     if (o.parentId) return "A 2 by 2 places cards side by side: nothing sits under another.";
     if (o.laneId !== a) continue;
-    const i = I(e, o);
-    if (!i) return p(o.label) + " needs a score on both axes. Say “Score " + o.label + " " + t.y.label.toLowerCase() + " 8, " + t.x.label.toLowerCase() + " 3”.";
-    if (i.x > 10 || i.y > 10) return "Scores run from 0 to 10.";
+    const l = I(e, o);
+    if (!l) return p(o.label) + " needs a score on both axes. Say “Score " + o.label + " " + t.y.label.toLowerCase() + " 8, " + t.x.label.toLowerCase() + " 3”.";
+    if (l.x > 10 || l.y > 10) return "Scores run from 0 to 10.";
   }
   return null;
 }
-function oe(e, n, a, s) {
-  const t = k(e), o = g(e, n);
-  if (!t || !o || e.cards.some((c) => c.parentId === n)) return null;
-  const { main: i } = x(e), r = o.laneId === i ? e : Q(e, n, { laneId: i, under: null, before: null });
-  return r ? { ...r, cards: r.cards.map((c) => c.id === n ? { ...c, fields: { ...c.fields, [t.x.id]: a, [t.y.id]: s } } : c) } : null;
+function re(e, n, a, s) {
+  const t = k(e), o = w(e, n);
+  if (!t || !o || e.cards.some((u) => u.parentId === n)) return null;
+  const { main: l } = x(e), r = o.laneId === l ? e : U(e, n, { laneId: l, under: null, before: null });
+  return r ? { ...r, cards: r.cards.map((u) => u.id === n ? { ...u, fields: { ...u.fields, [t.x.id]: a, [t.y.id]: s } } : u) } : null;
 }
-const ie = (e, n) => (e.nest?.fields ?? []).find((a) => a.id === n || a.label.toLowerCase() === String(n).toLowerCase()), le = (e, n, a, s) => {
+const oe = (e, n) => (e.nest?.fields ?? []).find((a) => a.id === n || a.label.toLowerCase() === String(n).toLowerCase()), ie = (e, n, a, s) => {
   switch (n.kind) {
     case "score_card": {
       const t = a.card(n.card), o = k(e);
       o || a.refuse("Only a 2 by 2 scores cards.", { code: "invalid_edit" });
-      for (const h of [n.x, n.y]) (!Number.isInteger(h) || h < 0 || h > 10) && a.refuse("Scores run from 0 to 10.", { cardId: t.id });
-      const i = oe(e, t.id, n.x, n.y);
-      i || a.refuse(p(t.label) + " has cards under it, so it can’t be scored.", { cardId: t.id });
-      const r = s(i, x(e).main, t.id), c = O.find((h) => h.id === S(r, r.cards.find((m) => m.id === t.id)));
-      return a.done(r, "Scored " + p(t.label) + ": " + o.y.label + " " + n.y + ", " + o.x.label + " " + n.x + " (" + c.label + ").", { laneId: x(e).main, cardId: t.id });
+      for (const m of [n.x, n.y]) (!Number.isInteger(m) || m < 0 || m > 10) && a.refuse("Scores run from 0 to 10.", { cardId: t.id });
+      const l = re(e, t.id, n.x, n.y);
+      l || a.refuse(p(t.label) + " has cards under it, so it can’t be scored.", { cardId: t.id });
+      const r = s(l, x(e).main, t.id), u = O.find((m) => m.id === S(r, r.cards.find((f) => f.id === t.id)));
+      return a.done(r, "Scored " + p(t.label) + ": " + o.y.label + " " + n.y + ", " + o.x.label + " " + n.x + " (" + u.label + ").", { laneId: x(e).main, cardId: t.id });
     }
     case "rename_field": {
-      const t = ie(e, n.field);
+      const t = oe(e, n.field);
       t || a.refuse("Cards on this board carry no " + n.field + ".", { code: "unknown_reference" });
       let o = "";
       try {
-        o = P(n.label, 20, "Name the field in a word or two.");
+        o = j(n.label, 20, "Name the field in a word or two.");
       } catch (r) {
         a.refuse(r.message);
       }
       e.nest.fields.some((r) => r !== t && r.label.toLowerCase() === o.toLowerCase()) && a.refuse("Cards already carry " + o + ".");
-      const i = s({ ...e, nest: { ...e.nest, fields: e.nest.fields.map((r) => r === t ? { ...r, label: o } : r) } });
-      return a.done(i, "Renamed " + p(t.label) + " to " + p(o) + ".");
+      const l = s({ ...e, nest: { ...e.nest, fields: e.nest.fields.map((r) => r === t ? { ...r, label: o } : r) } });
+      return a.done(l, "Renamed " + p(t.label) + " to " + p(o) + ".");
     }
     case "add_owner": {
       let t = "";
       try {
-        t = P(n.label, 30, "Name the team in a few words.");
-      } catch (c) {
-        a.refuse(c.message);
+        t = j(n.label, 30, "Name the team in a few words.");
+      } catch (u) {
+        a.refuse(u.message);
       }
       const o = e.nest.owners ?? [];
-      o.some((c) => c.label.toLowerCase() === t.toLowerCase()) && a.refuse(t + " owns cards here already."), o.length >= 8 && a.refuse("A board has up to 8 teams that own cards.");
-      let i = D(t);
-      for (let c = 2; o.some((h) => h.id === i); c++) i = D(t).slice(0, 17) + "-" + c;
-      const r = s({ ...e, nest: { ...e.nest, owners: [...o, { id: i, label: t }] } });
+      o.some((u) => u.label.toLowerCase() === t.toLowerCase()) && a.refuse(t + " owns cards here already."), o.length >= 8 && a.refuse("A board has up to 8 teams that own cards.");
+      let l = D(t);
+      for (let u = 2; o.some((m) => m.id === l); u++) l = D(t).slice(0, 17) + "-" + u;
+      const r = s({ ...e, nest: { ...e.nest, owners: [...o, { id: l, label: t }] } });
       return a.done(r, t + " can own cards now.");
     }
     case "set_owner": {
-      const t = a.card(n.card), o = e.nest?.owners ?? [], i = o.find((d) => d.id === n.owner || d.label.toLowerCase() === String(n.owner).toLowerCase());
-      i || a.refuse(o.length ? "The teams on this board are " + o.map((d) => d.label).join(", ") + "." : "This board has no teams that own cards. Say “Add Growth as an owner” first.", { cardId: t.id, code: "unknown_reference" });
-      const r = (e.behaviour?.rules ?? []).find((d) => d.on && d.kind === "sameOwnerAs"), c = b(e, t.id).slice(1), h = r?.mode === "carry" && t.owner !== i.id ? c.filter((d) => g(e, d).owner === t.owner) : [];
-      let m = h;
+      const t = a.card(n.card), o = e.nest?.owners ?? [], l = o.find((d) => d.id === n.owner || d.label.toLowerCase() === String(n.owner).toLowerCase());
+      l || a.refuse(o.length ? "The teams on this board are " + o.map((d) => d.label).join(", ") + "." : "This board has no teams that own cards. Say “Add Growth as an owner” first.", { cardId: t.id, code: "unknown_reference" });
+      const r = (e.behaviour?.rules ?? []).find((d) => d.on && d.kind === "sameOwnerAs"), u = b(e, t.id).slice(1), m = r?.mode === "carry" && t.owner !== l.id ? u.filter((d) => w(e, d).owner === t.owner) : [];
+      let f = m;
       if (n.carry !== void 0) {
         const d = n.carry.map((y) => a.card(y).id);
-        d.some((y) => !c.includes(y)) && a.refuse("Only cards under " + p(t.label) + " come along with it.", { cardId: t.id }), (h.length || r?.mode === "carry" && t.owner !== i.id) && [...d].sort().join() !== [...h].sort().join() && a.refuse("The board changed while you were dragging. Try again.", { cardId: t.id }), m = d;
+        d.some((y) => !u.includes(y)) && a.refuse("Only cards under " + p(t.label) + " come along with it.", { cardId: t.id }), (m.length || r?.mode === "carry" && t.owner !== l.id) && [...d].sort().join() !== [...m].sort().join() && a.refuse("The board changed while you were dragging. Try again.", { cardId: t.id }), f = d;
       }
-      const f = /* @__PURE__ */ new Set([t.id, ...m]), l = s({ ...e, cards: e.cards.map((d) => f.has(d.id) ? { ...d, owner: i.id } : d) }, t.laneId, t.id), u = m.length ? " " + m.length + (m.length === 1 ? " card" : " cards") + " under it came along." : "";
-      return a.done(l, t.owner === i.id && m.length ? "Moved what is under " + p(t.label) + " to " + i.label + "." : p(t.label) + " is " + i.label + "’s now." + u, { laneId: t.laneId, cardId: t.id });
+      const g = /* @__PURE__ */ new Set([t.id, ...f]), i = s({ ...e, cards: e.cards.map((d) => g.has(d.id) ? { ...d, owner: l.id } : d) }, t.laneId, t.id), c = f.length ? " " + f.length + (f.length === 1 ? " card" : " cards") + " under it came along." : "";
+      return a.done(i, t.owner === l.id && f.length ? "Moved what is under " + p(t.label) + " to " + l.label + "." : p(t.label) + " is " + l.label + "’s now." + c, { laneId: t.laneId, cardId: t.id });
     }
   }
   return null;
-}, de = (e) => e.nest?.layout === "tree" && e.cards.some((n) => n.role === "manager" || n.role === "open role");
-function ce(e, n) {
+}, le = (e) => e.nest?.layout === "tree" && e.cards.some((n) => n.role === "manager" || n.role === "open role");
+function de(e, n) {
   const a = I(e, n);
   if (a) {
     const s = k(e);
@@ -261,42 +269,42 @@ function ce(e, n) {
   }
   if (e.nest?.layout === "matrix") return n.label;
   if (e.nest?.owners?.length) {
-    const s = v(e, n.owner), t = g(e, n.parentId), o = s && t?.owner && t.owner !== n.owner;
+    const s = v(e, n.owner), t = w(e, n.parentId), o = s && t?.owner && t.owner !== n.owner;
     return n.label + (s ? `
 ` + s.label + (o ? " · cross-team" : "") : "");
   }
-  if (de(e)) {
-    const s = e.cards.filter((r) => r.parentId === n.id).length, t = (e.behaviour?.rules ?? []).find((r) => r.on && r.kind === "children" && (!r.role || r.role === n.role)), o = (e.nest?.fields ?? []).filter((r) => r.flag && n.fields?.[r.id] === 1).map((r) => r.label.toLowerCase()), i = [n.role ?? "", ...o, s ? s + (s === 1 ? " report" : " reports") + (t && s > t.max ? ", limit " + t.max : "") : ""].filter(Boolean);
-    return n.label + (i.length ? `
-` + i.join(" · ") : "");
+  if (le(e)) {
+    const s = e.cards.filter((r) => r.parentId === n.id).length, t = (e.behaviour?.rules ?? []).find((r) => r.on && r.kind === "children" && (!r.role || r.role === n.role)), o = (e.nest?.fields ?? []).filter((r) => r.flag && n.fields?.[r.id] === 1).map((r) => r.label.toLowerCase()), l = [n.role ?? "", ...o, s ? s + (s === 1 ? " report" : " reports") + (t && s > t.max ? ", limit " + t.max : "") : ""].filter(Boolean);
+    return n.label + (l.length ? `
+` + l.join(" · ") : "");
   }
   return null;
 }
-function ue(e) {
+function ce(e) {
   const n = k(e);
   return e.nest?.owners?.length ? JSON.stringify(e.cards.map((a) => e.nest.owners.map((s) => {
     const t = R(e, [{ kind: "set_owner", card: { id: a.id }, owner: s.id }]);
     return "refused" in t ? 0 : t.workshop.cards.filter((o) => o.owner === s.id).length;
   }))) : n ? JSON.stringify([e.nest.axes, n.x.label, n.y.label, e.cards.map((a) => O.map((s) => {
-    const { x: t, y: o } = H(e, a, s.id);
+    const { x: t, y: o } = Z(e, a, s.id);
     return "refused" in R(e, [{ kind: "score_card", card: { id: a.id }, x: t, y: o }]) ? 0 : 1;
   }).join(""))]) : null;
 }
-function fe(e, n) {
+function ue(e, n) {
   if (e.nest?.layout !== "matrix") return null;
   const a = e.cards.filter((s) => s.laneId === n).length;
   return n === x(e).tray ? a ? a + " not scored yet" : "Everything is scored" : a + (a === 1 ? " card scored" : " cards scored");
 }
-K({ keys: X, read: Y, sentence: W, check: ne, contradiction: te, readBoard: ae, readCard: se, validate: re, edit: le, cardText: ce, drags: ue, caption: fe });
-const q = ["nest"], B = (e) => ({ type: "ref", of: "card", about: e }), z = (e) => ({ type: "integer", min: 0, max: 10, about: e });
-U({
+F({ keys: H, read: X, sentence: W, check: ee, contradiction: ne, readBoard: te, readCard: ae, validate: se, edit: ie, cardText: de, drags: ce, caption: ue });
+const C = ["nest"], B = (e) => ({ type: "ref", of: "card", about: e }), z = (e) => ({ type: "integer", min: 0, max: 10, about: e });
+K({
   kinds: [
     {
       kind: "score_card",
       summary: "Impact × effort: place a card by its two scores, 0 to 10 (x across, y up). A card in the tray comes onto the 2 by 2.",
       intent: !0,
       fields: { card: B("The card."), x: z("The score across (effort)."), y: z("The score up (impact).") },
-      boards: q,
+      boards: C,
       refusals: {}
     },
     {
@@ -304,7 +312,7 @@ U({
       summary: "Nest board: rename a field (an axis of a 2 by 2: Reach, Confidence…).",
       intent: !1,
       fields: { field: { type: "text", max: 20, about: "The field, by id or name." }, label: { type: "text", max: 20, about: "Its new name." } },
-      boards: q,
+      boards: C,
       refusals: {}
     },
     {
@@ -312,7 +320,7 @@ U({
       summary: "Goals & owners: add a team that can own cards. Up to 8.",
       intent: !1,
       fields: { label: { type: "text", max: 30, about: "The team’s name." } },
-      boards: q,
+      boards: C,
       refusals: {}
     },
     {
@@ -324,7 +332,7 @@ U({
         owner: { type: "text", max: 30, about: "The team, by id or name." },
         carry: { type: "refs", of: "card", min: 0, max: 40, optional: !0, about: "The cards under it that come along." }
       },
-      boards: q,
+      boards: C,
       refusals: {}
     }
   ],
@@ -341,11 +349,11 @@ U({
     }
   }
 });
-function w(e, n, a) {
-  const s = Z(n.length);
-  return n.map(([t, o, i], r) => ({ id: t, label: o, laneId: e, order: s[r], ...a && { parentId: a }, ...i }));
+function h(e, n, a) {
+  const s = Q(n.length);
+  return n.map(([t, o, l], r) => ({ id: t, label: o, laneId: e, order: s[r], ...a && { parentId: a }, ...l }));
 }
-const G = (e) => ({
+const M = (e) => ({
   version: 1,
   rev: 0,
   rules: e.map((n, a) => ({ id: "rule-" + (a + 1), on: !0, severity: "refuse", set: { by: "Slatebox", at: "2026-11-21T00:00:00.000Z", via: "preset" }, ...n }))
@@ -359,7 +367,7 @@ function we() {
     nest: { layout: "matrix", fields: [{ id: "effort", label: "Effort" }, { id: "impact", label: "Impact" }], axes: ["effort", "impact"] },
     lanes: [{ id: "matrix", label: "Impact × effort" }, { id: "unscored", label: "Not scored yet" }],
     cards: [
-      ...w("matrix", [
+      ...h("matrix", [
         ["search", "Faster search", e(3, 8)],
         ["sso", "SSO", e(4, 9)],
         ["exports", "Exports", e(2, 6)],
@@ -368,9 +376,9 @@ function we() {
         ["dark-mode", "Dark mode", e(2, 3)],
         ["billing", "Rewrite billing", e(9, 2)]
       ]),
-      ...w("unscored", [["alerts", "Slack alerts"], ["audit", "Audit log"]])
+      ...h("unscored", [["alerts", "Slack alerts"], ["audit", "Audit log"]])
     ],
-    behaviour: G([{ kind: "quadrant", quadrant: "do-now", max: 3 }])
+    behaviour: M([{ kind: "quadrant", quadrant: "do-now", max: 3 }])
   };
 }
 function ge() {
@@ -382,15 +390,15 @@ function ge() {
     nest: { layout: "tree", fields: [{ id: "contractor", label: "Contractor", flag: !0 }] },
     lanes: [{ id: "org", label: "Org chart" }, { id: "unplaced", label: "Not placed yet" }],
     cards: [
-      ...w("org", [["dana", "Dana Ito, CEO", e("manager")]]),
-      ...w("org", [["maya", "Maya Chen, VP Product", e("manager")], ["priya", "Priya Rao, VP Eng", e("manager")], ["vp-sales", "VP Sales", e("open role")]], "dana"),
-      ...w("org", [["jo", "Jo Park, Growth", e("manager")]], "maya"),
-      ...w("org", [["ravi", "Ravi Shah", e("engineer")], ["lena", "Lena Ortiz", e("designer")], ["sam", "Sam Lee", e("engineer", !0)]], "jo"),
-      ...w("org", [["kai", "Kai Wong, Platform", e("manager")]], "priya"),
-      ...w("org", [["tom", "Tom Berg", e("engineer")], ["ivy", "Ivy Moss", e("engineer")]], "kai"),
-      ...w("unplaced", [["ae-1", "Account exec 1", e("open role")], ["ae-2", "Account exec 2", e("open role")]])
+      ...h("org", [["dana", "Dana Ito, CEO", e("manager")]]),
+      ...h("org", [["maya", "Maya Chen, VP Product", e("manager")], ["priya", "Priya Rao, VP Eng", e("manager")], ["vp-sales", "VP Sales", e("open role")]], "dana"),
+      ...h("org", [["jo", "Jo Park, Growth", e("manager")]], "maya"),
+      ...h("org", [["ravi", "Ravi Shah", e("engineer")], ["lena", "Lena Ortiz", e("designer")], ["sam", "Sam Lee", e("engineer", !0)]], "jo"),
+      ...h("org", [["kai", "Kai Wong, Platform", e("manager")]], "priya"),
+      ...h("org", [["tom", "Tom Berg", e("engineer")], ["ivy", "Ivy Moss", e("engineer")]], "kai"),
+      ...h("unplaced", [["ae-1", "Account exec 1", e("open role")], ["ae-2", "Account exec 2", e("open role")]])
     ],
-    behaviour: G([
+    behaviour: M([
       { kind: "children", role: "manager", max: 6 },
       { kind: "parent", not: "open role" },
       { kind: "parent", not: "contractor" },
@@ -408,15 +416,15 @@ function ye() {
     nest: { layout: "tree", owners: [{ id: "growth", label: "Growth" }, { id: "platform", label: "Platform" }, { id: "sales", label: "Sales" }] },
     lanes: [{ id: "goals", label: "Goals" }, { id: "unplaced", label: "Not placed yet" }],
     cards: [
-      ...w("goals", [["activation", "Activation to 40%", e("objective", "growth")], ["uptime", "99.9% uptime", e("objective", "platform")]]),
-      ...w("goals", [["fast-onboarding", "Onboarding under 10 min", e("key result", "growth")], ["self-serve", "Self-serve upgrades 30%", e("key result", "growth")]], "activation"),
-      ...w("goals", [["guided", "Guided setup", e("initiative", "growth")], ["starters", "Starter templates", e("initiative", "growth")]], "fast-onboarding"),
-      ...w("goals", [["pricing-page", "New pricing page", e("initiative", "growth")]], "self-serve"),
-      ...w("goals", [["latency", "p95 under 300 ms", e("key result", "platform")]], "uptime"),
-      ...w("goals", [["cache", "Cache the hot paths", e("initiative", "platform")]], "latency"),
-      ...w("unplaced", [["partners", "Partner channel live", e("key result", "sales")]])
+      ...h("goals", [["activation", "Activation to 40%", e("objective", "growth")], ["uptime", "99.9% uptime", e("objective", "platform")]]),
+      ...h("goals", [["fast-onboarding", "Onboarding under 10 min", e("key result", "growth")], ["self-serve", "Self-serve upgrades 30%", e("key result", "growth")]], "activation"),
+      ...h("goals", [["guided", "Guided setup", e("initiative", "growth")], ["starters", "Starter templates", e("initiative", "growth")]], "fast-onboarding"),
+      ...h("goals", [["pricing-page", "New pricing page", e("initiative", "growth")]], "self-serve"),
+      ...h("goals", [["latency", "p95 under 300 ms", e("key result", "platform")]], "uptime"),
+      ...h("goals", [["cache", "Cache the hot paths", e("initiative", "platform")]], "latency"),
+      ...h("unplaced", [["partners", "Partner channel live", e("key result", "sales")]])
     ],
-    behaviour: G([
+    behaviour: M([
       { kind: "nests", role: "key result", under: ["objective"] },
       { kind: "nests", role: "initiative", under: ["key result"] },
       { kind: "sameOwnerAs", mode: "warn", severity: "warn" },
@@ -427,12 +435,12 @@ function ye() {
 export {
   ye as goalsSample,
   we as impactEffortSample,
-  de as isOrgChart,
+  le as isOrgChart,
   k as nestAxes,
   O as nestQuadrants,
   I as nestScores,
   S as quadrantOf,
   ge as reorgSample,
-  oe as scoreBoard,
-  H as scoresIn
+  re as scoreBoard,
+  Z as scoresIn
 };
