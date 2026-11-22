@@ -49,10 +49,4 @@ export declare function scoresIn(board: Board, card: WorkshopCard, quadrant: str
 export declare function scoreBoard(board: Board, cardId: string, x: number, y: number): Board | null;
 /** An org chart: a board whose cards are people (a manager or an open role among them). */
 export declare const isOrgChart: (board: Board) => boolean;
-/** Impact × effort: what to work on next, scored; Do now already holds its three. */
-export declare function impactEffortSample(): Board;
-/** Reorg & hiring sandbox: who reports to whom, open roles, a contractor; spans, open roles and designers as rules. */
-export declare function reorgSample(): Board;
-/** Goals & owners: objectives, key results and initiatives, each owned by a team; a key result owned outside its objective's team is flagged. */
-export declare function goalsSample(): Board;
 export {};

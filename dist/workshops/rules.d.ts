@@ -8,20 +8,11 @@ export * from './behaviourSaves';
 import { goLiveSample, hiringPlanSample, launchPlanSample } from './plans';
 import { samplePipeline } from './pipeline';
 import { sampleBudget } from './budget';
-import { breakDownSample, discoveryTreeSample, incidentReviewSample, sortEvidenceSample } from './nest';
-import { goalsSample, impactEffortSample, reorgSample } from './nestPlus';
-/** The boards the library's business entries add (catalogPreset's samples), each made fresh, dated from the next Monday. */
-export declare const catalogSamples: {
+/** The plans', pipeline's and budget's boards the library adds; slateboxjs/workshops/samples adds the nested boards' (catalogSamples). */
+export declare const planSamples: {
     'launch-plan': typeof launchPlanSample;
     'go-live': typeof goLiveSample;
     'hiring-plan': typeof hiringPlanSample;
     pipeline: typeof samplePipeline;
     budget: typeof sampleBudget;
-    'sort-evidence': typeof sortEvidenceSample;
-    'discovery-tree': typeof discoveryTreeSample;
-    'break-down': typeof breakDownSample;
-    'incident-review': typeof incidentReviewSample;
-    'impact-effort': typeof impactEffortSample;
-    reorg: typeof reorgSample;
-    goals: typeof goalsSample;
 };

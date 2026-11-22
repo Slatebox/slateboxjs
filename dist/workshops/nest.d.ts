@@ -112,14 +112,3 @@ export declare function extend(more: {
 export declare function nestCardText(board: Board, card: WorkshopCard): string;
 /** The nest board's part of the one gate (see kinds.ts). */
 export declare const nestRules: BusinessBoardRules;
-/**
- * Sort the evidence: three piles of what customers said, two notes not sorted yet, ARR per customer. Its rules:
- * notes sit in piles, one level deep, piles rank by how many customers, a note let go in empty space starts a pile.
- */
-export declare function sortEvidenceSample(): Board;
-/** Discovery tree: an outcome, the opportunities under it and the solutions under those; two ideas parked. */
-export declare function discoveryTreeSample(): Board;
-/** Break down a problem (an issue tree): a problem, its causes, causes under those, and actions under causes (warnings, never refusals). */
-export declare function breakDownSample(): Board;
-/** Incident review: the same breakdown for an outage: what caused it, what caused that, and what to fix. */
-export declare function incidentReviewSample(): Board;

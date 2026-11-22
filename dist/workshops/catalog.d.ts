@@ -57,7 +57,7 @@ export declare const catalog: readonly CatalogEntry[];
 export declare function catalogEntry(id: string): CatalogEntry | undefined;
 /** The entries of a group (or all), in catalogue order. */
 export declare function catalogList(group?: CatalogGroup | 'all'): CatalogEntry[];
-/** The samples a business entry adds: from slateboxjs/workshops/rules (catalogSamples), so this chunk keeps no rules. */
+/** The samples a business entry adds: from slateboxjs/workshops/samples (catalogSamples), so this chunk keeps no rules. */
 export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget' | 'sort-evidence' | 'discovery-tree' | 'break-down' | 'incident-review' | 'impact-effort' | 'reorg' | 'goals';
 export type CatalogSamples = Partial<Record<CatalogSample, () => Workshop>>;
 /** The board an entry adds, as data, named after the topic when one is given. A business board needs its sample. */
