@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { presentToEveryone } from './app-header.shared'
-import { camera, nextView, openPresenter, stepCounter } from './app-presenter.shared'
+import { camera, expectFramed, expectPlanShows, expectWholeSlate, litNotes, openPresenter, stepCounter } from './app-presenter.shared'
 import { randomUUID } from 'node:crypto'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from "./workshop-guests.shared";
 
@@ -109,11 +109,15 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
     // Restated 2026-11-21: Present opens the presenter over the slate's own drawing.
     const presentation = await openPresenter(peer);
     await expect(camera(presentation).locator("svg g[data-node-id]").filter({hasText:note})).toHaveCount(1);
-    await expect(stepCounter(presentation)).toHaveText("0 / 2",{timeout:30_000});
-    await nextView(peer,presentation);
-    await nextView(peer,presentation);
-    await presentation.getByRole("button",{name:"Previous",exact:true}).click();
-    await expect(stepCounter(presentation)).toHaveText("1 / 2");
+    // Restated 2026-11-22 (fix/present-ai): the presenter starts on the plan's overview of the whole
+    // slate; the plan shows every note, the teammate's among them (see expectPlanShows).
+    const noteIds = await peer.evaluate(()=>[...new Set([...document.querySelectorAll<SVGGElement>("#slateCanvas g[data-node-id]")].map(node=>node.dataset.nodeId!))]);
+    expect(noteIds).toContain(id);
+    const total = await expectPlanShows(peer,presentation,noteIds);
+    if (total > 0) {
+      await presentation.getByRole("button",{name:"Previous",exact:true}).click();
+      await expect(stepCounter(presentation)).toHaveText((total-1)+" / "+total);
+    }
     await presentation.getByRole("button",{name:"Exit presentation",exact:true}).click();
     await expect(presentation).toHaveCount(0);
     // A live Yjs room can also restore a node after reload. Verify the same
@@ -430,17 +434,32 @@ test('a research handoff carries the team’s edited prototype into a shared pre
     // Restated 2026-11-21: the presenter leads and the follower's presenter follows its viewpoints.
     await presentToEveryone(owner)
     const lead = owner.getByRole('dialog', {name:'Live presentation'})
-    await expect(stepCounter(lead)).toHaveText('0 / 4', {timeout:30_000})
-    await nextView(owner, lead)
+    // Restated 2026-11-22 (fix/present-ai): the plan starts on its overview of the whole slate (step 0),
+    // then segments of related notes, then the closing overview. The follower is on the presenter's
+    // step, with its narrative and its notes, and the segments show every note, the edited one too.
+    await expect(stepCounter(lead)).toHaveText(/^0 \/ \d+$/, {timeout:30_000})
+    const total = Number((await stepCounter(lead).textContent())!.split('/')[1])
+    expect(total).toBeGreaterThanOrEqual(2)
+    expect(total).toBeLessThanOrEqual(board.nodes.length + 1)
+    await expectWholeSlate(lead)
     await teammate.getByRole('button', {name:'Follow presentation', exact:true}).tap()
     const presentation = teammate.getByRole('dialog', {name:'Live presentation'})
     const slide = presentation.getByRole('status')
-    await expect(slide).toContainText('1 of 4')
-    for (const position of [2, 3, 4]) {
+    await expect(slide).toContainText('0 of ' + total)
+    await expectWholeSlate(presentation)
+    await expect(camera(presentation).locator('[data-node-id="test"]').first()).toHaveAttribute('aria-label', prototype)
+    const shown = new Set<string>()
+    for (let position = 1; position <= total; position++) {
       await lead.getByRole('button', {name:'Next', exact:true}).click()
-      await expect(slide).toContainText(position + ' of 4')
+      await expect(slide).toContainText(position + ' of ' + total)
+      await expect(presentation.locator('.sb-presentation-narrative')).toHaveText((await lead.locator('.sb-presentation-narrative').textContent())!)
+      if (position === total) { await expectWholeSlate(presentation); break }
+      const lit = await litNotes(lead)
+      expect(lit.length).toBeGreaterThan(0)
+      await expectFramed(presentation, lit)
+      lit.forEach(id => shown.add(id))
     }
-    await expect(presentation.locator('.sb-presentation-narrative')).toContainText(prototype)
+    expect([...shown].sort()).toEqual(board.nodes.map((node:any) => node.options.id).sort())
     await owner.getByRole('button', {name:'End presentation', exact:true}).click()
     await expect(presentation).toHaveCount(0)
     await teammate.reload()

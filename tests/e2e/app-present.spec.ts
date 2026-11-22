@@ -28,12 +28,29 @@ type Workshop = { lanes: Lane[], cards: { id: string, laneId: string }[] }
 const expectLaneOf = (dialog: Page | ReturnType<typeof presenter>, workshop: Workshop, lane: Lane) =>
   expectLane(dialog, lane.label, lane.id, workshop.cards.filter(card => card.laneId === lane.id).map(card => card.id))
 /**
- * How many viewpoints a workshop slate's plan has: an overview, one per lane, at least one segment
- * of the slate's other notes (at most one per note), and a closing overview.
+ * How many steps a plan has after its start (the overview of the whole slate, "0 / N"): one per
+ * lane, at least one segment of the slate's other notes (at most one per note), and the closing
+ * overview, the last step.
  */
 const expectPlanSize = (total: number, lanes: number, notes: number) => {
-  expect(total).toBeGreaterThanOrEqual(lanes + 3)
-  expect(total).toBeLessThanOrEqual(lanes + 2 + notes)
+  expect(total).toBeGreaterThanOrEqual(lanes + 2)
+  expect(total).toBeLessThanOrEqual(lanes + 1 + notes)
+}
+/**
+ * Steps through the segments up to the closing overview (from step `from`, where the presenter is,
+ * to the step before the last): each lights some of the slate's notes, framed, and together they show every note.
+ */
+async function expectSegmentsShow(page: Page, dialog: ReturnType<typeof presenter>, from: number, total: number, noteIds: string[]) {
+  const shown = new Set<string>()
+  for (let step = from; step < total; step++) {
+    if (step > from) await nextView(page, dialog)
+    await expect(stepCounter(dialog)).toHaveText(step + ' / ' + total)
+    const lit = await litNotes(dialog)
+    expect(lit.length).toBeGreaterThan(0)
+    await expectFramed(dialog, lit)
+    lit.forEach(id => shown.add(id))
+  }
+  expect([...shown].sort()).toEqual([...noteIds].sort())
 }
 
 /** What Esc must leave untouched: the stored slate, and the canvas's notes where they were drawn. */
@@ -104,22 +121,38 @@ test('Present on a plain slate plays its viewpoints full screen over the slate, 
     // The slate's own drawing: every note of the slate is in the presented SVG.
     for (const node of before.nodes) await expect(camera(dialog).locator('[data-node-id="' + node.options.id + '"]').first()).toBeAttached()
     await expect(stepCounter(dialog)).toHaveText(/^0 \/ \d+$/, { timeout: 30_000 })
+    // Restated 2026-11-22 (fix/present-ai): the presenter starts on the plan's overview of the whole
+    // slate, with its narrative; then segments of related notes (at least one, at most one per
+    // note, every note in some segment); the closing overview is the last step. A slate of one or
+    // two notes is planned as its overview alone ("0 / 0").
     const total = await counterTotal(dialog)
-    expect(total).toBeGreaterThanOrEqual(before.nodes.length)
+    const noteIds = before.nodes.map((node: { options: { id: string } }) => node.options.id)
+    if (noteIds.length <= 2) expect(total).toBe(0)
+    else expectPlanSize(total, 0, noteIds.length)
+    await expectWholeSlate(dialog)
+    expect((await litNotes(dialog)).sort()).toEqual([...noteIds].sort())
     // The camera moves to each viewpoint, in reduced motion without a transition.
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     await expect(camera(dialog)).toHaveCSS('transition-property', 'transform')
     await expect(camera(dialog)).not.toHaveCSS('transition-duration', '0s')
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await expect(camera(dialog)).toHaveCSS('transition-duration', '0s')
-    const overview = await camera(dialog).evaluate(element => (element as HTMLElement).style.transform)
-    await nextView(page, dialog)
-    await expect.poll(() => camera(dialog).evaluate(element => (element as HTMLElement).style.transform)).not.toBe(overview)
-    await shot(page, 'plain-presenter')
-    if (total > 1) {
+    if (total > 0) {
+      const overview = await camera(dialog).evaluate(element => (element as HTMLElement).style.transform)
       await nextView(page, dialog)
+      await expect.poll(() => camera(dialog).evaluate(element => (element as HTMLElement).style.transform)).not.toBe(overview)
+      await shot(page, 'plain-presenter')
+      await expectSegmentsShow(page, dialog, 1, total, noteIds)
+      await nextView(page, dialog)
+      await expect(stepCounter(dialog)).toHaveText(total + ' / ' + total)
+      await expectWholeSlate(dialog)
       await page.keyboard.press('ArrowLeft')
-      await expect(stepCounter(dialog)).toHaveText(new RegExp('^1 / ' + total + '$'))
+      await expect(stepCounter(dialog)).toHaveText(new RegExp('^' + (total - 1) + ' / ' + total + '$'))
+    } else {
+      // Its overview is the whole presentation: Next stays on it.
+      await page.keyboard.press('ArrowRight')
+      await expect(stepCounter(dialog)).toHaveText('0 / 0')
+      await expectWholeSlate(dialog)
     }
     // Space plays and pauses.
     await page.keyboard.press('Space')
@@ -181,25 +214,19 @@ test('Present on a slate with a workshop plays each lane with its cards, then th
     // Restated 2026-11-22 (fix/present-ai): an overview of the whole slate, one viewpoint per lane
     // (with its cards) in order, the segments of the slate's other notes (groups of related notes,
     // not one note per step), and a closing overview.
+    // The start ("0 / N") is the overview, with its narrative; step 1 is the first lane.
     const total = await counterTotal(dialog)
     expectPlanSize(total, lanes.length, before.nodes.length)
-    await nextView(page, dialog)
     await expectWholeSlate(dialog)
     for (const lane of lanes) {
       await nextView(page, dialog)
       await expectLaneOf(dialog, before.creative.workshop, lane)
       if (lane === lanes[0]) await shot(page, 'workshop-presenter')
     }
-    const shown = new Set<string>()
-    for (let step = lanes.length + 2; step < total; step++) {
-      await nextView(page, dialog)
-      const lit = await litNotes(dialog)
-      expect(lit.length).toBeGreaterThan(0)
-      await expectFramed(dialog, lit)
-      lit.forEach(id => shown.add(id))
-    }
-    expect([...shown].sort()).toEqual(before.nodes.map((node: { options: { id: string } }) => node.options.id).sort())
     await nextView(page, dialog)
+    await expectSegmentsShow(page, dialog, lanes.length + 1, total, before.nodes.map((node: { options: { id: string } }) => node.options.id))
+    await nextView(page, dialog)
+    await expect(stepCounter(dialog)).toHaveText(total + ' / ' + total)
     await expectWholeSlate(dialog)
     expect(await chromeText(dialog)).not.toMatch(readoutWords)
     await exitWithEscape(page, dialog)
@@ -234,18 +261,17 @@ test('on a phone the presenter fills the screen and a swipe moves between viewpo
       }
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
     }
-    // Restated 2026-11-22 (fix/present-ai): the plan opens with an overview, then the first lane.
-    await swipe(330, 60)
-    await expect(stepCounter(dialog)).toHaveText(/^1 \/ \d+$/)
+    // Restated 2026-11-22 (fix/present-ai): the presenter starts on the plan's overview; a swipe
+    // moves to the first lane.
     await expectWholeSlate(dialog)
     await swipe(330, 60)
-    await expect(stepCounter(dialog)).toHaveText(/^2 \/ \d+$/)
+    await expect(stepCounter(dialog)).toHaveText(/^1 \/ \d+$/)
     await expectLaneOf(dialog, before.creative.workshop, before.creative.workshop.lanes[0])
     await shot(page, 'phone-presenter')
     await swipe(330, 60)
-    await expect(stepCounter(dialog)).toHaveText(/^3 \/ \d+$/)
-    await swipe(60, 330)
     await expect(stepCounter(dialog)).toHaveText(/^2 \/ \d+$/)
+    await swipe(60, 330)
+    await expect(stepCounter(dialog)).toHaveText(/^1 \/ \d+$/)
     await expectLaneOf(dialog, before.creative.workshop, before.creative.workshop.lanes[0])
     expect(await chromeText(dialog)).not.toMatch(readoutWords)
     await dialog.getByRole('button', { name: 'Exit presentation', exact: true }).tap()
@@ -278,43 +304,45 @@ test('a read-only phone follows a live presentation step by step in the same pre
     await expect(lead).toBeVisible()
     await expect(stepCounter(lead)).toHaveText(/^0 \/ \d+$/, { timeout: 30_000 })
     const total = Number((await stepCounter(lead).textContent())!.split('/')[1])
-    // Restated 2026-11-22 (fix/present-ai): an overview, the lanes in order, segments, an overview.
+    // Restated 2026-11-22 (fix/present-ai): the start is the plan's overview (step 0, with its
+    // narrative), then the lanes in order, segments, and the closing overview.
     expectPlanSize(total, before.creative.workshop.lanes.length, before.nodes.length)
-    await nextView(owner, lead)
+    await expectWholeSlate(lead)
+    await expect(lead.getByRole('status')).toContainText('Presenting to everyone here · 0 of ' + total)
     const follow = reader.getByRole('button', { name: 'Follow presentation', exact: true })
     await expect(follow).toBeVisible()
     await follow.tap()
     const watching = livePresenter(reader)
     await expect(watching).toBeVisible()
-    await expect(watching.getByRole('status')).toContainText('1 of ' + total)
+    await expect(watching.getByRole('status')).toContainText('0 of ' + total)
     await expectWholeSlate(watching)
     // A follower does not steer.
     await expect(watching.getByRole('button', { name: 'Next', exact: true })).toHaveCount(0)
     await reader.keyboard.press('ArrowRight')
-    await expect(watching.getByRole('status')).toContainText('1 of ' + total)
+    await expect(watching.getByRole('status')).toContainText('0 of ' + total)
     await nextView(owner, lead)
-    await expect(watching.getByRole('status')).toContainText('2 of ' + total)
+    await expect(watching.getByRole('status')).toContainText('1 of ' + total)
     await expectLaneOf(watching, before.creative.workshop, firstLane)
     await shot(reader, 'follower-phone')
     await nextView(owner, lead)
-    await expect(watching.getByRole('status')).toContainText('3 of ' + total)
+    await expect(watching.getByRole('status')).toContainText('2 of ' + total)
     await expectLaneOf(watching, before.creative.workshop, secondLane)
     // A reload keeps following the same presentation.
     await reader.reload()
-    await expect(livePresenter(reader).getByRole('status')).toContainText('3 of ' + total)
+    await expect(livePresenter(reader).getByRole('status')).toContainText('2 of ' + total)
     // Two quick steps both reach the follower.
     await owner.keyboard.press('ArrowRight')
     await owner.keyboard.press('ArrowRight')
-    await expect(stepCounter(lead)).toHaveText('5 / ' + total)
-    await expect(livePresenter(reader).getByRole('status')).toContainText('5 of ' + total)
+    await expect(stepCounter(lead)).toHaveText('4 / ' + total)
+    await expect(livePresenter(reader).getByRole('status')).toContainText('4 of ' + total)
     expect(await chromeText(livePresenter(reader))).not.toMatch(readoutWords)
     expect(await chromeText(lead)).not.toMatch(readoutWords)
     // Escape leaves full screen; pressed again it does not end the presentation for everyone.
     await owner.keyboard.press('Escape')
     await owner.keyboard.press('Escape')
     await expect(lead).toBeVisible()
-    await expect(stepCounter(lead)).toHaveText('5 / ' + total)
-    await expect(livePresenter(reader).getByRole('status')).toContainText('5 of ' + total)
+    await expect(stepCounter(lead)).toHaveText('4 / ' + total)
+    await expect(livePresenter(reader).getByRole('status')).toContainText('4 of ' + total)
     await livePresenter(reader).getByRole('button', { name: 'Leave presentation', exact: true }).tap()
     await expect(livePresenter(reader)).toHaveCount(0)
     await expect(follow).toBeVisible()
@@ -350,12 +378,12 @@ test('a slate with a workshop publishes its presentation, and the link and its e
     await viewer.goto(link)
     await expect(viewer.getByRole('region', { name: 'Decision presentation' })).toHaveCount(0)
     await expect(camera(viewer).locator('svg [data-node-id="lane-' + lanes[0].id + '"]')).toBeAttached({ timeout: 30_000 })
-    // Restated 2026-11-22 (fix/present-ai): the published plan opens with an overview, then the first lane.
-    await viewer.keyboard.press('ArrowRight')
-    await expect(stepCounter(viewer)).toHaveText(/^1 \/ \d+$/)
+    // Restated 2026-11-22 (fix/present-ai): the published plan starts on its overview, with its
+    // narrative; step 1 is the first lane.
+    await expect(stepCounter(viewer)).toHaveText(/^0 \/ \d+$/)
     await expectWholeSlate(viewer)
     await viewer.keyboard.press('ArrowRight')
-    await expect(stepCounter(viewer)).toHaveText(/^2 \/ \d+$/)
+    await expect(stepCounter(viewer)).toHaveText(/^1 \/ \d+$/)
     await expectLaneOf(viewer, workshop, lanes[0])
     await shot(viewer, 'published-link')
     const host = await viewerContext.newPage()

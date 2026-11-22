@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { nextView, openPresenter, stepCounter } from './app-presenter.shared'
+import { camera, expectPlanShows, openPresenter } from './app-presenter.shared'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
 
 const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
@@ -36,15 +36,11 @@ test('opens the outage whiteboard with native connectors, editable notes and pla
     await expect(note('fallback')).toHaveAttribute('aria-label', 'Offer an incident update')
     expect(arrows(await getSlate(page,key))).toEqual(expected)
     // Restated 2026-11-21: Present opens the presenter; one viewpoint per note, each with its narrative.
+    // Restated 2026-11-22 (fix/present-ai): the plan starts on its overview and shows every note in
+    // segments of related notes (expectPlanShows); the presented drawing has the saved change.
     const deck = await openPresenter(page)
-    await expect(stepCounter(deck)).toHaveText('0 / 6', { timeout: 30_000 })
-    const stops = []
-    for (let i = 1; i <= 6; i++) {
-      await nextView(page, deck)
-      stops.push(await deck.locator('.sb-presentation-narrative').innerText())
-    }
-    expect(stops.join(' ')).toContain('Offer an incident update')
-    expect(stops.join(' ')).toContain('Open saved work')
+    await expect(camera(deck).locator('[data-node-id="fallback"]').first()).toHaveAttribute('aria-label', 'Offer an incident update')
+    await expectPlanShows(page, deck, board.nodes.map((n: any) => n.options.id))
     await deck.getByRole('button', {name:'Exit presentation', exact:true}).click()
     await expect(deck).toHaveCount(0)
     await expect(note('newcomer')).toBeVisible()

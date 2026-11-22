@@ -98,6 +98,38 @@ export const litNotes = (dialog: Page | Locator) => camera(dialog).evaluate(surf
     .filter(node => !/^(lane|card|column|caption|image)-/.test(node.dataset.nodeId!) && Number(getComputedStyle(node).opacity) > 0.95)
     .map(node => node.dataset.nodeId!))])
 
+/**
+ * A plan played from its start to its last step, as a slate of plain notes is presented: the
+ * start ("0 / N") is the overview of the whole slate with its narrative; each segment after it has
+ * a narrative and lights some of the slate's notes, framed; the last step (the closing overview)
+ * is the whole slate again; together the segments show every note. A plan that is its overview
+ * alone ("0 / 0", a slate of one or two notes) shows every note at the start. → the step count N.
+ */
+export async function expectPlanShows(page: Page, dialog: Locator, noteIds: string[]) {
+  await expect(stepCounter(dialog)).toHaveText(/^0 \/ \d+$/, { timeout: 30_000 })
+  const total = Number((await stepCounter(dialog).textContent())!.split('/')[1])
+  await expectWholeSlate(dialog)
+  const shown = new Set<string>()
+  if (total === 0) (await litNotes(dialog)).forEach(id => shown.add(id))
+  for (let step = 1; step < total; step++) {
+    await nextView(page, dialog)
+    await expect(dialog.locator('.sb-presentation-narrative')).not.toHaveText('')
+    const lit = await litNotes(dialog)
+    expect(lit.length).toBeGreaterThan(0)
+    await expectFramed(dialog, lit)
+    lit.forEach(id => shown.add(id))
+  }
+  if (total > 0) {
+    // A plan with steps has at least one segment before its closing overview.
+    expect(total).toBeGreaterThanOrEqual(2)
+    await nextView(page, dialog)
+    await expect(stepCounter(dialog)).toHaveText(total + ' / ' + total)
+    await expectWholeSlate(dialog)
+  }
+  expect([...shown].sort()).toEqual([...noteIds].sort())
+  return total
+}
+
 /** A presented viewpoint: its narrative is shown and the camera frames its notes. */
 export async function expectScene(dialog: Locator, narrative: string | RegExp, nodeIds: string[]) {
   await expect(dialog.locator('.sb-presentation-narrative')).toHaveText(narrative)

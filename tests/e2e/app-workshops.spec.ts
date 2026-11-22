@@ -1,5 +1,5 @@
 import {resumeArchivedDraft} from './workshop-archive.shared'
-import { exitWithEscape, expectLane, expectWholeSlate, nextView, openPresenter } from './app-presenter.shared'
+import { exitWithEscape, expectLane, expectWholeSlate, nextView, openPresenter, stepCounter } from './app-presenter.shared'
 import {laneChat,sendLaneEdit,expectRejectedLaneEdit} from './workshop-conversation.shared'
 import {dismissWelcome,getSlate,userId,removeTestGuest} from './workshop-guests.shared'
 import { test, expect, type Page } from '@playwright/test'
@@ -42,11 +42,11 @@ test('review a workshop, move a card, present and open a private editable slate'
     expect(await laneOfCard(page,'spares')).toBe('Gather evidence')
     // Restated 2026-11-21: Present opens the presenter. Each lane is a viewpoint framing the lane and
     // its cards (the readout's "No cards in this lane." line is gone with the readout).
-    // Restated 2026-11-22 (fix/present-ai): the plan opens with an overview of the whole slate, then
-    // the lanes, in order, each named by its lane.
+    // Restated 2026-11-22 (fix/present-ai): the presenter starts on the plan's overview of the whole
+    // slate, with its narrative; step 1 is the first lane, then the lanes in order, each named by its lane.
     const deck = await openPresenter(page)
     const pilot = ['sensors', 'training']
-    await nextView(page, deck)
+    await expect(stepCounter(deck)).toHaveText(/^0 \/ \d+$/)
     await expectWholeSlate(deck)
     await nextView(page, deck)
     await expectLane(deck, 'Proposed trials', 'proposed')

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { nextView, openPresenter, stepCounter } from './app-presenter.shared'
+import { camera, expectPlanShows, openPresenter } from './app-presenter.shared'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
 
 const app = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -40,15 +40,11 @@ test('a sales engineer can correct the retention policy on the showcased board a
     await page.reload()
     await expect(note).toHaveAttribute('aria-label', correction)
     // Restated 2026-11-21: Present opens the presenter; each note is a viewpoint with its narrative.
+    // Restated 2026-11-22 (fix/present-ai): the plan starts on its overview and shows every note in
+    // segments of related notes (expectPlanShows); the presented drawing has the saved change.
     const deck = await openPresenter(page)
-    const current = deck.locator('.sb-presentation-narrative')
-    await expect(stepCounter(deck)).toHaveText('0 / 3', { timeout: 30_000 })
-    await nextView(page, deck)
-    await expect(current).toContainText('Customer upload')
-    await nextView(page, deck)
-    await expect(current).toContainText('Import worker')
-    await nextView(page, deck)
-    await expect(current).toContainText(correction)
+    await expect(camera(deck).locator('[data-node-id="retained-records"]').first()).toHaveAttribute('aria-label', correction)
+    await expectPlanShows(page, deck, ['customer-upload', 'import-worker', 'retained-records'])
     await deck.getByRole('button', { name: 'Exit presentation', exact: true }).click()
     await expect(deck).toHaveCount(0)
     await expect(note).toBeVisible()

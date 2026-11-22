@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { presentToEveryone } from './app-header.shared'
-import { expectFramed, nextView, stepCounter } from './app-presenter.shared'
+import { camera, expectFramed, expectWholeSlate, litNotes, nextView, stepCounter } from './app-presenter.shared'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -10,12 +10,20 @@ const note = (page:Page,id:string) => page.locator('#slateCanvas [data-node-id="
 
 // Restated 2026-11-21: live presenting uses the presenter. Its status, for the presenter and
 // for a follower, says which viewpoint is shown; the camera frames that note.
-async function expectNativeView(page:Page,id:string,label:string,index:number) {
-  const player=deck(page)
-  // Presenting or following, the presenter's status says which viewpoint is shown.
-  await expect(player.getByRole('status')).toContainText(index+' of 6')
-  await expect(player.locator('.sb-presentation-narrative')).toHaveText(label)
-  await expectFramed(player,[id])
+// Restated 2026-11-22 (fix/present-ai): the plan starts on its overview of the whole slate (step 0),
+// then segments of related notes, then the closing overview (the last step). A follower is on the
+// presenter's step: the same status, narrative and notes.
+async function expectSameView(owner:Page,reader:Page,step:number,total:number) {
+  const lead=deck(owner), watching=deck(reader)
+  await expect(lead.getByRole('status')).toContainText(step+' of '+total)
+  await expect(watching.getByRole('status')).toContainText(step+' of '+total)
+  const narrative=(await lead.locator('.sb-presentation-narrative').textContent())!
+  expect(narrative).not.toBe('')
+  await expect(watching.locator('.sb-presentation-narrative')).toHaveText(narrative)
+  const lit=await litNotes(lead)
+  expect(lit.length).toBeGreaterThan(0)
+  await expectFramed(watching,lit)
+  return lit
 }
 
 test('a read-only phone follows the presenter across native outage notes and returns to the saved board',async({browser})=>{
@@ -53,39 +61,52 @@ test('a read-only phone follows the presenter across native outage notes and ret
     await expect(note(reader,'fallback')).toHaveAttribute('aria-label',title)
     await expect(button(reader,'Presentation options')).toHaveCount(0)
     await presentToEveryone(owner)
-    await expect(stepCounter(deck(owner))).toHaveText('0 / 6',{timeout:30_000})
+    await expect(stepCounter(deck(owner))).toHaveText(/^0 \/ \d+$/,{timeout:30_000})
+    const total=Number((await stepCounter(deck(owner)).textContent())!.split('/')[1])
+    const noteIds=original.nodes.map((node:{options:{id:string}})=>node.options.id)
+    // At least one segment of the six notes, then the closing overview.
+    expect(total).toBeGreaterThanOrEqual(2)
+    expect(total).toBeLessThanOrEqual(noteIds.length+1)
+    await expectWholeSlate(deck(owner))
     await nextView(owner,deck(owner))
-    await expectNativeView(owner,'newcomer','New customer',1)
     const follow=button(reader,'Follow presentation')
     await expect(follow).toBeInViewport()
     await expect(deck(reader)).toHaveCount(0)
     await follow.tap()
-    await expectNativeView(reader,'newcomer','New customer',1)
+    const first=await expectSameView(owner,reader,1,total)
     await expect(deck(reader).getByRole('button',{name:'Next',exact:true})).toHaveCount(0)
     await expect(button(reader,'End presentation')).toHaveCount(0)
     await button(owner,'Next').click()
-    await expectNativeView(reader,'signin','Sign in\nUnavailable',2)
+    const second=await expectSameView(owner,reader,2,total)
+    expect(second).not.toEqual(first)
     await reader.keyboard.press('ArrowRight')
-    await expectNativeView(reader,'signin','Sign in\nUnavailable',2)
+    await expectSameView(owner,reader,2,total)
     await reader.reload()
-    await expectNativeView(reader,'signin','Sign in\nUnavailable',2)
+    await expectSameView(owner,reader,2,total)
     await button(owner,'Previous').click()
-    await expectNativeView(reader,'newcomer','New customer',1)
+    expect(await expectSameView(owner,reader,1,total)).toEqual(first)
     await button(reader,'Leave presentation').tap()
     await expect(deck(reader)).toHaveCount(0)
-    await button(owner,'Next').click()
-    await expectNativeView(owner,'signin','Sign in\nUnavailable',2)
-    await button(owner,'Next').click()
-    await expectNativeView(owner,'fallback',title,3)
+    // The presenter goes on to the closing overview; every note was in some segment, the edited one too.
+    const shown=new Set(first)
+    for (let step=2; step<=total; step++) {
+      await button(owner,'Next').click()
+      await expect(deck(owner).getByRole('status')).toContainText(step+' of '+total)
+      if (step<total) (await litNotes(deck(owner))).forEach(id=>shown.add(id))
+    }
+    expect([...shown].sort()).toEqual([...noteIds].sort())
+    await expectWholeSlate(deck(owner))
+    await expect(camera(deck(owner)).locator('[data-node-id="fallback"]').first()).toHaveAttribute('aria-label',title)
     await expect(follow).toBeInViewport()
     await expect(deck(reader)).toHaveCount(0)
     await follow.tap()
-    await expectNativeView(reader,'fallback',title,3)
+    await expect(deck(reader).getByRole('status')).toContainText(total+' of '+total)
+    await expectWholeSlate(deck(reader))
     // Two real navigation actions must reach two distinct stops even when the
     // second action happens before the previous DDP update has painted.
     await button(owner,'Previous').click()
     await button(owner,'Previous').click()
-    await expectNativeView(reader,'newcomer','New customer',1)
+    await expectSameView(owner,reader,total-2,total)
     await button(owner,'End presentation').click()
     await expect(deck(reader)).toHaveCount(0)
     await expect(follow).toHaveCount(0)
