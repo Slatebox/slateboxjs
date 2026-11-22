@@ -143,8 +143,14 @@ test.describe('go-live moved by its grip', () => {
       // The sample's go-live is the fourth Friday, at the chart's right edge.
       expect(await lineDay()).toBe(25)
       await expect(header).toContainText('go-live Fri')
+      // Bring go-live to the middle of the canvas: held near the canvas's edge the view pans with the grip (and the line goes on with it).
+      const canvasBox = (await page.locator('#slateCanvas').boundingBox())!
+      const at = centre(await resting(page, 'handle-launch'))
+      await page.evaluate(dx => { const slate = (window as any).slate.v2; slate.panBy({ x: dx / (slate.getZoom?.() || 1), y: 0 }) }, at.x - (canvasBox.x + canvasBox.width / 2))
+      await page.waitForTimeout(300)
       const width = await day(page)
       const grip = centre(await resting(page, 'handle-launch'))
+      expect(Math.abs(grip.x - (canvasBox.x + canvasBox.width / 2))).toBeLessThan(40)
       await shot(page, '7-go-live-before')
 
       // Three calendar days right, past what was drawn: Friday to Monday.
@@ -172,7 +178,8 @@ test.describe('go-live moved by its grip', () => {
       await page.waitForTimeout(500)
       await page.keyboard.press('ArrowRight')
       await expect.poll(lineDay).toBe(28)
-      await expect(announced(page)).toContainText('weekends don’t count')
+      await expect(announced(page)).toContainText('Go-live is now Mon')
+      await expect(header).toContainText('go-live Mon')
     } finally { await removeTestGuest(page, guest) }
   })
 })
