@@ -2,7 +2,7 @@
 // words, and the parts as slate notes. Lazy, with the kits; the rules stay in the model entry.
 import type { NodeJSON } from '../core/Serialization'
 import type { PartPlace, Workshop, WorkshopEdit, WorkshopNoteStyle } from '../workshops/model'
-import { launchLinkRefusal } from '../workshops/launchPlan'
+import { dayWords, launchLinkRefusal, scheduleLaunch, startHandleCard } from '../workshops/launchPlan'
 import { pipelineForecast } from '../workshops/pipeline'
 import { money } from '../workshops/numbers'
 /**
@@ -101,9 +101,11 @@ export function partNotes(parts: PartPlace[], board: Workshop, origin: { x: numb
   })
 }
 
-/** What a screen reader calls a grip: launch day, a task's length, or the divider after a team. */
+/** What a screen reader calls a grip: launch day, a task's start or length, or the divider after a team. */
 export function handleLabel(model: Workshop, part: string): string | null {
   const key = part.slice('handle-'.length)
+  const from = startHandleCard(part), task = from !== null && model.cards.find(item => item.id === from)
+  if (task) return `${task.label} start, ${dayWords(model, scheduleLaunch(model).get(task.id)!.from)}. Left and Right move it; the end stays.`
   if (key === 'launch') return `Launch day, day ${model.launch?.day}. Left and Right move it.`
   const card = model.cards.find(item => item.id === key)
   if (card) return `${card.label} length, ${card.duration} days. Left and Right change it.`

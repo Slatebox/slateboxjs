@@ -1,5 +1,5 @@
 // The part of a business board that is not notes: grid lines, axis labels, arrows, the launch-day
-// line, the forecast bar, budget fills and ticks, and the reason a held handle stopped. One svg.js
+// line, the forecast bar, budget fills and ticks, a plan bar's grips, and the reason a held handle stopped. One svg.js
 // group per attached board, in world coordinates, under the board's notes and above its lane
 // columns; the words a held or refused handle says go in a second group above every note. It is drawn from the board on show (committed or preview), never saved, and goes with destroy().
 import type { Workshop } from './model'
@@ -7,7 +7,8 @@ import type { BoardLayer, BoardLayerState } from './native'
 
 export type LayerShape =
   | { t: 'line'; x1: number; y1: number; x2: number; y2: number; color: string; width?: number; dash?: string }
-  | { t: 'rect'; x: number; y: number; w: number; h: number; color: string; rx?: number; opacity?: number }
+  /** A box; `role` names it in the document (data-board-layer), and a `grip-` role is drawn above the notes, on its bar. */
+  | { t: 'rect'; x: number; y: number; w: number; h: number; color: string; rx?: number; opacity?: number; role?: string }
   /**
    * A path; `arrow` puts an arrowhead at its end. `unlink` makes a 24px stroke under it, a button that removes
    * that link: a click, Enter or Space removes it; a tap first selects it, and a second tap removes it.
@@ -57,7 +58,7 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
         ...(shape.dash ? { 'stroke-dasharray': shape.dash } : {}) }, { stroke: shape.color }))
     } else if (shape.t === 'rect') {
       group.appendChild(element('rect', { x: shape.x, y: shape.y, width: Math.max(0, shape.w), height: Math.max(0, shape.h), rx: shape.rx ?? 0,
-        ...(shape.opacity !== undefined ? { opacity: shape.opacity } : {}) }, { fill: shape.color }))
+        ...(shape.opacity !== undefined ? { opacity: shape.opacity } : {}), ...(shape.role ? { 'data-board-layer': shape.role } : {}) }, { fill: shape.color }))
     } else if (shape.t === 'text') {
       const text = element('text', { x: shape.x, y: shape.y, 'font-size': shape.size ?? 13, 'text-anchor': shape.anchor ?? 'start',
         'font-family': 'system-ui, sans-serif', ...(shape.bold ? { 'font-weight': 600 } : {}), ...(shape.role ? { 'data-board-layer': shape.role } : {}) }, { fill: shape.color })
@@ -152,7 +153,8 @@ export function createBoardLayer(slate: any, paint: (shown: Workshop, state: Boa
       last = [board, preview, state]
       const { origin } = state
       const shapes = paint(preview ?? board, state, board)
-      const said = (shape: LayerShape) => shape.t === 'text' && (shape.role === 'clamp' || shape.role === 'refusal')
+      // The words a held or refused handle says, and a bar's grips, go above every note.
+      const said = (shape: LayerShape) => shape.t === 'text' && (shape.role === 'clamp' || shape.role === 'refusal') || shape.t === 'rect' && Boolean(shape.role?.startsWith('grip-'))
       for (const layer of [group, top]) layer.setAttribute('transform', `translate(${origin.x} ${origin.y})`)
       renderLayerShapes(group, shapes.filter(shape => !said(shape)), state.onUnlink, links)
       renderLayerShapes(top, shapes.filter(said))

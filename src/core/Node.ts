@@ -1750,7 +1750,7 @@ export class Node {
       el.removeAttribute("role");
     }
     if (el.style) {
-      el.style.cursor = !caps.canSelect ? "" : caps.canMove ? "grab" : "default";
+      el.style.cursor = !caps.canSelect ? "" : caps.canMove ? caps.cursor ?? "grab" : "default";
       el.style.pointerEvents = caps.canSelect ? "" : "none";
     }
     if (!caps.canConnect) this.hideConnectionHandles();
@@ -1960,7 +1960,7 @@ export class Node {
       // The host may have removed this note while it was gliding to its place.
       if (!this.isOnSlate()) return;
       if (this.svgGroup?.node?.style && this._governanceApplied) {
-        this.svgGroup.node.style.cursor = "grab";
+        this.svgGroup.node.style.cursor = this.slate?.governanceOf?.(this)?.capabilities.cursor ?? "grab";
       }
       this.settleAfterDrag(true);
     };

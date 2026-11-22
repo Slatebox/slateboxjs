@@ -9,8 +9,8 @@ import { registerWorkshopRules, said } from './model'
 import type { BusinessBoardRules, BusinessEditTools, PlanWords, WorkshopLimits } from './kinds'
 import type { WorkshopEdit } from './edits'
 import { amountOf, days, nextCardId, noteNumbers, ownField, renamedNumbers } from './numbers'
-import { dayFromWords, isoTime, nextMonday, isoAt } from './calendar'
-import { extendWorkshopEdits, cascadeStops, dayWords, downstreamTasks, holdOthers, launchFinish, launchHard, launchIndex, launchOverrun, lineWord, scheduleLaunch, snapStep, withLink, withTaskValue } from './schedule'
+import { clockOf, dayFromWords, dayMap, isoTime, nextMonday, isoAt } from './calendar'
+import { extendWorkshopEdits, cascadeStops, dayWords, downstreamTasks, edgeValues, type EdgeValues, type TaskEdge, holdOthers, launchFinish, launchHard, launchIndex, launchOverrun, lineWord, scheduleLaunch, snapStep, withLink, withTaskValue } from './schedule'
 import { checkTime, timeFamily } from './timeRules'
 
 export * from './schedule'
@@ -74,11 +74,46 @@ export function tryTask(board: Workshop, cardId: string, change: Partial<Pick<Wo
   return planProblem(board, next, cardId) ?? next
 }
 
+/** The grip on a task's start edge (its end grip is `handle-<card>`). A card id never starts with "_", so the name is the start grip's alone. */
+export const startHandle = (cardId: string) => 'handle-_start-' + cardId
+const startPrefix = startHandle('')
+/** The task whose start grip this is, or null for any other part. */
+export const startHandleCard = (part: string) => part.startsWith(startPrefix) ? part.slice(startPrefix.length) : null
+
+/** What a dragged edge comes to: its values, the one edit a drop makes, the board (null when the rules refuse it) and why it stopped or was refused. */
+export interface EdgeDrag { values: EdgeValues; edit: WorkshopEdit; next: Workshop | null; refusal: string | null; reason?: string }
+
+/**
+ * A task's start or end edge dragged `by` calendar days (edgeValues), as the plan's rules have it: a slip
+ * pushes what waits on it (or stops at it, held where it was), and a rule the change breaks refuses it in
+ * its own sentence. The drop is one set_task edit, the edit the chat and exec make.
+ */
+export function dragTaskEdge(board: Workshop, cardId: string, edge: TaskEdge, by: number): EdgeDrag {
+  const values = edgeValues(board, cardId, edge, by)
+  const card = board.cards.find(item => item.id === cardId)!
+  const edit: WorkshopEdit = { kind: 'set_task', card: { id: cardId }, duration: values.duration, lag: values.lag }
+  const tried = tryTask(board, cardId, { lag: values.lag, duration: values.duration })
+  const hiring = board.kind === 'hiring-plan'
+  const waits = card.dependsOn?.map(id => board.cards.find(item => item.id === id)?.label).filter(Boolean) ?? []
+  const reason = values.held === 'length' ? (hiring ? 'Recruiting takes at least 1 week.' : snapStep(board) > 1 ? 'A task takes at least a week.' : 'A task takes at least 1 day.')
+    : values.held === 'longest' ? (hiring ? 'Recruiting takes at most 20 weeks.' : 'A task takes at most 60 days.')
+    : values.held === 'ready' ? (waits.length ? card.label + ' starts as early as it can: it waits on ' + waits.join(' and ') + '.' : card.label + ' starts on the plan’s first day.') : undefined
+  return typeof tried === 'string' ? { values, edit, next: null, refusal: tried, reason } : { values, edit, next: tried, refusal: null, reason }
+}
+
 /** A plan's words for the chat (kinds.ts PlanWords): dates on this plan. */
 export const planWords: PlanWords = {
   day: (board, text, after = 0) => board.clock ? dayFromWords(board.clock.origin, text, after) : null,
   iso: (board, day) => isoAt(board.clock!.origin, day),
   name: (board, day) => dayWords(board, day),
+  readyDay(board, cardId) {
+    const card = board.cards.find(item => item.id === cardId)!
+    return dayMap(clockOf(board)).cal(scheduleLaunch(board).get(cardId)!.start - (card.lag ?? 0))
+  },
+  lagAt(board, cardId, day) {
+    const card = board.cards.find(item => item.id === cardId)!
+    return dayMap(clockOf(board)).idx(day) - (scheduleLaunch(board).get(cardId)!.start - (card.lag ?? 0))
+  },
 }
 
 /** Where every task of a plan may be dragged: its legal runs of start and of length. */

@@ -103,6 +103,42 @@ export function snapStep(board: Workshop): number {
   return snap && snap.kind === 'snap' && snap.unit === 'week' ? (clockOf(board)?.workdays ? 5 : 7) : 1
 }
 
+/** Which edge of a task's bar a grip drags: its start (the end stays put) or its end (the start stays put). */
+export type TaskEdge = 'start' | 'end'
+
+/** A task's lag and length after one of its edges is dragged; `held` when a bound stopped it (its length, or what it waits on). */
+export interface EdgeValues { lag: number; duration: number; held?: 'length' | 'longest' | 'ready' }
+
+/**
+ * Where a task's lag and length go when its bar's `edge` is dragged `by` calendar days (a pointer's pixels over
+ * a day's width, so a fraction). The edge lands on the nearest day and is read through the plan's calendar:
+ * with the workdays rule an end let go on a weekend ends the Friday before, and a start the Monday after.
+ * It moves in whole steps of the plan's snap (a week where it snaps to weeks). The end edge keeps the start;
+ * the start edge keeps the end (the length takes up the difference). At least one step long (and at most
+ * the 60 days a task takes, or a hire's 20 weeks of recruiting), and never starting before what it waits on lets it.
+ */
+export function edgeValues(board: Workshop, cardId: string, edge: TaskEdge, by: number): EdgeValues {
+  const card = board.cards.find(item => item.id === cardId)
+  if (!card) throw new Error('That task is no longer on the plan.')
+  const t = scheduleLaunch(board).get(cardId)!
+  const map = dayMap(clockOf(board)), step = snapStep(board)
+  const lag = card.lag ?? 0, duration = card.duration ?? 1
+  const steps = (days: number) => Math.round(days / step) * step
+  if (edge === 'end') {
+    const wanted = steps(map.idx(Math.round(t.to + by)) - t.start), longest = board.kind === 'hiring-plan' ? 140 : 60
+    if (wanted > longest) return { lag, duration: Math.floor(longest / step) * step, held: 'longest' }
+    return wanted < step ? { lag, duration: step, held: 'length' } : { lag, duration: wanted }
+  }
+  // Before the plan's first day is before it, whatever the calendar.
+  const at = Math.round(t.from + by)
+  let move = steps((at < 0 ? at : map.idx(at)) - t.start)
+  let held: EdgeValues['held']
+  // Never before what it waits on (lag 0, or the lag's remainder in whole steps), never shorter than a step.
+  if (lag + move < 0) { move = -Math.floor(lag / step) * step; held = 'ready' }
+  if (duration - move < step) { move = Math.floor((duration - step) / step) * step; held = 'length' }
+  return { lag: lag + move, duration: duration - move, ...(held && { held }) }
+}
+
 /** Every task that waits on `cardId`, directly or through others. */
 export function downstreamTasks(board: Workshop, cardId: string): Set<string> {
   const found = new Set<string>()

@@ -42,6 +42,8 @@ export interface NodeCapabilities {
    * a provisional drawing (a conversation's preview, say) is shown but is not the diagram.
    */
   exportable: boolean;
+  /** The cursor over a note that may be moved, in place of the grab hand (a resize grip says ew-resize). */
+  cursor?: string;
 }
 
 /** An ordinary note. Returned for every note no policy claims. */

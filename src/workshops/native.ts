@@ -80,6 +80,8 @@ export interface BoardLayerState {
   view?: { x: number; y: number; width: number; height: number } | null
   /** Say something to a screen reader (the slate's announcer). */
   announce?(text: string): void
+  /** The card the person is on: selected, under the pointer, or held by one of its grips (a plan shows that bar's grips). */
+  focus?: string | null
 }
 
 export interface BoardLayer {
@@ -124,6 +126,8 @@ export interface WorkshopBoardKit {
   cardKeys?: string
   /** Outline the lanes a held card may go to. Off for a launch plan, where every team takes every task. */
   laneCues: boolean
+  /** The card a part belongs to (a card, or one of its grips); null for any other part. Left out, only a card's own note. */
+  cardOfPart?(board: Workshop, part: string): string | null
   /** A nest board: the card an ordinary note dropped at this point sits under; null for none. */
   noteUnder?(board: Workshop, point: { x: number; y: number }, layout: WorkshopBoardLayout): string | null
 }
@@ -355,7 +359,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // A card is a note: lines are drawn to and from it as to any note, on a board that trades notes and cards.
       if (kind === 'card') return { canMove: !readOnly, canEditText: !readOnly && !proposal && value.kind !== 'release-plan', canConnect: acceptsLines() }
       if (kind === 'lane') return { canMove: false, canEditText: !readOnly && !proposal }
-      if (kind === 'handle') return { canMove: !readOnly && !proposal, canEditText: false }
+      // A grip pulled sideways (a plan's edge, launch day, a budget's divider on a laptop) says so under the pointer.
+      if (kind === 'handle') return { canMove: !readOnly && !proposal, canEditText: false, ...(!layout.narrow && { cursor: 'ew-resize' }) }
       return decoration
     },
     onStart(node: any, point) {
@@ -776,7 +781,18 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   }
 
   const releasePolicy = slate.setDragPolicy(policy)
-  const stopWatchingSelection: (() => void) | undefined = options.onSelect && slate.onSelectionChange?.(() => reportSelection())
+  const stopWatchingSelection: (() => void) | undefined = (options.onSelect || layer) ? slate.onSelectionChange?.(() => { reportSelection(); refocus() }) : undefined
+  // The card under the pointer (a plan shows its grips while it is there).
+  let hovered: string | null = null
+  const onHover = (event: Event) => {
+    const target = (event.target as Element | null)?.closest?.('[data-node-id]')
+    const id = target?.getAttribute('data-node-id') ?? null
+    const next = id && owned.has(id) ? focusOfNote(id) : null
+    if (next === hovered) return
+    hovered = next
+    refocus()
+  }
+  if (layer) slate.element?.addEventListener?.('pointerover', onHover)
   // Any press on the slate ends a keyboard-staged move: the person has moved on.
   const onPress = () => { if (staged) clearStaged() }
   slate.element?.addEventListener?.('pointerdown', onPress, true)
@@ -1799,16 +1815,47 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       }
       drawLines(how.model)
     })
+    paintLayer(how.model)
+    slate.notifyNodeChanged?.()
+  }
+
+  /** The board on show the layer was last drawn from. */
+  let layerShown: Workshop | null = null
+  /** The card a note of this board belongs to (a card, or one of a plan's grips). */
+  function focusOfNote(id: string): string | null {
+    const part = kindOf(id)
+    if (!part) return null
+    if (part.kind === 'card') return part.key
+    return kit?.cardOfPart?.(value, nameOf(id)) ?? null
+  }
+  /** The card the person is on: held by a grip, held, under the pointer, or the one selected. */
+  function focusNow(): string | null {
+    if (grip) return kit?.cardOfPart?.(value, grip.name) ?? null
+    if (held) return held.cardId
+    if (hovered) return hovered
+    const selected: any[] = destroyed ? [] : slate.getSelectedNodes?.() ?? []
+    return selected.length === 1 && owned.get(selected[0].id) === selected[0] ? focusOfNote(selected[0].id) : null
+  }
+  let focused: string | null = null
+  /** The selection or the pointer moved to another card: the layer redraws (a plan's grips follow). */
+  function refocus() {
+    if (destroyed || !layer || !layerShown) return
+    if (focusNow() === focused) return
+    paintLayer(layerShown)
+  }
+
+  function paintLayer(shown: Workshop) {
     if (layer) {
+      layerShown = shown
+      focused = focusNow()
       // Under every note but the lane columns, drawn from what is on show.
       // The lane column drawn last (columns are sent to the back one by one, so not the last lane's).
       const above = value.lanes.map(lane => owned.get(noteId(workshopNodeIds.column(lane.id)))?.svgGroup?.node as Element | undefined)
         .reduce<Element | null>((top, node) => !node ? top : !top || top.compareDocumentPosition(node) & 4 ? node : top, null)
-      const shown = how.model
       const seen = slate.canvas?.viewbox?.()
       const view = seen && [seen.x, seen.y, seen.width, seen.height].every(Number.isFinite)
         ? { x: seen.x - origin.x, y: seen.y - origin.y, width: seen.width, height: seen.height } : null
-      layer.draw(value, shown === value ? null : shown, { origin, layout, above, view, announce: text => slate.announce?.(text),
+      layer.draw(value, shown === value ? null : shown, { origin, layout, above, view, announce: text => slate.announce?.(text), focus: focused,
         clamp: grip?.last?.clampedReason ? { name: grip.name, text: grip.last.clampedReason }
           : held?.outcome.kind === 'candidate' && held.outcome.said ? { name: 'card-' + held.cardId, text: held.outcome.said }
           : !grip && gripRefusal ? { name: gripRefusal.name, text: gripRefusal.reason } : null,
@@ -1820,7 +1867,6 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
           else commitKit(result.workshop, { cardId })
         } })
     }
-    slate.notifyNodeChanged?.()
   }
 
   /** Board coordinates (world units from the artwork's origin) of a world point. */
@@ -1977,6 +2023,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (gripRefusal) clearTimeout(gripRefusal.timer)
       slate.element?.removeEventListener?.('pointerdown', onPress, true)
       stopWatchingSelection?.()
+      if (layer) slate.element?.removeEventListener?.('pointerover', onHover)
       slate.withPolicyAuthority(() => {
         for (const [lineId, was] of drawnLines) if (slate.nodes.one(was.holder.id) === was.holder) was.holder.relationships?.removeAssociation?.(lineId)
         for (const [linkId, link] of links) link.parent.relationships?.removeAssociation(linkId)

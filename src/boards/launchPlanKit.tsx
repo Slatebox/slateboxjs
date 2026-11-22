@@ -1,12 +1,14 @@
 // Launch plan kit: tasks as bars in team swimlanes on a day grid, arrows for what waits on what,
-// the critical path, and a launch-day line. Bars slide (lag), stretch (length) and link by Dragology.
+// the critical path, and a launch-day line. Bars slide (lag) and link by Dragology; each bar has a grip on
+// both edges (shown on the bar that is selected or under the pointer, and always on a phone): the end grip
+// changes its length, the start grip moves its start and keeps its end, read through the plan's calendar.
 // A dated plan says real dates and shades weekends when days are working days; its freezes are
 // hatched bands a dragged bar hops (one Dragology branch per legal run, joined by withBranchTransition);
 // a soft line lets a bar past it, in red. The hiring plan is the same kit: each hire's recruiting bar,
 // then its cost to the plan's end, the runway readout and the funding round's line; on a phone it is read-only.
 import { lessThan, moreThan, param } from 'dragology'
 import { laneColors, type BoardLayerState, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type PartPlace, type WorkshopEdit } from '../workshops/model'
-import { cascadeStops, dayWords, holdOthers, launchFinish, launchHard, launchLinkRefusal, launchOverrun, launchPlanLimits, legalRuns, lineWord, scheduleLaunch, snapStep, tryTask, withLink, withTaskValue } from '../workshops/launchPlan'
+import { cascadeStops, dayWords, dragTaskEdge, holdOthers, launchFinish, launchHard, launchLinkRefusal, launchOverrun, launchPlanLimits, legalRuns, lineWord, scheduleLaunch, snapStep, startHandle, startHandleCard, tryTask, withLink, withTaskValue, type EdgeValues, type TaskEdge } from '../workshops/launchPlan'
 import { checkTime, pastTheLine } from '../workshops/timeRules'
 import { clockOf, dayMap, isoAt, offsetOf, shortDate, weekdayAt } from '../workshops/calendar'
 import { hireStarts, runwayMonths, runwayWords } from '../workshops/hiringPlan'
@@ -20,8 +22,12 @@ const CRITICAL = '#c2410c'
 const BAR = 32
 /** A phone row's bar: a whole finger's height. */
 const PHONE_BAR = 44
-/** How far a length grip's 44px box reaches back over its bar's end: on a phone none of it, so a press on a short bar moves the bar. */
-const gripBack = (narrow: boolean) => narrow ? 0 : 22
+/**
+ * How far an edge grip's box reaches over its bar: on a laptop up to 22px of a 44px box, less on a short bar so
+ * its middle is still there to slide it; on a phone none of it (a finger's 44px box sits past the edge), so a
+ * press on a short bar moves the bar.
+ */
+const gripIn = (narrow: boolean, width: number) => narrow ? 0 : Math.min(22, Math.max(4, Math.floor(width / 3)))
 
 export interface LaunchGeometry {
   parts: PartPlace[]
@@ -61,8 +67,14 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
     parts.push({ name: 'card-' + cardId, ...box, text: narrow ? '' : hiring ? card.label : `${card.label} · ${card.duration}d`,
       fill: red ? '#fde3d7' : narrow ? color(card.laneId) : hiring ? tint(color(card.laneId), 0.45) : '#fffdf6',
       line: red || t.critical && !hiring ? CRITICAL : '#667872', lineWidth: red || t.critical && !hiring ? 2.5 : 1, fontSize: 13 })
-    // A hiring plan on a phone is read-only: no grips.
-    if (!(hiring && narrow)) parts.push({ name: 'handle-' + cardId, x: box.x + box.width - gripBack(narrow), y: box.y + box.height / 2 - 22, width: 44, height: 44 })
+    // Its grips: the start edge, then the end edge, each at least 24px to a finger. A hiring plan on a phone is read-only: no grips.
+    if (!(hiring && narrow)) {
+      const inward = gripIn(narrow, box.width), reach = narrow ? 44 : 22, y = box.y + box.height / 2 - 22
+      // On a phone the start grip stays on the screen: at the plan's left edge it reaches a little over the bar.
+      const sx = narrow ? Math.max(-12, box.x - reach) : box.x - reach
+      parts.push({ name: startHandle(cardId), x: sx, y, width: Math.max(24, box.x + inward - sx), height: 44 })
+      parts.push({ name: 'handle-' + cardId, x: box.x + box.width - inward, y, width: inward + reach, height: 44 })
+    }
   }
   let y: number, gridTop: number, axisY: number
   if (narrow) {
@@ -167,6 +179,17 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     if (g.narrow) shapes.push({ t: 'text', x: 8, y: box.y - 6, text: `${card.label} · ${card.duration}d`, color: layerInk.ink, size: 13, bold: t.critical })
     if (!t.critical) shapes.push({ t: 'text', x: box.x + box.width + (g.narrow ? 48 : 24), y: box.y + box.height / 2 + 4, text: '+' + t.slack + 'd', color: layerInk.ink, size: 12, role: 'slack-' + card.id })
   }
+  // Each bar's two grips, above its bar: on the selected or hovered bar on a laptop, on every bar on a phone (a hiring plan's phone view is read-only).
+  if (!(hiring && g.narrow)) for (const card of board.cards) {
+    if (!g.narrow && state.focus !== card.id) continue
+    const box = g.bars.get(card.id)!
+    const y = box.y + 6, h = box.height - 12
+    const [sx, ex] = g.narrow ? [box.x - 10, box.x + box.width + 4] : [box.x + 3, box.x + box.width - 9]
+    // Bold on the bar in hand; quieter where every bar shows them.
+    const opacity = g.narrow ? 0.55 : 0.8
+    shapes.push({ t: 'rect', x: sx, y, w: 6, h, rx: 3, color: layerInk.ink, opacity, role: 'grip-start-' + card.id },
+      { t: 'rect', x: ex, y, w: 6, h, rx: 3, color: layerInk.ink, opacity, role: 'grip-end-' + card.id })
+  }
   if (hiring) {
     // The runway readout, red under a floor the plan keeps; the round's line and its grip.
     const months = runwayMonths(board)
@@ -193,11 +216,6 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
   const lx = g.x0 + board.launch!.day * g.dayW
   shapes.push({ t: 'line', x1: lx, y1: g.narrow ? 112 : 26, x2: lx, y2: g.height - 8, color: layerInk.launch, width: 2, dash: '6 4' })
   shapes.push({ t: 'rect', x: lx - 4, y: g.narrow ? 112 : 26, w: 8, h: 18, rx: 4, color: layerInk.launch })
-  for (const card of board.cards) {
-    // Each bar's length grip: 8px seen, 44px under the pointer (the handle note). On a phone it sits just past the bar's end.
-    const box = g.bars.get(card.id)!
-    shapes.push({ t: 'rect', x: box.x + box.width + (g.narrow ? 4 : -5), y: box.y + 4, w: g.narrow ? 6 : 4, h: box.height - 8, rx: 2, color: layerInk.ink, opacity: 0.55 })
-  }
   const finish = launchFinish(board)
   const done = Math.max(0, ...[...times.values()].map(t => t.to))
   shapes.push({ t: 'text', x: g.narrow ? 8 : g.x0, y: g.narrow ? 18 : 20,
@@ -323,6 +341,9 @@ function keyEdit(board: Workshop, part: string, { key, shiftKey }: { key: string
   const step = (key === 'ArrowLeft' ? -1 : 1) * snapStep(board)
   if (part === 'handle-launch') return [{ kind: 'set_launch_day', day: board.launch!.day + Math.sign(step) }]
   if (part === 'handle-funding') return [{ kind: 'set_funding', day: board.hiring!.funding!.day + Math.sign(step) * 7 }]
+  // The start grip moves the start and keeps the end: a step later is a step shorter.
+  const from = startHandleCard(part), task = from !== null && board.cards.find(item => item.id === from)
+  if (task) return [{ kind: 'set_task', card: { id: task.id }, duration: task.duration! - step, lag: (task.lag ?? 0) + step }]
   const match = /^(card|handle)-(.+)$/.exec(part)
   const card = match && board.cards.find(item => item.id === match[2])
   if (!card) return null
@@ -379,6 +400,11 @@ export const launchPlanKit: WorkshopBoardKit = {
     const g = launchLayout(board, layout)
     const render = (state: Workshop) => partsGeometry(launchLayout(state, layout).parts)
     if (board.kind === 'hiring-plan' && layout.narrow) return null
+    // A task's start or end grip.
+    const from = startHandleCard(handleId)
+    if (from !== null) return board.cards.some(card => card.id === from) ? edgeGrip(board, from, 'start', grab, g, handleId) : null
+    const ends = handleId.slice('handle-'.length)
+    if (board.cards.some(card => card.id === ends)) return edgeGrip(board, ends, 'end', grab, g, handleId)
     if (ruled(board)) return ruledHandle(board, handleId, grab, layout, g, render)
     if (handleId === 'handle-launch') {
       const limits = launchPlanLimits(board, { field: 'day' })
@@ -391,29 +417,47 @@ export const launchPlanKit: WorkshopBoardKit = {
         return { next }
       }
     }
-    const cardId = handleId.slice('handle-'.length)
-    const i = board.cards.findIndex(card => card.id === cardId)
-    if (i < 0) return null
-    const ref = { cardId, field: 'duration' as const }
-    const limits = launchPlanLimits(board, ref)
-    const day = board.launch!.day
-    const follow = headlessDrag(board, handleId, grab, render, (d, state) =>
-      d.vary(state, param('cards', i, 'duration'), { constraint: (s: Workshop) => [moreThan(s.cards[i].duration!, 1), lessThan(launchFinish(s), day + 0.001)] }).onDrop(state => roundDays(state)))
-    const bar = g.bars.get(cardId)!
-    return point => {
-      const wanted = Math.round((point.x - grab.x + gripBack(g.narrow) - bar.x) / g.dayW)
-      const clamped = Math.min(limits.max, Math.max(limits.min, wanted))
-      const next = follow?.(point) ?? withTaskValue(board, ref, clamped)
-      if (wanted > limits.max) {
-        return { next, clampedReason: `Launch is day ${day}.`, refusal: launchOverrun(withTaskValue(board, ref, Math.min(60, wanted)), cardId) ?? limits.reasons.max }
-      }
-      if (wanted < limits.min) return { next, clampedReason: limits.reasons.min }
-      return { next }
-    }
+    return null
   },
   keyEdit,
   keyChoices,
   cardKeys: 'Left and Right move it a day, Shift changes its length, L chooses what it waits on.',
+  cardOfPart(board, part) {
+    const id = startHandleCard(part) ?? (/^(?:card|handle)-(.+)$/.exec(part)?.[1] ?? null)
+    return id !== null && board.cards.some(card => card.id === id) ? id : null
+  },
+}
+
+/**
+ * A task's start or end grip: where the pointer has taken the edge, in the plan's days (dragTaskEdge), shown as
+ * the plan would be. At a bound (a day long, what it waits on) the grip holds and says why; past a rule (the
+ * hard line, a freeze, a lock) the nearest edge the rules take is shown with the rule's sentence, and the drop
+ * is refused in it, the bar going back.
+ */
+function edgeGrip(board: Workshop, cardId: string, edge: TaskEdge, grab: { x: number; y: number }, g: LaunchGeometry, name: string) {
+  const part = g.parts.find(item => item.name === name)
+  if (!part) return null
+  return (point: { x: number; y: number }) => {
+    // How far the grip has moved, in calendar days of the grid (a weekend is drawn, so it is a day of pixels).
+    const drag = dragTaskEdge(board, cardId, edge, (point.x - grab.x - part.x) / g.dayW)
+    if (drag.next) return { next: drag.next, ...(drag.reason && { clampedReason: drag.reason }) }
+    return { next: nearestLegal(board, cardId, drag.values) ?? board, clampedReason: drag.refusal!, refusal: drag.refusal! }
+  }
+}
+
+/** From values the rules refuse back toward the task as it is, the first the rules take: what a held grip shows. */
+function nearestLegal(board: Workshop, cardId: string, wanted: EdgeValues): Workshop | null {
+  const card = board.cards.find(item => item.id === cardId)!
+  const step = snapStep(board), lag = card.lag ?? 0, duration = card.duration ?? 1
+  // The start edge moves lag and length together (the end stays); the end edge moves only the length.
+  const towards = (from: number, to: number) => Math.sign(to - from) * step
+  for (let at = { ...wanted }; at.lag !== lag || at.duration !== duration;) {
+    if (at.lag !== lag) { const move = towards(at.lag, lag); at = { lag: at.lag + move, duration: at.duration - move } }
+    else at = { lag, duration: at.duration + towards(at.duration, duration) }
+    const tried = tryTask(board, cardId, { lag: at.lag, duration: at.duration })
+    if (typeof tried !== 'string') return tried
+  }
+  return null
 }
 
 /**
@@ -483,15 +527,7 @@ function ruledHandle(board: Workshop, handleId: string, grab: { x: number; y: nu
     const follow = runs.length ? vary(launch ? ['launch', 'day'] : ['hiring', 'funding', 'day'], s => launch ? s.launch!.day : s.hiring!.funding!.day, runs, 1) : null
     return result(follow, point => Math.round((point.x - grab.x + 22 - g.x0) / g.dayW), why, set)
   }
-  const cardId = handleId.slice('handle-'.length)
-  const i = board.cards.findIndex(card => card.id === cardId)
-  if (i < 0) return null
-  const step = snapStep(board), bar = g.bars.get(cardId)!
-  const runs = legalRuns(board, cardId, 'duration')
-  const follow = runs.length ? vary(['cards', i, 'duration'], s => s.cards[i].duration!, runs, step, cardId) : null
-  const why = (value: number) => { const tried = tryTask(board, cardId, { duration: Math.max(step, Math.round(value / step) * step) }); return typeof tried === 'string' ? tried : null }
-  return result(follow, point => board.cards[i].duration! + Math.round((point.x - grab.x + gripBack(g.narrow) - bar.x - bar.width) / g.dayW), why,
-    value => withTaskValue(board, { cardId, field: 'duration' }, value))
+  return null
 }
 /** The plan's rules on a whole-board change (a marker moved): the sentence, or null. */
 function planProblem0(board: Workshop, next: Workshop): string | null {
