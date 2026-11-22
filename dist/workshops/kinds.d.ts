@@ -102,6 +102,8 @@ export interface RulebookHooks {
     setLimit(board: Workshop, laneId: string, capacity: number | null, audit: RuleAudit): Workshop | string | null;
     /** check_move: whether a card may go to a lane, and which rule says no. */
     move(board: Workshop, card: WorkshopRef, lane: WorkshopRef): WorkshopMoveCheck;
+    /** checkWorkshopReplacement's rulebook part: a sentence, or null. */
+    replacement(original: Workshop, next: Workshop): string | null;
     /** The diff a rule edit is previewed as. */
     diff(before: Workshop, after: Workshop): {
         from: number;

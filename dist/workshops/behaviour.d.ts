@@ -72,8 +72,10 @@ export type BehaviourVerdict = {
 };
 /**
  * The one check: whether `after` keeps this board's rules for every card that arrived in a lane
- * (moved there, or new). Rules come from `after` (a rule edit is a change of the rules, not a move).
- * A bin takes any card. A `warn` rule lets the card land and says its sentence.
+ * (moved there, or new). The rules are the board's as it was (`before`): a save that brings other
+ * rules is a rule edit, checked on its own (checkWorkshopReplacement), never a way round them. A bin
+ * takes any card, and never loses one: a card in a bin may become a note, but it is not deleted.
+ * A `warn` rule lets the card land and says its sentence.
  */
 export declare function checkBehaviour(before: Workshop, after: Workshop): BehaviourVerdict;
 /** What changed between two rulebooks, as the chat's diff preview says it, and what already breaks the new rules. */
