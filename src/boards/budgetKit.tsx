@@ -1,11 +1,11 @@
 // Budget kit: one envelope split into team segments sized by allocation. A divider between two
-// teams moves money from one to the other (the total cannot change); a line item moves only to
-// a team with room for it.
+// teams moves money from one to the other (the total stays); the envelope's two outer edges grow or
+// shrink the total (set_budget_total); a line item moves only to a team with room for it.
 import { inOrder } from 'dragology'
 import {
   laneColors, workshopCandidate, workshopDestinations, type BoardLayerState, type PartPlace, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type WorkshopEdit,
 } from '../workshops/model'
-import { budgetCaption, budgetCommitted, budgetLimits, budgetRefusal, shiftBudget } from '../workshops/budget'
+import { budgetCaption, budgetCommitted, budgetLimits, budgetRefusal, budgetTotalBounds, shiftBudget, withBudgetTotal, type BudgetEdge } from '../workshops/budget'
 import { money } from '../workshops/numbers'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
 import { headlessDrag, inside, orColumnUnder, partsGeometry } from '../workshops/boardSpecs'
@@ -21,6 +21,10 @@ const TALL = 900
 export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) {
   const narrow = Boolean(layout.narrow)
   const total = board.budget!.total
+  // The scale: the envelope's width (a phone's height) is its total, or a held edge's starting total.
+  const scale = layout.gaugeScale ?? total
+  // A held start edge keeps the end where it was: the envelope starts as far in (or out) as the total changed.
+  const lead = layout.gaugeAnchor === 'start' ? (scale - total) : 0
   const parts: PartPlace[] = []
   const segments: { laneId: string; start: number; size: number }[] = []
   const counts = board.lanes.map(lane => board.cards.filter(card => card.laneId === lane.id).length)
@@ -28,20 +32,20 @@ export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) 
   if (narrow) {
     // A vertical envelope: bands as tall as their share of it, and never too short for their items.
     width = Math.max(300, layout.width ?? 390)
-    let y = TOP
+    let y = TOP + lead / scale * TALL
     board.lanes.forEach((lane, i) => {
-      const size = Math.max(100 + (counts[i] + 1) * 64, lane.allocation! / total * TALL)
+      const size = Math.max(100 + (counts[i] + 1) * 64, lane.allocation! / scale * TALL)
       segments.push({ laneId: lane.id, start: y, size })
       y += size
     })
     height = y + 8
   } else {
-    width = ENVELOPE
-    let x = 0
+    let x = lead / scale * ENVELOPE
     for (const lane of board.lanes) {
-      segments.push({ laneId: lane.id, start: x, size: lane.allocation! / total * ENVELOPE })
-      x += lane.allocation! / total * ENVELOPE
+      segments.push({ laneId: lane.id, start: x, size: lane.allocation! / scale * ENVELOPE })
+      x += lane.allocation! / scale * ENVELOPE
     }
+    width = Math.max(ENVELOPE, x)
     height = TOP + 100 + (Math.max(...counts) + 1) * 64
   }
   board.lanes.forEach((lane, i) => {
@@ -66,8 +70,17 @@ export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) 
         : { name: 'handle-' + lane.id, x: edge - 22, y: TOP - 6, width: 44, height: 48 })
     }
   })
-  return { parts, width, height, segments, narrow }
+  // The envelope's two outer edges: 44px under the pointer (a finger's size on a phone), the total's grips.
+  const first = segments[0], last = segments.at(-1)!
+  for (const [name, edge] of [[FIRST, first.start], [LAST, last.start + last.size]] as const) {
+    parts.push(narrow ? { name, x: width - 96, y: edge - 22, width: 88, height: 44 } : { name, x: edge - 22, y: TOP - 6, width: 44, height: 48 })
+  }
+  return { parts, width, height, segments, narrow, k: (narrow ? TALL : ENVELOPE) / scale }
 }
+
+/** The envelope's outer grips: its start (the first team's side) and its end (the last team's). A lane id never starts with "_". */
+const FIRST = 'handle-_first', LAST = 'handle-_last'
+const edgeOf = (part: string): BudgetEdge | null => part === FIRST ? 'start' : part === LAST ? 'end' : null
 
 function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
   const g = budgetLayout(board, state.layout)
@@ -83,7 +96,7 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
       shapes.push({ t: 'rect', x, y, w: w * committed / allocation || 0, h: 10, rx: 5, color: layerInk.bar })
       if (lane.floor !== undefined) shapes.push({ t: 'line', x1: x + w * lane.floor / allocation, y1: y - 4, x2: x + w * lane.floor / allocation, y2: y + 14, color: layerInk.ink, width: 2 })
     } else {
-      const k = ENVELOPE / total, y = TOP + 86
+      const k = g.k, y = TOP + 86
       shapes.push({ t: 'rect', x: seg.start + 6, y, w: seg.size - 12, h: 10, rx: 5, color: layerInk.track })
       shapes.push({ t: 'rect', x: seg.start + 6, y, w: Math.max(0, (seg.size - 12) * committed / allocation || 0), h: 10, rx: 5, color: layerInk.bar })
       if (lane.floor !== undefined) shapes.push({ t: 'line', x1: seg.start + lane.floor * k, y1: y - 6, x2: seg.start + lane.floor * k, y2: y + 16, color: layerInk.ink, width: 2 })
@@ -97,6 +110,12 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
         : { t: 'rect', x: edge - 4, y: TOP + 2, w: 8, h: 30, rx: 4, color: layerInk.ink })
     }
   })
+  // The total's two grips, on the envelope's outer edges.
+  for (const seg of [g.segments[0], g.segments.at(-1)!]) {
+    const edge = seg === g.segments[0] ? seg.start : seg.start + seg.size
+    shapes.push(g.narrow ? { t: 'rect', x: g.width - 68, y: edge - 4, w: 32, h: 8, rx: 4, color: layerInk.ink, opacity: 0.7, role: 'edge-' + (seg === g.segments[0] ? 'first' : 'last') }
+      : { t: 'rect', x: edge - 4, y: TOP + 2, w: 8, h: 30, rx: 4, color: layerInk.ink, opacity: 0.7, role: 'edge-' + (seg === g.segments[0] ? 'first' : 'last') })
+  }
   if (state.clamp) {
     const part = g.parts.find(item => item.name === state.clamp!.name)
     if (part) shapes.push({ t: 'text', x: g.narrow ? 8 : Math.min(Math.max(part.x + 22, 120), g.width - 120), y: g.narrow ? part.y + 8 : TOP - 12,
@@ -134,6 +153,8 @@ export const budgetKit: WorkshopBoardKit = {
     return null
   },
   handleDrag(board, handleId, grab, layout) {
+    const outer = edgeOf(handleId)
+    if (outer) return totalGrip(board, outer, handleId, grab, layout)
     const laneId = handleId.slice('handle-'.length)
     const i = board.lanes.findIndex(lane => lane.id === laneId)
     const next = board.lanes[i + 1]
@@ -165,6 +186,12 @@ export const budgetKit: WorkshopBoardKit = {
   },
   keyEdit(board, part, { key }) {
     if (key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'ArrowUp' && key !== 'ArrowDown') return null
+    // An outer edge: outward (Left or Up at the start, Right or Down at the end) grows the total a step, inward shrinks it.
+    const outer = edgeOf(part)
+    if (outer) {
+      const out = outer === 'start' ? key === 'ArrowLeft' || key === 'ArrowUp' : key === 'ArrowRight' || key === 'ArrowDown'
+      return [{ kind: 'set_budget_total', amount: board.budget!.total + (out ? 1 : -1) * board.budget!.step, edge: outer }]
+    }
     const laneId = /^handle-(.+)$/.exec(part)?.[1]
     const at = board.lanes.findIndex(lane => lane.id === laneId)
     const next = board.lanes[at + 1]
@@ -175,4 +202,28 @@ export const budgetKit: WorkshopBoardKit = {
       : { kind: 'shift_budget', from: { id: laneId! }, to: { id: next.id }, amount: step }
     return [edit]
   },
+}
+
+/**
+ * An outer edge of the envelope: dragged out it grows the total, in it shrinks it, in the board's steps, on the scale
+ * the drag started with (the envelope grows or shrinks at that edge under the pointer; the other edge stays). The team
+ * at that edge gains or gives first (withBudgetTotal). Below what the teams keep (or above every cap) it holds at the
+ * bound, says the smallest (largest) total that fits, and the drop is refused. One set_budget_total on the drop.
+ */
+function totalGrip(board: Workshop, edge: BudgetEdge, name: string, grab: { x: number; y: number }, layout: WorkshopBoardLayout) {
+  const g = budgetLayout(board, layout)
+  const part = g.parts.find(item => item.name === name)
+  if (!part) return null
+  const total = board.budget!.total, step = board.budget!.step
+  const keep: WorkshopBoardLayout = { ...layout, gaugeScale: total, ...(edge === 'start' && { gaugeAnchor: 'start' as const }) }
+  const bounds = budgetTotalBounds(board)
+  return (point: { x: number; y: number }) => {
+    const moved = (g.narrow ? point.y - grab.y - part.y : point.x - grab.x - part.x) / g.k
+    const amount = total + roundTo(edge === 'end' ? moved : -moved, step)
+    const made = withBudgetTotal(board, amount, edge)
+    if (typeof made !== 'string') return { next: made, layout: keep }
+    // Held at the bound it passed, saying why; let go there, it is refused and goes back.
+    const held = withBudgetTotal(board, Math.min(bounds.max, Math.max(bounds.min, amount)), edge)
+    return { next: typeof held === 'string' ? board : held, layout: keep, clampedReason: made, refusal: made }
+  }
 }

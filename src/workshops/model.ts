@@ -1219,8 +1219,13 @@ export interface WorkshopBoardLayout {
    * plan's days fill `width`.
    */
   dayWidth?: number
-  /** A pipeline: the amount its forecast gauge spans. A target being dragged keeps the scale it started with. Left out, the gauge fits target and forecast. */
+  /**
+   * A pipeline's gauge or a budget's envelope: the amount the board's width spans. A target or an envelope edge being
+   * dragged keeps the scale it started with. Left out, the gauge fits target and forecast, and the envelope its total.
+   */
   gaugeScale?: number
+  /** A budget whose start edge is held: the envelope's end stays where it was, and it grows or shrinks at the start. */
+  gaugeAnchor?: 'start' | 'end'
   /**
    * How many lanes sit side by side before the next lane starts a new row. Leave it
    * out for every lane in one row. A narrow host passes 1 or 2 so each lane stays

@@ -73,6 +73,7 @@ export type WorkshopEdit =
   | { kind: 'set_amount'; card: WorkshopRef; amount: number }
   | { kind: 'set_target'; amount: number }
   | { kind: 'shift_budget'; from: WorkshopRef; to: WorkshopRef; amount: number }
+  | { kind: 'set_budget_total'; amount: number; edge?: 'start' | 'end' }
   | { kind: 'add_rule'; rule: RuleInput }
   | { kind: 'set_rule'; rule: string; on?: boolean; severity?: 'refuse' | 'warn'; max?: number; to?: WorkshopRef[]; floor?: number; onConflict?: 'push' | 'stop'; unit?: 'day' | 'week'
       under?: string[]; by?: string; drop?: 'new-pile' | 'unsorted'; mode?: 'warn' | 'ask' | 'carry' }
@@ -329,6 +330,9 @@ export const workshopEditKinds: WorkshopEditKind[] = [
     fields: { amount: whole('Whole currency units.', 1e9, 1) }, boards: ['pipeline'], refusals: others(['pipeline'], sentences.notTarget) },
   { kind: 'shift_budget', summary: 'Move money between teams. The total stays.', intent: false,
     fields: { from: lane('The team giving.'), to: lane('The team receiving.'), amount: whole('Whole currency units.', 1e9, 1) },
+    boards: ['budget'], refusals: others(['budget'], sentences.notBudget) },
+  { kind: 'set_budget_total', summary: 'Grow or shrink the budget’s total at one edge of the envelope: the team at that edge gains or gives the difference, then the next teams in, each within its cap and never below its floor or what it commits.', intent: false,
+    fields: { amount: whole('The new total, in whole currency units.', 1e9, 1), edge: { type: 'choice', values: ['end', 'start'], optional: true, about: 'Which edge moves: end (the last team’s side, the default) or start (the first team’s).' } },
     boards: ['budget'], refusals: others(['budget'], sentences.notBudget) },
   { kind: 'add_rule', summary: 'Add a rule (capacity, path from a lane or "any", gate or bin; refuse or warn). It moves no card.', intent: false,
     fields: { rule: { type: 'rule', about: 'The rule, lanes by id or name.' } }, boards: ['lanes', 'pipeline'], refusals: others(['lanes', 'pipeline'], sentences.noRules) },
@@ -965,7 +969,10 @@ function fixedBusinessField(before: Workshop, after: Workshop): string | null {
   }
   if (kind === 'budget') {
     const was = before.budget!, now = after.budget
-    if (!now || was.total !== now.total || was.currency !== now.currency || was.step !== now.step) return 'The total cannot change. Move money between teams instead.'
+    if (!now || was.currency !== now.currency || was.step !== now.step) return 'A budget keeps its currency and its step.'
+    // The total changes only as set_budget_total changes it, at one edge of the envelope (budgetRules.fixed): said first.
+    const total = workshopRules(kind).fixed?.(before, after)
+    if (total) return total
     const moved = before.lanes.find(lane => {
       const other = after.lanes.find(item => item.id === lane.id)!
       return lane.floor !== other.floor || lane.cap !== other.cap || lane.capacity !== other.capacity

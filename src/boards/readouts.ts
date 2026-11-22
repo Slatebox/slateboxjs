@@ -5,7 +5,8 @@ import type { PartPlace, Workshop, WorkshopEdit, WorkshopNoteStyle } from '../wo
 import { dayWords, launchLinkRefusal, lineWord, scheduleLaunch, startHandleCard, withPlanStart } from '../workshops/launchPlan'
 import { dateName, offsetOf } from '../workshops/calendar'
 import { pipelineForecast } from '../workshops/pipeline'
-import { money } from '../workshops/numbers'
+import { withBudgetTotal } from '../workshops/budget'
+import { money, moneyExact } from '../workshops/numbers'
 /**
  * The edits that turn `before` into `after` on a launch plan, pipeline or budget: what a canvas
  * change carries (change.edits) so a server applies it with applyWorkshopEdits to the board as it
@@ -16,6 +17,14 @@ export function workshopEditsBetween(before: Workshop, after: Workshop): Worksho
   if (before.clock && after.clock && before.clock.origin !== after.clock.origin) {
     const moved = withPlanStart(before, offsetOf(before.clock.origin, after.clock.origin))
     return [{ kind: 'set_plan_start', start: after.clock.origin }, ...workshopEditsBetween(moved, after)]
+  }
+  // A budget's total moved at one edge of the envelope: set_budget_total, then whatever money moved besides.
+  if (before.budget && after.budget && before.budget.total !== after.budget.total) {
+    const alloc = (board: Workshop) => JSON.stringify(board.lanes.map(lane => lane.allocation))
+    const tried = (['end', 'start'] as const).map(edge => ({ edge, made: withBudgetTotal(before, after.budget!.total, edge) }))
+      .filter((item): item is { edge: 'end' | 'start'; made: Workshop } => typeof item.made !== 'string')
+    const best = tried.find(item => alloc(item.made) === alloc(after)) ?? tried[0]
+    if (best) return [{ kind: 'set_budget_total', amount: after.budget.total, ...(best.edge === 'start' && { edge: 'start' as const }) }, ...workshopEditsBetween(best.made, after)]
   }
   const edits: WorkshopEdit[] = []
   if (before.hiring && after.hiring && before.hiring.weeks !== after.hiring.weeks) edits.push({ kind: 'set_plan_weeks', weeks: after.hiring.weeks })
@@ -73,7 +82,7 @@ export function pipelineGauge(board: Workshop): string {
 
 /** "$1.2M · balanced": always true, and that is the point. */
 export function budgetHeader(board: Workshop): string {
-  return `${money(board.budget?.total ?? 0, board.budget?.currency)} · balanced`
+  return `${moneyExact(board.budget?.total ?? 0, board.budget?.currency)} · balanced`
 }
 
 
@@ -115,6 +124,10 @@ export function handleLabel(model: Workshop, part: string): string | null {
   const from = startHandleCard(part), task = from !== null && model.cards.find(item => item.id === from)
   if (task) return `${task.label} start, ${dayWords(model, scheduleLaunch(model).get(task.id)!.from)}. Left and Right move it; the end stays.`
   // A dated plan says the line's name and date ("Go-live, Fri 18 Dec"); a plan in day numbers, its day.
+  if (model.budget && (key === '_first' || key === '_last')) {
+    const team = key === '_first' ? model.lanes[0] : model.lanes.at(-1)!
+    return `Budget ${key === '_first' ? 'start' : 'end'}, total ${moneyExact(model.budget.total, model.budget.currency)}. ${key === '_first' ? 'Left' : 'Right'} grows it, ${key === '_first' ? 'Right' : 'Left'} shrinks it, by ${money(model.budget.step, model.budget.currency)}; ${team.label} gains or gives first.`
+  }
   if (key === '_first' && model.clock) return `First day, ${dateName(model.clock.origin, 0)}. Left and Right move it; every task keeps its dates.`
   if (key === '_last' && model.hiring && model.clock) return `Last week, to ${dateName(model.clock.origin, model.hiring.weeks * 7 - 1)} (${model.hiring.weeks} weeks). Left and Right move it a week.`
   if (key === 'funding' && model.hiring?.funding && model.clock) return `Funding round, ${dateName(model.clock.origin, model.hiring.funding.day)}. Left and Right move it a week.`

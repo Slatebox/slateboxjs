@@ -53,6 +53,14 @@ export function money(amount: number, currency = '$'): string {
   return sign + currency + body
 }
 
+/** Money without rounding away a step: "$1.25M", "$1.205M", "$890k", "$12.5k". */
+export function moneyExact(amount: number, currency = '$'): string {
+  const sign = amount < 0 ? '-' : ''
+  const n = Math.abs(amount)
+  const body = n >= 1e6 ? +(n / 1e6).toFixed(6) + 'M' : n >= 1e3 ? +(n / 1e3).toFixed(3) + 'k' : String(Math.round(n))
+  return sign + currency + body
+}
+
 /** "1 day", "3 days". */
 export const days = (n: number) => n + (n === 1 ? ' day' : ' days')
 

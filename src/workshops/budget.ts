@@ -5,7 +5,7 @@ import type { Workshop, WorkshopCard, WorkshopLane } from './model'
 import { registerWorkshopRules, said } from './model'
 import type { BusinessBoardRules, BusinessEditTools, WorkshopLimits } from './kinds'
 import type { WorkshopEdit } from './edits'
-import { amountLimits, amountOf, currencyOf, money, nextCardId, noteNumbers, ownField } from './numbers'
+import { amountLimits, amountOf, currencyOf, money, moneyExact, nextCardId, noteNumbers, ownField } from './numbers'
 import { amountRules } from './pipeline'
 
 export function budgetCommitted(board: Workshop, laneId: string): number {
@@ -52,7 +52,7 @@ export function planBudgetMove(board: Workshop, cardId: string, laneId: string):
   return { ...board, cards: [...board.cards.filter(item => item !== card), { ...card, laneId }] }
 }
 
-/** Move `amount` from one team's allocation to another's. The total cannot change. Unchecked: see budgetShiftRefusal. */
+/** Move `amount` from one team's allocation to another's. The total stays (set_budget_total changes it). Unchecked: see budgetShiftRefusal. */
 export function shiftBudget(board: Workshop, from: string, to: string, amount: number): Workshop {
   return { ...board, lanes: board.lanes.map(lane => lane.id === from ? { ...lane, allocation: (lane.allocation ?? 0) - amount }
     : lane.id === to ? { ...lane, allocation: (lane.allocation ?? 0) + amount } : lane) }
@@ -104,6 +104,47 @@ export function budgetLimits(board: Workshop, ref: { laneId: string }): Workshop
   return budgetShiftLimits(board, next.id, ref.laneId)
 }
 
+/** Which edge of the envelope a total moves at: the last team's (end) or the first team's (start). */
+export type BudgetEdge = 'start' | 'end'
+
+/** The least and most the total may be: what the teams must keep (floors, commitments), and their caps added up (none when a team has no cap). */
+export function budgetTotalBounds(board: Workshop): { min: number; max: number } {
+  const min = board.lanes.reduce((sum, lane) => sum + lowest(board, lane), 0)
+  const max = board.lanes.every(lane => lane.cap !== undefined) ? board.lanes.reduce((sum, lane) => sum + lane.cap!, 0) : 1e9
+  return { min: Math.max(1, min), max }
+}
+
+/**
+ * The budget with its total set to `amount` at `edge`: the team at that edge gains or gives the difference, then
+ * the next team in, and so on, each within its cap and never below its floor or what it commits. The sentence
+ * when no team can take it, with the smallest (or largest) total that fits.
+ */
+export function withBudgetTotal(board: Workshop, amount: number, edge: BudgetEdge = 'end'): Workshop | string {
+  const currency = board.budget!.currency
+  if (!Number.isInteger(amount) || amount < 1) return 'A total is a whole amount above zero.'
+  const bounds = budgetTotalBounds(board)
+  if (amount < bounds.min) return 'The teams keep ' + moneyExact(bounds.min, currency) + ' between them: their floors and what they commit. The smallest total that fits is ' + moneyExact(bounds.min, currency) + '.'
+  if (amount > bounds.max) return 'Every team is at its cap. The largest total that fits is ' + moneyExact(bounds.max, currency) + '.'
+  let left = amount - board.budget!.total
+  const lanes = board.lanes.map(lane => ({ ...lane }))
+  for (const lane of edge === 'end' ? [...lanes].reverse() : lanes) {
+    if (!left) break
+    const room = left > 0 ? (lane.cap ?? Infinity) - lane.allocation! : lowest(board, lane) - lane.allocation!
+    const by = left > 0 ? Math.min(left, room) : Math.max(left, room)
+    lane.allocation! += by
+    left -= by
+  }
+  return { ...board, budget: { ...board.budget!, total: amount }, lanes }
+}
+
+/** What a whole-board save may change of a budget's total: only what set_budget_total makes, at either edge. */
+export function budgetTotalFixed(before: Workshop, after: Workshop): string | null {
+  if (before.budget?.total === after.budget?.total) return null
+  const alloc = (board: Workshop) => JSON.stringify(board.lanes.map(lane => [lane.id, lane.allocation]))
+  const made = (['end', 'start'] as const).map(edge => withBudgetTotal(before, after.budget!.total, edge)).filter((item): item is Workshop => typeof item !== 'string')
+  return made.some(board => alloc(board) === alloc(after)) ? null : 'The total changes only at the envelope’s edges: drag one, or say the new total.'
+}
+
 export function budgetCaption(board: Workshop, laneId: string): string {
   const lane = board.lanes.find(item => item.id === laneId)!
   const currency = board.budget?.currency
@@ -144,6 +185,7 @@ export const budgetRules: BusinessBoardRules = {
       step: budget.step === undefined ? 5000 : amountOf(budget.step, 1, 1e9, 'A step is a whole amount above zero.') }
   },
   validate: validateBudget,
+  fixed: budgetTotalFixed,
   planMove: planBudgetMove,
   refusal: budgetRefusal,
   caption: budgetCaption,
@@ -178,6 +220,14 @@ export const budgetRules: BusinessBoardRules = {
         if (!Number.isInteger(edit.amount) || edit.amount < limits.min) t.refuse(limits.reasons.min, at)
         item.amount = edit.amount
         return t.done(t.settle(board, item.laneId, item.id), said(item.label) + ' is now ' + money(edit.amount, currency) + '.', { laneId: item.laneId, cardId: item.id })
+      }
+      case 'set_budget_total': {
+        const edge = edit.edge ?? 'end'
+        const next = withBudgetTotal(board, edit.amount, edge)
+        if (typeof next === 'string') t.refuse(next, { limits: { field: 'amount', ...budgetTotalBounds(board), reasons: {} } })
+        const made = next as Workshop
+        const changed = made.lanes.filter((lane, i) => lane.allocation !== board.lanes[i].allocation).map(lane => lane.label + ' ' + moneyExact(lane.allocation!, currency))
+        return t.done(t.settle(made), 'The budget is now ' + moneyExact(edit.amount, currency) + (changed.length ? ': ' + changed.join(', ') + '.' : '.'))
       }
       case 'shift_budget': {
         const from = t.lane(edit.from), to = t.lane(edit.to)
