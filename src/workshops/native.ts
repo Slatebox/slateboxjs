@@ -34,7 +34,7 @@ export interface WorkshopChangeEvent {
   cardId?: string
   laneId?: string
   rename?: { laneId?: string; cardId?: string; label: string }
-  noteToCard?: { noteId: string; label: string; look?: WorkshopCardLook; asNote?: WorkshopCardAsNote; before?: string }
+  noteToCard?: { noteId: string; label: string; look?: WorkshopCardLook; asNote?: WorkshopCardAsNote; before?: string; under?: string }
   cardToNote?: { noteId: string }
   /**
    * A business board's change as edits for applyWorkshopEdits (every drag, handle, key and rename on a
@@ -119,6 +119,8 @@ export interface WorkshopBoardKit {
   cardKeys?: string
   /** Outline the lanes a held card may go to. Off for a launch plan, where every team takes every task. */
   laneCues: boolean
+  /** A nest board: the card an ordinary note dropped at this point sits under; null for none. */
+  noteUnder?(board: Workshop, point: { x: number; y: number }, layout: WorkshopBoardLayout): string | null
 }
 
 /**
@@ -619,6 +621,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const laneId = laneAt(point)
     const offer = offerOf(node)
     const open = value.lanes.filter(lane => !noteObstacle(node) && workshopNoteRefusal(value, lane.id, offer) === null).map(lane => lane.id)
+    const under = laneId && kit?.noteUnder?.(value, local(point), layout)
+    if (under) offer.under = under
     const refusal = laneId ? noteObstacle(node) ?? workshopNoteRefusal(value, laneId, offer) : null
     if (hovering && hovering.noteId === node.id && hovering.laneId === laneId && hovering.refusal === refusal) return
     hovering = { noteId: node.id, laneId, refusal, open }
@@ -631,6 +635,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const laneId = laneAt(point)
     if (!laneId) return
     const offer = offerOf(node)
+    const under = kit?.noteUnder?.(value, local(point), layout)
+    if (under) offer.under = under
     const lane = value.lanes.find(item => item.id === laneId)!
     const reason = noteObstacle(node) ?? workshopNoteRefusal(value, laneId, offer)
     if (reason) {
@@ -1026,7 +1032,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       next = workshopNoteCandidate(next, laneId, offer)!
       // Should the host not save it, the note goes back where it started.
       const kept = { ...(node.options ?? {}), ...(from ? { x: from.x, y: from.y } : {}) }
-      return { node, card: next.cards[next.cards.length - 1], kept }
+      return { node, card: next.cards[next.cards.length - 1], kept, under: offer.under }
     })
     slate.beginHostStep?.()
     value = next
@@ -1045,8 +1051,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     slate.announce?.(made.length === 1
       ? `${made[0].card.label} is now a card in ${lane.label}. ${workshopLaneCaption(value, laneId)}.`
       : `${names(made.map(({ card }) => card.label))} are now cards in ${lane.label}. ${workshopLaneCaption(value, laneId)}.`)
-    for (const { node, card, kept } of made) {
-      const change = { cardId: card.id, laneId, noteToCard: { noteId: node.id as string, label: card.label,
+    for (const { node, card, kept, under } of made) {
+      const change = { cardId: card.id, laneId, noteToCard: { noteId: node.id as string, label: card.label, ...(under && { under }),
         ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}) } }
       const dropCard = () => {
         if (value !== committed || !value.cards.some(item => item.id === card.id)) return

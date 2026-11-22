@@ -48,6 +48,12 @@ export interface WorkshopCard {
   amount?: number
   /** Hiring plan: the role band the hire is in (cost is per band, never per person). */
   band?: string
+  /** Nest board: the card it sits under, what it is (pile, outcome…), its place among its siblings (a fractional key), who said it, and numbers chat added. */
+  parentId?: string
+  role?: string
+  order?: string
+  source?: string
+  fields?: Record<string, number>
   /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
   look?: WorkshopCardLook
   /** What the note it was made from had that a card does not show, so it comes back as it was. */
@@ -100,6 +106,8 @@ export interface Workshop {
   clock?: { origin: string }
   /** Hiring plan: cash, monthly burn without new hires, the role bands and a funding round. */
   hiring?: HiringFields
+  /** Nest board: how it is drawn (piles or a tree), the number fields chat added, and merged cards' new homes. */
+  nest?: NestFields
   /** Pipeline: the forecast target, and the currency sign amounts are written with. */
   forecast?: { target: number; currency: string }
   /** Budget: the envelope, its currency sign and the step allocations snap to. */
@@ -114,14 +122,15 @@ export interface Workshop {
 }
 
 /** The kinds of board with rules of their own. A board without a kind is a board of plain lanes. */
-export type WorkshopKind = 'release-plan' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan'
+export type WorkshopKind = 'release-plan' | BusinessBoardKind
 
 /** A hiring plan's money: what a role band costs a month (loaded), on one team. */
 export interface HiringBand { id: string; label: string; monthly: number; lane: string }
 export interface HiringFields { cash: number; burn: number; currency: string; weeks: number; bands: HiringBand[]; funding?: { day: number; amount: number } }
 /** The business boards: drawn by a board kit (slateboxjs/boards) on a live slate. */
-export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan'
-export const businessBoardKinds: readonly BusinessBoardKind[] = ['launch-plan', 'pipeline', 'budget', 'hiring-plan']
+export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest'
+export const businessBoardKinds: readonly BusinessBoardKind[] = ['launch-plan', 'pipeline', 'budget', 'hiring-plan', 'nest']
+export interface NestFields { layout: 'clusters' | 'tree'; fields?: { id: string; label: string; currency?: string }[]; aliases?: [string, string][] }
 export function businessKind(board: Pick<Workshop, 'kind'>): BusinessBoardKind | undefined {
   return businessBoardKinds.includes(board.kind as BusinessBoardKind) ? board.kind as BusinessBoardKind : undefined
 }
@@ -283,10 +292,9 @@ export function validateWorkshop(input: unknown): Workshop {
   if (!Array.isArray(value.lanes) || value.lanes.length < 2 || value.lanes.length > maxWorkshopLanes) {
     throw new Error('A workshop needs 2 to 5 lanes.')
   }
-  if (!Array.isArray(value.cards) || value.cards.length > maxWorkshopCards) {
-    throw new Error('A workshop supports up to 24 cards.')
-  }
-  if (rules && value.cards.length > rules.cards[0]) throw new Error(rules.cards[1])
+  // Each kind holds its own number of cards (a nest board 40); a board of plain lanes 24.
+  const most = rules?.cards ?? [maxWorkshopCards, 'A workshop supports up to 24 cards.']
+  if (!Array.isArray(value.cards) || value.cards.length > most[0]) throw new Error(most[1])
 
   const lanes: WorkshopLane[] = value.lanes.map(item => {
     const raw = record(item)
@@ -558,6 +566,8 @@ export interface WorkshopNoteOffer {
   look?: WorkshopCardLook
   /** What the note has that the card will not show (line breaks, shape, size), kept for its way back. */
   asNote?: WorkshopCardAsNote
+  /** Nest board: the card it was dropped on, to sit under. */
+  under?: string
 }
 
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -632,7 +642,7 @@ export function workshopNoteCandidate(board: Workshop, laneId: string, note: Wor
 function businessNote(board: Workshop, laneId: string, note: WorkshopNoteOffer): Workshop | string {
   const read = workshopRules(businessKind(board)!).fromNote(board, note.label)
   if (typeof read === 'string') return read
-  const made = applyWorkshopEdits(board, [{ kind: 'add_card', lane: { id: laneId }, ...read }])
+  const made = applyWorkshopEdits(board, [{ kind: 'add_card', lane: { id: laneId }, ...read, ...(note.under && { under: { id: note.under } }) }])
   if ('refused' in made) return made.refused.reason
   const cards = made.workshop.cards
   cards[cards.length - 1] = { ...cards[cards.length - 1], id: cardIdFor(board, note.id) }
@@ -659,6 +669,7 @@ export function workshopCardAsNoteRefusal(board: Workshop, cardId: string): stri
   if (!workshopTakesNotes(board)) return board.lanes.some(lane => lane.station) ? 'The token stays on the map.' : 'This card stays on the board.'
   if (board.kind === 'launch-plan' && board.cards.length === 1) return 'A launch plan needs at least one task.'
   if ((board.signals ?? []).some(signal => signal.cardId === cardId)) return `An outcome on this board depends on ${card.label}, so it stays a card.`
+  if (board.cards.some(item => item.parentId === cardId)) return `${card.label} has cards under it, so it stays a card. Move them first.`
   if (card.allowedLaneIds && card.allowedLaneIds.length < board.lanes.length) {
     const names = card.allowedLaneIds.map(id => board.lanes.find(lane => lane.id === id)!.label)
     const list = names.length > 1 ? names.slice(0, -1).join(', ') + ' or ' + names.at(-1) : names[0]

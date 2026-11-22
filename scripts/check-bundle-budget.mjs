@@ -23,6 +23,9 @@ const ceilings = {
   // entry only re-exports; the code is the chunk the rules and the boards share (plans-<hash>.mjs).
   'workshop-plans.mjs': { raw: 4000, gzip: 1500 },
   'plans-*.mjs': { raw: 44000, gzip: 13000 },
+  // The nested boards (piles, trees) and their rules: loaded with the rules, or with the boards. Measured at its first
+  // build (37535 / 11322), plus a little.
+  'workshop-nest.mjs': { raw: 38000, gzip: 11500 },
   // The library of what can be added (pure data): loaded when the library opens.
   'catalog.mjs': { raw: 16000, gzip: 5000 },
 }

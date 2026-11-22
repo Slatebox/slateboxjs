@@ -5,7 +5,8 @@ import type { WorkshopEdit, WorkshopRef } from './edits'
 import type { Behaviour, BehaviourRule, RuleInput, RuleKindId } from './behaviour'
 
 const bodyKeys: Record<RuleKindId, string[]> = { capacity: ['where', 'max'], path: ['from', 'to', 'noSkip'], gate: ['into', 'needs'], bin: ['lane'],
-  deadline: ['at', 'floor'], overlap: ['lane'], snap: ['unit'], workdays: [], blackout: ['start', 'end', 'label'], cascade: ['onConflict'], locked: ['cards'] }
+  deadline: ['at', 'floor'], overlap: ['lane'], snap: ['unit'], workdays: [], blackout: ['start', 'end', 'label'], cascade: ['onConflict'], locked: ['cards'],
+  nests: ['role', 'under'], children: ['max', 'role'], depth: ['max'], rank: ['by'], emptyDrop: ['drop'] }
 /** What set_rule changes on a rule; every other key is fixed under its id. */
 const settable = ['max', 'to', 'floor', 'onConflict', 'unit']
 const rulesOf = (board: Pick<Workshop, 'behaviour'>): Behaviour => board.behaviour ?? { version: 1, rev: 0, rules: [] }

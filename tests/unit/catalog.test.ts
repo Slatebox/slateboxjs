@@ -7,10 +7,12 @@ import { catalogSamples as samples, timeRuleKindIds } from '../../src/workshops/
 // The smart-component library (library final.md §2.4, §2.8): one catalogue the panel, the + menu,
 // chat, exec and the site read. Only entries whose kind is built are listed.
 
-const ids = ['now-next-later', 'pros-cons', 'must-should-could', 'decision-path', 'retro', 'triage', 'team-board', 'launch-plan', 'customer-go-live', 'hiring-plan', 'sales-pipeline', 'budget']
+const ids = ['now-next-later', 'pros-cons', 'must-should-could', 'decision-path', 'retro', 'triage', 'team-board', 'launch-plan', 'customer-go-live', 'hiring-plan',
+  'sort-evidence', 'discovery-tree', 'break-down-problem', 'incident-review', 'sales-pipeline', 'budget']
+const nestRuleKinds = ['nests', 'children', 'depth', 'rank', 'emptyDrop']
 
 describe('catalogue', () => {
-  it('lists the twelve entries built on this line, each with a group, a line, ways to say it and a loop', () => {
+  it('lists the sixteen entries built on this line, each with a group, a line, ways to say it and a loop', () => {
     expect(catalog.map(entry => entry.id)).toEqual(ids)
     expect(catalogVersion).toMatch(/^\d+\.\d+$/)
     for (const entry of catalog) {
@@ -34,7 +36,7 @@ describe('catalogue', () => {
       expect(workshopBoardKind(board)).toBe(entry.build.kind)
       const accepted = describeWorkshopEdits(board).filter(edit => edit.accepted).map(edit => edit.kind)
       for (const edit of entry.edits) expect(accepted, entry.id + ' lists ' + edit).toContain(edit)
-      for (const rule of entry.rules) expect(entry.build.kind === 'launch-plan' || entry.build.kind === 'hiring-plan' ? timeRuleKindIds : ruleKindIds).toContain(rule)
+      for (const rule of entry.rules) expect(entry.build.kind === 'launch-plan' || entry.build.kind === 'hiring-plan' ? timeRuleKindIds : entry.build.kind === 'nest' ? nestRuleKinds : ruleKindIds).toContain(rule)
       // Every edit it offers has a move with a phrase; the app's listing gate checks each phrase parses.
       expect(entry.edits).toEqual([...new Set(entry.moves.map(item => item.edit))])
     }
@@ -64,6 +66,10 @@ describe('catalogue', () => {
     expect(catalogMatch('how do I run a retro?')?.entries[0]).toBe('retro')
     expect(catalogMatch('something to prioritise features')?.entries).toContain('must-should-could')
     expect(catalogMatch('Move Billing to Done')).toBeNull()
+    expect(catalogMatch('something to sort interview feedback into themes')?.entries[0]).toBe('sort-evidence')
+    expect(catalogMatch('I need a template for a root cause')?.entries).toEqual(expect.arrayContaining(['break-down-problem', 'incident-review']))
+    expect(catalogMatch('something for product discovery')?.entries[0]).toBe('discovery-tree')
+    expect(catalogAddRequest('Add an incident review about the sign-in outage')).toEqual({ id: 'incident-review', topic: 'the sign-in outage' })
   })
 
   it('says honestly when an entry opens on a new slate: one board per slate for now', () => {

@@ -19,10 +19,12 @@ import type { WorkshopEdit, WorkshopRef } from './edits'
 import type { BusinessEditStep, BusinessEditTools } from './kinds'
 import type { WorkshopFinder } from './names'
 
-export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin' | TimeRuleKindId
+export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin' | TimeRuleKindId | NestRuleKindId
 export const ruleKindIds: readonly RuleKindId[] = ['capacity', 'path', 'gate', 'bin']
 /** A plan's rule kinds (timeRules.ts, with the plans' rules): a launch plan's and a hiring plan's. */
 export type TimeRuleKindId = 'deadline' | 'overlap' | 'snap' | 'workdays' | 'blackout' | 'cascade' | 'locked'
+/** A nest board's rule kinds (nest.ts): what sits under what, how many, how deep, how piles rank, where a far drop goes. */
+export type NestRuleKindId = 'nests' | 'children' | 'depth' | 'rank' | 'emptyDrop'
 
 /** Who set a rule, when, and from where. Shown when a refusal is explained. */
 export interface RuleAudit { by: string; at: string; via: 'chat' | 'exec' | 'preset' }
@@ -40,6 +42,13 @@ export type RuleBody =
   | { kind: 'blackout'; start: string; end: string; label: string }
   | { kind: 'cascade'; onConflict: 'push' | 'stop' }
   | { kind: 'locked'; cards: string[] }
+  // A nest board's: a role sits only under these roles; a card (of a role) holds at most max; cards nest max deep;
+  // piles rank by a measure; a card let go in empty space starts a new pile or goes to the tray.
+  | { kind: 'nests'; role: string; under: string[] }
+  | { kind: 'children'; max: number; role?: string }
+  | { kind: 'depth'; max: number }
+  | { kind: 'rank'; by: string }
+  | { kind: 'emptyDrop'; drop: 'new-pile' | 'unsorted' }
 
 export type BehaviourRule = RuleBody & { id: string; on: boolean; severity: 'refuse' | 'warn'; set: RuleAudit }
 

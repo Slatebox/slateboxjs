@@ -14,20 +14,22 @@ import type { BusinessBoardKind, Workshop, WorkshopBoardKit, WorkshopBoardLayout
 import { launchPlanKit } from './launchPlanKit'
 import { pipelineKit } from './pipelineKit'
 import { budgetKit } from './budgetKit'
+import { nestKit } from './nestKit'
 
 export { launchPlanKit, launchLayout, type LaunchGeometry } from './launchPlanKit'
 export { pipelineKit, pipelineLayout } from './pipelineKit'
 export { budgetKit, budgetLayout } from './budgetKit'
+export { nestKit, nestLayout, nestEditsBetween } from './nestKit'
 export { workshopEditsBetween, pipelineGauge, budgetHeader, launchLinkTargets, partNotes, handleLabel } from './readouts'
 export { createBoardLayer, renderLayerShapes, layerInk, type LayerShape } from '../workshops/boardLayer'
 export * from '../workshops/rules'
 
-const kits: Record<BusinessBoardKind, WorkshopBoardKit> = { 'launch-plan': launchPlanKit, 'hiring-plan': launchPlanKit, pipeline: pipelineKit, budget: budgetKit }
+const kits: Record<BusinessBoardKind, WorkshopBoardKit> = { 'launch-plan': launchPlanKit, 'hiring-plan': launchPlanKit, pipeline: pipelineKit, budget: budgetKit, nest: nestKit }
 
 /** The kit for a business board's kind. Throws for any other kind: those boards draw without one. */
 export function kitFor(kind: Workshop['kind'] | string | undefined): WorkshopBoardKit {
   const kit = kits[kind as BusinessBoardKind]
-  if (!kit) throw new Error(`No board kit for "${kind}". Only a launch plan, a hiring plan, a pipeline and a budget have one.`)
+  if (!kit) throw new Error(`No board kit for "${kind}". Only a launch plan, a hiring plan, a pipeline, a budget and a nested board have one.`)
   return kit
 }
 

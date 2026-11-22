@@ -443,7 +443,7 @@ describe('the shape check (review-P04 finding 4)', () => {
 describe('the business boards in the edit table', () => {
   it('names every kind of board, for a schema to list', async () => {
     const { WORKSHOP_BOARD_KINDS } = await import('../../src/workshops/edits')
-    expect(WORKSHOP_BOARD_KINDS).toEqual(['lanes', 'release-plan', 'customer-interviews', 'experiment-budget', 'map', 'launch-plan', 'pipeline', 'budget', 'hiring-plan'])
+    expect(WORKSHOP_BOARD_KINDS).toEqual(['lanes', 'release-plan', 'customer-interviews', 'experiment-budget', 'map', 'launch-plan', 'pipeline', 'budget', 'hiring-plan', 'nest'])
   })
 
   it('says which edits each business board takes, and what the other boards answer', async () => {

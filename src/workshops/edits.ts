@@ -17,9 +17,9 @@ import { rulebook } from './kinds'
 import type { RuleAudit, RuleInput } from './behaviour'
 
 /** The kinds of board, each with its own rules. */
-export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan'
+export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest'
 /** Every kind of board, for a schema that names them (the app's Workshop record, an MCP tool). */
-export const WORKSHOP_BOARD_KINDS: readonly WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget', 'map', 'launch-plan', 'pipeline', 'budget', 'hiring-plan']
+export const WORKSHOP_BOARD_KINDS: readonly WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget', 'map', 'launch-plan', 'pipeline', 'budget', 'hiring-plan', 'nest']
 const everyBoard = [...WORKSHOP_BOARD_KINDS]
 const laneBoards: WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget']
 const business = WORKSHOP_BOARD_KINDS.slice(5)
@@ -41,7 +41,8 @@ export type WorkshopEdit =
   | { kind: 'rename_card'; card: WorkshopRef; label: string }
   | { kind: 'add_lane'; label: string; capacity?: number }
   | { kind: 'remove_lane'; lane: WorkshopRef }
-  | { kind: 'add_card'; lane: WorkshopRef; label?: string; allowedLanes?: WorkshopRef[]; duration?: number; lag?: number; waitsOn?: WorkshopRef[]; amount?: number; band?: string }
+  | { kind: 'add_card'; lane: WorkshopRef; label?: string; allowedLanes?: WorkshopRef[]; duration?: number; lag?: number; waitsOn?: WorkshopRef[]; amount?: number; band?: string
+      under?: WorkshopRef; role?: string; source?: string }
   | { kind: 'remove_card'; card: WorkshopRef }
   | { kind: 'move_card'; card: WorkshopRef; lane: WorkshopRef }
   | { kind: 'advance_card'; card: WorkshopRef }
@@ -74,6 +75,15 @@ export type WorkshopEdit =
   // A hiring plan's (slateboxjs/workshops/plans adds them to the table as it loads).
   | { kind: 'set_band_cost'; band: string; monthly: number }
   | { kind: 'set_funding'; day: number }
+  // A nest board's (slateboxjs/workshops/nest adds them to the table as it loads).
+  | { kind: 'nest_card'; card: WorkshopRef; under?: WorkshopRef; lane?: WorkshopRef; before?: WorkshopRef }
+  | { kind: 'start_pile'; card: WorkshopRef; label?: string }
+  | { kind: 'merge_cards'; card: WorkshopRef; into: WorkshopRef }
+  | { kind: 'set_role'; card: WorkshopRef; role: string }
+  | { kind: 'set_source'; card: WorkshopRef; source: string }
+  | { kind: 'add_field'; label: string; currency?: string }
+  | { kind: 'set_field'; card: WorkshopRef; field: string; value: number | null }
+  | { kind: 'set_layout'; layout: 'clusters' | 'tree' }
 
 export type WorkshopEditKindName = WorkshopEdit['kind']
 
@@ -165,7 +175,8 @@ const sentences = {
   businessCards: 'Cards on this board go where its rules let them.',
   noRules: 'Only lane boards and pipelines take rules for now.',
 }
-const keepsTeams = { 'launch-plan': sentences.launchLanes, pipeline: sentences.pipelineLanes, budget: sentences.budgetLanes, 'hiring-plan': sentences.launchLanes.replace('launch', 'hiring').replace('tasks', 'hires') }
+const keepsTeams = { 'launch-plan': sentences.launchLanes, pipeline: sentences.pipelineLanes, budget: sentences.budgetLanes, 'hiring-plan': sentences.launchLanes.replace('launch', 'hiring').replace('tasks', 'hires'),
+  nest: 'This board keeps its two areas. You can rename them.' }
 const others = (kinds: WorkshopBoardKind[], sentence: string) => Object.fromEntries(everyBoard.filter(kind => !kinds.includes(kind)).map(kind => [kind, sentence]))
 
 // ---------------------------------------------------------------------------------------------
@@ -366,7 +377,7 @@ export function describeWorkshopEdits(board?: Workshop): WorkshopEditDescription
 
 const nouns = {
   lane: 'lanes?|columns?|lists?|stages?|windows?|releases?|teams?',
-  card: 'cards?|features?|notes?|items?|tasks?|deals?|line items?',
+  card: 'cards?|features?|notes?|items?|tasks?|deals?|line items?|piles?|themes?',
   step: 'steps?|stations?|stops?|stages?|places?',
   token: 'tokens?|cards?|pieces?|markers?',
 }
@@ -894,7 +905,7 @@ function fixedBusinessField(before: Workshop, after: Workshop): string | null {
 
 const boardNames: Record<WorkshopBoardKind, string> = {
   lanes: 'lane workshop', 'release-plan': 'release plan', 'customer-interviews': 'interview workshop',
-  'experiment-budget': 'budget workshop', map: 'map', 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget', 'hiring-plan': 'hiring plan',
+  'experiment-budget': 'budget workshop', map: 'map', 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget', 'hiring-plan': 'hiring plan', nest: 'nested board',
 }
 
 /**

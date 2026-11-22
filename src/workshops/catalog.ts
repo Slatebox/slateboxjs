@@ -40,7 +40,9 @@ export interface CatalogEntry {
    * What a person can do with it, each with the phrase that does it ("Say it like this"). Slots the app
    * fills from the live board and checks against its parser: {card}, {lane}, {other} (another lane),
    * {busy} (a lane with cards), {ruled} (a lane with a limit rule); on a plan {later} (a date after its
-   * line), {dates} (a few days inside it), {month} (a month ahead) and {band} (a role band).
+   * line), {dates} (a few days inside it), {month} (a month ahead) and {band} (a role band); on a nested
+   * board {pile} and {other pile} (cards at the top), {item} (a card with nothing under it), {parent} (a
+   * card with cards under it) and {opportunity}.
    */
   moves: CatalogMove[]
   limits: string[]
@@ -112,6 +114,18 @@ const plan = (id: string, name: string, line: string, synonyms: string[], captio
   ...withMoves(planMoves(kind === 'hiring-plan' ? '' : sample === 'go-live' ? 'go-live' : 'launch')),
   limits: [kind === 'hiring-plan' ? 'Cost is per role band, never per person. On a phone it is read-only.' : 'Up to 12 tasks on 2 to 4 teams.', laneLimits[0]],
   loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false })
+// A nested board's moves (nest.ts), its rule phrases first.
+const nestMoves = (piles: boolean, tree: CatalogMove[]) => [...(piles ? [move('add_rule', 'Weight piles by ARR', 'Weight by ARR', 'rank'),
+  move('add_rule', 'Cap a pile', 'Piles hold at most 2', 'children'), move('add_rule', 'Send far drops to Unsorted', 'Drops in empty space go to Unsorted', 'emptyDrop'),
+  move('add_rule', 'Group piles into themes', 'Group {pile} and {other pile} into Product', 'depth'), move('nest_card', 'Move a note to a pile', 'Move {item} to {pile}'),
+  move('merge_cards', 'Merge two piles', 'Merge {other pile} into {pile}'), move('set_layout', 'Hand the top piles to a discovery tree', 'Turn the top 3 piles into a discovery tree'),
+  move('add_card', 'Add a note', 'Add a note called Slow exports to {pile}'), move('set_source', 'Say who said it', '{item} came from Initech')] : [...tree,
+  move('nest_card', 'Move a card under another', 'Move {item} under {parent}')]), move('rename_card', 'Rename a card', 'Rename {item} to Self-serve import'), move('remove_card', 'Remove a card', 'Remove {item}')]
+const breakDown = [move('set_rule', 'Make a warning a rule', 'Stop me when an action is not under a cause', 'nests'), move('add_card', 'Ask why once more', 'Add a cause called Unclear pricing page under {parent}')]
+/** A nested board: piles (Sort the evidence) or a tree (Discovery tree, Break down a problem, Incident review). */
+const nestEntry = (id: string, group: CatalogGroup, name: string, line: string, synonyms: string[], sample: CatalogSample, caption: string, steps: string[], moves: CatalogMove[]): CatalogEntry =>
+  ({ id, group, name, line, synonyms, build: { kind: 'nest', sample }, addSay: ['Add ' + article(name) + name.toLowerCase(), 'Add ' + article(name) + name.toLowerCase() + ' about {topic}'],
+    ...withMoves(moves), limits: ['Up to 40 cards. On a phone it is an outline.', laneLimits[0]], loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false })
 const article = (name: string) => /^pros/i.test(name) ? '' : /^[aeiou]/i.test(name) ? 'an ' : 'a '
 
 export const catalog: readonly CatalogEntry[] = [
@@ -140,6 +154,16 @@ export const catalog: readonly CatalogEntry[] = [
     'Days are working days: weekends don’t count.', ['Slide a task: weekends don’t count.', 'Past go-live it stops.'], 'go-live'),
   plan('hiring-plan', 'Hiring plan', 'Hires over the year, with runway', ['hiring', 'headcount', 'recruiting', 'hires', 'runway', 'burn'],
     'Hires snap to whole weeks.', ['Drag a hire later: runway grows.', 'Below your floor it stops.'], 'hiring-plan', 'hiring-plan'),
+  nestEntry('sort-evidence', 'decide', 'Sort the evidence', 'Pile up what customers said; piles rank as you sort', ['affinity', 'synthesis', 'interviews', 'research', 'feedback', 'themes', 'feature requests', 'cluster'],
+    'sort-evidence', 'Piles rank by number of customers.', ['Drag a note to another pile: the counts change and the piles re-rank.', 'Let go in empty space: a new pile.'], nestMoves(true, [])),
+  nestEntry('discovery-tree', 'decide', 'Discovery tree', 'Outcome, opportunities, solutions: what to build next', ['opportunity solution tree', 'discovery', 'outcome', 'what to build', 'product discovery', 'opportunities'],
+    'discovery-tree', 'Solutions sit under an opportunity.', ['Drag a solution under the outcome: refused, in the rule’s words.', 'Say “Let solutions sit under the outcome for now”: it lands.'],
+    nestMoves(false, [move('add_rule', 'Let a card sit elsewhere', 'Let solutions sit under the outcome for now', 'nests'), move('set_rule', 'Warn instead of blocking', 'Warn instead of blocking', 'nests'),
+      move('add_rule', 'Cap an opportunity', 'An opportunity holds at most 2 solutions', 'children'), move('add_card', 'Add a solution', 'Add a solution called Sample data under {opportunity}')])),
+  nestEntry('break-down-problem', 'decide', 'Break down a problem', 'Ask why until you reach causes you can act on', ['issue tree', 'root cause', '5 whys', 'five whys', 'problem', 'why', 'diagnose'],
+    'break-down', 'Actions sit under a cause (a warning only).', ['Drag a cause under another: why, once more.', 'An action off a cause is flagged, never refused.'], nestMoves(false, breakDown)),
+  nestEntry('incident-review', 'meetings', 'Incident review', 'What broke, why, and what to fix', ['incident', 'postmortem', 'post-mortem', 'outage', 'retro', 'root cause'],
+    'incident-review', 'Actions sit under a cause (a warning only).', ['Drag a cause under the incident.', 'An action off a cause is flagged.'], nestMoves(false, breakDown)),
   { id: 'sales-pipeline', group: 'track', name: 'Sales pipeline', line: 'Move deals through stages toward a target', synonyms: ['deals', 'sales', 'pipeline', 'crm', 'track deals', 'forecast', 'customers'],
     build: { kind: 'pipeline', sample: 'pipeline' }, addSay: ['Add a sales pipeline', 'Add a sales pipeline about {topic}'],
     ...withMoves([move('move_card', 'Carry a deal on', 'Move {card} to {other}'), move('set_amount', 'Price a deal', 'Make {card} $40k'),
@@ -163,7 +187,7 @@ export function catalogList(group: CatalogGroup | 'all' = 'all'): CatalogEntry[]
 }
 
 /** The samples a business entry adds: from slateboxjs/workshops/rules (catalogSamples), so this chunk keeps no rules. */
-export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget'
+export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget' | 'sort-evidence' | 'discovery-tree' | 'break-down' | 'incident-review'
 export type CatalogSamples = Partial<Record<CatalogSample, () => Workshop>>
 
 /** The board an entry adds, as data, named after the topic when one is given. A business board needs its sample. */

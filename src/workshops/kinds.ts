@@ -101,7 +101,7 @@ export interface RuleFamily {
 }
 
 const registry = new Map<string, BusinessBoardRules>()
-const names: Record<BusinessBoardKind, string> = { 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget', 'hiring-plan': 'hiring plan' }
+const names: Record<BusinessBoardKind, string> = { 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget', 'hiring-plan': 'hiring plan', nest: 'nested board' }
 
 /** Plug a kind's rules into the gate. Each rule module calls it once when it loads. */
 export function registerWorkshopRules(rules: BusinessBoardRules): void {
