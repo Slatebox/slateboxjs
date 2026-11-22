@@ -528,8 +528,9 @@ export function validateWorkshop(input: unknown): Workshop {
   }
   const cards: WorkshopCard[] = value.cards.map(item => {
     const raw = record(item)
-    // A card may be empty, as a note may: an empty note dropped on a lane is an empty card.
-    const card: WorkshopCard = { id: id(raw.id), label: cardLabel(raw.label), laneId: id(raw.laneId) }
+    // A card may be empty, as a note may: an empty note dropped on a lane is an empty card. A
+    // business board's card is a task, deal, line item, hire or pile: it is named, in plain text.
+    const card: WorkshopCard = { id: id(raw.id), label: business ? label(raw.label) : cardLabel(raw.label), laneId: id(raw.laneId) }
     if (!laneIds.includes(card.laneId)) throw new Error('Card refers to an unknown lane.')
     if (raw.allowedLaneIds !== undefined) {
       if (!Array.isArray(raw.allowedLaneIds) || raw.allowedLaneIds.length > lanes.length) throw new Error('Invalid allowed lanes.')
@@ -584,7 +585,8 @@ export function validateWorkshop(input: unknown): Workshop {
     })
     unique(board.signals.map(signal => signal.id), 'placement outcome ID')
   }
-  if (value.lines !== undefined) {
+  // Lines join the cards of a board of plain lanes only: a business board's cards carry none.
+  if (value.lines !== undefined && !business) {
     const lines = workshopLines(value.lines, new Set(cards.map(card => card.id)))
     if (lines.length) board.lines = lines
   }
@@ -903,7 +905,10 @@ function businessNote(board: Workshop, laneId: string, note: WorkshopNoteOffer):
   const made = applyWorkshopEdits(board, [{ kind: 'add_card', lane: { id: laneId }, ...read, ...(note.under && { under: { id: note.under } }) }])
   if ('refused' in made) return made.refused.reason
   const cards = made.workshop.cards
-  cards[cards.length - 1] = { ...cards[cards.length - 1], id: cardIdFor(board, note.id) }
+  const cardId = cardIdFor(board, note.id)
+  // A card that could not take the note's id remembers it, so the note comes back under it.
+  const noteId = cardId !== note.id && typeof note.id === 'string' && notePattern.test(note.id) ? note.id : undefined
+  cards[cards.length - 1] = { ...cards[cards.length - 1], id: cardId, ...(noteId ? { noteId } : {}) }
   return made.workshop
 }
 
@@ -980,6 +985,7 @@ export function workshopLinesOf(board: Workshop, id: string): WorkshopLine[] {
 
 /** Why `line` may not be drawn on the board, as a sentence; null when it may. */
 export function workshopLineRefusal(board: Workshop, line: WorkshopLine): string | null {
+  if (board.kind) return workshopLinesSentence
   let drawn: WorkshopLine
   try { drawn = workshopLine(line) } catch (error) { return error instanceof Error ? error.message : 'That line can\'t be drawn.' }
   const cards = new Set(board.cards.map(card => card.id))
@@ -989,6 +995,9 @@ export function workshopLineRefusal(board: Workshop, line: WorkshopLine): string
   if (!known && (board.lines?.length ?? 0) >= maxWorkshopLines) return `A workshop holds up to ${maxWorkshopLines} lines.`
   return null
 }
+
+/** Why a board with a kind (a release plan, a map, a business board) takes no lines. */
+export const workshopLinesSentence = 'Lines join the cards of a lane workshop to notes and to each other.'
 
 /** The board with `line` drawn, in place of a line with the same id; null when it may not be (see workshopLineRefusal). */
 export function workshopWithLine(board: Workshop, line: WorkshopLine): Workshop | null {

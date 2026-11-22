@@ -572,4 +572,21 @@ describe('a nest board attached to a slate, played through its drag policy', () 
     expect(t.changes.at(-1)!.change.edits[0]).toMatchObject({ kind: 'nest_card', card: { id: 'csv-import' }, under: { id: 'outcome' } })
     t.attached.destroy()
   })
+
+  it('a card takes no connector: the policy says so, and a line drawn from it anyway is taken off and not saved', async () => {
+    const t = await attach(evidence())
+    const card = t.notes.get('card-csv-export')
+    expect(t.slate.policy.governs(card).canConnect).toBe(false)
+    const note = { id: 'note-90', options: { id: 'note-90', text: 'A note', x: 0, y: 0, width: 180, height: 60 }, relationships: { associations: [] } }
+    t.notes.set('note-90', note)
+    const removed: string[] = []
+    card.relationships = { associations: [{ id: 'card-csv-export->note-90' }], hasAssociationId: (id: string) => id === 'card-csv-export->note-90',
+      removeAssociation: (id: string) => { removed.push(id) } }
+    t.slate.policy.onLine('addRelationship', { id: 'card-csv-export->note-90', parentId: 'card-csv-export', childId: 'note-90' })
+    await Promise.resolve(); await Promise.resolve()
+    expect(removed).toEqual(['card-csv-export->note-90'])
+    expect(t.changes).toHaveLength(0)
+    expect(t.attached.value.lines).toBeUndefined()
+    t.attached.destroy()
+  })
 })

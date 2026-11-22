@@ -171,6 +171,7 @@ const sentences = {
   mapCardLanes: 'A map’s tokens go where its paths lead. Connect or disconnect steps instead.',
   mapOutcome: 'A map says what happens when a token reaches a step. Change what that step says instead.',
   lines: 'Lines join the cards of a lane workshop to notes and to each other. This board keeps the cards it came with.',
+  businessLines: 'Lines join the cards of a lane workshop to notes and to each other. Cards on this board carry no lines.',
   launchLanes: 'A launch plan keeps the teams it came with. You can rename them and move tasks between them.',
   pipelineLanes: 'A pipeline keeps the stages it came with. You can rename them and set how many deals a stage holds.',
   budgetLanes: 'A budget keeps the teams it came with. Move money between them instead.',
@@ -225,7 +226,7 @@ export const workshopEditKinds: WorkshopEditKind[] = [
   { kind: 'rename_lane', summary: 'Rename a lane, or a step on a map.', intent: true,
     fields: { lane: lane('The lane or step.'), label: text(80, 'The new name, 1 to 80 characters of plain text.') }, boards: everyBoard, refusals: {} },
   { kind: 'rename_card', summary: 'Rename a card, a feature or a token.', intent: true,
-    fields: { card: card('The card or token.'), label: { type: 'text', max: 80, min: 0, about: 'The new words, up to 80 characters of plain text. Empty makes an empty card.' } }, boards: everyBoard, refusals: {} },
+    fields: { card: card('The card or token.'), label: { type: 'text', max: 80, min: 0, about: 'The new words, up to 80 characters of plain text. Empty makes an empty card, except on a launch plan, pipeline, budget, hiring plan or nest board, where a card is named: 1 to 80 characters.' } }, boards: everyBoard, refusals: {} },
   { kind: 'add_lane', summary: 'Add a lane at the end, optionally with how many cards it holds. A workshop has up to five lanes.', intent: false,
     fields: { label: text(80, 'The lane’s name.'), capacity: { type: 'integer', min: 1, max: 24, optional: true, about: 'How many cards it holds, 1 to 24. Leave it out for any number.' } },
     boards: ['lanes'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes, map: sentences.mapAddLane, ...keepsTeams } },
@@ -233,7 +234,7 @@ export const workshopEditKinds: WorkshopEditKind[] = [
     fields: { lane: lane('The lane or step.') },
     boards: ['lanes', 'map'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes, ...keepsTeams } },
   { kind: 'add_card', summary: 'Add a card to a lane that has room, or a token at a step. A workshop has up to 24 cards.', intent: false,
-    fields: { lane: lane('The lane or step it starts in.'), label: text(80, 'What the card says. Left out, the card is empty (on a map, the token is numbered).', true),
+    fields: { lane: lane('The lane or step it starts in.'), label: text(80, 'What the card says. Left out, the card is empty (on a map, the token is numbered); a launch plan, pipeline, budget, hiring plan or nest board needs it.', true),
       allowedLanes: { type: 'refs', of: 'lane', min: 1, max: 5, optional: true, about: 'Lane boards only: the lanes it may go in, including the one it starts in. Leave it out for any lane.' },
       duration: whole('Launch plan: days, 1 to 60 (2).', 60, 1, true), lag: whole('Launch plan: days it waits.', 120, 0, true),
       waitsOn: { type: 'refs', of: 'card', min: 0, max: 3, optional: true, about: 'Launch plan: what it waits on.' },
@@ -329,7 +330,7 @@ export const workshopEditKinds: WorkshopEditKind[] = [
 ]
 
 function linesOnLanes(): Partial<Record<WorkshopBoardKind, string>> {
-  return { 'release-plan': sentences.lines, 'customer-interviews': sentences.lines, 'experiment-budget': sentences.lines, map: sentences.lines }
+  return { ...others(['lanes'], sentences.businessLines), 'release-plan': sentences.lines, 'customer-interviews': sentences.lines, 'experiment-budget': sentences.lines, map: sentences.lines }
 }
 
 export const isRuleEdit = (kind: string) => kind === 'add_rule' || kind === 'set_rule' || kind === 'remove_rule'

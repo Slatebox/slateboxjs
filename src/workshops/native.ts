@@ -1102,7 +1102,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
 
   /** Whether a person may draw lines to and from this board's cards now. */
   function acceptsLines() {
-    return !destroyed && !readOnly && !proposal && !viewer() && workshopTakesNotes(value)
+    // Lines join the cards of a board of plain lanes: a business board's cards are notes, but carry no lines.
+    return !destroyed && !readOnly && !proposal && !viewer() && !value.kind && workshopTakesNotes(value)
   }
 
   /** A connector as the board keeps a line: its ends and its look, nothing a connector does not draw. */
