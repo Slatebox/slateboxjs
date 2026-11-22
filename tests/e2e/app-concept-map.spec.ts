@@ -101,6 +101,41 @@ test('a token held over a fuller station drops there: no station slides out from
   } finally { await removeTestGuest(page,actor) }
 })
 
+test('a phone that closes the chat never shows the map cropped, not even in the task the panel goes', async ({ page }) => {
+  test.skip(!privateHost,'This journey resumes a real private archive.')
+  await page.setViewportSize({width:390,height:760})
+  let actor:string|null = null
+  try {
+    await resumeArchivedDraft(page,origin,'map')
+    actor = await userId(page)
+    await dismissWelcome(page)
+    await workshopReady(page)
+    // The canvas grows as the panel goes. The stations are measured in the very task the panel
+    // leaves the page, before any ResizeObserver or animation frame has run: the view must already
+    // fit the taller canvas (its sides are not cropped).
+    await page.evaluate(()=>{
+      const w = window as any
+      const panel = document.querySelector('[aria-label="Ask Slatebox"]')
+      w.__stations = null
+      new MutationObserver((_, watch)=>{
+        if (!panel || panel.isConnected) return
+        watch.disconnect()
+        w.__stations = ['platform','lift','stairs'].map(station => {
+          const box = document.querySelector('#slateCanvas [data-node-id="column-'+station+'"]')!.getBoundingClientRect()
+          return { station, left: box.left, right: box.right }
+        })
+      }).observe(document.body,{childList:true,subtree:true})
+    })
+    await closeConversation(page)
+    const stations = await page.evaluate(()=>(window as any).__stations) as {station:string,left:number,right:number}[]
+    expect(stations).toHaveLength(3)
+    for (const { station, left, right } of stations) {
+      expect(left, station).toBeGreaterThanOrEqual(0)
+      expect(right, station).toBeLessThanOrEqual(390)
+    }
+  } finally { await removeTestGuest(page,actor) }
+})
+
 test('a phone shows the native starter map and keeps pointer moves aligned', async ({ page }) => {
   test.skip(!privateHost,'This journey resumes a real private archive.')
   await page.setViewportSize({width:390,height:760})

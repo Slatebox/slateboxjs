@@ -923,6 +923,32 @@ describe("Slate", () => {
       expect(slate.panZoom.resize).toHaveBeenCalled();
     });
 
+    // The canvas is drawn with preserveAspectRatio "xMidYMid slice": until the view box takes the
+    // element's new shape, a taller element crops the view's sides. A host that changes the
+    // canvas's size itself (a phone's chat closing) syncs the view at once, in the same task, so
+    // nothing reads or draws the cropped view while the ResizeObserver's turn is still to come.
+    it("resizePanZoom takes the element's new size at once, keeping the zoom and the view's centre", () => {
+      const slate = new Slate(container);
+      let box = { x: 16, y: -93.85, width: 564, height: (306 * 564) / 390 };
+      const viewbox = vi.fn((...args: number[]) => {
+        if (args.length) { box = { x: args[0], y: args[1], width: args[2], height: args[3] }; return slate.canvas; }
+        return box;
+      });
+      (slate.canvas as any).viewbox = viewbox;
+      let size = { width: 390, height: 306 };
+      slate.element.getBoundingClientRect = () => ({ ...size, x: 0, y: 0, top: 0, left: 0, right: size.width, bottom: size.height, toJSON() {} }) as DOMRect;
+      slate.resizePanZoom(); // learns the element as it is: the view already fits it
+      expect(box).toEqual({ x: 16, y: -93.85, width: 564, height: (306 * 564) / 390 });
+      size = { width: 390, height: 640 }; // the chat closed: the canvas is taller
+      slate.resizePanZoom();
+      const unitsPerPx = 564 / 390;
+      expect(box.width).toBeCloseTo(564);
+      expect(box.height).toBeCloseTo(640 * unitsPerPx);
+      expect(box.x + box.width / 2).toBeCloseTo(16 + 564 / 2);
+      expect(box.y + box.height / 2).toBeCloseTo(-93.85 + (306 * 564) / 390 / 2);
+      expect(slate.options.viewPort.originalHeight).toBe(640);
+    });
+
     it("enablePanZoom / disablePanZoom delegate", () => {
       const slate = new Slate(container);
       slate.enablePanZoom();

@@ -1459,9 +1459,16 @@ export class Slate {
     return this.panZoom.getPan();
   }
 
-  /** Notify pan/zoom that the viewport was resized. */
+  /**
+   * Notify pan/zoom that the viewport was resized: the view box takes the element's size now,
+   * keeping the zoom and the view's centre, as the ResizeObserver would on its next turn. A host
+   * that changes the canvas's size itself (a panel beside or under it opening or closing) calls
+   * this in the same task, so nothing reads or paints a view box shaped for the old size: with
+   * preserveAspectRatio "slice", a taller element would otherwise crop the view's sides.
+   */
   public resizePanZoom() {
     this.panZoom.resize();
+    this._syncViewBoxToElement();
   }
 
   /**
@@ -1471,33 +1478,43 @@ export class Slate {
    */
   private _setupResizeObserver(): void {
     if (typeof ResizeObserver === "undefined") return;
-    let lastW = 0;
-    let lastH = 0;
-    this._resizeObserver = new ResizeObserver(() => {
-      if (this._destroyed) return;
-      const rect = this.element.getBoundingClientRect();
-      const pw = Math.max(1, Math.round(rect.width));
-      const ph = Math.max(1, Math.round(rect.height));
-      if (pw === lastW && ph === lastH) return;
-
-      const vb = this.canvas.viewbox();
-      // Current on-screen scale (viewBox units per pixel). Use the previous
-      // container width to recover it; fall back to viewBox/px on first run.
-      const unitsPerPx = vb.width / (lastW || pw);
-      lastW = pw;
-      lastH = ph;
-
-      const cx = vb.x + vb.width / 2;
-      const cy = vb.y + vb.height / 2;
-      const newW = pw * unitsPerPx;
-      const newH = ph * unitsPerPx;
-      this.canvas.viewbox(cx - newW / 2, cy - newH / 2, newW, newH);
-      this.options.viewPort = this.options.viewPort || {};
-      this.options.viewPort.originalWidth = pw;
-      this.options.viewPort.originalHeight = ph;
-      this.frameViewChanged();
-    });
+    this._resizeObserver = new ResizeObserver(() => this._syncViewBoxToElement());
     this._resizeObserver.observe(this.element);
+  }
+
+  /** The element size the view box was last shaped for (0 until first measured). */
+  private _viewSizeW = 0;
+  private _viewSizeH = 0;
+
+  /**
+   * Shape the view box to the element's pixel size, keeping the zoom and the world point at the
+   * view's centre. Does nothing when the size is the one already taken. Shared by the
+   * ResizeObserver and resizePanZoom, so a size taken by one is not taken again by the other.
+   */
+  private _syncViewBoxToElement(): void {
+    if (this._destroyed || !this.element?.getBoundingClientRect) return;
+    const rect = this.element.getBoundingClientRect();
+    const pw = Math.max(1, Math.round(rect.width));
+    const ph = Math.max(1, Math.round(rect.height));
+    if (pw === this._viewSizeW && ph === this._viewSizeH) return;
+
+    const vb = this.canvas.viewbox();
+    if (!vb || ![vb.x, vb.y, vb.width, vb.height].every(Number.isFinite)) return;
+    // Current on-screen scale (viewBox units per pixel). Use the previous
+    // container width to recover it; fall back to viewBox/px on first run.
+    const unitsPerPx = vb.width / (this._viewSizeW || pw);
+    this._viewSizeW = pw;
+    this._viewSizeH = ph;
+
+    const cx = vb.x + vb.width / 2;
+    const cy = vb.y + vb.height / 2;
+    const newW = pw * unitsPerPx;
+    const newH = ph * unitsPerPx;
+    this.canvas.viewbox(cx - newW / 2, cy - newH / 2, newW, newH);
+    this.options.viewPort = this.options.viewPort || {};
+    this.options.viewPort.originalWidth = pw;
+    this.options.viewPort.originalHeight = ph;
+    this.frameViewChanged();
   }
 
   /**
