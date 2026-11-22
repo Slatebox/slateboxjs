@@ -13,6 +13,8 @@ export interface ConnectorKey {
 
 export const LINE_TYPES = ["bezier", "orthogonal", "straight", "linear", "curved"] as const;
 export const LINE_CURVE_TYPES = ["cubic", "quadratic"] as const;
+/** The dashes the canvas draws (Connector.lineDashArray); a line without one is solid. */
+export const LINE_DASHES = ["solid", "dashed", "dotted"] as const;
 
 export const CONNECTOR_KEYS: Record<string, ConnectorKey> = {
   label: { spec: { type: "string", maxLength: 500 }, description: "Text shown on the connector." },
@@ -22,6 +24,7 @@ export const CONNECTOR_KEYS: Record<string, ConnectorKey> = {
   lineType: { spec: { type: "enum", values: LINE_TYPES }, description: "Path style." },
   lineCurveType: { spec: { type: "enum", values: LINE_CURVE_TYPES }, description: "Curve type." },
   lineCurviness: { spec: { type: "number", min: 0, max: 1 }, description: "How much the line bends." },
+  lineDash: { spec: { type: "enum", values: LINE_DASHES }, description: "Solid, dashed or dotted line." },
   showParentArrow: { spec: { type: "boolean" }, description: "Arrowhead at the starting note." },
   showChildArrow: { spec: { type: "boolean" }, description: "Arrowhead at the far end." },
   toPoint: {

@@ -11,6 +11,8 @@ export interface ConnectorKey {
 }
 export declare const LINE_TYPES: readonly ["bezier", "orthogonal", "straight", "linear", "curved"];
 export declare const LINE_CURVE_TYPES: readonly ["cubic", "quadratic"];
+/** The dashes the canvas draws (Connector.lineDashArray); a line without one is solid. */
+export declare const LINE_DASHES: readonly ["solid", "dashed", "dotted"];
 export declare const CONNECTOR_KEYS: Record<string, ConnectorKey>;
 /** Keys connect_nodes accepts in style (a new connector's end is set by `to`). */
 export declare const CONNECTOR_STYLE_KEYS: string[];

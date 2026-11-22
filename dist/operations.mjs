@@ -480,7 +480,7 @@ class W extends Error {
     super(o), this.name = "OperationPlanError", this.code = e, this.status = n, r && (this.details = r);
   }
 }
-const Oe = ["bezier", "orthogonal", "straight", "linear", "curved"], Me = ["cubic", "quadratic"], nt = {
+const Oe = ["bezier", "orthogonal", "straight", "linear", "curved"], Me = ["cubic", "quadratic"], Ee = ["solid", "dashed", "dotted"], nt = {
   label: { spec: { type: "string", maxLength: 500 }, description: "Text shown on the connector." },
   lineColor: { spec: { type: "color" }, description: "Line colour." },
   lineWidth: { spec: { type: "number", min: 0.1, max: 100 }, description: "Line width." },
@@ -488,6 +488,7 @@ const Oe = ["bezier", "orthogonal", "straight", "linear", "curved"], Me = ["cubi
   lineType: { spec: { type: "enum", values: Oe }, description: "Path style." },
   lineCurveType: { spec: { type: "enum", values: Me }, description: "Curve type." },
   lineCurviness: { spec: { type: "number", min: 0, max: 1 }, description: "How much the line bends." },
+  lineDash: { spec: { type: "enum", values: Ee }, description: "Solid, dashed or dotted line." },
   showParentArrow: { spec: { type: "boolean" }, description: "Arrowhead at the starting note." },
   showChildArrow: { spec: { type: "boolean" }, description: "Arrowhead at the far end." },
   toPoint: {
@@ -510,7 +511,7 @@ const Oe = ["bezier", "orthogonal", "straight", "linear", "curved"], Me = ["cubi
     spec: { type: "object" },
     description: "Canvas background: {color, gradient?: {type, colors, direction?}}.",
     store: (t, e) => {
-      const n = { ...t.options.containerStyle || {}, ...Le(e) };
+      const n = { ...t.options.containerStyle || {}, ...Ne(e) };
       delete n.backgroundImage, delete n.backgroundEffect, t.options.containerStyle = n;
     }
   },
@@ -538,7 +539,7 @@ const Oe = ["bezier", "orthogonal", "straight", "linear", "curved"], Me = ["cubi
     }
   }
 };
-function Ee(t, e) {
+function Le(t, e) {
   if (!z(t)) return [`${e} must be an object {color, gradient?}.`];
   const n = [];
   for (const r of Object.keys(t))
@@ -561,7 +562,7 @@ function Ee(t, e) {
   }
   return n;
 }
-function Le(t) {
+function Ne(t) {
   return {
     backgroundColor: t.color,
     backgroundColorAsGradient: !!t.gradient,
@@ -590,7 +591,7 @@ function te() {
     }
   };
 }
-function Ne(t) {
+function Te(t) {
   if (!t?.backgroundColor) return null;
   const e = t.backgroundGradientColors;
   return !t.backgroundColorAsGradient || !Array.isArray(e) || e.length < 2 ? { color: t.backgroundColor } : {
@@ -602,13 +603,13 @@ function Ne(t) {
     }
   };
 }
-const Te = ["ids", "text", "match", "all", "within", "groupId"], Ae = ["ids", "text", "within", "groupId"];
+const Ae = ["ids", "text", "match", "all", "within", "groupId"], Pe = ["ids", "text", "within", "groupId"];
 function rt(t, e) {
   if (!z(t)) return [`${e} must be a selector such as {ids: [...]}, {text}, {within}, {groupId} or {all: true}.`];
   const n = [];
   for (const r of Object.keys(t))
-    Te.includes(r) || n.push(`${e} has an unknown field: ${r}.`);
-  const o = Ae.filter((r) => t[r] !== void 0);
+    Ae.includes(r) || n.push(`${e} has an unknown field: ${r}.`);
+  const o = Pe.filter((r) => t[r] !== void 0);
   if (o.length > 1 && n.push(`${e} must name notes one way, not by ${o.join(" and ")}.`), !o.length && t.all !== !0 && n.push(`${e} must name notes by ids, text, within, groupId or all: true.`), t.ids !== void 0 && (!Array.isArray(t.ids) || !t.ids.length || t.ids.some((r) => typeof r != "string" || !r)) && n.push(`${e}.ids must be a list of note ids.`), t.text !== void 0 && (typeof t.text != "string" || !t.text.trim()) && n.push(`${e}.text must be the text of a note.`), t.match !== void 0) {
     t.text === void 0 && n.push(`${e}.match goes with text.`);
     const r = j({ type: "enum", values: ["exact", "contains"] }, t.match, `${e}.match`);
@@ -640,7 +641,7 @@ function ee() {
     }
   };
 }
-const Pe = /\b(theme|background|canvas|palette|gradient|recolor|colour|color scheme)\b/i, ne = /\b(clear|replace|reset|start over|delete all|remove all)\b/i;
+const Ce = /\b(theme|background|canvas|palette|gradient|recolor|colour|color scheme)\b/i, ne = /\b(clear|replace|reset|start over|delete all|remove all)\b/i;
 function dt(t, e, n, o, r, { required: i = !0, plural: a = `${o}s` } = {}) {
   const p = [];
   if (t === void 0 && !i) return p;
@@ -667,7 +668,7 @@ function Ht(t) {
 function J(t) {
   return Array.isArray(t) && t.length > 0 && t.every((e) => typeof e == "string" && e.length > 0);
 }
-function Ce(t, e = {}) {
+function je(t, e = {}) {
   const n = kt(e), o = vt(e), r = e.userMessage || "";
   if (!z(t)) return { valid: !1, errors: ["The operation plan must be an object."] };
   const i = [];
@@ -784,13 +785,13 @@ function Ce(t, e = {}) {
         i.push(
           ...dt(s.changes, Object.keys(at), d, "slate change", (m, y, w) => {
             if (m === "background") {
-              w.push(...Ee(y, `${d} background`));
+              w.push(...Le(y, `${d} background`));
               return;
             }
             const _ = j(at[m].spec, y, `${d} ${m}`);
             _ && w.push(_);
           })
-        ), z(s.changes) && s.changes.background !== void 0 && !Pe.test(r) && i.push(`${d} cannot change the canvas background unless the user explicitly asks for it.`);
+        ), z(s.changes) && s.changes.background !== void 0 && !Ce.test(r) && i.push(`${d} cannot change the canvas background unless the user explicitly asks for it.`);
         return;
       }
     }
@@ -808,7 +809,7 @@ function se(t) {
   const $ = (m) => Math.round(m * 1e6) / 1e6;
   return { minX: $(s), minY: $(c), maxX: $(d), maxY: $(S) };
 }
-function je(t, e) {
+function Ye(t, e) {
   if (e.length < 2) return [];
   const n = e.map(se), o = Math.min(...n.map((b) => b.minX)), r = Math.max(...n.map((b) => b.maxX)), i = Math.min(...n.map((b) => b.minY)), a = Math.max(...n.map((b) => b.maxY)), p = (o + r) / 2, g = (i + a) / 2;
   return e.map((b, f) => {
@@ -817,7 +818,7 @@ function je(t, e) {
     return t === "left" ? c += o - s.minX : t === "right" ? c += r - s.maxX : t === "centerH" ? c += p - (s.minX + s.maxX) / 2 : t === "top" ? d += i - s.minY : t === "bottom" ? d += a - s.maxY : t === "middle" && (d += g - (s.minY + s.maxY) / 2), { id: b.id, x: c, y: d };
   });
 }
-function Ye(t, e) {
+function Re(t, e) {
   if (e.length < 3) return [];
   const n = e.map((c, d) => ({ box: c, index: d, b: se(c) })), o = t === "horizontal", r = (c) => o ? c.b.minX : c.b.minY, i = (c) => o ? c.b.maxX - c.b.minX : c.b.maxY - c.b.minY, a = [...n].sort((c, d) => r(c) - r(d) || c.index - d.index), p = r(a[0]), b = (a.reduce((c, d) => Math.max(c, r(d) + i(d)), -1 / 0) - p - a.reduce((c, d) => c + i(d), 0)) / (a.length - 1), f = /* @__PURE__ */ new Map();
   let s = p;
@@ -835,12 +836,12 @@ function xt(t, e, n) {
   const o = Math.min(t.x + t.width + n - e.x, e.x + e.width + n - t.x), r = Math.min(t.y + t.height + n - e.y, e.y + e.height + n - t.y);
   return o > 0 && r > 0 ? { x: o, y: r } : null;
 }
-const Re = 4e6;
-function ze(t, e, { gap: n = 20 } = {}) {
+const ze = 4e6;
+function Be(t, e, { gap: n = 20 } = {}) {
   const o = t.map((f) => ({ ...f })), r = e.map((f) => ({ ...f })), i = (f, s, c, d, S) => {
     const $ = f.x + f.width / 2 - (s.x + s.width / 2), m = f.y + f.height / 2 - (s.y + s.height / 2);
     c.y <= c.x ? f.y += (m > 0 || m === 0 && S > 0 ? 1 : -1) * c.y * d : f.x += ($ > 0 || $ === 0 && S > 0 ? 1 : -1) * c.x * d;
-  }, a = Math.max(1, o.length * (r.length + o.length / 2)), p = Math.max(1, Math.min(1e3, Math.floor(Re / a)));
+  }, a = Math.max(1, o.length * (r.length + o.length / 2)), p = Math.max(1, Math.min(1e3, Math.floor(ze / a)));
   let g = !1;
   for (let f = 0; f < p; f += 1) {
     let s = !1;
@@ -862,9 +863,9 @@ function ze(t, e, { gap: n = 20 } = {}) {
   const b = (f) => Math.round(f * 100) / 100;
   for (const f of o)
     f.x = b(f.x), f.y = b(f.y);
-  return g || Be(o, r, n), o.map(({ id: f, x: s, y: c }) => ({ id: f, x: s, y: c }));
+  return g || De(o, r, n), o.map(({ id: f, x: s, y: c }) => ({ id: f, x: s, y: c }));
 }
-function Be(t, e, n) {
+function De(t, e, n) {
   const o = [...e], r = [];
   for (const d of t)
     o.some((S) => xt(d, S, n)) ? r.push(d) : o.push(d);
@@ -874,7 +875,7 @@ function Be(t, e, n) {
   for (const d of r)
     f > i && f + d.width > i + b && (f = i, s += c + n, c = 0), d.x = f, d.y = s, f += d.width + n, c = Math.max(c, d.height);
 }
-function De(t, e, { gap: n = 48, obstacles: o = [] } = {}) {
+function Xe(t, e, { gap: n = 48, obstacles: o = [] } = {}) {
   if (!t.length) return [];
   const r = new Map(t.map((l) => [l.id, l])), i = new Map(t.map((l) => [l.id, []])), a = new Map(t.map((l) => [l.id, 0]));
   for (const [l, h] of e)
@@ -921,9 +922,9 @@ function De(t, e, { gap: n = 48, obstacles: o = [] } = {}) {
     w(l, _), _ += h + n;
   }
   const X = t.map((l) => y.get(l.id));
-  return Xe(t, X, o, n);
+  return Fe(t, X, o, n);
 }
-function Xe(t, e, n, o) {
+function Fe(t, e, n, o) {
   if (!n.length) return e;
   let r = 0;
   for (let i = 0; i <= n.length; i += 1) {
@@ -949,7 +950,7 @@ function wt(t) {
 function $t(t) {
   const e = t?.nodes && !Array.isArray(t.nodes), n = e ? t.v2 ?? t : null, o = e ? {
     options: wt(n.options || {}),
-    nodes: (n.freeNodes?.() ?? n.nodes.allNodes ?? []).map((r) => Fe(r?.v2 ?? r))
+    nodes: (n.freeNodes?.() ?? n.nodes.allNodes ?? []).map((r) => We(r?.v2 ?? r))
   } : wt(t || {});
   return o.options || (o.options = {}), o.nodes = (Array.isArray(o.nodes) ? o.nodes : []).map((r) => {
     const i = r?.options ? r : { options: { ...r || {} }, relationships: r?.relationships };
@@ -958,7 +959,7 @@ function $t(t) {
     }), i;
   }), o;
 }
-function Fe(t) {
+function We(t) {
   const e = wt(t.options || {});
   e.x !== void 0 && (e.xPos = e.x, delete e.x), e.y !== void 0 && (e.yPos = e.y, delete e.y), e.fontColor !== void 0 && e.foregroundColor === void 0 && (e.foregroundColor = e.fontColor);
   const n = typeof t.getRotation == "function" ? t.getRotation() : void 0;
@@ -1005,13 +1006,13 @@ function tt(t, e, n) {
   }
   return e.groupId !== void 0 ? o.filter((r) => r.options.groupId === e.groupId) : e.all === !0 ? [...o] : [];
 }
-function We() {
+function He() {
   const t = "abcdefghijklmnopqrstuvwxyz0123456789";
   let e = "";
   for (let n = 0; n < 12; n += 1) e += t[Math.floor(Math.random() * t.length)];
   return e;
 }
-function He(t) {
+function qe(t) {
   const e = (i) => {
     const a = (parseInt(i, 16) || 0) / 255;
     return a <= 0.03928 ? a / 12.92 : Math.pow((a + 0.055) / 1.055, 2.4);
@@ -1021,13 +1022,13 @@ function He(t) {
   }, r = /^#[0-9a-f]{6}$/i.test(t) ? t : "#7aa2c8";
   return o(r, "#ffffff") > o(r, "#000000") ? "#ffffff" : "#000000";
 }
-function qe(t, e, n) {
+function Ge(t, e, n) {
   return t.x < e.x + e.width + n && t.x + t.width + n > e.x && t.y < e.y + e.height + n && t.y + t.height + n > e.y;
 }
-function Ge(t, e, n, o, r, i) {
+function Ue(t, e, n, o, r, i) {
   let a = t;
   for (let p = 0; p <= e.length; p += 1) {
-    const g = e.filter((s) => a.some((c) => qe({ ...c, width: n, height: o }, s, i)));
+    const g = e.filter((s) => a.some((c) => Ge({ ...c, width: n, height: o }, s, i)));
     if (!g.length) return a;
     let b = 0, f = 0;
     r === "left" ? b = Math.min(...g.map((s) => s.x - i)) - Math.max(...a.map((s) => s.x + n)) : r === "above" ? f = Math.min(...g.map((s) => s.y - i)) - Math.max(...a.map((s) => s.y + o)) : r === "below" || r === "center" ? f = Math.max(...g.map((s) => s.y + s.height + i)) - Math.min(...a.map((s) => s.y)) : b = Math.max(...g.map((s) => s.x + s.width + i)) - Math.min(...a.map((s) => s.x)), a = a.map((s) => ({ x: s.x + b, y: s.y + f }));
@@ -1050,7 +1051,7 @@ function At(t, e) {
     column: e === "column" ? 0 : e === "grid" ? r % n : r
   }));
 }
-function Ue(t, e, n, o) {
+function Ke(t, e, n, o) {
   const r = e.count, i = e.placement || {}, a = i.gap ?? (i.connect ? $e : 48);
   if (e.x !== void 0 && e.y !== void 0) {
     const c = i.arrangement || "row";
@@ -1063,9 +1064,9 @@ function Ue(t, e, n, o) {
     let S = g.x + d * (n + a), $ = g.y + c * (o + a);
     return b === "right" && (S += g.width + a), b === "left" && (S -= n + a), b === "below" && ($ += g.height + a), b === "above" && ($ -= o + a), { x: S, y: $ };
   });
-  return { points: Ge(s, t.nodes.map(U), n, o, b, a), arrangement: f, gap: a };
+  return { points: Ue(s, t.nodes.map(U), n, o, b, a), arrangement: f, gap: a };
 }
-function Ke(t, e) {
+function Je(t, e) {
   if (!t) return { childId: `${Tt}${e()}` };
   const n = t.match(/->(__free_.+)$/);
   return { id: t, childId: n ? n[1] : `${Tt}${t.replace(/[^A-Za-z0-9_-]/g, "_")}` };
@@ -1085,7 +1086,7 @@ function Et(t, e, n) {
     { ids: n }
   );
 }
-const qt = (t, e) => JSON.stringify(t) === JSON.stringify(e), Je = ["id", "name", "text", "xPos", "yPos", "x", "y", "isLocked"], Lt = (t) => JSON.parse(JSON.stringify(t)), mt = 1e6, Gt = {
+const qt = (t, e) => JSON.stringify(t) === JSON.stringify(e), Ze = ["id", "name", "text", "xPos", "yPos", "x", "y", "isLocked"], Lt = (t) => JSON.parse(JSON.stringify(t)), mt = 1e6, Gt = {
   "align-left": "left",
   "align-center": "centerH",
   "align-right": "right",
@@ -1093,8 +1094,8 @@ const qt = (t, e) => JSON.stringify(t) === JSON.stringify(e), Je = ["id", "name"
   "align-middle": "middle",
   "align-bottom": "bottom"
 }, it = (t) => ({ id: k(t), ...U(t), rotationAngle: G(t, "rotationAngle") });
-function cn(t, e, n = {}) {
-  const o = kt(n), r = vt(n), i = n.idFactory || We, a = $t(t), p = Ce(e, {
+function dn(t, e, n = {}) {
+  const o = kt(n), r = vt(n), i = n.idFactory || He, a = $t(t), p = je(e, {
     ...n,
     existingNodeIds: a.nodes.map(k),
     existingConnectionIds: et(a).map(({ association: c }) => c.id)
@@ -1145,14 +1146,14 @@ function cn(t, e, n = {}) {
           w(u);
           return;
         }
-        const x = c.shape ?? l?.shape, O = u ? U(u) : void 0, N = c.width ?? l?.width ?? O?.width ?? (x?.toLowerCase() === "triangle" ? 150 : 180), P = c.height ?? l?.height ?? O?.height ?? (x?.toLowerCase() === "triangle" ? 130 : 110), C = u ?? oe(a, c.placement?.relativeTo), Y = c.style?.backgroundColor || l?.style?.backgroundColor || C?.options.backgroundColor || "#7aa2c8", { points: M, arrangement: E, gap: v } = Ue(a, c, N, P), I = new Set(et(a).map(({ association: R }) => R.id)), L = new Set(a.nodes.map(k)), A = (c.ids || []).filter((R) => L.has(R));
+        const x = c.shape ?? l?.shape, O = u ? U(u) : void 0, N = c.width ?? l?.width ?? O?.width ?? (x?.toLowerCase() === "triangle" ? 150 : 180), P = c.height ?? l?.height ?? O?.height ?? (x?.toLowerCase() === "triangle" ? 130 : 110), C = u ?? oe(a, c.placement?.relativeTo), Y = c.style?.backgroundColor || l?.style?.backgroundColor || C?.options.backgroundColor || "#7aa2c8", { points: M, arrangement: E, gap: v } = Ke(a, c, N, P), I = new Set(et(a).map(({ association: R }) => R.id)), L = new Set(a.nodes.map(k)), A = (c.ids || []).filter((R) => L.has(R));
         if (A.length && !n.replay) throw Et($, "note", A);
         const D = M.map((R, F) => c.ids?.[F] || i());
         _(D.filter((R) => !L.has(R)).length), u && X(I.size + D.filter((R) => !L.has(R)).length, D.length), M.forEach(({ x: R, y: F }, zt) => {
           const K = D[zt];
           if (m.matched.push(K), L.has(K)) return;
           const Bt = c.text ? c.count > 1 ? c.text.replace(/\{n\}/g, `${zt + 1}`) : c.text : "", pt = u ? Lt(u.options) : void 0;
-          if (pt) for (const Q of Je) delete pt[Q];
+          if (pt) for (const Q of Ze) delete pt[Q];
           const st = pt ? { ...pt, id: K, name: K, text: Bt, width: N, height: P } : {
             id: K,
             name: K,
@@ -1175,7 +1176,7 @@ function cn(t, e, n = {}) {
             filters: { vect: null, text: null },
             animations: { vect: null, text: null }
           };
-          x && T.shape.store(st, x, o), T.x.store(st, R, o), T.y.store(st, F, o), u || T.foregroundColor.store(st, He(Y), o);
+          x && T.shape.store(st, x, o), T.x.store(st, R, o), T.y.store(st, F, o), u || T.foregroundColor.store(st, qe(Y), o);
           for (const [Q, _t] of Object.entries(l?.style || {})) T[Q].store(st, _t, o);
           for (const [Q, _t] of Object.entries(c.style || {})) T[Q].store(st, _t, o);
           if (a.nodes.push({ options: st, relationships: { associations: [] } }), m.changed.push(K), s.created.push(K), u) {
@@ -1299,7 +1300,7 @@ function cn(t, e, n = {}) {
           for (const L of I) {
             const A = c.ids?.[M];
             if (M += 1, !L) {
-              const R = Ke(A, i), F = R.id ?? lt(v, R.childId);
+              const R = Je(A, i), F = R.id ?? lt(v, R.childId);
               if (O.has(F)) {
                 n.replay || P.push(F), C.push(F), m.matched.push(F);
                 continue;
@@ -1377,15 +1378,15 @@ function cn(t, e, n = {}) {
         if (!h.length) return;
         const u = c.layout;
         let x;
-        if (Gt[u]) x = je(Gt[u], h.map(it));
+        if (Gt[u]) x = Ye(Gt[u], h.map(it));
         else if (u === "distribute-horizontal" || u === "distribute-vertical")
-          x = Ye(u === "distribute-horizontal" ? "horizontal" : "vertical", h.map(it));
+          x = Re(u === "distribute-horizontal" ? "horizontal" : "vertical", h.map(it));
         else if (u === "tidy") {
           const v = new Set(h.map(k)), I = a.nodes.filter((L) => !v.has(k(L))).map(it);
-          x = ze(h.map(it), I, { gap: c.gap ?? 20 });
+          x = Be(h.map(it), I, { gap: c.gap ?? 20 });
         } else if (u === "tree") {
           const v = et(a).filter(({ association: A }) => !yt(A)).map(({ association: A }) => [A.parentId, A.childId]), I = new Set(h.map(k)), L = a.nodes.filter((A) => !I.has(k(A))).map(it);
-          x = De(h.map(it), v, { gap: c.gap ?? 48, obstacles: L });
+          x = Xe(h.map(it), v, { gap: c.gap ?? 48, obstacles: L });
         }
         if (x) {
           const v = new Map(h.map((I) => [k(I), I]));
@@ -1443,7 +1444,7 @@ function re(t) {
   return e && (n.toPoint = t.targetPoint ?? null), n;
 }
 const ct = (t) => new W("invalid_selection", 400, t);
-function Ze(t) {
+function Ve(t) {
   const e = {};
   if (t.ids !== void 0 && (e.ids = t.ids), t.within !== void 0 && (e.within = t.within), t.groupId !== void 0 && (e.groupId = t.groupId), t.q !== void 0)
     e.text = t.q, e.all = !0, t.match !== void 0 && (e.match = t.match);
@@ -1456,8 +1457,8 @@ function Ze(t) {
   if (n.length) throw ct(n.join(" "));
   return e;
 }
-const Ve = (t) => btoa(encodeURIComponent(JSON.stringify(t))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-function Qe(t) {
+const Qe = (t) => btoa(encodeURIComponent(JSON.stringify(t))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function tn(t) {
   try {
     const { after: e, at: n } = JSON.parse(decodeURIComponent(atob(t.replace(/-/g, "+").replace(/_/g, "/"))));
     if (typeof e == "string" && e && Number.isSafeInteger(n) && n >= 0) return { after: e, at: n };
@@ -1465,19 +1466,19 @@ function Qe(t) {
   }
   throw ct("cursor is not one this slate gave. Read again from the first page.");
 }
-function tn(t, { after: e, at: n }) {
+function en(t, { after: e, at: n }) {
   let o = -1;
   if (t.forEach((r, i) => {
     k(r) === e && (o < 0 || Math.abs(i - n) < Math.abs(o - n)) && (o = i);
   }), o < 0) throw ct("The note this cursor continues from is gone. Read again from the first page.");
   return o + 1;
 }
-function en(t) {
+function nn(t) {
   if (!t.length) return null;
   const e = t.map(U), n = Math.min(...e.map((a) => a.x)), o = Math.min(...e.map((a) => a.y)), r = Math.max(...e.map((a) => a.x + a.width)), i = Math.max(...e.map((a) => a.y + a.height));
   return { x: n, y: o, width: r - n, height: i - o };
 }
-function dn(t, e = {}) {
+function ln(t, e = {}) {
   const n = $t(t), o = n.nodes.filter((y) => !ht(y)), r = e.fields;
   if (r !== void 0) {
     const y = r.filter((w) => !Ut.includes(w));
@@ -1486,9 +1487,9 @@ function dn(t, e = {}) {
   const i = e.limit ?? gt.notes;
   if (!Number.isInteger(i) || i < 1 || i > gt.maxNotes)
     throw ct(`limit must be a whole number from 1 to ${gt.maxNotes}.`);
-  const a = e.maxChars ?? gt.maxChars, p = Ze(e), g = p ? tt({ ...n, nodes: o }, p, "selection") : o;
+  const a = e.maxChars ?? gt.maxChars, p = Ve(e), g = p ? tt({ ...n, nodes: o }, p, "selection") : o;
   let b = 0;
-  e.cursor !== void 0 && (b = tn(g, Qe(e.cursor)));
+  e.cursor !== void 0 && (b = en(g, tn(e.cursor)));
   const f = new Set(n.nodes.filter(ht).map(k)), s = /* @__PURE__ */ new Map();
   for (const { association: y } of et(n)) {
     if (f.has(y.parentId) || f.has(y.childId)) continue;
@@ -1506,15 +1507,15 @@ function dn(t, e = {}) {
   return {
     name: n.options.name || "",
     description: n.options.description || "",
-    background: Ne(n.options.containerStyle),
-    bounds: en(o),
+    background: Te(n.options.containerStyle),
+    bounds: nn(o),
     nodeCount: g.length,
     nodes: c,
     connections: d,
-    nextCursor: $ < g.length && m ? Ve({ after: m.id, at: $ - 1 }) : null
+    nextCursor: $ < g.length && m ? Qe({ after: m.id, at: $ - 1 }) : null
   };
 }
-const nn = [
+const sn = [
   "id",
   "name",
   "description",
@@ -1546,9 +1547,9 @@ const nn = [
   "viewPort",
   "containerStyle"
 ];
-function ln(t) {
+function hn(t) {
   const e = $t(t), n = new Set(e.nodes.filter(ht).map(k)), o = {};
-  for (const i of nn) e.options[i] !== void 0 && (o[i] = e.options[i]);
+  for (const i of sn) e.options[i] !== void 0 && (o[i] = e.options[i]);
   const r = e.nodes.filter((i) => !n.has(k(i))).map((i) => ({
     options: i.options,
     relationships: {
@@ -1558,7 +1559,7 @@ function ln(t) {
   }));
   return { options: o, nodes: r, shareId: `${t?.shareId ?? e.options.shareId ?? ""}` };
 }
-const sn = ["text", "shape", "x", "y", "width", "height", "rotationAngle", "locked"], on = [
+const on = ["text", "shape", "x", "y", "width", "height", "rotationAngle", "locked"], rn = [
   "lineColor",
   "lineWidth",
   "lineOpacity",
@@ -1568,9 +1569,9 @@ const sn = ["text", "shape", "x", "y", "width", "height", "rotationAngle", "lock
   "showParentArrow",
   "showChildArrow"
 ];
-function hn(t) {
+function un(t) {
   const e = $t(t), n = e.nodes.filter((a) => !ht(a)), o = new Set(e.nodes.filter(ht).map((a) => a.options.id)), r = n.slice(0, 150).map((a) => {
-    const p = ie(a, sn);
+    const p = ie(a, on);
     return {
       id: p.id,
       text: `${p.text ?? ""}`.replace(/\s+/g, " ").trim().slice(0, 240),
@@ -1591,7 +1592,7 @@ function hn(t) {
       ..."toPoint" in p ? { toPoint: p.toPoint } : {},
       label: p.label || "",
       // A key the connector does not store reads as undefined, as it always has in the summary.
-      ...Object.fromEntries(on.map((g) => [g, p[g] ?? void 0]))
+      ...Object.fromEntries(rn.map((g) => [g, p[g] ?? void 0]))
     };
   });
   return {
@@ -1602,7 +1603,7 @@ function hn(t) {
     connections: i
   };
 }
-function un(t = {}) {
+function pn(t = {}) {
   const e = kt(t), n = (o, r) => Object.fromEntries(Object.entries(o).map(([i, a]) => [i, { ...Z(r(a)), description: a.description }]));
   return {
     version: 1,
@@ -1635,7 +1636,7 @@ function un(t = {}) {
     }
   };
 }
-function rn(t = {}) {
+function an(t = {}) {
   const e = kt(t), n = vt(t), o = (g) => Object.fromEntries(g.map((b) => [b, Z(T[b].spec(e))])), r = (g) => Object.fromEntries(g.map((b) => [b, Z(nt[b].spec)])), i = ee(), a = { type: "array", items: { type: "string" } }, p = bt.map((g) => `${g}: ${Ct[g].filter((b) => b !== "kind").join(", ")}`).join("; ");
   return {
     type: "object",
@@ -1718,15 +1719,15 @@ function rn(t = {}) {
     }
   };
 }
-const pn = Object.freeze({
+const fn = Object.freeze({
   name: "applySlateOperations",
   description: "Edit the existing slate without starting a new slate, replacing its content, or changing its theme unless the user explicitly asked for that. Always include a natural completion message.",
-  parameters: rn()
+  parameters: an()
 });
-function fn(t) {
+function mn(t) {
   return `Call applySlateOperations again with a safe, valid plan. ${t.join(" ")}`;
 }
-function mn(t) {
+function gn(t) {
   if (typeof t?.message == "string" && t.message.trim()) return t.message.trim();
   const e = (t?.operations || []).reduce(
     (n, o) => n + (o.kind === "add_nodes" ? o.count || 0 : 1),
@@ -1739,7 +1740,7 @@ export {
   nt as CONNECTOR_KEYS,
   Rt as CONNECTOR_STYLE_KEYS,
   Ie as DEFAULT_FONTS,
-  nn as DOCUMENT_OPTION_KEYS,
+  sn as DOCUMENT_OPTION_KEYS,
   me as EFFECTS,
   jt as LAYOUTS,
   Se as LIMITS,
@@ -1753,25 +1754,25 @@ export {
   gt as READ_LIMITS,
   at as SLATE_KEYS,
   bt as SLATE_OPERATION_KINDS,
-  pn as SLATE_OPERATION_TOOL,
-  je as alignPositions,
-  cn as applyPlanToJSON,
-  Ne as backgroundOf,
+  fn as SLATE_OPERATION_TOOL,
+  Ye as alignPositions,
+  dn as applyPlanToJSON,
+  Te as backgroundOf,
   vt as contractLimits,
   kt as contractLists,
-  un as describeOperations,
-  Ye as distributePositions,
-  mn as naturalOperationFallback,
-  fn as operationPlanRetryPrompt,
+  pn as describeOperations,
+  Re as distributePositions,
+  gn as naturalOperationFallback,
+  mn as operationPlanRetryPrompt,
   re as readConnector,
   ie as readNote,
-  dn as readSlate,
+  ln as readSlate,
   se as rotatedBounds,
-  rn as slateOperationPlanSchema,
-  hn as summarizeSlate,
-  ze as tidyPositions,
-  ln as toSlateDocument,
+  an as slateOperationPlanSchema,
+  un as summarizeSlate,
+  Be as tidyPositions,
+  hn as toSlateDocument,
   $t as toStoredSlate,
-  De as treePositions,
-  Ce as validatePlan
+  Xe as treePositions,
+  je as validatePlan
 };
