@@ -228,6 +228,13 @@ experience) an ordinary note and a card trade places by being dropped:
   screen; the board keeps the line for when the note comes back (undo). A card removed from the
   board takes its lines with it. A note with a line that ends on empty canvas stays a note until
   the line is joined to a note.
+- **Line ends on cards.** A pinned end (a spot on a note's edge, `sourceAnchor` / `targetAnchor`
+  on the line) goes with the card and comes back with the note; drawn from the card's end, the pins
+  change places with the arrows. Moving an end of a card's line onto another note or card is one
+  change to the line, keeping its id; moving it so no card is at either end gives the line to the
+  drawing. A board line has no free end: a saved point would not move with its card, so a card's
+  line end let go on empty canvas goes back where it was and the reason is said, and a note with a
+  free-ended line stays a note until that end is joined to a note.
 - **Any note becomes a card.** A lane takes a note whatever its words, look, shape, picture, link or
   lines. An empty note is an empty card (counted in its lane, renamed in place, an empty note again
   off the lanes); words longer than a card shows are cut to the first 80 characters on the card and

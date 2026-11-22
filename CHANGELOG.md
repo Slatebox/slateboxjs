@@ -4,6 +4,12 @@
 
 ### Added
 
+- **Line ends on cards (line editing with connected cards).** A pinned line end travels with the
+  card and back (`WorkshopLine.sourceAnchor` / `targetAnchor`, spots in 0..1 on the note's edge),
+  and pinning a card's line end is saved with the board. Moving an end of a card's line is one
+  change keeping the line's id (to the drawing when no card is left at either end). A board line
+  has no free end, so a card's line end let go on empty canvas goes back and says why, and a note
+  with a free-ended line still stays a note.
 - **Content never refuses a trade.** A card's words are kept verbatim, markup included (control
   characters go); a picture held in the page goes with the card for the host to store; a note whose
   id a card cannot have gives the card a fresh id and comes back under its own (`card.noteId`,

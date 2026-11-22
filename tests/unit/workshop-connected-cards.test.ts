@@ -164,3 +164,38 @@ describe('the drawing does not save a line to a card', () => {
     expect(json.relationships.associations.map((a: any) => a.id)).toEqual(['plain->note'])
   })
 })
+
+/**
+ * Line editing meets connected cards: a line's ends may be pinned to a spot on a note's edge, or
+ * left free on the canvas. A pinned end travels with the card and comes back with the note. A
+ * free end does not: the board's lines join cards and notes only (it has no point to hold, and a
+ * point would not move with the card), so a note with a free-ended line stays a note
+ * (native.ts noteObstacle says why) and a card's line end let go on empty canvas goes back.
+ */
+describe('pinned and free line ends on cards', () => {
+  const pinned = { ...singToPlain, id: 'sing->plain', sourceAnchor: { x: 1, y: 0.5 }, targetAnchor: { x: 0.25, y: 0 } }
+
+  it('keeps a pinned end when the note becomes a card, and gives it back when the card is a note again', () => {
+    const next = workshopNoteCandidate(board, 'now', { id: 'sing', label: 'Sing', lines: [pinned] })!
+    expect(next.lines).toEqual([expect.objectContaining({ id: 'sing->plain', parentId: 'sing', childId: 'plain', sourceAnchor: { x: 1, y: 0.5 }, targetAnchor: { x: 0.25, y: 0 } })])
+    const { leave } = m.workshopCardLines(next, 'sing')
+    expect(leave).toEqual([expect.objectContaining({ sourceAnchor: { x: 1, y: 0.5 }, targetAnchor: { x: 0.25, y: 0 } })])
+  })
+
+  it('a line drawn on the board keeps its pins, and a pin off the note\'s box is not a pin', () => {
+    const withPin = m.workshopWithLine(board, { id: 'alpha->beta', parentId: 'alpha', childId: 'beta', targetAnchor: { x: 0, y: 0.4 } })
+    expect(withPin.lines[0].targetAnchor).toEqual({ x: 0, y: 0.4 })
+    expect(m.workshopLineRefusal(board, { id: 'alpha->beta', parentId: 'alpha', childId: 'beta', targetAnchor: { x: 2, y: 0 } })).toMatch(/spot on its note's edge/)
+    expect(() => validateWorkshop({ ...board, lines: [{ id: 'a', parentId: 'alpha', childId: 'beta', sourceAnchor: { x: 0, y: 0, z: 1 } }] })).toThrow(/spot on its note's edge/)
+  })
+
+  it('a note\'s pin the board cannot read does not refuse its trade: the line comes without it', () => {
+    const next = workshopNoteCandidate(board, 'now', { id: 'sing', label: 'Sing', lines: [{ ...pinned, sourceAnchor: { x: 'left' } }] })!
+    expect(next.lines).toEqual([{ id: 'sing->plain', parentId: 'sing', childId: 'plain' }])
+  })
+
+  it('holds no free end: a saved point is not part of a board line', () => {
+    const next = m.workshopWithLine(board, { id: 'alpha->beta', parentId: 'alpha', childId: 'beta', targetPoint: { x: 10, y: 20 } })
+    expect(next.lines[0]).not.toHaveProperty('targetPoint')
+  })
+})

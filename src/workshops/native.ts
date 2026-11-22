@@ -871,7 +871,24 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const item = link[key]
       if (item !== undefined && item !== null && item !== '') line[key] = item
     }
+    // A pinned end keeps its spot on the note's edge wherever the line goes.
+    for (const key of ['sourceAnchor', 'targetAnchor'] as const) {
+      const spot = link[key]
+      if (spot && Number.isFinite(spot.x) && Number.isFinite(spot.y)) line[key] = { x: spot.x, y: spot.y }
+    }
     return line as unknown as WorkshopLine
+  }
+
+  /** A line as drawn from its other end: the arrows and the pins change places. */
+  function turned<T extends Record<string, any>>(line: T, from: Record<string, any>): T {
+    const out: Record<string, any> = { ...line }
+    out.showParentArrow = from.showChildArrow ?? true
+    out.showChildArrow = from.showParentArrow ?? false
+    delete out.sourceAnchor
+    delete out.targetAnchor
+    if (from.targetAnchor) out.sourceAnchor = from.targetAnchor
+    if (from.sourceAnchor) out.targetAnchor = from.sourceAnchor
+    return out as T
   }
 
   /** What a note of the slate is to the board: a card (by its card id), an ordinary note (by its id), or neither. */
@@ -922,11 +939,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (!parent || !child || parent === child) continue
       const swapped = owned.get(parent.id) !== parent
       const holder = swapped ? child : parent, other = swapped ? parent : child
-      const link: Record<string, unknown> = { ...line, parentId: holder.id, childId: other.id }
-      if (swapped) {
-        link.showParentArrow = line.showChildArrow ?? true
-        link.showChildArrow = line.showParentArrow ?? false
-      }
+      const link: Record<string, unknown> = swapped
+        ? turned({ ...line, parentId: holder.id, childId: other.id }, line)
+        : { ...line, parentId: holder.id, childId: other.id }
       const key = JSON.stringify(link)
       wanted.add(line.id)
       const was = drawnLines.get(line.id)
@@ -950,6 +965,13 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     slate.withPolicyAuthority(() => { if (parent.relationships.hasAssociationId?.(key) || !data.id) parent.relationships.removeAssociation(key) })
   }
 
+  /**
+   * A board line whose end a person is moving: the engine takes the line off and adds it again,
+   * with the same id, where the end was let go. Both arrive before this is settled, so the move
+   * is one change (or is put back), never a line taken away.
+   */
+  let moving: { lineId: string } | null = null
+
   /** A line the engine drew, changed or took away with a card at one end: the board takes the change, or it is undone. */
   function lineChanged(type: string, data: any) {
     if (type === 'addRelationship') {
@@ -957,13 +979,29 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (drawnLines.get(data?.id)?.holder.id === data?.parentId) return
       const parent = slate.nodes.one(data?.parentId), child = data?.targetPoint ? null : slate.nodes.one(data?.childId)
       const from = refOf(parent), to = refOf(child)
+      const moved = moving?.lineId === data?.id ? value.lines?.find(line => line.id === data?.id) : undefined
+      if (moved) moving = null
       const refuse = (reason: string) => {
         unlink(data)
+        // A moved end goes back where it was: the line is the board's as before.
+        if (moved) draw(proposal ?? value)
         slate.announce?.(reason)
         tell(options.onRefuse, { reason, laneId: null })
       }
-      if (!acceptsLines()) return unlink(data)
-      if (!from || !to) return refuse('A line from a card ends on a note or another card.')
+      if (!acceptsLines()) { unlink(data); if (moved) draw(proposal ?? value); return }
+      // A card's line has no free end: it has no note to travel with when the card moves.
+      if (!from || !to) return refuse(moved ? 'A card\'s line ends on a note or another card, so that end went back.' : 'A line from a card ends on a note or another card.')
+      if (moved) {
+        const parentCard = value.cards.some(card => card.id === from), childCard = value.cards.some(card => card.id === to)
+        // Neither end on a card now: the line is the drawing's, as the engine has drawn it.
+        if (!parentCard && !childCard) return commitLine({ remove: moved.id })
+        const line: WorkshopLine = { ...lineOf(data), id: moved.id, parentId: from, childId: to }
+        const reason = workshopLineRefusal(value, line)
+        if (reason) return refuse(reason)
+        unlink(data)
+        commitLine({ set: line })
+        return
+      }
       const line = workshopNewLine(value, from, to, lineOf(data))
       const reason = workshopLineRefusal(value, line)
       if (reason) return refuse(reason)
@@ -982,7 +1020,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         // A viewer cannot take a line away: it is drawn again.
         return draw(proposal ?? value)
       }
-      commitLine({ remove: lineId })
+      // An end being moved: its add, already on its way, decides. Taken away only when none comes
+      // to the board (an end moved so that no card holds the line keeps it in the drawing).
+      moving = { lineId }
+      queueMicrotask(() => {
+        if (destroyed || moving?.lineId !== lineId) return
+        moving = null
+        commitLine({ remove: lineId })
+      })
       return
     }
     if (type === 'onLinePropertiesChanged') {
@@ -995,11 +1040,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         if (!line || !link) continue
         if (!acceptsLines()) { draw(proposal ?? value); continue }
         const look = lineOf(link)
-        const next: WorkshopLine = { ...look, id: line.id, parentId: line.parentId, childId: line.childId }
-        if (was.swapped) {
-          next.showParentArrow = link.showChildArrow
-          next.showChildArrow = link.showParentArrow
-        }
+        const next: WorkshopLine = was.swapped
+          ? turned({ ...look, id: line.id, parentId: line.parentId, childId: line.childId }, look)
+          : { ...look, id: line.id, parentId: line.parentId, childId: line.childId }
         if (JSON.stringify(validateLine(next)) === JSON.stringify(line)) continue
         // The look it was drawn with is now the line's: the next drawing must not take it back.
         drawnLines.set(lineId, { ...was, key: '' })

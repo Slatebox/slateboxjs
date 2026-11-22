@@ -81,7 +81,13 @@ export interface WorkshopLine {
   showParentArrow?: boolean
   showChildArrow?: boolean
   label?: string
+  /** An end pinned to one spot on its note's edge ({x, y} in 0..1 on the unturned note); none follows its note. */
+  sourceAnchor?: WorkshopLineAnchor
+  targetAnchor?: WorkshopLineAnchor
 }
+
+/** A spot on a note's edge, as a pinned line end keeps it (see core/LineEnds.ts). */
+export interface WorkshopLineAnchor { x: number; y: number }
 
 export interface WorkshopSignal {
   id: string
@@ -325,6 +331,16 @@ function workshopLine(input: unknown): WorkshopLine {
   if (raw.label !== undefined && raw.label !== null && raw.label !== '') {
     if (typeof raw.label !== 'string' || raw.label.length > 200 || /[<>\u0000-\u001f]/.test(raw.label)) throw new Error('A line\'s label is plain words, up to 200 characters.')
     line.label = raw.label
+  }
+  // A pinned end keeps its spot on the note's edge; a line's end is on a note, never free (a free end
+  // has no note to travel with, so a note with one stays a note).
+  for (const key of ['sourceAnchor', 'targetAnchor'] as const) {
+    const anchor = raw[key]
+    if (anchor === undefined || anchor === null) continue
+    const spot = record(anchor)
+    const inside = (n: unknown) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1
+    if (!inside(spot.x) || !inside(spot.y) || Object.keys(spot).some(name => name !== 'x' && name !== 'y')) throw new Error('A pinned line end is a spot on its note\'s edge.')
+    line[key] = { x: spot.x as number, y: spot.y as number }
   }
   return line
 }
