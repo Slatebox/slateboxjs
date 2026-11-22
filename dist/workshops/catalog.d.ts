@@ -39,7 +39,8 @@ export interface CatalogEntry {
      * {busy} (a lane with cards), {ruled} (a lane with a limit rule); on a plan {later} (a date after its
      * line), {dates} (a few days inside it), {month} (a month ahead) and {band} (a role band); on a nested
      * board {pile} and {other pile} (cards at the top), {item} (a card with nothing under it), {parent} (a
-     * card with cards under it) and {opportunity}.
+     * card with cards under it) and {opportunity}; on a 2 by 2 {scored} (a card on the square) and {waiting} (one in the tray); on an
+     * org chart {person}, {manager} and {open} (an open role); with owners {kr} (a key result) and {owner} (a team).
      */
     moves: CatalogMove[];
     limits: string[];
@@ -57,7 +58,7 @@ export declare function catalogEntry(id: string): CatalogEntry | undefined;
 /** The entries of a group (or all), in catalogue order. */
 export declare function catalogList(group?: CatalogGroup | 'all'): CatalogEntry[];
 /** The samples a business entry adds: from slateboxjs/workshops/rules (catalogSamples), so this chunk keeps no rules. */
-export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget' | 'sort-evidence' | 'discovery-tree' | 'break-down' | 'incident-review';
+export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget' | 'sort-evidence' | 'discovery-tree' | 'break-down' | 'incident-review' | 'impact-effort' | 'reorg' | 'goals';
 export type CatalogSamples = Partial<Record<CatalogSample, () => Workshop>>;
 /** The board an entry adds, as data, named after the topic when one is given. A business board needs its sample. */
 export declare function catalogPreset(id: string, topic?: string, samples?: CatalogSamples): Workshop;

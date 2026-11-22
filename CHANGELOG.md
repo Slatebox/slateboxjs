@@ -4,6 +4,16 @@
 
 ### Added
 
+- **Impact × effort, the reorg & hiring sandbox and goals & owners** (`slateboxjs/workshops/nestPlus`, loaded with
+  the nested boards). A `matrix` layout (`nest.axes`, `score_card`, rule `quadrant`), yes/no fields (`add_field`
+  `flag`) with rules `parent` and `contains`, and owners (`nest.owners`, `card.owner`, `add_owner`, `set_owner` with
+  `carry`) with rule `sameOwnerAs` (`mode` `warn` | `ask` | `carry`; a server carry that differs from the page's is
+  refused). The nest kit draws the square (a phone keeps it square) and a row of teams to drop cards on. Catalogue:
+  `impact-effort`, `reorg-sandbox`, `goals-owners`, each with rule phrases first. See docs/native-workshops.md.
+  A whole save of these boards is made again exactly as shown: a card given a team before it had one, a card added
+  and scored at once, and a card added under a card whose team changes in the same save. `contains` holds a team
+  to it only when the change leaves it short (a manager with no one under them yet is added before their designer), and
+  `sameOwnerAs` only a change of place or team.
 - **Line ends on cards (line editing with connected cards).** A pinned line end travels with the
   card and back (`WorkshopLine.sourceAnchor` / `targetAnchor`, spots in 0..1 on the note's edge),
   and pinning a card's line end is saved with the board. Moving an end of a card's line is one

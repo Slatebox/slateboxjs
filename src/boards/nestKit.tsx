@@ -10,17 +10,40 @@ import {
   applyWorkshopEdits, type BoardLayerState, type PartPlace, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type WorkshopCard, type WorkshopEdit,
 } from '../workshops/model'
 import { nestRules, checkNest, nestAreas, nestCardText, nestEmptyDrop, nestKids, nestLegal, nestPlace, nestRoots, nestSubtree, type NestSpot } from '../workshops/nest'
+import { nestAxes, nestQuadrants, nestScores, quadrantOf } from '../workshops/nestPlus'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
 import { headlessDrag, inside, partsGeometry } from '../workshops/boardSpecs'
 import { tint } from './shared'
 import { partNotes } from './readouts'
 
-const fills: Record<string, string> = { pile: '#fbdfac', theme: '#efd7dc', outcome: '#d5e9e3', opportunity: '#dedef4', problem: '#efd7dc', cause: '#fbdfac', action: '#dcebf3' }
+const fills: Record<string, string> = { pile: '#fbdfac', theme: '#efd7dc', outcome: '#d5e9e3', opportunity: '#dedef4', problem: '#efd7dc', cause: '#fbdfac', action: '#dcebf3',
+  objective: '#d5e9e3', 'key result': '#dedef4', initiative: '#dcebf3', manager: '#d5e9e3', 'open role': '#f3eee0', designer: '#efd7dc' }
 const fillOf = (card: WorkshopCard) => fills[card.role ?? ''] ?? '#fffdf6'
 const CARD = 64, GAP = 8, TRAY = 220, TOP = 84
+const squareFills: Record<string, string> = { 'do-now': '#d5e9e3', plan: '#dedef4', later: '#f3eee0', skip: '#efd7dc' }
 
-type Shape = 'clusters' | 'tree' | 'outline'
-const shapeOf = (board: Workshop, layout: WorkshopBoardLayout): Shape => layout.narrow ? 'outline' : board.nest?.layout ?? 'clusters'
+type Shape = 'clusters' | 'tree' | 'outline' | 'matrix'
+// A 2 by 2 is a square on a phone too (a 358 px one); the other layouts are an outline there.
+const shapeOf = (board: Workshop, layout: WorkshopBoardLayout): Shape => board.nest?.layout === 'matrix' ? 'matrix' : layout.narrow ? 'outline' : board.nest?.layout ?? 'clusters'
+/** Owners drawn as a row of teams above a tree (a card dropped on one goes to that team). Not on a phone: there, chat. */
+const ownersShown = (board: Workshop, layout: WorkshopBoardLayout) => !layout.narrow && Boolean(board.nest?.owners?.length) && board.nest?.layout === 'tree'
+
+/** A 2 by 2's geometry: the square, and the size of a card on it. */
+function square(layout: WorkshopBoardLayout) {
+  const narrow = Boolean(layout.narrow)
+  const size = narrow ? Math.max(260, Math.min(358, (layout.width ?? 358) - 16)) : 560
+  return { narrow, size, left: narrow ? 8 : TRAY + 16, top: narrow ? 56 : TOP + 26, w: narrow ? 92 : 136, h: narrow ? 34 : 44 }
+}
+/** Where a card with these scores is drawn on the square (its box), nudged when another card has the same scores. */
+function scoreBox(g: ReturnType<typeof square>, x: number, y: number, nudge = 0) {
+  const cx = g.left + x / 10 * g.size, cy = g.top + (10 - y) / 10 * g.size
+  return { x: Math.min(g.left + g.size - g.w, Math.max(g.left, cx - g.w / 2 + nudge)), y: Math.min(g.top + g.size - g.h, Math.max(g.top, cy - g.h / 2 + nudge)) }
+}
+/** The scores a card's box at this point means. */
+function scoresAt(g: ReturnType<typeof square>, box: { x: number; y: number }) {
+  const clamp = (n: number) => Math.max(0, Math.min(10, Math.round(n)))
+  return { x: clamp((box.x + g.w / 2 - g.left) / g.size * 10), y: clamp(10 - (box.y + g.h / 2 - g.top) / g.size * 10) }
+}
 
 /** The cards in drawing order: the top of an area (ranked), each followed by what is under it. */
 function walk(board: Workshop, laneId: string): { card: WorkshopCard; depth: number }[] {
@@ -48,6 +71,51 @@ export function nestLayout(board: Workshop, layout: WorkshopBoardLayout = {}): {
   const caption = (laneId: string) => nestRules.caption(board, laneId)
   const card = (item: WorkshopCard, x: number, y: number, width: number, height = CARD) =>
     parts.push({ name: 'card-' + item.id, x, y, width, height, text: text(board, item), fill: fillOf(item), fontSize: 14 })
+
+  if (shape === 'matrix') {
+    // The square, split in four at the middle score; each card where its scores put it; the tray beside it (under it on a phone).
+    const g = square(layout), axes = nestAxes(board)!
+    const limitOf = (id: string) => (board.behaviour?.rules ?? []).find(rule => rule.on && rule.kind === 'quadrant' && rule.quadrant === id) as { max: number } | undefined
+    for (const q of nestQuadrants) {
+      const x = g.left + (q.high[0] ? g.size / 2 : 0), y = g.top + (q.high[1] ? 0 : g.size / 2)
+      const n = board.cards.filter(item => quadrantOf(board, item) === q.id).length, limit = limitOf(q.id)
+      parts.push({ name: 'column-q-' + q.id, x, y, width: g.size / 2, height: g.size / 2, fill: tint(squareFills[q.id], 0.35), line: tint(squareFills[q.id], 0.1) })
+      parts.push({ name: 'caption-q-' + q.id, x: x + 6, y: y + (q.high[1] ? 6 : g.size / 2 - 32), width: g.size / 2 - 12, height: 26, fill: 'transparent', lineWidth: 0, fontSize: g.narrow ? 12 : 14,
+        text: q.label + ' · ' + (limit ? n + ' of ' + limit.max : String(n)), ...(limit && n > limit.max && { ink: '#c2410c' }) })
+    }
+    parts.push({ name: 'caption-axis-y', x: g.left, y: g.top - 26, width: 200, height: 22, text: '↑ ' + axes.y.label, fill: 'transparent', lineWidth: 0, fontSize: 13 })
+    parts.push({ name: 'caption-axis-x', x: g.left + g.size - 200, y: g.top + g.size + 4, width: 200, height: 22, text: axes.x.label + ' →', fill: 'transparent', lineWidth: 0, fontSize: 13 })
+    const seen = new Map<string, number>()
+    for (const item of board.cards) {
+      const at = nestScores(board, item)
+      if (!at) continue
+      const key = at.x + ':' + at.y, nudge = (seen.get(key) ?? 0) * 8
+      seen.set(key, (seen.get(key) ?? 0) + 1)
+      const box = scoreBox(g, at.x, at.y, nudge)
+      parts.push({ name: 'card-' + item.id, x: box.x, y: box.y, width: g.w, height: g.h, text: text(board, item), fill: '#fffdf6', fontSize: g.narrow ? 11 : 13 })
+    }
+    const loose = walk(board, tray)
+    let width: number, height: number
+    if (g.narrow) {
+      let y = g.top + g.size + 34
+      header(tray, 8, y, g.size, caption(tray))
+      y += 76
+      loose.forEach(({ card: item }) => { card(item, 8, y, g.size, 40); y += 46 })
+      width = g.size + 16; height = y + 10
+      parts.unshift({ name: 'column-' + tray, x: 2, y: g.top + g.size + 30, width: width - 4, height: height - g.top - g.size - 30, fill: tint('#e9e5da', 0.5), line: tint('#e9e5da', 0.1) })
+    } else {
+      header(tray, 8, 6, TRAY - 16, caption(tray))
+      loose.forEach(({ card: item }, i) => card(item, 8, TOP + i * (CARD + GAP), TRAY - 16))
+      width = g.left + g.size + 16
+      height = Math.max(TOP + Math.max(1, loose.length + 1) * (CARD + GAP), g.top + g.size + 34)
+      parts.unshift({ name: 'column-' + tray, x: 2, y: 0, width: TRAY - 4, height, fill: tint('#e9e5da', 0.5), line: tint('#e9e5da', 0.1) })
+    }
+    header(main, g.left, g.narrow ? 0 : 6, g.narrow ? g.size : Math.min(g.size, 640), caption(main))
+    // The header's caption sits where the up axis is named: the square says it.
+    parts.splice(parts.findIndex(part => part.name === 'caption-' + main), 1)
+    parts.unshift({ name: 'column-' + main, x: g.left - 6, y: g.narrow ? 0 : 0, width: g.size + 12, height: g.top + g.size + 30, fill: tint('#d5e9e3', 0.75), line: tint('#d5e9e3', 0.1) })
+    return { parts, width, height }
+  }
 
   if (shape === 'outline') {
     // One column: the board's rows, then the tray's. A row's indent is its depth.
@@ -96,20 +164,26 @@ export function nestLayout(board: Workshop, layout: WorkshopBoardLayout = {}): {
     height = Math.max(trayHeight, y + rowHeight + CARD + 40)
     header(main, left, 6, Math.min(width - left - 8, 640), caption(main))
   } else {
-    // A tree: each card centred over what is under it; the leaves side by side.
+    // A tree: each card centred over what is under it; the leaves side by side. With owners, their teams in a row above it.
     const step = 192, rise = CARD + 44
+    const owners = ownersShown(board, layout) ? board.nest!.owners! : []
+    const top = TOP + (owners.length ? 64 : 0)
+    owners.forEach((owner, i) => {
+      const n = board.cards.filter(item => item.owner === owner.id).length
+      parts.push({ name: 'caption-owner-' + owner.id, x: left + i * 152, y: TOP - 4, width: 140, height: 52, text: owner.label + '\n' + n + (n === 1 ? ' card' : ' cards'), fill: '#f3eee0', fontSize: 14 })
+    })
     let next = 0, deepest = 0
     const place = (item: WorkshopCard, depth: number): number => {
       deepest = Math.max(deepest, depth)
       const kids = nestKids(board, item.id)
       const xs = kids.map(kid => place(kid, depth + 1))
       const slot = xs.length ? (xs[0] + xs[xs.length - 1]) / 2 : next++
-      card(item, left + slot * step, TOP + depth * rise, 176)
+      card(item, left + slot * step, top + depth * rise, 176)
       return slot
     }
     for (const root of nestKids(board, null, main)) place(root, 0)
-    width = left + Math.max(3, next) * step + 8
-    height = Math.max(trayHeight, TOP + (deepest + 1) * rise + 56)
+    width = left + Math.max(3, next, owners.length * 152 / step) * step + 8
+    height = Math.max(trayHeight, top + (deepest + 1) * rise + 56)
     header(main, left, 6, Math.min(width - left - 8, 640), caption(main))
   }
   parts.unshift({ name: 'column-' + main, x: left - 6, y: 0, width: width - left + 4, height, fill: tint('#d5e9e3', 0.75), line: tint('#d5e9e3', 0.1) },
@@ -196,9 +270,24 @@ export function nestEditsBetween(before: Workshop, after: Workshop): WorkshopEdi
   }
   for (const card of base.cards) if (!after.cards.some(item => item.id === card.id)) removes.push({ kind: 'remove_card', card: { id: card.id } })
   for (const field of after.nest?.fields ?? []) {
-    if (!(base.nest?.fields ?? []).some(item => item.id === field.id)) fields.push({ kind: 'add_field', label: field.label, ...(field.currency && { currency: field.currency }) })
+    if (!(base.nest?.fields ?? []).some(item => item.id === field.id)) fields.push({ kind: 'add_field', label: field.label, ...(field.currency && { currency: field.currency }), ...(field.flag && { flag: true }) })
   }
-  if (after.nest && base.nest?.layout !== after.nest.layout) fields.push({ kind: 'set_layout', layout: after.nest.layout })
+  for (const field of after.nest?.fields ?? []) {
+    const old = (base.nest?.fields ?? []).find(item => item.id === field.id)
+    if (old && old.label !== field.label) fields.push({ kind: 'rename_field', field: field.id, label: field.label })
+  }
+  for (const owner of after.nest?.owners ?? []) if (!(base.nest?.owners ?? []).some(item => item.id === owner.id)) fields.push({ kind: 'add_owner', label: owner.label })
+  if (after.nest && base.nest?.layout !== after.nest.layout) fields.push({ kind: 'set_layout', layout: after.nest.layout as 'clusters' | 'tree' })
+  // A 2 by 2: a card whose scores changed, or that came onto the square, is one score_card.
+  const axes = nestAxes(after)
+  const scored = new Set(axes ? after.cards.filter(card => {
+    // A new card is added to the tray (a 2 by 2's add_card), so one on the square is scored too.
+    const old = was.get(card.id), at = nestScores(after, card)
+    if (!at || done.has(card.id)) return false
+    const then = old && nestScores(base, old)
+    return !then || then.x !== at.x || then.y !== at.y
+  }).map(card => card.id) : [])
+  const scores: WorkshopEdit[] = [...scored].map(id => { const at = nestScores(after, after.cards.find(card => card.id === id)!)!; return { kind: 'score_card', card: { id }, x: at.x, y: at.y } })
   // New cards, each after the card it goes under.
   const fresh = after.cards.filter(card => !was.has(card.id) && !done.has(card.id))
   const added = new Set<string>()
@@ -216,7 +305,7 @@ export function nestEditsBetween(before: Workshop, after: Workshop): WorkshopEdi
   const siblingsIn = (board: Workshop, card: WorkshopCard) => (card.parentId ? nestKids(board, card.parentId) : nestKids(board, null, card.laneId)).map(item => item.id)
   const moved = after.cards.filter(card => {
     const old = was.get(card.id)
-    if (!old || done.has(card.id)) return false
+    if (!old || done.has(card.id) || scored.has(card.id)) return false
     if (old.parentId !== card.parentId || (old.laneId !== card.laneId && !card.parentId)) return true
     // Same parent: moved when it now sits after a different sibling than it did.
     const now = siblingsIn(after, card).filter(id => was.has(id)), then = siblingsIn(base, old).filter(id => now.includes(id))
@@ -239,8 +328,31 @@ export function nestEditsBetween(before: Workshop, after: Workshop): WorkshopEdi
   for (const card of after.cards) {
     const old = was.get(card.id)
     for (const key of new Set([...Object.keys(old?.fields ?? {}), ...Object.keys(card.fields ?? {})])) {
+      if (scored.has(card.id) && (key === axes!.x.id || key === axes!.y.id)) continue
       if (old?.fields?.[key] !== card.fields?.[key]) rest.push({ kind: 'set_field', card: { id: card.id }, field: key, value: card.fields?.[key] ?? null })
     }
+  }
+  // A change of team: one set_owner per card whose team changed, shallowest first, with the cards under it that went
+  // with it (carry), so the server can tell a carry it works out differently (the server makes these edits from the
+  // page's board, so a drop made under another carry rule is refused, never kept as shown). The teams are followed as
+  // the replay makes them: a new card takes the team of what it is added under.
+  const owners: WorkshopEdit[] = []
+  const current = new Map<string, string | undefined>()
+  const teamAtAdd = (card: WorkshopCard): string | undefined => {
+    if (current.has(card.id)) return current.get(card.id)
+    const parent = after.cards.find(item => item.id === card.parentId)
+    const team = was.has(card.id) ? was.get(card.id)!.owner : parent ? (was.has(parent.id) ? was.get(parent.id)!.owner : teamAtAdd(parent)) : undefined
+    current.set(card.id, team)
+    return team
+  }
+  after.cards.forEach(teamAtAdd)
+  for (const card of [...after.cards].sort((a, b) => depth(a.id) - depth(b.id))) {
+    const from = current.get(card.id)
+    if (!card.owner || card.owner === from) continue
+    const under = nestSubtree(after, card.id).slice(1)
+    const carry = under.filter(id => current.get(id) === from && after.cards.find(item => item.id === id)!.owner === card.owner)
+    owners.push({ kind: 'set_owner', card: { id: card.id }, owner: card.owner, carry: carry.map(id => ({ id })) })
+    for (const id of [card.id, ...carry]) current.set(id, card.owner)
   }
   for (const lane of after.lanes) {
     const old = base.lanes.find(item => item.id === lane.id)
@@ -248,10 +360,65 @@ export function nestEditsBetween(before: Workshop, after: Workshop): WorkshopEdi
   }
   if (before.title !== after.title) rest.push({ kind: 'rename_workshop', title: after.title })
   const head = [...merges, ...starts, ...removes, ...fields, ...adds]
-  const first = [...head, ...moves, ...roles, ...rest]
+  const tail = [...scores, ...rest, ...owners]
+  const first = [...head, ...moves, ...roles, ...tail]
   if (!moves.length || !roles.length) return first
-  const second = [...head, ...roles, ...moves, ...rest]
+  const second = [...head, ...roles, ...moves, ...tail]
   return 'refused' in applyWorkshopEdits(before, first) && !('refused' in applyWorkshopEdits(before, second)) ? second : first
+}
+
+/** The team under a point (an owner's tile above a tree), or null. */
+function ownerHit(board: Workshop, point: { x: number; y: number }, layout: WorkshopBoardLayout): string | null {
+  if (!ownersShown(board, layout)) return null
+  const part = nestLayout(board, layout).parts.find(item => item.name.startsWith('caption-owner-') && inside(item, point))
+  return part ? part.name.slice('caption-owner-'.length) : null
+}
+
+/** For a drag: the board a drop on each team makes (undefined off the teams; null when the rules refuse it), worked out once per team. */
+function ownerDrop(board: Workshop, cardId: string, layout: WorkshopBoardLayout) {
+  const made = new Map<string, Workshop | null>()
+  return (point: { x: number; y: number }): Workshop | null | undefined => {
+    const team = ownerHit(board, point, layout)
+    if (!team) return undefined
+    if (!made.has(team)) {
+      const result = applyWorkshopEdits(board, [{ kind: 'set_owner', card: { id: cardId }, owner: team }])
+      made.set(team, 'refused' in result ? null : result.workshop)
+    }
+    return made.get(team)!
+  }
+}
+
+/** A 2 by 2: what letting go at a point makes (the card at the scores its box means, or in the tray), or why not; null off the board. */
+function matrixDrop(board: Workshop, cardId: string, grab: { x: number; y: number }, point: { x: number; y: number }, layout: WorkshopBoardLayout):
+  { board: Workshop } | { refused: string } | null {
+  const g = square(layout)
+  const { parts } = nestLayout(board, layout)
+  const card = board.cards.find(item => item.id === cardId)!
+  if (card.laneId !== nestAreas(board).tray && inside(parts.find(part => part.name === 'column-' + nestAreas(board).tray), point)) {
+    const next = nestPlace(board, cardId, { laneId: nestAreas(board).tray, under: null, before: null })
+    return next ? { board: next } : null
+  }
+  const box = { x: point.x - grab.x, y: point.y - grab.y }
+  if (!inside({ x: g.left - g.w / 2, y: g.top - g.h / 2, width: g.size + g.w, height: g.size + g.h }, { x: box.x + g.w / 2, y: box.y + g.h / 2 })) return null
+  const { x, y } = scoresAt(g, box)
+  const was = nestScores(board, card)
+  if (was && was.x === x && was.y === y) return { board }
+  const made = applyWorkshopEdits(board, [{ kind: 'score_card', card: { id: cardId }, x, y }])
+  return 'refused' in made ? { refused: made.refused.reason } : { board: made.workshop }
+}
+
+/** A 2 by 2's drag: the card follows the pointer, its scores rounded to whole numbers; a square the rules keep it out of holds it where it was. */
+function matrixChooser(board: Workshop, cardId: string, grab: { x: number; y: number }, layout: WorkshopBoardLayout) {
+  const seen = new Map<string, Workshop>()
+  return (point: { x: number; y: number }) => {
+    const key = Math.round(point.x) + ':' + Math.round(point.y)
+    if (!seen.has(key)) {
+      const made = matrixDrop(board, cardId, grab, point, layout)
+      if (seen.size > 400) seen.clear()
+      seen.set(key, made && 'board' in made ? made.board : board)
+    }
+    return seen.get(key)!
+  }
 }
 
 export const nestKit: WorkshopBoardKit = {
@@ -268,6 +435,8 @@ export const nestKit: WorkshopBoardKit = {
     return card.label + (card.role ? ', ' + card.role : '') + (parent ? ', under ' + parent.label : ', in ' + board.lanes.find(lane => lane.id === card.laneId)!.label)
   },
   chooser(board, cardId, grab, layout = {}) {
+    if (shapeOf(board, layout) === 'matrix') return matrixChooser(board, cardId, grab, layout)
+    const ownerAt = ownerDrop(board, cardId, layout)
     const places = nestLegal(board, cardId)
     const legal = places.map(item => item.next)
     const { main, tray } = nestAreas(board)
@@ -279,6 +448,9 @@ export const nestKit: WorkshopBoardKit = {
     const moving = new Set(nestSubtree(board, cardId))
     let far: Workshop | null | undefined
     return point => {
+      // Held over a team: the card goes to that team (and, under carry, what is under it).
+      const owned = ownerAt(point)
+      if (owned !== undefined) return owned ?? board
       // Held over another card: the place that card means, when the rules allow it (an outline goes by depth instead).
       const hit = shape === 'outline' ? null : cardAt(parts, point, moving)
       if (hit) {
@@ -300,8 +472,17 @@ export const nestKit: WorkshopBoardKit = {
       return chosen
     }
   },
-  refusalAt(board, cardId, _grab, point, layout) {
+  refusalAt(board, cardId, grab, point, layout) {
     const shape = shapeOf(board, layout)
+    if (shape === 'matrix') {
+      const made = matrixDrop(board, cardId, grab, point, layout)
+      return made && 'refused' in made ? { laneId: nestAreas(board).main, reason: made.refused } : null
+    }
+    const team = ownerHit(board, point, layout)
+    if (team) {
+      const made = applyWorkshopEdits(board, [{ kind: 'set_owner', card: { id: cardId }, owner: team }])
+      return 'refused' in made ? { laneId: nestAreas(board).main, reason: made.refused.reason } : null
+    }
     if (shape === 'outline') return null
     const { parts } = nestLayout(board, layout)
     const hit = cardAt(parts, point, new Set(nestSubtree(board, cardId)))
@@ -313,12 +494,22 @@ export const nestKit: WorkshopBoardKit = {
     return verdict && 'refused' in verdict ? { laneId: nestAreas(board).main, reason: verdict.refused.sentence } : null
   },
   noteUnder(board, point, layout) {
+    if (shapeOf(board, layout) === 'matrix') return null
     const hit = cardAt(nestLayout(board, layout).parts, point, new Set())
     return hit ? underFor(board, shapeOf(board, layout), hit) : null
   },
   keyEdit(board, part, key) {
     const card = board.cards.find(item => 'card-' + item.id === part)
     if (!card) return null
+    // A 2 by 2: the arrows change a score by one.
+    const scores = nestScores(board, card)
+    if (board.nest?.layout === 'matrix') {
+      const step: Record<string, [number, number]> = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }
+      const [dx, dy] = step[key.key] ?? [0, 0]
+      if (!scores || (!dx && !dy)) return null
+      const x = scores.x + dx, y = scores.y + dy
+      return x < 0 || x > 10 || y < 0 || y > 10 ? null : [{ kind: 'score_card', card: { id: card.id }, x, y }]
+    }
     const siblings = card.parentId ? nestKids(board, card.parentId) : nestKids(board, null, card.laneId)
     const at = siblings.findIndex(item => item.id === card.id)
     const ref = { id: card.id }

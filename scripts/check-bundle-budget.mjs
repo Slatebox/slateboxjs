@@ -26,6 +26,9 @@ const ceilings = {
   // The nested boards (piles, trees) and their rules: loaded with the rules, or with the boards. Measured at its first
   // build (37535 / 11322), plus a little.
   'workshop-nest.mjs': { raw: 38000, gzip: 11500 },
+  // Impact × effort, the reorg sandbox and goals & owners, plugged into the nested boards (loaded with them). Measured at its
+  // first build (23184 / 7422), plus a little.
+  'workshop-nest-plus.mjs': { raw: 24000, gzip: 7700 },
   // The library of what can be added (pure data): loaded when the library opens.
   'catalog.mjs': { raw: 16000, gzip: 5000 },
 }

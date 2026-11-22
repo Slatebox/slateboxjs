@@ -75,7 +75,7 @@ export type WorkshopEdit =
   | { kind: 'shift_budget'; from: WorkshopRef; to: WorkshopRef; amount: number }
   | { kind: 'add_rule'; rule: RuleInput }
   | { kind: 'set_rule'; rule: string; on?: boolean; severity?: 'refuse' | 'warn'; max?: number; to?: WorkshopRef[]; floor?: number; onConflict?: 'push' | 'stop'; unit?: 'day' | 'week'
-      under?: string[]; by?: string; drop?: 'new-pile' | 'unsorted' }
+      under?: string[]; by?: string; drop?: 'new-pile' | 'unsorted'; mode?: 'warn' | 'ask' | 'carry' }
   | { kind: 'remove_rule'; rule: string }
   // A hiring plan's (slateboxjs/workshops/plans adds them to the table as it loads).
   | { kind: 'set_band_cost'; band: string; monthly: number }
@@ -86,9 +86,14 @@ export type WorkshopEdit =
   | { kind: 'merge_cards'; card: WorkshopRef; into: WorkshopRef }
   | { kind: 'set_role'; card: WorkshopRef; role: string }
   | { kind: 'set_source'; card: WorkshopRef; source: string }
-  | { kind: 'add_field'; label: string; currency?: string }
+  | { kind: 'add_field'; label: string; currency?: string; flag?: boolean }
   | { kind: 'set_field'; card: WorkshopRef; field: string; value: number | null }
   | { kind: 'set_layout'; layout: 'clusters' | 'tree' }
+  // Impact × effort, the reorg sandbox and goals & owners (slateboxjs/workshops/nestPlus adds them as it loads).
+  | { kind: 'score_card'; card: WorkshopRef; x: number; y: number }
+  | { kind: 'rename_field'; field: string; label: string }
+  | { kind: 'add_owner'; label: string }
+  | { kind: 'set_owner'; card: WorkshopRef; owner: string; carry?: WorkshopRef[] }
 
 export type WorkshopEditKindName = WorkshopEdit['kind']
 

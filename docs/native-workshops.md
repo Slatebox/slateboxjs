@@ -340,6 +340,31 @@ legal boards instead, pass `chooseCandidate: dragologyCandidates` (from `slatebo
 needs React installed, mounts nothing). The native controller still refuses a drop on a lane the
 rules close and a drop outside every lane, which Dragology's `closest()` cannot express.
 
+## Smart components: behaviour as data
+
+A board's rules live on the board (`workshop.behaviour`: up to 12 rules, each `refuse` or `warn`, with who set it).
+One `check(before, after)` decides a drag, a chat edit, exec's `check_move` and the server's whole save, in the same
+sentence; the "How this board behaves" note shows each rule's sentence. Rules read roles, fields and owners, never a
+card's words. Chat and exec change them with `add_rule`, `set_rule` and `remove_rule`; a new rule moves nothing.
+
+| Board | Kind / layout | Its rules | Its own edits |
+|---|---|---|---|
+| Lane boards, Team board | lanes | `capacity`, `path`, `gate`, `bin` | — |
+| Launch plan, go-live, hiring plan | `launch-plan`, `hiring-plan` | `deadline`, `overlap`, `snap`, `workdays`, `blackout`, `cascade`, `locked` | `set_task`, `link_tasks`, `set_funding` … |
+| Sort the evidence, Discovery tree, Break down a problem | `nest` · `clusters` / `tree` | `nests`, `children`, `depth`, `rank`, `emptyDrop` | `nest_card`, `start_pile`, `merge_cards`, `set_role`, `add_field` … |
+| Impact × effort | `nest` · `matrix` | `quadrant` (a square holds at most N) | `score_card` (both scores, 0–10, one edit), `rename_field` |
+| Reorg & hiring sandbox | `nest` · `tree` | `children` (span), `parent` (a role or yes/no field never manages), `contains` (every manager has a designer) | `add_field` with `flag` |
+| Goals & owners | `nest` · `tree` + `nest.owners` | `sameOwnerAs` (`mode`: `warn`, `ask`, `carry`) | `add_owner`, `set_owner` (with `carry`) |
+
+A nested board is lists in lists: `card.parentId`, a free `card.role`, a fractional `card.order`, and two areas (the
+board and a tray). A card dragged under another brings everything under it. On a 2 by 2 a card's box is placed by its
+two axis fields (`nest.axes`); the drag rounds to whole scores and a full square holds the card back. With owners, a
+row of teams sits above the tree; a card dropped on a team goes to it. Under `carry` the cards under it that were its
+team's go too, and the edit names them (`set_owner.carry`): a server that works out a different carry refuses the
+drop ("The board changed while you were dragging. Try again.") rather than apply another. On a phone a 2 by 2 stays a
+square (358 px); trees become an outline and teams change by chat. Salaries stay off boards: yes/no fields and roles
+only.
+
 ## Two people on one workshop
 
 The engine sends nothing about workshop notes, so a second client sees a move only when the host

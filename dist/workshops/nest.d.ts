@@ -1,12 +1,34 @@
-import type { BehaviourRule, BehaviourVerdict, WorkshopMoveCheck } from './behaviour';
-import type { Workshop, WorkshopCard } from './model';
-import type { BusinessBoardRules, RuleFamily } from './kinds';
-import type { WorkshopRef } from './edits';
+import type { Behaviour, BehaviourRule, BehaviourVerdict, WorkshopMoveCheck } from './behaviour';
+import type { NestFields, Workshop, WorkshopCard } from './model';
+import type { BusinessBoardRules, BusinessEditTools, RuleFamily } from './kinds';
+import type { WorkshopEdit, WorkshopEditField, WorkshopEditKind, WorkshopEditKindName, WorkshopRef } from './edits';
 export { orderBetween, orderKeys, byOrder, isOrderKey } from './order';
 type Rule = BehaviourRule;
 type Board = Workshop;
 /** A role: lowercase words, such as "pile", "opportunity" or "root cause". */
 export declare function roleOf(value: unknown): string;
+type Verdict = BehaviourVerdict;
+export interface NestPlus {
+    keys: Record<string, string>;
+    read(rule: Record<string, unknown>, base: Record<string, unknown>, board: Board): Rule | null;
+    sentence(rule: Rule, board: Board): string | null;
+    /** Its rules' check, after the core rules: a refusal, or warnings added to `warnings`. */
+    check(before: Board, after: Board, warnings: string[]): Verdict | null;
+    contradiction(behaviour: Behaviour, board: Board): string | null;
+    readBoard(raw: Record<string, unknown>, out: NestFields, read: {
+        id(value: unknown): string;
+    }): void;
+    readCard(raw: Record<string, unknown>, card: WorkshopCard, read: {
+        id(value: unknown): string;
+    }): void;
+    validate(board: Board): string | null;
+    edit(board: Board, edit: WorkshopEdit, t: BusinessEditTools, settle: (next: Board, laneId?: string | null, cardId?: string) => Board): ReturnType<BusinessBoardRules['edit']>;
+    cardText(board: Board, card: WorkshopCard): string | null;
+    drags(board: Board): string | null;
+    caption(board: Board, laneId: string): string | null;
+}
+/** Plug in nestPlus.ts (it calls this once as it loads). */
+export declare function registerNestPlus(more: NestPlus): void;
 /** The board's two areas: where cards are placed, and the tray of cards not placed yet. */
 export declare const nestAreas: (board: Pick<Board, "lanes">) => {
     main: string;
@@ -77,6 +99,15 @@ export declare function checkNestMove(input: Board, cardRef: WorkshopRef, to: {
     under?: WorkshopRef;
     lane?: WorkshopRef;
 }): WorkshopMoveCheck;
+export declare function extend(more: {
+    kinds: WorkshopEditKind[];
+    boards: Partial<Record<WorkshopEditKindName, 'nest'[]>>;
+    fields: Partial<Record<WorkshopEditKindName, Record<string, WorkshopEditField>>>;
+    rules: {
+        kinds: string[];
+        keys: Record<string, unknown>;
+    };
+}): void;
 /** What a card says on the board: a card with cards under it says what it counts. */
 export declare function nestCardText(board: Board, card: WorkshopCard): string;
 /** The nest board's part of the one gate (see kinds.ts). */

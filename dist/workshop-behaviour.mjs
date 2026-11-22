@@ -274,7 +274,7 @@ function ne(n, e, o, t) {
       if (c.kind !== "path") return t.refuse("Only a path rule says where cards go.");
       c.to = e.to.map(r);
     }
-    for (const d of ["floor", "onConflict", "unit", "under", "by", "drop"]) if (e[d] !== void 0) {
+    for (const d of ["floor", "onConflict", "unit", "under", "by", "drop", "mode"]) if (e[d] !== void 0) {
       if (!(d in c)) return t.refuse("That rule does not take " + d + ".");
       c[d] = e[d];
     }

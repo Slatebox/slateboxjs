@@ -187,6 +187,7 @@ export type WorkshopEdit = {
     under?: string[];
     by?: string;
     drop?: 'new-pile' | 'unsorted';
+    mode?: 'warn' | 'ask' | 'carry';
 } | {
     kind: 'remove_rule';
     rule: string;
@@ -223,6 +224,7 @@ export type WorkshopEdit = {
     kind: 'add_field';
     label: string;
     currency?: string;
+    flag?: boolean;
 } | {
     kind: 'set_field';
     card: WorkshopRef;
@@ -231,6 +233,23 @@ export type WorkshopEdit = {
 } | {
     kind: 'set_layout';
     layout: 'clusters' | 'tree';
+} | {
+    kind: 'score_card';
+    card: WorkshopRef;
+    x: number;
+    y: number;
+} | {
+    kind: 'rename_field';
+    field: string;
+    label: string;
+} | {
+    kind: 'add_owner';
+    label: string;
+} | {
+    kind: 'set_owner';
+    card: WorkshopRef;
+    owner: string;
+    carry?: WorkshopRef[];
 };
 export type WorkshopEditKindName = WorkshopEdit['kind'];
 /** What one edit did: the sentence a person is told, and the ids it concerned or made. */

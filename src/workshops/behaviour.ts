@@ -24,7 +24,7 @@ export const ruleKindIds: readonly RuleKindId[] = ['capacity', 'path', 'gate', '
 /** A plan's rule kinds (timeRules.ts, with the plans' rules): a launch plan's and a hiring plan's. */
 export type TimeRuleKindId = 'deadline' | 'overlap' | 'snap' | 'workdays' | 'blackout' | 'cascade' | 'locked'
 /** A nest board's rule kinds (nest.ts): what sits under what, how many, how deep, how piles rank, where a far drop goes. */
-export type NestRuleKindId = 'nests' | 'children' | 'depth' | 'rank' | 'emptyDrop'
+export type NestRuleKindId = 'nests' | 'children' | 'depth' | 'rank' | 'emptyDrop' | 'quadrant' | 'parent' | 'contains' | 'sameOwnerAs'
 
 /** Who set a rule, when, and from where. Shown when a refusal is explained. */
 export interface RuleAudit { by: string; at: string; via: 'chat' | 'exec' | 'preset' }
@@ -49,6 +49,13 @@ export type RuleBody =
   | { kind: 'depth'; max: number }
   | { kind: 'rank'; by: string }
   | { kind: 'emptyDrop'; drop: 'new-pile' | 'unsorted' }
+  // nestPlus.ts: a square of a 2 by 2 holds at most max; cards that are `not` (a role, or a yes/no field) have no one
+  // under them; a card of `role` has at least `atLeast` cards that are `of` under it; a card is owned by the team that owns
+  // what it sits under (mode: what a change of owner does to the cards under it).
+  | { kind: 'quadrant'; quadrant: string; max: number }
+  | { kind: 'parent'; not: string }
+  | { kind: 'contains'; role: string; of: string; atLeast: number }
+  | { kind: 'sameOwnerAs'; mode: 'warn' | 'ask' | 'carry'; role?: string }
 
 export type BehaviourRule = RuleBody & { id: string; on: boolean; severity: 'refuse' | 'warn'; set: RuleAudit }
 
@@ -438,7 +445,7 @@ export function applyRuleEdit(board: Workshop, edit: WorkshopEdit, audit: RuleAu
       rule.to = edit.to.map(lane)
     }
     // A plan's rule: the line's floor, a slip's reach, the snap; a nested board's: what a role sits under, how piles rank, a far drop.
-    for (const key of ['floor', 'onConflict', 'unit', 'under', 'by', 'drop'] as const) if (edit[key] !== undefined) {
+    for (const key of ['floor', 'onConflict', 'unit', 'under', 'by', 'drop', 'mode'] as const) if (edit[key] !== undefined) {
       if (!(key in rule)) return t.refuse('That rule does not take ' + key + '.')
       ;(rule as Record<string, unknown>)[key] = edit[key]
     }

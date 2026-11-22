@@ -44,6 +44,33 @@ export function roleOf(value: unknown): string {
 const money = (n: number, sign: string) => sign + (n >= 1e6 ? Math.round(n / 1e5) / 10 + 'M' : n >= 1e3 ? Math.round(n / 100) / 10 + 'k' : String(n))
 const nextCardId = (board: Board) => { let n = 1; while (board.cards.some(card => card.id === 'card-' + n) || board.lanes.some(lane => lane.id === 'card-' + n)) n++; return 'card-' + n }
 
+// ---------------------------------------------------------------------------------------------
+// More shapes of nested board (nestPlus.ts: impact × effort, the reorg sandbox, goals & owners) plug in here
+// as that module loads; it loads wherever this one does (slateboxjs/workshops/rules, the nest kit).
+
+type Verdict = BehaviourVerdict
+export interface NestPlus {
+  keys: Record<string, string>
+  read(rule: Record<string, unknown>, base: Record<string, unknown>, board: Board): Rule | null
+  sentence(rule: Rule, board: Board): string | null
+  /** Its rules' check, after the core rules: a refusal, or warnings added to `warnings`. */
+  check(before: Board, after: Board, warnings: string[]): Verdict | null
+  contradiction(behaviour: Behaviour, board: Board): string | null
+  readBoard(raw: Record<string, unknown>, out: NestFields, read: { id(value: unknown): string }): void
+  readCard(raw: Record<string, unknown>, card: WorkshopCard, read: { id(value: unknown): string }): void
+  validate(board: Board): string | null
+  edit(board: Board, edit: WorkshopEdit, t: BusinessEditTools, settle: (next: Board, laneId?: string | null, cardId?: string) => Board): ReturnType<BusinessBoardRules['edit']>
+  cardText(board: Board, card: WorkshopCard): string | null
+  drags(board: Board): string | null
+  caption(board: Board, laneId: string): string | null
+}
+let plus: NestPlus | null = null
+/** Plug in nestPlus.ts (it calls this once as it loads). */
+export function registerNestPlus(more: NestPlus): void {
+  plus = more
+  Object.assign(ruleKeys, more.keys)
+}
+
 const plainText = (value: unknown, limit: number, what: string) => {
   const text = typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : ''
   if (!text || text.length > limit || /[<>\u0000-\u001f]/.test(text)) throw new Error(what)
@@ -191,6 +218,7 @@ export function validateNest(board: Board): string | null {
   if (board.lanes.length !== 2) return 'A nested board has two areas: the board and a tray for cards not placed yet.'
   const { tray } = nestAreas(board)
   const fields = new Set((board.nest?.fields ?? []).map(item => item.id))
+  if (board.nest?.layout === 'matrix' && !plus) return 'A 2 by 2 needs its rules loaded.'
   const by = rankBy(board)
   if (by && by !== 'count' && by !== 'sources' && !fields.has(by)) return 'Cards on this board carry no ' + by + ', so piles can’t rank by it.'
   for (const card of board.cards) {
@@ -204,7 +232,7 @@ export function validateNest(board: Board): string | null {
     const missing = Object.keys(card.fields ?? {}).find(key => !fields.has(key))
     if (missing) return said(card.label) + ' has a number this board has no field for.'
   }
-  return null
+  return plus?.validate(board) ?? null
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -220,6 +248,7 @@ export function nestSentence(rule: Rule, board: Board): string {
     case 'depth': line = rule.max === 1 ? 'Cards nest one level deep' : 'Cards nest up to ' + rule.max + ' levels deep'; break
     case 'rank': line = 'Piles rank by ' + (rule.by === 'count' ? 'number of notes' : rule.by === 'sources' ? 'number of customers' : field(board, rule.by)?.label ?? rule.by); break
     case 'emptyDrop': line = 'A card let go in empty space ' + (rule.drop === 'new-pile' ? 'starts a new pile' : 'goes to ' + board.lanes[1].label); break
+    default: line = (plus?.sentence(rule, board) ?? rule.kind).replace(/\.$/, '')
   }
   return line + warn + '.'
 }
@@ -235,7 +264,7 @@ export function checkNest(before: Board, after: Board): BehaviourVerdict {
   const rules = (before.behaviour?.rules ?? []).filter(rule => rule.on && priority.includes(rule.kind))
     .sort((a, b) => priority.indexOf(a.kind) - priority.indexOf(b.kind))
   const warnings: string[] = []
-  if (!rules.length) return { ok: true, warnings }
+  if (!rules.length) return plus?.check(before, after, warnings) ?? { ok: true, warnings }
   const old = new Map(before.cards.map(card => [card.id, card]))
   const { tray } = nestAreas(after)
   const arrived = after.cards.filter(card => {
@@ -263,7 +292,7 @@ export function checkNest(before: Board, after: Board): BehaviourVerdict {
     if (rule.severity === 'warn') { warnings.push(found.sentence); continue }
     return { refused: { sentence: found.sentence, ruleId: rule.id, set: rule.set, cardId: found.card.id, laneId: found.card.laneId } }
   }
-  return { ok: true, warnings }
+  return plus?.check(before, after, warnings) ?? { ok: true, warnings }
 }
 
 /** The least depth a role can be placed at under the rules that refuse (Infinity: never). */
@@ -286,6 +315,7 @@ function leastDepths(rules: Rule[]): Map<string, number> {
 function nestContradiction(behaviour: Behaviour, board: Board): string | null {
   const seen = new Set<string>()
   for (const rule of behaviour.rules) {
+    if (!(rule.kind in coreKeys)) continue
     const key = rule.kind + ':' + (rule.kind === 'nests' ? rule.role : rule.kind === 'children' ? rule.role ?? '' : '')
     if (seen.has(key)) {
       return rule.kind === 'nests' ? 'There is already a rule for where ' + plural(rule.role) + ' sit. Change that one instead.'
@@ -299,10 +329,11 @@ function nestContradiction(behaviour: Behaviour, board: Board): string | null {
     if (n === Infinity) return cap(plural(role)) + ' could never be placed: what they sit under would have to sit under them first.'
     if (depth && n > depth.max) return cap(plural(role)) + ' sit ' + n + ' levels down, but cards nest only ' + depth.max + ' deep.'
   }
-  return null
+  return plus?.contradiction(behaviour, board) ?? null
 }
 
-const ruleKeys: Record<string, string> = { nests: 'role under', children: 'max role', depth: 'max', rank: 'by', emptyDrop: 'drop' }
+const coreKeys: Record<string, string> = { nests: 'role under', children: 'max role', depth: 'max', rank: 'by', emptyDrop: 'drop' }
+const ruleKeys: Record<string, string> = { ...coreKeys }
 
 function readNestRule(rule: Record<string, unknown>, base: Record<string, unknown>, board: Board): Rule {
   const extra = Object.keys(rule).find(key => !['id', 'on', 'severity', 'set', 'kind', ...ruleKeys[rule.kind as string].split(' ')].includes(key))
@@ -333,6 +364,8 @@ function readNestRule(rule: Record<string, unknown>, base: Record<string, unknow
       if (rule.drop !== 'new-pile' && rule.drop !== 'unsorted') throw new Error('A card let go in empty space starts a new pile or goes to ' + board.lanes[1].label + '.')
       return { ...base, kind: 'emptyDrop', drop: rule.drop } as Rule
   }
+  const more = plus?.read(rule, base, board)
+  if (more) return more
   throw new Error('This board does not know the rule ' + String(rule.kind) + '.')
 }
 
@@ -400,7 +433,7 @@ export function nestEmptyDrop(board: Board, cardId: string): Board | null {
 }
 
 /** Where every card may go, as one string: two boards drag alike when these are equal (the library's gate). */
-export const nestDrags = (board: Board) => JSON.stringify([board.nest?.layout, rankBy(board), rulesOn(board, 'emptyDrop')[0]?.kind && (rulesOn(board, 'emptyDrop')[0] as { drop: string }).drop,
+export const nestDrags = (board: Board) => (plus?.drags(board) ?? '') + JSON.stringify([board.nest?.layout, rankBy(board), rulesOn(board, 'emptyDrop')[0]?.kind && (rulesOn(board, 'emptyDrop')[0] as { drop: string }).drop,
   nestRoots(board, nestAreas(board).main).map(card => card.id),
   board.cards.map(card => nestLegal(board, card.id).map(({ spot }) => spot.under ?? spot.laneId).filter((v, i, all) => all.indexOf(v) === i))])
 
@@ -454,7 +487,7 @@ const cardField = (about: string) => ({ type: 'ref' as const, of: 'card' as cons
 const text = (max: number, about: string, optional = false) => ({ type: 'text' as const, max, about, ...(optional && { optional }) })
 const nestOnly = ['nest' as const]
 // The board's own edits join the one edit table as this module loads (as the plans' do, editTable.ts).
-function extend(more: { kinds: WorkshopEditKind[]; boards: Partial<Record<WorkshopEditKindName, 'nest'[]>>; fields: Partial<Record<WorkshopEditKindName, Record<string, WorkshopEditField>>>;
+export function extend(more: { kinds: WorkshopEditKind[]; boards: Partial<Record<WorkshopEditKindName, 'nest'[]>>; fields: Partial<Record<WorkshopEditKindName, Record<string, WorkshopEditField>>>;
   rules: { kinds: string[]; keys: Record<string, unknown> } }) {
   const entryOf = (kind: string) => workshopEditKinds.find(item => item.kind === kind)!
   for (const entry of more.kinds) if (!workshopEditKinds.some(item => item.kind === entry.kind)) workshopEditKinds.push(entry)
@@ -480,7 +513,8 @@ extend({
     { kind: 'set_source', summary: 'Nest board: say who a card came from (a customer, an interview).', intent: false,
       fields: { card: cardField('The card.'), source: text(60, 'Who said it.') }, boards: nestOnly, refusals: {} },
     { kind: 'add_field', summary: 'Nest board: add a number field cards can carry (ARR, seats…). Up to 4.', intent: false,
-      fields: { label: text(20, 'Its name.'), currency: { type: 'choice', values: ['$', '€', '£'], optional: true, about: 'A money field’s sign.' } }, boards: nestOnly, refusals: {} },
+      fields: { label: text(20, 'Its name.'), currency: { type: 'choice', values: ['$', '€', '£'], optional: true, about: 'A money field’s sign.' },
+        flag: { type: 'flag', optional: true, about: 'A yes/no field (contractor…): cards carry 1 for yes.' } }, boards: nestOnly, refusals: {} },
     { kind: 'set_field', summary: 'Nest board: set (or with null clear) a card’s number in a field.', intent: false,
       fields: { card: cardField('The card.'), field: text(20, 'The field, by id or name.'), value: { type: 'integer', min: 0, max: 1e9, nullable: true, about: 'A whole number, or null.' } }, boards: nestOnly, refusals: {} },
     { kind: 'set_layout', summary: 'Nest board: draw it as piles or as a tree (a phone shows an outline).', intent: false,
@@ -510,6 +544,8 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
   const trayName = board.lanes[1].label
   // Every board an edit makes keeps its keys short (tidyKeys).
   const settle = (next: Board, laneId?: string | null, cardId?: string) => t.settle(tidyKeys(next), laneId, cardId)
+  const more = plus?.edit(board, edit, t, settle)
+  if (more) return more
   const under = (value: WorkshopRef) => {
     if (typeof value === 'object' && !byId(board, value.id)) {
       // A card a merge took away: the card it went into.
@@ -528,13 +564,14 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
   }
   switch (edit.kind) {
     case 'add_card': {
-      const lane = t.lane(edit.lane)
+      // A 2 by 2: a new card waits in the tray until it is scored.
+      const lane = board.nest?.layout === 'matrix' ? board.lanes[1] : t.lane(edit.lane)
       const label = edit.label?.replace(/\s+/g, ' ').trim()
       if (!label) t.refuse('Say what the card should say, such as “Add a note called Slow exports to Reporting”.', { laneId: lane.id })
       const parent = edit.under === undefined ? null : under(edit.under)
       if (parent && lane.id === tray) t.refuse(trayName + ' holds loose cards: nothing sits under another there.', { laneId: lane.id })
       const role = edit.role === undefined ? roleUnder(board, parent) : roleOf(edit.role)
-      const card: WorkshopCard = { id: nextCardId(board), label: label!, laneId: parent?.laneId ?? lane.id, ...(role && { role }), ...(edit.source && { source: plainText(edit.source, 60, 'Say who said it in plain words.') }) }
+      const card: WorkshopCard = { id: nextCardId(board), label: label!, laneId: parent?.laneId ?? lane.id, ...(role && { role }), ...(parent?.owner && { owner: parent.owner }), ...(edit.source && { source: plainText(edit.source, 60, 'Say who said it in plain words.') }) }
       // A note let go on the piles but on no pile: the empty-drop rule says where it goes.
       if (!parent && lane.id === main && board.nest?.layout === 'clusters' && edit.role === undefined) {
         const drop = (rulesOn(board, 'emptyDrop')[0] as { drop: string } | undefined)?.drop ?? 'new-pile'
@@ -634,8 +671,8 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
       const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20) || 'field'
       if (fields.some(item => item.id === id || item.label.toLowerCase() === label.toLowerCase())) t.refuse('Cards already carry ' + label + '.')
       if (fields.length >= 4) t.refuse('Cards carry up to 4 number fields.')
-      const next = settle({ ...board, nest: { ...board.nest!, fields: [...fields, { id, label, ...(edit.currency && { currency: edit.currency }) }] } })
-      return t.done(next, 'Cards can carry ' + label + ' now.')
+      const next = settle({ ...board, nest: { ...board.nest!, fields: [...fields, { id, label, ...(edit.currency && { currency: edit.currency }), ...(edit.flag && { flag: true as const }) }] } })
+      return t.done(next, 'Cards can carry ' + label + (edit.flag ? ' (yes or no)' : '') + ' now.')
     }
     case 'set_field': {
       const card = t.card(edit.card)
@@ -668,6 +705,8 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
 
 /** What a card says on the board: a card with cards under it says what it counts. */
 export function nestCardText(board: Board, card: WorkshopCard): string {
+  const more = plus?.cardText(board, card)
+  if (more !== null && more !== undefined) return more
   if (board.cards.some(item => item.parentId === card.id) || card.role === 'pile') {
     const counts = [nestMeasureWords(board, 'count', nestMeasure(board, card.id, 'count'))]
     if (board.nest?.layout === 'clusters') {
@@ -717,11 +756,13 @@ export const nestRules: BusinessBoardRules = {
     if (raw.source !== undefined) card.source = plainText(raw.source, 60, 'Say who said it in plain words.')
     const fields = readFields(raw.fields)
     if (fields) card.fields = fields
+    if (plus) plus.readCard(raw, card, read)
+    else if (raw.owner !== undefined) throw new Error('This board needs its rules loaded.')
   },
   readBoard(raw, board, read) {
     const nest = raw.nest as Record<string, unknown>
     if (!nest || typeof nest !== 'object' || Array.isArray(nest)) throw new Error('A nested board says how it is drawn.')
-    if (nest.layout !== 'clusters' && nest.layout !== 'tree') throw new Error('A nested board is drawn as piles or as a tree.')
+    if (nest.layout !== 'clusters' && nest.layout !== 'tree' && nest.layout !== 'matrix') throw new Error('A nested board is drawn as piles, as a tree or as a 2 by 2.')
     const out: NestFields = { layout: nest.layout }
     if (nest.fields !== undefined) {
       if (!Array.isArray(nest.fields) || nest.fields.length > 4) throw new Error('Cards carry up to 4 number fields.')
@@ -732,6 +773,10 @@ export const nestRules: BusinessBoardRules = {
         if (f.currency !== undefined) {
           if (f.currency !== '$' && f.currency !== '€' && f.currency !== '£') throw new Error('A money field’s sign is $, € or £.')
           def.currency = f.currency
+        }
+        if (f.flag !== undefined) {
+          if (f.flag !== true || f.currency !== undefined) throw new Error('A yes/no field is a flag, never money.')
+          def.flag = true
         }
         return def
       })
@@ -744,6 +789,8 @@ export const nestRules: BusinessBoardRules = {
         return [read.id(pair[0]), read.id(pair[1])] as [string, string]
       })
     }
+    if (plus) plus.readBoard(nest, out, read)
+    else if (nest.axes !== undefined || nest.owners !== undefined) throw new Error('This board needs its rules loaded.')
     board.nest = out
   },
   validate: validateNest,
@@ -759,6 +806,8 @@ export const nestRules: BusinessBoardRules = {
       ? board.lanes[1].label + ' holds loose cards. Move what is under ' + said(card.label) + ' first.' : null
   },
   caption(board, laneId) {
+    const more = plus?.caption(board, laneId)
+    if (more) return more
     const n = board.cards.filter(card => card.laneId === laneId).length
     if (laneId === nestAreas(board).tray) return n ? n + ' not placed yet' : 'Nothing waiting'
     const roots = nestKids(board, null, laneId).length
