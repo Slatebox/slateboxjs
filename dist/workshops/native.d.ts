@@ -35,6 +35,7 @@ export interface WorkshopChangeEvent {
         look?: WorkshopCardLook;
         asNote?: WorkshopCardAsNote;
         before?: string;
+        under?: string;
     };
     cardToNote?: {
         noteId: string;
@@ -161,6 +162,11 @@ export interface WorkshopBoardKit {
     cardKeys?: string;
     /** Outline the lanes a held card may go to. Off for a launch plan, where every team takes every task. */
     laneCues: boolean;
+    /** A nest board: the card an ordinary note dropped at this point sits under; null for none. */
+    noteUnder?(board: Workshop, point: {
+        x: number;
+        y: number;
+    }, layout: WorkshopBoardLayout): string | null;
 }
 /**
  * A change the workshop's rules did not allow, with the reason as a sentence (empty when a card

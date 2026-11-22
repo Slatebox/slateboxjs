@@ -1,10 +1,12 @@
 import type { Workshop } from './model';
 import type { WorkshopEdit, WorkshopRef } from './edits';
 import type { BusinessEditStep, BusinessEditTools } from './kinds';
-export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin' | TimeRuleKindId;
+export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin' | TimeRuleKindId | NestRuleKindId;
 export declare const ruleKindIds: readonly RuleKindId[];
 /** A plan's rule kinds (timeRules.ts, with the plans' rules): a launch plan's and a hiring plan's. */
 export type TimeRuleKindId = 'deadline' | 'overlap' | 'snap' | 'workdays' | 'blackout' | 'cascade' | 'locked';
+/** A nest board's rule kinds (nest.ts): what sits under what, how many, how deep, how piles rank, where a far drop goes. */
+export type NestRuleKindId = 'nests' | 'children' | 'depth' | 'rank' | 'emptyDrop';
 /** Who set a rule, when, and from where. Shown when a refusal is explained. */
 export interface RuleAudit {
     by: string;
@@ -50,6 +52,23 @@ export type RuleBody = {
 } | {
     kind: 'locked';
     cards: string[];
+} | {
+    kind: 'nests';
+    role: string;
+    under: string[];
+} | {
+    kind: 'children';
+    max: number;
+    role?: string;
+} | {
+    kind: 'depth';
+    max: number;
+} | {
+    kind: 'rank';
+    by: string;
+} | {
+    kind: 'emptyDrop';
+    drop: 'new-pile' | 'unsorted';
 };
 export type BehaviourRule = RuleBody & {
     id: string;

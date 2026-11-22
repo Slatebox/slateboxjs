@@ -86,6 +86,8 @@ export interface BusinessBoardRules {
     words?: PlanWords;
     /** What a whole-board save may not change on this kind (no edit changes it), as a sentence; null when it keeps it. */
     fixed?(before: Workshop, after: Workshop): string | null;
+    /** A nested board: the cards at the top of an area in the order they are drawn (ranked by its rank rule). */
+    order?(board: Workshop, laneId: string): string[];
 }
 export interface PlanWords {
     day(board: Workshop, text: string, after?: number): number | null;

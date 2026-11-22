@@ -46,6 +46,12 @@ export interface WorkshopCard {
     amount?: number;
     /** Hiring plan: the role band the hire is in (cost is per band, never per person). */
     band?: string;
+    /** Nest board: the card it sits under, what it is (pile, outcome…), its place among its siblings (a fractional key), who said it, and numbers chat added. */
+    parentId?: string;
+    role?: string;
+    order?: string;
+    source?: string;
+    fields?: Record<string, number>;
     /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
     look?: WorkshopCardLook;
     /** What the note it was made from had that a card does not show, so it comes back as it was. */
@@ -98,6 +104,8 @@ export interface Workshop {
     };
     /** Hiring plan: cash, monthly burn without new hires, the role bands and a funding round. */
     hiring?: HiringFields;
+    /** Nest board: how it is drawn (piles or a tree), the number fields chat added, and merged cards' new homes. */
+    nest?: NestFields;
     /** Pipeline: the forecast target, and the currency sign amounts are written with. */
     forecast?: {
         target: number;
@@ -118,7 +126,7 @@ export interface Workshop {
     behaviour?: Behaviour;
 }
 /** The kinds of board with rules of their own. A board without a kind is a board of plain lanes. */
-export type WorkshopKind = 'release-plan' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan';
+export type WorkshopKind = 'release-plan' | BusinessBoardKind;
 /** A hiring plan's money: what a role band costs a month (loaded), on one team. */
 export interface HiringBand {
     id: string;
@@ -138,8 +146,17 @@ export interface HiringFields {
     };
 }
 /** The business boards: drawn by a board kit (slateboxjs/boards) on a live slate. */
-export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan';
+export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest';
 export declare const businessBoardKinds: readonly BusinessBoardKind[];
+export interface NestFields {
+    layout: 'clusters' | 'tree';
+    fields?: {
+        id: string;
+        label: string;
+        currency?: string;
+    }[];
+    aliases?: [string, string][];
+}
 export declare function businessKind(board: Pick<Workshop, 'kind'>): BusinessBoardKind | undefined;
 /** The parts of a note's look a card can keep; anything a card cannot draw is left out. Undefined when nothing is left. */
 export declare function workshopCardLookOf(input: Record<string, unknown>): WorkshopCardLook | undefined;
@@ -193,6 +210,8 @@ export interface WorkshopNoteOffer {
     look?: WorkshopCardLook;
     /** What the note has that the card will not show (line breaks, shape, size), kept for its way back. */
     asNote?: WorkshopCardAsNote;
+    /** Nest board: the card it was dropped on, to sit under. */
+    under?: string;
 }
 /** Why `note` may not become a card in `laneId`, as a sentence; null when it may. */
 export declare function workshopNoteRefusal(board: Workshop, laneId: string, note: WorkshopNoteOffer): string | null;

@@ -1,11 +1,11 @@
-const L = "1.0", R = [
+const C = "1.0", P = [
   { id: "all", label: "All" },
   { id: "plan", label: "Plan" },
   { id: "decide", label: "Decide" },
   { id: "meetings", label: "Meetings" },
   { id: "track", label: "Track" },
   { id: "map", label: "Map" }
-], _ = (e = "Slatebox") => ({ by: e, at: "2026-11-21T00:00:00.000Z", via: "preset" }), S = {
+], M = (a = "Slatebox") => ({ by: a, at: "2026-11-21T00:00:00.000Z", via: "preset" }), R = {
   "now-next-later": {
     title: "Now, next, later",
     lanes: [{ id: "now", label: "Now" }, { id: "next", label: "Next" }, { id: "later", label: "Later" }],
@@ -39,72 +39,100 @@ const L = "1.0", R = [
     ],
     rules: [{ kind: "path", from: "any", noSkip: !0 }, { kind: "capacity", where: "doing", max: 3 }, { kind: "bin", lane: "wont" }]
   }
-}, x = () => ({ version: 1, title: "Decision path", lanes: [
+}, L = () => ({ version: 1, title: "Decision path", lanes: [
   { id: "question", label: "The question", station: { column: 0, row: 0, next: ["option-a", "option-b"], outcome: "Say what you are deciding." } },
   { id: "option-a", label: "Option A", station: { column: 1, row: 0, next: ["decide"], outcome: "Weigh the first option." } },
   { id: "option-b", label: "Option B", station: { column: 1, row: 1, next: ["decide"], outcome: "Weigh the second option." } },
   { id: "decide", label: "Decide", station: { column: 2, row: 0, next: [], outcome: "Write down what you chose and why." } }
-], cards: [{ id: "token", label: "Our choice", laneId: "question" }] }), a = (e, o, s, i) => ({ edit: e, words: o, say: s, ...i && { rule: i } }), m = (e = a("add_rule", "Cards move one lane at a time", "Cards move one lane at a time", "path"), o = []) => [
-  a("add_rule", "Limit a lane", "Let {busy} hold 1", "capacity"),
-  e,
-  ...o,
-  a("move_card", "Move a card", "Move {card} to {other}"),
-  a("add_card", "Add a card", "Add a card called Snacks to {lane}"),
-  a("rename_card", "Rename a card", "Rename {card} to Review notes"),
-  a("remove_card", "Remove a card", "Remove {card}"),
-  a("rename_lane", "Rename a lane", "Rename {lane} to Blocked"),
-  a("rename_workshop", "Rename the board", "Rename the board to Team review"),
-  a("set_rule", "Warn instead of refusing", "Just warn me when {ruled} is full"),
-  a("remove_rule", "Remove a rule", "Remove the {ruled} rule")
-], p = ["One board per slate for now; on a slate that has one, this opens on a new slate.", "Up to 5 lanes and 24 cards."], k = (e) => [...new Set(e.map((o) => o.edit))], f = (e) => [...new Set(e.flatMap((o) => o.rule ? [o.rule] : []))], c = (e, o, s, i, d, r, t, n = {}) => ({
-  id: e,
-  group: o,
-  name: s,
-  line: i,
+], cards: [{ id: "token", label: "Our choice", laneId: "question" }] }), e = (a, t, n, r) => ({ edit: a, words: t, say: n, ...r && { rule: r } }), y = (a = e("add_rule", "Cards move one lane at a time", "Cards move one lane at a time", "path"), t = []) => [
+  e("add_rule", "Limit a lane", "Let {busy} hold 1", "capacity"),
+  a,
+  ...t,
+  e("move_card", "Move a card", "Move {card} to {other}"),
+  e("add_card", "Add a card", "Add a card called Snacks to {lane}"),
+  e("rename_card", "Rename a card", "Rename {card} to Review notes"),
+  e("remove_card", "Remove a card", "Remove {card}"),
+  e("rename_lane", "Rename a lane", "Rename {lane} to Blocked"),
+  e("rename_workshop", "Rename the board", "Rename the board to Team review"),
+  e("set_rule", "Warn instead of refusing", "Just warn me when {ruled} is full"),
+  e("remove_rule", "Remove a rule", "Remove the {ruled} rule")
+], p = ["One board per slate for now; on a slate that has one, this opens on a new slate.", "Up to 5 lanes and 24 cards."], _ = (a) => [...new Set(a.map((t) => t.edit))], A = (a) => [...new Set(a.flatMap((t) => t.rule ? [t.rule] : []))], c = (a, t, n, r, d, i, o, s = {}) => ({
+  id: a,
+  group: t,
+  name: n,
+  line: r,
   synonyms: d,
   build: { kind: "lanes" },
-  addSay: ["Add " + g(s) + s.toLowerCase(), "Add " + g(s) + s.toLowerCase() + " about {topic}"],
-  edits: k(n.moves ?? m()),
-  rules: f(n.moves ?? m()),
-  moves: m(),
+  addSay: ["Add " + m(n) + n.toLowerCase(), "Add " + m(n) + n.toLowerCase() + " about {topic}"],
+  edits: _(s.moves ?? y()),
+  rules: A(s.moves ?? y()),
+  moves: y(),
   limits: p,
-  loop: { src: "/library/" + e + ".svg", alt: s + ": " + t.join(" "), caption: r, steps: t },
+  loop: { src: "/library/" + a + ".svg", alt: n + ": " + o.join(" "), caption: i, steps: o },
   multiPerSlate: !1,
-  ...n
-}), u = (e) => ({ moves: e, edits: k(e), rules: f(e) }), M = (e) => e ? [
-  a("add_rule", "Let a task slip, in red", "Let things slip past " + e + " but show them in red", "deadline"),
-  a("set_rule", "Stop a slip at what waits on it", "Stop me instead of pushing dependent tasks", "cascade"),
-  a("add_rule", "Add a freeze", "Nothing ships in code freeze, {dates}", "blackout"),
-  a("add_rule", "Keep a team’s tasks apart", "{lane}’s tasks can’t overlap", "overlap"),
-  a("add_rule", "Lock a task", "Lock {card}", "locked"),
-  a("add_rule", "Snap to weeks", "Snap to weeks", "snap"),
-  a("set_task", "Stretch a task", "Make {card} 3 days"),
-  a("set_launch_day", "Move " + e, "Move " + e + " to {later}"),
-  a("link_tasks", "Make a task wait on another", "{card} waits on {other card}"),
-  a("add_card", "Add a task", "Add a task called Docs to {lane}"),
-  a("rename_card", "Rename a task", "Rename {card} to Review notes")
+  ...s
+}), u = (a) => ({ moves: a, edits: _(a), rules: A(a) }), D = (a) => a ? [
+  e("add_rule", "Let a task slip, in red", "Let things slip past " + a + " but show them in red", "deadline"),
+  e("set_rule", "Stop a slip at what waits on it", "Stop me instead of pushing dependent tasks", "cascade"),
+  e("add_rule", "Add a freeze", "Nothing ships in code freeze, {dates}", "blackout"),
+  e("add_rule", "Keep a team’s tasks apart", "{lane}’s tasks can’t overlap", "overlap"),
+  e("add_rule", "Lock a task", "Lock {card}", "locked"),
+  e("add_rule", "Snap to weeks", "Snap to weeks", "snap"),
+  e("set_task", "Stretch a task", "Make {card} 3 days"),
+  e("set_launch_day", "Move " + a, "Move " + a + " to {later}"),
+  e("link_tasks", "Make a task wait on another", "{card} waits on {other card}"),
+  e("add_card", "Add a task", "Add a task called Docs to {lane}"),
+  e("rename_card", "Rename a task", "Rename {card} to Review notes")
 ] : [
-  a("add_rule", "Keep a runway floor", "Never let runway drop below 15 months", "deadline"),
-  a("add_rule", "Lock a signed offer", "Lock {card}", "locked"),
-  a("set_rule", "Stop a slip at what waits on it", "Stop me instead of pushing dependent hires", "cascade"),
-  a("set_task", "Move a hire", "Push {card} to {month}"),
-  a("set_band_cost", "Price a role band", "{band} costs $16k a month"),
-  a("set_funding", "Move the round", "Move the round to {month}"),
-  a("add_card", "Add a hire", "Add a Designer to {lane}"),
-  a("rename_card", "Rename a hire", "Rename {card} to Staff eng")
-], b = (e, o, s, i, d, r, t = "launch-plan", n = "launch-plan") => ({
-  id: e,
+  e("add_rule", "Keep a runway floor", "Never let runway drop below 15 months", "deadline"),
+  e("add_rule", "Lock a signed offer", "Lock {card}", "locked"),
+  e("set_rule", "Stop a slip at what waits on it", "Stop me instead of pushing dependent hires", "cascade"),
+  e("set_task", "Move a hire", "Push {card} to {month}"),
+  e("set_band_cost", "Price a role band", "{band} costs $16k a month"),
+  e("set_funding", "Move the round", "Move the round to {month}"),
+  e("add_card", "Add a hire", "Add a Designer to {lane}"),
+  e("rename_card", "Rename a hire", "Rename {card} to Staff eng")
+], f = (a, t, n, r, d, i, o = "launch-plan", s = "launch-plan") => ({
+  id: a,
   group: "plan",
-  name: o,
-  line: s,
-  synonyms: i,
-  build: { kind: n, sample: t },
-  addSay: ["Add " + g(o) + o.toLowerCase(), "Add " + g(o) + o.toLowerCase() + " about {topic}"],
-  ...u(M(n === "hiring-plan" ? "" : t === "go-live" ? "go-live" : "launch")),
-  limits: [n === "hiring-plan" ? "Cost is per role band, never per person. On a phone it is read-only." : "Up to 12 tasks on 2 to 4 teams.", p[0]],
-  loop: { src: "/library/" + e + ".svg", alt: o + ": " + r.join(" "), caption: d, steps: r },
+  name: t,
+  line: n,
+  synonyms: r,
+  build: { kind: s, sample: o },
+  addSay: ["Add " + m(t) + t.toLowerCase(), "Add " + m(t) + t.toLowerCase() + " about {topic}"],
+  ...u(D(s === "hiring-plan" ? "" : o === "go-live" ? "go-live" : "launch")),
+  limits: [s === "hiring-plan" ? "Cost is per role band, never per person. On a phone it is read-only." : "Up to 12 tasks on 2 to 4 teams.", p[0]],
+  loop: { src: "/library/" + a + ".svg", alt: t + ": " + i.join(" "), caption: d, steps: i },
   multiPerSlate: !1
-}), g = (e) => /^pros/i.test(e) ? "" : /^[aeiou]/i.test(e) ? "an " : "a ", h = [
+}), w = (a, t) => [...a ? [
+  e("add_rule", "Weight piles by ARR", "Weight by ARR", "rank"),
+  e("add_rule", "Cap a pile", "Piles hold at most 2", "children"),
+  e("add_rule", "Send far drops to Unsorted", "Drops in empty space go to Unsorted", "emptyDrop"),
+  e("add_rule", "Group piles into themes", "Group {pile} and {other pile} into Product", "depth"),
+  e("nest_card", "Move a note to a pile", "Move {item} to {pile}"),
+  e("merge_cards", "Merge two piles", "Merge {other pile} into {pile}"),
+  e("set_layout", "Hand the top piles to a discovery tree", "Turn the top 3 piles into a discovery tree"),
+  e("add_card", "Add a note", "Add a note called Slow exports to {pile}"),
+  e("set_source", "Say who said it", "{item} came from Initech")
+] : [
+  ...t,
+  e("nest_card", "Move a card under another", "Move {item} under {parent}")
+], e("rename_card", "Rename a card", "Rename {item} to Self-serve import"), e("remove_card", "Remove a card", "Remove {item}")], v = [e("set_rule", "Make a warning a rule", "Stop me when an action is not under a cause", "nests"), e("add_card", "Ask why once more", "Add a cause called Unclear pricing page under {parent}")], b = (a, t, n, r, d, i, o, s, l) => (
+  // A name that is a verb ("Sort the evidence") is added as a board to do it.
+  {
+    id: a,
+    group: t,
+    name: n,
+    line: r,
+    synonyms: d,
+    build: { kind: "nest", sample: i },
+    addSay: [0, 1].map((h) => "Add " + (/^(?:sort|break)\b/i.test(n) ? "a board to " : m(n)) + n.toLowerCase() + (h ? " about {topic}" : "")),
+    ...u(l),
+    limits: ["Up to 40 cards. On a phone it is an outline.", p[0]],
+    loop: { src: "/library/" + a + ".svg", alt: n + ": " + s.join(" "), caption: o, steps: s },
+    multiPerSlate: !1
+  }
+), m = (a) => /^pros/i.test(a) ? "" : /^[aeiou]/i.test(a) ? "an " : "a ", g = [
   c(
     "now-next-later",
     "plan",
@@ -144,10 +172,10 @@ const L = "1.0", R = [
     build: { kind: "map" },
     addSay: ["Add a decision path", "Add a decision path about {topic}"],
     ...u([
-      a("add_station", "Add a step", "Add Follow-up after {lane}"),
-      a("connect_stations", "Connect two steps", "Connect {lane} to {other}"),
-      a("move_card", "Move the token", "Move {card} to {other}"),
-      a("rename_lane", "Rename a step", "Rename {lane} to Build it")
+      e("add_station", "Add a step", "Add Follow-up after {lane}"),
+      e("connect_stations", "Connect two steps", "Connect {lane} to {other}"),
+      e("move_card", "Move the token", "Move {card} to {other}"),
+      e("rename_lane", "Rename a step", "Rename {lane} to Build it")
     ]),
     limits: ["Up to 5 steps on a 3 by 3 grid.", p[0]],
     loop: { src: "/library/decision-path.svg", alt: "Decision path: the token moves only along connected steps.", caption: "Not connected", steps: ["Drag the token along a path.", "A step with no path to it dims."] },
@@ -182,10 +210,10 @@ const L = "1.0", R = [
     ["A full Doing shows 3 of 3 and dims.", "The next card dragged to Doing is refused with that sentence."],
     {
       addSay: ["Add a team board", "Add a team board about {topic}"],
-      ...u(m(a("add_rule", "Send cards one way", "From {busy} cards go only to {other}", "path"), [a("add_rule", "Add a bin", "Make {lane} a bin", "bin")]))
+      ...u(y(e("add_rule", "Send cards one way", "From {busy} cards go only to {other}", "path"), [e("add_rule", "Add a bin", "Make {lane} a bin", "bin")]))
     }
   ),
-  b(
+  f(
     "launch-plan",
     "Launch plan",
     "Tasks on real dates toward launch day, with your rules",
@@ -193,7 +221,7 @@ const L = "1.0", R = [
     "A slip pushes the tasks that wait on it.",
     ["Slide a task: what waits on it follows.", "Past launch it stops."]
   ),
-  b(
+  f(
     "customer-go-live",
     "Customer go-live",
     "Us and the customer, toward one go-live date",
@@ -202,7 +230,7 @@ const L = "1.0", R = [
     ["Slide a task: weekends don’t count.", "Past go-live it stops."],
     "go-live"
   ),
-  b(
+  f(
     "hiring-plan",
     "Hiring plan",
     "Hires over the year, with runway",
@@ -211,6 +239,55 @@ const L = "1.0", R = [
     ["Drag a hire later: runway grows.", "Below your floor it stops."],
     "hiring-plan",
     "hiring-plan"
+  ),
+  b(
+    "sort-evidence",
+    "decide",
+    "Sort the evidence",
+    "Pile up what customers said; piles rank as you sort",
+    ["affinity", "synthesis", "interviews", "research", "feedback", "themes", "feature requests", "cluster"],
+    "sort-evidence",
+    "Piles rank by number of customers.",
+    ["Drag a note to another pile: the counts change and the piles re-rank.", "Let go in empty space: a new pile."],
+    w(!0, [])
+  ),
+  b(
+    "discovery-tree",
+    "decide",
+    "Discovery tree",
+    "Outcome, opportunities, solutions: what to build next",
+    ["opportunity solution tree", "discovery", "outcome", "what to build", "product discovery", "opportunities"],
+    "discovery-tree",
+    "Solutions sit under an opportunity.",
+    ["Drag a solution under the outcome: refused, in the rule’s words.", "Say “Let solutions sit under the outcome for now”: it lands."],
+    w(!1, [
+      e("add_rule", "Let a card sit elsewhere", "Let solutions sit under the outcome for now", "nests"),
+      e("set_rule", "Warn instead of blocking", "Warn instead of blocking", "nests"),
+      e("add_rule", "Cap an opportunity", "An opportunity holds at most 2 solutions", "children"),
+      e("add_card", "Add a solution", "Add a solution called Sample data under {opportunity}")
+    ])
+  ),
+  b(
+    "break-down-problem",
+    "decide",
+    "Break down a problem",
+    "Ask why until you reach causes you can act on",
+    ["issue tree", "root cause", "5 whys", "five whys", "problem", "why", "diagnose"],
+    "break-down",
+    "Actions sit under a cause (a warning only).",
+    ["Drag a cause under another: why, once more.", "An action off a cause is flagged, never refused."],
+    w(!1, v)
+  ),
+  b(
+    "incident-review",
+    "meetings",
+    "Incident review",
+    "What broke, why, and what to fix",
+    ["incident", "postmortem", "post-mortem", "outage", "retro", "root cause"],
+    "incident-review",
+    "Actions sit under a cause (a warning only).",
+    ["Drag a cause under the incident.", "An action off a cause is flagged."],
+    w(!1, v)
   ),
   {
     id: "sales-pipeline",
@@ -221,12 +298,12 @@ const L = "1.0", R = [
     build: { kind: "pipeline", sample: "pipeline" },
     addSay: ["Add a sales pipeline", "Add a sales pipeline about {topic}"],
     ...u([
-      a("move_card", "Carry a deal on", "Move {card} to {other}"),
-      a("set_amount", "Price a deal", "Make {card} $40k"),
-      a("set_target", "Set the target", "Set the target to $300k"),
-      a("add_card", "Add a deal", "Add a deal called Initech to {lane}"),
-      a("add_rule", "Ask for an amount", "{lane} needs an amount", "gate"),
-      a("add_rule", "Limit a stage", "Let {busy} hold 1", "capacity")
+      e("move_card", "Carry a deal on", "Move {card} to {other}"),
+      e("set_amount", "Price a deal", "Make {card} $40k"),
+      e("set_target", "Set the target", "Set the target to $300k"),
+      e("add_card", "Add a deal", "Add a deal called Initech to {lane}"),
+      e("add_rule", "Ask for an amount", "{lane} needs an amount", "gate"),
+      e("add_rule", "Limit a stage", "Let {busy} hold 1", "capacity")
     ]),
     limits: ["Up to 16 deals.", p[0]],
     loop: { src: "/library/sales-pipeline.svg", alt: "Sales pipeline: carry a deal on; stages it cannot skip dim; the forecast moves.", caption: "Proposal holds 3.", steps: ["Carry a deal to the next stage.", "A full stage refuses."] },
@@ -241,86 +318,86 @@ const L = "1.0", R = [
     build: { kind: "budget", sample: "budget" },
     addSay: ["Add a budget", "Add a budget about {topic}"],
     ...u([
-      a("shift_budget", "Move money between teams", "Move $10k from {lane} to {other}"),
-      a("set_amount", "Price a line item", "Make {card} $20k"),
-      a("add_card", "Add a line item", "Add a line item called Events for $10k to {lane}")
+      e("shift_budget", "Move money between teams", "Move $10k from {lane} to {other}"),
+      e("set_amount", "Price a line item", "Make {card} $20k"),
+      e("add_card", "Add a line item", "Add a line item called Events for $10k to {lane}")
     ]),
     limits: ["The total stays fixed.", p[0]],
     loop: { src: "/library/budget.svg", alt: "Budget: move money between teams; the total stays fixed.", caption: "The total stays fixed.", steps: ["Move a divider between teams.", "The total stays the same."] },
     multiPerSlate: !1
   }
 ];
-function v(e) {
-  return h.find((o) => o.id === e);
+function S(a) {
+  return g.find((t) => t.id === a);
 }
-function T(e = "all") {
-  return h.filter((o) => e === "all" || o.group === e);
+function T(a = "all") {
+  return g.filter((t) => a === "all" || t.group === a);
 }
-function C(e, o, s = {}) {
-  const i = v(e);
-  if (!i) throw new Error("There is nothing called " + e + " in the library.");
-  const d = (t) => {
-    const n = typeof o == "string" ? o.replace(/\s+/g, " ").trim().slice(0, 100) : "";
-    return (n ? t + ": " + n : t).slice(0, 120);
+function N(a, t, n = {}) {
+  const r = S(a);
+  if (!r) throw new Error("There is nothing called " + a + " in the library.");
+  const d = (o) => {
+    const s = typeof t == "string" ? t.replace(/\s+/g, " ").trim().slice(0, 100) : "";
+    return (s ? o + ": " + s : o).slice(0, 120);
   };
-  if (i.build.sample) {
-    const t = s[i.build.sample];
-    if (!t) throw new Error("Load slateboxjs/workshops/rules before adding a " + i.name.toLowerCase() + ".");
-    const n = t();
-    return { ...n, title: o ? d(i.name) : n.title };
+  if (r.build.sample) {
+    const o = n[r.build.sample];
+    if (!o) throw new Error("Load slateboxjs/workshops/rules before adding a " + r.name.toLowerCase() + ".");
+    const s = o();
+    return { ...s, title: t ? d(r.name) : s.title };
   }
-  if (i.build.kind === "map") return { ...x(), title: d("Decision path") };
-  const r = S[e];
+  if (r.build.kind === "map") return { ...L(), title: d("Decision path") };
+  const i = R[a];
   return {
     version: 1,
-    title: d(r.title),
-    lanes: r.lanes.map((t) => ({ ...t })),
+    title: d(i.title),
+    lanes: i.lanes.map((o) => ({ ...o })),
     cards: [],
-    behaviour: { version: 1, rev: 0, rules: (r.rules ?? []).map((t, n) => ({ id: "rule-" + (n + 1), on: !0, severity: "refuse", set: _(), ...t })) }
+    behaviour: { version: 1, rev: 0, rules: (i.rules ?? []).map((o, s) => ({ id: "rule-" + (s + 1), on: !0, severity: "refuse", set: M(), ...o })) }
   };
 }
-const y = (e) => e.toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9/ ]+/g, " ").replace(/\s+/g, " ").trim();
-function D(e) {
-  if (typeof e != "string" || e.length > 300) return null;
-  const o = e.trim().replace(/[.!]+$/, ""), s = /^(?:please\s+)?(?:add|start|set up|make|create|open)\s+(?:(?:a|an|the|some|our|my)\s+)?(?:new\s+)?/i.exec(o);
-  if (!s) return null;
-  const i = o.slice(s[0].length);
-  for (const d of [...h].sort((r, t) => t.name.length - r.name.length)) {
-    const r = [d.name, ...d.addSay.map((t) => t.replace(/^Add (?:an? )?/i, "").replace(/ (?:about|for) \{topic\}$/, ""))];
-    for (const t of r) {
-      const n = t.toLowerCase().replace(/\s*\/\s*/g, "\\s*/?\\s*").replace(/ /g, "\\s+"), l = new RegExp("^" + n + "(?:\\s+(?:board|component))?(?:\\s+(?:about|for|on)\\s+(.+))?$", "i").exec(i);
+const k = (a) => a.toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9/ ]+/g, " ").replace(/\s+/g, " ").trim();
+function W(a) {
+  if (typeof a != "string" || a.length > 300) return null;
+  const t = a.trim().replace(/[.!]+$/, ""), n = /^(?:please\s+)?(?:add|start|set up|make|create|open)\s+(?:(?:a|an|the|some|our|my)\s+)?(?:new\s+)?/i.exec(t);
+  if (!n) return null;
+  const r = t.slice(n[0].length);
+  for (const d of [...g].sort((i, o) => o.name.length - i.name.length)) {
+    const i = [d.name, ...d.addSay.map((o) => o.replace(/^Add (?:an? )?/i, "").replace(/ (?:about|for) \{topic\}$/, ""))];
+    for (const o of i) {
+      const s = o.toLowerCase().replace(/\s*\/\s*/g, "\\s*/?\\s*").replace(/ /g, "\\s+"), l = new RegExp("^" + s + "(?:\\s+(?:board|component))?(?:\\s+(?:about|for|on)\\s+(.+))?$", "i").exec(r);
       if (l)
         return l[1] && /[:;,→]|->|\$|\d\s*(?:k|m|%)\b|\d{3,}/i.test(l[1]) ? null : l[1] ? { id: d.id, topic: l[1].trim() } : { id: d.id };
     }
   }
   return null;
 }
-function P(e) {
-  const o = y(e);
-  if (!o || o.length > 200) return null;
-  if (/^(?:what|which)\s+(?:can|could)\s+(?:i|we|you)\s+(?:add|make|build|put)\b|^(?:show|list|browse)\s+(?:me\s+)?(?:the\s+)?(?:library|components|boards|everything)|^what\s+(?:is|s)\s+in\s+the\s+library/.test(o))
-    return { all: !0, entries: h.map((t) => t.id) };
-  const s = "(?:a |an |some |any )?(?:board|template|component|tool|way|something|anything|starter|preset)s? (?:to|for|that)\\b", i = new RegExp("^(?:(?:something|anything) (?:to|for)\\b|(?:a|an|any) " + s + "|(?:i|we) (?:want|need|would like|d like) " + s + "|(?:is there|do you have|have you got) " + s + "|help (?:me|us) (?:pick|choose|find) " + s + "|how (?:do|can|could|should) (?:i|we) (?:run|track|plan|weigh|prioriti[sz]e|sort|triage|budget|organi[sz]e|decide)\\b)").exec(o);
-  if (!i || /\b(?:draw|diagram|chart|flowchart|sketch|mind map)\b/.test(o)) return null;
-  const d = new Set(o.slice(i[0].length).split(" ").filter((t) => t.length > 2 && !["the", "and", "for", "our", "with"].includes(t))), r = h.map((t) => {
-    const n = [t.name, t.line, ...t.synonyms].map(y).join(" ");
+function $(a) {
+  const t = k(a);
+  if (!t || t.length > 200) return null;
+  if (/^(?:what|which)\s+(?:can|could)\s+(?:i|we|you)\s+(?:add|make|build|put)\b|^(?:show|list|browse)\s+(?:me\s+)?(?:the\s+)?(?:library|components|boards|everything)|^what\s+(?:is|s)\s+in\s+the\s+library/.test(t))
+    return { all: !0, entries: g.map((o) => o.id) };
+  const n = "(?:a |an |some |any )?(?:board|template|component|tool|way|something|anything|starter|preset)s? (?:to|for|that)\\b", r = new RegExp("^(?:(?:something|anything) (?:to|for)\\b|(?:a|an|any) " + n + "|(?:i|we) (?:want|need|would like|d like) " + n + "|(?:is there|do you have|have you got) " + n + "|help (?:me|us) (?:pick|choose|find) " + n + "|how (?:do|can|could|should) (?:i|we) (?:run|track|plan|weigh|prioriti[sz]e|sort|triage|budget|organi[sz]e|decide)\\b)").exec(t);
+  if (!r || /\b(?:draw|diagram|chart|flowchart|sketch|mind map)\b/.test(t)) return null;
+  const d = new Set(t.slice(r[0].length).split(" ").filter((o) => o.length > 2 && !["the", "and", "for", "our", "with"].includes(o))), i = g.map((o) => {
+    const s = [o.name, o.line, ...o.synonyms].map(k).join(" ");
     let l = 0;
-    for (const w of d) (n.includes(w) || n.includes(w.replace(/s$/, ""))) && (l += t.synonyms.some((A) => y(A).includes(w.replace(/s$/, ""))) ? 2 : 1);
-    return { id: t.id, score: l };
-  }).filter((t) => t.score > 0).sort((t, n) => n.score - t.score);
-  return r.length ? { all: !1, entries: r.slice(0, 3).map((t) => t.id) } : null;
+    for (const h of d) (s.includes(h) || s.includes(h.replace(/s$/, ""))) && (l += o.synonyms.some((x) => k(x).includes(h.replace(/s$/, ""))) ? 2 : 1);
+    return { id: o.id, score: l };
+  }).filter((o) => o.score > 0).sort((o, s) => s.score - o.score);
+  return i.length ? { all: !1, entries: i.slice(0, 3).map((o) => o.id) } : null;
 }
-function N(e, o) {
-  return v(e) ? o.hasBoard ? { ok: !1, reason: "This slate already has a board, so this opens on a new slate." } : { ok: !0 } : { ok: !1, reason: "That is not in the library." };
+function E(a, t) {
+  return S(a) ? t.hasBoard ? { ok: !1, reason: "This slate already has a board, so this opens on a new slate." } : { ok: !0 } : { ok: !1, reason: "That is not in the library." };
 }
 export {
-  h as catalog,
-  D as catalogAddRequest,
-  v as catalogEntry,
-  N as catalogFits,
-  R as catalogGroups,
+  g as catalog,
+  W as catalogAddRequest,
+  S as catalogEntry,
+  E as catalogFits,
+  P as catalogGroups,
   T as catalogList,
-  P as catalogMatch,
-  C as catalogPreset,
-  L as catalogVersion
+  $ as catalogMatch,
+  N as catalogPreset,
+  C as catalogVersion
 };

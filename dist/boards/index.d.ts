@@ -2,6 +2,7 @@ import type { Workshop, WorkshopBoardKit, WorkshopBoardLayout } from '../worksho
 export { launchPlanKit, launchLayout, type LaunchGeometry } from './launchPlanKit';
 export { pipelineKit, pipelineLayout } from './pipelineKit';
 export { budgetKit, budgetLayout } from './budgetKit';
+export { nestKit, nestLayout, nestEditsBetween } from './nestKit';
 export { workshopEditsBetween, pipelineGauge, budgetHeader, launchLinkTargets, partNotes, handleLabel } from './readouts';
 export { createBoardLayer, renderLayerShapes, layerInk, type LayerShape } from '../workshops/boardLayer';
 export * from '../workshops/rules';
