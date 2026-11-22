@@ -10,7 +10,7 @@
 import type { BusinessBoardKind, Workshop, WorkshopCard, WorkshopLane, WorkshopNoteStyle } from './model'
 import type { NodeJSON } from '../core/Serialization'
 import type { WorkshopEdit, WorkshopEditRefusalCode, WorkshopRef } from './edits'
-import type { Behaviour, BehaviourVerdict, RuleAudit } from './behaviour'
+import type { Behaviour, BehaviourVerdict, RuleAudit, WorkshopMoveCheck } from './behaviour'
 
 /** A numeric edit's legal range, with the sentence a person gets at each end. */
 export interface WorkshopLimits { field: string; min: number; max: number; reasons: { min?: string; max?: string } }
@@ -96,6 +96,10 @@ export interface RulebookHooks {
   edit(board: Workshop, edit: WorkshopEdit, audit: RuleAudit, tools: Pick<BusinessEditTools, 'lane' | 'refuse' | 'done'>): BusinessEditStep
   note(board: Workshop, box: { x: number; y: number; width: number }, style: WorkshopNoteStyle): NodeJSON | null
   setLimit(board: Workshop, laneId: string, capacity: number | null, audit: RuleAudit): Workshop | string | null
+  /** check_move: whether a card may go to a lane, and which rule says no. */
+  move(board: Workshop, card: WorkshopRef, lane: WorkshopRef): WorkshopMoveCheck
+  /** The diff a rule edit is previewed as. */
+  diff(before: Workshop, after: Workshop): { from: number; to: number; lines: string[]; over: string[] }
 }
 let rulebookHooks: RulebookHooks | null = null
 export function registerRulebook(hooks: RulebookHooks): void { rulebookHooks = hooks }

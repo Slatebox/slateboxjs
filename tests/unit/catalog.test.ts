@@ -37,9 +37,11 @@ describe('catalogue', () => {
       const accepted = describeWorkshopEdits(board).filter(edit => edit.accepted).map(edit => edit.kind)
       for (const edit of entry.edits) expect(accepted, entry.id + ' lists ' + edit).toContain(edit)
       for (const rule of entry.rules) expect(ruleKindIds).toContain(rule)
+      // Every edit it offers has a move with a phrase; the app's listing gate checks each phrase parses.
+      expect(entry.edits).toEqual([...new Set(entry.moves.map(item => item.edit))])
     }
     expect(behaviourLines(validateWorkshop(catalogPreset('retro')))).toEqual(['Went well holds 3.', 'Change holds 3.', 'Try holds 3.'])
-    expect(behaviourLines(validateWorkshop(catalogPreset('team-board')))).toEqual(['Doing holds 3.', "Won't do archives cards: they stay on the board, never deleted."])
+    expect(behaviourLines(validateWorkshop(catalogPreset('team-board')))).toEqual(['Cards move one lane at a time.', 'Doing holds 3.', "Won't do archives cards: they stay on the board, never deleted."])
   })
 
   it('names a preset after a topic, never with a placeholder', () => {

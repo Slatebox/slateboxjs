@@ -17,6 +17,9 @@ export const catalogGroups: { id: CatalogGroup | 'all'; label: string }[] = [
   { id: 'meetings', label: 'Meetings' }, { id: 'track', label: 'Track' }, { id: 'map', label: 'Map' },
 ]
 
+/** One thing a board does, the edit that does it, and how to say it. */
+export interface CatalogMove { edit: WorkshopEditKindName; words: string; say: string; rule?: RuleKindId }
+
 export interface CatalogEntry {
   /** Stable: /new#add=<id>, exec, analytics. */
   id: string
@@ -29,12 +32,16 @@ export interface CatalogEntry {
   build: { kind: WorkshopBoardKind; sample?: 'launch-plan' | 'pipeline' | 'budget' }
   /** What a person says to add it: the first is the Add button's message. */
   addSay: string[]
-  /** The workshop_edits this board takes, joined to the engine's edit table (not copied). */
+  /** The workshop_edits this board offers, joined to the engine's edit table (not copied): each has a move with a phrase. */
   edits: WorkshopEditKindName[]
-  /** The rule kinds a person can give it (behaviour.ts). */
+  /** The rule kinds a person can give it by chat (behaviour.ts). */
   rules: RuleKindId[]
-  /** "Say it like this": phrases with {lane} / {card} slots the app fills from the live board and checks against its parser. */
-  say: string[]
+  /**
+   * What a person can do with it, each with the phrase that does it ("Say it like this"). Slots the app
+   * fills from the live board and checks against its parser: {card}, {lane}, {other} (another lane),
+   * {busy} (a lane with cards), {ruled} (a lane with a limit rule).
+   */
+  moves: CatalogMove[]
   limits: string[]
   /** A looping picture of its signature drag; the caption is the rule's own sentence. */
   loop: { src: string; alt: string; caption: string; steps: string[] }
@@ -56,7 +63,8 @@ const lanePresets: Record<string, Lanes> = {
   triage: { title: 'Triage', lanes: [{ id: 'new', label: 'New' }, { id: 'today', label: 'Today' }, { id: 'waiting', label: 'Waiting' }, { id: 'done', label: 'Done' }],
     rules: [{ kind: 'capacity', where: 'today', max: 3 }] },
   'team-board': { title: 'Team board', lanes: [{ id: 'todo', label: 'To do' }, { id: 'doing', label: 'Doing' }, { id: 'review', label: 'Review' },
-    { id: 'done', label: 'Done' }, { id: 'wont', label: "Won't do" }], rules: [{ kind: 'capacity', where: 'doing', max: 3 }, { kind: 'bin', lane: 'wont' }] },
+    { id: 'done', label: 'Done' }, { id: 'wont', label: "Won't do" }],
+    rules: [{ kind: 'path', from: 'any', noSkip: true }, { kind: 'capacity', where: 'doing', max: 3 }, { kind: 'bin', lane: 'wont' }] },
 }
 
 const decisionPath = (): Workshop => ({ version: 1, title: 'Decision path', lanes: [
@@ -66,15 +74,23 @@ const decisionPath = (): Workshop => ({ version: 1, title: 'Decision path', lane
   { id: 'decide', label: 'Decide', station: { column: 2, row: 0, next: [], outcome: 'Write down what you chose and why.' } },
 ], cards: [{ id: 'token', label: 'Our choice', laneId: 'question' }] })
 
-const laneEdits: WorkshopEditKindName[] = ['rename_workshop', 'rename_lane', 'rename_card', 'add_lane', 'remove_lane', 'add_card', 'remove_card', 'move_card',
-  'set_lane_capacity', 'add_rule', 'set_rule', 'remove_rule']
-const laneSay = ['Add a card called Snacks to {lane}', 'Move {card} to {lane}', 'Let {lane} hold 2', 'Cards move one lane at a time', 'How does this board behave?']
+const move = (edit: WorkshopEditKindName, words: string, say: string, rule?: RuleKindId): CatalogMove => ({ edit, words, say, ...(rule && { rule }) })
+const laneMoves = (path = move('add_rule', 'Cards move one lane at a time', 'Cards move one lane at a time', 'path')) => [
+  move('add_card', 'Add a card', 'Add a card called Snacks to {lane}'), move('move_card', 'Move a card', 'Move {card} to {other}'),
+  move('rename_card', 'Rename a card', 'Rename {card} to Review notes'), move('remove_card', 'Remove a card', 'Remove {card}'),
+  move('rename_lane', 'Rename a lane', 'Rename {lane} to Blocked'), move('rename_workshop', 'Rename the board', 'Rename the board to Team review'),
+  move('add_rule', 'Limit a lane', 'Let {busy} hold 1', 'capacity'), path,
+  move('set_rule', 'Warn instead of refusing', 'Just warn me when {ruled} is full'), move('remove_rule', 'Remove a rule', 'Remove the {ruled} rule'),
+]
 const laneLimits = ['One board per slate for now; on a slate that has one, this opens on a new slate.', 'Up to 5 lanes and 24 cards.']
+const edits = (moves: CatalogMove[]) => [...new Set(moves.map(item => item.edit))]
+const rules = (moves: CatalogMove[]) => [...new Set(moves.flatMap(item => item.rule ? [item.rule] : []))]
 const lanesEntry = (id: string, group: CatalogGroup, name: string, line: string, synonyms: string[], caption: string, steps: string[], extra: Partial<CatalogEntry> = {}): CatalogEntry => ({
   id, group, name, line, synonyms, build: { kind: 'lanes' }, addSay: ['Add ' + article(name) + name.toLowerCase(), 'Add ' + article(name) + name.toLowerCase() + ' about {topic}'],
-  edits: laneEdits, rules: ['capacity', 'path', 'bin'], say: laneSay, limits: laneLimits,
+  edits: edits(extra.moves ?? laneMoves()), rules: rules(extra.moves ?? laneMoves()), moves: laneMoves(), limits: laneLimits,
   loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false, ...extra,
 })
+const withMoves = (moves: CatalogMove[]) => ({ moves, edits: edits(moves), rules: rules(moves) })
 const article = (name: string) => /^pros/i.test(name) ? '' : /^[aeiou]/i.test(name) ? 'an ' : 'a '
 
 export const catalog: readonly CatalogEntry[] = [
@@ -86,29 +102,33 @@ export const catalog: readonly CatalogEntry[] = [
     'Could holds 2.', ['Drop a card in Must or Could.', 'A full lane refuses, in its own words.'], { addSay: ['Add a Must / Should / Could board', 'Add a Must / Should / Could board about {topic}'] }),
   { id: 'decision-path', group: 'decide', name: 'Decision path', line: 'Walk through a choice step by step', synonyms: ['decision tree', 'walk through', 'flow', 'choice', 'path', 'decide'],
     build: { kind: 'map' }, addSay: ['Add a decision path', 'Add a decision path about {topic}'],
-    edits: ['rename_workshop', 'rename_lane', 'add_station', 'insert_station', 'connect_stations', 'disconnect_stations', 'set_station_outcome', 'move_card', 'advance_card'],
-    rules: [], say: ['Add Follow-up after {lane}', 'Connect {lane} to {lane}', 'Move to {lane}'], limits: ['Up to 5 steps on a 3 by 3 grid.', laneLimits[0]],
+    ...withMoves([move('add_station', 'Add a step', 'Add Follow-up after {lane}'), move('connect_stations', 'Connect two steps', 'Connect {lane} to {other}'),
+      move('move_card', 'Move the token', 'Move {card} to {other}'), move('rename_lane', 'Rename a step', 'Rename {lane} to Build it')]), limits: ['Up to 5 steps on a 3 by 3 grid.', laneLimits[0]],
     loop: { src: '/library/decision-path.svg', alt: 'Decision path: the token moves only along connected steps.', caption: 'Not connected', steps: ['Drag the token along a path.', 'A step with no path to it dims.'] }, multiPerSlate: false },
   lanesEntry('retro', 'meetings', 'Retro', 'Went well, change, try: 3 cards each', ['retrospective', 'retro', 'run a retro', 'team meeting', 'look back', 'lessons'],
     'Try holds 3.', ['A note turns into a card and back.', 'Each lane holds 3; the fourth is refused.']),
   lanesEntry('triage', 'track', 'Triage', 'Sort incoming work; Today holds 3', ['triage', 'inbox', 'incoming', 'support', 'bugs', 'sort work', 'track work'],
     'Today holds 3.', ['A card goes into Today.', 'A full Today refuses.'], { addSay: ['Add a triage board', 'Add a triage board about {topic}'] }),
   lanesEntry('team-board', 'track', 'Team board', 'Your working agreements, enforced: limits, paths, a bin', ['kanban', 'team board', 'working agreements', 'wip limit', 'to do doing done', 'track work', 'sprint'],
-    'Review holds 2. It has 3.', ['Say “Let Review hold 2”: the board shows 3 of 2.', 'The next card dragged to Review is refused with that sentence.'], { addSay: ['Add a team board', 'Add a team board about {topic}'] }),
+    'Review holds 2. It has 3.', ['Say “Let Review hold 2”: the board shows 3 of 2.', 'The next card dragged to Review is refused with that sentence.'], {
+      addSay: ['Add a team board', 'Add a team board about {topic}'],
+      ...withMoves([...laneMoves(move('add_rule', 'Send cards one way', 'From {busy} cards go only to {other}', 'path')), move('add_rule', 'Add a bin', 'Make {lane} a bin', 'bin')]) }),
   { id: 'launch-plan', group: 'plan', name: 'Launch plan', line: 'Tasks over days, with a launch date', synonyms: ['launch', 'timeline', 'gantt', 'schedule', 'deadline', 'release date'],
     build: { kind: 'launch-plan', sample: 'launch-plan' }, addSay: ['Add a launch plan', 'Add a launch plan about {topic}'],
-    edits: ['rename_workshop', 'rename_card', 'add_card', 'remove_card', 'move_card', 'set_task', 'link_tasks', 'unlink_tasks', 'set_launch_day'], rules: [],
-    say: ['Make {card} 3 days', 'Move launch to day 20'], limits: ['Every task ends by launch day.', laneLimits[0]],
+    ...withMoves([move('set_task', 'Stretch a task', 'Make {card} 3 days'), move('set_launch_day', 'Move launch', 'Move launch to day 30'),
+      move('link_tasks', 'Make a task wait on another', '{card} waits on {other card}'), move('add_card', 'Add a task', 'Add a task called Docs to {lane}'),
+      move('rename_card', 'Rename a task', 'Rename {card} to Review notes')]), limits: ['Every task ends by launch day.', laneLimits[0]],
     loop: { src: '/library/launch-plan.svg', alt: 'Launch plan: stretch a task, slide it past launch and get refused.', caption: 'That pushes QA past launch.', steps: ['Stretch a task.', 'Slide it past launch: refused.'] }, multiPerSlate: false },
   { id: 'sales-pipeline', group: 'track', name: 'Sales pipeline', line: 'Move deals through stages toward a target', synonyms: ['deals', 'sales', 'pipeline', 'crm', 'track deals', 'forecast', 'customers'],
     build: { kind: 'pipeline', sample: 'pipeline' }, addSay: ['Add a sales pipeline', 'Add a sales pipeline about {topic}'],
-    edits: ['rename_workshop', 'rename_lane', 'rename_card', 'add_card', 'remove_card', 'move_card', 'set_lane_capacity', 'set_amount', 'set_target', 'add_rule', 'set_rule', 'remove_rule'],
-    rules: ['capacity', 'gate'], say: ['Move {card} to {lane}', 'Let {lane} hold 4', '{lane} needs an amount', 'How does this board behave?'], limits: ['Up to 16 deals.', laneLimits[0]],
+    ...withMoves([move('move_card', 'Carry a deal on', 'Move {card} to {other}'), move('set_amount', 'Price a deal', 'Make {card} $40k'),
+      move('set_target', 'Set the target', 'Set the target to $300k'), move('add_card', 'Add a deal', 'Add a deal called Initech to {lane}'),
+      move('add_rule', 'Ask for an amount', '{lane} needs an amount', 'gate'), move('add_rule', 'Limit a stage', 'Let {busy} hold 1', 'capacity')]), limits: ['Up to 16 deals.', laneLimits[0]],
     loop: { src: '/library/sales-pipeline.svg', alt: 'Sales pipeline: carry a deal on; stages it cannot skip dim; the forecast moves.', caption: 'Proposal holds 3.', steps: ['Carry a deal to the next stage.', 'A full stage refuses.'] }, multiPerSlate: false },
   { id: 'budget', group: 'plan', name: 'Budget', line: 'Split a fixed total across teams', synonyms: ['budget', 'money', 'spend', 'allocate', 'costs'],
     build: { kind: 'budget', sample: 'budget' }, addSay: ['Add a budget', 'Add a budget about {topic}'],
-    edits: ['rename_workshop', 'rename_card', 'add_card', 'remove_card', 'move_card', 'set_amount', 'shift_budget'], rules: [],
-    say: ['Make {card} $20k'], limits: ['The total stays fixed.', laneLimits[0]],
+    ...withMoves([move('shift_budget', 'Move money between teams', 'Move $10k from {lane} to {other}'), move('set_amount', 'Price a line item', 'Make {card} $20k'),
+      move('add_card', 'Add a line item', 'Add a line item called Events for $10k to {lane}')]), limits: ['The total stays fixed.', laneLimits[0]],
     loop: { src: '/library/budget.svg', alt: 'Budget: move money between teams; the total stays fixed.', caption: 'The total stays fixed.', steps: ['Move a divider between teams.', 'The total stays the same.'] }, multiPerSlate: false },
 ]
 

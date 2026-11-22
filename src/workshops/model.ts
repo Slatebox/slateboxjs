@@ -5,9 +5,9 @@ export { releaseLoad, releasePlan } from './release'
 import { applyWorkshopEdits } from './edits'
 import { rulebook } from './kinds'
 import type { Behaviour } from './behaviour'
-export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, RuleInput, RuleKindId } from './behaviour'
+export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, RuleInput, RuleKindId, WorkshopMoveCheck } from './behaviour'
 import { workshopRules } from './kinds'
-export { registerRulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools,
+export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools,
   type WorkshopFieldReader, type WorkshopLimits } from './kinds'
 import type { NodeJSON, SlateJSON } from '../core/Serialization'
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults'

@@ -464,5 +464,5 @@ export function setRuledLimit(board: Workshop, laneId: string, capacity: number 
   return { ...board, behaviour: { ...board.behaviour!, rev: board.behaviour!.rev + 1, rules } }
 }
 
-registerRulebook({ note: drawBehaviourNote, setLimit: setRuledLimit, validate: validateBehaviour, check: checkBehaviour, laneLimit: behaviourLaneLimit, lines: behaviourLines, dropLane: dropLaneRules,
+registerRulebook({ move: checkWorkshopMove, diff: behaviourDiff, note: drawBehaviourNote, setLimit: setRuledLimit, validate: validateBehaviour, check: checkBehaviour, laneLimit: behaviourLaneLimit, lines: behaviourLines, dropLane: dropLaneRules,
   edit: applyRuleEdit })
