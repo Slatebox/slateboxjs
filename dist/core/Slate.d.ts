@@ -542,7 +542,13 @@ export declare class Slate {
         x: number;
         y: number;
     };
-    /** Notify pan/zoom that the viewport was resized. */
+    /**
+     * Notify pan/zoom that the viewport was resized: the view box takes the element's size now,
+     * keeping the zoom and the view's centre, as the ResizeObserver would on its next turn. A host
+     * that changes the canvas's size itself (a panel beside or under it opening or closing) calls
+     * this in the same task, so nothing reads or paints a view box shaped for the old size: with
+     * preserveAspectRatio "slice", a taller element would otherwise crop the view's sides.
+     */
     resizePanZoom(): void;
     /**
      * Keep the viewBox 1:1 with the container pixel size across resizes so the
@@ -550,6 +556,15 @@ export declare class Slate {
      * the current zoom level and the world-point at the viewBox center.
      */
     private _setupResizeObserver;
+    /** The element size the view box was last shaped for (0 until first measured). */
+    private _viewSizeW;
+    private _viewSizeH;
+    /**
+     * Shape the view box to the element's pixel size, keeping the zoom and the world point at the
+     * view's centre. Does nothing when the size is the one already taken. Shared by the
+     * ResizeObserver and resizePanZoom, so a size taken by one is not taken again by the other.
+     */
+    private _syncViewBoxToElement;
     /**
      * Bounding-box orientation of the current content (v1 contract):
      * `{orientation, width, height, left, top}` computed over all nodes with
