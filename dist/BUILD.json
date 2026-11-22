@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "678b529f926859f4dc862c769a22b7f1496116fe",
-  "branch": "fix/s2a-phone-fit",
+  "commit": "ecad99d91d2fad95d5581dac24dfdabb7d1edae1",
+  "branch": "ship/budget-total",
   "dirty": false,
-  "builtAt": "2026-11-22T20:37:35.052Z"
+  "builtAt": "2026-11-22T21:21:28.498Z"
 }

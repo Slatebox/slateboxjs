@@ -10,5 +10,6 @@ export declare function budgetLayout(board: Workshop, layout?: WorkshopBoardLayo
         size: number;
     }[];
     narrow: boolean;
+    k: number;
 };
 export declare const budgetKit: WorkshopBoardKit;

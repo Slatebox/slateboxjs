@@ -172,6 +172,10 @@ export type WorkshopEdit = {
     to: WorkshopRef;
     amount: number;
 } | {
+    kind: 'set_budget_total';
+    amount: number;
+    edge?: 'start' | 'end';
+} | {
     kind: 'add_rule';
     rule: RuleInput;
 } | {

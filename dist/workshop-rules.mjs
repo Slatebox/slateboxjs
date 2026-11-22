@@ -1,61 +1,61 @@
-import { m as c, a as f, n as N, b as L, o as S, c as O, d as v, r as R, h as W, g as _, l as B } from "./plans-Cbjy_vCa.mjs";
-import { ak as ie, a5 as re, af as ue, v as ce, p as de, t as fe, u as me, a3 as pe, as as he, a8 as ye, C as ge, N as be, a7 as ve, _ as we, aj as Ie, ai as ke, an as xe, ac as $e, f as Ae, i as Ne, M as Le, a0 as Se, a4 as Oe, a1 as Pe, J as Ce, a9 as Me, K as Te, L as Re, I as We, Y as _e, U as Be, O as De, F as Fe, a2 as Ee, e as qe, P as He, S as Ke, q as Ge, j as Je, ah as ze, E as Qe, X as je, y as Ve, H as Ue, x as Xe, Q as Ye, T as Ze, D as ea, W as aa, Z as na, ar as ta, aq as oa, am as la, ao as sa, ap as ia, V as ra, $ as ua, s as ca, a6 as da, A as fa, B as ma, ag as pa, ae as ha, ad as ya, z as ga, al as ba, G as va, w as wa, k as Ia, ab as ka, R as xa, aa as $a } from "./plans-Cbjy_vCa.mjs";
-import { byOrder as Na, checkNest as La, checkNestMove as Sa, extend as Oa, isOrderKey as Pa, nestAlias as Ca, nestAreas as Ma, nestCardText as Ta, nestDepth as Ra, nestDrags as Wa, nestEmptyDrop as _a, nestFamily as Ba, nestKids as Da, nestLegal as Fa, nestMeasure as Ea, nestMeasureWords as qa, nestPlace as Ha, nestRoots as Ka, nestRules as Ga, nestSentence as Ja, nestSubtree as za, orderBetween as Qa, orderKeys as ja, registerNestPlus as Va, roleOf as Ua, tidyKeys as Xa, validateNest as Ya } from "./workshop-nest.mjs";
-import { isOrgChart as en, nestAxes as an, nestQuadrants as nn, nestScores as tn, quadrantOf as on, scoreBoard as ln, scoresIn as sn } from "./workshop-nest-plus.mjs";
-import { registerWorkshopRules as P, said as g } from "./workshop-model.mjs";
-const w = (a) => !a.role;
-function ee(a) {
-  let n = 0;
-  for (const o of a.cards) {
-    const t = a.lanes.find((e) => e.id === o.laneId);
-    n += (o.amount ?? 0) * (t.role === "won" ? 1 : t.role === "lost" ? 0 : t.probability ?? 0);
+import { m as d, a as f, n as T, b as S, o as L, c as O, d as v, r as B, e as w, h as D, g as F, l as E } from "./plans-CGWYYf2z.mjs";
+import { al as de, a6 as fe, ag as me, x as pe, q as he, u as ge, v as ye, a4 as be, at as ve, a9 as we, D as xe, O as Ie, a8 as ke, $ as $e, ak as Ae, aj as Ne, ao as Te, ad as Se, j as Le, i as Oe, N as Me, a1 as Pe, a5 as Ce, a2 as Re, K as _e, aa as We, L as Be, M as De, J as Fe, Z as Ee, V as qe, P as He, G as Je, a3 as Ke, f as ze, Q as Ge, T as je, t as Qe, k as Ve, ai as Ue, F as Xe, Y as Ye, z as Ze, I as en, y as nn, R as an, U as tn, E as on, X as ln, _ as sn, as as rn, ar as cn, an as un, ap as dn, aq as fn, W as mn, a0 as pn, s as hn, a7 as gn, B as yn, C as bn, ah as vn, af as wn, ae as xn, A as In, am as kn, H as $n, w as An, p as Nn, ac as Tn, S as Sn, ab as Ln } from "./plans-CGWYYf2z.mjs";
+import { byOrder as Mn, checkNest as Pn, checkNestMove as Cn, extend as Rn, isOrderKey as _n, nestAlias as Wn, nestAreas as Bn, nestCardText as Dn, nestDepth as Fn, nestDrags as En, nestEmptyDrop as qn, nestFamily as Hn, nestKids as Jn, nestLegal as Kn, nestMeasure as zn, nestMeasureWords as Gn, nestPlace as jn, nestRoots as Qn, nestRules as Vn, nestSentence as Un, nestSubtree as Xn, orderBetween as Yn, orderKeys as Zn, registerNestPlus as ea, roleOf as na, tidyKeys as aa, validateNest as ta } from "./workshop-nest.mjs";
+import { isOrgChart as la, nestAxes as sa, nestQuadrants as ia, nestScores as ra, quadrantOf as ca, scoreBoard as ua, scoresIn as da } from "./workshop-nest-plus.mjs";
+import { registerWorkshopRules as M, said as y } from "./workshop-model.mjs";
+const x = (n) => !n.role;
+function oe(n) {
+  let a = 0;
+  for (const o of n.cards) {
+    const t = n.lanes.find((e) => e.id === o.laneId);
+    a += (o.amount ?? 0) * (t.role === "won" ? 1 : t.role === "lost" ? 0 : t.probability ?? 0);
   }
-  return Math.round(n);
+  return Math.round(a);
 }
-function D(a) {
-  if (a.lanes.length < 3) return "A pipeline has 3 to 5 stages.";
-  if (a.cards.length > 16) return "A pipeline holds up to 16 deals.";
-  if (!a.forecast) return "A pipeline needs a forecast target.";
-  if (a.lanes.filter((t) => t.role === "won").length > 1 || a.lanes.filter((t) => t.role === "lost").length > 1)
+function q(n) {
+  if (n.lanes.length < 3) return "A pipeline has 3 to 5 stages.";
+  if (n.cards.length > 16) return "A pipeline holds up to 16 deals.";
+  if (!n.forecast) return "A pipeline needs a forecast target.";
+  if (n.lanes.filter((t) => t.role === "won").length > 1 || n.lanes.filter((t) => t.role === "lost").length > 1)
     return "A pipeline has one Won stage and one Lost stage at most.";
-  if (a.lanes.filter(w).length < 1) return "A pipeline needs an open stage.";
-  for (const t of a.lanes) {
-    if (w(t) && t.probability === void 0) return `Give ${t.label} a chance to win, from 0 to 100%.`;
-    const e = a.cards.filter((l) => l.laneId === t.id).length;
+  if (n.lanes.filter(x).length < 1) return "A pipeline needs an open stage.";
+  for (const t of n.lanes) {
+    if (x(t) && t.probability === void 0) return `Give ${t.label} a chance to win, from 0 to 100%.`;
+    const e = n.cards.filter((l) => l.laneId === t.id).length;
     if (t.capacity !== void 0 && e > t.capacity) return `${t.label} already holds ${e} of ${t.capacity} deals.`;
   }
-  const n = a.lanes.find((t) => t.role === "won"), o = n && a.cards.find((t) => t.laneId === n.id && t.amount === void 0);
+  const a = n.lanes.find((t) => t.role === "won"), o = a && n.cards.find((t) => t.laneId === a.id && t.amount === void 0);
   return o ? `${o.label} needs an amount before it can be won. Write it on the card, like '${o.label} $40k'.` : null;
 }
-function C(a, n, o) {
-  const t = a.cards.find((d) => d.id === n), e = a.lanes.find((d) => d.id === o);
+function P(n, a, o) {
+  const t = n.cards.find((c) => c.id === a), e = n.lanes.find((c) => c.id === o);
   if (!t || !e) return "That move is not available.";
-  const l = a.lanes.find((d) => d.id === t.laneId);
+  const l = n.lanes.find((c) => c.id === t.laneId);
   if (l === e) return null;
-  const i = a.lanes.filter(w);
+  const s = n.lanes.filter(x);
   if (l.role === "won" && e.role !== "lost") return "A won deal stays won. Move it to Lost if it fell through.";
   if (l.role === "lost" && e.role === "won") return `Reopen ${t.label} in an open stage first.`;
-  if (e.role === "won" || w(l) && w(e) && i.indexOf(e) > i.indexOf(l)) {
-    const d = i[i.indexOf(l) + 1] ?? a.lanes.find((s) => s.role === "won");
-    if (d !== e) return `Deals move one stage at a time. ${t.label} is in ${l.label}, so ${d.label} comes first.`;
+  if (e.role === "won" || x(l) && x(e) && s.indexOf(e) > s.indexOf(l)) {
+    const c = s[s.indexOf(l) + 1] ?? n.lanes.find((i) => i.role === "won");
+    if (c !== e) return `Deals move one stage at a time. ${t.label} is in ${l.label}, so ${c.label} comes first.`;
   }
   if (e.role === "won" && t.amount === void 0)
     return `${t.label} needs an amount before it can be won. Write it on the card, like '${t.label} $40k'.`;
-  const u = a.cards.filter((d) => d.laneId === e.id).length;
-  return e.capacity !== void 0 && u >= e.capacity ? `${e.label} already holds ${u} of ${e.capacity} deals.` : null;
+  const r = n.cards.filter((c) => c.laneId === e.id).length;
+  return e.capacity !== void 0 && r >= e.capacity ? `${e.label} already holds ${r} of ${e.capacity} deals.` : null;
 }
-function F(a, n, o) {
-  const t = a.cards.find((e) => e.id === n);
-  return !t || C(a, n, o) !== null ? null : t.laneId === o ? a : { ...a, cards: [...a.cards.filter((e) => e !== t), { ...t, laneId: o }] };
+function H(n, a, o) {
+  const t = n.cards.find((e) => e.id === a);
+  return !t || P(n, a, o) !== null ? null : t.laneId === o ? n : { ...n, cards: [...n.cards.filter((e) => e !== t), { ...t, laneId: o }] };
 }
-function E(a, n) {
-  const o = a.lanes.find((i) => i.id === n), t = a.cards.filter((i) => i.laneId === n), e = t.reduce((i, u) => i + (u.amount ?? 0), 0), l = o.role === "won" ? 1 : o.role === "lost" ? 0 : o.probability ?? 0;
-  return `${t.length} ${t.length === 1 ? "deal" : "deals"} · ${c(e, a.forecast?.currency)} · ${Math.round(l * 100)}%`;
+function J(n, a) {
+  const o = n.lanes.find((s) => s.id === a), t = n.cards.filter((s) => s.laneId === a), e = t.reduce((s, r) => s + (r.amount ?? 0), 0), l = o.role === "won" ? 1 : o.role === "lost" ? 0 : o.probability ?? 0;
+  return `${t.length} ${t.length === 1 ? "deal" : "deals"} · ${d(e, n.forecast?.currency)} · ${Math.round(l * 100)}%`;
 }
-function q(a, n) {
-  return n.field === "target" ? { field: "target", min: 1, max: 1e9, reasons: { min: "A target is more than nothing.", max: "A target is at most 1,000,000,000." } } : f;
+function K(n, a) {
+  return a.field === "target" ? { field: "target", min: 1, max: 1e9, reasons: { min: "A target is more than nothing.", max: "A target is at most 1,000,000,000." } } : f;
 }
-function H() {
+function z() {
   return {
     version: 1,
     kind: "pipeline",
@@ -79,130 +79,154 @@ function H() {
     ]
   };
 }
-const x = (a, n, o) => n.amount === void 0 ? n.label : n.label + o + c(n.amount, a.forecast?.currency ?? a.budget?.currency), M = {
-  readCard(a, n) {
-    a.amount !== void 0 && (n.amount = v(a.amount, 0, 1e9, "An amount is a whole amount, not below zero."));
+const A = (n, a, o) => a.amount === void 0 ? a.label : a.label + o + d(a.amount, n.forecast?.currency ?? n.budget?.currency), C = {
+  readCard(n, a) {
+    n.amount !== void 0 && (a.amount = v(n.amount, 0, 1e9, "An amount is a whole amount, not below zero."));
   },
-  cardText: (a, n) => x(a, n, `
+  cardText: (n, a) => A(n, a, `
 `),
-  noteText: (a, n) => x(a, n, " · "),
-  renamed(a, n, o) {
-    const t = R(o);
-    return { label: t.label, edits: t.amount !== void 0 ? [{ kind: "set_amount", card: { id: n }, amount: t.amount }] : [] };
+  noteText: (n, a) => A(n, a, " · "),
+  renamed(n, a, o) {
+    const t = B(o);
+    return { label: t.label, edits: t.amount !== void 0 ? [{ kind: "set_amount", card: { id: a }, amount: t.amount }] : [] };
   }
-}, K = {
-  ...M,
+}, G = {
+  ...C,
   kind: "pipeline",
   cards: [16, "A pipeline holds up to 16 deals."],
-  readLane(a, n) {
-    if (a.role !== void 0) {
-      if (a.role !== "won" && a.role !== "lost") throw new Error("A stage is won, lost or open.");
-      n.role = a.role;
+  readLane(n, a) {
+    if (n.role !== void 0) {
+      if (n.role !== "won" && n.role !== "lost") throw new Error("A stage is won, lost or open.");
+      a.role = n.role;
     }
-    a.probability !== void 0 && (n.probability = v(a.probability, 0, 1, "A stage's chance is from 0 to 100%.", !0));
+    n.probability !== void 0 && (a.probability = v(n.probability, 0, 1, "A stage's chance is from 0 to 100%.", !0));
   },
-  readBoard(a, n) {
-    const o = S(a, "forecast", "A pipeline needs a forecast target.");
-    n.forecast = { target: v(o.target, 1, 1e9, "A target is a whole amount above zero."), currency: O(o.currency) };
+  readBoard(n, a) {
+    const o = L(n, "forecast", "A pipeline needs a forecast target.");
+    a.forecast = { target: v(o.target, 1, 1e9, "A target is a whole amount above zero."), currency: O(o.currency) };
   },
-  validate: D,
-  planMove: F,
-  refusal: C,
-  caption: E,
-  fromNote(a, n) {
-    const o = L(n);
+  validate: q,
+  planMove: H,
+  refusal: P,
+  caption: J,
+  fromNote(n, a) {
+    const o = S(a);
     return typeof o == "string" ? o : { label: o.label, ...o.amount !== void 0 && { amount: o.amount } };
   },
-  edit(a, n, o) {
-    const t = a.forecast.currency;
-    switch (n.kind) {
+  edit(n, a, o) {
+    const t = n.forecast.currency;
+    switch (a.kind) {
       case "add_card": {
-        const e = o.lane(n.lane), l = n.label?.trim();
+        const e = o.lane(a.lane), l = a.label?.trim();
         l || o.refuse("Say what the card should say, such as “Add Docs to " + e.label + "”.", { laneId: e.id });
-        const i = { id: N(a), label: l, laneId: e.id };
-        n.amount !== void 0 && ((!Number.isInteger(n.amount) || n.amount < f.min) && o.refuse(f.reasons.min, { laneId: e.id, limits: f }), n.amount > f.max && o.refuse(f.reasons.max, { laneId: e.id, limits: f }), i.amount = n.amount), e.role && o.refuse("A new deal starts in an open stage, not in " + e.label + ".", { laneId: e.id });
-        const u = a.cards.filter((d) => d.laneId === e.id).length;
-        return e.capacity !== void 0 && u >= e.capacity && o.refuse(e.label + " already holds " + u + " of " + e.capacity + " deals.", { laneId: e.id }), o.done(o.settle({ ...a, cards: [...a.cards, i] }, e.id), "Added " + g(l) + " to " + g(e.label) + ".", { laneId: e.id, cardId: i.id });
+        const s = { id: T(n), label: l, laneId: e.id };
+        a.amount !== void 0 && ((!Number.isInteger(a.amount) || a.amount < f.min) && o.refuse(f.reasons.min, { laneId: e.id, limits: f }), a.amount > f.max && o.refuse(f.reasons.max, { laneId: e.id, limits: f }), s.amount = a.amount), e.role && o.refuse("A new deal starts in an open stage, not in " + e.label + ".", { laneId: e.id });
+        const r = n.cards.filter((c) => c.laneId === e.id).length;
+        return e.capacity !== void 0 && r >= e.capacity && o.refuse(e.label + " already holds " + r + " of " + e.capacity + " deals.", { laneId: e.id }), o.done(o.settle({ ...n, cards: [...n.cards, s] }, e.id), "Added " + y(l) + " to " + y(e.label) + ".", { laneId: e.id, cardId: s.id });
       }
       case "set_amount": {
-        const e = o.card(n.card), l = { laneId: e.laneId, cardId: e.id, limits: f };
-        return (!Number.isInteger(n.amount) || n.amount < f.min || n.amount > f.max) && o.refuse(n.amount < f.min ? f.reasons.min : f.reasons.max, l), e.amount = n.amount, o.done(o.settle(a, e.laneId, e.id), g(e.label) + " is now " + c(n.amount, t) + ".", { laneId: e.laneId, cardId: e.id });
+        const e = o.card(a.card), l = { laneId: e.laneId, cardId: e.id, limits: f };
+        return (!Number.isInteger(a.amount) || a.amount < f.min || a.amount > f.max) && o.refuse(a.amount < f.min ? f.reasons.min : f.reasons.max, l), e.amount = a.amount, o.done(o.settle(n, e.laneId, e.id), y(e.label) + " is now " + d(a.amount, t) + ".", { laneId: e.laneId, cardId: e.id });
       }
       case "set_target": {
-        const e = q(a, { field: "target" });
-        return (!Number.isInteger(n.amount) || n.amount < 1 || n.amount > e.max) && o.refuse(n.amount < 1 ? e.reasons.min : e.reasons.max, { limits: e }), a.forecast.target = n.amount, o.done(o.settle(a), "The target is now " + c(n.amount, t) + ".");
+        const e = K(n, { field: "target" });
+        return (!Number.isInteger(a.amount) || a.amount < 1 || a.amount > e.max) && o.refuse(a.amount < 1 ? e.reasons.min : e.reasons.max, { limits: e }), n.forecast.target = a.amount, o.done(o.settle(n), "The target is now " + d(a.amount, t) + ".");
       }
     }
     return null;
   }
 };
-P(K);
-function b(a, n) {
-  return a.cards.reduce((o, t) => o + (t.laneId === n ? t.amount ?? 0 : 0), 0);
+M(G);
+function b(n, a) {
+  return n.cards.reduce((o, t) => o + (t.laneId === a ? t.amount ?? 0 : 0), 0);
 }
-const $ = (a, n) => Math.max(n.floor ?? 0, b(a, n.id));
-function G(a) {
-  const n = a.budget;
-  if (!n) return "A budget needs a total.";
-  if (a.cards.length > 16) return "A budget holds up to 16 line items.";
-  const o = a.lanes.reduce((t, e) => t + (e.allocation ?? 0), 0);
-  if (o !== n.total) return `The teams' allocations add up to ${c(o, n.currency)}, not ${c(n.total, n.currency)}.`;
-  for (const t of a.lanes) {
+const k = (n, a) => Math.max(a.floor ?? 0, b(n, a.id));
+function j(n) {
+  const a = n.budget;
+  if (!a) return "A budget needs a total.";
+  if (n.cards.length > 16) return "A budget holds up to 16 line items.";
+  const o = n.lanes.reduce((t, e) => t + (e.allocation ?? 0), 0);
+  if (o !== a.total) return `The teams' allocations add up to ${d(o, a.currency)}, not ${d(a.total, a.currency)}.`;
+  for (const t of n.lanes) {
     if (t.allocation === void 0) return `Give ${t.label} an allocation.`;
     if (t.floor !== void 0 && t.cap !== void 0 && t.floor > t.cap) return `${t.label}'s floor is above its cap.`;
-    if (t.floor !== void 0 && t.allocation < t.floor) return `${t.label}'s floor is ${c(t.floor, n.currency)}.`;
-    if (t.cap !== void 0 && t.allocation > t.cap) return `${t.label}'s cap is ${c(t.cap, n.currency)}.`;
-    const e = b(a, t.id);
-    if (e > t.allocation) return `${t.label} commits ${c(e, n.currency)} of ${c(t.allocation, n.currency)}.`;
+    if (t.floor !== void 0 && t.allocation < t.floor) return `${t.label}'s floor is ${d(t.floor, a.currency)}.`;
+    if (t.cap !== void 0 && t.allocation > t.cap) return `${t.label}'s cap is ${d(t.cap, a.currency)}.`;
+    const e = b(n, t.id);
+    if (e > t.allocation) return `${t.label} commits ${d(e, a.currency)} of ${d(t.allocation, a.currency)}.`;
   }
-  return a.cards.some((t) => t.amount === void 0) ? "Give every line item a cost." : null;
+  return n.cards.some((t) => t.amount === void 0) ? "Give every line item a cost." : null;
 }
-function T(a, n, o) {
-  const t = a.cards.find((u) => u.id === n), e = a.lanes.find((u) => u.id === o);
+function R(n, a, o) {
+  const t = n.cards.find((r) => r.id === a), e = n.lanes.find((r) => r.id === o);
   if (!t || !e) return "That move is not available.";
   if (t.laneId === o) return null;
-  const l = (e.allocation ?? 0) - b(a, o), i = a.budget?.currency;
-  return (t.amount ?? 0) > l ? `${e.label} has ${c(l, i)} left. ${t.label} costs ${c(t.amount ?? 0, i)}.` : null;
+  const l = (e.allocation ?? 0) - b(n, o), s = n.budget?.currency;
+  return (t.amount ?? 0) > l ? `${e.label} has ${d(l, s)} left. ${t.label} costs ${d(t.amount ?? 0, s)}.` : null;
 }
-function J(a, n, o) {
-  const t = a.cards.find((e) => e.id === n);
-  return !t || T(a, n, o) !== null ? null : t.laneId === o ? a : { ...a, cards: [...a.cards.filter((e) => e !== t), { ...t, laneId: o }] };
+function Q(n, a, o) {
+  const t = n.cards.find((e) => e.id === a);
+  return !t || R(n, a, o) !== null ? null : t.laneId === o ? n : { ...n, cards: [...n.cards.filter((e) => e !== t), { ...t, laneId: o }] };
 }
-function z(a, n, o, t) {
-  return { ...a, lanes: a.lanes.map((e) => e.id === n ? { ...e, allocation: (e.allocation ?? 0) - t } : e.id === o ? { ...e, allocation: (e.allocation ?? 0) + t } : e) };
+function V(n, a, o, t) {
+  return { ...n, lanes: n.lanes.map((e) => e.id === a ? { ...e, allocation: (e.allocation ?? 0) - t } : e.id === o ? { ...e, allocation: (e.allocation ?? 0) + t } : e) };
 }
-function k(a, n, o) {
-  const t = a.lanes.find((r) => r.id === n), e = a.lanes.find((r) => r.id === o), l = a.budget?.currency, i = (r, y) => {
-    if (!y) return `${r.label}'s cap is ${c(r.cap, l)}.`;
-    const m = b(a, r.id);
-    return m >= (r.floor ?? 0) ? `${r.label} already commits ${c(m, l)}.` : `${r.label}'s floor is ${c(r.floor, l)}.`;
-  }, u = (r) => r.reduce((y, m) => m.value < y.value ? m : y), d = u([
-    { value: t.allocation - $(a, t), why: i(t, !0) },
-    ...e.cap !== void 0 ? [{ value: e.cap - e.allocation, why: i(e, !1) }] : []
-  ]), s = u([
-    { value: e.allocation - $(a, e), why: i(e, !0) },
-    ...t.cap !== void 0 ? [{ value: t.cap - t.allocation, why: i(t, !1) }] : []
+function $(n, a, o) {
+  const t = n.lanes.find((u) => u.id === a), e = n.lanes.find((u) => u.id === o), l = n.budget?.currency, s = (u, g) => {
+    if (!g) return `${u.label}'s cap is ${d(u.cap, l)}.`;
+    const m = b(n, u.id);
+    return m >= (u.floor ?? 0) ? `${u.label} already commits ${d(m, l)}.` : `${u.label}'s floor is ${d(u.floor, l)}.`;
+  }, r = (u) => u.reduce((g, m) => m.value < g.value ? m : g), c = r([
+    { value: t.allocation - k(n, t), why: s(t, !0) },
+    ...e.cap !== void 0 ? [{ value: e.cap - e.allocation, why: s(e, !1) }] : []
+  ]), i = r([
+    { value: e.allocation - k(n, e), why: s(e, !0) },
+    ...t.cap !== void 0 ? [{ value: t.cap - t.allocation, why: s(t, !1) }] : []
   ]);
-  return { field: "amount", min: -s.value, max: d.value, reasons: { min: s.why, max: d.why } };
+  return { field: "amount", min: -i.value, max: c.value, reasons: { min: i.why, max: c.why } };
 }
-function Q(a, n, o, t) {
-  if (n === o) return "Choose two different teams.";
+function U(n, a, o, t) {
+  if (a === o) return "Choose two different teams.";
   if (!Number.isFinite(t) || !Number.isInteger(t)) return "Move a whole amount.";
-  const e = k(a, n, o);
+  const e = $(n, a, o);
   if (t > e.max) return e.reasons.max;
   if (t < e.min) return e.reasons.min;
-  const l = a.budget?.step;
-  return l && t % l !== 0 && t !== e.max && t !== e.min ? `Move money in steps of ${c(l, a.budget?.currency)}.` : null;
+  const l = n.budget?.step;
+  return l && t % l !== 0 && t !== e.max && t !== e.min ? `Move money in steps of ${d(l, n.budget?.currency)}.` : null;
 }
-function ae(a, n) {
-  const o = a.lanes.findIndex((e) => e.id === n.laneId), t = a.lanes[o + 1];
-  return o < 0 || !t ? { field: "amount", min: 0, max: 0, reasons: {} } : k(a, t.id, n.laneId);
+function le(n, a) {
+  const o = n.lanes.findIndex((e) => e.id === a.laneId), t = n.lanes[o + 1];
+  return o < 0 || !t ? { field: "amount", min: 0, max: 0, reasons: {} } : $(n, t.id, a.laneId);
 }
-function j(a, n) {
-  const o = a.lanes.find((e) => e.id === n), t = a.budget?.currency;
-  return `${c(o.allocation ?? 0, t)} · ${c(b(a, n), t)} committed`;
+function _(n) {
+  const a = n.lanes.reduce((t, e) => t + k(n, e), 0), o = n.lanes.every((t) => t.cap !== void 0) ? n.lanes.reduce((t, e) => t + e.cap, 0) : 1e9;
+  return { min: Math.max(1, a), max: o };
 }
-function V() {
+function W(n, a, o = "end") {
+  const t = n.budget.currency;
+  if (!Number.isInteger(a) || a < 1) return "A total is a whole amount above zero.";
+  const e = _(n);
+  if (a < e.min) return "The teams keep " + w(e.min, t) + " between them: their floors and what they commit. The smallest total that fits is " + w(e.min, t) + ".";
+  if (a > e.max) return "Every team is at its cap. The largest total that fits is " + w(e.max, t) + ".";
+  let l = a - n.budget.total;
+  const s = n.lanes.map((r) => ({ ...r }));
+  for (const r of o === "end" ? [...s].reverse() : s) {
+    if (!l) break;
+    const c = l > 0 ? (r.cap ?? 1 / 0) - r.allocation : k(n, r) - r.allocation, i = l > 0 ? Math.min(l, c) : Math.max(l, c);
+    r.allocation += i, l -= i;
+  }
+  return { ...n, budget: { ...n.budget, total: a }, lanes: s };
+}
+function X(n, a) {
+  if (n.budget?.total === a.budget?.total) return null;
+  const o = (e) => JSON.stringify(e.lanes.map((l) => [l.id, l.allocation]));
+  return ["end", "start"].map((e) => W(n, a.budget.total, e)).filter((e) => typeof e != "string").some((e) => o(e) === o(a)) ? null : "The total changes only at the envelope’s edges: drag one, or say the new total.";
+}
+function Y(n, a) {
+  const o = n.lanes.find((e) => e.id === a), t = n.budget?.currency;
+  return `${d(o.allocation ?? 0, t)} · ${d(b(n, a), t)} committed`;
+}
+function Z() {
   return {
     version: 1,
     kind: "budget",
@@ -223,56 +247,63 @@ function V() {
     ]
   };
 }
-const U = {
-  ...M,
+const ee = {
+  ...C,
   kind: "budget",
   cards: [16, "A budget holds up to 16 line items."],
-  readLane(a, n) {
-    for (const o of ["allocation", "floor", "cap"]) a[o] !== void 0 && (n[o] = v(a[o], 0, 1e9, "Team amounts are whole amounts."));
+  readLane(n, a) {
+    for (const o of ["allocation", "floor", "cap"]) n[o] !== void 0 && (a[o] = v(n[o], 0, 1e9, "Team amounts are whole amounts."));
   },
-  readBoard(a, n) {
-    const o = S(a, "budget", "A budget needs a total.");
-    n.budget = {
+  readBoard(n, a) {
+    const o = L(n, "budget", "A budget needs a total.");
+    a.budget = {
       total: v(o.total, 1, 1e9, "A total is a whole amount above zero."),
       currency: O(o.currency),
       step: o.step === void 0 ? 5e3 : v(o.step, 1, 1e9, "A step is a whole amount above zero.")
     };
   },
-  validate: G,
-  planMove: J,
-  refusal: T,
-  caption: j,
-  fromNote(a, n) {
-    const o = L(n);
+  validate: j,
+  fixed: X,
+  planMove: Q,
+  refusal: R,
+  caption: Y,
+  fromNote(n, a) {
+    const o = S(a);
     return typeof o == "string" ? o : o.amount === void 0 ? "Write the cost on the note, like 'Contractor $45k', then drop it." : { label: o.label, amount: o.amount };
   },
-  edit(a, n, o) {
-    const t = a.budget.currency;
-    switch (n.kind) {
+  edit(n, a, o) {
+    const t = n.budget.currency;
+    switch (a.kind) {
       case "add_card": {
-        const e = o.lane(n.lane), l = n.label?.trim();
-        l || o.refuse("Say what the card should say, such as “Add Docs to " + e.label + "”.", { laneId: e.id }), n.amount === void 0 && o.refuse("Give the line item a cost, like 'Contractor $45k'.", { laneId: e.id });
-        const i = { ...f, min: 1 };
-        (!Number.isInteger(n.amount) || n.amount < 1) && o.refuse("A line item costs something.", { laneId: e.id, limits: i }), n.amount > f.max && o.refuse(f.reasons.max, { laneId: e.id, limits: f });
-        const u = e.allocation - b(a, e.id);
-        n.amount > u && o.refuse(e.label + " has " + c(u, t) + " left. " + l + " costs " + c(n.amount, t) + ".", { laneId: e.id });
-        const d = { id: N(a), label: l, laneId: e.id, amount: n.amount };
-        return o.done(o.settle({ ...a, cards: [...a.cards, d] }, e.id), "Added " + g(l) + " to " + g(e.label) + ".", { laneId: e.id, cardId: d.id });
+        const e = o.lane(a.lane), l = a.label?.trim();
+        l || o.refuse("Say what the card should say, such as “Add Docs to " + e.label + "”.", { laneId: e.id }), a.amount === void 0 && o.refuse("Give the line item a cost, like 'Contractor $45k'.", { laneId: e.id });
+        const s = { ...f, min: 1 };
+        (!Number.isInteger(a.amount) || a.amount < 1) && o.refuse("A line item costs something.", { laneId: e.id, limits: s }), a.amount > f.max && o.refuse(f.reasons.max, { laneId: e.id, limits: f });
+        const r = e.allocation - b(n, e.id);
+        a.amount > r && o.refuse(e.label + " has " + d(r, t) + " left. " + l + " costs " + d(a.amount, t) + ".", { laneId: e.id });
+        const c = { id: T(n), label: l, laneId: e.id, amount: a.amount };
+        return o.done(o.settle({ ...n, cards: [...n.cards, c] }, e.id), "Added " + y(l) + " to " + y(e.label) + ".", { laneId: e.id, cardId: c.id });
       }
       case "set_amount": {
-        const e = o.card(n.card), l = a.lanes.find((s) => s.id === e.laneId), i = l.allocation - b(a, l.id) + (e.amount ?? 0), u = { field: "amount", min: 1, max: i, reasons: { min: "A line item costs something.", max: g(l.label) + " has " + c(i, t) + " for it." } }, d = { laneId: e.laneId, cardId: e.id, limits: u };
-        return n.amount > i && o.refuse(l.label + " has " + c(i - (e.amount ?? 0), t) + " left. " + e.label + " costs " + c(n.amount, t) + ".", { ...d, laneId: l.id }), (!Number.isInteger(n.amount) || n.amount < u.min) && o.refuse(u.reasons.min, d), e.amount = n.amount, o.done(o.settle(a, e.laneId, e.id), g(e.label) + " is now " + c(n.amount, t) + ".", { laneId: e.laneId, cardId: e.id });
+        const e = o.card(a.card), l = n.lanes.find((i) => i.id === e.laneId), s = l.allocation - b(n, l.id) + (e.amount ?? 0), r = { field: "amount", min: 1, max: s, reasons: { min: "A line item costs something.", max: y(l.label) + " has " + d(s, t) + " for it." } }, c = { laneId: e.laneId, cardId: e.id, limits: r };
+        return a.amount > s && o.refuse(l.label + " has " + d(s - (e.amount ?? 0), t) + " left. " + e.label + " costs " + d(a.amount, t) + ".", { ...c, laneId: l.id }), (!Number.isInteger(a.amount) || a.amount < r.min) && o.refuse(r.reasons.min, c), e.amount = a.amount, o.done(o.settle(n, e.laneId, e.id), y(e.label) + " is now " + d(a.amount, t) + ".", { laneId: e.laneId, cardId: e.id });
+      }
+      case "set_budget_total": {
+        const e = a.edge ?? "end", l = W(n, a.amount, e);
+        typeof l == "string" && o.refuse(l, { limits: { field: "amount", ..._(n), reasons: {} } });
+        const s = l, r = s.lanes.filter((c, i) => c.allocation !== n.lanes[i].allocation).map((c) => c.label + " " + w(c.allocation, t));
+        return o.done(o.settle(s), "The budget is now " + w(a.amount, t) + (r.length ? ": " + r.join(", ") + "." : "."));
       }
       case "shift_budget": {
-        const e = o.lane(n.from), l = o.lane(n.to), i = Q(a, e.id, l.id, n.amount);
-        return i && o.refuse(i, { laneId: e.id, ...e.id !== l.id && { limits: k(a, e.id, l.id) } }), o.done(o.settle(z(a, e.id, l.id, n.amount), l.id), "Moved " + c(n.amount, t) + " from " + g(e.label) + " to " + g(l.label) + ".", { laneId: l.id });
+        const e = o.lane(a.from), l = o.lane(a.to), s = U(n, e.id, l.id, a.amount);
+        return s && o.refuse(s, { laneId: e.id, ...e.id !== l.id && { limits: $(n, e.id, l.id) } }), o.done(o.settle(V(n, e.id, l.id, a.amount), l.id), "Moved " + d(a.amount, t) + " from " + y(e.label) + " to " + y(l.label) + ".", { laneId: l.id });
       }
     }
     return null;
   }
 };
-P(U);
-const A = {
+M(ee);
+const N = {
   capacity: ["where", "max"],
   path: ["from", "to", "noSkip"],
   gate: ["into", "needs"],
@@ -293,181 +324,185 @@ const A = {
   parent: ["not"],
   contains: ["role", "of", "atLeast"],
   sameOwnerAs: ["mode", "role"]
-}, X = ["max", "to", "floor", "onConflict", "unit", "under", "by", "drop", "mode"], I = (a) => a.behaviour ?? { version: 1, rev: 0, rules: [] };
-function ne(a, n) {
-  const o = I(a).rules, t = I(n).rules, e = [], l = [], i = [], u = (s) => s === "any" ? "any" : { id: s }, d = (s) => JSON.stringify(A[s.kind].filter((r) => !X.includes(r)).map((r) => [r, s[r]]));
-  for (const s of t) {
-    const r = o.find((h) => h.id === s.id), y = s;
-    if (!r) {
-      const h = { kind: s.kind, ...s.severity === "warn" && { severity: "warn" } };
-      for (const p of A[s.kind])
-        y[p] !== void 0 && (h[p] = p === "to" || p === "cards" ? y[p].map(u) : ["where", "into", "lane", "from"].includes(p) ? u(y[p]) : y[p]);
-      e.push({ kind: "add_rule", rule: h }), s.on || l.push({ kind: "set_rule", rule: s.id, on: !1 });
+}, ne = ["max", "to", "floor", "onConflict", "unit", "under", "by", "drop", "mode"], I = (n) => n.behaviour ?? { version: 1, rev: 0, rules: [] };
+function se(n, a) {
+  const o = I(n).rules, t = I(a).rules, e = [], l = [], s = [], r = (i) => i === "any" ? "any" : { id: i }, c = (i) => JSON.stringify(N[i.kind].filter((u) => !ne.includes(u)).map((u) => [u, i[u]]));
+  for (const i of t) {
+    const u = o.find((h) => h.id === i.id), g = i;
+    if (!u) {
+      const h = { kind: i.kind, ...i.severity === "warn" && { severity: "warn" } };
+      for (const p of N[i.kind])
+        g[p] !== void 0 && (h[p] = p === "to" || p === "cards" ? g[p].map(r) : ["where", "into", "lane", "from"].includes(p) ? r(g[p]) : g[p]);
+      e.push({ kind: "add_rule", rule: h }), i.on || l.push({ kind: "set_rule", rule: i.id, on: !1 });
       continue;
     }
-    if (r.kind !== s.kind || d(r) !== d(s)) return null;
+    if (u.kind !== i.kind || c(u) !== c(i)) return null;
     const m = {};
-    if (r.on !== s.on && (m.on = s.on), r.severity !== s.severity && (m.severity = s.severity), s.kind === "capacity" && r.max !== s.max && (m.max = s.max), s.kind === "path") {
-      const h = s.to, p = r.to;
+    if (u.on !== i.on && (m.on = i.on), u.severity !== i.severity && (m.severity = i.severity), i.kind === "capacity" && u.max !== i.max && (m.max = i.max), i.kind === "path") {
+      const h = i.to, p = u.to;
       if (JSON.stringify(h ?? null) !== JSON.stringify(p ?? null)) {
         if (!h) return null;
-        m.to = h.map(u);
+        m.to = h.map(r);
       }
     }
-    for (const h of ["floor", "onConflict", "unit", "under", "by", "drop", "mode", ...s.kind === "capacity" ? [] : ["max"]]) {
-      const p = s[h];
-      JSON.stringify(p) !== JSON.stringify(r[h]) && (m[h] = p);
+    for (const h of ["floor", "onConflict", "unit", "under", "by", "drop", "mode", ...i.kind === "capacity" ? [] : ["max"]]) {
+      const p = i[h];
+      JSON.stringify(p) !== JSON.stringify(u[h]) && (m[h] = p);
     }
-    Object.keys(m).length && l.push({ kind: "set_rule", rule: s.id, ...m });
+    Object.keys(m).length && l.push({ kind: "set_rule", rule: i.id, ...m });
   }
-  for (const s of o) t.some((r) => r.id === s.id) || i.push({ kind: "remove_rule", rule: s.id });
-  return [...e, ...l, ...i];
+  for (const i of o) t.some((u) => u.id === i.id) || s.push({ kind: "remove_rule", rule: i.id });
+  return [...e, ...l, ...s];
 }
-function te(a, n) {
-  if (!a.behaviour && !n.behaviour) return n;
-  const o = Math.max(I(a).rev, I(n).rev) + 1;
-  return { ...n, behaviour: { ...I(n), rev: o } };
+function ie(n, a) {
+  if (!n.behaviour && !a.behaviour) return a;
+  const o = Math.max(I(n).rev, I(a).rev) + 1;
+  return { ...a, behaviour: { ...I(a), rev: o } };
 }
-const oe = { "launch-plan": B, "go-live": _, "hiring-plan": W, pipeline: H, budget: V };
+const re = { "launch-plan": E, "go-live": F, "hiring-plan": D, pipeline: z, budget: Z };
 export {
   f as amountLimits,
   v as amountOf,
-  M as amountRules,
-  ie as bandOf,
-  ne as behaviourEditsBetween,
-  j as budgetCaption,
+  C as amountRules,
+  de as bandOf,
+  se as behaviourEditsBetween,
+  Y as budgetCaption,
   b as budgetCommitted,
-  ae as budgetLimits,
-  T as budgetRefusal,
-  U as budgetRules,
-  k as budgetShiftLimits,
-  Q as budgetShiftRefusal,
-  Na as byOrder,
-  re as cascadeStops,
-  La as checkNest,
-  Sa as checkNestMove,
-  ue as checkTime,
-  ce as clockOf,
+  le as budgetLimits,
+  R as budgetRefusal,
+  ee as budgetRules,
+  $ as budgetShiftLimits,
+  U as budgetShiftRefusal,
+  _ as budgetTotalBounds,
+  X as budgetTotalFixed,
+  Mn as byOrder,
+  fe as cascadeStops,
+  Pn as checkNest,
+  Cn as checkNestMove,
+  me as checkTime,
+  pe as clockOf,
   O as currencyOf,
-  de as dateName,
-  fe as dayFromWords,
-  me as dayMap,
-  pe as dayWords,
-  he as days,
-  ye as downstreamTasks,
-  ge as dragTaskEdge,
-  be as earliestLaunch,
-  ve as edgeValues,
-  Oa as extend,
-  we as extendWorkshopEdits,
-  _ as goLiveSample,
-  Ie as hireLagFor,
-  ke as hireStarts,
-  xe as hiringPlanRules,
-  W as hiringPlanSample,
-  $e as holdOthers,
-  Pa as isOrderKey,
-  en as isOrgChart,
-  Ae as isoAt,
-  Ne as isoTime,
-  Le as launchDayOn,
-  Se as launchFinish,
-  Oe as launchHard,
-  Pe as launchIndex,
-  Ce as launchLinkRefusal,
-  Me as launchOverrun,
-  Te as launchPlanCaption,
-  Re as launchPlanLimits,
-  We as launchPlanRefusal,
-  _e as launchPlanRules,
-  B as launchPlanSample,
-  Be as launchTaskText,
-  De as launchTooEarly,
-  Fe as legalRuns,
-  Ee as lineWord,
-  c as money,
-  qe as monthNames,
-  He as moveLaunch,
-  Ke as movePlanStart,
-  Ca as nestAlias,
-  Ma as nestAreas,
-  an as nestAxes,
-  Ta as nestCardText,
-  Ra as nestDepth,
-  Wa as nestDrags,
-  _a as nestEmptyDrop,
-  Ba as nestFamily,
-  Da as nestKids,
-  Fa as nestLegal,
-  Ea as nestMeasure,
-  qa as nestMeasureWords,
-  Ha as nestPlace,
-  nn as nestQuadrants,
-  Ka as nestRoots,
-  Ga as nestRules,
-  tn as nestScores,
-  Ja as nestSentence,
-  za as nestSubtree,
-  N as nextCardId,
-  Ge as nextMonday,
-  L as noteNumbers,
-  Je as offsetOf,
-  Qa as orderBetween,
-  ja as orderKeys,
-  S as ownField,
-  ze as pastTheLine,
-  E as pipelineCaption,
-  ee as pipelineForecast,
-  q as pipelineLimits,
-  C as pipelineRefusal,
-  K as pipelineRules,
-  J as planBudgetMove,
-  Qe as planDrags,
-  je as planEdit,
-  Ve as planFixed,
-  Ue as planLaunchPlanMove,
-  F as planPipelineMove,
-  Xe as planProblem,
-  oe as planSamples,
-  Ye as planStartBy,
-  Ze as planWeeksProblem,
-  ea as planWords,
-  aa as presetRules,
-  on as quadrantOf,
-  na as readClock,
-  ta as readNoteNumbers,
-  Va as registerNestPlus,
-  R as renamedNumbers,
-  te as restoreWorkshop,
-  Ua as roleOf,
-  oa as runwayCap,
-  la as runwayHeader,
-  sa as runwayMonths,
-  ia as runwayWords,
-  V as sampleBudget,
-  ra as sampleLaunchPlan,
-  H as samplePipeline,
-  ua as scheduleLaunch,
-  ln as scoreBoard,
-  sn as scoresIn,
-  z as shiftBudget,
-  ca as shortDate,
-  da as snapStep,
-  fa as startHandle,
-  ma as startHandleCard,
-  Xa as tidyKeys,
-  pa as timeFamily,
-  ha as timeRuleKindIds,
-  ya as timeSentence,
-  ga as tryTask,
-  G as validateBudget,
-  ba as validateHiringPlan,
-  va as validateLaunchPlan,
-  Ya as validateNest,
-  D as validatePipeline,
-  wa as weekdayAt,
-  Ia as weekendAt,
-  ka as withLink,
-  xa as withPlanStart,
-  $a as withTaskValue
+  he as dateName,
+  ge as dayFromWords,
+  ye as dayMap,
+  be as dayWords,
+  ve as days,
+  we as downstreamTasks,
+  xe as dragTaskEdge,
+  Ie as earliestLaunch,
+  ke as edgeValues,
+  Rn as extend,
+  $e as extendWorkshopEdits,
+  F as goLiveSample,
+  Ae as hireLagFor,
+  Ne as hireStarts,
+  Te as hiringPlanRules,
+  D as hiringPlanSample,
+  Se as holdOthers,
+  _n as isOrderKey,
+  la as isOrgChart,
+  Le as isoAt,
+  Oe as isoTime,
+  Me as launchDayOn,
+  Pe as launchFinish,
+  Ce as launchHard,
+  Re as launchIndex,
+  _e as launchLinkRefusal,
+  We as launchOverrun,
+  Be as launchPlanCaption,
+  De as launchPlanLimits,
+  Fe as launchPlanRefusal,
+  Ee as launchPlanRules,
+  E as launchPlanSample,
+  qe as launchTaskText,
+  He as launchTooEarly,
+  Je as legalRuns,
+  Ke as lineWord,
+  d as money,
+  w as moneyExact,
+  ze as monthNames,
+  Ge as moveLaunch,
+  je as movePlanStart,
+  Wn as nestAlias,
+  Bn as nestAreas,
+  sa as nestAxes,
+  Dn as nestCardText,
+  Fn as nestDepth,
+  En as nestDrags,
+  qn as nestEmptyDrop,
+  Hn as nestFamily,
+  Jn as nestKids,
+  Kn as nestLegal,
+  zn as nestMeasure,
+  Gn as nestMeasureWords,
+  jn as nestPlace,
+  ia as nestQuadrants,
+  Qn as nestRoots,
+  Vn as nestRules,
+  ra as nestScores,
+  Un as nestSentence,
+  Xn as nestSubtree,
+  T as nextCardId,
+  Qe as nextMonday,
+  S as noteNumbers,
+  Ve as offsetOf,
+  Yn as orderBetween,
+  Zn as orderKeys,
+  L as ownField,
+  Ue as pastTheLine,
+  J as pipelineCaption,
+  oe as pipelineForecast,
+  K as pipelineLimits,
+  P as pipelineRefusal,
+  G as pipelineRules,
+  Q as planBudgetMove,
+  Xe as planDrags,
+  Ye as planEdit,
+  Ze as planFixed,
+  en as planLaunchPlanMove,
+  H as planPipelineMove,
+  nn as planProblem,
+  re as planSamples,
+  an as planStartBy,
+  tn as planWeeksProblem,
+  on as planWords,
+  ln as presetRules,
+  ca as quadrantOf,
+  sn as readClock,
+  rn as readNoteNumbers,
+  ea as registerNestPlus,
+  B as renamedNumbers,
+  ie as restoreWorkshop,
+  na as roleOf,
+  cn as runwayCap,
+  un as runwayHeader,
+  dn as runwayMonths,
+  fn as runwayWords,
+  Z as sampleBudget,
+  mn as sampleLaunchPlan,
+  z as samplePipeline,
+  pn as scheduleLaunch,
+  ua as scoreBoard,
+  da as scoresIn,
+  V as shiftBudget,
+  hn as shortDate,
+  gn as snapStep,
+  yn as startHandle,
+  bn as startHandleCard,
+  aa as tidyKeys,
+  vn as timeFamily,
+  wn as timeRuleKindIds,
+  xn as timeSentence,
+  In as tryTask,
+  j as validateBudget,
+  kn as validateHiringPlan,
+  $n as validateLaunchPlan,
+  ta as validateNest,
+  q as validatePipeline,
+  An as weekdayAt,
+  Nn as weekendAt,
+  W as withBudgetTotal,
+  Tn as withLink,
+  Sn as withPlanStart,
+  Ln as withTaskValue
 };

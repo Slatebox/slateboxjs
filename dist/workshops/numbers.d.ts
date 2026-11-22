@@ -17,6 +17,8 @@ export interface NoteNumbers {
 export declare function readNoteNumbers(text: string): NoteNumbers;
 /** "$45k", "$1.2M", "$320k", "$900": short money for captions and sentences. */
 export declare function money(amount: number, currency?: string): string;
+/** Money without rounding away a step: "$1.25M", "$1.205M", "$890k", "$12.5k". */
+export declare function moneyExact(amount: number, currency?: string): string;
 /** "1 day", "3 days". */
 export declare const days: (n: number) => string;
 /** The bounds every amount keeps, and their sentences. */
