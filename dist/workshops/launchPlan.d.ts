@@ -6,6 +6,13 @@ export type { WorkshopLimits } from './kinds';
 /** Why `after` breaks this plan's rules (or its built-in line), as a sentence; null when it keeps them. */
 export declare function planProblem(before: Workshop, after: Workshop, cardId?: string): string | null;
 /**
+ * What a whole-board save may not change on a plan, because no edit does: its first day (moving it would
+ * slide every task past its locks and freezes), what it calls its line, a hiring plan's cash, burn,
+ * currency, weeks, the round's size and its bands (a band's cost and the round's day have their edits,
+ * and answer to the rules). Rules change on their own, never in the save that moves a task.
+ */
+export declare function planFixed(before: Workshop, after: Workshop): string | null;
+/**
  * One task changed (its lag, length or team), as the plan's rules have it: a slip that stops holds the
  * tasks waiting on it. The board that results, or the sentence of the rule it breaks.
  */

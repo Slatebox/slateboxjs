@@ -84,6 +84,8 @@ export interface BusinessBoardRules {
      * "May", on or after `after`), its ISO date and short name, the lag that starts a hire on a day, a band by name.
      */
     words?: PlanWords;
+    /** What a whole-board save may not change on this kind (no edit changes it), as a sentence; null when it keeps it. */
+    fixed?(before: Workshop, after: Workshop): string | null;
 }
 export interface PlanWords {
     day(board: Workshop, text: string, after?: number): number | null;

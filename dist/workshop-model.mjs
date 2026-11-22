@@ -101,7 +101,7 @@ function Go(e) {
 function Uo(e) {
   return typeof e == "string" && Nn.has(e);
 }
-function ye(e) {
+function he(e) {
   const n = Nn.get(e);
   if (!n) throw new Error(`The ${Jt[e] ?? e} rules have not loaded. Load slateboxjs/boards (in a browser) or slateboxjs/workshops/rules (on a server) first.`);
   return n;
@@ -204,7 +204,7 @@ function $n(e, n, o, t, s = !1) {
     throw new nn("There is no " + o + " called " + O(h) + " here." + (k.length && k.length <= 6 ? " The " + o + "s are " + Ae(k.map(O)) + "." : k.length ? "" : " There are no " + o + "s yet."), "unknown", e.map((S) => S.id));
   }, attempt: (C) => In(e, C, n, t, s).item ?? null, rank: (C) => In(e, C, n, t, s).rank ?? 1 / 0 };
 }
-const gt = ["lanes", "release-plan", "customer-interviews", "experiment-budget", "map", "launch-plan", "pipeline", "budget", "hiring-plan"], me = [...gt], _e = ["lanes", "release-plan", "customer-interviews", "experiment-budget"], yt = gt.slice(5);
+const gt = ["lanes", "release-plan", "customer-interviews", "experiment-budget", "map", "launch-plan", "pipeline", "budget", "hiring-plan"], we = [...gt], _e = ["lanes", "release-plan", "customer-interviews", "experiment-budget"], yt = gt.slice(5);
 function ln(e) {
   if (e.lanes[0]?.station) return "map";
   const n = Z(e);
@@ -233,13 +233,13 @@ const W = {
   notBudget: "Only a budget moves money between teams.",
   businessCards: "Cards on this board go where its rules let them.",
   noRules: "Only lane boards and pipelines take rules for now."
-}, On = { "launch-plan": W.launchLanes, pipeline: W.pipelineLanes, budget: W.budgetLanes, "hiring-plan": W.launchLanes.replace("launch", "hiring").replace("tasks", "hires") }, oe = (e, n) => Object.fromEntries(me.filter((o) => !e.includes(o)).map((o) => [o, n])), te = (e, n, o = !1) => ({ type: "text", max: e, about: n, ...o && { optional: o } }), J = (e, n = !1) => ({ type: "ref", of: "lane", about: e, ...n && { optional: n } }), ae = (e) => ({ type: "ref", of: "card", about: e }), Cn = (e) => ({ map: e }), he = oe(["map"], W.notMap), pe = (e, n = 1e9, o = 0, t = !1) => ({ type: "integer", min: o, max: n, about: e, ...t && { optional: t } }), Pn = [
+}, On = { "launch-plan": W.launchLanes, pipeline: W.pipelineLanes, budget: W.budgetLanes, "hiring-plan": W.launchLanes.replace("launch", "hiring").replace("tasks", "hires") }, oe = (e, n) => Object.fromEntries(we.filter((o) => !e.includes(o)).map((o) => [o, n])), te = (e, n, o = !1) => ({ type: "text", max: e, about: n, ...o && { optional: o } }), J = (e, n = !1) => ({ type: "ref", of: "lane", about: e, ...n && { optional: n } }), ae = (e) => ({ type: "ref", of: "card", about: e }), Cn = (e) => ({ map: e }), pe = oe(["map"], W.notMap), me = (e, n = 1e9, o = 0, t = !1) => ({ type: "integer", min: o, max: n, about: e, ...t && { optional: t } }), Pn = [
   {
     kind: "rename_workshop",
     summary: "Rename the workshop or map. The slate takes the same name.",
     intent: !0,
     fields: { title: te(120, "The new name, 1 to 120 characters of plain text.") },
-    boards: me,
+    boards: we,
     refusals: {}
   },
   {
@@ -247,7 +247,7 @@ const W = {
     summary: "Rename a lane, or a step on a map.",
     intent: !0,
     fields: { lane: J("The lane or step."), label: te(80, "The new name, 1 to 80 characters of plain text.") },
-    boards: me,
+    boards: we,
     refusals: {}
   },
   {
@@ -255,7 +255,7 @@ const W = {
     summary: "Rename a card, a feature or a token.",
     intent: !0,
     fields: { card: ae("The card or token."), label: te(80, "The new name, 1 to 80 characters of plain text.") },
-    boards: me,
+    boards: we,
     refusals: {}
   },
   {
@@ -282,10 +282,10 @@ const W = {
       lane: J("The lane or step it starts in."),
       label: te(80, "What the card says. On a map it may be left out: the token is numbered.", !0),
       allowedLanes: { type: "refs", of: "lane", min: 1, max: 5, optional: !0, about: "Lane boards only: the lanes it may go in, including the one it starts in. Leave it out for any lane." },
-      duration: pe("Launch plan: days, 1 to 60 (2).", 60, 1, !0),
-      lag: pe("Launch plan: days it waits.", 120, 0, !0),
+      duration: me("Launch plan: days, 1 to 60 (2).", 60, 1, !0),
+      lag: me("Launch plan: days it waits.", 120, 0, !0),
       waitsOn: { type: "refs", of: "card", min: 0, max: 3, optional: !0, about: "Launch plan: what it waits on." },
-      amount: pe("Pipeline or budget: the amount.", 1e9, 0, !0)
+      amount: me("Pipeline or budget: the amount.", 1e9, 0, !0)
     },
     boards: ["lanes", "experiment-budget", "map", ...yt],
     refusals: { "release-plan": W.releaseCards, "customer-interviews": W.keepsCards }
@@ -295,7 +295,7 @@ const W = {
     summary: "Remove a card or token, with the dependencies and outcomes that named it.",
     intent: !1,
     fields: { card: ae("The card or token.") },
-    boards: me,
+    boards: we,
     refusals: {}
   },
   {
@@ -303,7 +303,7 @@ const W = {
     summary: "Move a card to a lane, or a token to a step, by the board’s rules. A release plan brings the features that must move with it.",
     intent: !0,
     fields: { card: ae("The card or token."), lane: J("Where it goes.") },
-    boards: me,
+    boards: we,
     refusals: {}
   },
   {
@@ -312,14 +312,14 @@ const W = {
     intent: !0,
     fields: { card: ae("The token.") },
     boards: ["map"],
-    refusals: he
+    refusals: pe
   },
   {
     kind: "set_lane_capacity",
     summary: "Set how many cards (on a release plan, points; on a map, tokens) a lane holds, or null for any number.",
     intent: !1,
     fields: { lane: J("The lane or step."), capacity: { type: "integer", min: 1, max: { default: 24, "release-plan": 576 }, nullable: !0, about: "The limit, or null to remove it." } },
-    boards: me.filter((e) => e !== "launch-plan" && e !== "budget"),
+    boards: we.filter((e) => e !== "launch-plan" && e !== "budget"),
     refusals: { "launch-plan": W.launchLanes, budget: W.budgetLanes }
   },
   {
@@ -377,7 +377,7 @@ const W = {
     summary: "Set the order the lanes or steps are presented in: each once.",
     intent: !1,
     fields: { lanes: { type: "refs", of: "lane", min: 2, max: 5, about: "Every lane or step, once, in order." } },
-    boards: me,
+    boards: we,
     refusals: {}
   },
   {
@@ -385,7 +385,7 @@ const W = {
     summary: "Present one lane or step first, or just before or after another, keeping the rest in order.",
     intent: !1,
     fields: { lane: J("The lane or step."), before: J("Present it just before this one.", !0), after: J("Present it just after this one.", !0) },
-    boards: me,
+    boards: we,
     refusals: {}
   },
   {
@@ -394,7 +394,7 @@ const W = {
     intent: !1,
     fields: { from: J("The step it follows."), label: te(80, "The new step’s name."), outcome: te(160, "What it says when a token arrives. Left out, its name.", !0) },
     boards: ["map"],
-    refusals: he
+    refusals: pe
   },
   {
     kind: "insert_station",
@@ -407,7 +407,7 @@ const W = {
       outcome: te(160, "What it says when a token arrives. Left out, its name.", !0)
     },
     boards: ["map"],
-    refusals: he
+    refusals: pe
   },
   {
     kind: "connect_stations",
@@ -415,7 +415,7 @@ const W = {
     intent: !1,
     fields: { from: J("Where the path starts."), to: J("Where it leads.") },
     boards: ["map"],
-    refusals: he
+    refusals: pe
   },
   {
     kind: "disconnect_stations",
@@ -423,7 +423,7 @@ const W = {
     intent: !1,
     fields: { from: J("Where the path starts."), to: J("Where it leads.") },
     boards: ["map"],
-    refusals: he
+    refusals: pe
   },
   {
     kind: "set_station_outcome",
@@ -431,7 +431,7 @@ const W = {
     intent: !1,
     fields: { station: J("The step."), outcome: te(160, "What it says.") },
     boards: ["map"],
-    refusals: he
+    refusals: pe
   },
   {
     kind: "set_station_position",
@@ -439,7 +439,7 @@ const W = {
     intent: !1,
     fields: { station: J("The step."), column: { type: "integer", min: 0, max: 2, about: "Column, 0 to 2." }, row: { type: "integer", min: 0, max: 2, about: "Row, 0 to 2." } },
     boards: ["map"],
-    refusals: he
+    refusals: pe
   },
   {
     kind: "set_station_image",
@@ -447,7 +447,7 @@ const W = {
     intent: !1,
     fields: { station: J("The step."), image: { type: "image", about: "{src, alt}: an HTTPS address and what the picture shows; or null." } },
     boards: ["map"],
-    refusals: he
+    refusals: pe
   },
   {
     kind: "set_station_image_alt",
@@ -455,13 +455,13 @@ const W = {
     intent: !1,
     fields: { station: J("The step."), alt: te(240, "What the picture shows.") },
     boards: ["map"],
-    refusals: he
+    refusals: pe
   },
   {
     kind: "set_task",
     summary: "Set a task's days, or the days it waits. Every task ends by launch.",
     intent: !1,
-    fields: { card: ae("The task."), duration: pe("Its days, 1 to 60.", 60, 1, !0), lag: pe("Days it waits, 0 or more.", 120, 0, !0) },
+    fields: { card: ae("The task."), duration: me("Its days, 1 to 60.", 60, 1, !0), lag: me("Days it waits, 0 or more.", 120, 0, !0) },
     boards: ["launch-plan"],
     refusals: oe(["launch-plan"], W.notTasks)
   },
@@ -485,7 +485,7 @@ const W = {
     kind: "set_launch_day",
     summary: "Set launch day. Every task ends by it.",
     intent: !1,
-    fields: { day: pe("Launch day.", 120, 5) },
+    fields: { day: me("Launch day.", 120, 5) },
     boards: ["launch-plan"],
     refusals: oe(["launch-plan"], W.notTasks)
   },
@@ -493,7 +493,7 @@ const W = {
     kind: "set_amount",
     summary: "Set a deal's amount or a line item's cost.",
     intent: !1,
-    fields: { card: ae("The deal or line item."), amount: pe("Whole currency units.") },
+    fields: { card: ae("The deal or line item."), amount: me("Whole currency units.") },
     boards: ["pipeline", "budget"],
     refusals: oe(["pipeline", "budget"], W.notAmounts)
   },
@@ -501,7 +501,7 @@ const W = {
     kind: "set_target",
     summary: "Set a pipeline's forecast target.",
     intent: !1,
-    fields: { amount: pe("Whole currency units.", 1e9, 1) },
+    fields: { amount: me("Whole currency units.", 1e9, 1) },
     boards: ["pipeline"],
     refusals: oe(["pipeline"], W.notTarget)
   },
@@ -509,7 +509,7 @@ const W = {
     kind: "shift_budget",
     summary: "Move money between teams. The total stays.",
     intent: !1,
-    fields: { from: J("The team giving."), to: J("The team receiving."), amount: pe("Whole currency units.", 1e9, 1) },
+    fields: { from: J("The team giving."), to: J("The team receiving."), amount: me("Whole currency units.", 1e9, 1) },
     boards: ["budget"],
     refusals: oe(["budget"], W.notBudget)
   },
@@ -709,7 +709,7 @@ function ro(e, n, o, t, s) {
       },
       settle: (b, $ = null, T) => G(b, o, $, T),
       done: (b, $, T) => x(b, $, T)
-    }, p = ye(o).edit(a, n, r);
+    }, p = he(o).edit(a, n, r);
     if (p) return p;
   }
   switch (n.kind) {
@@ -1035,7 +1035,7 @@ function ao(e, n) {
     });
     if (a) return `${a.label} keeps its floor and cap. Move money between teams instead.`;
   }
-  return o === "launch-plan" && e.lanes.some((t) => t.capacity !== n.lanes.find((s) => s.id === t.id).capacity) ? W.launchLanes : null;
+  return o === "launch-plan" && e.lanes.some((t) => t.capacity !== n.lanes.find((s) => s.id === t.id).capacity) ? W.launchLanes : o && he(o).fixed?.(e, n) || null;
 }
 const so = {
   lanes: "lane workshop",
@@ -1296,7 +1296,7 @@ function tr(e, n, o = {}) {
       if (I.kind === "candidate") {
         t = I.next, H(t, { skip: u });
         const d = t.lanes.find((y) => y.id === I.laneId);
-        e.announce?.(`${c.label} moved to ${d.label}. ${we(t, d.id)}.`), B(o.onChange, t, { cardId: u, laneId: I.laneId });
+        e.announce?.(`${c.label} moved to ${d.label}. ${ge(t, d.id)}.`), B(o.onChange, t, { cardId: u, laneId: I.laneId });
         const f = vn(t, ke(i.id));
         return f ? { accept: !0, settle: f } : { accept: !0 };
       }
@@ -1323,7 +1323,7 @@ function tr(e, n, o = {}) {
       const w = le(i.id);
       if (!w || v || C) return !1;
       let I = l.replace(/\s+/g, " ").trim();
-      const c = [], d = Z(t), f = d && w.kind === "card" ? ye(d).renamed(t, w.key, I) : null;
+      const c = [], d = Z(t), f = d && w.kind === "card" ? he(d).renamed(t, w.key, I) : null;
       f && (I = f.label, c.push(...f.edits));
       const y = w.kind === "lane" ? { laneId: w.key, label: I } : { cardId: w.key, label: I };
       c.unshift(w.kind === "lane" ? { kind: "rename_lane", lane: { id: w.key }, label: I } : { kind: "rename_card", card: { id: w.key }, label: I });
@@ -1381,7 +1381,7 @@ function tr(e, n, o = {}) {
         const L = t;
         t = f, H(t), Ie(d), B(o.onPreview, null);
         const A = t.lanes.find((N) => N.id === d);
-        return e.announce?.(`${c.label} moved to ${A.label}. ${we(t, d)}.`), B(o.onChange, t, { cardId: c.id, laneId: d, ...s ? { edits: s.editsBetween(L, t) } : {} }), !0;
+        return e.announce?.(`${c.label} moved to ${A.label}. ${ge(t, d)}.`), B(o.onChange, t, { cardId: c.id, laneId: d, ...s ? { edits: s.editsBetween(L, t) } : {} }), !0;
       }
       return l.key === "Escape" ? (l.preventDefault(), Ce(), e.announce?.(`Move cancelled. ${c.label} stays where it was.`), !0) : !1;
     },
@@ -1506,7 +1506,7 @@ function tr(e, n, o = {}) {
       }
       if (I.includes(A)) {
         const F = Ge(t, i, A.id);
-        r = { cardId: i, laneId: A.id, next: F }, H(F), Ie(A.id, F), B(o.onPreview, F), e.announce?.(`${w.label} to ${A.label}: ${we(F, A.id)}. Press Enter to move it, Escape to cancel.`);
+        r = { cardId: i, laneId: A.id, next: F }, H(F), Ie(A.id, F), B(o.onPreview, F), e.announce?.(`${w.label} to ${A.label}: ${ge(F, A.id)}. Press Enter to move it, Escape to cancel.`);
         return;
       }
       const N = tn(t, i, A.id) ?? "That move is not available.";
@@ -1547,7 +1547,7 @@ function tr(e, n, o = {}) {
       return;
     }
     const L = Ge(t, i, y.id);
-    r = { cardId: i, laneId: y.id, next: L }, H(L), Ie(y.id, L), B(o.onPreview, L), e.announce?.(`${w.label} to ${y.label}: ${we(L, y.id)}. Press Enter to move it, Escape to cancel.`);
+    r = { cardId: i, laneId: y.id, next: L }, H(L), Ie(y.id, L), B(o.onPreview, L), e.announce?.(`${w.label} to ${y.label}: ${ge(L, y.id)}. Press Enter to move it, Escape to cancel.`);
   }
   function Ie(i, l = t) {
     const u = s ? Kt(l, ne.column(i)) : We(l, { layout: K, rows: Vn() }).places.find((y) => y.laneId === i), w = e.canvas?.viewbox?.();
@@ -1634,7 +1634,7 @@ function tr(e, n, o = {}) {
       f.id !== d.id && $.set(d.id, f.id), T.set(se(ne.card(f.id)), { x: d.options?.x ?? 0, y: d.options?.y ?? 0 }), Ve(() => e.removeNode(d.id));
     e.endHostStep?.(), H(t), Bt(se(ne.card(w[0].card.id)));
     const c = t.lanes.find((d) => d.id === l);
-    e.announce?.(w.length === 1 ? `${w[0].card.label} is now a card in ${c.label}. ${we(t, l)}.` : `${qn(w.map(({ card: d }) => d.label))} are now cards in ${c.label}. ${we(t, l)}.`);
+    e.announce?.(w.length === 1 ? `${w[0].card.label} is now a card in ${c.label}. ${ge(t, l)}.` : `${qn(w.map(({ card: d }) => d.label))} are now cards in ${c.label}. ${ge(t, l)}.`);
     for (const { node: d, card: f, kept: y } of w) {
       const L = { cardId: f.id, laneId: l, noteToCard: {
         noteId: d.id,
@@ -1685,7 +1685,7 @@ function tr(e, n, o = {}) {
       if (h || e.nodes.one(y) !== X) return;
       const ee = () => e.selectNodes?.([X]);
       typeof e.withoutAnnouncements == "function" ? e.withoutAnnouncements(ee) : ee();
-    }), e.announce?.(`${u.label} is now a note on the canvas. ${w.label}: ${we(t, w.id)}.`);
+    }), e.announce?.(`${u.label} is now a note on the canvas. ${w.label}: ${ge(t, w.id)}.`);
     const Re = () => {
       e.nodes.one(y) === X && (e.beginHostStep?.(), Ve(() => e.removeNode(y)), e.endHostStep?.());
     };
@@ -1901,7 +1901,7 @@ function tr(e, n, o = {}) {
     const u = le(l);
     if (u?.kind === "lane") {
       const w = i.lanes.find((I) => I.id === u.key);
-      return w ? `${w.label}, ${we(i, w.id)}` : null;
+      return w ? `${w.label}, ${ge(i, w.id)}` : null;
     }
     if (u?.kind === "card") {
       const w = i.cards.find((c) => c.id === u.key), I = w && i.lanes.find((c) => c.id === w.laneId);
@@ -2007,7 +2007,7 @@ const bo = ["launch-plan", "pipeline", "budget", "hiring-plan"];
 function Z(e) {
   return bo.includes(e.kind) ? e.kind : void 0;
 }
-function ge(e) {
+function ye(e) {
   if (!e || typeof e != "object" || Array.isArray(e)) throw new Error("Expected a workshop object.");
   return e;
 }
@@ -2018,7 +2018,7 @@ function ue(e, n = 80) {
   return e.trim();
 }
 function xt(e) {
-  const n = ge(e);
+  const n = ye(e);
   let o;
   try {
     o = new URL(ue(n.src, 2048));
@@ -2036,7 +2036,7 @@ function fe(e) {
 }
 const vo = /^(?:#[0-9a-fA-F]{3,8}|rgba?\(\s*[\d.]+%?\s*,\s*[\d.]+%?\s*,\s*[\d.]+%?\s*(?:,\s*[\d.]+%?\s*)?\)|transparent|[a-zA-Z]{3,20})$/, xo = /^[A-Za-z0-9 ,'"_-]{1,120}$/;
 function Ue(e) {
-  const n = ge(e), o = {}, t = (a) => {
+  const n = ye(e), o = {}, t = (a) => {
     if (typeof a != "string" || !vo.test(a)) throw new Error("Use a colour such as #f0f0f0 for a card.");
     return a;
   }, s = (a, m, g) => {
@@ -2060,7 +2060,7 @@ function Io(e) {
   return Ue(n);
 }
 function Fn(e) {
-  const n = ge(e), o = {};
+  const n = ye(e), o = {};
   if (n.text !== void 0) {
     if (typeof n.text != "string" || n.text.length > 400 || /[<>\u0000-\u0009\u000b-\u001f]/.test(n.text)) throw new Error("A card keeps plain words only.");
     o.text = n.text;
@@ -2107,17 +2107,17 @@ function or(e) {
 }
 const It = 5, Ct = 24, Ln = 3;
 function Y(e) {
-  const n = ge(e);
+  const n = ye(e);
   if (n.version !== 1) throw new Error("Unsupported workshop version.");
   if (n.kind !== void 0 && n.kind !== "release-plan" && !Z(n)) throw new Error("Unsupported workshop kind.");
-  const o = n.kind === "release-plan", t = Z(n), s = t ? ye(t) : void 0, a = { id: fe }, m = ue(n.title, 120);
+  const o = n.kind === "release-plan", t = Z(n), s = t ? he(t) : void 0, a = { id: fe }, m = ue(n.title, 120);
   if (!Array.isArray(n.lanes) || n.lanes.length < 2 || n.lanes.length > It)
     throw new Error("A workshop needs 2 to 5 lanes.");
   if (!Array.isArray(n.cards) || n.cards.length > Ct)
     throw new Error("A workshop supports up to 24 cards.");
   if (s && n.cards.length > s.cards[0]) throw new Error(s.cards[1]);
   const g = n.lanes.map((h) => {
-    const k = ge(h), S = { id: fe(k.id), label: ue(k.label) };
+    const k = ye(h), S = { id: fe(k.id), label: ue(k.label) };
     if (k.capacity !== void 0 && t && t !== "pipeline") throw new Error("Only a pipeline's stages hold a set number of cards.");
     if (k.capacity !== void 0) {
       const x = o ? 576 : 24;
@@ -2126,7 +2126,7 @@ function Y(e) {
       S.capacity = k.capacity;
     }
     if (s?.readLane?.(k, S, a), k.station !== void 0) {
-      const x = ge(k.station), D = (E) => {
+      const x = ye(k.station), D = (E) => {
         if (typeof E != "number" || !Number.isInteger(E) || E < 0 || E >= Ln)
           throw new Error("Use map coordinates from 0 to 2.");
         return E;
@@ -2147,7 +2147,7 @@ function Y(e) {
       if (h.station.next.some((k) => k === h.id || !C.includes(k))) throw new Error("Connect each stop to another station on this map.");
   }
   const P = n.cards.map((h) => {
-    const k = ge(h), S = { id: fe(k.id), label: ue(k.label), laneId: fe(k.laneId) };
+    const k = ye(h), S = { id: fe(k.id), label: ue(k.label), laneId: fe(k.laneId) };
     if (!C.includes(S.laneId)) throw new Error("Card refers to an unknown lane.");
     if (k.allowedLaneIds !== void 0) {
       if (!Array.isArray(k.allowedLaneIds) || k.allowedLaneIds.length > g.length) throw new Error("Invalid allowed lanes.");
@@ -2175,7 +2175,7 @@ function Y(e) {
   Te(P.map((h) => h.id), "card ID");
   const v = { version: 1, title: m, lanes: g, cards: P };
   if (n.experience !== void 0) {
-    const h = ge(n.experience);
+    const h = ye(n.experience);
     if (h.version !== 1 || h.kind !== "customer-interviews" && h.kind !== "experiment-budget")
       throw new Error("Unsupported workshop experience.");
     v.experience = { version: 1, kind: h.kind };
@@ -2183,7 +2183,7 @@ function Y(e) {
   if (n.signals !== void 0) {
     if (!Array.isArray(n.signals) || n.signals.length > 24) throw new Error("A workshop supports up to 24 placement outcomes.");
     v.signals = n.signals.map((h) => {
-      const k = ge(h), S = fe(k.cardId), x = fe(k.laneId);
+      const k = ye(h), S = fe(k.cardId), x = fe(k.laneId);
       if (!P.some((D) => D.id === S) || !C.includes(x))
         throw new Error("Each placement outcome must refer to a card and lane on this board.");
       return {
@@ -2234,7 +2234,7 @@ function ar(e) {
 }
 function jn(e, n, o) {
   const t = Z(e);
-  return t ? ye(t).planMove(e, n, o) : void 0;
+  return t ? he(t).planMove(e, n, o) : void 0;
 }
 function cn(e, n) {
   if (Z(e)) return e.lanes.filter((t) => jn(e, n.id, t.id));
@@ -2281,7 +2281,7 @@ function tn(e, n, o) {
   }
   const s = e.cards.find((h) => h.id === n), a = e.lanes.find((h) => h.id === o);
   if (!s || !a) return "That move is not available.";
-  const m = Z(e), g = m && ye(m).refusal;
+  const m = Z(e), g = m && he(m).refusal;
   if (g) return g(e, n, o);
   const C = `This card can't go in ${a.label}.`;
   if (s.allowedLaneIds && !s.allowedLaneIds.includes(o)) return C;
@@ -2355,7 +2355,7 @@ function De(e, n, o, t) {
   return Y({ ...e, cards: C });
 }
 function At(e, n, o) {
-  const t = ye(Z(e)).fromNote(e, o.label);
+  const t = he(Z(e)).fromNote(e, o.label);
   if (typeof t == "string") return t;
   const s = Ne(e, [{ kind: "add_card", lane: { id: n }, ...t }]);
   if ("refused" in s) return s.refused.reason;
@@ -2366,11 +2366,11 @@ function $t(e, n) {
   if (e.kind === "release-plan") return n.label + `
 ` + n.points + " points";
   const o = Z(e);
-  return o ? ye(o).cardText(e, n) : n.label;
+  return o ? he(o).cardText(e, n) : n.label;
 }
 function To(e, n) {
   const o = Z(e);
-  return o ? ye(o).noteText(e, n) : n.label;
+  return o ? he(o).noteText(e, n) : n.label;
 }
 function rn(e, n) {
   const o = e.cards.find((t) => t.id === n);
@@ -2393,7 +2393,7 @@ function ft(e, n) {
   });
   return Y({ ...e, cards: o });
 }
-function we(e, n) {
+function ge(e, n) {
   const o = e.lanes.find((g) => g.id === n);
   if (!o) return "";
   if (e.kind === "release-plan") {
@@ -2401,7 +2401,7 @@ function we(e, n) {
     return o.capacity ? g + " / " + o.capacity + " points" : g + " points";
   }
   const t = Z(e);
-  if (t) return ye(t).caption(e, n);
+  if (t) return he(t).caption(e, n);
   const s = _o(e, n);
   if (s) return "$" + s.amount + " · " + s.description;
   const a = e.cards.filter((g) => g.laneId === n).length, m = e.behaviour ? ce().laneLimit(e, n) : o.capacity;
@@ -2584,7 +2584,7 @@ function Lo(e, n) {
       fontSize: mt(T.label, z, t - 16, 50)
     }), p({
       id: Lt(T.id),
-      text: we(e, T.id),
+      text: ge(e, T.id),
       name: T.label,
       xPos: U + 8,
       yPos: j + 66,
@@ -2878,7 +2878,7 @@ export {
   ct as workshopDestinations,
   Pn as workshopEditKinds,
   $n as workshopFinder,
-  we as workshopLaneCaption,
+  ge as workshopLaneCaption,
   We as workshopLanePlaces,
   hn as workshopLayout,
   ne as workshopNodeIds,
@@ -2890,7 +2890,7 @@ export {
   to as workshopReferences,
   tn as workshopRefusal,
   ot as workshopRuleSchema,
-  ye as workshopRules,
+  he as workshopRules,
   Uo as workshopRulesLoaded,
   Et as workshopStandInId,
   on as workshopTakesNotes,

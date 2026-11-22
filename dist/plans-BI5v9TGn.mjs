@@ -1,17 +1,17 @@
 import { workshopEditKinds as z, workshopRuleSchema as P, registerWorkshopRules as en, said as p } from "./workshop-model.mjs";
-const v = 864e5, On = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], Y = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const v = 864e5, Cn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], Y = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function m(n) {
   if (typeof n != "string" || !/^\d{4}-\d{2}-\d{2}$/.test(n)) return NaN;
   const e = Date.UTC(+n.slice(0, 4), +n.slice(5, 7) - 1, +n.slice(8, 10));
   return new Date(e).toISOString().slice(0, 10) === n ? e : NaN;
 }
-const tn = (n, e) => new Date(m(n) + Math.round(e) * v).toISOString().slice(0, 10), R = (n, e) => Math.round((m(e) - m(n)) / v), Cn = (n, e) => new Date(m(n) + Math.floor(e) * v).getUTCDay(), an = (n, e) => {
-  const t = Cn(n, e);
+const tn = (n, e) => new Date(m(n) + Math.round(e) * v).toISOString().slice(0, 10), R = (n, e) => Math.round((m(e) - m(n)) / v), Mn = (n, e) => new Date(m(n) + Math.floor(e) * v).getUTCDay(), an = (n, e) => {
+  const t = Mn(n, e);
   return t === 0 || t === 6;
 };
 function $(n, e) {
   const t = new Date(m(n) + Math.floor(e) * v);
-  return On[t.getUTCDay()] + " " + t.getUTCDate() + " " + Y[t.getUTCMonth()];
+  return Cn[t.getUTCDay()] + " " + t.getUTCDate() + " " + Y[t.getUTCMonth()];
 }
 function L(n) {
   const e = new Date(m(n));
@@ -21,7 +21,7 @@ function J(n) {
   const e = m(n) || Date.UTC((/* @__PURE__ */ new Date()).getUTCFullYear(), (/* @__PURE__ */ new Date()).getUTCMonth(), (/* @__PURE__ */ new Date()).getUTCDate()), t = new Date(e).toISOString().slice(0, 10);
   return tn(t, (8 - new Date(e).getUTCDay()) % 7);
 }
-function Mn(n, e, t = 0) {
+function Tn(n, e, t = 0) {
   const a = e.trim().replace(/[,.]/g, " ").replace(/\s+/g, " ").toLowerCase();
   if (m(a)) return R(n, a);
   const s = (d) => Y.findIndex((h) => d.startsWith(h.toLowerCase())), i = new Date(m(n) + t * v);
@@ -46,9 +46,9 @@ function Mn(n, e, t = 0) {
   }
   return null;
 }
-const Tn = { cal: (n) => n, idx: (n) => n }, Q = /* @__PURE__ */ new Map();
+const Sn = { cal: (n) => n, idx: (n) => n }, Q = /* @__PURE__ */ new Map();
 function sn(n) {
-  if (!n?.workdays) return Tn;
+  if (!n?.workdays) return Sn;
   const e = Q.get(n.origin);
   if (e) return e;
   const t = [];
@@ -73,31 +73,31 @@ function C(n) {
   if (n.clock)
     return { origin: n.clock.origin, workdays: !!n.behaviour?.rules.some((e) => e.on && e.kind === "workdays") };
 }
-const Sn = /(?:^|\s)(\d{1,3}(?:[.,]\d+)?)\s*(d|days?|w|wks?|weeks?)\b\.?/i, Dn = /(?:^|\s)([$€£¥])?\s?(\d+(?:[.,]\d+)?)\s*([kKmM])?(?=\s|$|[.,;])/g;
+const Dn = /(?:^|\s)(\d{1,3}(?:[.,]\d+)?)\s*(d|days?|w|wks?|weeks?)\b\.?/i, En = /(?:^|\s)([$€£¥])?\s?(\d+(?:[.,]\d+)?)\s*([kKmM])?(?=\s|$|[.,;])/g;
 function on(n) {
   let e = String(n ?? "").replace(/\s+/g, " ").trim();
-  const t = { label: e }, a = Sn.exec(e);
+  const t = { label: e }, a = Dn.exec(e);
   if (a) {
     const o = Number(a[1].replace(",", ".")), r = /^w/i.test(a[2]);
     t.days = Math.max(1, Math.ceil(r ? o * 5 : o)), e = e.slice(0, a.index) + " " + e.slice(a.index + a[0].length);
   }
-  const s = [...e.matchAll(Dn)].filter((o) => o[1] || o[3] || Number(o[2].replace(",", "")) >= 1e3), i = s.find((o) => o[1] || o[3]) ?? s[0];
+  const s = [...e.matchAll(En)].filter((o) => o[1] || o[3] || Number(o[2].replace(",", "")) >= 1e3), i = s.find((o) => o[1] || o[3]) ?? s[0];
   if (i) {
     const o = /k/i.test(i[3] ?? "") ? 1e3 : /m/i.test(i[3] ?? "") ? 1e6 : 1;
     t.amount = Math.round(Number(i[2].replace(",", i[3] ? "." : "")) * o), i[1] && (t.currency = i[1]), e = e.slice(0, i.index) + " " + e.slice(i.index + i[0].length);
   }
   return t.label = e.replace(/\s+/g, " ").replace(/\s*[·,;:-]\s*$/, "").trim(), t;
 }
-function En(n, e = "$") {
+function $n(n, e = "$") {
   const t = n < 0 ? "-" : "", a = Math.abs(n), s = (o, r) => (Math.round(o * 10) / 10).toString() + r, i = a >= 1e6 ? s(a / 1e6, "M") : a >= 1e3 ? s(a / 1e3, "k") : String(Math.round(a));
   return t + e + i;
 }
-const j = (n) => n + (n === 1 ? " day" : " days"), ne = { field: "amount", min: 0, max: 1e9, reasons: { min: "An amount is not below zero.", max: "An amount is at most 1,000,000,000." } };
-function $n(n) {
+const j = (n) => n + (n === 1 ? " day" : " days"), ee = { field: "amount", min: 0, max: 1e9, reasons: { min: "An amount is not below zero.", max: "An amount is at most 1,000,000,000." } };
+function Ln(n) {
   const e = on(n);
   return e.label ? e : "A card needs some words as well as a number.";
 }
-function Ln(n) {
+function _n(n) {
   const e = on(n);
   return e.label ? e : { label: n };
 }
@@ -111,7 +111,7 @@ function w(n, e, t, a, s = !1) {
   if (typeof n != "number" || !Number.isFinite(n) || n < e || n > t || !s && !Number.isInteger(n)) throw new Error(a);
   return n;
 }
-function ee(n) {
+function te(n) {
   if (typeof n != "string" || !/^(?:[$€£¥₹]|[A-Z]{3} )$/.test(n)) throw new Error("Use a currency sign such as $ or €.");
   return n;
 }
@@ -173,7 +173,7 @@ function hn(n) {
   const e = n.behaviour?.rules.find((t) => t.on && t.kind === "snap");
   return e && e.kind === "snap" && e.unit === "week" ? C(n)?.workdays ? 5 : 7 : 1;
 }
-function _n(n, e) {
+function Nn(n, e) {
   const t = /* @__PURE__ */ new Set(), a = (s) => {
     for (const i of n.cards) i.dependsOn?.includes(s) && !t.has(i.id) && (t.add(i.id), a(i.id));
   };
@@ -231,7 +231,7 @@ function B(n) {
   }
   return D;
 }
-const gn = (n) => n >= D ? "10 years or more" : n + (n === 1 ? " month" : " months"), F = (n) => n.charAt(0).toUpperCase() + n.slice(1), Nn = (n) => n.length > 1 ? n.slice(0, -1).join(", ") + " and " + n.at(-1) : n[0] ?? "", K = (n, e) => n.lanes.find((t) => t.id === e)?.label ?? e ?? "", Z = (n) => n.kind === "hiring-plan" ? "Hires" : "Tasks";
+const gn = (n) => n >= D ? "10 years or more" : n + (n === 1 ? " month" : " months"), F = (n) => n.charAt(0).toUpperCase() + n.slice(1), Un = (n) => n.length > 1 ? n.slice(0, -1).join(", ") + " and " + n.at(-1) : n[0] ?? "", K = (n, e) => n.lanes.find((t) => t.id === e)?.label ?? e ?? "", Z = (n) => n.kind === "hiring-plan" ? "Hires" : "Tasks";
 function O(n, e) {
   const t = n.severity === "warn";
   switch (n.kind) {
@@ -253,18 +253,18 @@ function O(n, e) {
       return "A slip " + (n.onConflict === "stop" ? "stops at" : "pushes") + " the " + Z(e).toLowerCase() + " that wait on it.";
     case "locked": {
       const a = n.cards.map((s) => e.cards.find((i) => i.id === s)?.label ?? s);
-      return Nn(a) + (a.length > 1 ? " are" : " is") + " locked.";
+      return Un(a) + (a.length > 1 ? " are" : " is") + " locked.";
     }
   }
   return "";
 }
-const te = ["deadline", "overlap", "snap", "workdays", "blackout", "cascade", "locked"], V = ["locked", "cascade", "blackout", "overlap", "snap", "deadline"], Un = (n, e) => (n.dependsOn ?? []).join() === (e.dependsOn ?? []).join();
+const ae = ["deadline", "overlap", "snap", "workdays", "blackout", "cascade", "locked"], V = ["locked", "cascade", "blackout", "overlap", "snap", "deadline"], zn = (n, e) => (n.dependsOn ?? []).join() === (e.dependsOn ?? []).join();
 function pn(n, e) {
   const t = (n.behaviour?.rules ?? []).filter((c) => c.on).sort((c, u) => V.indexOf(c.kind) - V.indexOf(u.kind)), a = [];
   if (!t.length) return { ok: !0, warnings: a };
   const s = k(n), i = k(e), o = new Map(n.cards.map((c) => [c.id, c])), r = e.cards.filter((c) => {
     const u = o.get(c.id);
-    return !u || (u.lag ?? 0) !== (c.lag ?? 0) || u.duration !== c.duration || u.laneId !== c.laneId || !Un(u, c);
+    return !u || (u.lag ?? 0) !== (c.lag ?? 0) || u.duration !== c.duration || u.laneId !== c.laneId || !zn(u, c);
   }), l = e.cards.filter((c) => {
     const u = i.get(c.id), f = s.get(c.id);
     return !f || u.from !== f.from || u.to !== f.to || o.get(c.id).laneId !== c.laneId;
@@ -329,7 +329,7 @@ function pn(n, e) {
   }
   return { ok: !0, warnings: a };
 }
-const zn = (n) => {
+const Pn = (n) => {
   if (typeof n != "string" || !n.trim() || n.trim().length > 40 || /[<>\u0000-\u001f]/.test(n)) throw new Error("Name the freeze in plain words, up to 40 letters.");
   return n.trim();
 };
@@ -358,7 +358,7 @@ function mn(n) {
         case "blackout": {
           if (!m(e.start) || !m(e.end) || m(e.end) < m(e.start)) throw new Error("A freeze runs from one date to the same or a later one.");
           if (m(e.end) - m(e.start) > 92 * 864e5) throw new Error("A freeze lasts up to 3 months.");
-          Object.assign(o, { start: e.start, end: e.end, label: zn(e.label) });
+          Object.assign(o, { start: e.start, end: e.end, label: Pn(e.label) });
           break;
         }
         case "cascade":
@@ -392,12 +392,12 @@ function mn(n) {
     builtIn: (e) => e.kind === "launch-plan" && !e.behaviour ? ["Every task ends by " + x(e) + ".", "A slip pushes the tasks that wait on it."] : []
   };
 }
-function ae(n) {
+function se(n) {
   if (n.kind !== "launch-plan") return /* @__PURE__ */ new Set();
   const e = M(n);
   return new Set([...k(n)].filter(([, t]) => t.end > e).map(([t]) => t));
 }
-const Pn = mn({ deadline: "at", overlap: "lane", snap: "unit", workdays: "", blackout: "start end label", cascade: "onConflict", locked: "cards" }), Fn = { anyOf: [{ type: "string", minLength: 1, maxLength: 200 }, { type: "object", additionalProperties: !1, required: ["id"], properties: { id: { type: "string", minLength: 1, maxLength: 64 } } }] }, G = { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" };
+const Fn = mn({ deadline: "at", overlap: "lane", snap: "unit", workdays: "", blackout: "start end label", cascade: "onConflict", locked: "cards" }), Rn = { anyOf: [{ type: "string", minLength: 1, maxLength: 200 }, { type: "object", additionalProperties: !1, required: ["id"], properties: { id: { type: "string", minLength: 1, maxLength: 64 } } }] }, G = { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" };
 dn({
   boards: { add_rule: ["launch-plan", "hiring-plan"], set_rule: ["launch-plan", "hiring-plan"], remove_rule: ["launch-plan", "hiring-plan"] },
   fields: { set_rule: {
@@ -415,7 +415,7 @@ dn({
       end: G,
       label: { type: "string", minLength: 1, maxLength: 40 },
       onConflict: { enum: ["push", "stop"] },
-      cards: { type: "array", items: Fn, minItems: 1, maxItems: 6 }
+      cards: { type: "array", items: Rn, minItems: 1, maxItems: 6 }
     }
   }
 });
@@ -423,6 +423,18 @@ function yn(n, e, t) {
   if (!n.behaviour) return n.kind === "launch-plan" ? I(e, t) : null;
   const a = pn(n, e);
   return "refused" in a ? a.refused.sentence : null;
+}
+function kn(n, e) {
+  const t = JSON.stringify;
+  if (t(n.clock) !== t(e.clock)) return "A plan keeps its first day. Move tasks, or launch, instead.";
+  if (n.launch?.name !== e.launch?.name) return "A plan keeps what it calls its line.";
+  const a = (i) => {
+    const o = i.hiring;
+    return t(o && [o.cash, o.burn, o.currency, o.weeks, o.funding?.amount, o.bands.map((r) => [r.id, r.label, r.lane])]);
+  };
+  if (a(n) !== a(e)) return "A hiring plan keeps its cash, burn, round and role bands. Say what a band costs, or when the round closes, instead.";
+  const s = (i) => t(i.cards.map((o) => [o.id, o.laneId, o.lag, o.duration, o.dependsOn, o.band]));
+  return t(n.behaviour?.rules) !== t(e.behaviour?.rules) && s(n) !== s(e) ? "Change the rules on their own, then move tasks." : null;
 }
 function H(n, e, t) {
   let a = { ...n, cards: n.cards.map((s) => {
@@ -437,11 +449,11 @@ function H(n, e, t) {
   }
   return yn(n, a, e) ?? a;
 }
-const kn = {
-  day: (n, e, t = 0) => n.clock ? Mn(n.clock.origin, e, t) : null,
+const wn = {
+  day: (n, e, t = 0) => n.clock ? Tn(n.clock.origin, e, t) : null,
   iso: (n, e) => tn(n.clock.origin, e),
   name: (n, e) => b(n, e)
-}, wn = (n) => JSON.stringify(n.cards.map((e) => [X(n, e.id, "lag"), X(n, e.id, "duration")]));
+}, bn = (n) => JSON.stringify(n.cards.map((e) => [X(n, e.id, "lag"), X(n, e.id, "duration")]));
 function X(n, e, t, a) {
   const s = hn(n), i = n.kind === "hiring-plan", o = t === "duration" ? i ? 140 : 60 : i ? 728 : _(n) ? n.launch.day : 120, r = [];
   for (let l = t === "duration" ? s : 0; l <= o; l += s) {
@@ -451,7 +463,7 @@ function X(n, e, t, a) {
   }
   return r;
 }
-function Rn(n) {
+function jn(n) {
   if (n.lanes.length > 4) return "A launch plan has 2 to 4 teams.";
   if (n.cards.length < 1 || n.cards.length > 12) return "A launch plan has 1 to 12 tasks.";
   const e = n.launch?.day;
@@ -459,7 +471,7 @@ function Rn(n) {
   const t = _(n);
   for (const i of n.cards) {
     if (!Number.isInteger(i.duration) || i.duration < 1 || i.duration > 60) return "A task takes 1 to 60 days.";
-    if (!Number.isInteger(i.lag ?? 0) || (i.lag ?? 0) < 0 || (i.lag ?? 0) > (t ? e : 120)) return "A task waits 0 days or more, and no later than launch.";
+    if (!Number.isInteger(i.lag ?? 0) || (i.lag ?? 0) < 0 || (i.lag ?? 0) > 120) return "A task waits 0 days or more, and no later than launch.";
     if ((i.dependsOn?.length ?? 0) > 3) return "A task waits on up to 3 others.";
     if (i.dependsOn?.includes(i.id)) return "A task can't wait on itself.";
   }
@@ -476,22 +488,22 @@ function Rn(n) {
   }
   return null;
 }
-function bn(n, e, t) {
+function vn(n, e, t) {
   const a = n.cards.find((s) => s.id === e);
   return !a || !n.lanes.some((s) => s.id === t) ? null : a.laneId === t ? n : { ...n, cards: n.cards.map((s) => s === a ? { ...a, laneId: t } : s) };
 }
-function se(n, e, t) {
-  return bn(n, e, t) ? "" : "That move is not available.";
+function ie(n, e, t) {
+  return vn(n, e, t) ? "" : "That move is not available.";
 }
-function jn(n, e, t) {
+function Wn(n, e, t) {
   const a = n.cards.find((i) => i.id === e), s = n.cards.find((i) => i.id === t);
-  return !a || !s ? "That task is no longer on the plan." : a === s ? "A task can't wait on itself." : a.dependsOn?.includes(s.id) ? `${a.label} already waits on ${s.label}.` : _n(n, a.id).has(s.id) ? `${s.label} already waits on ${a.label}, so ${a.label} can't wait on ${s.label}.` : (a.dependsOn?.length ?? 0) >= 3 ? `${a.label} already waits on 3 tasks.` : yn(n, W(n, e, t), e);
+  return !a || !s ? "That task is no longer on the plan." : a === s ? "A task can't wait on itself." : a.dependsOn?.includes(s.id) ? `${a.label} already waits on ${s.label}.` : Nn(n, a.id).has(s.id) ? `${s.label} already waits on ${a.label}, so ${a.label} can't wait on ${s.label}.` : (a.dependsOn?.length ?? 0) >= 3 ? `${a.label} already waits on 3 tasks.` : yn(n, W(n, e, t), e);
 }
-function Wn(n, e) {
+function Bn(n, e) {
   const t = k(n), a = n.cards.filter((i) => i.laneId === e), s = a.filter((i) => t.get(i.id).critical).length;
   return `${a.length} ${a.length === 1 ? "task" : "tasks"} · ${s} on the critical path`;
 }
-function vn(n, e) {
+function An(n, e) {
   const t = n.launch.day;
   if (e.field === "day") {
     const h = k(n), c = cn(n), u = n.cards.find((g) => h.get(g.id).end === c), f = u ? h.get(u.id).to : 0;
@@ -516,10 +528,10 @@ function vn(n, e) {
     }
   };
 }
-function Bn(n) {
+function Hn(n) {
   return n.label + " · " + j(n.duration ?? 1);
 }
-function ie() {
+function oe() {
   return {
     version: 1,
     kind: "launch-plan",
@@ -534,11 +546,11 @@ function ie() {
     ]
   };
 }
-const Hn = (n = "Slatebox") => ({ by: n, at: "2026-11-21T00:00:00.000Z", via: "preset" });
+const Yn = (n = "Slatebox") => ({ by: n, at: "2026-11-21T00:00:00.000Z", via: "preset" });
 function q(n) {
-  return { version: 1, rev: 0, rules: n.map((e, t) => ({ id: "rule-" + (t + 1), on: !0, severity: "refuse", set: Hn(), ...e })) };
+  return { version: 1, rev: 0, rules: n.map((e, t) => ({ id: "rule-" + (t + 1), on: !0, severity: "refuse", set: Yn(), ...e })) };
 }
-function oe(n) {
+function re(n) {
   return {
     version: 1,
     kind: "launch-plan",
@@ -556,7 +568,7 @@ function oe(n) {
     behaviour: q([{ kind: "workdays" }, { kind: "deadline", at: "launch" }, { kind: "cascade", onConflict: "push" }])
   };
 }
-function re(n) {
+function le(n) {
   return {
     version: 1,
     kind: "launch-plan",
@@ -575,7 +587,7 @@ function re(n) {
     behaviour: q([{ kind: "workdays" }, { kind: "deadline", at: "launch" }, { kind: "cascade", onConflict: "push" }])
   };
 }
-function An(n, e, t, a) {
+function xn(n, e, t, a) {
   switch (e.kind) {
     case "set_task": {
       const s = t.card(e.card), i = { laneId: s.laneId, cardId: s.id };
@@ -586,7 +598,7 @@ function An(n, e, t, a) {
         const h = e[d];
         if (h === void 0) continue;
         if (Number.isInteger(h) || t.refuse("A task's days are whole days.", i), !n.behaviour && !o) {
-          const f = vn(r, { cardId: s.id, field: d }), g = N(r, { cardId: s.id, field: d }, h);
+          const f = An(r, { cardId: s.id, field: d }), g = N(r, { cardId: s.id, field: d }, h);
           (h < f.min || h > f.max) && t.refuse(h < f.min ? f.reasons.min : I(g, s.id) ?? f.reasons.max, { ...i, limits: f }), r = g;
           continue;
         }
@@ -605,18 +617,19 @@ function An(n, e, t, a) {
       const s = t.card(e.card), i = t.card(e.waitsOn), o = { laneId: s.laneId, cardId: s.id };
       if (e.kind === "unlink_tasks")
         return s.dependsOn?.includes(i.id) || t.refuse(p(s.label) + " doesn’t wait on " + p(i.label) + ".", o), t.done(t.settle(W(n, s.id, i.id, !0), s.laneId, s.id), p(s.label) + " no longer waits on " + p(i.label) + ".", o);
-      const r = jn(n, s.id, i.id);
+      const r = Wn(n, s.id, i.id);
       return r && t.refuse(r, o), t.done(t.settle(W(n, s.id, i.id), s.laneId, s.id), p(s.label) + " now waits on " + p(i.label) + ".", o);
     }
   }
   return null;
 }
-const Yn = {
+const Jn = {
   kind: "launch-plan",
   cards: [12, "A launch plan holds up to 12 tasks."],
-  rulebook: Pn,
-  drags: wn,
-  words: kn,
+  rulebook: Fn,
+  drags: bn,
+  fixed: kn,
+  words: wn,
   readCard(n, e, t) {
     if (e.duration = w(n.duration, 1, 60, "A task takes 1 to 60 days."), n.lag !== void 0 && n.lag !== 0 && (e.lag = w(n.lag, 0, 120, "A task waits 0 days or more, and no later than launch.")), n.dependsOn !== void 0) {
       if (!Array.isArray(n.dependsOn)) throw new Error("A task waits on a list of tasks.");
@@ -631,19 +644,19 @@ const Yn = {
       if (typeof t.name != "string" || !/^[a-z][a-z -]{1,23}$/i.test(t.name)) throw new Error("Name the line in a word or two, such as go-live.");
       e.launch.name = t.name.toLowerCase();
     }
-    xn(n, e);
+    In(n, e);
   },
-  validate: Rn,
-  planMove: bn,
-  caption: Wn,
+  validate: jn,
+  planMove: vn,
+  caption: Bn,
   cardText: (n, e) => e.label + " · " + e.duration + "d",
-  noteText: (n, e) => Bn(e),
+  noteText: (n, e) => Hn(e),
   fromNote(n, e) {
-    const t = $n(e);
+    const t = Ln(e);
     return typeof t == "string" ? t : { label: t.label, duration: Math.min(60, Math.max(1, t.days ?? 2)) };
   },
   renamed(n, e, t) {
-    const a = Ln(t);
+    const a = _n(t);
     return { label: a.label, edits: a.days !== void 0 ? [{ kind: "set_task", card: { id: e }, duration: a.days }] : [] };
   },
   edit(n, e, t) {
@@ -659,26 +672,26 @@ const Yn = {
         return l && t.refuse(l, { laneId: a.id }), t.done(t.settle(r, a.id), "Added " + p(s) + " to " + p(a.label) + ".", { laneId: a.id, cardId: i.id });
       }
       case "set_launch_day": {
-        const a = vn(n, { field: "day" });
+        const a = An(n, { field: "day" });
         if (!Number.isInteger(e.day) || e.day < a.min || e.day > a.max) {
           const i = N(n, { field: "day" }, e.day);
           t.refuse(e.day < a.min && I(i) || (e.day < a.min ? a.reasons.min : a.reasons.max), { limits: a });
         }
         const s = N(n, { field: "day" }, e.day);
-        return t.done(t.settle(s), Jn(x(n)) + " is now " + b(n, e.day) + ".");
+        return t.done(t.settle(s), Kn(x(n)) + " is now " + b(n, e.day) + ".");
       }
     }
-    return An(n, e, t, (a) => p(a.label) + " now takes " + j(a.duration) + (a.lag ? " and waits " + j(a.lag) + "." : "."));
+    return xn(n, e, t, (a) => p(a.label) + " now takes " + j(a.duration) + (a.lag ? " and waits " + j(a.lag) + "." : "."));
   }
-}, Jn = (n) => n.charAt(0).toUpperCase() + n.slice(1);
-function xn(n, e) {
+}, Kn = (n) => n.charAt(0).toUpperCase() + n.slice(1);
+function In(n, e) {
   if (n.clock === void 0) return;
   const t = n.clock?.origin;
   if (!m(t)) throw new Error("A plan starts on a real date, written as 2026-12-07.");
   e.clock = { origin: t };
 }
-en(Yn);
-const Kn = mn({ deadline: "at floor", snap: "unit", cascade: "onConflict", locked: "cards" }), nn = (n, e, t) => ({ type: "integer", min: e, max: t, about: n });
+en(Jn);
+const qn = mn({ deadline: "at floor", snap: "unit", cascade: "onConflict", locked: "cards" }), nn = (n, e, t) => ({ type: "integer", min: e, max: t, about: n });
 dn({
   kinds: [
     {
@@ -701,8 +714,8 @@ dn({
   boards: { set_task: ["hiring-plan"], link_tasks: ["hiring-plan"], unlink_tasks: ["hiring-plan"] },
   fields: { add_card: { band: { type: "text", max: 40, optional: !0, about: "Hiring plan: the role band (by id or name). Left out, the team’s first band." } } }
 });
-const In = (n, e) => k(n).get(e).to;
-function qn(n, e, t) {
+const On = (n, e) => k(n).get(e).to;
+function Qn(n, e, t) {
   const a = n.cards.find((r) => r.id === e), i = k(n).get(e).start - (a.lag ?? 0), o = Math.max(0, t - (a.duration ?? 7) - i);
   return Math.ceil(o / 7) * 7;
 }
@@ -710,8 +723,8 @@ function S(n, e) {
   const t = e.trim().toLowerCase();
   return n.bands.find((a) => a.id === e) ?? n.bands.find((a) => a.label.toLowerCase() === t) ?? n.bands.find((a) => new RegExp("\\b" + a.label.toLowerCase().replace(/[^a-z0-9 ]/g, "") + "\\b").test(t));
 }
-const Qn = ["salary", "pay", "wage", "cost", "amount", "monthly", "comp", "compensation"];
-function Zn(n) {
+const Zn = ["salary", "pay", "wage", "cost", "amount", "monthly", "comp", "compensation"];
+function Vn(n) {
   if (n.lanes.length > 4) return "A hiring plan has 2 to 4 teams.";
   if (n.cards.length < 1 || n.cards.length > 16) return "A hiring plan has 1 to 16 hires.";
   if (!n.clock) return "A hiring plan starts on a date.";
@@ -728,7 +741,7 @@ function Zn(n) {
   return null;
 }
 const E = (n) => "Runway with these hires: " + gn(B(n));
-function le(n) {
+function de(n) {
   return {
     version: 1,
     kind: "hiring-plan",
@@ -750,14 +763,15 @@ function le(n) {
     behaviour: q([{ kind: "snap", unit: "week" }, { kind: "cascade", onConflict: "push" }])
   };
 }
-const Vn = (n, e) => p(e.label) + " now starts " + $(n.clock.origin, In(n, e.id)) + ", after " + Math.round(e.duration / 7) + " weeks of recruiting. " + E(n) + ".", Gn = {
+const Gn = (n, e) => p(e.label) + " now starts " + $(n.clock.origin, On(n, e.id)) + ", after " + Math.round(e.duration / 7) + " weeks of recruiting. " + E(n) + ".", Xn = {
   kind: "hiring-plan",
   cards: [16, "A hiring plan holds up to 16 hires."],
-  rulebook: Kn,
-  drags: wn,
-  words: { ...kn, startLag: qn, band: (n, e) => S(n.hiring, e) },
+  rulebook: qn,
+  drags: bn,
+  fixed: kn,
+  words: { ...wn, startLag: Qn, band: (n, e) => S(n.hiring, e) },
   readCard(n, e, t) {
-    if (Qn.some((a) => n[a] !== void 0)) throw new Error("Cost is per role band, never per person. Say what the band costs instead.");
+    if (Zn.some((a) => n[a] !== void 0)) throw new Error("Cost is per role band, never per person. Say what the band costs instead.");
     if (e.duration = w(n.duration, 7, 140, "Recruiting takes 1 to 20 weeks."), n.lag !== void 0 && n.lag !== 0 && (e.lag = w(n.lag, 0, 728, "That is further out than the plan runs.")), typeof n.band != "string") throw new Error("Each hire is in a role band.");
     if (e.band = t.id(n.band), n.dependsOn !== void 0) {
       if (!Array.isArray(n.dependsOn)) throw new Error("A hire waits on a list of hires.");
@@ -786,9 +800,9 @@ const Vn = (n, e) => p(e.label) + " now starts " + $(n.clock.origin, In(n, e.id)
       const o = a.funding;
       e.hiring.funding = { day: w(o?.day, 0, 728, "A round closes within two years."), amount: w(o?.amount, 1, 1e10, "A round raises 1 to 10 billion.") };
     }
-    xn(n, e);
+    In(n, e);
   },
-  validate: Zn,
+  validate: Vn,
   planMove(n, e, t) {
     const a = n.cards.find((s) => s.id === e);
     return !a || !n.lanes.some((s) => s.id === t) ? null : a.laneId === t ? n : { ...n, cards: n.cards.map((s) => s === a ? { ...a, laneId: t } : s) };
@@ -797,7 +811,7 @@ const Vn = (n, e) => p(e.label) + " now starts " + $(n.clock.origin, In(n, e.id)
     const t = n.cards.filter((a) => a.laneId === e);
     return t.length + (t.length === 1 ? " hire" : " hires");
   },
-  cardText: (n, e) => e.label + " · " + $(n.clock.origin, In(n, e.id)).replace(/^\w+ /, ""),
+  cardText: (n, e) => e.label + " · " + $(n.clock.origin, On(n, e.id)).replace(/^\w+ /, ""),
   noteText: (n, e) => e.label,
   fromNote(n, e) {
     const t = e.replace(/\s+/g, " ").trim();
@@ -823,7 +837,7 @@ const Vn = (n, e) => p(e.label) + " now starts " + $(n.clock.origin, In(n, e.id)
         const s = S(a, e.band);
         s || t.refuse("There is no role band " + p(e.band) + ". The bands are " + a.bands.map((o) => p(o.label)).join(", ") + ".", { code: "unknown_reference" });
         const i = t.settle({ ...n, hiring: { ...a, bands: a.bands.map((o) => o === s ? { ...o, monthly: e.monthly } : o) } });
-        return t.done(i, p(s.label) + " now costs " + En(e.monthly, a.currency) + " a month. " + E(i) + ".");
+        return t.done(i, p(s.label) + " now costs " + $n(e.monthly, a.currency) + " a month. " + E(i) + ".");
       }
       case "set_funding": {
         a.funding || t.refuse("This plan has no funding round.");
@@ -831,79 +845,80 @@ const Vn = (n, e) => p(e.label) + " now starts " + $(n.clock.origin, In(n, e.id)
         return t.done(s, "The round now closes " + $(n.clock.origin, e.day) + ". " + E(s) + ".");
       }
     }
-    return An(n, e, t, (s, i) => Vn(i, s));
+    return xn(n, e, t, (s, i) => Gn(i, s));
   }
 };
-en(Gn);
+en(Xn);
 export {
-  fn as $,
+  W as $,
   wn as A,
-  X as B,
-  Rn as C,
-  bn as D,
-  se as E,
-  jn as F,
+  bn as B,
+  X as C,
+  jn as D,
+  vn as E,
+  ie as F,
   Wn as G,
-  vn as H,
-  Bn as I,
-  ie as J,
-  q as K,
-  An as L,
-  Yn as M,
-  xn as N,
-  dn as O,
-  k as P,
-  cn as Q,
-  M as R,
-  x as S,
-  b as T,
-  _ as U,
-  un as V,
-  hn as W,
-  _n as X,
-  I as Y,
-  N as Z,
-  W as _,
-  ne as a,
-  O as a0,
-  te as a1,
-  pn as a2,
-  mn as a3,
-  ae as a4,
-  In as a5,
-  qn as a6,
-  S as a7,
-  Zn as a8,
-  E as a9,
-  Gn as aa,
-  B as ab,
-  gn as ac,
-  D as ad,
-  on as ae,
-  j as af,
-  $n as b,
-  ee as c,
+  Bn as H,
+  An as I,
+  Hn as J,
+  oe as K,
+  q as L,
+  xn as M,
+  Jn as N,
+  In as O,
+  dn as P,
+  k as Q,
+  cn as R,
+  M as S,
+  x as T,
+  b as U,
+  _ as V,
+  un as W,
+  hn as X,
+  Nn as Y,
+  I as Z,
+  N as _,
+  ee as a,
+  fn as a0,
+  O as a1,
+  ae as a2,
+  pn as a3,
+  mn as a4,
+  se as a5,
+  On as a6,
+  Qn as a7,
+  S as a8,
+  Vn as a9,
+  E as aa,
+  Xn as ab,
+  B as ac,
+  gn as ad,
+  D as ae,
+  on as af,
+  j as ag,
+  Ln as b,
+  te as c,
   w as d,
   Y as e,
   tn as f,
-  re as g,
-  le as h,
+  le as g,
+  de as h,
   m as i,
   R as j,
   an as k,
-  oe as l,
-  En as m,
+  re as l,
+  $n as m,
   rn as n,
   ln as o,
   $ as p,
   J as q,
-  Ln as r,
+  _n as r,
   L as s,
-  Mn as t,
+  Tn as t,
   sn as u,
   C as v,
-  Cn as w,
+  Mn as w,
   yn as x,
-  H as y,
-  kn as z
+  kn as y,
+  H as z
 };

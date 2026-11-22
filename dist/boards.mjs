@@ -1,10 +1,10 @@
-import { Vec2 as ct, getElementPositionCheap as Dt, translate as Ft, dragSpecToBehavior as Nt, param as V, moreThan as K, lessThan as G, inOrder as It } from "./dragology.mjs";
-import { laneColors as F, workshopDestinations as Mt, workshopCandidate as vt } from "./workshop-model.mjs";
-import { m as W, F as St, H as j, Z as R, Y as X, P as q, u as Ht, v as Lt, W as b, y as zt, U as Ct, a4 as Vt, B as Tt, V as Kt, $ as Gt, S as $t, a2 as Jt, Q, _ as Et, w as ht, j as dt, s as _, f as I, a5 as Ut, ab as Yt, ac as Zt, T as ut } from "./plans-BUBYIcpl.mjs";
-import { a as Rn, d as On, a7 as Pn, c as _n, p as Bn, t as Dn, af as Fn, X as Nn, O as In, g as Hn, a6 as Vn, aa as Kn, h as Gn, i as Jn, R as Un, G as Yn, E as Zn, M as jn, l as Xn, I as qn, e as Qn, n as bn, q as te, b as ne, o as ee, A as ie, L as ae, D as se, x as oe, z as re, K as le, N as ce, ae as he, r as de, ad as ue, a9 as fe, J as xe, a3 as me, a1 as pe, a0 as ye, a8 as ge, C as we, k as ke } from "./plans-BUBYIcpl.mjs";
+import { Vec2 as ct, getElementPositionCheap as Ft, translate as Dt, dragSpecToBehavior as Nt, param as V, moreThan as K, lessThan as G, inOrder as It } from "./dragology.mjs";
+import { laneColors as D, workshopDestinations as Mt, workshopCandidate as vt } from "./workshop-model.mjs";
+import { m as W, G as St, I as j, _ as R, Z as X, Q as q, u as Ht, v as Lt, X as b, z as zt, V as Ct, a5 as Vt, C as Tt, W as Kt, a0 as Gt, T as $t, a3 as Jt, R as Q, $ as Et, w as ht, j as dt, s as _, f as I, a6 as Ut, ac as Yt, ad as Zt, U as ut } from "./plans-BI5v9TGn.mjs";
+import { a as Rn, d as On, a8 as Pn, c as _n, p as Bn, t as Fn, ag as Dn, Y as Nn, P as In, g as Hn, a7 as Vn, ab as Kn, h as Gn, i as Jn, S as Un, H as Yn, F as Zn, N as jn, l as Xn, J as qn, e as Qn, n as bn, q as te, b as ne, o as ee, B as ie, M as ae, y as se, E as oe, x as re, A as le, L as ce, O as he, af as de, r as ue, ae as fe, aa as xe, K as me, a4 as pe, a2 as ge, a1 as ye, a9 as we, D as ke, k as Me } from "./plans-BI5v9TGn.mjs";
 import Y from "react";
 import { pipelineForecast as Wt, pipelineRefusal as jt, pipelineCaption as ft, budgetLimits as Xt, budgetRefusal as qt, budgetCaption as xt, shiftBudget as mt, budgetCommitted as Qt } from "./workshop-rules.mjs";
-import { amountRules as ve, behaviourEditsBetween as Se, budgetRules as Le, budgetShiftLimits as ze, budgetShiftRefusal as Ce, catalogSamples as Te, pipelineLimits as $e, pipelineRules as Ee, planBudgetMove as We, planPipelineMove as Ae, restoreWorkshop as Re, sampleBudget as Oe, samplePipeline as Pe, validateBudget as _e, validatePipeline as Be } from "./workshop-rules.mjs";
+import { amountRules as Se, behaviourEditsBetween as Le, budgetRules as ze, budgetShiftLimits as Ce, budgetShiftRefusal as Te, catalogSamples as $e, pipelineLimits as Ee, pipelineRules as We, planBudgetMove as Ae, planPipelineMove as Re, restoreWorkshop as Oe, sampleBudget as Pe, samplePipeline as _e, validateBudget as Be, validatePipeline as Fe } from "./workshop-rules.mjs";
 const w = {
   ink: "var(--slatebox-board-ink, #34433f)",
   faint: "var(--slatebox-board-grid, #d9ddd5)",
@@ -20,7 +20,7 @@ function $(t, i, n) {
   for (const [s, o] of Object.entries(i)) a.setAttribute(s, String(o));
   return n?.fill && (a.setAttribute("fill", pt(n.fill)), a.style.setProperty("fill", n.fill)), n?.stroke && (a.setAttribute("stroke", pt(n.stroke)), a.style.setProperty("stroke", n.stroke)), a;
 }
-function yt(t, i, n, a) {
+function gt(t, i, n, a) {
   const s = typeof document < "u" ? document.activeElement : null, o = s && t.contains(s) ? s.getAttribute("data-board-link") : null;
   for (; t.firstChild; ) t.removeChild(t.firstChild);
   const l = [];
@@ -124,11 +124,11 @@ function st(t, i) {
     draw(u, c, p) {
       if (o || !n) return;
       l = [u, c, p];
-      const { origin: x } = p, m = i(c ?? u, p, u), d = (y) => y.t === "text" && (y.role === "clamp" || y.role === "refusal");
-      for (const y of [a, s]) y.setAttribute("transform", `translate(${x.x} ${x.y})`);
-      yt(a, m.filter((y) => !d(y)), p.onUnlink, h), yt(s, m.filter(d));
-      const g = p.above && p.above.parentNode === n ? p.above : null, f = g ? g.nextSibling : n.firstChild;
-      (a.parentNode !== n || a.previousSibling !== g) && n.insertBefore(a, f === a ? a.nextSibling : f), s.firstChild && n.lastChild !== s ? n.appendChild(s) : !s.firstChild && s.parentNode && s.remove();
+      const { origin: x } = p, m = i(c ?? u, p, u), d = (g) => g.t === "text" && (g.role === "clamp" || g.role === "refusal");
+      for (const g of [a, s]) g.setAttribute("transform", `translate(${x.x} ${x.y})`);
+      gt(a, m.filter((g) => !d(g)), p.onUnlink, h), gt(s, m.filter(d));
+      const y = p.above && p.above.parentNode === n ? p.above : null, f = y ? y.nextSibling : n.firstChild;
+      (a.parentNode !== n || a.previousSibling !== y) && n.insertBefore(a, f === a ? a.nextSibling : f), s.firstChild && n.lastChild !== s ? n.appendChild(s) : !s.firstChild && s.parentNode && s.remove();
     },
     destroy() {
       o = !0, clearTimeout(e), a.remove(), s.remove();
@@ -141,7 +141,7 @@ function N(t, i = []) {
   return Y.createElement(
     "g",
     null,
-    ...n.map((a) => /* @__PURE__ */ Y.createElement("g", { id: a.name, transform: Ft(a.x, a.y) }, /* @__PURE__ */ Y.createElement("rect", { width: a.width, height: a.height }))),
+    ...n.map((a) => /* @__PURE__ */ Y.createElement("g", { id: a.name, transform: Dt(a.x, a.y) }, /* @__PURE__ */ Y.createElement("rect", { width: a.width, height: a.height }))),
     ...t.filter((a) => i.includes(a.name)).map((a) => /* @__PURE__ */ Y.createElement("rect", { id: "target-" + a.name.slice(5), x: a.x, y: a.y, width: a.width, height: a.height }))
   );
 }
@@ -155,7 +155,7 @@ function A(t, i, n, a, s) {
     startState: t,
     debug: { varyVisualizer: !1 }
   };
-  if (!Dt(e, t) || !o) return null;
+  if (!Ft(e, t) || !o) return null;
   const h = Nt(s(o, t), e);
   return (r) => h({ pointer: ct(r.x, r.y) }).dropState;
 }
@@ -261,8 +261,8 @@ function Ot(t, i) {
 }
 const Pt = "#c2410c", en = 32, an = 44, lt = (t) => t ? 0 : 22;
 function O(t, i = {}) {
-  const n = !!i.narrow, a = t.kind === "hiring-plan", s = q(t), o = a ? t.hiring.weeks * 7 : Ct(t) ? t.launch.day : Math.ceil(t.launch.day * 4 / 3), l = Vt(t), e = [], h = /* @__PURE__ */ new Map(), r = n ? Math.max(300, i.width ?? 390) : Math.max(720, i.width ?? 1200), u = n ? 8 : 168, c = n ? (r - 88) / o : (r - u - 40) / o, p = (f) => F[t.lanes.findIndex((y) => y.id === f) % F.length], x = (f, y) => {
-    const k = t.cards.find((S) => S.id === f), M = s.get(f), v = { x: u + M.from * c, y, width: (M.to - M.from) * c, height: n ? an : en };
+  const n = !!i.narrow, a = t.kind === "hiring-plan", s = q(t), o = a ? t.hiring.weeks * 7 : Ct(t) ? t.launch.day : Math.ceil(t.launch.day * 4 / 3), l = Vt(t), e = [], h = /* @__PURE__ */ new Map(), r = n ? Math.max(300, i.width ?? 390) : Math.max(720, i.width ?? 1200), u = n ? 8 : 168, c = n ? (r - 88) / o : (r - u - 40) / o, p = (f) => D[t.lanes.findIndex((g) => g.id === f) % D.length], x = (f, g) => {
+    const k = t.cards.find((S) => S.id === f), M = s.get(f), v = { x: u + M.from * c, y: g, width: (M.to - M.from) * c, height: n ? an : en };
     h.set(f, v);
     const L = l.has(f);
     e.push({
@@ -275,23 +275,23 @@ function O(t, i = {}) {
       fontSize: 13
     }), a && n || e.push({ name: "handle-" + f, x: v.x + v.width - lt(n), y: v.y + v.height / 2 - 22, width: 44, height: 44 });
   };
-  let m, d, g;
+  let m, d, y;
   if (n) {
     const f = (r - 16 - 8 * (t.lanes.length - 1)) / t.lanes.length;
-    t.lanes.forEach((y, k) => {
+    t.lanes.forEach((g, k) => {
       const M = 8 + k * (f + 8);
-      e.push({ name: "column-" + y.id, x: M, y: 30, width: f, height: 72, fill: z(p(y.id), 0.6), line: z(p(y.id), 0.1) }), e.push({ name: "lane-" + y.id, x: M + 4, y: 34, width: f - 8, height: 28, text: y.label, fill: p(y.id), fontSize: 14 }), e.push({ name: "caption-" + y.id, x: M + 4, y: 64, width: f - 8, height: 34, text: "", fill: "transparent", lineWidth: 0, fontSize: 11 });
-    }), g = 124, d = 130, m = 138;
-    for (const y of t.cards)
-      x(y.id, m + 20), m += 64;
+      e.push({ name: "column-" + g.id, x: M, y: 30, width: f, height: 72, fill: z(p(g.id), 0.6), line: z(p(g.id), 0.1) }), e.push({ name: "lane-" + g.id, x: M + 4, y: 34, width: f - 8, height: 28, text: g.label, fill: p(g.id), fontSize: 14 }), e.push({ name: "caption-" + g.id, x: M + 4, y: 64, width: f - 8, height: 34, text: "", fill: "transparent", lineWidth: 0, fontSize: 11 });
+    }), y = 124, d = 130, m = 138;
+    for (const g of t.cards)
+      x(g.id, m + 20), m += 64;
   } else {
-    g = 48, d = 56, m = d;
+    y = 48, d = 56, m = d;
     for (const f of t.lanes) {
-      const y = t.cards.filter((M) => M.laneId === f.id), k = Math.max(92, y.length * 44 + 20);
-      e.push({ name: "column-" + f.id, x: 0, y: m, width: r, height: k, fill: z(p(f.id), 0.65), line: z(p(f.id), 0.1) }), e.push({ name: "lane-" + f.id, x: 8, y: m + 8, width: u - 24, height: 32, text: f.label, fill: p(f.id), fontSize: 15 }), e.push({ name: "caption-" + f.id, x: 8, y: m + 44, width: u - 24, height: 40, text: "", fill: "transparent", lineWidth: 0, fontSize: 13 }), y.forEach((M, v) => x(M.id, m + 10 + v * 44)), m += k + 4;
+      const g = t.cards.filter((M) => M.laneId === f.id), k = Math.max(92, g.length * 44 + 20);
+      e.push({ name: "column-" + f.id, x: 0, y: m, width: r, height: k, fill: z(p(f.id), 0.65), line: z(p(f.id), 0.1) }), e.push({ name: "lane-" + f.id, x: 8, y: m + 8, width: u - 24, height: 32, text: f.label, fill: p(f.id), fontSize: 15 }), e.push({ name: "caption-" + f.id, x: 8, y: m + 44, width: u - 24, height: 40, text: "", fill: "transparent", lineWidth: 0, fontSize: 13 }), g.forEach((M, v) => x(M.id, m + 10 + v * 44)), m += k + 4;
     }
   }
-  return a ? t.hiring.funding && !n && e.push({ name: "handle-funding", x: u + t.hiring.funding.day * c - 22, y: 4, width: 44, height: 44 }) : e.push({ name: "handle-launch", x: u + t.launch.day * c - 22, y: n ? 104 : 4, width: 44, height: 44 }), { parts: e, width: r, height: m + 8, narrow: n, x0: u, dayW: c, gridTop: d, axisY: g, bars: h };
+  return a ? t.hiring.funding && !n && e.push({ name: "handle-funding", x: u + t.hiring.funding.day * c - 22, y: 4, width: 44, height: 44 }) : e.push({ name: "handle-launch", x: u + t.launch.day * c - 22, y: n ? 104 : 4, width: 44, height: 44 }), { parts: e, width: r, height: m + 8, narrow: n, x0: u, dayW: c, gridTop: d, axisY: y, bars: h };
 }
 function sn(t, i, n) {
   for (const a of i.parts) a.name.startsWith("caption-") && (a.text = n(a.name.slice(8)));
@@ -309,7 +309,7 @@ function rn(t, i) {
     const p = dt(l.origin, c.start), x = dt(l.origin, c.end) + 1, m = n.x0 + Math.max(0, p) * n.dayW, d = (Math.min(o, x) - Math.max(0, p)) * n.dayW;
     if (d <= 0) continue;
     e.push({ t: "rect", x: m, y: n.gridTop, w: d, h: n.height - 8 - n.gridTop, color: w.refuse, opacity: 0.12 });
-    for (let g = m; g < m + d; g += 10) e.push({ t: "line", x1: g, y1: n.gridTop, x2: Math.min(m + d, g + 10), y2: n.gridTop + 10, color: w.refuse, width: 0.6 });
+    for (let y = m; y < m + d; y += 10) e.push({ t: "line", x1: y, y1: n.gridTop, x2: Math.min(m + d, y + 10), y2: n.gridTop + 10, color: w.refuse, width: 0.6 });
     e.push({ t: "text", x: m + 3, y: n.gridTop + 22, text: c.label + " · " + _(c.start) + "–" + _(c.end), color: w.refuse, size: 11, bold: !0 });
   }
   for (let c = 0; c <= o; c++) {
@@ -321,23 +321,23 @@ function rn(t, i) {
   }
   for (const c of t.cards) {
     for (const m of c.dependsOn ?? []) {
-      const d = n.bars.get(m), g = n.bars.get(c.id);
-      if (!d || !g) continue;
-      const f = s.get(m).critical && s.get(c.id).critical, y = t.cards.find((k) => k.id === m).label;
+      const d = n.bars.get(m), y = n.bars.get(c.id);
+      if (!d || !y) continue;
+      const f = s.get(m).critical && s.get(c.id).critical, g = t.cards.find((k) => k.id === m).label;
       e.push({
         t: "path",
-        ...on(d, g),
+        ...on(d, y),
         color: f ? Pt : w.ink,
         width: f ? 2 : 1.5,
-        unlink: { cardId: c.id, waitsOn: m, label: `Remove the link: ${c.label} waits on ${y}` }
+        unlink: { cardId: c.id, waitsOn: m, label: `Remove the link: ${c.label} waits on ${g}` }
       });
     }
     const p = s.get(c.id), x = n.bars.get(c.id);
     if (a) {
-      const m = t.hiring.bands.find((f) => f.id === c.band), d = x.x + x.width, g = n.x0 + o * n.dayW;
-      g > d && e.push({ t: "rect", x: d, y: x.y + x.height / 2 - 3, w: g - d, h: 6, rx: 3, color: w.bar, opacity: 0.45 }), e.push({
+      const m = t.hiring.bands.find((f) => f.id === c.band), d = x.x + x.width, y = n.x0 + o * n.dayW;
+      y > d && e.push({ t: "rect", x: d, y: x.y + x.height / 2 - 3, w: y - d, h: 6, rx: 3, color: w.bar, opacity: 0.45 }), e.push({
         t: "text",
-        x: n.narrow ? 8 : Math.min(d + 6, g - 120),
+        x: n.narrow ? 8 : Math.min(d + 6, y - 120),
         y: n.narrow ? x.y - 6 : x.y + x.height / 2 - 6,
         text: (n.narrow ? c.label + " · " : "") + "starts " + _(I(l.origin, Ut(t, c.id))) + (m ? " · " + W(m.monthly, t.hiring.currency) + "/mo" : ""),
         color: w.ink,
@@ -366,7 +366,7 @@ function rn(t, i) {
       e.push({ t: "line", x1: d, y1: 26, x2: d, y2: n.height - 8, color: w.accept, width: 2, dash: "6 4" }), n.narrow || e.push({ t: "rect", x: d - 4, y: 26, w: 8, h: 18, rx: 4, color: w.accept }), e.push({ t: "text", x: Math.max(d + 8, n.narrow ? 8 : n.x0 + 330), y: n.narrow ? 40 : 20, text: "Round +" + W(m.amount, t.hiring.currency) + " · " + _(I(l.origin, m.day)), color: w.accept, size: 12, bold: !0 });
     }
     if (n.narrow && e.push({ t: "text", x: 8, y: 58, text: "Read-only here: say a change in the chat.", color: w.ink, size: 12 }), i.clamp) {
-      const d = n.parts.find((g) => g.name === i.clamp.name);
+      const d = n.parts.find((y) => y.name === i.clamp.name);
       d && e.push(...wt(n, e, i.clamp.text, d, i.view));
     }
     return e;
@@ -393,7 +393,7 @@ function rn(t, i) {
   }
   return e;
 }
-const Z = 13, gt = 16, _t = (t, i) => t * (i ? 0.64 : 0.6), ln = (t, i) => t.x + t.w <= i.x || i.x + i.w <= t.x || t.y + t.h <= i.y || i.y + i.h <= t.y;
+const Z = 13, yt = 16, _t = (t, i) => t * (i ? 0.64 : 0.6), ln = (t, i) => t.x + t.w <= i.x || i.x + i.w <= t.x || t.y + t.h <= i.y || i.y + i.h <= t.y;
 function cn(t) {
   const i = t.size ?? 13, n = t.text.length * _t(i, t.bold);
   return { x: t.anchor === "end" ? t.x - n : t.anchor === "middle" ? t.x - n / 2 : t.x, y: t.y - i, w: n, h: i * 1.3 };
@@ -417,21 +417,21 @@ function wt(t, i, n, a, s) {
   if (nt?.key === c) return nt.shapes;
   const p = _t(Z, !0), x = Math.floor((e - l) / p), m = /* @__PURE__ */ new Map();
   for (const f of [1, 0.75, 0.6, 0.5, 0.42, 0.36]) {
-    const y = hn(n, Math.max(8, Math.floor(x * f)));
-    y.length <= 4 && m.set(y.join(`
-`), y);
+    const g = hn(n, Math.max(8, Math.floor(x * f)));
+    g.length <= 4 && m.set(g.join(`
+`), g);
   }
   let d = null;
   for (const f of m.values()) {
-    const y = Math.max(...f.map((M) => M.length)) * p, k = f.length * gt + 2;
-    if (!(y > e - l))
+    const g = Math.max(...f.map((M) => M.length)) * p, k = f.length * yt + 2;
+    if (!(g > e - l))
       for (let M = h; M + k <= r; M += 3)
-        for (let v = l; v + y <= e; v += 6) {
-          const L = { x: v, y: M, w: y, h: k }, S = Math.max(L.x - u.x, 0, u.x - (L.x + L.w)), T = Math.max(L.y - u.y, 0, u.y - (L.y + L.h)), J = Math.hypot(S, T) + (f.length - 1) * 24;
+        for (let v = l; v + g <= e; v += 6) {
+          const L = { x: v, y: M, w: g, h: k }, S = Math.max(L.x - u.x, 0, u.x - (L.x + L.w)), T = Math.max(L.y - u.y, 0, u.y - (L.y + L.h)), J = Math.hypot(S, T) + (f.length - 1) * 24;
           d && J >= d.score || o.every((U) => ln(L, U)) && (d = { box: L, lines: f, score: J });
         }
   }
-  const g = d ? [{ t: "text", x: d.box.x, y: d.box.y + Z - 1, text: n, lines: d.lines, lineHeight: gt, color: w.refuse, size: Z, bold: !0, role: "clamp" }] : [{
+  const y = d ? [{ t: "text", x: d.box.x, y: d.box.y + Z - 1, text: n, lines: d.lines, lineHeight: yt, color: w.refuse, size: Z, bold: !0, role: "clamp" }] : [{
     t: "text",
     x: Math.min(a.x + 40, t.width - 4),
     y: a.y + 14,
@@ -442,7 +442,7 @@ function wt(t, i, n, a, s) {
     bold: !0,
     role: "clamp"
   }];
-  return nt = { key: c, shapes: g }, g;
+  return nt = { key: c, shapes: y }, y;
 }
 const P = (t, i = 1, n) => {
   const a = (o, l) => Math.round(o / l) * l, s = { ...t, cards: t.cards.map((o) => {
@@ -514,18 +514,18 @@ const at = {
     if (t.kind === "hiring-plan" && a.narrow) return null;
     if (et(t)) return xn(t, i, n, a, s, o);
     if (i === "handle-launch") {
-      const x = j(t, { field: "day" }), m = A(t, i, n, o, (d, g) => d.vary(g, V("launch", "day"), { constraint: (f) => [K(f.launch.day, Q(f) - 1e-3), G(f.launch.day, 120)] }).onDrop((f) => P(f)));
+      const x = j(t, { field: "day" }), m = A(t, i, n, o, (d, y) => d.vary(y, V("launch", "day"), { constraint: (f) => [K(f.launch.day, Q(f) - 1e-3), G(f.launch.day, 120)] }).onDrop((f) => P(f)));
       return (d) => {
-        const g = Math.round((d.x - n.x + 22 - s.x0) / s.dayW), f = m?.(d) ?? R(t, { field: "day" }, Math.min(x.max, Math.max(x.min, g)));
-        return g < x.min ? { next: f, clampedReason: x.reasons.min, refusal: X(R(t, { field: "day" }, Math.max(5, g))) ?? void 0 } : { next: f };
+        const y = Math.round((d.x - n.x + 22 - s.x0) / s.dayW), f = m?.(d) ?? R(t, { field: "day" }, Math.min(x.max, Math.max(x.min, y)));
+        return y < x.min ? { next: f, clampedReason: x.reasons.min, refusal: X(R(t, { field: "day" }, Math.max(5, y))) ?? void 0 } : { next: f };
       };
     }
     const l = i.slice(7), e = t.cards.findIndex((x) => x.id === l);
     if (e < 0) return null;
     const h = { cardId: l, field: "duration" }, r = j(t, h), u = t.launch.day, c = A(t, i, n, o, (x, m) => x.vary(m, V("cards", e, "duration"), { constraint: (d) => [K(d.cards[e].duration, 1), G(Q(d), u + 1e-3)] }).onDrop((d) => P(d))), p = s.bars.get(l);
     return (x) => {
-      const m = Math.round((x.x - n.x + lt(s.narrow) - p.x) / s.dayW), d = Math.min(r.max, Math.max(r.min, m)), g = c?.(x) ?? R(t, h, d);
-      return m > r.max ? { next: g, clampedReason: `Launch is day ${u}.`, refusal: X(R(t, h, Math.min(60, m)), l) ?? r.reasons.max } : m < r.min ? { next: g, clampedReason: r.reasons.min } : { next: g };
+      const m = Math.round((x.x - n.x + lt(s.narrow) - p.x) / s.dayW), d = Math.min(r.max, Math.max(r.min, m)), y = c?.(x) ?? R(t, h, d);
+      return m > r.max ? { next: y, clampedReason: `Launch is day ${u}.`, refusal: X(R(t, h, Math.min(60, m)), l) ?? r.reasons.max } : m < r.min ? { next: y, clampedReason: r.reasons.min } : { next: y };
     };
   },
   keyEdit: un,
@@ -535,39 +535,39 @@ const at = {
 function fn(t, i, n, a, s, o) {
   const l = b(t), e = Kt(t), h = t.cards[n].laneId, r = (d) => {
     if (!e) return d;
-    const g = Gt(t, d, /* @__PURE__ */ new Set([i]));
-    return typeof g == "string" ? d : g;
-  }, u = (d) => r(P(d, l, i)), c = (d) => N(O(r(d), o).parts, a.map((g) => "card-" + g)), x = (o.narrow ? [h] : t.lanes.map((d) => d.id)).flatMap((d) => Tt(t, i, "lag", d === h ? void 0 : d).map((g) => ({ laneId: d, run: g })));
+    const y = Gt(t, d, /* @__PURE__ */ new Set([i]));
+    return typeof y == "string" ? d : y;
+  }, u = (d) => r(P(d, l, i)), c = (d) => N(O(r(d), o).parts, a.map((y) => "card-" + y)), x = (o.narrow ? [h] : t.lanes.map((d) => d.id)).flatMap((d) => Tt(t, i, "lag", d === h ? void 0 : d).map((y) => ({ laneId: d, run: y })));
   if (!x.length) return () => t;
-  const m = A(t, "card-" + i, s, c, (d, g) => {
-    const f = d.closest(x.map(({ laneId: y, run: [k, M] }) => d.vary(
-      { ...g, cards: g.cards.map((v, L) => L === n ? { ...v, laneId: y, lag: Math.min(M, Math.max(k, v.lag ?? 0)) } : v) },
+  const m = A(t, "card-" + i, s, c, (d, y) => {
+    const f = d.closest(x.map(({ laneId: g, run: [k, M] }) => d.vary(
+      { ...y, cards: y.cards.map((v, L) => L === n ? { ...v, laneId: g, lag: Math.min(M, Math.max(k, v.lag ?? 0)) } : v) },
       V("cards", n, "lag"),
       { constraint: (v) => [K(v.cards[n].lag ?? 0, k - 0.49), G(v.cards[n].lag ?? 0, M + 0.49)] }
     ))).withBranchTransition(100);
-    return a.length ? d.closest(a.map((y) => d.dropTarget("target-" + y, Et(g, i, y)))).withFloating({ ghost: { opacity: 0.35 } }).whenFar(f).withBranchTransition(120).onDrop(u) : f.onDrop(u);
+    return a.length ? d.closest(a.map((g) => d.dropTarget("target-" + g, Et(y, i, g)))).withFloating({ ghost: { opacity: 0.35 } }).whenFar(f).withBranchTransition(120).onDrop(u) : f.onDrop(u);
   });
   return m ? (d) => u(m(d)) : null;
 }
 function xn(t, i, n, a, s, o) {
-  const l = (f, y) => {
+  const l = (f, g) => {
     const k = [];
-    for (const M of f) if (y(M)) {
+    for (const M of f) if (g(M)) {
       const v = k.at(-1);
       v && v[1] === M - (f[1] - f[0]) ? v[1] = M : k.push([M, M]);
     }
     return k;
-  }, e = (f, y, k) => Array.from({ length: Math.floor((y - f) / k) + 1 }, (M, v) => f + v * k), h = (f, y, k, M, v) => A(t, i, n, o, (L, S) => L.closest(k.map(([T, J]) => L.vary(
+  }, e = (f, g, k) => Array.from({ length: Math.floor((g - f) / k) + 1 }, (M, v) => f + v * k), h = (f, g, k, M, v) => A(t, i, n, o, (L, S) => L.closest(k.map(([T, J]) => L.vary(
     S,
     V(...f),
-    { constraint: (U) => [K(y(U), T - 0.49), G(y(U), J + 0.49)] }
-  ))).withBranchTransition(100).onDrop((T) => P(T, M, v))), r = (f, y, k, M) => (v) => {
-    const L = y(v), S = k(L), T = f?.(v) ?? (S ? t : M(L));
+    { constraint: (U) => [K(g(U), T - 0.49), G(g(U), J + 0.49)] }
+  ))).withBranchTransition(100).onDrop((T) => P(T, M, v))), r = (f, g, k, M) => (v) => {
+    const L = g(v), S = k(L), T = f?.(v) ?? (S ? t : M(L));
     return S ? { next: T, clampedReason: S, refusal: S } : { next: T };
   };
   if (i === "handle-launch" || i === "handle-funding") {
-    const f = i === "handle-launch", y = (S) => f ? R(t, { field: "day" }, S) : { ...t, hiring: { ...t.hiring, funding: { ...t.hiring.funding, day: S } } }, k = (S) => f && (S < 5 || S > 120) ? "Launch day is a whole day from 5 to 120." : f && Ct(t) && S < j(t, { field: "day" }).min ? X(y(S)) ?? "Every task ends by " + $t(t) + "." : mn(t, y(S)), M = f ? e(5, 120, 1) : e(0, t.hiring.weeks * 7, 1), v = l(M, (S) => !k(S)), L = v.length ? h(f ? ["launch", "day"] : ["hiring", "funding", "day"], (S) => f ? S.launch.day : S.hiring.funding.day, v, 1) : null;
-    return r(L, (S) => Math.round((S.x - n.x + 22 - s.x0) / s.dayW), k, y);
+    const f = i === "handle-launch", g = (S) => f ? R(t, { field: "day" }, S) : { ...t, hiring: { ...t.hiring, funding: { ...t.hiring.funding, day: S } } }, k = (S) => f && (S < 5 || S > 120) ? "Launch day is a whole day from 5 to 120." : f && Ct(t) && S < j(t, { field: "day" }).min ? X(g(S)) ?? "Every task ends by " + $t(t) + "." : mn(t, g(S)), M = f ? e(5, 120, 1) : e(0, t.hiring.weeks * 7, 1), v = l(M, (S) => !k(S)), L = v.length ? h(f ? ["launch", "day"] : ["hiring", "funding", "day"], (S) => f ? S.launch.day : S.hiring.funding.day, v, 1) : null;
+    return r(L, (S) => Math.round((S.x - n.x + 22 - s.x0) / s.dayW), k, g);
   }
   const u = i.slice(7), c = t.cards.findIndex((f) => f.id === u);
   if (c < 0) return null;
@@ -576,8 +576,8 @@ function xn(t, i, n, a, s, o) {
     d,
     (f) => t.cards[c].duration + Math.round((f.x - n.x + lt(s.narrow) - x.x - x.width) / s.dayW),
     (f) => {
-      const y = zt(t, u, { duration: Math.max(p, Math.round(f / p) * p) });
-      return typeof y == "string" ? y : null;
+      const g = zt(t, u, { duration: Math.max(p, Math.round(f / p) * p) });
+      return typeof g == "string" ? g : null;
     },
     (f) => R(t, { cardId: u, field: "duration" }, f)
   );
@@ -598,8 +598,8 @@ function pn(t, i, n, a, s, o) {
   return h ? (r) => P(h(r)) : null;
 }
 const B = 76;
-function D(t, i = {}) {
-  const n = !!i.narrow, a = [], s = t.lanes.map((h) => t.cards.filter((r) => r.laneId === h.id).length), o = (h) => t.lanes[h].role === "won" ? "#bfe3cf" : t.lanes[h].role === "lost" ? "#e4dcdc" : F[h % F.length];
+function F(t, i = {}) {
+  const n = !!i.narrow, a = [], s = t.lanes.map((h) => t.cards.filter((r) => r.laneId === h.id).length), o = (h) => t.lanes[h].role === "won" ? "#bfe3cf" : t.lanes[h].role === "lost" ? "#e4dcdc" : D[h % D.length];
   let l, e;
   if (n) {
     l = Math.max(300, i.width ?? 390);
@@ -625,8 +625,8 @@ function kt(t, i) {
 no amount yet` : n.label + `
 ` + W(n.amount, t.forecast.currency);
 }
-function yn(t, i) {
-  const { width: n } = D(t, i.layout), a = t.forecast.target, s = Wt(t), o = Math.max(a * 1.25, s), l = n - 8, e = s >= a;
+function gn(t, i) {
+  const { width: n } = F(t, i.layout), a = t.forecast.target, s = Wt(t), o = Math.max(a * 1.25, s), l = n - 8, e = s >= a;
   return [
     { t: "rect", x: 4, y: 42, w: l, h: 14, rx: 7, color: w.track },
     { t: "rect", x: 4, y: 42, w: l * s / o, h: 14, rx: 7, color: e ? w.accept : w.bar },
@@ -634,18 +634,18 @@ function yn(t, i) {
     { t: "text", x: 4 + l * a / o, y: 72, text: "Target " + W(a, t.forecast.currency), color: w.ink, size: 14, anchor: "middle" }
   ];
 }
-const gn = {
+const yn = {
   laneCues: !0,
-  places: (t, i) => D(t, i),
-  notes: (t, i, n, a) => rt(D(t, i).parts, t, n, a),
+  places: (t, i) => F(t, i),
+  notes: (t, i, n, a) => rt(F(t, i).parts, t, n, a),
   editsBetween: ot,
-  layer: (t) => st(t, yn),
+  layer: (t) => st(t, gn),
   chooser(t, i, n, a = {}) {
     const s = Mt(t, i).map((o) => vt(t, i, o.id));
-    return s.length < 2 ? null : At(A(t, "card-" + i, n, (o) => N(D(o, a).parts), (o, l) => o.closest(s, { stickiness: 4 }).withFloating({ ghost: { opacity: 0.3 } }).whenFar(l, { gapIn: 40, gapOut: 56 })), t, i, D(t, a).parts, s);
+    return s.length < 2 ? null : At(A(t, "card-" + i, n, (o) => N(F(o, a).parts), (o, l) => o.closest(s, { stickiness: 4 }).withFloating({ ghost: { opacity: 0.3 } }).whenFar(l, { gapIn: 40, gapOut: 56 })), t, i, F(t, a).parts, s);
   },
   refusalAt(t, i, n, a, s) {
-    const { parts: o } = D(t, s), l = t.cards.find((e) => e.id === i);
+    const { parts: o } = F(t, s), l = t.cards.find((e) => e.id === i);
     for (const e of t.lanes) {
       if (e.id === l.laneId || !tt(o.find((r) => r.name === "column-" + e.id), a)) continue;
       const h = jt(t, i, e.id);
@@ -673,24 +673,24 @@ function E(t, i = {}) {
     h = C + 100 + (Math.max(...l) + 1) * 64;
   }
   return t.lanes.forEach((r, u) => {
-    const { start: c, size: p } = o[u], x = F[u % F.length], m = n ? { x: 2, y: c + 1, width: e - 4, height: p - 2 } : { x: c + 1, y: C, width: Math.max(4, p - 2), height: h - C }, d = { x: m.x + 5, y: m.y, width: Math.max(10, m.width - 10) };
+    const { start: c, size: p } = o[u], x = D[u % D.length], m = n ? { x: 2, y: c + 1, width: e - 4, height: p - 2 } : { x: c + 1, y: C, width: Math.max(4, p - 2), height: h - C }, d = { x: m.x + 5, y: m.y, width: Math.max(10, m.width - 10) };
     s.push({ name: "column-" + r.id, ...m, fill: z(x, 0.6), line: z(x, 0.1) });
-    const g = n ? d.width * 0.36 : d.width;
-    if (s.push({ name: "lane-" + r.id, x: d.x, y: d.y + 6, width: g, height: 32, text: r.label, fill: x, fontSize: 15 }), s.push({
+    const y = n ? d.width * 0.36 : d.width;
+    if (s.push({ name: "lane-" + r.id, x: d.x, y: d.y + 6, width: y, height: 32, text: r.label, fill: x, fontSize: 15 }), s.push({
       name: "caption-" + r.id,
-      x: n ? d.x + g + 6 : d.x,
+      x: n ? d.x + y + 6 : d.x,
       y: d.y + (n ? 6 : 40),
-      width: n ? d.width - g - 6 : d.width,
+      width: n ? d.width - y - 6 : d.width,
       height: n ? 50 : 40,
       text: n ? xt(t, r.id).replace(" · ", `
 `) : xt(t, r.id),
       fill: "transparent",
       lineWidth: 0,
       fontSize: n ? 15 : 12
-    }), t.cards.filter((f) => f.laneId === r.id).forEach((f, y) => s.push({
+    }), t.cards.filter((f) => f.laneId === r.id).forEach((f, g) => s.push({
       name: "card-" + f.id,
       x: d.x,
-      y: d.y + 100 + y * 64,
+      y: d.y + 100 + g * 64,
       width: d.width,
       height: 56,
       text: f.label + `
@@ -766,8 +766,8 @@ const kn = (t, i) => Math.round(t / i) * i, Mn = {
       ...It([e.min, d.lanes[o].allocation - t.lanes[o].allocation, e.max])
     ] }));
     return (m) => {
-      const g = (u.narrow ? m.y - n.y - p.y : m.x - n.x - p.x) / c, f = x?.(m), y = f ? f.lanes[o].allocation - t.lanes[o].allocation : g, k = { next: r(y) };
-      return g > e.max + h / 2 ? { ...k, clampedReason: e.reasons.max } : g < e.min - h / 2 ? { ...k, clampedReason: e.reasons.min } : k;
+      const y = (u.narrow ? m.y - n.y - p.y : m.x - n.x - p.x) / c, f = x?.(m), g = f ? f.lanes[o].allocation - t.lanes[o].allocation : y, k = { next: r(g) };
+      return y > e.max + h / 2 ? { ...k, clampedReason: e.reasons.max } : y < e.min - h / 2 ? { ...k, clampedReason: e.reasons.min } : k;
     };
   },
   keyEdit(t, i, { key: n }) {
@@ -777,7 +777,7 @@ const kn = (t, i) => Math.round(t / i) * i, Mn = {
     const l = n === "ArrowRight" || n === "ArrowDown", e = t.budget.step;
     return [l ? { kind: "shift_budget", from: { id: o.id }, to: { id: a }, amount: e } : { kind: "shift_budget", from: { id: a }, to: { id: o.id }, amount: e }];
   }
-}, vn = { "launch-plan": at, "hiring-plan": at, pipeline: gn, budget: Mn };
+}, vn = { "launch-plan": at, "hiring-plan": at, pipeline: yn, budget: Mn };
 function $n(t) {
   const i = vn[t];
   if (!i) throw new Error(`No board kit for "${t}". Only a launch plan, a hiring plan, a pipeline and a budget have one.`);
@@ -789,9 +789,9 @@ function En(t) {
 export {
   Rn as amountLimits,
   On as amountOf,
-  ve as amountRules,
+  Se as amountRules,
   Pn as bandOf,
-  Se as behaviourEditsBetween,
+  Le as behaviourEditsBetween,
   En as boardLayoutFor,
   xt as budgetCaption,
   Qt as budgetCommitted,
@@ -800,20 +800,20 @@ export {
   E as budgetLayout,
   Xt as budgetLimits,
   qt as budgetRefusal,
-  Le as budgetRules,
-  ze as budgetShiftLimits,
-  Ce as budgetShiftRefusal,
+  ze as budgetRules,
+  Ce as budgetShiftLimits,
+  Te as budgetShiftRefusal,
   Kt as cascadeStops,
-  Te as catalogSamples,
+  $e as catalogSamples,
   Jt as checkTime,
   Lt as clockOf,
   st as createBoardLayer,
   _n as currencyOf,
   Bn as dateName,
-  Dn as dayFromWords,
+  Fn as dayFromWords,
   Ht as dayMap,
   ut as dayWords,
-  Fn as days,
+  Dn as days,
   Nn as downstreamTasks,
   In as extendWorkshopEdits,
   Hn as goLiveSample,
@@ -855,45 +855,46 @@ export {
   ft as pipelineCaption,
   Wt as pipelineForecast,
   bt as pipelineGauge,
-  gn as pipelineKit,
-  D as pipelineLayout,
-  $e as pipelineLimits,
+  yn as pipelineKit,
+  F as pipelineLayout,
+  Ee as pipelineLimits,
   jt as pipelineRefusal,
-  Ee as pipelineRules,
-  We as planBudgetMove,
+  We as pipelineRules,
+  Ae as planBudgetMove,
   ie as planDrags,
   ae as planEdit,
-  se as planLaunchPlanMove,
-  Ae as planPipelineMove,
-  oe as planProblem,
-  re as planWords,
-  le as presetRules,
-  ce as readClock,
-  he as readNoteNumbers,
-  de as renamedNumbers,
-  yt as renderLayerShapes,
-  Re as restoreWorkshop,
-  ue as runwayCap,
-  fe as runwayHeader,
+  se as planFixed,
+  oe as planLaunchPlanMove,
+  Re as planPipelineMove,
+  re as planProblem,
+  le as planWords,
+  ce as presetRules,
+  he as readClock,
+  de as readNoteNumbers,
+  ue as renamedNumbers,
+  gt as renderLayerShapes,
+  Oe as restoreWorkshop,
+  fe as runwayCap,
+  xe as runwayHeader,
   Yt as runwayMonths,
   Zt as runwayWords,
-  Oe as sampleBudget,
-  xe as sampleLaunchPlan,
-  Pe as samplePipeline,
+  Pe as sampleBudget,
+  me as sampleLaunchPlan,
+  _e as samplePipeline,
   q as scheduleLaunch,
   mt as shiftBudget,
   _ as shortDate,
   b as snapStep,
-  me as timeFamily,
-  pe as timeRuleKindIds,
+  pe as timeFamily,
+  ge as timeRuleKindIds,
   ye as timeSentence,
   zt as tryTask,
-  _e as validateBudget,
-  ge as validateHiringPlan,
-  we as validateLaunchPlan,
-  Be as validatePipeline,
+  Be as validateBudget,
+  we as validateHiringPlan,
+  ke as validateLaunchPlan,
+  Fe as validatePipeline,
   ht as weekdayAt,
-  ke as weekendAt,
+  Me as weekendAt,
   Et as withLink,
   R as withTaskValue,
   ot as workshopEditsBetween
