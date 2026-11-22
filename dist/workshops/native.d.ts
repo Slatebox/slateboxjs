@@ -10,14 +10,17 @@
  * Plain JavaScript, no React. The only thing it asks of the engine is the drag
  * policy in core/DragPolicy.ts.
  */
-import { type Workshop, type WorkshopBoardLayout, type WorkshopCardAsNote, type WorkshopCardLook, type WorkshopNoteStyle } from './model';
+import { type Workshop, type WorkshopBoardLayout, type WorkshopCardAsNote, type WorkshopCardLook, type WorkshopLine, type WorkshopNoteStyle } from './model';
 /**
  * What a person changed. A move names the card and its new lane; a rename names the lane or
  * card and its new label. `noteToCard`: an ordinary note became card `cardId` at the foot of
  * `laneId`, or just before card `before` when that is where an undo puts it back (it left the
  * slate's drawing). `asNote` is what the note had that the card does not show (line breaks,
  * shape, size), kept for its way back. `cardToNote`: card `cardId` left the board and is now
- * the ordinary note `noteId` in the drawing.
+ * the ordinary note `noteId` in the drawing. A note's lines stay joined to it either way:
+ * `noteToCard.lines` are the note's lines as the drawing had them (a card's lines are the board's,
+ * see Workshop.lines). `line`: a person drew or changed a line with a card at one end (`set`), or
+ * took one away (`remove`, its id).
  */
 export interface WorkshopChangeEvent {
     cardId?: string;
@@ -33,9 +36,17 @@ export interface WorkshopChangeEvent {
         look?: WorkshopCardLook;
         asNote?: WorkshopCardAsNote;
         before?: string;
+        lines?: WorkshopLine[];
     };
     cardToNote?: {
         noteId: string;
+    };
+    line?: {
+        set: WorkshopLine;
+        remove?: undefined;
+    } | {
+        remove: string;
+        set?: undefined;
     };
 }
 /**

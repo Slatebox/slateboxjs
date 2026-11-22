@@ -37,10 +37,15 @@ export class NodesManager {
     this.nodes.set(node.id, node)
 
     const built = node.ready
+    // Hosts hear of every note once it is drawn, however it arrived (a load, a collaborator, undo).
+    const drawn = () => { if (this.nodes.get(node.id) === node) (this.slate as any).nodeAdded?.(node) }
     if (built && typeof built.then === 'function') {
       this.unbuilt.add(built)
       const done = () => { this.unbuilt.delete(built) }
       built.then(done, done)
+      built.then(drawn, () => undefined)
+    } else {
+      drawn()
     }
 
     return node
@@ -68,6 +73,8 @@ export class NodesManager {
         /* noop */
       }
       //  (b) incoming associations from other nodes (this node is the child)
+      // Every line to it, whatever the line's id (a second line between the same two notes,
+      // or a line its host named).
       this.allNodes.forEach((other) => {
         if (other.id === id) return
         try {

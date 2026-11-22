@@ -88,8 +88,10 @@ One artwork function draws every view: `workshopToSlate(model, { native: true, o
 
 Station maps also get their connectors, drawn from one station's zone to the next so a line runs
 between stations and never over a token; release plans get their dependency connectors. A connector
-between two workshop notes is part of the drawing: it takes no pointer input, so it cannot be
-selected, re-plugged or deleted, and a press on a card it crosses reaches the card.
+between two workshop notes that cannot be connected (a map's stations, a release plan's features) is
+part of the drawing: it takes no pointer input, so it cannot be selected, re-plugged or deleted, and a
+press on a card it crosses reaches the card. On a board of plain lanes the lines people draw to and
+from cards are ordinary lines (see Lines below).
 
 None of these notes is written by `slate.exportJSON()`, `slate.snapshot()`, recorded for undo, or
 sent to collaborators; that is the supported way to keep them out of a saved drawing, and it needs
@@ -211,10 +213,39 @@ experience) an ordinary note and a card trade places by being dropped:
   `onRefuse({ noteId, laneId, reason })`, exactly as for a refused card. Nothing is saved, sent or
   recorded. While a note is carried over the board the lanes are outlined as for a card
   (`data-workshop-drop` on each column says `open`, `over` or `refused`).
-- **Connectors.** A note joined to other notes by lines stays a note: the lane refuses it with
-  "A note joined to other notes by lines stays a note. Remove its lines first." A card is a drawing
-  of the model and cannot hold a line to the saved drawing, and a line is never dropped silently.
-  A note with a picture, or with a link, stays a note the same way ("Remove its link first.").
+- **Lines.** A card is a note, lines and all. A note joined to other notes by lines becomes a card
+  with its lines, and a card dropped on the canvas becomes a note with them. On a board of plain
+  lanes a card has its connector plugs, as any note does: a line is drawn from a card to a note,
+  from a note to a card, or between two cards, and restyled, labelled or taken away like any line.
+  A line with a card at either end is the board's (`Workshop.lines`, ends named by card id or note
+  id): the card's note holds the connector, so `exportJSON` never saves it, and the host persists
+  it with the board (`onChange({ line: { set } })` or `{ line: { remove } }`, one undo step each).
+  It follows its card into another lane, as rows reflow, through undo and redo and a
+  collaborator's change to the board. A line between two ordinary notes stays the drawing's: a
+  note that becomes a card brings its lines with it (`noteToCard.lines`), and a card that becomes a
+  note gives its lines to notes back to the drawing (sent as `addRelationship` once saved), while
+  its lines to other cards stay on the board. A note deleted from the slate takes its line off the
+  screen; the board keeps the line for when the note comes back (undo). A card removed from the
+  board takes its lines with it. A note with a line that ends on empty canvas stays a note until
+  the line is joined to a note.
+- **Any note becomes a card.** A lane takes a note whatever its words, look, shape, picture, link or
+  lines. An empty note is an empty card (counted in its lane, renamed in place, an empty note again
+  off the lanes); words longer than a card shows are cut to the first 80 characters on the card and
+  kept whole for the note (`asNote.text`); a picture with a web address and a link go with the card
+  (`asNote.image`, `asNote.link`) and come back with the note; a look or shape a card cannot draw is
+  left out of the card and nothing is refused. Words are kept verbatim, markup included (every view
+  shows them as text; only control characters go, and line breaks and tabs are spaces on the card). A
+  picture held in the page (a `data:` address) goes with the card for its host to store (the app
+  stores it with the slate's pictures and keeps the address). A note whose id a card cannot have
+  (an older note's) gives the card a fresh id; the card remembers it (`card.noteId`) and the note
+  comes back under it. What still keeps a note a note: the board's own rules (a full lane, the board's
+  size limit of 24 cards, a map, a release plan or a starter that keeps its own cards, a lane that is
+  gone), someone else's change first, a viewer, a link a card cannot keep (over 2 KB, or not text),
+  a line that ends on empty canvas (see `noteObstacle` in `native.ts`), more than 96 lines, and comments.
+- **A trade record carries its lines.** The host's record of a card that became a note
+  (`NoteTrade.lines`) holds the note's lines to other notes: a screen that hears of the trade only
+  from that record (the page that made it went away first) draws them with the note and tells the
+  room of both. A record kept under another key names its note (`NoteTrade.id`).
 - **A card dropped on empty canvas, outside every lane, becomes an ordinary note** where it was let
   go: it leaves the board, and a note with its words and look is added to the drawing
   (`onNodeAdded`), saved with it and selected. Its id is the card's, unless the slate already holds a

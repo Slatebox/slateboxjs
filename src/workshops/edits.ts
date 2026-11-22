@@ -8,7 +8,7 @@
 
 import {
   addWorkshopBranch, addWorkshopCard, addWorkshopLane, startupExperienceKind, validateWorkshop, workshopCandidate,
-  workshopPresentationLanes, workshopRefusal,
+  workshopLineRefusal, workshopNewLine, workshopPresentationLanes, workshopRefusal, workshopWithLine, workshopWithoutCardLines,
   type StationImage, type Workshop, type WorkshopCard, type WorkshopLane, type WorkshopSignal,
 } from './model'
 import { listed, said, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names'
@@ -53,6 +53,10 @@ export type WorkshopEdit =
   | { kind: 'set_station_position'; station: WorkshopRef; column: number; row: number }
   | { kind: 'set_station_image'; station: WorkshopRef; image: StationImage | null }
   | { kind: 'set_station_image_alt'; station: WorkshopRef; alt: string }
+  | { kind: 'connect_cards'; card: WorkshopRef; to: WorkshopRef; label?: string }
+  | { kind: 'disconnect_cards'; card: WorkshopRef; to: WorkshopRef }
+  | { kind: 'connect_note'; card: WorkshopRef; note: string; direction?: 'to_note' | 'from_note'; label?: string }
+  | { kind: 'disconnect_note'; card: WorkshopRef; note: string }
 
 export type WorkshopEditKindName = WorkshopEdit['kind']
 
@@ -128,6 +132,7 @@ const sentences = {
   mapAddLane: 'On a map a new step follows another one. Say which step it comes after.',
   mapCardLanes: 'A map’s tokens go where its paths lead. Connect or disconnect steps instead.',
   mapOutcome: 'A map says what happens when a token reaches a step. Change what that step says instead.',
+  lines: 'Lines join the cards of a lane workshop to notes and to each other. This board keeps the cards it came with.',
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -136,7 +141,7 @@ const sentences = {
 type Limit = number | Partial<Record<WorkshopBoardKind, number>> & { default: number }
 
 export type WorkshopEditField =
-  | { type: 'text'; max: number; optional?: boolean; about: string }
+  | { type: 'text'; max: number; min?: number; optional?: boolean; about: string }
   | { type: 'ref'; of: 'lane' | 'card' | 'outcome'; optional?: boolean; about: string }
   | { type: 'refs'; of: 'lane' | 'card'; min: number; max: number; nullable?: boolean; optional?: boolean; about: string }
   | { type: 'integer'; min: number; max: Limit; nullable?: boolean; optional?: boolean; about: string }
@@ -167,7 +172,7 @@ export const workshopEditKinds: readonly WorkshopEditKind[] = [
   { kind: 'rename_lane', summary: 'Rename a lane, or a step on a map.', intent: true,
     fields: { lane: lane('The lane or step.'), label: text(80, 'The new name, 1 to 80 characters of plain text.') }, boards: everyBoard, refusals: {} },
   { kind: 'rename_card', summary: 'Rename a card, a feature or a token.', intent: true,
-    fields: { card: card('The card or token.'), label: text(80, 'The new name, 1 to 80 characters of plain text.') }, boards: everyBoard, refusals: {} },
+    fields: { card: card('The card or token.'), label: { type: 'text', max: 80, min: 0, about: 'The new words, up to 80 characters of plain text. Empty makes an empty card.' } }, boards: everyBoard, refusals: {} },
   { kind: 'add_lane', summary: 'Add a lane at the end, optionally with how many cards it holds. A workshop has up to five lanes.', intent: false,
     fields: { label: text(80, 'The lane’s name.'), capacity: { type: 'integer', min: 1, max: 24, optional: true, about: 'How many cards it holds, 1 to 24. Leave it out for any number.' } },
     boards: ['lanes'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes, map: sentences.mapAddLane } },
@@ -175,7 +180,7 @@ export const workshopEditKinds: readonly WorkshopEditKind[] = [
     fields: { lane: lane('The lane or step.') },
     boards: ['lanes', 'map'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes } },
   { kind: 'add_card', summary: 'Add a card to a lane that has room, or a token at a step. A workshop has up to 24 cards.', intent: false,
-    fields: { lane: lane('The lane or step it starts in.'), label: text(80, 'What the card says. On a map it may be left out: the token is numbered.', true),
+    fields: { lane: lane('The lane or step it starts in.'), label: text(80, 'What the card says. Left out, the card is empty (on a map, the token is numbered).', true),
       allowedLanes: { type: 'refs', of: 'lane', min: 1, max: 5, optional: true, about: 'Lane boards only: the lanes it may go in, including the one it starts in. Leave it out for any lane.' } },
     boards: ['lanes', 'experiment-budget', 'map'], refusals: { 'release-plan': sentences.releaseCards, 'customer-interviews': sentences.keepsCards } },
   { kind: 'remove_card', summary: 'Remove a card or token, with the dependencies and outcomes that named it.', intent: false,
@@ -229,7 +234,23 @@ export const workshopEditKinds: readonly WorkshopEditKind[] = [
     fields: { station: lane('The step.'), image: { type: 'image', about: '{src, alt}: an HTTPS address and what the picture shows; or null.' } }, boards: ['map'], refusals: mapsOnly },
   { kind: 'set_station_image_alt', summary: 'Change the description of a step’s picture.', intent: false,
     fields: { station: lane('The step.'), alt: text(240, 'What the picture shows.') }, boards: ['map'], refusals: mapsOnly },
+  { kind: 'connect_cards', summary: 'Draw a line from one card to another, as a person draws a connector between two notes. The line stays with both cards wherever they move, on or off the lanes.', intent: false,
+    fields: { card: card('The card the line starts at.'), to: card('The card it points to.'), label: text(200, 'Words on the line.', true) },
+    boards: ['lanes'], refusals: linesOnLanes() },
+  { kind: 'disconnect_cards', summary: 'Take away the lines between two cards.', intent: false,
+    fields: { card: card('One card.'), to: card('The other card.') }, boards: ['lanes'], refusals: linesOnLanes() },
+  { kind: 'connect_note', summary: 'Draw a line between a card and an ordinary note of the slate (by the note’s id). The line stays when the card moves, and when either becomes the other.', intent: false,
+    fields: { card: card('The card.'), note: text(64, 'The id of an ordinary note on the slate.'),
+      direction: { type: 'choice', values: ['to_note', 'from_note'], optional: true, about: 'to_note (the default): the line points from the card to the note; from_note: from the note to the card.' },
+      label: text(200, 'Words on the line.', true) },
+    boards: ['lanes'], refusals: linesOnLanes() },
+  { kind: 'disconnect_note', summary: 'Take away the lines between a card and an ordinary note of the slate.', intent: false,
+    fields: { card: card('The card.'), note: text(64, 'The id of the note.') }, boards: ['lanes'], refusals: linesOnLanes() },
 ]
+
+function linesOnLanes(): Partial<Record<WorkshopBoardKind, string>> {
+  return { 'release-plan': sentences.lines, 'customer-interviews': sentences.lines, 'experiment-budget': sentences.lines, map: sentences.lines }
+}
 
 const byKind = new Map(workshopEditKinds.map(entry => [entry.kind, entry]))
 const limitFor = (limit: Limit, board: WorkshopBoardKind | undefined) => typeof limit === 'number' ? limit : (board && limit[board]) ?? limit.default
@@ -239,7 +260,7 @@ function fieldSchema(field: WorkshopEditField, board?: WorkshopBoardKind): Recor
     { type: 'object', additionalProperties: false, required: ['id'], properties: { id: { type: 'string', minLength: 1, maxLength: 64 } } }] }
   const orNull = (schema: Record<string, unknown>, nullable?: boolean) => nullable ? { anyOf: [schema, { type: 'null' }] } : schema
   switch (field.type) {
-    case 'text': return { type: 'string', minLength: 1, maxLength: field.max, description: field.about }
+    case 'text': return { type: 'string', minLength: field.min ?? 1, maxLength: field.max, description: field.about }
     case 'ref': return { ...ref, description: field.about }
     case 'refs': return { ...orNull({ type: 'array', items: ref, minItems: field.min, maxItems: field.max }, field.nullable), description: field.about }
     case 'integer': return { ...orNull({ type: 'integer', minimum: field.min, maximum: limitFor(field.max, board) }, field.nullable), description: field.about }
@@ -463,18 +484,18 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
         const next = settle(board, family, target.id)
         return done(next, 'Added ' + said(next.cards[next.cards.length - 1].label) + ' at ' + said(target.label) + '.', { laneId: target.id, cardId: 'token-' + n })
       }
-      if (edit.label === undefined || !edit.label.trim()) throw new Refusal('Say what the card should say, such as “Add a card called New idea to ' + target.label + '”.', 'refused', target.id)
       if (board.cards.length >= 24) throw new Refusal('A workshop can have up to 24 cards. Remove one first.', 'refused', target.id)
       if (target.capacity !== undefined && held(target.id) >= target.capacity) {
         throw new Refusal(said(target.label) + ' is full: it holds ' + target.capacity + (target.capacity === 1 ? ' card' : ' cards') + '. Add the card to another lane, or raise the limit.', 'refused', target.id)
       }
       const allowedLaneIds = edit.allowedLanes && [...new Set(edit.allowedLanes.map(ref => laneOf(ref).id))]
       let next: Workshop
-      try { next = addWorkshopCard(board, target.id, { label: edit.label, ...(allowedLaneIds && { allowedLaneIds }) }) } catch (error) {
+      // A card without words is an empty card, as an empty note dropped on a lane is.
+      try { next = addWorkshopCard(board, target.id, { label: edit.label?.trim() ?? '', ...(allowedLaneIds && { allowedLaneIds }) }) } catch (error) {
         throw new Refusal(ruleSentence((error as Error).message, family), 'refused', target.id)
       }
       const added = next.cards[next.cards.length - 1]
-      return done(next, 'Added ' + said(added.label) + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: added.id })
+      return done(next, 'Added ' + (added.label ? said(added.label) : 'an empty card') + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: added.id })
     }
     case 'remove_card': {
       const gone = cardOf(edit.card)
@@ -487,7 +508,8 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
         if (!item.dependsOn.length) delete item.dependsOn
       }
       dropSignals(board, signal => signal.cardId === gone.id)
-      return done(settle(board, family, gone.laneId), 'Removed the ' + what.card + ' ' + said(gone.label) + '.', { laneId: gone.laneId, cardId: gone.id })
+      // Its lines go with it, as a note's do.
+      return done(settle(workshopWithoutCardLines(board, gone.id), family, gone.laneId), 'Removed the ' + what.card + ' ' + said(gone.label) + '.', { laneId: gone.laneId, cardId: gone.id })
     }
     case 'move_card': {
       const target = typeof edit.lane === 'object' ? board.lanes.find(item => item.id === (edit.lane as { id: string }).id) ?? null : quietLane(edit.lane)
@@ -674,6 +696,44 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       if (!target.station!.image) throw new Refusal('Add a station image before changing its description.', 'refused', target.id)
       target.station!.image.alt = edit.alt
       return done(settle(board, family, target.id), 'Updated the image description at ' + said(target.label) + '.', { laneId: target.id })
+    }
+    case 'connect_cards':
+    case 'connect_note': {
+      const from = cardOf(edit.card)
+      let parentId = from.id, childId: string, other: string
+      if (edit.kind === 'connect_cards') {
+        const to = cardOf(edit.to, from.laneId)
+        if (to.id === from.id) throw new Refusal('A line joins two different cards.', 'refused', from.laneId, from.id)
+        childId = to.id
+        other = said(to.label)
+      } else {
+        const note = edit.note.trim()
+        if (board.cards.some(item => item.id === note) || board.lanes.some(item => item.id === note)) {
+          throw new Refusal('That id is a card or a lane of the workshop. Use connect_cards for two cards.', 'refused', from.laneId, from.id)
+        }
+        childId = note
+        other = 'the note ' + note
+        if (edit.direction === 'from_note') [parentId, childId] = [childId, parentId]
+      }
+      const line = workshopNewLine(board, parentId, childId, edit.label ? { label: edit.label } : {})
+      const reason = workshopLineRefusal(board, line)
+      if (reason) throw new Refusal(reason, 'refused', from.laneId, from.id)
+      const next = workshopWithLine(board, line)!
+      const toward = parentId === from.id
+      return done(next, toward ? 'Drew a line from ' + said(from.label) + ' to ' + other + '.' : 'Drew a line from ' + other + ' to ' + said(from.label) + '.',
+        { laneId: from.laneId, cardId: from.id })
+    }
+    case 'disconnect_cards':
+    case 'disconnect_note': {
+      const from = cardOf(edit.card)
+      const otherId = edit.kind === 'disconnect_cards' ? cardOf(edit.to, from.laneId).id : edit.note.trim()
+      const otherName = edit.kind === 'disconnect_cards' ? said(board.cards.find(item => item.id === otherId)!.label) : 'the note ' + otherId
+      const between = (line: { parentId: string; childId: string }) =>
+        (line.parentId === from.id && line.childId === otherId) || (line.parentId === otherId && line.childId === from.id)
+      const lines = board.lines ?? []
+      if (!lines.some(between)) return done(input, said(from.label) + ' and ' + otherName + ' are not joined by a line.', { laneId: from.laneId, cardId: from.id }, false)
+      board.lines = lines.filter(line => !between(line))
+      return done(settle(board, family, from.laneId, from.id), 'Took away the line between ' + said(from.label) + ' and ' + otherName + '.', { laneId: from.laneId, cardId: from.id })
     }
   }
 

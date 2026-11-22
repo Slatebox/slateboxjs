@@ -187,9 +187,11 @@ describe('renames (ws:rename-refused)', () => {
   })
 
   it('refuses a name the workshop cannot take with the canvas’s sentence, on the lane it was meant for, and keeps the old name', () => {
-    expect(no(apply(ruled, { kind: 'rename_card', card: { id: 'beta' }, label: '' }))).toMatchObject({ reason: 'Labels must contain 1 to 80 characters.', laneId: 'now', cardId: 'beta' })
+    // (Restated 2026-11-21, owner decision: a card may be empty, so renaming one to nothing is taken.)
+    expect(ok(apply(ruled, { kind: 'rename_card', card: { id: 'beta' }, label: '' })).cards.find(item => item.id === 'beta')!.label).toBe('')
     expect(no(apply(ruled, { kind: 'rename_lane', lane: { id: 'now' }, label: 'x'.repeat(90) }))).toMatchObject({ reason: 'Labels must contain 1 to 80 characters.', laneId: 'now' })
-    expect(no(apply(ruled, { kind: 'rename_card', card: { id: 'alpha' }, label: '<b>Alpha</b>' })).reason).toBe('Use plain text without markup or control characters.')
+    // (Restated 2026-11-21, coordinator: a card's words are kept verbatim, markup included; a lane's are still plain.)
+    expect(ok(apply(ruled, { kind: 'rename_card', card: { id: 'alpha' }, label: '<b>Alpha</b>' })).cards.find(item => item.id === 'alpha')!.label).toBe('<b>Alpha</b>')
     expect(no(apply(ruled, { kind: 'rename_workshop', title: 'x'.repeat(121) }))).toMatchObject({ reason: 'Labels must contain 1 to 120 characters.', laneId: null })
     expect(no(apply(ruled, { kind: 'rename_card', card: { id: 'zeta' }, label: 'Zeta' })).reason).toBe('That card is no longer on the workshop.')
     expect(no(apply(ruled, { kind: 'rename_lane', lane: { id: 'someday' }, label: 'Someday' })).reason).toBe('That lane is no longer on the workshop.')
@@ -220,7 +222,8 @@ describe('lanes and cards come and go', () => {
     const full = ok(apply(week, { kind: 'set_lane_capacity', lane: 'Next', capacity: 1 }))
     expect(no(apply(full, { kind: 'add_card', lane: 'Next', label: 'Email Jo' }))).toMatchObject({
       reason: '“Next” is full: it holds 1 card. Add the card to another lane, or raise the limit.', laneId: 'next' })
-    expect(no(apply(week, { kind: 'add_card', lane: 'Next' })).reason).toBe('Say what the card should say, such as “Add a card called New idea to Next”.')
+    // (Restated 2026-11-21, owner decision: a card added without words is an empty card.)
+    expect(ok(apply(week, { kind: 'add_card', lane: 'Next' })).cards[3]).toEqual({ id: 'card-1', label: '', laneId: 'next' })
     const many = ok(applyWorkshopEdits(week, Array.from({ length: 21 }, (_, i) => ({ kind: 'add_card', lane: 'Later', label: 'Card ' + i }) as WorkshopEdit)))
     expect(no(apply(many, { kind: 'add_card', lane: 'Later', label: 'One more' })).reason).toBe('A workshop can have up to 24 cards. Remove one first.')
     expect(ok(apply(week, { kind: 'add_card', lane: 'Now', label: 'Pinned', allowedLanes: ['Now', 'Next'] })).cards[3].allowedLaneIds).toEqual(['now', 'next'])

@@ -1489,7 +1489,8 @@ export class Node {
           this.preDragPosition = null;
           this._dragStartPointer = null;
           if (verdict === "refused") {
-            this.position(from.x, from.y, undefined, undefined, prefersReducedMotion() ? 0 : 180);
+            // The outline and plugs come back where the note comes to rest, not where it was let go.
+            this.position(from.x, from.y, () => this.reframeAfterGlide(), undefined, prefersReducedMotion() ? 0 : 180);
           }
           if (this.isOnSlate()) this.settleAfterDrag();
           else this.isDragging = false;
@@ -1509,7 +1510,7 @@ export class Node {
           this._dragStartPointer = null;
           if (verdict === "refused") {
             const glide = prefersReducedMotion() ? 0 : 180;
-            this.position(from.x, from.y, undefined, undefined, glide);
+            this.position(from.x, from.y, () => this.reframeAfterGlide(), undefined, glide);
             for (const s of movedSiblings) if (s.node.isOnSlate()) s.node.position(s.x, s.y, undefined, undefined, glide);
           }
           if (this.isOnSlate()) this.settleAfterDrag();
@@ -1632,6 +1633,17 @@ export class Node {
    * After any drag (ordinary or governed) ends: tell a drag from a click, keep the
    * note selected, and put its handles back at the new position.
    */
+  /**
+   * A selected note glided back to where its drag began (a host refused the drop): its outline,
+   * handles and plugs are drawn again round where it now is.
+   */
+  private reframeAfterGlide(): void {
+    if (this._destroyed || !this.isOnSlate()) return;
+    if (!this.slate.getSelectedNodes().includes(this)) return;
+    this.slate.updateSelectionResizeRotate?.();
+    if (this._connHandlesPinned) this.showConnectionHandles();
+  }
+
   private settleAfterDrag(governed = false): void {
     {
       // The selection as the press ended. The note's handles stay usable through
@@ -3322,6 +3334,9 @@ export class Node {
     // there is no toolbar. Its settings belong to the host, so it has no gear.
     const caps = slate.capabilitiesOf?.(this);
     const governed = !!slate.governanceOf?.(this);
+    // A governed note that may be connected (a workshop card) is joined with its plugs round
+    // its edges, as any note can be; a pill above it would cover what its host draws there.
+    if (governed && caps?.canDelete === false) return;
     const tools: Array<{
       key: string;
       color: string;

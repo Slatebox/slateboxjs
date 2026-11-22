@@ -4,12 +4,39 @@
 
 ### Added
 
+- **Content never refuses a trade.** A card's words are kept verbatim, markup included (control
+  characters go); a picture held in the page goes with the card for the host to store; a note whose
+  id a card cannot have gives the card a fresh id and comes back under its own (`card.noteId`,
+  `workshopNoteIdOf`). Lines may name older notes. The 24-card cap now says it is the board's size
+  limit. A trade record to a note carries the note's lines (`NoteTrade.lines`), and a record kept
+  under another key names its note (`NoteTrade.id`).
+- **Any note becomes a card.** A lane no longer refuses a note for its words, look, shape, picture
+  or link: an empty note is an empty card (cards may have no words; `add_card` without words and
+  `rename_card` to nothing make one), long words are cut to 80 characters on the card and kept whole
+  for the note, and a picture (web address) and a link are kept (`card.asNote.image`,
+  `card.asNote.link`). New helpers `workshopCardLabelOf`, `workshopKeepsPicture`, `workshopKeepsLink`.
+  Only the board's own rules and someone else's change refuse a trade (see docs/native-workshops.md).
+- **Cards keep their lines (connected cards).** A note joined to other notes by lines now becomes a
+  card when it is dropped on a lane, and keeps its lines; a card dropped on the canvas becomes a
+  note with them. On a board of plain lanes cards have their connector plugs like any note: lines
+  are drawn from a card to a note, from a note to a card and between cards, and are restyled or
+  taken away like any line. A card's lines are the board's: `Workshop.lines` (validated, up to 96,
+  ends named by card id or note id), held on screen by the card's note so the drawing never saves
+  them. New change shapes `{ line: { set } }` and `{ line: { remove } }`, `noteToCard.lines`; model
+  helpers `workshopCardLines`, `workshopLinesOf`, `workshopLineRefusal`, `workshopWithLine`,
+  `workshopWithoutLine`, `workshopNewLine`, `workshopRenamedLines`, `workshopWithoutCardLines`; edit
+  kinds `connect_cards`, `disconnect_cards`, `connect_note`, `disconnect_note`, and `remove_card`
+  takes the card's lines; drag-policy hook `onLine`. The drawing no longer saves a connector whose
+  other end is a note a host draws, and removing a note takes every line to it whatever the line's
+  id. The lane no longer refuses a note for its lines ("A note joined to other notes by lines stays
+  a note" is gone).
+
 - **Notes and cards trade places by being dropped.** On a board of plain lanes, an ordinary note
   dropped on a lane (or nudged onto one with the arrow keys) becomes a card there under the lane's
   rules, keeping its words, look and id; a lane that refuses it sends it back and says why. A card
   dropped on empty canvas, or staged past the first or last lane from the keyboard and committed
   with Enter, becomes an ordinary note saved with the drawing. Each is one undo step that undoes
-  both the board and the drawing. A note joined by lines stays a note, and says so. New change
+  both the board and the drawing. A note keeps its lines either way (see connected cards). New change
   shapes `{ cardId, laneId, noteToCard }` and `{ cardId, cardToNote }`; model helpers
   `workshopTakesNotes`, `workshopNoteCandidate`, `workshopNoteRefusal`, `workshopCardAsNote`,
   `workshopCardAsNoteRefusal`, `workshopCardLookOf`; drag-policy hooks `onFreeMove`, `onFreeDrop`,
@@ -17,7 +44,7 @@
   Several notes carried together onto a lane become cards there as one step, or all go back with
   the reason (`onFreeGroupDrop`); a note whose words are typed on a lane is dropped there
   (`onFreeTextCommit`). A card keeps what its note had that a card does not show (`card.asNote`:
-  line breaks, shape, size) and gives it back on the way out; a note with a link stays a note. An
+  line breaks, shape, size, picture, link) and gives it back on the way out. An
   undone trade says where the card goes back (`noteToCard.before`). `onChange` may answer a trade
   with `'taken'` (someone else made it first): this person's copy of the note goes and nothing is
   brought back; a refused trade never takes away a card the host has drawn since.
@@ -160,6 +187,10 @@
 
 ### Fixed
 
+- **A note a lane refuses takes its outline back with it.** A selected note dropped on a lane that
+  refuses it glides back to where its drag began; its selection outline, handles and plugs used to
+  stay where it was let go, round empty lane (an empty dashed box). They are drawn again where the
+  note comes to rest.
 - **Work done after an undo is no longer blanked or lost when the slate is reloaded or someone
   joins.** A client rebuilt the slate from its room in the order Yjs delivered the packages (one
   writer at a time, not the order they were written) and all in one go, before the notes they

@@ -30,6 +30,8 @@ export interface WorkshopCard {
   look?: WorkshopCardLook
   /** What the note it was made from had that a card does not show, so it comes back as it was. */
   asNote?: WorkshopCardAsNote
+  /** The id of the note it was made from, when the card could not take it: the note comes back under it. */
+  noteId?: string
 }
 
 /**
@@ -41,6 +43,10 @@ export interface WorkshopCardAsNote {
   shape?: string
   width?: number
   height?: number
+  /** Its picture (an http(s) or site address), with the picture's own size. */
+  image?: { src: string; width?: number; height?: number }
+  /** Its link, as a note keeps one. */
+  link?: { type?: string; data: string | Record<string, string>; show?: boolean }
 }
 
 /** The look of one card: what an ordinary note dropped on a lane brings with it. */
@@ -51,6 +57,30 @@ export interface WorkshopCardLook {
   fontSize?: number
   borderColor?: string
   borderWidth?: number
+}
+
+/**
+ * A line with a card at one end or both: an ordinary connector, drawn and edited like any other.
+ * `parentId` and `childId` name a card on this board by its id, or an ordinary note of the slate's
+ * drawing by its note id. A line between two ordinary notes belongs to the drawing, not here: when
+ * a card becomes a note again, its lines to notes go back to the drawing. The rest of the fields
+ * are the connector's look, as the slate saves a connector.
+ */
+export interface WorkshopLine {
+  id: string
+  parentId: string
+  childId: string
+  lineColor?: string
+  lineOpacity?: number
+  lineWidth?: number
+  lineDash?: 'solid' | 'dashed' | 'dotted'
+  lineType?: string
+  lineCurveType?: 'cubic' | 'quadratic'
+  lineCurviness?: number
+  lineEffect?: string
+  showParentArrow?: boolean
+  showChildArrow?: boolean
+  label?: string
 }
 
 export interface WorkshopSignal {
@@ -77,6 +107,8 @@ export interface Workshop {
   presentationOrder?: string[]
   signals?: WorkshopSignal[]
   cards: WorkshopCard[]
+  /** The lines joined to its cards (see WorkshopLine). */
+  lines?: WorkshopLine[]
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -90,6 +122,43 @@ function label(value: unknown, limit = 80): string {
   }
   if (/[<>\u0000-\u001f]/.test(value)) throw new Error('Use plain text without markup or control characters.')
   return value.trim()
+}
+
+/** A card's words: up to 80 characters of plain text, or none. */
+function cardLabel(value: unknown): string {
+  if (value === undefined || value === null) return ''
+  if (typeof value !== 'string') throw new Error('Labels must contain 1 to 80 characters.')
+  // A card's words are kept as typed, markup included (every view shows them as text). Only
+  // control characters go; line breaks and tabs are spaces.
+  const words = oneLine(value)
+  if (words.length > 80) throw new Error('A card holds up to 80 characters.')
+  return words
+}
+
+/** Words in one line: control characters taken out, line breaks, tabs and runs of spaces as one space. */
+function oneLine(words: string): string {
+  return words.replace(/[\t\n\r\f\v]/g, ' ').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim()
+}
+
+/** The ids a note of the drawing may have: a card's kind of id, or an older note's, any text without control characters. */
+const notePattern = /^(?!\$)[^\u0000-\u001f\u007f]{1,200}$/
+function noteRef(value: unknown): string {
+  if (typeof value !== 'string' || !notePattern.test(value)) throw new Error('A line names its notes by their ids.')
+  return value
+}
+
+/** The id of the note a card stands for: the note it was made from, when that note's id is not the card's. */
+export function workshopNoteIdOf(card: Pick<WorkshopCard, 'id' | 'noteId'>): string {
+  return card.noteId ?? card.id
+}
+
+/** The words a card shows for a note's words: its words in one line, the first 80 characters of longer ones. */
+export function workshopCardLabelOf(words: string): string {
+  const line = oneLine(String(words ?? ''))
+  if (line.length <= 80) return line
+  const cut = line.slice(0, 79)
+  const space = cut.lastIndexOf(' ')
+  return (space > 40 ? cut.slice(0, space) : cut).trimEnd() + '…'
 }
 
 function stationImage(input: unknown): StationImage {
@@ -147,13 +216,53 @@ export function workshopCardLookOf(input: Record<string, unknown>): WorkshopCard
   return cardLook(look)
 }
 
-/** What a card keeps of the note it was made from: only words, a shape name and a size. */
+/** A picture's address a card can keep for its note: http(s) or on this site, not one held in the page. */
+export function workshopKeepsPicture(src: unknown): boolean {
+  if (typeof src !== 'string' || !src) return false
+  // A picture held in the page goes with the card; its host stores it and the card keeps the address.
+  if (/^data:image\/(?:png|jpe?g|gif|webp|bmp|svg\+xml);base64,[A-Za-z0-9+/=\s]+$/i.test(src)) return src.length <= 16_000_000
+  if (src.length > 4096) return false
+  if (/^\/(?!\/)/.test(src)) return true
+  try { return ['https:', 'http:'].includes(new URL(src).protocol) } catch { return false }
+}
+
+/** Whether a card can keep a note's link for it. */
+export function workshopKeepsLink(link: unknown): boolean {
+  try { return Boolean(cardAsNote({ link })) } catch { return false }
+}
+
+/** What a card keeps of the note it was made from: its words, shape, size, picture and link. */
 function cardAsNote(input: unknown): WorkshopCardAsNote | undefined {
   const raw = record(input)
   const kept: WorkshopCardAsNote = {}
   if (raw.text !== undefined) {
-    if (typeof raw.text !== 'string' || raw.text.length > 400 || /[<>\u0000-\u0009\u000b-\u001f]/.test(raw.text)) throw new Error('A card keeps plain words only.')
-    kept.text = raw.text
+    if (typeof raw.text !== 'string') throw new Error('A card keeps the note\'s words as text.')
+    // Kept as typed, line breaks and tabs included; other control characters go.
+    const text = raw.text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '')
+    if (text.length > 4000) throw new Error('A card keeps up to 4000 characters of the note\'s words.')
+    kept.text = text
+  }
+  if (raw.image !== undefined) {
+    const image = record(raw.image)
+    if (!workshopKeepsPicture(image.src)) throw new Error('A card keeps a picture by its web address only.')
+    kept.image = { src: image.src as string }
+    for (const key of ['width', 'height'] as const) {
+      const size = image[key]
+      if (size === undefined) continue
+      if (typeof size !== 'number' || !Number.isFinite(size) || size < 1 || size > 20000) throw new Error('A picture size is out of range.')
+      kept.image[key] = size
+    }
+  }
+  if (raw.link !== undefined) {
+    const link = record(raw.link)
+    const data = link.data
+    const plainData = typeof data === 'string' ? data.length <= 2048
+      : Boolean(data) && typeof data === 'object' && !Array.isArray(data) && JSON.stringify(data).length <= 2048 &&
+        Object.values(data as object).every(item => typeof item === 'string')
+    if (!plainData || (link.type !== undefined && (typeof link.type !== 'string' || !/^[A-Za-z]{1,40}$/.test(link.type))) ||
+        (link.show !== undefined && typeof link.show !== 'boolean')) throw new Error('A card keeps a link as a note does.')
+    kept.link = { ...(link.type !== undefined ? { type: link.type as string } : {}), data: data as string | Record<string, string>,
+      ...(link.show !== undefined ? { show: link.show as boolean } : {}) }
   }
   if (raw.shape !== undefined) {
     if (typeof raw.shape !== 'string' || !/^[a-z]{1,24}$/i.test(raw.shape)) throw new Error('A card keeps a shape by its name only.')
@@ -166,6 +275,70 @@ function cardAsNote(input: unknown): WorkshopCardAsNote | undefined {
     kept[key] = size
   }
   return Object.keys(kept).length ? kept : undefined
+}
+
+/** How many lines a workshop's cards may have between them. */
+export const maxWorkshopLines = 96
+const lineIdPattern = /^[A-Za-z0-9_][A-Za-z0-9_.:~>-]{0,159}$/
+const lineDashes = ['solid', 'dashed', 'dotted']
+
+/** One line, as a connector of the slate is saved: only the fields a connector draws. */
+function workshopLine(input: unknown): WorkshopLine {
+  const raw = record(input)
+  if (typeof raw.id !== 'string' || !lineIdPattern.test(raw.id)) throw new Error('A line needs a short id.')
+  const line: WorkshopLine = { id: raw.id, parentId: noteRef(raw.parentId), childId: noteRef(raw.childId) }
+  if (line.parentId === line.childId) throw new Error('A line joins two different notes.')
+  const number = (key: keyof WorkshopLine, low: number, high: number) => {
+    const value = raw[key]
+    if (value === undefined || value === null) return
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < low || value > high) throw new Error('A line\'s look is out of range.')
+    ;(line as any)[key] = value
+  }
+  if (raw.lineColor !== undefined && raw.lineColor !== null) {
+    if (typeof raw.lineColor !== 'string' || !colour.test(raw.lineColor)) throw new Error('Use a colour such as #666666 for a line.')
+    line.lineColor = raw.lineColor
+  }
+  number('lineOpacity', 0, 1)
+  number('lineWidth', 0, 40)
+  number('lineCurviness', -10, 10)
+  if (raw.lineDash !== undefined && raw.lineDash !== null) {
+    if (!lineDashes.includes(raw.lineDash as string)) throw new Error('A line is solid, dashed or dotted.')
+    line.lineDash = raw.lineDash as WorkshopLine['lineDash']
+  }
+  if (raw.lineType !== undefined && raw.lineType !== null) {
+    if (typeof raw.lineType !== 'string' || !/^[a-z]{1,24}$/i.test(raw.lineType)) throw new Error('A line keeps its kind by its name only.')
+    line.lineType = raw.lineType
+  }
+  if (raw.lineCurveType !== undefined && raw.lineCurveType !== null) {
+    if (raw.lineCurveType !== 'cubic' && raw.lineCurveType !== 'quadratic') throw new Error('A line curves cubic or quadratic.')
+    line.lineCurveType = raw.lineCurveType
+  }
+  if (raw.lineEffect !== undefined && raw.lineEffect !== null && raw.lineEffect !== '') {
+    if (typeof raw.lineEffect !== 'string' || !/^[a-z-]{1,24}$/i.test(raw.lineEffect)) throw new Error('A line keeps its effect by its name only.')
+    line.lineEffect = raw.lineEffect
+  }
+  for (const key of ['showParentArrow', 'showChildArrow'] as const) {
+    if (raw[key] === undefined || raw[key] === null) continue
+    if (typeof raw[key] !== 'boolean') throw new Error('A line\'s arrows are on or off.')
+    line[key] = raw[key] as boolean
+  }
+  if (raw.label !== undefined && raw.label !== null && raw.label !== '') {
+    if (typeof raw.label !== 'string' || raw.label.length > 200 || /[<>\u0000-\u001f]/.test(raw.label)) throw new Error('A line\'s label is plain words, up to 200 characters.')
+    line.label = raw.label
+  }
+  return line
+}
+
+/**
+ * The lines of a board with these cards. A line with no card at either end is the drawing's, not
+ * the board's, and is left out (its card has left the board).
+ */
+function workshopLines(input: unknown, cardIds: Set<string>): WorkshopLine[] {
+  if (!Array.isArray(input)) throw new Error('A workshop\'s lines are a list.')
+  const lines = input.map(workshopLine).filter(line => cardIds.has(line.parentId) || cardIds.has(line.childId))
+  unique(lines.map(line => line.id), 'line ID')
+  if (lines.length > maxWorkshopLines) throw new Error(`A workshop holds up to ${maxWorkshopLines} lines.`)
+  return lines
 }
 
 function unique(values: string[], what: string) {
@@ -276,7 +449,8 @@ export function validateWorkshop(input: unknown): Workshop {
   }
   const cards: WorkshopCard[] = value.cards.map(item => {
     const raw = record(item)
-    const card: WorkshopCard = { id: id(raw.id), label: label(raw.label), laneId: id(raw.laneId) }
+    // A card may be empty, as a note may: an empty note dropped on a lane is an empty card.
+    const card: WorkshopCard = { id: id(raw.id), label: cardLabel(raw.label), laneId: id(raw.laneId) }
     if (!laneIds.includes(card.laneId)) throw new Error('Card refers to an unknown lane.')
     if (raw.allowedLaneIds !== undefined) {
       if (!Array.isArray(raw.allowedLaneIds) || raw.allowedLaneIds.length > lanes.length) throw new Error('Invalid allowed lanes.')
@@ -294,6 +468,7 @@ export function validateWorkshop(input: unknown): Workshop {
       const kept = cardAsNote(raw.asNote)
       if (kept) card.asNote = kept
     }
+    if (raw.noteId !== undefined && raw.noteId !== card.id) card.noteId = noteRef(raw.noteId)
     if (release) {
       if (typeof raw.points !== 'number' || !Number.isInteger(raw.points) || raw.points < 1 || raw.points > 24) {
         throw new Error('Give each feature 1 to 24 effort points.')
@@ -328,6 +503,10 @@ export function validateWorkshop(input: unknown): Workshop {
         whenPresent: label(raw.whenPresent, 160), whenAbsent: label(raw.whenAbsent, 160) }
     })
     unique(board.signals.map(signal => signal.id), 'placement outcome ID')
+  }
+  if (value.lines !== undefined) {
+    const lines = workshopLines(value.lines, new Set(cards.map(card => card.id)))
+    if (lines.length) board.lines = lines
   }
   if (value.presentationOrder !== undefined) {
     if (!Array.isArray(value.presentationOrder)) throw new Error('Presentation order must be a list of lane IDs.')
@@ -464,6 +643,8 @@ export interface WorkshopNoteOffer {
   look?: WorkshopCardLook
   /** What the note has that the card will not show (line breaks, shape, size), kept for its way back. */
   asNote?: WorkshopCardAsNote
+  /** The note's lines, with the note named by `id`: they stay joined to the card it becomes. */
+  lines?: WorkshopLine[]
 }
 
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -481,20 +662,68 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
   if (board.lanes.some(item => item.station)) return 'A map\'s stations hold its token only.'
   if (board.kind === 'release-plan') return 'A release plan\'s features need effort points, so a note can\'t become one.'
   if (startupExperienceKind(board)) return 'This workshop keeps the cards it came with.'
-  const text = typeof note?.label === 'string' ? note.label.replace(/\s+/g, ' ').trim() : ''
-  if (!text) return 'A card needs some words. Type on the note first.'
-  if (text.length > 80) return 'A card holds up to 80 characters. Shorten the note first.'
-  if (/[<>\u0000-\u001f]/.test(text)) return 'A card holds plain words only.'
-  if (board.cards.length >= maxWorkshopCards) return 'A workshop holds up to 24 cards.'
+  // A note becomes a card whatever its words, look, shape or lines: empty, long (the card shows
+  // the first 80 characters and keeps the rest for the note), or styled in a way a card does not draw.
+  // Only words a card could not show as plain text (markup) keep it a note.
+  if (board.cards.length >= maxWorkshopCards) return `This board is at its size limit of ${maxWorkshopCards} cards. Remove a card to make room.`
   const held = board.cards.filter(item => item.laneId === laneId).length
   if (lane.capacity !== undefined && held >= lane.capacity) return `It already holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
-  if (note.look !== undefined) {
-    try { cardLook(note.look) } catch { return 'This note\'s look can\'t be kept on a card.' }
-  }
-  if (note.asNote !== undefined) {
-    try { cardAsNote(note.asNote) } catch { return 'This note\'s shape or words can\'t be kept on a card.' }
+  if (note.lines !== undefined) {
+    const lines = offeredLines(note.lines)
+    if (!lines) return 'A line of this note can\'t be joined to a card.'
+    const ids = new Set((board.lines ?? []).map(line => line.id))
+    if ((board.lines?.length ?? 0) + lines.filter(line => !ids.has(line.id)).length > maxWorkshopLines) {
+      return `A workshop holds up to ${maxWorkshopLines} lines.`
+    }
   }
   return null
+}
+
+/** The parts of a note's look a card can draw. */
+function keptLook(input: unknown): WorkshopCardLook | undefined {
+  try { return input && typeof input === 'object' ? workshopCardLookOf(input as Record<string, unknown>) : undefined } catch { return undefined }
+}
+
+/** The parts of what a note had that a card can keep for it (its words, shape, size, picture, link). */
+function keptAsNote(input: unknown): WorkshopCardAsNote | undefined {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined
+  const kept: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(input)) {
+    try { if (cardAsNote({ [key]: value })) kept[key] = value } catch { /* not something a card can keep */ }
+  }
+  return Object.keys(kept).length ? cardAsNote(kept) : undefined
+}
+
+/** A note's lines as a card keeps them (their look as far as a line can be drawn), or null when one cannot be joined at all. */
+function offeredLines(input: unknown): WorkshopLine[] | null {
+  const list = Array.isArray(input) ? input : [input]
+  const lines: WorkshopLine[] = []
+  for (const raw of list) {
+    let line: WorkshopLine | null = null
+    try { line = workshopLine(raw) } catch {
+      try { const { id: lineId, parentId, childId } = record(raw); line = workshopLine({ id: lineId, parentId, childId }) } catch { line = null }
+    }
+    if (!line) return null
+    lines.push(line)
+  }
+  return lines
+}
+
+/** `line` with every end named `from` renamed `to`. */
+function renamedLine(line: WorkshopLine, from: string, to: string): WorkshopLine {
+  if (from === to || (line.parentId !== from && line.childId !== from)) return line
+  return { ...line, parentId: line.parentId === from ? to : line.parentId, childId: line.childId === from ? to : line.childId }
+}
+
+/** `lines` with every end named `from` renamed `to` (a note that became a card under another id, or the way back). */
+export function workshopRenamedLines<T extends WorkshopLine[] | undefined>(lines: T, from: string, to: string): T {
+  return (lines ? lines.map(line => renamedLine(line, from, to)) : lines) as T
+}
+
+/** `lines` added to the board's own, each in place of a line of the board with the same id. */
+function withLines(board: Workshop, lines: WorkshopLine[]): WorkshopLine[] {
+  const added = new Map(lines.map(line => [line.id, line]))
+  return [...(board.lines ?? []).filter(line => !added.has(line.id)), ...added.values()]
 }
 
 /**
@@ -505,13 +734,22 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
  */
 export function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null {
   if (workshopNoteRefusal(board, laneId, note) !== null) return null
-  const look = note.look === undefined ? undefined : cardLook(note.look)
-  const asNote = note.asNote === undefined ? undefined : cardAsNote(note.asNote)
-  const card: WorkshopCard = { id: cardIdFor(board, note.id), label: note.label.replace(/\s+/g, ' ').trim(), laneId,
-    ...(look ? { look } : {}), ...(asNote ? { asNote } : {}) }
+  const look = keptLook(note.look)
+  const words = typeof note.label === 'string' ? oneLine(note.label) : ''
+  let asNote = keptAsNote(note.asNote)
+  // Words longer than a card shows are kept for the note.
+  if (words.length > 80 && asNote?.text === undefined && words.length <= 4000) asNote = { ...asNote, text: words }
+  const cardId = cardIdFor(board, note.id)
+  // A card that could not take the note's id remembers it, so the note comes back under it.
+  const noteId = cardId !== note.id && typeof note.id === 'string' && notePattern.test(note.id) ? note.id : undefined
+  const card: WorkshopCard = { id: cardId, label: workshopCardLabelOf(words), laneId,
+    ...(look ? { look } : {}), ...(asNote ? { asNote } : {}), ...(noteId ? { noteId } : {}) }
   const at = before === undefined ? -1 : board.cards.findIndex(item => item.id === before && item.laneId === laneId)
   const cards = at < 0 ? [...board.cards, card] : [...board.cards.slice(0, at), card, ...board.cards.slice(at)]
-  return validateWorkshop({ ...board, cards })
+  // The note's lines stay joined to it: to the card, under the card's id.
+  const lines = note.lines === undefined ? undefined
+    : withLines(board, offeredLines(note.lines)!.map(line => renamedLine(line, note.id, card.id)))
+  return validateWorkshop({ ...board, cards, ...(lines ? { lines } : {}) })
 }
 
 /** Why the card may not leave the lanes as an ordinary note; null when it may. */
@@ -528,10 +766,81 @@ export function workshopCardAsNoteRefusal(board: Workshop, cardId: string): stri
   return null
 }
 
-/** The board without the card, for a card taken off the lanes as an ordinary note; null when it must stay. */
-export function workshopCardAsNote(board: Workshop, cardId: string): Workshop | null {
+/**
+ * The board without the card, for a card taken off the lanes as an ordinary note; null when it
+ * must stay. The card's lines stay joined to the note, named `noteId` (the card's own id unless
+ * the note had to take another): a line to another card stays on the board, and a line to an
+ * ordinary note leaves it for the drawing (see workshopCardLines).
+ */
+export function workshopCardAsNote(board: Workshop, cardId: string, noteId: string = noteIdOfCard(board, cardId)): Workshop | null {
   if (workshopCardAsNoteRefusal(board, cardId) !== null) return null
-  return validateWorkshop({ ...board, cards: board.cards.filter(item => item.id !== cardId) })
+  const lines = board.lines?.map(line => renamedLine(line, cardId, noteId))
+  return validateWorkshop({ ...board, cards: board.cards.filter(item => item.id !== cardId), ...(lines ? { lines } : {}) })
+}
+
+/**
+ * The lines of card `cardId` once it is the ordinary note `noteId`: those that stay on the board
+ * (another card is at their other end) and those that leave it, joining two ordinary notes of the
+ * drawing now. Both name the note by `noteId`.
+ */
+export function workshopCardLines(board: Workshop, cardId: string, noteId: string = noteIdOfCard(board, cardId)): { stay: WorkshopLine[]; leave: WorkshopLine[] } {
+  const others = new Set(board.cards.filter(card => card.id !== cardId).map(card => card.id))
+  const touching = (board.lines ?? []).filter(line => line.parentId === cardId || line.childId === cardId)
+    .map(line => renamedLine(line, cardId, noteId))
+  const stays = (line: WorkshopLine) => others.has(line.parentId) || others.has(line.childId)
+  return { stay: touching.filter(stays), leave: touching.filter(line => !stays(line)) }
+}
+
+function noteIdOfCard(board: Workshop, cardId: string): string {
+  const card = board.cards.find(item => item.id === cardId)
+  return card ? workshopNoteIdOf(card) : cardId
+}
+
+/** The lines of the board with `id` at either end. */
+export function workshopLinesOf(board: Workshop, id: string): WorkshopLine[] {
+  return (board.lines ?? []).filter(line => line.parentId === id || line.childId === id)
+}
+
+/** Why `line` may not be drawn on the board, as a sentence; null when it may. */
+export function workshopLineRefusal(board: Workshop, line: WorkshopLine): string | null {
+  let drawn: WorkshopLine
+  try { drawn = workshopLine(line) } catch (error) { return error instanceof Error ? error.message : 'That line can\'t be drawn.' }
+  const cards = new Set(board.cards.map(card => card.id))
+  if (!cards.has(drawn.parentId) && !cards.has(drawn.childId)) return 'That card is no longer on the board.'
+  if (board.lanes.some(lane => lane.id === drawn.parentId || lane.id === drawn.childId)) return 'A line joins notes and cards, not lanes.'
+  const known = (board.lines ?? []).some(item => item.id === drawn.id)
+  if (!known && (board.lines?.length ?? 0) >= maxWorkshopLines) return `A workshop holds up to ${maxWorkshopLines} lines.`
+  return null
+}
+
+/** The board with `line` drawn, in place of a line with the same id; null when it may not be (see workshopLineRefusal). */
+export function workshopWithLine(board: Workshop, line: WorkshopLine): Workshop | null {
+  if (workshopLineRefusal(board, line) !== null) return null
+  return validateWorkshop({ ...board, lines: withLines(board, [workshopLine(line)]) })
+}
+
+/** The board without the line `lineId` (the same board when it has no such line). */
+export function workshopWithoutLine(board: Workshop, lineId: string): Workshop {
+  if (!(board.lines ?? []).some(line => line.id === lineId)) return board
+  return validateWorkshop({ ...board, lines: board.lines!.filter(line => line.id !== lineId) })
+}
+
+/**
+ * A new line from `parentId` to `childId` (a card, or an ordinary note), with an arrow at the
+ * child as the canvas draws one. Its id is the canvas's own for a first line between the two, and
+ * the next free one after that.
+ */
+export function workshopNewLine(board: Workshop, parentId: string, childId: string, look: Partial<WorkshopLine> = {}): WorkshopLine {
+  const used = new Set((board.lines ?? []).map(line => line.id))
+  let lineId = `${parentId}->${childId}`
+  for (let n = 2; used.has(lineId); n++) lineId = `${parentId}->${childId}~${n}`
+  return workshopLine({ showChildArrow: true, ...look, id: lineId, parentId, childId })
+}
+
+/** The board without card `cardId`'s lines: a card removed from the board takes its lines with it. */
+export function workshopWithoutCardLines(board: Workshop, cardId: string): Workshop {
+  const lines = (board.lines ?? []).filter(line => line.parentId !== cardId && line.childId !== cardId)
+  return lines.length === (board.lines?.length ?? 0) ? board : { ...board, lines }
 }
 
 /** The second line under a lane's name: how full it is, or what its cards add up to. */

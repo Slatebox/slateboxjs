@@ -107,7 +107,8 @@ describe('agent-authored workshops', () => {
     expect(() => addWorkshopCard(full,'missing',{label:'Another recording'})).toThrow(/unknown lane/)
     expect(() => addWorkshopCard(full,'lane-1',{label:'Tune',allowedLaneIds:['card-1']})).toThrow(/starting lane/)
     expect(() => addWorkshopLane(full,{label:'<b>markup</b>'})).toThrow(/plain text/)
-    expect(() => addWorkshopCard(full,'card-1',{label:' '})).toThrow()
+    // (Restated 2026-11-21, owner decision: a card may be empty, so a blank card is added, not refused.)
+    expect(addWorkshopCard(full,'card-1',{label:' '}).cards.at(-1)).toMatchObject({ label: '', laneId: 'card-1' })
     expect(decodeWorkshopFragment(encodeWorkshopFragment(full))).toEqual(full)
   })
 
