@@ -309,6 +309,8 @@ export declare function workshopCardLines(board: Workshop, cardId: string, noteI
 export declare function workshopLinesOf(board: Workshop, id: string): WorkshopLine[];
 /** Why `line` may not be drawn on the board, as a sentence; null when it may. */
 export declare function workshopLineRefusal(board: Workshop, line: WorkshopLine): string | null;
+/** Why a board with a kind (a release plan, a map, a business board) takes no lines. */
+export declare const workshopLinesSentence = "Lines join the cards of a lane workshop to notes and to each other.";
 /** The board with `line` drawn, in place of a line with the same id; null when it may not be (see workshopLineRefusal). */
 export declare function workshopWithLine(board: Workshop, line: WorkshopLine): Workshop | null;
 /** The board without the line `lineId` (the same board when it has no such line). */
