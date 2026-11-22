@@ -332,12 +332,11 @@ export function nestEditsBetween(before: Workshop, after: Workshop): WorkshopEdi
       if (old?.fields?.[key] !== card.fields?.[key]) rest.push({ kind: 'set_field', card: { id: card.id }, field: key, value: card.fields?.[key] ?? null })
     }
   }
-  // A change of team: one set_owner per card whose team changed, shallowest first, with the cards under it that go
-  // with it (carry), so the server can tell a carry it works out differently. The teams are followed as the replay
-  // makes them: a new card takes the team of what it is added under, and under carry the rule's carry is what is said
-  // (a card under it that ends with another team is given that team after).
+  // A change of team: one set_owner per card whose team changed, shallowest first, with the cards under it that went
+  // with it (carry), so the server can tell a carry it works out differently (the server makes these edits from the
+  // page's board, so a drop made under another carry rule is refused, never kept as shown). The teams are followed as
+  // the replay makes them: a new card takes the team of what it is added under.
   const owners: WorkshopEdit[] = []
-  const carrying = (base.behaviour?.rules ?? []).some(rule => rule.on && rule.kind === 'sameOwnerAs' && rule.mode === 'carry')
   const current = new Map<string, string | undefined>()
   const teamAtAdd = (card: WorkshopCard): string | undefined => {
     if (current.has(card.id)) return current.get(card.id)
@@ -351,7 +350,7 @@ export function nestEditsBetween(before: Workshop, after: Workshop): WorkshopEdi
     const from = current.get(card.id)
     if (!card.owner || card.owner === from) continue
     const under = nestSubtree(after, card.id).slice(1)
-    const carry = under.filter(id => current.get(id) === from && (carrying || after.cards.find(item => item.id === id)!.owner === card.owner))
+    const carry = under.filter(id => current.get(id) === from && after.cards.find(item => item.id === id)!.owner === card.owner)
     owners.push({ kind: 'set_owner', card: { id: card.id }, owner: card.owner, carry: carry.map(id => ({ id })) })
     for (const id of [card.id, ...carry]) current.set(id, card.owner)
   }

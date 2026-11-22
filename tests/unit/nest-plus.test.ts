@@ -411,14 +411,10 @@ describe('whole saves the server keeps as made (s4 review)', () => {
     expect(placesOf(replay(loose, next))).toEqual(placesOf(next))
   })
 
-  it('under carry, a save where a card under the moved one ends with another team is said as the rule’s carry, then that card’s team', () => {
+  it('under carry, a card added under a card whose team changes in the same save is carried with it, on the page and on the server', () => {
     const board = goals()
     const carry = ok(board, [{ kind: 'set_rule', rule: ruleId(board, 'sameOwnerAs'), mode: 'carry' }])
-    const next = ok(carry, [{ kind: 'set_owner', card: { id: 'fast-onboarding' }, owner: 'platform' }, { kind: 'set_owner', card: { id: 'starters' }, owner: 'growth' }])
-    expect(card(next, 'guided').owner).toBe('platform')
-    expect(card(next, 'starters').owner).toBe('growth')
-    expect(placesOf(replay(carry, next))).toEqual(placesOf(next))
-    // A card added under a card whose team changes in the same save: added with the old team, then carried.
+    // Added with the old team, then carried.
     const added = ok(carry, [{ kind: 'add_card', lane: { id: 'goals' }, label: 'Status page', role: 'initiative', under: { id: 'self-serve' } },
       { kind: 'set_owner', card: { id: 'self-serve' }, owner: 'sales' }])
     expect(added.cards.find(item => item.label === 'Status page')!.owner).toBe('sales')
