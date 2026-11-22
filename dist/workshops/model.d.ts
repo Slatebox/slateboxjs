@@ -400,6 +400,8 @@ export interface WorkshopBoardLayout {
      * plan's days fill `width`.
      */
     dayWidth?: number;
+    /** A pipeline: the amount its forecast gauge spans. A target being dragged keeps the scale it started with. Left out, the gauge fits target and forecast. */
+    gaugeScale?: number;
     /**
      * How many lanes sit side by side before the next lane starts a new row. Leave it
      * out for every lane in one row. A narrow host passes 1 or 2 so each lane stays

@@ -7,9 +7,8 @@ export type { WorkshopLimits } from './kinds';
 /** Why `after` breaks this plan's rules (or its built-in line), as a sentence; null when it keeps them. */
 export declare function planProblem(before: Workshop, after: Workshop, cardId?: string): string | null;
 /**
- * What a whole-board save may not change on a plan, because no edit does: its first day (moving it would
- * slide every task past its locks and freezes), what it calls its line, a hiring plan's cash, burn,
- * currency, weeks, the round's size and its bands (a band's cost and the round's day have their edits,
+ * What a whole-board save may not change on a plan, because no edit does: anything of its clock but its first
+ * day (set_plan_start), what it calls its line, a hiring plan's cash, burn, currency, the round's size and its bands (a band's cost and the round's day have their edits,
  * and answer to the rules). Rules change on their own, never in the save that moves a task.
  */
 export declare function planFixed(before: Workshop, after: Workshop): string | null;
@@ -80,6 +79,31 @@ export interface LaunchMove {
  * plan's own sentence with the earliest day that fits. A later line needs no room: the grid draws the days it adds.
  */
 export declare function moveLaunch(board: Workshop, wanted: number): LaunchMove;
+/**
+ * How far the plan's first day lands when it is moved `by` calendar days: where weekends don't count a
+ * weekend is no first day (later: the Monday after; earlier: the Friday before); a plan that snaps to weeks
+ * (a hiring plan) moves it in whole weeks.
+ */
+export declare function planStartBy(board: Workshop, by: number): number;
+/**
+ * The plan with its first day moved `by` calendar days: every task keeps its dates (a task that would start
+ * before the new first day starts on it, and what waits on it moves with it), the line and a funding round keep
+ * theirs, and a hiring plan keeps its last day. Unchecked: see movePlanStart.
+ */
+export declare function withPlanStart(board: Workshop, by: number): Workshop;
+/** What moving the plan's first day comes to: how far it moved (snapped), the board, or the sentence that refuses it. */
+export interface StartMove {
+    by: number;
+    next: Workshop | null;
+    refusal: string | null;
+}
+/**
+ * The plan's first day moved `wanted` calendar days (a pointer's days, a key, the chat): snapped (planStartBy),
+ * then decided by the plan's rules. Refused, it says why and, moving later, the latest first day that fits.
+ */
+export declare function movePlanStart(board: Workshop, wanted: number): StartMove;
+/** A hiring plan's last day moved to `weeks`: never before a hire starts or the round closes, 13 to 104 weeks. */
+export declare function planWeeksProblem(board: Workshop, weeks: number): string | null;
 /** The words a task takes back to the canvas as a note: "Copy · 3 days". */
 export declare function launchTaskText(card: WorkshopCard): string;
 export declare function sampleLaunchPlan(): Workshop;

@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "e50215e654620c2ee1416b49110e5cff0e6a5e51",
+  "commit": "521861736112bfb1bd47ef49cef5e1b95d643dff",
   "branch": "fix/golive-drag",
   "dirty": false,
-  "builtAt": "2026-11-22T18:17:19.105Z"
+  "builtAt": "2026-11-22T18:33:32.327Z"
 }

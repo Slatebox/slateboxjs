@@ -199,6 +199,12 @@ export type WorkshopEdit = {
     kind: 'set_funding';
     day: number;
 } | {
+    kind: 'set_plan_start';
+    start: string;
+} | {
+    kind: 'set_plan_weeks';
+    weeks: number;
+} | {
     kind: 'nest_card';
     card: WorkshopRef;
     under?: WorkshopRef;

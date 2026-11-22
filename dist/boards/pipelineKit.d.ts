@@ -5,4 +5,6 @@ export declare function pipelineLayout(board: Workshop, layout?: WorkshopBoardLa
     width: number;
     height: number;
 };
+/** The target moves in steps of about a hundredth of the gauge: $1k, $5k, $10k, $50k, … */
+export declare function targetStep(scale: number): number;
 export declare const pipelineKit: WorkshopBoardKit;
