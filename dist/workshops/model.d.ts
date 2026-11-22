@@ -88,6 +88,14 @@ export interface WorkshopLine {
     showParentArrow?: boolean;
     showChildArrow?: boolean;
     label?: string;
+    /** An end pinned to one spot on its note's edge ({x, y} in 0..1 on the unturned note); none follows its note. */
+    sourceAnchor?: WorkshopLineAnchor;
+    targetAnchor?: WorkshopLineAnchor;
+}
+/** A spot on a note's edge, as a pinned line end keeps it (see core/LineEnds.ts). */
+export interface WorkshopLineAnchor {
+    x: number;
+    y: number;
 }
 export interface WorkshopSignal {
     id: string;
