@@ -236,11 +236,12 @@ test('a note with a free-ended elbow line and a line to a card, dropped on a Pro
     const key = slateKey(page)
     await page.waitForTimeout(4000)
     // "hey" beside the board, with an elbow line let go on empty canvas (sent and saved as a person's).
-    const point = await page.evaluate(() => {
+    const point = await page.evaluate(async () => {
       const slate = (window as any).slate.v2
       const column = slate.nodes.one('column-pros').options
       const hey = slate.addNode({ id: 'hey', x: column.x - 300, y: column.y + 40, width: 180, height: 70, text: 'hey' })
       const p = { x: Math.round(column.x - 420), y: Math.round(column.y + 260) }
+      await hey.ready
       hey.relationships.addFloatingAssociation(p, { lineType: 'elbow', showChildArrow: true })
       return p
     })
@@ -260,7 +261,8 @@ test('a note with a free-ended elbow line and a line to a card, dropped on a Pro
     await carry(page, 'hey', { x: prosColumn.x + prosColumn.width / 2, y: prosColumn.y + prosColumn.height - 24 })
     await expect.poll(async () => (await storedWorkshop(page, key)).cards.map((c: any) => c.id + '@' + c.laneId).join(' ')).toBe('welcome@questions hey@pros')
     await expect(page.getByText('stays a note')).toHaveCount(0)
-    await expect.poll(() => boardLines(page, key)).toBe(`hey>welcome hey>${free.childId}`)
+    // The note's lines come in the order it has them: its own free line, then the board's line to Welcome!.
+    await expect.poll(() => boardLines(page, key)).toBe(`hey>${free.childId} hey>welcome`)
     expect(((await storedWorkshop(page, key)).lines ?? []).find((l: any) => l.id === free.id)).toMatchObject({ targetPoint: point, lineType: 'elbow' })
     await expect.poll(() => drawingLines(page, key)).toBe('')
     const welcomeLine = await lineIdOf(page, key, 'hey', 'welcome')
