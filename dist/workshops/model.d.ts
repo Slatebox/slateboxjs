@@ -1,7 +1,10 @@
 export * from './offlineHandoff';
 export * from './listeningRoom';
 export { releaseLoad, releasePlan } from './release';
-import type { SlateJSON } from '../core/Serialization';
+import type { Behaviour } from './behaviour';
+export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, RuleInput, RuleKindId, WorkshopMoveCheck } from './behaviour';
+export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools, type WorkshopFieldReader, type WorkshopLimits } from './kinds';
+import type { NodeJSON, SlateJSON } from '../core/Serialization';
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults';
 /** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
 export { DEFAULT_NOTE_STYLE };
@@ -13,6 +16,14 @@ export interface WorkshopLane {
     id: string;
     label: string;
     capacity?: number;
+    /** Pipeline: the chance a deal in this open stage is won, 0 to 1. */
+    probability?: number;
+    /** Pipeline: the stage that holds won deals, or lost ones. */
+    role?: 'won' | 'lost';
+    /** Budget: what this team is given, and the least and most it may be given. */
+    allocation?: number;
+    floor?: number;
+    cap?: number;
     station?: {
         column: number;
         row: number;
@@ -28,6 +39,19 @@ export interface WorkshopCard {
     allowedLaneIds?: string[];
     points?: number;
     dependsOn?: string[];
+    /** Launch plan: whole days the task takes, and whole days it waits after what it depends on. */
+    duration?: number;
+    lag?: number;
+    /** Pipeline and budget: whole currency units. */
+    amount?: number;
+    /** Hiring plan: the role band the hire is in (cost is per band, never per person). */
+    band?: string;
+    /** Nest board: the card it sits under, what it is (pile, outcome…), its place among its siblings (a fractional key), who said it, and numbers chat added. */
+    parentId?: string;
+    role?: string;
+    order?: string;
+    source?: string;
+    fields?: Record<string, number>;
     /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
     look?: WorkshopCardLook;
     /** What the note it was made from had that a card does not show, so it comes back as it was. */
@@ -112,8 +136,32 @@ export interface ResolvedWorkshopSignal extends WorkshopSignal {
 export interface Workshop {
     experience?: StartupExperience;
     version: 1;
-    kind?: 'release-plan';
+    kind?: WorkshopKind;
     title: string;
+    /** Launch plan: the day every task must end by (a go-live names it). */
+    launch?: {
+        day: number;
+        name?: string;
+    };
+    /** Launch and hiring plans: the plan's first day (YYYY-MM-DD); days are offsets from it. */
+    clock?: {
+        origin: string;
+    };
+    /** Hiring plan: cash, monthly burn without new hires, the role bands and a funding round. */
+    hiring?: HiringFields;
+    /** Nest board: how it is drawn (piles or a tree), the number fields chat added, and merged cards' new homes. */
+    nest?: NestFields;
+    /** Pipeline: the forecast target, and the currency sign amounts are written with. */
+    forecast?: {
+        target: number;
+        currency: string;
+    };
+    /** Budget: the envelope, its currency sign and the step allocations snap to. */
+    budget?: {
+        total: number;
+        currency: string;
+        step: number;
+    };
     lanes: WorkshopLane[];
     /** Lane IDs in playback order. Boards without an authored order present their lanes in layout order. */
     presentationOrder?: string[];
@@ -121,7 +169,42 @@ export interface Workshop {
     cards: WorkshopCard[];
     /** The lines joined to its cards (see WorkshopLine). */
     lines?: WorkshopLine[];
+    /** How the board behaves, as data: its rulebook (behaviour.ts). Lane boards and pipelines only. */
+    behaviour?: Behaviour;
 }
+/** The kinds of board with rules of their own. A board without a kind is a board of plain lanes. */
+export type WorkshopKind = 'release-plan' | BusinessBoardKind;
+/** A hiring plan's money: what a role band costs a month (loaded), on one team. */
+export interface HiringBand {
+    id: string;
+    label: string;
+    monthly: number;
+    lane: string;
+}
+export interface HiringFields {
+    cash: number;
+    burn: number;
+    currency: string;
+    weeks: number;
+    bands: HiringBand[];
+    funding?: {
+        day: number;
+        amount: number;
+    };
+}
+/** The business boards: drawn by a board kit (slateboxjs/boards) on a live slate. */
+export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest';
+export declare const businessBoardKinds: readonly BusinessBoardKind[];
+export interface NestFields {
+    layout: 'clusters' | 'tree';
+    fields?: {
+        id: string;
+        label: string;
+        currency?: string;
+    }[];
+    aliases?: [string, string][];
+}
+export declare function businessKind(board: Pick<Workshop, 'kind'>): BusinessBoardKind | undefined;
 /** The id of the note a card stands for: the note it was made from, when that note's id is not the card's. */
 export declare function workshopNoteIdOf(card: Pick<WorkshopCard, 'id' | 'noteId'>): string;
 /** The words a card shows for a note's words: its words in one line, the first 80 characters of longer ones. */
@@ -186,6 +269,8 @@ export interface WorkshopNoteOffer {
     asNote?: WorkshopCardAsNote;
     /** The note's lines, with the note named by `id`: they stay joined to the card it becomes. */
     lines?: WorkshopLine[];
+    /** Nest board: the card it was dropped on, to sit under. */
+    under?: string;
 }
 /** Why `note` may not become a card in `laneId`, as a sentence; null when it may. */
 export declare function workshopNoteRefusal(board: Workshop, laneId: string, note: WorkshopNoteOffer): string | null;
@@ -198,6 +283,10 @@ export declare function workshopRenamedLines<T extends WorkshopLine[] | undefine
  * place). The card keeps the note's id where it can.
  */
 export declare function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null;
+/** What a card says on the board: its name, with its points, days or amount. */
+export declare function workshopCardText(board: Workshop, card: WorkshopCard): string;
+/** The words a card takes back to the canvas as a note, numbers and all: "Copy · 3 days", "Acme · $25k". */
+export declare function workshopCardNoteText(board: Workshop, card: WorkshopCard): string;
 /** Why the card may not leave the lanes as an ordinary note; null when it may. */
 export declare function workshopCardAsNoteRefusal(board: Workshop, cardId: string): string | null;
 /**
@@ -275,6 +364,10 @@ export declare function addWorkshopBranch(board: Workshop, fromStationId: string
 export declare const nightTransfer: Workshop;
 /** How the native artwork arranges a board's lanes. */
 export interface WorkshopBoardLayout {
+    /** Business boards: draw the narrow (phone) arrangement. */
+    narrow?: boolean;
+    /** Business boards: the world width the board should fill. */
+    width?: number;
     /**
      * How many lanes sit side by side before the next lane starts a new row. Leave it
      * out for every lane in one row. A narrow host passes 1 or 2 so each lane stays
@@ -350,6 +443,7 @@ export declare const workshopNodeIds: {
     image: (id: string) => string;
     caption: (id: string) => string;
     column: (id: string) => string;
+    rules: string;
 };
 /**
  * The id a workshop note takes when the slate's own document already has a note by
@@ -358,6 +452,8 @@ export declare const workshopNodeIds: {
  * drawing made of it.
  */
 export declare function workshopStandInId(name: string, taken: (id: string) => boolean): string;
+/** A note's outline: a box with rounded corners (none at radius 0). */
+export declare function roundedBox(width: number, height: number, radius: number): string;
 /** One lane's place in the native artwork: its column box from the artwork's origin, and its cell in the grid of lanes. */
 export interface WorkshopLanePlace {
     laneId: string;
@@ -378,6 +474,12 @@ export declare function workshopLanePlaces(input: Workshop, options?: Pick<Works
     width: number;
     height: number;
 };
+/** The "How this board behaves" note of a board with a rulebook (behaviour.ts draws it); null without one. */
+export declare function behaviourNote(board: Workshop, box: {
+    x: number;
+    y: number;
+    width: number;
+}, style?: WorkshopNoteStyle): NodeJSON | null;
 /**
  * Draw a workshop as slate notes. With no options this is the presentation artwork
  * the app and its snapshots already consume; `{ native: true }` is the artwork
@@ -389,7 +491,7 @@ export * from './moonGallery';
 export * from './darkroom/model';
 export * from './edits';
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names';
-export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection } from './native';
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native';
 export type StartupExperience = {
     version: 1;
     kind: 'customer-interviews' | 'experiment-budget';

@@ -1,30 +1,30 @@
-import e, { useState as I, useRef as F, useMemo as qe, useLayoutEffect as O, useEffect as Q, useId as Xe } from "react";
-import { DraggableRenderer as ne, translate as D, param as Qe, inOrder as Ve, Vec2 as Le, getElementPositionCheap as _e, dragSpecToBehavior as Ue } from "./dragology.mjs";
-import { handoffSummary as Se, reviewHandoff as ie, resolveHandoff as Ce, offlineHandoff as Ze, listeningRoom as We, listeningRoomCaption as ze, workshopLayout as se, workshopToSlate as Je, workshopPositions as ce, releaseLoad as Fe, laneColors as Oe, availableLanes as ee, moveWorkshopCard as de, workshopDestinations as et, workshopCandidate as Re, canHangPanel as Ee, hangGalleryPanel as le, printFields as X, startupExperienceKind as tt, resolveWorkshopSignals as Be, workshopBudgetResult as $e, interviews as nt, channels as rt, maxWorkshopCards as ot } from "./workshop-model.mjs";
-import { WorkshopReferenceError as Kt, addWorkshopBranch as Gt, addWorkshopCard as jt, addWorkshopLane as Yt, applyWorkshopEdits as Xt, attachWorkshop as Qt, checkWorkshopReplacement as Vt, countWord as _t, createBudgetWorkshop as Ut, createInterviewWorkshop as Zt, createLaneWorkshop as Jt, createWorkshopMap as Ot, decodeWorkshopFragment as en, describeFocusDarkroom as tn, describeWorkshopEdits as nn, encodeWorkshopFragment as rn, industrialWorkshop as on, initialFocusDarkroom as an, listed as ln, maxWorkshopLines as sn, moonGallery as cn, named as dn, nightTransfer as pn, normalizeFocusDarkroom as un, normalizeListeningRoom as fn, normalizeMoonGallery as mn, normalizeOfflineHandoff as bn, planStartupMove as hn, pointing as gn, releasePlan as En, said as yn, unquoted as xn, validateWorkshop as kn, workshopBoardKind as wn, workshopCardAsNote as vn, workshopCardAsNoteRefusal as Mn, workshopCardLabelOf as Ln, workshopCardLines as Sn, workshopCardLookOf as Cn, workshopEditKinds as Wn, workshopFinder as zn, workshopKeepsLink as $n, workshopKeepsPicture as Nn, workshopLaneCaption as Pn, workshopLanePlaces as In, workshopLineRefusal as Dn, workshopLinesOf as qn, workshopNewLine as Fn, workshopNodeIds as Rn, workshopNoteCandidate as Bn, workshopNoteIdOf as An, workshopNoteRefusal as Hn, workshopPresentationLanes as Tn, workshopPresentationScenes as Kn, workshopReferences as Gn, workshopRefusal as jn, workshopRenamedLines as Yn, workshopStandInId as Xn, workshopTakesNotes as Qn, workshopWithLine as Vn, workshopWithoutCardLines as _n, workshopWithoutLine as Un } from "./workshop-model.mjs";
+import e, { useState as I, useRef as q, useMemo as Re, useLayoutEffect as J, useEffect as Q, useId as Xe } from "react";
+import { DraggableRenderer as oe, translate as D, param as Qe, inOrder as Ve, Vec2 as Le, getElementPositionCheap as _e, dragSpecToBehavior as Ue } from "./dragology.mjs";
+import { handoffSummary as Se, reviewHandoff as ie, resolveHandoff as Ce, offlineHandoff as Oe, listeningRoom as We, listeningRoomCaption as ze, workshopLayout as se, workshopToSlate as Ze, workshopPositions as ce, releaseLoad as qe, laneColors as Je, availableLanes as ee, moveWorkshopCard as de, workshopDestinations as et, workshopCandidate as Fe, canHangPanel as Ee, hangGalleryPanel as le, printFields as X, startupExperienceKind as tt, resolveWorkshopSignals as Be, workshopBudgetResult as $e, interviews as ot, channels as rt, maxWorkshopCards as nt } from "./workshop-model.mjs";
+import { WORKSHOP_BOARD_KINDS as Ht, WorkshopReferenceError as Gt, addWorkshopBranch as jt, addWorkshopCard as Yt, addWorkshopLane as Xt, applyWorkshopEdits as Qt, attachWorkshop as Vt, behaviourNote as _t, businessBoardKinds as Ut, businessKind as Ot, checkWorkshopReplacement as Zt, countWord as Jt, createBudgetWorkshop as eo, createInterviewWorkshop as to, createLaneWorkshop as oo, createWorkshopMap as ro, decodeWorkshopFragment as no, describeFocusDarkroom as ao, describeWorkshopEdits as io, encodeWorkshopFragment as lo, industrialWorkshop as so, initialFocusDarkroom as co, isRuleEdit as po, listed as uo, maxWorkshopLines as fo, moonGallery as mo, named as bo, nightTransfer as ho, normalizeFocusDarkroom as go, normalizeListeningRoom as Eo, normalizeMoonGallery as ko, normalizeOfflineHandoff as xo, planStartupMove as yo, pointing as wo, registerRulebook as vo, registerWorkshopRules as Mo, releasePlan as Lo, roundedBox as So, rulebook as Co, rulebookLoaded as Wo, said as zo, unquoted as $o, validateWorkshop as No, workshopBoardKind as Po, workshopCardAsNote as Io, workshopCardAsNoteRefusal as Do, workshopCardLabelOf as Ro, workshopCardLines as qo, workshopCardLookOf as Fo, workshopCardNoteText as Bo, workshopCardText as Ao, workshopEditKinds as Ko, workshopFinder as To, workshopKeepsLink as Ho, workshopKeepsPicture as Go, workshopLaneCaption as jo, workshopLanePlaces as Yo, workshopLineRefusal as Xo, workshopLinesOf as Qo, workshopNewLine as Vo, workshopNodeIds as _o, workshopNoteCandidate as Uo, workshopNoteIdOf as Oo, workshopNoteRefusal as Zo, workshopPresentationLanes as Jo, workshopPresentationScenes as er, workshopReferences as tr, workshopRefusal as or, workshopRenamedLines as rr, workshopRuleSchema as nr, workshopRules as ar, workshopRulesLoaded as ir, workshopStandInId as lr, workshopTakesNotes as sr, workshopWithLine as cr, workshopWithoutCardLines as dr, workshopWithoutLine as pr } from "./workshop-model.mjs";
 import { Slate as at } from "slateboxjs";
-import { D as Jn } from "./NoteDefaults-1xFW0br8.mjs";
+import { D as fr } from "./NoteDefaults-1xFW0br8.mjs";
 function it(t, d, r) {
   return /* @__PURE__ */ e.createElement("g", { transform: `translate(${t} ${d}) scale(${r} ${r * 0.88})` }, /* @__PURE__ */ e.createElement("rect", { width: "142", height: "73", rx: "3", fill: "#b8d0c5" }), /* @__PURE__ */ e.createElement("path", { d: "M0 27L46 7h96v12H50L0 38Z", fill: "#728d81" }), /* @__PURE__ */ e.createElement("path", { d: "M12 38l36-17v43l-36 6z", fill: "#395c50" }), /* @__PURE__ */ e.createElement("path", { d: "M49 20h89v43H49z", fill: "#f1e3b8" }), /* @__PURE__ */ e.createElement("path", { d: "M57 33h45v30H57z", fill: "#557468" }), [37, 42, 47, 52, 57].map((l) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "slat" + l, d: `M59 ${l}h41`, stroke: "#a5b6a3" })), /* @__PURE__ */ e.createElement("path", { d: "M0 69l49-7h93v11H0z", fill: "#84998a" }), /* @__PURE__ */ e.createElement("path", { d: "M12 73l40-7h65", fill: "none", stroke: "#e9b04e", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("rect", { x: "111", y: "34", width: "19", height: "27", fill: "#d1a45c" }), /* @__PURE__ */ e.createElement("rect", { x: "116", y: "39", width: "9", height: "12", rx: "2", fill: "#38574b" }), /* @__PURE__ */ e.createElement("circle", { cx: "120", cy: "42", r: "2", fill: "#f0a466" }), /* @__PURE__ */ e.createElement("text", { x: "59", y: "30", fontSize: "8", fontWeight: "bold", fill: "#354e40" }, "GATE B"));
 }
 function lt(t, d) {
-  const r = t ? 9 : 49, l = t ? 20 : 23, a = t ? 144 : 181, f = t ? 183 : 370, p = t ? 35 : 40, s = t ? 164 : 255, u = t ? 119 : 147, o = 45, m = (y, w, h, x, g = "#243c32", v = "normal", C = "Arial, sans-serif") => /* @__PURE__ */ e.createElement("text", { transform: D(y, w), fill: g, fontSize: x, fontFamily: C, fontWeight: v }, h);
-  return ({ state: y, d: w, draggedId: h }) => {
-    const x = y.stage === "queued", g = y.stage === "resolved", v = f + (s - u) / 2, C = p + 138, M = x ? r + (a - u) / 2 : v, z = x ? l + 141 : C, W = "#233e33";
-    return /* @__PURE__ */ e.createElement("g", { fontFamily: "Arial, sans-serif" }, /* @__PURE__ */ e.createElement("g", { id: "sync-cable" }, /* @__PURE__ */ e.createElement("path", { d: `M${r + a - 2} ${l + 180} C${r + a + 45} ${l + 235},${f - 24} ${p + 204},${f + 22} ${p + 159}`, fill: "none", stroke: x ? "#9aab9b" : "#2a7464", strokeWidth: "2.5", strokeDasharray: x ? "5 7" : "8 2" })), /* @__PURE__ */ e.createElement("g", { id: "field-phone", transform: D(r, l) }, /* @__PURE__ */ e.createElement("rect", { x: "3", y: "5", width: a, height: "202", rx: "18", fill: "#a6b3a5" }), /* @__PURE__ */ e.createElement("rect", { width: a, height: "202", rx: "18", fill: "#243d34" }), /* @__PURE__ */ e.createElement("rect", { x: "5", y: "5", width: a - 10, height: "192", rx: "14", fill: "#f4f1db" }), /* @__PURE__ */ e.createElement("rect", { x: a / 2 - 17, y: "7", width: "34", height: "5", rx: "3", fill: "#283b30" }), m(13, 27, "17:08", 9, W, "bold"), m(a - 50, 27, x ? "Offline" : "Online", 10, x ? "#835420" : "#266451", "bold"), m(13, 47, "Field log", t ? 18 : 20, W, "bold"), it(13, 55, (a - 26) / 142), m(13, t ? 132 : 134, "Noor · Gate B", t ? 10 : 12, W), /* @__PURE__ */ e.createElement("rect", { x: a / 2 - 19, y: "190", width: "38", height: "2.6", rx: "2", fill: "#697a69" })), /* @__PURE__ */ e.createElement("g", { id: "shared-notebook", transform: D(f, p) }, /* @__PURE__ */ e.createElement("path", { d: `M4 3l${s - 5} -3 5 190 -${s - 3} 5z`, fill: "#c6c4ab" }), /* @__PURE__ */ e.createElement("path", { d: `M-3 5l${s - 1} -3 3 183 -${s - 1} 6z`, fill: "#dccfb0", stroke: "#b2aa8c" }), /* @__PURE__ */ e.createElement("rect", { width: s, height: "184", fill: "#fffbea", stroke: "#b9ba9f" }), /* @__PURE__ */ e.createElement("path", { d: "M15 0v184", stroke: "#e1b9a6" }), [30, 65, 100, 135, 169].map((i) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "hole" + i, cx: "8", cy: i, r: "2.7", fill: "#bfbba7" })), /* @__PURE__ */ e.createElement("path", { d: "M29 7V1q0-7 6-7t6 7v16q0 5-4 5t-4-4V3", fill: "none", stroke: "#718273", strokeWidth: "2" }), m(23, 38, x ? "SHIFT HANDOFF" : g ? "CREW COPY" : "REVIEW QUEUE", t ? 10 : 12, "#586e5f", "bold", "monospace"), m(22, 69, "Gate B", t ? 30 : 37, W, "bold", "Georgia, serif"), /* @__PURE__ */ e.createElement("path", { d: `M23 79h${s - 42}`, stroke: "#bfc5b1" }), m(23, 101, (g && y.choice === "field" ? y.fieldNote : y.deskNote).slice(0, t ? 18 : 25), t ? 12 : 16, W, "bold"), m(23, 120, g && y.choice === "field" ? "Noor + Jules" : "Jules · Release desk", t ? 10 : 12, "#5a6c5d"), /* @__PURE__ */ e.createElement("g", { id: "desk-drop", transform: D((s - u) / 2, 138) }, /* @__PURE__ */ e.createElement("rect", { width: u, height: o, rx: "3", stroke: "#849785", strokeDasharray: "4 3", fill: "#f0f2df" }), m(11, 26, "Attach field edit", t ? 12 : 15, "#607465"))), /* @__PURE__ */ e.createElement(
+  const r = t ? 9 : 49, l = t ? 20 : 23, a = t ? 144 : 181, f = t ? 183 : 370, p = t ? 35 : 40, s = t ? 164 : 255, u = t ? 119 : 147, n = 45, m = (k, w, h, x, g = "#243c32", v = "normal", C = "Arial, sans-serif") => /* @__PURE__ */ e.createElement("text", { transform: D(k, w), fill: g, fontSize: x, fontFamily: C, fontWeight: v }, h);
+  return ({ state: k, d: w, draggedId: h }) => {
+    const x = k.stage === "queued", g = k.stage === "resolved", v = f + (s - u) / 2, C = p + 138, M = x ? r + (a - u) / 2 : v, z = x ? l + 141 : C, W = "#233e33";
+    return /* @__PURE__ */ e.createElement("g", { fontFamily: "Arial, sans-serif" }, /* @__PURE__ */ e.createElement("g", { id: "sync-cable" }, /* @__PURE__ */ e.createElement("path", { d: `M${r + a - 2} ${l + 180} C${r + a + 45} ${l + 235},${f - 24} ${p + 204},${f + 22} ${p + 159}`, fill: "none", stroke: x ? "#9aab9b" : "#2a7464", strokeWidth: "2.5", strokeDasharray: x ? "5 7" : "8 2" })), /* @__PURE__ */ e.createElement("g", { id: "field-phone", transform: D(r, l) }, /* @__PURE__ */ e.createElement("rect", { x: "3", y: "5", width: a, height: "202", rx: "18", fill: "#a6b3a5" }), /* @__PURE__ */ e.createElement("rect", { width: a, height: "202", rx: "18", fill: "#243d34" }), /* @__PURE__ */ e.createElement("rect", { x: "5", y: "5", width: a - 10, height: "192", rx: "14", fill: "#f4f1db" }), /* @__PURE__ */ e.createElement("rect", { x: a / 2 - 17, y: "7", width: "34", height: "5", rx: "3", fill: "#283b30" }), m(13, 27, "17:08", 9, W, "bold"), m(a - 50, 27, x ? "Offline" : "Online", 10, x ? "#835420" : "#266451", "bold"), m(13, 47, "Field log", t ? 18 : 20, W, "bold"), it(13, 55, (a - 26) / 142), m(13, t ? 132 : 134, "Noor · Gate B", t ? 10 : 12, W), /* @__PURE__ */ e.createElement("rect", { x: a / 2 - 19, y: "190", width: "38", height: "2.6", rx: "2", fill: "#697a69" })), /* @__PURE__ */ e.createElement("g", { id: "shared-notebook", transform: D(f, p) }, /* @__PURE__ */ e.createElement("path", { d: `M4 3l${s - 5} -3 5 190 -${s - 3} 5z`, fill: "#c6c4ab" }), /* @__PURE__ */ e.createElement("path", { d: `M-3 5l${s - 1} -3 3 183 -${s - 1} 6z`, fill: "#dccfb0", stroke: "#b2aa8c" }), /* @__PURE__ */ e.createElement("rect", { width: s, height: "184", fill: "#fffbea", stroke: "#b9ba9f" }), /* @__PURE__ */ e.createElement("path", { d: "M15 0v184", stroke: "#e1b9a6" }), [30, 65, 100, 135, 169].map((i) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "hole" + i, cx: "8", cy: i, r: "2.7", fill: "#bfbba7" })), /* @__PURE__ */ e.createElement("path", { d: "M29 7V1q0-7 6-7t6 7v16q0 5-4 5t-4-4V3", fill: "none", stroke: "#718273", strokeWidth: "2" }), m(23, 38, x ? "SHIFT HANDOFF" : g ? "CREW COPY" : "REVIEW QUEUE", t ? 10 : 12, "#586e5f", "bold", "monospace"), m(22, 69, "Gate B", t ? 30 : 37, W, "bold", "Georgia, serif"), /* @__PURE__ */ e.createElement("path", { d: `M23 79h${s - 42}`, stroke: "#bfc5b1" }), m(23, 101, (g && k.choice === "field" ? k.fieldNote : k.deskNote).slice(0, t ? 18 : 25), t ? 12 : 16, W, "bold"), m(23, 120, g && k.choice === "field" ? "Noor + Jules" : "Jules · Release desk", t ? 10 : 12, "#5a6c5d"), /* @__PURE__ */ e.createElement("g", { id: "desk-drop", transform: D((s - u) / 2, 138) }, /* @__PURE__ */ e.createElement("rect", { width: u, height: n, rx: "3", stroke: "#849785", strokeDasharray: "4 3", fill: "#f0f2df" }), m(11, 26, "Attach field edit", t ? 12 : 15, "#607465"))), /* @__PURE__ */ e.createElement(
       "g",
       {
         id: "field-edit",
         transform: D(M, z),
         dragologyZIndex: h === "field-edit" ? "/2" : !1,
-        dragologyOnDrag: !d && x ? () => w.closest([y, ie(y)]).withFloating() : void 0
+        dragologyOnDrag: !d && x ? () => w.closest([k, ie(k)]).withFloating() : void 0
       },
-      /* @__PURE__ */ e.createElement("path", { d: `M2 3h${u - 2}v${o - 2}l-6 5H2z`, fill: "#a29165" }),
-      /* @__PURE__ */ e.createElement("path", { d: `M0 0h${u}v${o - 7}l-7 7H0z`, fill: g ? "#c8ddbe" : "#ffcf72", stroke: "#ae8a42" }),
-      /* @__PURE__ */ e.createElement("path", { d: `M${u - 7} ${o}v-7h7`, fill: "#ca9f55" }),
+      /* @__PURE__ */ e.createElement("path", { d: `M2 3h${u - 2}v${n - 2}l-6 5H2z`, fill: "#a29165" }),
+      /* @__PURE__ */ e.createElement("path", { d: `M0 0h${u}v${n - 7}l-7 7H0z`, fill: g ? "#c8ddbe" : "#ffcf72", stroke: "#ae8a42" }),
+      /* @__PURE__ */ e.createElement("path", { d: `M${u - 7} ${n}v-7h7`, fill: "#ca9f55" }),
       [13, 18, 23].map((i) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "handle" + i, cx: "8", cy: i, r: "1.3", fill: "#84662e" })),
       m(17, 17, "BADGE TEST", t ? 9 : 11, "#72522e", "bold", "monospace"),
-      m(17, 34, g ? "Reviewed" : y.fieldNote === Ze.fieldNote ? "Badge rejected" : "Field result", t ? 13 : 16, "#42351f", "bold")
+      m(17, 34, g ? "Reviewed" : k.fieldNote === Oe.fieldNote ? "Badge rejected" : "Field result", t ? 13 : 16, "#42351f", "bold")
     ));
   };
 }
@@ -48,16 +48,16 @@ const st = `.sb-handoff .field-art{border-block:1px solid #bac3b1;background-col
 .sb-handoff .field-actions button.field-quiet{color:#355441;background:transparent;border-color:#a9bba6}
 @media(max-width:460px){.sb-handoff .field-art{margin-inline:-2px}.sb-handoff .field-versions>div{padding:12px 8px 12px 0}.sb-handoff .field-versions>div+div{padding-inline:9px 0}.sb-handoff .field-versions p{font-size:14px}.sb-handoff .field-actions [role=status]{width:100%}}.sb-handoff{background:#faf8ee;color:#213e32;font:15px/1.35 system-ui,Arial,sans-serif}.sb-handoff #field-edit{touch-action:none}.sb-handoff [data-stage=queued]{cursor:grab}.sb-handoff button:focus-visible{outline:3px solid #ab601d;outline-offset:2px}`;
 function It({ value: t, onChange: d, readOnly: r = !1 }) {
-  const [l, a] = I(null), [f, p] = I(null), [s, u] = I(0), [o, m] = I(!1), [y, w] = I(1), h = F(null), x = F(!1), g = F(t), v = qe(() => lt(o, r), [o, r]), C = r ? t : f ?? l ?? t, M = t.stage === "queued" && C.stage === "review";
+  const [l, a] = I(null), [f, p] = I(null), [s, u] = I(0), [n, m] = I(!1), [k, w] = I(1), h = q(null), x = q(!1), g = q(t), v = Re(() => lt(n, r), [n, r]), C = r ? t : f ?? l ?? t, M = t.stage === "queued" && C.stage === "review";
   function z() {
     x.current = !1, p(null), a(null), u((i) => i + 1);
   }
   function W(i) {
     z(), !r && i.stage !== t.stage && d?.(i);
   }
-  return O(() => {
+  return J(() => {
     (x.current || f) && (r || g.current !== t) && z(), g.current = t;
-  }, [t, r, f]), O(() => {
+  }, [t, r, f]), J(() => {
     const i = () => {
       const L = h.current.clientWidth;
       m(L < 510), w(Math.min(1, L / (L < 510 ? 360 : 685)));
@@ -72,14 +72,14 @@ function It({ value: t, onChange: d, readOnly: r = !1 }) {
     return document.addEventListener("keydown", i), document.addEventListener("pointercancel", i), window.addEventListener("blur", i), () => {
       document.removeEventListener("keydown", i), document.removeEventListener("pointercancel", i), window.removeEventListener("blur", i);
     };
-  }, [f]), /* @__PURE__ */ e.createElement("section", { className: "sb-handoff", "data-stage": t.stage, "data-readonly": r, "aria-label": "Field handoff simulation" }, /* @__PURE__ */ e.createElement("style", null, st), /* @__PURE__ */ e.createElement("div", { className: "field-art", ref: h, style: { "--drawing-scale": y } }, /* @__PURE__ */ e.createElement(
-    ne,
+  }, [f]), /* @__PURE__ */ e.createElement("section", { className: "sb-handoff", "data-stage": t.stage, "data-readonly": r, "aria-label": "Field handoff simulation" }, /* @__PURE__ */ e.createElement("style", null, st), /* @__PURE__ */ e.createElement("div", { className: "field-art", ref: h, style: { "--drawing-scale": k } }, /* @__PURE__ */ e.createElement(
+    oe,
     {
       key: r ? "read-only" : s,
       state: f ?? t,
       draggable: v,
-      width: o ? 360 : 685,
-      height: o ? 254 : 262,
+      width: n ? 360 : 685,
+      height: n ? 254 : 262,
       onDragState: r ? void 0 : (i) => {
         x.current = !0, a(i.stage !== t.stage && t.stage === "queued" ? i : null);
       },
@@ -100,31 +100,31 @@ function ct() {
   if (!t) throw new Error("Web Audio is unavailable");
   const d = new t(), r = d.sampleRate, l = r * 4, a = d.createBuffer(1, l, r), f = d.createBuffer(1, l, r), p = a.getChannelData(0), s = f.getChannelData(0);
   let u = 419;
-  function o() {
+  function n() {
     return u = 1664525 * u + 1013904223 >>> 0, u / 4294967296;
   }
-  for (let y = 0; y < 100; y++) {
-    const w = Math.floor(o() * l), h = 380 + o() * 1500, x = 0.09 + o() * 0.08;
+  for (let k = 0; k < 100; k++) {
+    const w = Math.floor(n() * l), h = 380 + n() * 1500, x = 0.09 + n() * 0.08;
     for (let g = 0; g < r * 0.12; g++) {
-      const v = g / r, C = Math.sin(2 * Math.PI * h * v) + 0.22 * (o() * 2 - 1);
+      const v = g / r, C = Math.sin(2 * Math.PI * h * v) + 0.22 * (n() * 2 - 1);
       p[(w + g) % l] += x * Math.exp(-v * 76) * C;
     }
   }
-  [659.25, 987.77, 783.99, 1174.66].forEach((y, w) => {
+  [659.25, 987.77, 783.99, 1174.66].forEach((k, w) => {
     const h = Math.floor((w * 0.93 + 0.1) * r);
     for (let x = 0; x < r * 1.6; x++) {
-      const g = x / r, v = Math.sin(g * y * 2 * Math.PI) + 0.23 * Math.sin(g * y * 5.42 * Math.PI);
+      const g = x / r, v = Math.sin(g * k * 2 * Math.PI) + 0.23 * Math.sin(g * k * 5.42 * Math.PI);
       s[(h + x) % l] += 0.16 * Math.min(1, g * 250) * Math.exp(-g * 3.3) * v;
     }
   });
-  const m = [a, f].map((y) => {
+  const m = [a, f].map((k) => {
     const w = d.createBufferSource(), h = d.createGain();
-    return h.gain.value = 0, w.buffer = y, w.loop = !0, w.connect(h).connect(d.destination), w.start(), h;
+    return h.gain.value = 0, w.buffer = k, w.loop = !0, w.connect(h).connect(d.destination), w.start(), h;
   });
   return {
     ctx: d,
-    mix(y) {
-      m[0].gain.setTargetAtTime(Math.cos(y * Math.PI / 2), d.currentTime, 0.035), m[1].gain.setTargetAtTime(Math.sin(y * Math.PI / 2), d.currentTime, 0.035);
+    mix(k) {
+      m[0].gain.setTargetAtTime(Math.cos(k * Math.PI / 2), d.currentTime, 0.035), m[1].gain.setTargetAtTime(Math.sin(k * Math.PI / 2), d.currentTime, 0.035);
     },
     stop() {
       d.close();
@@ -134,11 +134,11 @@ function ct() {
 function Ae({ state: t, d, isTracking: r }, l) {
   const a = t.mix, f = 106 + 420 * a, p = D(f, 220);
   return r ? /* @__PURE__ */ e.createElement("g", { id: "listening-horn", transform: p }) : /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { width: "640", height: "276", fill: "#302342" }), /* @__PURE__ */ e.createElement("path", { d: "M0 200L95 174 285 184 440 161 640 194v82H0z", fill: "#3f2d4f" }), /* @__PURE__ */ e.createElement("path", { d: "M0 228l198-33 184 11 258-27M0 255l270-37 282-13 88 2", stroke: "#564063", fill: "none" }), Array.from({ length: 21 }, (s, u) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "star" + u, cx: 18 + u * 137 % 604, cy: 12 + u * 47 % 103, r: u % 4 === 0 ? 1.7 : 0.85, fill: "#c7b5cb" })), /* @__PURE__ */ e.createElement("g", { id: "copper-rain", opacity: 1 - a * 0.45 }, Array.from({ length: 30 }, (s, u) => {
-    const o = 29 + u * 31 % 184, m = 24 + u * 19 % 58;
-    return /* @__PURE__ */ e.createElement("path", { dragologyKey: "drop" + u, d: `M${o} ${m}l-3 8`, stroke: u % 3 === 0 ? "#e8d8d5" : "#b4c8d1", strokeWidth: u % 3 === 0 ? 2 : 1 });
+    const n = 29 + u * 31 % 184, m = 24 + u * 19 % 58;
+    return /* @__PURE__ */ e.createElement("path", { dragologyKey: "drop" + u, d: `M${n} ${m}l-3 8`, stroke: u % 3 === 0 ? "#e8d8d5" : "#b4c8d1", strokeWidth: u % 3 === 0 ? 2 : 1 });
   }), /* @__PURE__ */ e.createElement("path", { d: "M21 111l91-44 132 42-91 49z", fill: "#eb9d64" }), /* @__PURE__ */ e.createElement("path", { d: "M21 111l132 47v8L21 120z", fill: "#96513e" }), /* @__PURE__ */ e.createElement("path", { d: "M153 158l91-49v8l-91 49z", fill: "#b76e4d" }), [0, 1, 2, 3, 4, 5, 6].map((s) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "ridge" + s, d: `M${39 + s * 15} ${116 + s * 5.3}l89-44`, stroke: "#b96d50", strokeWidth: "2" })), /* @__PURE__ */ e.createElement("path", { d: "M43 128v52l7 3v-52m155-2v43l7-3v-43", fill: "#9f7466" }), /* @__PURE__ */ e.createElement("ellipse", { cx: "121", cy: "183", rx: "75", ry: "7", fill: "#221e34" }), [0, 1, 2].map((s) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "ring" + s, d: `M${65 + s * 35} ${177 - s * 2}q13-4 22 0q-10 4-22 0`, fill: "none", stroke: "#d3a287", strokeWidth: "1.5" }))), /* @__PURE__ */ e.createElement("g", { id: "glass-chimes", opacity: 0.59 + a * 0.41 }, /* @__PURE__ */ e.createElement("path", { d: "M386 46l160-14 57 17-158 18z", fill: "#be9272" }), /* @__PURE__ */ e.createElement("path", { d: "M386 46v5l59 20 158-17v-5L445 67z", fill: "#865c60" }), [0, 1, 2, 3, 4, 5].map((s) => {
-    const u = 407 + s * 32, o = 63 - s % 3 * 4, m = 52 + (s + 1) * 17 % 46;
-    return /* @__PURE__ */ e.createElement("g", { dragologyKey: "tube" + s, transform: D(u, o) }, /* @__PURE__ */ e.createElement("path", { d: "M0 -9v23", stroke: "#d3d1bc" }), /* @__PURE__ */ e.createElement("path", { d: `M-7 14l8-4 8 3v${m}l-8 5-8-6z`, fill: s % 2 ? "#83c3b3" : "#d6bab9" }), /* @__PURE__ */ e.createElement("path", { d: `M1 11v${m + 7}l7-5V13z`, fill: s % 2 ? "#488b8b" : "#a38ea6" }), /* @__PURE__ */ e.createElement("path", { d: `M-5 18v${m - 9}`, stroke: "#f5f0da", strokeWidth: "2" }));
+    const u = 407 + s * 32, n = 63 - s % 3 * 4, m = 52 + (s + 1) * 17 % 46;
+    return /* @__PURE__ */ e.createElement("g", { dragologyKey: "tube" + s, transform: D(u, n) }, /* @__PURE__ */ e.createElement("path", { d: "M0 -9v23", stroke: "#d3d1bc" }), /* @__PURE__ */ e.createElement("path", { d: `M-7 14l8-4 8 3v${m}l-8 5-8-6z`, fill: s % 2 ? "#83c3b3" : "#d6bab9" }), /* @__PURE__ */ e.createElement("path", { d: `M1 11v${m + 7}l7-5V13z`, fill: s % 2 ? "#488b8b" : "#a38ea6" }), /* @__PURE__ */ e.createElement("path", { d: `M-5 18v${m - 9}`, stroke: "#f5f0da", strokeWidth: "2" }));
   }), /* @__PURE__ */ e.createElement("path", { d: "M550 143q14-6 9-23m9 31q18-12 10-32", fill: "none", stroke: "#b9d7ca", strokeWidth: "2", opacity: a })), /* @__PURE__ */ e.createElement("path", { d: "M63 233Q303 204 575 229", fill: "none", stroke: "#1d182b", strokeWidth: "8" }), /* @__PURE__ */ e.createElement("path", { d: "M63 232Q303 203 575 228", fill: "none", stroke: "#ad8c80", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("g", { id: "listening-horn", transform: p, dragologyOnDrag: l ? void 0 : () => d.vary(t, Qe("mix"), { constraint: (s) => Ve([0, s.mix, 1]) }) }, /* @__PURE__ */ e.createElement("rect", { x: "-42", y: "-67", width: "84", height: "90", fill: "transparent" }), /* @__PURE__ */ e.createElement("ellipse", { cx: "0", cy: "12", rx: "39", ry: "6", fill: "#261c32" }), /* @__PURE__ */ e.createElement("path", { d: "M-24 2h48l6 8h-60z", fill: "#bd8c59" }), /* @__PURE__ */ e.createElement("circle", { cx: "-17", cy: "11", r: "6", fill: "#e3c992" }), /* @__PURE__ */ e.createElement("circle", { cx: "17", cy: "11", r: "6", fill: "#e3c992" }), /* @__PURE__ */ e.createElement("path", { d: "M-4 2v-13q0-10 10-13l4-2", stroke: "#ba8755", strokeWidth: "9", fill: "none" }), /* @__PURE__ */ e.createElement("g", { transform: `rotate(${-38 + a * 76} 3 -26)` }, /* @__PURE__ */ e.createElement("path", { d: "M1-20q-8-14-20-24l-13-8q18-21 42-18l-3 13q-4 20 2 30z", fill: "#efbc63", stroke: "#a97740", strokeWidth: "1.5" }), /* @__PURE__ */ e.createElement("ellipse", { cx: "-12", cy: "-60", rx: "25", ry: "8", transform: "rotate(-22 -12 -60)", fill: "#72483c", stroke: "#f2cd7a", strokeWidth: "4" }), /* @__PURE__ */ e.createElement("path", { d: "M-1-51q-3 13 3 25", fill: "none", stroke: "#fff1ac", strokeWidth: "2.2" }))));
 }
 const dt = (t) => Ae(t, !1), pt = (t) => Ae(t, !0), ut = `
@@ -156,27 +156,27 @@ const dt = (t) => Ae(t, !1), pt = (t) => Ae(t, !0), ut = `
 .sb-listening :focus-visible{outline:3px solid #ab601d;outline-offset:2px}
 `;
 function Dt({ value: t, onChange: d, readOnly: r = !1 }) {
-  const l = F(null), a = F(null), [f, p] = I(null), [s, u] = I(0), [o, m] = I(1), [y, w] = I(!1), [h, x] = I(!1), g = f ?? t, v = F(t), C = F(!1);
+  const l = q(null), a = q(null), [f, p] = I(null), [s, u] = I(0), [n, m] = I(1), [k, w] = I(!1), [h, x] = I(!1), g = f ?? t, v = q(t), C = q(!1);
   function M() {
-    C.current = !1, p(null), u((n) => n + 1);
+    C.current = !1, p(null), u((o) => o + 1);
   }
-  O(() => {
+  J(() => {
     C.current && (r || t !== v.current) && M(), v.current = t;
-  }, [t, r]), O(() => {
-    const n = l.current, b = () => m(Math.min(1, n.clientWidth / 640));
+  }, [t, r]), J(() => {
+    const o = l.current, b = () => m(Math.min(1, o.clientWidth / 640));
     b();
     const $ = new ResizeObserver(b);
-    return $.observe(n), () => $.disconnect();
+    return $.observe(o), () => $.disconnect();
   }, []), Q(() => {
-    function n(b) {
+    function o(b) {
       C.current && (!(b instanceof KeyboardEvent) || b.key === "Escape") && M();
     }
-    return document.addEventListener("keydown", n), document.addEventListener("pointercancel", n), window.addEventListener("blur", n), () => {
-      document.removeEventListener("keydown", n), document.removeEventListener("pointercancel", n), window.removeEventListener("blur", n);
+    return document.addEventListener("keydown", o), document.addEventListener("pointercancel", o), window.addEventListener("blur", o), () => {
+      document.removeEventListener("keydown", o), document.removeEventListener("pointercancel", o), window.removeEventListener("blur", o);
     };
   }, []);
-  function z(n) {
-    C.current = !1, p(null), !r && n !== t.mix && d?.({ ...t, mix: n });
+  function z(o) {
+    C.current = !1, p(null), !r && o !== t.mix && d?.({ ...t, mix: o });
   }
   function W() {
     a.current?.stop(), a.current = null, w(!1);
@@ -184,15 +184,15 @@ function Dt({ value: t, onChange: d, readOnly: r = !1 }) {
   Q(() => {
     a.current?.mix(g.mix);
   }, [g.mix]), Q(() => {
-    const n = new IntersectionObserver(([$]) => {
+    const o = new IntersectionObserver(([$]) => {
       $.isIntersecting || W();
     });
-    n.observe(l.current);
+    o.observe(l.current);
     const b = () => {
       document.hidden && W();
     };
     return document.addEventListener("visibilitychange", b), () => {
-      n.disconnect(), document.removeEventListener("visibilitychange", b), a.current?.stop(), a.current = null;
+      o.disconnect(), document.removeEventListener("visibilitychange", b), a.current?.stop(), a.current = null;
     };
   }, []);
   async function i() {
@@ -201,8 +201,8 @@ function Dt({ value: t, onChange: d, readOnly: r = !1 }) {
       return;
     }
     try {
-      const n = ct();
-      a.current = n, n.mix(g.mix), await n.ctx.resume(), a.current === n && w(!0);
+      const o = ct();
+      a.current = o, o.mix(g.mix), await o.ctx.resume(), a.current === o && w(!0);
     } catch {
       W(), x(!0);
     }
@@ -213,7 +213,7 @@ function Dt({ value: t, onChange: d, readOnly: r = !1 }) {
     {
       ref: l,
       className: "sb-listening-stage exhibit-stage",
-      style: { "--horn-scale": o },
+      style: { "--horn-scale": n },
       role: "slider",
       "aria-label": "Listening horn",
       "aria-readonly": r,
@@ -222,7 +222,7 @@ function Dt({ value: t, onChange: d, readOnly: r = !1 }) {
       "aria-valuemax": 100,
       "aria-valuenow": Math.round(g.mix * 100),
       "aria-valuetext": ze(g),
-      onKeyDown: (n) => {
+      onKeyDown: (o) => {
         if (r) return;
         const b = {
           ArrowLeft: g.mix - 0.01,
@@ -232,24 +232,24 @@ function Dt({ value: t, onChange: d, readOnly: r = !1 }) {
           Home: 0,
           End: 1
         };
-        Object.prototype.hasOwnProperty.call(b, n.key) && (n.preventDefault(), z(Math.round(100 * Math.min(1, Math.max(0, b[n.key]))) / 100));
+        Object.prototype.hasOwnProperty.call(b, o.key) && (o.preventDefault(), z(Math.round(100 * Math.min(1, Math.max(0, b[o.key]))) / 100));
       }
     },
     /* @__PURE__ */ e.createElement(
-      ne,
+      oe,
       {
         key: r ? "read-only" : s,
         state: t,
         draggable: r ? pt : dt,
         width: 640,
         height: 276,
-        onDragState: r ? void 0 : (n) => {
-          C.current = n !== null, p(n);
+        onDragState: r ? void 0 : (o) => {
+          C.current = o !== null, p(o);
         },
-        onDropState: r ? void 0 : (n) => z(n.mix)
+        onDropState: r ? void 0 : (o) => z(o.mix)
       }
     )
-  ), !r && /* @__PURE__ */ e.createElement("div", { className: "sb-listening-choices" }, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(0) }, "Listen to ", E), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(0.5) }, "Blend both"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(1) }, "Listen to ", L)), /* @__PURE__ */ e.createElement("div", { className: "sb-listening-caption" }, /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("strong", null, "Sound caption"), /* @__PURE__ */ e.createElement("output", { "aria-label": "Sound caption" }, ze(g))), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: i, "aria-pressed": y, disabled: h }, h ? "Audio unavailable" : y ? "Mute sound" : "Enable sound")));
+  ), !r && /* @__PURE__ */ e.createElement("div", { className: "sb-listening-choices" }, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(0) }, "Listen to ", E), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(0.5) }, "Blend both"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => z(1) }, "Listen to ", L)), /* @__PURE__ */ e.createElement("div", { className: "sb-listening-caption" }, /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("strong", null, "Sound caption"), /* @__PURE__ */ e.createElement("output", { "aria-label": "Sound caption" }, ze(g))), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: i, "aria-pressed": k, disabled: h }, h ? "Audio unavailable" : k ? "Mute sound" : "Enable sound")));
 }
 function ft(t, d, r) {
   const l = [];
@@ -269,7 +269,7 @@ function ft(t, d, r) {
 const te = 12;
 function mt(t, d, r = !1) {
   const l = r ? Math.max(...t.lanes.map((h) => h.station.column)) + 1 : t.lanes.length, a = r ? (l - 1) * te : 0, f = Math.min(r ? 202 : se.pitch, Math.max(r ? 108 : 124, Math.floor((d - a) / l))), p = f - 16, s = document.createElement("canvas").getContext("2d"), u = /* @__PURE__ */ new Map();
-  function o(h, x, g) {
+  function n(h, x, g) {
     s.font = g;
     let v = 1;
     for (const C of h) {
@@ -278,21 +278,21 @@ function mt(t, d, r = !1) {
     }
     return v;
   }
-  const m = o(t.lanes, "heading-", r ? "bold 15px system-ui, sans-serif" : "bold 13px system-ui, sans-serif"), y = o(t.cards, "choice-", "14px system-ui, sans-serif");
+  const m = n(t.lanes, "heading-", r ? "bold 15px system-ui, sans-serif" : "bold 13px system-ui, sans-serif"), k = n(t.cards, "choice-", "14px system-ui, sans-serif");
   if (r) {
-    const h = 16 * y + 22;
+    const h = 16 * k + 22;
     return { labels: u, layout: { pitch: f, width: p, height: h, row: h + 6, top: 16 * m + 32 } };
   }
-  const w = Math.max(se.height, 16 * y + 14);
+  const w = Math.max(se.height, 16 * k + 14);
   return { labels: u, layout: { pitch: f, width: p, height: w, row: w + 12, top: 16 * m + 45 } };
 }
 function bt(t, d) {
-  const r = Je(t), l = d?.layout ?? se, { points: a } = ce(t, l, te), f = new Map(r.nodes.map((s) => [s.options.id, s])), p = [];
+  const r = Ze(t), l = d?.layout ?? se, { points: a } = ce(t, l, te), f = new Map(r.nodes.map((s) => [s.options.id, s])), p = [];
   for (const [s, u] of t.lanes.entries()) {
-    const o = a[s], m = f.get("lane-" + u.id);
+    const n = a[s], m = f.get("lane-" + u.id);
     Object.assign(m.options, {
-      xPos: o.x + 8,
-      yPos: o.y + 4,
+      xPos: n.x + 8,
+      yPos: n.y + 4,
       width: l.width,
       height: l.top - 12,
       text: (d?.labels.get("heading-" + u.id) ?? [u.label]).join(`
@@ -303,11 +303,11 @@ function bt(t, d) {
       borderColor: "#9ab3a0",
       allowDrag: !1
     }), p.push(m);
-    for (const [y, w] of t.cards.filter((h) => h.laneId === u.id).entries()) {
+    for (const [k, w] of t.cards.filter((h) => h.laneId === u.id).entries()) {
       const h = f.get("card-" + w.id);
       Object.assign(h.options, {
-        xPos: o.x + 18,
-        yPos: o.y + l.top + y * l.row,
+        xPos: n.x + 18,
+        yPos: n.y + l.top + k * l.row,
         width: l.width - 20,
         height: l.height - 6,
         text: (d?.labels.get("choice-" + w.id) ?? [w.label]).join(`
@@ -323,13 +323,13 @@ function bt(t, d) {
   return { ...r, nodes: p };
 }
 function ht({ board: t, fitted: d, width: r, height: l, children: a }) {
-  const f = F(null), p = F(null);
-  return O(() => {
+  const f = q(null), p = q(null);
+  return J(() => {
     const s = f.current, u = p.current;
     s.setAttribute("inert", "");
-    const o = document.createElement("div");
-    o.style.cssText = "width:100%;height:100%", s.appendChild(o);
-    const m = new at(o, {
+    const n = document.createElement("div");
+    n.style.cssText = "width:100%;height:100%", s.appendChild(n);
+    const m = new at(n, {
       name: t.title,
       enabled: !1,
       showUndoRedo: !1,
@@ -337,19 +337,19 @@ function ht({ board: t, fitted: d, width: r, height: l, children: a }) {
       viewPort: { originalWidth: r, originalHeight: l, showCoordinates: !1 },
       panZoom: { enabled: !1 },
       autoResizeNodesBasedOnText: !1
-    }), y = m.canvas.node;
-    y.removeAttribute("tabindex");
+    }), k = m.canvas.node;
+    k.removeAttribute("tabindex");
     let w = !0, h = 0, x = !1;
     const g = () => {
       if (h = 0, !x) return;
-      const W = y.getScreenCTM();
+      const W = k.getScreenCTM();
       if (!W) return;
       const i = W.inverse();
       for (const E of u.querySelectorAll("[data-workshop-card]")) {
-        const L = E.getScreenCTM(), n = m.nodes.one("card-" + E.dataset.workshopCard);
-        if (!L || !n) continue;
+        const L = E.getScreenCTM(), o = m.nodes.one("card-" + E.dataset.workshopCard);
+        if (!L || !o) continue;
         const b = new DOMPoint(L.e, L.f).matrixTransform(i);
-        (Math.abs(b.x - (n.options.x ?? 0)) > 0.1 || Math.abs(b.y - (n.options.y ?? 0)) > 0.1) && n.position(b.x, b.y);
+        (Math.abs(b.x - (o.options.x ?? 0)) > 0.1 || Math.abs(b.y - (o.options.y ?? 0)) > 0.1) && o.position(b.x, b.y);
       }
     }, v = () => {
       h || (h = requestAnimationFrame(g));
@@ -362,7 +362,7 @@ function ht({ board: t, fitted: d, width: r, height: l, children: a }) {
       L && (L.style.outline = W.type === "focusin" ? "2px solid #305d99" : "");
     };
     return u.addEventListener("focusin", z), u.addEventListener("focusout", z), () => {
-      w = !1, C.disconnect(), cancelAnimationFrame(h), u.removeEventListener("focusin", z), u.removeEventListener("focusout", z), o.remove(), M.finally(() => m.destroy());
+      w = !1, C.disconnect(), cancelAnimationFrame(h), u.removeEventListener("focusin", z), u.removeEventListener("focusout", z), n.remove(), M.finally(() => m.destroy());
     };
   }, [t, d, r, l]), /* @__PURE__ */ e.createElement("div", { style: { position: "relative", width: r, height: l, marginInline: "auto", isolation: "isolate" } }, /* @__PURE__ */ e.createElement(
     "div",
@@ -374,7 +374,7 @@ function ht({ board: t, fitted: d, width: r, height: l, children: a }) {
     }
   ), /* @__PURE__ */ e.createElement("div", { ref: p, "data-workshop-hit-surface": "", style: { position: "absolute", inset: 0, opacity: 0 } }, a));
 }
-function He(t, d, r, l = ee(d, r), a = de) {
+function Ke(t, d, r, l = ee(d, r), a = de) {
   const f = l.map((s) => a(d, r.id, s.id));
   if (d.lanes[0].station || d.kind) return t.closest(f).withFloating();
   const p = l.map((s, u) => t.dropTarget("drop-" + s.id, f[u], { boundsState: d }));
@@ -383,9 +383,9 @@ function He(t, d, r, l = ee(d, r), a = de) {
 function Ne(t) {
   return t.match(/.{1,23}(?:\s+|$)|.{1,23}/gu)?.map((d) => d.trim()) ?? [t];
 }
-function pe({ state: t, d, draggedId: r, isTracking: l }, a, f, p = !1, s = !1, u = "", o = !1, m = !1) {
-  const y = f?.layout ?? se, { width: w, row: h, height: x, top: g } = y, { points: v, height: C } = ce(t, y, o ? te : void 0), M = !!t.lanes[0].station, z = (i) => {
-    const E = t.lanes.findIndex((n) => n.id === i.laneId), L = t.cards.filter((n) => n.laneId === i.laneId).indexOf(i);
+function pe({ state: t, d, draggedId: r, isTracking: l }, a, f, p = !1, s = !1, u = "", n = !1, m = !1) {
+  const k = f?.layout ?? se, { width: w, row: h, height: x, top: g } = k, { points: v, height: C } = ce(t, k, n ? te : void 0), M = !!t.lanes[0].station, z = (i) => {
+    const E = t.lanes.findIndex((o) => o.id === i.laneId), L = t.cards.filter((o) => o.laneId === i.laneId).indexOf(i);
     return D((M ? 18 : 8) + v[E].x, v[E].y + g + L * h);
   };
   if (l && r) {
@@ -399,24 +399,24 @@ function pe({ state: t, d, draggedId: r, isTracking: l }, a, f, p = !1, s = !1, 
       id: "drop-" + i.id,
       x: v[E].x,
       y: 0,
-      width: y.pitch,
+      width: k.pitch,
       height: C,
       fill: "none",
       pointerEvents: "none",
       "aria-hidden": "true"
     }
   )), t.lanes.flatMap((i, E) => (i.station?.next ?? []).map((L) => {
-    const n = v[E], b = v[t.lanes.findIndex((ue) => ue.id === L)], $ = w / 2 + 8, k = (g - 12) / 2 + 4, P = b.x - n.x, B = b.y - n.y, re = Math.min(P ? w / 2 / Math.abs(P) : 1 / 0, B ? (k - 4) / Math.abs(B) : 1 / 0), A = b.x + $ - P * re, H = b.y + k - B * re;
-    return /* @__PURE__ */ e.createElement("g", { dragologyKey: i.id + "-" + L }, /* @__PURE__ */ e.createElement("line", { x1: n.x + $, y1: n.y + k, x2: A, y2: H, stroke: "#506b61", strokeWidth: 3 }), /* @__PURE__ */ e.createElement("path", { d: "M0 0l-11 -5v10z", fill: "#315044", transform: `translate(${A} ${H}) rotate(${Math.atan2(B, P) * 180 / Math.PI})` }));
+    const o = v[E], b = v[t.lanes.findIndex((ue) => ue.id === L)], $ = w / 2 + 8, y = (g - 12) / 2 + 4, P = b.x - o.x, B = b.y - o.y, re = Math.min(P ? w / 2 / Math.abs(P) : 1 / 0, B ? (y - 4) / Math.abs(B) : 1 / 0), A = b.x + $ - P * re, K = b.y + y - B * re;
+    return /* @__PURE__ */ e.createElement("g", { dragologyKey: i.id + "-" + L }, /* @__PURE__ */ e.createElement("line", { x1: o.x + $, y1: o.y + y, x2: A, y2: K, stroke: "#506b61", strokeWidth: 3 }), /* @__PURE__ */ e.createElement("path", { d: "M0 0l-11 -5v10z", fill: "#315044", transform: `translate(${A} ${K}) rotate(${Math.atan2(B, P) * 180 / Math.PI})` }));
   })), t.lanes.map((i, E) => {
-    const L = t.cards.filter(($) => $.laneId === i.id).length, n = t.kind === "release-plan" && Fe(t, i.id), b = t.kind === "release-plan" ? n + (i.capacity ? " / " + i.capacity : "") + " points" : i.station ? L ? "● Occupied" : "Open stop" : i.capacity ? `${L} of ${i.capacity} slots` : `${L} ${L === 1 ? "choice" : "choices"}`;
-    return /* @__PURE__ */ e.createElement("g", { id: "heading-" + i.id, transform: D(8 + v[E].x, 4 + v[E].y) }, M && !o && /* @__PURE__ */ e.createElement("rect", { x: 0, y: 0, width: w, height: g + Math.max(1, L) * h - 10, rx: 9, fill: "#fcf9ed", stroke: "#a8b5aa", strokeDasharray: "4 4" }), /* @__PURE__ */ e.createElement("g", { ...p && !a ? {
+    const L = t.cards.filter(($) => $.laneId === i.id).length, o = t.kind === "release-plan" && qe(t, i.id), b = t.kind === "release-plan" ? o + (i.capacity ? " / " + i.capacity : "") + " points" : i.station ? L ? "● Occupied" : "Open stop" : i.capacity ? `${L} of ${i.capacity} slots` : `${L} ${L === 1 ? "choice" : "choices"}`;
+    return /* @__PURE__ */ e.createElement("g", { id: "heading-" + i.id, transform: D(8 + v[E].x, 4 + v[E].y) }, M && !n && /* @__PURE__ */ e.createElement("rect", { x: 0, y: 0, width: w, height: g + Math.max(1, L) * h - 10, rx: 9, fill: "#fcf9ed", stroke: "#a8b5aa", strokeDasharray: "4 4" }), /* @__PURE__ */ e.createElement("g", { ...p && !a ? {
       ...M ? { "data-workshop-station": i.id } : { "data-workshop-lane": i.id },
       role: "button",
       tabIndex: 0,
       "aria-labelledby": u + "-edit-" + i.id,
       cursor: "pointer"
-    } : {} }, /* @__PURE__ */ e.createElement("rect", { width: w, height: g - 12, rx: o ? 12 : M ? 6 : 9, stroke: o ? "#a0b9a6" : void 0, fill: o ? "#f4f8ef" : M ? "#253c36" : Oe[E] }), (f?.labels.get("heading-" + i.id) ?? Ne(i.label)).map(($, k) => /* @__PURE__ */ e.createElement("text", { dragologyKey: "line-" + k, fill: o ? "#244b3d" : M ? "#fffdf3" : "#18302d", transform: D(12, (M ? 23 : 16) + k * 16), fontSize: o ? 15 : M ? 17 : 13, fontWeight: "bold" }, $)), !o && /* @__PURE__ */ e.createElement("text", { fill: M ? "#ebd29a" : "#18302d", transform: D(12, g - 23), fontSize: 12 }, b)), s && L < (i.capacity ?? 1 / 0) && /* @__PURE__ */ e.createElement(
+    } : {} }, /* @__PURE__ */ e.createElement("rect", { width: w, height: g - 12, rx: n ? 12 : M ? 6 : 9, stroke: n ? "#a0b9a6" : void 0, fill: n ? "#f4f8ef" : M ? "#253c36" : Je[E] }), (f?.labels.get("heading-" + i.id) ?? Ne(i.label)).map(($, y) => /* @__PURE__ */ e.createElement("text", { dragologyKey: "line-" + y, fill: n ? "#244b3d" : M ? "#fffdf3" : "#18302d", transform: D(12, (M ? 23 : 16) + y * 16), fontSize: n ? 15 : M ? 17 : 13, fontWeight: "bold" }, $)), !n && /* @__PURE__ */ e.createElement("text", { fill: M ? "#ebd29a" : "#18302d", transform: D(12, g - 23), fontSize: 12 }, b)), s && L < (i.capacity ?? 1 / 0) && /* @__PURE__ */ e.createElement(
       "g",
       {
         "data-workshop-add-card": i.id,
@@ -439,21 +439,21 @@ function pe({ state: t, d, draggedId: r, isTracking: l }, a, f, p = !1, s = !1, 
         transform: z(i),
         ...m ? { role: "button", tabIndex: 0, "aria-labelledby": u + "-select-" + i.id } : {},
         dragologyZIndex: r === L ? "/1" : !1,
-        dragologyOnDrag: E.length > 1 ? () => He(d, t, i, E) : void 0
+        dragologyOnDrag: E.length > 1 ? () => Ke(d, t, i, E) : void 0
       },
-      /* @__PURE__ */ e.createElement("rect", { width: M ? w - 20 : w, height: x - (M ? 6 : 0), fill: M ? "#ffda75" : "#fffdf6", stroke: "#78857d", rx: o ? 12 : M ? 1 : 8 }),
-      M && !o && /* @__PURE__ */ e.createElement("path", { d: "M198 0v70", stroke: "#897530", strokeDasharray: "4 5" }),
+      /* @__PURE__ */ e.createElement("rect", { width: M ? w - 20 : w, height: x - (M ? 6 : 0), fill: M ? "#ffda75" : "#fffdf6", stroke: "#78857d", rx: n ? 12 : M ? 1 : 8 }),
+      M && !n && /* @__PURE__ */ e.createElement("path", { d: "M198 0v70", stroke: "#897530", strokeDasharray: "4 5" }),
       t.kind === "release-plan" && /* @__PURE__ */ e.createElement("text", { transform: D(12, x - 10), fill: "#466358", fontSize: 12 }, i.points, " pts"),
-      (f?.labels.get(L) ?? Ne(i.label)).map((n, b) => /* @__PURE__ */ e.createElement("text", { dragologyKey: "line-" + b, transform: D(12, (o ? 21 : 17) + b * 16), fontSize: 14 }, n))
+      (f?.labels.get(L) ?? Ne(i.label)).map((o, b) => /* @__PURE__ */ e.createElement("text", { dragologyKey: "line-" + b, transform: D(12, (n ? 21 : 17) + b * 16), fontSize: 14 }, o))
     );
   }));
 }
-const qt = (t, d, r) => {
-  const l = t.cards.find((o) => o.id === d), a = et(t, d);
+const Rt = (t, d, r) => {
+  const l = t.cards.find((n) => n.id === d), a = et(t, d);
   if (!l || a.length < 2) return null;
   let f;
   const s = {
-    draggable: (o) => (f ?? (f = o.d), pe(o, !1)),
+    draggable: (n) => (f ?? (f = n.d), pe(n, !1)),
     draggedPath: "",
     draggedId: "choice-" + d,
     anchorPos: Le(r.x, r.y),
@@ -461,78 +461,78 @@ const qt = (t, d, r) => {
     debug: { varyVisualizer: !1 }
   };
   if (_e(s, t), !f) return null;
-  const u = Ue(He(f, t, l, a, Re), s);
-  return (o) => u({ pointer: Le(o.x, o.y) }).dropState;
+  const u = Ue(Ke(f, t, l, a, Fe), s);
+  return (n) => u({ pointer: Le(n.x, n.y) }).dropState;
 };
 function gt({ value: t, preview: d }) {
   const r = d ?? t, l = new Map(r.lanes.map((p) => [p.id, p.label])), a = new Map(r.cards.map((p) => [p.id, p])), f = r.cards.flatMap((p) => (p.dependsOn ?? []).map((s) => ({ feature: p, prerequisite: a.get(s) })));
   return /* @__PURE__ */ e.createElement("div", { className: "release-plan-readout", style: { display: "flex", flexWrap: "wrap", gap: "1rem 2rem" } }, /* @__PURE__ */ e.createElement("section", { "aria-label": "Release capacity", style: { flex: "1 1 16rem" } }, /* @__PURE__ */ e.createElement("h3", null, "Release capacity"), r.lanes.filter((p) => p.capacity !== void 0).map((p) => {
-    const s = Fe(r, p.id);
+    const s = qe(r, p.id);
     return /* @__PURE__ */ e.createElement("div", { key: p.id, style: { display: "grid", gridTemplateColumns: "1fr auto", gap: "0 .75rem", marginBottom: ".65rem" } }, /* @__PURE__ */ e.createElement("span", null, p.label), /* @__PURE__ */ e.createElement("output", { "aria-label": p.label + " capacity" }, s, " / ", p.capacity, " points"), /* @__PURE__ */ e.createElement("meter", { "aria-label": p.label + " point budget", min: 0, max: p.capacity, value: s, style: { width: "100%", gridColumn: "1 / -1" } }));
   })), /* @__PURE__ */ e.createElement("section", { "aria-label": "Feature dependencies", style: { flex: "1 1 16rem" } }, /* @__PURE__ */ e.createElement("h3", null, "Feature dependencies"), f.length === 0 ? /* @__PURE__ */ e.createElement("p", null, "These features can ship independently.") : /* @__PURE__ */ e.createElement("ul", null, f.map(({ feature: p, prerequisite: s }) => /* @__PURE__ */ e.createElement("li", { key: JSON.stringify([p.id, s.id]) }, /* @__PURE__ */ e.createElement("strong", null, p.label), " needs ", s.label, " · ", l.get(s.laneId))))), d && /* @__PURE__ */ e.createElement("p", { role: "status", style: { flexBasis: "100%", margin: 0 } }, r.cards.filter((p) => t.cards.find((s) => s.id === p.id)?.laneId !== p.laneId).map((p) => p.label + " → " + l.get(p.laneId)).join(" · ")));
 }
 function Et({ value: t, preview: d, stage: r, apply: l, cancel: a }) {
-  const [f, p] = I(t.cards[0].id), s = t.cards.find((o) => o.id === f) ?? t.cards[0], u = e.useId();
-  return /* @__PURE__ */ e.createElement("fieldset", { onKeyDown: (o) => {
-    o.key === "Escape" && (a(), o.stopPropagation());
-  } }, /* @__PURE__ */ e.createElement("legend", null, "Schedule a feature"), /* @__PURE__ */ e.createElement("label", { htmlFor: u }, "Feature"), " ", /* @__PURE__ */ e.createElement("select", { id: u, value: s.id, onChange: (o) => {
-    p(o.target.value), a();
-  } }, t.cards.map((o) => /* @__PURE__ */ e.createElement("option", { key: o.id, value: o.id }, o.label))), /* @__PURE__ */ e.createElement("div", null, ee(t, s).filter((o) => o.id !== s.laneId).map((o) => /* @__PURE__ */ e.createElement("button", { key: o.id, type: "button", onClick: () => r(de(t, s.id, o.id), { cardId: s.id, laneId: o.id }) }, "Preview ", o.label))), d && /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: l }, "Apply move"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: a }, "Cancel preview")));
+  const [f, p] = I(t.cards[0].id), s = t.cards.find((n) => n.id === f) ?? t.cards[0], u = e.useId();
+  return /* @__PURE__ */ e.createElement("fieldset", { onKeyDown: (n) => {
+    n.key === "Escape" && (a(), n.stopPropagation());
+  } }, /* @__PURE__ */ e.createElement("legend", null, "Schedule a feature"), /* @__PURE__ */ e.createElement("label", { htmlFor: u }, "Feature"), " ", /* @__PURE__ */ e.createElement("select", { id: u, value: s.id, onChange: (n) => {
+    p(n.target.value), a();
+  } }, t.cards.map((n) => /* @__PURE__ */ e.createElement("option", { key: n.id, value: n.id }, n.label))), /* @__PURE__ */ e.createElement("div", null, ee(t, s).filter((n) => n.id !== s.laneId).map((n) => /* @__PURE__ */ e.createElement("button", { key: n.id, type: "button", onClick: () => r(de(t, s.id, n.id), { cardId: s.id, laneId: n.id }) }, "Preview ", n.label))), d && /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: l }, "Apply move"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: a }, "Cancel preview")));
 }
-const Pe = [{ x: 90, y: 56 }, { x: 246, y: 56 }, { x: 402, y: 56 }], yt = [{ x: 55, y: 162 }, { x: 219, y: 174 }, { x: 455, y: 154 }], K = 148, J = 104;
+const Pe = [{ x: 90, y: 56 }, { x: 246, y: 56 }, { x: 402, y: 56 }], kt = [{ x: 55, y: 162 }, { x: 219, y: 174 }, { x: 455, y: 154 }], H = 148, Z = 104;
 function xt(t) {
   const d = (r, l, a) => {
     const f = Array.from({ length: 38 }, (p, s) => {
-      const u = Math.min(K, 4 * s), o = t * K + u, m = r + l * (Math.sin(o / 46) + 0.39 * Math.cos(o / 19) + 0.09 * Math.sin(o / 7));
+      const u = Math.min(H, 4 * s), n = t * H + u, m = r + l * (Math.sin(n / 46) + 0.39 * Math.cos(n / 19) + 0.09 * Math.sin(n / 7));
       return (s ? "L" : "M") + u + " " + m.toFixed(1);
     }).join("");
-    return /* @__PURE__ */ e.createElement("path", { d: f + `L${K} ${J}H0z`, fill: a });
+    return /* @__PURE__ */ e.createElement("path", { d: f + `L${H} ${Z}H0z`, fill: a });
   };
-  return /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { x: "-4", y: "-4", width: K + 8, height: J + 8, fill: "#4b423c" }), /* @__PURE__ */ e.createElement("rect", { x: "-2", y: "-2", width: K + 4, height: J + 4, fill: "#caa67d" }), /* @__PURE__ */ e.createElement("rect", { width: K, height: J, fill: "#343b66" }), Array.from({ length: 13 }, (r, l) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "sky" + l, cx: 6 + (l * 77 + t * 19) % 136, cy: 4 + (l * 29 + t * 11) % 35, r: l % 4 === 0 ? 1.3 : 0.65, fill: "#f4e0bc" })), t === 1 && /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("circle", { cx: "90", cy: "22", r: "15", fill: "#ffdf9a" }), /* @__PURE__ */ e.createElement("circle", { cx: "95", cy: "18", r: "3", fill: "#ebc68b" }), /* @__PURE__ */ e.createElement("circle", { cx: "85", cy: "28", r: "2", fill: "#ebc68b" })), d(48, 7, "#9b88aa"), d(59, 10, "#bf9492"), d(75, 7, "#596d83"), d(88, 6, "#2a4858"), Array.from({ length: 7 }, (r, l) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "water" + l, d: `M${4 + (l * 37 + t * 13) % 124} ${92 + l * 3 % 10}h${4 + l % 3 * 4}`, stroke: "#7d9b9a" })));
+  return /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { x: "-4", y: "-4", width: H + 8, height: Z + 8, fill: "#4b423c" }), /* @__PURE__ */ e.createElement("rect", { x: "-2", y: "-2", width: H + 4, height: Z + 4, fill: "#caa67d" }), /* @__PURE__ */ e.createElement("rect", { width: H, height: Z, fill: "#343b66" }), Array.from({ length: 13 }, (r, l) => /* @__PURE__ */ e.createElement("circle", { dragologyKey: "sky" + l, cx: 6 + (l * 77 + t * 19) % 136, cy: 4 + (l * 29 + t * 11) % 35, r: l % 4 === 0 ? 1.3 : 0.65, fill: "#f4e0bc" })), t === 1 && /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("circle", { cx: "90", cy: "22", r: "15", fill: "#ffdf9a" }), /* @__PURE__ */ e.createElement("circle", { cx: "95", cy: "18", r: "3", fill: "#ebc68b" }), /* @__PURE__ */ e.createElement("circle", { cx: "85", cy: "28", r: "2", fill: "#ebc68b" })), d(48, 7, "#9b88aa"), d(59, 10, "#bf9492"), d(75, 7, "#596d83"), d(88, 6, "#2a4858"), Array.from({ length: 7 }, (r, l) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "water" + l, d: `M${4 + (l * 37 + t * 13) % 124} ${92 + l * 3 % 10}h${4 + l % 3 * 4}`, stroke: "#7d9b9a" })));
 }
-function kt(t, d) {
+function yt(t, d) {
   return ({ state: r, d: l, draggedId: a, isTracking: f }) => {
-    const p = (o) => o === 1 ? "panorama-panel" : "gallery-panel-" + o, s = (o) => (r.hung.includes(r.panels[o].id) ? Pe : yt)[o], u = r.panels.findIndex((o, m) => p(m) === a);
+    const p = (n) => n === 1 ? "panorama-panel" : "gallery-panel-" + n, s = (n) => (r.hung.includes(r.panels[n].id) ? Pe : kt)[n], u = r.panels.findIndex((n, m) => p(m) === a);
     if (f && u >= 0) {
-      const o = s(u);
-      return /* @__PURE__ */ e.createElement("g", { id: p(u), transform: D(o.x, o.y) });
+      const n = s(u);
+      return /* @__PURE__ */ e.createElement("g", { id: p(u), transform: D(n.x, n.y) });
     }
-    return /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { width: "640", height: "300", fill: "#d6c7b2" }), /* @__PURE__ */ e.createElement("path", { d: "M0 0h640v17H0z", fill: "#b8ad99" }), /* @__PURE__ */ e.createElement("path", { d: "M0 220h640v80H0z", fill: "#c19c79" }), /* @__PURE__ */ e.createElement("path", { d: "M0 218h640v7H0z", fill: "#a38d77" }), [0, 1, 2, 3, 4, 5, 6].map((o) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "floor" + o, d: `M${40 + 83 * o} 225l${(o - 3) * 24} 75`, stroke: "#ae8b6c" })), [0, 1, 2].map((o) => /* @__PURE__ */ e.createElement("g", { dragologyKey: "light" + o, transform: D(163 + o * 156, 8) }, /* @__PURE__ */ e.createElement("path", { d: "M-10 0h20l-4 8H-6z", fill: "#67584b" }), /* @__PURE__ */ e.createElement("path", { d: "M-4 9h8l84 181H-84z", fill: "#f8e8bf", opacity: ".22" }))), r.panels.map((o, m) => {
-      const y = Pe[m], w = s(m), h = !t && (!d || d.includes(o.id)) && Ee(r, o.id);
-      return /* @__PURE__ */ e.createElement("g", { dragologyKey: o.id }, /* @__PURE__ */ e.createElement(
+    return /* @__PURE__ */ e.createElement("g", null, /* @__PURE__ */ e.createElement("rect", { width: "640", height: "300", fill: "#d6c7b2" }), /* @__PURE__ */ e.createElement("path", { d: "M0 0h640v17H0z", fill: "#b8ad99" }), /* @__PURE__ */ e.createElement("path", { d: "M0 220h640v80H0z", fill: "#c19c79" }), /* @__PURE__ */ e.createElement("path", { d: "M0 218h640v7H0z", fill: "#a38d77" }), [0, 1, 2, 3, 4, 5, 6].map((n) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "floor" + n, d: `M${40 + 83 * n} 225l${(n - 3) * 24} 75`, stroke: "#ae8b6c" })), [0, 1, 2].map((n) => /* @__PURE__ */ e.createElement("g", { dragologyKey: "light" + n, transform: D(163 + n * 156, 8) }, /* @__PURE__ */ e.createElement("path", { d: "M-10 0h20l-4 8H-6z", fill: "#67584b" }), /* @__PURE__ */ e.createElement("path", { d: "M-4 9h8l84 181H-84z", fill: "#f8e8bf", opacity: ".22" }))), r.panels.map((n, m) => {
+      const k = Pe[m], w = s(m), h = !t && (!d || d.includes(n.id)) && Ee(r, n.id);
+      return /* @__PURE__ */ e.createElement("g", { dragologyKey: n.id }, /* @__PURE__ */ e.createElement(
         "rect",
         {
           id: m === 1 ? "gallery-hook" : "gallery-hook-" + m,
-          x: y.x,
-          y: y.y,
-          width: K,
-          height: J,
+          x: k.x,
+          y: k.y,
+          width: H,
+          height: Z,
           stroke: "#887e6b",
           strokeDasharray: "4 7",
           fill: "none"
         }
-      ), /* @__PURE__ */ e.createElement("circle", { cx: y.x + K / 2, cy: y.y + 6, r: "3", fill: "#7a6c57" }), /* @__PURE__ */ e.createElement(
+      ), /* @__PURE__ */ e.createElement("circle", { cx: k.x + H / 2, cy: k.y + 6, r: "3", fill: "#7a6c57" }), /* @__PURE__ */ e.createElement(
         "g",
         {
           id: p(m),
           transform: D(w.x, w.y),
           dragologyZIndex: a === p(m) ? "/1" : !1,
-          dragologyOnDrag: h ? () => l.between([r, le(r, o.id)]) : void 0
+          dragologyOnDrag: h ? () => l.between([r, le(r, n.id)]) : void 0
         },
-        xt(["dunes", "moon", "coast"].indexOf(o.artwork))
+        xt(["dunes", "moon", "coast"].indexOf(n.artwork))
       ));
     }));
   };
 }
-function Ft({ value: t, onChange: d, onPreview: r, readOnly: l = !1, enabledIds: a }) {
-  const f = e.useRef(null), [p, s] = e.useState(1), [u, o] = e.useState(0), [m, y] = e.useState(null), w = e.useRef(t);
+function qt({ value: t, onChange: d, onPreview: r, readOnly: l = !1, enabledIds: a }) {
+  const f = e.useRef(null), [p, s] = e.useState(1), [u, n] = e.useState(0), [m, k] = e.useState(null), w = e.useRef(t);
   w.current = t;
-  const h = e.useMemo(() => kt(l, a), [l, a]), x = (i) => {
-    y(i), r?.(i);
+  const h = e.useMemo(() => yt(l, a), [l, a]), x = (i) => {
+    k(i), r?.(i);
   }, g = e.useRef(r);
   g.current = r;
   const v = e.useCallback(() => {
-    y(null), g.current?.(null), o((i) => i + 1);
+    k(null), g.current?.(null), n((i) => i + 1);
   }, []);
   e.useEffect(() => {
     const i = new ResizeObserver(() => {
@@ -555,7 +555,7 @@ function Ft({ value: t, onChange: d, onPreview: r, readOnly: l = !1, enabledIds:
   }
   const M = m ?? t, z = M.panels.find((i) => M.hung.includes(i.id) && !t.hung.includes(i.id)), W = t.panels.filter((i) => !t.hung.includes(i.id));
   return /* @__PURE__ */ e.createElement("section", { "aria-label": "Panorama wall" }, /* @__PURE__ */ e.createElement("div", { className: "exhibit-stage", ref: f, onPointerCancel: v, style: { overflow: "hidden", background: "#d6c7b2" } }, /* @__PURE__ */ e.createElement("div", { style: { width: 640, zoom: p, margin: "auto" } }, /* @__PURE__ */ e.createElement(
-    ne,
+    oe,
     {
       key: u,
       draggable: h,
@@ -584,26 +584,26 @@ function Te({ state: t, d, isTracking: r }, l = !1) {
 function Mt(t) {
   return Te(t, !0);
 }
-function Rt({ value: t, onChange: d, readOnly: r = !1, onEditPrint: l }) {
-  const a = r || !d, [f, p] = I(null), [s, u] = I(0), [o, m] = I(1), [y, w] = I(""), [h, x] = I(null), [g, v] = I(1), C = F(null), M = F(null), z = F([]), W = Xe(), i = qe(() => ({ route: t.route }), [t.route]), E = (!a && f ? f : i).route;
+function Ft({ value: t, onChange: d, readOnly: r = !1, onEditPrint: l }) {
+  const a = r || !d, [f, p] = I(null), [s, u] = I(0), [n, m] = I(1), [k, w] = I(""), [h, x] = I(null), [g, v] = I(1), C = q(null), M = q(null), z = q([]), W = Xe(), i = Re(() => ({ route: t.route }), [t.route]), E = (!a && f ? f : i).route;
   Q(() => {
-    const k = C.current, P = new ResizeObserver(() => v(Math.min(1, k.clientWidth / 460)));
-    return P.observe(k), () => P.disconnect();
+    const y = C.current, P = new ResizeObserver(() => v(Math.min(1, y.clientWidth / 460)));
+    return P.observe(y), () => P.disconnect();
   }, []);
-  function L(k) {
-    a || (p(null), w(""), d?.({ ...t, route: k.route }));
+  function L(y) {
+    a || (p(null), w(""), d?.({ ...t, route: y.route }));
   }
-  function n(k) {
-    m(k), x(null), window.frameElement?.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" }), M.current?.showModal();
+  function o(y) {
+    m(y), x(null), window.frameElement?.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" }), M.current?.showModal();
   }
   function b() {
-    const k = t.route === "start" ? 0 : o;
-    z.current[k]?.focus({ preventScroll: !0 });
-    const P = t[X[k]];
-    w(k === o ? "Focus returned to " + P + ", the print you opened." : "Focus jumped to " + P + ". You opened " + t[X[o]] + ".");
+    const y = t.route === "start" ? 0 : n;
+    z.current[y]?.focus({ preventScroll: !0 });
+    const P = t[X[y]];
+    w(y === n ? "Focus returned to " + P + ", the print you opened." : "Focus jumped to " + P + ". You opened " + t[X[n]] + ".");
   }
   function $() {
-    u((k) => k + 1), p(null);
+    u((y) => y + 1), p(null);
   }
   return /* @__PURE__ */ e.createElement(
     "section",
@@ -612,29 +612,29 @@ function Rt({ value: t, onChange: d, readOnly: r = !1, onEditPrint: l }) {
       "aria-label": "Focus Darkroom",
       "data-readonly": a || void 0,
       onPointerCancel: $,
-      onKeyDown: (k) => {
-        k.key === "Escape" && !M.current?.open && $();
+      onKeyDown: (y) => {
+        y.key === "Escape" && !M.current?.open && $();
       }
     },
     /* @__PURE__ */ e.createElement("style", null, wt),
     /* @__PURE__ */ e.createElement("h1", null, "Where does focus land?"),
     /* @__PURE__ */ e.createElement("p", null, a ? "" : "Wire the gold ring to a return path. ", "Open ", t.secondPrint, ", then close its viewer."),
-    /* @__PURE__ */ e.createElement("div", { className: "contact-sheet" }, X.map((k, P) => /* @__PURE__ */ e.createElement(
+    /* @__PURE__ */ e.createElement("div", { className: "contact-sheet" }, X.map((y, P) => /* @__PURE__ */ e.createElement(
       "button",
       {
         type: "button",
-        key: k,
+        key: y,
         ref: (B) => {
           z.current[P] = B;
         },
-        "aria-label": "Open " + t[k],
-        onClick: () => n(P)
+        "aria-label": "Open " + t[y],
+        onClick: () => o(P)
       },
       /* @__PURE__ */ e.createElement("svg", { viewBox: "-65 -50 130 100", "aria-hidden": "true" }, De(P)),
-      /* @__PURE__ */ e.createElement("span", null, t[k])
+      /* @__PURE__ */ e.createElement("span", null, t[y])
     ))),
     /* @__PURE__ */ e.createElement("div", { className: "return-circuit", ref: C, style: { "--circuit-scale": g } }, /* @__PURE__ */ e.createElement(
-      ne,
+      oe,
       {
         key: a ? "locked" : s,
         state: i,
@@ -647,131 +647,131 @@ function Rt({ value: t, onChange: d, readOnly: r = !1, onEditPrint: l }) {
     )),
     !a && /* @__PURE__ */ e.createElement("div", { className: "wire-controls" }, /* @__PURE__ */ e.createElement("button", { type: "button", "aria-pressed": E === "start", onClick: () => L({ route: "start" }) }, "Wire first print"), /* @__PURE__ */ e.createElement("button", { type: "button", "aria-pressed": E === "opener", onClick: () => L({ route: "opener" }) }, "Wire opening print")),
     /* @__PURE__ */ e.createElement("output", { "aria-label": "Return path" }, E === "start" ? "Every viewer returns to the first print." : E === "opener" ? "Each viewer returns to the print that opened it." : "No wire attached. The viewer uses its native return path."),
-    /* @__PURE__ */ e.createElement("output", { "aria-label": "Focus result" }, y || "Open " + t.secondPrint + " to try the return path."),
-    /* @__PURE__ */ e.createElement("dialog", { ref: M, onClose: b, "aria-labelledby": W, onKeyDown: (k) => {
-      k.key === "Escape" && (k.preventDefault(), k.stopPropagation(), k.currentTarget.close());
-    } }, /* @__PURE__ */ e.createElement("svg", { viewBox: "-65 -50 130 100", "aria-hidden": "true" }, De(o)), /* @__PURE__ */ e.createElement("h2", { id: W }, t[X[o]]), !a && h !== null ? /* @__PURE__ */ e.createElement("form", { onSubmit: (k) => {
-      k.preventDefault(), h.trim() && (d?.({ ...t, [X[o]]: h.trim() }), x(null), M.current?.querySelector("[data-close]")?.focus());
-    } }, /* @__PURE__ */ e.createElement("label", null, "Print name ", /* @__PURE__ */ e.createElement("input", { autoFocus: !0, required: !0, maxLength: 48, value: h, onChange: (k) => x(k.target.value) })), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "submit", disabled: !h.trim() }, "Save name"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => x(null) }, "Cancel rename"))) : null, /* @__PURE__ */ e.createElement("button", { type: "button", "data-close": !0, onClick: () => M.current?.close() }, "Close viewer"), !a && h === null && /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => {
-      const k = X[o];
-      l ? (M.current?.close(), l(k)) : x(t[k]);
+    /* @__PURE__ */ e.createElement("output", { "aria-label": "Focus result" }, k || "Open " + t.secondPrint + " to try the return path."),
+    /* @__PURE__ */ e.createElement("dialog", { ref: M, onClose: b, "aria-labelledby": W, onKeyDown: (y) => {
+      y.key === "Escape" && (y.preventDefault(), y.stopPropagation(), y.currentTarget.close());
+    } }, /* @__PURE__ */ e.createElement("svg", { viewBox: "-65 -50 130 100", "aria-hidden": "true" }, De(n)), /* @__PURE__ */ e.createElement("h2", { id: W }, t[X[n]]), !a && h !== null ? /* @__PURE__ */ e.createElement("form", { onSubmit: (y) => {
+      y.preventDefault(), h.trim() && (d?.({ ...t, [X[n]]: h.trim() }), x(null), M.current?.querySelector("[data-close]")?.focus());
+    } }, /* @__PURE__ */ e.createElement("label", null, "Print name ", /* @__PURE__ */ e.createElement("input", { autoFocus: !0, required: !0, maxLength: 48, value: h, onChange: (y) => x(y.target.value) })), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "submit", disabled: !h.trim() }, "Save name"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => x(null) }, "Cancel rename"))) : null, /* @__PURE__ */ e.createElement("button", { type: "button", "data-close": !0, onClick: () => M.current?.close() }, "Close viewer"), !a && h === null && /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => {
+      const y = X[n];
+      l ? (M.current?.close(), l(y)) : x(t[y]);
     } }, "Rename print"))
   );
 }
 const Lt = '.pilot-board{--ink:#243d33;box-sizing:border-box;color:var(--ink);background:#efece3;padding:clamp(14px,3.5vw,35px);font:15px/1.4 system-ui,sans-serif}.pilot-board *,.pilot-board *:before{box-sizing:border-box}.pilot-board header{margin:0 0 1.4rem;color:inherit;background:none;display:block;position:static;padding:0;border:0}.pilot-board header h2{font:700 clamp(30px,5vw,52px)/1 "Pilot Narrow",sans-serif;margin:.28em 0;color:inherit;letter-spacing:-.025em}.pilot-board p{margin:0}.pilot-board .pilot-kicker{font:600 12px/1.4 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase}.pilot-board button{font:inherit;cursor:pointer;color:inherit}.pilot-board button:focus-visible,.pilot-board a:focus-visible{outline:3px solid #007486;outline-offset:3px}.pilot-board footer{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;padding:14px 0 0;margin:0;background:none;color:inherit;border:0}.pilot-board footer a{color:inherit;text-underline-offset:.24em;font-weight:700}.pilot-board footer button{background:transparent;border:0;text-decoration:underline;text-underline-offset:.23em}.pilot-board .interview-desk{display:grid;grid-template-columns:minmax(0,.94fr) minmax(0,1.2fr);gap:clamp(12px,3vw,32px);align-items:center}.pilot-board .quote-stack{display:grid;gap:10px;padding:4px}.pilot-board .quote{border:1px solid #a79e88;border-radius:2px;box-shadow:2px 3px #756d592b;padding:11px 14px;display:grid;gap:6px;text-align:left;touch-action:none;cursor:grab;position:relative}.pilot-board .quote small{font:600 11px/1.3 ui-monospace,monospace}.pilot-board .quote strong{font:600 clamp(15px,2.1vw,22px)/1.15 Georgia,serif}.pilot-board .quote-preview{background:#f5d989}.pilot-board .quote-duplicate{background:#c5dacf}.pilot-board .quote-undo{background:#ded1ea}.pilot-board .quote[aria-pressed=true]{outline:2px solid #385947;outline-offset:1px}.pilot-board .prototype-slot{position:relative;background:#254a3e;color:#fcf9ee;padding:30px clamp(12px,3vw,26px) 16px;border:2px dashed transparent;border-radius:4px}.pilot-board .prototype-slot.drop-active{border-color:#edc65e}.pilot-board .prototype-screen{background:#fffdf7;color:#233a30;border:1px solid #162d25;border-radius:6px;box-shadow:3px 4px #102b2166;overflow:hidden}.pilot-board .prototype-screen>strong{display:block;padding:15px 12px 7px;font-size:clamp(16px,2.3vw,24px)}.pilot-board .prototype-bar,.pilot-board .prototype-row{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:8px 12px;font-size:12px}.pilot-board .prototype-bar{background:#e8eade;border-bottom:1px solid #c3cbbe;font-weight:650}.pilot-board .prototype-bar span+span,.pilot-board .prototype-row span+span{font:11px/1.3 ui-monospace,monospace}.pilot-board .prototype-row{margin:0 10px;padding:8px 2px;border-bottom:1px solid #e1e5da}.pilot-board .prototype-screen p{padding:8px 12px 12px;color:#355d49;font-weight:650;font-size:12px}.pilot-board .test-brief{margin-top:14px}.pilot-board .test-brief strong{font-size:18px}.pilot-board .test-brief p{font-size:13px;margin-top:3px}.pilot-board .design-cursor{position:absolute;right:17px;top:5px;font:700 10px/1.5 ui-monospace,monospace;color:#f8d7bc;pointer-events:none}.pilot-board .design-cursor span{display:inline-block;transform:rotate(-126deg)}@media (prefers-reduced-motion:no-preference){.pilot-board .design-cursor{animation:point-to-screen .45s ease-out}@keyframes point-to-screen{0%{transform:translate(15px,12px)}to{transform:translate(0)}}}.pilot-board .budget-board{background:#e1e8dc}.pilot-board .budget-ledger{padding:clamp(12px,2.5vw,24px);background:#fcf9f0;border:1px solid #9fae9e}.pilot-board .budget-heading,.pilot-board .reserve{display:flex;justify-content:space-between;align-items:baseline;gap:12px}.pilot-board .budget-heading{font-weight:700}.pilot-board .budget-heading b{font:700 clamp(22px,3vw,32px)/1 "Pilot Narrow",sans-serif}.pilot-board .budget-heading small{font:400 12px/1.4 system-ui,sans-serif}.pilot-board .budget-bar{display:flex;gap:2px;margin:12px 0;height:10px}.pilot-board .budget-bar span{flex:1}.pilot-board .band-calls{background:#386759}.pilot-board .band-pilot{background:#b8804f}.pilot-board .band-newsletter{background:#80698c}.pilot-board .band-reserve{background:#dfded2}.pilot-board .budget-chips,.pilot-board .budget-targets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.pilot-board .budget-chips{margin:14px 0 18px}.pilot-board .budget-chips button{background:#f4e6bd;border:1px solid #b7a46b;border-left:4px solid #a98b43;display:grid;justify-items:start;text-align:left;align-content:start;gap:3px;padding:9px 10px;touch-action:none;cursor:grab}.pilot-board .budget-chips button[aria-pressed=true]{outline:2px solid #485e49;outline-offset:1px}.pilot-board .budget-chips small{font:11px/1.2 ui-monospace,monospace}.pilot-board .budget-chips span{font-size:12px}.pilot-board .budget-chips strong,.pilot-board .budget-targets b{font:700 clamp(22px,4vw,38px)/1.1 "Pilot Narrow",sans-serif}.pilot-board .budget-targets button{border:1px dashed #969a8b;border-radius:4px;display:grid;grid-template-rows:1fr auto auto;text-align:left;gap:4px;padding:12px 10px}.pilot-board .budget-targets strong{font-size:14px;line-height:1.15}.pilot-board .budget-targets span{font-size:12px}.pilot-board .target-calls{background:#d6e5d9}.pilot-board .target-newsletter{background:#e6ddeb}.pilot-board .target-pilot{background:#f1ddc6}.pilot-board .reserve{width:100%;border:0;border-top:1px solid #b4baad;background:none;margin-top:14px;padding:10px 0 0;font-size:13px}.pilot-board .pilot-ghost{position:fixed;z-index:10;pointer-events:none;background:#25382e;color:#fff9ee;box-shadow:1px 4px 10px #0003;padding:6px 10px;border-radius:3px;font:600 12px/1.3 system-ui,sans-serif}@media (max-width:480px){.pilot-board .interview-desk{grid-template-columns:1fr;gap:12px}.pilot-board .quote-stack{gap:6px}.pilot-board .quote{padding:8px 10px;gap:3px}.pilot-board footer{font-size:14px}.pilot-board .budget-chips,.pilot-board .budget-targets{gap:5px}.pilot-board .budget-targets button,.pilot-board .budget-chips button{padding:8px 5px}.pilot-board .budget-targets strong{font-size:12px}.pilot-board .budget-targets span,.pilot-board .budget-chips span{font-size:11px}}.pilot-board button:disabled{cursor:default}';
 function ge(t, d, r) {
-  const l = Re(t, d, r);
+  const l = Fe(t, d, r);
   return l === t ? null : l;
 }
 function Bt({ value: t, readOnly: d = !1, onChange: r }) {
-  const l = tt(t), a = F(null), [f, p] = I(null), [s, u] = I(null), [o, m] = I(null), [y, w] = I("fund-1"), h = f?.base === t && !d ? f.next : t, x = t.cards.some((n) => n.id === y) ? y : t.cards[0]?.id;
+  const l = tt(t), a = q(null), [f, p] = I(null), [s, u] = I(null), [n, m] = I(null), [k, w] = I("fund-1"), h = f?.base === t && !d ? f.next : t, x = t.cards.some((o) => o.id === k) ? k : t.cards[0]?.id;
   function g() {
     a.current = null, u(null), m(null), p(null);
   }
   Q(() => {
     if (!s) return;
-    const n = (b) => {
+    const o = (b) => {
       b.key === "Escape" && g();
     };
-    return window.addEventListener("keydown", n), () => window.removeEventListener("keydown", n);
+    return window.addEventListener("keydown", o), () => window.removeEventListener("keydown", o);
   }, [s]);
-  function v(n, b) {
-    const $ = !d && ge(t, n, b);
+  function v(o, b) {
+    const $ = !d && ge(t, o, b);
     $ && r?.($);
   }
-  function C(n) {
-    l === "customer-interviews" ? v(n, "prototype") : w(n);
+  function C(o) {
+    l === "customer-interviews" ? v(o, "prototype") : w(o);
   }
-  function M(n) {
-    const b = document.elementFromPoint(n.clientX, n.clientY)?.closest("[data-drop]");
-    return b && b.closest(".pilot-board") === n.currentTarget.closest(".pilot-board") ? b.dataset.drop : void 0;
+  function M(o) {
+    const b = document.elementFromPoint(o.clientX, o.clientY)?.closest("[data-drop]");
+    return b && b.closest(".pilot-board") === o.currentTarget.closest(".pilot-board") ? b.dataset.drop : void 0;
   }
-  function z(n) {
+  function z(o) {
     return {
       disabled: d,
       onClick: (b) => {
-        b.detail === 0 && C(n);
+        b.detail === 0 && C(o);
       },
       onPointerDown: (b) => {
-        d || !b.isPrimary || b.button !== 0 || (b.currentTarget.setPointerCapture(b.pointerId), a.current = { card: n, board: t, x: b.clientX, y: b.clientY, moved: !1 }, u(n));
+        d || !b.isPrimary || b.button !== 0 || (b.currentTarget.setPointerCapture(b.pointerId), a.current = { card: o, board: t, x: b.clientX, y: b.clientY, moved: !1 }, u(o));
       },
       onPointerMove: (b) => {
         const $ = a.current;
-        if (!$ || $.card !== n) return;
+        if (!$ || $.card !== o) return;
         if ($.board !== t || d) return g();
         if ($.moved || ($.moved = Math.hypot(b.clientX - $.x, b.clientY - $.y) > 5), !$.moved) return;
         m({ left: b.clientX + 10, top: b.clientY + 10 });
-        const k = M(b), P = k && ge(t, n, k);
+        const y = M(b), P = y && ge(t, o, y);
         p(P ? { base: t, next: P } : null);
       },
       onPointerUp: (b) => {
         const $ = a.current;
-        if (!$ || $.card !== n) return;
-        const k = M(b);
-        g(), !(d || $.board !== t) && ($.moved ? k && v(n, k) : C(n));
+        if (!$ || $.card !== o) return;
+        const y = M(b);
+        g(), !(d || $.board !== t) && ($.moved ? y && v(o, y) : C(o));
       },
       onLostPointerCapture: g,
       onPointerCancel: g
     };
   }
   if (!l) return null;
-  const W = h.cards.find((n) => n.laneId === "prototype"), i = Be(h).find((n) => n.cardId === W?.id && n.laneId === "prototype" && n.present), E = $e(h, "reserve")?.amount ?? 0, L = (n) => t.lanes.find((b) => b.id === n)?.label ?? "";
+  const W = h.cards.find((o) => o.laneId === "prototype"), i = Be(h).find((o) => o.cardId === W?.id && o.laneId === "prototype" && o.present), E = $e(h, "reserve")?.amount ?? 0, L = (o) => t.lanes.find((b) => b.id === o)?.label ?? "";
   return /* @__PURE__ */ e.createElement(
     "section",
     {
       className: "pilot-board " + (l === "customer-interviews" ? "interview-board" : "budget-board"),
-      onKeyDown: (n) => {
-        n.key === "Escape" && g();
+      onKeyDown: (o) => {
+        o.key === "Escape" && g();
       }
     },
     /* @__PURE__ */ e.createElement("style", null, Lt),
-    l === "customer-interviews" ? /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement("header", null, /* @__PURE__ */ e.createElement("p", { className: "pilot-kicker" }, "Design partner interviews"), /* @__PURE__ */ e.createElement("h2", null, "What’s stopping the first import?"), !d && /* @__PURE__ */ e.createElement("p", null, "Pick a customer quote or drag it to the prototype. See what your designer would test.")), /* @__PURE__ */ e.createElement("div", { className: "interview-desk" }, /* @__PURE__ */ e.createElement("div", { className: "quote-stack" }, t.cards.map((n) => {
-      const b = nt.find((k) => k.id === n.id), $ = n.label === b.who + " · " + b.quote;
+    l === "customer-interviews" ? /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement("header", null, /* @__PURE__ */ e.createElement("p", { className: "pilot-kicker" }, "Design partner interviews"), /* @__PURE__ */ e.createElement("h2", null, "What’s stopping the first import?"), !d && /* @__PURE__ */ e.createElement("p", null, "Pick a customer quote or drag it to the prototype. See what your designer would test.")), /* @__PURE__ */ e.createElement("div", { className: "interview-desk" }, /* @__PURE__ */ e.createElement("div", { className: "quote-stack" }, t.cards.map((o) => {
+      const b = ot.find((y) => y.id === o.id), $ = o.label === b.who + " · " + b.quote;
       return /* @__PURE__ */ e.createElement(
         "button",
         {
           type: "button",
-          className: "quote quote-" + n.id,
-          key: n.id,
-          "data-card": n.id,
-          "aria-pressed": W?.id === n.id,
-          ...z(n.id)
+          className: "quote quote-" + o.id,
+          key: o.id,
+          "data-card": o.id,
+          "aria-pressed": W?.id === o.id,
+          ...z(o.id)
         },
         $ && /* @__PURE__ */ e.createElement("small", null, b.who),
-        /* @__PURE__ */ e.createElement("strong", null, $ ? b.quote : n.label)
+        /* @__PURE__ */ e.createElement("strong", null, $ ? b.quote : o.label)
       );
-    })), /* @__PURE__ */ e.createElement("div", { className: "prototype-slot" + (s ? " drop-active" : ""), "data-drop": "prototype", "aria-label": L("prototype") }, /* @__PURE__ */ e.createElement("div", { key: W?.id, className: "design-cursor", "aria-label": "Simulated designer Imani" }, /* @__PURE__ */ e.createElement("span", { "aria-hidden": "true" }, "➤"), " Imani"), W ? /* @__PURE__ */ e.createElement(St, { id: W.id }) : /* @__PURE__ */ e.createElement("p", null, "Choose an interview for the prototype."), i && /* @__PURE__ */ e.createElement("div", { className: "test-brief", "aria-live": "polite" }, /* @__PURE__ */ e.createElement("strong", null, i.label), /* @__PURE__ */ e.createElement("p", null, i.text))))) : /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement("header", null, /* @__PURE__ */ e.createElement("p", { className: "pilot-kicker" }, "First ten design partners"), /* @__PURE__ */ e.createElement("h2", null, "Where would you spend $", t.cards.length * 200, "?"), !d && /* @__PURE__ */ e.createElement("p", null, "Drag a $200 allocation to an experiment, or select an allocation and then a destination.")), /* @__PURE__ */ e.createElement("div", { className: "budget-ledger" }, /* @__PURE__ */ e.createElement("div", { className: "budget-heading" }, /* @__PURE__ */ e.createElement("span", null, "Pilot budget"), /* @__PURE__ */ e.createElement("b", null, "$", t.cards.length * 200 - E, " ", /* @__PURE__ */ e.createElement("small", null, "committed"))), /* @__PURE__ */ e.createElement("div", { className: "budget-bar", "aria-hidden": "true" }, h.cards.map((n) => /* @__PURE__ */ e.createElement("span", { key: n.id, className: "band-" + n.laneId }))), /* @__PURE__ */ e.createElement("div", { className: "budget-chips" }, t.cards.map((n) => /* @__PURE__ */ e.createElement(
+    })), /* @__PURE__ */ e.createElement("div", { className: "prototype-slot" + (s ? " drop-active" : ""), "data-drop": "prototype", "aria-label": L("prototype") }, /* @__PURE__ */ e.createElement("div", { key: W?.id, className: "design-cursor", "aria-label": "Simulated designer Imani" }, /* @__PURE__ */ e.createElement("span", { "aria-hidden": "true" }, "➤"), " Imani"), W ? /* @__PURE__ */ e.createElement(St, { id: W.id }) : /* @__PURE__ */ e.createElement("p", null, "Choose an interview for the prototype."), i && /* @__PURE__ */ e.createElement("div", { className: "test-brief", "aria-live": "polite" }, /* @__PURE__ */ e.createElement("strong", null, i.label), /* @__PURE__ */ e.createElement("p", null, i.text))))) : /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement("header", null, /* @__PURE__ */ e.createElement("p", { className: "pilot-kicker" }, "First ten design partners"), /* @__PURE__ */ e.createElement("h2", null, "Where would you spend $", t.cards.length * 200, "?"), !d && /* @__PURE__ */ e.createElement("p", null, "Drag a $200 allocation to an experiment, or select an allocation and then a destination.")), /* @__PURE__ */ e.createElement("div", { className: "budget-ledger" }, /* @__PURE__ */ e.createElement("div", { className: "budget-heading" }, /* @__PURE__ */ e.createElement("span", null, "Pilot budget"), /* @__PURE__ */ e.createElement("b", null, "$", t.cards.length * 200 - E, " ", /* @__PURE__ */ e.createElement("small", null, "committed"))), /* @__PURE__ */ e.createElement("div", { className: "budget-bar", "aria-hidden": "true" }, h.cards.map((o) => /* @__PURE__ */ e.createElement("span", { key: o.id, className: "band-" + o.laneId }))), /* @__PURE__ */ e.createElement("div", { className: "budget-chips" }, t.cards.map((o) => /* @__PURE__ */ e.createElement(
       "button",
       {
         type: "button",
-        key: n.id,
-        "data-card": n.id,
-        "aria-label": n.label + ", " + L(n.laneId),
-        "aria-pressed": x === n.id,
-        ...z(n.id)
+        key: o.id,
+        "data-card": o.id,
+        "aria-label": o.label + ", " + L(o.laneId),
+        "aria-pressed": x === o.id,
+        ...z(o.id)
       },
-      /* @__PURE__ */ e.createElement("small", null, n.label),
+      /* @__PURE__ */ e.createElement("small", null, o.label),
       /* @__PURE__ */ e.createElement("strong", null, "$200"),
-      /* @__PURE__ */ e.createElement("span", null, L(n.laneId).split(" · ")[0])
-    ))), /* @__PURE__ */ e.createElement("div", { className: "budget-targets" }, rt.map((n) => {
-      const b = $e(h, n.id);
+      /* @__PURE__ */ e.createElement("span", null, L(o.laneId).split(" · ")[0])
+    ))), /* @__PURE__ */ e.createElement("div", { className: "budget-targets" }, rt.map((o) => {
+      const b = $e(h, o.id);
       return /* @__PURE__ */ e.createElement(
         "button",
         {
           type: "button",
-          key: n.id,
-          className: "target-" + n.id,
-          "data-drop": n.id,
-          disabled: d || !x || !ge(t, x, n.id),
-          onClick: () => v(x, n.id)
+          key: o.id,
+          className: "target-" + o.id,
+          "data-drop": o.id,
+          disabled: d || !x || !ge(t, x, o.id),
+          onClick: () => v(x, o.id)
         },
-        /* @__PURE__ */ e.createElement("strong", null, L(n.id).replace(" · " + n.rate, "")),
+        /* @__PURE__ */ e.createElement("strong", null, L(o.id).replace(" · " + o.rate, "")),
         /* @__PURE__ */ e.createElement("b", null, "$", b.amount),
         /* @__PURE__ */ e.createElement("span", null, b.description),
-        /* @__PURE__ */ e.createElement("small", null, n.rate)
+        /* @__PURE__ */ e.createElement("small", null, o.rate)
       );
     })), /* @__PURE__ */ e.createElement("button", { type: "button", className: "reserve", "data-drop": "reserve", disabled: d || !x, onClick: () => v(x, "reserve") }, L("reserve") === "Unallocated" ? "Return to unallocated funds" : L("reserve"), " ", /* @__PURE__ */ e.createElement("b", null, "$", E)))),
-    o && s && /* @__PURE__ */ e.createElement("span", { className: "pilot-ghost", "aria-hidden": "true", style: o }, t.cards.find((n) => n.id === s)?.label)
+    n && s && /* @__PURE__ */ e.createElement("span", { className: "pilot-ghost", "aria-hidden": "true", style: n }, t.cards.find((o) => o.id === s)?.label)
   );
 }
 function St({ id: t }) {
@@ -779,8 +779,8 @@ function St({ id: t }) {
   return /* @__PURE__ */ e.createElement("div", { className: "prototype-screen", "aria-label": "Example product screen" }, /* @__PURE__ */ e.createElement("div", { className: "prototype-bar" }, /* @__PURE__ */ e.createElement("span", null, "Client list"), /* @__PURE__ */ e.createElement("span", null, "Prototype")), /* @__PURE__ */ e.createElement("strong", null, t === "duplicate" ? "1 matching client" : t === "undo" ? "Import history" : "Preview your first 10 rows"), d.map(([r, l]) => /* @__PURE__ */ e.createElement("div", { className: "prototype-row", key: r }, /* @__PURE__ */ e.createElement("span", null, r), /* @__PURE__ */ e.createElement("span", null, l))), /* @__PURE__ */ e.createElement("p", null, t === "duplicate" ? "Keep original record" : t === "undo" ? "Restore previous list" : "No emails will be sent"));
 }
 const Ct = (t) => pe(t, !1), Wt = (t) => pe(t, !0);
-function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: a, onEditStation: f, onEditLane: p, onAddCard: s, onUndo: u, canUndo: o, readOnly: m = !1, fitLanes: y = !1, mapCanvas: w = !1, showPlacementOutcomes: h = !0, showMoveControls: x = !0 }) {
-  const g = e.useRef(null), v = e.useId(), C = e.useRef(null), M = e.useRef(!1), z = e.useRef(null), [W, i] = e.useState(0), E = w && !!t.lanes[0].station, L = E || y && !t.kind && !t.lanes[0].station;
+function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: a, onEditStation: f, onEditLane: p, onAddCard: s, onUndo: u, canUndo: n, readOnly: m = !1, fitLanes: k = !1, mapCanvas: w = !1, showPlacementOutcomes: h = !0, showMoveControls: x = !0 }) {
+  const g = e.useRef(null), v = e.useId(), C = e.useRef(null), M = e.useRef(!1), z = e.useRef(null), [W, i] = e.useState(0), E = w && !!t.lanes[0].station, L = E || k && !t.kind && !t.lanes[0].station;
   e.useLayoutEffect(() => {
     const c = g.current;
     if (!L || !c) return;
@@ -789,22 +789,22 @@ function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: 
     const N = new ResizeObserver(S);
     return N.observe(c), () => N.disconnect();
   }, [L]);
-  const n = e.useMemo(() => L && W ? mt(t, W, E) : void 0, [L, W, t, E]), { width: b, height: $ } = ce(t, n?.layout, E ? te : void 0), k = t.kind === "release-plan", P = !!t.signals?.length, [B, re] = e.useState(0), A = e.useRef(!1), H = e.useRef(null), [ue, Ke] = e.useState(null), [j, V] = e.useState(null), [fe, ye] = e.useState(null), q = !m && j?.source === t ? j : null, xe = e.useRef(t), G = e.useCallback((c) => {
-    (k || P) && Ke(c), r?.(c);
-  }, [k, P, r]), T = e.useCallback(() => {
-    A.current = !1, H.current = null, V(null), G(null), re((c) => c + 1);
+  const o = e.useMemo(() => L && W ? mt(t, W, E) : void 0, [L, W, t, E]), { width: b, height: $ } = ce(t, o?.layout, E ? te : void 0), y = t.kind === "release-plan", P = !!t.signals?.length, [B, re] = e.useState(0), A = e.useRef(!1), K = e.useRef(null), [ue, He] = e.useState(null), [j, V] = e.useState(null), [fe, ke] = e.useState(null), R = !m && j?.source === t ? j : null, xe = e.useRef(t), G = e.useCallback((c) => {
+    (y || P) && He(c), r?.(c);
+  }, [y, P, r]), T = e.useCallback(() => {
+    A.current = !1, K.current = null, V(null), G(null), re((c) => c + 1);
   }, [G]);
   e.useLayoutEffect(() => {
     xe.current !== t && (A.current || j) && T(), xe.current = t;
   }, [t, j, T]);
   const _ = (c, S) => {
-    A.current = !1, V(null), G(null), c !== t && (k && !u && ye({ before: t, after: c }), d(c, S));
+    A.current = !1, V(null), G(null), c !== t && (y && !u && ke({ before: t, after: c }), d(c, S));
   }, Ge = (c) => {
-    const S = c.cards.find((N) => N.id === H.current);
+    const S = c.cards.find((N) => N.id === K.current);
     _(c, S && { cardId: S.id, laneId: S.laneId });
   }, je = e.useCallback((c) => {
     const S = c.type === "dragging" ? c : c.pendingDrag?.status;
-    A.current = !!S, S ? (H.current = S.behaviorCtx.draggedId?.replace(/^choice-/, "") ?? null, V(null)) : H.current !== null && (H.current = null, G(null));
+    A.current = !!S, S ? (K.current = S.behaviorCtx.draggedId?.replace(/^choice-/, "") ?? null, V(null)) : K.current !== null && (K.current = null, G(null));
   }, [G]);
   e.useEffect(() => {
     function c(S) {
@@ -814,16 +814,16 @@ function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: 
       document.removeEventListener("keydown", c), document.removeEventListener("pointercancel", c), window.removeEventListener("blur", c);
     };
   }, [T, j]);
-  const oe = m ? null : q?.next ?? ue, R = !!(m || q), ke = !!t.lanes[0].station, U = !R && (ke ? !!f : (!k || !!l) && !!p), Z = !R && !ke && !k && !!s && t.cards.length < ot, Y = !R && !!l, Ye = e.useMemo(() => n || U || Z || E || Y ? (c) => pe(c, R, n, U, Z, v, E, Y) : R ? Wt : Ct, [n, R, U, Z, v, E, Y]), me = "[data-workshop-station],[data-workshop-lane],[data-workshop-add-card]", we = Y ? me + ",[data-workshop-card]" : me;
+  const ne = m ? null : R?.next ?? ue, F = !!(m || R), ye = !!t.lanes[0].station, U = !F && (ye ? !!f : (!y || !!l) && !!p), O = !F && !ye && !y && !!s && t.cards.length < nt, Y = !F && !!l, Ye = e.useMemo(() => o || U || O || E || Y ? (c) => pe(c, F, o, U, O, v, E, Y) : F ? Wt : Ct, [o, F, U, O, v, E, Y]), me = "[data-workshop-station],[data-workshop-lane],[data-workshop-add-card]", we = Y ? me + ",[data-workshop-card]" : me;
   function be(c) {
-    R || (c.dataset.workshopCard ? l?.(c.dataset.workshopCard) : c.dataset.workshopStation ? f?.(c.dataset.workshopStation) : c.dataset.workshopLane ? p?.(c.dataset.workshopLane, c) : c.dataset.workshopAddCard && s?.(c.dataset.workshopAddCard, c));
+    F || (c.dataset.workshopCard ? l?.(c.dataset.workshopCard) : c.dataset.workshopStation ? f?.(c.dataset.workshopStation) : c.dataset.workshopLane ? p?.(c.dataset.workshopLane, c) : c.dataset.workshopAddCard && s?.(c.dataset.workshopAddCard, c));
   }
-  const ve = oe ? Math.max($, ce(oe, n?.layout, E ? te : void 0).height) : $, Me = /* @__PURE__ */ e.createElement(
-    ne,
+  const ve = ne ? Math.max($, ce(ne, o?.layout, E ? te : void 0).height) : $, Me = /* @__PURE__ */ e.createElement(
+    oe,
     {
       key: m ? "read-only" : B,
       draggable: Ye,
-      state: q?.next ?? t,
+      state: R?.next ?? t,
       onDropState: m ? void 0 : Ge,
       onDragState: m ? void 0 : G,
       onDragStatus: je,
@@ -831,7 +831,7 @@ function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: 
       height: ve
     }
   );
-  return /* @__PURE__ */ e.createElement("section", { "aria-label": t.title }, (U || Z) && /* @__PURE__ */ e.createElement("div", { hidden: !0 }, t.lanes.map((c) => /* @__PURE__ */ e.createElement(e.Fragment, { key: c.id }, U && /* @__PURE__ */ e.createElement("span", { id: v + "-edit-" + c.id }, "Edit ", c.label), Z && /* @__PURE__ */ e.createElement("span", { id: v + "-add-" + c.id }, "Add card to ", c.label)))), Y && /* @__PURE__ */ e.createElement("div", { hidden: !0 }, t.cards.map((c) => /* @__PURE__ */ e.createElement("span", { key: c.id, id: v + "-select-" + c.id }, "Select ", c.label))), /* @__PURE__ */ e.createElement(
+  return /* @__PURE__ */ e.createElement("section", { "aria-label": t.title }, (U || O) && /* @__PURE__ */ e.createElement("div", { hidden: !0 }, t.lanes.map((c) => /* @__PURE__ */ e.createElement(e.Fragment, { key: c.id }, U && /* @__PURE__ */ e.createElement("span", { id: v + "-edit-" + c.id }, "Edit ", c.label), O && /* @__PURE__ */ e.createElement("span", { id: v + "-add-" + c.id }, "Add card to ", c.label)))), Y && /* @__PURE__ */ e.createElement("div", { hidden: !0 }, t.cards.map((c) => /* @__PURE__ */ e.createElement("span", { key: c.id, id: v + "-select-" + c.id }, "Select ", c.label))), /* @__PURE__ */ e.createElement(
     "div",
     {
       ref: g,
@@ -845,7 +845,7 @@ function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: 
         M.current = !1, S && N && be(S);
       },
       onPointerDownCapture: (c) => {
-        if (M.current = !0, C.current = null, R || !c.isPrimary || c.button !== 0) return;
+        if (M.current = !0, C.current = null, F || !c.isPrimary || c.button !== 0) return;
         const S = c.target.closest(me + ",[data-workshop-card]");
         S && (C.current = { target: S, x: c.clientX, y: c.clientY });
       },
@@ -857,7 +857,7 @@ function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: 
       },
       onPointerUpCapture: (c) => {
         const S = C.current;
-        if (C.current = null, !S || R || Math.hypot(c.clientX - S.x, c.clientY - S.y) > 5) return;
+        if (C.current = null, !S || F || Math.hypot(c.clientX - S.x, c.clientY - S.y) > 5) return;
         const N = S.target.dataset.workshopCard;
         if (!N || Y) {
           z.current = null, be(S.target);
@@ -866,22 +866,22 @@ function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: 
         a && (z.current?.id === N && c.timeStamp - z.current.at < 400 ? (z.current = null, a(N)) : z.current = { id: N, at: c.timeStamp });
       }
     },
-    E ? /* @__PURE__ */ e.createElement(ht, { board: q?.next ?? t, fitted: n, width: b, height: ve }, Me) : Me
-  ), P && h && /* @__PURE__ */ e.createElement("section", { "aria-label": "Placement outcomes", "aria-live": "polite", style: { overflowWrap: "anywhere" } }, Be(oe ?? t).map((c) => /* @__PURE__ */ e.createElement("p", { key: c.id }, /* @__PURE__ */ e.createElement("strong", null, c.label), /* @__PURE__ */ e.createElement("br", null), c.text))), k && /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement(gt, { value: t, preview: oe }), !m && /* @__PURE__ */ e.createElement(e.Fragment, null, x && /* @__PURE__ */ e.createElement(
+    E ? /* @__PURE__ */ e.createElement(ht, { board: R?.next ?? t, fitted: o, width: b, height: ve }, Me) : Me
+  ), P && h && /* @__PURE__ */ e.createElement("section", { "aria-label": "Placement outcomes", "aria-live": "polite", style: { overflowWrap: "anywhere" } }, Be(ne ?? t).map((c) => /* @__PURE__ */ e.createElement("p", { key: c.id }, /* @__PURE__ */ e.createElement("strong", null, c.label), /* @__PURE__ */ e.createElement("br", null), c.text))), y && /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement(gt, { value: t, preview: ne }), !m && /* @__PURE__ */ e.createElement(e.Fragment, null, x && /* @__PURE__ */ e.createElement(
     Et,
     {
       value: t,
-      preview: q?.move ?? null,
+      preview: R?.move ?? null,
       stage: (c, S) => {
         V({ source: t, next: c, move: S }), r?.(c);
       },
       cancel: T,
       apply: () => {
-        q && (_(q.next, q.move), G(null));
+        R && (_(R.next, R.move), G(null));
       }
     }
-  ), /* @__PURE__ */ e.createElement("button", { type: "button", disabled: !(u ? o : fe?.after === t), onClick: () => {
-    T(), u ? u() : fe?.after === t && (ye(null), d(fe.before));
+  ), /* @__PURE__ */ e.createElement("button", { type: "button", disabled: !(u ? n : fe?.after === t), onClick: () => {
+    T(), u ? u() : fe?.after === t && (ke(null), d(fe.before));
   } }, "Undo move"))), t.lanes[0].station && /* @__PURE__ */ e.createElement("div", { className: "workshop-outcomes", "aria-live": "polite" }, t.cards.map((c) => {
     const S = t.lanes.find((N) => N.id === c.laneId);
     return /* @__PURE__ */ e.createElement("div", { key: c.id }, /* @__PURE__ */ e.createElement("p", null, /* @__PURE__ */ e.createElement("strong", null, c.label, " · ", S.label), (!E || S.station.outcome !== S.label) && /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement("br", null), S.station.outcome)), S.station.image && /* @__PURE__ */ e.createElement(
@@ -893,114 +893,129 @@ function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: 
         style: { display: "block", maxWidth: "100%", width: 360, maxHeight: 240, objectFit: "contain", objectPosition: "left", marginBlock: "8px" }
       }
     ), ee(t, c).filter((N) => N.id !== c.laneId).map((N) => /* @__PURE__ */ e.createElement("button", { key: N.id, type: "button", disabled: m, onClick: () => _(de(t, c.id, N.id), { cardId: c.id, laneId: N.id }) }, c.label, " → ", N.label)));
-  })), x && !k && !E && t.cards.length > 0 && /* @__PURE__ */ e.createElement("details", null, /* @__PURE__ */ e.createElement("summary", null, "Move a card by name"), t.cards.map((c) => /* @__PURE__ */ e.createElement("label", { key: c.id, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBlock: 6 } }, c.label, /* @__PURE__ */ e.createElement(
+  })), x && !y && !E && t.cards.length > 0 && /* @__PURE__ */ e.createElement("details", null, /* @__PURE__ */ e.createElement("summary", null, "Move a card by name"), t.cards.map((c) => /* @__PURE__ */ e.createElement("label", { key: c.id, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBlock: 6 } }, c.label, /* @__PURE__ */ e.createElement(
     "select",
     {
       disabled: m,
       "aria-label": "Move " + c.label,
-      value: q?.move.cardId === c.id ? q.move.laneId : c.laneId,
+      value: R?.move.cardId === c.id ? R.move.laneId : c.laneId,
       onChange: (S) => {
         const N = { cardId: c.id, laneId: S.currentTarget.value }, ae = de(t, c.id, N.laneId);
         P ? ae === t ? T() : (V({ source: t, next: ae, move: N }), r?.(ae)) : _(ae, N);
       }
     },
     ee(t, c).map((S) => /* @__PURE__ */ e.createElement("option", { key: S.id, value: S.id }, S.label))
-  ))), q && /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => _(q.next, q.move) }, "Apply move"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: T }, "Cancel move"))));
+  ))), R && /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => _(R.next, R.move) }, "Apply move"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: T }, "Cancel move"))));
 }
 export {
-  Jn as DEFAULT_NOTE_STYLE,
-  Rt as FocusDarkroomBoard,
+  fr as DEFAULT_NOTE_STYLE,
+  Ft as FocusDarkroomBoard,
   Dt as ListeningRoomBoard,
-  Ft as MoonGalleryBoard,
+  qt as MoonGalleryBoard,
   It as OfflineHandoffBoard,
   gt as ReleasePlanReadout,
   Bt as StartupWorkshopBoard,
+  Ht as WORKSHOP_BOARD_KINDS,
   At as WorkshopBoard,
-  Kt as WorkshopReferenceError,
-  Gt as addWorkshopBranch,
-  jt as addWorkshopCard,
-  Yt as addWorkshopLane,
-  Xt as applyWorkshopEdits,
-  Qt as attachWorkshop,
+  Gt as WorkshopReferenceError,
+  jt as addWorkshopBranch,
+  Yt as addWorkshopCard,
+  Xt as addWorkshopLane,
+  Qt as applyWorkshopEdits,
+  Vt as attachWorkshop,
   ee as availableLanes,
+  _t as behaviourNote,
+  Ut as businessBoardKinds,
+  Ot as businessKind,
   Ee as canHangPanel,
   rt as channels,
-  Vt as checkWorkshopReplacement,
-  _t as countWord,
-  Ut as createBudgetWorkshop,
-  Zt as createInterviewWorkshop,
-  Jt as createLaneWorkshop,
-  Ot as createWorkshopMap,
-  en as decodeWorkshopFragment,
-  tn as describeFocusDarkroom,
-  nn as describeWorkshopEdits,
-  qt as dragologyCandidates,
-  rn as encodeWorkshopFragment,
+  Zt as checkWorkshopReplacement,
+  Jt as countWord,
+  eo as createBudgetWorkshop,
+  to as createInterviewWorkshop,
+  oo as createLaneWorkshop,
+  ro as createWorkshopMap,
+  no as decodeWorkshopFragment,
+  ao as describeFocusDarkroom,
+  io as describeWorkshopEdits,
+  Rt as dragologyCandidates,
+  lo as encodeWorkshopFragment,
   Se as handoffSummary,
   le as hangGalleryPanel,
-  on as industrialWorkshop,
-  an as initialFocusDarkroom,
-  nt as interviews,
-  Oe as laneColors,
-  ln as listed,
+  so as industrialWorkshop,
+  co as initialFocusDarkroom,
+  ot as interviews,
+  po as isRuleEdit,
+  Je as laneColors,
+  uo as listed,
   We as listeningRoom,
   ze as listeningRoomCaption,
-  ot as maxWorkshopCards,
-  sn as maxWorkshopLines,
-  cn as moonGallery,
+  nt as maxWorkshopCards,
+  fo as maxWorkshopLines,
+  mo as moonGallery,
   de as moveWorkshopCard,
-  dn as named,
-  pn as nightTransfer,
-  un as normalizeFocusDarkroom,
-  fn as normalizeListeningRoom,
-  mn as normalizeMoonGallery,
-  bn as normalizeOfflineHandoff,
-  Ze as offlineHandoff,
-  hn as planStartupMove,
-  gn as pointing,
+  bo as named,
+  ho as nightTransfer,
+  go as normalizeFocusDarkroom,
+  Eo as normalizeListeningRoom,
+  ko as normalizeMoonGallery,
+  xo as normalizeOfflineHandoff,
+  Oe as offlineHandoff,
+  yo as planStartupMove,
+  wo as pointing,
   X as printFields,
-  Fe as releaseLoad,
-  En as releasePlan,
+  vo as registerRulebook,
+  Mo as registerWorkshopRules,
+  qe as releaseLoad,
+  Lo as releasePlan,
   Ce as resolveHandoff,
   Be as resolveWorkshopSignals,
   ie as reviewHandoff,
-  yn as said,
+  So as roundedBox,
+  Co as rulebook,
+  Wo as rulebookLoaded,
+  zo as said,
   tt as startupExperienceKind,
-  xn as unquoted,
-  kn as validateWorkshop,
-  wn as workshopBoardKind,
+  $o as unquoted,
+  No as validateWorkshop,
+  Po as workshopBoardKind,
   $e as workshopBudgetResult,
-  Re as workshopCandidate,
-  vn as workshopCardAsNote,
-  Mn as workshopCardAsNoteRefusal,
-  Ln as workshopCardLabelOf,
-  Sn as workshopCardLines,
-  Cn as workshopCardLookOf,
+  Fe as workshopCandidate,
+  Io as workshopCardAsNote,
+  Do as workshopCardAsNoteRefusal,
+  Ro as workshopCardLabelOf,
+  qo as workshopCardLines,
+  Fo as workshopCardLookOf,
+  Bo as workshopCardNoteText,
+  Ao as workshopCardText,
   et as workshopDestinations,
-  Wn as workshopEditKinds,
-  zn as workshopFinder,
-  $n as workshopKeepsLink,
-  Nn as workshopKeepsPicture,
-  Pn as workshopLaneCaption,
-  In as workshopLanePlaces,
+  Ko as workshopEditKinds,
+  To as workshopFinder,
+  Ho as workshopKeepsLink,
+  Go as workshopKeepsPicture,
+  jo as workshopLaneCaption,
+  Yo as workshopLanePlaces,
   se as workshopLayout,
-  Dn as workshopLineRefusal,
-  qn as workshopLinesOf,
-  Fn as workshopNewLine,
-  Rn as workshopNodeIds,
-  Bn as workshopNoteCandidate,
-  An as workshopNoteIdOf,
-  Hn as workshopNoteRefusal,
+  Xo as workshopLineRefusal,
+  Qo as workshopLinesOf,
+  Vo as workshopNewLine,
+  _o as workshopNodeIds,
+  Uo as workshopNoteCandidate,
+  Oo as workshopNoteIdOf,
+  Zo as workshopNoteRefusal,
   ce as workshopPositions,
-  Tn as workshopPresentationLanes,
-  Kn as workshopPresentationScenes,
-  Gn as workshopReferences,
-  jn as workshopRefusal,
-  Yn as workshopRenamedLines,
-  Xn as workshopStandInId,
-  Qn as workshopTakesNotes,
-  Je as workshopToSlate,
-  Vn as workshopWithLine,
-  _n as workshopWithoutCardLines,
-  Un as workshopWithoutLine
+  Jo as workshopPresentationLanes,
+  er as workshopPresentationScenes,
+  tr as workshopReferences,
+  or as workshopRefusal,
+  rr as workshopRenamedLines,
+  nr as workshopRuleSchema,
+  ar as workshopRules,
+  ir as workshopRulesLoaded,
+  lr as workshopStandInId,
+  sr as workshopTakesNotes,
+  Ze as workshopToSlate,
+  cr as workshopWithLine,
+  dr as workshopWithoutCardLines,
+  pr as workshopWithoutLine
 };

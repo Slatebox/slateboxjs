@@ -10,7 +10,9 @@
  * Plain JavaScript, no React. The only thing it asks of the engine is the drag
  * policy in core/DragPolicy.ts.
  */
+import type { NodeJSON } from '../core/Serialization';
 import { type Workshop, type WorkshopBoardLayout, type WorkshopCardAsNote, type WorkshopCardLook, type WorkshopLine, type WorkshopNoteStyle } from './model';
+import { type WorkshopEdit } from './edits';
 /**
  * What a person changed. A move names the card and its new lane; a rename names the lane or
  * card and its new label. `noteToCard`: an ordinary note became card `cardId` at the foot of
@@ -37,6 +39,7 @@ export interface WorkshopChangeEvent {
         asNote?: WorkshopCardAsNote;
         before?: string;
         lines?: WorkshopLine[];
+        under?: string;
     };
     cardToNote?: {
         noteId: string;
@@ -48,6 +51,133 @@ export interface WorkshopChangeEvent {
         remove: string;
         set?: undefined;
     };
+    /**
+     * A business board's change as edits for applyWorkshopEdits (every drag, handle, key and rename on a
+     * launch plan, pipeline or budget): a server applies them to its board as it stands, so two people
+     * changing different tasks or deals both keep their change.
+     */
+    edits?: WorkshopEdit[];
+}
+/** One note a board kit draws: its artwork name (lane-, card-, caption-, column-, handle-, gauge-), box from the origin and look. */
+export interface PartPlace {
+    name: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    text?: string;
+    fill?: string;
+    ink?: string;
+    line?: string;
+    lineWidth?: number;
+    fontSize?: number;
+}
+/** What a board layer is told on each redraw. */
+export interface BoardLayerState {
+    origin: {
+        x: number;
+        y: number;
+    };
+    layout: WorkshopBoardLayout;
+    /** A continuous drag held at a bound: the handle and the sentence shown beside it. */
+    clamp: {
+        name: string;
+        text: string;
+    } | null;
+    /** The board on show is a preview the rules refuse. */
+    refused: boolean;
+    /** Draw above this element (the last lane column), so the layer sits under every other note. */
+    above?: Element | null;
+    /** A person clicked the arrow from `waitsOn` to `cardId` (launch plan). */
+    onUnlink?(cardId: string, waitsOn: string): void;
+    /** What the canvas shows of the board now, in board coordinates: words the board says are set inside it. */
+    view?: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    } | null;
+    /** Say something to a screen reader (the slate's announcer). */
+    announce?(text: string): void;
+}
+export interface BoardLayer {
+    draw(board: Workshop, preview: Workshop | null, state: BoardLayerState): void;
+    destroy(): void;
+}
+/** What a handle drag means at a pointer position: the board to show, and why it stops when it is held at a bound. */
+export interface HandleResult {
+    next: Workshop;
+    clampedReason?: string;
+    refusal?: string;
+}
+/**
+ * Everything a business board (launch plan, pipeline, budget) adds to the native drawing: where its
+ * notes go, its board layer, its Dragology chooser and handles, and its keys. Kits come from
+ * slateboxjs/boards (kitFor(kind)), loaded only for a slate that holds one of these boards.
+ */
+export interface WorkshopBoardKit {
+    places(board: Workshop, layout: WorkshopBoardLayout): {
+        parts: PartPlace[];
+        width: number;
+        height: number;
+    };
+    /** The parts as slate notes at `origin`, in the host's note style. */
+    notes(board: Workshop, layout: WorkshopBoardLayout, origin: {
+        x: number;
+        y: number;
+    }, style: WorkshopNoteStyle): NodeJSON[];
+    /** The edits that turn one board into another (WorkshopChangeEvent.edits). */
+    editsBetween(before: Workshop, after: Workshop): WorkshopEdit[];
+    /** What a screen reader calls a handle. */
+    label?(board: Workshop, part: string): string | null;
+    layer(slate: any): BoardLayer;
+    /** Always used for this kind: the lane under the pointer is never the whole answer. */
+    chooser: WorkshopCandidateChooser;
+    /**
+     * Why a drop at this point is refused (an illegal stage, a task that may not wait on that one); null when it is not.
+     * `lands`: the chooser still places the card where the rules let it (a plan's bar stops at its line or hops a
+     * freeze), and the reason is said beside it; when that place is where the card already is, the drop is refused.
+     */
+    refusalAt(board: Workshop, cardId: string, grab: {
+        x: number;
+        y: number;
+    }, point: {
+        x: number;
+        y: number;
+    }, layout: WorkshopBoardLayout): {
+        laneId: string;
+        reason: string;
+        lands?: boolean;
+    } | null;
+    handleDrag(board: Workshop, handleId: string, grab: {
+        x: number;
+        y: number;
+    }, layout: WorkshopBoardLayout): ((point: {
+        x: number;
+        y: number;
+    }) => HandleResult) | null;
+    keyEdit?(board: Workshop, part: string, key: {
+        key: string;
+        shiftKey: boolean;
+    }): WorkshopEdit[] | null;
+    /**
+     * A key that offers a choice on a focused part (a launch plan's L: what this task waits on). Null when
+     * the key means nothing here; a sentence when there is nothing to choose. The key again offers the next
+     * choice, Enter makes it, Escape cancels.
+     */
+    keyChoices?(board: Workshop, part: string, key: string): {
+        said: string;
+        edits: WorkshopEdit[];
+    }[] | string | null;
+    /** What a screen reader is told a focused card's keys do, after its name. */
+    cardKeys?: string;
+    /** Outline the lanes a held card may go to. Off for a launch plan, where every team takes every task. */
+    laneCues: boolean;
+    /** A nest board: the card an ordinary note dropped at this point sits under; null for none. */
+    noteUnder?(board: Workshop, point: {
+        x: number;
+        y: number;
+    }, layout: WorkshopBoardLayout): string | null;
 }
 /**
  * A change the workshop's rules did not allow, with the reason as a sentence (empty when a card
@@ -81,7 +211,7 @@ export type WorkshopSelection = {
 export type WorkshopCandidateChooser = (board: Workshop, cardId: string, grab: {
     x: number;
     y: number;
-}) => ((point: {
+}, layout?: WorkshopBoardLayout) => ((point: {
     x: number;
     y: number;
 }) => Workshop) | null;
@@ -124,6 +254,8 @@ export interface AttachWorkshopOptions {
      * selected. Also called with null when the workshop is destroyed with one selected.
      */
     onSelect?: (selection: WorkshopSelection) => void;
+    /** Required for a launch plan, a pipeline or a budget: its kit from slateboxjs/boards. */
+    kit?: WorkshopBoardKit;
 }
 export interface AttachedWorkshop {
     /** Redraw from a new model, moving only what changed. A drag in progress is cancelled first. */

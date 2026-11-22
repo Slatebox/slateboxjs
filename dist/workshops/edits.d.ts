@@ -1,7 +1,11 @@
 import { type StationImage, type Workshop, type WorkshopCard, type WorkshopLane } from './model';
+import { type WorkshopLimits } from './kinds';
 import { type WorkshopFinder } from './names';
+import type { RuleInput } from './behaviour';
 /** The kinds of board, each with its own rules. */
-export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map';
+export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest';
+/** Every kind of board, for a schema that names them (the app's Workshop record, an MCP tool). */
+export declare const WORKSHOP_BOARD_KINDS: readonly WorkshopBoardKind[];
 export declare function workshopBoardKind(board: Workshop): WorkshopBoardKind;
 /** A lane, card, station, token or outcome: its id, or what a person calls it (see workshopFinder). `{ id }` names only an id the caller saw on the board. */
 export type WorkshopRef = string | {
@@ -30,6 +34,14 @@ export type WorkshopEdit = {
     lane: WorkshopRef;
     label?: string;
     allowedLanes?: WorkshopRef[];
+    duration?: number;
+    lag?: number;
+    waitsOn?: WorkshopRef[];
+    amount?: number;
+    band?: string;
+    under?: WorkshopRef;
+    role?: string;
+    source?: string;
 } | {
     kind: 'remove_card';
     card: WorkshopRef;
@@ -131,6 +143,94 @@ export type WorkshopEdit = {
     kind: 'disconnect_note';
     card: WorkshopRef;
     note: string;
+} | {
+    kind: 'set_task';
+    card: WorkshopRef;
+    duration?: number;
+    lag?: number;
+} | {
+    kind: 'link_tasks';
+    card: WorkshopRef;
+    waitsOn: WorkshopRef;
+} | {
+    kind: 'unlink_tasks';
+    card: WorkshopRef;
+    waitsOn: WorkshopRef;
+} | {
+    kind: 'set_launch_day';
+    day: number;
+} | {
+    kind: 'set_amount';
+    card: WorkshopRef;
+    amount: number;
+} | {
+    kind: 'set_target';
+    amount: number;
+} | {
+    kind: 'shift_budget';
+    from: WorkshopRef;
+    to: WorkshopRef;
+    amount: number;
+} | {
+    kind: 'add_rule';
+    rule: RuleInput;
+} | {
+    kind: 'set_rule';
+    rule: string;
+    on?: boolean;
+    severity?: 'refuse' | 'warn';
+    max?: number;
+    to?: WorkshopRef[];
+    floor?: number;
+    onConflict?: 'push' | 'stop';
+    unit?: 'day' | 'week';
+    under?: string[];
+    by?: string;
+    drop?: 'new-pile' | 'unsorted';
+} | {
+    kind: 'remove_rule';
+    rule: string;
+} | {
+    kind: 'set_band_cost';
+    band: string;
+    monthly: number;
+} | {
+    kind: 'set_funding';
+    day: number;
+} | {
+    kind: 'nest_card';
+    card: WorkshopRef;
+    under?: WorkshopRef;
+    lane?: WorkshopRef;
+    before?: WorkshopRef;
+} | {
+    kind: 'start_pile';
+    card: WorkshopRef;
+    label?: string;
+} | {
+    kind: 'merge_cards';
+    card: WorkshopRef;
+    into: WorkshopRef;
+} | {
+    kind: 'set_role';
+    card: WorkshopRef;
+    role: string;
+} | {
+    kind: 'set_source';
+    card: WorkshopRef;
+    source: string;
+} | {
+    kind: 'add_field';
+    label: string;
+    currency?: string;
+} | {
+    kind: 'set_field';
+    card: WorkshopRef;
+    field: string;
+    value: number | null;
+} | {
+    kind: 'set_layout';
+    layout: 'clusters' | 'tree';
 };
 export type WorkshopEditKindName = WorkshopEdit['kind'];
 /** What one edit did: the sentence a person is told, and the ids it concerned or made. */
@@ -180,6 +280,8 @@ export interface WorkshopEditRefusal {
     laneId: string | null;
     cardId?: string;
     candidates?: string[];
+    /** A number out of range: the range a person may use, and the sentence at each end. */
+    limits?: WorkshopLimits;
 }
 export type WorkshopEditResult = {
     workshop: Workshop;
@@ -193,6 +295,13 @@ export interface WorkshopEditOptions {
         kind: 'lane' | 'card';
         id: string;
     } | null;
+    /** Who makes a rule edit, and how: the audit line every rule keeps. Left out, an agent over exec. */
+    actor?: {
+        by: string;
+        via: 'chat' | 'exec' | 'preset';
+    };
+    /** When, as an ISO time (for tests and replays). Left out, now. */
+    now?: string;
 }
 type Limit = number | Partial<Record<WorkshopBoardKind, number>> & {
     default: number;
@@ -231,6 +340,13 @@ export type WorkshopEditField = {
     values: string[];
     optional?: boolean;
     about: string;
+} | {
+    type: 'flag';
+    optional?: boolean;
+    about: string;
+} | {
+    type: 'rule';
+    about: string;
 };
 export interface WorkshopEditKind {
     kind: WorkshopEditKindName;
@@ -243,7 +359,16 @@ export interface WorkshopEditKind {
     /** What the other boards say. */
     refusals: Partial<Record<WorkshopBoardKind, string>>;
 }
-export declare const workshopEditKinds: readonly WorkshopEditKind[];
+export declare const workshopEditKinds: WorkshopEditKind[];
+export declare const isRuleEdit: (kind: string) => kind is "add_rule" | "set_rule" | "remove_rule";
+/**
+ * What add_rule's body may hold: the rulebook's kinds and keys. A rules module that brings its own
+ * (slateboxjs/workshops/plans) adds to these and to the table above as it loads.
+ */
+export declare const workshopRuleSchema: {
+    kinds: string[];
+    keys: Record<string, unknown>;
+};
 export interface WorkshopEditDescription {
     kind: WorkshopEditKindName;
     summary: string;
