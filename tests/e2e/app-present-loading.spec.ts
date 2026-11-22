@@ -29,12 +29,12 @@ async function stubMode(page: Page, mode: { mode: 'fast' | 'slow' | 'hang', ms?:
 const stubRequests = async (page: Page) => (await (await page.request.get(stub + '/log')).json()).length
 
 /** Present on this screen, without waiting for the plan: the local plan is there at once. */
-async function startPresenting(page: Page) {
+async function startPresenting(page: Page, { counted = true } = {}) {
   await page.locator('.sb-board-toolbar').getByRole('button', { name: 'Present', exact: true }).click()
   const item = page.getByRole('menu', { name: 'Present' }).getByRole('menuitem', { name: 'Present on this screen', exact: true })
   if (await item.waitFor({ timeout: 1500 }).then(() => true, () => false)) await item.click()
   await expect(camera(presenter(page)).locator('svg [data-node-id]').first()).toBeAttached({ timeout: 30_000 })
-  await expect(stepCounter(presenter(page))).toHaveText(/^0 \/ \d+$/, { timeout: 30_000 })
+  if (counted) await expect(stepCounter(presenter(page))).toHaveText(/^0 \/ \d+$/, { timeout: 30_000 })
 }
 
 async function mapSlate(page: Page) {
@@ -144,8 +144,19 @@ test('a slate of one or two notes is not planned: no planning, nothing sent, its
     await openGuestCanvas(page, app)
     uid = await userId(page)
     const sent = await stubRequests(page)
-    await startPresenting(page)
-    await expect(stepCounter(presenter(page))).toHaveText('0 / 0')
+    await startPresenting(page, { counted: false })
+    // One overview, nothing to step through: no counter ("0 / 0" read as broken).
+    await expect(stepCounter(presenter(page))).toHaveCount(0)
+    // The note is framed on its own, large and centred: measured in the slate's SVG, never from
+    // the origin (it was a speck in the top left at 6 %).
+    await expectWholeSlate(presenter(page))
+    await expect.poll(() => camera(presenter(page)).evaluate(surface => {
+      const stage = surface.parentElement!.getBoundingClientRect()
+      const art = surface.querySelector('svg [data-node-id] [data-node-background-path]') || surface.querySelector('svg [data-node-id]')
+      const box = art!.getBoundingClientRect()
+      const off = Math.abs((box.left + box.width / 2) - (stage.left + stage.width / 2)) / stage.width
+      return box.width >= stage.width * 0.2 && off < 0.05 ? 'ok' : `${Math.round(box.width)}px wide, ${Math.round(off * 100)}% off centre`
+    }), { timeout: 10_000 }).toBe('ok')
     // Planning never shows (watched for two seconds).
     for (let i = 0; i < 8; i++) {
       await expect(planning(page)).toHaveCount(0)
