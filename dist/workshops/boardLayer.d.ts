@@ -9,7 +9,9 @@ export type LayerShape = {
     color: string;
     width?: number;
     dash?: string;
-} | {
+}
+/** A box; `role` names it in the document (data-board-layer), and a `grip-` role is drawn above the notes, on its bar. */
+ | {
     t: 'rect';
     x: number;
     y: number;
@@ -18,6 +20,7 @@ export type LayerShape = {
     color: string;
     rx?: number;
     opacity?: number;
+    role?: string;
 }
 /**
  * A path; `arrow` puts an arrowhead at its end. `unlink` makes a 24px stroke under it, a button that removes

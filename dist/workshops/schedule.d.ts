@@ -37,6 +37,23 @@ export declare function launchHard(board: Workshop): boolean;
 export declare const cascadeStops: (board: Workshop) => boolean;
 /** The step a dragged or typed value takes: a week (5 working days with the workdays rule) under a week snap, else a day. */
 export declare function snapStep(board: Workshop): number;
+/** Which edge of a task's bar a grip drags: its start (the end stays put) or its end (the start stays put). */
+export type TaskEdge = 'start' | 'end';
+/** A task's lag and length after one of its edges is dragged; `held` when a bound stopped it (its length, or what it waits on). */
+export interface EdgeValues {
+    lag: number;
+    duration: number;
+    held?: 'length' | 'longest' | 'ready';
+}
+/**
+ * Where a task's lag and length go when its bar's `edge` is dragged `by` calendar days (a pointer's pixels over
+ * a day's width, so a fraction). The edge lands on the nearest day and is read through the plan's calendar:
+ * with the workdays rule an end let go on a weekend ends the Friday before, and a start the Monday after.
+ * It moves in whole steps of the plan's snap (a week where it snaps to weeks). The end edge keeps the start;
+ * the start edge keeps the end (the length takes up the difference). At least one step long (and at most
+ * the 60 days a task takes, or a hire's 20 weeks of recruiting), and never starting before what it waits on lets it.
+ */
+export declare function edgeValues(board: Workshop, cardId: string, edge: TaskEdge, by: number): EdgeValues;
 /** Every task that waits on `cardId`, directly or through others. */
 export declare function downstreamTasks(board: Workshop, cardId: string): Set<string>;
 /**

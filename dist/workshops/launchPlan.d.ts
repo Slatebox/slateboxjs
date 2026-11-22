@@ -1,6 +1,7 @@
 import type { Workshop, WorkshopCard } from './model';
 import type { BusinessBoardRules, BusinessEditTools, PlanWords, WorkshopLimits } from './kinds';
 import type { WorkshopEdit } from './edits';
+import { type EdgeValues, type TaskEdge } from './schedule';
 export * from './schedule';
 export type { WorkshopLimits } from './kinds';
 /** Why `after` breaks this plan's rules (or its built-in line), as a sentence; null when it keeps them. */
@@ -17,6 +18,24 @@ export declare function planFixed(before: Workshop, after: Workshop): string | n
  * tasks waiting on it. The board that results, or the sentence of the rule it breaks.
  */
 export declare function tryTask(board: Workshop, cardId: string, change: Partial<Pick<WorkshopCard, 'lag' | 'duration' | 'laneId'>>): Workshop | string;
+/** The grip on a task's start edge (its end grip is `handle-<card>`). A card id never starts with "_", so the name is the start grip's alone. */
+export declare const startHandle: (cardId: string) => string;
+/** The task whose start grip this is, or null for any other part. */
+export declare const startHandleCard: (part: string) => string | null;
+/** What a dragged edge comes to: its values, the one edit a drop makes, the board (null when the rules refuse it) and why it stopped or was refused. */
+export interface EdgeDrag {
+    values: EdgeValues;
+    edit: WorkshopEdit;
+    next: Workshop | null;
+    refusal: string | null;
+    reason?: string;
+}
+/**
+ * A task's start or end edge dragged `by` calendar days (edgeValues), as the plan's rules have it: a slip
+ * pushes what waits on it (or stops at it, held where it was), and a rule the change breaks refuses it in
+ * its own sentence. The drop is one set_task edit, the edit the chat and exec make.
+ */
+export declare function dragTaskEdge(board: Workshop, cardId: string, edge: TaskEdge, by: number): EdgeDrag;
 /** A plan's words for the chat (kinds.ts PlanWords): dates on this plan. */
 export declare const planWords: PlanWords;
 /** Where every task of a plan may be dragged: its legal runs of start and of length. */

@@ -94,6 +94,9 @@ export interface PlanWords {
     iso(board: Workshop, day: number): string;
     name(board: Workshop, day: number): string;
     startLag?(board: Workshop, cardId: string, day: number): number;
+    /** The calendar day a task can first start (what it waits on has ended), and the lag that starts it on `day` (the first working day from it). */
+    readyDay?(board: Workshop, cardId: string): number;
+    lagAt?(board: Workshop, cardId: string, day: number): number;
     band?(board: Workshop, name: string): {
         id: string;
         label: string;

@@ -17,5 +17,5 @@ export declare function partNotes(parts: PartPlace[], board: Workshop, origin: {
     x: number;
     y: number;
 }, style: WorkshopNoteStyle): NodeJSON[];
-/** What a screen reader calls a grip: launch day, a task's length, or the divider after a team. */
+/** What a screen reader calls a grip: launch day, a task's start or length, or the divider after a team. */
 export declare function handleLabel(model: Workshop, part: string): string | null;

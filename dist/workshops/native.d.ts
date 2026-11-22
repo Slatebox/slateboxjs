@@ -99,6 +99,8 @@ export interface BoardLayerState {
     } | null;
     /** Say something to a screen reader (the slate's announcer). */
     announce?(text: string): void;
+    /** The card the person is on: selected, under the pointer, or held by one of its grips (a plan shows that bar's grips). */
+    focus?: string | null;
 }
 export interface BoardLayer {
     draw(board: Workshop, preview: Workshop | null, state: BoardLayerState): void;
@@ -173,6 +175,8 @@ export interface WorkshopBoardKit {
     cardKeys?: string;
     /** Outline the lanes a held card may go to. Off for a launch plan, where every team takes every task. */
     laneCues: boolean;
+    /** The card a part belongs to (a card, or one of its grips); null for any other part. Left out, only a card's own note. */
+    cardOfPart?(board: Workshop, part: string): string | null;
     /** A nest board: the card an ordinary note dropped at this point sits under; null for none. */
     noteUnder?(board: Workshop, point: {
         x: number;
