@@ -4,7 +4,8 @@ import { presentToEveryone } from './app-header.shared'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { workshopReady } from './app-native-workshop.shared'
 import {
-  camera, chromeText, exitWithEscape, expectFramed, livePresenter, nextView, openPresenter, presenter, readoutWords, stepCounter,
+  camera, chromeText, exitWithEscape, expectFramed, expectLane, expectWholeSlate, litNotes, livePresenter, nextView, openPresenter,
+  presenter, readoutWords, stepCounter,
 } from './app-presenter.shared'
 
 // Present on any slate opens the presenter: full screen, the slate's presentation (its viewpoints,
@@ -20,10 +21,20 @@ const shot = async (page: Page, name: string) => {
 }
 
 const keyOf = (page: Page) => new URL(page.url()).pathname.split('/').pop()!
-/** A lane's viewpoint frames the lane and the cards in it. */
-const laneView = (workshop: { cards: { id: string, laneId: string }[] }, lane: { id: string }) =>
-  ['lane-' + lane.id, ...workshop.cards.filter(card => card.laneId === lane.id).map(card => 'card-' + card.id)]
 const counterTotal = async (dialog: ReturnType<typeof presenter>) => Number((await stepCounter(dialog).textContent())!.split('/')[1])
+type Lane = { id: string, label: string }
+type Workshop = { lanes: Lane[], cards: { id: string, laneId: string }[] }
+/** A lane's viewpoint: its narrative starts with the lane's name; it frames the lane and its cards. */
+const expectLaneOf = (dialog: Page | ReturnType<typeof presenter>, workshop: Workshop, lane: Lane) =>
+  expectLane(dialog, lane.label, lane.id, workshop.cards.filter(card => card.laneId === lane.id).map(card => card.id))
+/**
+ * How many viewpoints a workshop slate's plan has: an overview, one per lane, at least one segment
+ * of the slate's other notes (at most one per note), and a closing overview.
+ */
+const expectPlanSize = (total: number, lanes: number, notes: number) => {
+  expect(total).toBeGreaterThanOrEqual(lanes + 3)
+  expect(total).toBeLessThanOrEqual(lanes + 2 + notes)
+}
 
 /** What Esc must leave untouched: the stored slate, and the canvas's notes where they were drawn. */
 async function board(page: Page, key: string) {
@@ -167,18 +178,29 @@ test('Present on a slate with a workshop plays each lane with its cards, then th
     const dialog = await openPresenter(page)
     await expect(page.getByRole('region', { name: 'Decision presentation' })).toHaveCount(0)
     await expect(stepCounter(dialog)).toHaveText(/^0 \/ \d+$/, { timeout: 30_000 })
-    // One viewpoint per lane, then one per other note.
-    expect(await counterTotal(dialog)).toBe(lanes.length + before.nodes.length)
+    // Restated 2026-11-22 (fix/present-ai): an overview of the whole slate, one viewpoint per lane
+    // (with its cards) in order, the segments of the slate's other notes (groups of related notes,
+    // not one note per step), and a closing overview.
+    const total = await counterTotal(dialog)
+    expectPlanSize(total, lanes.length, before.nodes.length)
+    await nextView(page, dialog)
+    await expectWholeSlate(dialog)
     for (const lane of lanes) {
       await nextView(page, dialog)
-      await expectFramed(dialog, laneView(before.creative.workshop, lane))
-      await expect(dialog.getByText(lane.label, { exact: true }).last()).toBeVisible()
+      await expectLaneOf(dialog, before.creative.workshop, lane)
       if (lane === lanes[0]) await shot(page, 'workshop-presenter')
     }
-    for (const node of before.nodes) {
+    const shown = new Set<string>()
+    for (let step = lanes.length + 2; step < total; step++) {
       await nextView(page, dialog)
-      await expectFramed(dialog, [node.options.id])
+      const lit = await litNotes(dialog)
+      expect(lit.length).toBeGreaterThan(0)
+      await expectFramed(dialog, lit)
+      lit.forEach(id => shown.add(id))
     }
+    expect([...shown].sort()).toEqual(before.nodes.map((node: { options: { id: string } }) => node.options.id).sort())
+    await nextView(page, dialog)
+    await expectWholeSlate(dialog)
     expect(await chromeText(dialog)).not.toMatch(readoutWords)
     await exitWithEscape(page, dialog)
     expect(await board(page, key)).toEqual(before)
@@ -212,14 +234,19 @@ test('on a phone the presenter fills the screen and a swipe moves between viewpo
       }
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
     }
+    // Restated 2026-11-22 (fix/present-ai): the plan opens with an overview, then the first lane.
     await swipe(330, 60)
     await expect(stepCounter(dialog)).toHaveText(/^1 \/ \d+$/)
-    await expectFramed(dialog, laneView(before.creative.workshop, before.creative.workshop.lanes[0]))
-    await shot(page, 'phone-presenter')
+    await expectWholeSlate(dialog)
     await swipe(330, 60)
     await expect(stepCounter(dialog)).toHaveText(/^2 \/ \d+$/)
+    await expectLaneOf(dialog, before.creative.workshop, before.creative.workshop.lanes[0])
+    await shot(page, 'phone-presenter')
+    await swipe(330, 60)
+    await expect(stepCounter(dialog)).toHaveText(/^3 \/ \d+$/)
     await swipe(60, 330)
-    await expect(stepCounter(dialog)).toHaveText(/^1 \/ \d+$/)
+    await expect(stepCounter(dialog)).toHaveText(/^2 \/ \d+$/)
+    await expectLaneOf(dialog, before.creative.workshop, before.creative.workshop.lanes[0])
     expect(await chromeText(dialog)).not.toMatch(readoutWords)
     await dialog.getByRole('button', { name: 'Exit presentation', exact: true }).tap()
     await expect(dialog).toHaveCount(0)
@@ -251,7 +278,8 @@ test('a read-only phone follows a live presentation step by step in the same pre
     await expect(lead).toBeVisible()
     await expect(stepCounter(lead)).toHaveText(/^0 \/ \d+$/, { timeout: 30_000 })
     const total = Number((await stepCounter(lead).textContent())!.split('/')[1])
-    expect(total).toBe(before.creative.workshop.lanes.length + before.nodes.length)
+    // Restated 2026-11-22 (fix/present-ai): an overview, the lanes in order, segments, an overview.
+    expectPlanSize(total, before.creative.workshop.lanes.length, before.nodes.length)
     await nextView(owner, lead)
     const follow = reader.getByRole('button', { name: 'Follow presentation', exact: true })
     await expect(follow).toBeVisible()
@@ -259,31 +287,34 @@ test('a read-only phone follows a live presentation step by step in the same pre
     const watching = livePresenter(reader)
     await expect(watching).toBeVisible()
     await expect(watching.getByRole('status')).toContainText('1 of ' + total)
-    await expectFramed(watching, laneView(before.creative.workshop, firstLane))
-    await shot(reader, 'follower-phone')
+    await expectWholeSlate(watching)
     // A follower does not steer.
     await expect(watching.getByRole('button', { name: 'Next', exact: true })).toHaveCount(0)
     await reader.keyboard.press('ArrowRight')
     await expect(watching.getByRole('status')).toContainText('1 of ' + total)
     await nextView(owner, lead)
     await expect(watching.getByRole('status')).toContainText('2 of ' + total)
-    await expectFramed(watching, laneView(before.creative.workshop, secondLane))
+    await expectLaneOf(watching, before.creative.workshop, firstLane)
+    await shot(reader, 'follower-phone')
+    await nextView(owner, lead)
+    await expect(watching.getByRole('status')).toContainText('3 of ' + total)
+    await expectLaneOf(watching, before.creative.workshop, secondLane)
     // A reload keeps following the same presentation.
     await reader.reload()
-    await expect(livePresenter(reader).getByRole('status')).toContainText('2 of ' + total)
+    await expect(livePresenter(reader).getByRole('status')).toContainText('3 of ' + total)
     // Two quick steps both reach the follower.
     await owner.keyboard.press('ArrowRight')
     await owner.keyboard.press('ArrowRight')
-    await expect(stepCounter(lead)).toHaveText('4 / ' + total)
-    await expect(livePresenter(reader).getByRole('status')).toContainText('4 of ' + total)
+    await expect(stepCounter(lead)).toHaveText('5 / ' + total)
+    await expect(livePresenter(reader).getByRole('status')).toContainText('5 of ' + total)
     expect(await chromeText(livePresenter(reader))).not.toMatch(readoutWords)
     expect(await chromeText(lead)).not.toMatch(readoutWords)
     // Escape leaves full screen; pressed again it does not end the presentation for everyone.
     await owner.keyboard.press('Escape')
     await owner.keyboard.press('Escape')
     await expect(lead).toBeVisible()
-    await expect(stepCounter(lead)).toHaveText('4 / ' + total)
-    await expect(livePresenter(reader).getByRole('status')).toContainText('4 of ' + total)
+    await expect(stepCounter(lead)).toHaveText('5 / ' + total)
+    await expect(livePresenter(reader).getByRole('status')).toContainText('5 of ' + total)
     await livePresenter(reader).getByRole('button', { name: 'Leave presentation', exact: true }).tap()
     await expect(livePresenter(reader)).toHaveCount(0)
     await expect(follow).toBeVisible()
@@ -306,7 +337,8 @@ test('a slate with a workshop publishes its presentation, and the link and its e
   try {
     const key = await workshopSlate(page)
     uid = await userId(page)
-    const lanes = (await getSlate(page, key)).creative.model.workshop.lanes
+    const workshop = (await getSlate(page, key)).creative.model.workshop
+    const lanes = workshop.lanes
     const dialog = await openPresenter(page)
     const publish = dialog.getByRole('button', { name: 'Publish presentation', exact: true })
     await expect(publish).toBeEnabled({ timeout: 40_000 })
@@ -318,9 +350,13 @@ test('a slate with a workshop publishes its presentation, and the link and its e
     await viewer.goto(link)
     await expect(viewer.getByRole('region', { name: 'Decision presentation' })).toHaveCount(0)
     await expect(camera(viewer).locator('svg [data-node-id="lane-' + lanes[0].id + '"]')).toBeAttached({ timeout: 30_000 })
+    // Restated 2026-11-22 (fix/present-ai): the published plan opens with an overview, then the first lane.
     await viewer.keyboard.press('ArrowRight')
     await expect(stepCounter(viewer)).toHaveText(/^1 \/ \d+$/)
-    await expect(viewer.getByText(lanes[0].label, { exact: true }).last()).toBeVisible()
+    await expectWholeSlate(viewer)
+    await viewer.keyboard.press('ArrowRight')
+    await expect(stepCounter(viewer)).toHaveText(/^2 \/ \d+$/)
+    await expectLaneOf(viewer, workshop, lanes[0])
     await shot(viewer, 'published-link')
     const host = await viewerContext.newPage()
     await host.setContent(`<!doctype html><main><iframe title="deck" src="${link}" style="width:960px;height:540px" allowfullscreen></iframe></main>`)

@@ -19,9 +19,10 @@ export async function openPresenter(page: Page) {
   const dialog = presenter(page)
   await expect(dialog).toBeVisible()
   await expect(camera(dialog).locator('svg [data-node-id]').first()).toBeAttached({ timeout: 30_000 })
-  // An editor can step through the local sequence at once; the planner may then replace it.
-  // Wait for the deck the presenter settles on.
-  await expect(dialog.getByText('Refining…', { exact: true })).toHaveCount(0, { timeout: 90_000 })
+  // An editor can step through the local sequence at once; the AI's plan then replaces it and
+  // the presenter starts again from the whole slate. Wait for the deck the presenter settles on
+  // (the presenter says "Planning with AI…" while it plans; "Refining…" was its earlier word).
+  await expect(dialog.getByText('Planning with AI…', { exact: true })).toHaveCount(0, { timeout: 90_000 })
   return dialog
 }
 
@@ -39,7 +40,7 @@ export const readoutWords = /\bstations?\b|\btokens?\b|Next station|Decision pre
  * The camera frames exactly these notes: each is lit and painted inside the presenter, and every
  * other lane or card is dimmed. A lane's own column, caption and picture stay lit with it.
  */
-export async function expectFramed(dialog: Locator, nodeIds: string[]) {
+export async function expectFramed(dialog: Page | Locator, nodeIds: string[]) {
   await expect.poll(() => camera(dialog).evaluate((surface, expected) => {
     const bounds = surface.parentElement!.getBoundingClientRect()
     const nodes = [...surface.querySelectorAll<SVGGraphicsElement>('svg [data-node-id]')]
@@ -67,6 +68,36 @@ export async function expectFramed(dialog: Locator, nodeIds: string[]) {
   }, nodeIds), { timeout: 10_000 }).toBe('ok')
 }
 
+/**
+ * The whole slate's viewpoint (a plan's opening and closing overview): its narrative is shown,
+ * every note is lit and none is cut off. A lane's column (the backdrop behind its cards) is held
+ * to being lit, as expectFramed holds it.
+ */
+export async function expectWholeSlate(dialog: Page | Locator) {
+  await expect(dialog.locator('.sb-presentation-narrative')).not.toHaveText('')
+  await expect.poll(() => camera(dialog).evaluate(surface => {
+    const bounds = surface.parentElement!.getBoundingClientRect()
+    const nodes = [...surface.querySelectorAll<SVGGraphicsElement>('svg [data-node-id]')]
+    if (!nodes.length) return 'no notes'
+    for (const node of nodes) {
+      if (Number(getComputedStyle(node).opacity) <= 0.95) return 'dimmed: ' + node.dataset.nodeId
+      if (node.dataset.nodeId!.startsWith('column-')) continue
+      const art = [...node.querySelectorAll('[data-node-background-path], text')]
+      for (const rect of (art.length ? art : [node]).map(item => item.getBoundingClientRect())) {
+        if (rect.left < bounds.left - 2 || rect.right > bounds.right + 2 ||
+          rect.top < bounds.top - 2 || rect.bottom > bounds.bottom + 2) return 'off screen: ' + node.dataset.nodeId
+      }
+    }
+    return 'ok'
+  }), { timeout: 10_000 }).toBe('ok')
+}
+
+/** The slate's own notes the camera lights now: every note but a workshop's lanes and cards and their parts. */
+export const litNotes = (dialog: Page | Locator) => camera(dialog).evaluate(surface =>
+  [...new Set([...surface.querySelectorAll<SVGGraphicsElement>('svg [data-node-id]')]
+    .filter(node => !/^(lane|card|column|caption|image)-/.test(node.dataset.nodeId!) && Number(getComputedStyle(node).opacity) > 0.95)
+    .map(node => node.dataset.nodeId!))])
+
 /** A presented viewpoint: its narrative is shown and the camera frames its notes. */
 export async function expectScene(dialog: Locator, narrative: string | RegExp, nodeIds: string[]) {
   await expect(dialog.locator('.sb-presentation-narrative')).toHaveText(narrative)
@@ -74,7 +105,7 @@ export async function expectScene(dialog: Locator, narrative: string | RegExp, n
 }
 
 /** A workshop lane's viewpoint: its narrative starts with the lane's name; it frames the lane and its cards. */
-export async function expectLane(dialog: Locator, label: string, laneId: string, cardIds: string[] = []) {
+export async function expectLane(dialog: Page | Locator, label: string, laneId: string, cardIds: string[] = []) {
   await expect(dialog.locator('.sb-presentation-narrative')).toHaveText(new RegExp('^' + label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '( — .*)?$'))
   await expectFramed(dialog, ['lane-' + laneId, ...cardIds.map(id => 'card-' + id)])
 }

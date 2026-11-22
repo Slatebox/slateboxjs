@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { resumeArchivedDraft } from './workshop-archive.shared'
 import { sendMapEdit } from './map-conversation.shared'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
-import { exitWithEscape, expectLane, nextView, openPresenter } from './app-presenter.shared'
+import { exitWithEscape, expectLane, expectWholeSlate, nextView, openPresenter } from './app-presenter.shared'
 import { nightTransfer } from '../../src/workshops/model'
 import { cardIdNamed, closeConversation, conversation, dragCard, dragCardNamed, holdCardOver, isOffered, lane, laneIdNamed, selectLaneNamed, slateTitle, standing, workshopReady } from './app-native-workshop.shared'
 
@@ -56,8 +56,11 @@ test('author a branching concept map, follow a consequence, present and reopen t
     await workshopReady(page)
     await expect(standing(page)).toContainText('Last rider · Depot')
     // Restated 2026-11-21: Present opens the presenter; the map's steps are its first viewpoints.
+    // Restated 2026-11-22 (fix/present-ai): after the plan's overview of the whole slate.
     const player = await openPresenter(page)
     const narrative = player.locator('.sb-presentation-narrative')
+    await nextView(page,player)
+    await expectWholeSlate(player)
     for (let step=0; step<state.lanes.length; step++) {
       await nextView(page,player)
       if ((await narrative.textContent())?.startsWith('Depot')) break
