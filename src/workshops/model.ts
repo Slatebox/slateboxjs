@@ -954,7 +954,12 @@ function businessNote(board: Workshop, laneId: string, note: WorkshopNoteOffer):
   const cardId = cardIdFor(board, note.id)
   // A card that could not take the note's id remembers it, so the note comes back under it.
   const noteId = cardId !== note.id && typeof note.id === 'string' && notePattern.test(note.id) ? note.id : undefined
-  cards[cards.length - 1] = { ...cards[cards.length - 1], id: cardId, ...(noteId ? { noteId } : {}) }
+  // The card keeps the note's look and what the note had that the card does not show (its shape,
+  // size, line breaks), so a diamond dragged off the board is a diamond again (boards S1).
+  const look = keptLook(note.look)
+  const asNote = keptAsNote(note.asNote)
+  cards[cards.length - 1] = { ...cards[cards.length - 1], id: cardId, ...(noteId ? { noteId } : {}),
+    ...(look ? { look } : {}), ...(asNote ? { asNote } : {}) }
   return made.workshop
 }
 

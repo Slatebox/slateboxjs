@@ -767,7 +767,8 @@ test.describe('a phone: 390x844, touch, one lane to a row', () => {
       // of, so every copy of the board puts it in its own place.)
       expect((await journal(page)).changes).toEqual([
         { cardId: 'alpha', cardToNote: { noteId: 'alpha' } },
-        { cardId: 'alpha', laneId: 'inbox', noteToCard: { noteId: 'alpha', label: 'Alpha', before: 'beta' } },
+        // (Restated 2026-11-22, boards S1: the undo's change says it came from an undo.)
+        { cardId: 'alpha', laneId: 'inbox', noteToCard: { noteId: 'alpha', label: 'Alpha', before: 'beta' }, via: 'undo' },
       ])
       // The workshop still plays after all three.
       await top()

@@ -131,6 +131,42 @@ test.describe('desktop, 1440 by 900', () => {
     await expect.poll(() => page.evaluate(() => (window as any).boards.text('gauge-forecast'))).toBe('Forecast $201.5k of $250k')
   })
 
+  // Boards S1 (2026-11-22, owner): a diamond dropped on a board becomes the board's card, and gets
+  // its diamond back when it is dragged off. A business board used to drop the shape on the way in.
+  for (const [board, lane, words] of [['pipeline', 'lead', 'Pick vendor $20k'], ['launch-plan', 'product', 'Pick vendor 3 days']]) {
+    test(`${board}: a diamond dropped on it is a card that keeps its shape, and dragged off it is a diamond again`, async ({ page }) => {
+      await open(page, 'board=' + board)
+      // A diamond beside the board, below it, and the view takes in both.
+      await page.evaluate(({ words }) => {
+        const { board, slate } = (window as any).boards
+        slate.addNode({ id: 'pick', x: board.origin.x + 40, y: board.origin.y + board.bounds.height + 60, width: 140, height: 90, text: words, shape: 'diamond', backgroundColor: '#f0d399' })
+        const view = board.bounds
+        slate.fitToWidth({ x: view.x ?? board.origin.x, y: view.y ?? board.origin.y, width: view.width, height: view.height + 220 })
+      }, { words })
+      await page.waitForTimeout(300)
+      await drag(page, await center(page, 'pick'), await center(page, 'column-' + lane))
+      await expect.poll(() => page.evaluate(() => (window as any).boards.board.value.cards.find((card: any) => card.id === 'pick')?.asNote?.shape ?? null)).toBe('diamond')
+      const change = await page.evaluate(() => (window as any).boards.log.changes.at(-1).change)
+      expect(change).toMatchObject({ cardId: 'pick', laneId: lane, noteToCard: { noteId: 'pick', asNote: { shape: 'diamond' }, look: { backgroundColor: '#f0d399' } } })
+      expect(change.via).toBeUndefined()
+      await page.waitForTimeout(400)
+      // Off the board, onto open canvas below it: a diamond again, in its own colour.
+      const out = await page.evaluate(() => {
+        const { board, slate } = (window as any).boards
+        return slate.worldToClient({ x: board.origin.x + 60, y: board.origin.y + board.bounds.height + 140 })
+      })
+      await drag(page, await center(page, 'card-pick'), out)
+      await expect.poll(() => page.evaluate(() => (window as any).boards.slate.nodes.one('pick')?.options?.shape ?? null)).toBe('diamond')
+      expect(await page.evaluate(() => (window as any).boards.slate.nodes.one('pick').options.backgroundColor)).toBe('#f0d399')
+      expect(await page.evaluate(() => (window as any).boards.log.changes.at(-1).change)).toEqual({ cardId: 'pick', cardToNote: { noteId: 'pick' } })
+      // Undo puts the card back, and says the change came from an undo.
+      await page.mouse.click(5, 5)
+      await page.keyboard.press('ControlOrMeta+z')
+      await expect.poll(() => page.evaluate(() => (window as any).boards.board.value.cards.some((card: any) => card.id === 'pick'))).toBe(true)
+      expect(await page.evaluate(() => (window as any).boards.log.changes.at(-1).change)).toMatchObject({ cardId: 'pick', noteToCard: { noteId: 'pick', asNote: { shape: 'diamond' } }, via: 'undo' })
+    })
+  }
+
   test('budget: a divider moves money and the total balances; held past what a team commits it stops and says so', async ({ page }) => {
     await open(page, 'board=budget')
     await drag(page, await center(page, 'card-contractor'), await center(page, 'column-design'))

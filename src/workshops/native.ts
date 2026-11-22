@@ -32,7 +32,8 @@ import { applyWorkshopEdits, type WorkshopEdit } from './edits'
  * the ordinary note `noteId` in the drawing. A note's lines stay joined to it either way:
  * `noteToCard.lines` are the note's lines as the drawing had them (a card's lines are the board's,
  * see Workshop.lines). `line`: a person drew or changed a line with a card at one end (`set`), or
- * took one away (`remove`, its id).
+ * took one away (`remove`, its id). `via: 'undo'`: the change is this person's undo or redo putting
+ * a trade back, not a gesture of their own (a host says nothing about it that a drop would).
  */
 export interface WorkshopChangeEvent {
   cardId?: string
@@ -47,6 +48,7 @@ export interface WorkshopChangeEvent {
    * changing different tasks or deals both keep their change.
    */
   edits?: WorkshopEdit[]
+  via?: 'undo'
 }
 
 /** One note a board kit draws: its artwork name (lane-, card-, caption-, column-, handle-, gauge-), box from the origin and look. */
@@ -736,7 +738,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // Its lines stay joined to the note: a line to a note is the drawing's again (the record holds it).
       value = validateWorkshop({ ...value, cards: value.cards.filter(item => item !== card), lines: workshopRenamedLines(value.lines, cardId, noteId) })
       draw(value)
-      const answer = tell(options.onChange, value, { cardId, cardToNote: { noteId } })
+      const answer = tell(options.onChange, value, { cardId, cardToNote: { noteId }, via: 'undo' })
       slate.holdTrade?.(noteId, answer)
       watch(answer)
     }
@@ -762,7 +764,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const before = value.cards.slice(at + 1).find(item => item.laneId === lane)?.id
       const answer = tell(options.onChange, value, { cardId, laneId: lane, noteToCard: { noteId, label: card.label, ...(card.look ? { look: card.look } : {}),
         ...(card.asNote ? { asNote: card.asNote } : {}), ...(before ? { before } : {}),
-        ...(recordedLines.length ? { lines: workshopRenamedLines(recordedLines, cardId, noteId) } : {}) } })
+        ...(recordedLines.length ? { lines: workshopRenamedLines(recordedLines, cardId, noteId) } : {}) }, via: 'undo' })
       slate.holdTrade?.(noteId, answer)
       watch(answer)
     }

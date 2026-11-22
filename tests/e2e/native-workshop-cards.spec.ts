@@ -102,14 +102,16 @@ test.describe('an ordinary note dropped on a lane becomes a card', () => {
     await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
     await expect.poll(() => saved(page)).toEqual([{ id: 'plain', text: 'Ordinary note', x: Math.round(start!.x), y: Math.round(start!.y), fill: '#f0d399' }])
     await expect(page.locator('#slate [data-node-id="card-plain"]')).toHaveCount(0)
-    expect((await journal(page)).changes.at(-1)).toEqual({ cardId: 'plain', cardToNote: { noteId: 'plain' } })
+    // (Restated 2026-11-22, boards S1: a change an undo or redo makes says so, so a host keeps quiet
+    // about it: no "drag it off to get its shape back" for a step the person took back.)
+    expect((await journal(page)).changes.at(-1)).toEqual({ cardId: 'plain', cardToNote: { noteId: 'plain' }, via: 'undo' })
     await expect.poll(() => text(page, 'caption-now')).toBe('3 cards')
 
     // Redo: a card again.
     await page.keyboard.press('ControlOrMeta+y')
     await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now plain@now')
     await expect.poll(() => saved(page)).toEqual([])
-    expect((await journal(page)).changes.at(-1)).toMatchObject({ cardId: 'plain', laneId: 'now', noteToCard: { noteId: 'plain', label: 'Ordinary note' } })
+    expect((await journal(page)).changes.at(-1)).toMatchObject({ cardId: 'plain', laneId: 'now', noteToCard: { noteId: 'plain', label: 'Ordinary note' }, via: 'undo' })
   })
 
   test('the lane refuses it: the note glides back and the lane says why, and nothing is saved, sent or recorded', async ({ page }) => {
@@ -209,7 +211,7 @@ test.describe('a card dropped on empty canvas becomes an ordinary note', () => {
     // Back in its own place among the cards.
     await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
     await expect.poll(async () => (await saved(page)).map(item => item.id)).toEqual(['plain'])
-    expect((await journal(page)).changes.at(-1)).toMatchObject({ cardId: 'alpha', laneId: 'now', noteToCard: { noteId: 'alpha', label: 'Alpha' } })
+    expect((await journal(page)).changes.at(-1)).toMatchObject({ cardId: 'alpha', laneId: 'now', noteToCard: { noteId: 'alpha', label: 'Alpha' }, via: 'undo' })
     // Redo: a note again.
     await page.keyboard.press('ControlOrMeta+y')
     await expect.poll(() => cards(page)).toBe('beta@now gamma@now')
@@ -349,7 +351,7 @@ test.describe('nothing the note had is lost on its way to a card and back', () =
     await page.mouse.click(5, 5)
     await page.keyboard.press('ControlOrMeta+z')
     await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
-    expect((await journal(page)).changes.at(-1)).toMatchObject({ cardId: 'beta', laneId: 'now', noteToCard: { noteId: 'beta', label: 'Beta', before: 'gamma' } })
+    expect((await journal(page)).changes.at(-1)).toMatchObject({ cardId: 'beta', laneId: 'now', noteToCard: { noteId: 'beta', label: 'Beta', before: 'gamma' }, via: 'undo' })
   })
 })
 
