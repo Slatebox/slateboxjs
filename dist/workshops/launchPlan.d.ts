@@ -57,6 +57,29 @@ export declare function launchPlanLimits(board: Workshop, ref: {
     cardId?: string;
     field: 'lag' | 'duration' | 'day';
 }): WorkshopLimits;
+/**
+ * The day the line lands on when it is moved to `day` from `from` (where it is): on a plan whose days are
+ * working days a weekend is no day for it, so moving later it lands on the Monday after, moving earlier on
+ * the Friday before. Always a day from 5 to 120 (past an end, it turns back to the working day inside it).
+ */
+export declare function launchDayOn(board: Workshop, day: number, from?: number): number;
+/** The earliest day the line may be on and every task still end by it: a working day where days are working days. */
+export declare function earliestLaunch(board: Workshop): number;
+/** Why the line may not be on `day` because a task would not end by it, with the earliest day that fits; null when they all do. */
+export declare function launchTooEarly(board: Workshop, day: number): string | null;
+/** What dragging (or a key moving) the line to `wanted` comes to: the day it lands on, the board, and the sentence that refuses it or holds it. */
+export interface LaunchMove {
+    day: number;
+    next: Workshop | null;
+    refusal: string | null;
+    reason?: string;
+}
+/**
+ * The line moved to `wanted` (a whole calendar day, from the pointer): it lands on a working day where weekends
+ * don't count, never past day 120 (held there, said), and a hard line refuses a day before the tasks end, in the
+ * plan's own sentence with the earliest day that fits. A later line needs no room: the grid draws the days it adds.
+ */
+export declare function moveLaunch(board: Workshop, wanted: number): LaunchMove;
 /** The words a task takes back to the canvas as a note: "Copy · 3 days". */
 export declare function launchTaskText(card: WorkshopCard): string;
 export declare function sampleLaunchPlan(): Workshop;

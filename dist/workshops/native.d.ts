@@ -111,6 +111,8 @@ export interface HandleResult {
     next: Workshop;
     clampedReason?: string;
     refusal?: string;
+    /** The layout to draw `next` in while the grip is held (a plan's line keeps its day width and the plan grows); left out, the board's own. */
+    layout?: WorkshopBoardLayout;
 }
 /**
  * Everything a business board (launch plan, pipeline, budget) adds to the native drawing: where its
