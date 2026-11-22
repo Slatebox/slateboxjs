@@ -196,7 +196,7 @@ test('with a card selected, plain words still work: notes are added, and draftin
     // to Pro or Team is gone; an old /plans link still lands on a page.)
     await messageBox(page).fill('Which lane has the most left?')
     await messageBox(page).press('Enter')
-    await expect(chat.getByRole('log')).toContainText('Sign in to use AI. It is free each month.')
+    await expect(chat.getByRole('log')).toContainText('Sign in to use AI.')
     await expect(chat.getByRole('log')).not.toContainText('I did not follow that')
     await expect(chat.getByRole('log')).not.toContainText(/\bPro\b|Team plan/)
     await expect(chat.getByRole('link', { name: 'See Pro and Team plans' })).toHaveCount(0)

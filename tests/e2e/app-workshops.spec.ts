@@ -87,9 +87,9 @@ test('review a workshop, move a card, present and open a private editable slate'
         const canvas = await meteor.callAsync('slates.get', { shareId: id })
         return [await code('workshops.restore', id!), await reason('workshops.draft', 'Review our winter shutdown pilots'), Boolean(canvas?.slateBase)]
       }, shareId)
-      // Restated 2026-11-20 (switch day): no plans; a visitor who is not signed in is asked to sign in
+      // Restated 2026-11-22 (Slatebox Pro): included AI is no longer free each month; a visitor who is not signed in is asked to sign in
       // (the same sentence whether the meter or the method refuses first).
-      expect(denials).toEqual(['unavailable', 'Sign in to use AI. It is free each month.', false])
+      expect(denials).toEqual(['unavailable', 'Sign in to use AI.', false])
     } finally {
       await visitor.close()
     }
