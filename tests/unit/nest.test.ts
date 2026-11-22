@@ -69,6 +69,19 @@ describe('fractional order', () => {
     expect(new Set(nestKids(again, 'onboarding').map(card => card.order)).size).toBe(6)
   })
 
+  it('keys stay short however often a card goes to one end: siblings are given fresh keys in their order (review s3-nest finding 2)', () => {
+    let board = evidence()
+    for (let n = 0; n < 600; n++) {
+      board = ok(board, [{ kind: 'nest_card', card: n % 2 ? 'setup-days' : 'where-start', under: 'Onboarding' }])
+      board = validateWorkshop(JSON.parse(JSON.stringify(board)))
+    }
+    expect(nestKids(board, 'onboarding').map(card => card.id)).toEqual(['invites', 'where-start', 'setup-days'])
+    expect(Math.max(...board.cards.map(card => card.order?.length ?? 0))).toBeLessThanOrEqual(17)
+    // At the front too.
+    for (let n = 0; n < 300; n++) board = ok(board, [{ kind: 'nest_card', card: n % 2 ? 'invites' : 'setup-days', under: 'Onboarding', before: nestKids(board, 'onboarding')[0].id }])
+    expect(Math.max(...board.cards.map(card => card.order?.length ?? 0))).toBeLessThanOrEqual(17)
+  })
+
   it('sorts by key, then id; a card without a key comes first', () => {
     expect([{ id: 'b', order: 'V' }, { id: 'a', order: 'V' }, { id: 'c' }].sort(byOrder).map(item => item.id)).toEqual(['c', 'a', 'b'])
   })
@@ -275,8 +288,16 @@ describe('edits and saves', () => {
     if ('refused' in removed) throw new Error(removed.refused.reason)
     expect(removed.report.edits[0].said).toBe('Removed “Reporting”. What was in it went to “Unsorted”.')
     expect(nestKids(removed.workshop, null, 'unsorted').map(card => card.id)).toEqual(['trust', 'mobile', 'csv-export', 'finance-match'])
-    // In a tree, what was under a card moves up to its parent (and is held to the rules there).
-    expect(refused(tree(), [{ kind: 'remove_card', card: 'Data trust' }])).toBe('Solutions sit under an opportunity.')
+    // In a tree, what was under a card moves up to its parent; when the rules there would refuse it, a loose card
+    // goes to the tray instead, so removing an opportunity never strands its solutions (review s3-nest finding 3).
+    const pruned = applyWorkshopEdits(tree(), [{ kind: 'remove_card', card: 'Data trust' }], tim)
+    if ('refused' in pruned) throw new Error(pruned.refused.reason)
+    expect(pruned.report.edits[0].said).toBe('Removed “Data trust”. What was in it went to “Parked ideas”.')
+    expect(pruned.workshop.cards.find(card => card.id === 'reconcile')).toMatchObject({ laneId: 'parked' })
+    expect(pruned.workshop.cards.find(card => card.id === 'reconcile')!.parentId).toBeUndefined()
+    // With the rule letting them sit there, they move up as before.
+    const loose = ok(tree(), [{ kind: 'set_rule', rule: ruleId(tree(), 'nests', 'solution'), under: ['opportunity', 'outcome'] }])
+    expect(parentOf(ok(loose, [{ kind: 'remove_card', card: 'Data trust' }]), 'reconcile')).toBe('outcome')
     expect(refused(evidence(), [{ kind: 'set_field', card: 'Mobile app please', field: 'MRR', value: 5 }])).toBe('Cards on this board carry no MRR. Add it as a field first.')
     expect(refused(evidence(), [{ kind: 'add_card', lane: 'Unsorted', label: 'Loose', under: 'Pricing' }])).toBe('Unsorted holds loose cards: nothing sits under another there.')
     expect(refused(evidence(), [{ kind: 'add_card', lane: 'Piles', label: 'X', duration: 3 }])).toMatch(/launch plan/)
@@ -290,6 +311,43 @@ describe('edits and saves', () => {
     expect(checkWorkshopReplacement(board, both)).toBe('Change the rules on their own, then move cards.')
     const legal = nestLegal(board, 'csv-import').find(({ spot }) => spot.under === 'data-trust')!.next
     expect(checkWorkshopReplacement(board, legal)).toBeNull()
+  })
+})
+
+describe('a whole save said as edits (review s3-nest finding 1)', () => {
+  // What a kept chat change sends is a whole board; the server makes it again from nestEditsBetween. Every
+  // change a sentence makes must come back as edits that make the same board, cards in the same order.
+  const placesOf = (board: Workshop) => board.cards.map(card => [card.id, card.laneId, card.parentId ?? null, card.role ?? null, card.source ?? null, card.fields ?? null, card.label,
+    (card.parentId ? nestKids(board, card.parentId) : nestKids(board, null, card.laneId)).findIndex(item => item.id === card.id)]).sort()
+  const again = (before: Workshop, after: Workshop) => {
+    const made = ok(before, nestEditsBetween(before, after))
+    expect(placesOf(made)).toEqual(placesOf(after))
+    expect(made.nest).toEqual(after.nest)
+    return made
+  }
+  it('moves, merges, new cards under new cards, roles after moves, fields, sources and layout', () => {
+    const board = evidence()
+    again(board, ok(board, [{ kind: 'nest_card', card: 'Want annual billing', under: 'Onboarding' }]))
+    again(board, ok(board, [{ kind: 'merge_cards', card: 'Pricing', into: 'Onboarding' }]))
+    again(board, ok(board, [{ kind: 'add_card', lane: 'Piles', label: 'Slow exports', under: 'Reporting' }]))
+    again(board, ok(board, [{ kind: 'add_card', lane: 'Piles', label: 'A loose note' }]))
+    again(board, ok(board, [{ kind: 'add_field', label: 'Seats' }, { kind: 'set_field', card: 'Mobile app please', field: 'Seats', value: 12 }, { kind: 'set_field', card: 'Seats are too expensive', field: 'arr', value: null },
+      { kind: 'set_source', card: 'Mobile app please', source: 'Initech' }, { kind: 'set_layout', layout: 'tree' }]))
+    // Group into a theme: the depth rule raised, a new card, two piles under it (in the order said).
+    const deeper = ok(board, [{ kind: 'set_rule', rule: ruleId(board, 'depth'), max: 2 }])
+    again(deeper, ok(deeper, [{ kind: 'add_card', lane: 'Piles', label: 'Money', role: 'theme' }, { kind: 'nest_card', card: 'Pricing', under: 'Money' }, { kind: 'nest_card', card: 'Reporting', under: 'Money' }]))
+    // Turn piles into a discovery tree: a pile moved under a new outcome, then made an opportunity.
+    const treeRules = ok(board, [{ kind: 'set_layout', layout: 'tree' }, ...board.behaviour!.rules.map(rule => ({ kind: 'remove_rule' as const, rule: rule.id })),
+      { kind: 'add_rule', rule: { kind: 'nests', role: 'opportunity', under: ['outcome'] } as never }, { kind: 'add_rule', rule: { kind: 'nests', role: 'note', under: ['opportunity', 'pile'] } as never }])
+    again(treeRules, ok(treeRules, [{ kind: 'add_card', lane: 'Piles', label: 'Our outcome', role: 'outcome' }, { kind: 'nest_card', card: 'Onboarding', under: 'Our outcome' },
+      { kind: 'set_role', card: 'Onboarding', role: 'opportunity' }, { kind: 'nest_card', card: 'Reporting', under: 'Our outcome' }, { kind: 'set_role', card: 'Reporting', role: 'opportunity' }]))
+    // Reordered siblings, whatever keys each copy made.
+    const t = tree()
+    again(t, ok(t, [{ kind: 'nest_card', card: 'Hard to share results', under: 'Activation to 40%', before: 'Onboarding is slow' }, { kind: 'nest_card', card: 'Data trust', under: 'Activation to 40%' }]))
+  })
+  it('a single drag is still one edit', () => {
+    const board = evidence()
+    expect(nestEditsBetween(board, ok(board, [{ kind: 'nest_card', card: 'Want annual billing', under: 'Onboarding' }]))).toEqual([{ kind: 'nest_card', card: { id: 'annual' }, under: { id: 'onboarding' } }])
   })
 })
 

@@ -7,7 +7,7 @@
 // empty-drop rule says where it goes (a new pile, or the tray). In an outline a card dragged right goes
 // under the row above it, and left comes out: indent and outdent are where the card is let go.
 import {
-  type BoardLayerState, type PartPlace, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type WorkshopCard, type WorkshopEdit,
+  applyWorkshopEdits, type BoardLayerState, type PartPlace, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type WorkshopCard, type WorkshopEdit,
 } from '../workshops/model'
 import { nestRules, checkNest, nestAreas, nestCardText, nestEmptyDrop, nestKids, nestLegal, nestPlace, nestRoots, nestSubtree, type NestSpot } from '../workshops/nest'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
@@ -163,44 +163,95 @@ function spotAt(board: Workshop, shape: Shape, hit: string, point: { x: number; 
 
 const same = (a: Workshop, b: Workshop) => a === b || JSON.stringify(a.cards) === JSON.stringify(b.cards)
 
-/** The edits that turn one nest board into another: what a drag, a far drop, a key or a rename made. */
+/**
+ * The edits that turn one nest board into another: what a drag, a far drop, a key, a rename or a kept chat
+ * change made. The server makes a whole save again from these, by the reducer, so they say everything an
+ * edit can change: merges (by the alias they leave), removals, new fields, the layout, new cards (a parent
+ * before what goes under it), moves (shallowest first; siblings last to first, each before its neighbour, so
+ * the order comes out the same whatever keys were made), roles, sources and numbers. Moves and roles are
+ * said in whichever order the rules let through (a pile moved under the outcome, then made an opportunity).
+ */
 export function nestEditsBetween(before: Workshop, after: Workshop): WorkshopEdit[] {
-  const edits: WorkshopEdit[] = []
-  const was = new Map(before.cards.map(card => [card.id, card]))
+  const merges: WorkshopEdit[] = []
+  const had = new Set((before.nest?.aliases ?? []).map(([from]) => from))
+  for (const [from, into] of after.nest?.aliases ?? []) {
+    if (!had.has(from) && before.cards.some(card => card.id === from) && !after.cards.some(card => card.id === from)) merges.push({ kind: 'merge_cards', card: { id: from }, into: { id: into } })
+  }
+  let base = before
+  if (merges.length) {
+    const made = applyWorkshopEdits(before, merges)
+    if (!('refused' in made)) base = made.workshop
+  }
+  const was = new Map(base.cards.map(card => [card.id, card]))
   const done = new Set<string>()
+  const starts: WorkshopEdit[] = [], removes: WorkshopEdit[] = [], fields: WorkshopEdit[] = [], adds: WorkshopEdit[] = []
+  const moves: WorkshopEdit[] = [], roles: WorkshopEdit[] = [], rest: WorkshopEdit[] = []
   // A pile a far drop started, with the one card in it: start_pile.
   for (const pile of after.cards) {
     if (was.has(pile.id) || pile.parentId || pile.role !== 'pile') continue
     const kids = after.cards.filter(card => card.parentId === pile.id)
     if (kids.length !== 1 || !was.has(kids[0].id)) continue
-    edits.push({ kind: 'start_pile', card: { id: kids[0].id }, ...(pile.label !== 'New pile' && { label: pile.label }) })
+    starts.push({ kind: 'start_pile', card: { id: kids[0].id }, ...(pile.label !== 'New pile' && { label: pile.label }) })
     done.add(pile.id).add(kids[0].id)
   }
-  for (const card of after.cards) {
-    if (done.has(card.id)) continue
-    const old = was.get(card.id)
-    if (!old) {
-      edits.push({ kind: 'add_card', lane: { id: card.laneId }, label: card.label, ...(card.parentId && { under: { id: card.parentId } }),
+  for (const card of base.cards) if (!after.cards.some(item => item.id === card.id)) removes.push({ kind: 'remove_card', card: { id: card.id } })
+  for (const field of after.nest?.fields ?? []) {
+    if (!(base.nest?.fields ?? []).some(item => item.id === field.id)) fields.push({ kind: 'add_field', label: field.label, ...(field.currency && { currency: field.currency }) })
+  }
+  if (after.nest && base.nest?.layout !== after.nest.layout) fields.push({ kind: 'set_layout', layout: after.nest.layout })
+  // New cards, each after the card it goes under.
+  const fresh = after.cards.filter(card => !was.has(card.id) && !done.has(card.id))
+  const added = new Set<string>()
+  while (added.size < fresh.length) {
+    const ready = fresh.filter(card => !added.has(card.id) && (!card.parentId || !fresh.some(item => item.id === card.parentId) || added.has(card.parentId)))
+    if (!ready.length) break
+    for (const card of ready) {
+      added.add(card.id)
+      adds.push({ kind: 'add_card', lane: { id: card.laneId }, label: card.label, ...(card.parentId && { under: { id: card.parentId } }),
         ...(card.role && { role: card.role }), ...(card.source && { source: card.source }) })
-      continue
     }
-    if (old.label !== card.label) edits.push({ kind: 'rename_card', card: { id: card.id }, label: card.label })
-    // A card carried with the one above it keeps its parent and place: only what moved is said.
-    if (old.parentId !== card.parentId || old.order !== card.order || (old.laneId !== card.laneId && !card.parentId)) {
-      const siblings = card.parentId ? nestKids(after, card.parentId) : nestKids(after, null, card.laneId)
-      const next = siblings[siblings.findIndex(item => item.id === card.id) + 1]
-      edits.push({ kind: 'nest_card', card: { id: card.id }, ...(card.parentId ? { under: { id: card.parentId } } : { lane: { id: card.laneId } }), ...(next && { before: { id: next.id } }) })
-    }
-    if (card.role && old.role !== card.role) edits.push({ kind: 'set_role', card: { id: card.id }, role: card.role })
   }
-  for (const card of before.cards) if (!after.cards.some(item => item.id === card.id)) edits.push({ kind: 'remove_card', card: { id: card.id } })
+  // Moves: the cards whose parent, area or place among their siblings changed. A card carried with the one above it keeps its parent and place.
+  const depth = (id: string) => { let n = 0; for (let card = after.cards.find(item => item.id === id); card?.parentId && n < 12; card = after.cards.find(item => item.id === card!.parentId)) n++; return n }
+  const siblingsIn = (board: Workshop, card: WorkshopCard) => (card.parentId ? nestKids(board, card.parentId) : nestKids(board, null, card.laneId)).map(item => item.id)
+  const moved = after.cards.filter(card => {
+    const old = was.get(card.id)
+    if (!old || done.has(card.id)) return false
+    if (old.parentId !== card.parentId || (old.laneId !== card.laneId && !card.parentId)) return true
+    // Same parent: moved when it now sits after a different sibling than it did.
+    const now = siblingsIn(after, card).filter(id => was.has(id)), then = siblingsIn(base, old).filter(id => now.includes(id))
+    return now[now.indexOf(card.id) - 1] !== then[then.indexOf(card.id) - 1]
+  })
+  const place = new Map(moved.map(card => [card.id, siblingsIn(after, card).indexOf(card.id)]))
+  moved.sort((a, b) => depth(a.id) - depth(b.id) || (a.parentId ?? a.laneId).localeCompare(b.parentId ?? b.laneId) || place.get(b.id)! - place.get(a.id)!)
+  for (const card of moved) {
+    const siblings = siblingsIn(after, card)
+    const next = siblings[siblings.indexOf(card.id) + 1]
+    moves.push({ kind: 'nest_card', card: { id: card.id }, ...(card.parentId ? { under: { id: card.parentId } } : { lane: { id: card.laneId } }), ...(next && { before: { id: next } }) })
+  }
+  for (const card of after.cards) {
+    const old = was.get(card.id)
+    if (!old || done.has(card.id)) continue
+    if (old.label !== card.label) rest.push({ kind: 'rename_card', card: { id: card.id }, label: card.label })
+    if (card.role && old.role !== card.role) roles.push({ kind: 'set_role', card: { id: card.id }, role: card.role })
+    if (card.source && old.source !== card.source) rest.push({ kind: 'set_source', card: { id: card.id }, source: card.source })
+  }
+  for (const card of after.cards) {
+    const old = was.get(card.id)
+    for (const key of new Set([...Object.keys(old?.fields ?? {}), ...Object.keys(card.fields ?? {})])) {
+      if (old?.fields?.[key] !== card.fields?.[key]) rest.push({ kind: 'set_field', card: { id: card.id }, field: key, value: card.fields?.[key] ?? null })
+    }
+  }
   for (const lane of after.lanes) {
-    const old = before.lanes.find(item => item.id === lane.id)
-    if (old && old.label !== lane.label) edits.push({ kind: 'rename_lane', lane: { id: lane.id }, label: lane.label })
+    const old = base.lanes.find(item => item.id === lane.id)
+    if (old && old.label !== lane.label) rest.push({ kind: 'rename_lane', lane: { id: lane.id }, label: lane.label })
   }
-  if (after.nest && before.nest?.layout !== after.nest.layout) edits.push({ kind: 'set_layout', layout: after.nest.layout })
-  if (before.title !== after.title) edits.push({ kind: 'rename_workshop', title: after.title })
-  return edits
+  if (before.title !== after.title) rest.push({ kind: 'rename_workshop', title: after.title })
+  const head = [...merges, ...starts, ...removes, ...fields, ...adds]
+  const first = [...head, ...moves, ...roles, ...rest]
+  if (!moves.length || !roles.length) return first
+  const second = [...head, ...roles, ...moves, ...rest]
+  return 'refused' in applyWorkshopEdits(before, first) && !('refused' in applyWorkshopEdits(before, second)) ? second : first
 }
 
 export const nestKit: WorkshopBoardKit = {

@@ -168,7 +168,22 @@ export function nestPlace(board: Board, cardId: string, spot: NestSpot): Board |
     const lane = moving.includes(item.id) ? laneId : item.laneId
     return key || lane !== item.laneId ? { ...item, laneId: lane, ...(key && { order: key }) } : item
   })
-  return { ...board, cards }
+  return tidyKeys({ ...board, cards })
+}
+
+/**
+ * Siblings whose keys have grown long get fresh short keys, in the same order. A key put at one end of a
+ * list again and again grows by a character every few moves; without this a card moved to the end of a pile
+ * a few hundred times would carry a key too long to keep, and the board could no longer be saved.
+ */
+export function tidyKeys(board: Board): Board {
+  const groups: Record<string, WorkshopCard[]> = {}, fresh = new Map<string, string>()
+  for (const card of board.cards) (groups[card.parentId ?? '#' + card.laneId] ??= []).push(card)
+  for (const group of Object.values(groups)) if (group.some(card => card.order!?.length > 16)) {
+    const keys = orderKeys(group.length)
+    group.sort(byOrder).forEach((card, i) => fresh.set(card.id, keys[i]))
+  }
+  return fresh.size ? { ...board, cards: board.cards.map(card => fresh.has(card.id) ? { ...card, order: fresh.get(card.id) } : card) } : board
 }
 
 /** The structure every nest board keeps, rules or not: null when it holds, otherwise the sentence. */
@@ -493,6 +508,8 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
   const board = input
   const { main, tray } = nestAreas(board)
   const trayName = board.lanes[1].label
+  // Every board an edit makes keeps its keys short (tidyKeys).
+  const settle = (next: Board, laneId?: string | null, cardId?: string) => t.settle(tidyKeys(next), laneId, cardId)
   const under = (value: WorkshopRef) => {
     if (typeof value === 'object' && !byId(board, value.id)) {
       // A card a merge took away: the card it went into.
@@ -507,7 +524,7 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
       if (spot.under && nestSubtree(board, card.id).includes(spot.under)) t.refuse('A card can’t go under itself or a card under it.', { cardId: card.id, laneId: card.laneId })
       t.refuse(trayName + ' holds loose cards. Move what is under ' + said(card.label) + ' first.', { cardId: card.id, laneId: spot.laneId })
     }
-    return t.settle(next!, spot.laneId, card.id)
+    return settle(next!, spot.laneId, card.id)
   }
   switch (edit.kind) {
     case 'add_card': {
@@ -522,17 +539,17 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
       if (!parent && lane.id === main && board.nest?.layout === 'clusters' && edit.role === undefined) {
         const drop = (rulesOn(board, 'emptyDrop')[0] as { drop: string } | undefined)?.drop ?? 'new-pile'
         if (drop === 'unsorted') {
-          const next = t.settle({ ...board, cards: [...board.cards, { ...card, laneId: tray, order: endOf(board, null, tray) }] }, tray)
+          const next = settle({ ...board, cards: [...board.cards, { ...card, laneId: tray, order: endOf(board, null, tray) }] }, tray)
           return t.done(next, 'Added ' + said(label!) + ' to ' + said(trayName) + '.', { laneId: tray, cardId: card.id })
         }
         const pile: WorkshopCard = { id: card.id, label: 'New pile', laneId: main, role: 'pile', order: endOf(board, null, main) }
         const item = { ...card, id: nextCardId({ ...board, cards: [...board.cards, pile] }), parentId: pile.id, role: role ?? 'note', order: orderBetween(null, null) }
-        const next = t.settle({ ...board, cards: [...board.cards, pile, item] }, main)
+        const next = settle({ ...board, cards: [...board.cards, pile, item] }, main)
         return t.done(next, 'Added ' + said(label!) + ' to a new pile.', { laneId: main, cardId: item.id })
       }
       if (parent) card.parentId = parent.id
       card.order = endOf(board, parent?.id ?? null, card.laneId)
-      const next = t.settle({ ...board, cards: [...board.cards, card] }, card.laneId)
+      const next = settle({ ...board, cards: [...board.cards, card] }, card.laneId)
       return t.done(next, 'Added ' + said(label!) + ' to ' + said(parent?.label ?? board.lanes.find(item => item.id === card.laneId)!.label) + '.', { laneId: card.laneId, cardId: card.id })
     }
     case 'nest_card': {
@@ -556,7 +573,7 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
         if (!next.role || next.role === 'pile') next.role = 'note'
         return next
       })
-      const next = t.settle({ ...board, cards: [...moved, pile] }, main, card.id)
+      const next = settle({ ...board, cards: [...moved, pile] }, main, card.id)
       return t.done(next, 'Started a new pile, ' + said(label) + ', with ' + said(card.label) + ' in it.', { laneId: main, cardId: pile.id })
     }
     case 'merge_cards': {
@@ -569,45 +586,45 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
       const keys = new Map(kids.map(kid => { last = orderBetween(last, null); return [kid.id, last] }))
       const aliases = [...(board.nest!.aliases ?? []).map(([a, b]): [string, string] => [a, b === from.id ? into.id : b]), [from.id, into.id] as [string, string]].slice(-12)
       const cards = board.cards.filter(item => item.id !== from.id).map(item => keys.has(item.id) ? { ...item, parentId: into.id, order: keys.get(item.id)! } : item)
-      const next = t.settle({ ...board, nest: { ...board.nest!, aliases }, cards }, into.laneId, into.id)
+      const next = settle({ ...board, nest: { ...board.nest!, aliases }, cards }, into.laneId, into.id)
       return t.done(next, 'Merged ' + said(from.label) + ' into ' + said(into.label) + (kids.length ? ': ' + kids.length + (kids.length === 1 ? ' card' : ' cards') + ' moved.' : '.'), { laneId: into.laneId, cardId: into.id })
     }
     case 'remove_card': {
-      // What was under it moves up to its parent; under a card at the top, loose cards go to the tray.
+      // What was under it moves up to its parent. Loose cards go to the tray instead under a card at the top, or
+      // when the rules would refuse them there (solutions under the outcome).
       const card = t.card(edit.card)
       const kids = nestKids(board, card.id)
-      const home = (kid: WorkshopCard) => card.parentId || board.cards.some(item => item.parentId === kid.id) ? card.laneId : tray
-      const last = new Map<string, string | null>()
-      const keys = new Map(kids.map(kid => {
-        const lane = home(kid), parent = lane === tray ? null : card.parentId ?? null
-        const key = orderBetween(last.has(lane) ? last.get(lane) : nestKids(board, parent, lane).at(-1)?.order ?? null, null)
-        last.set(lane, key)
-        return [kid.id, { key, lane }]
-      }))
-      const cards = board.cards.filter(item => item.id !== card.id).map(item => {
-        const to = keys.get(item.id)
-        if (!to) return item
-        const next: WorkshopCard = { ...item, order: to.key, laneId: to.lane }
-        if (card.parentId) next.parentId = card.parentId
-        else delete next.parentId
-        return next
-      })
-      const tidy = kids.some(kid => home(kid) === tray)
-      const next = t.settle({ ...board, cards }, card.laneId)
+      const without = (park: boolean) => {
+        let tidy = false, up = nestKids(board, card.parentId ?? null, card.laneId).at(-1)?.order ?? null, low = nestKids(board, null, tray).at(-1)?.order ?? null
+        const to = new Map(kids.map(kid => {
+          const loose = (park || !card.parentId) && !board.cards.some(other => other.parentId === kid.id)
+          tidy ||= loose
+          return [kid.id, loose ? { laneId: tray, order: low = orderBetween(low, null) } : { laneId: card.laneId, order: up = orderBetween(up, null), ...(card.parentId && { parentId: card.parentId }) }]
+        }))
+        const cards = board.cards.flatMap(item => item.id === card.id ? [] : to.has(item.id) ? [(({ parentId: _gone, ...rest }) => ({ ...rest, ...to.get(item.id) }))(item)] : [item])
+        return { board: { ...board, cards }, tidy }
+      }
+      let plan = without(false)
+      if (card.parentId && board.behaviour && 'refused' in checkNest(board, plan.board)) {
+        const parked = without(true)
+        if (!('refused' in checkNest(board, parked.board))) plan = parked
+      }
+      const { tidy } = plan
+      const next = settle(plan.board, card.laneId)
       return t.done(next, 'Removed ' + said(card.label) + '.' + (kids.length ? tidy ? ' What was in it went to ' + said(trayName) + '.' : ' What was under it moved up.' : ''), { laneId: card.laneId, cardId: card.id })
     }
     case 'set_role': {
       const card = t.card(edit.card)
       let role = ''
       try { role = roleOf(edit.role) } catch (error) { t.refuse((error as Error).message, { cardId: card.id, laneId: card.laneId }) }
-      const next = t.settle({ ...board, cards: board.cards.map(item => item.id === card.id ? { ...item, role } : item) }, card.laneId, card.id)
+      const next = settle({ ...board, cards: board.cards.map(item => item.id === card.id ? { ...item, role } : item) }, card.laneId, card.id)
       return t.done(next, said(card.label) + ' is ' + an(role) + ' now.', { laneId: card.laneId, cardId: card.id })
     }
     case 'set_source': {
       const card = t.card(edit.card)
       let source = ''
       try { source = plainText(edit.source, 60, 'Say who said it in plain words.') } catch (error) { t.refuse((error as Error).message, { cardId: card.id }) }
-      const next = t.settle({ ...board, cards: board.cards.map(item => item.id === card.id ? { ...item, source } : item) }, card.laneId, card.id)
+      const next = settle({ ...board, cards: board.cards.map(item => item.id === card.id ? { ...item, source } : item) }, card.laneId, card.id)
       return t.done(next, said(card.label) + ' came from ' + source + '.', { laneId: card.laneId, cardId: card.id })
     }
     case 'add_field': {
@@ -617,7 +634,7 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
       const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20) || 'field'
       if (fields.some(item => item.id === id || item.label.toLowerCase() === label.toLowerCase())) t.refuse('Cards already carry ' + label + '.')
       if (fields.length >= 4) t.refuse('Cards carry up to 4 number fields.')
-      const next = t.settle({ ...board, nest: { ...board.nest!, fields: [...fields, { id, label, ...(edit.currency && { currency: edit.currency }) }] } })
+      const next = settle({ ...board, nest: { ...board.nest!, fields: [...fields, { id, label, ...(edit.currency && { currency: edit.currency }) }] } })
       return t.done(next, 'Cards can carry ' + label + ' now.')
     }
     case 'set_field': {
@@ -634,12 +651,12 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
         if (!Object.keys(fields).length) delete (next as WorkshopCard).fields
         return next
       })
-      const next = t.settle({ ...board, cards }, card.laneId, card.id)
+      const next = settle({ ...board, cards }, card.laneId, card.id)
       return t.done(next, said(card.label) + (edit.value === null ? ' has no ' + f!.label + ' now.' : '’s ' + f!.label + ' is ' + (f!.currency ? money(edit.value, f!.currency) : edit.value) + '.'), { laneId: card.laneId, cardId: card.id })
     }
     case 'set_layout': {
       if (edit.layout !== 'clusters' && edit.layout !== 'tree') t.refuse('A nested board is drawn as piles or as a tree.', { code: 'invalid_edit' })
-      const next = t.settle({ ...board, nest: { ...board.nest!, layout: edit.layout } })
+      const next = settle({ ...board, nest: { ...board.nest!, layout: edit.layout } })
       return t.done(next, edit.layout === 'tree' ? 'Drawn as a tree.' : 'Drawn as piles.')
     }
   }
