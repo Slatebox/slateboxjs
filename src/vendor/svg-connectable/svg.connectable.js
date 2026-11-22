@@ -82,7 +82,9 @@ function hasMethod(element, methodName) {
  *  - `showHandles` (Boolean): Whether to show draggable handles at connector endpoints. Defaults to false (click to show).
  *  - `handleRadius` (Number): Radius of connector handles. Defaults to 6.
  *  - `handleStrokeWidth` (Number): Stroke width of handles. Defaults to 2.
- *  - `handleStroke` (String): Handle stroke color. Defaults to '#007cff'.
+ *  - `handleStroke` (String): Handle stroke color. Defaults to '#1f6feb'.
+ *  - `handleHitRadius` (Number): Radius of the transparent circle that takes the pointer at each end. Defaults to 14.
+ *  - `handleContainer` (SVGElement): Where the end handles are drawn. Defaults to the markers container, else the line's container.
  *  - `handleFill` (String): Handle fill color. Defaults to 'none'.
  *  - `clickAreaWidth` (Number): Width of invisible click area for easier selection. Defaults to max(12, strokeWidth * 3).
  *  - `debugMode` (Boolean): Whether to visualize hit areas for debugging. Defaults to false.
@@ -229,8 +231,13 @@ function connectable(options, elmTarget) {
   // Handle configuration
   con.showHandles = options.showHandles || false; // Default to false - only show when clicked
   con.handleRadius = options.handleRadius || 6;
+  // The transparent circle that takes the pointer at each end (wider than the mark).
+  con.handleHitRadius = options.handleHitRadius || 14;
+  // Where the end handles are drawn: the markers layer (kept above the notes, so
+  // an end on a note's edge is never under it), unless given another.
+  con.handleContainer = options.handleContainer || options.markers || null;
   con.handleStrokeWidth = options.handleStrokeWidth || 2;
-  con.handleStroke = options.handleStroke || "#007cff";
+  con.handleStroke = options.handleStroke || "#1f6feb";
   con.handleFill = options.handleFill || "none";
   con.isSelected = false; // Track selection state
 
@@ -382,7 +389,9 @@ function connectable(options, elmTarget) {
     rm(con.connector);
     rm(con.hitArea);
     rm(con.sourceHandle && con.sourceHandle.element);
+    rm(con.sourceHandle && con.sourceHandle.glyph);
     rm(con.targetHandle && con.targetHandle.element);
+    rm(con.targetHandle && con.targetHandle.glyph);
     rm(con.markerSource);
     rm(con.markerTarget);
     rm(con._sourcePhantomRect);

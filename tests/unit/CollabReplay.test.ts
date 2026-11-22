@@ -149,6 +149,54 @@ describe("replaying a room", () => {
     expect(host.undoRedo.absorbRemote).toHaveBeenCalledWith("the slate before");
   });
 
+  // Moving a line's end is its remove and its add again under the same id (Connector.applyEndDrop).
+  // Two people moving the same line's end at once must see the same line, live and after a reload.
+  describe("two people moving the same line's end at once", () => {
+    /** The slate's lines on one screen: what its own moves did, then what the room's did (a remote add of a line it has replaces it). */
+    function screen(c: ReturnType<typeof client>) {
+      const lines = new Map<string, string>([["A->B", "B"]]);
+      const apply = (pkg: any) => {
+        if (pkg.type === "removeRelationship") lines.delete(pkg.data.id);
+        if (pkg.type === "addRelationship") lines.set(pkg.data.id, pkg.data.childId);
+      };
+      (c.collab as any).handleRemotePackage.mockImplementation(apply);
+      const moveTo = (childId: string) => {
+        const pkgs = [
+          { type: "removeRelationship", data: { id: "A->B", parentId: "A", childId: lines.get("A->B") } },
+          { type: "addRelationship", data: { id: "A->B", parentId: "A", childId } },
+        ];
+        for (const pkg of pkgs) {
+          apply(pkg);
+          c.collab.send(pkg as any);
+        }
+      };
+      return { lines, moveTo };
+    }
+
+    for (const [first, second] of [[10, 900], [900, 10]]) {
+      it(`see the same line, whichever writer has the higher id (${first} and ${second})`, () => {
+        const one = client(room, first);
+        const two = client(room, second);
+        const a = screen(one);
+        const b = screen(two);
+        a.moveTo("C");
+        b.moveTo("D");
+        one.sync();
+        two.sync();
+        one.sync();
+        expect([...a.lines]).toEqual([...b.lines]);
+        expect(a.lines.size).toBe(1);
+
+        // And a reload (a client joining the room) sees it too.
+        const joiner = client(room, 5000);
+        const c = screen(joiner);
+        c.lines.clear();
+        joiner.sync();
+        expect([...c.lines]).toEqual([...a.lines]);
+      });
+    }
+  });
+
   describe("after an undo", () => {
     it("the room holds the replacement and what was written after it; a new client rebuilds from both, in order", async () => {
       const author = client(room, 900);

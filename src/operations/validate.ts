@@ -292,6 +292,15 @@ export function validatePlan(plan: any, options: ValidateOptions = {}): SlateOpe
         }
         if (operation.kind === "update_connections") {
           errors.push(...checkKeys(operation.changes, Object.keys(CONNECTOR_KEYS), prefix, "connection change", connectorValueCheck(prefix)));
+          const changes = isObject(operation.changes) ? operation.changes : {};
+          // Each end goes one place, and is pinned or followed once.
+          if (changes.toNote !== undefined && changes.toPoint !== undefined) errors.push(`${prefix} moves the far end with toNote or toPoint, not both.`);
+          if (changes.fromNote !== undefined && changes.fromPoint !== undefined) errors.push(`${prefix} moves the starting end with fromNote or fromPoint, not both.`);
+          if (changes.ends !== undefined && (changes.fromEnd !== undefined || changes.toEnd !== undefined)) errors.push(`${prefix} sets ends, or fromEnd and toEnd, not both.`);
+          if (changes.toPoint !== undefined && changes.toEnd !== undefined) errors.push(`${prefix} cannot pin a far end it leaves free (toPoint with toEnd).`);
+          if (changes.fromPoint !== undefined && (changes.toPoint !== undefined || changes.fromEnd !== undefined)) {
+            errors.push(`${prefix} keeps one end on a note: fromPoint goes with neither toPoint nor fromEnd.`);
+          }
         }
         return;
       }

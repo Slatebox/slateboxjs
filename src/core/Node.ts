@@ -28,6 +28,7 @@ import { normalizeLegacyTextOffset, v2NodeToV1 } from "./compat";
 import { whiteOrBlack, contrastRatio } from "../utils";
 import { prefersReducedMotion } from "./DragPolicy";
 import { DEFAULT_NOTE_STYLE } from "./NoteDefaults";
+import { anchorForDrop, normalizedOn } from "./LineEnds";
 import type {
   DragCancelReason,
   DragGesture,
@@ -2218,6 +2219,12 @@ export class Node {
    * Cleans up DOM elements but does NOT disable sub-modules. Use `destroy()` for full teardown.
    */
   public remove() {
+    // The line tool drawing from this note stops: there is no note to draw from.
+    try {
+      if ((this.slate as any)?._lineTool?.nodeId === this.id) (this.slate as any).cancelLineTool?.();
+    } catch (e) {
+      /* noop */
+    }
     // Clean up connection handles container (created on slate.canvas, not in svgGroup)
     if (this.connectionHandles.container) {
       this.connectionHandles.container.remove();
@@ -2762,12 +2769,12 @@ export class Node {
       /* noop */
     }
 
-    // A node move re-solves any attached connector, so the line's cog +
-    // endpoint-lock toggles (positioned at the old geometry) would DRIFT (U2).
-    // Clear them — Miro likewise hides connector UI during moves; the user
-    // re-clicks the line for fresh, correctly-placed affordances.
+    // A node move re-solves any attached connector, so the engine's own line pill
+    // (positioned at the old geometry) would DRIFT (U2). Clear it — Miro likewise
+    // hides connector UI during moves; the user re-clicks the line. (The end
+    // handles move with the line, so a line selected under a host's bar stays.)
     try {
-      if ((this.slate as any)._activeLineCog || (this.slate as any)._activeEndpointToggles) {
+      if ((this.slate as any)._activeLineCog) {
         (this.slate as any).clearLineCog?.();
       }
     } catch (e) {
@@ -3660,44 +3667,21 @@ export class Node {
           // dropped it (named bug #4) AND a second/parallel line to the same node
           // is visually distinct instead of overlapping the first at the auto edge
           // point.
+          // The same rule as dropping a line's end (LineEnds.anchorForDrop): near the
+          // note's edge the new line is pinned to that spot (so a second line to the same
+          // note stays apart from the first); on its middle it follows the note.
           let data: any = undefined;
           try {
             const w = toWorld(ev.clientX, ev.clientY);
-            const to = (target as any).options;
-            const ax = Math.max(
-              0,
-              Math.min(1, (w.x - (to.x || 0)) / (to.width || 1))
+            const to = (target as any).options || {};
+            const n = normalizedOn(
+              { x: to.x || 0, y: to.y || 0, width: to.width || 1, height: to.height || 1, rotation: to.rotate?.rotationAngle || 0 },
+              w
             );
-            const ay = Math.max(
-              0,
-              Math.min(1, (w.y - (to.y || 0)) / (to.height || 1))
-            );
-            // Only PIN an absolute anchor when the drop is DELIBERATELY near an edge.
-            // A drop in the node's interior/center uses RELATIVE auto-flow so the arrow
-            // attaches at the natural source-facing edge (arrowhead visible outside the
-            // node), instead of snapping to an arbitrary edge that routes the arrow
-            // awkwardly around and can obscure the head. (There is no 'center' target.)
-            const edgeDist = Math.min(ax, 1 - ax, ay, 1 - ay);
-            if (edgeDist < 0.25) {
-              // Near an edge — pin to that edge (perimeter), keeping the along-edge
-              // position so parallel edges dropped at different edges stay distinct.
-              let sx = ax,
-                sy = ay;
-              const dl = ax,
-                dr = 1 - ax,
-                dt = ay,
-                db = 1 - ay;
-              const m = Math.min(dl, dr, dt, db);
-              if (m === dl) sx = 0;
-              else if (m === dr) sx = 1;
-              else if (m === dt) sy = 0;
-              else sy = 1;
-              data = { targetAnchor: { x: sx, y: sy } };
-            }
-            // else: interior drop → data stays undefined → relative auto-flow to the
-            // source-facing edge (like a normal connection).
+            const anchor = anchorForDrop(n.x, n.y);
+            if (anchor) data = { targetAnchor: anchor };
           } catch (e) {
-            /* fall back to auto-attach */
+            /* fall back to following the note */
           }
           this.relationships.addAssociation(target, data);
         } catch (e) {

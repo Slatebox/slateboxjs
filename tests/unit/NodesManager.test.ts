@@ -609,6 +609,60 @@ describe("NodesManager", () => {
     });
   });
 
+  // A line keeps its id when one of its ends moves (to another note, or free), so a note's
+  // lines are not found by their id alone (`A->B` may now end at C, or be held by B).
+  describe("a line whose end moved", () => {
+    /** A note's lines, as Relationships keeps them. */
+    const linesOf = (node: any) => {
+      const map = new Map<string, any>();
+      node.relationships = {
+        map,
+        hasAssociationId: (id: string) => map.has(id),
+        getAssociations: () => [...map.values()],
+        getAssociation: (childId: string) => map.get(`${node.id}->${childId}`),
+        addAssociation: vi.fn((child: any, data: any) => map.set(data.id, { ...data, childId: child.id })),
+        addFloatingAssociation: vi.fn((point: any, data: any) => map.set(data.id, { ...data, targetPoint: point })),
+        removeAssociation: vi.fn((idOrChild: string) => {
+          if (map.has(idOrChild)) return map.delete(idOrChild);
+          let any = false;
+          for (const [id, a] of map) if (a.childId === idOrChild) any = map.delete(id) || any;
+          return any;
+        }),
+      };
+      return node.relationships.map as Map<string, any>;
+    };
+
+    it("is taken away with a note it was moved onto, when that note is deleted", () => {
+      const a = manager.add({ id: "A" });
+      manager.add({ id: "B" });
+      const c = manager.add({ id: "C" });
+      const lines = linesOf(a);
+      linesOf(c);
+      lines.set("A->B", { id: "A->B", parentId: "A", childId: "C" });
+      manager.remove("C");
+      expect([...lines.keys()]).toEqual([]);
+    });
+
+    it("a remote add of a line this screen has, with its end elsewhere, moves it there (one line, not two or none)", () => {
+      const a = manager.add({ id: "A" });
+      const b = manager.add({ id: "B" });
+      manager.add({ id: "C" });
+      manager.add({ id: "D" });
+      const aLines = linesOf(a);
+      const bLines = linesOf(b);
+      aLines.set("A->B", { id: "A->B", parentId: "A", childId: "C" });
+      manager.addRelationship({ id: "A->B", parentId: "A", childId: "D" });
+      expect([...aLines.values()].map((l) => l.childId)).toEqual(["D"]);
+      // The same line, now held by B with a free end, arrives while A still holds it.
+      manager.addRelationship({ id: "A->B", parentId: "B", childId: "__free_x", targetPoint: { x: 1, y: 2 } });
+      expect([...aLines.keys()]).toEqual([]);
+      expect([...bLines.keys()]).toEqual(["A->B"]);
+      // The same add again changes nothing.
+      manager.addRelationship({ id: "A->B", parentId: "B", childId: "__free_x", targetPoint: { x: 1, y: 2 } });
+      expect((b as any).relationships.addFloatingAssociation).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("removeRelationship()", () => {
     it("removes the association from the parent", () => {
       const parent = manager.add({ id: "relP2" });

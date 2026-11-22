@@ -29,6 +29,8 @@ import {
   type LayoutMove,
 } from "./Layout";
 import { Association } from "./Relationship";
+import type { EndAnchor, EndState, LineEnd } from "./LineEnds";
+import { startLineTool, type LineToolResult } from "./LineTool";
 import { alignPositions, distributePositions, type AlignMode, type LayoutBox, type Position } from "../operations/layout";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
@@ -265,8 +267,8 @@ export class Slate {
   public _activeLineCog?: any;
   /** The connectable whose endpoint handles are currently shown (L1/M8). */
   public _activeLineConnectable?: any;
-  /** The active per-endpoint lock/relative toggle affordances (Q3). */
-  public _activeEndpointToggles?: any[];
+  /** The line tool while it is drawing (see LineTool.ts). */
+  public _lineTool: { nodeId: string; cancel: () => void } | null = null;
   private selectedNodes: Node[] = [];
   private groupResizeRotate: any = null; // Will hold the group resize/rotate controller
   /**
@@ -587,6 +589,12 @@ export class Slate {
    * Follows the PanZoom.ts pattern: clear timers → remove listeners → chain to owned objects.
    */
   public destroy(): void {
+    // The line tool stops (its window listeners go with it).
+    try {
+      this._lineTool?.cancel();
+    } catch (e) {
+      /* noop */
+    }
     this._destroyed = true;
     this._dragPolicies = [];
     this._governedDragNode = null;
@@ -2301,6 +2309,62 @@ export class Slate {
     return removed !== false;
   }
 
+  /**
+   * Select a line, as clicking it does: its end handles show (each marking
+   * whether it follows its note, is pinned or is free) and the host hears of it
+   * through onSelectionFrame. False when the note holds no such line.
+   */
+  public selectLine(nodeId: string, associationId: string): boolean {
+    const node: any = this.nodes.one(nodeId);
+    return !!node?.connector?.selectConnection?.(associationId);
+  }
+
+  /**
+   * Where an end of a line is on its note now, as a normalized anchor {x, y}
+   * (pinning it there keeps it exactly where it is), or null for a free end.
+   */
+  public lineEndAnchor(nodeId: string, associationId: string, which: LineEnd): EndAnchor | null {
+    const node: any = this.nodes.one(nodeId);
+    return node?.connector?.currentAnchor?.(associationId, which) ?? null;
+  }
+
+  /** Whether an end of a line follows its note, is pinned to a spot on its edge, or is free. */
+  public lineEndState(nodeId: string, associationId: string, which: LineEnd): EndState | null {
+    const node: any = this.nodes.one(nodeId);
+    return node?.connector?.endState?.(associationId, which) ?? null;
+  }
+
+  /**
+   * Pin an end of a line where it is now ("pinned"), at a spot on its note's
+   * edge ({x, y}), or let it follow its note ("follow"). Saved, shared and
+   * undoable. False for a free end, or when the slate cannot be edited.
+   */
+  public setLineEnd(nodeId: string, associationId: string, which: LineEnd, mode: "follow" | "pinned" | EndAnchor): boolean {
+    if (this.isReadOnly() || this.isCommentOnly()) return false;
+    const node: any = this.nodes.one(nodeId);
+    return !!node?.connector?.setEnd?.(associationId, which, mode);
+  }
+
+  /**
+   * The line tool: a line follows the pointer from the note; a click or tap on
+   * another note connects to it, on empty canvas leaves its end free there;
+   * Escape cancels. Resolves with what happened (see LineTool.ts).
+   */
+  public startLineFrom(node: Node | string): Promise<LineToolResult> {
+    const from: any = typeof node === "string" ? this.nodes.one(node) : node;
+    return startLineTool(this, from);
+  }
+
+  /** Stop the line tool, if it is drawing. */
+  public cancelLineTool(): void {
+    this._lineTool?.cancel();
+  }
+
+  /** True while the line tool is drawing a line. */
+  public isDrawingLine(): boolean {
+    return !!this._lineTool;
+  }
+
   /** Called by the connector when a line is selected on the canvas. */
   public setSelectedLine(node: Node, associationId: string, childId: string, connectable: any): void {
     // A line and notes are not selected together: selecting the line ends the notes' selection.
@@ -2528,16 +2592,6 @@ export class Slate {
         /* noop */
       }
       this._activeLineConnectable = undefined;
-    }
-    if (this._activeEndpointToggles) {
-      this._activeEndpointToggles.forEach((g) => {
-        try {
-          g.remove();
-        } catch (e) {
-          /* noop */
-        }
-      });
-      this._activeEndpointToggles = undefined;
     }
     if (this._selectedLine) {
       this._selectedLine = null;

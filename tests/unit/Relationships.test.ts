@@ -24,12 +24,6 @@ describe("Relationships", () => {
         disconnectById: vi.fn(),
         updateConnection: vi.fn(),
         getConnections: vi.fn().mockReturnValue([]),
-        // Mirrors the real setEndpointLock: absolute → a resolved anchor, relative → null.
-        setEndpointLock: vi
-          .fn()
-          .mockImplementation((_connId: string, _which: string, mode: string) =>
-            mode === "absolute" ? { x: 0.5, y: 0.5 } : null
-          ),
       },
     };
 
@@ -75,6 +69,28 @@ describe("Relationships", () => {
 
       expect(assoc.lineColor).toBe("#ff0000");
       expect(assoc.lineWidth).toBe(2);
+    });
+  });
+
+  describe("ids across the slate", () => {
+    // A line keeps its id when its starting end moves to another note, so the note
+    // that holds `node1->child1` may not be node1. A new line takes an id no line has.
+    it("a new line takes an id no other note's line has", () => {
+      const other = { id: "child1", relationships: { hasAssociationId: (id: string) => id === "node1->child1" } };
+      mockSlate.nodes.allNodes = [mockNode, other];
+      mockNode.connector.connectToPoint = vi.fn();
+      const rels = new Relationships(mockNode);
+      mockNode.relationships = rels;
+      expect(rels.addAssociation(mockChildNode).id).toBe("node1->child1~2");
+      expect(rels.addAssociation(mockChildNode).id).toBe("node1->child1~3");
+      expect(rels.addFloatingAssociation({ x: 1, y: 1 }, { childId: "child1" } as any).id).toBe("node1->child1~4");
+    });
+
+    it("a line given its id keeps it", () => {
+      const other = { id: "child1", relationships: { hasAssociationId: (id: string) => id === "node1->child1" } };
+      mockSlate.nodes.allNodes = [mockNode, other];
+      const rels = new Relationships(mockNode);
+      expect(rels.addAssociation(mockChildNode, { id: "node1->child1" }).id).toBe("node1->child1");
     });
   });
 
@@ -154,19 +170,21 @@ describe("Relationships", () => {
       expect(rels.getAssociation("child1")!.targetAnchor).toEqual({ x: 0.2, y: 0.9 });
     });
 
-    it("targetLock=absolute stores the resolved anchor (RELATIVE→ABSOLUTE saves)", () => {
+    // The "sourceLock"/"targetLock" props went with the padlocks (owner, 2026-11-21):
+    // an end follows (anchor null) or is pinned (an anchor), set directly.
+    it("letting a pinned end follow clears its anchor back to auto-flow", () => {
       const rels = new Relationships(mockNode);
       const a = rels.addAssociation(mockChildNode);
-      rels.applyLineProperty(a.id, "targetLock", "absolute");
-      expect(rels.getAssociation("child1")!.targetAnchor).toEqual({ x: 0.5, y: 0.5 });
+      rels.applyLineProperty(a.id, "targetAnchor", { x: 1, y: 0.5 });
+      rels.applyLineProperty(a.id, "targetAnchor", null);
+      expect(rels.getAssociation("child1")!.targetAnchor).toBeNull();
     });
 
-    it("targetLock=relative clears the anchor back to auto-flow", () => {
+    it("no longer takes the retired lock props as line properties of their own meaning", () => {
       const rels = new Relationships(mockNode);
       const a = rels.addAssociation(mockChildNode);
       rels.applyLineProperty(a.id, "targetLock", "absolute");
-      rels.applyLineProperty(a.id, "targetLock", "relative");
-      expect(rels.getAssociation("child1")!.targetAnchor).toBeNull();
+      expect(rels.getAssociation("child1")!.targetAnchor ?? null).toBeNull();
     });
 
     it("persists showParentArrow / showChildArrow so the Arrow Heads toggle reflects", () => {

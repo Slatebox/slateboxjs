@@ -275,7 +275,8 @@ test.describe("Serialization", () => {
       set("lineCurviness", 40);
       set("showParentArrow", true);
       set("showChildArrow", false);
-      set("sourceLock", "absolute"); // stores a sourceAnchor
+      // A pinned start (the "sourceLock" prop went with the padlocks, owner 2026-11-21).
+      set("sourceAnchor", { x: 1, y: 0.5 });
       await new Promise((r) => setTimeout(r, 200));
 
       const keys = [

@@ -1,4 +1,5 @@
 import type { Node } from "./Node";
+import { type EndAnchor, type EndState, type LineEnd } from "./LineEnds";
 export interface ConnectorOptions {
     enabled?: boolean;
     lineContainer?: any;
@@ -93,41 +94,41 @@ export declare class Connector {
         x: number;
         y: number;
     } | null): boolean;
+    /** Whether an end of one of this note's lines follows its note, is pinned to a spot on its edge, or is free. */
+    endState(connectionId: string, which: LineEnd): EndState | null;
     /**
-     * Endpoint-drag → model (L1). The vendored lib has already reattached the
-     * VIEW when this fires; we reconcile the association MODEL so the change
-     * broadcasts to peers and persists. Reattaching to a node rebuilds the
-     * association (remove old + add new) through the already-synced/persisted
-     * addAssociation/removeAssociation. Deferred a tick so the lib's dragend
-     * finishes before we tear down/recreate the connection.
-     *
-     * Free-floating (phantom) drops are L1b — not yet persisted; left as a
-     * view-only endpoint for now (no rogue model state).
+     * Where an end is on its note now, as an anchor: read from the line as drawn,
+     * so pinning an end that follows keeps it exactly where it is. Null for a free end.
+     */
+    currentAnchor(connectionId: string, which: LineEnd): EndAnchor | null;
+    /**
+     * Pin an end where it is now ("pinned"), at a given spot ({x, y}), or let it
+     * follow its note ("follow"). Saved on the line, shared and undoable, like
+     * every line property. False for a free end or a line this note does not hold.
+     */
+    setEnd(connectionId: string, which: LineEnd, mode: "follow" | "pinned" | EndAnchor): boolean;
+    /**
+     * An end was dropped (the vendored lib has already moved the VIEW). The model
+     * follows: on another note the end moves there, pinned to the spot when dropped
+     * near the note's edge and following the note when dropped on its middle; on
+     * empty canvas the end stays where it was let go, free. A line whose starting
+     * end is let go belongs to the note at its far end from then on (drawn the same
+     * way). The line keeps its id. Deferred a tick so the lib's dragend finishes
+     * before the connection is drawn again.
      */
     private handleEndpointChange;
+    private applyEndDrop;
+    /** Select a line again once it has been drawn anew (after its end moved). */
+    private reselect;
+    /** Select one of this note's lines, as clicking it does. */
+    selectConnection(connectionId: string): boolean;
     /**
-     * U3: pin an endpoint at the exact drop point on a node. Converts the world
-     * drop point into a normalized [0,1] anchor on the node's box and stores it as
-     * the source/target anchor (persists + renders there). Skipped for rotated
-     * nodes (world→local normalization would be wrong) — those fall back to
-     * auto-flow. relationships owner is `ownerNode`; the association is childId.
+     * Name each end handle of a selected line for what it is and does (a button
+     * in the tab order, with a tooltip), and handle its keys: Enter or Space pins
+     * an end where it is or lets it follow again; the arrow keys slide a pinned
+     * end round its note's edge; Delete removes the line; Escape leaves it.
      */
-    private pinDropAnchor;
-    /**
-     * L5 per-endpoint locking. mode "absolute" freezes the endpoint at its
-     * current spot on the node (a normalized local anchor that then moves/rotates
-     * with the node); "relative" clears it back to auto-flow (nearest-edge).
-     * Returns the anchor that was set (or null) so callers can persist it.
-     */
-    setEndpointLock(connectionId: string, which: "source" | "target", mode: "absolute" | "relative"): {
-        x: number;
-        y: number;
-    } | null;
-    /**
-     * Show a cog affordance at the midpoint of a clicked line (M1/M2). Clicking
-     * the cog opens the host's line-properties pane. Only one cog is shown at a
-     * time (tracked on the slate) and it clears on canvas/node interaction.
-     */
+    private describeHandles;
     /**
      * Miro-style hover reveal for a connection's endpoint handles. Handles are
      * hidden by default (CSS) and shown while the pointer is over the line, its
@@ -145,14 +146,6 @@ export declare class Connector {
      */
     private selectLineConnectable;
     private openLinePane;
-    /**
-     * Q3: show a lock/relative toggle at EACH endpoint (source + target) when the
-     * line cog is clicked. Clicking a toggle flips absolute (pinned anchor) ↔
-     * relative (auto-flow) via applyLineProperty, and broadcasts for collab parity.
-     */
-    private showEndpointLockToggles;
-    /** Draw a small padlock (closed = absolute/locked, open = relative). */
-    private static drawLockIcon;
     isEnabled(): boolean;
     updateOptions(options: Partial<ConnectorOptions>): void;
 }

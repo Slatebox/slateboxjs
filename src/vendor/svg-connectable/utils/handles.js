@@ -6,29 +6,61 @@
 import { getElementCenter } from "./geometry.js";
 import { computeConnectorCoordinates } from "./geometry.js";
 import { svgCoordsToLocal } from "./geometry.js";
+import { anchorForDrop } from "../../../core/LineEnds";
 
 /**
- * Normalized [0,1] anchor for a world point on a node, snapped to the nearest
- * edge — the same mapping the host uses when it commits a drop-to-pin, so the
- * live drag PREVIEW matches where the endpoint will actually land.
+ * The anchor a drop at a world point on a node gives, by the host's rule
+ * (core/LineEnds.ts anchorForDrop): a spot on the edge when dropped near it,
+ * null (follow the note) when dropped on its middle. The live drag preview uses
+ * it so the line shows where it will land before the end is let go.
  */
 function snappedAnchorForDrop(node, worldPos) {
   try {
     const [lx, ly] = svgCoordsToLocal(node, worldPos[0], worldPos[1]);
     const bb = node.bbox();
     if (!bb || !bb.width || !bb.height) return null;
-    let ax = Math.max(0, Math.min(1, (lx - bb.x) / bb.width));
-    let ay = Math.max(0, Math.min(1, (ly - bb.y) / bb.height));
-    const dl = ax, dr = 1 - ax, dt = ay, db = 1 - ay;
-    const m = Math.min(dl, dr, dt, db);
-    if (m === dl) ax = 0;
-    else if (m === dr) ax = 1;
-    else if (m === dt) ay = 0;
-    else ay = 1;
-    return { x: ax, y: ay };
+    return anchorForDrop((lx - bb.x) / bb.width, (ly - bb.y) / bb.height);
   } catch (e) {
     return null;
   }
+}
+
+/** What an end is now: on a note and pinned to a spot, on a note and following it, or free. */
+function endStateOf(con, isSource) {
+  const shape = isSource ? con.source : con.target;
+  if (shape && shape._isPhantomRect) return "free";
+  return (isSource ? con.sourceAnchor : con.targetAnchor) ? "pinned" : "follow";
+}
+
+/**
+ * Draw the end's mark: a hollow circle for an end that follows its note, a
+ * filled square for one pinned to a spot on the note's edge, a hollow diamond
+ * for a free end. A white outline under the ink keeps it readable on a line of
+ * any colour; the hollow marks are open, so the arrowhead under them shows.
+ */
+function drawGlyph(con, handleObj, state) {
+  const g = handleObj && handleObj.glyph;
+  if (!g) return;
+  if (handleObj.glyphState !== state) {
+    g.clear();
+    const ink = con.handleStroke;
+    // The white outline first, the ink over it.
+    const outlined = (make, width) => {
+      make().fill("none").stroke({ color: "#ffffff", width: width + 3, linejoin: "round" });
+      make().fill("none").stroke({ color: ink, width, linejoin: "round" });
+    };
+    if (state === "pinned") {
+      g.rect(10, 10).center(0, 0).fill(ink).stroke({ color: "#ffffff", width: 1.5 });
+    } else if (state === "free") {
+      outlined(() => g.polygon("0,-8 8,0 0,8 -8,0"), 2.5);
+    } else {
+      outlined(() => g.circle(13).center(0, 0), 2.5);
+    }
+    handleObj.glyphState = state;
+    g.attr("data-state", state);
+  }
+  const [x, y] = handleObj.position || [0, 0];
+  g.attr("transform", `translate(${x},${y})`);
 }
 
 /**
@@ -51,39 +83,65 @@ function hasMethod(element, methodName) {
  */
 function createHandle(con, isSource, position) {
   if (!con.showHandles) return null;
+  const container = con.handleContainer || con.container;
+  const which = isSource ? "source" : "target";
 
-  const handle = con.container
-    .circle(con.handleRadius * 2)
+  // The mark people see (drawn by drawGlyph) and, over it, a wider transparent
+  // circle that takes the pointer, so an end is easy to grab with a finger.
+  const glyph = container
+    .group()
+    .addClass("connector-handle-glyph")
+    .attr({ "data-end": which, "pointer-events": "none", "aria-hidden": "true" });
+  const handle = container
+    .circle(con.handleHitRadius * 2)
     .attr({
       cx: position[0],
       cy: position[1],
-      fill: con.handleFill,
-      stroke: con.handleStroke,
-      "stroke-width": con.handleStrokeWidth,
+      fill: "#ffffff",
+      "fill-opacity": 0.001,
+      stroke: "none",
       "pointer-events": "all",
     })
     .addClass("connector-handle")
     .addClass(isSource ? "connector-handle-source" : "connector-handle-target");
 
-  // Set cursor for handle
   try {
     handle.node.style.cursor = "grab";
+    handle.node.style.touchAction = "none";
   } catch (e) {
-    handle.node.setAttribute("style", "cursor: grab");
+    handle.node.setAttribute("style", "cursor: grab; touch-action: none");
   }
 
   const handleObj = {
     element: handle,
+    glyph,
+    glyphState: null,
     isSource: isSource,
     position: position,
     isDetached: false,
     originalTarget: isSource ? con.source : con.target,
   };
+  drawGlyph(con, handleObj, endStateOf(con, isSource));
 
   // Make handle draggable
   setupHandleDrag(con, handleObj);
 
   return handleObj;
+}
+
+/** Remove an end's handle and its mark. */
+function removeHandle(handleObj) {
+  if (!handleObj) return;
+  try {
+    handleObj.element && handleObj.element.remove();
+  } catch (e) {
+    /* noop */
+  }
+  try {
+    handleObj.glyph && handleObj.glyph.remove();
+  } catch (e) {
+    /* noop */
+  }
 }
 
 /**
@@ -142,6 +200,12 @@ function setupHandleDrag(con, handleObj) {
       highlightDropTarget(dragTarget);
 
       updateConnectorForDrag(con, handleObj, currentPos, dragTarget);
+      // The mark shows what letting go here would do: pin, follow, or leave the end free.
+      let preview = "free";
+      if (dragTarget) {
+        preview = snappedAnchorForDrop(dragTarget, currentPos) ? "pinned" : "follow";
+      }
+      drawGlyph(con, handleObj, preview);
     })
     .on("dragend", function (event) {
       // Reset cursor
@@ -249,8 +313,9 @@ function updateConnectorForDrag(con, handleObj, position, dropTarget) {
     !dropTarget._isPhantomRect &&
     !(dropTarget.hasClass && dropTarget.hasClass("connector-handle"))
   ) {
+    // Near the edge the end previews pinned there; over the middle it previews following.
     previewAnchor = snappedAnchorForDrop(dropTarget, position);
-    if (previewAnchor) previewNode = dropTarget;
+    previewNode = dropTarget;
   }
 
   // Create a mock element to represent the floating endpoint
@@ -373,7 +438,10 @@ function updateConnectorForDrag(con, handleObj, position, dropTarget) {
  * @param {Boolean} debugMode Whether to show debug visualization
  * @return {Boolean} True if point is inside element
  */
-function isPointInElement(element, point, debugMode = false) {
+/** How far outside a note's edge (in screen pixels) a dropped end still lands on it. */
+const EDGE_SLOP = 10;
+
+function isPointInElement(element, point, debugMode = false, slop = 0) {
   try {
     // Get the element's CTM and bounding box
     const ctm = element.node.getCTM();
@@ -414,6 +482,8 @@ function isPointInElement(element, point, debugMode = false) {
     // Transform point to local coordinates
     const localX = invA * point[0] + invC * point[1] + invE;
     const localY = invB * point[0] + invD * point[1] + invF;
+    // The slop, in screen pixels, as local units.
+    const pad = slop ? slop / Math.sqrt(Math.abs(det) || 1) : 0;
 
     if (debugMode) {
       console.log("Local coordinates:", { localX, localY });
@@ -428,7 +498,7 @@ function isPointInElement(element, point, debugMode = false) {
       const r = parseFloat(element.attr("r")) || 0;
       const dx = localX - cx;
       const dy = localY - cy;
-      result = dx * dx + dy * dy <= r * r;
+      result = dx * dx + dy * dy <= (r + pad) * (r + pad);
       if (debugMode) {
         console.log("Circle test:", {
           cx,
@@ -447,17 +517,17 @@ function isPointInElement(element, point, debugMode = false) {
       const ry = parseFloat(element.attr("ry")) || 0;
       const dx = localX - cx;
       const dy = localY - cy;
-      result = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
+      result = (dx * dx) / ((rx + pad) * (rx + pad)) + (dy * dy) / ((ry + pad) * (ry + pad)) <= 1;
       if (debugMode) {
         console.log("Ellipse test:", { cx, cy, rx, ry, dx, dy, result });
       }
     } else {
       // For rectangles and other shapes, test against local bounding box
       result =
-        localX >= bbox.x &&
-        localX <= bbox.x + bbox.width &&
-        localY >= bbox.y &&
-        localY <= bbox.y + bbox.height;
+        localX >= bbox.x - pad &&
+        localX <= bbox.x + bbox.width + pad &&
+        localY >= bbox.y - pad &&
+        localY <= bbox.y + bbox.height + pad;
       if (debugMode) {
         console.log("Rect test:", {
           localX,
@@ -790,10 +860,13 @@ function findDropTarget(con, e, handleObj) {
   // Get the root SVG container
   const rootSvg = con.container.root();
 
-  // Calculate mouse coordinates relative to the root SVG
+  // Calculate pointer coordinates relative to the root SVG (a finger's are on its touch).
   const svgRect = rootSvg.node.getBoundingClientRect();
-  const svgX = e.clientX - svgRect.left;
-  const svgY = e.clientY - svgRect.top;
+  const touch = e && e.changedTouches && e.changedTouches[0];
+  const at = touch || (e && e.touches && e.touches[0]) || e;
+  if (!at || !Number.isFinite(at.clientX) || !Number.isFinite(at.clientY)) return null;
+  const svgX = at.clientX - svgRect.left;
+  const svgY = at.clientY - svgRect.top;
 
   if (debugMode) {
     console.log("Drop target search at:", { svgX, svgY });
@@ -869,6 +942,24 @@ function findDropTarget(con, e, handleObj) {
       }
     }
   });
+
+  // Nothing under the pointer: a note whose edge is within a few pixels still
+  // takes the end (aiming at an edge often lands just outside it).
+  if (candidates.length === 0) {
+    targetShapes.forEach(function (element) {
+      if (!isValidDropTarget(con, element, handleObj)) return;
+      try {
+        if (!isPointInElement(element, [svgX, svgY], false, EDGE_SLOP)) return;
+        const bbox = element.bbox();
+        const ctm = element.node.getCTM();
+        const centerX = ctm.a * bbox.cx + ctm.c * bbox.cy + ctm.e;
+        const centerY = ctm.b * bbox.cx + ctm.d * bbox.cy + ctm.f;
+        candidates.push({ element, distance: Math.hypot(svgX - centerX, svgY - centerY) });
+      } catch (ex) {
+        /* skip */
+      }
+    });
+  }
 
   // Return the closest candidate if any
   if (candidates.length > 0) {
@@ -1087,6 +1178,7 @@ function attachHandleToTarget(con, handleObj, target) {
       handleObj.element.center(newPosition[0], newPosition[1]);
     }
   }
+  drawGlyph(con, handleObj, endStateOf(con, handleObj.isSource));
 
   // Notify the host model that an endpoint changed (reattached to a node, or a
   // free-floating phantom drop) so it can update the association, broadcast to
@@ -1244,11 +1336,11 @@ function updateHandles(con, pathData) {
   if (!con.showHandles || !pathData || pathData.length < 2) {
     // Remove handles if they exist but aren't needed
     if (con.sourceHandle) {
-      con.sourceHandle.element.remove();
+      removeHandle(con.sourceHandle);
       con.sourceHandle = null;
     }
     if (con.targetHandle) {
-      con.targetHandle.element.remove();
+      removeHandle(con.targetHandle);
       con.targetHandle = null;
     }
     return;
@@ -1269,6 +1361,7 @@ function updateHandles(con, pathData) {
     });
     con.sourceHandle.position = startPoint;
   }
+  drawGlyph(con, con.sourceHandle, endStateOf(con, true));
 
   // Create or update target handle
   if (!con.targetHandle) {
@@ -1280,6 +1373,7 @@ function updateHandles(con, pathData) {
     });
     con.targetHandle.position = endPoint;
   }
+  drawGlyph(con, con.targetHandle, endStateOf(con, false));
 }
 
 /**
@@ -1312,6 +1406,9 @@ function createPhantomRect(con, position) {
 
 export {
   createHandle,
+  removeHandle,
+  drawGlyph,
+  endStateOf,
   setupHandleDrag,
   detachHandle,
   updateConnectorForDrag,

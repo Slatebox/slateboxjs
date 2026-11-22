@@ -119,6 +119,14 @@ export declare class Collab {
      * over them (it holds what the trader did to the note before its answer came back).
      */
     private fromRecord;
+    /**
+     * The latest add or remove of each line (by its id) that this screen has made or
+     * applied. A line keeps its id when one of its ends moves, and a move is its remove
+     * and its add again: when two people move the same line's end at once, the later
+     * move (in the room's order) wins on every screen, and an earlier one arriving after
+     * it is not applied (see staleLineChange).
+     */
+    private lineStamps;
     /** When this client last handed its host a change to the document (see noteHostChange). */
     private hostChangeAt;
     /** Connection/user payload returned by the host's onInitCollaboration */
@@ -255,6 +263,12 @@ export declare class Collab {
      * room has been told. A client that joins after replays the note from there on.
      */
     private writeTrades;
+    /**
+     * An add or remove of a line from the room that is older than the latest one this
+     * screen has made or applied for that line: someone else's move of the line's end
+     * that lost to a later one. True means skip it; otherwise it becomes the latest.
+     */
+    private staleLineChange;
     /** Stamp for a package this client is about to write: later than all it has seen. */
     private tick;
     private sawTime;

@@ -212,3 +212,24 @@
   opacity: 1;
   pointer-events: all;
 }
+/* The mark on each end: hollow circle = follows its note, filled square = pinned
+   to a spot on its edge, hollow diamond = free on the canvas. */
+.connector-handle-glyph {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+.connector-handle-glyph.connector-handle--revealed {
+  opacity: 1;
+}
+.connector-handle:focus {
+  outline: none;
+}
+.connector-handle:focus-visible {
+  stroke: #1f6feb;
+  stroke-width: 3;
+  stroke-dasharray: 3 2;
+}
+[data-line-tool="on"] svg {
+  cursor: crosshair;
+}

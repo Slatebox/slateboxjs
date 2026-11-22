@@ -124,17 +124,24 @@ export function packagesForOperation(operation: SlateOperation, before: StoredSl
     case "update_connections":
       return (operation.connectionIds || []).flatMap((id): any[] => {
         const association = connectorsAfter.get(id);
+        const was = connectorsBefore.get(id);
         if (!association) return [];
-        if (operation.changes?.toPoint !== undefined) {
-          // A free end is redrawn at its new point.
+        const changes = operation.changes || {};
+        const moved = ["toNote", "fromNote", "toPoint", "fromPoint"].some((key) => changes[key] !== undefined);
+        if (moved && was) {
+          // An end moved to another note or a point: the line is drawn again where it now is,
+          // under the same id (with its pins and look).
           return [
-            { type: "removeRelationship", data: { id, parentId: association.parentId, childId: association.childId } },
+            { type: "removeRelationship", data: { id, parentId: was.parentId, childId: was.childId } },
             { type: "addRelationship", data: { ...association } },
           ];
         }
-        return Object.keys(operation.changes || {}).map((prop) => ({
+        const props = Object.keys(changes).flatMap((prop) =>
+          prop === "ends" ? ["sourceAnchor", "targetAnchor"] : prop === "fromEnd" ? ["sourceAnchor"] : prop === "toEnd" ? ["targetAnchor"] : [prop],
+        );
+        return [...new Set(props)].map((prop) => ({
           type: "onLinePropertiesChanged",
-          data: { id: association.parentId, associationId: id, prop, val: association[prop] },
+          data: { id: association.parentId, associationId: id, prop, val: association[prop] ?? null },
         }));
       });
     case "arrange_nodes": {
