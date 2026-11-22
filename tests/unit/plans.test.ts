@@ -80,6 +80,8 @@ describe('the seven time rules', () => {
     expect(verdict).toEqual({ ok: true, warnings: ['That would run until Fri 11 Dec; launch is Fri 11 Dec.'.replace('That would run until Fri 11 Dec', 'QA would run until Tue 15 Dec')] })
     // Back to a hard line while QA is past it: the plan can't be read that way, so the edit is refused.
     expect(refused(slipped, [{ kind: 'set_rule', rule: ruleId(plan, 'deadline'), severity: 'refuse' }])).toBe('QA would run until Tue 15 Dec; launch is Fri 11 Dec.')
+    // A slip said far past the hard line (chat, exec) is refused in the line's words, as the drag is.
+    expect(refused(plan, [{ kind: 'set_task', card: 'QA', lag: 30 }])).toMatch(/^QA would run until \w{3} \d+ \w{3}; launch is Fri 11 Dec\.$/)
   })
 
   it('stop instead of push: a slip stops at the tasks waiting on it, and holds them where they are', () => {
@@ -172,6 +174,22 @@ describe('the seven time rules', () => {
     const stop = ok(plan, [{ kind: 'set_rule', rule: ruleId(plan, 'cascade'), onConflict: 'stop' }, { kind: 'add_rule', rule: { kind: 'locked', cards: ['QA'] } }])
     expect(behaviourEditsBetween(plan, stop)).toEqual([{ kind: 'add_rule', rule: { kind: 'locked', cards: [{ id: 'qa' }] } }, { kind: 'set_rule', rule: 'rule-3', onConflict: 'stop' }])
   })
+
+  it('a whole-board save keeps what no edit changes: the first day (a lock or a freeze is not slid by it), the line’s name, and rules change on their own', () => {
+    const locked = rule(launch(), { kind: 'locked', cards: ['QA'] })
+    expect(checkWorkshopReplacement(locked, { ...locked, clock: { origin: '2026-12-07' } })).toBe('A plan keeps its first day. Move tasks, or launch, instead.')
+    const undated = rule(validateWorkshop({ ...launch(), behaviour: { version: 1, rev: 0, rules: [] } }), { kind: 'locked', cards: ['QA'] })
+    expect(checkWorkshopReplacement(undated, { ...undated, clock: undefined })).toBe('A plan keeps its first day. Move tasks, or launch, instead.')
+    expect(checkWorkshopReplacement(launch(), { ...launch(), launch: { day: 18, name: 'go-live' } })).toBe('A plan keeps what it calls its line.')
+    // A rule added and a task moved in one save: the move would never be checked by the rule that came with it.
+    const plan = launch()
+    const freeze = ok(plan, [{ kind: 'add_rule', rule: { kind: 'blackout', start: '2026-11-23', end: '2026-12-31', label: 'freeze' } }])
+    const both = { ...freeze, cards: freeze.cards.map(card => card.id === 'copy' ? { ...card, lag: 2 } : card) }
+    expect(checkWorkshopReplacement(plan, both)).toBe('Change the rules on their own, then move tasks.')
+    expect(checkWorkshopReplacement(plan, freeze)).toBeNull()
+    // Moving a task on its own still answers to the rules.
+    expect(checkWorkshopReplacement(freeze, both)).toMatch(/^Copy would run into freeze/)
+  })
 })
 
 describe('a phrase changes the next drag (headless Dragology replay)', () => {
@@ -250,6 +268,22 @@ describe('the hiring plan with runway', () => {
     expect(legalRuns(floor, 'ae-2', 'lag')[0][0]).toBeGreaterThan(0)
     // Raising a band's cost is a change of money, not a move: the floor still holds against later moves.
     expect(refused(floor, [{ kind: 'set_band_cost', band: 'AE', monthly: 30000 }])).toMatch(/^That takes runway to 1\d\.\d months\. Runway stays above 15 months\.$/)
+    expect(refused(floor, [{ kind: 'set_funding', day: 400 }])).toMatch(/^That takes runway to \d+\.\d months\. Runway stays above 15 months\.$/)
+    expect(refused(floor, [{ kind: 'add_card', lane: 'Sales', label: 'AE #3' }])).toMatch(/^That takes runway to 14\.\d months\. Runway stays above 15 months\.$/)
+  })
+
+  it('a whole-board save keeps the money no edit changes: cash, burn, currency, the round’s size and the bands; a band’s cost and the round’s day still answer to the floor', () => {
+    const plan = rule(hiring(), { kind: 'deadline', at: 'runway', floor: 15 })
+    const fixed = 'A hiring plan keeps its cash, burn, round and role bands. Say what a band costs, or when the round closes, instead.'
+    for (const change of [{ cash: 5000000 }, { burn: 1 }, { currency: '€' }, { weeks: 26 }, { funding: { day: 210, amount: 9000000 } }, { funding: undefined },
+      { bands: plan.hiring!.bands.map((band, i) => i ? band : { ...band, label: 'Staff eng' }) }]) {
+      expect(checkWorkshopReplacement(plan, { ...plan, hiring: { ...plan.hiring!, ...change } as never })).toBe(fixed)
+    }
+    const pricier = { ...plan, hiring: { ...plan.hiring!, bands: plan.hiring!.bands.map(band => band.id === 'ae' ? { ...band, monthly: 30000 } : band) } }
+    expect(checkWorkshopReplacement(plan, pricier)).toMatch(/^That takes runway to 1\d\.\d months\. Runway stays above 15 months\.$/)
+    const cheaper = { ...plan, hiring: { ...plan.hiring!, bands: plan.hiring!.bands.map(band => band.id === 'ae' ? { ...band, monthly: 9000 } : band) } }
+    expect(checkWorkshopReplacement(plan, cheaper)).toBeNull()
+    expect(checkWorkshopReplacement(plan, { ...plan, hiring: { ...plan.hiring!, funding: { ...plan.hiring!.funding!, day: 400 } } })).toMatch(/Runway stays above 15 months\.$/)
   })
 
   it('cost is per role band, never per person: a salary on a hire does not pass', () => {

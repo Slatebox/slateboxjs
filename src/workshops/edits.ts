@@ -889,7 +889,7 @@ function fixedBusinessField(before: Workshop, after: Workshop): string | null {
     if (moved) return `${moved.label} keeps its floor and cap. Move money between teams instead.`
   }
   if (kind === 'launch-plan' && before.lanes.some(lane => lane.capacity !== after.lanes.find(item => item.id === lane.id)!.capacity)) return sentences.launchLanes
-  return null
+  return (kind && workshopRules(kind).fixed?.(before, after)) || null
 }
 
 const boardNames: Record<WorkshopBoardKind, string> = {

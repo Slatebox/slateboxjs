@@ -40,6 +40,22 @@ export function planProblem(before: Workshop, after: Workshop, cardId?: string):
 }
 
 /**
+ * What a whole-board save may not change on a plan, because no edit does: its first day (moving it would
+ * slide every task past its locks and freezes), what it calls its line, a hiring plan's cash, burn,
+ * currency, weeks, the round's size and its bands (a band's cost and the round's day have their edits,
+ * and answer to the rules). Rules change on their own, never in the save that moves a task.
+ */
+export function planFixed(before: Workshop, after: Workshop): string | null {
+  const say = JSON.stringify
+  if (say(before.clock) !== say(after.clock)) return 'A plan keeps its first day. Move tasks, or launch, instead.'
+  if (before.launch?.name !== after.launch?.name) return 'A plan keeps what it calls its line.'
+  const money = (board: Workshop) => { const h = board.hiring; return say(h && [h.cash, h.burn, h.currency, h.weeks, h.funding?.amount, h.bands.map(band => [band.id, band.label, band.lane])]) }
+  if (money(before) !== money(after)) return 'A hiring plan keeps its cash, burn, round and role bands. Say what a band costs, or when the round closes, instead.'
+  const tasks = (board: Workshop) => say(board.cards.map(card => [card.id, card.laneId, card.lag, card.duration, card.dependsOn, card.band]))
+  return say(before.behaviour?.rules) !== say(after.behaviour?.rules) && tasks(before) !== tasks(after) ? 'Change the rules on their own, then move tasks.' : null
+}
+
+/**
  * One task changed (its lag, length or team), as the plan's rules have it: a slip that stops holds the
  * tasks waiting on it. The board that results, or the sentence of the rule it breaks.
  */
@@ -90,7 +106,7 @@ export function validateLaunchPlan(board: Workshop): string | null {
   const hard = launchHard(board)
   for (const card of board.cards) {
     if (!Number.isInteger(card.duration) || card.duration! < 1 || card.duration! > 60) return 'A task takes 1 to 60 days.'
-    if (!Number.isInteger(card.lag ?? 0) || (card.lag ?? 0) < 0 || (card.lag ?? 0) > (hard ? day : 120)) return 'A task waits 0 days or more, and no later than launch.'
+    if (!Number.isInteger(card.lag ?? 0) || (card.lag ?? 0) < 0 || (card.lag ?? 0) > 120) return 'A task waits 0 days or more, and no later than launch.'
     if ((card.dependsOn?.length ?? 0) > 3) return 'A task waits on up to 3 others.'
     if (card.dependsOn?.includes(card.id)) return 'A task can\'t wait on itself.'
   }
@@ -277,6 +293,7 @@ export const launchPlanRules: BusinessBoardRules = {
   cards: [12, 'A launch plan holds up to 12 tasks.'],
   rulebook: launchFamily,
   drags: planDrags,
+  fixed: planFixed,
   words: planWords,
   readCard(raw, card, read) {
     card.duration = amountOf(raw.duration, 1, 60, 'A task takes 1 to 60 days.')
