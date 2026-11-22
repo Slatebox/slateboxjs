@@ -52,7 +52,9 @@ export interface Connection {
   lineEffect?: string;
   /** "solid" (the default), "dashed" or "dotted". */
   lineDash?: LineDash;
-  label?: string; // Optional text label centered on the edge (Miro-style).
+  label?: string; // Optional text label on the edge (Miro-style), centred unless labelPosition says otherwise.
+  /** Where the label sits along the line, 0.05 (its start) to 0.95 (its end); the middle when unset. */
+  labelPosition?: number;
   // Edge-pin mode: normalized local anchor {x,y} in 0..1 on source/target.
   // Omitted/undefined = auto-flow (endpoint re-solves to the nearest edge).
   sourceAnchor?: { x: number; y: number } | null;
@@ -325,7 +327,8 @@ export class Connector {
         connectableObj.setLineColor(connection.lineColor);
       }
       this.applyLineAppearance(connectableObj, connection);
-      // Render the edge label (if this connection carries one).
+      // Render the edge label (if this connection carries one), where along the line it says.
+      connectableObj.labelAt = connection.labelPosition;
       if (connection.label && connectableObj.setLabel) {
         connectableObj.setLabel(connection.label);
       }
@@ -526,6 +529,10 @@ export class Connector {
         // Edge label (Miro-style): set/update/clear the text centered on the line.
         if ((updates as any).label != null && c.setLabel) {
           c.setLabel((updates as any).label);
+        }
+        if ("labelPosition" in (updates as any)) {
+          c.labelAt = (updates as any).labelPosition;
+          if (c.positionLabel) c.positionLabel();
         }
         // Line type: pane uses bezier/orthogonal; connectable uses
         // straight/curved/orthogonal.

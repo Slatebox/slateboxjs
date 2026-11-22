@@ -29,6 +29,10 @@ export const CONNECTOR_KEYS: Record<string, ConnectorKey> = {
   lineCurveType: { spec: { type: "enum", values: LINE_CURVE_TYPES }, description: "Curve type." },
   lineCurviness: { spec: { type: "number", min: 0, max: 1 }, description: "How much the line bends." },
   lineDash: { spec: { type: "enum", values: LINE_DASHES }, description: "Solid, dashed or dotted line." },
+  labelPosition: {
+    spec: { type: "number", min: 0.05, max: 0.95 },
+    description: "Where the label sits along the line, from near its start (0.05) to near its end (0.95); the middle (0.5) when unset.",
+  },
   showParentArrow: { spec: { type: "boolean" }, description: "Arrowhead at the starting note." },
   showChildArrow: { spec: { type: "boolean" }, description: "Arrowhead at the far end." },
   ends: {

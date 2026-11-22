@@ -148,6 +148,7 @@ export interface V1Association {
   lineColor?: string;
   lineEffect?: string;
   lineDash?: "solid" | "dashed" | "dotted";
+  labelPosition?: number;
   lineOpacity?: number;
   lineType?: string;
   lineCurviness?: number;
@@ -178,6 +179,8 @@ export interface V2Association {
   sourceAnchor?: { x: number; y: number } | null;
   targetAnchor?: { x: number; y: number } | null;
   label?: string;
+  /** Where the label sits along the line (0.05-0.95); the middle when unset. */
+  labelPosition?: number;
 }
 
 /** Convert v1 association to v2 format */
@@ -202,6 +205,7 @@ export function v1AssociationToV2(v1: Record<string, any>): V2Association {
     sourceAnchor: v1.sourceAnchor ?? null,
     targetAnchor: v1.targetAnchor ?? null,
     label: v1.label ?? "",
+    ...(typeof v1.labelPosition === "number" && { labelPosition: v1.labelPosition }),
   };
 }
 
@@ -229,6 +233,7 @@ export function v2AssociationToV1(v2: V2Association): Record<string, any> {
     sourceAnchor: v2.sourceAnchor ?? null,
     targetAnchor: v2.targetAnchor ?? null,
     label: v2.label ?? "",
+    ...(typeof v2.labelPosition === "number" && { labelPosition: v2.labelPosition }),
   };
 }
 

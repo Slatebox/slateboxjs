@@ -318,7 +318,9 @@ function connectable(options, elmTarget) {
     try {
       const total = con.connector.node.getTotalLength();
       if (!total || !isFinite(total)) return;
-      const mid = con.connector.node.getPointAtLength(total / 2);
+      // Where along the line the label sits: the middle, unless the line names a place (0.05-0.95).
+      const at = typeof con.labelAt === "number" && isFinite(con.labelAt) ? Math.min(0.95, Math.max(0.05, con.labelAt)) : 0.5;
+      const mid = con.connector.node.getPointAtLength(total * at);
       con.label.center(mid.x, mid.y);
       if (con.labelBg) {
         const bb = con.label.bbox();

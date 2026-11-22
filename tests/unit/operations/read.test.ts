@@ -98,6 +98,7 @@ describe("open-slate: every key a write accepts reads back equal", () => {
       lineCurveType: "quadratic",
       lineCurviness: 0.4,
       lineDash: "dotted",
+      labelPosition: 0.3,
       showParentArrow: true,
       showChildArrow: false,
     };
