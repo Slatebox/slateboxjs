@@ -152,8 +152,12 @@ export interface WorkshopEditRefusal {
 export type WorkshopEditResult = { workshop: Workshop; report: WorkshopEditReport } | { refused: WorkshopEditRefusal }
 
 export interface WorkshopEditOptions {
-  /** What “this” means: the lane or card selected on the canvas. */
-  selection?: { kind: 'lane' | 'card'; id: string } | null
+  /**
+   * What “this” means: the lane or card selected on the canvas, or the whole board in focus (the
+   * gear's "Change this board"). With the board in focus, “this lane” and “this card” still ask
+   * for one to be selected: the board is never read as one of its lanes or cards.
+   */
+  selection?: { kind: 'lane' | 'card' | 'board'; id: string } | null
   /** Who makes a rule edit, and how: the audit line every rule keeps. Left out, an agent over exec. */
   actor?: { by: string; via: 'chat' | 'exec' | 'preset' }
   /** When, as an ISO time (for tests and replays). Left out, now. */

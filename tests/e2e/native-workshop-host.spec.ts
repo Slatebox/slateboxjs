@@ -206,6 +206,68 @@ test.describe('onSelect', () => {
   })
 })
 
+// Boards S2a (plan 2026-11-22): on a phone or from the keyboard there is no hover, so selecting a
+// lane is how the host offers "Change this board". A tap on a lane's caption or on the empty part
+// of its column selects that lane's header, as a tap on the header does. A drag there is not a tap.
+test.describe('a tap on a lane\'s caption or column', () => {
+  test('selects the lane, and the host hears it as the lane', async ({ page }) => {
+    await open(page)
+    await click(page, 'caption-later')
+    await expect.poll(async () => (await journal(page)).selections.at(-1)).toEqual({ laneId: 'later' })
+    await page.waitForTimeout(450)
+    const spot = await inLane(page, 'now')
+    await page.mouse.click(spot.x, spot.y)
+    await expect.poll(async () => (await journal(page)).selections.at(-1)).toEqual({ laneId: 'now' })
+    expect(await page.evaluate(() => (window as any).native.slate.getSelectedNodes().map((n: any) => n.id))).toEqual(['lane-now'])
+    // Empty canvas still leaves it.
+    await page.waitForTimeout(450)
+    await page.mouse.click(900, 620)
+    await expect.poll(async () => (await journal(page)).selections.at(-1)).toBe(null)
+  })
+
+  test('a drag that starts on a column selects nothing', async ({ page }) => {
+    await open(page)
+    const spot = await inLane(page, 'later')
+    await page.mouse.move(spot.x, spot.y)
+    await page.mouse.down()
+    await page.mouse.move(spot.x + 60, spot.y + 40, { steps: 6 })
+    await page.mouse.up()
+    await page.waitForTimeout(300)
+    expect((await journal(page)).selections).toEqual([])
+  })
+})
+
+// The gear's focus: the host says which board the chat is about; the board marks its notes so a
+// kit (S2b's timeline handles) and assistive tools can tell. Focus is the host's to give and take.
+test.describe('setFocused', () => {
+  test('marks every note of the board while it is in focus, and keeps the mark through a redraw', async ({ page }) => {
+    await open(page)
+    const marked = () => page.evaluate(() => {
+      const { board, slate } = (window as any).native
+      const mine = slate.nodes.allNodes.filter((n: any) => /^(lane|card|caption|column)-/.test(n.id))
+      return { focused: board.focused, all: mine.length, marked: mine.filter((n: any) => n.svgGroup.node.hasAttribute('data-workshop-focused')).length,
+        plain: slate.nodes.one('plain').svgGroup.node.hasAttribute('data-workshop-focused') }
+    })
+    expect(await marked()).toMatchObject({ focused: false, marked: 0, plain: false })
+    await page.evaluate(() => (window as any).native.board.setFocused(true))
+    const on = await marked()
+    expect(on.focused).toBe(true)
+    expect(on.marked).toBe(on.all)
+    expect(on.plain).toBe(false)
+    // A new model (a lane more) is drawn in focus too.
+    await page.evaluate(async () => {
+      const { board } = (window as any).native
+      board.update({ ...board.value, lanes: [...board.value.lanes, { id: 'blocked', label: 'Blocked' }] })
+      await board.whenDrawn()
+    })
+    const grown = await marked()
+    expect(grown.all).toBeGreaterThan(on.all)
+    expect(grown.marked).toBe(grown.all)
+    await page.evaluate(() => (window as any).native.board.setFocused(false))
+    expect(await marked()).toMatchObject({ focused: false, marked: 0 })
+  })
+})
+
 test.describe('one canvas', () => {
   test('column and caption notes are never a presentation stop, a tab stop or a button', async ({ page }) => {
     await open(page)

@@ -240,6 +240,15 @@ export interface AttachedWorkshop {
   readonly bounds: { x: number; y: number; width: number; height: number }
   /** Resolves once the artwork for the current model is on the slate. */
   whenDrawn(): Promise<void>
+  /**
+   * Put the board in focus (true) or take it out (false): the host's "Change this board" is about
+   * this board. Every note of the board carries `data-workshop-focused` while it is in focus, through
+   * redraws, so a kit can show what only a focused board shows and assistive tools can tell. Focus
+   * changes nothing a person can move; it is the host's to give and to take away.
+   */
+  setFocused(focused: boolean): void
+  /** Whether the board is in focus (setFocused). */
+  readonly focused: boolean
 }
 
 type Kind = 'lane' | 'card' | 'caption' | 'column' | 'image' | 'handle' | 'gauge'
@@ -337,6 +346,11 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   let proposed = new Set<string>()
   /** What onSelect was last told, as a string to compare. */
   let told: string | null = null
+  /** The host has put this board in focus (setFocused). */
+  let focused = false
+  /** A press on a lane's caption or column that may be a tap: it selects that lane when it ends where it began. */
+  let tapping: { pointerId: number; laneId: string; x: number; y: number } | null = null
+  let tapTimer: ReturnType<typeof setTimeout> | null = null
   /** A selected note is being redrawn after undo, redo or a load; its selection is about to come back. */
   let reselecting = false
   /**
@@ -807,9 +821,41 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     refocus()
   }
   if (layer) slate.element?.addEventListener?.('pointerover', onHover)
-  // Any press on the slate ends a keyboard-staged move: the person has moved on.
-  const onPress = () => { if (staged) clearStaged() }
+  // Any press on the slate ends a keyboard-staged move: the person has moved on. A press on a lane's
+  // caption or the empty part of its column may be a tap, which selects the lane as a tap on its
+  // header does: on a phone or from the keyboard, selecting a lane is how a host offers the board's
+  // own controls (Boards S2a). A press that moves is a pan or a marquee, never a tap, and a tap
+  // followed by another press is a double-click (a note made in the lane), so the lane is selected
+  // only once the double-click's time has passed.
+  const onPress = (event?: PointerEvent) => {
+    if (staged) clearStaged()
+    tapping = null
+    if (tapTimer) { clearTimeout(tapTimer); tapTimer = null }
+    // Captions and columns take no pointer of their own (they are drawn under the cards), so the
+    // press lands on the canvas: what it is on is found by where it is.
+    if (!event || destroyed || (event.target as Element | null)?.closest?.('[data-node-id]') || typeof slate.clientToWorld !== 'function') return
+    const parts = value.lanes.flatMap(lane => [workshopNodeIds.caption(lane.id), workshopNodeIds.column(lane.id)])
+      .map(name => owned.get(noteId(name))).filter(Boolean)
+    const hit = parts.length ? slate.hitTestNodes?.(slate.clientToWorld({ x: event.clientX, y: event.clientY }), parts, { padding: 0 }) : null
+    const part = hit ? kindOf(hit.id) : null
+    if (part) tapping = { pointerId: event.pointerId, laneId: part.key, x: event.clientX, y: event.clientY }
+  }
+  const onLift = (event: PointerEvent) => {
+    const tap = tapping
+    tapping = null
+    if (!tap || event.pointerId !== tap.pointerId || Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 6) return
+    tapTimer = setTimeout(() => {
+      tapTimer = null
+      if (destroyed || held || grip || !value.lanes.some(lane => lane.id === tap.laneId)) return
+      if ((slate.getSelectedNodes?.() ?? []).length || slate.element?.ownerDocument?.querySelector?.('.sb-inline-editor')) return
+      const lane = owned.get(noteId(workshopNodeIds.lane(tap.laneId)))
+      if (lane) slate.selectNodes?.([lane])
+    }, 350)
+  }
+  const onLost = () => { tapping = null }
   slate.element?.addEventListener?.('pointerdown', onPress, true)
+  slate.element?.ownerDocument?.addEventListener?.('pointerup', onLift, true)
+  slate.element?.ownerDocument?.addEventListener?.('pointercancel', onLost, true)
   draw(value, { animate: false })
 
   // ─── Rules ───────────────────────────────────────────────────────
@@ -1828,6 +1874,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         if (label && node.svgGroup.node.getAttribute('aria-label') !== label) node.svgGroup.node.setAttribute('aria-label', label)
         if (proposed.has(id)) node.svgGroup.node.setAttribute('data-workshop-proposed', '')
         else node.svgGroup.node.removeAttribute('data-workshop-proposed')
+        node.svgGroup.node.toggleAttribute?.('data-workshop-focused', focused)
         // What the outline colours say, said in the document too: which lanes take the card in hand.
         const part = kindOf(id)
         if (part?.kind === 'column') {
@@ -1875,18 +1922,18 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const selected: any[] = destroyed ? [] : slate.getSelectedNodes?.() ?? []
     return selected.length === 1 && owned.get(selected[0].id) === selected[0] ? focusOfNote(selected[0].id) : null
   }
-  let focused: string | null = null
+  let layerFocus: string | null = null
   /** The selection or the pointer moved to another card: the layer redraws (a plan's grips follow). */
   function refocus() {
     if (destroyed || !layer || !layerShown) return
-    if (focusNow() === focused) return
+    if (focusNow() === layerFocus) return
     paintLayer(layerShown)
   }
 
   function paintLayer(shown: Workshop) {
     if (layer) {
       layerShown = shown
-      focused = focusNow()
+      layerFocus = focusNow()
       // Under every note but the lane columns, drawn from what is on show.
       // The lane column drawn last (columns are sent to the back one by one, so not the last lane's).
       const above = value.lanes.map(lane => owned.get(noteId(workshopNodeIds.column(lane.id)))?.svgGroup?.node as Element | undefined)
@@ -1894,7 +1941,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const seen = slate.canvas?.viewbox?.()
       const view = seen && [seen.x, seen.y, seen.width, seen.height].every(Number.isFinite)
         ? { x: seen.x - origin.x, y: seen.y - origin.y, width: seen.width, height: seen.height } : null
-      layer.draw(value, shown === value ? null : shown, { origin, layout: drawnLayout, above, view, announce: text => slate.announce?.(text), focus: focused,
+      layer.draw(value, shown === value ? null : shown, { origin, layout: drawnLayout, above, view, announce: text => slate.announce?.(text), focus: layerFocus,
         clamp: grip?.last?.clampedReason ? { name: grip.name, text: grip.last.clampedReason }
           : held?.outcome.kind === 'candidate' && held.outcome.said ? { name: 'card-' + held.cardId, text: held.outcome.said }
           : !grip && gripRefusal ? { name: gripRefusal.name, text: gripRefusal.reason } : null,
@@ -2009,6 +2056,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const { width, height } = geometry(value)
       return { x: origin.x, y: origin.y, width, height }
     },
+    get focused() { return focused },
+    setFocused(next) {
+      if (destroyed) return
+      focused = Boolean(next)
+      for (const node of owned.values()) node.svgGroup?.node?.toggleAttribute?.('data-workshop-focused', focused)
+    },
     setLayout(next) {
       if (destroyed) throw new Error('This workshop has been detached.')
       const wantedLayout = layoutOf(next)
@@ -2061,6 +2114,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       destroyed = true
       if (gripRefusal) clearTimeout(gripRefusal.timer)
       slate.element?.removeEventListener?.('pointerdown', onPress, true)
+      if (tapTimer) clearTimeout(tapTimer)
+      slate.element?.ownerDocument?.removeEventListener?.('pointerup', onLift, true)
+      slate.element?.ownerDocument?.removeEventListener?.('pointercancel', onLost, true)
       stopWatchingSelection?.()
       if (layer) slate.element?.removeEventListener?.('pointerover', onHover)
       slate.withPolicyAuthority(() => {
