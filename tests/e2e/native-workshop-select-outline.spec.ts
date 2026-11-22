@@ -32,11 +32,31 @@ const selected = (page: Page) =>
 const client = (page: Page, world: { x: number; y: number }) =>
   page.evaluate(point => (window as any).native.slate.worldToClient(point) as { x: number; y: number }, world)
 
-/** Every painted selection outline on the slate: the single-note outline and the group box. */
+/**
+ * Every painted selection outline on the slate (the single-note outline and the group box), as
+ * the shape it draws on screen: its geometry (getBBox) through its screen transform. Not
+ * getBoundingClientRect: Firefox counts the stroke's widest possible miter in it (stroke-width x
+ * miterlimit / 2 per side: 1.5 x 4 / 2 = 3px round a 1.5px dashed outline), Chromium does not, so
+ * the same outline measured 6px wider in Firefox. `paintedSlack` checks that is all it was.
+ */
 const outlines = (page: Page) => page.evaluate(() =>
   [...document.querySelectorAll('#slate .svg_select_shape, #slate rect[stroke-dasharray="5,5"], #slate rect[stroke-dasharray="5 5"]')]
     .filter(el => (el as SVGGraphicsElement).getBoundingClientRect().width > 0)
-    .map(el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height } }))
+    .map(el => {
+      const shape = el as SVGGraphicsElement
+      const b = shape.getBBox(), m = shape.getScreenCTM()!
+      const corners = [[b.x, b.y], [b.x + b.width, b.y], [b.x, b.y + b.height], [b.x + b.width, b.y + b.height]]
+        .map(([x, y]) => ({ x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f }))
+      const xs = corners.map(p => p.x), ys = corners.map(p => p.y)
+      const r = shape.getBoundingClientRect()
+      const style = getComputedStyle(shape)
+      const stroke = parseFloat(style.strokeWidth) || 0, miter = parseFloat(style.strokeMiterlimit) || 4
+      const scale = Math.hypot(m.a, m.b)
+      const x = Math.min(...xs), y = Math.min(...ys), width = Math.max(...xs) - x, height = Math.max(...ys) - y
+      // How far the painted box reaches past the shape, and the most the stroke can account for.
+      const reach = Math.max(x - r.x, y - r.y, r.x + r.width - (x + width), r.y + r.height - (y + height))
+      return { x, y, width, height, reach, strokeReach: (stroke * Math.max(miter, 1) / 2) * scale + 0.5 }
+    }))
 /** How many resize and rotate handles are showing. */
 const handles = (page: Page) => page.evaluate(() =>
   [...document.querySelectorAll('#slate .svg_select_handle, #slate .svg_select_handle_rot')]
@@ -75,6 +95,8 @@ async function outlineFits(page: Page, id: string) {
   const shown = await outlines(page)
   expect(shown, 'one outline is showing').toHaveLength(1)
   const [outline] = shown
+  // Whatever the painted box adds is the outline's own stroke, nothing more.
+  expect(outline.reach, `painted outline reaches ${outline.reach}px past its shape`).toBeLessThanOrEqual(outline.strokeReach)
   for (const side of ['x', 'y', 'width', 'height'] as const) {
     expect(Math.abs(outline[side] - at![side]), `outline ${side} ${outline[side]} vs ${id} ${at![side]}`).toBeLessThan(4)
   }
