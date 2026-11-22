@@ -121,7 +121,11 @@ export interface WorkshopBoardKit {
     layer(slate: any): BoardLayer;
     /** Always used for this kind: the lane under the pointer is never the whole answer. */
     chooser: WorkshopCandidateChooser;
-    /** Why a drop at this point is refused (an illegal stage, a task that may not wait on that one); null when it is not. */
+    /**
+     * Why a drop at this point is refused (an illegal stage, a task that may not wait on that one); null when it is not.
+     * `lands`: the chooser still places the card where the rules let it (a plan's bar stops at its line or hops a
+     * freeze), and the reason is said beside it; when that place is where the card already is, the drop is refused.
+     */
     refusalAt(board: Workshop, cardId: string, grab: {
         x: number;
         y: number;
@@ -131,6 +135,7 @@ export interface WorkshopBoardKit {
     }, layout: WorkshopBoardLayout): {
         laneId: string;
         reason: string;
+        lands?: boolean;
     } | null;
     handleDrag(board: Workshop, handleId: string, grab: {
         x: number;

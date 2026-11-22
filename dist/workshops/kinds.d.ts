@@ -75,6 +75,44 @@ export interface BusinessBoardRules {
     };
     /** Make one of the kind's own edits (and add_card); null for an edit the generic reducer makes. */
     edit(board: Workshop, edit: WorkshopEdit, tools: BusinessEditTools): BusinessEditStep | null;
+    /** The kind's own rule kinds (a plan's time rules): the rulebook asks these for a board of this kind. */
+    rulebook?: RuleFamily;
+    /** Where every card may be dragged to, as one string: two boards drag alike when these are equal (a plan's legal runs). */
+    drags?(board: Workshop): string;
+    /**
+     * A plan's words, for a chat that does not load the plans itself: the day offset a date names ("Dec 20",
+     * "May", on or after `after`), its ISO date and short name, the lag that starts a hire on a day, a band by name.
+     */
+    words?: PlanWords;
+}
+export interface PlanWords {
+    day(board: Workshop, text: string, after?: number): number | null;
+    iso(board: Workshop, day: number): string;
+    name(board: Workshop, day: number): string;
+    startLag?(board: Workshop, cardId: string, day: number): number;
+    band?(board: Workshop, name: string): {
+        id: string;
+        label: string;
+        lane: string;
+    } | undefined;
+}
+/**
+ * Rule kinds a board kind brings with its rules module (timeRules.ts: deadline, overlap, snap,
+ * workdays, blackout, cascade, locked). The rulebook (behaviour.ts) reads, says and checks a board's
+ * rules through these, so its own chunk does not carry them.
+ */
+export interface RuleFamily {
+    /** add_rule's body keys per rule kind ("at floor"). */
+    keys: Record<string, string>;
+    /** A stored rule of one of these kinds, read (throws the sentence a person is given). */
+    read(rule: Record<string, unknown>, base: Record<string, unknown>, board: Workshop, laneId: (value: unknown) => string): Behaviour['rules'][number];
+    sentence(rule: Behaviour['rules'][number], board: Workshop): string;
+    /** A rulebook that contradicts itself, as a sentence. */
+    contradiction(behaviour: Behaviour, board: Workshop): string | null;
+    /** Whether `after` keeps the rules of `before`. */
+    check(before: Workshop, after: Workshop): BehaviourVerdict;
+    /** The note's lines for a board of this kind with no rulebook (its built-in rules). */
+    builtIn(board: Workshop): string[];
 }
 /** Plug a kind's rules into the gate. Each rule module calls it once when it loads. */
 export declare function registerWorkshopRules(rules: BusinessBoardRules): void;
@@ -93,7 +131,7 @@ export interface RulebookHooks {
     laneLimit(board: Workshop, laneId: string): number | undefined;
     lines(board: Workshop): string[];
     dropLane(behaviour: Behaviour, laneId: string): Behaviour;
-    edit(board: Workshop, edit: WorkshopEdit, audit: RuleAudit, tools: Pick<BusinessEditTools, 'lane' | 'refuse' | 'done'>): BusinessEditStep;
+    edit(board: Workshop, edit: WorkshopEdit, audit: RuleAudit, tools: Pick<BusinessEditTools, 'lane' | 'card' | 'refuse' | 'done'>): BusinessEditStep;
     note(board: Workshop, box: {
         x: number;
         y: number;

@@ -1,9 +1,9 @@
 import e, { useState as D, useRef as q, useMemo as Re, useLayoutEffect as O, useEffect as Q, useId as Xe } from "react";
 import { DraggableRenderer as ne, translate as I, param as Qe, inOrder as Ve, Vec2 as Se, getElementPositionCheap as _e, dragSpecToBehavior as Ue } from "./dragology.mjs";
 import { handoffSummary as Le, reviewHandoff as ie, resolveHandoff as Ce, offlineHandoff as Ze, listeningRoom as ze, listeningRoomCaption as $e, workshopLayout as se, workshopToSlate as Je, workshopPositions as ce, releaseLoad as qe, laneColors as Oe, availableLanes as ee, moveWorkshopCard as de, workshopDestinations as et, workshopCandidate as Fe, canHangPanel as Ee, hangGalleryPanel as le, printFields as X, startupExperienceKind as tt, resolveWorkshopSignals as Be, workshopBudgetResult as We, interviews as nt, channels as rt, maxWorkshopCards as ot } from "./workshop-model.mjs";
-import { WORKSHOP_BOARD_KINDS as Kt, WorkshopReferenceError as Gt, addWorkshopBranch as jt, addWorkshopCard as Yt, addWorkshopLane as Xt, applyWorkshopEdits as Qt, attachWorkshop as Vt, behaviourNote as _t, businessBoardKinds as Ut, businessKind as Zt, checkWorkshopReplacement as Jt, countWord as Ot, createBudgetWorkshop as en, createInterviewWorkshop as tn, createLaneWorkshop as nn, createWorkshopMap as rn, decodeWorkshopFragment as on, describeFocusDarkroom as an, describeWorkshopEdits as ln, encodeWorkshopFragment as sn, industrialWorkshop as cn, initialFocusDarkroom as dn, isRuleEdit as pn, listed as un, moonGallery as fn, named as mn, nightTransfer as bn, normalizeFocusDarkroom as gn, normalizeListeningRoom as hn, normalizeMoonGallery as En, normalizeOfflineHandoff as xn, planStartupMove as yn, pointing as kn, registerRulebook as wn, registerWorkshopRules as vn, releasePlan as Mn, rulebook as Sn, rulebookLoaded as Ln, said as Cn, unquoted as zn, validateWorkshop as $n, workshopBoardKind as Wn, workshopCardAsNote as Nn, workshopCardAsNoteRefusal as Pn, workshopCardLookOf as Dn, workshopCardNoteText as In, workshopCardText as Rn, workshopEditKinds as qn, workshopFinder as Fn, workshopLaneCaption as Bn, workshopLanePlaces as An, workshopNodeIds as Tn, workshopNoteCandidate as Hn, workshopNoteRefusal as Kn, workshopPresentationLanes as Gn, workshopPresentationScenes as jn, workshopReferences as Yn, workshopRefusal as Xn, workshopRules as Qn, workshopRulesLoaded as Vn, workshopStandInId as _n, workshopTakesNotes as Un } from "./workshop-model.mjs";
+import { WORKSHOP_BOARD_KINDS as Kt, WorkshopReferenceError as Gt, addWorkshopBranch as jt, addWorkshopCard as Yt, addWorkshopLane as Xt, applyWorkshopEdits as Qt, attachWorkshop as Vt, behaviourNote as _t, businessBoardKinds as Ut, businessKind as Zt, checkWorkshopReplacement as Jt, countWord as Ot, createBudgetWorkshop as en, createInterviewWorkshop as tn, createLaneWorkshop as nn, createWorkshopMap as rn, decodeWorkshopFragment as on, describeFocusDarkroom as an, describeWorkshopEdits as ln, encodeWorkshopFragment as sn, industrialWorkshop as cn, initialFocusDarkroom as dn, isRuleEdit as pn, listed as un, moonGallery as fn, named as mn, nightTransfer as bn, normalizeFocusDarkroom as gn, normalizeListeningRoom as hn, normalizeMoonGallery as En, normalizeOfflineHandoff as xn, planStartupMove as yn, pointing as kn, registerRulebook as wn, registerWorkshopRules as vn, releasePlan as Mn, roundedBox as Sn, rulebook as Ln, rulebookLoaded as Cn, said as zn, unquoted as $n, validateWorkshop as Wn, workshopBoardKind as Nn, workshopCardAsNote as Pn, workshopCardAsNoteRefusal as Dn, workshopCardLookOf as In, workshopCardNoteText as Rn, workshopCardText as qn, workshopEditKinds as Fn, workshopFinder as Bn, workshopLaneCaption as An, workshopLanePlaces as Tn, workshopNodeIds as Hn, workshopNoteCandidate as Kn, workshopNoteRefusal as Gn, workshopPresentationLanes as jn, workshopPresentationScenes as Yn, workshopReferences as Xn, workshopRefusal as Qn, workshopRuleSchema as Vn, workshopRules as _n, workshopRulesLoaded as Un, workshopStandInId as Zn, workshopTakesNotes as Jn } from "./workshop-model.mjs";
 import { Slate as at } from "slateboxjs";
-import { D as Jn } from "./NoteDefaults-1xFW0br8.mjs";
+import { D as er } from "./NoteDefaults-1xFW0br8.mjs";
 function it(t, d, r) {
   return /* @__PURE__ */ e.createElement("g", { transform: `translate(${t} ${d}) scale(${r} ${r * 0.88})` }, /* @__PURE__ */ e.createElement("rect", { width: "142", height: "73", rx: "3", fill: "#b8d0c5" }), /* @__PURE__ */ e.createElement("path", { d: "M0 27L46 7h96v12H50L0 38Z", fill: "#728d81" }), /* @__PURE__ */ e.createElement("path", { d: "M12 38l36-17v43l-36 6z", fill: "#395c50" }), /* @__PURE__ */ e.createElement("path", { d: "M49 20h89v43H49z", fill: "#f1e3b8" }), /* @__PURE__ */ e.createElement("path", { d: "M57 33h45v30H57z", fill: "#557468" }), [37, 42, 47, 52, 57].map((l) => /* @__PURE__ */ e.createElement("path", { dragologyKey: "slat" + l, d: `M59 ${l}h41`, stroke: "#a5b6a3" })), /* @__PURE__ */ e.createElement("path", { d: "M0 69l49-7h93v11H0z", fill: "#84998a" }), /* @__PURE__ */ e.createElement("path", { d: "M12 73l40-7h65", fill: "none", stroke: "#e9b04e", strokeWidth: "2" }), /* @__PURE__ */ e.createElement("rect", { x: "111", y: "34", width: "19", height: "27", fill: "#d1a45c" }), /* @__PURE__ */ e.createElement("rect", { x: "116", y: "39", width: "9", height: "12", rx: "2", fill: "#38574b" }), /* @__PURE__ */ e.createElement("circle", { cx: "120", cy: "42", r: "2", fill: "#f0a466" }), /* @__PURE__ */ e.createElement("text", { x: "59", y: "30", fontSize: "8", fontWeight: "bold", fill: "#354e40" }, "GATE B"));
 }
@@ -908,7 +908,7 @@ function At({ value: t, onChange: d, onPreview: r, onSelectCard: l, onEditCard: 
   ))), R && /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("button", { type: "button", onClick: () => _(R.next, R.move) }, "Apply move"), /* @__PURE__ */ e.createElement("button", { type: "button", onClick: H }, "Cancel move"))));
 }
 export {
-  Jn as DEFAULT_NOTE_STYLE,
+  er as DEFAULT_NOTE_STYLE,
   Ft as FocusDarkroomBoard,
   It as ListeningRoomBoard,
   qt as MoonGalleryBoard,
@@ -970,37 +970,39 @@ export {
   Ce as resolveHandoff,
   Be as resolveWorkshopSignals,
   ie as reviewHandoff,
-  Sn as rulebook,
-  Ln as rulebookLoaded,
-  Cn as said,
+  Sn as roundedBox,
+  Ln as rulebook,
+  Cn as rulebookLoaded,
+  zn as said,
   tt as startupExperienceKind,
-  zn as unquoted,
-  $n as validateWorkshop,
-  Wn as workshopBoardKind,
+  $n as unquoted,
+  Wn as validateWorkshop,
+  Nn as workshopBoardKind,
   We as workshopBudgetResult,
   Fe as workshopCandidate,
-  Nn as workshopCardAsNote,
-  Pn as workshopCardAsNoteRefusal,
-  Dn as workshopCardLookOf,
-  In as workshopCardNoteText,
-  Rn as workshopCardText,
+  Pn as workshopCardAsNote,
+  Dn as workshopCardAsNoteRefusal,
+  In as workshopCardLookOf,
+  Rn as workshopCardNoteText,
+  qn as workshopCardText,
   et as workshopDestinations,
-  qn as workshopEditKinds,
-  Fn as workshopFinder,
-  Bn as workshopLaneCaption,
-  An as workshopLanePlaces,
+  Fn as workshopEditKinds,
+  Bn as workshopFinder,
+  An as workshopLaneCaption,
+  Tn as workshopLanePlaces,
   se as workshopLayout,
-  Tn as workshopNodeIds,
-  Hn as workshopNoteCandidate,
-  Kn as workshopNoteRefusal,
+  Hn as workshopNodeIds,
+  Kn as workshopNoteCandidate,
+  Gn as workshopNoteRefusal,
   ce as workshopPositions,
-  Gn as workshopPresentationLanes,
-  jn as workshopPresentationScenes,
-  Yn as workshopReferences,
-  Xn as workshopRefusal,
-  Qn as workshopRules,
-  Vn as workshopRulesLoaded,
-  _n as workshopStandInId,
-  Un as workshopTakesNotes,
+  jn as workshopPresentationLanes,
+  Yn as workshopPresentationScenes,
+  Xn as workshopReferences,
+  Qn as workshopRefusal,
+  Vn as workshopRuleSchema,
+  _n as workshopRules,
+  Un as workshopRulesLoaded,
+  Zn as workshopStandInId,
+  Jn as workshopTakesNotes,
   Je as workshopToSlate
 };

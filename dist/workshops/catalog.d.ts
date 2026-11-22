@@ -25,7 +25,7 @@ export interface CatalogEntry {
     synonyms: string[];
     build: {
         kind: WorkshopBoardKind;
-        sample?: 'launch-plan' | 'pipeline' | 'budget';
+        sample?: CatalogSample;
     };
     /** What a person says to add it: the first is the Add button's message. */
     addSay: string[];
@@ -36,7 +36,8 @@ export interface CatalogEntry {
     /**
      * What a person can do with it, each with the phrase that does it ("Say it like this"). Slots the app
      * fills from the live board and checks against its parser: {card}, {lane}, {other} (another lane),
-     * {busy} (a lane with cards), {ruled} (a lane with a limit rule).
+     * {busy} (a lane with cards), {ruled} (a lane with a limit rule); on a plan {later} (a date after its
+     * line), {dates} (a few days inside it), {month} (a month ahead) and {band} (a role band).
      */
     moves: CatalogMove[];
     limits: string[];
@@ -53,8 +54,9 @@ export declare const catalog: readonly CatalogEntry[];
 export declare function catalogEntry(id: string): CatalogEntry | undefined;
 /** The entries of a group (or all), in catalogue order. */
 export declare function catalogList(group?: CatalogGroup | 'all'): CatalogEntry[];
-/** A business board's sample, from slateboxjs/workshops/rules (sampleLaunchPlan, samplePipeline, sampleBudget): this chunk keeps no rules. */
-export type CatalogSamples = Partial<Record<'launch-plan' | 'pipeline' | 'budget', () => Workshop>>;
+/** The samples a business entry adds: from slateboxjs/workshops/rules (catalogSamples), so this chunk keeps no rules. */
+export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget';
+export type CatalogSamples = Partial<Record<CatalogSample, () => Workshop>>;
 /** The board an entry adds, as data, named after the topic when one is given. A business board needs its sample. */
 export declare function catalogPreset(id: string, topic?: string, samples?: CatalogSamples): Workshop;
 /**

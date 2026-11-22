@@ -1,8 +1,10 @@
 import type { Workshop } from './model';
 import type { WorkshopEdit, WorkshopRef } from './edits';
 import type { BusinessEditStep, BusinessEditTools } from './kinds';
-export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin';
+export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin' | TimeRuleKindId;
 export declare const ruleKindIds: readonly RuleKindId[];
+/** A plan's rule kinds (timeRules.ts, with the plans' rules): a launch plan's and a hiring plan's. */
+export type TimeRuleKindId = 'deadline' | 'overlap' | 'snap' | 'workdays' | 'blackout' | 'cascade' | 'locked';
 /** Who set a rule, when, and from where. Shown when a refusal is explained. */
 export interface RuleAudit {
     by: string;
@@ -25,6 +27,29 @@ export type RuleBody = {
 } | {
     kind: 'bin';
     lane: string;
+} | {
+    kind: 'deadline';
+    at: 'launch' | 'runway';
+    floor?: number;
+} | {
+    kind: 'overlap';
+    lane?: string;
+} | {
+    kind: 'snap';
+    unit: 'day' | 'week';
+} | {
+    kind: 'workdays';
+} | {
+    kind: 'blackout';
+    start: string;
+    end: string;
+    label: string;
+} | {
+    kind: 'cascade';
+    onConflict: 'push' | 'stop';
+} | {
+    kind: 'locked';
+    cards: string[];
 };
 export type BehaviourRule = RuleBody & {
     id: string;
@@ -39,8 +64,8 @@ export interface Behaviour {
     rules: BehaviourRule[];
 }
 export declare const maxBehaviourRules = 12;
-type Family = 'lanes' | 'pipeline' | null;
-/** Which boards take rules: lane boards and the sales pipeline (null for every other). */
+type Family = 'lanes' | 'pipeline' | 'time' | null;
+/** Which boards take rules: lane boards, the sales pipeline and the plans (null for every other). */
 export declare function behaviourFamily(board: Pick<Workshop, 'kind' | 'lanes' | 'experience'>): Family;
 export declare const emptyBehaviour: () => Behaviour;
 /** The board's rulebook, or an empty one. */
@@ -93,7 +118,7 @@ export type RuleInput = RuleBody & {
 export declare function nextRuleId(behaviour: Behaviour): string;
 /** The rulebook without the rules that name a lane (a lane removed takes its rules with it). */
 export declare function dropLaneRules(behaviour: Behaviour, laneId: string): Behaviour;
-type RuleTools = Pick<BusinessEditTools, 'lane' | 'refuse' | 'done'>;
+type RuleTools = Pick<BusinessEditTools, 'lane' | 'card' | 'refuse' | 'done'>;
 /** add_rule, set_rule and remove_rule: one rule at a time, the revision bumped, the audit line kept. */
 export declare function applyRuleEdit(board: Workshop, edit: WorkshopEdit, audit: RuleAudit, t: RuleTools): BusinessEditStep;
 export type WorkshopMoveCheck = {

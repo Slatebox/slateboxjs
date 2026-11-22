@@ -3,7 +3,7 @@ import { type WorkshopLimits } from './kinds';
 import { type WorkshopFinder } from './names';
 import type { RuleInput } from './behaviour';
 /** The kinds of board, each with its own rules. */
-export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget';
+export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan';
 /** Every kind of board, for a schema that names them (the app's Workshop record, an MCP tool). */
 export declare const WORKSHOP_BOARD_KINDS: readonly WorkshopBoardKind[];
 export declare function workshopBoardKind(board: Workshop): WorkshopBoardKind;
@@ -38,6 +38,7 @@ export type WorkshopEdit = {
     lag?: number;
     waitsOn?: WorkshopRef[];
     amount?: number;
+    band?: string;
 } | {
     kind: 'remove_card';
     card: WorkshopRef;
@@ -158,9 +159,19 @@ export type WorkshopEdit = {
     severity?: 'refuse' | 'warn';
     max?: number;
     to?: WorkshopRef[];
+    floor?: number;
+    onConflict?: 'push' | 'stop';
+    unit?: 'day' | 'week';
 } | {
     kind: 'remove_rule';
     rule: string;
+} | {
+    kind: 'set_band_cost';
+    band: string;
+    monthly: number;
+} | {
+    kind: 'set_funding';
+    day: number;
 };
 export type WorkshopEditKindName = WorkshopEdit['kind'];
 /** What one edit did: the sentence a person is told, and the ids it concerned or made. */
@@ -288,8 +299,16 @@ export interface WorkshopEditKind {
     /** What the other boards say. */
     refusals: Partial<Record<WorkshopBoardKind, string>>;
 }
-export declare const workshopEditKinds: readonly WorkshopEditKind[];
+export declare const workshopEditKinds: WorkshopEditKind[];
 export declare const isRuleEdit: (kind: string) => kind is "add_rule" | "set_rule" | "remove_rule";
+/**
+ * What add_rule's body may hold: the rulebook's kinds and keys. A rules module that brings its own
+ * (slateboxjs/workshops/plans) adds to these and to the table above as it loads.
+ */
+export declare const workshopRuleSchema: {
+    kinds: string[];
+    keys: Record<string, unknown>;
+};
 export interface WorkshopEditDescription {
     kind: WorkshopEditKindName;
     summary: string;
