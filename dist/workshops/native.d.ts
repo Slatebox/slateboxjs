@@ -309,6 +309,15 @@ export interface AttachedWorkshop {
     };
     /** Resolves once the artwork for the current model is on the slate. */
     whenDrawn(): Promise<void>;
+    /**
+     * Put the board in focus (true) or take it out (false): the host's "Change this board" is about
+     * this board. Every note of the board carries `data-workshop-focused` while it is in focus, through
+     * redraws, so a kit can show what only a focused board shows and assistive tools can tell. Focus
+     * changes nothing a person can move; it is the host's to give and to take away.
+     */
+    setFocused(focused: boolean): void;
+    /** Whether the board is in focus (setFocused). */
+    readonly focused: boolean;
 }
 /**
  * Draw `workshop` on `slate` as native notes and let people play it.
