@@ -70,7 +70,8 @@ export type WorkshopEdit =
   | { kind: 'set_target'; amount: number }
   | { kind: 'shift_budget'; from: WorkshopRef; to: WorkshopRef; amount: number }
   | { kind: 'add_rule'; rule: RuleInput }
-  | { kind: 'set_rule'; rule: string; on?: boolean; severity?: 'refuse' | 'warn'; max?: number; to?: WorkshopRef[]; floor?: number; onConflict?: 'push' | 'stop'; unit?: 'day' | 'week' }
+  | { kind: 'set_rule'; rule: string; on?: boolean; severity?: 'refuse' | 'warn'; max?: number; to?: WorkshopRef[]; floor?: number; onConflict?: 'push' | 'stop'; unit?: 'day' | 'week'
+      under?: string[]; by?: string; drop?: 'new-pile' | 'unsorted' }
   | { kind: 'remove_rule'; rule: string }
   // A hiring plan's (slateboxjs/workshops/plans adds them to the table as it loads).
   | { kind: 'set_band_cost'; band: string; monthly: number }

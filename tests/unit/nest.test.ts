@@ -6,7 +6,7 @@ import { applyWorkshopEdits, attachWorkshop, checkWorkshopReplacement, validateW
 import { behaviourLines } from '../../src/workshops/behaviour'
 import {
   byOrder, catalogSamples, checkNest, checkNestMove, discoveryTreeSample, nestDrags, nestEmptyDrop, nestKids, nestLegal, nestMeasure, nestPlace, nestRoots,
-  orderBetween, orderKeys, sortEvidenceSample, breakDownSample, incidentReviewSample,
+  orderBetween, orderKeys, sortEvidenceSample, breakDownSample, incidentReviewSample, behaviourEditsBetween,
 } from '../../src/workshops/rules'
 import { kitFor, nestEditsBetween, nestKit, nestLayout } from '../../src/boards'
 
@@ -249,6 +249,21 @@ describe('piles: counts, ranking and far drops', () => {
 })
 
 describe('edits and saves', () => {
+  it('set_rule changes a nest rule in place (its id kept), and a whole save of that change is made again by the reducer', () => {
+    const board = tree()
+    const id = ruleId(board, 'nests', 'solution')
+    const changed = ok(board, [{ kind: 'set_rule', rule: id, under: ['opportunity', 'outcome'] }])
+    expect(changed.behaviour!.rules.find(rule => rule.id === id)).toMatchObject({ kind: 'nests', role: 'solution', under: ['opportunity', 'outcome'] })
+    const capped = ok(evidence(), [{ kind: 'add_rule', rule: { kind: 'children', role: 'pile', max: 3 } as never }])
+    expect(ok(capped, [{ kind: 'set_rule', rule: ruleId(capped, 'children'), max: 5 }]).behaviour!.rules.find(rule => rule.kind === 'children')).toMatchObject({ max: 5 })
+    expect(ok(evidence(), [{ kind: 'set_rule', rule: ruleId(evidence(), 'rank'), by: 'arr' }]).behaviour!.rules.find(rule => rule.kind === 'rank')).toMatchObject({ by: 'arr' })
+    expect(refused(board, [{ kind: 'set_rule', rule: id, by: 'count' }])).toBe('That rule does not take by.')
+    // The server's whole save: the change said as its rule edits, made again, the same rules.
+    const edits = behaviourEditsBetween(board, changed)!
+    expect(edits).toEqual([{ kind: 'set_rule', rule: id, under: ['opportunity', 'outcome'] }])
+    expect(ok(board, edits).behaviour!.rules.map(({ set: _set, ...rule }) => rule)).toEqual(changed.behaviour!.rules.map(({ set: _set, ...rule }) => rule))
+  })
+
   it('chat-sized edits: roles, sources, fields, layout and removal moving cards up', () => {
     let board = evidence()
     board = ok(board, [{ kind: 'add_field', label: 'Seats' }, { kind: 'set_field', card: 'Seats are too expensive', field: 'Seats', value: 40 },

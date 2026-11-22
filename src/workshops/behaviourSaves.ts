@@ -8,7 +8,7 @@ const bodyKeys: Record<RuleKindId, string[]> = { capacity: ['where', 'max'], pat
   deadline: ['at', 'floor'], overlap: ['lane'], snap: ['unit'], workdays: [], blackout: ['start', 'end', 'label'], cascade: ['onConflict'], locked: ['cards'],
   nests: ['role', 'under'], children: ['max', 'role'], depth: ['max'], rank: ['by'], emptyDrop: ['drop'] }
 /** What set_rule changes on a rule; every other key is fixed under its id. */
-const settable = ['max', 'to', 'floor', 'onConflict', 'unit']
+const settable = ['max', 'to', 'floor', 'onConflict', 'unit', 'under', 'by', 'drop']
 const rulesOf = (board: Pick<Workshop, 'behaviour'>): Behaviour => board.behaviour ?? { version: 1, rev: 0, rules: [] }
 
 /**
@@ -47,9 +47,9 @@ export function behaviourEditsBetween(before: Workshop, after: Workshop): Worksh
         change.to = to.map(ref)
       }
     }
-    for (const key of ['floor', 'onConflict', 'unit']) {
+    for (const key of ['floor', 'onConflict', 'unit', 'under', 'by', 'drop', ...(rule.kind === 'capacity' ? [] : ['max'])]) {
       const now0 = (rule as unknown as Record<string, unknown>)[key]
-      if (now0 !== (old as unknown as Record<string, unknown>)[key]) change[key] = now0
+      if (JSON.stringify(now0) !== JSON.stringify((old as unknown as Record<string, unknown>)[key])) change[key] = now0
     }
     if (Object.keys(change).length) sets.push({ kind: 'set_rule', rule: rule.id, ...change } as WorkshopEdit)
   }

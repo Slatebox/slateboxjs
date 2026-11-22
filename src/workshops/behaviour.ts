@@ -430,15 +430,15 @@ export function applyRuleEdit(board: Workshop, edit: WorkshopEdit, audit: RuleAu
     if (edit.on !== undefined) rule.on = edit.on
     if (edit.severity !== undefined) rule.severity = edit.severity
     if (edit.max !== undefined) {
-      if (rule.kind !== 'capacity') return t.refuse('Only a lane limit takes a number.')
-      rule.max = edit.max
+      if (!('max' in rule)) return t.refuse('Only a limit takes a number.')
+      ;(rule as { max: number }).max = edit.max
     }
     if (edit.to !== undefined) {
       if (rule.kind !== 'path') return t.refuse('Only a path rule says where cards go.')
       rule.to = edit.to.map(lane)
     }
-    // A plan's rule: the line's floor, a slip's reach, the snap.
-    for (const key of ['floor', 'onConflict', 'unit'] as const) if (edit[key] !== undefined) {
+    // A plan's rule: the line's floor, a slip's reach, the snap; a nested board's: what a role sits under, how piles rank, a far drop.
+    for (const key of ['floor', 'onConflict', 'unit', 'under', 'by', 'drop'] as const) if (edit[key] !== undefined) {
       if (!(key in rule)) return t.refuse('That rule does not take ' + key + '.')
       ;(rule as Record<string, unknown>)[key] = edit[key]
     }

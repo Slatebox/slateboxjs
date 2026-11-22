@@ -124,7 +124,8 @@ const nestMoves = (piles: boolean, tree: CatalogMove[]) => [...(piles ? [move('a
 const breakDown = [move('set_rule', 'Make a warning a rule', 'Stop me when an action is not under a cause', 'nests'), move('add_card', 'Ask why once more', 'Add a cause called Unclear pricing page under {parent}')]
 /** A nested board: piles (Sort the evidence) or a tree (Discovery tree, Break down a problem, Incident review). */
 const nestEntry = (id: string, group: CatalogGroup, name: string, line: string, synonyms: string[], sample: CatalogSample, caption: string, steps: string[], moves: CatalogMove[]): CatalogEntry =>
-  ({ id, group, name, line, synonyms, build: { kind: 'nest', sample }, addSay: ['Add ' + article(name) + name.toLowerCase(), 'Add ' + article(name) + name.toLowerCase() + ' about {topic}'],
+  // A name that is a verb ("Sort the evidence") is added as a board to do it.
+  ({ id, group, name, line, synonyms, build: { kind: 'nest', sample }, addSay: [0, 1].map(i => 'Add ' + (/^(?:sort|break)\b/i.test(name) ? 'a board to ' : article(name)) + name.toLowerCase() + (i ? ' about {topic}' : '')),
     ...withMoves(moves), limits: ['Up to 40 cards. On a phone it is an outline.', laneLimits[0]], loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false })
 const article = (name: string) => /^pros/i.test(name) ? '' : /^[aeiou]/i.test(name) ? 'an ' : 'a '
 

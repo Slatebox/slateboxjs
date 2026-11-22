@@ -79,3 +79,12 @@ describe('catalogue', () => {
     expect(() => catalogPreset('sales-pipeline')).toThrow('Load slateboxjs/workshops/rules before adding a sales pipeline.')
   })
 })
+
+describe('the nested boards in the catalogue', () => {
+  it('a verb-named entry is added as a board to do it', () => {
+    expect(catalogEntry('sort-evidence')!.addSay[0]).toBe('Add a board to sort the evidence')
+    expect(catalogAddRequest('Add a board to sort the evidence about onboarding interviews')).toEqual({ id: 'sort-evidence', topic: 'onboarding interviews' })
+    expect(catalogAddRequest('Add a board to break down a problem')).toEqual({ id: 'break-down-problem' })
+    expect(catalogAddRequest('Add a discovery tree')).toEqual({ id: 'discovery-tree' })
+  })
+})

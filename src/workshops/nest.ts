@@ -472,7 +472,9 @@ extend({
       fields: { layout: { type: 'choice', values: ['clusters', 'tree'], about: 'clusters or tree.' } }, boards: nestOnly, refusals: {} },
   ],
   boards: { add_rule: nestOnly, set_rule: nestOnly, remove_rule: nestOnly },
-  fields: { add_card: { under: { ...cardField('Nest board: the card it goes under.'), optional: true }, role: text(24, 'Nest board: what it is.', true), source: text(60, 'Nest board: who said it.', true) } },
+  fields: { set_rule: { under: { type: 'refs', of: 'card', min: 1, max: 4, optional: true, about: 'Nest board: the roles a role may sit under (words, such as opportunity).' },
+    by: text(20, 'Nest board: what piles rank by: count, sources, or a number field.', true), drop: { type: 'choice', values: ['new-pile', 'unsorted'], optional: true, about: 'Nest board: where a far drop goes.' } },
+    add_card: { under: { ...cardField('Nest board: the card it goes under.'), optional: true }, role: text(24, 'Nest board: what it is.', true), source: text(60, 'Nest board: who said it.', true) } },
   rules: { kinds: ['nests', 'children', 'depth', 'rank', 'emptyDrop'],
     keys: { role: { type: 'string', minLength: 1, maxLength: 24 }, under: { type: 'array', items: { type: 'string', maxLength: 24 }, minItems: 1, maxItems: 4 },
       max: { type: 'integer', minimum: 1, maximum: 40 }, by: { type: 'string', maxLength: 20 }, drop: { enum: ['new-pile', 'unsorted'] } } },
@@ -687,6 +689,7 @@ export const nestRules: BusinessBoardRules = {
   rulebook: nestFamily,
   drags: nestDrags,
   fixed: nestFixed,
+  order: (board, laneId) => nestRoots(board, laneId).map(card => card.id),
   readCard(raw, card, read) {
     if (raw.parentId !== undefined) card.parentId = read.id(raw.parentId)
     if (raw.role !== undefined) card.role = roleOf(raw.role)
