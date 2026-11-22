@@ -75,11 +75,12 @@ const decisionPath = (): Workshop => ({ version: 1, title: 'Decision path', lane
 ], cards: [{ id: 'token', label: 'Our choice', laneId: 'question' }] })
 
 const move = (edit: WorkshopEditKindName, words: string, say: string, rule?: RuleKindId): CatalogMove => ({ edit, words, say, ...(rule && { rule }) })
-const laneMoves = (path = move('add_rule', 'Cards move one lane at a time', 'Cards move one lane at a time', 'path')) => [
-  move('add_card', 'Add a card', 'Add a card called Snacks to {lane}'), move('move_card', 'Move a card', 'Move {card} to {other}'),
+// The rule phrases first: they are what "Say it like this" shows of a board's behaviour.
+const laneMoves = (path = move('add_rule', 'Cards move one lane at a time', 'Cards move one lane at a time', 'path'), more: CatalogMove[] = []) => [
+  move('add_rule', 'Limit a lane', 'Let {busy} hold 1', 'capacity'), path, ...more,
+  move('move_card', 'Move a card', 'Move {card} to {other}'), move('add_card', 'Add a card', 'Add a card called Snacks to {lane}'),
   move('rename_card', 'Rename a card', 'Rename {card} to Review notes'), move('remove_card', 'Remove a card', 'Remove {card}'),
   move('rename_lane', 'Rename a lane', 'Rename {lane} to Blocked'), move('rename_workshop', 'Rename the board', 'Rename the board to Team review'),
-  move('add_rule', 'Limit a lane', 'Let {busy} hold 1', 'capacity'), path,
   move('set_rule', 'Warn instead of refusing', 'Just warn me when {ruled} is full'), move('remove_rule', 'Remove a rule', 'Remove the {ruled} rule'),
 ]
 const laneLimits = ['One board per slate for now; on a slate that has one, this opens on a new slate.', 'Up to 5 lanes and 24 cards.']
@@ -112,7 +113,7 @@ export const catalog: readonly CatalogEntry[] = [
   lanesEntry('team-board', 'track', 'Team board', 'Your working agreements, enforced: limits, paths, a bin', ['kanban', 'team board', 'working agreements', 'wip limit', 'to do doing done', 'track work', 'sprint'],
     'Review holds 2. It has 3.', ['Say “Let Review hold 2”: the board shows 3 of 2.', 'The next card dragged to Review is refused with that sentence.'], {
       addSay: ['Add a team board', 'Add a team board about {topic}'],
-      ...withMoves([...laneMoves(move('add_rule', 'Send cards one way', 'From {busy} cards go only to {other}', 'path')), move('add_rule', 'Add a bin', 'Make {lane} a bin', 'bin')]) }),
+      ...withMoves(laneMoves(move('add_rule', 'Send cards one way', 'From {busy} cards go only to {other}', 'path'), [move('add_rule', 'Add a bin', 'Make {lane} a bin', 'bin')])) }),
   { id: 'launch-plan', group: 'plan', name: 'Launch plan', line: 'Tasks over days, with a launch date', synonyms: ['launch', 'timeline', 'gantt', 'schedule', 'deadline', 'release date'],
     build: { kind: 'launch-plan', sample: 'launch-plan' }, addSay: ['Add a launch plan', 'Add a launch plan about {topic}'],
     ...withMoves([move('set_task', 'Stretch a task', 'Make {card} 3 days'), move('set_launch_day', 'Move launch', 'Move launch to day 30'),
