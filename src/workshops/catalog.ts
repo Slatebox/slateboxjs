@@ -29,7 +29,7 @@ export interface CatalogEntry {
   line: string
   /** The job it does, in the words people search with. */
   synonyms: string[]
-  build: { kind: WorkshopBoardKind; sample?: 'launch-plan' | 'pipeline' | 'budget' }
+  build: { kind: WorkshopBoardKind; sample?: CatalogSample }
   /** What a person says to add it: the first is the Add button's message. */
   addSay: string[]
   /** The workshop_edits this board offers, joined to the engine's edit table (not copied): each has a move with a phrase. */
@@ -39,7 +39,8 @@ export interface CatalogEntry {
   /**
    * What a person can do with it, each with the phrase that does it ("Say it like this"). Slots the app
    * fills from the live board and checks against its parser: {card}, {lane}, {other} (another lane),
-   * {busy} (a lane with cards), {ruled} (a lane with a limit rule).
+   * {busy} (a lane with cards), {ruled} (a lane with a limit rule); on a plan {later} (a date after its
+   * line), {dates} (a few days inside it), {month} (a month ahead) and {band} (a role band).
    */
   moves: CatalogMove[]
   limits: string[]
@@ -92,6 +93,25 @@ const lanesEntry = (id: string, group: CatalogGroup, name: string, line: string,
   loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false, ...extra,
 })
 const withMoves = (moves: CatalogMove[]) => ({ moves, edits: edits(moves), rules: rules(moves) })
+// A plan's moves, its rule phrases first: what "Say it like this" shows of how it behaves.
+const planMoves = (line: string) => line ? [move('add_rule', 'Let a task slip, in red', 'Let things slip past ' + line + ' but show them in red', 'deadline'),
+  move('set_rule', 'Stop a slip at what waits on it', 'Stop me instead of pushing dependent tasks', 'cascade'),
+  move('add_rule', 'Add a freeze', 'Nothing ships in code freeze, {dates}', 'blackout'), move('add_rule', 'Keep a team’s tasks apart', '{lane}’s tasks can’t overlap', 'overlap'),
+  move('add_rule', 'Lock a task', 'Lock {card}', 'locked'), move('add_rule', 'Snap to weeks', 'Snap to weeks', 'snap'),
+  move('set_task', 'Stretch a task', 'Make {card} 3 days'), move('set_launch_day', 'Move ' + line, 'Move ' + line + ' to {later}'),
+  move('link_tasks', 'Make a task wait on another', '{card} waits on {other card}'), move('add_card', 'Add a task', 'Add a task called Docs to {lane}'),
+  move('rename_card', 'Rename a task', 'Rename {card} to Review notes')]
+  : [move('add_rule', 'Keep a runway floor', 'Never let runway drop below 15 months', 'deadline'), move('add_rule', 'Lock a signed offer', 'Lock {card}', 'locked'),
+    move('set_rule', 'Stop a slip at what waits on it', 'Stop me instead of pushing dependent hires', 'cascade'),
+    move('set_task', 'Move a hire', 'Push {card} to {month}'), move('set_band_cost', 'Price a role band', '{band} costs $16k a month'),
+    move('set_funding', 'Move the round', 'Move the round to {month}'), move('add_card', 'Add a hire', 'Add a Designer to {lane}'), move('rename_card', 'Rename a hire', 'Rename {card} to Staff eng')]
+/** A plan: a launch plan, a customer go-live or a hiring plan. */
+const plan = (id: string, name: string, line: string, synonyms: string[], caption: string, steps: string[], sample: CatalogSample = 'launch-plan',
+  kind: WorkshopBoardKind = 'launch-plan'): CatalogEntry => ({ id, group: 'plan', name, line, synonyms, build: { kind, sample },
+  addSay: ['Add ' + article(name) + name.toLowerCase(), 'Add ' + article(name) + name.toLowerCase() + ' about {topic}'],
+  ...withMoves(planMoves(kind === 'hiring-plan' ? '' : sample === 'go-live' ? 'go-live' : 'launch')),
+  limits: [kind === 'hiring-plan' ? 'Cost is per role band, never per person. On a phone it is read-only.' : 'Up to 12 tasks on 2 to 4 teams.', laneLimits[0]],
+  loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false })
 const article = (name: string) => /^pros/i.test(name) ? '' : /^[aeiou]/i.test(name) ? 'an ' : 'a '
 
 export const catalog: readonly CatalogEntry[] = [
@@ -114,12 +134,12 @@ export const catalog: readonly CatalogEntry[] = [
     'Doing holds 3.', ['A full Doing shows 3 of 3 and dims.', 'The next card dragged to Doing is refused with that sentence.'], {
       addSay: ['Add a team board', 'Add a team board about {topic}'],
       ...withMoves(laneMoves(move('add_rule', 'Send cards one way', 'From {busy} cards go only to {other}', 'path'), [move('add_rule', 'Add a bin', 'Make {lane} a bin', 'bin')])) }),
-  { id: 'launch-plan', group: 'plan', name: 'Launch plan', line: 'Tasks over days, with a launch date', synonyms: ['launch', 'timeline', 'gantt', 'schedule', 'deadline', 'release date'],
-    build: { kind: 'launch-plan', sample: 'launch-plan' }, addSay: ['Add a launch plan', 'Add a launch plan about {topic}'],
-    ...withMoves([move('set_task', 'Stretch a task', 'Make {card} 3 days'), move('set_launch_day', 'Move launch', 'Move launch to day 30'),
-      move('link_tasks', 'Make a task wait on another', '{card} waits on {other card}'), move('add_card', 'Add a task', 'Add a task called Docs to {lane}'),
-      move('rename_card', 'Rename a task', 'Rename {card} to Review notes')]), limits: ['Every task ends by launch day.', laneLimits[0]],
-    loop: { src: '/library/launch-plan.svg', alt: 'Launch plan: stretch a task, slide it past launch and get refused.', caption: 'That pushes QA past launch.', steps: ['Stretch a task.', 'Slide it past launch: refused.'] }, multiPerSlate: false },
+  plan('launch-plan', 'Launch plan', 'Tasks on real dates toward launch day, with your rules', ['launch', 'timeline', 'gantt', 'schedule', 'deadline', 'release date', 'code freeze'],
+    'A slip pushes the tasks that wait on it.', ['Slide a task: what waits on it follows.', 'Past launch it stops.']),
+  plan('customer-go-live', 'Customer go-live', 'Us and the customer, toward one go-live date', ['go-live', 'onboarding', 'implementation', 'rollout', 'kickoff'],
+    'Days are working days: weekends don’t count.', ['Slide a task: weekends don’t count.', 'Past go-live it stops.'], 'go-live'),
+  plan('hiring-plan', 'Hiring plan', 'Hires over the year, with runway', ['hiring', 'headcount', 'recruiting', 'hires', 'runway', 'burn'],
+    'Hires snap to whole weeks.', ['Drag a hire later: runway grows.', 'Below your floor it stops.'], 'hiring-plan', 'hiring-plan'),
   { id: 'sales-pipeline', group: 'track', name: 'Sales pipeline', line: 'Move deals through stages toward a target', synonyms: ['deals', 'sales', 'pipeline', 'crm', 'track deals', 'forecast', 'customers'],
     build: { kind: 'pipeline', sample: 'pipeline' }, addSay: ['Add a sales pipeline', 'Add a sales pipeline about {topic}'],
     ...withMoves([move('move_card', 'Carry a deal on', 'Move {card} to {other}'), move('set_amount', 'Price a deal', 'Make {card} $40k'),
@@ -142,8 +162,9 @@ export function catalogList(group: CatalogGroup | 'all' = 'all'): CatalogEntry[]
   return catalog.filter(entry => group === 'all' || entry.group === group)
 }
 
-/** A business board's sample, from slateboxjs/workshops/rules (sampleLaunchPlan, samplePipeline, sampleBudget): this chunk keeps no rules. */
-export type CatalogSamples = Partial<Record<'launch-plan' | 'pipeline' | 'budget', () => Workshop>>
+/** The samples a business entry adds: from slateboxjs/workshops/rules (catalogSamples), so this chunk keeps no rules. */
+export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget'
+export type CatalogSamples = Partial<Record<CatalogSample, () => Workshop>>
 
 /** The board an entry adds, as data, named after the topic when one is given. A business board needs its sample. */
 export function catalogPreset(id: string, topic?: string, samples: CatalogSamples = {}): Workshop {

@@ -1,88 +1,85 @@
 // Launch plan: tasks in team lanes, each with a length in days, a lag and the tasks it waits on.
-// Starts are never stored: scheduleLaunch derives them, and every task must end by launch day.
+// Starts are never stored: scheduleLaunch (schedule.ts) derives them. A plan without rules keeps its
+// built-in line (every task ends by launch day, a slip pushes what waits on it); a plan with a rulebook
+// is governed by its rules (timeRules.ts): a soft or hard line, overlap, snap, working days, freezes,
+// push or stop, locks. A dated plan (clock.origin) says real dates.
 import type { Workshop, WorkshopCard } from './model'
 // The rule modules take the model's own helpers from the model, so they share its chunk instead of copying it.
 import { registerWorkshopRules, said } from './model'
-import type { BusinessBoardRules, BusinessEditTools, WorkshopLimits } from './kinds'
+import type { BusinessBoardRules, BusinessEditTools, PlanWords, WorkshopLimits } from './kinds'
 import type { WorkshopEdit } from './edits'
 import { amountOf, days, nextCardId, noteNumbers, ownField, renamedNumbers } from './numbers'
+import { dayFromWords, isoTime, nextMonday, isoAt } from './calendar'
+import { extendWorkshopEdits, cascadeStops, dayWords, downstreamTasks, holdOthers, launchFinish, launchHard, launchIndex, launchOverrun, lineWord, scheduleLaunch, snapStep, withLink, withTaskValue } from './schedule'
+import { checkTime, timeFamily } from './timeRules'
 
-export interface TaskTimes { start: number; end: number; slack: number; critical: boolean }
-
+export * from './schedule'
 export type { WorkshopLimits } from './kinds'
 
-/** Each task's start and end day, its slack against the plan's finish, and whether it is on the critical path. */
-export function scheduleLaunch(board: Workshop): Map<string, TaskTimes> {
-  const byId = new Map(board.cards.map(card => [card.id, card]))
-  const times = new Map<string, TaskTimes>()
-  const visiting = new Set<string>()
-  const forward = (card: WorkshopCard): TaskTimes => {
-    const known = times.get(card.id)
-    if (known) return known
-    if (visiting.has(card.id)) throw new Error('Tasks can\'t wait on each other in a circle.')
-    visiting.add(card.id)
-    let start = 0
-    for (const id of card.dependsOn ?? []) {
-      const before = byId.get(id)
-      if (!before) throw new Error('A task waits on a task that is not on the plan.')
-      start = Math.max(start, forward(before).end)
-    }
-    start += card.lag ?? 0
-    const entry = { start, end: start + (card.duration ?? 1), slack: 0, critical: false }
-    times.set(card.id, entry)
-    visiting.delete(card.id)
-    return entry
-  }
-  board.cards.forEach(forward)
-  const finish = Math.max(0, ...[...times.values()].map(t => t.end))
-  // Backward pass: the latest each task may end without moving the finish.
-  const latest = new Map<string, number>()
-  const late = (card: WorkshopCard): number => {
-    const known = latest.get(card.id)
-    if (known !== undefined) return known
-    let end = finish
-    for (const other of board.cards) {
-      if (!other.dependsOn?.includes(card.id)) continue
-      end = Math.min(end, late(other) - (other.duration ?? 1) - (other.lag ?? 0))
-    }
-    latest.set(card.id, end)
-    return end
-  }
-  for (const card of board.cards) {
-    const t = times.get(card.id)!
-    t.slack = late(card) - t.end
-    t.critical = t.slack === 0
-  }
-  return times
-}
+/** The rule kinds a launch plan takes, with add_rule's body keys. */
+const launchFamily = timeFamily({ deadline: 'at', overlap: 'lane', snap: 'unit', workdays: '', blackout: 'start end label', cascade: 'onConflict', locked: 'cards' })
 
-/** The day the last task ends. */
-export function launchFinish(board: Workshop): number {
-  return Math.max(0, ...[...scheduleLaunch(board).values()].map(t => t.end))
-}
+const ref = { anyOf: [{ type: 'string', minLength: 1, maxLength: 200 }, { type: 'object', additionalProperties: false, required: ['id'], properties: { id: { type: 'string', minLength: 1, maxLength: 64 } } }] }
+const iso = { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' }
+// The plans take rules: add_rule's kinds and keys, and set_rule's floor, slip and snap.
+extendWorkshopEdits({
+  boards: { add_rule: ['launch-plan', 'hiring-plan'], set_rule: ['launch-plan', 'hiring-plan'], remove_rule: ['launch-plan', 'hiring-plan'] },
+  fields: { set_rule: { floor: { type: 'integer', min: 1, max: 60, optional: true, about: 'A runway floor, in months.' },
+    onConflict: { type: 'choice', values: ['push', 'stop'], optional: true, about: 'A slip pushes the tasks that wait on it, or stops at them.' },
+    unit: { type: 'choice', values: ['day', 'week'], optional: true, about: 'Snap to days or weeks.' } } },
+  rules: { kinds: ['deadline', 'overlap', 'snap', 'workdays', 'blackout', 'cascade', 'locked'],
+    keys: { at: { enum: ['launch', 'runway'] }, floor: { type: 'number', minimum: 1, maximum: 60 }, unit: { enum: ['day', 'week'] }, start: iso, end: iso,
+      label: { type: 'string', minLength: 1, maxLength: 40 }, onConflict: { enum: ['push', 'stop'] }, cards: { type: 'array', items: ref, minItems: 1, maxItems: 6 } } },
+})
 
-/** Every task that waits on `cardId`, directly or through others. */
-export function downstreamTasks(board: Workshop, cardId: string): Set<string> {
-  const found = new Set<string>()
-  const walk = (id: string) => {
-    for (const card of board.cards) if (card.dependsOn?.includes(id) && !found.has(card.id)) { found.add(card.id); walk(card.id) }
-  }
-  walk(cardId)
-  return found
+/** Why `after` breaks this plan's rules (or its built-in line), as a sentence; null when it keeps them. */
+export function planProblem(before: Workshop, after: Workshop, cardId?: string): string | null {
+  if (!before.behaviour) return before.kind === 'launch-plan' ? launchOverrun(after, cardId) : null
+  const verdict = checkTime(before, after)
+  return 'refused' in verdict ? verdict.refused.sentence : null
 }
 
 /**
- * Why this plan does not fit before launch, said about `cardId` when it is the task that
- * runs late, or about the task it pushes past launch. Null when every task ends in time.
+ * One task changed (its lag, length or team), as the plan's rules have it: a slip that stops holds the
+ * tasks waiting on it. The board that results, or the sentence of the rule it breaks.
  */
-export function launchOverrun(board: Workshop, cardId?: string): string | null {
-  const day = board.launch?.day ?? 0
-  const times = scheduleLaunch(board)
-  const own = cardId ? times.get(cardId) : undefined
-  if (own && own.end > day) return `That ends on day ${own.end}, after launch on day ${day}.`
-  const late = board.cards.map(card => ({ card, end: times.get(card.id)!.end })).filter(item => item.end > day)
-    .sort((a, b) => b.end - a.end)[0]
-  return late ? `That pushes ${late.card.label} to day ${late.end}, after launch on day ${day}.` : null
+export function tryTask(board: Workshop, cardId: string, change: Partial<Pick<WorkshopCard, 'lag' | 'duration' | 'laneId'>>): Workshop | string {
+  let next: Workshop = { ...board, cards: board.cards.map(card => {
+    if (card.id !== cardId) return card
+    const out = { ...card, ...change }
+    if (!out.lag) delete out.lag
+    return out
+  }) }
+  if (cascadeStops(board)) {
+    const held = holdOthers(board, next, new Set([cardId]))
+    if (typeof held === 'string') return held
+    next = held
+  }
+  return planProblem(board, next, cardId) ?? next
+}
+
+/** A plan's words for the chat (kinds.ts PlanWords): dates on this plan. */
+export const planWords: PlanWords = {
+  day: (board, text, after = 0) => board.clock ? dayFromWords(board.clock.origin, text, after) : null,
+  iso: (board, day) => isoAt(board.clock!.origin, day),
+  name: (board, day) => dayWords(board, day),
+}
+
+/** Where every task of a plan may be dragged: its legal runs of start and of length. */
+export const planDrags = (board: Workshop) => JSON.stringify(board.cards.map(card => [legalRuns(board, card.id, 'lag'), legalRuns(board, card.id, 'duration')]))
+
+/** The legal values of a task's lag or length, as runs of whole steps ([first, last] each): the drag's branches. */
+export function legalRuns(board: Workshop, cardId: string, field: 'lag' | 'duration', laneId?: string): [number, number][] {
+  const step = snapStep(board), hiring = board.kind === 'hiring-plan'
+  const top = field === 'duration' ? (hiring ? 140 : 60) : hiring ? 728 : launchHard(board) ? board.launch!.day : 120
+  const runs: [number, number][] = []
+  for (let v = field === 'duration' ? step : 0; v <= top; v += step) {
+    if (typeof tryTask(board, cardId, { [field]: v, ...(laneId && { laneId }) }) === 'string') continue
+    const last = runs.at(-1)
+    if (last && last[1] === v - step) last[1] = v
+    else runs.push([v, v])
+  }
+  return runs
 }
 
 export function validateLaunchPlan(board: Workshop): string | null {
@@ -90,23 +87,25 @@ export function validateLaunchPlan(board: Workshop): string | null {
   if (board.cards.length < 1 || board.cards.length > 12) return 'A launch plan has 1 to 12 tasks.'
   const day = board.launch?.day
   if (typeof day !== 'number' || !Number.isInteger(day) || day < 5 || day > 120) return 'Launch day is a whole day from 5 to 120.'
+  const hard = launchHard(board)
   for (const card of board.cards) {
     if (!Number.isInteger(card.duration) || card.duration! < 1 || card.duration! > 60) return 'A task takes 1 to 60 days.'
-    if (!Number.isInteger(card.lag ?? 0) || (card.lag ?? 0) < 0 || (card.lag ?? 0) > day) return 'A task waits 0 days or more, and no later than launch.'
+    if (!Number.isInteger(card.lag ?? 0) || (card.lag ?? 0) < 0 || (card.lag ?? 0) > (hard ? day : 120)) return 'A task waits 0 days or more, and no later than launch.'
     if ((card.dependsOn?.length ?? 0) > 3) return 'A task waits on up to 3 others.'
     if (card.dependsOn?.includes(card.id)) return 'A task can\'t wait on itself.'
   }
+  if (!board.clock && board.behaviour?.rules.some(rule => rule.kind === 'workdays' || rule.kind === 'blackout')) return 'Working days and freezes need dates; this plan counts day numbers.'
   try { scheduleLaunch(board) } catch (error) { return (error as Error).message }
+  const times = scheduleLaunch(board)
   const finish = launchFinish(board)
-  if (finish > day) {
-    const times = scheduleLaunch(board)
+  if (hard && finish > launchIndex(board)) {
     const late = board.cards.find(card => times.get(card.id)!.end === finish)!
-    return `${late.label} ends on day ${finish}, after launch on day ${day}.`
+    return board.clock ? launchOverrun(board) : `${late.label} ends on day ${finish}, after launch on day ${day}.`
   }
   return null
 }
 
-/** A task changes team. The schedule does not depend on teams, so any team takes it. */
+/** A task changes team. The schedule does not depend on teams, so any team takes it (its rules may not). */
 export function planLaunchPlanMove(board: Workshop, cardId: string, laneId: string): Workshop | null {
   const card = board.cards.find(item => item.id === cardId)
   if (!card || !board.lanes.some(lane => lane.id === laneId)) return null
@@ -126,26 +125,8 @@ export function launchLinkRefusal(board: Workshop, cardId: string, waitsOn: stri
   if (task.dependsOn?.includes(target.id)) return `${task.label} already waits on ${target.label}.`
   if (downstreamTasks(board, task.id).has(target.id)) return `${target.label} already waits on ${task.label}, so ${task.label} can't wait on ${target.label}.`
   if ((task.dependsOn?.length ?? 0) >= 3) return `${task.label} already waits on 3 tasks.`
-  return launchOverrun(withLink(board, cardId, waitsOn), cardId)
+  return planProblem(board, withLink(board, cardId, waitsOn), cardId)
 }
-
-/**
- * The board with `cardId` waiting on `waitsOn` (or, with `remove`, no longer waiting on it). The task keeps
- * its start where the new link allows: its lag becomes what is left between the prerequisites' end and that start.
- */
-export function withLink(board: Workshop, cardId: string, waitsOn: string, remove = false): Workshop {
-  const times = scheduleLaunch(board)
-  return { ...board, cards: board.cards.map(card => {
-    if (card.id !== cardId) return card
-    const dependsOn = remove ? (card.dependsOn ?? []).filter(id => id !== waitsOn) : [...(card.dependsOn ?? []), waitsOn]
-    const ready = Math.max(0, ...dependsOn.map(id => times.get(id)?.end ?? 0))
-    const next: WorkshopCard = { ...card, dependsOn, lag: Math.max(0, times.get(card.id)!.start - ready) }
-    if (!dependsOn.length) delete next.dependsOn
-    if (!next.lag) delete next.lag
-    return next
-  }) }
-}
-
 
 export function launchPlanCaption(board: Workshop, laneId: string): string {
   const times = scheduleLaunch(board)
@@ -154,15 +135,9 @@ export function launchPlanCaption(board: Workshop, laneId: string): string {
   return `${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'} · ${critical} on the critical path`
 }
 
-/** The board with one number of a task (or launch day) set. */
-export function withTaskValue(board: Workshop, ref: { cardId?: string; field: 'lag' | 'duration' | 'day' }, value: number): Workshop {
-  if (ref.field === 'day') return { ...board, launch: { day: value } }
-  return { ...board, cards: board.cards.map(card => card.id === ref.cardId ? { ...card, [ref.field]: value } : card) }
-}
-
 /**
- * The legal range of a task's lag or length, or of launch day, with the sentence for each end.
- * Every value in the range keeps every task ending by launch.
+ * The legal range of a task's lag or length, or of launch day, with the sentence for each end: every
+ * value in the range keeps the plan's rules (on a plan without rules, every task ending by launch).
  */
 export function launchPlanLimits(board: Workshop, ref: { cardId?: string; field: 'lag' | 'duration' | 'day' }): WorkshopLimits {
   const day = board.launch!.day
@@ -170,17 +145,20 @@ export function launchPlanLimits(board: Workshop, ref: { cardId?: string; field:
     const times = scheduleLaunch(board)
     const finish = launchFinish(board)
     const last = board.cards.find(card => times.get(card.id)!.end === finish)
-    return { field: 'day', min: Math.max(5, finish), max: 120,
-      reasons: { min: last ? `${last.label} ends on day ${finish}.` : undefined, max: 'Launch day is at most day 120.' } }
+    const end = last ? times.get(last.id)!.to : 0
+    if (!launchHard(board)) return { field: 'day', min: 5, max: 120, reasons: { min: 'Launch day is day 5 at the earliest.', max: 'Launch day is at most day 120.' } }
+    return { field: 'day', min: Math.max(5, end), max: 120,
+      reasons: { min: last ? (board.clock ? `${last.label} ends ${dayWords(board, end - 1)}.` : `${last.label} ends on day ${finish}.`) : undefined, max: 'Launch day is at most day 120.' } }
   }
   const card = board.cards.find(item => item.id === ref.cardId)!
-  const floor = ref.field === 'duration' ? 1 : 0, top = ref.field === 'duration' ? 60 : day
-  let max = card[ref.field] ?? floor
-  while (max < top && !launchOverrun(withTaskValue(board, ref, max + 1))) max++
-  const over = max < top ? launchOverrun(withTaskValue(board, ref, max + 1), card.id) ?? undefined : undefined
-  return { field: ref.field, min: floor, max: Math.max(floor, max),
-    reasons: { min: ref.field === 'duration' ? 'A task takes at least 1 day.' : `${card.label} starts as early as it can.`,
-      max: over ?? (ref.field === 'duration' ? 'A task takes at most 60 days.' : `Launch is day ${day}.`) } }
+  const step = snapStep(board), field = ref.field
+  const floor = field === 'duration' ? step : 0, top = field === 'duration' ? 60 : launchHard(board) ? day : 120
+  let max = card[field] ?? floor
+  while (max + step <= top && typeof tryTask(board, card.id, { [field]: max + step }) !== 'string') max += step
+  const tried = max + step <= top ? tryTask(board, card.id, { [field]: max + step }) : null
+  return { field, min: floor, max: Math.max(floor, max),
+    reasons: { min: field === 'duration' ? 'A task takes at least 1 day.' : `${card.label} starts as early as it can.`,
+      max: typeof tried === 'string' ? tried : field === 'duration' ? 'A task takes at most 60 days.' : `Launch is ${dayWords(board, day)}.` } }
 }
 
 /** The words a task takes back to the canvas as a note: "Copy · 3 days". */
@@ -201,10 +179,105 @@ export function sampleLaunchPlan(): Workshop {
   }
 }
 
+const preset = (by = 'Slatebox') => ({ by, at: '2026-11-21T00:00:00.000Z', via: 'preset' as const })
+/** A plan's rules as the library adds them: each on, refusing unless it says warn. */
+export function presetRules(rules: Array<Record<string, unknown>>): Workshop['behaviour'] {
+  return { version: 1, rev: 0, rules: rules.map((rule, i) => ({ id: 'rule-' + (i + 1), on: true, severity: 'refuse', set: preset(), ...rule }) as never) }
+}
+
+/**
+ * The library's launch plan: dated from the next Monday, counted in working days, three teams with a
+ * Marketing row, launch on the third Friday. Its rules: a hard line and a slip that pushes what waits on it.
+ */
+export function launchPlanSample(today?: string): Workshop {
+  return {
+    version: 1, kind: 'launch-plan', title: 'Launch plan', launch: { day: 18 }, clock: { origin: nextMonday(today) },
+    lanes: [{ id: 'product', label: 'Product' }, { id: 'engineering', label: 'Engineering' }, { id: 'marketing', label: 'Marketing' }],
+    cards: [
+      { id: 'design', label: 'Design', laneId: 'product', duration: 4 },
+      { id: 'build', label: 'Build', laneId: 'engineering', duration: 6, dependsOn: ['design'] },
+      { id: 'qa', label: 'QA', laneId: 'engineering', duration: 2, dependsOn: ['build'] },
+      { id: 'copy', label: 'Copy', laneId: 'product', duration: 2 },
+      { id: 'post', label: 'Launch post', laneId: 'marketing', duration: 2, dependsOn: ['copy'], lag: 3 },
+    ],
+    behaviour: presetRules([{ kind: 'workdays' }, { kind: 'deadline', at: 'launch' }, { kind: 'cascade', onConflict: 'push' }]),
+  }
+}
+
+/** One customer's go-live: two tracks, Us and Customer, toward a go-live date, shared with the customer as a guest. */
+export function goLiveSample(today?: string): Workshop {
+  return {
+    version: 1, kind: 'launch-plan', title: 'Customer go-live', launch: { day: 25, name: 'go-live' }, clock: { origin: nextMonday(today) },
+    lanes: [{ id: 'us', label: 'Us' }, { id: 'customer', label: 'Customer' }],
+    cards: [
+      { id: 'kickoff', label: 'Kickoff', laneId: 'us', duration: 1 },
+      { id: 'data', label: 'Send data', laneId: 'customer', duration: 3, dependsOn: ['kickoff'] },
+      { id: 'configure', label: 'Configure', laneId: 'us', duration: 5, dependsOn: ['data'] },
+      { id: 'security', label: 'Security review', laneId: 'customer', duration: 4, dependsOn: ['kickoff'] },
+      { id: 'train', label: 'Train admins', laneId: 'us', duration: 2, dependsOn: ['configure'] },
+      { id: 'signoff', label: 'Sign-off', laneId: 'customer', duration: 1, dependsOn: ['train', 'security'] },
+    ],
+    behaviour: presetRules([{ kind: 'workdays' }, { kind: 'deadline', at: 'launch' }, { kind: 'cascade', onConflict: 'push' }]),
+  }
+}
+
+
+
+/** The launch and hiring plans' shared edits: set_task, link_tasks and unlink_tasks (null for any other). */
+export function planEdit(board: Workshop, edit: WorkshopEdit, t: BusinessEditTools, said0: (card: WorkshopCard, next: Workshop) => string) {
+  switch (edit.kind) {
+    case 'set_task': {
+      const task = t.card(edit.card)
+      const at = { laneId: task.laneId, cardId: task.id }
+      if (edit.duration === undefined && edit.lag === undefined) t.refuse('Say how many days ' + said(task.label) + ' takes, or waits.', { ...at, code: 'invalid_edit' })
+      const hiring = board.kind === 'hiring-plan'
+      let next: Workshop = board
+      for (const field of ['duration', 'lag'] as const) {
+        const value = edit[field]
+        if (value === undefined) continue
+        if (!Number.isInteger(value)) t.refuse('A task\'s days are whole days.', at)
+        if (!board.behaviour && !hiring) {
+          // The built-in line: the range that keeps every task ending by launch.
+          const limits = launchPlanLimits(next, { cardId: task.id, field })
+          const tried = withTaskValue(next, { cardId: task.id, field }, value)
+          if (value < limits.min || value > limits.max) t.refuse(value < limits.min ? limits.reasons.min! : launchOverrun(tried, task.id) ?? limits.reasons.max!, { ...at, limits })
+          next = tried
+          continue
+        }
+        const [low, high] = field === 'duration' ? (hiring ? [7, 140] : [1, 60]) : [0, hiring ? 728 : 120]
+        if (value < low || value > high) t.refuse(field === 'duration' ? (hiring ? 'Recruiting takes 1 to 20 weeks.' : 'A task takes 1 to 60 days.') : 'That is further out than the plan runs.', at)
+        next = withTaskValue(next, { cardId: task.id, field }, value)
+      }
+      if (cascadeStops(board)) {
+        const held = holdOthers(board, next, new Set([task.id]))
+        if (typeof held === 'string') t.refuse(held, at)
+        next = held as Workshop
+      }
+      const settled = t.settle(next, task.laneId, task.id)
+      return t.done(settled, said0(settled.cards.find(item => item.id === task.id)!, settled), at)
+    }
+    case 'link_tasks': case 'unlink_tasks': {
+      const task = t.card(edit.card), target = t.card(edit.waitsOn)
+      const at = { laneId: task.laneId, cardId: task.id }
+      if (edit.kind === 'unlink_tasks') {
+        if (!task.dependsOn?.includes(target.id)) t.refuse(said(task.label) + ' doesn’t wait on ' + said(target.label) + '.', at)
+        return t.done(t.settle(withLink(board, task.id, target.id, true), task.laneId, task.id), said(task.label) + ' no longer waits on ' + said(target.label) + '.', at)
+      }
+      const why = launchLinkRefusal(board, task.id, target.id)
+      if (why) t.refuse(why, at)
+      return t.done(t.settle(withLink(board, task.id, target.id), task.laneId, task.id), said(task.label) + ' now waits on ' + said(target.label) + '.', at)
+    }
+  }
+  return null
+}
+
 /** The launch plan's part of the one gate (see kinds.ts). */
 export const launchPlanRules: BusinessBoardRules = {
   kind: 'launch-plan',
   cards: [12, 'A launch plan holds up to 12 tasks.'],
+  rulebook: launchFamily,
+  drags: planDrags,
+  words: planWords,
   readCard(raw, card, read) {
     card.duration = amountOf(raw.duration, 1, 60, 'A task takes 1 to 60 days.')
     if (raw.lag !== undefined && raw.lag !== 0) card.lag = amountOf(raw.lag, 0, 120, 'A task waits 0 days or more, and no later than launch.')
@@ -216,7 +289,13 @@ export const launchPlanRules: BusinessBoardRules = {
     }
   },
   readBoard(raw, board) {
-    board.launch = { day: amountOf(ownField(raw, 'launch', 'A launch plan needs a launch day.').day, 5, 120, 'Launch day is a whole day from 5 to 120.') }
+    const launch = ownField(raw, 'launch', 'A launch plan needs a launch day.')
+    board.launch = { day: amountOf(launch.day, 5, 120, 'Launch day is a whole day from 5 to 120.') }
+    if (launch.name !== undefined) {
+      if (typeof launch.name !== 'string' || !/^[a-z][a-z -]{1,23}$/i.test(launch.name)) throw new Error('Name the line in a word or two, such as go-live.')
+      board.launch.name = launch.name.toLowerCase()
+    }
+    readClock(raw, board)
   },
   validate: validateLaunchPlan,
   planMove: planLaunchPlanMove,
@@ -242,38 +321,9 @@ export const launchPlanRules: BusinessBoardRules = {
         const waits = [...new Set((edit.waitsOn ?? []).map(ref => t.card(ref).id))]
         if (waits.length) card.dependsOn = waits
         const next = { ...board, cards: [...board.cards, card] }
-        const late = launchOverrun(next, card.id)
+        const late = board.behaviour ? null : launchOverrun(next, card.id)
         if (late) t.refuse(late, { laneId: target.id })
         return t.done(t.settle(next, target.id), 'Added ' + said(label) + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: card.id })
-      }
-      case 'set_task': {
-        const task = t.card(edit.card)
-        const at = { laneId: task.laneId, cardId: task.id }
-        if (edit.duration === undefined && edit.lag === undefined) t.refuse('Say how many days ' + said(task.label) + ' takes, or waits.', { ...at, code: 'invalid_edit' })
-        let next: Workshop = board
-        for (const field of ['duration', 'lag'] as const) {
-          const value = edit[field]
-          if (value === undefined) continue
-          const limits = launchPlanLimits(next, { cardId: task.id, field })
-          if (!Number.isInteger(value)) t.refuse('A task\'s days are whole days.', { ...at, limits })
-          const tried = withTaskValue(next, { cardId: task.id, field }, value)
-          if (value < limits.min || value > limits.max) t.refuse(value < limits.min ? limits.reasons.min! : launchOverrun(tried, task.id) ?? limits.reasons.max!, { ...at, limits })
-          next = tried
-        }
-        const now = next.cards.find(item => item.id === task.id)!
-        return t.done(t.settle(next, task.laneId, task.id), said(task.label) + ' now takes ' + days(now.duration!) +
-          (now.lag ? ' and waits ' + days(now.lag) + '.' : '.'), at)
-      }
-      case 'link_tasks': case 'unlink_tasks': {
-        const task = t.card(edit.card), target = t.card(edit.waitsOn)
-        const at = { laneId: task.laneId, cardId: task.id }
-        if (edit.kind === 'unlink_tasks') {
-          if (!task.dependsOn?.includes(target.id)) t.refuse(said(task.label) + ' doesn’t wait on ' + said(target.label) + '.', at)
-          return t.done(t.settle(withLink(board, task.id, target.id, true), task.laneId, task.id), said(task.label) + ' no longer waits on ' + said(target.label) + '.', at)
-        }
-        const why = launchLinkRefusal(board, task.id, target.id)
-        if (why) t.refuse(why, at)
-        return t.done(t.settle(withLink(board, task.id, target.id), task.laneId, task.id), said(task.label) + ' now waits on ' + said(target.label) + '.', at)
       }
       case 'set_launch_day': {
         const limits = launchPlanLimits(board, { field: 'day' })
@@ -281,10 +331,20 @@ export const launchPlanRules: BusinessBoardRules = {
           const tried = withTaskValue(board, { field: 'day' }, edit.day)
           t.refuse((edit.day < limits.min && launchOverrun(tried)) || (edit.day < limits.min ? limits.reasons.min! : limits.reasons.max!), { limits })
         }
-        return t.done(t.settle(withTaskValue(board, { field: 'day' }, edit.day)), 'Launch is now day ' + edit.day + '.')
+        const next = withTaskValue(board, { field: 'day' }, edit.day)
+        return t.done(t.settle(next), cap(lineWord(board)) + ' is now ' + dayWords(board, edit.day) + '.')
       }
     }
-    return null
+    return planEdit(board, edit, t, (card) => said(card.label) + ' now takes ' + days(card.duration!) + (card.lag ? ' and waits ' + days(card.lag) + '.' : '.'))
   },
+}
+const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
+
+/** A plan's first day, when it has one: a real date. */
+export function readClock(raw: Record<string, unknown>, board: Workshop): void {
+  if (raw.clock === undefined) return
+  const origin = (raw.clock as { origin?: unknown } | null)?.origin
+  if (!isoTime(origin)) throw new Error('A plan starts on a real date, written as 2026-12-07.')
+  board.clock = { origin: origin as string }
 }
 registerWorkshopRules(launchPlanRules)

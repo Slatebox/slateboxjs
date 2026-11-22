@@ -1,8 +1,16 @@
 // Launch plan kit: tasks as bars in team swimlanes on a day grid, arrows for what waits on what,
 // the critical path, and a launch-day line. Bars slide (lag), stretch (length) and link by Dragology.
+// A dated plan says real dates and shades weekends when days are working days; its freezes are
+// hatched bands a dragged bar hops (one Dragology branch per legal run, joined by withBranchTransition);
+// a soft line lets a bar past it, in red. The hiring plan is the same kit: each hire's recruiting bar,
+// then its cost to the plan's end, the runway readout and the funding round's line; on a phone it is read-only.
 import { lessThan, moreThan, param } from 'dragology'
 import { laneColors, type BoardLayerState, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type PartPlace, type WorkshopEdit } from '../workshops/model'
-import { launchFinish, launchLinkRefusal, launchOverrun, launchPlanLimits, scheduleLaunch, withLink, withTaskValue } from '../workshops/launchPlan'
+import { cascadeStops, dayWords, holdOthers, launchFinish, launchHard, launchLinkRefusal, launchOverrun, launchPlanLimits, legalRuns, lineWord, scheduleLaunch, snapStep, tryTask, withLink, withTaskValue } from '../workshops/launchPlan'
+import { checkTime, pastTheLine } from '../workshops/timeRules'
+import { clockOf, dayMap, isoAt, offsetOf, shortDate, weekdayAt } from '../workshops/calendar'
+import { hireStarts, runwayMonths, runwayWords } from '../workshops/hiringPlan'
+import { money } from '../workshops/numbers'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
 import { headlessDrag, inside, partsGeometry } from '../workshops/boardSpecs'
 import { tint } from './shared'
@@ -32,8 +40,12 @@ export interface LaunchGeometry {
 /** Where every note of a launch plan goes, in board coordinates. The native notes and Dragology both read it. */
 export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}): LaunchGeometry {
   const narrow = Boolean(layout.narrow)
-  const day = board.launch!.day
+  const hiring = board.kind === 'hiring-plan'
   const times = scheduleLaunch(board)
+  // The days the grid spans: launch day (a third more on a soft line, for what slips past it), or a hiring plan's weeks.
+  // It never depends on where the tasks are, so a held bar's day stays the same width.
+  const day = hiring ? board.hiring!.weeks * 7 : launchHard(board) ? board.launch!.day : Math.ceil(board.launch!.day * 4 / 3)
+  const late = pastTheLine(board)
   const parts: PartPlace[] = []
   const bars = new Map<string, { x: number; y: number; width: number; height: number }>()
   const width = narrow ? Math.max(300, layout.width ?? 390) : Math.max(720, layout.width ?? 1200)
@@ -43,11 +55,14 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
   const bar = (cardId: string, y: number) => {
     const card = board.cards.find(item => item.id === cardId)!
     const t = times.get(cardId)!
-    const box = { x: x0 + t.start * dayW, y, width: card.duration! * dayW, height: narrow ? PHONE_BAR : BAR }
+    const box = { x: x0 + t.from * dayW, y, width: (t.to - t.from) * dayW, height: narrow ? PHONE_BAR : BAR }
     bars.set(cardId, box)
-    parts.push({ name: 'card-' + cardId, ...box, text: narrow ? '' : `${card.label} · ${card.duration}d`,
-      fill: narrow ? color(card.laneId) : '#fffdf6', line: t.critical ? CRITICAL : '#667872', lineWidth: t.critical ? 2.5 : 1, fontSize: 13 })
-    parts.push({ name: 'handle-' + cardId, x: box.x + box.width - gripBack(narrow), y: box.y + box.height / 2 - 22, width: 44, height: 44 })
+    const red = late.has(cardId)
+    parts.push({ name: 'card-' + cardId, ...box, text: narrow ? '' : hiring ? card.label : `${card.label} · ${card.duration}d`,
+      fill: red ? '#fde3d7' : narrow ? color(card.laneId) : hiring ? tint(color(card.laneId), 0.45) : '#fffdf6',
+      line: red || t.critical && !hiring ? CRITICAL : '#667872', lineWidth: red || t.critical && !hiring ? 2.5 : 1, fontSize: 13 })
+    // A hiring plan on a phone is read-only: no grips.
+    if (!(hiring && narrow)) parts.push({ name: 'handle-' + cardId, x: box.x + box.width - gripBack(narrow), y: box.y + box.height / 2 - 22, width: 44, height: 44 })
   }
   let y: number, gridTop: number, axisY: number
   if (narrow) {
@@ -78,7 +93,8 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
       y += height + 4
     }
   }
-  parts.push({ name: 'handle-launch', x: x0 + day * dayW - 22, y: narrow ? 104 : 4, width: 44, height: 44 })
+  if (!hiring) parts.push({ name: 'handle-launch', x: x0 + board.launch!.day * dayW - 22, y: narrow ? 104 : 4, width: 44, height: 44 })
+  else if (board.hiring!.funding && !narrow) parts.push({ name: 'handle-funding', x: x0 + board.hiring!.funding.day * dayW - 22, y: 4, width: 44, height: 44 })
   return { parts, width, height: y + 8, narrow, x0, dayW, gridTop, axisY, bars }
 }
 
@@ -100,16 +116,32 @@ function elbow(from: { x: number; y: number; width: number; height: number }, to
 
 function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
   const g = launchLayout(board, state.layout)
-  const day = board.launch!.day
+  const hiring = board.kind === 'hiring-plan'
   const times = scheduleLaunch(board)
+  const day = Math.round((g.width - (g.narrow ? 88 : g.x0 + 40)) / g.dayW)
+  const clock = clockOf(board)
   const shapes: LayerShape[] = []
-  // The day grid, with a label at the start of each week.
+  // Weekends, shaded where days are working days; then each freeze, hatched, with its name.
+  if (clock?.workdays) for (let d = 0; d < day; d++) if (weekdayAt(clock.origin, d) === 6) {
+    shapes.push({ t: 'rect', x: g.x0 + d * g.dayW, y: g.gridTop, w: 2 * g.dayW, h: g.height - 8 - g.gridTop, color: layerInk.track, opacity: 0.7 })
+  }
+  for (const rule of board.behaviour?.rules ?? []) if (clock && rule.on && rule.kind === 'blackout') {
+    const from = offsetOf(clock.origin, rule.start), to = offsetOf(clock.origin, rule.end) + 1
+    const x = g.x0 + Math.max(0, from) * g.dayW, w = (Math.min(day, to) - Math.max(0, from)) * g.dayW
+    if (w <= 0) continue
+    shapes.push({ t: 'rect', x, y: g.gridTop, w, h: g.height - 8 - g.gridTop, color: layerInk.refuse, opacity: 0.12 })
+    for (let hx = x; hx < x + w; hx += 10) shapes.push({ t: 'line', x1: hx, y1: g.gridTop, x2: Math.min(x + w, hx + 10), y2: g.gridTop + 10, color: layerInk.refuse, width: 0.6 })
+    shapes.push({ t: 'text', x: x + 3, y: g.gridTop + 22, text: rule.label + ' · ' + shortDate(rule.start) + '–' + shortDate(rule.end), color: layerInk.refuse, size: 11, bold: true })
+  }
+  // The day grid, with a label at the start of each week (a dated plan: its Monday's date; a hiring plan: each month).
   for (let d = 0; d <= day; d++) {
     const x = g.x0 + d * g.dayW
-    const week = d % 7 === 0
+    const week = clock ? weekdayAt(clock.origin, d) === 1 : d % 7 === 0
     if (!week && g.dayW < 6) continue
     shapes.push({ t: 'line', x1: x, y1: g.gridTop, x2: x, y2: g.height - 8, color: week ? layerInk.week : layerInk.faint, width: week ? 1 : 0.5 })
-    if (week) shapes.push({ t: 'text', x: x + 3, y: g.axisY, text: g.narrow ? 'W' + (d / 7 + 1) : 'Week ' + (d / 7 + 1), color: layerInk.ink, size: 12 })
+    const month = hiring && clock && isoAt(clock.origin, d).slice(8) <= '07' && week
+    const label = !clock ? (g.narrow ? 'W' : 'Week ') + (d / 7 + 1) : hiring ? (month ? shortDate(isoAt(clock.origin, d)).replace(/^\d+ /, '') : '') : shortDate(isoAt(clock.origin, d))
+    if (week && label && (!clock || hiring || g.dayW * 7 > 44)) shapes.push({ t: 'text', x: x + 3, y: g.axisY, text: label, color: layerInk.ink, size: 12 })
   }
   // What waits on what: elbows into each task, the critical ones in the critical colour. Click one to remove it.
   for (const card of board.cards) {
@@ -122,11 +154,43 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
         unlink: { cardId: card.id, waitsOn: id, label: `Remove the link: ${card.label} waits on ${before}` } })
     }
     const t = times.get(card.id)!, box = g.bars.get(card.id)!
+    if (hiring) {
+      // From the first day: the band's cost, to the plan's end.
+      const band = board.hiring!.bands.find(item => item.id === card.band)
+      const x = box.x + box.width, end = g.x0 + day * g.dayW
+      if (end > x) shapes.push({ t: 'rect', x, y: box.y + box.height / 2 - 3, w: end - x, h: 6, rx: 3, color: layerInk.bar, opacity: 0.45 })
+      shapes.push({ t: 'text', x: g.narrow ? 8 : Math.min(x + 6, end - 120), y: g.narrow ? box.y - 6 : box.y + box.height / 2 - 6,
+        text: (g.narrow ? card.label + ' · ' : '') + 'starts ' + shortDate(isoAt(clock!.origin, hireStarts(board, card.id))) + (band ? ' · ' + money(band.monthly, board.hiring!.currency) + '/mo' : ''),
+        color: layerInk.ink, size: 12, role: 'start-' + card.id })
+      continue
+    }
     if (g.narrow) shapes.push({ t: 'text', x: 8, y: box.y - 6, text: `${card.label} · ${card.duration}d`, color: layerInk.ink, size: 13, bold: t.critical })
     if (!t.critical) shapes.push({ t: 'text', x: box.x + box.width + (g.narrow ? 48 : 24), y: box.y + box.height / 2 + 4, text: '+' + t.slack + 'd', color: layerInk.ink, size: 12, role: 'slack-' + card.id })
   }
+  if (hiring) {
+    // The runway readout, red under a floor the plan keeps; the round's line and its grip.
+    const months = runwayMonths(board)
+    const floor = board.behaviour?.rules.find(rule => rule.on && rule.kind === 'deadline')
+    const low = floor && floor.kind === 'deadline' && months < floor.floor!
+    shapes.push({ t: 'text', x: g.narrow ? 8 : g.x0, y: g.narrow ? 18 : 20, text: 'Runway with these hires: ' + runwayWords(months),
+      color: low || state.refused ? layerInk.refuse : layerInk.ink, size: 14, bold: true, role: 'header' })
+    const round = board.hiring!.funding
+    if (round && round.day <= day) {
+      const fx = g.x0 + round.day * g.dayW
+      shapes.push({ t: 'line', x1: fx, y1: 26, x2: fx, y2: g.height - 8, color: layerInk.accept, width: 2, dash: '6 4' })
+      if (!g.narrow) shapes.push({ t: 'rect', x: fx - 4, y: 26, w: 8, h: 18, rx: 4, color: layerInk.accept })
+      // On the header's row, clear of the month labels and of the runway readout.
+      shapes.push({ t: 'text', x: Math.max(fx + 8, g.narrow ? 8 : g.x0 + 330), y: g.narrow ? 40 : 20, text: 'Round +' + money(round.amount, board.hiring!.currency) + ' · ' + shortDate(isoAt(clock!.origin, round.day)), color: layerInk.accept, size: 12, bold: true })
+    }
+    if (g.narrow) shapes.push({ t: 'text', x: 8, y: 58, text: 'Read-only here: say a change in the chat.', color: layerInk.ink, size: 12 })
+    if (state.clamp) {
+      const part = g.parts.find(item => item.name === state.clamp!.name)
+      if (part) shapes.push(...saidNear(g, shapes, state.clamp.text, part, state.view))
+    }
+    return shapes
+  }
   // Launch day: a line, its grip and its label.
-  const lx = g.x0 + day * g.dayW
+  const lx = g.x0 + board.launch!.day * g.dayW
   shapes.push({ t: 'line', x1: lx, y1: g.narrow ? 112 : 26, x2: lx, y2: g.height - 8, color: layerInk.launch, width: 2, dash: '6 4' })
   shapes.push({ t: 'rect', x: lx - 4, y: g.narrow ? 112 : 26, w: 8, h: 18, rx: 4, color: layerInk.launch })
   for (const card of board.cards) {
@@ -135,7 +199,9 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     shapes.push({ t: 'rect', x: box.x + box.width + (g.narrow ? 4 : -5), y: box.y + 4, w: g.narrow ? 6 : 4, h: box.height - 8, rx: 2, color: layerInk.ink, opacity: 0.55 })
   }
   const finish = launchFinish(board)
-  shapes.push({ t: 'text', x: g.narrow ? 8 : g.x0, y: g.narrow ? 18 : 20, text: `Done day ${finish} · launch day ${day}`,
+  const done = Math.max(0, ...[...times.values()].map(t => t.to))
+  shapes.push({ t: 'text', x: g.narrow ? 8 : g.x0, y: g.narrow ? 18 : 20,
+    text: clock ? 'Done ' + dayWords(board, Math.ceil(done) - 1) + ' · ' + lineWord(board) + ' ' + dayWords(board, board.launch!.day) : `Done day ${finish} · launch day ${board.launch!.day}`,
     color: state.refused ? layerInk.refuse : layerInk.ink, size: 14, bold: true, role: 'header' })
   if (state.clamp) {
     const part = g.parts.find(item => item.name === state.clamp!.name)
@@ -216,11 +282,21 @@ function saidNear(g: LaunchGeometry, shapes: LayerShape[], text: string, part: P
   return said
 }
 
-const roundDays = (board: Workshop): Workshop => ({ ...board, cards: board.cards.map(card => {
-  const next = { ...card, duration: Math.max(1, Math.round(card.duration!)), lag: Math.max(0, Math.round(card.lag ?? 0)) }
-  if (!next.lag) delete (next as { lag?: number }).lag
-  return next
-}), launch: { day: Math.round(board.launch!.day) } })
+/** Whole days (the dragged task to whole steps of the plan's snap), and the markers on whole days. */
+const roundDays = (board: Workshop, step = 1, cardId?: string): Workshop => {
+  const near = (value: number, unit: number) => Math.round(value / unit) * unit
+  const out: Workshop = { ...board, cards: board.cards.map(card => {
+    const unit = card.id === cardId ? step : 1
+    const next = { ...card, duration: Math.max(unit, near(card.duration!, unit)), lag: Math.max(0, near(card.lag ?? 0, unit)) }
+    if (!next.lag) delete (next as { lag?: number }).lag
+    return next
+  }) }
+  if (board.launch) out.launch = { ...board.launch, day: Math.round(board.launch.day) }
+  if (board.hiring?.funding) out.hiring = { ...board.hiring, funding: { ...board.hiring.funding, day: Math.round(board.hiring.funding.day) } }
+  return out
+}
+/** Whether the plan's rules (not the built-in line) decide its drags. */
+const ruled = (board: Workshop) => Boolean(board.behaviour) || board.kind === 'hiring-plan'
 
 /**
  * L on a focused bar: what it may wait on (each task it can be linked to), then what it already waits on
@@ -244,8 +320,9 @@ function keyChoices(board: Workshop, part: string, key: string) {
 /** The edits a key makes on a launch plan: Left and Right move a bar a day, Shift changes its length; on the launch grip they move launch day. */
 function keyEdit(board: Workshop, part: string, { key, shiftKey }: { key: string; shiftKey: boolean }): WorkshopEdit[] | null {
   if (key !== 'ArrowLeft' && key !== 'ArrowRight') return null
-  const step = key === 'ArrowLeft' ? -1 : 1
-  if (part === 'handle-launch') return [{ kind: 'set_launch_day', day: board.launch!.day + step }]
+  const step = (key === 'ArrowLeft' ? -1 : 1) * snapStep(board)
+  if (part === 'handle-launch') return [{ kind: 'set_launch_day', day: board.launch!.day + Math.sign(step) }]
+  if (part === 'handle-funding') return [{ kind: 'set_funding', day: board.hiring!.funding!.day + Math.sign(step) * 7 }]
   const match = /^(card|handle)-(.+)$/.exec(part)
   const card = match && board.cards.find(item => item.id === match[2])
   if (!card) return null
@@ -262,6 +339,7 @@ export const launchPlanKit: WorkshopBoardKit = {
     const g = withCaptions(board, launchLayout(board, layout), laneId => {
       const tasks = board.cards.filter(card => card.laneId === laneId)
       const times = scheduleLaunch(board)
+      if (board.kind === 'hiring-plan') return tasks.length + (tasks.length === 1 ? ' hire' : ' hires')
       return `${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'} · ${tasks.filter(card => times.get(card.id)!.critical).length} on the critical path`
     })
     return { parts: g.parts, width: g.width, height: g.height }
@@ -270,7 +348,9 @@ export const launchPlanKit: WorkshopBoardKit = {
   chooser(board, cardId, grab, layout = {}) {
     const i = board.cards.findIndex(card => card.id === cardId)
     if (i < 0) return null
-    return chooserFor(board, cardId, i, launchLinkTargets(board, cardId), grab, layout)
+    // A hiring plan on a phone is read-only: a held hire stays where it is.
+    if (board.kind === 'hiring-plan' && layout.narrow) return () => board
+    return (ruled(board) ? ruledChooser : chooserFor)(board, cardId, i, launchLinkTargets(board, cardId), grab, layout)
   },
   refusalAt(board, cardId, grab, point, layout) {
     const g = launchLayout(board, layout)
@@ -283,6 +363,14 @@ export const launchPlanKit: WorkshopBoardKit = {
     // Slid past launch: where the pointer wants the task to start.
     const card = board.cards.find(item => item.id === cardId)!
     const wanted = (card.lag ?? 0) + Math.round((point.x - grab.x - g.bars.get(cardId)!.x) / g.dayW)
+    if (ruled(board)) {
+      // The day under the bar's start, through the calendar (a weekend is drawn, but not counted on a working-day plan).
+      const t = scheduleLaunch(board).get(cardId)!
+      const day = Math.round(t.from + (point.x - grab.x - g.bars.get(cardId)!.x) / g.dayW)
+      const lag = (card.lag ?? 0) + dayMap(clockOf(board)).idx(day) - t.start
+      const step = snapStep(board), tried = tryTask(board, cardId, { lag: Math.max(0, Math.round(lag / step) * step) })
+      return typeof tried === 'string' ? { laneId: card.laneId, reason: tried, lands: true } : null
+    }
     const limits = launchPlanLimits(board, { cardId, field: 'lag' })
     if (wanted > limits.max) return { laneId: card.laneId, reason: launchOverrun(withTaskValue(board, { cardId, field: 'lag' }, wanted), cardId) ?? limits.reasons.max! }
     return null
@@ -290,10 +378,12 @@ export const launchPlanKit: WorkshopBoardKit = {
   handleDrag(board, handleId, grab, layout) {
     const g = launchLayout(board, layout)
     const render = (state: Workshop) => partsGeometry(launchLayout(state, layout).parts)
+    if (board.kind === 'hiring-plan' && layout.narrow) return null
+    if (ruled(board)) return ruledHandle(board, handleId, grab, layout, g, render)
     if (handleId === 'handle-launch') {
       const limits = launchPlanLimits(board, { field: 'day' })
       const follow = headlessDrag(board, handleId, grab, render, (d, state) =>
-        d.vary(state, param('launch', 'day'), { constraint: (s: Workshop) => [moreThan(s.launch!.day, launchFinish(s) - 0.001), lessThan(s.launch!.day, 120)] }).onDrop(roundDays))
+        d.vary(state, param('launch', 'day'), { constraint: (s: Workshop) => [moreThan(s.launch!.day, launchFinish(s) - 0.001), lessThan(s.launch!.day, 120)] }).onDrop(state => roundDays(state)))
       return point => {
         const wanted = Math.round((point.x - grab.x + 22 - g.x0) / g.dayW)
         const next = follow?.(point) ?? withTaskValue(board, { field: 'day' }, Math.min(limits.max, Math.max(limits.min, wanted)))
@@ -308,7 +398,7 @@ export const launchPlanKit: WorkshopBoardKit = {
     const limits = launchPlanLimits(board, ref)
     const day = board.launch!.day
     const follow = headlessDrag(board, handleId, grab, render, (d, state) =>
-      d.vary(state, param('cards', i, 'duration'), { constraint: (s: Workshop) => [moreThan(s.cards[i].duration!, 1), lessThan(launchFinish(s), day + 0.001)] }).onDrop(roundDays))
+      d.vary(state, param('cards', i, 'duration'), { constraint: (s: Workshop) => [moreThan(s.cards[i].duration!, 1), lessThan(launchFinish(s), day + 0.001)] }).onDrop(state => roundDays(state)))
     const bar = g.bars.get(cardId)!
     return point => {
       const wanted = Math.round((point.x - grab.x + gripBack(g.narrow) - bar.x) / g.dayW)
@@ -327,6 +417,89 @@ export const launchPlanKit: WorkshopBoardKit = {
 }
 
 /**
+ * A ruled plan's bar: one Dragology branch per run of legal starts on each team's row (a freeze, a lock,
+ * an overlap or the line split the row), joined by withBranchTransition, so a dragged bar hops a hatched
+ * band instead of landing in it. A slip that stops holds the tasks waiting on it as the bar moves.
+ */
+function ruledChooser(board: Workshop, cardId: string, i: number, targets: string[], grab: { x: number; y: number }, layout: WorkshopBoardLayout) {
+  const step = snapStep(board), stop = cascadeStops(board), own = board.cards[i].laneId
+  const shown = (state: Workshop) => {
+    if (!stop) return state
+    const held = holdOthers(board, state, new Set([cardId]))
+    return typeof held === 'string' ? state : held
+  }
+  const settle = (state: Workshop) => shown(roundDays(state, step, cardId))
+  const render = (state: Workshop) => partsGeometry(launchLayout(shown(state), layout).parts, targets.map(id => 'card-' + id))
+  const lanes = layout.narrow ? [own] : board.lanes.map(lane => lane.id)
+  const runs = lanes.flatMap(laneId => legalRuns(board, cardId, 'lag', laneId === own ? undefined : laneId).map(run => ({ laneId, run })))
+  if (!runs.length) return () => board
+  const follow = headlessDrag(board, 'card-' + cardId, grab, render, (d, state) => {
+    const slide = d.closest(runs.map(({ laneId, run: [low, high] }) => d.vary({ ...state, cards: state.cards.map((card, at) => at === i ? { ...card, laneId, lag: Math.min(high, Math.max(low, card.lag ?? 0)) } : card) },
+      param('cards', i, 'lag'), { constraint: (s: Workshop) => [moreThan(s.cards[i].lag ?? 0, low - 0.49), lessThan(s.cards[i].lag ?? 0, high + 0.49)] }))).withBranchTransition(100)
+    if (!targets.length) return slide.onDrop(settle)
+    return d.closest(targets.map(target => d.dropTarget('target-' + target, withLink(state, cardId, target))))
+      .withFloating({ ghost: { opacity: 0.35 } })
+      .whenFar(slide)
+      .withBranchTransition(120)
+      .onDrop(settle)
+  })
+  return follow ? (point: { x: number; y: number }) => settle(follow(point)) : null
+}
+
+/** A ruled plan's grips: a bar's length, launch day or the funding round, each over its legal runs, with the rule's sentence past them. */
+function ruledHandle(board: Workshop, handleId: string, grab: { x: number; y: number }, layout: WorkshopBoardLayout, g: LaunchGeometry,
+  render: (state: Workshop) => ReturnType<typeof partsGeometry>) {
+  const runsOf = (values: number[], ok: (value: number) => boolean) => {
+    const runs: [number, number][] = []
+    for (const value of values) if (ok(value)) {
+      const last = runs.at(-1)
+      if (last && last[1] === value - (values[1] - values[0])) last[1] = value
+      else runs.push([value, value])
+    }
+    return runs
+  }
+  const span = (from: number, to: number, step: number) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, k) => from + k * step)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vary = (path: any[], read: (s: Workshop) => number, runs: [number, number][], step: number, cardId?: string) =>
+    headlessDrag(board, handleId, grab, render, (d, state) => d.closest(runs.map(([low, high]) => d.vary(state, (param as (...keys: unknown[]) => never)(...path),
+      { constraint: (s: Workshop) => [moreThan(read(s), low - 0.49), lessThan(read(s), high + 0.49)] }))).withBranchTransition(100).onDrop(s => roundDays(s, step, cardId)))
+  const result = (follow: ((point: { x: number; y: number }) => Workshop) | null, wanted: (point: { x: number; y: number }) => number, legal: (value: number) => string | null, set: (value: number) => Workshop) =>
+    (point: { x: number; y: number }) => {
+      const value = wanted(point)
+      const why = legal(value)
+      const next = follow?.(point) ?? (why ? board : set(value))
+      return why ? { next, clampedReason: why, refusal: why } : { next }
+    }
+  if (handleId === 'handle-launch' || handleId === 'handle-funding') {
+    const launch = handleId === 'handle-launch'
+    const set = (value: number) => launch ? withTaskValue(board, { field: 'day' }, value) : { ...board, hiring: { ...board.hiring!, funding: { ...board.hiring!.funding!, day: value } } }
+    const why = (value: number) => {
+      if (launch && (value < 5 || value > 120)) return 'Launch day is a whole day from 5 to 120.'
+      if (launch && launchHard(board) && value < launchPlanLimits(board, { field: 'day' }).min) return launchOverrun(set(value)) ?? 'Every task ends by ' + lineWord(board) + '.'
+      return planProblem0(board, set(value))
+    }
+    const values = launch ? span(5, 120, 1) : span(0, board.hiring!.weeks * 7, 1)
+    const runs = runsOf(values, value => !why(value))
+    const follow = runs.length ? vary(launch ? ['launch', 'day'] : ['hiring', 'funding', 'day'], s => launch ? s.launch!.day : s.hiring!.funding!.day, runs, 1) : null
+    return result(follow, point => Math.round((point.x - grab.x + 22 - g.x0) / g.dayW), why, set)
+  }
+  const cardId = handleId.slice('handle-'.length)
+  const i = board.cards.findIndex(card => card.id === cardId)
+  if (i < 0) return null
+  const step = snapStep(board), bar = g.bars.get(cardId)!
+  const runs = legalRuns(board, cardId, 'duration')
+  const follow = runs.length ? vary(['cards', i, 'duration'], s => s.cards[i].duration!, runs, step, cardId) : null
+  const why = (value: number) => { const tried = tryTask(board, cardId, { duration: Math.max(step, Math.round(value / step) * step) }); return typeof tried === 'string' ? tried : null }
+  return result(follow, point => board.cards[i].duration! + Math.round((point.x - grab.x + gripBack(g.narrow) - bar.x - bar.width) / g.dayW), why,
+    value => withTaskValue(board, { cardId, field: 'duration' }, value))
+}
+/** The plan's rules on a whole-board change (a marker moved): the sentence, or null. */
+function planProblem0(board: Workshop, next: Workshop): string | null {
+  const verdict = board.behaviour ? checkTime(board, next) : null
+  return verdict && 'refused' in verdict ? verdict.refused.sentence : null
+}
+
+/**
  * The Dragology spec for a bar: dropped on another task it waits on that task; anywhere else it
  * slides along its row (lag) or to another team's row, never past launch.
  */
@@ -338,12 +511,12 @@ function chooserFor(board: Workshop, cardId: string, i: number, targets: string[
     const lanes = layout.narrow ? state.lanes.filter(lane => lane.id === state.cards[i].laneId) : state.lanes
     const slide = d.closest(lanes.map(lane => d.vary({ ...state, cards: state.cards.map((card, at) => at === i ? { ...card, laneId: lane.id, lag: card.lag ?? 0 } : card) },
       param('cards', i, 'lag'), { constraint: (s: Workshop) => [moreThan(s.cards[i].lag ?? 0, -0.001), lessThan(launchFinish(s), day + 0.001)] })))
-    if (!targets.length) return slide.onDrop(roundDays)
+    if (!targets.length) return slide.onDrop(state => roundDays(state))
     return d.closest(targets.map(target => d.dropTarget('target-' + target, withLink(state, cardId, target))))
       .withFloating({ ghost: { opacity: 0.35 } })
       .whenFar(slide)
       .withBranchTransition(120)
-      .onDrop(roundDays)
+      .onDrop(state => roundDays(state))
   })
   return follow ? (point: { x: number; y: number }) => roundDays(follow(point)) : null
 }

@@ -2,7 +2,7 @@
 // Hold the built entries to their size ceilings (build spec §2.3), and check the boards stay lazy:
 // the eager entries must not import the boards entry or Dragology, and the boards entry must share
 // Dragology's chunk instead of carrying its own copy; the agents' drawing stays out of the canvas entry. Run after every dist rebuild: npm run check:budget
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
 
 const ceilings = {
@@ -19,11 +19,24 @@ const ceilings = {
   'presence.mjs': { raw: 20000, gzip: 7000 },
   // A board's rulebook (behaviour.ts): loaded only for a board that has rules, and by a server.
   'workshop-behaviour.mjs': { raw: 20000, gzip: 6000 },
+  // The plans (launch and hiring) and their time rules: loaded with the rules, or with a plan's kit. The
+  // entry only re-exports; the code is the chunk the rules and the boards share (plans-<hash>.mjs).
+  'workshop-plans.mjs': { raw: 4000, gzip: 1500 },
+  'plans-*.mjs': { raw: 44000, gzip: 13000 },
   // The library of what can be added (pure data): loaded when the library opens.
   'catalog.mjs': { raw: 16000, gzip: 5000 },
 }
 
-const read = name => readFileSync(new URL('../dist/' + name, import.meta.url))
+const dist = readdirSync(new URL('../dist/', import.meta.url))
+/** A dist file by name, or by a pattern with one * for a shared chunk's hash. */
+const resolveName = name => {
+  if (!name.includes('*')) return name
+  const [head, tail] = name.split('*')
+  const found = dist.filter(file => file.startsWith(head) && file.endsWith(tail))
+  if (found.length !== 1) throw new Error(name + ' matches ' + found.length + ' files')
+  return found[0]
+}
+const read = name => readFileSync(new URL('../dist/' + resolveName(name), import.meta.url))
 const problems = []
 const rows = []
 for (const [name, limit] of Object.entries(ceilings)) {
@@ -34,6 +47,13 @@ for (const [name, limit] of Object.entries(ceilings)) {
   for (const kind of ['raw', 'gzip']) {
     if (size[kind] > limit[kind]) problems.push(`${name} is ${size[kind]} bytes ${kind}, over its ceiling of ${limit[kind]} by ${size[kind] - limit[kind]}.`)
   }
+}
+
+// Every built module of any size has a ceiling: a shared chunk can't carry code past the budget unseen.
+const covered = new Set(Object.keys(ceilings).map(name => { try { return resolveName(name) } catch { return name } }))
+for (const file of dist.filter(file => file.endsWith('.mjs') && !covered.has(file))) {
+  const size = readFileSync(new URL('../dist/' + file, import.meta.url)).length
+  if (size > 2000) problems.push(`${file} (${size} bytes) has no ceiling: give it a line here.`)
 }
 
 const importsOf = name => [...read(name).toString('utf8').matchAll(/\bfrom\s*["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)].map(match => match[1] ?? match[2])

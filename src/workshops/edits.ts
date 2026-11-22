@@ -17,12 +17,12 @@ import { rulebook } from './kinds'
 import type { RuleAudit, RuleInput } from './behaviour'
 
 /** The kinds of board, each with its own rules. */
-export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget'
+export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan'
 /** Every kind of board, for a schema that names them (the app's Workshop record, an MCP tool). */
-export const WORKSHOP_BOARD_KINDS: readonly WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget', 'map', 'launch-plan', 'pipeline', 'budget']
+export const WORKSHOP_BOARD_KINDS: readonly WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget', 'map', 'launch-plan', 'pipeline', 'budget', 'hiring-plan']
 const everyBoard = [...WORKSHOP_BOARD_KINDS]
 const laneBoards: WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget']
-const business: WorkshopBoardKind[] = ['launch-plan', 'pipeline', 'budget']
+const business = WORKSHOP_BOARD_KINDS.slice(5)
 
 export function workshopBoardKind(board: Workshop): WorkshopBoardKind {
   if (board.lanes[0]?.station) return 'map'
@@ -41,7 +41,7 @@ export type WorkshopEdit =
   | { kind: 'rename_card'; card: WorkshopRef; label: string }
   | { kind: 'add_lane'; label: string; capacity?: number }
   | { kind: 'remove_lane'; lane: WorkshopRef }
-  | { kind: 'add_card'; lane: WorkshopRef; label?: string; allowedLanes?: WorkshopRef[]; duration?: number; lag?: number; waitsOn?: WorkshopRef[]; amount?: number }
+  | { kind: 'add_card'; lane: WorkshopRef; label?: string; allowedLanes?: WorkshopRef[]; duration?: number; lag?: number; waitsOn?: WorkshopRef[]; amount?: number; band?: string }
   | { kind: 'remove_card'; card: WorkshopRef }
   | { kind: 'move_card'; card: WorkshopRef; lane: WorkshopRef }
   | { kind: 'advance_card'; card: WorkshopRef }
@@ -69,8 +69,11 @@ export type WorkshopEdit =
   | { kind: 'set_target'; amount: number }
   | { kind: 'shift_budget'; from: WorkshopRef; to: WorkshopRef; amount: number }
   | { kind: 'add_rule'; rule: RuleInput }
-  | { kind: 'set_rule'; rule: string; on?: boolean; severity?: 'refuse' | 'warn'; max?: number; to?: WorkshopRef[] }
+  | { kind: 'set_rule'; rule: string; on?: boolean; severity?: 'refuse' | 'warn'; max?: number; to?: WorkshopRef[]; floor?: number; onConflict?: 'push' | 'stop'; unit?: 'day' | 'week' }
   | { kind: 'remove_rule'; rule: string }
+  // A hiring plan's (slateboxjs/workshops/plans adds them to the table as it loads).
+  | { kind: 'set_band_cost'; band: string; monthly: number }
+  | { kind: 'set_funding'; day: number }
 
 export type WorkshopEditKindName = WorkshopEdit['kind']
 
@@ -162,7 +165,7 @@ const sentences = {
   businessCards: 'Cards on this board go where its rules let them.',
   noRules: 'Only lane boards and pipelines take rules for now.',
 }
-const keepsTeams = { 'launch-plan': sentences.launchLanes, pipeline: sentences.pipelineLanes, budget: sentences.budgetLanes }
+const keepsTeams = { 'launch-plan': sentences.launchLanes, pipeline: sentences.pipelineLanes, budget: sentences.budgetLanes, 'hiring-plan': sentences.launchLanes.replace('launch', 'hiring').replace('tasks', 'hires') }
 const others = (kinds: WorkshopBoardKind[], sentence: string) => Object.fromEntries(everyBoard.filter(kind => !kinds.includes(kind)).map(kind => [kind, sentence]))
 
 // ---------------------------------------------------------------------------------------------
@@ -199,7 +202,7 @@ const notOnMaps = (sentence: string) => ({ map: sentence })
 const mapsOnly = others(['map'], sentences.notMap)
 const whole = (about: string, max = 1e9, min = 0, optional = false): WorkshopEditField => ({ type: 'integer', min, max, about, ...(optional && { optional }) })
 
-export const workshopEditKinds: readonly WorkshopEditKind[] = [
+export const workshopEditKinds: WorkshopEditKind[] = [
   { kind: 'rename_workshop', summary: 'Rename the workshop or map. The slate takes the same name.', intent: true,
     fields: { title: text(120, 'The new name, 1 to 120 characters of plain text.') }, boards: everyBoard, refusals: {} },
   { kind: 'rename_lane', summary: 'Rename a lane, or a step on a map.', intent: true,
@@ -298,7 +301,11 @@ export const workshopEditKinds: readonly WorkshopEditKind[] = [
 
 export const isRuleEdit = (kind: string) => kind === 'add_rule' || kind === 'set_rule' || kind === 'remove_rule'
 
-const byKind = new Map(workshopEditKinds.map(entry => [entry.kind, entry]))
+/**
+ * What add_rule's body may hold: the rulebook's kinds and keys. A rules module that brings its own
+ * (slateboxjs/workshops/plans) adds to these and to the table above as it loads.
+ */
+export const workshopRuleSchema = { kinds: ['capacity', 'path', 'gate', 'bin'], keys: {} as Record<string, unknown> }
 const limitFor = (limit: Limit, board: WorkshopBoardKind | undefined) => typeof limit === 'number' ? limit : (board && limit[board]) ?? limit.default
 
 function fieldSchema(field: WorkshopEditField, board?: WorkshopBoardKind): Record<string, unknown> {
@@ -316,10 +323,10 @@ function fieldSchema(field: WorkshopEditField, board?: WorkshopBoardKind): Recor
     case 'flag': return { type: 'boolean', description: field.about }
     // A rule's body only (its id, state and audit line are the board's): behaviour.ts bodyKeys.
     case 'rule': return { type: 'object', required: ['kind'], additionalProperties: false, properties: {
-      kind: { enum: ['capacity', 'path', 'gate', 'bin'] }, severity: { enum: ['refuse', 'warn'] },
+      kind: { enum: workshopRuleSchema.kinds }, severity: { enum: ['refuse', 'warn'] },
       where: ref, max: { type: 'integer', minimum: 1, maximum: 24 }, from: ref,
       to: { type: 'array', items: ref, minItems: 1, maxItems: 4 }, noSkip: { const: true },
-      into: ref, needs: { type: 'array', items: { type: 'string', maxLength: 40 }, minItems: 1, maxItems: 3 }, lane: ref }, description: field.about }
+      into: ref, needs: { type: 'array', items: { type: 'string', maxLength: 40 }, minItems: 1, maxItems: 3 }, lane: ref, ...workshopRuleSchema.keys }, description: field.about }
   }
 }
 
@@ -476,7 +483,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
     : 'The presentation now runs ' + order.map(item => said(item.label)).join(', then ') + '.'
 
   if (edit.kind === 'add_rule' || edit.kind === 'set_rule' || edit.kind === 'remove_rule') {
-    return rulebook().edit(board, edit, audit!, { lane: ref => laneOf(ref), done: (next, sentence, ids) => done(next, sentence, ids),
+    return rulebook().edit(board, edit, audit!, { lane: ref => laneOf(ref), card: ref => cardOf(ref), done: (next, sentence, ids) => done(next, sentence, ids),
       refuse: (reason, at = {}) => { throw new Refusal(reason, at.code ?? 'refused', at.laneId ?? null, at.cardId) } })
   }
 
@@ -792,8 +799,8 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
 
 /** Refuse an add_card that carries days or an amount the board doesn't take. */
 function extraCardFields(edit: Extract<WorkshopEdit, { kind: 'add_card' }>, family: WorkshopBoardKind, laneId: string) {
-  const extra = (['duration', 'lag', 'waitsOn', 'amount'] as const).find(key => edit[key] !== undefined &&
-    !(family === 'launch-plan' ? key !== 'amount' : (family === 'pipeline' || family === 'budget') && key === 'amount'))
+  const extra = (['duration', 'lag', 'waitsOn', 'amount', 'band'] as const).find(key => edit[key] !== undefined &&
+    !(family === 'launch-plan' || family === 'hiring-plan' ? key !== 'amount' && (key !== 'band' || family === 'hiring-plan') : (family === 'pipeline' || family === 'budget') && key === 'amount'))
   if (extra) throw new Refusal(extra === 'amount' ? sentences.notAmounts : sentences.notTasks, 'not_on_this_board', laneId)
 }
 
@@ -821,7 +828,7 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
   const audit: RuleAudit = { by: (options.actor?.by ?? 'an agent').slice(0, 80), at: options.now ?? new Date().toISOString(), via: options.actor?.via ?? 'exec' }
   for (const [index, edit] of edits.entries()) {
     const kind = (edit as { kind?: unknown } | null)?.kind
-    const entry = typeof kind === 'string' ? byKind.get(kind as WorkshopEditKindName) : undefined
+    const entry = workshopEditKinds.find(item => item.kind === kind)
     if (!edit || typeof edit !== 'object' || !entry) {
       return refuse({ index, kind: typeof kind === 'string' ? kind : null, code: 'invalid_edit',
         reason: 'There is no edit called ' + said(String(kind)) + '. The edits are ' + listed(workshopEditKinds.map(item => item.kind)) + '.' })
@@ -887,7 +894,7 @@ function fixedBusinessField(before: Workshop, after: Workshop): string | null {
 
 const boardNames: Record<WorkshopBoardKind, string> = {
   lanes: 'lane workshop', 'release-plan': 'release plan', 'customer-interviews': 'interview workshop',
-  'experiment-budget': 'budget workshop', map: 'map', 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget',
+  'experiment-budget': 'budget workshop', map: 'map', 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget', 'hiring-plan': 'hiring plan',
 }
 
 /**

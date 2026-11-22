@@ -101,8 +101,12 @@ export interface WorkshopBoardKit {
   layer(slate: any): BoardLayer
   /** Always used for this kind: the lane under the pointer is never the whole answer. */
   chooser: WorkshopCandidateChooser
-  /** Why a drop at this point is refused (an illegal stage, a task that may not wait on that one); null when it is not. */
-  refusalAt(board: Workshop, cardId: string, grab: { x: number; y: number }, point: { x: number; y: number }, layout: WorkshopBoardLayout): { laneId: string; reason: string } | null
+  /**
+   * Why a drop at this point is refused (an illegal stage, a task that may not wait on that one); null when it is not.
+   * `lands`: the chooser still places the card where the rules let it (a plan's bar stops at its line or hops a
+   * freeze), and the reason is said beside it; when that place is where the card already is, the drop is refused.
+   */
+  refusalAt(board: Workshop, cardId: string, grab: { x: number; y: number }, point: { x: number; y: number }, layout: WorkshopBoardLayout): { laneId: string; reason: string; lands?: boolean } | null
   handleDrag(board: Workshop, handleId: string, grab: { x: number; y: number }, layout: WorkshopBoardLayout): ((point: { x: number; y: number }) => HandleResult) | null
   keyEdit?(board: Workshop, part: string, key: { key: string; shiftKey: boolean }): WorkshopEdit[] | null
   /**
@@ -225,8 +229,8 @@ type Kind = 'lane' | 'card' | 'caption' | 'column' | 'image' | 'handle' | 'gauge
 type Outcome =
   | { kind: 'outside' }
   | { kind: 'home' }
-  | { kind: 'refused'; laneId: string; reason: string }
-  | { kind: 'candidate'; laneId: string; next: Workshop }
+  | { kind: 'refused'; laneId: string; reason: string; near?: boolean }
+  | { kind: 'candidate'; laneId: string; next: Workshop; said?: string }
 
 const ACCEPT = '#1f7a5c', OFFER = '#5b9a85', REFUSE = '#c2410c'
 /** The outline of what a host's proposal adds or changes: dashed, so it reads as not yet kept. */
@@ -403,6 +407,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       tell(options.onPreview, null)
       if (outcome.kind === 'candidate' && kit) {
         if (!commitKit(outcome.next, { cardId, laneId: outcome.laneId }, cardId)) { draw(value, { skip: cardId }); return { accept: false } }
+        // Landed where the rules let it: the rule that stopped it says why, beside it.
+        if (outcome.said) { showGripRefusal('card-' + cardId, outcome.said); slate.announce?.(outcome.said) }
         const slot = slotOf(value, nameOf(node.id))
         return slot ? { accept: true, settle: slot } : { accept: true }
       }
@@ -417,6 +423,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       }
       if (outcome.kind === 'refused') {
         refuse(card.label, { cardId, laneId: outcome.laneId, reason: outcome.reason })
+        // A plan's bar that could go nowhere its rules let it: the rule says why beside the bar.
+        if (outcome.near) showGripRefusal('card-' + cardId, outcome.reason)
       } else if (outcome.kind === 'outside' && workshopTakesNotes(value) && !viewer()) {
         // Off the lanes, on the canvas: the card becomes an ordinary note there, or says why it may not.
         const reason = workshopCardAsNoteRefusal(value, cardId)
@@ -736,13 +744,13 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // A business board: its own refusals first, then always its chooser.
       const at = local(point)
       const refused = kit.refusalAt(value, cardId, held?.grab ?? { x: 0, y: 0 }, at, layout)
-      if (refused) return { kind: 'refused', ...refused }
+      if (refused && !refused.lands) return { kind: 'refused', laneId: refused.laneId, reason: refused.reason }
       const { width, height } = geometry(value)
       if (at.x < -40 || at.y < -40 || at.x > width + 40 || at.y > height + 40) return { kind: 'outside' }
       let chosen: Workshop = value
       try { chosen = evaluate?.(at) ?? value } catch (error) { console.warn('WORKSHOP: the board kit\'s chooser threw', error) }
-      if (JSON.stringify(chosen) === JSON.stringify(value)) return { kind: 'home' }
-      return { kind: 'candidate', laneId: chosen.cards.find(item => item.id === cardId)?.laneId ?? card.laneId, next: chosen }
+      if (JSON.stringify(chosen) === JSON.stringify(value)) return refused ? { kind: 'refused', laneId: refused.laneId, reason: refused.reason, near: true } : { kind: 'home' }
+      return { kind: 'candidate', laneId: chosen.cards.find(item => item.id === cardId)?.laneId ?? card.laneId, next: chosen, ...(refused && { said: refused.reason }) }
     }
     const columns = value.lanes.map(lane => owned.get(noteId(workshopNodeIds.column(lane.id)))).filter(Boolean)
     // Columns are drawn 4 units apart, and rows of lanes 12; the padding closes both seams.
@@ -1421,6 +1429,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         ? { x: seen.x - origin.x, y: seen.y - origin.y, width: seen.width, height: seen.height } : null
       layer.draw(value, shown === value ? null : shown, { origin, layout, above, view, announce: text => slate.announce?.(text),
         clamp: grip?.last?.clampedReason ? { name: grip.name, text: grip.last.clampedReason }
+          : held?.outcome.kind === 'candidate' && held.outcome.said ? { name: 'card-' + held.cardId, text: held.outcome.said }
           : !grip && gripRefusal ? { name: gripRefusal.name, text: gripRefusal.reason } : null,
         refused: Boolean(grip?.last?.refusal) || (!grip && Boolean(gripRefusal)),
         onUnlink: (cardId, waitsOn) => {
@@ -1639,7 +1648,7 @@ function watch(answer: unknown, refused?: () => void, taken?: () => void) {
 function sameOutcome(a: Outcome, b: Outcome) {
   // The committed board does not change while a card is held, so the same lane means the same candidate
   // (a business board's candidates differ within a lane too: a task slid along its row).
-  if (a.kind === 'candidate' && b.kind === 'candidate') return a.next === b.next || JSON.stringify(a.next) === JSON.stringify(b.next)
+  if (a.kind === 'candidate' && b.kind === 'candidate') return a.said === b.said && (a.next === b.next || JSON.stringify(a.next) === JSON.stringify(b.next))
   return a.kind === b.kind && (a as any).laneId === (b as any).laneId && (a as any).reason === (b as any).reason
 }
 

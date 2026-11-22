@@ -22,12 +22,12 @@ export { workshopEditsBetween, pipelineGauge, budgetHeader, launchLinkTargets, p
 export { createBoardLayer, renderLayerShapes, layerInk, type LayerShape } from '../workshops/boardLayer'
 export * from '../workshops/rules'
 
-const kits: Record<BusinessBoardKind, WorkshopBoardKit> = { 'launch-plan': launchPlanKit, pipeline: pipelineKit, budget: budgetKit }
+const kits: Record<BusinessBoardKind, WorkshopBoardKit> = { 'launch-plan': launchPlanKit, 'hiring-plan': launchPlanKit, pipeline: pipelineKit, budget: budgetKit }
 
 /** The kit for a business board's kind. Throws for any other kind: those boards draw without one. */
 export function kitFor(kind: Workshop['kind'] | string | undefined): WorkshopBoardKit {
   const kit = kits[kind as BusinessBoardKind]
-  if (!kit) throw new Error(`No board kit for "${kind}". Only a launch plan, a pipeline and a budget have one.`)
+  if (!kit) throw new Error(`No board kit for "${kind}". Only a launch plan, a hiring plan, a pipeline and a budget have one.`)
   return kit
 }
 

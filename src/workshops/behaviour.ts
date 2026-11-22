@@ -14,13 +14,15 @@
 import type { Workshop, WorkshopCard, WorkshopLane, WorkshopNoteStyle } from './model'
 import type { NodeJSON } from '../core/Serialization'
 // The model's own helpers, from the model's chunk (this module is slateboxjs/workshops/behaviour, loaded on demand).
-import { DEFAULT_NOTE_STYLE, registerRulebook, validateWorkshop, workshopCandidate, workshopReferences, workshopRefusal, said } from './model'
+import { DEFAULT_NOTE_STYLE, registerRulebook, roundedBox, validateWorkshop, workshopCandidate, workshopReferences, workshopRefusal, workshopRules, workshopRulesLoaded, said, type BusinessBoardKind } from './model'
 import type { WorkshopEdit, WorkshopRef } from './edits'
 import type { BusinessEditStep, BusinessEditTools } from './kinds'
 import type { WorkshopFinder } from './names'
 
-export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin'
+export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin' | TimeRuleKindId
 export const ruleKindIds: readonly RuleKindId[] = ['capacity', 'path', 'gate', 'bin']
+/** A plan's rule kinds (timeRules.ts, with the plans' rules): a launch plan's and a hiring plan's. */
+export type TimeRuleKindId = 'deadline' | 'overlap' | 'snap' | 'workdays' | 'blackout' | 'cascade' | 'locked'
 
 /** Who set a rule, when, and from where. Shown when a refusal is explained. */
 export interface RuleAudit { by: string; at: string; via: 'chat' | 'exec' | 'preset' }
@@ -30,6 +32,14 @@ export type RuleBody =
   | { kind: 'path'; from: string; to?: string[]; noSkip?: boolean }
   | { kind: 'gate'; into: string; needs: string[] }
   | { kind: 'bin'; lane: string }
+  // A plan's (launch or hiring): the line, overlap per team, snap, working days, a freeze, a slip's reach, a locked task.
+  | { kind: 'deadline'; at: 'launch' | 'runway'; floor?: number }
+  | { kind: 'overlap'; lane?: string }
+  | { kind: 'snap'; unit: 'day' | 'week' }
+  | { kind: 'workdays' }
+  | { kind: 'blackout'; start: string; end: string; label: string }
+  | { kind: 'cascade'; onConflict: 'push' | 'stop' }
+  | { kind: 'locked'; cards: string[] }
 
 export type BehaviourRule = RuleBody & { id: string; on: boolean; severity: 'refuse' | 'warn'; set: RuleAudit }
 
@@ -47,10 +57,13 @@ const gateFields: Record<string, { id: string; noun: string }[]> = { pipeline: [
 const fieldNoun = (id: string) => Object.values(gateFields).flat().find(field => field.id === id)?.noun ?? id
 const textFields = new Set(['label', 'text', 'title', 'name', 'words'])
 
-type Family = 'lanes' | 'pipeline' | null
-/** Which boards take rules: lane boards and the sales pipeline (null for every other). */
+type Family = 'lanes' | 'pipeline' | 'time' | null
+/** A board kind's own rule kinds (a plan's), from its rules module. */
+const own = (board: Pick<Workshop, 'kind'>) => workshopRulesLoaded(board.kind) ? workshopRules(board.kind as BusinessBoardKind).rulebook : undefined
+/** Which boards take rules: lane boards, the sales pipeline and the plans (null for every other). */
 export function behaviourFamily(board: Pick<Workshop, 'kind' | 'lanes' | 'experience'>): Family {
   if (board.kind === 'pipeline') return 'pipeline'
+  if (own(board)) return 'time'
   if (board.kind || board.experience || board.lanes.some(lane => lane.station)) return null
   return 'lanes'
 }
@@ -92,6 +105,11 @@ export function validateBehaviour(input: unknown, board: Workshop): Behaviour {
     if (typeof set.by !== 'string' || set.by.length > 80 || typeof set.at !== 'string' || set.at.length > 40 ||
       !['chat', 'exec', 'preset'].includes(set.via as string)) throw new Error('A rule says who set it, when and how.')
     const base = { id: rule.id, on: rule.on, severity: rule.severity as 'refuse' | 'warn', set: { by: set.by, at: set.at, via: set.via as RuleAudit['via'] } }
+    const plan = own(board)
+    if (plan) {
+      if (plan.keys[rule.kind as string] === undefined) throw new Error('This board does not know the rule ' + String(rule.kind) + '.')
+      return plan.read(rule, base, board, laneId)
+    }
     const known = (keys: string[]) => {
       const extra = Object.keys(rule).find(key => !['id', 'on', 'severity', 'set', 'kind', ...keys].includes(key))
       if (extra) throw new Error('A ' + rule.kind + ' rule does not take ' + extra + '.')
@@ -152,6 +170,8 @@ function labelOf(board: Pick<Workshop, 'lanes'>, id: string) {
 
 /** A rulebook that contradicts itself, as a sentence; null when it holds together. */
 export function behaviourContradiction(behaviour: Behaviour, board: Workshop): string | null {
+  const plan = own(board)
+  if (plan) return plan.contradiction(behaviour, board)
   const bins = new Set(behaviour.rules.filter(rule => rule.kind === 'bin').map(rule => (rule as { lane: string }).lane))
   const seen = new Map<string, string>()
   for (const rule of behaviour.rules) {
@@ -168,7 +188,8 @@ export function behaviourContradiction(behaviour: Behaviour, board: Workshop): s
       if (bins.has(rule.into)) return labelOf(board, rule.into) + ' archives cards, so it takes every card.'
       key = 'gate:' + rule.into; sentence = labelOf(board, rule.into) + ' already asks for something. Change that rule instead.'
     } else {
-      key = 'bin:' + rule.lane; sentence = labelOf(board, rule.lane) + ' already archives cards.'
+      const lane = (rule as { lane: string }).lane
+      key = 'bin:' + lane; sentence = labelOf(board, lane) + ' already archives cards.'
     }
     if (seen.has(key)) return sentence
     seen.set(key, rule.id)
@@ -201,7 +222,7 @@ function laneLimits(board: Workshop): { lane: WorkshopLane; max: number }[] {
   return board.lanes.filter(lane => lane.capacity !== undefined && !ruled.has(lane.id)).map(lane => ({ lane, max: lane.capacity! }))
 }
 
-const registry: Record<RuleKindId, {
+const registry: Record<string, {
   sentence(rule: BehaviourRule, board: Workshop): string
   check(rule: BehaviourRule, before: Workshop, after: Workshop, move: Move): Check
 }> = {
@@ -259,13 +280,15 @@ const ordered = (rules: BehaviourRule[]) => priority.flatMap(kind => rules.filte
 
 /** A rule's sentence: its caption, its line in the note, and the loop's caption in the library. */
 export function ruleSentence(rule: BehaviourRule, board: Workshop): string {
+  const plan = own(board)
+  if (plan) return plan.sentence(rule, board)
   const said = registry[rule.kind].sentence(rule, board)
   return rule.severity === 'warn' ? said.replace(/\.$/, ' (a warning only).') : said
 }
 
 /** What a board's built-in rules say (they are its kind's, not the rulebook's: D2 ports them). */
 function builtIn(board: Workshop): string[] {
-  return board.kind === 'pipeline' ? ['Deals move one stage at a time.', 'A won deal needs an amount.'] : []
+  return own(board)?.builtIn(board) ?? (board.kind === 'pipeline' ? ['Deals move one stage at a time.', 'A won deal needs an amount.'] : [])
 }
 
 /** The lines of the "How this board behaves" note: built-in rules, lane limits, then the rulebook's rules that are on. */
@@ -293,6 +316,8 @@ export type BehaviourVerdict =
  * A `warn` rule lets the card land and says its sentence.
  */
 export function checkBehaviour(before: Workshop, after: Workshop): BehaviourVerdict {
+  const plan = own(before)
+  if (plan) return plan.check(before, after)
   const rules = ordered(behaviourOf(before).rules.filter(rule => rule.on))
   const warnings: string[] = []
   if (!rules.length) return { ok: true, warnings }
@@ -342,7 +367,7 @@ export function behaviourDiff(before: Workshop, after: Workshop): { from: number
 export type RuleInput = RuleBody & { severity?: 'refuse' | 'warn' }
 
 /** The keys of each kind's body: what add_rule takes besides its kind and severity. */
-const bodyKeys: Record<RuleKindId, string> = { capacity: 'where max', path: 'from to noSkip', gate: 'into needs', bin: 'lane' }
+const bodyKeys: Record<string, string> = { capacity: 'where max', path: 'from to noSkip', gate: 'into needs', bin: 'lane' }
 
 /** A rule id not yet on the board. */
 export function nextRuleId(behaviour: Behaviour): string {
@@ -369,7 +394,7 @@ export function dropLaneRules(behaviour: Behaviour, laneId: string): Behaviour {
   return rules.length === behaviour.rules.length ? behaviour : { ...behaviour, rev: behaviour.rev + 1, rules }
 }
 
-type RuleTools = Pick<BusinessEditTools, 'lane' | 'refuse' | 'done'>
+type RuleTools = Pick<BusinessEditTools, 'lane' | 'card' | 'refuse' | 'done'>
 
 /** add_rule, set_rule and remove_rule: one rule at a time, the revision bumped, the audit line kept. */
 export function applyRuleEdit(board: Workshop, edit: WorkshopEdit, audit: RuleAudit, t: RuleTools): BusinessEditStep {
@@ -403,18 +428,25 @@ export function applyRuleEdit(board: Workshop, edit: WorkshopEdit, audit: RuleAu
       if (rule.kind !== 'path') return t.refuse('Only a path rule says where cards go.')
       rule.to = edit.to.map(lane)
     }
+    // A plan's rule: the line's floor, a slip's reach, the snap.
+    for (const key of ['floor', 'onConflict', 'unit'] as const) if (edit[key] !== undefined) {
+      if (!(key in rule)) return t.refuse('That rule does not take ' + key + '.')
+      ;(rule as Record<string, unknown>)[key] = edit[key]
+    }
     return settle({ ...before, rev: before.rev + 1, rules: before.rules.map(item => item.id === rule.id ? rule : item) },
       rule.on ? 'The rule now says: ' + ruleSentence(rule, board) : 'Turned off: ' + ruleSentence(rule, board))
   }
   const input = edit.rule as unknown as Record<string, unknown>
-  if (!ruleKindIds.includes(input.kind as RuleKindId)) return t.refuse('This board does not know the rule ' + String(input.kind) + '.', { code: 'invalid_edit' })
+  const keys = own(board)?.keys ?? bodyKeys
+  if (keys[input.kind as string] === undefined) return t.refuse('This board does not know the rule ' + String(input.kind) + '.', { code: 'invalid_edit' })
   // A rule's body only: its id, whether it is on and who set it are the board's to keep (the audit line is this edit's).
-  const extra = Object.keys(input).find(key => !('kind severity ' + bodyKeys[input.kind as RuleKindId]).split(' ').includes(key))
+  const extra = Object.keys(input).find(key => !('kind severity ' + keys[input.kind as string]).split(' ').includes(key))
   if (extra) return t.refuse('A ' + String(input.kind) + ' rule does not take ' + extra + '.', { code: 'invalid_edit' })
   const rule: Record<string, unknown> = { id: nextRuleId(before), kind: input.kind, on: true, severity: input.severity ?? 'refuse', set: audit }
   for (const [key, value] of Object.entries(input)) {
     if (key === 'kind' || key === 'severity') continue
-    rule[key] = key === 'where' || key === 'into' || key === 'lane' || key === 'from' ? lane(value) : key === 'to' && Array.isArray(value) ? value.map(lane) : value
+    rule[key] = key === 'where' || key === 'into' || key === 'lane' || key === 'from' ? lane(value) : key === 'to' && Array.isArray(value) ? value.map(lane)
+      : key === 'cards' && Array.isArray(value) ? value.map(ref => t.card(ref).id) : value
   }
   return settle({ ...before, rev: before.rev + 1, rules: [...before.rules, rule as unknown as BehaviourRule] }, 'New rule: ' + ruleSentence(rule as unknown as BehaviourRule, board))
 }
@@ -469,15 +501,11 @@ function drawBehaviourNote(board: Workshop, box: { x: number; y: number; width: 
   const rows = text.split('\n').reduce((count, line) => count + Math.max(1, Math.ceil(line.length / perLine)), 0)
   const height = Math.round(rows * size * 1.4 + 24)
   return { options: { id: 'rules-board', name: 'How this board behaves', text, xPos: box.x, yPos: box.y, width: box.width, height,
-    shapeHint: 'rectangle', vectorPath: noteBox(box.width, height, style.cornerRadius ?? 0), backgroundColor: '#f4f1e8',
+    shapeHint: 'rectangle', vectorPath: roundedBox(box.width, height, style.cornerRadius ?? 0), backgroundColor: '#f4f1e8',
     foregroundColor: style.textColor ?? DEFAULT_NOTE_STYLE.fontColor, borderColor: '#b8b2a0', borderWidth: 1, borderStyle: 'dashed',
     fontSize: size, ...(style.fontFamily ? { fontFamily: style.fontFamily } : {}) }, relationships: { associations: [] } }
 }
 
-const noteBox = (w: number, h: number, r: number) => {
-  const c = Math.max(0, Math.min(r, w / 2, h / 2))
-  return c ? `M ${c} 0 H ${w - c} Q ${w} 0 ${w} ${c} V ${h - c} Q ${w} ${h} ${w - c} ${h} H ${c} Q 0 ${h} 0 ${h - c} V ${c} Q 0 0 ${c} 0 Z` : `M 0 0 H ${w} V ${h} H 0 Z`
-}
 
 /** A lane whose limit is a rule: set_lane_capacity changes the rule (a new limit never moves a card). Null for a lane without one. */
 export function setRuledLimit(board: Workshop, laneId: string, capacity: number | null, audit: RuleAudit): Workshop | string | null {

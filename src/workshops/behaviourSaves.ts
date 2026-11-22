@@ -4,7 +4,10 @@ import type { Workshop } from './model'
 import type { WorkshopEdit, WorkshopRef } from './edits'
 import type { Behaviour, BehaviourRule, RuleInput, RuleKindId } from './behaviour'
 
-const bodyKeys: Record<RuleKindId, string[]> = { capacity: ['where', 'max'], path: ['from', 'to', 'noSkip'], gate: ['into', 'needs'], bin: ['lane'] }
+const bodyKeys: Record<RuleKindId, string[]> = { capacity: ['where', 'max'], path: ['from', 'to', 'noSkip'], gate: ['into', 'needs'], bin: ['lane'],
+  deadline: ['at', 'floor'], overlap: ['lane'], snap: ['unit'], workdays: [], blackout: ['start', 'end', 'label'], cascade: ['onConflict'], locked: ['cards'] }
+/** What set_rule changes on a rule; every other key is fixed under its id. */
+const settable = ['max', 'to', 'floor', 'onConflict', 'unit']
 const rulesOf = (board: Pick<Workshop, 'behaviour'>): Behaviour => board.behaviour ?? { version: 1, rev: 0, rules: [] }
 
 /**
@@ -17,7 +20,7 @@ export function behaviourEditsBetween(before: Workshop, after: Workshop): Worksh
   const was = rulesOf(before).rules, now = rulesOf(after).rules
   const adds: WorkshopEdit[] = [], sets: WorkshopEdit[] = [], removes: WorkshopEdit[] = []
   const ref = (id: string) => (id === 'any' ? 'any' : { id }) as WorkshopRef
-  const fixed = (rule: BehaviourRule) => JSON.stringify(bodyKeys[rule.kind].filter(key => key !== 'max' && key !== 'to').map(key => [key, (rule as unknown as Record<string, unknown>)[key]]))
+  const fixed = (rule: BehaviourRule) => JSON.stringify(bodyKeys[rule.kind].filter(key => !settable.includes(key)).map(key => [key, (rule as unknown as Record<string, unknown>)[key]]))
   for (const rule of now) {
     const old = was.find(item => item.id === rule.id)
     const body = rule as unknown as Record<string, unknown>
@@ -25,7 +28,7 @@ export function behaviourEditsBetween(before: Workshop, after: Workshop): Worksh
       const input: Record<string, unknown> = { kind: rule.kind, ...(rule.severity === 'warn' && { severity: 'warn' }) }
       for (const key of bodyKeys[rule.kind]) {
         if (body[key] === undefined) continue
-        input[key] = key === 'to' ? (body[key] as string[]).map(ref) : ['where', 'into', 'lane', 'from'].includes(key) ? ref(body[key] as string) : body[key]
+        input[key] = key === 'to' || key === 'cards' ? (body[key] as string[]).map(ref) : ['where', 'into', 'lane', 'from'].includes(key) ? ref(body[key] as string) : body[key]
       }
       adds.push({ kind: 'add_rule', rule: input as unknown as RuleInput })
       if (!rule.on) sets.push({ kind: 'set_rule', rule: rule.id, on: false })
@@ -42,6 +45,10 @@ export function behaviourEditsBetween(before: Workshop, after: Workshop): Worksh
         if (!to) return null
         change.to = to.map(ref)
       }
+    }
+    for (const key of ['floor', 'onConflict', 'unit']) {
+      const now0 = (rule as unknown as Record<string, unknown>)[key]
+      if (now0 !== (old as unknown as Record<string, unknown>)[key]) change[key] = now0
     }
     if (Object.keys(change).length) sets.push({ kind: 'set_rule', rule: rule.id, ...change } as WorkshopEdit)
   }

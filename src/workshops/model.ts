@@ -46,6 +46,8 @@ export interface WorkshopCard {
   lag?: number
   /** Pipeline and budget: whole currency units. */
   amount?: number
+  /** Hiring plan: the role band the hire is in (cost is per band, never per person). */
+  band?: string
   /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
   look?: WorkshopCardLook
   /** What the note it was made from had that a card does not show, so it comes back as it was. */
@@ -92,8 +94,12 @@ export interface Workshop {
   version: 1
   kind?: WorkshopKind
   title: string
-  /** Launch plan: the day every task must end by. */
-  launch?: { day: number }
+  /** Launch plan: the day every task must end by (a go-live names it). */
+  launch?: { day: number; name?: string }
+  /** Launch and hiring plans: the plan's first day (YYYY-MM-DD); days are offsets from it. */
+  clock?: { origin: string }
+  /** Hiring plan: cash, monthly burn without new hires, the role bands and a funding round. */
+  hiring?: HiringFields
   /** Pipeline: the forecast target, and the currency sign amounts are written with. */
   forecast?: { target: number; currency: string }
   /** Budget: the envelope, its currency sign and the step allocations snap to. */
@@ -108,10 +114,14 @@ export interface Workshop {
 }
 
 /** The kinds of board with rules of their own. A board without a kind is a board of plain lanes. */
-export type WorkshopKind = 'release-plan' | 'launch-plan' | 'pipeline' | 'budget'
+export type WorkshopKind = 'release-plan' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan'
+
+/** A hiring plan's money: what a role band costs a month (loaded), on one team. */
+export interface HiringBand { id: string; label: string; monthly: number; lane: string }
+export interface HiringFields { cash: number; burn: number; currency: string; weeks: number; bands: HiringBand[]; funding?: { day: number; amount: number } }
 /** The business boards: drawn by a board kit (slateboxjs/boards) on a live slate. */
-export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget'
-export const businessBoardKinds: readonly BusinessBoardKind[] = ['launch-plan', 'pipeline', 'budget']
+export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan'
+export const businessBoardKinds: readonly BusinessBoardKind[] = ['launch-plan', 'pipeline', 'budget', 'hiring-plan']
 export function businessKind(board: Pick<Workshop, 'kind'>): BusinessBoardKind | undefined {
   return businessBoardKinds.includes(board.kind as BusinessBoardKind) ? board.kind as BusinessBoardKind : undefined
 }
@@ -883,7 +893,8 @@ export function workshopStandInId(name: string, taken: (id: string) => boolean):
   return `${name}--${n}`
 }
 
-function roundedBox(width: number, height: number, radius: number) {
+/** A note's outline: a box with rounded corners (none at radius 0). */
+export function roundedBox(width: number, height: number, radius: number) {
   const r = Math.max(0, Math.min(radius, width / 2, height / 2)), w = width, h = height
   if (!r) return `M 0 0 H ${w} V ${h} H 0 Z`
   return `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`

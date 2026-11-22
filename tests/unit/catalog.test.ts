@@ -2,17 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { catalog, catalogAddRequest, catalogEntry, catalogFits, catalogMatch, catalogPreset, catalogVersion } from '../../src/workshops/catalog'
 import { describeWorkshopEdits, validateWorkshop, workshopBoardKind } from '../../src/workshops/model'
 import { behaviourLines, ruleKindIds } from '../../src/workshops/behaviour'
-import { sampleBudget, sampleLaunchPlan, samplePipeline } from '../../src/workshops/rules'
-
-const samples = { 'launch-plan': sampleLaunchPlan, pipeline: samplePipeline, budget: sampleBudget }
+import { catalogSamples as samples, timeRuleKindIds } from '../../src/workshops/rules'
 
 // The smart-component library (library final.md §2.4, §2.8): one catalogue the panel, the + menu,
 // chat, exec and the site read. Only entries whose kind is built are listed.
 
-const ids = ['now-next-later', 'pros-cons', 'must-should-could', 'decision-path', 'retro', 'triage', 'team-board', 'launch-plan', 'sales-pipeline', 'budget']
+const ids = ['now-next-later', 'pros-cons', 'must-should-could', 'decision-path', 'retro', 'triage', 'team-board', 'launch-plan', 'customer-go-live', 'hiring-plan', 'sales-pipeline', 'budget']
 
 describe('catalogue', () => {
-  it('lists the ten entries built on this line, each with a group, a line, ways to say it and a loop', () => {
+  it('lists the twelve entries built on this line, each with a group, a line, ways to say it and a loop', () => {
     expect(catalog.map(entry => entry.id)).toEqual(ids)
     expect(catalogVersion).toMatch(/^\d+\.\d+$/)
     for (const entry of catalog) {
@@ -36,7 +34,7 @@ describe('catalogue', () => {
       expect(workshopBoardKind(board)).toBe(entry.build.kind)
       const accepted = describeWorkshopEdits(board).filter(edit => edit.accepted).map(edit => edit.kind)
       for (const edit of entry.edits) expect(accepted, entry.id + ' lists ' + edit).toContain(edit)
-      for (const rule of entry.rules) expect(ruleKindIds).toContain(rule)
+      for (const rule of entry.rules) expect(entry.build.kind === 'launch-plan' || entry.build.kind === 'hiring-plan' ? timeRuleKindIds : ruleKindIds).toContain(rule)
       // Every edit it offers has a move with a phrase; the app's listing gate checks each phrase parses.
       expect(entry.edits).toEqual([...new Set(entry.moves.map(item => item.edit))])
     }
