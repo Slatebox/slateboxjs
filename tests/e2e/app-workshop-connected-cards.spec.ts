@@ -216,6 +216,80 @@ test('notes joined by lines become cards and keep them, cards join notes and eac
   }
 })
 
+// Owner's bug (2026-11-22, app.slatebox.com): on a Pros and cons board, "hey" (joined to the Welcome!
+// card, and with an elbow line whose end was free on the canvas) dragged onto Pros was refused: "A note
+// with a line that ends on empty canvas stays a note." Owner: "should not be restricted".
+test('a note with a free-ended elbow line and a line to a card, dropped on a Pros and cons lane, is a card with both lines: saved, kept on reload, a note again with them', async ({ page }) => {
+  let id: string | null = null
+  const pros: Workshop = {
+    version: 1, title: 'Pros and cons',
+    lanes: [{ id: 'pros', label: 'Pros' }, { id: 'cons', label: 'Cons' }, { id: 'questions', label: 'Questions' }],
+    cards: [{ id: 'welcome', label: 'Welcome!', laneId: 'questions' }],
+  }
+  try {
+    await page.goto(new URL('/new/workshop' + encodeWorkshopFragment(pros), origin).href)
+    await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
+    await expect.poll(() => userId(page)).toBeTruthy()
+    id = (await userId(page))!
+    await dismissWelcome(page)
+    await workshopReady(page)
+    const key = slateKey(page)
+    await page.waitForTimeout(4000)
+    // "hey" beside the board, with an elbow line let go on empty canvas (sent and saved as a person's).
+    const point = await page.evaluate(() => {
+      const slate = (window as any).slate.v2
+      const column = slate.nodes.one('column-pros').options
+      const hey = slate.addNode({ id: 'hey', x: column.x - 300, y: column.y + 40, width: 180, height: 70, text: 'hey' })
+      const p = { x: Math.round(column.x - 420), y: Math.round(column.y + 260) }
+      hey.relationships.addFloatingAssociation(p, { lineType: 'elbow', showChildArrow: true })
+      return p
+    })
+    await page.waitForTimeout(400)
+    await page.evaluate(() => (window as any).slate.v2.fitToContent?.())
+    await page.waitForTimeout(400)
+    const freeLine = async () => (await getSlate(page, key)).nodes.find((n: any) => n.options?.id === 'hey')?.relationships?.associations?.find((a: any) => a.targetPoint)
+    await expect.poll(async () => (await freeLine())?.targetPoint).toEqual(point)
+    const free = await freeLine()
+    // And a line from "hey" to the Welcome! card, with the plug.
+    await plug(page, 'hey', 'card-welcome')
+    await expect.poll(() => boardLines(page, key)).toBe('hey>welcome')
+
+    // Dropped on Pros: a card, no refusal, both lines with it.
+    await page.waitForTimeout(600)
+    const prosColumn = await resting(page, 'column-pros')
+    await carry(page, 'hey', { x: prosColumn.x + prosColumn.width / 2, y: prosColumn.y + prosColumn.height - 24 })
+    await expect.poll(async () => (await storedWorkshop(page, key)).cards.map((c: any) => c.id + '@' + c.laneId).join(' ')).toBe('welcome@questions hey@pros')
+    await expect(page.getByText('stays a note')).toHaveCount(0)
+    await expect.poll(() => boardLines(page, key)).toBe(`hey>welcome hey>${free.childId}`)
+    expect(((await storedWorkshop(page, key)).lines ?? []).find((l: any) => l.id === free.id)).toMatchObject({ targetPoint: point, lineType: 'elbow' })
+    await expect.poll(() => drawingLines(page, key)).toBe('')
+    const welcomeLine = await lineIdOf(page, key, 'hey', 'welcome')
+    const drawnFree = () => page.evaluate(lineId => Boolean(document.querySelector(`#slateCanvas [data-connection-id="${CSS.escape(lineId)}"]`)), free.id)
+    await expect.poll(() => joins(page, welcomeLine, 'card-hey', 'card-welcome')).toBe(true)
+    await expect.poll(drawnFree).toBe(true)
+
+    // A reload draws both lines again.
+    await page.reload()
+    await dismissWelcome(page)
+    await workshopReady(page)
+    await expect.poll(() => joins(page, welcomeLine, 'card-hey', 'card-welcome')).toBe(true)
+    await expect.poll(drawnFree).toBe(true)
+
+    // Back on the canvas as a note: the free line is the drawing's again, at its point; the line to Welcome! stays the board's.
+    await page.waitForTimeout(4000)
+    await page.evaluate(() => (window as any).slate.v2.fitToContent?.())
+    await page.waitForTimeout(400)
+    const welcomeBox = await resting(page, 'card-welcome')
+    await carry(page, 'card-hey', { x: welcomeBox.x - 260, y: welcomeBox.y + welcomeBox.height + 160 })
+    await expect.poll(async () => (await storedWorkshop(page, key)).cards.map((c: any) => c.id).join(' ')).toBe('welcome')
+    await expect.poll(async () => (await freeLine())?.targetPoint).toEqual(point)
+    await expect.poll(() => boardLines(page, key)).toBe('hey>welcome')
+    await expect.poll(drawnFree).toBe(true)
+  } finally {
+    await removeTestGuest(page, id)
+  }
+})
+
 // Any note becomes a card (owner decision 2026-11-21, "no need to restrict this either").
 test('an empty note dropped on a lane is an empty card: saved, counted, seen by a teammate, kept on reload, undone, presented', async ({ page, browser }) => {
   let id: string | null = null, guest: Awaited<ReturnType<typeof joinAsEditor>> | null = null

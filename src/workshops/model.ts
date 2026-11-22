@@ -114,7 +114,17 @@ export interface WorkshopLine {
   /** An end pinned to one spot on its note's edge ({x, y} in 0..1 on the unturned note); none follows its note. */
   sourceAnchor?: WorkshopLineAnchor
   targetAnchor?: WorkshopLineAnchor
+  /**
+   * A free end: the line ends at this point on the canvas, on no note. Only the far end of a line
+   * held by a card is free (`parentId` names the card; `childId` is the free end's own id, as the
+   * slate saves it). The point stays where it is when the card moves, as a free end does on the
+   * canvas, and the line goes back to the drawing with it when the card becomes a note.
+   */
+  targetPoint?: WorkshopLinePoint
 }
+
+/** A point on the canvas where a line's free end is. */
+export interface WorkshopLinePoint { x: number; y: number }
 
 /** A spot on a note's edge, as a pinned line end keeps it (see core/LineEnds.ts). */
 export interface WorkshopLineAnchor { x: number; y: number }
@@ -355,6 +365,8 @@ function cardAsNote(input: unknown): WorkshopCardAsNote | undefined {
 export const maxWorkshopLines = 96
 const lineIdPattern = /^[A-Za-z0-9_][A-Za-z0-9_.:~>-]{0,159}$/
 const lineDashes = ['solid', 'dashed', 'dotted']
+/** How far from the canvas's middle a free line end may be. */
+const maxLinePoint = 10_000_000
 
 /** One line, as a connector of the slate is saved: only the fields a connector draws. */
 function workshopLine(input: unknown): WorkshopLine {
@@ -400,9 +412,18 @@ function workshopLine(input: unknown): WorkshopLine {
     if (typeof raw.label !== 'string' || raw.label.length > 200 || /[<>\u0000-\u001f]/.test(raw.label)) throw new Error('A line\'s label is plain words, up to 200 characters.')
     line.label = raw.label
   }
-  // A pinned end keeps its spot on the note's edge; a line's end is on a note, never free (a free end
-  // has no note to travel with, so a note with one stays a note).
+  // A free end is a point on the canvas (see WorkshopLine.targetPoint), pinned to no note.
+  if (raw.targetPoint !== undefined && raw.targetPoint !== null) {
+    const point = record(raw.targetPoint)
+    const onCanvas = (n: unknown) => typeof n === 'number' && Number.isFinite(n) && Math.abs(n) <= maxLinePoint
+    if (!onCanvas(point.x) || !onCanvas(point.y) || Object.keys(point).some(name => name !== 'x' && name !== 'y')) {
+      throw new Error('A free line end is a point on the canvas.')
+    }
+    line.targetPoint = { x: Math.round((point.x as number) * 100) / 100, y: Math.round((point.y as number) * 100) / 100 }
+  }
+  // A pinned end keeps its spot on the note's edge.
   for (const key of ['sourceAnchor', 'targetAnchor'] as const) {
+    if (key === 'targetAnchor' && line.targetPoint) continue
     const anchor = raw[key]
     if (anchor === undefined || anchor === null) continue
     const spot = record(anchor)
@@ -415,14 +436,23 @@ function workshopLine(input: unknown): WorkshopLine {
 
 /**
  * The lines of a board with these cards. A line with no card at either end is the drawing's, not
- * the board's, and is left out (its card has left the board).
+ * the board's, and is left out (its card has left the board); so is a free-ended line whose card
+ * has left. A line whose far end is on a card has no free end.
  */
 function workshopLines(input: unknown, cardIds: Set<string>): WorkshopLine[] {
   if (!Array.isArray(input)) throw new Error('A workshop\'s lines are a list.')
-  const lines = input.map(workshopLine).filter(line => cardIds.has(line.parentId) || cardIds.has(line.childId))
+  const lines = input.map(workshopLine).map(line => freeEndOf(line, cardIds))
+    .filter(line => line.targetPoint ? cardIds.has(line.parentId) : cardIds.has(line.parentId) || cardIds.has(line.childId))
   unique(lines.map(line => line.id), 'line ID')
   if (lines.length > maxWorkshopLines) throw new Error(`A workshop holds up to ${maxWorkshopLines} lines.`)
   return lines
+}
+
+/** `line` without a free end when its far end names a card: that end is on the card. */
+function freeEndOf(line: WorkshopLine, cardIds: Set<string>): WorkshopLine {
+  if (!line.targetPoint || !cardIds.has(line.childId)) return line
+  const { targetPoint: _point, ...onCard } = line
+  return onCard
 }
 
 function unique(values: string[], what: string) {
@@ -850,7 +880,11 @@ function offeredLines(input: unknown): WorkshopLine[] | null {
   for (const raw of list) {
     let line: WorkshopLine | null = null
     try { line = workshopLine(raw) } catch {
-      try { const { id: lineId, parentId, childId } = record(raw); line = workshopLine({ id: lineId, parentId, childId }) } catch { line = null }
+      // Its look aside, the line itself: its ends, and the point of a free end.
+      const bare = (point: boolean) => { const { id: lineId, parentId, childId, targetPoint } = record(raw); return workshopLine({ id: lineId, parentId, childId, ...(point ? { targetPoint } : {}) }) }
+      // A free end whose point cannot be read cannot be drawn anywhere: the note says so rather than lose it.
+      const free = (raw as any)?.targetPoint !== undefined && (raw as any)?.targetPoint !== null
+      try { line = bare(true) } catch { try { line = free ? null : bare(false) } catch { line = null } }
     }
     if (!line) return null
     lines.push(line)
@@ -1001,7 +1035,9 @@ export function workshopLineRefusal(board: Workshop, line: WorkshopLine): string
   let drawn: WorkshopLine
   try { drawn = workshopLine(line) } catch (error) { return error instanceof Error ? error.message : 'That line can\'t be drawn.' }
   const cards = new Set(board.cards.map(card => card.id))
-  if (!cards.has(drawn.parentId) && !cards.has(drawn.childId)) return 'That card is no longer on the board.'
+  drawn = freeEndOf(drawn, cards)
+  // A free end hangs from the card that holds the line.
+  if (drawn.targetPoint ? !cards.has(drawn.parentId) : !cards.has(drawn.parentId) && !cards.has(drawn.childId)) return 'That card is no longer on the board.'
   if (board.lanes.some(lane => lane.id === drawn.parentId || lane.id === drawn.childId)) return 'A line joins notes and cards, not lanes.'
   const known = (board.lines ?? []).some(item => item.id === drawn.id)
   if (!known && (board.lines?.length ?? 0) >= maxWorkshopLines) return `A workshop holds up to ${maxWorkshopLines} lines.`

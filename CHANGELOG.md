@@ -14,12 +14,16 @@
   and scored at once, and a card added under a card whose team changes in the same save. `contains` holds a team
   to it only when the change leaves it short (a manager with no one under them yet is added before their designer), and
   `sameOwnerAs` only a change of place or team.
+- **A card's line may end free on the canvas** (owner 2026-11-22: a note with a line ending on empty
+  canvas was refused by a plain lane, "should not be restricted"). A note becomes a card whatever its
+  lines: a free-ended line comes with it and keeps its point (`WorkshopLine.targetPoint`, held by the
+  card), drawn and saved like any card line, and goes back to the drawing with the note. A card's line
+  end let go on empty canvas now stays free there (one change), and can be moved or joined to a note
+  later. Business boards still take no lines.
 - **Line ends on cards (line editing with connected cards).** A pinned line end travels with the
   card and back (`WorkshopLine.sourceAnchor` / `targetAnchor`, spots in 0..1 on the note's edge),
   and pinning a card's line end is saved with the board. Moving an end of a card's line is one
-  change keeping the line's id (to the drawing when no card is left at either end). A board line
-  has no free end, so a card's line end let go on empty canvas goes back and says why, and a note
-  with a free-ended line still stays a note.
+  change keeping the line's id (to the drawing when no card is left at either end).
 - **Content never refuses a trade.** A card's words are kept verbatim, markup included (control
   characters go); a picture held in the page goes with the card for the host to store; a note whose
   id a card cannot have gives the card a fresh id and comes back under its own (`card.noteId`,

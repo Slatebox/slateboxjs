@@ -317,27 +317,85 @@ test.describe('line ends on cards', () => {
     await page.waitForTimeout(600)
   }
 
-  test('a note with a line ending on empty canvas stays a note and says why; joined to a note, it becomes a card', async ({ page }) => {
+  /** Where the line `id` ends on screen, and where the world point `at` is on screen. */
+  const freeEndAt = (page: Page, id: string, at: Point) => page.evaluate(([key, p]) => {
+    const path = document.querySelector(`#slate [data-connection-id="${CSS.escape(key as string)}"]`) as SVGPathElement | null
+    if (!path || typeof path.getTotalLength !== 'function') return null
+    const m = path.getScreenCTM()!
+    const end = path.getPointAtLength(path.getTotalLength())
+    const drawn = { x: m.a * end.x + m.c * end.y + m.e, y: m.b * end.x + m.d * end.y + m.f }
+    const want = (window as any).native.slate.worldToClient(p)
+    return Math.hypot(drawn.x - want.x, drawn.y - want.y)
+  }, [id, at] as const)
+
+  // Owner's bug (2026-11-22): "hey", joined to a card and with an elbow line whose end was free on the
+  // canvas, was refused by a plain lane ("should not be restricted"). Any note becomes a card with its lines.
+  test('a note with a line ending on empty canvas becomes a card: the line keeps its free end, and comes back with the note', async ({ page }) => {
+    await open(page)
+    const point = await page.evaluate(() => {
+      const { slate } = (window as any).native
+      const at = slate.nodes.one('plain').options
+      const p = { x: Math.round((at.x ?? at.xPos) + at.width + 160), y: Math.round((at.y ?? at.yPos) - 40) }
+      slate.nodes.one('plain').relationships.addFloatingAssociation(p, { id: 'plain-free', childId: '__free_plain1', lineType: 'elbow', showChildArrow: true })
+      return p
+    })
+    // And a line to the card Alpha (the owner's "hey" was joined to the Welcome! card).
+    await page.evaluate(() => {
+      const { board } = (window as any).native
+      board.update({ ...board.value, lines: [{ id: 'plain-alpha', parentId: 'plain', childId: 'alpha', showChildArrow: true }] })
+    })
+    await expect.poll(() => joins(page, 'plain-alpha', 'plain', 'card-alpha')).toBe(true)
+    await drag(page, 'plain', await inLane(page, 'now'))
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now plain@now')
+    await expect(live(page)).toHaveText('Ordinary note is now a card in Now. 4 cards.')
+    // The board has the free line, with its point; the trade carried it.
+    expect(await boardLines(page)).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'plain-alpha', parentId: 'plain', childId: 'alpha' }),
+      expect.objectContaining({ id: 'plain-free', parentId: 'plain', childId: '__free_plain1', targetPoint: point, lineType: 'elbow' })]))
+    expect((await boardLines(page)).length).toBe(2)
+    expect((await changes(page)).at(-1).noteToCard.lines).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'plain-free', targetPoint: point })]))
+    // The card holds both, the free one still free, drawn to the same point; the drawing saves neither.
+    expect(await held(page, 'card-plain')).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'plain-free', childId: '__free_plain1', free: true }),
+      expect.objectContaining({ id: 'plain-alpha', childId: 'card-alpha', free: false })]))
+    expect(await savedLines(page)).toBe('')
+    await resting(page, 'card-plain')
+    await expect.poll(() => freeEndAt(page, 'plain-free', point)).toBeLessThan(24)
+    await expect.poll(() => joins(page, 'plain-alpha', 'card-plain', 'card-alpha')).toBe(true)
+
+    // Into another lane: the line goes with the card, its free end stays where it was.
+    await drag(page, 'card-plain', await inLane(page, 'later'))
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now plain@later')
+    await resting(page, 'card-plain')
+    await expect.poll(() => freeEndAt(page, 'plain-free', point)).toBeLessThan(24)
+
+    // Back on the canvas as a note: the drawing has the line again, free at its point.
+    const defaultBox = await box(page, 'default')
+    await drag(page, 'card-plain', { x: defaultBox!.x + defaultBox!.width / 2, y: defaultBox!.y + 360 })
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
+    await expect.poll(() => held(page, 'plain')).toEqual([expect.objectContaining({ id: 'plain-free', childId: '__free_plain1', free: true })])
+    await expect.poll(() => savedLines(page)).toBe('plain>__free_plain1')
+    // The line to the card Alpha stays the board's.
+    expect(await lines(page)).toBe('plain>alpha')
+    await expect.poll(() => freeEndAt(page, 'plain-free', point)).toBeLessThan(24)
+  })
+
+  test('the note with a free-ended line, as a card, comes back to the drawing with its line on undo', async ({ page }) => {
     await open(page)
     await page.evaluate(() => {
       const { slate } = (window as any).native
       const at = slate.nodes.one('plain').options
-      slate.nodes.one('plain').relationships.addFloatingAssociation({ x: at.xPos + at.width + 160, y: at.yPos - 40 }, { id: 'plain-free' })
+      slate.nodes.one('plain').relationships.addFloatingAssociation({ x: Math.round((at.x ?? at.xPos) + at.width + 160), y: Math.round((at.y ?? at.yPos) - 40) }, { id: 'plain-free', childId: '__free_plain1' })
     })
     await drag(page, 'plain', await inLane(page, 'now'))
-    await expect(live(page)).toHaveText("Ordinary note can't go in Now. A note with a line that ends on empty canvas stays a note. Join that line to a note first.")
-    expect(await cards(page)).toBe('alpha@now beta@now gamma@now')
-    expect(await held(page, 'plain')).toEqual([expect.objectContaining({ id: 'plain-free', free: true })])
-    await resting(page, 'plain')
-
-    // The free end joined to a note (line editing): the note may become a card, and the line goes with it.
-    const target = await box(page, 'default')
-    await dragEnd(page, 'plain', 'plain-free', 'target', { x: target!.x + target!.width / 2, y: target!.y + target!.height / 2 })
-    expect(await held(page, 'plain')).toEqual([expect.objectContaining({ id: 'plain-free', childId: 'default', free: false })])
-    await page.mouse.click(5, 5)
-    await drag(page, 'plain', await inLane(page, 'now'))
     await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now plain@now')
-    expect(await lines(page)).toBe('plain>default')
+    await page.mouse.click(5, 5)
+    await page.keyboard.press('ControlOrMeta+z')
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
+    await expect.poll(() => savedLines(page)).toBe('plain>__free_plain1')
+    expect(await boardLines(page)).toEqual([])
+    await page.keyboard.press('ControlOrMeta+y')
+    await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now plain@now')
+    await expect.poll(async () => (await boardLines(page)).map((l: any) => l.id + ':' + Boolean(l.targetPoint))).toEqual(['plain-free:true'])
+    expect(await savedLines(page)).toBe('')
   })
 
   test('pinned ends travel with the card, as drawn from either end, and come back with the note', async ({ page }) => {
@@ -366,7 +424,7 @@ test.describe('line ends on cards', () => {
     await expect.poll(() => held(page, 'default')).toEqual([expect.objectContaining({ id: 'default-plain', childId: 'plain', sourceAnchor: { x: 0.5, y: 0 }, targetAnchor: { x: 1, y: 0.5 } })])
   })
 
-  test('a card\'s line end let go on empty canvas goes back and says why; let go on another note it moves there as one change', async ({ page }) => {
+  test('a card\'s line end let go on empty canvas stays free there, as one change; let go on another note it moves there as one change', async ({ page }) => {
     await open(page)
     await page.evaluate(() => {
       const { board } = (window as any).native
@@ -376,20 +434,19 @@ test.describe('line ends on cards', () => {
     await page.waitForTimeout(300)
     const before = (await changes(page)).length
     const plainBox = await box(page, 'plain')
+    // Let go on empty canvas: a card's line may end there, like any line (owner 2026-11-22).
     await dragEnd(page, 'card-alpha', 'alpha-default', 'target', { x: plainBox!.x + plainBox!.width / 2, y: plainBox!.y + 420 })
-    await expect(live(page)).toHaveText('A card\'s line ends on a note or another card, so that end went back.')
-    // Nothing was taken away: the board has the line, drawn to its note as before.
-    expect(await lines(page)).toBe('alpha>default')
-    expect((await changes(page)).length).toBe(before)
-    await expect.poll(() => held(page, 'card-alpha')).toEqual([expect.objectContaining({ id: 'alpha-default', childId: 'default', free: false })])
-    await expect.poll(() => joins(page, 'alpha-default', 'card-alpha', 'default')).toBe(true)
+    await expect.poll(async () => (await boardLines(page)).map((l: any) => l.id + ':' + Boolean(l.targetPoint))).toEqual(['alpha-default:true'])
+    expect((await changes(page)).slice(before)).toEqual([{ line: { set: expect.objectContaining({ id: 'alpha-default', parentId: 'alpha', targetPoint: expect.any(Object) }) } }])
+    await expect.poll(() => held(page, 'card-alpha')).toEqual([expect.objectContaining({ id: 'alpha-default', free: true })])
 
-    // Onto another note: the same line, now to "plain", in one change.
+    // The free end onto another note: the same line, now to "plain", in one change.
     await page.mouse.click(5, 5)
     await dragEnd(page, 'card-alpha', 'alpha-default', 'target', { x: plainBox!.x + plainBox!.width / 2, y: plainBox!.y + plainBox!.height / 2 })
     await expect.poll(() => lines(page)).toBe('alpha>plain')
-    const after = (await changes(page)).slice(before)
+    const after = (await changes(page)).slice(before + 1)
     expect(after).toEqual([{ line: { set: expect.objectContaining({ id: 'alpha-default', parentId: 'alpha', childId: 'plain' }) } }])
+    expect((await boardLines(page))[0]).not.toHaveProperty('targetPoint')
     await expect.poll(() => joins(page, 'alpha-default', 'card-alpha', 'plain')).toBe(true)
   })
 })

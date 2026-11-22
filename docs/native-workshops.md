@@ -226,15 +226,17 @@ experience) an ordinary note and a card trade places by being dropped:
   note gives its lines to notes back to the drawing (sent as `addRelationship` once saved), while
   its lines to other cards stay on the board. A note deleted from the slate takes its line off the
   screen; the board keeps the line for when the note comes back (undo). A card removed from the
-  board takes its lines with it. A note with a line that ends on empty canvas stays a note until
-  the line is joined to a note.
+  board takes its lines with it. A line whose end is free on empty canvas comes too (see below).
 - **Line ends on cards.** A pinned end (a spot on a note's edge, `sourceAnchor` / `targetAnchor`
   on the line) goes with the card and comes back with the note; drawn from the card's end, the pins
   change places with the arrows. Moving an end of a card's line onto another note or card is one
   change to the line, keeping its id; moving it so no card is at either end gives the line to the
-  drawing. A board line has no free end: a saved point would not move with its card, so a card's
-  line end let go on empty canvas goes back where it was and the reason is said, and a note with a
-  free-ended line stays a note until that end is joined to a note.
+  drawing. A card's line may end free on empty canvas, as any line may (owner 2026-11-22): the line
+  keeps the point (`targetPoint`, with `parentId` the card that holds it and `childId` the free end's
+  own id, as the slate saves it), and the point stays where it is when the card moves. A note with a
+  free-ended line becomes a card with it; a card's line end let go on empty canvas stays free there,
+  one change to the line; and a card that becomes a note gives a free-ended line back to the drawing
+  with its point. The free end can be moved again, or dropped on a note or card to join it.
 - **Any note becomes a card.** A lane takes a note whatever its words, look, shape, picture, link or
   lines. An empty note is an empty card (counted in its lane, renamed in place, an empty note again
   off the lanes); words longer than a card shows are cut to the first 80 characters on the card and
@@ -248,7 +250,7 @@ experience) an ordinary note and a card trade places by being dropped:
   comes back under it. What still keeps a note a note: the board's own rules (a full lane, the board's
   size limit of 24 cards, a map, a release plan or a starter that keeps its own cards, a lane that is
   gone), someone else's change first, a viewer, a link a card cannot keep (over 2 KB, or not text),
-  a line that ends on empty canvas (see `noteObstacle` in `native.ts`), more than 96 lines, and comments.
+  more than 96 lines, and comments. On a business board a note with any lines stays a note.
 - **A trade record carries its lines.** The host's record of a card that became a note
   (`NoteTrade.lines`) holds the note's lines to other notes: a screen that hears of the trade only
   from that record (the page that made it went away first) draws them with the note and tells the
