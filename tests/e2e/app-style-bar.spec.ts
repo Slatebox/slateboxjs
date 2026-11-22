@@ -303,7 +303,7 @@ test('a hidden tab takes its control with it: no gap, no empty panel', async ({ 
   try {
     id = await openSlate(page)
     await page.evaluate(() => {
-      // A template's author hides tabs with these flags (Note behaviour…); set here directly.
+      // A template hides tabs with these flags (chat and exec set them as hiddenControls); set here directly.
       const n = (window as any).slate.v2.getAllNodes().find((x: any) => x.options.text === 'Welcome!')
       n.options.showColorTab = false
       n.options.showShapeTab = false

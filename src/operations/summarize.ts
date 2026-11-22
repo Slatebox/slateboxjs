@@ -22,11 +22,15 @@ export interface SlateSummary {
     height: number;
     rotationAngle?: number;
     locked?: true;
+    /** The template category the note names. */
+    templateCategory?: string;
+    /** The style-bar controls the note leaves off, when any. */
+    hiddenControls?: string[];
   }>;
   connections: Array<Record<string, any>>;
 }
 
-const SUMMARY_KEYS = ["text", "shape", "x", "y", "width", "height", "rotationAngle", "locked"];
+const SUMMARY_KEYS = ["text", "shape", "x", "y", "width", "height", "rotationAngle", "locked", "templateCategory", "hiddenControls"];
 const CONNECTOR_SUMMARY_KEYS = [
   "lineColor", "lineWidth", "lineOpacity", "lineType", "lineCurveType", "lineCurviness", "showParentArrow", "showChildArrow",
 ];
@@ -47,6 +51,8 @@ export function summarizeSlate(input: any): SlateSummary {
       height: Number(read.height ?? 80),
       ...(read.rotationAngle ? { rotationAngle: read.rotationAngle } : {}),
       ...(read.locked === true ? { locked: true as const } : {}),
+      ...(read.templateCategory ? { templateCategory: read.templateCategory as string } : {}),
+      ...(read.hiddenControls?.length ? { hiddenControls: read.hiddenControls as string[] } : {}),
     };
   });
   const connections = allConnectors(slate)

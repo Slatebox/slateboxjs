@@ -19,6 +19,11 @@ export type ValueSpec = {
     values: readonly string[];
     nullable?: boolean;
     caseless?: boolean;
+}
+/** A list of distinct values, each one of `values`; it may be empty. */
+ | {
+    type: "list";
+    values: readonly string[];
 } | {
     type: "color";
 } | {

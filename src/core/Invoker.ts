@@ -2,6 +2,19 @@ import type { Slate } from "./Slate";
 import type { SlatePackage } from "./SlatePackage";
 import { v1NodeToV2 } from "./compat";
 import { deserialize } from "./Serialization";
+import { NOTE_CONTROLS } from "../operations/keys/node";
+
+/**
+ * The note options onNodeOptionsChanged may set, each with the kind of value it takes: a
+ * category (isCategory, categoryName as the operations key stores them) and the bar controls a
+ * note leaves off. A key with a value of another kind is skipped.
+ */
+const isFlag = (value: unknown) => typeof value === "boolean";
+const NOTE_DATA_KEYS: Record<string, (value: unknown) => boolean> = {
+  isCategory: isFlag,
+  categoryName: (value) => typeof value === "string" && value.trim().length > 0 && value.length <= 200,
+  ...Object.fromEntries(Object.values(NOTE_CONTROLS).map((flag) => [flag, isFlag])),
+};
 
 export class Invoker {
   private slate: Slate
@@ -70,21 +83,18 @@ export class Invoker {
     }
   }
 
-  onNodeBehaviorChanged(pkg: SlatePackage) {
+  /**
+   * A note's plain data, set by chat and exec (operations keys templateCategory and
+   * hiddenControls): only these keys ride on the package; null removes one.
+   */
+  onNodeOptionsChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
-    if (node) {
-      pkg.data.behaviorChanges.forEach((b: any) => {
-        if (typeof b.value === 'object') {
-          (node.options as any)[b.name] = b.value.val
-          Object.keys(b.value).forEach((k) => {
-            if (k !== 'val') {
-              (node.options as any)[k] = b.value[k]
-            }
-          })
-        } else {
-          (node.options as any)[b.name] = b.value
-        }
-      })
+    if (!node) return
+    for (const [key, value] of Object.entries(pkg.data.options || {})) {
+      const valid = NOTE_DATA_KEYS[key]
+      if (!valid) continue
+      if (value === null || value === undefined) delete (node.options as any)[key]
+      else if (valid(value)) (node.options as any)[key] = value
     }
   }
 

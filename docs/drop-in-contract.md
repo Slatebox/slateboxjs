@@ -83,7 +83,7 @@ App usage: `const slate = await new Slatebox.slate(options, events).init()`
 
 App usage: `const node = new Slatebox.node(options)`
 
-- [x] Options honored: `id`, `name`, `text`, `xPos`, `yPos`, `width`, `height`, `vectorPath` (paths AND named shape keys), `shapeHint`, `image`, `backgroundColor`, `foregroundColor`→fontColor, `fontFamily`, `fontSize`, `lineColor`, `lineWidth`, `opacity`, `borderOpacity`, `isComment`, `disableDrag`/`allowDrag`, `textXAlign`, `textYAlign` — proven by real production fixtures loading with full option sets (§G) + drop-in spec Welcome-node assertions (§K). Note: stray `yPo` typo appears only in dead code paths of the app; not mapped.
+- [x] Options honored: `id`, `name`, `text`, `xPos`, `yPos`, `width`, `height`, `vectorPath` (paths AND named shape keys), `shapeHint`, `image`, `backgroundColor`, `foregroundColor`→fontColor, `fontFamily`, `fontSize`, `lineColor`, `lineWidth`, `opacity`, `borderOpacity`, `isComment`, `isLocked`, `isCategory`/`categoryName`, `textXAlign`, `textYAlign` — proven by real production fixtures loading with full option sets (§G) + drop-in spec Welcome-node assertions (§K). Note: stray `yPo` typo appears only in dead code paths of the app; not mapped.
 - [x] `.resize.set(w, h)` and `.resize.send()` — facade applies via v2 setSize (proof: tests/unit/compat-facade.test.ts "node sub-facades")
 - [x] `.relationships.addAssociation(otherNode)` — unwraps facade nodes to v2, delegates to Relationships (proof: unit)
 - [x] `.relationships.associations` → array of `{parent, child, lineWidth, ...}` with live wrapper refs, `parent.options.id` resolves (proof: unit)

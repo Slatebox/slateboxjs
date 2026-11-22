@@ -556,53 +556,48 @@ describe("Invoker", () => {
   // Node Behaviors / Shape / Image / Effect / Border / AI
   // ---------------------------------------------------------------------------
 
-  describe("onNodeBehaviorChanged", () => {
-    it("should apply simple behavior changes to node options", () => {
-      const pkg = {
-        data: {
-          id: "node1",
-          behaviorChanges: [
-            { name: "draggable", value: false },
-            { name: "selectable", value: true },
-          ],
-        },
-      };
-
-      invoker.onNodeBehaviorChanged(pkg);
-
-      expect(mockNode.options.draggable).toBe(false);
-      expect(mockNode.options.selectable).toBe(true);
+  describe("onNodeOptionsChanged (a note's plain data: category, hidden bar controls)", () => {
+    it("sets the category and the hidden controls it carries", () => {
+      invoker.onNodeOptionsChanged({
+        data: { id: "node1", options: { isCategory: true, categoryName: "Costs", showColorTab: false, showShapeTab: false } },
+      });
+      expect(mockNode.options.isCategory).toBe(true);
+      expect(mockNode.options.categoryName).toBe("Costs");
+      expect(mockNode.options.showColorTab).toBe(false);
+      expect(mockNode.options.showShapeTab).toBe(false);
     });
 
-    it("should expand object values into node options", () => {
-      const pkg = {
-        data: {
-          id: "node1",
-          behaviorChanges: [
-            {
-              name: "customBehavior",
-              value: { val: "primary", extraProp: "extra" },
-            },
-          ],
-        },
-      };
-
-      invoker.onNodeBehaviorChanged(pkg);
-
-      expect(mockNode.options.customBehavior).toBe("primary");
-      expect(mockNode.options.extraProp).toBe("extra");
+    it("takes only the note-data keys: no position, lock or text rides on it", () => {
+      invoker.onNodeOptionsChanged({
+        data: { id: "node1", options: { x: 999, isLocked: true, text: "Hijacked", showDelete: false, categoryName: "Kept" } },
+      });
+      expect(mockNode.options.x).toBe(100);
+      expect(mockNode.options.isLocked).toBeUndefined();
+      expect(mockNode.options.text).toBe("Hello");
+      expect(mockNode.options.showDelete).toBeUndefined();
+      expect(mockNode.options.categoryName).toBe("Kept");
     });
 
-    it("should do nothing when node is not found", () => {
+    it("takes each key only with a value of its kind: a flag is a boolean, the name is text", () => {
+      invoker.onNodeOptionsChanged({
+        data: { id: "node1", options: { isCategory: "yes", categoryName: { evil: true }, showColorTab: "no", showTextTab: 0 } },
+      });
+      expect(mockNode.options.isCategory).toBeUndefined();
+      expect(mockNode.options.categoryName).toBeUndefined();
+      expect(mockNode.options.showColorTab).toBeUndefined();
+      expect(mockNode.options.showTextTab).toBeUndefined();
+      invoker.onNodeOptionsChanged({ data: { id: "node1", options: { categoryName: "x".repeat(201) } } });
+      expect(mockNode.options.categoryName).toBeUndefined();
+    });
+
+    it("does nothing when the note is not found", () => {
       mockSlate.nodes.one.mockReturnValue(null);
-
-      expect(() => {
-        invoker.onNodeBehaviorChanged({
-          data: { id: "nonexistent", behaviorChanges: [{ name: "x", value: 1 }] },
-        });
-      }).not.toThrow();
-
+      expect(() => invoker.onNodeOptionsChanged({ data: { id: "nonexistent", options: { isCategory: true } } })).not.toThrow();
       expect(mockSlate.nodes.one).toHaveBeenCalledWith("nonexistent");
+    });
+
+    it("the Custom Behavior package is retired: there is no set-any-option package", () => {
+      expect((invoker as any).onNodeBehaviorChanged).toBeUndefined();
     });
   });
 
@@ -1139,7 +1134,7 @@ describe("Invoker", () => {
       noop(() => invoker.onNodeToBack({ data: { id: "missing" } }));
       noop(() => invoker.onNodeLinkAdded({ data: { id: "missing" } }));
       noop(() => invoker.onNodeLinkRemoved({ data: { id: "missing" } }));
-      noop(() => invoker.onNodeBehaviorChanged({ data: { id: "missing", behaviorChanges: [] } }));
+      noop(() => invoker.onNodeOptionsChanged({ data: { id: "missing", options: {} } }));
       noop(() => invoker.onNodeShapeChanged({ data: { id: "missing" } }));
       noop(() => invoker.onNodeImageChanged({ data: { id: "missing" } }));
       noop(() => invoker.onNodeEffectChanged({ data: { id: "missing" } }));

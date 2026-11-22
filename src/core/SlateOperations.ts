@@ -17,7 +17,7 @@ import {
   type StoredSlate,
 } from "../operations";
 import { backgroundToContainerStyle } from "../operations/keys/slate";
-import { NODE_KEYS } from "../operations/keys/node";
+import { NOTE_CONTROLS, NODE_KEYS } from "../operations/keys/node";
 
 function byId(slate: StoredSlate): Map<string, StoredNode> {
   return new Map(slate.nodes.map((node) => [node.options.id, node]));
@@ -62,6 +62,13 @@ function nodePackages(id: string, changes: Record<string, any>, options: Record<
   if (has("x", "y")) packages.push({ type: "onNodesMove", data: { dur: 350, nodes: [{ id, x: value("x"), y: value("y") }] } });
   if (has("rotationAngle")) packages.push({ type: "onNodeRotated", data: { id, rotationAngle: value("rotationAngle") } });
   if (has("locked")) packages.push({ type: value("locked") ? "onNodeLocked" : "onNodeUnlocked", data: { id } });
+  // A note's plain data (Invoker.onNodeOptionsChanged takes only these keys).
+  if (has("templateCategory", "hiddenControls")) {
+    const data: Record<string, any> = {};
+    if (has("templateCategory")) Object.assign(data, { isCategory: options.isCategory === true, categoryName: options.categoryName ?? null });
+    if (has("hiddenControls")) for (const flag of Object.values(NOTE_CONTROLS)) data[flag] = options[flag] !== false;
+    packages.push({ type: "onNodeOptionsChanged", data: { id, options: data } });
+  }
   if (has("animation")) {
     packages.push({ type: "onNodeEffectChanged", data: { id, filter: { apply: "vect", id: value("animation"), isAnimation: true } } });
   }

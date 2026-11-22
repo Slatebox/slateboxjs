@@ -89,14 +89,9 @@ export interface NodeOptions {
     lineWidth?: number;
     allowDrag?: boolean;
     isLocked?: boolean;
-    disableDrag?: boolean;
     allowMenu?: boolean;
     allowContext?: boolean;
     allowResize?: boolean;
-    showDelete?: boolean;
-    showAdd?: boolean;
-    showResize?: boolean;
-    showRotate?: boolean;
     showMenu?: boolean;
     showColorTab?: boolean;
     showTextTab?: boolean;
@@ -104,14 +99,8 @@ export interface NodeOptions {
     showShapeTab?: boolean;
     showImageTab?: boolean;
     showEffectTab?: boolean;
-    showRelationshipConnector?: boolean;
-    showRelationshipDelete?: boolean;
-    showRelationshipProperties?: boolean;
-    showRelationshipReassign?: boolean;
-    showAddAndDeleteConditionally?: boolean;
-    spaceBetweenNodesWhenAdding?: number;
-    disableMenuAsTemplate?: boolean;
     isComment?: boolean;
+    /** A template's category (operations key category): its name is categoryName. */
     isCategory?: boolean;
     categoryName?: string;
     humanTouch?: boolean;
