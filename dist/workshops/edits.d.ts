@@ -1,6 +1,7 @@
 import { type StationImage, type Workshop, type WorkshopCard, type WorkshopLane } from './model';
 import { type WorkshopLimits } from './kinds';
 import { type WorkshopFinder } from './names';
+import type { RuleInput } from './behaviour';
 /** The kinds of board, each with its own rules. */
 export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget';
 /** Every kind of board, for a schema that names them (the app's Workshop record, an MCP tool). */
@@ -147,6 +148,19 @@ export type WorkshopEdit = {
     from: WorkshopRef;
     to: WorkshopRef;
     amount: number;
+} | {
+    kind: 'add_rule';
+    rule: RuleInput;
+} | {
+    kind: 'set_rule';
+    rule: string;
+    on?: boolean;
+    severity?: 'refuse' | 'warn';
+    max?: number;
+    to?: WorkshopRef[];
+} | {
+    kind: 'remove_rule';
+    rule: string;
 };
 export type WorkshopEditKindName = WorkshopEdit['kind'];
 /** What one edit did: the sentence a person is told, and the ids it concerned or made. */
@@ -211,6 +225,13 @@ export interface WorkshopEditOptions {
         kind: 'lane' | 'card';
         id: string;
     } | null;
+    /** Who makes a rule edit, and how: the audit line every rule keeps. Left out, an agent over exec. */
+    actor?: {
+        by: string;
+        via: 'chat' | 'exec' | 'preset';
+    };
+    /** When, as an ISO time (for tests and replays). Left out, now. */
+    now?: string;
 }
 type Limit = number | Partial<Record<WorkshopBoardKind, number>> & {
     default: number;
@@ -248,6 +269,13 @@ export type WorkshopEditField = {
     values: string[];
     optional?: boolean;
     about: string;
+} | {
+    type: 'flag';
+    optional?: boolean;
+    about: string;
+} | {
+    type: 'rule';
+    about: string;
 };
 export interface WorkshopEditKind {
     kind: WorkshopEditKindName;
@@ -261,6 +289,7 @@ export interface WorkshopEditKind {
     refusals: Partial<Record<WorkshopBoardKind, string>>;
 }
 export declare const workshopEditKinds: readonly WorkshopEditKind[];
+export declare const isRuleEdit: (kind: string) => kind is "add_rule" | "set_rule" | "remove_rule";
 export interface WorkshopEditDescription {
     kind: WorkshopEditKindName;
     summary: string;

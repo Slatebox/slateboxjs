@@ -1,5 +1,7 @@
-import type { BusinessBoardKind, Workshop, WorkshopCard, WorkshopLane } from './model';
+import type { BusinessBoardKind, Workshop, WorkshopCard, WorkshopLane, WorkshopNoteStyle } from './model';
+import type { NodeJSON } from '../core/Serialization';
 import type { WorkshopEdit, WorkshopEditRefusalCode, WorkshopRef } from './edits';
+import type { Behaviour, BehaviourVerdict, RuleAudit, WorkshopMoveCheck } from './behaviour';
 /** A numeric edit's legal range, with the sentence a person gets at each end. */
 export interface WorkshopLimits {
     field: string;
@@ -80,3 +82,34 @@ export declare function registerWorkshopRules(rules: BusinessBoardRules): void;
 export declare function workshopRulesLoaded(kind: string | undefined): boolean;
 /** The rules of a business board's kind. Throws while they have not loaded. */
 export declare function workshopRules(kind: BusinessBoardKind): BusinessBoardRules;
+/**
+ * The rulebook (behaviour.ts): how a lane board or pipeline behaves, as data. It loads on its own
+ * (slateboxjs/workshops/behaviour), for a board that has rules and on a server, so a slate without one never
+ * downloads it. Until it has loaded, a board that carries rules can't be read: the gate refuses it.
+ */
+export interface RulebookHooks {
+    validate(input: unknown, board: Workshop): Behaviour;
+    check(before: Workshop, after: Workshop): BehaviourVerdict;
+    laneLimit(board: Workshop, laneId: string): number | undefined;
+    lines(board: Workshop): string[];
+    dropLane(behaviour: Behaviour, laneId: string): Behaviour;
+    edit(board: Workshop, edit: WorkshopEdit, audit: RuleAudit, tools: Pick<BusinessEditTools, 'lane' | 'refuse' | 'done'>): BusinessEditStep;
+    note(board: Workshop, box: {
+        x: number;
+        y: number;
+        width: number;
+    }, style: WorkshopNoteStyle): NodeJSON | null;
+    setLimit(board: Workshop, laneId: string, capacity: number | null, audit: RuleAudit): Workshop | string | null;
+    /** check_move: whether a card may go to a lane, and which rule says no. */
+    move(board: Workshop, card: WorkshopRef, lane: WorkshopRef): WorkshopMoveCheck;
+    /** The diff a rule edit is previewed as. */
+    diff(before: Workshop, after: Workshop): {
+        from: number;
+        to: number;
+        lines: string[];
+        over: string[];
+    };
+}
+export declare function registerRulebook(hooks: RulebookHooks): void;
+export declare function rulebookLoaded(): boolean;
+export declare function rulebook(): RulebookHooks;

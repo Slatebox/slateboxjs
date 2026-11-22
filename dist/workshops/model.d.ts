@@ -1,8 +1,10 @@
 export * from './offlineHandoff';
 export * from './listeningRoom';
 export { releaseLoad, releasePlan } from './release';
-export { registerWorkshopRules, workshopRulesLoaded, workshopRules, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools, type WorkshopFieldReader, type WorkshopLimits } from './kinds';
-import type { SlateJSON } from '../core/Serialization';
+import type { Behaviour } from './behaviour';
+export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, RuleInput, RuleKindId, WorkshopMoveCheck } from './behaviour';
+export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools, type WorkshopFieldReader, type WorkshopLimits } from './kinds';
+import type { NodeJSON, SlateJSON } from '../core/Serialization';
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults';
 /** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
 export { DEFAULT_NOTE_STYLE };
@@ -103,6 +105,8 @@ export interface Workshop {
     presentationOrder?: string[];
     signals?: WorkshopSignal[];
     cards: WorkshopCard[];
+    /** How the board behaves, as data: its rulebook (behaviour.ts). Lane boards and pipelines only. */
+    behaviour?: Behaviour;
 }
 /** The kinds of board with rules of their own. A board without a kind is a board of plain lanes. */
 export type WorkshopKind = 'release-plan' | 'launch-plan' | 'pipeline' | 'budget';
@@ -298,6 +302,7 @@ export declare const workshopNodeIds: {
     image: (id: string) => string;
     caption: (id: string) => string;
     column: (id: string) => string;
+    rules: string;
 };
 /**
  * The id a workshop note takes when the slate's own document already has a note by
@@ -326,6 +331,12 @@ export declare function workshopLanePlaces(input: Workshop, options?: Pick<Works
     width: number;
     height: number;
 };
+/** The "How this board behaves" note of a board with a rulebook (behaviour.ts draws it); null without one. */
+export declare function behaviourNote(board: Workshop, box: {
+    x: number;
+    y: number;
+    width: number;
+}, style?: WorkshopNoteStyle): NodeJSON | null;
 /**
  * Draw a workshop as slate notes. With no options this is the presentation artwork
  * the app and its snapshots already consume; `{ native: true }` is the artwork

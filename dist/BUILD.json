@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "33bc4800befab2e76548238dbbfa47028ecf5bfb",
-  "branch": "feat/boards-and-agents",
+  "commit": "b07ecf7ffefa887744583ae9726c5227befd40f6",
+  "branch": "feat/library-rulebook",
   "dirty": false,
-  "builtAt": "2026-11-21T21:56:27.037Z"
+  "builtAt": "2026-11-22T00:22:05.782Z"
 }
