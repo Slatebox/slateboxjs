@@ -1,9 +1,9 @@
 // Sales pipeline kit: stages as lanes under a forecast gauge. A deal is carried to the nearest stage
 // the rules allow; the gauge is drawn from the board on show, so it moves while a deal is in the air.
 import {
-  laneColors, workshopCandidate, workshopDestinations, type BoardLayerState, type PartPlace, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout,
+  laneColors, workshopCandidate, workshopDestinations, type BoardLayerState, type PartPlace, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type WorkshopEdit,
 } from '../workshops/model'
-import { pipelineCaption, pipelineForecast, pipelineRefusal } from '../workshops/pipeline'
+import { pipelineCaption, pipelineForecast, pipelineLimits, pipelineRefusal } from '../workshops/pipeline'
 import { money } from '../workshops/numbers'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
 import { headlessDrag, inside, orColumnUnder, partsGeometry } from '../workshops/boardSpecs'
@@ -52,7 +52,26 @@ export function pipelineLayout(board: Workshop, layout: WorkshopBoardLayout = {}
     height = GAUGE + h
   }
   parts.push({ name: 'gauge-forecast', x: 0, y: 0, width: Math.min(width, 520), height: 34, text: pipelineGauge(board), fill: 'transparent', lineWidth: 0, fontSize: 17 })
+  // The target's grip, on its mark on the gauge: a finger's 44px.
+  parts.push({ name: 'handle-target', x: targetX(board, layout, width) - 22, y: 27, width: 44, height: 44 })
   return { parts, width, height }
+}
+
+/** What the gauge spans: the scale a held target keeps, or a quarter past the target (the forecast, if more). */
+const gaugeScale = (board: Workshop, layout: WorkshopBoardLayout = {}) => layout.gaugeScale ?? Math.max(board.forecast!.target * 1.25, pipelineForecast(board))
+/** Where the target's mark is on a gauge `width` wide. */
+const targetX = (board: Workshop, layout: WorkshopBoardLayout, width: number) => 4 + (width - 8) * board.forecast!.target / gaugeScale(board, layout)
+/** The target moves in steps of about a hundredth of the gauge: $1k, $5k, $10k, $50k, … */
+export function targetStep(scale: number): number {
+  for (const step of [1000, 5000, 10000, 50000, 100000, 500000, 1e6, 5e6, 1e7]) if (step * 100 >= scale) return step
+  return 5e7
+}
+
+/** The target's keys: Left and Right lower and raise it a step. */
+function keyEdit(board: Workshop, part: string, { key }: { key: string; shiftKey: boolean }): WorkshopEdit[] | null {
+  if (part !== 'handle-target' || (key !== 'ArrowLeft' && key !== 'ArrowRight')) return null
+  const step = targetStep(gaugeScale(board))
+  return [{ kind: 'set_target', amount: Math.max(step, board.forecast!.target + (key === 'ArrowLeft' ? -step : step)) }]
 }
 
 function cardText(board: Workshop, cardId: string) {
@@ -63,14 +82,16 @@ function cardText(board: Workshop, cardId: string) {
 function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
   const { width } = pipelineLayout(board, state.layout)
   const target = board.forecast!.target, forecast = pipelineForecast(board)
-  const scale = Math.max(target * 1.25, forecast)
-  const span = width - 8
+  const scale = gaugeScale(board, state.layout)
+  // A target held past the gauge's end draws the gauge on to it.
+  const span = Math.max(width - 8, (width - 8) * target * 1.1 / scale)
   const reached = forecast >= target
   return [
     { t: 'rect', x: 4, y: 42, w: span, h: 14, rx: 7, color: layerInk.track },
-    { t: 'rect', x: 4, y: 42, w: span * forecast / scale, h: 14, rx: 7, color: reached ? layerInk.accept : layerInk.bar },
-    { t: 'line', x1: 4 + span * target / scale, y1: 36, x2: 4 + span * target / scale, y2: 62, color: layerInk.ink, width: 2 },
-    { t: 'text', x: 4 + span * target / scale, y: 72, text: 'Target ' + money(target, board.forecast!.currency), color: layerInk.ink, size: 14, anchor: 'middle' },
+    { t: 'rect', x: 4, y: 42, w: (width - 8) * forecast / scale, h: 14, rx: 7, color: reached ? layerInk.accept : layerInk.bar },
+    { t: 'line', x1: targetX(board, state.layout, width), y1: 36, x2: targetX(board, state.layout, width), y2: 62, color: layerInk.ink, width: 2 },
+    { t: 'rect', x: targetX(board, state.layout, width) - 4, y: 30, w: 8, h: 12, rx: 4, color: layerInk.ink, role: 'edge-target' },
+    { t: 'text', x: targetX(board, state.layout, width), y: 72, text: 'Target ' + money(target, board.forecast!.currency), color: layerInk.ink, size: 14, anchor: 'middle' },
   ]
 }
 
@@ -97,5 +118,24 @@ export const pipelineKit: WorkshopBoardKit = {
     }
     return null
   },
-  handleDrag: () => null,
+  /**
+   * The target's grip: dragged right it raises the target, left it lowers it, in the gauge's steps, on the scale the
+   * drag started with (the gauge draws on past its end for a target held beyond it). One set_target on the drop.
+   */
+  handleDrag(board, handleId, grab, layout) {
+    if (handleId !== 'handle-target') return null
+    const g = pipelineLayout(board, layout)
+    const part = g.parts.find(item => item.name === 'handle-target')!
+    const scale = gaugeScale(board, layout), step = targetStep(scale), per = scale / (g.width - 8)
+    const keep: WorkshopBoardLayout = { ...layout, gaugeScale: scale }
+    const limits = pipelineLimits(board, { field: 'target' })
+    return point => {
+      const wanted = board.forecast!.target + Math.round((point.x - grab.x - part.x) * per / step) * step
+      const amount = Math.min(limits.max, Math.max(step, wanted))
+      const next = { ...board, forecast: { ...board.forecast!, target: amount } }
+      return { next, layout: keep, ...(amount !== wanted && { clampedReason: amount < wanted ? limits.reasons.max! : 'A target is at least ' + money(step, board.forecast!.currency) + '.' }) }
+    }
+  },
+  keyEdit,
+  label: (board, part) => part === 'handle-target' ? 'Target, ' + money(board.forecast!.target, board.forecast!.currency) + '. Left and Right change it by ' + money(targetStep(gaugeScale(board)), board.forecast!.currency) + '.' : null,
 }

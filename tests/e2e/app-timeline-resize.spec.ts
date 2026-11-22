@@ -165,6 +165,14 @@ test.describe('go-live moved by its grip', () => {
       await expect.poll(lineDay).toBe(25)
       await expect(header).toContainText('go-live Fri')
 
+      // A week earlier, where the tasks still fit: Friday to the Friday before.
+      const sooner = centre(await resting(page, 'handle-launch'))
+      await mouseDrag(page, sooner, { x: sooner.x - 7 * (await day(page)), y: sooner.y })
+      await expect.poll(lineDay).toBe(18)
+      await expect(header).toContainText('go-live Fri')
+      await workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+      await expect.poll(lineDay).toBe(25)
+
       // Earlier than the tasks end: refused in the board's sentence, with the earliest go-live that fits.
       const back = centre(await resting(page, 'handle-launch'))
       await mouseDrag(page, back, { x: back.x - 13 * (await day(page)), y: back.y })
@@ -180,6 +188,58 @@ test.describe('go-live moved by its grip', () => {
       await expect.poll(lineDay).toBe(28)
       await expect(announced(page)).toContainText('Go-live is now Mon')
       await expect(header).toContainText('go-live Mon')
+    } finally { await removeTestGuest(page, guest) }
+  })
+})
+
+test.describe('the plan’s first day moved by its grip', () => {
+  test.use({ viewport: { width: 1440, height: 900 } })
+
+  test('laptop: a week earlier adds a week at the front (tasks and go-live keep their dates); later moves the tasks that started; too late is refused; one undo each', async ({ page }) => {
+    test.setTimeout(240_000)
+    let guest: string | null = null
+    try {
+      guest = await goLive(page)
+      const header = page.locator('#slateCanvas [data-board-layer="header"]')
+      const stored = () => storedWorkshop(page, slateKey(page))
+      const origin = async () => (await stored()).clock.origin as string
+      const first = await origin()
+      const shifted = (days: number) => new Date(Date.parse(first + 'T00:00:00Z') + days * 864e5).toISOString().slice(0, 10)
+      const before = (await header.textContent())!
+      // The first day's grip to the middle of the canvas, clear of the edge pan.
+      const canvasBox = (await page.locator('#slateCanvas').boundingBox())!
+      const at = centre(await resting(page, 'handle-_first'))
+      await page.evaluate(dx => { const slate = (window as any).slate.v2; slate.panBy({ x: dx / (slate.getZoom?.() || 1), y: 0 }) }, at.x - (canvasBox.x + canvasBox.width / 2))
+      await page.waitForTimeout(300)
+      const width = await day(page)
+      await shot(page, '9-first-day-before')
+
+      // A week earlier: the plan starts a week sooner, and every date on it stays (the header is the same words).
+      const grip = centre(await resting(page, 'handle-_first'))
+      await mouseDrag(page, grip, { x: grip.x - 7 * width, y: grip.y })
+      await expect.poll(origin).toBe(shifted(-7))
+      expect((await stored()).launch.day).toBe(32)
+      await expect(header).toHaveText(before)
+      await expect(announced(page)).toContainText('The plan now starts Mon')
+      await shot(page, '10-first-day-earlier')
+      await workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+      await expect.poll(origin).toBe(first)
+
+      // Three days later (Thursday): Kickoff starts on it, what waits on it moves; go-live stays.
+      const later = centre(await resting(page, 'handle-_first'))
+      await mouseDrag(page, later, { x: later.x + 3 * (await day(page)), y: later.y })
+      await expect.poll(origin).toBe(shifted(3))
+      await expect(header).toContainText('go-live Fri')
+      await expect(header).not.toHaveText(before)
+      await workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+      await expect.poll(origin).toBe(first)
+
+      // Too late for the tasks to fit by go-live: refused, with the latest first day that does.
+      const late = centre(await resting(page, 'handle-_first'))
+      await mouseDrag(page, late, { x: late.x + 14 * (await day(page)), y: late.y })
+      await expect(announced(page)).toContainText('The latest first day that fits is')
+      await page.waitForTimeout(600)
+      expect(await origin()).toBe(first)
     } finally { await removeTestGuest(page, guest) }
   })
 })

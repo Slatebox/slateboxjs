@@ -275,7 +275,7 @@ describe('the hiring plan with runway', () => {
   it('a whole-board save keeps the money no edit changes: cash, burn, currency, the round’s size and the bands; a band’s cost and the round’s day still answer to the floor', () => {
     const plan = rule(hiring(), { kind: 'deadline', at: 'runway', floor: 15 })
     const fixed = 'A hiring plan keeps its cash, burn, round and role bands. Say what a band costs, or when the round closes, instead.'
-    for (const change of [{ cash: 5000000 }, { burn: 1 }, { currency: '€' }, { weeks: 26 }, { funding: { day: 210, amount: 9000000 } }, { funding: undefined },
+    for (const change of [{ cash: 5000000 }, { burn: 1 }, { currency: '€' }, { funding: { day: 210, amount: 9000000 } }, { funding: undefined },
       { bands: plan.hiring!.bands.map((band, i) => i ? band : { ...band, label: 'Staff eng' }) }]) {
       expect(checkWorkshopReplacement(plan, { ...plan, hiring: { ...plan.hiring!, ...change } as never })).toBe(fixed)
     }

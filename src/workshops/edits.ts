@@ -80,6 +80,8 @@ export type WorkshopEdit =
   // A hiring plan's (slateboxjs/workshops/plans adds them to the table as it loads).
   | { kind: 'set_band_cost'; band: string; monthly: number }
   | { kind: 'set_funding'; day: number }
+  | { kind: 'set_plan_start'; start: string }
+  | { kind: 'set_plan_weeks'; weeks: number }
   // A nest board's (slateboxjs/workshops/nest adds them to the table as it loads).
   | { kind: 'nest_card'; card: WorkshopRef; under?: WorkshopRef; lane?: WorkshopRef; before?: WorkshopRef }
   | { kind: 'start_pile'; card: WorkshopRef; label?: string }

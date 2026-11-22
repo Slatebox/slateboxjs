@@ -57,7 +57,10 @@ export function checkTime(before: Workshop, after: Workshop): BehaviourVerdict {
   const rules = (before.behaviour?.rules ?? []).filter(rule => rule.on).sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind))
   const warnings: string[] = []
   if (!rules.length) return { ok: true, warnings }
-  const was = scheduleLaunch(before), now = scheduleLaunch(after)
+  // In the dates of `before`: a plan whose first day moved (set_plan_start) is read on the days it had, so a task
+  // that keeps its dates has not shifted, and one the new first day moves has.
+  const by = before.clock && after.clock ? offsetOf(before.clock.origin, after.clock.origin) : 0
+  const was = scheduleLaunch(before), now = by ? new Map([...scheduleLaunch(after)].map(([id, t]) => [id, { ...t, from: t.from + by, to: t.to + by }])) : scheduleLaunch(after)
   const old = new Map(before.cards.map(card => [card.id, card]))
   const moved = after.cards.filter(card => {
     const o = old.get(card.id)

@@ -2,7 +2,8 @@
 // words, and the parts as slate notes. Lazy, with the kits; the rules stay in the model entry.
 import type { NodeJSON } from '../core/Serialization'
 import type { PartPlace, Workshop, WorkshopEdit, WorkshopNoteStyle } from '../workshops/model'
-import { dayWords, launchLinkRefusal, lineWord, scheduleLaunch, startHandleCard } from '../workshops/launchPlan'
+import { dayWords, launchLinkRefusal, lineWord, scheduleLaunch, startHandleCard, withPlanStart } from '../workshops/launchPlan'
+import { dateName, offsetOf } from '../workshops/calendar'
 import { pipelineForecast } from '../workshops/pipeline'
 import { money } from '../workshops/numbers'
 /**
@@ -11,7 +12,13 @@ import { money } from '../workshops/numbers'
  * stands there, and two people changing different tasks or deals both keep their change.
  */
 export function workshopEditsBetween(before: Workshop, after: Workshop): WorkshopEdit[] {
+  // A plan's first day moved: set_plan_start (every task keeping its dates), then whatever else changed from there.
+  if (before.clock && after.clock && before.clock.origin !== after.clock.origin) {
+    const moved = withPlanStart(before, offsetOf(before.clock.origin, after.clock.origin))
+    return [{ kind: 'set_plan_start', start: after.clock.origin }, ...workshopEditsBetween(moved, after)]
+  }
   const edits: WorkshopEdit[] = []
+  if (before.hiring && after.hiring && before.hiring.weeks !== after.hiring.weeks) edits.push({ kind: 'set_plan_weeks', weeks: after.hiring.weeks })
   const was = new Map(before.cards.map(card => [card.id, card]))
   for (const card of after.cards) {
     const old = was.get(card.id)
@@ -34,6 +41,7 @@ export function workshopEditsBetween(before: Workshop, after: Workshop): Worksho
   }
   for (const card of before.cards) if (!after.cards.some(item => item.id === card.id)) edits.push({ kind: 'remove_card', card: { id: card.id } })
   if (after.launch && before.launch?.day !== after.launch.day) edits.push({ kind: 'set_launch_day', day: after.launch.day })
+  if (after.hiring?.funding && before.hiring?.funding?.day !== after.hiring.funding.day) edits.push({ kind: 'set_funding', day: after.hiring.funding.day })
   if (after.forecast && before.forecast?.target !== after.forecast.target) edits.push({ kind: 'set_target', amount: after.forecast.target })
   // Money moves from the teams that gave it to the teams that got it.
   const change = after.lanes.map(lane => ({ id: lane.id, by: (lane.allocation ?? 0) - (before.lanes.find(item => item.id === lane.id)?.allocation ?? 0) }))
@@ -107,6 +115,9 @@ export function handleLabel(model: Workshop, part: string): string | null {
   const from = startHandleCard(part), task = from !== null && model.cards.find(item => item.id === from)
   if (task) return `${task.label} start, ${dayWords(model, scheduleLaunch(model).get(task.id)!.from)}. Left and Right move it; the end stays.`
   // A dated plan says the line's name and date ("Go-live, Fri 18 Dec"); a plan in day numbers, its day.
+  if (key === '_first' && model.clock) return `First day, ${dateName(model.clock.origin, 0)}. Left and Right move it; every task keeps its dates.`
+  if (key === '_last' && model.hiring && model.clock) return `Last week, to ${dateName(model.clock.origin, model.hiring.weeks * 7 - 1)} (${model.hiring.weeks} weeks). Left and Right move it a week.`
+  if (key === 'funding' && model.hiring?.funding && model.clock) return `Funding round, ${dateName(model.clock.origin, model.hiring.funding.day)}. Left and Right move it a week.`
   if (key === 'launch') return model.clock ? `${lineWord(model).charAt(0).toUpperCase() + lineWord(model).slice(1)}, ${dayWords(model, model.launch!.day)}. Left and Right move it.`
     : `Launch day, day ${model.launch?.day}. Left and Right move it.`
   const card = model.cards.find(item => item.id === key)

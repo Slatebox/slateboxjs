@@ -8,7 +8,7 @@
 // then its cost to the plan's end, the runway readout and the funding round's line; on a phone it is read-only.
 import { lessThan, moreThan, param } from 'dragology'
 import { laneColors, type BoardLayerState, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type PartPlace, type WorkshopEdit } from '../workshops/model'
-import { cascadeStops, dayWords, dragTaskEdge, holdOthers, launchFinish, launchHard, launchLinkRefusal, launchOverrun, launchPlanLimits, legalRuns, lineWord, moveLaunch, scheduleLaunch, snapStep, startHandle, startHandleCard, tryTask, withLink, withTaskValue, type EdgeValues, type TaskEdge } from '../workshops/launchPlan'
+import { cascadeStops, dayWords, dragTaskEdge, holdOthers, launchFinish, launchHard, launchLinkRefusal, launchOverrun, launchPlanLimits, legalRuns, lineWord, moveLaunch, movePlanStart, planWeeksProblem, scheduleLaunch, snapStep, startHandle, startHandleCard, tryTask, withLink, withTaskValue, type EdgeValues, type TaskEdge } from '../workshops/launchPlan'
 import { checkTime, pastTheLine } from '../workshops/timeRules'
 import { clockOf, dayMap, isoAt, offsetOf, shortDate, weekdayAt } from '../workshops/calendar'
 import { hireStarts, runwayMonths, runwayWords } from '../workshops/hiringPlan'
@@ -19,6 +19,8 @@ import { tint } from './shared'
 import { handleLabel, launchLinkTargets, partNotes, workshopEditsBetween } from './readouts'
 
 const CRITICAL = '#c2410c'
+/** The grips on a dated plan's first day and a hiring plan's last week (a card id never starts with "_"). */
+const FIRST = 'handle-_first', LAST = 'handle-_last'
 const BAR = 32
 /** A phone row's bar: a whole finger's height. */
 const PHONE_BAR = 44
@@ -111,6 +113,9 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
   }
   if (!hiring) parts.push({ name: 'handle-launch', x: x0 + board.launch!.day * dayW - 22, y: narrow ? 104 : 4, width: 44, height: 44 })
   else if (board.hiring!.funding && !narrow) parts.push({ name: 'handle-funding', x: x0 + board.hiring!.funding.day * dayW - 22, y: 4, width: 44, height: 44 })
+  // A dated plan's two ends: its first day, and a hiring plan's last week (a launch plan ends at its line). A hiring plan on a phone is read-only.
+  if (board.clock && !(hiring && narrow)) parts.push({ name: FIRST, x: x0 - 22, y: narrow ? 104 : 8, width: 44, height: 44 })
+  if (hiring && !narrow) parts.push({ name: LAST, x: x0 + day * dayW - 22, y: 8, width: 44, height: 44 })
   return { parts, width, height: y + 8, narrow, x0, dayW, gridTop, axisY, bars }
 }
 
@@ -183,6 +188,9 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     if (g.narrow) shapes.push({ t: 'text', x: 8, y: box.y - 6, text: `${card.label} · ${card.duration}d`, color: layerInk.ink, size: 13, bold: t.critical })
     if (!t.critical) shapes.push({ t: 'text', x: box.x + box.width + (g.narrow ? 48 : 24), y: box.y + box.height / 2 + 4, text: '+' + t.slack + 'd', color: layerInk.ink, size: 12, role: 'slack-' + card.id })
   }
+  // The plan's ends: its first day (a dated plan) and a hiring plan's last week, each a short bar on the grid's edge.
+  if (clock && !(hiring && g.narrow)) shapes.push({ t: 'rect', x: g.x0 - 3, y: g.gridTop - 22, w: 6, h: 22, rx: 3, color: layerInk.ink, opacity: 0.7, role: 'edge-first' })
+  if (hiring && !g.narrow) shapes.push({ t: 'rect', x: g.x0 + day * g.dayW - 3, y: g.gridTop - 22, w: 6, h: 22, rx: 3, color: layerInk.ink, opacity: 0.7, role: 'edge-last' })
   // Each bar's two grips, above its bar: on the selected or hovered bar on a laptop, on every bar on a phone (a hiring plan's phone view is read-only).
   if (!(hiring && g.narrow)) for (const card of board.cards) {
     if (!g.narrow && state.focus !== card.id) continue
@@ -345,6 +353,9 @@ function keyEdit(board: Workshop, part: string, { key, shiftKey }: { key: string
   const step = (key === 'ArrowLeft' ? -1 : 1) * snapStep(board)
   if (part === 'handle-launch') return [{ kind: 'set_launch_day', day: board.launch!.day + Math.sign(step) }]
   if (part === 'handle-funding') return [{ kind: 'set_funding', day: board.hiring!.funding!.day + Math.sign(step) * 7 }]
+  // The first day a day (a week on a hiring plan), every task keeping its dates; a hiring plan's last week a week.
+  if (part === FIRST && board.clock) return [{ kind: 'set_plan_start', start: isoAt(board.clock.origin, Math.sign(step) * (board.kind === 'hiring-plan' ? 7 : Math.abs(step) > 1 ? 7 : 1)) }]
+  if (part === LAST && board.hiring) return [{ kind: 'set_plan_weeks', weeks: board.hiring.weeks + Math.sign(step) }]
   // The start grip moves the start and keeps the end: a step later is a step shorter.
   const from = startHandleCard(part), task = from !== null && board.cards.find(item => item.id === from)
   if (task) return [{ kind: 'set_task', card: { id: task.id }, duration: task.duration! - step, lag: (task.lag ?? 0) + step }]
@@ -410,6 +421,8 @@ export const launchPlanKit: WorkshopBoardKit = {
     if (board.cards.some(card => card.id === ends)) return edgeGrip(board, ends, 'end', grab, g, handleId)
     if (handleId === 'handle-launch') return launchGrip(board, grab, g, layout)
     if (handleId === 'handle-funding' && board.hiring?.funding) return fundingGrip(board, grab, g)
+    if (handleId === FIRST && board.clock) return firstDayGrip(board, grab, g, layout)
+    if (handleId === LAST && board.hiring) return lastWeekGrip(board, grab, g, layout)
     return null
   },
   keyEdit,
@@ -505,6 +518,38 @@ function launchGrip(board: Workshop, grab: { x: number; y: number }, g: LaunchGe
       if (tried.next) { shown = tried.next; break }
     }
     return { next: shown, layout: keep, clampedReason: move.refusal!, refusal: move.refusal! }
+  }
+}
+
+/**
+ * A dated plan's first day: earlier adds days at the front, later takes them away; every task, the line and a
+ * round keep their dates (a task that would start before the new first day starts on it). The grid keeps the day
+ * width the drag started with, so the plan grows or shrinks on the right under the pointer. On working days
+ * a weekend lands on the working day toward where it was going; a hiring plan moves in weeks. Refused by the
+ * rules (a task pushed past the line, a lock, the 120 days), it says why and the latest first day that fits.
+ */
+function firstDayGrip(board: Workshop, grab: { x: number; y: number }, g: LaunchGeometry, layout: WorkshopBoardLayout) {
+  const part = g.parts.find(item => item.name === FIRST)
+  if (!part) return null
+  const keep: WorkshopBoardLayout = { ...layout, dayWidth: g.dayW }
+  return (point: { x: number; y: number }) => {
+    const move = movePlanStart(board, (point.x - grab.x - part.x) / g.dayW)
+    if (move.next) return { next: move.next, layout: keep }
+    return { next: board, layout: keep, clampedReason: move.refusal!, refusal: move.refusal! }
+  }
+}
+
+/** A hiring plan's last week: a week at a time, never before a hire starts or the round closes, 13 to 104 weeks. */
+function lastWeekGrip(board: Workshop, grab: { x: number; y: number }, g: LaunchGeometry, layout: WorkshopBoardLayout) {
+  const part = g.parts.find(item => item.name === LAST)
+  if (!part) return null
+  const keep: WorkshopBoardLayout = { ...layout, dayWidth: g.dayW }
+  const weeks = board.hiring!.weeks
+  return (point: { x: number; y: number }) => {
+    const wanted = weeks + Math.round((point.x - grab.x - part.x) / g.dayW / 7)
+    const why = planWeeksProblem(board, wanted)
+    if (!why) return { next: { ...board, hiring: { ...board.hiring!, weeks: wanted } }, layout: keep }
+    return { next: board, layout: keep, clampedReason: why, refusal: why }
   }
 }
 
