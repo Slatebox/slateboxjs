@@ -1,5 +1,6 @@
 export * from './plans';
 export * from './nest';
+export * from './nestPlus';
 export * from './pipeline';
 export * from './budget';
 export * from './numbers';
@@ -8,6 +9,7 @@ import { goLiveSample, hiringPlanSample, launchPlanSample } from './plans';
 import { samplePipeline } from './pipeline';
 import { sampleBudget } from './budget';
 import { breakDownSample, discoveryTreeSample, incidentReviewSample, sortEvidenceSample } from './nest';
+import { goalsSample, impactEffortSample, reorgSample } from './nestPlus';
 /** The boards the library's business entries add (catalogPreset's samples), each made fresh, dated from the next Monday. */
 export declare const catalogSamples: {
     'launch-plan': typeof launchPlanSample;
@@ -19,4 +21,7 @@ export declare const catalogSamples: {
     'discovery-tree': typeof discoveryTreeSample;
     'break-down': typeof breakDownSample;
     'incident-review': typeof incidentReviewSample;
+    'impact-effort': typeof impactEffortSample;
+    reorg: typeof reorgSample;
+    goals: typeof goalsSample;
 };

@@ -6,7 +6,7 @@ export declare const ruleKindIds: readonly RuleKindId[];
 /** A plan's rule kinds (timeRules.ts, with the plans' rules): a launch plan's and a hiring plan's. */
 export type TimeRuleKindId = 'deadline' | 'overlap' | 'snap' | 'workdays' | 'blackout' | 'cascade' | 'locked';
 /** A nest board's rule kinds (nest.ts): what sits under what, how many, how deep, how piles rank, where a far drop goes. */
-export type NestRuleKindId = 'nests' | 'children' | 'depth' | 'rank' | 'emptyDrop';
+export type NestRuleKindId = 'nests' | 'children' | 'depth' | 'rank' | 'emptyDrop' | 'quadrant' | 'parent' | 'contains' | 'sameOwnerAs';
 /** Who set a rule, when, and from where. Shown when a refusal is explained. */
 export interface RuleAudit {
     by: string;
@@ -69,6 +69,22 @@ export type RuleBody = {
 } | {
     kind: 'emptyDrop';
     drop: 'new-pile' | 'unsorted';
+} | {
+    kind: 'quadrant';
+    quadrant: string;
+    max: number;
+} | {
+    kind: 'parent';
+    not: string;
+} | {
+    kind: 'contains';
+    role: string;
+    of: string;
+    atLeast: number;
+} | {
+    kind: 'sameOwnerAs';
+    mode: 'warn' | 'ask' | 'carry';
+    role?: string;
 };
 export type BehaviourRule = RuleBody & {
     id: string;

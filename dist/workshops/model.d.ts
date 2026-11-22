@@ -52,6 +52,8 @@ export interface WorkshopCard {
     order?: string;
     source?: string;
     fields?: Record<string, number>;
+    /** Nest board with owners (Goals & owners): the team that owns it, by id. */
+    owner?: string;
     /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
     look?: WorkshopCardLook;
     /** What the note it was made from had that a card does not show, so it comes back as it was. */
@@ -149,13 +151,23 @@ export interface HiringFields {
 export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest';
 export declare const businessBoardKinds: readonly BusinessBoardKind[];
 export interface NestFields {
-    layout: 'clusters' | 'tree';
+    /** Piles, a tree, or a 2 by 2 (impact × effort: cards placed by two scores). */
+    layout: 'clusters' | 'tree' | 'matrix';
+    /** Fields cards carry: numbers (a money sign for money), or yes/no flags (1 for yes). */
     fields?: {
         id: string;
         label: string;
         currency?: string;
+        flag?: true;
     }[];
     aliases?: [string, string][];
+    /** A 2 by 2: the fields its across and up axes read (scores 0 to 10). */
+    axes?: [string, string];
+    /** The teams that own cards (Goals & owners). */
+    owners?: {
+        id: string;
+        label: string;
+    }[];
 }
 export declare function businessKind(board: Pick<Workshop, 'kind'>): BusinessBoardKind | undefined;
 /** The parts of a note's look a card can keep; anything a card cannot draw is left out. Undefined when nothing is left. */
