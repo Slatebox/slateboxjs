@@ -235,6 +235,60 @@ test.describe('a tap on a lane\'s caption or column', () => {
     await page.waitForTimeout(300)
     expect((await journal(page)).selections).toEqual([])
   })
+
+  // A click on empty space inside the board still deselects: a press that clears a selection is a
+  // deselect, not a tap, and a right-click is the menu's.
+  test('a click on a column that clears a selected card selects nothing; a right-click selects nothing', async ({ page }) => {
+    await open(page)
+    await click(page, 'card-alpha')
+    await expect.poll(async () => (await journal(page)).selections.at(-1)).toEqual({ cardId: 'alpha' })
+    await page.waitForTimeout(450)
+    const spot = await inLane(page, 'later')
+    await page.mouse.click(spot.x, spot.y)
+    await page.waitForTimeout(700)
+    expect(await page.evaluate(() => (window as any).native.slate.getSelectedNodes().map((n: any) => n.id))).toEqual([])
+    expect((await journal(page)).selections.at(-1)).toBe(null)
+    await page.mouse.click(spot.x, spot.y, { button: 'right' })
+    await page.waitForTimeout(700)
+    expect(await page.evaluate(() => (window as any).native.slate.getSelectedNodes().map((n: any) => n.id))).toEqual([])
+    expect((await journal(page)).selections.at(-1)).toBe(null)
+  })
+
+  // A card's line where it crosses a column is the line's: clicking it selects the line (to change
+  // its ends or take it away), and the lane never takes the selection from it.
+  test('a click on a card\'s line over a column selects the line, and it stays selected', async ({ page }) => {
+    await open(page)
+    await page.evaluate(() => {
+      const { slate } = (window as any).native
+      slate.nodes.one('card-alpha').relationships.addAssociation(slate.nodes.one('plain'), { id: 'alpha-plain' })
+    })
+    await page.waitForTimeout(400)
+    // A point on the drawn line inside a column, clear of every note.
+    const spot = await page.evaluate(() => {
+      const path = document.querySelector('#slate path[data-connection-id]') as SVGPathElement | null
+      if (!path) return null
+      const m = path.getScreenCTM()!
+      const length = path.getTotalLength()
+      const columns = [...document.querySelectorAll('#slate [data-node-id^="column-"]')].map(e => e.getBoundingClientRect())
+      const notes = [...document.querySelectorAll('#slate [data-node-id]')]
+        .filter(e => !/^(column|caption)-/.test(e.getAttribute('data-node-id')!)).map(e => e.getBoundingClientRect())
+      for (let i = 1; i < 100; i++) {
+        const p = path.getPointAtLength(length * i / 100)
+        const x = m.a * p.x + m.c * p.y + m.e, y = m.b * p.x + m.d * p.y + m.f
+        const inColumn = columns.some(r => x > r.left && x < r.right && y > r.top && y < r.bottom)
+        const onNote = notes.some(r => x > r.left - 4 && x < r.right + 4 && y > r.top - 4 && y < r.bottom + 4)
+        if (inColumn && !onNote) return { x, y }
+      }
+      return null
+    })
+    expect(spot, 'a point on the line inside a column').not.toBeNull()
+    const selectedLine = () => page.evaluate(() => (window as any).native.slate.getSelectedLine()?.association?.id ?? null)
+    await page.mouse.click(spot!.x, spot!.y)
+    await expect.poll(selectedLine).toBeTruthy()
+    await page.waitForTimeout(600)
+    expect(await selectedLine()).toBeTruthy()
+    expect(await page.evaluate(() => (window as any).native.slate.getSelectedNodes().map((n: any) => n.id))).toEqual([])
+  })
 })
 
 // The gear's focus: the host says which board the chat is about; the board marks its notes so a

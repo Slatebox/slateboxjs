@@ -826,14 +826,22 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   // header does: on a phone or from the keyboard, selecting a lane is how a host offers the board's
   // own controls (Boards S2a). A press that moves is a pan or a marquee, never a tap, and a tap
   // followed by another press is a double-click (a note made in the lane), so the lane is selected
-  // only once the double-click's time has passed.
+  // only once the double-click's time has passed. Only the primary button taps (a right-click is
+  // the menu's). A press on a line is the line's (it selects the line, to change its ends or take
+  // it away). A press that clears a selection, a note's or a line's, is a deselect, as a click on
+  // empty canvas is; only moving from one of this board's lanes to another is a tap.
   const onPress = (event?: PointerEvent) => {
     if (staged) clearStaged()
     tapping = null
     if (tapTimer) { clearTimeout(tapTimer); tapTimer = null }
     // Captions and columns take no pointer of their own (they are drawn under the cards), so the
     // press lands on the canvas: what it is on is found by where it is.
-    if (!event || destroyed || (event.target as Element | null)?.closest?.('[data-node-id]') || typeof slate.clientToWorld !== 'function') return
+    if (!event || destroyed || typeof slate.clientToWorld !== 'function') return
+    if (typeof event.button === 'number' && event.button !== 0) return
+    if ((event.target as Element | null)?.closest?.('[data-node-id], [data-connection-id]')) return
+    if (slate.getSelectedLine?.()) return
+    const lanes = new Set(value.lanes.map(lane => noteId(workshopNodeIds.lane(lane.id))))
+    if ((slate.getSelectedNodes?.() ?? []).some((node: any) => !lanes.has(node?.id))) return
     const parts = value.lanes.flatMap(lane => [workshopNodeIds.caption(lane.id), workshopNodeIds.column(lane.id)])
       .map(name => owned.get(noteId(name))).filter(Boolean)
     const hit = parts.length ? slate.hitTestNodes?.(slate.clientToWorld({ x: event.clientX, y: event.clientY }), parts, { padding: 0 }) : null
@@ -847,7 +855,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     tapTimer = setTimeout(() => {
       tapTimer = null
       if (destroyed || held || grip || !value.lanes.some(lane => lane.id === tap.laneId)) return
-      if ((slate.getSelectedNodes?.() ?? []).length || slate.element?.ownerDocument?.querySelector?.('.sb-inline-editor')) return
+      if ((slate.getSelectedNodes?.() ?? []).length || slate.getSelectedLine?.() || slate.element?.ownerDocument?.querySelector?.('.sb-inline-editor')) return
       const lane = owned.get(noteId(workshopNodeIds.lane(tap.laneId)))
       if (lane) slate.selectNodes?.([lane])
     }, 350)
