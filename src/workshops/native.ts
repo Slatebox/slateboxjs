@@ -254,6 +254,12 @@ type Outcome =
 const ACCEPT = '#1f7a5c', OFFER = '#5b9a85', REFUSE = '#c2410c'
 /** The outline of what a host's proposal adds or changes: dashed, so it reads as not yet kept. */
 const PROPOSED = '#2f5fd0'
+/** The everyday names of the slate's shapes (ShapeRegistry), as the app's shape notice uses them. */
+const SHAPE_WORDS: Record<string, string> = {
+  diamond: 'diamond', rhombus: 'diamond', ellipse: 'oval', oval: 'oval', circle: 'circle', star: 'star', triangle: 'triangle',
+  pentagon: 'pentagon', hexagon: 'hexagon', octagon: 'octagon', trapezium: 'trapezium', parallelogram: 'parallelogram',
+  rarrow: 'arrow', larrow: 'arrow', arrow: 'arrow', stickynote: 'sticky note',
+}
 const decoration: Partial<NodeCapabilities> = { canMove: false, canSelect: false }
 
 /** What an artwork name (lane-<id>, card-<id>, ...) draws. */
@@ -1119,6 +1125,30 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   const noteName = (label: string) => label || 'This note'
   /** What a card is called in a sentence: its words, or that it has none. */
   const cardName = (card: { label: string }) => card.label || 'The empty card'
+  /**
+   * What a screen reader hears of a note's shape as it joins or leaves the board: the card is
+   * drawn as the board draws its cards, and the shape comes back when it is dragged off. A box
+   * looks the same either way, so it says nothing (the app's notice says the same to the eye).
+   */
+  const shapeWord = (shape?: string) => {
+    const key = String(shape ?? '').toLowerCase()
+    return key === '' || key === 'rectangle' || key === 'roundedrectangle' ? null : (SHAPE_WORDS[key] ?? 'shape')
+  }
+  const article = (word: string) => (/^[aeiou]/i.test(word) ? 'an ' : 'a ') + word
+  const joinedShape = (cards: { label: string; asNote?: { shape?: string } }[]) => {
+    const shaped = cards.flatMap(card => { const word = shapeWord(card.asNote?.shape); return word ? [{ card, word }] : [] })
+    if (!shaped.length) return ''
+    if (cards.length === 1) {
+      const { word } = shaped[0]
+      return word === 'shape' ? ' It had its own shape: drag it off the board to get it back.' : ` It was ${article(word)}: drag it off the board to get its ${word} back.`
+    }
+    return ' ' + shaped.map(({ card, word }) => word === 'shape' ? `${cardName(card)} had its own shape` : `${cardName(card)} was ${article(word)}`).join('; ')
+      + ': drag a card off the board to get its shape back.'
+  }
+  const leftShape = (shape?: string) => {
+    const word = shapeWord(shape)
+    return !word ? '' : word === 'shape' ? ' It has its shape back.' : ` It is ${article(word)} again.`
+  }
 
   // ─── Lines ───────────────────────────────────────────────────────
 
@@ -1423,8 +1453,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     keepPlaceOn(noteId(workshopNodeIds.card(made[0].card.id)))
     const lane = value.lanes.find(item => item.id === laneId)!
     slate.announce?.(made.length === 1
-      ? `${cardName(made[0].card)} is now a card in ${lane.label}. ${workshopLaneCaption(value, laneId)}.`
-      : `${names(made.map(({ card }) => cardName(card)))} are now cards in ${lane.label}. ${workshopLaneCaption(value, laneId)}.`)
+      ? `${cardName(made[0].card)} is now a card in ${lane.label}. ${workshopLaneCaption(value, laneId)}.${joinedShape([made[0].card])}`
+      : `${names(made.map(({ card }) => cardName(card)))} are now cards in ${lane.label}. ${workshopLaneCaption(value, laneId)}.${joinedShape(made.map(({ card }) => card))}`)
     for (const { node, card, kept, lines, under } of made) {
       const change = { cardId: card.id, laneId, noteToCard: { noteId: node.id as string, label: card.label, ...(under && { under }),
         ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}), ...(lines.length ? { lines } : {}) } }
@@ -1517,7 +1547,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (typeof slate.withoutAnnouncements === 'function') slate.withoutAnnouncements(select)
       else select()
     })
-    slate.announce?.(`${cardName(card)} is now a note on the canvas. ${fromLane.label}: ${workshopLaneCaption(value, fromLane.id)}.`)
+    slate.announce?.(`${cardName(card)} is now a note on the canvas. ${fromLane.label}: ${workshopLaneCaption(value, fromLane.id)}.${leftShape(kept?.shape)}`)
     const dropNote = () => {
       if (slate.nodes.one(id) !== added) return
       slate.beginHostStep?.()

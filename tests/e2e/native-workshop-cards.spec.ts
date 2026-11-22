@@ -332,11 +332,14 @@ test.describe('nothing the note had is lost on its way to a card and back', () =
     await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now shaped@now')
     expect((await journal(page)).changes.at(-1)).toMatchObject({ noteToCard: { noteId: 'shaped', label: 'First line Second line',
       asNote: { text: 'First line\nSecond line', shape: 'ellipse', width: 120, height: 70 } } })
+    // A screen reader hears what the eye sees: the oval is drawn as a card now, and comes back off the board.
+    await expect(live(page)).toHaveText('First line Second line is now a card in Now. 4 cards. It was an oval: drag it off the board to get its oval back.')
     await resting(page, 'card-shaped')
     await drag(page, 'card-shaped', await client(page, { x: 60, y: 520 }))
     await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
     const back = await page.evaluate(() => { const o = (window as any).native.slate.nodes.one('shaped').options; return { text: o.text, shape: o.shape, width: o.width, height: o.height } })
     expect(back).toEqual({ text: 'First line\nSecond line', shape: 'ellipse', width: 120, height: 70 })
+    await expect(live(page)).toHaveText('First line Second line is now a note on the canvas. Now: 3 cards. It is an oval again.')
 
     await page.evaluate(() => { (window as any).native.slate.nodes.one('plain').options.link = { type: 'externalUrl', data: { url: 'https://example.org/x' }, show: true } })
     await drag(page, 'plain', await inLane(page, 'now'))

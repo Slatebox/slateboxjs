@@ -149,6 +149,8 @@ test.describe('desktop, 1440 by 900', () => {
       const change = await page.evaluate(() => (window as any).boards.log.changes.at(-1).change)
       expect(change).toMatchObject({ cardId: 'pick', laneId: lane, noteToCard: { noteId: 'pick', asNote: { shape: 'diamond' }, look: { backgroundColor: '#f0d399' } } })
       expect(change.via).toBeUndefined()
+      // A screen reader hears that the diamond is drawn as the board's card now, and how to get it back.
+      await expect(page.locator('[aria-live]').first()).toContainText('It was a diamond: drag it off the board to get its diamond back.')
       await page.waitForTimeout(400)
       // Off the board, onto open canvas below it: a diamond again, in its own colour.
       const out = await page.evaluate(() => {
@@ -158,6 +160,7 @@ test.describe('desktop, 1440 by 900', () => {
       await drag(page, await center(page, 'card-pick'), out)
       await expect.poll(() => page.evaluate(() => (window as any).boards.slate.nodes.one('pick')?.options?.shape ?? null)).toBe('diamond')
       expect(await page.evaluate(() => (window as any).boards.slate.nodes.one('pick').options.backgroundColor)).toBe('#f0d399')
+      await expect(page.locator('[aria-live]').first()).toContainText('It is a diamond again.')
       expect(await page.evaluate(() => (window as any).boards.log.changes.at(-1).change)).toEqual({ cardId: 'pick', cardToNote: { noteId: 'pick' } })
       // Undo puts the card back, and says the change came from an undo.
       await page.mouse.click(5, 5)
