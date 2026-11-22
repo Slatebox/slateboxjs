@@ -206,7 +206,7 @@ describe('Reorg & hiring sandbox (D6)', () => {
     expect(refused(org(), [...edits, ...edits.slice(0, 6).map(edit => ({ ...edit, label: (edit as { label: string }).label + 'b' }))])).toBe('A nested board holds up to 40 cards.')
   })
 
-  it('"stop me when a manager has no designer": a new manager can be hired and then given a designer; a change that does not touch a team is never held to it', () => {
+  it('"stop me when a manager has no designer": only a change that leaves a team short is stopped; a new manager is hired before their designer', () => {
     const board = org()
     const strict = ok(board, [{ kind: 'set_rule', rule: ruleId(board, 'contains'), severity: 'refuse' }])
     // Losing the team's designer is refused, in the rule's words.
@@ -218,8 +218,14 @@ describe('Reorg & hiring sandbox (D6)', () => {
       { kind: 'add_card', lane: { id: 'org' }, label: 'Noa Kim', role: 'designer', under: 'Mia Holt' },
       { kind: 'add_card', lane: { id: 'org' }, label: 'Ola Berg', role: 'engineer', under: 'Mia Holt' }])
     expect(hired.cards.filter(item => item.parentId === hired.cards.find(other => other.label === 'Mia Holt')!.id)).toHaveLength(2)
-    // A team without its designer that grows is still stopped: hire the designer first.
-    expect(refused(strict, [{ kind: 'nest_card', card: { id: 'ravi' }, under: { id: 'kai' } }])).toBe('Every manager has a designer under them. Kai Wong, Platform would have none.')
+    // A team short already is not the change's doing: it grows, and a new pod lands under its VP manager first.
+    expect(card(ok(strict, [{ kind: 'nest_card', card: { id: 'ravi' }, under: { id: 'kai' } }]), 'ravi').parentId).toBe('kai')
+    const pod = ok(strict, [{ kind: 'add_card', lane: { id: 'org' }, label: 'Noor Ali', role: 'manager', under: { id: 'priya' } },
+      { kind: 'add_card', lane: { id: 'org' }, label: 'Eli Ford', role: 'engineer', under: 'Noor Ali' }])
+    expect(pod.cards.find(item => item.label === 'Eli Ford')!.parentId).toBe(pod.cards.find(item => item.label === 'Noor Ali')!.id)
+    // A manager made of someone with a team and no designer is a team left short: stopped.
+    expect(refused(strict, [{ kind: 'set_role', card: { id: 'kai' }, role: 'engineer' }, { kind: 'set_role', card: { id: 'kai' }, role: 'manager' }]))
+      .toBe('Every manager has a designer under them. Kai Wong, Platform would have none.')
   })
 
   it('a rulebook that contradicts itself is refused', () => {
