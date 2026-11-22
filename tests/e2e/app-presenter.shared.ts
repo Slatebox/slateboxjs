@@ -19,11 +19,31 @@ export async function openPresenter(page: Page) {
   const dialog = presenter(page)
   await expect(dialog).toBeVisible()
   await expect(camera(dialog).locator('svg [data-node-id]').first()).toBeAttached({ timeout: 30_000 })
-  // An editor can step through the local sequence at once; the AI's plan then replaces it and
-  // the presenter starts again from the whole slate. Wait for the deck the presenter settles on
-  // (the presenter says "Planning with AI…" while it plans; "Refining…" was its earlier word).
-  await expect(dialog.getByText('Planning with AI…', { exact: true })).toHaveCount(0, { timeout: 90_000 })
+  // An editor can step through the local plan at once; Slatebox's plan takes its place at the
+  // start, or is offered past it. Wait for the deck the presenter settles on: the presenter says
+  // "Planning with Slatebox…" while it plans (the name of its progress indicator everywhere; a
+  // phone shows "Planning…"), never for longer than its time limit, and the label is never cut off.
+  const planning = dialog.getByRole('progressbar', { name: PLANNING, exact: true })
+  if (await planning.isVisible().catch(() => false)) await expectWhole(dialog.locator('.sb-presentation-planning'))
+  await expect(planning).toHaveCount(0, { timeout: 25_000 })
   return dialog
+}
+
+/** What the presenter says while Slatebox plans the slate. */
+export const PLANNING = 'Planning with Slatebox…'
+
+/** Every visible word of this element is shown whole: nothing clipped, wrapped away or off screen. */
+export async function expectWhole(element: Locator) {
+  expect(await element.evaluate(root => {
+    const cut: string[] = []
+    for (const node of [root, ...root.querySelectorAll<HTMLElement>('*')] as HTMLElement[]) {
+      if (!node.getClientRects().length || getComputedStyle(node).display === 'none') continue
+      if (node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX !== 'visible') cut.push('clipped: ' + node.textContent)
+      const box = node.getBoundingClientRect()
+      if (box.width && (box.left < -1 || box.right > innerWidth + 1)) cut.push('off screen: ' + node.textContent)
+    }
+    return cut
+  })).toEqual([])
 }
 
 /** The presenter's own words: everything it shows except the slate's artwork. */
@@ -70,8 +90,8 @@ export async function expectFramed(dialog: Page | Locator, nodeIds: string[]) {
 
 /**
  * The whole slate's viewpoint (a plan's opening and closing overview): its narrative is shown,
- * every note is lit and none is cut off. A lane's column (the backdrop behind its cards) is held
- * to being lit, as expectFramed holds it.
+ * every note is lit and nothing drawn is cut off, a lane's column (the backdrop behind its cards)
+ * included: every box sits inside the presenter.
  */
 export async function expectWholeSlate(dialog: Page | Locator) {
   await expect(dialog.locator('.sb-presentation-narrative')).not.toHaveText('')
@@ -81,7 +101,6 @@ export async function expectWholeSlate(dialog: Page | Locator) {
     if (!nodes.length) return 'no notes'
     for (const node of nodes) {
       if (Number(getComputedStyle(node).opacity) <= 0.95) return 'dimmed: ' + node.dataset.nodeId
-      if (node.dataset.nodeId!.startsWith('column-')) continue
       const art = [...node.querySelectorAll('[data-node-background-path], text')]
       for (const rect of (art.length ? art : [node]).map(item => item.getBoundingClientRect())) {
         if (rect.left < bounds.left - 2 || rect.right > bounds.right + 2 ||
