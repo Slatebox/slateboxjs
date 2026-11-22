@@ -245,9 +245,6 @@ const same = (a: Workshop, b: Workshop) => a === b || JSON.stringify(a.cards) ==
  * the order comes out the same whatever keys were made), roles, sources and numbers. Moves and roles are
  * said in whichever order the rules let through (a pile moved under the outcome, then made an opportunity).
  */
-/** The team a new card takes as it is added: the team of the card it goes under. */
-const inherited = (board: Workshop, card: WorkshopCard) => board.cards.find(item => item.id === card.parentId)?.owner
-
 export function nestEditsBetween(before: Workshop, after: Workshop): WorkshopEdit[] {
   const merges: WorkshopEdit[] = []
   const had = new Set((before.nest?.aliases ?? []).map(([from]) => from))
@@ -284,9 +281,10 @@ export function nestEditsBetween(before: Workshop, after: Workshop): WorkshopEdi
   // A 2 by 2: a card whose scores changed, or that came onto the square, is one score_card.
   const axes = nestAxes(after)
   const scored = new Set(axes ? after.cards.filter(card => {
+    // A new card is added to the tray (a 2 by 2's add_card), so one on the square is scored too.
     const old = was.get(card.id), at = nestScores(after, card)
-    if (!old || !at) return false
-    const then = nestScores(base, old)
+    if (!at || done.has(card.id)) return false
+    const then = old && nestScores(base, old)
     return !then || then.x !== at.x || then.y !== at.y
   }).map(card => card.id) : [])
   const scores: WorkshopEdit[] = [...scored].map(id => { const at = nestScores(after, after.cards.find(card => card.id === id)!)!; return { kind: 'score_card', card: { id }, x: at.x, y: at.y } })
@@ -334,17 +332,28 @@ export function nestEditsBetween(before: Workshop, after: Workshop): WorkshopEdi
       if (old?.fields?.[key] !== card.fields?.[key]) rest.push({ kind: 'set_field', card: { id: card.id }, field: key, value: card.fields?.[key] ?? null })
     }
   }
-  // A change of team: one set_owner per card whose team changed under a card that kept its own, with the cards under it
-  // that went with it (carry), so the server can tell a carry it works out differently.
+  // A change of team: one set_owner per card whose team changed, shallowest first, with the cards under it that go
+  // with it (carry), so the server can tell a carry it works out differently. The teams are followed as the replay
+  // makes them: a new card takes the team of what it is added under, and under carry the rule's carry is what is said
+  // (a card under it that ends with another team is given that team after).
   const owners: WorkshopEdit[] = []
-  const changed = after.cards.filter(card => card.owner && card.owner !== (was.get(card.id)?.owner ?? inherited(after, card)))
-  const covered = new Set<string>()
-  for (const card of changed.sort((a, b) => depth(a.id) - depth(b.id))) {
-    if (covered.has(card.id)) continue
-    const from = was.get(card.id)?.owner
-    const carry = nestSubtree(after, card.id).slice(1).filter(id => changed.some(item => item.id === id && item.owner === card.owner) && was.get(id)?.owner === from && was.has(id))
-    carry.forEach(id => covered.add(id))
-    owners.push({ kind: 'set_owner', card: { id: card.id }, owner: card.owner!, ...(was.has(card.id) && { carry: carry.map(id => ({ id })) }) })
+  const carrying = (base.behaviour?.rules ?? []).some(rule => rule.on && rule.kind === 'sameOwnerAs' && rule.mode === 'carry')
+  const current = new Map<string, string | undefined>()
+  const teamAtAdd = (card: WorkshopCard): string | undefined => {
+    if (current.has(card.id)) return current.get(card.id)
+    const parent = after.cards.find(item => item.id === card.parentId)
+    const team = was.has(card.id) ? was.get(card.id)!.owner : parent ? (was.has(parent.id) ? was.get(parent.id)!.owner : teamAtAdd(parent)) : undefined
+    current.set(card.id, team)
+    return team
+  }
+  after.cards.forEach(teamAtAdd)
+  for (const card of [...after.cards].sort((a, b) => depth(a.id) - depth(b.id))) {
+    const from = current.get(card.id)
+    if (!card.owner || card.owner === from) continue
+    const under = nestSubtree(after, card.id).slice(1)
+    const carry = under.filter(id => current.get(id) === from && (carrying || after.cards.find(item => item.id === id)!.owner === card.owner))
+    owners.push({ kind: 'set_owner', card: { id: card.id }, owner: card.owner, carry: carry.map(id => ({ id })) })
+    for (const id of [card.id, ...carry]) current.set(id, card.owner)
   }
   for (const lane of after.lanes) {
     const old = base.lanes.find(item => item.id === lane.id)

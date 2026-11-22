@@ -180,20 +180,26 @@ function check(before: Board, after: Board, warnings: string[]): BehaviourVerdic
       }
     } else if (rule.kind === 'contains') {
       const count = (board: Board, id: string) => nestSubtree(board, id).slice(1).filter(key => is(board, byId(board, key)!, rule.of)).length
+      // Who joined a team: a new card, or one placed somewhere else (a change of a field or team is not joining).
+      const joined = new Set(after.cards.filter(card => { const was = byId(before, card.id); return !was || was.parentId !== card.parentId || was.laneId !== card.laneId }).map(card => card.id))
       // The nearest one first: the team that lost someone, before the people over it.
       for (const head of [...after.cards].sort((a, b) => nestSubtree(after, a.id).length - nestSubtree(after, b.id).length)) {
         if (head.role !== rule.role || head.laneId === tray) continue
+        const members = nestSubtree(after, head.id).slice(1)
+        // No one under them yet is no team yet: a new manager is added before their designer.
+        if (!members.length) continue
         const now = count(after, head.id)
         if (now >= rule.atLeast) continue
         const was = byId(before, head.id)
         const then = was && was.role === rule.role ? count(before, head.id) : -1
-        const members = nestSubtree(after, head.id)
-        const changed = then === -1 || then >= rule.atLeast || members.some(id => came.some(card => card.id === id))
+        // Held to it: a team that falls short now (it had enough, or is newly one of `role`), or one short already that grows.
+        const changed = then === -1 || then >= rule.atLeast || members.some(id => joined.has(id))
         if (changed) { found = { sentence: said0 + ' ' + head.label + ' would have ' + (now ? now : 'none') + '.', card: head }; break }
       }
     } else if (rule.kind === 'sameOwnerAs') {
       const governed = (card: WorkshopCard) => !rule.role || card.role === rule.role
-      const moved = new Set(came.map(card => card.id))
+      // A card that changed place or team (a field or role changed is not a change of owner).
+      const moved = new Set(came.filter(card => { const was = byId(before, card.id); return !was || was.parentId !== card.parentId || was.laneId !== card.laneId || was.owner !== card.owner }).map(card => card.id))
       for (const card of after.cards) {
         if (!governed(card) || !card.owner || card.laneId === tray) continue
         const parent = byId(after, card.parentId)

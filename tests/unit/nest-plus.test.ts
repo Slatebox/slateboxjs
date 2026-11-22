@@ -206,6 +206,22 @@ describe('Reorg & hiring sandbox (D6)', () => {
     expect(refused(org(), [...edits, ...edits.slice(0, 6).map(edit => ({ ...edit, label: (edit as { label: string }).label + 'b' }))])).toBe('A nested board holds up to 40 cards.')
   })
 
+  it('"stop me when a manager has no designer": a new manager can be hired and then given a designer; a change that does not touch a team is never held to it', () => {
+    const board = org()
+    const strict = ok(board, [{ kind: 'set_rule', rule: ruleId(board, 'contains'), severity: 'refuse' }])
+    // Losing the team's designer is refused, in the rule's words.
+    expect(refused(strict, [{ kind: 'nest_card', card: { id: 'lena' }, under: { id: 'kai' } }])).toBe('Every manager has a designer under them. Jo Park, Growth would have none.')
+    // Kai's team has no designer already: marking one of them a contractor, or renaming them, changes nothing the rule reads.
+    expect(card(ok(strict, [{ kind: 'set_field', card: { id: 'tom' }, field: 'contractor', value: 1 }]), 'tom').fields).toEqual({ contractor: 1 })
+    // A new manager with no one under them yet is not a team: they are added, then their designer, then the rest.
+    const hired = ok(strict, [{ kind: 'add_card', lane: { id: 'org' }, label: 'Mia Holt', role: 'manager', under: { id: 'dana' } },
+      { kind: 'add_card', lane: { id: 'org' }, label: 'Noa Kim', role: 'designer', under: 'Mia Holt' },
+      { kind: 'add_card', lane: { id: 'org' }, label: 'Ola Berg', role: 'engineer', under: 'Mia Holt' }])
+    expect(hired.cards.filter(item => item.parentId === hired.cards.find(other => other.label === 'Mia Holt')!.id)).toHaveLength(2)
+    // A team without its designer that grows is still stopped: hire the designer first.
+    expect(refused(strict, [{ kind: 'nest_card', card: { id: 'ravi' }, under: { id: 'kai' } }])).toBe('Every manager has a designer under them. Kai Wong, Platform would have none.')
+  })
+
   it('a rulebook that contradicts itself is refused', () => {
     expect(refused(org(), [{ kind: 'add_rule', rule: { kind: 'contains', role: 'open role', of: 'designer', atLeast: 1 } as never }]))
       .toBe('Open roles would need someone under them, and open roles don’t manage.')
@@ -280,6 +296,13 @@ describe('Goals & owners (D7, the twisted trees)', () => {
     // A rule's mode is said by the rule edits a whole save amounts to.
     const carry = ok(board, [{ kind: 'set_rule', rule: ruleId(board, 'sameOwnerAs'), mode: 'carry' }])
     expect(behaviourEditsBetween(board, carry)).toEqual([{ kind: 'set_rule', rule: ruleId(board, 'sameOwnerAs'), mode: 'carry' }])
+  })
+
+  it('refuse: a card already owned outside its parent’s team can still be renamed or given a role; only a change of place or team is held to the rule', () => {
+    const board = ok(goals(), [{ kind: 'set_owner', card: { id: 'self-serve' }, owner: 'platform' }])
+    const strict = ok(board, [{ kind: 'set_rule', rule: ruleId(board, 'sameOwnerAs'), severity: 'refuse' }])
+    expect(card(ok(strict, [{ kind: 'set_role', card: { id: 'self-serve' }, role: 'objective' }]), 'self-serve').role).toBe('objective')
+    expect(refused(strict, [{ kind: 'set_owner', card: { id: 'guided' }, owner: 'sales' }])).toBe('Guided setup is Sales’s; what it sits under is Growth’s.')
   })
 
   it('the kit: a card held over a team goes to it; a refusal over a team says why', () => {
@@ -373,5 +396,44 @@ describe('the three boards attached to a slate, played through the drag policy',
     expect(card(t.attached.value, 'self-serve').owner).toBe('platform')
     expect(part(t.attached.value, 'card-self-serve').text).toBe('Self-serve upgrades 30%\nPlatform · cross-team')
     t.attached.destroy()
+  })
+})
+
+describe('whole saves the server keeps as made (s4 review)', () => {
+  it('a card with no team yet, given one and placed under a card of that team, keeps its team on the server', () => {
+    const board = goals()
+    // A card added to the tray has no team; it is given one, then nested under a card of that same team.
+    const loose = ok(board, [{ kind: 'add_card', lane: { id: 'unplaced' }, label: 'Status page', role: 'initiative' }])
+    const id = loose.cards.find(item => item.label === 'Status page')!.id
+    expect(card(loose, id).owner).toBeUndefined()
+    const next = ok(loose, [{ kind: 'set_owner', card: { id }, owner: 'platform' }, { kind: 'nest_card', card: { id }, under: { id: 'latency' } }])
+    expect(card(next, id).owner).toBe('platform')
+    expect(placesOf(replay(loose, next))).toEqual(placesOf(next))
+  })
+
+  it('under carry, a save where a card under the moved one ends with another team is said as the rule’s carry, then that card’s team', () => {
+    const board = goals()
+    const carry = ok(board, [{ kind: 'set_rule', rule: ruleId(board, 'sameOwnerAs'), mode: 'carry' }])
+    const next = ok(carry, [{ kind: 'set_owner', card: { id: 'fast-onboarding' }, owner: 'platform' }, { kind: 'set_owner', card: { id: 'starters' }, owner: 'growth' }])
+    expect(card(next, 'guided').owner).toBe('platform')
+    expect(card(next, 'starters').owner).toBe('growth')
+    expect(placesOf(replay(carry, next))).toEqual(placesOf(next))
+    // A card added under a card whose team changes in the same save: added with the old team, then carried.
+    const added = ok(carry, [{ kind: 'add_card', lane: { id: 'goals' }, label: 'Status page', role: 'initiative', under: { id: 'self-serve' } },
+      { kind: 'set_owner', card: { id: 'self-serve' }, owner: 'sales' }])
+    expect(added.cards.find(item => item.label === 'Status page')!.owner).toBe('sales')
+    expect(placesOf(replay(carry, added))).toEqual(placesOf(added))
+    // Under warn the same: what the page shows is what the server keeps.
+    const warned = ok(board, [{ kind: 'add_card', lane: { id: 'goals' }, label: 'Status page', role: 'initiative', under: { id: 'self-serve' } },
+      { kind: 'set_owner', card: { id: 'self-serve' }, owner: 'sales' }])
+    expect(placesOf(replay(board, warned))).toEqual(placesOf(warned))
+  })
+
+  it('a 2 by 2: a card added and scored in one save lands on the square, not in the tray', () => {
+    const board = matrix()
+    const next = ok(board, [{ kind: 'add_card', lane: { id: 'matrix' }, label: 'Webhooks' }, { kind: 'score_card', card: 'Webhooks', x: 8, y: 2 }])
+    const id = next.cards.find(item => item.label === 'Webhooks')!.id
+    expect(quadrantOf(next, card(next, id))).toBe('skip')
+    expect(placesOf(replay(board, next))).toEqual(placesOf(next))
   })
 })

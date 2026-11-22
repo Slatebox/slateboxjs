@@ -10,6 +10,10 @@
   `carry`) with rule `sameOwnerAs` (`mode` `warn` | `ask` | `carry`; a server carry that differs from the page's is
   refused). The nest kit draws the square (a phone keeps it square) and a row of teams to drop cards on. Catalogue:
   `impact-effort`, `reorg-sandbox`, `goals-owners`, each with rule phrases first. See docs/native-workshops.md.
+  A whole save of these boards is made again exactly as shown: a card given a team before it had one, a card added
+  and scored at once, and under carry a card under the moved one that ends with another team. `contains` holds a team
+  to it only when it falls short or grows (a manager with no one under them yet is added before their designer), and
+  `sameOwnerAs` only a change of place or team.
 - **Agents on the canvas** (`slateboxjs/presence`). `createAgentPresence(slate).set(records)`
   draws each agent run as a hexagon with a pointer, a named tag and its plan, above the notes. It
   is its own entry, so a slate no agent works on never loads it; the canvas entry keeps only the
