@@ -47,7 +47,14 @@ export default defineConfig({
   build: {
     emptyOutDir: false,
     lib: {
-      entry: { dragology: dragologyEntry, workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts', 'workshop-mount': 'src/workshops/mount.ts', operations: 'src/operations/index.ts' },
+      // workshop-rules: the launch plan's, pipeline's and budget's rules for a server (the browser takes them with the kits).
+      // boards: the business boards' kits (layout, board layer, Dragology specs), loaded only for a slate that holds one.
+      // presence: the agents' drawing, loaded only when an agent arrives.
+      // catalog: the library of what can be added to a slate (pure data), loaded when the library opens.
+      // workshop-plans: the launch and hiring plans with their time rules (loaded with the rules, or a plan's kit).
+      // workshop-nest: the nested boards (piles, trees) and their rules (loaded with the rules, or the nest kit).
+      // workshop-behaviour: a board's rulebook, loaded only for a board that has rules (and by a server).
+      entry: { dragology: dragologyEntry, workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts', 'workshop-rules': 'src/workshops/rules.ts', 'workshop-plans': 'src/workshops/plans.ts', 'workshop-nest': 'src/workshops/nest.ts', catalog: 'src/workshops/catalog.ts', 'workshop-behaviour': 'src/workshops/behaviour.ts', 'workshop-mount': 'src/workshops/mount.ts', operations: 'src/operations/index.ts', boards: 'src/boards/index.ts', presence: 'src/core/AgentPresence.ts' },
       formats: ['es', 'cjs'],
       fileName: (format, entry) => entry + (format === 'es' ? '.mjs' : '.cjs'),
     },

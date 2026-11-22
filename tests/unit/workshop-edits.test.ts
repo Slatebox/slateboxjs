@@ -442,3 +442,25 @@ describe('the shape check (review-P04 finding 4)', () => {
     }
   })
 })
+
+describe('the business boards in the edit table', () => {
+  it('names every kind of board, for a schema to list', async () => {
+    const { WORKSHOP_BOARD_KINDS } = await import('../../src/workshops/edits')
+    expect(WORKSHOP_BOARD_KINDS).toEqual(['lanes', 'release-plan', 'customer-interviews', 'experiment-budget', 'map', 'launch-plan', 'pipeline', 'budget', 'hiring-plan', 'nest'])
+  })
+
+  it('says which edits each business board takes, and what the other boards answer', async () => {
+    const { describeWorkshopEdits } = await import('../../src/workshops/edits')
+    const { createLaneWorkshop } = await import('../../src/workshops/model')
+    const { sampleLaunchPlan, samplePipeline, sampleBudget } = await import('../../src/workshops/rules')
+    const taken = (board: any) => describeWorkshopEdits(board).filter(entry => entry.accepted).map(entry => entry.kind)
+    expect(taken(sampleLaunchPlan())).toEqual(expect.arrayContaining(['set_task', 'link_tasks', 'unlink_tasks', 'set_launch_day', 'add_card', 'move_card', 'remove_card', 'rename_card']))
+    expect(taken(sampleLaunchPlan())).not.toContain('set_amount')
+    expect(taken(samplePipeline())).toEqual(expect.arrayContaining(['set_amount', 'set_target', 'move_card', 'add_card', 'set_lane_capacity']))
+    expect(taken(sampleBudget())).toEqual(expect.arrayContaining(['shift_budget', 'set_amount', 'move_card', 'add_card']))
+    expect(taken(sampleBudget())).not.toContain('add_lane')
+    const lanes = describeWorkshopEdits(createLaneWorkshop())
+    expect(lanes.find(entry => entry.kind === 'shift_budget')).toMatchObject({ accepted: false, refusal: 'Only a budget moves money between teams.' })
+    expect(lanes.find(entry => entry.kind === 'set_task')).toMatchObject({ accepted: false, refusal: 'Only a launch plan\'s tasks take days and wait on each other.' })
+  })
+})

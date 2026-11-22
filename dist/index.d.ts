@@ -35,6 +35,7 @@ import { Slatebox } from './compat-facade';
 export { Slate, Node, Invoker, PanZoom, ResizeRotate, BirdsEye, Connector, NodesManager, Serialization, ShapeRegistry, Relationship, Relationships, compat, FontLoader, Images, Editor, UndoRedo, MultiSelection, Grid, Menu, Keyboard, ContextMenu, Filters, registerFilter, getFilterNames, Links, ExportModule, Collab, Theme, Layout, ZoomSlider, Comments, Presentation, SlateOperations, utils, Slatebox, };
 export { FREE_NODE, GOVERNED_NODE, hitTestNodeBoxes } from './core/DragPolicy';
 export { DEFAULT_NOTE_STYLE } from './core/NoteDefaults';
+export { AGENT_PALETTE, agentStepText, agentChecklist, visibleAgents, type AgentPresenceRecord, type AgentStepStatus } from './core/agentPresenceText';
 export type { DragPolicy, DragVerdict, DragGesture, DragCancelReason, NodeCapabilities, NodeGovernance, WorldPoint, } from './core/DragPolicy';
 export type { SlateJSON, NodeJSON } from './core/Serialization';
 export type { ShapeDefinition } from './core/ShapeRegistry';

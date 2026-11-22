@@ -37,6 +37,42 @@
   id. The lane no longer refuses a note for its lines ("A note joined to other notes by lines stays
   a note" is gone).
 
+- **Agents on the canvas** (`slateboxjs/presence`). `createAgentPresence(slate).set(records)`
+  draws each agent run as a hexagon with a pointer, a named tag and its plan, above the notes. It
+  is its own entry, so a slate no agent works on never loads it; the canvas entry keeps only the
+  small text helpers (`AGENT_PALETTE`, `agentStepText`, `agentChecklist`, `visibleAgents`). The
+  pointer rests inside a corner of the note it works on, and the tag goes on the side that stays
+  in view and off the note's words (`agentTagSide`, `agentAnchor`).
+- **Business boards: a launch plan, a sales pipeline and a budget.** Three new workshop kinds
+  (`kind: 'launch-plan' | 'pipeline' | 'budget'`), drawn as native notes by `attachWorkshop`.
+  A launch plan schedules tasks (`duration`, `lag`, `dependsOn`) in team lanes, derives every start
+  (`scheduleLaunch`), finds the critical path and keeps every task ending by `launch.day`. A
+  pipeline moves deals forward one stage at a time (back to any open stage), wins only a priced deal
+  from the stage before Won, holds stage capacities and forecasts Σ amount × chance against
+  `forecast.target`. A budget splits `budget.total` between teams (`allocation`, `floor`, `cap`):
+  it always balances, and a team's line items must fit what it was given. The rules are pure
+  functions in `slateboxjs/workshops/rules` (`validate*`, `plan*Move`, `*Refusal`, `*Caption`,
+  `*Limits`, `sample*`, `readNoteNumbers`), not in the model a plain slate loads: they plug into
+  the model's gate when they load (a server imports `slateboxjs/workshops/rules`, a browser gets
+  them with the kits from `slateboxjs/boards`, the same code), and until then the gate refuses
+  these boards (`workshopRulesLoaded(kind)`). They are shared with the server through `validateWorkshop` and
+  `applyWorkshopEdits`, which gains `set_task`, `link_tasks`, `unlink_tasks`, `set_launch_day`,
+  `set_amount`, `set_target` and `shift_budget` (`add_card` takes `duration`, `lag`, `waitsOn`,
+  `amount`); a refused numeric edit returns `limits`. `WORKSHOP_BOARD_KINDS` names every kind for a
+  schema. Notes trade with cards on these boards too: the days or amount written on a note
+  (`readNoteNumbers`: "Copy 3d", "$45k", "€1.2M") become the card's, and a card leaves as
+  "Copy · 3 days".
+- **`slateboxjs/boards`: what a slate needs to draw and play a business board, loaded only for
+  one.** `kitFor(kind)` gives `attachWorkshop` its `kit` option: where every note goes (desktop and
+  a narrow phone arrangement, `boardLayoutFor(width)`), a board layer (`createBoardLayer`: day grid,
+  arrows that unlink on click, critical path, launch-day line, forecast bar, budget fills and the
+  reason a held handle stopped, under the board's notes), Dragology specs run headless (bars slide,
+  stretch and link; deals and line items go to the nearest legal stage; budget dividers move money
+  with `varyFunc`), 44px handle notes and arrow-key edits. Every change commits through
+  `applyWorkshopEdits` and reaches `onChange` with `change.edits`, so a server applies it to its
+  own board and two people changing different tasks or deals both keep their change.
+  `attachWorkshop` refuses a business board given no kit. `npm run check:budget` holds the built
+  entries to their size ceilings and checks the boards and Dragology stay out of the eager entries.
 - **Notes and cards trade places by being dropped.** On a board of plain lanes, an ordinary note
   dropped on a lane (or nudged onto one with the arrow keys) becomes a card there under the lane's
   rules, keeping its words, look and id; a lane that refuses it sends it back and says why. A card

@@ -7,19 +7,27 @@
 // tool or CLI publishes for a board before anyone tries an edit.
 
 import {
-  addWorkshopBranch, addWorkshopCard, addWorkshopLane, startupExperienceKind, validateWorkshop, workshopCandidate,
+  addWorkshopBranch, addWorkshopCard, addWorkshopLane, businessKind, startupExperienceKind, validateWorkshop, workshopCandidate,
   workshopLineRefusal, workshopNewLine, workshopPresentationLanes, workshopRefusal, workshopWithLine, workshopWithoutCardLines,
   type StationImage, type Workshop, type WorkshopCard, type WorkshopLane, type WorkshopSignal,
 } from './model'
+import { workshopRules, type BusinessEditTools, type WorkshopLimits } from './kinds'
 import { listed, said, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names'
+import { rulebook } from './kinds'
+import type { RuleAudit, RuleInput } from './behaviour'
 
 /** The kinds of board, each with its own rules. */
-export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map'
-const everyBoard: WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget', 'map']
+export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest'
+/** Every kind of board, for a schema that names them (the app's Workshop record, an MCP tool). */
+export const WORKSHOP_BOARD_KINDS: readonly WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget', 'map', 'launch-plan', 'pipeline', 'budget', 'hiring-plan', 'nest']
+const everyBoard = [...WORKSHOP_BOARD_KINDS]
 const laneBoards: WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget']
+const business = WORKSHOP_BOARD_KINDS.slice(5)
 
 export function workshopBoardKind(board: Workshop): WorkshopBoardKind {
   if (board.lanes[0]?.station) return 'map'
+  const own = businessKind(board)
+  if (own) return own
   if (board.kind === 'release-plan') return 'release-plan'
   return startupExperienceKind(board) ?? 'lanes'
 }
@@ -33,7 +41,8 @@ export type WorkshopEdit =
   | { kind: 'rename_card'; card: WorkshopRef; label: string }
   | { kind: 'add_lane'; label: string; capacity?: number }
   | { kind: 'remove_lane'; lane: WorkshopRef }
-  | { kind: 'add_card'; lane: WorkshopRef; label?: string; allowedLanes?: WorkshopRef[] }
+  | { kind: 'add_card'; lane: WorkshopRef; label?: string; allowedLanes?: WorkshopRef[]; duration?: number; lag?: number; waitsOn?: WorkshopRef[]; amount?: number; band?: string
+      under?: WorkshopRef; role?: string; source?: string }
   | { kind: 'remove_card'; card: WorkshopRef }
   | { kind: 'move_card'; card: WorkshopRef; lane: WorkshopRef }
   | { kind: 'advance_card'; card: WorkshopRef }
@@ -57,6 +66,29 @@ export type WorkshopEdit =
   | { kind: 'disconnect_cards'; card: WorkshopRef; to: WorkshopRef }
   | { kind: 'connect_note'; card: WorkshopRef; note: string; direction?: 'to_note' | 'from_note'; label?: string }
   | { kind: 'disconnect_note'; card: WorkshopRef; note: string }
+  | { kind: 'set_task'; card: WorkshopRef; duration?: number; lag?: number }
+  | { kind: 'link_tasks'; card: WorkshopRef; waitsOn: WorkshopRef }
+  | { kind: 'unlink_tasks'; card: WorkshopRef; waitsOn: WorkshopRef }
+  | { kind: 'set_launch_day'; day: number }
+  | { kind: 'set_amount'; card: WorkshopRef; amount: number }
+  | { kind: 'set_target'; amount: number }
+  | { kind: 'shift_budget'; from: WorkshopRef; to: WorkshopRef; amount: number }
+  | { kind: 'add_rule'; rule: RuleInput }
+  | { kind: 'set_rule'; rule: string; on?: boolean; severity?: 'refuse' | 'warn'; max?: number; to?: WorkshopRef[]; floor?: number; onConflict?: 'push' | 'stop'; unit?: 'day' | 'week'
+      under?: string[]; by?: string; drop?: 'new-pile' | 'unsorted' }
+  | { kind: 'remove_rule'; rule: string }
+  // A hiring plan's (slateboxjs/workshops/plans adds them to the table as it loads).
+  | { kind: 'set_band_cost'; band: string; monthly: number }
+  | { kind: 'set_funding'; day: number }
+  // A nest board's (slateboxjs/workshops/nest adds them to the table as it loads).
+  | { kind: 'nest_card'; card: WorkshopRef; under?: WorkshopRef; lane?: WorkshopRef; before?: WorkshopRef }
+  | { kind: 'start_pile'; card: WorkshopRef; label?: string }
+  | { kind: 'merge_cards'; card: WorkshopRef; into: WorkshopRef }
+  | { kind: 'set_role'; card: WorkshopRef; role: string }
+  | { kind: 'set_source'; card: WorkshopRef; source: string }
+  | { kind: 'add_field'; label: string; currency?: string }
+  | { kind: 'set_field'; card: WorkshopRef; field: string; value: number | null }
+  | { kind: 'set_layout'; layout: 'clusters' | 'tree' }
 
 export type WorkshopEditKindName = WorkshopEdit['kind']
 
@@ -106,6 +138,8 @@ export interface WorkshopEditRefusal {
   laneId: string | null
   cardId?: string
   candidates?: string[]
+  /** A number out of range: the range a person may use, and the sentence at each end. */
+  limits?: WorkshopLimits
 }
 
 export type WorkshopEditResult = { workshop: Workshop; report: WorkshopEditReport } | { refused: WorkshopEditRefusal }
@@ -113,6 +147,10 @@ export type WorkshopEditResult = { workshop: Workshop; report: WorkshopEditRepor
 export interface WorkshopEditOptions {
   /** What “this” means: the lane or card selected on the canvas. */
   selection?: { kind: 'lane' | 'card'; id: string } | null
+  /** Who makes a rule edit, and how: the audit line every rule keeps. Left out, an agent over exec. */
+  actor?: { by: string; via: 'chat' | 'exec' | 'preset' }
+  /** When, as an ISO time (for tests and replays). Left out, now. */
+  now?: string
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -133,7 +171,19 @@ const sentences = {
   mapCardLanes: 'A map’s tokens go where its paths lead. Connect or disconnect steps instead.',
   mapOutcome: 'A map says what happens when a token reaches a step. Change what that step says instead.',
   lines: 'Lines join the cards of a lane workshop to notes and to each other. This board keeps the cards it came with.',
+  launchLanes: 'A launch plan keeps the teams it came with. You can rename them and move tasks between them.',
+  pipelineLanes: 'A pipeline keeps the stages it came with. You can rename them and set how many deals a stage holds.',
+  budgetLanes: 'A budget keeps the teams it came with. Move money between them instead.',
+  notTasks: 'Only a launch plan\'s tasks take days and wait on each other.',
+  notAmounts: 'Only a pipeline\'s deals and a budget\'s line items carry an amount.',
+  notTarget: 'Only a pipeline has a forecast target.',
+  notBudget: 'Only a budget moves money between teams.',
+  businessCards: 'Cards on this board go where its rules let them.',
+  noRules: 'Only lane boards and pipelines take rules for now.',
 }
+const keepsTeams = { 'launch-plan': sentences.launchLanes, pipeline: sentences.pipelineLanes, budget: sentences.budgetLanes, 'hiring-plan': sentences.launchLanes.replace('launch', 'hiring').replace('tasks', 'hires'),
+  nest: 'This board keeps its two areas. You can rename them.' }
+const others = (kinds: WorkshopBoardKind[], sentence: string) => Object.fromEntries(everyBoard.filter(kind => !kinds.includes(kind)).map(kind => [kind, sentence]))
 
 // ---------------------------------------------------------------------------------------------
 // The table.
@@ -147,6 +197,8 @@ export type WorkshopEditField =
   | { type: 'integer'; min: number; max: Limit; nullable?: boolean; optional?: boolean; about: string }
   | { type: 'image'; about: string }
   | { type: 'choice'; values: string[]; optional?: boolean; about: string }
+  | { type: 'flag'; optional?: boolean; about: string }
+  | { type: 'rule'; about: string }
 
 export interface WorkshopEditKind {
   kind: WorkshopEditKindName
@@ -164,9 +216,10 @@ const text = (max: number, about: string, optional = false): WorkshopEditField =
 const lane = (about: string, optional = false): WorkshopEditField => ({ type: 'ref', of: 'lane', about, ...(optional && { optional }) })
 const card = (about: string): WorkshopEditField => ({ type: 'ref', of: 'card', about })
 const notOnMaps = (sentence: string) => ({ map: sentence })
-const mapsOnly = { lanes: sentences.notMap, 'release-plan': sentences.notMap, 'customer-interviews': sentences.notMap, 'experiment-budget': sentences.notMap }
+const mapsOnly = others(['map'], sentences.notMap)
+const whole = (about: string, max = 1e9, min = 0, optional = false): WorkshopEditField => ({ type: 'integer', min, max, about, ...(optional && { optional }) })
 
-export const workshopEditKinds: readonly WorkshopEditKind[] = [
+export const workshopEditKinds: WorkshopEditKind[] = [
   { kind: 'rename_workshop', summary: 'Rename the workshop or map. The slate takes the same name.', intent: true,
     fields: { title: text(120, 'The new name, 1 to 120 characters of plain text.') }, boards: everyBoard, refusals: {} },
   { kind: 'rename_lane', summary: 'Rename a lane, or a step on a map.', intent: true,
@@ -175,14 +228,17 @@ export const workshopEditKinds: readonly WorkshopEditKind[] = [
     fields: { card: card('The card or token.'), label: { type: 'text', max: 80, min: 0, about: 'The new words, up to 80 characters of plain text. Empty makes an empty card.' } }, boards: everyBoard, refusals: {} },
   { kind: 'add_lane', summary: 'Add a lane at the end, optionally with how many cards it holds. A workshop has up to five lanes.', intent: false,
     fields: { label: text(80, 'The lane’s name.'), capacity: { type: 'integer', min: 1, max: 24, optional: true, about: 'How many cards it holds, 1 to 24. Leave it out for any number.' } },
-    boards: ['lanes'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes, map: sentences.mapAddLane } },
+    boards: ['lanes'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes, map: sentences.mapAddLane, ...keepsTeams } },
   { kind: 'remove_lane', summary: 'Remove an empty lane, or a step no token is at, with everything that pointed at it. Two always stay.', intent: false,
     fields: { lane: lane('The lane or step.') },
-    boards: ['lanes', 'map'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes } },
+    boards: ['lanes', 'map'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes, ...keepsTeams } },
   { kind: 'add_card', summary: 'Add a card to a lane that has room, or a token at a step. A workshop has up to 24 cards.', intent: false,
     fields: { lane: lane('The lane or step it starts in.'), label: text(80, 'What the card says. Left out, the card is empty (on a map, the token is numbered).', true),
-      allowedLanes: { type: 'refs', of: 'lane', min: 1, max: 5, optional: true, about: 'Lane boards only: the lanes it may go in, including the one it starts in. Leave it out for any lane.' } },
-    boards: ['lanes', 'experiment-budget', 'map'], refusals: { 'release-plan': sentences.releaseCards, 'customer-interviews': sentences.keepsCards } },
+      allowedLanes: { type: 'refs', of: 'lane', min: 1, max: 5, optional: true, about: 'Lane boards only: the lanes it may go in, including the one it starts in. Leave it out for any lane.' },
+      duration: whole('Launch plan: days, 1 to 60 (2).', 60, 1, true), lag: whole('Launch plan: days it waits.', 120, 0, true),
+      waitsOn: { type: 'refs', of: 'card', min: 0, max: 3, optional: true, about: 'Launch plan: what it waits on.' },
+      amount: whole('Pipeline or budget: the amount.', 1e9, 0, true) },
+    boards: ['lanes', 'experiment-budget', 'map', ...business], refusals: { 'release-plan': sentences.releaseCards, 'customer-interviews': sentences.keepsCards } },
   { kind: 'remove_card', summary: 'Remove a card or token, with the dependencies and outcomes that named it.', intent: false,
     fields: { card: card('The card or token.') }, boards: everyBoard, refusals: {} },
   { kind: 'move_card', summary: 'Move a card to a lane, or a token to a step, by the board’s rules. A release plan brings the features that must move with it.', intent: true,
@@ -191,24 +247,24 @@ export const workshopEditKinds: readonly WorkshopEditKind[] = [
     fields: { card: card('The token.') }, boards: ['map'], refusals: mapsOnly },
   { kind: 'set_lane_capacity', summary: 'Set how many cards (on a release plan, points; on a map, tokens) a lane holds, or null for any number.', intent: false,
     fields: { lane: lane('The lane or step.'), capacity: { type: 'integer', min: 1, max: { default: 24, 'release-plan': 576 }, nullable: true, about: 'The limit, or null to remove it.' } },
-    boards: everyBoard, refusals: {} },
+    boards: everyBoard.filter(kind => kind !== 'launch-plan' && kind !== 'budget'), refusals: { 'launch-plan': sentences.launchLanes, budget: sentences.budgetLanes } },
   { kind: 'set_card_lanes', summary: 'Say which lanes a card may go in (including the one it is in), or null for any lane.', intent: false,
     fields: { card: card('The card.'), lanes: { type: 'refs', of: 'lane', min: 1, max: 5, nullable: true, about: 'The lanes, or null for any lane.' } },
-    boards: laneBoards, refusals: notOnMaps(sentences.mapCardLanes) },
+    boards: laneBoards, refusals: { ...notOnMaps(sentences.mapCardLanes), ...others([...laneBoards, 'map'], sentences.businessCards) } },
   { kind: 'set_card_points', summary: 'On a release plan, set a feature’s effort, 1 to 24 points.', intent: false,
     fields: { card: card('The feature.'), points: { type: 'integer', min: 1, max: 24, about: 'Its points.' } },
-    boards: ['release-plan'], refusals: { lanes: sentences.notPoints, 'customer-interviews': sentences.notPoints, 'experiment-budget': sentences.notPoints, map: sentences.mapPoints } },
+    boards: ['release-plan'], refusals: { ...others(['release-plan'], sentences.notPoints), map: sentences.mapPoints } },
   { kind: 'set_card_dependencies', summary: 'On a release plan, set (or add to, or remove from) the features a feature depends on. Each must be planned in the same release or an earlier one.', intent: false,
     fields: { card: card('The feature.'), dependsOn: { type: 'refs', of: 'card', min: 0, max: 23, about: 'The features it depends on. An empty list with mode replace removes them all.' },
       mode: { type: 'choice', values: ['replace', 'add', 'remove'], optional: true, about: 'replace (the default), add or remove.' } },
-    boards: ['release-plan'], refusals: { lanes: sentences.notDepends, 'customer-interviews': sentences.notDepends, 'experiment-budget': sentences.notDepends, map: sentences.notDepends } },
+    boards: ['release-plan'], refusals: { ...others(['release-plan'], sentences.notDepends), 'launch-plan': 'On a launch plan, link and unlink tasks instead.' } },
   { kind: 'set_outcome', summary: 'Set what the workshop says when a card is in a lane, and when it is not. A label names the outcome; the same label on the same card replaces it.', intent: false,
     fields: { card: card('The card.'), lane: lane('The lane.'), whenPresent: text(160, 'What it says when the card is there.'), whenAbsent: text(160, 'What it says otherwise.'),
       label: text(80, 'The outcome’s name. Left out, it is “CARD in LANE”, and an outcome for that card and lane is replaced.', true) },
-    boards: laneBoards, refusals: notOnMaps(sentences.mapOutcome) },
+    boards: laneBoards, refusals: { ...notOnMaps(sentences.mapOutcome), ...others([...laneBoards, 'map'], sentences.businessCards) } },
   { kind: 'remove_outcome', summary: 'Remove one outcome from a card, or all of them.', intent: false,
     fields: { card: card('The card.'), outcome: { type: 'ref', of: 'outcome', optional: true, about: 'The outcome. Left out, every outcome of the card goes.' } },
-    boards: laneBoards, refusals: notOnMaps(sentences.mapOutcome) },
+    boards: laneBoards, refusals: { ...notOnMaps(sentences.mapOutcome), ...others([...laneBoards, 'map'], sentences.businessCards) } },
   { kind: 'set_presentation_order', summary: 'Set the order the lanes or steps are presented in: each once.', intent: false,
     fields: { lanes: { type: 'refs', of: 'lane', min: 2, max: 5, about: 'Every lane or step, once, in order.' } }, boards: everyBoard, refusals: {} },
   { kind: 'present_lane', summary: 'Present one lane or step first, or just before or after another, keeping the rest in order.', intent: false,
@@ -246,13 +302,43 @@ export const workshopEditKinds: readonly WorkshopEditKind[] = [
     boards: ['lanes'], refusals: linesOnLanes() },
   { kind: 'disconnect_note', summary: 'Take away the lines between a card and an ordinary note of the slate.', intent: false,
     fields: { card: card('The card.'), note: text(64, 'The id of the note.') }, boards: ['lanes'], refusals: linesOnLanes() },
+  { kind: 'set_task', summary: 'Set a task\'s days, or the days it waits. Every task ends by launch.', intent: false,
+    fields: { card: card('The task.'), duration: whole('Its days, 1 to 60.', 60, 1, true), lag: whole('Days it waits, 0 or more.', 120, 0, true) },
+    boards: ['launch-plan'], refusals: others(['launch-plan'], sentences.notTasks) },
+  { kind: 'link_tasks', summary: 'Make a task wait on another.', intent: false,
+    fields: { card: card('The task that waits.'), waitsOn: card('The task it waits on.') }, boards: ['launch-plan'], refusals: others(['launch-plan'], sentences.notTasks) },
+  { kind: 'unlink_tasks', summary: 'Stop a task waiting on another.', intent: false,
+    fields: { card: card('The task that waits.'), waitsOn: card('The task it waits on.') }, boards: ['launch-plan'], refusals: others(['launch-plan'], sentences.notTasks) },
+  { kind: 'set_launch_day', summary: 'Set launch day. Every task ends by it.', intent: false,
+    fields: { day: whole('Launch day.', 120, 5) }, boards: ['launch-plan'], refusals: others(['launch-plan'], sentences.notTasks) },
+  { kind: 'set_amount', summary: 'Set a deal\'s amount or a line item\'s cost.', intent: false,
+    fields: { card: card('The deal or line item.'), amount: whole('Whole currency units.') }, boards: ['pipeline', 'budget'], refusals: others(['pipeline', 'budget'], sentences.notAmounts) },
+  { kind: 'set_target', summary: 'Set a pipeline\'s forecast target.', intent: false,
+    fields: { amount: whole('Whole currency units.', 1e9, 1) }, boards: ['pipeline'], refusals: others(['pipeline'], sentences.notTarget) },
+  { kind: 'shift_budget', summary: 'Move money between teams. The total stays.', intent: false,
+    fields: { from: lane('The team giving.'), to: lane('The team receiving.'), amount: whole('Whole currency units.', 1e9, 1) },
+    boards: ['budget'], refusals: others(['budget'], sentences.notBudget) },
+  { kind: 'add_rule', summary: 'Add a rule (capacity, path from a lane or "any", gate or bin; refuse or warn). It moves no card.', intent: false,
+    fields: { rule: { type: 'rule', about: 'The rule, lanes by id or name.' } }, boards: ['lanes', 'pipeline'], refusals: others(['lanes', 'pipeline'], sentences.noRules) },
+  { kind: 'set_rule', summary: 'Change a rule: on, severity, max (a limit) or to (a path).', intent: false,
+    fields: { rule: text(64, 'The rule id.'), on: { type: 'flag', optional: true, about: 'On or off.' },
+      severity: { type: 'choice', values: ['refuse', 'warn'], optional: true, about: 'refuse or warn.' },
+      max: { type: 'integer', min: 1, max: 24, optional: true, about: 'A limit.' }, to: { type: 'refs', of: 'lane', min: 1, max: 4, optional: true, about: 'Where a path leads.' } },
+    boards: ['lanes', 'pipeline'], refusals: others(['lanes', 'pipeline'], sentences.noRules) },
+  { kind: 'remove_rule', summary: 'Remove a rule.', intent: false, fields: { rule: text(64, 'The rule id.') }, boards: ['lanes', 'pipeline'], refusals: others(['lanes', 'pipeline'], sentences.noRules) },
 ]
 
 function linesOnLanes(): Partial<Record<WorkshopBoardKind, string>> {
   return { 'release-plan': sentences.lines, 'customer-interviews': sentences.lines, 'experiment-budget': sentences.lines, map: sentences.lines }
 }
 
-const byKind = new Map(workshopEditKinds.map(entry => [entry.kind, entry]))
+export const isRuleEdit = (kind: string) => kind === 'add_rule' || kind === 'set_rule' || kind === 'remove_rule'
+
+/**
+ * What add_rule's body may hold: the rulebook's kinds and keys. A rules module that brings its own
+ * (slateboxjs/workshops/plans) adds to these and to the table above as it loads.
+ */
+export const workshopRuleSchema = { kinds: ['capacity', 'path', 'gate', 'bin'], keys: {} as Record<string, unknown> }
 const limitFor = (limit: Limit, board: WorkshopBoardKind | undefined) => typeof limit === 'number' ? limit : (board && limit[board]) ?? limit.default
 
 function fieldSchema(field: WorkshopEditField, board?: WorkshopBoardKind): Record<string, unknown> {
@@ -267,6 +353,13 @@ function fieldSchema(field: WorkshopEditField, board?: WorkshopBoardKind): Recor
     case 'image': return { ...orNull({ type: 'object', additionalProperties: false, required: ['src', 'alt'],
       properties: { src: { type: 'string', minLength: 1, maxLength: 2048 }, alt: { type: 'string', minLength: 1, maxLength: 240 } } }, true), description: field.about }
     case 'choice': return { enum: field.values, description: field.about }
+    case 'flag': return { type: 'boolean', description: field.about }
+    // A rule's body only (its id, state and audit line are the board's): behaviour.ts bodyKeys.
+    case 'rule': return { type: 'object', required: ['kind'], additionalProperties: false, properties: {
+      kind: { enum: workshopRuleSchema.kinds }, severity: { enum: ['refuse', 'warn'] },
+      where: ref, max: { type: 'integer', minimum: 1, maximum: 24 }, from: ref,
+      to: { type: 'array', items: ref, minItems: 1, maxItems: 4 }, noSkip: { const: true },
+      into: ref, needs: { type: 'array', items: { type: 'string', maxLength: 40 }, minItems: 1, maxItems: 3 }, lane: ref, ...workshopRuleSchema.keys }, description: field.about }
   }
 }
 
@@ -305,8 +398,8 @@ export function describeWorkshopEdits(board?: Workshop): WorkshopEditDescription
 // Looking things up.
 
 const nouns = {
-  lane: 'lanes?|columns?|lists?|stages?|windows?|releases?',
-  card: 'cards?|features?|notes?|items?|tasks?',
+  lane: 'lanes?|columns?|lists?|stages?|windows?|releases?|teams?',
+  card: 'cards?|features?|notes?|items?|tasks?|deals?|line items?|piles?|themes?',
   step: 'steps?|stations?|stops?|stages?|places?',
   token: 'tokens?|cards?|pieces?|markers?',
 }
@@ -333,7 +426,7 @@ export function workshopReferences(board: Workshop, selection?: WorkshopEditOpti
 
 class Refusal {
   constructor(readonly reason: string, readonly code: WorkshopEditRefusalCode, readonly laneId: string | null = null,
-    readonly cardId?: string, readonly candidates?: string[]) {}
+    readonly cardId?: string, readonly candidates?: string[], readonly limits?: WorkshopLimits) {}
 }
 
 // The model's own checks, in the words the lane conversation has always used for them. A
@@ -382,6 +475,8 @@ function shapeProblem(edit: Record<string, unknown>, entry: WorkshopEditKind): s
           Object.keys(value).some(key => key !== 'src' && key !== 'alt')) return wrong + '{src, alt} or null.'
         break
       case 'choice': if (!field.values.includes(value as string)) return wrong + field.values.join(', ') + '.'; break
+      case 'flag': if (typeof value !== 'boolean') return wrong + 'true or false.'; break
+      case 'rule': if (!value || typeof value !== 'object' || Array.isArray(value) || typeof (value as { kind?: unknown }).kind !== 'string') return wrong + 'an object with a kind.'; break
     }
   }
   return null
@@ -389,7 +484,7 @@ function shapeProblem(edit: Record<string, unknown>, entry: WorkshopEditKind): s
 
 interface Step { board: Workshop; said: string; changed?: boolean; laneId?: string; cardId?: string }
 
-function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind, selection: WorkshopEditOptions['selection']): Step {
+function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind, selection: WorkshopEditOptions['selection'], audit?: RuleAudit): Step {
   const board = structuredClone(input)
   const map = family === 'map'
   const release = family === 'release-plan'
@@ -419,6 +514,24 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
   const presentationSaid = (order: WorkshopLane[]) => map
     ? 'The presentation opens with ' + said(order[0].label) + '.'
     : 'The presentation now runs ' + order.map(item => said(item.label)).join(', then ') + '.'
+
+  if (edit.kind === 'add_rule' || edit.kind === 'set_rule' || edit.kind === 'remove_rule') {
+    return rulebook().edit(board, edit, audit!, { lane: ref => laneOf(ref), card: ref => cardOf(ref), done: (next, sentence, ids) => done(next, sentence, ids),
+      refuse: (reason, at = {}) => { throw new Refusal(reason, at.code ?? 'refused', at.laneId ?? null, at.cardId) } })
+  }
+
+  // A launch plan's, pipeline's or budget's own edits (and its add_card) are its rules' to make.
+  if (business.includes(family)) {
+    if (edit.kind === 'add_card') extraCardFields(edit, family, laneOf(edit.lane).id)
+    const tools: BusinessEditTools = {
+      card: ref => cardOf(ref), lane: ref => laneOf(ref),
+      refuse: (reason, at = {}) => { throw new Refusal(reason, at.code ?? 'refused', at.laneId ?? null, at.cardId, undefined, at.limits) },
+      settle: (next, laneId = null, cardId) => settle(next, family, laneId, cardId),
+      done: (next, sentence, ids) => done(next, sentence, ids),
+    }
+    const step = workshopRules(family as 'launch-plan').edit(board, edit, tools)
+    if (step) return step
+  }
 
   switch (edit.kind) {
     case 'rename_workshop': {
@@ -465,6 +578,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       if (board.presentationOrder) board.presentationOrder = board.presentationOrder.filter(id => id !== gone.id)
       for (const item of board.cards) if (item.allowedLaneIds) item.allowedLaneIds = item.allowedLaneIds.filter(id => id !== gone.id)
       dropSignals(board, signal => signal.laneId === gone.id)
+      if (board.behaviour) board.behaviour = rulebook().dropLane(board.behaviour, gone.id)
       return done(settle(board, family), 'Removed the ' + what.lane + ' ' + said(gone.label) + '.', { laneId: gone.id })
     }
     case 'add_card': {
@@ -484,6 +598,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
         const next = settle(board, family, target.id)
         return done(next, 'Added ' + said(next.cards[next.cards.length - 1].label) + ' at ' + said(target.label) + '.', { laneId: target.id, cardId: 'token-' + n })
       }
+      extraCardFields(edit, family, target.id)
       if (board.cards.length >= 24) throw new Refusal('A workshop can have up to 24 cards. Remove one first.', 'refused', target.id)
       if (target.capacity !== undefined && held(target.id) >= target.capacity) {
         throw new Refusal(said(target.label) + ' is full: it holds ' + target.capacity + (target.capacity === 1 ? ' card' : ' cards') + '. Add the card to another lane, or raise the limit.', 'refused', target.id)
@@ -501,6 +616,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       const gone = cardOf(edit.card)
       if (map && board.cards.length === 1) throw new Refusal('A map needs at least one token.', 'refused', gone.laneId, gone.id)
       if (release && board.cards.length === 1) throw new Refusal('A release plan needs at least one feature.', 'refused', gone.laneId, gone.id)
+      if (family === 'launch-plan' && board.cards.length === 1) throw new Refusal('A launch plan needs at least one task.', 'refused', gone.laneId, gone.id)
       board.cards = board.cards.filter(item => item !== gone)
       for (const item of board.cards) {
         if (!item.dependsOn?.includes(gone.id)) continue
@@ -529,6 +645,10 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
     }
     case 'set_lane_capacity': {
       const target = laneOf(edit.lane)
+      // A lane whose limit is a rule: the rule changes (a new limit never moves a card).
+      const ruled = board.behaviour && rulebook().setLimit(board, target.id, edit.capacity, audit!)
+      if (typeof ruled === 'string') throw new Refusal(ruled, 'refused', target.id)
+      if (ruled) return done(ruled, said(target.label) + (edit.capacity === null ? ' now holds any number of cards.' : ' now holds up to ' + edit.capacity + ' cards.'), { laneId: target.id })
       const unit = map ? 'token' : release ? 'point' : 'card'
       if (edit.capacity === null) {
         delete target.capacity
@@ -736,6 +856,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       return done(settle(board, family, from.laneId, from.id), 'Took away the line between ' + said(from.label) + ' and ' + otherName + '.', { laneId: from.laneId, cardId: from.id })
     }
   }
+  throw new Refusal('This workshop does not take ' + edit.kind + '.', 'not_on_this_board')
 
   function moveTo(subject: WorkshopCard, destination: WorkshopLane): Step {
     const ids = { laneId: destination.id, cardId: subject.id }
@@ -746,6 +867,13 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
     if (!next) throw new Refusal(workshopRefusal(input, subject.id, destination.id) ?? 'That move is not available.', 'refused', destination.id, subject.id)
     return done(settle(next, family, destination.id, subject.id), 'Moved ' + said(subject.label) + ' to ' + said(destination.label) + '.', ids)
   }
+}
+
+/** Refuse an add_card that carries days or an amount the board doesn't take. */
+function extraCardFields(edit: Extract<WorkshopEdit, { kind: 'add_card' }>, family: WorkshopBoardKind, laneId: string) {
+  const extra = (['duration', 'lag', 'waitsOn', 'amount', 'band'] as const).find(key => edit[key] !== undefined &&
+    !(family === 'launch-plan' || family === 'hiring-plan' ? key !== 'amount' && (key !== 'band' || family === 'hiring-plan') : (family === 'pipeline' || family === 'budget') && key === 'amount'))
+  if (extra) throw new Refusal(extra === 'amount' ? sentences.notAmounts : sentences.notTasks, 'not_on_this_board', laneId)
 }
 
 function dropSignals(board: Workshop, gone: (signal: WorkshopSignal) => boolean) {
@@ -769,9 +897,10 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
   if (!Array.isArray(edits) || edits.length < 1 || edits.length > 50) return refuse({ reason: 'Send 1 to 50 edits.', code: 'invalid_edit' })
   const start = current
   const done: WorkshopEditDone[] = []
+  const audit: RuleAudit = { by: (options.actor?.by ?? 'an agent').slice(0, 80), at: options.now ?? new Date().toISOString(), via: options.actor?.via ?? 'exec' }
   for (const [index, edit] of edits.entries()) {
     const kind = (edit as { kind?: unknown } | null)?.kind
-    const entry = typeof kind === 'string' ? byKind.get(kind as WorkshopEditKindName) : undefined
+    const entry = workshopEditKinds.find(item => item.kind === kind)
     if (!edit || typeof edit !== 'object' || !entry) {
       return refuse({ index, kind: typeof kind === 'string' ? kind : null, code: 'invalid_edit',
         reason: 'There is no edit called ' + said(String(kind)) + '. The edits are ' + listed(workshopEditKinds.map(item => item.kind)) + '.' })
@@ -783,10 +912,15 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
       return refuse({ index, kind: entry.kind, code: 'not_on_this_board', reason: entry.refusals[family] ?? 'This workshop does not take ' + entry.kind + '.' })
     }
     let step: Step
-    try { step = makeEdit(current, edit, family, options.selection) } catch (error) {
+    try { step = makeEdit(current, edit, family, options.selection, audit) } catch (error) {
       if (!(error instanceof Refusal)) throw error
       return refuse({ index, kind: entry.kind, reason: error.reason, code: error.code, laneId: error.laneId,
-        ...(error.cardId && { cardId: error.cardId }), ...(error.candidates && { candidates: error.candidates }) })
+        ...(error.cardId && { cardId: error.cardId }), ...(error.candidates && { candidates: error.candidates }), ...(error.limits && { limits: error.limits }) })
+    }
+    // What the board's rulebook says of every card this edit put in a lane (an edit of the rules moves nothing).
+    const verdict = current.behaviour && !isRuleEdit(entry.kind) ? rulebook().check(current, step.board) : null
+    if (verdict && 'refused' in verdict) {
+      return refuse({ index, kind: entry.kind, reason: verdict.refused.sentence, code: 'refused', laneId: verdict.refused.laneId, cardId: verdict.refused.cardId })
     }
     const kept = checkWorkshopReplacement(current, step.board)
     if (kept) return refuse({ index, kind: entry.kind, reason: kept, code: 'not_on_this_board', laneId: step.laneId ?? null })
@@ -802,9 +936,37 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
   return { workshop: current, report: { edits: done, movedCards } }
 }
 
+/**
+ * What no edit changes on a launch plan, pipeline or budget: a stage's chance and its role (won or
+ * lost), a team's floor and cap, a launch plan's or budget's lane limits, the budget's envelope and
+ * the currency amounts are written in. A whole-board save may not change them either.
+ */
+function fixedBusinessField(before: Workshop, after: Workshop): string | null {
+  const kind = businessKind(before)
+  if (kind === 'pipeline') {
+    if (before.forecast?.currency !== after.forecast?.currency) return 'A pipeline keeps the currency it was made in.'
+    const moved = before.lanes.find(lane => {
+      const other = after.lanes.find(item => item.id === lane.id)!
+      return lane.role !== other.role || lane.probability !== other.probability
+    })
+    if (moved) return `${moved.label} keeps its chance to win and what it holds (open, won or lost). Rename it or set how many deals it holds instead.`
+  }
+  if (kind === 'budget') {
+    const was = before.budget!, now = after.budget
+    if (!now || was.total !== now.total || was.currency !== now.currency || was.step !== now.step) return 'The total cannot change. Move money between teams instead.'
+    const moved = before.lanes.find(lane => {
+      const other = after.lanes.find(item => item.id === lane.id)!
+      return lane.floor !== other.floor || lane.cap !== other.cap || lane.capacity !== other.capacity
+    })
+    if (moved) return `${moved.label} keeps its floor and cap. Move money between teams instead.`
+  }
+  if (kind === 'launch-plan' && before.lanes.some(lane => lane.capacity !== after.lanes.find(item => item.id === lane.id)!.capacity)) return sentences.launchLanes
+  return (kind && workshopRules(kind).fixed?.(before, after)) || null
+}
+
 const boardNames: Record<WorkshopBoardKind, string> = {
   lanes: 'lane workshop', 'release-plan': 'release plan', 'customer-interviews': 'interview workshop',
-  'experiment-budget': 'budget workshop', map: 'map',
+  'experiment-budget': 'budget workshop', map: 'map', 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget', 'hiring-plan': 'hiring plan', nest: 'nested board',
 }
 
 /**
@@ -827,11 +989,17 @@ export function checkWorkshopReplacement(before: Workshop, after: Workshop): str
     return sameLanes(original, next) ? sentences.keepsCards : sentences.keepsLanes
   }
   if ((was === 'customer-interviews' || was === 'experiment-budget') && !sameOrder(original, next)) return sentences.keepsOrder
+  if (businessKind(original) && now === was && !(sameLanes(original, next) && sameOrder(original, next))) return keepsTeams[was as keyof typeof keepsTeams]
+  if (businessKind(original) && now === was) {
+    const fixed = fixedBusinessField(original, next)
+    if (fixed) return fixed
+  }
   if (was === 'release-plan' && now === 'release-plan') {
     if (!sameLanes(original, next)) return sentences.releaseLanes
     if (!sameOrder(original, next)) return sentences.releaseOrder
     if (next.cards.some(item => !original.cards.some(other => other.id === item.id))) return sentences.releaseCards
   }
   if (was !== now) return 'This slate holds a ' + boardNames[was] + ', and it stays one. Start a new slate for another kind of workshop.'
-  return null
+  // The rulebook's part (behaviour.ts): rule changes on their own, with a new revision; arrivals checked by the rules the board had.
+  return original.behaviour || next.behaviour ? rulebook().replacement(original, next) : null
 }

@@ -32,27 +32,56 @@
       "import": "./dist/workshop-model.mjs",
       "require": "./dist/workshop-model.cjs"
     },
+    "./workshops/rules": {
+      "types": "./dist/workshops/rules.d.ts",
+      "import": "./dist/workshop-rules.mjs",
+      "require": "./dist/workshop-rules.cjs"
+    },
+    "./workshops/behaviour": {
+      "types": "./dist/workshops/behaviour.d.ts",
+      "import": "./dist/workshop-behaviour.mjs",
+      "require": "./dist/workshop-behaviour.cjs"
+    },
+    "./catalog": {
+      "types": "./dist/workshops/catalog.d.ts",
+      "import": "./dist/catalog.mjs",
+      "require": "./dist/catalog.cjs"
+    },
     "./operations": {
       "types": "./dist/operations/index.d.ts",
       "import": "./dist/operations.mjs",
       "require": "./dist/operations.cjs"
     },
+    "./boards": {
+      "types": "./dist/boards/index.d.ts",
+      "import": "./dist/boards.mjs",
+      "require": "./dist/boards.cjs"
+    },
+    "./build.json": "./dist/BUILD.json",
     "./dragology": {
       "types": "./dist/dragology/index.d.ts",
       "import": "./dist/dragology.mjs",
       "require": "./dist/dragology.cjs"
+    },
+    "./presence": {
+      "types": "./dist/core/AgentPresence.d.ts",
+      "import": "./dist/presence.mjs",
+      "require": "./dist/presence.cjs"
     }
   },
   "files": [
     "dist",
     "workshops",
     "operations",
+    "boards",
     "dragology",
+    "presence",
+    "catalog",
     "licenses"
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build && vite build --config vite.workshops.config.ts && npm run build:types",
+    "build": "vite build && vite build --config vite.workshops.config.ts && npm run build:types && node scripts/stamp-build.mjs",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist && node scripts/clean-declarations.mjs",
     "preview": "vite preview",
     "serve": "vite preview",
@@ -64,7 +93,8 @@
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:all": "npx playwright test",
     "test:all": "vitest run && npx playwright test --project=chromium",
-    "verify:package": "node scripts/verify-package.mjs"
+    "verify:package": "node scripts/verify-package.mjs",
+    "check:budget": "node scripts/check-bundle-budget.mjs"
   },
   "keywords": [
     "diagramming",

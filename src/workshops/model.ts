@@ -2,6 +2,13 @@ export * from './offlineHandoff'
 export * from './listeningRoom'
 import { planReleaseMove, releaseLoad, validateRelease } from './release'
 export { releaseLoad, releasePlan } from './release'
+import { applyWorkshopEdits } from './edits'
+import { rulebook } from './kinds'
+import type { Behaviour } from './behaviour'
+export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, RuleInput, RuleKindId, WorkshopMoveCheck } from './behaviour'
+import { workshopRules } from './kinds'
+export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools,
+  type WorkshopFieldReader, type WorkshopLimits } from './kinds'
 import type { NodeJSON, SlateJSON } from '../core/Serialization'
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults'
 /** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
@@ -16,6 +23,14 @@ export interface WorkshopLane {
   id: string
   label: string
   capacity?: number
+  /** Pipeline: the chance a deal in this open stage is won, 0 to 1. */
+  probability?: number
+  /** Pipeline: the stage that holds won deals, or lost ones. */
+  role?: 'won' | 'lost'
+  /** Budget: what this team is given, and the least and most it may be given. */
+  allocation?: number
+  floor?: number
+  cap?: number
   station?: { column: number; row: number; next: string[]; outcome: string; image?: StationImage }
 }
 
@@ -26,6 +41,19 @@ export interface WorkshopCard {
   allowedLaneIds?: string[]
   points?: number
   dependsOn?: string[]
+  /** Launch plan: whole days the task takes, and whole days it waits after what it depends on. */
+  duration?: number
+  lag?: number
+  /** Pipeline and budget: whole currency units. */
+  amount?: number
+  /** Hiring plan: the role band the hire is in (cost is per band, never per person). */
+  band?: string
+  /** Nest board: the card it sits under, what it is (pile, outcome…), its place among its siblings (a fractional key), who said it, and numbers chat added. */
+  parentId?: string
+  role?: string
+  order?: string
+  source?: string
+  fields?: Record<string, number>
   /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
   look?: WorkshopCardLook
   /** What the note it was made from had that a card does not show, so it comes back as it was. */
@@ -106,8 +134,20 @@ export interface ResolvedWorkshopSignal extends WorkshopSignal {
 export interface Workshop {
   experience?: StartupExperience
   version: 1
-  kind?: 'release-plan'
+  kind?: WorkshopKind
   title: string
+  /** Launch plan: the day every task must end by (a go-live names it). */
+  launch?: { day: number; name?: string }
+  /** Launch and hiring plans: the plan's first day (YYYY-MM-DD); days are offsets from it. */
+  clock?: { origin: string }
+  /** Hiring plan: cash, monthly burn without new hires, the role bands and a funding round. */
+  hiring?: HiringFields
+  /** Nest board: how it is drawn (piles or a tree), the number fields chat added, and merged cards' new homes. */
+  nest?: NestFields
+  /** Pipeline: the forecast target, and the currency sign amounts are written with. */
+  forecast?: { target: number; currency: string }
+  /** Budget: the envelope, its currency sign and the step allocations snap to. */
+  budget?: { total: number; currency: string; step: number }
   lanes: WorkshopLane[]
   /** Lane IDs in playback order. Boards without an authored order present their lanes in layout order. */
   presentationOrder?: string[]
@@ -115,6 +155,22 @@ export interface Workshop {
   cards: WorkshopCard[]
   /** The lines joined to its cards (see WorkshopLine). */
   lines?: WorkshopLine[]
+  /** How the board behaves, as data: its rulebook (behaviour.ts). Lane boards and pipelines only. */
+  behaviour?: Behaviour
+}
+
+/** The kinds of board with rules of their own. A board without a kind is a board of plain lanes. */
+export type WorkshopKind = 'release-plan' | BusinessBoardKind
+
+/** A hiring plan's money: what a role band costs a month (loaded), on one team. */
+export interface HiringBand { id: string; label: string; monthly: number; lane: string }
+export interface HiringFields { cash: number; burn: number; currency: string; weeks: number; bands: HiringBand[]; funding?: { day: number; amount: number } }
+/** The business boards: drawn by a board kit (slateboxjs/boards) on a live slate. */
+export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest'
+export const businessBoardKinds: readonly BusinessBoardKind[] = ['launch-plan', 'pipeline', 'budget', 'hiring-plan', 'nest']
+export interface NestFields { layout: 'clusters' | 'tree'; fields?: { id: string; label: string; currency?: string }[]; aliases?: [string, string][] }
+export function businessKind(board: Pick<Workshop, 'kind'>): BusinessBoardKind | undefined {
+  return businessBoardKinds.includes(board.kind as BusinessBoardKind) ? board.kind as BusinessBoardKind : undefined
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -415,19 +471,24 @@ const mapGridSize = 3
 export function validateWorkshop(input: unknown): Workshop {
   const value = record(input)
   if (value.version !== 1) throw new Error('Unsupported workshop version.')
-  if (value.kind !== undefined && value.kind !== 'release-plan') throw new Error('Unsupported workshop kind.')
+  if (value.kind !== undefined && value.kind !== 'release-plan' && !businessKind(value)) throw new Error('Unsupported workshop kind.')
   const release = value.kind === 'release-plan'
+  const business = businessKind(value)
+  // A launch plan's, pipeline's or budget's own fields and rule: its registered rules (kinds.ts).
+  const rules = business ? workshopRules(business) : undefined
+  const read = { id }
   const title = label(value.title, 120)
   if (!Array.isArray(value.lanes) || value.lanes.length < 2 || value.lanes.length > maxWorkshopLanes) {
     throw new Error('A workshop needs 2 to 5 lanes.')
   }
-  if (!Array.isArray(value.cards) || value.cards.length > maxWorkshopCards) {
-    throw new Error('A workshop supports up to 24 cards.')
-  }
+  // Each kind holds its own number of cards (a nest board 40); a board of plain lanes 24.
+  const most = rules?.cards ?? [maxWorkshopCards, 'A workshop supports up to 24 cards.']
+  if (!Array.isArray(value.cards) || value.cards.length > most[0]) throw new Error(most[1])
 
   const lanes: WorkshopLane[] = value.lanes.map(item => {
     const raw = record(item)
     const lane: WorkshopLane = { id: id(raw.id), label: label(raw.label) }
+    if (raw.capacity !== undefined && business && business !== 'pipeline') throw new Error('Only a pipeline\'s stages hold a set number of cards.')
     if (raw.capacity !== undefined) {
       const limit = release ? 576 : 24
       if (typeof raw.capacity !== 'number' || !Number.isInteger(raw.capacity) || raw.capacity < 1 || raw.capacity > limit) {
@@ -435,6 +496,7 @@ export function validateWorkshop(input: unknown): Workshop {
       }
       lane.capacity = raw.capacity
     }
+    rules?.readLane?.(raw, lane, read)
     if (raw.station !== undefined) {
       const point = record(raw.station)
       const coordinate = (n: unknown) => {
@@ -453,6 +515,7 @@ export function validateWorkshop(input: unknown): Workshop {
   })
   const laneIds = lanes.map(lane => lane.id)
   unique(laneIds, 'lane ID')
+  if (business && lanes.some(lane => lane.station)) throw new Error('A business board has no map stations.')
   if ((release || lanes.some(lane => lane.station)) && !value.cards.length) {
     throw new Error('Maps and release plans need at least one card.')
   }
@@ -485,6 +548,7 @@ export function validateWorkshop(input: unknown): Workshop {
       if (kept) card.asNote = kept
     }
     if (raw.noteId !== undefined && raw.noteId !== card.id) card.noteId = noteRef(raw.noteId)
+    rules?.readCard(raw, card, read)
     if (release) {
       if (typeof raw.points !== 'number' || !Number.isInteger(raw.points) || raw.points < 1 || raw.points > 24) {
         throw new Error('Give each feature 1 to 24 effort points.')
@@ -528,9 +592,19 @@ export function validateWorkshop(input: unknown): Workshop {
     if (!Array.isArray(value.presentationOrder)) throw new Error('Presentation order must be a list of lane IDs.')
     board.presentationOrder = workshopPresentationLanes({ lanes, presentationOrder: value.presentationOrder }).map(lane => lane.id)
   }
+  if (value.behaviour !== undefined) {
+    board.behaviour = rulebook().validate(value.behaviour, { ...board, kind: value.kind as Workshop['kind'] })
+  }
   if (release) {
     board.kind = 'release-plan'
     validateRelease(board)
+    return board
+  }
+  if (business && rules) {
+    board.kind = business
+    rules.readBoard(value, board, read)
+    const problem = rules.validate(board)
+    if (problem) throw new Error(problem)
     return board
   }
   for (const lane of lanes) {
@@ -568,7 +642,14 @@ export function decodeWorkshopFragment(fragment: string): Workshop {
   return validateWorkshop(value)
 }
 
+/** The board a business kind's own rule makes of a move; undefined for every other board. */
+function planBusinessMove(board: Workshop, cardId: string, laneId: string): Workshop | null | undefined {
+  const kind = businessKind(board)
+  return kind ? workshopRules(kind).planMove(board, cardId, laneId) : undefined
+}
+
 export function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLane[] {
+  if (businessKind(board)) return board.lanes.filter(lane => planBusinessMove(board, card.id, lane.id))
   if (board.kind === 'release-plan') return board.lanes.filter(lane => planReleaseMove(board, card, lane.id) !== null)
   const station = board.lanes.find(lane => lane.id === card.laneId)?.station
   return board.lanes.filter(lane =>
@@ -578,6 +659,11 @@ export function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLan
 
 export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string): Workshop {
   const card = board.cards.find(item => item.id === cardId)
+  const business = planBusinessMove(board, cardId, laneId)
+  if (business !== undefined) {
+    if (!business) throw new Error('Move is unavailable.')
+    return business
+  }
   if (card && board.kind === 'release-plan') {
     const candidate = planReleaseMove(board, card, laneId)
     if (!candidate) throw new Error('Move is unavailable.')
@@ -600,10 +686,19 @@ export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string
  * the stations reachable from here.
  */
 export function workshopCandidate(board: Workshop, cardId: string, laneId: string): Workshop | null {
+  const next = kindCandidate(board, cardId, laneId)
+  if (!next || next === board || !board.behaviour) return next
+  return 'refused' in rulebook().check(board, next) ? null : next
+}
+
+/** The board a move would produce by the board kind's own rules, before its rulebook is asked. */
+function kindCandidate(board: Workshop, cardId: string, laneId: string): Workshop | null {
   const card = board.cards.find(item => item.id === cardId)
   if (!card || !board.lanes.some(lane => lane.id === laneId)) return null
   if (card.laneId === laneId) return board
   if (board.kind === 'release-plan') return planReleaseMove(board, card, laneId)
+  const business = planBusinessMove(board, cardId, laneId)
+  if (business !== undefined) return business
   const experience = planStartupMove(board, cardId, laneId)
   if (experience) return experience
   // The prototype holds one interview. When the experience cannot make room there
@@ -619,10 +714,17 @@ export function workshopDestinations(board: Workshop, cardId: string): WorkshopL
 
 /** Why workshopCandidate refuses this move, as a sentence for the person moving the card. Null when the move is available. */
 export function workshopRefusal(board: Workshop, cardId: string, laneId: string): string | null {
-  if (workshopCandidate(board, cardId, laneId) !== null) return null
+  const allowed = kindCandidate(board, cardId, laneId)
+  if (allowed !== null) {
+    const verdict = allowed === board || !board.behaviour ? null : rulebook().check(board, allowed)
+    return verdict && 'refused' in verdict ? verdict.refused.sentence : null
+  }
   const card = board.cards.find(item => item.id === cardId)
   const lane = board.lanes.find(item => item.id === laneId)
   if (!card || !lane) return 'That move is not available.'
+  const business = businessKind(board)
+  const own = business && workshopRules(business).refusal
+  if (own) return own(board, cardId, laneId)
   const cannot = `This card can't go in ${lane.label}.`
   if (card.allowedLaneIds && !card.allowedLaneIds.includes(laneId)) return cannot
   if (board.kind === 'release-plan') {
@@ -649,7 +751,7 @@ export function workshopRefusal(board: Workshop, cardId: string, laneId: string)
  * cards are pieces of their own and are not made from notes.
  */
 export function workshopTakesNotes(board: Workshop): boolean {
-  return !board.kind && !board.lanes.some(lane => lane.station) && !startupExperienceKind(board)
+  return (!board.kind || Boolean(businessKind(board))) && !board.lanes.some(lane => lane.station) && !startupExperienceKind(board)
 }
 
 /** An ordinary note offered to a lane: its id, its words and how it is drawn. */
@@ -661,6 +763,8 @@ export interface WorkshopNoteOffer {
   asNote?: WorkshopCardAsNote
   /** The note's lines, with the note named by `id`: they stay joined to the card it becomes. */
   lines?: WorkshopLine[]
+  /** Nest board: the card it was dropped on, to sit under. */
+  under?: string
 }
 
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -678,6 +782,14 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
   if (board.lanes.some(item => item.station)) return 'A map\'s stations hold its token only.'
   if (board.kind === 'release-plan') return 'A release plan\'s features need effort points, so a note can\'t become one.'
   if (startupExperienceKind(board)) return 'This workshop keeps the cards it came with.'
+  // A business board makes its card by its own rules, from the note's words and the number on it.
+  // Its cards carry no lines, so a note joined to others by lines stays a note there.
+  if (businessKind(board)) {
+    if (!(typeof note?.label === 'string' ? oneLine(note.label) : '')) return 'A card needs some words. Type on the note first.'
+    if (Array.isArray(note.lines) ? note.lines.length : note.lines !== undefined) return 'A note joined to other notes by lines stays a note on this board.'
+    const made = businessNote(board, laneId, note)
+    return typeof made === 'string' ? made : ruleRefusal(board, made)
+  }
   // A note becomes a card whatever its words, look, shape or lines: empty, long (the card shows
   // the first 80 characters and keeps the rest for the note), or styled in a way a card does not draw.
   // Only words a card could not show as plain text (markup) keep it a note.
@@ -692,7 +804,14 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
       return `A workshop holds up to ${maxWorkshopLines} lines.`
     }
   }
-  return null
+  return ruleRefusal(board, { ...board, cards: [...board.cards, { id: cardIdFor(board, note.id), label: workshopCardLabelOf(typeof note.label === 'string' ? note.label : ''), laneId }] })
+}
+
+/** The rulebook's sentence when `next` breaks a rule of `board`; null when it keeps them. */
+function ruleRefusal(board: Workshop, next: Workshop): string | null {
+  if (!board.behaviour) return null
+  const verdict = rulebook().check(board, next)
+  return 'refused' in verdict ? verdict.refused.sentence : null
 }
 
 /** The parts of a note's look a card can draw. */
@@ -750,6 +869,12 @@ function withLines(board: Workshop, lines: WorkshopLine[]): WorkshopLine[] {
  */
 export function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null {
   if (workshopNoteRefusal(board, laneId, note) !== null) return null
+  if (businessKind(board)) {
+    const made = businessNote(board, laneId, note) as Workshop
+    const card = made.cards[made.cards.length - 1]
+    const at = before === undefined ? -1 : board.cards.findIndex(item => item.id === before && item.laneId === laneId)
+    return at < 0 ? made : { ...made, cards: [...board.cards.slice(0, at), card, ...board.cards.slice(at)] }
+  }
   const look = keptLook(note.look)
   const words = typeof note.label === 'string' ? oneLine(note.label) : ''
   let asNote = keptAsNote(note.asNote)
@@ -768,12 +893,41 @@ export function workshopNoteCandidate(board: Workshop, laneId: string, note: Wor
   return validateWorkshop({ ...board, cards, ...(lines ? { lines } : {}) })
 }
 
+/**
+ * The board with a note as a card on a business board (its words, and the number written on it: a task's
+ * days, two when none is written), made by the edit every surface adds a card with; or why it may not be.
+ */
+function businessNote(board: Workshop, laneId: string, note: WorkshopNoteOffer): Workshop | string {
+  const read = workshopRules(businessKind(board)!).fromNote(board, note.label)
+  if (typeof read === 'string') return read
+  const made = applyWorkshopEdits(board, [{ kind: 'add_card', lane: { id: laneId }, ...read, ...(note.under && { under: { id: note.under } }) }])
+  if ('refused' in made) return made.refused.reason
+  const cards = made.workshop.cards
+  cards[cards.length - 1] = { ...cards[cards.length - 1], id: cardIdFor(board, note.id) }
+  return made.workshop
+}
+
+/** What a card says on the board: its name, with its points, days or amount. */
+export function workshopCardText(board: Workshop, card: WorkshopCard): string {
+  if (board.kind === 'release-plan') return card.label + '\n' + card.points + ' points'
+  const business = businessKind(board)
+  return business ? workshopRules(business).cardText(board, card) : card.label
+}
+
+/** The words a card takes back to the canvas as a note, numbers and all: "Copy · 3 days", "Acme · $25k". */
+export function workshopCardNoteText(board: Workshop, card: WorkshopCard): string {
+  const business = businessKind(board)
+  return business ? workshopRules(business).noteText(board, card) : card.label
+}
+
 /** Why the card may not leave the lanes as an ordinary note; null when it may. */
 export function workshopCardAsNoteRefusal(board: Workshop, cardId: string): string | null {
   const card = board.cards.find(item => item.id === cardId)
   if (!card) return 'That card is no longer on the board.'
   if (!workshopTakesNotes(board)) return board.lanes.some(lane => lane.station) ? 'The token stays on the map.' : 'This card stays on the board.'
+  if (board.kind === 'launch-plan' && board.cards.length === 1) return 'A launch plan needs at least one task.'
   if ((board.signals ?? []).some(signal => signal.cardId === cardId)) return `An outcome on this board depends on ${card.label}, so it stays a card.`
+  if (board.cards.some(item => item.parentId === cardId)) return `${card.label} has cards under it, so it stays a card. Move them first.`
   if (card.allowedLaneIds && card.allowedLaneIds.length < board.lanes.length) {
     const names = card.allowedLaneIds.map(id => board.lanes.find(lane => lane.id === id)!.label)
     const list = names.length > 1 ? names.slice(0, -1).join(', ') + ' or ' + names.at(-1) : names[0]
@@ -790,8 +944,15 @@ export function workshopCardAsNoteRefusal(board: Workshop, cardId: string): stri
  */
 export function workshopCardAsNote(board: Workshop, cardId: string, noteId: string = noteIdOfCard(board, cardId)): Workshop | null {
   if (workshopCardAsNoteRefusal(board, cardId) !== null) return null
+  // What waited on the task now waits on nothing in its place, from where it started.
+  const rest = board.cards.filter(item => item.id !== cardId).map(item => {
+    if (!item.dependsOn?.includes(cardId)) return item
+    const next = { ...item, dependsOn: item.dependsOn.filter(id => id !== cardId) }
+    if (!next.dependsOn.length) delete (next as WorkshopCard).dependsOn
+    return next
+  })
   const lines = board.lines?.map(line => renamedLine(line, cardId, noteId))
-  return validateWorkshop({ ...board, cards: board.cards.filter(item => item.id !== cardId), ...(lines ? { lines } : {}) })
+  return validateWorkshop({ ...board, cards: rest, ...(lines ? { lines } : {}) })
 }
 
 /**
@@ -867,10 +1028,13 @@ export function workshopLaneCaption(board: Workshop, laneId: string): string {
     const used = releaseLoad(board, laneId)
     return lane.capacity ? used + ' / ' + lane.capacity + ' points' : used + ' points'
   }
+  const business = businessKind(board)
+  if (business) return workshopRules(business).caption(board, laneId)
   const budget = workshopBudgetResult(board, laneId)
   if (budget) return '$' + budget.amount + ' · ' + budget.description
   const count = board.cards.filter(card => card.laneId === laneId).length
-  return lane.capacity !== undefined ? count + ' of ' + lane.capacity : count + (count === 1 ? ' card' : ' cards')
+  const limit = board.behaviour ? rulebook().laneLimit(board, laneId) : lane.capacity
+  return limit !== undefined ? count + ' of ' + limit : count + (count === 1 ? ' card' : ' cards')
 }
 
 export const workshopLayout = { pitch: 244, width: 228, row: 88, height: 76, top: 98 }
@@ -983,6 +1147,10 @@ export const nightTransfer: Workshop = {
 
 /** How the native artwork arranges a board's lanes. */
 export interface WorkshopBoardLayout {
+  /** Business boards: draw the narrow (phone) arrangement. */
+  narrow?: boolean
+  /** Business boards: the world width the board should fill. */
+  width?: number
   /**
    * How many lanes sit side by side before the next lane starts a new row. Leave it
    * out for every lane in one row. A narrow host passes 1 or 2 so each lane stays
@@ -1051,9 +1219,11 @@ export interface WorkshopArtworkOptions {
 
 const captionNodeId = (id: string) => 'caption-' + id
 const columnNodeId = (id: string) => 'column-' + id
+/** The "How this board behaves" note: not a lane- or card- part, so a live board treats it as decoration. */
+const rulesNodeId = 'rules-board'
 
 /** The names of the notes workshopToSlate draws for a lane or a card. */
-export const workshopNodeIds = { lane: laneNodeId, card: cardNodeId, image: imageNodeId, caption: captionNodeId, column: columnNodeId }
+export const workshopNodeIds = { lane: laneNodeId, card: cardNodeId, image: imageNodeId, caption: captionNodeId, column: columnNodeId, rules: rulesNodeId }
 
 /**
  * The id a workshop note takes when the slate's own document already has a note by
@@ -1067,7 +1237,8 @@ export function workshopStandInId(name: string, taken: (id: string) => boolean):
   return `${name}--${n}`
 }
 
-function roundedBox(width: number, height: number, radius: number) {
+/** A note's outline: a box with rounded corners (none at radius 0). */
+export function roundedBox(width: number, height: number, radius: number) {
   const r = Math.max(0, Math.min(radius, width / 2, height / 2)), w = width, h = height
   if (!r) return `M 0 0 H ${w} V ${h} H 0 Z`
   return `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`
@@ -1141,7 +1312,8 @@ export function workshopLanePlaces(input: Workshop, options: Pick<WorkshopArtwor
   } else {
     // Every lane column in a row is as tall as the fullest lane of that row plus
     // one free slot, so the board reads as columns and each column is one drop zone.
-    let y = 0
+    // On a phone (one lane per row) a board's "How this board behaves" note comes first.
+    let y = phoneRulesNote(board, perRow)?.below ?? 0
     for (let first = 0; first < board.lanes.length; first += perRow) {
       const band = board.lanes.slice(first, first + perRow)
       const height = top + (Math.max(...band.map((_, column) => least(first + column))) + 1) * row
@@ -1150,6 +1322,12 @@ export function workshopLanePlaces(input: Workshop, options: Pick<WorkshopArtwor
     }
   }
   return { places, width: Math.max(...places.map(place => place.x + place.width)), height: Math.max(...places.map(place => place.y + place.height)) }
+}
+
+/** A phone's "How this board behaves" note (one lane per row, a board with rules): drawn above the first lane. */
+function phoneRulesNote(board: Workshop, perRow: number, x = 2, y = 0): { note: NodeJSON; below: number } | null {
+  const note = board.behaviour && perRow < 2 && board.lanes.length > 1 && !board.lanes[0].station ? rulebook().note(board, { x, y, width: 240 }, { fontSize: 14 }) : null
+  return note ? { note, below: (note.options.height as number) + 16 } : null
 }
 
 function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions): SlateJSON {
@@ -1192,7 +1370,7 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
         shapeHint: 'rectangle', image: image.src, borderWidth: 0 }, relationships: { associations: [] } })
     }
     board.cards.filter(card => card.laneId === lane.id).forEach((card, i) => {
-      const text = board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label
+      const text = workshopCardText(board, card)
       const cardWidth = map ? width - 20 : width, cardHeight = map ? height - 6 : height
       // A card is drawn as the slate draws an ordinary note (a map's token is a playing piece of
       // its own). A card made from a note keeps that note's look.
@@ -1207,6 +1385,10 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
         fontSize: fittingFontSize(text, look.fontSize ?? cardSize, cardWidth - 16, cardHeight - 8) })
     })
   })
+  const rules = phoneRulesNote(board, lanesPerRow(options.layout, board.lanes.length), origin.x + 2, origin.y)?.note
+    ?? behaviourNote(board, { x: origin.x, y: origin.y + Math.max(...places.map(place => place.y + place.height)) + 16,
+      width: Math.min(Math.max(...places.map(place => place.x + place.width)), pitch * 2) - 4 }, style)
+  if (rules) nodes.push(rules)
   const byId = new Map(nodes.map(item => [item.options.id as string, item]))
   for (const lane of board.lanes) {
     if (!lane.station) continue
@@ -1246,6 +1428,11 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
   return { options: { name: board.title }, shareId: '', nodes }
 }
 
+/** The "How this board behaves" note of a board with a rulebook (behaviour.ts draws it); null without one. */
+export function behaviourNote(board: Workshop, box: { x: number; y: number; width: number }, style: WorkshopNoteStyle = {}): NodeJSON | null {
+  return board.behaviour ? rulebook().note(board, box, style) : null
+}
+
 /**
  * Draw a workshop as slate notes. With no options this is the presentation artwork
  * the app and its snapshots already consume; `{ native: true }` is the artwork
@@ -1278,7 +1465,7 @@ export function workshopToSlate(input: Workshop, options?: WorkshopArtworkOption
         image: image.src, borderWidth: 0 }, relationships: { associations: [] } })
     }
     board.cards.filter(card => card.laneId === lane.id).forEach((card, i) =>
-      node(cardNodeId(card.id), board.kind === 'release-plan' ? card.label + '\n' + card.points + ' points' : card.label, x, y + top + (image ? imageSpace : 0) + i * row, height, '#fffdf6'))
+      node(cardNodeId(card.id), workshopCardText(board, card), x, y + top + (image ? imageSpace : 0) + i * row, height, '#fffdf6'))
   })
   for (const lane of board.lanes) {
     if (!lane.station) continue
@@ -1319,7 +1506,8 @@ export * from './moonGallery'
 export * from './darkroom/model'
 export * from './edits'
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names'
-export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection } from './native'
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection,
+  type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native'
 
 
 export type StartupExperience = {version: 1; kind: 'customer-interviews' | 'experiment-budget'}

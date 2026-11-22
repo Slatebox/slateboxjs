@@ -41,10 +41,22 @@ try {
     'dist/workshops-LICENSE.txt',
     'licenses/Dragology-MIT.txt',
     'dragology/index.js',
+    'dist/presence.mjs',
+    'dist/presence.cjs',
+    'dist/core/AgentPresence.d.ts',
+    'presence/index.js',
     'dist/operations.mjs',
     'dist/operations.cjs',
     'dist/operations/index.d.ts',
     'operations/index.js',
+    'dist/boards.mjs',
+    'dist/boards.cjs',
+    'dist/boards/index.d.ts',
+    'boards/index.js',
+    'dist/workshop-rules.mjs',
+    'dist/workshop-rules.cjs',
+    'dist/workshops/rules.d.ts',
+    'workshops/rules.js',
   ]) {
     if (!paths.has(required)) {
       throw new Error(`Packed artifact is missing ${required}`)

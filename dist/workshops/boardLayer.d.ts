@@ -1,0 +1,78 @@
+import type { Workshop } from './model';
+import type { BoardLayer, BoardLayerState } from './native';
+export type LayerShape = {
+    t: 'line';
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    color: string;
+    width?: number;
+    dash?: string;
+} | {
+    t: 'rect';
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    color: string;
+    rx?: number;
+    opacity?: number;
+}
+/**
+ * A path; `arrow` puts an arrowhead at its end. `unlink` makes a 24px stroke under it, a button that removes
+ * that link: a click, Enter or Space removes it; a tap first selects it, and a second tap removes it.
+ */
+ | {
+    t: 'path';
+    d: string;
+    color: string;
+    width?: number;
+    arrow?: {
+        x: number;
+        y: number;
+        angle: number;
+    };
+    unlink?: {
+        cardId: string;
+        waitsOn: string;
+        label: string;
+    };
+}
+/** Words; `lines` sets `text` on several lines (each line a tspan, `lineHeight` apart), whose words together are `text`. */
+ | {
+    t: 'text';
+    x: number;
+    y: number;
+    text: string;
+    color: string;
+    size?: number;
+    anchor?: 'start' | 'middle' | 'end';
+    bold?: boolean;
+    role?: string;
+    lines?: string[];
+    lineHeight?: number;
+};
+/** Colours of the layer, as CSS custom properties with the board's own colours behind them. */
+export declare const layerInk: {
+    ink: string;
+    faint: string;
+    week: string;
+    accept: string;
+    refuse: string;
+    bar: string;
+    track: string;
+    launch: string;
+};
+/** A link selected by a tap, waiting for a second tap to be removed. */
+export interface LinkSelection {
+    armed: string | null;
+    arm(key: string | null): void;
+}
+/** Draw `shapes` into `group`, replacing what was there. */
+export declare function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUnlink?: (cardId: string, waitsOn: string) => void, links?: LinkSelection): void;
+/**
+ * The layer for one attached board. `paint` says what to draw for the board on show; the
+ * committed board is passed too, for what a preview is compared against.
+ */
+export declare function createBoardLayer(slate: any, paint: (shown: Workshop, state: BoardLayerState, committed: Workshop) => LayerShape[]): BoardLayer;

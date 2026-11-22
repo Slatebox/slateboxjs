@@ -152,3 +152,75 @@ export function randomWorkshops(seed: number, count: number): Workshop[] {
   const r = seeded(seed)
   return Array.from({ length: count }, () => randomWorkshop(r))
 }
+
+// ─── Business boards (launch plan, pipeline, budget) ───────────────────────────────
+// Separate from the mix above, so the series recorded against older checkouts is unchanged.
+
+function launchPlan(r: Random): unknown {
+  const lanes = Array.from({ length: int(r, 2, 4) }, (_, i) => ({ id: 'team' + i, label: text(r) }))
+  const cards: WorkshopCard[] = []
+  for (let i = 0; i < int(r, 1, 12); i++) {
+    const card: WorkshopCard = { id: 'task' + i, label: text(r), laneId: pick(r, lanes).id, duration: int(r, 1, 12) }
+    if (chance(r, 0.3)) card.lag = int(r, 1, 5)
+    // Waiting only on tasks made earlier keeps the graph acyclic.
+    const before = cards.filter(() => chance(r, 0.25)).slice(0, 3).map(other => other.id)
+    if (before.length) card.dependsOn = before
+    cards.push(card)
+  }
+  const draft = { version: 1, kind: 'launch-plan', title: text(r), launch: { day: 120 }, lanes, cards } as Workshop
+  // Launch on the finish day, or a little after it (so some plans are tight and some have room).
+  const finish = Math.max(...cards.map(function end(card): number {
+    const ready = Math.max(0, ...(card.dependsOn ?? []).map(id => end(cards.find(other => other.id === id)!)))
+    return ready + (card.lag ?? 0) + card.duration!
+  }))
+  draft.launch = { day: Math.min(120, Math.max(5, finish + (chance(r, 0.4) ? 0 : int(r, 1, 10)))) }
+  return draft
+}
+
+function pipelineBoard(r: Random): unknown {
+  const open = Array.from({ length: int(r, 2, 3) }, (_, i) => ({ id: 'stage' + i, label: text(r), probability: Math.round(r() * 100) / 100 }))
+  const lanes: WorkshopLane[] = [...open, { id: 'won', label: 'Won', role: 'won' }]
+  if (chance(r, 0.8)) lanes.push({ id: 'lost', label: 'Lost', role: 'lost' })
+  const cards: WorkshopCard[] = Array.from({ length: int(r, 0, 16) }, (_, i) => {
+    const card: WorkshopCard = { id: 'deal' + i, label: text(r), laneId: pick(r, lanes).id }
+    if (card.laneId === 'won' || chance(r, 0.8)) card.amount = int(r, 1, 200) * 1000
+    return card
+  })
+  for (const lane of open) {
+    const held = cards.filter(card => card.laneId === lane.id).length
+    if (chance(r, 0.4)) lane.capacity = Math.max(1, held + int(r, 0, 1))
+  }
+  return { version: 1, kind: 'pipeline', title: text(r), forecast: { target: int(r, 50, 900) * 1000, currency: pick(r, ['$', '€', '£']) }, lanes, cards }
+}
+
+function budgetBoard(r: Random): unknown {
+  const step = pick(r, [1000, 5000, 10000])
+  const lanes: WorkshopLane[] = Array.from({ length: int(r, 2, 5) }, (_, i) => ({ id: 'dept' + i, label: text(r), allocation: int(r, 5, 60) * step }))
+  const cards: WorkshopCard[] = []
+  for (let i = 0; i < int(r, 0, 16); i++) {
+    const lane = pick(r, lanes)
+    const left = lane.allocation! - cards.reduce((sum, card) => sum + (card.laneId === lane.id ? card.amount! : 0), 0)
+    if (left < step) continue
+    cards.push({ id: 'item' + i, label: text(r), laneId: lane.id, amount: int(r, 1, Math.floor(left / step)) * step })
+  }
+  for (const lane of lanes) {
+    const committed = cards.reduce((sum, card) => sum + (card.laneId === lane.id ? card.amount! : 0), 0)
+    if (chance(r, 0.3)) lane.floor = Math.min(lane.allocation!, committed + int(r, 0, 3) * step)
+    if (chance(r, 0.3)) lane.cap = lane.allocation! + int(r, 0, 10) * step
+  }
+  const total = lanes.reduce((sum, lane) => sum + lane.allocation!, 0)
+  return { version: 1, kind: 'budget', title: text(r), budget: { total, currency: pick(r, ['$', '€']), step }, lanes, cards }
+}
+
+const businessDraws = { 'launch-plan': launchPlan, pipeline: pipelineBoard, budget: budgetBoard }
+
+/** `count` valid random boards of one business kind. */
+export function randomBusinessBoards(seed: number, count: number, kind: keyof typeof businessDraws): Workshop[] {
+  const r = seeded(seed)
+  return Array.from({ length: count }, () => {
+    for (let attempt = 0; attempt < 200; attempt++) {
+      try { return validateWorkshop(businessDraws[kind](r)) } catch { /* draw again */ }
+    }
+    throw new Error('Could not draw a valid ' + kind + '.')
+  })
+}
