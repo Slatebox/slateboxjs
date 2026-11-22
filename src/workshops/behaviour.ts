@@ -173,6 +173,20 @@ export function behaviourContradiction(behaviour: Behaviour, board: Workshop): s
     if (seen.has(key)) return sentence
     seen.set(key, rule.id)
   }
+  // A path to a lane another rule never lets a card reach from there: cards in that lane could go
+  // only to the bin. Rules that are off, or that only warn, never contradict (they let the card land).
+  const live = behaviour.rules.filter(rule => rule.on && rule.severity === 'refuse')
+  const liveBins = new Set(live.filter(rule => rule.kind === 'bin').map(rule => (rule as { lane: string }).lane))
+  const order = board.lanes.map(lane => lane.id)
+  for (const rule of live) {
+    if (rule.kind !== 'path' || !rule.to) continue
+    for (const target of rule.to) {
+      if (liveBins.has(target)) continue
+      const far = Math.abs(order.indexOf(target) - order.indexOf(rule.from)) > 1
+      const stepper = live.find(other => other.kind === 'path' && (other.from === 'any' || other.from === rule.from) && (other.noSkip || !other.to) && far)
+      if (stepper) return 'Cards move one lane at a time, so cards in ' + labelOf(board, rule.from) + ' could never reach ' + labelOf(board, target) + '. Change one of the rules.'
+    }
+  }
   return null
 }
 
@@ -277,14 +291,25 @@ export type BehaviourVerdict =
 
 /**
  * The one check: whether `after` keeps this board's rules for every card that arrived in a lane
- * (moved there, or new). Rules come from `after` (a rule edit is a change of the rules, not a move).
- * A bin takes any card. A `warn` rule lets the card land and says its sentence.
+ * (moved there, or new). The rules are the board's as it was (`before`): a save that brings other
+ * rules is a rule edit, checked on its own (checkWorkshopReplacement), never a way round them. A bin
+ * takes any card, and never loses one: a card in a bin may become a note, but it is not deleted.
+ * A `warn` rule lets the card land and says its sentence.
  */
 export function checkBehaviour(before: Workshop, after: Workshop): BehaviourVerdict {
-  const rules = ordered(behaviourOf(after).rules.filter(rule => rule.on))
+  const rules = ordered(behaviourOf(before).rules.filter(rule => rule.on))
   const warnings: string[] = []
   if (!rules.length) return { ok: true, warnings }
-  const bins = new Set(rules.filter(rule => rule.kind === 'bin').map(rule => (rule as { lane: string }).lane))
+  const binRules = rules.filter(rule => rule.kind === 'bin') as Array<BehaviourRule & { lane: string }>
+  const bins = new Set(binRules.map(rule => rule.lane))
+  const kept = new Set(after.cards.map(card => card.id))
+  for (const card of before.cards) {
+    const bin = binRules.find(rule => rule.lane === card.laneId)
+    if (!bin || kept.has(card.id)) continue
+    const sentence = registry.bin.sentence(bin, before)
+    if (bin.severity === 'warn') { warnings.push(sentence); continue }
+    return { refused: { sentence, ruleId: bin.id, set: bin.set, cardId: card.id, laneId: card.laneId } }
+  }
   const was = new Map(before.cards.map(card => [card.id, card.laneId]))
   for (const card of after.cards) {
     const from = was.get(card.id) ?? null
@@ -321,6 +346,61 @@ export function behaviourDiff(before: Workshop, after: Workshop): { from: number
 
 /** The input of add_rule: a rule body, with lanes by id or name (resolved by the reducer), and an optional severity. */
 export type RuleInput = RuleBody & { severity?: 'refuse' | 'warn' }
+
+/** The keys of each kind's body: what add_rule takes besides its kind and severity. */
+export const bodyKeys: Record<RuleKindId, string[]> = { capacity: ['where', 'max'], path: ['from', 'to', 'noSkip'], gate: ['into', 'needs'], bin: ['lane'] }
+
+/**
+ * The rule edits that turn `before`'s rulebook into `after`'s, so a whole-board save that changes the
+ * rules is made again by the reducer, with the audit line of whoever saves it: adds, then changes,
+ * then removals. Null when the change is not one the edits can make (a rule whose kind or lanes
+ * changed under the same id). Lanes are named by id.
+ */
+export function behaviourEditsBetween(before: Workshop, after: Workshop): WorkshopEdit[] | null {
+  const was = behaviourOf(before).rules, now = behaviourOf(after).rules
+  const adds: WorkshopEdit[] = [], sets: WorkshopEdit[] = [], removes: WorkshopEdit[] = []
+  const ref = (id: string) => (id === 'any' ? 'any' : { id }) as WorkshopRef
+  const fixed = (rule: BehaviourRule) => JSON.stringify(bodyKeys[rule.kind].filter(key => key !== 'max' && key !== 'to').map(key => [key, (rule as unknown as Record<string, unknown>)[key]]))
+  for (const rule of now) {
+    const old = was.find(item => item.id === rule.id)
+    const body = rule as unknown as Record<string, unknown>
+    if (!old) {
+      const input: Record<string, unknown> = { kind: rule.kind, ...(rule.severity === 'warn' && { severity: 'warn' }) }
+      for (const key of bodyKeys[rule.kind]) {
+        if (body[key] === undefined) continue
+        input[key] = key === 'to' ? (body[key] as string[]).map(ref) : ['where', 'into', 'lane', 'from'].includes(key) ? ref(body[key] as string) : body[key]
+      }
+      adds.push({ kind: 'add_rule', rule: input as unknown as RuleInput })
+      if (!rule.on) sets.push({ kind: 'set_rule', rule: rule.id, on: false })
+      continue
+    }
+    if (old.kind !== rule.kind || fixed(old) !== fixed(rule)) return null
+    const change: Record<string, unknown> = {}
+    if (old.on !== rule.on) change.on = rule.on
+    if (old.severity !== rule.severity) change.severity = rule.severity
+    if (rule.kind === 'capacity' && (old as { max: number }).max !== rule.max) change.max = rule.max
+    if (rule.kind === 'path') {
+      const to = rule.to, had = (old as { to?: string[] }).to
+      if (JSON.stringify(to ?? null) !== JSON.stringify(had ?? null)) {
+        if (!to) return null
+        change.to = to.map(ref)
+      }
+    }
+    if (Object.keys(change).length) sets.push({ kind: 'set_rule', rule: rule.id, ...change } as WorkshopEdit)
+  }
+  for (const rule of was) if (!now.some(item => item.id === rule.id)) removes.push({ kind: 'remove_rule', rule: rule.id })
+  return [...adds, ...sets, ...removes]
+}
+
+/**
+ * An earlier board put back (Undo): its rules as they were, under a newer revision than either
+ * board's, so a drop made under the undone rules is checked again. A rule edit is one undo step.
+ */
+export function restoreWorkshop(current: Workshop, earlier: Workshop): Workshop {
+  if (!current.behaviour && !earlier.behaviour) return earlier
+  const rev = Math.max(behaviourOf(current).rev, behaviourOf(earlier).rev) + 1
+  return { ...earlier, behaviour: { ...behaviourOf(earlier), rev } }
+}
 
 /** A rule id not yet on the board. */
 export function nextRuleId(behaviour: Behaviour): string {
@@ -385,12 +465,16 @@ export function applyRuleEdit(board: Workshop, edit: WorkshopEdit, audit: RuleAu
       rule.on ? 'The rule now says: ' + ruleSentence(rule, board) : 'Turned off: ' + ruleSentence(rule, board))
   }
   const input = edit.rule as unknown as Record<string, unknown>
+  if (!ruleKindIds.includes(input.kind as RuleKindId)) return t.refuse('This board does not know the rule ' + String(input.kind) + '.', { code: 'invalid_edit' })
+  // A rule's body only: its id, whether it is on and who set it are the board's to keep (the audit line is this edit's).
+  const extra = Object.keys(input).find(key => key !== 'kind' && key !== 'severity' && !bodyKeys[input.kind as RuleKindId].includes(key))
+  if (extra) return t.refuse('A ' + String(input.kind) + ' rule does not take ' + extra + '.', { code: 'invalid_edit' })
+  if (input.severity !== undefined && input.severity !== 'refuse' && input.severity !== 'warn') return t.refuse('A rule refuses or warns.', { code: 'invalid_edit' })
   const rule: Record<string, unknown> = { id: nextRuleId(before), kind: input.kind, on: true, severity: input.severity ?? 'refuse', set: audit }
   for (const [key, value] of Object.entries(input)) {
     if (key === 'kind' || key === 'severity') continue
     rule[key] = key === 'where' || key === 'into' || key === 'lane' || key === 'from' ? lane(value) : key === 'to' && Array.isArray(value) ? value.map(lane) : value
   }
-  if (!ruleKindIds.includes(input.kind as RuleKindId)) return t.refuse('This board does not know the rule ' + String(input.kind) + '.', { code: 'invalid_edit' })
   return settle({ ...before, rev: before.rev + 1, rules: [...before.rules, rule as unknown as BehaviourRule] }, 'New rule: ' + ruleSentence(rule as unknown as BehaviourRule, board))
 }
 

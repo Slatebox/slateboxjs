@@ -956,7 +956,8 @@ export function workshopLanePlaces(input: Workshop, options: Pick<WorkshopArtwor
   } else {
     // Every lane column in a row is as tall as the fullest lane of that row plus
     // one free slot, so the board reads as columns and each column is one drop zone.
-    let y = 0
+    // On a phone (one lane per row) a board's "How this board behaves" note comes first.
+    let y = phoneRulesNote(board, perRow)?.below ?? 0
     for (let first = 0; first < board.lanes.length; first += perRow) {
       const band = board.lanes.slice(first, first + perRow)
       const height = top + (Math.max(...band.map((_, column) => least(first + column))) + 1) * row
@@ -965,6 +966,15 @@ export function workshopLanePlaces(input: Workshop, options: Pick<WorkshopArtwor
     }
   }
   return { places, width: Math.max(...places.map(place => place.x + place.width)), height: Math.max(...places.map(place => place.y + place.height)) }
+}
+
+/** The note's look on a phone: a fixed 12px, so the lanes' places need no style to know where they start. */
+const phoneNoteStyle = { fontSize: 14 }
+/** A phone's "How this board behaves" note (one lane per row, a board with rules): drawn above the first lane. */
+function phoneRulesNote(board: Workshop, perRow: number): { note: NodeJSON; below: number } | null {
+  if (!board.behaviour || perRow !== 1 || board.lanes.length < 2 || board.lanes[0].station) return null
+  const note = rulebook().note(board, { x: 0, y: 0, width: workshopLayout.pitch - 4 }, phoneNoteStyle)
+  return note ? { note, below: (note.options.height as number) + 16 } : null
 }
 
 function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions): SlateJSON {
@@ -1022,8 +1032,10 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
         fontSize: fittingFontSize(text, look.fontSize ?? cardSize, cardWidth - 16, cardHeight - 8) })
     })
   })
-  const rules = behaviourNote(board, { x: origin.x, y: origin.y + Math.max(...places.map(place => place.y + place.height)) + 16,
-    width: Math.min(Math.max(...places.map(place => place.x + place.width)), pitch * 2) - 4 }, style)
+  const phone = map ? null : phoneRulesNote(board, lanesPerRow(options.layout, board.lanes.length))
+  const rules = phone ? behaviourNote(board, { x: origin.x + 2, y: origin.y, width: pitch - 4 }, { ...style, ...phoneNoteStyle })
+    : behaviourNote(board, { x: origin.x, y: origin.y + Math.max(...places.map(place => place.y + place.height)) + 16,
+      width: Math.min(Math.max(...places.map(place => place.x + place.width)), pitch * 2) - 4 }, style)
   if (rules) nodes.push(rules)
   const byId = new Map(nodes.map(item => [item.options.id as string, item]))
   for (const lane of board.lanes) {

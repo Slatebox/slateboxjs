@@ -98,7 +98,7 @@ export const catalog: readonly CatalogEntry[] = [
   lanesEntry('now-next-later', 'plan', 'Now / Next / Later', 'Order work loosely; Next holds 3', ['roadmap', 'plan work', 'priorities', 'order work', 'backlog'],
     'Next holds 3.', ['Drag a note into a lane: it becomes a card.', 'A full lane dims and says why.'], { addSay: ['Add a Now / Next / Later board', 'Add a Now / Next / Later board about {topic}'] }),
   lanesEntry('pros-cons', 'decide', 'Pros and cons', 'Weigh one decision: pros, cons, questions', ['pro con', 'pros cons', 'weigh a decision', 'decide', 'tradeoffs', 'trade-offs'],
-    '2 pros, 1 con', ['Drag a note in: it becomes a point.', 'Drag it out: it is a note again.'], { addSay: ['Add pros and cons', 'Add pros and cons for {topic}'] }),
+    'No rules: any card goes in any lane.', ['Drag a note in: it becomes a point.', 'Drag it out: it is a note again.'], { addSay: ['Add pros and cons', 'Add pros and cons for {topic}'] }),
   lanesEntry('must-should-could', 'decide', 'Must / Should / Could', 'Prioritise with limits', ['moscow', 'prioritise', 'prioritize', 'priorities', 'features', 'scope'],
     'Could holds 2.', ['Drop a card in Must or Could.', 'A full lane refuses, in its own words.'], { addSay: ['Add a Must / Should / Could board', 'Add a Must / Should / Could board about {topic}'] }),
   { id: 'decision-path', group: 'decide', name: 'Decision path', line: 'Walk through a choice step by step', synonyms: ['decision tree', 'walk through', 'flow', 'choice', 'path', 'decide'],
@@ -111,7 +111,7 @@ export const catalog: readonly CatalogEntry[] = [
   lanesEntry('triage', 'track', 'Triage', 'Sort incoming work; Today holds 3', ['triage', 'inbox', 'incoming', 'support', 'bugs', 'sort work', 'track work'],
     'Today holds 3.', ['A card goes into Today.', 'A full Today refuses.'], { addSay: ['Add a triage board', 'Add a triage board about {topic}'] }),
   lanesEntry('team-board', 'track', 'Team board', 'Your working agreements, enforced: limits, paths, a bin', ['kanban', 'team board', 'working agreements', 'wip limit', 'to do doing done', 'track work', 'sprint'],
-    'Review holds 2. It has 3.', ['Say “Let Review hold 2”: the board shows 3 of 2.', 'The next card dragged to Review is refused with that sentence.'], {
+    'Doing holds 3.', ['A full Doing shows 3 of 3 and dims.', 'The next card dragged to Doing is refused with that sentence.'], {
       addSay: ['Add a team board', 'Add a team board about {topic}'],
       ...withMoves(laneMoves(move('add_rule', 'Send cards one way', 'From {busy} cards go only to {other}', 'path'), [move('add_rule', 'Add a bin', 'Make {lane} a bin', 'bin')])) }),
   { id: 'launch-plan', group: 'plan', name: 'Launch plan', line: 'Tasks over days, with a launch date', synonyms: ['launch', 'timeline', 'gantt', 'schedule', 'deadline', 'release date'],
@@ -182,7 +182,10 @@ export function catalogAddRequest(message: string): { id: string; topic?: string
     for (const name of names) {
       const words = name.toLowerCase().replace(/\s*\/\s*/g, '\\s*/?\\s*').replace(/ /g, '\\s+')
       const match = new RegExp('^' + words + '(?:\\s+(?:board|component))?(?:\\s+(?:about|for|on)\\s+(.+))?$', 'i').exec(rest)
-      if (match) return match[1] ? { id: entry.id, topic: match[1].trim() } : { id: entry.id }
+      if (!match) continue
+      // A topic with lanes, a list or amounts in it is a brief: the brief readers make that board, not the preset.
+      if (match[1] && /[:;,→]|->|\$|\d\s*(?:k|m|%)\b|\d{3,}/i.test(match[1])) return null
+      return match[1] ? { id: entry.id, topic: match[1].trim() } : { id: entry.id }
     }
   }
   return null
@@ -199,8 +202,17 @@ export function catalogMatch(message: string): { all: boolean; entries: string[]
   if (/^(?:what|which)\s+(?:can|could)\s+(?:i|we|you)\s+(?:add|make|build|put)\b|^(?:show|list|browse)\s+(?:me\s+)?(?:the\s+)?(?:library|components|boards|everything)|^what\s+(?:is|s)\s+in\s+the\s+library/.test(text)) {
     return { all: true, entries: catalog.map(entry => entry.id) }
   }
-  if (!/^(?:something|anything|a (?:board|way|tool)|how (?:do|can|could) (?:i|we)|i (?:want|need)|we (?:want|need)|help (?:me|us))\b/.test(text)) return null
-  const words = new Set(text.split(' ').filter(word => word.length > 2 && !['something', 'anything', 'how', 'can', 'could', 'the', 'and', 'for', 'want', 'need', 'help', 'way', 'run', 'our', 'with'].includes(word)))
+  // Only a question about what to add: "something to track deals", "I need a board to …", "is there a
+  // template for …", "how do I run a retro?". A drawing ("I want a flow chart of …") or a sentence
+  // about the board ("we need to limit Doing") is not one: the drawing and the rule grammar read it.
+  const thing = '(?:a |an |some |any )?(?:board|template|component|tool|way|something|anything|starter|preset)s?'
+  const asks = new RegExp('^(?:(?:something|anything) (?:to|for)\\b|(?:a|an|any) (?:board|template|component|tool|way) (?:to|for)\\b|' +
+    '(?:i|we) (?:want|need|would like|d like) ' + thing + ' (?:to|for|that)\\b|(?:is there|do you have|have you got) ' + thing + ' (?:to|for|that)\\b|' +
+    'help (?:me|us) (?:pick|choose|find) ' + thing + '|' +
+    'how (?:do|can|could|should) (?:i|we) (?:run|track|plan|weigh|prioriti[sz]e|sort|triage|budget|organi[sz]e|decide)\\b)')
+  if (!asks.test(text) || /\b(?:draw|diagram|chart|flowchart|sketch|org chart|mind map)\b/.test(text)) return null
+  const words = new Set(text.split(' ').filter(word => word.length > 2 && !['something', 'anything', 'how', 'can', 'could', 'the', 'and', 'for', 'want', 'need', 'help', 'way', 'run', 'our', 'with',
+    'board', 'boards', 'template', 'templates', 'component', 'components', 'tool', 'tools', 'starter', 'starters', 'preset', 'presets', 'would', 'like', 'there', 'have', 'you', 'got', 'that', 'any', 'some', 'pick', 'choose', 'find', 'should'].includes(word)))
   const scored = catalog.map(entry => {
     const terms = [entry.name, entry.line, ...entry.synonyms].map(plain).join(' ')
     let score = 0
