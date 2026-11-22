@@ -117,6 +117,18 @@ export interface WorkshopLine {
     /** An end pinned to one spot on its note's edge ({x, y} in 0..1 on the unturned note); none follows its note. */
     sourceAnchor?: WorkshopLineAnchor;
     targetAnchor?: WorkshopLineAnchor;
+    /**
+     * A free end: the line ends at this point on the canvas, on no note. Only the far end of a line
+     * held by a card is free (`parentId` names the card; `childId` is the free end's own id, as the
+     * slate saves it). The point stays where it is when the card moves, as a free end does on the
+     * canvas, and the line goes back to the drawing with it when the card becomes a note.
+     */
+    targetPoint?: WorkshopLinePoint;
+}
+/** A point on the canvas where a line's free end is. */
+export interface WorkshopLinePoint {
+    x: number;
+    y: number;
 }
 /** A spot on a note's edge, as a pinned line end keeps it (see core/LineEnds.ts). */
 export interface WorkshopLineAnchor {
