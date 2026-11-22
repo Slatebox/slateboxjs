@@ -205,14 +205,13 @@ export function catalogMatch(message: string): { all: boolean; entries: string[]
   // Only a question about what to add: "something to track deals", "I need a board to …", "is there a
   // template for …", "how do I run a retro?". A drawing ("I want a flow chart of …") or a sentence
   // about the board ("we need to limit Doing") is not one: the drawing and the rule grammar read it.
-  const thing = '(?:a |an |some |any )?(?:board|template|component|tool|way|something|anything|starter|preset)s?'
-  const asks = new RegExp('^(?:(?:something|anything) (?:to|for)\\b|(?:a|an|any) (?:board|template|component|tool|way) (?:to|for)\\b|' +
-    '(?:i|we) (?:want|need|would like|d like) ' + thing + ' (?:to|for|that)\\b|(?:is there|do you have|have you got) ' + thing + ' (?:to|for|that)\\b|' +
-    'help (?:me|us) (?:pick|choose|find) ' + thing + '|' +
-    'how (?:do|can|could|should) (?:i|we) (?:run|track|plan|weigh|prioriti[sz]e|sort|triage|budget|organi[sz]e|decide)\\b)')
-  if (!asks.test(text) || /\b(?:draw|diagram|chart|flowchart|sketch|org chart|mind map)\b/.test(text)) return null
-  const words = new Set(text.split(' ').filter(word => word.length > 2 && !['something', 'anything', 'how', 'can', 'could', 'the', 'and', 'for', 'want', 'need', 'help', 'way', 'run', 'our', 'with',
-    'board', 'boards', 'template', 'templates', 'component', 'components', 'tool', 'tools', 'starter', 'starters', 'preset', 'presets', 'would', 'like', 'there', 'have', 'you', 'got', 'that', 'any', 'some', 'pick', 'choose', 'find', 'should'].includes(word)))
+  const thing = '(?:a |an |some |any )?(?:board|template|component|tool|way|something|anything|starter|preset)s? (?:to|for|that)\\b'
+  const frame = new RegExp('^(?:(?:something|anything) (?:to|for)\\b|(?:a|an|any) ' + thing + '|(?:i|we) (?:want|need|would like|d like) ' + thing +
+    '|(?:is there|do you have|have you got) ' + thing + '|help (?:me|us) (?:pick|choose|find) ' + thing +
+    '|how (?:do|can|could|should) (?:i|we) (?:run|track|plan|weigh|prioriti[sz]e|sort|triage|budget|organi[sz]e|decide)\\b)').exec(text)
+  if (!frame || /\b(?:draw|diagram|chart|flowchart|sketch|mind map)\b/.test(text)) return null
+  // The job, without the question around it: "track deals".
+  const words = new Set(text.slice(frame[0].length).split(' ').filter(word => word.length > 2 && !['the', 'and', 'for', 'our', 'with'].includes(word)))
   const scored = catalog.map(entry => {
     const terms = [entry.name, entry.line, ...entry.synonyms].map(plain).join(' ')
     let score = 0

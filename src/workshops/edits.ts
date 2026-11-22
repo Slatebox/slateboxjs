@@ -286,7 +286,7 @@ export const workshopEditKinds: readonly WorkshopEditKind[] = [
   { kind: 'shift_budget', summary: 'Move money between teams. The total stays.', intent: false,
     fields: { from: lane('The team giving.'), to: lane('The team receiving.'), amount: whole('Whole currency units.', 1e9, 1) },
     boards: ['budget'], refusals: others(['budget'], sentences.notBudget) },
-  { kind: 'add_rule', summary: 'Add a rule: capacity {where, max}, path {from or "any", to?, noSkip?}, gate {into, needs: ["amount"]} or bin {lane}; severity refuse or warn. It moves no card.', intent: false,
+  { kind: 'add_rule', summary: 'Add a rule (capacity, path from a lane or "any", gate or bin; refuse or warn). It moves no card.', intent: false,
     fields: { rule: { type: 'rule', about: 'The rule, lanes by id or name.' } }, boards: ['lanes', 'pipeline'], refusals: others(['lanes', 'pipeline'], sentences.noRules) },
   { kind: 'set_rule', summary: 'Change a rule: on, severity, max (a limit) or to (a path).', intent: false,
     fields: { rule: text(64, 'The rule id.'), on: { type: 'flag', optional: true, about: 'On or off.' },
@@ -317,9 +317,9 @@ function fieldSchema(field: WorkshopEditField, board?: WorkshopBoardKind): Recor
     // A rule's body only (its id, state and audit line are the board's): behaviour.ts bodyKeys.
     case 'rule': return { type: 'object', required: ['kind'], additionalProperties: false, properties: {
       kind: { enum: ['capacity', 'path', 'gate', 'bin'] }, severity: { enum: ['refuse', 'warn'] },
-      where: ref, max: { type: 'integer', minimum: 1, maximum: 24 }, from: { anyOf: [{ const: 'any' }, ref] },
+      where: ref, max: { type: 'integer', minimum: 1, maximum: 24 }, from: ref,
       to: { type: 'array', items: ref, minItems: 1, maxItems: 4 }, noSkip: { const: true },
-      into: ref, needs: { type: 'array', items: { type: 'string', minLength: 1, maxLength: 40 }, minItems: 1, maxItems: 3 }, lane: ref }, description: field.about }
+      into: ref, needs: { type: 'array', items: { type: 'string', maxLength: 40 }, minItems: 1, maxItems: 3 }, lane: ref }, description: field.about }
   }
 }
 
@@ -895,7 +895,7 @@ const boardNames: Record<WorkshopBoardKind, string> = {
  * a save that sends a whole board (creativeSlates.save, an agent's set_workshop). Null when it
  * may; otherwise the sentence a person is given. `after` must also be a valid workshop.
  */
-export function checkWorkshopReplacement(before: Workshop, after: Workshop, options: { restore?: boolean } = {}): string | null {
+export function checkWorkshopReplacement(before: Workshop, after: Workshop): string | null {
   const original = validateWorkshop(before)
   const was = workshopBoardKind(original)
   let next: Workshop
@@ -921,26 +921,6 @@ export function checkWorkshopReplacement(before: Workshop, after: Workshop, opti
     if (next.cards.some(item => !original.cards.some(other => other.id === item.id))) return sentences.releaseCards
   }
   if (was !== now) return 'This slate holds a ' + boardNames[was] + ', and it stays one. Start a new slate for another kind of workshop.'
-  // The rulebook. A lane removed takes the rules that named it; any other change of the rules is a
-  // rule edit: it comes with a new revision and on its own, never with cards moving in the same save
-  // (so a save can't switch a rule off and break it at once). Every card that arrives is checked by
-  // the rules the board had. `restore`: an earlier board put back (Undo, restoreWorkshop), as it was.
-  let rulesBefore = original.behaviour ?? { version: 1 as const, rev: 0, rules: [] }
-  if (original.behaviour) for (const lane of original.lanes) if (!next.lanes.some(item => item.id === lane.id)) rulesBefore = rulebook().dropLane(rulesBefore, lane.id)
-  const rulesAfter = next.behaviour ?? { rev: 0, rules: [] }
-  if (JSON.stringify(rulesBefore.rules) !== JSON.stringify(rulesAfter.rules)) {
-    if (rulesAfter.rev <= rulesBefore.rev) return 'The rules changed. Save them with a new revision.'
-    if (!options.restore && cardsMoved(original, next)) return 'Change the rules on their own: keep the rule change first, then move cards.'
-  }
-  if (original.behaviour && !options.restore) {
-    const verdict = rulebook().check(original, next)
-    if ('refused' in verdict) return verdict.refused.sentence
-  }
-  return null
-}
-
-/** Whether any card arrived, left or changed lanes between two boards. */
-function cardsMoved(before: Workshop, after: Workshop): boolean {
-  const lanes = new Map(before.cards.map(card => [card.id, card.laneId]))
-  return before.cards.length !== after.cards.length || after.cards.some(card => lanes.get(card.id) !== card.laneId)
+  // The rulebook's part (behaviour.ts): rule changes on their own, with a new revision; arrivals checked by the rules the board had.
+  return original.behaviour || next.behaviour ? rulebook().replacement(original, next) : null
 }

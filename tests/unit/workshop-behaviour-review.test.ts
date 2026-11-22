@@ -4,7 +4,8 @@ import {
   type Workshop, type WorkshopEdit, type WorkshopEditResult,
 } from '../../src/workshops/model'
 import { samplePipeline } from '../../src/workshops/rules'
-import { behaviourEditsBetween, behaviourLines, behaviourOf, checkBehaviour, restoreWorkshop } from '../../src/workshops/behaviour'
+import { behaviourLines, behaviourOf, checkBehaviour } from '../../src/workshops/behaviour'
+import { behaviourEditsBetween, restoreWorkshop } from '../../src/workshops/behaviourSaves'
 import { catalog, catalogAddRequest, catalogMatch, catalogPreset } from '../../src/workshops/catalog'
 
 // The hostile review of the rulebook (D1) and the library (L1+L2): each finding as a test, written
@@ -32,7 +33,7 @@ const moved = (board: Workshop, id: string, laneId: string) => ({ ...board, card
 describe('review finding 1: a whole-board save cannot change the rules and break them at once', () => {
   it('refuses a save that changes the rules and moves a card in the same save', () => {
     const next = { ...moved(team, 'search', 'done'), behaviour: { version: 1 as const, rev: 99, rules: [] } }
-    expect(checkWorkshopReplacement(team, next)).toBe('Change the rules on their own: keep the rule change first, then move cards.')
+    expect(checkWorkshopReplacement(team, next)).toBe('Change the rules on their own, then move cards.')
   })
 
   it('checks a card’s arrival against the rules the board had (before), not the ones the save brings', () => {
@@ -61,14 +62,14 @@ describe('review finding 1: a whole-board save cannot change the rules and break
 describe('review finding 4: rules that contradict each other are refused with a sentence', () => {
   it('a path to a lane the one-lane rule never lets a card reach is a contradiction', () => {
     const refused = no(apply(team, { kind: 'add_rule', rule: { kind: 'path', from: 'Doing', to: ['Done'] } }))
-    expect(refused.reason).toBe('Cards move one lane at a time, so cards in Doing could never reach Done. Change one of the rules.')
+    expect(refused.reason).toBe('Cards move one lane at a time, so cards in Doing could never reach Done.')
     // A path to the next lane is fine.
     expect(behaviourOf(ok(apply(team, { kind: 'add_rule', rule: { kind: 'path', from: 'Doing', to: ['Review'] } }))).rules.at(-1)).toMatchObject({ kind: 'path', from: 'doing' })
     // With the one-lane rule off, the path holds; turning it back on is refused.
     const off = ok(apply(team, { kind: 'set_rule', rule: 'rule-1', on: false }))
     const path = ok(apply(off, { kind: 'add_rule', rule: { kind: 'path', from: 'Doing', to: ['Done'] } }))
     expect(no(apply(path, { kind: 'set_rule', rule: 'rule-1', on: true })).reason)
-      .toBe('Cards move one lane at a time, so cards in Doing could never reach Done. Change one of the rules.')
+      .toBe('Cards move one lane at a time, so cards in Doing could never reach Done.')
   })
 
   it('a warn rule never contradicts: it lets the card land', () => {
