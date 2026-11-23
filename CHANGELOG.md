@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- A whole-board save that changes the board's kind is refused in words that hold for a slate of many boards:
+  "This board is a lane workshop, and it stays one. Put another kind of workshop on a board of its own." (was
+  "This slate holds a …, and it stays one. Start a new slate for another kind of workshop.").
+
 ### Added
 
 - **Groundwork for many boards on one slate** (nothing changes for a slate of one board). `attachWorkshop`

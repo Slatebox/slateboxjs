@@ -403,7 +403,7 @@ describe('structural edits refused by kind of board (ws:structure-edits-refused-
     expect(checkWorkshopReplacement(releasePlan, { ...releasePlan, lanes: [...releasePlan.lanes, { id: 'someday', label: 'Someday' }] })).toBe('A release plan keeps the releases it came with. You can rename them and set how many points each holds.')
     expect(checkWorkshopReplacement(releasePlan, { ...releasePlan, cards: [...releasePlan.cards, { id: 'search', label: 'Search', laneId: 'backlog', points: 1 }] })).toBe('A release plan keeps the features it came with. You can rename them, move them and set their points.')
     expect(checkWorkshopReplacement(releasePlan, { ...releasePlan, cards: releasePlan.cards.filter(item => item.id !== 'billing') })).toBeNull()
-    expect(checkWorkshopReplacement(week, createWorkshopMap())).toBe('This slate holds a lane workshop, and it stays one. Start a new slate for another kind of workshop.')
+    expect(checkWorkshopReplacement(week, createWorkshopMap())).toBe('This board is a lane workshop, and it stays one. Put another kind of workshop on a board of its own.')
     expect(checkWorkshopReplacement(week, { ...week, title: 'x'.repeat(200) })).toBe('Labels must contain 1 to 120 characters.')
     expect(checkWorkshopReplacement(week, ok(apply(week, { kind: 'add_lane', label: 'Review' })))).toBeNull()
   })

@@ -1030,7 +1030,9 @@ export function checkWorkshopReplacement(before: Workshop, after: Workshop): str
     if (!sameOrder(original, next)) return sentences.releaseOrder
     if (next.cards.some(item => !original.cards.some(other => other.id === item.id))) return sentences.releaseCards
   }
-  if (was !== now) return 'This slate holds a ' + boardNames[was] + ', and it stays one. Start a new slate for another kind of workshop.'
+  // The board keeps its kind, in words true on a slate of one board (another kind opens on a new slate) and of many
+  // (it is added beside): either way a different kind is a board of its own.
+  if (was !== now) return 'This board is a ' + boardNames[was] + ', and it stays one. Put another kind of workshop on a board of its own.'
   // The rulebook's part (behaviour.ts): rule changes on their own, with a new revision; arrivals checked by the rules the board had.
   return original.behaviour || next.behaviour ? rulebook().replacement(original, next) : null
 }
