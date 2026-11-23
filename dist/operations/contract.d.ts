@@ -45,10 +45,20 @@ export interface ContractOptions {
 }
 export declare function contractLists(options?: ContractOptions): Lists;
 export declare function contractLimits(options?: ContractOptions): Limits;
+/** A custom shape value: one path (compound sub-paths allowed), checked by slateboxjs/shapes. */
+export interface CustomShapeValue {
+    name: string;
+    d: string;
+    fillRule?: "nonzero" | "evenodd";
+    ref?: {
+        id: string;
+        name?: string;
+    };
+}
 export interface SlateOperation {
     kind: SlateOperationKind;
     count?: number;
-    shape?: string;
+    shape?: string | CustomShapeValue;
     preset?: (typeof PRESETS)[number];
     text?: string;
     ids?: string[];

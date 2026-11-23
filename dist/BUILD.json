@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "d823a652715304f4fb8d428588ae2ef08132074e",
-  "branch": "ship/boards-s2b",
+  "commit": "6e0b4fe7d9f5e08f519ae3f69405cce23f3751e8",
+  "branch": "ship/ai-shapes",
   "dirty": false,
-  "builtAt": "2026-11-23T04:56:48.333Z"
+  "builtAt": "2026-11-23T06:18:52.791Z"
 }

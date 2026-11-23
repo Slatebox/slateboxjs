@@ -20,6 +20,15 @@ export type ValueSpec = {
     nullable?: boolean;
     caseless?: boolean;
 }
+/**
+ * A shape: one of `values` (any case), or a custom shape object
+ * {name, d, fillRule?, ref?} checked by slateboxjs/shapes. The JSON Schema
+ * publishes both forms (oneOf); the model tool lists the names only.
+ */
+ | {
+    type: "shape";
+    values: readonly string[];
+}
 /** A list of distinct values, each one of `values`; it may be empty. */
  | {
     type: "list";
@@ -53,3 +62,7 @@ export declare function canonical(values: readonly string[], value: unknown): st
 export declare function checkValue(spec: ValueSpec, value: unknown, label: string): string | null;
 /** JSON Schema for a value spec. */
 export declare function schemaFor(spec: ValueSpec): Record<string, any>;
+/** The object form of a shape value (one path, compound sub-paths allowed). */
+export declare function customShapeSchema(): Record<string, any>;
+/** A schema with shape values cut to their names, for model tools (no combinators). */
+export declare function namesOnlyShape(schema: Record<string, any>): Record<string, any>;

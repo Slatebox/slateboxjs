@@ -75,6 +75,20 @@ export interface NodeOptions {
     shape?: string;
     vectorPath?: string;
     shapeHint?: string;
+    /** Custom (path) shapes: how compound sub-paths fill (holes need evenodd). */
+    fillRule?: "nonzero" | "evenodd";
+    /** Custom shapes: where text sits, in 0..1 of the box (slateboxjs/shapes shapeTextBox). */
+    textBox?: {
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+    } | null;
+    /** Custom shapes: the library entry the outline came from. */
+    shapeRef?: {
+        id?: string;
+        name?: string;
+    };
     svgContent?: string;
     svgString?: string;
     image?: string;
@@ -250,6 +264,27 @@ export declare class Node {
      * use the full box. Applied to BOTH wrap width and fit scale so text wraps +
      * shrinks to stay inside the actual shape, not just its bounding rect.
      */
+    /**
+     * A custom outline (a shape from slateboxjs/shapes): `shape: "custom"` with
+     * a raw path and at least one of the options every writer stores with it
+     * (fillRule, textBox, shapeRef). Older raw-path notes (quick-add shapes,
+     * theme outlines, icons, comments, v1 "custom" icon notes) carry none of
+     * them and keep their old behaviour: grow to fit text, the inset text box,
+     * the scaled border.
+     */
+    isCustomShape(): boolean;
+    /**
+     * Where text sits, in node pixels. A custom outline uses its stored text box
+     * (or one measured once from its path); a named shape keeps its centred
+     * inset; anything else gets the full box.
+     */
+    textArea(): {
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+        custom: boolean;
+    };
     private shapeTextInset;
     private wrapTextToWidth;
     /**

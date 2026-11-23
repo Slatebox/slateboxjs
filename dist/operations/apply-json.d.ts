@@ -1,9 +1,3 @@
-/**
- * applyPlanToJSON: applies a canvas plan to a stored slate and returns the new
- * slate, the plan as it was carried out (every selector resolved to ids, every
- * new id and position fixed, so replaying it gives the same result), and a
- * report of what each operation matched, changed and skipped.
- */
 import { type ContractOptions, type SlateOperationPlan, type SlateOperationReport } from "./contract";
 import { type StoredSlate } from "./stored";
 export interface ApplyOptions extends ContractOptions {

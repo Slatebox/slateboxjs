@@ -30,6 +30,15 @@ export interface ThemeStyle {
     };
     vectorPath?: string;
     shape?: string;
+    /** With a custom vectorPath: how its sub-paths fill (holes need evenodd). */
+    fillRule?: "nonzero" | "evenodd";
+    /** With a custom vectorPath: where text sits (slateboxjs/shapes shapeTextBox). */
+    textBox?: {
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+    } | null;
 }
 export interface ThemeDefinition {
     _id?: string;
@@ -63,3 +72,4 @@ export declare function applyTheme(slate: any, theme: ThemeDefinition, syncWithT
  * The first node uses parent style, subsequent nodes cycle through child_1, child_2, etc.
  */
 export declare function buildNodeStyleFromTheme(theme: ThemeDefinition, childNumber: number): ThemeStyle | null;
+export declare function applyStyleToNode(node: any, style: ThemeStyle): void;

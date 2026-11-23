@@ -4,7 +4,7 @@
  * published agent package all use it, so a plan means the same thing on each.
  */
 export { SLATE_OPERATION_KINDS, OPERATION_FIELDS, LIMITS, LAYOUTS, PRESETS, DEFAULT_FONTS, OperationPlanError, contractLists, contractLimits, } from "./contract";
-export type { ContractOptions, Limits, OperationReport, SlateOperation, SlateOperationKind, SlateOperationPlan, SlateOperationReport, SlateOperationValidation, } from "./contract";
+export type { ContractOptions, Limits, OperationReport, SlateOperation, CustomShapeValue, SlateOperationKind, SlateOperationPlan, SlateOperationReport, SlateOperationValidation, } from "./contract";
 export { validatePlan } from "./validate";
 export type { ValidateOptions } from "./validate";
 export { applyPlanToJSON } from "./apply-json";

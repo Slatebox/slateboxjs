@@ -45,7 +45,15 @@ export declare function describeOperations(options?: ContractOptions): {
         id_taken: string;
     };
 };
-export declare function slateOperationPlanSchema(options?: ContractOptions): Record<string, any>;
+/**
+ * The plan's JSON Schema. A shape is a name or a custom shape object (oneOf);
+ * `{modelTool: true}` lists names only, so the schema stays free of
+ * combinators for every model provider (a model gets custom shapes through
+ * the host's shape tools, not by writing paths).
+ */
+export declare function slateOperationPlanSchema(options?: ContractOptions, form?: {
+    modelTool?: boolean;
+}): Record<string, any>;
 export declare const SLATE_OPERATION_TOOL: Readonly<{
     name: "applySlateOperations";
     description: "Edit the existing slate without starting a new slate, replacing its content, or changing its theme unless the user explicitly asked for that. Always include a natural completion message.";
