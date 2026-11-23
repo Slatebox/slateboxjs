@@ -126,8 +126,10 @@ for (const size of [{ width: 2000, height: 1100 }, { width: 390, height: 844 }])
       // No longer than the time limit (the server stops at 17 s, the presenter at 20 s).
       await expect(planning(page)).toHaveCount(0, { timeout: 25_000 })
       expect(Date.now() - started).toBeLessThan(23_000)
-      await expect(presenter(page).locator('.sb-presentation-plan-notice'))
-        .toHaveText("Slatebox's plan is unavailable: Slatebox took too long to plan this slate. Showing an automatic grouping of the slate.")
+      // Restated 2026-11-23: a styled deck plays Slatebox's own direction; why the AI did not plan
+      // it is a chip (its words as its name), and the notice itself is in the More sheet.
+      await expect(presenter(page).locator('.sb-presentation-plan-chip'))
+        .toHaveAccessibleName("Slatebox's plan is unavailable: Slatebox took too long to plan this slate. Showing an automatic grouping of the slate.")
       await expect(stepCounter(presenter(page))).toHaveText(/^1 \/ \d+$/)
     } finally {
       await stubMode(page, { mode: 'fast' })

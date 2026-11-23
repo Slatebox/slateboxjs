@@ -33,6 +33,10 @@
   viewbox only. Used by the app's styled presentations.
 - **`imageFit: 'cover'`**: a note's picture crops to fill its shape (a masked photo, a blob) instead
   of letterboxing. The option is saved with the note; the default stays `contain`.
+- **`textInset`** (`{ left, right, top, bottom }`, shares of the note's box, each 0 to 0.45): a
+  custom shape's inner safe area for text, applied inside the shape's text area (`textBox`) when it has one. Wrapping, the auto-fit and the text's centre use the inner
+  box, so a chevron's notch or a bubble's tail never clips a label. A camera frame with roll is now
+  fitted by its rotated extent, so a landed roll never cuts a corner note.
 - **Impact × effort, the reorg & hiring sandbox and goals & owners** (`slateboxjs/workshops/nestPlus`, loaded with
   the nested boards). A `matrix` layout (`nest.axes`, `score_card`, rule `quadrant`), yes/no fields (`add_field`
   `flag`) with rules `parent` and `contains`, and owners (`nest.owners`, `card.owner`, `add_owner`, `set_owner` with
