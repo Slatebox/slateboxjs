@@ -183,6 +183,18 @@ export interface NodeOptions {
     x?: number;
     y?: number;
   };
+  /**
+   * The share of each side kept clear of text, as fractions of the note's box
+   * (0 to 0.45): a custom shape (a chevron's notch, a speech bubble's tail) tells
+   * the text where its inner safe area is. Wrapping, the fit and the centre use
+   * the inner box.
+   */
+  textInset?: {
+    left?: number;
+    right?: number;
+    top?: number;
+    bottom?: number;
+  };
 
   // Appearance
   backgroundColor?: string;
@@ -1149,10 +1161,39 @@ export class Node {
       }
       // No calm area found: keep text to the middle half.
       const b = box && [box.x, box.y, box.w, box.h].every((v) => typeof v === "number" && Number.isFinite(v)) ? box : { x: 0.25, y: 0.25, w: 0.5, h: 0.5 };
-      return { x: b.x * width, y: b.y * height, w: b.w * width, h: b.h * height, custom: true };
+      return this.insetArea({ x: b.x * width, y: b.y * height, w: b.w * width, h: b.h * height, custom: true });
     }
     const inset = this.shapeTextInset();
-    return { x: (width * (1 - inset)) / 2, y: (height * (1 - inset)) / 2, w: width * inset, h: height * inset, custom: false };
+    return this.insetArea({ x: (width * (1 - inset)) / 2, y: (height * (1 - inset)) / 2, w: width * inset, h: height * inset, custom: false });
+  }
+
+  /**
+   * The box text is placed in: a custom outline's text area, otherwise the
+   * whole box; either one narrowed by options.textInset.
+   */
+  private placeArea(): { x: number; y: number; w: number; h: number } {
+    const area = this.textArea();
+    if (area.custom) return area;
+    return this.insetArea({ x: 0, y: 0, w: this.options.width || 100, h: this.options.height || 60, custom: false });
+  }
+
+  /** An area narrowed by the note's text inset (each side a share of the area). */
+  private insetArea<T extends { x: number; y: number; w: number; h: number }>(a: T): T {
+    const t = this.textInsetSides();
+    // Each side is at most 0.45, so at least a tenth of the area is left.
+    const sx = 1 - t.left - t.right;
+    const sy = 1 - t.top - t.bottom;
+    return { ...a, x: a.x + a.w * t.left, y: a.y + a.h * t.top, w: a.w * sx, h: a.h * sy };
+  }
+
+  /** The note's text inset (options.textInset), each side clamped to 0-0.45. */
+  private textInsetSides(): { left: number; right: number; top: number; bottom: number } {
+    const t: any = this.options.textInset || {};
+    const side = (v: unknown) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? Math.min(0.45, Math.max(0, n)) : 0;
+    };
+    return { left: side(t.left), right: side(t.right), top: side(t.top), bottom: side(t.bottom) };
   }
 
   private shapeTextInset(): number {
@@ -1264,11 +1305,12 @@ export class Node {
     // Since text-anchor="middle" and dominant-baseline="central",
     // we position the text at the CENTER of the shape and SVG handles the rest
     // A custom outline places text in its text area; other shapes use the box.
-    const area = this.textArea();
-    const left = area.custom ? shapeX + area.x : shapeX;
-    const top = area.custom ? shapeY + area.y : shapeY;
-    const areaW = area.custom ? area.w : width!;
-    const areaH = area.custom ? area.h : height!;
+    // Either is narrowed by the note's text inset.
+    const area = this.placeArea();
+    const left = shapeX + area.x;
+    const top = shapeY + area.y;
+    const areaW = area.w;
+    const areaH = area.h;
     let x = left + areaW / 2 + (textOffset?.x || 0);
     let y = top + areaH / 2 + (textOffset?.y || 0);
 

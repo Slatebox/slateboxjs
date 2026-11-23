@@ -52,6 +52,15 @@ describe("Camera maths", () => {
     expect(cover.scale).toBeCloseTo(10);
   });
 
+  it("a rolled frame is fitted by its rotated extent, so its corners stay on screen", () => {
+    const box = { x: 0, y: 0, width: 400, height: 400 };
+    const level = cameraFor(box, { w: 1000, h: 1000 }, { fill: 1 });
+    const rolled = cameraFor(box, { w: 1000, h: 1000 }, { fill: 1, roll: 12 });
+    const r = (12 * Math.PI) / 180;
+    expect(rolled.scale).toBeCloseTo(1000 / (400 * Math.cos(r) + 400 * Math.sin(r)));
+    expect(rolled.scale).toBeLessThan(level.scale);
+  });
+
   it("a prezi arc pulls back mid-flight when the travel is longer than a viewport", () => {
     const view = { w: 1000, h: 600 };
     const a = { cx: 0, cy: 0, scale: 2, roll: 0, dy: 0 };

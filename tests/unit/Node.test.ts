@@ -1516,3 +1516,18 @@ describe("Additional edge cases", () => {
     expect(node.options.textYAlign).toBe("middle");
   });
 });
+
+describe("Node text inset (a custom shape's inner safe area)", () => {
+  it("wraps text to the width the inset leaves", async () => {
+    const plain = await createNode({ width: 200, height: 60, fontSize: 10 });
+    const inset = await createNode({ id: "inset", width: 200, height: 60, fontSize: 10, textInset: { left: 0.2, right: 0.2 } });
+    const text = "Free and open source for every team that plans together";
+    const linesOf = (node: Node) => (node as any).wrapTextToWidth(text).split("\n").length;
+    expect(linesOf(inset)).toBeGreaterThan(linesOf(plain));
+  });
+
+  it("clamps each side to 0-0.45 and ignores junk", async () => {
+    const node = await createNode({ textInset: { left: 0.9, right: -1, top: "x" } });
+    expect((node as any).textInsetSides()).toEqual({ left: 0.45, right: 0, top: 0, bottom: 0 });
+  });
+});

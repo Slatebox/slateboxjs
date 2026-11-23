@@ -63,9 +63,15 @@ export function cameraFor(box: CameraBox, view: CameraViewport, opts: CameraFram
   const bottom = opts.bottom ?? 0;
   const fill = opts.fill ?? 0.9;
   const room = Math.max(1, view.h - top - bottom);
+  // A rolled frame is fitted by its rotated extent, so its corners stay on screen.
+  const r = (Math.abs(opts.roll ?? 0) * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(r));
+  const sin = Math.abs(Math.sin(r));
+  const fitW = opts.cover ? width : width * cos + height * sin;
+  const fitH = opts.cover ? height : width * sin + height * cos;
   let scale = opts.cover
     ? Math.max(view.w / width, view.h / height)
-    : Math.min((view.w * fill) / width, (room * fill) / height);
+    : Math.min((view.w * fill) / fitW, (room * fill) / fitH);
   if (opts.maxScale && scale > opts.maxScale) scale = opts.maxScale;
   return {
     cx: box.x + box.width / 2,
