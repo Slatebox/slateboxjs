@@ -57,7 +57,7 @@ test("independent copies of private and published slates start private for a fre
       }, {key, name, visibility});
       await page.goto(origin + "/");
       await page.getByRole("button", {name:"Options for " + name, exact:true}).click();
-      await page.getByRole("menuitem", {name:"Copy Slate"}).click();
+      await page.getByRole("menuitem", {name:"Make a copy"}).click();
       const boards = page.getByRole("button", {name:"Open " + name, exact:true});
       await expect(boards).toHaveCount(2);
       await boards.first().click();
