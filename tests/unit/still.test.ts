@@ -7,7 +7,18 @@ import { catalogSamples } from '../../src/workshops/samples'
 import { kitFor } from '../../src/boards'
 import '../../src/boards/nest'
 import '../../src/workshops/behaviour'
-import { componentSlate, drawBoard, fitViewbox, KIT_KINDS, lanesPerRow, renderStill, slateBoards, workshopOrigin } from '../../src/boards/still'
+import { componentSlate, createStillRenderer, fitViewbox, KIT_KINDS, lanesPerRow, slateBoards, workshopOrigin } from '../../src/boards/still'
+
+// The host's loaders, as the app passes them (import('slateboxjs/boards') and friends); here the engine's sources.
+const loaded: string[] = []
+const loader = <T,>(name: string, load: () => Promise<T>) => () => { loaded.push(name); return load() }
+const modules = {
+  model: loader('model', () => import('../../src/workshops/model')),
+  boards: loader('boards', () => import('../../src/boards')),
+  nest: loader('nest', () => import('../../src/boards/nest')),
+  behaviour: loader('behaviour', () => import('../../src/workshops/behaviour')),
+}
+const { drawBoard, renderStill } = createStillRenderer({ ...modules, Slate: async () => (globalThis as any).__stillSlate })
 
 /**
  * slateboxjs/boards/still (library spec §7.2): the one renderer every read-only surface uses (the app's slate cards and
@@ -72,9 +83,9 @@ describe('renderStill draws each built-in board with its kit, as the live canvas
       await kept.whenDrawn()
       // The still: renderStill on a slate holding the board alone (componentSlate), as the gallery draws a component.
       const canvas = fakeCanvas()
-      const Slate = function FakeSlate() { return canvas.slate } as any
+      ;(globalThis as any).__stillSlate = function FakeSlate() { return canvas.slate }
       const el = host()
-      const still = await renderStill(el, componentSlate(board), { Slate })
+      const still = await renderStill(el, componentSlate(board))
       try {
         expect(still.boards).toHaveLength(1)
         expect([...canvas.notes.keys()].map(unscoped).sort()).toEqual([...live.notes.keys()].map(unscoped).sort())
@@ -133,9 +144,21 @@ describe('the read helpers', () => {
 
 describe('the renderer stays out of a first visit', () => {
   const source = readFileSync(resolve(__dirname, '../../src/boards/still.ts'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
-  it('fetches the model, the kits, the rulebook and the canvas with import(), never statically', () => {
-    expect(source).not.toMatch(/^\s*import (?!type)[^(]*from/m)
-    for (const chunk of ['../workshops/model', './index', './nest', '../workshops/behaviour']) expect(source).toContain(`import('${chunk}')`)
+  it('imports nothing from the engine: the host loads the model, the kits, the rulebook and the canvas', () => {
+    // A built CommonJS file turns an engine-internal import() into a require a bundler loads at once; with no import at
+    // all, the kits stay out of a page until a board is drawn (the app's check-client-bundle holds it to that).
+    expect(source).not.toMatch(/^\s*import (?!type)/m)
+    expect(source).not.toMatch(/(?<!typeof )\bimport\(/)
+    expect(source).not.toMatch(/\brequire\(/)
+  })
+  it('loads a kit only for a board drawn by one, and the rulebook only when a board needs it', async () => {
+    const r = createStillRenderer(modules)
+    loaded.length = 0
+    await r.loadBoardKit(validateWorkshop({ version: 1, title: 'Plain', lanes: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], cards: [] }))
+    expect(loaded).toEqual(['model'])
+    loaded.length = 0
+    await r.loadBoardKit(validateWorkshop(catalogPreset('discovery-tree', undefined, catalogSamples)))
+    expect(loaded).toContain('nest')
   })
   it('a still is read-only and laid out as a desktop canvas shows it; a draft wears its frame', () => {
     expect(source).toMatch(/readOnly: true/)

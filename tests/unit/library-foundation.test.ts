@@ -4,7 +4,7 @@ import '../../src/workshops/rules'
 import { behaviourOf } from '../../src/workshops/behaviour'
 import { ruleControls } from '../../src/workshops/controls'
 import { drawRuleControls } from '../../src/boards/ruleControlsLayer'
-import { drawSlateBoards, renderStill } from '../../src/boards/still'
+import { createStillRenderer } from '../../src/boards/still'
 
 // The shared library's engine foundation (library spec §4.3, §7.2, §9.1): a rule set from a control
 // drawn on the board is audited as set on the canvas, and the two new entry points exist for the
@@ -32,7 +32,8 @@ describe('library foundation', () => {
     expect(ruleControls(team, null).map(control => control.id)).toEqual(['path:any'])
     const layer = drawRuleControls(null, 'main', [])
     expect(() => { layer.update([]); layer.remove() }).not.toThrow()
-    expect(typeof renderStill).toBe('function')
-    expect(typeof drawSlateBoards).toBe('function')
+    const still = createStillRenderer({ model: async () => ({}) as any, boards: async () => ({}) as any, nest: async () => null, behaviour: async () => null })
+    expect(typeof still.renderStill).toBe('function')
+    expect(typeof still.drawSlateBoards).toBe('function')
   })
 })

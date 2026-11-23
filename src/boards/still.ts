@@ -5,11 +5,12 @@
 // A still is the board read-only, its chrome at the board's size; a draft (a library preview) wears its dashed frame.
 // Both are laid out as a desktop canvas shows them, whatever the size of the card they are drawn into.
 //
-// Everything the renderer needs from the rest of the engine is fetched with import() on first use: the workshop model
-// (attachWorkshop), the kits (slateboxjs/boards, slateboxjs/boards/nest) and the rulebook. A page that never draws a
-// board never loads them, and a host that already loaded them (the app's canvas, the site's replays) shares the same
-// module, so there is one copy of the rule registry. renderStill also needs the canvas: it fetches slateboxjs itself
-// unless the host hands it a Slate class.
+// The renderer imports nothing from the rest of the engine. The host hands it loaders (createStillRenderer): the workshop
+// model (attachWorkshop), the kits (slateboxjs/boards, slateboxjs/boards/nest), the rulebook and the canvas (Slate), each
+// fetched on first need. So the host keeps one copy of each module and of the rule registry, a page that never draws a
+// board never loads them, and the package's CommonJS build (which turns an engine-internal import() into a require a
+// bundler would load at once) carries no import at all. The app passes import('slateboxjs/boards') and friends; the
+// marketing site passes its own engine files (assets/engine/*.mjs).
 import type { Workshop, WorkshopNoteStyle, AttachedWorkshop } from '../workshops/model'
 
 type Box = { x: number; y: number; width: number; height: number }
@@ -69,8 +70,22 @@ function pixels(size: unknown): number | undefined {
 }
 
 type ModelModule = typeof import('../workshops/model')
-let modelModule: Promise<ModelModule> | null = null
-const loadModel = () => (modelModule ??= import('../workshops/model'))
+type ModelParts = Pick<ModelModule, 'attachWorkshop' | 'rulebookLoaded' | 'DEFAULT_NOTE_STYLE' | 'workshopCardLookOf'> & { boardChromeStyles?: string }
+type KitsModule = { kitFor(kind: string): unknown; boardLayoutFor(width: number): any }
+
+/** What the renderer is given by its host: a loader for each part of the engine it draws with. */
+export interface StillModules {
+  /** slateboxjs/workshops/model */
+  model: () => Promise<ModelParts>
+  /** slateboxjs/boards (the business boards' kits) */
+  boards: () => Promise<KitsModule>
+  /** slateboxjs/boards/nest (the nested boards' kit; registers itself with the kits) */
+  nest: () => Promise<unknown>
+  /** slateboxjs/workshops/behaviour (the rulebook; registers itself with the model) */
+  behaviour: () => Promise<unknown>
+  /** slateboxjs (or slateboxjs/canvas): the canvas class renderStill draws on */
+  Slate?: () => Promise<any>
+}
 
 /**
  * What a card looks like on this slate: the slate's own first note with words on it, so a card and a note side by side
@@ -125,84 +140,6 @@ export function slateBoards(slate: any): StillBoard[] {
 /** Whether a saved slate holds a board (its first in creative, any further in boards). */
 export const holdsBoards = (slate: any) => slateBoards(slate).length > 0
 
-export interface BoardKit { kit?: unknown; layoutFor: (width: number) => any }
-
-/** Fetch what a board needs to be drawn as itself: its kit (business boards) and the rulebook (a board with rules, and any kit board). */
-export async function loadBoardKit(workshop: any): Promise<BoardKit> {
-  const needsKit = KIT_KINDS.includes(workshop?.kind)
-  const model = await loadModel()
-  const [kits] = await Promise.all([
-    needsKit ? import('./index') : null,
-    workshop?.kind === 'nest' ? import('./nest') : null,
-    // A kit board's legend is its rulebook's sentences (boardChrome kitLegend), so a kit board needs it too.
-    (workshop?.behaviour || needsKit) && !model.rulebookLoaded() ? import('../workshops/behaviour') : null,
-  ])
-  return kits
-    ? { kit: kits.kitFor(workshop.kind), layoutFor: (width: number) => kits.boardLayoutFor(width) }
-    : { kit: undefined, layoutFor: (width: number) => ({ lanesPerRow: lanesPerRow(width, workshop) }) }
-}
-
-/** The engine's board chrome styles, added to the page once unless the host has added its own (same element id). */
-async function ensureChromeStyles(model: ModelModule) {
-  const css = (model as { boardChromeStyles?: string }).boardChromeStyles
-  if (!css || typeof document === 'undefined' || document.getElementById('sb-board-chrome')) return
-  const style = document.createElement('style')
-  style.id = 'sb-board-chrome'
-  style.textContent = css
-  document.head.appendChild(style)
-}
-
-export interface DrawBoardOptions {
-  /** 'still' (read-only, a card's picture) or 'draft' (dashed, see-through, view-only, scope pv). */
-  how?: 'still' | 'draft'
-  origin?: Point
-  scope?: string
-  /** The screen width the board is laid out for. */
-  width?: number
-  style?: WorkshopNoteStyle
-}
-
-/**
- * Draw a board with the one renderer: `how` is 'draft' (dashed, see-through, view-only, scope pv) or 'still'
- * (read-only; a card's picture). `width` is the screen width the board is laid out for: a still is laid out as a
- * desktop canvas shows it, whatever the size of the card it is drawn into.
- */
-export async function drawBoard(engine: any, workshop: Workshop, { how = 'still', origin, scope, width = 1440, style }: DrawBoardOptions = {}): Promise<AttachedWorkshop> {
-  const model = await loadModel()
-  await ensureChromeStyles(model)
-  const { kit, layoutFor } = await loadBoardKit(workshop)
-  return model.attachWorkshop(engine, workshop, {
-    readOnly: true, origin, layout: layoutFor(width), style: style ?? workshopStyle(engine.freeNodes?.() ?? [], model),
-    // A draft wears its dashed frame; a still's chrome scales with the board, as an export's does.
-    ...(how === 'draft' ? { draft: true } : { still: true }),
-    ...((scope || how === 'draft') && { scope: scope ?? 'pv' }),
-    ...(kit ? { kit } : {}),
-  } as any)
-}
-
-/**
- * Draw every board a saved slate holds onto a still canvas (a slate's card), each where the canvas puts it: the first
- * at the slate's workshop origin, a further board at its own origin and in its scope (b2:…). A board this build cannot
- * draw is left off the picture rather than failing the list. → the attached boards (destroy each to take them away).
- */
-export async function drawSlateBoards(engine: any, slate: any, { width = 1440 }: { width?: number } = {}): Promise<AttachedWorkshop[]> {
-  const own = Array.isArray(slate?.nodes) ? slate.nodes : []
-  const style = workshopStyle(own, await loadModel())
-  const drawn: AttachedWorkshop[] = []
-  for (const board of slateBoards(slate)) {
-    if (!board.origin) continue
-    const main = board.id === 'main'
-    try {
-      const attached = await drawBoard(engine, board.workshop, { how: 'still', origin: board.origin, scope: main ? undefined : board.id, width, style })
-      await attached.whenDrawn?.()
-      drawn.push(attached)
-    } catch (err) {
-      console.warn('A board on this slate could not be drawn on its picture.', err)
-    }
-  }
-  return drawn
-}
-
 /** A slate holding one board and nothing else: how a smart component (a library item's board) is drawn as a still. */
 export function componentSlate(workshop: Workshop, name?: string): any {
   return { options: { name: name ?? (workshop as any)?.title ?? 'Board', workshopOrigin: { x: 40, y: 40 } }, nodes: [], creative: { model: { kind: 'workshop', workshop } } }
@@ -230,13 +167,24 @@ export function fitViewbox(frame: Box, w: number, h: number, pad = 24): Box {
   return { x: frame.x - pad + (fw - vw) / 2, y: frame.y - pad + (fh - vh) / 2, width: vw, height: vh }
 }
 
+
+export interface BoardKit { kit?: unknown; layoutFor: (width: number) => any }
+
+export interface DrawBoardOptions {
+  /** 'still' (read-only, a card's picture) or 'draft' (dashed, see-through, view-only, scope pv). */
+  how?: 'still' | 'draft'
+  origin?: Point
+  scope?: string
+  /** The screen width the board is laid out for. */
+  width?: number
+  style?: WorkshopNoteStyle
+}
+
 export interface StillOptions {
   /** The world box to show; by default everything the slate holds (its notes and each board with its chrome). */
   frame?: Box
   /** The screen width the boards are laid out for (1440: as a desktop canvas shows them). */
   width?: number
-  /** The canvas class to draw with (slateboxjs's Slate); fetched from slateboxjs when not given. */
-  Slate?: any
 }
 
 export interface Still {
@@ -252,39 +200,121 @@ export interface Still {
   destroy(): void
 }
 
-/**
- * Render a read-only still of a slate's JSON into `host`: a read-only canvas, the slate's notes, each board it holds
- * drawn by its kit (drawSlateBoards), the whole fitted to the host and kept fitted when it resizes. A smart component
- * is drawn by passing componentSlate(workshop). → the still, to destroy when the host goes.
- */
-export async function renderStill(host: HTMLElement, slateJson: any, { frame, width = 1440, Slate }: StillOptions = {}): Promise<Still> {
-  const Canvas = Slate ?? (await import('slateboxjs' as string)).Slate
-  const slate = new Canvas(host, {
-    name: slateJson?.options?.name, enabled: false, showMultiSelect: false, showUndoRedo: false, showZoom: false, showbirdsEye: false,
-    viewPort: { showCoordinates: false, allowDrag: false }, panZoom: { enabled: false }, events: { isReadOnly: () => true },
-  })
-  const { creative: _creative, boards: _boards, ...notesOnly } = slateJson ?? {}
-  await slate.loadJSON({ ...notesOnly, nodes: Array.isArray(slateJson?.nodes) ? slateJson.nodes : [] }, false, true)
-  const boards = await drawSlateBoards(slate, slateJson, { width })
-  const shown = frame ?? union([notesBox(slateJson?.nodes), ...boards.map(board => board.frame ?? board.bounds)].filter(Boolean) as Box[]) ?? { x: 0, y: 0, width: 800, height: 450 }
-  const fit = () => {
-    const w = host.clientWidth, h = host.clientHeight
-    if (!w || !h) return
-    const box = fitViewbox(shown, w, h)
-    slate.canvas?.viewbox?.(box.x, box.y, box.width, box.height)
+export interface StillRenderer {
+  loadBoardKit(workshop: any): Promise<BoardKit>
+  drawBoard(engine: any, workshop: Workshop, options?: DrawBoardOptions): Promise<AttachedWorkshop>
+  drawSlateBoards(engine: any, slate: any, options?: { width?: number }): Promise<AttachedWorkshop[]>
+  renderStill(host: HTMLElement, slateJson: any, options?: StillOptions): Promise<Still>
+}
+
+/** The one renderer, drawing with the engine modules its host loads (StillModules). */
+export function createStillRenderer(modules: StillModules): StillRenderer {
+  let model: Promise<ModelParts> | null = null
+  const loadModel = () => (model ??= modules.model())
+
+  /** The engine's board chrome styles, added to the page once unless the host has added its own (same element id). */
+  function ensureChromeStyles(parts: ModelParts) {
+    const css = parts.boardChromeStyles
+    if (!css || typeof document === 'undefined' || document.getElementById('sb-board-chrome')) return
+    const style = document.createElement('style')
+    style.id = 'sb-board-chrome'
+    style.textContent = css
+    document.head.appendChild(style)
   }
-  fit()
-  const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
-  observer?.observe(host)
-  host.dataset.stillDrawn = 'true'
-  return {
-    slate, boards, frame: shown, fit,
-    destroy() {
-      observer?.disconnect()
-      for (const board of boards) { try { board.destroy() } catch { /* already gone */ } }
-      try { slate.destroy?.() } catch { /* already gone */ }
-      host.replaceChildren()
-      delete host.dataset.stillDrawn
-    },
+
+  /** Fetch what a board needs to be drawn as itself: its kit (business boards) and the rulebook (a board with rules, and any kit board). */
+  async function loadBoardKit(workshop: any): Promise<BoardKit> {
+    const needsKit = KIT_KINDS.includes(workshop?.kind)
+    const parts = await loadModel()
+    const [kits] = await Promise.all([
+      needsKit ? modules.boards() : null,
+      workshop?.kind === 'nest' ? modules.nest() : null,
+      // A kit board's legend is its rulebook's sentences (boardChrome kitLegend), so a kit board needs it too.
+      (workshop?.behaviour || needsKit) && !parts.rulebookLoaded() ? modules.behaviour() : null,
+    ])
+    return kits
+      ? { kit: kits.kitFor(workshop.kind), layoutFor: (width: number) => kits.boardLayoutFor(width) }
+      : { kit: undefined, layoutFor: (width: number) => ({ lanesPerRow: lanesPerRow(width, workshop) }) }
   }
+
+  /**
+   * Draw a board with the one renderer: `how` is 'draft' (dashed, see-through, view-only, scope pv) or 'still'
+   * (read-only; a card's picture). `width` is the screen width the board is laid out for: a still is laid out as a
+   * desktop canvas shows it, whatever the size of the card it is drawn into.
+   */
+  async function drawBoard(engine: any, workshop: Workshop, { how = 'still', origin, scope, width = 1440, style }: DrawBoardOptions = {}): Promise<AttachedWorkshop> {
+    const parts = await loadModel()
+    ensureChromeStyles(parts)
+    const { kit, layoutFor } = await loadBoardKit(workshop)
+    return parts.attachWorkshop(engine, workshop, {
+      readOnly: true, origin, layout: layoutFor(width), style: style ?? workshopStyle(engine.freeNodes?.() ?? [], parts),
+      // A draft wears its dashed frame; a still's chrome scales with the board, as an export's does.
+      ...(how === 'draft' ? { draft: true } : { still: true }),
+      ...((scope || how === 'draft') && { scope: scope ?? 'pv' }),
+      ...(kit ? { kit } : {}),
+    } as any)
+  }
+
+  /**
+   * Draw every board a saved slate holds onto a still canvas (a slate's card), each where the canvas puts it: the first
+   * at the slate's workshop origin, a further board at its own origin and in its scope (b2:…). A board this build cannot
+   * draw is left off the picture rather than failing the list. → the attached boards (destroy each to take them away).
+   */
+  async function drawSlateBoards(engine: any, slate: any, { width = 1440 }: { width?: number } = {}): Promise<AttachedWorkshop[]> {
+    const own = Array.isArray(slate?.nodes) ? slate.nodes : []
+    const style = workshopStyle(own, await loadModel())
+    const drawn: AttachedWorkshop[] = []
+    for (const board of slateBoards(slate)) {
+      if (!board.origin) continue
+      const main = board.id === 'main'
+      try {
+        const attached = await drawBoard(engine, board.workshop, { how: 'still', origin: board.origin, scope: main ? undefined : board.id, width, style })
+        await attached.whenDrawn?.()
+        drawn.push(attached)
+      } catch (err) {
+        console.warn('A board on this slate could not be drawn on its picture.', err)
+      }
+    }
+    return drawn
+  }
+
+  /**
+   * Render a read-only still of a slate's JSON into `host`: a read-only canvas, the slate's notes, each board it holds
+   * drawn by its kit (drawSlateBoards), the whole fitted to the host and kept fitted when it resizes. A smart component
+   * is drawn by passing componentSlate(workshop). → the still, to destroy when the host goes.
+   */
+  async function renderStill(host: HTMLElement, slateJson: any, { frame, width = 1440 }: StillOptions = {}): Promise<Still> {
+    if (!modules.Slate) throw new Error('renderStill needs the canvas: pass a Slate loader to createStillRenderer.')
+    const Canvas = await modules.Slate()
+    const slate = new Canvas(host, {
+      name: slateJson?.options?.name, enabled: false, showMultiSelect: false, showUndoRedo: false, showZoom: false, showbirdsEye: false,
+      viewPort: { showCoordinates: false, allowDrag: false }, panZoom: { enabled: false }, events: { isReadOnly: () => true },
+    })
+    const { creative: _creative, boards: _boards, ...notesOnly } = slateJson ?? {}
+    await slate.loadJSON({ ...notesOnly, nodes: Array.isArray(slateJson?.nodes) ? slateJson.nodes : [] }, false, true)
+    const boards = await drawSlateBoards(slate, slateJson, { width })
+    const shown = frame ?? union([notesBox(slateJson?.nodes), ...boards.map(board => board.frame ?? board.bounds)].filter(Boolean) as Box[]) ?? { x: 0, y: 0, width: 800, height: 450 }
+    const fit = () => {
+      const w = host.clientWidth, h = host.clientHeight
+      if (!w || !h) return
+      const box = fitViewbox(shown, w, h)
+      slate.canvas?.viewbox?.(box.x, box.y, box.width, box.height)
+    }
+    fit()
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
+    observer?.observe(host)
+    host.dataset.stillDrawn = 'true'
+    return {
+      slate, boards, frame: shown, fit,
+      destroy() {
+        observer?.disconnect()
+        for (const board of boards) { try { board.destroy() } catch { /* already gone */ } }
+        try { slate.destroy?.() } catch { /* already gone */ }
+        host.replaceChildren()
+        delete host.dataset.stillDrawn
+      },
+    }
+  }
+
+  return { loadBoardKit, drawBoard, drawSlateBoards, renderStill }
 }
