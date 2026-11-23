@@ -31,7 +31,7 @@ import {
 import { Association } from "./Relationship";
 import type { EndAnchor, EndState, LineEnd } from "./LineEnds";
 import type { LineToolResult } from "./LineTool";
-import { birdsEyeNow, lineToolNow, loadBirdsEye, loadLineTool } from "./slateParts";
+import { birdsEyeNow, lineToolNow, loadBirdsEye, loadLineTool, partsBuiltIn } from "./slateParts";
 import { alignPositions, distributePositions, type AlignMode, type LayoutBox, type Position } from "../operations/layout";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
@@ -537,7 +537,8 @@ export class Slate {
           if (!this._destroyed) this.birdsEye.enable();
         }, 200);
       };
-      if (this.birdsEye) enable();
+      // partsBuiltIn is a constant: the main entry's build keeps only the first branch.
+      if (partsBuiltIn || this.birdsEye) enable();
       else loadBirdsEye().then(module => {
         if (this._destroyed) return;
         this.birdsEye = new module.BirdsEye(this, this.options.birdsEye);
@@ -2406,7 +2407,7 @@ export class Slate {
     const from: any = typeof node === "string" ? this.nodes.one(node) : node;
     // At once with the main entry; the canvas entry fetches the tool the first time (see slateParts.ts).
     const tool = lineToolNow();
-    if (tool) return tool.startLineTool(this, from);
+    if (partsBuiltIn || tool) return tool!.startLineTool(this, from);
     return loadLineTool().then(module => module.startLineTool(this, from));
   }
 

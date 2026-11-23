@@ -1,6 +1,8 @@
-// The main entry's slate (slateboxjs): every part present from the start, as it always was (see slateParts.ts).
-import * as lineTool from './LineTool'
-import * as birdsEye from './BirdsEye'
+// A source host that loads the main entry (the dev server, the unit tests): every part of a slate present from the
+// start, as it always was (see slateParts.ts). The main entry's build does not need it: it builds the slate with
+// slatePartsEager.ts instead (vite.config.ts).
+import { startLineTool } from './LineTool'
+import { BirdsEye } from './BirdsEye'
 import { provideSlateParts } from './slateParts'
 
-provideSlateParts({ lineTool, birdsEye })
+provideSlateParts({ lineTool: { startLineTool }, birdsEye: { BirdsEye } })

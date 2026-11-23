@@ -1,18 +1,22 @@
 // The parts of a slate that wait for a person or a request: the line tool, and the bird's-eye view. The main
-// entry (slateboxjs, src/index.ts) hands them over at once through mainParts.ts, so a slate behaves exactly as
-// it always has. The canvas entry (slateboxjs/canvas) does not: a read-only page never fetches them, and a
-// slate loads each the first time it needs it.
+// entry (slateboxjs) has them from the start: its build (vite.config.ts) swaps this file for slatePartsEager.ts,
+// and a source host (the dev server, the unit tests) hands them over through mainParts.ts, so a slate behaves
+// exactly as it always has. The canvas entry (slateboxjs/canvas) does not: a read-only page never fetches them,
+// and a slate loads each the first time it needs it.
 import type * as LineToolModule from './LineTool'
 import type * as BirdsEyeModule from './BirdsEye'
 
-interface Parts {
-  lineTool?: typeof LineToolModule
-  birdsEye?: typeof BirdsEyeModule
+export interface SlateParts {
+  lineTool?: Pick<typeof LineToolModule, 'startLineTool'>
+  birdsEye?: Pick<typeof BirdsEyeModule, 'BirdsEye'>
 }
-const parts: Parts = {}
+const parts: SlateParts = {}
 
-/** Hand the parts over at once (the main entry does, on import). */
-export function provideSlateParts(given: Parts): void {
+/** Whether the parts are part of the bundle from the start: never here (slatePartsEager.ts says yes, as a constant the build folds). */
+export const partsBuiltIn: boolean = false
+
+/** Hand the parts over at once (mainParts.ts does, for a host that loads the source). */
+export function provideSlateParts(given: SlateParts): void {
   Object.assign(parts, given)
 }
 

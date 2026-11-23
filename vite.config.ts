@@ -2,6 +2,20 @@ import { defineConfig } from 'vite'
 import { resolve } from 'path'
 
 export default defineConfig({
+  plugins: [{
+    // The main entry's slate has its line tool and bird's-eye view from the start (src/core/slateParts.ts): the build
+    // takes slatePartsEager.ts for the slate's parts, and mainParts.ts (which hands them to a source host) is left out.
+    name: 'main-entry-slate-parts',
+    apply: 'build',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (source === './slateParts' && importer?.endsWith('/src/core/Slate.ts')) return resolve(__dirname, 'src/core/slatePartsEager.ts')
+      if (source === './core/mainParts' && importer?.endsWith('/src/index.ts')) return '\0main-parts-built-in'
+    },
+    load(id) {
+      if (id === '\0main-parts-built-in') return 'export {}'
+    },
+  }],
   resolve: {
     // Deduplicate @svgdotjs/svg.js to ensure all plugins extend the same SVG instance
     dedupe: ['@svgdotjs/svg.js'],
