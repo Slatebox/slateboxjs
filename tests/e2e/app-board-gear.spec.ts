@@ -45,6 +45,19 @@ const onScreen = (page: Page) => page.evaluate(() => {
   }
 })
 const focusedMark = (page: Page) => page.evaluate(() => document.querySelector('#slateCanvas [data-node-id="lane-todo"]')?.hasAttribute('data-workshop-focused') ?? null)
+/**
+ * Board polish (test 18): the focus frame drawn round the board in focus ("Editing", "Done"), in screen pixels from
+ * each edge of what the canvas shows (beside an open chat, its left edge), and whether the canvas dims the rest.
+ */
+const focusFrame = (page: Page) => page.evaluate(() => {
+  const frame = document.querySelector('#slateCanvas [data-board-layer="focus-frame"]')?.getBoundingClientRect()
+  const canvas = document.querySelector('#slateCanvas')!
+  const area = canvas.getBoundingClientRect()
+  const panel = document.querySelector('aside[aria-label="Ask Slatebox"]')?.getBoundingClientRect()
+  const right = panel && panel.left > area.left + 100 ? Math.min(area.right, panel.left) : area.right
+  const bottom = panel && panel.top > area.top + 100 && panel.left <= area.left + 1 ? Math.min(area.bottom, panel.top) : area.bottom
+  return { dims: canvas.classList.contains('focusing'), frame: frame ? { left: frame.left - area.left, top: frame.top - area.top, right: right - frame.right, bottom: bottom - frame.bottom } : null }
+})
 
 test.describe('desktop, 1440 by 900', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
@@ -90,6 +103,12 @@ test.describe('desktop, 1440 by 900', () => {
       expect(fitted.board.top).toBeGreaterThanOrEqual(fitted.canvas.top - 1)
       const panel = (await conversation(page).boundingBox())!
       expect(fitted.board.right).toBeLessThanOrEqual(panel.x + 1)
+      // The board in focus is framed (Editing, Done) with room to spare on every side, and the rest of the canvas is dimmed.
+      const framed = await focusFrame(page)
+      expect(framed.dims).toBe(true)
+      expect(framed.frame).not.toBeNull()
+      for (const side of ['left', 'top', 'right', 'bottom'] as const) expect([side, framed.frame![side] >= 24]).toEqual([side, true])
+      await expect(page.locator('#slateCanvas [data-board-layer="focus-done-box"]')).toHaveAttribute('role', 'button')
 
       // Clicking empty canvas keeps focus, so a person can look around.
       await page.mouse.click(fitted.canvas.left + 8, fitted.canvas.bottom - 40)
@@ -164,6 +183,12 @@ test.describe('a phone, 390 by 844, touch', () => {
       await expect(conversation(page)).toBeVisible()
       await expect(focusChip(page)).toContainText('Editing: Vendor choice')
       expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
+      // The frame round the board in focus fits the phone's width with room to spare (board polish, test 18). A phone
+      // keeps the board at the size it always had (its grips a finger's size), so the frame keeps 12px, not 24.
+      await expect.poll(async () => (await focusFrame(page)).frame?.left ?? -1).toBeGreaterThanOrEqual(12)
+      const framed = await focusFrame(page)
+      expect(framed.dims).toBe(true)
+      expect(framed.frame!.right).toBeGreaterThanOrEqual(12)
     } finally {
       await removeTestGuest(page, id)
     }

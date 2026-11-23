@@ -167,6 +167,11 @@ export interface ChromeOptions {
   scale?: number
   /** A phone: the legend starts on the row under the title. */
   narrow?: boolean
+  /**
+   * The width the board keeps on its slate (workshopReserve): its name may use that much before it is shortened.
+   * Left out, the board's own width.
+   */
+  room?: number
   /** Where each column is drawn (board coordinates), for the badges. A kit or a map has none. */
   places?: { laneId: string; x: number; y: number; width: number; row: number }[]
 }
@@ -183,9 +188,10 @@ export function boardChromeLayout(board: Workshop, size: { x?: number; y?: numbe
   // The legend wraps first-fit within the board's width (at least 640 on a wide screen), so it never runs into the next board.
   const maxX = left + Math.max(size.width, options.narrow ? 0 : Math.min(640, size.width + 120))
   const placed: { x: number; row: number; item: LegendItem; width: number }[] = []
-  // A name longer than the board is shortened to fit it (with "…"), so it never runs into the next board when zoomed out.
+  // A name longer than its room is shortened to fit it (with "…"), so it never runs into the next board. On a phone at
+  // full size the room is the board's own width (the screen's); zoomed out, and on a wider screen, the room the board keeps.
   let title = board.title
-  const room = Math.max(size.width - 4, titleSize * 4)
+  const room = (options.narrow && k <= 1 ? size.width : Math.max(size.width, options.room ?? 0)) - 4
   if (chromeTextWidth(title, titleSize, true) > room) {
     const fits = Math.max(3, Math.floor(room / (titleSize * 0.58)) - 1)
     title = title.slice(0, fits).replace(/\s+\S*$/, '').replace(/[\s,.;:–-]+$/, '') + '…'
@@ -204,10 +210,13 @@ export function boardChromeLayout(board: Workshop, size: { x?: number; y?: numbe
   // The last row ends 14 above the board.
   const titleY = top - 14 * k - rows * rowH
   const framed = Boolean(options.focused || options.draft)
-  const frame = framed ? { x: left - 16, y: titleY - 18 * k, width: size.width + 32, height: top + size.height + 16 - (titleY - 18 * k) } : null
+  // The frame stands 16 outside the board (8 on a phone, where the board takes the screen's width).
+  const out = options.narrow ? 8 : 16
+  const frame = framed ? { x: left - out, y: titleY - 18 * k, width: size.width + 2 * out, height: top + size.height + out - (titleY - 18 * k) } : null
   // The topmost thing the chrome draws: a frame's tag stands half above its line.
   const above = frame ? frame.y - 12 * k : titleY
-  return { k, legend, placed, rows, title, titleY, titleSize, rowH, frame, top: above }
+  const titleRight = left + 2 + chromeTextWidth(title, titleSize, true)
+  return { k, legend, placed, rows, title, titleY, titleSize, titleRight, rowH, frame, top: above }
 }
 
 /** The chrome of one board in board coordinates: its title row, and in focus or as a draft its frame and tags. */
@@ -307,7 +316,7 @@ export function createBoardChrome(slate: any): BoardChrome {
   return {
     draw(state) {
       if (gone || !root || !under || !over) return
-      const options: ChromeOptions = { layout: state.layout, focused: state.focused, draft: state.draft, scale: state.scale, narrow: state.narrow, places: state.places }
+      const options: ChromeOptions = { layout: state.layout, focused: state.focused, draft: state.draft, scale: state.scale, narrow: state.narrow, places: state.places, room: state.room }
       for (const group of [under, over]) {
         group.setAttribute('transform', `translate(${state.origin.x} ${state.origin.y})`)
         group.toggleAttribute('data-workshop-focused', Boolean(state.focused))

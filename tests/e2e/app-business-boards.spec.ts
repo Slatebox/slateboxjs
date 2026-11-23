@@ -209,8 +209,10 @@ async function make(page: Page, board: Board, how: 'chat' | 'starter') {
   await panel.getByRole('button', { name: 'Preview changes', exact: true }).click()
   await expect(panel.getByRole('button', { name: 'Keep changes', exact: true })).toBeEnabled({ timeout: 30000 })
   await expect(panel).toContainText(board.said.replace(/^Added /, 'Keep this to add '))
-  // The preview is drawn on the canvas as notes before anything is kept.
-  await expect(page.locator('#slateCanvas [data-node-id^="preview-lane-"]').first()).toBeAttached()
+  // The preview is drawn on the canvas before anything is kept: by the board renderer itself (board polish), its notes
+  // in the draft scope `pv`, see-through, in a dashed frame tagged "Preview · not added yet".
+  await expect(page.locator('#slateCanvas [data-node-id^="pv:"][data-workshop-draft]').first()).toBeAttached()
+  await expect(page.locator('#slateCanvas [data-board-layer="draft-tag"]')).toHaveText('Preview · not added yet')
   await panel.getByRole('button', { name: 'Keep changes', exact: true }).click()
   await page.waitForEvent('load')
   await dismissWelcome(page)

@@ -231,8 +231,9 @@ test.describe('many boards, 1440 by 900', () => {
       await shot(page, 's4a-6-sprint-in-focus-renamed')
       await conversation(page).getByRole('button', { name: 'Stop editing this board' }).click()
 
-      // Out of focus, with nothing selected, the chat asks which board, one chip per board.
-      await page.mouse.click(200, 860)
+      // Out of focus, with nothing selected, the chat asks which board, one chip per board. (Empty canvas at the
+      // foot of the screen, clear of the zoom control, which board polish moved to the bottom left.)
+      await page.mouse.click(600, 860)
       await say(page, 'add a card called Retro idea to Went well')
       await expect(conversation(page).getByText('Which board, Retro or Team board: Sprint?')).toBeVisible({ timeout: 30000 })
       await conversation(page).locator('[data-pick-board="main"]').click()

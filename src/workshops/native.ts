@@ -16,7 +16,7 @@ import type { NodeJSON } from '../core/Serialization'
 import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type WorldPoint } from '../core/DragPolicy'
 import {
   businessKind, validateWorkshop, workshopBoardScope, workshopFreeSpot, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopCardNoteText, workshopDestinations,
-  roundedBox, workshopLaneSpoken, workshopLaneHeld, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
+  roundedBox, workshopReserve, workshopLaneSpoken, workshopLaneHeld, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
   workshopCardLabelOf, workshopKeepsLink, workshopNoteIdOf, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesLines, workshopTakesNotes, workshopToSlate, workshopWithLine,
   workshopWithoutLine, type Workshop, type WorkshopBoardLayout, type WorkshopCard, type WorkshopCardAsNote, type WorkshopCardLook,
   type WorkshopLine, type WorkshopNoteOffer, type WorkshopNoteStyle,
@@ -2205,7 +2205,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   const narrowNow = () => Boolean(drawnLayout.narrow) || drawnLayout.lanesPerRow === 1
   /** The chrome options for the board as drawn now. */
   function chromeOptions() {
-    return { layout: drawnLayout, focused, draft, scale: chromeScale, narrow: narrowNow() }
+    // The room the board keeps on its slate (the widest it can become): its name may use that before it is shortened.
+    let room: number | undefined
+    try { room = workshopReserve(value, {}, kit).width } catch { room = undefined }
+    return { layout: drawnLayout, focused, draft, scale: chromeScale, narrow: narrowNow(), room }
   }
   /** Draw the board's chrome from the board on show: its title and legend, its badges, and its frame. */
   function paintChrome() {
@@ -2472,9 +2475,11 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     get frame() {
       const { width, height } = geometry(value)
       if (!chrome) return { x: origin.x, y: origin.y, width, height }
-      const drawnChrome = boardChromeLayout(value, { width, height }, chromeOptions())
+      // At full size (scale 1), whatever the zoom now: a host fits the view to this box, and the chrome's type only
+      // grows once the view is zoomed out, so the box never depends on the view it is about to set.
+      const drawnChrome = boardChromeLayout(value, { width, height }, { ...chromeOptions(), scale: 1 })
       const box = drawnChrome.frame
-      const legendRight = Math.max(width, ...drawnChrome.placed.map(item => item.x + item.width))
+      const legendRight = Math.max(width, drawnChrome.titleRight, ...drawnChrome.placed.map(item => item.x + item.width))
       const left = origin.x + (box ? box.x : 0), top = origin.y + drawnChrome.top
       const right = origin.x + Math.max(box ? box.x + box.width : width, legendRight)
       const bottom = origin.y + (box ? box.y + box.height : height)

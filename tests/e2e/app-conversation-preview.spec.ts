@@ -189,12 +189,17 @@ for (const [kind, message, shows] of [
     const before = await stored()
     const notes = await page.evaluate(() => (window as any).slate.v2.nodes.allNodes.length)
     await ask(page, message)
-    for (const text of shows) await expect(previewNote(page, text).first()).toBeVisible()
-    await expect(caption(page)).toBeVisible()
-    expect((await savedIds(page)).filter(id => id.startsWith('preview-'))).toEqual([])
+    // A whole board (a workshop, an interactive route) is drawn by the board renderer itself (board polish): its notes
+    // in the draft scope `pv`, see-through, tagged "Preview · not added yet" on its dashed frame.
+    const board = kind !== 'pasted lines'
+    const drawn = board ? page.locator('#slateCanvas [data-workshop-draft]') : previewNotes(page)
+    for (const text of shows) await expect(drawn.filter({ hasText: text }).first()).toBeVisible()
+    await expect(board ? page.locator('#slateCanvas [data-board-layer="draft-tag"]') : caption(page)).toBeVisible()
+    expect((await savedIds(page)).filter(id => id.startsWith('preview-') || id.startsWith('pv:'))).toEqual([])
     await disabledFor(page, /Keep or discard the preview/)
     await button(page, 'Discard preview').click()
-    await expect(previewNotes(page)).toHaveCount(0)
+    await expect(drawn).toHaveCount(0)
+    await expect(page.locator('#slateCanvas [data-board-layer="draft-tag"]')).toHaveCount(0)
     expect(await page.evaluate(() => (window as any).slate.v2.nodes.allNodes.length)).toBe(notes)
     await enabledAndFocused(page)
     const after = await stored()

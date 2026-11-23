@@ -248,6 +248,24 @@ describe('the chrome on a live board', () => {
     expect(done).toBe(2)
     board.destroy()
   })
+  it('a name keeps to the room the board keeps on its slate, at any scale: never cut short while there is room', async () => {
+    const { slate, svg } = slateWithCanvas()
+    slate.getZoom = () => 0.1
+    const board = attachWorkshop(slate, preset('team-board'), { origin: { x: 0, y: 0 }, layout: { lanesPerRow: 1 } })
+    await board.whenDrawn()
+    const title = svg.querySelector('[data-board-layer="board-title"]')!
+    expect(title.textContent).toBe('Team board')
+    expect(title.getAttribute('font-size')).toBe('45')
+    board.destroy()
+  })
+  it('on a phone at full size a long name keeps to the board’s width, so the board is fitted to the screen, not to its name', () => {
+    const long = validateWorkshop({ ...preset('retro'), title: 'Which field trials should run before the winter shutdown?' })
+    const size = workshopLanePlaces(long, { layout: { lanesPerRow: 1 } })
+    const phone = boardChromeLayout(long, size, { narrow: true, room: 1220 })
+    expect(phone.title.endsWith('…')).toBe(true)
+    expect(phone.titleRight).toBeLessThanOrEqual(size.width)
+    expect(boardChromeLayout(long, size, { narrow: false, room: 1220 }).title).toBe(long.title)
+  })
   it('chrome: false draws none', async () => {
     const { slate, svg } = slateWithCanvas()
     const board = attachWorkshop(slate, preset('retro'), { origin: { x: 0, y: 0 }, chrome: false })

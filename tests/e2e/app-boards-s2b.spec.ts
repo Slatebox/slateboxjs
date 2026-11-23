@@ -111,7 +111,9 @@ test.describe('a map, 1440 by 900', () => {
       await expect(grips(page)).toHaveCount(0)
       // Once the card has settled in its new step, as a person would look before the next thing.
       await page.waitForTimeout(1500)
-      await page.mouse.click(900, 200)
+      // Empty canvas, clear of the minimap (board polish: the board's title row is fitted with it, so the map sits a
+      // little lower and its last row can reach past the foot of the view, which brings the minimap back).
+      await page.mouse.click(600, 200)
       const first = await onPath(page, 'question>option-a')
       await page.mouse.click(first.x, first.y)
       const bar = page.locator('[data-board-path]')
