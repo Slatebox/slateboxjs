@@ -165,6 +165,22 @@ test.describe('many boards, 1440 by 900', () => {
       await expect(page.locator('#slateCanvas [data-node-id^="b2:card-"]', { hasText: 'Fix login' })).toBeVisible()
       await shot(page, 's4a-4-note-on-sprint')
 
+      // 3b. A Retro card let go on a Sprint lane joins that lane: released from Retro and adopted by Sprint,
+      // saved in that order; it is then on exactly one board (plan §2.4).
+      const both = { x: retroBox.x - 40, y: retroBox.y - 80, width: sprintBox.x + sprintBox.width - retroBox.x + 80, height: Math.max(retroBox.height, sprintBox.height) + 300 }
+      await page.evaluate(box => (window as any).slate.v2.fitToWidth(box, 0, 1), both)
+      await page.waitForTimeout(600)
+      const kindCard = (await stored(page)).creative.model.workshop.cards.find((c: any) => c.label === 'Kind reviews')
+      await carry(page, 'card-' + kindCard.id, await inColumn(page, 'b2:column-todo'))
+      await expect.poll(async () => (await stored(page)).boards.b2.model.workshop.cards.filter((c: any) => c.label === 'Kind reviews').map((c: any) => c.laneId), { timeout: 20000 }).toEqual(['todo'])
+      expect((await stored(page)).creative.model.workshop.cards.map((c: any) => c.label)).not.toContain('Kind reviews')
+      expect((await stored(page)).nodes.filter((n: any) => n.options?.text === 'Kind reviews')).toEqual([])
+      await expect(page.locator('#slateCanvas [data-node-id^="b2:card-"]', { hasText: 'Kind reviews' })).toBeVisible()
+      // The other browser draws it on Sprint too, and on Sprint only.
+      await expect(other.locator('#slateCanvas [data-node-id^="b2:card-"]', { hasText: 'Kind reviews' })).toBeAttached({ timeout: 30000 })
+      await expect(other.locator('#slateCanvas [data-node-id^="card-"]', { hasText: 'Kind reviews' })).toHaveCount(0)
+      await shot(page, 's4a-4b-retro-card-joins-sprint')
+
       // 4. With Retro in focus, "add a column" changes Retro alone.
       await look(page, retroBox)
       const column = await resting(page, 'column-change')
@@ -190,6 +206,22 @@ test.describe('many boards, 1440 by 900', () => {
       await expect(gear(page)).toHaveCount(1)
       await gear(page).click()
       await expect(focusChip(page)).toContainText('Sprint')
+      // "add a column" with Sprint in focus changes Sprint alone. A team board starts with five lanes, the most a
+      // board holds, so one goes first (Done, empty).
+      const beforeSprint = await stored(page)
+      await messageBox(page).fill('remove the Done lane')
+      await conversation(page).getByRole('button', { name: 'Preview changes', exact: true }).click()
+      await keep(page)
+      await expect.poll(async () => (await stored(page)).boards.b2.model.workshop.lanes.map((l: any) => l.label)).not.toContain('Done')
+      await messageBox(page).fill('add a column called Parked')
+      await conversation(page).getByRole('button', { name: 'Preview changes', exact: true }).click()
+      await keep(page)
+      await expect.poll(async () => (await stored(page)).boards.b2.model.workshop.lanes.map((l: any) => l.label)).toContain('Parked')
+      const afterSprint = await stored(page)
+      expect(afterSprint.creative.model.workshop.lanes).toEqual(beforeSprint.creative.model.workshop.lanes)
+      expect(afterSprint.creative.revision).toBe(beforeSprint.creative.revision)
+      expect(afterSprint.creative.model.workshop.lanes.map((l: any) => l.label)).not.toContain('Parked')
+      await shot(page, 's4a-6a-sprint-in-focus-new-column')
       await messageBox(page).fill('rename Review to QA')
       await conversation(page).getByRole('button', { name: 'Preview changes', exact: true }).click()
       await keep(page)
