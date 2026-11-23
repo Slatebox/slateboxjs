@@ -23,6 +23,16 @@
   boards' cards is refused with that sentence (said once, by the board at the line's start), and a note joined to
   one board's card stays a note when dropped on another board, saying the same. A note with a line ending free on
   the canvas keeps it on any board, scoped or not.
+- **A camera that flies** (`slate.camera`, also on the v1 facade as `slate.camera`). `flyTo(target, opts)`
+  eases the viewbox to a box, a set of notes or a camera state: `arc: 'prezi'` interpolates the zoom
+  in log space with a pull-back that grows with the distance (zoom out, travel, zoom in), `'direct'`
+  glides, `'cut'` jumps; `roll` rotates a roll host (`configure({ rollHost, hostSide, viewport })`)
+  with the screen offset mapped through the roll; `reduced: true` cuts level; `signal` or a newer
+  flight aborts one (its promise rejects with an AbortError). Pure helpers `cameraFor`,
+  `cameraBetween`, `viewboxFor` and `flightDuration` are exported. Nothing is saved or sent: the
+  viewbox only. Used by the app's styled presentations.
+- **`imageFit: 'cover'`**: a note's picture crops to fill its shape (a masked photo, a blob) instead
+  of letterboxing. The option is saved with the note; the default stays `contain`.
 - **Impact × effort, the reorg & hiring sandbox and goals & owners** (`slateboxjs/workshops/nestPlus`, loaded with
   the nested boards). A `matrix` layout (`nest.axes`, `score_card`, rule `quadrant`), yes/no fields (`add_field`
   `flag`) with rules `parent` and `contains`, and owners (`nest.owners`, `card.owner`, `add_owner`, `set_owner` with

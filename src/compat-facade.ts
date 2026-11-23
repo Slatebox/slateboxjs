@@ -539,6 +539,11 @@ class slate {
     return this.v2?.presentation;
   }
 
+  /** The eased camera (Prezi flights, roll, cuts) of the live slate. */
+  public get camera(): any {
+    return this.v2?.camera;
+  }
+
   constructor(options: Record<string, any> = {}, events: V1Events = {}) {
     // Spread FIRST: hosts pass `id: undefined` for new slates, and spreading
     // after the default would clobber the generated guid with undefined —

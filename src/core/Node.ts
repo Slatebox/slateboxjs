@@ -219,6 +219,8 @@ export interface NodeOptions {
   image?: string;
   imageOrigWidth?: number;
   imageOrigHeight?: number;
+  /** How the picture fills the shape: 'contain' (default, letterboxed) or 'cover' (cropped to fill). */
+  imageFit?: "cover" | "contain";
 
   // Line properties (for connections originating from this node)
   lineColor?: string;

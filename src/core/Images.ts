@@ -35,7 +35,8 @@ export class Images {
     this.imageUrl = url;
     this.origWidth = width || this.node.options.width || 100;
     this.origHeight = height || this.node.options.height || 60;
-    this.preserveAspectRatio = preserveAspectRatio;
+    // A note whose picture covers its shape (options.imageFit 'cover') crops it, never letterboxes.
+    this.preserveAspectRatio = this.node.options.imageFit === "cover" ? false : preserveAspectRatio;
 
     // Store on node options
     this.node.options.image = url;

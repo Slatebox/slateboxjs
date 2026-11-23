@@ -34,6 +34,7 @@ import { startLineTool, type LineToolResult } from "./LineTool";
 import { alignPositions, distributePositions, type AlignMode, type LayoutBox, type Position } from "../operations/layout";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
+import { Camera } from "./Camera";
 import { getAvailableFilters } from "./Filters";
 import { getAvailableAnimations, type AnimationDef } from "./Animations";
 import { loadAllFonts as loadAllFontsForSlate } from "./FontLoader";
@@ -259,6 +260,8 @@ export class Slate {
   public collab!: Collab;
   public zoomSlider!: ZoomSlider;
   public presentation!: Presentation;
+  /** Eased camera flights over the viewbox (Prezi arcs, roll, cuts). */
+  public camera!: Camera;
   public options: SlateOptions;
   // Runtime-injected by Connector for global line/marker containers
   public linesContainer?: any;
@@ -572,6 +575,7 @@ export class Slate {
 
     // Initialize presentation mode
     this.presentation = new Presentation(this);
+    this.camera = new Camera(this);
 
     // Make canvas responsive
     this.makeResponsive();
@@ -679,6 +683,7 @@ export class Slate {
     if (this.collab) {
       this.collab.disconnect();
     }
+    this.camera?.destroy();
     if (this.presentation) {
       this.presentation.stop();
     }
