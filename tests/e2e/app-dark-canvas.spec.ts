@@ -67,6 +67,24 @@ test('dark mode: the default canvas is dark, black words and a dark line are lif
       const s = (window as any).slate.v2
       return { bg: s.options.containerStyle.backgroundColor, ink: s.getNode('darktext').options.fontColor }
     })).toEqual({ bg: '#ffffff', ink: '#000000' })
+    // A copy of the drawing holds the slate's own colours: "Selection as SVG" (the same clone as every export, a
+    // copied picture, a template's picture and a presentation's surface) has black words, never the lifted ink.
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin })
+    const box = (await page.locator('#slateCanvas g[data-node-id="darktext"]').boundingBox())!
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+    await page.getByRole('button', { name: /^More/ }).first().click()
+    await page.getByText('Selection as SVG', { exact: true }).first().click()
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()).catch(() => '')).toMatch(/Black words/)
+    const copied = await page.evaluate(() => navigator.clipboard.readText())
+    expect(copied).toMatch(/#000000/i)
+    expect(copied).not.toMatch(/eef1e8|a9bcab|238,\s*241,\s*232|data-sb-ink/i)
+    await page.keyboard.press('Escape')
+    // And the canvas still shows the lifted ink.
+    await expect(words).toHaveCSS('fill', 'rgb(238, 241, 232)')
+    // The minimap's frame is amber on the dark canvas, its field the canvas's own colour.
+    const frame = page.locator('#slateCanvas .slateboxjs-birdseye-viewport')
+    await expect(frame).toHaveCSS('stroke', 'rgb(242, 206, 139)')
+    await expect(page.locator('#slateCanvas .slateboxjs-birdseye > svg > rect').first()).toHaveCSS('fill', DARK)
     // An author's own colour (as the slate menu's colour picker sets it) is kept in dark mode, and the lifted ink goes with the dark canvas.
     await page.evaluate(() => { const s = (window as any).slate.v2; Object.assign(s.options.containerStyle, { backgroundColor: '#fdf3e1' }); s.applyContainerStyle() })
     await expect.poll(() => canvas(page)).toEqual({ mark: null, bg: 'rgb(253, 243, 225)' })
@@ -137,6 +155,30 @@ for (const width of [1440, 390]) test(`${width}px dark: a retro's lanes are tint
     // A lane's header keeps its pastel with its dark words on it.
     await expect(page.locator('#slateCanvas g[data-node-id^="lane-"] > text').first()).toHaveCSS('fill', 'rgb(29, 43, 42)')
     expect(await page.evaluate(() => getComputedStyle(document.getElementById('slateCanvas')!).getPropertyValue('--slatebox-board-ink').trim())).toBe('#dfe7dc')
+  } finally {
+    await removeTestGuest(page, id).catch(() => undefined)
+    await context.close()
+  }
+})
+
+test('1440px dark: a launch plan\'s task bars are raised dark cards with light words, its weekends the muted columns', async ({ browser }) => {
+  const { context, page } = await fresh(browser, 'dark', 1440)
+  let id: string | null = null
+  try {
+    id = await newSlate(page)
+    const ask = page.locator('aside[aria-label="Ask Slatebox"]')
+    if (!(await ask.isVisible().catch(() => false))) await page.getByRole('button', { name: /^Ask Slatebox$/ }).first().click()
+    await page.getByRole('button', { name: /^(Browse|See all|Add to this slate)/ }).first().click()
+    await page.getByLabel('Search the library or describe what you need').first().fill('launch plan')
+    await page.getByRole('button', { name: /^Add( on a new slate:)? / }).first().click()
+    await page.getByRole('button', { name: 'Keep changes', exact: true }).click({ timeout: 25000 })
+    const bar = page.locator('#slateCanvas g[data-node-id^="card-"]').first()
+    await expect(bar.locator('[data-node-background-path]')).toHaveCSS('fill', 'rgb(58, 79, 68)', { timeout: 20000 })
+    await expect(bar.locator(':scope > text').first()).toHaveCSS('fill', 'rgb(238, 241, 232)')
+    // Saved as drawn: the bar is still its white paper in the slate.
+    expect(await bar.locator('[data-node-background-path]').getAttribute('fill')).toMatch(/^#fff/i)
+    // Weekends are drawn in the track ink, below the canvas.
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById('slateCanvas')!).getPropertyValue('--slatebox-board-track').trim())).toBe('#0a120e')
   } finally {
     await removeTestGuest(page, id).catch(() => undefined)
     await context.close()
