@@ -104,6 +104,25 @@ test.describe("a selected line's ends", () => {
     expect(fills.every((f) => f === "none")).toBe(true);
   });
 
+  test("a click on an end, without moving it, leaves the line as it is: following, or free where it was", async ({ page }) => {
+    await setup(page);
+    await selectLine(page);
+    const before = await lines(page);
+    const target = await handleAt(page, "target");
+    await page.mouse.click(target.x, target.y);
+    await page.waitForTimeout(350);
+    expect(await lines(page)).toEqual(before);
+    await expect(page.locator("#slateCanvas .connector-handle-target")).toHaveAttribute("aria-label", /end of the line.*follows/i);
+    // A free end clicked stays free, where it was.
+    await drag(page, await handleAt(page, "target"), { x: 420, y: 600 });
+    const free = await lines(page);
+    expect(free[0].childId).toMatch(/^__free_/);
+    const end = await handleAt(page, "target");
+    await page.mouse.click(end.x, end.y);
+    await page.waitForTimeout(350);
+    expect(await lines(page)).toEqual(free);
+  });
+
   test("an end dropped on empty canvas stays there, free, and the line keeps its id", async ({ page }) => {
     await setup(page);
     await selectLine(page);

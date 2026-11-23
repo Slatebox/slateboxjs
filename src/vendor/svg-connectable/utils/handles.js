@@ -156,6 +156,9 @@ function removeHandle(handleObj) {
 function setupHandleDrag(con, handleObj) {
   let dragTarget = null;
   let startPosition = [0, 0];
+  // Whether the end has moved since it was pressed: a press let go where it was (a click) changes
+  // nothing, so the end is taken off its note only on its first move.
+  let moved = false;
 
   // Check if draggable plugin is available
   if (!hasMethod(handleObj.element, "draggable")) {
@@ -183,11 +186,14 @@ function setupHandleDrag(con, handleObj) {
 
       // Bring handle to front
       handleObj.element.front();
-
-      // Detach handle from its current connection
-      detachHandle(con, handleObj);
+      moved = false;
     })
     .on("dragmove", function (event) {
+      // Detach the handle from its current connection on its first move, not on the press.
+      if (!moved) {
+        moved = true;
+        detachHandle(con, handleObj);
+      }
       // Get current handle position (SVG.js draggable plugin handles coordinate transformation)
       const currentPos = [handleObj.element.cx(), handleObj.element.cy()];
       handleObj.position = currentPos;
@@ -219,6 +225,13 @@ function setupHandleDrag(con, handleObj) {
       if (con.debugMode) {
         clearHitZoneVisualizations(con.container);
       }
+
+      // Let go without moving: the end stays as it was, on its note or free where it is.
+      if (!moved) {
+        dragTarget = null;
+        return;
+      }
+      moved = false;
 
       // Handle drop
       if (dragTarget) {
