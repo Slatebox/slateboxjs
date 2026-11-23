@@ -5137,7 +5137,7 @@ function hd(n, t) {
       t.element.node.setAttribute("style", "cursor: grab");
     }
     if (n.debugMode && Pr(n.container), !s) {
-      e = null;
+      e = null, typeof n.onLineClick == "function" && n.onLineClick();
       return;
     }
     if (s = !1, e)
