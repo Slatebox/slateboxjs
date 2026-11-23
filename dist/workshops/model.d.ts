@@ -381,7 +381,7 @@ export declare function workshopWithoutCardLines(board: Workshop, cardId: string
  * A screen reader hears it in words (workshopLaneSpoken).
  */
 export declare function workshopLaneCaption(board: Workshop, laneId: string): string;
-/** What a screen reader hears of a column's counter: "2 of 3", "2 cards", "1 of 1 · 2 cards". */
+/** What a screen reader hears of a column's counter: "2 of 3", "2 cards", "1 of 1 · 2 cards", "5 of 8 points". */
 export declare function workshopLaneSpoken(board: Workshop, laneId: string): string;
 /** Whether a column holds as many as its limit lets it (its counter pill takes the header's colour). */
 export declare function workshopLaneFull(board: Workshop, laneId: string): boolean;

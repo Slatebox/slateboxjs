@@ -3070,7 +3070,8 @@ function ua(e, n, t = {}) {
   }
   function Ko(s, a) {
     const d = me(a);
-    if (d?.kind === "lane") {
+    if (d?.kind === "lane" || d?.kind === "caption") {
+      if (d.kind === "caption" && s.lanes.some((m) => m.station)) return null;
       const f = s.lanes.find((m) => m.id === d.key);
       return f ? `${f.label}, ${We(s, f.id)}` : null;
     }
@@ -3882,7 +3883,7 @@ function Vr(e, n, t) {
   if (!r) return "";
   if (e.kind === "release-plan") {
     const y = Xe(e, n);
-    return r.capacity ? y + " / " + r.capacity + " points" : y + " points";
+    return r.capacity ? y + (t ? " of " : " / ") + r.capacity + " points" : y + " points";
   }
   const o = ce(e);
   if (o) return Ae(o).caption(e, n);
