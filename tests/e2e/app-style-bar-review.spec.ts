@@ -228,10 +228,11 @@ test('values follow the note: a new slate\'s note shows the size it is drawn at,
   try {
     id = await openSlate(page)
     await select(page, 'Welcome!')
-    // "14pt" is drawn at 18.7px: not Small.
-    expect(await opt(page, 'Welcome!', 'fontSize')).toBe('14pt')
+    // A first note is "13.5pt", drawn at 18px: the Medium chip, not Small (restated 2026-11-23: the
+    // first note moved from 14pt, drawn at 18.7px and shown as a custom size, onto the bar's M).
+    expect(await opt(page, 'Welcome!', 'fontSize')).toBe('13.5pt')
     await expect(bar(page).getByRole('radio', { name: 'Small text' })).toHaveAttribute('aria-checked', 'false')
-    await expect(bar(page).getByRole('radio', { name: /Custom size, 18\.7/ })).toHaveAttribute('aria-checked', 'true')
+    await expect(bar(page).getByRole('radio', { name: 'Medium text' })).toHaveAttribute('aria-checked', 'true')
     // Text animation, offered again in Effects and animation.
     await bar(page).getByRole('button', { name: 'More', exact: true }).click()
     await group(page, 'More').getByRole('button', { name: /^Effects and animation/ }).click()
