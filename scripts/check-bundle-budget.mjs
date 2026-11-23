@@ -15,8 +15,9 @@ const ceilings = {
   // Measured at release/combined 5d21cac, plus what they may grow.
   'workshops.mjs': { raw: 84089 + 2000, gzip: 24120 + 1000 },
   'operations.mjs': { raw: 80276 + 2000, gzip: 22791 + 1000 },
-  // The agents' drawing: its own entry, loaded when the first agent arrives.
-  'presence.mjs': { raw: 20000, gzip: 7000 },
+  // The agents' drawing: its own entry, loaded when the first agent or suggestion arrives. Measured with
+  // the live suggestions (ghosts, Keep and Discard) at 32254 / 11004, plus what it may grow.
+  'presence.mjs': { raw: 34000, gzip: 11500 },
   // A board's rulebook (behaviour.ts): loaded only for a board that has rules, and by a server.
   'workshop-behaviour.mjs': { raw: 20000, gzip: 6000 },
   // The plans (launch and hiring) and their time rules: loaded with the rules, or with a plan's kit. The code

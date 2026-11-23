@@ -21,6 +21,66 @@ export interface AgentPresenceRecord {
   updatedAt: number | string | Date
   endedAt?: number | string | Date | null
   expiresAt: number | string | Date
+  /**
+   * An empty spot on the slate (world units) the pointer goes to before its targets: where a
+   * suggestion is about to land, say. Without targets it is where the pointer rests.
+   */
+  point?: { x: number; y: number } | null
+  /** A short line said in a bubble over the pointer for AGENT_SAY_MS after sayAt. */
+  say?: string | null
+  sayAt?: number | string | Date | null
+  /** Where the agent comes from: a visiting agent (its own MCP client), an invited one, or Slatebox's own. */
+  origin?: 'visiting' | 'invited' | 'slatebox' | null
+  /** The client a visiting agent reported ("Claude"), cleaned by the host. */
+  via?: string | null
+  /** An invited agent's icon: an https: or data:image URL the host proxied and size-capped. */
+  iconUrl?: string | null
+  /** The first name of the person who invited it. */
+  invitedBy?: string | null
+  /** The agent across its runs on this slate (stable per agent and slate, never a token id). */
+  agentId?: string | null
+}
+
+/** How long a pointer's bubble shows after the agent says something. */
+export const AGENT_SAY_MS = 3000
+
+/** The origin line under an agent's name: "via Claude", "added by Ada", or nothing. */
+export function agentOrigin(record: Pick<AgentPresenceRecord, 'origin' | 'via' | 'invitedBy'>): string {
+  if (record.origin === 'invited' && record.invitedBy) return 'added by ' + plainLine(record.invitedBy)
+  if (record.origin === 'visiting' && record.via) return 'via ' + plainLine(record.via)
+  return ''
+}
+
+/**
+ * The name an agent is shown by: its label, then where it comes from ("Research · added by Ada",
+ * "Ada's agent · via Claude"). A visiting agent whose label already names its client ("Ada's agent ·
+ * Claude") keeps the label as it is.
+ */
+export function agentName(record: Pick<AgentPresenceRecord, 'label' | 'origin' | 'via' | 'invitedBy'>, max = 56): string {
+  const label = plainLine(record.label)
+  const origin = agentOrigin(record)
+  const named = record.origin === 'visiting' && record.via && label.endsWith('· ' + plainLine(record.via))
+  return clip(origin && !named && !label.includes(origin) ? label + ' · ' + origin : label, max)
+}
+
+/** An icon URL safe to draw: https:, or a data: image of a raster type. Anything else is null. */
+export function safeIconUrl(url: unknown): string | null {
+  if (typeof url !== 'string' || url.length > 200_000) return null
+  if (/^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(url)) return url
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' ? parsed.href : null
+  } catch {
+    return null
+  }
+}
+
+/** The bubble a record shows now, or null: its `say`, for AGENT_SAY_MS after sayAt. */
+export function agentSaying(record: AgentPresenceRecord, now: number): string | null {
+  const said = plainLine(record.say ?? '')
+  const at = time(record.sayAt ?? null)
+  if (!said || at === null || now < at || now >= at + AGENT_SAY_MS) return null
+  return said
 }
 
 /** Agent colours. People's colours never use these; the shape, not only the colour, says "agent". */
@@ -32,7 +92,7 @@ export const AGENT_MAX_DRAWN = 6
 
 const GLYPH: Record<AgentStepStatus, string> = { todo: '○', doing: '◌', done: '✓', skipped: '–', stopped: '■' }
 
-export const time = (value: number | string | Date | null | undefined): number | null => {
+export function time(value: number | string | Date | null | undefined): number | null {
   if (value === null || value === undefined) return null
   const ms = value instanceof Date ? value.getTime() : typeof value === 'number' ? value : Date.parse(value)
   return Number.isFinite(ms) ? ms : null

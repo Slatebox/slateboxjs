@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { SVG } from '@svgdotjs/svg.js'
 import {
-  AGENT_PALETTE, agentChecklist, agentStepText, agentTagBox, agentTagPlaced, agentTagSide, createAgentPresence, visibleAgents, type AgentPresenceRecord,
+  AGENT_BEAT_MS, AGENT_PALETTE, agentChecklist, agentStepText, agentTagBox, agentTagPlaced, agentTagSide, createAgentPresence, visibleAgents, type AgentPresenceRecord,
 } from '../../src/core/AgentPresence'
 
 function fakeSlate(notes: Record<string, { x: number; y: number; width: number; height: number }> = {}) {
@@ -77,10 +77,11 @@ describe('agent presence on a canvas', () => {
     presence.set([record({ targets: ['a'] })])
     expect(presence.shown()[0]).toMatchObject({ x: 92, y: 92 })
     presence.set([record({ targets: ['b', 'c'], updatedAt: 2000 })])
-    clock += 250
+    // One beat per spot: AGENT_BEAT_MS (450 ms) each.
+    clock += AGENT_BEAT_MS
     await new Promise(resolve => setTimeout(resolve, 40))
     expect(presence.shown()[0].x).toBeCloseTo(492)
-    clock += 250
+    clock += AGENT_BEAT_MS
     await new Promise(resolve => setTimeout(resolve, 40))
     expect(presence.shown()[0]).toMatchObject({ x: 492, y: 492 })
     presence.destroy()

@@ -19,11 +19,19 @@ function prefersReducedMotion(): boolean {
 }
 
 import {
-  AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, agentChecklist, agentStepText, clip, plainLine, time, visibleAgents,
-  type AgentPresenceRecord, type AgentStepStatus,
+  AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, AGENT_SAY_MS, agentChecklist, agentName, agentOrigin, agentSaying, agentStepText, clip, plainLine,
+  safeIconUrl, time, visibleAgents, type AgentPresenceRecord, type AgentStepStatus,
 } from './agentPresenceText'
 
-export { AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, agentChecklist, agentStepText, visibleAgents, type AgentPresenceRecord, type AgentStepStatus }
+export {
+  AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, AGENT_SAY_MS, agentChecklist, agentName, agentOrigin, agentSaying, agentStepText, safeIconUrl,
+  visibleAgents, type AgentPresenceRecord, type AgentStepStatus,
+}
+// The live suggestions an agent makes (ghost notes with Keep and Discard) share this entry.
+export {
+  createAgentSuggestions, ghostIdOf, GHOST_PREFIX, pendingItems,
+  type AgentSuggestions, type AgentSuggestionsOptions, type SuggestionAction, type SuggestionItem, type SuggestionRef,
+} from './AgentSuggestions'
 
 export interface AgentPresenceOptions {
   now?: () => number
@@ -53,7 +61,9 @@ export interface AgentPresence {
 }
 
 export const AGENT_GLIDE_MS = 400
-export const AGENT_VISIT_MS = 250
+/** One beat of a choreographed run: the pointer's leg to each spot when it visits several in turn. */
+export const AGENT_BEAT_MS = 450
+export const AGENT_VISIT_MS = AGENT_BEAT_MS
 export const AGENT_MAX_VISITS = 5
 const CARD_WIDTH = 240
 const NARROW = 600
@@ -128,9 +138,14 @@ export function agentTagPlaced(at: { x: number; y: number }, size: { w: number; 
   return box
 }
 
+/** The name a tag shows: the label, then where the agent comes from when the label does not say it already. */
+function tagLabel(record: AgentPresenceRecord): string {
+  return agentName(record)
+}
+
 /** The tag block an agent draws, in screen pixels: its tag, and its checklist when that shows. */
 function blockSize(record: AgentPresenceRecord, showList: boolean) {
-  const label = clip(plainLine(record.label), 48)
+  const label = tagLabel(record)
   const step = agentStepText(record)
   const stepLine = step ? clip(step, 40) : ''
   // Bold 12px words take about 7px a letter, the 11px step about 6.3px: the tag is wide enough for both.
@@ -341,7 +356,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     const step = agentStepText(record)
     const lines = agentChecklist(record)
     const showList = lines.length > 0 && (item.open || !compact)
-    const label = clip(plainLine(record.label), 48)
+    const label = tagLabel(record)
     item.body?.remove()
     const body = item.group.group()
     item.body = body
@@ -355,9 +370,17 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       return (cx + r * Math.cos(a)).toFixed(2) + ',' + (cy + r * Math.sin(a)).toFixed(2)
     }).join(' ')
     hex.polygon(points).fill(color).stroke({ color: '#fff', width: 1.5 })
-    hex.text((t: any) => t.plain(clip(plainLine(record.initial).toUpperCase(), 1) || '?'))
-      .font({ size: 11, weight: 700, family: 'Roboto, Helvetica, Arial, sans-serif', anchor: 'middle' })
-      .fill('#fff').attr({ x: cx, y: cy + 4 })
+    const icon = safeIconUrl(record.iconUrl)
+    if (icon) {
+      // An invited agent's own icon, inside the hexagon (the host proxied it); the hexagon still says "agent".
+      const round = hex.clip()
+      round.add(hex.circle(14).center(cx, cy))
+      hex.image(icon).size(14, 14).move(cx - 7, cy - 7).attr({ 'data-agent-icon': '', preserveAspectRatio: 'xMidYMid slice' }).clipWith(round)
+    } else {
+      hex.text((t: any) => t.plain(clip(plainLine(record.initial).toUpperCase(), 1) || '?'))
+        .font({ size: 11, weight: 700, family: 'Roboto, Helvetica, Arial, sans-serif', anchor: 'middle' })
+        .fill('#fff').attr({ x: cx, y: cy + 4 })
+    }
     hex.path('M35 10 L36.5 13.5 L40 15 L36.5 16.5 L35 20 L33.5 16.5 L30 15 L33.5 13.5 Z').fill('#fde68a').stroke({ color, width: 0.8 })
     // The tag: who, and what it is doing now. Tapping it opens or closes the checklist.
     const tag = body.group().attr({ 'data-agent-tag': '', 'pointer-events': 'all', cursor: lines.length ? 'pointer' : 'default', role: 'button',
@@ -423,6 +446,22 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
         row.attr('data-step-status', status)
       })
     }
+    // What the agent says now, in a bubble over its pointer (a short status line for a few seconds).
+    const saying = agentSaying(record, now())
+    if (saying) {
+      const words = clip(saying, 60)
+      const w = Math.max(48, Math.min(260, 16 + 6.6 * words.length)), h = 24
+      // Away from the tag: over the pointer when the tag hangs below it, under the avatar when the tag is above.
+      const bx = avatarRight ? 8 : -8 - w, by = side.down ? -h - 14 : 46
+      const bubble = body.group().attr({ 'data-agent-say': '', role: 'status', 'aria-label': label + ' says: ' + words })
+      bubble.rect(w, h).radius(12).move(bx, by).fill('#ffffff').stroke({ color, width: 1.5 })
+      const tailX = avatarRight ? bx + 14 : bx + w - 14
+      if (side.down) {
+        bubble.path(`M${tailX - 5} ${by + h - 0.5} L${tailX} ${by + h + 7} L${tailX + 5} ${by + h - 0.5} Z`).fill('#ffffff').stroke({ color, width: 1.5 })
+        bubble.rect(12, 3).move(tailX - 6, by + h - 2).fill('#ffffff')
+      }
+      bubble.text((t: any) => t.plain(words)).font({ size: 12, family: 'Roboto, Helvetica, Arial, sans-serif' }).fill('#111827').attr({ x: bx + 8, y: by + 16 })
+    }
     body.element('title').words(label + (step ? ' — ' + step : ''))
     item.compact = compact
     item.lines = lines
@@ -445,15 +484,30 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     const all = noteBoxes(), words = wordBoxes(record.agentKey)
     const boxes = record.targets.map(id => boxOf(noteOf(id))).filter((box): box is Box => Boolean(box))
     const anchors = boxes.slice(0, AGENT_MAX_VISITS).map(box => agentAnchor(box, size, scale, view, all.filter(other => !sameBox(other, box)), words))
+    // An empty spot first (where a suggestion is about to land), then its notes: one beat each.
+    const spot = pointOf(record)
     if (!anchors.length) {
+      if (spot) return { legs: [{ x: spot.x, y: spot.y, ms: AGENT_GLIDE_MS }], side: agentTagSide(spot, size, scale, view, [], all, words) }
       const point = restingPoint(index, size, scale, words)
       return { legs: [{ x: point.x, y: point.y, ms: AGENT_GLIDE_MS }], side: point.side }
     }
-    const ms = anchors.length === 1 ? AGENT_GLIDE_MS : AGENT_VISIT_MS
-    return { legs: anchors.map(anchor => ({ x: anchor.x, y: anchor.y, ms })), side: anchors[anchors.length - 1].side }
+    const ms = anchors.length === 1 && !spot ? AGENT_GLIDE_MS : AGENT_BEAT_MS
+    const legs = anchors.map(anchor => ({ x: anchor.x, y: anchor.y, ms }))
+    if (spot) legs.unshift({ x: spot.x, y: spot.y, ms: AGENT_BEAT_MS })
+    return { legs, side: anchors[anchors.length - 1].side }
   }
 
   const targetsFound = (record: AgentPresenceRecord) => record.targets.some(id => centreOf(id) !== null)
+  // The record's empty spot, when it names a finite one.
+  const pointOf = (record: AgentPresenceRecord) => {
+    const p = record.point
+    return p && Number.isFinite(p.x) && Number.isFinite(p.y) ? { x: Number(p.x), y: Number(p.y) } : null
+  }
+  // What the pointer is routed by: its targets and its spot.
+  const routeKey = (record: AgentPresenceRecord) => {
+    const p = pointOf(record)
+    return record.targets.join('\u0000') + (p ? '@' + p.x + ',' + p.y : '')
+  }
 
   const ease = (t: number) => 1 - Math.pow(1 - t, 3)
 
@@ -490,7 +544,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     const compact = shown.length >= 2 || screenWidth() < NARROW
     shown.forEach(({ record, opacity }, index) => {
       let item = drawn.get(record.agentKey)
-      const targetsKey = record.targets.join('\u0000')
+      const targetsKey = routeKey(record)
       const open = opened.has(record.agentKey)
       const size = blockSize(record, agentChecklist(record).length > 0 && (open || !compact))
       // A tag that grew (a list opened, a longer step) or a new zoom may need another corner.
@@ -529,7 +583,9 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     const moving = travel(at)
     for (const item of drawn.values()) place(item, scale)
     const fading = shown.some(item => item.opacity < 1)
-    const nextChange = Math.min(...shown.map(item => item.record.status === 'live' && time(item.record.endedAt) === null
+    // A bubble ends on its own time too.
+    const bubbles = shown.map(item => (agentSaying(item.record, at) ? (time(item.record.sayAt ?? null) ?? at) + AGENT_SAY_MS : Infinity))
+    const nextChange = Math.min(...bubbles, ...shown.map(item => item.record.status === 'live' && time(item.record.endedAt) === null
       ? item.until : (time(item.record.endedAt) ?? time(item.record.updatedAt) ?? at) + holdMs))
     schedule(moving || fading ? 'frame' : Math.max(16, nextChange - at))
   }
