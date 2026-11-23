@@ -170,7 +170,7 @@ void saved
   )
 
   // The canvas entry loads in Node without a DOM in both module systems, and exports the canvas.
-  const canvasCheck = "if (typeof api.Slate !== 'function') throw Error('The canvas entry has no Slate')"
+  const canvasCheck = "if (typeof api.Slate !== 'function' || !Array.isArray(api.AGENT_PALETTE) || typeof api.visibleAgents !== 'function') throw Error('The canvas entry has no Slate or agent helpers')"
   run('node', ['--input-type=module', '--eval', "import * as api from 'slateboxjs/canvas';" + canvasCheck], sandbox)
   run('node', ['--eval', "const api = require('slateboxjs/canvas');" + canvasCheck], sandbox)
 

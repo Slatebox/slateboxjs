@@ -3,3 +3,5 @@
 // the whole-slate operations, the menus and the other authoring pieces stay in the main entry, and the parts of
 // a slate that wait for a person (the line tool, live sync with collaborators) load when first used.
 export { Slate } from './core/Slate'
+// Agents on the canvas: what they say and when they show (the drawing is slateboxjs/presence, loaded when the first agent arrives).
+export { AGENT_PALETTE, agentStepText, agentChecklist, visibleAgents, type AgentPresenceRecord, type AgentStepStatus } from './core/agentPresenceText'
