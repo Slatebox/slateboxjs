@@ -1,11 +1,11 @@
-const N = "1.0", q = [
+const q = "1.0", O = [
   { id: "all", label: "All" },
   { id: "plan", label: "Plan" },
   { id: "decide", label: "Decide" },
   { id: "meetings", label: "Meetings" },
   { id: "track", label: "Track" },
   { id: "map", label: "Map" }
-], R = (a = "Slatebox") => ({ by: a, at: "2026-11-21T00:00:00.000Z", via: "preset" }), D = {
+], D = (a = "Slatebox") => ({ by: a, at: "2026-11-21T00:00:00.000Z", via: "preset" }), L = {
   "now-next-later": {
     title: "Now, next, later",
     lanes: [{ id: "now", label: "Now" }, { id: "next", label: "Next" }, { id: "later", label: "Later" }],
@@ -39,12 +39,12 @@ const N = "1.0", q = [
     ],
     rules: [{ kind: "path", from: "any", noSkip: !0 }, { kind: "capacity", where: "doing", max: 3 }, { kind: "bin", lane: "wont" }]
   }
-}, L = () => ({ version: 1, title: "Decision path", lanes: [
+}, P = () => ({ version: 1, title: "Decision path", lanes: [
   { id: "question", label: "The question", station: { column: 0, row: 0, next: ["option-a", "option-b"], outcome: "Say what you are deciding." } },
   { id: "option-a", label: "Option A", station: { column: 1, row: 0, next: ["decide"], outcome: "Weigh the first option." } },
   { id: "option-b", label: "Option B", station: { column: 1, row: 1, next: ["decide"], outcome: "Weigh the second option." } },
   { id: "decide", label: "Decide", station: { column: 2, row: 0, next: [], outcome: "Write down what you chose and why." } }
-], cards: [{ id: "token", label: "Our choice", laneId: "question" }] }), e = (a, t, n, s) => ({ edit: a, words: t, say: n, ...s && { rule: s } }), f = (a = e("add_rule", "Cards move one lane at a time", "Cards move one lane at a time", "path"), t = []) => [
+], cards: [{ id: "token", label: "Our choice", laneId: "question" }] }), e = (a, t, n, s) => ({ edit: a, words: t, say: n, ...s && { rule: s } }), y = (a = e("add_rule", "Cards move one lane at a time", "Cards move one lane at a time", "path"), t = []) => [
   e("add_rule", "Limit a lane", "Let {busy} hold 1", "capacity"),
   a,
   ...t,
@@ -56,7 +56,7 @@ const N = "1.0", q = [
   e("rename_workshop", "Rename the board", "Rename the board to Team review"),
   e("set_rule", "Warn instead of refusing", "Just warn me when {ruled} is full"),
   e("remove_rule", "Remove a rule", "Remove the {ruled} rule")
-], p = ["One board per slate for now; on a slate that has one, this opens on a new slate.", "Up to 5 lanes and 24 cards."], S = (a) => [...new Set(a.map((t) => t.edit))], M = (a) => [...new Set(a.flatMap((t) => t.rule ? [t.rule] : []))], h = (a, t, n, s, d, i, o, r = {}) => ({
+], p = ["Up to 8 boards on one slate, side by side; past that, it opens on a new slate.", "Up to 5 lanes and 24 cards."], M = (a) => [...new Set(a.map((t) => t.edit))], x = (a) => [...new Set(a.flatMap((t) => t.rule ? [t.rule] : []))], h = (a, t, n, s, d, i, o, r = {}) => ({
   id: a,
   group: t,
   name: n,
@@ -64,14 +64,14 @@ const N = "1.0", q = [
   synonyms: d,
   build: { kind: "lanes" },
   addSay: ["Add " + m(n) + n.toLowerCase(), "Add " + m(n) + n.toLowerCase() + " about {topic}"],
-  edits: S(r.moves ?? f()),
-  rules: M(r.moves ?? f()),
-  moves: f(),
+  edits: M(r.moves ?? y()),
+  rules: x(r.moves ?? y()),
+  moves: y(),
   limits: p,
   loop: { src: "/library/" + a + ".svg", alt: n + ": " + o.join(" "), caption: i, steps: o },
-  multiPerSlate: !1,
+  multiPerSlate: !0,
   ...r
-}), u = (a) => ({ moves: a, edits: S(a), rules: M(a) }), C = (a) => a ? [
+}), u = (a) => ({ moves: a, edits: M(a), rules: x(a) }), T = (a) => a ? [
   e("add_rule", "Let a task slip, in red", "Let things slip past " + a + " but show them in red", "deadline"),
   e("set_rule", "Stop a slip at what waits on it", "Stop me instead of pushing dependent tasks", "cascade"),
   e("add_rule", "Add a freeze", "Nothing ships in code freeze, {dates}", "blackout"),
@@ -100,10 +100,10 @@ const N = "1.0", q = [
   synonyms: s,
   build: { kind: r, sample: o },
   addSay: ["Add " + m(t) + t.toLowerCase(), "Add " + m(t) + t.toLowerCase() + " about {topic}"],
-  ...u(C(r === "hiring-plan" ? "" : o === "go-live" ? "go-live" : "launch")),
+  ...u(T(r === "hiring-plan" ? "" : o === "go-live" ? "go-live" : "launch")),
   limits: [r === "hiring-plan" ? "Cost is per role band, never per person. On a phone it is read-only." : "Up to 12 tasks on 2 to 4 teams.", p[0]],
   loop: { src: "/library/" + a + ".svg", alt: t + ": " + i.join(" "), caption: d, steps: i },
-  multiPerSlate: !1
+  multiPerSlate: !0
 }), w = (a, t) => [...a ? [
   e("add_rule", "Weight piles by ARR", "Weight by ARR", "rank"),
   e("add_rule", "Cap a pile", "Piles hold at most 2", "children"),
@@ -130,9 +130,9 @@ const N = "1.0", q = [
     ...u(l),
     limits: ["Up to 40 cards. On a phone it is an outline.", p[0]],
     loop: { src: "/library/" + a + ".svg", alt: n + ": " + r.join(" "), caption: o, steps: r },
-    multiPerSlate: !1
+    multiPerSlate: !0
   }
-), P = [
+), C = [
   e("add_rule", "Limit a square", "Plan it holds 2", "quadrant"),
   e("set_rule", "Make room in Do now", "Do now holds 4", "quadrant"),
   e("score_card", "Move an idea to a square", "Move {scored} to Later"),
@@ -141,7 +141,7 @@ const N = "1.0", q = [
   e("add_card", "Add an idea", "Add a card called Webhooks"),
   e("rename_card", "Rename an idea", "Rename {scored} to Self-serve import"),
   e("remove_card", "Remove an idea", "Remove {scored}")
-], T = [
+], W = [
   e("set_rule", "Change the span of control", "No manager over 3 reports", "children"),
   e("add_rule", "Keep a role from managing", "Engineers don’t manage", "parent"),
   e("set_rule", "Make a warning a rule", "Stop me when a manager has no designer", "contains"),
@@ -152,7 +152,7 @@ const N = "1.0", q = [
   e("set_field", "Mark a contractor", "{person} is a contractor"),
   e("rename_card", "Rename someone", "Rename {person} to Ravi Shah, Staff"),
   e("remove_card", "Remove someone", "Remove {person}")
-], W = [
+], N = [
   e("set_rule", "Bring what is under a card along", "When I move a key result, bring its initiatives along", "sameOwnerAs"),
   e("set_rule", "Refuse a cross-team owner", "Stop me when a key result is owned outside its objective’s team", "sameOwnerAs"),
   e("set_rule", "Ask about what is under it", "Ask before moving what is under a card"),
@@ -162,7 +162,7 @@ const N = "1.0", q = [
   e("add_card", "Add an initiative", "Add an initiative called Status page under {kr}"),
   e("rename_card", "Rename a card", "Rename {kr} to Activation in a week"),
   e("remove_card", "Remove a card", "Remove {kr}")
-], v = (a, t, n, s, d, i, o, r, l, c, y) => ({
+], v = (a, t, n, s, d, i, o, r, l, c, f) => ({
   id: a,
   group: t,
   name: n,
@@ -171,9 +171,9 @@ const N = "1.0", q = [
   build: { kind: "nest", sample: i },
   addSay: [c, c + " about {topic}"],
   ...u(l),
-  limits: [y, p[0]],
+  limits: [f, p[0]],
   loop: { src: "/library/" + a + ".svg", alt: n + ": " + r.join(" "), caption: o, steps: r },
-  multiPerSlate: !1
+  multiPerSlate: !0
 }), m = (a) => /^pros/i.test(a) ? "" : /^[aeiou]/i.test(a) ? "an " : "a ", g = [
   h(
     "now-next-later",
@@ -221,7 +221,7 @@ const N = "1.0", q = [
     ]),
     limits: ["Up to 5 steps on a 3 by 3 grid.", p[0]],
     loop: { src: "/library/decision-path.svg", alt: "Decision path: the token moves only along connected steps.", caption: "Not connected", steps: ["Drag the token along a path.", "A step with no path to it dims."] },
-    multiPerSlate: !1
+    multiPerSlate: !0
   },
   h(
     "retro",
@@ -252,7 +252,7 @@ const N = "1.0", q = [
     ["A full Doing shows 3 of 3 and dims.", "The next card dragged to Doing is refused with that sentence."],
     {
       addSay: ["Add a team board", "Add a team board about {topic}"],
-      ...u(f(e("add_rule", "Send cards one way", "From {busy} cards go only to {other}", "path"), [e("add_rule", "Add a bin", "Make {lane} a bin", "bin")]))
+      ...u(y(e("add_rule", "Send cards one way", "From {busy} cards go only to {other}", "path"), [e("add_rule", "Add a bin", "Make {lane} a bin", "bin")]))
     }
   ),
   k(
@@ -340,7 +340,7 @@ const N = "1.0", q = [
     "impact-effort",
     "Do now holds 3.",
     ["Drag an idea across the square: its scores follow.", "A fourth into Do now is refused, naming the weakest there."],
-    P,
+    C,
     "Add an impact × effort board",
     "Up to 40 cards, scored 0 to 10. On a phone it is a 358 px square."
   ),
@@ -353,7 +353,7 @@ const N = "1.0", q = [
     "reorg",
     "Open roles don’t manage.",
     ["Drag a manager: the whole team comes along.", "Under an open role it is refused."],
-    T,
+    W,
     "Add a reorg & hiring sandbox",
     "Up to 40 people. Roles and yes/no fields only, never salaries. Paste a list of name, role, manager to fill it. On a phone it is an outline; move people by chat."
   ),
@@ -366,7 +366,7 @@ const N = "1.0", q = [
     "goals",
     "A card is owned by the team that owns what it sits under (a warning only).",
     ["Drop a key result on another team.", "It lands, flagged cross-team."],
-    W,
+    N,
     "Add a goals & owners board",
     "Up to 40 cards and 8 teams. On a phone it is an outline; change teams by chat."
   ),
@@ -388,7 +388,7 @@ const N = "1.0", q = [
     ]),
     limits: ["Up to 16 deals.", p[0]],
     loop: { src: "/library/sales-pipeline.svg", alt: "Sales pipeline: carry a deal on; stages it cannot skip dim; the forecast moves.", caption: "Proposal holds 3.", steps: ["Carry a deal to the next stage.", "A full stage refuses."] },
-    multiPerSlate: !1
+    multiPerSlate: !0
   },
   {
     id: "budget",
@@ -405,17 +405,17 @@ const N = "1.0", q = [
     ]),
     limits: ["The total stays fixed.", p[0]],
     loop: { src: "/library/budget.svg", alt: "Budget: move money between teams; the total stays fixed.", caption: "The total stays fixed.", steps: ["Move a divider between teams.", "The total stays the same."] },
-    multiPerSlate: !1
+    multiPerSlate: !0
   }
 ];
-function x(a) {
+function R(a) {
   return g.find((t) => t.id === a);
 }
-function O(a = "all") {
+function U(a = "all") {
   return g.filter((t) => a === "all" || t.group === a);
 }
-function U(a, t, n = {}) {
-  const s = x(a);
+function $(a, t, n = {}) {
+  const s = R(a);
   if (!s) throw new Error("There is nothing called " + a + " in the library.");
   const d = (o) => {
     const r = typeof t == "string" ? t.replace(/\s+/g, " ").trim().slice(0, 100) : "";
@@ -427,18 +427,18 @@ function U(a, t, n = {}) {
     const r = o();
     return { ...r, title: t ? d(s.name) : r.title };
   }
-  if (s.build.kind === "map") return { ...L(), title: d("Decision path") };
-  const i = D[a];
+  if (s.build.kind === "map") return { ...P(), title: d("Decision path") };
+  const i = L[a];
   return {
     version: 1,
     title: d(i.title),
     lanes: i.lanes.map((o) => ({ ...o })),
     cards: [],
-    behaviour: { version: 1, rev: 0, rules: (i.rules ?? []).map((o, r) => ({ id: "rule-" + (r + 1), on: !0, severity: "refuse", set: R(), ...o })) }
+    behaviour: { version: 1, rev: 0, rules: (i.rules ?? []).map((o, r) => ({ id: "rule-" + (r + 1), on: !0, severity: "refuse", set: D(), ...o })) }
   };
 }
 const _ = (a) => a.toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9/ ]+/g, " ").replace(/\s+/g, " ").trim();
-function $(a) {
+function B(a) {
   if (typeof a != "string" || a.length > 300) return null;
   const t = a.trim().replace(/[.!]+$/, ""), n = /^(?:please\s+)?(?:add|start|set up|make|create|open)\s+(?:(?:a|an|the|some|our|my)\s+)?(?:new\s+)?/i.exec(t);
   if (!n) return null;
@@ -463,22 +463,24 @@ function E(a) {
   const d = new Set(t.slice(s[0].length).split(" ").filter((o) => o.length > 2 && !["the", "and", "for", "our", "with"].includes(o))), i = g.map((o) => {
     const r = [o.name, o.line, ...o.synonyms].map(_).join(" ");
     let l = 0;
-    for (const c of d) (r.includes(c) || r.includes(c.replace(/s$/, ""))) && (l += o.synonyms.some((y) => _(y).includes(c.replace(/s$/, ""))) ? 2 : 1);
+    for (const c of d) (r.includes(c) || r.includes(c.replace(/s$/, ""))) && (l += o.synonyms.some((f) => _(f).includes(c.replace(/s$/, ""))) ? 2 : 1);
     return { id: o.id, score: l };
   }).filter((o) => o.score > 0).sort((o, r) => r.score - o.score);
   return i.length ? { all: !1, entries: i.slice(0, 3).map((o) => o.id) } : null;
 }
+const S = 8;
 function j(a, t) {
-  return x(a) ? t.hasBoard ? { ok: !1, reason: "This slate already has a board, so this opens on a new slate." } : { ok: !0 } : { ok: !1, reason: "That is not in the library." };
+  return R(a) ? t.many ? (t.boards ?? (t.hasBoard ? 1 : 0)) >= S ? { ok: !1, reason: `This slate holds ${S} boards, the most for now. Add it on a new slate?` } : { ok: !0 } : t.hasBoard ? { ok: !1, reason: "This slate already has a board, so this opens on a new slate." } : { ok: !0 } : { ok: !1, reason: "That is not in the library." };
 }
 export {
   g as catalog,
-  $ as catalogAddRequest,
-  x as catalogEntry,
+  B as catalogAddRequest,
+  R as catalogEntry,
   j as catalogFits,
-  q as catalogGroups,
-  O as catalogList,
+  O as catalogGroups,
+  U as catalogList,
   E as catalogMatch,
-  U as catalogPreset,
-  N as catalogVersion
+  $ as catalogPreset,
+  q as catalogVersion,
+  S as maxBoardsPerSlate
 };

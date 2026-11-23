@@ -257,8 +257,13 @@ export interface WorkshopPresentationScene {
     /** Native node IDs for this viewpoint in the artwork produced by workshopToSlate. */
     nodeIds: string[];
 }
-/** Describe each authored viewpoint from the committed state, including empty lanes. */
-export declare function workshopPresentationScenes(board: Workshop): WorkshopPresentationScene[];
+/**
+ * Describe each authored viewpoint from the committed state, including empty lanes. `scope`: the
+ * board's scope on a slate of many boards (see workshopNodeIds.of), so the node ids are that board's.
+ */
+export declare function workshopPresentationScenes(board: Workshop, options?: {
+    scope?: string;
+}): WorkshopPresentationScene[];
 export declare const maxWorkshopCards = 24;
 export declare function validateWorkshop(input: unknown): Workshop;
 /**
@@ -419,6 +424,11 @@ export interface WorkshopBoardLayout {
      */
     dayWidth?: number;
     /**
+     * Plans: the widest a held grip may draw the plan (on a slate of many boards, the room before the next board).
+     * A plan that would grow past it while held keeps this width and its days narrow instead. Left out, it grows.
+     */
+    maxWidth?: number;
+    /**
      * A pipeline's gauge or a budget's envelope: the amount the board's width spans. A target or an envelope edge being
      * dragged keeps the scale it started with. Left out, the gauge fits target and forecast, and the envelope its total.
      */
@@ -492,8 +502,32 @@ export interface WorkshopArtworkOptions {
      * workshopStandInId), so the artwork can be laid beside those notes as it is.
      */
     beside?: Iterable<string>;
+    /**
+     * The board's scope on a slate of many boards: every note is named `<scope>:<name>` (and its
+     * connectors join those names). Left out, or `main`, the names are the ones a slate of one board has.
+     */
+    scope?: string;
 }
-/** The names of the notes workshopToSlate draws for a lane or a card. */
+/**
+ * A board's scope on a slate of many boards, checked: 1 to 12 lowercase letters and digits. `main` (the
+ * slate's first board) and no scope at all are the same thing: undefined, the names a slate of one board has.
+ */
+export declare function workshopBoardScope(scope?: string | null): string | undefined;
+/** The id a board's note is drawn under: `<scope>:<name>`, or the name itself for the first board. */
+export declare function workshopScopedId(name: string, scope?: string | null): string;
+/** The names of one board's notes, in its scope. */
+export interface WorkshopNodeNames {
+    lane(id: string): string;
+    card(id: string): string;
+    image(id: string): string;
+    caption(id: string): string;
+    column(id: string): string;
+    rules: string;
+}
+/**
+ * The names of the notes workshopToSlate draws for a lane or a card. `of(scope)`: the same names for
+ * one board of a slate that holds several (`b2:card-<id>`); `of('main')` and `of()` are these names.
+ */
 export declare const workshopNodeIds: {
     lane: (id: string) => string;
     card: (id: string) => string;
@@ -501,6 +535,7 @@ export declare const workshopNodeIds: {
     caption: (id: string) => string;
     column: (id: string) => string;
     rules: string;
+    of(scope?: string | null): WorkshopNodeNames;
 };
 /**
  * The id a workshop note takes when the slate's own document already has a note by
@@ -543,6 +578,47 @@ export declare function behaviourNote(board: Workshop, box: {
  * attachWorkshop keeps on a live slate.
  */
 export declare function workshopToSlate(input: Workshop, options?: WorkshopArtworkOptions): SlateJSON;
+/** What a board kit tells workshopReserve: its size in a layout (WorkshopBoardKit.places). */
+export interface WorkshopReserveKit {
+    places(board: Workshop, layout: WorkshopBoardLayout): {
+        width: number;
+        height: number;
+    };
+}
+/**
+ * The room a board needs on a slate of many boards: the widest it can become on a desktop, and how
+ * tall it is now (a board grows downward only), in world units. A host places boards side by side
+ * in these boxes, so one never grows into the next.
+ * - A board of lanes: five lanes (the most a board has), or a map's own width when that is wider.
+ * - A launch plan, hiring plan, pipeline, budget or nested board: its kit's desktop width (a launch
+ *   plan's is 1200), or `layout.width` when the board is pinned to a width (a desktop layout's). It needs its kit.
+ *   A plan held by a grip grows to the right under the pointer only as far as the next board allows
+ *   (attachWorkshop's `avoid`, as `layout.maxWidth`); past that its days narrow, and it fits again when let go.
+ * A phone's narrow layout is never the reserve: it is always smaller than the desktop one.
+ */
+export declare function workshopReserve(input: Workshop, layout?: WorkshopBoardLayout, kit?: WorkshopReserveKit): {
+    width: number;
+    height: number;
+};
+/**
+ * Where a note set "beside a board" goes so it is clear of other boards: `spot` itself when nothing
+ * in `avoid` is within `gap` of it on its row, otherwise moved along its row (to the right, or with
+ * side -1 to the left) past each box in the way. Only x changes.
+ */
+export declare function workshopFreeSpot(spot: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}, avoid: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}[], side?: 1 | -1, gap?: number): {
+    x: number;
+    y: number;
+};
 export declare const industrialWorkshop: Workshop;
 export * from './moonGallery';
 export * from './darkroom/model';

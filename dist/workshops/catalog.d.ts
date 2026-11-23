@@ -51,7 +51,8 @@ export interface CatalogEntry {
         caption: string;
         steps: string[];
     };
-    multiPerSlate: false;
+    /** A slate holds several boards side by side (up to maxBoardsPerSlate), this one among them. */
+    multiPerSlate: true;
 }
 export declare const catalog: readonly CatalogEntry[];
 export declare function catalogEntry(id: string): CatalogEntry | undefined;
@@ -79,9 +80,17 @@ export declare function catalogMatch(message: string): {
     all: boolean;
     entries: string[];
 } | null;
-/** Whether an entry can be added to this slate, and if not, the honest sentence (the control is never disabled). */
+/** The most boards one slate holds, for now (owner 2026-11-22). */
+export declare const maxBoardsPerSlate = 8;
+/**
+ * Whether an entry can be added to this slate, and if not, the honest sentence (the control is never disabled).
+ * `many`: the host puts several boards on one slate, so an entry fits beside the boards there (`boards`, how
+ * many it holds; 1 when it only says it has one) up to maxBoardsPerSlate. Without it a slate holds one board.
+ */
 export declare function catalogFits(id: string, slate: {
     hasBoard: boolean;
+    many?: boolean;
+    boards?: number;
 }): {
     ok: true;
 } | {

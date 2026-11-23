@@ -280,6 +280,24 @@ export interface AttachWorkshopOptions {
     onSelect?: (selection: WorkshopSelection) => void;
     /** Required for a launch plan, a pipeline or a budget: its kit from slateboxjs/boards. */
     kit?: WorkshopBoardKit;
+    /**
+     * The board's scope on a slate of many boards (1 to 12 lowercase letters and digits): each of its notes
+     * is named `<scope>:<name>` (`b2:card-<id>`, see workshopNodeIds.of), so two boards made from one preset
+     * never share a name, and a board only ever treats its own notes as its parts. Left out, or `main`, the
+     * notes keep the names a slate of one board has always had.
+     */
+    scope?: string;
+    /**
+     * The boxes (world units) a note this board puts "beside the board" must stay clear of: the other boards
+     * on the slate. Asked each time (a card taken to the canvas, a note a lane refuses, a keyboard move off
+     * the lanes, a card let go on top of another board); the note goes past them along its row.
+     */
+    avoid?: () => {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }[];
 }
 export interface AttachedWorkshop {
     /** Redraw from a new model, moving only what changed. A drag in progress is cancelled first. */
