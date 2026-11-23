@@ -299,6 +299,21 @@ const decoration: Partial<NodeCapabilities> = { canMove: false, canSelect: false
 /** Why a line may not join two boards' cards (a slate of many boards), said to the person who drew it. */
 const ACROSS_BOARDS = 'A card\'s line joins notes and cards on its own board.'
 
+/**
+ * The boards attached to each slate, so a card let go on another board can be handed to it: that board
+ * says first whether it would take the card (as a note dropped there), then takes it once the card has
+ * left its own board. Released from one board and adopted by the other, or neither (plan §2.4).
+ */
+interface BoardHandOff {
+  /** What this board would do with `note` dropped at `point`: null when the point is on none of its lanes. */
+  verdict(note: any, point: WorldPoint): { laneId: string; laneLabel: string; reason: string | null } | null
+  /** Take `note` dropped at `point` (as onFreeDrop); `from` is where it goes back should the save fail. */
+  take(note: any, point: WorldPoint, from: WorldPoint): 'taken' | 'refused' | void
+  /** Show a refusal on one of its lanes (outline and the reason on its caption), said by the board the card stays on. */
+  flash(laneId: string, reason: string): void
+}
+const boardsOnSlate = new WeakMap<object, Set<BoardHandOff>>()
+
 /** What an artwork name (lane-<id>, card-<id>, ...) draws. */
 function partOf(name: string): { kind: Kind; key: string } | null {
   const match = /^(lane|card|caption|column|image|handle|gauge)-(.+)$/.exec(name)
@@ -468,6 +483,54 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       box.x < other.x + other.width && box.x + box.width > other.x && box.y < other.y + other.height && box.y + box.height > other.y)
   }
 
+  /**
+   * The other board whose lane is under `point`, and whether it would take `cardId` as a note dropped
+   * there (reason null) or why not. Null when no other board's lane is there.
+   */
+  function handOffAt(cardId: string, point: WorldPoint) {
+    const others = [...(boardsOnSlate.get(slate) ?? [])].filter(board => board !== handOff)
+    if (!others.length) return null
+    const { id, note } = noteOfCard(cardId, point)
+    const probe = { id, options: note }
+    // Its lines to this board's cards would then join two boards.
+    const toCards = workshopLinesOf(value, cardId).some(line => value.cards.some(item => item.id !== cardId && (item.id === line.parentId || item.id === line.childId)))
+    for (const board of others) {
+      let verdict: ReturnType<BoardHandOff['verdict']> = null
+      try {
+        verdict = board.verdict(probe, point)
+      } catch (error) {
+        console.warn('WORKSHOP: another board could not say whether it takes the card', error)
+      }
+      if (verdict) return { board, ...verdict, reason: toCards ? ACROSS_BOARDS : verdict.reason }
+    }
+    return null
+  }
+
+  /**
+   * Released from this board, then adopted by `board` once the release is saved (or at once with no host
+   * that saves): a release the host refuses puts the card back here and the other board never takes it.
+   * Should that board turn it down by then, the note waits just past the boards.
+   */
+  function handTo(board: BoardHandOff, cardId: string, at: { x: number; y: number; width: number; height: number }, point: WorldPoint) {
+    const { added, answer } = release(cardId, at, '', true)
+    const back = besideSpot(at)
+    const give = () => {
+      if (!added || slate.nodes.one(added.id) !== added) return
+      let verdict: 'taken' | 'refused' | void = undefined
+      try {
+        verdict = board.take(added, point, back)
+      } catch (error) {
+        console.warn('WORKSHOP: another board could not take the card', error)
+      }
+      if (verdict === 'taken') return
+      const x = Math.round(back.x), y = Math.round(back.y)
+      added.position?.(x, y, () => slate.updateSelectionResizeRotate?.(), undefined, prefersReducedMotion() ? 0 : 180)
+      slate.broadcast?.('onNodesMove', { nodeOptions: [v2NodeToV1({ ...added.options, x, y })] })
+    }
+    if (!answer || typeof (answer as any).then !== 'function') give()
+    else (answer as Promise<unknown>).then(result => { if (result === true && !destroyed) give() }, () => {})
+  }
+
   const policy: DragPolicy = {
     governs(node: any) {
       if (owned.get(node.id) !== node) return null
@@ -566,9 +629,22 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         // Off the lanes, on the canvas: the card becomes an ordinary note there, or says why it may not.
         const reason = workshopCardAsNoteRefusal(value, cardId)
         if (!reason) {
-          // Let go on another board: the note may not lie on that board's lanes, which would not take it.
-          // It goes past the boards along its row, and says why (offering it to that board comes later).
           const at = { x: node.options.x ?? 0, y: node.options.y ?? 0, width: node.options.width ?? 228, height: node.options.height ?? 76 }
+          // Let go on another board's lane: released from this board and adopted by that one, or neither.
+          const handOff = handOffAt(cardId, point)
+          if (handOff?.reason) {
+            draw(value, { skip: cardId })
+            handOff.board.flash(handOff.laneId, handOff.reason)
+            slate.announce?.(`${cardName(card)} can't go in ${handOff.laneLabel}. ${handOff.reason} It stays where it was.`)
+            tell(options.onRefuse, { cardId, laneId: null, reason: handOff.reason })
+            return { accept: false }
+          }
+          if (handOff) {
+            handTo(handOff.board, cardId, at, point)
+            return { accept: true }
+          }
+          // Let go on another board but on none of its lanes: the note may not lie on that board, which
+          // would not take it. It goes past the boards along its row, and says why.
           const onBoard = otherBoardUnder(at)
           release(cardId, onBoard ? besideSpot(at) : at, onBoard ? ' It was let go on another board, so it waits just past that board.' : '')
           return { accept: true }
@@ -908,6 +984,27 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   }
 
   const releasePolicy = slate.setDragPolicy(policy)
+  // This board on the slate's list, so a card let go on it from another board can be handed over.
+  const handOff: BoardHandOff = {
+    verdict(note, point) {
+      if (!acceptsNotes()) return null
+      const laneId = laneAt(point)
+      if (!laneId) return null
+      const offer = offerOf(note)
+      const under = kit?.noteUnder?.(value, local(point), layout)
+      if (under) offer.under = under
+      return { laneId, laneLabel: value.lanes.find(item => item.id === laneId)!.label, reason: noteObstacle(note) ?? workshopNoteRefusal(value, laneId, offer) }
+    },
+    take: (note, point, from) => policy.onFreeDrop?.(note, point, from),
+    flash(laneId, reason) {
+      if (destroyed || !value.lanes.some(item => item.id === laneId)) return
+      endFlash(false)
+      flash = { laneId, reason, timer: setTimeout(() => endFlash(), 1500) }
+      showCurrent()
+    },
+  }
+  if (!boardsOnSlate.has(slate)) boardsOnSlate.set(slate, new Set())
+  boardsOnSlate.get(slate)!.add(handOff)
   const stopWatchingSelection: (() => void) | undefined = (options.onSelect || layer) ? slate.onSelectionChange?.(() => { reportSelection(); refocus() }) : undefined
   // The card under the pointer (a plan shows its grips while it is there).
   let hovered: string | null = null
@@ -1690,19 +1787,13 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
    * undo step. The note is drawn as the card was, and gets back what the note it was made
    * from had (its line breaks, shape and size).
    */
-  function release(cardId: string, at: { x: number; y: number }, why = '') {
+  /** The ordinary note a card becomes at `at`: its id, and the note's options. */
+  function noteOfCard(cardId: string, at: { x: number; y: number }) {
     const card = value.cards.find(item => item.id === cardId)!
-    const fromLane = value.lanes.find(item => item.id === card.laneId)!
-    const place = value.cards.findIndex(item => item.id === cardId)
-    const before = value.cards.slice(place + 1).find(item => item.laneId === card.laneId)?.id
     const drawnCard = drawn.get(noteId(workshopNodeIds.card(cardId))) ?? {}
     // The note comes back under the id of the note the card was made from, unless the slate uses it now.
     const wanted = workshopNoteIdOf(card)
     const id = slate.nodes.one(wanted) ? 'node_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now() : wanted
-    // Its lines stay joined to the note: those to other cards stay on the board, those to notes are the drawing's.
-    const cardLines = workshopLinesOf(value, cardId)
-    const { leave } = workshopCardLines(value, cardId, id)
-    const next = workshopCardAsNote(value, cardId, id)!
     const round = (style.cornerRadius ?? 0) > 0
     const kept = card.asNote
     // The words it had, line breaks and all, unless the card has been renamed since.
@@ -1719,6 +1810,20 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       ...(kept.image.height ? { imageOrigHeight: kept.image.height } : {}) })
     if (kept?.link) note.link = { ...kept.link }
     for (const key of Object.keys(note)) if (note[key] === undefined) delete note[key]
+    return { id, note }
+  }
+
+  function release(cardId: string, at: { x: number; y: number }, why = '', quiet = false): { added: any; answer: unknown } {
+    const card = value.cards.find(item => item.id === cardId)!
+    const fromLane = value.lanes.find(item => item.id === card.laneId)!
+    const place = value.cards.findIndex(item => item.id === cardId)
+    const before = value.cards.slice(place + 1).find(item => item.laneId === card.laneId)?.id
+    const { id, note } = noteOfCard(cardId, at)
+    const kept = card.asNote
+    // Its lines stay joined to the note: those to other cards stay on the board, those to notes are the drawing's.
+    const cardLines = workshopLinesOf(value, cardId)
+    const { leave } = workshopCardLines(value, cardId, id)
+    const next = workshopCardAsNote(value, cardId, id)!
     slate.beginHostStep?.()
     value = next
     const committed = value
@@ -1738,7 +1843,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (typeof slate.withoutAnnouncements === 'function') slate.withoutAnnouncements(select)
       else select()
     })
-    slate.announce?.(`${cardName(card)} is now a note on the canvas.${why} ${fromLane.label}: ${workshopLaneCaption(value, fromLane.id)}.${leftShape(kept?.shape)}`)
+    if (!quiet) slate.announce?.(`${cardName(card)} is now a note on the canvas.${why} ${fromLane.label}: ${workshopLaneCaption(value, fromLane.id)}.${leftShape(kept?.shape)}`)
     const dropNote = () => {
       if (slate.nodes.one(id) !== added) return
       slate.beginHostStep?.()
@@ -1772,6 +1877,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       slate.keepTrade?.(id)
       slate.announce?.(`Someone else took ${cardName(card)} off the lanes first.`)
     })
+    return { added, answer }
   }
 
   /** The board with `cardId` back at the place among the cards it had in a recorded board. */
@@ -2343,6 +2449,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (destroyed) return
       cancelGestures()
       destroyed = true
+      boardsOnSlate.get(slate)?.delete(handOff)
       stopWatchingZoom?.()
       if (gripRefusal) clearTimeout(gripRefusal.timer)
       slate.element?.removeEventListener?.('pointerdown', onPress, true)

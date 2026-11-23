@@ -253,40 +253,96 @@ describe('"beside the board" avoids the other boards', () => {
 })
 
 describe('a card let go on another board', () => {
-  /** Board A at the origin, board B 1380 to its right, each avoiding the other; A's card "kind" dragged to `to` and let go. */
-  async function dropFromA(to: (b: { x: number; y: number; width: number; height: number }) => { x: number; y: number }) {
+  /**
+   * Board A at the origin, board B 1380 to its right, each avoiding the other; A's card "kind" dragged to `to`
+   * and let go. `save` answers each board's change (default: saved at once, as a host with no server).
+   */
+  async function dropFromA(to: (b: { x: number; y: number; width: number; height: number }, notes: Map<string, any>) => { x: number; y: number },
+    { second = retro(), save, before }: { second?: Workshop; save?: (board: string) => unknown; before?: (b: any) => void } = {}) {
     const { slate, notes, policies } = slateOfBoards()
     const said: string[] = []
     slate.announce = (text: string) => { said.push(text) }
     let a: any = null
     let b: any = null
-    const changes: { board: string; next: Workshop }[] = []
-    a = attachWorkshop(slate, retro(), { origin: { x: 0, y: 0 }, avoid: () => [b.bounds], onChange: next => { changes.push({ board: 'main', next }) } })
-    b = attachWorkshop(slate, retro(), { origin: { x: 1380, y: 0 }, scope: 'b2', avoid: () => [a.bounds], onChange: next => { changes.push({ board: 'b2', next }) } })
+    const changes: { board: string; next: Workshop; change: any }[] = []
+    a = attachWorkshop(slate, retro(), { origin: { x: 0, y: 0 }, avoid: () => [b.bounds], onChange: (next, change) => { changes.push({ board: 'main', next, change }); return save?.('main') as any } })
+    b = attachWorkshop(slate, second, { origin: { x: 1380, y: 0 }, scope: 'b2', avoid: () => [a.bounds], onChange: (next, change) => { changes.push({ board: 'b2', next, change }); return save?.('b2') as any } })
     await Promise.all([a.whenDrawn(), b.whenDrawn()])
+    const point = to(b.bounds, notes)
+    before?.(b)
     const node = notes.get('card-kind')
     const o = node.options
     const from = { x: o.x + o.width / 2, y: o.y + o.height / 2 }
-    const point = to(b.bounds)
     expect(policies[0].onStart(node, from, {})).toBe(true)
     policies[0].onMove(node, point, {})
     // The engine has moved the note under the pointer by the time it is let go.
     node.position(point.x - o.width / 2, point.y - o.height / 2)
     const result = policies[0].onEnd(node, point, {})
-    return { a, b, notes, said, changes, result, size: { width: o.width, height: o.height } }
+    return { a, b, notes, said, changes, result, point, size: { width: o.width, height: o.height } }
   }
+  /** The middle of board B's lane `laneId`. */
+  const laneOfB = (laneId: string) => (_box: unknown, notes: Map<string, any>) => {
+    const o = notes.get(`b2:${workshopNodeIds.column(laneId)}`).options
+    return { x: o.x + o.width / 2, y: o.y + o.height / 2 }
+  }
+  const freeNotes = (notes: Map<string, any>) => [...notes.values()].filter(node => !/^(b2:)?(card|lane|column|caption|title|header|rules|board)/.test(node.id))
 
-  it('does not lie on that board: it goes past the boards along its row, and says why; that board is unchanged', async () => {
-    const { a, b, notes, said, changes, result } = await dropFromA(box => ({ x: box.x + 200, y: box.y + 260 }))
+  // Restated 2026-11-23 (plan §2.4, "released from A and adopted by B, or neither"): a card let go on another
+  // board's lane used to wait past the boards as a note; that board now adopts it.
+  it('let go on another board’s lane, it joins that lane: released from its board and adopted by the other, saved in that order', async () => {
+    const run = await dropFromA(laneOfB('change'))
+    const { a, b, said, changes, result } = run
+    expect(result).toEqual({ accept: true })
+    expect(a.value.cards.some((card: any) => card.id === 'kind')).toBe(false)
+    const lane = b.value.cards.filter((card: any) => card.label === 'Kind reviews')
+    expect(lane).toHaveLength(2)
+    // Exactly one card on exactly one board: A gave it up, B holds it, and no note is left lying on the canvas.
+    expect(changes.map(change => change.board)).toEqual(['main', 'b2'])
+    expect(changes[0].change.cardToNote).toBeTruthy()
+    expect(changes[1].change.noteToCard).toBeTruthy()
+    expect(freeNotes(run.notes).map(node => node.options.text)).not.toContain('Kind reviews')
+    expect(said.at(-1)).toMatch(/^Kind reviews is now a card in /)
+    a.destroy()
+    b.destroy()
+  })
+
+  it('a lane of the other board that turns it down: neither board changes, the card stays where it was, and the lane says why', async () => {
+    const full = validateWorkshop({ ...retro(), cards: [{ id: 'w1', label: 'One', laneId: 'well' }, { id: 'w2', label: 'Two', laneId: 'well' }, { id: 'w3', label: 'Three', laneId: 'well' }] })
+    const run = await dropFromA(laneOfB('well'), { second: full })
+    const { a, b, said, changes, result } = run
+    expect(result).toEqual({ accept: false })
+    expect(a.value).toEqual(retro())
+    expect(b.value).toEqual(full)
+    expect(changes).toEqual([])
+    expect(said.at(-1)).toMatch(/^Kind reviews can't go in Went well\. .+ It stays where it was\.$/)
+    a.destroy()
+    b.destroy()
+  })
+
+  it('a release the host does not save puts the card back, and the other board never takes it', async () => {
+    let refuseMain: (value: boolean) => void = () => {}
+    const run = await dropFromA(laneOfB('change'), {
+      save: board => board === 'main' ? new Promise<boolean>(resolve => { refuseMain = resolve }) : Promise.resolve(true),
+    })
+    const { a, b, changes } = run
+    expect(changes.map(change => change.board)).toEqual(['main'])
+    refuseMain(false)
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(a.value.cards.some((card: any) => card.id === 'kind')).toBe(true)
+    expect(b.value).toEqual(retro())
+    expect(changes.map(change => change.board)).toEqual(['main'])
+    a.destroy()
+    b.destroy()
+  })
+
+  it('let go on another board that takes nothing now (it shows a proposal), it goes past the boards along its row, and says why; that board is unchanged', async () => {
+    const { a, b, notes, said, changes, result } = await dropFromA(laneOfB('change'), { before: board => board.preview(validateWorkshop({ ...retro(), title: 'Proposed' })) })
     expect(result).toEqual({ accept: true })
     expect(a.value.cards.some((card: any) => card.id === 'kind')).toBe(false)
     const note = notes.get('kind').options
     const box = b.bounds
-    // Clear of board B: past its right edge, on the row it was let go on.
     expect(note.x).toBeGreaterThanOrEqual(box.x + box.width)
-    expect(note.y).toBe(Math.round(box.y + 260 - note.height / 2))
     expect(said.at(-1)).toBe('Kind reviews is now a note on the canvas. It was let go on another board, so it waits just past that board. Went well: 0 of 3.')
-    // Board B does not take it and does not change: only A reports the trade.
     expect(b.value).toEqual(retro())
     expect(changes.map(change => change.board)).toEqual(['main'])
     a.destroy()
