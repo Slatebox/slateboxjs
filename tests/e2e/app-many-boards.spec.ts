@@ -207,6 +207,15 @@ test.describe('many boards, 1440 by 900', () => {
       await expect.poll(async () => (await stored(page)).creative.model.workshop.cards.map((c: any) => c.label)).toContain('Retro idea')
       await shot(page, 's4a-7-which-board')
 
+      // Notes for the slate itself, out of focus: drawn on the slate, with no "Which board?" (that is only for a board change).
+      const asked = await conversation(page).getByText(/^Which board/).count()
+      await page.mouse.click(200, 860)
+      await say(page, 'add two notes')
+      await keep(page)
+      await expect.poll(async () => (await stored(page)).nodes.filter((n: any) => n.options?.text === 'New note').length, { timeout: 30000 }).toBe(2)
+      await expect(conversation(page).getByText(/^Which board/)).toHaveCount(asked)
+      await shot(page, 's4a-7b-notes-for-the-slate')
+
       // 5. A reload draws both boards where they were, named as they were.
       await page.waitForTimeout(2500)
       const placed = await places(page)
@@ -229,6 +238,8 @@ test.describe('many boards, 1440 by 900', () => {
       const named = await call({ kind: 'move_workshop_card', boardId: 'b2', cardId: card.id, laneId: 'review', expectedRevision: now.boards.b2.revision })
       expect(named.status(), await named.text()).toBe(201)
       await expect.poll(async () => (await stored(page)).boards.b2.model.workshop.cards.find((c: any) => c.id === card.id)?.laneId).toBe('review')
+      // The agent's edit raises the slate's counter for all boards in the same write, as a person's does.
+      expect((await stored(page)).boardsRevision).toBeGreaterThan(now.boardsRevision)
       // The page draws an agent's move on the board it was made on.
       await expect.poll(() => page.locator('#slateCanvas [data-node-id="b2:card-' + card.id + '"]').getAttribute('aria-label')).toMatch(/in QA$/)
       await shot(page, 's4a-8-exec-move-on-sprint')
