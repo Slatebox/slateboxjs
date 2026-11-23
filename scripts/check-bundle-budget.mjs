@@ -139,13 +139,34 @@ if (importsOf('presence.mjs').some(target => target.startsWith('./'))) problems.
   if (/^\s*import[^;]*from\s*["'](yjs|y-websocket)["']/m.test(all)) problems.push('slateboxjs/canvas imports yjs up front: it loads only when a slate goes live.')
 }
 
-// What a plain slate pays over release/combined 5d21cac (canvas + model, gzip -9): at most +10.2 KB (build spec §2.3).
-const plain = ['slateboxjs.mjs', 'workshop-model.mjs'].reduce((sum, name) => sum + (rows.find(row => row.entry === name)?.gzip ?? 0), 0)
+// What a plain slate loads: the canvas and the model, each with every chunk it imports up front (gzip -9 of each
+// file, summed). Counted over the imports, so a chunk the model hands its code to (as model-<hash>.mjs did on
+// engine main 67c29e0) is counted with it.
+const staticImportsOf = name => [...read(name).toString('utf8').matchAll(/(?:^|[;\n])\s*(?:import|export)\s[^;]*?from\s*["'](\.\/[^"']+)["']|(?:^|[;\n])\s*import\s*["'](\.\/[^"']+)["']/g)].map(match => (match[1] ?? match[2]).slice(2))
+const closureOf = (...entries) => {
+  const seen = new Set(), queue = [...entries]
+  while (queue.length) { const name = queue.shift(); if (seen.has(name)) continue; seen.add(name); queue.push(...staticImportsOf(name)) }
+  return [...seen]
+}
+const plainFiles = closureOf('slateboxjs.mjs', 'workshop-model.mjs')
+const plain = plainFiles.reduce((sum, name) => sum + gzipSync(read(name), { level: 9 }).length, 0)
+// The plans (launch and hiring, their time rules), the business rules and the nested boards load on their own: a
+// plain slate fetches none of them, and the model carries none of their code.
+for (const name of plainFiles) if (/^(workshop-plans|plans-|workshop-rules|workshop-nest|boards|dragology)/.test(name)) problems.push(`A plain slate loads ${name}: the plans, the rules and the boards load only for a slate that holds a board.`)
+const plainText = plainFiles.map(name => read(name).toString('utf8')).join('\n')
+for (const marker of ['The plan now starts ', 'There is no role band ', 'Overlapping tasks in ', 'That takes runway to ']) {
+  if (plainText.includes(marker)) problems.push(`A plain slate carries the plans' code ("${marker.trim()}"): it belongs to workshop-plans.mjs, loaded on its own.`)
+}
+// Never more than on engine main 67c29e0, measured this way (slateboxjs.mjs 206,087 + workshop-model.mjs, model-DVIbSBRn.mjs
+// and NoteDefaults 56,257): the canvas entry must not make the app's plain slate bigger.
+const plainOnMain = 262344
+if (plain > plainOnMain) problems.push(`A plain slate (${plainFiles.join(', ')}) loads ${plain} bytes gzip, ${plain - plainOnMain} more than on engine main 67c29e0 (${plainOnMain}).`)
+// And what it pays over release/combined 5d21cac (canvas + model, gzip -9): at most +10.2 KB (build spec §2.3).
 const plainBefore = 182795 + 32956
 if (plain - plainBefore > 10200) problems.push(`A plain slate loads ${plain - plainBefore} bytes gzip more than at 5d21cac, over the 10,200 allowed.`)
 
 console.table(rows)
-console.log(`A plain slate (canvas + model): ${plain} bytes gzip, ${plain - plainBefore >= 0 ? '+' : ''}${plain - plainBefore} over 5d21cac (at most +10200).`)
+console.log(`A plain slate (${plainFiles.length} files: canvas + model, with what they import): ${plain} bytes gzip, ${plain - plainOnMain >= 0 ? '+' : ''}${plain - plainOnMain} against engine main 67c29e0 (at most ${plainOnMain}), ${plain - plainBefore >= 0 ? '+' : ''}${plain - plainBefore} over 5d21cac (at most +10200).`)
 if (problems.length) {
   for (const problem of problems) console.error('✗ ' + problem)
   process.exit(1)
