@@ -235,6 +235,12 @@ export interface AttachWorkshopOptions {
    */
   draft?: boolean
   /**
+   * Draw the board as a still picture (a slate's card in a list, a thumbnail): view-only, and its chrome at the
+   * board's own size whatever the zoom, as an export shows it, so a card shrinks the title with the board instead of
+   * growing it to stay readable as the live canvas does when zoomed out. Not redrawn as the view changes.
+   */
+  still?: boolean
+  /**
    * Draw the board's chrome: its title and its rules as a legend above it, badges where the rules act, and the
    * frame of a board in focus or of a draft (boardChrome.ts). Drawn from data, never saved. On unless false.
    */
@@ -359,7 +365,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
    * a build that predates it, still opens the slate). Playing one needs its kit.
    */
   const kitless = (model: Workshop) => Boolean(businessKind(model)) && !kit
-  if (kitless(value) && !options.readOnly && !options.draft) throw new Error(`A ${value.kind} board needs its kit: pass kit: kitFor('${value.kind}') from slateboxjs/boards.`)
+  if (kitless(value) && !options.readOnly && !options.draft && !options.still) throw new Error(`A ${value.kind} board needs its kit: pass kit: kitFor('${value.kind}') from slateboxjs/boards.`)
   // A map has a layer of its own: its paths' hit areas (picked outside focus, removed in focus) and a held grip's words.
   const layer = kit?.layer(slate) ?? (value.lanes[0]?.station ? createBoardLayer(slate, paintMap) : undefined)
   // The board's chrome: its title and legend, badges, and the focus or draft frame (never saved).
@@ -377,7 +383,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   let proposal: Workshop | null = null
   /** What the host asked for; a board without its kit is view-only whatever it asks, and so is a draft. */
   const draft = Boolean(options.draft)
-  let wantedReadOnly = Boolean(options.readOnly) || draft
+  const still = Boolean(options.still)
+  let wantedReadOnly = Boolean(options.readOnly) || draft || still
   let readOnly = wantedReadOnly || kitless(value)
   let destroyed = false
   const owned = new Map<string, any>()
@@ -2213,6 +2220,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   }
   /** The chrome's scale and its frame's tags' scale at the zoom now (boardChrome.ts). */
   function chromeScalesNow() {
+    // A still picture's chrome scales with its board, as an export's does.
+    if (still) return [1, 1]
     const zoom = zoomNow(), k = chromeScaleAt(zoom)
     // On a phone "Done" is a finger's size; a draft's tag is no button, so it only keeps its size.
     return [k, Math.round(chromeTagScaleAt(zoom, narrowNow() && !draft, k) * 20) / 20]
@@ -2242,7 +2251,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const svg: Element | undefined = slate.canvas?.node
     const scalesNow = chromeScalesNow
     ;[chromeScale, chromeTagScale] = scalesNow()
-    if (!chrome || !svg || typeof MutationObserver === 'undefined') return
+    if (still || !chrome || !svg || typeof MutationObserver === 'undefined') return
     let timer: ReturnType<typeof setTimeout> | null = null
     const observer = new MutationObserver(() => {
       if (timer) clearTimeout(timer)
