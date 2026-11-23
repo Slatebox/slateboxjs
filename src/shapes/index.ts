@@ -547,6 +547,11 @@ export function normalizeShapePath(d: string): { d: string; aspect: number } {
   const map = settled ? (x: number, y: number): Pt => [x, y] : (x: number, y: number): Pt => [(x - b.x) * scale, (y - b.y) * scale];
   const out = serialize(parts, map, scale);
   if (out.length > SHAPE_LIMITS.maxNormalized) throw new ShapePathError("too_long");
+  // Rounding can close a nearly full arc onto its own start (M50,0 A50,50 0 1 1 49.99,0 becomes
+  // a zero-length arc that draws nothing): refuse what no longer has an area rather than store
+  // an outline that would be invisible.
+  const after = bounds(flattenShape(parseShapePath(out)));
+  if (!(after.w > 0) || !(after.h > 0) || after.w * after.h < (b.w * scale) * (b.h * scale) * 0.25) throw new ShapePathError("degenerate");
   return { d: out, aspect: b.w / b.h };
 }
 

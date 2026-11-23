@@ -131,3 +131,17 @@ describe("prepareShape", () => {
     expect(parseShapePath(MOCK.rocket.d).length).toBe(3);
   });
 });
+
+describe("a nearly full arc that rounding would close", () => {
+  it("is refused rather than stored as an outline that draws nothing", () => {
+    const result = prepareShape({ d: "M50,0 A50,50 0 1 1 49.99,0 Z" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("degenerate");
+  });
+
+  it("a circle drawn as two arcs is kept", () => {
+    const result = prepareShape({ d: "M50,0 A50,50 0 1 1 50,100 A50,50 0 1 1 50,0 Z" });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(validateShapePath(result.shape.d).ok).toBe(true);
+  });
+});
