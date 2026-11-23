@@ -295,6 +295,33 @@ export interface AttachWorkshopOptions {
   chrome?: boolean
   /** A person pressed "Done" on the frame of the board in focus: the host takes it out of focus. */
   onFocusDone?: () => void
+  /**
+   * Draw the board's rule controls (slateboxjs/workshops/controls, library spec §4.3): the drag primitives of its
+   * rulebook on the board itself, as native shapes. 'always' (a builder slate), 'selected' (while the board is in
+   * focus, or one of its cards or columns is selected), or 'off' (the default). Never on a view-only board, a draft
+   * or a still. The controls' module must have loaded (import('slateboxjs/workshops/controls')); until it has, none
+   * are drawn, and setControls draws them once it has.
+   */
+  controls?: RuleControlsMode
+  /** A rule control was changed: its edits (add_rule, set_rule, remove_rule…), to save through the host's own door. True once saved. */
+  onRuleEdit?: (edits: WorkshopEdit[], sentence: string) => Promise<boolean> | boolean
+}
+
+/** When a board shows its rule controls. */
+export type RuleControlsMode = 'off' | 'selected' | 'always'
+
+/** What the controls' module lends a board once it has loaded (slateboxjs/workshops/controls registers it). */
+export interface RuleControlsHooks {
+  controls: (board: Workshop, layout: { places?: { laneId: string; x: number; y: number; width: number; height: number; row?: number }[]; width: number; height: number }, options: { scale?: number; finger?: boolean }) => unknown[]
+  draw: (slate: any, boardId: string, controls: any[], options: { onRuleEdit?: (edits: WorkshopEdit[], sentence: string) => Promise<boolean> | boolean; origin?: { x: number; y: number }; announce?: (text: string) => void }) =>
+    { update(controls: any[], origin?: { x: number; y: number }): void; remove(): void }
+}
+let ruleControlsHooks: RuleControlsHooks | null = null
+const ruleControlBoards = new Set<() => void>()
+/** The controls' module registers itself as it loads; every board already attached draws its controls. */
+export function registerRuleControls(hooks: RuleControlsHooks) {
+  ruleControlsHooks = hooks
+  for (const paint of ruleControlBoards) paint()
 }
 
 export interface AttachedWorkshop {
@@ -347,6 +374,8 @@ export interface AttachedWorkshop {
   setFocused(focused: boolean): void
   /** Whether the board is in focus (setFocused). */
   readonly focused: boolean
+  /** When the board shows its rule controls (AttachWorkshopOptions.controls). */
+  setControls(mode: RuleControlsMode): void
 }
 
 type Kind = 'lane' | 'card' | 'caption' | 'column' | 'image' | 'handle' | 'gauge'
@@ -481,6 +510,13 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   let told: string | null = null
   /** The host has put this board in focus (setFocused). */
   let focused = false
+  /** When the rule controls show, and their layer while they do. */
+  let controlsMode: RuleControlsMode = options.controls ?? 'off'
+  let controlsLayer: ReturnType<RuleControlsHooks['draw']> | null = null
+  /** Where the chrome last drew the board: its columns and size (what the controls are placed by). */
+  let controlsAt: { places?: { laneId: string; x: number; y: number; width: number; height: number; row?: number }[]; width: number; height: number } | null = null
+  const paintControlsSoon = () => paintControls()
+  ruleControlBoards.add(paintControlsSoon)
   /** A map's grip size, a finger's at the zoom it is shown at; kept while the map is in focus (watchGripZoom). */
   let gripSize = mapGripSize(1)
   let stopWatchingZoom: (() => void) | null = null
@@ -1131,7 +1167,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   }
   if (!boardsOnSlate.has(slate)) boardsOnSlate.set(slate, new Set())
   boardsOnSlate.get(slate)!.add(handOff)
-  const stopWatchingSelection: (() => void) | undefined = (options.onSelect || layer) ? slate.onSelectionChange?.(() => { reportSelection(); refocus() }) : undefined
+  const stopWatchingSelection: (() => void) | undefined = (options.onSelect || layer || options.onRuleEdit) ? slate.onSelectionChange?.(() => {
+    reportSelection(); refocus()
+    if (controlsMode === 'selected') paintControls()
+  }) : undefined
   // The card under the pointer (a plan shows its grips while it is there).
   let hovered: string | null = null
   const onHover = (event: Event) => {
@@ -2430,7 +2469,37 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     }
     chrome.draw({ board: shown, scope, origin, size: { width: drawnBox.width, height: drawnBox.height }, ...chromeOptions(), places, under: first,
       ...(options.onFocusDone && { onDone: () => tell(options.onFocusDone) }) })
+    // A kit's columns are its column parts (a pipeline's stages): the controls stand on them as on a board's columns.
+    const kitColumns = kit ? (drawnBox as { parts: PartPlace[] }).parts.filter(part => part.name.startsWith('column-'))
+      .map(part => ({ laneId: part.name.slice('column-'.length), x: part.x, y: part.y, width: part.width, height: part.height, row: 0 })) : undefined
+    controlsAt = { places: places ?? kitColumns, width: drawnBox.width, height: drawnBox.height }
+    paintControls()
   }
+
+  /** Whether one of this board's notes is selected now. */
+  function selectedHere() {
+    const selected: any[] = destroyed ? [] : slate.getSelectedNodes?.() ?? []
+    return selected.some(node => owned.get(node.id) === node)
+  }
+  /** Draw the rule controls, or take them away: only for a board that can be played, never for a draft, a still or a proposal. */
+  function paintControls() {
+    const hooks = ruleControlsHooks
+    const shown = chromeShown ?? value
+    const wanted = Boolean(hooks && controlsAt && !destroyed && !readOnly && !draft && !still && !proposal && controlsMode !== 'off' &&
+      (controlsMode === 'always' || focused || selectedHere()))
+    if (!wanted) { controlsLayer?.remove(); controlsLayer = null; return }
+    let list: unknown[]
+    try { list = hooks!.controls(shown, controlsAt!, { scale: Math.min(2, chromeScale), finger: narrowNow() }) } catch { list = [] }
+    if (!controlsLayer) {
+      controlsLayer = hooks!.draw(slate, scope ?? "main", list as any[], { origin, announce: (text: string) => slate.announce?.(text),
+        onRuleEdit: (edits, sentence) => {
+          if (destroyed || readOnly || !options.onRuleEdit) return false
+          const answer = tell(options.onRuleEdit, edits, sentence)
+          return answer instanceof Promise ? answer.then(Boolean, () => false) : Boolean(answer)
+        } })
+    } else controlsLayer.update(list as any[], origin)
+  }
+
   /**
    * The chrome's words stay readable however far out the view is: at a zoom under 75% they grow (chromeScaleAt), so a
    * board's name is about 12px on screen even in an overview of many boards; a frame's tags never shrink on screen, and on a
@@ -2713,6 +2782,11 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       else if (layerShown) paintLayer(layerShown)
       paintChrome()
     },
+    setControls(mode) {
+      if (destroyed) return
+      controlsMode = mode === 'always' || mode === 'selected' ? mode : 'off'
+      paintControls()
+    },
     setLayout(next) {
       if (destroyed) throw new Error('This workshop has been detached.')
       const wantedLayout = layoutOf(next)
@@ -2739,6 +2813,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const model = candidate ? validateWorkshop(candidate) : null
       cancelGestures()
       proposal = model
+      paintControls()
       draw(proposal ?? value)
       slate.refreshGovernance?.()
     },
@@ -2756,6 +2831,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (destroyed || readOnly === effective) return
       cancelGestures()
       readOnly = effective
+      paintControls()
       draw(proposal ?? value)
       slate.refreshGovernance?.()
     },
@@ -2767,6 +2843,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       stopWatchingZoom?.()
       stopWatchingChromeZoom?.()
       chrome?.destroy()
+      ruleControlBoards.delete(paintControlsSoon)
+      controlsLayer?.remove()
+      controlsLayer = null
       if (gripRefusal) clearTimeout(gripRefusal.timer)
       slate.element?.removeEventListener?.('pointerdown', onPress, true)
       if (tapTimer) clearTimeout(tapTimer)

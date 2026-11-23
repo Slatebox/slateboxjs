@@ -2095,7 +2095,7 @@ export * from './darkroom/model'
 export * from './edits'
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names'
 export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopOverrideAsk, type WorkshopOverrideOffer,
-  type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native'
+  type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult, registerRuleControls, type RuleControlsMode, type RuleControlsHooks } from './native'
 // The board layer's drawing, which the boards' kits and the native workshop share (also slateboxjs/boards): exported here
 // so the model's entry hands it to them by these names.
 export { createBoardLayer, layerInk, renderLayerShapes, type LayerShape } from './boardLayer'
