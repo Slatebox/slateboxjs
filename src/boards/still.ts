@@ -144,10 +144,11 @@ export async function loadBoardKit(workshop: any): Promise<BoardKit> {
 
 /** The engine's board chrome styles, added to the page once unless the host has added its own (same element id). */
 async function ensureChromeStyles(model: ModelModule) {
-  if (typeof document === 'undefined' || document.getElementById('sb-board-chrome')) return
+  const css = (model as { boardChromeStyles?: string }).boardChromeStyles
+  if (!css || typeof document === 'undefined' || document.getElementById('sb-board-chrome')) return
   const style = document.createElement('style')
   style.id = 'sb-board-chrome'
-  style.textContent = model.boardChromeStyles
+  style.textContent = css
   document.head.appendChild(style)
 }
 
