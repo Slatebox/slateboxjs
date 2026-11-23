@@ -120,6 +120,39 @@ test.describe('desktop, 1440 by 900', () => {
     expect((await value(page)).cards.find((card: any) => card.id === 'qa').dependsOn).toEqual(['build'])
   })
 
+  test('two launch plans side by side: go-live held far right never draws the first plan into the second (workshopReserve)', async ({ page }) => {
+    await open(page, 'board=launch-plan&second')
+    /** The first plan's furthest right edge, in world units: its notes (not the held grip, which is under the pointer), and its board layer as drawn. */
+    const reach = () => page.evaluate(() => {
+      const { slate, board, second } = (window as any).boards
+      const notes = slate.nodes.allNodes.filter((n: any) => !n.id.startsWith('b2:') && n.id !== 'handle-launch')
+      const right = Math.max(...notes.map((n: any) => (n.options.x ?? 0) + (n.options.width ?? 0)))
+      const edge = second.bounds.x
+      // Board layers drawn to the left of the second board must end before it (screen units, compared on screen).
+      const b2 = slate.worldToClient({ x: edge, y: 0 }).x
+      const layers = [...document.querySelectorAll('#slate [data-board-layer=""]')].map(el => el.getBoundingClientRect())
+        .filter(r => r.width > 0 && r.left < b2 - 1)
+      return { right, edge, layerRight: Math.max(...layers.map(r => r.right)), b2, firstWidth: board.bounds.width }
+    })
+    const before = await reach()
+    expect(before.right).toBeLessThan(before.edge)
+    const day = before.firstWidth
+    const grip = await center(page, 'handle-launch')
+    // Carried a long way right, past the second plan's start, and held.
+    await drag(page, grip, { x: grip.x + 900, y: grip.y }, false)
+    await page.waitForTimeout(200)
+    const held = await reach()
+    expect(held.right).toBeLessThanOrEqual(held.edge - 32)
+    expect(held.layerRight).toBeLessThanOrEqual(held.b2)
+    await page.mouse.up()
+    await expect.poll(async () => (await edits(page)).length).toBe(1)
+    expect((await edits(page))[0][0]).toMatchObject({ kind: 'set_launch_day' })
+    await page.waitForTimeout(300)
+    const after = await reach()
+    expect(after.right).toBeLessThan(after.edge)
+    expect(after.firstWidth).toBe(day)
+  })
+
   test('pipeline: a skipped stage and a full stage refuse; one stage on moves the deal and the forecast', async ({ page }) => {
     await open(page, 'board=pipeline')
     await drag(page, await center(page, 'card-northwind'), await center(page, 'column-won'))

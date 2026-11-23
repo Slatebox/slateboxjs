@@ -33,6 +33,23 @@ function dragLine(board: Workshop, days: number, at = layout) {
 }
 
 describe('dragging go-live later, past the chart’s end', () => {
+  it('held far right on a slate of many boards, it grows only to the room before the next board (maxWidth), and its days narrow there', () => {
+    const plan = goLive()
+    const { g, result } = dragLine(plan, 40)
+    expect(result.next.launch!.day).toBeGreaterThan(plan.launch!.day)
+    const free = launchLayout(result.next, result.layout)
+    expect(free.width).toBeGreaterThan(1328)
+    const capped = launchLayout(result.next, { ...result.layout, maxWidth: 1328 })
+    expect(capped.width).toBe(1328)
+    expect(capped.dayW).toBeLessThan(g.dayW)
+    for (const part of capped.parts) expect(part.x + part.width).toBeLessThanOrEqual(1328 + 22)
+    expect(capped.parts.find(item => item.name === 'handle-launch')!.x + 22).toBeLessThanOrEqual(1328)
+    // Within the room, the cap changes nothing; and never narrower than the plan's own width.
+    const near = dragLine(plan, 3).result
+    expect(launchLayout(near.next, { ...near.layout, maxWidth: 1328 })).toEqual(launchLayout(near.next, near.layout))
+    expect(launchLayout(result.next, { ...result.layout, maxWidth: 900 }).width).toBe(g.width)
+  })
+
   it('three days right lands on Monday 21 Dec: the chart draws the days it adds and grows under the pointer', () => {
     const plan = goLive()
     const { g, part, result } = dragLine(plan, 3)

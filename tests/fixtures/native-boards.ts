@@ -22,7 +22,7 @@ const announce = (slate as any).announce?.bind(slate)
 ;(slate as any).announce = (text: string) => { log.said.push(text); return announce?.(text) }
 
 const api = {
-  slate, log, ready: false, board: null as AttachedWorkshop | null, validateWorkshop,
+  slate, log, ready: false, board: null as AttachedWorkshop | null, second: null as AttachedWorkshop | null, validateWorkshop,
   /** Screen box of a note, by its id. */
   box(id: string) {
     const o = slate.nodes.one(id)?.options
@@ -44,14 +44,25 @@ const api = {
   }
   // The boards entry brings the kits and plugs the boards' rules into the model's gate.
   const { kitFor, boardLayoutFor, sampleLaunchPlan, samplePipeline, sampleBudget } = await import('../../src/boards')
+  const { workshopReserve } = await import('../../src/workshops/model')
   const samples: Record<string, () => Workshop> = { 'launch-plan': sampleLaunchPlan, pipeline: samplePipeline, budget: sampleBudget }
   const layout = boardLayoutFor(innerWidth)
+  // ?second: a second copy in scope "b2", 160 past the room the first needs; each board avoids the other.
+  const many = params.has('second')
   api.board = attachWorkshop(slate, samples[kind](), {
     kit: kitFor(kind), layout, origin: { x: 0, y: 0 },
+    ...(many && { avoid: () => api.second ? [api.second.bounds] : [] }),
     onChange: (next, change) => { log.changes.push({ next, change }) },
     onRefuse: refusal => { log.refusals.push(refusal) },
   })
   await api.board.whenDrawn()
-  slate.fitToWidth(api.board.bounds)
+  if (many) {
+    const room = workshopReserve(api.board.value, layout, kitFor(kind))
+    api.second = attachWorkshop(slate, samples[kind](), {
+      kit: kitFor(kind), layout, origin: { x: room.width + 160, y: 0 }, scope: 'b2', avoid: () => [api.board!.bounds],
+    })
+    await api.second.whenDrawn()
+    slate.fitToContent()
+  } else slate.fitToWidth(api.board.bounds)
   api.ready = true
 })()

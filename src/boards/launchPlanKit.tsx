@@ -59,10 +59,12 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
   const x0 = narrow ? 8 : 168
   const room = narrow ? 88 : x0 + 40
   // A line being dragged keeps the day width it started with (layout.dayWidth): a later line draws the days it
-  // adds, and the plan grows to the right under the pointer, instead of every day narrowing to fit.
+  // adds, and the plan grows to the right under the pointer, instead of every day narrowing to fit. It never grows
+  // past layout.maxWidth (the next board on the slate): there the days narrow instead.
   const fits = narrow ? Math.max(300, layout.width ?? 390) : Math.max(720, layout.width ?? 1200)
-  const width = layout.dayWidth ? Math.max(fits, Math.ceil(room + day * layout.dayWidth)) : fits
-  const dayW = layout.dayWidth ?? (width - room) / day
+  const grown = layout.dayWidth ? Math.max(fits, Math.ceil(room + day * layout.dayWidth)) : fits
+  const width = layout.maxWidth !== undefined && grown > layout.maxWidth ? Math.max(fits, Math.floor(layout.maxWidth)) : grown
+  const dayW = layout.dayWidth && width === grown ? layout.dayWidth : (width - room) / day
   const color = (laneId: string) => laneColors[board.lanes.findIndex(lane => lane.id === laneId) % laneColors.length]
   const bar = (cardId: string, y: number) => {
     const card = board.cards.find(item => item.id === cardId)!

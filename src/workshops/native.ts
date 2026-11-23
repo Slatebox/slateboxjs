@@ -225,7 +225,7 @@ export interface AttachWorkshopOptions {
   /**
    * The boxes (world units) a note this board puts "beside the board" must stay clear of: the other boards
    * on the slate. Asked each time (a card taken to the canvas, a note a lane refuses, a keyboard move off
-   * the lanes); the note goes past them along its row.
+   * the lanes, a card let go on top of another board); the note goes past them along its row.
    */
   avoid?: () => { x: number; y: number; width: number; height: number }[]
 }
@@ -435,6 +435,38 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     }
     return avoid.length ? workshopFreeSpot(spot, avoid, side) : { x: spot.x, y: spot.y }
   }
+  /**
+   * A held grip's layout: a plan that grows under the pointer (layout.dayWidth) stops short of the next board
+   * on its row (options.avoid), so boards never grow into each other.
+   */
+  function heldLayout(held: WorkshopBoardLayout | undefined): WorkshopBoardLayout | undefined {
+    if (!held?.dayWidth) return held
+    let avoid: { x: number; y: number; width: number; height: number }[] = []
+    try {
+      avoid = options.avoid?.() ?? []
+    } catch (error) {
+      console.warn('WORKSHOP: avoid threw; the plan grows as it is held', error)
+    }
+    // The board as it is when nothing is held (the held drawing is the one that grows).
+    const { width, height } = kit ? kit.places(value, layout) : geometry(value)
+    let room = Infinity
+    for (const other of avoid) {
+      if (![other.x, other.y, other.width, other.height].every(Number.isFinite)) continue
+      if (other.x >= origin.x + width && other.y < origin.y + height && other.y + other.height > origin.y) room = Math.min(room, other.x - 32 - origin.x)
+    }
+    return Number.isFinite(room) ? { ...held, maxWidth: room } : held
+  }
+  /** Whether a note's box lies on one of the other boards (options.avoid). */
+  function otherBoardUnder(box: { x: number; y: number; width: number; height: number }) {
+    let avoid: { x: number; y: number; width: number; height: number }[] = []
+    try {
+      avoid = options.avoid?.() ?? []
+    } catch (error) {
+      console.warn('WORKSHOP: avoid threw; the note stays where it was let go', error)
+    }
+    return avoid.some(other => [other.x, other.y, other.width, other.height].every(Number.isFinite) &&
+      box.x < other.x + other.width && box.x + box.width > other.x && box.y < other.y + other.height && box.y + box.height > other.y)
+  }
 
   const policy: DragPolicy = {
     governs(node: any) {
@@ -476,7 +508,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     onMove(_node, point) {
       if (grip) {
         grip.last = grip.follow(local(point))
-        draw(grip.last.next, { grip: grip.name, layout: grip.last.layout })
+        draw(grip.last.next, { grip: grip.name, layout: heldLayout(grip.last.layout) })
         tell(options.onPreview, grip.last.next === value ? null : grip.last.next)
         return
       }
@@ -534,7 +566,11 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         // Off the lanes, on the canvas: the card becomes an ordinary note there, or says why it may not.
         const reason = workshopCardAsNoteRefusal(value, cardId)
         if (!reason) {
-          release(cardId, { x: node.options.x ?? 0, y: node.options.y ?? 0 })
+          // Let go on another board: the note may not lie on that board's lanes, which would not take it.
+          // It goes past the boards along its row, and says why (offering it to that board comes later).
+          const at = { x: node.options.x ?? 0, y: node.options.y ?? 0, width: node.options.width ?? 228, height: node.options.height ?? 76 }
+          const onBoard = otherBoardUnder(at)
+          release(cardId, onBoard ? besideSpot(at) : at, onBoard ? ' It was let go on another board, so it waits just past that board.' : '')
           return { accept: true }
         }
         draw(value, { skip: cardId })
@@ -1654,7 +1690,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
    * undo step. The note is drawn as the card was, and gets back what the note it was made
    * from had (its line breaks, shape and size).
    */
-  function release(cardId: string, at: { x: number; y: number }) {
+  function release(cardId: string, at: { x: number; y: number }, why = '') {
     const card = value.cards.find(item => item.id === cardId)!
     const fromLane = value.lanes.find(item => item.id === card.laneId)!
     const place = value.cards.findIndex(item => item.id === cardId)
@@ -1702,7 +1738,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (typeof slate.withoutAnnouncements === 'function') slate.withoutAnnouncements(select)
       else select()
     })
-    slate.announce?.(`${cardName(card)} is now a note on the canvas. ${fromLane.label}: ${workshopLaneCaption(value, fromLane.id)}.${leftShape(kept?.shape)}`)
+    slate.announce?.(`${cardName(card)} is now a note on the canvas.${why} ${fromLane.label}: ${workshopLaneCaption(value, fromLane.id)}.${leftShape(kept?.shape)}`)
     const dropNote = () => {
       if (slate.nodes.one(id) !== added) return
       slate.beginHostStep?.()

@@ -252,6 +252,59 @@ describe('"beside the board" avoids the other boards', () => {
   })
 })
 
+describe('a card let go on another board', () => {
+  /** Board A at the origin, board B 1380 to its right, each avoiding the other; A's card "kind" dragged to `to` and let go. */
+  async function dropFromA(to: (b: { x: number; y: number; width: number; height: number }) => { x: number; y: number }) {
+    const { slate, notes, policies } = slateOfBoards()
+    const said: string[] = []
+    slate.announce = (text: string) => { said.push(text) }
+    let a: any = null
+    let b: any = null
+    const changes: { board: string; next: Workshop }[] = []
+    a = attachWorkshop(slate, retro(), { origin: { x: 0, y: 0 }, avoid: () => [b.bounds], onChange: next => { changes.push({ board: 'main', next }) } })
+    b = attachWorkshop(slate, retro(), { origin: { x: 1380, y: 0 }, scope: 'b2', avoid: () => [a.bounds], onChange: next => { changes.push({ board: 'b2', next }) } })
+    await Promise.all([a.whenDrawn(), b.whenDrawn()])
+    const node = notes.get('card-kind')
+    const o = node.options
+    const from = { x: o.x + o.width / 2, y: o.y + o.height / 2 }
+    const point = to(b.bounds)
+    expect(policies[0].onStart(node, from, {})).toBe(true)
+    policies[0].onMove(node, point, {})
+    // The engine has moved the note under the pointer by the time it is let go.
+    node.position(point.x - o.width / 2, point.y - o.height / 2)
+    const result = policies[0].onEnd(node, point, {})
+    return { a, b, notes, said, changes, result, size: { width: o.width, height: o.height } }
+  }
+
+  it('does not lie on that board: it goes past the boards along its row, and says why; that board is unchanged', async () => {
+    const { a, b, notes, said, changes, result } = await dropFromA(box => ({ x: box.x + 200, y: box.y + 260 }))
+    expect(result).toEqual({ accept: true })
+    expect(a.value.cards.some((card: any) => card.id === 'kind')).toBe(false)
+    const note = notes.get('kind').options
+    const box = b.bounds
+    // Clear of board B: past its right edge, on the row it was let go on.
+    expect(note.x).toBeGreaterThanOrEqual(box.x + box.width)
+    expect(note.y).toBe(Math.round(box.y + 260 - note.height / 2))
+    expect(said.at(-1)).toBe('Kind reviews is now a note on the canvas. It was let go on another board, so it waits just past that board. Went well: 0 of 3.')
+    // Board B does not take it and does not change: only A reports the trade.
+    expect(b.value).toEqual(retro())
+    expect(changes.map(change => change.board)).toEqual(['main'])
+    a.destroy()
+    b.destroy()
+  })
+
+  it('let go on the open canvas between the boards, it stays where it was let go, as ever', async () => {
+    const { a, b, notes, said, result, size } = await dropFromA(() => ({ x: 600, y: 900 }))
+    expect(result).toEqual({ accept: true })
+    const note = notes.get('kind').options
+    expect(note.x).toBe(Math.round(600 - size.width / 2))
+    expect(note.y).toBe(Math.round(900 - size.height / 2))
+    expect(said.at(-1)).toBe('Kind reviews is now a note on the canvas. Went well: 0 of 3.')
+    a.destroy()
+    b.destroy()
+  })
+})
+
 describe('the room a board needs (workshopReserve)', () => {
   it('a lane board reserves five lanes, whatever it holds now', () => {
     expect(workshopReserve(retro()).width).toBe(1220)

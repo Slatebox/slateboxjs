@@ -1321,6 +1321,11 @@ export interface WorkshopBoardLayout {
    */
   dayWidth?: number
   /**
+   * Plans: the widest a held grip may draw the plan (on a slate of many boards, the room before the next board).
+   * A plan that would grow past it while held keeps this width and its days narrow instead. Left out, it grows.
+   */
+  maxWidth?: number
+  /**
    * A pipeline's gauge or a budget's envelope: the amount the board's width spans. A target or an envelope edge being
    * dragged keeps the scale it started with. Left out, the gauge fits target and forecast, and the envelope its total.
    */
@@ -1736,6 +1741,8 @@ export interface WorkshopReserveKit {
  * - A board of lanes: five lanes (the most a board has), or a map's own width when that is wider.
  * - A launch plan, hiring plan, pipeline, budget or nested board: its kit's desktop width (a launch
  *   plan's is 1200), or `layout.width` when the board is pinned to a width (a desktop layout's). It needs its kit.
+ *   A plan held by a grip grows to the right under the pointer only as far as the next board allows
+ *   (attachWorkshop's `avoid`, as `layout.maxWidth`); past that its days narrow, and it fits again when let go.
  * A phone's narrow layout is never the reserve: it is always smaller than the desktop one.
  */
 export function workshopReserve(input: Workshop, layout: WorkshopBoardLayout = {}, kit?: WorkshopReserveKit): { width: number; height: number } {
