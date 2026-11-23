@@ -292,8 +292,9 @@ test('a note with a free-ended elbow line and a line to a card, dropped on a Pro
   }
 })
 
-// Any note becomes a card (owner decision 2026-11-21, "no need to restrict this either").
-test('an empty note dropped on a lane is an empty card: saved, counted, seen by a teammate, kept on reload, undone, presented', async ({ page, browser }) => {
+// Any note becomes a card (owner decision 2026-11-21, "no need to restrict this either"). Restated
+// 2026-11-23: an empty note is a card named with the board's word for a new item, "New card" on lanes.
+test('an empty note dropped on a lane is “New card”: saved, counted, seen by a teammate, kept on reload, undone, presented', async ({ page, browser }) => {
   let id: string | null = null, guest: Awaited<ReturnType<typeof joinAsEditor>> | null = null
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
@@ -313,15 +314,18 @@ test('an empty note dropped on a lane is an empty card: saved, counted, seen by 
     const later = await resting(page, 'column-later')
     await carry(page, 'blank', { x: later.x + later.width / 2, y: later.y + later.height - 24 })
     await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.map((c: any) => c.id + '@' + c.laneId + ':' + c.label).join(' '))
-      .toBe('alpha@now:Alpha beta@next:Beta blank@later:')
+      .toBe('alpha@now:Alpha beta@next:Beta blank@later:New card')
     await expect(page.locator('#slateCanvas').getByText('needs some words')).toHaveCount(0)
     await expect(note(page, 'caption-later')).toContainText('1')
-    await expect(card(page, 'blank')).toHaveAttribute('aria-label', 'Empty card, in Later')
+    await expect(card(page, 'blank')).toHaveAttribute('aria-label', /^New card, in Later/)
+    // Its name is open for typing; left as it is, the name stays.
+    await expect(page.locator('.sb-inline-editor')).toBeVisible()
+    await page.keyboard.press('Escape')
     await expect(card(guest.page, 'blank')).toHaveCount(1)
     await expect(note(guest.page, 'caption-later')).toContainText('1')
     await shot(page, 'empty-note-is-a-card')
 
-    // Undo: an empty note again; redo: an empty card.
+    // Undo: an empty note again; redo: the card.
     await page.mouse.click(5, 300)
     await page.keyboard.press('ControlOrMeta+z')
     await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.map((c: any) => c.id).join(' ')).toBe('alpha beta')

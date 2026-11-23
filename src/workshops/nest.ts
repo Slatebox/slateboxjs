@@ -527,6 +527,17 @@ extend({
 })
 
 /** The role a card takes under `parent` when none is said: the one the rules seat there, a pile's note, or none. */
+/**
+ * A nested board's word for a new card: the role a card takes under `under` ("solution" under an
+ * opportunity, "note" in a pile), else the layout's own (an idea on a 2 by 2, a note in the piles).
+ */
+function nestNewCard(board: Board, under?: string): string {
+  const parent = under === undefined ? null : board.cards.find(card => card.id === under) ?? null
+  const role = roleUnder(board, parent)
+  if (role && /^[a-z][a-z ]{0,30}$/.test(role)) return role
+  return board.nest?.layout === 'matrix' ? 'idea' : board.nest?.layout === 'clusters' ? 'note' : 'card'
+}
+
 function roleUnder(board: Board, parent: WorkshopCard | null): string | undefined {
   if (!parent) return undefined
   const seated = (board.behaviour?.rules ?? []).find(rule => rule.kind === 'nests' && rule.under.includes(parent.role ?? '')) as { role: string } | undefined
@@ -563,9 +574,8 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
     case 'add_card': {
       // A 2 by 2: a new card waits in the tray until it is scored.
       const lane = board.nest?.layout === 'matrix' ? board.lanes[1] : t.lane(edit.lane)
-      const label = edit.label?.replace(/\s+/g, ' ').trim()
-      if (!label) t.refuse('Say what the card should say, such as “Add a note called Slow exports to Reporting”.', { laneId: lane.id })
       const parent = edit.under === undefined ? null : under(edit.under)
+      const label = edit.label?.replace(/\s+/g, ' ').trim() || 'New ' + nestNewCard(board, parent?.id)
       if (parent && lane.id === tray) t.refuse(trayName + ' holds loose cards: nothing sits under another there.', { laneId: lane.id })
       const role = edit.role === undefined ? roleUnder(board, parent) : roleOf(edit.role)
       const card: WorkshopCard = { id: nextCardId(board), label: label!, laneId: parent?.laneId ?? lane.id, ...(role && { role }), ...(parent?.owner && { owner: parent.owner }), ...(edit.source && { source: plainText(edit.source, 60, 'Say who said it in plain words.') }) }
@@ -812,7 +822,8 @@ export const nestRules: BusinessBoardRules = {
   },
   cardText: nestCardText,
   noteText: (_board, card) => card.label,
-  fromNote: (_board, text) => ({ label: text.replace(/\s+/g, ' ').trim().slice(0, 80) }),
+  fromNote: (_board, text, unnamed) => ({ label: (text.replace(/\s+/g, ' ').trim() || unnamed).slice(0, 80) }),
+  newCard: nestNewCard,
   renamed: (_board, _cardId, text) => ({ label: text.replace(/\s+/g, ' ').trim(), edits: [] }),
   edit: nestEdit,
 }

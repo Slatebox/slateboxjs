@@ -146,18 +146,18 @@ export const hiringPlanRules: BusinessBoardRules = {
   },
   cardText: (board, card) => card.label + ' · ' + dateName(board.clock!.origin, hireStarts(board, card.id)).replace(/^\w+ /, ''),
   noteText: (_board, card) => card.label,
-  fromNote(_board, text) {
-    const label = text.replace(/\s+/g, ' ').trim()
-    return label ? { label: label.slice(0, 80), duration: 42 } : 'Say who to hire, such as “Designer”.'
+  fromNote(_board, text, unnamed) {
+    const label = text.replace(/\s+/g, ' ').trim() || unnamed
+    return { label: label.slice(0, 80), duration: 42 }
   },
+  newCard: () => 'hire',
   renamed: (_board, _cardId, text) => ({ label: text.replace(/\s+/g, ' ').trim(), edits: [] }),
   edit(board: Workshop, edit: WorkshopEdit, t: BusinessEditTools) {
     const plan = board.hiring!
     switch (edit.kind) {
       case 'add_card': {
         const target = t.lane(edit.lane)
-        const label = edit.label?.trim()
-        if (!label) t.refuse('Say who to hire, such as “Add a Designer to ' + target.label + '”.', { laneId: target.id })
+        const label = edit.label?.trim() || 'New hire'
         const band = edit.band ? bandOf(plan, edit.band) : plan.bands.find(item => item.lane === target.id) ?? bandOf(plan, label)
         if (!band) t.refuse('Say which role band, such as ' + plan.bands.map(item => said(item.label)).join(' or ') + '.', { laneId: target.id })
         const card: WorkshopCard = { id: nextCardId(board), label, laneId: target.id, band: band!.id, duration: edit.duration ?? 42 }

@@ -2,8 +2,9 @@ import { expect, test, type Page } from '@playwright/test'
 
 /**
  * Any note becomes a card (owner decision 2026-11-21: "no need to restrict this either"). An empty
- * note dropped on a lane is an empty card there, counted in the lane, renamed in place like any
- * card, and an empty note again off the lanes. A note's picture and link go with the card and come
+ * note dropped on a lane is a card called "New card" there (restated 2026-11-23: named with the
+ * board's word for a new item, its name open for typing), counted in the lane, renamed in place like
+ * any card, and an empty note again off the lanes. A note's picture and link go with the card and come
  * back with the note.
  *
  * Fixture (tests/fixtures/native-workshop.html): the note "plain" beside lanes Now and Later.
@@ -41,29 +42,33 @@ async function resting(page: Page, id: string) {
 }
 const client = (page: Page, world: { x: number; y: number }) => page.evaluate(p => (window as any).native.slate.worldToClient(p), world)
 
-test('an empty note dropped on a lane is an empty card there; it is renamed in place, and off the lanes it is an empty note', async ({ page }) => {
+test('an empty note dropped on a lane is “New card” there; it is renamed in place, and off the lanes it is an empty note', async ({ page }) => {
   await open(page)
   await page.evaluate(() => (window as any).native.slate.addNode({ id: 'blank', x: 60, y: 260, width: 160, height: 80, text: '' }))
   await page.waitForTimeout(300)
   await drag(page, 'blank', await inLane(page, 'now'))
-  await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now blank@now(empty)')
-  await expect(live(page)).toHaveText('The empty card is now a card in Now. 4 cards.')
+  await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now blank@now')
+  expect(await page.evaluate(() => (window as any).native.board.value.cards.at(-1).label)).toBe('New card')
+  await expect(live(page)).toHaveText('New card is now a card in Now. 4 cards.')
+  // Its name is open for typing; left as it is, it stays.
+  await expect(page.locator('.sb-inline-editor')).toBeVisible()
+  await page.keyboard.press('Escape')
   await expect.poll(() => text(page, 'caption-now')).toBe('4')
   const drawn = await resting(page, 'card-blank')
   const alpha = await box(page, 'card-alpha')
   // Drawn as a card like the others: the same width as its neighbours.
   expect(Math.round(drawn.width)).toBe(Math.round(alpha!.width))
-  await expect(page.locator('#slate [data-node-id="card-blank"]')).toHaveAttribute('aria-label', 'Empty card, in Now')
+  await expect(page.locator('#slate [data-node-id="card-blank"]')).toHaveAttribute('aria-label', /^New card, in Now/)
   expect(await page.evaluate(() => JSON.parse((window as any).native.slate.exportJSON()).nodes.map((n: any) => n.options.id))).toEqual(['plain'])
 
   // Off the lanes: an empty note again.
   await drag(page, 'card-blank', await client(page, { x: 60, y: 520 }))
   await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
   await expect.poll(() => text(page, 'blank')).toBe('')
-  // Undo puts the empty card back, redo takes it off again.
+  // Undo puts the card back, redo takes it off again.
   await page.mouse.click(5, 5)
   await page.keyboard.press('ControlOrMeta+z')
-  await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now blank@now(empty)')
+  await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now blank@now')
   await page.keyboard.press('ControlOrMeta+y')
   await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now')
 

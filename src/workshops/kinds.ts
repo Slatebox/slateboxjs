@@ -54,8 +54,16 @@ export interface BusinessBoardRules {
   /** What a card says on the board, and as a note again off it ("Copy · 3 days"). */
   cardText(board: Workshop, card: WorkshopCard): string
   noteText(board: Workshop, card: WorkshopCard): string
-  /** The add_card fields a note's words make (its name and the number written on it), or why it can't become a card. */
-  fromNote(board: Workshop, text: string): { label: string; duration?: number; amount?: number } | string
+  /**
+   * The add_card fields a note's words make (its name and the number written on it), or why it can't become a card.
+   * `unnamed` is the name a card takes when the note has no words of its own (empty, or only a number): see newCard.
+   */
+  fromNote(board: Workshop, text: string, unnamed: string): { label: string; duration?: number; amount?: number } | string
+  /**
+   * The board's own word for a new item ("hire", "task", "deal"): the catalog adds cards with it ("Add a hire"), and a
+   * card made without words is named with it ("New hire"). `under` is the card a nested board's card goes under.
+   */
+  newCard(board: Workshop, under?: string): string
   /** A card's new words: its name, and the edits the numbers typed on it make. */
   renamed(board: Workshop, cardId: string, text: string): { label: string; edits: WorkshopEdit[] }
   /** Make one of the kind's own edits (and add_card); null for an edit the generic reducer makes. */
@@ -116,6 +124,18 @@ export function registerWorkshopRules(rules: BusinessBoardRules): void {
 /** Whether a kind's rules have loaded here (in a browser, with its kit). */
 export function workshopRulesLoaded(kind: string | undefined): boolean {
   return typeof kind === 'string' && registry.has(kind)
+}
+
+/**
+ * The name a card takes when it is made without words: an empty note dropped on a board, or add_card with no
+ * label from chat or exec. It is the board's own word for a new item, "New hire" on a hiring plan, "New task" on
+ * a launch plan, "New card" on lanes, "New stop" on a map. Notes always become cards on boards, empty or not.
+ */
+export function workshopNewCardName(board: Pick<Workshop, 'kind' | 'lanes'> & Partial<Workshop>, under?: string): string {
+  const kind = board.kind && board.kind !== 'release-plan' ? registry.get(board.kind) : undefined
+  if (kind) return 'New ' + kind.newCard(board as Workshop, under)
+  if (board.kind === 'release-plan') return 'New feature'
+  return board.lanes.some(lane => lane.station) ? 'New stop' : 'New card'
 }
 
 /** The rules of a business board's kind. Throws while they have not loaded. */

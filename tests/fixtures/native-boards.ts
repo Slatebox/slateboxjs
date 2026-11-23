@@ -1,6 +1,6 @@
 // A live slate with one business board attached as native notes. The model entry is loaded with
 // the slate; the boards entry (kits, board layer and Dragology) only once a board is opened, as
-// an app does. ?board=launch-plan|pipeline|budget picks the board; the screen width picks the layout.
+// an app does. ?board=launch-plan|hiring-plan|pipeline|budget picks the board; the screen width picks the layout.
 import { Slate } from '../../src'
 import { attachWorkshop, validateWorkshop, type AttachedWorkshop, type Workshop, type WorkshopChangeEvent, type WorkshopRefusalEvent } from '../../src/workshops/model'
 
@@ -43,9 +43,11 @@ const api = {
     return
   }
   // The boards entry brings the kits and plugs the boards' rules into the model's gate.
-  const { kitFor, boardLayoutFor, sampleLaunchPlan, samplePipeline, sampleBudget } = await import('../../src/boards')
+  const { kitFor, boardLayoutFor, sampleLaunchPlan, samplePipeline, sampleBudget, hiringPlanSample } = await import('../../src/boards')
   const { workshopReserve } = await import('../../src/workshops/model')
-  const samples: Record<string, () => Workshop> = { 'launch-plan': sampleLaunchPlan, pipeline: samplePipeline, budget: sampleBudget }
+  // A hiring plan comes with its rulebook: the rulebook's own module reads it.
+  if (kind === 'hiring-plan') await import('../../src/workshops/behaviour')
+  const samples: Record<string, () => Workshop> = { 'launch-plan': sampleLaunchPlan, 'hiring-plan': hiringPlanSample, pipeline: samplePipeline, budget: sampleBudget }
   const layout = boardLayoutFor(innerWidth)
   // ?second: a second copy in scope "b2", 160 past the room the first needs; each board avoids the other.
   const many = params.has('second')

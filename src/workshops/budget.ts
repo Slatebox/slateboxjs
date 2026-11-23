@@ -189,18 +189,20 @@ export const budgetRules: BusinessBoardRules = {
   planMove: planBudgetMove,
   refusal: budgetRefusal,
   caption: budgetCaption,
-  fromNote(_board, text) {
-    const read = noteNumbers(text)
-    if (typeof read === 'string') return read
-    return read.amount === undefined ? 'Write the cost on the note, like \'Contractor $45k\', then drop it.' : { label: read.label, amount: read.amount }
+  fromNote(board, text, unnamed) {
+    const read = noteNumbers(text, unnamed)
+    if (read.amount !== undefined) return { label: read.label, amount: read.amount }
+    // An empty note is a line item the person names and prices next: one step of the budget to start.
+    if (!text.trim()) return { label: read.label, amount: board.budget!.step }
+    return 'Write the cost on the note, like \'Contractor $45k\', then drop it.'
   },
+  newCard: () => 'line item',
   edit(board: Workshop, edit: WorkshopEdit, t: BusinessEditTools) {
     const currency = board.budget!.currency
     switch (edit.kind) {
       case 'add_card': {
         const target = t.lane(edit.lane)
-        const label = edit.label?.trim()
-        if (!label) t.refuse('Say what the card should say, such as “Add Docs to ' + target.label + '”.', { laneId: target.id })
+        const label = edit.label?.trim() || 'New line item'
         if (edit.amount === undefined) t.refuse('Give the line item a cost, like \'Contractor $45k\'.', { laneId: target.id })
         const least = { ...amountLimits, min: 1 }
         if (!Number.isInteger(edit.amount) || edit.amount < 1) t.refuse('A line item costs something.', { laneId: target.id, limits: least })

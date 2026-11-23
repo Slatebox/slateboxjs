@@ -518,10 +518,11 @@ export const launchPlanRules: BusinessBoardRules = {
   caption: launchPlanCaption,
   cardText: (_board, card) => card.label + ' · ' + card.duration + 'd',
   noteText: (_board, card) => launchTaskText(card),
-  fromNote(_board, text) {
-    const read = noteNumbers(text)
-    return typeof read === 'string' ? read : { label: read.label, duration: Math.min(60, Math.max(1, read.days ?? 2)) }
+  fromNote(_board, text, unnamed) {
+    const read = noteNumbers(text, unnamed)
+    return { label: read.label, duration: Math.min(60, Math.max(1, read.days ?? 2)) }
   },
+  newCard: () => 'task',
   renamed(_board, cardId, text) {
     const read = renamedNumbers(text)
     return { label: read.label, edits: read.days !== undefined ? [{ kind: 'set_task', card: { id: cardId }, duration: read.days }] : [] }
@@ -530,8 +531,7 @@ export const launchPlanRules: BusinessBoardRules = {
     switch (edit.kind) {
       case 'add_card': {
         const target = t.lane(edit.lane)
-        const label = edit.label?.trim()
-        if (!label) t.refuse('Say what the card should say, such as “Add Docs to ' + target.label + '”.', { laneId: target.id })
+        const label = edit.label?.trim() || 'New task'
         const card: WorkshopCard = { id: nextCardId(board), label, laneId: target.id, duration: edit.duration ?? 2 }
         if (edit.lag) card.lag = edit.lag
         const waits = [...new Set((edit.waitsOn ?? []).map(ref => t.card(ref).id))]

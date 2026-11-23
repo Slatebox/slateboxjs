@@ -17,7 +17,7 @@ import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type Worl
 import {
   businessKind, validateWorkshop, workshopBoardScope, workshopFreeSpot, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopCardNoteText, workshopDestinations,
   roundedBox, workshopReserve, workshopLaneSpoken, workshopLaneHeld, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
-  workshopCardLabelOf, workshopKeepsLink, workshopNoteIdOf, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesLines, workshopTakesNotes, workshopToSlate, workshopWithLine,
+  workshopCardLabelOf, workshopCardNoteWords, workshopKeepsLink, workshopNoteIdOf, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesLines, workshopTakesNotes, workshopToSlate, workshopWithLine,
   workshopWithoutLine, type Workshop, type WorkshopBoardLayout, type WorkshopCard, type WorkshopCardAsNote, type WorkshopCardLook,
   type WorkshopLine, type WorkshopNoteOffer, type WorkshopNoteStyle,
 } from './model'
@@ -1771,6 +1771,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     draw(value)
     // A card is selected on its own: the first of them keeps the person's place.
     keepPlaceOn(noteId(workshopNodeIds.card(made[0].card.id)))
+    // A card made from an empty note has the board's name for a new item ("New hire"): its name is
+    // opened for typing, all selected, so the person just types. Left as it is, the name stays.
+    const unnamed = made.length === 1 && workshopCardNoteWords(value, made[0].card) === '' && made[0].card.label ? made[0].card : null
+    if (unnamed) nameOnArrival(noteId(workshopNodeIds.card(unnamed.id)), unnamed.label)
     const lane = value.lanes.find(item => item.id === laneId)!
     slate.announce?.(made.length === 1
       ? `${cardName(made[0].card)} is now a card in ${lane.label}. ${workshopLaneSpoken(value, laneId)}.${joinedShape([made[0].card])}`
@@ -1830,7 +1834,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const round = (style.cornerRadius ?? 0) > 0
     const kept = card.asNote
     // The words it had, line breaks and all, unless the card has been renamed since.
-    const words = kept?.text !== undefined && workshopCardLabelOf(kept.text) === card.label ? kept.text : workshopCardNoteText(value, card)
+    const words = workshopCardNoteWords(value, card)
     const note: Record<string, unknown> = {
       id, x: Math.round(at.x), y: Math.round(at.y), width: kept?.width ?? drawnCard.width ?? 228, height: kept?.height ?? drawnCard.height ?? 76, text: words,
       shape: kept?.shape ?? (round ? 'roundedrectangle' : 'rectangle'),
@@ -1933,6 +1937,15 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const select = () => slate.selectNodes?.([node])
       if (typeof slate.withoutAnnouncements === 'function') slate.withoutAnnouncements(select)
       else select()
+    })
+  }
+
+  /** Open the card's name for typing once it is drawn, all selected (a card made from an empty note). */
+  function nameOnArrival(id: string, label: string) {
+    pending = pending.then(() => {
+      const node = owned.get(id)
+      if (destroyed || readOnly || !node?.editor?.startInline) return
+      node.editor.startInline({ text: label, caret: 'all' })
     })
   }
 

@@ -140,17 +140,17 @@ export const pipelineRules: BusinessBoardRules = {
   planMove: planPipelineMove,
   refusal: pipelineRefusal,
   caption: pipelineCaption,
-  fromNote(_board, text) {
-    const read = noteNumbers(text)
-    return typeof read === 'string' ? read : { label: read.label, ...(read.amount !== undefined && { amount: read.amount }) }
+  fromNote(_board, text, unnamed) {
+    const read = noteNumbers(text, unnamed)
+    return { label: read.label, ...(read.amount !== undefined && { amount: read.amount }) }
   },
+  newCard: () => 'deal',
   edit(board: Workshop, edit: WorkshopEdit, t: BusinessEditTools) {
     const currency = board.forecast!.currency
     switch (edit.kind) {
       case 'add_card': {
         const target = t.lane(edit.lane)
-        const label = edit.label?.trim()
-        if (!label) t.refuse('Say what the card should say, such as “Add Docs to ' + target.label + '”.', { laneId: target.id })
+        const label = edit.label?.trim() || 'New deal'
         const card: WorkshopCard = { id: nextCardId(board), label, laneId: target.id }
         if (edit.amount !== undefined) {
           if (!Number.isInteger(edit.amount) || edit.amount < amountLimits.min) t.refuse(amountLimits.reasons.min, { laneId: target.id, limits: amountLimits })

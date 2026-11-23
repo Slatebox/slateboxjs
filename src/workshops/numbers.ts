@@ -70,10 +70,10 @@ export const days = (n: number) => n + (n === 1 ? ' day' : ' days')
 /** The bounds every amount keeps, and their sentences. */
 export const amountLimits = { field: 'amount', min: 0, max: 1e9, reasons: { min: 'An amount is not below zero.', max: 'An amount is at most 1,000,000,000.' } }
 
-/** A note's words as a card's name and number, or why they can't be one. */
-export function noteNumbers(text: string): NoteNumbers | string {
+/** A note's words as a card's name and number. A note with no words of its own (empty, or only a number) is named `unnamed`. */
+export function noteNumbers(text: string, unnamed: string): NoteNumbers {
   const read = readNoteNumbers(text)
-  return read.label ? read : 'A card needs some words as well as a number.'
+  return read.label ? read : { ...read, label: unnamed }
 }
 
 /** A card's new words: its name without the number typed on it, and that number. */

@@ -222,8 +222,8 @@ describe('lanes and cards come and go', () => {
     const full = ok(apply(week, { kind: 'set_lane_capacity', lane: 'Next', capacity: 1 }))
     expect(no(apply(full, { kind: 'add_card', lane: 'Next', label: 'Email Jo' }))).toMatchObject({
       reason: '“Next” is full: it holds 1 card. Add the card to another column, or raise the limit.', laneId: 'next' })
-    // (Restated 2026-11-21, owner decision: a card added without words is an empty card.)
-    expect(ok(apply(week, { kind: 'add_card', lane: 'Next' })).cards[3]).toEqual({ id: 'card-1', label: '', laneId: 'next' })
+    // (Restated 2026-11-23, owner decision: a card added without words takes the board's name for a new item.)
+    expect(ok(apply(week, { kind: 'add_card', lane: 'Next' })).cards[3]).toEqual({ id: 'card-1', label: 'New card', laneId: 'next' })
     const many = ok(applyWorkshopEdits(week, Array.from({ length: 21 }, (_, i) => ({ kind: 'add_card', lane: 'Later', label: 'Card ' + i }) as WorkshopEdit)))
     expect(no(apply(many, { kind: 'add_card', lane: 'Later', label: 'One more' })).reason).toBe('A workshop can have up to 24 cards. Remove one first.')
     expect(ok(apply(week, { kind: 'add_card', lane: 'Now', label: 'Pinned', allowedLanes: ['Now', 'Next'] })).cards[3].allowedLaneIds).toEqual(['now', 'next'])

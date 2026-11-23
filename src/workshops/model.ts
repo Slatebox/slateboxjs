@@ -6,8 +6,8 @@ import { applyWorkshopEdits } from './edits'
 import { rulebook } from './kinds'
 import type { Behaviour } from './behaviour'
 export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, RuleInput, RuleKindId, WorkshopMoveCheck } from './behaviour'
-import { workshopRules } from './kinds'
-export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools,
+import { workshopNewCardName, workshopRules } from './kinds'
+export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, workshopNewCardName, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools,
   type WorkshopFieldReader, type WorkshopLimits } from './kinds'
 import type { NodeJSON, SlateJSON } from '../core/Serialization'
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults'
@@ -889,13 +889,13 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
   // A business board makes its card by its own rules, from the note's words and the number on it.
   // Its cards carry no lines, so a note joined to others by lines stays a note there.
   if (businessKind(board)) {
-    if (!(typeof note?.label === 'string' ? oneLine(note.label) : '')) return 'A card needs some words. Type on the note first.'
     if (Array.isArray(note.lines) ? note.lines.length : note.lines !== undefined) return 'A note joined to other notes by lines stays a note on this board.'
     const made = businessNote(board, laneId, note)
     return typeof made === 'string' ? made : ruleRefusal(board, made)
   }
-  // A note becomes a card whatever its words, look, shape or lines: empty, long (the card shows
-  // the first 80 characters and keeps the rest for the note), or styled in a way a card does not draw.
+  // A note becomes a card whatever its words, look, shape or lines: empty (the card takes the board's
+  // name for a new item, workshopNewCardName), long (the card shows the first 80 characters and keeps the
+  // rest for the note), or styled in a way a card does not draw.
   // Only words a card could not show as plain text (markup) keep it a note.
   if (board.cards.length >= maxWorkshopCards) return `This board is at its size limit of ${maxWorkshopCards} cards. Remove a card to make room.`
   // A map's lines are its paths: its cards carry none, so a note joined to others by lines stays a note, and says so.
@@ -912,7 +912,7 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
       return `A workshop holds up to ${maxWorkshopLines} lines.`
     }
   }
-  return ruleRefusal(board, { ...board, cards: [...board.cards, { id: cardIdFor(board, note.id), label: workshopCardLabelOf(typeof note.label === 'string' ? note.label : ''), laneId }] })
+  return ruleRefusal(board, { ...board, cards: [...board.cards, { id: cardIdFor(board, note.id), label: workshopCardLabelOf(noteWords(note) || workshopNewCardName(board)), laneId }] })
 }
 
 /** The rulebook's sentence when `next` breaks a rule of `board`; null when it keeps them. */
@@ -989,8 +989,11 @@ export function workshopNoteCandidate(board: Workshop, laneId: string, note: Wor
     return at < 0 ? made : { ...made, cards: [...board.cards.slice(0, at), card, ...board.cards.slice(at)] }
   }
   const look = keptLook(note.look)
-  const words = typeof note.label === 'string' ? oneLine(note.label) : ''
+  const typed = noteWords(note)
+  // An empty note takes the board's name for a new item, and remembers it had no words for its way back.
+  const words = typed || workshopNewCardName(board)
   let asNote = keptAsNote(note.asNote)
+  if (!typed) asNote = { ...asNote, text: '' }
   // Words longer than a card shows are kept for the note.
   if (words.length > 80 && asNote?.text === undefined && words.length <= 4000) asNote = { ...asNote, text: words }
   const cardId = cardIdFor(board, note.id)
@@ -1037,7 +1040,9 @@ function releaseNote(board: Workshop, laneId: string, note: WorkshopNoteOffer, b
  * days, two when none is written), made by the edit every surface adds a card with; or why it may not be.
  */
 function businessNote(board: Workshop, laneId: string, note: WorkshopNoteOffer): Workshop | string {
-  const read = workshopRules(businessKind(board)!).fromNote(board, note.label)
+  const typed = noteWords(note)
+  // A card made without words (an empty note, or one with only a number) takes the board's name for a new item.
+  const read = workshopRules(businessKind(board)!).fromNote(board, typed, workshopNewCardName(board, note.under))
   if (typeof read === 'string') return read
   const made = applyWorkshopEdits(board, [{ kind: 'add_card', lane: { id: laneId }, ...read, ...(note.under && { under: { id: note.under } }) }])
   if ('refused' in made) return made.refused.reason
@@ -1048,10 +1053,27 @@ function businessNote(board: Workshop, laneId: string, note: WorkshopNoteOffer):
   // The card keeps the note's look and what the note had that the card does not show (its shape,
   // size, line breaks), so a diamond dragged off the board is a diamond again (boards S1).
   const look = keptLook(note.look)
-  const asNote = keptAsNote(note.asNote)
+  // An empty note remembers it had no words, so it leaves the board empty again.
+  const asNote = typed ? keptAsNote(note.asNote) : { ...keptAsNote(note.asNote), text: '' }
   cards[cards.length - 1] = { ...cards[cards.length - 1], id: cardId, ...(noteId ? { noteId } : {}),
     ...(look ? { look } : {}), ...(asNote ? { asNote } : {}) }
   return made.workshop
+}
+
+/** A note's words in one line; empty for a note with none. */
+function noteWords(note: Pick<WorkshopNoteOffer, 'label'>): string {
+  return typeof note?.label === 'string' ? oneLine(note.label) : ''
+}
+
+/**
+ * The words a card takes back to the canvas as a note: none for a card made from an empty note and
+ * still called by the board's name for a new item; the note's own words (line breaks and all) unless
+ * the card has been renamed since; otherwise its words as the board writes them ("Copy · 3 days").
+ */
+export function workshopCardNoteWords(board: Workshop, card: WorkshopCard): string {
+  const kept = card.asNote?.text
+  if (kept === '' && (card.label === workshopNewCardName(board, card.parentId) || card.label === workshopNewCardName(board))) return ''
+  return kept !== undefined && kept !== '' && workshopCardLabelOf(kept) === card.label ? kept : workshopCardNoteText(board, card)
 }
 
 /** What a card says on the board: its name, with its points, days or amount. */

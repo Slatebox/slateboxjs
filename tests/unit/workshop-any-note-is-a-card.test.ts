@@ -18,23 +18,27 @@ const board = validateWorkshop({
   cards: [{ id: 'alpha', label: 'Alpha', laneId: 'now' }],
 })
 
-describe('an empty note is an empty card', () => {
-  it('becomes a card with no words, counts in its lane and is kept as it is', () => {
+describe('an empty note is a card named for the board', () => {
+  // (Restated 2026-11-23, owner decision: an empty note becomes a card named with the board's word for a
+  // new item, "New card" on lanes; dragged off unchanged, it is an empty note again. See
+  // workshop-empty-note-named-card.test.ts for every board kind.)
+  it('becomes "New card", counts in its lane, is kept as it is, and leaves as an empty note', () => {
     expect(workshopNoteRefusal(board, 'now', { id: 'blank', label: '   ' })).toBeNull()
     const next = workshopNoteCandidate(board, 'now', { id: 'blank', label: '' })!
-    expect(next.cards.at(-1)).toEqual({ id: 'blank', label: '', laneId: 'now' })
+    expect(next.cards.at(-1)).toEqual({ id: 'blank', label: 'New card', laneId: 'now', asNote: { text: '' } })
     expect(validateWorkshop(next)).toEqual(next)
     expect(m.workshopLaneCaption(next, 'now')).toBe('2')
-    // And back: an empty card leaves the lanes as an empty note.
+    // And back: unchanged, the card leaves the lanes as an empty note.
+    expect(m.workshopCardNoteWords(next, next.cards.at(-1)!)).toBe('')
     expect(workshopCardAsNote(next, 'blank')!.cards.map(card => card.id)).toEqual(['alpha'])
   })
 
-  it('is what a card renamed to nothing is, and what an agent adds without words', () => {
+  it('a card renamed to nothing stays empty; an agent adding a card without words gets "New card"', () => {
     const renamed = applyWorkshopEdits(board, [{ kind: 'rename_card', card: { id: 'alpha' }, label: '' }]) as any
     expect(renamed.workshop.cards[0]).toEqual({ id: 'alpha', label: '', laneId: 'now' })
     const added = applyWorkshopEdits(board, [{ kind: 'add_card', lane: 'Now' }]) as any
-    expect(added.workshop.cards.at(-1)).toMatchObject({ label: '', laneId: 'now' })
-    expect(added.report.edits[0].said).toBe('Added an empty card to “Now”.')
+    expect(added.workshop.cards.at(-1)).toMatchObject({ label: 'New card', laneId: 'now' })
+    expect(added.report.edits[0].said).toBe('Added “New card” to “Now”.')
     // A lane still needs a name.
     expect(() => validateWorkshop({ ...board, lanes: [{ id: 'now', label: '' }, board.lanes[1]] })).toThrow()
   })

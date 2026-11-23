@@ -11,7 +11,7 @@ import {
   workshopLaneHeld, workshopLineRefusal, workshopNewLine, workshopPresentationLanes, workshopRefusal, workshopWithLine, workshopWithoutCardLines,
   type StationImage, type Workshop, type WorkshopCard, type WorkshopLane, type WorkshopSignal,
 } from './model'
-import { workshopRules, type BusinessEditTools, type WorkshopLimits } from './kinds'
+import { workshopNewCardName, workshopRules, type BusinessEditTools, type WorkshopLimits } from './kinds'
 import { listed, said, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names'
 import { rulebook } from './kinds'
 import type { RuleAudit, RuleInput } from './behaviour'
@@ -246,7 +246,7 @@ export const workshopEditKinds: WorkshopEditKind[] = [
     fields: { lane: lane('The lane or step.') },
     boards: ['lanes', 'map'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes, ...keepsTeams } },
   { kind: 'add_card', summary: 'Add a card to a lane that has room, or a token at a step. A workshop has up to 24 cards.', intent: false,
-    fields: { lane: lane('The lane or step it starts in.'), label: text(80, 'What the card says. Left out, the card is empty (on a map, the token is numbered); a launch plan, pipeline, budget, hiring plan or nest board needs it.', true),
+    fields: { lane: lane('The lane or step it starts in.'), label: text(80, 'What the card says. Left out, the card takes the board’s name for a new item: “New card”, “New hire”, “New task”, “New deal” (on a map, a token is numbered; a free card is “New stop”).', true),
       allowedLanes: { type: 'refs', of: 'lane', min: 1, max: 5, optional: true, about: 'Lane boards only: the lanes it may go in, including the one it starts in. Leave it out for any lane.' },
       duration: whole('Launch plan: days, 1 to 60 (2).', 60, 1, true), lag: whole('Launch plan: days it waits.', 120, 0, true),
       waitsOn: { type: 'refs', of: 'card', min: 0, max: 3, optional: true, about: 'Launch plan: what it waits on.' },
@@ -609,9 +609,10 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
           // A card at a step, as a note dropped there becomes: the paths never constrain it (boards S2b).
           if (board.cards.length >= 24) throw new Refusal('A workshop can have up to 24 cards. Remove one first.', 'refused', target.id)
           const id = nextWorkshopId(board, 'card')
-          board.cards.push({ id, label: workshopCardLabelOf(edit.label?.trim() ?? ''), laneId: target.id, free: true })
+          // A card without words takes the board's name for a new item, as an empty note dropped there does.
+          board.cards.push({ id, label: workshopCardLabelOf(edit.label?.trim() || workshopNewCardName(board)), laneId: target.id, free: true })
           const next = settle(board, family, target.id)
-          return done(next, 'Added ' + (edit.label?.trim() ? said(edit.label.trim()) : 'an empty card') + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: id })
+          return done(next, 'Added ' + said(next.cards.find(item => item.id === id)!.label) + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: id })
         }
         let label = edit.label
         if (label === undefined) {
@@ -633,8 +634,8 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       }
       const allowedLaneIds = edit.allowedLanes && [...new Set(edit.allowedLanes.map(ref => laneOf(ref).id))]
       let next: Workshop
-      // A card without words is an empty card, as an empty note dropped on a lane is.
-      try { next = addWorkshopCard(board, target.id, { label: edit.label?.trim() ?? '', ...(allowedLaneIds && { allowedLaneIds }) }) } catch (error) {
+      // A card without words takes the board's name for a new item ("New card"), as an empty note dropped on a lane does.
+      try { next = addWorkshopCard(board, target.id, { label: edit.label?.trim() || workshopNewCardName(board), ...(allowedLaneIds && { allowedLaneIds }) }) } catch (error) {
         throw new Refusal(ruleSentence((error as Error).message, family), 'refused', target.id)
       }
       const added = next.cards[next.cards.length - 1]
