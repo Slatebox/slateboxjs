@@ -161,7 +161,22 @@ for (const width of [1440, 390]) test(`${width}px dark: a retro's lanes are tint
     await page.getByRole('button', { name: 'Keep changes', exact: true }).click({ timeout: 25000 })
     const column = page.locator('#slateCanvas g[data-node-id^="column-"] [data-node-background-path]').first()
     await expect(column).toHaveCSS('fill-opacity', '0.18', { timeout: 20000 })
-    await expect(page.locator('#slateCanvas g[data-node-id^="caption-"] > text').first()).toHaveCSS('fill', 'rgb(238, 241, 232)')
+    // A lane's count is a pill (board polish: one counter), a see-through white over the lane: its words keep the
+    // dark ink and read on it (restated: before the polish the count was bare words on the lane, lifted to the light ink).
+    const count = await page.locator('#slateCanvas g[data-node-id^="caption-"]').first().evaluate(g => {
+      const path = g.querySelector('[data-node-background-path]')!
+      return { ink: getComputedStyle(g.querySelector(':scope > text')!).fill, pill: getComputedStyle(path).fill, opacity: Number(getComputedStyle(path).fillOpacity) }
+    })
+    const rgb = (c: string) => (c.match(/[\d.]+/g) ?? []).map(Number)
+    const [r, g, b, a = 1] = rgb(count.pill)
+    const alpha = a * count.opacity
+    const over = [r, g, b].map((v, i) => v * alpha + [20, 32, 27][i] * (1 - alpha)) // on the dark canvas itself, the darkest it sits on
+    const lum = (c: number[]) => { const [x, y, z] = c.map(v => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4 }); return 0.2126 * x + 0.7152 * y + 0.0722 * z }
+    const ratio = (p: number[], q: number[]) => { const [hi, lo] = [lum(p), lum(q)].sort((m, n) => n - m); return (hi + 0.05) / (lo + 0.05) }
+    expect(count.ink).toBe('rgb(29, 43, 42)')
+    expect(ratio(rgb(count.ink).slice(0, 3), over)).toBeGreaterThanOrEqual(4.5)
+    // The board's title, on the canvas itself, takes the canvas's light ink (the chrome's dark tokens).
+    await expect(page.locator('#slateCanvas [data-board-layer="board-title"]').first()).toHaveCSS('fill', 'rgb(238, 241, 232)')
     // A lane's header keeps its pastel with its dark words on it.
     await expect(page.locator('#slateCanvas g[data-node-id^="lane-"] > text').first()).toHaveCSS('fill', 'rgb(29, 43, 42)')
     expect(await page.evaluate(() => getComputedStyle(document.getElementById('slateCanvas')!).getPropertyValue('--slatebox-board-ink').trim())).toBe('#dfe7dc')
