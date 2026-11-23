@@ -1211,7 +1211,7 @@ export function workshopLaneCaption(board: Workshop, laneId: string): string {
   return laneCaption(board, laneId, false)
 }
 
-/** What a screen reader hears of a column's counter: "2 of 3", "2 cards", "1 of 1 · 2 cards". */
+/** What a screen reader hears of a column's counter: "2 of 3", "2 cards", "1 of 1 · 2 cards", "5 of 8 points". */
 export function workshopLaneSpoken(board: Workshop, laneId: string): string {
   return laneCaption(board, laneId, true)
 }
@@ -1221,7 +1221,7 @@ function laneCaption(board: Workshop, laneId: string, spoken: boolean): string {
   if (!lane) return ''
   if (board.kind === 'release-plan') {
     const used = releaseLoad(board, laneId)
-    return lane.capacity ? used + ' / ' + lane.capacity + ' points' : used + ' points'
+    return lane.capacity ? used + (spoken ? ' of ' : ' / ') + lane.capacity + ' points' : used + ' points'
   }
   const business = businessKind(board)
   if (business) return workshopRules(business).caption(board, laneId)

@@ -204,6 +204,30 @@ function slateWithCanvas() {
   return { slate, svg, notes }
 }
 
+describe('the counter keeps words for a screen reader on a live board (23b follow-up)', () => {
+  it('names a column\'s counter pill "2 of 3", as the column itself is named, while the pill shows "2 / 3"', async () => {
+    const { slate, notes } = slateWithCanvas()
+    // Its notes come ready at once, as the slate's own do once drawn (attachWorkshop names them then).
+    const add = slate.nodes.add
+    slate.nodes.add = (options: any) => Object.assign(add(options), { ready: Promise.resolve() })
+    const retro = cards(preset('retro'), [['well', 'Boards shipped'], ['well', 'Pairing']])
+    const board = attachWorkshop(slate, retro, { origin: { x: 0, y: 0 } })
+    await board.whenDrawn()
+    const pill = notes.get(workshopNodeIds.caption('well')), header = notes.get(workshopNodeIds.lane('well'))
+    expect(pill.options.text).toBe('2 / 3')
+    expect(header.svgGroup.node.getAttribute('aria-label')).toBe('Went well, 2 of 3')
+    expect(pill.svgGroup.node.getAttribute('aria-label')).toBe('Went well, 2 of 3')
+    board.destroy()
+  })
+  it('a release plan\'s column is spoken in words too: "5 of 8 points"', () => {
+    const plan = validateWorkshop({ version: 1, kind: 'release-plan', title: 'Release', lanes: [{ id: 'now', label: 'Now', capacity: 8 }, { id: 'later', label: 'Later' }],
+      cards: [{ id: 'a', label: 'A', laneId: 'now', points: 5 }] })
+    expect(workshopLaneCaption(plan, 'now')).toBe('5 / 8 points')
+    expect(workshopLaneSpoken(plan, 'now')).toBe('5 of 8 points')
+    expect(workshopLaneSpoken(plan, 'later')).toBe('0 points')
+  })
+})
+
 describe('the chrome on a live board', () => {
   it('draws the title row under the board’s notes and the badges above them, named for a screen reader, and takes them away with the board', async () => {
     const { slate, svg } = slateWithCanvas()

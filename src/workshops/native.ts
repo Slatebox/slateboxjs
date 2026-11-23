@@ -2472,10 +2472,13 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     return true
   }
 
-  /** What a screen reader calls a lane or a card: its name, and for a lane how full it is. */
+  /** What a screen reader calls a lane or a card: its name, and for a lane how full it is. A lane's counter pill shows
+   * "2 / 3" and is named in words, as its lane is ("Went well, 2 of 3"). */
   function accessibleName(model: Workshop, id: string) {
     const target = kindOf(id)
-    if (target?.kind === 'lane') {
+    if (target?.kind === 'lane' || target?.kind === 'caption') {
+      // A map's station shows its token itself: it draws no counter to name.
+      if (target.kind === 'caption' && model.lanes.some(item => item.station)) return null
       const lane = model.lanes.find(item => item.id === target.key)
       return lane ? `${lane.label}, ${workshopLaneSpoken(model, lane.id)}` : null
     }
