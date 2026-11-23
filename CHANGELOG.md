@@ -16,6 +16,10 @@
   `workshopPresentationScenes(board, { scope })`, `workshopBoardScope`, `workshopScopedId`; `workshopReserve`
   (the room a board needs) and `workshopFreeSpot`; `catalogFits(id, { many: true, boards })` with
   `maxBoardsPerSlate` (8). An undo that brings back a note takes the card only off the board that took it.
+- **A card's line joins notes and cards on its own board** (many boards on one slate). A line drawn between two
+  boards' cards is refused with that sentence (said once, by the board at the line's start), and a note joined to
+  one board's card stays a note when dropped on another board, saying the same. A note with a line ending free on
+  the canvas keeps it on any board, scoped or not.
 - **Impact × effort, the reorg & hiring sandbox and goals & owners** (`slateboxjs/workshops/nestPlus`, loaded with
   the nested boards). A `matrix` layout (`nest.axes`, `score_card`, rule `quadrant`), yes/no fields (`add_field`
   `flag`) with rules `parent` and `contains`, and owners (`nest.owners`, `card.owner`, `add_owner`, `set_owner` with

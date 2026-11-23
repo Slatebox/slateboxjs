@@ -95,6 +95,9 @@ opts in (nothing changes for a slate of one board):
   the lanes go past the other boards along their row (`workshopFreeSpot`).
 - **Undo.** An undo that brings back a note only takes the card off the board that took it, even when another
   board has a card by the same id.
+- **Lines.** A card's line joins notes and cards on its own board: a line drawn between two boards' cards is
+  taken away with "A card's line joins notes and cards on its own board." (said once), and a note joined to one
+  board's card stays a note when dropped on another, with the same sentence. Free-ended lines go with a note to any board.
 - **Library.** `catalogFits(id, { hasBoard, many: true, boards })` fits beside other boards up to
   `maxBoardsPerSlate` (8); without `many` a slate holds one board, as before.
 

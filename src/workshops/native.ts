@@ -296,6 +296,8 @@ const SHAPE_WORDS: Record<string, string> = {
   rarrow: 'arrow', larrow: 'arrow', arrow: 'arrow', stickynote: 'sticky note',
 }
 const decoration: Partial<NodeCapabilities> = { canMove: false, canSelect: false }
+/** Why a line may not join two boards' cards (a slate of many boards), said to the person who drew it. */
+const ACROSS_BOARDS = 'A card\'s line joins notes and cards on its own board.'
 
 /** What an artwork name (lane-<id>, card-<id>, ...) draws. */
 function partOf(name: string): { kind: Kind; key: string } | null {
@@ -722,10 +724,11 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     if (!acceptsNotes() || node.options?.isComment) return clearHover()
     const laneId = laneAt(point)
     const offer = offerOf(node)
-    const open = value.lanes.filter(lane => !noteObstacle(node) && workshopNoteRefusal(value, lane.id, offer) === null).map(lane => lane.id)
+    const obstacle = noteObstacle(node)
+    const open = value.lanes.filter(lane => !obstacle && workshopNoteRefusal(value, lane.id, offer) === null).map(lane => lane.id)
     const under = laneId && kit?.noteUnder?.(value, local(point), layout)
     if (under) offer.under = under
-    const refusal = laneId ? noteObstacle(node) ?? workshopNoteRefusal(value, laneId, offer) : null
+    const refusal = laneId ? obstacle ?? workshopNoteRefusal(value, laneId, offer) : null
     if (hovering && hovering.noteId === node.id && hovering.laneId === laneId && hovering.refusal === refusal) return
     hovering = { noteId: node.id, laneId, refusal, open }
     showCurrent()
@@ -1246,7 +1249,26 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     if (node.options?.image && !workshopKeepsPicture(node.options.image)) return 'A note with a picture kept in the page itself stays a note.'
     const link = node.options?.link
     if (link?.data && !workshopKeepsLink({ ...(link.type ? { type: link.type } : {}), data: link.data })) return 'A note with this link stays a note.'
+    // Joined to a card of another board on the slate: as a card here that would be a line between two boards.
+    if (joinedToAnotherBoard(node)) return ACROSS_BOARDS
     return null
+  }
+
+  /** A note of the slate that another board draws (one of its cards, lanes or captions): never an end of this board's lines. */
+  function foreign(node: any): boolean {
+    return Boolean(node) && owned.get(node.id) !== node && Boolean(slate.isDerivedNode?.(node))
+  }
+
+  /** Whether an ordinary note has a line to or from a card of another board. */
+  function joinedToAnotherBoard(node: any): boolean {
+    for (const link of node.relationships?.getAssociations?.() ?? []) {
+      if (!link.targetPoint && foreign(slate.nodes.one(link.childId))) return true
+    }
+    for (const other of slate.nodes?.allNodes ?? []) {
+      if (other === node || !foreign(other)) continue
+      for (const link of other.relationships?.getAssociations?.() ?? []) if (link.childId === node.id && !link.targetPoint) return true
+    }
+    return false
   }
 
   const noteName = (label: string) => label || 'This note'
@@ -1326,7 +1348,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const part = kindOf(node.id)
       return part?.kind === 'card' && value.cards.some(card => card.id === part.key) ? part.key : null
     }
-    return node.options?.isComment ? null : node.id
+    // Another board's card is not a note this board's lines may end on.
+    return node.options?.isComment || foreign(node) ? null : node.id
   }
 
   /** The note a line's end names on `model`: the card's note, or the ordinary note. */
@@ -1336,7 +1359,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       return node?.relationships && node.svgGroup ? node : null
     }
     const node = slate.nodes.one(ref)
-    return node && owned.get(ref) !== node && node.svgGroup ? node : null
+    return node && owned.get(ref) !== node && !foreign(node) && node.svgGroup ? node : null
   }
 
   /**
@@ -1429,6 +1452,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const free = Boolean(data?.targetPoint)
       const parent = slate.nodes.one(data?.parentId), child = free ? null : slate.nodes.one(data?.childId)
       const from = refOf(parent), to = free ? null : refOf(child)
+      // A line that starts on another board's card is that board's to refuse (each board at either end hears of it).
+      if (foreign(parent)) return
       const moved = moving?.lineId === data?.id ? value.lines?.find(line => line.id === data?.id) : undefined
       if (moved) moving = null
       const refuse = (reason: string) => {
@@ -1439,6 +1464,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         tell(options.onRefuse, { reason, laneId: null })
       }
       if (!acceptsLines()) { unlink(data); if (moved) draw(proposal ?? value); return }
+      // A card's line joins notes and cards of its own board: never a card of another board on the slate.
+      if (foreign(child)) return refuse(ACROSS_BOARDS)
       // A card's line ends on a note, on another card, or free on the canvas (a free end is held by its card).
       if (!from || (!to && !free)) return refuse(moved ? 'A card\'s line ends on a note or another card, so that end went back.' : 'A line from a card ends on a note or another card.')
       const far = free ? String(data.childId) : to!
