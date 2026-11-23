@@ -157,16 +157,17 @@ const plainText = plainFiles.map(name => read(name).toString('utf8')).join('\n')
 for (const marker of ['The plan now starts ', 'There is no role band ', 'Overlapping tasks in ', 'That takes runway to ']) {
   if (plainText.includes(marker)) problems.push(`A plain slate carries the plans' code ("${marker.trim()}"): it belongs to workshop-plans.mjs, loaded on its own.`)
 }
-// Never more than on engine main 67c29e0, measured this way (slateboxjs.mjs 206,087 + workshop-model.mjs, model-DVIbSBRn.mjs
-// and NoteDefaults 56,257): the canvas entry must not make the app's plain slate bigger.
-const plainOnMain = 262344
-if (plain > plainOnMain) problems.push(`A plain slate (${plainFiles.join(', ')}) loads ${plain} bytes gzip, ${plain - plainOnMain} more than on engine main 67c29e0 (${plainOnMain}).`)
+// Never more than on engine main, measured this way: release/2026-11-23b 540ff27, built from its source (slateboxjs.mjs
+// 207,666 + workshop-model.mjs, model-CAMMBhgP.mjs and NoteDefaults 62,300; on 67c29e0 it was 262,344). The canvas
+// entry must not make the app's plain slate bigger.
+const plainOnMain = 269966
+if (plain > plainOnMain) problems.push(`A plain slate (${plainFiles.join(', ')}) loads ${plain} bytes gzip, ${plain - plainOnMain} more than on engine main 540ff27 (${plainOnMain}).`)
 // And what it pays over release/combined 5d21cac (canvas + model, gzip -9): at most +10.2 KB (build spec §2.3).
 const plainBefore = 182795 + 32956
 if (plain - plainBefore > 10200) problems.push(`A plain slate loads ${plain - plainBefore} bytes gzip more than at 5d21cac, over the 10,200 allowed.`)
 
 console.table(rows)
-console.log(`A plain slate (${plainFiles.length} files: canvas + model, with what they import): ${plain} bytes gzip, ${plain - plainOnMain >= 0 ? '+' : ''}${plain - plainOnMain} against engine main 67c29e0 (at most ${plainOnMain}), ${plain - plainBefore >= 0 ? '+' : ''}${plain - plainBefore} over 5d21cac (at most +10200).`)
+console.log(`A plain slate (${plainFiles.length} files: canvas + model, with what they import): ${plain} bytes gzip, ${plain - plainOnMain >= 0 ? '+' : ''}${plain - plainOnMain} against engine main 540ff27 (at most ${plainOnMain}), ${plain - plainBefore >= 0 ? '+' : ''}${plain - plainBefore} over 5d21cac (at most +10200).`)
 if (problems.length) {
   for (const problem of problems) console.error('✗ ' + problem)
   process.exit(1)
