@@ -191,6 +191,15 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
   // The plan's ends: its first day (a dated plan) and a hiring plan's last week, each a short bar on the grid's edge.
   if (clock && !(hiring && g.narrow)) shapes.push({ t: 'rect', x: g.x0 - 3, y: g.gridTop - 22, w: 6, h: 22, rx: 3, color: layerInk.ink, opacity: 0.7, role: 'edge-first' })
   if (hiring && !g.narrow) shapes.push({ t: 'rect', x: g.x0 + day * g.dayW - 3, y: g.gridTop - 22, w: 6, h: 22, rx: 3, color: layerInk.ink, opacity: 0.7, role: 'edge-last' })
+  // The board in focus (the gear's "Change this board"): its span's two ends say what they are and when, under the
+  // grid, so a person sees what the start edge and the line grips move (owner addendum, 2026-11-22).
+  if (state.boardFocused && clock) {
+    const at = g.height + 14
+    shapes.push({ t: 'text', x: g.x0, y: at, text: 'Starts ' + dayWords(board, 0), color: layerInk.accept, size: 13, bold: true, anchor: g.narrow ? 'start' : 'middle', role: 'span-start' })
+    const end = hiring ? 'Ends ' + dayWords(board, board.hiring!.weeks * 7 - 1) : lineWord(board).charAt(0).toUpperCase() + lineWord(board).slice(1) + ' ' + dayWords(board, board.launch!.day)
+    const ex = g.x0 + (hiring ? day : board.launch!.day) * g.dayW
+    shapes.push({ t: 'text', x: ex, y: g.narrow ? at + 18 : at, text: end, color: hiring ? layerInk.ink : layerInk.launch, size: 13, bold: true, anchor: g.narrow ? 'end' : 'middle', role: 'span-end' })
+  }
   // Each bar's two grips, above its bar: on the selected or hovered bar on a laptop, on every bar on a phone (a hiring plan's phone view is read-only).
   if (!(hiring && g.narrow)) for (const card of board.cards) {
     if (!g.narrow && state.focus !== card.id) continue

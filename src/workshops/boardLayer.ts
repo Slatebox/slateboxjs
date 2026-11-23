@@ -11,9 +11,11 @@ export type LayerShape =
   | { t: 'rect'; x: number; y: number; w: number; h: number; color: string; rx?: number; opacity?: number; role?: string }
   /**
    * A path; `arrow` puts an arrowhead at its end. `unlink` makes a 24px stroke under it, a button that removes
-   * that link: a click, Enter or Space removes it; a tap first selects it, and a second tap removes it.
+   * that link: a click, Enter or Space removes it; a tap first selects it, and a second tap removes it (`armed`:
+   * what it says while it waits for that tap). `pick` makes the same stroke a button that selects it (a map's path).
    */
-  | { t: 'path'; d: string; color: string; width?: number; arrow?: { x: number; y: number; angle: number }; unlink?: { cardId: string; waitsOn: string; label: string } }
+  | { t: 'path'; d: string; color: string; width?: number; arrow?: { x: number; y: number; angle: number }; unlink?: { cardId: string; waitsOn: string; label: string; armed?: string }
+      pick?: { key: string; label: string } }
   /** Words; `lines` sets `text` on several lines (each line a tspan, `lineHeight` apart), whose words together are `text`. */
   | { t: 'text'; x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end'; bold?: boolean; role?: string; lines?: string[]; lineHeight?: number }
 
@@ -46,7 +48,8 @@ function element(name: string, attributes: Record<string, string | number>, pain
 export interface LinkSelection { armed: string | null; arm(key: string | null): void }
 
 /** Draw `shapes` into `group`, replacing what was there. */
-export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUnlink?: (cardId: string, waitsOn: string) => void, links?: LinkSelection) {
+export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUnlink?: (cardId: string, waitsOn: string) => void, links?: LinkSelection,
+  onPick?: (key: string) => void) {
   // A link button that has the keyboard's focus keeps it across a redraw.
   const active = typeof document !== 'undefined' ? document.activeElement : null
   const focused = active && group.contains(active) ? active.getAttribute('data-board-link') : null
@@ -78,7 +81,7 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
         const key = waitsOn + '>' + cardId
         const armed = links?.armed === key
         const hit = element('path', { d: shape.d, fill: 'none', 'stroke-width': 24, 'stroke-linecap': 'round', 'pointer-events': 'stroke', cursor: 'pointer',
-          'data-board-link': key, 'aria-label': armed ? label + '. Tap again to remove it.' : label, role: 'button', tabindex: 0,
+          'data-board-link': key, 'aria-label': armed ? label + '. ' + (shape.unlink.armed ?? 'Tap again to remove it') + '.' : label, role: 'button', tabindex: 0,
           ...(armed ? { 'data-armed': '', opacity: 0.3 } : {}) }, { stroke: armed ? layerInk.refuse : 'transparent' })
         let touch = false
         hit.addEventListener('pointerdown', event => { event.stopPropagation(); touch = event.pointerType === 'touch' || event.pointerType === 'pen' })
@@ -100,6 +103,22 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
         hit.addEventListener('blur', () => { if (!armed) { hit.style.setProperty('stroke', 'transparent'); hit.removeAttribute('opacity') } })
         group.appendChild(hit)
         buttons.push(hit)
+      } else if (shape.pick && onPick) {
+        const { key, label } = shape.pick
+        const hit = element('path', { d: shape.d, fill: 'none', 'stroke-width': 24, 'stroke-linecap': 'round', 'pointer-events': 'stroke', cursor: 'pointer',
+          'data-board-link': key, 'data-board-pick': '', 'aria-label': label, role: 'button', tabindex: 0 }, { stroke: 'transparent' })
+        hit.addEventListener('pointerdown', event => event.stopPropagation())
+        hit.addEventListener('click', event => { event.stopPropagation(); onPick(key) })
+        hit.addEventListener('keydown', event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          event.stopPropagation()
+          onPick(key)
+        })
+        hit.addEventListener('focus', () => { hit.style.setProperty('stroke', layerInk.accept); hit.setAttribute('opacity', '0.35') })
+        hit.addEventListener('blur', () => { hit.style.setProperty('stroke', 'transparent'); hit.removeAttribute('opacity') })
+        group.appendChild(hit)
+        buttons.push(hit)
       }
       group.appendChild(element('path', { d: shape.d, fill: 'none', 'stroke-width': shape.width ?? 1.5, 'pointer-events': 'none' }, { stroke: shape.color }))
       if (shape.arrow) {
@@ -109,7 +128,7 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
       if (shape.unlink && links?.armed === shape.unlink.waitsOn + '>' + shape.unlink.cardId && shape.arrow) {
         const note = element('text', { x: shape.arrow.x - 6, y: shape.arrow.y - 14, 'font-size': 13, 'font-weight': 600, 'text-anchor': 'end',
           'font-family': 'system-ui, sans-serif', 'pointer-events': 'none', 'data-board-layer': 'unlink-armed' }, { fill: layerInk.refuse })
-        note.textContent = 'Tap again to remove this link'
+        note.textContent = shape.unlink.armed ?? 'Tap again to remove this link'
         group.appendChild(note)
       }
     }
@@ -142,7 +161,7 @@ export function createBoardLayer(slate: any, paint: (shown: Workshop, state: Boa
       links.armed = key
       if (key) {
         disarm = setTimeout(() => links.arm(null), 5000)
-        last?.[2].announce?.('Link selected. Tap it again to remove it.')
+        last?.[2].announce?.(last[2].boardFocused && last[0].lanes[0]?.station ? 'Path selected. Tap it again to remove it.' : 'Link selected. Tap it again to remove it.')
       }
       if (last) layer.draw(...last)
     },
@@ -156,7 +175,7 @@ export function createBoardLayer(slate: any, paint: (shown: Workshop, state: Boa
       // The words a held or refused handle says, and a bar's grips, go above every note.
       const said = (shape: LayerShape) => shape.t === 'text' && (shape.role === 'clamp' || shape.role === 'refusal') || shape.t === 'rect' && Boolean(shape.role?.startsWith('grip-'))
       for (const layer of [group, top]) layer.setAttribute('transform', `translate(${origin.x} ${origin.y})`)
-      renderLayerShapes(group, shapes.filter(shape => !said(shape)), state.onUnlink, links)
+      renderLayerShapes(group, shapes.filter(shape => !said(shape)), state.onUnlink, links, state.onPick)
       renderLayerShapes(top, shapes.filter(said))
       // Above the lane columns, under every other note.
       const above = state.above && state.above.parentNode === root ? state.above : null

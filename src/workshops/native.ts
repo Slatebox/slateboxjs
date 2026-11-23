@@ -17,11 +17,13 @@ import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type Worl
 import {
   behaviourNote, businessKind, validateWorkshop, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopCardNoteText, workshopDestinations,
   workshopLaneCaption, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
-  workshopCardLabelOf, workshopKeepsLink, workshopNoteIdOf, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesNotes, workshopToSlate, workshopWithLine,
+  workshopCardLabelOf, workshopKeepsLink, workshopNoteIdOf, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesLines, workshopTakesNotes, workshopToSlate, workshopWithLine,
   workshopWithoutLine, type Workshop, type WorkshopBoardLayout, type WorkshopCard, type WorkshopCardAsNote, type WorkshopCardLook,
   type WorkshopLine, type WorkshopNoteOffer, type WorkshopNoteStyle,
 } from './model'
 import { applyWorkshopEdits, type WorkshopEdit } from './edits'
+import { createBoardLayer } from './boardLayer'
+import { mapEditsBetween, mapGripLabel, mapGripNotes, mapGripOf, mapPathDrop, mapStationAt, paintMap } from './mapPaths'
 
 /**
  * What a person changed. A move names the card and its new lane; a rename names the lane or
@@ -84,6 +86,12 @@ export interface BoardLayerState {
   announce?(text: string): void
   /** The card the person is on: selected, under the pointer, or held by one of its grips (a plan shows that bar's grips). */
   focus?: string | null
+  /** The host has put the whole board in focus (setFocused): a kit shows what only a board in focus shows (a plan's span grips, a map's path controls). */
+  boardFocused?: boolean
+  /** A map's path the person picked outside focus ("from>to"), outlined; the host offers "Change this board". */
+  picked?: string | null
+  /** A person picked a map's path (outside focus). */
+  onPick?(key: string): void
 }
 
 export interface BoardLayer {
@@ -151,8 +159,11 @@ export interface WorkshopRefusalEvent {
   reason: string
 }
 
-/** The one workshop note that is selected: a card or a lane. Null when the selection is anything else. */
-export type WorkshopSelection = { cardId: string } | { laneId: string } | null
+/**
+ * The one workshop note that is selected: a card or a lane; or a map's path the person picked (outside focus,
+ * where a path is fixed: the host offers "Change this board"). Null when the selection is anything else.
+ */
+export type WorkshopSelection = { cardId: string } | { laneId: string } | { path: { from: string; to: string } } | null
 
 /**
  * Chooses the board a pointer position means while a card is held. Called once as
@@ -298,7 +309,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
    */
   const kitless = (model: Workshop) => Boolean(businessKind(model)) && !kit
   if (kitless(value) && !options.readOnly) throw new Error(`A ${value.kind} board needs its kit: pass kit: kitFor('${value.kind}') from slateboxjs/boards.`)
-  const layer = kit?.layer(slate)
+  // A map has a layer of its own: its paths' hit areas (picked outside focus, removed in focus) and a held grip's words.
+  const layer = kit?.layer(slate) ?? (value.lanes[0]?.station ? createBoardLayer(slate, paintMap) : undefined)
+  /** A map's path picked outside focus ("from>to"), until the selection moves on. */
+  let picked: string | null = null
   /** A handle being dragged, and what the pointer last meant. */
   let grip: { name: string; follow: (point: { x: number; y: number }) => HandleResult; last: HandleResult | null } | null = null
   let proposal: Workshop | null = null
@@ -388,14 +402,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (kind === 'card') return { canMove: !readOnly, canEditText: !readOnly && !proposal && value.kind !== 'release-plan', canConnect: acceptsLines() }
       if (kind === 'lane') return { canMove: false, canEditText: !readOnly && !proposal }
       // A grip pulled sideways (a plan's edge, launch day, a budget's divider on a laptop) says so under the pointer.
-      if (kind === 'handle') return { canMove: !readOnly && !proposal, canEditText: false, ...(!layout.narrow && { cursor: 'ew-resize' }) }
+      if (kind === 'handle') return { canMove: !readOnly && !proposal, canEditText: false, ...(!layout.narrow && { cursor: kit ? 'ew-resize' : 'grab' }) }
       return decoration
     },
     onStart(node: any, point) {
       const part = kindOf(node.id)!
       const grab = { x: point.x - (node.options.x ?? 0), y: point.y - (node.options.y ?? 0) }
       if (part.kind === 'handle') {
-        const follow = !readOnly && !proposal && kit ? kit.handleDrag(value, nameOf(node.id), grab, layout) : null
+        const follow = readOnly || proposal ? null : kit ? kit.handleDrag(value, nameOf(node.id), grab, layout) : mapGripDrag(nameOf(node.id))
         if (!follow) return false
         endFlash()
         clearStaged()
@@ -445,7 +459,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
           slate.announce?.(result.refusal)
           tell(options.onRefuse, { laneId: null, reason: result.refusal })
         } else if (!commitKit(result.next, {})) draw(value)
-        const slot = slotOf(value, name)
+        const slot = slotOf(value, nameOf(node.id))
         return slot ? { accept: true, settle: slot } : { accept: false }
       }
       if (!held) return { accept: false }
@@ -832,6 +846,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   // empty canvas is; only moving from one of this board's lanes to another is a tap.
   const onPress = (event?: PointerEvent) => {
     if (staged) clearStaged()
+    // A press anywhere but on a map's path ends that path's pick.
+    if (picked && !(event?.target as Element | null)?.closest?.('[data-board-pick]')) {
+      picked = null
+      if (layerShown) paintLayer(layerShown)
+      queueMicrotask(reportSelection)
+    }
     tapping = null
     if (tapTimer) { clearTimeout(tapTimer); tapTimer = null }
     // Captions and columns take no pointer of their own (they are drawn under the cards), so the
@@ -1031,7 +1051,11 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     if (!options.onSelect || reselecting) return
     const selected: any[] = destroyed ? [] : slate.getSelectedNodes?.() ?? []
     const only = selected.length === 1 && owned.get(selected[0].id) === selected[0] ? kindOf(selected[0].id) : null
-    const selection: WorkshopSelection = only?.kind === 'card' ? { cardId: only.key } : only?.kind === 'lane' ? { laneId: only.key } : null
+    // A note selected on the slate ends a path's pick.
+    if (selected.length && picked) { picked = null; if (layerShown) paintLayer(layerShown) }
+    const [from, to] = picked && !selected.length ? picked.split('>') : []
+    const selection: WorkshopSelection = only?.kind === 'card' ? { cardId: only.key } : only?.kind === 'lane' ? { laneId: only.key }
+      : from && to ? { path: { from, to } } : null
     const key = selection ? JSON.stringify(selection) : null
     if (key === told) return
     told = key
@@ -1209,7 +1233,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   /** Whether a person may draw lines to and from this board's cards now. */
   function acceptsLines() {
     // Lines join the cards of a board of plain lanes: a business board's cards are notes, but carry no lines.
-    return !destroyed && !readOnly && !proposal && !viewer() && !value.kind && workshopTakesNotes(value)
+    return !destroyed && !readOnly && !proposal && !viewer() && workshopTakesLines(value)
   }
 
   /** A connector as the board keeps a line: its ends and its look, nothing a connector does not draw. */
@@ -1950,15 +1974,19 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const view = seen && [seen.x, seen.y, seen.width, seen.height].every(Number.isFinite)
         ? { x: seen.x - origin.x, y: seen.y - origin.y, width: seen.width, height: seen.height } : null
       layer.draw(value, shown === value ? null : shown, { origin, layout: drawnLayout, above, view, announce: text => slate.announce?.(text), focus: layerFocus,
+        boardFocused: focused, picked, onPick: pickPath,
         clamp: grip?.last?.clampedReason ? { name: grip.name, text: grip.last.clampedReason }
           : held?.outcome.kind === 'candidate' && held.outcome.said ? { name: 'card-' + held.cardId, text: held.outcome.said }
           : !grip && gripRefusal ? { name: gripRefusal.name, text: gripRefusal.reason } : null,
         refused: Boolean(grip?.last?.refusal) || (!grip && Boolean(gripRefusal)),
         onUnlink: (cardId, waitsOn) => {
           if (readOnly || proposal || held || grip || viewer()) return
-          const result = applyWorkshopEdits(value, [{ kind: 'unlink_tasks', card: { id: cardId }, waitsOn: { id: waitsOn } }])
+          // A map's path in focus: removed (cardId is where it leads, waitsOn where it starts).
+          const edit: WorkshopEdit = value.lanes[0]?.station ? { kind: 'disconnect_stations', from: { id: waitsOn }, to: { id: cardId } }
+            : { kind: 'unlink_tasks', card: { id: cardId }, waitsOn: { id: waitsOn } }
+          const result = applyWorkshopEdits(value, [edit])
           if ('refused' in result) slate.announce?.(result.refused.reason)
-          else commitKit(result.workshop, { cardId })
+          else commitKit(result.workshop, value.lanes[0]?.station ? { laneId: waitsOn } : { cardId })
         } })
     }
   }
@@ -1981,8 +2009,46 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   }
 
   /** The notes for a model: the kit's parts, or the lanes and cards of workshopToSlate. */
+  /** Whether a map shows its path grips: in focus, for a person who may change it. */
+  function mapGripsShown() {
+    return !kit && Boolean(value.lanes[0]?.station) && focused && !readOnly && !proposal && !viewer()
+  }
+
+  /**
+   * A map's grip held (in focus): over a step the map shows the path it would make, or holds and says why it
+   * cannot; let go, it is one change, the path edits chat and exec make. Over no step (or a link grip over its
+   * own step) nothing changes.
+   */
+  function mapGripDrag(name: string): ((point: { x: number; y: number }) => HandleResult) | null {
+    const grip = mapGripOf(name)
+    if (!grip || !mapGripsShown()) return null
+    const start = value
+    return point => {
+      const at = mapStationAt(start, point)
+      const drop = mapPathDrop(start, grip, grip.kind === 'link' && at === grip.from ? null : at)
+      return drop.next ? { next: drop.next } : { next: start, clampedReason: drop.refusal!, refusal: drop.refusal! }
+    }
+  }
+
+  /** A map's path picked outside focus: it is the selection, outlined, and the host offers "Change this board". */
+  function pickPath(key: string) {
+    if (destroyed || focused) return
+    picked = key
+    const selected: any[] = slate.getSelectedNodes?.() ?? []
+    if (selected.length) slate.clearSelection?.()
+    if (layerShown) paintLayer(layerShown)
+    reportSelection()
+    const [from, to] = key.split('>')
+    const name = (id: string) => value.lanes.find(lane => lane.id === id)?.label ?? id
+    slate.announce?.(`Path from ${name(from)} to ${name(to)}. A map's paths stay as they are; change this board to edit them.`)
+  }
+
   function notesOf(model: Workshop, rows?: number[]): NodeJSON[] {
-    if (!kit) return workshopToSlate(model, { native: true, origin, rows, layout, style }).nodes
+    if (!kit) {
+      const nodes = workshopToSlate(model, { native: true, origin, rows, layout, style }).nodes
+      // A map in focus shows its path grips (from the committed map, so a held grip is never taken away under the pointer).
+      return mapGripsShown() ? [...nodes, ...mapGripNotes(value, origin)] : nodes
+    }
     const nodes = kit.notes(model, drawnLayout, origin, style)
     // A business board with a rulebook: its "How this board behaves" note, under the kit's notes.
     if (model.behaviour && nodes.length) {
@@ -1999,7 +2065,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
    * uses, so a drag can never keep what the rules would refuse. False when nothing was kept.
    */
   function commitKit(next: Workshop, ids: { cardId?: string; laneId?: string }, skip?: string): boolean {
-    const edits = kit!.editsBetween(value, next)
+    // A map's grips change its paths: the path edits between the maps (chat's and exec's).
+    const edits = kit ? kit.editsBetween(value, next) : mapEditsBetween(value, next)
     if (!edits.length) return false
     const result = applyWorkshopEdits(value, edits)
     if ('refused' in result) {
@@ -2026,7 +2093,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const lane = card && model.lanes.find(item => item.id === card.laneId)
       return card && lane ? `${card.label || 'Empty card'}, in ${lane.label}${kit?.cardKeys ? '. ' + kit.cardKeys : ''}` : null
     }
-    return target?.kind === 'handle' ? kit?.label?.(model, nameOf(id)) ?? null : null
+    return target?.kind === 'handle' ? (kit ? kit.label?.(model, nameOf(id)) ?? null : mapGripLabel(model, nameOf(id))) : null
   }
 
   function slotOf(model: Workshop, nodeId: string) {
@@ -2067,8 +2134,15 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     get focused() { return focused },
     setFocused(next) {
       if (destroyed) return
+      const was = focused
       focused = Boolean(next)
       for (const node of owned.values()) node.svgGroup?.node?.toggleAttribute?.('data-workshop-focused', focused)
+      if (was === focused) return
+      // In focus a map's paths are editable (its grips, a path removed by a click) and a plan's span grips say
+      // what they are: drawn again. A path picked outside focus is the one being changed now.
+      if (picked) { picked = null; queueMicrotask(reportSelection) }
+      if (!kit && value.lanes[0]?.station) { cancelGestures(); draw(proposal ?? value) }
+      else if (layerShown) paintLayer(layerShown)
     },
     setLayout(next) {
       if (destroyed) throw new Error('This workshop has been detached.')

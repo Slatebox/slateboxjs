@@ -80,7 +80,10 @@ describe('what still keeps a note a note: the board\'s own rules', () => {
     expect(workshopNoteRefusal(full, 'later', { id: 'two', label: 'Two' })).toBe('It already holds 1 of 1 card.')
     const crowded = validateWorkshop({ ...board, cards: Array.from({ length: 24 }, (_, i) => ({ id: 'c' + i, label: 'C' + i, laneId: 'now' })) })
     expect(workshopNoteRefusal(crowded, 'now', { id: 'n', label: 'One more' })).toBe('This board is at its size limit of 24 cards. Remove a card to make room.')
-    expect(workshopNoteRefusal(m.releasePlan, m.releasePlan.lanes[0].id, { id: 'n', label: 'N' })).toMatch(/release plan/)
+    // (Restated 2026-11-22, owner: "notes ALWAYS convert on boards". A release plan takes a note as a 1-point
+    // feature; a board that truly keeps its own cards, a startup experience, says so.)
+    expect(workshopNoteRefusal(m.releasePlan, m.releasePlan.lanes[0].id, { id: 'n', label: 'N' })).toBeNull()
+    expect(workshopNoteRefusal(m.createInterviewWorkshop(), 'interviews', { id: 'n', label: 'N' })).toMatch(/^This workshop keeps the cards it came with/)
     expect(workshopNoteRefusal(board, 'gone', { id: 'n', label: 'N' })).toBe('That lane is no longer on the board.')
     // (Restated 2026-11-21, coordinator: words with markup are kept verbatim, not refused.)
     expect(workshopNoteRefusal(board, 'now', { id: 'n', label: '<b>Hi</b>' })).toBeNull()

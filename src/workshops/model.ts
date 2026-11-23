@@ -62,6 +62,11 @@ export interface WorkshopCard {
   asNote?: WorkshopCardAsNote
   /** The id of the note it was made from, when the card could not take it: the note comes back under it. */
   noteId?: string
+  /**
+   * Map: a card the paths don't constrain (a note dropped on a step becomes one): it goes to any step and back to
+   * the canvas. A map's token is a card without it, and only the token follows the paths (boards S2b).
+   */
+  free?: true
 }
 
 /**
@@ -561,6 +566,10 @@ export function validateWorkshop(input: unknown): Workshop {
   if ((release || lanes.some(lane => lane.station)) && !value.cards.length) {
     throw new Error('Maps and release plans need at least one card.')
   }
+  // A card made from a note is free of a map's paths; the map keeps at least one token, the piece they constrain.
+  if (lanes.some(lane => lane.station) && value.cards.every(item => (item as Record<string, unknown>)?.free === true)) {
+    throw new Error('A map needs at least one token.')
+  }
   if (lanes.some(lane => lane.station)) {
     if (!lanes.every(lane => lane.station)) throw new Error('Give every station on the map a position.')
     unique(lanes.map(lane => lane.station!.column + ',' + lane.station!.row), 'map position')
@@ -591,6 +600,10 @@ export function validateWorkshop(input: unknown): Workshop {
       if (kept) card.asNote = kept
     }
     if (raw.noteId !== undefined && raw.noteId !== card.id) card.noteId = noteRef(raw.noteId)
+    if (raw.free !== undefined) {
+      if (raw.free !== true || !lanes.some(lane => lane.station)) throw new Error('Only a map’s cards can be free of its paths.')
+      card.free = true
+    }
     rules?.readCard(raw, card, read)
     if (release) {
       if (typeof raw.points !== 'number' || !Number.isInteger(raw.points) || raw.points < 1 || raw.points > 24) {
@@ -696,9 +709,11 @@ export function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLan
   if (businessKind(board)) return board.lanes.filter(lane => planBusinessMove(board, card.id, lane.id))
   if (board.kind === 'release-plan') return board.lanes.filter(lane => planReleaseMove(board, card, lane.id) !== null)
   const station = board.lanes.find(lane => lane.id === card.laneId)?.station
+  // On a map only the token follows the paths, and a step's limit counts tokens: a card made from a note goes anywhere.
+  if (station && card.free) return board.lanes
   return board.lanes.filter(lane =>
     lane.id === card.laneId || ((!station || station.next.includes(lane.id)) && (!card.allowedLaneIds || card.allowedLaneIds.includes(lane.id)) &&
-      board.cards.filter(other => other.laneId === lane.id).length < (lane.capacity ?? Infinity)))
+      board.cards.filter(other => other.laneId === lane.id && !other.free).length < (lane.capacity ?? Infinity)))
 }
 
 export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string): Workshop {
@@ -781,7 +796,7 @@ export function workshopRefusal(board: Workshop, cardId: string, laneId: string)
     return `Needs ${releaseLoad(moved, laneId) - used} points. It already holds ${used} of ${lane.capacity} points.`
   }
   const source = board.lanes.find(item => item.id === card.laneId)
-  if (source?.station && !source.station.next.includes(laneId)) return `${lane.label} can't be reached from ${source.label}.`
+  if (source?.station && !card.free && !source.station.next.includes(laneId)) return `${lane.label} can't be reached from ${source.label}.`
   const held = board.cards.filter(item => item.laneId === laneId).length
   if (lane.capacity !== undefined && held >= lane.capacity) {
     return `It already holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
@@ -790,12 +805,38 @@ export function workshopRefusal(board: Workshop, cardId: string, laneId: string)
 }
 
 /**
- * Whether ordinary notes and this board's cards are the same thing: a board of plain lanes.
- * A map's token, a release plan's features (they need points) and a startup experience's
- * cards are pieces of their own and are not made from notes.
+ * Whether an ordinary note dropped on this board is offered to it. Every board is (boards S2b, owner: "notes
+ * ALWAYS convert on boards"): a map makes it a card at the step (free of the paths: the token stays the only
+ * piece they constrain), a release plan a feature with the points written on it. A board that truly cannot
+ * hold one more card (a startup experience, whose cards are its interviews or its budget) refuses it in its
+ * own sentence (workshopNoteRefusal), shown on the board, never ignored.
  */
-export function workshopTakesNotes(board: Workshop): boolean {
-  return (!board.kind || Boolean(businessKind(board))) && !board.lanes.some(lane => lane.station) && !startupExperienceKind(board)
+export function workshopTakesNotes(_board: Workshop): boolean {
+  return true
+}
+
+/**
+ * Whether lines join this board's cards to notes and to each other: a board of plain lanes. A map's paths are its
+ * lines, and a business board's, a release plan's and a startup experience's cards carry none.
+ */
+export function workshopTakesLines(board: Workshop): boolean {
+  return !board.kind && !board.lanes.some(lane => lane.station) && !startupExperienceKind(board)
+}
+
+/** Why a startup experience holds no card made from a note: its cards are what the experience is about. */
+function experienceRefusal(board: Workshop): string | null {
+  const kind = startupExperienceKind(board)
+  if (!kind) return null
+  return 'This workshop keeps the cards it came with: ' + (kind === 'customer-interviews' ? 'its cards are its interviews.' : 'each card is $200 of its budget.') + ' Keep the note beside it.'
+}
+
+/** A release plan's feature from a note's words: its name, and the points written on it ("Audit log · 3 points"), or 1. */
+function releaseFeature(words: string): { label: string; points: number } {
+  const text = oneLine(words)
+  const m = /^(.*?)\s*(?:[·•,:;–—-]\s*)?(\d{1,2})\s*(?:pts?|points?)\.?$/i.exec(text)
+  const points = m ? Number(m[2]) : 1
+  const label = (m ? m[1] : text).trim()
+  return { label: label.slice(0, 80) || 'Feature', points: Math.min(24, Math.max(1, points)) }
 }
 
 /** An ordinary note offered to a lane: its id, its words and how it is drawn. */
@@ -823,9 +864,15 @@ function cardIdFor(board: Workshop, preferred: string) {
 export function workshopNoteRefusal(board: Workshop, laneId: string, note: WorkshopNoteOffer): string | null {
   const lane = board.lanes.find(item => item.id === laneId)
   if (!lane) return 'That lane is no longer on the board.'
-  if (board.lanes.some(item => item.station)) return 'A map\'s stations hold its token only.'
-  if (board.kind === 'release-plan') return 'A release plan\'s features need effort points, so a note can\'t become one.'
-  if (startupExperienceKind(board)) return 'This workshop keeps the cards it came with.'
+  const experience = experienceRefusal(board)
+  if (experience) return experience
+  if (board.kind === 'release-plan') {
+    // A feature with the points written on the note, by the release's points budget.
+    if (board.cards.length >= maxWorkshopCards) return `This board is at its size limit of ${maxWorkshopCards} cards. Remove a card to make room.`
+    if (Array.isArray(note?.lines) ? note.lines.length : note?.lines !== undefined) return 'A note joined to other notes by lines stays a note on this board.'
+    const made = releaseNote(board, laneId, note)
+    return made ? null : workshopRefusal(releaseNoteBoard(board, laneId, note), cardIdFor(board, note.id), laneId)
+  }
   // A business board makes its card by its own rules, from the note's words and the number on it.
   // Its cards carry no lines, so a note joined to others by lines stays a note there.
   if (businessKind(board)) {
@@ -838,8 +885,11 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
   // the first 80 characters and keeps the rest for the note), or styled in a way a card does not draw.
   // Only words a card could not show as plain text (markup) keep it a note.
   if (board.cards.length >= maxWorkshopCards) return `This board is at its size limit of ${maxWorkshopCards} cards. Remove a card to make room.`
-  const held = board.cards.filter(item => item.laneId === laneId).length
-  if (lane.capacity !== undefined && held >= lane.capacity) return `It already holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
+  // A map's lines are its paths: its cards carry none, so a note joined to others by lines stays a note, and says so.
+  const map = board.lanes.some(item => item.station)
+  if (map && (Array.isArray(note?.lines) ? note.lines.length : note?.lines !== undefined)) return 'A note joined to other notes by lines stays a note on a map: a map’s lines are its paths.'
+  const held = board.cards.filter(item => item.laneId === laneId && !(map && item.free)).length
+  if (lane.capacity !== undefined && !map && held >= lane.capacity) return `It already holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
   if (note.lines !== undefined) {
     const lines = offeredLines(note.lines)
     if (!lines) return 'A line of this note can\'t be joined to a card.'
@@ -917,6 +967,7 @@ function withLines(board: Workshop, lines: WorkshopLine[]): WorkshopLine[] {
  */
 export function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null {
   if (workshopNoteRefusal(board, laneId, note) !== null) return null
+  if (board.kind === 'release-plan') return releaseNote(board, laneId, note, before)
   if (businessKind(board)) {
     const made = businessNote(board, laneId, note) as Workshop
     const card = made.cards[made.cards.length - 1]
@@ -931,14 +982,40 @@ export function workshopNoteCandidate(board: Workshop, laneId: string, note: Wor
   const cardId = cardIdFor(board, note.id)
   // A card that could not take the note's id remembers it, so the note comes back under it.
   const noteId = cardId !== note.id && typeof note.id === 'string' && notePattern.test(note.id) ? note.id : undefined
+  // On a map the card is free of the paths: the token stays the only piece they constrain.
+  const free = board.lanes.some(item => item.station)
   const card: WorkshopCard = { id: cardId, label: workshopCardLabelOf(words), laneId,
-    ...(look ? { look } : {}), ...(asNote ? { asNote } : {}), ...(noteId ? { noteId } : {}) }
+    ...(look ? { look } : {}), ...(asNote ? { asNote } : {}), ...(noteId ? { noteId } : {}), ...(free ? { free: true as const } : {}) }
   const at = before === undefined ? -1 : board.cards.findIndex(item => item.id === before && item.laneId === laneId)
   const cards = at < 0 ? [...board.cards, card] : [...board.cards.slice(0, at), card, ...board.cards.slice(at)]
   // The note's lines stay joined to it: to the card, under the card's id.
   const lines = note.lines === undefined ? undefined
     : withLines(board, offeredLines(note.lines)!.map(line => renamedLine(line, note.id, card.id)))
   return validateWorkshop({ ...board, cards, ...(lines ? { lines } : {}) })
+}
+
+/** A release plan with the note as a feature at the foot of `laneId` (or before `before`), unchecked. */
+function releaseNoteBoard(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop {
+  const { label, points } = releaseFeature(typeof note.label === 'string' ? note.label : '')
+  const cardId = cardIdFor(board, note.id)
+  const noteId = cardId !== note.id && typeof note.id === 'string' && notePattern.test(note.id) ? note.id : undefined
+  const card: WorkshopCard = { id: cardId, label, laneId: board.lanes[board.lanes.length - 1].id, points, ...(noteId ? { noteId } : {}) }
+  const at = before === undefined ? -1 : board.cards.findIndex(item => item.id === before && item.laneId === laneId)
+  return { ...board, cards: at < 0 ? [...board.cards, card] : [...board.cards.slice(0, at), card, ...board.cards.slice(at)] }
+}
+
+/**
+ * A release plan with the note as a feature in `laneId`: the points written on it, or 1, by the release's
+ * points budget (planReleaseMove); null when the budget refuses it. The feature is placed as a move from the
+ * last lane (the unplanned one) would place it, so the release's own rules decide.
+ */
+function releaseNote(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null {
+  const staged = releaseNoteBoard(board, laneId, note, before)
+  const cardId = cardIdFor(board, note.id)
+  const card = staged.cards.find(item => item.id === cardId)!
+  if (card.laneId === laneId) return validateWorkshop(staged)
+  const moved = planReleaseMove(staged, card, laneId)
+  return moved ? validateWorkshop(moved) : null
 }
 
 /**
@@ -972,6 +1049,8 @@ export function workshopCardText(board: Workshop, card: WorkshopCard): string {
 
 /** The words a card takes back to the canvas as a note, numbers and all: "Copy · 3 days", "Acme · $25k". */
 export function workshopCardNoteText(board: Workshop, card: WorkshopCard): string {
+  // A release plan's feature takes its points with it, so it comes back with them.
+  if (board.kind === 'release-plan') return card.label + ' · ' + card.points + (card.points === 1 ? ' point' : ' points')
   const business = businessKind(board)
   return business ? workshopRules(business).noteText(board, card) : card.label
 }
@@ -980,7 +1059,12 @@ export function workshopCardNoteText(board: Workshop, card: WorkshopCard): strin
 export function workshopCardAsNoteRefusal(board: Workshop, cardId: string): string | null {
   const card = board.cards.find(item => item.id === cardId)
   if (!card) return 'That card is no longer on the board.'
-  if (!workshopTakesNotes(board)) return board.lanes.some(lane => lane.station) ? 'The token stays on the map.' : 'This card stays on the board.'
+  if (startupExperienceKind(board)) return 'This card stays on the board.'
+  if (board.lanes.some(lane => lane.station) && !card.free) return 'The token stays on the map.'
+  if (board.kind === 'release-plan') {
+    const needs = board.cards.find(item => item.dependsOn?.includes(cardId))
+    if (needs) return `${needs.label} depends on ${card.label}, so it stays a card.`
+  }
   if (board.kind === 'launch-plan' && board.cards.length === 1) return 'A launch plan needs at least one task.'
   if ((board.signals ?? []).some(signal => signal.cardId === cardId)) return `An outcome on this board depends on ${card.label}, so it stays a card.`
   if (board.cards.some(item => item.parentId === cardId)) return `${card.label} has cards under it, so it stays a card. Move them first.`
@@ -1125,7 +1209,7 @@ export function createLaneWorkshop(): Workshop {
     lanes: [{ id: 'lane-1', label: 'Lane 1' }, { id: 'lane-2', label: 'Lane 2' }], cards: [] }
 }
 
-function nextWorkshopId(board: Workshop, prefix: string): string {
+export function nextWorkshopId(board: Workshop, prefix: string): string {
   const used = new Set([...board.lanes, ...board.cards, ...(board.signals ?? [])].map(item => item.id))
   let n = 1
   while (used.has(prefix + '-' + n)) n++
@@ -1449,12 +1533,13 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
       const cardWidth = map ? width - 20 : width, cardHeight = map ? height - 6 : height
       // A card is drawn as the slate draws an ordinary note (a map's token is a playing piece of
       // its own). A card made from a note keeps that note's look.
-      const look = map ? {} : { ...style.card, ...card.look }
-      const corner = map ? radius : style.card?.cornerRadius ?? radius
+      const token = map && !card.free
+      const look = token ? {} : { ...style.card, ...card.look }
+      const corner = token ? radius : style.card?.cornerRadius ?? radius
       note({ id: cardNodeId(card.id), text, name: card.label,
         xPos: x + (map ? 18 : 8), yPos: y + top + (image ? stationImageSpace : 0) + i * row, width: cardWidth, height: cardHeight,
         ...(corner !== radius ? { vectorPath: roundedBox(cardWidth, cardHeight, corner) } : {}),
-        backgroundColor: map ? '#ffda75' : look.backgroundColor ?? style.backgroundColor ?? DEFAULT_NOTE_STYLE.backgroundColor,
+        backgroundColor: token ? '#ffda75' : look.backgroundColor ?? style.backgroundColor ?? DEFAULT_NOTE_STYLE.backgroundColor,
         ...(look.textColor ? { foregroundColor: look.textColor } : {}), ...(look.fontFamily ? { fontFamily: look.fontFamily } : {}),
         ...(look.borderColor ? { borderColor: look.borderColor } : {}), ...(look.borderWidth !== undefined ? { borderWidth: look.borderWidth } : {}),
         fontSize: fittingFontSize(text, look.fontSize ?? cardSize, cardWidth - 16, cardHeight - 8) })

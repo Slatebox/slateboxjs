@@ -49,13 +49,17 @@ describe('a note becomes a card under the lane\'s rules', () => {
     expect(workshopNoteCandidate(board, 'now', { id: 'has space', label: 'Spaced' })!.cards.at(-1)!.id).toBe('card-1')
   })
 
-  it('takes notes only on a lane board: a map, a release plan and a startup experience keep their own cards', () => {
+  // (Restated 2026-11-22, owner: "notes ALWAYS convert on boards", maps included: a note dropped on a station is a
+  // card there, a release plan's a feature. Only a startup experience, whose cards are what it is about, keeps its own
+  // and says so. See boards-s2b.test.ts.)
+  it('takes notes on every board: a map and a release plan make cards of them; a startup experience says why it keeps its own', () => {
     expect(workshopTakesNotes(board)).toBe(true)
-    for (const other of [nightTransfer, releasePlan, createBudgetWorkshop()]) {
-      expect(workshopTakesNotes(other)).toBe(false)
-      expect(workshopNoteCandidate(other, other.lanes[0].id, { id: 'n', label: 'Note' })).toBeNull()
-      expect(workshopNoteRefusal(other, other.lanes[0].id, { id: 'n', label: 'Note' })).toMatch(/\.$/)
+    for (const other of [nightTransfer, releasePlan]) {
+      expect(workshopTakesNotes(other)).toBe(true)
+      expect(workshopNoteCandidate(other, other.lanes.at(-1)!.id, { id: 'n', label: 'Note' })!.cards.at(-1)!.id).toBe('n')
     }
+    expect(workshopNoteCandidate(createBudgetWorkshop(), 'reserve', { id: 'n', label: 'Note' })).toBeNull()
+    expect(workshopNoteRefusal(createBudgetWorkshop(), 'reserve', { id: 'n', label: 'Note' })).toMatch(/^This workshop keeps the cards it came with: .+\.$/)
   })
 
   it('keeps only a look it can draw', () => {
@@ -79,9 +83,13 @@ describe('a card leaves the lanes as an ordinary note', () => {
     expect(workshopCardAsNoteRefusal(board, 'gamma')).toBe('Gamma may only be in Now, so it stays a card.')
   })
 
-  it('leaves the cards of a map, a release plan and a startup experience where they are', () => {
+  // (Restated 2026-11-22: a map's token stays on the map, a feature others depend on stays a card, and a startup
+  // experience's cards stay; a release plan's other features leave as notes, with their points.)
+  it('leaves a map\'s token, a feature others depend on and a startup experience\'s cards where they are', () => {
     expect(workshopCardAsNote(nightTransfer, 'rider')).toBeNull()
-    expect(workshopCardAsNote(releasePlan, releasePlan.cards[0].id)).toBeNull()
+    expect(workshopCardAsNote(releasePlan, 'guardrails')).toBeNull()
+    expect(workshopCardAsNote(releasePlan, 'billing')!.cards.map(card => card.id)).toEqual(['guardrails', 'invite', 'export'])
+    expect(workshopCardAsNote(createBudgetWorkshop(), 'fund-0')).toBeNull()
   })
 })
 

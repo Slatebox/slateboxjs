@@ -7,7 +7,7 @@
 // tool or CLI publishes for a board before anyone tries an edit.
 
 import {
-  addWorkshopBranch, addWorkshopCard, addWorkshopLane, businessKind, startupExperienceKind, validateWorkshop, workshopCandidate,
+  addWorkshopBranch, addWorkshopCard, addWorkshopLane, businessKind, nextWorkshopId, startupExperienceKind, validateWorkshop, workshopCandidate, workshopCardLabelOf,
   workshopLineRefusal, workshopNewLine, workshopPresentationLanes, workshopRefusal, workshopWithLine, workshopWithoutCardLines,
   type StationImage, type Workshop, type WorkshopCard, type WorkshopLane, type WorkshopSignal,
 } from './model'
@@ -41,7 +41,7 @@ export type WorkshopEdit =
   | { kind: 'rename_card'; card: WorkshopRef; label: string }
   | { kind: 'add_lane'; label: string; capacity?: number }
   | { kind: 'remove_lane'; lane: WorkshopRef }
-  | { kind: 'add_card'; lane: WorkshopRef; label?: string; allowedLanes?: WorkshopRef[]; duration?: number; lag?: number; waitsOn?: WorkshopRef[]; amount?: number; band?: string
+  | { kind: 'add_card'; lane: WorkshopRef; label?: string; allowedLanes?: WorkshopRef[]; duration?: number; lag?: number; waitsOn?: WorkshopRef[]; amount?: number; band?: string; free?: boolean
       under?: WorkshopRef; role?: string; source?: string }
   | { kind: 'remove_card'; card: WorkshopRef }
   | { kind: 'move_card'; card: WorkshopRef; lane: WorkshopRef }
@@ -250,7 +250,8 @@ export const workshopEditKinds: WorkshopEditKind[] = [
       allowedLanes: { type: 'refs', of: 'lane', min: 1, max: 5, optional: true, about: 'Lane boards only: the lanes it may go in, including the one it starts in. Leave it out for any lane.' },
       duration: whole('Launch plan: days, 1 to 60 (2).', 60, 1, true), lag: whole('Launch plan: days it waits.', 120, 0, true),
       waitsOn: { type: 'refs', of: 'card', min: 0, max: 3, optional: true, about: 'Launch plan: what it waits on.' },
-      amount: whole('Pipeline or budget: the amount.', 1e9, 0, true) },
+      amount: whole('Pipeline or budget: the amount.', 1e9, 0, true),
+      free: { type: 'flag', optional: true, about: 'Map: true for a card the paths don’t constrain, as a note dropped on a step becomes; left out, a token.' } },
     boards: ['lanes', 'experiment-budget', 'map', ...business], refusals: { 'release-plan': sentences.releaseCards, 'customer-interviews': sentences.keepsCards } },
   { kind: 'remove_card', summary: 'Remove a card or token, with the dependencies and outcomes that named it.', intent: false,
     fields: { card: card('The card or token.') }, boards: everyBoard, refusals: {} },
@@ -429,7 +430,10 @@ export function workshopReferences(board: Workshop, selection?: WorkshopEditOpti
   const lanes = workshopFinder(board.lanes, map ? nouns.step : nouns.lane, map ? 'step' : 'lane', selection?.kind === 'lane' ? selection.id : undefined, true)
   const found = workshopFinder(board.cards, map ? nouns.token : nouns.card, map ? 'token' : 'card', selection?.kind === 'card' ? selection.id : undefined)
   if (!map) return { lanes, cards: found }
-  const lone = (reference: string) => board.cards.length === 1 && /^(?:(?:the|our|my)\s+)?(?:token|card|piece|marker)$/i.test(reference.trim()) ? board.cards[0] : null
+  // The token alone: cards made from notes (free of the paths) are never "the token".
+  const tokens = board.cards.filter(card => !card.free)
+  const lone = (reference: string) => tokens.length === 1 && /^(?:(?:the|our|my)\s+)?(?:token|piece|marker)$/i.test(reference.trim()) ? tokens[0]
+    : board.cards.length === 1 && /^(?:(?:the|our|my)\s+)?card$/i.test(reference.trim()) ? board.cards[0] : null
   return { lanes, cards: {
     find: reference => lone(reference) ?? found.find(reference),
     attempt: reference => lone(reference) ?? found.attempt(reference),
@@ -601,6 +605,14 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       const target = laneOf(edit.lane)
       if (map) {
         if (edit.allowedLanes !== undefined) throw new Refusal(sentences.mapCardLanes, 'not_on_this_board', target.id)
+        if (edit.free) {
+          // A card at a step, as a note dropped there becomes: the paths never constrain it (boards S2b).
+          if (board.cards.length >= 24) throw new Refusal('A workshop can have up to 24 cards. Remove one first.', 'refused', target.id)
+          const id = nextWorkshopId(board, 'card')
+          board.cards.push({ id, label: workshopCardLabelOf(edit.label?.trim() ?? ''), laneId: target.id, free: true })
+          const next = settle(board, family, target.id)
+          return done(next, 'Added ' + (edit.label?.trim() ? said(edit.label.trim()) : 'an empty card') + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: id })
+        }
         let label = edit.label
         if (label === undefined) {
           let number = board.cards.length + 1
@@ -630,7 +642,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
     }
     case 'remove_card': {
       const gone = cardOf(edit.card)
-      if (map && board.cards.length === 1) throw new Refusal('A map needs at least one token.', 'refused', gone.laneId, gone.id)
+      if (map && !gone.free && board.cards.filter(item => !item.free).length === 1) throw new Refusal('A map needs at least one token.', 'refused', gone.laneId, gone.id)
       if (release && board.cards.length === 1) throw new Refusal('A release plan needs at least one feature.', 'refused', gone.laneId, gone.id)
       if (family === 'launch-plan' && board.cards.length === 1) throw new Refusal('A launch plan needs at least one task.', 'refused', gone.laneId, gone.id)
       board.cards = board.cards.filter(item => item !== gone)

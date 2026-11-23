@@ -149,14 +149,16 @@ test.describe('an ordinary note dropped on a lane becomes a card', () => {
   })
 
   // (Restated 2026-11-19, cards-fix: several notes dropped on a lane together now become cards
-  // there, or are all refused with the reason; see "notes carried together" below. A note
-  // dropped on a map still stays a note.)
-  test('a note dropped on a map stays a note', async ({ page }) => {
+  // there, or are all refused with the reason; see "notes carried together" below.)
+  // (Restated 2026-11-22, owner: "notes ALWAYS convert on boards", maps included: a note dropped on a
+  // station is a card there, free of the paths; see native-map-boards.spec.ts.)
+  test('a note dropped on a map becomes a card at that station', async ({ page }) => {
     await open(page, '?map')
     await drag(page, 'plain', await inLane(page, 'finance'))
     await page.waitForTimeout(300)
-    expect((await saved(page)).map(note => note.id)).toEqual(['plain'])
-    expect((await journal(page)).changes).toEqual([])
+    expect((await saved(page)).map(note => note.id)).toEqual([])
+    expect((await journal(page)).changes.at(-1)).toMatchObject({ cardId: 'plain', laneId: 'finance', noteToCard: { noteId: 'plain', label: 'Ordinary note' } })
+    expect(await page.evaluate(() => (window as any).native.board.value.cards.at(-1))).toMatchObject({ id: 'plain', laneId: 'finance', free: true })
   })
 
   test('a viewer cannot turn a note into a card', async ({ page }) => {
