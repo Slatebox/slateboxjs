@@ -108,7 +108,7 @@ describe('Impact × effort (D5)', () => {
   it('the kit: cards where their scores put them, squares with their counts, the drag rounds to whole scores and a full square holds the card back', () => {
     const board = matrix()
     const square = part(board, 'column-q-do-now'), skip = part(board, 'column-q-skip')
-    expect(part(board, 'caption-q-do-now').text).toBe('Do now · 3 of 3')
+    expect(part(board, 'caption-q-do-now').text).toBe('Do now · 3 / 3')
     const search = part(board, 'card-search')
     expect(search.x + search.width / 2).toBeLessThan(square.x + square.width)
     expect(search.y).toBeLessThan(skip.y)
@@ -249,7 +249,7 @@ describe('Goals & owners (D7, the twisted trees)', () => {
     const board = goals()
     expect(behaviourLines(board)).toContain('A card is owned by the team that owns what it sits under (a warning only).')
     expect(part(board, 'card-self-serve').text).toBe('Self-serve upgrades 30%\nGrowth')
-    expect(part(board, 'caption-owner-platform').text).toBe('Platform\n3 cards')
+    expect(part(board, 'caption-owner-platform').text).toBe('Platform\n3')
     expect(part(board, 'card-activation').y).toBeGreaterThan(part(board, 'caption-owner-growth').y + part(board, 'caption-owner-growth').height)
   })
 

@@ -640,7 +640,7 @@ test.describe('lanes that wrap', () => {
     await page.waitForTimeout(250)
     expect(await at(page, 'card-alpha')).toEqual(start)
     expect(await live(page).textContent()).toBe(said)
-    expect(await text(page, 'caption-later')).toBe('0 of 1')
+    expect(await text(page, 'caption-later')).toBe('0 / 1')
     expect((await journal(page)).refusals).toEqual([])
   })
 
@@ -748,7 +748,7 @@ test.describe('a held card near the edge pans the canvas', () => {
     const steady = await view(page)
     await page.waitForTimeout(250)
     expect(await view(page)).toEqual(steady)
-    await expect.poll(() => text(page, 'caption-review')).toBe('1 card')
+    await expect.poll(() => text(page, 'caption-review')).toBe('1')
     await page.mouse.up()
     await expect.poll(() => cards(page)).toBe('alpha@review beta@inbox gamma@inbox omega@done')
     const card = await resting(page, 'card-alpha'), lane = (await at(page, 'lane-review'))!

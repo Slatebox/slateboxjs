@@ -330,7 +330,7 @@ test('an embedded workshop slate is read-only: no card moves, nothing is offered
     await page.goto(new URL('/canvas/' + owner.key + '/0/true', origin).href)
     await workshopReady(page)
     await expect(note(page, 'card-alpha')).toBeVisible()
-    await expect(caption(page, 'next')).toContainText('1 of 1')
+    await expect(caption(page, 'next')).toContainText('1 / 1')
     // No conversation, no way to ask for one, no status strip, no toolbar name to edit.
     await expect(conversation(page)).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Ask Slatebox' })).toHaveCount(0)

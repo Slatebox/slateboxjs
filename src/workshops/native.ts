@@ -15,14 +15,15 @@ import { v1AssociationToV2, v1NodeToV2, v2NodeToV1 } from '../core/compat'
 import type { NodeJSON } from '../core/Serialization'
 import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type WorldPoint } from '../core/DragPolicy'
 import {
-  behaviourNote, businessKind, validateWorkshop, workshopBoardScope, workshopFreeSpot, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopCardNoteText, workshopDestinations,
-  workshopLaneCaption, workshopLaneHeld, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
+  businessKind, validateWorkshop, workshopBoardScope, workshopFreeSpot, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopCardNoteText, workshopDestinations,
+  roundedBox, workshopLaneSpoken, workshopLaneHeld, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
   workshopCardLabelOf, workshopKeepsLink, workshopNoteIdOf, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesLines, workshopTakesNotes, workshopToSlate, workshopWithLine,
   workshopWithoutLine, type Workshop, type WorkshopBoardLayout, type WorkshopCard, type WorkshopCardAsNote, type WorkshopCardLook,
   type WorkshopLine, type WorkshopNoteOffer, type WorkshopNoteStyle,
 } from './model'
 import { applyWorkshopEdits, type WorkshopEdit } from './edits'
 import { createBoardLayer } from './boardLayer'
+import { boardChromeLayout, createBoardChrome } from './boardChrome'
 import { mapEditsBetween, mapGripLabel, mapGripNotes, mapGripOf, mapGripSize, mapPathDrop, mapStationAt, paintMap } from './mapPaths'
 
 /**
@@ -228,6 +229,18 @@ export interface AttachWorkshopOptions {
    * the lanes, a card let go on top of another board); the note goes past them along its row.
    */
   avoid?: () => { x: number; y: number; width: number; height: number }[]
+  /**
+   * Draw the board as a draft not yet added (a library preview): view-only, its notes see-through
+   * (`data-workshop-draft`), inside a dashed frame tagged "Preview · not added yet".
+   */
+  draft?: boolean
+  /**
+   * Draw the board's chrome: its title and its rules as a legend above it, badges where the rules act, and the
+   * frame of a board in focus or of a draft (boardChrome.ts). Drawn from data, never saved. On unless false.
+   */
+  chrome?: boolean
+  /** A person pressed "Done" on the frame of the board in focus: the host takes it out of focus. */
+  onFocusDone?: () => void
 }
 
 export interface AttachedWorkshop {
@@ -264,6 +277,11 @@ export interface AttachedWorkshop {
   readonly layout: WorkshopBoardLayout
   /** The box the committed board fills in the current layout, in world units (for slate.fitToWidth). */
   readonly bounds: { x: number; y: number; width: number; height: number }
+  /**
+   * The box the board and its chrome fill (world units): the bounds, grown upward by the title row and legend, and
+   * out by the frame while the board is in focus or a draft. What a host fits to, so the title is never cut off.
+   */
+  readonly frame: { x: number; y: number; width: number; height: number }
   /** Resolves once the artwork for the current model is on the slate. */
   whenDrawn(): Promise<void>
   /**
@@ -287,8 +305,8 @@ type Outcome =
   | { kind: 'candidate'; laneId: string; next: Workshop; said?: string }
 
 const ACCEPT = '#1f7a5c', OFFER = '#5b9a85', REFUSE = '#c2410c'
-/** The outline of what a host's proposal adds or changes: dashed, so it reads as not yet kept. */
-const PROPOSED = '#2f5fd0'
+/** The outline of what a host's proposal adds or changes: dashed, in the brand's dark amber, so it reads as not yet kept. */
+const PROPOSED = '#a8761b'
 /** The everyday names of the slate's shapes (ShapeRegistry), as the app's shape notice uses them. */
 const SHAPE_WORDS: Record<string, string> = {
   diamond: 'diamond', rhombus: 'diamond', ellipse: 'oval', oval: 'oval', circle: 'circle', star: 'star', triangle: 'triangle',
@@ -341,9 +359,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
    * a build that predates it, still opens the slate). Playing one needs its kit.
    */
   const kitless = (model: Workshop) => Boolean(businessKind(model)) && !kit
-  if (kitless(value) && !options.readOnly) throw new Error(`A ${value.kind} board needs its kit: pass kit: kitFor('${value.kind}') from slateboxjs/boards.`)
+  if (kitless(value) && !options.readOnly && !options.draft) throw new Error(`A ${value.kind} board needs its kit: pass kit: kitFor('${value.kind}') from slateboxjs/boards.`)
   // A map has a layer of its own: its paths' hit areas (picked outside focus, removed in focus) and a held grip's words.
   const layer = kit?.layer(slate) ?? (value.lanes[0]?.station ? createBoardLayer(slate, paintMap) : undefined)
+  // The board's chrome: its title and legend, badges, and the focus or draft frame (never saved).
+  const chrome = options.chrome === false ? null : createBoardChrome(slate)
+  /** The chrome's type scale at the zoom the board is shown at (boardChrome.ts). */
+  let chromeScale = 1
+  let stopWatchingChromeZoom: (() => void) | null = null
   /** A map's path picked outside focus ("from>to"), until the selection moves on. */
   let picked: string | null = null
   /** The notes that were selected when a path was picked (its pick cleared them). */
@@ -351,8 +374,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   /** A handle being dragged, and what the pointer last meant. */
   let grip: { name: string; follow: (point: { x: number; y: number }) => HandleResult; last: HandleResult | null } | null = null
   let proposal: Workshop | null = null
-  /** What the host asked for; a board without its kit is view-only whatever it asks. */
-  let wantedReadOnly = Boolean(options.readOnly)
+  /** What the host asked for; a board without its kit is view-only whatever it asks, and so is a draft. */
+  const draft = Boolean(options.draft)
+  let wantedReadOnly = Boolean(options.readOnly) || draft
   let readOnly = wantedReadOnly || kitless(value)
   let destroyed = false
   const owned = new Map<string, any>()
@@ -616,7 +640,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         value = outcome.next
         draw(value, { skip: cardId })
         const lane = value.lanes.find(item => item.id === outcome.laneId)!
-        slate.announce?.(`${cardName(card)} moved to ${lane.label}. ${workshopLaneCaption(value, lane.id)}.`)
+        slate.announce?.(`${cardName(card)} moved to ${lane.label}. ${workshopLaneSpoken(value, lane.id)}.`)
         tell(options.onChange, value, { cardId, laneId: outcome.laneId })
         const slot = slotOf(value, nameOf(node.id)!)
         return slot ? { accept: true, settle: slot } : { accept: true }
@@ -788,7 +812,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         reveal(laneId)
         tell(options.onPreview, null)
         const lane = value.lanes.find(item => item.id === laneId)!
-        slate.announce?.(`${cardName(card)} moved to ${lane.label}. ${workshopLaneCaption(value, laneId)}.`)
+        slate.announce?.(`${cardName(card)} moved to ${lane.label}. ${workshopLaneSpoken(value, laneId)}.`)
         tell(options.onChange, value, { cardId: card.id, laneId, ...(kit ? { edits: kit.editsBetween(before, value) } : {}) })
         return true
       }
@@ -1066,6 +1090,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   slate.element?.addEventListener?.('pointerdown', onPress, true)
   slate.element?.ownerDocument?.addEventListener?.('pointerup', onLift, true)
   slate.element?.ownerDocument?.addEventListener?.('pointercancel', onLost, true)
+  watchChromeZoom()
   draw(value, { animate: false })
 
   // ─── Rules ───────────────────────────────────────────────────────
@@ -1138,7 +1163,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         draw(next)
         reveal(back.id, next)
         tell(options.onPreview, next)
-        slate.announce?.(`${cardName(card)} to ${back.label}: ${workshopLaneCaption(next, back.id)}. Press Enter to move it, Escape to cancel.`)
+        slate.announce?.(`${cardName(card)} to ${back.label}: ${workshopLaneSpoken(next, back.id)}. Press Enter to move it, Escape to cancel.`)
         return
       }
       const reason = workshopRefusal(value, cardId, back.id) ?? 'That move is not available.'
@@ -1205,7 +1230,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     draw(next)
     reveal(target.id, next)
     tell(options.onPreview, next)
-    slate.announce?.(`${cardName(card)} to ${target.label}: ${workshopLaneCaption(next, target.id)}. Press Enter to move it, Escape to cancel.`)
+    slate.announce?.(`${cardName(card)} to ${target.label}: ${workshopLaneSpoken(next, target.id)}. Press Enter to move it, Escape to cancel.`)
   }
 
   /**
@@ -1740,8 +1765,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     keepPlaceOn(noteId(workshopNodeIds.card(made[0].card.id)))
     const lane = value.lanes.find(item => item.id === laneId)!
     slate.announce?.(made.length === 1
-      ? `${cardName(made[0].card)} is now a card in ${lane.label}. ${workshopLaneCaption(value, laneId)}.${joinedShape([made[0].card])}`
-      : `${names(made.map(({ card }) => cardName(card)))} are now cards in ${lane.label}. ${workshopLaneCaption(value, laneId)}.${joinedShape(made.map(({ card }) => card))}`)
+      ? `${cardName(made[0].card)} is now a card in ${lane.label}. ${workshopLaneSpoken(value, laneId)}.${joinedShape([made[0].card])}`
+      : `${names(made.map(({ card }) => cardName(card)))} are now cards in ${lane.label}. ${workshopLaneSpoken(value, laneId)}.${joinedShape(made.map(({ card }) => card))}`)
     for (const { node, card, kept, lines, under } of made) {
       // The note's words as the card keeps them, numbers and all ("Audit log · 3 points"): the host makes the same card of them.
       const change = { cardId: card.id, laneId, noteToCard: { noteId: node.id as string, label: workshopCardNoteText(value, card), ...(under && { under }),
@@ -1843,7 +1868,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (typeof slate.withoutAnnouncements === 'function') slate.withoutAnnouncements(select)
       else select()
     })
-    if (!quiet) slate.announce?.(`${cardName(card)} is now a note on the canvas.${why} ${fromLane.label}: ${workshopLaneCaption(value, fromLane.id)}.${leftShape(kept?.shape)}`)
+    if (!quiet) slate.announce?.(`${cardName(card)} is now a note on the canvas.${why} ${fromLane.label}: ${workshopLaneSpoken(value, fromLane.id)}.${leftShape(kept?.shape)}`)
     const dropNote = () => {
       if (slate.nodes.one(id) !== added) return
       slate.beginHostStep?.()
@@ -1991,7 +2016,21 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       drops.set(flash.laneId, 'refused')
       outline(flash.laneId, REFUSE, 3, true)
       const caption = byId.get(workshopNodeIds.caption(flash.laneId))
-      if (caption) { caption.text = flash.reason; caption.foregroundColor = '#b42318' }
+      if (caption) {
+        caption.text = flash.reason
+        caption.foregroundColor = '#b42318'
+        // The reason needs the column's width, not the counter's pill.
+        if (!kit) {
+          const column = byId.get(workshopNodeIds.column(flash.laneId))
+          if (column) {
+            caption.xPos = (column.xPos as number) + 6
+            caption.width = (column.width as number) - 12
+            caption.height = 30
+            caption.vectorPath = roundedBox(caption.width as number, 30, 0)
+            caption.backgroundColor = 'transparent'
+          }
+        }
+      }
     }
     // A proposal looks provisional where it differs from the committed board: each card it adds,
     // moves or renames and each lane it adds or changes is outlined dashed.
@@ -2090,7 +2129,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
           node.options.fontColor = v1.foregroundColor
           node.applyTextStyle?.()
         }
-        if (v1.text !== before.text && !editing) node.setText?.(v1.text)
+        // The size first, so new words wrap to the note's new width (a counter's pill widening for a refusal).
         if (v1.width !== before.width || v1.height !== before.height) {
           if (v1.vectorPath) {
             node.options.width = v1.width
@@ -2099,6 +2138,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
             if (kindOf(id)?.kind === 'column') node.toBack?.(false)
           } else node.setSize?.(v1.width, v1.height)
         }
+        if (v1.text !== before.text && !editing) node.setText?.(v1.text)
         if (v1.backgroundColor !== before.backgroundColor) node.setColors?.(v1.backgroundColor)
         if (v1.borderColor !== before.borderColor || v1.borderWidth !== before.borderWidth || v1.borderStyle !== before.borderStyle) {
           node.options.borderColor = v1.borderColor
@@ -2126,6 +2166,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         if (proposed.has(id)) node.svgGroup.node.setAttribute('data-workshop-proposed', '')
         else node.svgGroup.node.removeAttribute('data-workshop-proposed')
         node.svgGroup.node.toggleAttribute?.('data-workshop-focused', focused)
+        node.svgGroup.node.toggleAttribute?.('data-workshop-draft', draft)
         // What the outline colours say, said in the document too: which lanes take the card in hand.
         const part = kindOf(id)
         if (part?.kind === 'column') {
@@ -2153,7 +2194,56 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       drawLines(how.model)
     })
     paintLayer(how.model)
+    chromeShown = how.model
+    paintChrome()
     slate.notifyNodeChanged?.()
+  }
+
+  /** The board on show the chrome was last drawn from. */
+  let chromeShown: Workshop | null = null
+  /** Whether the board is drawn for a phone (one column per row, or a kit's narrow layout). */
+  const narrowNow = () => Boolean(drawnLayout.narrow) || drawnLayout.lanesPerRow === 1
+  /** The chrome options for the board as drawn now. */
+  function chromeOptions() {
+    return { layout: drawnLayout, focused, draft, scale: chromeScale, narrow: narrowNow() }
+  }
+  /** Draw the board's chrome from the board on show: its title and legend, its badges, and its frame. */
+  function paintChrome() {
+    if (!chrome || destroyed) return
+    const shown = chromeShown ?? value
+    const drawnBox = kit ? kit.places(shown, drawnLayout) : workshopLanePlaces(shown, { layout: drawnLayout })
+    const places = kit || shown.lanes[0]?.station ? undefined : (drawnBox as ReturnType<typeof workshopLanePlaces>).places
+    // The first of the board's notes in the canvas: the chrome goes just under it.
+    let first: Element | null = null
+    for (const node of owned.values()) {
+      const element: Element | undefined = node.svgGroup?.node
+      if (element?.parentNode && (!first || element.compareDocumentPosition(first) & 4)) first = element
+    }
+    chrome.draw({ board: shown, scope, origin, size: { width: drawnBox.width, height: drawnBox.height }, ...chromeOptions(), places, under: first,
+      ...(options.onFocusDone && { onDone: () => tell(options.onFocusDone) }) })
+  }
+  /**
+   * The chrome's words stay readable however far out the view is: at a zoom under 75% they grow (up to 2.5 times),
+   * so a board's name is about 13px on screen in an overview of several boards. Drawn again once the view settles.
+   */
+  function watchChromeZoom() {
+    const svg: Element | undefined = slate.canvas?.node
+    const scaleNow = () => Math.round(Math.min(2.5, Math.max(1, 0.75 / zoomNow())) * 20) / 20
+    chromeScale = scaleNow()
+    if (!chrome || !svg || typeof MutationObserver === 'undefined') return
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const observer = new MutationObserver(() => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        timer = null
+        const next = scaleNow()
+        if (destroyed || next === chromeScale) return
+        chromeScale = next
+        paintChrome()
+      }, 120)
+    })
+    observer.observe(svg, { attributes: true, attributeFilter: ['viewBox'] })
+    stopWatchingChromeZoom = () => { observer.disconnect(); if (timer) clearTimeout(timer) }
   }
 
   /** The board on show the layer was last drawn from. */
@@ -2301,15 +2391,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // A map in focus shows its path grips (from the committed map, so a held grip is never taken away under the pointer).
       return mapGripsShown() ? [...nodes, ...mapGripNotes(value, origin, gripSize)] : nodes
     }
-    const nodes = kit.notes(model, drawnLayout, origin, style)
-    // A business board with a rulebook: its "How this board behaves" note, under the kit's notes.
-    if (model.behaviour && nodes.length) {
-      const boxes = nodes.map(node => node.options as { xPos: number; yPos: number; width: number; height: number })
-      const left = Math.min(...boxes.map(box => box.xPos)), right = Math.max(...boxes.map(box => box.xPos + box.width))
-      const note = behaviourNote(model, { x: left, y: Math.max(...boxes.map(box => box.yPos + box.height)) + 16, width: Math.min(right - left, 484) }, style)
-      if (note) nodes.push(note)
-    }
-    return nodes
+    // A business board's rules are its chrome (boardChrome.ts): a legend above the board, never a note.
+    return kit.notes(model, drawnLayout, origin, style)
   }
 
   /**
@@ -2338,7 +2421,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const target = kindOf(id)
     if (target?.kind === 'lane') {
       const lane = model.lanes.find(item => item.id === target.key)
-      return lane ? `${lane.label}, ${workshopLaneCaption(model, lane.id)}` : null
+      return lane ? `${lane.label}, ${workshopLaneSpoken(model, lane.id)}` : null
     }
     if (target?.kind === 'card') {
       const card = model.cards.find(item => item.id === target.key)
@@ -2386,6 +2469,17 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const { width, height } = geometry(value)
       return { x: origin.x, y: origin.y, width, height }
     },
+    get frame() {
+      const { width, height } = geometry(value)
+      if (!chrome) return { x: origin.x, y: origin.y, width, height }
+      const drawnChrome = boardChromeLayout(value, { width, height }, chromeOptions())
+      const box = drawnChrome.frame
+      const legendRight = Math.max(width, ...drawnChrome.placed.map(item => item.x + item.width))
+      const left = origin.x + (box ? box.x : 0), top = origin.y + drawnChrome.top
+      const right = origin.x + Math.max(box ? box.x + box.width : width, legendRight)
+      const bottom = origin.y + (box ? box.y + box.height : height)
+      return { x: left, y: top, width: right - left, height: bottom - top }
+    },
     get focused() { return focused },
     setFocused(next) {
       if (destroyed) return
@@ -2398,6 +2492,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (picked) { picked = null; queueMicrotask(reportSelection) }
       if (!kit && value.lanes[0]?.station) { cancelGestures(); watchGripZoom(); draw(proposal ?? value) }
       else if (layerShown) paintLayer(layerShown)
+      paintChrome()
     },
     setLayout(next) {
       if (destroyed) throw new Error('This workshop has been detached.')
@@ -2451,6 +2546,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       destroyed = true
       boardsOnSlate.get(slate)?.delete(handOff)
       stopWatchingZoom?.()
+      stopWatchingChromeZoom?.()
+      chrome?.destroy()
       if (gripRefusal) clearTimeout(gripRefusal.timer)
       slate.element?.removeEventListener?.('pointerdown', onPress, true)
       if (tapTimer) clearTimeout(tapTimer)

@@ -81,7 +81,7 @@ test.describe('an ordinary note dropped on a lane becomes a card', () => {
     await expect(page.locator('#slate [data-node-id="card-plain"]')).toBeVisible()
     await expect(page.locator('#slate [data-node-id="plain"]')).toHaveCount(0)
     expect(await saved(page)).toEqual([])
-    await expect.poll(() => text(page, 'caption-now')).toBe('4 cards')
+    await expect.poll(() => text(page, 'caption-now')).toBe('4')
     expect(await text(page, 'card-plain')).toBe('Ordinary note')
     // It looks as it did as a note.
     expect(await fill(page, 'card-plain')).toBe(await page.evaluate(() => 'rgb(240, 211, 153)'))
@@ -105,7 +105,7 @@ test.describe('an ordinary note dropped on a lane becomes a card', () => {
     // (Restated 2026-11-22, boards S1: a change an undo or redo makes says so, so a host keeps quiet
     // about it: no "drag it off to get its shape back" for a step the person took back.)
     expect((await journal(page)).changes.at(-1)).toEqual({ cardId: 'plain', cardToNote: { noteId: 'plain' }, via: 'undo' })
-    await expect.poll(() => text(page, 'caption-now')).toBe('3 cards')
+    await expect.poll(() => text(page, 'caption-now')).toBe('3')
 
     // Redo: a card again.
     await page.keyboard.press('ControlOrMeta+y')
@@ -204,7 +204,7 @@ test.describe('a card dropped on empty canvas becomes an ordinary note', () => {
     expect(sent).toEqual(['onNodeAdded'])
     await expect.poll(() => undoSteps(page)).toBe(before + 1)
     await expect(live(page)).toHaveText('Alpha is now a note on the canvas. Now: 2 cards.')
-    await expect.poll(() => text(page, 'caption-now')).toBe('2 cards')
+    await expect.poll(() => text(page, 'caption-now')).toBe('2')
     await expect.poll(() => page.evaluate(() => (window as any).native.slate.getSelectedNodes().map((n: any) => n.id))).toEqual(['alpha'])
 
     // Undo: a card in Now again, and no note.

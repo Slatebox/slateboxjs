@@ -101,6 +101,33 @@ describe("ZoomSlider", () => {
     });
   });
 
+  describe("one compact control (board polish #5)", () => {
+    it("on a phone is a slim column of 40px buttons with no range: +, the zoom, −, fit", () => {
+      Object.defineProperty(container, "clientWidth", { configurable: true, value: 390 });
+      new ZoomSlider(mockSlate, { enabled: true });
+      const el = container.querySelector(".slatebox-zoom-slider") as HTMLElement;
+      expect(el.hasAttribute("data-compact")).toBe(true);
+      expect(el.style.flexDirection).toBe("column");
+      expect(el.style.right).toContain("12px");
+      const labels = [...el.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"));
+      expect(labels).toEqual(["Zoom in", "Zoom out", "fitToContent"]);
+      for (const button of el.querySelectorAll("button")) expect((button as HTMLElement).style.width).toBe("40px");
+      expect(el.querySelector('input[type="range"]')).toBeNull();
+      expect(el.querySelector("span")!.textContent).toBe("100%");
+    });
+
+    it("on a wider canvas is a short pill at the bottom left that keeps its range", () => {
+      Object.defineProperty(container, "clientWidth", { configurable: true, value: 1200 });
+      new ZoomSlider(mockSlate, { enabled: true });
+      const el = container.querySelector(".slatebox-zoom-slider") as HTMLElement;
+      expect(el.hasAttribute("data-compact")).toBe(false);
+      expect(el.style.flexDirection).toBe("row");
+      expect(el.style.left).toContain("16px");
+      expect([...el.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"))).toEqual(["fitToContent", "Zoom out", "Zoom in"]);
+      expect(el.querySelector('input[type="range"]')).not.toBeNull();
+    });
+  });
+
   describe("destroy", () => {
     it("should remove the slider from DOM", () => {
       const slider = new ZoomSlider(mockSlate, { enabled: true });

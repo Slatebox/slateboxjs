@@ -232,8 +232,8 @@ test.describe('a phone: one finger on empty canvas pans it', () => {
       expect(first.y - start.y).toBeGreaterThan(250)
       expect(first.y - start.y).toBeLessThan(350)
       expect(first.width).toBe(start.width)
-      // From the margin beside the lanes.
-      await swipe({ x: 372, y: 700 }, { x: 372, y: 300 })
+      // From the margin beside the lanes (above the phone's zoom control, which now stands at the bottom of that margin).
+      await swipe({ x: 372, y: 620 }, { x: 372, y: 220 })
       const second = await view(page)
       expect(second.y - first.y).toBeGreaterThan(330)
       // No selection rectangle was drawn and nothing was selected or moved by the swipes.

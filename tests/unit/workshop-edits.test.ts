@@ -221,7 +221,7 @@ describe('lanes and cards come and go', () => {
     expect(next.report.edits[0]).toMatchObject({ said: 'Added “Email Jo” to “Next”.', cardId: 'card-1' })
     const full = ok(apply(week, { kind: 'set_lane_capacity', lane: 'Next', capacity: 1 }))
     expect(no(apply(full, { kind: 'add_card', lane: 'Next', label: 'Email Jo' }))).toMatchObject({
-      reason: '“Next” is full: it holds 1 card. Add the card to another lane, or raise the limit.', laneId: 'next' })
+      reason: '“Next” is full: it holds 1 card. Add the card to another column, or raise the limit.', laneId: 'next' })
     // (Restated 2026-11-21, owner decision: a card added without words is an empty card.)
     expect(ok(apply(week, { kind: 'add_card', lane: 'Next' })).cards[3]).toEqual({ id: 'card-1', label: '', laneId: 'next' })
     const many = ok(applyWorkshopEdits(week, Array.from({ length: 21 }, (_, i) => ({ kind: 'add_card', lane: 'Later', label: 'Card ' + i }) as WorkshopEdit)))
@@ -249,7 +249,7 @@ describe('lanes and cards come and go', () => {
     expect(next.signals).toBeUndefined()
     expect(next.presentationOrder).toEqual(['now', 'next'])
     expect(no(apply(week, { kind: 'remove_lane', lane: 'Now' }))).toMatchObject({ reason: '“Now” holds 2 cards. Move or remove them first.', laneId: 'now' })
-    expect(no(apply(createLaneWorkshop(), { kind: 'remove_lane', lane: 'Lane 2' })).reason).toBe('A workshop needs at least two lanes.')
+    expect(no(apply(createLaneWorkshop(), { kind: 'remove_lane', lane: 'Lane 2' })).reason).toBe('A workshop needs at least two columns.')
   })
 })
 

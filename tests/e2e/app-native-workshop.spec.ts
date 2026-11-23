@@ -236,7 +236,7 @@ test('a drop the workshop\'s rules refuse sends the card back and the lane says 
     expect(Math.abs(back.y - start.y)).toBeLessThan(1)
     expect(await laneOfCard(page, 'alpha')).toBe('Now')
     // The reason leaves the caption again.
-    await expect(caption(page, 'next')).toContainText('1 of 1')
+    await expect(caption(page, 'next')).toContainText('1 / 1')
     await expect(caption(page, 'next')).not.toContainText('It already holds')
     // Gamma may only be in Now, and a drop on open canvas is not a move either.
     await dragCard(page, 'gamma', 'later')
@@ -279,12 +279,12 @@ test('a second person sees a move, a rename and a kept proposal without reloadin
     expect(moved.x).toBeGreaterThan(peerAlpha.x)
     expect(moved.x).toBeGreaterThanOrEqual(laterColumn.x)
     expect(moved.x + moved.width).toBeLessThanOrEqual(laterColumn.x + laterColumn.width + 1)
-    await expect(caption(peer.page, 'later')).toContainText('1 card')
+    await expect(caption(peer.page, 'later')).toContainText('1')
 
     // The other way round: the peer's move reaches the owner.
     await dragCard(peer.page, 'delta', 'later')
     await expect.poll(() => laneOfCard(page, 'delta')).toBe('Later')
-    await expect(caption(page, 'later')).toContainText('2 cards')
+    await expect(caption(page, 'later')).toContainText('2')
 
     // A rename made in place on the owner's canvas, and a proposal the owner keeps.
     await renameInPlace(page, 'card-beta', 'Beta prime')
@@ -331,7 +331,7 @@ test('two people who move different cards at the same moment both keep their mov
     for (const view of [peer.page, page]) {
       await expect.poll(() => laneOfCard(view, 'delta')).toBe('Later')
       await expect.poll(() => laneOfCard(view, 'alpha')).toBe('Later')
-      await expect(caption(view, 'later')).toContainText('2 cards')
+      await expect(caption(view, 'later')).toContainText('2')
       await expect(workshopStatus(view).getByRole('alert')).toHaveCount(0)
     }
     const alpha = await resting(peer.page, 'card-alpha'), later = await resting(peer.page, 'column-later')
@@ -388,7 +388,7 @@ test('two people who fill the last place in a lane: one card is stored, the othe
     expect(await lanesOf(page, owner.key)).toEqual({ alpha: 'now', beta: 'later', gamma: 'now', delta: 'next' })
     expect(await revisionOf(page, owner.key)).toBe(2)
     // The reason leaves the caption, and a move the rules allow is saved.
-    await expect(caption(peer.page, 'next')).toContainText('1 of 1')
+    await expect(caption(peer.page, 'next')).toContainText('1 / 1')
     await expect(caption(peer.page, 'next')).not.toContainText('It already holds')
     await dragCard(peer.page, 'alpha', 'later')
     await expect.poll(async () => (await lanesOf(page, owner.key)).alpha).toBe('later')
@@ -575,7 +575,7 @@ test('the interview board plays its own rule on the canvas, and a keyboard move 
     const owner = await openOwned(page, '/new/workshop' + encodeWorkshopFragment(createInterviewWorkshop()))
     id = owner.id
     // The prototype holds one interview. The board says what that interview will test.
-    await expect(caption(page, 'prototype')).toContainText('1 of 1')
+    await expect(caption(page, 'prototype')).toContainText('1 / 1')
     await expect(placementOutcomes(page)).toContainText('Mara will test whether Jo can import a list without contacting a client.')
     await expect(placementOutcomes(page)).toContainText('Still in the interview notes.')
     // A full lane is still offered here: this board swaps the interview it holds for the one dropped on it.

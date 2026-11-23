@@ -104,12 +104,12 @@ export function validateBehaviour(input: unknown, board: Workshop): Behaviour {
   const raw = record(input, 'Unsupported behaviour version.')
   if (raw.version !== 1) throw new Error('Unsupported behaviour version.')
   const family = behaviourFamily(board)
-  if (!family) throw new Error('Only lane boards and pipelines take rules for now.')
+  if (!family) throw new Error('Only boards of columns and pipelines take rules for now.')
   if (typeof raw.rev !== 'number' || !Number.isInteger(raw.rev) || raw.rev < 0 || raw.rev > 1e9) throw new Error('A rulebook needs a whole revision number.')
   if (!Array.isArray(raw.rules)) throw new Error('A rulebook needs a list of rules.')
   if (raw.rules.length > maxBehaviourRules) throw new Error('A board has up to 12 rules.')
   const laneId = (value: unknown) => {
-    if (typeof value !== 'string' || !board.lanes.some(lane => lane.id === value)) throw new Error('That rule names a lane that is no longer on the board.')
+    if (typeof value !== 'string' || !board.lanes.some(lane => lane.id === value)) throw new Error('That rule names a column that is no longer on the board.')
     return value
   }
   const rules = raw.rules.map(item => {
@@ -133,7 +133,7 @@ export function validateBehaviour(input: unknown, board: Workshop): Behaviour {
     switch (rule.kind) {
       case 'capacity': {
         known(['where', 'max'])
-        if (typeof rule.max !== 'number' || !Number.isInteger(rule.max) || rule.max < 1 || rule.max > 24) throw new Error('A lane can hold from 1 to 24 cards.')
+        if (typeof rule.max !== 'number' || !Number.isInteger(rule.max) || rule.max < 1 || rule.max > 24) throw new Error('A column can hold from 1 to 24 cards.')
         return { ...base, kind: 'capacity' as const, where: laneId(rule.where), max: rule.max }
       }
       case 'path': {
@@ -147,23 +147,23 @@ export function validateBehaviour(input: unknown, board: Workshop): Behaviour {
         if (rule.to !== undefined) {
           if (!Array.isArray(rule.to) || rule.to.length < 1 || rule.to.length > 4) throw new Error('Say where cards in ' + labelOf(board, from) + ' may go.')
           out.to = rule.to.map(laneId)
-          if (new Set(out.to).size !== out.to.length) throw new Error('Name each lane once.')
-          if (out.to.includes(from)) throw new Error('A path leads to another lane.')
+          if (new Set(out.to).size !== out.to.length) throw new Error('Name each column once.')
+          if (out.to.includes(from)) throw new Error('A path leads to another column.')
         }
         if (!out.to && !out.noSkip) throw new Error('Say where cards in ' + labelOf(board, from) + ' may go.')
-        if (from === 'any' && out.to) throw new Error('A path from any lane is one lane at a time; name a lane to send cards somewhere.')
+        if (from === 'any' && out.to) throw new Error('A path from any column is one column at a time; name a column to send cards somewhere.')
         return out
       }
       case 'gate': {
         known(['into', 'needs'])
         if (!Array.isArray(rule.needs) || rule.needs.length < 1 || rule.needs.length > 3 || rule.needs.some(need => typeof need !== 'string')) {
-          throw new Error('Say which field the lane asks for.')
+          throw new Error('Say which field the column asks for.')
         }
         const needs = rule.needs as string[]
         if (needs.some(need => textFields.has(need))) throw new Error('A rule reads a card’s fields, never its words.')
         const own = gateFields[family] ?? []
         const missing = needs.find(need => !own.some(field => field.id === need))
-        if (missing) throw new Error('Cards on this board carry no ' + fieldNoun(missing).replace(/^an? /, '') + ', so a lane can’t ask for one.')
+        if (missing) throw new Error('Cards on this board carry no ' + fieldNoun(missing).replace(/^an? /, '') + ', so a column can’t ask for one.')
         return { ...base, kind: 'gate' as const, into: laneId(rule.into), needs: [...needs] }
       }
       case 'bin': {
@@ -181,7 +181,7 @@ export function validateBehaviour(input: unknown, board: Workshop): Behaviour {
 }
 
 function labelOf(board: Pick<Workshop, 'lanes'>, id: string) {
-  return id === 'any' ? 'any lane' : board.lanes.find(lane => lane.id === id)?.label ?? id
+  return id === 'any' ? 'any column' : board.lanes.find(lane => lane.id === id)?.label ?? id
 }
 
 /** A rulebook that contradicts itself, as a sentence; null when it holds together. */
@@ -217,7 +217,7 @@ export function behaviourContradiction(behaviour: Behaviour, board: Workshop): s
   for (const rule of live) if (rule.kind === 'path') for (const target of rule.to ?? []) {
     if (Math.abs(order.indexOf(target) - order.indexOf(rule.from)) > 1 && !live.some(other => other.kind === 'bin' && other.lane === target) &&
       live.some(other => other.kind === 'path' && (other.from === 'any' || other.from === rule.from) && (other.noSkip || !other.to))) {
-      return 'Cards move one lane at a time, so cards in ' + labelOf(board, rule.from) + ' could never reach ' + labelOf(board, target) + '.'
+      return 'Cards move one column at a time, so cards in ' + labelOf(board, rule.from) + ' could never reach ' + labelOf(board, target) + '.'
     }
   }
   return null
@@ -255,10 +255,10 @@ const registry: Record<string, {
   path: {
     sentence(rule, board) {
       const { from, to, noSkip } = rule as { from: string; to?: string[]; noSkip?: boolean }
-      if (!to) return 'Cards move one lane at a time.'
+      if (!to) return 'Cards move one column at a time.'
       const names = to.map(id => labelOf(board, id))
       const list = names.length > 1 ? names.slice(0, -1).join(', ') + ' or ' + names.at(-1) : names[0]
-      return 'From ' + labelOf(board, from) + ', cards go only to ' + list + '.' + (noSkip ? ' One lane at a time.' : '')
+      return 'From ' + labelOf(board, from) + ', cards go only to ' + list + '.' + (noSkip ? ' One column at a time.' : '')
     },
     check(rule, before, _after, move) {
       const { from, to, noSkip } = rule as { from: string; to?: string[]; noSkip?: boolean }
@@ -269,7 +269,7 @@ const registry: Record<string, {
         const here = order.indexOf(move.from), there = order.indexOf(move.to)
         if (Math.abs(there - here) > 1) {
           const step = before.lanes[here + Math.sign(there - here)]
-          return { sentence: 'Cards move one lane at a time. ' + move.card.label + ' is in ' + labelOf(before, move.from) + ', so ' + step.label + ' comes first.' }
+          return { sentence: 'Cards move one column at a time. ' + move.card.label + ' is in ' + labelOf(before, move.from) + ', so ' + step.label + ' comes first.' }
         }
       }
       return null
@@ -425,7 +425,7 @@ export function applyRuleEdit(board: Workshop, edit: WorkshopEdit, audit: RuleAu
     t.refuse('There is no rule ' + said(ref) + ' on this board.', { code: 'unknown_reference' })
   const lane = (ref: unknown) => {
     if (ref === 'any') return 'any'
-    if (typeof ref !== 'string' && !(ref && typeof ref === 'object')) return t.refuse('Name the lane the rule is about.', { code: 'invalid_edit' })
+    if (typeof ref !== 'string' && !(ref && typeof ref === 'object')) return t.refuse('Name the column the rule is about.', { code: 'invalid_edit' })
     return t.lane(ref as WorkshopRef).id
   }
   if (edit.kind === 'remove_rule') {
@@ -482,7 +482,7 @@ export function checkWorkshopMove(input: Workshop, cardRef: WorkshopRef, laneRef
   const pick = <T extends { id: string }>(items: T[], finder: WorkshopFinder<T>, ref: WorkshopRef) =>
     typeof ref === 'object' ? items.find(item => item.id === ref.id) : items.find(item => item.id === ref) ?? finder.attempt(ref)
   const card = pick(board.cards, refs.cards, cardRef), lane = pick(board.lanes, refs.lanes, laneRef)
-  if (!card || !lane) return { refused: { sentence: card ? 'There is no such lane on this board.' : 'There is no such card on this board.', ruleId: null, nearest: null } }
+  if (!card || !lane) return { refused: { sentence: card ? 'There is no such column on this board.' : 'There is no such card on this board.', ruleId: null, nearest: null } }
   const order = board.lanes.map(item => item.id)
   const nearest = () => board.lanes.filter(item => item.id !== card.laneId && item.id !== lane.id && workshopCandidate(board, card.id, item.id))
     .sort((a, b) => Math.abs(order.indexOf(a.id) - order.indexOf(lane.id)) - Math.abs(order.indexOf(b.id) - order.indexOf(lane.id)))[0]?.label ?? null
@@ -511,7 +511,7 @@ function refusalOf(board: Workshop, cardId: string, laneId: string, rule: Behavi
 function drawBehaviourNote(board: Workshop, box: { x: number; y: number; width: number }, style: WorkshopNoteStyle = {}): NodeJSON | null {
   if (!board.behaviour) return null
   const lines = behaviourLines(board)
-  const text = ['How this board behaves', ...(lines.length ? lines : ['No rules yet. Say “Let a lane hold 2”.'])].join('\n')
+  const text = ['How this board behaves', ...(lines.length ? lines : ['No rules yet. Say “Let a column hold 2”.'])].join('\n')
   const size = Math.max(12, (style.fontSize ?? DEFAULT_NOTE_STYLE.fontSize) - 2)
   const perLine = Math.max(12, Math.floor((box.width - 24) / (size * 0.55)))
   const rows = text.split('\n').reduce((count, line) => count + Math.max(1, Math.ceil(line.length / perLine)), 0)
@@ -527,7 +527,7 @@ function drawBehaviourNote(board: Workshop, box: { x: number; y: number; width: 
 export function setRuledLimit(board: Workshop, laneId: string, capacity: number | null, audit: RuleAudit): Workshop | string | null {
   const ruled = board.behaviour?.rules.find(rule => rule.kind === 'capacity' && rule.where === laneId)
   if (!ruled) return null
-  if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1 || capacity > 24)) return 'A lane can hold from 1 to 24 cards.'
+  if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1 || capacity > 24)) return 'A column can hold from 1 to 24 cards.'
   const rules = capacity === null ? board.behaviour!.rules.filter(rule => rule !== ruled)
     : board.behaviour!.rules.map(rule => rule === ruled ? { ...rule, max: capacity, on: true, set: audit } : rule)
   return { ...board, behaviour: { ...board.behaviour!, rev: board.behaviour!.rev + 1, rules } }

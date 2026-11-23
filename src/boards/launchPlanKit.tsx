@@ -137,6 +137,9 @@ function elbow(from: { x: number; y: number; width: number; height: number }, to
   return { d: `M ${sx} ${sy} V ${ty} H ${to.x}`, arrow: { x: to.x, y: ty, angle: 0 } }
 }
 
+/** How wide a phone task's words are drawn (13px; the layer measures nothing, so a generous average glyph). */
+export const phoneWordsWidth = (words: string, bold = false) => Math.ceil(words.length * 13 * (bold ? 0.6 : 0.56))
+
 function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
   const g = launchLayout(board, state.layout)
   const hiring = board.kind === 'hiring-plan'
@@ -146,7 +149,7 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
   const shapes: LayerShape[] = []
   // Weekends, shaded where days are working days; then each freeze, hatched, with its name.
   if (clock?.workdays) for (let d = 0; d < day; d++) if (weekdayAt(clock.origin, d) === 6) {
-    shapes.push({ t: 'rect', x: g.x0 + d * g.dayW, y: g.gridTop, w: 2 * g.dayW, h: g.height - 8 - g.gridTop, color: layerInk.track, opacity: 0.7 })
+    shapes.push({ t: 'rect', x: g.x0 + d * g.dayW, y: g.gridTop, w: 2 * g.dayW, h: g.height - 8 - g.gridTop, color: g.narrow ? layerInk.canvasTrack : layerInk.track, opacity: 0.7 })
   }
   for (const rule of board.behaviour?.rules ?? []) if (clock && rule.on && rule.kind === 'blackout') {
     const from = offsetOf(clock.origin, rule.start), to = offsetOf(clock.origin, rule.end) + 1
@@ -161,10 +164,10 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     const x = g.x0 + d * g.dayW
     const week = clock ? weekdayAt(clock.origin, d) === 1 : d % 7 === 0
     if (!week && g.dayW < 6) continue
-    shapes.push({ t: 'line', x1: x, y1: g.gridTop, x2: x, y2: g.height - 8, color: week ? layerInk.week : layerInk.faint, width: week ? 1 : 0.5 })
+    shapes.push({ t: 'line', x1: x, y1: g.gridTop, x2: x, y2: g.height - 8, color: g.narrow ? (week ? layerInk.canvasWeek : layerInk.canvasFaint) : week ? layerInk.week : layerInk.faint, width: week ? 1 : 0.5 })
     const month = hiring && clock && isoAt(clock.origin, d).slice(8) <= '07' && week
     const label = !clock ? (g.narrow ? 'W' : 'Week ') + (d / 7 + 1) : hiring ? (month ? shortDate(isoAt(clock.origin, d)).replace(/^\d+ /, '') : '') : shortDate(isoAt(clock.origin, d))
-    if (week && label && (!clock || hiring || g.dayW * 7 > 44)) shapes.push({ t: 'text', x: x + 3, y: g.axisY, text: label, color: layerInk.ink, size: 12 })
+    if (week && label && (!clock || hiring || g.dayW * 7 > 44)) shapes.push({ t: 'text', x: x + 3, y: g.axisY, text: label, color: layerInk.canvasInk, size: 12 })
   }
   // What waits on what: elbows into each task, the critical ones in the critical colour. Click one to remove it.
   for (const card of board.cards) {
@@ -187,8 +190,17 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
         color: layerInk.ink, size: 12, role: 'start-' + card.id })
       continue
     }
-    if (g.narrow) shapes.push({ t: 'text', x: 8, y: box.y - 6, text: `${card.label} · ${card.duration}d`, color: layerInk.ink, size: 13, bold: t.critical })
-    if (!t.critical) shapes.push({ t: 'text', x: box.x + box.width + (g.narrow ? 48 : 24), y: box.y + box.height / 2 + 4, text: '+' + t.slack + 'd', color: layerInk.ink, size: 12, role: 'slack-' + card.id })
+    // On a phone a task's words sit above its own bar, from its start, clear of its grips (beside the bar, within its
+    // height) and of the arrows at the plan's left; a bar too near the right edge ends its words at its end. A halo of the
+    // canvas's colour keeps an arrow passing under them from cutting a letter.
+    if (g.narrow) {
+      const words = `${card.label} · ${card.duration}d`
+      const wide = phoneWordsWidth(words, t.critical)
+      const fromStart = box.x + 2 + wide <= g.width - 8
+      shapes.push({ t: 'text', x: fromStart ? box.x + 2 : Math.max(8 + wide, Math.min(g.width - 8, box.x + box.width)), anchor: fromStart ? 'start' : 'end', y: box.y - 7,
+        text: words, color: layerInk.canvasInk, size: 13, bold: t.critical, halo: layerInk.halo, role: 'words-' + card.id })
+    }
+    if (!t.critical) shapes.push({ t: 'text', x: box.x + box.width + (g.narrow ? 48 : 24), y: box.y + box.height / 2 + 4, text: '+' + t.slack + 'd', color: g.narrow ? layerInk.canvasInk : layerInk.ink, size: 12, role: 'slack-' + card.id })
   }
   // The plan's ends: its first day (a dated plan) and a hiring plan's last week, each a short bar on the grid's edge.
   if (clock && !(hiring && g.narrow)) shapes.push({ t: 'rect', x: g.x0 - 3, y: g.gridTop - 22, w: 6, h: 22, rx: 3, color: layerInk.ink, opacity: 0.7, role: 'edge-first' })
@@ -220,7 +232,7 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     const floor = board.behaviour?.rules.find(rule => rule.on && rule.kind === 'deadline')
     const low = floor && floor.kind === 'deadline' && months < floor.floor!
     shapes.push({ t: 'text', x: g.narrow ? 8 : g.x0, y: g.narrow ? 18 : 20, text: 'Runway with these hires: ' + runwayWords(months),
-      color: low || state.refused ? layerInk.refuse : layerInk.ink, size: 14, bold: true, role: 'header' })
+      color: low || state.refused ? layerInk.refuse : layerInk.canvasInk, size: 14, bold: true, role: 'header' })
     const round = board.hiring!.funding
     if (round && round.day <= day) {
       const fx = g.x0 + round.day * g.dayW
@@ -244,7 +256,7 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
   const done = Math.max(0, ...[...times.values()].map(t => t.to))
   shapes.push({ t: 'text', x: g.narrow ? 8 : g.x0, y: g.narrow ? 18 : 20,
     text: clock ? 'Done ' + dayWords(board, Math.ceil(done) - 1) + ' · ' + lineWord(board) + ' ' + dayWords(board, board.launch!.day) : `Done day ${finish} · launch day ${board.launch!.day}`,
-    color: state.refused ? layerInk.refuse : layerInk.ink, size: 14, bold: true, role: 'header' })
+    color: state.refused ? layerInk.refuse : layerInk.canvasInk, size: 14, bold: true, role: 'header' })
   if (state.clamp) {
     const part = g.parts.find(item => item.name === state.clamp!.name)
     if (part) shapes.push(...saidNear(g, shapes, state.clamp.text, part, state.view))

@@ -24,7 +24,7 @@ describe('an empty note is an empty card', () => {
     const next = workshopNoteCandidate(board, 'now', { id: 'blank', label: '' })!
     expect(next.cards.at(-1)).toEqual({ id: 'blank', label: '', laneId: 'now' })
     expect(validateWorkshop(next)).toEqual(next)
-    expect(m.workshopLaneCaption(next, 'now')).toBe('2 cards')
+    expect(m.workshopLaneCaption(next, 'now')).toBe('2')
     // And back: an empty card leaves the lanes as an empty note.
     expect(workshopCardAsNote(next, 'blank')!.cards.map(card => card.id)).toEqual(['alpha'])
   })

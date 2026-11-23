@@ -222,8 +222,8 @@ describe('a map step’s limit counts its tokens: a card made from a note is fre
     const two = workshopNoteCandidate(one, 'decide', { id: 'node_2', label: 'Ask finance' })!
     expect(two.cards.filter(card => card.laneId === 'decide')).toHaveLength(3)
     // The caption counts the tokens against the limit and says the cards beside them apart.
-    expect(workshopLaneCaption(two, 'decide')).toBe('1 of 1 · 2 cards')
-    expect(workshopLaneCaption(board, 'decide')).toBe('1 of 1')
+    expect(workshopLaneCaption(two, 'decide')).toBe('1 / 1 · +2')
+    expect(workshopLaneCaption(board, 'decide')).toBe('1 / 1')
   })
 
   it('a free card moves or is added to a full step; a token still finds it full', () => {

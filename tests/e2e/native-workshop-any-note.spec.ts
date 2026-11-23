@@ -48,7 +48,7 @@ test('an empty note dropped on a lane is an empty card there; it is renamed in p
   await drag(page, 'blank', await inLane(page, 'now'))
   await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@now blank@now(empty)')
   await expect(live(page)).toHaveText('The empty card is now a card in Now. 4 cards.')
-  await expect.poll(() => text(page, 'caption-now')).toBe('4 cards')
+  await expect.poll(() => text(page, 'caption-now')).toBe('4')
   const drawn = await resting(page, 'card-blank')
   const alpha = await box(page, 'card-alpha')
   // Drawn as a card like the others: the same width as its neighbours.

@@ -14,10 +14,12 @@ export type LayerShape =
    * that link: a click, Enter or Space removes it; a tap first selects it, and a second tap removes it (`armed`:
    * what it says while it waits for that tap). `pick` makes the same stroke a button that selects it (a map's path).
    */
-  | { t: 'path'; d: string; color: string; width?: number; hit?: number; arrow?: { x: number; y: number; angle: number }; unlink?: { cardId: string; waitsOn: string; label: string; armed?: string }
+  | { t: 'path'; d: string; color: string; width?: number; hit?: number; fill?: string; dash?: string; role?: string; arrow?: { x: number; y: number; angle: number }; unlink?: { cardId: string; waitsOn: string; label: string; armed?: string }
       pick?: { key: string; label: string } }
   /** Words; `lines` sets `text` on several lines (each line a tspan, `lineHeight` apart), whose words together are `text`. */
-  | { t: 'text'; x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end'; bold?: boolean; role?: string; lines?: string[]; lineHeight?: number }
+  | { t: 'text'; x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end'; bold?: boolean; role?: string; lines?: string[]; lineHeight?: number
+      /** A ring of `halo` (the canvas's colour) behind the words, so a line or an arrow under them never cuts a letter. */
+      halo?: string }
 
 /** Colours of the layer, as CSS custom properties with the board's own colours behind them. */
 export const layerInk = {
@@ -29,7 +31,18 @@ export const layerInk = {
   bar: 'var(--slatebox-board-bar, #3f6f8e)',
   track: 'var(--slatebox-board-track, #e4e7df)',
   launch: 'var(--slatebox-board-launch, #7b3fa0)',
+  /** Words set on the canvas itself (a plan's header and dates), not on a lane's pale fill: they follow the slate's background. */
+  canvasInk: 'var(--slatebox-board-canvas-ink, #34433f)',
+  /** A phone's plan rows lie on the canvas: their grid, week lines and tracks follow the slate's background too. */
+  canvasFaint: 'var(--slatebox-board-canvas-grid, #d9ddd5)',
+  canvasWeek: 'var(--slatebox-board-canvas-week, #b5bdb3)',
+  canvasTrack: 'var(--slatebox-board-canvas-track, #e4e7df)',
+  /** The canvas's own colour, for a halo behind words. */
+  halo: 'var(--slatebox-board-halo, #ffffff)',
 }
+
+/** The layer's type: the host's board font when it sets one. */
+const layerFont = 'var(--slatebox-board-font, system-ui, sans-serif)'
 
 const svgNS = 'http://www.w3.org/2000/svg'
 
@@ -64,7 +77,9 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
         ...(shape.opacity !== undefined ? { opacity: shape.opacity } : {}), ...(shape.role ? { 'data-board-layer': shape.role } : {}) }, { fill: shape.color }))
     } else if (shape.t === 'text') {
       const text = element('text', { x: shape.x, y: shape.y, 'font-size': shape.size ?? 13, 'text-anchor': shape.anchor ?? 'start',
-        'font-family': 'system-ui, sans-serif', ...(shape.bold ? { 'font-weight': 600 } : {}), ...(shape.role ? { 'data-board-layer': shape.role } : {}) }, { fill: shape.color })
+        'font-family': 'system-ui, sans-serif', ...(shape.bold ? { 'font-weight': 600 } : {}), ...(shape.role ? { 'data-board-layer': shape.role } : {}),
+        ...(shape.halo ? { 'stroke-width': 4, 'stroke-linejoin': 'round', 'paint-order': 'stroke' } : {}) }, { fill: shape.color, ...(shape.halo ? { stroke: shape.halo } : {}) })
+      text.style.setProperty('font-family', layerFont)
       // Words are set as text, never as markup.
       if (shape.lines && shape.lines.length > 1) {
         // One text element, one tspan a line: its words read as the one sentence (a space ends every line but the last).
@@ -120,7 +135,10 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
         group.appendChild(hit)
         buttons.push(hit)
       }
-      group.appendChild(element('path', { d: shape.d, fill: 'none', 'stroke-width': shape.width ?? 1.5, 'pointer-events': 'none' }, { stroke: shape.color }))
+      group.appendChild(element('path', { d: shape.d, fill: 'none', 'stroke-width': shape.width ?? 1.5, 'pointer-events': 'none',
+        ...(shape.dash ? { 'stroke-dasharray': shape.dash } : {}), ...(shape.role ? { 'data-board-layer': shape.role } : {}),
+        ...(shape.fill ? { 'stroke-linecap': 'round', 'stroke-linejoin': 'round' } : {}) },
+        { stroke: shape.color === 'none' ? 'transparent' : shape.color, ...(shape.fill && shape.fill !== 'none' ? { fill: shape.fill } : {}) }))
       if (shape.arrow) {
         const { x, y, angle } = shape.arrow
         group.appendChild(element('path', { d: 'M0 0 L-8 -4.5 L-8 4.5 Z', transform: `translate(${x} ${y}) rotate(${angle})`, 'pointer-events': 'none' }, { fill: shape.color }))
@@ -174,7 +192,8 @@ export function createBoardLayer(slate: any, paint: (shown: Workshop, state: Boa
       const shapes = paint(preview ?? board, state, board)
       // The words a held or refused handle says, and a bar's grips, go above every note.
       const said = (shape: LayerShape) => shape.t === 'text' && (shape.role === 'clamp' || shape.role === 'refusal') || shape.t === 'rect' && Boolean(shape.role?.startsWith('grip-'))
-      for (const layer of [group, top]) layer.setAttribute('transform', `translate(${origin.x} ${origin.y})`)
+      // A board in focus says so on its layer too, so a host can bring the rest of the canvas down (boardChromeStyles).
+      for (const layer of [group, top]) { layer.setAttribute('transform', `translate(${origin.x} ${origin.y})`); layer.toggleAttribute('data-workshop-focused', Boolean(state.boardFocused)) }
       renderLayerShapes(group, shapes.filter(shape => !said(shape)), state.onUnlink, links, state.onPick)
       renderLayerShapes(top, shapes.filter(said))
       // Above the lane columns, under every other note.

@@ -84,7 +84,7 @@ test('a note dropped on a lane is a card there and a card dropped on the canvas 
     await expect.poll(() => cardsOf(page, owner.key)).toBe(`alpha@now beta@next ${noteId}@later`)
     await expect.poll(() => stored(page, owner.key)).toEqual([])
     await expect(card(page, noteId)).toContainText('Call Sam')
-    await expect(caption(page, 'later')).toContainText('1 card')
+    await expect(caption(page, 'later')).toContainText('1')
     // The teammate sees the card in Later, and no note.
     await expect(card(guest.page, noteId)).toContainText('Call Sam')
     await expect(note(guest.page, noteId)).toHaveCount(0)
@@ -128,7 +128,7 @@ test('a note dropped on a lane is a card there and a card dropped on the canvas 
     await expect(note(page, 'alpha')).toContainText('Alpha')
     await expect(note(page, noteId)).toContainText('Call Sam')
     await expect(card(page, 'alpha')).toHaveCount(0)
-    await expect(caption(page, 'now')).toContainText('0 cards')
+    await expect(caption(page, 'now')).toContainText('0')
 
     // Dropped back on Now, the note is a card again.
     await page.waitForTimeout(600)
@@ -471,7 +471,7 @@ test('several notes dropped on a lane together become cards there; a note typed 
     await page.keyboard.type('Typed in Now')
     await page.keyboard.press('Enter')
     await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.map((c: any) => c.label + '@' + c.laneId)).toContain('Typed in Now@now')
-    await expect(caption(page, 'now')).toContainText('2 cards')
+    await expect(caption(page, 'now')).toContainText('2')
     await page.waitForTimeout(1000)
     expect(await stored(page, owner.key)).toEqual([])
   } finally { await removeTestGuest(page, id) }

@@ -77,8 +77,8 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
       boards: document.querySelectorAll('.pilot-board, [data-workshop-hit-surface], [data-native-workshop-map], [data-workshop-card]').length,
     }))).toEqual({ canvases: 1, instances: 1, boards: 0 })
     expect(await text(page, 'lane-now')).toBe('Now')
-    expect(await text(page, 'caption-now')).toBe('3 cards')
-    expect(await text(page, 'caption-later')).toBe('0 of 1')
+    expect(await text(page, 'caption-now')).toBe('3')
+    expect(await text(page, 'caption-later')).toBe('0 / 1')
     // The workshop sits to the right of what the slate already held.
     const plain = await at(page, 'plain'), column = await at(page, 'column-now')
     expect(column!.x).toBeGreaterThan(plain!.x + plain!.width)
@@ -117,8 +117,8 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     await open(page)
     await carry(page, 'card-alpha', await inLane(page, 'later'))
     // Held over Later: both captions show the outcome, the other cards close up, nothing is committed.
-    await expect.poll(() => text(page, 'caption-later')).toBe('1 of 1')
-    await expect.poll(() => text(page, 'caption-now')).toBe('2 cards')
+    await expect.poll(() => text(page, 'caption-later')).toBe('1 / 1')
+    await expect.poll(() => text(page, 'caption-now')).toBe('2')
     const slot = (await at(page, 'lane-now'))!
     await expect.poll(async () => (await at(page, 'card-beta'))!.y).toBe(slot.y - 6 + 98)
     expect((await journal(page)).changes).toEqual([])
@@ -136,7 +136,7 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     const alpha = await resting(page, 'card-alpha')
     expect(alpha.x).toBe(later.x)
     expect(alpha.y).toBe(later.y - 6 + 98)
-    expect(await text(page, 'caption-later')).toBe('1 of 1')
+    expect(await text(page, 'caption-later')).toBe('1 / 1')
     await expect(live(page)).toHaveText('Alpha moved to Later. 1 of 1.')
     // The host was told once; the engine sent and saved nothing of its own.
     expect(state.packages).toEqual([])
@@ -170,7 +170,7 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     expect(Math.abs(outline.y - rested.y)).toBeLessThan(4)
     if (shots) await page.screenshot({ path: shots + '/03-refusal-on-full-lane.png' })
     // ...and passes after about a second and a half.
-    await expect.poll(() => text(page, 'caption-later'), { timeout: 4000 }).toBe('1 of 1')
+    await expect.poll(() => text(page, 'caption-later'), { timeout: 4000 }).toBe('1 / 1')
     await expect(page.locator('#slate [data-node-id="lane-later"] path').first()).not.toHaveAttribute('stroke', '#c2410c')
 
     // Gamma may not go to Later at all.
@@ -205,9 +205,9 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     }
     for (const [name, cancel] of Object.entries(abandon)) {
       await carry(page, 'card-alpha', await inLane(page, 'later'))
-      await expect.poll(() => text(page, 'caption-later'), { message: name }).toBe('1 of 1')
+      await expect.poll(() => text(page, 'caption-later'), { message: name }).toBe('1 / 1')
       await cancel()
-      await expect.poll(() => text(page, 'caption-later'), { message: name }).toBe('0 of 1')
+      await expect.poll(() => text(page, 'caption-later'), { message: name }).toBe('0 / 1')
       await expect(live(page)).toHaveText('Move cancelled. Alpha stays where it was.')
       expect(await resting(page, 'card-alpha'), name).toEqual(start)
       // The button comes up over Later; the abandoned drag must not land there.
@@ -246,7 +246,7 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
 
     // After the zoom, the card still goes where the pointer says.
     await carry(page, 'card-alpha', await inLane(page, 'later'))
-    await expect.poll(() => text(page, 'caption-later')).toBe('1 of 1')
+    await expect.poll(() => text(page, 'caption-later')).toBe('1 / 1')
     // Pan while it is held: the board moves under the pointer, so step back onto Later and drop.
     await page.mouse.wheel(0, 30)
     await expect.poll(async () => (await view()).y).toBeGreaterThan(zoomed.y)
@@ -465,7 +465,7 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
       const model = (window as any).native.board.value
       return [model.cards[0].label, model.lanes[0].label]
     })).toEqual(['Apollo', 'Today'])
-    expect(await text(page, 'caption-now')).toBe('3 cards')
+    expect(await text(page, 'caption-now')).toBe('3')
     await expect(live(page)).toHaveText('Now renamed to Today.')
 
     // Typing on a selected lane header appends to its name.
@@ -507,13 +507,13 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     const start = await resting(page, 'card-alpha')
     await page.keyboard.press('ArrowRight')
     // Staged exactly like a pointer hover: captions preview and the lane is outlined.
-    await expect.poll(() => text(page, 'caption-later')).toBe('1 of 1')
-    await expect.poll(() => text(page, 'caption-now')).toBe('2 cards')
+    await expect.poll(() => text(page, 'caption-later')).toBe('1 / 1')
+    await expect.poll(() => text(page, 'caption-now')).toBe('2')
     await expect(page.locator('#slate [data-node-id="column-later"] path').first()).toHaveAttribute('stroke', '#1f7a5c')
     await expect(live(page)).toHaveText('Alpha to Later: 1 of 1. Press Enter to move it, Escape to cancel.')
     expect(await cards(page)).toBe('alpha@now beta@now gamma@now')
     await page.keyboard.press('Escape')
-    await expect.poll(() => text(page, 'caption-later')).toBe('0 of 1')
+    await expect.poll(() => text(page, 'caption-later')).toBe('0 / 1')
     await expect(live(page)).toHaveText('Move cancelled. Alpha stays where it was.')
     expect(await resting(page, 'card-alpha')).toEqual(start)
     // Still selected: the Escape cancelled the move, not the selection.
@@ -577,7 +577,7 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     expect(result.sameBeta && result.sameLane && result.sameCanvas).toBe(true)
     expect(result.ids).toEqual(['caption-later', 'caption-now', 'card-alpha', 'card-beta', 'card-delta', 'column-later', 'column-now', 'lane-later', 'lane-now', 'plain'])
     expect(result.later.text).toBe('Next week')
-    expect(result.captions).toEqual(['1 card', '2 of 2'])
+    expect(result.captions).toEqual(['1', '2 / 2'])
     expect(result.alpha.x).toBe(result.later.x)
     expect(result.delta.y).toBe(result.alpha.y + 88)
     expect((await journal(page)).changes).toEqual([])
@@ -589,7 +589,7 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
       board.preview({ ...model, cards: model.cards.map((card: any) => card.id === 'beta' ? { ...card, laneId: 'later' } : card).slice(0, 2) })
       await board.whenDrawn()
     })
-    await expect.poll(() => text(page, 'caption-now')).toBe('0 cards')
+    await expect.poll(() => text(page, 'caption-now')).toBe('0')
     expect(await cards(page)).toBe('alpha@later beta@now delta@later')
     await expect(page.locator('#slate [data-node-id="card-delta"]')).toHaveCount(0)
     const held = await resting(page, 'card-beta')
@@ -600,18 +600,18 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
       board.preview(null)
       await board.whenDrawn()
     })
-    await expect.poll(() => text(page, 'caption-now')).toBe('1 card')
+    await expect.poll(() => text(page, 'caption-now')).toBe('1')
     await expect(page.locator('#slate [data-node-id="card-delta"]')).toBeVisible()
     expect((await journal(page)).changes).toEqual([])
 
     // A model arriving while a card is held cancels the drag first.
     await carry(page, 'card-alpha', await inLane(page, 'now'))
-    await expect.poll(() => text(page, 'caption-now')).toBe('2 cards')
+    await expect.poll(() => text(page, 'caption-now')).toBe('2')
     await page.evaluate(() => {
       const { board } = (window as any).native
       board.update({ ...board.value, title: 'Renamed by a collaborator' })
     })
-    await expect.poll(() => text(page, 'caption-now')).toBe('1 card')
+    await expect.poll(() => text(page, 'caption-now')).toBe('1')
     await page.mouse.up()
     await page.waitForTimeout(200)
     expect(await cards(page)).toBe('alpha@later beta@now delta@later')
@@ -624,7 +624,7 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
     await expect.poll(() => text(page, 'caption-now')).toBe('Someone else just filled Now.')
     await expect(page.locator('#slate [data-node-id="lane-now"] path').first()).toHaveAttribute('stroke', '#c2410c')
     await expect(live(page)).toHaveText('Now: Someone else just filled Now.')
-    await expect.poll(() => text(page, 'caption-now'), { timeout: 4000 }).toBe('1 card')
+    await expect.poll(() => text(page, 'caption-now'), { timeout: 4000 }).toBe('1')
   })
 
   test('a proposal outlines what it adds or changes as provisional, and only that', async ({ page }) => {
@@ -745,7 +745,7 @@ test.describe('a workshop drawn as native notes on a live slate', () => {
   test('the same Dragology spec as the SVG board can choose the candidate', async ({ page }) => {
     await open(page, '?dragology')
     await carry(page, 'card-alpha', await inLane(page, 'later'))
-    await expect.poll(() => text(page, 'caption-later')).toBe('1 of 1')
+    await expect.poll(() => text(page, 'caption-later')).toBe('1 / 1')
     await page.mouse.up()
     await expect.poll(() => cards(page)).toBe('alpha@later beta@now gamma@now')
     const betaStart = await resting(page, 'card-beta')
@@ -784,7 +784,7 @@ test.describe('experiences and maps as native notes', () => {
     await expect.poll(() => cards(page)).toBe('preview@interviews duplicate@prototype undo@interviews')
     const interviews = (await at(page, 'lane-interviews'))!
     await expect.poll(async () => (await at(page, 'card-preview'))!.x).toBe(interviews.x)
-    expect(await text(page, 'caption-prototype')).toBe('1 of 1')
+    expect(await text(page, 'caption-prototype')).toBe('1 / 1')
   })
 
   test('release plan: pulling a feature forward previews its prerequisite and the points, and an over-budget move is refused', async ({ page }) => {
@@ -823,7 +823,8 @@ test.describe('experiences and maps as native notes', () => {
     await carry(page, 'card-token', await inLane(page, 'refund'))
     // Held over the station two hops away: it is marked closed, and nothing is previewed as if it were allowed.
     await expect(page.locator('#slate [data-node-id="column-refund"] path').first()).toHaveAttribute('stroke', '#c2410c')
-    expect(await text(page, 'caption-refund')).toBe('0 cards')
+    // A map's station shows its token itself: no counter (board polish).
+    expect(await text(page, 'caption-refund')).toBe('')
     await page.mouse.up()
     await expect.poll(async () => (await journal(page)).refusals).toEqual([
       { cardId: 'token', laneId: 'refund', reason: "Issue refund can't be reached from Refund request." },
@@ -872,15 +873,15 @@ test.describe('touch at 390x844', () => {
 
       // A cancelled touch is a refusal.
       await carryByTouch('card-alpha', await inLane(page, 'later'))
-      await expect.poll(() => text(page, 'caption-later')).toBe('1 of 1')
+      await expect.poll(() => text(page, 'caption-later')).toBe('1 / 1')
       await touch('touchCancel', [])
-      await expect.poll(() => text(page, 'caption-later')).toBe('0 of 1')
+      await expect.poll(() => text(page, 'caption-later')).toBe('0 / 1')
       expect(await resting(page, 'card-alpha')).toEqual(alphaStart)
       expect(await cards(page)).toBe('alpha@now beta@now gamma@now')
 
       // A permitted move commits once and the card settles in the lane.
       await carryByTouch('card-alpha', await inLane(page, 'later'))
-      await expect.poll(() => text(page, 'caption-later')).toBe('1 of 1')
+      await expect.poll(() => text(page, 'caption-later')).toBe('1 / 1')
       await touch('touchEnd', [])
       await expect.poll(() => cards(page)).toBe('alpha@later beta@now gamma@now')
       const header = (await at(page, 'lane-later'))!

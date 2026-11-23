@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  applyWorkshopEdits, checkWorkshopReplacement, describeWorkshopEdits, validateWorkshop, workshopCandidate, workshopCardAsNote, workshopDestinations, workshopLaneCaption,
+  applyWorkshopEdits, behaviourNote, checkWorkshopReplacement, describeWorkshopEdits, validateWorkshop, workshopCandidate, workshopCardAsNote, workshopDestinations, workshopLaneCaption,
   workshopNoteCandidate, workshopNoteRefusal, workshopRefusal, workshopToSlate, workshopNodeIds,
   type Workshop, type WorkshopEdit, type WorkshopEditResult,
 } from '../../src/workshops/model'
@@ -50,7 +50,7 @@ describe('behaviour as data', () => {
   it('never moves what is already there: a new limit shows 3 of 2 and refuses only the next arrival', () => {
     const next = ok(apply(team, { kind: 'add_rule', rule: { kind: 'capacity', where: 'Review', max: 2 } }))
     expect(next.cards.filter(card => card.laneId === 'review')).toHaveLength(3)
-    expect(workshopLaneCaption(next, 'review')).toBe('3 of 2')
+    expect(workshopLaneCaption(next, 'review')).toBe('3 / 2')
     expect(workshopCandidate(next, 'search', 'review')).toBeNull()
     expect(workshopRefusal(next, 'search', 'review')).toBe('Review holds 2. It has 3.')
     // Leaving the full lane is always fine.
@@ -74,8 +74,8 @@ describe('behaviour as data', () => {
       { kind: 'add_rule', rule: { kind: 'path', from: 'any', noSkip: true } },
       { kind: 'add_rule', rule: { kind: 'bin', lane: "Won't do" } }))
     expect(workshopDestinations(next, 'billing').map(lane => lane.id)).toEqual(['todo', 'doing', 'wont'])
-    expect(workshopRefusal(next, 'billing', 'review')).toBe('Cards move one lane at a time. Billing is in To do, so Doing comes first.')
-    expect(behaviourLines(next)).toEqual(['Cards move one lane at a time.', "Won't do archives cards: they stay on the board, never deleted."])
+    expect(workshopRefusal(next, 'billing', 'review')).toBe('Cards move one column at a time. Billing is in To do, so Doing comes first.')
+    expect(behaviourLines(next)).toEqual(['Cards move one column at a time.', "Won't do archives cards: they stay on the board, never deleted."])
   })
 
   it('warns instead of refusing when the rule says so: the drop lands, with the sentence', () => {
@@ -87,7 +87,7 @@ describe('behaviour as data', () => {
 
   it('a gate asks for a field the board has (a pipeline’s amount), never for words on the card', () => {
     const lanesGate = no(apply(team, { kind: 'add_rule', rule: { kind: 'gate', into: 'Done', needs: ['amount'] } }))
-    expect(lanesGate.reason).toBe('Cards on this board carry no amount, so a lane can’t ask for one.')
+    expect(lanesGate.reason).toBe('Cards on this board carry no amount, so a column can’t ask for one.')
     expect(no(apply(team, { kind: 'add_rule', rule: { kind: 'gate', into: 'Done', needs: ['label'] } } as WorkshopEdit)).reason)
       .toBe('A rule reads a card’s fields, never its words.')
     const gated = ok(apply(pipeline, { kind: 'add_rule', rule: { kind: 'gate', into: 'Qualified', needs: ['amount'] } }))
@@ -109,7 +109,7 @@ describe('behaviour as data', () => {
     expect(no(apply(capped, { kind: 'add_rule', rule: { kind: 'capacity', where: 'Review', max: 3 } })).reason)
       .toBe('Review already has a limit. Change it instead.')
     expect(no(apply(team, { kind: 'add_rule', rule: { kind: 'path', from: 'Doing', to: ['Doing'] } })).reason)
-      .toBe('A path leads to another lane.')
+      .toBe('A path leads to another column.')
     const binned = ok(apply(team, { kind: 'add_rule', rule: { kind: 'bin', lane: "Won't do" } }))
     expect(no(apply(binned, { kind: 'add_rule', rule: { kind: 'capacity', where: "Won't do", max: 2 } })).reason)
       .toBe("Won't do archives cards, so it takes every card.")
@@ -169,12 +169,14 @@ describe('behaviour as data', () => {
     for (const card of next.cards) expect(workshopCardAsNote(next, card.id)).not.toBeNull()
   })
 
-  it('draws a “How this board behaves” note whose lines are the sentences', () => {
+  // Restated for board polish (decided behaviour changed): a board's rules are its chrome (a legend above it,
+  // boardLegend), never a "How this board behaves" note on the canvas. The note's sentences stay for a host to show.
+  it('draws no “How this board behaves” note; behaviourNote still says the sentences', () => {
     const next = ok(apply(team, { kind: 'add_rule', rule: { kind: 'capacity', where: 'Review', max: 2 } }, { kind: 'add_rule', rule: { kind: 'bin', lane: "Won't do" } }))
-    const note = workshopToSlate(next, { native: true }).nodes.find(node => node.options.id === workshopNodeIds.rules)!
-    expect(note.options.text).toBe(['How this board behaves', ...behaviourLines(next)].join('\n'))
-    // A board without a rulebook draws no such note.
-    expect(workshopToSlate(team, { native: true }).nodes.some(node => node.options.id === workshopNodeIds.rules)).toBe(false)
+    expect(workshopToSlate(next, { native: true }).nodes.some(node => node.options.id === workshopNodeIds.rules)).toBe(false)
+    expect(behaviourNote(next, { x: 0, y: 0, width: 240 })!.options.text).toBe(['How this board behaves', ...behaviourLines(next)].join('\n'))
+    // A board without a rulebook has no sentences.
+    expect(behaviourNote(team, { x: 0, y: 0, width: 240 })).toBeNull()
   })
 
   it('publishes the rule edits in the edit table for lane boards and the pipeline only', () => {

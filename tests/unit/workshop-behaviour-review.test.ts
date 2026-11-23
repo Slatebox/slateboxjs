@@ -62,14 +62,14 @@ describe('review finding 1: a whole-board save cannot change the rules and break
 describe('review finding 4: rules that contradict each other are refused with a sentence', () => {
   it('a path to a lane the one-lane rule never lets a card reach is a contradiction', () => {
     const refused = no(apply(team, { kind: 'add_rule', rule: { kind: 'path', from: 'Doing', to: ['Done'] } }))
-    expect(refused.reason).toBe('Cards move one lane at a time, so cards in Doing could never reach Done.')
+    expect(refused.reason).toBe('Cards move one column at a time, so cards in Doing could never reach Done.')
     // A path to the next lane is fine.
     expect(behaviourOf(ok(apply(team, { kind: 'add_rule', rule: { kind: 'path', from: 'Doing', to: ['Review'] } }))).rules.at(-1)).toMatchObject({ kind: 'path', from: 'doing' })
     // With the one-lane rule off, the path holds; turning it back on is refused.
     const off = ok(apply(team, { kind: 'set_rule', rule: 'rule-1', on: false }))
     const path = ok(apply(off, { kind: 'add_rule', rule: { kind: 'path', from: 'Doing', to: ['Done'] } }))
     expect(no(apply(path, { kind: 'set_rule', rule: 'rule-1', on: true })).reason)
-      .toBe('Cards move one lane at a time, so cards in Doing could never reach Done.')
+      .toBe('Cards move one column at a time, so cards in Doing could never reach Done.')
   })
 
   it('a warn rule never contradicts: it lets the card land', () => {
@@ -115,22 +115,16 @@ describe('review finding 7: a bin archives cards, it never deletes them', () => 
   })
 })
 
-describe('review finding 12: on a phone the "How this board behaves" note sits above the first lane', () => {
-  it('reserves the note’s height above the lanes when they stack one per row', () => {
+// Restated for board polish (decided behaviour changed): the rules are the board's chrome, drawn above it, so on a
+// phone nothing sits above the first column and no note is drawn at all, on a phone or a wide screen.
+describe('review finding 12: on a phone the first column starts at the top; the rules are the board’s chrome', () => {
+  it('draws no rules note and reserves no room for one', () => {
     const phone = { lanesPerRow: 1 }
     const { places } = workshopLanePlaces(team, { layout: phone })
-    const nodes = workshopToSlate(team, { native: true, layout: phone }).nodes
-    const note = nodes.find(node => node.options.id === workshopNodeIds.rules)!
-    const bottom = (note.options.yPos as number) + (note.options.height as number)
-    expect(note.options.yPos).toBe(0)
-    expect(Math.min(...places.map(place => place.y))).toBeGreaterThanOrEqual(bottom + 8)
-    for (const lane of team.lanes) {
-      expect(nodes.find(node => node.options.id === workshopNodeIds.column(lane.id))!.options.yPos as number).toBeGreaterThan(bottom)
+    expect(Math.min(...places.map(place => place.y))).toBe(0)
+    for (const layout of [phone, undefined]) {
+      expect(workshopToSlate(team, { native: true, layout }).nodes.some(node => node.options.id === workshopNodeIds.rules)).toBe(false)
     }
-    // On a wide screen it stays under the lanes.
-    const wide = workshopToSlate(team, { native: true }).nodes.find(node => node.options.id === workshopNodeIds.rules)!
-    expect(wide.options.yPos as number).toBeGreaterThan(Math.max(...workshopLanePlaces(team).places.map(place => place.y + place.height)))
-    // A board without a rulebook keeps its lanes at the top on a phone.
     const plain = validateWorkshop({ version: 1, title: 'Plain', lanes: team.lanes, cards: [] })
     expect(workshopLanePlaces(plain, { layout: phone }).places[0].y).toBe(0)
   })
@@ -166,7 +160,7 @@ describe('review finding 17: a loop’s caption is a sentence its board says', (
       const board = validateWorkshop(catalogPreset(entry.id, undefined, samples))
       const lines = behaviourLines(board)
       if (lines.length) expect([entry.id, lines.includes(entry.loop.caption)]).toEqual([entry.id, true])
-      else expect([entry.id, entry.loop.caption]).toEqual([entry.id, 'No rules: any card goes in any lane.'])
+      else expect([entry.id, entry.loop.caption]).toEqual([entry.id, 'No rules: any card goes in any column.'])
     }
   })
 })

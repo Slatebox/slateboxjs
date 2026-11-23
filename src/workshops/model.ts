@@ -1180,8 +1180,21 @@ export function workshopWithoutCardLines(board: Workshop, cardId: string): Works
   return lines.length === (board.lines?.length ?? 0) ? board : { ...board, lines }
 }
 
-/** The second line under a lane's name: how full it is, or what its cards add up to. */
+/**
+ * The counter under a column's name: how full it is, or what its cards add up to. One format everywhere:
+ * "2 / 3" with a limit, "2" without; a step whose cards came from notes says those apart ("1 / 1 · +2").
+ * A screen reader hears it in words (workshopLaneSpoken).
+ */
 export function workshopLaneCaption(board: Workshop, laneId: string): string {
+  return laneCaption(board, laneId, false)
+}
+
+/** What a screen reader hears of a column's counter: "2 of 3", "2 cards", "1 of 1 · 2 cards". */
+export function workshopLaneSpoken(board: Workshop, laneId: string): string {
+  return laneCaption(board, laneId, true)
+}
+
+function laneCaption(board: Workshop, laneId: string, spoken: boolean): string {
   const lane = board.lanes.find(item => item.id === laneId)
   if (!lane) return ''
   if (board.kind === 'release-plan') {
@@ -1194,10 +1207,23 @@ export function workshopLaneCaption(board: Workshop, laneId: string): string {
   if (budget) return '$' + budget.amount + ' · ' + budget.description
   const count = board.cards.filter(card => card.laneId === laneId).length
   const limit = board.behaviour ? rulebook().laneLimit(board, laneId) : lane.capacity
-  // A step's limit counts its tokens: "1 of 1", with the cards made from notes beside them said apart.
+  // A step's limit counts its tokens: "1 / 1", with the cards made from notes beside them said apart.
   const counted = workshopLaneHeld(board, laneId)
-  if (limit !== undefined && counted !== count) return counted + ' of ' + limit + ' · ' + (count - counted) + ((count - counted) === 1 ? ' card' : ' cards')
-  return limit !== undefined ? count + ' of ' + limit : count + (count === 1 ? ' card' : ' cards')
+  const cards = (n: number) => n + (n === 1 ? ' card' : ' cards')
+  if (spoken) {
+    if (limit !== undefined && counted !== count) return counted + ' of ' + limit + ' · ' + cards(count - counted)
+    return limit !== undefined ? count + ' of ' + limit : cards(count)
+  }
+  if (limit !== undefined && counted !== count) return counted + ' / ' + limit + ' · +' + (count - counted)
+  return limit !== undefined ? count + ' / ' + limit : String(count)
+}
+
+/** Whether a column holds as many as its limit lets it (its counter pill takes the header's colour). */
+export function workshopLaneFull(board: Workshop, laneId: string): boolean {
+  const lane = board.lanes.find(item => item.id === laneId)
+  if (!lane || lane.station || businessKind(board) || board.kind === 'release-plan') return false
+  const limit = board.behaviour ? rulebook().laneLimit(board, laneId) : lane.capacity
+  return limit !== undefined && workshopLaneHeld(board, laneId) >= limit
 }
 
 export const workshopLayout = { pitch: 244, width: 228, row: 88, height: 76, top: 98 }
@@ -1548,8 +1574,8 @@ export function workshopLanePlaces(input: Workshop, options: Pick<WorkshopArtwor
   } else {
     // Every lane column in a row is as tall as the fullest lane of that row plus
     // one free slot, so the board reads as columns and each column is one drop zone.
-    // On a phone (one lane per row) a board's "How this board behaves" note comes first.
-    let y = phoneRulesNote(board, perRow)?.below ?? 0
+    // A board's rules are its chrome (boardChrome.ts), drawn above the board and never a note.
+    let y = 0
     for (let first = 0; first < board.lanes.length; first += perRow) {
       const band = board.lanes.slice(first, first + perRow)
       const height = top + (Math.max(...band.map((_, column) => least(first + column))) + 1) * row
@@ -1560,11 +1586,6 @@ export function workshopLanePlaces(input: Workshop, options: Pick<WorkshopArtwor
   return { places, width: Math.max(...places.map(place => place.x + place.width)), height: Math.max(...places.map(place => place.y + place.height)) }
 }
 
-/** A phone's "How this board behaves" note (one lane per row, a board with rules): drawn above the first lane. */
-function phoneRulesNote(board: Workshop, perRow: number, x = 2, y = 0): { note: NodeJSON; below: number } | null {
-  const note = board.behaviour && perRow < 2 && board.lanes.length > 1 && !board.lanes[0].station ? rulebook().note(board, { x, y, width: 240 }, { fontSize: 14 }) : null
-  return note ? { note, below: (note.options.height as number) + 16 } : null
-}
 
 function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions): SlateJSON {
   const { pitch, width, row, height, top } = workshopLayout
@@ -1599,8 +1620,14 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
       ...(map ? { borderStyle: 'dashed' } : {}) })
     note({ id: laneNodeId(lane.id), text: lane.label, name: lane.label, xPos: x + 8, yPos: y + 6, width, height: 58,
       backgroundColor: laneColors[index], fontSize: fittingFontSize(lane.label, laneSize, width - 16, 50) })
-    note({ id: captionNodeId(lane.id), text: workshopLaneCaption(board, lane.id), name: lane.label, xPos: x + 8, yPos: y + 66, width, height: 30,
-      backgroundColor: 'transparent', borderWidth: 0, fontSize: captionSize })
+    // The counter: a small pill under the column's name ("2 / 3", "2"), centred; a full column's pill takes the
+    // header's colour. A map's station shows its token itself: no counter.
+    const counter = map ? '' : workshopLaneCaption(board, lane.id)
+    const pillSize = captionSize
+    const pillW = map ? width : Math.min(width, Math.max(40, Math.ceil(counter.length * pillSize * 0.6) + 24))
+    note({ id: captionNodeId(lane.id), text: counter, name: lane.label, xPos: x + 8 + Math.round((width - pillW) / 2), yPos: y + 68, width: pillW, height: 22,
+      vectorPath: roundedBox(pillW, 22, map ? 0 : 11), backgroundColor: map ? 'transparent' : workshopLaneFull(board, lane.id) ? laneColors[index % laneColors.length] : 'rgba(255,255,255,0.72)',
+      borderWidth: 0, fontSize: pillSize })
     if (image) {
       nodes.push({ options: { id: imageNodeId(lane.id), name: image.alt, text: '', xPos: x + 8, yPos: y + top, width, height: stationImageHeight,
         shapeHint: 'rectangle', image: image.src, borderWidth: 0 }, relationships: { associations: [] } })
@@ -1622,10 +1649,6 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
         fontSize: fittingFontSize(text, look.fontSize ?? cardSize, cardWidth - 16, cardHeight - 8) })
     })
   })
-  const rules = phoneRulesNote(board, lanesPerRow(options.layout, board.lanes.length), origin.x + 2, origin.y)?.note
-    ?? behaviourNote(board, { x: origin.x, y: origin.y + Math.max(...places.map(place => place.y + place.height)) + 16,
-      width: Math.min(Math.max(...places.map(place => place.x + place.width)), pitch * 2) - 4 }, style)
-  if (rules) nodes.push(rules)
   const byId = new Map(nodes.map(item => [item.options.id as string, item]))
   for (const lane of board.lanes) {
     if (!lane.station) continue
@@ -1666,7 +1689,10 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
   return { options: { name: board.title }, shareId: '', nodes }
 }
 
-/** The "How this board behaves" note of a board with a rulebook (behaviour.ts draws it); null without one. */
+/**
+ * The "How this board behaves" note of a board with a rulebook (behaviour.ts draws it); null without one. No board
+ * draws it any more (a board's rules are its chrome: boardLegend); it stays for a host that shows the sentences.
+ */
 export function behaviourNote(board: Workshop, box: { x: number; y: number; width: number }, style: WorkshopNoteStyle = {}): NodeJSON | null {
   return board.behaviour ? rulebook().note(board, box, style) : null
 }
@@ -1794,6 +1820,8 @@ export * from './edits'
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names'
 export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection,
   type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native'
+export { boardLegend, boardChromeShapes, boardBadgeShapes, boardChromeLayout, boardChromeLabel, boardChromeStyles, chromeInk, DRAFT_TAG,
+  type LegendItem, type LegendIcon, type ChromeOptions } from './boardChrome'
 
 
 export type StartupExperience = {version: 1; kind: 'customer-interviews' | 'experiment-budget'}

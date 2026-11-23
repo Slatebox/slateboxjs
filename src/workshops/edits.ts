@@ -192,7 +192,7 @@ const sentences = {
   notTarget: 'Only a pipeline has a forecast target.',
   notBudget: 'Only a budget moves money between teams.',
   businessCards: 'Cards on this board go where its rules let them.',
-  noRules: 'Only lane boards and pipelines take rules for now.',
+  noRules: 'Only boards of columns and pipelines take rules for now.',
 }
 const keepsTeams = { 'launch-plan': sentences.launchLanes, pipeline: sentences.pipelineLanes, budget: sentences.budgetLanes, 'hiring-plan': sentences.launchLanes.replace('launch', 'hiring').replace('tasks', 'hires'),
   nest: 'This board keeps its two areas. You can rename them.' }
@@ -591,7 +591,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
         if (board.lanes.length <= 2) throw new Refusal('A map needs at least two steps.', 'refused', gone.id)
       } else {
         if (here.length) throw new Refusal(said(gone.label) + ' holds ' + here.length + (here.length === 1 ? ' card' : ' cards') + '. Move or remove ' + (here.length === 1 ? 'it' : 'them') + ' first.', 'refused', gone.id)
-        if (board.lanes.length <= 2) throw new Refusal('A workshop needs at least two lanes.', 'refused', gone.id)
+        if (board.lanes.length <= 2) throw new Refusal('A workshop needs at least two columns.', 'refused', gone.id)
       }
       board.lanes = board.lanes.filter(item => item !== gone)
       for (const item of board.lanes) if (item.station) item.station.next = item.station.next.filter(id => id !== gone.id)
@@ -629,7 +629,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       extraCardFields(edit, family, target.id)
       if (board.cards.length >= 24) throw new Refusal('A workshop can have up to 24 cards. Remove one first.', 'refused', target.id)
       if (target.capacity !== undefined && held(target.id) >= target.capacity) {
-        throw new Refusal(said(target.label) + ' is full: it holds ' + target.capacity + (target.capacity === 1 ? ' card' : ' cards') + '. Add the card to another lane, or raise the limit.', 'refused', target.id)
+        throw new Refusal(said(target.label) + ' is full: it holds ' + target.capacity + (target.capacity === 1 ? ' card' : ' cards') + '. Add the card to another column, or raise the limit.', 'refused', target.id)
       }
       const allowedLaneIds = edit.allowedLanes && [...new Set(edit.allowedLanes.map(ref => laneOf(ref).id))]
       let next: Workshop

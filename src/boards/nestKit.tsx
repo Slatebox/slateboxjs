@@ -81,7 +81,7 @@ export function nestLayout(board: Workshop, layout: WorkshopBoardLayout = {}): {
       const n = board.cards.filter(item => quadrantOf(board, item) === q.id).length, limit = limitOf(q.id)
       parts.push({ name: 'column-q-' + q.id, x, y, width: g.size / 2, height: g.size / 2, fill: tint(squareFills[q.id], 0.35), line: tint(squareFills[q.id], 0.1) })
       parts.push({ name: 'caption-q-' + q.id, x: x + 6, y: y + (q.high[1] ? 6 : g.size / 2 - 32), width: g.size / 2 - 12, height: 26, fill: 'transparent', lineWidth: 0, fontSize: g.narrow ? 12 : 14,
-        text: q.label + ' · ' + (limit ? n + ' of ' + limit.max : String(n)), ...(limit && n > limit.max && { ink: '#c2410c' }) })
+        text: q.label + ' · ' + (limit ? n + ' / ' + limit.max : String(n)), ...(limit && n > limit.max && { ink: '#c2410c' }) })
     }
     parts.push({ name: 'caption-axis-y', x: g.left, y: g.top - 26, width: 200, height: 22, text: '↑ ' + axes.y.label, fill: 'transparent', lineWidth: 0, fontSize: 13 })
     parts.push({ name: 'caption-axis-x', x: g.left + g.size - 200, y: g.top + g.size + 4, width: 200, height: 22, text: axes.x.label + ' →', fill: 'transparent', lineWidth: 0, fontSize: 13 })
@@ -170,7 +170,7 @@ export function nestLayout(board: Workshop, layout: WorkshopBoardLayout = {}): {
     const top = TOP + (owners.length ? 64 : 0)
     owners.forEach((owner, i) => {
       const n = board.cards.filter(item => item.owner === owner.id).length
-      parts.push({ name: 'caption-owner-' + owner.id, x: left + i * 152, y: TOP - 4, width: 140, height: 52, text: owner.label + '\n' + n + (n === 1 ? ' card' : ' cards'), fill: '#f3eee0', fontSize: 14 })
+      parts.push({ name: 'caption-owner-' + owner.id, x: left + i * 152, y: TOP - 4, width: 140, height: 52, text: owner.label + '\n' + n, fill: '#f3eee0', fontSize: 14 })
     })
     let next = 0, deepest = 0
     const place = (item: WorkshopCard, depth: number): number => {

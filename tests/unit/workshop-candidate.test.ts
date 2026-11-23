@@ -119,11 +119,11 @@ describe('workshopCandidate', () => {
   })
 
   it('captions a lane with how full it is', () => {
-    expect(workshopLaneCaption(twoLanes, 'now')).toBe('3 cards')
-    expect(workshopLaneCaption(twoLanes, 'later')).toBe('0 of 1')
-    expect(workshopLaneCaption(workshopCandidate(twoLanes, 'alpha', 'later')!, 'later')).toBe('1 of 1')
-    expect(workshopLaneCaption(industrialWorkshop, 'pilot')).toBe('1 of 2')
-    expect(workshopLaneCaption(industrialWorkshop, 'evidence')).toBe('1 card')
+    expect(workshopLaneCaption(twoLanes, 'now')).toBe('3')
+    expect(workshopLaneCaption(twoLanes, 'later')).toBe('0 / 1')
+    expect(workshopLaneCaption(workshopCandidate(twoLanes, 'alpha', 'later')!, 'later')).toBe('1 / 1')
+    expect(workshopLaneCaption(industrialWorkshop, 'pilot')).toBe('1 / 2')
+    expect(workshopLaneCaption(industrialWorkshop, 'evidence')).toBe('1')
     expect(workshopLaneCaption(releasePlan, 'friday')).toBe('3 / 8 points')
     expect(workshopLaneCaption(releasePlan, 'backlog')).toBe('3 points')
     expect(workshopLaneCaption(createBudgetWorkshop(), 'calls')).toBe('$200 · 4 customer calls')
@@ -176,8 +176,8 @@ describe('workshopToSlate', () => {
       'column-now', 'lane-now', 'caption-now', 'card-alpha', 'card-beta', 'card-gamma', 'column-later', 'lane-later', 'caption-later',
     ])
     expect(byId.get('lane-now')!.text).toBe('Now')
-    expect(byId.get('caption-now')!.text).toBe('3 cards')
-    expect(byId.get('caption-later')!.text).toBe('0 of 1')
+    expect(byId.get('caption-now')!.text).toBe('3')
+    expect(byId.get('caption-later')!.text).toBe('0 / 1')
     // Cards stack inside their lane's column, below its header and caption.
     const column = byId.get('column-now')!, header = byId.get('lane-now')!, caption = byId.get('caption-now')!
     for (const [i, id] of ['card-alpha', 'card-beta', 'card-gamma'].entries()) {
@@ -210,7 +210,8 @@ describe('workshopToSlate', () => {
       ['platform-to-stairs', 'column-platform', 'column-stairs'], ['platform-to-lift', 'column-platform', 'column-lift'],
     ])
     expect(platform.relationships.associations).toEqual([])
-    expect(map.find(node => node.options.id === 'caption-platform')!.options.text).toBe('1 card')
+    // A map's station shows its token itself: no counter (board polish).
+    expect(map.find(node => node.options.id === 'caption-platform')!.options.text).toBe('')
   })
 })
 

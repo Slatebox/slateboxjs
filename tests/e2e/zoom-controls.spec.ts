@@ -78,11 +78,9 @@ test.describe("Zoom Controls", () => {
       return (window as any).currentSlate.panZoom.getZoom();
     });
 
-    // Click zoom out button (the - button) — select by text so it's robust to
-    // button order (a fit button was added as the first control).
-    const zoomOutBtn = page.locator(".slatebox-zoom-slider button", {
-      hasText: "-",
-    });
+    // Click zoom out button (the − button) — select by its name so it's robust to
+    // button order and to the glyph (board polish draws a true minus sign).
+    const zoomOutBtn = page.locator('.slatebox-zoom-slider button[aria-label="Zoom out"]');
     await zoomOutBtn.click();
     await page.waitForTimeout(300);
 

@@ -315,10 +315,10 @@ test('an empty note dropped on a lane is an empty card: saved, counted, seen by 
     await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.map((c: any) => c.id + '@' + c.laneId + ':' + c.label).join(' '))
       .toBe('alpha@now:Alpha beta@next:Beta blank@later:')
     await expect(page.locator('#slateCanvas').getByText('needs some words')).toHaveCount(0)
-    await expect(note(page, 'caption-later')).toContainText('1 card')
+    await expect(note(page, 'caption-later')).toContainText('1')
     await expect(card(page, 'blank')).toHaveAttribute('aria-label', 'Empty card, in Later')
     await expect(card(guest.page, 'blank')).toHaveCount(1)
-    await expect(note(guest.page, 'caption-later')).toContainText('1 card')
+    await expect(note(guest.page, 'caption-later')).toContainText('1')
     await shot(page, 'empty-note-is-a-card')
 
     // Undo: an empty note again; redo: an empty card.
@@ -334,7 +334,7 @@ test('an empty note dropped on a lane is an empty card: saved, counted, seen by 
     await dismissWelcome(page)
     await workshopReady(page)
     await expect(card(page, 'blank')).toHaveCount(1)
-    await expect(note(page, 'caption-later')).toContainText('1 card')
+    await expect(note(page, 'caption-later')).toContainText('1')
     await page.getByRole('button', { name: 'Present', exact: true }).click()
     await page.waitForTimeout(1500)
     await page.keyboard.press('Escape')

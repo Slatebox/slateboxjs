@@ -81,15 +81,15 @@ const decisionPath = (): Workshop => ({ version: 1, title: 'Decision path', lane
 
 const move = (edit: WorkshopEditKindName, words: string, say: string, rule?: RuleKindId): CatalogMove => ({ edit, words, say, ...(rule && { rule }) })
 // The rule phrases first: they are what "Say it like this" shows of a board's behaviour.
-const laneMoves = (path = move('add_rule', 'Cards move one lane at a time', 'Cards move one lane at a time', 'path'), more: CatalogMove[] = []) => [
-  move('add_rule', 'Limit a lane', 'Let {busy} hold 1', 'capacity'), path, ...more,
+const laneMoves = (path = move('add_rule', 'Cards move one column at a time', 'Cards move one column at a time', 'path'), more: CatalogMove[] = []) => [
+  move('add_rule', 'Limit a column', 'Let {busy} hold 1', 'capacity'), path, ...more,
   move('move_card', 'Move a card', 'Move {card} to {other}'), move('add_card', 'Add a card', 'Add a card called Snacks to {lane}'),
   move('rename_card', 'Rename a card', 'Rename {card} to Review notes'), move('remove_card', 'Remove a card', 'Remove {card}'),
-  move('rename_lane', 'Rename a lane', 'Rename {lane} to Blocked'), move('rename_workshop', 'Rename the board', 'Rename the board to Team review'),
+  move('rename_lane', 'Rename a column', 'Rename {lane} to Blocked'), move('rename_workshop', 'Rename the board', 'Rename the board to Team review'),
   move('set_rule', 'Warn instead of refusing', 'Just warn me when {ruled} is full'), move('remove_rule', 'Remove a rule', 'Remove the {ruled} rule'),
 ]
 // The first limit every entry says: how many boards a slate holds (maxBoardsPerSlate, below).
-const laneLimits = ['Up to 8 boards on one slate, side by side; past that, it opens on a new slate.', 'Up to 5 lanes and 24 cards.']
+const laneLimits = ['Up to 8 boards on one slate, side by side; past that, it opens on a new slate.', 'Up to 5 columns and 24 cards.']
 const edits = (moves: CatalogMove[]) => [...new Set(moves.map(item => item.edit))]
 const rules = (moves: CatalogMove[]) => [...new Set(moves.flatMap(item => item.rule ? [item.rule] : []))]
 const lanesEntry = (id: string, group: CatalogGroup, name: string, line: string, synonyms: string[], caption: string, steps: string[], extra: Partial<CatalogEntry> = {}): CatalogEntry => ({
@@ -153,18 +153,18 @@ const article = (name: string) => /^pros/i.test(name) ? '' : /^[aeiou]/i.test(na
 
 export const catalog: readonly CatalogEntry[] = [
   lanesEntry('now-next-later', 'plan', 'Now / Next / Later', 'Order work loosely; Next holds 3', ['roadmap', 'plan work', 'priorities', 'order work', 'backlog'],
-    'Next holds 3.', ['Drag a note into a lane: it becomes a card.', 'A full lane dims and says why.'], { addSay: ['Add a Now / Next / Later board', 'Add a Now / Next / Later board about {topic}'] }),
+    'Next holds 3.', ['Drag a note into a column: it becomes a card.', 'A full column dims and says why.'], { addSay: ['Add a Now / Next / Later board', 'Add a Now / Next / Later board about {topic}'] }),
   lanesEntry('pros-cons', 'decide', 'Pros and cons', 'Weigh one decision: pros, cons, questions', ['pro con', 'pros cons', 'weigh a decision', 'decide', 'tradeoffs', 'trade-offs'],
-    'No rules: any card goes in any lane.', ['Drag a note in: it becomes a point.', 'Drag it out: it is a note again.'], { addSay: ['Add pros and cons', 'Add pros and cons for {topic}'] }),
+    'No rules: any card goes in any column.', ['Drag a note in: it becomes a point.', 'Drag it out: it is a note again.'], { addSay: ['Add pros and cons', 'Add pros and cons for {topic}'] }),
   lanesEntry('must-should-could', 'decide', 'Must / Should / Could', 'Prioritise with limits', ['moscow', 'prioritise', 'prioritize', 'priorities', 'features', 'scope'],
-    'Could holds 2.', ['Drop a card in Must or Could.', 'A full lane refuses, in its own words.'], { addSay: ['Add a Must / Should / Could board', 'Add a Must / Should / Could board about {topic}'] }),
+    'Could holds 2.', ['Drop a card in Must or Could.', 'A full column refuses, in its own words.'], { addSay: ['Add a Must / Should / Could board', 'Add a Must / Should / Could board about {topic}'] }),
   { id: 'decision-path', group: 'decide', name: 'Decision path', line: 'Walk through a choice step by step', synonyms: ['decision tree', 'walk through', 'flow', 'choice', 'path', 'decide'],
     build: { kind: 'map' }, addSay: ['Add a decision path', 'Add a decision path about {topic}'],
     ...withMoves([move('add_station', 'Add a step', 'Add Follow-up after {lane}'), move('connect_stations', 'Connect two steps', 'Connect {lane} to {other}'),
       move('move_card', 'Move the token', 'Move {card} to {other}'), move('rename_lane', 'Rename a step', 'Rename {lane} to Build it')]), limits: ['Up to 5 steps on a 3 by 3 grid.', laneLimits[0]],
     loop: { src: '/library/decision-path.svg', alt: 'Decision path: the token moves only along connected steps.', caption: 'Not connected', steps: ['Drag the token along a path.', 'A step with no path to it dims.'] }, multiPerSlate: true },
   lanesEntry('retro', 'meetings', 'Retro', 'Went well, change, try: 3 cards each', ['retrospective', 'retro', 'run a retro', 'team meeting', 'look back', 'lessons'],
-    'Try holds 3.', ['A note turns into a card and back.', 'Each lane holds 3; the fourth is refused.']),
+    'Try holds 3.', ['A note turns into a card and back.', 'Each column holds 3; the fourth is refused.']),
   lanesEntry('triage', 'track', 'Triage', 'Sort incoming work; Today holds 3', ['triage', 'inbox', 'incoming', 'support', 'bugs', 'sort work', 'track work'],
     'Today holds 3.', ['A card goes into Today.', 'A full Today refuses.'], { addSay: ['Add a triage board', 'Add a triage board about {topic}'] }),
   lanesEntry('team-board', 'track', 'Team board', 'Your working agreements, enforced: limits, paths, a bin', ['kanban', 'team board', 'working agreements', 'wip limit', 'to do doing done', 'track work', 'sprint'],

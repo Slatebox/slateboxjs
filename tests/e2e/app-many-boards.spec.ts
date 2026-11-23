@@ -104,7 +104,8 @@ test.describe('many boards, 1440 by 900', () => {
 
       // 1. A Retro from the chat: the slate's first board.
       await say(page, 'Add a retro')
-      await expect(conversation(page).getByText('How this board behaves')).toBeVisible({ timeout: 60000 })
+      // A Retro's rules are all column limits, said by its counters ("0 / 3"): its preview says what Keep does instead.
+      await expect(conversation(page).getByText('Drag notes onto it after Keep: each becomes a card.')).toBeVisible({ timeout: 60000 })
       await keep(page)
       await expect(page.locator('#slateCanvas [data-node-id="lane-well"]')).toBeVisible({ timeout: 60000 })
       await expect(conversation(page).getByRole('button', { name: 'What can this do?' })).toBeVisible({ timeout: 30000 })
