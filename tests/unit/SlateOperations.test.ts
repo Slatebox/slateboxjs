@@ -100,6 +100,19 @@ describe("SlateOperations", () => {
     ]);
   });
 
+  it("draws a saved run on a screen that only watches, with send false: nothing goes to the room or the host's save", async () => {
+    const slate = mockSlate();
+    const result = applySlateOperations(slate, plan, { replay: true, send: false });
+    await result.applied;
+    expect(slate.collab.invoke).toHaveBeenCalled();
+    expect(slate.nodes.allNodes.map((item) => item.options.id)).toContain("triangle-3");
+    expect(slate.collab.send).not.toHaveBeenCalled();
+    // By default a screen that draws a run also tells the room, as before.
+    const sending = mockSlate();
+    await applySlateOperations(sending, plan, { replay: true }).applied;
+    expect(sending.collab.send).toHaveBeenCalledTimes(1);
+  });
+
   it("is idempotent when materialized node ids are replayed", () => {
     const slate = mockSlate();
     applySlateOperations(slate, plan, { userMessage: "Add 3 triangles" });

@@ -197,7 +197,21 @@ export function packagesForOperation(operation: SlateOperation, before: StoredSl
 export function applySlateOperations(
   slate: any,
   plan: SlateOperationPlan,
-  { userMessage = "", replay = false, ...contract }: { userMessage?: string; replay?: boolean } & ContractOptions = {},
+  {
+    userMessage = "",
+    replay = false,
+    send = true,
+    ...contract
+  }: {
+    userMessage?: string;
+    replay?: boolean;
+    /**
+     * false: draw the plan on this canvas only. Nothing goes to the room or to the host's save
+     * path (emitSlateChange): for a screen that watches a run someone saved, such as a visitor
+     * with no account, whose canvas must not save or rebroadcast what the server already holds.
+     */
+    send?: boolean;
+  } & ContractOptions = {},
 ): { message: string; report: SlateOperationReport; materializedPlan: SlateOperationPlan; applied: Promise<void> } {
   let current = toStoredSlate(slate);
   const result = applyPlanToJSON(current, plan, { userMessage, replay, ...contract });
@@ -228,7 +242,7 @@ export function applySlateOperations(
     else chain = step(batch);
   }
   const packages = batches.flatMap((batch) => batch.packages);
-  if (packages.length) slate.collab.send(packages);
+  if (send && packages.length) slate.collab.send(packages);
   return {
     message: result.materializedPlan.message,
     report: result.report,

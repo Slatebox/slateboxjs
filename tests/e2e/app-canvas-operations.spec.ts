@@ -115,8 +115,19 @@ test('agent canvas edits reach both open browsers and survive a reload', async (
   expect((await twice.json()).report.unchanged).toBe(true)
   await both((state) => expect(state.connectors.filter((item) => item === `${a}>${b}`)).toHaveLength(1))
 
-  // Disconnect b from a removes the a to b connector.
-  const removed = await save([{ kind: 'disconnect_nodes', from: { ids: [b] }, to: { ids: [a] } }])
+  // Disconnect b from a removes the a to b connector. Restated (125a0cc7, every agent removal waits
+  // for a yes, on REST too): the removal is held until the same request is sent again with the
+  // person's confirmation.
+  const disconnect = { userMessage: 'Edit the slate', expectedRevision: await revision(),
+    plan: { message: 'Done.', operations: [{ kind: 'disconnect_nodes', from: { ids: [b] }, to: { ids: [a] } }] } }
+  const held = await request.post(endpoint, { headers, data: disconnect })
+  expect(held.status()).toBe(409)
+  const hold = (await held.json()).error
+  expect(hold.code).toBe('confirmation_required')
+  expect(hold.details.reasons).toEqual([expect.objectContaining({ rule: 'removes', count: 1 })])
+  expect((await stored()).connectors).toContain(`${a}>${b}`)
+  const removed = await request.post(endpoint, { headers: { ...headers, 'Slatebox-Confirm': hold.details.confirmationId }, data: disconnect })
+  expect(removed.status()).toBe(201)
   expect((await removed.json()).report.disconnected).toEqual([first.id])
   await both((state) => expect(state.connectors).not.toContain(`${a}>${b}`))
 
@@ -132,6 +143,19 @@ test('agent canvas edits reach both open browsers and survive a reload', async (
     await page.waitForFunction(() => Boolean((window as any).slate?.exportJSON))
     await expect.poll(() => onCanvas(page), { timeout: 15_000 }).toEqual(saved)
   }
+  // A visitor with no account sees an agent's edit when no account holder has the slate open: their
+  // canvas draws the saved run itself (it used to wait for an account holder's canvas to pass it on).
+  expect(await peer.evaluate(() => (window as any).Meteor.userId())).toBeNull()
+  await owner.goto('about:blank')
+  expect((await save([{ kind: 'add_nodes', count: 1, shape: 'rectangle', text: 'While no one else looks', ids: ['x2'], x: 1200, y: 600 }])).status()).toBe(201)
+  await expect.poll(async () => (await onCanvas(peer)).notes.x2?.text, { timeout: 15_000 }).toBe('While no one else looks')
+  // Drawn once, and not saved again by the visitor's canvas (the slate's revision stays the run's).
+  expect(await peer.evaluate(() => (window as any).slate.v2.getAllNodes().filter((n: any) => n.options.id === 'x2').length)).toBe(1)
+  const runRevision = await revision()
+  await peer.waitForTimeout(2500)
+  expect(await revision()).toBe(runRevision)
+  await owner.goto(url)
+  await owner.waitForFunction(() => Boolean((window as any).slate?.exportJSON))
   await owner.evaluate((id) => (window as any).Meteor.callAsync('apiTokens.revoke', id), issued.id).catch(() => undefined)
   await peerContext.close()
 })
