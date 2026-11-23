@@ -59,6 +59,8 @@ export interface BusinessBoardRules {
    * `unnamed` is the name a card takes when the note has no words of its own (empty, or only a number): see newCard.
    */
   fromNote(board: Workshop, text: string, unnamed: string): { label: string; duration?: number; amount?: number } | string
+  /** A plan: the board with card `cardId` (just made from a note, at the plan's start) starting on calendar `day`, as near as the plan's rules let it. */
+  landNote?(board: Workshop, cardId: string, day: number): Workshop
   /**
    * The board's own word for a new item ("hire", "task", "deal"): the catalog adds cards with it ("Add a hire"), and a
    * card made without words is named with it ("New hire"). `under` is the card a nested board's card goes under.

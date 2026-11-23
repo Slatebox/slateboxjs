@@ -86,6 +86,25 @@ export function tryTask(board: Workshop, cardId: string, change: Partial<Pick<Wo
   return planProblem(board, next, cardId) ?? next
 }
 
+/**
+ * A task just made from a note let go on calendar `day` of a plan: it starts on that day, in whole steps of the
+ * plan's snap (a week where it snaps to weeks; a hire always moves in weeks), read through its calendar (a day off
+ * on a working-day plan is the next working day). Where the plan's rules refuse that day (past a hard line, in a
+ * freeze), the nearest earlier day they take; the plan's start when none does (where a dropped note always went).
+ */
+export function landPlanNote(board: Workshop, cardId: string, day: number): Workshop {
+  const card = board.cards.find(item => item.id === cardId)
+  if (!card || !Number.isFinite(day)) return board
+  const ready = scheduleLaunch(board).get(cardId)!.start - (card.lag ?? 0)
+  const step = board.kind === 'hiring-plan' ? Math.max(7, snapStep(board)) : snapStep(board)
+  const wanted = Math.max(0, Math.round((dayMap(clockOf(board)).idx(Math.max(0, Math.floor(day))) - ready) / step) * step)
+  for (let lag = wanted; lag > 0; lag -= step) {
+    const tried = tryTask(board, cardId, { lag })
+    if (typeof tried !== 'string') return tried
+  }
+  return board
+}
+
 /** The grip on a task's start edge (its end grip is `handle-<card>`). A card id never starts with "_", so the name is the start grip's alone. */
 export const startHandle = (cardId: string) => 'handle-_start-' + cardId
 const startPrefix = startHandle('')
@@ -523,6 +542,7 @@ export const launchPlanRules: BusinessBoardRules = {
     return { label: read.label, duration: Math.min(60, Math.max(1, read.days ?? 2)) }
   },
   newCard: () => 'task',
+  landNote: landPlanNote,
   renamed(_board, cardId, text) {
     const read = renamedNumbers(text)
     return { label: read.label, edits: read.days !== undefined ? [{ kind: 'set_task', card: { id: cardId }, duration: read.days }] : [] }

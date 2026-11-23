@@ -449,6 +449,12 @@ export const launchPlanKit: WorkshopBoardKit = {
     if (handleId === LAST && board.hiring) return lastWeekGrip(board, grab, g, layout)
     return null
   },
+  // A note let go over the days starts its task on the day under it; on the team names, or on a phone (rows, not days), at the start.
+  noteDay(board, point, layout) {
+    const g = launchLayout(board, layout)
+    if (g.narrow || point.x < g.x0) return null
+    return (point.x - g.x0) / g.dayW
+  },
   keyEdit,
   keyChoices,
   cardKeys: 'Left and Right move it a day, Shift changes its length, L chooses what it waits on.',

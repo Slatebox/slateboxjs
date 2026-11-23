@@ -13,7 +13,7 @@ import { dateName, nextMonday } from './calendar'
 import { extendWorkshopEdits, scheduleLaunch } from './schedule'
 import { runwayMonths, runwayWords } from './runway'
 import { timeFamily } from './timeRules'
-import { planDrags, planEdit, planFixed, planWords, presetRules, readClock } from './launchPlan'
+import { landPlanNote, planDrags, planEdit, planFixed, planWords, presetRules, readClock } from './launchPlan'
 
 export { runwayMonths, runwayWords, runwayCap } from './runway'
 
@@ -151,6 +151,7 @@ export const hiringPlanRules: BusinessBoardRules = {
     return { label: label.slice(0, 80), duration: 42 }
   },
   newCard: () => 'hire',
+  landNote: landPlanNote,
   renamed: (_board, _cardId, text) => ({ label: text.replace(/\s+/g, ' ').trim(), edits: [] }),
   edit(board: Workshop, edit: WorkshopEdit, t: BusinessEditTools) {
     const plan = board.hiring!

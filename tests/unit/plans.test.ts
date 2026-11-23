@@ -1,7 +1,7 @@
 // The plans on the rulebook (dragology final.md D2 and D3): dated launch plans with working days, a hard
 // or soft line, overlap, snap, freezes, push or stop, locks; the hiring plan with its runway floor.
 import { describe, expect, it } from 'vitest'
-import { applyWorkshopEdits, checkWorkshopReplacement, describeWorkshopEdits, validateWorkshop, type Workshop, type WorkshopEdit } from '../../src/workshops/model'
+import { applyWorkshopEdits, checkWorkshopReplacement, describeWorkshopEdits, validateWorkshop, workshopNoteCandidate, type Workshop, type WorkshopEdit } from '../../src/workshops/model'
 import { behaviourLines, ruleSentence } from '../../src/workshops/behaviour'
 import {
   behaviourEditsBetween, checkTime, dayFromWords, goLiveSample, hireLagFor, hiringPlanSample, launchPlanSample, legalRuns, pastTheLine, planDrags, runwayMonths, sampleLaunchPlan, scheduleLaunch,
@@ -338,5 +338,39 @@ describe('the library lists the plans', () => {
       expect(entry.moves[0].rule).toBeDefined()
     }
     expect(catalog.find(item => item.id === 'hiring-plan')!.build).toEqual({ kind: 'hiring-plan', sample: 'hiring-plan' })
+  })
+})
+
+describe('a note let go on a plan starts on the day under it', () => {
+  const landed = (board: Workshop, laneId: string, day?: number) => {
+    const next = workshopNoteCandidate(board, laneId, { id: 'n9', label: '', ...(day !== undefined && { day }) })!
+    return scheduleLaunch(next).get('n9')!
+  }
+  it('the kit reads the day under the pointer from the days, not from the team names or a phone', () => {
+    const plan = launch()
+    const g = launchLayout(plan, { width: 1200 })
+    expect(launchPlanKit.noteDay!(plan, { x: g.x0 + g.dayW * 9.5, y: g.gridTop + 20 }, { width: 1200 })).toBeCloseTo(9.5)
+    expect(launchPlanKit.noteDay!(plan, { x: g.x0 - 30, y: g.gridTop + 20 }, { width: 1200 })).toBeNull()
+    expect(launchPlanKit.noteDay!(plan, { x: 200, y: 160 }, { narrow: true, width: 390 })).toBeNull()
+  })
+
+  it('an empty note on a launch plan starts on the dropped day; a weekend is the Monday after; no day is the start, as before', () => {
+    const plan = launch() // starts Mon 23 Nov, working days, hard line on day 18
+    expect(landed(plan, 'product').from).toBe(0)
+    expect(landed(plan, 'product', 3.4).from).toBe(3) // Thu 26 Nov
+    expect(landed(plan, 'product', 9.9).from).toBe(9) // Wed 2 Dec
+    expect(landed(plan, 'product', 13).from).toBe(14) // Sun 6 Dec → Mon 7 Dec
+  })
+
+  it('past a hard line it lands on the last day the line lets it', () => {
+    const plan = launch()
+    expect(landed(plan, 'product', 40).to).toBe(plan.launch!.day) // ends on launch day, not after
+  })
+
+  it('a hire starts on the nearest week to the dropped day (hires snap to weeks)', () => {
+    const plan = hiring()
+    expect(landed(plan, 'engineering').from).toBe(0)
+    expect(landed(plan, 'engineering', 30).from).toBe(28)
+    expect(landed(plan, 'engineering', 33.5).from).toBe(35)
   })
 })

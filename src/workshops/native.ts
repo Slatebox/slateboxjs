@@ -34,7 +34,7 @@ import { mapEditsBetween, mapGripLabel, mapGripNotes, mapGripOf, mapGripSize, ma
  * shape, size), kept for its way back. `cardToNote`: card `cardId` left the board and is now
  * the ordinary note `noteId` in the drawing. A note's lines stay joined to it either way:
  * `noteToCard.lines` are the note's lines as the drawing had them (a card's lines are the board's,
- * see Workshop.lines). `line`: a person drew or changed a line with a card at one end (`set`), or
+ * see Workshop.lines); `noteToCard.day` is the plan day the note was let go on, where its task starts. `line`: a person drew or changed a line with a card at one end (`set`), or
  * took one away (`remove`, its id). `via: 'undo'`: the change is this person's undo or redo putting
  * a trade back, not a gesture of their own (a host says nothing about it that a drop would).
  */
@@ -42,7 +42,7 @@ export interface WorkshopChangeEvent {
   cardId?: string
   laneId?: string
   rename?: { laneId?: string; cardId?: string; label: string }
-  noteToCard?: { noteId: string; label: string; look?: WorkshopCardLook; asNote?: WorkshopCardAsNote; before?: string; lines?: WorkshopLine[]; under?: string }
+  noteToCard?: { noteId: string; label: string; look?: WorkshopCardLook; asNote?: WorkshopCardAsNote; before?: string; lines?: WorkshopLine[]; under?: string; day?: number }
   cardToNote?: { noteId: string }
   line?: { set: WorkshopLine; remove?: undefined } | { remove: string; set?: undefined }
   /**
@@ -147,6 +147,8 @@ export interface WorkshopBoardKit {
   cardOfPart?(board: Workshop, part: string): string | null
   /** A nest board: the card an ordinary note dropped at this point sits under; null for none. */
   noteUnder?(board: Workshop, point: { x: number; y: number }, layout: WorkshopBoardLayout): string | null
+  /** A plan: the calendar day (a fraction, from its first day) under this point, where a note dropped there starts; null off the days. */
+  noteDay?(board: Workshop, point: { x: number; y: number }, layout: WorkshopBoardLayout): number | null
 }
 
 /**
@@ -893,6 +895,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const offer = offerOf(node)
     const under = kit?.noteUnder?.(value, local(point), layout)
     if (under) offer.under = under
+    dated(offer, point)
     const lane = value.lanes.find(item => item.id === laneId)!
     const reason = noteObstacle(node) ?? workshopNoteRefusal(value, laneId, offer)
     if (reason) {
@@ -914,7 +917,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const laneId = laneAt(point)
     if (!laneId) return
     const lane = value.lanes.find(item => item.id === laneId)!
-    const entries = nodes.map(node => ({ node, offer: offerOf(node) }))
+    const entries = nodes.map(node => ({ node, offer: dated(offerOf(node), point) }))
     const reason = groupRefusal(entries, laneId)
     if (reason) {
       endFlash(false)
@@ -933,9 +936,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   policy.onFreeTextCommit = (node: any) => {
     if (!acceptsNotes() || node.options?.isComment || !slate.nodes.one(node.id)) return
     const o = node.options ?? {}
-    const laneId = laneAt({ x: (o.x ?? 0) + (o.width ?? 0) / 2, y: (o.y ?? 0) + (o.height ?? 0) / 2 })
+    const middle = { x: (o.x ?? 0) + (o.width ?? 0) / 2, y: (o.y ?? 0) + (o.height ?? 0) / 2 }
+    const laneId = laneAt(middle)
     if (!laneId) return
-    const offer = offerOf(node)
+    const offer = dated(offerOf(node), middle)
     const lane = value.lanes.find(item => item.id === laneId)!
     const reason = noteObstacle(node) ?? workshopNoteRefusal(value, laneId, offer)
     if (!reason) {
@@ -1777,7 +1781,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (card.id !== node.id) renamed.set(node.id, card.id)
       // Should the host not save it, the note goes back where it started, with the lines it had in the drawing.
       const kept = { ...(node.options ?? {}), ...(from ? { x: from.x, y: from.y } : {}) }
-      return { node, card, kept, lines: workshopRenamedLines(lines ?? [], node.id, card.id), under: offer.under }
+      return { node, card, kept, lines: workshopRenamedLines(lines ?? [], node.id, card.id), under: offer.under, day: offer.day }
     })
     slate.beginHostStep?.()
     value = next
@@ -1800,9 +1804,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     slate.announce?.(made.length === 1
       ? `${cardName(made[0].card)} is now a card in ${lane.label}. ${workshopLaneSpoken(value, laneId)}.${joinedShape([made[0].card])}`
       : `${names(made.map(({ card }) => cardName(card)))} are now cards in ${lane.label}. ${workshopLaneSpoken(value, laneId)}.${joinedShape(made.map(({ card }) => card))}`)
-    for (const { node, card, kept, lines, under } of made) {
+    for (const { node, card, kept, lines, under, day } of made) {
       // The note's words as the card keeps them, numbers and all ("Audit log · 3 points"): the host makes the same card of them.
-      const change = { cardId: card.id, laneId, noteToCard: { noteId: node.id as string, label: workshopCardNoteText(value, card), ...(under && { under }),
+      const change = { cardId: card.id, laneId, noteToCard: { noteId: node.id as string, label: workshopCardNoteText(value, card), ...(under && { under }), ...(day !== undefined && { day }),
         ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}), ...(lines.length ? { lines } : {}) } }
       const dropCard = () => {
         if (value !== committed || !value.cards.some(item => item.id === card.id)) return
@@ -2359,6 +2363,13 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   /** Board coordinates (world units from the artwork's origin) of a world point. */
   function local(point: WorldPoint) {
     return { x: point.x - origin.x, y: point.y - origin.y }
+  }
+
+  /** On a plan, the offer with the day under `point`, so the card starts where the note was let go (the plan snaps it by its rules). */
+  function dated(offer: WorkshopNoteOffer, point: WorldPoint): WorkshopNoteOffer {
+    const day = kit?.noteDay?.(value, local(point), drawnLayout)
+    if (typeof day === 'number' && Number.isFinite(day)) offer.day = day
+    return offer
   }
 
   /** The size of a board as drawn now, and (for a kit) its parts. */

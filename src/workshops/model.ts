@@ -863,6 +863,8 @@ export interface WorkshopNoteOffer {
   lines?: WorkshopLine[]
   /** Nest board: the card it was dropped on, to sit under. */
   under?: string
+  /** Launch or hiring plan: the calendar day (from the plan's first day) it was let go on: its task starts there, snapped by the plan's rules. */
+  day?: number
 }
 
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -1057,6 +1059,9 @@ function businessNote(board: Workshop, laneId: string, note: WorkshopNoteOffer):
   const asNote = typed ? keptAsNote(note.asNote) : { ...keptAsNote(note.asNote), text: '' }
   cards[cards.length - 1] = { ...cards[cards.length - 1], id: cardId, ...(noteId ? { noteId } : {}),
     ...(look ? { look } : {}), ...(asNote ? { asNote } : {}) }
+  // On a plan, the task starts on the day it was let go on, where the plan's rules allow (else at the start, as before).
+  const rules = workshopRules(businessKind(board)!)
+  if (typeof note.day === 'number' && Number.isFinite(note.day) && rules.landNote) return rules.landNote(made.workshop, cardId, note.day)
   return made.workshop
 }
 
