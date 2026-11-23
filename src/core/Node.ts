@@ -982,7 +982,7 @@ export class Node {
     // vectorPath, but it now holds the same value as `shape`, so the render is
     // identical.)
     this.options.vectorPath = vectorPath ?? shape;
-    if (!this.isCustomShape()) {
+    if (shape !== "custom") {
       delete this.options.fillRule;
       delete this.options.textBox;
       delete this.options.shapeRef;
@@ -1115,11 +1115,19 @@ export class Node {
    * use the full box. Applied to BOTH wrap width and fit scale so text wraps +
    * shrinks to stay inside the actual shape, not just its bounding rect.
    */
-  /** A custom outline (a raw path), not a named shape. */
+  /**
+   * A custom outline (a shape from slateboxjs/shapes): `shape: "custom"` with
+   * a raw path and at least one of the options every writer stores with it
+   * (fillRule, textBox, shapeRef). Older raw-path notes (quick-add shapes,
+   * theme outlines, icons, comments, v1 "custom" icon notes) carry none of
+   * them and keep their old behaviour: grow to fit text, the inset text box,
+   * the scaled border.
+   */
   public isCustomShape(): boolean {
-    if (this.options.shape === "custom") return true;
-    const path = String(this.options.vectorPath || "").trim();
-    return /^[Mm]/.test(path) || /^[Mm]/.test(String(this.options.shape || "").trim());
+    const o = this.options;
+    if (o.shape !== "custom") return false;
+    if (!/^[Mm]/.test(String(o.vectorPath || "").trim())) return false;
+    return o.fillRule === "evenodd" || o.fillRule === "nonzero" || o.textBox !== undefined || !!o.shapeRef;
   }
 
   /**

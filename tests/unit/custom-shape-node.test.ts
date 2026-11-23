@@ -72,8 +72,8 @@ describe("a custom shape note", () => {
     expect(Number(text.getAttribute("y"))).toBeCloseTo((0.06 + 0.79 / 2) * 160, 0);
   });
 
-  it("measures a text box once for a raw path that carries none", async () => {
-    const node = await note({ vectorPath: BUBBLE });
+  it("measures a text box once for a custom shape that carries none", async () => {
+    const node = await note({ shape: "custom", vectorPath: BUBBLE, fillRule: "nonzero" });
     const area = node.textArea();
     expect(area.custom).toBe(true);
     // The tail is on the left: the text box starts right of it.
@@ -87,6 +87,11 @@ describe("a custom shape note", () => {
     (node as any).fitHeightToText();
     expect(spy).not.toHaveBeenCalled();
     expect(node.options.height).toBe(160);
+  });
+
+  it("is not custom when only the shape name says so (a v1 icon note)", async () => {
+    const node = await note({ shape: "custom", vectorPath: BUBBLE });
+    expect(node.isCustomShape()).toBe(false);
   });
 
   it("drops custom-only options when it goes back to a named shape", async () => {
@@ -139,5 +144,60 @@ describe("a theme style with a custom outline", () => {
     (applyStyleToNode as any)(node, { shape: "custom", vectorPath: BUBBLE, fillRule: "evenodd", textBox: { x: 0.2, y: 0.1, w: 0.7, h: 0.7 } });
     expect(node.options).toMatchObject({ fillRule: "evenodd", textBox: { w: 0.7 } });
     expect(node.setShape).toHaveBeenCalledWith("custom", BUBBLE);
+  });
+});
+
+// Notes that store a raw path but are not custom shapes: the app's quick-add
+// shapes (addNote stores the drawn path with shapeHint "rect", "star", ...),
+// theme outlines (defaultThemes.json vectorPath), icons and comments. They
+// keep growing with their text and keep the old inset text box.
+describe("older raw-path notes stay as they were", () => {
+  const QUICK_RECT = "M10 10 L190 10 L190 110 L10 110 Z";
+  const THEMED_ROUNDED = "M0 73.99 C0 33.13 33.13 0 73.99 0 L226 0 C266.87 0 300 33.13 300 73.99 L300 126 C300 166.87 266.87 200 226 200 L73.99 200 C33.13 200 0 166.87 0 126 Z";
+
+  function grows(node: Node) {
+    (node as any).textElement.node.getBBox = () => ({ x: 0, y: 0, width: 100, height: 600 });
+    (node as any).fitHeightToText();
+    return node.options.height! > 160;
+  }
+
+  it("a quick-add rectangle grows with its text and uses the full box", async () => {
+    const node = await note({ vectorPath: QUICK_RECT, shapeHint: "rect" });
+    expect(node.isCustomShape()).toBe(false);
+    expect(node.textArea()).toMatchObject({ x: 0, y: 0, w: 240, h: 160, custom: false });
+    const path = (node as any).contentPath.node as SVGPathElement;
+    expect(path.getAttribute("vector-effect")).toBeNull();
+    expect(path.getAttribute("fill-rule")).toBeNull();
+    expect(grows(node)).toBe(true);
+  });
+
+  it("a themed rounded rectangle (raw path as its shape) grows with its text", async () => {
+    const { applyStyleToNode } = await import("../../src/core/Theme");
+    const node = await note({ shape: "rectangle", vectorPath: "rectangle" });
+    (applyStyleToNode as any)(node, { vectorPath: THEMED_ROUNDED });
+    expect(node.options.shape).toBe(THEMED_ROUNDED);
+    expect(node.isCustomShape()).toBe(false);
+    expect(node.textArea().custom).toBe(false);
+    expect(grows(node)).toBe(true);
+  });
+
+  it("a raw path with no name at all is not custom either", async () => {
+    const node = await note({ vectorPath: QUICK_RECT });
+    expect(node.isCustomShape()).toBe(false);
+  });
+
+  it("a theme outline with a fill rule becomes a custom shape", async () => {
+    const { applyStyleToNode } = await import("../../src/core/Theme");
+    const node = await note({ shape: "rectangle", vectorPath: "rectangle" });
+    (applyStyleToNode as any)(node, { vectorPath: BUBBLE, fillRule: "evenodd" });
+    expect(node.options.shape).toBe("custom");
+    expect(node.isCustomShape()).toBe(true);
+  });
+
+  it("an icon applied after a custom shape loses the custom options", async () => {
+    const node = await note({ shape: "custom", vectorPath: BUBBLE, fillRule: "evenodd", textBox: { x: 0.2, y: 0.1, w: 0.7, h: 0.7 } });
+    node.setShape(QUICK_RECT, QUICK_RECT);
+    expect(node.options.fillRule).toBeUndefined();
+    expect(node.isCustomShape()).toBe(false);
   });
 });

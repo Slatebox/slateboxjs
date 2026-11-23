@@ -67,10 +67,11 @@ export const NODE_KEYS: Record<string, NodeKey> = {
       delete options.shapeRef;
     },
     // A custom outline reads as its name, never its (long) path.
+    // A named shape (or a shapeHint like "rect") reads as itself, even when
+    // the note also stores its drawn path.
     read: (options) => {
       const raw = String(options.shape || options.shapeHint || options.vectorPath || "rectangle");
-      const pathOnly = !options.shape && /^[Mm]/.test(String(options.vectorPath || "").trim());
-      if (options.shape === "custom" || /^[Mm]/.test(raw.trim()) || pathOnly) {
+      if (raw === "custom" || /^[Mm]/.test(raw.trim())) {
         const name = options.shapeRef?.name;
         return typeof name === "string" && name ? `custom:${name}` : "custom";
       }

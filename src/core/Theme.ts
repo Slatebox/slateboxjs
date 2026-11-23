@@ -255,10 +255,15 @@ export function applyStyleToNode(node: any, style: ThemeStyle): void {
     // before replacing it, then restore the theme's own image/effects below.
     node.filters?.removeAll?.();
     node.images?.clear?.();
-    const shape = style.shape || style.vectorPath!;
-    // A custom outline carries its fill rule and text box; set them before the redraw.
-    if (style.fillRule) node.options.fillRule = style.fillRule;
-    if (style.textBox !== undefined) node.options.textBox = style.textBox;
+    // A custom outline carries its fill rule and text box; set them before the
+    // redraw. A raw vectorPath without them is an older outline, drawn as before.
+    const customOutline =
+      !!style.vectorPath && /^[Mm]/.test(String(style.vectorPath).trim()) && (!!style.fillRule || style.textBox !== undefined);
+    const shape = style.shape || (customOutline ? "custom" : style.vectorPath!);
+    if (shape === "custom") {
+      if (style.fillRule) node.options.fillRule = style.fillRule;
+      if (style.textBox !== undefined) node.options.textBox = style.textBox;
+    }
     node.setShape?.(shape, style.vectorPath);
   }
 
