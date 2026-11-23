@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "4327343da78763411233bd69b4ec1ddc64facb54",
-  "branch": "ship/polish-2",
+  "commit": "ef1610876fc29e4a896f60fcc652490ac3b2bfc7",
+  "branch": "fix/agent-edits-live",
   "dirty": false,
-  "builtAt": "2026-11-23T10:54:00.135Z"
+  "builtAt": "2026-11-23T11:43:47.836Z"
 }

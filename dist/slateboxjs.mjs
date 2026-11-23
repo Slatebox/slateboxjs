@@ -18370,27 +18370,32 @@ function Xa(n, t, e) {
   }
   return [];
 }
-function ap(n, t, { userMessage: e = "", replay: s = !1, ...i } = {}) {
-  let o = Ua(n);
-  const r = To(o, t, { userMessage: e, replay: s, ...i }), a = [];
-  for (const u of r.materializedPlan.operations) {
-    const p = To(o, { message: t.message, operations: [u] }, { userMessage: e, replay: !0, ...i }).slate, g = Xa(u, o, p), m = new Set(o.nodes.map((y) => y.options.id));
-    a.push({ packages: g, created: p.nodes.map((y) => y.options.id).filter((y) => !m.has(y)) }), o = p;
+function ap(n, t, {
+  userMessage: e = "",
+  replay: s = !1,
+  send: i = !0,
+  ...o
+} = {}) {
+  let r = Ua(n);
+  const a = To(r, t, { userMessage: e, replay: s, ...o }), c = [];
+  for (const p of a.materializedPlan.operations) {
+    const g = To(r, { message: t.message, operations: [p] }, { userMessage: e, replay: !0, ...o }).slate, m = Xa(p, r, g), y = new Set(r.nodes.map((b) => b.options.id));
+    c.push({ packages: m, created: g.nodes.map((b) => b.options.id).filter((b) => !y.has(b)) }), r = g;
   }
-  const c = n.v2 ?? n, l = (u) => u.map((p) => c.nodes?.one?.(p)).filter((p) => p?.ready && !p.relationships), d = (u) => {
-    u.packages.length && n.collab.invoke(u.packages);
-    const p = l(u.created);
-    return p.length ? Promise.all(p.map((g) => g.ready)) : null;
+  const l = n.v2 ?? n, d = (p) => p.map((g) => l.nodes?.one?.(g)).filter((g) => g?.ready && !g.relationships), h = (p) => {
+    p.packages.length && n.collab.invoke(p.packages);
+    const g = d(p.created);
+    return g.length ? Promise.all(g.map((m) => m.ready)) : null;
   };
-  let h = null;
-  for (const u of a)
-    h ? h = h.then(() => d(u)) : h = d(u);
-  const f = a.flatMap((u) => u.packages);
-  return f.length && n.collab.send(f), {
-    message: r.materializedPlan.message,
-    report: r.report,
-    materializedPlan: r.materializedPlan,
-    applied: (h ?? Promise.resolve()).then(() => {
+  let f = null;
+  for (const p of c)
+    f ? f = f.then(() => h(p)) : f = h(p);
+  const u = c.flatMap((p) => p.packages);
+  return i && u.length && n.collab.send(u), {
+    message: a.materializedPlan.message,
+    report: a.report,
+    materializedPlan: a.materializedPlan,
+    applied: (f ?? Promise.resolve()).then(() => {
     })
   };
 }
