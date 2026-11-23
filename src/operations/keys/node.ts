@@ -4,6 +4,7 @@
  * back (Serialization.deserialize -> compat.v1NodeToV2 -> Node).
  */
 import { canonical, type Lists, type ValueSpec } from "./values";
+import { prepareShape, storeCustomShape } from "../../shapes";
 
 export interface NodeKey {
   spec: (lists: Lists) => ValueSpec;
@@ -49,15 +50,32 @@ export const NOTE_CONTROL_NAMES = Object.keys(NOTE_CONTROLS) as Array<keyof type
 export const NODE_KEYS: Record<string, NodeKey> = {
   text: { spec: () => ({ type: "string", maxLength: 10000 }), description: "The note's text.", ...plain("text") },
   shape: {
-    spec: (lists) => ({ type: "enum", values: lists.shapes, caseless: true }),
-    description: "A shape registered with the engine.",
+    spec: (lists) => ({ type: "shape", values: lists.shapes }),
+    description: "A shape registered with the engine (custom shapes read back as custom:<name>).",
     store: (options, value, lists) => {
+      if (value && typeof value === "object") {
+        const prepared = prepareShape(value);
+        if (prepared.ok) storeCustomShape(options, prepared.shape);
+        return;
+      }
       const name = canonical(lists.shapes, value)!;
       options.shape = name;
       options.vectorPath = name;
       options.shapeHint = name;
+      delete options.fillRule;
+      delete options.textBox;
+      delete options.shapeRef;
     },
-    read: (options) => options.shape || options.shapeHint || options.vectorPath || "rectangle",
+    // A custom outline reads as its name, never its (long) path.
+    read: (options) => {
+      const raw = String(options.shape || options.shapeHint || options.vectorPath || "rectangle");
+      const pathOnly = !options.shape && /^[Mm]/.test(String(options.vectorPath || "").trim());
+      if (options.shape === "custom" || /^[Mm]/.test(raw.trim()) || pathOnly) {
+        const name = options.shapeRef?.name;
+        return typeof name === "string" && name ? `custom:${name}` : "custom";
+      }
+      return raw;
+    },
   },
   x: {
     spec: () => ({ type: "number", min: -1000000, max: 1000000 }),

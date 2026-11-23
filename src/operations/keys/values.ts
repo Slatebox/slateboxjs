@@ -1,3 +1,5 @@
+import { prepareShape } from "../../shapes";
+
 /**
  * Value specifications shared by every key table. A key's spec decides how it
  * is checked, how it is described to callers (describeOperations, the JSON
@@ -9,6 +11,12 @@ export type ValueSpec =
   | { type: "number"; min: number; max: number }
   | { type: "boolean" }
   | { type: "enum"; values: readonly string[]; nullable?: boolean; caseless?: boolean }
+  /**
+   * A shape: one of `values` (any case), or a custom shape object
+   * {name, d, fillRule?} checked by slateboxjs/shapes. The JSON Schema lists
+   * the names only: a host resolves its own library references to objects.
+   */
+  | { type: "shape"; values: readonly string[] }
   /** A list of distinct values, each one of `values`; it may be empty. */
   | { type: "list"; values: readonly string[] }
   | { type: "color" }
@@ -66,6 +74,15 @@ export function checkValue(spec: ValueSpec, value: unknown, label: string): stri
       const found = spec.caseless ? canonical(spec.values, value) : spec.values.find((item) => item === value);
       return found !== undefined ? null : `${label} must be one of: ${spec.values.join(", ")}.`;
     }
+    case "shape": {
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        const prepared = prepareShape(value as Record<string, unknown>);
+        return prepared.ok ? null : `${label} is not a usable custom shape: ${prepared.message}`;
+      }
+      return canonical(spec.values, value) !== undefined
+        ? null
+        : `${label} must be one of: ${spec.values.join(", ")} (or a custom shape {name, d, fillRule}).`;
+    }
     case "list":
       return Array.isArray(value) &&
         value.every((item) => typeof item === "string" && spec.values.includes(item)) &&
@@ -110,6 +127,8 @@ export function schemaFor(spec: ValueSpec): Record<string, any> {
       return spec.nullable
         ? { type: ["string", "null"], enum: [...spec.values, null] }
         : { type: "string", enum: [...spec.values] };
+    case "shape":
+      return { type: "string", enum: [...spec.values] };
     case "list":
       // No uniqueItems: not every model provider's constrained decoding takes it; checkValue refuses repeats.
       return { type: "array", items: { type: "string", enum: [...spec.values] } };

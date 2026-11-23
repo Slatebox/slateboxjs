@@ -24,6 +24,10 @@ import { Links } from "./Links";
 import { Filters } from "./Filters";
 import { Menu } from "./Menu";
 import { resolveShapePath } from "./ShapeRegistry";
+import { shapeTextBox, type ShapeTextBox } from "../shapes";
+
+/** Text boxes measured for raw-path notes that carry none, per path string (memory only). */
+const measuredTextBoxes = new Map<string, ShapeTextBox | null>();
 import { normalizeLegacyTextOffset, v2NodeToV1 } from "./compat";
 import { whiteOrBlack, contrastRatio } from "../utils";
 import { prefersReducedMotion } from "./DragPolicy";
@@ -200,6 +204,12 @@ export interface NodeOptions {
   shape?: string; // "rectangle" | "circle" | "ellipse" | named shapes from ShapeRegistry
   vectorPath?: string; // SVG path string or named shape key
   shapeHint?: string; // v1 compat: maps to shape via adapter
+  /** Custom (path) shapes: how compound sub-paths fill (holes need evenodd). */
+  fillRule?: "nonzero" | "evenodd";
+  /** Custom shapes: where text sits, in 0..1 of the box (slateboxjs/shapes shapeTextBox). */
+  textBox?: { x: number; y: number; w: number; h: number } | null;
+  /** Custom shapes: the library entry the outline came from. */
+  shapeRef?: { id?: string; name?: string };
 
   // SVG content
   svgContent?: string;
@@ -817,6 +827,19 @@ export class Node {
         .fill(backgroundColor!)
         .stroke(strokeOpts);
 
+      // A custom outline: its holes follow the fill rule, its border is the
+      // width the person set (not scaled by the stretch), and the half of the
+      // border outside the path bounds is not clipped by the viewBox.
+      if (this.isCustomShape()) {
+        try {
+          pathEl.node.setAttribute("fill-rule", this.options.fillRule === "evenodd" ? "evenodd" : "nonzero");
+          pathEl.node.setAttribute("vector-effect", "non-scaling-stroke");
+          nested.node.setAttribute("overflow", "visible");
+        } catch (e) {
+          /* noop */
+        }
+      }
+
       // Compute viewBox from the actual path bounds (handles absolute-coordinate paths from v1)
       try {
         const bb = pathEl.bbox();
@@ -959,6 +982,11 @@ export class Node {
     // vectorPath, but it now holds the same value as `shape`, so the render is
     // identical.)
     this.options.vectorPath = vectorPath ?? shape;
+    if (!this.isCustomShape()) {
+      delete this.options.fillRule;
+      delete this.options.textBox;
+      delete this.options.shapeRef;
+    }
 
     this.createBackground();
     // Keep the shape behind the text and any other content.
@@ -1087,6 +1115,36 @@ export class Node {
    * use the full box. Applied to BOTH wrap width and fit scale so text wraps +
    * shrinks to stay inside the actual shape, not just its bounding rect.
    */
+  /** A custom outline (a raw path), not a named shape. */
+  public isCustomShape(): boolean {
+    if (this.options.shape === "custom") return true;
+    const path = String(this.options.vectorPath || "").trim();
+    return /^[Mm]/.test(path) || /^[Mm]/.test(String(this.options.shape || "").trim());
+  }
+
+  /**
+   * Where text sits, in node pixels. A custom outline uses its stored text box
+   * (or one measured once from its path); a named shape keeps its centred
+   * inset; anything else gets the full box.
+   */
+  public textArea(): { x: number; y: number; w: number; h: number; custom: boolean } {
+    const width = this.options.width || 100;
+    const height = this.options.height || 60;
+    if (this.isCustomShape()) {
+      let box = this.options.textBox;
+      if (box === undefined) {
+        const path = String(this.options.vectorPath || this.options.shape || "");
+        if (!measuredTextBoxes.has(path)) measuredTextBoxes.set(path, shapeTextBox(path, this.options.fillRule || "nonzero"));
+        box = measuredTextBoxes.get(path);
+      }
+      // No calm area found: keep text to the middle half.
+      const b = box && [box.x, box.y, box.w, box.h].every((v) => typeof v === "number" && Number.isFinite(v)) ? box : { x: 0.25, y: 0.25, w: 0.5, h: 0.5 };
+      return { x: b.x * width, y: b.y * height, w: b.w * width, h: b.h * height, custom: true };
+    }
+    const inset = this.shapeTextInset();
+    return { x: (width * (1 - inset)) / 2, y: (height * (1 - inset)) / 2, w: width * inset, h: height * inset, custom: false };
+  }
+
   private shapeTextInset(): number {
     const shape = String(this.options.shape || "rectangle").toLowerCase();
     if (shape.includes("diamond")) return 0.6;
@@ -1098,10 +1156,7 @@ export class Node {
 
   private wrapTextToWidth(text: string): string {
     if (!text) return text;
-    const maxWidth = Math.max(
-      24,
-      (this.options.width || 100) * this.shapeTextInset() - 14
-    );
+    const maxWidth = Math.max(24, this.textArea().w - 14);
     const fontSize = this.options.fontSize || 14;
     const fontFamily = this.options.fontFamily || "sans-serif";
     let ctx: any = null;
@@ -1166,6 +1221,8 @@ export class Node {
    */
   private fitHeightToText(): void {
     if (!this.textElement || this.nestedSvg) return;
+    // Growing a custom outline would distort it: its text shrinks to fit instead.
+    if (this.isCustomShape()) return;
     let textHeight = 0;
     try {
       textHeight = (this.textElement.node as any).getBBox?.()?.height || 0;
@@ -1196,17 +1253,23 @@ export class Node {
 
     // Since text-anchor="middle" and dominant-baseline="central",
     // we position the text at the CENTER of the shape and SVG handles the rest
-    let x = shapeX + width! / 2 + (textOffset?.x || 0);
-    let y = shapeY + height! / 2 + (textOffset?.y || 0);
+    // A custom outline places text in its text area; other shapes use the box.
+    const area = this.textArea();
+    const left = area.custom ? shapeX + area.x : shapeX;
+    const top = area.custom ? shapeY + area.y : shapeY;
+    const areaW = area.custom ? area.w : width!;
+    const areaH = area.custom ? area.h : height!;
+    let x = left + areaW / 2 + (textOffset?.x || 0);
+    let y = top + areaH / 2 + (textOffset?.y || 0);
 
     // Horizontal alignment adjustments
     switch (textXAlign) {
       case "left":
-        x = shapeX + 5 + (textOffset?.x || 0);
+        x = left + 5 + (textOffset?.x || 0);
         this.textElement.attr('text-anchor', 'start');
         break;
       case "right":
-        x = shapeX + width! - 5 + (textOffset?.x || 0);
+        x = left + areaW - 5 + (textOffset?.x || 0);
         this.textElement.attr('text-anchor', 'end');
         break;
       default: // center
@@ -1217,11 +1280,11 @@ export class Node {
     // Vertical alignment adjustments
     switch (textYAlign) {
       case "top":
-        y = shapeY + 5 + (textOffset?.y || 0);
+        y = top + 5 + (textOffset?.y || 0);
         this.textElement.attr('dominant-baseline', 'hanging');
         break;
       case "bottom":
-        y = shapeY + height! - 5 + (textOffset?.y || 0);
+        y = top + areaH - 5 + (textOffset?.y || 0);
         this.textElement.attr('dominant-baseline', 'auto');
         break;
       default: // middle
@@ -1273,9 +1336,9 @@ export class Node {
     // Inset for tapering shapes (diamond/triangle/star/ellipse) so the text is
     // scaled to the inscribed area, not the bounding box — otherwise it spills
     // past the angled edges.
-    const inset = this.shapeTextInset();
-    const availW = (this.options.width || 0) * inset - 12; // horizontal padding
-    const availH = (this.options.height || 0) * inset - 10; // vertical padding
+    const area = this.textArea();
+    const availW = area.w - 12; // horizontal padding
+    const availH = area.h - 10; // vertical padding
     if (availW <= 0 || availH <= 0) return;
     let scale = Math.min(availW / bb.width, availH / bb.height);
     if (scale >= 0.999) return; // already fits — leave at full size

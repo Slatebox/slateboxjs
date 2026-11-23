@@ -49,6 +49,10 @@ try {
     'dist/operations.cjs',
     'dist/operations/index.d.ts',
     'operations/index.js',
+    'dist/shapes.mjs',
+    'dist/shapes.cjs',
+    'dist/shapes/index.d.ts',
+    'shapes/index.js',
     'dist/boards.mjs',
     'dist/boards.cjs',
     'dist/boards/index.d.ts',
@@ -161,6 +165,9 @@ void saved
   const operationsCheck = "const plan = { message: 'Added', operations: [{ kind: 'add_nodes', count: 1, shape: 'rectangle', ids: ['x1'] }] }; if (typeof document !== 'undefined' || api.applyPlanToJSON({ options: {}, nodes: [] }, plan).report.created[0] !== 'x1') throw Error('Operations entry failed without a DOM')"
   run('node', ['--input-type=module', '--eval', "import * as api from 'slateboxjs/operations';" + operationsCheck], sandbox)
   run('node', ['--eval', "const api = require('slateboxjs/operations');" + operationsCheck], sandbox)
+  const shapesCheck = "if (typeof document !== 'undefined' || !api.prepareShape({ name: 'box', d: 'M0 0H10V10H0Z' }).ok) throw Error('Shapes entry failed without a DOM')"
+  run('node', ['--input-type=module', '--eval', "import * as api from 'slateboxjs/shapes';" + shapesCheck], sandbox)
+  run('node', ['--eval', "const api = require('slateboxjs/shapes');" + shapesCheck], sandbox)
 
   const upstream = await import('dragology')
   const expectedExports = Object.keys(upstream).sort()

@@ -33,7 +33,15 @@ function nodePackages(id: string, changes: Record<string, any>, options: Record<
   const value = (key: string) => NODE_KEYS[key].read(options);
   const has = (...keys: string[]) => keys.some((key) => changes[key] !== undefined);
   const packages: any[] = [];
-  if (has("shape")) packages.push({ type: "onNodeShapeChanged", data: { id, shape: value("shape"), vectorPath: options.vectorPath } });
+  if (has("shape")) {
+    const custom = options.shape === "custom";
+    packages.push({
+      type: "onNodeShapeChanged",
+      data: custom
+        ? { id, shape: "custom", vectorPath: options.vectorPath, fillRule: options.fillRule, textBox: options.textBox ?? null, shapeRef: options.shapeRef }
+        : { id, shape: value("shape"), vectorPath: options.vectorPath },
+    });
+  }
   if (has("backgroundColor", "opacity")) {
     packages.push({ type: "onNodeColorChanged", data: { id, color: options.backgroundColor, opacity: options.opacity, borderColor: options.borderColor } });
   }

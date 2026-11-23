@@ -52,6 +52,11 @@
       "import": "./dist/catalog.mjs",
       "require": "./dist/catalog.cjs"
     },
+    "./shapes": {
+      "types": "./dist/shapes/index.d.ts",
+      "import": "./dist/shapes.mjs",
+      "require": "./dist/shapes.cjs"
+    },
     "./operations": {
       "types": "./dist/operations/index.d.ts",
       "import": "./dist/operations.mjs",
@@ -83,6 +88,7 @@
     "dist",
     "workshops",
     "operations",
+    "shapes",
     "boards",
     "dragology",
     "presence",

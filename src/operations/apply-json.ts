@@ -4,6 +4,7 @@
  * new id and position fixed, so replaying it gives the same result), and a
  * report of what each operation matched, changed and skipped.
  */
+import { prepareShape } from "../shapes";
 import {
   CONNECTED_NOTE_GAP,
   contractLimits,
@@ -281,8 +282,11 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
         }
         const shape = operation.shape ?? preset?.shape;
         const sourceBox = source ? box(source) : undefined;
-        const width = operation.width ?? preset?.width ?? sourceBox?.width ?? (shape?.toLowerCase() === "triangle" ? 150 : 180);
-        const height = operation.height ?? preset?.height ?? sourceBox?.height ?? (shape?.toLowerCase() === "triangle" ? 130 : 110);
+        const triangle = typeof shape === "string" && shape.toLowerCase() === "triangle";
+        // A custom outline keeps its proportions: 180 on its longer side.
+        const aspect = shape && typeof shape === "object" ? prepareAspect(shape) : 0;
+        const width = operation.width ?? preset?.width ?? sourceBox?.width ?? (triangle ? 150 : aspect ? Math.round(aspect >= 1 ? 180 : 180 * aspect) : 180);
+        const height = operation.height ?? preset?.height ?? sourceBox?.height ?? (triangle ? 130 : aspect ? Math.round(aspect >= 1 ? 180 / aspect : 180) : 110);
         const reference = source ?? findReference(slate, operation.placement?.relativeTo);
         const backgroundColor =
           operation.style?.backgroundColor || (preset?.style as Record<string, any> | undefined)?.backgroundColor || reference?.options.backgroundColor || "#7aa2c8";
@@ -693,4 +697,9 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
   }
   report.unchanged = JSON.stringify(slate) === before;
   return { slate, materializedPlan: { message: plan.message.trim(), operations: materialized }, report };
+}
+
+function prepareAspect(shape: unknown): number {
+  const prepared = prepareShape(shape as Record<string, unknown>);
+  return prepared.ok && prepared.shape.aspect > 0 ? Math.min(10, Math.max(0.1, prepared.shape.aspect)) : 0;
 }

@@ -38,6 +38,10 @@ export interface ThemeStyle {
   };
   vectorPath?: string;
   shape?: string;
+  /** With a custom vectorPath: how its sub-paths fill (holes need evenodd). */
+  fillRule?: "nonzero" | "evenodd";
+  /** With a custom vectorPath: where text sits (slateboxjs/shapes shapeTextBox). */
+  textBox?: { x: number; y: number; w: number; h: number } | null;
 }
 
 export interface ThemeDefinition {
@@ -207,7 +211,7 @@ export function buildNodeStyleFromTheme(
   return theme.styles[key] || theme.styles.parent || null;
 }
 
-function applyStyleToNode(node: any, style: ThemeStyle): void {
+export function applyStyleToNode(node: any, style: ThemeStyle): void {
   // The app's saved theme styles use v1 field names (nodeColor for fill,
   // foregroundColor for text). Accept both so DB themes apply correctly.
   const s = style as any;
@@ -252,6 +256,9 @@ function applyStyleToNode(node: any, style: ThemeStyle): void {
     node.filters?.removeAll?.();
     node.images?.clear?.();
     const shape = style.shape || style.vectorPath!;
+    // A custom outline carries its fill rule and text box; set them before the redraw.
+    if (style.fillRule) node.options.fillRule = style.fillRule;
+    if (style.textBox !== undefined) node.options.textBox = style.textBox;
     node.setShape?.(shape, style.vectorPath);
   }
 

@@ -19,6 +19,7 @@ export type {
   Limits,
   OperationReport,
   SlateOperation,
+  CustomShapeValue,
   SlateOperationKind,
   SlateOperationPlan,
   SlateOperationReport,

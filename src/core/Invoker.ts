@@ -126,11 +126,24 @@ export class Invoker {
   onNodeShapeChanged(pkg: SlatePackage) {
     const node = this.slate.nodes.one(pkg.data.id)
     if (!node) return
-    const shape = (pkg.data as any).shape ?? (pkg.data as any).vectorPath
+    const data = { ...(pkg.data as any) }
+    // A shape change never carries markup: artwork goes through its own path.
+    delete data.svgContent
+    delete data.svgString
+    // A path must be plain path data (commands and numbers), or nothing changes.
+    for (const key of ["shape", "vectorPath"]) {
+      const value = data[key]
+      if (value !== undefined && value !== null && !isSafeShapeValue(value)) {
+        console.warn("[slatebox] ignored a shape change with an unreadable path")
+        return
+      }
+    }
+    if (data.fillRule !== undefined && data.fillRule !== "evenodd" && data.fillRule !== "nonzero") delete data.fillRule
+    const shape = data.shape ?? data.vectorPath
     // Carry any co-sent props (border, etc.), then re-render the shape.
-    Object.assign(node.options, pkg.data)
+    Object.assign(node.options, data)
     if (shape) {
-      node.setShape(shape, (pkg.data as any).vectorPath)
+      node.setShape(shape, data.vectorPath)
     }
   }
 
@@ -477,4 +490,13 @@ export class Invoker {
       this.slate.options.huddleEnabled = pkg.data.huddleEnabled
     }
   }
+}
+
+/** Path data from a package: a shape name, or plain SVG path commands and numbers (no markup). */
+const SAFE_PATH = /^[MmLlHhVvCcSsQqTtAaZz0-9.,\s+eE-]*$/
+function isSafeShapeValue(value: unknown): boolean {
+  if (typeof value !== "string" || value.length > 200000) return false
+  const v = value.trim()
+  if (/^[Mm]/.test(v)) return SAFE_PATH.test(v)
+  return /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(v)
 }
