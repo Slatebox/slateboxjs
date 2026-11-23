@@ -25,7 +25,10 @@ describe('catalogue', () => {
       expect(catalogAddRequest(entry.addSay[1].replace('{topic}', 'hiring'))).toEqual({ id: entry.id, topic: 'hiring' })
       expect(entry.loop.src).toBe('/library/' + entry.id + '.svg')
       expect(entry.loop.steps.length).toBeGreaterThanOrEqual(2)
-      expect(entry.multiPerSlate).toBe(false)
+      // Many boards on a slate (boards S4a): every entry goes beside the boards there, and says so.
+      expect(entry.multiPerSlate).toBe(true)
+      expect(entry.limits.join(' ')).not.toMatch(/One board per slate/)
+      expect(entry.limits).toContain('Up to 8 boards on one slate, side by side; past that, it opens on a new slate.')
       // No ALL-CAPS placeholder tokens in anything that becomes a prompt (AGENTS.md prompt hygiene).
       expect(JSON.stringify(entry)).not.toMatch(/\b[A-Z]{3,}\b(?: [A-Z]{3,}\b)+/)
     }

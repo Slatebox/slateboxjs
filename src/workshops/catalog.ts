@@ -49,7 +49,8 @@ export interface CatalogEntry {
   limits: string[]
   /** A looping picture of its signature drag; the caption is the rule's own sentence. */
   loop: { src: string; alt: string; caption: string; steps: string[] }
-  multiPerSlate: false
+  /** A slate holds several boards side by side (up to maxBoardsPerSlate), this one among them. */
+  multiPerSlate: true
 }
 
 const preset = (by = 'Slatebox'): BehaviourRule['set'] => ({ by, at: '2026-11-21T00:00:00.000Z', via: 'preset' })
@@ -87,13 +88,14 @@ const laneMoves = (path = move('add_rule', 'Cards move one lane at a time', 'Car
   move('rename_lane', 'Rename a lane', 'Rename {lane} to Blocked'), move('rename_workshop', 'Rename the board', 'Rename the board to Team review'),
   move('set_rule', 'Warn instead of refusing', 'Just warn me when {ruled} is full'), move('remove_rule', 'Remove a rule', 'Remove the {ruled} rule'),
 ]
-const laneLimits = ['One board per slate for now; on a slate that has one, this opens on a new slate.', 'Up to 5 lanes and 24 cards.']
+// The first limit every entry says: how many boards a slate holds (maxBoardsPerSlate, below).
+const laneLimits = ['Up to 8 boards on one slate, side by side; past that, it opens on a new slate.', 'Up to 5 lanes and 24 cards.']
 const edits = (moves: CatalogMove[]) => [...new Set(moves.map(item => item.edit))]
 const rules = (moves: CatalogMove[]) => [...new Set(moves.flatMap(item => item.rule ? [item.rule] : []))]
 const lanesEntry = (id: string, group: CatalogGroup, name: string, line: string, synonyms: string[], caption: string, steps: string[], extra: Partial<CatalogEntry> = {}): CatalogEntry => ({
   id, group, name, line, synonyms, build: { kind: 'lanes' }, addSay: ['Add ' + article(name) + name.toLowerCase(), 'Add ' + article(name) + name.toLowerCase() + ' about {topic}'],
   edits: edits(extra.moves ?? laneMoves()), rules: rules(extra.moves ?? laneMoves()), moves: laneMoves(), limits: laneLimits,
-  loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false, ...extra,
+  loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: true, ...extra,
 })
 const withMoves = (moves: CatalogMove[]) => ({ moves, edits: edits(moves), rules: rules(moves) })
 // A plan's moves, its rule phrases first: what "Say it like this" shows of how it behaves.
@@ -114,7 +116,7 @@ const plan = (id: string, name: string, line: string, synonyms: string[], captio
   addSay: ['Add ' + article(name) + name.toLowerCase(), 'Add ' + article(name) + name.toLowerCase() + ' about {topic}'],
   ...withMoves(planMoves(kind === 'hiring-plan' ? '' : sample === 'go-live' ? 'go-live' : 'launch')),
   limits: [kind === 'hiring-plan' ? 'Cost is per role band, never per person. On a phone it is read-only.' : 'Up to 12 tasks on 2 to 4 teams.', laneLimits[0]],
-  loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false })
+  loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: true })
 // A nested board's moves (nest.ts), its rule phrases first.
 const nestMoves = (piles: boolean, tree: CatalogMove[]) => [...(piles ? [move('add_rule', 'Weight piles by ARR', 'Weight by ARR', 'rank'),
   move('add_rule', 'Cap a pile', 'Piles hold at most 2', 'children'), move('add_rule', 'Send far drops to Unsorted', 'Drops in empty space go to Unsorted', 'emptyDrop'),
@@ -127,7 +129,7 @@ const breakDown = [move('set_rule', 'Make a warning a rule', 'Stop me when an ac
 const nestEntry = (id: string, group: CatalogGroup, name: string, line: string, synonyms: string[], sample: CatalogSample, caption: string, steps: string[], moves: CatalogMove[]): CatalogEntry =>
   // A name that is a verb ("Sort the evidence") is added as a board to do it.
   ({ id, group, name, line, synonyms, build: { kind: 'nest', sample }, addSay: [0, 1].map(i => 'Add ' + (/^(?:sort|break)\b/i.test(name) ? 'a board to ' : article(name)) + name.toLowerCase() + (i ? ' about {topic}' : '')),
-    ...withMoves(moves), limits: ['Up to 40 cards. On a phone it is an outline.', laneLimits[0]], loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false })
+    ...withMoves(moves), limits: ['Up to 40 cards. On a phone it is an outline.', laneLimits[0]], loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: true })
 // Impact × effort, the reorg sandbox and goals & owners (nestPlus.ts), each with its rule phrases first.
 const matrixMoves = [move('add_rule', 'Limit a square', 'Plan it holds 2', 'quadrant'), move('set_rule', 'Make room in Do now', 'Do now holds 4', 'quadrant'),
   move('score_card', 'Move an idea to a square', 'Move {scored} to Later'), move('score_card', 'Score an idea', 'Score {waiting} impact 7, effort 8'),
@@ -146,7 +148,7 @@ const goalMoves = [move('set_rule', 'Bring what is under a card along', 'When I 
   move('remove_card', 'Remove a card', 'Remove {kr}')]
 const nestMore = (id: string, group: CatalogGroup, name: string, line: string, synonyms: string[], sample: CatalogSample, caption: string, steps: string[], moves: CatalogMove[],
   addSay: string, limit: string): CatalogEntry => ({ id, group, name, line, synonyms, build: { kind: 'nest', sample }, addSay: [addSay, addSay + ' about {topic}'], ...withMoves(moves),
-  limits: [limit, laneLimits[0]], loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: false })
+  limits: [limit, laneLimits[0]], loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: true })
 const article = (name: string) => /^pros/i.test(name) ? '' : /^[aeiou]/i.test(name) ? 'an ' : 'a '
 
 export const catalog: readonly CatalogEntry[] = [
@@ -160,7 +162,7 @@ export const catalog: readonly CatalogEntry[] = [
     build: { kind: 'map' }, addSay: ['Add a decision path', 'Add a decision path about {topic}'],
     ...withMoves([move('add_station', 'Add a step', 'Add Follow-up after {lane}'), move('connect_stations', 'Connect two steps', 'Connect {lane} to {other}'),
       move('move_card', 'Move the token', 'Move {card} to {other}'), move('rename_lane', 'Rename a step', 'Rename {lane} to Build it')]), limits: ['Up to 5 steps on a 3 by 3 grid.', laneLimits[0]],
-    loop: { src: '/library/decision-path.svg', alt: 'Decision path: the token moves only along connected steps.', caption: 'Not connected', steps: ['Drag the token along a path.', 'A step with no path to it dims.'] }, multiPerSlate: false },
+    loop: { src: '/library/decision-path.svg', alt: 'Decision path: the token moves only along connected steps.', caption: 'Not connected', steps: ['Drag the token along a path.', 'A step with no path to it dims.'] }, multiPerSlate: true },
   lanesEntry('retro', 'meetings', 'Retro', 'Went well, change, try: 3 cards each', ['retrospective', 'retro', 'run a retro', 'team meeting', 'look back', 'lessons'],
     'Try holds 3.', ['A note turns into a card and back.', 'Each lane holds 3; the fourth is refused.']),
   lanesEntry('triage', 'track', 'Triage', 'Sort incoming work; Today holds 3', ['triage', 'inbox', 'incoming', 'support', 'bugs', 'sort work', 'track work'],
@@ -199,12 +201,12 @@ export const catalog: readonly CatalogEntry[] = [
     ...withMoves([move('move_card', 'Carry a deal on', 'Move {card} to {other}'), move('set_amount', 'Price a deal', 'Make {card} $40k'),
       move('set_target', 'Set the target', 'Set the target to $300k'), move('add_card', 'Add a deal', 'Add a deal called Initech to {lane}'),
       move('add_rule', 'Ask for an amount', '{lane} needs an amount', 'gate'), move('add_rule', 'Limit a stage', 'Let {busy} hold 1', 'capacity')]), limits: ['Up to 16 deals.', laneLimits[0]],
-    loop: { src: '/library/sales-pipeline.svg', alt: 'Sales pipeline: carry a deal on; stages it cannot skip dim; the forecast moves.', caption: 'Proposal holds 3.', steps: ['Carry a deal to the next stage.', 'A full stage refuses.'] }, multiPerSlate: false },
+    loop: { src: '/library/sales-pipeline.svg', alt: 'Sales pipeline: carry a deal on; stages it cannot skip dim; the forecast moves.', caption: 'Proposal holds 3.', steps: ['Carry a deal to the next stage.', 'A full stage refuses.'] }, multiPerSlate: true },
   { id: 'budget', group: 'plan', name: 'Budget', line: 'Split a fixed total across teams', synonyms: ['budget', 'money', 'spend', 'allocate', 'costs'],
     build: { kind: 'budget', sample: 'budget' }, addSay: ['Add a budget', 'Add a budget about {topic}'],
     ...withMoves([move('shift_budget', 'Move money between teams', 'Move $10k from {lane} to {other}'), move('set_amount', 'Price a line item', 'Make {card} $20k'),
       move('add_card', 'Add a line item', 'Add a line item called Events for $10k to {lane}')]), limits: ['The total stays fixed.', laneLimits[0]],
-    loop: { src: '/library/budget.svg', alt: 'Budget: move money between teams; the total stays fixed.', caption: 'The total stays fixed.', steps: ['Move a divider between teams.', 'The total stays the same.'] }, multiPerSlate: false },
+    loop: { src: '/library/budget.svg', alt: 'Budget: move money between teams; the total stays fixed.', caption: 'The total stays fixed.', steps: ['Move a divider between teams.', 'The total stays the same.'] }, multiPerSlate: true },
 ]
 
 export function catalogEntry(id: string): CatalogEntry | undefined {

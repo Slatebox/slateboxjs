@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Every library entry says a slate holds up to 8 boards side by side (`multiPerSlate: true`; its first limit is
+  "Up to 8 boards on one slate, side by side; past that, it opens on a new slate." in place of "One board per
+  slate for now…"), as the app now puts many boards on one slate (boards S4a).
 - A whole-board save that changes the board's kind is refused in words that hold for a slate of many boards:
   "This board is a lane workshop, and it stays one. Put another kind of workshop on a board of its own." (was
   "This slate holds a …, and it stays one. Start a new slate for another kind of workshop.").
