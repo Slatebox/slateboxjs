@@ -1531,3 +1531,17 @@ describe("Node text inset (a custom shape's inner safe area)", () => {
     expect((node as any).textInsetSides()).toEqual({ left: 0.45, right: 0, top: 0, bottom: 0 });
   });
 });
+
+describe("Node text inset inside a custom shape's text area", () => {
+  it("narrows the custom text box rather than the whole box", async () => {
+    const path = "M0 0 L100 0 L100 100 L0 100 Z";
+    const plain = await createNode({ id: "c1", shape: "custom", vectorPath: path, fillRule: "nonzero", textBox: { x: 0.1, y: 0.2, w: 0.8, h: 0.6 }, width: 200, height: 100 });
+    const inset = await createNode({ id: "c2", shape: "custom", vectorPath: path, fillRule: "nonzero", textBox: { x: 0.1, y: 0.2, w: 0.8, h: 0.6 }, width: 200, height: 100, textInset: { left: 0.25, right: 0.25 } });
+    const a = plain.textArea();
+    const b = inset.textArea();
+    expect(a).toMatchObject({ x: 20, w: 160, custom: true });
+    expect(b.x).toBeCloseTo(20 + 160 * 0.25);
+    expect(b.w).toBeCloseTo(80);
+    expect(b.h).toBeCloseTo(a.h);
+  });
+});
