@@ -16,12 +16,13 @@ import { OperationPlanError } from "./contract";
 import { CONNECTOR_END_KEYS, CONNECTOR_KEYS } from "./keys/connector";
 import { readEnds } from "./line-ends";
 import { NODE_KEYS } from "./keys/node";
+import { readMedia } from "./media";
 import { checkSelector, type NodeSelector } from "./keys/selector";
 import { backgroundOf } from "./keys/slate";
 import { allConnectors, box, isFreeEnd, noteId, selectNotes, toStoredSlate, type StoredNode, type StoredSlate } from "./stored";
 
 /** Keys every note read carries besides the writable ones: what a person sees but cannot yet set by plan. */
-export const NOTE_READ_KEYS = ["id", ...Object.keys(NODE_KEYS), "image"] as const;
+export const NOTE_READ_KEYS = ["id", ...Object.keys(NODE_KEYS), "image", "media"] as const;
 export const READ_LIMITS = Object.freeze({ notes: 100, maxNotes: 500, maxChars: 60000 });
 
 export interface ReadSelection {
@@ -69,6 +70,8 @@ export function readNote(node: StoredNode, fields?: readonly string[]): Record<s
     out[key] = value === undefined ? null : value;
   }
   if (want("image")) out.image = options.image || null;
+  // A media note reads as its video (provider, url, title, poster), never the player's internals.
+  if (want("media")) out.media = readMedia(options);
   return out;
 }
 

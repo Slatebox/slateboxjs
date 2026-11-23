@@ -19,6 +19,7 @@ import type { Slate } from "./Slate";
 import { Connector, ConnectorOptions } from "./Connector";
 import { Relationships } from "./Relationships";
 import { Images } from "./Images";
+import { MediaNote } from "./MediaNote";
 import { Editor } from "./Editor";
 import { Links } from "./Links";
 import { Filters } from "./Filters";
@@ -233,6 +234,8 @@ export interface NodeOptions {
   imageOrigHeight?: number;
   /** How the picture fills the shape: 'contain' (default, letterboxed) or 'cover' (cropped to fill). */
   imageFit?: "cover" | "contain";
+  /** A video note: the video (operations/media.ts MediaValue); its poster is `image`. */
+  media?: import("../operations/media").MediaValue;
 
   // Line properties (for connections originating from this node)
   lineColor?: string;
@@ -333,6 +336,8 @@ export class Node {
   public connector!: Connector;
   public relationships!: Relationships;
   public images!: Images;
+  /** A video note (options.media): poster, play button, and the player when someone presses play. */
+  public media!: MediaNote;
   public editor!: Editor;
   public links!: Links;
   public filters!: Filters;
@@ -628,6 +633,9 @@ export class Node {
     // Initialize images (image fill support)
     this.images = new Images(this);
 
+    // Initialize media (a video note: poster, play button, player)
+    this.media = new MediaNote(this);
+
     // Initialize editor (text editing integration)
     this.editor = new Editor(this);
 
@@ -700,6 +708,9 @@ export class Node {
 
     // Show a link badge if this node carries a link (Miro-style indicator).
     this.updateLinkIndicator();
+
+    // A video note draws its play button and caption over its poster.
+    if (this.options.media) this.media.render();
 
     // A host policy may already claim this note (cursor, focus, pointer input).
     this.applyGovernance();
@@ -2419,6 +2430,9 @@ export class Node {
       this.connectionPreview.container = undefined;
     }
 
+    // A playing video stops with its note.
+    this.media?.destroy();
+
     // Remove the main SVG group (cleans up all child elements)
     this.svgGroup.remove();
     this.isDragging = false;
@@ -2531,6 +2545,9 @@ export class Node {
     // Reposition the link badge to the new top-right corner (it's anchored to
     // the node width, which just changed).
     if (this._linkBadge) this.updateLinkIndicator();
+
+    // A video note's play button, caption and player follow the new size.
+    this.media?.update();
 
     // Re-anchor the comment-count badge too (also placed at width-2).
     const cbs = (this as any)._commentBadgeState;
@@ -3194,7 +3211,10 @@ export class Node {
           // In read-only / view mode, clicking a linked node follows its link
           // (Miro-style — in edit mode the "↗" badge is the follow affordance so
           // a normal click can still select/edit).
-          if (this.links?.hasLink?.() && this.slate.isReadOnly?.()) {
+          // A read-only viewer (a presenter, a shared view) plays a video note by clicking it.
+          if (this.media?.hasMedia() && this.slate.isReadOnly?.()) {
+            this.media.play();
+          } else if (this.links?.hasLink?.() && this.slate.isReadOnly?.()) {
             this.links.navigate();
           } else {
             // Check for multi-select modifier keys (shift included for Miro parity)
@@ -3262,6 +3282,11 @@ export class Node {
    * cog (which opens the same pane), so this doesn't remove drawer access.
    */
   public handleDoubleClickEdit(): void {
+    // A video note has no text to edit: a double-click plays it.
+    if (this.media?.hasMedia()) {
+      this.media.play();
+      return;
+    }
     // Miro parity: double-clicking a GROUPED node enters the group for member
     // editing (instead of text editing), unless we're already inside that group.
     const slate: any = this.slate;
@@ -3300,6 +3325,7 @@ export class Node {
       !this._destroyed &&
       !!this.svgGroup &&
       !this.options.isComment &&
+      !this.media?.hasMedia() &&
       !this.nestedSvg &&
       !this.options.isLocked &&
       slate?.options?.enabled !== false &&

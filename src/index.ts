@@ -40,6 +40,8 @@ import { Keyboard } from './core/Keyboard'
 import { ContextMenu } from './core/ContextMenu'
 import { Filters, registerFilter, getFilterNames } from './core/Filters'
 import { Links } from './core/Links'
+import { MediaNote } from './core/MediaNote'
+import { MediaInput } from './core/MediaInput'
 
 // Export (function-based module)
 import * as ExportModule from './core/Export'
@@ -97,6 +99,8 @@ export {
   registerFilter,
   getFilterNames,
   Links,
+  MediaNote,
+  MediaInput,
   // Export
   ExportModule,
   // Collaboration
@@ -117,6 +121,10 @@ export {
 // Host drag policies (governed notes)
 export { FREE_NODE, GOVERNED_NODE, hitTestNodeBoxes } from './core/DragPolicy'
 export { DEFAULT_NOTE_STYLE } from './core/NoteDefaults'
+// Media notes: which video addresses play, and the player address (no DOM, also in slateboxjs/operations).
+export { parseMediaUrl, isMediaUrl, mediaEmbedUrl, mediaLabel, MEDIA_PROVIDERS, MEDIA_FRAME_ORIGINS, MEDIA_NOTE_SIZE } from './operations/media'
+export type { MediaValue, MediaProvider } from './operations/media'
+export type { MediaRequest } from './core/MediaInput'
 // Agents on the canvas: what they say and when they show. The drawing (createAgentPresence) is
 // the slateboxjs/presence entry, loaded when the first agent arrives.
 export { AGENT_PALETTE, AGENT_SAY_MS, agentStepText, agentChecklist, agentName, agentOrigin, agentSaying, safeIconUrl, visibleAgents, type AgentPresenceRecord, type AgentStepStatus } from './core/agentPresenceText'
@@ -208,6 +216,8 @@ if (typeof window !== 'undefined') {
   ;(window as any).ContextMenu = ContextMenu
   ;(window as any).Filters = Filters
   ;(window as any).Links = Links
+  ;(window as any).MediaNote = MediaNote
+  ;(window as any).MediaInput = MediaInput
   ;(window as any).Export = ExportModule
   ;(window as any).Collab = Collab
   ;(window as any).Theme = Theme

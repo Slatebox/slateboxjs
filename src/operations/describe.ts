@@ -20,6 +20,7 @@ import { CONNECTOR_KEYS, CONNECTOR_STYLE_KEYS } from "./keys/connector";
 import { backgroundSchema, SLATE_KEYS } from "./keys/slate";
 import { selectorSchema } from "./keys/selector";
 import { namesOnlyShape, schemaFor } from "./keys/values";
+import { MEDIA_LIMITS } from "./media";
 
 export function describeOperations(options: ContractOptions = {}) {
   const lists = contractLists(options);
@@ -125,6 +126,23 @@ export function slateOperationPlanSchema(options: ContractOptions = {}, form: { 
                 connect: { type: "boolean" },
               },
             },
+            // Not in a model's tool: a model asks the host's add-media action, which fetches and stores the poster.
+            ...(form.modelTool ? {} : { media: {
+              type: "object",
+              additionalProperties: false,
+              required: ["url"],
+              description:
+                "add_nodes, count 1, no shape, preset or text: a media note, a video from YouTube, Vimeo or Loom drawn as its poster with a play button; it plays where it sits when someone presses play, never on its own. Hosts add videos through their own add-media action, which fetches the title and stores the poster.",
+              properties: {
+                url: { type: "string", maxLength: MEDIA_LIMITS.urlLength, description: "The video's address." },
+                title: { type: "string", maxLength: MEDIA_LIMITS.titleLength },
+                author: { type: "string", maxLength: MEDIA_LIMITS.authorLength },
+                start: { type: "integer", minimum: 1, maximum: MEDIA_LIMITS.startSeconds, description: "Where to start, in seconds." },
+                poster: { type: "string", maxLength: MEDIA_LIMITS.urlLength, pattern: "^https://\\S+$", description: "The poster picture (https)." },
+                posterWidth: { type: "number", minimum: 1, maximum: 10000 },
+                posterHeight: { type: "number", minimum: 1, maximum: 10000 },
+              },
+            } }),
             style: {
               type: "object",
               additionalProperties: false,

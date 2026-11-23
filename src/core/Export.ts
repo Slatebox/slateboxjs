@@ -129,6 +129,10 @@ export function exportSVG(
       // UI chrome that shouldn't appear in an exported diagram:
       ".comment-badge", // comment-count badges (rendered in the node group)
       ".node-link-badge", // link indicator badge (also in the node group)
+      // A playing video's player and its close button: a picture shows the poster
+      // with its play button and caption (kept: they are the media note's look).
+      ".media-note-player",
+      ".media-note-close",
       ".node-cog", // selection toolbar (delete/connect/cog pill)
       ".node-toolbar",
       ".line-cog", // line selection pill (delete/cog) — parallel to the node cog

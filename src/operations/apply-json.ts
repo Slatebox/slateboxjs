@@ -23,6 +23,7 @@ import { moveLineEnds } from "./line-ends";
 import { SLATE_KEYS } from "./keys/slate";
 import { alignPositions, distributePositions, tidyPositions, treePositions, type AlignMode, type LayoutBox, type Position } from "./layout";
 import { NOTE_PRESETS } from "../core/NoteDefaults";
+import { MEDIA_NOTE_SIZE, readMediaValue, storeMedia } from "./media";
 import type { Lists } from "./keys/values";
 import {
   allConnectors,
@@ -285,8 +286,11 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
         const triangle = typeof shape === "string" && shape.toLowerCase() === "triangle";
         // A custom outline keeps its proportions: 180 on its longer side.
         const aspect = shape && typeof shape === "object" ? prepareAspect(shape) : 0;
-        const width = operation.width ?? preset?.width ?? sourceBox?.width ?? (triangle ? 150 : aspect ? Math.round(aspect >= 1 ? 180 : 180 * aspect) : 180);
-        const height = operation.height ?? preset?.height ?? sourceBox?.height ?? (triangle ? 130 : aspect ? Math.round(aspect >= 1 ? 180 / aspect : 180) : 110);
+        const media = operation.media !== undefined ? readMediaValue(operation.media) : null;
+        if (media && !media.ok) throw new OperationPlanError("invalid_operation_plan", 400, `${prefix} media ${media.message}`, { operation: number });
+        const mediaSize = media ? MEDIA_NOTE_SIZE : undefined;
+        const width = operation.width ?? mediaSize?.width ?? preset?.width ?? sourceBox?.width ?? (triangle ? 150 : aspect ? Math.round(aspect >= 1 ? 180 : 180 * aspect) : 180);
+        const height = operation.height ?? mediaSize?.height ?? preset?.height ?? sourceBox?.height ?? (triangle ? 130 : aspect ? Math.round(aspect >= 1 ? 180 / aspect : 180) : 110);
         const reference = source ?? findReference(slate, operation.placement?.relativeTo);
         const backgroundColor =
           operation.style?.backgroundColor || (preset?.style as Record<string, any> | undefined)?.backgroundColor || reference?.options.backgroundColor || "#7aa2c8";
@@ -333,6 +337,7 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
           if (!source) NODE_KEYS.foregroundColor.store(created, textColorOn(backgroundColor), lists);
           for (const [key, value] of Object.entries(preset?.style || {})) NODE_KEYS[key].store(created, value, lists);
           for (const [key, value] of Object.entries(operation.style || {})) NODE_KEYS[key].store(created, value, lists);
+          if (media?.ok) storeMedia(created, media.media);
           slate.nodes.push({ options: created, relationships: { associations: [] } });
           entry.changed.push(id);
           report.created.push(id);

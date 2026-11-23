@@ -177,6 +177,11 @@ export class Keyboard {
         break;
 
       case "Escape":
+        // A playing video stops first; the next Escape deselects.
+        if (this.stopPlayingMedia()) {
+          e.preventDefault();
+          break;
+        }
         this.deselect(e);
         break;
 
@@ -305,6 +310,18 @@ export class Keyboard {
     if (allNodes.length > 0) {
       this.slate.selectNodes(allNodes, false);
     }
+  }
+
+  /** Stop every video playing on the slate; true when one was. */
+  private stopPlayingMedia(): boolean {
+    let stopped = false;
+    for (const node of (this.slate as any).nodes?.allNodes ?? []) {
+      if (node?.media?.isPlaying?.()) {
+        node.media.stop();
+        stopped = true;
+      }
+    }
+    return stopped;
   }
 
   private deselect(e: KeyboardEvent): void {
@@ -627,6 +644,12 @@ export class Keyboard {
     const selected = (this.slate as any).selectedNodes || [];
     if (selected.length !== 1) return false;
     const node = selected[0];
+    // A selected video note has no text: Enter plays it.
+    if (node?.media?.hasMedia?.()) {
+      e.preventDefault();
+      node.media.play();
+      return true;
+    }
     if (!node?.editor?.startInline || node.nestedSvg) return false;
     // The keyboard must not open what a double-click would refuse: a read-only or
     // comment-only viewer, or a locked note, cannot edit text by pressing Enter.

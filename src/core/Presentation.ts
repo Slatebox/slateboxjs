@@ -189,12 +189,18 @@ export class Presentation {
 
   /** Stop presentation mode */
   public stop(): void {
+    this.stopMedia();
     this.isActive = false;
     this.currentStep = -1;
     if (this._animRaf !== null) {
       cancelAnimationFrame(this._animRaf);
       this._animRaf = null;
     }
+  }
+
+  /** Stop every video playing on the slate (media notes play only while their step shows). */
+  private stopMedia(): void {
+    for (const node of (this.slate as any).nodes?.allNodes ?? []) node?.media?.stop?.();
   }
 
   /** Go to next step */
@@ -219,6 +225,8 @@ export class Presentation {
    */
   public goToStep(index: number, duration: number = 450): void {
     if (index < 0 || index >= this.steps.length) return;
+    // A video playing on the last step stops when the presenter moves on.
+    this.stopMedia();
 
     this.currentStep = index;
     const step = this.steps[index];

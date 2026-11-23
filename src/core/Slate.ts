@@ -15,6 +15,7 @@ import type { InlineDraft } from "./Editor";
 import { MultiSelection } from "./MultiSelection";
 import { Grid } from "./Grid";
 import { Keyboard } from "./Keyboard";
+import { MediaInput, type MediaRequest } from "./MediaInput";
 import { ContextMenu } from "./ContextMenu";
 import { exportSVG, exportPNG, type ExportOptions } from "./Export";
 import { Collab, CollabUser, type NoteTrade, type NoteTrades } from "./Collab";
@@ -61,6 +62,12 @@ export interface SlateEvents {
     clientID: string
   ) => void | Record<string, any> | Promise<void | Record<string, any>>;
   onTextPaneRequested?: (node: Node, cb: Function) => void;
+  /**
+   * A video address was pasted or dropped on the canvas (MediaInput). A host that
+   * stores posters makes the media note itself; with no handler the slate makes
+   * it, with no poster.
+   */
+  onMediaRequested?: (request: MediaRequest) => void;
   onLineMenuRequested?: (node: Node, association: Association, cb: Function) => void;
   onTakeSnapshot?: (opts?: Record<string, any>) => void;
   onConfirmRequested?: (title: string, msg: string, cb: Function) => void;
@@ -262,6 +269,8 @@ export class Slate {
   public multiSelection!: MultiSelection;
   public grid!: Grid;
   public keyboard!: Keyboard;
+  /** A video address pasted or dropped on the canvas becomes a media note. */
+  public mediaInput!: MediaInput;
   public contextMenu!: ContextMenu;
   public collab!: Collab;
   public zoomSlider!: ZoomSlider;
@@ -575,6 +584,12 @@ export class Slate {
       this.keyboard.bindGlobal();
     }
 
+    // Video addresses pasted or dropped on the canvas (media notes)
+    this.mediaInput = new MediaInput(this);
+    if (this.options.enabled !== false) {
+      this.mediaInput.enable();
+    }
+
     // Right-click context menu (bring-to-front / back / duplicate / delete)
     this.contextMenu = new ContextMenu(this);
     if (this.options.enabled !== false) {
@@ -686,6 +701,9 @@ export class Slate {
     }
     if (this.keyboard) {
       this.keyboard.unbindGlobal();
+    }
+    if (this.mediaInput) {
+      this.mediaInput.destroy();
     }
     if (this.contextMenu) {
       this.contextMenu.disable();

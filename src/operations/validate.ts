@@ -22,6 +22,7 @@ import { CONNECTOR_KEYS, CONNECTOR_STYLE_KEYS } from "./keys/connector";
 import { checkBackground, SLATE_KEYS } from "./keys/slate";
 import { checkSelector } from "./keys/selector";
 import { checkValue, isObject, type Lists } from "./keys/values";
+import { readMediaValue } from "./media";
 
 // Two guards on words in the person's request. They stay until the action
 // registry offers a preview mode (P02), which replaces them.
@@ -123,7 +124,18 @@ export function validatePlan(plan: any, options: ValidateOptions = {}): SlateOpe
         }
         // A preset or a connected note's source gives the shape when the operation does not.
         const connects = isObject(operation.placement) && operation.placement.connect === true;
-        if (operation.shape !== undefined || (operation.preset === undefined && !connects)) {
+        // A media note: one note, a video from an approved host, drawn as its poster (always a rectangle).
+        const media = operation.media !== undefined;
+        if (media) {
+          const read = readMediaValue(operation.media);
+          if (!read.ok) errors.push(`${prefix} media ${read.message}`);
+          if (operation.count !== 1) errors.push(`${prefix} adds one media note at a time (count 1).`);
+          for (const key of ["shape", "preset", "text"]) {
+            if (operation[key] !== undefined) errors.push(`${prefix} is a media note, so it takes no ${key}.`);
+          }
+          if (connects) errors.push(`${prefix} is a media note, so it cannot copy and connect from another note.`);
+        }
+        if (!media && (operation.shape !== undefined || (operation.preset === undefined && !connects))) {
           const shape = checkValue(NODE_KEYS.shape.spec(lists), operation.shape, `${prefix} shape`);
           if (shape) errors.push(shape);
         }
