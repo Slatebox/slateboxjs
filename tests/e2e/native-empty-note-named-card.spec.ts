@@ -78,6 +78,26 @@ for (const [kind, f] of Object.entries(fixtures)) {
       await expect.poll(() => card(page, f.api).then(item => item?.label ?? null)).toBe(f.name)
     })
 
+    if (f.api === 'boards') test(`an empty note let go over a later day of a ${kind} starts there, not at the start of the row`, async ({ page }) => {
+      await openWithEmptyNote(page, f)
+      const lane = await f.lane(page)
+      const column = (await box(page, f.api, 'column-' + lane))!
+      // Two thirds of the way along the row's days: well past its start.
+      const at = { x: column.x + column.width * 0.66, y: column.y + column.height / 2 }
+      await drag(page, await center(page, f.api, 'blank'), at)
+      await expect.poll(() => card(page, f.api).then(item => item?.label ?? null)).toBe(f.name)
+      await page.keyboard.press('Escape')
+      const made = await card(page, f.api)
+      expect(made.lag ?? 0).toBeGreaterThan(0)
+      // Its bar starts under where it was let go (within a week: a hire snaps to weeks).
+      await expect.poll(async () => (await box(page, f.api, 'card-blank'))?.x ?? 0).toBeGreaterThan(column.x + column.width * 0.5)
+      const bar = (await box(page, f.api, 'card-blank'))!
+      expect(Math.abs(bar.x - at.x)).toBeLessThan(column.width * 0.08)
+      // The host hears the day, so the server makes the same task on the same day.
+      const change = await page.evaluate(api => (window as any)[api].log.changes.find((item: any) => item.change?.noteToCard?.noteId === 'blank')?.change, f.api)
+      expect(change.noteToCard.day).toBeGreaterThan(0)
+    })
+
     test(`on a ${kind}, typing names the new card straight away; one undo takes back the name, a second the card`, async ({ page }) => {
       await openWithEmptyNote(page, f)
       const lane = await f.lane(page)
