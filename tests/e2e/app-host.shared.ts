@@ -46,7 +46,7 @@ export async function seedFirstNote(page: Page, text = "Welcome!") {
     const at = v2.canvas.point(box.left + box.width / 2, box.top + box.height / 2);
     const width = 160, height = 68;
     v2.addNode({ x: Math.round(at.x - width / 2), y: Math.round(at.y - height / 2), width, height, text,
-      shape: "roundedrectangle", backgroundColor: "#40709a", fontColor: "#ffffff", fontFamily: "Manrope", fontSize: "13.5pt", borderWidth: 0 });
+      shape: "roundedrectangle", backgroundColor: "#40709a", fontColor: "#ffffff", fontFamily: "Manrope", fontSize: 18, borderWidth: 0 });
     return true;
   }, text);
   await page.locator("#slateCanvas [data-node-id]").filter({ hasText: text }).first().waitFor();
