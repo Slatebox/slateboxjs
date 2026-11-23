@@ -5107,39 +5107,44 @@ function Wi(n) {
   }
 }
 function hd(n, t) {
-  let e = null;
+  let e = null, s = !1;
   if (!ld(t.element, "draggable")) {
     console.warn(
       "svg.draggable.js plugin not available for connector handles. Install @svgdotjs/svg.draggable.js for proper drag functionality."
     );
     return;
   }
-  t.element.draggable(), t.element.on("beforedrag", function(s) {
+  t.element.draggable(), t.element.on("beforedrag", function(i) {
     t.element.cx(), t.element.cy();
     try {
       t.element.node.style.cursor = "grabbing";
     } catch {
       t.element.node.setAttribute("style", "cursor: grabbing");
     }
-    t.element.front(), dd(n, t);
-  }).on("dragmove", function(s) {
-    const i = [t.element.cx(), t.element.cy()];
-    t.position = i;
-    const o = s.detail.event;
-    e = md(n, o, t), gd(e), ud(n, t, i, e);
-    let r = "free";
-    e && (r = Or(e, i) ? "pinned" : "follow"), on(n, t, r);
-  }).on("dragend", function(s) {
+    t.element.front(), s = !1;
+  }).on("dragmove", function(i) {
+    s || (s = !0, dd(n, t));
+    const o = [t.element.cx(), t.element.cy()];
+    t.position = o;
+    const r = i.detail.event;
+    e = md(n, r, t), gd(e), ud(n, t, o, e);
+    let a = "free";
+    e && (a = Or(e, o) ? "pinned" : "follow"), on(n, t, a);
+  }).on("dragend", function(i) {
     try {
       t.element.node.style.cursor = "grab";
     } catch {
       t.element.node.setAttribute("style", "cursor: grab");
     }
-    if (n.debugMode && Pr(n.container), e)
+    if (n.debugMode && Pr(n.container), !s) {
+      e = null;
+      return;
+    }
+    if (s = !1, e)
       Ki(n, t, e), Ir();
     else {
-      const i = [t.element.cx(), t.element.cy()], o = yd(n, i);
-      t.isSource ? n._sourcePhantomRect = o : n._targetPhantomRect = o, Ki(n, t, o);
+      const o = [t.element.cx(), t.element.cy()], r = yd(n, o);
+      t.isSource ? n._sourcePhantomRect = r : n._targetPhantomRect = r, Ki(n, t, r);
     }
     e = null;
   });
