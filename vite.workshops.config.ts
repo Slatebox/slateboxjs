@@ -62,7 +62,13 @@ export default defineConfig({
       formats: ['es', 'cjs'],
       fileName: (format, entry) => entry + (format === 'es' ? '.mjs' : '.cjs'),
     },
-    rollupOptions: { external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'] },
+    rollupOptions: {
+      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'],
+      // Code two entries share stays in the entry it belongs to (the model in workshop-model.mjs, the plans in
+      // workshop-plans.mjs), which then exports a little more, instead of moving to an anonymous chunk: the rules, the
+      // boards and the rulebook plug into ./workshop-model.mjs, the one model a page loads (check:budget holds this).
+      preserveEntrySignatures: 'allow-extension',
+    },
     target: 'es2020',
     copyPublicDir: false,
   },

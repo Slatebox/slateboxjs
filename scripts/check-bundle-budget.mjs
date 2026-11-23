@@ -19,10 +19,10 @@ const ceilings = {
   'presence.mjs': { raw: 20000, gzip: 7000 },
   // A board's rulebook (behaviour.ts): loaded only for a board that has rules, and by a server.
   'workshop-behaviour.mjs': { raw: 20000, gzip: 6000 },
-  // The plans (launch and hiring) and their time rules: loaded with the rules, or with a plan's kit. The
-  // entry only re-exports; the code is the chunk the rules and the boards share (plans-<hash>.mjs).
-  'workshop-plans.mjs': { raw: 4000, gzip: 1500 },
-  'plans-*.mjs': { raw: 44000, gzip: 13000 },
+  // The plans (launch and hiring) and their time rules: loaded with the rules, or with a plan's kit. The code
+  // lives in the entry itself, which the rules and the boards import (vite.workshops.config.ts keeps shared code in
+  // its entry); it was a chunk of its own (plans-<hash>.mjs) with these ceilings, which carry over unchanged.
+  'workshop-plans.mjs': { raw: 44000, gzip: 13000 },
   // The nested boards (piles, trees) and their rules: loaded with the rules, or with the boards. Measured at its first
   // build (37535 / 11322), plus a little.
   'workshop-nest.mjs': { raw: 38000, gzip: 11500 },
