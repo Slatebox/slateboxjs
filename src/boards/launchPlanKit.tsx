@@ -195,11 +195,11 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
   // grid, so a person sees what the start edge and the line grips move (owner addendum, 2026-11-22).
   if (state.boardFocused && clock) {
     // In the strip between the last row and what the board puts under it (its rules note, 16 below), so nothing covers them.
-    const at = g.height + 7
-    shapes.push({ t: 'text', x: g.x0, y: at, text: 'Starts ' + dayWords(board, 0), color: layerInk.accept, size: 12, bold: true, anchor: 'start', role: 'span-start' })
+    const at = g.height + 2
+    shapes.push({ t: 'text', x: g.x0, y: at, text: 'Starts ' + dayWords(board, 0), color: layerInk.accept, size: 11, bold: true, anchor: 'start', role: 'span-start' })
     const end = hiring ? 'Ends ' + dayWords(board, board.hiring!.weeks * 7 - 1) : lineWord(board).charAt(0).toUpperCase() + lineWord(board).slice(1) + ' ' + dayWords(board, board.launch!.day)
     const ex = g.x0 + (hiring ? day : board.launch!.day) * g.dayW
-    shapes.push({ t: 'text', x: ex, y: at, text: end, color: hiring ? layerInk.ink : layerInk.launch, size: 12, bold: true, anchor: 'end', role: 'span-end' })
+    shapes.push({ t: 'text', x: ex, y: at, text: end, color: hiring ? layerInk.ink : layerInk.launch, size: 11, bold: true, anchor: 'end', role: 'span-end' })
   }
   // Each bar's two grips, above its bar: on the selected or hovered bar on a laptop, on every bar on a phone (a hiring plan's phone view is read-only).
   if (!(hiring && g.narrow)) for (const card of board.cards) {
