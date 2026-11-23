@@ -406,6 +406,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   let hovering: { noteId: string; laneId: string | null; refusal: string | null; open: string[] } | null = null
   /** A card whose note was given another id than the card's (the board or the slate had it already): note id → card id. */
   const pairs = new Map<string, string>()
+  /** The names this person gave cards here, by card id: an undo or redo puts back only these. */
+  const namedHere = new Map<string, string>()
   /** Cards made from notes, by note id: where the note was, so the new card comes from there. */
   const arrivals = new Map<string, { x: number; y: number }>()
   let flash: { laneId: string; reason: string; timer: ReturnType<typeof setTimeout> } | null = null
@@ -729,7 +731,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         return false
       }
       if (JSON.stringify(renamed.workshop) === JSON.stringify(value)) { draw(value); return false }
+      // A rename is a step of its own: one undo gives the old name back (a card dropped as an empty
+      // note and then named goes back to "New hire" first, then to the empty note).
+      slate.beginHostStep?.()
       value = renamed.workshop
+      if (target.kind === 'card') namedHere.set(target.key, label)
+      slate.endHostStep?.()
       draw(value)
       slate.announce?.(read ? renamed.report.edits.map(edit => edit.said).join(' ') : `${previous} renamed to ${label}.`)
       tell(options.onChange, value, { rename, ...(kit ? { edits } : {}) })
@@ -994,6 +1001,20 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         ...(recordedLines.length ? { lines: workshopRenamedLines(recordedLines, cardId, noteId) } : {}) }, via: 'undo' })
       slate.holdTrade?.(noteId, answer)
       watch(answer)
+    }
+    // A card this person renamed has the name it had at that step. Only a name this person gave it:
+    // a name a collaborator gave it since stays.
+    for (const card of recorded.values()) {
+      const now = value.cards.find(item => item.id === card.id)
+      if (!now || now.label === card.label || namedHere.get(card.id) !== now.label) continue
+      const edits: WorkshopEdit[] = [{ kind: 'rename_card', card: { id: card.id }, label: card.label }]
+      const renamed = applyWorkshopEdits(value, edits)
+      if ('refused' in renamed) continue
+      value = renamed.workshop
+      namedHere.set(card.id, card.label)
+      draw(value)
+      slate.announce?.(`${cardName(now)} is called ${cardName(card)} again.`)
+      tell(options.onChange, value, { rename: { cardId: card.id, label: card.label }, ...(kit ? { edits } : {}), via: 'undo' })
     }
     // The lines between cards and notes are as they were at that step.
     if (Array.isArray(state?.lines)) restoreLines(state.lines as WorkshopLine[])

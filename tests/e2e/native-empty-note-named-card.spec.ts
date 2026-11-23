@@ -78,13 +78,29 @@ for (const [kind, f] of Object.entries(fixtures)) {
       await expect.poll(() => card(page, f.api).then(item => item?.label ?? null)).toBe(f.name)
     })
 
-    test(`on a ${kind}, typing names the new card straight away`, async ({ page }) => {
+    test(`on a ${kind}, typing names the new card straight away; one undo takes back the name, a second the card`, async ({ page }) => {
       await openWithEmptyNote(page, f)
       const lane = await f.lane(page)
       await drag(page, await center(page, f.api, 'blank'), await center(page, f.api, 'column-' + lane))
       await expect(editor(page)).toBeVisible()
       await page.keyboard.type(f.typed)
       await page.keyboard.press('Enter')
+      await expect.poll(() => card(page, f.api).then(item => item?.label ?? null)).toBe(f.typed)
+
+      // The typed name is its own undo step: the first undo gives back the board's name, the second the empty note.
+      await page.mouse.click(5, 5)
+      await page.keyboard.press('ControlOrMeta+z')
+      await expect.poll(() => card(page, f.api).then(item => item?.label ?? null)).toBe(f.name)
+      expect(await note(page, f.api)).toBeNull()
+      // The host hears the name go back, as an undo.
+      expect(await page.evaluate(api => (window as any)[api].log.changes.at(-1).change, f.api)).toMatchObject({ rename: { cardId: 'blank', label: f.name }, via: 'undo' })
+      await page.keyboard.press('ControlOrMeta+z')
+      await expect.poll(() => card(page, f.api)).toBeNull()
+      await expect.poll(() => note(page, f.api)).toEqual({ text: '', shape: 'ellipse' })
+      // Redo, step by step: the card with the board's name, then the typed name.
+      await page.keyboard.press('ControlOrMeta+y')
+      await expect.poll(() => card(page, f.api).then(item => item?.label ?? null)).toBe(f.name)
+      await page.keyboard.press('ControlOrMeta+y')
       await expect.poll(() => card(page, f.api).then(item => item?.label ?? null)).toBe(f.typed)
     })
 
