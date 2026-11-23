@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { presentToEveryone } from './app-header.shared'
-import { camera, expectFramed, expectWholeSlate, litNotes, nextView, stepCounter } from './app-presenter.shared'
+import { camera, expectDeckEnd, expectDeckStart, expectFramed, isLive, litNotes, narrative, nextView, stepCounter } from './app-presenter.shared'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
@@ -13,16 +13,21 @@ const note = (page:Page,id:string) => page.locator('#slateCanvas [data-node-id="
 // Restated 2026-11-22 (fix/present-ai): the plan starts on its overview of the whole slate (step 0),
 // then segments of related notes, then the closing overview (the last step). A follower is on the
 // presenter's step: the same status, narrative and notes.
+// Restated 2026-11-23 (styled presentations): the six notes play as a styled deck on a live canvas
+// (a title card first, the overview at step 1, the homecoming last). A follower composes the same
+// deck over their own drawing: the same step, caption and lit notes; a phone frames the step for
+// portrait, so its notes are compared lit, not framed.
 async function expectSameView(owner:Page,reader:Page,step:number,total:number) {
   const lead=deck(owner), watching=deck(reader)
   await expect(lead.getByRole('status')).toContainText(step+' of '+total)
   await expect(watching.getByRole('status')).toContainText(step+' of '+total)
-  const narrative=(await lead.locator('.sb-presentation-narrative').textContent())!
-  expect(narrative).not.toBe('')
-  await expect(watching.locator('.sb-presentation-narrative')).toHaveText(narrative)
+  const words=(await narrative(lead).textContent())!
+  expect(words).not.toBe('')
+  await expect(narrative(watching)).toHaveText(words)
   const lit=await litNotes(lead)
   expect(lit.length).toBeGreaterThan(0)
-  await expectFramed(watching,lit)
+  if (await isLive(watching)) await expect.poll(async()=>(await litNotes(watching)).sort()).toEqual([...lit].sort())
+  else await expectFramed(watching,lit)
   return lit
 }
 
@@ -66,8 +71,8 @@ test('a read-only phone follows the presenter across native outage notes and ret
     const noteIds=original.nodes.map((node:{options:{id:string}})=>node.options.id)
     // At least one segment of the six notes, then the closing overview.
     expect(total).toBeGreaterThanOrEqual(2)
-    expect(total).toBeLessThanOrEqual(noteIds.length+1)
-    await expectWholeSlate(deck(owner))
+    expect(total).toBeLessThanOrEqual(noteIds.length+3)
+    await expectDeckStart(deck(owner))
     await nextView(owner,deck(owner))
     const follow=button(reader,'Follow presentation')
     await expect(follow).toBeInViewport()
@@ -95,13 +100,13 @@ test('a read-only phone follows the presenter across native outage notes and ret
       if (step<total) (await litNotes(deck(owner))).forEach(id=>shown.add(id))
     }
     expect([...shown].sort()).toEqual([...noteIds].sort())
-    await expectWholeSlate(deck(owner))
+    await expectDeckEnd(deck(owner))
     await expect(camera(deck(owner)).locator('[data-node-id="fallback"]').first()).toHaveAttribute('aria-label',title)
     await expect(follow).toBeInViewport()
     await expect(deck(reader)).toHaveCount(0)
     await follow.tap()
     await expect(deck(reader).getByRole('status')).toContainText(total+' of '+total)
-    await expectWholeSlate(deck(reader))
+    await expectDeckEnd(deck(reader))
     // Two real navigation actions must reach two distinct stops even when the
     // second action happens before the previous DDP update has painted.
     await button(owner,'Previous').click()

@@ -8,7 +8,16 @@ export const presenter = (page: Page) => page.getByRole('dialog', { name: 'Prese
 export const livePresenter = (page: Page) => page.getByRole('dialog', { name: 'Live presentation', exact: true })
 /** The "3 / 7" step counter in the presenter's controls. */
 export const stepCounter = (scope: Page | Locator | FrameLocator) => scope.getByText(/^-?\d+ \/ \d+$/)
-export const camera = (scope: Page | Locator | FrameLocator) => scope.locator('.sb-presentation-camera')
+export const camera = (scope: Page | Locator | FrameLocator) => scope.locator('.sb-presentation-camera, .sb-live-stage')
+/**
+ * Restated 2026-11-23 (styled presentations): a slate of plain notes plays as a styled deck on a
+ * live canvas (.sb-live-stage): its notes are the slate's own, around them the style's stage notes
+ * (ids sb-stage-* and sb-deco-*: titles, stickers, pictures), and its caption is the live
+ * caption. A workshop, and a slate of one or two notes, still play over the slate's SVG.
+ */
+export const isLive = (scope: Page | Locator | FrameLocator) => scope.locator('.sb-live-stage').count().then(count => count > 0)
+/** The step's words: the narrative over the SVG, or the live deck's caption. */
+export const narrative = (scope: Page | Locator | FrameLocator) => scope.locator('.sb-presentation-narrative, .sbp-cap .t')
 
 /** Present on this screen: the header's Present button, or its menu item where Present opens a menu. */
 export async function openPresenter(page: Page) {
@@ -63,7 +72,7 @@ export const readoutWords = /\bstations?\b|\btokens?\b|Next station|Decision pre
 export async function expectFramed(dialog: Page | Locator, nodeIds: string[]) {
   await expect.poll(() => camera(dialog).evaluate((surface, expected) => {
     const bounds = surface.parentElement!.getBoundingClientRect()
-    const nodes = [...surface.querySelectorAll<SVGGraphicsElement>('svg [data-node-id]')]
+    const nodes = [...surface.querySelectorAll<SVGGraphicsElement>('svg [data-node-id]')].filter(node => !/^sb-(stage|deco)-/.test(node.dataset.nodeId!))
     const lit = (node: Element) => Number(getComputedStyle(node).opacity) > 0.95
     const want = new Set(expected)
     for (const id of expected) {
@@ -94,10 +103,10 @@ export async function expectFramed(dialog: Page | Locator, nodeIds: string[]) {
  * included: every box sits inside the presenter.
  */
 export async function expectWholeSlate(dialog: Page | Locator) {
-  await expect(dialog.locator('.sb-presentation-narrative')).not.toHaveText('')
+  await expect(narrative(dialog)).not.toHaveText('')
   await expect.poll(() => camera(dialog).evaluate(surface => {
     const bounds = surface.parentElement!.getBoundingClientRect()
-    const nodes = [...surface.querySelectorAll<SVGGraphicsElement>('svg [data-node-id]')]
+    const nodes = [...surface.querySelectorAll<SVGGraphicsElement>('svg [data-node-id]')].filter(node => !/^sb-(stage|deco)-/.test(node.dataset.nodeId!))
     if (!nodes.length) return 'no notes'
     for (const node of nodes) {
       if (Number(getComputedStyle(node).opacity) <= 0.95) return 'dimmed: ' + node.dataset.nodeId
@@ -114,8 +123,37 @@ export async function expectWholeSlate(dialog: Page | Locator) {
 /** The slate's own notes the camera lights now: every note but a workshop's lanes and cards and their parts. */
 export const litNotes = (dialog: Page | Locator) => camera(dialog).evaluate(surface =>
   [...new Set([...surface.querySelectorAll<SVGGraphicsElement>('svg [data-node-id]')]
-    .filter(node => !/^(lane|card|column|caption|image)-/.test(node.dataset.nodeId!) && Number(getComputedStyle(node).opacity) > 0.95)
+    .filter(node => !/^(lane|card|column|caption|image)-|^sb-(stage|deco)-/.test(node.dataset.nodeId!) && Number(getComputedStyle(node).opacity) > 0.95)
     .map(node => node.dataset.nodeId!))])
+
+/** The stage notes the live deck lights now (its title, headlines, pictures, details). */
+export const litStageNotes = (dialog: Page | Locator) => camera(dialog).evaluate(surface =>
+  [...surface.querySelectorAll<SVGGraphicsElement>('svg [data-node-id^="sb-stage-"]')]
+    .filter(node => Number(getComputedStyle(node).opacity) > 0.95)
+    .map(node => node.dataset.nodeId!))
+
+/**
+ * Where a deck starts: over the SVG, the overview of the whole slate; a styled deck opens on its
+ * title card, a stage note lit and the counter at 0.
+ */
+export async function expectDeckStart(dialog: Page | Locator) {
+  if (!(await isLive(dialog))) return expectWholeSlate(dialog)
+  await expect(stepCounter(dialog)).toHaveText(/^0 \/ \d+$/)
+  await expect.poll(async () => (await litStageNotes(dialog)).some(id => id.endsWith('-title'))).toBe(true)
+}
+
+/**
+ * Where a deck ends: over the SVG, the closing overview; a styled deck's homecoming lands on its
+ * title card with the call to action, every one of the slate's notes lit around it.
+ */
+export async function expectDeckEnd(dialog: Page | Locator) {
+  if (!(await isLive(dialog))) return expectWholeSlate(dialog)
+  await expect.poll(async () => (await litStageNotes(dialog)).some(id => id.endsWith('-cta'))).toBe(true)
+  const lit = await litNotes(dialog)
+  const all = await camera(dialog).evaluate(surface => [...new Set([...surface.querySelectorAll<SVGGraphicsElement>('svg [data-node-id]')]
+    .map(node => node.dataset.nodeId!).filter(id => !/^sb-(stage|deco)-/.test(id)))])
+  expect(lit.sort()).toEqual(all.sort())
+}
 
 /**
  * A plan played from its start to its last step, as a slate of plain notes is presented: the
@@ -127,15 +165,20 @@ export const litNotes = (dialog: Page | Locator) => camera(dialog).evaluate(surf
 export async function expectPlanShows(page: Page, dialog: Locator, noteIds: string[]) {
   await expect(stepCounter(dialog)).toHaveText(/^0 \/ \d+$/, { timeout: 30_000 })
   const total = Number((await stepCounter(dialog).textContent())!.split('/')[1])
-  await expectWholeSlate(dialog)
+  await expectDeckStart(dialog)
+  const live = await isLive(dialog)
   const shown = new Set<string>()
   if (total === 0) (await litNotes(dialog)).forEach(id => shown.add(id))
   for (let step = 1; step < total; step++) {
     await nextView(page, dialog)
-    await expect(dialog.locator('.sb-presentation-narrative')).not.toHaveText('')
+    await expect(narrative(dialog)).not.toHaveText('')
     const lit = await litNotes(dialog)
-    expect(lit.length).toBeGreaterThan(0)
-    await expectFramed(dialog, lit)
+    // A styled deck's deep zoom lights a nested detail (a stage note), not the slate's notes.
+    if (live && !lit.length) expect((await litStageNotes(dialog)).length).toBeGreaterThan(0)
+    else {
+      expect(lit.length).toBeGreaterThan(0)
+      await expectFramed(dialog, lit)
+    }
     lit.forEach(id => shown.add(id))
   }
   if (total > 0) {
@@ -143,15 +186,15 @@ export async function expectPlanShows(page: Page, dialog: Locator, noteIds: stri
     expect(total).toBeGreaterThanOrEqual(2)
     await nextView(page, dialog)
     await expect(stepCounter(dialog)).toHaveText(total + ' / ' + total)
-    await expectWholeSlate(dialog)
+    await expectDeckEnd(dialog)
   }
   expect([...shown].sort()).toEqual([...noteIds].sort())
   return total
 }
 
 /** A presented viewpoint: its narrative is shown and the camera frames its notes. */
-export async function expectScene(dialog: Locator, narrative: string | RegExp, nodeIds: string[]) {
-  await expect(dialog.locator('.sb-presentation-narrative')).toHaveText(narrative)
+export async function expectScene(dialog: Locator, words: string | RegExp, nodeIds: string[]) {
+  await expect(narrative(dialog)).toHaveText(words)
   await expectFramed(dialog, nodeIds)
 }
 
