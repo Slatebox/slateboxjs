@@ -21,7 +21,7 @@ import { type WorkshopEdit } from './edits';
  * shape, size), kept for its way back. `cardToNote`: card `cardId` left the board and is now
  * the ordinary note `noteId` in the drawing. A note's lines stay joined to it either way:
  * `noteToCard.lines` are the note's lines as the drawing had them (a card's lines are the board's,
- * see Workshop.lines). `line`: a person drew or changed a line with a card at one end (`set`), or
+ * see Workshop.lines); `noteToCard.day` is the plan day the note was let go on, where its task starts. `line`: a person drew or changed a line with a card at one end (`set`), or
  * took one away (`remove`, its id). `via: 'undo'`: the change is this person's undo or redo putting
  * a trade back, not a gesture of their own (a host says nothing about it that a drop would).
  */
@@ -41,6 +41,7 @@ export interface WorkshopChangeEvent {
         before?: string;
         lines?: WorkshopLine[];
         under?: string;
+        day?: number;
     };
     cardToNote?: {
         noteId: string;
@@ -194,6 +195,11 @@ export interface WorkshopBoardKit {
         x: number;
         y: number;
     }, layout: WorkshopBoardLayout): string | null;
+    /** A plan: the calendar day (a fraction, from its first day) under this point, where a note dropped there starts; null off the days. */
+    noteDay?(board: Workshop, point: {
+        x: number;
+        y: number;
+    }, layout: WorkshopBoardLayout): number | null;
 }
 /**
  * A change the workshop's rules did not allow, with the reason as a sentence (empty when a card

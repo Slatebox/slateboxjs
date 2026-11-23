@@ -1,4 +1,4 @@
-import { w as N, v as z, a as F, b as O, c as D, d as B, e as C, s as H, r as P, f as U } from "./model-BFVoEcaZ.mjs";
+import { workshopRules as N, validateWorkshop as z, workshopReferences as F, workshopCandidate as O, workshopRefusal as D, workshopRulesLoaded as B, workshopLaneHeld as C, said as H, registerRulebook as P, roundedBox as U } from "./workshop-model.mjs";
 import { D as M } from "./NoteDefaults-1xFW0br8.mjs";
 const ce = ["capacity", "path", "gate", "bin"], W = 12, T = { pipeline: [{ id: "amount", noun: "an amount" }] }, A = (n) => Object.values(T).flat().find((e) => e.id === n)?.noun ?? n, K = /* @__PURE__ */ new Set(["label", "text", "title", "name", "words"]), v = (n) => B(n.kind) ? N(n.kind).rulebook : void 0;
 function I(n) {

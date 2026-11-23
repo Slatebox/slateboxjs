@@ -17,6 +17,13 @@ export declare function planFixed(before: Workshop, after: Workshop): string | n
  * tasks waiting on it. The board that results, or the sentence of the rule it breaks.
  */
 export declare function tryTask(board: Workshop, cardId: string, change: Partial<Pick<WorkshopCard, 'lag' | 'duration' | 'laneId'>>): Workshop | string;
+/**
+ * A task just made from a note let go on calendar `day` of a plan: it starts on that day, in whole steps of the
+ * plan's snap (a week where it snaps to weeks; a hire always moves in weeks), read through its calendar (a day off
+ * on a working-day plan is the next working day). Where the plan's rules refuse that day (past a hard line, in a
+ * freeze), the nearest earlier day they take; the plan's start when none does (where a dropped note always went).
+ */
+export declare function landPlanNote(board: Workshop, cardId: string, day: number): Workshop;
 /** The grip on a task's start edge (its end grip is `handle-<card>`). A card id never starts with "_", so the name is the start grip's alone. */
 export declare const startHandle: (cardId: string) => string;
 /** The task whose start grip this is, or null for any other part. */

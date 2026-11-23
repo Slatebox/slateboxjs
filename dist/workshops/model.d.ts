@@ -317,6 +317,8 @@ export interface WorkshopNoteOffer {
     lines?: WorkshopLine[];
     /** Nest board: the card it was dropped on, to sit under. */
     under?: string;
+    /** Launch or hiring plan: the calendar day (from the plan's first day) it was let go on: its task starts there, snapped by the plan's rules. */
+    day?: number;
 }
 /** Why `note` may not become a card in `laneId`, as a sentence; null when it may. */
 export declare function workshopNoteRefusal(board: Workshop, laneId: string, note: WorkshopNoteOffer): string | null;
@@ -642,6 +644,7 @@ export * from './darkroom/model';
 export * from './edits';
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names';
 export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native';
+export { createBoardLayer, layerInk, renderLayerShapes, type LayerShape } from './boardLayer';
 export { boardLegend, boardChromeShapes, boardBadgeShapes, boardChromeLayout, boardChromeLabel, boardChromeStyles, chromeInk, DRAFT_TAG, boardChromeBox, chromeScaleAt, chromeTagScaleAt, CHROME_MAX_SCALE, CHROME_CHIPS_MAX_SCALE, type LegendItem, type LegendIcon, type ChromeOptions } from './boardChrome';
 export type StartupExperience = {
     version: 1;

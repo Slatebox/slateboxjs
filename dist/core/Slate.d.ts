@@ -3,7 +3,7 @@ import { Node, NodeOptions } from "./Node";
 import { NodesManager } from "./NodesManager";
 import { Invoker } from "./Invoker";
 import { PanZoom, PanZoomOptions } from "./PanZoom";
-import { BirdsEye, BirdsEyeOptions } from "./BirdsEye";
+import type { BirdsEye, BirdsEyeOptions } from "./BirdsEye";
 import { type SlateJSON } from "./Serialization";
 import { UndoRedo } from "./UndoRedo";
 import type { InlineDraft } from "./Editor";
@@ -18,7 +18,7 @@ import { type ThemeDefinition } from "./Theme";
 import { type LayoutMove } from "./Layout";
 import { Association } from "./Relationship";
 import type { EndAnchor, EndState, LineEnd } from "./LineEnds";
-import { type LineToolResult } from "./LineTool";
+import type { LineToolResult } from "./LineTool";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
 import { Camera } from "./Camera";
@@ -198,6 +198,11 @@ export declare class Slate {
     nodes: NodesManager;
     invoker: Invoker;
     panZoom: PanZoom;
+    /**
+     * The bird's-eye view. With the main entry (slateboxjs) it is always here; with the canvas entry
+     * (slateboxjs/canvas) it is created only for a slate that asks for it (options.birdsEye.enabled), once its
+     * code has loaded, and is undefined until then.
+     */
     birdsEye: BirdsEye;
     undoRedo: UndoRedo;
     multiSelection: MultiSelection;

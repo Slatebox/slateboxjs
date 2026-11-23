@@ -1,20 +1,20 @@
-import { Vec2 as gt, getElementPositionCheap as Jt, translate as jt, dragSpecToBehavior as Yt, param as Lt, moreThan as Rt, lessThan as $t, inOrder as qt } from "./dragology.mjs";
-import { i as ct, n as N, l as p, o as Tt, b as zt } from "./model-BFVoEcaZ.mjs";
-import { p as re } from "./model-BFVoEcaZ.mjs";
-import { C as Q, a4 as O, a0 as G, e as At, m as $, q as it, a3 as H, S as Xt, k as at, K as Ot, v as Zt, x as Et, a7 as j, A as Ft, M as Qt, aa as bt, ab as tn, j as B, a5 as nn, ai as en, D as sn, Q as xt, T as an, U as rn, a6 as on, G as ln, B as cn, ag as hn, ad as un, ac as Pt, a1 as Bt, w as pt, s as F, aj as dn, ap as fn, aq as gn } from "./plans-C_Cp9KbX.mjs";
-import { a as le, d as ce, al as he, c as ue, u as de, at as fe, a9 as ge, O as xe, a8 as pe, $ as me, g as ye, ak as we, ao as ke, h as Me, i as ve, N as We, a2 as Se, L as _e, J as Le, Z as Re, l as $e, V as Te, P as ze, f as Ae, n as Oe, t as Ee, b as Fe, o as Pe, F as Be, Y as Ce, z as De, I as Ne, y as Ie, R as He, E as Ge, X as Ke, _ as Ue, as as Ve, r as Je, ar as je, an as Ye, W as qe, ah as Xe, af as Ze, ae as Qe, am as be, H as ti, p as ni } from "./plans-C_Cp9KbX.mjs";
-import Y from "react";
+import { Vec2 as gt, getElementPositionCheap as Jt, translate as Yt, dragSpecToBehavior as jt, param as Lt, moreThan as Rt, lessThan as $t, inOrder as Xt } from "./dragology.mjs";
+import { createBoardLayer as ct, laneColors as N, layerInk as p, workshopDestinations as Tt, workshopCandidate as zt } from "./workshop-model.mjs";
+import { renderLayerShapes as re } from "./workshop-model.mjs";
+import { startHandleCard as Q, dayWords as O, scheduleLaunch as G, e as At, m as $, dateName as it, lineWord as H, withPlanStart as Zt, offsetOf as at, launchLinkRefusal as Ot, dayMap as qt, clockOf as Et, snapStep as Y, tryTask as Pt, launchPlanLimits as Qt, launchOverrun as bt, withTaskValue as tn, isoAt as C, launchHard as nn, pastTheLine as en, dragTaskEdge as sn, moveLaunch as xt, movePlanStart as an, planWeeksProblem as rn, cascadeStops as on, legalRuns as ln, startHandle as cn, checkTime as hn, holdOthers as un, withLink as Ft, launchFinish as Bt, weekdayAt as pt, shortDate as F, hireStarts as dn, runwayMonths as fn, runwayWords as gn } from "./workshop-plans.mjs";
+import { a as le, d as ce, bandOf as he, c as ue, dayFromWords as de, g as fe, downstreamTasks as ge, earliestLaunch as xe, edgeValues as pe, extendWorkshopEdits as me, goLiveSample as ye, hireLagFor as we, hiringPlanRules as ke, hiringPlanSample as Me, isoTime as ve, landPlanNote as We, launchDayOn as Se, launchIndex as _e, launchPlanCaption as Le, launchPlanRefusal as Re, launchPlanRules as $e, launchPlanSample as Te, launchTaskText as ze, launchTooEarly as Ae, monthNames as Oe, n as Ee, nextMonday as Pe, b as Fe, o as Be, planDrags as Ce, planEdit as De, planFixed as Ne, planLaunchPlanMove as Ie, planProblem as He, planStartBy as Ge, planWords as Ke, presetRules as Ue, readClock as Ve, f as Je, r as Ye, runwayCap as je, runwayHeader as Xe, sampleLaunchPlan as Ze, timeFamily as qe, timeRuleKindIds as Qe, timeSentence as be, validateHiringPlan as ti, validateLaunchPlan as ni, weekendAt as ei } from "./workshop-plans.mjs";
+import j from "react";
 import { withBudgetTotal as rt, pipelineForecast as ht, pipelineLimits as xn, pipelineRefusal as pn, pipelineCaption as mt, budgetLimits as mn, budgetRefusal as yn, budgetCaption as yt, budgetTotalBounds as wn, shiftBudget as wt, budgetCommitted as kn } from "./workshop-rules.mjs";
-import { amountRules as ii, behaviourEditsBetween as si, budgetRules as ai, budgetShiftLimits as ri, budgetShiftRefusal as oi, budgetTotalFixed as li, pipelineRules as ci, planBudgetMove as hi, planPipelineMove as ui, planSamples as di, restoreWorkshop as fi, sampleBudget as gi, samplePipeline as xi, validateBudget as pi, validatePipeline as mi } from "./workshop-rules.mjs";
-import { byOrder as wi, checkNest as ki, checkNestMove as Mi, extend as vi, isOrderKey as Wi, nestAlias as Si, nestAreas as _i, nestCardText as Li, nestDepth as Ri, nestDrags as $i, nestEmptyDrop as Ti, nestFamily as zi, nestKids as Ai, nestLegal as Oi, nestMeasure as Ei, nestMeasureWords as Fi, nestPlace as Pi, nestRoots as Bi, nestRules as Ci, nestSentence as Di, nestSubtree as Ni, orderBetween as Ii, orderKeys as Hi, registerNestPlus as Gi, roleOf as Ki, tidyKeys as Ui, validateNest as Vi } from "./workshop-nest.mjs";
-import { isOrgChart as ji, nestAxes as Yi, nestQuadrants as qi, nestScores as Xi, quadrantOf as Zi, scoreBoard as Qi, scoresIn as bi } from "./workshop-nest-plus.mjs";
+import { amountRules as si, behaviourEditsBetween as ai, budgetRules as ri, budgetShiftLimits as oi, budgetShiftRefusal as li, budgetTotalFixed as ci, pipelineRules as hi, planBudgetMove as ui, planPipelineMove as di, planSamples as fi, restoreWorkshop as gi, sampleBudget as xi, samplePipeline as pi, validateBudget as mi, validatePipeline as yi } from "./workshop-rules.mjs";
+import { byOrder as ki, checkNest as Mi, checkNestMove as vi, extend as Wi, isOrderKey as Si, nestAlias as _i, nestAreas as Li, nestCardText as Ri, nestDepth as $i, nestDrags as Ti, nestEmptyDrop as zi, nestFamily as Ai, nestKids as Oi, nestLegal as Ei, nestMeasure as Pi, nestMeasureWords as Fi, nestPlace as Bi, nestRoots as Ci, nestRules as Di, nestSentence as Ni, nestSubtree as Ii, orderBetween as Hi, orderKeys as Gi, registerNestPlus as Ki, roleOf as Ui, tidyKeys as Vi, validateNest as Ji } from "./workshop-nest.mjs";
+import { isOrgChart as ji, nestAxes as Xi, nestQuadrants as Zi, nestScores as qi, quadrantOf as Qi, scoreBoard as bi, scoresIn as ts } from "./workshop-nest-plus.mjs";
 function K(t, e = []) {
   const n = t.filter((s) => s.name.startsWith("card-") || s.name.startsWith("handle-"));
-  return Y.createElement(
+  return j.createElement(
     "g",
     null,
-    ...n.map((s) => /* @__PURE__ */ Y.createElement("g", { id: s.name, transform: jt(s.x, s.y) }, /* @__PURE__ */ Y.createElement("rect", { width: s.width, height: s.height }))),
-    ...t.filter((s) => e.includes(s.name)).map((s) => /* @__PURE__ */ Y.createElement("rect", { id: "target-" + s.name.slice(5), x: s.x, y: s.y, width: s.width, height: s.height }))
+    ...n.map((s) => /* @__PURE__ */ j.createElement("g", { id: s.name, transform: Yt(s.x, s.y) }, /* @__PURE__ */ j.createElement("rect", { width: s.width, height: s.height }))),
+    ...t.filter((s) => e.includes(s.name)).map((s) => /* @__PURE__ */ j.createElement("rect", { id: "target-" + s.name.slice(5), x: s.x, y: s.y, width: s.width, height: s.height }))
   );
 }
 function U(t, e, n, s, a) {
@@ -28,7 +28,7 @@ function U(t, e, n, s, a) {
     debug: { varyVisualizer: !1 }
   };
   if (!Jt(i, t) || !c) return null;
-  const o = Yt(a(c, t), i);
+  const o = jt(a(c, t), i);
   return (l) => o({ pointer: gt(l.x, l.y) }).dropState;
 }
 const b = (t, e, n = 0) => !!t && e.x >= t.x - n && e.x <= t.x + t.width + n && e.y >= t.y - n && e.y <= t.y + t.height + n;
@@ -48,7 +48,7 @@ function R(t, e) {
 }
 function V(t, e) {
   if (t.clock && e.clock && t.clock.origin !== e.clock.origin) {
-    const i = Xt(t, at(t.clock.origin, e.clock.origin));
+    const i = Zt(t, at(t.clock.origin, e.clock.origin));
     return [{ kind: "set_plan_start", start: e.clock.origin }, ...V(i, e)];
   }
   if (t.budget && e.budget && t.budget.total !== e.budget.total) {
@@ -150,18 +150,18 @@ function Nt(t, e) {
   return r >= 0 && t.lanes[r + 1] ? `Divider between ${t.lanes[r].label} and ${t.lanes[r + 1].label}. Left and Right move money.` : null;
 }
 const It = "#c2410c", tt = "handle-_first", nt = "handle-_last", Sn = 32, _n = 44, Ln = (t, e) => t ? 0 : Math.min(22, Math.max(4, Math.floor(e / 3)));
-function D(t, e = {}) {
+function E(t, e = {}) {
   const n = !!e.narrow, s = t.kind === "hiring-plan", a = G(t), c = s ? t.hiring.weeks * 7 : nn(t) ? t.launch.day : Math.ceil(t.launch.day * 4 / 3), r = en(t), i = [], o = /* @__PURE__ */ new Map(), l = n ? 8 : 168, f = n ? 88 : l + 40, h = n ? Math.max(300, e.width ?? 390) : Math.max(720, e.width ?? 1200), x = e.dayWidth ? Math.max(h, Math.ceil(f + c * e.dayWidth)) : h, u = e.maxWidth !== void 0 && x > e.maxWidth ? Math.max(h, Math.floor(e.maxWidth)) : x, g = e.dayWidth && u === x ? e.dayWidth : (u - f) / c, d = (w) => N[t.lanes.findIndex((k) => k.id === w) % N.length], y = (w, k) => {
     const W = t.cards.find((z) => z.id === w), S = a.get(w), _ = { x: l + S.from * g, y: k, width: (S.to - S.from) * g, height: n ? _n : Sn };
     o.set(w, _);
-    const E = r.has(w);
+    const P = r.has(w);
     if (i.push({
       name: "card-" + w,
       ..._,
       text: n ? "" : s ? W.label : `${W.label} · ${W.duration}d`,
-      fill: E ? "#fde3d7" : n ? d(W.laneId) : s ? R(d(W.laneId), 0.45) : "#fffdf6",
-      line: E || S.critical && !s ? It : "#667872",
-      lineWidth: E || S.critical && !s ? 2.5 : 1,
+      fill: P ? "#fde3d7" : n ? d(W.laneId) : s ? R(d(W.laneId), 0.45) : "#fffdf6",
+      line: P || S.critical && !s ? It : "#667872",
+      lineWidth: P || S.critical && !s ? 2.5 : 1,
       fontSize: 13
     }), !(s && n)) {
       const z = Ln(n, _.width), et = n ? 44 : 22, dt = _.y + _.height / 2 - 22, ft = n ? Math.max(-12, _.x - et) : _.x - et;
@@ -196,7 +196,7 @@ function $n(t, e) {
 }
 const Tn = (t, e = !1) => Math.ceil(t.length * 13 * (e ? 0.6 : 0.56));
 function zn(t, e) {
-  const n = D(t, e.layout), s = t.kind === "hiring-plan", a = G(t), c = Math.round((n.width - (n.narrow ? 88 : n.x0 + 40)) / n.dayW), r = Et(t), i = [];
+  const n = E(t, e.layout), s = t.kind === "hiring-plan", a = G(t), c = Math.round((n.width - (n.narrow ? 88 : n.x0 + 40)) / n.dayW), r = Et(t), i = [];
   if (r?.workdays)
     for (let h = 0; h < c; h++) pt(r.origin, h) === 6 && i.push({ t: "rect", x: n.x0 + h * n.dayW, y: n.gridTop, w: 2 * n.dayW, h: n.height - 8 - n.gridTop, color: n.narrow ? p.canvasTrack : p.track, opacity: 0.7 });
   for (const h of t.behaviour?.rules ?? []) if (r && h.on && h.kind === "blackout") {
@@ -210,7 +210,7 @@ function zn(t, e) {
     const x = n.x0 + h * n.dayW, u = r ? pt(r.origin, h) === 1 : h % 7 === 0;
     if (!u && n.dayW < 6) continue;
     i.push({ t: "line", x1: x, y1: n.gridTop, x2: x, y2: n.height - 8, color: n.narrow ? u ? p.canvasWeek : p.canvasFaint : u ? p.week : p.faint, width: u ? 1 : 0.5 });
-    const g = s && r && B(r.origin, h).slice(8) <= "07" && u, d = r ? s ? g ? F(B(r.origin, h)).replace(/^\d+ /, "") : "" : F(B(r.origin, h)) : (n.narrow ? "W" : "Week ") + (h / 7 + 1);
+    const g = s && r && C(r.origin, h).slice(8) <= "07" && u, d = r ? s ? g ? F(C(r.origin, h)).replace(/^\d+ /, "") : "" : F(C(r.origin, h)) : (n.narrow ? "W" : "Week ") + (h / 7 + 1);
     u && d && (!r || s || n.dayW * 7 > 44) && i.push({ t: "text", x: x + 3, y: n.axisY, text: d, color: p.canvasInk, size: 12 });
   }
   for (const h of t.cards) {
@@ -233,7 +233,7 @@ function zn(t, e) {
         t: "text",
         x: n.narrow ? 8 : Math.min(d + 6, y - 120),
         y: n.narrow ? u.y - 6 : u.y + u.height / 2 - 6,
-        text: (n.narrow ? h.label + " · " : "") + "starts " + F(B(r.origin, dn(t, h.id))) + (g ? " · " + $(g.monthly, t.hiring.currency) + "/mo" : ""),
+        text: (n.narrow ? h.label + " · " : "") + "starts " + F(C(r.origin, dn(t, h.id))) + (g ? " · " + $(g.monthly, t.hiring.currency) + "/mo" : ""),
         color: p.ink,
         size: 12,
         role: "start-" + h.id
@@ -286,7 +286,7 @@ function zn(t, e) {
     const g = t.hiring.funding;
     if (g && g.day <= c) {
       const d = n.x0 + g.day * n.dayW;
-      i.push({ t: "line", x1: d, y1: 26, x2: d, y2: n.height - 8, color: p.accept, width: 2, dash: "6 4" }), n.narrow || i.push({ t: "rect", x: d - 4, y: 26, w: 8, h: 18, rx: 4, color: p.accept }), i.push({ t: "text", x: Math.max(d + 8, n.narrow ? 8 : n.x0 + 330), y: n.narrow ? 40 : 20, text: "Round +" + $(g.amount, t.hiring.currency) + " · " + F(B(r.origin, g.day)), color: p.accept, size: 12, bold: !0 });
+      i.push({ t: "line", x1: d, y1: 26, x2: d, y2: n.height - 8, color: p.accept, width: 2, dash: "6 4" }), n.narrow || i.push({ t: "rect", x: d - 4, y: 26, w: 8, h: 18, rx: 4, color: p.accept }), i.push({ t: "text", x: Math.max(d + 8, n.narrow ? 8 : n.x0 + 330), y: n.narrow ? 40 : 20, text: "Round +" + $(g.amount, t.hiring.currency) + " · " + F(C(r.origin, g.day)), color: p.accept, size: 12, bold: !0 });
     }
     if (n.narrow && i.push({ t: "text", x: 8, y: 58, text: "Read-only here: say a change in the chat.", color: p.ink, size: 12 }), e.clamp) {
       const d = n.parts.find((y) => y.name === e.clamp.name);
@@ -312,7 +312,7 @@ function zn(t, e) {
   }
   return i;
 }
-const q = 13, kt = 16, Ht = (t, e) => t * (e ? 0.64 : 0.6), An = (t, e) => t.x + t.w <= e.x || e.x + e.w <= t.x || t.y + t.h <= e.y || e.y + e.h <= t.y;
+const X = 13, kt = 16, Ht = (t, e) => t * (e ? 0.64 : 0.6), An = (t, e) => t.x + t.w <= e.x || e.x + e.w <= t.x || t.y + t.h <= e.y || e.y + e.h <= t.y;
 function On(t) {
   const e = t.size ?? 13, n = t.text.length * Ht(e, t.bold);
   return { x: t.anchor === "end" ? t.x - n : t.anchor === "middle" ? t.x - n / 2 : t.x, y: t.y - e, w: n, h: e * 1.3 };
@@ -334,7 +334,7 @@ function Mt(t, e, n, s, a) {
   a && Math.min(i, a.x + a.width - 8) - Math.max(r, a.x + 8) >= 160 && (r = Math.max(r, a.x + 8), i = Math.min(i, a.x + a.width - 8), Math.min(l, a.y + a.height - 8) - Math.max(o, a.y + 8) >= 40 && (o = Math.max(o, a.y + 8), l = Math.min(l, a.y + a.height - 8)));
   const f = { x: s.x + s.width / 2, y: s.y + s.height / 2 }, h = JSON.stringify([n, f, r, i, o, l, c.map((m) => [m.x, m.y, m.w, m.h].map(Math.round))]);
   if (st?.key === h) return st.shapes;
-  const x = Ht(q, !0), u = Math.floor((i - r) / x), g = /* @__PURE__ */ new Map();
+  const x = Ht(X, !0), u = Math.floor((i - r) / x), g = /* @__PURE__ */ new Map();
   for (const m of [1, 0.75, 0.6, 0.5, 0.42, 0.36]) {
     const M = En(n, Math.max(8, Math.floor(u * m)));
     M.length <= 4 && g.set(M.join(`
@@ -346,31 +346,31 @@ function Mt(t, e, n, s, a) {
     if (!(M > i - r))
       for (let w = o; w + v <= l; w += 3)
         for (let k = r; k + M <= i; k += 6) {
-          const W = { x: k, y: w, w: M, h: v }, S = Math.max(W.x - f.x, 0, f.x - (W.x + W.w)), _ = Math.max(W.y - f.y, 0, f.y - (W.y + W.h)), E = Math.hypot(S, _) + (m.length - 1) * 24;
-          d && E >= d.score || c.every((z) => An(W, z)) && (d = { box: W, lines: m, score: E });
+          const W = { x: k, y: w, w: M, h: v }, S = Math.max(W.x - f.x, 0, f.x - (W.x + W.w)), _ = Math.max(W.y - f.y, 0, f.y - (W.y + W.h)), P = Math.hypot(S, _) + (m.length - 1) * 24;
+          d && P >= d.score || c.every((z) => An(W, z)) && (d = { box: W, lines: m, score: P });
         }
   }
-  const y = d ? [{ t: "text", x: d.box.x, y: d.box.y + q - 1, text: n, lines: d.lines, lineHeight: kt, color: p.refuse, size: q, bold: !0, role: "clamp" }] : [{
+  const y = d ? [{ t: "text", x: d.box.x, y: d.box.y + X - 1, text: n, lines: d.lines, lineHeight: kt, color: p.refuse, size: X, bold: !0, role: "clamp" }] : [{
     t: "text",
     x: Math.min(s.x + 40, t.width - 4),
     y: s.y + 14,
     text: n,
     color: p.refuse,
-    size: q,
+    size: X,
     anchor: s.x + 40 > t.width - 160 ? "end" : "start",
     bold: !0,
     role: "clamp"
   }];
   return st = { key: h, shapes: y }, y;
 }
-const X = (t, e = 1, n) => {
+const Z = (t, e = 1, n) => {
   const s = (c, r) => Math.round(c / r) * r, a = { ...t, cards: t.cards.map((c) => {
     const r = c.id === n ? e : 1, i = { ...c, duration: Math.max(r, s(c.duration, r)), lag: Math.max(0, s(c.lag ?? 0, r)) };
     return i.lag || delete i.lag, i;
   }) };
   return t.launch && (a.launch = { ...t.launch, day: Math.round(t.launch.day) }), t.hiring?.funding && (a.hiring = { ...t.hiring, funding: { ...t.hiring.funding, day: Math.round(t.hiring.funding.day) } }), a;
 }, vt = (t) => !!t.behaviour || t.kind === "hiring-plan";
-function Fn(t, e, n) {
+function Pn(t, e, n) {
   if (n !== "l" && n !== "L") return null;
   const s = /^card-(.+)$/.exec(e), a = s && t.cards.find((i) => i.id === s[1]);
   if (!a) return null;
@@ -386,12 +386,12 @@ function Fn(t, e, n) {
   ];
   return r.length ? r : `${a.label} has no task it can wait on.`;
 }
-function Pn(t, e, { key: n, shiftKey: s }) {
+function Fn(t, e, { key: n, shiftKey: s }) {
   if (n !== "ArrowLeft" && n !== "ArrowRight") return null;
-  const a = (n === "ArrowLeft" ? -1 : 1) * j(t);
+  const a = (n === "ArrowLeft" ? -1 : 1) * Y(t);
   if (e === "handle-launch") return [{ kind: "set_launch_day", day: t.launch.day + Math.sign(a) }];
   if (e === "handle-funding") return [{ kind: "set_funding", day: t.hiring.funding.day + Math.sign(a) * 7 }];
-  if (e === tt && t.clock) return [{ kind: "set_plan_start", start: B(t.clock.origin, Math.sign(a) * (t.kind === "hiring-plan" || Math.abs(a) > 1 ? 7 : 1)) }];
+  if (e === tt && t.clock) return [{ kind: "set_plan_start", start: C(t.clock.origin, Math.sign(a) * (t.kind === "hiring-plan" || Math.abs(a) > 1 ? 7 : 1)) }];
   if (e === nt && t.hiring) return [{ kind: "set_plan_weeks", weeks: t.hiring.weeks + Math.sign(a) }];
   const c = Q(e), r = c !== null && t.cards.find((l) => l.id === c);
   if (r) return [{ kind: "set_task", card: { id: r.id }, duration: r.duration - a, lag: (r.lag ?? 0) + a }];
@@ -406,7 +406,7 @@ const ot = {
   editsBetween: V,
   label: Nt,
   places(t, e) {
-    const n = Rn(t, D(t, e), (s) => {
+    const n = Rn(t, E(t, e), (s) => {
       const a = t.cards.filter((r) => r.laneId === s), c = G(t);
       return t.kind === "hiring-plan" ? a.length + (a.length === 1 ? " hire" : " hires") : `${a.length} ${a.length === 1 ? "task" : "tasks"} · ${a.filter((r) => c.get(r.id).critical).length} on the critical path`;
     });
@@ -418,7 +418,7 @@ const ot = {
     return a < 0 ? null : t.kind === "hiring-plan" && s.narrow ? () => t : (vt(t) ? Cn : Kn)(t, e, a, Dt(t, e), n, s);
   },
   refusalAt(t, e, n, s, a) {
-    const c = D(t, a);
+    const c = E(t, a);
     for (const l of t.cards) {
       if (l.id === e || !b(c.bars.get(l.id), s)) continue;
       const f = Ot(t, e, l.id);
@@ -426,22 +426,27 @@ const ot = {
     }
     const r = t.cards.find((l) => l.id === e), i = (r.lag ?? 0) + Math.round((s.x - n.x - c.bars.get(e).x) / c.dayW);
     if (vt(t)) {
-      const l = G(t).get(e), f = Math.round(l.from + (s.x - n.x - c.bars.get(e).x) / c.dayW), h = (r.lag ?? 0) + Zt(Et(t)).idx(f) - l.start, x = j(t), u = Ft(t, e, { lag: Math.max(0, Math.round(h / x) * x) });
+      const l = G(t).get(e), f = Math.round(l.from + (s.x - n.x - c.bars.get(e).x) / c.dayW), h = (r.lag ?? 0) + qt(Et(t)).idx(f) - l.start, x = Y(t), u = Pt(t, e, { lag: Math.max(0, Math.round(h / x) * x) });
       return typeof u == "string" ? { laneId: r.laneId, reason: u, lands: !0 } : null;
     }
     const o = Qt(t, { cardId: e, field: "lag" });
     return i > o.max ? { laneId: r.laneId, reason: bt(tn(t, { cardId: e, field: "lag" }, i), e) ?? o.reasons.max } : null;
   },
   handleDrag(t, e, n, s) {
-    const a = D(t, s);
+    const a = E(t, s);
     if (t.kind === "hiring-plan" && s.narrow) return null;
     const c = Q(e);
     if (c !== null) return t.cards.some((i) => i.id === c) ? Wt(t, c, "start", n, a, e) : null;
     const r = e.slice(7);
     return t.cards.some((i) => i.id === r) ? Wt(t, r, "end", n, a, e) : e === "handle-launch" ? Dn(t, n, a, s) : e === "handle-funding" && t.hiring?.funding ? Hn(t, n, a) : e === tt && t.clock ? Nn(t, n, a, s) : e === nt && t.hiring ? In(t, n, a, s) : null;
   },
-  keyEdit: Pn,
-  keyChoices: Fn,
+  // A note let go over the days starts its task on the day under it; on the team names, or on a phone (rows, not days), at the start.
+  noteDay(t, e, n) {
+    const s = E(t, n);
+    return s.narrow || e.x < s.x0 ? null : (e.x - s.x0) / s.dayW;
+  },
+  keyEdit: Fn,
+  keyChoices: Pn,
   cardKeys: "Left and Right move it a day, Shift changes its length, L chooses what it waits on.",
   cardOfPart(t, e) {
     const n = Q(e) ?? /^(?:card|handle)-(.+)$/.exec(e)?.[1] ?? null;
@@ -456,23 +461,23 @@ function Wt(t, e, n, s, a, c) {
   } : null;
 }
 function Bn(t, e, n) {
-  const s = t.cards.find((o) => o.id === e), a = j(t), c = s.lag ?? 0, r = s.duration ?? 1, i = (o, l) => Math.sign(l - o) * a;
+  const s = t.cards.find((o) => o.id === e), a = Y(t), c = s.lag ?? 0, r = s.duration ?? 1, i = (o, l) => Math.sign(l - o) * a;
   for (let o = { ...n }; o.lag !== c || o.duration !== r; ) {
     if (o.lag !== c) {
       const f = i(o.lag, c);
       o = { lag: o.lag + f, duration: o.duration - f };
     } else o = { lag: c, duration: o.duration + i(o.duration, r) };
-    const l = Ft(t, e, { lag: o.lag, duration: o.duration });
+    const l = Pt(t, e, { lag: o.lag, duration: o.duration });
     if (typeof l != "string") return l;
   }
   return null;
 }
 function Cn(t, e, n, s, a, c) {
-  const r = j(t), i = on(t), o = t.cards[n].laneId, l = (d) => {
+  const r = Y(t), i = on(t), o = t.cards[n].laneId, l = (d) => {
     if (!i) return d;
     const y = un(t, d, /* @__PURE__ */ new Set([e]));
     return typeof y == "string" ? d : y;
-  }, f = (d) => l(X(d, r, e)), h = (d) => K(D(l(d), c).parts, s.map((y) => "card-" + y)), u = (c.narrow ? [o] : t.lanes.map((d) => d.id)).flatMap((d) => ln(t, e, "lag", d === o ? void 0 : d).map((y) => ({ laneId: d, run: y })));
+  }, f = (d) => l(Z(d, r, e)), h = (d) => K(E(l(d), c).parts, s.map((y) => "card-" + y)), u = (c.narrow ? [o] : t.lanes.map((d) => d.id)).flatMap((d) => ln(t, e, "lag", d === o ? void 0 : d).map((y) => ({ laneId: d, run: y })));
   if (!u.length) return () => t;
   const g = U(t, "card-" + e, a, h, (d, y) => {
     const m = d.closest(u.map(({ laneId: M, run: [v, w] }) => d.vary(
@@ -480,7 +485,7 @@ function Cn(t, e, n, s, a, c) {
       Lt("cards", n, "lag"),
       { constraint: (k) => [Rt(k.cards[n].lag ?? 0, v - 0.49), $t(k.cards[n].lag ?? 0, w + 0.49)] }
     ))).withBranchTransition(100);
-    return s.length ? d.closest(s.map((M) => d.dropTarget("target-" + M, Pt(y, e, M)))).withFloating({ ghost: { opacity: 0.35 } }).whenFar(m).withBranchTransition(120).onDrop(f) : m.onDrop(f);
+    return s.length ? d.closest(s.map((M) => d.dropTarget("target-" + M, Ft(y, e, M)))).withFloating({ ghost: { opacity: 0.35 } }).whenFar(m).withBranchTransition(120).onDrop(f) : m.onDrop(f);
   });
   return g ? (d) => f(g(d)) : null;
 }
@@ -524,7 +529,7 @@ function In(t, e, n, s) {
 function Hn(t, e, n) {
   const s = n.parts.find((o) => o.name === "handle-funding");
   if (!s) return null;
-  const a = t.hiring.funding.day, c = j(t), r = t.hiring.weeks * 7, i = (o) => ({ ...t, hiring: { ...t.hiring, funding: { ...t.hiring.funding, day: o } } });
+  const a = t.hiring.funding.day, c = Y(t), r = t.hiring.weeks * 7, i = (o) => ({ ...t, hiring: { ...t.hiring, funding: { ...t.hiring.funding, day: o } } });
   return (o) => {
     const l = a + Math.round((o.x - e.x - s.x) / n.dayW / c) * c, f = Math.min(r, Math.max(0, l)), h = Gn(t, i(f));
     return h ? { next: t, clampedReason: h, refusal: h } : { next: i(f), ...f !== l && { clampedReason: f > l ? "The round closes on the plan’s first day at the earliest." : "The round closes within the plan’s " + t.hiring.weeks + " weeks." } };
@@ -535,23 +540,23 @@ function Gn(t, e) {
   return n && "refused" in n ? n.refused.sentence : null;
 }
 function Kn(t, e, n, s, a, c) {
-  const r = t.launch.day, i = (l) => K(D(l, c).parts, s.map((f) => "card-" + f)), o = U(t, "card-" + e, a, i, (l, f) => {
+  const r = t.launch.day, i = (l) => K(E(l, c).parts, s.map((f) => "card-" + f)), o = U(t, "card-" + e, a, i, (l, f) => {
     const h = c.narrow ? f.lanes.filter((u) => u.id === f.cards[n].laneId) : f.lanes, x = l.closest(h.map((u) => l.vary(
       { ...f, cards: f.cards.map((g, d) => d === n ? { ...g, laneId: u.id, lag: g.lag ?? 0 } : g) },
       Lt("cards", n, "lag"),
       { constraint: (g) => [Rt(g.cards[n].lag ?? 0, -1e-3), $t(Bt(g), r + 1e-3)] }
     )));
-    return s.length ? l.closest(s.map((u) => l.dropTarget("target-" + u, Pt(f, e, u)))).withFloating({ ghost: { opacity: 0.35 } }).whenFar(x).withBranchTransition(120).onDrop((u) => X(u)) : x.onDrop((u) => X(u));
+    return s.length ? l.closest(s.map((u) => l.dropTarget("target-" + u, Ft(f, e, u)))).withFloating({ ghost: { opacity: 0.35 } }).whenFar(x).withBranchTransition(120).onDrop((u) => Z(u)) : x.onDrop((u) => Z(u));
   });
-  return o ? (l) => X(o(l)) : null;
+  return o ? (l) => Z(o(l)) : null;
 }
-const P = 76;
+const B = 76;
 function A(t, e = {}) {
   const n = !!e.narrow, s = [], a = t.lanes.map((o) => t.cards.filter((l) => l.laneId === o.id).length), c = (o) => t.lanes[o].role === "won" ? "#bfe3cf" : t.lanes[o].role === "lost" ? "#e4dcdc" : N[o % N.length];
   let r, i;
   if (n) {
     r = Math.max(300, e.width ?? 390);
-    let o = P;
+    let o = B;
     t.lanes.forEach((l, f) => {
       const h = 96 + (a[f] + 1) * 64;
       s.push({ name: "column-" + l.id, x: 2, y: o, width: r - 4, height: h, fill: R(c(f), 0.6), line: R(c(f), 0.1) });
@@ -562,8 +567,8 @@ function A(t, e = {}) {
     const f = 116 + (Math.max(...a) + 1) * 88;
     t.lanes.forEach((h, x) => {
       const u = x * 244;
-      s.push({ name: "column-" + h.id, x: u + 2, y: P, width: 240, height: f, fill: R(c(x), 0.6), line: R(c(x), 0.1) }), s.push({ name: "lane-" + h.id, x: u + 8, y: P + 6, width: 228, height: 58, text: h.label, fill: c(x), fontSize: 16 }), s.push({ name: "caption-" + h.id, x: u + 8, y: P + 66, width: 228, height: 48, text: mt(t, h.id), fill: "transparent", lineWidth: 0, fontSize: 15 }), t.cards.filter((g) => g.laneId === h.id).forEach((g, d) => s.push({ name: "card-" + g.id, x: u + 8, y: P + 116 + d * 88, width: 228, height: 76, text: St(t, g.id), fontSize: 15 }));
-    }), r = t.lanes.length * 244, i = P + f;
+      s.push({ name: "column-" + h.id, x: u + 2, y: B, width: 240, height: f, fill: R(c(x), 0.6), line: R(c(x), 0.1) }), s.push({ name: "lane-" + h.id, x: u + 8, y: B + 6, width: 228, height: 58, text: h.label, fill: c(x), fontSize: 16 }), s.push({ name: "caption-" + h.id, x: u + 8, y: B + 66, width: 228, height: 48, text: mt(t, h.id), fill: "transparent", lineWidth: 0, fontSize: 15 }), t.cards.filter((g) => g.laneId === h.id).forEach((g, d) => s.push({ name: "card-" + g.id, x: u + 8, y: B + 116 + d * 88, width: 228, height: 76, text: St(t, g.id), fontSize: 15 }));
+    }), r = t.lanes.length * 244, i = B + f;
   }
   return s.push({ name: "gauge-forecast", x: 0, y: 0, width: Math.min(r, 520), height: 34, text: Mn(t), fill: "transparent", lineWidth: 0, fontSize: 17 }), s.push({ name: "handle-target", x: I(t, e, r) - 22, y: 27, width: 44, height: 44 }), { parts: s, width: r, height: i };
 }
@@ -626,22 +631,22 @@ const Jn = {
   },
   keyEdit: Un,
   label: (t, e) => e === "handle-target" ? "Target, " + $(t.forecast.target, t.forecast.currency) + ". Left and Right change it by " + $(lt(J(t)), t.forecast.currency) + "." : null
-}, L = 48, C = 960, Z = 900;
+}, L = 48, D = 960, q = 900;
 function T(t, e = {}) {
   const n = !!e.narrow, s = t.budget.total, a = e.gaugeScale ?? s, c = e.gaugeAnchor === "start" ? a - s : 0, r = [], i = [], o = t.lanes.map((u) => t.cards.filter((g) => g.laneId === u.id).length);
   let l, f;
   if (n) {
     l = Math.max(300, e.width ?? 390);
-    let u = L + c / a * Z;
+    let u = L + c / a * q;
     t.lanes.forEach((g, d) => {
-      const y = Math.max(100 + (o[d] + 1) * 64, g.allocation / a * Z);
+      const y = Math.max(100 + (o[d] + 1) * 64, g.allocation / a * q);
       i.push({ laneId: g.id, start: u, size: y }), u += y;
     }), f = u + 8;
   } else {
-    let u = c / a * C;
+    let u = c / a * D;
     for (const g of t.lanes)
-      i.push({ laneId: g.id, start: u, size: g.allocation / a * C }), u += g.allocation / a * C;
-    l = Math.max(C, u), f = L + 100 + (Math.max(...o) + 1) * 64;
+      i.push({ laneId: g.id, start: u, size: g.allocation / a * D }), u += g.allocation / a * D;
+    l = Math.max(D, u), f = L + 100 + (Math.max(...o) + 1) * 64;
   }
   t.lanes.forEach((u, g) => {
     const { start: d, size: y } = i[g], m = N[g % N.length], M = n ? { x: 2, y: d + 1, width: l - 4, height: y - 2 } : { x: d + 1, y: L, width: Math.max(4, y - 2), height: f - L }, v = { x: M.x + 5, y: M.y, width: Math.max(10, M.width - 10) };
@@ -675,10 +680,10 @@ function T(t, e = {}) {
   const h = i[0], x = i.at(-1);
   for (const [u, g] of [[Gt, h.start], [Kt, x.start + x.size]])
     r.push(n ? { name: u, x: l - 96, y: g - 22, width: 88, height: 44 } : { name: u, x: g - 22, y: L - 6, width: 44, height: 48 });
-  return { parts: r, width: l, height: f, segments: i, narrow: n, k: (n ? Z : C) / a };
+  return { parts: r, width: l, height: f, segments: i, narrow: n, k: (n ? q : D) / a };
 }
 const Gt = "handle-_first", Kt = "handle-_last", _t = (t) => t === Gt ? "start" : t === Kt ? "end" : null;
-function jn(t, e) {
+function Yn(t, e) {
   const n = T(t, e.layout);
   t.budget.total;
   const s = [{ t: "text", x: 4, y: 28, text: vn(t), color: p.ink, size: 16, bold: !0, role: "header" }];
@@ -716,7 +721,7 @@ function jn(t, e) {
   }
   return s;
 }
-const Ut = (t, e) => Math.round(t / e) * e, Yn = {
+const Ut = (t, e) => Math.round(t / e) * e, jn = {
   laneCues: !0,
   notes: (t, e, n, s) => ut(T(t, e).parts, t, n, s),
   editsBetween: V,
@@ -725,7 +730,7 @@ const Ut = (t, e) => Math.round(t / e) * e, Yn = {
     const { parts: n, width: s, height: a } = T(t, e);
     return { parts: n, width: s, height: a };
   },
-  layer: (t) => ct(t, jn),
+  layer: (t) => ct(t, Yn),
   chooser(t, e, n, s = {}) {
     const a = Tt(t, e).map((c) => zt(t, e, c.id));
     return a.length < 2 ? null : Ct(U(t, "card-" + e, n, (c) => K(T(c, s).parts), (c, r) => c.closest(a).withFloating({ ghost: { opacity: 0.3 } }).whenFar(r)), t, e, T(t, s).parts, a);
@@ -741,14 +746,14 @@ const Ut = (t, e) => Math.round(t / e) * e, Yn = {
   },
   handleDrag(t, e, n, s) {
     const a = _t(e);
-    if (a) return qn(t, a, e, n, s);
+    if (a) return Xn(t, a, e, n, s);
     const c = e.slice(7), r = t.lanes.findIndex((d) => d.id === c), i = t.lanes[r + 1];
     if (r < 0 || !i) return null;
     const o = mn(t, { laneId: c }), l = t.budget.step, f = (d) => {
       const y = Math.min(o.max, Math.max(o.min, Ut(d, l)));
       return wt(t, i.id, c, y);
-    }, h = T(t, s), x = h.narrow ? Z / t.budget.total : C / t.budget.total, u = h.parts.find((d) => d.name === e), g = U(t, e, n, (d) => K(T(d, s).parts), (d) => d.varyFunc([0], ([y]) => wt(t, i.id, c, y), { constraint: (y) => [
-      ...qt([o.min, y.lanes[r].allocation - t.lanes[r].allocation, o.max])
+    }, h = T(t, s), x = h.narrow ? q / t.budget.total : D / t.budget.total, u = h.parts.find((d) => d.name === e), g = U(t, e, n, (d) => K(T(d, s).parts), (d) => d.varyFunc([0], ([y]) => wt(t, i.id, c, y), { constraint: (y) => [
+      ...Xt([o.min, y.lanes[r].allocation - t.lanes[r].allocation, o.max])
     ] }));
     return (d) => {
       const m = (h.narrow ? d.y - n.y - u.y : d.x - n.x - u.x) / x, M = g?.(d), v = M ? M.lanes[r].allocation - t.lanes[r].allocation : m, w = { next: f(v) };
@@ -768,7 +773,7 @@ const Ut = (t, e) => Math.round(t / e) * e, Yn = {
     return [i ? { kind: "shift_budget", from: { id: r.id }, to: { id: a }, amount: o } : { kind: "shift_budget", from: { id: a }, to: { id: r.id }, amount: o }];
   }
 };
-function qn(t, e, n, s, a) {
+function Xn(t, e, n, s, a) {
   const c = T(t, a), r = c.parts.find((h) => h.name === n);
   if (!r) return null;
   const i = t.budget.total, o = t.budget.step, l = { ...a, gaugeScale: i, ...e === "start" && { gaugeAnchor: "start" } }, f = wn(t);
@@ -779,7 +784,7 @@ function qn(t, e, n, s, a) {
     return { next: typeof d == "string" ? t : d, layout: l, clampedReason: g, refusal: g };
   };
 }
-const Vt = { "launch-plan": ot, "hiring-plan": ot, pipeline: Jn, budget: Yn };
+const Vt = { "launch-plan": ot, "hiring-plan": ot, pipeline: Jn, budget: jn };
 function ne(t, e) {
   Vt[t] = e;
 }
@@ -795,40 +800,40 @@ function ie(t) {
 export {
   le as amountLimits,
   ce as amountOf,
-  ii as amountRules,
+  si as amountRules,
   he as bandOf,
-  si as behaviourEditsBetween,
+  ai as behaviourEditsBetween,
   ie as boardLayoutFor,
   yt as budgetCaption,
   kn as budgetCommitted,
   vn as budgetHeader,
-  Yn as budgetKit,
+  jn as budgetKit,
   T as budgetLayout,
   mn as budgetLimits,
   yn as budgetRefusal,
-  ai as budgetRules,
-  ri as budgetShiftLimits,
-  oi as budgetShiftRefusal,
+  ri as budgetRules,
+  oi as budgetShiftLimits,
+  li as budgetShiftRefusal,
   wn as budgetTotalBounds,
-  li as budgetTotalFixed,
-  wi as byOrder,
+  ci as budgetTotalFixed,
+  ki as byOrder,
   on as cascadeStops,
-  ki as checkNest,
-  Mi as checkNestMove,
+  Mi as checkNest,
+  vi as checkNestMove,
   hn as checkTime,
   Et as clockOf,
   ct as createBoardLayer,
   ue as currencyOf,
   it as dateName,
   de as dayFromWords,
-  Zt as dayMap,
+  qt as dayMap,
   O as dayWords,
   fe as days,
   ge as downstreamTasks,
   sn as dragTaskEdge,
   xe as earliestLaunch,
   pe as edgeValues,
-  vi as extend,
+  Wi as extend,
   me as extendWorkshopEdits,
   ye as goLiveSample,
   Nt as handleLabel,
@@ -839,61 +844,62 @@ export {
   Me as hiringPlanSample,
   un as holdOthers,
   b as inside,
-  Wi as isOrderKey,
+  Si as isOrderKey,
   ji as isOrgChart,
-  B as isoAt,
+  C as isoAt,
   ve as isoTime,
   ee as kitFor,
-  We as launchDayOn,
+  We as landPlanNote,
+  Se as launchDayOn,
   Bt as launchFinish,
   nn as launchHard,
-  Se as launchIndex,
-  D as launchLayout,
+  _e as launchIndex,
+  E as launchLayout,
   Ot as launchLinkRefusal,
   Dt as launchLinkTargets,
   bt as launchOverrun,
-  _e as launchPlanCaption,
+  Le as launchPlanCaption,
   ot as launchPlanKit,
   Qt as launchPlanLimits,
-  Le as launchPlanRefusal,
-  Re as launchPlanRules,
-  $e as launchPlanSample,
-  Te as launchTaskText,
-  ze as launchTooEarly,
+  Re as launchPlanRefusal,
+  $e as launchPlanRules,
+  Te as launchPlanSample,
+  ze as launchTaskText,
+  Ae as launchTooEarly,
   p as layerInk,
   ln as legalRuns,
   H as lineWord,
   $ as money,
   At as moneyExact,
-  Ae as monthNames,
+  Oe as monthNames,
   xt as moveLaunch,
   an as movePlanStart,
-  Si as nestAlias,
-  _i as nestAreas,
-  Yi as nestAxes,
-  Li as nestCardText,
-  Ri as nestDepth,
-  $i as nestDrags,
-  Ti as nestEmptyDrop,
-  zi as nestFamily,
-  Ai as nestKids,
-  Oi as nestLegal,
-  Ei as nestMeasure,
+  _i as nestAlias,
+  Li as nestAreas,
+  Xi as nestAxes,
+  Ri as nestCardText,
+  $i as nestDepth,
+  Ti as nestDrags,
+  zi as nestEmptyDrop,
+  Ai as nestFamily,
+  Oi as nestKids,
+  Ei as nestLegal,
+  Pi as nestMeasure,
   Fi as nestMeasureWords,
-  Pi as nestPlace,
-  qi as nestQuadrants,
-  Bi as nestRoots,
-  Ci as nestRules,
-  Xi as nestScores,
-  Di as nestSentence,
-  Ni as nestSubtree,
-  Oe as nextCardId,
-  Ee as nextMonday,
+  Bi as nestPlace,
+  Zi as nestQuadrants,
+  Ci as nestRoots,
+  Di as nestRules,
+  qi as nestScores,
+  Ni as nestSentence,
+  Ii as nestSubtree,
+  Ee as nextCardId,
+  Pe as nextMonday,
   Fe as noteNumbers,
   at as offsetOf,
-  Ii as orderBetween,
-  Hi as orderKeys,
-  Pe as ownField,
+  Hi as orderBetween,
+  Gi as orderKeys,
+  Be as ownField,
   ut as partNotes,
   K as partsGeometry,
   en as pastTheLine,
@@ -904,59 +910,59 @@ export {
   A as pipelineLayout,
   xn as pipelineLimits,
   pn as pipelineRefusal,
-  ci as pipelineRules,
-  hi as planBudgetMove,
-  Be as planDrags,
-  Ce as planEdit,
-  De as planFixed,
-  Ne as planLaunchPlanMove,
-  ui as planPipelineMove,
-  Ie as planProblem,
-  di as planSamples,
-  He as planStartBy,
+  hi as pipelineRules,
+  ui as planBudgetMove,
+  Ce as planDrags,
+  De as planEdit,
+  Ne as planFixed,
+  Ie as planLaunchPlanMove,
+  di as planPipelineMove,
+  He as planProblem,
+  fi as planSamples,
+  Ge as planStartBy,
   rn as planWeeksProblem,
-  Ge as planWords,
-  Ke as presetRules,
-  Zi as quadrantOf,
-  Ue as readClock,
-  Ve as readNoteNumbers,
+  Ke as planWords,
+  Ue as presetRules,
+  Qi as quadrantOf,
+  Ve as readClock,
+  Je as readNoteNumbers,
   ne as registerBoardKit,
-  Gi as registerNestPlus,
-  Je as renamedNumbers,
+  Ki as registerNestPlus,
+  Ye as renamedNumbers,
   re as renderLayerShapes,
-  fi as restoreWorkshop,
-  Ki as roleOf,
+  gi as restoreWorkshop,
+  Ui as roleOf,
   je as runwayCap,
-  Ye as runwayHeader,
+  Xe as runwayHeader,
   fn as runwayMonths,
   gn as runwayWords,
-  gi as sampleBudget,
-  qe as sampleLaunchPlan,
-  xi as samplePipeline,
+  xi as sampleBudget,
+  Ze as sampleLaunchPlan,
+  pi as samplePipeline,
   G as scheduleLaunch,
-  Qi as scoreBoard,
-  bi as scoresIn,
+  bi as scoreBoard,
+  ts as scoresIn,
   wt as shiftBudget,
   F as shortDate,
-  j as snapStep,
+  Y as snapStep,
   cn as startHandle,
   Q as startHandleCard,
-  Ui as tidyKeys,
-  Xe as timeFamily,
-  Ze as timeRuleKindIds,
-  Qe as timeSentence,
+  Vi as tidyKeys,
+  qe as timeFamily,
+  Qe as timeRuleKindIds,
+  be as timeSentence,
   R as tint,
-  Ft as tryTask,
-  pi as validateBudget,
-  be as validateHiringPlan,
-  ti as validateLaunchPlan,
-  Vi as validateNest,
-  mi as validatePipeline,
+  Pt as tryTask,
+  mi as validateBudget,
+  ti as validateHiringPlan,
+  ni as validateLaunchPlan,
+  Ji as validateNest,
+  yi as validatePipeline,
   pt as weekdayAt,
-  ni as weekendAt,
+  ei as weekendAt,
   rt as withBudgetTotal,
-  Pt as withLink,
-  Xt as withPlanStart,
+  Ft as withLink,
+  Zt as withPlanStart,
   tn as withTaskValue,
   V as workshopEditsBetween
 };
