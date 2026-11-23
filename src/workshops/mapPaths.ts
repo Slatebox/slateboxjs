@@ -77,7 +77,7 @@ export function mapStationAt(board: Workshop, point: { x: number; y: number }): 
 }
 
 /**
- * The grips a map in focus shows, as notes at `origin`: one at each step's top-right corner to draw a new path
+ * The grips a map in focus shows, as notes at `origin`: one at each step's bottom-right corner to draw a new path
  * from it, and one at the end of each path to move that end to another step. Each is a finger's size.
  */
 export function mapGripNotes(board: Workshop, origin: { x: number; y: number }): NodeJSON[] {
@@ -91,7 +91,8 @@ export function mapGripNotes(board: Workshop, origin: { x: number; y: number }):
   const notes: NodeJSON[] = []
   for (const lane of board.lanes) {
     const box = boxes.get(lane.id)
-    if (box) notes.push(grip(LINK + lane.id, box.x + box.width, box.y, 'Draw a path from ' + lane.label, true))
+    // At the step's bottom-right corner: clear of its name and of the gear over the board's top-right corner.
+    if (box) notes.push(grip(LINK + lane.id, box.x + box.width, box.y + box.height, 'Draw a path from ' + lane.label, true))
   }
   for (const s of mapPathSegments(board)) {
     // On the arrowhead, at the edge of the step it leads to, so it reads as the path's end and leaves the rest of

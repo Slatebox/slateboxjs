@@ -90,6 +90,10 @@ test('a map’s paths are fixed outside focus and picked by a click; in focus a 
   await expect(page.locator('#slate [data-node-id^="handle-_"]')).toHaveCount(0)
   // The paths' connectors have no endpoint handles to hover or grab.
   await expect(page.locator('#slate .connector-handle')).toHaveCount(0)
+  // With the token selected first: the pick takes over the selection.
+  const token = await resting(page, 'card-token')
+  await page.mouse.click(token.x + token.width / 2, token.y + token.height / 2)
+  await expect.poll(async () => (await log()).selections.at(-1)).toEqual({ cardId: 'token' })
   const first = await onPath(page, 'request>finance')
   await page.mouse.click(first.x, first.y)
   await expect.poll(async () => (await log()).selections.at(-1)).toEqual({ path: { from: 'request', to: 'finance' } })

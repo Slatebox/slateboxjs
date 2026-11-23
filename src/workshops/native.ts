@@ -313,6 +313,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   const layer = kit?.layer(slate) ?? (value.lanes[0]?.station ? createBoardLayer(slate, paintMap) : undefined)
   /** A map's path picked outside focus ("from>to"), until the selection moves on. */
   let picked: string | null = null
+  /** The notes that were selected when a path was picked (its pick cleared them). */
+  let pickCleared = new Set<string>()
   /** A handle being dragged, and what the pointer last meant. */
   let grip: { name: string; follow: (point: { x: number; y: number }) => HandleResult; last: HandleResult | null } | null = null
   let proposal: Workshop | null = null
@@ -1051,11 +1053,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     if (!options.onSelect || reselecting) return
     const selected: any[] = destroyed ? [] : slate.getSelectedNodes?.() ?? []
     const only = selected.length === 1 && owned.get(selected[0].id) === selected[0] ? kindOf(selected[0].id) : null
-    // A note selected on the slate ends a path's pick.
-    if (selected.length && picked) { picked = null; if (layerShown) paintLayer(layerShown) }
-    const [from, to] = picked && !selected.length ? picked.split('>') : []
+    // A note selected on the slate ends a path's pick (not the selection the pick itself cleared, which may
+    // still be reported while it goes).
+    if (picked && selected.some((node: any) => !pickCleared.has(node.id))) { picked = null; if (layerShown) paintLayer(layerShown) }
+    const [from, to] = picked ? picked.split('>') : []
     const selection: WorkshopSelection = only?.kind === 'card' ? { cardId: only.key } : only?.kind === 'lane' ? { laneId: only.key }
-      : from && to ? { path: { from, to } } : null
+      : from && to && !only ? { path: { from, to } } : null
     const key = selection ? JSON.stringify(selection) : null
     if (key === told) return
     told = key
@@ -2035,8 +2038,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     if (destroyed || focused) return
     // The slate's selection goes first (its change reports the selection afresh), then the path is picked.
     const selected: any[] = slate.getSelectedNodes?.() ?? []
-    if (selected.length) slate.clearSelection?.()
+    pickCleared = new Set(selected.map((node: any) => node.id))
     picked = key
+    if (selected.length) slate.clearSelection?.()
     if (layerShown) paintLayer(layerShown)
     reportSelection()
     const [from, to] = key.split('>')
