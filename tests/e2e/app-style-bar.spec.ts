@@ -224,6 +224,10 @@ test('several notes: "3 notes", mixed shows as mixed, a size never copies one no
     id = await openSlate(page)
     await addNote(page, 'Alpha', 200, 260)
     await addNote(page, 'Beta', 420, 420)
+    // New notes all start as the same 160 by 68 note (first minute): Beta is given its own wider box,
+    // so a size that copied one note's box to the others would show.
+    await page.evaluate(() => { const beta = (window as any).slate.v2.getAllNodes().find((n: any) => n.options.text === 'Beta'); beta.setSize(260, beta.options.height) })
+    await expect.poll(() => page.evaluate(() => Math.round((window as any).slate.v2.getAllNodes().find((n: any) => n.options.text === 'Beta').options.width))).toBe(260)
     const sizes = () => page.evaluate(() => Object.fromEntries((window as any).slate.v2.getAllNodes().map((n: any) => [n.options.text, [Math.round(n.options.width), Math.round(n.options.height)]])))
     await select(page, 'Alpha')
     await bar(page).getByRole('radio', { name: 'Extra large text' }).click()
