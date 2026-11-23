@@ -7,7 +7,8 @@ import { expect, type FrameLocator, type Locator, type Page } from '@playwright/
 export const presenter = (page: Page) => page.getByRole('dialog', { name: 'Presentation', exact: true })
 export const livePresenter = (page: Page) => page.getByRole('dialog', { name: 'Live presentation', exact: true })
 /** The "3 / 7" step counter in the presenter's controls. */
-export const stepCounter = (scope: Page | Locator | FrameLocator) => scope.getByText(/^-?\d+ \/ \d+$/)
+// The presenter's own step counter (its label), not any "2 / 2" a board draws (a lane's count and limit).
+export const stepCounter = (scope: Page | Locator | FrameLocator) => scope.getByLabel('Presentation steps', { exact: true })
 export const camera = (scope: Page | Locator | FrameLocator) => scope.locator('.sb-presentation-camera, .sb-live-stage')
 /**
  * Restated 2026-11-23 (styled presentations): a slate of plain notes plays as a styled deck on a

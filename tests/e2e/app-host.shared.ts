@@ -49,8 +49,9 @@ export async function seedFirstNote(page: Page, text = "Welcome!") {
       shape: "roundedrectangle", backgroundColor: "#40709a", fontColor: "#ffffff", fontFamily: "Manrope", fontSize: 18, borderWidth: 0 });
     return true;
   }, text);
-  await page.locator("#slateCanvas [data-node-id]").filter({ hasText: text }).first().waitFor();
+  // A slate that already holds notes keeps them as they are (its first note may say anything by now).
   if (!added) return;
+  await page.locator("#slateCanvas [data-node-id]").filter({ hasText: text }).first().waitFor();
   const shareId = new URL(page.url()).pathname.split("/").pop();
   for (let tries = 0; tries < 60; tries++) {
     const stored = await page.evaluate(async ([shareId, text]) => {

@@ -76,7 +76,7 @@ test("legacy workshop links open a private slate and preserve native browser his
     expect(lanesUrl).not.toBe(mapUrl);
     await workshopReady(page);
     await expect(messageBox(page)).toBeVisible();
-    await expect(starter(page, "Add a lane called Later")).toBeVisible();
+    await expect(starter(page, "Add a column called Later")).toBeVisible();
     const lanes = await getSlate(page, new URL(lanesUrl).pathname.split("/").pop()!);
     expect(lanes.userId).toBe(actor);
     expect(lanes.options).toMatchObject({isPrivate:true,isPublic:false,isUnlisted:false});
@@ -92,7 +92,7 @@ test("legacy workshop links open a private slate and preserve native browser his
     await page.goForward();
     await expect(page).toHaveURL(lanesUrl);
     await expect(messageBox(page)).toBeVisible();
-    await expect(starter(page, "Add a lane called Later")).toBeVisible();
+    await expect(starter(page, "Add a column called Later")).toBeVisible();
     await expect(page.locator('#slateCanvas [data-node-id="lane-start"]')).toHaveCount(0);
     await expect.poll(() => userId(page)).toBe(actor);
   } finally {

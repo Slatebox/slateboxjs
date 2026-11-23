@@ -104,14 +104,16 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
     await expect(peer.locator(".sb-inline-editor")).toBeVisible();
     await peer.keyboard.type(note);
     await peer.keyboard.press("Enter");
-    const editedNode = (p:Page)=>p.locator("#slateCanvas g[data-node-id]").filter({hasText:note});
+    // The note's words in order (its drawn lines break them where the note wraps).
+    const noteWords = new RegExp(note.split(/\s+/).map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("\\s*"));
+    const editedNode = (p:Page)=>p.locator("#slateCanvas g[data-node-id]").filter({hasText:noteWords});
     await expect(editedNode(peer)).toHaveCount(1);
     await expect(editedNode(owner)).toHaveCount(1,{timeout:25_000});
     const id = await editedNode(peer).getAttribute("data-node-id");
     expect(await editedNode(owner).getAttribute("data-node-id")).toBe(id);
     // Restated 2026-11-21: Present opens the presenter over the slate's own drawing.
     const presentation = await openPresenter(peer);
-    await expect(camera(presentation).locator("svg g[data-node-id]").filter({hasText:note})).toHaveCount(1);
+    await expect(camera(presentation).locator("svg g[data-node-id]").filter({hasText:noteWords})).toHaveCount(1);
     // Restated 2026-11-22 (fix/present-ai): the presenter starts on the plan's overview of the whole
     // slate; the plan shows every note, the teammate's among them (see expectPlanShows).
     const noteIds = await peer.evaluate(()=>[...new Set([...document.querySelectorAll<SVGGElement>("#slateCanvas g[data-node-id]")].map(node=>node.dataset.nodeId!))]);
@@ -197,7 +199,10 @@ test('a registered native editor finds their saved note in Recently joined until
     await page.evaluate(async () => {
       const meteor = (window as any).Meteor
       const sub = await new Promise<{stop():void}>((resolve,reject) => {
-        const h = meteor.subscribe('joinedSlates.index', {onReady:()=>resolve(h), onStop:(e:Error)=>e && reject(e)})
+        // onReady may run before subscribe returns (a subscription already ready): resolve with the handle once both are in.
+        let ready = false, h: {stop():void} | null = null
+        h = meteor.subscribe('joinedSlates.index', {onReady:()=>{ ready = true; if (h) resolve(h) }, onStop:(e:Error)=>e && reject(e)})
+        if (ready) resolve(h!)
       })
       sub.stop()
     })
@@ -247,7 +252,8 @@ test('a registered native editor finds their saved note in Recently joined until
     await observer.mouse.wheel(0,120)
     await expect(viewport).not.toHaveAttribute('viewBox',viewBox!)
     await editNote(owner,node,'Listen for the signal')
-    await expect(observer.locator('#slateCanvas g[data-node-id="'+node+'"]')).toContainText('Listen for the signal')
+    // The note's words as it is named (its drawn lines break the words where the note wraps them).
+    await expect(observer.locator('#slateCanvas g[data-node-id="'+node+'"]')).toHaveAccessibleName('Listen for the signal')
     await expect.poll(async ()=>(await getSlate(owner,key)).nodes.find((n:any)=>n.options.id===node)?.options.text).toBe('Listen for the signal')
     await library(observer)
     await expect(recent(observer)).toHaveCount(0)
@@ -264,12 +270,12 @@ test('a registered native editor finds their saved note in Recently joined until
     const link = recent(editor).filter({hasText:title})
     await expect(link).toHaveAttribute('href',invite.pathname)
     await link.click()
-    await expect(editor.locator('#slateCanvas g[data-node-id="'+node+'"]')).toContainText(note)
+    await expect(editor.locator('#slateCanvas g[data-node-id="'+node+'"]')).toHaveAccessibleName(note)
     const read = await shareAs(owner,'read')
     expect(read.href).toBe(invite.href)
     await library(editor)
     await link.click()
-    await expect(editor.locator('#slateCanvas g[data-node-id="'+node+'"]')).toContainText(note)
+    await expect(editor.locator('#slateCanvas g[data-node-id="'+node+'"]')).toHaveAccessibleName(note)
     await expect(editor.getByRole('button',{name:'Slatebox - quickly add a node'})).toHaveCount(0)
     await library(editor)
     await expect(link).toHaveAttribute('href',read.pathname)

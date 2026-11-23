@@ -263,7 +263,9 @@ test("archived flowchart keeps its wrapped label and connections through repeate
   const action = archived.nodes.find((node: any) => node.options.text === "Action");
   action.options.text = "Inspect the crossing before the last train leaves";
   const id = action.options.id;
-  await openGuestCanvas(page, origin);
+  // From the new slate as /start makes it, empty (first minute): the archive replaces its notes on the
+  // server before the page has written any, so the archive is all the slate holds.
+  await openGuestCanvas(page, origin, {firstNote: null});
   const shareId = new URL(page.url()).pathname.split("/").pop();
   const databaseId = await page.evaluate(async ({shareId, nodes}) => {
     const meteor = (window as any).Meteor;
