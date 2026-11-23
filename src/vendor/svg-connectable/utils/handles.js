@@ -226,9 +226,11 @@ function setupHandleDrag(con, handleObj) {
         clearHitZoneVisualizations(con.container);
       }
 
-      // Let go without moving: the end stays as it was, on its note or free where it is.
+      // Let go without moving: the end stays as it was, on its note or free where it is, and the
+      // click selects its line, as a click on the line does (a short line is mostly its ends).
       if (!moved) {
         dragTarget = null;
+        if (typeof con.onLineClick === "function") con.onLineClick();
         return;
       }
       moved = false;

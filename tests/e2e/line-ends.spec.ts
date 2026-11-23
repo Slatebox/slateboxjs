@@ -113,6 +113,8 @@ test.describe("a selected line's ends", () => {
     await page.waitForTimeout(350);
     expect(await lines(page)).toEqual(before);
     await expect(page.locator("#slateCanvas .connector-handle-target")).toHaveAttribute("aria-label", /end of the line.*follows/i);
+    // The click selects the line, as a click on the line does: its ends stay shown.
+    await expect(page.locator('#slateCanvas .connector-handle-target.connector-handle--revealed')).toHaveCount(1);
     // A free end clicked stays free, where it was.
     await drag(page, await handleAt(page, "target"), { x: 420, y: 600 });
     const free = await lines(page);
