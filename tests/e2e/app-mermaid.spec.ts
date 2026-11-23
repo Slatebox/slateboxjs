@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { randomBytes } from 'node:crypto'
 import { register, retire, type Actor } from './agent-principals.shared'
+import { seedFirstNote } from './app-host.shared'
 
 // Mermaid on every slate, in the app: the slate menu's Mermaid item opens a dialog that shows the
 // slate as Mermaid (copy, download .mmd and .md, other formats) and draws pasted or opened
@@ -27,7 +28,8 @@ async function person(browser: Browser, width: number): Promise<Actor & { key: s
   const actor: Actor = { page, email: `mermaid-${randomBytes(5).toString('hex')}@example.test`, id: null }
   const key = await register(actor, '/start')
   await page.goto(new URL('/canvas/' + key, origin).href)
-  await page.waitForFunction(() => (window as any).__slateboxInstances?.some((s: any) => s.element?.id === 'slateCanvas' && s.nodes.allNodes.length > 0))
+  // A new slate starts empty: its first note, as the welcome's "Add a note" makes it.
+  await seedFirstNote(page)
   const ok = page.getByRole('dialog', { name: /welcome/i }).getByRole('button', { name: 'OK', exact: true })
   if (await ok.waitFor({ timeout: 2500 }).then(() => true, () => false)) await ok.click()
   return { ...actor, key }

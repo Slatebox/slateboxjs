@@ -3,12 +3,15 @@ import { presentToEveryone } from './app-header.shared'
 import { camera, expectFramed, expectPlanShows, expectWholeSlate, litNotes, openPresenter, stepCounter } from './app-presenter.shared'
 import { randomUUID } from 'node:crypto'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from "./workshop-guests.shared";
+import { seedFirstNote } from "./app-host.shared";
 
 const app = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 const homepage = process.env.SLATEBOX_MARKETING_URL;
 const allowed = ["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(app).hostname);
 
 async function ready(page: Page, expectGuestWelcome = false) {
+  // A new slate starts empty: its first note is made as the welcome's "Add a note" makes it (no-op on a slate with notes).
+  await seedFirstNote(page);
   await expect(page.locator("#slateCanvas g[data-node-id]").first()).toBeVisible({timeout:30_000});
   const welcome = page.getByRole("dialog", {name:/welcome/i});
   if (expectGuestWelcome) {

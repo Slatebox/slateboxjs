@@ -23,6 +23,14 @@ async function newSlate(page: Page) {
   await expect.poll(() => userId(page)).toBeTruthy()
   const ok = page.getByRole('dialog', { name: /welcome/i }).getByRole('button', { name: 'OK', exact: true })
   if (await ok.waitFor({ timeout: 4000 }).then(() => true, () => false)) await ok.click()
+  // A new slate starts empty; its first note is the one the welcome's "Add a note" makes.
+  await page.getByRole('button', { name: 'Add a note', exact: true }).click()
+  await expect(page.locator('.sb-inline-editor')).toBeVisible()
+  await page.keyboard.type('Welcome!')
+  await page.keyboard.press('Enter')
+  // Written and no longer selected, as the slate's first note was before it had a welcome.
+  await expect(page.locator('.sb-inline-editor')).toHaveCount(0)
+  await page.keyboard.press('Escape')
   await expect(page.locator('#slateCanvas g[data-node-id]').first()).toBeVisible({ timeout: 20000 })
   return (await userId(page))!
 }
@@ -38,7 +46,7 @@ test('dark mode: the default canvas is dark, black words and a dark line are lif
   try {
     id = await newSlate(page)
     await expect.poll(() => canvas(page)).toEqual({ mark: 'dark', bg: DARK })
-    // The first note: white words on the new default blue, AA.
+    // The first note (made by the welcome): white words on the default blue, AA.
     const first = page.locator('#slateCanvas g[data-node-id]').first()
     await expect(first.locator('[data-node-background-path]')).toHaveCSS('fill', 'rgb(64, 112, 154)')
     await expect(first.locator(':scope > text')).toHaveCSS('fill', 'rgb(255, 255, 255)')

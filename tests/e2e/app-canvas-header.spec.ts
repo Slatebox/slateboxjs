@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { randomBytes } from 'node:crypto'
-import { openGuestCanvas } from './app-host.shared'
+import { openGuestCanvas, seedFirstNote } from './app-host.shared'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 
 // The canvas header: getting around on the left, people and this session on the right, you at the
@@ -355,12 +355,12 @@ test('a signed-in person has the bell and an account menu with Profile, Dark mod
   }, { email, password: randomBytes(20).toString('hex') })
   await page.goto(origin + '/new')
   await page.waitForURL(/\/canvas\//)
-  await page.locator('#slateCanvas [data-node-id]').first().waitFor()
+  await seedFirstNote(page)
   // A notification about this slate, read from another slate.
   const first = await getSlate(page, key(page))
   await page.goto(origin + '/new')
   await page.waitForURL(u => !u.pathname.endsWith(first.shareId) && /\/canvas\//.test(u.pathname))
-  await page.locator('#slateCanvas [data-node-id]').first().waitFor()
+  await seedFirstNote(page)
   await page.evaluate(async ({ slateId, userId }) => {
     // The app's own Messages collection, which lets a signed-in person write a system message to themselves.
     const messages = (window as any).Meteor.connection._stores.messages._getCollection()

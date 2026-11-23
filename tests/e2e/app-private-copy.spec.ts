@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { randomBytes } from "node:crypto";
+import { seedFirstNote } from "./app-host.shared";
 
 const origin = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 
@@ -30,7 +31,8 @@ test("independent copies of private and published slates start private for a fre
     await page.goto(origin + "/new");
     await page.waitForURL(/\/canvas\//);
     const key = new URL(page.url()).pathname.split("/").pop()!;
-    await page.locator("#slateCanvas [data-node-id]").first().waitFor();
+    // A new slate starts empty: its first note, as the welcome's "Add a note" makes it.
+    await seedFirstNote(page);
     const welcome = page.getByRole("dialog", { name: /welcome/i });
     if (await welcome.waitFor({ timeout: 2000 }).then(() => true, () => false)) await welcome.getByRole("button", { name: "OK" }).click();
     const consent = page.getByRole("button", { name: "Accept cookies" });
