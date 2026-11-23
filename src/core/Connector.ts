@@ -304,6 +304,9 @@ export class Connector {
         connectableObj.connector?.attr?.({ "pointer-events": "none", "data-governed": "line" });
         connectableObj.hitArea?.attr?.({ "pointer-events": "none" });
         if (connectableObj.hitArea?.node?.style) connectableObj.hitArea.node.style.cursor = "";
+        // No endpoint handles either: they would lie over the line's ends, show on hover and take the pointer
+        // (a map's paths are changed on purpose, with its host's own controls; boards S2b).
+        connectableObj.setHandleVisibility?.(false);
       }
 
       // Create connection object

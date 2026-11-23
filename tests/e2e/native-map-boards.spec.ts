@@ -88,6 +88,8 @@ test('a map’s paths are fixed outside focus and picked by a click; in focus a 
   const log = () => page.evaluate(() => (window as any).native.log)
   // Outside focus: no grips, and a click on a path picks it (the host offers "Change this board").
   await expect(page.locator('#slate [data-node-id^="handle-_"]')).toHaveCount(0)
+  // The paths' connectors have no endpoint handles to hover or grab.
+  await expect(page.locator('#slate .connector-handle')).toHaveCount(0)
   const first = await onPath(page, 'request>finance')
   await page.mouse.click(first.x, first.y)
   await expect.poll(async () => (await log()).selections.at(-1)).toEqual({ path: { from: 'request', to: 'finance' } })

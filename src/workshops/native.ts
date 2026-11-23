@@ -2033,9 +2033,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   /** A map's path picked outside focus: it is the selection, outlined, and the host offers "Change this board". */
   function pickPath(key: string) {
     if (destroyed || focused) return
-    picked = key
+    // The slate's selection goes first (its change reports the selection afresh), then the path is picked.
     const selected: any[] = slate.getSelectedNodes?.() ?? []
     if (selected.length) slate.clearSelection?.()
+    picked = key
     if (layerShown) paintLayer(layerShown)
     reportSelection()
     const [from, to] = key.split('>')
