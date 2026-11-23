@@ -68,6 +68,12 @@ export const SHAPE_LIMITS = Object.freeze({
   /** A smaller best box than this (each side) means text will not fit well. */
   minTextBox: 0.15,
   maxName: 60,
+  /**
+   * Flattened outline points, all parts together. Curves and arcs are drawn
+   * with fewer steps when a path would go over it, so a check costs about the
+   * same for every path the grammar allows.
+   */
+  maxPoints: 2400,
 });
 
 const MESSAGES: Record<ShapeProblemCode, string> = {
@@ -278,7 +284,7 @@ export function parseShapePath(d: string): SubPath[] {
 
 type Pt = [number, number];
 
-function arcPoints(x0: number, y0: number, s: Extract<Segment, { c: "A" }>): Pt[] {
+function arcPoints(x0: number, y0: number, s: Extract<Segment, { c: "A" }>, perQuarter = 12): Pt[] {
   // SVG arc implementation notes F.6.5 (endpoint to centre parameterisation).
   let { rx, ry } = s;
   const { x, y } = s;
@@ -307,7 +313,7 @@ function arcPoints(x0: number, y0: number, s: Extract<Segment, { c: "A" }>): Pt[
   let delta = angle((x1p - cxp) / rx, (y1p - cyp) / ry, (-x1p - cxp) / rx, (-y1p - cyp) / ry);
   if (!s.sweep && delta > 0) delta -= 2 * Math.PI;
   if (s.sweep && delta < 0) delta += 2 * Math.PI;
-  const steps = Math.max(4, Math.ceil((Math.abs(delta) / (Math.PI / 2)) * 12));
+  const steps = Math.max(2, Math.ceil((Math.abs(delta) / (Math.PI / 2)) * perQuarter));
   const out: Pt[] = [];
   for (let k = 1; k <= steps; k++) {
     const t = theta1 + (delta * k) / steps;
@@ -318,8 +324,20 @@ function arcPoints(x0: number, y0: number, s: Extract<Segment, { c: "A" }>): Pt[
   return out;
 }
 
-/** Each sub-path as a closed polygon (curves flattened). */
+/** Each sub-path as a closed polygon (curves flattened, at most SHAPE_LIMITS.maxPoints points). */
 export function flattenShape(parts: SubPath[]): Pt[][] {
+  // Full detail when it fits the point budget; otherwise fewer steps per curve.
+  let curves = 0, arcs = 0, lines = 0;
+  for (const part of parts) for (const s of part) {
+    if (s.c === "C" || s.c === "Q") curves++;
+    else if (s.c === "A") arcs++;
+    else if (s.c !== "Z") lines++;
+  }
+  const full = lines + curves * 16 + arcs * 48;
+  const k = full > SHAPE_LIMITS.maxPoints ? Math.max(0, SHAPE_LIMITS.maxPoints - lines) / Math.max(1, full - lines) : 1;
+  const cSteps = Math.max(2, Math.floor(16 * k));
+  const qSteps = Math.max(2, Math.floor(12 * k));
+  const arcQuarter = Math.max(0.5, 12 * k);
   const polys: Pt[][] = [];
   for (const part of parts) {
     const poly: Pt[] = [];
@@ -331,8 +349,8 @@ export function flattenShape(parts: SubPath[]): Pt[][] {
           poly.push([s.x, s.y]);
           break;
         case "C":
-          for (let k = 1; k <= 16; k++) {
-            const t = k / 16, u = 1 - t;
+          for (let k = 1; k <= cSteps; k++) {
+            const t = k / cSteps, u = 1 - t;
             poly.push([
               u * u * u * cx + 3 * u * u * t * s.x1 + 3 * u * t * t * s.x2 + t * t * t * s.x,
               u * u * u * cy + 3 * u * u * t * s.y1 + 3 * u * t * t * s.y2 + t * t * t * s.y,
@@ -340,13 +358,13 @@ export function flattenShape(parts: SubPath[]): Pt[][] {
           }
           break;
         case "Q":
-          for (let k = 1; k <= 12; k++) {
-            const t = k / 12, u = 1 - t;
+          for (let k = 1; k <= qSteps; k++) {
+            const t = k / qSteps, u = 1 - t;
             poly.push([u * u * cx + 2 * u * t * s.x1 + t * t * s.x, u * u * cy + 2 * u * t * s.y1 + t * t * s.y]);
           }
           break;
         case "A":
-          poly.push(...arcPoints(cx, cy, s));
+          poly.push(...arcPoints(cx, cy, s, arcQuarter));
           break;
         case "Z":
           break;
@@ -376,46 +394,56 @@ function bounds(polys: Pt[][]) {
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 
-/** Is (px, py) filled, under the fill rule? */
-function inside(polys: Pt[][], px: number, py: number, fillRule: FillRule): boolean {
-  let winding = 0;
-  let crossings = 0;
+const GRID = 48;
+
+/**
+ * Fill along one horizontal line: which of the sample xs (ascending) are
+ * filled at height py, under the fill rule (the winding number of a ray to
+ * the right). Each edge is read once per line, not once per point.
+ */
+function fillAlongRow(polys: Pt[][], py: number, xs: number[], fillRule: FillRule): boolean[] {
+  const crossings: Array<[number, number]> = [];
   for (const poly of polys) {
     for (let i = 0, n = poly.length; i < n; i++) {
       const [x0, y0] = poly[i];
       const [x1, y1] = poly[(i + 1) % n];
+      let dir = 0;
       if (y0 <= py) {
-        if (y1 > py && (x1 - x0) * (py - y0) - (px - x0) * (y1 - y0) > 0) {
-          winding++;
-          crossings++;
-        }
-      } else if (y1 <= py && (x1 - x0) * (py - y0) - (px - x0) * (y1 - y0) < 0) {
-        winding--;
-        crossings++;
-      }
+        if (y1 > py) dir = 1;
+      } else if (y1 <= py) dir = -1;
+      if (dir) crossings.push([x0 + ((py - y0) * (x1 - x0)) / (y1 - y0), dir]);
     }
   }
-  return fillRule === "evenodd" ? crossings % 2 === 1 : winding !== 0;
+  crossings.sort((a, b) => a[0] - b[0]);
+  // Totals of the crossings right of each sample, walking right to left.
+  const out = new Array<boolean>(xs.length);
+  let winding = 0, count = 0, j = crossings.length - 1;
+  for (let i = xs.length - 1; i >= 0; i--) {
+    while (j >= 0 && crossings[j][0] > xs[i]) {
+      winding += crossings[j][1];
+      count++;
+      j--;
+    }
+    out[i] = fillRule === "evenodd" ? count % 2 === 1 : winding !== 0;
+  }
+  return out;
 }
-
-const GRID = 48;
 
 /** Which grid cells of the bounds are wholly filled (corners and centre). */
 function filledCells(polys: Pt[][], fillRule: FillRule): boolean[][] {
   const b = bounds(polys);
-  const at = (fx: number, fy: number) => inside(polys, b.x + fx * b.w, b.y + fy * b.h, fillRule);
+  const edge = (f: number) => Math.min(f, 0.99999) || 0.00001;
+  const latticeXs = Array.from({ length: GRID + 1 }, (_, c) => b.x + edge(c / GRID) * b.w);
+  const centreXs = Array.from({ length: GRID }, (_, c) => b.x + ((c + 0.5) / GRID) * b.w);
   // Sample on a (GRID+1)^2 lattice once, then cells read their four corners.
   const lattice: boolean[][] = [];
-  for (let r = 0; r <= GRID; r++) {
-    lattice[r] = [];
-    for (let c = 0; c <= GRID; c++) lattice[r][c] = at(Math.min(c / GRID, 0.99999) || 0.00001, Math.min(r / GRID, 0.99999) || 0.00001);
-  }
+  for (let r = 0; r <= GRID; r++) lattice[r] = fillAlongRow(polys, b.y + edge(r / GRID) * b.h, latticeXs, fillRule);
   const cells: boolean[][] = [];
   for (let r = 0; r < GRID; r++) {
+    const centre = fillAlongRow(polys, b.y + ((r + 0.5) / GRID) * b.h, centreXs, fillRule);
     cells[r] = [];
     for (let c = 0; c < GRID; c++) {
-      cells[r][c] =
-        lattice[r][c] && lattice[r][c + 1] && lattice[r + 1][c] && lattice[r + 1][c + 1] && at((c + 0.5) / GRID, (r + 0.5) / GRID);
+      cells[r][c] = lattice[r][c] && lattice[r][c + 1] && lattice[r + 1][c] && lattice[r + 1][c + 1] && centre[c];
     }
   }
   return cells;
@@ -423,9 +451,10 @@ function filledCells(polys: Pt[][], fillRule: FillRule): boolean[][] {
 
 function fillFraction(polys: Pt[][], fillRule: FillRule): number {
   const b = bounds(polys);
+  const xs = Array.from({ length: GRID }, (_, c) => b.x + ((c + 0.5) / GRID) * b.w);
   let hit = 0;
   for (let r = 0; r < GRID; r++) {
-    for (let c = 0; c < GRID; c++) if (inside(polys, b.x + ((c + 0.5) / GRID) * b.w, b.y + ((r + 0.5) / GRID) * b.h, fillRule)) hit++;
+    for (const filled of fillAlongRow(polys, b.y + ((r + 0.5) / GRID) * b.h, xs, fillRule)) if (filled) hit++;
   }
   return hit / (GRID * GRID);
 }
@@ -570,9 +599,43 @@ export function cleanShapeName(name: unknown): string | null {
  * normalised, with its aspect and text box. The one entry point for model
  * output, library saves and operation values.
  */
-export function prepareShape(input: { name?: unknown; d?: unknown; fillRule?: unknown; ref?: unknown }):
-  | { ok: true; shape: CustomShape }
-  | { ok: false; code: ShapeProblemCode; message: string } {
+type Prepared = { ok: true; shape: CustomShape } | { ok: false; code: ShapeProblemCode; message: string };
+
+/**
+ * Recent results by input, so one operation that checks a shape, stores it on
+ * many notes and sizes them prepares it once. Results are copied out.
+ */
+const recentlyPrepared = new Map<string, Prepared>();
+const RECENT_LIMIT = 32;
+
+export function prepareShape(input: { name?: unknown; d?: unknown; fillRule?: unknown; ref?: unknown }): Prepared {
+  let key: string | null = null;
+  try {
+    key = JSON.stringify([input?.name ?? null, input?.d ?? null, input?.fillRule ?? null, input?.ref ?? null]);
+  } catch {
+    key = null;
+  }
+  if (key !== null && key.length <= SHAPE_LIMITS.maxInput * 2 + 400) {
+    const hit = recentlyPrepared.get(key);
+    if (hit) return copyPrepared(hit);
+    const result = prepareShapeOnce(input);
+    if (recentlyPrepared.size >= RECENT_LIMIT) recentlyPrepared.delete(recentlyPrepared.keys().next().value as string);
+    recentlyPrepared.set(key, result);
+    return copyPrepared(result);
+  }
+  return prepareShapeOnce(input);
+}
+
+function copyPrepared(result: Prepared): Prepared {
+  if (!result.ok) return { ...result };
+  const { shape } = result;
+  return {
+    ok: true,
+    shape: { ...shape, textBox: shape.textBox ? { ...shape.textBox } : null, ...(shape.ref ? { ref: { ...shape.ref } } : {}) },
+  };
+}
+
+function prepareShapeOnce(input: { name?: unknown; d?: unknown; fillRule?: unknown; ref?: unknown }): Prepared {
   const name = cleanShapeName(input?.name ?? "custom");
   if (!name) return { ok: false, code: "bad_name", message: MESSAGES.bad_name };
   const check = validateShapePath(input?.d, { fillRule: input?.fillRule });
@@ -604,10 +667,11 @@ export function prepareShape(input: { name?: unknown; d?: unknown; fillRule?: un
 
 /** Is this note option set a custom (path) shape rather than a named one? */
 export function isCustomShapeOptions(options: Record<string, any> | undefined): boolean {
-  if (!options) return false;
-  if (options.shape === "custom") return true;
-  const path = String(options.vectorPath || "").trim();
-  return /^[Mm]/.test(path);
+  // The same test as the canvas (Node.isCustomShape): older raw-path notes
+  // (quick-add shapes, theme outlines, icons) carry none of these options.
+  if (!options || options.shape !== "custom") return false;
+  if (!/^[Mm]/.test(String(options.vectorPath || "").trim())) return false;
+  return options.fillRule === "evenodd" || options.fillRule === "nonzero" || options.textBox !== undefined || !!options.shapeRef;
 }
 
 /** Store a prepared shape on note options (the shape of a note the canvas reads back). */
