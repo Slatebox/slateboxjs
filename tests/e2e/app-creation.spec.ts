@@ -28,7 +28,7 @@ test("map entry, gallery and dashboard New open their respective editors", async
     await page.getByRole("button", { name: "Open menu", exact: true }).click();
     await expect(page.getByRole("navigation", { name: "Slatebox" }).getByRole("link", { name: "Create slate" })).toHaveAttribute("href", "/new");
     await page.keyboard.press("Escape");
-    await page.locator(".sb-board-toolbar").getByRole("link", { name: "My Slates" }).click();
+    await page.locator(".sb-board-toolbar").getByRole("link", { name: "My slates" }).click();
     await page.getByRole("button", { name: "New", exact: true }).click();
     await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/);
     const second = page.url();

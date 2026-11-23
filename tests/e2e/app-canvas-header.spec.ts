@@ -38,7 +38,7 @@ test('a guest sees Save your work, the menu, their account menu and no "..." men
   try {
     await expect(button(page, 'Board menu')).toHaveCount(0)
     await expect(button(page, 'Board settings')).toHaveCount(0)
-    await expect(header(page).getByRole('link', { name: 'My Slates', exact: true })).toBeVisible()
+    await expect(header(page).getByRole('link', { name: 'My slates', exact: true })).toBeVisible()
     // A guest has nothing to be notified of yet; their most important action is visible.
     await expect(header(page).getByRole('button', { name: /^Notifications/ })).toHaveCount(0)
     await expect(header(page).getByRole('button', { name: 'Save your work', exact: true })).toBeVisible()
@@ -48,7 +48,7 @@ test('a guest sees Save your work, the menu, their account menu and no "..." men
     await open.click()
     const nav = page.getByRole('navigation', { name: 'Slatebox' })
     await expect(nav.getByRole('link', { name: 'Create slate', exact: true })).toHaveAttribute('href', '/new')
-    await expect(nav.getByRole('link', { name: 'My Slates', exact: true })).toHaveAttribute('href', '/')
+    await expect(nav.getByRole('link', { name: 'My slates', exact: true })).toHaveAttribute('href', '/')
     await expect(nav.getByRole('link', { name: 'Theme library', exact: true })).toHaveAttribute('href', '/themes')
     await expect(nav.getByRole('button', { name: 'Help and support', exact: true })).toBeVisible()
     await expect(nav.getByRole('button', { name: 'Save your work', exact: true })).toBeVisible()
@@ -299,7 +299,7 @@ test('desktop widths keep one row with no overflow; the logo leaves below 1180',
       await expect(header(page).getByRole('button', { name: 'Ask Slatebox', exact: true })).toBeVisible()
       const sizes = await noOverflow(page)
       expect(sizes.title, 'the title keeps room at ' + width).toBeGreaterThanOrEqual(120)
-      const logo = header(page).getByRole('link', { name: 'My Slates', exact: true })
+      const logo = header(page).getByRole('link', { name: 'My slates', exact: true })
       if (width >= 1180) await expect(logo).toBeVisible()
       else await expect(logo).toBeHidden()
       await expect(page.locator('.sb-canvas-bar')).toBeHidden()
@@ -394,7 +394,7 @@ test('a signed-in person has the bell and an account menu with Profile, Dark mod
   await expect(nav.getByRole('link', { name: 'Community slates', exact: true })).toBeVisible()
   await expect(nav.getByRole('link', { name: 'Create team', exact: true })).toBeVisible()
   await expect(nav.getByRole('link', { name: 'Profile', exact: true })).toHaveCount(0)
-  await nav.getByRole('link', { name: 'My Slates', exact: true }).click()
+  await nav.getByRole('link', { name: 'My slates', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(new URL(origin).host + '/$'))
   // Off the canvas the same bell and account menu are in the app bar.
   await expect(page.getByRole('button', { name: /^Notifications/ })).toBeVisible()

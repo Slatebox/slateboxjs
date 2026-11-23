@@ -337,7 +337,7 @@ test('a signed-out whiteboard contributor can choose to keep the original invita
     const invitation = await shareAs(owner, 'edit')
     await peer.goto(invitation.href)
     await ready(peer, true)
-    const keep = peer.getByRole('button', {name:'Keep in My Slates', exact:true})
+    const keep = peer.getByRole('button', {name:'Keep in My slates', exact:true})
     const note = 'Set the cue light beside the sound desk'
     expect(await userId(peer)).toBeNull()
     await editNote(owner, node, 'The cue light is in storage')
@@ -357,7 +357,7 @@ test('a signed-out whiteboard contributor can choose to keep the original invita
     peerId = await userId(peer)
     expect(peerId).not.toBe(ownerId)
     expect(peer.url()).toBe(invitation.href)
-    await expect(peer.getByRole('link', {name:'Open My Slates'})).toHaveAttribute('href', '/')
+    await expect(peer.getByRole('link', {name:'Open My slates'})).toHaveAttribute('href', '/')
     await expect(peer.getByRole('dialog', {name:'Save your work'})).toHaveCount(0)
 
     // Start at the library in a new tab without reusing the invitation URL.
