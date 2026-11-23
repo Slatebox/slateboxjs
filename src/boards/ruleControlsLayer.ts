@@ -1,17 +1,328 @@
-// The rule controls' drawing (library spec §4.3): native chrome shapes in the board layer, beside
-// boardChromeShapes, on both engine shapes (SVG.js and the legacy one). Never an HTML overlay.
+// The rule controls' drawing (library spec §4.3): native shapes in the board's own layer (a group of
+// the slate's canvas, in board coordinates, beside the chrome's), never an HTML overlay. Drawn with
+// the canvas's own SVG document, as the chrome and the board layer are, so it is the same on both
+// engine shapes (SVG.js and the legacy one): it only needs the slate's canvas node.
 //
-// FOUNDATION stub: draws nothing. BUILDER replaces it.
-import type { RuleControl } from '../workshops/ruleControls'
+// Every control is a real button: a pointer taps or drags it, a finger the same (44 by 44 at the
+// chrome's scale), a long press or a right-click holds it, and the keyboard reaches it with Tab
+// (Enter or Space taps, the arrows drag a step, Shift+Enter holds, Delete removes). A gesture becomes
+// the control's edits, handed to the host (onRuleEdit), which saves them through the same door a drag
+// takes. While the host saves, the control says so; then it flashes its new sentence beside itself.
+import type { RuleControl, RuleControlLook } from '../workshops/ruleControls'
 import type { WorkshopEdit } from '../workshops/edits'
 
 export interface RuleControlsLayerOptions {
+  /** The edits a gesture made, and what the control says it does; true once they are saved. */
   onRuleEdit?: (edits: WorkshopEdit[], sentence: string) => Promise<boolean> | boolean
+  /** Where the board's origin is (world units): the layer is drawn in board coordinates. */
+  origin?: { x: number; y: number }
+  /** Tell a screen reader something (the host's live region). */
+  announce?: (text: string) => void
 }
 
-export interface RuleControlsLayer { update(controls: RuleControl[]): void; remove(): void }
+export interface RuleControlsLayer {
+  update(controls: RuleControl[], origin?: { x: number; y: number }): void
+  remove(): void
+}
 
-/** Draw a board's rule controls on `slate`. The stub draws nothing. */
-export function drawRuleControls(_slate: unknown, _boardId: string, _controls: RuleControl[], _options: RuleControlsLayerOptions = {}): RuleControlsLayer {
-  return { update() {}, remove() {} }
+const svgNS = 'http://www.w3.org/2000/svg'
+/** The controls' colours: the chrome's tokens (light and dark), with these defaults behind them. */
+export const controlInk = {
+  on: 'var(--slatebox-board-focus, #1f4a3a)',
+  onInk: 'var(--slatebox-board-focus-ink, #ffffff)',
+  off: 'var(--slatebox-board-badge, #ffffff)',
+  offLine: 'var(--slatebox-board-control-line, #9aa69f)',
+  ink: 'var(--slatebox-board-ink, #34433f)',
+  line: 'var(--slatebox-board-accept, #1f7a5c)',
+  warn: 'var(--slatebox-board-preview, #a8761b)',
+  refuse: 'var(--slatebox-board-refuse, #c2410c)',
+  halo: 'var(--slatebox-board-halo, #ffffff)',
+  ghost: 'var(--slatebox-board-grid, #b9c2bb)',
+  chip: 'var(--slatebox-board-chip, #f2efe4)',
+}
+const font = 'var(--slatebox-board-font, system-ui, sans-serif)'
+const fallback = (color: string) => /var\([^,]+,\s*([^)]+)\)/.exec(color)?.[1].trim() ?? color
+
+function el(name: string, attributes: Record<string, string | number>, paint?: { fill?: string; stroke?: string }) {
+  const node = document.createElementNS(svgNS, name) as SVGElement
+  for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, String(value))
+  if (paint?.fill) { node.setAttribute('fill', fallback(paint.fill)); node.style.setProperty('fill', paint.fill) }
+  if (paint?.stroke) { node.setAttribute('stroke', fallback(paint.stroke)); node.style.setProperty('stroke', paint.stroke) }
+  return node
+}
+
+/** A control's glyph, in a 12 by 12 box at (x, y), `size` wide. */
+function glyph(icon: RuleControlLook['icon'], x: number, y: number, size: number, color: string): SVGElement | null {
+  const d: Record<string, string> = {
+    bin: 'M2 3 L10 3 M4.5 3 L4.5 1.5 L7.5 1.5 L7.5 3 M3 3 L3.8 11 L8.2 11 L9 3',
+    gate: 'M3 6 L9 6 L9 11 L3 11 Z M4.5 6 L4.5 4 Q6 1.5 7.5 4 L7.5 6',
+    oneway: 'M1 6 L10 6 M7 3 L10 6 L7 9',
+    twoway: 'M1 6 L11 6 M4 3 L1 6 L4 9 M8 3 L11 6 L8 9',
+    step: 'M4 2 L8 6 L4 10',
+    minus: 'M2.5 6 L9.5 6',
+    plus: 'M2.5 6 L9.5 6 M6 2.5 L6 9.5',
+    flag: 'M3 11 L3 1.5 L10 3.5 L3 6',
+    push: 'M1 6 L7 6 M4.5 3.5 L7 6 L4.5 8.5 M9.5 2 L9.5 10',
+    snap: 'M1 2 L1 10 M4 2 L4 10 M7 2 L7 10 M10 2 L10 10 M1 6 L10 6',
+    drop: 'M6 1 L6 8 M3 5 L6 8 L9 5 M2 11 L10 11',
+    rank: 'M2 10 L2 6 M6 10 L6 3 M10 10 L10 1',
+    depth: 'M3 1 L3 11 M9 1 L9 11 M3 3 L9 3 M3 6 L9 6 M3 9 L9 9',
+    holds: 'M6 1 L6 4 M2 7 L2 11 M6 7 L6 11 M10 7 L10 11 M2 7 L10 7 M6 4 L6 7',
+  }
+  if (!icon || !d[icon]) return null
+  const s = size / 12
+  return el('path', { d: d[icon], transform: `translate(${x} ${y}) scale(${s})`, fill: 'none', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+    'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, { stroke: color })
+}
+
+function text(x: number, y: number, words: string, size: number, color: string, anchor: 'start' | 'middle' = 'start', bold = false, halo = false) {
+  const node = el('text', { x, y, 'font-size': size, 'text-anchor': anchor, 'font-family': 'system-ui, sans-serif', 'pointer-events': 'none', ...(bold ? { 'font-weight': 600 } : {}),
+    ...(halo ? { 'stroke-width': 4, 'stroke-linejoin': 'round', 'paint-order': 'stroke' } : {}) }, { fill: color, ...(halo ? { stroke: controlInk.halo } : {}) })
+  node.style.setProperty('font-family', font)
+  node.textContent = words
+  return node
+}
+
+const round = (x: number, y: number, w: number, h: number, r: number) =>
+  `M${x + r},${y} H${x + w - r} A${r},${r} 0 0 1 ${x + w},${y + r} V${y + h - r} A${r},${r} 0 0 1 ${x + w - r},${y + h} H${x + r} A${r},${r} 0 0 1 ${x},${y + h - r} V${y + r} A${r},${r} 0 0 1 ${x + r},${y} Z`
+
+/** The visible part of one control (the hit area is drawn separately), at a drag offset. */
+function drawLook(control: RuleControl, offset: { dx: number; dy: number }, said: string | null, busy: boolean): SVGGElement {
+  const g = el('g', { 'pointer-events': 'none' }) as SVGGElement
+  const { hit, look } = control
+  const k = hit.height / 44
+  const cx = hit.x + hit.width / 2, cy = hit.y + hit.height / 2
+  const color = look.warn ? controlInk.warn : controlInk.line
+  if (look.shape === 'line') {
+    const y = (look.y ?? cy) + offset.dy
+    g.appendChild(el('line', { x1: look.x1 ?? hit.x, x2: look.x2 ?? hit.x + hit.width, y1: y, y2: y, 'stroke-width': look.on ? 2.5 : 1.5, 'stroke-dasharray': look.on ? '8 5' : '3 5',
+      'stroke-linecap': 'round', ...(look.on ? {} : { opacity: 0.7 }) }, { stroke: look.on ? color : controlInk.offLine }))
+    const words = said ?? look.label ?? ''
+    const w = Math.max(84 * k, (words.length * 13 * 0.56 + 40) * k), h = 26 * k
+    g.appendChild(el('path', { d: round(cx - w / 2, y - h / 2, w, h, h / 2), 'stroke-width': 1.5 }, { fill: look.on ? controlInk.off : controlInk.chip, stroke: look.on ? color : controlInk.offLine }))
+    // The grip: up and down chevrons, a line to drag.
+    g.appendChild(el('path', { d: `M${cx - w / 2 + 10 * k} ${y - 2 * k} l${4 * k} ${-4 * k} l${4 * k} ${4 * k} M${cx - w / 2 + 10 * k} ${y + 2 * k} l${4 * k} ${4 * k} l${4 * k} ${-4 * k}`,
+      fill: 'none', 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, { stroke: look.on ? color : controlInk.ink }))
+    g.appendChild(text(cx + 8 * k, y + 4.5 * k, busy ? 'Saving…' : words, 13 * k, look.on ? controlInk.ink : controlInk.ink, 'middle', Boolean(look.on)))
+  } else if (look.shape === 'chip') {
+    const h = 30 * k, y = cy - h / 2
+    g.appendChild(el('path', { d: round(hit.x, y, hit.width, h, h / 2), 'stroke-width': 1.2, ...(look.warn ? { 'stroke-dasharray': '3 3' } : {}) },
+      { fill: look.on ? controlInk.on : controlInk.chip, stroke: look.on ? controlInk.on : controlInk.offLine }))
+    const ink = look.on ? controlInk.onInk : controlInk.ink
+    const icon = glyph(look.icon, hit.x + 12 * k, cy - 6.5 * k, 13 * k, ink)
+    if (icon) g.appendChild(icon)
+    g.appendChild(text(hit.x + (icon ? 32 : 14) * k, cy + 4.5 * k, busy ? 'Saving…' : look.label ?? '', 13 * k, ink, 'start', Boolean(look.on)))
+  } else if (look.shape === 'badge' || look.shape === 'step') {
+    const r = (look.shape === 'step' ? 13 : 15) * k
+    const filled = look.shape === 'badge' ? Boolean(look.on) : false
+    g.appendChild(el('circle', { cx, cy, r, 'stroke-width': 1.4, ...(look.shape === 'badge' && !look.on ? { 'stroke-dasharray': '3 3' } : {}) },
+      { fill: filled ? controlInk.on : controlInk.off, stroke: filled ? controlInk.on : look.shape === 'step' && look.on ? color : controlInk.offLine }))
+    const icon = glyph(look.icon, cx - 7 * k, cy - 7 * k, 14 * k, filled ? controlInk.onInk : look.on || look.shape === 'step' ? controlInk.ink : controlInk.offLine)
+    if (icon) g.appendChild(icon)
+    if (busy) g.appendChild(el('circle', { cx, cy, r: r + 3 * k, fill: 'none', 'stroke-width': 2, 'stroke-dasharray': '4 4' }, { stroke: controlInk.line }))
+  } else if (look.shape === 'ghost') {
+    g.appendChild(el('path', { d: round(hit.x, hit.y, hit.width, hit.height, 10 * k), 'stroke-width': 1.6, 'stroke-dasharray': '6 5' }, { fill: 'none', stroke: controlInk.ghost }))
+    const icon = glyph('plus', cx - 9 * k, cy - 16 * k, 18 * k, controlInk.ink)
+    if (icon) g.appendChild(icon)
+    g.appendChild(text(cx, cy + 18 * k, busy ? 'Adding…' : 'Column', 12 * k, controlInk.ink, 'middle'))
+  } else if (look.shape === 'ladder') {
+    const x = look.x1 ?? cx, top = look.y ?? hit.y, gap = look.rungGap ?? 30 * k, rungs = look.rungs ?? 6
+    const lit = Math.max(1, Math.min(rungs, Math.round((look.lit ?? rungs) + offset.dy / gap)))
+    const bottom = top + (rungs - 1) * gap
+    for (const side of [-10 * k, 10 * k]) g.appendChild(el('line', { x1: x + side, x2: x + side, y1: top - 6 * k, y2: bottom + 6 * k, 'stroke-width': 1.5 }, { stroke: controlInk.offLine }))
+    for (let i = 0; i < rungs; i++) {
+      const on = i < lit && (look.on || offset.dy !== 0)
+      g.appendChild(el('line', { x1: x - 10 * k, x2: x + 10 * k, y1: top + i * gap, y2: top + i * gap, 'stroke-width': on ? 3 : 1.5, 'stroke-linecap': 'round' }, { stroke: on ? color : controlInk.offLine }))
+    }
+    const y = top + (lit - 1) * gap
+    const words = said ?? look.label ?? ''
+    g.appendChild(el('circle', { cx: x, cy: y, r: 12 * k, 'stroke-width': 1.6 }, { fill: controlInk.off, stroke: look.on ? color : controlInk.ink }))
+    g.appendChild(el('path', { d: `M${x - 4 * k} ${y - 1 * k} l${4 * k} ${-4 * k} l${4 * k} ${4 * k} M${x - 4 * k} ${y + 1 * k} l${4 * k} ${4 * k} l${4 * k} ${-4 * k}`, fill: 'none', 'stroke-width': 1.5 }, { stroke: controlInk.ink }))
+    g.appendChild(text(x, top - 16 * k, busy ? 'Saving…' : 'Depth', 12 * k, controlInk.ink, 'middle', true, true))
+    if (said || offset.dy) g.appendChild(text(x + 18 * k, y + 4 * k, words, 12 * k, controlInk.ink, 'start', true, true))
+  }
+  return g
+}
+
+/** Draw a board's rule controls on `slate`, in board coordinates at `options.origin`. */
+export function drawRuleControls(slate: unknown, boardId: string, controls: RuleControl[], options: RuleControlsLayerOptions = {}): RuleControlsLayer {
+  const root: SVGSVGElement | undefined = (slate as { canvas?: { node?: SVGSVGElement } } | null)?.canvas?.node
+  if (!root || typeof document === 'undefined') return { update() {}, remove() {} }
+  const group = document.createElementNS(svgNS, 'g') as SVGGElement
+  group.setAttribute('data-rule-controls', '')
+  group.setAttribute('data-board-scope', boardId)
+  group.setAttribute('role', 'group')
+  group.setAttribute('aria-label', 'How this board behaves: controls')
+  let current = controls
+  let origin = options.origin ?? { x: 0, y: 0 }
+  let gone = false
+  /** A control waiting for its save, and the one that flashes its sentence. */
+  let busy: string | null = null
+  let flash: { id: string; ok: boolean; until: number } | null = null
+  let flashTimer: ReturnType<typeof setTimeout> | undefined
+  /** A drag in progress: the control, where it began, and how far it has gone. */
+  type Held = { control: RuleControl; start: { x: number; y: number }; delta: { dx: number; dy: number }; moved: boolean; holdTimer?: ReturnType<typeof setTimeout>; holdDone: boolean; pointerId: number }
+  let held = null as Held | null
+
+  const toBoard = (event: PointerEvent) => {
+    const matrix = group.getScreenCTM?.()
+    if (!matrix || typeof root.createSVGPoint !== 'function') return { x: event.clientX, y: event.clientY }
+    const point = root.createSVGPoint()
+    point.x = event.clientX
+    point.y = event.clientY
+    const at = point.matrixTransform(matrix.inverse())
+    return { x: at.x, y: at.y }
+  }
+
+  async function commit(control: RuleControl, edits: WorkshopEdit[] | undefined, said: string) {
+    if (!edits?.length || busy || gone) return
+    busy = control.id
+    render()
+    let ok = false
+    try { ok = Boolean(await options.onRuleEdit?.(edits, said)) } catch { ok = false }
+    busy = null
+    if (gone) return
+    flash = { id: control.id, ok, until: Date.now() + 2000 }
+    clearTimeout(flashTimer)
+    flashTimer = setTimeout(() => { flash = null; render() }, 2000)
+    render()
+    const now = current.find(item => item.id === control.id)
+    options.announce?.(ok ? (now?.state.sentence ?? said) + '.' : 'Not changed.')
+  }
+
+  function render() {
+    if (gone) return
+    const active = document.activeElement
+    const focused = active && group.contains(active) ? active.getAttribute('data-rule-control') : null
+    while (group.firstChild) group.removeChild(group.firstChild)
+    group.setAttribute('transform', `translate(${origin.x} ${origin.y})`)
+    for (const control of current) {
+      const dragging = held?.control.id === control.id && held.moved
+      const offset = dragging ? held!.delta : { dx: 0, dy: 0 }
+      const said = dragging ? control.gestures.preview?.(offset) ?? null : null
+      const item = el('g', { 'data-rule-control': control.id, 'data-primitive': control.primitive, role: control.gestures.drag ? 'slider' : 'button', tabindex: 0,
+        'aria-label': control.label, ...(control.look.on !== undefined && !control.gestures.drag ? { 'aria-pressed': String(Boolean(control.look.on)) } : {}),
+        ...(control.gestures.drag ? { 'aria-valuetext': control.state.sentence } : {}), cursor: control.gestures.drag ? (control.gestures.axis === 'x' ? 'ew-resize' : 'ns-resize') : 'pointer' }) as SVGGElement
+      item.style.setProperty('outline', 'none')
+      item.appendChild(drawLook(control, offset, said, busy === control.id))
+      const { hit } = control
+      // The hit area: a finger's size at least, and follows a dragged line.
+      const area = el('rect', { x: hit.x, y: hit.y + (control.look.shape === 'line' || control.look.shape === 'ladder' ? offset.dy : 0), width: hit.width, height: hit.height,
+        rx: Math.min(hit.width, hit.height) / 2, 'pointer-events': 'all', 'data-rule-hit': '' }, { fill: 'transparent' })
+      area.style.setProperty('touch-action', 'none')
+      item.appendChild(area)
+      // The keyboard's focus shows as a ring.
+      const ring = el('rect', { x: hit.x - 3, y: hit.y - 3 + (control.look.shape === 'line' ? offset.dy : 0), width: hit.width + 6, height: hit.height + 6, rx: Math.min(hit.width, hit.height) / 2 + 3,
+        fill: 'none', 'stroke-width': 2.5, 'pointer-events': 'none', 'data-rule-focus': '', opacity: 0 }, { stroke: controlInk.line })
+      item.appendChild(ring)
+      item.addEventListener('focus', () => ring.setAttribute('opacity', '1'))
+      item.addEventListener('blur', () => ring.setAttribute('opacity', '0'))
+      wire(item, control)
+      if (flash?.id === control.id && flash.until > Date.now()) {
+        const words = flash.ok ? control.state.sentence : 'Not changed'
+        item.appendChild(text(hit.x + hit.width / 2, hit.y - 8 * (hit.height / 44), words, 13 * (hit.height / 44), flash.ok ? controlInk.line : controlInk.refuse, 'middle', true, true))
+        item.setAttribute('data-rule-flash', words)
+      }
+      group.appendChild(item)
+    }
+    // Above every note of the slate, as the chrome's badges are.
+    if (root!.lastChild !== group) root!.appendChild(group)
+    if (focused) (group.querySelector(`[data-rule-control="${CSS.escape ? CSS.escape(focused) : focused}"]`) as SVGGElement | null)?.focus({ preventScroll: true })
+  }
+
+  function wire(item: SVGGElement, control: RuleControl) {
+    const stop = (event: Event) => event.stopPropagation()
+    item.addEventListener('mousedown', stop)
+    item.addEventListener('touchstart', stop, { passive: true })
+    item.addEventListener('dblclick', event => { event.stopPropagation(); event.preventDefault() })
+    item.addEventListener('pointerdown', event => {
+      event.stopPropagation()
+      event.preventDefault()
+      if (busy || held) return
+      const mine: Held = { control, start: toBoard(event), delta: { dx: 0, dy: 0 }, moved: false, holdDone: false, pointerId: event.pointerId }
+      held = mine
+      // The drag is followed on the window: the control is drawn again as it moves.
+      const move = (moved: PointerEvent) => {
+        if (held !== mine || moved.pointerId !== mine.pointerId) return
+        const at = toBoard(moved)
+        const delta = { dx: at.x - mine.start.x, dy: at.y - mine.start.y }
+        if (!mine.moved && Math.hypot(delta.dx, delta.dy) < 5) return
+        if (!mine.control.gestures.drag) return
+        moved.preventDefault()
+        mine.moved = true
+        clearTimeout(mine.holdTimer)
+        mine.delta = mine.control.gestures.axis === 'x' ? { dx: delta.dx, dy: 0 } : { dx: 0, dy: delta.dy }
+        render()
+      }
+      const finish = (ended: PointerEvent) => {
+        if (ended.pointerId !== mine.pointerId) return
+        window.removeEventListener('pointermove', move, true)
+        window.removeEventListener('pointerup', finish, true)
+        window.removeEventListener('pointercancel', finish, true)
+        if (held !== mine) return
+        held = null
+        clearTimeout(mine.holdTimer)
+        const live = mine.control
+        if (ended.type === 'pointercancel' || mine.holdDone) { render(); return }
+        ended.stopPropagation()
+        if (mine.moved && live.gestures.drag) {
+          const said = live.gestures.preview?.(mine.delta) ?? live.label
+          const edits = live.gestures.drag(mine.delta)
+          render()
+          void commit(live, edits, said)
+        } else if (live.gestures.tap) void commit(live, live.gestures.tap, live.label)
+        else render()
+      }
+      window.addEventListener('pointermove', move, true)
+      window.addEventListener('pointerup', finish, true)
+      window.addEventListener('pointercancel', finish, true)
+      if (control.gestures.hold) {
+        mine.holdTimer = setTimeout(() => {
+          if (held !== mine || mine.moved) return
+          mine.holdDone = true
+          void commit(mine.control, mine.control.gestures.hold, mine.control.label)
+        }, 550)
+      }
+    })
+    item.addEventListener('click', stop)
+    item.addEventListener('contextmenu', event => {
+      event.preventDefault()
+      event.stopPropagation()
+      if (control.gestures.hold) void commit(control, control.gestures.hold, control.label)
+    })
+    item.addEventListener('keydown', event => {
+      const key = event.key
+      const { gestures } = control
+      let edits: WorkshopEdit[] | undefined
+      if ((key === 'Enter' || key === ' ') && event.shiftKey && gestures.hold) edits = gestures.hold
+      else if (key === 'Enter' || key === ' ') edits = gestures.tap
+      else if ((key === 'Delete' || key === 'Backspace') && gestures.remove) edits = gestures.remove
+      else if (gestures.drag && gestures.step && /^Arrow(Up|Down|Left|Right)$/.test(key)) {
+        const sign = key === 'ArrowUp' || key === 'ArrowLeft' ? -1 : 1
+        edits = gestures.drag(gestures.axis === 'x' ? { dx: sign * gestures.step, dy: 0 } : { dx: 0, dy: sign * gestures.step })
+      } else return
+      event.preventDefault()
+      event.stopPropagation()
+      void commit(control, edits, control.label)
+    })
+  }
+
+  render()
+  return {
+    update(next, at) {
+      if (gone) return
+      current = next
+      if (at) origin = at
+      // A drag in progress keeps going on the control it began on, as long as it is still there.
+      if (held && !next.some(item => item.id === held!.control.id)) held = null
+      else if (held) held = { ...held, control: next.find(item => item.id === held!.control.id)! }
+      render()
+    },
+    remove() {
+      gone = true
+      clearTimeout(flashTimer)
+      if (held) clearTimeout(held.holdTimer)
+      group.remove()
+    },
+  }
 }

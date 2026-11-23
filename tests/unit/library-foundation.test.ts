@@ -27,8 +27,9 @@ describe('library foundation', () => {
     expect(() => validateWorkshop(forged as Workshop)).toThrow()
   })
 
-  it('the entry points exist: no controls yet, a layer that draws nothing, a still renderer not built yet', () => {
-    expect(ruleControls(team, null)).toEqual([])
+  it('the entry points exist: the rule controls (tests/unit/rule-controls.test.ts), a layer that draws nothing without a canvas, a still renderer not built yet', () => {
+    // Superseded stub: BUILDER filled ruleControls. Without the board's drawn places only its board-wide rail shows.
+    expect(ruleControls(team, null).map(control => control.id)).toEqual(['path:any'])
     const layer = drawRuleControls(null, 'main', [])
     expect(() => { layer.update([]); layer.remove() }).not.toThrow()
     expect(() => renderStill(null, {})).toThrow(/not built yet/)
