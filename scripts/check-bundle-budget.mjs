@@ -37,6 +37,14 @@ const ceilings = {
   'workshop-samples.mjs': { raw: 9500, gzip: 3000 },
   // The library of what can be added (pure data): loaded when the library opens.
   'catalog.mjs': { raw: 16000, gzip: 5000 },
+  // slateboxjs/canvas: the canvas alone, what a page that only draws slates loads first (its own build,
+  // vite.canvas.config.ts): a small entry and the chunk it shares with its parts. Measured at its first build
+  // (585,560 / 161,180 for the chunk), plus a little.
+  'canvas.mjs': { raw: 1000, gzip: 500 },
+  'canvas-canvas-*.mjs': { raw: 600000, gzip: 166000 },
+  // Its parts that wait for a person or a request: the line tool, and the bird's-eye view.
+  'canvas-LineTool-*.mjs': { raw: 7000, gzip: 2600 },
+  'canvas-BirdsEye-*.mjs': { raw: 19000, gzip: 5200 },
 }
 
 const dist = readdirSync(new URL('../dist/', import.meta.url))
@@ -96,6 +104,39 @@ if (!importsOf('workshop-samples.mjs').includes('./workshop-rules.mjs')) problem
 // The agents' drawing stays out of the canvas entry, and the presence entry shares no chunk.
 if (read('slateboxjs.mjs').toString('utf8').includes('data-agent-presence')) problems.push('slateboxjs.mjs carries the agents\' drawing: it belongs to the presence entry.')
 if (importsOf('presence.mjs').some(target => target.startsWith('./'))) problems.push('presence.mjs must stand alone (no shared chunk).')
+
+// slateboxjs/canvas as a page serves it first: the entry and every chunk it imports up front, each with its
+// whitespace taken out and gzip -9, summed (the site's build, slatebox-home scripts/build-engine.sh, and its
+// first-load ceiling of 138,000 bytes). None of them carries the parts it loads on first use, the v1 facade or the
+// whole-slate operations, or yjs (the host's peer, loaded when a slate goes live).
+{
+  const { createRequire } = await import('node:module')
+  const esbuild = createRequire(import.meta.url)('esbuild')
+  const staticImports = text => [...text.matchAll(/(?:^|[;\n])\s*(?:import|export)\s[^;]*?from\s*["']([^"']+)["']|(?:^|[;\n])\s*import\s*["']([^"']+)["']/g)].map(match => match[1] ?? match[2])
+  const first = [], seen = new Set(), queue = ['canvas.mjs']
+  while (queue.length) {
+    const name = queue.shift()
+    if (seen.has(name)) continue
+    seen.add(name)
+    first.push(name)
+    for (const target of staticImports(read(name).toString('utf8'))) {
+      if (!target.startsWith('./')) { if (!/^(yjs|y-websocket)$/.test(target)) problems.push(`canvas.mjs loads ${target} up front (from ${name}).`); continue }
+      const file = target.slice(2)
+      if (!file.startsWith('canvas-')) problems.push(`${name} imports ${file}: the canvas loads only its own chunks.`)
+      queue.push(file)
+    }
+  }
+  const texts = first.map(name => read(name).toString('utf8'))
+  const firstLoad = texts.reduce((sum, text) => sum + gzipSync(esbuild.transformSync(text, { minifyWhitespace: true, format: 'esm', target: 'es2020', legalComments: 'none' }).code, { level: 9 }).length, 0)
+  rows.push({ entry: 'slateboxjs/canvas first load (' + first.length + ' files, as a page serves them)', raw: '', 'raw ceiling': '', gzip: firstLoad, 'gzip ceiling': 138000 })
+  if (firstLoad > 138000) problems.push(`slateboxjs/canvas's first load (${first.join(', ')}), served without whitespace, is ${firstLoad} bytes gzip, over the 138,000 a page's first load allows.`)
+  const all = texts.join('\n')
+  const later = [...all.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g)].map(match => match[1])
+  for (const part of ['LineTool', 'BirdsEye']) if (!later.some(target => target.includes('canvas-' + part + '-'))) problems.push(`slateboxjs/canvas does not load its ${part} chunk on first use.`)
+  if (/LINE_TOOL: press failed|BIRDSEYE_DEBUG/.test(all)) problems.push('slateboxjs/canvas carries the line tool or the bird\'s-eye view in its first load: they load on first use.')
+  if (/SLATEBOX_COMPAT|invalid_operation_plan/.test(all)) problems.push('slateboxjs/canvas carries the v1 facade or the whole-slate operations: they belong to the main entry.')
+  if (/^\s*import[^;]*from\s*["'](yjs|y-websocket)["']/m.test(all)) problems.push('slateboxjs/canvas imports yjs up front: it loads only when a slate goes live.')
+}
 
 // What a plain slate pays over release/combined 5d21cac (canvas + model, gzip -9): at most +10.2 KB (build spec §2.3).
 const plain = ['slateboxjs.mjs', 'workshop-model.mjs'].reduce((sum, name) => sum + (rows.find(row => row.entry === name)?.gzip ?? 0), 0)

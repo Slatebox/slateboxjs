@@ -3,7 +3,7 @@ import { Node, NodeOptions } from "./Node";
 import { NodesManager } from "./NodesManager";
 import { Invoker } from "./Invoker";
 import { PanZoom, PanZoomOptions } from "./PanZoom";
-import { BirdsEye, BirdsEyeOptions } from "./BirdsEye";
+import type { BirdsEye, BirdsEyeOptions } from "./BirdsEye";
 import {
   serialize,
   deserialize,
@@ -30,7 +30,8 @@ import {
 } from "./Layout";
 import { Association } from "./Relationship";
 import type { EndAnchor, EndState, LineEnd } from "./LineEnds";
-import { startLineTool, type LineToolResult } from "./LineTool";
+import type { LineToolResult } from "./LineTool";
+import { birdsEyeNow, lineToolNow, loadBirdsEye, loadLineTool } from "./slateParts";
 import { alignPositions, distributePositions, type AlignMode, type LayoutBox, type Position } from "../operations/layout";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
@@ -251,6 +252,11 @@ export class Slate {
   public nodes!: NodesManager;
   public invoker!: Invoker;
   public panZoom!: PanZoom;
+  /**
+   * The bird's-eye view. With the main entry (slateboxjs) it is always here; with the canvas entry
+   * (slateboxjs/canvas) it is created only for a slate that asks for it (options.birdsEye.enabled), once its
+   * code has loaded, and is undefined until then.
+   */
   public birdsEye!: BirdsEye;
   public undoRedo!: UndoRedo;
   public multiSelection!: MultiSelection;
@@ -521,13 +527,22 @@ export class Slate {
     // Initialize pan/zoom functionality
     this.panZoom = new PanZoom(this, this.options.panZoom);
 
-    // Initialize birds eye / minimap
-    this.birdsEye = new BirdsEye(this, this.options.birdsEye);
+    // Initialize birds eye / minimap (see slateParts.ts: the canvas entry loads it only for a slate that asks)
+    const birdsEye = birdsEyeNow();
+    if (birdsEye) this.birdsEye = new birdsEye.BirdsEye(this, this.options.birdsEye);
     if (this.options.birdsEye?.enabled) {
       // Delay enable to ensure canvas is ready
-      this._birdsEyeTimeoutId = setTimeout(() => {
-        if (!this._destroyed) this.birdsEye.enable();
-      }, 200);
+      const enable = () => {
+        this._birdsEyeTimeoutId = setTimeout(() => {
+          if (!this._destroyed) this.birdsEye.enable();
+        }, 200);
+      };
+      if (this.birdsEye) enable();
+      else loadBirdsEye().then(module => {
+        if (this._destroyed) return;
+        this.birdsEye = new module.BirdsEye(this, this.options.birdsEye);
+        enable();
+      }).catch(error => console.warn("SLATE: the bird's-eye view could not load", error));
     }
 
     // Initialize undo/redo + take an empty baseline so the very first edit on a
@@ -2389,7 +2404,10 @@ export class Slate {
    */
   public startLineFrom(node: Node | string): Promise<LineToolResult> {
     const from: any = typeof node === "string" ? this.nodes.one(node) : node;
-    return startLineTool(this, from);
+    // At once with the main entry; the canvas entry fetches the tool the first time (see slateParts.ts).
+    const tool = lineToolNow();
+    if (tool) return tool.startLineTool(this, from);
+    return loadLineTool().then(module => module.startLineTool(this, from));
   }
 
   /** Stop the line tool, if it is drawing. */

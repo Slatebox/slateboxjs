@@ -247,6 +247,8 @@ vi.mock("../../src/core/FontLoader", () => ({
 // ---------------------------------------------------------------------------
 // Imports (resolved after mocks are installed)
 // ---------------------------------------------------------------------------
+// The slate as the main entry (slateboxjs) builds it: every part present from the start (src/core/mainParts.ts).
+import "../../src/core/mainParts";
 import { Slate } from "../../src/core/Slate";
 import { NodesManager } from "../../src/core/NodesManager";
 import { Invoker } from "../../src/core/Invoker";

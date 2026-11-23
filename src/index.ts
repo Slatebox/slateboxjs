@@ -61,6 +61,9 @@ import * as utils from './utils'
 // v1 runtime API facade (`Slatebox.slate/node/base/utils`)
 import { Slatebox } from './compat-facade'
 
+// Every part of a slate present from the start (the canvas entry, src/canvas.ts, loads some when first used).
+import './core/mainParts'
+
 // Export all classes and utilities
 export {
   // Core

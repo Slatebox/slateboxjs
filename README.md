@@ -72,6 +72,18 @@ npm install slateboxjs
 </html>
 ```
 
+### A page that only draws slates: `slateboxjs/canvas`
+
+```js
+import { Slate } from 'slateboxjs/canvas'
+```
+
+The same `Slate`, as a smaller first load, for a page that draws slates rather than hosting an editor (an embed,
+a published slate, a replay). It leaves out the v1 facade (`Slatebox`), the whole-slate operations and the other
+classes the main entry exports. Its line tool (`startLineFrom`) loads the first time a line is drawn, and its
+bird's-eye view only for a slate created with `birdsEye: { enabled: true }`, after which `slate.birdsEye` is set.
+`npm run check:budget` holds its first load to 138,000 bytes gzip (whitespace taken out, as a page serves it).
+
 ### Migrating an existing SlateboxJS 2.x application
 
 Version 3 retains the historical named `Slatebox` namespace as a migration layer. Existing code can keep its constructor and serialized-data shapes while the host moves to the modern engine:

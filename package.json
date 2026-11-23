@@ -82,6 +82,11 @@
       "types": "./dist/core/AgentPresence.d.ts",
       "import": "./dist/presence.mjs",
       "require": "./dist/presence.cjs"
+    },
+    "./canvas": {
+      "types": "./dist/canvas.d.ts",
+      "import": "./dist/canvas.mjs",
+      "require": "./dist/canvas.cjs"
     }
   },
   "files": [
@@ -93,11 +98,12 @@
     "dragology",
     "presence",
     "catalog",
-    "licenses"
+    "licenses",
+    "canvas"
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build && vite build --config vite.workshops.config.ts && npm run build:types && node scripts/stamp-build.mjs",
+    "build": "vite build && vite build --config vite.workshops.config.ts && vite build --config vite.canvas.config.ts && npm run build:types && node scripts/stamp-build.mjs",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist && node scripts/clean-declarations.mjs",
     "preview": "vite preview",
     "serve": "vite preview",

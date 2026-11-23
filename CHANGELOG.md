@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- `slateboxjs/canvas`: the canvas alone (`Slate`), for a page that draws slates. Its first load is 115,751 bytes
+  gzip served without whitespace (the main entry: 153,230), held to 138,000 by `npm run check:budget`. Its line tool
+  loads on the first `startLineFrom`, and its bird's-eye view only for a slate that asks for it. The main entry is
+  unchanged: every part is there at once (`src/core/mainParts.ts`).
+
 ### Changed
 
 - Every library entry says a slate holds up to 8 boards side by side (`multiPerSlate: true`; its first limit is

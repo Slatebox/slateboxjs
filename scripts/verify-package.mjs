@@ -45,6 +45,10 @@ try {
     'dist/presence.cjs',
     'dist/core/AgentPresence.d.ts',
     'presence/index.js',
+    'dist/canvas.mjs',
+    'dist/canvas.cjs',
+    'dist/canvas.d.ts',
+    'canvas/index.js',
     'dist/operations.mjs',
     'dist/operations.cjs',
     'dist/operations/index.d.ts',
@@ -109,6 +113,9 @@ import { validateWorkshop, encodeWorkshopFragment } from 'slateboxjs/workshops/m
 import { mountWorkshop } from 'slateboxjs/workshops/mount'
 import { applyPlanToJSON, type SlateOperationPlan } from 'slateboxjs/operations'
 import { DraggableRenderer, type Draggable, type DragSpecBuilder, produceAmb } from 'slateboxjs/dragology'
+import { Slate as CanvasSlate } from 'slateboxjs/canvas'
+const readOnly: InstanceType<typeof CanvasSlate> = new CanvasSlate(document.createElement('div'), { enabled: false })
+void readOnly.isDrawingLine()
 const fieldNotes = validateWorkshop({
   version: 1, title: 'Sound check', lanes: [{id:'notes', label:'Notes'}, {id:'check', label:'Rehearsal', capacity:2}],
   cards: [{id:'cue', label:'Try a headphone cue', laneId:'notes'}]
@@ -161,6 +168,11 @@ void saved
     ],
     sandbox
   )
+
+  // The canvas entry loads in Node without a DOM in both module systems, and exports the canvas.
+  const canvasCheck = "if (typeof api.Slate !== 'function') throw Error('The canvas entry has no Slate')"
+  run('node', ['--input-type=module', '--eval', "import * as api from 'slateboxjs/canvas';" + canvasCheck], sandbox)
+  run('node', ['--eval', "const api = require('slateboxjs/canvas');" + canvasCheck], sandbox)
 
   const operationsCheck = "const plan = { message: 'Added', operations: [{ kind: 'add_nodes', count: 1, shape: 'rectangle', ids: ['x1'] }] }; if (typeof document !== 'undefined' || api.applyPlanToJSON({ options: {}, nodes: [] }, plan).report.created[0] !== 'x1') throw Error('Operations entry failed without a DOM')"
   run('node', ['--input-type=module', '--eval', "import * as api from 'slateboxjs/operations';" + operationsCheck], sandbox)
