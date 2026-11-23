@@ -16,14 +16,14 @@ import type { NodeJSON } from '../core/Serialization'
 import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type WorldPoint } from '../core/DragPolicy'
 import {
   behaviourNote, businessKind, validateWorkshop, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopCardNoteText, workshopDestinations,
-  workshopLaneCaption, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
+  workshopLaneCaption, workshopLaneHeld, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
   workshopCardLabelOf, workshopKeepsLink, workshopNoteIdOf, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesLines, workshopTakesNotes, workshopToSlate, workshopWithLine,
   workshopWithoutLine, type Workshop, type WorkshopBoardLayout, type WorkshopCard, type WorkshopCardAsNote, type WorkshopCardLook,
   type WorkshopLine, type WorkshopNoteOffer, type WorkshopNoteStyle,
 } from './model'
 import { applyWorkshopEdits, type WorkshopEdit } from './edits'
 import { createBoardLayer } from './boardLayer'
-import { mapEditsBetween, mapGripLabel, mapGripNotes, mapGripOf, mapPathDrop, mapStationAt, paintMap } from './mapPaths'
+import { mapEditsBetween, mapGripLabel, mapGripNotes, mapGripOf, mapGripSize, mapPathDrop, mapStationAt, paintMap } from './mapPaths'
 
 /**
  * What a person changed. A move names the card and its new lane; a rename names the lane or
@@ -90,6 +90,8 @@ export interface BoardLayerState {
   boardFocused?: boolean
   /** A map's path the person picked outside focus ("from>to"), outlined; the host offers "Change this board". */
   picked?: string | null
+  /** A map's grip size in board units: a finger's on screen at the zoom the board is shown at (mapGripSize). */
+  gripSize?: number
   /** A person picked a map's path (outside focus). */
   onPick?(key: string): void
 }
@@ -364,6 +366,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   let told: string | null = null
   /** The host has put this board in focus (setFocused). */
   let focused = false
+  /** A map's grip size, a finger's at the zoom it is shown at; kept while the map is in focus (watchGripZoom). */
+  let gripSize = mapGripSize(1)
+  let stopWatchingZoom: (() => void) | null = null
   /** A press on a lane's caption or column that may be a tap: it selects that lane when it ends where it began. */
   let tapping: { pointerId: number; laneId: string; x: number; y: number } | null = null
   let tapTimer: ReturnType<typeof setTimeout> | null = null
@@ -785,7 +790,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (!card || value.cards.some(item => item.id === cardId)) continue
       // The lines it had as a card come back with it.
       const recordedLines = ((state?.lines ?? []) as WorkshopLine[]).filter(line => line.parentId === cardId || line.childId === cardId)
-      const offer = { id: cardId, label: card.label, ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}),
+      // Its words with its numbers ("Audit log · 3 points"), so it comes back as it was, points and all.
+      const words = workshopCardNoteText(value, card)
+      const offer = { id: cardId, label: words, ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}),
         ...(recordedLines.length ? { lines: recordedLines } : {}) }
       const lane = [card.laneId, ...value.lanes.map(item => item.id)].find(id => workshopNoteCandidate(value, id, offer))
       if (!lane) {
@@ -798,7 +805,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // Where it went back among the cards, so every copy of the board puts it in the same place.
       const at = value.cards.findIndex(item => item.id === cardId)
       const before = value.cards.slice(at + 1).find(item => item.laneId === lane)?.id
-      const answer = tell(options.onChange, value, { cardId, laneId: lane, noteToCard: { noteId, label: card.label, ...(card.look ? { look: card.look } : {}),
+      const answer = tell(options.onChange, value, { cardId, laneId: lane, noteToCard: { noteId, label: words, ...(card.look ? { look: card.look } : {}),
         ...(card.asNote ? { asNote: card.asNote } : {}), ...(before ? { before } : {}),
         ...(recordedLines.length ? { lines: workshopRenamedLines(recordedLines, cardId, noteId) } : {}) }, via: 'undo' })
       slate.holdTrade?.(noteId, answer)
@@ -1179,8 +1186,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (obstacle) return obstacle
     }
     const lane = value.lanes.find(item => item.id === laneId)!
-    const held = value.cards.filter(item => item.laneId === laneId).length
-    if (lane.capacity !== undefined && held + entries.length > lane.capacity) {
+    // On a map the notes become cards free of the step's limit, which counts tokens: one note or several alike.
+    const held = workshopLaneHeld(value, laneId)
+    if (lane.capacity !== undefined && !lane.station && held + entries.length > lane.capacity) {
       const room = lane.capacity - held
       return room > 0 ? `It has room for ${room} more ${room === 1 ? 'card' : 'cards'}.` : `It already holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
     }
@@ -1537,7 +1545,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       ? `${cardName(made[0].card)} is now a card in ${lane.label}. ${workshopLaneCaption(value, laneId)}.${joinedShape([made[0].card])}`
       : `${names(made.map(({ card }) => cardName(card)))} are now cards in ${lane.label}. ${workshopLaneCaption(value, laneId)}.${joinedShape(made.map(({ card }) => card))}`)
     for (const { node, card, kept, lines, under } of made) {
-      const change = { cardId: card.id, laneId, noteToCard: { noteId: node.id as string, label: card.label, ...(under && { under }),
+      // The note's words as the card keeps them, numbers and all ("Audit log · 3 points"): the host makes the same card of them.
+      const change = { cardId: card.id, laneId, noteToCard: { noteId: node.id as string, label: workshopCardNoteText(value, card), ...(under && { under }),
         ...(card.look ? { look: card.look } : {}), ...(card.asNote ? { asNote: card.asNote } : {}), ...(lines.length ? { lines } : {}) } }
       const dropCard = () => {
         if (value !== committed || !value.cards.some(item => item.id === card.id)) return
@@ -1977,7 +1986,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const view = seen && [seen.x, seen.y, seen.width, seen.height].every(Number.isFinite)
         ? { x: seen.x - origin.x, y: seen.y - origin.y, width: seen.width, height: seen.height } : null
       layer.draw(value, shown === value ? null : shown, { origin, layout: drawnLayout, above, view, announce: text => slate.announce?.(text), focus: layerFocus,
-        boardFocused: focused, picked, onPick: pickPath,
+        boardFocused: focused, picked, onPick: pickPath, gripSize,
         clamp: grip?.last?.clampedReason ? { name: grip.name, text: grip.last.clampedReason }
           : held?.outcome.kind === 'candidate' && held.outcome.said ? { name: 'card-' + held.cardId, text: held.outcome.said }
           : !grip && gripRefusal ? { name: gripRefusal.name, text: gripRefusal.reason } : null,
@@ -2012,6 +2021,37 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   }
 
   /** The notes for a model: the kit's parts, or the lanes and cards of workshopToSlate. */
+  /** The slate's zoom now (screen px per board unit), or 1 before it can say. */
+  function zoomNow(): number {
+    try { const zoom = slate.getZoom?.(); return typeof zoom === 'number' && zoom > 0 ? zoom : 1 } catch { return 1 }
+  }
+
+  /**
+   * While a map is in focus its grips and path hit areas stay a finger's size on screen: the host fits the board
+   * after putting it in focus (a phone shows it at about half size) and a person may zoom, so once the view has
+   * settled the grips are drawn again at the new size. Never while a grip or a card is held.
+   */
+  function watchGripZoom() {
+    stopWatchingZoom?.()
+    stopWatchingZoom = null
+    gripSize = mapGripSize(zoomNow())
+    const svg: Element | undefined = slate.canvas?.node
+    if (!mapGripsShown() || !svg || typeof MutationObserver === 'undefined') return
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const settle = () => {
+      timer = null
+      if (destroyed || !mapGripsShown()) return
+      if (grip || held) { timer = setTimeout(settle, 250); return }
+      const next = mapGripSize(zoomNow())
+      if (Math.abs(next - gripSize) < 2) return
+      gripSize = next
+      draw(proposal ?? value)
+    }
+    const observer = new MutationObserver(() => { if (timer) clearTimeout(timer); timer = setTimeout(settle, 200) })
+    observer.observe(svg, { attributes: true, attributeFilter: ['viewBox'] })
+    stopWatchingZoom = () => { observer.disconnect(); if (timer) clearTimeout(timer) }
+  }
+
   /** Whether a map shows its path grips: in focus, for a person who may change it. */
   function mapGripsShown() {
     return !kit && Boolean(value.lanes[0]?.station) && focused && !readOnly && !proposal && !viewer()
@@ -2052,7 +2092,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     if (!kit) {
       const nodes = workshopToSlate(model, { native: true, origin, rows, layout, style }).nodes
       // A map in focus shows its path grips (from the committed map, so a held grip is never taken away under the pointer).
-      return mapGripsShown() ? [...nodes, ...mapGripNotes(value, origin)] : nodes
+      return mapGripsShown() ? [...nodes, ...mapGripNotes(value, origin, gripSize)] : nodes
     }
     const nodes = kit.notes(model, drawnLayout, origin, style)
     // A business board with a rulebook: its "How this board behaves" note, under the kit's notes.
@@ -2146,7 +2186,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // In focus a map's paths are editable (its grips, a path removed by a click) and a plan's span grips say
       // what they are: drawn again. A path picked outside focus is the one being changed now.
       if (picked) { picked = null; queueMicrotask(reportSelection) }
-      if (!kit && value.lanes[0]?.station) { cancelGestures(); draw(proposal ?? value) }
+      if (!kit && value.lanes[0]?.station) { cancelGestures(); watchGripZoom(); draw(proposal ?? value) }
       else if (layerShown) paintLayer(layerShown)
     },
     setLayout(next) {
@@ -2199,6 +2239,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (destroyed) return
       cancelGestures()
       destroyed = true
+      stopWatchingZoom?.()
       if (gripRefusal) clearTimeout(gripRefusal.timer)
       slate.element?.removeEventListener?.('pointerdown', onPress, true)
       if (tapTimer) clearTimeout(tapTimer)

@@ -13,8 +13,19 @@ import type { BoardLayerState } from './native'
 /** A grip on a map in focus: draw a new path from a step, or move the end of a path to another step. */
 export type MapGrip = { kind: 'link'; from: string } | { kind: 'route'; from: string; to: string }
 const LINK = 'handle-_link-', ROUTE = 'handle-_route-'
-/** A grip's size: a finger's, on a laptop and a phone alike. */
+/** A grip's least size in board units: a finger's at 100% zoom. */
 const GRIP = 40
+/** What a finger needs on screen, in CSS px: a grip and a path's hit area are never smaller there. */
+const FINGER = 44
+
+/**
+ * A grip's size in board units at `zoom` (screen px per board unit): a finger's on screen, on a laptop and on a
+ * phone alike. A map fitted to a phone in focus is drawn at about half size, so its grips are drawn larger.
+ */
+export function mapGripSize(zoom: number): number {
+  const z = Number.isFinite(zoom) && zoom > 0 ? zoom : 1
+  return Math.min(160, Math.max(GRIP, Math.ceil(FINGER / z)))
+}
 
 /** The grip an artwork name draws, or null for any other part. */
 export function mapGripOf(name: string): MapGrip | null {
@@ -80,14 +91,15 @@ export function mapStationAt(board: Workshop, point: { x: number; y: number }): 
  * The grips a map in focus shows, as notes at `origin`: one at each step's bottom-right corner to draw a new path
  * from it, and one at the end of each path to move that end to another step. Each is a finger's size.
  */
-export function mapGripNotes(board: Workshop, origin: { x: number; y: number }): NodeJSON[] {
+export function mapGripNotes(board: Workshop, origin: { x: number; y: number }, size = GRIP): NodeJSON[] {
   if (!isMap(board)) return []
   const boxes = columns(board)
+  const scale = size / GRIP
   const grip = (id: string, cx: number, cy: number, name: string, link: boolean): NodeJSON => ({ options: {
-    id, name, text: link ? '+' : '', xPos: origin.x + cx - GRIP / 2, yPos: origin.y + cy - GRIP / 2, width: GRIP, height: GRIP,
-    shapeHint: 'rectangle', vectorPath: roundedBox(GRIP, GRIP, GRIP / 2),
-    backgroundColor: link ? '#2f5fd0' : '#fffef8', foregroundColor: link ? '#ffffff' : '#2f5fd0', borderColor: link ? '#ffffff' : '#2f5fd0', borderWidth: 3,
-    fontSize: 22 }, relationships: { associations: [] } })
+    id, name, text: link ? '+' : '', xPos: origin.x + cx - size / 2, yPos: origin.y + cy - size / 2, width: size, height: size,
+    shapeHint: 'rectangle', vectorPath: roundedBox(size, size, size / 2),
+    backgroundColor: link ? '#2f5fd0' : '#fffef8', foregroundColor: link ? '#ffffff' : '#2f5fd0', borderColor: link ? '#ffffff' : '#2f5fd0', borderWidth: Math.round(3 * scale),
+    fontSize: Math.round(22 * scale) }, relationships: { associations: [] } })
   const notes: NodeJSON[] = []
   for (const lane of board.lanes) {
     const box = boxes.get(lane.id)
@@ -146,17 +158,20 @@ export function mapEditsBetween(before: Workshop, after: Workshop): WorkshopEdit
 export function paintMap(board: Workshop, state: BoardLayerState): LayerShape[] {
   const shapes: LayerShape[] = []
   const focused = Boolean(state.boardFocused)
+  // A path's hit area is a finger's thickness on screen, as its grips are (mapGripSize).
+  const size = state.gripSize ?? GRIP
+  const hit = Math.max(24, size * FINGER / GRIP)
   for (const s of mapPathSegments(board)) {
     const route = labelOf(board, s.from) + ' to ' + labelOf(board, s.to)
     const d = `M ${s.x1} ${s.y1} L ${s.x2} ${s.y2}`
     const picked = !focused && state.picked === s.key
     shapes.push(focused
-      ? { t: 'path', d, color: 'transparent', width: 3, unlink: { cardId: s.to, waitsOn: s.from, label: 'Remove the path from ' + route, armed: 'Tap again to remove this path' } }
-      : { t: 'path', d, color: picked ? layerInk.accept : 'transparent', width: picked ? 5 : 3, pick: { key: s.key, label: 'Path from ' + route + (picked ? ', selected' : '') } })
+      ? { t: 'path', d, color: 'transparent', width: 3, hit, unlink: { cardId: s.to, waitsOn: s.from, label: 'Remove the path from ' + route, armed: 'Tap again to remove this path' } }
+      : { t: 'path', d, color: picked ? layerInk.accept : 'transparent', width: picked ? 5 : 3, hit, pick: { key: s.key, label: 'Path from ' + route + (picked ? ', selected' : '') } })
   }
   if (state.clamp) {
-    const grip = mapGripNotes(board, { x: 0, y: 0 }).find(note => note.options.id === state.clamp!.name)?.options
-    const x = grip ? (grip.xPos as number) + GRIP + 6 : 0, y = grip ? (grip.yPos as number) + GRIP / 2 + 5 : 0
+    const grip = mapGripNotes(board, { x: 0, y: 0 }, size).find(note => note.options.id === state.clamp!.name)?.options
+    const x = grip ? (grip.xPos as number) + size + 6 : 0, y = grip ? (grip.yPos as number) + size / 2 + 5 : 0
     shapes.push({ t: 'text', x, y, text: state.clamp.text, color: layerInk.refuse, size: 13, bold: true, role: 'clamp' })
   }
   return shapes

@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
-import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
+import { encodeWorkshopFragment, releasePlan, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, removeTestGuest, userId } from './workshop-guests.shared'
 import { announced, conversation, messageBox, note, openConversation, resting, slateKey, starter, storedWorkshop, workshopReady, workshopStatus } from './app-native-workshop.shared'
 
@@ -181,6 +181,57 @@ test.describe('a map, 1440 by 900', () => {
   })
 })
 
+/** The words of a note on the canvas (not a card). */
+const noteText = (page: Page, id: string) => page.evaluate(id => (window as any).slate.v2.freeNodes().find((n: any) => n.id === id)?.options?.text ?? null, id)
+
+test.describe('notes on a full step and on a release plan, 1440 by 900', () => {
+  test.use({ viewport: { width: 1440, height: 900 } })
+
+  test('a note dropped on a full map step is a card there (the limit counts tokens), said on the board', async ({ page }) => {
+    test.setTimeout(180_000)
+    let id: string | null = null
+    try {
+      // Decide holds one token, and the token is there.
+      const full: Workshop = { ...decision, lanes: decision.lanes.map(lane => lane.id === 'decide' ? { ...lane, capacity: 1 } : lane),
+        cards: [{ id: 'token', label: 'Our choice', laneId: 'decide' }] }
+      id = await open(page, '/new/workshop' + encodeWorkshopFragment(full))
+      const key = slateKey(page)
+      await page.evaluate(() => { const v2 = (window as any).slate.v2; v2.panBy({ x: 0, y: -120 / (v2.getZoom?.() || 1) }) })
+      const idea = await addNote(page, 'Ask legal')
+      await carry(page, idea, await inStep(page, 'decide'))
+      await expect.poll(async () => (await storedWorkshop(page, key)).cards.find((c: any) => c.id === idea)).toMatchObject({ label: 'Ask legal', laneId: 'decide', free: true })
+      await expect(announced(page)).toContainText('Ask legal is now a card in Decide. 1 of 1 · 1 card.')
+      await expect(note(page, idea)).toHaveCount(0)
+      await expect(note(page, 'card-' + idea)).toBeVisible()
+      await shot(page, 's2b-11-note-on-full-step')
+    } finally { await removeTestGuest(page, id) }
+  })
+
+  test('a note with points on a release plan saves them: “Audit log · 3 points” is 3 points stored, and comes back off the plan with them', async ({ page }) => {
+    test.setTimeout(180_000)
+    let id: string | null = null
+    try {
+      id = await open(page, '/new/workshop' + encodeWorkshopFragment(releasePlan))
+      const key = slateKey(page)
+      await page.evaluate(() => { const v2 = (window as any).slate.v2; v2.panBy({ x: 0, y: -120 / (v2.getZoom?.() || 1) }) })
+      const idea = await addNote(page, 'Audit log · 3 points')
+      await carry(page, idea, await inStep(page, 'backlog'))
+      await expect.poll(async () => (await storedWorkshop(page, key)).cards.find((c: any) => c.id === idea)).toMatchObject({ label: 'Audit log', laneId: 'backlog', points: 3 })
+      // A reload draws what was saved.
+      await page.reload()
+      await workshopReady(page)
+      await page.waitForTimeout(2500)
+      await expect(note(page, 'card-' + idea)).toContainText('3 points')
+      await shot(page, 's2b-12-release-points-saved')
+      // Off the plan: the note again, its points written on it.
+      await page.mouse.click(5, 300)
+      await carry(page, 'card-' + idea, { x: 120, y: 820 })
+      await expect.poll(async () => (await storedWorkshop(page, key)).cards.some((c: any) => c.id === idea)).toBe(false)
+      await expect.poll(() => noteText(page, idea)).toBe('Audit log · 3 points')
+    } finally { await removeTestGuest(page, id) }
+  })
+})
+
 /** A guest's new slate with a customer go-live, added the way the library adds it, put in focus by the gear's starter. */
 async function goLiveInFocus(page: Page) {
   await page.goto(new URL('/new', origin).href)
@@ -283,6 +334,21 @@ test.describe('on a phone', () => {
       await expect(bar.getByRole('button', { name: 'Change this board' })).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
       await shot(page, 's2b-9-phone-path-picked')
+      // In focus, fitted to the phone (about half size), the map's grips and its paths' hit areas are a finger's size on screen.
+      await bar.getByRole('button', { name: 'Change this board' }).click()
+      await expect(focusChip(page)).toContainText('Editing: Decision path')
+      await page.waitForTimeout(1500)
+      await expect.poll(() => grips(page).count()).toBeGreaterThan(0)
+      for (const name of ['handle-_link-question', 'handle-_link-decide', 'handle-_route-question~option-a']) {
+        await expect.poll(async () => { const grip = await resting(page, name); return Math.min(grip.width, grip.height) }, { message: name }).toBeGreaterThanOrEqual(40)
+      }
+      const thickness = await page.locator('#slateCanvas [data-board-link="question>option-a"]').evaluate(el => {
+        const path = el as SVGPathElement
+        return Number(path.getAttribute('stroke-width')) * Math.hypot(path.getScreenCTM()!.a, path.getScreenCTM()!.b)
+      })
+      expect(thickness).toBeGreaterThanOrEqual(40)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
+      await shot(page, 's2b-9b-phone-map-focus-grips')
       await removeTestGuest(page, guest)
       guest = null
 

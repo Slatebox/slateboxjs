@@ -665,11 +665,19 @@ export function validateWorkshop(input: unknown): Workshop {
     return board
   }
   for (const lane of lanes) {
-    if (cards.filter(card => card.laneId === lane.id).length > (lane.capacity ?? Infinity)) {
+    if (workshopLaneHeld({ cards }, lane.id) > (lane.capacity ?? Infinity)) {
       throw new Error(`Lane "${lane.label}" exceeds its capacity.`)
     }
   }
   return board
+}
+
+/**
+ * The cards a lane's limit counts: every card, except on a map, where a step's limit counts tokens only. A card made
+ * from a note there (free) is free of the paths and of the limit alike, wherever it is checked (boards S2b).
+ */
+export function workshopLaneHeld(board: Pick<Workshop, 'cards'>, laneId: string): number {
+  return board.cards.filter(card => card.laneId === laneId && !card.free).length
 }
 
 const maxWorkshopFragmentLength = 65536
@@ -713,7 +721,7 @@ export function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLan
   if (station && card.free) return board.lanes
   return board.lanes.filter(lane =>
     lane.id === card.laneId || ((!station || station.next.includes(lane.id)) && (!card.allowedLaneIds || card.allowedLaneIds.includes(lane.id)) &&
-      board.cards.filter(other => other.laneId === lane.id && !other.free).length < (lane.capacity ?? Infinity)))
+      workshopLaneHeld(board, lane.id) < (lane.capacity ?? Infinity)))
 }
 
 export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string): Workshop {
@@ -797,9 +805,10 @@ export function workshopRefusal(board: Workshop, cardId: string, laneId: string)
   }
   const source = board.lanes.find(item => item.id === card.laneId)
   if (source?.station && !card.free && !source.station.next.includes(laneId)) return `${lane.label} can't be reached from ${source.label}.`
-  const held = board.cards.filter(item => item.laneId === laneId).length
-  if (lane.capacity !== undefined && held >= lane.capacity) {
-    return `It already holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
+  const held = workshopLaneHeld(board, laneId)
+  if (lane.capacity !== undefined && held >= lane.capacity && !(source?.station && card.free)) {
+    const unit = source?.station ? (lane.capacity === 1 ? 'token' : 'tokens') : lane.capacity === 1 ? 'card' : 'cards'
+    return `It already holds ${held} of ${lane.capacity} ${unit}.`
   }
   return cannot
 }
@@ -888,7 +897,8 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
   // A map's lines are its paths: its cards carry none, so a note joined to others by lines stays a note, and says so.
   const map = board.lanes.some(item => item.station)
   if (map && (Array.isArray(note?.lines) ? note.lines.length : note?.lines !== undefined)) return 'A note joined to other notes by lines stays a note on a map: a map’s lines are its paths.'
-  const held = board.cards.filter(item => item.laneId === laneId && !(map && item.free)).length
+  // On a map the card is free of the step's limit, which counts tokens (workshopLaneHeld).
+  const held = workshopLaneHeld(board, laneId)
   if (lane.capacity !== undefined && !map && held >= lane.capacity) return `It already holds ${held} of ${lane.capacity} ${lane.capacity === 1 ? 'card' : 'cards'}.`
   if (note.lines !== undefined) {
     const lines = offeredLines(note.lines)
@@ -1180,6 +1190,9 @@ export function workshopLaneCaption(board: Workshop, laneId: string): string {
   if (budget) return '$' + budget.amount + ' · ' + budget.description
   const count = board.cards.filter(card => card.laneId === laneId).length
   const limit = board.behaviour ? rulebook().laneLimit(board, laneId) : lane.capacity
+  // A step's limit counts its tokens: "1 of 1", with the cards made from notes beside them said apart.
+  const counted = workshopLaneHeld(board, laneId)
+  if (limit !== undefined && counted !== count) return counted + ' of ' + limit + ' · ' + (count - counted) + ((count - counted) === 1 ? ' card' : ' cards')
   return limit !== undefined ? count + ' of ' + limit : count + (count === 1 ? ' card' : ' cards')
 }
 

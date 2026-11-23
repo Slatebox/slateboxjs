@@ -6,9 +6,9 @@ import { describe, expect, it } from 'vitest'
 import {
   applyWorkshopEdits, availableLanes, createBudgetWorkshop, createInterviewWorkshop, nightTransfer, releasePlan, validateWorkshop,
   workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardNoteText, workshopNoteCandidate, workshopNoteRefusal,
-  workshopRefusal, workshopTakesNotes, workshopToSlate, type Workshop,
+  workshopLaneCaption, workshopRefusal, workshopTakesNotes, workshopToSlate, type Workshop,
 } from '../../src/workshops/model'
-import { mapEditsBetween, mapGripNotes, mapGripOf, mapPathDrop, mapPathSegments, mapStationAt } from '../../src/workshops/mapPaths'
+import { mapEditsBetween, mapGripNotes, mapGripOf, mapGripSize, mapPathDrop, mapPathSegments, mapStationAt, paintMap } from '../../src/workshops/mapPaths'
 import { goLiveSample } from '../../src/workshops/rules'
 import { launchPlanKit } from '../../src/boards'
 import '../../src/workshops/behaviour'
@@ -98,6 +98,20 @@ describe('a note dropped on a map’s station becomes a card there', () => {
     // A feature another depends on stays a card.
     expect(workshopCardAsNoteRefusal(releasePlan, 'guardrails')).toBe('Team invitations depends on Permission checks, so it stays a card.')
     expect(workshopCardAsNoteRefusal(three, 'node_9')).toBeNull()
+  })
+
+  it('a release plan’s feature saves with its points: the words the canvas sends make the same feature (canvas, host, back)', () => {
+    const canvas = workshopNoteCandidate(releasePlan, 'backlog', { id: 'node_9', label: 'Audit log · 3 points' })!
+    const card = canvas.cards.at(-1)!
+    // What the canvas sends the host for the card: its words with its points, never the bare name.
+    const sent = workshopCardNoteText(canvas, card)
+    expect(sent).toBe('Audit log · 3 points')
+    const host = workshopNoteCandidate(releasePlan, 'backlog', { id: 'node_9', label: sent })!
+    expect(host.cards.at(-1)).toEqual(card)
+    expect(workshopCardNoteText(host, host.cards.at(-1)!)).toBe('Audit log · 3 points')
+    // One point says itself in the singular and comes back as one.
+    const one = workshopNoteCandidate(releasePlan, 'backlog', { id: 'node_8', label: 'Dark mode' })!
+    expect(workshopNoteCandidate(releasePlan, 'backlog', { id: 'node_8', label: workshopCardNoteText(one, one.cards.at(-1)!) })!.cards.at(-1)).toEqual(one.cards.at(-1))
   })
 
   it('a kind that truly cannot hold a card says so, in words shown on the board (never silent)', () => {
@@ -190,6 +204,78 @@ describe('a plan’s span, adjustable while the board is in focus', () => {
     for (const name of ['handle-_first', 'handle-launch']) {
       const part = parts.find(p => p.name === name)!
       expect(Math.min(part.width, part.height)).toBeGreaterThanOrEqual(44)
+    }
+  })
+})
+
+describe('a map step’s limit counts its tokens: a card made from a note is free of it', () => {
+  /** The decision path with a limit of one at Decide, the token there. */
+  const full = (): Workshop => validateWorkshop({ ...decision(), lanes: decision().lanes.map(lane => lane.id === 'decide' ? { ...lane, capacity: 1 } : lane),
+    cards: [{ id: 'token', label: 'Our choice', laneId: 'decide' }] })
+
+  it('a note dropped on a full step is a card there, alone or several at once', () => {
+    const board = full()
+    expect(workshopNoteRefusal(board, 'decide', { id: 'node_1', label: 'Ask legal' })).toBeNull()
+    const one = workshopNoteCandidate(board, 'decide', { id: 'node_1', label: 'Ask legal' })!
+    expect(one.cards.at(-1)).toEqual({ id: 'node_1', label: 'Ask legal', laneId: 'decide', free: true })
+    expect(validateWorkshop(one)).toEqual(one)
+    const two = workshopNoteCandidate(one, 'decide', { id: 'node_2', label: 'Ask finance' })!
+    expect(two.cards.filter(card => card.laneId === 'decide')).toHaveLength(3)
+    // The caption counts the tokens against the limit and says the cards beside them apart.
+    expect(workshopLaneCaption(two, 'decide')).toBe('1 of 1 · 2 cards')
+    expect(workshopLaneCaption(board, 'decide')).toBe('1 of 1')
+  })
+
+  it('a free card moves or is added to a full step; a token still finds it full', () => {
+    const board = workshopNoteCandidate(full(), 'question', { id: 'node_1', label: 'Ask legal' })!
+    expect(workshopCandidate(board, 'node_1', 'decide')!.cards.find(card => card.id === 'node_1')!.laneId).toBe('decide')
+    expect(applied(board, [{ kind: 'move_card', card: { id: 'node_1' }, lane: { id: 'decide' } }]).workshop.cards.find(card => card.id === 'node_1')!.laneId).toBe('decide')
+    const added = applied(full(), [{ kind: 'add_card', lane: { id: 'decide' }, label: 'Ask finance', free: true }])
+    expect(added.workshop.cards.at(-1)).toMatchObject({ label: 'Ask finance', laneId: 'decide', free: true })
+    // A second token at Decide is refused in words: the limit is a step's tokens.
+    const second = validateWorkshop({ ...full(), cards: [...full().cards, { id: 'other', label: 'Second', laneId: 'option-a' }] })
+    expect(workshopCandidate(second, 'other', 'decide')).toBeNull()
+    expect(workshopRefusal(second, 'other', 'decide')).toBe('It already holds 1 of 1 token.')
+  })
+
+  it('a token goes to a step with a limit of one that holds only a free card, and the board is valid', () => {
+    const board = validateWorkshop({ ...decision(), lanes: decision().lanes.map(lane => lane.id === 'option-a' ? { ...lane, capacity: 1 } : lane),
+      cards: [{ id: 'token', label: 'Our choice', laneId: 'question' }, { id: 'node_1', label: 'Ask legal', laneId: 'option-a', free: true }] })
+    const moved = workshopCandidate(board, 'token', 'option-a')!
+    expect(moved.cards.find(card => card.id === 'token')!.laneId).toBe('option-a')
+    expect(validateWorkshop(moved)).toEqual(moved)
+    expect(applied(board, [{ kind: 'move_card', card: { id: 'token' }, lane: { id: 'option-a' } }]).workshop.cards.find(card => card.id === 'token')!.laneId).toBe('option-a')
+  })
+
+  it('set_lane_capacity counts tokens: free cards never stop a limit of one', () => {
+    const board = validateWorkshop({ ...decision(), cards: [{ id: 'token', label: 'Our choice', laneId: 'decide' },
+      { id: 'node_1', label: 'Ask legal', laneId: 'decide', free: true }, { id: 'node_2', label: 'Ask finance', laneId: 'decide', free: true }] })
+    const limited = applied(board, [{ kind: 'set_lane_capacity', lane: { id: 'decide' }, capacity: 1 }])
+    expect(limited.workshop.lanes.find(lane => lane.id === 'decide')!.capacity).toBe(1)
+    // Two tokens there are still too many for one.
+    const tokens = validateWorkshop({ ...board, cards: [...board.cards, { id: 'other', label: 'Second', laneId: 'decide' }] })
+    expect(refusedBy(tokens, [{ kind: 'set_lane_capacity', lane: { id: 'decide' }, capacity: 1 }])).toMatch(/already holds 2 tokens/)
+  })
+})
+
+describe('a map’s grips and paths are a finger’s size on screen, at the zoom the map is shown at', () => {
+  it('the grip size grows as the map is shown smaller (a phone fits a map at about half size)', () => {
+    expect(mapGripSize(1)).toBe(44)
+    expect(mapGripSize(2)).toBe(40)
+    for (const zoom of [0.48, 0.4, 0.3]) {
+      const size = mapGripSize(zoom)
+      expect(size * zoom).toBeGreaterThanOrEqual(44)
+      for (const n of mapGripNotes(decision(), { x: 0, y: 0 }, size)) expect(Math.min(n.options.width as number, n.options.height as number) * zoom).toBeGreaterThanOrEqual(44)
+    }
+  })
+
+  it('a path’s hit area is a finger’s thickness at that zoom, in focus and out', () => {
+    const size = mapGripSize(0.48)
+    for (const boardFocused of [true, false]) {
+      const shapes = paintMap(decision(), { origin: { x: 0, y: 0 }, layout: {}, clamp: null, refused: false, boardFocused, gripSize: size } as any)
+      const paths = shapes.filter(shape => shape.t === 'path') as { hit?: number }[]
+      expect(paths.length).toBe(4)
+      for (const path of paths) expect(path.hit! * 0.48).toBeGreaterThanOrEqual(44)
     }
   })
 })

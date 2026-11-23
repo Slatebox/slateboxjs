@@ -14,7 +14,7 @@
 import type { Workshop, WorkshopCard, WorkshopLane, WorkshopNoteStyle } from './model'
 import type { NodeJSON } from '../core/Serialization'
 // The model's own helpers, from the model's chunk (this module is slateboxjs/workshops/behaviour, loaded on demand).
-import { DEFAULT_NOTE_STYLE, registerRulebook, roundedBox, validateWorkshop, workshopCandidate, workshopReferences, workshopRefusal, workshopRules, workshopRulesLoaded, said, type BusinessBoardKind } from './model'
+import { DEFAULT_NOTE_STYLE, registerRulebook, workshopLaneHeld, roundedBox, validateWorkshop, workshopCandidate, workshopReferences, workshopRefusal, workshopRules, workshopRulesLoaded, said, type BusinessBoardKind } from './model'
 import type { WorkshopEdit, WorkshopRef } from './edits'
 import type { BusinessEditStep, BusinessEditTools } from './kinds'
 import type { WorkshopFinder } from './names'
@@ -247,8 +247,8 @@ const registry: Record<string, {
     check(rule, before, after, move) {
       const { where, max } = rule as { where: string; max: number }
       if (move.to !== where || move.from === where) return null
-      const had = before.cards.filter(card => card.laneId === where).length
-      const now = after.cards.filter(card => card.laneId === where).length
+      const had = workshopLaneHeld(before, where)
+      const now = workshopLaneHeld(after, where)
       return now > max && now > had ? { sentence: labelOf(before, where) + ' holds ' + max + '. It has ' + had + '.' } : null
     },
   },

@@ -8,7 +8,7 @@
 
 import {
   addWorkshopBranch, addWorkshopCard, addWorkshopLane, businessKind, nextWorkshopId, startupExperienceKind, validateWorkshop, workshopCandidate, workshopCardLabelOf,
-  workshopLineRefusal, workshopNewLine, workshopPresentationLanes, workshopRefusal, workshopWithLine, workshopWithoutCardLines,
+  workshopLaneHeld, workshopLineRefusal, workshopNewLine, workshopPresentationLanes, workshopRefusal, workshopWithLine, workshopWithoutCardLines,
   type StationImage, type Workshop, type WorkshopCard, type WorkshopLane, type WorkshopSignal,
 } from './model'
 import { workshopRules, type BusinessEditTools, type WorkshopLimits } from './kinds'
@@ -530,7 +530,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
   const quietLane = (ref: WorkshopRef) => { try { return laneOf(ref) } catch { return null } }
   const done = (next: Workshop, sentence: string, ids: { laneId?: string; cardId?: string } = {}, changed = true): Step => ({ board: next, said: sentence, changed, ...ids })
   const labelOf = (id: string) => board.lanes.find(item => item.id === id)!.label
-  const held = (laneId: string) => board.cards.filter(item => item.laneId === laneId).length
+  const held = (laneId: string) => workshopLaneHeld(board, laneId)
   const presentationSaid = (order: WorkshopLane[]) => map
     ? 'The presentation opens with ' + said(order[0].label) + '.'
     : 'The presentation now runs ' + order.map(item => said(item.label)).join(', then ') + '.'
