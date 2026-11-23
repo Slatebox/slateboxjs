@@ -129,3 +129,71 @@ test('on a phone Ask Slatebox opens at its top, and the welcome above it can be 
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
   } finally { await removeTestGuest(page, id); await context.close() }
 })
+
+// A tap on Ask Slatebox works as soon as the button is in sight. A new slate opens its conversation by
+// itself, but the conversation's code arrives on its own (a lazy chunk): on a slow line the button is
+// there first. A tap then means "open it", as the person sees it closed, not "close what is on its way"
+// (the board polish found taps in the first ~0.8 s lost so). Once it is in sight, a tap closes it.
+test('on a phone, a tap on Ask Slatebox before the conversation arrives opens it; once it is in sight, a tap closes it', async ({ browser }) => {
+  const { context, page } = await fresh(browser, 390)
+  let id: string | null = null
+  try {
+    // The conversation's code (and every other lazy chunk) arrives 2.5 s late.
+    await context.route('**/__meteor__/dynamic-import/**', async (route) => { await new Promise(r => setTimeout(r, 2500)); await route.continue() })
+    await page.goto(at('/new'))
+    await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
+    const toggle = page.getByRole('button', { name: 'Ask Slatebox', exact: true }).first()
+    await expect(toggle).toBeVisible({ timeout: 60000 })
+    id = await userId(page)
+    await expect(panel(page)).toHaveCount(0)
+    await toggle.click()
+    await expect(panel(page)).toBeVisible({ timeout: 20000 })
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    // In sight and settled, the same button closes it.
+    await page.waitForTimeout(1200)
+    await toggle.click()
+    await expect(panel(page)).toHaveCount(0)
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await toggle.click()
+    await expect(panel(page)).toBeVisible()
+  } finally { await removeTestGuest(page, id ?? await userId(page).catch(() => null)); await context.close() }
+})
+
+// Asked while the conversation is still getting ready (checking what this account can do, the board
+// still saving), a request is sent once it is ready, not dropped with its words left in the box.
+test('a request sent while the board conversation checks editing access is sent once the check is done', async ({ browser }) => {
+  const { context, page } = await fresh(browser, 1440)
+  let id: string | null = null
+  // The answer to "what can this account do" (workshops.account) arrives 3 s late while `slow` is on.
+  let slow = false
+  await context.routeWebSocket(/\/(sockjs|websocket)/, (ws) => {
+    const server = ws.connectToServer()
+    const asked = new Set<string>()
+    ws.onMessage((message) => {
+      const text = String(message)
+      const named = /workshops\.account/.test(text) && text.match(/id\\*"\s*:\s*\\*"([^"\\]+)/)
+      if (named) asked.add(named[1])
+      server.send(message)
+    })
+    server.onMessage((message) => {
+      const text = String(message)
+      const answer = [...asked].find(key => text.includes('result') && new RegExp('id\\\\*"\\s*:\\s*\\\\*"' + key + '\\\\*"').test(text))
+      if (slow && answer) { asked.delete(answer); setTimeout(() => ws.send(message), 3000) } else ws.send(message)
+    })
+  })
+  try {
+    id = await newSlate(page)
+    await expect(panel(page)).toBeVisible()
+    const box = panel(page).getByRole('textbox', { name: 'Message Slatebox', exact: true })
+    await box.fill('Add a retro')
+    await box.press('Enter')
+    slow = true
+    await panel(page).getByRole('button', { name: 'Keep changes', exact: true }).click({ timeout: 60000 })
+    await expect(page.locator('#slateCanvas [data-node-id="lane-well"]')).toBeAttached({ timeout: 60000 })
+    // The board's own conversation, still checking: the request is typed and sent at once.
+    await expect(panel(page).getByText('Checking editing access. You can type while you wait.')).toBeVisible()
+    await box.fill('Add a team board about Sprint')
+    await box.press('Enter')
+    await expect(panel(page).getByText('Team board: Sprint, beside the board')).toBeVisible({ timeout: 30000 })
+  } finally { slow = false; await removeTestGuest(page, id); await context.close() }
+})
