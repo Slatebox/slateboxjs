@@ -44,6 +44,8 @@ interface AttachWorkshopOptions {
   chooseCandidate?: WorkshopCandidateChooser
   layout?: WorkshopBoardLayout          // { lanesPerRow?: number }
   style?: WorkshopNoteStyle
+  scope?: string                        // a board of several on one slate: notes named `<scope>:<name>`; none or 'main' keeps today's names
+  avoid?: () => Box[]                   // boxes a note put "beside the board" stays clear of (the other boards)
 }
 
 interface WorkshopNoteStyle {           // sizes in world units: CSS px at 100% zoom
@@ -74,6 +76,27 @@ interface AttachedWorkshop {
   whenDrawn(): Promise<void>
 }
 ```
+
+## Many boards on one slate (groundwork)
+
+A slate may come to hold several boards side by side. The engine's parts for that, used by a host that
+opts in (nothing changes for a slate of one board):
+
+- **Scoped names.** `attachWorkshop(slate, board, { scope: 'b2' })` names every note of that board
+  `b2:<name>` (`b2:card-<id>`, `b2:lane-<id>`, `b2:rules-board`, ...). The first board (`main`, or no
+  scope) keeps the names below, so saved slates, links and tests are unchanged. Two boards made from one
+  preset never share a note name, and a board only treats notes of its own scope as its parts.
+  `workshopNodeIds.of(scope)`, `workshopToSlate(board, { scope })` and `workshopPresentationScenes(board, { scope })`
+  give the same names; `workshopBoardScope` checks one (1 to 12 lowercase letters and digits).
+- **Room.** `workshopReserve(board, layout?, kit?)` is the box a board needs: five lanes (1220) for a lane board,
+  its kit's desktop width (or the width it is pinned to) for a business board. A host places boards side by side
+  in these boxes; a phone's narrow layout is always smaller.
+- **Beside the board.** With `avoid`, a card taken to the canvas, a note a lane refuses and a keyboard move off
+  the lanes go past the other boards along their row (`workshopFreeSpot`).
+- **Undo.** An undo that brings back a note only takes the card off the board that took it, even when another
+  board has a card by the same id.
+- **Library.** `catalogFits(id, { hasBoard, many: true, boards })` fits beside other boards up to
+  `maxBoardsPerSlate` (8); without `many` a slate holds one board, as before.
 
 ## What it draws
 

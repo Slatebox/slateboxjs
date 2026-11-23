@@ -498,15 +498,19 @@ export interface WorkshopPresentationScene {
   nodeIds: string[]
 }
 
-/** Describe each authored viewpoint from the committed state, including empty lanes. */
-export function workshopPresentationScenes(board: Workshop): WorkshopPresentationScene[] {
+/**
+ * Describe each authored viewpoint from the committed state, including empty lanes. `scope`: the
+ * board's scope on a slate of many boards (see workshopNodeIds.of), so the node ids are that board's.
+ */
+export function workshopPresentationScenes(board: Workshop, options: { scope?: string } = {}): WorkshopPresentationScene[] {
   const outcomes = resolveWorkshopSignals(board)
+  const ids = workshopNodeIds.of(options.scope)
   return workshopPresentationLanes(board).map(lane => {
     const cards = board.cards.filter(card => card.laneId === lane.id)
     const signals = outcomes.filter(signal => signal.laneId === lane.id)
-    const nodeIds = [laneNodeId(lane.id)]
-    if (lane.station?.image) nodeIds.push(imageNodeId(lane.id))
-    return { lane, cards, signals, nodeIds: [...nodeIds, ...cards.map(card => cardNodeId(card.id))] }
+    const nodeIds = [ids.lane(lane.id)]
+    if (lane.station?.image) nodeIds.push(ids.image(lane.id))
+    return { lane, cards, signals, nodeIds: [...nodeIds, ...cards.map(card => ids.card(card.id))] }
   })
 }
 
@@ -1387,6 +1391,11 @@ export interface WorkshopArtworkOptions {
    * workshopStandInId), so the artwork can be laid beside those notes as it is.
    */
   beside?: Iterable<string>
+  /**
+   * The board's scope on a slate of many boards: every note is named `<scope>:<name>` (and its
+   * connectors join those names). Left out, or `main`, the names are the ones a slate of one board has.
+   */
+  scope?: string
 }
 
 const captionNodeId = (id: string) => 'caption-' + id
@@ -1394,8 +1403,58 @@ const columnNodeId = (id: string) => 'column-' + id
 /** The "How this board behaves" note: not a lane- or card- part, so a live board treats it as decoration. */
 const rulesNodeId = 'rules-board'
 
-/** The names of the notes workshopToSlate draws for a lane or a card. */
-export const workshopNodeIds = { lane: laneNodeId, card: cardNodeId, image: imageNodeId, caption: captionNodeId, column: columnNodeId, rules: rulesNodeId }
+/**
+ * A board's scope on a slate of many boards, checked: 1 to 12 lowercase letters and digits. `main` (the
+ * slate's first board) and no scope at all are the same thing: undefined, the names a slate of one board has.
+ */
+export function workshopBoardScope(scope?: string | null): string | undefined {
+  if (scope === undefined || scope === null || scope === 'main') return undefined
+  if (typeof scope !== 'string' || !/^[a-z0-9]{1,12}$/.test(scope)) throw new Error('A board scope is 1 to 12 lowercase letters and digits.')
+  return scope
+}
+
+/** The id a board's note is drawn under: `<scope>:<name>`, or the name itself for the first board. */
+export function workshopScopedId(name: string, scope?: string | null): string {
+  const checked = workshopBoardScope(scope)
+  return checked ? checked + ':' + name : name
+}
+
+/** The names of one board's notes, in its scope. */
+export interface WorkshopNodeNames {
+  lane(id: string): string
+  card(id: string): string
+  image(id: string): string
+  caption(id: string): string
+  column(id: string): string
+  rules: string
+}
+
+/**
+ * The names of the notes workshopToSlate draws for a lane or a card. `of(scope)`: the same names for
+ * one board of a slate that holds several (`b2:card-<id>`); `of('main')` and `of()` are these names.
+ */
+export const workshopNodeIds = { lane: laneNodeId, card: cardNodeId, image: imageNodeId, caption: captionNodeId, column: columnNodeId, rules: rulesNodeId,
+  of(scope?: string | null): WorkshopNodeNames {
+    const checked = workshopBoardScope(scope)
+    const at = (name: string) => checked ? checked + ':' + name : name
+    return { lane: id => at(laneNodeId(id)), card: id => at(cardNodeId(id)), image: id => at(imageNodeId(id)), caption: id => at(captionNodeId(id)),
+      column: id => at(columnNodeId(id)), rules: at(rulesNodeId) }
+  },
+}
+
+/** Name every note of an artwork, and the ends of its connectors, in a board's scope (nothing changes for the first board). */
+function scopeArtwork(nodes: NodeJSON[], scope?: string) {
+  if (!scope) return
+  const at = (name: unknown) => scope + ':' + name
+  for (const item of nodes) {
+    item.options.id = at(item.options.id)
+    for (const link of item.relationships.associations) {
+      if (link.id !== undefined) link.id = at(link.id)
+      link.parentId = at(link.parentId)
+      link.childId = at(link.childId)
+    }
+  }
+}
 
 /**
  * The id a workshop note takes when the slate's own document already has a note by
@@ -1579,6 +1638,7 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
       }
     }
   }
+  scopeArtwork(nodes, workshopBoardScope(options.scope))
   if (options.beside) {
     const theirs = new Set(options.beside)
     const used = new Set(nodes.map(item => item.options.id as string))
@@ -1613,6 +1673,7 @@ export function behaviourNote(board: Workshop, box: { x: number; y: number; widt
  */
 export function workshopToSlate(input: Workshop, options?: WorkshopArtworkOptions): SlateJSON {
   const board = validateWorkshop(input)
+  const scope = workshopBoardScope(options?.scope)
   if (options?.native) return nativeWorkshopToSlate(board, options)
   const { width, row, height, top } = workshopLayout
   const nodes: NodeJSON[] = []
@@ -1659,7 +1720,52 @@ export function workshopToSlate(input: Workshop, options?: WorkshopArtworkOption
       }
     }
   }
+  scopeArtwork(nodes, scope)
   return { options: { name: board.title }, shareId: '', nodes }
+}
+
+/** What a board kit tells workshopReserve: its size in a layout (WorkshopBoardKit.places). */
+export interface WorkshopReserveKit {
+  places(board: Workshop, layout: WorkshopBoardLayout): { width: number; height: number }
+}
+
+/**
+ * The room a board needs on a slate of many boards: the widest it can become on a desktop, and how
+ * tall it is now (a board grows downward only), in world units. A host places boards side by side
+ * in these boxes, so one never grows into the next.
+ * - A board of lanes: five lanes (the most a board has), or a map's own width when that is wider.
+ * - A launch plan, hiring plan, pipeline, budget or nested board: its kit's desktop width (a launch
+ *   plan's is 1200), or `layout.width` when the board is pinned to a width (a desktop layout's). It needs its kit.
+ * A phone's narrow layout is never the reserve: it is always smaller than the desktop one.
+ */
+export function workshopReserve(input: Workshop, layout: WorkshopBoardLayout = {}, kit?: WorkshopReserveKit): { width: number; height: number } {
+  const board = validateWorkshop(input)
+  // A phone's width is not the board's: the width a board is pinned to counts only on a desktop layout.
+  const pinned = layout.narrow ? undefined : layout.width
+  if (businessKind(board)) {
+    if (!kit) throw new Error(`A ${board.kind} board's room needs its kit: pass kitFor('${board.kind}') from slateboxjs/boards.`)
+    const { width, height } = kit.places(board, pinned !== undefined ? { width: pinned } : {})
+    return { width: Math.max(width, pinned ?? 0), height }
+  }
+  const { width, height } = workshopLanePlaces(board, {})
+  return { width: Math.max(maxWorkshopLanes * workshopLayout.pitch, width), height }
+}
+
+/**
+ * Where a note set "beside a board" goes so it is clear of other boards: `spot` itself when nothing
+ * in `avoid` is within `gap` of it on its row, otherwise moved along its row (to the right, or with
+ * side -1 to the left) past each box in the way. Only x changes.
+ */
+export function workshopFreeSpot(spot: { x: number; y: number; width: number; height: number }, avoid: { x: number; y: number; width: number; height: number }[],
+  side: 1 | -1 = 1, gap = 32): { x: number; y: number } {
+  let x = spot.x
+  const boxes = avoid.filter(box => [box.x, box.y, box.width, box.height].every(Number.isFinite))
+  for (let tries = 0; tries <= boxes.length; tries++) {
+    const hit = boxes.find(box => x < box.x + box.width + gap && x + spot.width > box.x - gap && spot.y < box.y + box.height + gap && spot.y + spot.height > box.y - gap)
+    if (!hit) break
+    x = side > 0 ? hit.x + hit.width + gap : hit.x - gap - spot.width
+  }
+  return { x: Math.round(x), y: Math.round(spot.y) }
 }
 
 export const industrialWorkshop: Workshop = {

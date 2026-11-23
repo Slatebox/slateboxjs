@@ -12,7 +12,7 @@ export interface AgentPresenceRecord {
   label: string
   initial: string
   colorIndex: number
-  /** Note ids, or card-<id> / lane-<id> for a workshop. */
+  /** Note ids, or card-<id> / lane-<id> for a workshop (b2:card-<id> for a board scoped b2, see workshopNodeIds.of). */
   targets: string[]
   plan?: { steps: { text: string; status: AgentStepStatus }[]; current: number } | null
   /** What the run is doing when it sent no plan (the save's message). */

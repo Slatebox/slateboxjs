@@ -4,6 +4,12 @@
 
 ### Added
 
+- **Groundwork for many boards on one slate** (nothing changes for a slate of one board). `attachWorkshop`
+  takes `scope` (notes named `<scope>:<name>`; `main` or none keeps today's names) and `avoid` (boxes a
+  note put beside the board stays clear of); `workshopNodeIds.of(scope)`, `workshopToSlate({ scope })`,
+  `workshopPresentationScenes(board, { scope })`, `workshopBoardScope`, `workshopScopedId`; `workshopReserve`
+  (the room a board needs) and `workshopFreeSpot`; `catalogFits(id, { many: true, boards })` with
+  `maxBoardsPerSlate` (8). An undo that brings back a note takes the card only off the board that took it.
 - **Impact × effort, the reorg & hiring sandbox and goals & owners** (`slateboxjs/workshops/nestPlus`, loaded with
   the nested boards). A `matrix` layout (`nest.axes`, `score_card`, rule `quadrant`), yes/no fields (`add_field`
   `flag`) with rules `parent` and `contains`, and owners (`nest.owners`, `card.owner`, `add_owner`, `set_owner` with

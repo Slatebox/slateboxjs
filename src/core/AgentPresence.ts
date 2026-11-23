@@ -247,7 +247,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     try { return slate.canvas.node?.getBoundingClientRect?.().width || (typeof window !== 'undefined' ? window.innerWidth : 1024) } catch { return 1024 }
   }
 
-  // Where a target is drawn: the centre of its note. Workshop cards and lanes are notes named card-<id> and lane-<id>.
+  // Where a target is drawn: the centre of its note. Workshop cards and lanes are notes named card-<id> and lane-<id> (scoped b2:card-<id> on a slate of many boards).
   function centreOf(id: string): { x: number; y: number } | null {
     const node = slate.nodes?.one?.(id) ?? slate.nodes?.allNodes?.find?.((n: any) => n?.options?.name === id)
     const o = node?.options

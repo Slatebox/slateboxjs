@@ -297,8 +297,20 @@ export function catalogMatch(message: string): { all: boolean; entries: string[]
   return scored.length ? { all: false, entries: scored.slice(0, 3).map(item => item.id) } : null
 }
 
-/** Whether an entry can be added to this slate, and if not, the honest sentence (the control is never disabled). */
-export function catalogFits(id: string, slate: { hasBoard: boolean }): { ok: true } | { ok: false; reason: string } {
+/** The most boards one slate holds, for now (owner 2026-11-22). */
+export const maxBoardsPerSlate = 8
+
+/**
+ * Whether an entry can be added to this slate, and if not, the honest sentence (the control is never disabled).
+ * `many`: the host puts several boards on one slate, so an entry fits beside the boards there (`boards`, how
+ * many it holds; 1 when it only says it has one) up to maxBoardsPerSlate. Without it a slate holds one board.
+ */
+export function catalogFits(id: string, slate: { hasBoard: boolean; many?: boolean; boards?: number }): { ok: true } | { ok: false; reason: string } {
   if (!catalogEntry(id)) return { ok: false, reason: 'That is not in the library.' }
+  if (slate.many) {
+    const held = slate.boards ?? (slate.hasBoard ? 1 : 0)
+    return held >= maxBoardsPerSlate
+      ? { ok: false, reason: `This slate holds ${maxBoardsPerSlate} boards, the most for now. Add it on a new slate?` } : { ok: true }
+  }
   return slate.hasBoard ? { ok: false, reason: 'This slate already has a board, so this opens on a new slate.' } : { ok: true }
 }

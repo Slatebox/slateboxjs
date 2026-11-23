@@ -15,7 +15,7 @@ import { v1AssociationToV2, v1NodeToV2, v2NodeToV1 } from '../core/compat'
 import type { NodeJSON } from '../core/Serialization'
 import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type WorldPoint } from '../core/DragPolicy'
 import {
-  behaviourNote, businessKind, validateWorkshop, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopCardNoteText, workshopDestinations,
+  behaviourNote, businessKind, validateWorkshop, workshopBoardScope, workshopFreeSpot, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopCardNoteText, workshopDestinations,
   workshopLaneCaption, workshopLaneHeld, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
   workshopCardLabelOf, workshopKeepsLink, workshopNoteIdOf, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesLines, workshopTakesNotes, workshopToSlate, workshopWithLine,
   workshopWithoutLine, type Workshop, type WorkshopBoardLayout, type WorkshopCard, type WorkshopCardAsNote, type WorkshopCardLook,
@@ -215,6 +215,19 @@ export interface AttachWorkshopOptions {
   onSelect?: (selection: WorkshopSelection) => void
   /** Required for a launch plan, a pipeline or a budget: its kit from slateboxjs/boards. */
   kit?: WorkshopBoardKit
+  /**
+   * The board's scope on a slate of many boards (1 to 12 lowercase letters and digits): each of its notes
+   * is named `<scope>:<name>` (`b2:card-<id>`, see workshopNodeIds.of), so two boards made from one preset
+   * never share a name, and a board only ever treats its own notes as its parts. Left out, or `main`, the
+   * notes keep the names a slate of one board has always had.
+   */
+  scope?: string
+  /**
+   * The boxes (world units) a note this board puts "beside the board" must stay clear of: the other boards
+   * on the slate. Asked each time (a card taken to the canvas, a note a lane refuses, a keyboard move off
+   * the lanes); the note goes past them along its row.
+   */
+  avoid?: () => { x: number; y: number; width: number; height: number }[]
 }
 
 export interface AttachedWorkshop {
@@ -302,6 +315,7 @@ function partOf(name: string): { kind: Kind; key: string } | null {
  * board.destroy()
  */
 export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWorkshopOptions = {}): AttachedWorkshop {
+  const scope = workshopBoardScope(options.scope)
   let value = validateWorkshop(workshop)
   const kit = options.kit
   /**
@@ -385,20 +399,39 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
 
   const origin = options.origin ? { x: options.origin.x, y: options.origin.y } : besideExistingContent(slate)
 
-  /** The artwork name a note of this workshop draws: its id, unless it had to take another. */
-  const nameOf = (id: string) => drawnAs.get(id) ?? id
-  const kindOf = (id: string) => partOf(nameOf(id))
-  /** The id of the note that draws `name`: the name itself wherever the slate's document leaves it free. */
+  /** A board of many on one slate names its notes in its scope (`b2:card-<id>`); the first board has no prefix. */
+  const prefix = scope ? scope + ':' : ''
+  /**
+   * The artwork name a note of this workshop draws: its id, unless it had to take another, without the
+   * board's scope. Null for an id that is not in this board's scope (another board's note).
+   */
+  const nameOf = (id: string): string | null => drawnAs.get(id) ?? (!prefix ? id : id.startsWith(prefix) ? id.slice(prefix.length) : null)
+  const kindOf = (id: string) => {
+    const name = nameOf(id)
+    return name === null ? null : partOf(name)
+  }
+  /** The id of the note that draws `name`: the name (in the board's scope) wherever the slate's document leaves it free. */
   function noteId(name: string): string {
     const given = standIn.get(name)
     if (given) return given
+    const own = prefix + name
     // Ours already, under its own name, or nobody's yet.
-    if ((owned.has(name) && !drawnAs.has(name)) || !slate.nodes.one?.(name)) return name
-    const id = workshopStandInId(name, candidate => Boolean(slate.nodes.one?.(candidate)) || drawnAs.has(candidate))
+    if ((owned.has(own) && !drawnAs.has(own)) || !slate.nodes.one?.(own)) return own
+    const id = workshopStandInId(own, candidate => Boolean(slate.nodes.one?.(candidate)) || drawnAs.has(candidate))
     standIn.set(name, id)
     drawnAs.set(id, name)
-    console.warn(`WORKSHOP: the slate already has a note named "${name}". It stays the slate's own; the workshop draws its note as "${id}".`)
+    console.warn(`WORKSHOP: the slate already has a note named "${own}". It stays the slate's own; the workshop draws its note as "${id}".`)
     return id
+  }
+  /** Where a note put just beside the board goes: there, or along its row past the other boards (options.avoid). */
+  function besideSpot(spot: { x: number; y: number; width: number; height: number }, side: 1 | -1 = 1) {
+    let avoid: { x: number; y: number; width: number; height: number }[] = []
+    try {
+      avoid = options.avoid?.() ?? []
+    } catch (error) {
+      console.warn('WORKSHOP: avoid threw; the note goes just beside the board', error)
+    }
+    return avoid.length ? workshopFreeSpot(spot, avoid, side) : { x: spot.x, y: spot.y }
   }
 
   const policy: DragPolicy = {
@@ -416,12 +449,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const part = kindOf(node.id)!
       const grab = { x: point.x - (node.options.x ?? 0), y: point.y - (node.options.y ?? 0) }
       if (part.kind === 'handle') {
-        const follow = readOnly || proposal ? null : kit ? kit.handleDrag(value, nameOf(node.id), grab, layout) : mapGripDrag(nameOf(node.id))
+        const follow = readOnly || proposal ? null : kit ? kit.handleDrag(value, nameOf(node.id)!, grab, layout) : mapGripDrag(nameOf(node.id)!)
         if (!follow) return false
         endFlash()
         clearStaged()
         if (gripRefusal) { clearTimeout(gripRefusal.timer); gripRefusal = null }
-        grip = { name: nameOf(node.id), follow, last: null }
+        grip = { name: nameOf(node.id)!, follow, last: null }
         return true
       }
       const cardId = part.key
@@ -466,7 +499,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
           slate.announce?.(result.refusal)
           tell(options.onRefuse, { laneId: null, reason: result.refusal })
         } else if (!commitKit(result.next, {})) draw(value)
-        const slot = slotOf(value, nameOf(node.id))
+        const slot = slotOf(value, nameOf(node.id)!)
         return slot ? { accept: true, settle: slot } : { accept: false }
       }
       if (!held) return { accept: false }
@@ -479,7 +512,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         if (!commitKit(outcome.next, { cardId, laneId: outcome.laneId }, cardId)) { draw(value, { skip: cardId }); return { accept: false } }
         // Landed where the rules let it: the rule that stopped it says why, beside it.
         if (outcome.said) { showGripRefusal('card-' + cardId, outcome.said); slate.announce?.(outcome.said) }
-        const slot = slotOf(value, nameOf(node.id))
+        const slot = slotOf(value, nameOf(node.id)!)
         return slot ? { accept: true, settle: slot } : { accept: true }
       }
       if (outcome.kind === 'candidate') {
@@ -488,7 +521,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         const lane = value.lanes.find(item => item.id === outcome.laneId)!
         slate.announce?.(`${cardName(card)} moved to ${lane.label}. ${workshopLaneCaption(value, lane.id)}.`)
         tell(options.onChange, value, { cardId, laneId: outcome.laneId })
-        const slot = slotOf(value, nameOf(node.id))
+        const slot = slotOf(value, nameOf(node.id)!)
         return slot ? { accept: true, settle: slot } : { accept: true }
       }
       if (outcome.kind === 'refused') {
@@ -579,7 +612,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         tell(options.onChange, value, { ...(target?.kind === 'card' ? { cardId: target.key } : {}), edits: chosen.edits })
         return true
       }
-      const offered = kit?.keyChoices?.(value, nameOf(node.id), event.key)
+      const offered = kit?.keyChoices?.(value, nameOf(node.id)!, event.key)
       if (offered) {
         event.preventDefault()
         const choices: { said: string; edits: WorkshopEdit[]; next: Workshop; done: string }[] = []
@@ -601,7 +634,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         slate.announce?.(`${choices[at].said}${more} Enter to make it, Escape to cancel.`)
         return true
       }
-      const keyed = kit?.keyEdit?.(value, nameOf(node.id), { key: event.key, shiftKey: event.shiftKey })
+      const keyed = kit?.keyEdit?.(value, nameOf(node.id)!, { key: event.key, shiftKey: event.shiftKey })
       if (keyed) {
         event.preventDefault()
         const result = applyWorkshopEdits(value, keyed)
@@ -761,7 +794,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     slate.announce?.(`${noteName(offer.label)} can't go in ${lane.label}. ${reason} It is beside the board.`)
     tell(options.onRefuse, { noteId: node.id, laneId, reason })
     const { width } = geometry(value)
-    const x = Math.round(origin.x + width + 32), y = Math.round(o.y ?? origin.y)
+    const spot = besideSpot({ x: origin.x + width + 32, y: o.y ?? origin.y, width: o.width ?? 0, height: o.height ?? 0 })
+    const x = Math.round(spot.x), y = Math.round(spot.y)
     node.position(x, y, () => slate.updateSelectionResizeRotate?.(), undefined, prefersReducedMotion() ? 0 : 180)
     slate.broadcast?.('onNodesMove', { nodeOptions: [v2NodeToV1({ ...node.options, x, y })] })
   }
@@ -776,6 +810,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const cardId = cardOf(noteId)
       const card = value.cards.find(item => item.id === cardId)
       if (!card) continue
+      // This board held the card at that step too, so the note is not this card: another board on the
+      // slate has a card by the same id (two boards made from one preset), and only that board lets it go.
+      if (recorded.has(cardId)) continue
       // Its lines stay joined to the note: a line to a note is the drawing's again (the record holds it).
       value = validateWorkshop({ ...value, cards: value.cards.filter(item => item !== card), lines: workshopRenamedLines(value.lines, cardId, noteId) })
       draw(value)
@@ -1092,7 +1129,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const { width } = geometry(value)
     const drawnCard = owned.get(noteId(workshopNodeIds.card(card.id)))?.options
     const cardWidth = drawnCard?.width ?? 228
-    const spot = { x: side > 0 ? origin.x + width + 32 : origin.x - cardWidth - 32, y: drawnCard?.y ?? origin.y }
+    const spot = besideSpot({ x: side > 0 ? origin.x + width + 32 : origin.x - cardWidth - 32, y: drawnCard?.y ?? origin.y,
+      width: cardWidth, height: drawnCard?.height ?? 76 }, side)
     const next = workshopCardAsNote(value, card.id)!
     staged = { cardId: card.id, laneId: null, side, spot, next: value }
     draw(value)
@@ -1956,7 +1994,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const part = kindOf(id)
     if (!part) return null
     if (part.kind === 'card') return part.key
-    return kit?.cardOfPart?.(value, nameOf(id)) ?? null
+    return kit?.cardOfPart?.(value, nameOf(id)!) ?? null
   }
   /** The card the person is on: held by a grip, held, under the pointer, or the one selected. */
   function focusNow(): string | null {
@@ -2138,7 +2176,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const lane = card && model.lanes.find(item => item.id === card.laneId)
       return card && lane ? `${card.label || 'Empty card'}, in ${lane.label}${kit?.cardKeys ? '. ' + kit.cardKeys : ''}` : null
     }
-    return target?.kind === 'handle' ? (kit ? kit.label?.(model, nameOf(id)) ?? null : mapGripLabel(model, nameOf(id))) : null
+    return target?.kind === 'handle' ? (kit ? kit.label?.(model, nameOf(id)!) ?? null : mapGripLabel(model, nameOf(id)!)) : null
   }
 
   function slotOf(model: Workshop, nodeId: string) {
@@ -2166,7 +2204,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // Just beside the board, level with where the card is drawn.
       const { width } = geometry(value)
       const drawnCard = owned.get(noteId(workshopNodeIds.card(cardId)))?.options
-      release(cardId, { x: origin.x + width + 32, y: drawnCard?.y ?? origin.y })
+      const card = value.cards.find(item => item.id === cardId)
+      // The note is as big as the note the card was made from, or as the card.
+      release(cardId, besideSpot({ x: origin.x + width + 32, y: drawnCard?.y ?? origin.y,
+        width: card?.asNote?.width ?? drawnCard?.width ?? 228, height: card?.asNote?.height ?? drawnCard?.height ?? 76 }))
       return null
     },
     get value() { return value },
