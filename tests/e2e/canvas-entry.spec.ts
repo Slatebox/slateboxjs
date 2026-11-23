@@ -23,6 +23,21 @@ test('a read-only slate draws without the line tool, the overview or the v1 faca
   expect(await page.evaluate(() => (window as any).slate.birdsEye ?? null)).toBeNull()
 })
 
+test('it draws a slate exactly as the main entry does: the same notes, the same lines', async ({ page }) => {
+  const drawn = async (query: string) => {
+    await open(page, query)
+    return page.evaluate(() => {
+      const slate = (window as any).slate
+      const lines = slate.nodes.allNodes.reduce((sum: number, node: any) => sum + (node.relationships?.associations?.length ?? 0), 0)
+      const svg = document.querySelector('#slate svg')!
+      return { notes: document.querySelectorAll('#slate [data-node-id]').length, lines, paths: svg.querySelectorAll('path').length, markup: svg.innerHTML.length }
+    })
+  }
+  const main = await drawn('?entry=main'), canvas = await drawn('')
+  expect(main.lines, 'the sample slate has lines').toBeGreaterThan(0)
+  expect(canvas).toEqual(main)
+})
+
 test('the line tool loads on first use on an editable slate, and runs as in the main entry', async ({ page }) => {
   await open(page, '?edit=1')
   expect((await fetched(page)).some(path => path.endsWith('/src/core/LineTool.ts')), 'an editable slate loads the line tool only when a line is drawn').toBe(false)

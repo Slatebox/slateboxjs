@@ -38,10 +38,10 @@ const ceilings = {
   // The library of what can be added (pure data): loaded when the library opens.
   'catalog.mjs': { raw: 16000, gzip: 5000 },
   // slateboxjs/canvas: the canvas alone, what a page that only draws slates loads first (its own build,
-  // vite.canvas.config.ts): a small entry and the chunk it shares with its parts. Measured at its first build
-  // (585,560 / 161,180 for the chunk), plus a little.
+  // vite.canvas.config.ts): a small entry and the chunk it shares with its parts. Measured at its first build that
+  // draws lines (627,893 / 170,861 for the chunk, with the SVG plugins registered), plus a little.
   'canvas.mjs': { raw: 1000, gzip: 500 },
-  'canvas-canvas-*.mjs': { raw: 600000, gzip: 166000 },
+  'canvas-canvas-*.mjs': { raw: 640000, gzip: 174000 },
   // Its parts that wait for a person or a request: the line tool, and the bird's-eye view.
   'canvas-LineTool-*.mjs': { raw: 7000, gzip: 2600 },
   'canvas-BirdsEye-*.mjs': { raw: 19000, gzip: 5200 },
@@ -134,6 +134,7 @@ if (importsOf('presence.mjs').some(target => target.startsWith('./'))) problems.
   const later = [...all.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g)].map(match => match[1])
   for (const part of ['LineTool', 'BirdsEye']) if (!later.some(target => target.includes('canvas-' + part + '-'))) problems.push(`slateboxjs/canvas does not load its ${part} chunk on first use.`)
   if (/LINE_TOOL: press failed|BIRDSEYE_DEBUG/.test(all)) problems.push('slateboxjs/canvas carries the line tool or the bird\'s-eye view in its first load: they load on first use.')
+  if (!/connectable\s*\(/.test(all)) problems.push('slateboxjs/canvas does not register the SVG plugins a slate draws with (no connectable plugin): its lines would not draw.')
   if (/SLATEBOX_COMPAT|invalid_operation_plan/.test(all)) problems.push('slateboxjs/canvas carries the v1 facade or the whole-slate operations: they belong to the main entry.')
   if (/^\s*import[^;]*from\s*["'](yjs|y-websocket)["']/m.test(all)) problems.push('slateboxjs/canvas imports yjs up front: it loads only when a slate goes live.')
 }
