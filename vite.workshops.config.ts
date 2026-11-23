@@ -9,6 +9,7 @@ const resolve = createRequire(import.meta.url).resolve
 const dragologyEntry = resolve('dragology')
 const dragologyTypes = join(dirname(dragologyEntry), 'index.d.ts')
 const immerTypes = join(dirname(createRequire(dragologyEntry).resolve('immer/package.json')), 'dist/immer.d.ts')
+const modelEntry = 'slateboxjs-workshop-model-entry'
 export default defineConfig({
   plugins: [{
     // Both the host and workshop view use the same package instance of the SVG engine.
@@ -16,6 +17,19 @@ export default defineConfig({
     enforce: 'pre',
     resolveId(source, importer) {
       if (source === '../index' && importer?.endsWith('/NativeMapSurface.tsx')) return {id:'slateboxjs',external:true}
+    },
+  }, {
+    // slateboxjs/workshops re-exports the model (src/workshops/index.tsx: export * from './model'). It takes it from the
+    // model's own entry, the file beside it in dist/, as one export * line: the same module the boards and the rules
+    // plug into, without listing (and importing) each of the model's names by its public name.
+    name: 'workshops-reexport-model-entry',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (source === './model' && importer?.endsWith('/src/workshops/index.tsx')) return { id: modelEntry, external: true }
+    },
+    renderChunk(code, _chunk, options) {
+      if (!code.includes(modelEntry)) return null
+      return { code: code.split(modelEntry).join('./workshop-model.' + (options.format === 'es' ? 'mjs' : 'cjs')), map: null }
     },
   }, {
     name: 'workshop-dependency-notices',
