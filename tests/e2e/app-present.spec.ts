@@ -120,15 +120,18 @@ test('Present on a plain slate plays its viewpoints full screen over the slate, 
     expect(box.height).toBeGreaterThanOrEqual(858)
     // The slate's own drawing: every note of the slate is in the presented SVG.
     for (const node of before.nodes) await expect(camera(dialog).locator('[data-node-id="' + node.options.id + '"]').first()).toBeAttached()
-    await expect(stepCounter(dialog)).toHaveText(/^0 \/ \d+$/, { timeout: 30_000 })
     // Restated 2026-11-22 (fix/present-ai): the presenter starts on the plan's overview of the whole
     // slate, with its narrative; then segments of related notes (at least one, at most one per
     // note, every note in some segment); the closing overview is the last step. A slate of one or
-    // two notes is planned as its overview alone ("0 / 0").
-    const total = await counterTotal(dialog)
+    // two notes is planned as its overview alone.
+    // Restated 2026-11-23: that overview shows no counter at all (75b1317b, "no '0 / 0' counter",
+    // as app-present-loading asserts); this spec still waited for "0 / N" on the one-note slate.
     const noteIds = before.nodes.map((node: { options: { id: string } }) => node.options.id)
-    if (noteIds.length <= 2) expect(total).toBe(0)
-    else expectPlanSize(total, 0, noteIds.length)
+    const few = noteIds.length <= 2
+    if (few) await expect(stepCounter(dialog)).toHaveCount(0, { timeout: 30_000 })
+    else await expect(stepCounter(dialog)).toHaveText(/^0 \/ \d+$/, { timeout: 30_000 })
+    const total = few ? 0 : await counterTotal(dialog)
+    if (!few) expectPlanSize(total, 0, noteIds.length)
     await expectWholeSlate(dialog)
     expect((await litNotes(dialog)).sort()).toEqual([...noteIds].sort())
     // The camera moves to each viewpoint, in reduced motion without a transition.
@@ -149,9 +152,9 @@ test('Present on a plain slate plays its viewpoints full screen over the slate, 
       await page.keyboard.press('ArrowLeft')
       await expect(stepCounter(dialog)).toHaveText(new RegExp('^' + (total - 1) + ' / ' + total + '$'))
     } else {
-      // Its overview is the whole presentation: Next stays on it.
+      // Its overview is the whole presentation: Next stays on it, still with no counter.
       await page.keyboard.press('ArrowRight')
-      await expect(stepCounter(dialog)).toHaveText('0 / 0')
+      await expect(stepCounter(dialog)).toHaveCount(0)
       await expectWholeSlate(dialog)
     }
     // Space plays and pauses.
