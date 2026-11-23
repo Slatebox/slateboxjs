@@ -1821,7 +1821,7 @@ export { said, listed, unquoted, named, countWord, pointing, workshopFinder, Wor
 export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection,
   type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native'
 export { boardLegend, boardChromeShapes, boardBadgeShapes, boardChromeLayout, boardChromeLabel, boardChromeStyles, chromeInk, DRAFT_TAG,
-  type LegendItem, type LegendIcon, type ChromeOptions } from './boardChrome'
+  boardChromeBox, chromeScaleAt, chromeTagScaleAt, CHROME_MAX_SCALE, CHROME_CHIPS_MAX_SCALE, type LegendItem, type LegendIcon, type ChromeOptions } from './boardChrome'
 
 
 export type StartupExperience = {version: 1; kind: 'customer-interviews' | 'experiment-budget'}

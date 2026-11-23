@@ -23,7 +23,7 @@ import {
 } from './model'
 import { applyWorkshopEdits, type WorkshopEdit } from './edits'
 import { createBoardLayer } from './boardLayer'
-import { boardChromeLayout, createBoardChrome } from './boardChrome'
+import { boardChromeBox, chromeScaleAt, chromeTagScaleAt, createBoardChrome } from './boardChrome'
 import { mapEditsBetween, mapGripLabel, mapGripNotes, mapGripOf, mapGripSize, mapPathDrop, mapStationAt, paintMap } from './mapPaths'
 
 /**
@@ -364,8 +364,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   const layer = kit?.layer(slate) ?? (value.lanes[0]?.station ? createBoardLayer(slate, paintMap) : undefined)
   // The board's chrome: its title and legend, badges, and the focus or draft frame (never saved).
   const chrome = options.chrome === false ? null : createBoardChrome(slate)
-  /** The chrome's type scale at the zoom the board is shown at (boardChrome.ts). */
+  /** The chrome's type scale at the zoom the board is shown at, and its frame's tags' (boardChrome.ts). */
   let chromeScale = 1
+  let chromeTagScale = 1
   let stopWatchingChromeZoom: (() => void) | null = null
   /** A map's path picked outside focus ("from>to"), until the selection moves on. */
   let picked: string | null = null
@@ -2202,17 +2203,24 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   /** The board on show the chrome was last drawn from. */
   let chromeShown: Workshop | null = null
   /** Whether the board is drawn for a phone (one column per row, or a kit's narrow layout). */
-  const narrowNow = () => Boolean(drawnLayout.narrow) || drawnLayout.lanesPerRow === 1
+  function narrowNow() { return Boolean(drawnLayout.narrow) || drawnLayout.lanesPerRow === 1 }
   /** The chrome options for the board as drawn now. */
   function chromeOptions() {
     // The room the board keeps on its slate (the widest it can become): its name may use that before it is shortened.
     let room: number | undefined
     try { room = workshopReserve(value, {}, kit).width } catch { room = undefined }
-    return { layout: drawnLayout, focused, draft, scale: chromeScale, narrow: narrowNow(), room }
+    return { layout: drawnLayout, focused, draft, scale: chromeScale, tagScale: chromeTagScale, narrow: narrowNow(), room }
+  }
+  /** The chrome's scale and its frame's tags' scale at the zoom now (boardChrome.ts). */
+  function chromeScalesNow() {
+    const zoom = zoomNow(), k = chromeScaleAt(zoom)
+    // On a phone "Done" is a finger's size; a draft's tag is no button, so it only keeps its size.
+    return [k, Math.round(chromeTagScaleAt(zoom, narrowNow() && !draft, k) * 20) / 20]
   }
   /** Draw the board's chrome from the board on show: its title and legend, its badges, and its frame. */
   function paintChrome() {
     if (!chrome || destroyed) return
+    ;[chromeScale, chromeTagScale] = chromeScalesNow()
     const shown = chromeShown ?? value
     const drawnBox = kit ? kit.places(shown, drawnLayout) : workshopLanePlaces(shown, { layout: drawnLayout })
     const places = kit || shown.lanes[0]?.station ? undefined : (drawnBox as ReturnType<typeof workshopLanePlaces>).places
@@ -2226,22 +2234,24 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       ...(options.onFocusDone && { onDone: () => tell(options.onFocusDone) }) })
   }
   /**
-   * The chrome's words stay readable however far out the view is: at a zoom under 75% they grow (up to 2.5 times),
-   * so a board's name is about 13px on screen in an overview of several boards. Drawn again once the view settles.
+   * The chrome's words stay readable however far out the view is: at a zoom under 75% they grow (chromeScaleAt), so a
+   * board's name is about 12px on screen even in an overview of many boards; a frame's tags never shrink on screen, and on a
+   * phone "Done" stays a finger's size. Drawn again once the view settles.
    */
   function watchChromeZoom() {
     const svg: Element | undefined = slate.canvas?.node
-    const scaleNow = () => Math.round(Math.min(2.5, Math.max(1, 0.75 / zoomNow())) * 20) / 20
-    chromeScale = scaleNow()
+    const scalesNow = chromeScalesNow
+    ;[chromeScale, chromeTagScale] = scalesNow()
     if (!chrome || !svg || typeof MutationObserver === 'undefined') return
     let timer: ReturnType<typeof setTimeout> | null = null
     const observer = new MutationObserver(() => {
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
         timer = null
-        const next = scaleNow()
-        if (destroyed || next === chromeScale) return
-        chromeScale = next
+        const [k, tagK] = scalesNow()
+        if (destroyed || (k === chromeScale && tagK === chromeTagScale)) return
+        chromeScale = k
+        chromeTagScale = tagK
         paintChrome()
       }, 120)
     })
@@ -2476,14 +2486,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const { width, height } = geometry(value)
       if (!chrome) return { x: origin.x, y: origin.y, width, height }
       // At full size (scale 1), whatever the zoom now: a host fits the view to this box, and the chrome's type only
-      // grows once the view is zoomed out, so the box never depends on the view it is about to set.
-      const drawnChrome = boardChromeLayout(value, { width, height }, { ...chromeOptions(), scale: 1 })
-      const box = drawnChrome.frame
-      const legendRight = Math.max(width, drawnChrome.titleRight, ...drawnChrome.placed.map(item => item.x + item.width))
-      const left = origin.x + (box ? box.x : 0), top = origin.y + drawnChrome.top
-      const right = origin.x + Math.max(box ? box.x + box.width : width, legendRight)
-      const bottom = origin.y + (box ? box.y + box.height : height)
-      return { x: left, y: top, width: right - left, height: bottom - top }
+      // grows once the view is zoomed out, so the box never depends on the view it is about to set. A frame's tags are
+      // taken at their size at 100% (on a phone, a finger's).
+      const box = boardChromeBox(value, { width, height }, { ...chromeOptions(), scale: 1, tagScale: chromeTagScaleAt(1, narrowNow() && !draft) })
+      return { x: origin.x + box.x, y: origin.y + box.y, width: box.width, height: box.height }
     },
     get focused() { return focused },
     setFocused(next) {

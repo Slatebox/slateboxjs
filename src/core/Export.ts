@@ -55,6 +55,39 @@ function elementsLeftOut(slate: any): Element[] {
   return elements;
 }
 
+type Box = { x: number; y: number; width: number; height: number };
+
+/**
+ * In the copy of the canvas, draw each board's chrome plain (slate.boardChromes, see workshops/boardChrome.ts) and
+ * return the boxes it fills; or, with `leaveOut`, take it out. A preview's chrome is always left out.
+ */
+function paintChromePlain(slate: any, svgNode: SVGElement, leaveOut: boolean): Box[] {
+  const groups = Array.from(svgNode.querySelectorAll("g[data-board-chrome]"));
+  if (!groups.length) return [];
+  const entries: any[] = slate?.boardChromes instanceof Set ? Array.from(slate.boardChromes) : [];
+  const boxes: Box[] = [];
+  for (const under of groups) {
+    if (under.hasAttribute("data-board-badges")) continue;
+    const scope = under.getAttribute("data-board-scope") ?? "main";
+    const over = groups.find((g) => g.hasAttribute("data-board-badges") && (g.getAttribute("data-board-scope") ?? "main") === scope) ?? null;
+    const entry = entries.find((e) => e.scope === scope && !e.draft);
+    if (leaveOut || !entry || under.hasAttribute("data-workshop-draft")) {
+      under.remove();
+      over?.remove();
+      continue;
+    }
+    try {
+      entry.paintPlain(under, over);
+      const box = entry.plainBox();
+      if (box && [box.x, box.y, box.width, box.height].every(Number.isFinite)) boxes.push(box);
+    } catch {
+      under.remove();
+      over?.remove();
+    }
+  }
+  return boxes;
+}
+
 /**
  * Export the slate canvas as SVG string.
  */
@@ -113,6 +146,11 @@ export function exportSVG(
       const elements = svgNode.querySelectorAll(sel);
       elements.forEach((el) => el.remove());
     }
+
+    // A board's chrome (its name, its legend, its rule badges: workshops/boardChrome.ts) is drawn for the view now: grown
+    // for a zoomed-out view, and framed while the board is in focus. A picture of the whole slate shows it plain, as at
+    // 100% and out of focus; a picture of some notes only, or of the background, leaves it out, as it does a preview's.
+    const chromeBoxes = paintChromePlain(slate, svgNode, Boolean(opts.backgroundOnly || opts.nodes));
 
     // Handle background option
     if (opts.noBackground) {
@@ -195,6 +233,12 @@ export function exportSVG(
             maxX = Math.max(maxX, x + w);
             maxY = Math.max(maxY, y + h);
           }
+        }
+        for (const box of chromeBoxes) {
+          minX = Math.min(minX, box.x);
+          minY = Math.min(minY, box.y);
+          maxX = Math.max(maxX, box.x + box.width);
+          maxY = Math.max(maxY, box.y + box.height);
         }
         if (isFinite(minX) && maxX > minX) {
           const vbW = maxX - minX + pad * 2;

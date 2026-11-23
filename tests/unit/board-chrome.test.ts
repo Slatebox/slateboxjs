@@ -10,6 +10,8 @@ import { kitFor, launchPlanKit } from '../../src/boards'
 import { phoneWordsWidth } from '../../src/boards/launchPlanKit'
 import type { LayerShape } from '../../src/workshops/boardLayer'
 import { behaviourLines, checkWorkshopMove } from '../../src/workshops/behaviour'
+import { boardChromeBox, boardChromesOf, chromeScaleAt, chromeTagScaleAt, CHROME_CHIPS_MAX_SCALE } from '../../src/workshops/boardChrome'
+import { exportSVG } from '../../src/core/Export'
 
 /**
  * Boards look designed (board polish, audit #3 #5 #7 #16): one counter format, the rules drawn as the board's
@@ -255,7 +257,9 @@ describe('the chrome on a live board', () => {
     await board.whenDrawn()
     const title = svg.querySelector('[data-board-layer="board-title"]')!
     expect(title.textContent).toBe('Team board')
-    expect(title.getAttribute('font-size')).toBe('45')
+    // Restated (board polish review): the type grows up to 6 times (it stopped at 2.5), so a name is still read in an
+    // overview of many boards. 0.75 / 0.1 = 7.5, so 18 × 6.
+    expect(title.getAttribute('font-size')).toBe('108')
     board.destroy()
   })
   it('on a phone at full size a long name keeps to the board’s width, so the board is fitted to the screen, not to its name', () => {
@@ -324,5 +328,143 @@ describe('9. what a person reads says "column", never "lane" (the chat still und
     expect('refused' in full && full.refused.reason).toMatch(/another column/)
     const moved = checkWorkshopMove(validateWorkshop({ ...team, cards: [{ id: 'a', label: 'A', laneId: 'todo' }] }), { id: 'a' }, { id: 'done' })
     expect(JSON.stringify(moved)).not.toMatch(lane)
+  })
+})
+
+describe('board polish review: the title row keeps its shape at every zoom, and the chrome is fitted and exported', () => {
+  const plan = () => validateWorkshop(planSamples['launch-plan']())
+  it('the chips\' rows are worked out at full size and kept at every scale: a board\'s name sits at k times its place', () => {
+    const team = preset('team-board')
+    for (const board of [team, plan()]) {
+      const size = board.kind ? launchPlanKit.places(board, {}) : workshopLanePlaces(board)
+      const one = boardChromeLayout(board, size, { room: size.width })
+      for (const k of [1.25, 1.7, 2.2, 2.5]) {
+        const at = boardChromeLayout(board, size, { scale: k, room: size.width })
+        expect([board.title, k, at.rows]).toEqual([board.title, k, one.rows])
+        expect(at.placed.map(p => p.row)).toEqual(one.placed.map(p => p.row))
+        expect(at.titleY).toBeCloseTo(one.titleY * k, 5)
+        // Chips on a row never overlap, and the first stays after the name.
+        const byRow = new Map<number, typeof at.placed>()
+        for (const p of at.placed) byRow.set(p.row, [...(byRow.get(p.row) ?? []), p])
+        for (const row of byRow.values()) for (let i = 1; i < row.length; i++) expect(row[i].x).toBeGreaterThanOrEqual(row[i - 1].x + row[i - 1].width)
+        const first = at.placed.find(p => p.row === 0)
+        if (first) expect(first.x).toBeGreaterThanOrEqual(at.titleRight)
+      }
+    }
+  })
+  it('boards side by side keep their names on one line at any zoom (one row of chips each at full size)', () => {
+    const boards = [preset('retro'), preset('team-board'), plan()]
+    for (const k of [1, 1.4, 2.5, 4]) {
+      const ys = boards.map(board => boardChromeLayout(board, board.kind ? launchPlanKit.places(board, {}) : workshopLanePlaces(board), { scale: k }).titleY)
+      expect(new Set(ys.map(y => Math.round(y))).size).toBe(1)
+    }
+  })
+  it('zoomed far out the chips are left out and the name alone grows, up to 6 times', () => {
+    expect(chromeScaleAt(0.1)).toBe(6)
+    expect(chromeScaleAt(0.5)).toBe(1.5)
+    expect(chromeScaleAt(1)).toBe(1)
+    const team = preset('team-board'), size = workshopLanePlaces(team)
+    expect(boardChromeLayout(team, size, { scale: CHROME_CHIPS_MAX_SCALE }).placed.length).toBe(2)
+    const far = boardChromeLayout(team, size, { scale: 6 })
+    expect(far.placed).toEqual([])
+    expect(far.titleSize).toBe(108)
+    expect(far.title).toBe('Team board')
+  })
+  it('a frame\'s tags never shrink on screen, and on a phone "Done" is a finger\'s 40px tall', () => {
+    const team = preset('team-board'), size = workshopLanePlaces(team)
+    const doneHeight = (zoom: number, narrow: boolean) => {
+      const k = chromeScaleAt(zoom)
+      const shapes = boardChromeShapes(team, size, { focused: true, narrow, scale: k, tagScale: chromeTagScaleAt(zoom, narrow, k) })
+      // The tag is a 24-high box round 13-high words, both at the tag's scale; its box path starts "M x,top" and its
+      // first straight side down ends "V bottom - r".
+      const box = shapes.find(shape => shape.t === 'path' && shape.role === 'focus-done-box') as Extract<LayerShape, { t: 'path' }>
+      const top = +box.d.match(/^M[^,]+,(-?[\d.]+)/)![1]
+      const words = shapes.find(shape => shape.t === 'text' && shape.text === 'Done') as Extract<LayerShape, { t: 'text' }>
+      const height = (words.size! / 13) * 24
+      expect(+box.d.match(/V(-?[\d.]+)/)![1]).toBeCloseTo(top + height - height / 2, 3)
+      return height * zoom
+    }
+    expect(doneHeight(0.74, false)).toBeGreaterThanOrEqual(24 - 0.01)
+    expect(doneHeight(1, false)).toBeCloseTo(24, 1)
+    expect(doneHeight(0.8, true)).toBeGreaterThanOrEqual(40 - 0.01)
+    expect(doneHeight(1, true)).toBeGreaterThanOrEqual(40 - 0.01)
+  })
+  it('the board in focus stands out: a wash inside its frame and a ring round it', () => {
+    const team = preset('team-board'), size = workshopLanePlaces(team)
+    const glow = boardChromeShapes(team, size, { focused: true }).find(shape => shape.t === 'path' && shape.role === 'focus-glow') as Extract<LayerShape, { t: 'path' }>
+    expect(glow.fill).toContain('--slatebox-board-focus-tint')
+    expect(glow.strokeOpacity).toBeGreaterThan(0)
+    expect(boardChromeShapes(team, size, { draft: true }).some(shape => shape.t === 'path' && shape.role === 'focus-glow')).toBe(false)
+  })
+  it('the slate knows each board\'s chrome box at a zoom (what a fit to the content includes) and forgets it with the board', async () => {
+    const { slate } = slateWithCanvas()
+    const board = attachWorkshop(slate, plan(), { origin: { x: 100, y: 200 }, kit: kitFor('launch-plan') })
+    await board.whenDrawn()
+    const [entry] = [...boardChromesOf(slate)]
+    const near = entry.box(1)!, far = entry.box(0.3)!
+    expect(near.y).toBeLessThan(200 - 40)
+    expect(far.y).toBeLessThan(near.y)
+    expect(far.x + far.width).toBeGreaterThanOrEqual(near.x + near.width)
+    expect(entry.plainBox()).toEqual(near)
+    board.destroy()
+    expect(boardChromesOf(slate).size).toBe(0)
+  })
+  it('an export shows the chrome plain (title and legend at full size, no focus frame) and frames the picture round it', async () => {
+    const { slate, svg } = slateWithCanvas()
+    slate.getZoom = () => 0.4
+    const board = attachWorkshop(slate, preset('team-board'), { origin: { x: 100, y: 200 } })
+    await board.whenDrawn()
+    board.setFocused(true)
+    expect(svg.querySelector('[data-board-layer="board-title"]')!.getAttribute('font-size')).not.toBe('18')
+    const out = new DOMParser().parseFromString(exportSVG(slate, {}).replace(/^<\?xml[^>]*>\n/, ''), 'image/svg+xml')
+    const title = out.querySelector('[data-board-chrome] [data-board-layer="board-title"]')!
+    expect(title.textContent).toBe('Team board')
+    expect(title.getAttribute('font-size')).toBe('18')
+    expect(out.querySelector('[data-board-layer="focus-frame"]')).toBeNull()
+    expect(out.querySelector('[data-board-layer="focus-done-box"]')).toBeNull()
+    expect([...out.querySelectorAll('[data-board-layer="legend"]')].map(t => t.textContent)).toEqual(['One column at a time', 'Won\'t do is a bin'])
+    const [, y] = out.documentElement.getAttribute('viewBox')!.split(' ').map(Number)
+    const plain = [...boardChromesOf(slate)][0].plainBox()!
+    expect(y).toBeLessThanOrEqual(plain.y)
+    // A picture of some notes only leaves the chrome out.
+    const some = exportSVG(slate, { nodes: [[...svg.querySelectorAll('[data-node-id]')][0].getAttribute('data-node-id')] })
+    expect(some).not.toContain('data-board-chrome')
+    board.destroy()
+  })
+  it('a fit to the content includes every board\'s name and legend, at the zoom the fit comes to', async () => {
+    const { PanZoom } = await import('../../src/core/PanZoom')
+    const { slate } = slateWithCanvas()
+    const board = attachWorkshop(slate, plan(), { origin: { x: 100, y: 200 }, kit: kitFor('launch-plan') })
+    await board.whenDrawn()
+    let view: number[] = []
+    const fake: any = Object.create(PanZoom.prototype)
+    fake.isEnabled = true
+    fake.slate = slate
+    fake.canvas = { viewbox: (...args: number[]) => { view = args } }
+    fake.getViewportSize = () => ({ w: 390, h: 700 })
+    fake.fit()
+    const zoom = 390 / view[2]
+    const box = [...boardChromesOf(slate)][0].box(zoom)!
+    expect(view[0]).toBeLessThanOrEqual(box.x)
+    expect(view[1]).toBeLessThanOrEqual(box.y + 1)
+    expect(view[0] + view[2]).toBeGreaterThanOrEqual(box.x + box.width - 1)
+    board.destroy()
+  })
+  it('the slate\'s orientation (what Present frames) includes each board\'s name and legend, as an export draws them', async () => {
+    const { Slate } = await import('../../src/core/Slate')
+    const { slate } = slateWithCanvas()
+    slate.options = { viewPort: {} }
+    const board = attachWorkshop(slate, preset('team-board'), { origin: { x: 100, y: 200 } })
+    await board.whenDrawn()
+    const orient = (Slate.prototype as any).getOrientation.call(slate)
+    const plain = [...boardChromesOf(slate)][0].plainBox()!
+    expect(orient.top).toBe(Math.abs(plain.y - 10))
+    board.destroy()
+  })
+  it('the chrome box of a board is the board and its chrome (boardChromeBox)', () => {
+    const team = preset('team-board'), size = workshopLanePlaces(team)
+    const box = boardChromeBox(team, size, { focused: true })
+    expect(box.y).toBeLessThan(-40)
+    expect(box.width).toBeGreaterThanOrEqual(size.width)
   })
 })

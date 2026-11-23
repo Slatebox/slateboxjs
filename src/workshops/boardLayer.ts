@@ -14,7 +14,10 @@ export type LayerShape =
    * that link: a click, Enter or Space removes it; a tap first selects it, and a second tap removes it (`armed`:
    * what it says while it waits for that tap). `pick` makes the same stroke a button that selects it (a map's path).
    */
-  | { t: 'path'; d: string; color: string; width?: number; hit?: number; fill?: string; dash?: string; role?: string; arrow?: { x: number; y: number; angle: number }; unlink?: { cardId: string; waitsOn: string; label: string; armed?: string }
+  | { t: 'path'; d: string; color: string; width?: number; hit?: number; fill?: string; dash?: string; role?: string
+      /** How strong the line is (stroke-opacity; a fill keeps its own). */
+      strokeOpacity?: number
+      arrow?: { x: number; y: number; angle: number }; unlink?: { cardId: string; waitsOn: string; label: string; armed?: string }
       pick?: { key: string; label: string } }
   /** Words; `lines` sets `text` on several lines (each line a tspan, `lineHeight` apart), whose words together are `text`. */
   | { t: 'text'; x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end'; bold?: boolean; role?: string; lines?: string[]; lineHeight?: number
@@ -137,6 +140,7 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
       }
       group.appendChild(element('path', { d: shape.d, fill: 'none', 'stroke-width': shape.width ?? 1.5, 'pointer-events': 'none',
         ...(shape.dash ? { 'stroke-dasharray': shape.dash } : {}), ...(shape.role ? { 'data-board-layer': shape.role } : {}),
+        ...(shape.strokeOpacity !== undefined ? { 'stroke-opacity': shape.strokeOpacity } : {}),
         ...(shape.fill ? { 'stroke-linecap': 'round', 'stroke-linejoin': 'round' } : {}) },
         { stroke: shape.color === 'none' ? 'transparent' : shape.color, ...(shape.fill && shape.fill !== 'none' ? { fill: shape.fill } : {}) }))
       if (shape.arrow) {

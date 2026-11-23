@@ -460,44 +460,67 @@ export class PanZoom {
     const nodes = this.slate?.nodes?.allNodes
     if (!nodes || nodes.length === 0) return
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    let nodeMinX = Infinity, nodeMinY = Infinity, nodeMaxX = -Infinity, nodeMaxY = -Infinity
     for (const node of nodes) {
       const x = node.options.x ?? 0
       const y = node.options.y ?? 0
       const w = node.options.width ?? 100
       const h = node.options.height ?? 60
-      minX = Math.min(minX, x)
-      minY = Math.min(minY, y)
-      maxX = Math.max(maxX, x + w)
-      maxY = Math.max(maxY, y + h)
+      nodeMinX = Math.min(nodeMinX, x)
+      nodeMinY = Math.min(nodeMinY, y)
+      nodeMaxX = Math.max(nodeMaxX, x + w)
+      nodeMaxY = Math.max(nodeMaxY, y + h)
     }
 
-    if (!isFinite(minX)) return
+    if (!isFinite(nodeMinX)) return
 
-    const contentWidth = maxX - minX
-    const contentHeight = maxY - minY
     const padding = 50
-
-    // Compute viewbox that centers content with padding
-    const vbWidth = contentWidth + padding * 2
-    const vbHeight = contentHeight + padding * 2
     const px = this.getViewportSize()
     const containerAspect = px.w / px.h
-    const contentAspect = vbWidth / vbHeight
+    // A board's chrome (its name and legend above it, workshops/boardChrome.ts) is part of the content. Its type grows as
+    // the view zooms out, so the box is taken at the zoom the fit comes to: worked out again a few times until it settles.
+    const chromes: { box(zoom: number): { x: number; y: number; width: number; height: number } | null }[] =
+      this.slate?.boardChromes instanceof Set ? [...this.slate.boardChromes] : []
+    let minX = nodeMinX, minY = nodeMinY, maxX = nodeMaxX, maxY = nodeMaxY
+    let finalW = 0, finalH = 0, contentWidth = 0, contentHeight = 0
+    let zoom = 1
+    for (let pass = 0; pass < (chromes.length ? 4 : 1); pass++) {
+      minX = nodeMinX; minY = nodeMinY; maxX = nodeMaxX; maxY = nodeMaxY
+      for (const chrome of chromes) {
+        let box: { x: number; y: number; width: number; height: number } | null = null
+        try { box = chrome.box(zoom) } catch { box = null }
+        if (!box || ![box.x, box.y, box.width, box.height].every(Number.isFinite)) continue
+        minX = Math.min(minX, box.x)
+        minY = Math.min(minY, box.y)
+        maxX = Math.max(maxX, box.x + box.width)
+        maxY = Math.max(maxY, box.y + box.height)
+      }
+      contentWidth = maxX - minX
+      contentHeight = maxY - minY
 
-    let finalW = vbWidth, finalH = vbHeight
-    if (contentAspect > containerAspect) {
-      finalH = finalW / containerAspect
-    } else {
-      finalW = finalH * containerAspect
-    }
+      // Compute viewbox that centers content with padding
+      const vbWidth = contentWidth + padding * 2
+      const vbHeight = contentHeight + padding * 2
+      const contentAspect = vbWidth / vbHeight
 
-    // Never zoom IN past 1:1 just to fill (Miro/v1 behavior): the viewBox is
-    // at least the container's pixel size, so small content sits at 100%
-    // centered rather than blown up to 400%+. Larger content still zooms out.
-    if (finalW < px.w) {
-      finalW = px.w
-      finalH = px.h
+      finalW = vbWidth
+      finalH = vbHeight
+      if (contentAspect > containerAspect) {
+        finalH = finalW / containerAspect
+      } else {
+        finalW = finalH * containerAspect
+      }
+
+      // Never zoom IN past 1:1 just to fill (Miro/v1 behavior): the viewBox is
+      // at least the container's pixel size, so small content sits at 100%
+      // centered rather than blown up to 400%+. Larger content still zooms out.
+      if (finalW < px.w) {
+        finalW = px.w
+        finalH = px.h
+      }
+      const next = px.w / finalW
+      if (Math.abs(next - zoom) < 0.005) break
+      zoom = next
     }
 
     const cx = minX + contentWidth / 2

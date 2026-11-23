@@ -15,6 +15,7 @@ export const chromeInk = {
   chipInk: 'var(--slatebox-board-chip-ink, #3d4b46)',
   focus: 'var(--slatebox-board-focus, #1f4a3a)',
   focusInk: 'var(--slatebox-board-focus-ink, #ffffff)',
+  focusTint: 'var(--slatebox-board-focus-tint, rgba(31, 74, 58, 0.045))',
   preview: 'var(--slatebox-board-preview, #8a6a1f)',
   previewFill: 'var(--slatebox-board-preview-fill, #f6cf86)',
   previewInk: 'var(--slatebox-board-preview-ink, #1f3d33)',
@@ -163,8 +164,13 @@ export interface ChromeOptions {
   focused?: boolean
   /** The board is a draft not yet added (a library preview): a dashed frame tagged "Preview · not added yet". */
   draft?: boolean
-  /** The chrome's type scale: max(1, 0.75 / zoom), at most 2.5, so a board's name stays readable in an overview of many boards. */
+  /**
+   * The chrome's type scale: max(1, 0.75 / zoom), at most CHROME_MAX_SCALE, so a board's name stays readable in an overview of
+   * many boards (chromeScaleAt). Past CHROME_CHIPS_MAX_SCALE the chips are left out.
+   */
   scale?: number
+  /** The scale of the frame's tags (chromeTagScaleAt): at least `scale`. */
+  tagScale?: number
   /** A phone: the legend starts on the row under the title. */
   narrow?: boolean
   /**
@@ -179,33 +185,50 @@ export interface ChromeOptions {
 /** The words of the draft tag. */
 export const DRAFT_TAG = 'Preview · not added yet'
 
+/** The largest the chrome's type grows when zoomed out: a board's name stays about 12px on screen down to an 11% overview. */
+export const CHROME_MAX_SCALE = 6
+/** Past this scale (a zoom under 30%) the legend's chips are left out and the board's name alone is drawn. */
+export const CHROME_CHIPS_MAX_SCALE = 2.5
+/** The chrome's type scale at a zoom: max(1, 0.75 / zoom), at most CHROME_MAX_SCALE (in steps of 0.05, so a redraw waits for a real change). */
+export const chromeScaleAt = (zoom: number) => Math.round(Math.min(CHROME_MAX_SCALE, Math.max(1, 0.75 / (zoom > 0 ? zoom : 1))) * 20) / 20
+/**
+ * The scale of a frame's tags ("Editing", "Done", the draft's tag) at a zoom: never smaller on screen than at 100%, and with
+ * `finger` (a board in focus on a phone, where "Done" is a button) at least a finger's 40px tall.
+ */
+export const chromeTagScaleAt = (zoom: number, finger = false, k = 1) => Math.max(k, (finger ? 40 / 24 : 1) / (zoom > 0 ? zoom : 1))
+
 /** Where the chrome's parts go, in board coordinates (0,0 is the board's origin, `size` its drawn box). */
 export function boardChromeLayout(board: Workshop, size: { x?: number; y?: number; width: number; height: number }, options: ChromeOptions = {}) {
   const left = size.x ?? 0, top = size.y ?? 0
-  const legend = boardLegend(board)
-  const k = Math.min(2.5, Math.max(1, options.scale ?? 1))
+  const k = Math.min(CHROME_MAX_SCALE, Math.max(1, options.scale ?? 1))
+  // Zoomed far out the chips would be specks: the board's name alone says which board it is.
+  const legend = k > CHROME_CHIPS_MAX_SCALE ? [] : boardLegend(board)
   const titleSize = 18 * k, rowH = 30 * k
-  // The legend wraps first-fit within the board's width (at least 640 on a wide screen), so it never runs into the next board.
-  const maxX = left + Math.max(size.width, options.narrow ? 0 : Math.min(640, size.width + 120))
-  const placed: { x: number; row: number; item: LegendItem; width: number }[] = []
   // A name longer than its room is shortened to fit it (with "…"), so it never runs into the next board. On a phone at
   // full size the room is the board's own width (the screen's); zoomed out, and on a wider screen, the room the board keeps.
-  let title = board.title
-  const room = (options.narrow && k <= 1 ? size.width : Math.max(size.width, options.room ?? 0)) - 4
-  if (chromeTextWidth(title, titleSize, true) > room) {
-    const fits = Math.max(3, Math.floor(room / (titleSize * 0.58)) - 1)
-    title = title.slice(0, fits).replace(/\s+\S*$/, '').replace(/[\s,.;:–-]+$/, '') + '…'
+  const shorten = (name: string, scale: number) => {
+    const room = (options.narrow && scale <= 1 ? size.width : Math.max(size.width, options.room ?? 0)) - 4
+    if (chromeTextWidth(name, 18 * scale, true) <= room) return name
+    const fits = Math.max(3, Math.floor(room / (18 * scale * 0.58)) - 1)
+    return name.slice(0, fits).replace(/\s+\S*$/, '').replace(/[\s,.;:–-]+$/, '') + '…'
   }
-  // Each row's next free x; a phone starts the chips on the row under the name.
-  const ends: number[] = [left + 2 + chromeTextWidth(title, titleSize, true) + 14 * k]
-  if (options.narrow && legend.length) { ends[0] = Infinity; ends.push(left + 2) }
+  const title = shorten(board.title, k)
+  // The chips' rows are worked out once, at full size, and kept at every zoom: only their size grows. So a board's title
+  // row never changes shape as the view zooms, and the titles of boards side by side stay on one line.
+  // The legend wraps first-fit within the board's width (at least 640 on a wide screen), so it never runs into the next board.
+  const maxX1 = Math.max(size.width, options.narrow ? 0 : Math.min(640, size.width + 120))
+  const placed1: { x: number; row: number; item: LegendItem; width: number }[] = []
+  // Each row's next free x (from the board's left edge, at full size); a phone starts the chips on the row under the name.
+  const ends: number[] = [2 + chromeTextWidth(shorten(board.title, 1), 18, true) + 14]
+  if (options.narrow && legend.length) { ends[0] = Infinity; ends.push(2) }
   for (const item of legend) {
-    const width = chipWidth(item, k)
-    let row = ends.findIndex(end => end + width <= maxX)
-    if (row < 0) { ends.push(left + 2); row = ends.length - 1 }
-    placed.push({ x: ends[row], row, item, width })
-    ends[row] += width + 6 * k
+    const width = chipWidth(item, 1)
+    let row = ends.findIndex(end => end + width <= maxX1)
+    if (row < 0) { ends.push(2); row = ends.length - 1 }
+    placed1.push({ x: ends[row], row, item, width })
+    ends[row] += width + 6
   }
+  const placed = placed1.map(p => ({ x: left + Math.round(p.x * k), row: p.row, item: p.item, width: chipWidth(p.item, k) }))
   const rows = Math.max(1, ...placed.map(p => p.row + 1))
   // The last row ends 14 above the board.
   const titleY = top - 14 * k - rows * rowH
@@ -213,32 +236,53 @@ export function boardChromeLayout(board: Workshop, size: { x?: number; y?: numbe
   // The frame stands 16 outside the board (8 on a phone, where the board takes the screen's width).
   const out = options.narrow ? 8 : 16
   const frame = framed ? { x: left - out, y: titleY - 18 * k, width: size.width + 2 * out, height: top + size.height + out - (titleY - 18 * k) } : null
+  // A frame's tags keep their size on screen however far out the view is (and a finger's size on a phone).
+  const tagK = Math.max(k, options.tagScale ?? k)
   // The topmost thing the chrome draws: a frame's tag stands half above its line.
-  const above = frame ? frame.y - 12 * k : titleY
+  const above = frame ? frame.y - 12 * tagK : titleY
   const titleRight = left + 2 + chromeTextWidth(title, titleSize, true)
-  return { k, legend, placed, rows, title, titleY, titleSize, titleRight, rowH, frame, top: above }
+  return { k, tagK, legend, placed, rows, title, titleY, titleSize, titleRight, rowH, frame, top: above }
+}
+
+/**
+ * The box the chrome fills with the board, in board coordinates: the board's drawn box grown by the title row and
+ * legend, and by the frame and its tags while there is one.
+ */
+export function boardChromeBox(board: Workshop, size: { width: number; height: number }, options: ChromeOptions = {}) {
+  const drawn = boardChromeLayout(board, size, options)
+  const box = drawn.frame
+  const legendRight = Math.max(size.width, drawn.titleRight, ...drawn.placed.map(item => item.x + item.width))
+  const left = box ? box.x : 0, top = drawn.top
+  const right = Math.max(box ? box.x + box.width : size.width, legendRight)
+  const bottom = box ? box.y + box.height : size.height
+  return { x: left, y: top, width: right - left, height: bottom - top }
 }
 
 /** The chrome of one board in board coordinates: its title row, and in focus or as a draft its frame and tags. */
 export function boardChromeShapes(board: Workshop, size: { x?: number; y?: number; width: number; height: number }, options: ChromeOptions = {}): LayerShape[] {
-  const { k, placed, title, titleY, titleSize, rowH, frame } = boardChromeLayout(board, size, options)
+  const { k, tagK, placed, title, titleY, titleSize, rowH, frame } = boardChromeLayout(board, size, options)
   const left = size.x ?? 0
   const shapes: LayerShape[] = []
   if (frame) {
-    shapes.push({ t: 'path', d: roundRect(frame.x, frame.y, frame.width, frame.height, 18), color: options.focused ? chromeInk.focus : chromeInk.preview, width: 2,
+    const d = roundRect(frame.x, frame.y, frame.width, frame.height, 18)
+    if (options.focused) {
+      // The board in focus stands out: a faint wash of the brand inside its frame and a soft ring round it.
+      shapes.push({ t: 'path', d, color: chromeInk.focus, width: 12, strokeOpacity: 0.1, fill: chromeInk.focusTint, role: 'focus-glow' })
+    }
+    shapes.push({ t: 'path', d, color: options.focused ? chromeInk.focus : chromeInk.preview, width: 2,
       ...(!options.focused && { dash: '8 6' }), role: options.focused ? 'focus-frame' : 'draft-frame' })
   }
   shapes.push({ t: 'text', x: left + 2, y: titleY + 19 * k, text: title, color: chromeInk.title, size: titleSize, bold: true, role: 'board-title' })
   for (const p of placed) shapes.push(...chip(p.x, titleY + p.row * rowH + 2 * k, p.item, k))
   if (frame) {
-    const tagY = frame.y - 12 * k
+    const tagY = frame.y - 12 * tagK
     if (options.focused) {
       const editing = { text: 'Editing' }
-      shapes.push(...chip(frame.x + 18, tagY, editing, k, { fill: chromeInk.focus, ink: chromeInk.focusInk, bold: true, role: 'focus-tag' }))
-      shapes.push(...chip(frame.x + 18 + chipWidth(editing, k, true) + 6 * k, tagY, { text: 'Done' }, k,
+      shapes.push(...chip(frame.x + 18, tagY, editing, tagK, { fill: chromeInk.focus, ink: chromeInk.focusInk, bold: true, role: 'focus-tag' }))
+      shapes.push(...chip(frame.x + 18 + chipWidth(editing, tagK, true) + 6 * tagK, tagY, { text: 'Done' }, tagK,
         { fill: chromeInk.halo, ink: chromeInk.focus, line: chromeInk.focus, bold: true, role: 'focus-done' }))
     } else {
-      shapes.push(...chip(frame.x + 18, tagY, { text: DRAFT_TAG }, k, { fill: chromeInk.previewFill, ink: chromeInk.previewInk, bold: true, role: 'draft-tag' }))
+      shapes.push(...chip(frame.x + 18, tagY, { text: DRAFT_TAG }, tagK, { fill: chromeInk.previewFill, ink: chromeInk.previewInk, bold: true, role: 'draft-tag' }))
     }
   }
   return shapes
@@ -302,6 +346,31 @@ export interface BoardChrome {
   destroy(): void
 }
 
+/**
+ * What a slate knows of each board's chrome (slate.boardChromes): the box it fills at a zoom, so a fit to the content
+ * includes every board's name and legend; and its plain drawing (the title row and badges at full size, no frame or tags),
+ * which an export (a PNG, an SVG, Present) shows in place of the chrome as it is drawn for the view now.
+ */
+export interface BoardChromeEntry {
+  /** The board's scope on its slate ('main' for the first). */
+  readonly scope: string
+  /** A library preview, not part of the slate: left out of an export. */
+  readonly draft: boolean
+  /** The box the board and its chrome fill at a zoom (world units), as the chrome would be drawn at that zoom. */
+  box(zoom: number): { x: number; y: number; width: number; height: number } | null
+  /** The box of the plain drawing (world units). */
+  plainBox(): { x: number; y: number; width: number; height: number } | null
+  /** Draw the plain chrome into an export's copies of this board's two groups (under the notes, and its badges). */
+  paintPlain(under: Element, over: Element | null): void
+}
+
+/** The chrome entries of a slate's boards (see BoardChromeEntry). */
+export function boardChromesOf(slate: any): Set<BoardChromeEntry> {
+  if (!slate) return new Set()
+  if (!(slate.boardChromes instanceof Set)) slate.boardChromes = new Set<BoardChromeEntry>()
+  return slate.boardChromes
+}
+
 /** The chrome of one attached board: a group under the board's notes (title, legend, frame) and one above them (badges). */
 export function createBoardChrome(slate: any): BoardChrome {
   const root: SVGSVGElement | undefined = slate?.canvas?.node
@@ -313,10 +382,40 @@ export function createBoardChrome(slate: any): BoardChrome {
   }
   over?.setAttribute('data-board-badges', '')
   let gone = false
+  let last: BoardChromeState | null = null
+  const optionsOf = (state: BoardChromeState): ChromeOptions =>
+    ({ layout: state.layout, focused: state.focused, draft: state.draft, scale: state.scale, tagScale: state.tagScale, narrow: state.narrow, places: state.places, room: state.room })
+  const worldBox = (state: BoardChromeState, options: ChromeOptions) => {
+    const box = boardChromeBox(state.board, state.size, options)
+    return { x: state.origin.x + box.x, y: state.origin.y + box.y, width: box.width, height: box.height }
+  }
+  const plain = (state: BoardChromeState): ChromeOptions => ({ ...optionsOf(state), focused: false, draft: false, scale: 1, tagScale: 1 })
+  const entry: BoardChromeEntry = {
+    get scope() { return last?.scope ?? 'main' },
+    get draft() { return Boolean(last?.draft) },
+    box(zoom) {
+      if (!last) return null
+      const k = chromeScaleAt(zoom)
+      return worldBox(last, { ...optionsOf(last), scale: k, tagScale: chromeTagScaleAt(zoom, Boolean(last.narrow && !last.draft), k) })
+    },
+    plainBox() { return last ? worldBox(last, plain(last)) : null },
+    paintPlain(copyUnder, copyOver) {
+      if (!last) return
+      const options = plain(last)
+      copyUnder.removeAttribute('data-workshop-focused')
+      renderLayerShapes(copyUnder as SVGGElement, boardChromeShapes(last.board, { width: last.size.width, height: last.size.height }, options))
+      if (copyOver) {
+        copyOver.removeAttribute('data-workshop-focused')
+        renderLayerShapes(copyOver as SVGGElement, boardBadgeShapes(last.board, options))
+      }
+    },
+  }
+  boardChromesOf(slate).add(entry)
   return {
     draw(state) {
       if (gone || !root || !under || !over) return
-      const options: ChromeOptions = { layout: state.layout, focused: state.focused, draft: state.draft, scale: state.scale, narrow: state.narrow, places: state.places, room: state.room }
+      last = state
+      const options = optionsOf(state)
       for (const group of [under, over]) {
         group.setAttribute('transform', `translate(${state.origin.x} ${state.origin.y})`)
         group.toggleAttribute('data-workshop-focused', Boolean(state.focused))
@@ -356,6 +455,7 @@ export function createBoardChrome(slate: any): BoardChrome {
     },
     destroy() {
       gone = true
+      boardChromesOf(slate).delete(entry)
       under?.remove()
       over?.remove()
     },

@@ -1558,6 +1558,19 @@ export class Slate {
         maxX = Math.max(maxX, x + w + pad);
         maxY = Math.max(maxY, y + h + pad);
       });
+      // A board's name and legend above it (its chrome, drawn plain in an export: workshops/boardChrome.ts) are part
+      // of the picture, so a presentation of the slate does not cut them off.
+      const chromes: any[] = (this as any).boardChromes instanceof Set ? Array.from((this as any).boardChromes) : [];
+      for (const chrome of chromes) {
+        if (chrome.draft) continue;
+        let box: { x: number; y: number; width: number; height: number } | null = null;
+        try { box = chrome.plainBox(); } catch { box = null; }
+        if (!box || ![box.x, box.y, box.width, box.height].every(Number.isFinite)) continue;
+        minX = Math.min(minX, box.x - pad);
+        minY = Math.min(minY, box.y - pad);
+        maxX = Math.max(maxX, box.x + box.width + pad);
+        maxY = Math.max(maxY, box.y + box.height + pad);
+      }
       left = Math.abs(minX);
       top = Math.abs(minY);
       width = maxX - minX;
