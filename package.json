@@ -72,6 +72,16 @@
       "import": "./dist/boards-nest.mjs",
       "require": "./dist/boards-nest.cjs"
     },
+    "./boards/still": {
+      "types": "./dist/boards/still.d.ts",
+      "import": "./dist/boards-still.mjs",
+      "require": "./dist/boards-still.cjs"
+    },
+    "./workshops/controls": {
+      "types": "./dist/workshops/ruleControls.d.ts",
+      "import": "./dist/workshop-controls.mjs",
+      "require": "./dist/workshop-controls.cjs"
+    },
     "./build.json": "./dist/BUILD.json",
     "./dragology": {
       "types": "./dist/dragology/index.d.ts",
