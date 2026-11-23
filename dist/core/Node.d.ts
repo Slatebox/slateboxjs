@@ -65,6 +65,18 @@ export interface NodeOptions {
         x?: number;
         y?: number;
     };
+    /**
+     * The share of each side kept clear of text, as fractions of the note's box
+     * (0 to 0.45): a custom shape (a chevron's notch, a speech bubble's tail) tells
+     * the text where its inner safe area is. Wrapping, the fit and the centre use
+     * the inner box.
+     */
+    textInset?: {
+        left?: number;
+        right?: number;
+        top?: number;
+        bottom?: number;
+    };
     backgroundColor?: string;
     borderColor?: string;
     borderWidth?: number;
@@ -94,6 +106,8 @@ export interface NodeOptions {
     image?: string;
     imageOrigWidth?: number;
     imageOrigHeight?: number;
+    /** How the picture fills the shape: 'contain' (default, letterboxed) or 'cover' (cropped to fill). */
+    imageFit?: "cover" | "contain";
     lineColor?: string;
     lineOpacity?: number;
     lineEffect?: string;
@@ -285,6 +299,15 @@ export declare class Node {
         h: number;
         custom: boolean;
     };
+    /**
+     * The box text is placed in: a custom outline's text area, otherwise the
+     * whole box; either one narrowed by options.textInset.
+     */
+    private placeArea;
+    /** An area narrowed by the note's text inset (each side a share of the area). */
+    private insetArea;
+    /** The note's text inset (options.textInset), each side clamped to 0-0.45. */
+    private textInsetSides;
     private shapeTextInset;
     private wrapTextToWidth;
     /**

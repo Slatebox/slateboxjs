@@ -23,7 +23,7 @@ const M = Object.freeze({
    * same for every path the grammar allows.
    */
   maxPoints: 2400
-}), N = {
+}), E = {
   empty: "The shape has no path.",
   bad_character: "The shape path may hold only path commands and plain numbers.",
   bad_syntax: "The shape path could not be read.",
@@ -36,10 +36,10 @@ const M = Object.freeze({
   too_thin: "The shape is too thin to hold a note.",
   bad_fill_rule: "The fill rule must be nonzero or evenodd.",
   bad_name: `The shape needs a name of 1 to ${M.maxName} characters.`
-}, L = (t) => ({ ok: !1, code: t, message: N[t] });
+}, L = (t) => ({ ok: !1, code: t, message: E[t] });
 class g extends Error {
   constructor(e) {
-    super(N[e]), this.code = e;
+    super(E[e]), this.code = e;
   }
 }
 const D = /^[MmLlHhVvCcSsQqTtAaZz0-9.,\s+-]*$/, G = { M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7, Z: 0 };
@@ -54,15 +54,15 @@ function J(t) {
   }
   return e;
 }
-function q(t) {
+function H(t) {
   if (typeof t != "string" || !t.trim()) throw new g("empty");
   if (t.length > M.maxInput) throw new g("too_long");
   if (!D.test(t)) throw new g("bad_character");
   const e = J(t), r = [];
-  let c = null, n = 0, o = 0, a = 0, x = 0, l = null, h = null, f = 0, y = "", k = 0;
-  const m = (u) => typeof u == "string" && /^[A-Za-z]$/.test(u), s = () => {
+  let c = null, n = 0, o = 0, a = 0, x = 0, l = null, h = null, f = 0, m = "", k = 0;
+  const y = (u) => typeof u == "string" && /^[A-Za-z]$/.test(u), s = () => {
     const u = e[f];
-    if (u === void 0 || m(u)) throw new g("bad_syntax");
+    if (u === void 0 || y(u)) throw new g("bad_syntax");
     f++;
     const _ = Number(u);
     if (!Number.isFinite(_)) throw new g("bad_syntax");
@@ -70,7 +70,7 @@ function q(t) {
     return _;
   }, b = () => {
     const u = e[f];
-    if (typeof u != "string" || m(u)) throw new g("bad_syntax");
+    if (typeof u != "string" || y(u)) throw new g("bad_syntax");
     const _ = u.replace(/^\+/, "")[0];
     if (_ !== "0" && _ !== "1") throw new g("bad_syntax");
     const $ = u.replace(/^\+/, "").slice(1);
@@ -81,33 +81,33 @@ function q(t) {
   };
   for (; f < e.length; ) {
     const u = e[f];
-    if (m(u))
-      y = u, f++;
-    else if (!y)
+    if (y(u))
+      m = u, f++;
+    else if (!m)
       throw new g("bad_syntax");
-    const _ = y === y.toLowerCase(), $ = y.toUpperCase(), v = G[$];
+    const _ = m === m.toLowerCase(), $ = m.toUpperCase(), v = G[$];
     if ($ === "Z") {
-      i({ c: "Z" }), n = a, o = x, l = h = null, y = "";
+      i({ c: "Z" }), n = a, o = x, l = h = null, m = "";
       continue;
     }
-    if (f >= e.length || m(e[f])) throw new g("bad_syntax");
-    let Q = !0;
-    for (; f < e.length && !m(e[f]); ) {
+    if (f >= e.length || y(e[f])) throw new g("bad_syntax");
+    let N = !0;
+    for (; f < e.length && !y(e[f]); ) {
       const C = _ ? n : 0, A = _ ? o : 0;
       switch ($) {
         case "M": {
-          const d = s() + C, p = s() + A;
-          if (Q) {
+          const d = s() + C, w = s() + A;
+          if (N) {
             if (r.length >= M.maxParts) throw new g("too_many_parts");
-            c = [], r.push(c), i({ c: "M", x: d, y: p }), a = d, x = p;
+            c = [], r.push(c), i({ c: "M", x: d, y: w }), a = d, x = w;
           } else
-            i({ c: "L", x: d, y: p });
-          n = d, o = p, l = h = null;
+            i({ c: "L", x: d, y: w });
+          n = d, o = w, l = h = null;
           break;
         }
         case "L": {
-          const d = s() + C, p = s() + A;
-          i({ c: "L", x: d, y: p }), n = d, o = p, l = h = null;
+          const d = s() + C, w = s() + A;
+          i({ c: "L", x: d, y: w }), n = d, o = w, l = h = null;
           break;
         }
         case "H": {
@@ -121,34 +121,34 @@ function q(t) {
           break;
         }
         case "C": {
-          const d = s() + C, p = s() + A, R = s() + C, S = s() + A, T = s() + C, I = s() + A;
-          i({ c: "C", x1: d, y1: p, x2: R, y2: S, x: T, y: I }), l = { x: R, y: S }, h = null, n = T, o = I;
+          const d = s() + C, w = s() + A, R = s() + C, S = s() + A, T = s() + C, I = s() + A;
+          i({ c: "C", x1: d, y1: w, x2: R, y2: S, x: T, y: I }), l = { x: R, y: S }, h = null, n = T, o = I;
           break;
         }
         case "S": {
-          const d = l ? 2 * n - l.x : n, p = l ? 2 * o - l.y : o, R = s() + C, S = s() + A, T = s() + C, I = s() + A;
-          i({ c: "C", x1: d, y1: p, x2: R, y2: S, x: T, y: I }), l = { x: R, y: S }, h = null, n = T, o = I;
+          const d = l ? 2 * n - l.x : n, w = l ? 2 * o - l.y : o, R = s() + C, S = s() + A, T = s() + C, I = s() + A;
+          i({ c: "C", x1: d, y1: w, x2: R, y2: S, x: T, y: I }), l = { x: R, y: S }, h = null, n = T, o = I;
           break;
         }
         case "Q": {
-          const d = s() + C, p = s() + A, R = s() + C, S = s() + A;
-          i({ c: "Q", x1: d, y1: p, x: R, y: S }), h = { x: d, y: p }, l = null, n = R, o = S;
+          const d = s() + C, w = s() + A, R = s() + C, S = s() + A;
+          i({ c: "Q", x1: d, y1: w, x: R, y: S }), h = { x: d, y: w }, l = null, n = R, o = S;
           break;
         }
         case "T": {
-          const d = h ? 2 * n - h.x : n, p = h ? 2 * o - h.y : o, R = s() + C, S = s() + A;
-          i({ c: "Q", x1: d, y1: p, x: R, y: S }), h = { x: d, y: p }, l = null, n = R, o = S;
+          const d = h ? 2 * n - h.x : n, w = h ? 2 * o - h.y : o, R = s() + C, S = s() + A;
+          i({ c: "Q", x1: d, y1: w, x: R, y: S }), h = { x: d, y: w }, l = null, n = R, o = S;
           break;
         }
         case "A": {
-          const d = Math.abs(s()), p = Math.abs(s()), R = s(), S = b(), T = b(), I = s() + C, P = s() + A;
-          i({ c: "A", rx: d, ry: p, rot: R, large: S, sweep: T, x: I, y: P }), n = I, o = P, l = h = null;
+          const d = Math.abs(s()), w = Math.abs(s()), R = s(), S = b(), T = b(), I = s() + C, P = s() + A;
+          i({ c: "A", rx: d, ry: w, rot: R, large: S, sweep: T, x: I, y: P }), n = I, o = P, l = h = null;
           break;
         }
         default:
           throw new g("bad_syntax");
       }
-      if (Q = !1, v === 0) break;
+      if (N = !1, v === 0) break;
     }
   }
   if (!r.length) throw new g("bad_syntax");
@@ -158,78 +158,78 @@ function U(t, e, r, c = 12) {
   let { rx: n, ry: o } = r;
   const { x: a, y: x } = r;
   if (n === 0 || o === 0 || t === a && e === x) return [[a, x]];
-  const l = r.rot * Math.PI / 180, h = Math.cos(l), f = Math.sin(l), y = (t - a) / 2, k = (e - x) / 2, m = h * y + f * k, s = -f * y + h * k, b = m * m / (n * n) + s * s / (o * o);
+  const l = r.rot * Math.PI / 180, h = Math.cos(l), f = Math.sin(l), m = (t - a) / 2, k = (e - x) / 2, y = h * m + f * k, s = -f * m + h * k, b = y * y / (n * n) + s * s / (o * o);
   if (b > 1) {
     const T = Math.sqrt(b);
     n *= T, o *= T;
   }
-  const i = n * n * o * o - n * n * s * s - o * o * m * m, u = n * n * s * s + o * o * m * m;
+  const i = n * n * o * o - n * n * s * s - o * o * y * y, u = n * n * s * s + o * o * y * y;
   let _ = Math.sqrt(Math.max(0, i / u));
   r.large === r.sweep && (_ = -_);
-  const $ = _ * n * s / o, v = -_ * o * m / n, Q = h * $ - f * v + (t + a) / 2, C = f * $ + h * v + (e + x) / 2, A = (T, I, P, z) => Math.atan2(T * z - I * P, T * P + I * z), d = A(1, 0, (m - $) / n, (s - v) / o);
-  let p = A((m - $) / n, (s - v) / o, (-m - $) / n, (-s - v) / o);
-  !r.sweep && p > 0 && (p -= 2 * Math.PI), r.sweep && p < 0 && (p += 2 * Math.PI);
-  const R = Math.max(2, Math.ceil(Math.abs(p) / (Math.PI / 2) * c)), S = [];
+  const $ = _ * n * s / o, v = -_ * o * y / n, N = h * $ - f * v + (t + a) / 2, C = f * $ + h * v + (e + x) / 2, A = (T, I, P, z) => Math.atan2(T * z - I * P, T * P + I * z), d = A(1, 0, (y - $) / n, (s - v) / o);
+  let w = A((y - $) / n, (s - v) / o, (-y - $) / n, (-s - v) / o);
+  !r.sweep && w > 0 && (w -= 2 * Math.PI), r.sweep && w < 0 && (w += 2 * Math.PI);
+  const R = Math.max(2, Math.ceil(Math.abs(w) / (Math.PI / 2) * c)), S = [];
   for (let T = 1; T <= R; T++) {
-    const I = d + p * T / R, P = n * Math.cos(I), z = o * Math.sin(I);
-    S.push([h * P - f * z + Q, f * P + h * z + C]);
+    const I = d + w * T / R, P = n * Math.cos(I), z = o * Math.sin(I);
+    S.push([h * P - f * z + N, f * P + h * z + C]);
   }
   return S[S.length - 1] = [a, x], S;
 }
-function F(t) {
+function O(t) {
   let e = 0, r = 0, c = 0;
-  for (const f of t) for (const y of f)
-    y.c === "C" || y.c === "Q" ? e++ : y.c === "A" ? r++ : y.c !== "Z" && c++;
+  for (const f of t) for (const m of f)
+    m.c === "C" || m.c === "Q" ? e++ : m.c === "A" ? r++ : m.c !== "Z" && c++;
   const n = c + e * 16 + r * 48, o = n > M.maxPoints ? Math.max(0, M.maxPoints - c) / Math.max(1, n - c) : 1, a = Math.max(2, Math.floor(16 * o)), x = Math.max(2, Math.floor(12 * o)), l = Math.max(0.5, 12 * o), h = [];
   for (const f of t) {
-    const y = [];
-    let k = 0, m = 0;
+    const m = [];
+    let k = 0, y = 0;
     for (const s of f) {
       switch (s.c) {
         case "M":
         case "L":
-          y.push([s.x, s.y]);
+          m.push([s.x, s.y]);
           break;
         case "C":
           for (let b = 1; b <= a; b++) {
             const i = b / a, u = 1 - i;
-            y.push([
+            m.push([
               u * u * u * k + 3 * u * u * i * s.x1 + 3 * u * i * i * s.x2 + i * i * i * s.x,
-              u * u * u * m + 3 * u * u * i * s.y1 + 3 * u * i * i * s.y2 + i * i * i * s.y
+              u * u * u * y + 3 * u * u * i * s.y1 + 3 * u * i * i * s.y2 + i * i * i * s.y
             ]);
           }
           break;
         case "Q":
           for (let b = 1; b <= x; b++) {
             const i = b / x, u = 1 - i;
-            y.push([u * u * k + 2 * u * i * s.x1 + i * i * s.x, u * u * m + 2 * u * i * s.y1 + i * i * s.y]);
+            m.push([u * u * k + 2 * u * i * s.x1 + i * i * s.x, u * u * y + 2 * u * i * s.y1 + i * i * s.y]);
           }
           break;
         case "A":
-          y.push(...U(k, m, s, l));
+          m.push(...U(k, y, s, l));
           break;
       }
-      s.c !== "Z" ? (k = s.x, m = s.y) : y.length && ([k, m] = y[0]);
+      s.c !== "Z" ? (k = s.x, y = s.y) : m.length && ([k, y] = m[0]);
     }
-    y.length && h.push(y);
+    m.length && h.push(m);
   }
   return h;
 }
-function E(t) {
+function Q(t) {
   let e = 1 / 0, r = 1 / 0, c = -1 / 0, n = -1 / 0;
   for (const o of t)
     for (const [a, x] of o)
       a < e && (e = a), x < r && (r = x), a > c && (c = a), x > n && (n = x);
   return { x: e, y: r, w: c - e, h: n - r };
 }
-const w = 48;
-function O(t, e, r, c) {
+const p = 48;
+function F(t, e, r, c) {
   const n = [];
   for (const h of t)
-    for (let f = 0, y = h.length; f < y; f++) {
-      const [k, m] = h[f], [s, b] = h[(f + 1) % y];
+    for (let f = 0, m = h.length; f < m; f++) {
+      const [k, y] = h[f], [s, b] = h[(f + 1) % m];
       let i = 0;
-      m <= e ? b > e && (i = 1) : b <= e && (i = -1), i && n.push([k + (e - m) * (s - k) / (b - m), i]);
+      y <= e ? b > e && (i = 1) : b <= e && (i = -1), i && n.push([k + (e - y) * (s - k) / (b - y), i]);
     }
   n.sort((h, f) => h[0] - f[0]);
   const o = new Array(r.length);
@@ -242,23 +242,23 @@ function O(t, e, r, c) {
   return o;
 }
 function W(t, e) {
-  const r = E(t), c = (l) => Math.min(l, 0.99999) || 1e-5, n = Array.from({ length: w + 1 }, (l, h) => r.x + c(h / w) * r.w), o = Array.from({ length: w }, (l, h) => r.x + (h + 0.5) / w * r.w), a = [];
-  for (let l = 0; l <= w; l++) a[l] = O(t, r.y + c(l / w) * r.h, n, e);
+  const r = Q(t), c = (l) => Math.min(l, 0.99999) || 1e-5, n = Array.from({ length: p + 1 }, (l, h) => r.x + c(h / p) * r.w), o = Array.from({ length: p }, (l, h) => r.x + (h + 0.5) / p * r.w), a = [];
+  for (let l = 0; l <= p; l++) a[l] = F(t, r.y + c(l / p) * r.h, n, e);
   const x = [];
-  for (let l = 0; l < w; l++) {
-    const h = O(t, r.y + (l + 0.5) / w * r.h, o, e);
+  for (let l = 0; l < p; l++) {
+    const h = F(t, r.y + (l + 0.5) / p * r.h, o, e);
     x[l] = [];
-    for (let f = 0; f < w; f++)
+    for (let f = 0; f < p; f++)
       x[l][f] = a[l][f] && a[l][f + 1] && a[l + 1][f] && a[l + 1][f + 1] && h[f];
   }
   return x;
 }
 function K(t, e) {
-  const r = E(t), c = Array.from({ length: w }, (o, a) => r.x + (a + 0.5) / w * r.w);
+  const r = Q(t), c = Array.from({ length: p }, (o, a) => r.x + (a + 0.5) / p * r.w);
   let n = 0;
-  for (let o = 0; o < w; o++)
-    for (const a of O(t, r.y + (o + 0.5) / w * r.h, c, e)) a && n++;
-  return n / (w * w);
+  for (let o = 0; o < p; o++)
+    for (const a of F(t, r.y + (o + 0.5) / p * r.h, c, e)) a && n++;
+  return n / (p * p);
 }
 const X = (t) => t === "nonzero" || t === "evenodd";
 function Y(t, e) {
@@ -276,11 +276,11 @@ function tt(t, e = {}) {
   const r = X(e.fillRule) ? e.fillRule : "nonzero";
   let c;
   try {
-    c = q(t);
+    c = H(t);
   } catch (a) {
     return L(a instanceof g ? a.code : "bad_syntax");
   }
-  const n = F(c), o = E(n);
+  const n = O(c), o = Q(n);
   return !(o.w > 0) || !(o.h > 0) || Math.min(o.w, o.h) < M.minSideRatio * Math.max(o.w, o.h) ? L("degenerate") : Y(c, Math.max(o.w, o.h)) ? K(n, r) < M.minFill ? L("too_thin") : { ok: !0 } : L("not_closed");
 }
 const et = (t) => {
@@ -316,41 +316,43 @@ function nt(t, e, r) {
   return c;
 }
 function ot(t) {
-  const e = q(t), r = F(e), c = E(r);
+  const e = H(t), r = O(e), c = Q(r);
   if (!(c.w > 0) || !(c.h > 0)) throw new g("degenerate");
   if (!Y(e, Math.max(c.w, c.h))) throw new g("not_closed");
-  const n = Math.max(c.w, c.h), o = Math.abs(c.x) <= 0.15 && Math.abs(c.y) <= 0.15 && Math.abs(n - 100) <= 0.3, a = o ? 1 : 100 / n, l = nt(e, o ? (h, f) => [h, f] : (h, f) => [(h - c.x) * a, (f - c.y) * a], a);
+  const n = Math.max(c.w, c.h), o = Math.abs(c.x) <= 0.15 && Math.abs(c.y) <= 0.15 && Math.abs(n - 100) <= 0.3, a = o ? 1 : 100 / n, l = nt(e, o ? (f, m) => [f, m] : (f, m) => [(f - c.x) * a, (m - c.y) * a], a);
   if (l.length > M.maxNormalized) throw new g("too_long");
+  const h = Q(O(H(l)));
+  if (!(h.w > 0) || !(h.h > 0) || h.w * h.h < c.w * a * (c.h * a) * 0.25) throw new g("degenerate");
   return { d: l, aspect: c.w / c.h };
 }
 function at(t, e = "nonzero") {
   let r;
   try {
-    r = F(q(t));
+    r = O(H(t));
   } catch {
     return null;
   }
-  const n = W(r, e === "evenodd" ? "evenodd" : "nonzero"), o = new Array(w).fill(0);
+  const n = W(r, e === "evenodd" ? "evenodd" : "nonzero"), o = new Array(p).fill(0);
   let a = null;
-  for (let m = 0; m < w; m++) {
-    for (let s = 0; s < w; s++) o[s] = n[m][s] ? o[s] + 1 : 0;
-    for (let s = 0; s < w; s++) {
+  for (let y = 0; y < p; y++) {
+    for (let s = 0; s < p; s++) o[s] = n[y][s] ? o[s] + 1 : 0;
+    for (let s = 0; s < p; s++) {
       let b = 1 / 0;
-      for (let i = s; i < w && o[i] > 0; i++) {
+      for (let i = s; i < p && o[i] > 0; i++) {
         b = Math.min(b, o[i]);
-        const u = (i - s + 1) / w, _ = b / w, $ = u * _ * Math.min(1, u / _);
-        (!a || $ > a.score) && (a = { score: $, x: s / w, y: (m - b + 1) / w, w: u, h: _ });
+        const u = (i - s + 1) / p, _ = b / p, $ = u * _ * Math.min(1, u / _);
+        (!a || $ > a.score) && (a = { score: $, x: s / p, y: (y - b + 1) / p, w: u, h: _ });
       }
     }
   }
   if (!a || a.w < M.minTextBox || a.h < M.minTextBox) return null;
   const x = M.textBoxCap;
-  let { x: l, y: h, w: f, h: y } = a;
-  f > x && (l += (f - x) / 2, f = x), y > x && (h += (y - x) / 2, y = x);
-  const k = (m) => Math.round(m * 1e3) / 1e3;
-  return { x: k(l), y: k(h), w: k(f), h: k(y) };
+  let { x: l, y: h, w: f, h: m } = a;
+  f > x && (l += (f - x) / 2, f = x), m > x && (h += (m - x) / 2, m = x);
+  const k = (y) => Math.round(y * 1e3) / 1e3;
+  return { x: k(l), y: k(h), w: k(f), h: k(m) };
 }
-function H(t) {
+function q(t) {
   if (typeof t != "string") return null;
   const e = t.replace(/[<>"'`\\\u0000-\u001f]/g, "").replace(/\s+/g, " ").trim();
   return e && e.length <= M.maxName ? e : null;
@@ -380,8 +382,8 @@ function j(t) {
   };
 }
 function V(t) {
-  const e = H(t?.name ?? "custom");
-  if (!e) return { ok: !1, code: "bad_name", message: N.bad_name };
+  const e = q(t?.name ?? "custom");
+  if (!e) return { ok: !1, code: "bad_name", message: E.bad_name };
   const r = tt(t?.d, { fillRule: t?.fillRule });
   if (!r.ok) return r;
   const c = t.fillRule === "evenodd" ? "evenodd" : "nonzero";
@@ -390,9 +392,9 @@ function V(t) {
     n = ot(t.d);
   } catch (a) {
     const x = a instanceof g ? a.code : "bad_syntax";
-    return { ok: !1, code: x, message: N[x] };
+    return { ok: !1, code: x, message: E[x] };
   }
-  const o = t.ref && typeof t.ref == "object" && typeof t.ref.id == "string" && /^[A-Za-z0-9_-]{1,64}$/.test(t.ref.id) ? { id: t.ref.id, ...H(t.ref.name) ? { name: H(t.ref.name) } : {} } : void 0;
+  const o = t.ref && typeof t.ref == "object" && typeof t.ref.id == "string" && /^[A-Za-z0-9_-]{1,64}$/.test(t.ref.id) ? { id: t.ref.id, ...q(t.ref.name) ? { name: q(t.ref.name) } : {} } : void 0;
   return {
     ok: !0,
     shape: {
@@ -414,11 +416,11 @@ function ht(t, e) {
 export {
   M as SHAPE_LIMITS,
   g as ShapePathError,
-  H as cleanShapeName,
-  F as flattenShape,
+  q as cleanShapeName,
+  O as flattenShape,
   lt as isCustomShapeOptions,
   ot as normalizeShapePath,
-  q as parseShapePath,
+  H as parseShapePath,
   ct as prepareShape,
   at as shapeTextBox,
   ht as storeCustomShape,

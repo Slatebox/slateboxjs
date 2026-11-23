@@ -47,6 +47,8 @@ export type { ThemeStyle, ThemeDefinition } from './core/Theme';
 export type { LayoutMove } from './core/Layout';
 export type { CommentOptions } from './core/Comments';
 export type { PresentationStep } from './core/Presentation';
+export { Camera, cameraFor, cameraBetween, viewboxFor, flightDuration } from './core/Camera';
+export type { CameraState, CameraBox, CameraTarget, CameraViewport, CameraArc, FlyOptions } from './core/Camera';
 export type { FilterDef } from './core/Filters';
 export type { NodeSelector as SlateNodeSelector, SlateOperation, SlateOperationKind, SlateOperationPlan, SlateOperationReport, SlateOperationValidation, } from './operations';
 /**

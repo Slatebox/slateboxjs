@@ -173,6 +173,8 @@ declare class slate {
     };
     /** The step-through presentation controller (start/next/previous/stop). */
     get presentation(): any;
+    /** The eased camera (Prezi flights, roll, cuts) of the live slate. */
+    get camera(): any;
     constructor(options?: Record<string, any>, events?: V1Events);
     /** Resolve v1 `options.container` (id string or element) to an HTMLElement. */
     private resolveContainer;

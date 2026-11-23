@@ -21,6 +21,7 @@ import type { EndAnchor, EndState, LineEnd } from "./LineEnds";
 import { type LineToolResult } from "./LineTool";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
+import { Camera } from "./Camera";
 import { type AnimationDef } from "./Animations";
 import { type DragCancelReason, type DragPolicy, type NodeCapabilities, type NodeGovernance, type WorldPoint } from "./DragPolicy";
 export interface SlateEvents {
@@ -206,6 +207,8 @@ export declare class Slate {
     collab: Collab;
     zoomSlider: ZoomSlider;
     presentation: Presentation;
+    /** Eased camera flights over the viewbox (Prezi arcs, roll, cuts). */
+    camera: Camera;
     options: SlateOptions;
     linesContainer?: any;
     markersContainer?: any;
