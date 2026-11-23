@@ -85,6 +85,8 @@ export interface StillModules {
   behaviour: () => Promise<unknown>
   /** slateboxjs (or slateboxjs/canvas): the canvas class renderStill draws on */
   Slate?: () => Promise<any>
+  /** The host's type for lanes and captions (a page without Manrope passes its own family, e.g. 'Arial, sans-serif'). */
+  noteStyle?: Partial<typeof workshopNoteStyle>
 }
 
 /**
@@ -92,12 +94,12 @@ export interface StillModules {
  * are the same kind of thing. A slate with no notes yet draws its cards as the canvas draws a note made there by a
  * double-click. Accepts stored notes (xPos, foregroundColor, vectorPath) and live ones (x, fontColor, shape).
  */
-export function workshopCardLook(nodes: any[] | undefined, model: Pick<ModelModule, 'DEFAULT_NOTE_STYLE' | 'workshopCardLookOf'>) {
+export function workshopCardLook(nodes: any[] | undefined, model: Pick<ModelModule, 'DEFAULT_NOTE_STYLE' | 'workshopCardLookOf'>, base: typeof workshopNoteStyle = workshopNoteStyle) {
   const note = (nodes ?? []).map(node => node?.options ?? {}).find(o => String(o.text ?? '').trim() && !o.isComment && !o.image)
   if (!note) {
     const plain: any = model.DEFAULT_NOTE_STYLE
     // At the app's reading size, so a card on a phone stays readable at 100%.
-    return { backgroundColor: plain.backgroundColor, textColor: plain.fontColor, fontFamily: plain.fontFamily, fontSize: workshopNoteStyle.fontSize,
+    return { backgroundColor: plain.backgroundColor, textColor: plain.fontColor, fontFamily: plain.fontFamily, fontSize: base.fontSize,
       borderColor: plain.borderColor, borderWidth: plain.borderWidth, cornerRadius: 0 }
   }
   const rounded = [note.vectorPath, note.shape, note.shapeHint].some(value => /rounded/i.test(String(value ?? '')))
@@ -105,13 +107,13 @@ export function workshopCardLook(nodes: any[] | undefined, model: Pick<ModelModu
     backgroundColor: note.backgroundColor, textColor: note.fontColor ?? note.foregroundColor, fontFamily: note.fontFamily,
     fontSize: pixels(note.fontSize), borderColor: note.borderColor, borderWidth: note.borderWidth,
   } as any)
-  return look || rounded ? { ...look, cornerRadius: rounded ? workshopNoteStyle.cornerRadius : 0 } : undefined
+  return look || rounded ? { ...look, cornerRadius: rounded ? base.cornerRadius : 0 } : undefined
 }
 
 /** The style a board is drawn in on a slate holding `nodes`: the lanes in the lane style, the cards as the slate's own notes. */
-export function workshopStyle(nodes: any[] | undefined, model: Pick<ModelModule, 'DEFAULT_NOTE_STYLE' | 'workshopCardLookOf'>): WorkshopNoteStyle {
-  const card = workshopCardLook(nodes, model)
-  return (card ? { ...workshopNoteStyle, card } : workshopNoteStyle) as WorkshopNoteStyle
+export function workshopStyle(nodes: any[] | undefined, model: Pick<ModelModule, 'DEFAULT_NOTE_STYLE' | 'workshopCardLookOf'>, base: typeof workshopNoteStyle = workshopNoteStyle): WorkshopNoteStyle {
+  const card = workshopCardLook(nodes, model, base)
+  return (card ? { ...base, card } : base) as WorkshopNoteStyle
 }
 
 const boardIdPattern = /^[a-z0-9]{1,12}$/
@@ -211,6 +213,7 @@ export interface StillRenderer {
 export function createStillRenderer(modules: StillModules): StillRenderer {
   let model: Promise<ModelParts> | null = null
   const loadModel = () => (model ??= modules.model())
+  const base = { ...workshopNoteStyle, ...modules.noteStyle }
 
   /** The engine's board chrome styles, added to the page once unless the host has added its own (same element id). */
   function ensureChromeStyles(parts: ModelParts) {
@@ -247,7 +250,7 @@ export function createStillRenderer(modules: StillModules): StillRenderer {
     ensureChromeStyles(parts)
     const { kit, layoutFor } = await loadBoardKit(workshop)
     return parts.attachWorkshop(engine, workshop, {
-      readOnly: true, origin, layout: layoutFor(width), style: style ?? workshopStyle(engine.freeNodes?.() ?? [], parts),
+      readOnly: true, origin, layout: layoutFor(width), style: style ?? workshopStyle(engine.freeNodes?.() ?? [], parts, base),
       // A draft wears its dashed frame; a still's chrome scales with the board, as an export's does.
       ...(how === 'draft' ? { draft: true } : { still: true }),
       ...((scope || how === 'draft') && { scope: scope ?? 'pv' }),
@@ -262,7 +265,7 @@ export function createStillRenderer(modules: StillModules): StillRenderer {
    */
   async function drawSlateBoards(engine: any, slate: any, { width = 1440 }: { width?: number } = {}): Promise<AttachedWorkshop[]> {
     const own = Array.isArray(slate?.nodes) ? slate.nodes : []
-    const style = workshopStyle(own, await loadModel())
+    const style = workshopStyle(own, await loadModel(), base)
     const drawn: AttachedWorkshop[] = []
     for (const board of slateBoards(slate)) {
       if (!board.origin) continue

@@ -167,3 +167,14 @@ describe('the renderer stays out of a first visit', () => {
     expect(KIT_KINDS).toEqual(['launch-plan', 'hiring-plan', 'pipeline', 'budget', 'nest'])
   })
 })
+
+describe('the host\'s type', () => {
+  it('a page without the app\'s font draws lanes and cards in its own family', async () => {
+    let seen: any = null
+    const r = createStillRenderer({ ...modules, noteStyle: { fontFamily: 'Arial, sans-serif' },
+      model: async () => ({ ...(await import('../../src/workshops/model')), attachWorkshop: (_e: any, _w: any, options: any) => { seen = options.style; return { whenDrawn: async () => {}, destroy() {} } as any } }) })
+    await r.drawBoard({ freeNodes: () => [] }, validateWorkshop({ version: 1, title: 'T', lanes: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], cards: [] }))
+    expect(seen.fontFamily).toBe('Arial, sans-serif')
+    expect(seen.laneFontSize).toBe(20)
+  })
+})
