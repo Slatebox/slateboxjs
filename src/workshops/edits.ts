@@ -168,7 +168,7 @@ export interface WorkshopEditOptions {
    */
   selection?: { kind: 'lane' | 'card' | 'board'; id: string } | null
   /** Who makes a rule edit, and how: the audit line every rule keeps. Left out, an agent over exec. */
-  actor?: { by: string; via: 'chat' | 'exec' | 'preset' }
+  actor?: { by: string; via: RuleAudit['via'] }
   /** When, as an ISO time (for tests and replays). Left out, now. */
   now?: string
 }

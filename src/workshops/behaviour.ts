@@ -26,8 +26,8 @@ export type TimeRuleKindId = 'deadline' | 'overlap' | 'snap' | 'workdays' | 'bla
 /** A nest board's rule kinds (nest.ts): what sits under what, how many, how deep, how piles rank, where a far drop goes. */
 export type NestRuleKindId = 'nests' | 'children' | 'depth' | 'rank' | 'emptyDrop' | 'quadrant' | 'parent' | 'contains' | 'sameOwnerAs'
 
-/** Who set a rule, when, and from where. Shown when a refusal is explained. */
-export interface RuleAudit { by: string; at: string; via: 'chat' | 'exec' | 'preset' }
+/** Who set a rule, when, and from where (canvas: a rule control drawn on the board). Shown when a refusal is explained. */
+export interface RuleAudit { by: string; at: string; via: 'chat' | 'exec' | 'preset' | 'canvas' }
 
 export type RuleBody =
   | { kind: 'capacity'; where: string; max: number }
@@ -119,7 +119,7 @@ export function validateBehaviour(input: unknown, board: Workshop): Behaviour {
     if (rule.severity !== 'refuse' && rule.severity !== 'warn') throw new Error('A rule refuses or warns.')
     const set = record(rule.set, 'A rule says who set it.')
     if (typeof set.by !== 'string' || set.by.length > 80 || typeof set.at !== 'string' || set.at.length > 40 ||
-      !['chat', 'exec', 'preset'].includes(set.via as string)) throw new Error('A rule says who set it, when and how.')
+      !['chat', 'exec', 'preset', 'canvas'].includes(set.via as string)) throw new Error('A rule says who set it, when and how.')
     const base = { id: rule.id, on: rule.on, severity: rule.severity as 'refuse' | 'warn', set: { by: set.by, at: set.at, via: set.via as RuleAudit['via'] } }
     const plan = own(board)
     if (plan) {
