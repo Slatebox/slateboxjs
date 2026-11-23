@@ -31,8 +31,8 @@ export declare const amountLimits: {
         max: string;
     };
 };
-/** A note's words as a card's name and number, or why they can't be one. */
-export declare function noteNumbers(text: string): NoteNumbers | string;
+/** A note's words as a card's name and number. A note with no words of its own (empty, or only a number) is named `unnamed`. */
+export declare function noteNumbers(text: string, unnamed: string): NoteNumbers;
 /** A card's new words: its name without the number typed on it, and that number. */
 export declare function renamedNumbers(text: string): NoteNumbers;
 /** The next free card id on a board: card-1, card-2… */

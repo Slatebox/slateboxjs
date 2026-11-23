@@ -2,8 +2,8 @@ import { createElement as d } from "react";
 import { createRoot as f } from "react-dom/client";
 import { WorkshopBoard as h } from "./workshops.mjs";
 import { dragologyCandidates as w } from "./workshops.mjs";
-import { v as m } from "./model-DVIbSBRn.mjs";
-import { g as y } from "./model-DVIbSBRn.mjs";
+import { v as m } from "./model-CAMMBhgP.mjs";
+import { g as y } from "./model-CAMMBhgP.mjs";
 function v(p, i, t = {}) {
   let o = m(i), r = !1;
   const n = f(p);

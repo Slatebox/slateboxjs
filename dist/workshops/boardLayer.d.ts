@@ -33,6 +33,11 @@ export type LayerShape = {
     color: string;
     width?: number;
     hit?: number;
+    fill?: string;
+    dash?: string;
+    role?: string;
+    /** How strong the line is (stroke-opacity; a fill keeps its own). */
+    strokeOpacity?: number;
     arrow?: {
         x: number;
         y: number;
@@ -62,6 +67,8 @@ export type LayerShape = {
     role?: string;
     lines?: string[];
     lineHeight?: number;
+    /** A ring of `halo` (the canvas's colour) behind the words, so a line or an arrow under them never cuts a letter. */
+    halo?: string;
 };
 /** Colours of the layer, as CSS custom properties with the board's own colours behind them. */
 export declare const layerInk: {
@@ -73,6 +80,14 @@ export declare const layerInk: {
     bar: string;
     track: string;
     launch: string;
+    /** Words set on the canvas itself (a plan's header and dates), not on a lane's pale fill: they follow the slate's background. */
+    canvasInk: string;
+    /** A phone's plan rows lie on the canvas: their grid, week lines and tracks follow the slate's background too. */
+    canvasFaint: string;
+    canvasWeek: string;
+    canvasTrack: string;
+    /** The canvas's own colour, for a halo behind words. */
+    halo: string;
 };
 /** A link selected by a tap, waiting for a second tap to be removed. */
 export interface LinkSelection {

@@ -31,6 +31,8 @@ export interface Connection {
     /** "solid" (the default), "dashed" or "dotted". */
     lineDash?: LineDash;
     label?: string;
+    /** Where the label sits along the line, 0.05 (its start) to 0.95 (its end); the middle when unset. */
+    labelPosition?: number;
     sourceAnchor?: {
         x: number;
         y: number;

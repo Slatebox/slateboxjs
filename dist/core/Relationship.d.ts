@@ -13,6 +13,8 @@ export interface Association {
     lineEffect: string;
     /** "solid" (the default), "dashed" or "dotted". */
     lineDash?: "solid" | "dashed" | "dotted";
+    /** Where the label sits along the line, from its start (0.05) to its end (0.95); the middle when unset. */
+    labelPosition?: number;
     lineType: string;
     lineCurveType: "cubic" | "quadratic";
     lineCurviness: number;

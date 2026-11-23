@@ -498,7 +498,7 @@ const q = (e) => ({
   update_connections: ["kind", "from", "to", "connectionIds", "changes"],
   arrange_nodes: ["kind", "target", "layout", "gap"],
   update_slate: ["kind", "changes"]
-}, at = ["left", "right", "above", "below", "center"], ct = ["row", "column", "grid"], Rt = ["align-left", "align-center", "align-right", "align-top", "align-middle", "align-bottom"], Yt = ["distribute-horizontal", "distribute-vertical"], Fe = ["row", "column", "grid", "circle", ...Rt, ...Yt, "tidy", "tree"], He = ["text", "sticky"], zt = 75, Dt = Object.freeze({ x: 20, y: 20 }), Bt = Object.freeze({
+}, at = ["left", "right", "above", "below", "center"], ct = ["row", "column", "grid"], Rt = ["align-left", "align-center", "align-right", "align-top", "align-middle", "align-bottom"], Yt = ["distribute-horizontal", "distribute-vertical"], We = ["row", "column", "grid", "circle", ...Rt, ...Yt, "tidy", "tree"], Fe = ["text", "sticky"], zt = 75, Dt = Object.freeze({ x: 20, y: 20 }), Bt = Object.freeze({
   operationsPerPlan: 50,
   notesPerAdd: 20,
   notesPerSlate: 1e3,
@@ -551,20 +551,24 @@ function Oe(e = {}) {
 function Ie(e = {}) {
   return { ...Bt, ...e.limits || {} };
 }
-class F extends Error {
+class W extends Error {
   constructor(t, n, o, i) {
     super(o), this.name = "OperationPlanError", this.code = t, this.status = n, i && (this.details = i);
   }
 }
-const Ft = ["bezier", "orthogonal", "straight", "linear", "curved"], Ht = ["cubic", "quadratic"], Wt = ["solid", "dashed", "dotted"], qt = ["follow", "pinned"], Ve = ["follow", "pinned", "top", "right", "bottom", "left"], oe = {
+const Wt = ["bezier", "orthogonal", "straight", "linear", "curved"], Ft = ["cubic", "quadratic"], Ht = ["solid", "dashed", "dotted"], qt = ["follow", "pinned"], Ve = ["follow", "pinned", "top", "right", "bottom", "left"], oe = {
   label: { spec: { type: "string", maxLength: 500 }, description: "Text shown on the connector." },
   lineColor: { spec: { type: "color" }, description: "Line colour." },
   lineWidth: { spec: { type: "number", min: 0.1, max: 100 }, description: "Line width." },
   lineOpacity: { spec: { type: "number", min: 0, max: 1 }, description: "Line opacity from 0 to 1." },
-  lineType: { spec: { type: "enum", values: Ft }, description: "Path style." },
-  lineCurveType: { spec: { type: "enum", values: Ht }, description: "Curve type." },
+  lineType: { spec: { type: "enum", values: Wt }, description: "Path style." },
+  lineCurveType: { spec: { type: "enum", values: Ft }, description: "Curve type." },
   lineCurviness: { spec: { type: "number", min: 0, max: 1 }, description: "How much the line bends." },
-  lineDash: { spec: { type: "enum", values: Wt }, description: "Solid, dashed or dotted line." },
+  lineDash: { spec: { type: "enum", values: Ht }, description: "Solid, dashed or dotted line." },
+  labelPosition: {
+    spec: { type: "number", min: 0.05, max: 0.95 },
+    description: "Where the label sits along the line, from near its start (0.05) to near its end (0.95); the middle (0.5) when unset."
+  },
   showParentArrow: { spec: { type: "boolean" }, description: "Arrowhead at the starting note." },
   showChildArrow: { spec: { type: "boolean" }, description: "Arrowhead at the far end." },
   ends: {
@@ -596,7 +600,7 @@ const Ft = ["bezier", "orthogonal", "straight", "linear", "curved"], Ht = ["cubi
     spec: { type: "point" },
     description: "Leave the starting end free at this point. The connector then belongs to the note at its far end, its arrows kept as drawn. A connector keeps at least one end on a note."
   }
-}, We = ["ends", "fromEnd", "toEnd", "toNote", "fromNote", "toPoint", "fromPoint"], qe = Object.keys(oe).filter((e) => !We.includes(e)), Ae = { lineColor: "#333333", lineWidth: 3, lineType: "bezier" }, ue = "__free_", dt = ["linear", "radial"], lt = ["horizontal", "vertical", "diagonal"], be = (e) => ({
+}, He = ["ends", "fromEnd", "toEnd", "toNote", "fromNote", "toPoint", "fromPoint"], qe = Object.keys(oe).filter((e) => !He.includes(e)), Ae = { lineColor: "#333333", lineWidth: 3, lineType: "bezier" }, ue = "__free_", dt = ["linear", "radial"], lt = ["horizontal", "vertical", "diagonal"], be = (e) => ({
   store: (t, n) => {
     t.options[e] = n;
   }
@@ -789,7 +793,7 @@ function Qt(e, t = {}) {
     switch (s.kind) {
       case "add_nodes": {
         if ((!Number.isInteger(s.count) || s.count < 1 || s.count > o.notesPerAdd) && r.push(`${d} count must be an integer from 1 to ${o.notesPerAdd}.`), s.preset !== void 0) {
-          const g = R({ type: "enum", values: He }, s.preset, `${d} preset`);
+          const g = R({ type: "enum", values: Fe }, s.preset, `${d} preset`);
           g && r.push(g);
         }
         const m = Y(s.placement) && s.placement.connect === !0;
@@ -838,7 +842,7 @@ function Qt(e, t = {}) {
       case "arrange_nodes": {
         const m = ae(s.target, `${d} target`);
         if (r.push(...m), m.length || f(s.target, d), s.kind === "update_nodes" && r.push(...he(s.changes, Ct, d, "node change", et(n, d), { plural: "changes" })), s.kind === "delete_nodes" && Y(s.target) && s.target.all === !0 && Object.keys(s.target).length === 1 && !ut.test(i) && r.push(`${d} cannot delete every note without an explicit request.`), s.kind === "arrange_nodes") {
-          const y = R({ type: "enum", values: Fe }, s.layout, `${d} layout`);
+          const y = R({ type: "enum", values: We }, s.layout, `${d} layout`);
           if (y && r.push(y), s.gap !== void 0) {
             const g = R({ type: "number", min: 0, max: 2e3 }, s.gap, `${d} gap`);
             g && r.push(g);
@@ -952,7 +956,7 @@ function ee(e, t, n) {
       (a) => t.match === "contains" ? Pe(a.options.text).includes(i) : Pe(a.options.text) === i
     );
     if (r.length > 1 && t.all !== !0)
-      throw new F(
+      throw new W(
         "ambiguous_selector",
         400,
         `${n} "${t.text}" matches ${r.length} notes (${r.map(x).join(", ")}). Name them by ids, or add all: true to change every one.`,
@@ -1003,9 +1007,9 @@ function an(e) {
 const Le = (e) => ({ ...U(e), rotation: Number(G(e, "rotationAngle")) || 0 }), cn = (e) => ({ x: e.x + e.width / 2, y: e.y + e.height / 2 });
 function dn(e, t, n, o, i, r) {
   const a = (d) => e.nodes.find(($) => x($) === d), p = (d) => {
-    throw new F("invalid_operation_plan", 400, `${i} ${d}`);
+    throw new W("invalid_operation_plan", 400, `${i} ${d}`);
   }, b = (d) => {
-    throw new F("no_match", 409, `${i} names no note ${JSON.stringify(d)} on the slate.`);
+    throw new W("no_match", 409, `${i} names no note ${JSON.stringify(d)} on the slate.`);
   }, k = (d, $) => {
     d !== $ && (d.relationships.associations = d.relationships.associations.filter((v) => v !== n), $.relationships.associations.push(n));
   };
@@ -1269,7 +1273,7 @@ function Te(e, t) {
 }
 const Ce = (e, t) => JSON.stringify([e, t]);
 function je(e, t, n) {
-  return new F(
+  return new W(
     "id_taken",
     409,
     `${e} names ${t} ids already in use: ${n.join(", ")}. Choose new ids, or name the existing ${t}s in a later operation.`,
@@ -1291,7 +1295,7 @@ function Rn(e, t, n = {}) {
     existingConnectionIds: te(a).map(({ association: c }) => c.id)
   });
   if (!p.valid)
-    throw new F("invalid_operation_plan", 400, p.errors.join(" "), { errors: p.errors });
+    throw new W("invalid_operation_plan", 400, p.errors.join(" "), { errors: p.errors });
   const b = JSON.stringify(a), k = a.nodes.length, f = [], s = {
     created: [],
     updated: [],
@@ -1312,7 +1316,7 @@ function Rn(e, t, n = {}) {
     }, O = (l) => {
       const h = a.nodes.length + l;
       if (l > 0 && h > i.notesPerSlate && h > k)
-        throw new F(
+        throw new W(
           "note_limit",
           422,
           `${v} would leave ${h} notes; a slate can hold at most ${i.notesPerSlate} notes.`,
@@ -1320,7 +1324,7 @@ function Rn(e, t, n = {}) {
         );
     }, B = (l, h) => {
       if (h > 0 && l > i.connectorsPerSlate)
-        throw new F(
+        throw new W(
           "connector_limit",
           422,
           `${v} would leave ${l} connectors; a slate can hold at most ${i.connectorsPerSlate} connectors.`,
@@ -1329,17 +1333,17 @@ function Rn(e, t, n = {}) {
     };
     switch (c.kind) {
       case "add_nodes": {
-        const l = c.preset ? kt[c.preset] : void 0, h = c.placement?.connect === !0, u = h ? a.nodes.find((W) => x(W) === c.placement.relativeTo) : void 0;
+        const l = c.preset ? kt[c.preset] : void 0, h = c.placement?.connect === !0, u = h ? a.nodes.find((H) => x(H) === c.placement.relativeTo) : void 0;
         if (h && !u)
-          throw new F("no_match", 409, `${v} placement.relativeTo names no note on the slate to connect from.`, { operation: $ });
+          throw new W("no_match", 409, `${v} placement.relativeTo names no note on the slate to connect from.`, { operation: $ });
         if (u && u.options.isLocked === !0) {
           g(u);
           return;
         }
-        const w = c.shape ?? l?.shape, I = u ? U(u) : void 0, A = typeof w == "string" && w.toLowerCase() === "triangle", N = w && typeof w == "object" ? yt(w) : 0, T = c.width ?? l?.width ?? I?.width ?? (A ? 150 : N ? Math.round(N >= 1 ? 180 : 180 * N) : 180), j = c.height ?? l?.height ?? I?.height ?? (A ? 130 : N ? Math.round(N >= 1 ? 180 / N : 180) : 110), M = u ?? gt(a, c.placement?.relativeTo), E = c.style?.backgroundColor || l?.style?.backgroundColor || M?.options.backgroundColor || "#7aa2c8", { points: _, arrangement: S, gap: C } = vn(a, c, T, j), L = new Set(te(a).map(({ association: W }) => W.id)), X = new Set(a.nodes.map(x)), K = (c.ids || []).filter((W) => X.has(W));
+        const w = c.shape ?? l?.shape, I = u ? U(u) : void 0, A = typeof w == "string" && w.toLowerCase() === "triangle", N = w && typeof w == "object" ? yt(w) : 0, T = c.width ?? l?.width ?? I?.width ?? (A ? 150 : N ? Math.round(N >= 1 ? 180 : 180 * N) : 180), j = c.height ?? l?.height ?? I?.height ?? (A ? 130 : N ? Math.round(N >= 1 ? 180 / N : 180) : 110), M = u ?? gt(a, c.placement?.relativeTo), E = c.style?.backgroundColor || l?.style?.backgroundColor || M?.options.backgroundColor || "#7aa2c8", { points: _, arrangement: S, gap: C } = vn(a, c, T, j), L = new Set(te(a).map(({ association: H }) => H.id)), X = new Set(a.nodes.map(x)), K = (c.ids || []).filter((H) => X.has(H));
         if (K.length && !n.replay) throw je(v, "note", K);
-        const z = _.map((W, Ee) => c.ids?.[Ee] || r());
-        O(z.filter((W) => !X.has(W)).length), u && B(L.size + z.filter((W) => !X.has(W)).length, z.length), _.forEach(({ x: W, y: Ee }, Ge) => {
+        const z = _.map((H, Ee) => c.ids?.[Ee] || r());
+        O(z.filter((H) => !X.has(H)).length), u && B(L.size + z.filter((H) => !X.has(H)).length, z.length), _.forEach(({ x: H, y: Ee }, Ge) => {
           const J = z[Ge];
           if (m.matched.push(J), X.has(J)) return;
           const Ue = c.text ? c.count > 1 ? c.text.replace(/\{n\}/g, `${Ge + 1}`) : c.text : "", ye = u ? Re(u.options) : void 0;
@@ -1366,7 +1370,7 @@ function Rn(e, t, n = {}) {
             filters: { vect: null, text: null },
             animations: { vect: null, text: null }
           };
-          w && P.shape.store(se, w, o), P.x.store(se, W, o), P.y.store(se, Ee, o), u || P.foregroundColor.store(se, wn(E), o);
+          w && P.shape.store(se, w, o), P.x.store(se, H, o), P.y.store(se, Ee, o), u || P.foregroundColor.store(se, wn(E), o);
           for (const [Q, Ne] of Object.entries(l?.style || {})) P[Q].store(se, Ne, o);
           for (const [Q, Ne] of Object.entries(c.style || {})) P[Q].store(se, Ne, o);
           if (a.nodes.push({ options: se, relationships: { associations: [] } }), m.changed.push(J), s.created.push(J), u) {
@@ -1374,9 +1378,9 @@ function Rn(e, t, n = {}) {
             L.add(Q), u.relationships.associations.push({ id: Q, parentId: x(u), childId: J, ...Ae }), s.connected.push(Q);
           }
         });
-        const { placement: ge, ...H } = c;
+        const { placement: ge, ...F } = c;
         f.push({
-          ...H,
+          ...F,
           ids: z,
           x: _[0].x,
           y: _[0].y,
@@ -1411,7 +1415,7 @@ function Rn(e, t, n = {}) {
       case "delete_nodes": {
         const l = ee(a, c.target, `${v} target`);
         if (m.matched = l.map(x), l.length || y(), !c.target.ids && a.nodes.length > 1 && l.length === a.nodes.length && !ut.test(n.userMessage || ""))
-          throw new F("invalid_operation_plan", 400, `${v} cannot delete every note without an explicit request.`);
+          throw new W("invalid_operation_plan", 400, `${v} cannot delete every note without an explicit request.`);
         const u = /* @__PURE__ */ new Set();
         for (const w of l)
           w.options.isLocked === !0 ? g(w) : u.add(x(w));
@@ -1433,7 +1437,7 @@ function Rn(e, t, n = {}) {
         for (const M of l) {
           const E = G(M, "x") + h.x, _ = G(M, "y") + h.y;
           if (Math.abs(E) > we || Math.abs(_) > we)
-            throw new F(
+            throw new W(
               "invalid_operation_plan",
               400,
               `${v} would put the copy of ${x(M)} at ${E}, ${_}; a note's position must be from -${we} to ${we}.`
@@ -1466,7 +1470,7 @@ function Rn(e, t, n = {}) {
         (!l.length || !h && !u.length) && y();
         const w = l.length * (h ? 1 : u.length);
         if (w > i.connectorsPerOperation)
-          throw new F(
+          throw new W(
             "connector_limit",
             422,
             `${v} would join ${w} pairs of notes; one operation may join at most ${i.connectorsPerOperation}.`,
@@ -1490,12 +1494,12 @@ function Rn(e, t, n = {}) {
           for (const C of S) {
             const L = c.ids?.[M];
             if (M += 1, !C) {
-              const ge = $n(L, r), H = ge.id ?? pe(_, ge.childId);
-              if (I.has(H)) {
-                n.replay || N.push(H), T.push(H), m.matched.push(H);
+              const ge = $n(L, r), F = ge.id ?? pe(_, ge.childId);
+              if (I.has(F)) {
+                n.replay || N.push(F), T.push(F), m.matched.push(F);
                 continue;
               }
-              E.relationships.associations.push({ id: H, parentId: _, childId: ge.childId, targetPoint: { ...h }, ...Ae, ...c.style || {} }), I.add(H), T.push(H), m.matched.push(H), m.changed.push(H), s.connected.push(H);
+              E.relationships.associations.push({ id: F, parentId: _, childId: ge.childId, targetPoint: { ...h }, ...Ae, ...c.style || {} }), I.add(F), T.push(F), m.matched.push(F), m.changed.push(F), s.connected.push(F);
               continue;
             }
             const X = x(C), K = A.get(Ce(_, X));
@@ -1513,7 +1517,7 @@ function Rn(e, t, n = {}) {
         }
         if (N.length) throw je(v, "connector", N);
         if (I.size > i.connectorsPerSlate && m.changed.length)
-          throw new F(
+          throw new W(
             "connector_limit",
             422,
             `A slate can hold at most ${i.connectorsPerSlate} connectors; this plan would leave ${I.size}.`,
@@ -1547,7 +1551,7 @@ function Rn(e, t, n = {}) {
           return;
         }
         for (const { node: h, association: u } of l) {
-          const w = JSON.stringify([x(h), u]), I = Object.entries(c.changes).filter(([N]) => !We.includes(N));
+          const w = JSON.stringify([x(h), u]), I = Object.entries(c.changes).filter(([N]) => !He.includes(N));
           for (const [N, T] of I) u[oe[N].field || N] = T;
           const A = dn(a, h, u, c.changes, v, r);
           JSON.stringify([x(A), u]) !== w && m.changed.push(u.id);
@@ -1604,7 +1608,7 @@ function Rn(e, t, n = {}) {
     }
   }), n.requireMatches && s.warnings.length) {
     const c = s.warnings[0];
-    throw new F("no_match", 409, c, { operation: Number(c.match(/^Operation (\d+)/)?.[1]) });
+    throw new W("no_match", 409, c, { operation: Number(c.match(/^Operation (\d+)/)?.[1]) });
   }
   return s.unchanged = JSON.stringify(a) === b, { slate: a, materializedPlan: { message: t.message.trim(), operations: f }, report: s };
 }
@@ -1633,7 +1637,7 @@ function bt(e, t) {
 function wt(e) {
   const t = ne(e), n = { id: e.id, from: e.parentId, to: t ? null : e.childId };
   for (const [i, r] of Object.entries(oe)) {
-    if (We.includes(i)) continue;
+    if (He.includes(i)) continue;
     const a = e[r.field ?? i];
     n[i] = a === void 0 ? null : a;
   }
@@ -1641,7 +1645,7 @@ function wt(e) {
   const o = ln(e);
   return (o.fromEnd !== "follow" || o.toEnd !== "follow") && Object.assign(n, o), n;
 }
-const le = (e) => new F("invalid_selection", 400, e);
+const le = (e) => new W("invalid_selection", 400, e);
 function In(e) {
   const t = {};
   if (e.ids !== void 0 && (t.ids = e.ids), e.within !== void 0 && (t.within = e.within), e.groupId !== void 0 && (t.groupId = e.groupId), e.q !== void 0)
@@ -1821,8 +1825,8 @@ function Bn(e = {}) {
       ])
     ),
     selector: pt(),
-    layouts: [...Fe],
-    presets: [...He],
+    layouts: [...We],
+    presets: [...Fe],
     limits: Ie(e),
     shapes: t.shapes,
     fonts: t.fonts,
@@ -1867,7 +1871,7 @@ function Tn(e = {}, t = {}) {
             ...r(["shape", "text", "x", "y", "width", "height"]),
             preset: {
               type: "string",
-              enum: [...He],
+              enum: [...Fe],
               description: "add_nodes: text (no fill or border) or sticky (a sticky note), as the note toolbar makes them. Gives the shape when none is given."
             },
             ids: { ...k, description: "add_nodes and duplicate_nodes: new note ids (1 to 64 letters, digits, _ or -), which later operations in the plan may name. connect_nodes: ids for the new connectors, one per pair. An id already in use is refused." },
@@ -1901,7 +1905,7 @@ function Tn(e = {}, t = {}) {
             },
             layout: {
               type: "string",
-              enum: [...Fe],
+              enum: [...We],
               description: "arrange_nodes: row, column, grid, circle; align-* and distribute-* as the canvas aligns by what you see; tidy moves notes apart until none overlaps; tree lays connected notes out in layers under their root."
             },
             changes: {
@@ -1929,10 +1933,10 @@ const Xn = Object.freeze({
   description: "Edit the existing slate without starting a new slate, replacing its content, or changing its theme unless the user explicitly asked for that. Always include a natural completion message.",
   parameters: Tn({}, { modelTool: !0 })
 });
-function Fn(e) {
+function Wn(e) {
   return `Call applySlateOperations again with a safe, valid plan. ${e.join(" ")}`;
 }
-function Hn(e) {
+function Fn(e) {
   if (typeof e?.message == "string" && e.message.trim()) return e.message.trim();
   const t = (e?.operations || []).reduce(
     (n, o) => n + (o.kind === "add_nodes" ? o.count || 0 : 1),
@@ -1947,15 +1951,15 @@ export {
   Xt as DEFAULT_FONTS,
   An as DOCUMENT_OPTION_KEYS,
   At as EFFECTS,
-  Fe as LAYOUTS,
+  We as LAYOUTS,
   Bt as LIMITS,
   me as NODE_INTENT_KEYS,
   P as NODE_KEYS,
   Be as NODE_STYLE_KEYS,
   it as NOTE_READ_KEYS,
   Xe as OPERATION_FIELDS,
-  F as OperationPlanError,
-  He as PRESETS,
+  W as OperationPlanError,
+  Fe as PRESETS,
   xe as READ_LIMITS,
   de as SLATE_KEYS,
   ve as SLATE_OPERATION_KINDS,
@@ -1967,8 +1971,8 @@ export {
   Oe as contractLists,
   Bn as describeOperations,
   pn as distributePositions,
-  Hn as naturalOperationFallback,
-  Fn as operationPlanRetryPrompt,
+  Fn as naturalOperationFallback,
+  Wn as operationPlanRetryPrompt,
   wt as readConnector,
   bt as readNote,
   Yn as readSlate,

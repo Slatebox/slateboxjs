@@ -3,7 +3,7 @@ export * from './listeningRoom';
 export { releaseLoad, releasePlan } from './release';
 import type { Behaviour } from './behaviour';
 export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, RuleInput, RuleKindId, WorkshopMoveCheck } from './behaviour';
-export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools, type WorkshopFieldReader, type WorkshopLimits } from './kinds';
+export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, workshopNewCardName, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools, type WorkshopFieldReader, type WorkshopLimits } from './kinds';
 import type { NodeJSON, SlateJSON } from '../core/Serialization';
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults';
 /** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
@@ -329,6 +329,12 @@ export declare function workshopRenamedLines<T extends WorkshopLine[] | undefine
  * place). The card keeps the note's id where it can.
  */
 export declare function workshopNoteCandidate(board: Workshop, laneId: string, note: WorkshopNoteOffer, before?: string): Workshop | null;
+/**
+ * The words a card takes back to the canvas as a note: none for a card made from an empty note and
+ * still called by the board's name for a new item; the note's own words (line breaks and all) unless
+ * the card has been renamed since; otherwise its words as the board writes them ("Copy · 3 days").
+ */
+export declare function workshopCardNoteWords(board: Workshop, card: WorkshopCard): string;
 /** What a card says on the board: its name, with its points, days or amount. */
 export declare function workshopCardText(board: Workshop, card: WorkshopCard): string;
 /** The words a card takes back to the canvas as a note, numbers and all: "Copy · 3 days", "Acme · $25k". */
@@ -369,8 +375,16 @@ export declare function workshopWithoutLine(board: Workshop, lineId: string): Wo
 export declare function workshopNewLine(board: Workshop, parentId: string, childId: string, look?: Partial<WorkshopLine>): WorkshopLine;
 /** The board without card `cardId`'s lines: a card removed from the board takes its lines with it. */
 export declare function workshopWithoutCardLines(board: Workshop, cardId: string): Workshop;
-/** The second line under a lane's name: how full it is, or what its cards add up to. */
+/**
+ * The counter under a column's name: how full it is, or what its cards add up to. One format everywhere:
+ * "2 / 3" with a limit, "2" without; a step whose cards came from notes says those apart ("1 / 1 · +2").
+ * A screen reader hears it in words (workshopLaneSpoken).
+ */
 export declare function workshopLaneCaption(board: Workshop, laneId: string): string;
+/** What a screen reader hears of a column's counter: "2 of 3", "2 cards", "1 of 1 · 2 cards". */
+export declare function workshopLaneSpoken(board: Workshop, laneId: string): string;
+/** Whether a column holds as many as its limit lets it (its counter pill takes the header's colour). */
+export declare function workshopLaneFull(board: Workshop, laneId: string): boolean;
 export declare const workshopLayout: {
     pitch: number;
     width: number;
@@ -566,7 +580,10 @@ export declare function workshopLanePlaces(input: Workshop, options?: Pick<Works
     width: number;
     height: number;
 };
-/** The "How this board behaves" note of a board with a rulebook (behaviour.ts draws it); null without one. */
+/**
+ * The "How this board behaves" note of a board with a rulebook (behaviour.ts draws it); null without one. No board
+ * draws it any more (a board's rules are its chrome: boardLegend); it stays for a host that shows the sentences.
+ */
 export declare function behaviourNote(board: Workshop, box: {
     x: number;
     y: number;
@@ -625,6 +642,7 @@ export * from './darkroom/model';
 export * from './edits';
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names';
 export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native';
+export { boardLegend, boardChromeShapes, boardBadgeShapes, boardChromeLayout, boardChromeLabel, boardChromeStyles, chromeInk, DRAFT_TAG, boardChromeBox, chromeScaleAt, chromeTagScaleAt, CHROME_MAX_SCALE, CHROME_CHIPS_MAX_SCALE, type LegendItem, type LegendIcon, type ChromeOptions } from './boardChrome';
 export type StartupExperience = {
     version: 1;
     kind: 'customer-interviews' | 'experiment-budget';

@@ -41,6 +41,7 @@ export interface V1Association {
     lineColor?: string;
     lineEffect?: string;
     lineDash?: "solid" | "dashed" | "dotted";
+    labelPosition?: number;
     lineOpacity?: number;
     lineType?: string;
     lineCurviness?: number;
@@ -81,6 +82,8 @@ export interface V2Association {
         y: number;
     } | null;
     label?: string;
+    /** Where the label sits along the line (0.05-0.95); the middle when unset. */
+    labelPosition?: number;
 }
 /** Convert v1 association to v2 format */
 export declare function v1AssociationToV2(v1: Record<string, any>): V2Association;

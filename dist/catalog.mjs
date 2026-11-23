@@ -44,19 +44,19 @@ const q = "1.0", O = [
   { id: "option-a", label: "Option A", station: { column: 1, row: 0, next: ["decide"], outcome: "Weigh the first option." } },
   { id: "option-b", label: "Option B", station: { column: 1, row: 1, next: ["decide"], outcome: "Weigh the second option." } },
   { id: "decide", label: "Decide", station: { column: 2, row: 0, next: [], outcome: "Write down what you chose and why." } }
-], cards: [{ id: "token", label: "Our choice", laneId: "question" }] }), e = (a, t, n, s) => ({ edit: a, words: t, say: n, ...s && { rule: s } }), y = (a = e("add_rule", "Cards move one lane at a time", "Cards move one lane at a time", "path"), t = []) => [
-  e("add_rule", "Limit a lane", "Let {busy} hold 1", "capacity"),
+], cards: [{ id: "token", label: "Our choice", laneId: "question" }] }), e = (a, t, n, s) => ({ edit: a, words: t, say: n, ...s && { rule: s } }), y = (a = e("add_rule", "Cards move one column at a time", "Cards move one column at a time", "path"), t = []) => [
+  e("add_rule", "Limit a column", "Let {busy} hold 1", "capacity"),
   a,
   ...t,
   e("move_card", "Move a card", "Move {card} to {other}"),
   e("add_card", "Add a card", "Add a card called Snacks to {lane}"),
   e("rename_card", "Rename a card", "Rename {card} to Review notes"),
   e("remove_card", "Remove a card", "Remove {card}"),
-  e("rename_lane", "Rename a lane", "Rename {lane} to Blocked"),
+  e("rename_lane", "Rename a column", "Rename {lane} to Blocked"),
   e("rename_workshop", "Rename the board", "Rename the board to Team review"),
   e("set_rule", "Warn instead of refusing", "Just warn me when {ruled} is full"),
   e("remove_rule", "Remove a rule", "Remove the {ruled} rule")
-], p = ["Up to 8 boards on one slate, side by side; past that, it opens on a new slate.", "Up to 5 lanes and 24 cards."], M = (a) => [...new Set(a.map((t) => t.edit))], x = (a) => [...new Set(a.flatMap((t) => t.rule ? [t.rule] : []))], h = (a, t, n, s, d, i, o, r = {}) => ({
+], p = ["Up to 8 boards on one slate, side by side; past that, it opens on a new slate.", "Up to 5 columns and 24 cards."], M = (a) => [...new Set(a.map((t) => t.edit))], x = (a) => [...new Set(a.flatMap((t) => t.rule ? [t.rule] : []))], h = (a, t, n, s, d, i, o, r = {}) => ({
   id: a,
   group: t,
   name: n,
@@ -182,7 +182,7 @@ const q = "1.0", O = [
     "Order work loosely; Next holds 3",
     ["roadmap", "plan work", "priorities", "order work", "backlog"],
     "Next holds 3.",
-    ["Drag a note into a lane: it becomes a card.", "A full lane dims and says why."],
+    ["Drag a note into a column: it becomes a card.", "A full column dims and says why."],
     { addSay: ["Add a Now / Next / Later board", "Add a Now / Next / Later board about {topic}"] }
   ),
   h(
@@ -191,7 +191,7 @@ const q = "1.0", O = [
     "Pros and cons",
     "Weigh one decision: pros, cons, questions",
     ["pro con", "pros cons", "weigh a decision", "decide", "tradeoffs", "trade-offs"],
-    "No rules: any card goes in any lane.",
+    "No rules: any card goes in any column.",
     ["Drag a note in: it becomes a point.", "Drag it out: it is a note again."],
     { addSay: ["Add pros and cons", "Add pros and cons for {topic}"] }
   ),
@@ -202,7 +202,7 @@ const q = "1.0", O = [
     "Prioritise with limits",
     ["moscow", "prioritise", "prioritize", "priorities", "features", "scope"],
     "Could holds 2.",
-    ["Drop a card in Must or Could.", "A full lane refuses, in its own words."],
+    ["Drop a card in Must or Could.", "A full column refuses, in its own words."],
     { addSay: ["Add a Must / Should / Could board", "Add a Must / Should / Could board about {topic}"] }
   ),
   {
@@ -230,7 +230,7 @@ const q = "1.0", O = [
     "Went well, change, try: 3 cards each",
     ["retrospective", "retro", "run a retro", "team meeting", "look back", "lessons"],
     "Try holds 3.",
-    ["A note turns into a card and back.", "Each lane holds 3; the fourth is refused."]
+    ["A note turns into a card and back.", "Each column holds 3; the fourth is refused."]
   ),
   h(
     "triage",

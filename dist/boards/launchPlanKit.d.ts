@@ -19,4 +19,6 @@ export interface LaunchGeometry {
 }
 /** Where every note of a launch plan goes, in board coordinates. The native notes and Dragology both read it. */
 export declare function launchLayout(board: Workshop, layout?: WorkshopBoardLayout): LaunchGeometry;
+/** How wide a phone task's words are drawn (13px; the layer measures nothing, so a generous average glyph). */
+export declare const phoneWordsWidth: (words: string, bold?: boolean) => number;
 export declare const launchPlanKit: WorkshopBoardKit;

@@ -298,6 +298,24 @@ export interface AttachWorkshopOptions {
         width: number;
         height: number;
     }[];
+    /**
+     * Draw the board as a draft not yet added (a library preview): view-only, its notes see-through
+     * (`data-workshop-draft`), inside a dashed frame tagged "Preview · not added yet".
+     */
+    draft?: boolean;
+    /**
+     * Draw the board as a still picture (a slate's card in a list, a thumbnail): view-only, and its chrome at the
+     * board's own size whatever the zoom, as an export shows it, so a card shrinks the title with the board instead of
+     * growing it to stay readable as the live canvas does when zoomed out. Not redrawn as the view changes.
+     */
+    still?: boolean;
+    /**
+     * Draw the board's chrome: its title and its rules as a legend above it, badges where the rules act, and the
+     * frame of a board in focus or of a draft (boardChrome.ts). Drawn from data, never saved. On unless false.
+     */
+    chrome?: boolean;
+    /** A person pressed "Done" on the frame of the board in focus: the host takes it out of focus. */
+    onFocusDone?: () => void;
 }
 export interface AttachedWorkshop {
     /** Redraw from a new model, moving only what changed. A drag in progress is cancelled first. */
@@ -336,6 +354,16 @@ export interface AttachedWorkshop {
     readonly layout: WorkshopBoardLayout;
     /** The box the committed board fills in the current layout, in world units (for slate.fitToWidth). */
     readonly bounds: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
+    /**
+     * The box the board and its chrome fill (world units): the bounds, grown upward by the title row and legend, and
+     * out by the frame while the board is in focus or a draft. What a host fits to, so the title is never cut off.
+     */
+    readonly frame: {
         x: number;
         y: number;
         width: number;
