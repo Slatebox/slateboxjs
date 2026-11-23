@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { dismissWelcome, removeTestGuest, userId } from './workshop-guests.shared'
 import { conversation, messageBox, workshopReady } from './app-native-workshop.shared'
 import { presentToEveryone } from './app-header.shared'
+import { seedFirstNote } from './app-host.shared'
 
 // A request in the conversation is shown on the canvas before it is kept: native notes and
 // connectors, marked as a preview, that nobody can move, select or save. Keep makes them the
@@ -56,6 +57,8 @@ async function newDrawing(page: Page) {
   await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
   await expect.poll(() => userId(page)).toBeTruthy()
   await dismissWelcome(page)
+  // A new slate starts empty: the note these proofs continue from is made as the welcome's "Add a note" makes it.
+  await seedFirstNote(page)
   if (!await conversation(page).isVisible()) await page.getByRole('button', { name: 'Ask Slatebox', exact: true }).click()
   await expect(messageBox(page)).toBeVisible({ timeout: 20000 })
   guests.set(page, await userId(page))

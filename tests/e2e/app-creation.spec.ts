@@ -33,8 +33,10 @@ test("map entry, gallery and dashboard New open their respective editors", async
     await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/);
     const second = page.url();
     expect(second).not.toBe(canvas);
-    const node = page.locator("#slateCanvas [data-node-id]").first();
+    // A new slate opens empty, on its welcome (no note until the person adds one), and is the same slate after a reload.
+    const node = page.getByRole("region", { name: "Your slate is ready" });
     await expect(node).toBeVisible();
+    await expect(page.locator("#slateCanvas [data-node-id]")).toHaveCount(0);
     await page.reload();
     await expect(node).toBeVisible();
     expect(page.url()).toBe(second);
@@ -43,9 +45,10 @@ test("map entry, gallery and dashboard New open their respective editors", async
     await page.goto(appUrl + "/templates");
     await page.getByRole("main").getByRole("link", { name: "Create slate" }).click();
     await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/);
-    await expect(page.locator("#slateCanvas [data-node-id]").first()).toBeVisible();
-    await page.goto(canvas);
     await expect(node).toBeVisible();
+    // The first slate still holds its note.
+    await page.goto(canvas);
+    await expect(page.locator("#slateCanvas [data-node-id]").first()).toBeVisible();
   } finally {
     await removeTestGuest(page, ownerId);
   }

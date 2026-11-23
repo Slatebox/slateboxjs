@@ -54,7 +54,9 @@ test('dark mode: the default canvas is dark, black words and a dark line are lif
     await page.evaluate(async () => {
       const v2 = (window as any).slate.v2
       const note = v2.getAllNodes()[0]
-      const { x, y } = note.options
+      // Placed from the first note's centre (its width is the welcome's, not this proof's), where they always stood.
+      const { y } = note.options
+      const x = Math.round(note.options.x + note.options.width / 2 - 62)
       v2.addNode({ id: 'darktext', text: 'Black words', x, y: y + 150, width: 270, height: 40, shape: 'rectangle',
         opacity: 0, borderOpacity: 0, textOpacity: 1, backgroundColor: '#ffffff', fontColor: '#000000', foregroundColor: '#000000', fontSize: 20 })
       const other = v2.addNode({ id: 'darkpale', text: 'Pale', x: x + 260, y, width: 140, height: 70, backgroundColor: '#fff3c4', fontColor: '#1d2b2a' })
