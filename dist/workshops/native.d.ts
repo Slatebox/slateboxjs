@@ -103,6 +103,14 @@ export interface BoardLayerState {
     announce?(text: string): void;
     /** The card the person is on: selected, under the pointer, or held by one of its grips (a plan shows that bar's grips). */
     focus?: string | null;
+    /** The host has put the whole board in focus (setFocused): a kit shows what only a board in focus shows (a plan's span grips, a map's path controls). */
+    boardFocused?: boolean;
+    /** A map's path the person picked outside focus ("from>to"), outlined; the host offers "Change this board". */
+    picked?: string | null;
+    /** A map's grip size in board units: a finger's on screen at the zoom the board is shown at (mapGripSize). */
+    gripSize?: number;
+    /** A person picked a map's path (outside focus). */
+    onPick?(key: string): void;
 }
 export interface BoardLayer {
     draw(board: Workshop, preview: Workshop | null, state: BoardLayerState): void;
@@ -203,11 +211,19 @@ export interface WorkshopRefusalEvent {
     };
     reason: string;
 }
-/** The one workshop note that is selected: a card or a lane. Null when the selection is anything else. */
+/**
+ * The one workshop note that is selected: a card or a lane; or a map's path the person picked (outside focus,
+ * where a path is fixed: the host offers "Change this board"). Null when the selection is anything else.
+ */
 export type WorkshopSelection = {
     cardId: string;
 } | {
     laneId: string;
+} | {
+    path: {
+        from: string;
+        to: string;
+    };
 } | null;
 /**
  * Chooses the board a pointer position means while a card is held. Called once as

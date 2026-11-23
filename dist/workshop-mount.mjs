@@ -2,16 +2,16 @@ import { createElement as d } from "react";
 import { createRoot as f } from "react-dom/client";
 import { WorkshopBoard as h } from "./workshops.mjs";
 import { dragologyCandidates as w } from "./workshops.mjs";
-import { validateWorkshop as s } from "./workshop-model.mjs";
-import { attachWorkshop as y } from "./workshop-model.mjs";
-function C(p, i, t = {}) {
-  let o = s(i), r = !1;
+import { v as m } from "./model-DSiU3YcW.mjs";
+import { g as y } from "./model-DSiU3YcW.mjs";
+function v(p, i, t = {}) {
+  let o = m(i), r = !1;
   const n = f(p);
   function a(e) {
     if (r) throw new Error("This workshop has been unmounted.");
-    o = s(e), m();
+    o = m(e), s();
   }
-  function m() {
+  function s() {
     n.render(d(h, {
       mapCanvas: !!o.lanes[0].station,
       ...t,
@@ -21,12 +21,12 @@ function C(p, i, t = {}) {
       }
     }));
   }
-  return m(), { update: a, destroy() {
+  return s(), { update: a, destroy() {
     r || (r = !0, n.unmount());
   } };
 }
 export {
   y as attachWorkshop,
   w as dragologyCandidates,
-  C as mountWorkshop
+  v as mountWorkshop
 };

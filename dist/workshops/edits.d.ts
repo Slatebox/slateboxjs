@@ -39,6 +39,7 @@ export type WorkshopEdit = {
     waitsOn?: WorkshopRef[];
     amount?: number;
     band?: string;
+    free?: boolean;
     under?: WorkshopRef;
     role?: string;
     source?: string;

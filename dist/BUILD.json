@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "ecad99d91d2fad95d5581dac24dfdabb7d1edae1",
-  "branch": "ship/budget-total",
+  "commit": "d823a652715304f4fb8d428588ae2ef08132074e",
+  "branch": "ship/boards-s2b",
   "dirty": false,
-  "builtAt": "2026-11-22T21:21:28.498Z"
+  "builtAt": "2026-11-23T04:56:48.333Z"
 }

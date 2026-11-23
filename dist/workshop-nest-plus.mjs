@@ -1,4 +1,4 @@
-import { applyWorkshopEdits as G, said as g } from "./workshop-model.mjs";
+import { h as G, s as g } from "./model-DSiU3YcW.mjs";
 import { registerNestPlus as z, extend as U, nestAreas as p, nestPlace as W, nestSubtree as k, roleOf as A } from "./workshop-nest.mjs";
 const _ = (e) => e.charAt(0).toUpperCase() + e.slice(1), C = (e) => /[^aeiou]y$/.test(e) ? e.slice(0, -1) + "ies" : /(?:s|sh|ch|x)$/.test(e) ? e + "es" : e + "s", N = (e) => (/^[aeiou]/i.test(e) ? "an " : "a ") + e, m = (e, n) => n === void 0 ? void 0 : e.cards.find((t) => t.id === n), E = (e, n, t) => {
   const r = typeof e == "string" ? e.replace(/\s+/g, " ").trim() : "";

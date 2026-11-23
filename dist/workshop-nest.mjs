@@ -1,4 +1,4 @@
-import { registerWorkshopRules as me, workshopEditKinds as G, workshopRuleSchema as Q, said as m, applyWorkshopEdits as ee, validateWorkshop as we, workshopReferences as ge } from "./workshop-model.mjs";
+import { j as me, k as G, m as Q, s as m, h as ee, v as we, a as ge } from "./model-DSiU3YcW.mjs";
 const D = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", Ie = (e) => typeof e == "string" && /^[0-9A-Za-z]{0,47}[1-9A-Za-z]$/.test(e);
 function ne(e, n) {
   if (n !== null) {

@@ -6128,7 +6128,7 @@ class xr {
         "data-target-node-id": t.id
       });
       const d = (f) => this.slate.governanceOf?.(f)?.capabilities?.canConnect === !1;
-      d(this.node) && d(t) && (l.connector?.attr?.({ "pointer-events": "none", "data-governed": "line" }), l.hitArea?.attr?.({ "pointer-events": "none" }), l.hitArea?.node?.style && (l.hitArea.node.style.cursor = ""));
+      d(this.node) && d(t) && (l.connector?.attr?.({ "pointer-events": "none", "data-governed": "line" }), l.hitArea?.attr?.({ "pointer-events": "none" }), l.hitArea?.node?.style && (l.hitArea.node.style.cursor = ""), l.setHandleVisibility?.(!1));
       const h = {
         id: i,
         source: this.node,

@@ -60,6 +60,11 @@ export interface WorkshopCard {
     asNote?: WorkshopCardAsNote;
     /** The id of the note it was made from, when the card could not take it: the note comes back under it. */
     noteId?: string;
+    /**
+     * Map: a card the paths don't constrain (a note dropped on a step becomes one): it goes to any step and back to
+     * the canvas. A map's token is a card without it, and only the token follows the paths (boards S2b).
+     */
+    free?: true;
 }
 /**
  * What an ordinary note had that its card does not show: its words with their line breaks,
@@ -256,6 +261,11 @@ export interface WorkshopPresentationScene {
 export declare function workshopPresentationScenes(board: Workshop): WorkshopPresentationScene[];
 export declare const maxWorkshopCards = 24;
 export declare function validateWorkshop(input: unknown): Workshop;
+/**
+ * The cards a lane's limit counts: every card, except on a map, where a step's limit counts tokens only. A card made
+ * from a note there (free) is free of the paths and of the limit alike, wherever it is checked (boards S2b).
+ */
+export declare function workshopLaneHeld(board: Pick<Workshop, 'cards'>, laneId: string): number;
 /** Build the fragment for /new/workshop from portable workshop data. */
 export declare function encodeWorkshopFragment(value: Workshop): string;
 /** Read location.hash before creating a slate. Only the validated model is imported. */
@@ -279,11 +289,18 @@ export declare function workshopDestinations(board: Workshop, cardId: string): W
 /** Why workshopCandidate refuses this move, as a sentence for the person moving the card. Null when the move is available. */
 export declare function workshopRefusal(board: Workshop, cardId: string, laneId: string): string | null;
 /**
- * Whether ordinary notes and this board's cards are the same thing: a board of plain lanes.
- * A map's token, a release plan's features (they need points) and a startup experience's
- * cards are pieces of their own and are not made from notes.
+ * Whether an ordinary note dropped on this board is offered to it. Every board is (boards S2b, owner: "notes
+ * ALWAYS convert on boards"): a map makes it a card at the step (free of the paths: the token stays the only
+ * piece they constrain), a release plan a feature with the points written on it. A board that truly cannot
+ * hold one more card (a startup experience, whose cards are its interviews or its budget) refuses it in its
+ * own sentence (workshopNoteRefusal), shown on the board, never ignored.
  */
-export declare function workshopTakesNotes(board: Workshop): boolean;
+export declare function workshopTakesNotes(_board: Workshop): boolean;
+/**
+ * Whether lines join this board's cards to notes and to each other: a board of plain lanes. A map's paths are its
+ * lines, and a business board's, a release plan's and a startup experience's cards carry none.
+ */
+export declare function workshopTakesLines(board: Workshop): boolean;
 /** An ordinary note offered to a lane: its id, its words and how it is drawn. */
 export interface WorkshopNoteOffer {
     id: string;
@@ -377,6 +394,7 @@ export declare function workshopPositions(board: Workshop, layout?: {
 };
 /** Start with two empty, editable lanes. IDs have no special meaning to the renderer. */
 export declare function createLaneWorkshop(): Workshop;
+export declare function nextWorkshopId(board: Workshop, prefix: string): string;
 export declare function addWorkshopLane(input: Workshop, lane: Pick<WorkshopLane, 'label' | 'capacity'>): Workshop;
 export declare function addWorkshopCard(input: Workshop, laneId: string, card: Pick<WorkshopCard, 'label' | 'allowedLaneIds'>): Workshop;
 /** A fresh editable map, with enough structure to move a token or add a second path. */
