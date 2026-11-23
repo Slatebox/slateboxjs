@@ -1,4 +1,4 @@
-import { prepareShape } from "../../shapes";
+import { prepareShape, SHAPE_LIMITS } from "../../shapes";
 
 /**
  * Value specifications shared by every key table. A key's spec decides how it
@@ -13,8 +13,8 @@ export type ValueSpec =
   | { type: "enum"; values: readonly string[]; nullable?: boolean; caseless?: boolean }
   /**
    * A shape: one of `values` (any case), or a custom shape object
-   * {name, d, fillRule?} checked by slateboxjs/shapes. The JSON Schema lists
-   * the names only: a host resolves its own library references to objects.
+   * {name, d, fillRule?, ref?} checked by slateboxjs/shapes. The JSON Schema
+   * publishes both forms (oneOf); the model tool lists the names only.
    */
   | { type: "shape"; values: readonly string[] }
   /** A list of distinct values, each one of `values`; it may be empty. */
@@ -128,7 +128,7 @@ export function schemaFor(spec: ValueSpec): Record<string, any> {
         ? { type: ["string", "null"], enum: [...spec.values, null] }
         : { type: "string", enum: [...spec.values] };
     case "shape":
-      return { type: "string", enum: [...spec.values] };
+      return { oneOf: [{ type: "string", enum: [...spec.values] }, customShapeSchema()] };
     case "list":
       // No uniqueItems: not every model provider's constrained decoding takes it; checkValue refuses repeats.
       return { type: "array", items: { type: "string", enum: [...spec.values] } };
@@ -153,4 +153,34 @@ export function schemaFor(spec: ValueSpec): Record<string, any> {
     case "id":
       return { type: spec.nullable ? ["string", "null"] : "string", pattern: "^[A-Za-z0-9_-]{1,64}$" };
   }
+}
+
+/** The object form of a shape value (one path, compound sub-paths allowed). */
+export function customShapeSchema(): Record<string, any> {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["name", "d"],
+    description:
+      "A custom shape: one SVG path (several closed parts and holes allowed, no markup), as shapes.generate or shapes.list return it.",
+    properties: {
+      name: { type: "string", minLength: 1, maxLength: SHAPE_LIMITS.maxName },
+      d: { type: "string", minLength: 1, maxLength: SHAPE_LIMITS.maxInput, description: "Path data: commands and plain numbers only." },
+      fillRule: { type: "string", enum: ["nonzero", "evenodd"], description: "evenodd when the shape has holes." },
+      ref: {
+        type: "object",
+        additionalProperties: false,
+        required: ["id"],
+        description: "The shape library entry it came from.",
+        properties: { id: { type: "string", pattern: "^[A-Za-z0-9_-]{1,64}$" }, name: { type: "string", maxLength: SHAPE_LIMITS.maxName } },
+      },
+    },
+  };
+}
+
+/** A schema with shape values cut to their names, for model tools (no combinators). */
+export function namesOnlyShape(schema: Record<string, any>): Record<string, any> {
+  return Array.isArray(schema.oneOf) && schema.oneOf[0]?.type === "string" && schema.oneOf[0]?.enum
+    ? { ...schema.oneOf[0], ...Object.fromEntries(Object.entries(schema).filter(([key]) => key !== "oneOf")) }
+    : schema;
 }

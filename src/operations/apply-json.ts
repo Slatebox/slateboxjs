@@ -368,6 +368,7 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
           for (const [key, value] of Object.entries(operation.changes!)) {
             if (!NODE_INTENT_KEYS[key]) NODE_KEYS[key].store(node.options, value, lists);
           }
+          keepCustomProportions(node.options, operation.changes!);
           applied.push(noteId(node));
           if (JSON.stringify(node.options) !== was) entry.changed.push(noteId(node));
         }
@@ -697,6 +698,22 @@ export function applyPlanToJSON(input: any, plan: SlateOperationPlan, options: A
   }
   report.unchanged = JSON.stringify(slate) === before;
   return { slate, materializedPlan: { message: plan.message.trim(), operations: materialized }, report };
+}
+
+/**
+ * A custom shape put on a note keeps its proportions: the note keeps its width
+ * (or the height it was given) and the other side follows the outline, as the
+ * canvas and shapes.apply size it. A size given with the shape wins.
+ */
+function keepCustomProportions(options: Record<string, any>, changes: Record<string, any>): void {
+  const shape = changes.shape;
+  if (!shape || typeof shape !== "object" || options.shape !== "custom") return;
+  if (changes.width !== undefined && changes.height !== undefined) return;
+  const aspect = prepareAspect(shape);
+  if (!aspect) return;
+  const clamp = (v: number) => Math.round(Math.min(5000, Math.max(20, v)));
+  if (changes.height !== undefined) options.width = clamp(Number(options.height) * aspect);
+  else options.height = clamp(Number(options.width || 180) / aspect);
 }
 
 function prepareAspect(shape: unknown): number {

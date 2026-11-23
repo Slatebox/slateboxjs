@@ -65,7 +65,9 @@ function nodePackages(id: string, changes: Record<string, any>, options: Record<
   for (const prop of ["borderColor", "borderWidth", "borderOpacity", "borderStyle"]) {
     if (has(prop)) packages.push({ type: "onNodeBorderPropertiesChanged", data: { id, prop, val: options[prop] } });
   }
-  if (has("width", "height")) packages.push({ type: "onNodeResized", data: { id, width: options.width, height: options.height } });
+  // A custom shape sets the note's proportions too (apply-json keepCustomProportions).
+  const customShape = has("shape") && changes.shape && typeof changes.shape === "object";
+  if (has("width", "height") || customShape) packages.push({ type: "onNodeResized", data: { id, width: options.width, height: options.height } });
   // NodesManager.moveNodes reads data.nodes (not data.moves).
   if (has("x", "y")) packages.push({ type: "onNodesMove", data: { dur: 350, nodes: [{ id, x: value("x"), y: value("y") }] } });
   if (has("rotationAngle")) packages.push({ type: "onNodeRotated", data: { id, rotationAngle: value("rotationAngle") } });

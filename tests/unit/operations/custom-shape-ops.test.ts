@@ -1,7 +1,7 @@
 // Operations with custom shapes: a validated shape object is stored with its
 // fill rule, text box and library reference; read-backs name it, never the path.
 import { describe, expect, it } from "vitest";
-import { applyPlanToJSON, describeOperations, summarizeSlate, validatePlan } from "../../../src/operations";
+import { applyPlanToJSON, describeOperations, slateOperationPlanSchema, SLATE_OPERATION_TOOL, summarizeSlate, validatePlan } from "../../../src/operations";
 import { packagesForOperation } from "../../../src/core/SlateOperations";
 
 const ROCKET = "M50,0 C64,10 72,28 72,50 L72,74 L88,90 L88,100 L70,92 L30,92 L12,100 L12,90 L28,74 L28,50 C28,28 36,10 50,0 Z M41,34 A9,9 0 1 1 59,34 A9,9 0 1 1 41,34 Z M40,92 L50,100 L60,92 Z";
@@ -29,6 +29,20 @@ describe("custom shapes through the operation contract", () => {
       expect(node.options.vectorPath.startsWith("M")).toBe(true);
       expect(node.options.textBox).toMatchObject({ w: expect.any(Number) });
     }
+  });
+
+  it("keeps the outline's proportions on update_nodes (width kept, height follows)", () => {
+    const p = plan({ kind: "update_nodes", target: { ids: ["a"] }, changes: { shape: rocket } });
+    const { slate: next } = applyPlanToJSON(slate(), p);
+    const options = next.nodes[0].options;
+    expect(options.width).toBe(200);
+    // The rocket is 76 wide for 100 tall: about 263 tall at 200 wide.
+    expect(options.width / options.height).toBeCloseTo(0.76, 1);
+    // A size given with the shape wins.
+    const sized = applyPlanToJSON(slate(), plan({ kind: "update_nodes", target: { ids: ["a"] }, changes: { shape: rocket, width: 100, height: 100 } })).slate;
+    expect(sized.nodes[0].options).toMatchObject({ width: 100, height: 100 });
+    const tall = applyPlanToJSON(slate(), plan({ kind: "update_nodes", target: { ids: ["a"] }, changes: { shape: rocket, height: 150 } })).slate;
+    expect(tall.nodes[0].options.width).toBe(Math.round(150 * 0.76));
   });
 
   it("refuses an invalid path with the validator's sentence", () => {
@@ -62,8 +76,17 @@ describe("custom shapes through the operation contract", () => {
     expect(options.textBox).toBeUndefined();
   });
 
-  it("the JSON Schema still lists names only", () => {
-    expect(JSON.stringify(describeOperations())).not.toContain("custom shape {name");
+  it("the JSON Schema publishes both forms; the model tool lists names only", () => {
+    const shape = describeOperations().noteKeys.shape;
+    expect(shape.oneOf[0]).toMatchObject({ type: "string", enum: expect.arrayContaining(["rectangle"]) });
+    expect(shape.oneOf[1]).toMatchObject({ type: "object", required: ["name", "d"] });
+    expect(shape.oneOf[1].properties.d.maxLength).toBe(8000);
+    expect(shape.oneOf[1].properties.fillRule.enum).toEqual(["nonzero", "evenodd"]);
+    const item = slateOperationPlanSchema().properties.operations.items.properties;
+    expect(item.shape.oneOf).toHaveLength(2);
+    const tool = JSON.stringify(SLATE_OPERATION_TOOL.parameters);
+    expect(tool).not.toContain("oneOf");
+    expect(SLATE_OPERATION_TOOL.parameters.properties.operations.items.properties.shape).toMatchObject({ type: "string" });
   });
 });
 
@@ -77,5 +100,7 @@ describe("the live applier sends the custom shape to the room", () => {
     expect(shape.data).toMatchObject({ id: "a", shape: "custom", fillRule: "evenodd", shapeRef: { name: "Rocket" } });
     expect(shape.data.vectorPath.startsWith("M")).toBe(true);
     expect(shape.data.textBox).toBeTruthy();
+    const resized = packages.find((pkg) => pkg.type === "onNodeResized");
+    expect(resized.data).toMatchObject({ id: "a", width: 200, height: after.nodes[0].options.height });
   });
 });

@@ -19,7 +19,7 @@ import { NODE_INTENT_KEYS, NODE_KEYS, NODE_STYLE_KEYS } from "./keys/node";
 import { CONNECTOR_KEYS, CONNECTOR_STYLE_KEYS } from "./keys/connector";
 import { backgroundSchema, SLATE_KEYS } from "./keys/slate";
 import { selectorSchema } from "./keys/selector";
-import { schemaFor } from "./keys/values";
+import { namesOnlyShape, schemaFor } from "./keys/values";
 
 export function describeOperations(options: ContractOptions = {}) {
   const lists = contractLists(options);
@@ -57,15 +57,24 @@ export function describeOperations(options: ContractOptions = {}) {
   };
 }
 
-export function slateOperationPlanSchema(options: ContractOptions = {}): Record<string, any> {
+/**
+ * The plan's JSON Schema. A shape is a name or a custom shape object (oneOf);
+ * `{modelTool: true}` lists names only, so the schema stays free of
+ * combinators for every model provider (a model gets custom shapes through
+ * the host's shape tools, not by writing paths).
+ */
+export function slateOperationPlanSchema(options: ContractOptions = {}, form: { modelTool?: boolean } = {}): Record<string, any> {
   const lists = contractLists(options);
   const limits = contractLimits(options);
-  const nodeProperties = (names: string[]) =>
-    Object.fromEntries(names.map((key) => [key, schemaFor(NODE_KEYS[key].spec(lists))]));
+  const nodeSchema = (key: string) => {
+    const schema = schemaFor(NODE_KEYS[key].spec(lists));
+    return form.modelTool ? namesOnlyShape(schema) : schema;
+  };
+  const nodeProperties = (names: string[]) => Object.fromEntries(names.map((key) => [key, nodeSchema(key)]));
   // update_nodes changes carry each key's description, so the model reads what a key does
   // (templateCategory is not "group these by theme"), as REST and describeOperations give it.
   const describedNodeProperties = (names: string[]) =>
-    Object.fromEntries(names.map((key) => [key, { ...schemaFor(NODE_KEYS[key].spec(lists)), description: NODE_KEYS[key].description }]));
+    Object.fromEntries(names.map((key) => [key, { ...nodeSchema(key), description: NODE_KEYS[key].description }]));
   const connectorProperties = (names: string[]) => Object.fromEntries(names.map((key) => [key, schemaFor(CONNECTOR_KEYS[key].spec)]));
   const selector = selectorSchema();
   const ids = { type: "array", items: { type: "string" } };
@@ -160,7 +169,7 @@ export const SLATE_OPERATION_TOOL = Object.freeze({
   name: "applySlateOperations",
   description:
     "Edit the existing slate without starting a new slate, replacing its content, or changing its theme unless the user explicitly asked for that. Always include a natural completion message.",
-  parameters: slateOperationPlanSchema(),
+  parameters: slateOperationPlanSchema({}, { modelTool: true }),
 });
 
 export function operationPlanRetryPrompt(errors: string[]): string {
