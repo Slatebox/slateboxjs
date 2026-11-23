@@ -91,14 +91,14 @@ test('dark mode: the default canvas is dark, black words and a dark line are lif
     await expect(words).toHaveCSS('fill', 'rgb(0, 0, 0)')
     await page.evaluate(() => { const s = (window as any).slate.v2; Object.assign(s.options.containerStyle, { backgroundColor: '#ffffff' }); s.applyContainerStyle() })
     await expect.poll(() => canvas(page)).toEqual({ mark: 'dark', bg: DARK })
-    // The presenter draws the slate on the same dark canvas, a clear note stays clear and its words are lifted.
+    // The presenter plays the slate as a styled deck: it keeps its style's own backdrop and ink in
+    // dark mode (presentation styles), so the stage is not marked dark and nothing is lifted.
     await page.getByRole('button', { name: /^Present$/ }).first().click()
+    await expect(page.locator('.sb-presenter-bar-immersive')).toBeVisible({ timeout: 20000 })
     const stage = page.locator('.MuiDialog-paper main')
-    await expect(stage).toHaveAttribute('data-sb-canvas', 'dark', { timeout: 20000 })
-    await expect(stage).toHaveCSS('background-color', DARK)
-    const presented = stage.locator('.sb-presentation-camera g[data-node-id="darktext"]')
-    await expect(presented.locator('[data-node-background-path]')).toHaveCSS('opacity', '0')
-    await expect(presented.locator(':scope > text')).toHaveCSS('fill', 'rgb(238, 241, 232)')
+    await expect(stage).not.toHaveAttribute('data-sb-canvas', 'dark')
+    await expect(page.locator('.MuiDialog-paper').first()).not.toHaveCSS('background-color', DARK)
+    expect(await stage.locator('[data-sb-ink]').count()).toBe(0)
     await page.getByRole('button', { name: 'Exit presentation' }).click()
     // My slates: the picture of a slate follows the mode too.
     await page.goto(at('/'))
