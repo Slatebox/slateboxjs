@@ -162,17 +162,13 @@ function updateWords(item: SuggestionItem): string {
   return 'Suggests restyling it'
 }
 
-const plural = (n: number, one: string, many: string) => n + ' ' + (n === 1 ? one : many)
+const WORDS: [SuggestionKind, string, string][] = [['add', 'note', 'notes'], ['update', 'change', 'changes'], ['remove', 'removal', 'removals'], ['link', 'line', 'lines'], ['unlink', 'line removed', 'lines removed']]
 /** What an action's waiting items are, in a few words: "3 notes, 2 lines". */
 export function groupWords(items: SuggestionItem[]): string {
-  const count = (kind: SuggestionKind) => items.filter(item => item.kind === kind).length
-  return [
-    count('add') && plural(count('add'), 'note', 'notes'),
-    count('update') && plural(count('update'), 'change', 'changes'),
-    count('remove') && plural(count('remove'), 'removal', 'removals'),
-    count('link') && plural(count('link'), 'line', 'lines'),
-    count('unlink') && plural(count('unlink'), 'line removed', 'lines removed'),
-  ].filter(Boolean).join(', ')
+  return WORDS.map(([kind, one, many]) => {
+    const n = items.filter(item => item.kind === kind).length
+    return n ? n + ' ' + (n === 1 ? one : many) : ''
+  }).filter(Boolean).join(', ')
 }
 
 const boxOverlap = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
@@ -293,62 +289,44 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     return width
   }
 
-  // Keep and Discard for one item, screen-sized, their right edge at (x, y) in world units: under a
-  // changed note, or (inside: a ghost's own, shown on hover or focus) just inside its lower right.
-  function controls(group: any, at: { x: number; y: number }, scale: number, action: SuggestionAction, item: SuggestionItem, keepLabel: string, what: string, inside = false) {
-    const color = colorOf(action)
-    const ref = { actionId: action.actionId, itemId: item.id }
-    const holder = group.group().attr({ 'data-suggestion-controls': item.id })
-    const row = holder.group()
+  // A row of two buttons, screen-sized, at world point `at`, offset by (dx, dy) screen pixels (dx < 0:
+  // the row's right edge there). [label, words a screen reader hears, kind, act] each; the first is primary.
+  function row(group: any, attrs: Record<string, string>, at: { x: number; y: number }, scale: number, color: string, buttons: [string, string, string, () => void][], dx: number, dy: number) {
+    const holder = group.group().attr(attrs)
+    const line = holder.group()
     let x = 0
+    buttons.forEach(([label, aria, kind, act], i) => { x += button(line, x, label, aria, !i, color, act, kind) + 6 })
+    holder.transform({ translateX: at.x, translateY: at.y, scale: 1 / scale, originX: 0, originY: 0 })
+    line.attr('transform', `translate(${dx < 0 ? dx - x + 6 : dx} ${dy})`)
+    return holder
+  }
+  // Keep / Discard of one item; Keep all / Discard all of one action (12px a letter... measured as button() does).
+  const ALL_W = Math.round(18 + 6.8 * 8) + 6 + Math.round(18 + 6.8 * 11)
+  const tagWidth = (words: string) => Math.round(28 + 7 * clip(words, 64).length)
+  const itemButtons = (action: SuggestionAction, item: SuggestionItem, keepLabel: string, what: string): [string, string, string, () => void][] => {
     // Said as "the suggestion from Excalidraw, added by Ada", never "Excalidraw · added by Ada's suggestion".
     const from = ' the suggestion from ' + nameOf(action).replace(/ · /g, ', ') + ': ' + what
-    x += button(row, x, keepLabel, keepLabel + from, true, color, () => api.keep(ref)) + 6
-    x += button(row, x, 'Discard', 'Discard' + from, false, color, () => api.discard(ref))
-    holder.transform({ translateX: at.x, translateY: at.y, scale: 1 / scale, originX: 0, originY: 0 })
-    row.attr('transform', inside ? `translate(${-x - 6} -28)` : `translate(${-x} 6)`)
-    return { holder, width: x }
+    const ref = { actionId: action.actionId, itemId: item.id }
+    return [[keepLabel, keepLabel + from, 'keep', () => api.keep(ref)], ['Discard', 'Discard' + from, 'discard', () => api.discard(ref)]]
   }
 
-  // Keep all and Discard all for one action, screen-sized, placed at a world point (their top left).
-  function allControls(group: any, at: { x: number; y: number }, scale: number, action: SuggestionAction, words: string) {
-    const color = colorOf(action)
-    const holder = group.group().attr({ 'data-suggestion-all': action.actionId })
-    const whose = nameOf(action).replace(/ · /g, ', ')
-    let x = 0
-    x += button(holder, x, 'Keep all', 'Keep all of the suggestion from ' + whose + ': ' + words, true, color, () => api.keepAll(action.actionId), 'keep-all') + 6
-    x += button(holder, x, 'Discard all', 'Discard all of the suggestion from ' + whose + ': ' + words, false, color, () => api.discardAll(action.actionId), 'discard-all')
-    holder.transform({ translateX: at.x, translateY: at.y, scale: 1 / scale, originX: 0, originY: 0 })
-    return x
-  }
-
-  // Width in screen pixels of the Keep all / Discard all row, and of a tag's words.
-  const allWidth = () => Math.round(18 + 6.8 * 8) + 6 + Math.round(18 + 6.8 * 11)
-  const tagWidth = (words: string) => Math.round(28 + 7 * clip(words, 64).length)
-
-  // A small tag over a ghost: the agent's hexagon and name.
-  function tag(group: any, at: { x: number; y: number }, scale: number, action: SuggestionAction, words: string, color: string, below = false) {
-    const holder = group.group().attr({ 'data-suggestion-tag': below ? 'below' : '', 'pointer-events': 'none' })
+  // A small tag (the agent's hexagon and words) with its top left at a world point.
+  function tag(group: any, at: { x: number; y: number }, scale: number, words: string, color: string) {
+    const holder = group.group().attr({ 'data-suggestion-tag': '', 'pointer-events': 'none' })
     const text = clip(words, 64)
-    const width = Math.round(28 + 7 * text.length)
-    holder.rect(width, 22).radius(11).move(0, -28).fill('#ffffff').stroke({ color, width: 1.2 }).attr('fill-opacity', 0.95)
-    const r = 6, cx = 12, cy = -16
-    const points = Array.from({ length: 6 }, (_, i) => {
+    holder.rect(tagWidth(words), 22).radius(11).fill('#ffffff').stroke({ color, width: 1.2 }).attr('fill-opacity', 0.95)
+    holder.polygon(Array.from({ length: 6 }, (_, i) => {
       const a = Math.PI / 6 + (i * Math.PI) / 3
-      return (cx + r * Math.cos(a)).toFixed(2) + ',' + (cy + r * Math.sin(a)).toFixed(2)
-    }).join(' ')
-    holder.polygon(points).fill(color)
-    holder.text((t: any) => t.plain(text)).font({ size: 12, family: FONT }).fill('#111827').attr({ x: 22, y: -12 })
-    holder.transform({ translateX: at.x, translateY: at.y + (below ? 28 / scale : 0), scale: 1 / scale, originX: 0, originY: 0 })
+      return (12 + 6 * Math.cos(a)).toFixed(2) + ',' + (12 + 6 * Math.sin(a)).toFixed(2)
+    }).join(' ')).fill(color)
+    holder.text((t: any) => t.plain(text)).font({ size: 12, family: FONT }).fill('#111827').attr({ x: 22, y: 16 })
+    holder.transform({ translateX: at.x, translateY: at.y, scale: 1 / scale, originX: 0, originY: 0 })
   }
 
   // Show or hide one ghost's own Keep and Discard (no redraw, so the pointer stays where it is).
   function reveal(itemId: string | null) {
     hovered = itemId
-    const root = layer?.node as SVGGElement | undefined
-    root?.querySelectorAll?.('[data-suggestion-controls][data-on-hover]').forEach((el: Element) => {
-      ;(el as SVGGElement).style.display = el.getAttribute('data-suggestion-controls') === itemId ? '' : 'none'
-    })
+    layer?.node?.querySelectorAll?.('[data-on-hover]').forEach((el: SVGGElement) => { el.style.display = el.getAttribute('data-suggestion-controls') === itemId ? '' : 'none' })
   }
 
   function render(force = false) {
@@ -369,85 +347,75 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     const acting = canAct()
     const shown: ShownSuggestion[] = []
     const groups: ShownGroup[] = []
-    // What the tags and buttons already drawn take: none may cover another (frames count too).
-    const taken: Box[] = []
-    const byAction = new Map<string, { action: SuggestionAction; items: SuggestionItem[] }>()
+    const byAction = new Map<string, { action: SuggestionAction; items: SuggestionItem[]; frame: Box | null }>()
     for (const { action, item } of pending) {
-      const entry = byAction.get(action.actionId) ?? { action, items: [] }
+      const entry = byAction.get(action.actionId) ?? { action, items: [], frame: null }
       entry.items.push(item)
       byAction.set(action.actionId, entry)
+      // The frame: the box round the action's ghosts.
+      const b = item.kind === 'add' ? boxOf(noteOf(ghostIdOf(item.nodeId || ''))) : null
+      const f = entry.frame
+      if (b) entry.frame = f ? { x: Math.min(f.x, b.x), y: Math.min(f.y, b.y), w: Math.max(f.x + f.w, b.x + b.w) - Math.min(f.x, b.x), h: Math.max(f.y + f.h, b.y + b.h) - Math.min(f.y, b.y) } : b
     }
-    // Each action's frame first (the box around its ghosts), so every label can keep clear of all of them.
-    const frames = new Map<string, Box>()
-    for (const { action, items } of byAction.values()) {
-      let frame: Box | null = null
-      for (const item of items) {
-        if (item.kind !== 'add') continue
-        const b = boxOf(noteOf(ghostIdOf(item.nodeId || '')))
-        if (!b) continue
-        frame = frame ? { x: Math.min(frame.x, b.x), y: Math.min(frame.y, b.y), w: Math.max(frame.x + frame.w, b.x + b.w) - Math.min(frame.x, b.x), h: Math.max(frame.y + frame.h, b.y + b.h) - Math.min(frame.y, b.y) } : { ...b }
-      }
-      if (frame) {
-        const pad = 14 / scale
-        frames.set(action.actionId, { x: frame.x - pad, y: frame.y - pad, w: frame.w + 2 * pad, h: frame.h + 2 * pad })
-      }
+    const pad = 6 / scale, line = 28 / scale
+    const sp = (x: number, y: number, w: number): Box => ({ x, y, w, h: 22 / scale })
+    const frames = [...byAction.values()].filter(e => e.frame).map(e => (e.frame = { x: e.frame!.x - 2 * pad, y: e.frame!.y - 2 * pad, w: e.frame!.w + 4 * pad, h: e.frame!.h + 4 * pad }))
+    // What the tags and buttons already drawn take (and every frame): none may cover another.
+    const taken: Box[] = [...frames]
+    // The first spot that covers nothing taken (its own frame aside), else the first; taken from then on.
+    const place = (spots: Box[], own: Box | null) => {
+      const spot = spots.find(s => !taken.some(o => o !== own && boxOverlap(s, o))) ?? spots[0]
+      taken.push(spot)
+      return spot
     }
-    taken.push(...frames.values())
-    // The first spot of a label that covers nothing taken (but its own frame's edge), else the first spot.
-    const place = (spots: Box[], own: Box | null) => spots.find(spot => !taken.some(other => other !== own && boxOverlap(spot, other))) ?? spots[0]
-    for (const { action, items } of byAction.values()) {
+    for (const { action, items, frame } of byAction.values()) {
       const color = colorOf(action)
       const name = nameOf(action)
-      const frame = frames.get(action.actionId) ?? null
       const action_g = group.group().attr({ 'data-suggestion-group': action.actionId })
       if (frame) {
         const words = groupWords(items)
         action_g.rect(frame.w, frame.h).move(frame.x, frame.y).radius(10 / scale).fill('none')
           .stroke({ color, width: 1.5 / scale, dasharray: `${10 / scale} ${6 / scale}` }).attr({ 'pointer-events': 'none', 'data-suggestion-frame': action.actionId })
-        // One tag: above the frame's top left, else below its bottom left, else inside its top edge.
-        const tw = tagWidth(name + ' · ' + words) / scale, th = 22 / scale
-        const tagSpot = place([
-          { x: frame.x, y: frame.y - 28 / scale, w: tw, h: th },
-          { x: frame.x, y: frame.y + frame.h + 6 / scale, w: tw, h: th },
-          { x: frame.x + 6 / scale, y: frame.y + 6 / scale, w: tw, h: th },
-        ], frame)
-        tag(action_g, { x: tagSpot.x, y: tagSpot.y + 28 / scale }, scale, action, name + ' · ' + words, color)
-        taken.push(tagSpot)
-        let all: Box | null = null
-        if (acting) {
-          // Keep all / Discard all: under the frame's bottom right, else above its top right, else under its left.
-          const aw = allWidth() / scale, ah = 22 / scale
-          all = place([
-            { x: frame.x + frame.w - aw, y: frame.y + frame.h + 6 / scale, w: aw, h: ah },
-            { x: frame.x + frame.w - aw, y: frame.y - 28 / scale, w: aw, h: ah },
-            { x: frame.x, y: frame.y + frame.h + 34 / scale, w: aw, h: ah },
-          ], frame)
-          allControls(action_g, { x: all.x, y: all.y }, scale, action, words)
-          taken.push(all)
-        }
-        groups.push({ actionId: action.actionId, frame: { ...frame }, tag: { ...tagSpot }, all: all && { ...all }, words })
+        // One tag: above the frame's top left, else under its bottom left, else inside its top edge.
+        const tw = tagWidth(name + ' · ' + words) / scale
+        const at = place([sp(frame.x, frame.y - line, tw), sp(frame.x, frame.y + frame.h + pad, tw), sp(frame.x + pad, frame.y + pad, tw)], frame)
+        tag(action_g, at, scale, name + ' · ' + words, color)
+        // Keep all / Discard all: under the frame's bottom right, else above its top right, else under its left.
+        const aw = ALL_W / scale
+        const right = frame.x + frame.w - aw
+        const all = acting ? place([sp(right, frame.y + frame.h + pad, aw), sp(right, frame.y - line, aw), sp(frame.x, frame.y + frame.h + line + pad, aw)], frame) : null
+        const whose = ' of the suggestion from ' + name.replace(/ · /g, ', ') + ': ' + words
+        if (all) row(action_g, { 'data-suggestion-all': action.actionId }, all, scale, color,
+          [['Keep all', 'Keep all' + whose, 'keep-all', () => api.keepAll(action.actionId)], ['Discard all', 'Discard all' + whose, 'discard-all', () => api.discardAll(action.actionId)]], 0, 0)
+        groups.push({ actionId: action.actionId, frame, tag: at, all, words })
       }
       for (const item of items) {
         const item_g = action_g.group().attr({ 'data-suggestion': item.id, 'data-suggestion-kind': item.kind, 'data-action': action.actionId })
         const dash = { color: item.kind === 'remove' || item.kind === 'unlink' ? REMOVE_COLOR : color, width: 2 / scale, dasharray: `${8 / scale} ${5 / scale}` }
         let box: Box | null = null
         let drawn = false
-        if (item.kind === 'add' || item.kind === 'update' || item.kind === 'remove') {
-          box = item.kind === 'add' ? boxOf(noteOf(ghostIdOf(item.nodeId || ''))) : boxOf(noteOf(item.nodeId))
+        if (item.kind === 'link' || item.kind === 'unlink') {
+          const from = boxFor(item.parentId ?? item.association?.parentId)
+          const to = boxFor(item.association?.childId)
+          if (!from || !to) { item_g.remove(); continue }
+          const a = edgePoint(from, to), b = edgePoint(to, from)
+          item_g.line(a.x, a.y, b.x, b.y).stroke({ ...dash, width: 2.5 / scale }).attr({ 'pointer-events': 'none', 'data-suggestion-line': '' })
+          box = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) }
+          // A line carries no tag and no buttons: it is kept with both its ends, and goes with either.
+          item_g.attr({ role: 'img', 'aria-label': name + (item.kind === 'unlink' ? ' suggests removing this line' : ' suggests this line') })
+        } else {
+          box = boxOf(noteOf(item.kind === 'add' ? ghostIdOf(item.nodeId || '') : item.nodeId))
           if (!box) { item_g.remove(); continue }
-          const pad = 6 / scale
-          item_g.rect(box.w + 2 * pad, box.h + 2 * pad).move(box.x - pad, box.y - pad).radius(6 / scale).fill('none').stroke(dash)
+          item_g.rect(box.w + 2 * pad, box.h + 2 * pad).move(box.x - pad, box.y - pad).radius(pad).fill('none').stroke(dash)
             .attr({ 'pointer-events': 'none', 'data-suggestion-outline': '' })
           const text = plainLine(item.kind === 'add' ? item.node?.options?.text ?? '' : noteOf(item.nodeId)?.options?.text ?? '')
           if (item.kind === 'add') {
-            const what = 'add “' + clip(text, 40) + '”'
             if (acting) {
               // A ghost is inert (no pointer events): an invisible box over it in this layer hears the
               // pointer and takes keyboard focus, and shows its own Keep and Discard just inside it.
-              item_g.rect(box.w, box.h).move(box.x, box.y).fill('#ffffff').attr({ 'fill-opacity': 0, 'pointer-events': 'all', tabindex: 0, role: 'group',
+              item_g.rect(box.w, box.h).move(box.x, box.y).fill('#fff').attr({ 'fill-opacity': 0, 'pointer-events': 'all', tabindex: 0, role: 'group',
                 'aria-label': 'Suggested by ' + name + ': ' + clip(text, 60) + '. Keep or discard it alone.', 'data-suggestion-hit': item.id })
-              const { holder } = controls(item_g, { x: box.x + box.w, y: box.y + box.h }, scale, action, item, 'Keep', what, true)
-              holder.attr({ 'data-on-hover': '' })
+              const holder = row(item_g, { 'data-suggestion-controls': item.id, 'data-on-hover': '' }, { x: box.x + box.w, y: box.y + box.h }, scale, color, itemButtons(action, item, 'Keep', 'add “' + clip(text, 40) + '”'), -6, -28)
               if (hovered !== item.id) holder.node.style.display = 'none'
               const node = item_g.node as SVGGElement
               node.addEventListener('pointerenter', () => reveal(item.id))
@@ -457,34 +425,20 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
               drawn = true
             }
           } else {
-            const words = item.kind === 'update' ? updateWords(item) : 'Suggests removing this note'
-            const keepLabel = item.kind === 'remove' ? 'Remove' : 'Keep'
-            const what = item.kind === 'update'
-              ? updateWords(item).replace(/^Suggests/, 'change “' + clip(text, 24) + '”,').replace(/: “/, ' to “')
-              : 'remove “' + clip(text, 40) + '”'
             // A change to a real note keeps its own tag and buttons there (no frame holds it).
-            const tw = tagWidth(name + ' — ' + words) / scale
-            const spot = place([{ x: box.x - pad, y: box.y - pad - 28 / scale, w: tw, h: 22 / scale }, { x: box.x - pad, y: box.y + box.h + pad + 6 / scale, w: tw, h: 22 / scale }], null)
-            tag(item_g, { x: spot.x, y: spot.y + 28 / scale }, scale, action, name + ' — ' + words, item.kind === 'remove' ? REMOVE_COLOR : color)
-            taken.push(spot)
+            const update = item.kind === 'update'
+            const words = name + ' — ' + (update ? updateWords(item) : 'Suggests removing this note')
+            const tw = tagWidth(words) / scale
+            tag(item_g, place([sp(box.x - pad, box.y - pad - line, tw), sp(box.x - pad, box.y + box.h + 2 * pad, tw)], null), scale, words, update ? color : REMOVE_COLOR)
             if (acting) {
-              controls(item_g, { x: box.x + box.w + pad, y: box.y + box.h + pad }, scale, action, item, keepLabel, what)
+              row(item_g, { 'data-suggestion-controls': item.id }, { x: box.x + box.w + pad, y: box.y + box.h + pad }, scale, color, itemButtons(action, item, update ? 'Keep' : 'Remove',
+                update ? updateWords(item).replace(/^Suggests/, 'change “' + clip(text, 24) + '”,').replace(/: “/, ' to “') : 'remove “' + clip(text, 40) + '”'), -1, 6)
               drawn = true
             }
           }
-        } else {
-          const association = item.association || null
-          const from = boxFor(item.parentId ?? association?.parentId)
-          const to = boxFor(association?.childId)
-          if (!from || !to) { item_g.remove(); continue }
-          const a = edgePoint(from, to), b = edgePoint(to, from)
-          item_g.line(a.x, a.y, b.x, b.y).stroke({ ...dash, width: 2.5 / scale }).attr({ 'pointer-events': 'none', 'data-suggestion-line': '' })
-          box = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) }
-          // A line carries no tag and no buttons: it is kept with both its ends, and goes with either.
-          item_g.attr({ role: 'img', 'aria-label': name + (item.kind === 'unlink' ? ' suggests removing this line' : ' suggests this line') })
         }
         shown.push({ actionId: action.actionId, itemId: item.id, kind: item.kind, nodeId: item.nodeId ?? null,
-          ghostId: item.kind === 'add' && item.nodeId ? ghostIdOf(item.nodeId) : null, label: name, box, controls: drawn, frame: frame && { ...frame } })
+          ghostId: item.kind === 'add' && item.nodeId ? ghostIdOf(item.nodeId) : null, label: name, box, controls: drawn, frame })
       }
     }
     groupList = groups
@@ -512,27 +466,26 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
   // Follow the view and the notes: a pan, a zoom or a moved note redraws the overlay (only while something waits).
   const watch = setInterval(() => { if (!destroyed && pendingItems(actions).length) render(false) }, 250)
 
+  function all(actionId: string, keep: boolean) {
+    if (!canAct()) return
+    const whole = keep ? options.onKeepAll : options.onDiscardAll
+    if (whole) return whole(actionId)
+    for (const { action, item } of pendingItems(actions)) if (action.actionId === actionId && item.kind !== 'link') (keep ? options.onKeep : options.onDiscard)?.({ actionId, itemId: item.id })
+  }
+
   const api: AgentSuggestions = {
     set(next) {
       if (destroyed) return
       actions = Array.isArray(next) ? next.filter(action => action && typeof action.actionId === 'string') : []
       sync()
     },
-    shown: () => shownList.map(item => ({ ...item, box: item.box ? { ...item.box } : null, frame: item.frame ? { ...item.frame } : null })),
-    groups: () => groupList.map(g => ({ ...g, frame: { ...g.frame }, tag: { ...g.tag }, all: g.all && { ...g.all } })),
+    shown: () => shownList.map(item => ({ ...item, box: item.box && { ...item.box }, frame: item.frame && { ...item.frame } })),
+    groups: () => groupList.map(g => ({ ...g })),
     keep(ref) { if (canAct()) options.onKeep?.(ref) },
     discard(ref) { if (canAct()) options.onDiscard?.(ref) },
     // Without the host's own Keep all, each waiting item of the action is kept or discarded in turn.
-    keepAll(actionId) {
-      if (!canAct()) return
-      if (options.onKeepAll) return options.onKeepAll(actionId)
-      for (const { action, item } of pendingItems(actions)) if (action.actionId === actionId && item.kind !== 'link') options.onKeep?.({ actionId, itemId: item.id })
-    },
-    discardAll(actionId) {
-      if (!canAct()) return
-      if (options.onDiscardAll) return options.onDiscardAll(actionId)
-      for (const { action, item } of pendingItems(actions)) if (action.actionId === actionId && item.kind !== 'link') options.onDiscard?.({ actionId, itemId: item.id })
-    },
+    keepAll: id => all(id, true),
+    discardAll: id => all(id, false),
     destroy() {
       if (destroyed) return
       destroyed = true

@@ -78,7 +78,7 @@ describe('agent suggestions: ghosts in place', () => {
     ])
     expect(shown[0].box).toEqual({ x: 300, y: 100, w: 160, h: 80 })
     // The action's frame: around its new notes (300..680 × 100..180), padded
-    expect(shown[0].frame).toEqual({ x: 286, y: 86, w: 408, h: 108 })
+    expect(shown[0].frame).toEqual({ x: 288, y: 88, w: 404, h: 104 })
     const layer = slate.host.querySelector('[data-agent-suggestions]')!
     expect(layer.querySelectorAll('[data-suggestion-outline]')).toHaveLength(4)
     // Drawn for the view only: no export keeps it (Export removes [data-export-never]).
