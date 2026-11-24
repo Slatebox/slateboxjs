@@ -10,8 +10,23 @@
   23 Nov"); a board's rulebook never refuses it going back where it came from, and the host's Undo (the board it
   replaced) puts it back in one step. Dragged back by hand on a map or past a lane's own limit, it is asked again. `workshopOverrideCandidate`,
   `workshopHardLimit`, `workshopStampOverrides`, `workshopOverrideLine`; `move_card` takes `override: true` and a
-  refusal says `overridable`; `checkWorkshopMove` answers `refused.overridable`. Hard limits stay refused: business
-  boards, release plans, nested boards and startup experiences, whose cards are numbers the board computes.
+  refusal says `overridable`; `checkWorkshopMove` answers `refused.overridable`.
+
+- Moving a card anyway on every smart component, with what it means on each board so its numbers stay true: a
+  pipeline's deal may skip stages, leave Won or fill a stage past its limit (the forecast counts it where it is;
+  `pipelineStageOver`, the caption says "over its limit of 3", drawn in red); a budget's line item may go to a team
+  without the money (`budgetOver`, "over budget by $120k", in red; an over team gives no money away); a launch or
+  hiring plan's task may move past a lock, a freeze, an overlap, a slip that stops, the line or the runway floor, or
+  start before what it waits on ends (`set_task` with `override: true`, a lag below 0, never before the plan's first
+  day; the finish, critical path and runway are worked out again; `brokenWaits` is drawn as a red dashed line); a
+  nested board's card may go under a parent its rules forbid (`nest_card` with `override: true`; `checkNestMove`
+  answers `overridable`). The mark records what else changed (`WorkshopOverride.was`: lag, duration, parentId) so one
+  Undo puts it back. Kits offer the edit on a refused drop or grip (`refusalAt` / grip `override`;
+  `WorkshopOverrideAsk.to`, "to start day 14"), and onChange hears `{ override: true, edits: [that edit] }`. A refusal
+  says `overridable` whenever the same edit with override would be made. Keyboard: Left and Right toward a lane that
+  refuses the card ask about that lane; a lane it may never go to is said aloud and passed over, never skipped in
+  silence. Hard limits stay refused: release plans, startup experiences, a won deal with no amount, a start before
+  the plan's first day, a card under itself or nested in the tray, counts and ranges.
 
 - `slateboxjs/canvas`: the canvas alone (`Slate`, and what agents show), for a page that draws slates. It registers
   the same SVG.js plugins as the main entry and draws a slate exactly as it does. Its first load is 124,479 bytes
