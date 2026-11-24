@@ -190,7 +190,10 @@ test('a signed copy link copies a public slate for a new visitor and opens the c
     await a.owner.evaluate((slateId) => (window as any).Meteor.callAsync('slateAccess.configureLink', { slateId, type: 'private', permission: 'READ' }), slate._id)
     const stranger = await (await browser.newContext()).newPage()
     await stranger.goto(signedCopyLink(a.made.shareId)!)
-    await expect(stranger.getByText('Looks like this slate got erased')).toBeVisible({ timeout: 30_000 })
+    // The app's Not Found page (redesigned in app 4b3958f4: "This page isn’t here"); the stranger
+    // stays on the link and no canvas, theirs or the owner's, opens.
+    await expect(stranger.getByRole('heading', { name: 'This page isn’t here' })).toBeVisible({ timeout: 30_000 })
+    expect(new URL(stranger.url()).pathname).toBe('/ai')
     await stranger.context().close()
   } finally {
     await a.revoke()
