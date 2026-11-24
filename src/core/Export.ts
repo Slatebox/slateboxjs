@@ -24,6 +24,8 @@ export interface ExportOptions {
 }
 
 const OMIT = "data-export-omit";
+/** Set by layers that are only ever drawn for the view (AgentPresence, AgentSuggestions): no export keeps them. */
+const NEVER = "data-export-never";
 
 /**
  * The canvas elements of every note a host has marked `exportable: false`
@@ -142,10 +144,11 @@ export function exportSVG(
       // (attribute-tagged, so the class selectors above miss them). Not visible
       // content — strip them so the export has no near-invisible cruft / bbox skew.
       '[connectortype="hitarea"]',
-      // Agents at work: their pointers (and edge markers) and the ghosts of what they suggest.
-      // Nothing an agent has not had kept is part of the slate, so no picture shows it.
-      "[data-agent-presence]",
-      "[data-agent-suggestions]",
+      // Layers drawn for the view and never part of the slate: the agents at work, their pointers (and edge markers) and
+      // the ghosts of what they suggest. Nothing an agent has not had kept is part of the slate, so no picture shows it.
+      // They are named by this one attribute, not by their own, so the canvas entry names nothing of the agents' drawing
+      // (that stays in slateboxjs/presence).
+      `[${NEVER}]`,
       // Notes left out of exports by their host, and their lines.
       `[${OMIT}]`,
     ];

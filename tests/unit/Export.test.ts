@@ -249,15 +249,19 @@ describe("Export", () => {
       const ns = "http://www.w3.org/2000/svg";
       const root = mockSlate.canvas.node as SVGElement;
       const pointers = document.createElementNS(ns, "g");
+      // As AgentPresence and AgentSuggestions draw their layers (their tests hold them to it).
       pointers.setAttribute("data-agent-presence", "");
+      pointers.setAttribute("data-export-never", "");
       pointers.appendChild(document.createElementNS(ns, "text")).textContent = "Test Diagrams";
       const ghosts = document.createElementNS(ns, "g");
       ghosts.setAttribute("data-agent-suggestions", "");
+      ghosts.setAttribute("data-export-never", "");
       ghosts.appendChild(document.createElementNS(ns, "rect")).setAttribute("data-agent-ghost", "n9");
       root.appendChild(pointers);
       root.appendChild(ghosts);
       const result = exportSVG(mockSlate);
       expect(result).not.toContain("data-agent-presence");
+      expect(result).not.toContain("data-agent-suggestions");
       expect(result).not.toContain("Test Diagrams");
       expect(result).not.toContain("data-agent-ghost");
       expect(result).toContain('data-node-id="node-1"');

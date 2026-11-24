@@ -166,7 +166,8 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
   function ensureLayer() {
     if (layer && layer.node?.isConnected !== false && layer.node?.parentNode) return layer
     layer = slate.canvas.group()
-    layer.attr({ 'data-agent-suggestions': '' })
+    // data-export-never: drawn for the view only, so no picture of the slate shows it (Export).
+    layer.attr({ 'data-agent-suggestions': '', 'data-export-never': '' })
     return layer
   }
 

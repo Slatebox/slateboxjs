@@ -78,6 +78,8 @@ describe('agent suggestions: ghosts in place', () => {
     expect(shown[0].box).toEqual({ x: 300, y: 100, w: 160, h: 80 })
     const layer = slate.host.querySelector('[data-agent-suggestions]')!
     expect(layer.querySelectorAll('[data-suggestion-outline]')).toHaveLength(4)
+    // Drawn for the view only: no export keeps it (Export removes [data-export-never]).
+    expect(layer.hasAttribute('data-export-never')).toBe(true)
     expect(layer.querySelectorAll('[data-suggestion-line]')).toHaveLength(1)
     expect(layer.textContent).toContain("Ada's agent · via Claude")
     expect(layer.textContent).toContain('Suggests: “Card declines, retry UX”')

@@ -58,6 +58,8 @@ describe('agent presence on a canvas', () => {
     presence.set([record({ label: "Ada's agent · <b>Tool</b>", targets: ['brief'], message: 'Drafting a brief' })])
     const layer = slate.host.querySelector('[data-agent-presence]')!
     expect(layer).toBeTruthy()
+    // Drawn for the view only: no export keeps it (Export removes [data-export-never]).
+    expect(layer.hasAttribute('data-export-never')).toBe(true)
     expect(layer.querySelector('[data-agent-avatar] polygon')).toBeTruthy()
     // Text is set as text: a tag in a client name stays characters, never markup.
     expect(layer.querySelector('b')).toBeNull()

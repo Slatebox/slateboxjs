@@ -221,7 +221,8 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   const ensureLayer = () => {
     if (layer && layer.node?.isConnected !== false && layer.node?.parentNode) return layer
     layer = slate.canvas.group()
-    layer.attr({ 'data-agent-presence': '', 'pointer-events': 'none' })
+    // data-export-never: drawn for the view only, so no picture of the slate shows it (Export).
+    layer.attr({ 'data-agent-presence': '', 'data-export-never': '', 'pointer-events': 'none' })
     return layer
   }
 
