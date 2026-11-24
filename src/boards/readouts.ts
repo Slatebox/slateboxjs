@@ -2,7 +2,7 @@
 // words, and the parts as slate notes. Lazy, with the kits; the rules stay in the model entry.
 import type { NodeJSON } from '../core/Serialization'
 import type { PartPlace, Workshop, WorkshopEdit, WorkshopNoteStyle } from '../workshops/model'
-import { appearanceLook } from '../workshops/model'
+import { appearanceEditsBetween, appearanceLook } from '../workshops/model'
 import { dayWords, launchLinkRefusal, lineWord, scheduleLaunch, startHandleCard, withPlanStart } from '../workshops/launchPlan'
 import { dateName, offsetOf } from '../workshops/calendar'
 import { pipelineForecast } from '../workshops/pipeline'
@@ -71,6 +71,8 @@ export function workshopEditsBetween(before: Workshop, after: Workshop): Worksho
     if (old && old.capacity !== lane.capacity) edits.push({ kind: 'set_lane_capacity', lane: { id: lane.id }, capacity: lane.capacity ?? null })
   }
   if (before.title !== after.title) edits.push({ kind: 'rename_workshop', title: after.title })
+  // The board's look (appearance.ts).
+  edits.push(...appearanceEditsBetween(before, after))
   return edits
 }
 

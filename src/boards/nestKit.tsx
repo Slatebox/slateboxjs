@@ -12,6 +12,7 @@ import {
 import { nestRules, checkNest, nestAreas, nestCardText, nestEmptyDrop, nestKids, nestLegal, nestPlace, nestRoots, nestSubtree, type NestSpot } from '../workshops/nest'
 import { nestAxes, nestQuadrants, nestScores, quadrantOf } from '../workshops/nestPlus'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
+import { appearanceEditsBetween } from '../workshops/model'
 import { headlessDrag, inside, partsGeometry } from '../workshops/boardSpecs'
 import { tint, withMark } from './shared'
 import { partNotes } from './readouts'
@@ -360,7 +361,7 @@ export function nestEditsBetween(before: Workshop, after: Workshop): WorkshopEdi
   }
   if (before.title !== after.title) rest.push({ kind: 'rename_workshop', title: after.title })
   const head = [...merges, ...starts, ...removes, ...fields, ...adds]
-  const tail = [...scores, ...rest, ...owners]
+  const tail = [...scores, ...rest, ...owners, ...appearanceEditsBetween(before, after)]
   const first = [...head, ...moves, ...roles, ...tail]
   if (!moves.length || !roles.length) return first
   const second = [...head, ...roles, ...moves, ...tail]

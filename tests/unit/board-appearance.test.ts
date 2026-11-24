@@ -137,3 +137,19 @@ describe('board appearance: the chips on the board', () => {
     expect(ok(board, controls.find(control => control.id === 'color:q-do-now')!.gestures.tap!).workshop.appearance).toEqual({ colors: { 'q-do-now': 'red' } })
   })
 })
+
+describe('board appearance: a whole save said as its edits', () => {
+  it('a business board’s kit says a changed look as set_appearance, so a kept look on Impact × effort or a launch plan saves', async () => {
+    const { nestEditsBetween } = await import('../../src/boards/nest')
+    const { workshopEditsBetween } = await import('../../src/boards')
+    for (const [board, between] of [[matrix(), nestEditsBetween], [validateWorkshop(catalogSamples['launch-plan']()), workshopEditsBetween]] as const) {
+      const lane = board.kind === 'nest' ? 'Do now' : board.lanes[0].label
+      const after = ok(board, [{ kind: 'set_appearance', emphasis: 'strong', lines: true }, { kind: 'set_appearance', lane, color: 'teal' }]).workshop
+      const edits = between(board, after)
+      expect(edits.every(edit => edit.kind === 'set_appearance')).toBe(true)
+      expect(ok(board, edits).workshop).toEqual(after)
+      // And back: the look taken away is said too.
+      expect(ok(after, between(after, board)).workshop.appearance).toBeUndefined()
+    }
+  })
+})

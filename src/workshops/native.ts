@@ -544,6 +544,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
    * board's scope. Null for an id that is not in this board's scope (another board's note).
    */
   const nameOf = (id: string): string | null => drawnAs.get(id) ?? (!prefix ? id : id.startsWith(prefix) ? id.slice(prefix.length) : null)
+  // A column goes behind everything, except a 2 by 2's quadrants: they sit on their square, drawn after it (so its look shows).
+  const behind = (id: string) => kindOf(id)?.kind === 'column' && !/^column-q-/.test(nameOf(id) ?? '')
   const kindOf = (id: string) => {
     const name = nameOf(id)
     return name === null ? null : partOf(name)
@@ -2322,7 +2324,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (node.ready) waiting.push(node.ready.then(() => {
         if (owned.get(id) !== node) return
         node.applyGovernance?.()
-        if (kindOf(id)?.kind === 'column') node.toBack?.(false)
+        if (behind(id)) node.toBack?.(false)
         if (kindOf(id)?.kind === 'handle') node.svgGroup?.front?.()
         const label = accessibleName(wanted?.model ?? model, id)
         if (label) node.svgGroup?.node?.setAttribute('aria-label', label)
@@ -2372,7 +2374,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
             node.options.width = v1.width
             node.options.height = v1.height
             node.setShape?.(node.options.shape, v1.vectorPath)
-            if (kindOf(id)?.kind === 'column') node.toBack?.(false)
+            if (behind(id)) node.toBack?.(false)
           } else node.setSize?.(v1.width, v1.height)
         }
         if (v1.text !== before.text && !editing) node.setText?.(v1.text)

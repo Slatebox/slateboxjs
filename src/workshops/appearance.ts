@@ -157,3 +157,16 @@ export function withAppearance<T extends { appearance?: WorkshopAppearance }>(bo
   const list = told.length < 2 ? told.join('') : told.slice(0, -1).join(', ') + ' and ' + told.at(-1)
   return { board: made, changed, said: changed ? 'The board now has ' + list + '.' : 'The board already has ' + list + '.' }
 }
+
+/** The set_appearance edits that make `before`'s look `after`'s (a whole save of a business board said as its edits). */
+export function appearanceEditsBetween(before: { appearance?: WorkshopAppearance }, after: { appearance?: WorkshopAppearance }): (AppearanceEdit & { kind: 'set_appearance'; lane?: { id: string } })[] {
+  const a = before.appearance ?? {}, b = after.appearance ?? {}
+  const fields: Record<string, unknown> = {}
+  for (const key of ['borders', 'headers', 'headerSize', 'fill', 'density'] as const) if (a[key] !== b[key]) fields[key] = b[key] ?? 'normal'
+  if (Boolean(a.lines) !== Boolean(b.lines)) fields.lines = Boolean(b.lines)
+  const edits: (AppearanceEdit & { kind: 'set_appearance'; lane?: { id: string } })[] = Object.keys(fields).length ? [{ kind: 'set_appearance', ...fields }] : []
+  for (const key of new Set([...Object.keys(a.colors ?? {}), ...Object.keys(b.colors ?? {})])) {
+    if (a.colors?.[key] !== b.colors?.[key]) edits.push({ kind: 'set_appearance', lane: { id: key }, color: b.colors?.[key] ?? 'none' })
+  }
+  return edits
+}
