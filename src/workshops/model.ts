@@ -808,6 +808,25 @@ export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string
   return { ...board, cards: board.cards.map(item => item === card ? withoutOverride({ ...card, laneId }) : item) }
 }
 
+/**
+ * `next`, an ordinary edit of `before` that moved card `cardId`, with the card's move-anyway mark taken away once the
+ * card stands where no rule refuses it. While the card is still past a rule (a late task nudged a day earlier but still
+ * late, a task that still starts before what it waits on ends, a deal moved on to a stage still over its limit) the
+ * mark stays as it was: who, when and the rule they agreed to break. Otherwise the board would refuse an ordinary
+ * nudge of a card moved anyway, and that refusal could not be made anyway either.
+ */
+export function workshopShedMark(before: Workshop, next: Workshop, cardId: string): Workshop {
+  const card = next.cards.find(item => item.id === cardId)
+  if (!card?.override) return next
+  const plain = { ...next, cards: next.cards.map(item => item.id === cardId ? withoutOverride(item) : item) }
+  let due = false
+  try { validateWorkshop(plain) } catch { due = true }
+  const kind = businessKind(before)
+  if (!due && kind) due = workshopRules(kind).pastRule?.(plain, cardId) ?? false
+  if (!due && before.behaviour) due = 'refused' in rulebook().check(before, plain)
+  return due ? next : plain
+}
+
 /** A card as an ordinary move leaves it: no longer marked as moved anyway. */
 function withoutOverride(card: WorkshopCard): WorkshopCard {
   if (!card.override) return card
@@ -829,8 +848,8 @@ function withoutOverride(card: WorkshopCard): WorkshopCard {
 export function workshopCandidate(board: Workshop, cardId: string, laneId: string): Workshop | null {
   const made = kindCandidate(board, cardId, laneId)
   if (!made || made === board) return made
-  // An ordinary move takes the card's move-anyway mark with it.
-  const next = made.cards.some(item => item.id === cardId && item.override) ? { ...made, cards: made.cards.map(item => item.id === cardId ? withoutOverride(item) : item) } : made
+  // An ordinary move takes the card's move-anyway mark with it, once the card stands where no rule refuses it.
+  const next = workshopShedMark(board, made, cardId)
   if (!board.behaviour) return next
   return 'refused' in rulebook().check(board, next) ? null : next
 }
@@ -963,11 +982,15 @@ export function workshopStampOverrides(before: Workshop, after: Workshop, who: {
       return forced ? { ...plain, override: forced } : plain
     }
     // In time or under another card: the edit that makes it, made anyway, says whether it is a move past a rule.
-    const edit: WorkshopEdit | null = businessKind(before) === 'nest'
-      ? { kind: 'nest_card', card: { id: card.id }, ...(card.parentId ? { under: { id: card.parentId } } : { lane: { id: card.laneId } }), override: true }
-      : before.kind === 'launch-plan' || before.kind === 'hiring-plan' ? { kind: 'set_task', card: { id: card.id }, lag: card.lag ?? 0, duration: card.duration ?? 1, override: true } : null
-    if (!edit) return plain
-    const made = applyWorkshopEdits(before, [edit], { actor: { by: overrideWho(who).by, via: 'chat' }, now: who.at })
+    // A plan's task moved to another team and in time in one save is both edits, each made anyway (in time first, so
+    // the mark says the team it came from).
+    const plan = before.kind === 'launch-plan' || before.kind === 'hiring-plan'
+    const edits: WorkshopEdit[] = businessKind(before) === 'nest'
+      ? [{ kind: 'nest_card', card: { id: card.id }, ...(card.parentId ? { under: { id: card.parentId } } : { lane: { id: card.laneId } }), override: true }]
+      : plan ? [{ kind: 'set_task', card: { id: card.id }, lag: card.lag ?? 0, duration: card.duration ?? 1, override: true },
+        ...(moved ? [{ kind: 'move_card', card: { id: card.id }, lane: { id: card.laneId }, override: true } as WorkshopEdit] : [])] : []
+    if (!edits.length) return plain
+    const made = applyWorkshopEdits(before, edits, { actor: { by: overrideWho(who).by, via: 'chat' }, now: who.at })
     const forced = 'refused' in made ? undefined : made.workshop.cards.find(item => item.id === card.id)
     return forced?.override && forced.laneId === card.laneId && (forced.lag ?? 0) === (card.lag ?? 0) && forced.duration === card.duration &&
       (forced.parentId ?? null) === (card.parentId ?? null) ? { ...plain, override: forced.override } : plain
@@ -979,8 +1002,9 @@ const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 /** What a card moved anyway says under its name: "Moved anyway by Sam · 23 Nov". */
 export function workshopOverrideLine(card: Pick<WorkshopCard, 'override'>): string | null {
   if (!card.override) return null
+  // The day where it is read (the viewer's clock): a move made late in the evening is that evening's day, not UTC's.
   const when = new Date(card.override.at)
-  const day = Number.isNaN(when.getTime()) ? '' : ' · ' + when.getUTCDate() + ' ' + months[when.getUTCMonth()]
+  const day = Number.isNaN(when.getTime()) ? '' : ' · ' + when.getDate() + ' ' + months[when.getMonth()]
   return 'Moved anyway by ' + card.override.by + day
 }
 

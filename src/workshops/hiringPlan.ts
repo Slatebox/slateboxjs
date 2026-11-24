@@ -13,7 +13,7 @@ import { dateName, nextMonday } from './calendar'
 import { extendWorkshopEdits, scheduleLaunch } from './schedule'
 import { runwayMonths, runwayWords } from './runway'
 import { timeFamily } from './timeRules'
-import { landPlanNote, planDrags, planEdit, planFixed, planWords, presetRules, readClock } from './launchPlan'
+import { landPlanNote, planDrags, planEdit, planFixed, planPastRule, planWords, presetRules, readClock } from './launchPlan'
 
 export { runwayMonths, runwayWords, runwayCap } from './runway'
 
@@ -106,6 +106,7 @@ export const hiringPlanRules: BusinessBoardRules = {
   rulebook: hiringFamily,
   drags: planDrags,
   fixed: planFixed,
+  pastRule: planPastRule,
   words: { ...planWords, startLag: hireLagFor, band: (board, name) => bandOf(board.hiring!, name) },
   readCard(raw, card, read) {
     if (noMoney.some(key => raw[key] !== undefined)) throw new Error('Cost is per role band, never per person. Say what the band costs instead.')

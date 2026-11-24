@@ -49,16 +49,18 @@ export function pipelineRefusal(board: Workshop, cardId: string, laneId: string)
   const stages = board.lanes.filter(open)
   if (from.role === 'won' && to.role !== 'lost') return 'A won deal stays won. Move it to Lost if it fell through.'
   if (from.role === 'lost' && to.role === 'won') return `Reopen ${card.label} in an open stage first.`
-  if (to.role === 'won' || (open(from) && open(to) && stages.indexOf(to) > stages.indexOf(from))) {
-    const next = stages[stages.indexOf(from) + 1] ?? board.lanes.find(lane => lane.role === 'won')!
-    if (next !== to) return `Deals move one stage at a time. ${card.label} is in ${from.label}, so ${next.label} comes first.`
-  }
   if (to.role === 'won' && card.amount === undefined) {
     return `${card.label} needs an amount before it can be won. Write it on the card, like '${card.label} $40k'.`
   }
+  // Every rule the move breaks, so a move made anyway names each: a stage skipped, and a stage at its limit.
+  const broken: string[] = []
+  if (to.role === 'won' || (open(from) && open(to) && stages.indexOf(to) > stages.indexOf(from))) {
+    const next = stages[stages.indexOf(from) + 1] ?? board.lanes.find(lane => lane.role === 'won')!
+    if (next !== to) broken.push(`Deals move one stage at a time. ${card.label} is in ${from.label}, so ${next.label} comes first.`)
+  }
   const held = board.cards.filter(item => item.laneId === to.id).length
-  if (to.capacity !== undefined && held >= to.capacity) return `${to.label} already holds ${held} of ${to.capacity} deals.`
-  return null
+  if (to.capacity !== undefined && held >= to.capacity) broken.push(`${to.label} already holds ${held} of ${to.capacity} deals.`)
+  return broken.length ? broken.join(' ') : null
 }
 
 export function planPipelineMove(board: Workshop, cardId: string, laneId: string): Workshop | null {

@@ -18,6 +18,15 @@ const ENVELOPE = 960
 const TALL = 900
 
 /** Each team's segment of the envelope, and every note, in board coordinates. */
+/**
+ * Room for what a move made anyway adds: a team over its money says so on a line of its own (its bar and items move down
+ * by OVER_ROOM), and a line item that carries its mark ("Moved anyway by Sam · 23 Nov") is a line taller, so every
+ * word stays at 12px or more.
+ */
+const OVER_ROOM = 14, MARK_ROOM = 18
+const overRoom = (board: Workshop) => board.lanes.some(lane => budgetOver(board, lane.id) > 0) ? OVER_ROOM : 0
+const itemsHeight = (board: Workshop, laneId: string) => board.cards.reduce((sum, card) => sum + (card.laneId === laneId ? 64 + (card.override ? MARK_ROOM : 0) : 0), 0)
+
 export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) {
   const narrow = Boolean(layout.narrow)
   const total = board.budget!.total
@@ -27,14 +36,13 @@ export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) 
   const lead = layout.gaugeAnchor === 'start' ? (scale - total) : 0
   const parts: PartPlace[] = []
   const segments: { laneId: string; start: number; size: number }[] = []
-  const counts = board.lanes.map(lane => board.cards.filter(card => card.laneId === lane.id).length)
   let width: number, height: number
   if (narrow) {
     // A vertical envelope: bands as tall as their share of it, and never too short for their items.
     width = Math.max(300, layout.width ?? 390)
     let y = TOP + lead / scale * TALL
     board.lanes.forEach((lane, i) => {
-      const size = Math.max(100 + (counts[i] + 1) * 64, lane.allocation! / scale * TALL)
+      const size = Math.max(100 + overRoom(board) + itemsHeight(board, lane.id) + 64, lane.allocation! / scale * TALL)
       segments.push({ laneId: lane.id, start: y, size })
       y += size
     })
@@ -46,7 +54,7 @@ export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) 
       x += lane.allocation! / scale * ENVELOPE
     }
     width = Math.max(ENVELOPE, x)
-    height = TOP + 100 + (Math.max(...counts) + 1) * 64
+    height = TOP + 100 + overRoom(board) + Math.max(...board.lanes.map(lane => itemsHeight(board, lane.id))) + 64
   }
   board.lanes.forEach((lane, i) => {
     const { start, size } = segments[i]
@@ -60,11 +68,18 @@ export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) 
     // at the size of its line items and on up to two lines, so two teams framed at once still read at 12px or more.
     const pill = narrow ? inner.width * 0.36 : inner.width
     parts.push({ name: 'lane-' + lane.id, x: inner.x, y: inner.y + 6, width: pill, height: 32, text: lane.label, fill: color, fontSize: 15 })
+    // Over its money, the caption's last line says by how much ("over budget by $120k"), with room made for it.
+    const room = overRoom(board)
+    const caption = budgetCaption(board, lane.id).replace(' · over budget', '\nover budget')
     parts.push({ name: 'caption-' + lane.id, x: narrow ? inner.x + pill + 6 : inner.x, y: inner.y + (narrow ? 6 : 40), width: narrow ? inner.width - pill - 6 : inner.width,
-      height: narrow ? 50 : 40, text: narrow ? budgetCaption(board, lane.id).replace(' · ', '\n') : budgetCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: narrow ? 15 : 12, ...(over && { ink: overInk.ink }) })
-    board.cards.filter(card => card.laneId === lane.id).forEach((card, k) =>
-      parts.push({ name: 'card-' + card.id, x: inner.x, y: inner.y + 100 + k * 64, width: inner.width, height: 56,
-        text: withMark(card.label + '\n' + money(card.amount!, board.budget!.currency), card), fontSize: 14 }))
+      height: (narrow ? 50 : 40) + room, text: narrow ? caption.replace(' · ', '\n') : caption, fill: 'transparent', lineWidth: 0, fontSize: narrow ? 15 : 12, ...(over && { ink: overInk.ink }) })
+    let y = inner.y + 100 + room
+    for (const card of board.cards.filter(item => item.laneId === lane.id)) {
+      const tall = card.override ? MARK_ROOM : 0
+      parts.push({ name: 'card-' + card.id, x: inner.x, y, width: inner.width, height: 56 + tall,
+        text: withMark(card.label + '\n' + money(card.amount!, board.budget!.currency), card), fontSize: 14 })
+      y += 64 + tall
+    }
     // The divider after this team (not after the last): 44px under the pointer.
     if (i < board.lanes.length - 1) {
       const edge = start + size
@@ -93,12 +108,12 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     const allocation = lane.allocation!, committed = budgetCommitted(board, lane.id)
     // The committed fill, and the floor and cap ticks, measured along the envelope.
     if (g.narrow) {
-      const y = seg.start + 50, x = 8, w = g.width - 16
+      const y = seg.start + 50 + overRoom(board), x = 8, w = g.width - 16
       shapes.push({ t: 'rect', x, y, w, h: 10, rx: 5, color: layerInk.track })
       shapes.push({ t: 'rect', x, y, w: Math.min(w, w * committed / allocation || 0), h: 10, rx: 5, color: committed > allocation ? layerInk.refuse : layerInk.bar })
       if (lane.floor !== undefined) shapes.push({ t: 'line', x1: x + w * lane.floor / allocation, y1: y - 4, x2: x + w * lane.floor / allocation, y2: y + 14, color: layerInk.ink, width: 2 })
     } else {
-      const k = g.k, y = TOP + 86
+      const k = g.k, y = TOP + 86 + overRoom(board)
       shapes.push({ t: 'rect', x: seg.start + 6, y, w: seg.size - 12, h: 10, rx: 5, color: layerInk.track })
       shapes.push({ t: 'rect', x: seg.start + 6, y, w: Math.max(0, Math.min(seg.size - 12, (seg.size - 12) * committed / allocation || 0)), h: 10, rx: 5, color: committed > allocation ? layerInk.refuse : layerInk.bar })
       if (lane.floor !== undefined) shapes.push({ t: 'line', x1: seg.start + lane.floor * k, y1: y - 6, x2: seg.start + lane.floor * k, y2: y + 16, color: layerInk.ink, width: 2 })

@@ -22,6 +22,7 @@ const card = async (page: Page, id: string) => (await value(page)).cards.find((i
 const changes = (page: Page) => page.evaluate(() => (window as any).boards.log.changes.map((c: any) => c.change))
 const text = (page: Page, id: string) => page.evaluate(key => (window as any).boards.text(key) as string | null, id)
 const dialog = (page: Page) => page.getByRole('alertdialog', { name: 'Move anyway?' })
+const layer = (page: Page, role: string) => page.locator(`#slate [data-board-layer="${role}"]`)
 
 async function drag(page: Page, from: { x: number; y: number }, to: { x: number; y: number }) {
   await page.mouse.move(from.x, from.y)
@@ -38,15 +39,17 @@ test.describe('desktop, 1440 by 900', () => {
     await open(page, 'board=pipeline&confirm')
     const column = await box(page, 'column-proposal')
     await drag(page, await center(page, 'card-northwind'), { x: column.x + column.width / 2, y: column.y + column.height - 30 })
-    await expect(dialog(page)).toContainText('Move Northwind to Proposal anyway? Deals move one stage at a time. Northwind is in Lead, so Qualified comes first.')
+    // Every rule the move breaks: a stage skipped, and Proposal at its limit.
+    await expect(dialog(page)).toContainText('Move Northwind to Proposal anyway? Deals move one stage at a time. Northwind is in Lead, so Qualified comes first. Proposal already holds 3 of 3 deals.')
     // Nothing moved until the person says so.
     expect((await card(page, 'northwind')).laneId).toBe('lead')
     await dialog(page).getByRole('button', { name: 'Move anyway' }).click()
     await expect.poll(async () => (await card(page, 'northwind')).laneId).toBe('proposal')
     expect((await card(page, 'northwind')).override).toMatchObject({ by: 'Sam', from: 'lead', sentence: expect.stringMatching(/^Deals move one stage at a time/) })
     // One change, one edit: one undo step for the host.
-    expect((await changes(page)).at(-1)).toEqual({ cardId: 'northwind', laneId: 'proposal', override: true, edits: [{ kind: 'move_card', card: { id: 'northwind' }, lane: { id: 'proposal' }, override: true }] })
-    await expect.poll(() => text(page, 'caption-proposal')).toMatch(/^4 deals · .* · 60% · over its limit of 3$/)
+    // The sentence the person agreed to goes with it, so the server asks again if its board would break something else.
+    expect((await changes(page)).at(-1)).toEqual({ cardId: 'northwind', laneId: 'proposal', override: true, reason: 'Deals move one stage at a time. Northwind is in Lead, so Qualified comes first. Proposal already holds 3 of 3 deals.', edits: [{ kind: 'move_card', card: { id: 'northwind' }, lane: { id: 'proposal' }, override: true }] })
+    await expect.poll(() => text(page, 'caption-proposal')).toMatch(/^4 deals · .* · 60%\nover its limit of 3$/)
     await expect.poll(() => text(page, 'card-northwind')).toMatch(/^Northwind\n\$40k\nMoved anyway by Sam · \d+ [A-Z][a-z]{2}$/)
     // An ordinary move back is a legal one, and takes the mark with it.
     const lead = await box(page, 'column-lead')
@@ -74,7 +77,8 @@ test.describe('desktop, 1440 by 900', () => {
     await expect(dialog(page)).toContainText('Move Launch ads to Design anyway? Design has $30k left. Launch ads costs $150k.')
     await dialog(page).getByRole('button', { name: 'Move anyway' }).click()
     await expect.poll(async () => (await card(page, 'ads')).laneId).toBe('design')
-    await expect.poll(() => text(page, 'caption-design')).toBe('$150k · $270k committed · over budget by $120k')
+    await expect.poll(() => text(page, 'caption-design')).toBe('$150k · $270k committed\nover budget by $120k')
+    await expect(layer(page, 'header')).toHaveText('$1.2M · 1 team over budget')
     await expect.poll(() => text(page, 'card-ads')).toMatch(/Moved anyway by Sam/)
     // The envelope still adds up: the board stays readable.
     expect(await page.evaluate(() => { const b = (window as any).boards; try { b.validateWorkshop(b.board.value); return true } catch { return false } })).toBe(true)

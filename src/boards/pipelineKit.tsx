@@ -27,15 +27,21 @@ export function pipelineLayout(board: Workshop, layout: WorkshopBoardLayout = {}
     width = Math.max(300, layout.width ?? 390)
     let y = GAUGE
     board.lanes.forEach((lane, i) => {
-      const h = 96 + (counts[i] + 1) * 64
+      // A deal that carries its move-anyway mark is a line taller, so its words stay at 12px or more.
+      const marked = board.cards.filter(card => card.laneId === lane.id && card.override).length
+      const h = 96 + (counts[i] + 1) * 64 + marked * 18
       parts.push({ name: 'column-' + lane.id, x: 2, y, width: width - 4, height: h, ...column(i) })
       // The stage's name takes the room it needs; its caption ("3 deals · $170k · 60%") the rest, at the size of the
       // deals' words on up to three lines (a refusal is a sentence), so a phone that shows two stages at once still sets it at 12px or more.
       const pill = (width - 16) * 0.36
       parts.push({ name: 'lane-' + lane.id, x: 8, y: y + 6, width: pill, height: 36, text: lane.label, fill: color(i), fontSize: 15 })
-      parts.push({ name: 'caption-' + lane.id, x: 8 + pill + 6, y: y + 6, width: width - 16 - pill - 6, height: 56, text: pipelineCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: 15, ...over(i) })
-      board.cards.filter(card => card.laneId === lane.id).forEach((card, k) =>
-        parts.push({ name: 'card-' + card.id, x: 8, y: y + 72 + k * 64, width: width - 16, height: 56, text: cardText(board, card.id), fontSize: 15 }))
+      parts.push({ name: 'caption-' + lane.id, x: 8 + pill + 6, y: y + 6, width: width - 16 - pill - 6, height: 56, text: pipelineCaption(board, lane.id).replace(' · over its limit', '\nover its limit'), fill: 'transparent', lineWidth: 0, fontSize: 15, ...over(i) })
+      let top = y + 72
+      for (const card of board.cards.filter(item => item.laneId === lane.id)) {
+        const tall = card.override ? 18 : 0
+        parts.push({ name: 'card-' + card.id, x: 8, y: top, width: width - 16, height: 56 + tall, text: cardText(board, card.id), fontSize: 15 })
+        top += 64 + tall
+      }
       y += h + 10
     })
     height = y
@@ -47,7 +53,7 @@ export function pipelineLayout(board: Workshop, layout: WorkshopBoardLayout = {}
       const x = i * pitch
       parts.push({ name: 'column-' + lane.id, x: x + 2, y: GAUGE, width: pitch - 4, height: h, ...column(i) })
       parts.push({ name: 'lane-' + lane.id, x: x + 8, y: GAUGE + 6, width: 228, height: 58, text: lane.label, fill: color(i), fontSize: 16 })
-      parts.push({ name: 'caption-' + lane.id, x: x + 8, y: GAUGE + 66, width: 228, height: 48, text: pipelineCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: 15, ...over(i) })
+      parts.push({ name: 'caption-' + lane.id, x: x + 8, y: GAUGE + 66, width: 228, height: 48, text: pipelineCaption(board, lane.id).replace(' · over its limit', '\nover its limit'), fill: 'transparent', lineWidth: 0, fontSize: 15, ...over(i) })
       board.cards.filter(card => card.laneId === lane.id).forEach((card, k) =>
         parts.push({ name: 'card-' + card.id, x: x + 8, y: GAUGE + 116 + k * 88, width: 228, height: 76, text: cardText(board, card.id), fontSize: 15 }))
     })

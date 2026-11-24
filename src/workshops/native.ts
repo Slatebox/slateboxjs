@@ -54,6 +54,11 @@ export interface WorkshopChangeEvent {
   via?: 'undo'
   /** A move a rule refused, made anyway once the person confirmed it (confirmOverride): the server marks who and when. */
   override?: true
+  /**
+   * With `override`: the rule's sentence the person agreed to (what the card's mark keeps). A server that makes the move
+   * again on a newer board and would break something else asks the person again instead of saving it.
+   */
+  reason?: string
 }
 
 /** A drop a rule refuses that may be made anyway: what confirmOverride shows the person. */
@@ -160,6 +165,11 @@ export interface WorkshopBoardKit {
   refusalAt(board: Workshop, cardId: string, grab: { x: number; y: number }, point: { x: number; y: number }, layout: WorkshopBoardLayout): { laneId: string; reason: string; lands?: boolean; override?: WorkshopOverrideOffer } | null
   handleDrag(board: Workshop, handleId: string, grab: { x: number; y: number }, layout: WorkshopBoardLayout): ((point: { x: number; y: number }) => HandleResult) | null
   keyEdit?(board: Workshop, part: string, key: { key: string; shiftKey: boolean }): WorkshopEdit[] | null
+  /**
+   * Where an edit made anyway takes its card, in words, when it is more than a lane ("to start Thu 17 Dec", "to start
+   * work Mon 15 Feb"): the "Move anyway?" dialog's title for a key or a chat move. Left out, the lane.
+   */
+  overrideWords?(board: Workshop, edit: WorkshopEdit): string | undefined
   /**
    * A key that offers a choice on a focused part (a launch plan's L: what this task waits on). Null when
    * the key means nothing here; a sentence when there is nothing to choose. The key again offers the next
@@ -438,6 +448,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   let held: { cardId: string; evaluate: ((point: { x: number; y: number }) => Workshop) | null; grab?: { x: number; y: number }; outcome: Outcome } | null = null
   /** A keyboard move on show: to a lane, or (laneId null) off the lanes to the canvas on one side. */
   let staged: { cardId: string; laneId: string | null; side?: -1 | 1; spot?: { x: number; y: number }; next: Workshop } | null = null
+  /** The lane a key just offered as "Move anyway" for a card: the next press the same way passes over it. */
+  let keyAsked: { cardId: string; laneId: string } | null = null
   // A choice offered by a key on a focused part (keyChoices): the part, the key, the choices and the one on show.
   let picking: { node: string; key: string; choices: { said: string; edits: WorkshopEdit[]; next: Workshop; done: string }[]; at: number } | null = null
   /** An ordinary note being dragged over the board, and what a drop where it is would do. */
@@ -699,7 +711,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         return slot ? { accept: true, settle: slot } : { accept: true }
       }
       if (outcome.kind === 'refused') {
-        refuse(cardName(card), { cardId, laneId: outcome.laneId, reason: outcome.reason })
+        // Said where it was going: a plan's bar slid in time or a card nested under another stays in its lane, so the
+        // words are the kit's ("to start Tue 1 Dec"), never "to Engineering".
+        const words = outcome.override ? outcome.override.to ?? kit?.overrideWords?.(value, outcome.override.edit) : undefined
+        refuse(cardName(card), { cardId, laneId: outcome.laneId, reason: outcome.reason }, words ?? (kit && outcome.laneId === card.laneId ? 'there' : undefined))
         // A plan's bar that could go nowhere its rules let it: the rule says why beside the bar.
         if (outcome.near) showGripRefusal('card-' + cardId, outcome.reason)
         // A rule the person may break once they say so: asked, with the rule's sentence. A board kit says which edit
@@ -1189,6 +1204,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const refused = kit.refusalAt(value, cardId, held?.grab ?? { x: 0, y: 0 }, at, layout)
       if (refused && !refused.lands) return { kind: 'refused', laneId: refused.laneId, reason: refused.reason, ...(refused.override && { override: refused.override }) }
       const { width, height } = geometry(value)
+      // Past the board's side but level with it, a drop its rules refuse that may be made anyway (a plan's bar slid
+      // past a hard line) is asked about, never turned into a note; above or below the board it leaves as one.
+      const level = at.y >= 0 && at.y <= height
+      if (refused?.override && level && (at.x < -40 || at.x > width + 40)) return { kind: 'refused', laneId: refused.laneId, reason: refused.reason, override: refused.override }
       if (at.x < -40 || at.y < -40 || at.x > width + 40 || at.y > height + 40) return { kind: 'outside' }
       let chosen: Workshop = value
       try { chosen = evaluate?.(at) ?? value } catch (error) { console.warn('WORKSHOP: the board kit\'s chooser threw', error) }
@@ -1276,8 +1295,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     // The next lane on that side refuses the card: a rule the person may break is offered as "Move anyway", as a drop
     // there is (owner, 2026-11-23); a lane it may never go to (a hard limit, or a host that does not ask) is said
     // aloud and passed over to the next lane that takes it, never skipped in silence.
+    // Asked once and not moved: the next press the same way passes over it (to the lanes beyond, as before), so a lane
+    // past one the person declined is still reached by keys.
     const closed = side[0] && !open.includes(side[0]) ? side[0] : null
-    if (closed) {
+    const declined = closed !== null && keyAsked?.cardId === cardId && keyAsked.laneId === closed.id
+    keyAsked = null
+    if (closed && !declined) {
       const reason = workshopRefusal(value, cardId, closed.id) ?? 'That move is not available.'
       const offer: WorkshopOverrideOffer | undefined = kit ? { edit: { kind: 'move_card', card: { id: cardId }, lane: { id: closed.id } } } : undefined
       const anyway = Boolean(options.confirmOverride) && !readOnly && !proposal && !viewer() && (kit
@@ -1289,7 +1312,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         flash = { laneId: closed.id, reason, timer: setTimeout(() => endFlash(), 1500) }
         draw(proposal ?? value)
         reveal(closed.id, proposal ?? value)
-        slate.announce?.(`${cardName(card)} can't move to ${closed.label} by this board's rules. ${reason} Move it anyway?`)
+        slate.announce?.(`${cardName(card)} can't move to ${closed.label} by this board's rules. ${reason} Move it anyway? Cancel, then press the arrow again to pass over it.`)
+        keyAsked = { cardId, laneId: closed.id }
         askOverride(cardId, closed.id, reason, offer)
         return
       }
@@ -2086,11 +2110,17 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const made = applyWorkshopEdits(board, [{ ...offer.edit, override: true } as WorkshopEdit], { actor: { by: who.by, via: 'chat' }, now: who.at })
       return 'refused' in made ? null : { next: made.workshop, said: made.report.edits.map(edit => edit.said).join(' ') }
     }
-    if (!make(value, probe)) return
+    const probed = make(value, probe)
+    if (!probed) return
     const card = value.cards.find(item => item.id === cardId), lane = value.lanes.find(item => item.id === laneId)
     if (!card) return
+    // The sentence asked is the one the mark will keep: every rule the move breaks (a plan's task and what waits on it,
+    // a stage skipped and full), not only the first the drag met.
+    const agreed = probed.next.cards.find(item => item.id === cardId)?.override?.sentence ?? reason
+    // Where it goes in words: the kit's (a task in time, a hire's first day of work), else the lane.
+    const to = offer?.to ?? (offer && kit?.overrideWords?.(value, offer.edit))
     let answer: boolean | Promise<boolean> | undefined
-    const ask: WorkshopOverrideAsk = { cardId, laneId, card: card.label, lane: lane?.label ?? '', reason, ...(offer?.to && { to: offer.to }) }
+    const ask: WorkshopOverrideAsk = { cardId, laneId, card: card.label, lane: lane?.label ?? '', reason: agreed, ...(to && { to }) }
     try { answer = options.confirmOverride(ask) } catch (error) {
       console.error('WORKSHOP: confirmOverride threw', error)
       return
@@ -2100,23 +2130,25 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const moving = value.cards.find(item => item.id === cardId)
       const made = moving && make(value, { by: tell(options.overrideBy) || 'You', at: new Date().toISOString() })
       if (!moving || !made) {
-        slate.announce?.(`${moving ? cardName(moving) : 'That card'} can't be moved ${offer?.to ?? 'to ' + (lane?.label ?? 'there')} now.`)
+        slate.announce?.(`${moving ? cardName(moving) : 'That card'} can't be moved ${to ?? 'to ' + (lane?.label ?? 'there')} now.`)
         return
       }
       value = made.next
       draw(value)
-      slate.announce?.(made.said ?? `${cardName(moving)} moved to ${lane?.label ?? ''} anyway. ${reason}`)
-      const to = value.cards.find(item => item.id === cardId)?.laneId ?? laneId
-      tell(options.onChange, value, { cardId, laneId: to, override: true, ...(offer && { edits: [{ ...offer.edit, override: true } as WorkshopEdit] }) })
+      slate.announce?.(made.said ?? `${cardName(moving)} moved to ${lane?.label ?? ''} anyway. ${agreed}`)
+      const there = value.cards.find(item => item.id === cardId)?.laneId ?? laneId
+      // `reason`: the sentence the person agreed to. The server makes the move again on the board as it is then, and
+      // asks again when that board would break something else (a teammate's change came first).
+      tell(options.onChange, value, { cardId, laneId: there, override: true, reason: agreed, ...(offer && { edits: [{ ...offer.edit, override: true } as WorkshopEdit] }) })
     }, () => { /* not confirmed */ })
   }
 
-  function refuse(cardLabel: string, refusal: { cardId: string; laneId: string; reason: string }) {
+  function refuse(cardLabel: string, refusal: { cardId: string; laneId: string; reason: string }, to?: string) {
     endFlash(false)
     flash = { laneId: refusal.laneId, reason: refusal.reason, timer: setTimeout(() => endFlash(), 1500) }
     draw(value, { skip: refusal.cardId })
     const lane = value.lanes.find(item => item.id === refusal.laneId)
-    slate.announce?.(`${cardLabel || 'The empty card'} can't move to ${lane?.label ?? 'that lane'}. ${refusal.reason}`)
+    slate.announce?.(`${cardLabel || 'The empty card'} can't move ${to ?? 'to ' + (lane?.label ?? 'that lane')}. ${refusal.reason}`)
     tell(options.onRefuse, refusal)
   }
 

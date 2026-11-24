@@ -5,7 +5,7 @@ import type { PartPlace, Workshop, WorkshopEdit, WorkshopNoteStyle } from '../wo
 import { dayWords, launchLinkRefusal, lineWord, scheduleLaunch, startHandleCard, withPlanStart } from '../workshops/launchPlan'
 import { dateName, offsetOf } from '../workshops/calendar'
 import { pipelineForecast } from '../workshops/pipeline'
-import { withBudgetTotal } from '../workshops/budget'
+import { budgetOver, withBudgetTotal } from '../workshops/budget'
 import { money, moneyExact } from '../workshops/numbers'
 /**
  * The edits that turn `before` into `after` on a launch plan, pipeline or budget: what a canvas
@@ -80,9 +80,13 @@ export function pipelineGauge(board: Workshop): string {
 }
 
 
-/** "$1.2M · balanced": always true, and that is the point. */
+/**
+ * "$1.2M · balanced": the envelope always adds up, and that is the point. A team over its money (a line item moved
+ * there anyway) is said instead: "$1.2M · 1 team over budget".
+ */
 export function budgetHeader(board: Workshop): string {
-  return `${moneyExact(board.budget?.total ?? 0, board.budget?.currency)} · balanced`
+  const over = board.lanes.filter(lane => budgetOver(board, lane.id) > 0).length
+  return `${moneyExact(board.budget?.total ?? 0, board.budget?.currency)} · ` + (over ? `${over} ${over === 1 ? 'team' : 'teams'} over budget` : 'balanced')
 }
 
 

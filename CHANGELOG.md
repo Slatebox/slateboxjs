@@ -28,6 +28,22 @@
   silence. Hard limits stay refused: release plans, startup experiences, a won deal with no amount, a start before
   the plan's first day, a card under itself or nested in the tray, counts and ranges.
 
+- After a move made anyway (review of 2026-11-23): a list of edits reports every move it made anyway, by edit, even
+  when a later edit of the list moves the card on (`WorkshopEditReport.overrides`: index, card, lane, lane it came
+  from, sentence), so a host's confirmation gate can't be stepped around in one batch. An ordinary edit keeps a card's
+  mark while the card still stands past a rule (`workshopShedMark`; `BusinessBoardRules.pastRule`, a plan's late task
+  or one that starts before what it waits on ends): a late task can be nudged earlier or moved to another team. A
+  team over its money may lower an item's cost (never raise it), and its refusals say "Design is over budget by
+  $120k.". A refusal that may be made anyway gives the sentence the mark would keep, naming every rule the move
+  breaks (`timeProblems`, `planProblems`: a plan's task and what waits on it; a pipeline's stage skipped and full), and
+  `WorkshopChangeEvent.reason` carries it to the host so a server can ask again when its board would break another.
+  A budget's header says "1 team over budget"; its caption and a pipeline's put "over …" on a line of their own, and
+  a marked card is a line taller. A hiring plan's dialog names the day the hire starts work (`overrideWords`, kit
+  `taskWords`); a hard line spans to a task moved past it; a bar slid past the board's side asks instead of becoming
+  a note; a drag far before the plan's first day asks for the first day. Keys: Cancel, then the same arrow again,
+  passes over the lane declined. A card going back where it came from by an ordinary edit is held to the rules as
+  they are now (only the lock it returns to and a slip that stops are not asked). The mark's date is the viewer's day.
+
 - `slateboxjs/canvas`: the canvas alone (`Slate`, and what agents show), for a page that draws slates. It registers
   the same SVG.js plugins as the main entry and draws a slate exactly as it does. Its first load is 124,479 bytes
   gzip served without whitespace (the main entry: 153,230), held to 138,000 by `npm run check:budget`. Its line tool

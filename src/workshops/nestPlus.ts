@@ -17,7 +17,7 @@
 // Rules read roles, fields and owners, never a card's words. Salaries stay off boards: no field is money per person.
 import type { Behaviour, BehaviourRule, BehaviourVerdict } from './behaviour'
 import type { Workshop, WorkshopCard } from './model'
-import { applyWorkshopEdits, said, workshopFreshOverride, workshopHasMarks, workshopOverrideUndone } from './model'
+import { applyWorkshopEdits, said, workshopFreshOverride, workshopHasMarks } from './model'
 import type { WorkshopRef } from './edits'
 import { extend, nestAreas, nestKids, nestPlace, nestSubtree, registerNestPlus, roleOf, type NestPlus } from './nest'
 import { orderKeys } from './order'
@@ -140,8 +140,8 @@ function arrivals(before: Board, after: Board) {
   const marks = workshopHasMarks(before, after)
   return after.cards.filter(card => {
     const was = old.get(card.id)
-    // A card moved anyway, or going back where it came from (an Undo), is not held to a rule again (model.ts).
-    if (marks && (workshopFreshOverride(before, card) || workshopOverrideUndone(before, card))) return false
+    // A card moved anyway is not held to a rule again (model.ts); one going back where it came from is.
+    if (marks && workshopFreshOverride(before, card)) return false
     return !was || was.parentId !== card.parentId || was.laneId !== card.laneId || was.role !== card.role || was.owner !== card.owner ||
       JSON.stringify(was.fields ?? {}) !== JSON.stringify(card.fields ?? {})
   })

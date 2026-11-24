@@ -5,13 +5,13 @@
 // push or stop, locks. A dated plan (clock.origin) says real dates.
 import type { Workshop, WorkshopCard } from './model'
 // The rule modules take the model's own helpers from the model, so they share its chunk instead of copying it.
-import { registerWorkshopRules, said, workshopFreshOverride, workshopOverrideMark } from './model'
+import { registerWorkshopRules, said, workshopFreshOverride, workshopOverrideMark, workshopShedMark } from './model'
 import type { BusinessBoardRules, BusinessEditTools, PlanWords, WorkshopLimits } from './kinds'
 import type { WorkshopEdit } from './edits'
 import { amountOf, days, nextCardId, noteNumbers, ownField, renamedNumbers } from './numbers'
 import { clockOf, dateName, dayFromWords, dayMap, isoTime, nextMonday, isoAt, offsetOf, weekendAt } from './calendar'
 import { extendWorkshopEdits, cascadeStops, dayWords, downstreamTasks, edgeValues, type EdgeValues, type TaskEdge, holdOthers, launchFinish, launchHard, launchIndex, launchOverrun, lineWord, scheduleLaunch, snapStep, withLink, withTaskValue } from './schedule'
-import { checkTime, timeFamily } from './timeRules'
+import { checkTime, timeFamily, timeProblems } from './timeRules'
 
 export * from './schedule'
 export type { WorkshopLimits } from './kinds'
@@ -43,6 +43,18 @@ export function planProblem(before: Workshop, after: Workshop, cardId?: string):
   if (!before.behaviour) return before.kind === 'launch-plan' ? builtInLate(before, after, cardId) : null
   const verdict = checkTime(before, after)
   return 'refused' in verdict ? verdict.refused.sentence : null
+}
+
+/**
+ * Every rule `after` breaks on this plan, one sentence each (planProblem names the first): what a move made anyway
+ * says it breaks, so the person agrees to each, for what waits on the task and moves with it too.
+ */
+export function planProblems(before: Workshop, after: Workshop, cardId?: string): string[] {
+  if (!before.behaviour) {
+    const late = before.kind === 'launch-plan' ? builtInLate(before, after, cardId) : null
+    return late ? [late] : []
+  }
+  return timeProblems(before, after)
 }
 
 /**
@@ -499,7 +511,9 @@ export function planEdit(board: Workshop, edit: WorkshopEdit, t: BusinessEditToo
           // The built-in line: the range that keeps every task ending by launch.
           const limits = launchPlanLimits(next, { cardId: task.id, field })
           const tried = withTaskValue(next, { cardId: task.id, field }, value)
-          if (value < limits.min || value > limits.max) t.refuse(value < limits.min ? limits.reasons.min! : launchOverrun(tried, task.id) ?? limits.reasons.max!, { ...at, limits })
+          // A plan already past its line (a task moved anyway) takes any change that makes nothing newly late.
+          const lateAlready = value > limits.max && launchOverrun(next) !== null && builtInLate(next, tried, task.id) === null
+          if ((value < limits.min || value > limits.max) && !lateAlready) t.refuse(value < limits.min ? limits.reasons.min! : launchOverrun(tried, task.id) ?? limits.reasons.max!, { ...at, limits })
           next = tried
           continue
         }
@@ -512,8 +526,9 @@ export function planEdit(board: Workshop, edit: WorkshopEdit, t: BusinessEditToo
         if (typeof held === 'string') t.refuse(held, at)
         next = held as Workshop
       }
-      // An ordinary move takes the task's move-anyway mark with it, once it no longer starts before what it waits on.
-      next = { ...next, cards: next.cards.map(card => card.id === task.id && card.override && (card.lag ?? 0) >= 0 ? withoutMark(card) : card) }
+      // An ordinary move takes the task's move-anyway mark with it once the task stands where no rule refuses it; while
+      // it is still past one (still late, still before what it waits on ends) the mark stays as it was.
+      next = workshopShedMark(board, next, task.id)
       const settled = t.settle(next, task.laneId, task.id)
       return t.done(settled, said0(settled.cards.find(item => item.id === task.id)!, settled), at)
     }
@@ -548,6 +563,17 @@ export function planEdit(board: Workshop, edit: WorkshopEdit, t: BusinessEditToo
   return null
 }
 
+/**
+ * Whether a plan's task still stands past the plan's own line or what it waits on (BusinessBoardRules.pastRule): it
+ * starts before what it waits on ends, or (a launch plan) it ends after launch.
+ */
+export function planPastRule(board: Workshop, cardId: string): boolean {
+  const card = board.cards.find(item => item.id === cardId)
+  if (!card) return false
+  if ((card.lag ?? 0) < 0) return true
+  return board.kind === 'launch-plan' && scheduleLaunch(board).get(cardId)!.end > launchIndex(board)
+}
+
 const withoutMark = (card: WorkshopCard): WorkshopCard => {
   const { override: _override, ...plain } = card
   return plain
@@ -578,7 +604,9 @@ function taskAnyway(board: Workshop, task: WorkshopCard, edit: Extract<WorkshopE
   // A slip that stops holds what waits on it where it can; where it can't, what waits on it moves with it.
   let held: Workshop | string = next
   if (cascadeStops(board)) held = holdOthers(board, next, new Set([task.id]))
-  sentence ??= typeof held === 'string' ? held : planProblem(board, held, task.id)
+  // Every rule the change breaks, the task's own and those of what moves with it: the person agrees to each.
+  const problems = [...(sentence ? [sentence] : []), ...(typeof held === 'string' ? [held] : planProblems(board, held, task.id))]
+  sentence = [...new Set(problems)].join(' ') || null
   if (typeof held !== 'string') next = held
   if (!sentence) return null
   const mark = workshopOverrideMark(task, sentence, t.who ?? { by: 'an agent', at: new Date().toISOString() }, { lag: task.lag ?? 0, duration: task.duration ?? 1 })
@@ -597,6 +625,7 @@ export const launchPlanRules: BusinessBoardRules = {
   drags: planDrags,
   fixed: planFixed,
   words: planWords,
+  pastRule: planPastRule,
   readCard(raw, card, read) {
     card.duration = amountOf(raw.duration, 1, 60, 'A task takes 1 to 60 days.')
     // A task moved anyway may start before what it waits on ends: a lag below 0 (validateLaunchPlan keeps it on the plan).

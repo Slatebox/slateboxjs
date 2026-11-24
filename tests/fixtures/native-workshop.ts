@@ -43,9 +43,19 @@ const fourLanes: Workshop = {
   ],
 }
 
+/** A Kanban board whose middle lane is full (its WIP limit): Done lies past it. */
+const wipLanes: Workshop = {
+  version: 1, title: 'Sprint',
+  lanes: [{ id: 'todo', label: 'To do' }, { id: 'doing', label: 'Doing', capacity: 1 }, { id: 'done', label: 'Done' }],
+  cards: [
+    { id: 'alpha', label: 'Alpha', laneId: 'todo' },
+    { id: 'beta', label: 'Beta', laneId: 'doing' },
+  ],
+}
+
 const models: Record<string, () => Workshop> = {
   lanes: () => twoLanes, budget: createBudgetWorkshop, interview: createInterviewWorkshop, map: () => threeStations, release: () => releasePlan,
-  tall: () => fourLanes, night: () => nightTransfer,
+  tall: () => fourLanes, night: () => nightTransfer, wip: () => wipLanes,
 }
 
 const log = {
@@ -136,7 +146,7 @@ async function attach(model: Workshop, options: Record<string, unknown> = {}) {
   return board
 }
 
-const kind = ['budget', 'interview', 'map', 'release', 'tall', 'night'].find(name => params.has(name)) ?? 'lanes'
+const kind = ['budget', 'interview', 'map', 'release', 'tall', 'night', 'wip'].find(name => params.has(name)) ?? 'lanes'
 const api = {
   slate, log, models, validateWorkshop, attach,
   board: null as AttachedWorkshop | null,

@@ -18,6 +18,9 @@ export function budgetCommitted(board: Workshop, laneId: string): number {
  */
 const lowest = (board: Workshop, lane: WorkshopLane) => Math.max(lane.floor ?? 0, Math.min(budgetCommitted(board, lane.id), lane.allocation ?? 0))
 
+/** "Design is over budget by $120k.": a team committed past its money (a line item moved there anyway). */
+const overSaid = (board: Workshop, lane: WorkshopLane) => lane.label + ' is over budget by ' + money(budgetOver(board, lane.id), board.budget?.currency) + '.'
+
 /** How far a team commits past what it was given (a line item moved there anyway): 0 when it fits. */
 export function budgetOver(board: Workshop, laneId: string): number {
   const lane = board.lanes.find(item => item.id === laneId)
@@ -219,17 +222,19 @@ export const budgetRules: BusinessBoardRules = {
         if (!Number.isInteger(edit.amount) || edit.amount < 1) t.refuse('A line item costs something.', { laneId: target.id, limits: least })
         if (edit.amount > amountLimits.max) t.refuse(amountLimits.reasons.max, { laneId: target.id, limits: amountLimits })
         const left = target.allocation! - budgetCommitted(board, target.id)
-        if (edit.amount > left) t.refuse(target.label + ' has ' + money(left, currency) + ' left. ' + label + ' costs ' + money(edit.amount, currency) + '.', { laneId: target.id })
+        if (edit.amount > left) t.refuse((left < 0 ? overSaid(board, target) : target.label + ' has ' + money(left, currency) + ' left.') + ' ' + label + ' costs ' + money(edit.amount, currency) + '.', { laneId: target.id })
         const card: WorkshopCard = { id: nextCardId(board), label, laneId: target.id, amount: edit.amount }
         return t.done(t.settle({ ...board, cards: [...board.cards, card] }, target.id), 'Added ' + said(label) + ' to ' + said(target.label) + '.', { laneId: target.id, cardId: card.id })
       }
       case 'set_amount': {
         const item = t.card(edit.card)
         const lane = board.lanes.find(other => other.id === item.laneId)!
-        const left = lane.allocation! - budgetCommitted(board, lane.id) + (item.amount ?? 0)
-        const limits = { field: 'amount', min: 1, max: left, reasons: { min: 'A line item costs something.', max: said(lane.label) + ' has ' + money(left, currency) + ' for it.' } }
+        // A team over its money (a line item moved there anyway) may always spend less on an item: never more.
+        const left = Math.max(lane.allocation! - budgetCommitted(board, lane.id) + (item.amount ?? 0), item.amount ?? 0)
+        const over = budgetOver(board, lane.id) > 0
+        const limits = { field: 'amount', min: 1, max: left, reasons: { min: 'A line item costs something.', max: over ? overSaid(board, lane) + ' ' + said(item.label) + ' can cost ' + money(left, currency) + ' at most.' : said(lane.label) + ' has ' + money(left, currency) + ' for it.' } }
         const at = { laneId: item.laneId, cardId: item.id, limits }
-        if (edit.amount > left) t.refuse(lane.label + ' has ' + money(left - (item.amount ?? 0), currency) + ' left. ' + item.label + ' costs ' + money(edit.amount, currency) + '.', { ...at, laneId: lane.id })
+        if (edit.amount > left) t.refuse((over ? overSaid(board, lane) : lane.label + ' has ' + money(left - (item.amount ?? 0), currency) + ' left.') + ' ' + item.label + ' costs ' + money(edit.amount, currency) + '.', { ...at, laneId: lane.id })
         if (!Number.isInteger(edit.amount) || edit.amount < limits.min) t.refuse(limits.reasons.min, at)
         item.amount = edit.amount
         return t.done(t.settle(board, item.laneId, item.id), said(item.label) + ' is now ' + money(edit.amount, currency) + '.', { laneId: item.laneId, cardId: item.id })

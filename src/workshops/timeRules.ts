@@ -55,37 +55,52 @@ const sameDeps = (a: WorkshopCard, b: WorkshopCard) => (a.dependsOn ?? []).join(
  * already in a freeze, or two tasks that already overlap, stay as they are until one of them moves.
  */
 export function checkTime(before: Workshop, after: Workshop): BehaviourVerdict {
+  // A task moved anyway (the person confirmed it past the rules: edits.ts set_task and move_card with override): the
+  // change is theirs, and no rule is asked of it again. Its mark names every rule the change breaks (timeProblems), for
+  // what waits on it and moves with it too, so the person agreed to each.
+  if (workshopHasMarks(before, after) && after.cards.some(card => workshopFreshOverride(before, card))) return { ok: true, warnings: [] }
+  return timeVerdict(before, after, false).verdict
+}
+
+/**
+ * Every rule `after` breaks that refuses (a rule that only warns is left out), one sentence each, in the rules' order:
+ * what a move made anyway says it breaks, in its dialog and on its mark. Empty when no rule refuses.
+ */
+export function timeProblems(before: Workshop, after: Workshop): string[] {
+  return timeVerdict(before, after, true).all
+}
+
+function timeVerdict(before: Workshop, after: Workshop, every: boolean): { verdict: BehaviourVerdict; all: string[] } {
   const rules = (before.behaviour?.rules ?? []).filter(rule => rule.on).sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind))
   const warnings: string[] = []
-  if (!rules.length) return { ok: true, warnings }
-  // A task moved anyway (the person confirmed it past the rule: edits.ts set_task and move_card with override): the
-  // change is theirs, and no rule is asked of it again.
+  const all: string[] = []
+  if (!rules.length) return { verdict: { ok: true, warnings }, all }
   const marks = workshopHasMarks(before, after)
-  if (marks && after.cards.some(card => workshopFreshOverride(before, card))) return { ok: true, warnings }
   // In the dates of `before`: a plan whose first day moved (set_plan_start) is read on the days it had, so a task
   // that keeps its dates has not shifted, and one the new first day moves has.
   const by = before.clock && after.clock ? offsetOf(before.clock.origin, after.clock.origin) : 0
   const was = scheduleLaunch(before), now = by ? new Map([...scheduleLaunch(after)].map(([id, t]) => [id, { ...t, from: t.from + by, to: t.to + by }])) : scheduleLaunch(after)
   const old = new Map(before.cards.map(card => [card.id, card]))
-  // A task moved anyway going back to where it was (an Undo) is not held to a rule either.
+  // A task moved anyway going back to where it was (an Undo by an ordinary edit) keeps its lock and pushes back what it
+  // pushed: the lock and a slip that stops are not asked of it. Every other rule is: a freeze or an overlap that came
+  // since still refuses.
+  const undone = new Set(marks ? after.cards.filter(card => old.has(card.id) && workshopOverrideUndone(before, card)).map(card => card.id) : [])
   const moved = after.cards.filter(card => {
     const o = old.get(card.id)
-    if (marks && o && workshopOverrideUndone(before, card)) return false
     return !o || (o.lag ?? 0) !== (card.lag ?? 0) || o.duration !== card.duration || o.laneId !== card.laneId || !sameDeps(o, card)
   })
   const shifted = after.cards.filter(card => {
     const a = now.get(card.id)!, b = was.get(card.id)
-    if (marks && b && workshopOverrideUndone(before, card)) return false
     return !b || a.from !== b.from || a.to !== b.to || old.get(card.id)!.laneId !== card.laneId
   })
   const first = moved[0] ?? shifted[0]
   const say = (rule: Rule): string | null => {
     switch (rule.kind) {
       case 'locked':
-        for (const card of shifted) if (rule.cards.includes(card.id) && was.has(card.id)) return card.label + ' is locked: it stays on ' + dayWords(before, was.get(card.id)!.from) + '.'
+        for (const card of shifted) if (rule.cards.includes(card.id) && was.has(card.id) && !undone.has(card.id)) return card.label + ' is locked: it stays on ' + dayWords(before, was.get(card.id)!.from) + '.'
         return null
       case 'cascade': {
-        if (rule.onConflict !== 'stop') return null
+        if (rule.onConflict !== 'stop' || undone.size) return null
         const pushed = shifted.find(card => was.has(card.id) && !moved.includes(card))
         return pushed ? 'That would push ' + pushed.label + ', which waits on it. ' + timeSentence(rule, before) : null
       }
@@ -127,18 +142,22 @@ export function checkTime(before: Workshop, after: Workshop): BehaviourVerdict {
           const t = now.get(card.id)!, b = was.get(card.id)
           return t.end > line && (!b || b.end <= was0 || t.end > b.end || line < was0)
         })
-        return late ? launchOverrun(after, first?.id) : null
+        // Named for a mark (every): the task that runs latest, in its own name.
+        return late ? launchOverrun(after, every ? undefined : first?.id) : null
       }
     }
     return null
   }
+  let refused: BehaviourVerdict | null = null
   for (const rule of rules) {
     const sentence = say(rule)
     if (!sentence) continue
     if (rule.severity === 'warn') { warnings.push(sentence); continue }
-    return { refused: { sentence, ruleId: rule.id, set: rule.set, cardId: first?.id ?? '', laneId: first?.laneId ?? '' } }
+    all.push(sentence)
+    refused ??= { refused: { sentence, ruleId: rule.id, set: rule.set, cardId: first?.id ?? '', laneId: first?.laneId ?? '' } }
+    if (!every) break
   }
-  return { ok: true, warnings }
+  return { verdict: refused ?? { ok: true, warnings }, all }
 }
 
 const plainLabel = (value: unknown) => {

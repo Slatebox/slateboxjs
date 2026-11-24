@@ -15,7 +15,7 @@ import { hireStarts, runwayMonths, runwayWords } from '../workshops/hiringPlan'
 import { money } from '../workshops/numbers'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
 import { headlessDrag, inside, partsGeometry } from '../workshops/boardSpecs'
-import { tint } from './shared'
+import { overInk, tint } from './shared'
 import { brokenWaits } from '../workshops/schedule'
 import { handleLabel, launchLinkTargets, partNotes, workshopEditsBetween } from './readouts'
 
@@ -53,7 +53,11 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
   const times = scheduleLaunch(board)
   // The days the grid spans: launch day (a third more on a soft line, for what slips past it), or a hiring plan's weeks.
   // It never depends on where the tasks are, so a held bar's day stays the same width.
-  const day = hiring ? board.hiring!.weeks * 7 : launchHard(board) ? board.launch!.day : Math.ceil(board.launch!.day * 4 / 3)
+  // A hard line with a task moved past it anyway (it carries the mark) spans to that task's end, so the bar and its
+  // mark stay on the board.
+  const anyway = !hiring && launchHard(board) && board.cards.some(card => card.override)
+  const day = hiring ? board.hiring!.weeks * 7 : launchHard(board)
+    ? Math.max(board.launch!.day, anyway ? Math.max(...[...times.values()].map(t => Math.ceil(t.to))) : 0) : Math.ceil(board.launch!.day * 4 / 3)
   const late = pastTheLine(board)
   const parts: PartPlace[] = []
   const bars = new Map<string, { x: number; y: number; width: number; height: number }>()
@@ -194,7 +198,7 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
       if (end > x) shapes.push({ t: 'rect', x, y: box.y + box.height / 2 - 3, w: end - x, h: 6, rx: 3, color: layerInk.bar, opacity: 0.45 })
       shapes.push({ t: 'text', x: g.narrow ? 8 : Math.min(x + 6, end - 120), y: g.narrow ? box.y - 6 : box.y + box.height / 2 - 6,
         text: (g.narrow ? card.label + ' · ' : '') + 'starts ' + shortDate(isoAt(clock!.origin, hireStarts(board, card.id))) + (band ? ' · ' + money(band.monthly, board.hiring!.currency) + '/mo' : '') + (mark ? ' · ' + mark : ''),
-        color: mark ? layerInk.refuse : layerInk.ink, size: 12, role: 'start-' + card.id })
+        color: mark ? overInk.ink : layerInk.ink, size: 12, role: 'start-' + card.id })
       continue
     }
     // On a phone a task's words sit above its own bar, from its start, clear of its grips (beside the bar, within its
@@ -208,7 +212,7 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
         text: words, color: layerInk.canvasInk, size: 13, bold: t.critical, halo: layerInk.halo, role: 'words-' + card.id })
     }
     if (!t.critical) shapes.push({ t: 'text', x: box.x + box.width + (g.narrow ? 48 : 24), y: box.y + box.height / 2 + 4, text: '+' + t.slack + 'd', color: g.narrow ? layerInk.canvasInk : layerInk.ink, size: 12, role: 'slack-' + card.id })
-    if (mark && !g.narrow) shapes.push({ t: 'text', x: box.x + box.width + (t.critical ? 24 : 64), y: box.y + box.height / 2 + 4, text: mark, color: layerInk.refuse, size: 12, bold: true, halo: layerInk.halo, role: 'mark-' + card.id })
+    if (mark && !g.narrow) shapes.push({ t: 'text', x: box.x + box.width + (t.critical ? 24 : 64), y: box.y + box.height / 2 + 4, text: mark, color: overInk.ink, size: 12, halo: layerInk.halo, role: 'mark-' + card.id })
   }
   // The plan's ends: its first day (a dated plan) and a hiring plan's last week, each a short bar on the grid's edge.
   if (clock && !(hiring && g.narrow)) shapes.push({ t: 'rect', x: g.x0 - 3, y: g.gridTop - 22, w: 6, h: 22, rx: 3, color: layerInk.ink, opacity: 0.7, role: 'edge-first' })
@@ -432,21 +436,27 @@ export const launchPlanKit: WorkshopBoardKit = {
     const card = board.cards.find(item => item.id === cardId)!
     const wanted = (card.lag ?? 0) + Math.round((point.x - grab.x - g.bars.get(cardId)!.x) / g.dayW)
     // A drop the rules refuse may be made anyway once the person agrees (set_task with override): asked on the drop.
-    const anyway = (lag: number) => ({ edit: { kind: 'set_task' as const, card: { id: cardId }, lag }, to: 'to start ' + dayWords(board, startDay(board, cardId, lag)) })
+    const anyway = (lag: number) => {
+      const edit = { kind: 'set_task' as const, card: { id: cardId }, lag }
+      return { edit, to: taskWords(board, edit) }
+    }
     const step = snapStep(board)
+    // Never before the plan's first day (a hard limit): a drag far to the left asks for the first day it may start.
+    const ready = scheduleLaunch(board).get(cardId)!.start - (card.lag ?? 0)
+    const first = (lag: number) => Math.max(lag, -ready)
     if (ruled(board)) {
       // The day under the bar's start, through the calendar (a weekend is drawn, but not counted on a working-day plan).
       const t = scheduleLaunch(board).get(cardId)!
       const day = Math.round(t.from + (point.x - grab.x - g.bars.get(cardId)!.x) / g.dayW)
       const lag = (card.lag ?? 0) + dayMap(clockOf(board)).idx(day) - t.start
-      const snapped = Math.round(lag / step) * step
+      const snapped = first(Math.round(lag / step) * step)
       // Well before what it waits on ends (more than a step: a small overshoot still stops at the earliest start):
       // refused, and offered anyway. A task with nothing to wait on stops at the first day.
       if (snapped < -step && card.dependsOn?.length) return { laneId: card.laneId, reason: waitsRefusal(board, cardId, snapped)!, override: anyway(snapped) }
       const tried = tryTask(board, cardId, { lag: Math.max(0, snapped) })
       return typeof tried === 'string' ? { laneId: card.laneId, reason: tried, lands: true, override: anyway(Math.max(0, snapped)) } : null
     }
-    const snapped = Math.round(wanted / step) * step
+    const snapped = first(Math.round(wanted / step) * step)
     if (snapped < -step && card.dependsOn?.length) return { laneId: card.laneId, reason: waitsRefusal(board, cardId, snapped)!, override: anyway(snapped) }
     const limits = launchPlanLimits(board, { cardId, field: 'lag' })
     if (wanted > limits.max) return { laneId: card.laneId, reason: launchOverrun(withTaskValue(board, { cardId, field: 'lag' }, wanted), cardId) ?? limits.reasons.max!, override: anyway(wanted) }
@@ -473,6 +483,7 @@ export const launchPlanKit: WorkshopBoardKit = {
     return (point.x - g.x0) / g.dayW
   },
   keyEdit,
+  overrideWords: taskWords,
   keyChoices,
   cardKeys: 'Left and Right move it a day, Shift changes its length, L chooses what it waits on.',
   cardOfPart(board, part) {
@@ -498,8 +509,29 @@ function edgeGrip(board: Workshop, cardId: string, edge: TaskEdge, grab: { x: nu
     const lag = drag.values.lag, end = startDay(board, cardId, lag) + calendarDays(board, cardId, lag, drag.values.duration) - 1
     return { next: nearestLegal(board, cardId, drag.values) ?? board, clampedReason: drag.refusal!, refusal: drag.refusal!,
       override: { edit: { kind: 'set_task', card: { id: cardId }, lag, duration: drag.values.duration },
-        to: edge === 'start' ? 'to start ' + dayWords(board, startDay(board, cardId, lag)) : 'to end ' + dayWords(board, end) } }
+        to: edge === 'start' || board.kind === 'hiring-plan' ? taskWords(board, { kind: 'set_task', card: { id: cardId }, lag, duration: drag.values.duration }) : 'to end ' + dayWords(board, end) } }
   }
+}
+
+/**
+ * Where a set_task made anyway takes its task, in words (the "Move anyway?" dialog's title): "to start Tue 1 Dec", "to
+ * end Mon 28 Dec" when only its days change, and on a hiring plan the day the hire starts work, as the board says it
+ * ("to start work Mon 15 Feb (recruiting from Mon 21 Dec)").
+ */
+export function taskWords(board: Workshop, edit: WorkshopEdit): string | undefined {
+  if (edit.kind !== 'set_task') return undefined
+  const id = typeof edit.card === 'object' && edit.card && 'id' in edit.card ? (edit.card as { id: string }).id : null
+  const card = id ? board.cards.find(item => item.id === id) : undefined
+  if (!card) return undefined
+  let next = board
+  if (edit.lag !== undefined) next = withTaskValue(next, { cardId: card.id, field: 'lag' }, edit.lag)
+  if (edit.duration !== undefined) next = withTaskValue(next, { cardId: card.id, field: 'duration' }, edit.duration)
+  const t = scheduleLaunch(next).get(card.id)!
+  if (board.kind === 'hiring-plan' && board.clock) {
+    return 'to start work ' + dayWords(next, hireStarts(next, card.id)) + ' (recruiting from ' + dayWords(next, t.from) + ')'
+  }
+  const sameStart = edit.lag === undefined || edit.lag === (card.lag ?? 0)
+  return sameStart && edit.duration !== undefined && edit.duration !== card.duration ? 'to end ' + dayWords(next, t.to - 1) : 'to start ' + dayWords(next, t.from)
 }
 
 /** The calendar day a task starts on with `lag` (what it waits on as it is). */

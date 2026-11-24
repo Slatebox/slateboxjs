@@ -7,7 +7,7 @@
 // tool or CLI publishes for a board before anyone tries an edit.
 
 import {
-  addWorkshopBranch, addWorkshopCard, addWorkshopLane, businessKind, nextWorkshopId, startupExperienceKind, validateWorkshop, workshopCandidate, workshopOverrideCandidate, workshopCardLabelOf,
+  addWorkshopBranch, addWorkshopCard, addWorkshopLane, businessKind, nextWorkshopId, startupExperienceKind, validateWorkshop, workshopCandidate, workshopOverrideCandidate, workshopFreshOverride, workshopCardLabelOf,
   workshopLaneHeld, workshopLineRefusal, workshopNewLine, workshopPresentationLanes, workshopRefusal, workshopWithLine, workshopWithoutCardLines,
   type StationImage, type Workshop, type WorkshopCard, type WorkshopLane, type WorkshopSignal,
 } from './model'
@@ -115,6 +115,12 @@ export interface WorkshopEditReport {
   edits: WorkshopEditDone[]
   /** Every card that ended in another lane, including the ones a release plan brought along. */
   movedCards: { cardId: string; fromLaneId: string; toLaneId: string }[]
+  /**
+   * Every move made anyway (an edit with override true that a rule refused), by the edit that made it, even when a later
+   * edit of the same list moves the card on again: what the exec gate holds for the person (breaks_board_rule). Left
+   * out when there is none.
+   */
+  overrides?: { index: number; cardId: string; laneId: string; fromLaneId: string; sentence: string }[]
 }
 
 export type WorkshopEditRefusalCode =
@@ -941,6 +947,7 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
   if (!Array.isArray(edits) || edits.length < 1 || edits.length > 50) return refuse({ reason: 'Send 1 to 50 edits.', code: 'invalid_edit' })
   const start = current
   const done: WorkshopEditDone[] = []
+  const overrides: NonNullable<WorkshopEditReport['overrides']> = []
   const audit: RuleAudit = { by: (options.actor?.by ?? 'an agent').slice(0, 80), at: options.now ?? new Date().toISOString(), via: options.actor?.via ?? 'exec' }
   for (const [index, edit] of edits.entries()) {
     const kind = (edit as { kind?: unknown } | null)?.kind
@@ -957,23 +964,37 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
     }
     // A move a rule refused that the person may make anyway: the same edit again with override true (model.ts, "Moving
     // a card anyway") would be made. Asked only of a refused move.
+    // Its reason is then what the move made anyway would break, every rule of it: the sentence the person is asked to
+    // agree to is the one the card's mark keeps.
     const movable = (edit.kind === 'move_card' || edit.kind === 'set_task' || edit.kind === 'nest_card') && edit.override !== true
-    const overridable = (code: WorkshopEditRefusalCode) => movable && code === 'refused' &&
-      !('refused' in applyWorkshopEdits(current, [{ ...edit, override: true } as WorkshopEdit], options))
+    const anyway = (code: WorkshopEditRefusalCode, reason: string): { reason: string; overridable?: true } => {
+      if (!movable || code !== 'refused') return { reason }
+      const made = applyWorkshopEdits(current, [{ ...edit, override: true } as WorkshopEdit], options)
+      if ('refused' in made) return { reason }
+      return { reason: made.report.overrides?.[0]?.sentence ?? reason, overridable: true }
+    }
     let step: Step
     try { step = makeEdit(current, edit, family, options.selection, audit) } catch (error) {
       if (!(error instanceof Refusal)) throw error
-      return refuse({ index, kind: entry.kind, reason: error.reason, code: error.code, laneId: error.laneId, ...((error.overridable || overridable(error.code)) && { overridable: true }),
+      const asked = error.overridable ? { reason: error.reason, overridable: true as const } : anyway(error.code, error.reason)
+      return refuse({ index, kind: entry.kind, ...asked, code: error.code, laneId: error.laneId,
         ...(error.cardId && { cardId: error.cardId }), ...(error.candidates && { candidates: error.candidates }), ...(error.limits && { limits: error.limits }) })
     }
     // What the board's rulebook says of every card this edit put in a lane (an edit of the rules moves nothing).
     const verdict = current.behaviour && !isRuleEdit(entry.kind) ? rulebook().check(current, step.board) : null
     if (verdict && 'refused' in verdict) {
-      return refuse({ index, kind: entry.kind, reason: verdict.refused.sentence, code: 'refused', laneId: verdict.refused.laneId, cardId: verdict.refused.cardId,
-        ...(overridable('refused') && { overridable: true }) })
+      return refuse({ index, kind: entry.kind, ...anyway('refused', verdict.refused.sentence), code: 'refused', laneId: verdict.refused.laneId, cardId: verdict.refused.cardId })
     }
     const kept = checkWorkshopReplacement(current, step.board)
     if (kept) return refuse({ index, kind: entry.kind, reason: kept, code: 'not_on_this_board', laneId: step.laneId ?? null })
+    // A move made anyway by this edit: a card it marked (or marked again), whatever later edits of the list do with it.
+    if ((edit as { override?: unknown }).override === true) {
+      for (const card of step.board.cards) {
+        if (card.override && workshopFreshOverride(current, card)) {
+          overrides.push({ index, cardId: card.id, laneId: card.laneId, fromLaneId: card.override.from, sentence: card.override.sentence })
+        }
+      }
+    }
     current = step.board
     done.push({ index, kind: entry.kind, said: step.said, changed: step.changed ?? true,
       ...(step.laneId && { laneId: step.laneId }), ...(step.cardId && { cardId: step.cardId }) })
@@ -983,7 +1004,7 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
     const from = was.get(item.id)
     return from === undefined || from === item.laneId ? [] : [{ cardId: item.id, fromLaneId: from, toLaneId: item.laneId }]
   })
-  return { workshop: current, report: { edits: done, movedCards } }
+  return { workshop: current, report: { edits: done, movedCards, ...(overrides.length && { overrides }) } }
 }
 
 /**

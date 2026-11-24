@@ -13,7 +13,7 @@
 // same words. Rules read structured fields only, never a card's words; a new rule never moves a card.
 import type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, WorkshopMoveCheck } from './behaviour'
 import type { NestFields, Workshop, WorkshopCard } from './model'
-import { registerWorkshopRules, said, validateWorkshop, applyWorkshopEdits, workshopReferences, workshopFreshOverride, workshopOverrideMark, workshopOverrideUndone, workshopHasMarks as hasMarks } from './model'
+import { registerWorkshopRules, said, validateWorkshop, applyWorkshopEdits, workshopReferences, workshopFreshOverride, workshopOverrideMark, workshopShedMark, workshopHasMarks as hasMarks } from './model'
 import type { BusinessBoardRules, BusinessEditTools, RuleFamily } from './kinds'
 import type { WorkshopEdit, WorkshopEditField, WorkshopEditKind, WorkshopEditKindName, WorkshopRef } from './edits'
 import { workshopEditKinds, workshopRuleSchema } from './model'
@@ -267,12 +267,12 @@ export function checkNest(before: Board, after: Board): BehaviourVerdict {
   if (!rules.length) return plus?.check(before, after, warnings) ?? { ok: true, warnings }
   const old = new Map(before.cards.map(card => [card.id, card]))
   const { tray } = nestAreas(after)
-  // A card moved anyway (nest_card with override, once the person confirmed it), or going back where it came from (an
-  // Undo), is not held to a rule again.
+  // A card moved anyway (nest_card with override, once the person confirmed it) is not held to a rule again. One going
+  // back where it came from is: its old parent may be full by now (the server's recorded Undo puts the board back whole).
   const marks = hasMarks(before, after)
   const arrived = after.cards.filter(card => {
     const was = old.get(card.id)
-    if (marks && (workshopFreshOverride(before, card) || workshopOverrideUndone(before, card))) return false
+    if (marks && workshopFreshOverride(before, card)) return false
     return card.laneId !== tray && (!was || was.parentId !== card.parentId || was.laneId !== card.laneId || was.role !== card.role)
   })
   const kidsOf = (board: Board, id: string) => board.cards.filter(card => card.parentId === id).length
@@ -616,11 +616,12 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
       // agreed (override), is marked with who, when, the rule and where it sat (model.ts, "Moving a card anyway").
       const verdict = edit.override === true ? checkNest(board, next) : null
       const mark = verdict && 'refused' in verdict ? workshopOverrideMark(card, verdict.refused.sentence, t.who ?? { by: 'an agent', at: new Date().toISOString() }, { parentId: card.parentId ?? null }) : null
-      next = settle({ ...next, cards: next.cards.map(item => {
+      next = mark ? { ...next, cards: next.cards.map(item => {
         if (item.id !== card.id) return item
         const { override: _old, ...plain } = item
-        return mark ? { ...plain, override: mark } : plain
-      }) }, laneId, card.id)
+        return { ...plain, override: mark }
+      }) } : workshopShedMark(board, next, card.id)
+      next = settle(next, laneId, card.id)
       return t.done(next, 'Moved ' + said(card.label) + ' ' + where + (mark ? ' anyway. ' + mark.sentence : '.'), { laneId, cardId: card.id })
     }
     case 'start_pile': {

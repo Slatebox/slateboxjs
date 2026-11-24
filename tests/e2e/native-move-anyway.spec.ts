@@ -52,7 +52,7 @@ test('a map: the token dropped on a step with no path asks, and Move anyway move
   await expect.poll(() => cards(page)).toBe('token@refund')
   const override = await page.evaluate(() => (window as any).native.board.value.cards[0].override)
   expect(override).toMatchObject({ by: 'Sam', sentence: "Issue refund can't be reached from Refund request.", from: 'request' })
-  expect((await changes(page)).at(-1)).toEqual({ cardId: 'token', laneId: 'refund', override: true })
+  expect((await changes(page)).at(-1)).toEqual({ cardId: 'token', laneId: 'refund', override: true, reason: "Issue refund can't be reached from Refund request." })
   // Visible on the card: who moved it anyway.
   await expect.poll(() => page.evaluate(() => (window as any).native.at('card-token')?.text)).toMatch(/^Team\nMoved anyway by Sam · \d+ [A-Z][a-z]{2}$/)
   await expect(page.locator('#slate [aria-live]')).toContainText('Team moved to Issue refund anyway.')
@@ -117,12 +117,38 @@ test('keyboard: Right toward a lane the card may not go in asks, never skips it;
   expect(await cards(page)).toBe('alpha@now beta@now gamma@now')
   expect(await changes(page)).toEqual([])
   expect(await page.evaluate(() => document.activeElement?.tagName ?? null)).toBe(focused)
-  // The card is still selected: Right asks again, and Enter on Move anyway moves it, marked.
+  // The card is still selected. Right again passes over the lane it declined, saying why (Later is the last lane, so
+  // the card stays); the press after asks again, and Enter on Move anyway moves it, marked.
+  await page.keyboard.press('ArrowRight')
+  await expect(live).toContainText("This card can't go in Later.")
+  await expect(dialog(page)).toHaveCount(0)
   await page.keyboard.press('ArrowRight')
   await expect(dialog(page)).toHaveCount(1)
   await page.keyboard.press('Enter')
   await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@later')
-  expect((await changes(page)).at(-1)).toEqual({ cardId: 'gamma', laneId: 'later', override: true })
+  expect((await changes(page)).at(-1)).toEqual({ cardId: 'gamma', laneId: 'later', override: true, reason: "This card can't go in Later." })
   expect(await page.evaluate(() => (window as any).native.board.value.cards[2].override)).toMatchObject({ by: 'Sam', from: 'now' })
 })
 
+
+test('keyboard: a lane past one the person declined is still reached: Cancel, then Right again passes over the full lane', async ({ page }) => {
+  await open(page, 'wip&confirm')
+  const live = page.locator('#slate [aria-live]')
+  const card = await resting(page, 'card-alpha')
+  await page.mouse.click(card!.x + card!.width / 2, card!.y + card!.height / 2)
+  await page.waitForTimeout(250)
+  // Doing is at its limit: Right asks.
+  await page.keyboard.press('ArrowRight')
+  await expect(dialog(page)).toContainText('Move Alpha to Doing anyway?')
+  await page.keyboard.press('Escape')
+  await expect(dialog(page)).toHaveCount(0)
+  // Right again: no second dialog; Doing is passed over, said aloud, and Done is on show.
+  await page.keyboard.press('ArrowRight')
+  await expect(dialog(page)).toHaveCount(0)
+  await expect(live).toContainText("Alpha can't go in Doing")
+  await expect(live).toContainText('Alpha to Done')
+  await page.keyboard.press('Enter')
+  await expect.poll(() => cards(page)).toBe('alpha@done beta@doing')
+  expect((await changes(page)).at(-1)).toMatchObject({ cardId: 'alpha', laneId: 'done' })
+  expect((await changes(page)).at(-1).override).toBeUndefined()
+})

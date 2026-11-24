@@ -36,7 +36,8 @@ describe('moving a card anyway on a sales pipeline', () => {
   it('skips a stage: the forecast counts the deal where it is, marked with who and when; Undo is one step', () => {
     // Northwind is a Lead: Proposal is two stages on, and full (3 of 3).
     const sentence = workshopRefusal(pipeline, 'northwind', 'proposal')!
-    expect(sentence).toBe('Deals move one stage at a time. Northwind is in Lead, so Qualified comes first.')
+    // Every rule it breaks is named: the dialog asks about both, and the mark keeps both.
+    expect(sentence).toBe('Deals move one stage at a time. Northwind is in Lead, so Qualified comes first. Proposal already holds 3 of 3 deals.')
     expect(workshopHardLimit(pipeline, 'northwind', 'proposal')).toBeNull()
     expect(checkWorkshopMove(pipeline, 'northwind', 'proposal')).toMatchObject({ refused: { sentence, overridable: true } })
     const moved = workshopOverrideCandidate(pipeline, 'northwind', 'proposal', sam)!
@@ -88,7 +89,7 @@ describe('moving a card anyway on a budget', () => {
     expect(budgetOver(fix, 'design')).toBe(70000)
     expect(no(apply(moved, { kind: 'shift_budget', from: 'Design', to: 'Sales', amount: 5000 })).reason).toMatch(/Design/)
     // A new item can't join a team that is over.
-    expect(no(apply(moved, { kind: 'add_card', lane: 'Design', label: 'Survey', amount: 5000 })).reason).toMatch(/Design has/)
+    expect(no(apply(moved, { kind: 'add_card', lane: 'Design', label: 'Survey', amount: 5000 })).reason).toBe('Design is over budget by $120k. Survey costs $5k.')
     // Undo: the item goes back; Design is in budget again and the mark is gone.
     const back = workshopCandidate(moved, 'ads', 'marketing')!
     expect(budgetOver(back, 'design')).toBe(0)
@@ -222,5 +223,133 @@ describe('the hard limits that stay', () => {
     expect(workshopOverrideCandidate(release, 'b', 'r1', sam)).toBeNull()
     expect(() => validateWorkshop({ ...release, cards: release.cards.map(item => item.id === 'b' ? { ...item, override: { by: 'x', at: sam.at, sentence: 'x', from: 'r1' } } : item) }))
       .toThrow('A release plan’s and a startup experience’s cards are never moved past a rule.')
+  })
+})
+
+// Review of 2026-11-23: what a move made anyway leaves behind, and what may happen to the card after.
+describe('after a move made anyway', () => {
+  it('reports every move made anyway in a list of edits, even when a later edit moves the card on (the exec gate holds it)', () => {
+    const pipeline = validateWorkshop(samplePipeline())
+    // A won deal stays won: Bluefin to Qualified alone is refused.
+    expect(no(apply(pipeline, { kind: 'move_card', card: 'Bluefin', lane: 'Qualified' })).overridable).toBe(true)
+    const made = apply(pipeline, { kind: 'move_card', card: 'Bluefin', lane: 'Lead', override: true }, { kind: 'move_card', card: 'Bluefin', lane: 'Qualified' })
+    if ('refused' in made) throw new Error(made.refused.reason)
+    // The second move took the mark away (Qualified takes a deal from Lead), but the report still names the first.
+    expect(made.report.overrides).toEqual([{ index: 0, cardId: 'bluefin', laneId: 'lead', fromLaneId: 'won', sentence: 'A won deal stays won. Move it to Lost if it fell through.' }])
+    // An ordinary list reports none.
+    const plain = apply(pipeline, { kind: 'move_card', card: 'Northwind', lane: 'Qualified' })
+    expect('refused' in plain ? null : plain.report.overrides).toBeUndefined()
+  })
+
+  it('a late task moved anyway may still be nudged, or moved to another team: its mark stays while it is still late', () => {
+    const plan = validateWorkshop(sampleLaunchPlan())
+    const late = ok(apply(plan, { kind: 'set_task', card: 'QA', duration: 8, override: true }))
+    const mark = card(late, 'qa').override
+    expect(mark).toMatchObject({ by: 'Tim' })
+    // A day shorter, still late: the change is made, and the mark is the same one (who, when, the rule).
+    const shorter = ok(applyWorkshopEdits(late, [{ kind: 'set_task', card: 'QA', duration: 6 }], { actor: { by: 'Ann', via: 'chat' }, now: '2026-11-24T08:00:00.000Z' }))
+    expect(card(shorter, 'qa')).toMatchObject({ duration: 6, override: mark })
+    // To another team, still late: the same.
+    const product = ok(apply(late, { kind: 'move_card', card: 'QA', lane: 'Product' }))
+    expect(card(product, 'qa')).toMatchObject({ laneId: 'product', override: mark })
+    // Back by the line: the mark goes.
+    expect(card(ok(apply(late, { kind: 'set_task', card: 'QA', duration: 2 })), 'qa').override).toBeUndefined()
+    // Making it later still is refused, and may be made anyway (a new mark).
+    expect(no(apply(late, { kind: 'set_task', card: 'QA', duration: 9 })).overridable).toBe(true)
+    // A task made longer anyway, then a day shorter but still pushing QA past the line.
+    const build = ok(apply(plan, { kind: 'set_task', card: 'Build', duration: 10, override: true }))
+    expect(card(ok(apply(build, { kind: 'set_task', card: 'Build', duration: 9 })), 'build').override).toEqual(card(build, 'build').override)
+  })
+
+  it('a task that starts before what it waits on ends keeps its mark when it moves to another team', () => {
+    const plan = validateWorkshop(sampleLaunchPlan())
+    const early = ok(apply(plan, { kind: 'set_task', card: 'Build', lag: -2, override: true }))
+    const moved = ok(apply(early, { kind: 'move_card', card: 'Build', lane: 'Product' }))
+    expect(card(moved, 'build')).toMatchObject({ laneId: 'product', lag: -2, override: card(early, 'build').override })
+  })
+
+  it('a team over its money may lower an item’s cost, never raise it; its refusals say by how much it is over', () => {
+    const budget = validateWorkshop(sampleBudget())
+    const over = workshopOverrideCandidate(budget, 'ads', 'design', sam)!
+    expect(budgetOver(ok(apply(over, { kind: 'set_amount', card: 'Launch ads', amount: 140000 })), 'design')).toBe(110000)
+    expect(budgetOver(ok(apply(over, { kind: 'set_amount', card: 'Research panel', amount: 110000 })), 'design')).toBe(110000)
+    expect(no(apply(over, { kind: 'set_amount', card: 'Research panel', amount: 130000 })).reason).toBe('Design is over budget by $120k. Research panel costs $130k.')
+  })
+
+  it('a card going back where it came from by an ordinary move is held to the rules as they are now', () => {
+    const tree = validateWorkshop(discoveryTreeSample())
+    const ruleId = (board: Workshop) => board.behaviour!.rules.find(rule => rule.kind === 'children')!.id
+    const tight = ok(apply(tree, { kind: 'remove_rule', rule: ruleId(tree) } as WorkshopEdit, { kind: 'add_rule', rule: { kind: 'children', role: 'opportunity', max: 2 } } as unknown as WorkshopEdit))
+    // CSV import nested under the outcome anyway, from Onboarding is slow (which then holds 1 of 2).
+    const moved = ok(apply(tight, { kind: 'nest_card', card: 'CSV import', under: 'Activation to 40%', override: true }))
+    // A teammate fills Onboarding is slow to its limit.
+    const full = ok(apply(moved, { kind: 'nest_card', card: 'Reconcile with finance', under: 'Onboarding is slow' }))
+    // Back under it: refused by its limit (and may be made anyway), never let through unmarked.
+    expect(no(apply(full, { kind: 'nest_card', card: 'CSV import', under: 'Onboarding is slow' }))).toMatchObject({ overridable: true })
+    // With room there, back is an ordinary move and the mark goes.
+    expect(card(ok(apply(moved, { kind: 'nest_card', card: 'CSV import', under: 'Onboarding is slow' })), 'csv-import').override).toBeUndefined()
+  })
+
+  it('a task moved anyway names every rule the move breaks, for what waits on it too', () => {
+    const ruled = validateWorkshop({ ...launchPlanSample('2026-11-23'), behaviour: presetRules([{ kind: 'deadline', at: 'launch' }, { kind: 'locked', cards: ['qa'] }]) })
+    // Build three weeks later: QA, which waits on it, leaves its locked days and runs past launch.
+    const refused = no(apply(ruled, { kind: 'set_task', card: 'Build', lag: 15 }))
+    expect(refused.overridable).toBe(true)
+    expect(refused.reason).toMatch(/^QA is locked: it stays on .*\. QA would run until .*; launch is .*\.$/)
+    const moved = ok(apply(ruled, { kind: 'set_task', card: 'Build', lag: 15, override: true }))
+    // The person agreed to the sentence the mark keeps.
+    expect(card(moved, 'build').override!.sentence).toBe(refused.reason)
+  })
+
+  it('a whole plan saved with a task moved to another team and in time keeps its mark', () => {
+    const plan = validateWorkshop(sampleLaunchPlan())
+    const page = { ...plan, cards: plan.cards.map(item => item.id === 'build' ? { ...item, laneId: 'product', lag: -2, override: { by: 'X', at: sam.at, sentence: 'x', from: 'engineering', was: { lag: 0 } } } : item) }
+    expect(card(workshopStampOverrides(plan, page, sam), 'build')).toMatchObject({ laneId: 'product', lag: -2, override: { by: 'Sam', from: 'engineering' } })
+  })
+})
+
+describe('what a board shows of a move made anyway', () => {
+  it('a budget says a team is over in its header, on a caption line of its own, with room for the mark', async () => {
+    const { budgetHeader } = await import('../../src/boards/readouts')
+    const { budgetLayout } = await import('../../src/boards/budgetKit')
+    const budget = validateWorkshop(sampleBudget())
+    const over = workshopOverrideCandidate(budget, 'ads', 'design', sam)!
+    expect(budgetHeader(budget)).toBe('$1.2M · balanced')
+    expect(budgetHeader(over)).toBe('$1.2M · 1 team over budget')
+    for (const narrow of [false, true]) {
+      const parts = budgetLayout(over, { narrow, width: 390 }).parts
+      const caption = parts.find(part => part.name === 'caption-design')!
+      expect(caption.text).toMatch(/\nover budget by \$120k$/)
+      const ads = parts.find(part => part.name === 'card-ads')!, panel = parts.find(part => part.name === 'card-panel')!
+      // The marked item is a line taller than an unmarked one, and nothing overlaps.
+      expect(ads.height).toBe(panel.height + 18)
+      expect(ads.y >= panel.y + panel.height || panel.y >= ads.y + ads.height).toBe(true)
+      expect(Math.min(ads.y, panel.y)).toBeGreaterThanOrEqual(caption.y + caption.height)
+    }
+  })
+
+  it('a pipeline says a stage is over its limit on a caption line of its own', async () => {
+    const { pipelineLayout } = await import('../../src/boards/pipelineKit')
+    const moved = workshopOverrideCandidate(validateWorkshop(samplePipeline()), 'northwind', 'proposal', sam)!
+    expect(pipelineLayout(moved).parts.find(part => part.name === 'caption-proposal')!.text).toMatch(/· 60%\nover its limit of 3$/)
+  })
+
+  it('a hiring plan’s dialog names the day the hire starts work, as its bar says it', async () => {
+    const { taskWords } = await import('../../src/boards/launchPlanKit')
+    const { hireStarts } = await import('../../src/workshops/hiringPlan')
+    const { dayWords, withTaskValue } = await import('../../src/workshops/launchPlan')
+    const plan = validateWorkshop(hiringPlanSample('2026-11-23'))
+    const words = taskWords(plan, { kind: 'set_task', card: { id: 'eng-2' }, lag: 0 })!
+    const next = withTaskValue(plan, { cardId: 'eng-2', field: 'lag' }, 0)
+    expect(words).toBe('to start work ' + dayWords(next, hireStarts(next, 'eng-2')) + ' (recruiting from ' + dayWords(next, scheduleLaunch(next).get('eng-2')!.from) + ')')
+  })
+
+  it('a hard line spans to a task moved past it anyway, so its bar stays on the board', async () => {
+    const { launchLayout } = await import('../../src/boards/launchPlanKit')
+    const plan = validateWorkshop(sampleLaunchPlan())
+    const late = ok(apply(plan, { kind: 'set_task', card: 'QA', duration: 8, override: true }))
+    const g = launchLayout(late)
+    const qa = g.bars.get('qa')!
+    expect(qa.x + qa.width).toBeLessThanOrEqual(g.width)
   })
 })

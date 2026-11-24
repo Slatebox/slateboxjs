@@ -20,7 +20,8 @@ describe('pipeline rules', () => {
   it('moves a deal forward one stage at a time, and back to any open stage', () => {
     expect(pipelineRefusal(pipeline, 'northwind', 'qualified')).toBeNull()
     expect(workshopRefusal(pipeline, 'northwind', 'won')).toBe('Deals move one stage at a time. Northwind is in Lead, so Qualified comes first.')
-    expect(workshopRefusal(pipeline, 'northwind', 'proposal')).toBe('Deals move one stage at a time. Northwind is in Lead, so Qualified comes first.')
+    // Every rule the move breaks: a stage skipped, and Proposal at its limit.
+    expect(workshopRefusal(pipeline, 'northwind', 'proposal')).toBe('Deals move one stage at a time. Northwind is in Lead, so Qualified comes first. Proposal already holds 3 of 3 deals.')
     expect(pipelineRefusal(pipeline, 'brightline', 'lead')).toBeNull()
     expect(workshopDestinations(pipeline, 'acme').map(lane => lane.id)).toEqual(['lead', 'qualified', 'lost'])
   })
