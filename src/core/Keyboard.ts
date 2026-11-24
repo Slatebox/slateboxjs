@@ -4,7 +4,7 @@
  * Provides keyboard shortcuts for common actions:
  * - Delete/Backspace: remove selected nodes
  * - Ctrl+Z / Cmd+Z: undo
- * - Ctrl+Y / Cmd+Shift+Z: redo
+ * - Ctrl+Y / Ctrl+Shift+Z / Cmd+Shift+Z: redo
  * - Ctrl+A / Cmd+A: select all
  * - Ctrl+C / Ctrl+V: copy / paste selected nodes
  * - Ctrl+D: duplicate selected nodes in place (offset)
@@ -108,24 +108,26 @@ export class Keyboard {
     // and every other shortcut below needs Ctrl/Cmd or is not a character at all.
     if (typing && e.key !== "?" && this.typeIntoSelected(e)) return;
 
+    // Undo and redo: Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z and Ctrl+Y. With Shift held most browsers
+    // report the letter in capitals ("Z"); a layout whose letters are not Latin reports
+    // another character, so the physical key is read only then.
+    if (isMod && !e.altKey) {
+      const letter = /^[a-z]$/i.test(e.key) ? e.key.toLowerCase() : e.code === "KeyZ" ? "z" : e.code === "KeyY" ? "y" : "";
+      if (letter === "z") {
+        if (e.shiftKey) this.redo(e);
+        else this.undo(e);
+        return;
+      }
+      if (letter === "y" && !e.shiftKey) {
+        this.redo(e);
+        return;
+      }
+    }
+
     switch (e.key) {
       case "Delete":
       case "Backspace":
         this.deleteSelected(e);
-        break;
-
-      case "z":
-        if (isMod && e.shiftKey) {
-          this.redo(e);
-        } else if (isMod) {
-          this.undo(e);
-        }
-        break;
-
-      case "y":
-        if (isMod) {
-          this.redo(e);
-        }
         break;
 
       case "a":
@@ -191,7 +193,7 @@ export class Keyboard {
           "SlateboxJS Keyboard Shortcuts:\n" +
           "  Delete/Backspace — remove selected\n" +
           "  Ctrl+Z — undo\n" +
-          "  Ctrl+Y — redo\n" +
+          "  Ctrl+Shift+Z or Ctrl+Y — redo\n" +
           "  Ctrl+A — select all\n" +
           "  Ctrl+C / Ctrl+V — copy / paste\n" +
           "  Ctrl+D — duplicate\n" +
@@ -292,16 +294,14 @@ export class Keyboard {
 
   private undo(e: KeyboardEvent): void {
     e.preventDefault();
-    if (this.slate.undoRedo) {
-      this.slate.undoRedo.undo();
-    }
+    if (typeof this.slate.undo === "function") this.slate.undo();
+    else this.slate.undoRedo?.undo();
   }
 
   private redo(e: KeyboardEvent): void {
     e.preventDefault();
-    if (this.slate.undoRedo) {
-      this.slate.undoRedo.redo();
-    }
+    if (typeof this.slate.redo === "function") this.slate.redo();
+    else this.slate.undoRedo?.redo();
   }
 
   private selectAll(e: KeyboardEvent): void {

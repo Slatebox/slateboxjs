@@ -201,10 +201,18 @@ export function applySlateOperations(
     userMessage = "",
     replay = false,
     send = true,
+    as,
     ...contract
   }: {
     userMessage?: string;
     replay?: boolean;
+    /**
+     * Whose step the plan is in the undo history of the person at this canvas. "others": a run
+     * someone else saved, taken into their history so that no undo of theirs takes it away (the
+     * default when `send` is false). "own": a change of this person's own that the server already
+     * holds (a Keep, an import), one undo step. Unset with `send`: recorded as this person's edit.
+     */
+    as?: "own" | "others";
     /**
      * false: draw the plan on this canvas only. Nothing goes to the room or to the host's save
      * path (emitSlateChange): for a screen that watches a run someone saved, such as a visitor
@@ -236,17 +244,25 @@ export function applySlateOperations(
     const waiting = drawing(batch.created);
     return waiting.length ? Promise.all(waiting.map((node: any) => node.ready)) : null;
   };
-  let chain: Promise<unknown> | null = null;
-  for (const batch of batches) {
-    if (chain) chain = chain.then(() => step(batch));
-    else chain = step(batch);
-  }
+  const draw = (): Promise<void> => {
+    let chain: Promise<unknown> | null = null;
+    for (const batch of batches) {
+      if (chain) chain = chain.then(() => step(batch));
+      else chain = step(batch);
+    }
+    return (chain ?? Promise.resolve()).then(() => undefined);
+  };
+  const whose = as ?? (send ? null : "others");
+  let applied: Promise<void>;
+  if (whose === "others" && typeof engine.othersChange === "function") applied = engine.othersChange(draw);
+  else if (whose === "own" && typeof engine.ownStep === "function") applied = engine.ownStep(draw);
+  else applied = draw();
   const packages = batches.flatMap((batch) => batch.packages);
   if (send && packages.length) slate.collab.send(packages);
   return {
     message: result.materializedPlan.message,
     report: result.report,
     materializedPlan: result.materializedPlan,
-    applied: (chain ?? Promise.resolve()).then(() => undefined),
+    applied,
   };
 }

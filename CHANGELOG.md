@@ -43,6 +43,34 @@
   a note; a drag far before the plan's first day asks for the first day. Keys: Cancel, then the same arrow again,
   passes over the lane declined. A card going back where it came from by an ordinary edit is held to the rules as
   they are now (only the lock it returns to and a slip that stops are not asked). The mark's date is the viewer's day.
+- **First-class undo and redo.** `slate.undo()`, `slate.redo()`, `canUndo()`, `canRedo()`, `undoRedoState()`
+  (`{ canUndo, canRedo, undoLabel, redoLabel }`) and `onUndoRedo(listener)` on the engine's slate and on the v1
+  facade alike, plus the host event `onUndoRedoChanged(state, outcome)`, for a host's own Undo and Redo controls.
+  Each undo or redo tells its listeners what it did (`{ action, done, skipped, message }`).
+- **A host's own steps in the same history** (`slate.recordHostStep({ label, undo, redo })`): a board's change
+  saved on the host's server is undone and redone by the host, between the drawing's steps. A host step that
+  cannot be undone answers `{ ok: false, message }`: the message is told, and the step is not offered for redo.
+- `slate.othersChange(change)` draws someone else's change (an agent's saved run) without making it a step of
+  this person's, taking it into their history so no undo of theirs takes it away; `slate.ownStep(change)` draws
+  a change of this person's own that the server already holds (a Keep, an import) as one step.
+  `applySlateOperations(…, { as: "own" | "others" })`; a run drawn with `send: false` is "others" by default.
+
+### Fixed
+
+- Ctrl+Shift+Z redid nothing where the browser reports the capital letter (Windows, Linux, Firefox): the key is
+  read in either case, and by its place on a keyboard whose letters are not Latin.
+- A drag, a resize or a rotation held still for longer than the burst's pause became several undo steps: a press
+  on the canvas is one step, recorded when the pointer is let go.
+- Undoing the first rotation of a note left it rotated: a record shared the note's `rotate` with the live note.
+  Records are plain copies, and a restore draws from a copy of its record.
+- A run someone else saved (an agent's edit, another page's import), drawn on this canvas, became a step of this
+  person's own: their next undo took the agent's work away for everyone.
+- A step of this person's that someone else has since changed entirely is passed over by undo and redo, which say
+  so ("Someone else changed that since, so there was nothing of yours to take back there.").
+- A lane's rename is no longer an empty step of the drawing's history: the host records it with the board's
+  other changes.
+
+### Added
 
 - `slateboxjs/canvas`: the canvas alone (`Slate`, and what agents show), for a page that draws slates. It registers
   the same SVG.js plugins as the main entry and draws a slate exactly as it does. Its first load is 124,479 bytes

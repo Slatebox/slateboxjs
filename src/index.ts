@@ -33,6 +33,7 @@ import { Editor } from './core/Editor'
 
 // UI Features
 import { UndoRedo } from './core/UndoRedo'
+export type { HostStep, HostStepOutcome, UndoRedoState, UndoRedoOutcome, UndoRedoListener } from './core/UndoRedo'
 import { MultiSelection } from './core/MultiSelection'
 import { Grid } from './core/Grid'
 import { Menu } from './core/Menu'

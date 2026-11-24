@@ -10,7 +10,7 @@ import {
   snapshot as takeSnapshot,
   type SlateJSON,
 } from "./Serialization";
-import { UndoRedo } from "./UndoRedo";
+import { UndoRedo, type HostStep, type UndoRedoListener, type UndoRedoState } from "./UndoRedo";
 import type { InlineDraft } from "./Editor";
 import { MultiSelection } from "./MultiSelection";
 import { Grid } from "./Grid";
@@ -317,6 +317,10 @@ export class Slate {
     time: number;
   } | null = null;
   private _windowPointerDownHandler: ((e: PointerEvent) => void) | null = null;
+  private _othersChange = 0;
+  /** The pointers pressed on this canvas whose gesture is one undo step (see setupUndoGestures). */
+  private _undoPointers = new Set<number>();
+  private _undoGestureHandlers: Array<[string, EventListener, Window | Document]> = [];
   private _destroyed: boolean = false;
   /** >0 while packages from the room or a document load are being applied (not the person's own edits). */
   private _applyingRemote = 0;
@@ -568,6 +572,7 @@ export class Slate {
       enabled: this.options.showUndoRedo !== false,
     });
     this.undoRedo.snap?.(true);
+    this.setupUndoGestures();
 
     // Initialize multi-selection
     this.multiSelection = new MultiSelection(this, {
@@ -718,6 +723,9 @@ export class Slate {
     if (this.multiSelection) {
       this.multiSelection.disable();
     }
+    for (const [type, handler, target] of this._undoGestureHandlers) target.removeEventListener(type, handler, true);
+    this._undoGestureHandlers = [];
+    this._undoPointers.clear();
     if (this.undoRedo) {
       this.undoRedo.clear();
     }
@@ -949,14 +957,145 @@ export class Slate {
 
   /** Record a debounced undo checkpoint for a document-mutating package. */
   public recordUndoFor(type: string): void {
+    // Someone else's change being drawn here is taken into the history as theirs (othersChange).
+    if (this._othersChange > 0) return;
     if (this.undoRedo && !Slate.NON_UNDOABLE.has(type)) {
       // A delete is a step of its own; other edits group into one step per burst.
       if (type === "onNodeDeleted" && typeof this.undoRedo.snapAfterGesture === "function") {
         this.undoRedo.snapAfterGesture();
+      } else if (type === "onNodeTextChanged" && this.undoRedo.inGesture?.()) {
+        // Text committed as a press elsewhere begins (the editor loses focus): a step
+        // of its own, not part of whatever that press goes on to drag.
+        this.undoRedo.forceSnapshot?.();
       } else {
         this.undoRedo.snap?.();
       }
     }
+  }
+
+  /**
+   * A press on this canvas (a drag, a resize, a rotation, a line drawn, a marquee) is one
+   * undo step, whatever it changes and however many packages it sends: the step is
+   * recorded when the last pointer pressed on the canvas is let go.
+   */
+  private setupUndoGestures(): void {
+    if (typeof window === "undefined" || !this.element) return;
+    const end = (id?: number) => {
+      if (id !== undefined) {
+        if (!this._undoPointers.delete(id)) return;
+        if (this._undoPointers.size) return;
+      } else {
+        if (!this._undoPointers.size) return;
+        this._undoPointers.clear();
+      }
+      this.undoRedo?.endGesture?.();
+    };
+    const down = ((e: PointerEvent) => {
+      const target = e.target as Element | null;
+      if (!target || !this.element?.contains(target)) return;
+      if (this._undoPointers.has(e.pointerId)) return;
+      if (!this._undoPointers.size) this.undoRedo?.beginGesture?.();
+      this._undoPointers.add(e.pointerId);
+    }) as EventListener;
+    const up = ((e: PointerEvent) => end(e.pointerId)) as EventListener;
+    const lost = (() => end()) as EventListener;
+    const hidden = (() => { if (document.visibilityState === "hidden") end(); }) as EventListener;
+    const handlers: Array<[string, EventListener, Window | Document]> = [
+      ["pointerdown", down, window],
+      ["pointerup", up, window],
+      ["pointercancel", up, window],
+      ["blur", lost, window],
+      ["visibilitychange", hidden, document],
+    ];
+    for (const [type, handler, target] of handlers) target.addEventListener(type, handler, true);
+    this._undoGestureHandlers = handlers;
+  }
+
+  /** Undo this person's last step on this slate. False when there was nothing to undo. */
+  public undo(): boolean {
+    if (this._destroyed || this.isReadOnly?.()) return false;
+    return this.undoRedo?.undo?.() ?? false;
+  }
+
+  /** Redo the step this person last undid. False when there was nothing to redo. */
+  public redo(): boolean {
+    if (this._destroyed || this.isReadOnly?.()) return false;
+    return this.undoRedo?.redo?.() ?? false;
+  }
+
+  /** Whether this person has a step to undo. */
+  public canUndo(): boolean {
+    return Boolean(this.undoRedo?.canUndo?.());
+  }
+
+  /** Whether this person has an undone step to redo. */
+  public canRedo(): boolean {
+    return Boolean(this.undoRedo?.canRedo?.());
+  }
+
+  /** Whether there is something to undo and to redo, with the steps' names when their hosts gave them. */
+  public undoRedoState(): UndoRedoState {
+    return this.undoRedo?.state?.() ?? { canUndo: false, canRedo: false, undoLabel: null, redoLabel: null };
+  }
+
+  /**
+   * Hear whenever there comes to be something, or nothing, to undo or redo, and what each
+   * undo or redo did (for a host's Undo and Redo controls). Returns a function that stops it.
+   */
+  public onUndoRedo(listener: UndoRedoListener): () => void {
+    return this.undoRedo?.subscribe?.(listener) ?? (() => {});
+  }
+
+  /**
+   * Record a step the host made in its own state (a board's cards on its server) as the next
+   * step of this person's undo history, undone and redone by the host (see HostStep).
+   */
+  public recordHostStep(step: HostStep): void {
+    if (this._destroyed) return;
+    this.undoRedo?.recordHostStep?.(step);
+  }
+
+  /**
+   * Draw a change someone else made (an agent's saved run, another page's import) on this
+   * canvas: it is not a step of this person's own, and their undo history takes it in so
+   * that no undo of theirs takes it away (see UndoRedo.absorbRemote). `change` may return
+   * a promise: the history takes it in once it has settled.
+   */
+  public async othersChange<T>(change: () => T | Promise<T>): Promise<T> {
+    const before = this.undoRedo?.beforeRemote?.() ?? null;
+    this._othersChange++;
+    let result: T;
+    try {
+      result = await change();
+    } finally {
+      this._othersChange--;
+      this.undoRedo?.absorbRemote?.(before);
+    }
+    return result;
+  }
+
+  /**
+   * Draw a change of this person's own that their server already holds (a Keep in Ask
+   * Slatebox, an import into this slate) as one step of their undo history: everything it
+   * draws is recorded together once it has settled. Changes drawn one after another this
+   * way, with no pause between them, are one step.
+   */
+  public async ownStep<T>(change: () => T | Promise<T>): Promise<T> {
+    this.undoRedo?.flushPending?.();
+    this._othersChange++;
+    let result: T;
+    try {
+      result = await change();
+    } finally {
+      this._othersChange--;
+      this.undoRedo?.snap?.();
+    }
+    return result;
+  }
+
+  /** True while {@link othersChange} draws someone else's change: nothing it sends is this person's step. */
+  public drawingOthersChange(): boolean {
+    return this._othersChange > 0;
   }
 
   /** Broadcast types that change the viewport/presence, not document state. */

@@ -797,11 +797,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       }
       if (JSON.stringify(renamed.workshop) === JSON.stringify(value)) { draw(value); return false }
       // A rename is a step of its own: one undo gives the old name back (a card dropped as an empty
-      // note and then named goes back to "New hire" first, then to the empty note).
-      slate.beginHostStep?.()
+      // note and then named goes back to "New hire" first, then to the empty note). A card's name is
+      // put back from the drawing's undo history (onUndoRestore); a lane's is the host's step, saved
+      // and undone with the board's other changes (HostStep), so it is not recorded here as well.
+      const ownStep = target.kind === 'card'
+      if (ownStep) slate.beginHostStep?.()
       value = renamed.workshop
       if (target.kind === 'card') namedHere.set(target.key, label)
-      slate.endHostStep?.()
+      if (ownStep) slate.endHostStep?.()
       draw(value)
       slate.announce?.(read ? renamed.report.edits.map(edit => edit.said).join(' ') : `${previous} renamed to ${label}.`)
       tell(options.onChange, value, { rename, ...(kit ? { edits } : {}) })

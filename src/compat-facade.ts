@@ -765,6 +765,57 @@ class slate {
   }
 
   /**
+   * Undo and redo of this person's own steps, on the engine's history (Slate.undo and the
+   * rest): the same methods on this facade as on the engine's slate, so a host can use either.
+   */
+  public undo(): boolean {
+    this.assertReady();
+    return (this.v2 as any).undo?.() ?? false;
+  }
+
+  public redo(): boolean {
+    this.assertReady();
+    return (this.v2 as any).redo?.() ?? false;
+  }
+
+  public canUndo(): boolean {
+    this.assertReady();
+    return Boolean((this.v2 as any).canUndo?.());
+  }
+
+  public canRedo(): boolean {
+    this.assertReady();
+    return Boolean((this.v2 as any).canRedo?.());
+  }
+
+  public undoRedoState(): { canUndo: boolean; canRedo: boolean; undoLabel: string | null; redoLabel: string | null } {
+    this.assertReady();
+    return (this.v2 as any).undoRedoState?.() ?? { canUndo: false, canRedo: false, undoLabel: null, redoLabel: null };
+  }
+
+  public onUndoRedo(listener: (state: any, outcome?: any) => void): () => void {
+    this.assertReady();
+    return (this.v2 as any).onUndoRedo?.(listener) ?? (() => {});
+  }
+
+  public recordHostStep(step: { label?: string; undo(): any; redo(): any }): void {
+    this.assertReady();
+    (this.v2 as any).recordHostStep?.(step);
+  }
+
+  public othersChange<T>(change: () => T | Promise<T>): Promise<T> {
+    this.assertReady();
+    const engine = this.v2 as any;
+    return typeof engine.othersChange === "function" ? engine.othersChange(change) : Promise.resolve(change());
+  }
+
+  public ownStep<T>(change: () => T | Promise<T>): Promise<T> {
+    this.assertReady();
+    const engine = this.v2 as any;
+    return typeof engine.ownStep === "function" ? engine.ownStep(change) : Promise.resolve(change());
+  }
+
+  /**
    * Grouping/locking controls used by the canonical app. These deliberately
    * live on the facade so hosts never need to discover the active engine via
    * the internal `window.__slateboxInstances` lifecycle registry.
