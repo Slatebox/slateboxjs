@@ -182,6 +182,31 @@ import type { Slate } from "./Slate";
 import type { SlatePackage } from "./SlatePackage";
 import { v2NodeToV1 } from "./compat";
 
+/**
+ * A WebSocket class for y-websocket that hands Yjs only binary frames. The relay
+ * sends one text frame ("Unauthenticated") when it refuses a connection; y-websocket
+ * reads every frame as a Yjs message, so a text frame throws "Unexpected end of
+ * array" inside its message handler. Text goes to `onText` instead. Null where the
+ * environment has no WebSocket (the provider's default is then used, as before).
+ */
+export function relayTextGuard(onText: (text: string) => void): any {
+  const Base: any = (globalThis as any).WebSocket;
+  if (typeof Base !== "function") return null;
+  return class RelaySocket extends Base {
+    set onmessage(handler: ((event: MessageEvent) => void) | null) {
+      super.onmessage = handler
+        ? (event: MessageEvent) => {
+            if (typeof event.data === "string") return onText(event.data);
+            return handler.call(this, event);
+          }
+        : null;
+    }
+    get onmessage(): any {
+      return super.onmessage;
+    }
+  };
+}
+
 /** Packages that change the z-order (the note list's order). */
 const Z_ORDER_PACKAGES = new Set(["onNodeToFront", "onNodeToBack"]);
 /** The one room entry that holds the latest z-order. */
@@ -260,6 +285,32 @@ export class Collab {
   }
 
   /**
+   * The relay answered with words instead of a Yjs message. It does so only when it
+   * refuses the connection ("Unauthenticated": the room's sign-in was missing, wrong
+   * or too old), and it then never syncs this socket. Say so once, stop this provider
+   * from waiting on (or reconnecting to) a socket that will never sync, and report
+   * the status, instead of the collaboration library throwing "Unexpected end of
+   * array" for every such frame.
+   */
+  private relayRefused(text: string): void {
+    if (!/unauthenticated/i.test(text)) return;
+    if (!this._relayRefusedSaid) {
+      this._relayRefusedSaid = true;
+      console.warn(
+        "COLLAB: the collaboration relay refused this connection (" +
+          text.slice(0, 40) +
+          "). Live editing with others is off until the page is opened again."
+      );
+    }
+    try {
+      this.provider?.disconnect();
+    } catch {
+      /* the provider is already gone */
+    }
+  }
+  private _relayRefusedSaid = false;
+
+  /**
    * Initialize collaboration.
    * Requires yjs and y-websocket to be installed.
    */
@@ -333,6 +384,7 @@ export class Collab {
 
       // Create WebSocket provider — params carry auth (e.g. HMAC bearer +
       // timestamp) as query string values, matching y-websocket's API
+      const WebSocketPolyfill = relayTextGuard((text) => this.relayRefused(text));
       this.provider = new WebsocketProvider(
         this.options.wsUrl!,
         this.options.roomName!,
@@ -340,6 +392,7 @@ export class Collab {
         {
           connect: true,
           params: this.options.wsParams || {},
+          ...(WebSocketPolyfill ? { WebSocketPolyfill } : {}),
         }
       );
 
