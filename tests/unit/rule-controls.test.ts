@@ -130,6 +130,21 @@ describe('rule controls: a drag changes the next drag', () => {
     expect(down.gestures.preview!({ dx: 0, dy: 2000 })).toBe('No limit')
   })
 
+  it('a limit past an empty column’s foot is drawn on the board, and a drag up from it lowers the limit (never removes it)', () => {
+    const empty = { ...team, cards: [] }
+    const ruled = applyWorkshopEdits(empty, [{ kind: 'add_rule', rule: { kind: 'capacity', where: 'done', max: 6 } }]) as any
+    const board = ruled.workshop
+    const layout = layoutOf(board)
+    const line = ruleControls(board, layout).find(control => control.id === 'capacity:done')!
+    const foot = layout.places!.find(place => place.laneId === 'done')!
+    expect(line.look.y!).toBeLessThanOrEqual(foot.y + foot.height)
+    const up = line.gestures.drag!({ dx: 0, dy: -88 })
+    expect(up).not.toEqual([])
+    const after = applyWorkshopEdits(board, up) as any
+    expect(after.workshop.behaviour.rules.find((rule: any) => rule.where === 'done').max).toBe(5)
+    expect(line.gestures.preview!({ dx: 0, dy: 200 })).toBe('No limit')
+  })
+
   it('a one-way chevron stops a card going back; tapped again, it goes both ways', () => {
     const chevron = find(controlsOf(team), 'path:todo>doing')
     const oneWay = ok(apply(team, chevron.gestures.tap!))
@@ -199,6 +214,16 @@ describe('rule controls: the layer', () => {
       }
       svg.remove()
     }
+  })
+
+  it('a ghost column as tall as its neighbours keeps its words and + at a finger’s size, not its height’s', () => {
+    const { canvas, svg } = slateWith()
+    const ghost = controlsOf(team).find(control => control.look.shape === 'ghost')!
+    const tall = { ...ghost, hit: { ...ghost.hit, height: 400 } }
+    drawRuleControls({ canvas }, 'main', [tall], {})
+    const words = [...svg.querySelectorAll('[data-rule-control] text')].find(node => node.textContent === 'Column')!
+    expect(Number(words.getAttribute('font-size'))).toBeLessThanOrEqual(13 * (ghost.hit.width / 64) + 0.01)
+    svg.remove()
   })
 
   it('Enter taps, the arrows drag a step, Shift+Enter holds, Delete removes; the host hears the edits', async () => {

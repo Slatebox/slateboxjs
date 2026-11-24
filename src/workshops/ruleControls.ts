@@ -184,11 +184,15 @@ export function ruleControls(board: Workshop, layout: RuleControlsLayout | null 
         look: { shape: 'step', icon: 'plus', on: Boolean(limit) }, gestures: { tap: setLimit(board, lane, plusMax), ...(hold && { hold }) } })
       if (family === 'lanes' && !binned) {
         // The limit as a line after its last slot: drag it up or down; past the column's foot it goes.
+        // A limit past the column's drawn foot (a column with fewer cards than it may hold) is drawn at its foot, and
+        // dragged from there by whole slots: never off the board, and a drag up from it is never read as one off the foot.
         const at = (max: number) => place.y + TOP + max * ROW - 6
-        const y = limit ? at(limit.max) : place.y + place.height - 8 * k
+        const foot = place.y + place.height
+        const y = Math.min(limit ? at(limit.max) : foot - 8 * k, foot - 8 * k)
         const maxAt = (dy: number) => {
           const point = y + dy
-          if (point > place.y + place.height + ROW * 0.75) return null
+          if (point > foot + ROW * 0.75) return null
+          if (limit) return clamp(limit.max + Math.round(dy / ROW), floor, MAX_HOLD)
           return clamp(Math.round((point + 6 - place.y - TOP) / ROW), floor, MAX_HOLD)
         }
         const drag = ({ dy }: { dx: number; dy: number }) => {

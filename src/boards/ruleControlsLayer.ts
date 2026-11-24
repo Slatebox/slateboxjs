@@ -121,10 +121,12 @@ function drawLook(control: RuleControl, offset: { dx: number; dy: number }, said
     if (icon) g.appendChild(icon)
     if (busy) g.appendChild(el('circle', { cx, cy, r: r + 3 * k, fill: 'none', 'stroke-width': 2, 'stroke-dasharray': '4 4' }, { stroke: controlInk.line }))
   } else if (look.shape === 'ghost') {
-    g.appendChild(el('path', { d: round(hit.x, hit.y, hit.width, hit.height, 10 * k), 'stroke-width': 1.6, 'stroke-dasharray': '6 5' }, { fill: 'none', stroke: controlInk.ghost }))
-    const icon = glyph('plus', cx - 9 * k, cy - 16 * k, 18 * k, controlInk.ink)
+    // A ghost column is as tall as the columns beside it: its words and + take the chrome's scale from its width (64 a finger's scale).
+    const gk = Math.min(k, hit.width / 64)
+    g.appendChild(el('path', { d: round(hit.x, hit.y, hit.width, hit.height, 10 * gk), 'stroke-width': 1.6, 'stroke-dasharray': '6 5' }, { fill: 'none', stroke: controlInk.ghost }))
+    const icon = glyph('plus', cx - 9 * gk, cy - 16 * gk, 18 * gk, controlInk.ink)
     if (icon) g.appendChild(icon)
-    g.appendChild(text(cx, cy + 18 * k, busy ? 'Adding…' : 'Column', 12 * k, controlInk.ink, 'middle'))
+    g.appendChild(text(cx, cy + 18 * gk, busy ? 'Adding…' : 'Column', 12 * gk, controlInk.ink, 'middle'))
   } else if (look.shape === 'ladder') {
     const x = look.x1 ?? cx, top = look.y ?? hit.y, gap = look.rungGap ?? 30 * k, rungs = look.rungs ?? 6
     const lit = Math.max(1, Math.min(rungs, Math.round((look.lit ?? rungs) + offset.dy / gap)))
