@@ -597,7 +597,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       if (kind === 'card') return { canMove: !readOnly, canEditText: !readOnly && !proposal && value.kind !== 'release-plan', canConnect: acceptsLines() }
       if (kind === 'lane') return { canMove: false, canEditText: !readOnly && !proposal }
       // A grip pulled sideways (a plan's edge, launch day, a budget's divider on a laptop) says so under the pointer.
-      if (kind === 'handle') return { canMove: !readOnly && !proposal, canEditText: false, ...(!layout.narrow && { cursor: kit ? 'ew-resize' : 'grab' }) }
+      // On a phone a board is laid out to the screen's width, so a grip never needs to pan the canvas: a finger that
+      // stops near the edge would otherwise keep the grip going (a plan's bar losing days it was not dragged).
+      if (kind === 'handle') return { canMove: !readOnly && !proposal, canEditText: false, ...(!layout.narrow && { cursor: kit ? 'ew-resize' : 'grab' }), ...(layout.narrow && { edgePan: false }) }
       return decoration
     },
     onStart(node: any, point) {

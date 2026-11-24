@@ -2026,6 +2026,7 @@ export class Node {
    */
   private panWhileHeldNearEdge(drag: GovernedDrag): void {
     if (drag.pan || !drag.started || !drag.last || typeof requestAnimationFrame === "undefined") return;
+    if ((this.slate as any)?.capabilitiesOf?.(this)?.edgePan === false) return;
     const resting = this.edgePanVelocity(drag, drag.last.gesture);
     if (!resting.x && !resting.y) return;
     let before = performance.now();
