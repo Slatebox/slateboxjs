@@ -66,7 +66,7 @@ export type WorkshopEdit =
   | { kind: 'disconnect_cards'; card: WorkshopRef; to: WorkshopRef }
   | { kind: 'connect_note'; card: WorkshopRef; note: string; direction?: 'to_note' | 'from_note'; label?: string }
   | { kind: 'disconnect_note'; card: WorkshopRef; note: string }
-  | { kind: 'set_task'; card: WorkshopRef; duration?: number; lag?: number }
+  | { kind: 'set_task'; card: WorkshopRef; duration?: number; lag?: number; override?: boolean }
   | { kind: 'link_tasks'; card: WorkshopRef; waitsOn: WorkshopRef }
   | { kind: 'unlink_tasks'; card: WorkshopRef; waitsOn: WorkshopRef }
   | { kind: 'set_launch_day'; day: number }
@@ -84,7 +84,7 @@ export type WorkshopEdit =
   | { kind: 'set_plan_start'; start: string }
   | { kind: 'set_plan_weeks'; weeks: number }
   // A nest board's (slateboxjs/workshops/nest adds them to the table as it loads).
-  | { kind: 'nest_card'; card: WorkshopRef; under?: WorkshopRef; lane?: WorkshopRef; before?: WorkshopRef }
+  | { kind: 'nest_card'; card: WorkshopRef; under?: WorkshopRef; lane?: WorkshopRef; before?: WorkshopRef; override?: boolean }
   | { kind: 'start_pile'; card: WorkshopRef; label?: string }
   | { kind: 'merge_cards'; card: WorkshopRef; into: WorkshopRef }
   | { kind: 'set_role'; card: WorkshopRef; role: string }
@@ -259,7 +259,7 @@ export const workshopEditKinds: WorkshopEditKind[] = [
     fields: { card: card('The card or token.') }, boards: everyBoard, refusals: {} },
   { kind: 'move_card', summary: 'Move a card to a lane, or a token to a step, by the board’s rules. A release plan brings the features that must move with it.', intent: true,
     fields: { card: card('The card or token.'), lane: lane('Where it goes.'),
-      override: { type: 'flag', optional: true, about: 'True to move it anyway when a rule refuses it (lane boards and maps), once the person agreed to break that rule. The card shows who moved it anyway and when.' } },
+      override: { type: 'flag', optional: true, about: 'True to move it anyway when a rule refuses it, once the person agreed to break that rule (every board but release plans and startup experiences). The card shows who moved it anyway and when.' } },
     boards: everyBoard, refusals: {} },
   { kind: 'advance_card', summary: 'Move a token on along the one path that leads on from its step.', intent: true,
     fields: { card: card('The token.') }, boards: ['map'], refusals: mapsOnly },
@@ -321,7 +321,8 @@ export const workshopEditKinds: WorkshopEditKind[] = [
   { kind: 'disconnect_note', summary: 'Take away the lines between a card and an ordinary note of the slate.', intent: false,
     fields: { card: card('The card.'), note: text(64, 'The id of the note.') }, boards: ['lanes'], refusals: linesOnLanes() },
   { kind: 'set_task', summary: 'Set a task\'s days, or the days it waits. Every task ends by launch.', intent: false,
-    fields: { card: card('The task.'), duration: whole('Its days, 1 to 60.', 60, 1, true), lag: whole('Days it waits, 0 or more.', 120, 0, true) },
+    fields: { card: card('The task.'), duration: whole('Its days, 1 to 60.', 60, 1, true), lag: whole('Days it waits after what it waits on ends, 0 or more (below 0, with override: it starts before what it waits on ends).', 120, -120, true),
+      override: { type: 'flag', optional: true, about: 'True to set it anyway when a rule refuses it (a lock, a freeze, an overlap, the line, what it waits on), once the person agreed to break that rule. The task shows who moved it anyway and when.' } },
     boards: ['launch-plan'], refusals: others(['launch-plan'], sentences.notTasks) },
   { kind: 'link_tasks', summary: 'Make a task wait on another.', intent: false,
     fields: { card: card('The task that waits.'), waitsOn: card('The task it waits on.') }, boards: ['launch-plan'], refusals: others(['launch-plan'], sentences.notTasks) },
@@ -553,6 +554,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       refuse: (reason, at = {}) => { throw new Refusal(reason, at.code ?? 'refused', at.laneId ?? null, at.cardId, undefined, at.limits) },
       settle: (next, laneId = null, cardId) => settle(next, family, laneId, cardId),
       done: (next, sentence, ids) => done(next, sentence, ids),
+      who: { by: audit?.by ?? 'an agent', at: audit?.at ?? new Date().toISOString() },
     }
     const step = workshopRules(family as 'launch-plan').edit(board, edit, tools)
     if (step) return step
@@ -953,16 +955,22 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
     if (!entry.boards.includes(family)) {
       return refuse({ index, kind: entry.kind, code: 'not_on_this_board', reason: entry.refusals[family] ?? 'This workshop does not take ' + entry.kind + '.' })
     }
+    // A move a rule refused that the person may make anyway: the same edit again with override true (model.ts, "Moving
+    // a card anyway") would be made. Asked only of a refused move.
+    const movable = (edit.kind === 'move_card' || edit.kind === 'set_task' || edit.kind === 'nest_card') && edit.override !== true
+    const overridable = (code: WorkshopEditRefusalCode) => movable && code === 'refused' &&
+      !('refused' in applyWorkshopEdits(current, [{ ...edit, override: true } as WorkshopEdit], options))
     let step: Step
     try { step = makeEdit(current, edit, family, options.selection, audit) } catch (error) {
       if (!(error instanceof Refusal)) throw error
-      return refuse({ index, kind: entry.kind, reason: error.reason, code: error.code, laneId: error.laneId, ...(error.overridable && { overridable: true }),
+      return refuse({ index, kind: entry.kind, reason: error.reason, code: error.code, laneId: error.laneId, ...((error.overridable || overridable(error.code)) && { overridable: true }),
         ...(error.cardId && { cardId: error.cardId }), ...(error.candidates && { candidates: error.candidates }), ...(error.limits && { limits: error.limits }) })
     }
     // What the board's rulebook says of every card this edit put in a lane (an edit of the rules moves nothing).
     const verdict = current.behaviour && !isRuleEdit(entry.kind) ? rulebook().check(current, step.board) : null
     if (verdict && 'refused' in verdict) {
-      return refuse({ index, kind: entry.kind, reason: verdict.refused.sentence, code: 'refused', laneId: verdict.refused.laneId, cardId: verdict.refused.cardId })
+      return refuse({ index, kind: entry.kind, reason: verdict.refused.sentence, code: 'refused', laneId: verdict.refused.laneId, cardId: verdict.refused.cardId,
+        ...(overridable('refused') && { overridable: true }) })
     }
     const kept = checkWorkshopReplacement(current, step.board)
     if (kept) return refuse({ index, kind: entry.kind, reason: kept, code: 'not_on_this_board', laneId: step.laneId ?? null })

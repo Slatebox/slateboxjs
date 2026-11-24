@@ -5,7 +5,7 @@
 // push or stop, locks. A dated plan (clock.origin) says real dates.
 import type { Workshop, WorkshopCard } from './model'
 // The rule modules take the model's own helpers from the model, so they share its chunk instead of copying it.
-import { registerWorkshopRules, said } from './model'
+import { registerWorkshopRules, said, workshopFreshOverride, workshopOverrideMark } from './model'
 import type { BusinessBoardRules, BusinessEditTools, PlanWords, WorkshopLimits } from './kinds'
 import type { WorkshopEdit } from './edits'
 import { amountOf, days, nextCardId, noteNumbers, ownField, renamedNumbers } from './numbers'
@@ -40,9 +40,40 @@ extendWorkshopEdits({
 
 /** Why `after` breaks this plan's rules (or its built-in line), as a sentence; null when it keeps them. */
 export function planProblem(before: Workshop, after: Workshop, cardId?: string): string | null {
-  if (!before.behaviour) return before.kind === 'launch-plan' ? launchOverrun(after, cardId) : null
+  if (!before.behaviour) return before.kind === 'launch-plan' ? builtInLate(before, after, cardId) : null
   const verdict = checkTime(before, after)
   return 'refused' in verdict ? verdict.refused.sentence : null
+}
+
+/**
+ * A plan without rules keeps its built-in hard line: every task ends by launch. A task moved past it anyway (once the
+ * person confirmed it) is theirs; after that only a task that newly runs late, or later, is refused, as a deadline
+ * rule refuses (timeRules.ts), so a plan with a task moved anyway can still be worked on.
+ */
+function builtInLate(before: Workshop, after: Workshop, cardId?: string): string | null {
+  if (after.cards.some(card => workshopFreshOverride(before, card))) return null
+  if (!launchOverrun(before)) return launchOverrun(after, cardId)
+  const line = launchIndex(after), was0 = launchIndex(before)
+  const was = scheduleLaunch(before), now = scheduleLaunch(after)
+  const late = after.cards.some(card => {
+    const t = now.get(card.id)!, b = was.get(card.id)
+    return t.end > line && (!b || b.end <= was0 || t.end > b.end || line < was0)
+  })
+  return late ? launchOverrun(after, cardId) : null
+}
+
+/**
+ * Why a task may not start where `lag` puts it, before what it waits on ends (a lag below 0): the sentence a move made
+ * anyway breaks. Null for a lag of 0 or more.
+ */
+export function waitsRefusal(board: Workshop, cardId: string, lag: number): string | null {
+  if (lag >= 0) return null
+  const card = board.cards.find(item => item.id === cardId)
+  if (!card) return 'That task is no longer on the plan.'
+  const waits = (card.dependsOn ?? []).map(id => board.cards.find(item => item.id === id)?.label).filter(Boolean)
+  const ready = dayMap(clockOf(board)).cal(scheduleLaunch(board).get(cardId)!.start - (card.lag ?? 0))
+  return waits.length ? card.label + ' waits on ' + waits.join(' and ') + ': it starts ' + dayWords(board, ready) + ' at the earliest.'
+    : card.label + ' starts on the plan’s first day at the earliest.'
 }
 
 /**
@@ -172,15 +203,18 @@ export function validateLaunchPlan(board: Workshop): string | null {
   const hard = launchHard(board)
   for (const card of board.cards) {
     if (!Number.isInteger(card.duration) || card.duration! < 1 || card.duration! > 60) return 'A task takes 1 to 60 days.'
-    if (!Number.isInteger(card.lag ?? 0) || (card.lag ?? 0) < 0 || (card.lag ?? 0) > 120) return 'A task waits 0 days or more, and no later than launch.'
+    // A task moved anyway may start before what it waits on ends (a lag below 0), never before the plan's first day.
+    if (!Number.isInteger(card.lag ?? 0) || ((card.lag ?? 0) < 0 && !card.override) || Math.abs(card.lag ?? 0) > 120) return 'A task waits 0 days or more, and no later than launch.'
     if ((card.dependsOn?.length ?? 0) > 3) return 'A task waits on up to 3 others.'
     if (card.dependsOn?.includes(card.id)) return 'A task can\'t wait on itself.'
   }
   if (!board.clock && board.behaviour?.rules.some(rule => rule.kind === 'workdays' || rule.kind === 'blackout')) return 'Working days and freezes need dates; this plan counts day numbers.'
   try { scheduleLaunch(board) } catch (error) { return (error as Error).message }
   const times = scheduleLaunch(board)
+  if ([...times.values()].some(t => t.start < 0)) return 'A task starts on the plan’s first day or later.'
   const finish = launchFinish(board)
-  if (hard && finish > launchIndex(board)) {
+  // Past a hard line only with a task moved anyway on the plan: it says who moved it, and the late tasks are drawn in red.
+  if (hard && finish > launchIndex(board) && !board.cards.some(card => card.override)) {
     const late = board.cards.find(card => times.get(card.id)!.end === finish)!
     return board.clock ? launchOverrun(board) : `${late.label} ends on day ${finish}, after launch on day ${day}.`
   }
@@ -449,11 +483,18 @@ export function planEdit(board: Workshop, edit: WorkshopEdit, t: BusinessEditToo
       const at = { laneId: task.laneId, cardId: task.id }
       if (edit.duration === undefined && edit.lag === undefined) t.refuse('Say how many days ' + said(task.label) + ' takes, or waits.', { ...at, code: 'invalid_edit' })
       const hiring = board.kind === 'hiring-plan'
+      // Set anyway, once the person agreed (override): past the plan's rules, its line, and what it waits on.
+      if (edit.override === true) {
+        const made = taskAnyway(board, task, edit, t)
+        if (made) return made
+      }
       let next: Workshop = board
       for (const field of ['duration', 'lag'] as const) {
         const value = edit[field]
         if (value === undefined) continue
         if (!Number.isInteger(value)) t.refuse('A task\'s days are whole days.', at)
+        // Before what it waits on ends: a move only made anyway.
+        if (field === 'lag' && value < 0) t.refuse(waitsRefusal(next, task.id, value)!, at)
         if (!board.behaviour && !hiring) {
           // The built-in line: the range that keeps every task ending by launch.
           const limits = launchPlanLimits(next, { cardId: task.id, field })
@@ -471,6 +512,8 @@ export function planEdit(board: Workshop, edit: WorkshopEdit, t: BusinessEditToo
         if (typeof held === 'string') t.refuse(held, at)
         next = held as Workshop
       }
+      // An ordinary move takes the task's move-anyway mark with it, once it no longer starts before what it waits on.
+      next = { ...next, cards: next.cards.map(card => card.id === task.id && card.override && (card.lag ?? 0) >= 0 ? withoutMark(card) : card) }
       const settled = t.settle(next, task.laneId, task.id)
       return t.done(settled, said0(settled.cards.find(item => item.id === task.id)!, settled), at)
     }
@@ -505,6 +548,47 @@ export function planEdit(board: Workshop, edit: WorkshopEdit, t: BusinessEditToo
   return null
 }
 
+const withoutMark = (card: WorkshopCard): WorkshopCard => {
+  const { override: _override, ...plain } = card
+  return plain
+}
+
+/**
+ * set_task made anyway (model.ts, "Moving a card anyway"): the task takes the days asked for, past the plan's rules
+ * (a lock, a freeze, an overlap, a slip that stops, the line) and before what it waits on ends (a lag below 0, never
+ * before the plan's first day). What waits on it moves with it; the critical path, the finish and the runway are worked
+ * out again. Marked with who, when, the rule and its days before. Null when no rule refuses it: an ordinary set_task.
+ * The days' own ranges stay hard (a task takes 1 to 60 days, a hire 1 to 20 weeks of recruiting).
+ */
+function taskAnyway(board: Workshop, task: WorkshopCard, edit: Extract<WorkshopEdit, { kind: 'set_task' }>, t: BusinessEditTools) {
+  const at = { laneId: task.laneId, cardId: task.id }
+  const hiring = board.kind === 'hiring-plan'
+  let next: Workshop = board
+  let sentence: string | null = null
+  for (const field of ['duration', 'lag'] as const) {
+    const value = edit[field]
+    if (value === undefined) continue
+    if (!Number.isInteger(value)) t.refuse('A task\'s days are whole days.', at)
+    const [low, high] = field === 'duration' ? (hiring ? [7, 140] : [1, 60]) : [-(hiring ? 728 : 120), hiring ? 728 : 120]
+    if (value < low || value > high) t.refuse(field === 'duration' ? (hiring ? 'Recruiting takes 1 to 20 weeks.' : 'A task takes 1 to 60 days.') : 'That is further out than the plan runs.', at)
+    if (field === 'lag') sentence = waitsRefusal(next, task.id, value)
+    next = withTaskValue(next, { cardId: task.id, field }, value)
+  }
+  if (scheduleLaunch(next).get(task.id)!.start < 0) t.refuse(task.label + ' can’t start before the plan’s first day.', at)
+  // A slip that stops holds what waits on it where it can; where it can't, what waits on it moves with it.
+  let held: Workshop | string = next
+  if (cascadeStops(board)) held = holdOthers(board, next, new Set([task.id]))
+  sentence ??= typeof held === 'string' ? held : planProblem(board, held, task.id)
+  if (typeof held !== 'string') next = held
+  if (!sentence) return null
+  const mark = workshopOverrideMark(task, sentence, t.who ?? { by: 'an agent', at: new Date().toISOString() }, { lag: task.lag ?? 0, duration: task.duration ?? 1 })
+  const settled = t.settle({ ...next, cards: next.cards.map(card => card.id === task.id ? { ...withoutMark(card), override: mark } : card) }, task.laneId, task.id)
+  const moved = settled.cards.find(item => item.id === task.id)!
+  const times = scheduleLaunch(settled).get(task.id)!
+  return t.done(settled, 'Moved ' + said(task.label) + ' anyway: it ' + (hiring ? 'starts ' + dayWords(settled, times.to) : 'runs ' + dayWords(settled, times.from) + ' to ' + dayWords(settled, times.to - 1)) +
+    (moved.duration !== task.duration ? ', ' + days(moved.duration!) : '') + '. ' + sentence, at)
+}
+
 /** The launch plan's part of the one gate (see kinds.ts). */
 export const launchPlanRules: BusinessBoardRules = {
   kind: 'launch-plan',
@@ -515,7 +599,8 @@ export const launchPlanRules: BusinessBoardRules = {
   words: planWords,
   readCard(raw, card, read) {
     card.duration = amountOf(raw.duration, 1, 60, 'A task takes 1 to 60 days.')
-    if (raw.lag !== undefined && raw.lag !== 0) card.lag = amountOf(raw.lag, 0, 120, 'A task waits 0 days or more, and no later than launch.')
+    // A task moved anyway may start before what it waits on ends: a lag below 0 (validateLaunchPlan keeps it on the plan).
+    if (raw.lag !== undefined && raw.lag !== 0) card.lag = amountOf(raw.lag, raw.override !== undefined ? -120 : 0, 120, 'A task waits 0 days or more, and no later than launch.')
     if (raw.dependsOn !== undefined) {
       if (!Array.isArray(raw.dependsOn)) throw new Error('A task waits on a list of tasks.')
       const ids = raw.dependsOn.map(read.id)

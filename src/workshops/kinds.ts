@@ -32,6 +32,8 @@ export interface BusinessEditTools {
   /** The board through validateWorkshop, or a refusal in the model's words. */
   settle(board: Workshop, laneId?: string | null, cardId?: string): Workshop
   done(board: Workshop, said: string, ids?: { laneId?: string; cardId?: string }): BusinessEditStep
+  /** Who makes the edit, and when: the mark a move made anyway carries (model.ts workshopOverrideMark). */
+  who?: { by: string; at: string }
 }
 
 /** Everything the gate asks of one kind of business board. Pure: no DOM, no drawing. */

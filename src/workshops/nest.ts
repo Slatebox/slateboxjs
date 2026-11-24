@@ -13,7 +13,7 @@
 // same words. Rules read structured fields only, never a card's words; a new rule never moves a card.
 import type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, WorkshopMoveCheck } from './behaviour'
 import type { NestFields, Workshop, WorkshopCard } from './model'
-import { registerWorkshopRules, said, validateWorkshop, applyWorkshopEdits, workshopReferences } from './model'
+import { registerWorkshopRules, said, validateWorkshop, applyWorkshopEdits, workshopReferences, workshopFreshOverride, workshopOverrideMark, workshopOverrideUndone, workshopHasMarks as hasMarks } from './model'
 import type { BusinessBoardRules, BusinessEditTools, RuleFamily } from './kinds'
 import type { WorkshopEdit, WorkshopEditField, WorkshopEditKind, WorkshopEditKindName, WorkshopRef } from './edits'
 import { workshopEditKinds, workshopRuleSchema } from './model'
@@ -267,8 +267,12 @@ export function checkNest(before: Board, after: Board): BehaviourVerdict {
   if (!rules.length) return plus?.check(before, after, warnings) ?? { ok: true, warnings }
   const old = new Map(before.cards.map(card => [card.id, card]))
   const { tray } = nestAreas(after)
+  // A card moved anyway (nest_card with override, once the person confirmed it), or going back where it came from (an
+  // Undo), is not held to a rule again.
+  const marks = hasMarks(before, after)
   const arrived = after.cards.filter(card => {
     const was = old.get(card.id)
+    if (marks && (workshopFreshOverride(before, card) || workshopOverrideUndone(before, card))) return false
     return card.laneId !== tray && (!was || was.parentId !== card.parentId || was.laneId !== card.laneId || was.role !== card.role)
   })
   const kidsOf = (board: Board, id: string) => board.cards.filter(card => card.parentId === id).length
@@ -474,8 +478,10 @@ export function checkNestMove(input: Board, cardRef: WorkshopRef, to: { under?: 
   const legal = new Set(nestLegal(board, card.id).flatMap(({ spot }) => spot.under ? [spot.under] : []))
   const near = under ? [...nestKids(board, under.id), ...(under.parentId ? nestKids(board, under.parentId) : nestKids(board, null, under.laneId))] : []
   const nearest = near.find(item => legal.has(item.id) && item.id !== card.parentId)?.label ?? null
-  // A nested board's cards are what sits under what: a hard limit (model.ts, "Moving a card anyway").
-  return { refused: { sentence, ruleId: rule?.id ?? null, nearest, overridable: false, ...(rule && { set: rule.set as RuleAudit }) } }
+  // Whether the person may nest it anyway (model.ts, "Moving a card anyway"): what sits under what may break a rule,
+  // never the board's own structure (under itself, nested in the tray, deeper than a board goes).
+  const overridable = made.refused.overridable === true
+  return { refused: { sentence, ruleId: rule?.id ?? null, nearest, overridable, ...(rule && { set: rule.set as RuleAudit }) } }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -501,7 +507,8 @@ extend({
   kinds: [
     { kind: 'nest_card', summary: 'Nest board: put a card under another (under), at the top of an area (lane), before a sibling (before). The cards under it come with it.', intent: true,
       fields: { card: cardField('The card.'), under: { ...cardField('The card it goes under.'), optional: true }, lane: { type: 'ref', of: 'lane', optional: true, about: 'The area it goes to the top of.' },
-        before: { ...cardField('The sibling it goes before. Left out, last.'), optional: true } }, boards: nestOnly, refusals: {} },
+        before: { ...cardField('The sibling it goes before. Left out, last.'), optional: true },
+        override: { type: 'flag', optional: true, about: 'True to nest it anyway when a rule refuses it (a role, a depth, a parent’s limit), once the person agreed to break that rule. The card shows who moved it anyway and when.' } }, boards: nestOnly, refusals: {} },
     { kind: 'start_pile', summary: 'Nest board: start a new pile with this card in it.', intent: true,
       fields: { card: cardField('The card.'), label: text(80, 'The pile’s name. Left out, “New pile”.', true) }, boards: nestOnly, refusals: {} },
     { kind: 'merge_cards', summary: 'Nest board: merge a card into another. What was under it goes under that one; a drop still on its way lands there too.', intent: false,
@@ -602,10 +609,19 @@ function nestEdit(input: Board, edit: WorkshopEdit, t: BusinessEditTools) {
       const parent = edit.under === undefined ? null : under(edit.under)
       const laneId = parent?.laneId ?? (edit.lane === undefined ? card.laneId : t.lane(edit.lane).id)
       const before = edit.before === undefined ? null : t.card(edit.before).id
-      const next = place(card, { laneId, under: parent?.id ?? null, before })
+      let next = place(card, { laneId, under: parent?.id ?? null, before })
       if (next === board) return t.done(board, said(card.label) + ' is there already.', { laneId, cardId: card.id })
       const where = parent ? 'under ' + said(parent.label) : laneId === tray ? 'to ' + said(trayName) : 'to the top of ' + said(board.lanes[0].label)
-      return t.done(next, 'Moved ' + said(card.label) + ' ' + where + '.', { laneId, cardId: card.id })
+      // An ordinary move takes the card's move-anyway mark with it; a move the rules refuse, made anyway once the person
+      // agreed (override), is marked with who, when, the rule and where it sat (model.ts, "Moving a card anyway").
+      const verdict = edit.override === true ? checkNest(board, next) : null
+      const mark = verdict && 'refused' in verdict ? workshopOverrideMark(card, verdict.refused.sentence, t.who ?? { by: 'an agent', at: new Date().toISOString() }, { parentId: card.parentId ?? null }) : null
+      next = settle({ ...next, cards: next.cards.map(item => {
+        if (item.id !== card.id) return item
+        const { override: _old, ...plain } = item
+        return mark ? { ...plain, override: mark } : plain
+      }) }, laneId, card.id)
+      return t.done(next, 'Moved ' + said(card.label) + ' ' + where + (mark ? ' anyway. ' + mark.sentence : '.'), { laneId, cardId: card.id })
     }
     case 'start_pile': {
       const card = t.card(edit.card)

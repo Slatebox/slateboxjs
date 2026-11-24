@@ -2,7 +2,7 @@
 // may hold only so many deals, and the forecast weighs each open deal by its stage's chance.
 import type { Workshop, WorkshopCard, WorkshopLane } from './model'
 // The rule modules take the model's own helpers from the model, so they share its chunk instead of copying it.
-import { registerWorkshopRules, said } from './model'
+import { registerWorkshopRules, said, workshopLaneOverridden } from './model'
 import type { BusinessBoardRules, BusinessEditTools, WorkshopLimits } from './kinds'
 import type { WorkshopEdit } from './edits'
 import { amountLimits, amountOf, currencyOf, money, nextCardId, noteNumbers, ownField, renamedNumbers } from './numbers'
@@ -30,7 +30,8 @@ export function validatePipeline(board: Workshop): string | null {
   for (const lane of board.lanes) {
     if (open(lane) && lane.probability === undefined) return `Give ${lane.label} a chance to win, from 0 to 100%.`
     const held = board.cards.filter(card => card.laneId === lane.id).length
-    if (lane.capacity !== undefined && held > lane.capacity) return `${lane.label} already holds ${held} of ${lane.capacity} deals.`
+    // A deal moved anyway may fill a stage past its limit: the stage says so (pipelineCaption).
+    if (lane.capacity !== undefined && held > lane.capacity && !workshopLaneOverridden(board, lane.id)) return `${lane.label} already holds ${held} of ${lane.capacity} deals.`
   }
   const won = board.lanes.find(lane => lane.role === 'won')
   const unpriced = won && board.cards.find(card => card.laneId === won.id && card.amount === undefined)
@@ -73,7 +74,14 @@ export function pipelineCaption(board: Workshop, laneId: string): string {
   const deals = board.cards.filter(card => card.laneId === laneId)
   const sum = deals.reduce((total, card) => total + (card.amount ?? 0), 0)
   const chance = lane.role === 'won' ? 1 : lane.role === 'lost' ? 0 : lane.probability ?? 0
-  return `${deals.length} ${deals.length === 1 ? 'deal' : 'deals'} · ${money(sum, board.forecast?.currency)} · ${Math.round(chance * 100)}%`
+  const over = lane.capacity !== undefined && deals.length > lane.capacity ? ` · over its limit of ${lane.capacity}` : ''
+  return `${deals.length} ${deals.length === 1 ? 'deal' : 'deals'} · ${money(sum, board.forecast?.currency)} · ${Math.round(chance * 100)}%${over}`
+}
+
+/** Whether a stage holds more deals than its limit (a deal moved anyway): drawn in red. */
+export function pipelineStageOver(board: Workshop, laneId: string): boolean {
+  const lane = board.lanes.find(item => item.id === laneId)
+  return Boolean(lane && lane.capacity !== undefined && board.cards.filter(card => card.laneId === laneId).length > lane.capacity)
 }
 
 

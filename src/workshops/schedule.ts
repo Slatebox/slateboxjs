@@ -75,6 +75,19 @@ export function scheduleLaunch(board: Workshop): Map<string, TaskTimes> {
   return times
 }
 
+/**
+ * The waits a task moved anyway breaks: it starts before what it waits on ends (a lag below 0). Each is drawn
+ * broken, in red, from the task waited on to the task that starts early.
+ */
+export function brokenWaits(board: Workshop): { from: string; to: string }[] {
+  const times = scheduleLaunch(board)
+  const out: { from: string; to: string }[] = []
+  for (const card of board.cards) for (const id of card.dependsOn ?? []) {
+    if (times.get(card.id)!.start < (times.get(id)?.end ?? 0)) out.push({ from: id, to: card.id })
+  }
+  return out
+}
+
 /** The index the last task ends at. */
 export function launchFinish(board: Workshop): number {
   return Math.max(0, ...[...scheduleLaunch(board).values()].map(t => t.end))

@@ -2,7 +2,7 @@
 // stays between its team's floor and cap, and a team's line items fit inside what it was given.
 import type { Workshop, WorkshopCard, WorkshopLane } from './model'
 // The rule modules take the model's own helpers from the model, so they share its chunk instead of copying it.
-import { registerWorkshopRules, said } from './model'
+import { registerWorkshopRules, said, workshopLaneOverridden } from './model'
 import type { BusinessBoardRules, BusinessEditTools, WorkshopLimits } from './kinds'
 import type { WorkshopEdit } from './edits'
 import { amountLimits, amountOf, currencyOf, money, moneyExact, nextCardId, noteNumbers, ownField } from './numbers'
@@ -12,8 +12,17 @@ export function budgetCommitted(board: Workshop, laneId: string): number {
   return board.cards.reduce((sum, card) => sum + (card.laneId === laneId ? card.amount ?? 0 : 0), 0)
 }
 
-/** The least a team's allocation may be: its floor, or what it has committed if that is more. */
-const lowest = (board: Workshop, lane: WorkshopLane) => Math.max(lane.floor ?? 0, budgetCommitted(board, lane.id))
+/**
+ * The least a team's allocation may be: its floor, or what it has committed if that is more. A team over its money
+ * (a line item moved there anyway) gives none away: the least is what it has.
+ */
+const lowest = (board: Workshop, lane: WorkshopLane) => Math.max(lane.floor ?? 0, Math.min(budgetCommitted(board, lane.id), lane.allocation ?? 0))
+
+/** How far a team commits past what it was given (a line item moved there anyway): 0 when it fits. */
+export function budgetOver(board: Workshop, laneId: string): number {
+  const lane = board.lanes.find(item => item.id === laneId)
+  return lane ? Math.max(0, budgetCommitted(board, laneId) - (lane.allocation ?? 0)) : 0
+}
 
 export function validateBudget(board: Workshop): string | null {
   const envelope = board.budget
@@ -27,7 +36,8 @@ export function validateBudget(board: Workshop): string | null {
     if (lane.floor !== undefined && lane.allocation < lane.floor) return `${lane.label}'s floor is ${money(lane.floor, envelope.currency)}.`
     if (lane.cap !== undefined && lane.allocation > lane.cap) return `${lane.label}'s cap is ${money(lane.cap, envelope.currency)}.`
     const committed = budgetCommitted(board, lane.id)
-    if (committed > lane.allocation) return `${lane.label} commits ${money(committed, envelope.currency)} of ${money(lane.allocation, envelope.currency)}.`
+    // A line item moved anyway may take a team past its money: the team says by how much, in red (budgetCaption).
+    if (committed > lane.allocation && !workshopLaneOverridden(board, lane.id)) return `${lane.label} commits ${money(committed, envelope.currency)} of ${money(lane.allocation, envelope.currency)}.`
   }
   if (board.cards.some(card => card.amount === undefined)) return 'Give every line item a cost.'
   return null
@@ -148,7 +158,8 @@ export function budgetTotalFixed(before: Workshop, after: Workshop): string | nu
 export function budgetCaption(board: Workshop, laneId: string): string {
   const lane = board.lanes.find(item => item.id === laneId)!
   const currency = board.budget?.currency
-  return `${money(lane.allocation ?? 0, currency)} · ${money(budgetCommitted(board, laneId), currency)} committed`
+  const over = budgetOver(board, laneId)
+  return `${money(lane.allocation ?? 0, currency)} · ${money(budgetCommitted(board, laneId), currency)} committed` + (over ? ` · over budget by ${money(over, currency)}` : '')
 }
 
 

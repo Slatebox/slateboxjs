@@ -2,7 +2,7 @@ export * from './offlineHandoff'
 export * from './listeningRoom'
 import { planReleaseMove, releaseLoad, validateRelease } from './release'
 export { releaseLoad, releasePlan } from './release'
-import { applyWorkshopEdits } from './edits'
+import { applyWorkshopEdits, type WorkshopEdit } from './edits'
 import { rulebook } from './kinds'
 import type { Behaviour } from './behaviour'
 export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, RuleInput, RuleKindId, WorkshopMoveCheck } from './behaviour'
@@ -83,6 +83,12 @@ export interface WorkshopOverride {
   sentence: string
   /** The lane the card was in before. */
   from: string
+  /**
+   * What else the move changed, as it was before, where it is more than the lane (Undo puts these back too): a plan's
+   * task moved in time (its `lag` and `duration`), a nested board's card moved under another (`parentId`, null at the
+   * top of its area).
+   */
+  was?: { lag?: number; duration?: number; parentId?: string | null }
 }
 
 /**
@@ -540,11 +546,34 @@ function overrideOf(input: unknown, laneIds: string[], laneId: string): Workshop
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('A move made anyway says who made it, when, and past which rule.')
   const raw = input as Record<string, unknown>
   const text = (value: unknown, most: number) => typeof value === 'string' && value.trim().length > 0 && value.length <= most && !/[\u0000-\u001f\u007f<>]/.test(value)
+  const was = raw.was === undefined ? undefined : wasOf(raw.was)
+  // A move within the lane (a plan's task in time, a card nested under another) says what it changed besides.
   if (!text(raw.by, 80) || !text(raw.at, 40) || Number.isNaN(Date.parse(raw.at as string)) || !text(raw.sentence, 300) ||
-    typeof raw.from !== 'string' || !laneIds.includes(raw.from) || raw.from === laneId || Object.keys(raw).some(key => !['by', 'at', 'sentence', 'from'].includes(key))) {
+    typeof raw.from !== 'string' || !laneIds.includes(raw.from) || (raw.from === laneId && !was) || Object.keys(raw).some(key => !['by', 'at', 'sentence', 'from', 'was'].includes(key))) {
     throw new Error('A move made anyway says who made it, when, past which rule, and the lane it came from.')
   }
-  return { by: raw.by as string, at: raw.at as string, sentence: raw.sentence as string, from: raw.from }
+  return { by: raw.by as string, at: raw.at as string, sentence: raw.sentence as string, from: raw.from, ...(was && { was }) }
+}
+
+/** A move-anyway record's `was` (WorkshopOverride.was), read strictly. */
+function wasOf(input: unknown): NonNullable<WorkshopOverride['was']> {
+  const bad = () => new Error('A move made anyway says what it changed as it was before.')
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw bad()
+  const raw = input as Record<string, unknown>
+  const keys = Object.keys(raw)
+  if (!keys.length || keys.some(key => !['lag', 'duration', 'parentId'].includes(key))) throw bad()
+  const was: NonNullable<WorkshopOverride['was']> = {}
+  for (const key of ['lag', 'duration'] as const) {
+    if (raw[key] === undefined) continue
+    const n = raw[key]
+    if (typeof n !== 'number' || !Number.isInteger(n) || Math.abs(n) > 1000) throw bad()
+    was[key] = n
+  }
+  if (raw.parentId !== undefined) {
+    if (raw.parentId !== null && (typeof raw.parentId !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(raw.parentId))) throw bad()
+    was.parentId = raw.parentId as string | null
+  }
+  return was
 }
 
 export function validateWorkshop(input: unknown): Workshop {
@@ -616,7 +645,7 @@ export function validateWorkshop(input: unknown): Workshop {
     const card: WorkshopCard = { id: id(raw.id), label: business ? label(raw.label) : cardLabel(raw.label), laneId: id(raw.laneId) }
     if (!laneIds.includes(card.laneId)) throw new Error('Card refers to an unknown lane.')
     if (raw.override !== undefined) {
-      if (business || release || value.experience !== undefined) throw new Error('Only the cards of lane boards and maps are moved past a rule.')
+      if (release || value.experience !== undefined) throw new Error('A release plan’s and a startup experience’s cards are never moved past a rule.')
       card.override = overrideOf(raw.override, laneIds, card.laneId)
     }
     if (raw.allowedLaneIds !== undefined) {
@@ -812,18 +841,58 @@ export function workshopCandidate(board: Workshop, cardId: string, laneId: strin
 // who, when and the rule it broke (WorkshopCard.override), shown on the card; Undo puts it back in one step. The drag,
 // the chat, the server and exec's check_move all ask these same functions.
 //
+// What a move made anyway means on each board, so the numbers it computes stay true:
+// - lane boards and maps: the card stands in the lane (a lane past its limit says "3 of 2");
+// - a sales pipeline: the deal skips stages, leaves Won, or fills a stage past its limit; the forecast counts it where
+//   it is, and the stage says it is over its limit;
+// - a budget: the line item goes to a team that has not got the money; the team commits more than it was given, and
+//   its lane says by how much, in red, until money moves to it or the item leaves;
+// - a launch plan: a task moves past its rule (a lock, a freeze, an overlap, the hard line) or starts before what it
+//   waits on ends; the critical path and the finish are worked out again, a task past the line is drawn in red and a
+//   dependency it starts before is drawn broken, in red (edits.ts set_task override);
+// - a hiring plan: a hire moves past its rule (a lock, the runway floor, a slip that stops) or into another team;
+//   the runway is worked out again with the hire where it is;
+// - a nested board: a card goes under a parent its rules say it may not sit under (a role, a depth, a parent's
+//   limit); the piles and their ranks are worked out again (edits.ts nest_card override).
+//
 // Hard limits, refused even with a confirmation (workshopHardLimit):
 // - a card or lane that is not on the board: there is nothing to move;
-// - a release plan, a launch plan, a hiring plan, a budget, a pipeline or a nested board, and a startup experience:
-//   their cards are numbers and dates the board computes from where each card is (points per release, days, amounts,
-//   what sits under what), so a card placed past their rule would leave a board that does not add up. Their soft
-//   rules can be set to warn instead of refuse ("Just warn me when ...").
+// - a release plan and a startup experience: every card is points or an interview the board itself places;
+// - what would leave a board that can't be read: a won deal with no amount (the forecast can't count it), a task
+//   that starts before the plan's first day or waits in a circle, a card under itself or nested in the tray, more
+//   cards than a board holds, a number out of its range.
 // Nothing else is a hard limit: a full lane, a lane a card is not allowed in, a column skipped, a gate, a bin, a step
-// with no path to it.
+// with no path to it, and every rule of a plan, a pipeline, a budget and a nested board.
 
-/** Whether a move refused on this board may be made anyway: lane boards and maps. */
+/** Whether a move refused on this board may be made anyway: every board but release plans and startup experiences. */
 function takesOverrides(board: Workshop): boolean {
-  return !board.kind && !board.experience
+  return board.kind !== 'release-plan' && !board.experience
+}
+
+/** Whether either board carries a move-anyway mark at all: the checks below are asked only then. */
+export function workshopHasMarks(before: Pick<Workshop, 'cards'>, after: Pick<Workshop, 'cards'>): boolean {
+  return before.cards.some(card => card.override) || after.cards.some(card => card.override)
+}
+
+/** Whether `card` (on the board after a change) was moved anyway by that change: marked now, and not as it was. */
+export function workshopFreshOverride(before: Workshop, card: WorkshopCard): boolean {
+  if (!card.override) return false
+  const old = before.cards.find(item => item.id === card.id)?.override
+  return !old || JSON.stringify(old) !== JSON.stringify(card.override)
+}
+
+/** Whether `card`, moved anyway before (on `before`), is back where the move took it from: an Undo. */
+export function workshopOverrideUndone(before: Workshop, card: WorkshopCard): boolean {
+  const old = before.cards.find(item => item.id === card.id)?.override
+  if (!old || card.override) return false
+  const was = old.was ?? {}
+  return card.laneId === old.from && (was.lag === undefined || (card.lag ?? 0) === was.lag) &&
+    (was.duration === undefined || card.duration === was.duration) && (was.parentId === undefined || (card.parentId ?? null) === was.parentId)
+}
+
+/** The lanes of `laneId` that hold a card moved anyway: the lane may be past its limit (or its money) because of it. */
+export function workshopLaneOverridden(board: Pick<Workshop, 'cards'>, laneId: string): boolean {
+  return board.cards.some(card => card.laneId === laneId && card.override !== undefined)
 }
 
 /**
@@ -838,6 +907,16 @@ export function workshopHardLimit(board: Workshop, cardId: string, laneId: strin
   return workshopRefusal(board, cardId, laneId) ?? 'That move is not available.'
 }
 
+/** A who for a mark: a name of plain words, at most 80 letters. */
+function overrideWho(who: { by: string; at: string }): { by: string; at: string } {
+  return { by: String(who.by || 'Someone').replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, 80) || 'Someone', at: who.at }
+}
+
+/** The mark a card moved anyway carries: who, when, the rule's sentence and where it came from. */
+export function workshopOverrideMark(card: WorkshopCard, sentence: string, who: { by: string; at: string }, was?: WorkshopOverride['was']): WorkshopOverride {
+  return { ...overrideWho(who), sentence: (sentence || 'That move is not available.').slice(0, 300), from: card.laneId, ...(was && { was }) }
+}
+
 /**
  * The board a refused move makes once the person confirmed it ("Move anyway"): the card in that lane, marked with who
  * (`by`), when (`at`, ISO), the rule's sentence and the lane it came from. Null when the move needs no override
@@ -847,12 +926,13 @@ export function workshopOverrideCandidate(board: Workshop, cardId: string, laneI
   const card = board.cards.find(item => item.id === cardId)
   if (!card || card.laneId === laneId || !board.lanes.some(lane => lane.id === laneId) || !takesOverrides(board)) return null
   if (workshopCandidate(board, cardId, laneId)) return null
-  const sentence = (workshopRefusal(board, cardId, laneId) ?? 'That move is not available.').slice(0, 300)
+  const sentence = workshopRefusal(board, cardId, laneId) ?? 'That move is not available.'
   // Only the rulebook refused: the move as the board's kind makes it. Otherwise (a path, a limit, the lanes a card may go
-  // in) the card simply goes there.
+  // in, a pipeline's stages, a budget's money) the card simply goes there: on a business board, to the foot of the lane.
   const kind = kindCandidate(board, cardId, laneId)
-  const base = kind && kind !== board ? kind : board
-  const override: WorkshopOverride = { by: String(who.by || 'Someone').replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, 80) || 'Someone', at: who.at, sentence, from: card.laneId }
+  const base = kind && kind !== board ? kind
+    : businessKind(board) ? { ...board, cards: [...board.cards.filter(item => item.id !== cardId), card] } : board
+  const override = workshopOverrideMark(card, sentence, who)
   try {
     return validateWorkshop({ ...base, cards: base.cards.map(item => item.id === cardId ? { ...withoutOverride(item), laneId, override } : item) })
   } catch {
@@ -864,7 +944,8 @@ export function workshopOverrideCandidate(board: Workshop, cardId: string, laneI
  * A whole board sent to replace `before` (a kept chat proposal, an Undo) with its move-anyway marks made true by the
  * one who saves it: a card that moved past a rule is marked with `who` and the rule `before` refused it by; a mark on
  * a card that did not move stays as stored; a mark on a move no rule refused, or on a new card, is dropped. A page
- * never writes who moved a card anyway.
+ * never writes who moved a card anyway. A plan's task moved in time and a card nested under another are checked by the
+ * edit that makes them (set_task, nest_card with override).
  */
 export function workshopStampOverrides(before: Workshop, after: Workshop, who: { by: string; at: string }): Workshop {
   const was = new Map(before.cards.map(card => [card.id, card]))
@@ -873,10 +954,23 @@ export function workshopStampOverrides(before: Workshop, after: Workshop, who: {
     const old = was.get(card.id)
     const plain = withoutOverride(card)
     if (!old) return plain
-    if (old.laneId === card.laneId) return old.override ? { ...plain, override: old.override } : plain
+    const moved = old.laneId !== card.laneId
+    const shifted = (old.lag ?? 0) !== (card.lag ?? 0) || old.duration !== card.duration || (old.parentId ?? null) !== (card.parentId ?? null)
+    if (!moved && !shifted) return old.override ? { ...plain, override: old.override } : plain
     if (!card.override) return plain
-    const forced = workshopOverrideCandidate(before, card.id, card.laneId, who)
-    return forced?.cards.find(item => item.id === card.id)?.override ? { ...plain, override: forced.cards.find(item => item.id === card.id)!.override } : plain
+    if (moved && !shifted) {
+      const forced = workshopOverrideCandidate(before, card.id, card.laneId, who)?.cards.find(item => item.id === card.id)?.override
+      return forced ? { ...plain, override: forced } : plain
+    }
+    // In time or under another card: the edit that makes it, made anyway, says whether it is a move past a rule.
+    const edit: WorkshopEdit | null = businessKind(before) === 'nest'
+      ? { kind: 'nest_card', card: { id: card.id }, ...(card.parentId ? { under: { id: card.parentId } } : { lane: { id: card.laneId } }), override: true }
+      : before.kind === 'launch-plan' || before.kind === 'hiring-plan' ? { kind: 'set_task', card: { id: card.id }, lag: card.lag ?? 0, duration: card.duration ?? 1, override: true } : null
+    if (!edit) return plain
+    const made = applyWorkshopEdits(before, [edit], { actor: { by: overrideWho(who).by, via: 'chat' }, now: who.at })
+    const forced = 'refused' in made ? undefined : made.workshop.cards.find(item => item.id === card.id)
+    return forced?.override && forced.laneId === card.laneId && (forced.lag ?? 0) === (card.lag ?? 0) && forced.duration === card.duration &&
+      (forced.parentId ?? null) === (card.parentId ?? null) ? { ...plain, override: forced.override } : plain
   })
   return { ...after, cards }
 }
@@ -1213,10 +1307,10 @@ export function workshopCardNoteWords(board: Workshop, card: WorkshopCard): stri
 export function workshopCardText(board: Workshop, card: WorkshopCard): string {
   if (board.kind === 'release-plan') return card.label + '\n' + card.points + ' points'
   const business = businessKind(board)
-  if (business) return workshopRules(business).cardText(board, card)
-  // A card moved anyway says so, under its name: who and when (the rule it broke is in its label for assistive tools).
+  // A card moved anyway says so, under its words: who and when (the rule it broke is in its label for assistive tools).
   const line = workshopOverrideLine(card)
-  return line ? card.label + '\n' + line : card.label
+  const text = business ? workshopRules(business).cardText(board, card) : card.label
+  return line ? text + '\n' + line : text
 }
 
 /** The words a card takes back to the canvas as a note, numbers and all: "Copy · 3 days", "Acme · $25k". */

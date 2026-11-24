@@ -73,15 +73,19 @@ describe('moving a card anyway', () => {
     expect(checkWorkshopReplacement(moved, team)).toBeNull()
   })
 
-  it('keeps the hard limits: business boards, a release plan and a card that is not there', () => {
-    const pipeline = validateWorkshop(samplePipeline())
-    const deal = pipeline.cards[0]
-    const refused = pipeline.lanes.find(lane => !workshopCandidate(pipeline, deal.id, lane.id) && lane.id !== deal.laneId)!
-    expect(workshopOverrideCandidate(pipeline, deal.id, refused.id, sam)).toBeNull()
-    expect(workshopHardLimit(pipeline, deal.id, refused.id)).toBe(workshopRefusal(pipeline, deal.id, refused.id))
+  it('keeps the hard limits: what would leave a board that does not add up, a release plan and a card that is not there', () => {
+    // A deal with no amount is never won, even anyway: the forecast could not count it (business boards take overrides
+    // otherwise: workshop-override-boards.test.ts).
+    const pipeline = validateWorkshop({ ...samplePipeline(), cards: [...samplePipeline().cards.filter(card => card.id !== 'harbor'), { id: 'nova', label: 'Nova', laneId: 'proposal' }] })
+    expect(workshopCandidate(pipeline, 'nova', 'won')).toBeNull()
+    expect(workshopOverrideCandidate(pipeline, 'nova', 'won', sam)).toBeNull()
+    expect(workshopHardLimit(pipeline, 'nova', 'won')).toBe(workshopRefusal(pipeline, 'nova', 'won'))
     expect(workshopHardLimit(decision, 'nobody', 'question')).toBe('That card or lane is no longer on the board.')
-    expect(() => validateWorkshop({ ...pipeline, cards: pipeline.cards.map((card, i) => i ? card : { ...card, override: { by: 'x', at: sam.at, sentence: 'x', from: refused.id } }) }))
-      .toThrow('Only the cards of lane boards and maps are moved past a rule.')
+    const release = validateWorkshop({ version: 1, kind: 'release-plan', title: 'Releases', lanes: [{ id: 'r1', label: 'R1', capacity: 3 }, { id: 'r2', label: 'R2', capacity: 3 }],
+      cards: [{ id: 'a', label: 'A', laneId: 'r1', points: 3 }, { id: 'b', label: 'B', laneId: 'r2', points: 2 }] })
+    expect(workshopOverrideCandidate(release, 'b', 'r1', sam)).toBeNull()
+    expect(() => validateWorkshop({ ...release, cards: release.cards.map((card, i) => i ? { ...card, override: { by: 'x', at: sam.at, sentence: 'x', from: 'r1' } } : card) }))
+      .toThrow('A release plan’s and a startup experience’s cards are never moved past a rule.')
   })
 
   it('refuses a move_card edit with overridable, and makes it with override true, stamped by the actor', () => {
@@ -94,11 +98,10 @@ describe('moving a card anyway', () => {
     // A rulebook rule too.
     expect(ok(apply(team, { kind: 'move_card', card: 'Billing', lane: 'Doing', override: true })).cards.find(card => card.id === 'billing')!.override!.by).toBe('Tim')
     // A hard limit is refused with override true, and says it is not overridable.
-    const pipeline = validateWorkshop(samplePipeline())
-    const deal = pipeline.cards[0]
-    const lane = pipeline.lanes.find(item => !workshopCandidate(pipeline, deal.id, item.id) && item.id !== deal.laneId)!
-    const hard = no(apply(pipeline, { kind: 'move_card', card: { id: deal.id }, lane: { id: lane.id }, override: true }))
+    const pipeline = validateWorkshop({ ...samplePipeline(), cards: [...samplePipeline().cards.filter(card => card.id !== 'harbor'), { id: 'nova', label: 'Nova', laneId: 'proposal' }] })
+    const hard = no(apply(pipeline, { kind: 'move_card', card: { id: 'nova' }, lane: { id: 'won' }, override: true }))
     expect(hard.overridable).toBeUndefined()
+    expect(no(apply(pipeline, { kind: 'move_card', card: { id: 'nova' }, lane: { id: 'won' } })).overridable).toBeUndefined()
   })
 
   it('check_move says whether a refusal may be made anyway', () => {

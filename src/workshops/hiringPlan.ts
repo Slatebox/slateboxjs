@@ -63,6 +63,10 @@ export function validateHiringPlan(board: Workshop): string | null {
   }
   if (board.hiring!.bands.some(band => !board.lanes.some(lane => lane.id === band.lane))) return 'Each role band belongs to a team on the plan.'
   try { scheduleLaunch(board) } catch (error) { return (error as Error).message }
+  for (const card of board.cards) {
+    if ((card.lag ?? 0) < 0 && !card.override) return 'A hire waits 0 days or more.'
+    if (scheduleLaunch(board).get(card.id)!.start < 0) return said(card.label) + ' starts recruiting on the plan’s first day or later.'
+  }
   return null
 }
 
@@ -106,7 +110,8 @@ export const hiringPlanRules: BusinessBoardRules = {
   readCard(raw, card, read) {
     if (noMoney.some(key => raw[key] !== undefined)) throw new Error('Cost is per role band, never per person. Say what the band costs instead.')
     card.duration = amountOf(raw.duration, 7, 140, 'Recruiting takes 1 to 20 weeks.')
-    if (raw.lag !== undefined && raw.lag !== 0) card.lag = amountOf(raw.lag, 0, 728, 'That is further out than the plan runs.')
+    // A hire moved anyway may start recruiting before what it waits on is hired: a lag below 0.
+    if (raw.lag !== undefined && raw.lag !== 0) card.lag = amountOf(raw.lag, raw.override !== undefined ? -728 : 0, 728, 'That is further out than the plan runs.')
     if (typeof raw.band !== 'string') throw new Error('Each hire is in a role band.')
     card.band = read.id(raw.band)
     if (raw.dependsOn !== undefined) {

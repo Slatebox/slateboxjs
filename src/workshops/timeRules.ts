@@ -9,6 +9,7 @@ import type { RuleFamily } from './kinds'
 import { isoTime, offsetOf, shortDate, weekendAt, clockOf } from './calendar'
 import { dayWords, launchIndex, launchOverrun, lineWord, scheduleLaunch, type TaskTimes } from './schedule'
 import { runwayMonths, runwayWords } from './runway'
+import { workshopFreshOverride, workshopHasMarks, workshopOverrideUndone } from './model'
 
 type Rule = BehaviourRule
 const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
@@ -57,17 +58,24 @@ export function checkTime(before: Workshop, after: Workshop): BehaviourVerdict {
   const rules = (before.behaviour?.rules ?? []).filter(rule => rule.on).sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind))
   const warnings: string[] = []
   if (!rules.length) return { ok: true, warnings }
+  // A task moved anyway (the person confirmed it past the rule: edits.ts set_task and move_card with override): the
+  // change is theirs, and no rule is asked of it again.
+  const marks = workshopHasMarks(before, after)
+  if (marks && after.cards.some(card => workshopFreshOverride(before, card))) return { ok: true, warnings }
   // In the dates of `before`: a plan whose first day moved (set_plan_start) is read on the days it had, so a task
   // that keeps its dates has not shifted, and one the new first day moves has.
   const by = before.clock && after.clock ? offsetOf(before.clock.origin, after.clock.origin) : 0
   const was = scheduleLaunch(before), now = by ? new Map([...scheduleLaunch(after)].map(([id, t]) => [id, { ...t, from: t.from + by, to: t.to + by }])) : scheduleLaunch(after)
   const old = new Map(before.cards.map(card => [card.id, card]))
+  // A task moved anyway going back to where it was (an Undo) is not held to a rule either.
   const moved = after.cards.filter(card => {
     const o = old.get(card.id)
+    if (marks && o && workshopOverrideUndone(before, card)) return false
     return !o || (o.lag ?? 0) !== (card.lag ?? 0) || o.duration !== card.duration || o.laneId !== card.laneId || !sameDeps(o, card)
   })
   const shifted = after.cards.filter(card => {
     const a = now.get(card.id)!, b = was.get(card.id)
+    if (marks && b && workshopOverrideUndone(before, card)) return false
     return !b || a.from !== b.from || a.to !== b.to || old.get(card.id)!.laneId !== card.laneId
   })
   const first = moved[0] ?? shifted[0]
