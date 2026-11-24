@@ -23,8 +23,9 @@ const TALL = 900
  * by OVER_ROOM), and a line item that carries its mark ("Moved anyway by Sam · 23 Nov") is a line taller, so every
  * word stays at 12px or more.
  */
-const OVER_ROOM = 14, MARK_ROOM = 18
-const overRoom = (board: Workshop) => board.lanes.some(lane => budgetOver(board, lane.id) > 0) ? OVER_ROOM : 0
+// On a desktop a small team's column is narrow, and its caption wraps to four lines at 12px: room for them.
+const OVER_ROOM = { phone: 14, desktop: 32 }, MARK_ROOM = 18
+const overRoom = (board: Workshop, narrow = false) => board.lanes.some(lane => budgetOver(board, lane.id) > 0) ? OVER_ROOM[narrow ? 'phone' : 'desktop'] : 0
 const itemsHeight = (board: Workshop, laneId: string) => board.cards.reduce((sum, card) => sum + (card.laneId === laneId ? 64 + (card.override ? MARK_ROOM : 0) : 0), 0)
 
 export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) {
@@ -42,7 +43,7 @@ export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) 
     width = Math.max(300, layout.width ?? 390)
     let y = TOP + lead / scale * TALL
     board.lanes.forEach((lane, i) => {
-      const size = Math.max(100 + overRoom(board) + itemsHeight(board, lane.id) + 64, lane.allocation! / scale * TALL)
+      const size = Math.max(100 + overRoom(board, true) + itemsHeight(board, lane.id) + 64, lane.allocation! / scale * TALL)
       segments.push({ laneId: lane.id, start: y, size })
       y += size
     })
@@ -54,7 +55,7 @@ export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) 
       x += lane.allocation! / scale * ENVELOPE
     }
     width = Math.max(ENVELOPE, x)
-    height = TOP + 100 + overRoom(board) + Math.max(...board.lanes.map(lane => itemsHeight(board, lane.id))) + 64
+    height = TOP + 100 + overRoom(board, false) + Math.max(...board.lanes.map(lane => itemsHeight(board, lane.id))) + 64
   }
   board.lanes.forEach((lane, i) => {
     const { start, size } = segments[i]
@@ -69,7 +70,7 @@ export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) 
     const pill = narrow ? inner.width * 0.36 : inner.width
     parts.push({ name: 'lane-' + lane.id, x: inner.x, y: inner.y + 6, width: pill, height: 32, text: lane.label, fill: color, fontSize: 15 })
     // Over its money, the caption's last line says by how much ("over budget by $120k"), with room made for it.
-    const room = overRoom(board)
+    const room = overRoom(board, narrow)
     const caption = budgetCaption(board, lane.id).replace(' · over budget', '\nover budget')
     parts.push({ name: 'caption-' + lane.id, x: narrow ? inner.x + pill + 6 : inner.x, y: inner.y + (narrow ? 6 : 40), width: narrow ? inner.width - pill - 6 : inner.width,
       height: (narrow ? 50 : 40) + room, text: narrow ? caption.replace(' · ', '\n') : caption, fill: 'transparent', lineWidth: 0, fontSize: narrow ? 15 : 12, ...(over && { ink: overInk.ink }) })
@@ -108,12 +109,12 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     const allocation = lane.allocation!, committed = budgetCommitted(board, lane.id)
     // The committed fill, and the floor and cap ticks, measured along the envelope.
     if (g.narrow) {
-      const y = seg.start + 50 + overRoom(board), x = 8, w = g.width - 16
+      const y = seg.start + 50 + overRoom(board, true), x = 8, w = g.width - 16
       shapes.push({ t: 'rect', x, y, w, h: 10, rx: 5, color: layerInk.track })
       shapes.push({ t: 'rect', x, y, w: Math.min(w, w * committed / allocation || 0), h: 10, rx: 5, color: committed > allocation ? layerInk.refuse : layerInk.bar })
       if (lane.floor !== undefined) shapes.push({ t: 'line', x1: x + w * lane.floor / allocation, y1: y - 4, x2: x + w * lane.floor / allocation, y2: y + 14, color: layerInk.ink, width: 2 })
     } else {
-      const k = g.k, y = TOP + 86 + overRoom(board)
+      const k = g.k, y = TOP + 86 + overRoom(board, false)
       shapes.push({ t: 'rect', x: seg.start + 6, y, w: seg.size - 12, h: 10, rx: 5, color: layerInk.track })
       shapes.push({ t: 'rect', x: seg.start + 6, y, w: Math.max(0, Math.min(seg.size - 12, (seg.size - 12) * committed / allocation || 0)), h: 10, rx: 5, color: committed > allocation ? layerInk.refuse : layerInk.bar })
       if (lane.floor !== undefined) shapes.push({ t: 'line', x1: seg.start + lane.floor * k, y1: y - 6, x2: seg.start + lane.floor * k, y2: y + 16, color: layerInk.ink, width: 2 })
