@@ -129,7 +129,8 @@ test('fill, text Auto, size and the custom picker: saved, undone and kept after 
     expect(await opt(page, 'Welcome!', 'text')).toBe('Welcome!')
     await expect(bar(page).getByRole('radio', { name: 'Large text', exact: true })).toHaveAttribute('aria-checked', 'true')
     // Undo takes back the size.
-    await page.mouse.click(40, 860)
+    // Empty canvas, clear of the Undo and Redo controls in its bottom-left corner.
+    await page.mouse.click(40, 700)
     await page.keyboard.press('ControlOrMeta+z')
     await expect.poll(() => opt(page, 'Welcome!', 'fontSize')).not.toBe(28)
     await page.keyboard.press('ControlOrMeta+Shift+z')
@@ -209,7 +210,8 @@ test('copy style goes to the selection only, is saved and undone, and needs no f
     expect((await opts(page, 'backgroundColor')).Gamma).not.toBe('#1f2a2a')
     expect(await opts(page, 'text')).toMatchObject({ Alpha: 'Alpha', Beta: 'Beta' })
     // Undo takes back the paste in one step; redo puts it back.
-    await page.mouse.click(40, 860)
+    // Empty canvas, clear of the Undo and Redo controls in its bottom-left corner.
+    await page.mouse.click(40, 700)
     await page.keyboard.press('ControlOrMeta+z')
     await expect.poll(async () => (await opts(page, 'backgroundColor')).Alpha).not.toBe('#1f2a2a')
     await page.keyboard.press('ControlOrMeta+Shift+z')

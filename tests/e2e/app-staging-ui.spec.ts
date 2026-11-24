@@ -114,7 +114,8 @@ test('text alignment: all six choices move the text of a plain and a rotated, wr
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
     await alignWith(page, 'Right')
     await page.keyboard.press('Escape')
-    await page.mouse.click(40, 860)
+    // Empty canvas, clear of the Undo and Redo controls in its bottom-left corner.
+    await page.mouse.click(40, 700)
     await page.keyboard.press('ControlOrMeta+z')
     await expect.poll(async () => (await textPlace(page, 'Welcome!')).x).not.toBe('right')
     await page.keyboard.press('ControlOrMeta+Shift+z')
