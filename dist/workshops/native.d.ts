@@ -62,6 +62,11 @@ export interface WorkshopChangeEvent {
     via?: 'undo';
     /** A move a rule refused, made anyway once the person confirmed it (confirmOverride): the server marks who and when. */
     override?: true;
+    /**
+     * With `override`: the rule's sentence the person agreed to (what the card's mark keeps). A server that makes the move
+     * again on a newer board and would break something else asks the person again instead of saving it.
+     */
+    reason?: string;
 }
 /** A drop a rule refuses that may be made anyway: what confirmOverride shows the person. */
 export interface WorkshopOverrideAsk {
@@ -204,6 +209,11 @@ export interface WorkshopBoardKit {
         key: string;
         shiftKey: boolean;
     }): WorkshopEdit[] | null;
+    /**
+     * Where an edit made anyway takes its card, in words, when it is more than a lane ("to start Thu 17 Dec", "to start
+     * work Mon 15 Feb"): the "Move anyway?" dialog's title for a key or a chat move. Left out, the lane.
+     */
+    overrideWords?(board: Workshop, edit: WorkshopEdit): string | undefined;
     /**
      * A key that offers a choice on a focused part (a launch plan's L: what this task waits on). Null when
      * the key means nothing here; a sentence when there is nothing to choose. The key again offers the next

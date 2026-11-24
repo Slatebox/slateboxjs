@@ -8,7 +8,10 @@ import type { PartPlace, Workshop, WorkshopEdit, WorkshopNoteStyle } from '../wo
 export declare function workshopEditsBetween(before: Workshop, after: Workshop): WorkshopEdit[];
 /** "Forecast $205k of $250k". */
 export declare function pipelineGauge(board: Workshop): string;
-/** "$1.2M · balanced": always true, and that is the point. */
+/**
+ * "$1.2M · balanced": the envelope always adds up, and that is the point. A team over its money (a line item moved
+ * there anyway) is said instead: "$1.2M · 1 team over budget".
+ */
 export declare function budgetHeader(board: Workshop): string;
 /** The tasks `cardId` may be dropped on to wait on them: not itself, not what it waits on, nothing that waits on it. */
 export declare function launchLinkTargets(board: Workshop, cardId: string): string[];

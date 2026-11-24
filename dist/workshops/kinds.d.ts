@@ -58,6 +58,12 @@ export interface BusinessBoardRules {
     readBoard(raw: Record<string, unknown>, board: Workshop, read: WorkshopFieldReader): void;
     /** The kind's rule over the whole board: null when it holds, otherwise the sentence. */
     validate(board: Workshop): string | null;
+    /**
+     * Whether card `cardId` still stands past one of the kind's own rules that validate lets through (a plan's task
+     * that ends after its line or starts before what it waits on ends): an ordinary edit keeps its move-anyway mark then
+     * (model.ts workshopShedMark).
+     */
+    pastRule?(board: Workshop, cardId: string): boolean;
     /** The board a card's move makes, `board` when it is there already, or null when the rule refuses. */
     planMove(board: Workshop, cardId: string, laneId: string): Workshop | null;
     /** Why planMove refuses, as a sentence. */

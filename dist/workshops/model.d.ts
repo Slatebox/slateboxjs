@@ -303,6 +303,14 @@ export declare function decodeWorkshopFragment(fragment: string): Workshop;
 export declare function availableLanes(board: Workshop, card: WorkshopCard): WorkshopLane[];
 export declare function moveWorkshopCard(board: Workshop, cardId: string, laneId: string): Workshop;
 /**
+ * `next`, an ordinary edit of `before` that moved card `cardId`, with the card's move-anyway mark taken away once the
+ * card stands where no rule refuses it. While the card is still past a rule (a late task nudged a day earlier but still
+ * late, a task that still starts before what it waits on ends, a deal moved on to a stage still over its limit) the
+ * mark stays as it was: who, when and the rule they agreed to break. Otherwise the board would refuse an ordinary
+ * nudge of a card moved anyway, and that refusal could not be made anyway either.
+ */
+export declare function workshopShedMark(before: Workshop, next: Workshop, cardId: string): Workshop;
+/**
  * The board a move would produce, for every kind of workshop: `board` itself when the
  * card is already in that lane, or null when the move is unavailable.
  *

@@ -284,6 +284,18 @@ export interface WorkshopEditReport {
         fromLaneId: string;
         toLaneId: string;
     }[];
+    /**
+     * Every move made anyway (an edit with override true that a rule refused), by the edit that made it, even when a later
+     * edit of the same list moves the card on again: what the exec gate holds for the person (breaks_board_rule). Left
+     * out when there is none.
+     */
+    overrides?: {
+        index: number;
+        cardId: string;
+        laneId: string;
+        fromLaneId: string;
+        sentence: string;
+    }[];
 }
 export type WorkshopEditRefusalCode = 
 /** The edit is malformed: an unknown kind, a missing or mistyped field. */

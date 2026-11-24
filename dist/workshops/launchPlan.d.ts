@@ -7,6 +7,11 @@ export type { WorkshopLimits } from './kinds';
 /** Why `after` breaks this plan's rules (or its built-in line), as a sentence; null when it keeps them. */
 export declare function planProblem(before: Workshop, after: Workshop, cardId?: string): string | null;
 /**
+ * Every rule `after` breaks on this plan, one sentence each (planProblem names the first): what a move made anyway
+ * says it breaks, so the person agrees to each, for what waits on the task and moves with it too.
+ */
+export declare function planProblems(before: Workshop, after: Workshop, cardId?: string): string[];
+/**
  * Why a task may not start where `lag` puts it, before what it waits on ends (a lag below 0): the sentence a move made
  * anyway breaks. Null for a lag of 0 or more.
  */
@@ -130,6 +135,11 @@ export declare function launchPlanSample(today?: string): Workshop;
 export declare function goLiveSample(today?: string): Workshop;
 /** The launch and hiring plans' shared edits: set_task, link_tasks and unlink_tasks (null for any other). */
 export declare function planEdit(board: Workshop, edit: WorkshopEdit, t: BusinessEditTools, said0: (card: WorkshopCard, next: Workshop) => string): import("./kinds").BusinessEditStep | null;
+/**
+ * Whether a plan's task still stands past the plan's own line or what it waits on (BusinessBoardRules.pastRule): it
+ * starts before what it waits on ends, or (a launch plan) it ends after launch.
+ */
+export declare function planPastRule(board: Workshop, cardId: string): boolean;
 /** The launch plan's part of the one gate (see kinds.ts). */
 export declare const launchPlanRules: BusinessBoardRules;
 /** A plan's first day, when it has one: a real date. */

@@ -1,4 +1,4 @@
-import { registerWorkshopRules as ge, workshopEditKinds as G, workshopRuleSchema as Q, said as g, workshopOverrideMark as Ie, workshopHasMarks as ke, workshopFreshOverride as ve, workshopOverrideUndone as be, applyWorkshopEdits as ee, validateWorkshop as xe, workshopReferences as Ae } from "./workshop-model.mjs";
+import { registerWorkshopRules as ge, workshopEditKinds as G, workshopRuleSchema as Q, said as g, workshopOverrideMark as Ie, workshopShedMark as ke, workshopHasMarks as ve, workshopFreshOverride as be, applyWorkshopEdits as ee, validateWorkshop as xe, workshopReferences as Ae } from "./workshop-model.mjs";
 const z = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", Ne = (e) => typeof e == "string" && /^[0-9A-Za-z]{0,47}[1-9A-Za-z]$/.test(e);
 function ne(e, n) {
   if (n !== null) {
@@ -19,7 +19,7 @@ function de(e) {
   for (let t = 0; t < e; t++) n.push(C(n[t - 1] ?? null, null));
   return n;
 }
-const $ = 6, S = (e) => /[^aeiou]y$/.test(e) ? e.slice(0, -1) + "ies" : /(?:s|sh|ch|x)$/.test(e) ? e + "es" : e + "s", R = (e) => e.charAt(0).toUpperCase() + e.slice(1), re = (e) => (/^[aeiou]/i.test(e) ? "an " : "a ") + e, Oe = (e) => e.length > 1 ? e.slice(0, -1).join(", ") + " or " + e.at(-1) : e[0] ?? "";
+const $ = 6, T = (e) => /[^aeiou]y$/.test(e) ? e.slice(0, -1) + "ies" : /(?:s|sh|ch|x)$/.test(e) ? e + "es" : e + "s", R = (e) => e.charAt(0).toUpperCase() + e.slice(1), re = (e) => (/^[aeiou]/i.test(e) ? "an " : "a ") + e, _e = (e) => e.length > 1 ? e.slice(0, -1).join(", ") + " or " + e.at(-1) : e[0] ?? "";
 function j(e) {
   const n = typeof e == "string" ? e.trim().toLowerCase().replace(/\s+/g, " ") : "";
   if (!/^[a-z][a-z -]{0,23}$/.test(n)) throw new Error("A role is a word or two, such as “pile” or “opportunity”.");
@@ -38,7 +38,7 @@ const D = (e, n, t) => {
   const r = typeof e == "string" ? e.replace(/\s+/g, " ").trim() : "";
   if (!r || r.length > n || /[<>\u0000-\u001f]/.test(r)) throw new Error(t);
   return r;
-}, O = (e) => ({ main: e.lanes[0].id, tray: e.lanes[1].id }), v = (e, n) => n === void 0 ? void 0 : e.cards.find((t) => t.id === n);
+}, _ = (e) => ({ main: e.lanes[0].id, tray: e.lanes[1].id }), v = (e, n) => n === void 0 ? void 0 : e.cards.find((t) => t.id === n);
 function b(e, n, t) {
   return e.cards.filter((r) => (r.parentId ?? null) === n && (n !== null || r.laneId === t)).sort(se);
 }
@@ -56,11 +56,11 @@ function U(e, n) {
   const t = e.cards.filter((r) => r.parentId === n);
   return t.length ? 1 + Math.max(...t.map((r) => U(e, r.id))) : 0;
 }
-function _e(e, n) {
+function Me(e, n) {
   return W(e, n).slice(1).map((t) => v(e, t)).filter((t) => !e.cards.some((r) => r.parentId === t.id));
 }
 function B(e, n, t) {
-  const r = _e(e, n);
+  const r = Me(e, n);
   if (t === "count") return r.length;
   if (t === "sources") return new Set(r.flatMap((d) => d.source ? [d.source.toLowerCase()] : [])).size;
   const o = /* @__PURE__ */ new Map();
@@ -82,7 +82,7 @@ function X(e, n, t) {
 const K = (e, n) => (e.behaviour?.rules ?? []).filter((t) => t.on && t.kind === n), H = (e) => K(e, "rank")[0]?.by;
 function le(e, n) {
   const t = b(e, null, n), r = H(e);
-  if (!r || n !== O(e).main) return t;
+  if (!r || n !== _(e).main) return t;
   const o = new Map(t.map((d) => [d.id, B(e, d.id, r)]));
   return t.sort((d, i) => o.get(i.id) - o.get(d.id) || se(d, i));
 }
@@ -91,7 +91,7 @@ function J(e, n, t) {
   if (!r) return null;
   const o = W(e, n), d = t.under === null ? null : v(e, t.under);
   if (d === void 0 || d && o.includes(d.id)) return null;
-  const i = d ? d.laneId : t.laneId, { tray: l } = O(e);
+  const i = d ? d.laneId : t.laneId, { tray: l } = _(e);
   if (i === l && (d || o.length > 1)) return null;
   const y = (d ? b(e, d.id) : b(e, null, i)).filter((u) => u.id !== n);
   let c = t.before === null ? y.length : y.findIndex((u) => u.id === t.before);
@@ -99,21 +99,21 @@ function J(e, n, t) {
   const m = d ? b(e, d.id) : b(e, null, i);
   if ((r.parentId ?? null) === (d?.id ?? null) && r.laneId === i && m.indexOf(r) === c) return e;
   const s = y[c - 1]?.order, a = y[c]?.order;
-  let f = /* @__PURE__ */ new Map(), h;
+  let p = /* @__PURE__ */ new Map(), h;
   if ((c === 0 || s) && (c === y.length || a) && (!s || !a || s < a)) h = C(s, a);
   else {
     const u = de(y.length + 1);
-    y.forEach((w, k) => f.set(w.id, u[k < c ? k : k + 1])), h = u[c];
+    y.forEach((w, k) => p.set(w.id, u[k < c ? k : k + 1])), h = u[c];
   }
-  const p = e.cards.map((u) => {
+  const f = e.cards.map((u) => {
     if (u.id === n) {
       const I = { ...u, laneId: i, order: h };
       return d ? I.parentId = d.id : delete I.parentId, I;
     }
-    const w = f.get(u.id), k = o.includes(u.id) ? i : u.laneId;
+    const w = p.get(u.id), k = o.includes(u.id) ? i : u.laneId;
     return w || k !== u.laneId ? { ...u, laneId: k, ...w && { order: w } } : u;
   });
-  return ce({ ...e, cards: p });
+  return ce({ ...e, cards: f });
 }
 function ce(e) {
   var r;
@@ -125,9 +125,9 @@ function ce(e) {
   }
   return t.size ? { ...e, cards: e.cards.map((o) => t.has(o.id) ? { ...o, order: t.get(o.id) } : o) } : e;
 }
-function Ee(e) {
+function Oe(e) {
   if (e.lanes.length !== 2) return "A nested board has two areas: the board and a tray for cards not placed yet.";
-  const { tray: n } = O(e), t = new Set((e.nest?.fields ?? []).map((o) => o.id));
+  const { tray: n } = _(e), t = new Set((e.nest?.fields ?? []).map((o) => o.id));
   if (e.nest?.layout === "matrix" && !x) return "A 2 by 2 needs its rules loaded.";
   const r = H(e);
   if (r && r !== "count" && r !== "sources" && !t.has(r)) return "Cards on this board carry no " + r + ", so piles can’t rank by it.";
@@ -148,7 +148,7 @@ function te(e, n) {
   let r = "";
   switch (e.kind) {
     case "nests":
-      r = R(S(e.role)) + " sit under " + Oe(e.under.map(re));
+      r = R(T(e.role)) + " sit under " + _e(e.under.map(re));
       break;
     case "children":
       r = e.role ? R(re(e.role)) + " holds at most " + e.max : "A card holds at most " + e.max + " under it";
@@ -171,9 +171,9 @@ const Y = ["nests", "depth", "children"];
 function L(e, n) {
   const t = (e.behaviour?.rules ?? []).filter((c) => c.on && Y.includes(c.kind)).sort((c, m) => Y.indexOf(c.kind) - Y.indexOf(m.kind)), r = [];
   if (!t.length) return x?.check(e, n, r) ?? { ok: !0, warnings: r };
-  const o = new Map(e.cards.map((c) => [c.id, c])), { tray: d } = O(n), i = ke(e, n), l = n.cards.filter((c) => {
+  const o = new Map(e.cards.map((c) => [c.id, c])), { tray: d } = _(n), i = ve(e, n), l = n.cards.filter((c) => {
     const m = o.get(c.id);
-    return i && (ve(e, c) || be(e, c)) ? !1 : c.laneId !== d && (!m || m.parentId !== c.parentId || m.laneId !== c.laneId || m.role !== c.role);
+    return i && be(e, c) ? !1 : c.laneId !== d && (!m || m.parentId !== c.parentId || m.laneId !== c.laneId || m.role !== c.role);
   }), y = (c, m) => c.cards.filter((s) => s.parentId === m).length;
   for (const c of t) {
     let m = null;
@@ -187,9 +187,9 @@ function L(e, n) {
       for (const s of l) {
         const a = v(n, s.parentId);
         if (!a || c.role && a.role !== c.role) continue;
-        const f = y(e, a.id), h = y(n, a.id);
-        if (h > c.max && h > f) {
-          m = { sentence: a.label + " holds " + c.max + ". It has " + f + ".", card: s };
+        const p = y(e, a.id), h = y(n, a.id);
+        if (h > c.max && h > p) {
+          m = { sentence: a.label + " holds " + c.max + ". It has " + p + ".", card: s };
           break;
         }
       }
@@ -203,7 +203,7 @@ function L(e, n) {
   }
   return x?.check(e, n, r) ?? { ok: !0, warnings: r };
 }
-function Me(e) {
+function Ee(e) {
   const n = e.filter((o) => o.kind === "nests" && o.on && o.severity === "refuse"), t = /* @__PURE__ */ new Map(), r = (o, d) => {
     if (t.has(o)) return t.get(o);
     const i = n.find((y) => y.role === o);
@@ -221,13 +221,13 @@ function Ce(e, n) {
     if (!(d.kind in ue)) continue;
     const i = d.kind + ":" + (d.kind === "nests" ? d.role : d.kind === "children" ? d.role ?? "" : "");
     if (t.has(i))
-      return d.kind === "nests" ? "There is already a rule for where " + S(d.role) + " sit. Change that one instead." : "There is already a rule like that on this board. Change that one instead.";
+      return d.kind === "nests" ? "There is already a rule for where " + T(d.role) + " sit. Change that one instead." : "There is already a rule like that on this board. Change that one instead.";
     t.add(i);
   }
-  const r = Me(e.rules), o = e.rules.find((d) => d.kind === "depth" && d.on && d.severity === "refuse");
+  const r = Ee(e.rules), o = e.rules.find((d) => d.kind === "depth" && d.on && d.severity === "refuse");
   for (const [d, i] of r) {
-    if (i === 1 / 0) return R(S(d)) + " could never be placed: what they sit under would have to sit under them first.";
-    if (o && i > o.max) return R(S(d)) + " sit " + i + " levels down, but cards nest only " + o.max + " deep.";
+    if (i === 1 / 0) return R(T(d)) + " could never be placed: what they sit under would have to sit under them first.";
+    if (o && i > o.max) return R(T(d)) + " sit " + i + " levels down, but cards nest only " + o.max + " deep.";
   }
   return x?.contradiction(e, n) ?? null;
 }
@@ -242,9 +242,9 @@ function Te(e, n, t) {
   switch (e.kind) {
     case "nests": {
       const i = j(e.role);
-      if (!Array.isArray(e.under) || e.under.length < 1 || e.under.length > 4) throw new Error("Say what " + S(i) + " sit under.");
+      if (!Array.isArray(e.under) || e.under.length < 1 || e.under.length > 4) throw new Error("Say what " + T(i) + " sit under.");
       const l = [...new Set(e.under.map(j))];
-      if (l.includes(i)) throw new Error(R(S(i)) + " can’t sit only under " + S(i) + ".");
+      if (l.includes(i)) throw new Error(R(T(i)) + " can’t sit only under " + T(i) + ".");
       return { ...n, kind: "nests", role: i, under: l };
     }
     case "children": {
@@ -274,7 +274,7 @@ const Se = {
 }, fe = (e, n) => !e.behaviour || !("refused" in L(e, n));
 function pe(e, n) {
   if (!v(e, n)) return [];
-  const r = [], o = new Set(W(e, n)), d = U(e, n), i = [null, ...e.cards.filter((l) => !o.has(l.id) && l.laneId === O(e).main && P(e, l.id) + 1 + d <= $)];
+  const r = [], o = new Set(W(e, n)), d = U(e, n), i = [null, ...e.cards.filter((l) => !o.has(l.id) && l.laneId === _(e).main && P(e, l.id) + 1 + d <= $)];
   for (const l of e.lanes) for (const y of i) {
     if (y && l.id !== y.laneId) continue;
     const c = (y ? b(e, y.id) : b(e, null, l.id)).filter((m) => m.id !== n);
@@ -288,7 +288,7 @@ function pe(e, n) {
 function Be(e, n) {
   const t = v(e, n);
   if (!t) return null;
-  const r = K(e, "emptyDrop")[0], { main: o, tray: d } = O(e), i = r?.drop ?? (e.nest?.layout === "clusters" ? "new-pile" : null);
+  const r = K(e, "emptyDrop")[0], { main: o, tray: d } = _(e), i = r?.drop ?? (e.nest?.layout === "clusters" ? "new-pile" : null);
   if (!i) return null;
   let l;
   if (i === "unsorted") l = t.laneId === d ? null : J(e, n, { laneId: d, under: null, before: null });
@@ -303,7 +303,7 @@ const De = (e) => (x?.drags(e) ?? "") + JSON.stringify([
   e.nest?.layout,
   H(e),
   K(e, "emptyDrop")[0]?.kind && K(e, "emptyDrop")[0].drop,
-  le(e, O(e).main).map((n) => n.id),
+  le(e, _(e).main).map((n) => n.id),
   e.cards.map((n) => pe(e, n.id).map(({ spot: t }) => t.under ?? t.laneId).filter((t, r, o) => o.indexOf(t) === r))
 ]);
 function he(e, n) {
@@ -327,10 +327,10 @@ function Pe(e, n, t) {
     if (!u.on) return !1;
     const w = { ...r, behaviour: { ...r.behaviour, rules: [{ ...u, severity: "refuse" }] } }, k = ee(w, [y]);
     return "refused" in k && k.refused.reason === m;
-  }), a = new Set(pe(r, i.id).flatMap(({ spot: u }) => u.under ? [u.under] : [])), h = (l ? [...b(r, l.id), ...l.parentId ? b(r, l.parentId) : b(r, null, l.laneId)] : []).find((u) => a.has(u.id) && u.id !== i.parentId)?.label ?? null, p = c.refused.overridable === !0;
-  return { refused: { sentence: m, ruleId: s?.id ?? null, nearest: h, overridable: p, ...s && { set: s.set } } };
+  }), a = new Set(pe(r, i.id).flatMap(({ spot: u }) => u.under ? [u.under] : [])), h = (l ? [...b(r, l.id), ...l.parentId ? b(r, l.parentId) : b(r, null, l.laneId)] : []).find((u) => a.has(u.id) && u.id !== i.parentId)?.label ?? null, f = c.refused.overridable === !0;
+  return { refused: { sentence: m, ruleId: s?.id ?? null, nearest: h, overridable: f, ...s && { set: s.set } } };
 }
-const N = (e) => ({ type: "ref", of: "card", about: e }), M = (e, n, t = !1) => ({ type: "text", max: e, about: n, ...t && { optional: t } }), A = ["nest"];
+const N = (e) => ({ type: "ref", of: "card", about: e }), E = (e, n, t = !1) => ({ type: "text", max: e, about: n, ...t && { optional: t } }), A = ["nest"];
 function je(e) {
   const n = (t) => G.find((r) => r.kind === t);
   for (const t of e.kinds) G.some((r) => r.kind === t.kind) || G.push(t);
@@ -361,7 +361,7 @@ je({
       kind: "start_pile",
       summary: "Nest board: start a new pile with this card in it.",
       intent: !0,
-      fields: { card: N("The card."), label: M(80, "The pile’s name. Left out, “New pile”.", !0) },
+      fields: { card: N("The card."), label: E(80, "The pile’s name. Left out, “New pile”.", !0) },
       boards: A,
       refusals: {}
     },
@@ -377,7 +377,7 @@ je({
       kind: "set_role",
       summary: "Nest board: say what a card is (pile, outcome, opportunity, solution, cause, action…).",
       intent: !1,
-      fields: { card: N("The card."), role: M(24, "A word or two.") },
+      fields: { card: N("The card."), role: E(24, "A word or two.") },
       boards: A,
       refusals: {}
     },
@@ -385,7 +385,7 @@ je({
       kind: "set_source",
       summary: "Nest board: say who a card came from (a customer, an interview).",
       intent: !1,
-      fields: { card: N("The card."), source: M(60, "Who said it.") },
+      fields: { card: N("The card."), source: E(60, "Who said it.") },
       boards: A,
       refusals: {}
     },
@@ -394,7 +394,7 @@ je({
       summary: "Nest board: add a number field cards can carry (ARR, seats…). Up to 4.",
       intent: !1,
       fields: {
-        label: M(20, "Its name."),
+        label: E(20, "Its name."),
         currency: { type: "choice", values: ["$", "€", "£"], optional: !0, about: "A money field’s sign." },
         flag: { type: "flag", optional: !0, about: "A yes/no field (contractor…): cards carry 1 for yes." }
       },
@@ -405,7 +405,7 @@ je({
       kind: "set_field",
       summary: "Nest board: set (or with null clear) a card’s number in a field.",
       intent: !1,
-      fields: { card: N("The card."), field: M(20, "The field, by id or name."), value: { type: "integer", min: 0, max: 1e9, nullable: !0, about: "A whole number, or null." } },
+      fields: { card: N("The card."), field: E(20, "The field, by id or name."), value: { type: "integer", min: 0, max: 1e9, nullable: !0, about: "A whole number, or null." } },
       boards: A,
       refusals: {}
     },
@@ -422,10 +422,10 @@ je({
   fields: {
     set_rule: {
       under: { type: "refs", of: "card", min: 1, max: 4, optional: !0, about: "Nest board: the roles a role may sit under (words, such as opportunity)." },
-      by: M(20, "Nest board: what piles rank by: count, sources, or a number field.", !0),
+      by: E(20, "Nest board: what piles rank by: count, sources, or a number field.", !0),
       drop: { type: "choice", values: ["new-pile", "unsorted"], optional: !0, about: "Nest board: where a far drop goes." }
     },
-    add_card: { under: { ...N("Nest board: the card it goes under."), optional: !0 }, role: M(24, "Nest board: what it is.", !0), source: M(60, "Nest board: who said it.", !0) }
+    add_card: { under: { ...N("Nest board: the card it goes under."), optional: !0 }, role: E(24, "Nest board: what it is.", !0), source: E(60, "Nest board: who said it.", !0) }
   },
   rules: {
     kinds: ["nests", "children", "depth", "rank", "emptyDrop"],
@@ -447,7 +447,7 @@ function me(e, n) {
 }
 const F = (e, n, t) => C(b(e, n, t).at(-1)?.order ?? null, null);
 function Le(e, n, t) {
-  const r = e, { main: o, tray: d } = O(r), i = r.lanes[1].label, l = (s, a, f) => t.settle(ce(s), a, f), y = x?.edit(r, n, t, l);
+  const r = e, { main: o, tray: d } = _(r), i = r.lanes[1].label, l = (s, a, p) => t.settle(ce(s), a, p), y = x?.edit(r, n, t, l);
   if (y) return y;
   const c = (s) => {
     if (typeof s == "object" && !v(r, s.id)) {
@@ -456,71 +456,71 @@ function Le(e, n, t) {
     }
     return t.card(s);
   }, m = (s, a) => {
-    const f = J(r, s.id, a);
-    return f || (a.under && W(r, s.id).includes(a.under) && t.refuse("A card can’t go under itself or a card under it.", { cardId: s.id, laneId: s.laneId }), t.refuse(i + " holds loose cards. Move what is under " + g(s.label) + " first.", { cardId: s.id, laneId: a.laneId })), l(f, a.laneId, s.id);
+    const p = J(r, s.id, a);
+    return p || (a.under && W(r, s.id).includes(a.under) && t.refuse("A card can’t go under itself or a card under it.", { cardId: s.id, laneId: s.laneId }), t.refuse(i + " holds loose cards. Move what is under " + g(s.label) + " first.", { cardId: s.id, laneId: a.laneId })), l(p, a.laneId, s.id);
   };
   switch (n.kind) {
     case "add_card": {
-      const s = r.nest?.layout === "matrix" ? r.lanes[1] : t.lane(n.lane), a = n.under === void 0 ? null : c(n.under), f = n.label?.replace(/\s+/g, " ").trim() || "New " + ye(r, a?.id);
+      const s = r.nest?.layout === "matrix" ? r.lanes[1] : t.lane(n.lane), a = n.under === void 0 ? null : c(n.under), p = n.label?.replace(/\s+/g, " ").trim() || "New " + ye(r, a?.id);
       a && s.id === d && t.refuse(i + " holds loose cards: nothing sits under another there.", { laneId: s.id });
-      const h = n.role === void 0 ? me(r, a) : j(n.role), p = { id: V(r), label: f, laneId: a?.laneId ?? s.id, ...h && { role: h }, ...a?.owner && { owner: a.owner }, ...n.source && { source: D(n.source, 60, "Say who said it in plain words.") } };
+      const h = n.role === void 0 ? me(r, a) : j(n.role), f = { id: V(r), label: p, laneId: a?.laneId ?? s.id, ...h && { role: h }, ...a?.owner && { owner: a.owner }, ...n.source && { source: D(n.source, 60, "Say who said it in plain words.") } };
       if (!a && s.id === o && r.nest?.layout === "clusters" && n.role === void 0) {
         if ((K(r, "emptyDrop")[0]?.drop ?? "new-pile") === "unsorted") {
-          const T = l({ ...r, cards: [...r.cards, { ...p, laneId: d, order: F(r, null, d) }] }, d);
-          return t.done(T, "Added " + g(f) + " to " + g(i) + ".", { laneId: d, cardId: p.id });
+          const S = l({ ...r, cards: [...r.cards, { ...f, laneId: d, order: F(r, null, d) }] }, d);
+          return t.done(S, "Added " + g(p) + " to " + g(i) + ".", { laneId: d, cardId: f.id });
         }
-        const k = { id: p.id, label: "New pile", laneId: o, role: "pile", order: F(r, null, o) }, I = { ...p, id: V({ ...r, cards: [...r.cards, k] }), parentId: k.id, role: h ?? "note", order: C(null, null) }, _ = l({ ...r, cards: [...r.cards, k, I] }, o);
-        return t.done(_, "Added " + g(f) + " to a new pile.", { laneId: o, cardId: I.id });
+        const k = { id: f.id, label: "New pile", laneId: o, role: "pile", order: F(r, null, o) }, I = { ...f, id: V({ ...r, cards: [...r.cards, k] }), parentId: k.id, role: h ?? "note", order: C(null, null) }, M = l({ ...r, cards: [...r.cards, k, I] }, o);
+        return t.done(M, "Added " + g(p) + " to a new pile.", { laneId: o, cardId: I.id });
       }
-      a && (p.parentId = a.id), p.order = F(r, a?.id ?? null, p.laneId);
-      const u = l({ ...r, cards: [...r.cards, p] }, p.laneId);
-      return t.done(u, "Added " + g(f) + " to " + g(a?.label ?? r.lanes.find((w) => w.id === p.laneId).label) + ".", { laneId: p.laneId, cardId: p.id });
+      a && (f.parentId = a.id), f.order = F(r, a?.id ?? null, f.laneId);
+      const u = l({ ...r, cards: [...r.cards, f] }, f.laneId);
+      return t.done(u, "Added " + g(p) + " to " + g(a?.label ?? r.lanes.find((w) => w.id === f.laneId).label) + ".", { laneId: f.laneId, cardId: f.id });
     }
     case "nest_card": {
-      const s = t.card(n.card), a = n.under === void 0 ? null : c(n.under), f = a?.laneId ?? (n.lane === void 0 ? s.laneId : t.lane(n.lane).id), h = n.before === void 0 ? null : t.card(n.before).id;
-      let p = m(s, { laneId: f, under: a?.id ?? null, before: h });
-      if (p === r) return t.done(r, g(s.label) + " is there already.", { laneId: f, cardId: s.id });
-      const u = a ? "under " + g(a.label) : f === d ? "to " + g(i) : "to the top of " + g(r.lanes[0].label), w = n.override === !0 ? L(r, p) : null, k = w && "refused" in w ? Ie(s, w.refused.sentence, t.who ?? { by: "an agent", at: (/* @__PURE__ */ new Date()).toISOString() }, { parentId: s.parentId ?? null }) : null;
-      return p = l({ ...p, cards: p.cards.map((I) => {
+      const s = t.card(n.card), a = n.under === void 0 ? null : c(n.under), p = a?.laneId ?? (n.lane === void 0 ? s.laneId : t.lane(n.lane).id), h = n.before === void 0 ? null : t.card(n.before).id;
+      let f = m(s, { laneId: p, under: a?.id ?? null, before: h });
+      if (f === r) return t.done(r, g(s.label) + " is there already.", { laneId: p, cardId: s.id });
+      const u = a ? "under " + g(a.label) : p === d ? "to " + g(i) : "to the top of " + g(r.lanes[0].label), w = n.override === !0 ? L(r, f) : null, k = w && "refused" in w ? Ie(s, w.refused.sentence, t.who ?? { by: "an agent", at: (/* @__PURE__ */ new Date()).toISOString() }, { parentId: s.parentId ?? null }) : null;
+      return f = k ? { ...f, cards: f.cards.map((I) => {
         if (I.id !== s.id) return I;
-        const { override: _, ...T } = I;
-        return k ? { ...T, override: k } : T;
-      }) }, f, s.id), t.done(p, "Moved " + g(s.label) + " " + u + (k ? " anyway. " + k.sentence : "."), { laneId: f, cardId: s.id });
+        const { override: M, ...S } = I;
+        return { ...S, override: k };
+      }) } : ke(r, f, s.id), f = l(f, p, s.id), t.done(f, "Moved " + g(s.label) + " " + u + (k ? " anyway. " + k.sentence : "."), { laneId: p, cardId: s.id });
     }
     case "start_pile": {
       const s = t.card(n.card);
       r.cards.some((u) => u.parentId === s.id) && t.refuse(g(s.label) + " has cards under it already.", { cardId: s.id, laneId: s.laneId });
-      const a = n.label === void 0 ? "New pile" : D(n.label, 80, "Name the pile in plain words."), f = { id: V(r), label: a, laneId: o, role: "pile", order: F(r, null, o) }, h = r.cards.map((u) => {
+      const a = n.label === void 0 ? "New pile" : D(n.label, 80, "Name the pile in plain words."), p = { id: V(r), label: a, laneId: o, role: "pile", order: F(r, null, o) }, h = r.cards.map((u) => {
         if (u.id !== s.id) return u;
-        const w = { ...u, laneId: o, parentId: f.id, order: C(null, null) };
+        const w = { ...u, laneId: o, parentId: p.id, order: C(null, null) };
         return (!w.role || w.role === "pile") && (w.role = "note"), w;
-      }), p = l({ ...r, cards: [...h, f] }, o, s.id);
-      return t.done(p, "Started a new pile, " + g(a) + ", with " + g(s.label) + " in it.", { laneId: o, cardId: f.id });
+      }), f = l({ ...r, cards: [...h, p] }, o, s.id);
+      return t.done(f, "Started a new pile, " + g(a) + ", with " + g(s.label) + " in it.", { laneId: o, cardId: p.id });
     }
     case "merge_cards": {
       const s = t.card(n.card), a = t.card(n.into);
       s.id === a.id && t.refuse("Name two different cards to merge.", { cardId: s.id, laneId: s.laneId }), W(r, s.id).includes(a.id) && t.refuse(g(a.label) + " is under " + g(s.label) + ", so it can’t take it in.", { cardId: s.id, laneId: s.laneId }), (a.laneId === d || s.laneId === d) && t.refuse("Merge cards on the board, not in " + g(i) + ".", { cardId: s.id, laneId: d });
-      const f = b(r, s.id);
+      const p = b(r, s.id);
       let h = b(r, a.id).at(-1)?.order ?? null;
-      const p = new Map(f.map((I) => (h = C(h, null), [I.id, h]))), u = [...(r.nest.aliases ?? []).map(([I, _]) => [I, _ === s.id ? a.id : _]), [s.id, a.id]].slice(-12), w = r.cards.filter((I) => I.id !== s.id).map((I) => p.has(I.id) ? { ...I, parentId: a.id, order: p.get(I.id) } : I), k = l({ ...r, nest: { ...r.nest, aliases: u }, cards: w }, a.laneId, a.id);
-      return t.done(k, "Merged " + g(s.label) + " into " + g(a.label) + (f.length ? ": " + f.length + (f.length === 1 ? " card" : " cards") + " moved." : "."), { laneId: a.laneId, cardId: a.id });
+      const f = new Map(p.map((I) => (h = C(h, null), [I.id, h]))), u = [...(r.nest.aliases ?? []).map(([I, M]) => [I, M === s.id ? a.id : M]), [s.id, a.id]].slice(-12), w = r.cards.filter((I) => I.id !== s.id).map((I) => f.has(I.id) ? { ...I, parentId: a.id, order: f.get(I.id) } : I), k = l({ ...r, nest: { ...r.nest, aliases: u }, cards: w }, a.laneId, a.id);
+      return t.done(k, "Merged " + g(s.label) + " into " + g(a.label) + (p.length ? ": " + p.length + (p.length === 1 ? " card" : " cards") + " moved." : "."), { laneId: a.laneId, cardId: a.id });
     }
     case "remove_card": {
-      const s = t.card(n.card), a = b(r, s.id), f = (w) => {
-        let k = !1, I = b(r, s.parentId ?? null, s.laneId).at(-1)?.order ?? null, _ = b(r, null, d).at(-1)?.order ?? null;
-        const T = new Map(a.map((E) => {
-          const Z = (w || !s.parentId) && !r.cards.some((q) => q.parentId === E.id);
-          return k || (k = Z), [E.id, Z ? { laneId: d, order: _ = C(_, null) } : { laneId: s.laneId, order: I = C(I, null), ...s.parentId && { parentId: s.parentId } }];
-        })), we = r.cards.flatMap((E) => E.id === s.id ? [] : T.has(E.id) ? [(({ parentId: Z, ...q }) => ({ ...q, ...T.get(E.id) }))(E)] : [E]);
+      const s = t.card(n.card), a = b(r, s.id), p = (w) => {
+        let k = !1, I = b(r, s.parentId ?? null, s.laneId).at(-1)?.order ?? null, M = b(r, null, d).at(-1)?.order ?? null;
+        const S = new Map(a.map((O) => {
+          const Z = (w || !s.parentId) && !r.cards.some((q) => q.parentId === O.id);
+          return k || (k = Z), [O.id, Z ? { laneId: d, order: M = C(M, null) } : { laneId: s.laneId, order: I = C(I, null), ...s.parentId && { parentId: s.parentId } }];
+        })), we = r.cards.flatMap((O) => O.id === s.id ? [] : S.has(O.id) ? [(({ parentId: Z, ...q }) => ({ ...q, ...S.get(O.id) }))(O)] : [O]);
         return { board: { ...r, cards: we }, tidy: k };
       };
-      let h = f(!1);
+      let h = p(!1);
       if (s.parentId && r.behaviour && "refused" in L(r, h.board)) {
-        const w = f(!0);
+        const w = p(!0);
         "refused" in L(r, w.board) || (h = w);
       }
-      const { tidy: p } = h, u = l(h.board, s.laneId);
-      return t.done(u, "Removed " + g(s.label) + "." + (a.length ? p ? " What was in it went to " + g(i) + "." : " What was under it moved up." : ""), { laneId: s.laneId, cardId: s.id });
+      const { tidy: f } = h, u = l(h.board, s.laneId);
+      return t.done(u, "Removed " + g(s.label) + "." + (a.length ? f ? " What was in it went to " + g(i) + "." : " What was under it moved up." : ""), { laneId: s.laneId, cardId: s.id });
     }
     case "set_role": {
       const s = t.card(n.card);
@@ -530,8 +530,8 @@ function Le(e, n, t) {
       } catch (h) {
         t.refuse(h.message, { cardId: s.id, laneId: s.laneId });
       }
-      const f = l({ ...r, cards: r.cards.map((h) => h.id === s.id ? { ...h, role: a } : h) }, s.laneId, s.id);
-      return t.done(f, g(s.label) + " is " + re(a) + " now.", { laneId: s.laneId, cardId: s.id });
+      const p = l({ ...r, cards: r.cards.map((h) => h.id === s.id ? { ...h, role: a } : h) }, s.laneId, s.id);
+      return t.done(p, g(s.label) + " is " + re(a) + " now.", { laneId: s.laneId, cardId: s.id });
     }
     case "set_source": {
       const s = t.card(n.card);
@@ -541,32 +541,32 @@ function Le(e, n, t) {
       } catch (h) {
         t.refuse(h.message, { cardId: s.id });
       }
-      const f = l({ ...r, cards: r.cards.map((h) => h.id === s.id ? { ...h, source: a } : h) }, s.laneId, s.id);
-      return t.done(f, g(s.label) + " came from " + a + ".", { laneId: s.laneId, cardId: s.id });
+      const p = l({ ...r, cards: r.cards.map((h) => h.id === s.id ? { ...h, source: a } : h) }, s.laneId, s.id);
+      return t.done(p, g(s.label) + " came from " + a + ".", { laneId: s.laneId, cardId: s.id });
     }
     case "add_field": {
       const s = r.nest.fields ?? [];
       let a = "";
       try {
         a = D(n.label, 20, "Name the field in a word or two.");
-      } catch (p) {
-        t.refuse(p.message);
+      } catch (f) {
+        t.refuse(f.message);
       }
-      const f = a.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 20) || "field";
-      s.some((p) => p.id === f || p.label.toLowerCase() === a.toLowerCase()) && t.refuse("Cards already carry " + a + "."), s.length >= 4 && t.refuse("Cards carry up to 4 number fields.");
-      const h = l({ ...r, nest: { ...r.nest, fields: [...s, { id: f, label: a, ...n.currency && { currency: n.currency }, ...n.flag && { flag: !0 } }] } });
+      const p = a.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 20) || "field";
+      s.some((f) => f.id === p || f.label.toLowerCase() === a.toLowerCase()) && t.refuse("Cards already carry " + a + "."), s.length >= 4 && t.refuse("Cards carry up to 4 number fields.");
+      const h = l({ ...r, nest: { ...r.nest, fields: [...s, { id: p, label: a, ...n.currency && { currency: n.currency }, ...n.flag && { flag: !0 } }] } });
       return t.done(h, "Cards can carry " + a + (n.flag ? " (yes or no)" : "") + " now.");
     }
     case "set_field": {
-      const s = t.card(n.card), a = (r.nest.fields ?? []).find((p) => p.id === n.field || p.label.toLowerCase() === String(n.field).toLowerCase());
+      const s = t.card(n.card), a = (r.nest.fields ?? []).find((f) => f.id === n.field || f.label.toLowerCase() === String(n.field).toLowerCase());
       a || t.refuse("Cards on this board carry no " + n.field + ". Add it as a field first.", { code: "unknown_reference", cardId: s.id }), n.value !== null && (!Number.isInteger(n.value) || n.value < 0 || n.value > 1e9) && t.refuse("A number field takes a whole number from 0.", { cardId: s.id });
-      const f = r.cards.map((p) => {
-        if (p.id !== s.id) return p;
-        const u = { ...p.fields };
+      const p = r.cards.map((f) => {
+        if (f.id !== s.id) return f;
+        const u = { ...f.fields };
         n.value === null ? delete u[a.id] : u[a.id] = n.value;
-        const w = { ...p, fields: u };
+        const w = { ...f, fields: u };
         return Object.keys(u).length || delete w.fields, w;
-      }), h = l({ ...r, cards: f }, s.laneId, s.id);
+      }), h = l({ ...r, cards: p }, s.laneId, s.id);
       return t.done(h, g(s.label) + (n.value === null ? " has no " + a.label + " now." : "’s " + a.label + " is " + (a.currency ? ae(n.value, a.currency) : n.value) + "."), { laneId: s.laneId, cardId: s.id });
     }
     case "set_layout": {
@@ -658,20 +658,20 @@ const We = {
     else if (r.axes !== void 0 || r.owners !== void 0) throw new Error("This board needs its rules loaded.");
     n.nest = o;
   },
-  validate: Ee,
+  validate: Oe,
   planMove(e, n, t) {
     const r = v(e, n);
     return !r || !e.lanes.some((o) => o.id === t) ? null : r.laneId === t && !r.parentId ? e : J(e, n, { laneId: t, under: null, before: null });
   },
   refusal(e, n, t) {
     const r = v(e, n);
-    return r && t === O(e).tray && e.cards.some((o) => o.parentId === n) ? e.lanes[1].label + " holds loose cards. Move what is under " + g(r.label) + " first." : null;
+    return r && t === _(e).tray && e.cards.some((o) => o.parentId === n) ? e.lanes[1].label + " holds loose cards. Move what is under " + g(r.label) + " first." : null;
   },
   caption(e, n) {
     const t = x?.caption(e, n);
     if (t) return t;
     const r = e.cards.filter((d) => d.laneId === n).length;
-    if (n === O(e).tray) return r ? r + " not placed yet" : "Nothing waiting";
+    if (n === _(e).tray) return r ? r + " not placed yet" : "Nothing waiting";
     const o = b(e, null, n).length;
     return e.nest?.layout === "clusters" ? o + (o === 1 ? " pile" : " piles") + " · " + (r - o) + (r - o === 1 ? " note" : " notes") : r + (r === 1 ? " card" : " cards");
   },
@@ -690,7 +690,7 @@ export {
   je as extend,
   Ne as isOrderKey,
   he as nestAlias,
-  O as nestAreas,
+  _ as nestAreas,
   ze as nestCardText,
   P as nestDepth,
   De as nestDrags,
@@ -710,5 +710,5 @@ export {
   Fe as registerNestPlus,
   j as roleOf,
   ce as tidyKeys,
-  Ee as validateNest
+  Oe as validateNest
 };
