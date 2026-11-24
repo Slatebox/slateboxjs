@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { UndoRedo } from "../../src/core/UndoRedo";
+import { UndoRedo, OVERWRITTEN_SENTENCE } from "../../src/core/UndoRedo";
 
 describe("UndoRedo", () => {
   let mockSlate: any;
@@ -205,6 +205,50 @@ describe("UndoRedo", () => {
       ur.redo();
       await vi.advanceTimersByTimeAsync(0);
       expect(texts(restoredBy())).toEqual(["MineB", "Welcome"]);
+    });
+
+    it("undoing one's own new note leaves it when someone else changed it since, and says so", async () => {
+      const ur = new UndoRedo(mockSlate);
+      const outcomes: any[] = [];
+      ur.subscribe((_state, outcome) => outcome && outcomes.push(outcome));
+      mockSlate.nodes.allNodes = [note("w", "Welcome")];
+      ur.snap(true);
+      mockSlate.nodes.allNodes = [note("w", "Welcome"), note("k", "Kept idea")]; // mine (a Keep)
+      ur.snap(true);
+      mockSlate.nodes.allNodes = [note("w", "Welcome 2"), note("k", "Kept idea")]; // mine too
+      ur.snap(true);
+      // Someone else edits the kept note's words.
+      const before = ur.beforeRemote();
+      mockSlate.nodes.allNodes = [note("w", "Welcome 2"), note("k", "Kept idea, sharper")];
+      ur.absorbRemote(before);
+
+      ur.undo(); // my rename goes back; nothing of theirs is touched
+      await vi.advanceTimersByTimeAsync(0);
+      expect(texts(restoredBy())).toEqual(["Kept idea, sharper", "Welcome"]);
+      expect(outcomes.at(-1).message).toBeNull();
+      ur.undo(); // my new note stays: they changed it since
+      await vi.advanceTimersByTimeAsync(0);
+      expect(outcomes.at(-1).message).toBe(OVERWRITTEN_SENTENCE);
+    });
+
+    it("undoing one's own new note leaves it when someone else drew a line to it since", async () => {
+      const ur = new UndoRedo(mockSlate);
+      const linked = (id: string, text: string, childId: string) => ({ options: { id, text, x: 0, y: 0 }, relationships: { serialize: () => ({ associations: [{ id: "L1", parentId: id, childId }] }) } });
+      mockSlate.nodes.allNodes = [note("w", "Welcome")];
+      ur.snap(true);
+      mockSlate.nodes.allNodes = [note("w", "Welcome"), note("k", "Kept idea")]; // mine
+      ur.snap(true);
+      mockSlate.nodes.allNodes = [note("w", "Welcome"), note("k", "Kept idea"), note("m", "Mine too")]; // mine
+      ur.snap(true);
+      const before = ur.beforeRemote();
+      mockSlate.nodes.allNodes = [linked("w", "Welcome", "k"), note("k", "Kept idea"), note("m", "Mine too")];
+      ur.absorbRemote(before);
+      ur.undo();
+      ur.undo();
+      await vi.advanceTimersByTimeAsync(0);
+      const restored = restoredBy();
+      expect(texts(restored)).toEqual(["Kept idea", "Welcome"]);
+      expect(restored.nodes.find((n: any) => n.options.id === "w").relationships.associations.map((l: any) => l.childId)).toEqual(["k"]);
     });
 
     it("someone else's rename reaches every record, so no undo of one's own puts the old name back", async () => {

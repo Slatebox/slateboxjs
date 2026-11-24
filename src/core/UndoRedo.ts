@@ -13,7 +13,7 @@
  */
 
 import { serialize, deserialize, type SlateJSON } from "./Serialization";
-import { applyDelta, diffSlates } from "./SlateDelta";
+import { applyDelta, diffSlates, type SlateDelta } from "./SlateDelta";
 
 export interface UndoRedoOptions {
   enabled?: boolean;
@@ -94,6 +94,12 @@ export class UndoRedo {
   private gestureChanged: boolean = false;
   private listeners = new Set<UndoRedoListener>();
   private lastState: string = "";
+  /**
+   * Notes a record holds only because someone else changed them after a step of this
+   * person's made them (see absorbInto): an undo or redo to that record leaves them, and
+   * says so.
+   */
+  private carried = new WeakMap<SlateJSON, Set<string>>();
 
   constructor(slate: any, options: UndoRedoOptions = {}) {
     this.slate = slate;
@@ -384,7 +390,8 @@ export class UndoRedo {
 
       // Restore previous state
       const previous = this.undoStack[this.undoStack.length - 1];
-      this.restore(previous, "undo", this.undoHost[this.undoStack.length - 1], step ?? null, skipped);
+      const partly = this.leavesTheirs(this.redoStack[this.redoStack.length - 1], previous);
+      this.restore(previous, "undo", this.undoHost[this.undoStack.length - 1], step ?? null, skipped, partly);
       console.log("UNDOREDO_DEBUG: Undo performed. Undo stack:", this.undoStack.length, "Redo stack:", this.redoStack.length);
       this.notify();
       return true;
@@ -413,6 +420,7 @@ export class UndoRedo {
         skipped += 1;
         continue;
       }
+      const partly = this.leavesTheirs(this.undoStack[this.undoStack.length - 1], this.redoStack[top]);
       const next = this.redoStack.pop()!;
       const host = this.redoHost.pop();
       this.redoSteps.pop();
@@ -423,7 +431,7 @@ export class UndoRedo {
       this.undoSteps.push(step ?? null);
       this.undoTouched.push(touched);
 
-      this.restore(next, "redo", host, step ?? null, skipped);
+      this.restore(next, "redo", host, step ?? null, skipped, partly);
       console.log("UNDOREDO_DEBUG: Redo performed. Undo stack:", this.undoStack.length, "Redo stack:", this.redoStack.length);
       this.notify();
       return true;
@@ -470,8 +478,8 @@ export class UndoRedo {
     if (before && typeof before === "object") {
       const delta = diffSlates(before, now);
       if (delta) {
-        this.undoStack = this.undoStack.map((record) => applyDelta(record, delta));
-        this.redoStack = this.redoStack.map((record) => applyDelta(record, delta));
+        this.undoStack = this.undoStack.map((record) => this.absorbInto(record, before, delta));
+        this.redoStack = this.redoStack.map((record) => this.absorbInto(record, before, delta));
         this.undoTouched = this.undoTouched.map(() => true);
         this.redoTouched = this.redoTouched.map(() => true);
       }
@@ -482,6 +490,34 @@ export class UndoRedo {
     // The current record is the slate as it is now.
     this.undoStack[this.undoStack.length - 1] = now;
     this.undoHost[this.undoStack.length - 1] = this.hostState();
+  }
+
+  /**
+   * `record` with someone else's change carried into it. A note this person's step made (or
+   * took away) that the change edits, or draws a line to, is someone else's work too now:
+   * a record without it gets it, so no undo or redo of this person's takes their edit away.
+   */
+  private absorbInto(record: SlateJSON, before: SlateJSON, delta: SlateDelta): SlateJSON {
+    const touched = new Set<string>();
+    for (const change of delta.changed) {
+      touched.add(change.id);
+      for (const link of change.links.set) if (typeof link.childId === "string") touched.add(link.childId);
+    }
+    for (const id of delta.removed) touched.delete(id);
+    const have = UndoRedo.noteIds(record);
+    const missing = (before.nodes ?? []).filter((node: any) => touched.has(node?.options?.id) && !have.has(node.options.id));
+    const next = applyDelta(missing.length ? { ...record, nodes: [...(record.nodes ?? []), ...JSON.parse(JSON.stringify(missing))] } : record, delta);
+    const kept = new Set([...(this.carried.get(record) ?? []), ...missing.map((node: any) => node.options.id as string)]);
+    if (kept.size) this.carried.set(next, kept);
+    return next;
+  }
+
+  /** True when going from record `from` to record `to` leaves a note `from` made that someone else changed since. */
+  private leavesTheirs(from: SlateJSON | undefined, to: SlateJSON | undefined): boolean {
+    const kept = to ? this.carried.get(to) : undefined;
+    if (!kept) return false;
+    const own = (from && this.carried.get(from)) || new Set<string>();
+    return [...kept].some((id) => !own.has(id));
   }
 
   /** Check if undo is available */
@@ -612,7 +648,8 @@ export class UndoRedo {
     action: "undo" | "redo",
     host: unknown = null,
     step: HostStep | null = null,
-    skipped: number = 0
+    skipped: number = 0,
+    partly: boolean = false
   ): void {
     // Restoring creates SVG nodes asynchronously. Serialize rapid undo/redo
     // requests so an older restore cannot finish after a newer one and win.
@@ -622,7 +659,7 @@ export class UndoRedo {
       action,
       done: true,
       skipped,
-      message: skipped ? OVERWRITTEN_SENTENCE : null,
+      message: skipped || partly ? OVERWRITTEN_SENTENCE : null,
     };
     this.restoreQueue = this.restoreQueue
       .then(async () => {
