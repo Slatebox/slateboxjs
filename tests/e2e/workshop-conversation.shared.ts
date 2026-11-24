@@ -18,11 +18,19 @@ export async function sendLaneEdit(page:Page, message:string) {
   await expect(chat.getByRole('textbox')).toBeVisible()
 }
 
+// Restated 2026-11-23 (app fix/decision-path, owner rule): a move the board's rules refuse is offered as
+// "Move anyway" / "Cancel" with the rule's own sentence, never saved by itself. This takes the refusal and
+// cancels it, so nothing moves.
 export async function expectRejectedLaneEdit(page:Page,message:string) {
   const chat=await openConversation(page)
   await chat.getByRole('textbox').fill(message)
   await chat.getByRole('button',{name:'Preview changes',exact:true}).click()
-  // The reply names the card and the lane and gives the rule's own reason.
-  await expect(chat.getByRole('alert')).toContainText('can’t move to')
+  // The reply names the card and the lane; the offer gives the rule's own reason.
+  await expect(chat.getByText(/can’t move to .+ by this board’s rules\..*Move it anyway\?/).first()).toBeVisible()
+  await expect(chat.locator('[data-move-anyway-rule]')).not.toBeEmpty()
+  await expect(chat.getByRole('button',{name:'Move anyway'})).toBeVisible()
   await expect(chat.getByRole('button',{name:'Keep changes'})).toHaveCount(0)
+  await chat.getByRole('button',{name:'Cancel',exact:true}).click()
+  await expect(chat.getByRole('button',{name:'Move anyway'})).toHaveCount(0)
+  await expect(chat.getByText('stays where it was.')).toBeVisible()
 }
