@@ -42,6 +42,14 @@ test('selected connectors have labels, keyboard focus and a way back to the page
     await expect(control).toHaveCSS('vector-effect','non-scaling-stroke')
     await expect(control).toHaveCSS('outline-style','solid')
   }
+  // The rotate knob is the selected note's last control, after the plugs.
+  await page.keyboard.press('Tab')
+  const knob = page.getByRole('slider',{name:'Rotate note'})
+  await expect(knob).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(page.getByRole('button',{name:labels[3]})).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(knob).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(sibling).toBeFocused()
   await page.keyboard.press('Tab')

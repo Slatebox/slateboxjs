@@ -3998,6 +3998,11 @@ export class Node {
           return;
         }
         if (event.key === "Tab" && !event.shiftKey && direction === "left") {
+          // The rotate knob is the selected note's last control, after the plugs.
+          if (this.resizeRotate?.focusKnob()) {
+            event.preventDefault();
+            return;
+          }
           // Native Tab now continues from the source to its next sibling or the page.
           this.svgGroup.node.focus();
           return;

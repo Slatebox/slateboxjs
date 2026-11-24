@@ -1,6 +1,17 @@
 import "@svgdotjs/svg.select.js";
 import "@svgdotjs/svg.resize.js";
 import type { Node } from "./Node";
+import {
+  AngleReadout,
+  ROTATE_CURSOR,
+  SHIFT_STEP,
+  clientPoint,
+  createRotateKnob,
+  normalizeAngle,
+  rotationFromPointer,
+  snapAngle,
+  updateRotateKnob,
+} from "./RotateKnob";
 
 /**
  * Compute the L-bracket polyline points for one svg.select.js resize handle.
@@ -60,6 +71,13 @@ export class ResizeRotate {
     localX: number;
     localY: number;
   };
+  // Absolute rotate gesture: the note's world centre and where the pointer grabbed.
+  private _rot?: {
+    angle: number;
+    centre: { x: number; y: number };
+    grab: { x: number; y: number };
+  };
+  private _readout = new AngleReadout();
 
   /**
    * Creates resize/rotate handle management for a node.
@@ -131,7 +149,12 @@ export class ResizeRotate {
             const plot = computeSelectHandlePlot(point, prev, next);
             if (plot) handle.plot(plot);
           },
+          // A screen-sized knob with a rotate icon outside the top-right corner,
+          // in place of the plugin's 5-unit dot above top-centre.
+          createRot: createRotateKnob,
+          updateRot: updateRotateKnob,
         });
+        if (caps ? canRotate : this.options.rotateEnabled) this.wireKnobKeyboard();
       }
 
       // Attach resize capability (applies a transform on the group)
@@ -206,6 +229,135 @@ export class ResizeRotate {
     }
   }
 
+  /** The rotate knob's group in the overlay, if drawn. */
+  private knobElement(): SVGGElement | null {
+    try {
+      const handler = this.target?.remember?.("_selectHandler");
+      return (handler?.selection?.node?.querySelector?.("g.svg_select_handle_rot") as SVGGElement) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * The knob is a keyboard control too: Tab reaches it, arrows turn the note by 1°
+   * (Shift: to the next 15°), Home puts it back to 0°. It handles its own keys so
+   * the canvas's arrow-key nudge never sees them.
+   */
+  private wireKnobKeyboard() {
+    const el = this.knobElement();
+    if (!el) return;
+    // Out of the page's tab order; Tab reaches it from the note's last plug.
+    el.setAttribute("tabindex", "-1");
+    el.setAttribute("role", "slider");
+    el.setAttribute("aria-label", "Rotate note");
+    el.setAttribute("aria-valuemin", "-180");
+    el.setAttribute("aria-valuemax", "180");
+    const sync = () => {
+      const a = normalizeAngle(this.node?.options.rotate?.rotationAngle ?? 0);
+      el.setAttribute("aria-valuenow", String(Math.round(a)));
+      el.setAttribute("aria-valuetext", `${Math.round(a)} degrees`);
+    };
+    sync();
+    el.addEventListener("focus", () => {
+      el.style.outline = "none";
+      el.querySelector("circle")?.setAttribute("stroke", "#1f56b8");
+      el.querySelector("circle")?.setAttribute("stroke-width", String(2.5 / this.overlayScale()));
+    });
+    el.addEventListener("blur", () => {
+      (el as any).__paintKnob?.();
+      el.querySelector("circle")?.setAttribute("stroke-width", String(1 / this.overlayScale()));
+    });
+    el.addEventListener("keydown", (e: KeyboardEvent) => {
+      const svg = this.node?.svgGroup?.node as SVGGElement | undefined;
+      if (e.key === "Tab" && !e.shiftKey) {
+        // Native Tab continues from the note to its next sibling or the page.
+        svg?.focus();
+        return;
+      }
+      if (e.key === "Escape") {
+        svg?.focus();
+        return; // as from a plug: the canvas then deselects the focused note
+      }
+      if (e.key === "Tab") {
+        // Shift+Tab goes back to the last plug, or to the note.
+        e.preventDefault();
+        e.stopPropagation();
+        const left = (this.node as any)?.connectionHandles?.left?.node as SVGElement | undefined;
+        if (left?.isConnected && left.getBoundingClientRect().width > 0) {
+          left.setAttribute("tabindex", "0");
+          left.focus();
+        } else svg?.focus();
+        return;
+      }
+      const current = this.node?.options.rotate?.rotationAngle ?? 0;
+      let next: number | null = null;
+      const dir = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+      if (dir) {
+        next = e.shiftKey
+          ? (dir > 0 ? Math.floor(current / SHIFT_STEP) + 1 : Math.ceil(current / SHIFT_STEP) - 1) * SHIFT_STEP
+          : Math.round(current) + dir;
+      } else if (e.key === "Home") {
+        next = 0;
+      }
+      if (next === null) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.rotateTo(next);
+      sync();
+    });
+  }
+
+  /** Move keyboard focus to the rotate knob, if it is drawn and usable. */
+  public focusKnob(): boolean {
+    const el = this.isActive ? this.knobElement() : null;
+    if (!el || el.style.display === "none" || !(el.getBoundingClientRect().width > 0)) return false;
+    el.focus();
+    return document.activeElement === el;
+  }
+
+  /** Turn the note to an absolute angle as one finished step (keyboard). */
+  public rotateTo(angle: number) {
+    const node = this.node;
+    if (!node) return;
+    const a = normalizeAngle(angle);
+    node.applyInteractionRotation(a);
+    node.finalizeInteraction();
+    const { id, options, slate } = node;
+    slate?.broadcast?.("onNodeRotated", {
+      id,
+      rotate: options.rotate,
+      width: options.width,
+      height: options.height,
+      x: options.x,
+      y: options.y,
+    });
+    slate?.notifyNodeChanged(node);
+    (slate as any)?.announce?.(`Rotated to ${Math.round(a)} degrees`);
+  }
+
+  private overlayScale(): number {
+    try {
+      const m = this.target.root().screenCTM();
+      const s = Math.hypot(m.a, m.b);
+      return s > 0 && Number.isFinite(s) ? s : 1;
+    } catch {
+      return 1;
+    }
+  }
+
+  /** A client point in the canvas's world coordinates (the note's options space). */
+  private toWorld(pt: { x: number; y: number }): { x: number; y: number } | null {
+    try {
+      const m = (this.node.slate as any)?.canvas?.node?.getScreenCTM?.();
+      if (!m) return null;
+      const w = new DOMPoint(pt.x, pt.y).matrixTransform(m.inverse());
+      return Number.isFinite(w.x) && Number.isFinite(w.y) ? { x: w.x, y: w.y } : null;
+    } catch {
+      return null;
+    }
+  }
+
   /** Keep the selection outline but remove the handles a governed note may not use. */
   private hideHandles(resize: boolean, rotate: boolean) {
     const selectors = [
@@ -266,6 +418,23 @@ export class ResizeRotate {
         localX: box.x,
         localY: box.y,
       };
+      this._rot = undefined;
+      if (event.detail.event?.type === "rot") {
+        const grabClient = clientPoint(pointer);
+        const grab = grabClient && this.toWorld(grabClient);
+        if (grab) {
+          this._rot = {
+            angle: o.rotate?.rotationAngle ?? 0,
+            centre: { x: (o.x ?? 0) + (o.width ?? 0) / 2, y: (o.y ?? 0) + (o.height ?? 0) / 2 },
+            grab,
+          };
+        }
+        // Hold the rotate cursor on the whole page until release, so it does not
+        // flicker when the pointer leaves the knob.
+        document.documentElement.style.cursor = ROTATE_CURSOR;
+        this.knobElement()?.setAttribute("data-state", "active");
+        (this.knobElement() as any)?.__paintKnob?.();
+      }
       this._interacting = true;
       this._didRotate = this._didResize = false;
       this.node.disableConnectionHandles();
@@ -287,11 +456,26 @@ export class ResizeRotate {
       // A host's bar over the selection steps aside until the gesture ends.
       (this.node.slate as any)?.frameGestureStart?.("resize");
       if (eventType === "rot") {
-        if (!Number.isFinite(angle) || !angle) return;
+        // Slatebox works out the absolute angle from the pointer and the note's
+        // centre (exact, any start position, Shift = 15° steps, touch sticks to
+        // right angles). The plugin's incremental angle is the fallback only.
+        const raw = event.detail?.event;
+        const client = clientPoint(raw);
+        const p = client && this.toWorld(client);
+        let next: number | null = null;
+        if (this._rot && p) {
+          next = rotationFromPointer(this._rot.angle, this._rot.centre, this._rot.grab, p, {
+            shift: !!raw?.shiftKey,
+            coarse: typeof raw?.type === "string" && raw.type.startsWith("touch"),
+          });
+        } else if (Number.isFinite(angle) && angle) {
+          next = snapAngle((this.node.options.rotate?.rotationAngle ?? 0) + angle);
+        }
+        if (next === null) return;
         this._didRotate = true;
-        this.node.applyInteractionRotation(
-          (this.node.options.rotate?.rotationAngle ?? 0) + angle,
-        );
+        if (next !== (this.node.options.rotate?.rotationAngle ?? 0))
+          this.node.applyInteractionRotation(next);
+        if (client) this._readout.show(next, client.x, client.y);
         this.options.onRotate?.(event);
       } else {
         this._didResize = true;
@@ -340,9 +524,19 @@ export class ResizeRotate {
     if (!this._interacting) return;
     this._interacting = false;
     this._start = undefined;
+    this._rot = undefined;
+    this._readout.hide();
+    if (typeof document !== "undefined") document.documentElement.style.cursor = "";
+    const knob = this.knobElement();
+    if (knob?.getAttribute("data-state") === "active") {
+      knob.removeAttribute("data-state");
+      (knob as any).__paintKnob?.();
+    }
     const { id, options, slate } = this.node;
     if (this._didRotate || this._didResize) {
       this.node.finalizeInteraction();
+      if (this._didRotate)
+        (slate as any)?.announce?.(`Rotated to ${Math.round(normalizeAngle(options.rotate?.rotationAngle ?? 0))} degrees`);
       slate?.broadcast?.(this._didRotate ? "onNodeRotated" : "onNodeResized", {
         id,
         rotate: options.rotate,

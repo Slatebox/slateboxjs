@@ -80,15 +80,16 @@
   fill-opacity: 0;
 }
 
+/* Rotate knob: a white circle with a blue circular arrow, outside the top-right
+   corner. Fill/stroke/size are set inline by RotateKnob.ts (hosts may not load
+   this file); these rules only keep the cursor and focus ring consistent. */
 .svg_select_handle_rot {
-  fill: white;
-  stroke: #4A90E2;
-  stroke-width: 1.5;
-  cursor: move;
+  cursor: grab;
 }
 
-.svg_select_handle_rot:hover {
-  stroke: #1a6dd0;
+.svg_select_handle_rot:focus,
+.svg_select_handle_rot:focus-visible {
+  outline: none;
 }
 
 /* Node specific styles */
