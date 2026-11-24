@@ -1,7 +1,7 @@
 import { type StationImage, type Workshop, type WorkshopCard, type WorkshopLane } from './model';
 import { type WorkshopLimits } from './kinds';
 import { type WorkshopFinder } from './names';
-import type { RuleInput } from './behaviour';
+import type { RuleAudit, RuleInput } from './behaviour';
 /** The kinds of board, each with its own rules. */
 export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest';
 /** Every kind of board, for a schema that names them (the app's Workshop record, an MCP tool). */
@@ -349,7 +349,7 @@ export interface WorkshopEditOptions {
     /** Who makes a rule edit, and how: the audit line every rule keeps. Left out, an agent over exec. */
     actor?: {
         by: string;
-        via: 'chat' | 'exec' | 'preset';
+        via: RuleAudit['via'];
     };
     /** When, as an ISO time (for tests and replays). Left out, now. */
     now?: string;

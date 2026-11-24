@@ -716,7 +716,7 @@ export * from './moonGallery';
 export * from './darkroom/model';
 export * from './edits';
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names';
-export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopOverrideAsk, type WorkshopOverrideOffer, type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native';
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopOverrideAsk, type WorkshopOverrideOffer, type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult, registerRuleControls, type RuleControlsMode, type RuleControlsHooks } from './native';
 export { createBoardLayer, layerInk, renderLayerShapes, type LayerShape } from './boardLayer';
 export { boardLegend, boardChromeShapes, boardBadgeShapes, boardChromeLayout, boardChromeLabel, boardChromeStyles, chromeInk, DRAFT_TAG, boardChromeBox, chromeScaleAt, chromeTagScaleAt, CHROME_MAX_SCALE, CHROME_CHIPS_MAX_SCALE, type LegendItem, type LegendIcon, type ChromeOptions } from './boardChrome';
 export type StartupExperience = {

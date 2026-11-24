@@ -7,11 +7,11 @@ export declare const ruleKindIds: readonly RuleKindId[];
 export type TimeRuleKindId = 'deadline' | 'overlap' | 'snap' | 'workdays' | 'blackout' | 'cascade' | 'locked';
 /** A nest board's rule kinds (nest.ts): what sits under what, how many, how deep, how piles rank, where a far drop goes. */
 export type NestRuleKindId = 'nests' | 'children' | 'depth' | 'rank' | 'emptyDrop' | 'quadrant' | 'parent' | 'contains' | 'sameOwnerAs';
-/** Who set a rule, when, and from where. Shown when a refusal is explained. */
+/** Who set a rule, when, and from where (canvas: a rule control drawn on the board). Shown when a refusal is explained. */
 export interface RuleAudit {
     by: string;
     at: string;
-    via: 'chat' | 'exec' | 'preset';
+    via: 'chat' | 'exec' | 'preset' | 'canvas';
 }
 export type RuleBody = {
     kind: 'capacity';

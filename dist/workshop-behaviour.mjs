@@ -30,7 +30,7 @@ function L(n, e) {
     if (typeof t.on != "boolean") throw new Error("Say whether the rule is on.");
     if (t.severity !== "refuse" && t.severity !== "warn") throw new Error("A rule refuses or warns.");
     const f = E(t.set, "A rule says who set it.");
-    if (typeof f.by != "string" || f.by.length > 80 || typeof f.at != "string" || f.at.length > 40 || !["chat", "exec", "preset"].includes(f.via)) throw new Error("A rule says who set it, when and how.");
+    if (typeof f.by != "string" || f.by.length > 80 || typeof f.at != "string" || f.at.length > 40 || !["chat", "exec", "preset", "canvas"].includes(f.via)) throw new Error("A rule says who set it, when and how.");
     const p = { id: t.id, on: t.on, severity: t.severity, set: { by: f.by, at: f.at, via: f.via } }, u = g(e);
     if (u) {
       if (u.keys[t.kind] === void 0) throw new Error("This board does not know the rule " + String(t.kind) + ".");

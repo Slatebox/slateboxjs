@@ -370,7 +370,53 @@ export interface AttachWorkshopOptions {
     chrome?: boolean;
     /** A person pressed "Done" on the frame of the board in focus: the host takes it out of focus. */
     onFocusDone?: () => void;
+    /**
+     * Draw the board's rule controls (slateboxjs/workshops/controls, library spec §4.3): the drag primitives of its
+     * rulebook on the board itself, as native shapes. 'always' (a builder slate), 'selected' (while the board is in
+     * focus, or one of its cards or columns is selected), or 'off' (the default). Never on a view-only board, a draft
+     * or a still. The controls' module must have loaded (import('slateboxjs/workshops/controls')); until it has, none
+     * are drawn, and setControls draws them once it has.
+     */
+    controls?: RuleControlsMode;
+    /** A rule control was changed: its edits (add_rule, set_rule, remove_rule…), to save through the host's own door. True once saved. */
+    onRuleEdit?: (edits: WorkshopEdit[], sentence: string) => Promise<boolean> | boolean;
 }
+/** When a board shows its rule controls. */
+export type RuleControlsMode = 'off' | 'selected' | 'always';
+/** What the controls' module lends a board once it has loaded (slateboxjs/workshops/controls registers it). */
+export interface RuleControlsHooks {
+    controls: (board: Workshop, layout: {
+        places?: {
+            laneId: string;
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            row?: number;
+        }[];
+        width: number;
+        height: number;
+    }, options: {
+        scale?: number;
+        finger?: boolean;
+    }) => unknown[];
+    draw: (slate: any, boardId: string, controls: any[], options: {
+        onRuleEdit?: (edits: WorkshopEdit[], sentence: string) => Promise<boolean> | boolean;
+        origin?: {
+            x: number;
+            y: number;
+        };
+        announce?: (text: string) => void;
+    }) => {
+        update(controls: any[], origin?: {
+            x: number;
+            y: number;
+        }): void;
+        remove(): void;
+    };
+}
+/** The controls' module registers itself as it loads; every board already attached draws its controls. */
+export declare function registerRuleControls(hooks: RuleControlsHooks): void;
 export interface AttachedWorkshop {
     /** Redraw from a new model, moving only what changed. A drag in progress is cancelled first. */
     update(next: Workshop): void;
@@ -434,6 +480,8 @@ export interface AttachedWorkshop {
     setFocused(focused: boolean): void;
     /** Whether the board is in focus (setFocused). */
     readonly focused: boolean;
+    /** When the board shows its rule controls (AttachWorkshopOptions.controls). */
+    setControls(mode: RuleControlsMode): void;
 }
 /**
  * Draw `workshop` on `slate` as native notes and let people play it.
