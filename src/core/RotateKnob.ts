@@ -21,6 +21,14 @@ export const KNOB_OFFSET = 20;
 export const SHIFT_STEP = 15;
 /** On touch the angle sticks to a right angle when this close to it. */
 export const TOUCH_STICK = 4;
+/** A note whose shorter side is under this many screen px gets no knob (it would dwarf it). */
+export const KNOB_HIDE_BELOW = 24;
+/** A note whose shorter side is under this many screen px gets the small knob. */
+export const KNOB_SMALL_BELOW = 48;
+/** The small knob, its hit target and offset, in screen px. */
+export const KNOB_SIZE_SMALL = 20;
+export const KNOB_HIT_SMALL = 32;
+export const KNOB_OFFSET_SMALL = 15;
 
 const ICON_D = "M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5";
 const BLUE = "#2d6cdf";
@@ -88,7 +96,7 @@ export function snapAngle(raw: number, snap: RotationSnap = {}): number {
  * @param points - svg.select's eight handle points (lt, t, rt, r, rb, b, lb, l)
  * @param scale  - screen px per overlay unit
  */
-export function rotateKnobPosition(points: Pt[], scale: number): Pt | null {
+export function rotateKnobPosition(points: Pt[], scale: number, offset = KNOB_OFFSET): Pt | null {
   const lt = points?.[0], rt = points?.[2], rb = points?.[4];
   if (!lt || !rt || !rb) return null;
   const s = scale > 0 && Number.isFinite(scale) ? scale : 1;
@@ -102,9 +110,47 @@ export function rotateKnobPosition(points: Pt[], scale: number): Pt | null {
   // A collapsed box (zero width or height): fall back to screen axes.
   if (!along[0] && !along[1]) along = [1, 0];
   if (!up[0] && !up[1]) up = [-along[1], along[0]] as Pt;
-  const d = KNOB_OFFSET / s;
+  const d = offset / s;
   const pos: Pt = [rt[0] + (along[0] + up[0]) * d, rt[1] + (along[1] + up[1]) * d];
   return Number.isFinite(pos[0]) && Number.isFinite(pos[1]) ? pos : null;
+}
+
+export interface KnobMetrics {
+  visible: boolean;
+  size: number;
+  hit: number;
+  offset: number;
+}
+
+/**
+ * How big the knob is for a note whose shorter side is `shortSidePx` on screen: none
+ * under 24px (the knob would be bigger than the note), the small knob under 48px,
+ * otherwise the full 28px knob. With a finger (`coarse`) the knob keeps its full
+ * size and 44px target until it goes, so it stays easy to hit.
+ */
+export function knobMetrics(shortSidePx: number, coarse = false): KnobMetrics {
+  const side = Number.isFinite(shortSidePx) ? shortSidePx : Infinity;
+  if (side < KNOB_HIDE_BELOW) return { visible: false, size: 0, hit: 0, offset: 0 };
+  if (side < KNOB_SMALL_BELOW && !coarse)
+    return { visible: true, size: KNOB_SIZE_SMALL, hit: KNOB_HIT_SMALL, offset: KNOB_OFFSET_SMALL };
+  return { visible: true, size: KNOB_SIZE, hit: KNOB_HIT, offset: KNOB_OFFSET };
+}
+
+/** The shorter side of the box, in screen px, from svg.select's handle points. */
+export function shortSidePx(points: Pt[], scale: number): number {
+  const lt = points?.[0], rt = points?.[2], rb = points?.[4];
+  if (!lt || !rt || !rb) return Infinity;
+  const s = scale > 0 && Number.isFinite(scale) ? scale : 1;
+  return Math.min(Math.hypot(rt[0] - lt[0], rt[1] - lt[1]), Math.hypot(rb[0] - rt[0], rb[1] - rt[1])) * s;
+}
+
+/** True when the device's main pointer is a finger. */
+function coarsePointer(): boolean {
+  try {
+    return typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
+  } catch {
+    return false;
+  }
 }
 
 /** Screen px per overlay unit for an svg.select handler (the root SVG's zoom). */
@@ -176,22 +222,53 @@ export function createRotateKnob(group: any) {
  * (20 units above top-centre) is ignored.
  */
 export function updateRotateKnob(this: any, group: any, _rotPoint: Pt, points: Pt[]) {
-  const s = overlayScale(this);
-  const pos = rotateKnobPosition(points, s);
+  layoutRotateKnob(group, points, overlayScale(this));
+  const relayout = () => updateRotateKnob.call(this, group, _rotPoint, points);
+  (group as any).__relayout = relayout;
+  (group.node as any).__relayout = relayout; // for Slate's relayoutRotateKnobs on zoom
+}
+
+/** Re-size every rotate knob under `root` for the current zoom (they are sized in screen px). */
+export function relayoutRotateKnobs(root: ParentNode | null | undefined) {
+  root?.querySelectorAll?.("[data-rotate-knob]").forEach((el) => {
+    try {
+      (el as any).__relayout?.();
+    } catch {
+      /* a knob being torn down */
+    }
+  });
+}
+
+/**
+ * Place and size a knob (from createRotateKnob) for a box's eight handle points
+ * (lt, t, rt, r, rb, b, lb, l, in the group's own units) at `s` screen px per unit.
+ * Used for one note (svg.select) and for a multi-note selection (Slate).
+ */
+export function layoutRotateKnob(group: any, points: Pt[], s: number) {
+  const el = group.node as SVGGElement;
+  const m = knobMetrics(shortSidePx(points, s), coarsePointer());
+  // The SVG attribute, not style.display: a governed note hides the knob through
+  // style.display, and that must keep winning.
+  if (!m.visible) {
+    el.setAttribute("display", "none");
+    el.setAttribute("data-knob-size", "0");
+    return;
+  }
+  el.removeAttribute("display");
+  el.setAttribute("data-knob-size", String(m.size));
+  const pos = rotateKnobPosition(points, s, m.offset);
   if (!pos) return;
   const [cx, cy] = pos;
-  const el = group.node as SVGGElement;
   const grow = el.getAttribute("data-state") ? 1.1 : 1;
   const hit = group.findOne?.("rect");
   const knob = group.findOne?.("circle");
   const icon = group.findOne?.("path");
-  const h = KNOB_HIT / s;
+  const h = m.hit / s;
   hit?.attr({ x: cx - h / 2, y: cy - h / 2, width: h, height: h, rx: h / 2, ry: h / 2 });
-  knob?.attr({ cx, cy, r: (KNOB_SIZE * grow) / 2 / s, "stroke-width": 1 / s });
-  // The icon is drawn in lucide's 24-unit box and scaled to 16 screen px.
-  const k = (16 * grow) / 24 / s;
+  knob?.attr({ cx, cy, r: (m.size * grow) / 2 / s, "stroke-width": 1 / s });
+  // The icon is drawn in lucide's 24-unit box, at 4/7 of the knob (16px on the 28px knob).
+  const k = ((m.size * 4) / 7) * grow / 24 / s;
   icon?.attr({ transform: `translate(${cx - 12 * k} ${cy - 12 * k}) scale(${k})` });
-  (group as any).__relayout = () => updateRotateKnob.call(this, group, _rotPoint, points);
 }
 
 /**
@@ -201,7 +278,11 @@ export function updateRotateKnob(this: any, group: any, _rotPoint: Pt, points: P
 export class AngleReadout {
   private el: HTMLDivElement | null = null;
 
-  show(angle: number, clientX: number, clientY: number) {
+  /**
+   * @param coarse - a finger: the pill goes above the touch point, where the hand
+   *                 does not cover it (a mouse: below and to the right)
+   */
+  show(angle: number, clientX: number, clientY: number, coarse = false) {
     if (typeof document === "undefined") return;
     if (!this.el) {
       const el = document.createElement("div");
@@ -220,8 +301,8 @@ export class AngleReadout {
     const h = this.el.offsetHeight || 22;
     const vw = window.innerWidth || 0;
     const vh = window.innerHeight || 0;
-    const x = Math.max(4, Math.min(clientX + 24, vw - w - 4));
-    const y = Math.max(4, Math.min(clientY + 24, vh - h - 4));
+    const x = Math.max(4, Math.min(coarse ? clientX - w / 2 : clientX + 24, vw - w - 4));
+    const y = Math.max(4, Math.min(coarse ? clientY - 56 - h : clientY + 24, vh - h - 4));
     this.el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
   }
 

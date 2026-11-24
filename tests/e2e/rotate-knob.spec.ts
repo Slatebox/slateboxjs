@@ -3,11 +3,11 @@ import { expect, test, type Page } from "@playwright/test";
 // The rotate knob: a screen-sized control outside the top-right corner, absolute
 // angle maths, Shift = 15° steps, a live angle readout, touch and keyboard.
 
-async function mount(page: Page, size = { w: 950, h: 620 }, at = { x: 260, y: 180 }) {
+async function mount(page: Page, size = { w: 950, h: 620 }, at = { x: 260, y: 180 }, note = { w: 160, h: 68 }) {
   await page.goto("/test.html");
   await page.waitForFunction(() => !!(window as any).Slatebox);
   await page.evaluate(
-    async ({ size, at }) => {
+    async ({ size, at, note }) => {
       const sb = (window as any).Slatebox;
       const host = document.createElement("div");
       host.id = "knob";
@@ -20,15 +20,16 @@ async function mount(page: Page, size = { w: 950, h: 620 }, at = { x: 260, y: 18
           text: "Turn me",
           xPos: at.x,
           yPos: at.y,
-          width: 160,
-          height: 68,
+          width: note.w,
+          height: note.h,
           shape: "roundedrectangle",
         }),
       );
+      (window as any).knobFacade = f;
       const s = ((window as any).knobSlate = f.v2);
       await s.nodes.one("n").ready;
     },
-    { size, at },
+    { size, at, note },
   );
 }
 
@@ -81,7 +82,9 @@ function around(c: { x: number; y: number }, p: { x: number; y: number }, deg: n
 
 for (const zoom of [0.5, 1, 2]) {
   test(`knob is screen-sized, clear of the plugs and rotates by drag at ${zoom * 100}% zoom`, async ({ page }) => {
-    await mount(page);
+    // 100 tall, so it is at least 48px on screen at every zoom here (the full knob;
+    // smaller notes are the next test's).
+    await mount(page, undefined, undefined, { w: 160, h: 100 });
     await page.evaluate((z) => (window as any).knobSlate.zoom(z), zoom);
     await select(page);
     const m = await measure(page);
@@ -183,10 +186,218 @@ test.describe("touch at 390px", () => {
     for (const deg of [20, 45, 70, 87]) await touch("touchMove", around(m.centre, m.knob, deg));
     expect((await measure(page)).angle).toBe(90);
     await expect(readout(page)).toHaveText("90°");
+    // Above the finger, where the hand does not cover it.
+    const finger = around(m.centre, m.knob, 87);
+    const pill = (await readout(page).boundingBox())!;
+    expect(pill.y + pill.height).toBeLessThan(finger.y - 30);
+    expect(Math.abs(pill.x + pill.width / 2 - finger.x)).toBeLessThan(pill.width);
     await touch("touchMove", around(m.centre, m.knob, 60));
     expect(Math.abs((await measure(page)).angle - 60)).toBeLessThanOrEqual(1);
     await touch("touchEnd");
     await expect(readout(page)).toHaveCount(0);
     await expect.poll(async () => Math.abs((await measure(page)).angle - 60)).toBeLessThanOrEqual(1);
   });
+});
+
+test("small notes: the knob shrinks under 48px on screen and goes under 24px, never bigger than the note", async ({ page }) => {
+  await mount(page);
+  const at = async (z: number) => {
+    await page.evaluate((z) => (window as any).knobSlate.zoom(z), z);
+    await page.evaluate(() => {
+      const s = (window as any).knobSlate;
+      s.selectNodes([]);
+      s.selectNodes([s.nodes.one("n")]);
+    });
+    return page.evaluate(() => {
+      const g = document.querySelector("g.svg_select_handle_rot") as SVGGElement | null;
+      const r = g?.querySelector("circle")?.getBoundingClientRect();
+      return { size: r ? Math.round(r.width) : 0, attr: g?.getAttribute("data-knob-size") };
+    });
+  };
+  // 160x68: 17px tall at 25% (no knob), 34px at 50% (small knob), 68px at 100% (full).
+  expect(await at(0.25)).toEqual({ size: 0, attr: "0" });
+  const half = await at(0.5);
+  expect(half.attr).toBe("20");
+  expect(Math.abs(half.size - 20)).toBeLessThan(1.5);
+  const full = await at(1);
+  expect(full.attr).toBe("28");
+  expect(Math.abs(full.size - 28)).toBeLessThan(1.5);
+});
+
+test("Escape during a rotate puts the note back and saves nothing", async ({ page }) => {
+  await mount(page);
+  await select(page);
+  await page.evaluate(() => {
+    const s = (window as any).knobSlate;
+    (window as any).__sent = [];
+    const orig = s.broadcast.bind(s);
+    s.broadcast = (type: string, data: any) => {
+      (window as any).__sent.push(type);
+      return orig(type, data);
+    };
+  });
+  const m = await measure(page);
+  await page.mouse.move(m.knob.x, m.knob.y);
+  await page.mouse.down();
+  const p = around(m.centre, m.knob, 60);
+  await page.mouse.move(p.x, p.y, { steps: 5 });
+  expect(Math.abs((await measure(page)).angle - 60)).toBeLessThanOrEqual(1);
+  await page.keyboard.press("Escape");
+  expect((await measure(page)).angle).toBe(0);
+  await expect(readout(page)).toHaveCount(0);
+  // Moving on before the release changes nothing.
+  await page.mouse.move(m.centre.x + 200, m.centre.y + 40, { steps: 3 });
+  await page.mouse.up();
+  await page.waitForTimeout(50);
+  const end = await measure(page);
+  expect(end.angle).toBe(0);
+  expect(Math.abs(end.shapeAngle)).toBeLessThan(0.5);
+  expect(await page.evaluate(() => (window as any).__sent)).not.toContain("onNodeRotated");
+  // Escape cancelled the rotate only: the note is still selected.
+  expect(await page.evaluate(() => (window as any).knobSlate.getSelectedNodes().length)).toBe(1);
+  expect(await page.evaluate(() => document.documentElement.style.cursor)).toBe("");
+});
+
+test("keyboard: a held arrow saves once, when the key is released", async ({ page }) => {
+  await mount(page);
+  await select(page);
+  await page.evaluate(() => {
+    const s = (window as any).knobSlate;
+    (window as any).__sent = [];
+    const orig = s.broadcast.bind(s);
+    s.broadcast = (type: string, data: any) => {
+      (window as any).__sent.push([type, data?.rotate?.rotationAngle]);
+      return orig(type, data);
+    };
+  });
+  const knob = page.locator("g.svg_select_handle_rot");
+  await knob.focus();
+  await page.keyboard.down("ArrowRight");
+  for (let i = 0; i < 5; i++) await page.keyboard.down("ArrowRight"); // auto-repeat
+  expect((await measure(page)).angle).toBe(6);
+  expect(await page.evaluate(() => (window as any).__sent.length)).toBe(0);
+  await page.keyboard.up("ArrowRight");
+  expect(await page.evaluate(() => (window as any).__sent)).toEqual([["onNodeRotated", 6]]);
+  // A pause saves too, if the release never comes (focus moved away mid-press).
+  await page.keyboard.down("ArrowLeft");
+  await expect.poll(() => page.evaluate(() => (window as any).__sent.length), { timeout: 3000 }).toBe(2);
+  await page.keyboard.up("ArrowLeft");
+  expect(await page.evaluate(() => (window as any).__sent.length)).toBe(2);
+});
+
+async function mountPair(page: Page) {
+  await mount(page);
+  await page.evaluate(async () => {
+    const sb = (window as any).Slatebox;
+    const s = (window as any).knobSlate;
+    (window as any).knobFacade.nodes.add(
+      new sb.node({ id: "m", text: "Me too", xPos: 520, yPos: 300, width: 160, height: 68, shape: "roundedrectangle" }),
+    );
+    await s.nodes.one("m").ready;
+    s.selectNodes([s.nodes.one("n"), s.nodes.one("m")]);
+  });
+}
+
+const groupKnob = (page: Page) =>
+  page.evaluate(() => {
+    const g = document.querySelector("g.slatebox-group-rotate") as SVGGElement | null;
+    if (!g) return null;
+    const k = g.querySelector("circle")!.getBoundingClientRect();
+    const frame = g.parentNode!.querySelector("rect")!.getBoundingClientRect();
+    const s = (window as any).knobSlate;
+    return {
+      circles: g.querySelectorAll("circle").length,
+      icon: !!g.querySelector("path"),
+      size: k.width,
+      knob: { x: k.x + k.width / 2, y: k.y + k.height / 2 },
+      frame: { left: frame.left, right: frame.right, top: frame.top, bottom: frame.bottom },
+      cursor: g.style.cursor,
+      angles: ["n", "m"].map((id) => s.nodes.one(id).options.rotate?.rotationAngle ?? 0),
+      pos: ["n", "m"].map((id) => [s.nodes.one(id).options.x, s.nodes.one(id).options.y]),
+    };
+  });
+
+for (const zoom of [0.5, 1]) {
+  test(`a multi-note selection gets the same knob at its top-right corner (${zoom * 100}% zoom)`, async ({ page }) => {
+    await mountPair(page);
+    await page.evaluate((z) => {
+      const s = (window as any).knobSlate;
+      s.zoom(z);
+      s.selectNodes([]);
+      s.selectNodes([s.nodes.one("n"), s.nodes.one("m")]);
+    }, zoom);
+    const k = (await groupKnob(page))!;
+    expect(k).not.toBeNull();
+    expect(k.circles).toBe(1);
+    expect(k.icon).toBe(true);
+    expect(Math.abs(k.size - 28)).toBeLessThan(1.5);
+    expect(k.cursor).toContain("data:image/svg+xml");
+    expect(k.knob.x).toBeGreaterThan(k.frame.right + 10);
+    expect(k.knob.y).toBeLessThan(k.frame.top - 10);
+    // The old knob was a plain dot with a stem above top-centre.
+    expect(await page.locator("g.slatebox-group-rotate").locator("..").locator("line").count()).toBe(0);
+  });
+}
+
+test("multi-note rotate: readout and rotate cursor while dragging, Shift snaps, Escape puts everything back", async ({ page }) => {
+  await mountPair(page);
+  const k = (await groupKnob(page))!;
+  const centre = { x: (k.frame.left + k.frame.right) / 2, y: (k.frame.top + k.frame.bottom) / 2 };
+  await page.mouse.move(k.knob.x, k.knob.y);
+  await page.mouse.down();
+  await page.keyboard.down("Shift");
+  let p = around(centre, k.knob, 22);
+  await page.mouse.move(p.x, p.y, { steps: 4 });
+  await expect(readout(page)).toHaveText("15°");
+  expect(await page.evaluate(() => document.documentElement.style.cursor)).toContain("data:image/svg+xml");
+  expect((await groupKnob(page))!.angles).toEqual([15, 15]);
+  await page.keyboard.up("Shift");
+  await page.keyboard.press("Escape");
+  const back = (await groupKnob(page))!;
+  expect(back.angles).toEqual([0, 0]);
+  expect(back.pos).toEqual(k.pos);
+  await expect(readout(page)).toHaveCount(0);
+  await page.mouse.up();
+  expect((await groupKnob(page))!.angles).toEqual([0, 0]);
+  expect(await page.evaluate(() => (window as any).knobSlate.getSelectedNodes().length)).toBe(2);
+
+  // A real turn ends with the readout and cursor cleared.
+  const k2 = (await groupKnob(page))!;
+  await page.mouse.move(k2.knob.x, k2.knob.y);
+  await page.mouse.down();
+  p = around(centre, k2.knob, 40);
+  await page.mouse.move(p.x, p.y, { steps: 5 });
+  await expect(readout(page)).toBeVisible();
+  await page.mouse.up();
+  await expect(readout(page)).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.style.cursor)).toBe("");
+  const after = (await groupKnob(page))!;
+  for (const a of after.angles) expect(Math.abs(a - 40)).toBeLessThanOrEqual(1);
+});
+
+test("zooming with a selection re-sizes the knob (one note and a group)", async ({ page }) => {
+  await mountPair(page);
+  const size = (sel: string) =>
+    page.evaluate((sel) => Math.round(document.querySelector(`${sel} circle`)?.getBoundingClientRect().width ?? -1), sel);
+  await page.evaluate(() => {
+    const s = (window as any).knobSlate;
+    s.selectNodes([]);
+    s.selectNodes([s.nodes.one("n")]);
+  });
+  // A 160x68 note: 28px knob at 100%, still 28 at 150%, the small knob at 50%.
+  expect(await size("g.svg_select_handle_rot")).toBe(28);
+  await page.evaluate(() => (window as any).knobSlate.zoom(1.5));
+  await expect.poll(() => size("g.svg_select_handle_rot")).toBe(28);
+  await page.evaluate(() => (window as any).knobSlate.zoom(0.5));
+  await expect.poll(() => size("g.svg_select_handle_rot")).toBe(20);
+  await page.evaluate(() => {
+    const s = (window as any).knobSlate;
+    s.zoom(1);
+    s.selectNodes([s.nodes.one("n"), s.nodes.one("m")]);
+  });
+  expect(await size("g.slatebox-group-rotate")).toBe(28);
+  await page.evaluate(() => (window as any).knobSlate.zoom(0.5));
+  await expect.poll(() => size("g.slatebox-group-rotate")).toBe(28);
+  await page.evaluate(() => (window as any).knobSlate.zoom(2));
+  await expect.poll(() => size("g.slatebox-group-rotate")).toBe(28);
 });

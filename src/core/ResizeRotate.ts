@@ -78,6 +78,12 @@ export class ResizeRotate {
     grab: { x: number; y: number };
   };
   private _readout = new AngleReadout();
+  // Escape cancelled the rotate: the plugin's remaining frames until release are ignored.
+  private _cancelled = false;
+  // Keyboard turns wait for the key's release (or a pause) to save, so a held arrow
+  // makes one broadcast, one undo step and one announcement.
+  private _keyCommitTimer?: ReturnType<typeof setTimeout>;
+  private _keyPending = false;
 
   /**
    * Creates resize/rotate handle management for a node.
@@ -265,6 +271,7 @@ export class ResizeRotate {
       el.querySelector("circle")?.setAttribute("stroke-width", String(2.5 / this.overlayScale()));
     });
     el.addEventListener("blur", () => {
+      this.commitKeyRotation();
       (el as any).__paintKnob?.();
       el.querySelector("circle")?.setAttribute("stroke-width", String(1 / this.overlayScale()));
     });
@@ -303,8 +310,11 @@ export class ResizeRotate {
       if (next === null) return;
       e.preventDefault();
       e.stopPropagation();
-      this.rotateTo(next);
+      this.previewKeyRotation(next);
       sync();
+    });
+    el.addEventListener("keyup", (e: KeyboardEvent) => {
+      if (/^Arrow|^Home$/.test(e.key)) this.commitKeyRotation();
     });
   }
 
@@ -314,6 +324,27 @@ export class ResizeRotate {
     if (!el || el.style.display === "none" || !(el.getBoundingClientRect().width > 0)) return false;
     el.focus();
     return document.activeElement === el;
+  }
+
+  /** Turn the note from the keyboard now; save it when the key is released or after a pause. */
+  private previewKeyRotation(angle: number) {
+    const node = this.node;
+    if (!node) return;
+    node.applyInteractionRotation(normalizeAngle(angle));
+    node.finalizeInteraction();
+    node.slate?.notifyNodeChanged(node);
+    this._keyPending = true;
+    clearTimeout(this._keyCommitTimer);
+    this._keyCommitTimer = setTimeout(() => this.commitKeyRotation(), 700);
+  }
+
+  /** Save the keyboard's pending turn as one step (broadcast + announce), if there is one. */
+  private commitKeyRotation() {
+    clearTimeout(this._keyCommitTimer);
+    if (!this._keyPending) return;
+    this._keyPending = false;
+    const node = this.node;
+    if (node) this.rotateTo(node.options.rotate?.rotationAngle ?? 0);
   }
 
   /** Turn the note to an absolute angle as one finished step (keyboard). */
@@ -380,6 +411,8 @@ export class ResizeRotate {
   /** Disable resize and rotate handles on the node. */
   public disable() {
     if (!this.isActive) return;
+    // A keyboard turn still waiting for its key's release is saved first.
+    this.commitKeyRotation();
 
     try {
       const element: any = this.target;
@@ -402,6 +435,7 @@ export class ResizeRotate {
   private addEventListeners() {
     this.target.on("beforeresize.resizerotate", (event: any) => {
       this.finish();
+      this._cancelled = false;
       const handler = event.detail.handler;
       const pointer = event.detail.event.detail.event;
       handler.preserveAspectRatio = Boolean(
@@ -432,6 +466,7 @@ export class ResizeRotate {
         // Hold the rotate cursor on the whole page until release, so it does not
         // flicker when the pointer leaves the knob.
         document.documentElement.style.cursor = ROTATE_CURSOR;
+        window.addEventListener("keydown", this.onGestureKey, true);
         this.knobElement()?.setAttribute("data-state", "active");
         (this.knobElement() as any)?.__paintKnob?.();
       }
@@ -450,6 +485,10 @@ export class ResizeRotate {
     });
     this.target.on("resize.resizerotate", (event: any) => {
       const { box, angle, eventType } = event.detail ?? {};
+      if (this._cancelled) {
+        event.preventDefault(); // Escape ended this gesture; ignore it until release.
+        return;
+      }
       const start = this._start;
       if (!start || !box) return;
       event.preventDefault(); // Slatebox owns the write; the plugin computes the gesture.
@@ -475,7 +514,8 @@ export class ResizeRotate {
         this._didRotate = true;
         if (next !== (this.node.options.rotate?.rotationAngle ?? 0))
           this.node.applyInteractionRotation(next);
-        if (client) this._readout.show(next, client.x, client.y);
+        if (client)
+          this._readout.show(next, client.x, client.y, typeof raw?.type === "string" && raw.type.startsWith("touch"));
         this.options.onRotate?.(event);
       } else {
         this._didResize = true;
@@ -512,7 +552,31 @@ export class ResizeRotate {
     window.addEventListener("touchcancel", this.scheduleFinish);
   }
 
+  /**
+   * Escape while rotating: put the note back at its start angle and end the gesture
+   * without saving (the canvas does not also deselect).
+   */
+  private onGestureKey = (e: KeyboardEvent) => {
+    if (e.key !== "Escape" || !this._interacting || !this._rot) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    const node = this.node;
+    const startAngle = this._rot.angle;
+    this._cancelled = true;
+    this._didRotate = this._didResize = false;
+    if (node && (node.options.rotate?.rotationAngle ?? 0) !== startAngle) {
+      node.applyInteractionRotation(startAngle);
+      node.finalizeInteraction();
+      node.slate?.notifyNodeChanged(node);
+    }
+    this.finish();
+    (node?.slate as any)?.announce?.("Rotate cancelled");
+  };
+
   private scheduleFinish = () => {
+    // The release after an Escape: once the plugin's last frame has gone by, the
+    // next gesture is live again.
+    if (this._cancelled) setTimeout(() => (this._cancelled = false), 0);
     if (!this._interacting) return;
     clearTimeout(this._endTimer);
     // svg.resize emits a final size update from its own mouseup listener.
@@ -523,6 +587,7 @@ export class ResizeRotate {
     clearTimeout(this._endTimer);
     if (!this._interacting) return;
     this._interacting = false;
+    window.removeEventListener("keydown", this.onGestureKey, true);
     this._start = undefined;
     this._rot = undefined;
     this._readout.hide();

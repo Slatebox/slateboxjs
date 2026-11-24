@@ -20,7 +20,8 @@ export const DEFAULT_NOTE_STYLE = Object.freeze({
  * (a 160 x 68 rounded rectangle) in sticky yellow (the palette's Lemon) with dark
  * text, no border and the post-it shadow. An operation's own shape, size and
  * style win over a preset. (The older square "stickynote" shape stays registered
- * for slates that use it.)
+ * for slates that use it.) The sticky colours match the app's STICKY_NOTE
+ * (noteStyle.mjs, the palette's Lemon); the app's sticky-note test checks the two agree.
  */
 export const NOTE_PRESETS = Object.freeze({
   text: Object.freeze({

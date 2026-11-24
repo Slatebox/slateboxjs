@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   KNOB_OFFSET,
+  KNOB_OFFSET_SMALL,
+  KNOB_SIZE,
+  KNOB_SIZE_SMALL,
+  knobMetrics,
+  shortSidePx,
   normalizeAngle,
   rotateKnobPosition,
   rotationFromPointer,
@@ -105,5 +110,38 @@ describe("rotateKnobPosition", () => {
     expect(rotateKnobPosition([], 1)).toBeNull();
     const p = rotateKnobPosition(box(0, 0), 1)!;
     expect(p.every(Number.isFinite)).toBe(true);
+  });
+});
+
+describe("knob size for small notes", () => {
+  const box = (w: number, h: number): Array<[number, number]> => [
+    [0, 0], [w / 2, 0], [w, 0], [w, h / 2], [w, h], [w / 2, h], [0, h], [0, h / 2],
+  ];
+  it("no knob under 24px, the small knob under 48px, the full knob otherwise", () => {
+    expect(knobMetrics(17).visible).toBe(false); // a 160x68 note at 25%
+    expect(knobMetrics(23.9).visible).toBe(false);
+    expect(knobMetrics(24)).toMatchObject({ visible: true, size: KNOB_SIZE_SMALL, offset: KNOB_OFFSET_SMALL });
+    expect(knobMetrics(34)).toMatchObject({ visible: true, size: KNOB_SIZE_SMALL }); // 160x68 at 50%
+    expect(knobMetrics(48)).toMatchObject({ visible: true, size: KNOB_SIZE, offset: KNOB_OFFSET });
+    expect(knobMetrics(68).hit).toBeGreaterThanOrEqual(44);
+    expect(knobMetrics(Number.NaN).size).toBe(KNOB_SIZE);
+  });
+
+  it("with a finger the knob keeps its full size and 44px target until it goes", () => {
+    expect(knobMetrics(34, true)).toMatchObject({ visible: true, size: KNOB_SIZE });
+    expect(knobMetrics(34, true).hit).toBeGreaterThanOrEqual(44);
+    expect(knobMetrics(20, true).visible).toBe(false);
+  });
+
+  it("the small knob is never bigger than the note it turns", () => {
+    for (let side = 24; side < 48; side++) expect(knobMetrics(side).size).toBeLessThanOrEqual(side);
+  });
+
+  it("measures the shorter side on screen, rotated or not", () => {
+    expect(shortSidePx(box(160, 68), 0.25)).toBeCloseTo(17);
+    expect(shortSidePx(box(160, 68), 1)).toBeCloseTo(68);
+    const turned = box(160, 68).map(([x, y]) => [-y, x]) as Array<[number, number]>;
+    expect(shortSidePx(turned, 2)).toBeCloseTo(136);
+    expect(shortSidePx([], 1)).toBe(Infinity);
   });
 });

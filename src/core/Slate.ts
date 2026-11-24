@@ -21,6 +21,7 @@ import { exportSVG, exportPNG, type ExportOptions } from "./Export";
 import { Collab, CollabUser, type NoteTrade, type NoteTrades } from "./Collab";
 import type { SlatePackage } from "./SlatePackage";
 import { v2NodeToV1 } from "./compat";
+import { AngleReadout, ROTATE_CURSOR, clientPoint, createRotateKnob, layoutRotateKnob, normalizeAngle, relayoutRotateKnobs, snapAngle } from "./RotateKnob";
 import { guid } from "../utils";
 import { applyTheme, type ThemeDefinition } from "./Theme";
 import {
@@ -2238,24 +2239,31 @@ export class Slate {
     try {
     const cx = groupBBox.x + groupBBox.width / 2;
     const cy = groupBBox.y + groupBBox.height / 2;
-    const offset = 28; // world units above the top edge
-    const knobY = groupBBox.y - offset;
 
-    g.line(cx, groupBBox.y, cx, knobY)
-      .stroke({ color: "#4a90e2", width: 1 })
-      .attr("pointer-events", "none");
-    const knob = g
-      .circle(14)
-      .center(cx, knobY)
-      .fill("#ffffff")
-      .stroke({ color: "#4a90e2", width: 2 });
-    const setCursor = (c: string) => {
-      const el = knob.node as any;
-      if (el?.style) el.style.cursor = c;
+    // The same knob as one note's (RotateKnob.ts): a screen-sized white circle with a
+    // rotate arrow outside the selection's top-right corner, hidden or shrunk for a
+    // selection that is tiny on screen.
+    const kg = g.group().addClass("slatebox-group-rotate");
+    createRotateKnob(kg);
+    const el = kg.node as unknown as SVGGElement;
+    el.setAttribute("aria-label", "Rotate selection");
+    el.style.touchAction = "none";
+    const { x, y, width: w, height: h } = groupBBox;
+    const points: [number, number][] = [
+      [x, y], [cx, y], [x + w, y], [x + w, cy],
+      [x + w, y + h], [cx, y + h], [x, y + h], [x, cy],
+    ];
+    const scale = () => {
+      const m = (g.node as any as SVGGraphicsElement).getScreenCTM?.();
+      const sc = m ? Math.hypot(m.a, m.b) : 1;
+      return sc > 0 && Number.isFinite(sc) ? sc : 1;
     };
-    setCursor("grab");
-    knob.attr("pointer-events", "all");
+    const layout = () => layoutRotateKnob(kg, points, scale());
+    (kg as any).__relayout = layout;
+    (el as any).__relayout = layout;
+    layout();
 
+    const readout = new AngleReadout();
     let dragging = false;
     let startAngle = 0;
     let pivot = { x: 0, y: 0 };
@@ -2267,12 +2275,8 @@ export class Slate {
       return { x: m.a * cx + m.c * cy + m.e, y: m.b * cx + m.d * cy + m.f };
     };
 
-    const onMove = (e: PointerEvent) => {
-      if (!dragging) return;
-      this.frameGestureStart("group-rotate");
-      const cur = Math.atan2(e.clientY - pivot.y, e.clientX - pivot.x);
-      let deltaDeg = ((cur - startAngle) * 180) / Math.PI;
-      if (e.shiftKey) deltaDeg = Math.round(deltaDeg / 15) * 15; // 15° snap
+    // Turn every member by `deltaDeg` about the group centre, from the snapshot.
+    const turn = (deltaDeg: number) => {
       const rad = (deltaDeg * Math.PI) / 180;
       const cos = Math.cos(rad);
       const sin = Math.sin(rad);
@@ -2285,29 +2289,66 @@ export class Slate {
         const h = s.node.options.height || 0;
         const rot = (s.node.options.rotate =
           s.node.options.rotate || ({} as any));
-        rot.rotationAngle = s.angle + deltaDeg;
+        rot.rotationAngle = deltaDeg ? normalizeAngle(s.angle + deltaDeg) : s.angle;
         s.node.position(ncx - w / 2, ncy - h / 2);
       });
     };
 
-    const onUp = () => {
+    let delta = 0;
+    const onMove = (e: PointerEvent) => {
       if (!dragging) return;
+      this.frameGestureStart("group-rotate");
+      const cur = Math.atan2(e.clientY - pivot.y, e.clientX - pivot.x);
+      const coarse = e.pointerType === "touch";
+      // Shift: 15° steps; a finger sticks to right angles; otherwise whole degrees.
+      delta = snapAngle(((cur - startAngle) * 180) / Math.PI, { shift: e.shiftKey, coarse });
+      turn(delta);
+      const p = clientPoint(e);
+      if (p) readout.show(delta, p.x, p.y, coarse);
+    };
+
+    const stop = () => {
       dragging = false;
-      setCursor("grab");
+      readout.hide();
+      document.documentElement.style.cursor = "";
+      el.removeAttribute("data-state");
+      (el as any).__paintKnob?.();
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("keydown", onKey, true);
+    };
+
+    const onUp = () => {
+      if (!dragging) return;
+      stop();
       this.broadcast("onNodesMove", {
         nodeOptions: this.selectedNodes.map((n) => v2NodeToV1(n.options)),
       });
+      this.announce(`Rotated the selection by ${Math.round(delta)} degrees`);
       // Redraw the outline to wrap the freshly-rotated group.
       this.updateSelectionResizeRotate();
       this.frameGestureEnd("group-rotate");
     };
 
-    knob.on("pointerdown", (e: any) => {
+    // Escape while turning: every member goes back where it was, nothing is saved,
+    // and the selection stays.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || !dragging) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      stop();
+      turn(0);
+      this.announce("Rotate cancelled");
+      this.updateSelectionResizeRotate();
+      this.frameGestureEnd("group-rotate");
+    };
+
+    kg.on("pointerdown", (e: any) => {
       e.preventDefault?.();
       e.stopPropagation?.();
       dragging = true;
+      delta = 0;
       pivot = pivotScreen();
       startAngle = Math.atan2(e.clientY - pivot.y, e.clientX - pivot.x);
       snapshot = this.selectedNodes.map((n) => ({
@@ -2316,9 +2357,15 @@ export class Slate {
         cy: (n.options.y || 0) + (n.options.height || 0) / 2,
         angle: n.options.rotate?.rotationAngle || 0,
       }));
-      setCursor("grabbing");
+      el.setAttribute("data-state", "active");
+      (el as any).__paintKnob?.();
+      layout();
+      // Hold the rotate cursor on the whole page until release.
+      document.documentElement.style.cursor = ROTATE_CURSOR;
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+      window.addEventListener("keydown", onKey, true);
     });
     } catch (e) {
       /* rotate knob is best-effort; selection remains usable without it */
@@ -2656,6 +2703,8 @@ export class Slate {
    */
   public frameViewChanged(): void {
     if (this._destroyed) return;
+    // The rotate knobs are sized in screen px: a zoom re-sizes them.
+    relayoutRotateKnobs(this.element);
     if (this._frameViewTimer) clearTimeout(this._frameViewTimer);
     this._frameViewTimer = setTimeout(() => {
       this._frameViewTimer = null;
