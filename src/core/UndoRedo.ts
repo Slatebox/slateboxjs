@@ -94,11 +94,6 @@ export class UndoRedo {
   private gestureChanged: boolean = false;
   private listeners = new Set<UndoRedoListener>();
   private lastState: string = "";
-  /**
-   * Notes a record holds only because someone else changed them after a step of this
-   * person's made them (see absorbInto): an undo or redo to that record leaves them, and
-   * says so.
-   */
   private carried = new WeakMap<SlateJSON, Set<string>>();
 
   constructor(slate: any, options: UndoRedoOptions = {}) {
@@ -392,11 +387,9 @@ export class UndoRedo {
       const previous = this.undoStack[this.undoStack.length - 1];
       const partly = this.leavesTheirs(this.redoStack[this.redoStack.length - 1], previous);
       this.restore(previous, "undo", this.undoHost[this.undoStack.length - 1], step ?? null, skipped, partly);
-      console.log("UNDOREDO_DEBUG: Undo performed. Undo stack:", this.undoStack.length, "Redo stack:", this.redoStack.length);
       this.notify();
       return true;
     }
-    console.log("UNDOREDO_DEBUG: Nothing to undo");
     if (skipped) {
       this.notify({ action: "undo", done: false, skipped, message: OVERWRITTEN_SENTENCE });
     }
@@ -432,11 +425,9 @@ export class UndoRedo {
       this.undoTouched.push(touched);
 
       this.restore(next, "redo", host, step ?? null, skipped, partly);
-      console.log("UNDOREDO_DEBUG: Redo performed. Undo stack:", this.undoStack.length, "Redo stack:", this.redoStack.length);
       this.notify();
       return true;
     }
-    console.log("UNDOREDO_DEBUG: Nothing to redo");
     if (skipped) {
       this.notify({ action: "redo", done: false, skipped, message: OVERWRITTEN_SENTENCE });
     }
@@ -492,12 +483,13 @@ export class UndoRedo {
     this.undoHost[this.undoStack.length - 1] = this.hostState();
   }
 
-  /**
-   * `record` with someone else's change carried into it. A note this person's step made (or
-   * took away) that the change edits, or draws a line to, is someone else's work too now:
-   * a record without it gets it, so no undo or redo of this person's takes their edit away.
-   */
   private absorbInto(record: SlateJSON, before: SlateJSON, delta: SlateDelta): SlateJSON {
+    // `record` with someone else's change carried into it. A note this person's step made (or
+    // took away) that the change edits, or draws a line to, is someone else's work too now:
+    // a record without it gets it, so no undo or redo of this person's takes their edit away.
+    // `carried` keeps, per record, the notes it holds only for that reason: an undo or redo to
+    // it leaves them, and says so (leavesTheirs). (Comments inside a method: the canvas chunk
+    // ships without them, and it is at its ceiling.)
     const touched = new Set<string>();
     for (const change of delta.changed) {
       touched.add(change.id);
@@ -512,8 +504,8 @@ export class UndoRedo {
     return next;
   }
 
-  /** True when going from record `from` to record `to` leaves a note `from` made that someone else changed since. */
   private leavesTheirs(from: SlateJSON | undefined, to: SlateJSON | undefined): boolean {
+    // True when going from record `from` to record `to` leaves a note `from` made that someone else changed since.
     const kept = to ? this.carried.get(to) : undefined;
     if (!kept) return false;
     const own = (from && this.carried.get(from)) || new Set<string>();
@@ -591,10 +583,6 @@ export class UndoRedo {
       this.undoSteps[0] = null;
     }
 
-    console.log(
-      "UNDOREDO_DEBUG: Snapshot taken. Stack size:",
-      this.undoStack.length
-    );
     this.notify();
   }
 
