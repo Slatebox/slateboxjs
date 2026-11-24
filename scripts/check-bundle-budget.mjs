@@ -62,6 +62,11 @@ const ceilings = {
   // The video addresses and their checks (operations/media.ts), shared by the video note and the video-address paste
   // and so a chunk of their own, fetched with whichever comes first (4,653 / 1,763 at its first build, plus a little).
   'canvas-media-*.mjs': { raw: 5000, gzip: 2000 },
+  // The rule controls a board draws for its editors (library spec §4.3): loaded only when a board shows them.
+  // First build 30927 / 9276, plus a little.
+  'workshop-controls.mjs': { raw: 33000, gzip: 10000 },
+  // The one still renderer for every read-only surface (library spec §7.2). First build 8501 / 3421, plus a little.
+  'boards-still.mjs': { raw: 9500, gzip: 4000 },
 }
 
 const dist = readdirSync(new URL('../dist/', import.meta.url))
@@ -105,6 +110,10 @@ if (/function scheduleLaunch|function validatePipeline|function validateBudget|f
 // The rulebook and the library stay out of the model a plain slate loads, and out of the business rules.
 for (const eager of ['slateboxjs.mjs', 'workshop-model.mjs', 'workshop-rules.mjs', 'boards.mjs']) {
   if (importsOf(eager).some(target => /behaviour|catalog/.test(target))) problems.push(`${eager} imports the rulebook or the library: they load on their own.`)
+}
+// The rule controls load on their own, only where a board shows them.
+for (const eager of ['slateboxjs.mjs', 'workshop-model.mjs', 'workshops.mjs', 'workshop-mount.mjs', 'operations.mjs', 'boards.mjs']) {
+  if (importsOf(eager).some(target => /controls/.test(target))) problems.push(`${eager} imports the rule controls: they load on their own (slateboxjs/workshops/controls).`)
 }
 if (importsOf('catalog.mjs').length) problems.push('catalog.mjs must stand alone: pure data, no model.')
 if (!importsOf('workshop-rules.mjs').includes('./workshop-model.mjs')) problems.push('workshop-rules.mjs must plug into ./workshop-model.mjs, not carry its own model.')
