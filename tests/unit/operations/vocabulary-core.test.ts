@@ -118,11 +118,25 @@ describe("add-text-note and add-sticky-note: presets the note toolbar makes", ()
     expect(added).toMatchObject({ opacity: 0, borderOpacity: 0, textOpacity: 1, backgroundColor: "#ffffff", fontColor: "#000000", fontSize: 20, shape: "rectangle" });
   });
 
-  it("adds a sticky note: the sticky shape, the post-it effect and no border", () => {
+  it("adds a sticky note: the default rounded note in sticky yellow, dark text, the post-it effect and no border", () => {
     const result = applyPlanToJSON(slate(), plan({ kind: "add_nodes", count: 1, preset: "sticky", text: "Idea", x: 0, y: 0, ids: ["s1"] }));
     const added = find(result, "s1").options;
-    expect(added).toMatchObject({ shape: "stickynote", borderOpacity: 0, filters: { vect: "postItNote" } });
+    expect(added).toMatchObject({
+      shape: "roundedrectangle",
+      vectorPath: "roundedrectangle",
+      borderOpacity: 0,
+      borderWidth: 0,
+      backgroundColor: "#fdeea6",
+      fontColor: "#1b1f1d",
+      filters: { vect: "postItNote" },
+    });
+    expect([added.width, added.height]).toEqual([160, 68]);
     expect([added.width, added.height]).toEqual([NOTE_PRESETS.sticky.width, NOTE_PRESETS.sticky.height]);
+  });
+
+  it("a sticky note is yellow whatever colour the notes around it are", () => {
+    const result = applyPlanToJSON(slate(), plan({ kind: "add_nodes", count: 1, preset: "sticky", text: "Idea", placement: { relativeTo: "a", direction: "right" }, ids: ["s2"] }));
+    expect(find(result, "s2").options).toMatchObject({ backgroundColor: "#fdeea6", fontColor: "#1b1f1d" });
   });
 
   it("refuses an unknown preset", () => {

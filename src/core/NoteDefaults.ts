@@ -16,9 +16,11 @@ export const DEFAULT_NOTE_STYLE = Object.freeze({
 
 /**
  * The notes the toolbar makes (the app's QuickNodeActions): a text note has no
- * fill or border and at least 20 point text; a sticky note is the sticky shape
- * with the post-it effect and no border. An operation's own shape, size and
- * style win over a preset.
+ * fill or border and at least 20 point text; a sticky note is the default note
+ * (a 160 x 68 rounded rectangle) in sticky yellow (the palette's Lemon) with dark
+ * text, no border and the post-it shadow. An operation's own shape, size and
+ * style win over a preset. (The older square "stickynote" shape stays registered
+ * for slates that use it.)
  */
 export const NOTE_PRESETS = Object.freeze({
   text: Object.freeze({
@@ -35,10 +37,16 @@ export const NOTE_PRESETS = Object.freeze({
     }),
   }),
   sticky: Object.freeze({
-    shape: "stickynote",
-    width: 108,
-    height: 108,
-    style: Object.freeze({ borderOpacity: 0, effect: "postItNote" }),
+    shape: "roundedrectangle",
+    width: 160,
+    height: 68,
+    style: Object.freeze({
+      borderOpacity: 0,
+      borderWidth: 0,
+      effect: "postItNote",
+      backgroundColor: "#fdeea6",
+      foregroundColor: "#1b1f1d",
+    }),
   }),
 });
 

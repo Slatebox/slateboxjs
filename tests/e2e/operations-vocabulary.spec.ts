@@ -83,7 +83,7 @@ test("the vocabulary round-trips: stored JSON, a reload and the live canvas agre
   expect(result.report.created).toEqual(["k1", "s1", "t1", "a2", "b2"]);
   expect(result.report.connected).toEqual(["a->k1", "a2->b2"]);
   expect(result.expected.notes.k1).toMatchObject({ backgroundColor: "#ff8800", borderColor: "#112233", borderWidth: 4, fontFamily: "Georgia", fontSize: 28 });
-  expect(result.expected.notes.s1).toMatchObject({ shape: "stickynote", effect: "postItNote" });
+  expect(result.expected.notes.s1).toMatchObject({ shape: "roundedrectangle", effect: "postItNote", backgroundColor: "#fdeea6" });
   expect(result.expected.notes.a).toMatchObject({ link: "https://slatebox.com/docs", effect: "dropShadow", textOpacity: 0.6 });
   expect(result.expected.notes.b.groupId).toBe("grp-agent");
   expect(result.expected.order.slice(0, 6)).toEqual(["b", "c", "k1", "s1", "t1", "a"]);
