@@ -109,7 +109,9 @@ describe('agent suggestions: ghosts in place', () => {
     // The buttons are reachable by keyboard and say whose suggestion and what.
     const keep = layer().querySelector('[data-suggestion="add:idea1"] [data-suggestion-button="keep"]')!
     expect(keep.getAttribute('role')).toBe('button')
-    expect(keep.getAttribute('aria-label')).toBe("Keep Ada's agent · via Claude's suggestion: add “Retry after 24h”")
+    expect(keep.getAttribute('aria-label')).toBe("Keep the suggestion from Ada's agent, via Claude: add “Retry after 24h”")
+    const discard = layer().querySelector('[data-suggestion="add:idea1"] [data-suggestion-button="discard"]')!
+    expect(discard.getAttribute('aria-label')).toBe("Discard the suggestion from Ada's agent, via Claude: add “Retry after 24h”")
     editor = false
     suggestions.set([action()])
     expect(layer().querySelectorAll('[data-suggestion-button]')).toHaveLength(0)

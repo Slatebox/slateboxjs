@@ -259,8 +259,10 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     const holder = group.group().attr({ 'data-suggestion-controls': item.id })
     const row = holder.group()
     let x = 0
-    x += button(row, x, keepLabel, keepLabel + ' ' + nameOf(action) + "'s suggestion: " + what, true, color, () => api.keep(ref)) + 6
-    x += button(row, x, 'Discard', 'Discard ' + nameOf(action) + "'s suggestion: " + what, false, color, () => api.discard(ref))
+    // Said as "the suggestion from Excalidraw, added by Ada", never "Excalidraw · added by Ada's suggestion".
+    const from = ' the suggestion from ' + nameOf(action).replace(/ · /g, ', ') + ': ' + what
+    x += button(row, x, keepLabel, keepLabel + from, true, color, () => api.keep(ref)) + 6
+    x += button(row, x, 'Discard', 'Discard' + from, false, color, () => api.discard(ref))
     holder.transform({ translateX: at.x, translateY: at.y, scale: 1 / scale, originX: 0, originY: 0 })
     row.attr('transform', centred ? `translate(${-x / 2} -11)` : `translate(${-x} 6)`)
   }
