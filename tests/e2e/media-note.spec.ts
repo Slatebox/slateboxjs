@@ -16,7 +16,7 @@ const POSTER =
     `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#9333ea"/></linearGradient></defs><rect width="480" height="360" fill="url(#g)"/><circle cx="360" cy="110" r="60" fill="#fbbf24"/><path d="M0 300 L160 170 L300 290 L380 230 L480 300 L480 360 L0 360 Z" fill="#0f172a" opacity=".55"/></svg>`,
   );
 
-async function open(page: Page, { readOnly = false, host = false } = {}) {
+async function open(page: Page, { readOnly = false, host = false, still = false } = {}) {
   const videoHost: string[] = [];
   await page.route(/youtube-nocookie\.com|youtube\.com|ytimg\.com|vimeo\.com|loom\.com/, (route) => {
     videoHost.push(route.request().url());
@@ -25,7 +25,7 @@ async function open(page: Page, { readOnly = false, host = false } = {}) {
   await page.goto("/test.html");
   await page.waitForFunction(() => (window as any).SlateboxJS);
   await page.evaluate(
-    async ({ readOnly, host, poster }) => {
+    async ({ readOnly, host, poster, still }) => {
       const div = document.createElement("div");
       div.id = "slateCanvas";
       div.style.cssText = "width:900px;height:600px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
@@ -45,9 +45,9 @@ async function open(page: Page, { readOnly = false, host = false } = {}) {
         };
       }
       (window as any).__readOnly = readOnly;
-      (window as any).SlateboxJS("#slateCanvas", { events, viewPort: { originalWidth: 900, originalHeight: 600 } });
+      (window as any).SlateboxJS("#slateCanvas", { events, viewPort: { originalWidth: 900, originalHeight: 600 }, ...(still ? { mediaPlayback: false } : {}) });
     },
-    { readOnly, host, poster: POSTER },
+    { readOnly, host, poster: POSTER, still },
   );
   return { videoHost };
 }
@@ -171,5 +171,27 @@ test.describe("media notes", () => {
     if (SHOTS) await page.locator("#slateCanvas").screenshot({ path: `${SHOTS}/engine-3-presenter-playing-inline.png` });
     await page.evaluate(() => (window as any).currentSlate.presentation.previous(0));
     await expect(note.locator("iframe")).toHaveCount(0);
+  });
+
+  test("a still picture of the slate (a card, a gallery tile) shows the poster and play button and never plays", async ({ page }) => {
+    const { videoHost } = await open(page, { still: true });
+    await page.evaluate((poster) => {
+      (window as any).currentSlate.addNode({
+        id: "video1", x: 120, y: 120, width: 320, height: 180, text: "", shape: "rectangle", imageFit: "cover",
+        image: poster, imageOrigWidth: 480, imageOrigHeight: 360, backgroundColor: "#111418",
+        media: { provider: "youtube", id: "dQw4w9WgXcQ", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", title: "Launch demo", poster },
+      });
+    }, POSTER);
+    const note = page.locator('#slateCanvas [data-node-id="video1"]');
+    const play = note.locator(".media-note-play");
+    await expect(play).toHaveCount(1);
+    await expect(play).toHaveAttribute("aria-hidden", "true");
+    const box = (await play.boundingBox())!;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForTimeout(300);
+    await expect(note.locator("iframe")).toHaveCount(0);
+    expect(videoHost).toEqual([]);
+    if (SHOTS) await page.locator("#slateCanvas").screenshot({ path: `${SHOTS}/engine-4-still-picture-poster-only.png` });
   });
 });
