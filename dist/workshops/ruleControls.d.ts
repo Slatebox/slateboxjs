@@ -1,6 +1,6 @@
-import type { Workshop } from './model';
+import { type Workshop } from './model';
 import type { WorkshopEdit } from './edits';
-export type RuleControlPrimitive = 'capacity' | 'path' | 'bin' | 'gate' | 'deadline' | 'blackout' | 'snap' | 'locked' | 'cascade' | 'depth' | 'children' | 'nests' | 'emptyDrop' | 'rank' | 'quadrant' | 'addLane';
+export type RuleControlPrimitive = 'capacity' | 'path' | 'bin' | 'gate' | 'deadline' | 'blackout' | 'snap' | 'locked' | 'cascade' | 'depth' | 'children' | 'nests' | 'emptyDrop' | 'rank' | 'quadrant' | 'addLane' | 'look';
 /** A box in board (chrome) coordinates; at least 44 by 44 at a finger's chrome scale. */
 export interface RuleControlBox {
     x: number;
@@ -20,6 +20,8 @@ export interface RuleControlBox {
 export interface RuleControlLook {
     shape: 'line' | 'chip' | 'badge' | 'step' | 'ghost' | 'ladder';
     on?: boolean;
+    /** A badge filled with this color (a column's color from the palette). */
+    swatch?: string;
     label?: string;
     icon?: 'bin' | 'gate' | 'oneway' | 'twoway' | 'step' | 'minus' | 'plus' | 'flag' | 'push' | 'snap' | 'drop' | 'rank' | 'depth' | 'holds';
     warn?: boolean;

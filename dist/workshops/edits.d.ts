@@ -2,6 +2,7 @@ import { type StationImage, type Workshop, type WorkshopCard, type WorkshopLane 
 import { type WorkshopLimits } from './kinds';
 import { type WorkshopFinder } from './names';
 import type { RuleAudit, RuleInput } from './behaviour';
+import { type AppearanceEdit } from './appearance';
 /** The kinds of board, each with its own rules. */
 export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest';
 /** Every kind of board, for a schema that names them (the app's Workshop record, an MCP tool). */
@@ -198,7 +199,10 @@ export type WorkshopEdit = {
 } | {
     kind: 'remove_rule';
     rule: string;
-} | {
+} | ({
+    kind: 'set_appearance';
+    lane?: WorkshopRef;
+} & AppearanceEdit) | {
     kind: 'set_band_cost';
     band: string;
     monthly: number;

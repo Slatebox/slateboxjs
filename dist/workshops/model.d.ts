@@ -1,5 +1,7 @@
 export * from './offlineHandoff';
 export * from './listeningRoom';
+export * from './appearance';
+import { type WorkshopAppearance } from './appearance';
 export { releaseLoad, releasePlan } from './release';
 import type { Behaviour } from './behaviour';
 export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, RuleInput, RuleKindId, WorkshopMoveCheck } from './behaviour';
@@ -215,6 +217,8 @@ export interface Workshop {
     lines?: WorkshopLine[];
     /** How the board behaves, as data: its rulebook (behaviour.ts). Lane boards and pipelines only. */
     behaviour?: Behaviour;
+    /** How the board looks, as data (appearance.ts): every kind of board. */
+    appearance?: WorkshopAppearance;
 }
 /** The kinds of board with rules of their own. A board without a kind is a board of plain lanes. */
 export type WorkshopKind = 'release-plan' | BusinessBoardKind;

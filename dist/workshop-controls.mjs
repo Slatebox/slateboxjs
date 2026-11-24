@@ -1,251 +1,266 @@
-import { registerRuleControls as te } from "./workshop-model.mjs";
-const O = 98, S = 88, j = 228, G = 24, Z = 5, W = 6, U = 40, ne = 30;
-function ie(n) {
-  return n.kind === "pipeline" ? "pipeline" : n.kind === "launch-plan" || n.kind === "hiring-plan" ? "time" : n.kind === "nest" ? "nest" : n.kind || n.experience || n.lanes.some((f) => f.station) ? null : "lanes";
+import { appearanceChips as oe, registerRuleControls as ae } from "./workshop-model.mjs";
+const G = 98, N = 88, X = 228, j = 24, q = 5, U = 6, z = 40, le = 30;
+function se(o) {
+  return o.kind === "pipeline" ? "pipeline" : o.kind === "launch-plan" || o.kind === "hiring-plan" ? "time" : o.kind === "nest" ? "nest" : o.kind || o.experience || o.lanes.some((f) => f.station) ? null : "lanes";
 }
-const K = (n) => n.behaviour?.rules ?? [], oe = (n, f) => n.lanes.find((g) => g.id === f)?.label ?? f, Y = (n, f) => n.cards.filter((g) => g.laneId === f).length, X = (n, f, g) => Math.max(f, Math.min(g, n)), N = (n, f, g, k) => ({ x: Math.round(n - g / 2), y: Math.round(f - k / 2), width: Math.round(g), height: Math.round(k) }), le = (n, f, g = !0) => Math.ceil((n.length * 13 * 0.55 + (g ? 22 : 0) + 24) * f);
-function q(n, f) {
-  const g = K(n).find((k) => k.kind === "capacity" && k.where === f.id);
+const J = (o) => o.behaviour?.rules ?? [], re = (o, f) => o.lanes.find((g) => g.id === f)?.label ?? f, V = (o, f) => o.cards.filter((g) => g.laneId === f).length, Y = (o, f, g) => Math.max(f, Math.min(g, o)), O = (o, f, g, k) => ({ x: Math.round(o - g / 2), y: Math.round(f - k / 2), width: Math.round(g), height: Math.round(k) }), de = (o, f, g = !0) => Math.ceil((o.length * 13 * 0.55 + (g ? 22 : 0) + 24) * f);
+function ee(o, f) {
+  const g = J(o).find((k) => k.kind === "capacity" && k.where === f.id);
   return g ? { max: g.max, rule: g } : f.capacity !== void 0 ? { max: f.capacity } : null;
 }
-function R(n, f, g) {
-  const k = q(n, f);
-  return (k?.max ?? null) === g ? [] : k?.rule ? g === null ? [{ kind: "remove_rule", rule: k.rule.id }] : [{ kind: "set_rule", rule: k.rule.id, max: g }] : k || !n.behaviour ? [{ kind: "set_lane_capacity", lane: { id: f.id }, capacity: g }] : g === null ? [] : [{ kind: "add_rule", rule: { kind: "capacity", where: f.id, max: g } }];
+function W(o, f, g) {
+  const k = ee(o, f);
+  return (k?.max ?? null) === g ? [] : k?.rule ? g === null ? [{ kind: "remove_rule", rule: k.rule.id }] : [{ kind: "set_rule", rule: k.rule.id, max: g }] : k || !o.behaviour ? [{ kind: "set_lane_capacity", lane: { id: f.id }, capacity: g }] : g === null ? [] : [{ kind: "add_rule", rule: { kind: "capacity", where: f.id, max: g } }];
 }
-const ae = (n, f, g = !1) => f === null ? n + " holds any number of cards" : n + " holds " + f + (g ? " (a warning only)" : "");
-function re(n, f, g = {}) {
-  const k = ie(n);
+const ue = (o, f, g = !1) => f === null ? o + " holds any number of cards" : o + " holds " + f + (g ? " (a warning only)" : "");
+function ce(o, f, g = {}) {
+  const k = se(o);
   if (!k) return [];
-  const r = X(g.scale ?? 1, 1, 3), s = 44 * r, h = { width: f?.width ?? n.lanes.length * 244, height: f?.height ?? O + S }, l = f?.places ?? [], $ = [], C = K(n);
+  const l = Y(g.scale ?? 1, 1, 3), r = 44 * l, u = { width: f?.width ?? o.lanes.length * 244, height: f?.height ?? G + N }, s = f?.places ?? [], M = [], L = J(o);
   let E = 0;
-  const M = h.height + 18 * r, m = (o) => {
-    const a = o.look.label ?? "", t = o.look.shape ?? "chip", v = t === "step" ? s : Math.max(s, le(a, r, !!o.look.icon));
-    $.push({ ...o, look: { ...o.look, shape: t }, hit: { x: Math.round(E), y: Math.round(M), width: v, height: Math.round(s) } }), E += v + 8 * r;
+  const x = u.height + 18 * l, m = (a) => {
+    const i = a.look.label ?? "", e = a.look.shape ?? "chip", n = e === "step" ? r : Math.max(r, de(i, l, !!a.look.icon));
+    M.push({ ...a, look: { ...a.look, shape: e }, hit: { x: Math.round(E), y: Math.round(x), width: n, height: Math.round(r) } }), E += n + 8 * l;
   };
   if (k === "lanes" || k === "pipeline") {
-    for (const o of n.lanes) {
-      const a = l.find((L) => L.laneId === o.id);
-      if (!a) continue;
-      const t = q(n, o), v = t?.rule?.severity === "warn", p = C.some((L) => L.kind === "bin" && L.lane === o.id), i = o.label, e = ae(i, t?.max ?? null, v), u = k === "lanes" ? Math.min(j, a.width) : a.width, d = a.y + (k === "lanes" ? O - 26 * r : 30 * r), w = t?.rule ? [{ kind: "set_rule", rule: t.rule.id, severity: v ? "refuse" : "warn" }] : void 0, x = t && !t.rule ? Math.max(1, Y(n, o.id)) : 1, c = t ? t.max <= 1 ? null : t.max - 1 : null, _ = t ? Math.min(G, t.max + 1) : Math.max(1, Y(n, o.id)), A = a.x + u - 6 * r;
-      if (t && !p && (c === null || c >= x) && $.push({
-        id: "capacity-minus:" + o.id,
+    for (const a of o.lanes) {
+      const i = s.find((b) => b.laneId === a.id);
+      if (!i) continue;
+      const e = ee(o, a), n = e?.rule?.severity === "warn", c = L.some((b) => b.kind === "bin" && b.lane === a.id), t = a.label, d = ue(t, e?.max ?? null, n), p = k === "lanes" ? Math.min(X, i.width) : i.width, h = i.y + (k === "lanes" ? G - 26 * l : 30 * l), w = e?.rule ? [{ kind: "set_rule", rule: e.rule.id, severity: n ? "refuse" : "warn" }] : void 0, $ = e && !e.rule ? Math.max(1, V(o, a.id)) : 1, C = e ? e.max <= 1 ? null : e.max - 1 : null, S = e ? Math.min(j, e.max + 1) : Math.max(1, V(o, a.id)), P = i.x + p - 6 * l;
+      if (e && !c && (C === null || C >= $) && M.push({
+        id: "capacity-minus:" + a.id,
         primitive: "capacity",
-        anchor: { kind: "lane", id: o.id },
-        hit: N(A - s * 1.5, d, s, s),
-        state: { value: t.max, sentence: e, ...t.rule && { ruleId: t.rule.id } },
-        label: t.max <= 1 ? "Remove the limit on " + i : i + ": hold one fewer card",
+        anchor: { kind: "lane", id: a.id },
+        hit: O(P - r * 1.5, h, r, r),
+        state: { value: e.max, sentence: d, ...e.rule && { ruleId: e.rule.id } },
+        label: e.max <= 1 ? "Remove the limit on " + t : t + ": hold one fewer card",
         look: { shape: "step", icon: "minus", on: !0 },
-        gestures: { tap: R(n, o, c) }
-      }), !p && (!t || t.max < G) && $.push({
-        id: "capacity-plus:" + o.id,
+        gestures: { tap: W(o, a, C) }
+      }), !c && (!e || e.max < j) && M.push({
+        id: "capacity-plus:" + a.id,
         primitive: "capacity",
-        anchor: { kind: "lane", id: o.id },
-        hit: N(A - s * 0.5, d, s, s),
-        state: { value: t?.max ?? null, sentence: e, ...t?.rule && { ruleId: t.rule.id } },
-        label: t ? i + ": hold one more card" : "Give " + i + " a limit of " + _,
-        look: { shape: "step", icon: "plus", on: !!t },
-        gestures: { tap: R(n, o, _), ...w && { hold: w } }
-      }), k === "lanes" && !p) {
-        const L = (B) => a.y + O + B * S - 6, y = a.y + a.height, P = Math.min(t ? L(t.max) : y - 8 * r, y - 8 * r), T = (B) => {
-          const D = P + B;
-          return D > Math.max(y, P + S) + S * 0.75 ? null : X(t ? t.max + Math.round(B / S) : Math.round((D + 6 - a.y - O) / S), x, G);
-        }, J = ({ dy: B }) => {
-          const D = T(B);
-          return !t && (D === null || D >= Math.max(1, Y(n, o.id)) + 1) ? [] : R(n, o, D);
-        }, ee = t ? "holds " + t.max : "no limit";
-        $.push({
-          id: "capacity:" + o.id,
+        anchor: { kind: "lane", id: a.id },
+        hit: O(P - r * 0.5, h, r, r),
+        state: { value: e?.max ?? null, sentence: d, ...e?.rule && { ruleId: e.rule.id } },
+        label: e ? t + ": hold one more card" : "Give " + t + " a limit of " + S,
+        look: { shape: "step", icon: "plus", on: !!e },
+        gestures: { tap: W(o, a, S), ...w && { hold: w } }
+      }), k === "lanes" && !c) {
+        const b = (H) => i.y + G + H * N - 6, y = i.y + i.height, B = Math.min(e ? b(e.max) : y - 8 * l, y - 8 * l), K = (H) => {
+          const T = B + H;
+          return T > Math.max(y, B + N) + N * 0.75 ? null : Y(e ? e.max + Math.round(H / N) : Math.round((T + 6 - i.y - G) / N), $, j);
+        }, ne = ({ dy: H }) => {
+          const T = K(H);
+          return !e && (T === null || T >= Math.max(1, V(o, a.id)) + 1) ? [] : W(o, a, T);
+        }, ie = e ? "holds " + e.max : "no limit";
+        M.push({
+          id: "capacity:" + a.id,
           primitive: "capacity",
-          anchor: { kind: "lane", id: o.id },
-          hit: N(a.x + u / 2, P, Math.max(s * 2.4, 104 * r), s),
-          state: { value: t?.max ?? null, sentence: e, ...t?.rule && { ruleId: t.rule.id } },
-          label: e + ". Drag the line, or press the up and down arrows, to change it" + (t ? "; Delete removes it" : "") + (w ? "; Shift+Enter makes it " + (v ? "refuse" : "a warning only") : "") + ".",
-          look: { shape: "line", label: ee, on: !!t, warn: v, x1: a.x + 6, x2: a.x + u - 6, y: P },
+          anchor: { kind: "lane", id: a.id },
+          hit: O(i.x + p / 2, B, Math.max(r * 2.4, 104 * l), r),
+          state: { value: e?.max ?? null, sentence: d, ...e?.rule && { ruleId: e.rule.id } },
+          label: d + ". Drag the line, or press the up and down arrows, to change it" + (e ? "; Delete removes it" : "") + (w ? "; Shift+Enter makes it " + (n ? "refuse" : "a warning only") : "") + ".",
+          look: { shape: "line", label: ie, on: !!e, warn: n, x1: i.x + 6, x2: i.x + p - 6, y: B },
           gestures: {
-            drag: J,
-            step: S,
+            drag: ne,
+            step: N,
             axis: "y",
-            preview: (B) => {
-              const D = T(B.dy);
-              return D === null ? "No limit" : "holds " + D;
+            preview: (H) => {
+              const T = K(H.dy);
+              return T === null ? "No limit" : "holds " + T;
             },
             ...w && { hold: w },
-            ...t && { remove: R(n, o, null) }
+            ...e && { remove: W(o, a, null) }
           }
         });
       }
       if (k === "lanes") {
-        const L = C.find((y) => y.kind === "bin" && y.lane === o.id);
-        $.push({
-          id: "bin:" + o.id,
+        const b = L.find((y) => y.kind === "bin" && y.lane === a.id);
+        M.push({
+          id: "bin:" + a.id,
           primitive: "bin",
-          anchor: { kind: "lane", id: o.id },
-          hit: N(a.x + 6 * r + s / 2, d, s, s),
-          state: { value: !!L, sentence: L ? i + " is a bin: it archives the cards dropped in it" : i + " is not a bin", ...L && { ruleId: L.id } },
-          label: L ? i + " is a bin. Press to make it an ordinary column." : "Make " + i + " a bin that archives cards" + (t ? " (its limit goes)" : "") + ".",
-          look: { shape: "badge", icon: "bin", on: !!L },
-          gestures: { tap: L ? [{ kind: "remove_rule", rule: L.id }] : [...R(n, o, null), { kind: "add_rule", rule: { kind: "bin", lane: o.id } }] }
+          anchor: { kind: "lane", id: a.id },
+          hit: O(i.x + 6 * l + r / 2, h, r, r),
+          state: { value: !!b, sentence: b ? t + " is a bin: it archives the cards dropped in it" : t + " is not a bin", ...b && { ruleId: b.id } },
+          label: b ? t + " is a bin. Press to make it an ordinary column." : "Make " + t + " a bin that archives cards" + (e ? " (its limit goes)" : "") + ".",
+          look: { shape: "badge", icon: "bin", on: !!b },
+          gestures: { tap: b ? [{ kind: "remove_rule", rule: b.id }] : [...W(o, a, null), { kind: "add_rule", rule: { kind: "bin", lane: a.id } }] }
         });
       } else {
-        const L = C.find((y) => y.kind === "gate" && y.into === o.id);
-        (!o.role || o.role === "won") && $.push({
-          id: "gate:" + o.id,
+        const b = L.find((y) => y.kind === "gate" && y.into === a.id);
+        (!a.role || a.role === "won") && M.push({
+          id: "gate:" + a.id,
           primitive: "gate",
-          anchor: { kind: "lane", id: o.id },
-          hit: N(a.x + 6 * r + s / 2, d, s, s),
-          state: { value: !!L, sentence: L ? i + " needs an amount" : i + " takes any deal", ...L && { ruleId: L.id } },
-          label: L ? i + " needs an amount. Press to let any deal in." : "Make " + i + " need an amount.",
-          look: { shape: "badge", icon: "gate", on: !!L },
-          gestures: { tap: L ? [{ kind: "remove_rule", rule: L.id }] : [{ kind: "add_rule", rule: { kind: "gate", into: o.id, needs: ["amount"] } }] }
+          anchor: { kind: "lane", id: a.id },
+          hit: O(i.x + 6 * l + r / 2, h, r, r),
+          state: { value: !!b, sentence: b ? t + " needs an amount" : t + " takes any deal", ...b && { ruleId: b.id } },
+          label: b ? t + " needs an amount. Press to let any deal in." : "Make " + t + " need an amount.",
+          look: { shape: "badge", icon: "gate", on: !!b },
+          gestures: { tap: b ? [{ kind: "remove_rule", rule: b.id }] : [{ kind: "add_rule", rule: { kind: "gate", into: a.id, needs: ["amount"] } }] }
         });
       }
     }
     if (k === "lanes") {
-      for (let a = 0; a + 1 < n.lanes.length; a++) {
-        const t = n.lanes[a], v = n.lanes[a + 1], p = l.find((c) => c.laneId === t.id), i = l.find((c) => c.laneId === v.id);
-        if (!p || !i || (p.row ?? 0) !== (i.row ?? 0)) continue;
-        const e = C.find((c) => c.kind === "path" && c.from === t.id && Array.isArray(c.to)), u = !!e?.to.includes(v.id), d = e ? u ? e.to.length === 1 ? [{ kind: "remove_rule", rule: e.id }] : [{ kind: "set_rule", rule: e.id, to: e.to.filter((c) => c !== v.id) }] : e.to.length >= 4 ? [] : [{ kind: "set_rule", rule: e.id, to: [...e.to, v.id] }] : [{ kind: "add_rule", rule: { kind: "path", from: t.id, to: [v.id] } }], w = u ? t.label + " → " + e.to.map((c) => oe(n, c)).join(" or ") + " only" : "Cards move freely between " + t.label + " and " + v.label, x = (p.x + Math.min(j, p.width) + i.x) / 2;
-        $.push({
-          id: "path:" + t.id + ">" + v.id,
+      for (let i = 0; i + 1 < o.lanes.length; i++) {
+        const e = o.lanes[i], n = o.lanes[i + 1], c = s.find((C) => C.laneId === e.id), t = s.find((C) => C.laneId === n.id);
+        if (!c || !t || (c.row ?? 0) !== (t.row ?? 0)) continue;
+        const d = L.find((C) => C.kind === "path" && C.from === e.id && Array.isArray(C.to)), p = !!d?.to.includes(n.id), h = d ? p ? d.to.length === 1 ? [{ kind: "remove_rule", rule: d.id }] : [{ kind: "set_rule", rule: d.id, to: d.to.filter((C) => C !== n.id) }] : d.to.length >= 4 ? [] : [{ kind: "set_rule", rule: d.id, to: [...d.to, n.id] }] : [{ kind: "add_rule", rule: { kind: "path", from: e.id, to: [n.id] } }], w = p ? e.label + " → " + d.to.map((C) => re(o, C)).join(" or ") + " only" : "Cards move freely between " + e.label + " and " + n.label, $ = (c.x + Math.min(X, c.width) + t.x) / 2;
+        M.push({
+          id: "path:" + e.id + ">" + n.id,
           primitive: "path",
-          anchor: { kind: "edge", id: t.id, to: v.id },
-          hit: N(x, p.y + O + S / 2, s, s),
-          state: { value: u, sentence: w, ...e && { ruleId: e.id } },
-          label: u ? w + ". Press to let cards move freely." : "Make cards in " + t.label + " go only to " + v.label + ".",
-          look: { shape: "badge", icon: u ? "oneway" : "twoway", on: u },
-          gestures: { tap: d }
+          anchor: { kind: "edge", id: e.id, to: n.id },
+          hit: O($, c.y + G + N / 2, r, r),
+          state: { value: p, sentence: w, ...d && { ruleId: d.id } },
+          label: p ? w + ". Press to let cards move freely." : "Make cards in " + e.label + " go only to " + n.label + ".",
+          look: { shape: "badge", icon: p ? "oneway" : "twoway", on: p },
+          gestures: { tap: h }
         });
       }
-      if (n.lanes.length < Z && l.length) {
-        const a = l.filter((i) => (i.row ?? 0) === 0), t = a[a.length - 1], v = t.x + Math.min(j, t.width) + 16 * r;
-        $.push({
+      if (o.lanes.length < q && s.length) {
+        const i = s.filter((t) => (t.row ?? 0) === 0), e = i[i.length - 1], n = e.x + Math.min(X, e.width) + 16 * l;
+        M.push({
           id: "add-lane",
           primitive: "addLane",
           anchor: { kind: "board" },
-          hit: { x: Math.round(v), y: Math.round(t.y), width: Math.round(Math.max(s, 64 * r)), height: Math.round(Math.max(s, Math.min(t.height, O + S))) },
-          state: { sentence: n.lanes.length + " of " + Z + " columns" },
+          hit: { x: Math.round(n), y: Math.round(e.y), width: Math.round(Math.max(r, 64 * l)), height: Math.round(Math.max(r, Math.min(e.height, G + N))) },
+          state: { sentence: o.lanes.length + " of " + q + " columns" },
           label: "Add a column",
           look: { shape: "ghost", icon: "plus" },
           gestures: { tap: [{ kind: "add_lane", label: "New column" }] }
         });
       }
-      const o = C.find((a) => a.kind === "path" && a.from === "any" && a.noSkip);
+      const a = L.find((i) => i.kind === "path" && i.from === "any" && i.noSkip);
       m({
         id: "path:any",
         primitive: "path",
         anchor: { kind: "board" },
-        state: { value: !!o, sentence: o ? "Cards move one column at a time" : "Cards may skip columns", ...o && { ruleId: o.id } },
-        label: o ? "Cards move one column at a time. Press to let them skip columns." : "Make cards move one column at a time.",
-        look: { label: "One column at a time", icon: "step", on: !!o },
-        gestures: { tap: o ? [{ kind: "remove_rule", rule: o.id }] : [{ kind: "add_rule", rule: { kind: "path", from: "any", noSkip: !0 } }] }
+        state: { value: !!a, sentence: a ? "Cards move one column at a time" : "Cards may skip columns", ...a && { ruleId: a.id } },
+        label: a ? "Cards move one column at a time. Press to let them skip columns." : "Make cards move one column at a time.",
+        look: { label: "One column at a time", icon: "step", on: !!a },
+        gestures: { tap: a ? [{ kind: "remove_rule", rule: a.id }] : [{ kind: "add_rule", rule: { kind: "path", from: "any", noSkip: !0 } }] }
       });
     }
   }
   if (k === "time") {
-    const o = n.kind === "hiring-plan" ? "Hires" : "Tasks", a = C.find((v) => v.kind === "snap"), t = a?.unit;
+    const a = o.kind === "hiring-plan" ? "Hires" : "Tasks", i = L.find((n) => n.kind === "snap"), e = i?.unit;
     if (m({
       id: "snap",
       primitive: "snap",
       anchor: { kind: "axis" },
-      state: { value: t ?? null, sentence: t ? o + " snap to whole " + t + "s" : o + " do not snap", ...a && { ruleId: a.id } },
-      label: (t ? o + " snap to whole " + t + "s" : o + " do not snap") + ". Press for " + (t === "day" ? "whole weeks" : t === "week" ? "no snap" : "whole days") + ".",
-      look: { label: "Snap: " + (t === "day" ? "Day" : t === "week" ? "Week" : "Off"), icon: "snap", on: !!t },
-      gestures: { tap: a ? t === "day" ? [{ kind: "set_rule", rule: a.id, unit: "week" }] : [{ kind: "remove_rule", rule: a.id }] : [{ kind: "add_rule", rule: { kind: "snap", unit: "day" } }] }
-    }), n.kind === "launch-plan") {
-      const v = C.find((d) => d.kind === "deadline"), p = v?.severity === "warn", i = n.launch?.name === "go-live" ? "Go-live" : "Launch day";
+      state: { value: e ?? null, sentence: e ? a + " snap to whole " + e + "s" : a + " do not snap", ...i && { ruleId: i.id } },
+      label: (e ? a + " snap to whole " + e + "s" : a + " do not snap") + ". Press for " + (e === "day" ? "whole weeks" : e === "week" ? "no snap" : "whole days") + ".",
+      look: { label: "Snap: " + (e === "day" ? "Day" : e === "week" ? "Week" : "Off"), icon: "snap", on: !!e },
+      gestures: { tap: i ? e === "day" ? [{ kind: "set_rule", rule: i.id, unit: "week" }] : [{ kind: "remove_rule", rule: i.id }] : [{ kind: "add_rule", rule: { kind: "snap", unit: "day" } }] }
+    }), o.kind === "launch-plan") {
+      const n = L.find((h) => h.kind === "deadline"), c = n?.severity === "warn", t = o.launch?.name === "go-live" ? "Go-live" : "Launch day";
       m({
         id: "deadline",
         primitive: "deadline",
         anchor: { kind: "axis" },
-        state: { value: v ? p ? "soft" : "hard" : null, sentence: v ? i + " is a " + (p ? "soft" : "hard") + " line" : i + " has no rule yet", ...v && { ruleId: v.id } },
-        label: v ? i + " is a " + (p ? "soft" : "hard") + " line. Press to make it " + (p ? "hard" : "soft") + "." : "Make " + i.toLowerCase() + " a hard line.",
-        look: { label: v ? p ? "Soft line" : "Hard line" : "Line: none", icon: "flag", on: !!v, warn: p },
+        state: { value: n ? c ? "soft" : "hard" : null, sentence: n ? t + " is a " + (c ? "soft" : "hard") + " line" : t + " has no rule yet", ...n && { ruleId: n.id } },
+        label: n ? t + " is a " + (c ? "soft" : "hard") + " line. Press to make it " + (c ? "hard" : "soft") + "." : "Make " + t.toLowerCase() + " a hard line.",
+        look: { label: n ? c ? "Soft line" : "Hard line" : "Line: none", icon: "flag", on: !!n, warn: c },
         gestures: {
-          tap: v ? [{ kind: "set_rule", rule: v.id, severity: p ? "refuse" : "warn" }] : [{ kind: "add_rule", rule: { kind: "deadline", at: "launch" } }],
-          ...v && { remove: [{ kind: "remove_rule", rule: v.id }] }
+          tap: n ? [{ kind: "set_rule", rule: n.id, severity: c ? "refuse" : "warn" }] : [{ kind: "add_rule", rule: { kind: "deadline", at: "launch" } }],
+          ...n && { remove: [{ kind: "remove_rule", rule: n.id }] }
         }
       });
-      const e = C.find((d) => d.kind === "cascade"), u = e?.onConflict;
+      const d = L.find((h) => h.kind === "cascade"), p = d?.onConflict;
       m({
         id: "cascade",
         primitive: "cascade",
         anchor: { kind: "board" },
-        state: { value: u ?? null, sentence: u ? "A slip " + (u === "stop" ? "stops at" : "pushes") + " the tasks that wait on it" : "A slip does what the plan does by itself", ...e && { ruleId: e.id } },
-        label: (u ? "A slip " + (u === "stop" ? "stops at" : "pushes") + " what waits on it" : "No rule for a slip") + ". Press for " + (u === "push" ? "stop" : u === "stop" ? "no rule" : "push") + ".",
-        look: { label: "A slip: " + (u === "push" ? "pushes" : u === "stop" ? "stops" : "no rule"), icon: "push", on: !!u },
-        gestures: { tap: e ? u === "push" ? [{ kind: "set_rule", rule: e.id, onConflict: "stop" }] : [{ kind: "remove_rule", rule: e.id }] : [{ kind: "add_rule", rule: { kind: "cascade", onConflict: "push" } }] }
+        state: { value: p ?? null, sentence: p ? "A slip " + (p === "stop" ? "stops at" : "pushes") + " the tasks that wait on it" : "A slip does what the plan does by itself", ...d && { ruleId: d.id } },
+        label: (p ? "A slip " + (p === "stop" ? "stops at" : "pushes") + " what waits on it" : "No rule for a slip") + ". Press for " + (p === "push" ? "stop" : p === "stop" ? "no rule" : "push") + ".",
+        look: { label: "A slip: " + (p === "push" ? "pushes" : p === "stop" ? "stops" : "no rule"), icon: "push", on: !!p },
+        gestures: { tap: d ? p === "push" ? [{ kind: "set_rule", rule: d.id, onConflict: "stop" }] : [{ kind: "remove_rule", rule: d.id }] : [{ kind: "add_rule", rule: { kind: "cascade", onConflict: "push" } }] }
       });
     }
   }
   if (k === "nest") {
-    const o = n.nest?.layout;
-    if (o !== "matrix") {
-      const i = C.find((y) => y.kind === "depth"), e = i ? i.max : null, u = e ?? W, d = -44 * r, w = 8 * r, x = ne * r, c = w + (u - 1) * x, _ = (y) => {
-        const P = Math.round((c + y - w) / x) + 1;
-        return P > W ? null : X(P, 1, W);
-      }, A = (y) => y === null ? "Cards nest as deep as they like" : y === 1 ? "Cards nest one level deep" : "Cards nest up to " + y + " levels deep", L = (y) => y === e ? [] : y === null ? [{ kind: "remove_rule", rule: i.id }] : i ? [{ kind: "set_rule", rule: i.id, max: y }] : [{ kind: "add_rule", rule: { kind: "depth", max: y } }];
-      $.push({
+    const a = o.nest?.layout;
+    if (a !== "matrix") {
+      const t = L.find((y) => y.kind === "depth"), d = t ? t.max : null, p = d ?? U, h = -44 * l, w = 8 * l, $ = le * l, C = w + (p - 1) * $, S = (y) => {
+        const B = Math.round((C + y - w) / $) + 1;
+        return B > U ? null : Y(B, 1, U);
+      }, P = (y) => y === null ? "Cards nest as deep as they like" : y === 1 ? "Cards nest one level deep" : "Cards nest up to " + y + " levels deep", b = (y) => y === d ? [] : y === null ? [{ kind: "remove_rule", rule: t.id }] : t ? [{ kind: "set_rule", rule: t.id, max: y }] : [{ kind: "add_rule", rule: { kind: "depth", max: y } }];
+      M.push({
         id: "depth",
         primitive: "depth",
         anchor: { kind: "board" },
-        hit: N(d, c, s, s),
-        state: { value: e, sentence: A(e), ...i && { ruleId: i.id } },
-        label: A(e) + ". Drag the ladder, or press the up and down arrows, to change it" + (i ? "; Delete removes it" : "") + ".",
-        look: { shape: "ladder", rungs: W, lit: u, on: !!i, y: w, x1: d, rungGap: x, label: e === null ? "any depth" : e + (e === 1 ? " level" : " levels") },
-        gestures: { drag: ({ dy: y }) => L(_(y)), preview: ({ dy: y }) => A(_(y)), step: x, axis: "y", ...i && { remove: L(null) } }
+        hit: O(h, C, r, r),
+        state: { value: d, sentence: P(d), ...t && { ruleId: t.id } },
+        label: P(d) + ". Drag the ladder, or press the up and down arrows, to change it" + (t ? "; Delete removes it" : "") + ".",
+        look: { shape: "ladder", rungs: U, lit: p, on: !!t, y: w, x1: h, rungGap: $, label: d === null ? "any depth" : d + (d === 1 ? " level" : " levels") },
+        gestures: { drag: ({ dy: y }) => b(S(y)), preview: ({ dy: y }) => P(S(y)), step: $, axis: "y", ...t && { remove: b(null) } }
       });
     }
-    const a = C.find((i) => i.kind === "children" && !i.role), t = a ? a.max : null, v = Math.max(1, ...n.cards.map((i) => n.cards.filter((e) => e.parentId === i.id).length)), p = t === null ? "A card holds any number under it" : "A card holds at most " + t + " under it";
+    const i = L.find((t) => t.kind === "children" && !t.role), e = i ? i.max : null, n = Math.max(1, ...o.cards.map((t) => o.cards.filter((d) => d.parentId === t.id).length)), c = e === null ? "A card holds any number under it" : "A card holds at most " + e + " under it";
     if (m({
       id: "children",
       primitive: "children",
       anchor: { kind: "board" },
-      state: { value: t, sentence: p, ...a && { ruleId: a.id } },
-      label: p + ". Press to " + (a ? "remove the limit." : "give cards a limit of " + Math.min(U, Math.max(v, 3)) + "."),
-      look: { label: t === null ? "Holds: any" : "Holds " + t, icon: "holds", on: !!a },
-      gestures: { tap: a ? [{ kind: "remove_rule", rule: a.id }] : [{ kind: "add_rule", rule: { kind: "children", max: Math.min(U, Math.max(v, 3)) } }] }
-    }), a && m({
+      state: { value: e, sentence: c, ...i && { ruleId: i.id } },
+      label: c + ". Press to " + (i ? "remove the limit." : "give cards a limit of " + Math.min(z, Math.max(n, 3)) + "."),
+      look: { label: e === null ? "Holds: any" : "Holds " + e, icon: "holds", on: !!i },
+      gestures: { tap: i ? [{ kind: "remove_rule", rule: i.id }] : [{ kind: "add_rule", rule: { kind: "children", max: Math.min(z, Math.max(n, 3)) } }] }
+    }), i && m({
       id: "children-minus",
       primitive: "children",
       anchor: { kind: "board" },
-      state: { value: t, sentence: p },
-      label: t === null ? "No limit on how many a card holds" : t <= 1 ? "Remove the limit on how many a card holds" : "A card holds one fewer",
-      look: { shape: "step", icon: "minus", on: !!a },
-      gestures: { tap: t <= 1 ? [{ kind: "remove_rule", rule: a.id }] : [{ kind: "set_rule", rule: a.id, max: t - 1 }] }
-    }), a && t < U && m({
+      state: { value: e, sentence: c },
+      label: e === null ? "No limit on how many a card holds" : e <= 1 ? "Remove the limit on how many a card holds" : "A card holds one fewer",
+      look: { shape: "step", icon: "minus", on: !!i },
+      gestures: { tap: e <= 1 ? [{ kind: "remove_rule", rule: i.id }] : [{ kind: "set_rule", rule: i.id, max: e - 1 }] }
+    }), i && e < z && m({
       id: "children-plus",
       primitive: "children",
       anchor: { kind: "board" },
-      state: { value: t, sentence: p },
+      state: { value: e, sentence: c },
       label: "A card holds one more",
       look: { shape: "step", icon: "plus", on: !0 },
-      gestures: { tap: [{ kind: "set_rule", rule: a.id, max: t + 1 }] }
-    }), o === "clusters") {
-      const i = C.find((y) => y.kind === "emptyDrop"), e = i?.drop, u = n.lanes[1]?.label ?? "Unsorted";
+      gestures: { tap: [{ kind: "set_rule", rule: i.id, max: e + 1 }] }
+    }), a === "clusters") {
+      const t = L.find((y) => y.kind === "emptyDrop"), d = t?.drop, p = o.lanes[1]?.label ?? "Unsorted";
       m({
         id: "empty-drop",
         primitive: "emptyDrop",
         anchor: { kind: "board" },
-        state: { value: e ?? null, sentence: e === "unsorted" ? "A card let go in empty space goes to " + u : "A card let go in empty space starts a new pile", ...i && { ruleId: i.id } },
-        label: "Where a card let go in empty space goes: " + (e === "unsorted" ? u : e === "new-pile" ? "a new pile" : "a new pile (no rule)") + ". Press to change it.",
-        look: { label: "Far drop: " + (e === "unsorted" ? u : e === "new-pile" ? "new pile" : "no rule"), icon: "drop", on: !!i },
-        gestures: { tap: i ? e === "unsorted" ? [{ kind: "set_rule", rule: i.id, drop: "new-pile" }] : [{ kind: "remove_rule", rule: i.id }] : [{ kind: "add_rule", rule: { kind: "emptyDrop", drop: "unsorted" } }] }
+        state: { value: d ?? null, sentence: d === "unsorted" ? "A card let go in empty space goes to " + p : "A card let go in empty space starts a new pile", ...t && { ruleId: t.id } },
+        label: "Where a card let go in empty space goes: " + (d === "unsorted" ? p : d === "new-pile" ? "a new pile" : "a new pile (no rule)") + ". Press to change it.",
+        look: { label: "Far drop: " + (d === "unsorted" ? p : d === "new-pile" ? "new pile" : "no rule"), icon: "drop", on: !!t },
+        gestures: { tap: t ? d === "unsorted" ? [{ kind: "set_rule", rule: t.id, drop: "new-pile" }] : [{ kind: "remove_rule", rule: t.id }] : [{ kind: "add_rule", rule: { kind: "emptyDrop", drop: "unsorted" } }] }
       });
-      const d = C.find((y) => y.kind === "rank"), w = d?.by, x = (n.nest?.fields ?? []).filter((y) => !y.flag).map((y) => ({ id: y.id, label: y.label })), c = [{ id: "count", label: "count" }, { id: "sources", label: "customers" }, ...x], _ = w ? c.findIndex((y) => y.id === w) : -1, A = c[_ + 1], L = (y) => c.find((P) => P.id === y)?.label ?? y ?? "";
+      const h = L.find((y) => y.kind === "rank"), w = h?.by, $ = (o.nest?.fields ?? []).filter((y) => !y.flag).map((y) => ({ id: y.id, label: y.label })), C = [{ id: "count", label: "count" }, { id: "sources", label: "customers" }, ...$], S = w ? C.findIndex((y) => y.id === w) : -1, P = C[S + 1], b = (y) => C.find((B) => B.id === y)?.label ?? y ?? "";
       m({
         id: "rank",
         primitive: "rank",
         anchor: { kind: "board" },
-        state: { value: w ?? null, sentence: w ? "Piles rank by " + L(w) : "Piles keep their order", ...d && { ruleId: d.id } },
-        label: (w ? "Piles rank by " + L(w) : "Piles keep their order") + ". Press for " + (A ? "rank by " + A.label : "no ranking") + ".",
-        look: { label: "Rank: " + (w ? L(w) : "off"), icon: "rank", on: !!d },
-        gestures: { tap: d ? A ? [{ kind: "set_rule", rule: d.id, by: A.id }] : [{ kind: "remove_rule", rule: d.id }] : [{ kind: "add_rule", rule: { kind: "rank", by: "count" } }] }
+        state: { value: w ?? null, sentence: w ? "Piles rank by " + b(w) : "Piles keep their order", ...h && { ruleId: h.id } },
+        label: (w ? "Piles rank by " + b(w) : "Piles keep their order") + ". Press for " + (P ? "rank by " + P.label : "no ranking") + ".",
+        look: { label: "Rank: " + (w ? b(w) : "off"), icon: "rank", on: !!h },
+        gestures: { tap: h ? P ? [{ kind: "set_rule", rule: h.id, by: P.id }] : [{ kind: "remove_rule", rule: h.id }] : [{ kind: "add_rule", rule: { kind: "rank", by: "count" } }] }
       });
     }
   }
-  return $;
+  const { rail: _, swatches: A } = oe(o, s.map((a) => a.laneId)), D = k === "pipeline";
+  for (const a of _) m({ id: a.id, primitive: "look", anchor: { kind: "board" }, state: { value: a.on, sentence: a.label }, label: a.said, look: { label: a.label, on: a.on }, gestures: { tap: [a.edit] } });
+  for (const a of A) {
+    const { x: i, y: e, width: n } = s.find((c) => c.laneId === a.key);
+    M.push({
+      id: "color:" + a.key,
+      primitive: "look",
+      anchor: { kind: "lane", id: a.key },
+      hit: O(D ? i + n / 2 : i + Math.min(X, n) - r / 2 - 2 * l, D ? e + 30 * l : e + r / 2 + 2 * l, r, r),
+      state: { value: a.now, sentence: a.sentence },
+      label: a.said,
+      look: { shape: "badge", on: !!a.now, swatch: a.swatch },
+      gestures: { tap: [a.edit] }
+    });
+  }
+  return M;
 }
-const pe = ["add_rule", "set_rule", "remove_rule", "set_lane_capacity", "add_lane"], Q = "http://www.w3.org/2000/svg", b = {
+const ge = ["add_rule", "set_rule", "remove_rule", "set_lane_capacity", "add_lane", "set_appearance"], te = "http://www.w3.org/2000/svg", v = {
   on: "var(--slatebox-board-focus, #1f4a3a)",
   onInk: "var(--slatebox-board-focus-ink, #ffffff)",
   off: "var(--slatebox-board-badge, #ffffff)",
@@ -257,14 +272,14 @@ const pe = ["add_rule", "set_rule", "remove_rule", "set_lane_capacity", "add_lan
   halo: "var(--slatebox-board-halo, #ffffff)",
   ghost: "var(--slatebox-board-grid, #b9c2bb)",
   chip: "var(--slatebox-board-chip, #f2efe4)"
-}, se = "var(--slatebox-board-font, system-ui, sans-serif)", F = (n) => /var\([^,]+,\s*([^)]+)\)/.exec(n)?.[1].trim() ?? n;
-function I(n, f, g) {
-  const k = document.createElementNS(Q, n);
-  for (const [r, s] of Object.entries(f)) k.setAttribute(r, String(s));
-  return g?.fill && (k.setAttribute("fill", F(g.fill)), k.style.setProperty("fill", g.fill)), g?.stroke && (k.setAttribute("stroke", F(g.stroke)), k.style.setProperty("stroke", g.stroke)), k;
+}, he = "var(--slatebox-board-font, system-ui, sans-serif)", Q = (o) => /var\([^,]+,\s*([^)]+)\)/.exec(o)?.[1].trim() ?? o;
+function I(o, f, g) {
+  const k = document.createElementNS(te, o);
+  for (const [l, r] of Object.entries(f)) k.setAttribute(l, String(r));
+  return g?.fill && (k.setAttribute("fill", Q(g.fill)), k.style.setProperty("fill", g.fill)), g?.stroke && (k.setAttribute("stroke", Q(g.stroke)), k.style.setProperty("stroke", g.stroke)), k;
 }
-function z(n, f, g, k, r) {
-  const s = {
+function Z(o, f, g, k, l) {
+  const r = {
     // An archive box (a bin keeps what is dropped in it; it never deletes): a lid, a box, a handle.
     bin: "M1.5 2 L10.5 2 L10.5 4.5 L1.5 4.5 Z M2.5 4.5 L2.5 10.5 L9.5 10.5 L9.5 4.5 M4.5 6.8 L7.5 6.8",
     gate: "M3 6 L9 6 L9 11 L3 11 Z M4.5 6 L4.5 4 Q6 1.5 7.5 4 L7.5 6",
@@ -281,243 +296,243 @@ function z(n, f, g, k, r) {
     depth: "M3 1 L3 11 M9 1 L9 11 M3 3 L9 3 M3 6 L9 6 M3 9 L9 9",
     holds: "M6 1 L6 4 M2 7 L2 11 M6 7 L6 11 M10 7 L10 11 M2 7 L10 7 M6 4 L6 7"
   };
-  if (!n || !s[n]) return null;
-  const h = k / 12;
+  if (!o || !r[o]) return null;
+  const u = k / 12;
   return I("path", {
-    d: s[n],
-    transform: `translate(${f} ${g}) scale(${h})`,
+    d: r[o],
+    transform: `translate(${f} ${g}) scale(${u})`,
     fill: "none",
     "stroke-width": 1.7,
     "stroke-linecap": "round",
     "stroke-linejoin": "round",
     "vector-effect": "non-scaling-stroke",
     "pointer-events": "none"
-  }, { stroke: r });
+  }, { stroke: l });
 }
-function H(n, f, g, k, r, s = "start", h = !1, l = !1) {
-  const $ = I("text", {
-    x: n,
+function R(o, f, g, k, l, r = "start", u = !1, s = !1) {
+  const M = I("text", {
+    x: o,
     y: f,
     "font-size": k,
-    "text-anchor": s,
+    "text-anchor": r,
     "font-family": "system-ui, sans-serif",
     "pointer-events": "none",
-    ...h ? { "font-weight": 600 } : {},
-    ...l ? { "stroke-width": 4, "stroke-linejoin": "round", "paint-order": "stroke" } : {}
-  }, { fill: r, ...l ? { stroke: b.halo } : {} });
-  return $.style.setProperty("font-family", se), $.textContent = g, $;
+    ...u ? { "font-weight": 600 } : {},
+    ...s ? { "stroke-width": 4, "stroke-linejoin": "round", "paint-order": "stroke" } : {}
+  }, { fill: l, ...s ? { stroke: v.halo } : {} });
+  return M.style.setProperty("font-family", he), M.textContent = g, M;
 }
-const V = (n, f, g, k, r) => `M${n + r},${f} H${n + g - r} A${r},${r} 0 0 1 ${n + g},${f + r} V${f + k - r} A${r},${r} 0 0 1 ${n + g - r},${f + k} H${n + r} A${r},${r} 0 0 1 ${n},${f + k - r} V${f + r} A${r},${r} 0 0 1 ${n + r},${f} Z`;
-function de(n) {
-  const f = n.label.split(/\.\s/)[0].replace(/\.$/, "").replace(/\s*\([^)]*\)/g, "");
+const F = (o, f, g, k, l) => `M${o + l},${f} H${o + g - l} A${l},${l} 0 0 1 ${o + g},${f + l} V${f + k - l} A${l},${l} 0 0 1 ${o + g - l},${f + k} H${o + l} A${l},${l} 0 0 1 ${o},${f + k - l} V${f + l} A${l},${l} 0 0 1 ${o + l},${f} Z`;
+function pe(o) {
+  const f = o.label.split(/\.\s/)[0].replace(/\.$/, "").replace(/\s*\([^)]*\)/g, "");
   return f.length > 42 ? f.slice(0, 41).replace(/\s+\S*$/, "") + "…" : f;
 }
-function ue(n, f, g, k) {
-  const r = I("g", { "pointer-events": "none" }), { hit: s, look: h } = n, l = s.height / 44, $ = s.x + s.width / 2, C = s.y + s.height / 2, E = h.warn ? b.warn : b.line;
-  if (h.shape === "line") {
-    const M = (h.y ?? C) + f.dy;
-    r.appendChild(I("line", {
-      x1: h.x1 ?? s.x,
-      x2: h.x2 ?? s.x + s.width,
-      y1: M,
-      y2: M,
-      "stroke-width": h.on ? 2.5 : 1.5,
-      "stroke-dasharray": h.on ? "8 5" : "3 5",
+function fe(o, f, g, k) {
+  const l = I("g", { "pointer-events": "none" }), { hit: r, look: u } = o, s = r.height / 44, M = r.x + r.width / 2, L = r.y + r.height / 2, E = u.warn ? v.warn : v.line;
+  if (u.shape === "line") {
+    const x = (u.y ?? L) + f.dy;
+    l.appendChild(I("line", {
+      x1: u.x1 ?? r.x,
+      x2: u.x2 ?? r.x + r.width,
+      y1: x,
+      y2: x,
+      "stroke-width": u.on ? 2.5 : 1.5,
+      "stroke-dasharray": u.on ? "8 5" : "3 5",
       "stroke-linecap": "round",
-      ...h.on ? {} : { opacity: 0.7 }
-    }, { stroke: h.on ? E : b.offLine }));
-    const m = g ?? h.label ?? "", o = Math.max(84 * l, (m.length * 13 * 0.56 + 40) * l), a = 26 * l;
-    r.appendChild(I("path", { d: V($ - o / 2, M - a / 2, o, a, a / 2), "stroke-width": 1.5 }, { fill: h.on ? b.off : b.chip, stroke: h.on ? E : b.offLine })), r.appendChild(I("path", {
-      d: `M${$ - o / 2 + 10 * l} ${M - 2 * l} l${4 * l} ${-4 * l} l${4 * l} ${4 * l} M${$ - o / 2 + 10 * l} ${M + 2 * l} l${4 * l} ${4 * l} l${4 * l} ${-4 * l}`,
+      ...u.on ? {} : { opacity: 0.7 }
+    }, { stroke: u.on ? E : v.offLine }));
+    const m = g ?? u.label ?? "", _ = Math.max(84 * s, (m.length * 13 * 0.56 + 40) * s), A = 26 * s;
+    l.appendChild(I("path", { d: F(M - _ / 2, x - A / 2, _, A, A / 2), "stroke-width": 1.5 }, { fill: u.on ? v.off : v.chip, stroke: u.on ? E : v.offLine })), l.appendChild(I("path", {
+      d: `M${M - _ / 2 + 10 * s} ${x - 2 * s} l${4 * s} ${-4 * s} l${4 * s} ${4 * s} M${M - _ / 2 + 10 * s} ${x + 2 * s} l${4 * s} ${4 * s} l${4 * s} ${-4 * s}`,
       fill: "none",
       "stroke-width": 1.6,
       "stroke-linecap": "round",
       "stroke-linejoin": "round"
-    }, { stroke: h.on ? E : b.ink })), r.appendChild(H($ + 8 * l, M + 4.5 * l, k ? "Saving…" : m, 13 * l, (h.on, b.ink), "middle", !!h.on));
-  } else if (h.shape === "chip") {
-    const M = 30 * l, m = C - M / 2;
-    r.appendChild(I(
+    }, { stroke: u.on ? E : v.ink })), l.appendChild(R(M + 8 * s, x + 4.5 * s, k ? "Saving…" : m, 13 * s, (u.on, v.ink), "middle", !!u.on));
+  } else if (u.shape === "chip") {
+    const x = 30 * s, m = L - x / 2;
+    l.appendChild(I(
       "path",
-      { d: V(s.x, m, s.width, M, M / 2), "stroke-width": 1.2, ...h.warn ? { "stroke-dasharray": "3 3" } : {} },
-      { fill: h.on ? b.on : b.chip, stroke: h.on ? b.on : b.offLine }
+      { d: F(r.x, m, r.width, x, x / 2), "stroke-width": 1.2, ...u.warn ? { "stroke-dasharray": "3 3" } : {} },
+      { fill: u.on ? v.on : v.chip, stroke: u.on ? v.on : v.offLine }
     ));
-    const o = h.on ? b.onInk : b.ink, a = z(h.icon, s.x + 12 * l, C - 6.5 * l, 13 * l, o);
-    a && r.appendChild(a), r.appendChild(H(s.x + (a ? 32 : 14) * l, C + 4.5 * l, k ? "Saving…" : h.label ?? "", 13 * l, o, "start", !!h.on));
-  } else if (h.shape === "badge" || h.shape === "step") {
-    const M = (h.shape === "step" ? 13 : 15) * l, m = h.shape === "badge" ? !!h.on : !1;
-    r.appendChild(I(
+    const _ = u.on ? v.onInk : v.ink, A = Z(u.icon, r.x + 12 * s, L - 6.5 * s, 13 * s, _);
+    A && l.appendChild(A), l.appendChild(R(r.x + (A ? 32 : 14) * s, L + 4.5 * s, k ? "Saving…" : u.label ?? "", 13 * s, _, "start", !!u.on));
+  } else if (u.shape === "badge" || u.shape === "step") {
+    const x = (u.shape === "step" ? 13 : 15) * s, m = u.shape === "badge" ? !!u.on : !1;
+    l.appendChild(I(
       "circle",
-      { cx: $, cy: C, r: M, "stroke-width": 1.4, ...h.shape === "badge" && !h.on ? { "stroke-dasharray": "3 3" } : {} },
-      { fill: m ? b.on : b.off, stroke: m ? b.on : h.shape === "step" && h.on ? E : b.offLine }
+      { cx: M, cy: L, r: x, "stroke-width": 1.4, ...u.shape === "badge" && !u.on ? { "stroke-dasharray": "3 3" } : {} },
+      { fill: u.swatch ?? (m ? v.on : v.off), stroke: u.swatch ? v.ink : m ? v.on : u.shape === "step" && u.on ? E : v.offLine }
     ));
-    const o = z(h.icon, $ - 7 * l, C - 7 * l, 14 * l, m ? b.onInk : h.on || h.shape === "step" ? b.ink : b.offLine);
-    o && r.appendChild(o), k && r.appendChild(I("circle", { cx: $, cy: C, r: M + 3 * l, fill: "none", "stroke-width": 2, "stroke-dasharray": "4 4" }, { stroke: b.line }));
-  } else if (h.shape === "ghost") {
-    const M = Math.min(l, s.width / 64);
-    r.appendChild(I("path", { d: V(s.x, s.y, s.width, s.height, 10 * M), "stroke-width": 1.6, "stroke-dasharray": "6 5" }, { fill: "none", stroke: b.ghost }));
-    const m = z("plus", $ - 9 * M, C - 16 * M, 18 * M, b.ink);
-    m && r.appendChild(m), r.appendChild(H($, C + 18 * M, k ? "Adding…" : "Column", 12 * M, b.ink, "middle"));
-  } else if (h.shape === "ladder") {
-    const M = h.x1 ?? $, m = h.y ?? s.y, o = h.rungGap ?? 30 * l, a = h.rungs ?? 6, t = Math.max(1, Math.min(a, Math.round((h.lit ?? a) + f.dy / o))), v = m + (a - 1) * o;
-    for (const e of [-10 * l, 10 * l]) r.appendChild(I("line", { x1: M + e, x2: M + e, y1: m - 6 * l, y2: v + 6 * l, "stroke-width": 1.5 }, { stroke: b.offLine }));
-    for (let e = 0; e < a; e++) {
-      const u = e < t && (h.on || f.dy !== 0);
-      r.appendChild(I("line", { x1: M - 10 * l, x2: M + 10 * l, y1: m + e * o, y2: m + e * o, "stroke-width": u ? 3 : 1.5, "stroke-linecap": "round" }, { stroke: u ? E : b.offLine }));
+    const _ = Z(u.icon, M - 7 * s, L - 7 * s, 14 * s, m ? v.onInk : u.on || u.shape === "step" ? v.ink : v.offLine);
+    _ && l.appendChild(_), k && l.appendChild(I("circle", { cx: M, cy: L, r: x + 3 * s, fill: "none", "stroke-width": 2, "stroke-dasharray": "4 4" }, { stroke: v.line }));
+  } else if (u.shape === "ghost") {
+    const x = Math.min(s, r.width / 64);
+    l.appendChild(I("path", { d: F(r.x, r.y, r.width, r.height, 10 * x), "stroke-width": 1.6, "stroke-dasharray": "6 5" }, { fill: "none", stroke: v.ghost }));
+    const m = Z("plus", M - 9 * x, L - 16 * x, 18 * x, v.ink);
+    m && l.appendChild(m), l.appendChild(R(M, L + 18 * x, k ? "Adding…" : "Column", 12 * x, v.ink, "middle"));
+  } else if (u.shape === "ladder") {
+    const x = u.x1 ?? M, m = u.y ?? r.y, _ = u.rungGap ?? 30 * s, A = u.rungs ?? 6, D = Math.max(1, Math.min(A, Math.round((u.lit ?? A) + f.dy / _))), a = m + (A - 1) * _;
+    for (const n of [-10 * s, 10 * s]) l.appendChild(I("line", { x1: x + n, x2: x + n, y1: m - 6 * s, y2: a + 6 * s, "stroke-width": 1.5 }, { stroke: v.offLine }));
+    for (let n = 0; n < A; n++) {
+      const c = n < D && (u.on || f.dy !== 0);
+      l.appendChild(I("line", { x1: x - 10 * s, x2: x + 10 * s, y1: m + n * _, y2: m + n * _, "stroke-width": c ? 3 : 1.5, "stroke-linecap": "round" }, { stroke: c ? E : v.offLine }));
     }
-    const p = m + (t - 1) * o, i = g ?? h.label ?? "";
-    r.appendChild(I("circle", { cx: M, cy: p, r: 12 * l, "stroke-width": 1.6 }, { fill: b.off, stroke: h.on ? E : b.ink })), r.appendChild(I("path", { d: `M${M - 4 * l} ${p - 1 * l} l${4 * l} ${-4 * l} l${4 * l} ${4 * l} M${M - 4 * l} ${p + 1 * l} l${4 * l} ${4 * l} l${4 * l} ${-4 * l}`, fill: "none", "stroke-width": 1.5 }, { stroke: b.ink })), r.appendChild(H(M, m - 16 * l, k ? "Saving…" : "Depth", 12 * l, b.ink, "middle", !0, !0)), (g || f.dy) && r.appendChild(H(M + 18 * l, p + 4 * l, i, 12 * l, b.ink, "start", !0, !0));
+    const i = m + (D - 1) * _, e = g ?? u.label ?? "";
+    l.appendChild(I("circle", { cx: x, cy: i, r: 12 * s, "stroke-width": 1.6 }, { fill: v.off, stroke: u.on ? E : v.ink })), l.appendChild(I("path", { d: `M${x - 4 * s} ${i - 1 * s} l${4 * s} ${-4 * s} l${4 * s} ${4 * s} M${x - 4 * s} ${i + 1 * s} l${4 * s} ${4 * s} l${4 * s} ${-4 * s}`, fill: "none", "stroke-width": 1.5 }, { stroke: v.ink })), l.appendChild(R(x, m - 16 * s, k ? "Saving…" : "Depth", 12 * s, v.ink, "middle", !0, !0)), (g || f.dy) && l.appendChild(R(x + 18 * s, i + 4 * s, e, 12 * s, v.ink, "start", !0, !0));
   }
-  return r;
+  return l;
 }
-function ce(n, f, g, k = {}) {
-  const r = n?.canvas?.node;
-  if (!r || typeof document > "u") return { update() {
+function ke(o, f, g, k = {}) {
+  const l = o?.canvas?.node;
+  if (!l || typeof document > "u") return { update() {
   }, remove() {
   } };
-  const s = document.createElementNS(Q, "g");
-  s.setAttribute("data-rule-controls", ""), s.setAttribute("data-board-scope", f), s.setAttribute("role", "group"), s.setAttribute("aria-label", "How this board behaves: controls");
-  let h = g, l = k.origin ?? { x: 0, y: 0 }, $ = !1, C = null, E = null, M, m = null;
-  const o = (p) => {
-    const i = s.getScreenCTM?.();
-    if (!i || typeof r.createSVGPoint != "function") return { x: p.clientX, y: p.clientY };
-    const e = r.createSVGPoint();
-    e.x = p.clientX, e.y = p.clientY;
-    const u = e.matrixTransform(i.inverse());
-    return { x: u.x, y: u.y };
+  const r = document.createElementNS(te, "g");
+  r.setAttribute("data-rule-controls", ""), r.setAttribute("data-board-scope", f), r.setAttribute("role", "group"), r.setAttribute("aria-label", "How this board behaves: controls");
+  let u = g, s = k.origin ?? { x: 0, y: 0 }, M = !1, L = null, E = null, x, m = null;
+  const _ = (i) => {
+    const e = r.getScreenCTM?.();
+    if (!e || typeof l.createSVGPoint != "function") return { x: i.clientX, y: i.clientY };
+    const n = l.createSVGPoint();
+    n.x = i.clientX, n.y = i.clientY;
+    const c = n.matrixTransform(e.inverse());
+    return { x: c.x, y: c.y };
   };
-  async function a(p, i, e) {
-    if (!i?.length || C || $) return;
-    C = p.id, t();
-    let u = !1;
+  async function A(i, e, n) {
+    if (!e?.length || L || M) return;
+    L = i.id, D();
+    let c = !1;
     try {
-      u = !!await k.onRuleEdit?.(i, e);
+      c = !!await k.onRuleEdit?.(e, n);
     } catch {
-      u = !1;
+      c = !1;
     }
-    if (C = null, $) return;
-    E = { id: p.id, ok: u, until: Date.now() + 2e3 }, clearTimeout(M), M = setTimeout(() => {
-      E = null, t();
-    }, 2e3), t();
-    const d = h.find((w) => w.id === p.id);
-    k.announce?.(u ? (d?.state.sentence ?? e) + "." : "Not changed.");
+    if (L = null, M) return;
+    E = { id: i.id, ok: c, until: Date.now() + 2e3 }, clearTimeout(x), x = setTimeout(() => {
+      E = null, D();
+    }, 2e3), D();
+    const t = u.find((d) => d.id === i.id);
+    k.announce?.(c ? (t?.state.sentence ?? n) + "." : "Not changed.");
   }
-  function t() {
-    if ($) return;
-    const p = document.activeElement, i = p && s.contains(p) ? p.getAttribute("data-rule-control") : null;
-    for (; s.firstChild; ) s.removeChild(s.firstChild);
-    s.setAttribute("transform", `translate(${l.x} ${l.y})`);
-    for (const e of h) {
-      const u = m?.control.id === e.id && m.moved, d = u ? m.delta : { dx: 0, dy: 0 }, w = u ? e.gestures.preview?.(d) ?? null : null, x = I("g", {
-        "data-rule-control": e.id,
-        "data-primitive": e.primitive,
-        role: e.gestures.drag ? "slider" : "button",
+  function D() {
+    if (M) return;
+    const i = document.activeElement, e = i && r.contains(i) ? i.getAttribute("data-rule-control") : null;
+    for (; r.firstChild; ) r.removeChild(r.firstChild);
+    r.setAttribute("transform", `translate(${s.x} ${s.y})`);
+    for (const n of u) {
+      const c = m?.control.id === n.id && m.moved, t = c ? m.delta : { dx: 0, dy: 0 }, d = c ? n.gestures.preview?.(t) ?? null : null, p = I("g", {
+        "data-rule-control": n.id,
+        "data-primitive": n.primitive,
+        role: n.gestures.drag ? "slider" : "button",
         tabindex: 0,
-        "aria-label": e.label,
-        ...e.look.on !== void 0 && !e.gestures.drag ? { "aria-pressed": String(!!e.look.on) } : {},
-        ...e.gestures.drag ? { "aria-valuetext": e.state.sentence } : {},
-        cursor: e.gestures.drag ? e.gestures.axis === "x" ? "ew-resize" : "ns-resize" : "pointer"
+        "aria-label": n.label,
+        ...n.look.on !== void 0 && !n.gestures.drag ? { "aria-pressed": String(!!n.look.on) } : {},
+        ...n.gestures.drag ? { "aria-valuetext": n.state.sentence } : {},
+        cursor: n.gestures.drag ? n.gestures.axis === "x" ? "ew-resize" : "ns-resize" : "pointer"
       });
-      x.style.setProperty("outline", "none"), x.appendChild(ue(e, d, w, C === e.id));
-      const { hit: c } = e, _ = I("rect", {
-        x: c.x,
-        y: c.y + (e.look.shape === "line" || e.look.shape === "ladder" ? d.dy : 0),
-        width: c.width,
-        height: c.height,
-        rx: Math.min(c.width, c.height) / 2,
+      p.style.setProperty("outline", "none"), p.appendChild(fe(n, t, d, L === n.id));
+      const { hit: h } = n, w = I("rect", {
+        x: h.x,
+        y: h.y + (n.look.shape === "line" || n.look.shape === "ladder" ? t.dy : 0),
+        width: h.width,
+        height: h.height,
+        rx: Math.min(h.width, h.height) / 2,
         "pointer-events": "all",
         "data-rule-hit": ""
       }, { fill: "transparent" });
-      _.style.setProperty("touch-action", "none"), x.appendChild(_);
-      const A = I("rect", {
-        x: c.x - 3,
-        y: c.y - 3 + (e.look.shape === "line" ? d.dy : 0),
-        width: c.width + 6,
-        height: c.height + 6,
-        rx: Math.min(c.width, c.height) / 2 + 3,
+      w.style.setProperty("touch-action", "none"), p.appendChild(w);
+      const $ = I("rect", {
+        x: h.x - 3,
+        y: h.y - 3 + (n.look.shape === "line" ? t.dy : 0),
+        width: h.width + 6,
+        height: h.height + 6,
+        rx: Math.min(h.width, h.height) / 2 + 3,
         fill: "none",
         "stroke-width": 2.5,
         "pointer-events": "none",
         "data-rule-focus": "",
         opacity: 0
-      }, { stroke: b.line });
-      x.appendChild(A);
-      const L = I("title", {});
-      L.textContent = e.label, x.appendChild(L);
-      const y = e.look.shape === "line" || e.look.shape === "ladder" ? null : H(c.x + c.width / 2, c.y - 8 * (Math.min(c.width, c.height) / 44), de(e), 12 * (Math.min(c.width, c.height) / 44), b.ink, "middle", !0, !0);
-      y && (y.setAttribute("opacity", "0"), y.setAttribute("data-rule-hint", ""), x.appendChild(y));
-      const P = (T) => y?.setAttribute("opacity", T ? "1" : "0");
-      if (x.addEventListener("focus", () => {
-        A.setAttribute("opacity", "1"), P(!0);
-      }), x.addEventListener("blur", () => {
-        A.setAttribute("opacity", "0"), P(!1);
-      }), x.addEventListener("pointerenter", () => P(!0)), x.addEventListener("pointerleave", () => {
-        document.activeElement !== x && P(!1);
-      }), v(x, e), E?.id === e.id && E.until > Date.now()) {
-        const T = E.ok ? e.state.sentence : "Not changed";
-        x.appendChild(H(c.x + c.width / 2, c.y - 8 * (c.height / 44), T, 13 * (c.height / 44), E.ok ? b.line : b.refuse, "middle", !0, !0)), x.setAttribute("data-rule-flash", T);
+      }, { stroke: v.line });
+      p.appendChild($);
+      const C = I("title", {});
+      C.textContent = n.label, p.appendChild(C);
+      const S = n.look.shape === "line" || n.look.shape === "ladder" ? null : R(h.x + h.width / 2, h.y - 8 * (Math.min(h.width, h.height) / 44), pe(n), 12 * (Math.min(h.width, h.height) / 44), v.ink, "middle", !0, !0);
+      S && (S.setAttribute("opacity", "0"), S.setAttribute("data-rule-hint", ""), p.appendChild(S));
+      const P = (b) => S?.setAttribute("opacity", b ? "1" : "0");
+      if (p.addEventListener("focus", () => {
+        $.setAttribute("opacity", "1"), P(!0);
+      }), p.addEventListener("blur", () => {
+        $.setAttribute("opacity", "0"), P(!1);
+      }), p.addEventListener("pointerenter", () => P(!0)), p.addEventListener("pointerleave", () => {
+        document.activeElement !== p && P(!1);
+      }), a(p, n), E?.id === n.id && E.until > Date.now()) {
+        const b = E.ok ? n.state.sentence : "Not changed";
+        p.appendChild(R(h.x + h.width / 2, h.y - 8 * (h.height / 44), b, 13 * (h.height / 44), E.ok ? v.line : v.refuse, "middle", !0, !0)), p.setAttribute("data-rule-flash", b);
       }
-      s.appendChild(x);
+      r.appendChild(p);
     }
-    r.lastChild !== s && r.appendChild(s), i && s.querySelector(`[data-rule-control="${CSS.escape ? CSS.escape(i) : i}"]`)?.focus({ preventScroll: !0 });
+    l.lastChild !== r && l.appendChild(r), e && r.querySelector(`[data-rule-control="${CSS.escape ? CSS.escape(e) : e}"]`)?.focus({ preventScroll: !0 });
   }
-  function v(p, i) {
-    const e = (u) => u.stopPropagation();
-    p.addEventListener("mousedown", e), p.addEventListener("touchstart", e, { passive: !0 }), p.addEventListener("dblclick", (u) => {
-      u.stopPropagation(), u.preventDefault();
-    }), p.addEventListener("pointerdown", (u) => {
-      if (u.stopPropagation(), u.preventDefault(), C || m) return;
-      const d = { control: i, start: o(u), delta: { dx: 0, dy: 0 }, moved: !1, holdDone: !1, pointerId: u.pointerId };
-      m = d;
-      const w = (c) => {
-        if (m !== d || c.pointerId !== d.pointerId) return;
-        const _ = o(c), A = { dx: _.x - d.start.x, dy: _.y - d.start.y };
-        !d.moved && Math.hypot(A.dx, A.dy) < 5 || d.control.gestures.drag && (c.preventDefault(), d.moved = !0, clearTimeout(d.holdTimer), d.delta = d.control.gestures.axis === "x" ? { dx: A.dx, dy: 0 } : { dx: 0, dy: A.dy }, t());
-      }, x = (c) => {
-        if (c.pointerId !== d.pointerId || (window.removeEventListener("pointermove", w, !0), window.removeEventListener("pointerup", x, !0), window.removeEventListener("pointercancel", x, !0), m !== d)) return;
-        m = null, clearTimeout(d.holdTimer);
-        const _ = d.control;
-        if (c.type === "pointercancel" || d.holdDone) {
-          t();
+  function a(i, e) {
+    const n = (c) => c.stopPropagation();
+    i.addEventListener("mousedown", n), i.addEventListener("touchstart", n, { passive: !0 }), i.addEventListener("dblclick", (c) => {
+      c.stopPropagation(), c.preventDefault();
+    }), i.addEventListener("pointerdown", (c) => {
+      if (c.stopPropagation(), c.preventDefault(), L || m) return;
+      const t = { control: e, start: _(c), delta: { dx: 0, dy: 0 }, moved: !1, holdDone: !1, pointerId: c.pointerId };
+      m = t;
+      const d = (h) => {
+        if (m !== t || h.pointerId !== t.pointerId) return;
+        const w = _(h), $ = { dx: w.x - t.start.x, dy: w.y - t.start.y };
+        !t.moved && Math.hypot($.dx, $.dy) < 5 || t.control.gestures.drag && (h.preventDefault(), t.moved = !0, clearTimeout(t.holdTimer), t.delta = t.control.gestures.axis === "x" ? { dx: $.dx, dy: 0 } : { dx: 0, dy: $.dy }, D());
+      }, p = (h) => {
+        if (h.pointerId !== t.pointerId || (window.removeEventListener("pointermove", d, !0), window.removeEventListener("pointerup", p, !0), window.removeEventListener("pointercancel", p, !0), m !== t)) return;
+        m = null, clearTimeout(t.holdTimer);
+        const w = t.control;
+        if (h.type === "pointercancel" || t.holdDone) {
+          D();
           return;
         }
-        if (c.stopPropagation(), d.moved && _.gestures.drag) {
-          const A = _.gestures.preview?.(d.delta) ?? _.label, L = _.gestures.drag(d.delta);
-          t(), a(_, L, A);
-        } else _.gestures.tap ? a(_, _.gestures.tap, _.label) : t();
+        if (h.stopPropagation(), t.moved && w.gestures.drag) {
+          const $ = w.gestures.preview?.(t.delta) ?? w.label, C = w.gestures.drag(t.delta);
+          D(), A(w, C, $);
+        } else w.gestures.tap ? A(w, w.gestures.tap, w.label) : D();
       };
-      window.addEventListener("pointermove", w, !0), window.addEventListener("pointerup", x, !0), window.addEventListener("pointercancel", x, !0), i.gestures.hold && (d.holdTimer = setTimeout(() => {
-        m !== d || d.moved || (d.holdDone = !0, a(d.control, d.control.gestures.hold, d.control.label));
+      window.addEventListener("pointermove", d, !0), window.addEventListener("pointerup", p, !0), window.addEventListener("pointercancel", p, !0), e.gestures.hold && (t.holdTimer = setTimeout(() => {
+        m !== t || t.moved || (t.holdDone = !0, A(t.control, t.control.gestures.hold, t.control.label));
       }, 550));
-    }), p.addEventListener("click", e), p.addEventListener("contextmenu", (u) => {
-      u.preventDefault(), u.stopPropagation(), i.gestures.hold && a(i, i.gestures.hold, i.label);
-    }), p.addEventListener("keydown", (u) => {
-      const d = u.key, { gestures: w } = i;
-      let x;
-      if ((d === "Enter" || d === " ") && u.shiftKey && w.hold) x = w.hold;
-      else if (d === "Enter" || d === " ") x = w.tap;
-      else if ((d === "Delete" || d === "Backspace") && w.remove) x = w.remove;
-      else if (w.drag && w.step && /^Arrow(Up|Down|Left|Right)$/.test(d)) {
-        const c = d === "ArrowUp" || d === "ArrowLeft" ? -1 : 1;
-        x = w.drag(w.axis === "x" ? { dx: c * w.step, dy: 0 } : { dx: 0, dy: c * w.step });
+    }), i.addEventListener("click", n), i.addEventListener("contextmenu", (c) => {
+      c.preventDefault(), c.stopPropagation(), e.gestures.hold && A(e, e.gestures.hold, e.label);
+    }), i.addEventListener("keydown", (c) => {
+      const t = c.key, { gestures: d } = e;
+      let p;
+      if ((t === "Enter" || t === " ") && c.shiftKey && d.hold) p = d.hold;
+      else if (t === "Enter" || t === " ") p = d.tap;
+      else if ((t === "Delete" || t === "Backspace") && d.remove) p = d.remove;
+      else if (d.drag && d.step && /^Arrow(Up|Down|Left|Right)$/.test(t)) {
+        const h = t === "ArrowUp" || t === "ArrowLeft" ? -1 : 1;
+        p = d.drag(d.axis === "x" ? { dx: h * d.step, dy: 0 } : { dx: 0, dy: h * d.step });
       } else return;
-      u.preventDefault(), u.stopPropagation(), a(i, x, i.label);
+      c.preventDefault(), c.stopPropagation(), A(e, p, e.label);
     });
   }
-  return t(), {
-    update(p, i) {
-      $ || (h = p, i && (l = i), m && !p.some((e) => e.id === m.control.id) ? m = null : m && (m = { ...m, control: p.find((e) => e.id === m.control.id) }), t());
+  return D(), {
+    update(i, e) {
+      M || (u = i, e && (s = e), m && !i.some((n) => n.id === m.control.id) ? m = null : m && (m = { ...m, control: i.find((n) => n.id === m.control.id) }), D());
     },
     remove() {
-      $ = !0, clearTimeout(M), m && clearTimeout(m.holdTimer), s.remove();
+      M = !0, clearTimeout(x), m && clearTimeout(m.holdTimer), r.remove();
     }
   };
 }
-te({ controls: re, draw: ce });
+ae({ controls: ce, draw: ke });
 export {
-  pe as RULE_CONTROL_EDITS,
-  b as controlInk,
-  ce as drawRuleControls,
-  de as hintOf,
-  re as ruleControls,
-  ie as ruleControlsFamily
+  ge as RULE_CONTROL_EDITS,
+  v as controlInk,
+  ke as drawRuleControls,
+  pe as hintOf,
+  ce as ruleControls,
+  se as ruleControlsFamily
 };
