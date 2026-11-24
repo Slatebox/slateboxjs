@@ -188,7 +188,9 @@ test('Slate settings renames the workshop; a name it cannot take is said and the
     await expect.poll(async () => (await storedWorkshop(page, owner.key)).title).toBe('Sprint plan')
     // A name the workshop cannot take is refused: the reason is said beside the field and on the
     // canvas, and the saved name comes back in the field and in the toolbar.
-    const beside = page.getByRole('alert').filter({ hasText: 'The name was not changed.' })
+    // Beside the field: the settings' own alert. (The canvas's notice says the same whole sentence since the
+    // decision-path release, so the two are told apart by where they are.)
+    const beside = page.getByRole('region', { name: 'General Settings' }).getByRole('alert').filter({ hasText: 'The name was not changed.' })
     const onCanvas = page.locator('[role="group"][aria-label="Workshop"] [role="alert"]')
     await name.fill('<b>Sprint</b>')
     await expect(beside).toContainText('without < or >')
@@ -304,9 +306,22 @@ test('on a phone the status strip has a row of its own and one finger pans the c
     expect(later.y + later.height).toBeGreaterThan(canvasBox.y + canvasBox.height)
     const before = await view(guest)
     const device = await finger(guest)
-    const from = { x: 372, y: canvasBox.y + canvasBox.height - 80 }
-    await device.touch('touchStart', [from])
-    for (let i = 1; i <= 10; i++) await device.touch('touchMove', [{ x: from.x, y: from.y - 30 * i }])
+    // On the empty part of a lane: a point on screen where a lane's column (not a card, nor a canvas control such
+    // as the zoom slider at the right edge) is what the finger touches, as near the bottom as there is one.
+    const from = await guest.evaluate(({ top, bottom }) => {
+      const boxes = (selector: string) => [...document.querySelectorAll(selector)].map(e => e.getBoundingClientRect())
+      const columns = boxes('#slateCanvas [data-node-id^="column-"]')
+      const covered = [...boxes('#slateCanvas [data-node-id^="card-"], #slateCanvas [data-node-id^="lane-"], #slateCanvas [data-node-id^="caption-"]'),
+        ...boxes('#slateCanvas .slatebox-zoom-slider, #slateCanvas .slateboxjs-birdseye')]
+      const inside = (r: DOMRect, x: number, y: number, pad = 0) => x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad
+      for (let y = bottom - 40; y > top + 40; y -= 10)
+        for (let x = 20; x < innerWidth - 20; x += 10)
+          if (columns.some(r => inside(r, x, y)) && !covered.some(r => inside(r, x, y, 12))) return { x, y }
+      return null
+    }, { top: canvasBox.y, bottom: canvasBox.y + canvasBox.height })
+    expect(from).not.toBeNull()
+    await device.touch('touchStart', [from!])
+    for (let i = 1; i <= 10; i++) await device.touch('touchMove', [{ x: from!.x, y: from!.y - 30 * i }])
     await device.touch('touchEnd', [])
     const after = await view(guest)
     expect(after.y - before.y).toBeGreaterThan(250)

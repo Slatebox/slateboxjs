@@ -286,3 +286,12 @@ export async function cancelMoveAnyway(page: Page, card: string, lane: string, r
   await ask.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(ask).toHaveCount(0)
 }
+
+/**
+ * A map's line for where a token stands, as the app reads it aloud (workshop-notice.mjs standingLines): the card
+ * and its stop, then the stop's outcome when the stop has one of its own ("Hydrophone · On the boat — Sample the water.").
+ */
+export function standingLine(card: string, stop: { label: string; station?: { outcome?: string } }) {
+  const outcome = stop.station?.outcome && stop.station.outcome !== stop.label ? stop.station.outcome : ''
+  return card + ' · ' + stop.label + (outcome ? ' — ' + outcome : '')
+}

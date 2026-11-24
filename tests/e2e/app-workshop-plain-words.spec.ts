@@ -41,7 +41,9 @@ test('the budget is changed by saying so: starters fill the message, a preview i
     await noLore(page)
     // Starters are things a person would say about this workshop, and each one works here.
     const offered = chat.getByLabel('Starter messages').getByRole('button')
-    await expect(offered).toHaveText(['Move Third $200 to Customer calls', 'Let Unallocated hold two cards', 'Add a card called New idea to Unallocated'])
+    // Around them, the group also offers the board itself ("Change this board", first, where a phone finds it) and
+    // its own phrases ("What can this do?", last). (Restated: both joined the starters after this test was written.)
+    await expect(offered).toHaveText(['Change this board', 'Move Third $200 to Customer calls', 'Let Unallocated hold two cards', 'Add a card called New idea to Unallocated', 'What can this do?'])
     // A starter fills the message and leaves the keyboard in it.
     await starter(page, 'Move Third $200 to Customer calls').click()
     await expect(messageBox(page)).toHaveValue('Move Third $200 to Customer calls')

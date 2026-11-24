@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, workshopDestinations, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { exitWithEscape, expectLane, nextView, openPresenter } from './app-presenter.shared'
-import {conversation, dragCardNamed, editable, isOffered, keyboardMove, offeredLanes, selectLaneNamed, slateTitle, workshopReady} from './app-native-workshop.shared'
+import {conversation, dragCardNamed, editable, isOffered, keyboardMove, offeredLanes, selectLaneNamed, slateTitle, standingLine, workshopReady} from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const workshops: Workshop[] = [{
@@ -88,7 +88,8 @@ for (const workshop of workshops) {
       const moving = workshop.cards[0]
       if (destination.station) {
         await dragCardNamed(editor, moving.label, destination.label)
-        await expect(editor.getByText(moving.label + ' · ' + destination.label, { exact: true })).toBeVisible()
+        // The line read aloud for the token names its stop and the stop's outcome ('Test lens · Indoor lamp — Lamp test complete.').
+        await expect(editor.getByText(standingLine(moving.label, destination), { exact: true })).toBeVisible()
         expect(await isOffered(editor, moving.label, alternate.label)).toBe(false)
       } else {
         await sendLaneEdit(editor,'Move '+moving.label+' to '+destination.label)

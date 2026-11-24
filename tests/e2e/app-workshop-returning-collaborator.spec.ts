@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
-import { conversation, dragCardNamed, editable, slateTitle, workshopReady } from './app-native-workshop.shared'
+import { conversation, dragCardNamed, editable, slateTitle, standingLine, workshopReady } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 const workshop: Workshop = {
@@ -83,7 +83,7 @@ test('a joined editor returns from My Slates across devices as the live title an
     await expect(firstVisit).toHaveAttribute('href', invite.pathname)
     await firstVisit.click()
     await expect(editor).toHaveURL(invite.href)
-    await expect(editor.getByText('Hydrophone · On the boat', { exact: true })).toBeVisible()
+    await expect(editor.getByText(standingLine('Hydrophone', workshop.lanes.find(lane => lane.id === 'boat')!), { exact: true })).toBeVisible()
 
     await editor.goto(new URL('/profile', origin).href)
     await editor.getByRole('button', { name: 'Save My Slatebox' }).click()
@@ -120,7 +120,7 @@ test('a joined editor returns from My Slates across devices as the live title an
     await dismissWelcome(returning)
     await workshopReady(returning)
     await expect(slateTitle(returning)).toHaveText(renamed)
-    await expect(returning.getByText('Hydrophone · On the boat', { exact: true })).toBeVisible()
+    await expect(returning.getByText(standingLine('Hydrophone', workshop.lanes.find(lane => lane.id === 'boat')!), { exact: true })).toBeVisible()
     // A reader has no conversation, open or one tap away.
     await expect(conversation(returning)).toHaveCount(0)
     await expect(returning.getByRole('button',{name:'Ask Slatebox'})).toHaveCount(0)
@@ -141,7 +141,8 @@ test('a joined editor returns from My Slates across devices as the live title an
     expect(replacement.pathname).not.toBe(invite.pathname)
     await returning.reload()
     await expect.poll(() => userId(returning)).toBe(editorId)
-    await expect(returning.getByRole('alert').filter({ hasText: /slate/i }).first()).toBeVisible()
+    // My slates says it has none for them now. (Restated for app 4b3958f4: the empty list is a status, no longer an alert.)
+    await expect(returning.getByRole('status').filter({ hasText: /slate/i }).first()).toBeVisible()
     await expect(reentry).toHaveCount(0)
     expect(await getSlate(returning, oldKey)).toBeFalsy()
     await returning.goto(replacement.href)
