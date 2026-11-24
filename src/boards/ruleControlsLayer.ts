@@ -54,7 +54,8 @@ function el(name: string, attributes: Record<string, string | number>, paint?: {
 /** A control's glyph, in a 12 by 12 box at (x, y), `size` wide. */
 function glyph(icon: RuleControlLook['icon'], x: number, y: number, size: number, color: string): SVGElement | null {
   const d: Record<string, string> = {
-    bin: 'M2 3 L10 3 M4.5 3 L4.5 1.5 L7.5 1.5 L7.5 3 M3 3 L3.8 11 L8.2 11 L9 3',
+    // An archive box (a bin keeps what is dropped in it; it never deletes): a lid, a box, a handle.
+    bin: 'M1.5 2 L10.5 2 L10.5 4.5 L1.5 4.5 Z M2.5 4.5 L2.5 10.5 L9.5 10.5 L9.5 4.5 M4.5 6.8 L7.5 6.8',
     gate: 'M3 6 L9 6 L9 11 L3 11 Z M4.5 6 L4.5 4 Q6 1.5 7.5 4 L7.5 6',
     oneway: 'M1 6 L10 6 M7 3 L10 6 L7 9',
     twoway: 'M1 6 L11 6 M4 3 L1 6 L4 9 M8 3 L11 6 L8 9',
@@ -85,6 +86,12 @@ function text(x: number, y: number, words: string, size: number, color: string, 
 
 const round = (x: number, y: number, w: number, h: number, r: number) =>
   `M${x + r},${y} H${x + w - r} A${r},${r} 0 0 1 ${x + w},${y + r} V${y + h - r} A${r},${r} 0 0 1 ${x + w - r},${y + h} H${x + r} A${r},${r} 0 0 1 ${x},${y + h - r} V${y + r} A${r},${r} 0 0 1 ${x + r},${y} Z`
+
+/** A control's hint: the first sentence of its label ("Make To do a bin that archives cards"), short enough to sit above it. */
+export function hintOf(control: RuleControl): string {
+  const first = control.label.split(/\.\s/)[0].replace(/\.$/, '').replace(/\s*\([^)]*\)/g, '')
+  return first.length > 42 ? first.slice(0, 41).replace(/\s+\S*$/, '') + '…' : first
+}
 
 /** The visible part of one control (the hit area is drawn separately), at a drag offset. */
 function drawLook(control: RuleControl, offset: { dx: number; dy: number }, said: string | null, busy: boolean): SVGGElement {
@@ -217,8 +224,19 @@ export function drawRuleControls(slate: unknown, boardId: string, controls: Rule
       const ring = el('rect', { x: hit.x - 3, y: hit.y - 3 + (control.look.shape === 'line' ? offset.dy : 0), width: hit.width + 6, height: hit.height + 6, rx: Math.min(hit.width, hit.height) / 2 + 3,
         fill: 'none', 'stroke-width': 2.5, 'pointer-events': 'none', 'data-rule-focus': '', opacity: 0 }, { stroke: controlInk.line })
       item.appendChild(ring)
-      item.addEventListener('focus', () => ring.setAttribute('opacity', '1'))
-      item.addEventListener('blur', () => ring.setAttribute('opacity', '0'))
+      // What a tap does, in words, on hover and on focus: a glyph alone (a box, a +) never has to be guessed.
+      // A limit line says it on its own pill. A <title> gives the same words to a pointer's tooltip.
+      const tip = el('title', {}) as SVGElement
+      tip.textContent = control.label
+      item.appendChild(tip)
+      const hint = control.look.shape === 'line' || control.look.shape === 'ladder' ? null
+        : text(hit.x + hit.width / 2, hit.y - 8 * (Math.min(hit.width, hit.height) / 44), hintOf(control), 12 * (Math.min(hit.width, hit.height) / 44), controlInk.ink, 'middle', true, true)
+      if (hint) { hint.setAttribute('opacity', '0'); hint.setAttribute('data-rule-hint', ''); item.appendChild(hint) }
+      const show = (on: boolean) => hint?.setAttribute('opacity', on ? '1' : '0')
+      item.addEventListener('focus', () => { ring.setAttribute('opacity', '1'); show(true) })
+      item.addEventListener('blur', () => { ring.setAttribute('opacity', '0'); show(false) })
+      item.addEventListener('pointerenter', () => show(true))
+      item.addEventListener('pointerleave', () => { if (document.activeElement !== item) show(false) })
       wire(item, control)
       if (flash?.id === control.id && flash.until > Date.now()) {
         const words = flash.ok ? control.state.sentence : 'Not changed'

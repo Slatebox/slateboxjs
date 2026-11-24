@@ -7,7 +7,7 @@ import { behaviourOf, validateBehaviour } from '../../src/workshops/behaviour'
 import { kitFor } from '../../src/boards'
 import '../../src/boards/nest'
 import { ruleControls, RULE_CONTROL_EDITS, type RuleControl } from '../../src/workshops/controls'
-import { drawRuleControls } from '../../src/boards/ruleControlsLayer'
+import { drawRuleControls, hintOf } from '../../src/boards/ruleControlsLayer'
 
 // The rule controls (library spec §4.3, §4.4): the drag primitives of a board's rulebook drawn on the
 // board. Each gesture is an edit the reducer takes (the same add_rule, set_rule and remove_rule chat and
@@ -218,6 +218,30 @@ describe('rule controls: the layer', () => {
       }
       svg.remove()
     }
+  })
+
+  it('a glyph is never guessed: on hover and on focus a control says what a tap does; a bin is an archive box, not a trash can', () => {
+    const { canvas, svg } = slateWith()
+    const controls = controlsOf(team)
+    drawRuleControls({ canvas }, 'main', controls, {})
+    const bin = svg.querySelector('[data-rule-control="bin:todo"]') as SVGGElement
+    const hint = bin.querySelector('[data-rule-hint]')!
+    expect(hint.textContent).toBe('Make To do a bin that archives cards')
+    expect(hint.getAttribute('opacity')).toBe('0')
+    bin.dispatchEvent(new Event('focus'))
+    expect(hint.getAttribute('opacity')).toBe('1')
+    bin.dispatchEvent(new Event('blur'))
+    expect(hint.getAttribute('opacity')).toBe('0')
+    bin.dispatchEvent(new Event('pointerenter'))
+    expect(hint.getAttribute('opacity')).toBe('1')
+    expect(bin.querySelector('title')!.textContent).toBe(controls.find(control => control.id === 'bin:todo')!.label)
+    // The archive box: a lid across the top (a closed rectangle), never the trash can's tapered sides.
+    expect(bin.querySelector('path[d^="M1.5 2 L10.5 2 L10.5 4.5"]')).not.toBeNull()
+    // A limit line says it on its own pill: no hint over it.
+    expect(svg.querySelector('[data-rule-control="capacity:doing"] [data-rule-hint]')).toBeNull()
+    const plus = controls.find(control => control.id.startsWith('capacity-plus:'))!
+    expect(hintOf(plus).length).toBeLessThanOrEqual(42)
+    svg.remove()
   })
 
   it('a ghost column as tall as its neighbours keeps its words and + at a finger’s size, not its height’s', () => {
