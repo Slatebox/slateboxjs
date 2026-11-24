@@ -7,7 +7,7 @@ import { catalogSamples } from '../../src/workshops/samples'
 import { kitFor } from '../../src/boards'
 import '../../src/boards/nest'
 import '../../src/workshops/behaviour'
-import { componentSlate, createStillRenderer, fitViewbox, KIT_KINDS, lanesPerRow, slateBoards, workshopOrigin } from '../../src/boards/still'
+import { componentSlate, createStillRenderer, drawnBox, fitViewbox, KIT_KINDS, lanesPerRow, slateBoards, workshopOrigin } from '../../src/boards/still'
 
 // The host's loaders, as the app passes them (import('slateboxjs/boards') and friends); here the engine's sources.
 const loaded: string[] = []
@@ -176,5 +176,30 @@ describe('the host\'s type', () => {
     await r.drawBoard({ freeNodes: () => [] }, validateWorkshop({ version: 1, title: 'T', lanes: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], cards: [] }))
     expect(seen.fontFamily).toBe('Arial, sans-serif')
     expect(seen.laneFontSize).toBe(20)
+  })
+})
+
+describe('drawnBox: the still is fitted to what was drawn', () => {
+  // A matrix that only translates, with what drawnBox calls on it.
+  const shift = (dx: number, dy: number): any => ({
+    dx, dy, inverse: () => shift(-dx, -dy), multiply: (other: any) => shift(dx + other.dx, dy + other.dy),
+  })
+  it('is null where the DOM has no SVG geometry (jsdom), so the reported boxes are used', () => {
+    const host = document.createElement('div')
+    host.innerHTML = '<svg><rect width="10" height="10"></rect></svg>'
+    expect(drawnBox(host)).toBeNull()
+  })
+  it('takes every drawn shape, the legend under a board included, in the canvas user space', () => {
+    const host = document.createElement('div')
+    host.innerHTML = '<svg><g><rect id="board"></rect><text id="legend"></text><rect id="empty"></rect></g></svg>'
+    const svg: any = host.querySelector('svg')
+    svg.getScreenCTM = () => shift(100, 50)
+    const shape = (id: string, box: any) => { const el: any = host.querySelector('#' + id); el.getBBox = () => box; el.getScreenCTM = () => shift(100, 50) }
+    shape('board', { x: 10, y: 20, width: 300, height: 200 })
+    shape('legend', { x: 10, y: 230, width: 150, height: 90 })
+    shape('empty', { x: -999, y: -999, width: 0, height: 0 })
+    const real = (globalThis as any).DOMPoint
+    ;(globalThis as any).DOMPoint = class { constructor(public x: number, public y: number) {} matrixTransform(m: any) { return { x: this.x + m.dx, y: this.y + m.dy } } }
+    try { expect(drawnBox(host)).toEqual({ x: 10, y: 20, width: 300, height: 300 }) } finally { (globalThis as any).DOMPoint = real }
   })
 })

@@ -161,6 +161,28 @@ function union(boxes: Box[]): Box | null {
   return { x, y, width: right - x, height: bottom - y }
 }
 
+/**
+ * The world box of everything drawn on the canvas in `host` (its first svg's user space), or null where the browser
+ * cannot measure (no layout, or a DOM without SVG geometry, as in unit tests).
+ */
+export function drawnBox(host: Element): Box | null {
+  const svg = host.querySelector('svg') as any
+  const toWorld = svg?.getScreenCTM?.()?.inverse?.()
+  if (!toWorld || typeof DOMPoint === 'undefined') return null
+  let x = Infinity, y = Infinity, right = -Infinity, bottom = -Infinity
+  for (const shape of svg.querySelectorAll('rect, text, path, image, circle, ellipse, line, polygon, polyline, foreignObject') as any) {
+    let b: any, m: any
+    try { b = shape.getBBox(); m = shape.getScreenCTM() } catch { continue }
+    if (!m || (!b.width && !b.height) || shape.closest('[display="none"], [visibility="hidden"]')) continue
+    const toSvg = toWorld.multiply(m)
+    for (const [px, py] of [[b.x, b.y], [b.x + b.width, b.y], [b.x, b.y + b.height], [b.x + b.width, b.y + b.height]]) {
+      const point = new DOMPoint(px, py).matrixTransform(toSvg)
+      x = Math.min(x, point.x); y = Math.min(y, point.y); right = Math.max(right, point.x); bottom = Math.max(bottom, point.y)
+    }
+  }
+  return Number.isFinite(x) && right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : null
+}
+
 /** The viewbox that shows `frame` whole and centred in a host `w` by `h` pixels, with `pad` world units around it. */
 export function fitViewbox(frame: Box, w: number, h: number, pad = 24): Box {
   const fw = frame.width + pad * 2, fh = frame.height + pad * 2
@@ -296,7 +318,11 @@ export function createStillRenderer(modules: StillModules): StillRenderer {
     const { creative: _creative, boards: _boards, ...notesOnly } = slateJson ?? {}
     await slate.loadJSON({ ...notesOnly, nodes: Array.isArray(slateJson?.nodes) ? slateJson.nodes : [] }, false, true)
     const boards = await drawSlateBoards(slate, slateJson, { width })
-    const shown = frame ?? union([notesBox(slateJson?.nodes), ...boards.map(board => board.frame ?? board.bounds)].filter(Boolean) as Box[]) ?? { x: 0, y: 0, width: 800, height: 450 }
+    // What was drawn, measured on the canvas itself where the browser can: a still's chrome (its title, and the "How this
+    // board behaves" legend under it) is drawn at the board's scale, larger than the full-size chrome a board's frame
+    // reports, so the reported boxes alone would leave space above and cut the legend off below.
+    const reported = union([notesBox(slateJson?.nodes), ...boards.map(board => board.frame ?? board.bounds)].filter(Boolean) as Box[])
+    const shown = frame ?? drawnBox(host) ?? reported ?? { x: 0, y: 0, width: 800, height: 450 }
     const fit = () => {
       const w = host.clientWidth, h = host.clientHeight
       if (!w || !h) return
