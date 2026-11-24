@@ -108,10 +108,17 @@ describe("readMediaValue: what an operation may store", () => {
     const read = readMediaValue({ url: `https://youtu.be/${YT}`, title: "  Launch\u0000 demo \n", author: "Slatebox", poster: "https://files.example/p.jpg", posterWidth: 480, posterHeight: 360 });
     expect(read).toEqual({ ok: true, media: { provider: "youtube", id: YT, url: `https://www.youtube.com/watch?v=${YT}`, title: "Launch demo", author: "Slatebox", poster: "https://files.example/p.jpg", posterWidth: 480, posterHeight: 360 } });
   });
+  it("keeps a poster stored on the app itself (a server with no https file store)", () => {
+    const read = readMediaValue({ url: `https://youtu.be/${YT}`, poster: "/sbimages/media-posters%2Fyoutube%2Fx.jpg" });
+    expect(read.ok && read.media.poster).toBe("/sbimages/media-posters%2Fyoutube%2Fx.jpg");
+  });
   it.each([
     [{ url: "https://example.com/v.mp4" }, /YouTube, Vimeo or Loom/],
     [{ url: `https://youtu.be/${YT}`, poster: "http://files.example/p.jpg" }, /poster must be an https/],
     [{ url: `https://youtu.be/${YT}`, poster: "javascript:alert(1)" }, /poster must be an https/],
+    [{ url: `https://youtu.be/${YT}`, poster: "//evil.example/p.jpg" }, /poster must be an https/],
+    [{ url: `https://youtu.be/${YT}`, poster: "/\\evil.example/p.jpg" }, /poster must be an https/],
+    [{ url: `https://youtu.be/${YT}`, poster: "/sbimages/a b.jpg" }, /poster must be an https/],
     [{ url: `https://youtu.be/${YT}`, provider: "vimeo" }, /provider does not match/],
     [{ url: `https://youtu.be/${YT}`, embed: "<iframe>" }, /does not take: embed/],
     [{ url: `https://youtu.be/${YT}`, start: -3 }, /start must be/],

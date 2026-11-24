@@ -138,7 +138,7 @@ export function slateOperationPlanSchema(options: ContractOptions = {}, form: { 
                 title: { type: "string", maxLength: MEDIA_LIMITS.titleLength },
                 author: { type: "string", maxLength: MEDIA_LIMITS.authorLength },
                 start: { type: "integer", minimum: 1, maximum: MEDIA_LIMITS.startSeconds, description: "Where to start, in seconds." },
-                poster: { type: "string", maxLength: MEDIA_LIMITS.urlLength, pattern: "^https://\\S+$", description: "The poster picture (https)." },
+                poster: { type: "string", maxLength: MEDIA_LIMITS.urlLength, pattern: "^(https://\\S+|/[^/\\\\\\s]\\S*)$", description: "The poster picture: an https address, or a path on this app (/...)." },
                 posterWidth: { type: "number", minimum: 1, maximum: 10000 },
                 posterHeight: { type: "number", minimum: 1, maximum: 10000 },
               },

@@ -49,7 +49,10 @@ export interface MediaValue {
   start?: number;
   title?: string;
   author?: string;
-  /** The poster picture, an https address in the app's own image store. */
+  /**
+   * The poster picture in the app's own image store: an https address, or a path
+   * on the app itself ("/sbimages/...") for a server with no https file store.
+   */
   poster?: string;
   posterWidth?: number;
   posterHeight?: number;
@@ -192,7 +195,8 @@ export function mediaEmbedUrl(media: Pick<MediaValue, "provider" | "id" | "hash"
   }
 }
 
-const POSTER = /^https:\/\/[^\s"'<>]+$/i;
+// An https address, or a path on the app itself (one leading slash, never "//", which names another host).
+const POSTER = /^(?:https:\/\/[^\s"'<>]+|\/(?![\/\\])[^\s"'<>\\]*)$/i;
 const cleanText = (value: unknown, max: number): string | undefined => {
   if (typeof value !== "string") return undefined;
   // eslint-disable-next-line no-control-regex
@@ -216,7 +220,7 @@ export function readMediaValue(value: unknown): { ok: true; media: MediaValue } 
   if (input.provider !== undefined && input.provider !== parsed.provider) return { ok: false, message: "provider does not match the url." };
   if (input.id !== undefined && input.id !== parsed.id) return { ok: false, message: "id does not match the url." };
   if (input.poster !== undefined && (typeof input.poster !== "string" || input.poster.length > MEDIA_LIMITS.urlLength || !POSTER.test(input.poster)))
-    return { ok: false, message: "poster must be an https address." };
+    return { ok: false, message: "poster must be an https address or a path on this app (/...)." };
   const start = input.start === undefined ? parsed.start : Number.isSafeInteger(input.start) && (input.start as number) > 0 && (input.start as number) <= MEDIA_LIMITS.startSeconds ? (input.start as number) : NaN;
   if (Number.isNaN(start)) return { ok: false, message: `start must be whole seconds from 1 to ${MEDIA_LIMITS.startSeconds}.` };
   const title = cleanText(input.title, MEDIA_LIMITS.titleLength);
