@@ -5040,11 +5040,11 @@ function rn(n, t) {
   const e = { x: n.x + n.width / 2, y: n.y + n.height / 2 }, i = To(t, e, -(n.rotation || 0));
   return { x: (i.x - n.x) / (n.width || 1), y: (i.y - n.y) / (n.height || 1) };
 }
-function Su(n, t) {
+function Au(n, t) {
   const e = { x: n.x + n.width / 2, y: n.y + n.height / 2 }, i = To({ x: n.x + t.x * n.width, y: n.y + t.y * n.height }, e, n.rotation || 0);
   return { x: Lt(i.x), y: Lt(i.y) };
 }
-function Au(n, t) {
+function Mu(n, t) {
   const e = rn(n, t), i = (e.x - 0.5) * n.width, s = (e.y - 0.5) * n.height;
   if (Math.abs(i) < 1e-9 && Math.abs(s) < 1e-9) return { x: 0.5, y: 0 };
   const o = i !== 0 ? n.width / 2 / Math.abs(i) : 1 / 0, r = s !== 0 ? n.height / 2 / Math.abs(s) : 1 / 0, a = Math.min(o, r);
@@ -7173,7 +7173,7 @@ class ch {
       }
   }
 }
-const $ = {}, hh = () => $.lineTool ?? null, dh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-CH8TZ4SO.mjs")), uh = () => $.birdsEye ?? null, fh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-CBn5w2MI.mjs")), ph = () => $.undoRedo ?? null, mh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-C2NZ_rXU.mjs")), gh = () => $.mediaInput ?? null, yh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-rkASRCI6.mjs")), bh = () => $.contextMenu ?? null, vh = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-2qkBmdxv.mjs")), wh = () => $.keyboard ?? null, xh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-DwLQiQ10.mjs")), _h = () => $.presentation ?? null, Ch = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Eh = () => $.mediaNote ?? null, Sh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), Ah = /* @__PURE__ */ new Set([
+const $ = {}, hh = () => $.lineTool ?? null, dh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-BYoPyGSg.mjs")), uh = () => $.birdsEye ?? null, fh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-Ctx1w5a6.mjs")), ph = () => $.undoRedo ?? null, mh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-Dbd3dIqg.mjs")), gh = () => $.mediaInput ?? null, yh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-DEf3waOQ.mjs")), bh = () => $.contextMenu ?? null, vh = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-BIQ-5deb.mjs")), wh = () => $.keyboard ?? null, xh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-BznFQEUp.mjs")), _h = () => $.presentation ?? null, Ch = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Eh = () => $.mediaNote ?? null, Sh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), Ah = /* @__PURE__ */ new Set([
   "arial",
   "arial, sans-serif",
   "helvetica",
@@ -12558,8 +12558,8 @@ class Vd {
     this.gridGroup.back();
   }
 }
-const In = "data-export-omit";
-function jd(n) {
+const In = "data-export-omit", jd = "data-export-never";
+function Kd(n) {
   const t = n.nodes?.allNodes ?? [];
   if (typeof n.governanceOf != "function" || t.length === 0) return [];
   const e = /* @__PURE__ */ new Set();
@@ -12579,7 +12579,7 @@ function jd(n) {
   }
   return i;
 }
-function Kd(n, t, e) {
+function Qd(n, t, e) {
   const i = Array.from(t.querySelectorAll("g[data-board-chrome]"));
   if (!i.length) return [];
   const s = n?.boardChromes instanceof Set ? Array.from(n.boardChromes) : [], o = [];
@@ -12606,7 +12606,7 @@ function nr(n, t = {}, e) {
     const o = "";
     return e?.(o), o;
   }
-  const s = jd(n);
+  const s = Kd(n);
   try {
     for (const h of s) h.setAttribute(In, "");
     let o;
@@ -12648,16 +12648,17 @@ function nr(n, t = {}, e) {
       // (attribute-tagged, so the class selectors above miss them). Not visible
       // content — strip them so the export has no near-invisible cruft / bbox skew.
       '[connectortype="hitarea"]',
-      // Agents at work: their pointers (and edge markers) and the ghosts of what they suggest.
-      // Nothing an agent has not had kept is part of the slate, so no picture shows it.
-      "[data-agent-presence]",
-      "[data-agent-suggestions]",
+      // Layers drawn for the view and never part of the slate: the agents at work, their pointers (and edge markers) and
+      // the ghosts of what they suggest. Nothing an agent has not had kept is part of the slate, so no picture shows it.
+      // They are named by this one attribute, not by their own, so the canvas entry names nothing of the agents' drawing
+      // (that stays in slateboxjs/presence).
+      `[${jd}]`,
       // Notes left out of exports by their host, and their lines.
       `[${In}]`
     ];
     for (const h of r)
       o.querySelectorAll(h).forEach((f) => f.remove());
-    const a = Kd(n, o, !!(t.backgroundOnly || t.nodes));
+    const a = Qd(n, o, !!(t.backgroundOnly || t.nodes));
     if (t.noBackground) {
       const h = o.querySelector("rect[data-background]");
       h && h.remove();
@@ -12719,10 +12720,10 @@ function nr(n, t = {}, e) {
   }
 }
 const Ln = Object.freeze({ pictures: 40, bytes: 8 * 1024 * 1024, timeoutMs: 5e3 });
-function Qd(n) {
+function Jd(n) {
   return /<image\b[^>]*?\s(?:xlink:)?href="(?!data:)[^"]+"/.test(n);
 }
-async function Jd(n, t = globalThis.fetch) {
+async function tu(n, t = globalThis.fetch) {
   if (!t || typeof FileReader > "u") return n;
   const e = /(<image\b[^>]*?\s(?:xlink:)?href=")([^"]+)(")/g, i = /* @__PURE__ */ new Set();
   for (const a of n.matchAll(e)) {
@@ -12761,8 +12762,8 @@ async function Jd(n, t = globalThis.fetch) {
     return d ? `${l}${d}${h}` : a;
   }) : n;
 }
-async function tu(n, t = {}, e) {
-  const i = nr(n, t), s = i && Qd(i) ? await Jd(i) : i;
+async function eu(n, t = {}, e) {
+  const i = nr(n, t), s = i && Jd(i) ? await tu(i) : i;
   if (!s) {
     const r = t.asBinary ? new Blob() : "";
     return e?.(r), r;
@@ -12841,7 +12842,7 @@ function Cs(n) {
   const t = n.data?.id;
   return typeof t == "string" && t ? t : null;
 }
-const Es = (n, t) => $t(Ee(n.key, n.pkg), Ee(t.key, t.pkg)), Ot = "onNoteTraded", eu = 5e3, zn = (n) => "trade:" + n;
+const Es = (n, t) => $t(Ee(n.key, n.pkg), Ee(t.key, t.pkg)), Ot = "onNoteTraded", nu = 5e3, zn = (n) => "trade:" + n;
 function Ve(n, t) {
   if (!n || n.type === Dt || n.type === Ot) return n;
   const e = n.data;
@@ -12862,7 +12863,7 @@ function Ve(n, t) {
   }
   return s === e ? n : ["nodeOptions", "nodes"].every((r) => !Array.isArray(s[r]) || s[r].length === 0) && !i ? null : { ...n, data: s };
 }
-function nu(n) {
+function iu(n) {
   const t = globalThis.WebSocket;
   return typeof t != "function" ? null : class extends t {
     set onmessage(i) {
@@ -12874,7 +12875,7 @@ function nu(n) {
   };
 }
 const Gn = /* @__PURE__ */ new Set(["onNodeToFront", "onNodeToBack"]), Ss = "node-order";
-class iu {
+class su {
   constructor(t, e = {}) {
     this.doc = null, this.provider = null, this.collabMap = null, this.awareness = null, this.isConnected = !1, this.clientID = 0, this.cursorElements = /* @__PURE__ */ new Map(), this._cursorMoveHandler = null, this._cursorTrackingNode = null, this._cursorSweepTimer = null, this._cursorLastSeen = /* @__PURE__ */ new Map(), this.clock = 0, this.baseline = null, this.applying = null, this.synced = !1, this.trades = /* @__PURE__ */ new Map(), this.tradeTruth = /* @__PURE__ */ new Map(), this.tradesThrough = 0, this.tradeLines = /* @__PURE__ */ new Map(), this.tradeFixTimer = null, this.ownTrades = /* @__PURE__ */ new Map(), this.fromRecord = /* @__PURE__ */ new Set(), this.lineStamps = /* @__PURE__ */ new Map(), this.hostChangeAt = 0, this._relayRefusedSaid = !1, this.slate = t, this.options = {
       wsUrl: "ws://localhost:1234",
@@ -12933,7 +12934,7 @@ class iu {
       s && (this.userBaseData = s, s.websocketUrl && (this.options.wsUrl = s.websocketUrl), s.websocketParams && (this.options.wsParams = s.websocketParams), s.userName && (this.options.userName = s.userName), s.color && (this.options.userColor = s.color), s.personKey && (this.options.personKey = String(s.personKey))), this.collabMap = this.doc.getMap("collabPackages"), this.collabMap.observe((l) => {
         l.transaction.local || this.applyRemoteChanges(l.keysChanged);
       });
-      const r = nu((l) => this.relayRefused(l));
+      const r = iu((l) => this.relayRefused(l));
       this.provider = new i(
         this.options.wsUrl,
         this.options.roomName,
@@ -13137,7 +13138,7 @@ class iu {
     if (!this.collabMap || !this.slate || (await this.slate.whenBuilt?.(), !this.collabMap || !this.slate)) return;
     const e = this.knownBaseline();
     if (e && $t(t.stamp, e) <= 0) return;
-    const i = !!this.baseline && this.baseline.c === this.clientID && this.clientID !== 0, s = this.hostChangeAt > 0 && Date.now() - this.hostChangeAt < eu, o = this.beforeRemote(), r = Array.isArray(t.pkg.data?.held) ? t.pkg.data.held : [], a = /* @__PURE__ */ new Map();
+    const i = !!this.baseline && this.baseline.c === this.clientID && this.clientID !== 0, s = this.hostChangeAt > 0 && Date.now() - this.hostChangeAt < nu, o = this.beforeRemote(), r = Array.isArray(t.pkg.data?.held) ? t.pkg.data.held : [], a = /* @__PURE__ */ new Map();
     for (const h of [...r, ...this.ownTrades.keys()]) {
       if (typeof h != "string" || a.has(h)) continue;
       const d = this.slate.nodes?.one?.(h);
@@ -13773,7 +13774,7 @@ function ir(n) {
   const m = (g) => Math.round(g * 1e6) / 1e6;
   return { minX: m(d), minY: m(f), maxX: m(u), maxY: m(p) };
 }
-function su(n, t) {
+function ou(n, t) {
   if (t.length < 2) return [];
   const e = t.map(ir), i = Math.min(...e.map((c) => c.minX)), s = Math.max(...e.map((c) => c.maxX)), o = Math.min(...e.map((c) => c.minY)), r = Math.max(...e.map((c) => c.maxY)), a = (i + s) / 2, l = (o + r) / 2;
   return t.map((c, h) => {
@@ -13782,7 +13783,7 @@ function su(n, t) {
     return n === "left" ? f += i - d.minX : n === "right" ? f += s - d.maxX : n === "centerH" ? f += a - (d.minX + d.maxX) / 2 : n === "top" ? u += o - d.minY : n === "bottom" ? u += r - d.maxY : n === "middle" && (u += l - (d.minY + d.maxY) / 2), { id: c.id, x: f, y: u };
   });
 }
-function ou(n, t) {
+function ru(n, t) {
   if (t.length < 3) return [];
   const e = t.map((f, u) => ({ box: f, index: u, b: ir(f) })), i = n === "horizontal", s = (f) => i ? f.b.minX : f.b.minY, o = (f) => i ? f.b.maxX - f.b.minX : f.b.maxY - f.b.minY, r = [...e].sort((f, u) => s(f) - s(u) || f.index - u.index), a = s(r[0]), c = (r.reduce((f, u) => Math.max(f, s(u) + o(u)), -1 / 0) - a - r.reduce((f, u) => f + o(u), 0)) / (r.length - 1), h = /* @__PURE__ */ new Map();
   let d = a;
@@ -13800,12 +13801,12 @@ function li(n, t, e) {
   const i = Math.min(n.x + n.width + e - t.x, t.x + t.width + e - n.x), s = Math.min(n.y + n.height + e - t.y, t.y + t.height + e - n.y);
   return i > 0 && s > 0 ? { x: i, y: s } : null;
 }
-const ru = 4e6;
-function au(n, t, { gap: e = 20 } = {}) {
+const au = 4e6;
+function lu(n, t, { gap: e = 20 } = {}) {
   const i = n.map((h) => ({ ...h })), s = t.map((h) => ({ ...h })), o = (h, d, f, u, p) => {
     const m = h.x + h.width / 2 - (d.x + d.width / 2), g = h.y + h.height / 2 - (d.y + d.height / 2);
     f.y <= f.x ? h.y += (g > 0 || g === 0 && p > 0 ? 1 : -1) * f.y * u : h.x += (m > 0 || m === 0 && p > 0 ? 1 : -1) * f.x * u;
-  }, r = Math.max(1, i.length * (s.length + i.length / 2)), a = Math.max(1, Math.min(1e3, Math.floor(ru / r)));
+  }, r = Math.max(1, i.length * (s.length + i.length / 2)), a = Math.max(1, Math.min(1e3, Math.floor(au / r)));
   let l = !1;
   for (let h = 0; h < a; h += 1) {
     let d = !1;
@@ -13827,9 +13828,9 @@ function au(n, t, { gap: e = 20 } = {}) {
   const c = (h) => Math.round(h * 100) / 100;
   for (const h of i)
     h.x = c(h.x), h.y = c(h.y);
-  return l || lu(i, s, e), i.map(({ id: h, x: d, y: f }) => ({ id: h, x: d, y: f }));
+  return l || cu(i, s, e), i.map(({ id: h, x: d, y: f }) => ({ id: h, x: d, y: f }));
 }
-function lu(n, t, e) {
+function cu(n, t, e) {
   const i = [...t], s = [];
   for (const u of n)
     i.some((p) => li(u, p, e)) ? s.push(u) : i.push(u);
@@ -13839,7 +13840,7 @@ function lu(n, t, e) {
   for (const u of s)
     h > o && h + u.width > o + c && (h = o, d += f + e, f = 0), u.x = h, u.y = d, h += u.width + e, f = Math.max(f, u.height);
 }
-function cu(n, t = 20) {
+function hu(n, t = 20) {
   const e = n.nodes.allNodes, s = (n.freeNodes?.() ?? e).filter((c) => !c.options.isLocked);
   if (s.length < 1 || e.length < 2) return;
   const o = (c) => ({
@@ -13848,7 +13849,7 @@ function cu(n, t = 20) {
     y: c.options.y || 0,
     width: c.options.width || 100,
     height: c.options.height || 60
-  }), r = new Set(s), l = au(s.map(o), e.filter((c) => !r.has(c)).map(o), { gap: t }).filter((c, h) => {
+  }), r = new Set(s), l = lu(s.map(o), e.filter((c) => !r.has(c)).map(o), { gap: t }).filter((c, h) => {
     const d = s[h];
     return c.x !== (d.options.x || 0) || c.y !== (d.options.y || 0);
   });
@@ -13856,7 +13857,7 @@ function cu(n, t = 20) {
     s.find((d) => (d.id ?? d.options.id) === c.id).position(c.x, c.y);
   }), n.broadcast?.("onNodesMove", { nodes: l }));
 }
-function hu(n, t, e, i = !1) {
+function du(n, t, e, i = !1) {
   const s = i ? 0 : 500;
   let o = 0;
   for (const r of t) {
@@ -13867,14 +13868,14 @@ function hu(n, t, e, i = !1) {
   }
   t.length === 0 && e && e();
 }
-function du(n) {
+function uu(n) {
   return (n.freeNodes?.() ?? n.nodes.allNodes).map((t) => ({
     id: t.id,
     x: t.options.x || 0,
     y: t.options.y || 0
   }));
 }
-class uu {
+class fu {
   constructor(t, e = {}) {
     this.container = null, this.slider = null, this.label = null, this._viewObserver = null, this._sizeObserver = null, this.fitButton = null, this.zoomInButton = null, this.zoomOutButton = null, this.rule = null, this.compact = null, this.slate = t, this.options = {
       enabled: !1,
@@ -13952,8 +13953,8 @@ class uu {
     e && typeof MutationObserver < "u" && (this._viewObserver = new MutationObserver(() => this.update()), this._viewObserver.observe(e, { attributes: !0, attributeFilter: ["viewBox"] }));
   }
 }
-const fu = (n) => n < 0.5 ? 4 * n * n * n : 1 - Math.pow(-2 * n + 2, 3) / 2, sr = (n) => Math.min(1, Math.max(0, n));
-function pu(n, t, e = {}) {
+const pu = (n) => n < 0.5 ? 4 * n * n * n : 1 - Math.pow(-2 * n + 2, 3) / 2, sr = (n) => Math.min(1, Math.max(0, n));
+function mu(n, t, e = {}) {
   const i = Math.max(1, n.width), s = Math.max(1, n.height), o = e.top ?? 0, r = e.bottom ?? 0, a = e.fill ?? 0.9, l = Math.max(1, t.h - o - r), c = Math.abs(e.roll ?? 0) * Math.PI / 180, h = Math.abs(Math.cos(c)), d = Math.abs(Math.sin(c)), f = e.cover ? i : i * h + s * d, u = e.cover ? s : i * d + s * h;
   let p = e.cover ? Math.max(t.w / i, t.h / s) : Math.min(t.w * a / f, l * a / u);
   return e.maxScale && p > e.maxScale && (p = e.maxScale), {
@@ -13964,7 +13965,7 @@ function pu(n, t, e = {}) {
     dy: e.cover ? 0 : (o - r) / 2
   };
 }
-function mu(n, t, e, i, s = "prezi", o = fu) {
+function gu(n, t, e, i, s = "prezi", o = pu) {
   if (e >= 1 || s === "cut") return { ...t };
   if (e <= 0) return { ...n };
   const r = o(e), a = Math.log(n.scale), l = Math.log(t.scale);
@@ -13981,11 +13982,11 @@ function mu(n, t, e, i, s = "prezi", o = fu) {
     dy: n.dy + (t.dy - n.dy) * r
   };
 }
-function gu(n, t, e) {
+function yu(n, t, e) {
   const i = -n.roll * Math.PI / 180, s = -Math.sin(i) * n.dy, o = Math.cos(i) * n.dy, r = (e ?? t.w) / n.scale, a = (e ?? t.h) / n.scale, l = n.cx - s / n.scale, c = n.cy - o / n.scale;
   return { x: l - r / 2, y: c - a / 2, width: r, height: a };
 }
-function yu(n, t, e) {
+function bu(n, t, e) {
   const i = Math.hypot(t.cx - n.cx, t.cy - n.cy) * Math.min(n.scale, t.scale) / Math.max(1, Math.min(e.w, e.h)), s = Math.abs(Math.log(t.scale / n.scale));
   return Math.round(Math.min(2e3, 900 + i * 260 + s * 180));
 }
@@ -13993,7 +13994,7 @@ const Bn = () => {
   const n = new Error("The camera flight was aborted.");
   return n.name = "AbortError", n;
 };
-class bu {
+class vu {
   constructor(t) {
     this.state = null, this.rollHost = null, this.viewportFn = null, this.raf = null, this.cancelCurrent = null, this.slate = t;
   }
@@ -14036,11 +14037,11 @@ class bu {
     if (t.state)
       return { cx: 0, cy: 0, scale: 1, dy: 0, ...this.current(), ...t.state, roll: e ? 0 : t.state.roll ?? i };
     const s = t.bbox ?? (t.nodeIds ? this.boxOf(t.nodeIds) : null);
-    return s ? pu(s, this.viewport(), { ...t, roll: i }) : null;
+    return s ? mu(s, this.viewport(), { ...t, roll: i }) : null;
   }
   /** Show `cam` at once. */
   apply(t) {
-    const e = gu(t, this.viewport(), this.hostSide);
+    const e = yu(t, this.viewport(), this.hostSide);
     try {
       this.slate.canvas.viewbox(e.x, e.y, e.width, e.height);
     } catch {
@@ -14059,7 +14060,7 @@ class bu {
     this.stop();
     const i = !!e.reduced, s = this.resolve(t, i);
     if (!s) return Promise.resolve(this.current());
-    const o = this.current(), r = i || !o ? "cut" : e.arc ?? "prezi", a = this.viewport(), l = e.duration ?? (o ? yu(o, s, a) : 0);
+    const o = this.current(), r = i || !o ? "cut" : e.arc ?? "prezi", a = this.viewport(), l = e.duration ?? (o ? bu(o, s, a) : 0);
     if (r === "cut" || l <= 0 || typeof requestAnimationFrame > "u")
       return e.signal?.aborted ? Promise.reject(Bn()) : (this.apply(s), e.onFrame?.(s, 1), Promise.resolve({ ...s }));
     const c = new Promise((h, d) => {
@@ -14082,7 +14083,7 @@ class bu {
       const g = (y) => {
         if (u) return;
         f === null && (f = y);
-        const b = sr((y - f) / l), v = mu(o, s, b, a, r, e.ease);
+        const b = sr((y - f) / l), v = gu(o, s, b, a, r, e.ease);
         this.apply(v), e.onFrame?.(v, b), b < 1 ? this.raf = requestAnimationFrame(g) : p();
       };
       this.raf = requestAnimationFrame(g);
@@ -14095,7 +14096,7 @@ class bu {
   }
 }
 const As = xn + ln / 2 + 4;
-function vu(n) {
+function wu(n) {
   return { left: n.left, top: n.top, right: n.right, bottom: n.bottom, width: n.right - n.left, height: n.bottom - n.top };
 }
 const fn = class fn {
@@ -14246,7 +14247,7 @@ const fn = class fn {
     }, m = bh();
     m ? p(m) : this.options.enabled !== !1 && vh().then((b) => {
       !this._destroyed && !this.contextMenu && p(b);
-    }).catch((b) => console.warn("SLATE: the right-click menu could not load", b)), this.collab = new iu(this), this.zoomSlider = new uu(this, {
+    }).catch((b) => console.warn("SLATE: the right-click menu could not load", b)), this.collab = new su(this), this.zoomSlider = new fu(this, {
       enabled: this.options.showZoom || !1
     });
     const g = (b) => {
@@ -14254,7 +14255,7 @@ const fn = class fn {
     }, y = _h();
     y ? g(y) : Ch().then((b) => {
       !this._destroyed && !this.presentation && g(b);
-    }).catch((b) => console.warn("SLATE: the presentation mode could not load", b)), this.camera = new bu(this), this.makeResponsive(), this.options.viewPort?.showCoordinates && (this._coordDisplayTimeoutId = setTimeout(() => {
+    }).catch((b) => console.warn("SLATE: the presentation mode could not load", b)), this.camera = new vu(this), this.makeResponsive(), this.options.viewPort?.showCoordinates && (this._coordDisplayTimeoutId = setTimeout(() => {
       this._destroyed || this.addCoordinateDisplay();
     }, 150));
   }
@@ -15320,7 +15321,7 @@ const fn = class fn {
       let s = null;
       try {
         const o = i.connectable?.connector?.node;
-        o?.isConnected && (s = vu(o.getBoundingClientRect()));
+        o?.isConnected && (s = wu(o.getBoundingClientRect()));
       } catch {
         s = null;
       }
@@ -15582,7 +15583,7 @@ const fn = class fn {
   }
   alignNodes(t, e) {
     const i = this.freeNodes(e || this.getSelectedNodes());
-    !i || i.length < 2 || ["left", "right", "centerH", "top", "bottom", "middle"].includes(t) && this.moveToPositions(i, su(t, i.map((s) => this.layoutBoxOf(s))));
+    !i || i.length < 2 || ["left", "right", "centerH", "top", "bottom", "middle"].includes(t) && this.moveToPositions(i, ou(t, i.map((s) => this.layoutBoxOf(s))));
   }
   /**
    * Evenly distribute the selected (or given) nodes along an axis so the gaps
@@ -15591,7 +15592,7 @@ const fn = class fn {
    */
   distributeNodes(t, e) {
     const i = this.freeNodes(e || this.getSelectedNodes());
-    !i || i.length < 3 || t !== "horizontal" && t !== "vertical" || this.moveToPositions(i, ou(t, i.map((s) => this.layoutBoxOf(s))));
+    !i || i.length < 3 || t !== "horizontal" && t !== "vertical" || this.moveToPositions(i, ru(t, i.map((s) => this.layoutBoxOf(s))));
   }
   layoutBoxOf(t) {
     const e = t.options;
@@ -16084,7 +16085,7 @@ const fn = class fn {
    * Export the slate as a PNG (async).
    */
   async png(t, e) {
-    return tu(this, t, e);
+    return eu(this, t, e);
   }
   /**
    * Synchronous-style PNG export (returns a Promise).
@@ -16102,15 +16103,15 @@ const fn = class fn {
   /** Remove overlapping nodes by pushing them apart */
   /** Optimize Layout: the shared tidy layout over the slate's notes, saved as one move. */
   removeLayoutOverlaps(t) {
-    cu(this, t);
+    hu(this, t);
   }
   /** Apply pre-computed layout moves */
   applyLayout(t, e, i) {
-    hu(this, t, e, i);
+    du(this, t, e, i);
   }
   /** Package current node positions for layout transfer */
   packageLayout() {
-    return du(this);
+    return uu(this);
   }
   // ─── Lock display API ───────────────────────────────────────────
   /** Show lock icons on all locked nodes */
@@ -16143,14 +16144,14 @@ fn.NON_UNDOABLE = /* @__PURE__ */ new Set([
   "onSlateReplaced"
 ]);
 let Ms = fn;
-const Tu = Object.freeze(["#6d28d9", "#0f766e", "#a16207", "#be185d", "#1d4ed8", "#4d7c0f"]), wu = 6e3, xu = 600, _u = 6, Cu = { todo: "○", doing: "◌", done: "✓", skipped: "–", stopped: "■" };
+const Ru = Object.freeze(["#6d28d9", "#0f766e", "#a16207", "#be185d", "#1d4ed8", "#4d7c0f"]), xu = 6e3, _u = 600, Cu = 6, Eu = { todo: "○", doing: "◌", done: "✓", skipped: "–", stopped: "■" };
 function ye(n) {
   if (n == null) return null;
   const t = n instanceof Date ? n.getTime() : typeof n == "number" ? n : Date.parse(n);
   return Number.isFinite(t) ? t : null;
 }
 const Qe = (n) => String(n ?? "").replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, "").replace(/\s+/g, " ").trim();
-function Ru(n) {
+function ku(n) {
   const t = n.plan?.steps ?? [];
   if (t.length) {
     const i = t.findIndex((r) => r.status === "doing"), s = t.findIndex((r) => r.status === "stopped");
@@ -16161,10 +16162,10 @@ function Ru(n) {
   }
   return Qe(n.message ?? "") || null;
 }
-function ku(n) {
-  return (n.plan?.steps ?? []).map((t) => Cu[t.status] + " " + (t.status === "stopped" ? "Stopped: " : "") + Qe(t.text));
+function Nu(n) {
+  return (n.plan?.steps ?? []).map((t) => Eu[t.status] + " " + (t.status === "stopped" ? "Stopped: " : "") + Qe(t.text));
 }
-function Nu(n, t, { holdMs: e = wu, fadeMs: i = xu, max: s = _u } = {}) {
+function Pu(n, t, { holdMs: e = xu, fadeMs: i = _u, max: s = Cu } = {}) {
   const o = [];
   for (const r of n) {
     if (!r || typeof r.agentKey != "string") continue;
@@ -16180,17 +16181,17 @@ function Nu(n, t, { holdMs: e = wu, fadeMs: i = xu, max: s = _u } = {}) {
   return o.sort((r, a) => (ye(a.record.updatedAt) ?? 0) - (ye(r.record.updatedAt) ?? 0)), o.slice(0, s);
 }
 export {
-  Tu as A,
+  Ru as A,
   Ri as S,
-  Su as a,
-  Au as b,
+  Au as a,
+  Mu as b,
   Ni as c,
   tr as d,
   Ms as e,
-  Ru as f,
+  ku as f,
   Uh as g,
-  ku as h,
-  Nu as i,
+  Nu as h,
+  Pu as i,
   rn as n,
   Wo as p,
   hs as r,

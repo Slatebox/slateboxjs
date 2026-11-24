@@ -1,5 +1,5 @@
 import { p as f, M as r, s as v } from "./canvas-media-D5MZ8APN.mjs";
-import { g as m } from "./canvas-canvas-0lJsJ20e.mjs";
+import { g as m } from "./canvas-canvas-BbkoZ6zT.mjs";
 const g = ["text/uri-list", "text/plain"], l = /* @__PURE__ */ new Set();
 let i = null;
 function p(o) {

@@ -108,7 +108,7 @@ function kn(e, o = {}) {
   }) : () => {
   }, yt = (d) => typeof i.withPolicyAuthority == "function" ? i.withPolicyAuthority(d) : d();
   function ft() {
-    return r && r.node?.isConnected !== !1 && r.node?.parentNode || (r = i.canvas.group(), r.attr({ "data-agent-suggestions": "" })), r;
+    return r && r.node?.isConnected !== !1 && r.node?.parentNode || (r = i.canvas.group(), r.attr({ "data-agent-suggestions": "", "data-export-never": "" })), r;
   }
   function Nt() {
     try {
@@ -339,7 +339,7 @@ function bn(e, o, i, y, f) {
 function In(e, o = {}) {
   const i = o.now ?? (() => Date.now()), y = o.reducedMotion ?? pn, f = o.holdMs ?? sn, h = o.fadeMs ?? rn, r = o.maxAgents ?? an, x = /* @__PURE__ */ new Map(), E = /* @__PURE__ */ new Set();
   let O = [], N = null, W = null, yt = null, ft = !1, Nt = 0;
-  const st = () => (N && N.node?.isConnected !== !1 && N.node?.parentNode || (N = e.canvas.group(), N.attr({ "data-agent-presence": "", "pointer-events": "none" })), N);
+  const st = () => (N && N.node?.isConnected !== !1 && N.node?.parentNode || (N = e.canvas.group(), N.attr({ "data-agent-presence": "", "data-export-never": "", "pointer-events": "none" })), N);
   function dt() {
     try {
       const t = e.canvas.viewbox(), n = e.canvas.node?.getBoundingClientRect?.();
