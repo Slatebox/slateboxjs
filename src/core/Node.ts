@@ -37,6 +37,7 @@ import { normalizeLegacyTextOffset, v2NodeToV1 } from "./compat";
 import { whiteOrBlack, contrastRatio } from "../utils";
 import { prefersReducedMotion } from "./DragPolicy";
 import { DEFAULT_NOTE_STYLE } from "./NoteDefaults";
+import { wrapWords } from "./wrapText";
 import { anchorForDrop, normalizedOn } from "./LineEnds";
 import type {
   DragCancelReason,
@@ -1236,6 +1237,7 @@ export class Node {
   }
 
   private wrapTextToWidth(text: string): string {
+    (this as any)._textFitScale = 1;
     if (!text) return text;
     const maxWidth = Math.max(24, this.textArea().w - 14);
     const fontSize = this.options.fontSize || 14;
@@ -1252,45 +1254,12 @@ export class Node {
     }
     const measure = (s: string) =>
       ctx ? ctx.measureText(s).width : s.length * fontSize * 0.55;
-    const out: string[] = [];
-    for (const para of String(text).split("\n")) {
-      const words = para.split(/\s+/).filter(Boolean);
-      if (!words.length) {
-        out.push("");
-        continue;
-      }
-      let line = "";
-      for (const word of words) {
-        // A single word wider than the line (e.g. a long URL) → hard-break it into
-        // character chunks so it can't overflow the node.
-        if (measure(word) > maxWidth) {
-          if (line) {
-            out.push(line);
-            line = "";
-          }
-          let chunk = "";
-          for (const ch of word) {
-            if (chunk && measure(chunk + ch) > maxWidth) {
-              out.push(chunk);
-              chunk = ch;
-            } else {
-              chunk += ch;
-            }
-          }
-          line = chunk;
-          continue;
-        }
-        const test = line ? `${line} ${word}` : word;
-        if (line && measure(test) > maxWidth) {
-          out.push(line);
-          line = word;
-        } else {
-          line = test;
-        }
-      }
-      if (line) out.push(line);
-    }
-    return out.join("\n");
+    // Words wrap between words; a word too wide for the line stays whole and the text shrinks to
+    // fit it (fitTextToNode), so "Categories" is never drawn as "Categor / ies". Only a URL breaks
+    // after its slashes and dots, and only an absurdly long code is cut into letters (wrapText.ts).
+    const wrapped = wrapWords(text, maxWidth, measure);
+    (this as any)._textFitScale = wrapped.scale;
+    return wrapped.text;
   }
 
   /**
@@ -1311,7 +1280,9 @@ export class Node {
       return;
     }
     if (!textHeight) return;
-    const needed = Math.ceil(textHeight) + 14; // vertical padding
+    // Text that will shrink to fit a long word (wrapTextToWidth) needs only its shrunk height.
+    const fitScale = Math.min(1, Math.max(0.3, Number((this as any)._textFitScale) || 1));
+    const needed = Math.ceil(textHeight * fitScale) + 14; // vertical padding
     if (needed > (this.options.height || 0) + 1) {
       this.setSize(this.options.width || 100, needed);
     }

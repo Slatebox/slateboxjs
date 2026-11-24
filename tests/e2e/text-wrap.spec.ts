@@ -156,4 +156,42 @@ test.describe("node text wrapping (§node)", () => {
     });
     expect(lines).toBeLessThanOrEqual(1);
   });
+  test("a long word in a big font stays whole and the text shrinks to fit it (autofit, no 'Categor / y 1')", async ({ page }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    const res = await page.evaluate(async () => {
+      const sb = (window as any).Slatebox;
+      const div = document.createElement("div");
+      div.id = "slateCanvas";
+      div.style.cssText = "width:900px;height:700px;position:fixed;top:0;left:0;z-index:1000;background:#fff";
+      document.body.appendChild(div);
+      const s = await new sb.slate({ container: "slateCanvas", allowCollaboration: false }, {}).init();
+      const out: any[] = [];
+      const texts = ["Internationalization", "Categories 1", "Right-to-left layouts"];
+      for (const [i, text] of texts.entries()) {
+        const N = s.nodes.add(new sb.node({ id: `W${i}`, xPos: 40 + i * 260, yPos: 100, width: 160, height: 68, fontSize: 44, text: "x" }));
+        await new Promise((r) => setTimeout(r, 200));
+        N.v2.setText(text);
+        await new Promise((r) => setTimeout(r, 200));
+        const te = N.v2.textElement.node;
+        const lines = [...te.querySelectorAll("tspan")].map((t: any) => t.textContent);
+        const box = te.getBoundingClientRect();
+        const shape = N.v2.svgGroup.node.getBoundingClientRect();
+        out.push({
+          text,
+          lines,
+          inside: box.left >= shape.left - 1 && box.right <= shape.right + 1 && box.top >= shape.top - 1 && box.bottom <= shape.bottom + 1,
+          height: N.v2.options.height,
+        });
+      }
+      return out;
+    });
+    for (const r of res) {
+      // Every word of the text is on one line, whole.
+      for (const word of r.text.split(" ")) expect(r.lines.some((l: string) => l.split(" ").includes(word))).toBe(true);
+      expect(r.inside).toBe(true);
+      // The note grew only as tall as the shrunk text needs.
+      expect(r.height).toBeLessThan(200);
+    }
+  });
 });
