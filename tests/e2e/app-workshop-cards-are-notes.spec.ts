@@ -491,7 +491,7 @@ test('typed requests are done with no AI and no plan offered: a card becomes a n
       await expect(chat.getByRole('log')).toContainText(reply)
       await expect(chat.getByRole('link', { name: 'See Pro and Team plans' })).toHaveCount(0)
       await chat.getByRole('button', { name: 'Keep changes', exact: true }).click()
-      await expect(chat.getByRole('log')).toContainText('Saved to the workshop.')
+      await expect(chat.getByRole('log')).toContainText('Saved to the board.')
     }
     await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.filter((c: any) => c.laneId === 'later').length).toBe(3)
     expect((await storedWorkshop(page, owner.key)).cards[0].look.backgroundColor).toMatch(/^#/)

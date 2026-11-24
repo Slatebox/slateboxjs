@@ -56,7 +56,7 @@ test('the budget is changed by saying so: starters fill the message, a preview i
     await expect(chat.getByRole('button', { name: 'Discard preview', exact: true })).toBeVisible()
     await chat.getByRole('button', { name: 'Keep changes', exact: true }).click()
     await expect.poll(async () => (await lanesOf(page, owner.key))['fund-2']).toBe('calls')
-    await expect(chat.getByRole('log')).toContainText('Saved to the workshop.')
+    await expect(chat.getByRole('log')).toContainText('Saved to the board.')
 
     // Said another way, with the lane's short name and a full stop.
     await messageBox(page).fill('Please put the second $200 in the newsletter.')

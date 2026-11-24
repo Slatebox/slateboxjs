@@ -219,8 +219,9 @@ test('a proposal left waiting with the conversation closed says so on the canvas
     const owner = await openRuled(page)
     id = owner.id
     await previewWorkshopMessage(page, 'Move Alpha to Later')
-    // With the conversation open the strip names the preview.
-    await expect(workshopStatus(page).getByRole('status')).toContainText('Preview: a proposed change, not saved yet.')
+    // With the conversation open its panel names the preview, and the strip adds no second notice.
+    await expect(page.getByText('Proposed change · shown on the canvas')).toBeVisible()
+    await expect(workshopStatus(page).getByText(/Preview: a proposed change/)).toHaveCount(0)
     await expect(workshopStatus(page).getByRole('button', { name: 'Review proposal', exact: true })).toHaveCount(0)
     await closeConversation(page)
     // Closed: the strip says why nothing moves, and has the one button that leads back to Keep and Discard.
