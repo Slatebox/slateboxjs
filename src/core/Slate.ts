@@ -21,7 +21,9 @@ import { exportSVG, exportPNG, type ExportOptions } from "./Export";
 import { Collab, CollabUser, type NoteTrade, type NoteTrades } from "./Collab";
 import type { SlatePackage } from "./SlatePackage";
 import { v2NodeToV1 } from "./compat";
-import { AngleReadout, ROTATE_CURSOR, clientPoint, createRotateKnob, layoutRotateKnob, normalizeAngle, relayoutRotateKnobs, snapAngle } from "./RotateKnob";
+import { AngleReadout, KNOB_HIT, KNOB_OFFSET, KNOB_SIZE, ROTATE_CURSOR, clientPoint, createRotateKnob, layoutRotateKnob, normalizeAngle, relayoutRotateKnobs, snapAngle } from "./RotateKnob";
+/** How far right of a frame the rotate knob can reach, in screen px. */
+const KNOB_REACH = KNOB_OFFSET + KNOB_HIT / 2 + 4;
 import { guid } from "../utils";
 import { applyTheme, type ThemeDefinition } from "./Theme";
 import {
@@ -2825,7 +2827,8 @@ export class Slate {
       if (!el || !(el as any).isConnected) return;
       const r = el.getBoundingClientRect();
       if (!(r.width > 0 && r.height > 0)) return;
-      if (r.right < rect.left - 4 || r.left > rect.right + 4) return;
+      // The rotate knob sits just outside the top-right corner: it counts too.
+      if (r.right < rect.left - 4 || r.left > rect.right + KNOB_REACH) return;
       if (r.top < rect.top - 120 * Math.max(1, zoom) || r.top > rect.bottom) return;
       top = Math.min(top, r.top);
     };
@@ -2843,7 +2846,8 @@ export class Slate {
     }
     if (Number.isFinite(top) && top < rect.top) return Math.ceil(rect.top - top);
     // Not drawn (yet): the top dot sits 35 world units above the note, 8px tall.
-    return nodes.length === 1 ? Math.ceil(35 * zoom + 9) : Math.ceil(28 * zoom + 8);
+    // The group's knob is screen-sized: its top is a fixed distance above the frame.
+    return nodes.length === 1 ? Math.ceil(35 * zoom + 9) : KNOB_OFFSET + KNOB_SIZE / 2 + 4;
   }
 
   /** Deselect a single node. */

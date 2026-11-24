@@ -401,3 +401,24 @@ test("zooming with a selection re-sizes the knob (one note and a group)", async 
   await page.evaluate(() => (window as any).knobSlate.zoom(2));
   await expect.poll(() => size("g.slatebox-group-rotate")).toBe(28);
 });
+
+for (const zoom of [0.5, 1]) {
+  test(`a host bar over a multi-note selection clears its rotate knob (${zoom * 100}% zoom)`, async ({ page }) => {
+    await mountPair(page);
+    await page.evaluate((z) => {
+      const s = (window as any).knobSlate;
+      s.zoom(z);
+      s.selectNodes([]);
+      s.selectNodes([s.nodes.one("n"), s.nodes.one("m")]);
+    }, zoom);
+    await page.waitForTimeout(250);
+    const r = await page.evaluate(() => {
+      const s = (window as any).knobSlate;
+      const f = s.getSelectionFrame();
+      const knob = document.querySelector("g.slatebox-group-rotate circle")!.getBoundingClientRect();
+      return { barBottom: f.rect.top - f.topClearance, knobTop: knob.top };
+    });
+    expect(r.barBottom).toBeLessThanOrEqual(r.knobTop + 0.5);
+    expect(r.barBottom).toBeGreaterThan(r.knobTop - 12);
+  });
+}
