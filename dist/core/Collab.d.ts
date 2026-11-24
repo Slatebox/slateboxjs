@@ -77,6 +77,14 @@ export interface NoteTrades {
 }
 import type { Slate } from "./Slate";
 import type { SlatePackage } from "./SlatePackage";
+/**
+ * A WebSocket class for y-websocket that hands Yjs only binary frames. The relay
+ * sends one text frame ("Unauthenticated") when it refuses a connection; y-websocket
+ * reads every frame as a Yjs message, so a text frame throws "Unexpected end of
+ * array" inside its message handler. Text goes to `onText` instead. Null where the
+ * environment has no WebSocket (the provider's default is then used, as before).
+ */
+export declare function relayTextGuard(onText: (text: string) => void): any;
 export declare class Collab {
     private slate;
     private options;
@@ -138,6 +146,16 @@ export declare class Collab {
     /** Connection/user payload returned by the host's onInitCollaboration */
     userBaseData?: Record<string, any>;
     constructor(slate: Slate, options?: CollabOptions);
+    /**
+     * The relay answered with words instead of a Yjs message. It does so only when it
+     * refuses the connection ("Unauthenticated": the room's sign-in was missing, wrong
+     * or too old), and it then never syncs this socket. Say so once, stop this provider
+     * from waiting on (or reconnecting to) a socket that will never sync, and report
+     * the status, instead of the collaboration library throwing "Unexpected end of
+     * array" for every such frame.
+     */
+    private relayRefused;
+    private _relayRefusedSaid;
     /**
      * Initialize collaboration.
      * Requires yjs and y-websocket to be installed.

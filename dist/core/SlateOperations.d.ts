@@ -9,9 +9,16 @@
 import { type ContractOptions, type SlateOperation, type SlateOperationPlan, type SlateOperationReport, type StoredSlate } from "../operations";
 /** Collaboration packages that carry a materialized operation from `before` to `after`. */
 export declare function packagesForOperation(operation: SlateOperation, before: StoredSlate, after: StoredSlate): any[];
-export declare function applySlateOperations(slate: any, plan: SlateOperationPlan, { userMessage, replay, send, ...contract }?: {
+export declare function applySlateOperations(slate: any, plan: SlateOperationPlan, { userMessage, replay, send, as, ...contract }?: {
     userMessage?: string;
     replay?: boolean;
+    /**
+     * Whose step the plan is in the undo history of the person at this canvas. "others": a run
+     * someone else saved, taken into their history so that no undo of theirs takes it away (the
+     * default when `send` is false). "own": a change of this person's own that the server already
+     * holds (a Keep, an import), one undo step. Unset with `send`: recorded as this person's edit.
+     */
+    as?: "own" | "others";
     /**
      * false: draw the plan on this canvas only. Nothing goes to the room or to the host's save
      * path (emitSlateChange): for a screen that watches a run someone saved, such as a visitor

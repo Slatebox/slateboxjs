@@ -4,7 +4,7 @@
  * Provides keyboard shortcuts for common actions:
  * - Delete/Backspace: remove selected nodes
  * - Ctrl+Z / Cmd+Z: undo
- * - Ctrl+Y / Cmd+Shift+Z: redo
+ * - Ctrl+Y / Ctrl+Shift+Z / Cmd+Shift+Z: redo
  * - Ctrl+A / Cmd+A: select all
  * - Ctrl+C / Ctrl+V: copy / paste selected nodes
  * - Ctrl+D: duplicate selected nodes in place (offset)
@@ -46,6 +46,8 @@ export declare class Keyboard {
     private undo;
     private redo;
     private selectAll;
+    /** Stop every video playing on the slate; true when one was. */
+    private stopPlayingMedia;
     private deselect;
     /**
      * A serializable snapshot of a node's paintable options — enough to recreate

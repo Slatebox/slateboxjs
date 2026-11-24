@@ -52,6 +52,8 @@ export declare class Presentation {
     start(duration?: number): void;
     /** Stop presentation mode */
     stop(): void;
+    /** Stop every video playing on the slate (media notes play only while their step shows). */
+    private stopMedia;
     /** Go to next step */
     next(duration?: number): boolean;
     /** Go to previous step */

@@ -5,12 +5,13 @@ import { Invoker } from "./Invoker";
 import { PanZoom, PanZoomOptions } from "./PanZoom";
 import type { BirdsEye, BirdsEyeOptions } from "./BirdsEye";
 import { type SlateJSON } from "./Serialization";
-import { UndoRedo } from "./UndoRedo";
+import type { UndoRedo, HostStep, UndoRedoListener, UndoRedoState } from "./UndoRedo";
 import type { InlineDraft } from "./Editor";
 import { MultiSelection } from "./MultiSelection";
 import { Grid } from "./Grid";
-import { Keyboard } from "./Keyboard";
-import { ContextMenu } from "./ContextMenu";
+import type { Keyboard } from "./Keyboard";
+import type { MediaInput, MediaRequest } from "./MediaInput";
+import type { ContextMenu } from "./ContextMenu";
 import { type ExportOptions } from "./Export";
 import { Collab, CollabUser, type NoteTrade, type NoteTrades } from "./Collab";
 import type { SlatePackage } from "./SlatePackage";
@@ -33,6 +34,12 @@ export interface SlateEvents {
      */
     onInitCollaboration?: (clientID: string) => void | Record<string, any> | Promise<void | Record<string, any>>;
     onTextPaneRequested?: (node: Node, cb: Function) => void;
+    /**
+     * A video address was pasted or dropped on the canvas (MediaInput). A host that
+     * stores posters makes the media note itself; with no handler the slate makes
+     * it, with no poster.
+     */
+    onMediaRequested?: (request: MediaRequest) => void;
     onLineMenuRequested?: (node: Node, association: Association, cb: Function) => void;
     onTakeSnapshot?: (opts?: Record<string, any>) => void;
     onConfirmRequested?: (title: string, msg: string, cb: Function) => void;
@@ -102,6 +109,12 @@ export interface SlateOptions {
      * draws nothing: the host draws its own bar from `events.onSelectionFrame`.
      */
     contextToolbar?: "engine" | "host";
+    /**
+     * false on a still picture of a slate (a slate's card, a gallery tile, a draft,
+     * a presenter's overview): video notes show their poster, play button and
+     * caption, and never play there. Videos play everywhere else (the default).
+     */
+    mediaPlayback?: boolean;
     id?: string;
     name?: string;
     description?: string;
@@ -205,9 +218,13 @@ export declare class Slate {
      */
     birdsEye: BirdsEye;
     undoRedo: UndoRedo;
+    /** Listeners given to onUndoRedo before the history arrived (the canvas entry loads it as the slate starts). */
+    private _undoListenersWaiting;
     multiSelection: MultiSelection;
     grid: Grid;
     keyboard: Keyboard;
+    /** A video address pasted or dropped on the canvas becomes a media note. */
+    mediaInput: MediaInput;
     contextMenu: ContextMenu;
     collab: Collab;
     zoomSlider: ZoomSlider;
@@ -244,6 +261,10 @@ export declare class Slate {
      */
     private _lastPointerDown;
     private _windowPointerDownHandler;
+    private _othersChange;
+    /** The pointers pressed on this canvas whose gesture is one undo step (see setupUndoGestures). */
+    private _undoPointers;
+    private _undoGestureHandlers;
     private _destroyed;
     /** >0 while packages from the room or a document load are being applied (not the person's own edits). */
     private _applyingRemote;
@@ -390,6 +411,48 @@ export declare class Slate {
     whenHeldSettled(): Promise<void>;
     /** Record a debounced undo checkpoint for a document-mutating package. */
     recordUndoFor(type: string): void;
+    /**
+     * A press on this canvas (a drag, a resize, a rotation, a line drawn, a marquee) is one
+     * undo step, whatever it changes and however many packages it sends: the step is
+     * recorded when the last pointer pressed on the canvas is let go.
+     */
+    private setupUndoGestures;
+    /** Undo this person's last step on this slate. False when there was nothing to undo. */
+    undo(): boolean;
+    /** Redo the step this person last undid. False when there was nothing to redo. */
+    redo(): boolean;
+    /** Whether this person has a step to undo. */
+    canUndo(): boolean;
+    /** Whether this person has an undone step to redo. */
+    canRedo(): boolean;
+    /** Whether there is something to undo and to redo, with the steps' names when their hosts gave them. */
+    undoRedoState(): UndoRedoState;
+    /**
+     * Hear whenever there comes to be something, or nothing, to undo or redo, and what each
+     * undo or redo did (for a host's Undo and Redo controls). Returns a function that stops it.
+     */
+    onUndoRedo(listener: UndoRedoListener): () => void;
+    /**
+     * Record a step the host made in its own state (a board's cards on its server) as the next
+     * step of this person's undo history, undone and redone by the host (see HostStep).
+     */
+    recordHostStep(step: HostStep): void;
+    /**
+     * Draw a change someone else made (an agent's saved run, another page's import) on this
+     * canvas: it is not a step of this person's own, and their undo history takes it in so
+     * that no undo of theirs takes it away (see UndoRedo.absorbRemote). `change` may return
+     * a promise: the history takes it in once it has settled.
+     */
+    othersChange<T>(change: () => T | Promise<T>): Promise<T>;
+    /**
+     * Draw a change of this person's own that their server already holds (a Keep in Ask
+     * Slatebox, an import into this slate) as one step of their undo history: everything it
+     * draws is recorded together once it has settled. Changes drawn one after another this
+     * way, with no pause between them, are one step.
+     */
+    ownStep<T>(change: () => T | Promise<T>): Promise<T>;
+    /** True while {@link othersChange} draws someone else's change: nothing it sends is this person's step. */
+    drawingOthersChange(): boolean;
     /** Broadcast types that change the viewport/presence, not document state. */
     private static readonly NON_UNDOABLE;
     /** Queue onSlateChanged packages until flushEmits() (v1 collab-init timing). */

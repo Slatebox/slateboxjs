@@ -80,6 +80,16 @@ export interface SlateOperation {
         y: number;
     };
     style?: Record<string, any>;
+    /** add_nodes: a media note, a video from an approved host (operations/media.ts readMediaValue). */
+    media?: {
+        url: string;
+        title?: string;
+        author?: string;
+        start?: number;
+        poster?: string;
+        posterWidth?: number;
+        posterHeight?: number;
+    };
     target?: NodeSelector;
     from?: NodeSelector;
     to?: NodeSelector & {

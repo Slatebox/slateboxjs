@@ -26,6 +26,16 @@ export interface ExportOptions {
  */
 export declare function exportSVG(slate: any, opts?: ExportOptions, callback?: (svg: string) => void): string;
 /**
+ * A picture drawn from an SVG held in an <img> loads nothing from outside it, so
+ * every note's picture (a photo, a video note's poster) is written into the SVG
+ * as a data address first. A picture that cannot be read (another site that does
+ * not allow it, too large, too slow) is left as it was: the note is still drawn,
+ * without that picture.
+ */
+/** True when the SVG draws a picture from an address (not already a data address). */
+export declare function hasOutsidePictures(svgString: string): boolean;
+export declare function inlinePictures(svgString: string, fetcher?: typeof fetch | undefined): Promise<string>;
+/**
  * Export the slate canvas as PNG.
  *
  * @returns Promise that resolves with base64 string or Blob

@@ -1,6 +1,6 @@
 import { type StoredNode } from "./stored";
 /** Keys every note read carries besides the writable ones: what a person sees but cannot yet set by plan. */
-export declare const NOTE_READ_KEYS: readonly ["id", ...string[], "image"];
+export declare const NOTE_READ_KEYS: readonly ["id", ...string[], "image", "media"];
 export declare const READ_LIMITS: Readonly<{
     notes: 100;
     maxNotes: 500;

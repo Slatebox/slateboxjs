@@ -1,5 +1,6 @@
-import { AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, agentChecklist, agentStepText, visibleAgents, type AgentPresenceRecord, type AgentStepStatus } from './agentPresenceText';
-export { AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, agentChecklist, agentStepText, visibleAgents, type AgentPresenceRecord, type AgentStepStatus };
+import { AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, AGENT_SAY_MS, agentChecklist, agentName, agentOrigin, agentSaying, agentStepText, safeIconUrl, visibleAgents, type AgentPresenceRecord, type AgentStepStatus } from './agentPresenceText';
+export { AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, AGENT_SAY_MS, agentChecklist, agentName, agentOrigin, agentSaying, agentStepText, safeIconUrl, visibleAgents, type AgentPresenceRecord, type AgentStepStatus, };
+export { createAgentSuggestions, ghostIdOf, GHOST_PREFIX, pendingItems, type AgentSuggestions, type AgentSuggestionsOptions, type SuggestionAction, type SuggestionItem, type SuggestionRef, } from './AgentSuggestions';
 export interface AgentPresenceOptions {
     now?: () => number;
     /** Jump instead of glide (defaults to the person's reduced-motion setting). */
@@ -21,6 +22,14 @@ export interface AgentPresenceOptions {
         bottom?: number;
         left?: number;
     } | null | undefined;
+    /**
+     * An agent working out of view gets a marker at the edge of the view ("Research is working →"); pressing it
+     * brings the view to the agent. By default the canvas's own camera pans there, keeping the zoom.
+     */
+    goTo?: (point: {
+        x: number;
+        y: number;
+    }, agentKey: string) => void;
 }
 export interface AgentPresence {
     set(records: AgentPresenceRecord[]): void;
@@ -40,11 +49,14 @@ export interface AgentPresence {
             right: boolean;
             down: boolean;
         };
+        offscreen: boolean;
     }[];
     destroy(): void;
 }
 export declare const AGENT_GLIDE_MS = 400;
-export declare const AGENT_VISIT_MS = 250;
+/** One beat of a choreographed run: the pointer's leg to each spot when it visits several in turn. */
+export declare const AGENT_BEAT_MS = 450;
+export declare const AGENT_VISIT_MS = 450;
 export declare const AGENT_MAX_VISITS = 5;
 interface Box {
     x: number;

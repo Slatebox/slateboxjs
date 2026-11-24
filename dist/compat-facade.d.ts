@@ -230,6 +230,28 @@ declare class slate {
     get undoRedo(): any;
     get birdsEye(): any;
     /**
+     * Undo and redo of this person's own steps, on the engine's history (Slate.undo and the
+     * rest): the same methods on this facade as on the engine's slate, so a host can use either.
+     */
+    undo(): boolean;
+    redo(): boolean;
+    canUndo(): boolean;
+    canRedo(): boolean;
+    undoRedoState(): {
+        canUndo: boolean;
+        canRedo: boolean;
+        undoLabel: string | null;
+        redoLabel: string | null;
+    };
+    onUndoRedo(listener: (state: any, outcome?: any) => void): () => void;
+    recordHostStep(step: {
+        label?: string;
+        undo(): any;
+        redo(): any;
+    }): void;
+    othersChange<T>(change: () => T | Promise<T>): Promise<T>;
+    ownStep<T>(change: () => T | Promise<T>): Promise<T>;
+    /**
      * Grouping/locking controls used by the canonical app. These deliberately
      * live on the facade so hosts never need to discover the active engine via
      * the internal `window.__slateboxInstances` lifecycle registry.

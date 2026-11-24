@@ -4,6 +4,7 @@ import type { Slate } from "./Slate";
 import { Connector, ConnectorOptions } from "./Connector";
 import { Relationships } from "./Relationships";
 import { Images } from "./Images";
+import { MediaNote } from "./MediaNote";
 import { Editor } from "./Editor";
 import { Links } from "./Links";
 import { Filters } from "./Filters";
@@ -108,6 +109,8 @@ export interface NodeOptions {
     imageOrigHeight?: number;
     /** How the picture fills the shape: 'contain' (default, letterboxed) or 'cover' (cropped to fill). */
     imageFit?: "cover" | "contain";
+    /** A video note: the video (operations/media.ts MediaValue); its poster is `image`. */
+    media?: import("../operations/media").MediaValue;
     lineColor?: string;
     lineOpacity?: number;
     lineEffect?: string;
@@ -164,6 +167,8 @@ export declare class Node {
     connector: Connector;
     relationships: Relationships;
     images: Images;
+    /** A video note (options.media): poster, play button, and the player when someone presses play. */
+    media: MediaNote;
     editor: Editor;
     links: Links;
     filters: Filters;
