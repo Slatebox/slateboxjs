@@ -277,7 +277,9 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     // pointerdown here; the mousedown a browser sends after a tap is not one (it comes with that click).
     let pressed = false
     group.on('pointerdown', (event: Event) => { pressed = true; event.stopPropagation?.() })
-    group.on('mousedown', (event: Event) => event.stopPropagation?.())
+    // That mousedown would also take the focus to this button (Discard, under the finger that only meant to show it):
+    // the focus stays where the tap put it (the ghost). A press here, by mouse or a later tap, focuses it as usual.
+    group.on('mousedown', (event: Event) => { event.stopPropagation?.(); if (!pressed) event.preventDefault?.() })
     group.on('click', (event: MouseEvent) => {
       const ok = pressed || !event.detail
       pressed = false
@@ -468,7 +470,11 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
               // has since left without a word (its ghost was redrawn under it), they are not this ghost's to hide.
               node.addEventListener('pointerup', (event: PointerEvent) => {
                 if (event.pointerType !== 'touch' || (event.target as Element)?.closest?.('[data-suggestion-button]')) return
-                reveal(hovered === item.id && shownBy !== 'pointer' ? null : item.id, 'tap')
+                const showing = !(hovered === item.id && shownBy !== 'pointer')
+                reveal(showing ? item.id : null, 'tap')
+                // The tap's focus goes to the ghost it tapped (its own Keep and Discard now show inside it), never to a
+                // button that appeared under the finger: Discard is pressed only by a tap of its own.
+                if (showing) (node.querySelector('[data-suggestion-hit]') as SVGElement | null)?.focus?.({ preventScroll: true })
               })
               node.addEventListener('focusin', () => reveal(item.id, 'focus'))
               node.addEventListener('focusout', (event: FocusEvent) => { if (!redrawing && hovered === item.id && !node.contains(event.relatedTarget as Node | null)) reveal(null) })

@@ -39,6 +39,8 @@ export interface AgentPresenceRecord {
   invitedBy?: string | null
   /** The agent across its runs on this slate (stable per agent and slate, never a token id). */
   agentId?: string | null
+  /** Set by the host: what this agent suggested still waits on the slate for someone to keep or discard. */
+  waiting?: boolean | null
 }
 
 /** How long a pointer's bubble shows after the agent says something. */
@@ -102,13 +104,27 @@ export const clip = (text: string, max: number) => (text.length > max ? text.sli
 /** Text as it is drawn: one line of plain characters (the server cleans it; this keeps the canvas safe anyway). */
 export const plainLine = (text: unknown) => String(text ?? '').replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, '').replace(/\s+/g, ' ').trim()
 
-/** The step a tag shows: the plan's current step, or the save's message when there is no plan. */
-export function agentStepText(record: AgentPresenceRecord): string | null {
+/** Whether a record points at suggestions: its targets are ghost notes (ghost-<id>, as the suggestions draw them). */
+export const agentSuggests = (record: Pick<AgentPresenceRecord, 'targets'>) => (record.targets ?? []).some(id => typeof id === 'string' && id.startsWith('ghost-'))
+
+export const AGENT_SUGGESTING = 'Suggesting…'
+export const AGENT_WAITING = 'Waiting for you'
+
+/**
+ * The step a tag shows: what the agent is doing now. "Suggesting…" while its suggestion is still landing (`landing`: the
+ * pointer is on its way to the ghosts, or they are not drawn yet) or while the live run that filed it goes on;
+ * "Waiting for you" once what it suggested waits for Keep or Discard (`waiting`, set by the host); never "Done" before
+ * either. Otherwise the plan's current step, or the save's message when there is no plan.
+ */
+export function agentStepText(record: AgentPresenceRecord, { landing = false }: { landing?: boolean } = {}): string | null {
   const steps = record.plan?.steps ?? []
+  const stopped = steps.findIndex(step => step.status === 'stopped')
+  if (stopped >= 0) return 'Stopped: ' + plainLine(steps[stopped].text)
+  if (landing) return AGENT_SUGGESTING
+  if (record.waiting) return AGENT_WAITING
+  if (record.status === 'live' && time(record.endedAt ?? null) === null && agentSuggests(record)) return AGENT_SUGGESTING
   if (steps.length) {
     const doing = steps.findIndex(step => step.status === 'doing')
-    const stopped = steps.findIndex(step => step.status === 'stopped')
-    if (stopped >= 0) return 'Stopped: ' + plainLine(steps[stopped].text)
     if (steps.every(item => item.status === 'done' || item.status === 'skipped')) return 'Done'
     const index = doing >= 0 ? doing : Math.min(Math.max(record.plan!.current ?? 0, 0), steps.length - 1)
     return plainLine(steps[index].text)

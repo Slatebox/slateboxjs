@@ -35,6 +35,40 @@ describe('agent presence: what is shown', () => {
     expect(agentStepText(record({ plan: { steps: [{ text: 'One', status: 'stopped' }], current: 0 } }))).toBe('Stopped: One')
   })
 
+  it('says what an agent that suggests is doing: Suggesting… while it lands, Waiting for you while its group waits, never Done before', () => {
+    const done = { steps: [{ text: 'Ask Exa', status: 'done' as const }, { text: 'Place suggestions', status: 'done' as const }], current: 1 }
+    const ghosts = ['ghost-a', 'ghost-b']
+    // Its run ended as it filed the suggestion: on its way to the ghosts it is suggesting, once there it waits for you.
+    expect(agentStepText(record({ plan: done, targets: ghosts, status: 'done', endedAt: 1000 }), { landing: true })).toBe('Suggesting…')
+    expect(agentStepText(record({ plan: done, targets: ghosts, status: 'done', endedAt: 1000, waiting: true }))).toBe('Waiting for you')
+    expect(agentStepText(record({ plan: done, targets: ghosts, status: 'done', endedAt: 1000, waiting: true }), { landing: true })).toBe('Suggesting…')
+    // A live run that has filed one (its targets are ghosts) is suggesting whatever its plan says.
+    expect(agentStepText(record({ plan: done, targets: ghosts }))).toBe('Suggesting…')
+    // Nothing waits any more (kept or discarded): Done. A stopped step still says so first.
+    expect(agentStepText(record({ plan: done, status: 'done', endedAt: 1000 }))).toBe('Done')
+    expect(agentStepText(record({ plan: { steps: [{ text: 'Ask Exa', status: 'stopped' }], current: 0 }, waiting: true }))).toBe('Stopped: Ask Exa')
+    // A greeting (no ghosts) keeps its own words.
+    expect(agentStepText(record({ message: "Hi, I'm Exa.", point: { x: 10, y: 10 } }))).toBe("Hi, I'm Exa.")
+  })
+
+  it('draws the tag with "Suggesting…" while the pointer glides to its ghosts, then what it does once there', () => {
+    const slate = fakeSlate({ 'ghost-a': { x: 500, y: 300, width: 160, height: 80 } })
+    let frames: FrameRequestCallback[] = []
+    const raf = globalThis.requestAnimationFrame
+    globalThis.requestAnimationFrame = ((fn: FrameRequestCallback) => { frames.push(fn); return frames.length }) as any
+    try {
+      const presence = createAgentPresence(slate, { now, reducedMotion: () => false })
+      const done = { steps: [{ text: 'Place suggestions', status: 'done' as const }], current: 0 }
+      presence.set([record({ plan: done, targets: ['ghost-a'], point: { x: 100, y: 100 }, status: 'done', endedAt: 1000, waiting: true })])
+      expect(presence.shown()[0].step).toBe('Suggesting…')
+      // The glide ends (time passes, frames run): the tag is drawn again with what it does now.
+      clock += 2000
+      for (let i = 0; i < 5 && frames.length; i++) { const run = frames; frames = []; run.forEach(fn => fn(clock)) }
+      expect(presence.shown()[0].step).toBe('Waiting for you')
+      presence.destroy()
+    } finally { globalThis.requestAnimationFrame = raf }
+  })
+
   it('hides a silent run when it expires, holds an ended one, then fades it', () => {
     const live = record()
     expect(visibleAgents([live], 30999)).toHaveLength(1)

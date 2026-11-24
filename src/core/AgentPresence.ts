@@ -19,7 +19,7 @@ function prefersReducedMotion(): boolean {
 }
 
 import {
-  AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, AGENT_SAY_MS, agentChecklist, agentName, agentOrigin, agentSaying, agentStepText, clip, plainLine,
+  AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, AGENT_SAY_MS, agentChecklist, agentName, agentOrigin, agentSaying, agentStepText, agentSuggests, clip, plainLine,
   safeIconUrl, time, visibleAgents, type AgentPresenceRecord, type AgentStepStatus,
 } from './agentPresenceText'
 
@@ -74,6 +74,12 @@ const TAG_DY = 30
 /** The suggestions' labels an agent's tag keeps off (drawn by slateboxjs/suggestions), and every line of words. */
 const LABELS = '[data-suggestion-tag], [data-suggestion-all]'
 const WORDS = 'text, ' + LABELS
+/**
+ * How faint an agent's pointer and tag are while any part of its tag, list or bubble is over a suggestion group's tag or
+ * its Keep all / Discard all (on its way past them, say): the group's words stay readable through it, and the tag lets
+ * clicks through to the buttons under it. Checked on every frame the pointer moves and whenever the canvas changes.
+ */
+export const AGENT_DIM_OPACITY = 0.3
 
 
 interface Drawn {
@@ -180,10 +186,9 @@ export function agentTagPlaced(at: { x: number; y: number }, size: { w: number; 
   return box
 }
 
-/** The tag block an agent draws, in screen pixels: its tag, and its checklist when that shows. */
-function blockSize(record: AgentPresenceRecord, showList: boolean) {
+/** The tag block an agent draws, in screen pixels: its tag (with the step it shows), and its checklist when that shows. */
+function blockSize(record: AgentPresenceRecord, showList: boolean, step: string | null) {
   const label = agentName(record)
-  const step = agentStepText(record)
   const stepLine = step ? clip(step, 40) : ''
   // Bold 12px words take about 7px a letter, the 12px step about 6.8px: the tag is wide enough for both.
   const width = Math.max(96, Math.min(CARD_WIDTH, 16 + Math.max(7 * label.length, 6.8 * stepLine.length)))
@@ -384,7 +389,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   function draw(item: Drawn, scale: number, compact: boolean) {
     const { record } = item
     const color = agentColor(record.colorIndex)
-    const step = agentStepText(record)
+    const step = stepOf(item, record)
     const lines = agentChecklist(record)
     const showList = lines.length > 0 && (item.open || !compact)
     const label = agentName(record)
@@ -413,7 +418,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     const tag = body.group().attr({ 'data-agent-tag': '', 'pointer-events': 'all', cursor: lines.length ? 'pointer' : 'default', role: 'button',
       tabindex: lines.length ? 0 : -1, 'aria-expanded': String(showList), 'aria-label': label + (step ? ': ' + step : '') })
     const stepLine = step ? clip(step, 40) : ''
-    const size = blockSize(record, showList)
+    const size = blockSize(record, showList, step)
     const { width, height } = size
     // The tag and its list go on the side of the pointer that keeps them in view and off the
     // words of the notes it works on (routeTo chose the corner for that), and, with no note to
@@ -494,14 +499,71 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     item.lines = lines
     item.step = step
     item.group.transform({ translateX: item.x, translateY: item.y, scale: 1 / scale, originX: 0, originY: 0 })
-    item.group.attr('opacity', item.opacity)
+    shade(item)
     lastScale = scale
   }
 
   function place(item: Drawn, scale: number) {
     item.group.transform({ translateX: item.x, translateY: item.y, scale: 1 / scale, originX: 0, originY: 0 })
-    item.group.attr('opacity', item.opacity)
+    shade(item)
   }
+
+  // What the tag says: "Suggesting…" while the pointer is still on its way to its ghosts (or they are not drawn yet).
+  function stepOf(item: Drawn | undefined, record: AgentPresenceRecord) {
+    const landing = agentSuggests(record) && (!item || item.path.length > 0 || !item.found)
+    return agentStepText(record, { landing })
+  }
+
+  // The screen boxes of the suggestions' tags and Keep all / Discard all now (none drawn: none).
+  function labelRects(): DOMRect[] {
+    try {
+      const out: DOMRect[] = []
+      for (const el of slate.canvas?.node?.querySelectorAll?.(LABELS) ?? []) {
+        const r = (el as Element).getBoundingClientRect()
+        if (r.width >= 1 && r.height >= 1 && (el as SVGElement).style?.display !== 'none') out.push(r)
+      }
+      return out
+    } catch { return [] }
+  }
+  const crosses = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+  // An agent at full strength, or faint while its words are over a group's label (AGENT_DIM_OPACITY); the attribute and
+  // the tag's pointer events change only when they differ, so this costs nothing when nothing moved.
+  function shade(item: Drawn, labels: DOMRect[] = labelRects()) {
+    let over = false
+    if (labels.length && item.opacity > 0) {
+      for (const part of item.body?.node?.querySelectorAll?.('[data-agent-tag], [data-agent-plan], [data-agent-say]') ?? []) {
+        const r = (part as Element).getBoundingClientRect()
+        if (r.width && labels.some(label => crosses(r, label))) { over = true; break }
+      }
+    }
+    const opacity = String(over ? Math.min(item.opacity, AGENT_DIM_OPACITY) : item.opacity)
+    const node = item.group.node as SVGGElement
+    if (node.getAttribute('opacity') !== opacity) node.setAttribute('opacity', opacity)
+    const tag = item.body?.node?.querySelector?.('[data-agent-tag]') as SVGGElement | null
+    const events = over ? 'none' : 'all'
+    if (tag && tag.getAttribute('pointer-events') !== events) tag.setAttribute('pointer-events', events)
+    if (over) node.setAttribute('data-agent-dimmed', '')
+    else if (node.hasAttribute('data-agent-dimmed')) node.removeAttribute('data-agent-dimmed')
+  }
+  // Every agent shaded again against the labels as they are now: run when anything on the canvas changed (a group drawn,
+  // moved or gone, a pan or zoom), before the page paints.
+  function shadeAll() {
+    if (destroyed || !drawn.size) return
+    const labels = labelRects()
+    for (const item of drawn.values()) shade(item, labels)
+  }
+  let observer: MutationObserver | null = null
+  const watchCanvas = () => {
+    const root = slate.canvas?.node as SVGSVGElement | undefined
+    if (observer || !root || typeof MutationObserver !== 'function') return
+    observer = new MutationObserver((changes) => {
+      // Its own drawing changing is not news (shade() itself writes there).
+      const own = layer?.node as Element | undefined
+      if (changes.some(change => !own || !own.contains(change.target))) shadeAll()
+    })
+    observer.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['transform', 'viewBox', 'x', 'y', 'width', 'height', 'style', 'display', 'visibility'] })
+  }
+  const unwatchCanvas = () => { observer?.disconnect(); observer = null }
 
   // The legs a pointer travels to a save's targets: one glide to a single target, or a short
   // visit to each of several (up to five), in order. Each leg ends inside a corner of its note,
@@ -620,7 +682,8 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     const shown = visibleAgents(records, at, { holdMs, fadeMs, max })
     const keep = new Set(shown.map(item => item.record.agentKey))
     for (const [key, item] of drawn) if (!keep.has(key)) { item.group.remove(); drawn.delete(key) }
-    if (!shown.length) { for (const marker of markers.values()) marker.group.remove(); markers.clear(); schedule(null); return }
+    if (!shown.length) { for (const marker of markers.values()) marker.group.remove(); markers.clear(); unwatchCanvas(); schedule(null); return }
+    watchCanvas()
     const group = ensureLayer()
     group.front?.()
     const scale = zoom()
@@ -629,7 +692,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       let item = drawn.get(record.agentKey)
       const targetsKey = routeKey(record)
       const open = opened.has(record.agentKey)
-      const size = blockSize(record, agentChecklist(record).length > 0 && (open || !compact))
+      const size = blockSize(record, agentChecklist(record).length > 0 && (open || !compact), stepOf(item, record))
       // A tag that grew (a list opened, a longer step) or a new zoom may need another corner.
       // A pan or zoom moves what is on screen: the corner and side are chosen again for the view as it is now.
       const routedFor = [size.w, size.h, scale.toFixed(4), viewKey(), notesKey(), labelsKey()].join(',')
@@ -682,10 +745,10 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     const scale = zoom()
     const shown = visibleAgents(records, at, { holdMs, fadeMs, max })
     const fading = shown.some(item => item.opacity < 1) || drawn.size !== shown.length
-    if (fading || Math.abs(scale - lastScale) > 1e-6) { render(); return }
+    // A pointer that just arrived is drawn again: its tag says what the agent does now ("Waiting for you", not "Suggesting…").
+    if (fading || !moving || Math.abs(scale - lastScale) > 1e-6) { render(); return }
     for (const item of drawn.values()) place(item, scale)
-    if (!moving) drawMarkers(scale)
-    if (moving) schedule('frame')
+    schedule('frame')
   }
 
   function schedule(when: 'frame' | number | null) {
@@ -733,6 +796,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     destroy() {
       destroyed = true
       schedule(null)
+      unwatchCanvas()
       if (watch !== null) clearInterval(watch)
       for (const item of drawn.values()) item.group.remove()
       drawn.clear()

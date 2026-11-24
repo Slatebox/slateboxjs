@@ -278,8 +278,128 @@ test.describe("agent suggestions on a touch screen", () => {
     expect(covers).toBe(true);
     await hit.tap();
     await expect(page.locator('[data-suggestion-controls="add:a"] [data-suggestion-button="discard"]')).toBeVisible();
+    // The tap's focus is on the ghost it tapped, never on the Discard (or Keep) that appeared under the finger.
+    const focused = () => page.evaluate(() => {
+      const el = document.activeElement;
+      return el?.closest("[data-suggestion-button]")?.getAttribute("data-suggestion-button") ?? el?.getAttribute("data-suggestion-hit") ?? el?.tagName ?? null;
+    });
+    await expect.poll(focused).toBe("add:a");
     // The tap's click is done once a second tap's events have come and gone; nothing was kept or discarded.
     await page.locator("#app").tap({ position: { x: 380, y: 20 } });
     expect(await page.evaluate(() => (window as any).calls)).toEqual([]);
+  });
+});
+
+// While an agent works, its own tag never covers a group's tag or its Keep all / Discard all at full strength: measured on
+// every frame (requestAnimationFrame) while the pointer glides across them, at 50, 100 and 200%. Where the tag has to pass
+// over them it is faint (at most 0.35) and lets clicks through. Its words say what it is doing: "Suggesting…" on its way to
+// its ghosts, "Waiting for you" once its group waits, never "Done" while it does.
+test.describe("an agent's tag and a suggestion group's labels", () => {
+  test("never overlap at full strength on any frame, at 50, 100 and 200%; the tag says Suggesting…, then Waiting for you", async ({ page }) => {
+    await page.setViewportSize({ width: 1000, height: 640 });
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    await page.evaluate(async () => {
+      const w = window as any;
+      const div = document.getElementById("app")!;
+      div.style.width = "1000px";
+      div.style.height = "640px";
+      const slate = await new w.Slatebox.slate({ container: "app", id: "labels-frames" }, {}).init();
+      w.slate = slate;
+      slate.v2.nodes.add({ id: "brief", text: "Launch plan", x: 40, y: 40, width: 180, height: 80 });
+      const { createAgentPresence } = await import("/src/core/AgentPresence.ts");
+      const { createAgentSuggestions } = await import("/src/core/AgentSuggestions.ts");
+      const node = (id: string, text: string, x: number, y: number) => ({ options: { id, text, xPos: x, yPos: y, width: 170, height: 90 }, relationships: { associations: [] } });
+      w.ghosts = createAgentSuggestions(slate, { canAct: () => true });
+      w.ghosts.set([{ actionId: "act-1", agentId: "ag-1", label: "Exa", initial: "E", colorIndex: 3, origin: "invited", invitedBy: "Ada", items: [
+        { id: "add:a", kind: "add", state: "pending", nodeId: "a", node: node("a", "Sign up", 300, 260) },
+        { id: "add:b", kind: "add", state: "pending", nodeId: "b", node: node("b", "Activate", 520, 260) },
+        { id: "add:c", kind: "add", state: "pending", nodeId: "c", node: node("c", "Retain", 410, 400) },
+      ] }]);
+      // A real glide (not reduced motion), as on a person's screen.
+      w.pointers = createAgentPresence(slate.v2, { reducedMotion: () => false });
+      w.record = { agentKey: "run-1", agentId: "ag-1", label: "Exa", initial: "E", colorIndex: 3, origin: "invited", invitedBy: "Ada",
+        targets: [], status: "live", updatedAt: Date.now(), expiresAt: Date.now() + 600_000 };
+      // Every frame: the agent's tag against every group label, and the tag's opacity as painted (its own and every parent's).
+      const st = w.frames = { frames: 0, overlapFull: 0, overlapDim: 0, worst: null as any, words: new Set<string>() };
+      const strength = (el: Element) => { let op = 1; for (let n: Element | null = el; n; n = n.parentElement) op *= Number(getComputedStyle(n).opacity); return op };
+      const tick = () => {
+        st.frames++;
+        const tag = document.querySelector("[data-agent-tag]");
+        if (tag) {
+          st.words.add(tag.textContent || "");
+          const a = tag.getBoundingClientRect();
+          const over = [...document.querySelectorAll("[data-suggestion-tag], [data-suggestion-all]")].some((el) => {
+            const b = el.getBoundingClientRect();
+            return b.width > 0 && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+          });
+          if (over) {
+            const op = strength(tag);
+            if (op > 0.35) { st.overlapFull++; st.worst ??= { op, a: [a.x, a.y, a.width, a.height].map(Math.round) } } else st.overlapDim++;
+          }
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    // The record goes to an empty spot in world units; its pointer glides there from where it is.
+    const goTo = (x: number, y: number) => page.evaluate(({ x, y }) => {
+      const w = window as any;
+      w.record = { ...w.record, point: { x, y }, updatedAt: Date.now() };
+      w.pointers.set([w.record]);
+    }, { x, y });
+    const settle = () => page.evaluate(() => new Promise<void>((resolve) => {
+      let last = "", same = 0;
+      const tick = () => {
+        const tag = document.querySelector("[data-agent]");
+        const now = tag ? tag.getAttribute("transform") || "" : "";
+        same = now === last ? same + 1 : 0; last = now;
+        if (same >= 10) return resolve();
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }));
+    let dimmedSomewhere = 0;
+    for (const level of [1, 0.5, 2]) {
+      await page.evaluate((level) => (window as any).slate.v2.zoom(level), level);
+      // The group's tag row in world units, read from the screen: the glide crosses it from left to right and back, the
+      // tag (40px right of and 30px under the pointer) level with it.
+      const row = await page.evaluate(() => {
+        const svg = (window as any).slate.v2.canvas.node as SVGSVGElement;
+        const m = svg.getScreenCTM()!.inverse();
+        const r = document.querySelector("[data-suggestion-tag]")!.getBoundingClientRect();
+        const a = new DOMPoint(r.left, r.top).matrixTransform(m), b = new DOMPoint(r.right, r.bottom).matrixTransform(m);
+        const k = (b.x - a.x) / r.width;
+        return { left: a.x - 260 * k, right: b.x + 200 * k, y: a.y - 36 * k };
+      });
+      await page.evaluate(() => { const st = (window as any).frames; (window as any).before = st.overlapDim; });
+      for (const x of [row.left, row.right, row.left, row.right]) { await goTo(x, row.y); await settle(); }
+      dimmedSomewhere += await page.evaluate(() => (window as any).frames.overlapDim - (window as any).before);
+      const st = await page.evaluate(() => { const s = (window as any).frames; return { frames: s.frames, overlapFull: s.overlapFull, worst: s.worst } });
+      expect(st.overlapFull, `zoom ${level * 100}%: ${JSON.stringify(st)}`).toBe(0);
+    }
+    // The glide did pass over the labels (so the check above saw something): faint every time it did.
+    expect(dimmedSomewhere).toBeGreaterThan(0);
+    // While faint over Keep all, the tag takes no clicks: Keep all under it stays reachable.
+    expect(await page.evaluate(() => [...document.querySelectorAll("[data-agent][data-agent-dimmed] [data-agent-tag]")].every((el) => el.getAttribute("pointer-events") === "none"))).toBe(true);
+
+    // Its words: on its way to its ghosts "Suggesting…"; arrived with its group waiting, "Waiting for you"; never "Done".
+    await page.evaluate(() => (window as any).slate.v2.zoom(1));
+    await page.evaluate(() => {
+      const w = window as any;
+      w.frames.words.clear();
+      const steps = ["Ask Exa", "Read what it found", "Place suggestions"].map((text) => ({ text, status: "done" }));
+      // The run ended (all its steps done) as its suggestion was filed: the pointer still has to get to the ghosts.
+      w.record = { ...w.record, point: { x: 380, y: 250 }, targets: ["ghost-a", "ghost-b", "ghost-c"], plan: { steps, current: 2 }, status: "done",
+        endedAt: Date.now(), updatedAt: Date.now(), expiresAt: Date.now() + 60_000, waiting: true };
+      w.pointers.set([w.record]);
+    });
+    await expect.poll(() => page.evaluate(() => document.querySelector("[data-agent-tag]")?.textContent || "")).toContain("Waiting for you");
+    const words = await page.evaluate(() => [...(window as any).frames.words].join(" | "));
+    expect(words).toContain("Suggesting…");
+    expect(words).not.toContain("Done");
+    // Kept: nothing waits any more, so now it is done.
+    await page.evaluate(() => { const w = window as any; w.record = { ...w.record, waiting: false, targets: [], updatedAt: Date.now() }; w.pointers.set([w.record]); });
+    await expect.poll(() => page.evaluate(() => document.querySelector("[data-agent-tag]")?.textContent || "")).toContain("Done");
   });
 });
