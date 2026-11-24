@@ -28,8 +28,9 @@ describe('library foundation', () => {
   })
 
   it('the entry points exist: the rule controls (tests/unit/rule-controls.test.ts), a layer that draws nothing without a canvas, and the still renderer (tests/unit/still.test.ts)', () => {
-    // Superseded stub: BUILDER filled ruleControls. Without the board's drawn places only its board-wide rail shows.
-    expect(ruleControls(team, null).map(control => control.id)).toEqual(['path:any'])
+    // Superseded stub: BUILDER filled ruleControls. Without the board's drawn places only its board-wide rail shows (its rule
+    // and, since the board's appearance chips, its look).
+    expect(ruleControls(team, null).map(control => control.id)).toEqual(['path:any', 'look:emphasis', 'look:density', 'look:lines'])
     const layer = drawRuleControls(null, 'main', [])
     expect(() => { layer.update([]); layer.remove() }).not.toThrow()
     const still = createStillRenderer({ model: async () => ({}) as any, boards: async () => ({}) as any, nest: async () => null, behaviour: async () => null })

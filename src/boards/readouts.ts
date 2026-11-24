@@ -2,6 +2,7 @@
 // words, and the parts as slate notes. Lazy, with the kits; the rules stay in the model entry.
 import type { NodeJSON } from '../core/Serialization'
 import type { PartPlace, Workshop, WorkshopEdit, WorkshopNoteStyle } from '../workshops/model'
+import { appearanceLook } from '../workshops/model'
 import { dayWords, launchLinkRefusal, lineWord, scheduleLaunch, startHandleCard, withPlanStart } from '../workshops/launchPlan'
 import { dateName, offsetOf } from '../workshops/calendar'
 import { pipelineForecast } from '../workshops/pipeline'
@@ -109,7 +110,9 @@ function fitText(text: string, size: number, width: number, height: number) {
 export function partNotes(parts: PartPlace[], board: Workshop, origin: { x: number; y: number }, style: WorkshopNoteStyle): NodeJSON[] {
   const ink = style.textColor ?? '#18302d', line = style.borderColor ?? '#667872'
   const size = style.fontSize ?? 14
-  return parts.map(part => {
+  return parts.map(drawn => {
+    const look = appearanceLook(board.appearance, drawn.name, drawn)
+    const part = { ...drawn, ...look, height: look.height ?? drawn.height }
     const handle = part.name.startsWith('handle-')
     const text = part.text ?? ''
     return { options: { id: part.name, text, name: board.cards.find(card => 'card-' + card.id === part.name)?.label ?? text,
@@ -117,7 +120,7 @@ export function partNotes(parts: PartPlace[], board: Workshop, origin: { x: numb
       vectorPath: `M 0 0 H ${part.width} V ${part.height} H 0 Z`,
       backgroundColor: handle ? 'transparent' : part.fill ?? style.backgroundColor ?? '#fffdf6', foregroundColor: part.ink ?? ink,
       borderColor: part.line ?? line, borderWidth: handle ? 0 : part.lineWidth ?? 1,
-      ...(style.fontFamily ? { fontFamily: style.fontFamily } : {}),
+      ...(style.fontFamily ? { fontFamily: style.fontFamily } : {}), ...(part.weight && { fontWeight: part.weight }),
       fontSize: fitText(text, part.fontSize ?? size, part.width - 12, part.height - 6) }, relationships: { associations: [] } }
   })
 }

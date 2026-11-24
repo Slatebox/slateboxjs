@@ -12,12 +12,12 @@
 // - a launch or hiring plan: snap (day or week); a launch plan's hard or soft line and what a slip does;
 // - a nested board: a ladder of levels (drag its top rung), how many a card holds (− and +), and on
 //   piles, where a far drop goes and what piles rank by.
-import type { Workshop, WorkshopLane } from './model'
+import { appearancePalette, appearanceQuadrants, type Workshop, type WorkshopLane } from './model'
 import type { WorkshopEdit } from './edits'
 
 export type RuleControlPrimitive =
   | 'capacity' | 'path' | 'bin' | 'gate' | 'deadline' | 'blackout' | 'snap' | 'locked' | 'cascade'
-  | 'depth' | 'children' | 'nests' | 'emptyDrop' | 'rank' | 'quadrant' | 'addLane'
+  | 'depth' | 'children' | 'nests' | 'emptyDrop' | 'rank' | 'quadrant' | 'addLane' | 'look'
 
 /** A box in board (chrome) coordinates; at least 44 by 44 at a finger's chrome scale. */
 export interface RuleControlBox { x: number; y: number; width: number; height: number }
@@ -34,6 +34,8 @@ export interface RuleControlBox { x: number; y: number; width: number; height: n
 export interface RuleControlLook {
   shape: 'line' | 'chip' | 'badge' | 'step' | 'ghost' | 'ladder'
   on?: boolean
+  /** A badge filled with this color (a column's color from the palette). */
+  swatch?: string
   label?: string
   icon?: 'bin' | 'gate' | 'oneway' | 'twoway' | 'step' | 'minus' | 'plus' | 'flag' | 'push' | 'snap' | 'drop' | 'rank' | 'depth' | 'holds'
   warn?: boolean
@@ -360,8 +362,31 @@ export function ruleControls(board: Workshop, layout: RuleControlsLayout | null 
         gestures: { tap: !rank ? [{ kind: 'add_rule', rule: { kind: 'rank', by: 'count' } }] : next ? [{ kind: 'set_rule', rule: rank.id, by: next.id }] : [{ kind: 'remove_rule', rule: rank.id }] } })
     }
   }
+  // How the board looks (appearance.ts), on every board with controls (a map's or a budget's look is chat's and exec's): the columns' emphasis, card density and grid lines on the rail, and a
+  // swatch in each column's (or quadrant's) corner that steps through the palette. The set_appearance edit chat and exec make.
+  const look = board.appearance ?? {}
+  const emphasis = look.borders === 'strong' && look.headers === 'strong' ? 'strong' : look.borders === 'subtle' && look.headers === 'subtle' ? 'subtle' : look.borders || look.headers || look.fill ? 'mixed' : 'standard'
+  const nextEmphasis = emphasis === 'standard' || emphasis === 'mixed' ? 'strong' : emphasis === 'strong' ? 'subtle' : 'normal'
+  // Each says first what a press makes (what the host says once it is saved), then how the board looks now.
+  const toggle = (id: string, label: string, on: boolean, makes: string, now: string, edit: Record<string, unknown>) => rail({ id: 'look:' + id, primitive: 'look', anchor: { kind: 'board' },
+    state: { value: on, sentence: now }, label: makes + '. ' + now + ' now.', look: { label, on }, gestures: { tap: [{ kind: 'set_appearance', ...edit } as WorkshopEdit] } })
+  toggle('emphasis', 'Look: ' + emphasis, emphasis !== 'standard', 'The columns look ' + (nextEmphasis === 'normal' ? 'standard' : nextEmphasis), 'They look ' + emphasis, { emphasis: nextEmphasis })
+  toggle('density', 'Cards: ' + (look.density ? 'compact' : 'roomy'), Boolean(look.density), 'Cards are ' + (look.density ? 'roomy' : 'compact'), 'They are ' + (look.density ? 'compact' : 'roomy'), { density: look.density ? 'normal' : 'compact' })
+  toggle('lines', 'Lines: ' + (look.lines ? 'on' : 'off'), Boolean(look.lines), 'Grid lines are ' + (look.lines ? 'off' : 'on'), 'They are ' + (look.lines ? 'on' : 'off'), { lines: !look.lines })
+  const names = Object.keys(appearancePalette)
+  for (const place of places) {
+    const key = place.laneId, label = board.lanes.find(lane => lane.id === key)?.label ?? appearanceQuadrants[key]
+    if (!label || (board.nest?.layout === 'matrix' && !appearanceQuadrants[key])) continue
+    const now = look.colors?.[key], next = names[now ? names.indexOf(now) + 1 : 0]
+    const colored = (name?: string) => label + (name ? ' in ' + name : ' in its own color')
+    out.push({ id: 'color:' + key, primitive: 'look', anchor: { kind: 'lane', id: key },
+      // A pipeline's stage has its limit and padlock in that corner: its swatch sits between them.
+      hit: family === 'pipeline' ? box(place.x + place.width / 2, place.y + 30 * k, H, H) : box(place.x + Math.min(LANE_WIDTH, place.width) - H / 2 - 2 * k, place.y + H / 2 + 2 * k, H, H),
+      state: { value: now ?? null, sentence: colored(now) }, label: colored(next) + '. ' + colored(now) + ' now.',
+      look: { shape: 'badge', on: Boolean(now), swatch: now ? appearancePalette[now] : '#ffffff' }, gestures: { tap: [{ kind: 'set_appearance', lane: { id: key }, color: next ?? 'none' } as WorkshopEdit] } })
+  }
   return out
 }
 
 /** The edit kinds a rule control makes: what a canvas change of rules may hold (and never a move with them). */
-export const RULE_CONTROL_EDITS: readonly string[] = ['add_rule', 'set_rule', 'remove_rule', 'set_lane_capacity', 'add_lane']
+export const RULE_CONTROL_EDITS: readonly string[] = ['add_rule', 'set_rule', 'remove_rule', 'set_lane_capacity', 'add_lane', 'set_appearance']

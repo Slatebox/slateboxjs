@@ -90,6 +90,7 @@ export interface PartPlace {
   line?: string
   lineWidth?: number
   fontSize?: number
+  weight?: 'bold'
 }
 
 /** What a board layer is told on each redraw. */

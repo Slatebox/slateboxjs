@@ -123,7 +123,7 @@ function drawLook(control: RuleControl, offset: { dx: number; dy: number }, said
     const r = (look.shape === 'step' ? 13 : 15) * k
     const filled = look.shape === 'badge' ? Boolean(look.on) : false
     g.appendChild(el('circle', { cx, cy, r, 'stroke-width': 1.4, ...(look.shape === 'badge' && !look.on ? { 'stroke-dasharray': '3 3' } : {}) },
-      { fill: filled ? controlInk.on : controlInk.off, stroke: filled ? controlInk.on : look.shape === 'step' && look.on ? color : controlInk.offLine }))
+      { fill: look.swatch ?? (filled ? controlInk.on : controlInk.off), stroke: look.swatch ? controlInk.ink : filled ? controlInk.on : look.shape === 'step' && look.on ? color : controlInk.offLine }))
     const icon = glyph(look.icon, cx - 7 * k, cy - 7 * k, 14 * k, filled ? controlInk.onInk : look.on || look.shape === 'step' ? controlInk.ink : controlInk.offLine)
     if (icon) g.appendChild(icon)
     if (busy) g.appendChild(el('circle', { cx, cy, r: r + 3 * k, fill: 'none', 'stroke-width': 2, 'stroke-dasharray': '4 4' }, { stroke: controlInk.line }))

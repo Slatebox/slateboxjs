@@ -15,6 +15,7 @@ import { workshopNewCardName, workshopRules, type BusinessEditTools, type Worksh
 import { listed, said, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names'
 import { rulebook } from './kinds'
 import type { RuleAudit, RuleInput } from './behaviour'
+import { appearancePalette, appearanceQuadrants, withAppearance, type AppearanceEdit } from './appearance'
 
 /** The kinds of board, each with its own rules. */
 export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest'
@@ -78,6 +79,7 @@ export type WorkshopEdit =
   | { kind: 'set_rule'; rule: string; on?: boolean; severity?: 'refuse' | 'warn'; max?: number; to?: WorkshopRef[]; floor?: number; onConflict?: 'push' | 'stop'; unit?: 'day' | 'week'
       under?: string[]; by?: string; drop?: 'new-pile' | 'unsorted'; mode?: 'warn' | 'ask' | 'carry' }
   | { kind: 'remove_rule'; rule: string }
+  | ({ kind: 'set_appearance'; lane?: WorkshopRef } & AppearanceEdit)
   // A hiring plan's (slateboxjs/workshops/plans adds them to the table as it loads).
   | { kind: 'set_band_cost'; band: string; monthly: number }
   | { kind: 'set_funding'; day: number }
@@ -354,7 +356,15 @@ export const workshopEditKinds: WorkshopEditKind[] = [
       max: { type: 'integer', min: 1, max: 24, optional: true, about: 'A limit.' }, to: { type: 'refs', of: 'lane', min: 1, max: 4, optional: true, about: 'Where a path leads.' } },
     boards: ['lanes', 'pipeline'], refusals: others(['lanes', 'pipeline'], sentences.noRules) },
   { kind: 'remove_rule', summary: 'Remove a rule.', intent: false, fields: { rule: text(64, 'The rule id.') }, boards: ['lanes', 'pipeline'], refusals: others(['lanes', 'pipeline'], sentences.noRules) },
+  { kind: 'set_appearance', summary: 'Change how the board looks, on every kind of board; it moves nothing. Give one or more of the looks, or a lane with a color.', intent: true,
+    fields: { emphasis: look(['subtle', 'normal', 'strong'], 'Borders, headers and fills together.'), borders: look(['subtle', 'normal', 'strong'], 'The columns’ outlines.'),
+      headers: look(['subtle', 'normal', 'strong'], 'Column headers: strong is bold with a deeper fill.'), headerSize: look(['normal', 'large'], 'Header text size.'),
+      fill: look(['soft', 'normal', 'strong'], 'The columns’ fills: soft is a softer background.'), lines: { type: 'flag', optional: true, about: 'Grid lines between the columns (a 2 by 2’s quadrant lines).' },
+      density: look(['normal', 'compact'], 'Card size.'), lane: lane('With color: the lane (on a 2 by 2, also a quadrant by name).', true),
+      color: look([...Object.keys(appearancePalette), 'none'], 'With lane: its color, or none for its own.') }, boards: everyBoard, refusals: {} },
 ]
+
+function look(values: string[], about: string): WorkshopEditField { return { type: 'choice', values, optional: true, about } }
 
 function linesOnLanes(): Partial<Record<WorkshopBoardKind, string>> {
   return { ...others(['lanes'], sentences.businessLines), 'release-plan': sentences.lines, 'customer-interviews': sentences.lines, 'experiment-budget': sentences.lines, map: sentences.lines }
@@ -550,6 +560,23 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
   if (edit.kind === 'add_rule' || edit.kind === 'set_rule' || edit.kind === 'remove_rule') {
     return rulebook().edit(board, edit, audit!, { lane: ref => laneOf(ref), card: ref => cardOf(ref), done: (next, sentence, ids) => done(next, sentence, ids),
       refuse: (reason, at = {}) => { throw new Refusal(reason, at.code ?? 'refused', at.laneId ?? null, at.cardId) } })
+  }
+
+  if (edit.kind === 'set_appearance') {
+    const { kind: _, lane: ref, ...asked } = edit
+    if (!Object.keys(asked).length) throw new Refusal('Say how the board should look: stronger borders, bolder headers, grid lines, compact cards or a column’s color.', 'invalid_edit')
+    if ((asked.color === undefined) !== (ref === undefined)) throw new Refusal('A color is for one column: name the column and the color.', 'invalid_edit')
+    let part: { key: string; label: string } | undefined
+    if (ref !== undefined) {
+      // On a 2 by 2 its quadrants take a color too ("Do now"), by name or key.
+      const name = typeof ref === 'string' ? ref.trim().toLowerCase().replace(/^the\s+|\s+(?:quadrant|square|column|lane)$/g, '') : ''
+      const quadrant = board.kind === 'nest' && board.nest?.layout === 'matrix' ? Object.entries(appearanceQuadrants)
+        .find(([key, label]) => (typeof ref === 'object' ? ref.id : name) === key || name === key.slice(2) || name === label.toLowerCase()) : undefined
+      const found = quadrant ? null : laneOf(ref)
+      part = quadrant ? { key: quadrant[0], label: quadrant[1] } : { key: found!.id, label: found!.label }
+    }
+    const made = withAppearance(board, asked, part)
+    return done(made.board, made.said, part && !part.key.startsWith('q-') ? { laneId: part.key } : {}, made.changed)
   }
 
   // A launch plan's, pipeline's or budget's own edits (and its add_card) are its rules' to make.
@@ -981,7 +1008,7 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
         ...(error.cardId && { cardId: error.cardId }), ...(error.candidates && { candidates: error.candidates }), ...(error.limits && { limits: error.limits }) })
     }
     // What the board's rulebook says of every card this edit put in a lane (an edit of the rules moves nothing).
-    const verdict = current.behaviour && !isRuleEdit(entry.kind) ? rulebook().check(current, step.board) : null
+    const verdict = current.behaviour && !isRuleEdit(entry.kind) && entry.kind !== 'set_appearance' ? rulebook().check(current, step.board) : null
     if (verdict && 'refused' in verdict) {
       return refuse({ index, kind: entry.kind, ...anyway('refused', verdict.refused.sentence), code: 'refused', laneId: verdict.refused.laneId, cardId: verdict.refused.cardId })
     }

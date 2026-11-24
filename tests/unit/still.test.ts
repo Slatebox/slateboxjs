@@ -203,3 +203,30 @@ describe('drawnBox: the still is fitted to what was drawn', () => {
     try { expect(drawnBox(host)).toEqual({ x: 10, y: 20, width: 300, height: 300 }) } finally { (globalThis as any).DOMPoint = real }
   })
 })
+
+describe('a board’s appearance in the still, as on the live canvas (gallery = final view)', () => {
+  for (const id of ['team-board', 'impact-effort']) {
+    it(id, async () => {
+      const preset = catalog.find(entry => entry.id === id) ?? catalog.find(entry => entry.build.kind === 'lanes')!
+      const plain = validateWorkshop(catalogPreset(preset.id, undefined, catalogSamples))
+      const board = validateWorkshop({ ...plain, appearance: { borders: 'strong', headers: 'strong', lines: true } })
+      const live = fakeCanvas()
+      const kit = businessKind(board) ? kitFor(board.kind) : undefined
+      const kept = attachWorkshop(live.slate, board, { origin: { x: 40, y: 40 }, still: true, ...(kit && { kit }) } as any)
+      await kept.whenDrawn()
+      const canvas = fakeCanvas()
+      ;(globalThis as any).__stillSlate = function FakeSlate() { return canvas.slate }
+      const el = host()
+      const still = await renderStill(el, componentSlate(board))
+      try {
+        const columns = [...canvas.notes.values()].filter(note => /^column-/.test(unscoped(note.id)))
+        expect(columns.length).toBeGreaterThan(0)
+        // Grid lines on: every column is edged dark, at least 2 wide; strong headers are bold.
+        for (const note of columns) expect(note.options.borderWidth, note.id).toBeGreaterThanOrEqual(2)
+        expect([...canvas.notes.values()].some(note => note.options.fontWeight === 'bold')).toBe(true)
+        // The same as the live canvas draws it.
+        for (const note of columns) expect(note.options.borderWidth).toBe(live.notes.get(note.id)?.options.borderWidth ?? [...live.notes.values()].find(n => unscoped(n.id) === unscoped(note.id))!.options.borderWidth)
+      } finally { still.destroy(); kept.destroy(); live.svg.remove(); canvas.svg.remove(); el.remove() }
+    })
+  }
+})

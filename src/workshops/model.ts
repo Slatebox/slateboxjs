@@ -1,5 +1,7 @@
 export * from './offlineHandoff'
 export * from './listeningRoom'
+export * from './appearance'
+import { appearanceKeys, appearanceLook, readAppearance, type WorkshopAppearance } from './appearance'
 import { planReleaseMove, releaseLoad, validateRelease } from './release'
 export { releaseLoad, releasePlan } from './release'
 import { applyWorkshopEdits, type WorkshopEdit } from './edits'
@@ -196,6 +198,8 @@ export interface Workshop {
   lines?: WorkshopLine[]
   /** How the board behaves, as data: its rulebook (behaviour.ts). Lane boards and pipelines only. */
   behaviour?: Behaviour
+  /** How the board looks, as data (appearance.ts): every kind of board. */
+  appearance?: WorkshopAppearance
 }
 
 /** The kinds of board with rules of their own. A board without a kind is a board of plain lanes. */
@@ -717,6 +721,10 @@ export function validateWorkshop(input: unknown): Workshop {
   }
   if (value.behaviour !== undefined) {
     board.behaviour = rulebook().validate(value.behaviour, { ...board, kind: value.kind as Workshop['kind'] })
+  }
+  if (value.appearance !== undefined) {
+    const look = readAppearance(value.appearance, appearanceKeys({ lanes, kind: value.kind as string, nest: value.nest as Workshop['nest'] }))
+    if (look) board.appearance = look
   }
   if (release) {
     board.kind = 'release-plan'
@@ -1925,6 +1933,13 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
         fontSize: fittingFontSize(text, look.fontSize ?? cardSize, cardWidth - 16, cardHeight - 8) })
     })
   })
+  // The board's appearance (appearance.ts), as every kit's parts take it.
+  if (board.appearance) for (const { options: o } of nodes) {
+    const look = appearanceLook(board.appearance, o.id as string, { fill: o.backgroundColor as string, line: o.borderColor as string, lineWidth: o.borderWidth as number,
+      fontSize: o.fontSize as number, height: o.height as number })
+    if (look.height !== o.height) o.vectorPath = roundedBox(o.width as number, look.height!, style.card?.cornerRadius ?? radius)
+    Object.assign(o, { backgroundColor: look.fill, borderColor: look.line, borderWidth: look.lineWidth, fontSize: look.fontSize, height: look.height }, look.weight && { fontWeight: look.weight })
+  }
   const byId = new Map(nodes.map(item => [item.options.id as string, item]))
   for (const lane of board.lanes) {
     if (!lane.station) continue
