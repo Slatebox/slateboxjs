@@ -183,12 +183,12 @@ test('Back while presenting leaves the presenter with the slate; it does not ope
     uid = await userId(page)
     const canvas = new URL(page.url()).pathname
     // Arrive at the slate from another page of the app, without a reload.
-    await page.goto(app + '/templates')
+    await page.goto(app + '/library')
     await page.evaluate(path => { history.pushState({}, '', path); dispatchEvent(new PopStateEvent('popstate')) }, canvas)
     await page.locator('#slateCanvas [data-node-id]').first().waitFor()
     const dialog = await openPresenter(page)
     await page.goBack()
-    await expect(page).toHaveURL(/\/templates$/)
+    await expect(page).toHaveURL(/\/library$/)
     await expect(dialog).toHaveCount(0)
     await page.goForward()
     await page.locator('#slateCanvas [data-node-id]').first().waitFor()

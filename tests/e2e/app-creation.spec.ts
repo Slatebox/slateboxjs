@@ -5,9 +5,14 @@ import { conversation, messageBox, slateTitle, standing, starter, workshopReady 
 
 const appUrl = process.env.SLATEBOX_APP_URL || "http://localhost:3000";
 
-test("map entry, gallery and dashboard New open their respective editors", async ({ page }) => {
+test("map entry, library and dashboard New open their respective editors", async ({ page }) => {
+  // The template gallery is gone: its old address is the app's 404, which offers a new slate, and the
+  // shared library is open to a signed-out visitor.
   await page.goto(appUrl + "/templates");
-  await expect(page.getByRole("link", {name:"Create slate",exact:true})).toHaveAttribute("href","/new");
+  await expect(page.getByRole("heading", { name: "This page isn’t here" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Start a new slate", exact: true })).toHaveAttribute("href", "/new");
+  await page.goto(appUrl + "/library");
+  await expect(page.getByRole("heading", { name: "Library", level: 1 })).toBeVisible();
   if (!["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(appUrl).hostname)) return;
   await page.goto(appUrl + "/workshops?format=map&example=customer-import");
   await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/);
@@ -42,8 +47,9 @@ test("map entry, gallery and dashboard New open their respective editors", async
     expect(page.url()).toBe(second);
     await page.goBack();
     await expect(page.getByRole("button", { name: "New", exact: true })).toBeVisible();
-    await page.goto(appUrl + "/templates");
-    await page.getByRole("main").getByRole("link", { name: "Create slate" }).click();
+    // From another page of the app (the library), the navigation's Create slate opens a new slate.
+    await page.goto(appUrl + "/library");
+    await page.getByRole("link", { name: "Create slate", exact: true }).click();
     await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/);
     await expect(node).toBeVisible();
     // The first slate still holds its note.
@@ -107,7 +113,7 @@ test("legacy workshop links open a private slate and preserve native browser his
 test("an existing workshop draft becomes one private native board and the old bookmark reopens it", async ({page}) => {
   test.skip(!["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(appUrl).hostname));
   const route = appUrl + "/workshops?format=map";
-  await page.goto(appUrl + "/templates");
+  await page.goto(appUrl + "/library");
   await page.evaluate(() => {
     const draft = {version:1,title:"Parcel return options",lanes:[
       {id:"door",label:"Dispatch",station:{column:0,row:0,next:["desk"],outcome:"Check the parcel."}},
@@ -138,7 +144,7 @@ test("an existing workshop draft becomes one private native board and the old bo
 
 test("a collaboration visitor owns a private, connected incident timeline on first open", async ({ page }) => {
   test.skip(!["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(appUrl).hostname));
-  await page.goto(appUrl + "/templates");
+  await page.goto(appUrl + "/library");
   expect(await page.evaluate(() => localStorage.getItem("meteor_token"))).toBeNull();
   await page.goto(appUrl + "/new/incident-timeline");
   await page.waitForURL(/\/canvas\/[\w-]+$/);
@@ -179,24 +185,33 @@ test("a collaboration visitor owns a private, connected incident timeline on fir
   }
 });
 
-test("explicit template creation links preserve the selected preview and encoded copy title", async ({ page }) => {
+// Templates are gone (the shared library replaced them): an old creation link still opens a slate, the
+// same way /new does: a new, empty, private slate. Neither the template nor the topic is carried over.
+test("old template creation links open a new empty slate and carry neither template nor topic", async ({ page }) => {
+  test.skip(!["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(appUrl).hostname));
   const topic = "Lighting & sound / evening rehearsal?";
-  for (const [entry, key, value, expected] of [
-    ["/canvas/new", "template", "proConScaffold", "pro-con-analysis"],
-    ["/start", "templateId", "tplprocon001", "tplprocon001"],
-    ["/new", "template", "Pro/Con Analysis", "pro-con-analysis"],
-  ]) {
-    await page.goto(appUrl + entry + "?" + new URLSearchParams({ [key]: value, topic }));
-    await expect(page.getByRole("heading", { name: "Pro/Con Analysis", exact: true })).toBeVisible();
-    expect(new URL(page.url()).pathname).toBe("/templates/" + expected);
-    expect(new URL(page.url()).searchParams.get("topic")).toBe(topic);
-    await expect(page.getByText("Your copy will be named “" + topic + "”.")).toBeVisible();
-    await expect(page.getByRole("img", { name: "Canvas preview of Pro/Con Analysis" }).locator("[data-node-id]").first()).toBeVisible();
-    await expect(page.getByRole("button", { name: "Use this template" })).toBeEnabled();
-    expect(await userId(page)).toBeNull();
+  let owner: string | null = null;
+  try {
+    const opened = new Set<string>();
+    for (const [entry, key, value] of [
+      ["/canvas/new", "template", "proConScaffold"],
+      ["/start", "templateId", "tplprocon001"],
+      ["/new", "template", "Pro/Con Analysis"],
+      ["/canvas/new", "template", "slatebox-missing-entry-template-807fa"],
+    ]) {
+      await page.goto(appUrl + entry + "?" + new URLSearchParams({ [key]: value, topic }));
+      await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/);
+      owner ??= await userId(page);
+      expect(owner).not.toBeNull();
+      expect(await userId(page)).toBe(owner);
+      expect(new URL(page.url()).search).toBe("");
+      expect(opened.has(page.url())).toBe(false);
+      opened.add(page.url());
+      await expect(page.getByRole("region", { name: "Your slate is ready" })).toBeVisible();
+      await expect(page.locator("#slateCanvas [data-node-id]")).toHaveCount(0);
+      await expect(page.getByText(topic)).toHaveCount(0);
+    }
+  } finally {
+    await removeTestGuest(page, owner);
   }
-  await page.goto(appUrl + "/canvas/new?template=slatebox-missing-entry-template-807fa");
-  await expect(page.getByRole("heading", { name: "Template unavailable" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "All templates" })).toHaveAttribute("href", "/templates");
-  expect(await userId(page)).toBeNull();
 });
