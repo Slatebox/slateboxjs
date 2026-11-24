@@ -226,6 +226,56 @@ describe('agent suggestions: ghosts in place', () => {
     suggestions.destroy()
   })
 
+  it('an action card (a change outside Slatebox) says Approve and Decline, Try again anyway when it may be made, and Keep all never approves it', () => {
+    const slate = fakeSlate()
+    const calls: string[] = []
+    const suggestions = createAgentSuggestions(slate, {
+      toNode, canAct: () => true, onKeep: ref => calls.push('keep ' + ref.itemId), onDiscard: ref => calls.push('discard ' + ref.itemId), onTryAgain: ref => calls.push('again ' + ref.itemId),
+    })
+    const card = (state: any) => ({ id: 'card', kind: 'add' as const, state: 'pending' as const, nodeId: 'card', node: v1('card', 'Create Linear issue: Retry fails on 502', 300, 260), card: { id: 'oCard1234', state } })
+    const mixed = (state: any = 'waiting') => action({ label: 'Linear', origin: 'invited', invitedBy: 'Ada', via: null, items: [{ id: 'a', kind: 'add', state: 'pending', nodeId: 'a', node: v1('a', 'ENG-1 Login bug', 300, 100) }, card(state)] })
+    suggestions.set([mixed()])
+    const layer = () => slate.host.querySelector('[data-agent-suggestions]')!
+    const buttons = (item: string) => [...layer().querySelectorAll(`[data-suggestion="${item}"] [data-suggestion-button]`)].map(b => [b.getAttribute('data-suggestion-button'), b.textContent, b.getAttribute('aria-label')])
+    expect(buttons('card')).toEqual([
+      ['keep', 'Approve', 'Approve the suggestion from Linear, added by Ada: “Create Linear issue: Retry fails on 502”'],
+      ['discard', 'Decline', 'Decline the suggestion from Linear, added by Ada: “Create Linear issue: Retry fails on 502”'],
+    ])
+    expect(buttons('a').map(b => b[1])).toEqual(['Keep', 'Discard'])
+    expect(layer().querySelector('[data-suggestion-hit="card"]')!.getAttribute('aria-label')).toBe('Suggested by Linear · added by Ada: Create Linear issue: Retry fails on 502. Approve or decline it.')
+    // the frame's Keep all says it keeps the suggestions, never the card; without the host's own it skips the card
+    const keepAll = layer().querySelector('[data-suggestion-button="keep-all"]')!
+    expect(keepAll.textContent).toBe('Keep all suggestions')
+    const click = (sel: string) => (layer().querySelector(sel) as SVGElement).dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    click('[data-suggestion="card"] [data-suggestion-button="keep"]')
+    click('[data-suggestion="card"] [data-suggestion-button="discard"]')
+    suggestions.keepAll('act1')
+    expect(calls).toEqual(['keep card', 'discard card', 'keep a'])
+    // a frame of cards only has no Keep all
+    suggestions.set([action({ label: 'Linear', items: [card('waiting')] })])
+    expect(layer().querySelectorAll('[data-suggestion-all]')).toHaveLength(0)
+    expect(suggestions.groups()[0].all).toBe(null)
+    // maybe made already: Try again anyway (on purpose) and Decline; while it is sent: no buttons
+    suggestions.set([mixed('unclear')])
+    expect(buttons('card').map(b => [b[0], b[1]])).toEqual([['keep', 'Try again anyway'], ['discard', 'Decline']])
+    click('[data-suggestion="card"] [data-suggestion-button="keep"]')
+    expect(calls.at(-1)).toBe('again card')
+    suggestions.set([mixed('running')])
+    expect(buttons('card')).toEqual([])
+    expect(suggestions.shown().find(s => s.itemId === 'card')!.controls).toBe(false)
+    suggestions.set([mixed('failed')])
+    expect(buttons('card').map(b => b[1])).toEqual(['Approve', 'Decline'])
+    suggestions.destroy()
+    // a host without its own Try again anyway hears it as Keep (its own checks decide)
+    const kept: string[] = []
+    const plain = createAgentSuggestions(fakeSlate(), { toNode, canAct: () => true, onKeep: ref => kept.push(ref.itemId) })
+    plain.set([mixed('unclear')])
+    expect([...document.querySelectorAll('[data-suggestion="card"] [data-suggestion-button]')].map(b => b.textContent)).toEqual(['Try again anyway', 'Decline'])
+    plain.tryAgain({ actionId: 'act1', itemId: 'card' })
+    expect(kept).toEqual(['card'])
+    plain.destroy()
+  })
+
   it('an action of lines only between notes on the slate still has a frame, a tag and Keep all / Discard all', () => {
     const slate = fakeSlate({ a: { x: 40, y: 100, width: 160, height: 80 }, b: { x: 400, y: 100, width: 160, height: 80 } })
     const calls: string[] = []

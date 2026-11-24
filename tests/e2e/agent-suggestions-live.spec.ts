@@ -288,6 +288,52 @@ test.describe("agent suggestions on a touch screen", () => {
     await page.locator("#app").tap({ position: { x: 380, y: 20 } });
     expect(await page.evaluate(() => (window as any).calls)).toEqual([]);
   });
+
+  test("an action card (a change outside Slatebox) shows Approve and Decline on a tap and by keyboard; its frame has no Keep all", async ({ page }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    await page.evaluate(async () => {
+      const w = window as any;
+      const div = document.getElementById("app")!;
+      div.style.width = "390px";
+      div.style.height = "700px";
+      const slate = await new w.Slatebox.slate({ container: "app", id: "card-ghost" }, {}).init();
+      const { createAgentSuggestions } = await import("/src/core/AgentSuggestions.ts");
+      w.calls = [];
+      w.ghosts = createAgentSuggestions(slate, { canAct: () => true, onKeep: (ref: any) => w.calls.push("keep " + ref.itemId), onDiscard: (ref: any) => w.calls.push("discard " + ref.itemId), onTryAgain: (ref: any) => w.calls.push("again " + ref.itemId) });
+      w.card = (state: string) => [{ actionId: "act-1", label: "Linear", colorIndex: 2, origin: "invited", invitedBy: "Ada", items: [
+        { id: "add:card", kind: "add", state: "pending", nodeId: "card", card: { id: "oCard1234", state },
+          node: { options: { id: "card", text: "Create Linear issue: Retry fails on 502", xPos: 20, yPos: 200, width: 420, height: 260 } } },
+      ] }];
+      w.ghosts.set(w.card("waiting"));
+    });
+    const hit = page.locator('[data-suggestion-hit="add:card"]');
+    await expect(hit).toHaveCount(1);
+    await expect(page.locator("[data-suggestion-all]")).toHaveCount(0);
+    await hit.tap({ position: { x: 12, y: 12 } });
+    const approve = page.locator('[data-suggestion-controls="add:card"] [data-suggestion-button="keep"]');
+    const decline = page.locator('[data-suggestion-controls="add:card"] [data-suggestion-button="discard"]');
+    await expect(approve).toBeVisible();
+    await expect(approve).toHaveText("Approve");
+    await expect(approve).toHaveAttribute("aria-label", "Approve the suggestion from Linear, added by Ada: “Create Linear issue: Retry fails on 502”");
+    await expect(decline).toHaveText("Decline");
+    await approve.tap();
+    await expect.poll(() => page.evaluate(() => (window as any).calls)).toEqual(["keep add:card"]);
+    // By keyboard: Enter on Decline declines it.
+    await decline.focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(() => page.evaluate(() => (window as any).calls)).toEqual(["keep add:card", "discard add:card"]);
+    // Maybe made already: Try again anyway, by a tap of its own.
+    await page.evaluate(() => (window as any).ghosts.set((window as any).card("unclear")));
+    const again = page.locator('[data-suggestion-controls="add:card"] [data-suggestion-button="keep"]');
+    await expect(again).toHaveCount(1);
+    // Its buttons may still show from before (the same ghost kept the focus): a tap would hide them then.
+    if (!(await again.isVisible())) await hit.tap({ position: { x: 12, y: 12 } });
+    await expect(again).toBeVisible();
+    await expect(again).toHaveText("Try again anyway");
+    await again.tap();
+    await expect.poll(() => page.evaluate(() => (window as any).calls.at(-1))).toBe("again add:card");
+  });
 });
 
 // While an agent works, its own tag never covers a group's tag or its Keep all / Discard all at full strength: measured on

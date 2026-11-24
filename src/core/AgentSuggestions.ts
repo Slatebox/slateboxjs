@@ -4,6 +4,10 @@
 // Discard all at the frame's corner for people who may edit. Keep and Discard for a single note
 // show only on the ghost under the pointer or with keyboard focus; lines carry no buttons (a line
 // is kept with both its ends and goes with either). Tags and buttons are placed so none overlap.
+// An action card (a new note that stands for a change outside Slatebox, such as a new Linear issue:
+// item.card) says Approve and Decline instead, or Try again anyway and Decline when its change may
+// have been made already; it shows none while its change is being sent. Keep all never approves a
+// card: on a frame with cards it says Keep all suggestions, and a frame of cards only has none.
 //
 //   add      a ghost note: a native note of the engine, drawn at the agent's place for it, see-through
 //            and dashed in the agent's colour. Nobody can move, edit or connect it, and the engine
@@ -39,6 +43,8 @@ export const ghostIdOf = (nodeId: string) => GHOST_PREFIX + nodeId
 
 export type SuggestionKind = 'add' | 'update' | 'remove' | 'link' | 'unlink'
 export type SuggestionState = 'pending' | 'kept' | 'discarded' | 'applied' | 'undone' | 'refused'
+/** An action card's state, as its host keeps it (waiting for a person, being sent, done, failed, maybe made, declined). */
+export type CardState = 'waiting' | 'running' | 'done' | 'failed' | 'unclear' | 'declined'
 
 export interface SuggestionItem {
   id: string
@@ -53,6 +59,8 @@ export interface SuggestionItem {
   /** link / unlink: the note that holds the line, and the line. */
   parentId?: string | null
   association?: { id: string; parentId?: string; childId?: string; [key: string]: any } | null
+  /** add: set when the note is an action card, a change outside Slatebox a person approves (id: the host's card id). */
+  card?: { id?: string; state: CardState } | null
 }
 
 export interface SuggestionAction {
@@ -78,6 +86,8 @@ export interface AgentSuggestionsOptions {
   /** Keep all / Discard all on an action's frame: the host saves (or drops) its waiting items at once. */
   onKeepAll?: (actionId: string) => void
   onDiscardAll?: (actionId: string) => void
+  /** Try again anyway on an action card whose change may have been made already: the host makes it once more, on purpose (default: onKeep). */
+  onTryAgain?: (ref: SuggestionRef) => void
   /** Turns a stored (v1) note's options into the engine's: pass compat.v1NodeToV2 (the default maps position, size and words). */
   toNode?: (v1: Record<string, any>) => Record<string, any>
 }
@@ -113,6 +123,8 @@ export interface AgentSuggestions {
   /** Keep or Discard one suggestion, as its buttons do (for keyboard hosts and tests). */
   keep(ref: SuggestionRef): void
   discard(ref: SuggestionRef): void
+  /** Try again anyway on an action card, as its button does. */
+  tryAgain(ref: SuggestionRef): void
   /** Keep all / Discard all of one action, as its frame's buttons do. */
   keepAll(actionId: string): void
   discardAll(actionId: string): void
@@ -302,13 +314,19 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     return holder
   }
   // Keep / Discard of one item; Keep all / Discard all of one action (12px a letter... measured as button() does).
-  const ALL_W = Math.round(18 + 6.8 * 8) + 6 + Math.round(18 + 6.8 * 11)
+  const allWidth = (keep: string) => Math.round(18 + 6.8 * keep.length) + 6 + Math.round(18 + 6.8 * 11)
   const tagWidth = (words: string) => Math.round(28 + 7 * clip(words, 64).length)
   const itemButtons = (action: SuggestionAction, item: SuggestionItem, keepLabel: string, what: string): [string, string, string, () => void][] => {
     // Said as "the suggestion from Excalidraw, added by Ada", never "Excalidraw · added by Ada's suggestion".
+    const card = item.card?.state
     const from = ' the suggestion from ' + nameOf(action).replace(/ · /g, ', ') + ': ' + what
     const ref = { actionId: action.actionId, itemId: item.id }
-    return [[keepLabel, keepLabel + from, 'keep', () => api.keep(ref)], ['Discard', 'Discard' + from, 'discard', () => api.discard(ref)]]
+    // An action card: Approve and Decline; Try again anyway (on purpose) when its change may have been made already;
+    // nothing while its change is being sent or once it is decided.
+    const again = card === 'unclear'
+    const yes = again ? 'Try again anyway' : card ? 'Approve' : keepLabel, no = card ? 'Decline' : 'Discard'
+    return /^(running|done|declined)$/.test(card!) ? []
+      : [[yes, yes + from, 'keep', () => (again ? api.tryAgain(ref) : api.keep(ref))], [no, no + from, 'discard', () => api.discard(ref)]]
   }
 
   // A small tag (the agent's hexagon and words) with its top left at a world point.
@@ -426,12 +444,14 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
         const at = place([sp(frame.x, frame.y - line, tw), sp(frame.x, frame.y + frame.h + pad, tw), sp(frame.x + pad, frame.y + pad, tw)], frame)
         tag(action_g, at, scale, name + ' · ' + words, color)
         // Keep all / Discard all: under the frame's bottom right, else above its top right, else under its left.
-        const aw = ALL_W / scale
+        const cards = items.filter(item => item.card).length
+        const keepAll = 'Keep all' + (cards ? ' suggestions' : '')
+        const aw = allWidth(keepAll) / scale
         const right = frame.x + frame.w - aw
-        const all = acting ? place([sp(right, frame.y + frame.h + pad, aw), sp(right, frame.y - line, aw), sp(frame.x, frame.y + frame.h + line + pad, aw)], frame) : null
+        const all = acting && cards < items.length ? place([sp(right, frame.y + frame.h + pad, aw), sp(right, frame.y - line, aw), sp(frame.x, frame.y + frame.h + line + pad, aw)], frame) : null
         const whose = ' of the suggestion from ' + name.replace(/ · /g, ', ') + ': ' + words
         if (all) row(action_g, { 'data-suggestion-all': action.actionId }, all, scale, color,
-          [['Keep all', 'Keep all' + whose, 'keep-all', () => api.keepAll(action.actionId)], ['Discard all', 'Discard all' + whose, 'discard-all', () => api.discardAll(action.actionId)]], 0, 0)
+          [[keepAll, keepAll + whose, 'keep-all', () => api.keepAll(action.actionId)], ['Discard all', 'Discard all' + whose, 'discard-all', () => api.discardAll(action.actionId)]], 0, 0)
         groups.push({ actionId: action.actionId, frame, tag: at, all, words })
       }
       for (const item of items) {
@@ -455,12 +475,14 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
             .attr({ 'pointer-events': 'none', 'data-suggestion-outline': '' })
           const text = plainLine(item.kind === 'add' ? item.node?.options?.text ?? '' : noteOf(item.nodeId)?.options?.text ?? '')
           if (item.kind === 'add') {
-            if (acting) {
+            const card = item.card?.state
+            const buttons = itemButtons(action, item, 'Keep', (card ? '' : 'add ') + '“' + clip(text, 40) + '”')
+            if (acting && buttons.length) {
               // A ghost is inert (no pointer events): an invisible box over it in this layer hears the
               // pointer and takes keyboard focus, and shows its own Keep and Discard just inside it.
               item_g.rect(box.w, box.h).move(box.x, box.y).fill('#fff').attr({ 'fill-opacity': 0, 'pointer-events': 'all', tabindex: 0, role: 'group',
-                'aria-label': 'Suggested by ' + name + ': ' + clip(text, 60) + '. Keep or discard it alone.', 'data-suggestion-hit': item.id })
-              const holder = row(item_g, { 'data-suggestion-controls': item.id, 'data-on-hover': '' }, { x: box.x + box.w, y: box.y + box.h }, scale, color, itemButtons(action, item, 'Keep', 'add “' + clip(text, 40) + '”'), -6, -28)
+                'aria-label': 'Suggested by ' + name + ': ' + clip(text, 60) + '. ' + (card ? buttons[0][0] + ' or decline it.' : 'Keep or discard it alone.'), 'data-suggestion-hit': item.id })
+              const holder = row(item_g, { 'data-suggestion-controls': item.id, 'data-on-hover': '' }, { x: box.x + box.w, y: box.y + box.h }, scale, color, buttons, -6, -28)
               if (hovered !== item.id) show(holder.node, false)
               const node = item_g.node as SVGGElement
               // A touch has no hover (its pointerleave comes as the finger lifts): a tap shows them, another hides them.
@@ -521,6 +543,8 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
   // Follow the view and the notes: a pan, a zoom or a moved note redraws the overlay (only while something waits).
   const watch = setInterval(() => { if (!destroyed && pendingItems(actions).length) render(false) }, 250)
 
+  // Keep all / Discard all: without the host's own, each waiting item of the action is kept or discarded in turn.
+  // (Comments inside the api object below are kept in the built file: they belong out here.)
   function all(actionId: string, keep: boolean) {
     if (!canAct()) return
     const whole = keep ? options.onKeepAll : options.onDiscardAll
@@ -528,7 +552,8 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     // Lines follow their ends; an action of lines only keeps or discards its lines.
     const mine = pendingItems(actions).filter(({ action }) => action.actionId === actionId)
     const adds = mine.some(({ item }) => item.kind === 'add')
-    for (const { item } of mine) if (!adds || item.kind !== 'link') (keep ? options.onKeep : options.onDiscard)?.({ actionId, itemId: item.id })
+    // Keep all never approves an action card.
+    for (const { item } of mine) if ((!adds || item.kind !== 'link') && !(keep && item.card)) (keep ? options.onKeep : options.onDiscard)?.({ actionId, itemId: item.id })
   }
 
   const api: AgentSuggestions = {
@@ -541,7 +566,7 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     groups: () => groupList.map(g => ({ ...g })),
     keep(ref) { if (canAct()) options.onKeep?.(ref) },
     discard(ref) { if (canAct()) options.onDiscard?.(ref) },
-    // Without the host's own Keep all, each waiting item of the action is kept or discarded in turn.
+    tryAgain(ref) { if (canAct()) (options.onTryAgain ?? options.onKeep)?.(ref) },
     keepAll: id => all(id, true),
     discardAll: id => all(id, false),
     destroy() {
