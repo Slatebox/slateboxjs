@@ -72,6 +72,11 @@ export interface WorkshopOverrideAsk {
     lane: string;
     /** The rule's sentence: what moving it anyway breaks. */
     reason: string;
+    /**
+     * Where the move takes the card, in words, when it is more than a lane: "to start Thu 17 Dec" (a plan's task in
+     * time), "under Activation to 40%" (a nested board). Left out, the move is to `lane`.
+     */
+    to?: string;
 }
 /** One note a board kit draws: its artwork name (lane-, card-, caption-, column-, handle-, gauge-), box from the origin and look. */
 export interface PartPlace {
@@ -130,10 +135,21 @@ export interface BoardLayer {
     destroy(): void;
 }
 /** What a handle drag means at a pointer position: the board to show, and why it stops when it is held at a bound. */
+/**
+ * A drop the rules refuse that may be made anyway (model.ts, "Moving a card anyway"): the one edit that makes it with
+ * override true, and where it takes the card in words ("to start Thu 17 Dec", "under Activation to 40%"). The host is
+ * asked (confirmOverride) before it is made.
+ */
+export interface WorkshopOverrideOffer {
+    edit: WorkshopEdit;
+    to?: string;
+}
 export interface HandleResult {
     next: Workshop;
     clampedReason?: string;
     refusal?: string;
+    /** A refused grip that may be let go anyway: asked, with the refusal's sentence. */
+    override?: WorkshopOverrideOffer;
     /** The layout to draw `next` in while the grip is held (a plan's line keeps its day width and the plan grows); left out, the board's own. */
     layout?: WorkshopBoardLayout;
 }
@@ -175,6 +191,7 @@ export interface WorkshopBoardKit {
         laneId: string;
         reason: string;
         lands?: boolean;
+        override?: WorkshopOverrideOffer;
     } | null;
     handleDrag(board: Workshop, handleId: string, grab: {
         x: number;

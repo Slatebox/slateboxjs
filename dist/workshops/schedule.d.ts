@@ -23,6 +23,14 @@ export interface TaskTimes {
 }
 /** Each task's start and end, its slack against the plan's finish, whether it is on the critical path, and its dates. */
 export declare function scheduleLaunch(board: Workshop): Map<string, TaskTimes>;
+/**
+ * The waits a task moved anyway breaks: it starts before what it waits on ends (a lag below 0). Each is drawn
+ * broken, in red, from the task waited on to the task that starts early.
+ */
+export declare function brokenWaits(board: Workshop): {
+    from: string;
+    to: string;
+}[];
 /** The index the last task ends at. */
 export declare function launchFinish(board: Workshop): number;
 /** Launch day as a working-day index (the day itself without the workdays rule). */

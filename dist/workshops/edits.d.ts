@@ -150,6 +150,7 @@ export type WorkshopEdit = {
     card: WorkshopRef;
     duration?: number;
     lag?: number;
+    override?: boolean;
 } | {
     kind: 'link_tasks';
     card: WorkshopRef;
@@ -216,6 +217,7 @@ export type WorkshopEdit = {
     under?: WorkshopRef;
     lane?: WorkshopRef;
     before?: WorkshopRef;
+    override?: boolean;
 } | {
     kind: 'start_pile';
     card: WorkshopRef;

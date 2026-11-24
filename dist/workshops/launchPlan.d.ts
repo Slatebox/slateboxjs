@@ -7,6 +7,11 @@ export type { WorkshopLimits } from './kinds';
 /** Why `after` breaks this plan's rules (or its built-in line), as a sentence; null when it keeps them. */
 export declare function planProblem(before: Workshop, after: Workshop, cardId?: string): string | null;
 /**
+ * Why a task may not start where `lag` puts it, before what it waits on ends (a lag below 0): the sentence a move made
+ * anyway breaks. Null for a lag of 0 or more.
+ */
+export declare function waitsRefusal(board: Workshop, cardId: string, lag: number): string | null;
+/**
  * What a whole-board save may not change on a plan, because no edit does: anything of its clock but its first
  * day (set_plan_start), what it calls its line, a hiring plan's cash, burn, currency, the round's size and its bands (a band's cost and the round's day have their edits,
  * and answer to the rules). Rules change on their own, never in the save that moves a task.

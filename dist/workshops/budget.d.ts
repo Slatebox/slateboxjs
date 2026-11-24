@@ -1,6 +1,8 @@
 import type { Workshop } from './model';
 import type { BusinessBoardRules, WorkshopLimits } from './kinds';
 export declare function budgetCommitted(board: Workshop, laneId: string): number;
+/** How far a team commits past what it was given (a line item moved there anyway): 0 when it fits. */
+export declare function budgetOver(board: Workshop, laneId: string): number;
 export declare function validateBudget(board: Workshop): string | null;
 /** Why the line item may not go to that team; null when it may. */
 export declare function budgetRefusal(board: Workshop, cardId: string, laneId: string): string | null;

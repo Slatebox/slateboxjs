@@ -80,6 +80,16 @@ export interface WorkshopOverride {
     sentence: string;
     /** The lane the card was in before. */
     from: string;
+    /**
+     * What else the move changed, as it was before, where it is more than the lane (Undo puts these back too): a plan's
+     * task moved in time (its `lag` and `duration`), a nested board's card moved under another (`parentId`, null at the
+     * top of its area).
+     */
+    was?: {
+        lag?: number;
+        duration?: number;
+        parentId?: string | null;
+    };
 }
 /**
  * What an ordinary note had that its card does not show: its words with their line breaks,
@@ -304,11 +314,24 @@ export declare function moveWorkshopCard(board: Workshop, cardId: string, laneId
  * the stations reachable from here.
  */
 export declare function workshopCandidate(board: Workshop, cardId: string, laneId: string): Workshop | null;
+/** Whether either board carries a move-anyway mark at all: the checks below are asked only then. */
+export declare function workshopHasMarks(before: Pick<Workshop, 'cards'>, after: Pick<Workshop, 'cards'>): boolean;
+/** Whether `card` (on the board after a change) was moved anyway by that change: marked now, and not as it was. */
+export declare function workshopFreshOverride(before: Workshop, card: WorkshopCard): boolean;
+/** Whether `card`, moved anyway before (on `before`), is back where the move took it from: an Undo. */
+export declare function workshopOverrideUndone(before: Workshop, card: WorkshopCard): boolean;
+/** The lanes of `laneId` that hold a card moved anyway: the lane may be past its limit (or its money) because of it. */
+export declare function workshopLaneOverridden(board: Pick<Workshop, 'cards'>, laneId: string): boolean;
 /**
  * Why this refused move may not be made even with a confirmation, as a sentence; null when it may be made anyway
  * (or needs no override at all). See "Moving a card anyway" above for the hard limits.
  */
 export declare function workshopHardLimit(board: Workshop, cardId: string, laneId: string): string | null;
+/** The mark a card moved anyway carries: who, when, the rule's sentence and where it came from. */
+export declare function workshopOverrideMark(card: WorkshopCard, sentence: string, who: {
+    by: string;
+    at: string;
+}, was?: WorkshopOverride['was']): WorkshopOverride;
 /**
  * The board a refused move makes once the person confirmed it ("Move anyway"): the card in that lane, marked with who
  * (`by`), when (`at`, ISO), the rule's sentence and the lane it came from. Null when the move needs no override
@@ -322,7 +345,8 @@ export declare function workshopOverrideCandidate(board: Workshop, cardId: strin
  * A whole board sent to replace `before` (a kept chat proposal, an Undo) with its move-anyway marks made true by the
  * one who saves it: a card that moved past a rule is marked with `who` and the rule `before` refused it by; a mark on
  * a card that did not move stays as stored; a mark on a move no rule refused, or on a new card, is dropped. A page
- * never writes who moved a card anyway.
+ * never writes who moved a card anyway. A plan's task moved in time and a card nested under another are checked by the
+ * edit that makes them (set_task, nest_card with override).
  */
 export declare function workshopStampOverrides(before: Workshop, after: Workshop, who: {
     by: string;
@@ -684,7 +708,7 @@ export * from './moonGallery';
 export * from './darkroom/model';
 export * from './edits';
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names';
-export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopOverrideAsk, type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native';
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopOverrideAsk, type WorkshopOverrideOffer, type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native';
 export { createBoardLayer, layerInk, renderLayerShapes, type LayerShape } from './boardLayer';
 export { boardLegend, boardChromeShapes, boardBadgeShapes, boardChromeLayout, boardChromeLabel, boardChromeStyles, chromeInk, DRAFT_TAG, boardChromeBox, chromeScaleAt, chromeTagScaleAt, CHROME_MAX_SCALE, CHROME_CHIPS_MAX_SCALE, type LegendItem, type LegendIcon, type ChromeOptions } from './boardChrome';
 export type StartupExperience = {

@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "8ac0241e3963c43f1b4d17f8221faa9172021edb",
-  "branch": "release/next2",
+  "commit": "d248314bff70f760ba1229e509c1674ed8474757",
+  "branch": "feat/move-anyway-everywhere",
   "dirty": false,
-  "builtAt": "2026-11-24T03:32:41.765Z"
+  "builtAt": "2026-11-24T04:58:46.344Z"
 }

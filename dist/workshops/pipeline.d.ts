@@ -7,6 +7,8 @@ export declare function validatePipeline(board: Workshop): string | null;
 export declare function pipelineRefusal(board: Workshop, cardId: string, laneId: string): string | null;
 export declare function planPipelineMove(board: Workshop, cardId: string, laneId: string): Workshop | null;
 export declare function pipelineCaption(board: Workshop, laneId: string): string;
+/** Whether a stage holds more deals than its limit (a deal moved anyway): drawn in red. */
+export declare function pipelineStageOver(board: Workshop, laneId: string): boolean;
 export declare function pipelineLimits(_board: Workshop, ref: {
     field: 'amount' | 'target';
 }): WorkshopLimits;
