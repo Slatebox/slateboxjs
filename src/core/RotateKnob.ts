@@ -4,6 +4,9 @@
  *
  * The knob sits just outside the note's top-right corner, so it stays clear of the
  * four connect dots (edge midpoints) and the note's action pill (centred above).
+ * When something of the host covers that corner (a side panel such as Ask Slatebox
+ * over the canvas's right edge) or it is off screen, the knob goes to the top-left
+ * corner instead, so it can always be seen and grabbed.
  * Every size here is in screen pixels: the overlay lives in the root SVG, whose
  * viewBox carries the zoom, so sizes are divided by the root's screen scale and the
  * knob looks the same at every zoom.
@@ -95,8 +98,10 @@ export function snapAngle(raw: number, snap: RotationSnap = {}): number {
  *
  * @param points - svg.select's eight handle points (lt, t, rt, r, rb, b, lb, l)
  * @param scale  - screen px per overlay unit
+ * @param side   - "right" (the default) for the top-right corner, "left" for the
+ *                 top-left one (where the right corner is covered)
  */
-export function rotateKnobPosition(points: Pt[], scale: number, offset = KNOB_OFFSET): Pt | null {
+export function rotateKnobPosition(points: Pt[], scale: number, offset = KNOB_OFFSET, side: KnobSide = "right"): Pt | null {
   const lt = points?.[0], rt = points?.[2], rb = points?.[4];
   if (!lt || !rt || !rb) return null;
   const s = scale > 0 && Number.isFinite(scale) ? scale : 1;
@@ -111,8 +116,47 @@ export function rotateKnobPosition(points: Pt[], scale: number, offset = KNOB_OF
   if (!along[0] && !along[1]) along = [1, 0];
   if (!up[0] && !up[1]) up = [-along[1], along[0]] as Pt;
   const d = offset / s;
-  const pos: Pt = [rt[0] + (along[0] + up[0]) * d, rt[1] + (along[1] + up[1]) * d];
+  const pos: Pt =
+    side === "left"
+      ? [lt[0] + (up[0] - along[0]) * d, lt[1] + (up[1] - along[1]) * d]
+      : [rt[0] + (along[0] + up[0]) * d, rt[1] + (along[1] + up[1]) * d];
   return Number.isFinite(pos[0]) && Number.isFinite(pos[1]) ? pos : null;
+}
+
+/** Which top corner of the note the knob sits outside. */
+export type KnobSide = "right" | "left";
+
+/**
+ * The corner for the knob: the top-right one unless something covers it there
+ * (or it is off screen) and the top-left one is clear. `clearAt(side)` says how
+ * many of the knob's sample points are clear on that side, out of `of`; when
+ * neither side is wholly clear, the side with more clear points wins, the right
+ * one on a tie.
+ */
+export function chooseKnobSide(clearAt: (side: KnobSide) => number, of: number): KnobSide {
+  const right = clearAt("right");
+  if (right >= of) return "right";
+  const left = clearAt("left");
+  return left > right ? "left" : "right";
+}
+
+/**
+ * How many of the points (client px) show the slate itself, not something laid
+ * over it: inside the window, and the topmost element there is inside `canvas`
+ * (the slate's own drawing). A host panel over the canvas, the bird's-eye view, or
+ * the canvas clipped under a panel beside it, makes a point not clear.
+ */
+export function clearPoints(points: { x: number; y: number }[], canvas: Element | null | undefined): number {
+  if (typeof document === "undefined" || typeof document.elementFromPoint !== "function" || !canvas) return points.length;
+  const vw = window.innerWidth || 0;
+  const vh = window.innerHeight || 0;
+  let clear = 0;
+  for (const p of points) {
+    if (!(p.x >= 0 && p.y >= 0 && p.x <= vw && p.y <= vh)) continue;
+    const top = document.elementFromPoint(p.x, p.y);
+    if (top && canvas.contains(top)) clear += 1;
+  }
+  return clear;
 }
 
 export interface KnobMetrics {
@@ -256,7 +300,11 @@ export function layoutRotateKnob(group: any, points: Pt[], s: number) {
   }
   el.removeAttribute("display");
   el.setAttribute("data-knob-size", String(m.size));
-  const pos = rotateKnobPosition(points, s, m.offset);
+  // The side is kept while the knob is held, so it never jumps from under the pointer.
+  const held = el.getAttribute("data-state") === "active";
+  const side: KnobSide = held && el.getAttribute("data-knob-side") === "left" ? "left" : held ? "right" : knobSide(el, points, s, m);
+  el.setAttribute("data-knob-side", side);
+  const pos = rotateKnobPosition(points, s, m.offset, side);
   if (!pos) return;
   const [cx, cy] = pos;
   const grow = el.getAttribute("data-state") ? 1.1 : 1;
@@ -269,6 +317,31 @@ export function layoutRotateKnob(group: any, points: Pt[], s: number) {
   // The icon is drawn in lucide's 24-unit box, at 4/7 of the knob (16px on the 28px knob).
   const k = ((m.size * 4) / 7) * grow / 24 / s;
   icon?.attr({ transform: `translate(${cx - 12 * k} ${cy - 12 * k}) scale(${k})` });
+}
+
+/**
+ * The corner where the knob can be seen: its centre and the four edge points of
+ * its circle, mapped to the screen, are checked against what the page draws there.
+ */
+function knobSide(el: SVGGElement, points: Pt[], s: number, m: KnobMetrics): KnobSide {
+  try {
+    const ctm = (el as any).getScreenCTM?.() as DOMMatrix | null;
+    // The slate's own drawing: the outermost <svg> (notes nest their own).
+    let canvas = (el as any).ownerSVGElement as SVGSVGElement | null;
+    while (canvas?.ownerSVGElement) canvas = canvas.ownerSVGElement;
+    if (!ctm || !canvas) return "right";
+    const r = m.size / 2;
+    const samples = (side: KnobSide) => {
+      const pos = rotateKnobPosition(points, s, m.offset, side);
+      if (!pos) return [];
+      const x = ctm.a * pos[0] + ctm.c * pos[1] + ctm.e;
+      const y = ctm.b * pos[0] + ctm.d * pos[1] + ctm.f;
+      return [{ x, y }, { x: x - r, y }, { x: x + r, y }, { x, y: y - r }, { x, y: y + r }];
+    };
+    return chooseKnobSide((side) => clearPoints(samples(side), canvas), 5);
+  } catch {
+    return "right";
+  }
 }
 
 /**

@@ -422,3 +422,48 @@ for (const zoom of [0.5, 1]) {
     expect(r.barBottom).toBeGreaterThan(r.knobTop - 12);
   });
 }
+
+test("a host side panel over the top-right corner sends the knob to the top-left corner, where it still turns the note", async ({ page }) => {
+  await mount(page, undefined, undefined, { w: 160, h: 100 });
+  await select(page);
+  const before = await measure(page);
+  expect(await page.locator("g.svg_select_handle_rot").getAttribute("data-knob-side")).toBe("right");
+  // A side panel (like Ask Slatebox) laid over the canvas from just right of the note's corner.
+  await page.evaluate((left) => {
+    const panel = document.createElement("aside");
+    panel.id = "side-panel";
+    panel.style.cssText = `position:fixed;top:0;bottom:0;left:${left}px;right:0;z-index:10;background:#eef`;
+    document.body.append(panel);
+  }, Math.round(before.corner.x + 6));
+  await select(page);
+  const m = await measure(page);
+  expect(await page.locator("g.svg_select_handle_rot").getAttribute("data-knob-side")).toBe("left");
+  const lt = await page.evaluate(() => {
+    const poly = document.querySelector(".svg_select_shape") as SVGPolygonElement;
+    const p = poly.points.getItem(0).matrixTransform(poly.getScreenCTM()!);
+    return { x: p.x, y: p.y };
+  });
+  // Outside the top-left corner, as far out as it was on the right, and nothing over it.
+  expect(m.knob.x).toBeLessThan(lt.x - 10);
+  expect(m.knob.y).toBeLessThan(lt.y - 10);
+  expect(Math.abs(lt.x - m.knob.x - (before.knob.x - before.corner.x))).toBeLessThan(1.5);
+  expect(m.onTop).toBe(true);
+  expect(m.plugGap === null || m.plugGap > 30).toBe(true);
+
+  // It turns the note from there, and keeps its side while held.
+  await page.mouse.move(m.knob.x, m.knob.y);
+  await page.mouse.down();
+  for (const deg of [10, 20, 30]) {
+    const p = around(m.centre, m.knob, deg);
+    await page.mouse.move(p.x, p.y, { steps: 3 });
+  }
+  expect(await page.locator("g.svg_select_handle_rot").getAttribute("data-knob-side")).toBe("left");
+  const live = await measure(page);
+  expect(Math.abs(live.angle - 30)).toBeLessThanOrEqual(1);
+  await page.mouse.up();
+
+  // With the panel gone, the knob is back at the top-right corner.
+  await page.evaluate(() => document.getElementById("side-panel")?.remove());
+  await select(page);
+  expect(await page.locator("g.svg_select_handle_rot").getAttribute("data-knob-side")).toBe("right");
+});

@@ -2827,8 +2827,9 @@ export class Slate {
       if (!el || !(el as any).isConnected) return;
       const r = el.getBoundingClientRect();
       if (!(r.width > 0 && r.height > 0)) return;
-      // The rotate knob sits just outside the top-right corner: it counts too.
-      if (r.right < rect.left - 4 || r.left > rect.right + KNOB_REACH) return;
+      // The rotate knob sits just outside the top-right corner (the top-left one when
+      // the right one is covered): it counts too.
+      if (r.right < rect.left - KNOB_REACH || r.left > rect.right + KNOB_REACH) return;
       if (r.top < rect.top - 120 * Math.max(1, zoom) || r.top > rect.bottom) return;
       top = Math.min(top, r.top);
     };

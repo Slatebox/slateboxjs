@@ -8,6 +8,8 @@ import {
   shortSidePx,
   normalizeAngle,
   rotateKnobPosition,
+  chooseKnobSide,
+  clearPoints,
   rotationFromPointer,
   snapAngle,
 } from "../../src/core/RotateKnob";
@@ -143,5 +145,58 @@ describe("knob size for small notes", () => {
     const turned = box(160, 68).map(([x, y]) => [-y, x]) as Array<[number, number]>;
     expect(shortSidePx(turned, 2)).toBeCloseTo(136);
     expect(shortSidePx([], 1)).toBe(Infinity);
+  });
+});
+
+describe("the knob's corner when the right one is covered (a host side panel)", () => {
+  const box = (w: number, h: number) =>
+    [
+      [0, 0], [w / 2, 0], [w, 0], [w, h / 2], [w, h], [w / 2, h], [0, h], [0, h / 2],
+    ] as Array<[number, number]>;
+
+  it("the left side sits outside the top-left corner, as far out as the right one", () => {
+    for (const zoom of [0.5, 1, 2]) {
+      const [x, y] = rotateKnobPosition(box(160, 68), zoom, KNOB_OFFSET, "left")!;
+      expect(x * zoom).toBeCloseTo(-KNOB_OFFSET);
+      expect(y * zoom).toBeCloseTo(-KNOB_OFFSET);
+    }
+  });
+
+  it("the left side turns with the note", () => {
+    // Rotated 90° clockwise about the origin: (x, y) -> (-y, x); top-left stays at the origin,
+    // "along" is +y and "up" is +x, so the knob is at (+offset, -offset).
+    const pts = box(160, 68).map(([x, y]) => [-y, x]) as Array<[number, number]>;
+    const [x, y] = rotateKnobPosition(pts, 1, KNOB_OFFSET, "left")!;
+    expect(x).toBeCloseTo(KNOB_OFFSET);
+    expect(y).toBeCloseTo(-KNOB_OFFSET);
+  });
+
+  it("keeps the right corner when it is clear, flips left only when left is clearer", () => {
+    expect(chooseKnobSide(() => 5, 5)).toBe("right");
+    expect(chooseKnobSide((s) => (s === "right" ? 0 : 5), 5)).toBe("left");
+    expect(chooseKnobSide((s) => (s === "right" ? 2 : 3), 5)).toBe("left");
+    // Both covered alike (or the left worse): it stays right.
+    expect(chooseKnobSide(() => 0, 5)).toBe("right");
+    expect(chooseKnobSide((s) => (s === "right" ? 3 : 1), 5)).toBe("right");
+  });
+
+  it("a point is clear only where the slate's own drawing is on top, inside the window", () => {
+    const canvas = document.createElement("div");
+    const inside = document.createElement("span");
+    canvas.appendChild(inside);
+    const panel = document.createElement("aside");
+    document.body.append(canvas, panel);
+    const original = document.elementFromPoint;
+    // A side panel over everything right of x = 300.
+    (document as any).elementFromPoint = (x: number) => (x > 300 ? panel : inside);
+    try {
+      expect(clearPoints([{ x: 100, y: 10 }, { x: 200, y: 10 }], canvas)).toBe(2);
+      expect(clearPoints([{ x: 290, y: 10 }, { x: 310, y: 10 }], canvas)).toBe(1);
+      expect(clearPoints([{ x: -5, y: 10 }, { x: 100, y: -1 }], canvas)).toBe(0);
+    } finally {
+      (document as any).elementFromPoint = original;
+      canvas.remove();
+      panel.remove();
+    }
   });
 });
