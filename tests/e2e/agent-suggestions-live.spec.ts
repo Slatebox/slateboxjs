@@ -122,11 +122,29 @@ test.describe("agent suggestions, live on two screens", () => {
       await viewer.screenshot({ path: `${shots}/engine-ghosts-viewer.png` });
     }
 
-    // Only the editor has Keep and Discard; the viewer sees the same ghosts with none.
-    await expect(editor.locator("[data-suggestion-button]")).toHaveCount(8);
+    // One answer is one group: a frame round its new notes, one tag, one Keep all / Discard all.
+    for (const page of pages) {
+      await expect(page.locator("[data-suggestion-frame]")).toHaveCount(1);
+      await expect(page.locator("[data-suggestion-tag]")).toHaveCount(2); // the group's, and the removal's on its real note
+      await expect(page.locator("[data-suggestion-group] > [data-suggestion-tag]").first()).toContainText("Ada's agent · via Claude · 2 notes");
+    }
+    // Only the editor has buttons: Keep all / Discard all, the removal's Remove / Discard, and each
+    // ghost's own Keep / Discard (shown under the pointer); the line has none. The viewer has none.
+    await expect(editor.locator('[data-suggestion-button="keep-all"]')).toBeVisible();
+    await expect(editor.locator('[data-suggestion-button="discard-all"]')).toBeVisible();
+    await expect(editor.locator('[data-suggestion="link:brief->idea1"] [data-suggestion-button]')).toHaveCount(0);
+    await expect(editor.locator('[data-suggestion="add:idea1"] [data-suggestion-button="keep"]')).toBeHidden();
     await expect(viewer.locator("[data-suggestion-button]")).toHaveCount(0);
+    // No label covers another.
+    const groups = await editor.evaluate(() => (window as any).ghosts.groups());
+    expect(groups).toHaveLength(1);
+    const hit = (a: any, b: any) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    expect(hit(groups[0].tag, groups[0].all)).toBe(false);
 
-    // ---- Keep, right on the ghost (a real click on its button) ---------------------------------
+    // ---- Keep, right on the ghost: the pointer over it shows its own buttons (a real click) -----
+    await editor.locator('[data-suggestion-hit="add:idea1"]').hover();
+    await expect(editor.locator('[data-suggestion="add:idea1"] [data-suggestion-button="keep"]')).toBeVisible();
+    if (shots) await editor.screenshot({ path: `${shots}/engine-ghost-hover.png` });
     await editor.locator('[data-suggestion="add:idea1"] [data-suggestion-button="keep"]').click();
     for (const page of pages) {
       await expect.poll(() => notesOn(page)).toEqual(["brief", "ghost-idea2", "idea1", "old"]);
@@ -134,7 +152,8 @@ test.describe("agent suggestions, live on two screens", () => {
     }
     if (shots) await viewer.screenshot({ path: `${shots}/engine-kept-on-viewer.png` });
 
-    // ---- Discard, right on the ghost -------------------------------------------------------------
+    // ---- Discard, right on the ghost (by keyboard: focus shows its buttons) ----------------------
+    await editor.locator('[data-suggestion-hit="add:idea2"]').focus();
     await editor.locator('[data-suggestion="add:idea2"] [data-suggestion-button="discard"]').click();
     for (const page of pages) {
       await expect.poll(() => notesOn(page)).toEqual(["brief", "idea1", "old"]);

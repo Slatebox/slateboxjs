@@ -72,10 +72,13 @@ describe('agent suggestions: ghosts in place', () => {
     expect(policy.governs(slate.nodes.one('ghost-idea1'))).toMatchObject({ canMove: false, canEditText: false, persist: false, exportable: false })
     expect(policy.governs(slate.nodes.one('brief'))).toBeNull()
     const shown = suggestions.shown()
+    // A line carries no buttons: it is kept with both its ends and goes with either.
     expect(shown.map(item => [item.itemId, item.kind, item.controls])).toEqual([
-      ['add:idea1', 'add', true], ['add:idea2', 'add', true], ['link:l1', 'link', true], ['update:brief', 'update', true], ['remove:old', 'remove', true],
+      ['add:idea1', 'add', true], ['add:idea2', 'add', true], ['link:l1', 'link', false], ['update:brief', 'update', true], ['remove:old', 'remove', true],
     ])
     expect(shown[0].box).toEqual({ x: 300, y: 100, w: 160, h: 80 })
+    // The action's frame: around its new notes (300..680 × 100..180), padded
+    expect(shown[0].frame).toEqual({ x: 286, y: 86, w: 408, h: 108 })
     const layer = slate.host.querySelector('[data-agent-suggestions]')!
     expect(layer.querySelectorAll('[data-suggestion-outline]')).toHaveLength(4)
     // Drawn for the view only: no export keeps it (Export removes [data-export-never]).
@@ -104,6 +107,11 @@ describe('agent suggestions: ghosts in place', () => {
     const layer = () => slate.host.querySelector('[data-agent-suggestions]')!
     const press = (item: string, which: 'keep' | 'discard') =>
       (layer().querySelector(`[data-suggestion="${item}"] [data-suggestion-button="${which}"]`) as SVGElement).dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    // a ghost's own buttons wait for the pointer (or focus)
+    const ghostButtons = () => layer().querySelector('[data-suggestion="add:idea1"] [data-suggestion-controls]') as SVGGElement
+    expect(ghostButtons().style.display).toBe('none')
+    layer().querySelector('[data-suggestion="add:idea1"]')!.dispatchEvent(new Event('pointerenter'))
+    expect(ghostButtons().style.display).toBe('')
     press('add:idea1', 'keep')
     press('add:idea2', 'discard')
     press('remove:old', 'keep')
@@ -145,6 +153,77 @@ describe('agent suggestions: ghosts in place', () => {
     suggestions.set([])
     expect(slate.host.querySelector('[data-agent-suggestions]')).toBeNull()
     suggestions.destroy(); other.destroy()
+  })
+
+  it('one action is one group: one frame, one tag with what it suggests, one Keep all / Discard all, no buttons on lines', async () => {
+    const slate = fakeSlate({ brief: { x: 40, y: 100, width: 160, height: 80 } })
+    const calls: string[] = []
+    const suggestions = createAgentSuggestions(slate, { toNode, canAct: () => true, onKeepAll: id => calls.push('keep all ' + id), onDiscardAll: id => calls.push('discard all ' + id), onKeep: ref => calls.push('keep ' + ref.itemId) })
+    const three = action({
+      label: 'Excalidraw', origin: 'invited', invitedBy: 'Tim', via: null,
+      items: [
+        { id: 'a', kind: 'add', state: 'pending', nodeId: 'a', node: v1('a', 'Idea', 300, 100) },
+        { id: 'b', kind: 'add', state: 'pending', nodeId: 'b', node: v1('b', 'Build', 500, 100) },
+        { id: 'c', kind: 'add', state: 'pending', nodeId: 'c', node: v1('c', 'Ship', 700, 100) },
+        { id: 'ab', kind: 'link', state: 'pending', parentId: 'a', association: { id: 'ab', parentId: 'a', childId: 'b' } },
+        { id: 'bc', kind: 'link', state: 'pending', parentId: 'b', association: { id: 'bc', parentId: 'b', childId: 'c' } },
+      ],
+    })
+    suggestions.set([three])
+    const layer = slate.host.querySelector('[data-agent-suggestions]')!
+    expect(layer.querySelectorAll('[data-suggestion-frame]')).toHaveLength(1)
+    const tags = [...layer.querySelectorAll('[data-suggestion-tag]')]
+    expect(tags).toHaveLength(1)
+    expect(tags[0].textContent).toContain('Excalidraw · added by Tim · 3 notes, 2 lines')
+    expect(layer.querySelectorAll('[data-suggestion-button="keep-all"]')).toHaveLength(1)
+    expect(layer.querySelectorAll('[data-suggestion-button="discard-all"]')).toHaveLength(1)
+    expect(layer.querySelectorAll('[data-suggestion="ab"] [data-suggestion-button], [data-suggestion="bc"] [data-suggestion-button]')).toHaveLength(0)
+    // only the ghost under the pointer shows its own buttons
+    const visible = () => [...layer.querySelectorAll('[data-suggestion-controls]')].filter(el => (el as SVGGElement).style.display !== 'none').map(el => el.getAttribute('data-suggestion-controls'))
+    expect(visible()).toEqual([])
+    layer.querySelector('[data-suggestion="b"]')!.dispatchEvent(new Event('pointerenter'))
+    expect(visible()).toEqual(['b'])
+    layer.querySelector('[data-suggestion="b"]')!.dispatchEvent(new Event('pointerleave'))
+    expect(visible()).toEqual([])
+    // keyboard: focus on a ghost's box shows its buttons
+    ;(layer.querySelector('[data-suggestion-hit="c"]') as SVGElement).dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    expect(visible()).toEqual(['c'])
+    const click = (sel: string) => (layer.querySelector(sel) as SVGElement).dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    click('[data-suggestion-button="keep-all"]')
+    click('[data-suggestion-button="discard-all"]')
+    expect(calls).toEqual(['keep all act1', 'discard all act1'])
+    const [g] = suggestions.groups()
+    expect(g.words).toBe('3 notes, 2 lines')
+    suggestions.destroy()
+  })
+
+  it('tags and Keep all of groups side by side never overlap each other or another frame', async () => {
+    const slate = fakeSlate()
+    const suggestions = createAgentSuggestions(slate, { toNode, canAct: () => true })
+    // two answers stacked close together: the second's tag would sit on the first's Keep all
+    const one = action({ actionId: 'one', items: [{ id: 'a', kind: 'add', state: 'pending', nodeId: 'a', node: v1('a', 'Idea', 100, 100) }, { id: 'b', kind: 'add', state: 'pending', nodeId: 'b', node: v1('b', 'Build', 300, 100) }] })
+    const two = action({ actionId: 'two', label: 'GitHub', items: [{ id: 'c', kind: 'add', state: 'pending', nodeId: 'c', node: v1('c', 'abc1234 Fix', 100, 240) }, { id: 'd', kind: 'add', state: 'pending', nodeId: 'd', node: v1('d', 'bcd2345 Faster', 300, 240) }] })
+    suggestions.set([one, two])
+    const groups = suggestions.groups()
+    expect(groups).toHaveLength(2)
+    const hit = (a: any, b: any) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+    const labels = groups.flatMap(g => [g.tag, g.all].filter(Boolean))
+    for (let i = 0; i < labels.length; i++) for (let j = i + 1; j < labels.length; j++) expect(hit(labels[i], labels[j])).toBe(false)
+    for (const g of groups) for (const other of groups) if (other !== g) {
+      expect(hit(g.tag, other.frame)).toBe(false)
+      expect(hit(g.all, other.frame)).toBe(false)
+    }
+    suggestions.destroy()
+  })
+
+  it('Keep all without the host\'s own keeps each note in turn (lines follow their ends)', () => {
+    const slate = fakeSlate({ brief: { x: 40, y: 100, width: 160, height: 80 }, old: { x: 40, y: 300, width: 160, height: 80 } })
+    const calls: string[] = []
+    const suggestions = createAgentSuggestions(slate, { toNode, canAct: () => true, onKeep: ref => calls.push(ref.itemId) })
+    suggestions.set([action()])
+    suggestions.keepAll('act1')
+    expect(calls).toEqual(['add:idea1', 'add:idea2', 'update:brief', 'remove:old'])
+    suggestions.destroy()
   })
 
   it('takes either engine shape: the v1 facade (slate.v2) or the v2 slate', () => {
