@@ -32,7 +32,8 @@ async function openSlate(context: BrowserContext, name: string, canAct: boolean)
     w.who = name;
     slate.v2.nodes.add({ id: "brief", text: "Checkout: card declines", x: 60, y: 120, width: 200, height: 100 });
     slate.v2.nodes.add({ id: "old", text: "Email the customer", x: 60, y: 360, width: 200, height: 90 });
-    const { createAgentSuggestions, createAgentPresence } = await import("/src/core/AgentPresence.ts");
+    const { createAgentPresence } = await import("/src/core/AgentPresence.ts");
+    const { createAgentSuggestions } = await import("/src/core/AgentSuggestions.ts");
     w.calls = [];
     w.ghosts = createAgentSuggestions(slate, {
       canAct: () => canAct,
@@ -140,6 +141,20 @@ test.describe("agent suggestions, live on two screens", () => {
     expect(groups).toHaveLength(1);
     const hit = (a: any, b: any) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
     expect(hit(groups[0].tag, groups[0].all)).toBe(false);
+    // The agent's own tag keeps off the group's tag and its Keep all / Discard all, wherever it points.
+    const labels = (page: Page) => page.evaluate(() => {
+      const box = (el: Element) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height } };
+      return {
+        agent: [...document.querySelectorAll("[data-agent-tag]")].map(box),
+        groups: [...document.querySelectorAll("[data-suggestion-tag], [data-suggestion-all]")].map(box),
+      };
+    });
+    for (const page of pages) {
+      await expect.poll(async () => {
+        const { agent, groups: drawn } = await labels(page);
+        return agent.length === 1 && drawn.length >= 2 && !drawn.some((g) => hit(agent[0], g));
+      }).toBe(true);
+    }
 
     // ---- Keep, right on the ghost: the pointer over it shows its own buttons (a real click) -----
     await editor.locator('[data-suggestion-hit="add:idea1"]').hover();
@@ -166,5 +181,105 @@ test.describe("agent suggestions, live on two screens", () => {
 
     await sam.close();
     await vi.close();
+  });
+});
+
+// A phone: no hover, so a tap on a ghost shows its own Keep and Discard and another tap hides them. The host keeps
+// publishing (every change to any suggestion reaches every page) while the finger is down and after: that must neither
+// replace the ghost under the finger nor hide what the tap showed. Run on chromium and webkit (touch).
+test.describe("agent suggestions on a touch screen", () => {
+  test.use({ hasTouch: true, viewport: { width: 390, height: 760 } });
+
+  test("a tap shows a ghost's own Keep and Discard, through the host publishing again; another tap hides them", async ({ page }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    await page.evaluate(async () => {
+      const w = window as any;
+      const div = document.getElementById("app")!;
+      div.style.width = "390px";
+      div.style.height = "700px";
+      const slate = await new w.Slatebox.slate({ container: "app", id: "touch-ghosts" }, {}).init();
+      w.slate = slate;
+      slate.v2.nodes.add({ id: "brief", text: "Checkout", x: 20, y: 20, width: 160, height: 80 });
+      const { createAgentPresence } = await import("/src/core/AgentPresence.ts");
+      const { createAgentSuggestions } = await import("/src/core/AgentSuggestions.ts");
+      // Notes big enough on a phone's zoomed-out view that a finger can tap a ghost beside its own buttons.
+      const node = (id: string, text: string, x: number, y: number) => ({ options: { id, text, xPos: x, yPos: y, width: 420, height: 260 }, relationships: { associations: [] } });
+      w.action = {
+        actionId: "act-1", agentId: "ag-1", label: "Exa", initial: "E", colorIndex: 3, origin: "invited", invitedBy: "Ada", items: [
+          { id: "add:a", kind: "add", state: "pending", nodeId: "a", node: node("a", "Retry later", 20, 200) },
+          { id: "add:b", kind: "add", state: "pending", nodeId: "b", node: node("b", "Other card", 20, 560) },
+          { id: "link:ab", kind: "link", state: "pending", parentId: "a", association: { id: "ab", parentId: "a", childId: "b" } },
+        ],
+      };
+      w.kept = [];
+      w.ghosts = createAgentSuggestions(slate, { canAct: () => true, onKeep: (ref: any) => w.kept.push(ref.itemId) });
+      w.ghosts.set([structuredClone(w.action)]);
+      w.pointers = createAgentPresence(slate.v2, { reducedMotion: () => true });
+      w.pointers.set([{ agentKey: "run-1", agentId: "ag-1", label: "Exa", initial: "E", colorIndex: 3, origin: "invited", invitedBy: "Ada",
+        targets: ["ghost-a", "ghost-b"], status: "live", step: "Done", updatedAt: Date.now(), expiresAt: Date.now() + 60_000 }]);
+      // The host publishing the same records again and again, as a busy slate's subscription does.
+      w.republish = setInterval(() => w.ghosts.set([structuredClone(w.action)]), 30);
+    });
+    const shown = () => page.evaluate(() => [...document.querySelectorAll("[data-suggestion-controls]")]
+      .filter((el) => (el as SVGGElement).style.display !== "none").map((el) => el.getAttribute("data-suggestion-controls")));
+    const hitA = page.locator('[data-suggestion-hit="add:a"]');
+    await expect(hitA).toHaveCount(1);
+    expect(await shown()).toEqual([]);
+    await hitA.tap();
+    await expect.poll(shown).toEqual(["add:a"]);
+    await expect(page.locator('[data-suggestion-controls="add:a"] [data-suggestion-button="keep"]')).toBeVisible();
+    // Still shown after many more publishes: wait for a fixed number of them, not for time.
+    await page.evaluate(() => new Promise<void>((resolve) => {
+      const w = window as any;
+      let left = 10;
+      const set = w.ghosts.set;
+      w.ghosts.set = (next: any) => { set(next); if (--left === 0) { w.ghosts.set = set; resolve(); } };
+    }));
+    expect(await shown()).toEqual(["add:a"]);
+    // Another tap on it hides them (on its top left: its buttons sit at its bottom right); a tap on the other ghost shows its own.
+    await hitA.tap({ position: { x: 12, y: 12 } });
+    await expect.poll(shown).toEqual([]);
+    await page.locator('[data-suggestion-hit="add:b"]').tap({ position: { x: 12, y: 12 } });
+    await expect.poll(shown).toEqual(["add:b"]);
+    // Its Keep works by touch too.
+    await page.locator('[data-suggestion-controls="add:b"] [data-suggestion-button="keep"]').tap();
+    await expect.poll(() => page.evaluate(() => (window as any).kept)).toEqual(["add:b"]);
+    await page.evaluate(() => clearInterval((window as any).republish));
+  });
+
+  test("a tap on a ghost smaller than its buttons shows them and presses none of them (the click after the tap lands on them)", async ({ page }) => {
+    await page.goto("/test.html");
+    await page.waitForFunction(() => (window as any).Slatebox);
+    await page.evaluate(async () => {
+      const w = window as any;
+      const div = document.getElementById("app")!;
+      div.style.width = "390px";
+      div.style.height = "700px";
+      const slate = await new w.Slatebox.slate({ container: "app", id: "small-ghost" }, {}).init();
+      const { createAgentSuggestions } = await import("/src/core/AgentSuggestions.ts");
+      w.calls = [];
+      const ghosts = createAgentSuggestions(slate, { canAct: () => true, onKeep: (ref: any) => w.calls.push("keep " + ref.itemId), onDiscard: (ref: any) => w.calls.push("discard " + ref.itemId) });
+      // A phone's zoomed-out view: the ghost is smaller on screen than its Keep and Discard.
+      ghosts.set([{ actionId: "act-1", label: "Exa", colorIndex: 3, items: [
+        { id: "add:a", kind: "add", state: "pending", nodeId: "a", node: { options: { id: "a", text: "Idea", xPos: 40, yPos: 200, width: 150, height: 80 } } },
+      ] }]);
+    });
+    const hit = page.locator('[data-suggestion-hit="add:a"]');
+    // The buttons, once shown, cover the ghost's middle: that is where the browser's click for the tap lands.
+    const covers = await page.evaluate(() => {
+      const hitBox = document.querySelector('[data-suggestion-hit="add:a"]')!.getBoundingClientRect();
+      const row = document.querySelector('[data-suggestion-controls="add:a"]') as SVGGElement;
+      row.style.display = ""; row.style.visibility = "";
+      const r = row.getBoundingClientRect();
+      row.style.display = "none"; row.style.visibility = "hidden";
+      return r.width > hitBox.width;
+    });
+    expect(covers).toBe(true);
+    await hit.tap();
+    await expect(page.locator('[data-suggestion-controls="add:a"] [data-suggestion-button="discard"]')).toBeVisible();
+    // The tap's click is done once a second tap's events have come and gone; nothing was kept or discarded.
+    await page.locator("#app").tap({ position: { x: 380, y: 20 } });
+    expect(await page.evaluate(() => (window as any).calls)).toEqual([]);
   });
 });

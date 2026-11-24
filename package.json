@@ -93,6 +93,11 @@
       "import": "./dist/presence.mjs",
       "require": "./dist/presence.cjs"
     },
+    "./suggestions": {
+      "types": "./dist/core/AgentSuggestions.d.ts",
+      "import": "./dist/suggestions.mjs",
+      "require": "./dist/suggestions.cjs"
+    },
     "./canvas": {
       "types": "./dist/canvas.d.ts",
       "import": "./dist/canvas.mjs",
@@ -107,6 +112,7 @@
     "boards",
     "dragology",
     "presence",
+    "suggestions",
     "catalog",
     "licenses",
     "canvas"

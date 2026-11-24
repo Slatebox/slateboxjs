@@ -265,6 +265,98 @@ describe('agent suggestions: ghosts in place', () => {
     suggestions.destroy()
   })
 
+  it('the host publishing the same suggestions again redraws nothing: a tapped ghost keeps its element and its buttons', async () => {
+    const slate = fakeSlate()
+    const suggestions = createAgentSuggestions(slate, { toNode, canAct: () => true })
+    const one = action({ items: [action().items[0], action().items[1]] })
+    suggestions.set([one])
+    await Promise.resolve(); await Promise.resolve()
+    const layer = slate.host.querySelector('[data-agent-suggestions]')!
+    const hitOf = (id: string) => layer.querySelector(`[data-suggestion-hit="${id}"]`)!
+    const shown = () => [...layer.querySelectorAll('[data-suggestion-controls]')].filter(el => (el as SVGGElement).style.display !== 'none').map(el => el.getAttribute('data-suggestion-controls'))
+    const before = hitOf('add:idea1')
+    const tap = (id: string, type = 'pointerup') => { const e = new Event(type, { bubbles: true }); Object.defineProperty(e, 'pointerType', { value: 'touch' }); hitOf(id).dispatchEvent(e) }
+    tap('add:idea1', 'pointerdown')
+    // every change to any suggestion reaches every page: the same records again, as new objects, mid-tap
+    suggestions.set([structuredClone(one)])
+    suggestions.set([structuredClone(one)])
+    expect(hitOf('add:idea1')).toBe(before)
+    tap('add:idea1')
+    expect(shown()).toEqual(['add:idea1'])
+    // a real change (another answer arrives) redraws, and the tapped ghost still shows its buttons
+    suggestions.set([structuredClone(one), action({ actionId: 'act2', items: [{ id: 'add:x', kind: 'add', state: 'pending', nodeId: 'x', node: v1('x', 'Other', 300, 400) }] })])
+    expect(hitOf('add:idea1')).not.toBe(before)
+    expect(shown()).toEqual(['add:idea1'])
+    suggestions.destroy()
+  })
+
+  it('a mouse that left a ghost while it was redrawn does not leave its buttons in the way of a tap', () => {
+    const slate = fakeSlate()
+    const suggestions = createAgentSuggestions(slate, { toNode, canAct: () => true })
+    const one = action({ items: [action().items[0], action().items[1]] })
+    suggestions.set([one])
+    const layer = () => slate.host.querySelector('[data-agent-suggestions]')!
+    const shown = () => [...layer().querySelectorAll('[data-suggestion-controls]')].filter(el => (el as SVGGElement).style.display !== 'none').map(el => el.getAttribute('data-suggestion-controls'))
+    const send = (id: string, type: string, pointerType: string) => { const e = new Event(type, { bubbles: true }); Object.defineProperty(e, 'pointerType', { value: pointerType }); layer().querySelector(`[data-suggestion-hit="${id}"]`)!.dispatchEvent(e) }
+    send('add:idea1', 'pointerenter', 'mouse')
+    expect(shown()).toEqual(['add:idea1'])
+    // redrawn under the mouse: the old element never hears it leave
+    suggestions.set([one, action({ actionId: 'act2', items: [{ id: 'add:x', kind: 'add', state: 'pending', nodeId: 'x', node: v1('x', 'Other', 300, 400) }] })])
+    // a tap on that same ghost shows its buttons (it does not take the mouse's for its own and hide them)
+    send('add:idea1', 'pointerup', 'touch')
+    expect(shown()).toEqual(['add:idea1'])
+    send('add:idea1', 'pointerup', 'touch')
+    expect(shown()).toEqual([])
+    // a tap on another ghost moves them there; the first ghost losing focus to it hides nothing
+    send('add:idea1', 'pointerup', 'touch')
+    send('add:idea2', 'pointerup', 'touch')
+    layer().querySelector('[data-suggestion="add:idea1"]')!.dispatchEvent(new FocusEvent('focusout', { relatedTarget: layer().querySelector('[data-suggestion-hit="add:idea2"]') }))
+    expect(shown()).toEqual(['add:idea2'])
+    suggestions.destroy()
+  })
+
+  it('the click that follows a tap does not press the button the tap just showed under the finger', () => {
+    const slate = fakeSlate()
+    const calls: string[] = []
+    const suggestions = createAgentSuggestions(slate, { toNode, canAct: () => true, onDiscard: ref => calls.push('discard ' + ref.itemId), onKeep: ref => calls.push('keep ' + ref.itemId) })
+    suggestions.set([action({ items: [action().items[0]] })])
+    const layer = slate.host.querySelector('[data-agent-suggestions]')!
+    const hit = layer.querySelector('[data-suggestion-hit="add:idea1"]')!
+    const discard = layer.querySelector('[data-suggestion-controls="add:idea1"] [data-suggestion-button="discard"]')!
+    const touch = (type: string) => { const e = new Event(type, { bubbles: true }); Object.defineProperty(e, 'pointerType', { value: 'touch' }); hit.dispatchEvent(e) }
+    touch('pointerdown'); touch('pointerup')
+    // the browser's click for that tap, at the same spot: now over the Discard the tap showed
+    discard.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }))
+    expect(calls).toEqual([])
+    // a tap on the button itself presses it
+    const press = new Event('pointerdown', { bubbles: true }); Object.defineProperty(press, 'pointerType', { value: 'touch' }); discard.dispatchEvent(press)
+    discard.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }))
+    expect(calls).toEqual(['discard add:idea1'])
+    // and a keyboard or screen reader activation (detail 0) still works
+    layer.querySelector('[data-suggestion-controls="add:idea1"] [data-suggestion-button="keep"]')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(calls).toEqual(['discard add:idea1', 'keep add:idea1'])
+    suggestions.destroy()
+  })
+
+  it('a redraw gives the focus back to the ghost (or button) that had it, and its buttons stay', () => {
+    const slate = fakeSlate()
+    const suggestions = createAgentSuggestions(slate, { toNode, canAct: () => true })
+    const one = action({ items: [action().items[0], action().items[1]] })
+    suggestions.set([one])
+    const layer = () => slate.host.querySelector('[data-agent-suggestions]')!
+    const shown = () => [...layer().querySelectorAll('[data-suggestion-controls]')].filter(el => (el as SVGGElement).style.display !== 'none').map(el => el.getAttribute('data-suggestion-controls'))
+    ;(layer().querySelector('[data-suggestion-hit="add:idea2"]') as SVGElement).focus()
+    expect(shown()).toEqual(['add:idea2'])
+    suggestions.set([one, action({ actionId: 'act2', items: [{ id: 'add:x', kind: 'add', state: 'pending', nodeId: 'x', node: v1('x', 'Other', 300, 400) }] })])
+    expect(document.activeElement?.getAttribute('data-suggestion-hit')).toBe('add:idea2')
+    expect(shown()).toEqual(['add:idea2'])
+    ;(layer().querySelector('[data-suggestion-all="act2"] [data-suggestion-button="discard-all"]') as SVGElement).focus()
+    suggestions.set([one, action({ actionId: 'act2', items: [{ id: 'add:x', kind: 'add', state: 'pending', nodeId: 'x', node: v1('x', 'Other, moved', 300, 400) }] })])
+    expect(document.activeElement?.closest('[data-suggestion-all]')?.getAttribute('data-suggestion-all')).toBe('act2')
+    expect(document.activeElement?.getAttribute('data-suggestion-button')).toBe('discard-all')
+    suggestions.destroy()
+  })
+
   it('a tag never sits on a real note: with every first spot covered, it takes the spot that covers least', () => {
     // real notes right above, below and inside the top edge of the frame's top left
     const slate = fakeSlate({ above: { x: 260, y: 40, width: 400, height: 40 }, below: { x: 260, y: 186, width: 400, height: 60 } })

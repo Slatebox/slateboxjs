@@ -25,13 +25,10 @@ import {
 
 export {
   AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, AGENT_SAY_MS, agentChecklist, agentName, agentOrigin, agentSaying, agentStepText, safeIconUrl,
-  visibleAgents, type AgentPresenceRecord, type AgentStepStatus,
+  visibleAgents, clip, plainLine, type AgentPresenceRecord, type AgentStepStatus,
 }
-// The live suggestions an agent makes (ghost notes with Keep and Discard) share this entry.
-export {
-  createAgentSuggestions, ghostIdOf, GHOST_PREFIX, pendingItems,
-  type AgentSuggestions, type AgentSuggestionsOptions, type SuggestionAction, type SuggestionItem, type SuggestionRef,
-} from './AgentSuggestions'
+// The live suggestions an agent makes (ghost frames, tags, Keep and Discard) are their own entry, slateboxjs/suggestions,
+// loaded when the first suggestion arrives; it takes the helpers below from this entry instead of carrying a copy.
 
 export interface AgentPresenceOptions {
   now?: () => number
@@ -68,13 +65,15 @@ export interface AgentPresence {
 export const AGENT_GLIDE_MS = 400
 /** One beat of a choreographed run: the pointer's leg to each spot when it visits several in turn. */
 export const AGENT_BEAT_MS = 450
-export const AGENT_VISIT_MS = AGENT_BEAT_MS
 export const AGENT_MAX_VISITS = 5
 const CARD_WIDTH = 240
 const NARROW = 600
 /** Where the tag starts from the pointer's tip, in screen pixels (past the avatar). */
 const TAG_DX = 40
 const TAG_DY = 30
+/** The suggestions' labels an agent's tag keeps off (drawn by slateboxjs/suggestions), and every line of words. */
+const LABELS = '[data-suggestion-tag], [data-suggestion-all]'
+const WORDS = 'text, ' + LABELS
 
 
 interface Drawn {
@@ -102,8 +101,46 @@ interface Drawn {
   routedFor?: string
 }
 
-interface Box { x: number; y: number; w: number; h: number }
-const overlap = (a: Box, b: Box) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y))
+export interface Box { x: number; y: number; w: number; h: number }
+/** How much of box a covers box b (area, world units). */
+export const overlap = (a: Box, b: Box) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y))
+/** A note's box in world units, or null. */
+export function boxOf(node: any): Box | null {
+  const o = node?.options
+  if (!o || ![o.x, o.y, o.width, o.height].every(value => typeof value === 'number' && Number.isFinite(value))) return null
+  return { x: o.x, y: o.y, w: o.width, h: o.height }
+}
+/** An agent's colour from its colorIndex (any integer). */
+export const agentColor = (index: unknown) => AGENT_PALETTE[(((Number(index) || 0) % AGENT_PALETTE.length) + AGENT_PALETTE.length) % AGENT_PALETTE.length]
+/** The agent mark: a hexagon's points, centred at (cx, cy) with radius r. */
+export const hexPoints = (cx: number, cy: number, r: number) => Array.from({ length: 6 }, (_, i) => {
+  const a = Math.PI / 6 + (i * Math.PI) / 3
+  return (cx + r * Math.cos(a)).toFixed(2) + ',' + (cy + r * Math.sin(a)).toFixed(2)
+}).join(' ')
+/**
+ * Screen pixels per world unit as the canvas element fits its view box (preserveAspectRatio: "slice" crops the longer
+ * side, "meet" or none adds room around it), with the view box; null when the canvas has no size yet.
+ */
+export function screenScale(slate: any): { box: { x: number; y: number; width: number; height: number }; rect: DOMRect; scale: number } | null {
+  try {
+    const box = slate.canvas.viewbox()
+    const rect = slate.canvas.node?.getBoundingClientRect?.()
+    if (!box?.width || !box?.height || !rect?.width || !rect?.height) return null
+    const fit = String(slate.canvas.node?.getAttribute?.('preserveAspectRatio') || 'xMidYMid meet')
+    const sx = rect.width / box.width, sy = rect.height / box.height
+    return { box, rect, scale: fit === 'none' ? sx : /slice/.test(fit) ? Math.max(sx, sy) : Math.min(sx, sy) }
+  } catch { return null }
+}
+/** The canvas's scale, else the pan-zoom's, else 1. */
+export function canvasZoom(slate: any): number {
+  const shown = screenScale(slate)
+  if (shown) return shown.scale
+  try {
+    const z = slate.getZoom?.()
+    if (typeof z === 'number' && z > 0) return z
+  } catch { /* no pan-zoom yet */ }
+  return 1
+}
 
 /**
  * Which side of its pointer an agent's tag (and open checklist) goes: right and down unless that
@@ -143,14 +180,9 @@ export function agentTagPlaced(at: { x: number; y: number }, size: { w: number; 
   return box
 }
 
-/** The name a tag shows: the label, then where the agent comes from when the label does not say it already. */
-function tagLabel(record: AgentPresenceRecord): string {
-  return agentName(record)
-}
-
 /** The tag block an agent draws, in screen pixels: its tag, and its checklist when that shows. */
 function blockSize(record: AgentPresenceRecord, showList: boolean) {
-  const label = tagLabel(record)
+  const label = agentName(record)
   const step = agentStepText(record)
   const stepLine = step ? clip(step, 40) : ''
   // Bold 12px words take about 7px a letter, the 12px step about 6.8px: the tag is wide enough for both.
@@ -231,12 +263,9 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   // "meet" or none adds room around it), and screen pixels per world unit. Null when the canvas has no size yet.
   function shownBox(): { view: Box; scale: number } | null {
     try {
-      const box = slate.canvas.viewbox()
-      const rect = slate.canvas.node?.getBoundingClientRect?.()
-      if (!box?.width || !box?.height || !rect?.width || !rect?.height) return null
-      const fit = String(slate.canvas.node?.getAttribute?.('preserveAspectRatio') || 'xMidYMid meet')
-      const sx = rect.width / box.width, sy = rect.height / box.height
-      const scale = fit === 'none' ? sx : /slice/.test(fit) ? Math.max(sx, sy) : Math.min(sx, sy)
+      const fitted = screenScale(slate)
+      if (!fitted) return null
+      const { box, rect, scale } = fitted
       const w = rect.width / scale, h = rect.height / scale
       const full = { x: box.x + (box.width - w) / 2, y: box.y + (box.height - h) / 2, w, h }
       // A page may show only part of the canvas element (a host that clips it): the view is what is left of it.
@@ -255,15 +284,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       return { view: { x: full.x + (left - rect.left) / scale, y: full.y + (top - rect.top) / scale, w: (right - left) / scale, h: (bottom - top) / scale }, scale }
     } catch { return null }
   }
-  function zoom(): number {
-    const shown = shownBox()
-    if (shown) return shown.scale
-    try {
-      const z = slate.getZoom?.()
-      if (typeof z === 'number' && z > 0) return z
-    } catch { /* no pan-zoom yet */ }
-    return 1
-  }
+  const zoom = () => canvasZoom(slate)
   const screenWidth = () => {
     try { return slate.canvas.node?.getBoundingClientRect?.().width || (typeof window !== 'undefined' ? window.innerWidth : 1024) } catch { return 1024 }
   }
@@ -275,17 +296,12 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     if (!o || typeof o.x !== 'number' || typeof o.y !== 'number') return null
     return { x: o.x + (o.width || 0) / 2, y: o.y + (o.height || 0) / 2 }
   }
-  // A note's box in world units, or null.
-  function boxOf(node: any): Box | null {
-    const o = node?.options
-    if (!o || ![o.x, o.y, o.width, o.height].every(value => typeof value === 'number' && Number.isFinite(value))) return null
-    return { x: o.x, y: o.y, w: o.width, h: o.height }
-  }
   const noteOf = (id: string) => slate.nodes?.one?.(id) ?? slate.nodes?.allNodes?.find?.((n: any) => n?.options?.name === id)
   const noteBoxes = (): Box[] => (slate.nodes?.allNodes ?? []).map(boxOf).filter((box: Box | null): box is Box => Boolean(box))
   const sameBox = (a: Box, b: Box) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
   // Every line of words drawn on the canvas, as world boxes: notes' text, a board's figures and sentences, people's
-  // names, and the tags of agents other than `except`. Empty where the page cannot measure text (no layout).
+  // names, the tags of agents other than `except`, and the suggestions' tags and Keep all / Discard all (whole, so an
+  // agent's own tag never sits on a group's). Empty where the page cannot measure text (no layout).
   function wordBoxes(except?: string): Box[] {
     try {
       const svg = slate.canvas?.node as SVGSVGElement | undefined
@@ -293,7 +309,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       if (!svg || !matrix) return []
       const own = except ? layer?.node?.querySelector?.(`[data-agent="${CSS.escape(except)}"]`) : null
       const boxes: Box[] = []
-      for (const text of svg.querySelectorAll('text')) {
+      for (const text of svg.querySelectorAll(WORDS)) {
         if (own?.contains(text) || !text.textContent?.trim()) continue
         const rect = text.getBoundingClientRect()
         if (rect.width < 1 || rect.height < 1) continue
@@ -307,6 +323,15 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   // Where the notes are, as a key: a note that moved or changed size changes it.
   function notesKey(): string {
     return noteBoxes().map(box => [box.x, box.y, box.w, box.h].map(Math.round).join(',')).join(';')
+  }
+  // Where the suggestions' labels are on screen, to the nearest 8 pixels: a group's tag that appears or moves changes it.
+  function labelsKey(): string {
+    try {
+      return [...(slate.canvas?.node?.querySelectorAll?.(LABELS) ?? [])].map((el: Element) => {
+        const r = el.getBoundingClientRect()
+        return [r.left, r.top, r.width, r.height].map(value => Math.round(value / 8)).join(',')
+      }).join(';')
+    } catch { return '' }
   }
   // The view as a key, to the nearest 8 screen pixels: a pan or zoom changes it, a jitter does not.
   function viewKey(): string {
@@ -358,11 +383,11 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
 
   function draw(item: Drawn, scale: number, compact: boolean) {
     const { record } = item
-    const color = AGENT_PALETTE[((record.colorIndex % AGENT_PALETTE.length) + AGENT_PALETTE.length) % AGENT_PALETTE.length]
+    const color = agentColor(record.colorIndex)
     const step = agentStepText(record)
     const lines = agentChecklist(record)
     const showList = lines.length > 0 && (item.open || !compact)
-    const label = tagLabel(record)
+    const label = agentName(record)
     item.body?.remove()
     const body = item.group.group()
     item.body = body
@@ -371,11 +396,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     // The hexagon avatar with the owner's initial and a small spark.
     const hex = body.group().attr('data-agent-avatar', '')
     const r = 11, cx = 24, cy = 24
-    const points = Array.from({ length: 6 }, (_, i) => {
-      const a = Math.PI / 6 + (i * Math.PI) / 3
-      return (cx + r * Math.cos(a)).toFixed(2) + ',' + (cy + r * Math.sin(a)).toFixed(2)
-    }).join(' ')
-    hex.polygon(points).fill(color).stroke({ color: '#fff', width: 1.5 })
+    hex.polygon(hexPoints(cx, cy, r)).fill(color).stroke({ color: '#fff', width: 1.5 })
     const icon = safeIconUrl(record.iconUrl)
     if (icon) {
       // An invited agent's own icon, inside the hexagon (the host proxied it); the hexagon still says "agent".
@@ -560,13 +581,13 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       const at = restingOf(item)
       if (!view || item.opacity <= 0 || !offView(at, view)) continue
       keep.add(item.key)
-      const label = clip(tagLabel(item.record), 32)
+      const label = clip(agentName(item.record), 32)
       const arrow = arrowFor(at, view)
       const words = `${label} is working`
       let marker = markers.get(item.key)
       if (!marker || marker.words !== words || marker.arrow !== arrow) {
         marker?.group.remove()
-        const color = AGENT_PALETTE[((item.record.colorIndex % AGENT_PALETTE.length) + AGENT_PALETTE.length) % AGENT_PALETTE.length]
+        const color = agentColor(item.record.colorIndex)
         const leftArrow = arrow === '←' || arrow === '↖' || arrow === '↙'
         const text = leftArrow ? `${arrow} ${words}` : `${words} ${arrow}`
         const group = ensureLayer().group().attr({ 'data-agent-edge': item.key, 'pointer-events': 'all', cursor: 'pointer', role: 'button', tabindex: 0,
@@ -611,7 +632,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       const size = blockSize(record, agentChecklist(record).length > 0 && (open || !compact))
       // A tag that grew (a list opened, a longer step) or a new zoom may need another corner.
       // A pan or zoom moves what is on screen: the corner and side are chosen again for the view as it is now.
-      const routedFor = [size.w, size.h, scale.toFixed(4), viewKey(), notesKey()].join(',')
+      const routedFor = [size.w, size.h, scale.toFixed(4), viewKey(), notesKey(), labelsKey()].join(',')
       if (!item) {
         const route = routeTo(record, index, size, scale)
         const first = route.legs[0]
@@ -679,15 +700,15 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
   let watch: ReturnType<typeof setInterval> | null = null
   const watchZoom = () => {
     if (watch !== null) return
-    let lastView = viewKey(), lastNotes = notesKey(), settledNotes = lastNotes
+    let lastView = viewKey(), lastNotes = notesKey(), settledNotes = lastNotes, lastLabels = labelsKey()
     watch = setInterval(() => {
       if (destroyed || !drawn.size) return
-      const view = viewKey(), notes = notesKey()
+      const view = viewKey(), notes = notesKey(), labels = labelsKey()
       // Notes that moved under a tag (a card someone dropped there) count once they have stayed put for a beat, so a
       // drag in progress does not send the pointer from corner to corner.
       const notesSettled = notes === lastNotes && notes !== settledNotes
       lastNotes = notes
-      if (Math.abs(zoom() - lastScale) > 1e-6 || view !== lastView || notesSettled) { lastView = view; settledNotes = notes; render() }
+      if (Math.abs(zoom() - lastScale) > 1e-6 || view !== lastView || notesSettled || labels !== lastLabels) { lastView = view; settledNotes = notes; lastLabels = labels; render() }
     }, 250)
   }
 

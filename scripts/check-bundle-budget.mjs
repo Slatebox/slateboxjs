@@ -15,9 +15,13 @@ const ceilings = {
   // Measured at release/combined 5d21cac, plus what they may grow.
   'workshops.mjs': { raw: 84089 + 2000, gzip: 24120 + 1000 },
   'operations.mjs': { raw: 80276 + 2000, gzip: 22791 + 1000 },
-  // The agents' drawing: its own entry, loaded when the first agent or suggestion arrives. Measured with
-  // the live suggestions (ghosts, Keep and Discard) at 32254 / 11004, plus what it may grow.
+  // The agents' pointers and tags: their own entry, loaded when the first agent arrives. Its ceiling was set when it
+  // also drew the live suggestions (32254 / 11004 then); those are their own entry now (suggestions.mjs, below).
   'presence.mjs': { raw: 34000, gzip: 11500 },
+  // What agents suggest, live (ghost notes, one frame, tag and Keep all / Discard all per answer, a ghost's own Keep and
+  // Discard): its own entry, loaded when the first suggestion arrives, importing ./presence.mjs for what the two share.
+  // Measured at its first build (16,872 / 5,984), plus a little.
+  'suggestions.mjs': { raw: 17500, gzip: 6300 },
   // A board's rulebook (behaviour.ts): loaded only for a board that has rules, and by a server.
   'workshop-behaviour.mjs': { raw: 20000, gzip: 6000 },
   // The plans (launch and hiring) and their time rules: loaded with the rules, or with a plan's kit. The code
@@ -130,6 +134,18 @@ if (!importsOf('workshop-samples.mjs').includes('./workshop-rules.mjs')) problem
 // The agents' drawing stays out of the canvas entry, and the presence entry shares no chunk.
 if (read('slateboxjs.mjs').toString('utf8').includes('data-agent-presence')) problems.push('slateboxjs.mjs carries the agents\' drawing: it belongs to the presence entry.')
 if (importsOf('presence.mjs').some(target => target.startsWith('./'))) problems.push('presence.mjs must stand alone (no shared chunk).')
+// The suggestions are their own entry: the pointers' entry carries none of their drawing, and they take what the two
+// share from ./presence.mjs (no copy, no other chunk).
+if (read('presence.mjs').toString('utf8').includes('data-agent-suggestions')) problems.push('presence.mjs carries the suggestions\' drawing: it belongs to suggestions.mjs, loaded when the first suggestion arrives.')
+if (read('slateboxjs.mjs').toString('utf8').includes('data-agent-suggestions')) problems.push('slateboxjs.mjs carries the suggestions\' drawing: it belongs to suggestions.mjs.')
+{
+  // Its import statements (and any dynamic import), not words such as ' from ' inside its strings.
+  const text = read('suggestions.mjs').toString('utf8')
+  const imports = [...text.matchAll(/^\s*(?:import|export)\s[^;]*?from\s*["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)/gm)].map(match => match[1] ?? match[2])
+  if (imports.length !== 1 || imports[0] !== './presence.mjs') problems.push('suggestions.mjs must import only ./presence.mjs (got ' + (imports.join(', ') || 'nothing') + ').')
+  // The palette's first colour and the canvas-fit words live in the presence entry only.
+  if (/#6d28d9|xMidYMid meet/.test(read('suggestions.mjs').toString('utf8'))) problems.push('suggestions.mjs carries its own copy of the presence helpers.')
+}
 
 // slateboxjs/canvas as a page serves it first: the entry and every chunk it imports up front, each with its
 // whitespace taken out and gzip -9, summed (the site's build, slatebox-home scripts/build-engine.sh, and its

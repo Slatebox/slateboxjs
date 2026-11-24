@@ -21,9 +21,12 @@
 // to any note id).
 //
 // Either engine shape may be passed: the v2 Slate, or the v1 facade that wraps it (slate.v2).
-// This entry shares no chunk with the canvas: a host passes the engine's own mapping of stored notes
-// (compat.v1NodeToV2) as toNode; without one, the stored position, size and text are mapped here.
-import { AGENT_PALETTE, agentName, clip, plainLine } from './agentPresenceText'
+// This is its own entry (slateboxjs/suggestions), loaded when the first suggestion arrives. It shares no
+// chunk with the canvas: a host passes the engine's own mapping of stored notes (compat.v1NodeToV2) as
+// toNode; without one, the stored position, size and text are mapped here. What it has in common with the
+// agents' pointers (names, colours, the hexagon, boxes, the canvas's scale) it takes from the presence entry
+// (slateboxjs/presence), which a page with suggestions has loaded already.
+import { agentColor, agentName, boxOf, canvasZoom, clip, hexPoints, overlap, plainLine, type Box } from './AgentPresence'
 
 /** A stored (v1) note's options as the engine's, for a ghost: position, size and words, the rest as stored. */
 function storedNote(v1: Record<string, any>): Record<string, any> {
@@ -116,8 +119,6 @@ export interface AgentSuggestions {
   destroy(): void
 }
 
-interface Box { x: number; y: number; w: number; h: number }
-
 /** The suggestions still waiting, in order, each with its action. */
 export function pendingItems(actions: SuggestionAction[]): { action: SuggestionAction; item: SuggestionItem }[] {
   const out: { action: SuggestionAction; item: SuggestionItem }[] = []
@@ -173,7 +174,6 @@ export function groupWords(items: SuggestionItem[]): string {
 
 const union = (a: Box | null, b: Box | null): Box | null =>
   (!a || !b ? a || b : { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.max(a.x + a.w, b.x + b.w) - Math.min(a.x, b.x), h: Math.max(a.y + a.h, b.y + b.h) - Math.min(a.y, b.y) })
-const boxOverlap = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 
 export function createAgentSuggestions(host: any, options: AgentSuggestionsOptions = {}): AgentSuggestions {
   // Either shape: the v1 facade keeps the engine's own slate on .v2.
@@ -188,15 +188,19 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
   const ghosts = new Map<string, { node: any; json: string }>()
   let shownList: ShownSuggestion[] = []
   let groupList: ShownGroup[] = []
-  // The ghost whose own Keep and Discard show (under the pointer or with focus), kept across redraws.
+  // The ghost whose own Keep and Discard show, kept across redraws, and what showed them: a mouse over it, a tap
+  // (a finger has no hover: a tap shows them, the next tap hides them) or keyboard focus.
   let hovered: string | null = null
+  let shownBy: 'pointer' | 'tap' | 'focus' = 'pointer'
+  // Set while the layer is redrawn: the focus a redraw takes away (and gives back) hides nothing.
+  let redrawing = false
 
   const release = typeof slate.setDragPolicy === 'function'
     ? slate.setDragPolicy({
       governs: (node: any) => (typeof node?.id === 'string' && ghosts.has(node.id) ? INERT : null),
       onEnd: () => ({ accept: false }),
       // A load from the room replaced every note, the ghosts too: draw them again.
-      onNotesReplaced() { ghosts.clear(); sync() },
+      onNotesReplaced() { ghosts.clear(); sync(true) },
     })
     : () => {}
 
@@ -210,30 +214,10 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     return layer
   }
 
-  function zoom(): number {
-    try {
-      const box = slate.canvas.viewbox()
-      const rect = slate.canvas.node?.getBoundingClientRect?.()
-      if (box?.width && rect?.width) return rect.width / box.width
-    } catch { /* no canvas size yet */ }
-    try {
-      const z = slate.getZoom?.()
-      if (typeof z === 'number' && z > 0) return z
-    } catch { /* no pan-zoom yet */ }
-    return 1
-  }
-
   const noteOf = (id: string | null | undefined) => (id ? slate.nodes?.one?.(id) : undefined)
-  function boxOf(node: any): Box | null {
-    const o = node?.options
-    if (!o || ![o.x, o.y, o.width, o.height].every(value => typeof value === 'number' && Number.isFinite(value))) return null
-    return { x: o.x, y: o.y, w: o.width, h: o.height }
-  }
   // A note as drawn now: the real one, or else its ghost.
   const boxFor = (id: string | null | undefined): Box | null => (id ? boxOf(noteOf(id)) ?? boxOf(noteOf(ghostIdOf(id))) : null)
 
-  const colorOf = (action: SuggestionAction) =>
-    AGENT_PALETTE[((Number(action.colorIndex) % AGENT_PALETTE.length) + AGENT_PALETTE.length) % AGENT_PALETTE.length] || AGENT_PALETTE[0]
   const nameOf = (action: SuggestionAction) => agentName(action)
 
   // ---- ghost notes (native, inert) ---------------------------------------------------------
@@ -269,7 +253,10 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
           group.style.pointerEvents = 'none'
           group.setAttribute('data-agent-ghost', item.nodeId || '')
           group.setAttribute('aria-label', 'Suggested by ' + nameOf(action) + ', not kept yet: ' + plainLine(item.node?.options?.text ?? ''))
-          render(true)
+          // The note drew itself over the overlay: put the overlay back on top (no redraw: a ghost being tapped or
+          // pointed at keeps its buttons and its focus), and redraw only if the note's box is not what was drawn.
+          render(false)
+          raise()
         }).catch(() => undefined)
       }
     })
@@ -284,9 +271,19 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     group.text((t: any) => t.plain(label)).font({ size: 12, weight: 600, family: FONT, anchor: 'middle' })
       .fill(primary ? '#ffffff' : color).attr({ x: x + width / 2, y: 15 })
     const fire = (event: Event) => { event.stopPropagation?.(); event.preventDefault?.(); act() }
-    group.on('pointerdown', (event: Event) => event.stopPropagation?.())
+    // A click acts only when it was pressed on this button (or comes from a keyboard or a screen reader: detail 0). A
+    // tap that shows a small ghost's buttons is followed by the browser's click at the same spot, now over a button
+    // that was not there when the finger came down: that click must not keep or discard anything. Pressed means a
+    // pointerdown here; the mousedown a browser sends after a tap is not one (it comes with that click).
+    let pressed = false
+    group.on('pointerdown', (event: Event) => { pressed = true; event.stopPropagation?.() })
     group.on('mousedown', (event: Event) => event.stopPropagation?.())
-    group.on('click', fire)
+    group.on('click', (event: MouseEvent) => {
+      const ok = pressed || !event.detail
+      pressed = false
+      if (ok) fire(event)
+      else { event.stopPropagation?.(); event.preventDefault?.() }
+    })
     group.on('keydown', (event: KeyboardEvent) => { if (event.key === 'Enter' || event.key === ' ') fire(event) })
     return width
   }
@@ -317,35 +314,68 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     const holder = group.group().attr({ 'data-suggestion-tag': '', 'pointer-events': 'none' })
     const text = clip(words, 64)
     holder.rect(tagWidth(words), 22).radius(11).fill('#ffffff').stroke({ color, width: 1.2 }).attr('fill-opacity', 0.95)
-    holder.polygon(Array.from({ length: 6 }, (_, i) => {
-      const a = Math.PI / 6 + (i * Math.PI) / 3
-      return (12 + 6 * Math.cos(a)).toFixed(2) + ',' + (12 + 6 * Math.sin(a)).toFixed(2)
-    }).join(' ')).fill(color)
+    holder.polygon(hexPoints(12, 12, 6)).fill(color)
     holder.text((t: any) => t.plain(text)).font({ size: 12, family: FONT }).fill('#111827').attr({ x: 22, y: 16 })
     holder.transform({ translateX: at.x, translateY: at.y, scale: 1 / scale, originX: 0, originY: 0 })
   }
 
-  // Show or hide one ghost's own Keep and Discard (no redraw, so the pointer stays where it is).
-  function reveal(itemId: string | null) {
+  // Show or hide one ghost's own Keep and Discard (no redraw, so the pointer stays where it is). Focus coming to the
+  // ghost they already show for leaves them as they are (a tap focuses what it tapped, after it showed them).
+  function reveal(itemId: string | null, by: typeof shownBy = 'pointer') {
+    if (by === 'focus' && itemId !== null && itemId === hovered) return
     hovered = itemId
-    layer?.node?.querySelectorAll?.('[data-on-hover]').forEach((el: SVGGElement) => { el.style.display = el.getAttribute('data-suggestion-controls') === itemId ? '' : 'none' })
+    shownBy = by
+    layer?.node?.querySelectorAll?.('[data-on-hover]').forEach((el: SVGGElement) => show(el, el.getAttribute('data-suggestion-controls') === itemId))
+  }
+  // Hidden by display and visibility both: WebKit still measures (and a test still sees) the buttons of an SVG group
+  // that is only display: none.
+  const show = (el: SVGGElement, on: boolean) => { el.style.display = on ? '' : 'none'; el.style.visibility = on ? '' : 'hidden' }
+
+  // Run `move` (which takes the layer's elements out of the page), then give the focus back to the element that had it.
+  function keepingFocus(move: () => void) {
+    const active = typeof document !== 'undefined' ? (document.activeElement as Element | null) : null
+    const inLayer = Boolean(active && layer?.node?.contains?.(active))
+    const hit = inLayer ? active!.closest('[data-suggestion-hit]')?.getAttribute('data-suggestion-hit') : null
+    const button = inLayer ? active!.closest('[data-suggestion-button]') : null
+    const holder = button?.parentElement?.closest('[data-suggestion-controls], [data-suggestion-all]')
+    const at = (name: string, value: string | null) => `[${name}="${String(value).replace(/["\\]/g, '\\$&')}"]`
+    const again = hit != null ? at('data-suggestion-hit', hit)
+      : button && holder ? (holder.hasAttribute('data-suggestion-all') ? at('data-suggestion-all', holder.getAttribute('data-suggestion-all')) : at('data-suggestion-controls', holder.getAttribute('data-suggestion-controls')))
+        + ' ' + at('data-suggestion-button', button.getAttribute('data-suggestion-button')) : null
+    redrawing = true
+    try { move() } finally { redrawing = false }
+    if (again && document.activeElement !== active) (layer?.node?.querySelector?.(again) as SVGElement | null)?.focus?.({ preventScroll: true })
+  }
+
+  // The overlay above the notes, and the agents' pointers above it. Moved only when something is drawn over it.
+  function raise() {
+    const node = layer?.node as SVGGElement | undefined
+    const parent = node?.parentNode
+    if (!node || !parent) return
+    const pointers = [...parent.children].find(child => child.hasAttribute('data-agent-presence'))
+    if (node.nextElementSibling && node.nextElementSibling !== pointers) keepingFocus(() => parent.appendChild(node))
+    if (pointers?.nextElementSibling) parent.appendChild(pointers)
   }
 
   function render(force = false) {
     if (destroyed) return
-    const scale = zoom()
+    const scale = canvasZoom(slate)
     const pending = pendingItems(actions)
-    const key = JSON.stringify([scale.toFixed(4), canAct(), pending.map(({ item }) => item.id + ':' + item.kind), notesKey(pending)])
-    if (!force && key === lastKey) return
+    // Everything drawn comes from this key: the host publishing the same suggestions again (every change to any of
+    // them reaches every page) redraws nothing, so a ghost being tapped or pointed at is not replaced under the finger.
+    const key = JSON.stringify([scale.toFixed(4), canAct(), notesKey(pending), pending.map(({ action, item }) =>
+      [action.actionId, action.label, action.colorIndex, action.origin, action.via, action.invitedBy, item])])
+    const connected = Boolean(layer?.node?.isConnected)
+    if (!force && key === lastKey && (connected || !pending.length)) return
     lastKey = key
+    if (hovered && !pending.some(({ item }) => item.id === hovered)) hovered = null
     const group = ensureLayer()
-    group.clear()
-    group.front?.()
-    // The agents' pointers stay above the suggestions.
-    try {
-      const pointers = slate.canvas.node?.querySelector?.('[data-agent-presence]')
-      pointers?.parentNode?.appendChild(pointers)
-    } catch { /* no pointers drawn */ }
+    keepingFocus(() => { group.clear(); draw(group, scale, pending) })
+    raise()
+    if (!pending.length) { layer?.remove(); layer = null; groupList = [] }
+  }
+
+  function draw(group: any, scale: number, pending: { action: SuggestionAction; item: SuggestionItem }[]) {
     const acting = canAct()
     const shown: ShownSuggestion[] = []
     const groups: ShownGroup[] = []
@@ -372,7 +402,7 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     // ones further down, the one that covers least. Taken from then on.
     const place = (spots: Box[], own: Box | null) => {
       const others = taken.filter(o => o !== own)
-      const cover = (s: Box) => others.reduce((sum, o) => sum + (boxOverlap(s, o) ? (Math.min(s.x + s.w, o.x + o.w) - Math.max(s.x, o.x)) * (Math.min(s.y + s.h, o.y + o.h) - Math.max(s.y, o.y)) : 0), 0)
+      const cover = (s: Box) => others.reduce((sum, o) => sum + overlap(s, o), 0)
       let spot = spots.find(s => !cover(s))
       if (!spot) {
         const more = [...spots, ...[1, 2, 3, 4].map(n => ({ ...spots[0], y: spots[0].y - n * line })), ...[1, 2, 3, 4].map(n => ({ ...spots[1] ?? spots[0], y: (spots[1] ?? spots[0]).y + n * line }))]
@@ -382,7 +412,7 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
       return spot
     }
     for (const { action, items, frame } of byAction.values()) {
-      const color = colorOf(action)
+      const color = agentColor(action.colorIndex)
       const name = nameOf(action)
       const action_g = group.group().attr({ 'data-suggestion-group': action.actionId })
       if (frame) {
@@ -429,14 +459,19 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
               item_g.rect(box.w, box.h).move(box.x, box.y).fill('#fff').attr({ 'fill-opacity': 0, 'pointer-events': 'all', tabindex: 0, role: 'group',
                 'aria-label': 'Suggested by ' + name + ': ' + clip(text, 60) + '. Keep or discard it alone.', 'data-suggestion-hit': item.id })
               const holder = row(item_g, { 'data-suggestion-controls': item.id, 'data-on-hover': '' }, { x: box.x + box.w, y: box.y + box.h }, scale, color, itemButtons(action, item, 'Keep', 'add “' + clip(text, 40) + '”'), -6, -28)
-              if (hovered !== item.id) holder.node.style.display = 'none'
+              if (hovered !== item.id) show(holder.node, false)
               const node = item_g.node as SVGGElement
               // A touch has no hover (its pointerleave comes as the finger lifts): a tap shows them, another hides them.
               node.addEventListener('pointerenter', (event: PointerEvent) => { if (event.pointerType !== 'touch') reveal(item.id) })
-              node.addEventListener('pointerleave', (event: PointerEvent) => { if (event.pointerType !== 'touch' && hovered === item.id && !node.contains(document.activeElement)) reveal(null) })
-              node.addEventListener('pointerup', (event: PointerEvent) => { if (event.pointerType === 'touch' && !(event.target as Element)?.closest?.('[data-suggestion-button]')) reveal(hovered === item.id ? null : item.id) })
-              node.addEventListener('focusin', () => reveal(item.id))
-              node.addEventListener('focusout', (event: FocusEvent) => { if (!node.contains(event.relatedTarget as Node | null)) reveal(null) })
+              node.addEventListener('pointerleave', (event: PointerEvent) => { if (event.pointerType !== 'touch' && hovered === item.id && shownBy === 'pointer' && !node.contains(document.activeElement)) reveal(null) })
+              // A tap shows them; a tap on the ghost they show for (by a tap or focus) hides them. Shown by a mouse that
+              // has since left without a word (its ghost was redrawn under it), they are not this ghost's to hide.
+              node.addEventListener('pointerup', (event: PointerEvent) => {
+                if (event.pointerType !== 'touch' || (event.target as Element)?.closest?.('[data-suggestion-button]')) return
+                reveal(hovered === item.id && shownBy !== 'pointer' ? null : item.id, 'tap')
+              })
+              node.addEventListener('focusin', () => reveal(item.id, 'focus'))
+              node.addEventListener('focusout', (event: FocusEvent) => { if (!redrawing && hovered === item.id && !node.contains(event.relatedTarget as Node | null)) reveal(null) })
               drawn = true
             }
           } else {
@@ -458,7 +493,6 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     }
     groupList = groups
     shownList = shown
-    if (!pending.length) { layer?.remove(); layer = null; groupList = [] }
   }
 
   // Where the notes the suggestions sit on are, as a key: a note that moved redraws its outline.
@@ -472,10 +506,10 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     return [...ids].map(id => { const b = boxOf(noteOf(id)); return b ? id + ':' + [b.x, b.y, b.w, b.h].map(Math.round).join(',') : '' }).join(';')
   }
 
-  function sync() {
+  function sync(force = false) {
     if (destroyed) return
     syncGhosts()
-    render(true)
+    render(force)
   }
 
   // Follow the view and the notes: a pan, a zoom or a moved note redraws the overlay (only while something waits).
