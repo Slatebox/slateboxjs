@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "88954647c0acb6e53f7f49c0829096fdc25e52f2",
-  "branch": "release/action-cards",
+  "commit": "0b21137b186be3c6592ccca15a73a9863c813f73",
+  "branch": "release/autofit-2",
   "dirty": false,
-  "builtAt": "2026-11-24T23:14:52.940Z"
+  "builtAt": "2026-11-24T23:49:46.624Z"
 }
