@@ -171,6 +171,8 @@ export function groupWords(items: SuggestionItem[]): string {
   }).filter(Boolean).join(', ')
 }
 
+const union = (a: Box | null, b: Box | null): Box | null =>
+  (!a || !b ? a || b : { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.max(a.x + a.w, b.x + b.w) - Math.min(a.x, b.x), h: Math.max(a.y + a.h, b.y + b.h) - Math.min(a.y, b.y) })
 const boxOverlap = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 
 export function createAgentSuggestions(host: any, options: AgentSuggestionsOptions = {}): AgentSuggestions {
@@ -353,18 +355,29 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
       entry.items.push(item)
       byAction.set(action.actionId, entry)
       // The frame: the box round the action's ghosts.
-      const b = item.kind === 'add' ? boxOf(noteOf(ghostIdOf(item.nodeId || ''))) : null
-      const f = entry.frame
-      if (b) entry.frame = f ? { x: Math.min(f.x, b.x), y: Math.min(f.y, b.y), w: Math.max(f.x + f.w, b.x + b.w) - Math.min(f.x, b.x), h: Math.max(f.y + f.h, b.y + b.h) - Math.min(f.y, b.y) } : b
+      if (item.kind === 'add') entry.frame = union(entry.frame, boxOf(noteOf(ghostIdOf(item.nodeId || ''))))
     }
+    // An action of lines only (no new notes): its frame is round the notes its lines join (one end
+    // when the other is gone), so its Keep all / Discard all are still on the canvas.
+    for (const entry of byAction.values())
+      if (!entry.frame) for (const item of entry.items)
+        if (item.kind === 'link' || item.kind === 'unlink') entry.frame = union(union(entry.frame, boxFor(item.parentId ?? item.association?.parentId)), boxFor(item.association?.childId))
     const pad = 6 / scale, line = 28 / scale
     const sp = (x: number, y: number, w: number): Box => ({ x, y, w, h: 22 / scale })
     const frames = [...byAction.values()].filter(e => e.frame).map(e => (e.frame = { x: e.frame!.x - 2 * pad, y: e.frame!.y - 2 * pad, w: e.frame!.w + 4 * pad, h: e.frame!.h + 4 * pad }))
-    // What the tags and buttons already drawn take (and every frame): none may cover another.
+    // What the tags and buttons already drawn take, every frame and every real note: none may cover another.
     const taken: Box[] = [...frames]
-    // The first spot that covers nothing taken (its own frame aside), else the first; taken from then on.
+    for (const node of slate.nodes?.allNodes || []) if (!ghosts.has(node?.id)) { const b = boxOf(node); if (b) taken.push(b) }
+    // The first spot that covers nothing taken (its own frame aside); else, of those spots and the
+    // ones further down, the one that covers least. Taken from then on.
     const place = (spots: Box[], own: Box | null) => {
-      const spot = spots.find(s => !taken.some(o => o !== own && boxOverlap(s, o))) ?? spots[0]
+      const others = taken.filter(o => o !== own)
+      const cover = (s: Box) => others.reduce((sum, o) => sum + (boxOverlap(s, o) ? (Math.min(s.x + s.w, o.x + o.w) - Math.max(s.x, o.x)) * (Math.min(s.y + s.h, o.y + o.h) - Math.max(s.y, o.y)) : 0), 0)
+      let spot = spots.find(s => !cover(s))
+      if (!spot) {
+        const more = [...spots, ...[1, 2, 3, 4].map(n => ({ ...spots[0], y: spots[0].y - n * line })), ...[1, 2, 3, 4].map(n => ({ ...spots[1] ?? spots[0], y: (spots[1] ?? spots[0]).y + n * line }))]
+        spot = more.reduce((best, s) => (cover(s) < cover(best) ? s : best))
+      }
       taken.push(spot)
       return spot
     }
@@ -418,8 +431,10 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
               const holder = row(item_g, { 'data-suggestion-controls': item.id, 'data-on-hover': '' }, { x: box.x + box.w, y: box.y + box.h }, scale, color, itemButtons(action, item, 'Keep', 'add “' + clip(text, 40) + '”'), -6, -28)
               if (hovered !== item.id) holder.node.style.display = 'none'
               const node = item_g.node as SVGGElement
-              node.addEventListener('pointerenter', () => reveal(item.id))
-              node.addEventListener('pointerleave', () => { if (hovered === item.id && !node.contains(document.activeElement)) reveal(null) })
+              // A touch has no hover (its pointerleave comes as the finger lifts): a tap shows them, another hides them.
+              node.addEventListener('pointerenter', (event: PointerEvent) => { if (event.pointerType !== 'touch') reveal(item.id) })
+              node.addEventListener('pointerleave', (event: PointerEvent) => { if (event.pointerType !== 'touch' && hovered === item.id && !node.contains(document.activeElement)) reveal(null) })
+              node.addEventListener('pointerup', (event: PointerEvent) => { if (event.pointerType === 'touch' && !(event.target as Element)?.closest?.('[data-suggestion-button]')) reveal(hovered === item.id ? null : item.id) })
               node.addEventListener('focusin', () => reveal(item.id))
               node.addEventListener('focusout', (event: FocusEvent) => { if (!node.contains(event.relatedTarget as Node | null)) reveal(null) })
               drawn = true
@@ -470,7 +485,10 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
     if (!canAct()) return
     const whole = keep ? options.onKeepAll : options.onDiscardAll
     if (whole) return whole(actionId)
-    for (const { action, item } of pendingItems(actions)) if (action.actionId === actionId && item.kind !== 'link') (keep ? options.onKeep : options.onDiscard)?.({ actionId, itemId: item.id })
+    // Lines follow their ends; an action of lines only keeps or discards its lines.
+    const mine = pendingItems(actions).filter(({ action }) => action.actionId === actionId)
+    const adds = mine.some(({ item }) => item.kind === 'add')
+    for (const { item } of mine) if (!adds || item.kind !== 'link') (keep ? options.onKeep : options.onDiscard)?.({ actionId, itemId: item.id })
   }
 
   const api: AgentSuggestions = {

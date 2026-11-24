@@ -226,6 +226,59 @@ describe('agent suggestions: ghosts in place', () => {
     suggestions.destroy()
   })
 
+  it('an action of lines only between notes on the slate still has a frame, a tag and Keep all / Discard all', () => {
+    const slate = fakeSlate({ a: { x: 40, y: 100, width: 160, height: 80 }, b: { x: 400, y: 100, width: 160, height: 80 } })
+    const calls: string[] = []
+    const suggestions = createAgentSuggestions(slate, { toNode, canAct: () => true, onKeep: ref => calls.push('keep ' + ref.itemId), onDiscard: ref => calls.push('discard ' + ref.itemId) })
+    const lines = action({ actionId: 'lines', items: [
+      { id: 'ab', kind: 'link', state: 'pending', parentId: 'a', association: { id: 'ab', parentId: 'a', childId: 'b' } },
+      // its other end was deleted: still listed, so it can be discarded
+      { id: 'agone', kind: 'link', state: 'pending', parentId: 'a', association: { id: 'agone', parentId: 'a', childId: 'gone' } },
+    ] })
+    suggestions.set([lines])
+    const [g] = suggestions.groups()
+    expect(g.words).toBe('2 lines')
+    expect(g.frame.x).toBeLessThanOrEqual(40)
+    expect(g.frame.x + g.frame.w).toBeGreaterThanOrEqual(560)
+    expect(g.all).not.toBeNull()
+    const layer = slate.host.querySelector('[data-agent-suggestions]')!
+    expect(layer.querySelectorAll('[data-suggestion-button="keep-all"]')).toHaveLength(1)
+    // without the host's own Keep all, an action of lines only keeps (or discards) its lines
+    suggestions.keepAll('lines')
+    suggestions.discardAll('lines')
+    expect(calls).toEqual(['keep ab', 'keep agone', 'discard ab', 'discard agone'])
+    suggestions.destroy()
+  })
+
+  it('a tap shows a ghost\'s own Keep and Discard on a touch screen (the finger lifting does not hide them); another tap hides them', () => {
+    const slate = fakeSlate()
+    const suggestions = createAgentSuggestions(slate, { toNode, canAct: () => true })
+    suggestions.set([action({ items: [action().items[0]] })])
+    const layer = slate.host.querySelector('[data-agent-suggestions]')!
+    const visible = () => [...layer.querySelectorAll('[data-suggestion-controls]')].filter(el => (el as SVGGElement).style.display !== 'none').length
+    const ghost = layer.querySelector('[data-suggestion="add:idea1"]')!
+    const touch = (type: string) => { const e = new Event(type, { bubbles: true }); Object.defineProperty(e, 'pointerType', { value: 'touch' }); ghost.querySelector('[data-suggestion-hit]')!.dispatchEvent(e) }
+    touch('pointerenter'); touch('pointerup'); touch('pointerleave')
+    expect(visible()).toBe(1)
+    touch('pointerup')
+    expect(visible()).toBe(0)
+    suggestions.destroy()
+  })
+
+  it('a tag never sits on a real note: with every first spot covered, it takes the spot that covers least', () => {
+    // real notes right above, below and inside the top edge of the frame's top left
+    const slate = fakeSlate({ above: { x: 260, y: 40, width: 400, height: 40 }, below: { x: 260, y: 186, width: 400, height: 60 } })
+    const suggestions = createAgentSuggestions(slate, { toNode, canAct: () => false })
+    suggestions.set([action({ items: [action().items[0], action().items[1]] })])
+    const [g] = suggestions.groups()
+    const hit = (a: any, b: any) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+    for (const id of ['above', 'below']) {
+      const o = slate.nodes.one(id).options
+      expect(hit(g.tag, { x: o.x, y: o.y, w: o.width, h: o.height })).toBe(false)
+    }
+    suggestions.destroy()
+  })
+
   it('takes either engine shape: the v1 facade (slate.v2) or the v2 slate', () => {
     const v2 = fakeSlate({ brief: { x: 40, y: 100, width: 160, height: 80 } })
     const facade = { v2 }
