@@ -7,6 +7,8 @@ import { UndoRedo } from './UndoRedo'
 import { MediaInput } from './MediaInput'
 import { ContextMenu } from './ContextMenu'
 import { Keyboard } from './Keyboard'
+import { Presentation } from './Presentation'
+import { MediaNote } from './MediaNote'
 import { provideSlateParts } from './slateParts'
 
-provideSlateParts({ lineTool: { startLineTool }, birdsEye: { BirdsEye }, undoRedo: { UndoRedo }, mediaInput: { MediaInput }, contextMenu: { ContextMenu }, keyboard: { Keyboard } })
+provideSlateParts({ lineTool: { startLineTool }, birdsEye: { BirdsEye }, undoRedo: { UndoRedo }, mediaInput: { MediaInput }, contextMenu: { ContextMenu }, keyboard: { Keyboard }, presentation: { Presentation }, mediaNote: { MediaNote } })

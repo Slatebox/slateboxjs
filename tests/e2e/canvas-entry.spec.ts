@@ -99,3 +99,20 @@ test('a read-only slate never fetches the right-click menu or the video paste; a
   await page.keyboard.press('Control+Z')
   await expect.poll(color).toEqual(before)
 })
+
+test('the presentation mode arrives as the slate starts; a video note fetches its player part the first time one is drawn', async ({ page }) => {
+  await open(page)
+  await expect.poll(() => page.evaluate(() => typeof (window as any).slate.presentation?.start), { timeout: 10000 }).toBe('function')
+  expect((await fetched(page)).filter(path => path.endsWith('/src/core/MediaNote.ts')), 'a slate with no video note never fetches its part').toEqual([])
+  await page.evaluate(() => {
+    const poster = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="48" height="27"><rect width="48" height="27" fill="#334"/></svg>')
+    ;(window as any).slate.addNode({
+      id: 'video1', x: 300, y: 200, width: 320, height: 180, text: '', shape: 'rectangle', imageFit: 'cover', image: poster,
+      media: { provider: 'youtube', id: 'dQw4w9WgXcQ', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', title: 'Launch demo', poster },
+    })
+  })
+  // The poster's play button and caption are drawn once the part arrives, as in the main entry.
+  await expect(page.locator('#slate [data-node-id="video1"] .media-note-play')).toHaveCount(1, { timeout: 10000 })
+  expect((await fetched(page)).some(path => path.endsWith('/src/core/MediaNote.ts'))).toBe(true)
+  expect(await page.evaluate(() => (window as any).slate.nodes.allNodes.find((n: any) => n.options.id === 'video1').media.hasMedia())).toBe(true)
+})

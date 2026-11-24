@@ -20,7 +20,8 @@ import type { Slate } from "./Slate";
 import { Connector, ConnectorOptions } from "./Connector";
 import { Relationships } from "./Relationships";
 import { Images } from "./Images";
-import { MediaNote } from "./MediaNote";
+import type { MediaNote } from "./MediaNote";
+import { loadMediaNote, mediaNoteNow, partsBuiltIn } from "./slateParts";
 import { Editor } from "./Editor";
 import { Links } from "./Links";
 import { Filters } from "./Filters";
@@ -340,7 +341,7 @@ export class Node {
   public relationships!: Relationships;
   public images!: Images;
   /** A video note (options.media): poster, play button, and the player when someone presses play. */
-  public media!: MediaNote;
+  public media?: MediaNote;
   public editor!: Editor;
   public links!: Links;
   public filters!: Filters;
@@ -639,8 +640,11 @@ export class Node {
     // Initialize images (image fill support)
     this.images = new Images(this);
 
-    // Initialize media (a video note: poster, play button, player)
-    this.media = new MediaNote(this);
+    // Initialize media (a video note: poster, play button, player). The canvas entry fetches it
+    // the first time a note with a video is drawn (src/core/slateParts.ts); until then a note
+    // without one has no media part, and every reader asks for it with ?.
+    const mediaPart = mediaNoteNow();
+    if (partsBuiltIn || mediaPart) this.media = new mediaPart!.MediaNote(this);
 
     // Initialize editor (text editing integration)
     this.editor = new Editor(this);
@@ -716,7 +720,14 @@ export class Node {
     this.updateLinkIndicator();
 
     // A video note draws its play button and caption over its poster.
-    if (this.options.media) this.media.render();
+    if (this.options.media) {
+      if (this.media) this.media.render();
+      else loadMediaNote().then(module => {
+        if (this._destroyed || this.media) return;
+        this.media = new module.MediaNote(this);
+        if (this.options.media) this.media.render();
+      }).catch(error => console.warn("NODE: the video note could not load", error));
+    }
 
     // A host policy may already claim this note (cursor, focus, pointer input).
     this.applyGovernance();

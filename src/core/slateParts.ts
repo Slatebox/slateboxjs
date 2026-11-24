@@ -1,6 +1,8 @@
 // The parts of a slate that wait for a person or a request: the line tool, the bird's-eye view, the undo history and
 // the keyboard, the video-address paste and the right-click menu (the last four wait for a person: a read-only page
-// never fetches the paste or the menu, and fetches the history and the keyboard as the slate starts). The main
+// never fetches the paste or the menu, and fetches the history and the keyboard as the slate starts), the
+// presentation mode (fetched as the slate starts, so it is there when a host presents), and a video note's poster,
+// play button and player (fetched the first time a note with a video is drawn). The main
 // entry (slateboxjs) has them from the start: its build (vite.config.ts) swaps this file for slatePartsEager.ts,
 // and a source host (the dev server, the unit tests) hands them over through mainParts.ts, so a slate behaves
 // exactly as it always has. The canvas entry (slateboxjs/canvas) does not: a read-only page never fetches them,
@@ -11,6 +13,8 @@ import type * as UndoRedoModule from './UndoRedo'
 import type * as MediaInputModule from './MediaInput'
 import type * as ContextMenuModule from './ContextMenu'
 import type * as KeyboardModule from './Keyboard'
+import type * as PresentationModule from './Presentation'
+import type * as MediaNoteModule from './MediaNote'
 
 export interface SlateParts {
   lineTool?: Pick<typeof LineToolModule, 'startLineTool'>
@@ -19,6 +23,8 @@ export interface SlateParts {
   mediaInput?: Pick<typeof MediaInputModule, 'MediaInput'>
   contextMenu?: Pick<typeof ContextMenuModule, 'ContextMenu'>
   keyboard?: Pick<typeof KeyboardModule, 'Keyboard'>
+  presentation?: Pick<typeof PresentationModule, 'Presentation'>
+  mediaNote?: Pick<typeof MediaNoteModule, 'MediaNote'>
 }
 const parts: SlateParts = {}
 
@@ -54,3 +60,11 @@ export const loadContextMenu = async () => parts.contextMenu ?? (parts.contextMe
 export const keyboardNow = () => parts.keyboard ?? null
 /** The keyboard, fetched as soon as a slate starts. */
 export const loadKeyboard = async () => parts.keyboard ?? (parts.keyboard = await import('./Keyboard'))
+/** The presentation mode, when it is here already. */
+export const presentationNow = () => parts.presentation ?? null
+/** The presentation mode, fetched as soon as a slate starts. */
+export const loadPresentation = async () => parts.presentation ?? (parts.presentation = await import('./Presentation'))
+/** A video note's poster, play button and player, when they are here already. */
+export const mediaNoteNow = () => parts.mediaNote ?? null
+/** A video note's poster, play button and player, fetched the first time a note with a video is drawn. */
+export const loadMediaNote = async () => parts.mediaNote ?? (parts.mediaNote = await import('./MediaNote'))

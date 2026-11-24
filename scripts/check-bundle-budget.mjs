@@ -54,6 +54,14 @@ const ceilings = {
   'canvas-Keyboard-*.mjs': { raw: 16000, gzip: 5000 },
   'canvas-ContextMenu-*.mjs': { raw: 7600, gzip: 2500 },
   'canvas-MediaInput-*.mjs': { raw: 5200, gzip: 2000 },
+  // The presentation mode (fetched as a slate starts) and a video note's poster, play button and player (fetched the
+  // first time a note with a video is drawn): moved out of the canvas chunk with the rotate knob and the zoomed-shape
+  // fixes; measured at their first build (7,537 / 2,750; 10,111 / 3,216), plus a little.
+  'canvas-Presentation-*.mjs': { raw: 8000, gzip: 3000 },
+  'canvas-MediaNote-*.mjs': { raw: 10600, gzip: 3500 },
+  // The video addresses and their checks (operations/media.ts), shared by the video note and the video-address paste
+  // and so a chunk of their own, fetched with whichever comes first (4,653 / 1,763 at its first build, plus a little).
+  'canvas-media-*.mjs': { raw: 5000, gzip: 2000 },
 }
 
 const dist = readdirSync(new URL('../dist/', import.meta.url))
@@ -141,7 +149,7 @@ if (importsOf('presence.mjs').some(target => target.startsWith('./'))) problems.
   if (firstLoad > 138000) problems.push(`slateboxjs/canvas's first load (${first.join(', ')}), served without whitespace, is ${firstLoad} bytes gzip, over the 138,000 a page's first load allows.`)
   const all = texts.join('\n')
   const later = [...all.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g)].map(match => match[1])
-  for (const part of ['LineTool', 'BirdsEye', 'UndoRedo', 'Keyboard', 'ContextMenu', 'MediaInput']) if (!later.some(target => target.includes('canvas-' + part + '-'))) problems.push(`slateboxjs/canvas does not load its ${part} chunk on first use.`)
+  for (const part of ['LineTool', 'BirdsEye', 'UndoRedo', 'Keyboard', 'ContextMenu', 'MediaInput', 'Presentation', 'MediaNote']) if (!later.some(target => target.includes('canvas-' + part + '-'))) problems.push(`slateboxjs/canvas does not load its ${part} chunk on first use.`)
   if (/LINE_TOOL: press failed|BIRDSEYE_DEBUG/.test(all)) problems.push('slateboxjs/canvas carries the line tool or the bird\'s-eye view in its first load: they load on first use.')
   if (!/connectable\s*\(/.test(all)) problems.push('slateboxjs/canvas does not register the SVG plugins a slate draws with (no connectable plugin): its lines would not draw.')
   if (/SLATEBOX_COMPAT|invalid_operation_plan/.test(all)) problems.push('slateboxjs/canvas carries the v1 facade or the whole-slate operations: they belong to the main entry.')

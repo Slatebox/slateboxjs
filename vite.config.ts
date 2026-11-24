@@ -9,7 +9,7 @@ export default defineConfig({
     apply: 'build',
     enforce: 'pre',
     resolveId(source, importer) {
-      if (source === './slateParts' && importer?.endsWith('/src/core/Slate.ts')) return resolve(__dirname, 'src/core/slatePartsEager.ts')
+      if (source === './slateParts' && (importer?.endsWith('/src/core/Slate.ts') || importer?.endsWith('/src/core/Node.ts'))) return resolve(__dirname, 'src/core/slatePartsEager.ts')
       if (source === './core/mainParts' && importer?.endsWith('/src/index.ts')) return '\0main-parts-built-in'
     },
     load(id) {

@@ -35,10 +35,10 @@ import {
 import { Association } from "./Relationship";
 import type { EndAnchor, EndState, LineEnd } from "./LineEnds";
 import type { LineToolResult } from "./LineTool";
-import { birdsEyeNow, contextMenuNow, keyboardNow, lineToolNow, loadBirdsEye, loadContextMenu, loadKeyboard, loadLineTool, loadMediaInput, loadUndoRedo, mediaInputNow, partsBuiltIn, undoRedoNow } from "./slateParts";
+import { birdsEyeNow, contextMenuNow, keyboardNow, lineToolNow, loadBirdsEye, loadContextMenu, loadKeyboard, loadLineTool, loadMediaInput, loadPresentation, loadUndoRedo, mediaInputNow, partsBuiltIn, presentationNow, undoRedoNow } from "./slateParts";
 import { alignPositions, distributePositions, type AlignMode, type LayoutBox, type Position } from "../operations/layout";
 import { ZoomSlider } from "./ZoomSlider";
-import { Presentation } from "./Presentation";
+import type { Presentation } from "./Presentation";
 import { Camera } from "./Camera";
 import { getAvailableFilters } from "./Filters";
 import { getAvailableAnimations, type AnimationDef } from "./Animations";
@@ -650,7 +650,15 @@ export class Slate {
     });
 
     // Initialize presentation mode
-    this.presentation = new Presentation(this);
+    // (the canvas entry fetches it as the slate starts: src/core/slateParts.ts)
+    const startPresentation = (module: NonNullable<ReturnType<typeof presentationNow>>) => {
+      this.presentation = new module.Presentation(this);
+    };
+    const presentationPart = presentationNow();
+    if (partsBuiltIn || presentationPart) startPresentation(presentationPart!);
+    else loadPresentation().then(module => {
+      if (!this._destroyed && !this.presentation) startPresentation(module);
+    }).catch(error => console.warn("SLATE: the presentation mode could not load", error));
     this.camera = new Camera(this);
 
     // Make canvas responsive
