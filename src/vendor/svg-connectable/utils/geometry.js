@@ -206,7 +206,17 @@ function closestPointOnPathOutline(shape, targetPoint) {
     // Walk up to the OUTERMOST svg, which is the connector's coordinate space.
     let rootSvg = pathEl.ownerSVGElement;
     while (rootSvg && rootSvg.ownerSVGElement) rootSvg = rootSvg.ownerSVGElement;
-    const pathCTM = pathEl.getScreenCTM && pathEl.getScreenCTM();
+    // A shape's outline path sits untransformed in its nested <svg>, but a node
+    // animation runs on that path (core/Animations.ts): its own screen CTM carries
+    // the animation's frame, so a line drawn during an entrance pointed wherever
+    // the outline was flying. The nested <svg>'s CTM is the resting outline.
+    const host = pathEl.parentNode;
+    const ctmEl =
+      pathEl.hasAttribute && pathEl.hasAttribute("data-node-background-path") &&
+      host && host.tagName && host.tagName.toLowerCase() === "svg" && host.getScreenCTM
+        ? host
+        : pathEl;
+    const pathCTM = ctmEl.getScreenCTM && ctmEl.getScreenCTM();
     const rootScreenCTM = rootSvg && rootSvg.getScreenCTM && rootSvg.getScreenCTM();
     if (!rootSvg || !pathCTM || !rootScreenCTM) return null;
     const rootInv = rootScreenCTM.inverse();

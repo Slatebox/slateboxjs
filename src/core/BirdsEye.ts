@@ -1,6 +1,8 @@
 import { SVG, Svg, Rect, Element, G } from "@svgdotjs/svg.js";
 import type { Slate } from "./Slate";
 import type { Node } from "./Node";
+import { pathBBox, transformPath } from "./PathGeometry";
+import { resolveShapePath } from "./ShapeRegistry";
 
 export interface BirdsEyeOptions {
   enabled?: boolean;
@@ -256,6 +258,33 @@ export class BirdsEye {
     shape._beRaf = requestAnimationFrame(tick);
   }
 
+  /**
+   * A note's silhouette in the minimap: a circle, the note's own outline for a
+   * path shape (a star stays a star, here and in its connected copies), or the
+   * box for a plain rectangle and anything without an outline.
+   */
+  private drawShape(layer: Svg | G, node: Node, x: number, y: number, w: number, h: number): Element {
+    if (node.options.shape === "circle") {
+      const radius = Math.min(w, h) / 2;
+      return layer.circle(radius * 2).move(x, y);
+    }
+    const name = String(node.options.vectorPath || node.options.shape || "rectangle");
+    const def = name.toLowerCase() === "rectangle" || node.options.svgContent ? undefined : resolveShapePath(node.options.shape, node.options.vectorPath);
+    if (def) {
+      try {
+        // Fit the outline to the note's box (analytic bounds: no DOM measuring).
+        const bb = pathBBox(def.path);
+        if (bb.width > 0 && bb.height > 0 && [bb.x, bb.y].every(Number.isFinite)) {
+          const d = transformPath(def.path, `m${w / bb.width},0,0,${h / bb.height},${x - (bb.x * w) / bb.width},${y - (bb.y * h) / bb.height}`);
+          if (d) return layer.path(d).attr("data-birdseye-outline", "1");
+        }
+      } catch (e) {
+        /* fall back to the box */
+      }
+    }
+    return layer.rect(w, h).move(x, y);
+  }
+
   public addNodeShape(node: Node): void {
     if (!this._enabled || !this.miniCanvas) return;
 
@@ -268,13 +297,7 @@ export class BirdsEye {
     const h = (node.options.height || 60) * this.scale;
 
     const layer = this.nodeLayer ?? this.miniCanvas;
-    let shape: Element;
-    if (node.options.shape === "circle") {
-      const radius = Math.min(w, h) / 2;
-      shape = layer.circle(radius * 2).move(x, y);
-    } else {
-      shape = layer.rect(w, h).move(x, y);
-    }
+    const shape = this.drawShape(layer, node, x, y, w, h);
 
     shape.fill(node.options.backgroundColor || this.options.nodeColor!);
     shape.stroke({ width: 0 });
@@ -426,13 +449,7 @@ export class BirdsEye {
       const w = Math.max((node.options.width || 100) * this.scale, 2);
       const h = Math.max((node.options.height || 60) * this.scale, 2);
 
-      let shape: Element;
-      if (node.options.shape === "circle") {
-        const radius = Math.min(w, h) / 2;
-        shape = layer.circle(radius * 2).move(x, y);
-      } else {
-        shape = layer.rect(w, h).move(x, y);
-      }
+      const shape = this.drawShape(layer, node, x, y, w, h);
 
       shape.fill(node.options.backgroundColor || this.options.nodeColor!);
       shape.stroke({ width: 0 });

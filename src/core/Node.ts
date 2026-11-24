@@ -25,6 +25,7 @@ import { Links } from "./Links";
 import { Filters } from "./Filters";
 import { Menu } from "./Menu";
 import { resolveShapePath } from "./ShapeRegistry";
+import { normalizeShapeOptions } from "./vectorPath";
 import { shapeTextBox, type ShapeTextBox } from "../shapes";
 
 /** Text boxes measured for raw-path notes that carry none, per path string (memory only). */
@@ -479,6 +480,9 @@ export class Node {
       },
       ...options,
     };
+    // A path stored in canvas coordinates (v1 quick-add shapes) is drawn from its
+    // own origin, so its bounds are the note's box for every reader (src/core/vectorPath.ts).
+    normalizeShapeOptions(this.options);
 
     this.ready = new Promise<void>((resolve, reject) => {
       this._resolveReady = resolve;
@@ -1007,6 +1011,7 @@ export class Node {
     // vectorPath, but it now holds the same value as `shape`, so the render is
     // identical.)
     this.options.vectorPath = vectorPath ?? shape;
+    normalizeShapeOptions(this.options);
     if (shape !== "custom") {
       delete this.options.fillRule;
       delete this.options.textBox;
@@ -4275,7 +4280,11 @@ export class Node {
     // Get the ACTUAL center of the rotated shape (not the bbox center)
     // For rotated shapes, bbox() gives the axis-aligned bounding box which has a different center
     // We need to use rbox() to get the real position after rotation
-    const rbox = (this.backgroundRect as any).rbox(this.backgroundRect.root());
+    // Measure the note's box (the selector's proxy, as the plug dots do), never
+    // the drawn outline: an animation moves the outline, and a path shape's
+    // nested <svg> measures in its own viewBox units.
+    const geo = (this.resizeTarget ?? this.backgroundRect) as any;
+    const rbox = geo.rbox(geo.root());
     const actualCenterX = rbox.cx;
     const actualCenterY = rbox.cy;
 
@@ -4304,12 +4313,12 @@ export class Node {
     const rotatedDirY = dirY / dirLength;
 
     // Calculate edge distance by finding the actual edge position using transformation matrix
-    const bbox = this.backgroundRect.bbox();
+    const bbox = geo.bbox();
     const bboxCenterX = bbox.x + bbox.width / 2;
     const bboxCenterY = bbox.y + bbox.height / 2;
 
-    const elMatrix = (this.backgroundRect as any).screenCTM();
-    const rootMatrix = (this.backgroundRect as any).root().screenCTM();
+    const elMatrix = geo.screenCTM();
+    const rootMatrix = geo.root().screenCTM();
     const fromShapeToUiMatrix = rootMatrix.inverseO().multiplyO(elMatrix);
 
     // Inverse transform the direction vector to bbox space to correctly identify the edge
@@ -4411,6 +4420,13 @@ export class Node {
     );
   }
 
+  /** The outline the plug preview draws: any path shape but the plain rectangle (kept as the rounded ghost). */
+  private previewOutline() {
+    const name = String(this.options.vectorPath || this.options.shape || "rectangle");
+    if (name.toLowerCase() === "rectangle") return undefined;
+    return resolveShapePath(this.options.shape, this.options.vectorPath);
+  }
+
   private createPreviewShape(
     container: any,
     x: number,
@@ -4501,6 +4517,33 @@ export class Node {
           if (rotationAngle !== 0) {
             previewNode.rotate(rotationAngle, centerX, centerY);
             previewSvg.rotate(rotationAngle, centerX, centerY);
+          }
+        } else if (this.previewOutline()) {
+          // A path shape (star, diamond, a custom outline…): the ghost is the same
+          // outline fitted to the new note's box, as the note itself is drawn.
+          const def = this.previewOutline()!;
+          previewNode = container.nested().size(width, height).move(x, y);
+          const outline = previewNode
+            .path(def.path)
+            .fill(fillColor)
+            .stroke({ color: strokeColor, width: strokeWidth })
+            .attr("vector-effect", "non-scaling-stroke");
+          if (this.isCustomShape()) outline.attr("fill-rule", this.options.fillRule === "evenodd" ? "evenodd" : "nonzero");
+          try {
+            const bb = outline.bbox();
+            previewNode.viewbox(bb.width > 0 && bb.height > 0 ? `${bb.x} ${bb.y} ${bb.width} ${bb.height}` : def.viewBox);
+          } catch {
+            previewNode.viewbox(def.viewBox);
+          }
+          if (String(this.options.vectorPath || this.options.shape || "").toLowerCase() !== "circle") {
+            previewNode.attr("preserveAspectRatio", "none");
+          }
+          previewNode.attr({ overflow: "visible", opacity }).attr("data-preview-shape", "path");
+          if (rotationAngle !== 0) {
+            // A nested <svg> takes no transform of its own: rotate a group around it.
+            const holder = container.group();
+            holder.add(previewNode);
+            holder.rotate(rotationAngle, centerX, centerY);
           }
         } else {
           // Regular rectangle node
@@ -4683,14 +4726,16 @@ export class Node {
       const rotatedDirY = dirX * Math.sin(rotationRad) + dirY * Math.cos(rotationRad);
 
       // Get the ACTUAL center of the rotated shape (not the bbox center)
-      const rbox = (this.backgroundRect as any).rbox(this.backgroundRect.root());
+      // The note's box, measured like the plug dots and the preview (see showConnectionPreview).
+      const geo = (this.resizeTarget ?? this.backgroundRect) as any;
+      const rbox = geo.rbox(geo.root());
       const actualCenterX = rbox.cx;
       const actualCenterY = rbox.cy;
 
       // Calculate new node position based on rotated direction
       // Use transformation matrix to get accurate edge distance (accounts for rotation)
 
-      const bbox = this.backgroundRect.bbox();
+      const bbox = geo.bbox();
       const bboxCenterX = bbox.x + bbox.width / 2;
       const bboxCenterY = bbox.y + bbox.height / 2;
 
@@ -4716,8 +4761,8 @@ export class Node {
       }
 
       // Transform edge position to world space
-      const elMatrix = (this.backgroundRect as any).screenCTM();
-      const rootMatrix = (this.backgroundRect as any).root().screenCTM();
+      const elMatrix = geo.screenCTM();
+      const rootMatrix = geo.root().screenCTM();
       const fromShapeToUiMatrix = rootMatrix.inverseO().multiplyO(elMatrix);
 
       const transformPoint = ([x, y]: number[], { a, b, c, d, e, f }: any) => {

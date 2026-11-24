@@ -131,6 +131,36 @@ const animationDefs: Record<string, AnimationDef> = {
 
 const baseCss = `.sb-node-animation{transform-box:fill-box;transform-origin:center}`;
 
+/**
+ * A path shape's element is a nested <svg> whose viewBox is the outline's own
+ * bounds. Animating that <svg> goes wrong two ways: WebKit ignores CSS
+ * transforms on a nested <svg> (nothing moves), and Chromium and Firefox take
+ * its fill-box in viewBox units, so the pivot sits wherever the path's numbers
+ * are (thousands of pixels away for a path stored in canvas coordinates; off
+ * centre for a resized note or a named shape). The animation therefore runs on
+ * the outline path inside it, whose own box is exactly the shape in every
+ * browser; the class stays on the shape element, and the <svg> stops clipping
+ * so the outline can move past its box.
+ */
+const nestedTarget = "svg.sb-node-animation>path[data-node-background-path]";
+const nestedBaseCss =
+  `svg.sb-node-animation{overflow:visible}` +
+  `${nestedTarget}{transform-box:fill-box;transform-origin:center}`;
+
+/** Each animation's rule, repeated for the outline path of a nested-<svg> shape. */
+function cssFor(name: string, def: AnimationDef): string {
+  const cls = `.${animationClass(name)}`;
+  const match = def.css.match(/^\.[\w-]+\{([^}]*)\}([\s\S]*)$/);
+  if (!match) return def.css;
+  const [, declarations, rest] = match;
+  return (
+    `${cls}{${declarations}}` +
+    `svg${cls}{animation:none}` +
+    `svg${cls}>path[data-node-background-path]{${declarations}}` +
+    rest
+  );
+}
+
 export function getAvailableAnimations(): Record<string, AnimationDef> {
   return { ...animationDefs };
 }
@@ -145,7 +175,8 @@ export function installAnimationStyles(element: any): void {
   if (!defs || defs.findOne?.("#sb-node-animation-styles")) return;
   const style = defs.element("style").id("sb-node-animation-styles");
   style.attr("type", "text/css");
-  style.node.textContent = baseCss + Object.values(animationDefs).map((def) => def.css).join("");
+  style.node.textContent =
+    baseCss + nestedBaseCss + Object.entries(animationDefs).map(([name, def]) => cssFor(name, def)).join("");
 }
 
 export function applyAnimation(element: any, name: string): boolean {
