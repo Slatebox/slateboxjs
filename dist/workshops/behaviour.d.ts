@@ -165,6 +165,7 @@ export type WorkshopMoveCheck = {
         ruleId: string | null;
         nearest: string | null;
         set?: RuleAudit;
+        overridable: boolean;
     };
 };
 /**

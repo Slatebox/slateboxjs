@@ -317,7 +317,7 @@ function he(e, n) {
 }
 function We(e, n, t) {
   const r = Ie(e), o = ke(r), d = (u) => typeof u == "object" ? k(r, he(r, u.id) ?? "") : k(r, u) ?? o.cards.attempt(u) ?? void 0, i = d(n), c = t.under === void 0 ? null : d(t.under);
-  if (!i || c === void 0) return { refused: { sentence: "There is no such card on this board.", ruleId: null, nearest: null } };
+  if (!i || c === void 0) return { refused: { sentence: "There is no such card on this board.", ruleId: null, nearest: null, overridable: !1 } };
   const l = { kind: "nest_card", card: { id: i.id }, ...c ? { under: { id: c.id } } : t.lane ? { lane: t.lane } : {} }, p = ee(r, [l]);
   if (!("refused" in p)) {
     const u = W(r, p.workshop);
@@ -328,7 +328,7 @@ function We(e, n, t) {
     const y = { ...r, behaviour: { ...r.behaviour, rules: [{ ...u, severity: "refuse" }] } }, g = ee(y, [l]);
     return "refused" in g && g.refused.reason === w;
   }), a = new Set(pe(r, i.id).flatMap(({ spot: u }) => u.under ? [u.under] : [])), h = (c ? [...v(r, c.id), ...c.parentId ? v(r, c.parentId) : v(r, null, c.laneId)] : []).find((u) => a.has(u.id) && u.id !== i.parentId)?.label ?? null;
-  return { refused: { sentence: w, ruleId: s?.id ?? null, nearest: h, ...s && { set: s.set } } };
+  return { refused: { sentence: w, ruleId: s?.id ?? null, nearest: h, overridable: !1, ...s && { set: s.set } } };
 }
 const N = (e) => ({ type: "ref", of: "card", about: e }), C = (e, n, t = !1) => ({ type: "text", max: e, about: n, ...t && { optional: t } }), A = ["nest"];
 function Oe(e) {

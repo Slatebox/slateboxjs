@@ -60,6 +60,18 @@ export interface WorkshopChangeEvent {
      */
     edits?: WorkshopEdit[];
     via?: 'undo';
+    /** A move a rule refused, made anyway once the person confirmed it (confirmOverride): the server marks who and when. */
+    override?: true;
+}
+/** A drop a rule refuses that may be made anyway: what confirmOverride shows the person. */
+export interface WorkshopOverrideAsk {
+    cardId: string;
+    laneId: string;
+    /** The card's and the lane's names. */
+    card: string;
+    lane: string;
+    /** The rule's sentence: what moving it anyway breaks. */
+    reason: string;
 }
 /** One note a board kit draws: its artwork name (lane-, card-, caption-, column-, handle-, gauge-), box from the origin and look. */
 export interface PartPlace {
@@ -263,6 +275,15 @@ export interface AttachWorkshopOptions {
     onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | 'taken' | void>;
     /** A drop or rename was refused. */
     onRefuse?: (refusal: WorkshopRefusalEvent) => void;
+    /**
+     * A drop a rule refuses on a lane board or a map, which the person may make anyway: show them the rule's sentence
+     * with "Move anyway" and "Cancel", and answer true (or a promise of true) to move it. The card goes back first, as
+     * a refused drop does; confirmed, it moves and is marked with who (overrideBy) and when, and onChange hears it with
+     * `override: true`. Left out, a refused drop is only refused. A hard limit (model.ts workshopHardLimit) is never offered.
+     */
+    confirmOverride?: (ask: WorkshopOverrideAsk) => boolean | Promise<boolean>;
+    /** The name a card moved anyway is marked with on this screen (the server stamps its own). Left out, "You". */
+    overrideBy?: () => string;
     /** The board a held or keyboard-staged card would produce, or null when there is none. */
     onPreview?: (candidate: Workshop | null) => void;
     /** Draw the same artwork with nothing draggable or editable. */

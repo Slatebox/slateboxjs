@@ -42,6 +42,12 @@ export interface NodeCapabilities {
     exportable: boolean;
     /** The cursor over a note that may be moved, in place of the grab hand (a resize grip says ew-resize). */
     cursor?: string;
+    /**
+     * false keeps the canvas still while the note is held near an edge of the visible canvas. A note
+     * whose drag never needs to reach off screen (a plan's grip on a phone, laid out to the screen's
+     * width) sets it: a pan there would carry the note on under a finger that has stopped.
+     */
+    edgePan?: boolean;
 }
 /** An ordinary note. Returned for every note no policy claims. */
 export declare const FREE_NODE: Readonly<NodeCapabilities>;

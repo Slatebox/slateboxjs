@@ -1,150 +1,150 @@
-import { workshopRules as N, validateWorkshop as z, workshopReferences as F, workshopCandidate as O, workshopRefusal as D, workshopRulesLoaded as B, workshopLaneHeld as C, said as H, registerRulebook as P, roundedBox as U } from "./workshop-model.mjs";
-import { D as M } from "./NoteDefaults-1xFW0br8.mjs";
-const ce = ["capacity", "path", "gate", "bin"], W = 12, T = { pipeline: [{ id: "amount", noun: "an amount" }] }, A = (n) => Object.values(T).flat().find((e) => e.id === n)?.noun ?? n, K = /* @__PURE__ */ new Set(["label", "text", "title", "name", "words"]), v = (n) => B(n.kind) ? N(n.kind).rulebook : void 0;
+import { workshopRules as N, validateWorkshop as z, workshopReferences as F, workshopCandidate as O, workshopRefusal as D, workshopHardLimit as B, workshopRulesLoaded as H, workshopLaneHeld as M, said as P, registerRulebook as U, roundedBox as W } from "./workshop-model.mjs";
+import { D as C } from "./NoteDefaults-1xFW0br8.mjs";
+const de = ["capacity", "path", "gate", "bin"], K = 12, T = { pipeline: [{ id: "amount", noun: "an amount" }] }, A = (n) => Object.values(T).flat().find((e) => e.id === n)?.noun ?? n, Z = /* @__PURE__ */ new Set(["label", "text", "title", "name", "words"]), g = (n) => H(n.kind) ? N(n.kind).rulebook : void 0;
 function I(n) {
-  return n.kind === "pipeline" ? "pipeline" : v(n) ? "time" : n.kind || n.experience || n.lanes.some((e) => e.station) ? null : "lanes";
+  return n.kind === "pipeline" ? "pipeline" : g(n) ? "time" : n.kind || n.experience || n.lanes.some((e) => e.station) ? null : "lanes";
 }
-const Z = () => ({ version: 1, rev: 0, rules: [] });
+const $ = () => ({ version: 1, rev: 0, rules: [] });
 function y(n) {
-  return n.behaviour ?? Z();
+  return n.behaviour ?? $();
 }
 function E(n, e) {
   if (!n || typeof n != "object" || Array.isArray(n)) throw new Error(e);
   return n;
 }
-const $ = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+const J = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 function L(n, e) {
-  const i = E(n, "Unsupported behaviour version.");
-  if (i.version !== 1) throw new Error("Unsupported behaviour version.");
-  const t = I(e);
-  if (!t) throw new Error("Only boards of columns and pipelines take rules for now.");
-  if (typeof i.rev != "number" || !Number.isInteger(i.rev) || i.rev < 0 || i.rev > 1e9) throw new Error("A rulebook needs a whole revision number.");
-  if (!Array.isArray(i.rules)) throw new Error("A rulebook needs a list of rules.");
-  if (i.rules.length > W) throw new Error("A board has up to 12 rules.");
-  const s = (a) => {
-    if (typeof a != "string" || !e.lanes.some((o) => o.id === a)) throw new Error("That rule names a column that is no longer on the board.");
-    return a;
-  }, l = i.rules.map((a) => {
-    const o = E(a, "A rule is an object.");
-    if (typeof o.id != "string" || !$.test(o.id)) throw new Error("Rule IDs must be short alphanumeric slugs.");
-    if (typeof o.on != "boolean") throw new Error("Say whether the rule is on.");
-    if (o.severity !== "refuse" && o.severity !== "warn") throw new Error("A rule refuses or warns.");
-    const f = E(o.set, "A rule says who set it.");
+  const s = E(n, "Unsupported behaviour version.");
+  if (s.version !== 1) throw new Error("Unsupported behaviour version.");
+  const r = I(e);
+  if (!r) throw new Error("Only boards of columns and pipelines take rules for now.");
+  if (typeof s.rev != "number" || !Number.isInteger(s.rev) || s.rev < 0 || s.rev > 1e9) throw new Error("A rulebook needs a whole revision number.");
+  if (!Array.isArray(s.rules)) throw new Error("A rulebook needs a list of rules.");
+  if (s.rules.length > K) throw new Error("A board has up to 12 rules.");
+  const a = (i) => {
+    if (typeof i != "string" || !e.lanes.some((t) => t.id === i)) throw new Error("That rule names a column that is no longer on the board.");
+    return i;
+  }, l = s.rules.map((i) => {
+    const t = E(i, "A rule is an object.");
+    if (typeof t.id != "string" || !J.test(t.id)) throw new Error("Rule IDs must be short alphanumeric slugs.");
+    if (typeof t.on != "boolean") throw new Error("Say whether the rule is on.");
+    if (t.severity !== "refuse" && t.severity !== "warn") throw new Error("A rule refuses or warns.");
+    const f = E(t.set, "A rule says who set it.");
     if (typeof f.by != "string" || f.by.length > 80 || typeof f.at != "string" || f.at.length > 40 || !["chat", "exec", "preset"].includes(f.via)) throw new Error("A rule says who set it, when and how.");
-    const p = { id: o.id, on: o.on, severity: o.severity, set: { by: f.by, at: f.at, via: f.via } }, c = v(e);
-    if (c) {
-      if (c.keys[o.kind] === void 0) throw new Error("This board does not know the rule " + String(o.kind) + ".");
-      return c.read(o, p, e, s);
+    const p = { id: t.id, on: t.on, severity: t.severity, set: { by: f.by, at: f.at, via: f.via } }, u = g(e);
+    if (u) {
+      if (u.keys[t.kind] === void 0) throw new Error("This board does not know the rule " + String(t.kind) + ".");
+      return u.read(t, p, e, a);
     }
-    const d = (m) => {
-      const h = Object.keys(o).find((k) => !["id", "on", "severity", "set", "kind", ...m].includes(k));
-      if (h) throw new Error("A " + o.kind + " rule does not take " + h + ".");
+    const h = (d) => {
+      const m = Object.keys(t).find((k) => !["id", "on", "severity", "set", "kind", ...d].includes(k));
+      if (m) throw new Error("A " + t.kind + " rule does not take " + m + ".");
     };
-    switch (o.kind) {
+    switch (t.kind) {
       case "capacity": {
-        if (d(["where", "max"]), typeof o.max != "number" || !Number.isInteger(o.max) || o.max < 1 || o.max > 24) throw new Error("A column can hold from 1 to 24 cards.");
-        return { ...p, kind: "capacity", where: s(o.where), max: o.max };
+        if (h(["where", "max"]), typeof t.max != "number" || !Number.isInteger(t.max) || t.max < 1 || t.max > 24) throw new Error("A column can hold from 1 to 24 cards.");
+        return { ...p, kind: "capacity", where: a(t.where), max: t.max };
       }
       case "path": {
-        d(["from", "to", "noSkip"]);
-        const m = o.from === "any" ? "any" : s(o.from), h = { ...p, kind: "path", from: m };
-        if (o.noSkip !== void 0) {
-          if (o.noSkip !== !0) throw new Error("noSkip is true or left out.");
-          h.noSkip = !0;
+        h(["from", "to", "noSkip"]);
+        const d = t.from === "any" ? "any" : a(t.from), m = { ...p, kind: "path", from: d };
+        if (t.noSkip !== void 0) {
+          if (t.noSkip !== !0) throw new Error("noSkip is true or left out.");
+          m.noSkip = !0;
         }
-        if (o.to !== void 0) {
-          if (!Array.isArray(o.to) || o.to.length < 1 || o.to.length > 4) throw new Error("Say where cards in " + w(e, m) + " may go.");
-          if (h.to = o.to.map(s), new Set(h.to).size !== h.to.length) throw new Error("Name each column once.");
-          if (h.to.includes(m)) throw new Error("A path leads to another column.");
+        if (t.to !== void 0) {
+          if (!Array.isArray(t.to) || t.to.length < 1 || t.to.length > 4) throw new Error("Say where cards in " + w(e, d) + " may go.");
+          if (m.to = t.to.map(a), new Set(m.to).size !== m.to.length) throw new Error("Name each column once.");
+          if (m.to.includes(d)) throw new Error("A path leads to another column.");
         }
-        if (!h.to && !h.noSkip) throw new Error("Say where cards in " + w(e, m) + " may go.");
-        if (m === "any" && h.to) throw new Error("A path from any column is one column at a time; name a column to send cards somewhere.");
-        return h;
+        if (!m.to && !m.noSkip) throw new Error("Say where cards in " + w(e, d) + " may go.");
+        if (d === "any" && m.to) throw new Error("A path from any column is one column at a time; name a column to send cards somewhere.");
+        return m;
       }
       case "gate": {
-        if (d(["into", "needs"]), !Array.isArray(o.needs) || o.needs.length < 1 || o.needs.length > 3 || o.needs.some((x) => typeof x != "string"))
+        if (h(["into", "needs"]), !Array.isArray(t.needs) || t.needs.length < 1 || t.needs.length > 3 || t.needs.some((v) => typeof v != "string"))
           throw new Error("Say which field the column asks for.");
-        const m = o.needs;
-        if (m.some((x) => K.has(x))) throw new Error("A rule reads a card’s fields, never its words.");
-        const h = T[t] ?? [], k = m.find((x) => !h.some((j) => j.id === x));
+        const d = t.needs;
+        if (d.some((v) => Z.has(v))) throw new Error("A rule reads a card’s fields, never its words.");
+        const m = T[r] ?? [], k = d.find((v) => !m.some((j) => j.id === v));
         if (k) throw new Error("Cards on this board carry no " + A(k).replace(/^an? /, "") + ", so a column can’t ask for one.");
-        return { ...p, kind: "gate", into: s(o.into), needs: [...m] };
+        return { ...p, kind: "gate", into: a(t.into), needs: [...d] };
       }
       case "bin":
-        return d(["lane"]), { ...p, kind: "bin", lane: s(o.lane) };
+        return h(["lane"]), { ...p, kind: "bin", lane: a(t.lane) };
     }
-    throw new Error("This board does not know the rule " + String(o.kind) + ".");
+    throw new Error("This board does not know the rule " + String(t.kind) + ".");
   });
-  if (new Set(l.map((a) => a.id)).size !== l.length) throw new Error("Duplicate rule ID.");
-  const u = { version: 1, rev: i.rev, rules: l }, r = J(u, e);
-  if (r) throw new Error(r);
-  return u;
+  if (new Set(l.map((i) => i.id)).size !== l.length) throw new Error("Duplicate rule ID.");
+  const c = { version: 1, rev: s.rev, rules: l }, o = Y(c, e);
+  if (o) throw new Error(o);
+  return c;
 }
 function w(n, e) {
-  return e === "any" ? "any column" : n.lanes.find((i) => i.id === e)?.label ?? e;
+  return e === "any" ? "any column" : n.lanes.find((s) => s.id === e)?.label ?? e;
 }
-function J(n, e) {
-  const i = v(e);
-  if (i) return i.contradiction(n, e);
-  const t = new Set(n.rules.filter((r) => r.kind === "bin").map((r) => r.lane)), s = /* @__PURE__ */ new Map();
-  for (const r of n.rules) {
-    let a = "", o = "";
-    if (r.kind === "capacity") {
-      if (t.has(r.where)) return w(e, r.where) + " archives cards, so it takes every card.";
-      if (r.where && e.lanes.find((f) => f.id === r.where)?.capacity !== void 0)
-        return w(e, r.where) + " already has a limit. Change it instead.";
-      a = "capacity:" + r.where, o = w(e, r.where) + " already has a limit. Change it instead.";
-    } else if (r.kind === "path")
-      a = "path:" + r.from, o = "There is already a rule for cards leaving " + w(e, r.from) + ". Change that one instead.";
-    else if (r.kind === "gate") {
-      if (t.has(r.into)) return w(e, r.into) + " archives cards, so it takes every card.";
-      a = "gate:" + r.into, o = w(e, r.into) + " already asks for something. Change that rule instead.";
+function Y(n, e) {
+  const s = g(e);
+  if (s) return s.contradiction(n, e);
+  const r = new Set(n.rules.filter((o) => o.kind === "bin").map((o) => o.lane)), a = /* @__PURE__ */ new Map();
+  for (const o of n.rules) {
+    let i = "", t = "";
+    if (o.kind === "capacity") {
+      if (r.has(o.where)) return w(e, o.where) + " archives cards, so it takes every card.";
+      if (o.where && e.lanes.find((f) => f.id === o.where)?.capacity !== void 0)
+        return w(e, o.where) + " already has a limit. Change it instead.";
+      i = "capacity:" + o.where, t = w(e, o.where) + " already has a limit. Change it instead.";
+    } else if (o.kind === "path")
+      i = "path:" + o.from, t = "There is already a rule for cards leaving " + w(e, o.from) + ". Change that one instead.";
+    else if (o.kind === "gate") {
+      if (r.has(o.into)) return w(e, o.into) + " archives cards, so it takes every card.";
+      i = "gate:" + o.into, t = w(e, o.into) + " already asks for something. Change that rule instead.";
     } else {
-      const f = r.lane;
-      a = "bin:" + f, o = w(e, f) + " already archives cards.";
+      const f = o.lane;
+      i = "bin:" + f, t = w(e, f) + " already archives cards.";
     }
-    if (s.has(a)) return o;
-    s.set(a, r.id);
+    if (a.has(i)) return t;
+    a.set(i, o.id);
   }
-  const l = n.rules.filter((r) => r.on && r.severity === "refuse"), u = e.lanes.map((r) => r.id);
-  for (const r of l) if (r.kind === "path") {
-    for (const a of r.to ?? [])
-      if (Math.abs(u.indexOf(a) - u.indexOf(r.from)) > 1 && !l.some((o) => o.kind === "bin" && o.lane === a) && l.some((o) => o.kind === "path" && (o.from === "any" || o.from === r.from) && (o.noSkip || !o.to)))
-        return "Cards move one column at a time, so cards in " + w(e, r.from) + " could never reach " + w(e, a) + ".";
+  const l = n.rules.filter((o) => o.on && o.severity === "refuse"), c = e.lanes.map((o) => o.id);
+  for (const o of l) if (o.kind === "path") {
+    for (const i of o.to ?? [])
+      if (Math.abs(c.indexOf(i) - c.indexOf(o.from)) > 1 && !l.some((t) => t.kind === "bin" && t.lane === i) && l.some((t) => t.kind === "path" && (t.from === "any" || t.from === o.from) && (t.noSkip || !t.to)))
+        return "Cards move one column at a time, so cards in " + w(e, o.from) + " could never reach " + w(e, i) + ".";
   }
   return null;
 }
-function Y(n) {
+function q(n) {
   if (!I(n)) return [];
-  const e = new Set(y(n).rules.filter((i) => i.kind === "capacity").map((i) => i.where));
-  return n.lanes.filter((i) => i.capacity !== void 0 && !e.has(i.id)).map((i) => ({ lane: i, max: i.capacity }));
+  const e = new Set(y(n).rules.filter((s) => s.kind === "capacity").map((s) => s.where));
+  return n.lanes.filter((s) => s.capacity !== void 0 && !e.has(s.id)).map((s) => ({ lane: s, max: s.capacity }));
 }
 const b = {
   capacity: {
     sentence: (n, e) => w(e, n.where) + " holds " + n.max + ".",
-    check(n, e, i, t) {
-      const { where: s, max: l } = n;
-      if (t.to !== s || t.from === s) return null;
-      const u = C(e, s), r = C(i, s);
-      return r > l && r > u ? { sentence: w(e, s) + " holds " + l + ". It has " + u + "." } : null;
+    check(n, e, s, r) {
+      const { where: a, max: l } = n;
+      if (r.to !== a || r.from === a) return null;
+      const c = M(e, a), o = M(s, a);
+      return o > l && o > c ? { sentence: w(e, a) + " holds " + l + ". It has " + c + "." } : null;
     }
   },
   path: {
     sentence(n, e) {
-      const { from: i, to: t, noSkip: s } = n;
-      if (!t) return "Cards move one column at a time.";
-      const l = t.map((r) => w(e, r)), u = l.length > 1 ? l.slice(0, -1).join(", ") + " or " + l.at(-1) : l[0];
-      return "From " + w(e, i) + ", cards go only to " + u + "." + (s ? " One column at a time." : "");
+      const { from: s, to: r, noSkip: a } = n;
+      if (!r) return "Cards move one column at a time.";
+      const l = r.map((o) => w(e, o)), c = l.length > 1 ? l.slice(0, -1).join(", ") + " or " + l.at(-1) : l[0];
+      return "From " + w(e, s) + ", cards go only to " + c + "." + (a ? " One column at a time." : "");
     },
-    check(n, e, i, t) {
-      const { from: s, to: l, noSkip: u } = n;
-      if (t.from === null || t.from === t.to || s !== "any" && s !== t.from) return null;
-      if (l && !l.includes(t.to)) return { sentence: b.path.sentence(n, e) };
-      if (u || !l) {
-        const r = e.lanes.map((f) => f.id), a = r.indexOf(t.from), o = r.indexOf(t.to);
-        if (Math.abs(o - a) > 1) {
-          const f = e.lanes[a + Math.sign(o - a)];
-          return { sentence: "Cards move one column at a time. " + t.card.label + " is in " + w(e, t.from) + ", so " + f.label + " comes first." };
+    check(n, e, s, r) {
+      const { from: a, to: l, noSkip: c } = n;
+      if (r.from === null || r.from === r.to || a !== "any" && a !== r.from) return null;
+      if (l && !l.includes(r.to)) return { sentence: b.path.sentence(n, e) };
+      if (c || !l) {
+        const o = e.lanes.map((f) => f.id), i = o.indexOf(r.from), t = o.indexOf(r.to);
+        if (Math.abs(t - i) > 1) {
+          const f = e.lanes[i + Math.sign(t - i)];
+          return { sentence: "Cards move one column at a time. " + r.card.label + " is in " + w(e, r.from) + ", so " + f.label + " comes first." };
         }
       }
       return null;
@@ -152,230 +152,230 @@ const b = {
   },
   gate: {
     sentence: (n, e) => w(e, n.into) + " needs " + n.needs.map(A).join(" and ") + ".",
-    check(n, e, i, t) {
-      const { into: s, needs: l } = n;
-      if (t.to !== s || t.from === s) return null;
-      const u = l.find((r) => t.card[r] === void 0);
-      return u ? { sentence: w(e, s) + " needs " + A(u) + ". " + t.card.label + " has none." } : null;
+    check(n, e, s, r) {
+      const { into: a, needs: l } = n;
+      if (r.to !== a || r.from === a) return null;
+      const c = l.find((o) => r.card[o] === void 0);
+      return c ? { sentence: w(e, a) + " needs " + A(c) + ". " + r.card.label + " has none." } : null;
     }
   },
   bin: {
     sentence: (n, e) => w(e, n.lane) + " archives cards: they stay on the board, never deleted.",
     check: () => null
   }
-}, q = ["path", "gate", "capacity", "bin"], G = (n) => q.flatMap((e) => n.filter((i) => i.kind === e));
-function g(n, e) {
-  const i = v(e);
-  if (i) return i.sentence(n, e);
-  const t = b[n.kind].sentence(n, e);
-  return n.severity === "warn" ? t.replace(/\.$/, " (a warning only).") : t;
+}, G = ["path", "gate", "capacity", "bin"], Q = (n) => G.flatMap((e) => n.filter((s) => s.kind === e));
+function x(n, e) {
+  const s = g(e);
+  if (s) return s.sentence(n, e);
+  const r = b[n.kind].sentence(n, e);
+  return n.severity === "warn" ? r.replace(/\.$/, " (a warning only).") : r;
 }
-function Q(n) {
-  return v(n)?.builtIn(n) ?? (n.kind === "pipeline" ? ["Deals move one stage at a time.", "A won deal needs an amount."] : []);
+function V(n) {
+  return g(n)?.builtIn(n) ?? (n.kind === "pipeline" ? ["Deals move one stage at a time.", "A won deal needs an amount."] : []);
 }
 function R(n) {
   return I(n) ? [
-    ...Q(n),
-    ...Y(n).map(({ lane: e, max: i }) => e.label + " holds " + i + "."),
-    ...y(n).rules.filter((e) => e.on).map((e) => g(e, n))
+    ...V(n),
+    ...q(n).map(({ lane: e, max: s }) => e.label + " holds " + s + "."),
+    ...y(n).rules.filter((e) => e.on).map((e) => x(e, n))
   ] : [];
 }
 function _(n, e) {
-  return y(n).rules.find((t) => t.on && t.kind === "capacity" && t.where === e)?.max ?? n.lanes.find((t) => t.id === e)?.capacity;
+  return y(n).rules.find((r) => r.on && r.kind === "capacity" && r.where === e)?.max ?? n.lanes.find((r) => r.id === e)?.capacity;
 }
 function S(n, e) {
-  const i = v(n);
-  if (i) return i.check(n, e);
-  const t = G(y(n).rules.filter((r) => r.on)), s = [];
-  if (!t.length) return { ok: !0, warnings: s };
-  const l = (r) => t.find((a) => a.kind === "bin" && a.lane === r);
-  for (const r of n.cards) {
-    const a = l(r.laneId);
-    if (!a || e.cards.some((f) => f.id === r.id)) continue;
-    const o = b.bin.sentence(a, n);
-    if (a.severity === "refuse") return { refused: { sentence: o, ruleId: a.id, set: a.set, cardId: r.id, laneId: r.laneId } };
-    s.push(o);
+  const s = g(n);
+  if (s) return s.check(n, e);
+  const r = Q(y(n).rules.filter((i) => i.on)), a = [];
+  if (!r.length) return { ok: !0, warnings: a };
+  const l = (i) => r.find((t) => t.kind === "bin" && t.lane === i);
+  for (const i of n.cards) {
+    const t = l(i.laneId);
+    if (!t || e.cards.some((p) => p.id === i.id)) continue;
+    const f = b.bin.sentence(t, n);
+    if (t.severity === "refuse") return { refused: { sentence: f, ruleId: t.id, set: t.set, cardId: i.id, laneId: i.laneId } };
+    a.push(f);
   }
-  const u = new Map(n.cards.map((r) => [r.id, r.laneId]));
-  for (const r of e.cards) {
-    const a = u.get(r.id) ?? null;
-    if (a === r.laneId || l(r.laneId)) continue;
-    const o = { card: r, from: a, to: r.laneId };
-    for (const f of t) {
-      const p = b[f.kind].check(f, n, e, o);
-      if (p) {
-        if (f.severity === "warn") {
-          s.push(p.sentence);
+  const c = new Map(n.cards.map((i) => [i.id, i.laneId])), o = new Map(n.cards.map((i) => [i.id, i.override]));
+  for (const i of e.cards) {
+    const t = c.get(i.id) ?? null;
+    if (t === i.laneId || l(i.laneId) || t !== null && i.override?.from === t || o.get(i.id)?.from === i.laneId) continue;
+    const f = { card: i, from: t, to: i.laneId };
+    for (const p of r) {
+      const u = b[p.kind].check(p, n, e, f);
+      if (u) {
+        if (p.severity === "warn") {
+          a.push(u.sentence);
           continue;
         }
-        return { refused: { sentence: p.sentence, ruleId: f.id, set: f.set, cardId: r.id, laneId: r.laneId } };
+        return { refused: { sentence: u.sentence, ruleId: p.id, set: p.set, cardId: i.id, laneId: i.laneId } };
       }
     }
   }
-  return { ok: !0, warnings: s };
+  return { ok: !0, warnings: a };
 }
-function V(n, e) {
-  const i = y(n), t = y(e), s = [], l = (r, a) => g(r, a) + (r.on ? "" : " (off)");
-  for (const r of t.rules) {
-    const a = i.rules.find((o) => o.id === r.id);
-    a ? l(a, n) !== l(r, e) && s.push("~ " + l(a, n) + " → " + l(r, e)) : s.push("+ " + l(r, e));
+function X(n, e) {
+  const s = y(n), r = y(e), a = [], l = (o, i) => x(o, i) + (o.on ? "" : " (off)");
+  for (const o of r.rules) {
+    const i = s.rules.find((t) => t.id === o.id);
+    i ? l(i, n) !== l(o, e) && a.push("~ " + l(i, n) + " → " + l(o, e)) : a.push("+ " + l(o, e));
   }
-  for (const r of i.rules) t.rules.some((a) => a.id === r.id) || s.push("- " + l(r, n));
-  const u = e.lanes.flatMap((r) => {
-    const a = _(e, r.id), o = e.cards.filter((f) => f.laneId === r.id).length;
-    return a !== void 0 && o > a ? [r.label + " shows " + o + " of " + a + "."] : [];
+  for (const o of s.rules) r.rules.some((i) => i.id === o.id) || a.push("- " + l(o, n));
+  const c = e.lanes.flatMap((o) => {
+    const i = _(e, o.id), t = e.cards.filter((f) => f.laneId === o.id).length;
+    return i !== void 0 && t > i ? [o.label + " shows " + t + " of " + i + "."] : [];
   });
-  return { from: i.rev, to: t.rev, lines: s, over: u };
+  return { from: s.rev, to: r.rev, lines: a, over: c };
 }
-const X = { capacity: "where max", path: "from to noSkip", gate: "into needs", bin: "lane" };
-function ee(n) {
+const ee = { capacity: "where max", path: "from to noSkip", gate: "into needs", bin: "lane" };
+function ne(n) {
   let e = 1;
-  for (; n.rules.some((i) => i.id === "rule-" + e); ) e++;
+  for (; n.rules.some((s) => s.id === "rule-" + e); ) e++;
   return "rule-" + e;
 }
-function ne(n, e) {
-  const i = n.rules.flatMap((t) => {
-    if (t.kind === "capacity" && t.where === e) return [];
-    if (t.kind === "gate" && t.into === e) return [];
-    if (t.kind === "bin" && t.lane === e) return [];
-    if (t.kind === "path") {
-      if (t.from === e) return [];
-      if (t.to?.includes(e)) {
-        const s = t.to.filter((l) => l !== e);
-        return s.length ? [{ ...t, to: s }] : [];
+function re(n, e) {
+  const s = n.rules.flatMap((r) => {
+    if (r.kind === "capacity" && r.where === e) return [];
+    if (r.kind === "gate" && r.into === e) return [];
+    if (r.kind === "bin" && r.lane === e) return [];
+    if (r.kind === "path") {
+      if (r.from === e) return [];
+      if (r.to?.includes(e)) {
+        const a = r.to.filter((l) => l !== e);
+        return a.length ? [{ ...r, to: a }] : [];
       }
     }
-    return [t];
+    return [r];
   });
-  return i.length === n.rules.length ? n : { ...n, rev: n.rev + 1, rules: i };
+  return s.length === n.rules.length ? n : { ...n, rev: n.rev + 1, rules: s };
 }
-function re(n, e, i, t) {
-  if (e.kind !== "add_rule" && e.kind !== "set_rule" && e.kind !== "remove_rule") return t.refuse("That is not a rule edit.", { code: "invalid_edit" });
-  const s = y(n), l = (c, d) => {
-    let m;
+function te(n, e, s, r) {
+  if (e.kind !== "add_rule" && e.kind !== "set_rule" && e.kind !== "remove_rule") return r.refuse("That is not a rule edit.", { code: "invalid_edit" });
+  const a = y(n), l = (u, h) => {
+    let d;
     try {
-      m = L(c, n);
-    } catch (h) {
-      return t.refuse(h instanceof Error ? h.message : String(h));
+      d = L(u, n);
+    } catch (m) {
+      return r.refuse(m instanceof Error ? m.message : String(m));
     }
-    return t.done({ ...n, behaviour: m }, d);
-  }, u = (c) => s.rules.find((d) => d.id === c) ?? t.refuse("There is no rule " + H(c) + " on this board.", { code: "unknown_reference" }), r = (c) => c === "any" ? "any" : typeof c != "string" && !(c && typeof c == "object") ? t.refuse("Name the column the rule is about.", { code: "invalid_edit" }) : t.lane(c).id;
+    return r.done({ ...n, behaviour: d }, h);
+  }, c = (u) => a.rules.find((h) => h.id === u) ?? r.refuse("There is no rule " + P(u) + " on this board.", { code: "unknown_reference" }), o = (u) => u === "any" ? "any" : typeof u != "string" && !(u && typeof u == "object") ? r.refuse("Name the column the rule is about.", { code: "invalid_edit" }) : r.lane(u).id;
   if (e.kind === "remove_rule") {
-    const c = u(e.rule);
-    return l({ ...s, rev: s.rev + 1, rules: s.rules.filter((d) => d !== c) }, "Removed the rule: " + g(c, n));
+    const u = c(e.rule);
+    return l({ ...a, rev: a.rev + 1, rules: a.rules.filter((h) => h !== u) }, "Removed the rule: " + x(u, n));
   }
   if (e.kind === "set_rule") {
-    const c = { ...u(e.rule), set: i };
-    if (e.on !== void 0 && (c.on = e.on), e.severity !== void 0 && (c.severity = e.severity), e.max !== void 0) {
-      if (!("max" in c)) return t.refuse("Only a limit takes a number.");
-      c.max = e.max;
+    const u = { ...c(e.rule), set: s };
+    if (e.on !== void 0 && (u.on = e.on), e.severity !== void 0 && (u.severity = e.severity), e.max !== void 0) {
+      if (!("max" in u)) return r.refuse("Only a limit takes a number.");
+      u.max = e.max;
     }
     if (e.to !== void 0) {
-      if (c.kind !== "path") return t.refuse("Only a path rule says where cards go.");
-      c.to = e.to.map(r);
+      if (u.kind !== "path") return r.refuse("Only a path rule says where cards go.");
+      u.to = e.to.map(o);
     }
-    for (const d of ["floor", "onConflict", "unit", "under", "by", "drop", "mode"]) if (e[d] !== void 0) {
-      if (!(d in c)) return t.refuse("That rule does not take " + d + ".");
-      c[d] = e[d];
+    for (const h of ["floor", "onConflict", "unit", "under", "by", "drop", "mode"]) if (e[h] !== void 0) {
+      if (!(h in u)) return r.refuse("That rule does not take " + h + ".");
+      u[h] = e[h];
     }
     return l(
-      { ...s, rev: s.rev + 1, rules: s.rules.map((d) => d.id === c.id ? c : d) },
-      c.on ? "The rule now says: " + g(c, n) : "Turned off: " + g(c, n)
+      { ...a, rev: a.rev + 1, rules: a.rules.map((h) => h.id === u.id ? u : h) },
+      u.on ? "The rule now says: " + x(u, n) : "Turned off: " + x(u, n)
     );
   }
-  const a = e.rule, o = v(n)?.keys ?? X;
-  if (o[a.kind] === void 0) return t.refuse("This board does not know the rule " + String(a.kind) + ".", { code: "invalid_edit" });
-  const f = Object.keys(a).find((c) => !("kind severity " + o[a.kind]).split(" ").includes(c));
-  if (f) return t.refuse("A " + String(a.kind) + " rule does not take " + f + ".", { code: "invalid_edit" });
-  const p = { id: ee(s), kind: a.kind, on: !0, severity: a.severity ?? "refuse", set: i };
-  for (const [c, d] of Object.entries(a))
-    c === "kind" || c === "severity" || (p[c] = c === "where" || c === "into" || c === "lane" || c === "from" ? r(d) : c === "to" && Array.isArray(d) ? d.map(r) : c === "cards" && Array.isArray(d) ? d.map((m) => t.card(m).id) : d);
-  return l({ ...s, rev: s.rev + 1, rules: [...s.rules, p] }, "New rule: " + g(p, n));
+  const i = e.rule, t = g(n)?.keys ?? ee;
+  if (t[i.kind] === void 0) return r.refuse("This board does not know the rule " + String(i.kind) + ".", { code: "invalid_edit" });
+  const f = Object.keys(i).find((u) => !("kind severity " + t[i.kind]).split(" ").includes(u));
+  if (f) return r.refuse("A " + String(i.kind) + " rule does not take " + f + ".", { code: "invalid_edit" });
+  const p = { id: ne(a), kind: i.kind, on: !0, severity: i.severity ?? "refuse", set: s };
+  for (const [u, h] of Object.entries(i))
+    u === "kind" || u === "severity" || (p[u] = u === "where" || u === "into" || u === "lane" || u === "from" ? o(h) : u === "to" && Array.isArray(h) ? h.map(o) : u === "cards" && Array.isArray(h) ? h.map((d) => r.card(d).id) : h);
+  return l({ ...a, rev: a.rev + 1, rules: [...a.rules, p] }, "New rule: " + x(p, n));
 }
-function te(n, e, i) {
-  const t = z(n), s = F(t), l = (d, m, h) => typeof h == "object" ? d.find((k) => k.id === h.id) : d.find((k) => k.id === h) ?? m.attempt(h), u = l(t.cards, s.cards, e), r = l(t.lanes, s.lanes, i);
-  if (!u || !r) return { refused: { sentence: u ? "There is no such column on this board." : "There is no such card on this board.", ruleId: null, nearest: null } };
-  const a = t.lanes.map((d) => d.id), o = () => t.lanes.filter((d) => d.id !== u.laneId && d.id !== r.id && O(t, u.id, d.id)).sort((d, m) => Math.abs(a.indexOf(d.id) - a.indexOf(r.id)) - Math.abs(a.indexOf(m.id) - a.indexOf(r.id)))[0]?.label ?? null, f = O(t, u.id, r.id);
+function oe(n, e, s) {
+  const r = z(n), a = F(r), l = (d, m, k) => typeof k == "object" ? d.find((v) => v.id === k.id) : d.find((v) => v.id === k) ?? m.attempt(k), c = l(r.cards, a.cards, e), o = l(r.lanes, a.lanes, s);
+  if (!c || !o) return { refused: { sentence: c ? "There is no such column on this board." : "There is no such card on this board.", ruleId: null, nearest: null, overridable: !1 } };
+  const i = r.lanes.map((d) => d.id), t = () => r.lanes.filter((d) => d.id !== c.laneId && d.id !== o.id && O(r, c.id, d.id)).sort((d, m) => Math.abs(i.indexOf(d.id) - i.indexOf(o.id)) - Math.abs(i.indexOf(m.id) - i.indexOf(o.id)))[0]?.label ?? null, f = O(r, c.id, o.id);
   if (f) {
-    const d = f === t || !t.behaviour ? null : S(t, f);
+    const d = f === r || !r.behaviour ? null : S(r, f);
     return { ok: !0, warnings: d && "ok" in d ? d.warnings : [] };
   }
-  const p = D(t, u.id, r.id) ?? "That move is not available.", c = y(t).rules.find((d) => d.on && p === oe(t, u.id, r.id, d));
-  return { refused: { sentence: p, ruleId: c?.id ?? null, nearest: o(), ...c && { set: c.set } } };
+  const p = D(r, c.id, o.id) ?? "That move is not available.", u = y(r).rules.find((d) => d.on && p === ie(r, c.id, o.id, d)), h = B(r, c.id, o.id) === null;
+  return { refused: { sentence: p, ruleId: u?.id ?? null, nearest: t(), overridable: h, ...u && { set: u.set } } };
 }
-function oe(n, e, i, t) {
-  const s = { ...n, behaviour: { ...y(n), rules: [t] } }, l = S(s, { ...s, cards: s.cards.map((u) => u.id === e ? { ...u, laneId: i } : u) });
+function ie(n, e, s, r) {
+  const a = { ...n, behaviour: { ...y(n), rules: [r] } }, l = S(a, { ...a, cards: a.cards.map((c) => c.id === e ? { ...c, laneId: s } : c) });
   return "refused" in l ? l.refused.sentence : null;
 }
-function ie(n, e, i = {}) {
+function se(n, e, s = {}) {
   if (!n.behaviour) return null;
-  const t = R(n), s = ["How this board behaves", ...t.length ? t : ["No rules yet. Say “Let a column hold 2”."]].join(`
-`), l = Math.max(12, (i.fontSize ?? M.fontSize) - 2), u = Math.max(12, Math.floor((e.width - 24) / (l * 0.55))), r = s.split(`
-`).reduce((o, f) => o + Math.max(1, Math.ceil(f.length / u)), 0), a = Math.round(r * l * 1.4 + 24);
+  const r = R(n), a = ["How this board behaves", ...r.length ? r : ["No rules yet. Say “Let a column hold 2”."]].join(`
+`), l = Math.max(12, (s.fontSize ?? C.fontSize) - 2), c = Math.max(12, Math.floor((e.width - 24) / (l * 0.55))), o = a.split(`
+`).reduce((t, f) => t + Math.max(1, Math.ceil(f.length / c)), 0), i = Math.round(o * l * 1.4 + 24);
   return { options: {
     id: "rules-board",
     name: "How this board behaves",
-    text: s,
+    text: a,
     xPos: e.x,
     yPos: e.y,
     width: e.width,
-    height: a,
+    height: i,
     shapeHint: "rectangle",
-    vectorPath: U(e.width, a, i.cornerRadius ?? 0),
+    vectorPath: W(e.width, i, s.cornerRadius ?? 0),
     backgroundColor: "#f4f1e8",
-    foregroundColor: i.textColor ?? M.fontColor,
+    foregroundColor: s.textColor ?? C.fontColor,
     borderColor: "#b8b2a0",
     borderWidth: 1,
     borderStyle: "dashed",
     fontSize: l,
-    ...i.fontFamily ? { fontFamily: i.fontFamily } : {}
+    ...s.fontFamily ? { fontFamily: s.fontFamily } : {}
   }, relationships: { associations: [] } };
 }
-function se(n, e, i, t) {
-  const s = n.behaviour?.rules.find((u) => u.kind === "capacity" && u.where === e);
-  if (!s) return null;
-  if (i !== null && (!Number.isInteger(i) || i < 1 || i > 24)) return "A column can hold from 1 to 24 cards.";
-  const l = i === null ? n.behaviour.rules.filter((u) => u !== s) : n.behaviour.rules.map((u) => u === s ? { ...u, max: i, on: !0, set: t } : u);
+function ae(n, e, s, r) {
+  const a = n.behaviour?.rules.find((c) => c.kind === "capacity" && c.where === e);
+  if (!a) return null;
+  if (s !== null && (!Number.isInteger(s) || s < 1 || s > 24)) return "A column can hold from 1 to 24 cards.";
+  const l = s === null ? n.behaviour.rules.filter((c) => c !== a) : n.behaviour.rules.map((c) => c === a ? { ...c, max: s, on: !0, set: r } : c);
   return { ...n, behaviour: { ...n.behaviour, rev: n.behaviour.rev + 1, rules: l } };
 }
-function ae(n, e) {
-  const i = y(n), t = y(e), s = JSON.stringify, l = (r) => s(r.cards.map((a) => [a.id, a.laneId]));
-  if (s(i.rules) !== s(t.rules)) {
-    if (t.rev <= i.rev) return "The rules changed. Save them with a new revision.";
+function le(n, e) {
+  const s = y(n), r = y(e), a = JSON.stringify, l = (o) => a(o.cards.map((i) => [i.id, i.laneId]));
+  if (a(s.rules) !== a(r.rules)) {
+    if (r.rev <= s.rev) return "The rules changed. Save them with a new revision.";
     if (l(n) !== l(e)) return "Change the rules on their own, then move cards.";
   }
-  const u = n.behaviour ? S(n, e) : null;
-  return u && "refused" in u ? u.refused.sentence : null;
+  const c = n.behaviour ? S(n, e) : null;
+  return c && "refused" in c ? c.refused.sentence : null;
 }
-P({
-  replacement: ae,
-  move: te,
-  diff: V,
-  note: ie,
-  setLimit: se,
+U({
+  replacement: le,
+  move: oe,
+  diff: X,
+  note: se,
+  setLimit: ae,
   validate: L,
   check: S,
   laneLimit: _,
   lines: R,
-  dropLane: ne,
-  edit: re
+  dropLane: re,
+  edit: te
 });
 export {
-  re as applyRuleEdit,
-  J as behaviourContradiction,
-  V as behaviourDiff,
+  te as applyRuleEdit,
+  Y as behaviourContradiction,
+  X as behaviourDiff,
   I as behaviourFamily,
   _ as behaviourLaneLimit,
   R as behaviourLines,
   y as behaviourOf,
   S as checkBehaviour,
-  te as checkWorkshopMove,
-  ne as dropLaneRules,
-  Z as emptyBehaviour,
-  W as maxBehaviourRules,
-  ee as nextRuleId,
-  ce as ruleKindIds,
-  g as ruleSentence,
-  se as setRuledLimit,
+  oe as checkWorkshopMove,
+  re as dropLaneRules,
+  $ as emptyBehaviour,
+  K as maxBehaviourRules,
+  ne as nextRuleId,
+  de as ruleKindIds,
+  x as ruleSentence,
+  ae as setRuledLimit,
   L as validateBehaviour
 };

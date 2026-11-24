@@ -50,6 +50,7 @@ export type WorkshopEdit = {
     kind: 'move_card';
     card: WorkshopRef;
     lane: WorkshopRef;
+    override?: boolean;
 } | {
     kind: 'advance_card';
     card: WorkshopRef;
@@ -312,6 +313,8 @@ export interface WorkshopEditRefusal {
     candidates?: string[];
     /** A number out of range: the range a person may use, and the sentence at each end. */
     limits?: WorkshopLimits;
+    /** A move a rule refused that the person may make anyway: the same move_card again with override true, once they agree. */
+    overridable?: boolean;
 }
 export type WorkshopEditResult = {
     workshop: Workshop;

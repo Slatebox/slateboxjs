@@ -9615,7 +9615,7 @@ class os {
    * The note stays under the pointer and the policy hears each step as a move.
    */
   panWhileHeldNearEdge(t) {
-    if (t.pan || !t.started || !t.last || typeof requestAnimationFrame > "u") return;
+    if (t.pan || !t.started || !t.last || typeof requestAnimationFrame > "u" || this.slate?.capabilitiesOf?.(this)?.edgePan === !1) return;
     const e = this.edgePanVelocity(t, t.last.gesture);
     if (!e.x && !e.y) return;
     let s = performance.now();

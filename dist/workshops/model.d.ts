@@ -65,6 +65,21 @@ export interface WorkshopCard {
      * the canvas. A map's token is a card without it, and only the token follows the paths (boards S2b).
      */
     free?: true;
+    /**
+     * A move made anyway, past the rule that refused it, once the person confirmed it ("Move anyway"): who, when, the
+     * rule's sentence, and the lane it came from (Undo puts it back there). Shown on the card. Lane boards and maps only.
+     */
+    override?: WorkshopOverride;
+}
+/** A card moved past a rule (WorkshopCard.override). */
+export interface WorkshopOverride {
+    by: string;
+    /** ISO time. */
+    at: string;
+    /** The rule's sentence, as the refusal said it. */
+    sentence: string;
+    /** The lane the card was in before. */
+    from: string;
 }
 /**
  * What an ordinary note had that its card does not show: its words with their line breaks,
@@ -289,6 +304,32 @@ export declare function moveWorkshopCard(board: Workshop, cardId: string, laneId
  * the stations reachable from here.
  */
 export declare function workshopCandidate(board: Workshop, cardId: string, laneId: string): Workshop | null;
+/**
+ * Why this refused move may not be made even with a confirmation, as a sentence; null when it may be made anyway
+ * (or needs no override at all). See "Moving a card anyway" above for the hard limits.
+ */
+export declare function workshopHardLimit(board: Workshop, cardId: string, laneId: string): string | null;
+/**
+ * The board a refused move makes once the person confirmed it ("Move anyway"): the card in that lane, marked with who
+ * (`by`), when (`at`, ISO), the rule's sentence and the lane it came from. Null when the move needs no override
+ * (workshopCandidate has it) or when it is a hard limit (workshopHardLimit says why).
+ */
+export declare function workshopOverrideCandidate(board: Workshop, cardId: string, laneId: string, who: {
+    by: string;
+    at: string;
+}): Workshop | null;
+/**
+ * A whole board sent to replace `before` (a kept chat proposal, an Undo) with its move-anyway marks made true by the
+ * one who saves it: a card that moved past a rule is marked with `who` and the rule `before` refused it by; a mark on
+ * a card that did not move stays as stored; a mark on a move no rule refused, or on a new card, is dropped. A page
+ * never writes who moved a card anyway.
+ */
+export declare function workshopStampOverrides(before: Workshop, after: Workshop, who: {
+    by: string;
+    at: string;
+}): Workshop;
+/** What a card moved anyway says under its name: "Moved anyway by Sam · 23 Nov". */
+export declare function workshopOverrideLine(card: Pick<WorkshopCard, 'override'>): string | null;
 /** Every lane the card may be dropped in, including the one it is in. */
 export declare function workshopDestinations(board: Workshop, cardId: string): WorkshopLane[];
 /** Why workshopCandidate refuses this move, as a sentence for the person moving the card. Null when the move is available. */
@@ -643,7 +684,7 @@ export * from './moonGallery';
 export * from './darkroom/model';
 export * from './edits';
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names';
-export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native';
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopOverrideAsk, type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native';
 export { createBoardLayer, layerInk, renderLayerShapes, type LayerShape } from './boardLayer';
 export { boardLegend, boardChromeShapes, boardBadgeShapes, boardChromeLayout, boardChromeLabel, boardChromeStyles, chromeInk, DRAFT_TAG, boardChromeBox, chromeScaleAt, chromeTagScaleAt, CHROME_MAX_SCALE, CHROME_CHIPS_MAX_SCALE, type LegendItem, type LegendIcon, type ChromeOptions } from './boardChrome';
 export type StartupExperience = {

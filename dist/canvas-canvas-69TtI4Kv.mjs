@@ -9228,7 +9228,7 @@ class ki {
    * The note stays under the pointer and the policy hears each step as a move.
    */
   panWhileHeldNearEdge(t) {
-    if (t.pan || !t.started || !t.last || typeof requestAnimationFrame > "u") return;
+    if (t.pan || !t.started || !t.last || typeof requestAnimationFrame > "u" || this.slate?.capabilitiesOf?.(this)?.edgePan === !1) return;
     const e = this.edgePanVelocity(t, t.last.gesture);
     if (!e.x && !e.y) return;
     let i = performance.now();
@@ -13962,7 +13962,7 @@ function Kh(n) {
     y: t.options.y || 0
   }));
 }
-const se = {}, Qh = () => se.lineTool ?? null, Jh = async () => se.lineTool ?? (se.lineTool = await import("./canvas-LineTool-DdDdivDA.mjs")), td = () => se.birdsEye ?? null, ed = async () => se.birdsEye ?? (se.birdsEye = await import("./canvas-BirdsEye-DMWtH8qa.mjs"));
+const se = {}, Qh = () => se.lineTool ?? null, Jh = async () => se.lineTool ?? (se.lineTool = await import("./canvas-LineTool-BvQ92O1U.mjs")), td = () => se.birdsEye ?? null, ed = async () => se.birdsEye ?? (se.birdsEye = await import("./canvas-BirdsEye-DXNAfp4e.mjs"));
 class nd {
   constructor(t, e = {}) {
     this.container = null, this.slider = null, this.label = null, this._viewObserver = null, this._sizeObserver = null, this.fitButton = null, this.zoomInButton = null, this.zoomOutButton = null, this.rule = null, this.compact = null, this.slate = t, this.options = {
