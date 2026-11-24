@@ -48,14 +48,16 @@ export function pipelineLayout(board: Workshop, layout: WorkshopBoardLayout = {}
   } else {
     const pitch = 244
     const most = Math.max(...counts)
-    const h = 116 + (most + 1) * 88
+    // A stage over its limit says so on a caption line of its own: every stage's deals move down to make room for it.
+    const room = board.lanes.some(lane => pipelineStageOver(board, lane.id)) ? 24 : 0
+    const h = 116 + room + (most + 1) * 88
     board.lanes.forEach((lane, i) => {
       const x = i * pitch
       parts.push({ name: 'column-' + lane.id, x: x + 2, y: GAUGE, width: pitch - 4, height: h, ...column(i) })
       parts.push({ name: 'lane-' + lane.id, x: x + 8, y: GAUGE + 6, width: 228, height: 58, text: lane.label, fill: color(i), fontSize: 16 })
-      parts.push({ name: 'caption-' + lane.id, x: x + 8, y: GAUGE + 66, width: 228, height: 48, text: pipelineCaption(board, lane.id).replace(' · over its limit', '\nover its limit'), fill: 'transparent', lineWidth: 0, fontSize: 15, ...over(i) })
+      parts.push({ name: 'caption-' + lane.id, x: x + 8, y: GAUGE + 66, width: 228, height: 48 + room, text: pipelineCaption(board, lane.id).replace(' · over its limit', '\nover its limit'), fill: 'transparent', lineWidth: 0, fontSize: 15, ...over(i) })
       board.cards.filter(card => card.laneId === lane.id).forEach((card, k) =>
-        parts.push({ name: 'card-' + card.id, x: x + 8, y: GAUGE + 116 + k * 88, width: 228, height: 76, text: cardText(board, card.id), fontSize: 15 }))
+        parts.push({ name: 'card-' + card.id, x: x + 8, y: GAUGE + 116 + room + k * 88, width: 228, height: 76, text: cardText(board, card.id), fontSize: 15 }))
     })
     width = board.lanes.length * pitch
     height = GAUGE + h

@@ -353,3 +353,15 @@ describe('what a board shows of a move made anyway', () => {
     expect(qa.x + qa.width).toBeLessThanOrEqual(g.width)
   })
 })
+
+describe('a pipeline stage over its limit', () => {
+  it('makes room for its caption line: no deal lies over it', async () => {
+    const { pipelineLayout } = await import('../../src/boards/pipelineKit')
+    const moved = workshopOverrideCandidate(validateWorkshop(samplePipeline()), 'northwind', 'proposal', sam)!
+    const parts = pipelineLayout(moved).parts
+    const caption = parts.find(part => part.name === 'caption-proposal')!
+    const first = parts.filter(part => part.name.startsWith('card-') && part.x === caption.x).sort((a, b) => a.y - b.y)[0]
+    expect(caption.height).toBeGreaterThanOrEqual(72)
+    expect(first.y).toBeGreaterThanOrEqual(caption.y + caption.height)
+  })
+})
