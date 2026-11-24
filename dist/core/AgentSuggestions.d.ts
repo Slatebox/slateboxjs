@@ -45,6 +45,9 @@ export interface AgentSuggestionsOptions {
     canAct?: () => boolean;
     onKeep?: (ref: SuggestionRef) => void;
     onDiscard?: (ref: SuggestionRef) => void;
+    /** Keep all / Discard all on an action's frame: the host saves (or drops) its waiting items at once. */
+    onKeepAll?: (actionId: string) => void;
+    onDiscardAll?: (actionId: string) => void;
     /** Turns a stored (v1) note's options into the engine's: pass compat.v1NodeToV2 (the default maps position, size and words). */
     toNode?: (v1: Record<string, any>) => Record<string, any>;
 }
@@ -61,15 +64,50 @@ export interface ShownSuggestion {
         w: number;
         h: number;
     } | null;
-    /** Whether Keep and Discard are drawn on it. */
+    /** Whether Keep and Discard are drawn on it (a new note's show under the pointer or with focus). */
     controls: boolean;
+    /** Its action's frame: the box around the action's new notes (null when it adds none). */
+    frame: {
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+    } | null;
+}
+/** One action's group as drawn: its frame, its one tag, and its Keep all / Discard all (world boxes). */
+export interface ShownGroup {
+    actionId: string;
+    frame: {
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+    };
+    tag: {
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+    };
+    all: {
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+    } | null;
+    words: string;
 }
 export interface AgentSuggestions {
     set(actions: SuggestionAction[]): void;
     shown(): ShownSuggestion[];
+    /** Each action's frame, tag and Keep all / Discard all, as drawn. */
+    groups(): ShownGroup[];
     /** Keep or Discard one suggestion, as its buttons do (for keyboard hosts and tests). */
     keep(ref: SuggestionRef): void;
     discard(ref: SuggestionRef): void;
+    /** Keep all / Discard all of one action, as its frame's buttons do. */
+    keepAll(actionId: string): void;
+    discardAll(actionId: string): void;
     destroy(): void;
 }
 /** The suggestions still waiting, in order, each with its action. */
@@ -77,4 +115,6 @@ export declare function pendingItems(actions: SuggestionAction[]): {
     action: SuggestionAction;
     item: SuggestionItem;
 }[];
+/** What an action's waiting items are, in a few words: "3 notes, 2 lines". */
+export declare function groupWords(items: SuggestionItem[]): string;
 export declare function createAgentSuggestions(host: any, options?: AgentSuggestionsOptions): AgentSuggestions;

@@ -1,4 +1,4 @@
-import { v as f, g as u } from "./canvas-canvas-BbkoZ6zT.mjs";
+import { v as f, g as u } from "./canvas-canvas-Bk1WT9Zd.mjs";
 const c = class c {
   constructor(e, t = {}) {
     this.boundHandler = null, this.clipboard = [], this.clipboardEdges = [], this.pasteCount = 0, this.nudgeFrom = null, this.nudgeTimer = null, this.slate = e, this.options = {

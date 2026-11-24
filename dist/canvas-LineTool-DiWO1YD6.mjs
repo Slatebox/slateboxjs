@@ -1,4 +1,4 @@
-import { a as z, b as j, n as q, c as B } from "./canvas-canvas-BbkoZ6zT.mjs";
+import { a as z, b as j, n as q, c as B } from "./canvas-canvas-Bk1WT9Zd.mjs";
 const U = 10, T = (e) => {
   const n = e?.options || {};
   return { x: n.x || 0, y: n.y || 0, width: n.width || 1, height: n.height || 1, rotation: n.rotate?.rotationAngle || 0 };

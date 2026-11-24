@@ -1,6 +1,5 @@
-import { AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, AGENT_SAY_MS, agentChecklist, agentName, agentOrigin, agentSaying, agentStepText, safeIconUrl, visibleAgents, type AgentPresenceRecord, type AgentStepStatus } from './agentPresenceText';
-export { AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, AGENT_SAY_MS, agentChecklist, agentName, agentOrigin, agentSaying, agentStepText, safeIconUrl, visibleAgents, type AgentPresenceRecord, type AgentStepStatus, };
-export { createAgentSuggestions, ghostIdOf, GHOST_PREFIX, pendingItems, type AgentSuggestions, type AgentSuggestionsOptions, type SuggestionAction, type SuggestionItem, type SuggestionRef, } from './AgentSuggestions';
+import { AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, AGENT_SAY_MS, agentChecklist, agentName, agentOrigin, agentSaying, agentStepText, clip, plainLine, safeIconUrl, visibleAgents, type AgentPresenceRecord, type AgentStepStatus } from './agentPresenceText';
+export { AGENT_FADE_MS, AGENT_HOLD_MS, AGENT_MAX_DRAWN, AGENT_PALETTE, AGENT_SAY_MS, agentChecklist, agentName, agentOrigin, agentSaying, agentStepText, safeIconUrl, visibleAgents, clip, plainLine, type AgentPresenceRecord, type AgentStepStatus, };
 export interface AgentPresenceOptions {
     now?: () => number;
     /** Jump instead of glide (defaults to the person's reduced-motion setting). */
@@ -56,14 +55,43 @@ export interface AgentPresence {
 export declare const AGENT_GLIDE_MS = 400;
 /** One beat of a choreographed run: the pointer's leg to each spot when it visits several in turn. */
 export declare const AGENT_BEAT_MS = 450;
-export declare const AGENT_VISIT_MS = 450;
 export declare const AGENT_MAX_VISITS = 5;
-interface Box {
+/**
+ * How faint an agent's pointer and tag are while any part of its tag, list or bubble is over a suggestion group's tag or
+ * its Keep all / Discard all (on its way past them, say): the group's words stay readable through it, and the tag lets
+ * clicks through to the buttons under it. Checked on every frame the pointer moves and whenever the canvas changes.
+ */
+export declare const AGENT_DIM_OPACITY = 0.3;
+export interface Box {
     x: number;
     y: number;
     w: number;
     h: number;
 }
+/** How much of box a covers box b (area, world units). */
+export declare const overlap: (a: Box, b: Box) => number;
+/** A note's box in world units, or null. */
+export declare function boxOf(node: any): Box | null;
+/** An agent's colour from its colorIndex (any integer). */
+export declare const agentColor: (index: unknown) => string;
+/** The agent mark: a hexagon's points, centred at (cx, cy) with radius r. */
+export declare const hexPoints: (cx: number, cy: number, r: number) => string;
+/**
+ * Screen pixels per world unit as the canvas element fits its view box (preserveAspectRatio: "slice" crops the longer
+ * side, "meet" or none adds room around it), with the view box; null when the canvas has no size yet.
+ */
+export declare function screenScale(slate: any): {
+    box: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
+    rect: DOMRect;
+    scale: number;
+} | null;
+/** The canvas's scale, else the pan-zoom's, else 1. */
+export declare function canvasZoom(slate: any): number;
 /**
  * Which side of its pointer an agent's tag (and open checklist) goes: right and down unless that
  * leaves the view or covers words. Tried in order: right-down, left-down, right-up, left-up; the

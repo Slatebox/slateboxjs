@@ -42,6 +42,8 @@ export interface AgentPresenceRecord {
     invitedBy?: string | null;
     /** The agent across its runs on this slate (stable per agent and slate, never a token id). */
     agentId?: string | null;
+    /** Set by the host: what this agent suggested still waits on the slate for someone to keep or discard. */
+    waiting?: boolean | null;
 }
 /** How long a pointer's bubble shows after the agent says something. */
 export declare const AGENT_SAY_MS = 3000;
@@ -66,8 +68,19 @@ export declare function time(value: number | string | Date | null | undefined): 
 export declare const clip: (text: string, max: number) => string;
 /** Text as it is drawn: one line of plain characters (the server cleans it; this keeps the canvas safe anyway). */
 export declare const plainLine: (text: unknown) => string;
-/** The step a tag shows: the plan's current step, or the save's message when there is no plan. */
-export declare function agentStepText(record: AgentPresenceRecord): string | null;
+/** Whether a record points at suggestions: its targets are ghost notes (ghost-<id>, as the suggestions draw them). */
+export declare const agentSuggests: (record: Pick<AgentPresenceRecord, "targets">) => boolean;
+export declare const AGENT_SUGGESTING = "Suggesting\u2026";
+export declare const AGENT_WAITING = "Waiting for you";
+/**
+ * The step a tag shows: what the agent is doing now. "Suggesting…" while its suggestion is still landing (`landing`: the
+ * pointer is on its way to the ghosts, or they are not drawn yet) or while the live run that filed it goes on;
+ * "Waiting for you" once what it suggested waits for Keep or Discard (`waiting`, set by the host); never "Done" before
+ * either. Otherwise the plan's current step, or the save's message when there is no plan.
+ */
+export declare function agentStepText(record: AgentPresenceRecord, { landing }?: {
+    landing?: boolean;
+}): string | null;
 /** The checklist lines a record shows, each with its glyph. */
 export declare function agentChecklist(record: AgentPresenceRecord): string[];
 /**
